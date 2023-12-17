@@ -64,3 +64,9 @@ subsection reduced order
   set num_halton = 0
   set recomputation_coefficient = 5
 end
+
+subsection hyperreduction
+  set NNLS_tol = 1E-06
+  set NNLS_max_iter = 5000;
+  set num_training_snaps = 6;
+end

@@ -14,6 +14,7 @@
 #include "parameters/parameters_physics_model.h"
 
 #include "parameters/parameters_reduced_order.h"
+#include "parameters/parameters_hyper_reduction.h"
 #include "parameters/parameters_burgers.h"
 #include "parameters/parameters_grid_refinement_study.h"
 #include "parameters/parameters_grid_refinement.h"
@@ -45,6 +46,8 @@ public:
     NavierStokesParam navier_stokes_param;
     /// Contains parameters for the Reduced-Order model
     ReducedOrderModelParam reduced_order_param;
+    /// Contains parameters for Hyperreduction
+    HyperReductionParam hyper_reduction_param;
     /// Contains parameters for Burgers equation
     BurgersParam burgers_param;
     /// Contains parameters for Physics Model

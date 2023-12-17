@@ -17,6 +17,7 @@ AllParameters::AllParameters ()
     , euler_param(EulerParam())
     , navier_stokes_param(NavierStokesParam())
     , reduced_order_param(ReducedOrderModelParam())
+    , hyper_reduction_param(HyperReductionParam())
     , burgers_param(BurgersParam())
     , physics_model_param(PhysicsModelParam())
     , grid_refinement_study_param(GridRefinementStudyParam())
@@ -340,6 +341,7 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
     Parameters::NavierStokesParam::declare_parameters (prm);
     Parameters::PhysicsModelParam::declare_parameters (prm);
     Parameters::ReducedOrderModelParam::declare_parameters (prm);
+    Parameters::HyperReductionParam::declare_parameters (prm);
     Parameters::BurgersParam::declare_parameters (prm);
     Parameters::GridRefinementStudyParam::declare_parameters (prm);
     Parameters::ArtificialDissipationParam::declare_parameters (prm);
@@ -524,6 +526,9 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
 
     pcout << "Parsing reduced order subsection..." << std::endl;
     reduced_order_param.parse_parameters (prm);
+
+    pcout << "Parsing hyperreduction subsection..." << std::endl;
+    hyper_reduction_param.parse_parameters (prm);
 
     pcout << "Parsing Burgers subsection..." << std::endl;
     burgers_param.parse_parameters (prm);

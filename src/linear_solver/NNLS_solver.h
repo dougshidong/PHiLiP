@@ -52,6 +52,7 @@
 #include <Amesos.h>
 #include <Amesos_BaseSolver.h>
 #include <eigen/Eigen/Dense>
+#include "parameters/all_parameters.h"
 
 using Eigen::Matrix;
 namespace PHiLiP {
@@ -59,13 +60,44 @@ class NNLS_solver
 {
 public:
     /// Default Constructor
-    NNLS_solver(const Epetra_CrsMatrix &A, Epetra_MpiComm &Comm, Epetra_Vector &b, const int max_iter, const double tau);
+    NNLS_solver(
+        const Parameters::AllParameters *const parameters_input,
+        const dealii::ParameterHandler &parameter_handler_input,
+        const Epetra_CrsMatrix &A, 
+        Epetra_MpiComm &Comm, 
+        Epetra_Vector &b);
+
     /// Constructor w/ Gradient Exit Condition
-    NNLS_solver(const Epetra_CrsMatrix &A, Epetra_MpiComm &Comm, Epetra_Vector &b, const int max_iter, const double tau, bool grad_exit_crit);
+    NNLS_solver(
+        const Parameters::AllParameters *const parameters_input,
+        const dealii::ParameterHandler &parameter_handler_input,
+        const Epetra_CrsMatrix &A, 
+        Epetra_MpiComm &Comm, 
+        Epetra_Vector &b, 
+        bool grad_exit_crit);
+    
     /// Constructor w/ Iterative Linear Solver
-    NNLS_solver(const Epetra_CrsMatrix &A, Epetra_MpiComm &Comm, Epetra_Vector &b, const int max_iter, const double tau, bool iter_solver, int LS_iter, double LS_tol);
+    NNLS_solver(        
+        const Parameters::AllParameters *const parameters_input,
+        const dealii::ParameterHandler &parameter_handler_input,
+        const Epetra_CrsMatrix &A, 
+        Epetra_MpiComm &Comm, 
+        Epetra_Vector &b, 
+        bool iter_solver, 
+        int LS_iter, 
+        double LS_tol);
+
     /// Constructor w/ Gradient Exit Condition & Iterative Linear Solver
-    NNLS_solver(const Epetra_CrsMatrix &A, Epetra_MpiComm &Comm, Epetra_Vector &b, const int max_iter, const double tau, bool grad_exit_crit, bool iter_solver, int LS_iter, double LS_tol);
+    NNLS_solver(
+        const Parameters::AllParameters *const parameters_input,
+        const dealii::ParameterHandler &parameter_handler_input,
+        const Epetra_CrsMatrix &A, 
+        Epetra_MpiComm &Comm, 
+        Epetra_Vector &b, 
+        bool grad_exit_crit, 
+        bool iter_solver, 
+        int LS_iter, 
+        double LS_tol);
  
     /// Destructor
     virtual ~NNLS_solver() {};
@@ -82,13 +114,16 @@ public:
         SubIntoX(start);
         P.flip();}
   
+    const Parameters::AllParameters *const all_parameters; ///< Pointer to all parameters
+
+    /// Parameter handler for storing the .prm file being ran
+    const dealii::ParameterHandler &parameter_handler;
+
 protected:
     const Epetra_CrsMatrix A_;
     Epetra_MpiComm Comm_;
     Epetra_Vector b_;
     Epetra_Vector x_;
-    const int max_iter_;
-    const double tau_;
     int LS_iter_; // needed if the an iterative solver is used
     double LS_tol_; // needed if the an iterative solver is used
     int numInactive_;

@@ -3,77 +3,105 @@
 
 namespace PHiLiP {
 
-NNLS_solver::NNLS_solver(const Epetra_CrsMatrix &A, Epetra_MpiComm &Comm, Epetra_Vector &b, const int max_iter, const double tau):
-  A_(A),
-  Comm_(Comm), 
-  b_(b), 
-  x_(A.ColMap()), 
-  max_iter_(max_iter), 
-  tau_(tau), 
-  LS_iter_(1000), 
-  LS_tol_(10E-8), 
-  Z(A_.NumMyCols()), 
-  P(A_.NumMyCols()), 
-  iter_solver_(false), 
-  grad_exit_crit_(false) 
-  {
-    index_set = Eigen::VectorXd::LinSpaced(A_.NumMyCols(), 0, A_.NumMyCols() -1); // Indices proceeding and including numInactive are in the P set (Inactive/Positive)
-    Z.flip(); // All columns begin in the Z set (Active)
-  }
+NNLS_solver::NNLS_solver(
+  const Parameters::AllParameters *const parameters_input,
+  const dealii::ParameterHandler &parameter_handler_input,
+  const Epetra_CrsMatrix &A, 
+  Epetra_MpiComm &Comm, 
+  Epetra_Vector &b):
+    all_parameters(parameters_input),
+    parameter_handler(parameter_handler_input),
+    A_(A),
+    Comm_(Comm), 
+    b_(b), 
+    x_(A.ColMap()), 
+    LS_iter_(1000), 
+    LS_tol_(10E-8), 
+    Z(A_.NumMyCols()), 
+    P(A_.NumMyCols()), 
+    iter_solver_(false), 
+    grad_exit_crit_(false) 
+    {
+      index_set = Eigen::VectorXd::LinSpaced(A_.NumMyCols(), 0, A_.NumMyCols() -1); // Indices proceeding and including numInactive are in the P set (Inactive/Positive)
+      Z.flip(); // All columns begin in the Z set (Active)
+    }
 
-NNLS_solver::NNLS_solver(const Epetra_CrsMatrix &A, Epetra_MpiComm &Comm, Epetra_Vector &b, const int max_iter, const double tau, bool grad_exit_crit):
-  A_(A),  
-  Comm_(Comm), 
-  b_(b), 
-  x_(A.ColMap()), 
-  max_iter_(max_iter), 
-  tau_(tau), 
-  LS_iter_(1000), 
-  LS_tol_(10E-8), 
-  Z(A_.NumMyCols()), 
-  P(A_.NumMyCols()), 
-  iter_solver_(false), 
-  grad_exit_crit_(grad_exit_crit) 
-  {
-    index_set = Eigen::VectorXd::LinSpaced(A_.NumMyCols(), 0, A_.NumMyCols() -1); // Indices proceeding and including numInactive are in the P set (Inactive/Positive)
-    Z.flip(); // All columns begin in the Z set (Active)
-  }
+NNLS_solver::NNLS_solver(
+  const Parameters::AllParameters *const parameters_input,
+  const dealii::ParameterHandler &parameter_handler_input,
+  const Epetra_CrsMatrix &A, 
+  Epetra_MpiComm &Comm, 
+  Epetra_Vector &b,
+  bool grad_exit_crit):
+    all_parameters(parameters_input),
+    parameter_handler(parameter_handler_input),
+    A_(A),  
+    Comm_(Comm), 
+    b_(b), 
+    x_(A.ColMap()), 
+    LS_iter_(1000), 
+    LS_tol_(10E-8), 
+    Z(A_.NumMyCols()), 
+    P(A_.NumMyCols()), 
+    iter_solver_(false), 
+    grad_exit_crit_(grad_exit_crit) 
+    {
+      index_set = Eigen::VectorXd::LinSpaced(A_.NumMyCols(), 0, A_.NumMyCols() -1); // Indices proceeding and including numInactive are in the P set (Inactive/Positive)
+      Z.flip(); // All columns begin in the Z set (Active)
+    }
 
-NNLS_solver::NNLS_solver(const Epetra_CrsMatrix &A, Epetra_MpiComm &Comm, Epetra_Vector &b, const int max_iter, const double tau,  bool iter_solver, int LS_iter, double LS_tol):
-  A_(A), 
-  Comm_(Comm), 
-  b_(b), 
-  x_(A.ColMap()), 
-  max_iter_(max_iter), 
-  tau_(tau), 
-  LS_iter_(LS_iter), 
-  LS_tol_(LS_tol),
-  Z(A_.NumMyCols()), 
-  P(A_.NumMyCols()), 
-  iter_solver_(iter_solver), 
-  grad_exit_crit_(false) 
-  {
-    index_set = Eigen::VectorXd::LinSpaced(A_.NumMyCols(), 0, A_.NumMyCols() -1); // Indices proceeding and including numInactive are in the P set (Inactive/Positive)
-    Z.flip(); // All columns begin in the Z set (Active)
-  }
+NNLS_solver::NNLS_solver(
+  const Parameters::AllParameters *const parameters_input,
+  const dealii::ParameterHandler &parameter_handler_input,
+  const Epetra_CrsMatrix &A, 
+  Epetra_MpiComm &Comm, 
+  Epetra_Vector &b, 
+  bool iter_solver, 
+  int LS_iter, 
+  double LS_tol):
+    all_parameters(parameters_input),
+    parameter_handler(parameter_handler_input),
+    A_(A), 
+    Comm_(Comm), 
+    b_(b), 
+    x_(A.ColMap()), 
+    LS_iter_(LS_iter), 
+    LS_tol_(LS_tol),
+    Z(A_.NumMyCols()), 
+    P(A_.NumMyCols()), 
+    iter_solver_(iter_solver), 
+    grad_exit_crit_(false) 
+    {
+      index_set = Eigen::VectorXd::LinSpaced(A_.NumMyCols(), 0, A_.NumMyCols() -1); // Indices proceeding and including numInactive are in the P set (Inactive/Positive)
+      Z.flip(); // All columns begin in the Z set (Active)
+    }
 
-NNLS_solver::NNLS_solver(const Epetra_CrsMatrix &A, Epetra_MpiComm &Comm, Epetra_Vector &b, const int max_iter, const double tau, bool grad_exit_crit, bool iter_solver, int LS_iter, double LS_tol):
-  A_(A), 
-  Comm_(Comm), 
-  b_(b), 
-  x_(A.ColMap()), 
-  max_iter_(max_iter), 
-  tau_(tau), 
-  LS_iter_(LS_iter), 
-  LS_tol_(LS_tol),
-  Z(A_.NumMyCols()), 
-  P(A_.NumMyCols()), 
-  iter_solver_(iter_solver), 
-  grad_exit_crit_(grad_exit_crit) 
-  {
-    index_set = Eigen::VectorXd::LinSpaced(A_.NumMyCols(), 0, A_.NumMyCols() -1); // Indices proceeding and including numInactive are in the P set (Inactive/Positive)
-    Z.flip(); // All columns begin in the Z set (Active)
-  }
+NNLS_solver::NNLS_solver(
+  const Parameters::AllParameters *const parameters_input,
+  const dealii::ParameterHandler &parameter_handler_input,
+  const Epetra_CrsMatrix &A, 
+  Epetra_MpiComm &Comm, 
+  Epetra_Vector &b, 
+  bool grad_exit_crit, 
+  bool iter_solver, 
+  int LS_iter, 
+  double LS_tol):
+    all_parameters(parameters_input),
+    parameter_handler(parameter_handler_input),
+    A_(A), 
+    Comm_(Comm), 
+    b_(b), 
+    x_(A.ColMap()), 
+    LS_iter_(LS_iter), 
+    LS_tol_(LS_tol),
+    Z(A_.NumMyCols()), 
+    P(A_.NumMyCols()), 
+    iter_solver_(iter_solver), 
+    grad_exit_crit_(grad_exit_crit) 
+    {
+      index_set = Eigen::VectorXd::LinSpaced(A_.NumMyCols(), 0, A_.NumMyCols() -1); // Indices proceeding and including numInactive are in the P set (Inactive/Positive)
+      Z.flip(); // All columns begin in the Z set (Active)
+    }
 
 void NNLS_solver::Epetra_PermutationMatrix(Epetra_CrsMatrix &P_mat){
   // Fill diagonal matrix with ones in the positive set
@@ -226,13 +254,13 @@ bool NNLS_solver::solve(){
     double normb[1];
     b_.Norm2(normb);
     // Exit Condition on the residual based on the norm of b
-    if ((normRes[0]) <= (tau_ * normb[0])){
+    if ((normRes[0]) <= (all_parameters->hyper_reduction_param.NNLS_tol * normb[0])){
       return true;
     }
 
     // Old exit condition dependent on the maxGradient
     if (grad_exit_crit_){
-      if (maxGradient < tau_){
+      if (maxGradient < all_parameters->hyper_reduction_param.NNLS_tol){
         std::cout << "Exited due to Gradient Criteria" << std::endl;
         return true;
       }
@@ -243,7 +271,7 @@ bool NNLS_solver::solve(){
     // INNER LOOP
     while(true){
       // Check if max. number of iterations is reached
-      if (iter_ >= max_iter_){
+      if (iter_ >= all_parameters->hyper_reduction_param.NNLS_max_iter){
         return false;
       }
 

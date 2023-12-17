@@ -16,6 +16,7 @@ file(COPY ${MY_FILES} DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
 
 ADD_EXECUTABLE(Tests.exe NNLS_tests.cpp)
 string(CONCAT LinearSolverLib LinearSolver)
+target_link_libraries(Tests.exe ParametersLibrary)
 target_link_libraries(Tests.exe ${LinearSolverLib})
 if(NOT DOC_ONLY)
     DEAL_II_SETUP_TARGET(Tests.exe)

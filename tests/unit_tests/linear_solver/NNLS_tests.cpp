@@ -5,6 +5,7 @@
 #include <fstream>
 #include <eigen/Eigen/QR>
 #include <eigen/test/random_matrix_helper.h>
+#include "parameters/parameters.h"
 //#include <eigen/Eigen/SVD>
 
 using namespace Eigen;
@@ -18,7 +19,14 @@ using namespace PHiLiP;
 // The CSV files C.csv and d.csv are pulled from the MATLAB implementation of the ECSW approach for the Burgers' 1D problem.
 // x_pow_4.csv is pulled from the modified Eigen NNLS solver solution for the C.csv and d.csv files, when the tolerance used is 1E-4.
 
+Parameters::AllParameters reinitParams(Parameters::AllParameters all_parameters, const double tol, const int max_iter){
+    // Copy all parameters
+    PHiLiP::Parameters::AllParameters parameters = all_parameters;
 
+    parameters.hyper_reduction_param.NNLS_tol = tol;
+    parameters.hyper_reduction_param.NNLS_max_iter = max_iter;
+    return parameters;
+}
 
 /// @brief Check that 'x' solves the NNLS optimization problem `min ||A*x-b|| s.t. 0 <= x`
 /// @param A Eigen Matrix
@@ -69,7 +77,9 @@ bool verify_nnls_optimality(Eigen::MatrixXd &A, Eigen::MatrixXd &b_eig, Eigen::M
 /// @param tau tolerance for the residual exit condition
 /// @param max_iter maximum number of iterations
 /// @return boolean dependent on the exit condition of the NNLS solver and optimality/accuracy of the solutions
-bool test_nnls_known_CLASS(Eigen::MatrixXd &A_eig, int col, int row, Eigen::MatrixXd &x_eig, Eigen::MatrixXd &b_eig, double *b_pt, Epetra_MpiComm &Comm, const double tau, const int max_iter){
+bool test_nnls_known_CLASS(const PHiLiP::Parameters::AllParameters *const all_parameters,
+                  const dealii::ParameterHandler &parameter_handler,
+                  Eigen::MatrixXd &A_eig, int col, int row, Eigen::MatrixXd &x_eig, Eigen::MatrixXd &b_eig, double *b_pt, Epetra_MpiComm &Comm){
   // Check solution of NNLS problem with a known solution
   // Returns true if the solver exits for any condition other than max_iter and if the solution x is accurate to the true solution and satisfies the conditions above
   
@@ -83,7 +93,7 @@ bool test_nnls_known_CLASS(Eigen::MatrixXd &A_eig, int col, int row, Eigen::Matr
   std::cout << b << std::endl;
 
   // Create instance of NNLS solver, and call .solve to find the solution and exit condition
-  NNLS_solver NNLS_prob(A, Comm, b, max_iter, tau);
+  NNLS_solver NNLS_prob(all_parameters, parameter_handler, A, Comm, b);
   bool exit_con = NNLS_prob.solve();
   std::cout << " Solution x "<< std::endl;
   Epetra_Vector x(NNLS_prob.getSolution());
@@ -100,9 +110,9 @@ bool test_nnls_known_CLASS(Eigen::MatrixXd &A_eig, int col, int row, Eigen::Matr
   epetra_to_eig_vec(col, x , x_nnls_eig);
 
   // Confirm the optimality of the solution wrt tolerance and positivity
-  bool opt = verify_nnls_optimality(A_eig, b_eig, x_nnls_eig, tau);
+  bool opt = verify_nnls_optimality(A_eig, b_eig, x_nnls_eig, all_parameters->hyper_reduction_param.NNLS_tol);
   // Compare to the exact solutions
-  opt&= x_nnls_eig.isApprox(x_eig, tau);
+  opt&= x_nnls_eig.isApprox(x_eig, all_parameters->hyper_reduction_param.NNLS_tol);
   return opt;
 }
 
@@ -111,7 +121,9 @@ bool test_nnls_known_CLASS(Eigen::MatrixXd &A_eig, int col, int row, Eigen::Matr
 /// @param tau tolerance for the residual exit condition
 /// @param max_iter maximum number of iterations
 /// @return boolean depending on the exit condition of the solver, the number of iterations, and the length of the solution (returns true if the solver returns true, it completes zero iterations and the length of the vector is zero) 
-bool test_nnls_handles_Mx0_matrix(Epetra_MpiComm &Comm, const double tau, const int max_iter) {
+bool test_nnls_handles_Mx0_matrix(const PHiLiP::Parameters::AllParameters *const all_parameters,
+                  const dealii::ParameterHandler &parameter_handler,
+                  Epetra_MpiComm &Comm) {
   // Build matrix with no columns
   const int row = internal::random<int>(1, EIGEN_TEST_MAX_SIZE);
   MatrixXd A_eig(row, 0);
@@ -123,7 +135,7 @@ bool test_nnls_handles_Mx0_matrix(Epetra_MpiComm &Comm, const double tau, const 
   Epetra_Vector b(Copy, A.RowMap(), b_pt);
 
   // Create instance of NNLS solver, and call .solve to find the solution and exit conditions
-  NNLS_solver NNLS_prob(A, Comm, b, max_iter, tau);
+  NNLS_solver NNLS_prob(all_parameters, parameter_handler, A, Comm, b);
   bool exit_con = NNLS_prob.solve();
 
   // Check if solver exited by reaching the maximum number of iterationss
@@ -145,7 +157,9 @@ bool test_nnls_handles_Mx0_matrix(Epetra_MpiComm &Comm, const double tau, const 
 /// @param tau tolerance for the residual exit condition
 /// @param max_iter maximum number of iterations
 /// @return  boolean depending on the exit condition of the solver, the number of iterations, and the length of the solution (returns true if the solver returns true, it completes zero iterations and the length of the vector is zero) 
-bool test_nnls_handles_0x0_matrix(Epetra_MpiComm &Comm, const double tau, const int max_iter) {
+bool test_nnls_handles_0x0_matrix(const PHiLiP::Parameters::AllParameters *const all_parameters,
+                  const dealii::ParameterHandler &parameter_handler,
+                  Epetra_MpiComm &Comm) {
 // Build matrix with no rows and columns
   MatrixXd A_eig(0, 0);
   VectorXd b_eig(0);
@@ -156,7 +170,7 @@ bool test_nnls_handles_0x0_matrix(Epetra_MpiComm &Comm, const double tau, const 
   Epetra_Vector b(Copy, A.RowMap(), b_pt);
 
   // Create instance of NNLS solver, and call .solve to find the solution and exit conditions
-  NNLS_solver NNLS_prob(A, Comm, b, max_iter, tau);
+  NNLS_solver NNLS_prob(all_parameters, parameter_handler, A, Comm, b);
   bool exit_con = NNLS_prob.solve();
 
   // Check if solver exited by reaching the maximum number of iterationss
@@ -181,7 +195,9 @@ should almost always be found before the maximum number of iterations is reached
 tolerance may never be reached. For this reason, the bound on the gradient is also checked on randonmly 
 generated problems even when the maximum number of iterations is exceeded and it returns true if the 
 sgradient bound is satisfied. */
-bool test_nnls_random_problem(Epetra_MpiComm &Comm) {
+bool test_nnls_random_problem(PHiLiP::Parameters::AllParameters *all_parameters,
+                  const dealii::ParameterHandler &parameter_handler,
+                  Epetra_MpiComm &Comm) {
   // Random dimensions of the matrix below EIGEN_TEST_MAX_SIZE
   const Index cols = internal::random<Index>(1, EIGEN_TEST_MAX_SIZE);
   const Index rows = internal::random<Index>(cols, EIGEN_TEST_MAX_SIZE);
@@ -204,7 +220,7 @@ bool test_nnls_random_problem(Epetra_MpiComm &Comm) {
   // Estimate the tolerance and max_iter based on problem size
   using Scalar = typename MatrixXd::Scalar;
   using std::sqrt;
-   const Scalar tolerance =
+  const Scalar tolerance =
        sqrt(Eigen::GenericNumTraits<Scalar>::epsilon()) * b_eig.cwiseAbs().maxCoeff() * A_eig.cwiseAbs().maxCoeff();
   Index max_iter = 5 * A_eig.cols();  // A heuristic guess.
   
@@ -219,7 +235,8 @@ bool test_nnls_random_problem(Epetra_MpiComm &Comm) {
   std::cout << b << std::endl;
 
   // Create instance of NNLS solver, and call .solve to find the solution and exit conditions
-  NNLS_solver NNLS_prob(A, Comm, b, max_iter, tolerance);
+  Parameters::AllParameters const new_parameters = reinitParams(*all_parameters, tolerance, max_iter);
+  NNLS_solver NNLS_prob(&new_parameters, parameter_handler, A, Comm, b);
   bool exit_con = NNLS_prob.solve();
 
   // Check if solver exited by reaching the maximum number of iterations
@@ -243,7 +260,9 @@ bool test_nnls_random_problem(Epetra_MpiComm &Comm) {
 /// @param tau tolerance for the residual exit condition
 /// @param max_iter maximum number of iterations
 /// @return boolean depending on the exit condition of the solver, the number of iterations, and the entries in the solution (returns true if the solver returns true, it completes less than two iteration, and the solution vector is zeros)
-bool test_nnls_handles_zero_rhs(Epetra_MpiComm &Comm, const double tau, const int max_iter) {
+bool test_nnls_handles_zero_rhs(const PHiLiP::Parameters::AllParameters *const all_parameters,
+                  const dealii::ParameterHandler &parameter_handler,
+                  Epetra_MpiComm &Comm) {
   // Random problem with dimensions less than EIGEN_TEST_MAX_SIZE and RHS vector of zeros
   const Index cols = internal::random<Index>(1, EIGEN_TEST_MAX_SIZE);
   const Index rows = internal::random<Index>(cols, EIGEN_TEST_MAX_SIZE);
@@ -263,7 +282,7 @@ bool test_nnls_handles_zero_rhs(Epetra_MpiComm &Comm, const double tau, const in
   std::cout << b << std::endl;
 
   // Create instance of NNLS solver, and call .solve to find the solution and exit conditions
-  NNLS_solver NNLS_prob(A, Comm, b, max_iter, tau);
+  NNLS_solver NNLS_prob(all_parameters, parameter_handler, A, Comm, b);
   bool exit_con = NNLS_prob.solve();
 
   bool opt = true;
@@ -289,7 +308,9 @@ bool test_nnls_handles_zero_rhs(Epetra_MpiComm &Comm, const double tau, const in
 /// @param tau tolerance for the residual exit condition
 /// @param max_iter maximum number of iterations
 /// @return boolean depending on the exit condition of the solver and the optimality of the solution (returns true if the max. iters are reached or if the solution is the optimal one)
-bool test_nnls_handles_dependent_columns(Epetra_MpiComm &Comm, const double tau, const int max_iter) {
+bool test_nnls_handles_dependent_columns(const PHiLiP::Parameters::AllParameters *const all_parameters,
+                  const dealii::ParameterHandler &parameter_handler,
+                  Epetra_MpiComm &Comm) {
   // Random problem with dimensions less than EIGEN_TEST_MAX_SIZE and matrix with dependent columns
   const Index rank = internal::random<Index>(1, EIGEN_TEST_MAX_SIZE / 2);
   const Index cols = 2 * rank;
@@ -310,7 +331,7 @@ bool test_nnls_handles_dependent_columns(Epetra_MpiComm &Comm, const double tau,
   std::cout << b << std::endl;
 
   // Create instance of NNLS solver, and call .solve to find the solution and exit conditions
-  NNLS_solver NNLS_prob(A, Comm, b, max_iter, tau);
+  NNLS_solver NNLS_prob(all_parameters, parameter_handler, A, Comm, b);
   bool exit_con = NNLS_prob.solve();
 
   // From Eigen : 
@@ -327,7 +348,7 @@ bool test_nnls_handles_dependent_columns(Epetra_MpiComm &Comm, const double tau,
   }
   else{
     // Confirm the optimality of the solution wrt tolerance and positivity
-    opt &= verify_nnls_optimality(A_eig, b_eig, x_nnls_eig, tau);
+    opt &= verify_nnls_optimality(A_eig, b_eig, x_nnls_eig, all_parameters->hyper_reduction_param.NNLS_tol);
   }
   std::cout << " Solution x "<< std::endl;
   std::cout << x << std::endl;
@@ -339,7 +360,9 @@ bool test_nnls_handles_dependent_columns(Epetra_MpiComm &Comm, const double tau,
 /// @param tau tolerance for the residual exit condition
 /// @param max_iter maximum number of iterations
 /// @return boolean depending on the exit condition of the solver and the optimality of the solution (returns true if the max. iters are reached or if the solution is the optimal one)
-bool test_nnls_handles_wide_matrix(Epetra_MpiComm &Comm, const double tau, const int max_iter) {
+bool test_nnls_handles_wide_matrix(const PHiLiP::Parameters::AllParameters *const all_parameters,
+                  const dealii::ParameterHandler &parameter_handler,
+                  Epetra_MpiComm &Comm) {
   // Random problem with dimensions less than EIGEN_TEST_MAX_SIZE and wide matrix
   const Index cols = internal::random<Index>(2, EIGEN_TEST_MAX_SIZE);
   const Index rows = internal::random<Index>(2, cols - 1);
@@ -359,7 +382,7 @@ bool test_nnls_handles_wide_matrix(Epetra_MpiComm &Comm, const double tau, const
   std::cout << b << std::endl;
 
   // Create instance of NNLS solver, and call .solve to find the solution and exit conditions
-  NNLS_solver NNLS_prob(A, Comm, b, max_iter, tau);
+  NNLS_solver NNLS_prob(all_parameters, parameter_handler, A, Comm, b);
   bool exit_con = NNLS_prob.solve();
 
   // From Eigen:
@@ -381,7 +404,7 @@ bool test_nnls_handles_wide_matrix(Epetra_MpiComm &Comm, const double tau, const
   }
   else{
     // Confirm the optimality of the solution wrt tolerance and positivity
-    opt &= verify_nnls_optimality(A_eig, b_eig, x_nnls_eig, tau);
+    opt &= verify_nnls_optimality(A_eig, b_eig, x_nnls_eig, all_parameters->hyper_reduction_param.NNLS_tol);
   }
   std::cout << " Solution x "<< std::endl;
   std::cout << x << std::endl;
@@ -393,7 +416,9 @@ bool test_nnls_handles_wide_matrix(Epetra_MpiComm &Comm, const double tau, const
 /// @param tau tolerance for the residual exit condition
 /// @param max_iter maximum number of iterations
 /// @return boolean depending on the exit condition of the solver, the number of iterations, and the optimality of the solution (returns true if the solver returns true, it completes zero iterations, and the solution is optimal)
-bool test_nnls_special_case_solves_in_zero_iterations(Epetra_MpiComm &Comm, const double tau, const int max_iter) {
+bool test_nnls_special_case_solves_in_zero_iterations(const PHiLiP::Parameters::AllParameters *const all_parameters,
+                  const dealii::ParameterHandler &parameter_handler,
+                  Epetra_MpiComm &Comm) {
   const Index n = 10;
   const Index m = 3 * n;
   // With high probability, this is full column rank, which we need for uniqueness
@@ -416,7 +441,7 @@ bool test_nnls_special_case_solves_in_zero_iterations(Epetra_MpiComm &Comm, cons
   std::cout << b << std::endl;
 
   // Create instance of NNLS solver, and call .solve to find the solution and exit conditions
-  NNLS_solver NNLS_prob(A, Comm, b, max_iter, tau);
+  NNLS_solver NNLS_prob(all_parameters, parameter_handler, A, Comm, b);
   NNLS_prob.startingSolution(x_start); // SET SOLUTION TO EXACT SOLUTION
   bool exit_con = NNLS_prob.solve();
 
@@ -434,7 +459,7 @@ bool test_nnls_special_case_solves_in_zero_iterations(Epetra_MpiComm &Comm, cons
   // Check the number of iterations (expected to be zero)
   opt &= (NNLS_prob.iter_ == 0);
   // Confirm the optimality of the solution wrt tolerance and positivity
-  opt &= verify_nnls_optimality(A_eig, b_eig, x_nnls_eig, tau);
+  opt &= verify_nnls_optimality(A_eig, b_eig, x_nnls_eig, all_parameters->hyper_reduction_param.NNLS_tol);
   return opt;
 }
 
@@ -443,7 +468,9 @@ bool test_nnls_special_case_solves_in_zero_iterations(Epetra_MpiComm &Comm, cons
 /// @param tau tolerance for the residual exit condition
 /// @param max_iter maximum number of iterations
 /// @return boolean depending on the exit condition of the solver, the number of iterations, and the optimality of the solution (returns true if the solver returns true, it completes n = num of cols. iterations, and the solution is optimal)
-bool test_nnls_special_case_solves_in_n_iterations(Epetra_MpiComm &Comm, const double tau, const int max_iter) {
+bool test_nnls_special_case_solves_in_n_iterations(const PHiLiP::Parameters::AllParameters *const all_parameters,
+                  const dealii::ParameterHandler &parameter_handler,
+                  Epetra_MpiComm &Comm) {
   const Index n = 10;
   const Index m = 3 * n;
   // With high probability, this is full column rank, which we need for uniqueness.
@@ -464,7 +491,7 @@ bool test_nnls_special_case_solves_in_n_iterations(Epetra_MpiComm &Comm, const d
   std::cout << b << std::endl;
 
   // Create instance of NNLS solver, and call .solve to find the solution and exit conditions
-  NNLS_solver NNLS_prob(A, Comm, b, max_iter, tau);
+  NNLS_solver NNLS_prob(all_parameters, parameter_handler, A, Comm, b);
   bool exit_con = NNLS_prob.solve();
 
   //
@@ -485,7 +512,7 @@ bool test_nnls_special_case_solves_in_n_iterations(Epetra_MpiComm &Comm, const d
   // Check the number of iterations (expected to be equal to the number of columns in A)
   opt &= (NNLS_prob.iter_ == n);
   // Confirm the optimality of the solution wrt tolerance and positivity
-  opt &= verify_nnls_optimality(A_eig, b_eig, x_nnls_eig, tau);
+  opt &= verify_nnls_optimality(A_eig, b_eig, x_nnls_eig, all_parameters->hyper_reduction_param.NNLS_tol);
   return opt;
 }
 
@@ -493,7 +520,9 @@ bool test_nnls_special_case_solves_in_n_iterations(Epetra_MpiComm &Comm, const d
 /// @param Comm MpiComm for Epetra Maps
 /// @param tau tolerance for the residual exit condition
 /// @return boolean depending on the exit condition of the solver and the number of iterations (returns true if the solver returns false due to exiting by max_iter, and the number of iterations is equal to n-1)
-bool test_nnls_returns_NoConvergence_when_maxIterations_is_too_low(Epetra_MpiComm &Comm, const double tau) {
+bool test_nnls_returns_NoConvergence_when_maxIterations_is_too_low(PHiLiP::Parameters::AllParameters *all_parameters,
+                  const dealii::ParameterHandler &parameter_handler,
+                  Epetra_MpiComm &Comm) {
   // Using the special case that takes `n` iterations,
   // from `test_nnls_special_case_solves_in_n_iterations`,
   // we can set max iterations too low and that should cause the solve to fail.
@@ -519,8 +548,9 @@ bool test_nnls_returns_NoConvergence_when_maxIterations_is_too_low(Epetra_MpiCom
 
   // Set max_iters too low to cause solver to fail/return false on purpose
   const Index max_iters = n - 1;
+  Parameters::AllParameters const new_parameters = reinitParams(*all_parameters, 1E-8, max_iters);
   // Create instance of NNLS solver, and call .solve to find the solution and exit conditions
-  NNLS_solver NNLS_prob(A, Comm, b, max_iters, tau);
+  NNLS_solver NNLS_prob(&new_parameters, parameter_handler, A, Comm, b);
   bool exit_con = NNLS_prob.solve();
 
   // Check if solver exited by reaching the maximum number of iterations, return true in this case
@@ -538,7 +568,9 @@ bool test_nnls_returns_NoConvergence_when_maxIterations_is_too_low(Epetra_MpiCom
 }
 
 /// @brief Case 1: 4x2 problem, unconstrained solution positive
-bool case_1 (Epetra_MpiComm &Comm, const double tau, const int max_iter) {
+bool case_1 (const PHiLiP::Parameters::AllParameters *const all_parameters,
+                  const dealii::ParameterHandler &parameter_handler,
+                  Epetra_MpiComm &Comm) {
   Eigen::MatrixXd A_eig(4, 2);
   Eigen::MatrixXd x_eig(2,1);
   Eigen::MatrixXd b_eig(4,1);
@@ -547,11 +579,13 @@ bool case_1 (Epetra_MpiComm &Comm, const double tau, const int max_iter) {
   x_eig << 0.1, 0.5;
   double b_pt[] = {0.6, 2.2, 4.8, 8.4};
 
-  return test_nnls_known_CLASS(A_eig, 2, 4, x_eig, b_eig, b_pt, Comm, tau, max_iter);
+  return test_nnls_known_CLASS(all_parameters, parameter_handler, A_eig, 2, 4, x_eig, b_eig, b_pt, Comm);
 }
 
 /// @brief Case 2: 4x3 problem, unconstrained solution positive
-bool case_2 (Epetra_MpiComm &Comm, const double tau, const int max_iter) {
+bool case_2 (const PHiLiP::Parameters::AllParameters *const all_parameters,
+                const dealii::ParameterHandler &parameter_handler,
+                Epetra_MpiComm &Comm) {
   Eigen::MatrixXd A_eig(4,3);
   Eigen::MatrixXd b_eig(4,1);
   Eigen::MatrixXd x_eig(3,1);
@@ -564,11 +598,13 @@ bool case_2 (Epetra_MpiComm &Comm, const double tau, const int max_iter) {
   x_eig << 0.1, 0.5, 0.13;
   double b_pt[] = {0.73, 3.24, 8.31, 16.72};
 
-  return test_nnls_known_CLASS(A_eig, 3, 4, x_eig, b_eig, b_pt, Comm, tau, max_iter);
+  return test_nnls_known_CLASS(all_parameters, parameter_handler, A_eig, 3, 4, x_eig, b_eig, b_pt, Comm);
 }
 
 /// @brief Case 3: Simple 4x4 problem, unconstrained solution non-negative
-bool case_3 (Epetra_MpiComm &Comm, const double tau, const int max_iter) {
+bool case_3 (const PHiLiP::Parameters::AllParameters *const all_parameters,
+                const dealii::ParameterHandler &parameter_handler,
+                Epetra_MpiComm &Comm) {
   Eigen::MatrixXd A_eig(4,4);
   Eigen::MatrixXd b_eig(4,1);
   Eigen::MatrixXd x_eig(4,1);
@@ -578,11 +614,13 @@ bool case_3 (Epetra_MpiComm &Comm, const double tau, const int max_iter) {
   x_eig << 0.1, 0.5, 0.13, 0;
   double b_pt[] = {0.73, 3.24, 8.31, 16.72};
 
-  return test_nnls_known_CLASS(A_eig, 4, 4, x_eig, b_eig, b_pt, Comm, tau, max_iter);
+  return test_nnls_known_CLASS(all_parameters, parameter_handler, A_eig, 4, 4, x_eig, b_eig, b_pt, Comm);
 }
 
 /// @brief Case 4: Simple 4x3 problem, unconstrained solution non-negative
-bool case_4 (Epetra_MpiComm &Comm, const double tau, const int max_iter) {
+bool case_4 (const PHiLiP::Parameters::AllParameters *const all_parameters,
+              const dealii::ParameterHandler &parameter_handler,
+              Epetra_MpiComm &Comm) {
   Eigen::MatrixXd A_eig(4,3);
   Eigen::MatrixXd b_eig(4,1);
   Eigen::MatrixXd x_eig(3,1);
@@ -592,11 +630,13 @@ bool case_4 (Epetra_MpiComm &Comm, const double tau, const int max_iter) {
   x_eig << 0.1, 0, 0.13;
   double b_pt[] = {0.23, 1.24, 3.81, 8.72};
 
-  return test_nnls_known_CLASS(A_eig, 3, 4, x_eig, b_eig, b_pt, Comm, tau, max_iter);
+  return test_nnls_known_CLASS(all_parameters, parameter_handler, A_eig, 3, 4, x_eig, b_eig, b_pt, Comm);
 }
 
 /// @brief Case 5: Simple 4x3 problem, unconstrained solution indefinite
-bool case_5 (Epetra_MpiComm &Comm, const double tau, const int max_iter) {
+bool case_5 (const PHiLiP::Parameters::AllParameters *const all_parameters,
+              const dealii::ParameterHandler &parameter_handler,
+              Epetra_MpiComm &Comm) {
   Eigen::MatrixXd A_eig(4,3);
   Eigen::MatrixXd b_eig(4,1);
   Eigen::MatrixXd x_eig(3,1);
@@ -607,27 +647,39 @@ bool case_5 (Epetra_MpiComm &Comm, const double tau, const int max_iter) {
   x_eig << 0.0, 0.0, 0.1106544;
   double b_pt[] = {0.13, 0.84, 2.91, 7.12};
 
-  return test_nnls_known_CLASS(A_eig, 3, 4, x_eig, b_eig, b_pt, Comm, tau, max_iter);
+  return test_nnls_known_CLASS(all_parameters, parameter_handler, A_eig, 3, 4, x_eig, b_eig, b_pt, Comm);
 }
 
 /// @brief Case MATLAB: 1024 x 49 problem from ECSW in MATLAB for Burgers' 1D
-bool case_MATLAB (Epetra_MpiComm &Comm, const double tau, const int max_iter) {
+bool case_MATLAB (const PHiLiP::Parameters::AllParameters *const all_parameters,
+                  const dealii::ParameterHandler &parameter_handler,
+                  Epetra_MpiComm &Comm) {
   Eigen::MatrixXd A_eig = load_csv<MatrixXd>("C.csv");
   Eigen::MatrixXd b_eig = load_csv<MatrixXd>("d.csv");
   Eigen::MatrixXd x_eig = load_csv<MatrixXd>("x_pow_4.csv");
 
   double *b_pt = b_eig.data();
 
-  return test_nnls_known_CLASS(A_eig, 1024, 49, x_eig, b_eig, b_pt, Comm, tau, max_iter);
+  return test_nnls_known_CLASS(all_parameters, parameter_handler, A_eig, 1024, 49, x_eig, b_eig, b_pt, Comm);
 }
+
 
 int main(int argc, char *argv[]){
   MPI_Init(&argc,&argv);
   Epetra_MpiComm Comm( MPI_COMM_WORLD );
-  double tau = 1E-8;
-  const int max_iter = 10000;
+  //double tau = 1E-8;
+  //const int max_iter = 10000;
 
   bool ok = true;
+
+  dealii::ParameterHandler parameter_handler;
+  Parameters::AllParameters::declare_parameters (parameter_handler);
+
+  // Read inputs from parameter file and set those values in AllParameters object
+  Parameters::AllParameters all_parameters;
+  all_parameters.parse_parameters (parameter_handler);
+
+  Parameters::AllParameters new_parameters = reinitParams(all_parameters, 1E-8, 10000);
 
   // Possible Test Cases
   std::string s_1 = "known";
@@ -643,42 +695,43 @@ int main(int argc, char *argv[]){
   std::string s_11 = "maxIter";
    
   if (argv[1] == s_1){
-    ok &= case_1(Comm, tau, max_iter);
-    ok &= case_2(Comm, tau, max_iter);
-    ok &= case_3(Comm, tau, max_iter);
-    ok &= case_4(Comm, tau, max_iter);
-    ok &= case_5(Comm, 1E-3, max_iter); // had to relax the tolerance for this case
+    ok &= case_1(&new_parameters, parameter_handler, Comm);
+    ok &= case_2(&new_parameters, parameter_handler, Comm);
+    ok &= case_3(&new_parameters, parameter_handler, Comm);
+    ok &= case_4(&new_parameters, parameter_handler, Comm);
+    Parameters::AllParameters new_new_parameters = reinitParams(all_parameters, 1E-3, 10000);
+    ok &= case_5(&new_new_parameters, parameter_handler, Comm); // had to relax the tolerance for this case ( tol = 1E-3)
   }
   else if (argv[1] == s_2){
-    tau = 1E-4;
-    ok &= case_MATLAB(Comm, tau, max_iter);
+    Parameters::AllParameters new_parameters = reinitParams(all_parameters, 1E-4, 10000);
+    ok &= case_MATLAB(&new_parameters, parameter_handler, Comm);
   }
   else if (argv[1] == s_3){
-    ok &= test_nnls_handles_Mx0_matrix(Comm, tau, max_iter);
+    ok &= test_nnls_handles_Mx0_matrix(&all_parameters, parameter_handler, Comm);
   }  
   else if (argv[1] == s_4){
-    ok &= test_nnls_handles_0x0_matrix(Comm, tau, max_iter);
+    ok &= test_nnls_handles_0x0_matrix(&all_parameters, parameter_handler, Comm);
   }
   else if (argv[1] == s_5){
-    ok &= test_nnls_random_problem(Comm);
+    ok &= test_nnls_random_problem(&all_parameters, parameter_handler, Comm);
   }
   else if (argv[1] == s_6){
-    ok &= test_nnls_handles_zero_rhs(Comm, tau, max_iter);
+    ok &= test_nnls_handles_zero_rhs(&all_parameters, parameter_handler, Comm);
   }
   else if (argv[1] == s_7){
-    ok &= test_nnls_handles_dependent_columns(Comm, tau, max_iter);
+    ok &= test_nnls_handles_dependent_columns(&all_parameters, parameter_handler, Comm);
   }
   else if (argv[1] == s_8){
-    ok &= test_nnls_handles_wide_matrix(Comm, tau, max_iter);
+    ok &= test_nnls_handles_wide_matrix(&all_parameters, parameter_handler, Comm);
   }
   else if (argv[1] == s_9){
-    ok &= test_nnls_special_case_solves_in_zero_iterations(Comm, tau, max_iter);
+    ok &= test_nnls_special_case_solves_in_zero_iterations(&all_parameters, parameter_handler, Comm);
   }
   else if (argv[1] == s_10){
-    ok &= test_nnls_special_case_solves_in_n_iterations(Comm, tau, max_iter);
+    ok &= test_nnls_special_case_solves_in_n_iterations(&all_parameters, parameter_handler, Comm);
   }
   else if (argv[1] == s_11){
-    ok &= test_nnls_returns_NoConvergence_when_maxIterations_is_too_low(Comm, tau);
+    ok &= test_nnls_returns_NoConvergence_when_maxIterations_is_too_low(&all_parameters, parameter_handler, Comm);
   }
   else {
     ok = false;

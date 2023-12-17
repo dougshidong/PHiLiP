@@ -70,10 +70,8 @@ int HyperreducedAdaptiveSampling<dim, nstate>::run() const
     }
 
     // Solve NNLS Problem for ECSW weights
-    double tau = 1E-6;
-    const int max_iter = 5000;
     std::cout << "Create NNLS problem..."<< std::endl;
-    NNLS_solver NNLS_prob(constructer_NNLS_problem.A->trilinos_matrix(), Comm, b_Epetra, max_iter, tau);
+    NNLS_solver NNLS_prob(all_parameters, parameter_handler, constructer_NNLS_problem.A->trilinos_matrix(), Comm, b_Epetra);
     std::cout << "Solve NNLS problem..."<< std::endl;
     bool exit_con = NNLS_prob.solve();
     std::cout << exit_con << std::endl;
@@ -121,10 +119,8 @@ int HyperreducedAdaptiveSampling<dim, nstate>::run() const
         }
 
         // Solve NNLS Problem for ECSW weights
-        double tau = 1E-4;
-        const int max_iter = 2000;
         std::cout << "Create NNLS problem..."<< std::endl;
-        NNLS_solver NNLS_prob(constructer_NNLS_problem.A->trilinos_matrix(), Comm, b_Epetra, max_iter, tau);
+        NNLS_solver NNLS_prob(all_parameters, parameter_handler, constructer_NNLS_problem.A->trilinos_matrix(), Comm, b_Epetra);
         // NNLS_prob.startingSolution(weights);
         std::cout << "Solve NNLS problem..."<< std::endl;
         bool exit_con = NNLS_prob.solve();

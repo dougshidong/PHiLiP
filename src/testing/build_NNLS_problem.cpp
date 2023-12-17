@@ -136,10 +136,10 @@ int BuildNNLSProblem<dim, nstate>::run_test() const
 
     // Build NNLS Solver with C and d
     // Solver parameters
-    double tau = 1E-8;
-    const int max_iter = 10000;
     std::cout << "Create NNLS problem..."<< std::endl;
-    NNLS_solver NNLS_prob(constructer_NNLS_problem.A->trilinos_matrix(), Comm, b_Epetra, max_iter, tau);
+    std::cout << all_parameters->hyper_reduction_param.NNLS_tol << std::endl;
+    std::cout << all_parameters->hyper_reduction_param.NNLS_max_iter << std::endl;
+    NNLS_solver NNLS_prob(all_parameters, parameter_handler, constructer_NNLS_problem.A->trilinos_matrix(), Comm, b_Epetra);
     std::cout << "Solve NNLS problem..."<< std::endl;
     // Solve NNLS problem (should return 1 if solver achieves the accuracy tau before the max number of iterations)
     bool exit_con = NNLS_prob.solve();

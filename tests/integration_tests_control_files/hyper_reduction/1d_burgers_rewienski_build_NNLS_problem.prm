@@ -37,6 +37,11 @@ subsection reduced order
   set recomputation_coefficient = 5
 end
 
+subsection hyperreduction
+ set NNLS_tol = 1E-8
+ set NNLS_max_iter = 10000
+end
+
 subsection linear solver
   set linear_solver_type = direct
 end

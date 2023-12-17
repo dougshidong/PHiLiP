@@ -67,10 +67,8 @@ int HyperReductionComparison<dim, nstate>::run_test() const
     }
 
     // Solve NNLS Problem for ECSW weights
-    double tau = 1E-8;
-    const int max_iter = 20000;
     std::cout << "Create NNLS problem..."<< std::endl;
-    NNLS_solver NNLS_prob(constructer_NNLS_problem.A->trilinos_matrix(), Comm, b_Epetra, max_iter, tau);
+    NNLS_solver NNLS_prob(all_parameters, parameter_handler, constructer_NNLS_problem.A->trilinos_matrix(), Comm, b_Epetra);
     std::cout << "Solve NNLS problem..."<< std::endl;
     bool exit_con = NNLS_prob.solve();
     std::cout << exit_con << std::endl;

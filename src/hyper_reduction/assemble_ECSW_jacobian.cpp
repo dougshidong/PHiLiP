@@ -66,8 +66,15 @@ void AssembleECSWJac<dim,nstate>::build_problem(){
 
     // Create empty and temporary C and d structs
     Epetra_MpiComm epetra_comm(MPI_COMM_WORLD);
-    Epetra_Map RowMap((n*n*num_snaps), 0, epetra_comm);
-    // Epetra_Map RowMap((n*n*5), 0, epetra_comm);
+    int training_snaps;
+    if (all_parameters->hyper_reduction_param.num_training_snaps != 0) {
+        std::cout << "LIMITED NUMBER OF SNAPSHOTS"<< std::endl;
+        training_snaps = all_parameters->hyper_reduction_param.num_training_snaps-1;
+    }
+    else{
+        training_snaps = num_snaps;
+    }
+    Epetra_Map RowMap((n*n*training_snaps), 0, epetra_comm);
     Epetra_Map ColMap(N_e, 0, epetra_comm);
 
     Epetra_CrsMatrix C(Epetra_DataAccess::Copy, RowMap, N_e);
@@ -250,9 +257,13 @@ void AssembleECSWJac<dim,nstate>::build_problem(){
         }
         row_num+=(n*n);
         snap_num+=1;
-        //if (snap_num > 5){
-        //    break;
-        //}
+
+        if (all_parameters->hyper_reduction_param.num_training_snaps != 0) {
+            std::cout << "LIMITED NUMBER OF SNAPSHOTS"<< std::endl;
+            if (snap_num > (all_parameters->hyper_reduction_param.num_training_snaps-1)){
+                break;
+            }
+        }
     }
 
     C.FillComplete(ColMap, RowMap);

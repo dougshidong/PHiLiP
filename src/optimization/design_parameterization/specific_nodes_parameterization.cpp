@@ -2,6 +2,7 @@
 #include <deal.II/dofs/dof_tools.h>
 #include <deal.II/lac/dynamic_sparsity_pattern.h>
 #include <deal.II/lac/sparsity_tools.h>
+#include <fstream>
 
 namespace PHiLiP {
 
@@ -17,19 +18,41 @@ SpecificNodesParameterization<dim> :: SpecificNodesParameterization(
 template<int dim>
 void SpecificNodesParameterization<dim> :: store_prespecified_control_nodes()
 {
-    x_control_nodes.push_back(-0.499195); y_control_nodes.push_back(-3.20866);
-    x_control_nodes.push_back(-0.921053); y_control_nodes.push_back(-2.78084);
-    x_control_nodes.push_back(-1.34291); y_control_nodes.push_back(-2.35302);
-    x_control_nodes.push_back(-1.56494); y_control_nodes.push_back(-1.78645);
-    x_control_nodes.push_back(-1.78698); y_control_nodes.push_back(-1.21988);
-    x_control_nodes.push_back(-1.85786); y_control_nodes.push_back(-0.609941);
-    x_control_nodes.push_back(-1.92874); y_control_nodes.push_back(9.52624e-10);
-    x_control_nodes.push_back(-1.85786); y_control_nodes.push_back(0.609941);
-    x_control_nodes.push_back(-1.78698); y_control_nodes.push_back(1.21988);
-    x_control_nodes.push_back(-1.56494); y_control_nodes.push_back(1.78645);
-    x_control_nodes.push_back(-1.34291); y_control_nodes.push_back(2.35302);
-    x_control_nodes.push_back(-0.921053); y_control_nodes.push_back(2.78084);
-    x_control_nodes.push_back(-0.499195); y_control_nodes.push_back(3.20866);
+    std::ifstream infile;
+    const std::string filepath = "coarse_cylinder_controlnodes.txt";
+    infile.open(filepath);
+    if(!infile) {
+        std::cout << "Could not open file for SpecificNodesParameteriation."<< filepath << std::endl;
+        std::abort();
+    }
+
+    std::string line;
+    while(std::getline(infile, line))
+    {
+        std::stringstream ss(line);
+
+        std::string field_x;
+
+        std::getline(ss, field_x, ',');
+
+        std::stringstream ss_x(field_x);
+        double xval = 0.0;
+        ss_x >> xval;
+
+        x_control_nodes.push_back(xval);
+
+        std::string field_y;
+
+        std::getline(ss, field_y, ',');
+        
+        std::stringstream ss_y(field_y);
+
+        double yval = 0;
+
+        ss_y >> yval;
+
+        y_control_nodes.push_back(yval);
+    }
 }
 
 template<int dim>
@@ -486,7 +509,7 @@ int SpecificNodesParameterization<dim> :: is_design_variable_valid(
 template<int dim>
 bool SpecificNodesParameterization<dim> :: check_if_node_belongs_to_the_region(const double x, const double y) const
 {
-    const double tol = 1.0e-3;
+    const double tol = 1.0e-5;
     for(unsigned int i=0; i<x_control_nodes.size(); ++i)
     {
         if( sqrt(pow(x-x_control_nodes[i],2) + pow(y-y_control_nodes[i],2)) < tol )

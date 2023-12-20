@@ -12,7 +12,7 @@ set use_weak_form = true
 set non_physical_behavior = abort_run
 
 # set directry to write output data
-set solution_vtk_files_directory_name = realgas
+#set solution_vtk_files_directory_name = realgas
 
 # Note: this was added to turn off check_same_coords() -- has no other function when dim!=1
 set use_periodic_bc = true

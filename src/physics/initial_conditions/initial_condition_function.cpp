@@ -658,8 +658,8 @@ InitialConditionFunction_AcousticWave_MultiSpecies<dim,nstate,real>
     // Note that Euler primitive/conservative vars are the same as NS
     PHiLiP::Parameters::AllParameters parameters_euler = *param;
     parameters_euler.pde_type = Parameters::AllParameters::PartialDifferentialEquation::real_gas;
-    this->real_gas_physics = std::dynamic_pointer_cast<Physics::RealGas<dim,dim+2,double>>(
-                Physics::PhysicsFactory<dim,dim+2,double>::create_Physics(&parameters_euler));
+    this->real_gas_physics = std::dynamic_pointer_cast<Physics::RealGas<dim,dim+3,double>>(
+                Physics::PhysicsFactory<dim,dim+3,double>::create_Physics(&parameters_euler));
 }
 template <int dim, int nstate, typename real>
 real InitialConditionFunction_AcousticWave_MultiSpecies<dim,nstate,real>
@@ -669,6 +669,9 @@ real InitialConditionFunction_AcousticWave_MultiSpecies<dim,nstate,real>
     real value = 0.;
     if constexpr(dim == 2) {
         const real x = point[0], y = point[1];
+
+        //
+        value = 1.0;
 
         if(istate==0) {
             // density
@@ -713,6 +716,8 @@ real InitialConditionFunction_AcousticWave_MultiSpecies<dim,nstate,real>
         soln_primitive[1] = primitive_value(point,1);
         soln_primitive[2] = primitive_value(point,2);
         soln_primitive[3] = primitive_value(point,3);
+        //
+        soln_primitive[4] = primitive_value(point,4);
 
         const std::array<real,nstate> soln_conservative = this->real_gas_physics->convert_primitive_to_conservative(soln_primitive);
         value = soln_conservative[istate];
@@ -797,7 +802,7 @@ InitialConditionFactory<dim,nstate, real>::create_InitialConditionFunction(
             return std::make_shared<InitialConditionFunction_AcousticWave_Species<dim,nstate,real> >(param);
         }
     } else if (flow_type == FlowCaseEnum::multi_species_acoustic_wave) {
-        if constexpr (dim==2 && nstate==dim+2){ 
+        if constexpr (dim==2 && nstate==dim+3){ 
             return std::make_shared<InitialConditionFunction_AcousticWave_MultiSpecies<dim,nstate,real> >(param);
         }
     } else {
@@ -836,7 +841,7 @@ template class InitialConditionFunction_IsentropicVortex <PHILIP_DIM, PHILIP_DIM
 template class InitialConditionFunction_KHI <PHILIP_DIM, PHILIP_DIM+2, double>;
 template class InitialConditionFunction_AcousticWave_Air <PHILIP_DIM, PHILIP_DIM+2, double>;
 template class InitialConditionFunction_AcousticWave_Species <PHILIP_DIM, PHILIP_DIM+2, double>;
-template class InitialConditionFunction_AcousticWave_MultiSpecies <PHILIP_DIM, PHILIP_DIM+2, double>;
+template class InitialConditionFunction_AcousticWave_MultiSpecies <PHILIP_DIM, PHILIP_DIM+3, double>;
 #endif
 // functions instantiated for all dim
 template class InitialConditionFunction_Zero <PHILIP_DIM,1, double>;

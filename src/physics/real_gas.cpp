@@ -41,7 +41,7 @@ RealGas<dim,nstate,real>::RealGas (
     }
     
     // std::cout<<"In constructor of real gas."<<std::endl<<std::flush;
-    static_assert(nstate==dim+2, "Physics::RealGas() should be created with nstate=dim+2"); // TO DO: UPDATE THIS with nspecies
+    static_assert(nstate==dim+3, "Physics::RealGas() should be created with nstate=dim+2"); // TO DO: UPDATE THIS with nspecies
 }
 
 template <int dim, int nstate, typename real>
@@ -351,11 +351,11 @@ dealii::UpdateFlags RealGas<dim,nstate,real>
 
 
 // Instantiate explicitly
-template class RealGas < PHILIP_DIM, PHILIP_DIM+2, double     >;
-template class RealGas < PHILIP_DIM, PHILIP_DIM+2, FadType    >;
-template class RealGas < PHILIP_DIM, PHILIP_DIM+2, RadType    >;
-template class RealGas < PHILIP_DIM, PHILIP_DIM+2, FadFadType >;
-template class RealGas < PHILIP_DIM, PHILIP_DIM+2, RadFadType >;
+template class RealGas < PHILIP_DIM, PHILIP_DIM+3, double     >;
+template class RealGas < PHILIP_DIM, PHILIP_DIM+3, FadType    >;
+template class RealGas < PHILIP_DIM, PHILIP_DIM+3, RadType    >;
+template class RealGas < PHILIP_DIM, PHILIP_DIM+3, FadFadType >;
+template class RealGas < PHILIP_DIM, PHILIP_DIM+3, RadFadType >;
 
 } // Physics namespace
 } // PHiLiP namespace

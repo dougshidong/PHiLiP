@@ -583,7 +583,7 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
     }
     else if(pde_string == "real_gas") {
         pde_type = real_gas;
-        nstate = dimension+2; // TO DO: change this when considering multispecies
+        nstate = dimension+3; // TO DO: change this when considering multispecies
     }
     else if (pde_string == "physics_model") {
         pde_type = physics_model;

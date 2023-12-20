@@ -147,7 +147,7 @@ PhysicsFactory<dim,nstate,real>
                 manufactured_solution_function);
         }
     } else if (pde_type == PDE_enum::real_gas) {
-        if constexpr (nstate==dim+2) {
+        if constexpr (nstate==dim+3) {
             return std::make_shared < RealGas<dim,nstate,real> > (
                 parameters_input,
                 manufactured_solution_function);

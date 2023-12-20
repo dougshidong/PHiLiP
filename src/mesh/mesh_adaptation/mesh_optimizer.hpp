@@ -28,11 +28,11 @@ public:
     /// Runs full-space optimizer.
     void run_full_space_optimizer();
 
-    /// Runs reduced-space optimizer.
-    void run_reduced_space_optimizer();
-
     /// Gets parlist according to optimization_param.
     Teuchos::ParameterList get_parlist();
+/*
+    /// Runs reduced-space optimizer.
+    void run_reduced_space_optimizer();
 
     /// Assings objective function and design parameterization.
     void initialize_objfunc_and_design_parameterization();
@@ -43,7 +43,7 @@ public:
 
     /// Checks derivatives.
     void check_derivatives();
-
+*/
 // Member variables
     /// Pointer to DGBase
     std::shared_ptr<DGBase<dim,double>> dg;
@@ -53,7 +53,7 @@ public:
     
     /// Flag to use full-space optimizer
     const bool use_full_space_method;
-
+/*    
     /// Objective function
     std::shared_ptr<Functional<dim, nstate, double>> objective_function;
 
@@ -77,7 +77,7 @@ public:
     std::filebuf filebuffer;
 
     std::ostream std_outstream;
-    
+*/    
     /// Alias for MPI_COMM_WORLD
     MPI_Comm mpi_communicator;
 

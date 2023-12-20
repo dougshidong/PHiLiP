@@ -32,19 +32,20 @@ MeshOptimizer<dim,nstate>::MeshOptimizer(
     : dg(dg_input)
     , all_parameters(parameters_input)
     , use_full_space_method(_use_full_space_method)
-    , std_outstream(nullptr)
+    //, std_outstream(nullptr)
     , mpi_communicator(MPI_COMM_WORLD)
     , pcout(std::cout, dealii::Utilities::MPI::this_mpi_process(mpi_communicator)==0)
 {
     MPI_Comm_rank(mpi_communicator, &mpi_rank);
     MPI_Comm_size(mpi_communicator, &n_mpi);
-
+/*
     initialize_objfunc_and_design_parameterization();
     initialize_state_design_and_dual_variables();
     initialize_output_stream();
     n_preconditioner_calls = 0;
+*/
 }
-
+/*
 template<int dim, int nstate>
 void MeshOptimizer<dim,nstate>::initialize_objfunc_and_design_parameterization()
 {
@@ -98,7 +99,7 @@ void MeshOptimizer<dim,nstate>::initialize_output_stream()
     else if (mpi_rank == 1) {rcp_outstream = ROL::makePtrFromRef(std::cout);} // processor #1 outputs on screen.
     else rcp_outstream = ROL::makePtrFromRef(null_stream);
 }
-    
+*/    
 template<int dim, int nstate>
 Teuchos::ParameterList MeshOptimizer<dim,nstate>::get_parlist()
 {
@@ -152,8 +153,38 @@ Teuchos::ParameterList MeshOptimizer<dim,nstate>::get_parlist()
 template<int dim, int nstate>
 void MeshOptimizer<dim,nstate>::run_full_space_optimizer()
 {
+//==================================================================================================================================
+    // Set up objective function and design parameteriation pointers.
+    std::shared_ptr<BaseParameterization<dim>> design_parameterization = std::make_shared<SpecificNodesParameterization<dim>>(dg->high_order_grid); 
+    std::shared_ptr<Functional<dim, nstate, double>> objective_function = std::make_shared<ImplicitShockTrackingFunctional<dim, nstate, double>> (dg);
+   // std::shared_ptr<Functional<dim, nstate, double>> objective_function = std::make_shared<DualWeightedResidualObjFunc2<dim, nstate, double>> (dg);
+
+    // Initialize variables.
+    dg->solution.update_ghost_values();
+    dg->set_dual(dg->solution);
+
+    DealiiVector state_variables = dg->solution;
+    DealiiVector dual_variables = dg->dual;
+    DealiiVector design_variables;
+    design_parameterization->initialize_design_variables(design_variables);
+
+    state_variables.update_ghost_values();
+    dual_variables.update_ghost_values();
+    design_variables.update_ghost_values();
+    
+    // Set up output stream. 
+    std::filebuf filebuffer;
+    if (this->mpi_rank == 0) filebuffer.open("full_space_optimization_run.log", std::ios::out);
+    std::ostream std_outstream(&filebuffer);
+   
+    ROL::nullstream null_stream;
+    Teuchos::RCP<std::ostream> rcp_outstream;
+    if (mpi_rank == 0) {rcp_outstream = ROL::makePtrFromRef(std_outstream);} // processor #0 outputs in file.
+    else if (mpi_rank == 1) {rcp_outstream = ROL::makePtrFromRef(std::cout);} // processor #1 outputs on screen.
+    else rcp_outstream = ROL::makePtrFromRef(null_stream);
+//==================================================================================================================================
     //==============================================================================================================================
-    // Setup vector_ptrs
+    // Setup ROL vector_ptrs
     const bool has_ownership = false;
     VectorAdaptor state_variables_rol(Teuchos::rcp(&state_variables, has_ownership));
     VectorAdaptor design_variables_rol(Teuchos::rcp(&design_variables, has_ownership));
@@ -190,12 +221,12 @@ void MeshOptimizer<dim,nstate>::run_full_space_optimizer()
 
     const double timing_end = MPI_Wtime();
     *rcp_outstream << "The process took "<<timing_end - timing_start << " seconds to run."<<std::endl;
-    *rcp_outstream << "n_preconditioner_calls = "<<n_preconditioner_calls << std::endl;
+    //*rcp_outstream << "n_preconditioner_calls = "<<n_preconditioner_calls << std::endl;
     *rcp_outstream << "n_design_variables = "<< design_variables.size() << std::endl;
     filebuffer.close(); 
 }
 
-
+/*
 template<int dim, int nstate>
 void MeshOptimizer<dim,nstate>::run_reduced_space_optimizer()
 {
@@ -245,7 +276,7 @@ void MeshOptimizer<dim,nstate>::run_reduced_space_optimizer()
     *rcp_outstream << "n_design_variables = "<< design_variables.size() << std::endl;
     filebuffer.close();
 }
-
+*/
 template class MeshOptimizer <PHILIP_DIM, 1>;
 template class MeshOptimizer <PHILIP_DIM, 2>;
 template class MeshOptimizer <PHILIP_DIM, 3>;

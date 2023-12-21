@@ -22,6 +22,19 @@ AnisotropicMeshAdaptationCases<dim, nstate> :: AnisotropicMeshAdaptationCases(
     , parameter_handler(parameter_handler_input)
 {}
 
+template<int dim, int nstate>
+void AnisotropicMeshAdaptationCases<dim,nstate>::increase_grid_degree_and_interpolate_solution(std::shared_ptr<DGBase<dim,double>> dg) const
+{
+   const unsigned int grid_degree_updated = 2;
+
+    std::shared_ptr<HighOrderGrid<dim,double>> new_high_order_grid = 
+                            std::make_shared<HighOrderGrid<dim,double>>(grid_degree_updated, dg->triangulation);
+
+    dg->set_high_order_grid(new_high_order_grid);
+
+    dg->set_p_degree_and_interpolate_solution(2);
+}
+
 template <int dim, int nstate>
 void AnisotropicMeshAdaptationCases<dim,nstate> :: verify_fe_values_shape_hessian(const DGBase<dim, double> &dg) const
 {
@@ -216,8 +229,8 @@ int AnisotropicMeshAdaptationCases<dim, nstate> :: run_test () const
     if(run_mesh_optimizer)
     {
         flow_solver->dg->freeze_artificial_dissipation=true;
-//        flow_solver->dg->set_p_degree_and_interpolate_solution(1);
-        output_vtk_files(flow_solver->dg, output_val++);
+   //     flow_solver->dg->set_p_degree_and_interpolate_solution(1);
+   //     output_vtk_files(flow_solver->dg, output_val++);
         //for(unsigned int i=0; i<2; ++i)
         //{
             std::unique_ptr<MeshOptimizer<dim,nstate>> mesh_optimizer = std::make_unique<MeshOptimizer<dim,nstate>> (flow_solver->dg,&param, true);
@@ -234,6 +247,9 @@ int AnisotropicMeshAdaptationCases<dim, nstate> :: run_test () const
             convergence_table_functional.add_value("functional_error",functional_error);
             convergence_table_enthalpy.add_value("cells", flow_solver->dg->triangulation->n_global_active_cells());
             convergence_table_enthalpy.add_value("enthalpy_error",enthalpy_error);
+
+     //       increase_grid_degree_and_interpolate_solution(flow_solver->dg);
+     //       output_vtk_files(flow_solver->dg, output_val++);
             /*      
             auto mesh_adaptation_param2 = param.mesh_adaptation_param;
             mesh_adaptation_param2.use_goal_oriented_mesh_adaptation = false;

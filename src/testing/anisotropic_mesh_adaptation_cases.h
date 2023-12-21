@@ -38,6 +38,8 @@ public:
     
     /// Evaluates l2 norm of solution error.
     double evaluate_enthalpy_error(std::shared_ptr<DGBase<dim,double>> dg) const;
+
+    void increase_grid_degree_and_interpolate_solution(std::shared_ptr<DGBase<dim,double>> dg) const;
 }; 
 
 } // Tests namespace

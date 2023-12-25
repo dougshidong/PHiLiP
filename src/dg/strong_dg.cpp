@@ -73,7 +73,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_volume_term_and_build_operator
         this->reinit_operators_for_cell_residual_loop(poly_degree, poly_degree, grid_degree, soln_basis, soln_basis, flux_basis, flux_basis, flux_basis_stiffness, mapping_basis);
     }
 
-    const dealii::FESystem<dim> &fe_metric = this->high_order_grid->fe_system;
+    const dealii::FESystem<dim> &fe_metric = this->high_order_grid->dof_handler_grid.get_fe(this->high_order_grid->grid_degree);
     const unsigned int n_metric_dofs = fe_metric.dofs_per_cell;
     const unsigned int n_grid_nodes  = n_metric_dofs / dim;
     //Rewrite the high_order_grid->volume_nodes in a way we can use sum-factorization on.
@@ -145,7 +145,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_boundary_term_and_build_operat
     const bool /*compute_dRdW*/, const bool /*compute_dRdX*/, const bool /*compute_d2R*/)
 {
 
-    const dealii::FESystem<dim> &fe_metric = this->high_order_grid->fe_system;
+    const dealii::FESystem<dim> &fe_metric = this->high_order_grid->dof_handler_grid.get_fe(this->high_order_grid->grid_degree);
     const unsigned int n_metric_dofs = fe_metric.dofs_per_cell;
     const unsigned int n_grid_nodes  = n_metric_dofs / dim;
     //build the surface metric operators for interior
@@ -215,7 +215,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_and_build_operators(
     const bool /*compute_dRdW*/, const bool /*compute_dRdX*/, const bool /*compute_d2R*/)
 {
 
-    const dealii::FESystem<dim> &fe_metric = this->high_order_grid->fe_system;
+    const dealii::FESystem<dim> &fe_metric = this->high_order_grid->dof_handler_grid.get_fe(this->high_order_grid->grid_degree);
     const unsigned int n_metric_dofs = fe_metric.dofs_per_cell;
     const unsigned int n_grid_nodes  = n_metric_dofs / dim;
     //build the surface metric operators for interior

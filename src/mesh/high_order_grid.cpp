@@ -51,18 +51,17 @@ unsigned int HighOrderGrid<dim,real,MeshType,VectorType,DoFHandlerType>::nth_ref
 
 template <int dim, typename real, typename MeshType, typename VectorType, typename DoFHandlerType>
 HighOrderGrid<dim,real,MeshType,VectorType,DoFHandlerType>::HighOrderGrid(
-        const unsigned int max_degree,
+        const unsigned int grid_degree,
         const std::shared_ptr<MeshType> triangulation_input,
         const bool output_high_order_grid)
-    : max_degree(max_degree)
+    : grid_degree(grid_degree)
     , triangulation(triangulation_input)
-    , dof_handler_grid(*triangulation)
-    , fe_q(max_degree) // The grid must be at least p1. A p0 solution required a p1 grid.
-    , fe_system(dealii::FESystem<dim>(fe_q,dim)) // The grid must be at least p1. A p0 solution required a p1 grid.
-    , oneD_fe_q(max_degree)
+    , dof_handler_grid(*triangulation, true)
+    , fe_metric_collection(create_fe_metric_collection())
+    , oneD_fe_q(grid_degree)
     , oneD_fe_system(oneD_fe_q,1)
-    , oneD_grid_nodes(max_degree+1)
-    , dim_grid_nodes(max_degree+1)
+    , oneD_grid_nodes(grid_degree+1)
+    , dim_grid_nodes(grid_degree+1)
     , solution_transfer(dof_handler_grid)
     , mpi_communicator(MPI_COMM_WORLD)
     , pcout(std::cout, dealii::Utilities::MPI::this_mpi_process(mpi_communicator)==0)
@@ -70,14 +69,56 @@ HighOrderGrid<dim,real,MeshType,VectorType,DoFHandlerType>::HighOrderGrid(
     MPI_Comm_rank(MPI_COMM_WORLD, &mpi_rank);
     MPI_Comm_size(MPI_COMM_WORLD, &n_mpi);
 
-    Assert(max_degree > 0, dealii::ExcMessage("Grid must be at least order 1."));
+    Assert(grid_degree > 0, dealii::ExcMessage("Grid must be at least order 1."));
 
     if (triangulation->n_levels() == 0) {
         // Do nothing
         // Assume stuff will be read later on.
     } else {
+        dof_handler_grid.initialize(*triangulation, fe_metric_collection);
+        set_q_degree(grid_degree);
         initialize_with_triangulation_manifold(output_high_order_grid);
     }
+}
+    
+template <int dim, typename real, typename MeshType, typename VectorType, typename DoFHandlerType>
+dealii::hp::FECollection<dim> HighOrderGrid<dim,real,MeshType,VectorType,DoFHandlerType>::
+    create_fe_metric_collection(const unsigned int max_grid_degree) const
+{
+    dealii::hp::FECollection<dim> net_fe_metric_collection;
+    
+    for(unsigned int degree=0; degree <= max_grid_degree; ++degree)
+    {
+        unsigned int metric_degree = degree;
+        if(degree == 0) {metric_degree = 1;}
+
+        const dealii::FE_Q<dim> fe_q_current(metric_degree);
+        const dealii::FESystem<dim,dim> fe_system_metric(fe_q_current, dim);
+        net_fe_metric_collection.push_back (fe_system_metric);
+    }
+    return net_fe_metric_collection;
+}
+
+template<int dim, typename real, typename MeshType, typename VectorType, typename DoFHandlerType>
+void HighOrderGrid<dim,real,MeshType,VectorType,DoFHandlerType>::
+    set_q_degree(const unsigned int q_degree, const bool interpolate_nodes)
+{
+    triangulation->prepare_coarsening_and_refinement();
+    if(interpolate_nodes)
+    {
+        prepare_for_coarsening_and_refinement(); // store old volume nodes.
+    }
+    for (const auto &metric_cell : dof_handler_grid.active_cell_iterators())
+    {
+        if (metric_cell->is_locally_owned()) {metric_cell->set_future_fe_index (q_degree);}
+    }
+
+    triangulation->execute_coarsening_and_refinement(); 
+    if(interpolate_nodes)
+    {
+        execute_coarsening_and_refinement(); // interpolate old volume nodes to new mesh.
+    }
+    grid_degree = q_degree;
 }
 
 template <int dim, typename real, typename MeshType, typename VectorType, typename DoFHandlerType>
@@ -99,7 +140,7 @@ void HighOrderGrid<dim,real,MeshType,VectorType,DoFHandlerType>::initialize_with
     if (output_mesh) output_results_vtk(nth_refinement++);
 
     // Used to check Jacobian validity
-    const unsigned int exact_jacobian_order = (max_degree-1) * dim;
+    const unsigned int exact_jacobian_order = (grid_degree-1) * dim;
     const unsigned int min_jacobian_order = 1;
     const unsigned int used_jacobian_order = std::max(exact_jacobian_order, min_jacobian_order);
     evaluate_lagrange_to_bernstein_operator(used_jacobian_order);
@@ -112,7 +153,7 @@ void HighOrderGrid<dim,real,MeshType,VectorType,DoFHandlerType>::initialize_with
         const bool is_invalid_cell = check_valid_cell(cell);
 
         if ( !is_invalid_cell ) {
-            std::cout << " Poly: " << max_degree
+            std::cout << " Poly: " << grid_degree
                       << " Grid: " << nth_refinement
                       << " Cell: " << cell->active_cell_index() << " has an invalid Jacobian." << std::endl;
             // bool fixed_invalid_cell = fix_invalid_cell(cell);
@@ -132,7 +173,7 @@ void HighOrderGrid<dim,real,MeshType,VectorType,DoFHandlerType>::reinit(){
     update_mapping_fe_field();
 
     // Used to check Jacobian validity
-    const unsigned int exact_jacobian_order = (max_degree-1) * dim;
+    const unsigned int exact_jacobian_order = (grid_degree-1) * dim;
     const unsigned int min_jacobian_order = 1;
     const unsigned int used_jacobian_order = std::max(exact_jacobian_order, min_jacobian_order);
     evaluate_lagrange_to_bernstein_operator(used_jacobian_order);
@@ -145,7 +186,7 @@ void HighOrderGrid<dim,real,MeshType,VectorType,DoFHandlerType>::reinit(){
         const bool is_invalid_cell = check_valid_cell(cell);
 
         if ( !is_invalid_cell ) {
-            std::cout << " Poly: " << max_degree
+            std::cout << " Poly: " << grid_degree
                       << " Grid: " << nth_refinement
                       << " Cell: " << cell->active_cell_index() << " has an invalid Jacobian." << std::endl;
             // bool fixed_invalid_cell = fix_invalid_cell(cell);
@@ -181,8 +222,7 @@ template <int dim, typename real, typename MeshType, typename VectorType, typena
 void 
 HighOrderGrid<dim,real,MeshType,VectorType,DoFHandlerType>::allocate() 
 {
-    dof_handler_grid.initialize(*triangulation, fe_system);
-    dof_handler_grid.distribute_dofs(fe_system);
+    dof_handler_grid.distribute_dofs(fe_metric_collection);
     dealii::DoFRenumbering::Cuthill_McKee(dof_handler_grid);
 
 
@@ -218,7 +258,7 @@ void HighOrderGrid<dim,real,MeshType,VectorType,DoFHandlerType>
 ::get_position_vector(const DoFHandlerType &dh, VectorType &position_vector, const dealii::ComponentMask &mask)
 {
     AssertDimension(position_vector.size(), dh.n_dofs());
-    const dealii::FESystem<dim, dim> &fe = dh.get_fe();
+    const dealii::FESystem<dim, dim> &fe = dh.get_fe(grid_degree);
 
     // Construct default fe_mask;
     const dealii::ComponentMask fe_mask(mask.size() ? mask : dealii::ComponentMask(fe.get_nonzero_components(0).size(), true));
@@ -259,7 +299,7 @@ void HighOrderGrid<dim,real,MeshType,VectorType,DoFHandlerType>
 ::get_projected_position_vector(const DoFHandlerType &dh, VectorType &position_vector, const dealii::ComponentMask &mask)
 {
     AssertDimension(position_vector.size(), dh.n_dofs());
-    const dealii::FESystem<dim, dim> &fe = dh.get_fe();
+    const dealii::FESystem<dim, dim> &fe = dh.get_fe(grid_degree);
 
     // Construct default fe_mask;
     const dealii::ComponentMask fe_mask(mask.size() ? mask : dealii::ComponentMask(fe.get_nonzero_components(0).size(), true));
@@ -567,7 +607,7 @@ template <int dim, typename real, typename MeshType, typename VectorType, typena
 bool HighOrderGrid<dim,real,MeshType,VectorType,DoFHandlerType>::check_valid_cell(const typename DoFHandlerType::cell_iterator &cell) const
 {
     return true;
-    const unsigned int exact_jacobian_order = (max_degree-1) * dim, min_jacobian_order = 1;
+    const unsigned int exact_jacobian_order = (grid_degree-1) * dim, min_jacobian_order = 1;
     const unsigned int used_jacobian_order = std::max(exact_jacobian_order, min_jacobian_order);
 
     // Evaluate Jacobian at Lagrange interpolation points
@@ -636,7 +676,7 @@ bool HighOrderGrid<dim,real,MeshType,VectorType,DoFHandlerType>::fix_invalid_cel
     // Maximum number of times we will move the barrier
     const int max_barrier_iterations = 100;
 
-    const unsigned int exact_jacobian_order = (max_degree-1) * dim, min_jacobian_order = 1;
+    const unsigned int exact_jacobian_order = (grid_degree-1) * dim, min_jacobian_order = 1;
     const unsigned int used_jacobian_order = std::max(exact_jacobian_order, min_jacobian_order);
     const dealii::FE_Q<dim> lagrange_basis(used_jacobian_order);
     const std::vector< dealii::Point<dim> > &lagrange_pts = lagrange_basis.get_unit_support_points();
@@ -935,7 +975,7 @@ template <int dim, typename real, typename MeshType, typename VectorType, typena
 void HighOrderGrid<dim,real,MeshType,VectorType,DoFHandlerType>::test_jacobian()
 {
     // // Setup a dummy system
-    // const unsigned int solution_degree = max_degree-1;
+    // const unsigned int solution_degree = grid_degree-1;
     // const unsigned int dummy_n_state = 5;
     // const dealii::FE_DGQ<dim> fe_dgq(solution_degree);
     // const dealii::FESystem<dim> fe_system_dgq(fe_dgq, dummy_n_state);
@@ -1046,7 +1086,7 @@ void HighOrderGrid<dim,real,MeshType,VectorType,DoFHandlerType>::execute_coarsen
     //    const bool is_invalid_cell = check_valid_cell(cell);
 
     //    if ( !is_invalid_cell ) {
-    //        std::cout << " Poly: " << max_degree
+    //        std::cout << " Poly: " << grid_degree
     //                  << " Grid: " << nth_refinement
     //                  << " Cell: " << cell->active_cell_index() << " has an invalid Jacobian." << std::endl;
     //        //bool fixed_invalid_cell = fix_invalid_cell(cell);
@@ -1246,6 +1286,7 @@ void HighOrderGrid<dim,real,MeshType,VectorType,DoFHandlerType>::update_surface_
     global_index_to_point_and_axis.clear();
     point_and_axis_to_global_index.clear();
 
+    const dealii::FESystem<dim,dim> &fe_system = dof_handler_grid.get_fe(grid_degree);
     const unsigned int dofs_per_cell = fe_system.n_dofs_per_cell();
     const unsigned int dofs_per_face = fe_system.n_dofs_per_face();
     std::vector< dealii::types::global_dof_index > dof_indices(dofs_per_cell);
@@ -1366,7 +1407,7 @@ HighOrderGrid<dim,real,MeshType,VectorType,DoFHandlerType>::transform_surface_no
 template <int dim, typename real, typename MeshType, typename VectorType, typename DoFHandlerType>
 void HighOrderGrid<dim,real,MeshType,VectorType,DoFHandlerType>::output_results_vtk (const unsigned int cycle) const
 {
-    std::string master_fn = "Mesh-" + dealii::Utilities::int_to_string(dim, 1) +"D_GridP"+dealii::Utilities::int_to_string(max_degree, 2)+"-";
+    std::string master_fn = "Mesh-" + dealii::Utilities::int_to_string(dim, 1) +"D_GridP"+dealii::Utilities::int_to_string(grid_degree, 2)+"-";
     master_fn += dealii::Utilities::int_to_string(cycle, 4) + ".pvtu";
     pcout << "Outputting grid: " << master_fn << " ... " << std::endl;
 
@@ -1393,6 +1434,7 @@ void HighOrderGrid<dim,real,MeshType,VectorType,DoFHandlerType>::output_results_
 
     VectorType jacobian_determinant;
     jacobian_determinant.reinit(locally_owned_dofs_grid, ghost_dofs_grid, mpi_communicator);
+    const dealii::FESystem<dim,dim> &fe_system = dof_handler_grid.get_fe(grid_degree);
     const unsigned int n_dofs_per_cell = fe_system.n_dofs_per_cell();
     std::vector<dealii::types::global_dof_index> dofs_indices(n_dofs_per_cell);
     const std::vector< dealii::Point<dim> > &points = fe_system.get_unit_support_points();
@@ -1419,14 +1461,14 @@ void HighOrderGrid<dim,real,MeshType,VectorType,DoFHandlerType>::output_results_
     //typename dealii::DataOut<dim>::CurvedCellRegion curved = dealii::DataOut<dim>::CurvedCellRegion::no_curved_cells;
 
     const dealii::Mapping<dim> &mapping = (*(mapping_fe_field));
-    const int n_subdivisions = max_degree;;//+30; // if write_higher_order_cells, n_subdivisions represents the order of the cell
+    const int n_subdivisions = grid_degree;;//+30; // if write_higher_order_cells, n_subdivisions represents the order of the cell
     data_out.build_patches(mapping, n_subdivisions, curved);
     const bool write_higher_order_cells = (dim>1) ? true : false;
     dealii::DataOutBase::VtkFlags vtkflags(0.0,cycle,true,dealii::DataOutBase::VtkFlags::ZlibCompressionLevel::best_compression,write_higher_order_cells);
     data_out.set_flags(vtkflags);
 
     const int iproc = dealii::Utilities::MPI::this_mpi_process(mpi_communicator);
-    std::string filename = "Mesh-" + dealii::Utilities::int_to_string(dim, 1) +"D_GridP"+dealii::Utilities::int_to_string(max_degree, 2)+"-";
+    std::string filename = "Mesh-" + dealii::Utilities::int_to_string(dim, 1) +"D_GridP"+dealii::Utilities::int_to_string(grid_degree, 2)+"-";
     filename += dealii::Utilities::int_to_string(cycle, 4) + "." + dealii::Utilities::int_to_string(iproc, 4);
     filename += ".vtu";
     std::ofstream output(filename);
@@ -1434,7 +1476,7 @@ void HighOrderGrid<dim,real,MeshType,VectorType,DoFHandlerType>::output_results_
     if (iproc == 0) {
         std::vector<std::string> filenames;
         for (unsigned int iproc = 0; iproc < dealii::Utilities::MPI::n_mpi_processes(mpi_communicator); ++iproc) {
-            std::string fn = "Mesh-" + dealii::Utilities::int_to_string(dim, 1) +"D_GridP"+dealii::Utilities::int_to_string(max_degree, 2)+"-";
+            std::string fn = "Mesh-" + dealii::Utilities::int_to_string(dim, 1) +"D_GridP"+dealii::Utilities::int_to_string(grid_degree, 2)+"-";
             fn += dealii::Utilities::int_to_string(cycle, 4) + "." + dealii::Utilities::int_to_string(iproc, 4);
             fn += ".vtu";
             filenames.push_back(fn);

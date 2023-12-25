@@ -133,7 +133,7 @@ class HighOrderGrid
 public:
     /// Principal constructor that will call delegated constructor.
     HighOrderGrid(
-        const unsigned int              max_degree, 
+        const unsigned int              grid_degree, 
         const std::shared_ptr<MeshType> triangulation_input,
         const bool                      output_high_order_grid=true);
 
@@ -158,8 +158,8 @@ public:
     /// Return a MappingFEField that corresponds to the current node locations
     dealii::MappingFEField<dim,dim,VectorType,DoFHandlerType> get_MappingFEField();
 
-    /// Maximum degree of the geometry polynomial representing the grid.
-    const unsigned int max_degree;
+    /// Current degree of the geometry polynomial representing the grid.
+    unsigned int grid_degree;
 
     const std::shared_ptr<MeshType> triangulation; ///< Mesh
 
@@ -369,11 +369,14 @@ public:
      *  dealii::Triangulation::execute_coarsening_and_refinement() or dealii::Triangulation::refine_global().
      */
     void execute_coarsening_and_refinement(const bool output_mesh = false);
+
+    void set_q_degree(const unsigned int q_degree, const bool interpolate_nodes = false);
+
+    dealii::hp::FECollection<dim> create_fe_metric_collection(const unsigned int max_grid_degree = 2) const;
     
-    /// Use Lagrange polynomial to represent the spatial location.
-    const dealii::FE_Q<dim>     fe_q;
-    /// Using system of polynomials to represent the x, y, and z directions.
-    const dealii::FESystem<dim> fe_system;
+    /// Finite Element Collection for p-finite-element to represent the solution
+    /** This is a collection of FESystems */
+    const dealii::hp::FECollection<dim>    fe_metric_collection;
     /// Use oneD Lagrange polynomial to represent the spatial location.
     /** We use FE_DGQ instead of FE_Q for this because DGQ orders in a tensor-product way,
     * with x running fastest, then y, and z the slowest; whereas FE_Q order by the vertices

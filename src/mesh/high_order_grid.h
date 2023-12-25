@@ -165,6 +165,7 @@ public:
 
     /// Degrees of freedom handler for the high-order grid
     dealii::DoFHandler<dim> dof_handler_grid;
+    dealii::DoFHandler<dim> dof_handler_mapping_grid;
 
     /// Current nodal coefficients of the high-order grid.
     /** Note that this contains all \<dim\> directions.
@@ -373,6 +374,8 @@ public:
     void set_q_degree(const unsigned int q_degree, const bool interpolate_nodes = false);
 
     dealii::hp::FECollection<dim> create_fe_metric_collection(const unsigned int max_grid_degree = 2) const;
+
+    const dealii::FESystem<dim,dim> & get_current_fe_system() const;
     
     /// Finite Element Collection for p-finite-element to represent the solution
     /** This is a collection of FESystems */

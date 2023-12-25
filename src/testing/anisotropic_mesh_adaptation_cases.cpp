@@ -25,14 +25,10 @@ AnisotropicMeshAdaptationCases<dim, nstate> :: AnisotropicMeshAdaptationCases(
 template<int dim, int nstate>
 void AnisotropicMeshAdaptationCases<dim,nstate>::increase_grid_degree_and_interpolate_solution(std::shared_ptr<DGBase<dim,double>> dg) const
 {
-   const unsigned int grid_degree_updated = 2;
+   const unsigned int degree_updated = 2;
 
-    std::shared_ptr<HighOrderGrid<dim,double>> new_high_order_grid = 
-                            std::make_shared<HighOrderGrid<dim,double>>(grid_degree_updated, dg->triangulation);
-
-    dg->set_high_order_grid(new_high_order_grid);
-
-    dg->set_p_degree_and_interpolate_solution(2);
+    dg->high_order_grid->set_q_degree(degree_updated, true);
+    dg->set_p_degree_and_interpolate_solution(degree_updated);
 }
 
 template <int dim, int nstate>
@@ -43,7 +39,7 @@ void AnisotropicMeshAdaptationCases<dim,nstate> :: verify_fe_values_shape_hessia
     const dealii::UpdateFlags update_flags = dealii::update_jacobian_pushed_forward_grads | dealii::update_inverse_jacobians;
     dealii::hp::FEValues<dim,dim>   fe_values_collection_volume (mapping_collection, dg.fe_collection, dg.volume_quadrature_collection, update_flags);
     
-    dealii::MappingQGeneric<dim, dim> mapping2(dg.high_order_grid->dof_handler_grid.get_fe().degree);
+    dealii::MappingQGeneric<dim, dim> mapping2(dg.high_order_grid->dof_handler_grid.get_fe(dg.high_order_grid->grid_degree).degree);
     dealii::hp::MappingCollection<dim> mapping_collection2(mapping2);
     dealii::hp::FEValues<dim,dim>   fe_values_collection_volume2 (mapping_collection2, dg.fe_collection, dg.volume_quadrature_collection, dealii::update_hessians);
     

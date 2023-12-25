@@ -57,6 +57,7 @@ HighOrderGrid<dim,real,MeshType,VectorType,DoFHandlerType>::HighOrderGrid(
     : grid_degree(grid_degree)
     , triangulation(triangulation_input)
     , dof_handler_grid(*triangulation, true)
+    , dof_handler_mapping_grid(*triangulation)
     , fe_metric_collection(create_fe_metric_collection())
     , oneD_fe_q(grid_degree)
     , oneD_fe_system(oneD_fe_q,1)
@@ -77,6 +78,7 @@ HighOrderGrid<dim,real,MeshType,VectorType,DoFHandlerType>::HighOrderGrid(
     } else {
         dof_handler_grid.initialize(*triangulation, fe_metric_collection);
         set_q_degree(grid_degree);
+        dof_handler_mapping_grid.initialize(*triangulation, fe_metric_collection[grid_degree]);
         initialize_with_triangulation_manifold(output_high_order_grid);
     }
 }
@@ -120,7 +122,14 @@ void HighOrderGrid<dim,real,MeshType,VectorType,DoFHandlerType>::
         execute_coarsening_and_refinement(); // interpolate old volume nodes to new mesh.
     }
 }
-
+/*
+template<int dim, typename real, typename MeshType, typename VectorType, typename DoFHandlerType>
+const dealii::FESystem<dim,dim> & HighOrderGrid<dim,real,MeshType,VectorType,DoFHandlerType>::get_current_fe_system() const
+{
+    //return fe_metric_collection[grid_degree];
+    return dof_handler_grid.get_fe(grid_degree);
+}
+*/
 template <int dim, typename real, typename MeshType, typename VectorType, typename DoFHandlerType>
 void HighOrderGrid<dim,real,MeshType,VectorType,DoFHandlerType>::initialize_with_triangulation_manifold(const bool output_mesh)
 {
@@ -214,8 +223,8 @@ void HighOrderGrid<dim,real,MeshType,VectorType,DoFHandlerType>::ensure_conformi
 template <int dim, typename real, typename MeshType, typename VectorType, typename DoFHandlerType>
 void HighOrderGrid<dim,real,MeshType,VectorType,DoFHandlerType>::update_mapping_fe_field() {
     const dealii::ComponentMask mask(dim, true);
-    mapping_fe_field = std::make_shared< dealii::MappingFEField<dim,dim,VectorType,DoFHandlerType> > (dof_handler_grid,volume_nodes,mask);
-    initial_mapping_fe_field = std::make_shared< dealii::MappingFEField<dim,dim,VectorType,DoFHandlerType> > (dof_handler_grid,initial_volume_nodes,mask);
+    mapping_fe_field = std::make_shared< dealii::MappingFEField<dim,dim,VectorType,DoFHandlerType> > (dof_handler_mapping_grid,volume_nodes,mask);
+    initial_mapping_fe_field = std::make_shared< dealii::MappingFEField<dim,dim,VectorType,DoFHandlerType> > (dof_handler_mapping_grid,initial_volume_nodes,mask);
 }
 
 template <int dim, typename real, typename MeshType, typename VectorType, typename DoFHandlerType>
@@ -224,6 +233,9 @@ HighOrderGrid<dim,real,MeshType,VectorType,DoFHandlerType>::allocate()
 {
     dof_handler_grid.distribute_dofs(fe_metric_collection);
     dealii::DoFRenumbering::Cuthill_McKee(dof_handler_grid);
+    dof_handler_mapping_grid.initialize(*triangulation, fe_metric_collection[grid_degree]);
+    dof_handler_mapping_grid.distribute_dofs(fe_metric_collection[grid_degree]);
+    dealii::DoFRenumbering::Cuthill_McKee(dof_handler_mapping_grid);
 
 
     locally_owned_dofs_grid = dof_handler_grid.locally_owned_dofs();

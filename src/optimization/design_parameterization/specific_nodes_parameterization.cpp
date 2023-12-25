@@ -19,7 +19,7 @@ template<int dim>
 void SpecificNodesParameterization<dim> :: store_prespecified_control_nodes()
 {
     std::ifstream infile;
-    const std::string filepath = "q2_cylinder_controlnodes.txt";
+    const std::string filepath = "q1_cylinder_controlnodes.txt";
     infile.open(filepath);
     if(!infile) {
         std::cout << "Could not open file for SpecificNodesParameteriation."<< filepath << std::endl;

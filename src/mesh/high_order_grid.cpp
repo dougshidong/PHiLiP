@@ -114,11 +114,11 @@ void HighOrderGrid<dim,real,MeshType,VectorType,DoFHandlerType>::
     }
 
     triangulation->execute_coarsening_and_refinement(); 
+    grid_degree = q_degree;
     if(interpolate_nodes)
     {
         execute_coarsening_and_refinement(); // interpolate old volume nodes to new mesh.
     }
-    grid_degree = q_degree;
 }
 
 template <int dim, typename real, typename MeshType, typename VectorType, typename DoFHandlerType>

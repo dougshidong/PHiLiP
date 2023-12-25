@@ -19,7 +19,7 @@ template<int dim>
 void SpecificNodesParameterization<dim> :: store_prespecified_control_nodes()
 {
     std::ifstream infile;
-    const std::string filepath = "q1_cylinder_controlnodes.txt";
+    const std::string filepath = "q2_cylinder_controlnodes.txt";
     infile.open(filepath);
     if(!infile) {
         std::cout << "Could not open file for SpecificNodesParameteriation."<< filepath << std::endl;
@@ -119,16 +119,16 @@ void SpecificNodesParameterization<dim> :: compute_control_index_to_vol_index()
     dealii::LinearAlgebra::distributed::Vector<int> left_control_index;
     left_control_index.reinit(this->high_order_grid->volume_nodes); // copies parallel layout, without values. initializes to 0 by default.
     left_control_index = 0;
-    left_control_index.update_ghost_values();
     dealii::LinearAlgebra::distributed::Vector<int> right_control_index;
     right_control_index.reinit(this->high_order_grid->volume_nodes); // copies parallel layout, without values. initializes to 0 by default.
     right_control_index = 0;
-    right_control_index.update_ghost_values();
 
     dealii::LinearAlgebra::distributed::Vector<int> left_update;
     left_update.reinit(this->high_order_grid->volume_nodes);
+    left_update = 0;
     dealii::LinearAlgebra::distributed::Vector<int> right_update;
     right_update.reinit(this->high_order_grid->volume_nodes);
+    right_update = 0;
             
     if(this->high_order_grid->grid_degree > 1)
     {

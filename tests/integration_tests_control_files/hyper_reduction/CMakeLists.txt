@@ -65,3 +65,16 @@ add_test(
         WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
 )
 
+configure_file(error_NACA_n_hyp.prm error_NACA_n_hyp.prm  COPYONLY)
+add_test(
+        NAME ERROR_NACA_N_HYP
+        COMMAND mpirun -np 1 ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_2D -i ${CMAKE_CURRENT_BINARY_DIR}/error_NACA_n_hyp.prm 
+        WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
+)
+
+configure_file(hyp_error_NACA.prm hyp_error_NACA.prm  COPYONLY)
+add_test(
+        NAME HYP_ERROR_NACA_N_HYP
+        COMMAND mpirun -np 1 ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_2D -i ${CMAKE_CURRENT_BINARY_DIR}/hyp_error_NACA.prm 
+        WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
+)

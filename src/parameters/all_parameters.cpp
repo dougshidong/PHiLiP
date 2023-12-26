@@ -189,7 +189,9 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       " build_NNLS_problem |"
                       " hyper_reduction_comparison |"
                       " hyper_adaptive_sampling_test |"
-                      " hyper_reduction_post_sampling"),
+                      " hyper_reduction_post_sampling |"
+                      " error_post_sampling |"
+                      " hyper_error_post_sampling"),
                       "The type of test we want to solve. "
                       "Choices are " 
                       " <run_control | " 
@@ -231,7 +233,9 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       "  build_NNLS_problem |"
                       " hyper_reduction_comparison |"
                       " hyper_adaptive_sampling_test |"
-                      " hyper_reduction_post_sampling.");
+                      " hyper_reduction_post_sampling |"
+                      " error_post_sampling |"
+                      " hyper_error_post_sampling.");
 
     prm.declare_entry("pde_type", "advection",
                       dealii::Patterns::Selection(
@@ -412,6 +416,8 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
     else if (test_string == "hyper_reduction_comparison")               { test_type = hyper_reduction_comparison; }
     else if (test_string == "hyper_adaptive_sampling_test")             { test_type = hyper_adaptive_sampling_test; }
     else if (test_string == "hyper_reduction_post_sampling")            { test_type = hyper_reduction_post_sampling; }
+    else if (test_string == "error_post_sampling")                      { test_type = error_post_sampling; }
+    else if (test_string == "hyper_error_post_sampling")                { test_type = hyper_error_post_sampling; }
 
     overintegration = prm.get_integer("overintegration");
 

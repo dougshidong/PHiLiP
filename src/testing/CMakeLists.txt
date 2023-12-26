@@ -39,6 +39,8 @@ set(TESTS_SOURCE
     hyper_reduction_comparison.cpp
     hyper_adaptive_sampling_test.cpp
     hyper_reduction_post_sampling.cpp
+    error_post_sampling.cpp
+    hyper_error_post_sampling.cpp
     )
 
 foreach(dim RANGE 1 3)

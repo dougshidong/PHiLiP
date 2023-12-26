@@ -47,6 +47,8 @@
 #include "hyper_reduction_comparison.h"
 #include "hyper_adaptive_sampling_test.h"
 #include "hyper_reduction_post_sampling.h"
+#include "error_post_sampling.h"
+#include "hyper_error_post_sampling.h"
 
 namespace PHiLiP {
 namespace Tests {
@@ -313,6 +315,10 @@ std::unique_ptr< TestsBase > TestsFactory<dim,nstate,MeshType>
         if constexpr ((dim==2 && nstate==dim+2) || (dim==1 && nstate==1))  return std::make_unique<HyperAdaptiveSamplingTest<dim,nstate>>(parameters_input, parameter_handler_input);
     } else if(test_type == Test_enum::hyper_reduction_post_sampling) {
         if constexpr ((dim==2 && nstate==dim+2) || (dim==1 && nstate==1))  return std::make_unique<HyperReductionPostSampling<dim,nstate>>(parameters_input, parameter_handler_input);
+    } else if(test_type == Test_enum::error_post_sampling) {
+        if constexpr ((dim==2 && nstate==dim+2) || (dim==1 && nstate==1))  return std::make_unique<ErrorPostSampling<dim,nstate>>(parameters_input, parameter_handler_input);
+    } else if(test_type == Test_enum::hyper_error_post_sampling) {
+        if constexpr ((dim==2 && nstate==dim+2) || (dim==1 && nstate==1))  return std::make_unique<HyperErrorPostSampling<dim,nstate>>(parameters_input, parameter_handler_input);
     } else {
         std::cout << "Invalid test. You probably forgot to add it to the list of tests in tests.cpp" << std::endl;
         std::abort();

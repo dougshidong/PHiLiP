@@ -199,7 +199,9 @@ public:
         build_NNLS_problem,
         hyper_reduction_comparison,
         hyper_adaptive_sampling_test,
-        hyper_reduction_post_sampling
+        hyper_reduction_post_sampling,
+        error_post_sampling,
+        hyper_error_post_sampling
     };
     /// Store selected TestType from the input file.
     TestType test_type;

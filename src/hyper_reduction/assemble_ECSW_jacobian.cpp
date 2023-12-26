@@ -268,11 +268,11 @@ void AssembleECSWJac<dim,nstate>::build_problem(){
 
     C.FillComplete(ColMap, RowMap);
 
-    // std::cout << " Matrix C "<< std::endl;
-    // std::cout << C << std::endl;
+    std::cout << " Matrix C "<< std::endl;
+    std::cout << C << std::endl;
 
-    // std::cout << " Vector d "<< std::endl;
-    // std::cout << d << std::endl;
+    std::cout << " Vector d "<< std::endl;
+    std::cout << d << std::endl;
 
     // Sub temp C and d into class A and b
     A->reinit(C);

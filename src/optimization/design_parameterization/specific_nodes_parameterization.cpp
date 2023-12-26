@@ -130,7 +130,7 @@ void SpecificNodesParameterization<dim> :: compute_control_index_to_vol_index()
     right_update.reinit(this->high_order_grid->volume_nodes);
     right_update = 0;
             
-    if(this->high_order_grid->grid_degree > 1)
+    if(this->high_order_grid->get_current_fe_system().tensor_degree() > 1)
     {
     
         std::vector<int> index_adj1(16);
@@ -162,14 +162,14 @@ void SpecificNodesParameterization<dim> :: compute_control_index_to_vol_index()
         index_adj2[7] = 11;
         
 
-        const dealii::FESystem<dim,dim> &fe_metric = this->high_order_grid->dof_handler_grid.get_fe(this->high_order_grid->grid_degree);
+        const dealii::FESystem<dim,dim> &fe_metric = this->high_order_grid->get_current_fe_system();
         const unsigned int n_metric_dofs_cell = fe_metric.n_dofs_per_cell();
         std::vector<dealii::types::global_dof_index> dofs_indices(n_metric_dofs_cell);
         for (const auto &cell : this->high_order_grid->dof_handler_grid.active_cell_iterators()) 
         {
             if (! cell->is_locally_owned()) {continue;}
 
-            if(this->high_order_grid->grid_degree == 1) {continue;}
+            if(this->high_order_grid->get_current_fe_system().tensor_degree() == 1) {continue;}
      
             cell->get_dof_indices (dofs_indices);
 
@@ -309,7 +309,7 @@ void SpecificNodesParameterization<dim> :: compute_control_index_to_vol_index()
         
         if(is_a_control_node(i_vol) == 1)
         {
-            if(this->high_order_grid->grid_degree > 1)
+            if(this->high_order_grid->get_current_fe_system().tensor_degree() > 1)
             {
                 control_index_to_left_vol_index[count1] = left_control_index(i_vol);
                 control_index_to_right_vol_index[count1] = right_control_index(i_vol);
@@ -363,7 +363,7 @@ void SpecificNodesParameterization<dim> :: compute_dXv_dXp(MatrixType &dXv_dXp) 
             }
         }
         
-        if(this->high_order_grid->grid_degree > 1)
+        if(this->high_order_grid->get_current_fe_system().tensor_degree() > 1)
         {
             const unsigned int ivol1 = control_index_to_left_vol_index[i_control];
             const unsigned int ivol2 = control_index_to_right_vol_index[i_control];
@@ -407,7 +407,7 @@ void SpecificNodesParameterization<dim> :: compute_dXv_dXp(MatrixType &dXv_dXp) 
             }    
         }
         
-        if(this->high_order_grid->grid_degree > 1)
+        if(this->high_order_grid->get_current_fe_system().tensor_degree() > 1)
         {
             const unsigned int ivol1 = control_index_to_left_vol_index[i_control];
             const unsigned int ivol2 = control_index_to_right_vol_index[i_control];
@@ -486,7 +486,7 @@ int SpecificNodesParameterization<dim> :: is_design_variable_valid(
     vol_nodes_from_design_var.update_ghost_values();
     
     int mesh_error_this_processor = 0;
-    const dealii::FESystem<dim,dim> &fe_metric = this->high_order_grid->dof_handler_grid.get_fe(this->high_order_grid->grid_degree);
+    const dealii::FESystem<dim,dim> &fe_metric = this->high_order_grid->get_current_fe_system();
     const unsigned int n_dofs_per_cell = fe_metric.n_dofs_per_cell();
     const std::vector< dealii::Point<dim> > &ref_points = fe_metric.get_unit_support_points();
     for (const auto &cell : this->high_order_grid->dof_handler_grid.active_cell_iterators()) 

@@ -67,7 +67,7 @@ double PeriodicEntropyTests<dim, nstate>::compute_integrated_quantities(DGBase<d
     dealii::QGauss<1> quad_extra_1D(dg.max_degree+1+overintegrate);
 
     const unsigned int n_quad_pts = quad_extra.size();
-    const unsigned int grid_degree = dg.high_order_grid->dof_handler_grid.get_fe(dg.high_order_grid->grid_degree).tensor_degree();
+    const unsigned int grid_degree = dg.high_order_grid->get_current_fe_system().tensor_degree();
     const unsigned int poly_degree = dg.max_degree;
     // Construct the basis functions and mapping shape functions.
     OPERATOR::basis_functions<dim,2*dim> soln_basis(1, poly_degree, grid_degree); 
@@ -94,7 +94,7 @@ double PeriodicEntropyTests<dim, nstate>::compute_integrated_quantities(DGBase<d
         cell->get_dof_indices (dofs_indices);
 
         // We first need to extract the mapping support points (grid nodes) from high_order_grid.
-        const dealii::FESystem<dim> &fe_metric = dg.high_order_grid->dof_handler_grid.get_fe(dg.high_order_grid->grid_degree);
+        const dealii::FESystem<dim> &fe_metric = dg.high_order_grid->get_current_fe_system();
         const unsigned int n_metric_dofs = fe_metric.dofs_per_cell;
         const unsigned int n_grid_nodes  = n_metric_dofs / dim;
         std::vector<dealii::types::global_dof_index> metric_dof_indices(n_metric_dofs);

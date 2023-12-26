@@ -334,7 +334,7 @@ real TargetFunctional<dim, nstate, real>::evaluate_functional(
     }
 
     // for taking the local derivatives
-    const dealii::FESystem<dim,dim> &fe_metric = dg->high_order_grid->dof_handler_grid.get_fe(dg->high_order_grid->grid_degree);
+    const dealii::FESystem<dim,dim> &fe_metric = dg->high_order_grid->get_current_fe_system();
     const unsigned int n_metric_dofs_cell = fe_metric.dofs_per_cell;
     std::vector<dealii::types::global_dof_index> cell_metric_dofs_indices(n_metric_dofs_cell);
 
@@ -518,7 +518,7 @@ dealii::LinearAlgebra::distributed::Vector<real> TargetFunctional<dim,nstate,rea
         }
 
         // Get metric coefficients
-        const dealii::FESystem<dim,dim> &fe_metric = dg.high_order_grid->dof_handler_grid.get_fe(dg.high_order_grid->grid_degree);
+        const dealii::FESystem<dim,dim> &fe_metric = dg.high_order_grid->get_current_fe_system();
         const unsigned int n_metric_dofs_cell = fe_metric.dofs_per_cell;
         std::vector<dealii::types::global_dof_index> cell_metric_dofs_indices(n_metric_dofs_cell);
         metric_cell->get_dof_indices (cell_metric_dofs_indices);
@@ -632,7 +632,7 @@ dealii::LinearAlgebra::distributed::Vector<real> TargetFunctional<dim,nstate,rea
         }
 
         // Get metric coefficients
-        const dealii::FESystem<dim,dim> &fe_metric = dg.high_order_grid->dof_handler_grid.get_fe(dg.high_order_grid->grid_degree);
+        const dealii::FESystem<dim,dim> &fe_metric = dg.high_order_grid->get_current_fe_system();
         const unsigned int n_metric_dofs_cell = fe_metric.dofs_per_cell;
         std::vector<dealii::types::global_dof_index> cell_metric_dofs_indices(n_metric_dofs_cell);
         metric_cell->get_dof_indices (cell_metric_dofs_indices);

@@ -1088,7 +1088,7 @@ read_gmsh(std::string filename, int requested_grid_order, const bool use_mesh_sm
     // std::abort();
 
     int icell = 0;
-    std::vector<dealii::types::global_dof_index> dof_indices(high_order_grid->dof_handler_grid.get_fe(high_order_grid->grid_degree).dofs_per_cell);
+    std::vector<dealii::types::global_dof_index> dof_indices(high_order_grid->get_current_fe_system().dofs_per_cell);
 
     //for (unsigned int i=0; i<all_vertices.size(); ++i) {
     //    std::cout << " i " << i 
@@ -1154,7 +1154,7 @@ read_gmsh(std::string filename, int requested_grid_order, const bool use_mesh_sm
 
                 for (int d = 0; d < dim; ++d) {
                     const unsigned int comp = d;
-                    const unsigned int shape_index = high_order_grid->dof_handler_grid.get_fe(high_order_grid->grid_degree).component_to_system_index(comp, base_index);
+                    const unsigned int shape_index = high_order_grid->get_current_fe_system().component_to_system_index(comp, base_index);
                     const unsigned int idof_global = dof_indices[shape_index];
 
                     //std::cout << " icell " << icell

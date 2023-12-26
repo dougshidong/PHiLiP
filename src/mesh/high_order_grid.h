@@ -375,7 +375,7 @@ public:
 
     dealii::hp::FECollection<dim> create_fe_metric_collection(const unsigned int max_grid_degree = 2) const;
 
-    const dealii::FESystem<dim,dim> & get_current_fe_system() const;
+    const dealii::FiniteElement<dim> & get_current_fe_system() const;
     
     /// Finite Element Collection for p-finite-element to represent the solution
     /** This is a collection of FESystems */

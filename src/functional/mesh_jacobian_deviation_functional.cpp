@@ -22,7 +22,7 @@ template<int dim, int nstate, typename real>
 void MeshJacobianDeviation<dim,nstate,real> :: store_initial_rmsh()
 {
     initial_rmsh.reinit(this->dg->triangulation->n_active_cells());
-    const dealii::FESystem<dim,dim> &fe_metric = this->dg->high_order_grid->dof_handler_grid.get_fe(this->dg->high_order_grid->grid_degree);
+    const dealii::FESystem<dim,dim> &fe_metric = this->dg->high_order_grid->get_current_fe_system();
     const unsigned int n_metric_dofs_cell = fe_metric.dofs_per_cell;
     std::vector<dealii::types::global_dof_index> cell_metric_dofs_indices(n_metric_dofs_cell);
 
@@ -118,7 +118,7 @@ real MeshJacobianDeviation<dim,nstate,real> :: evaluate_functional(
     real local_functional = 0.0;
     const unsigned int poly_degree = this->dg->get_min_fe_degree();
 
-    const dealii::FESystem<dim,dim> &fe_metric = this->dg->high_order_grid->dof_handler_grid.get_fe(this->dg->high_order_grid->grid_degree);
+    const dealii::FESystem<dim,dim> &fe_metric = this->dg->high_order_grid->get_current_fe_system();
     const unsigned int n_metric_dofs_cell = fe_metric.dofs_per_cell;
     std::vector<dealii::types::global_dof_index> cell_metric_dofs_indices(n_metric_dofs_cell);
 

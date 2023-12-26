@@ -39,7 +39,7 @@ void AnisotropicMeshAdaptationCases<dim,nstate> :: verify_fe_values_shape_hessia
     const dealii::UpdateFlags update_flags = dealii::update_jacobian_pushed_forward_grads | dealii::update_inverse_jacobians;
     dealii::hp::FEValues<dim,dim>   fe_values_collection_volume (mapping_collection, dg.fe_collection, dg.volume_quadrature_collection, update_flags);
     
-    dealii::MappingQGeneric<dim, dim> mapping2(dg.high_order_grid->dof_handler_grid.get_fe(dg.high_order_grid->grid_degree).degree);
+    dealii::MappingQGeneric<dim, dim> mapping2(dg.high_order_grid->get_current_fe_system().degree);
     dealii::hp::MappingCollection<dim> mapping_collection2(mapping2);
     dealii::hp::FEValues<dim,dim>   fe_values_collection_volume2 (mapping_collection2, dg.fe_collection, dg.volume_quadrature_collection, dealii::update_hessians);
     

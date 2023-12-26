@@ -196,7 +196,7 @@ int SlidingBoundaryParameterization<dim> :: is_design_variable_valid(
     vol_nodes_from_design_var.update_ghost_values();
     
     int mesh_error_this_processor = 0;
-    const dealii::FESystem<dim,dim> &fe_metric = this->high_order_grid->dof_handler_grid.get_fe(this->high_order_grid->grid_degree);
+    const dealii::FESystem<dim,dim> &fe_metric = this->high_order_grid->get_current_fe_system();
     const unsigned int n_dofs_per_cell = fe_metric.n_dofs_per_cell();
     const std::vector< dealii::Point<dim> > &ref_points = fe_metric.get_unit_support_points();
     for (const auto &cell : this->high_order_grid->dof_handler_grid.active_cell_iterators()) 

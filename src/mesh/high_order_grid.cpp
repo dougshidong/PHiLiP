@@ -122,14 +122,13 @@ void HighOrderGrid<dim,real,MeshType,VectorType,DoFHandlerType>::
         execute_coarsening_and_refinement(); // interpolate old volume nodes to new mesh.
     }
 }
-/*
+
 template<int dim, typename real, typename MeshType, typename VectorType, typename DoFHandlerType>
-const dealii::FESystem<dim,dim> & HighOrderGrid<dim,real,MeshType,VectorType,DoFHandlerType>::get_current_fe_system() const
+const dealii::FiniteElement<dim> & HighOrderGrid<dim,real,MeshType,VectorType,DoFHandlerType>::get_current_fe_system() const
 {
-    //return fe_metric_collection[grid_degree];
-    return dof_handler_grid.get_fe(grid_degree);
+    return fe_metric_collection[grid_degree];
 }
-*/
+
 template <int dim, typename real, typename MeshType, typename VectorType, typename DoFHandlerType>
 void HighOrderGrid<dim,real,MeshType,VectorType,DoFHandlerType>::initialize_with_triangulation_manifold(const bool output_mesh)
 {
@@ -270,7 +269,7 @@ void HighOrderGrid<dim,real,MeshType,VectorType,DoFHandlerType>
 ::get_position_vector(const DoFHandlerType &dh, VectorType &position_vector, const dealii::ComponentMask &mask)
 {
     AssertDimension(position_vector.size(), dh.n_dofs());
-    const dealii::FESystem<dim, dim> &fe = dh.get_fe(grid_degree);
+    const dealii::FESystem<dim, dim> &fe = get_current_fe_system();
 
     // Construct default fe_mask;
     const dealii::ComponentMask fe_mask(mask.size() ? mask : dealii::ComponentMask(fe.get_nonzero_components(0).size(), true));
@@ -311,7 +310,7 @@ void HighOrderGrid<dim,real,MeshType,VectorType,DoFHandlerType>
 ::get_projected_position_vector(const DoFHandlerType &dh, VectorType &position_vector, const dealii::ComponentMask &mask)
 {
     AssertDimension(position_vector.size(), dh.n_dofs());
-    const dealii::FESystem<dim, dim> &fe = dh.get_fe(grid_degree);
+    const dealii::FESystem<dim, dim> &fe = get_current_fe_system();
 
     // Construct default fe_mask;
     const dealii::ComponentMask fe_mask(mask.size() ? mask : dealii::ComponentMask(fe.get_nonzero_components(0).size(), true));
@@ -1298,7 +1297,7 @@ void HighOrderGrid<dim,real,MeshType,VectorType,DoFHandlerType>::update_surface_
     global_index_to_point_and_axis.clear();
     point_and_axis_to_global_index.clear();
 
-    const dealii::FESystem<dim,dim> &fe_system = dof_handler_grid.get_fe(grid_degree);
+    const dealii::FESystem<dim,dim> &fe_system = get_current_fe_system();
     const unsigned int dofs_per_cell = fe_system.n_dofs_per_cell();
     const unsigned int dofs_per_face = fe_system.n_dofs_per_face();
     std::vector< dealii::types::global_dof_index > dof_indices(dofs_per_cell);
@@ -1446,7 +1445,7 @@ void HighOrderGrid<dim,real,MeshType,VectorType,DoFHandlerType>::output_results_
 
     VectorType jacobian_determinant;
     jacobian_determinant.reinit(locally_owned_dofs_grid, ghost_dofs_grid, mpi_communicator);
-    const dealii::FESystem<dim,dim> &fe_system = dof_handler_grid.get_fe(grid_degree);
+    const dealii::FESystem<dim,dim> &fe_system = get_current_fe_system();
     const unsigned int n_dofs_per_cell = fe_system.n_dofs_per_cell();
     std::vector<dealii::types::global_dof_index> dofs_indices(n_dofs_per_cell);
     const std::vector< dealii::Point<dim> > &points = fe_system.get_unit_support_points();

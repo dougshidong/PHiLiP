@@ -840,8 +840,6 @@ read_gmsh(std::string filename, int requested_grid_order, const bool use_mesh_sm
         triangulation = std::make_shared<Triangulation>(MPI_COMM_WORLD); // Dealii's default mesh smoothing flag is none. 
     }
 
-    auto high_order_grid = std::make_shared<HighOrderGrid<dim, double>>(grid_order, triangulation);
-  
     unsigned int n_entity_blocks, n_cells;
     int min_ele_tag, max_ele_tag;
     infile >> n_entity_blocks >> n_cells >> min_ele_tag >> max_ele_tag;
@@ -1033,7 +1031,7 @@ read_gmsh(std::string filename, int requested_grid_order, const bool use_mesh_sm
     triangulation->repartition();
 
     dealii::GridOut gridout;
-    gridout.write_mesh_per_processor_as_vtu(*(high_order_grid->triangulation), "tria");
+    gridout.write_mesh_per_processor_as_vtu(*(triangulation), "tria");
   
     // in 1d, we also have to attach boundary ids to vertices, which does not
     // currently work through the call above
@@ -1041,7 +1039,9 @@ read_gmsh(std::string filename, int requested_grid_order, const bool use_mesh_sm
         assign_1d_boundary_ids(boundary_ids_1d, *triangulation);
     }
 
+    auto high_order_grid = std::make_shared<HighOrderGrid<dim, double>>(grid_order, triangulation);
     high_order_grid->initialize_with_triangulation_manifold();
+  
 
     std::vector<unsigned int> deal_h2l = dealii::FETools::hierarchic_to_lexicographic_numbering<dim>(grid_order);
     std::vector<unsigned int> deal_l2h = dealii::Utilities::invert_permutation(deal_h2l);

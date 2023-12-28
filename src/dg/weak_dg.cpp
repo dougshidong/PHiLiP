@@ -17,9 +17,9 @@
 
 #include "weak_dg.hpp"
 
-#define KOPRIVA_METRICS_VOL
-#define KOPRIVA_METRICS_FACE
-#define KOPRIVA_METRICS_BOUNDARY
+//#define KOPRIVA_METRICS_VOL
+//#define KOPRIVA_METRICS_FACE
+//#define KOPRIVA_METRICS_BOUNDARY
 //#define FADFAD
 
 /// Code taken directly from deal.II's FullMatrix::gauss_jordan function, but adapted to

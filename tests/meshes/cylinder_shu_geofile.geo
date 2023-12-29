@@ -64,15 +64,15 @@ Physical Curve("supersonic_outflow", 1008) = {3, 4};
 //+
 Physical Curve("slipwall", 1001) = {1};
 
-n_cylinder = 7;
-n_curved = 6;
+n_radial = 10;
+n_orthogonal = 6;
 factor = 1;
-n_cylinder = n_cylinder*factor;
-n_curved = n_curved*factor;
+n_radial = n_radial*factor;
+n_orthogonal = n_orthogonal*factor;
 //+
-Transfinite Curve {2, 1} = n_cylinder Using Progression 1;
+Transfinite Curve {2, 1} = n_radial Using Progression 1;
 //+
-Transfinite Curve {-4, 3} = n_curved Using Progression 1.25;
+Transfinite Curve {-4, 3} = n_orthogonal Using Progression 1.2;
 //+
 Transfinite Surface {1};
 

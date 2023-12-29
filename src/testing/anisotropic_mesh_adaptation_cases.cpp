@@ -231,18 +231,18 @@ int AnisotropicMeshAdaptationCases<dim, nstate> :: run_test () const
         //for(unsigned int i=0; i<2; ++i)
         //{
             Parameters::AllParameters param_q1 = param;
-            param_q1.optimization_param.regularization_parameter = 5.0;
-            param_q1.optimization_param.regularization_scaling = 1.1;
-            param_q1.optimization_param.max_design_cycles = 4;
+            //param_q1.optimization_param.regularization_parameter = 5.0;
+            //param_q1.optimization_param.regularization_scaling = 1.1;
+            //param_q1.optimization_param.max_design_cycles = 4;
             std::unique_ptr<MeshOptimizer<dim,nstate>> mesh_optimizer_q1 = std::make_unique<MeshOptimizer<dim,nstate>> (flow_solver->dg,&param_q1, true);
             mesh_optimizer_q1->run_full_space_optimizer();
-            flow_solver->dg->freeze_artificial_dissipation=false;
             flow_solver->run();
+            /*
             increase_grid_degree_and_interpolate_solution(flow_solver->dg);
             
-            flow_solver->dg->freeze_artificial_dissipation=true;            
             std::unique_ptr<MeshOptimizer<dim,nstate>> mesh_optimizer_q2 = std::make_unique<MeshOptimizer<dim,nstate>> (flow_solver->dg,&param, true);
             mesh_optimizer_q2->run_full_space_optimizer();
+            */
 
             const double functional_error = evaluate_functional_error(flow_solver->dg);
             const double enthalpy_error = evaluate_enthalpy_error(flow_solver->dg);

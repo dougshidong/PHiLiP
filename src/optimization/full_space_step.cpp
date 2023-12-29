@@ -587,7 +587,7 @@ void FullSpace_BirosGhattas<Real>::compute(
     }
     {
         // Update regularization parameter.
-        const Real ctl_norm = ((dynamic_cast<const Vector_SimOpt<Real>&>(search_direction)).get_2())->norm();
+        const Real ctl_norm = ((dynamic_cast<const Vector_SimOpt<Real>&>(search_direction)).get_1())->norm();
         if(ctl_norm < regularization_tol_low)
         {
             regularization_parameter /= regularization_scaling;

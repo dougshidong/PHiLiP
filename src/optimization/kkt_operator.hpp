@@ -87,9 +87,9 @@ public:
         }
         {
             // Add regularization parameter times identity
-            ROL::Ptr<ROL::Vector<Real>> dst_control = dynamic_cast<ROL::Vector_SimOpt<Real>&>(*dst_design).get_2();
-            const ROL::Ptr<const ROL::Vector<Real>> src_control = dynamic_cast<const ROL::Vector_SimOpt<Real>&>(*src_design).get_2();
-            dst_control->axpy(regularization_parameter, *src_control);
+            ROL::Ptr<ROL::Vector<Real>> dst_sim = dynamic_cast<ROL::Vector_SimOpt<Real>&>(*dst_design).get_1();
+            const ROL::Ptr<const ROL::Vector<Real>> src_sim = dynamic_cast<const ROL::Vector_SimOpt<Real>&>(*src_design).get_1();
+            dst_sim->axpy(regularization_parameter, *src_sim);
             // Pretend Lagrangian Hessian is identity.
             //dst_design->set(*src_design);
         }

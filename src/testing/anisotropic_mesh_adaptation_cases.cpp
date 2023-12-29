@@ -224,13 +224,25 @@ int AnisotropicMeshAdaptationCases<dim, nstate> :: run_test () const
     dealii::ConvergenceTable convergence_table_enthalpy;
     if(run_mesh_optimizer)
     {
+    // Run q1 optimizer.
         flow_solver->dg->freeze_artificial_dissipation=true;
-   //     flow_solver->dg->set_p_degree_and_interpolate_solution(1);
+        flow_solver->dg->set_p_degree_and_interpolate_solution(1);
    //     output_vtk_files(flow_solver->dg, output_val++);
         //for(unsigned int i=0; i<2; ++i)
         //{
-            std::unique_ptr<MeshOptimizer<dim,nstate>> mesh_optimizer = std::make_unique<MeshOptimizer<dim,nstate>> (flow_solver->dg,&param, true);
-            mesh_optimizer->run_full_space_optimizer();
+            Parameters::AllParameters param_q1 = param;
+            param_q1.optimization_param.regularization_parameter = 5.0;
+            param_q1.optimization_param.regularization_scaling = 1.1;
+            param_q1.optimization_param.max_design_cycles = 4;
+            std::unique_ptr<MeshOptimizer<dim,nstate>> mesh_optimizer_q1 = std::make_unique<MeshOptimizer<dim,nstate>> (flow_solver->dg,&param_q1, true);
+            mesh_optimizer_q1->run_full_space_optimizer();
+            flow_solver->dg->freeze_artificial_dissipation=false;
+            flow_solver->run();
+            increase_grid_degree_and_interpolate_solution(flow_solver->dg);
+            
+            flow_solver->dg->freeze_artificial_dissipation=true;            
+            std::unique_ptr<MeshOptimizer<dim,nstate>> mesh_optimizer_q2 = std::make_unique<MeshOptimizer<dim,nstate>> (flow_solver->dg,&param, true);
+            mesh_optimizer_q2->run_full_space_optimizer();
 
             const double functional_error = evaluate_functional_error(flow_solver->dg);
             const double enthalpy_error = evaluate_enthalpy_error(flow_solver->dg);

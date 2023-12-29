@@ -165,9 +165,9 @@ void FullSpace_BirosGhattas<Real>::initialize(
 
     ROL::Ptr<StepState<Real> > step_state = Step<Real>::getState();
     design_variable_cloner_ = design_variables.clone();
-    design_variable_cloner_ = gradient.clone();
+//    design_variable_cloner_ = gradient.clone();
     lagrange_variable_cloner_ = lagrange_mult.clone();
-    lagrange_variable_cloner_ = equal_constraints_values.clone();
+//    lagrange_variable_cloner_ = equal_constraints_values.clone();
 
     lagrange_mult_search_direction_ = lagrange_mult.clone();
 
@@ -235,12 +235,13 @@ void FullSpace_BirosGhattas<Real>::initialize(
     // I don't have to initialize with merit function since it does nothing
     // with it. But might as well be consistent.
     penalty_value_ = 1.0;
+    ROL::Ptr<Vector<Real>> design_variables_cloned = design_variables.clone();
     merit_function_ = ROL::makePtr<ROL::AugmentedLagrangian<Real>> (
             makePtrFromRef<Objective<Real>>(objective),
             makePtrFromRef<Constraint<Real>>(equal_constraints),
             lagrange_mult,
             penalty_value_,
-            design_variables,
+            *design_variables_cloned,
             equal_constraints_values,
             parlist_);
 

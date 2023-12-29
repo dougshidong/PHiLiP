@@ -19,7 +19,21 @@ template<int dim>
 void SpecificNodesParameterization<dim> :: store_prespecified_control_nodes()
 {
     std::ifstream infile;
-    const std::string filepath = "q1_cylinder_controlnodes.txt";
+    std::string filepath;
+    if(this->high_order_grid->grid_degree == 1)
+    {
+        filepath = "q1_cylinder_controlnodes.txt";
+    }
+    else if (this->high_order_grid->grid_degree==2)
+    {
+        filepath = "q2_cylinder_controlnodes.txt";
+    }
+    else
+    {
+        std::cout<<"SpecificNodesParameterization is only implemented for q1 and q2 grids. Aborting.."<<std::endl;
+        std::abort();
+    }
+
     infile.open(filepath);
     if(!infile) {
         std::cout << "Could not open file for SpecificNodesParameteriation."<< filepath << std::endl;

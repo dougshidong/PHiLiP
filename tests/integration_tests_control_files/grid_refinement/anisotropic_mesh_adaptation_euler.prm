@@ -26,7 +26,7 @@ subsection artificial dissipation
   set add_artificial_dissipation = true
   set artificial_dissipation_type = laplacian
   set mu_artificial_dissipation = 0.5
-  set kappa_artificial_dissipation = 500.0
+  set kappa_artificial_dissipation = 0.0
 end
 
 subsection functional
@@ -72,7 +72,7 @@ subsection optimization
     set use_fine_solution = false
 
     set gradient_tolerance = 1.0e-10 
-    set max_design_cycles = 0
+    set max_design_cycles = 200
     set linear_iteration_limit = 1000
     set initial_step_size = 1.0
     set functional_evaluation_limit = 30
@@ -80,7 +80,7 @@ subsection optimization
     set line_search_curvature = Strong Wolfe Conditions
     set reduced_space_descent_method = Newton-Krylov
     set full_space_preconditioner = P2A
-    set mesh_weight_factor = 1.0
+    set mesh_weight_factor = 0.0
 
     set regularization_parameter = 1.0
     set regularization_scaling = 2.0
@@ -102,7 +102,7 @@ end
 subsection flow_solver
   set flow_case_type = naca0012
   set poly_degree = 0
-  set max_poly_degree_for_adaptation = 0
+  set max_poly_degree_for_adaptation = 3
   set steady_state = true
   set steady_state_polynomial_ramping = true
   subsection grid

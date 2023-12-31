@@ -6,6 +6,7 @@ set(DESIGN_PARAMETERIZATION_SRC
     sliding_boundary_parameterization.cpp
     box_bounded_parameterization.cpp
     specific_nodes_parameterization.cpp
+    oneD_specific_nodes_parameterization.cpp
     )
 
 foreach(dim RANGE 1 3)

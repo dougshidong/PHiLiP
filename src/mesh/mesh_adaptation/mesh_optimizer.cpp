@@ -6,6 +6,7 @@
 #include "optimization/design_parameterization/sliding_boundary_parameterization.hpp"
 #include "optimization/design_parameterization/box_bounded_parameterization.hpp"
 #include "optimization/design_parameterization/specific_nodes_parameterization.hpp"
+#include "optimization/design_parameterization/oneD_specific_nodes_parameterization.hpp"
 
 #include "Teuchos_ParameterList.hpp"
 #include "Teuchos_GlobalMPISession.hpp"
@@ -155,7 +156,9 @@ void MeshOptimizer<dim,nstate>::run_full_space_optimizer()
 {
 //==================================================================================================================================
     // Set up objective function and design parameteriation pointers.
-    std::shared_ptr<BaseParameterization<dim>> design_parameterization = std::make_shared<SpecificNodesParameterization<dim>>(dg->high_order_grid); 
+    //std::shared_ptr<BaseParameterization<dim>> design_parameterization = std::make_shared<SpecificNodesParameterization<dim>>(dg->high_order_grid); 
+    std::shared_ptr<BaseParameterization<dim>> design_parameterization = std::make_shared<OneDSpecificNodesParameterization<dim>>(dg->high_order_grid); 
+    
     std::shared_ptr<Functional<dim, nstate, double>> objective_function = std::make_shared<ImplicitShockTrackingFunctional<dim, nstate, double>> (dg);
 //    std::shared_ptr<Functional<dim, nstate, double>> objective_function = std::make_shared<DualWeightedResidualObjFunc2<dim, nstate, double>> (dg);
 

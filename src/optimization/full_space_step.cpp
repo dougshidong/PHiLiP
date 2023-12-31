@@ -47,11 +47,16 @@ FullSpace_BirosGhattas(
     esec_ = StringToESecant(secantName_);
     secant_ = SecantFactory<Real>(parlist);
 
-    regularization_parameter = parlist.sublist("Full Space").get("regularization_parameter",1.0);
-    regularization_scaling = parlist.sublist("Full Space").get("regularization_scaling",10.0);
-    regularization_tol_low = parlist.sublist("Full Space").get("regularization_tol_low",1.0e-2);
-    regularization_tol_high = parlist.sublist("Full Space").get("regularization_tol_high",1.0e-1);
+    regularization_parameter_control = parlist.sublist("Full Space").get("regularization_parameter",1.0);
+    regularization_scaling_control = parlist.sublist("Full Space").get("regularization_scaling",10.0);
+    regularization_tol_low_control = parlist.sublist("Full Space").get("regularization_tol_low",1.0e-2);
+    regularization_tol_high_control = parlist.sublist("Full Space").get("regularization_tol_high",1.0e-1);
     linear_iteration_limit = parlist.sublist("Full Space").get("Linear iteration Limit", 2000); 
+    
+    regularization_parameter_sim = 1.0;
+    regularization_scaling_sim = 2.0;
+    regularization_tol_low_sim = 1.0e-2;
+    regularization_tol_high_sim = 1.0e-1;
 }
 
 template <class Real>
@@ -443,7 +448,7 @@ std::vector<Real> FullSpace_BirosGhattas<Real>::solve_KKT_system(
         makePtrFromRef<Constraint<Real>>(equal_constraints),
         makePtrFromRef<const Vector<Real>>(design_variables),
         makePtrFromRef<const Vector<Real>>(lagrange_mult),
-        regularization_parameter);
+        regularization_parameter_control, regularization_parameter_sim);
 
 
     std::shared_ptr<BirosGhattasPreconditioner<Real>> kkt_precond =
@@ -586,22 +591,39 @@ void FullSpace_BirosGhattas<Real>::compute(
         lagrange_mult_search_direction_->set(*lhs2);
     }
     {
-        // Update regularization parameter.
-        const Real ctl_norm = ((dynamic_cast<const Vector_SimOpt<Real>&>(search_direction)).get_1())->norm();
-        if(ctl_norm < regularization_tol_low)
+        // Update control regularization parameter.
+        const Real ctl_norm = ((dynamic_cast<const Vector_SimOpt<Real>&>(search_direction)).get_2())->norm();
+        if(ctl_norm < regularization_tol_low_control)
         {
-            regularization_parameter /= regularization_scaling;
+            regularization_parameter_control /= regularization_scaling_control;
         }
-        else if(ctl_norm > regularization_tol_high)
+        else if(ctl_norm > regularization_tol_high_control)
         {
-            regularization_parameter *= regularization_scaling;
+            regularization_parameter_control *= regularization_scaling_control;
         }
         else
         {
-            regularization_parameter = regularization_parameter; // Remains unchanged.
+            regularization_parameter_control = regularization_parameter_control; // Remains unchanged.
         }
     }
-    pcout<<"Regularization parameter for the next iteration = "<<regularization_parameter<<std::endl;
+    {
+        // Update simulation regularization parameter.
+        const Real sim_norm = ((dynamic_cast<const Vector_SimOpt<Real>&>(search_direction)).get_1())->norm();
+        if(sim_norm < regularization_tol_low_sim)
+        {
+            regularization_parameter_sim /= regularization_scaling_sim;
+        }
+        else if(sim_norm > regularization_tol_high_sim)
+        {
+            regularization_parameter_sim *= regularization_scaling_sim;
+        }
+        else
+        {
+            regularization_parameter_sim = regularization_parameter_sim; // Remains unchanged.
+        }
+    }
+    pcout<<"Regularization parameter control for the next iteration = "<<regularization_parameter_control<<std::endl;
+    pcout<<"Regularization parameter simulation for the next iteration = "<<regularization_parameter_sim<<std::endl;
     // std::cout
     //     << "search_direction.norm(): "
     //     << search_direction.norm()

@@ -53,10 +53,15 @@ FullSpace_BirosGhattas(
     regularization_tol_high_control = parlist.sublist("Full Space").get("regularization_tol_high",1.0e-1);
     linear_iteration_limit = parlist.sublist("Full Space").get("Linear iteration Limit", 2000); 
     
-    regularization_parameter_sim = 1.0;
+    regularization_parameter_sim = 0.1;
     regularization_scaling_sim = 2.0;
     regularization_tol_low_sim = 1.0e-2;
     regularization_tol_high_sim = 1.0e-1;
+    
+    regularization_parameter_adj = 0.0;
+    regularization_scaling_adj = 1.0;
+    regularization_tol_low_adj = 1.0e-2;
+    regularization_tol_high_adj = 1.0e-1;
 }
 
 template <class Real>
@@ -448,7 +453,7 @@ std::vector<Real> FullSpace_BirosGhattas<Real>::solve_KKT_system(
         makePtrFromRef<Constraint<Real>>(equal_constraints),
         makePtrFromRef<const Vector<Real>>(design_variables),
         makePtrFromRef<const Vector<Real>>(lagrange_mult),
-        regularization_parameter_control, regularization_parameter_sim);
+        regularization_parameter_sim, regularization_parameter_control, regularization_parameter_adj);
 
 
     std::shared_ptr<BirosGhattasPreconditioner<Real>> kkt_precond =
@@ -591,6 +596,22 @@ void FullSpace_BirosGhattas<Real>::compute(
         lagrange_mult_search_direction_->set(*lhs2);
     }
     {
+        // Update simulation regularization parameter.
+        const Real ctl_norm = ((dynamic_cast<const Vector_SimOpt<Real>&>(search_direction)).get_2())->norm();
+        if(ctl_norm < regularization_tol_low_sim)
+        {
+            regularization_parameter_sim /= regularization_scaling_sim;
+        }
+        else if(ctl_norm > regularization_tol_high_sim)
+        {
+            regularization_parameter_sim *= regularization_scaling_sim;
+        }
+        else
+        {
+            regularization_parameter_sim = regularization_parameter_sim; // Remains unchanged.
+        }
+    }
+    {
         // Update control regularization parameter.
         const Real ctl_norm = ((dynamic_cast<const Vector_SimOpt<Real>&>(search_direction)).get_2())->norm();
         if(ctl_norm < regularization_tol_low_control)
@@ -605,25 +626,29 @@ void FullSpace_BirosGhattas<Real>::compute(
         {
             regularization_parameter_control = regularization_parameter_control; // Remains unchanged.
         }
+        pcout<<"Norm of simulation search direction = "<<((dynamic_cast<const Vector_SimOpt<Real>&>(search_direction)).get_1())->norm()<<std::endl;
+        pcout<<"Norm of control search direction = "<<ctl_norm<<std::endl;
+        pcout<<"Norm of adjoint search direction = "<<lagrange_mult_search_direction_->norm()<<std::endl;
     }
     {
-        // Update simulation regularization parameter.
-        const Real sim_norm = ((dynamic_cast<const Vector_SimOpt<Real>&>(search_direction)).get_1())->norm();
-        if(sim_norm < regularization_tol_low_sim)
+        // Update adjoint regularization parameter.
+        const Real adj_norm = lagrange_mult_search_direction_->norm();
+        if(adj_norm < regularization_tol_low_adj)
         {
-            regularization_parameter_sim /= regularization_scaling_sim;
+            regularization_parameter_adj /= regularization_scaling_adj;
         }
-        else if(sim_norm > regularization_tol_high_sim)
+        else if(adj_norm > regularization_tol_high_adj)
         {
-            regularization_parameter_sim *= regularization_scaling_sim;
+            regularization_parameter_adj *= regularization_scaling_adj;
         }
         else
         {
-            regularization_parameter_sim = regularization_parameter_sim; // Remains unchanged.
+            regularization_parameter_adj = regularization_parameter_adj; // Remains unchanged.
         }
     }
-    pcout<<"Regularization parameter control for the next iteration = "<<regularization_parameter_control<<std::endl;
     pcout<<"Regularization parameter simulation for the next iteration = "<<regularization_parameter_sim<<std::endl;
+    pcout<<"Regularization parameter control for the next iteration = "<<regularization_parameter_control<<std::endl;
+    pcout<<"Regularization parameter adjoint for the next iteration = "<<regularization_parameter_adj<<std::endl;
     // std::cout
     //     << "search_direction.norm(): "
     //     << search_direction.norm()
@@ -666,8 +691,9 @@ void FullSpace_BirosGhattas<Real>::compute(
         equal_constraints,
         penalty_offset);
     const auto reduced_gradient = (dynamic_cast<Vector_SimOpt<Real>&>(*lagrangian_gradient)).get_2();
-    penalty_value_ = std::max(1.0/reduced_gradient->norm(), 1.0);
-    //penalty_value_ = std::max(1e-2/lagrangian_gradient->norm(), 1.0);
+    //penalty_value_ = std::max(1.0/reduced_gradient->norm(), 1.0);
+    //penalty_value_ = 0.0;
+    penalty_value_ = std::max(1e-2/lagrangian_gradient->norm(), 1.0);
     pcout
         << "Finished computeAugmentedLagrangianPenalty..."
         << std::endl;

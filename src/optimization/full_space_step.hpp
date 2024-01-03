@@ -284,14 +284,21 @@ public:
 private:
     dealii::ConditionalOStream pcout; ///< Parallel std::cout that only outputs on mpi_rank==0
     unsigned int linear_iteration_limit; ///< Linear iteration limit
+    
     Real regularization_parameter_control; ///< Factor multiplied by identity to be added to the control hessian.
     Real regularization_scaling_control; ///< Scaling of regularization parameter depending on control variable's search direction.
     Real regularization_tol_low_control; ///< Tolerance below which regularization parameter is decreased.
     Real regularization_tol_high_control; ///< Control search direction tolerance above which the regularization parameter is increased.
+    
     Real regularization_parameter_sim; ///< Factor multiplied by identity to be added to the control hessian.
     Real regularization_scaling_sim;
     Real regularization_tol_low_sim;
     Real regularization_tol_high_sim;
+    
+    Real regularization_parameter_adj; ///< Factor multiplied by identity to be added to the control hessian.
+    Real regularization_scaling_adj;
+    Real regularization_tol_low_adj;
+    Real regularization_tol_high_adj;
 
 }; // class FullSpace_BirosGhattas
 

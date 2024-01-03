@@ -28,8 +28,9 @@ private:
     /// Used to perform the Lagrangian Hessian in two steps.
     const ROL::Ptr<ROL::Vector<Real>> temp_design_variables_size_vector_;
     /// Regularization parameter
-    const Real regularization_parameter_control;
     const Real regularization_parameter_sim;
+    const Real regularization_parameter_control;
+    const Real regularization_parameter_adj;
 
 public:
     /// Constructor.
@@ -38,15 +39,17 @@ public:
         const ROL::Ptr<ROL::Constraint<Real>> equal_constraints,
         const ROL::Ptr<const ROL::Vector<Real>> design_variables,
         const ROL::Ptr<const ROL::Vector<Real>> lagrange_mult,
+        const Real _regularization_parameter_sim = 0.0,
         const Real _regularization_parameter_control = 0.0,
-        const Real _regularization_parameter_sim = 0.0)
+        const Real _regularization_parameter_adj = 0.0)
         : objective_(objective)
         , equal_constraints_(equal_constraints)
         , design_variables_(design_variables)
         , lagrange_mult_(lagrange_mult)
         , temp_design_variables_size_vector_(design_variables->clone())
-        , regularization_parameter_control(_regularization_parameter_control)
         , regularization_parameter_sim(_regularization_parameter_sim)
+        , regularization_parameter_control(_regularization_parameter_control)
+        , regularization_parameter_adj(_regularization_parameter_adj)
     { };
 
     /// Returns the size of the KKT system.
@@ -89,13 +92,14 @@ public:
 
         }
         {
-            ROL::Ptr<ROL::Vector<Real>> dst_ctl = dynamic_cast<ROL::Vector_SimOpt<Real>&>(*dst_design).get_2();
-            const ROL::Ptr<const ROL::Vector<Real>> src_ctl = dynamic_cast<const ROL::Vector_SimOpt<Real>&>(*src_design).get_2();
-            dst_ctl->axpy(regularization_parameter_control, *src_ctl);
             // Add regularization parameter times identity
             ROL::Ptr<ROL::Vector<Real>> dst_sim = dynamic_cast<ROL::Vector_SimOpt<Real>&>(*dst_design).get_1();
             const ROL::Ptr<const ROL::Vector<Real>> src_sim = dynamic_cast<const ROL::Vector_SimOpt<Real>&>(*src_design).get_1();
             dst_sim->axpy(regularization_parameter_sim, *src_sim);
+            
+            ROL::Ptr<ROL::Vector<Real>> dst_ctl = dynamic_cast<ROL::Vector_SimOpt<Real>&>(*dst_design).get_2();
+            const ROL::Ptr<const ROL::Vector<Real>> src_ctl = dynamic_cast<const ROL::Vector_SimOpt<Real>&>(*src_design).get_2();
+            dst_ctl->axpy(regularization_parameter_control, *src_ctl);
             // Pretend Lagrangian Hessian is identity.
             //dst_design->set(*src_design);
         }
@@ -106,6 +110,9 @@ public:
 
         // Bottom left left block times top vector
         equal_constraints_->applyJacobian(*dst_constraints, *src_design, *design_variables_, tol);
+
+        // Add regularization
+        dst_constraints->axpy(regularization_parameter_adj, *src_constraints);
 
         // Bottom right block times bottom vector
         // 0 block in KKT

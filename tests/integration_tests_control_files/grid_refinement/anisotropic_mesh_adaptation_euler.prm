@@ -8,7 +8,7 @@ set dimension = 2
 set pde_type  = euler      
 set test_type = anisotropic_mesh_adaptation
 
-set conv_num_flux = roe
+set conv_num_flux = hllc
 
 set diss_num_flux = symm_internal_penalty
 
@@ -80,9 +80,9 @@ subsection optimization
     set line_search_curvature = Strong Wolfe Conditions
     set reduced_space_descent_method = Newton-Krylov
     set full_space_preconditioner = P2A
-    set mesh_weight_factor = 1.0
+    set mesh_weight_factor = 0.1
 
-    set regularization_parameter = 0.0
+    set regularization_parameter = 1.0
     set regularization_scaling = 2.0
     set regularization_tol_low = 1.0e-2
     set regularization_tol_high = 1.0e-1

@@ -207,6 +207,7 @@ void MeshOptimizer<dim,nstate>::run_full_space_optimizer()
     const double timing_start = MPI_Wtime();
     
     // Full space Newton
+    *rcp_outstream << "n_design_variables = "<< design_variables.size() << std::endl;
     *rcp_outstream << "Starting Full Space mesh optimization..."<<std::endl;
     auto full_space_step = ROL::makePtr<ROL::FullSpace_BirosGhattas<double>>(parlist);
     auto status_test = ROL::makePtr<ROL::StatusTest<double>>(parlist);
@@ -225,8 +226,8 @@ void MeshOptimizer<dim,nstate>::run_full_space_optimizer()
     const double timing_end = MPI_Wtime();
     *rcp_outstream << "The process took "<<timing_end - timing_start << " seconds to run."<<std::endl;
     //*rcp_outstream << "n_preconditioner_calls = "<<n_preconditioner_calls << std::endl;
-    *rcp_outstream << "n_design_variables = "<< design_variables.size() << std::endl;
     filebuffer.close(); 
+    design_parameterization->output_files_for_postprocessing();
 }
 
 /*

@@ -68,7 +68,7 @@ void OneDSpecificNodesParameterization<dim> :: store_prespecified_control_nodes(
     }
 
     // sort control nodes list in ascending order of y values.
-    std::sort(control_nodes_list.begin(), control_nodes_list.end(), [](const std::pair<int,int> &left, const std::pair<int,int> &right) {
+    std::sort(control_nodes_list.begin(), control_nodes_list.end(), [](const std::pair<double,double> &left, const std::pair<double,double> &right) {
     return left.second < right.second;
     });
 
@@ -536,6 +536,76 @@ int OneDSpecificNodesParameterization<dim> :: check_if_node_belongs_to_the_regio
         }
     }
     return -1;
+}
+
+template<int dim>
+void OneDSpecificNodesParameterization<dim> :: output_files_for_postprocessing() const
+{
+    const unsigned int n_vol_nodes = this->high_order_grid->volume_nodes.size();
+    dealii::IndexSet ghost_index_serial;
+    ghost_index_serial.set_size(n_vol_nodes);
+    ghost_index_serial.add_range(0,n_vol_nodes);
+    const dealii::IndexSet &local_range = this->high_order_grid->volume_nodes.get_partitioner()->locally_owned_range();
+    VectorType volume_nodes_serial;
+    volume_nodes_serial.reinit(local_range, ghost_index_serial, this->mpi_communicator);
+    volume_nodes_serial = this->high_order_grid->volume_nodes;
+    volume_nodes_serial.update_ghost_values();
+    if(this->mpi_rank == 0)
+    {
+        if(this->high_order_grid->grid_degree==1)
+        {
+            std::ofstream outfile("q2_cylinder_controlnodes.txt"); 
+            std::vector<std::pair<double,double>> final_control_nodes_list;
+
+            if(! outfile.is_open())
+            {
+                std::cout<<"Could not open the file. Aborting.."<<std::endl;
+                std::abort();
+            }
+
+            outfile<<"x,y"<<"\n";
+
+            std::vector<double> xvals, yvals;
+
+            for(unsigned int icontrol=0; icontrol<n_control_nodes; ++icontrol)
+            {
+                const unsigned int ivol = control_index_to_vol_index[icontrol];
+                if(ivol % dim ==0)
+                {
+                    const double xval = volume_nodes_serial(ivol);
+                    const double yval = volume_nodes_serial(ivol+1);
+                    final_control_nodes_list.push_back(std::make_pair(xval, yval));
+                } 
+            }
+            // sort control nodes list in ascending order of y values.
+            std::sort(final_control_nodes_list.begin(), final_control_nodes_list.end(), [](const std::pair<double,double> &left, const std::pair<double,double> &right) {
+            return left.second < right.second;
+            });
+
+            // Compute high-order q2 nodes at center
+            for(unsigned int icontrol=0; icontrol<n_control_nodes-1; ++icontrol)
+            {
+                const double xval_i = final_control_nodes_list[icontrol].first;
+                const double xval_ip1 = final_control_nodes_list[icontrol+1].first;
+                const double yval_i = final_control_nodes_list[icontrol].second;
+                const double yval_ip1 = final_control_nodes_list[icontrol+1].second;
+                const double xval_mid = (xval_ip1 + xval_i)/2.0;
+                const double yval_mid = (yval_ip1 + yval_i)/2.0;
+                final_control_nodes_list.push_back(std::make_pair(xval_mid, yval_mid));
+            }
+            
+            std::sort(final_control_nodes_list.begin(), final_control_nodes_list.end(), [](const std::pair<double,double> &left, const std::pair<double,double> &right) {
+            return left.second < right.second;
+            });
+            
+            // Write control nodes
+            for(unsigned int inode = 0; inode<final_control_nodes_list.size(); ++inode)
+            {
+                outfile<<final_control_nodes_list[inode].first<<","<<final_control_nodes_list[inode].second<<"\n";
+            }
+            outfile.close();
+        } // this->high_order_grid->grid_degree==1
+    } // this->mpi_rank == 0
 }
 
 template class OneDSpecificNodesParameterization<PHILIP_DIM>;

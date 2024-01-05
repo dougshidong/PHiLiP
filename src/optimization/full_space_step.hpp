@@ -129,18 +129,6 @@ public:
         const Vector<Real> &objective_gradient,
         Constraint<Real> &equal_constraints) const;
 
-    /** Evaluates the initial Lagrange multipler by solving the augmented system.
-     *  Note that we could simplify this by simply solving for the adjoint the typical
-     *  manner. Using this simply because it was used by a previous ROL algorithm.
-     *  Has a higher initial cost than solving the adjoint directly.
-     */
-    void computeInitialLagrangeMultiplier(
-        Vector<Real> &lagrange_mult,
-        const Vector<Real> &design_variables,
-        const Vector<Real> &objective_gradient,
-        Constraint<Real> &equal_constraints) const;
-
-  
     /// Initialize with objective and equality constraints.
     /** Simply calls the more general initialize with null bounded constraints.
      */

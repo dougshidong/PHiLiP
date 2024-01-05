@@ -87,49 +87,6 @@ void FullSpace_BirosGhattas<Real>::computeLagrangianGradient(
 }
 
 template <class Real>
-void FullSpace_BirosGhattas<Real>::computeInitialLagrangeMultiplier(
-    Vector<Real> &lagrange_mult,
-    const Vector<Real> &design_variables,
-    const Vector<Real> &objective_gradient,
-    Constraint<Real> &equal_constraints) const
-{
-    Real one(1);
-
-    /* Form right-hand side of the augmented system. */
-    ROL::Ptr<Vector<Real> > rhs1 = design_variable_cloner_->clone();
-    ROL::Ptr<Vector<Real> > rhs2 = lagrange_variable_cloner_->clone();
-
-    // rhs1 is the negative gradient of the Lagrangian
-    computeLagrangianGradient(*rhs1, design_variables, lagrange_mult, objective_gradient, equal_constraints);
-    rhs1->scale(-one);
-    // rhs2 is zero
-    rhs2->zero();
-
-    /* Declare left-hand side of augmented system. */
-    ROL::Ptr<Vector<Real> > lhs1 = design_variable_cloner_->clone();
-    ROL::Ptr<Vector<Real> > lhs2 = lagrange_variable_cloner_->clone();
-
-    /* Compute linear solver tolerance. */
-    //Real b1norm  = rhs1->norm();
-    Real tol = std::sqrt(ROL_EPSILON<Real>());
-
-    /* Solve augmented system. */
-    const std::vector<Real> augiters = equal_constraints.solveAugmentedSystem(*lhs1, *lhs2, *rhs1, *rhs2, design_variables, tol);
-
-    /* Return updated Lagrange multiplier. */
-    // lhs2 is the multiplier update
-    lagrange_mult.plus(*lhs2);
-
-    // // Evaluate the full gradient wrt u
-    // obj_->gradient_1(*dualstate_,*state_,z,tol);
-    // // Solve adjoint equation
-    // con_->applyInverseAdjointJacobian_1(*adjoint_,*dualstate_,*state_,z,tol);
-    // adjoint_->scale(static_cast<Real>(-one));
-
-}
-
-
-template <class Real>
 void FullSpace_BirosGhattas<Real>::initialize(
     Vector<Real> &design_variables,
     const Vector<Real> &gradient,
@@ -205,13 +162,12 @@ void FullSpace_BirosGhattas<Real>::initialize(
     algo_state.cnorm = lagrange_variable_cloner_->norm();
     algo_state.ncval++;
 
-    //computeInitialLagrangeMultiplier(lagrange_mult, design_variables, *(step_state->gradientVec), equal_constraints);
     auto &equal_constraints_sim_opt = dynamic_cast<ROL::Constraint_SimOpt<Real>&>(equal_constraints);
-    const auto &objective_ctl_gradient = *(dynamic_cast<const Vector_SimOpt<Real>&>(*(step_state->gradientVec)).get_1());
+    const auto &objective_sim_gradient = *(dynamic_cast<const Vector_SimOpt<Real>&>(*(step_state->gradientVec)).get_1());
     const auto &design_variables_sim_opt = dynamic_cast<ROL::Vector_SimOpt<Real>&>(design_variables);
     const auto &simulation_variables = *(design_variables_sim_opt.get_1());
     const auto &control_variables    = *(design_variables_sim_opt.get_2());
-    equal_constraints_sim_opt.applyInverseAdjointJacobian_1(lagrange_mult, objective_ctl_gradient, simulation_variables, control_variables, tol);
+    equal_constraints_sim_opt.applyInverseAdjointJacobian_1(lagrange_mult, objective_sim_gradient, simulation_variables, control_variables, tol);
     lagrange_mult.scale(-1.0);
 
     // Compute gradient of Lagrangian at new multiplier guess.
@@ -424,9 +380,6 @@ std::vector<Real> FullSpace_BirosGhattas<Real>::solve_KKT_system(
     /* Form gradient of the Lagrangian. */
     ROL::Ptr<Vector<Real> > objective_gradient = design_variable_cloner_->clone();
     objective.gradient(*objective_gradient, design_variables, tol);
-    // Apply adjoint of equal_constraints Jacobian to current Lagrange multiplier.
-    ROL::Ptr<Vector<Real> > adjoint_jacobian_lagrange = design_variable_cloner_->clone();
-    equal_constraints.applyAdjointJacobian(*adjoint_jacobian_lagrange, lagrange_mult, design_variables, tol);
 
     /* Form right-hand side of the augmented system. */
     ROL::Ptr<Vector<Real> > rhs1 = design_variable_cloner_->clone();
@@ -526,27 +479,15 @@ void FullSpace_BirosGhattas<Real>::compute(
     ROL::Ptr<StepState<Real> > step_state = Step<Real>::getState();
 
     Real tol = std::sqrt(ROL_EPSILON<Real>());
-    const Real one = 1.0;
-
+    //const Real one = 1.0;
+    
     /* Form gradient of the Lagrangian. */
     ROL::Ptr<Vector<Real> > objective_gradient = design_variable_cloner_->clone();
     objective.gradient(*objective_gradient, design_variables, tol);
-    // Apply adjoint of equal_constraints Jacobian to current Lagrange multiplier.
-    ROL::Ptr<Vector<Real> > adjoint_jacobian_lagrange = design_variable_cloner_->clone();
-    equal_constraints.applyAdjointJacobian(*adjoint_jacobian_lagrange, lagrange_mult, design_variables, tol);
 
-    /* Form right-hand side of the augmented system. */
-    ROL::Ptr<Vector<Real> > rhs1 = design_variable_cloner_->clone();
-    ROL::Ptr<Vector<Real> > rhs2 = lagrange_variable_cloner_->clone();
-    // rhs1 is the negative gradient of the Lagrangian
     ROL::Ptr<Vector<Real> > lagrangian_gradient = step_state->gradientVec->clone();
     computeLagrangianGradient(*lagrangian_gradient, design_variables, lagrange_mult, *objective_gradient, equal_constraints);
-    rhs1->set(*lagrangian_gradient);
-    rhs1->scale(-one);
-    // rhs2 is the contraint value
-    equal_constraints.value(*rhs2, design_variables, tol);
-    rhs2->scale(-one);
-
+    
     /* Declare left-hand side of augmented system. */
     ROL::Ptr<Vector<Real> > lhs1 = design_variable_cloner_->clone();
     ROL::Ptr<Vector<Real> > lhs2 = lagrange_variable_cloner_->clone();
@@ -558,7 +499,7 @@ void FullSpace_BirosGhattas<Real>::compute(
     /* Solve augmented system. */
     //const std::vector<Real> augiters = equal_constraints.solveAugmentedSystem(*lhs1, *lhs2, *rhs1, *rhs2, design_variables, tol);
     pcout
-        << "Startingto solve augmented system..."
+        << "Starting to solve augmented system..."
         << std::endl;
     //const std::vector<Real> kkt_iters = equal_constraints.solveAugmentedSystem(*lhs1, *lhs2, *rhs1, *rhs2, design_variables, tol);
     // {
@@ -680,6 +621,7 @@ void FullSpace_BirosGhattas<Real>::compute(
 
     //#pen_ = parlist.sublist("Step").sublist("Augmented Lagrangian").get("Initial Penalty Parameter",ten);
     /* Create merit function based on augmented Lagrangian */
+    /*
     const Real penalty_offset = 10.0;//1e-4;
     penalty_value_ = computeAugmentedLagrangianPenalty(
         search_direction,
@@ -690,6 +632,7 @@ void FullSpace_BirosGhattas<Real>::compute(
         *adjoint_jacobian_lagrange,
         equal_constraints,
         penalty_offset);
+    */
     const auto reduced_gradient = (dynamic_cast<Vector_SimOpt<Real>&>(*lagrangian_gradient)).get_2();
     //penalty_value_ = std::max(1.0/reduced_gradient->norm(), 1.0);
     //penalty_value_ = 0.0;

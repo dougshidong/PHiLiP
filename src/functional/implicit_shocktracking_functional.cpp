@@ -351,10 +351,10 @@ void ImplicitShockTrackingFunctional<dim, nstate, real> :: d2IdWdW_vmult(
     VectorType in_vector_fine(vector_fine);
     interpolation_matrix.vmult(in_vector_fine, in_vector);
     in_vector_fine.update_ghost_values();
-
     //========= Evaluate term1 =================
     VectorType term1(vector_fine);
-    R_times_Ruu.vmult(term1, in_vector_fine);
+//    R_times_Ruu.vmult(term1, in_vector_fine);
+    term1 = 0.0;
     term1.update_ghost_values();
 
     //========= Evaluate term2 =================
@@ -386,7 +386,8 @@ void ImplicitShockTrackingFunctional<dim, nstate, real> :: d2IdWdX_vmult(
 
     //========= Evaluate term1 =================
     VectorType term1(vector_fine);
-    R_times_Rux.vmult(term1, in_vector);
+    //R_times_Rux.vmult(term1, in_vector);
+    term1 = 0.0;
     term1.update_ghost_values();
 
     //========= Evaluate term2 =================
@@ -430,7 +431,8 @@ void ImplicitShockTrackingFunctional<dim, nstate, real> :: d2IdWdX_Tvmult(
 
     // ========= Evaluate term2 ==========================
     VectorType term2(vector_vol_nodes);
-    R_times_Rux.Tvmult(term2, in_vector_fine);
+    //R_times_Rux.Tvmult(term2, in_vector_fine);
+    term2 = 0.0;
     term2.update_ghost_values();
 
     //====================================================
@@ -449,7 +451,8 @@ void ImplicitShockTrackingFunctional<dim, nstate, real> :: d2IdXdX_vmult(
     
     //========= Evaluate term1 =================
     VectorType term1(vector_vol_nodes);
-    R_times_Rxx.vmult(term1, in_vector);
+    //R_times_Rxx.vmult(term1, in_vector);
+    term1 = 0.0;
     term1.update_ghost_values();
 
     //========= Evaluate term2 =================

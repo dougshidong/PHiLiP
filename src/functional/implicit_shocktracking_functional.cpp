@@ -3,6 +3,7 @@
 #include <deal.II/lac/sparsity_tools.h>
 #include "linear_solver/linear_solver.h"
 #include "mesh_jacobian_deviation_functional.h"
+#include "cell_distortion_functional.h"
 
 namespace PHiLiP {
 
@@ -30,7 +31,8 @@ ImplicitShockTrackingFunctional<dim, nstate, real> :: ImplicitShockTrackingFunct
         this->pcout<<"Using coarse residual."<<std::endl;
     }
     
-    cell_distortion_functional = std::make_unique<MeshJacobianDeviation<dim, nstate, real>> (this->dg);
+    //cell_distortion_functional = std::make_unique<MeshJacobianDeviation<dim, nstate, real>> (this->dg);
+    cell_distortion_functional = std::make_unique<CellDistortion<dim, nstate, real>> (this->dg);
 }
 
 //===================================================================================================================================================

@@ -53,7 +53,7 @@ FullSpace_BirosGhattas(
     regularization_tol_high_control = parlist.sublist("Full Space").get("regularization_tol_high",1.0e-1);
     linear_iteration_limit = parlist.sublist("Full Space").get("Linear iteration Limit", 2000); 
     
-    regularization_parameter_sim = 0.1;
+    regularization_parameter_sim = 0.0;
     regularization_scaling_sim = 2.0;
     regularization_tol_low_sim = 1.0e-2;
     regularization_tol_high_sim = 1.0e-1;
@@ -161,7 +161,7 @@ void FullSpace_BirosGhattas<Real>::initialize(
     equal_constraints.value(*(step_state->constraintVec), design_variables, zero);
     algo_state.cnorm = lagrange_variable_cloner_->norm();
     algo_state.ncval++;
-
+/*
     auto &equal_constraints_sim_opt = dynamic_cast<ROL::Constraint_SimOpt<Real>&>(equal_constraints);
     const auto &objective_sim_gradient = *(dynamic_cast<const Vector_SimOpt<Real>&>(*(step_state->gradientVec)).get_1());
     const auto &design_variables_sim_opt = dynamic_cast<ROL::Vector_SimOpt<Real>&>(design_variables);
@@ -169,6 +169,8 @@ void FullSpace_BirosGhattas<Real>::initialize(
     const auto &control_variables    = *(design_variables_sim_opt.get_2());
     equal_constraints_sim_opt.applyInverseAdjointJacobian_1(lagrange_mult, objective_sim_gradient, simulation_variables, control_variables, tol);
     lagrange_mult.scale(-1.0);
+*/
+    lagrange_mult.zero();
 
     // Compute gradient of Lagrangian at new multiplier guess.
     ROL::Ptr<Vector<Real> > lagrangian_gradient = step_state->gradientVec->clone();
@@ -534,7 +536,8 @@ void FullSpace_BirosGhattas<Real>::compute(
 
     {
         search_direction.set(*lhs1);
-        lagrange_mult_search_direction_->set(*lhs2);
+        //lagrange_mult_search_direction_->set(*lhs2);
+        lagrange_mult_search_direction_->zero();
     }
     {
         // Update simulation regularization parameter.
@@ -740,7 +743,7 @@ void FullSpace_BirosGhattas<Real>::compute(
     //     lineSearch_->setMaxitUpdate(step_state->searchSize,fval_,algo_state.value);
     // }
     // Compute scaled descent direction
-    lagrange_mult_search_direction_->scale(step_state->searchSize);
+    //lagrange_mult_search_direction_->scale(step_state->searchSize);
     search_direction.scale(step_state->searchSize);
     if ( bound_constraints.isActivated() ) {
         search_direction.plus(design_variables);

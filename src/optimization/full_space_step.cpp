@@ -662,7 +662,7 @@ void FullSpace_BirosGhattas<Real>::compute(
         ROL::Ptr<Vector<Real> > merit_function_gradient = design_variable_cloner_->clone();
         merit_function_->gradient( *merit_function_gradient, design_variables, tol );
         Real directional_derivative_step = merit_function_gradient->dot(search_direction);
-        directional_derivative_step += step_state->constraintVec->dot(*lagrange_mult_search_direction_);
+        //directional_derivative_step += step_state->constraintVec->dot(*lagrange_mult_search_direction_);
         pcout
             << "Penalty value: " << penalty_value_
             << "Directional_derivative_step (Should be negative for descent direction)"

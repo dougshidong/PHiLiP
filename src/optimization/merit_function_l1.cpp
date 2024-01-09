@@ -1,5 +1,6 @@
 #include "merit_function_l1.hpp"
 #include "rol_to_dealii_vector.hpp"
+#include "ROL_Constraint_SimOpt.hpp"
 
 namespace PHiLiP {
 
@@ -14,9 +15,25 @@ MeritFunctionL1::MeritFunctionL1(
     constraint_vec = constraint_vec_.clone();
 }
 
-void MeritFunctionL1::set_penalty_parameter(const double penalty_parameter_input)
+void MeritFunctionL1::set_penalty_parameter(const ROL::Vector<double> &x)
 {
-    penalty_parameter = penalty_parameter_input;
+    double tol = std::sqrt(ROL::ROL_EPSILON<double>());
+    ROL::Ptr<ROL::Vector<double>> lagrange_mult = constraint_vec->clone();
+    obj->update(x);
+    con->update(x);
+    
+    ROL::Ptr<ROL::Vector<double>> objective_gradient = x.clone();
+    obj->gradient(*objective_gradient, x, tol);
+    
+    auto &equal_constraints_sim_opt = dynamic_cast<ROL::Constraint_SimOpt<double>&>(*con);
+    const auto &objective_sim_gradient = *(dynamic_cast<const ROL::Vector_SimOpt<double>&>(*(objective_gradient)).get_1());
+    const auto &design_variables_sim_opt = dynamic_cast<const ROL::Vector_SimOpt<double>&>(x);
+    const auto &simulation_variables = *(design_variables_sim_opt.get_1());
+    const auto &control_variables    = *(design_variables_sim_opt.get_2());
+    equal_constraints_sim_opt.applyInverseAdjointJacobian_1(*lagrange_mult, objective_sim_gradient, simulation_variables, control_variables, tol);
+    lagrange_mult->scale(-1.0);
+
+    penalty_parameter = 2.0*evaluate_linfty_norm(*lagrange_mult);
 }
 
 
@@ -60,6 +77,13 @@ double MeritFunctionL1::evaluate_l1_norm(
 {
     const auto &dealii_input = ROL_vector_to_dealii_vector_reference(input_vector);
     return dealii_input.l1_norm();
+}
+
+double MeritFunctionL1::evaluate_linfty_norm(
+    const ROL::Vector<double> &input_vector)
+{
+    const auto &dealii_input = ROL_vector_to_dealii_vector_reference(input_vector);
+    return dealii_input.linfty_norm();
 }
 
 void MeritFunctionL1::gradient(

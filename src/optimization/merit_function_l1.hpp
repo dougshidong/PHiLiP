@@ -17,6 +17,7 @@ private:
     ROL::Ptr<ROL::Vector<double> > constraint_vec;
 
     double evaluate_l1_norm(const ROL::Vector<double> &input_vector);
+    double evaluate_linfty_norm(const ROL::Vector<double> &input_vector);
 
 public:
     /// Constructor
@@ -24,7 +25,7 @@ public:
                     const ROL::Ptr<ROL::Constraint<double> > &con_,
                     const ROL::Vector<double> &constraint_vec_);
 
-    void set_penalty_parameter(const double penalty_parameter);
+    void set_penalty_parameter(const ROL::Vector<double> &x);
 
     double compute_directional_derivatve(
         const ROL::Vector<double> &x,

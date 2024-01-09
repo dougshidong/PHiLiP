@@ -13,13 +13,14 @@ class MeritFunctionL1 : public ROL::Objective<double>
 private:
     const ROL::Ptr<ROL::Objective<double> > obj;
     const ROL::Ptr<ROL::Constraint<double> > con;
-    double penalty_parameter;
     ROL::Ptr<ROL::Vector<double> > constraint_vec;
 
     double evaluate_l1_norm(const ROL::Vector<double> &input_vector);
     double evaluate_linfty_norm(const ROL::Vector<double> &input_vector);
 
 public:
+    double penalty_parameter;
+    
     /// Constructor
     MeritFunctionL1(const ROL::Ptr<ROL::Objective<double> > &obj_,
                     const ROL::Ptr<ROL::Constraint<double> > &con_,
@@ -27,7 +28,7 @@ public:
 
     void set_penalty_parameter(const ROL::Vector<double> &x);
 
-    double compute_directional_derivatve(
+    double compute_directional_derivative(
         const ROL::Vector<double> &x,
         const ROL::Vector<double> &search_direction);
 

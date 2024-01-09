@@ -2,6 +2,7 @@
 #include "optimization/full_space_step.hpp"
 #include "optimization/kkt_operator.hpp"
 #include "optimization/kkt_birosghattas_preconditioners.hpp"
+#include "optimization/merit_function_l1.hpp"
 
 #include "global_counter.hpp"
 
@@ -204,6 +205,7 @@ void FullSpace_BirosGhattas<Real>::initialize(
     // with it. But might as well be consistent.
     penalty_value_ = 1.0;
     ROL::Ptr<Vector<Real>> design_variables_cloned = design_variables.clone();
+    /*
     merit_function_ = ROL::makePtr<ROL::AugmentedLagrangian<Real>> (
             makePtrFromRef<Objective<Real>>(objective),
             makePtrFromRef<Constraint<Real>>(equal_constraints),
@@ -212,6 +214,11 @@ void FullSpace_BirosGhattas<Real>::initialize(
             *design_variables_cloned,
             equal_constraints_values,
             parlist_);
+    */
+    merit_function_ = ROL::makePtr<PHiLiP::MeritFunctionL1>(
+            makePtrFromRef<Objective<Real>>(objective),
+            makePtrFromRef<Constraint<Real>>(equal_constraints),
+            equal_constraints_values);
 
     // Dummy search direction vector used to initialize the linesearch.
     ROL::Ptr<Vector<Real> > search_direction_dummy = design_variables.clone();
@@ -643,7 +650,8 @@ void FullSpace_BirosGhattas<Real>::compute(
     pcout
         << "Finished computeAugmentedLagrangianPenalty..."
         << std::endl;
-    AugmentedLagrangian<Real> &augLag = dynamic_cast<AugmentedLagrangian<Real>&>(*merit_function_);
+    //AugmentedLagrangian<Real> &augLag = dynamic_cast<AugmentedLagrangian<Real>&>(*merit_function_);
+    PHiLiP::MeritFunctionL1 &meritfun_l1 = dynamic_cast<PHiLiP::MeritFunctionL1 &>(*merit_function_);
 
     step_state->nfval = 0;
     step_state->ngrad = 0;
@@ -654,14 +662,20 @@ void FullSpace_BirosGhattas<Real>::compute(
     int n_searches = 0;
     while (!linesearch_success) {
 
-        augLag.reset(lagrange_mult, penalty_value_);
-
+        //augLag.reset(lagrange_mult, penalty_value_);
         const bool changed_design_variables = true;
         merit_function_->update(design_variables, changed_design_variables, algo_state.iter);
+        meritfun_l1.set_penalty_parameter(design_variables);
+        penalty_value_ = meritfun_l1.penalty_parameter;
+
+        merit_function_value = merit_function_->value(design_variables, tol );
         fold = merit_function_value;
+       /* 
         ROL::Ptr<Vector<Real> > merit_function_gradient = design_variable_cloner_->clone();
         merit_function_->gradient( *merit_function_gradient, design_variables, tol );
         Real directional_derivative_step = merit_function_gradient->dot(search_direction);
+        */
+        Real directional_derivative_step = meritfun_l1.compute_directional_derivative(design_variables,search_direction);
         //directional_derivative_step += step_state->constraintVec->dot(*lagrange_mult_search_direction_);
         pcout
             << "Penalty value: " << penalty_value_
@@ -675,12 +689,11 @@ void FullSpace_BirosGhattas<Real>::compute(
         //}
 
         /* Perform line-search */
-        merit_function_value = merit_function_->value(design_variables, tol );
         pcout
             << "Performing line search..."
             << " Initial merit function value = " << merit_function_value
             << std::endl;
-        lineSearch_->setData(algo_state.gnorm,*merit_function_gradient);
+        //lineSearch_->setData(algo_state.gnorm,*merit_function_gradient);
 
         n_linesearches = 0;
         lineSearch_->run(step_state->searchSize,

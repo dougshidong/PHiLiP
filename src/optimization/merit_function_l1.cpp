@@ -57,7 +57,7 @@ double MeritFunctionL1::value(
     return (objective_val + penalty_parameter*constraint_l1_norm);
 }
 
-double MeritFunctionL1::compute_directional_derivatve(
+double MeritFunctionL1::compute_directional_derivative(
     const ROL::Vector<double> &x,
     const ROL::Vector<double> &search_direction)
 {

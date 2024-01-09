@@ -77,7 +77,7 @@ subsection optimization
     set initial_step_size = 1.0
     set functional_evaluation_limit = 30
     set line_search_method = Backtracking
-    set line_search_curvature = Strong Wolfe Conditions
+    set line_search_curvature = Null Curvature Condition
     set reduced_space_descent_method = Newton-Krylov
     set full_space_preconditioner = P2A
     set mesh_weight_factor = 0.1

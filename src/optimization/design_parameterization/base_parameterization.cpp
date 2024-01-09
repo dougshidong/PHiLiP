@@ -20,6 +20,12 @@ void BaseParameterization<dim> :: output_design_variables(unsigned int /*iterati
 }
 
 template<int dim>
+void BaseParameterization<dim> ::  output_files_for_postprocessing() const
+{
+    // Outputs nothing by default. Overriden in derived classes.
+}
+
+template<int dim>
 bool BaseParameterization<dim> :: has_design_variable_been_updated(
     const VectorType &current_design_var, 
     const VectorType &updated_design_var) const

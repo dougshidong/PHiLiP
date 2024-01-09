@@ -37,6 +37,8 @@ public:
     
     void store_prespecified_control_nodes();
 
+    void output_files_for_postprocessing() const override;
+
 private:
     
     VectorType current_design_var;

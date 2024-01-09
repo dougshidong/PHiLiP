@@ -1,4 +1,5 @@
 #include "merit_function_l1.hpp"
+#include "rol_to_dealii_vector.hpp"
 
 namespace PHiLiP {
 
@@ -36,8 +37,29 @@ double MeritFunctionL1::value(
     con->value(*constraint_vec,x,tol); 
     const double constraint_l1_norm = evaluate_l1_norm(*constraint_vec);
 
-    const double merit_function_val = objective_val + penalty_parameter*constraint_l1_norm;
-    return merit_function_val;
+    return (objective_val + penalty_parameter*constraint_l1_norm);
+}
+
+double MeritFunctionL1::compute_directional_derivatve(
+    const ROL::Vector<double> &x,
+    const ROL::Vector<double> &search_direction)
+{
+    double tol = std::sqrt(ROL::ROL_EPSILON<double>());
+    ROL::Ptr<ROL::Vector<double>> objective_gradient = search_direction.clone();
+    obj->gradient(*objective_gradient, x, tol);
+    const double directional_derivative = objective_gradient->dot(search_direction);
+
+    con->value(*constraint_vec,x,tol); 
+    const double constraint_l1_norm = evaluate_l1_norm(*constraint_vec);
+
+    return (directional_derivative - penalty_parameter*constraint_l1_norm);
+}
+
+double MeritFunctionL1::evaluate_l1_norm(
+    const ROL::Vector<double> &input_vector)
+{
+    const auto &dealii_input = ROL_vector_to_dealii_vector_reference(input_vector);
+    return dealii_input.l1_norm();
 }
 
 void MeritFunctionL1::gradient(

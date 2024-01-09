@@ -26,6 +26,10 @@ public:
 
     void set_penalty_parameter(const double penalty_parameter);
 
+    double compute_directional_derivatve(
+        const ROL::Vector<double> &x,
+        const ROL::Vector<double> &search_direction);
+
     /// Update the simulation and control variables.
     void update(
         const ROL::Vector<double> &x,
@@ -51,3 +55,4 @@ public:
 
 };
 } // PHiLiP namespace
+#endif

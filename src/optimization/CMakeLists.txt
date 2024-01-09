@@ -4,6 +4,7 @@ set(TESTS_SOURCE
     flow_constraints.cpp
     rol_objective.cpp
     full_space_step.cpp
+    merit_function_l1.cpp
     )
 
 add_subdirectory(design_parameterization)

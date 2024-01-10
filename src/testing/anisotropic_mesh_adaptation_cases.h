@@ -39,6 +39,10 @@ public:
     /// Evaluates l2 norm of solution error.
     double evaluate_enthalpy_error(std::shared_ptr<DGBase<dim,double>> dg) const;
 
+    void evaluate_regularization_matrix(
+        dealii::TrilinosWrappers::SparseMatrix &regularization_matrix,
+        std::shared_ptr<DGBase<dim,double>> dg) const;
+
     void increase_grid_degree_and_interpolate_solution(std::shared_ptr<DGBase<dim,double>> dg) const;
 }; 
 

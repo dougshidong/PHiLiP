@@ -31,6 +31,15 @@ void AnisotropicMeshAdaptationCases<dim,nstate>::increase_grid_degree_and_interp
     dg->set_p_degree_and_interpolate_solution(degree_updated);
 }
 
+template<int dim, int nstate>
+void AnisotropicMeshAdaptationCases<dim,nstate>::evaluate_regularization_matrix(
+    dealii::TrilinosWrappers::SparseMatrix &/*regularization_matrix*/, 
+    std::shared_ptr<DGBase<dim,double>> /*dg*/) const
+{
+    // Set sparsity pattern
+    // Set elements.
+}
+
 template <int dim, int nstate>
 void AnisotropicMeshAdaptationCases<dim,nstate> :: verify_fe_values_shape_hessian(const DGBase<dim, double> &dg) const
 {

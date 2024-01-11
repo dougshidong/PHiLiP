@@ -41,7 +41,7 @@ subsection euler
 end
 
 subsection flow_solver
-  set flow_case_type = acoustic_wave_species
+  set flow_case_type = multi_species_acoustic_wave
   set poly_degree = 5
   set final_time = 0.1e-01
   # set final_time = 1.2566370614400000e-2

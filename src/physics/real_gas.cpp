@@ -177,7 +177,7 @@ inline std::array<real,nstate> RealGas<dim,nstate,real>
     std::array<real, nstate> conservative_soln;
     for (int i=0; i<nstate; i++)
     {
-        conservative_soln[i] = 0.0*primitive_soln[0];
+        conservative_soln[i] = 1.0*primitive_soln[0];
     }
 
     return conservative_soln;

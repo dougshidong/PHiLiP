@@ -27,6 +27,8 @@ private:
 
     /// Used to perform the Lagrangian Hessian in two steps.
     const ROL::Ptr<ROL::Vector<Real>> temp_design_variables_size_vector_;
+    
+    const dealii::TrilinosWrappers::SparseMatrix &regularization_matrix;
     /// Regularization parameter
     const Real regularization_parameter_sim;
     const Real regularization_parameter_control;
@@ -39,6 +41,7 @@ public:
         const ROL::Ptr<ROL::Constraint<Real>> equal_constraints,
         const ROL::Ptr<const ROL::Vector<Real>> design_variables,
         const ROL::Ptr<const ROL::Vector<Real>> lagrange_mult,
+        const dealii::TrilinosWrappers::SparseMatrix &regularization_matrix_,
         const Real _regularization_parameter_sim = 0.0,
         const Real _regularization_parameter_control = 0.0,
         const Real _regularization_parameter_adj = 0.0)
@@ -47,6 +50,7 @@ public:
         , design_variables_(design_variables)
         , lagrange_mult_(lagrange_mult)
         , temp_design_variables_size_vector_(design_variables->clone())
+        , regularization_matrix(regularization_matrix_)
         , regularization_parameter_sim(_regularization_parameter_sim)
         , regularization_parameter_control(_regularization_parameter_control)
         , regularization_parameter_adj(_regularization_parameter_adj)

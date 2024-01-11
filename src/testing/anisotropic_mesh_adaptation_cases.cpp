@@ -33,11 +33,87 @@ void AnisotropicMeshAdaptationCases<dim,nstate>::increase_grid_degree_and_interp
 
 template<int dim, int nstate>
 void AnisotropicMeshAdaptationCases<dim,nstate>::evaluate_regularization_matrix(
-    dealii::TrilinosWrappers::SparseMatrix &/*regularization_matrix*/, 
-    std::shared_ptr<DGBase<dim,double>> /*dg*/) const
+    dealii::TrilinosWrappers::SparseMatrix &regularization_matrix, 
+    std::shared_ptr<DGBase<dim,double>> dg) const
 {
+    // Get volume of smallest element.
+    const dealii::Quadrature<dim> &volume_quadrature = dg->volume_quadrature_collection[dg->high_order_grid->grid_degree];
+    const dealii::Mapping<dim> &mapping = (*(dg->high_order_grid->mapping_fe_field));
+    dealii::FEValues<dim,dim> fe_values_vol(mapping, dg->high_order_grid->fe_metric_collection[dg->high_order_grid->grid_degree], volume_quadrature,
+                    dealii::update_values | dealii::update_gradients | dealii::update_JxW_values);
+    const unsigned int n_quad_pts = fe_values_vol.n_quadrature_points;
+    const unsigned int dofs_per_cell = fe_values_vol.dofs_per_cell;
+    std::vector<dealii::types::global_dof_index> dofs_indices (fe_values_vol.dofs_per_cell);
+    
+    double min_cell_volume_local = 1.0e6;
+    for(const auto &cell : dg->high_order_grid->dof_handler_grid.active_cell_iterators())
+    {
+        if (!cell->is_locally_owned()) continue;
+        double cell_vol = 0.0;
+        fe_values_vol.reinit (cell);
+
+        for(unsigned int q=0; q<n_quad_pts; ++q)
+        {
+            cell_vol += fe_values_vol.JxW(q);
+        }
+
+        if(cell_vol < min_cell_volume_local)
+        {
+            min_cell_volume_local = cell_vol;
+        }
+    }
+
+    const double min_cell_vol = dealii::Utilities::MPI::min(min_cell_volume_local, mpi_communicator);
+
     // Set sparsity pattern
+    dealii::AffineConstraints<double> hanging_node_constraints;
+    hanging_node_constraints.clear();
+    dealii::DoFTools::make_hanging_node_constraints(dg->high_order_grid->dof_handler_grid,
+                                            hanging_node_constraints);
+    hanging_node_constraints.close();
+
+    dealii::DynamicSparsityPattern dsp(dg->high_order_grid->dof_handler_grid.n_dofs(), dg->high_order_grid->dof_handler_grid.n_dofs());
+    dealii::DoFTools::make_sparsity_pattern(dg->high_order_grid->dof_handler_grid, dsp, hanging_node_constraints);
+    const dealii::IndexSet &locally_owned_dofs = dg->high_order_grid->locally_owned_dofs_grid;
+    regularization_matrix.reinit(locally_owned_dofs, locally_owned_dofs, dsp, this->mpi_communicator);
+
     // Set elements.
+    dealii::FullMatrix<double> cell_matrix(dofs_per_cell, dofs_per_cell);
+    for(const auto &cell : dg->high_order_grid->dof_handler_grid.active_cell_iterators())
+    {
+        if (!cell->is_locally_owned()) continue;
+        fe_values_vol.reinit (cell);
+        cell->get_dof_indices(dofs_indices);
+        cell_matrix = 0;
+        
+        double cell_vol = 0.0;
+        for(unsigned int q=0; q<n_quad_pts; ++q)
+        {
+            cell_vol += fe_values_vol.JxW(q);
+        }
+        const double omega_k = min_cell_vol/cell_vol;
+
+        for(unsigned int i=0; i<dofs_per_cell; ++i)
+        {
+            const unsigned int icomp = fe_values_vol.get_fe().system_to_component_index(i).first;
+            for(unsigned int j=0; j<dofs_per_cell; ++j)
+            {
+                const unsigned int jcomp = fe_values_vol.get_fe().system_to_component_index(j).first;
+                double val_ij = 0.0;
+
+                if(icomp == jcomp)
+                {
+                    for(unsigned int q=0; q<n_quad_pts; ++q)
+                    {
+                        val_ij += omega_k*fe_values_vol.shape_grad(i,q)*fe_values_vol.shape_grad(j,q)*fe_values_vol.JxW(q);
+                    }
+                }
+                cell_matrix(i,j) = val_ij;
+            }
+        }
+        hanging_node_constraints.distribute_local_to_global(cell_matrix, dofs_indices, regularization_matrix); 
+    } // cell loop ends
+    regularization_matrix.compress(dealii::VectorOperation::add);
 }
 
 template <int dim, int nstate>
@@ -236,6 +312,8 @@ int AnisotropicMeshAdaptationCases<dim, nstate> :: run_test () const
     // Run q1 optimizer.
         flow_solver->dg->freeze_artificial_dissipation=true;
         flow_solver->dg->set_p_degree_and_interpolate_solution(1);
+        dealii::TrilinosWrappers::SparseMatrix regularization_matrix_q1;
+        evaluate_regularization_matrix(regularization_matrix_q1, flow_solver->dg);
    //     output_vtk_files(flow_solver->dg, output_val++);
         //for(unsigned int i=0; i<2; ++i)
         //{
@@ -243,8 +321,9 @@ int AnisotropicMeshAdaptationCases<dim, nstate> :: run_test () const
             //param_q1.optimization_param.regularization_parameter = 5.0;
             //param_q1.optimization_param.regularization_scaling = 1.1;
             //param_q1.optimization_param.max_design_cycles = 4;
-            std::unique_ptr<MeshOptimizer<dim,nstate>> mesh_optimizer_q1 = std::make_unique<MeshOptimizer<dim,nstate>> (flow_solver->dg,&param_q1, true);
-            mesh_optimizer_q1->run_full_space_optimizer();
+            std::unique_ptr<MeshOptimizer<dim,nstate>> mesh_optimizer_q1 = 
+                            std::make_unique<MeshOptimizer<dim,nstate>> (flow_solver->dg, &param_q1, true);
+            mesh_optimizer_q1->run_full_space_optimizer(regularization_matrix_q1);
             flow_solver->run();
             /*
             increase_grid_degree_and_interpolate_solution(flow_solver->dg);

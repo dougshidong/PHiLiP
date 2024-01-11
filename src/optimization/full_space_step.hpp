@@ -100,6 +100,7 @@ private:
 
     /// Number of the output file. Mesh and solution are output in update(), after updating the variables.   
     unsigned int output_count = 2000;
+    const dealii::TrilinosWrappers::SparseMatrix &regularization_matrix;
 public:
   
     using Step<Real>::initialize; ///< See base class.
@@ -117,6 +118,7 @@ public:
     */
     FullSpace_BirosGhattas(
         ROL::ParameterList &parlist,
+        const dealii::TrilinosWrappers::SparseMatrix &regularization_matrix_ = dealii::TrilinosWrappers::SparseMatrix(),
         const ROL::Ptr<LineSearch<Real> > &lineSearch = ROL::nullPtr,
         const ROL::Ptr<Secant<Real> > &secant = ROL::nullPtr);
 

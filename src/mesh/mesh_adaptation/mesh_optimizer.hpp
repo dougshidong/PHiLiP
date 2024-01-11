@@ -26,7 +26,7 @@ public:
     ~MeshOptimizer(){}
     
     /// Runs full-space optimizer.
-    void run_full_space_optimizer();
+    void run_full_space_optimizer(const dealii::TrilinosWrappers::SparseMatrix &regularization_matrix);
 
     /// Gets parlist according to optimization_param.
     Teuchos::ParameterList get_parlist();

@@ -12,6 +12,7 @@ template <class Real>
 FullSpace_BirosGhattas<Real>::
 FullSpace_BirosGhattas(
     ROL::ParameterList &parlist,
+    const dealii::TrilinosWrappers::SparseMatrix &regularization_matrix_,
     const ROL::Ptr<LineSearch<Real> > &lineSearch,
     const ROL::Ptr<Secant<Real> > &secant)
     : Step<Real>()
@@ -21,6 +22,7 @@ FullSpace_BirosGhattas(
     , econd_(CURVATURECONDITION_WOLFE)
     , verbosity_(0)
     , parlist_(parlist)
+    , regularization_matrix(regularization_matrix_)
     , pcout(std::cout, dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD)==0)
 {
     // Parse parameter list
@@ -415,6 +417,7 @@ std::vector<Real> FullSpace_BirosGhattas<Real>::solve_KKT_system(
         makePtrFromRef<Constraint<Real>>(equal_constraints),
         makePtrFromRef<const Vector<Real>>(design_variables),
         makePtrFromRef<const Vector<Real>>(lagrange_mult),
+        regularization_matrix,
         regularization_parameter_sim, regularization_parameter_control, regularization_parameter_adj);
 
 

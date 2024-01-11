@@ -152,7 +152,7 @@ Teuchos::ParameterList MeshOptimizer<dim,nstate>::get_parlist()
 }
 
 template<int dim, int nstate>
-void MeshOptimizer<dim,nstate>::run_full_space_optimizer()
+void MeshOptimizer<dim,nstate>::run_full_space_optimizer(const dealii::TrilinosWrappers::SparseMatrix &regularization_matrix)
 {
 //==================================================================================================================================
     // Set up objective function and design parameteriation pointers.
@@ -209,7 +209,7 @@ void MeshOptimizer<dim,nstate>::run_full_space_optimizer()
     // Full space Newton
     *rcp_outstream << "n_design_variables = "<< design_variables.size() << std::endl;
     *rcp_outstream << "Starting Full Space mesh optimization..."<<std::endl;
-    auto full_space_step = ROL::makePtr<ROL::FullSpace_BirosGhattas<double>>(parlist);
+    auto full_space_step = ROL::makePtr<ROL::FullSpace_BirosGhattas<double>>(parlist,regularization_matrix);
     auto status_test = ROL::makePtr<ROL::StatusTest<double>>(parlist);
     const bool printHeader = true;
     ROL::Algorithm<double> algorithm(full_space_step, status_test, printHeader);

@@ -152,7 +152,7 @@ Teuchos::ParameterList MeshOptimizer<dim,nstate>::get_parlist()
 }
 
 template<int dim, int nstate>
-void MeshOptimizer<dim,nstate>::run_full_space_optimizer(const dealii::TrilinosWrappers::SparseMatrix &regularization_matrix)
+void MeshOptimizer<dim,nstate>::run_full_space_optimizer(const dealii::TrilinosWrappers::SparseMatrix &regularization_matrix_poisson)
 {
 //==================================================================================================================================
     // Set up objective function and design parameteriation pointers.
@@ -205,6 +205,11 @@ void MeshOptimizer<dim,nstate>::run_full_space_optimizer(const dealii::TrilinosW
     auto flow_constraints_rol_ptr  = ROL::makePtr<FlowConstraints<dim>>(dg, design_parameterization); // Constraint of Residual = 0
 
     const double timing_start = MPI_Wtime();
+    dealii::TrilinosWrappers::SparseMatrix regularization_matrix;
+    form_regularization_marix(
+        regularization_matrix,
+        regularization_matrix_poisson, 
+        objective_function_rol_ptr->dXvdXp);
     
     // Full space Newton
     *rcp_outstream << "n_design_variables = "<< design_variables.size() << std::endl;
@@ -228,6 +233,17 @@ void MeshOptimizer<dim,nstate>::run_full_space_optimizer(const dealii::TrilinosW
     //*rcp_outstream << "n_preconditioner_calls = "<<n_preconditioner_calls << std::endl;
     filebuffer.close(); 
     design_parameterization->output_files_for_postprocessing();
+}
+    
+template<int dim, int nstate>
+void MeshOptimizer<dim,nstate>::form_regularization_marix(
+    dealii::TrilinosWrappers::SparseMatrix &regularization_matrix,
+    const dealii::TrilinosWrappers::SparseMatrix &regularization_matrix_poisson,
+    const dealii::TrilinosWrappers::SparseMatrix &dXvdXp) const
+{
+    dealii::TrilinosWrappers::SparseMatrix C;
+    regularization_matrix_poisson.mmult(C,dXvdXp);
+    dXvdXp.Tmmult(regularization_matrix, C);
 }
 
 /*

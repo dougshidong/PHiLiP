@@ -28,6 +28,11 @@ public:
     /// Runs full-space optimizer.
     void run_full_space_optimizer(const dealii::TrilinosWrappers::SparseMatrix &regularization_matrix);
 
+    void form_regularization_marix(
+        dealii::TrilinosWrappers::SparseMatrix &regularization_matrix,
+        const dealii::TrilinosWrappers::SparseMatrix &regularization_matrix_poisson,
+        const dealii::TrilinosWrappers::SparseMatrix &dXvdXp) const;
+
     /// Gets parlist according to optimization_param.
     Teuchos::ParameterList get_parlist();
 /*

@@ -580,6 +580,7 @@ void FullSpace_BirosGhattas<Real>::compute(
         {
             regularization_parameter_control = regularization_parameter_control; // Remains unchanged.
         }
+        regularization_parameter_control = std::max(regularization_parameter_control, 1.0);
         pcout<<"Norm of simulation search direction = "<<((dynamic_cast<const Vector_SimOpt<Real>&>(search_direction)).get_1())->norm()<<std::endl;
         pcout<<"Norm of control search direction = "<<ctl_norm<<std::endl;
         pcout<<"Norm of adjoint search direction = "<<lagrange_mult_search_direction_->norm()<<std::endl;

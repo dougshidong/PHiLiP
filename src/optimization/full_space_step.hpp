@@ -274,6 +274,10 @@ public:
 private:
     dealii::ConditionalOStream pcout; ///< Parallel std::cout that only outputs on mpi_rank==0
     unsigned int linear_iteration_limit; ///< Linear iteration limit
+
+    const bool use_lagrange_multiplier;
+
+    const bool use_l1_merit_function;
     
     Real regularization_parameter_control; ///< Factor multiplied by identity to be added to the control hessian.
     Real regularization_scaling_control; ///< Scaling of regularization parameter depending on control variable's search direction.

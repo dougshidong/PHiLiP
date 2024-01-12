@@ -19,6 +19,7 @@ ImplicitShockTrackingFunctional<dim, nstate, real> :: ImplicitShockTrackingFunct
     , initial_vol_nodes(this->dg->high_order_grid->volume_nodes)
     , coarse_poly_degree(this->dg->get_min_fe_degree())
     , fine_poly_degree(coarse_poly_degree + 1)
+    , use_gauss_newton(false)
 {
     if(this->dg->get_min_fe_degree() != this->dg->get_max_fe_degree())
     {
@@ -355,8 +356,14 @@ void ImplicitShockTrackingFunctional<dim, nstate, real> :: d2IdWdW_vmult(
     in_vector_fine.update_ghost_values();
     //========= Evaluate term1 =================
     VectorType term1(vector_fine);
-//    R_times_Ruu.vmult(term1, in_vector_fine);
-    term1 = 0.0;
+    if(use_gauss_newton)
+    {
+        term1 = 0.0;
+    }
+    else
+    {
+        R_times_Ruu.vmult(term1, in_vector_fine);
+    }
     term1.update_ghost_values();
 
     //========= Evaluate term2 =================
@@ -388,8 +395,14 @@ void ImplicitShockTrackingFunctional<dim, nstate, real> :: d2IdWdX_vmult(
 
     //========= Evaluate term1 =================
     VectorType term1(vector_fine);
-    //R_times_Rux.vmult(term1, in_vector);
-    term1 = 0.0;
+    if(use_gauss_newton)
+    {
+        term1 = 0.0;
+    }
+    else
+    {
+        R_times_Rux.vmult(term1, in_vector);
+    }
     term1.update_ghost_values();
 
     //========= Evaluate term2 =================
@@ -433,8 +446,14 @@ void ImplicitShockTrackingFunctional<dim, nstate, real> :: d2IdWdX_Tvmult(
 
     // ========= Evaluate term2 ==========================
     VectorType term2(vector_vol_nodes);
-    //R_times_Rux.Tvmult(term2, in_vector_fine);
-    term2 = 0.0;
+    if(use_gauss_newton)
+    {
+        term2 = 0.0;
+    }
+    else
+    {
+        R_times_Rux.Tvmult(term2, in_vector_fine);
+    }
     term2.update_ghost_values();
 
     //====================================================
@@ -453,8 +472,14 @@ void ImplicitShockTrackingFunctional<dim, nstate, real> :: d2IdXdX_vmult(
     
     //========= Evaluate term1 =================
     VectorType term1(vector_vol_nodes);
-    //R_times_Rxx.vmult(term1, in_vector);
-    term1 = 0.0;
+    if(use_gauss_newton)
+    {
+        term1 = 0.0;
+    }
+    else
+    {
+        R_times_Rxx.vmult(term1, in_vector);
+    }
     term1.update_ghost_values();
 
     //========= Evaluate term2 =================

@@ -111,6 +111,9 @@ private:
     /// Stores the fine poly degree.
     const unsigned int fine_poly_degree;
 
+    /// Flag to use Gauss-Newton in Hessian.
+    const bool use_gauss_newton;
+
     /// Functional used to evaluate cell distortion.
     std::unique_ptr< Functional<dim, nstate, real> > cell_distortion_functional;
     

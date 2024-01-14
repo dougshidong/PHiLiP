@@ -320,7 +320,7 @@ int AnisotropicMeshAdaptationCases<dim, nstate> :: run_test () const
             Parameters::AllParameters param_q1 = param;
             //param_q1.optimization_param.regularization_parameter = 5.0;
             //param_q1.optimization_param.regularization_scaling = 1.1;
-            param_q1.optimization_param.max_design_cycles = 17;
+            param_q1.optimization_param.max_design_cycles = 10;
             std::unique_ptr<MeshOptimizer<dim,nstate>> mesh_optimizer_q1 = 
                             std::make_unique<MeshOptimizer<dim,nstate>> (flow_solver->dg, &param_q1, true);
             mesh_optimizer_q1->run_full_space_optimizer(regularization_matrix_poisson_q1);

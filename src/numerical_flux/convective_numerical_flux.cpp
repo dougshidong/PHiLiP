@@ -384,16 +384,33 @@ std::array<real, nstate> LaxFriedrichsRiemannSolverDissipation<dim,nstate,real>
 template <int dim, int nstate, typename real>
 void RoePikeRiemannSolverDissipation<dim,nstate,real>
 ::evaluate_entropy_fix (
-    const std::array<real, 3> &eig_L,
-    const std::array<real, 3> &eig_R,
+    const std::array<real, 3> &/*eig_L*/,
+    const std::array<real, 3> &/*eig_R*/,
     std::array<real, 3> & eig_RoeAvg,
     const real /*vel2_ravg*/,
     const real /*sound_ravg*/,
-    const real sound_L,
-    const real sound_R,
-    const real pressure_L,
-    const real pressure_R) const
+    const real /*sound_L*/,
+    const real /* sound_R*/,
+    const real /*pressure_L*/,
+    const real /*pressure_R*/) const
 {
+    real max_eig = -1.0;
+    for(int i=0; i<3; ++i)
+    {
+       if(max_eig < eig_RoeAvg[i])
+       {
+           max_eig = eig_RoeAvg[i]; 
+       }
+    }
+    const real delta = 0.1*max_eig;
+    for(int i=0; i<3; ++i)
+    {
+        if(eig_RoeAvg[i] < delta)
+        {
+            eig_RoeAvg[i] = (eig_RoeAvg[i]*eig_RoeAvg[i] + delta*delta)/(2.0*delta);
+        }
+    }
+/*
     const real u_L = eig_L[2] - sound_L;
     const real u_R = eig_R[2] - sound_R;
     const double gamma_val = 1.4;
@@ -437,6 +454,7 @@ void RoePikeRiemannSolverDissipation<dim,nstate,real>
             eig_RoeAvg[2] = abs(lambda5_new_star) + abs(lambda5_new_R);
         }
     }
+*/
 }
 
 template <int dim, int nstate, typename real>
@@ -637,14 +655,14 @@ std::array<real, nstate> RoeBaseRiemannSolverDissipation<dim,nstate,real>
         dVt[d] = (velocities_R[d] - velocities_L[d]) - dVn*normal_int[d];
     }
 
-    // Evaluate entropy fix on wave speeds
-    evaluate_entropy_fix (eig_L, eig_R, eig_ravg, vel2_ravg, sound_ravg, sound_L, sound_R, pressure_L, pressure_R);
     for(int i=0; i<3; ++i)
     {
         eig_ravg[i] = abs(eig_ravg[i]);
         eig_L[i] = abs(eig_L[i]);
         eig_R[i] = abs(eig_R[i]);
     }
+    // Evaluate entropy fix on wave speeds
+    evaluate_entropy_fix (eig_L, eig_R, eig_ravg, vel2_ravg, sound_ravg, sound_L, sound_R, pressure_L, pressure_R);
 
     // Evaluate additional modifications to the Roe-Pike scheme (if applicable)
     evaluate_additional_modifications (soln_int, soln_ext, eig_L, eig_R, dVn, dVt);

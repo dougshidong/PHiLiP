@@ -8,7 +8,7 @@ set dimension = 2
 set pde_type  = euler      
 set test_type = anisotropic_mesh_adaptation
 
-set conv_num_flux = hllc
+set conv_num_flux = roe
 
 set diss_num_flux = symm_internal_penalty
 
@@ -72,7 +72,7 @@ subsection optimization
     set use_fine_solution = false
 
     set gradient_tolerance = 1.0e-10 
-    set max_design_cycles = 200
+    set max_design_cycles = 140
     set linear_iteration_limit = 1000
     set initial_step_size = 1.0
     set functional_evaluation_limit = 30

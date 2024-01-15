@@ -64,7 +64,7 @@ Physical Curve("supersonic_outflow", 1008) = {3, 4};
 //+
 Physical Curve("slipwall", 1001) = {1};
 
-n_radial = 19;
+n_radial = 10;
 n_orthogonal = 6;
 factor = 1;
 n_radial = n_radial*factor;

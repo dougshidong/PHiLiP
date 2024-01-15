@@ -159,8 +159,8 @@ void MeshOptimizer<dim,nstate>::run_full_space_optimizer(const dealii::TrilinosW
     //std::shared_ptr<BaseParameterization<dim>> design_parameterization = std::make_shared<SpecificNodesParameterization<dim>>(dg->high_order_grid); 
     std::shared_ptr<BaseParameterization<dim>> design_parameterization = std::make_shared<OneDSpecificNodesParameterization<dim>>(dg->high_order_grid); 
     
-    std::shared_ptr<Functional<dim, nstate, double>> objective_function = std::make_shared<ImplicitShockTrackingFunctional<dim, nstate, double>> (dg);
-//    std::shared_ptr<Functional<dim, nstate, double>> objective_function = std::make_shared<DualWeightedResidualObjFunc2<dim, nstate, double>> (dg);
+//    std::shared_ptr<Functional<dim, nstate, double>> objective_function = std::make_shared<ImplicitShockTrackingFunctional<dim, nstate, double>> (dg);
+    std::shared_ptr<Functional<dim, nstate, double>> objective_function = std::make_shared<DualWeightedResidualObjFunc2<dim, nstate, double>> (dg);
 
     // Initialize variables.
     dg->solution.update_ghost_values();

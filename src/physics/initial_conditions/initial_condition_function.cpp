@@ -658,8 +658,8 @@ InitialConditionFunction_AcousticWave_MultiSpecies<dim,nstate,real>
     // Note that Euler primitive/conservative vars are the same as NS
     PHiLiP::Parameters::AllParameters parameters_euler = *param;
     parameters_euler.pde_type = Parameters::AllParameters::PartialDifferentialEquation::real_gas;
-    this->real_gas_physics = std::dynamic_pointer_cast<Physics::RealGas<dim,dim+3,double>>(
-                Physics::PhysicsFactory<dim,dim+3,double>::create_Physics(&parameters_euler));
+    this->real_gas_physics = std::dynamic_pointer_cast<Physics::RealGas<dim,PHILIP_DIM+2+(N_SPECIES-1),double>>(
+                Physics::PhysicsFactory<dim,PHILIP_DIM+2+(N_SPECIES-1),double>::create_Physics(&parameters_euler));
 }
 template <int dim, int nstate, typename real>
 real InitialConditionFunction_AcousticWave_MultiSpecies<dim,nstate,real>
@@ -802,7 +802,7 @@ InitialConditionFactory<dim,nstate, real>::create_InitialConditionFunction(
             return std::make_shared<InitialConditionFunction_AcousticWave_Species<dim,nstate,real> >(param);
         }
     } else if (flow_type == FlowCaseEnum::multi_species_acoustic_wave) {
-        if constexpr (dim==2 && nstate==dim+3){ 
+        if constexpr (dim==2 && nstate==dim+2+(N_SPECIES-1)){ 
             return std::make_shared<InitialConditionFunction_AcousticWave_MultiSpecies<dim,nstate,real> >(param);
         }
     } else {
@@ -814,16 +814,18 @@ InitialConditionFactory<dim,nstate, real>::create_InitialConditionFunction(
 
 template class InitialConditionFunction <PHILIP_DIM, 1, double>;
 template class InitialConditionFunction <PHILIP_DIM, 2, double>;
-template class InitialConditionFunction <PHILIP_DIM, 3, double>;
+// template class InitialConditionFunction <PHILIP_DIM, 3, double>;
 template class InitialConditionFunction <PHILIP_DIM, 4, double>;
 template class InitialConditionFunction <PHILIP_DIM, 5, double>;
 template class InitialConditionFunction <PHILIP_DIM, 6, double>;
+template class InitialConditionFunction <PHILIP_DIM, PHILIP_DIM+2+(N_SPECIES-1), double>; // TO DO: (dim+2)+(nspecies-1) 
 template class InitialConditionFactory <PHILIP_DIM, 1, double>;
 template class InitialConditionFactory <PHILIP_DIM, 2, double>;
-template class InitialConditionFactory <PHILIP_DIM, 3, double>;
+// template class InitialConditionFactory <PHILIP_DIM, 3, double>;
 template class InitialConditionFactory <PHILIP_DIM, 4, double>;
 template class InitialConditionFactory <PHILIP_DIM, 5, double>;
 template class InitialConditionFactory <PHILIP_DIM, 6, double>;
+template class InitialConditionFactory <PHILIP_DIM, PHILIP_DIM+2+(N_SPECIES-1), double>; // TO DO: (dim+2)+(nspecies-1) 
 #if PHILIP_DIM==1
 template class InitialConditionFunction_BurgersViscous <PHILIP_DIM, 1, double>;
 template class InitialConditionFunction_BurgersRewienski <PHILIP_DIM, 1, double>;
@@ -841,15 +843,16 @@ template class InitialConditionFunction_IsentropicVortex <PHILIP_DIM, PHILIP_DIM
 template class InitialConditionFunction_KHI <PHILIP_DIM, PHILIP_DIM+2, double>;
 template class InitialConditionFunction_AcousticWave_Air <PHILIP_DIM, PHILIP_DIM+2, double>;
 template class InitialConditionFunction_AcousticWave_Species <PHILIP_DIM, PHILIP_DIM+2, double>;
-template class InitialConditionFunction_AcousticWave_MultiSpecies <PHILIP_DIM, PHILIP_DIM+3, double>;
+template class InitialConditionFunction_AcousticWave_MultiSpecies <PHILIP_DIM, PHILIP_DIM+2+(N_SPECIES-1), double>;
 #endif
 // functions instantiated for all dim
 template class InitialConditionFunction_Zero <PHILIP_DIM,1, double>;
 template class InitialConditionFunction_Zero <PHILIP_DIM,2, double>;
-template class InitialConditionFunction_Zero <PHILIP_DIM,3, double>;
+// template class InitialConditionFunction_Zero <PHILIP_DIM,3, double>;
 template class InitialConditionFunction_Zero <PHILIP_DIM,4, double>;
 template class InitialConditionFunction_Zero <PHILIP_DIM,5, double>;
 template class InitialConditionFunction_Zero <PHILIP_DIM,6, double>;
+template class InitialConditionFunction_Zero <PHILIP_DIM, PHILIP_DIM+2+(N_SPECIES-1), double>; // TO DO: (dim+2)+(nspecies-1) 
 template class InitialConditionFunction_Advection <PHILIP_DIM, 1, double>;
 template class InitialConditionFunction_AdvectionEnergy <PHILIP_DIM, 1, double>;
 template class InitialConditionFunction_ConvDiff <PHILIP_DIM, 1, double>;

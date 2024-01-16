@@ -3,11 +3,19 @@ set(INITIAL_CONDITIONS_SOURCE
     initial_condition_function.cpp
     )
 
+set(POSSIBLE_N_SPECIES "0;1;2;5;9;11")
+
+foreach(nspecies ${POSSIBLE_N_SPECIES})
 foreach(dim RANGE 1 3)
     # Output library
-    string(CONCAT InitialConditionsLib InitialConditions_${dim}D)
+    if(${nspecies} EQUAL "0")
+        string(CONCAT InitialConditionsLib InitialConditions_${dim}D)
+    else()
+        string(CONCAT InitialConditionsLib InitialConditions_${dim}D_${nspecies}-SPECIES)
+    endif()
     add_library(${InitialConditionsLib} STATIC ${INITIAL_CONDITIONS_SOURCE})
     target_compile_definitions(${InitialConditionsLib} PRIVATE PHILIP_DIM=${dim})
+    target_compile_definitions(${InitialConditionsLib} PRIVATE N_SPECIES=${nspecies})
 
     # Link with Libraries
     string(CONCAT PhysicsLib Physics_${dim}D)
@@ -23,4 +31,5 @@ foreach(dim RANGE 1 3)
     unset(PhysicsLib)
     unset(DiscontinuousGalerkinLib)
     unset(InitialConditionsLib)
+endforeach()
 endforeach()

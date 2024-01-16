@@ -88,7 +88,7 @@ void PeriodicCubeFlow<dim,nstate>::display_additional_flow_case_specific_paramet
 
 template class PeriodicCubeFlow <PHILIP_DIM,PHILIP_DIM>;
 template class PeriodicCubeFlow <PHILIP_DIM,PHILIP_DIM+2>;
-template class PeriodicCubeFlow <PHILIP_DIM,PHILIP_DIM+3>;
+template class PeriodicCubeFlow <PHILIP_DIM,PHILIP_DIM+2+(N_SPECIES-1)>; // TO DO: (dim+2)+(nspecies-1)
 
 } // FlowSolver namespace
 } // PHiLiP namespace

@@ -18,6 +18,9 @@ add_subdirectory(reduced_order)
 add_subdirectory(flow_solver)
 add_subdirectory(testing)
 
+set(POSSIBLE_N_SPECIES "0;1;2;5;9;11")
+
+foreach(nspecies ${POSSIBLE_N_SPECIES})
 foreach(dim RANGE 1 3)
 
     # #####################################################
@@ -55,7 +58,12 @@ foreach(dim RANGE 1 3)
     # #####################################################
     # Main executable
     # Simply calls the case manager given an input file
-    string(CONCAT MAIN_TARGET PHiLiP_${dim}D)
+    if(${nspecies} EQUAL "0")
+        string(CONCAT MAIN_TARGET PHiLiP_${dim}D)
+    else()
+        string(CONCAT MAIN_TARGET PHiLiP_${dim}D_${nspecies}-SPECIES)
+    endif()
+    
     message("Adding executable " ${MAIN_TARGET} " with files " ${MAIN_SRC} "\n")
     add_executable(${MAIN_TARGET} ${MAIN_SRC})
     set_target_properties(${MAIN_TARGET} PROPERTIES EXCLUDE_FROM_DEFAULT_BUILD 1)
@@ -65,6 +73,10 @@ foreach(dim RANGE 1 3)
 
     # Replace occurences of PHILIP_DIM with 1, 2, or 3 in the code
     target_compile_definitions(${MAIN_TARGET} PRIVATE PHILIP_DIM=${dim})
+
+    # Replace occurances of N_SPECIES with number of species possible in the code
+    target_compile_definitions(${MAIN_TARGET} PRIVATE N_SPECIES=${nspecies})
+
     # Library dependency
     set(ParameterLib ParametersLibrary)
     string(CONCAT TestsLib Tests_${dim}D)
@@ -79,4 +91,5 @@ foreach(dim RANGE 1 3)
     unset(ParameterLib)
     unset(TestsLib)
 
+endforeach()
 endforeach()

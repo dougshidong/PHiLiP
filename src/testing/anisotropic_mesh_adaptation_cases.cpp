@@ -178,9 +178,9 @@ double AnisotropicMeshAdaptationCases<dim,nstate> :: output_vtk_files(std::share
     const int outputval = 7000 + countval;
     dg->output_results_vtk(outputval);
 
-//    std::unique_ptr<DualWeightedResidualError<dim, nstate , double>> dwr_error_val = std::make_unique<DualWeightedResidualError<dim, nstate , double>>(dg);
-//    const double abs_dwr_error = dwr_error_val->total_dual_weighted_residual_error();
-//    return abs_dwr_error;
+    std::unique_ptr<DualWeightedResidualError<dim, nstate , double>> dwr_error_val = std::make_unique<DualWeightedResidualError<dim, nstate , double>>(dg);
+    const double abs_dwr_error = dwr_error_val->total_dual_weighted_residual_error();
+    return abs_dwr_error;
 
     return 0;
 }
@@ -290,6 +290,7 @@ int AnisotropicMeshAdaptationCases<dim, nstate> :: run_test () const
     
     flow_solver->run();
     output_vtk_files(flow_solver->dg, output_val++);
+    //return 0;
     flow_solver->use_polynomial_ramping = false;
 
     std::vector<double> functional_error_vector;
@@ -320,7 +321,7 @@ int AnisotropicMeshAdaptationCases<dim, nstate> :: run_test () const
             Parameters::AllParameters param_q1 = param;
             //param_q1.optimization_param.regularization_parameter = 5.0;
             //param_q1.optimization_param.regularization_scaling = 1.1;
-            param_q1.optimization_param.max_design_cycles = 8;
+            param_q1.optimization_param.max_design_cycles = 3;
             
             std::unique_ptr<MeshOptimizer<dim,nstate>> mesh_optimizer_q1 = 
                             std::make_unique<MeshOptimizer<dim,nstate>> (flow_solver->dg, &param_q1, true);

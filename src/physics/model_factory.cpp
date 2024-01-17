@@ -190,6 +190,7 @@ template class ModelFactory<PHILIP_DIM, 4, double>;
 template class ModelFactory<PHILIP_DIM, 5, double>;
 template class ModelFactory<PHILIP_DIM, 6, double>;
 template class ModelFactory<PHILIP_DIM, 8, double>;
+// template class ModelFactory<PHILIP_DIM, PHILIP_DIM+2+(N_SPECIES-1), double>; // TO DO: (dim+2)+(nspecies-1) 
 
 template class ModelFactory<PHILIP_DIM, 1, FadType>;
 template class ModelFactory<PHILIP_DIM, 2, FadType>;
@@ -198,6 +199,7 @@ template class ModelFactory<PHILIP_DIM, 4, FadType>;
 template class ModelFactory<PHILIP_DIM, 5, FadType>;
 template class ModelFactory<PHILIP_DIM, 6, FadType>;
 template class ModelFactory<PHILIP_DIM, 8, FadType>;
+// template class ModelFactory<PHILIP_DIM, PHILIP_DIM+2+(N_SPECIES-1), FadType>; // TO DO: (dim+2)+(nspecies-1) 
 
 template class ModelFactory<PHILIP_DIM, 1, RadType>;
 template class ModelFactory<PHILIP_DIM, 2, RadType>;
@@ -206,6 +208,7 @@ template class ModelFactory<PHILIP_DIM, 4, RadType>;
 template class ModelFactory<PHILIP_DIM, 5, RadType>;
 template class ModelFactory<PHILIP_DIM, 6, RadType>;
 template class ModelFactory<PHILIP_DIM, 8, RadType>;
+// template class ModelFactory<PHILIP_DIM, PHILIP_DIM+2+(N_SPECIES-1), RadType>; // TO DO: (dim+2)+(nspecies-1) 
 
 template class ModelFactory<PHILIP_DIM, 1, FadFadType>;
 template class ModelFactory<PHILIP_DIM, 2, FadFadType>;
@@ -214,6 +217,7 @@ template class ModelFactory<PHILIP_DIM, 4, FadFadType>;
 template class ModelFactory<PHILIP_DIM, 5, FadFadType>;
 template class ModelFactory<PHILIP_DIM, 6, FadFadType>;
 template class ModelFactory<PHILIP_DIM, 8, FadFadType>;
+// template class ModelFactory<PHILIP_DIM, PHILIP_DIM+2+(N_SPECIES-1), FadFadType>; // TO DO: (dim+2)+(nspecies-1) 
 
 template class ModelFactory<PHILIP_DIM, 1, RadFadType>;
 template class ModelFactory<PHILIP_DIM, 2, RadFadType>;
@@ -222,6 +226,7 @@ template class ModelFactory<PHILIP_DIM, 4, RadFadType>;
 template class ModelFactory<PHILIP_DIM, 5, RadFadType>;
 template class ModelFactory<PHILIP_DIM, 6, RadFadType>;
 template class ModelFactory<PHILIP_DIM, 8, RadFadType>;
+// template class ModelFactory<PHILIP_DIM, PHILIP_DIM+2+(N_SPECIES-1), RadFadType>; // TO DO: (dim+2)+(nspecies-1) 
 
 } // Physics namespace
 } // PHiLiP namespace

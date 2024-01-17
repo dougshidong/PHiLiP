@@ -1957,7 +1957,7 @@ template class DGWeak <PHILIP_DIM, 2, double>;
 template class DGWeak <PHILIP_DIM, 3, double>;
 template class DGWeak <PHILIP_DIM, 4, double>;
 template class DGWeak <PHILIP_DIM, 5, double>;
-template class DGWeak <PHILIP_DIM, PHILIP_DIM+2+(N_SPECIES-1), double>; // TO DO: (dim+2)+(nspecies-1) 
+// template class DGWeak <PHILIP_DIM, PHILIP_DIM+2+(N_SPECIES-1), double>; // TO DO: (dim+2)+(nspecies-1) 
 
 } // PHiLiP namespace
 

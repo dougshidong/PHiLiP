@@ -240,11 +240,11 @@ void SetInitialCondition<dim,nstate,real>::read_values_from_file_and_project(
 }
 
 template class SetInitialCondition<PHILIP_DIM, 1, double>;
-// template class SetInitialCondition<PHILIP_DIM, 2, double>;
-// template class SetInitialCondition<PHILIP_DIM, 3, double>;
+template class SetInitialCondition<PHILIP_DIM, 2, double>;
+template class SetInitialCondition<PHILIP_DIM, 3, double>;
 template class SetInitialCondition<PHILIP_DIM, 4, double>;
 template class SetInitialCondition<PHILIP_DIM, 5, double>;
 template class SetInitialCondition<PHILIP_DIM, 6, double>;
-template class SetInitialCondition<PHILIP_DIM, PHILIP_DIM+2+(N_SPECIES-1), double>; // TO DO: (dim+2)+(nspecies-1) 
+// template class SetInitialCondition<PHILIP_DIM, PHILIP_DIM+2+(N_SPECIES-1), double>; // TO DO: (dim+2)+(nspecies-1) 
 
 }//end of namespace PHILIP

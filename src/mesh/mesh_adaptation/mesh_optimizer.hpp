@@ -26,7 +26,7 @@ public:
     ~MeshOptimizer(){}
     
     /// Runs full-space optimizer.
-    void run_full_space_optimizer(const dealii::TrilinosWrappers::SparseMatrix &regularization_matrix);
+    void run_full_space_optimizer(const dealii::TrilinosWrappers::SparseMatrix &regularization_matrix, const bool use_oneD_parameterization);
 
     void form_regularization_marix(
         dealii::TrilinosWrappers::SparseMatrix &regularization_matrix,

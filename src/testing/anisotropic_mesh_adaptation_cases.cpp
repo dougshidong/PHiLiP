@@ -25,10 +25,11 @@ AnisotropicMeshAdaptationCases<dim, nstate> :: AnisotropicMeshAdaptationCases(
 template<int dim, int nstate>
 void AnisotropicMeshAdaptationCases<dim,nstate>::increase_grid_degree_and_interpolate_solution(std::shared_ptr<DGBase<dim,double>> dg) const
 {
-   const unsigned int degree_updated = 2;
+    const unsigned int grid_degree_updated = 2;
+    dg->high_order_grid->set_q_degree(grid_degree_updated, true);
 
-    dg->high_order_grid->set_q_degree(degree_updated, true);
-    dg->set_p_degree_and_interpolate_solution(degree_updated);
+    const unsigned int poly_degree_updated = dg->all_parameters->flow_solver_param.max_poly_degree_for_adaptation - 1;
+    dg->set_p_degree_and_interpolate_solution(poly_degree_updated);
 }
 
 template<int dim, int nstate>
@@ -325,7 +326,7 @@ int AnisotropicMeshAdaptationCases<dim, nstate> :: run_test () const
             
             std::unique_ptr<MeshOptimizer<dim,nstate>> mesh_optimizer_q1 = 
                             std::make_unique<MeshOptimizer<dim,nstate>> (flow_solver->dg, &param_q1, true);
-            mesh_optimizer_q1->run_full_space_optimizer(regularization_matrix_poisson_q1);
+            mesh_optimizer_q1->run_full_space_optimizer(regularization_matrix_poisson_q1, true);
             flow_solver->run();
             
             increase_grid_degree_and_interpolate_solution(flow_solver->dg);
@@ -333,7 +334,7 @@ int AnisotropicMeshAdaptationCases<dim, nstate> :: run_test () const
             evaluate_regularization_matrix(regularization_matrix_poisson_q2, flow_solver->dg);
             
             std::unique_ptr<MeshOptimizer<dim,nstate>> mesh_optimizer_q2 = std::make_unique<MeshOptimizer<dim,nstate>> (flow_solver->dg,&param, true);
-            mesh_optimizer_q2->run_full_space_optimizer(regularization_matrix_poisson_q2);
+            mesh_optimizer_q2->run_full_space_optimizer(regularization_matrix_poisson_q2, false);
             
 
             const double functional_error = evaluate_functional_error(flow_solver->dg);

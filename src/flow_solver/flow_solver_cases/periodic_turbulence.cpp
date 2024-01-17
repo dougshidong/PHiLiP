@@ -539,8 +539,8 @@ void PeriodicTurbulence<dim, nstate>::compute_and_update_integrated_quantities(D
             integrand_values[IntegratedQuantitiesEnum::kinetic_energy] = this->navier_stokes_physics->compute_kinetic_energy_from_conservative_solution(soln_at_q);
             integrand_values[IntegratedQuantitiesEnum::enstrophy] = this->navier_stokes_physics->compute_enstrophy(soln_at_q,soln_grad_at_q);
             integrand_values[IntegratedQuantitiesEnum::pressure_dilatation] = this->navier_stokes_physics->compute_pressure_dilatation(soln_at_q,soln_grad_at_q);
-            integrand_values[IntegratedQuantitiesEnum::deviatoric_strain_rate_tensor_magnitude_sqr] = this->navier_stokes_physics->compute_deviatoric_strain_rate_tensor_magnitude_sqr(soln_at_q,soln_grad_at_q);
-            integrand_values[IntegratedQuantitiesEnum::strain_rate_tensor_magnitude_sqr] = this->navier_stokes_physics->compute_strain_rate_tensor_magnitude_sqr(soln_at_q,soln_grad_at_q);
+            integrand_values[IntegratedQuantitiesEnum::viscosity_times_deviatoric_strain_rate_tensor_magnitude_sqr] = this->navier_stokes_physics->compute_viscosity_times_deviatoric_strain_rate_tensor_magnitude_sqr(soln_at_q,soln_grad_at_q);
+            integrand_values[IntegratedQuantitiesEnum::viscosity_times_strain_rate_tensor_magnitude_sqr] = this->navier_stokes_physics->compute_viscosity_times_strain_rate_tensor_magnitude_sqr(soln_at_q,soln_grad_at_q);
 
             for(int i_quantity=0; i_quantity<NUMBER_OF_INTEGRATED_QUANTITIES; ++i_quantity) {
                 integral_values[i_quantity] += integrand_values[i_quantity] * quad_weights[iquad] * metric_oper.det_Jac_vol[iquad];
@@ -603,11 +603,11 @@ double PeriodicTurbulence<dim, nstate>::get_pressure_dilatation_based_dissipatio
 template<int dim, int nstate>
 double PeriodicTurbulence<dim, nstate>::get_deviatoric_strain_rate_tensor_based_dissipation_rate() const
 {
-    const double integrated_deviatoric_strain_rate_tensor_magnitude_sqr = this->integrated_quantities[IntegratedQuantitiesEnum::deviatoric_strain_rate_tensor_magnitude_sqr];
+    const double integrated_viscosity_times_deviatoric_strain_rate_tensor_magnitude_sqr = this->integrated_quantities[IntegratedQuantitiesEnum::viscosity_times_deviatoric_strain_rate_tensor_magnitude_sqr];
     double deviatoric_strain_rate_tensor_based_dissipation_rate = 0.0;
     if (is_viscous_flow){
         deviatoric_strain_rate_tensor_based_dissipation_rate = 
-            this->navier_stokes_physics->compute_deviatoric_strain_rate_tensor_based_dissipation_rate_from_integrated_deviatoric_strain_rate_tensor_magnitude_sqr(integrated_deviatoric_strain_rate_tensor_magnitude_sqr);
+            this->navier_stokes_physics->compute_deviatoric_strain_rate_tensor_based_dissipation_rate_from_integrated_viscosity_times_deviatoric_strain_rate_tensor_magnitude_sqr(integrated_viscosity_times_deviatoric_strain_rate_tensor_magnitude_sqr);
     }
     return deviatoric_strain_rate_tensor_based_dissipation_rate;
 }
@@ -615,11 +615,11 @@ double PeriodicTurbulence<dim, nstate>::get_deviatoric_strain_rate_tensor_based_
 template<int dim, int nstate>
 double PeriodicTurbulence<dim, nstate>::get_strain_rate_tensor_based_dissipation_rate() const
 {
-    const double integrated_strain_rate_tensor_magnitude_sqr = this->integrated_quantities[IntegratedQuantitiesEnum::strain_rate_tensor_magnitude_sqr];
+    const double integrated_viscosity_times_strain_rate_tensor_magnitude_sqr = this->integrated_quantities[IntegratedQuantitiesEnum::viscosity_times_strain_rate_tensor_magnitude_sqr];
     double strain_rate_tensor_based_dissipation_rate = 0.0;
     if (is_viscous_flow){
         strain_rate_tensor_based_dissipation_rate = 
-            this->navier_stokes_physics->compute_strain_rate_tensor_based_dissipation_rate_from_integrated_strain_rate_tensor_magnitude_sqr(integrated_strain_rate_tensor_magnitude_sqr);
+            this->navier_stokes_physics->compute_strain_rate_tensor_based_dissipation_rate_from_integrated_viscosity_times_strain_rate_tensor_magnitude_sqr(integrated_viscosity_times_strain_rate_tensor_magnitude_sqr);
     }
     return strain_rate_tensor_based_dissipation_rate;
 }

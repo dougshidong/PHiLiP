@@ -414,8 +414,9 @@ dealii::Tensor<2,dim,real> NavierStokes<dim,nstate,real>
     dealii::Tensor<2,dim,real> deviatoric_strain_rate_tensor;
     for(int d1=0; d1<dim; ++d1) {
         for(int d2=0; d2<dim; ++d2) {
-            deviatoric_strain_rate_tensor[d1][d2] = strain_rate_tensor[d1][d2] - (1.0/3.0)*vel_divergence;
+            deviatoric_strain_rate_tensor[d1][d2] = strain_rate_tensor[d1][d2];
         }
+        deviatoric_strain_rate_tensor[d1][d1] -= (1.0/3.0)*vel_divergence;
     }
     return deviatoric_strain_rate_tensor;
 }
@@ -444,7 +445,7 @@ real NavierStokes<dim,nstate,real>
 
 template <int dim, int nstate, typename real>
 real NavierStokes<dim,nstate,real>
-::compute_deviatoric_strain_rate_tensor_magnitude_sqr (
+::compute_viscosity_times_deviatoric_strain_rate_tensor_magnitude_sqr (
     const std::array<real,nstate> &conservative_soln,
     const std::array<dealii::Tensor<1,dim,real>,nstate> &conservative_soln_gradient) const
 {
@@ -452,16 +453,20 @@ real NavierStokes<dim,nstate,real>
     const dealii::Tensor<2,dim,real> deviatoric_strain_rate_tensor = compute_deviatoric_strain_rate_tensor(conservative_soln,conservative_soln_gradient);
     // Get magnitude squared
     real deviatoric_strain_rate_tensor_magnitude_sqr = get_tensor_magnitude_sqr(deviatoric_strain_rate_tensor);
+
+    // Compute viscosity coefficient
+    const std::array<real,nstate> primitive_soln = this->template convert_conservative_to_primitive_templated<real>(conservative_soln); // from Euler
+    const real viscosity_coefficient = compute_viscosity_coefficient (primitive_soln);
     
-    return deviatoric_strain_rate_tensor_magnitude_sqr;
+    return (viscosity_coefficient*deviatoric_strain_rate_tensor_magnitude_sqr);
 }
 
 template <int dim, int nstate, typename real>
 real NavierStokes<dim,nstate,real>
-::compute_deviatoric_strain_rate_tensor_based_dissipation_rate_from_integrated_deviatoric_strain_rate_tensor_magnitude_sqr (
-    const real integrated_deviatoric_strain_rate_tensor_magnitude_sqr) const
+::compute_deviatoric_strain_rate_tensor_based_dissipation_rate_from_integrated_viscosity_times_deviatoric_strain_rate_tensor_magnitude_sqr (
+    const real integrated_viscosity_times_deviatoric_strain_rate_tensor_magnitude_sqr) const
 {
-    real dissipation_rate = 2.0*integrated_deviatoric_strain_rate_tensor_magnitude_sqr/(this->reynolds_number_inf);
+    real dissipation_rate = 2.0*integrated_viscosity_times_deviatoric_strain_rate_tensor_magnitude_sqr/(this->reynolds_number_inf);
     return dissipation_rate;
 }
 
@@ -499,7 +504,7 @@ dealii::Tensor<2,dim,real2> NavierStokes<dim,nstate,real>
 
 template <int dim, int nstate, typename real>
 real NavierStokes<dim,nstate,real>
-::compute_strain_rate_tensor_magnitude_sqr (
+::compute_viscosity_times_strain_rate_tensor_magnitude_sqr (
     const std::array<real,nstate> &conservative_soln,
     const std::array<dealii::Tensor<1,dim,real>,nstate> &conservative_soln_gradient) const
 {
@@ -511,16 +516,20 @@ real NavierStokes<dim,nstate,real>
     const dealii::Tensor<2,dim,real> strain_rate_tensor = compute_strain_rate_tensor(velocities_gradient);
     // Get magnitude squared
     real strain_rate_tensor_magnitude_sqr = get_tensor_magnitude_sqr(strain_rate_tensor);
+
+    // Compute viscosity coefficient
+    const std::array<real,nstate> primitive_soln = this->template convert_conservative_to_primitive_templated<real>(conservative_soln); // from Euler
+    const real viscosity_coefficient = compute_viscosity_coefficient (primitive_soln);
     
-    return strain_rate_tensor_magnitude_sqr;
+    return (viscosity_coefficient*strain_rate_tensor_magnitude_sqr);
 }
 
 template <int dim, int nstate, typename real>
 real NavierStokes<dim,nstate,real>
-::compute_strain_rate_tensor_based_dissipation_rate_from_integrated_strain_rate_tensor_magnitude_sqr (
-    const real integrated_strain_rate_tensor_magnitude_sqr) const
+::compute_strain_rate_tensor_based_dissipation_rate_from_integrated_viscosity_times_strain_rate_tensor_magnitude_sqr (
+    const real integrated_viscosity_times_strain_rate_tensor_magnitude_sqr) const
 {
-    real dissipation_rate = 2.0*integrated_strain_rate_tensor_magnitude_sqr/(this->reynolds_number_inf);
+    real dissipation_rate = 2.0*integrated_viscosity_times_strain_rate_tensor_magnitude_sqr/(this->reynolds_number_inf);
     return dissipation_rate;
 }
 

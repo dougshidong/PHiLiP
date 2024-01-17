@@ -226,7 +226,7 @@ public:
         const std::array<dealii::Tensor<1,dim,real2>,nstate> &conservative_soln_gradient) const;
 
     /// Evaluate the square of the deviatoric strain-rate tensor magnitude (i.e. double dot product) from conservative variables and gradient of conservative variables
-    real compute_deviatoric_strain_rate_tensor_magnitude_sqr (
+    real compute_viscosity_times_deviatoric_strain_rate_tensor_magnitude_sqr (
         const std::array<real,nstate> &conservative_soln,
         const std::array<dealii::Tensor<1,dim,real>,nstate> &conservative_soln_gradient) const;
 
@@ -237,8 +237,8 @@ public:
      *                Computers & Fluids 221 (2021): 104922.
      *  -- Equation (57a) with free-stream nondimensionalization applied
      * */
-    real compute_deviatoric_strain_rate_tensor_based_dissipation_rate_from_integrated_deviatoric_strain_rate_tensor_magnitude_sqr (
-        const real integrated_deviatoric_strain_rate_tensor_magnitude_sqr) const;
+    real compute_deviatoric_strain_rate_tensor_based_dissipation_rate_from_integrated_viscosity_times_deviatoric_strain_rate_tensor_magnitude_sqr (
+        const real integrated_viscosity_times_deviatoric_strain_rate_tensor_magnitude_sqr) const;
 
     /** Extract gradient of velocities */
     template<typename real2>
@@ -255,7 +255,7 @@ public:
         const dealii::Tensor<2,dim,real2> &vel_gradient) const;
 
     /// Evaluate the square of the strain-rate tensor magnitude (i.e. double dot product) from conservative variables and gradient of conservative variables
-    real compute_strain_rate_tensor_magnitude_sqr (
+    real compute_viscosity_times_strain_rate_tensor_magnitude_sqr (
         const std::array<real,nstate> &conservative_soln,
         const std::array<dealii::Tensor<1,dim,real>,nstate> &conservative_soln_gradient) const;
 
@@ -265,8 +265,8 @@ public:
      *                to Turbulence for Compact Nodal Schemes." 
      *  -- Equation (E.9) with free-stream nondimensionalization applied
      * */
-    real compute_strain_rate_tensor_based_dissipation_rate_from_integrated_strain_rate_tensor_magnitude_sqr (
-        const real integrated_strain_rate_tensor_magnitude_sqr) const;
+    real compute_strain_rate_tensor_based_dissipation_rate_from_integrated_viscosity_times_strain_rate_tensor_magnitude_sqr (
+        const real integrated_viscosity_times_strain_rate_tensor_magnitude_sqr) const;
 
     /** Nondimensionalized viscous stress tensor, tau*
      *  Reference: Masatsuka 2018 "I do like CFD", p.148, eq.(4.14.12)

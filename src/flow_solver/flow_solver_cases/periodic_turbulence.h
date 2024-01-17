@@ -139,8 +139,8 @@ protected:
         kinetic_energy,
         enstrophy,
         pressure_dilatation,
-        deviatoric_strain_rate_tensor_magnitude_sqr,
-        strain_rate_tensor_magnitude_sqr
+        viscosity_times_deviatoric_strain_rate_tensor_magnitude_sqr,
+        viscosity_times_strain_rate_tensor_magnitude_sqr
     };
     /// Array for storing the integrated quantities; done for computational efficiency
     std::array<double,NUMBER_OF_INTEGRATED_QUANTITIES> integrated_quantities;

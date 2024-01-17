@@ -65,6 +65,9 @@ public:
     /// Number of dimensions. Note that it has to match the executable PHiLiP_xD
     unsigned int dimension;
 
+    /// Number of species. Note that it has to match the executable PHiLiP_xD_y-SPECIES
+    unsigned int number_of_species;
+
     /// Run type
     enum RunType {
         integration_test,

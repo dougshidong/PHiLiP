@@ -37,6 +37,10 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       dealii::Patterns::Integer(),
                       "Number of dimensions");
 
+    prm.declare_entry("number_of_species", "0",
+                      dealii::Patterns::Integer(),
+                      "Number of species");
+
     prm.declare_entry("run_type", "integration_test",
                       dealii::Patterns::Selection(
                       " integration_test | "
@@ -354,6 +358,7 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
     pcout << "Parsing main input..." << std::endl;
 
     dimension = prm.get_integer("dimension");
+    number_of_species = prm.get_integer("number_of_species");
 
     const std::string run_type_string = prm.get("run_type");
     if      (run_type_string == "integration_test") { run_type = integration_test; }
@@ -583,7 +588,7 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
     }
     else if(pde_string == "real_gas") {
         pde_type = real_gas;
-        nstate = dimension+3; // TO DO: change this when considering multispecies
+        nstate = dimension+2+(number_of_species-1);
     }
     else if (pde_string == "physics_model") {
         pde_type = physics_model;

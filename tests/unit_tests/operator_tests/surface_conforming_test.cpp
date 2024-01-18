@@ -298,7 +298,7 @@ int main (int argc, char * argv[])
         PHiLiP::OPERATOR::metric_operators<real,dim,2*dim> metric_oper(nstate, poly_degree, grid_degree);
         PHiLiP::OPERATOR::metric_operators<real,dim,2*dim> metric_oper_neigh(nstate, poly_degree, grid_degree);
 
-        const dealii::FESystem<dim> &fe_metric = (dg->high_order_grid->fe_system);
+        const dealii::FESystem<dim> &fe_metric = (dg->high_order_grid->get_current_fe_system());
         const unsigned int n_metric_dofs = fe_metric.dofs_per_cell; 
         auto metric_cell = dg->high_order_grid->dof_handler_grid.begin_active();
         for (auto current_cell = dg->dof_handler.begin_active(); current_cell!=dg->dof_handler.end(); ++current_cell, ++metric_cell) {

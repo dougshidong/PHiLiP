@@ -299,7 +299,7 @@ int main (int argc, char * argv[])
 
         const unsigned int n_quad_pts = pow(poly_degree+1,dim);
 
-        const dealii::FESystem<dim> &fe_metric = (dg->high_order_grid->fe_system);
+        const dealii::FESystem<dim> &fe_metric = (dg->high_order_grid->get_current_fe_system());
         const unsigned int n_metric_dofs = fe_metric.dofs_per_cell; 
         auto metric_cell = dg->high_order_grid->dof_handler_grid.begin_active();
         for (auto current_cell = dg->dof_handler.begin_active(); current_cell!=dg->dof_handler.end(); ++current_cell, ++metric_cell) {

@@ -328,6 +328,11 @@ int AnisotropicMeshAdaptationCases<dim, nstate> :: run_test () const
                             std::make_unique<MeshOptimizer<dim,nstate>> (flow_solver->dg, &param_q1, true);
             mesh_optimizer_q1->run_full_space_optimizer(regularization_matrix_poisson_q1, true);
             flow_solver->run();
+            if(flow_solver->dg->get_residual_l2norm() > 1.0e-10)
+            {
+                std::cout<<"Residual from q1 optimization has not converged. Aborting..."<<std::endl;
+                std::abort();
+            }
             
             increase_grid_degree_and_interpolate_solution(flow_solver->dg);
             dealii::TrilinosWrappers::SparseMatrix regularization_matrix_poisson_q2;

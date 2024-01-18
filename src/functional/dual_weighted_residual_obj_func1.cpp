@@ -19,7 +19,7 @@ DualWeightedResidualObjFunc1<dim, nstate, real> :: DualWeightedResidualObjFunc1(
     , coarse_poly_degree(this->dg->get_min_fe_degree())
     , fine_poly_degree(coarse_poly_degree + 1)
 {
-    AssertDimension(this->dg->high_order_grid->max_degree, 1);
+    AssertDimension(this->dg->high_order_grid->grid_degree, 1);
     if(this->dg->get_min_fe_degree() != this->dg->get_max_fe_degree())
     {
         std::cout<<"This class is currently coded assuming a constant poly degree. To be changed in future if required."<<std::endl;

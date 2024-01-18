@@ -235,8 +235,8 @@ int main (int argc, char * argv[])
 
 
             const int overintegrate = 10;
-            dealii::QGauss<dim> quad_extra(high_order_grid.max_degree+1+overintegrate);
-            dealii::FEValues<dim,dim> fe_values_extra(*(high_order_grid.mapping_fe_field), high_order_grid.fe_system, quad_extra, dealii::update_JxW_values);
+            dealii::QGauss<dim> quad_extra(high_order_grid.grid_degree+1+overintegrate);
+            dealii::FEValues<dim,dim> fe_values_extra(*(high_order_grid.mapping_fe_field), high_order_grid.get_current_fe_system(), quad_extra, dealii::update_JxW_values);
             double area = 0;
             for (auto cell : high_order_grid.dof_handler_grid.active_cell_iterators()) {
                 if (!cell->is_locally_owned()) continue;

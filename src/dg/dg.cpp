@@ -3522,6 +3522,7 @@ DGBase<PHILIP_DIM,double,dealii::Triangulation<PHILIP_DIM>>::assemble_cell_resid
     dealii::LinearAlgebra::distributed::Vector<double> &rhs,
     std::array<dealii::LinearAlgebra::distributed::Vector<double>,PHILIP_DIM> &rhs_aux);
 
+#if PHILIP_DIM!=1
 template void
 DGBase<PHILIP_DIM,double,dealii::parallel::distributed::Triangulation<PHILIP_DIM>>::assemble_cell_residual<dealii::TriaActiveIterator<dealii::DoFCellAccessor<PHILIP_DIM, PHILIP_DIM, false>>,dealii::TriaActiveIterator<dealii::DoFCellAccessor<PHILIP_DIM, PHILIP_DIM, false>>>(
     const dealii::TriaActiveIterator<dealii::DoFCellAccessor<PHILIP_DIM, PHILIP_DIM, false>> &current_cell,
@@ -3541,6 +3542,7 @@ DGBase<PHILIP_DIM,double,dealii::parallel::distributed::Triangulation<PHILIP_DIM
     const bool compute_auxiliary_right_hand_side,
     dealii::LinearAlgebra::distributed::Vector<double> &rhs,
     std::array<dealii::LinearAlgebra::distributed::Vector<double>,PHILIP_DIM> &rhs_aux);
+#endif
 
 template void
 DGBase<PHILIP_DIM,double,dealii::parallel::shared::Triangulation<PHILIP_DIM>>::assemble_cell_residual<dealii::TriaActiveIterator<dealii::DoFCellAccessor<PHILIP_DIM, PHILIP_DIM, false>>,dealii::TriaActiveIterator<dealii::DoFCellAccessor<PHILIP_DIM, PHILIP_DIM, false>>>(

@@ -288,7 +288,7 @@ int main (int argc, char * argv[])
         std::shared_ptr < PHiLiP::DGBase<dim, double> > dg = PHiLiP::DGFactory<dim,double>::create_discontinuous_galerkin(&all_parameters_new, poly_degree, poly_degree, grid_degree, grid);
         dg->allocate_system ();
 
-        const dealii::FESystem<dim> &fe_metric = (dg->high_order_grid->fe_system);
+        const dealii::FESystem<dim> &fe_metric = (dg->high_order_grid->get_current_fe_system());
         const unsigned int n_metric_dofs = fe_metric.dofs_per_cell; 
         auto metric_cell = dg->high_order_grid->dof_handler_grid.begin_active();
 

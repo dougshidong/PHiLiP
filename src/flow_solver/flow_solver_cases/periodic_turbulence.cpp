@@ -198,7 +198,7 @@ void PeriodicTurbulence<dim, nstate>::output_velocity_field(
     dealii::Quadrature<1> vol_quad_equidistant_1D = dealii::QIterated<1>(dealii::QTrapez<1>(),dg->max_degree);
     dealii::FE_DGQArbitraryNodes<1,1> equidistant_finite_element(vol_quad_equidistant_1D);
 
-    const unsigned int init_grid_degree = dg->high_order_grid->fe_system.tensor_degree();
+    const unsigned int init_grid_degree = dg->high_order_grid->get_current_fe_system().tensor_degree();
     OPERATOR::basis_functions<dim,2*dim> soln_basis(1, dg->max_degree, init_grid_degree); 
     soln_basis.build_1D_volume_operator(dg->oneD_fe_collection_1state[dg->max_degree], vol_quad_equidistant_1D);
     soln_basis.build_1D_gradient_operator(dg->oneD_fe_collection_1state[dg->max_degree], vol_quad_equidistant_1D);
@@ -221,7 +221,7 @@ void PeriodicTurbulence<dim, nstate>::output_velocity_field(
         const unsigned int n_quad_pts = n_shape_fns;
 
         // We first need to extract the mapping support points (grid nodes) from high_order_grid.
-        const dealii::FESystem<dim> &fe_metric = dg->high_order_grid->fe_system;
+        const dealii::FESystem<dim> &fe_metric = dg->high_order_grid->get_current_fe_system();
         const unsigned int n_metric_dofs = fe_metric.dofs_per_cell;
         const unsigned int n_grid_nodes  = n_metric_dofs / dim;
         std::vector<dealii::types::global_dof_index> metric_dof_indices(n_metric_dofs);
@@ -395,7 +395,7 @@ void PeriodicTurbulence<dim, nstate>::compute_and_update_integrated_quantities(D
     dealii::QGauss<1> quad_extra_1D(dg.max_degree+1+overintegrate);
 
     const unsigned int n_quad_pts = quad_extra.size();
-    const unsigned int grid_degree = dg.high_order_grid->fe_system.tensor_degree();
+    const unsigned int grid_degree = dg.high_order_grid->get_current_fe_system().tensor_degree();
     const unsigned int poly_degree = dg.max_degree;
     // Construct the basis functions and mapping shape functions.
     OPERATOR::basis_functions<dim,2*dim> soln_basis(1, poly_degree, grid_degree); 
@@ -422,7 +422,7 @@ void PeriodicTurbulence<dim, nstate>::compute_and_update_integrated_quantities(D
         cell->get_dof_indices (dofs_indices);
 
         // We first need to extract the mapping support points (grid nodes) from high_order_grid.
-        const dealii::FESystem<dim> &fe_metric = dg.high_order_grid->fe_system;
+        const dealii::FESystem<dim> &fe_metric = dg.high_order_grid->get_current_fe_system();
         const unsigned int n_metric_dofs = fe_metric.dofs_per_cell;
         const unsigned int n_grid_nodes  = n_metric_dofs / dim;
         std::vector<dealii::types::global_dof_index> metric_dof_indices(n_metric_dofs);
@@ -636,7 +636,7 @@ double PeriodicTurbulence<dim, nstate>::get_numerical_entropy(
         cell->get_dof_indices (dofs_indices);
         
         // We first need to extract the mapping support points (grid nodes) from high_order_grid.
-        const dealii::FESystem<dim> &fe_metric = dg->high_order_grid->fe_system;
+        const dealii::FESystem<dim> &fe_metric = dg->high_order_grid->get_current_fe_system();
         const unsigned int n_metric_dofs = fe_metric.dofs_per_cell;
         const unsigned int n_grid_nodes  = n_metric_dofs / dim;
         std::vector<dealii::types::global_dof_index> metric_dof_indices(n_metric_dofs);

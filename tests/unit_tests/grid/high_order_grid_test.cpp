@@ -196,7 +196,7 @@ int main (int argc, char * argv[])
             const unsigned int n_quad_pts_1D = poly_degree+1+overintegrate;
             dealii::QGauss<dim> quadrature(n_quad_pts_1D);
             const unsigned int n_quad_pts = quadrature.size();
-            dealii::FEValues<dim,dim> fe_values(*mapping, high_order_grid.fe_system, quadrature,
+            dealii::FEValues<dim,dim> fe_values(*mapping, high_order_grid.get_current_fe_system(), quadrature,
                 dealii::update_jacobians
                 | dealii::update_JxW_values
                 | dealii::update_quadrature_points);

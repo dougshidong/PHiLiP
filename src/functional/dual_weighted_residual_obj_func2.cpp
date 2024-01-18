@@ -22,7 +22,7 @@ DualWeightedResidualObjFunc2<dim, nstate, real> :: DualWeightedResidualObjFunc2(
     , adjoint_jacobian_prec(nullptr)
     , preconditioner_flag(true)
 {
-    AssertDimension(this->dg->high_order_grid->max_degree, 1);
+    AssertDimension(this->dg->high_order_grid->grid_degree, 1);
     if(this->dg->get_min_fe_degree() != this->dg->get_max_fe_degree())
     {
         std::cout<<"This class is currently coded assuming a constant poly degree. To be changed in future if required."<<std::endl;

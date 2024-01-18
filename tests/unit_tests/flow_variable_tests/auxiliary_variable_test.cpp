@@ -143,7 +143,7 @@ int main (int argc, char * argv[])
             const unsigned int n_quad_pts      = dg->volume_quadrature_collection[poly_degree].size();
             const unsigned int n_shape_fns = n_dofs_cell / dg->nstate;
 
-            const dealii::FESystem<dim> &fe_metric = (dg->high_order_grid->fe_system);
+            const dealii::FESystem<dim> &fe_metric = (dg->high_order_grid->get_current_fe_system());
             const unsigned int n_metric_dofs = fe_metric.dofs_per_cell; 
             const unsigned int n_grid_nodes = n_metric_dofs / dim;
             auto metric_cell = dg->high_order_grid->dof_handler_grid.begin_active();

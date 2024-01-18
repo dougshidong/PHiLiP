@@ -339,6 +339,8 @@ int AnisotropicMeshAdaptationCases<dim, nstate> :: run_test () const
             evaluate_regularization_matrix(regularization_matrix_poisson_q2, flow_solver->dg);
             
             std::unique_ptr<MeshOptimizer<dim,nstate>> mesh_optimizer_q2 = std::make_unique<MeshOptimizer<dim,nstate>> (flow_solver->dg,&param, true);
+            mesh_optimizer_q2->run_full_space_optimizer(regularization_matrix_poisson_q2, true);
+            
             mesh_optimizer_q2->run_full_space_optimizer(regularization_matrix_poisson_q2, false);
             
 

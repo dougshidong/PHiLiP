@@ -550,38 +550,29 @@ void OneDSpecificNodesParameterization<dim> :: output_files_for_postprocessing()
     volume_nodes_serial.reinit(local_range, ghost_index_serial, this->mpi_communicator);
     volume_nodes_serial = this->high_order_grid->volume_nodes;
     volume_nodes_serial.update_ghost_values();
+        
     if(this->mpi_rank == 0)
     {
+        std::vector<std::pair<double,double>> final_control_nodes_list;
+        std::vector<double> xvals, yvals;
+
+        for(unsigned int icontrol=0; icontrol<n_control_nodes; ++icontrol)
+        {
+            const unsigned int ivol = control_index_to_vol_index[icontrol];
+            if(ivol % dim ==0)
+            {
+                const double xval = volume_nodes_serial(ivol);
+                const double yval = volume_nodes_serial(ivol+1);
+                final_control_nodes_list.push_back(std::make_pair(xval, yval));
+            } 
+        }
+        // sort control nodes list in ascending order of y values.
+        std::sort(final_control_nodes_list.begin(), 
+                  final_control_nodes_list.end(), 
+                  [](const std::pair<double,double> &left, const std::pair<double,double> &right){return left.second < right.second;});
+
         if(this->high_order_grid->grid_degree==1)
         {
-            std::ofstream outfile("q2_cylinder_controlnodes.txt"); 
-            std::vector<std::pair<double,double>> final_control_nodes_list;
-
-            if(! outfile.is_open())
-            {
-                std::cout<<"Could not open the file. Aborting.."<<std::endl;
-                std::abort();
-            }
-
-            outfile<<"x,y"<<"\n";
-
-            std::vector<double> xvals, yvals;
-
-            for(unsigned int icontrol=0; icontrol<n_control_nodes; ++icontrol)
-            {
-                const unsigned int ivol = control_index_to_vol_index[icontrol];
-                if(ivol % dim ==0)
-                {
-                    const double xval = volume_nodes_serial(ivol);
-                    const double yval = volume_nodes_serial(ivol+1);
-                    final_control_nodes_list.push_back(std::make_pair(xval, yval));
-                } 
-            }
-            // sort control nodes list in ascending order of y values.
-            std::sort(final_control_nodes_list.begin(), final_control_nodes_list.end(), [](const std::pair<double,double> &left, const std::pair<double,double> &right) {
-            return left.second < right.second;
-            });
-
             // Compute high-order q2 nodes at center
             for(unsigned int icontrol=0; icontrol<n_control_nodes-1; ++icontrol)
             {
@@ -597,14 +588,25 @@ void OneDSpecificNodesParameterization<dim> :: output_files_for_postprocessing()
             std::sort(final_control_nodes_list.begin(), final_control_nodes_list.end(), [](const std::pair<double,double> &left, const std::pair<double,double> &right) {
             return left.second < right.second;
             });
-            
-            // Write control nodes
-            for(unsigned int inode = 0; inode<final_control_nodes_list.size(); ++inode)
-            {
-                outfile<<final_control_nodes_list[inode].first<<","<<final_control_nodes_list[inode].second<<"\n";
-            }
-            outfile.close();
         } // this->high_order_grid->grid_degree==1
+        
+        // Output nodes.
+        std::ofstream outfile("q2_cylinder_controlnodes.txt"); 
+
+        if(! outfile.is_open())
+        {
+            std::cout<<"Could not open the file. Aborting.."<<std::endl;
+            std::abort();
+        }
+
+        outfile<<"x,y"<<"\n";
+
+        // Write control nodes
+        for(unsigned int inode = 0; inode<final_control_nodes_list.size(); ++inode)
+        {
+            outfile<<final_control_nodes_list[inode].first<<","<<final_control_nodes_list[inode].second<<"\n";
+        }
+        outfile.close();
     } // this->mpi_rank == 0
 }
 

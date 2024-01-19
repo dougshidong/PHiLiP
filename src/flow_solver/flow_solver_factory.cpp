@@ -131,7 +131,12 @@ std::unique_ptr< FlowSolverBase > FlowSolverFactory<dim,nstate>
     }
 }
 
+// TO DO: Adding all the possible 5+N_SPECIES
 template class FlowSolverFactory <PHILIP_DIM,5>;
+template class FlowSolverFactory <PHILIP_DIM,5+2>;
+template class FlowSolverFactory <PHILIP_DIM,5+5>;
+template class FlowSolverFactory <PHILIP_DIM,5+9>;
+template class FlowSolverFactory <PHILIP_DIM,5+11>;
 
 } // FlowSolver namespace
 } // PHiLiP namespace

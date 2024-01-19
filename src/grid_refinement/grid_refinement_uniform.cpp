@@ -85,12 +85,24 @@ std::vector< std::pair<dealii::Vector<real>, std::string> > GridRefinement_Unifo
     return data_out_vector;
 }
 
+/// TO DO: adding tempalte from 1 to "maximum n_state" = "5+maximum_n_species" 1 by 1, boost loop
 // dealii::Triangulation<PHILIP_DIM>
 template class GridRefinement_Uniform<PHILIP_DIM, 1, double, dealii::Triangulation<PHILIP_DIM>>;
 template class GridRefinement_Uniform<PHILIP_DIM, 2, double, dealii::Triangulation<PHILIP_DIM>>;
 template class GridRefinement_Uniform<PHILIP_DIM, 3, double, dealii::Triangulation<PHILIP_DIM>>;
 template class GridRefinement_Uniform<PHILIP_DIM, 4, double, dealii::Triangulation<PHILIP_DIM>>;
 template class GridRefinement_Uniform<PHILIP_DIM, 5, double, dealii::Triangulation<PHILIP_DIM>>;
+template class GridRefinement_Uniform<PHILIP_DIM, 6, double, dealii::Triangulation<PHILIP_DIM>>;
+template class GridRefinement_Uniform<PHILIP_DIM, 7, double, dealii::Triangulation<PHILIP_DIM>>;
+template class GridRefinement_Uniform<PHILIP_DIM, 8, double, dealii::Triangulation<PHILIP_DIM>>;
+template class GridRefinement_Uniform<PHILIP_DIM, 9, double, dealii::Triangulation<PHILIP_DIM>>;
+template class GridRefinement_Uniform<PHILIP_DIM, 10, double, dealii::Triangulation<PHILIP_DIM>>;
+template class GridRefinement_Uniform<PHILIP_DIM, 11, double, dealii::Triangulation<PHILIP_DIM>>;
+template class GridRefinement_Uniform<PHILIP_DIM, 12, double, dealii::Triangulation<PHILIP_DIM>>;
+template class GridRefinement_Uniform<PHILIP_DIM, 13, double, dealii::Triangulation<PHILIP_DIM>>;
+template class GridRefinement_Uniform<PHILIP_DIM, 14, double, dealii::Triangulation<PHILIP_DIM>>;
+template class GridRefinement_Uniform<PHILIP_DIM, 15, double, dealii::Triangulation<PHILIP_DIM>>;
+template class GridRefinement_Uniform<PHILIP_DIM, 5+11, double, dealii::Triangulation<PHILIP_DIM>>; // "maximum n_state" = "5+maximum_n_species"
 
 // dealii::parallel::shared::Triangulation<PHILIP_DIM>
 template class GridRefinement_Uniform<PHILIP_DIM, 1, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
@@ -98,6 +110,17 @@ template class GridRefinement_Uniform<PHILIP_DIM, 2, double, dealii::parallel::s
 template class GridRefinement_Uniform<PHILIP_DIM, 3, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
 template class GridRefinement_Uniform<PHILIP_DIM, 4, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
 template class GridRefinement_Uniform<PHILIP_DIM, 5, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+template class GridRefinement_Uniform<PHILIP_DIM, 6, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+template class GridRefinement_Uniform<PHILIP_DIM, 7, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+template class GridRefinement_Uniform<PHILIP_DIM, 8, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+template class GridRefinement_Uniform<PHILIP_DIM, 9, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+template class GridRefinement_Uniform<PHILIP_DIM, 10, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+template class GridRefinement_Uniform<PHILIP_DIM, 11, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+template class GridRefinement_Uniform<PHILIP_DIM, 12, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+template class GridRefinement_Uniform<PHILIP_DIM, 13, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+template class GridRefinement_Uniform<PHILIP_DIM, 14, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+template class GridRefinement_Uniform<PHILIP_DIM, 15, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+template class GridRefinement_Uniform<PHILIP_DIM, 5+11, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>; // "maximum n_state" = "5+maximum_n_species"
 
 #if PHILIP_DIM != 1
 // dealii::parallel::distributed::Triangulation<PHILIP_DIM>
@@ -106,6 +129,17 @@ template class GridRefinement_Uniform<PHILIP_DIM, 2, double, dealii::parallel::d
 template class GridRefinement_Uniform<PHILIP_DIM, 3, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
 template class GridRefinement_Uniform<PHILIP_DIM, 4, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
 template class GridRefinement_Uniform<PHILIP_DIM, 5, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+template class GridRefinement_Uniform<PHILIP_DIM, 6, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+template class GridRefinement_Uniform<PHILIP_DIM, 7, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+template class GridRefinement_Uniform<PHILIP_DIM, 8, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+template class GridRefinement_Uniform<PHILIP_DIM, 9, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+template class GridRefinement_Uniform<PHILIP_DIM, 10, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+template class GridRefinement_Uniform<PHILIP_DIM, 11, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+template class GridRefinement_Uniform<PHILIP_DIM, 12, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+template class GridRefinement_Uniform<PHILIP_DIM, 13, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+template class GridRefinement_Uniform<PHILIP_DIM, 14, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+template class GridRefinement_Uniform<PHILIP_DIM, 15, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+template class GridRefinement_Uniform<PHILIP_DIM, 5+11, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>; // "maximum n_state" = "5+maximum_n_species"
 #endif
 
 } // namespace GridRefinement

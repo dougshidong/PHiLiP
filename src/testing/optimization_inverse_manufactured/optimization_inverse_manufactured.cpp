@@ -1082,11 +1082,23 @@ int OptimizationInverseManufactured<dim,nstate>
     return fail_bool;
 }
 
+/// TO DO: changing tempalte to "maximum n_state" = "5+maximum_n_species", boost loop
 template class OptimizationInverseManufactured <PHILIP_DIM,1>;
 template class OptimizationInverseManufactured <PHILIP_DIM,2>;
 template class OptimizationInverseManufactured <PHILIP_DIM,3>;
 template class OptimizationInverseManufactured <PHILIP_DIM,4>;
 template class OptimizationInverseManufactured <PHILIP_DIM,5>;
+template class OptimizationInverseManufactured <PHILIP_DIM,6>;
+template class OptimizationInverseManufactured <PHILIP_DIM,7>;
+template class OptimizationInverseManufactured <PHILIP_DIM,8>;
+template class OptimizationInverseManufactured <PHILIP_DIM,9>;
+template class OptimizationInverseManufactured <PHILIP_DIM,10>;
+template class OptimizationInverseManufactured <PHILIP_DIM,11>;
+template class OptimizationInverseManufactured <PHILIP_DIM,12>;
+template class OptimizationInverseManufactured <PHILIP_DIM,13>;
+template class OptimizationInverseManufactured <PHILIP_DIM,14>;
+template class OptimizationInverseManufactured <PHILIP_DIM,15>;
+template class OptimizationInverseManufactured <PHILIP_DIM,5+11>;
 
 } // Tests namespace
 } // PHiLiP namespace

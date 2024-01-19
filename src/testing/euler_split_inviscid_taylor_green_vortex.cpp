@@ -20,10 +20,10 @@ std::array<double,2> EulerTaylorGreen<dim, nstate>::compute_change_in_entropy(co
     const unsigned int n_quad_pts = dg->volume_quadrature_collection[poly_degree].size();
     const unsigned int n_shape_fns = n_dofs_cell / nstate;
     //We have to project the vector of entropy variables because the mass matrix has an interpolation from solution nodes built into it.
-    OPERATOR::vol_projection_operator<dim,2*dim> vol_projection(1, poly_degree, dg->max_grid_degree);
+    OPERATOR::vol_projection_operator<dim,2*dim,double> vol_projection(1, poly_degree, dg->max_grid_degree);
     vol_projection.build_1D_volume_operator(dg->oneD_fe_collection_1state[poly_degree], dg->oneD_quadrature_collection[poly_degree]);
 
-    OPERATOR::basis_functions<dim,2*dim> soln_basis(1, poly_degree, dg->max_grid_degree);
+    OPERATOR::basis_functions<dim,2*dim,double> soln_basis(1, poly_degree, dg->max_grid_degree);
     soln_basis.build_1D_volume_operator(dg->oneD_fe_collection_1state[poly_degree], dg->oneD_quadrature_collection[poly_degree]);
 
     dealii::LinearAlgebra::distributed::Vector<double> entropy_var_hat_global(dg->right_hand_side);
@@ -106,26 +106,26 @@ double EulerTaylorGreen<dim, nstate>::compute_volume_term(const std::shared_ptr 
     const unsigned int n_shape_fns = n_dofs_cell / nstate;
     const unsigned int grid_degree = dg->high_order_grid->fe_system.tensor_degree();
 
-    OPERATOR::basis_functions<dim,2*dim> soln_basis(1, poly_degree, dg->max_grid_degree);
+    OPERATOR::basis_functions<dim,2*dim,double> soln_basis(1, poly_degree, dg->max_grid_degree);
     soln_basis.build_1D_volume_operator(dg->oneD_fe_collection_1state[poly_degree], dg->oneD_quadrature_collection[poly_degree]);
     soln_basis.build_1D_gradient_operator(dg->oneD_fe_collection_1state[poly_degree], dg->oneD_quadrature_collection[poly_degree]);
     soln_basis.build_1D_surface_operator(dg->oneD_fe_collection_1state[poly_degree], dg->oneD_face_quadrature);
 
-    OPERATOR::basis_functions<dim,2*dim> flux_basis(1, poly_degree, dg->max_grid_degree);
+    OPERATOR::basis_functions<dim,2*dim,double> flux_basis(1, poly_degree, dg->max_grid_degree);
     flux_basis.build_1D_volume_operator(dg->oneD_fe_collection_flux[poly_degree], dg->oneD_quadrature_collection[poly_degree]);
     flux_basis.build_1D_gradient_operator(dg->oneD_fe_collection_flux[poly_degree], dg->oneD_quadrature_collection[poly_degree]);
     flux_basis.build_1D_surface_operator(dg->oneD_fe_collection_flux[poly_degree], dg->oneD_face_quadrature);
 
-    OPERATOR::local_basis_stiffness<dim,2*dim> flux_basis_stiffness(1, poly_degree, dg->max_grid_degree, true);
+    OPERATOR::local_basis_stiffness<dim,2*dim,double> flux_basis_stiffness(1, poly_degree, dg->max_grid_degree, true);
     //flux basis stiffness operator for skew-symmetric form
     flux_basis_stiffness.build_1D_volume_operator(dg->oneD_fe_collection_flux[poly_degree], dg->oneD_quadrature_collection[poly_degree]);
 
-    OPERATOR::mapping_shape_functions<dim,2*dim> mapping_basis(1, poly_degree, grid_degree);
+    OPERATOR::mapping_shape_functions<dim,2*dim,double> mapping_basis(1, poly_degree, grid_degree);
     mapping_basis.build_1D_shape_functions_at_grid_nodes(dg->high_order_grid->oneD_fe_system, dg->high_order_grid->oneD_grid_nodes);
     mapping_basis.build_1D_shape_functions_at_flux_nodes(dg->high_order_grid->oneD_fe_system, dg->oneD_quadrature_collection[poly_degree], dg->oneD_face_quadrature);
     const std::vector<double> &oneD_vol_quad_weights = dg->oneD_quadrature_collection[poly_degree].get_weights();
 
-    OPERATOR::vol_projection_operator<dim,2*dim> vol_projection(1, poly_degree, dg->max_grid_degree);
+    OPERATOR::vol_projection_operator<dim,2*dim,double> vol_projection(1, poly_degree, dg->max_grid_degree);
     vol_projection.build_1D_volume_operator(dg->oneD_fe_collection_1state[poly_degree], dg->oneD_quadrature_collection[poly_degree]);
 
     std::vector<dealii::types::global_dof_index> dofs_indices (n_dofs_cell);
@@ -336,10 +336,10 @@ double EulerTaylorGreen<dim, nstate>::compute_entropy(const std::shared_ptr < DG
     const unsigned int n_shape_fns = n_dofs_cell / nstate;
     //We have to project the vector of entropy variables because the mass matrix has an interpolation from solution nodes built into it.
 
-    OPERATOR::basis_functions<dim,2*dim> soln_basis(1, poly_degree, dg->max_grid_degree);
+    OPERATOR::basis_functions<dim,2*dim,double> soln_basis(1, poly_degree, dg->max_grid_degree);
     soln_basis.build_1D_volume_operator(dg->oneD_fe_collection_1state[poly_degree], dg->oneD_quadrature_collection[poly_degree]);
 
-    OPERATOR::mapping_shape_functions<dim,2*dim> mapping_basis(1, poly_degree, dg->max_grid_degree);
+    OPERATOR::mapping_shape_functions<dim,2*dim,double> mapping_basis(1, poly_degree, dg->max_grid_degree);
     mapping_basis.build_1D_shape_functions_at_grid_nodes(dg->high_order_grid->oneD_fe_system, dg->high_order_grid->oneD_grid_nodes);
     mapping_basis.build_1D_shape_functions_at_flux_nodes(dg->high_order_grid->oneD_fe_system, dg->oneD_quadrature_collection[poly_degree], dg->oneD_face_quadrature);
 
@@ -430,10 +430,10 @@ double EulerTaylorGreen<dim, nstate>::compute_kinetic_energy(const std::shared_p
     const unsigned int n_shape_fns = n_dofs_cell / nstate;
     //We have to project the vector of entropy variables because the mass matrix has an interpolation from solution nodes built into it.
 
-    OPERATOR::basis_functions<dim,2*dim> soln_basis(1, poly_degree, dg->max_grid_degree);
+    OPERATOR::basis_functions<dim,2*dim,double> soln_basis(1, poly_degree, dg->max_grid_degree);
     soln_basis.build_1D_volume_operator(dg->oneD_fe_collection_1state[poly_degree], dg->oneD_quadrature_collection[poly_degree]);
 
-    OPERATOR::mapping_shape_functions<dim,2*dim> mapping_basis(1, poly_degree, dg->max_grid_degree);
+    OPERATOR::mapping_shape_functions<dim,2*dim,double> mapping_basis(1, poly_degree, dg->max_grid_degree);
     mapping_basis.build_1D_shape_functions_at_grid_nodes(dg->high_order_grid->oneD_fe_system, dg->high_order_grid->oneD_grid_nodes);
     mapping_basis.build_1D_shape_functions_at_flux_nodes(dg->high_order_grid->oneD_fe_system, dg->oneD_quadrature_collection[poly_degree], dg->oneD_face_quadrature);
 

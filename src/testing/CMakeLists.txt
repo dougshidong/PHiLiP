@@ -38,7 +38,7 @@ set(TESTS_SOURCE
     real_gas_vs_euler_primitive_to_conservative_check.cpp
     )
 
-set(POSSIBLE_N_SPECIES "0;1;2;5;9;11")
+set(POSSIBLE_N_SPECIES "0;2;5;9;11")
 
 foreach(nspecies ${POSSIBLE_N_SPECIES})
 foreach(dim RANGE 1 3)

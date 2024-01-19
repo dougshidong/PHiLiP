@@ -45,7 +45,7 @@ if(NOT GMSH_LIB)
   message(FATAL_ERROR "Could not find gmsh")
 endif()
 
-#set(CMAKE_CXX_FLAGS_DEBUG  "${CMAKE_CXX_FLAGS_DEBUG} -Og -g")
+set(CMAKE_CXX_FLAGS_DEBUG  "${CMAKE_CXX_FLAGS_DEBUG} -Og -ggdb")
 
 set(EXECUTABLE_OUTPUT_PATH ${PROJECT_BINARY_DIR}/bin)
 set(CLEAN_UP_FILES ./bin/* ./CMakeCache.txt)
@@ -239,3 +239,7 @@ MESSAGE(STATUS "
 #
 ###
 ")
+
+# ignore BOOST deprecated headers
+add_definitions("-DBOOST_ALLOW_DEPRECATED_HEADERS")
+

@@ -37,6 +37,10 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       dealii::Patterns::Integer(),
                       "Number of dimensions");
 
+    prm.declare_entry("number_of_species", "0",
+                      dealii::Patterns::Integer(),
+                      "Number of species");
+
     prm.declare_entry("run_type", "integration_test",
                       dealii::Patterns::Selection(
                       " integration_test | "
@@ -184,6 +188,7 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       " burgers_energy_conservation_rrk | "
                       " euler_entropy_conserving_split_forms_check | "
                       " h_refinement_study_isentropic_vortex | "
+                      " real_gas_vs_euler_primitive_to_conservative_check | "
                       " khi_robustness"),
                       "The type of test we want to solve. "
                       "Choices are " 
@@ -222,6 +227,7 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       "  burgers_energy_conservation_rrk | "
                       "  euler_entropy_conserving_split_forms_check | "
                       "  h_refinement_study_isentropic_vortex | "
+                      "  real_gas_vs_euler_primitive_to_conservative_check | "
                       "  khi_robustness>.");
 
     prm.declare_entry("pde_type", "advection",
@@ -236,6 +242,8 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       " euler |"
                       " mhd |"
                       " navier_stokes |"
+                      " inviscid_real_gas | "
+                      " real_gas | "
                       " physics_model"),
                       "The PDE we want to solve. "
                       "Choices are " 
@@ -249,6 +257,8 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       "  euler | "
                       "  mhd |"
                       "  navier_stokes |"
+                      "  inviscid_real_gas | "
+                      "  real_gas | "
                       "  physics_model>.");
 
     prm.declare_entry("model_type", "large_eddy_simulation",
@@ -348,6 +358,7 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
     pcout << "Parsing main input..." << std::endl;
 
     dimension = prm.get_integer("dimension");
+    number_of_species = prm.get_integer("number_of_species");
 
     const std::string run_type_string = prm.get("run_type");
     if      (run_type_string == "integration_test") { run_type = integration_test; }
@@ -397,6 +408,8 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
     else if (test_string == "euler_entropy_conserving_split_forms_check") 
                                                                         { test_type = euler_entropy_conserving_split_forms_check; }
     else if (test_string == "h_refinement_study_isentropic_vortex")     { test_type = h_refinement_study_isentropic_vortex; }
+    else if (test_string == "real_gas_vs_euler_primitive_to_conservative_check")
+                                                                        { test_type = real_gas_vs_euler_primitive_to_conservative_check;}
     else if (test_string == "khi_robustness")                           { test_type = khi_robustness; }
     
     overintegration = prm.get_integer("overintegration");
@@ -568,6 +581,14 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
     else if (pde_string == "navier_stokes") {
         pde_type = navier_stokes;
         nstate = dimension+2;
+    }
+    else if(pde_string == "inviscid_real_gas") {
+        pde_type = inviscid_real_gas;
+        nstate = dimension+2;
+    }
+    else if(pde_string == "real_gas") {
+        pde_type = real_gas;
+        nstate = dimension+2+(number_of_species-1);
     }
     else if (pde_string == "physics_model") {
         pde_type = physics_model;

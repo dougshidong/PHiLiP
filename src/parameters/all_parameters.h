@@ -65,6 +65,9 @@ public:
     /// Number of dimensions. Note that it has to match the executable PHiLiP_xD
     unsigned int dimension;
 
+    /// Number of species. Note that it has to match the executable PHiLiP_xD_y-SPECIES
+    unsigned int number_of_species;
+
     /// Run type
     enum RunType {
         integration_test,
@@ -193,6 +196,7 @@ public:
         h_refinement_study_isentropic_vortex,
         khi_robustness,
         homogeneous_isotropic_turbulence_initialization_check,
+        real_gas_vs_euler_primitive_to_conservative_check,
     };
     /// Store selected TestType from the input file.
     TestType test_type;
@@ -209,6 +213,8 @@ public:
         euler,
         mhd,
         navier_stokes,
+        inviscid_real_gas,
+        real_gas,
         physics_model,
     };
     /// Store the PDE type to be solved

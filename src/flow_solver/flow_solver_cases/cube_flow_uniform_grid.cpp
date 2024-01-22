@@ -1,14 +1,12 @@
-#include "non_periodic_cube_flow.h"
-#include "mesh/grids/non_periodic_cube.h"
-#include <deal.II/grid/grid_generator.h>
+#include "cube_flow_uniform_grid.h"
 #include "physics/physics_factory.h"
 
 namespace PHiLiP {
 namespace FlowSolver {
 
 template <int dim, int nstate>
-NonPeriodicCubeFlow<dim, nstate>::NonPeriodicCubeFlow(const PHiLiP::Parameters::AllParameters *const parameters_input)
-    : CubeFlow_UniformGrid<dim, nstate>(parameters_input)
+CubeFlow_UniformGrid<dim, nstate>::CubeFlow_UniformGrid(const PHiLiP::Parameters::AllParameters *const parameters_input)
+    : FlowSolverCaseBase<dim, nstate>(parameters_input)
 {
     //create the Physics object
     this->pde_physics = std::dynamic_pointer_cast<Physics::PhysicsBase<dim,nstate,double>>(
@@ -16,51 +14,7 @@ NonPeriodicCubeFlow<dim, nstate>::NonPeriodicCubeFlow(const PHiLiP::Parameters::
 }
 
 template <int dim, int nstate>
-std::shared_ptr<Triangulation> NonPeriodicCubeFlow<dim,nstate>::generate_grid() const
-{
-    std::shared_ptr<Triangulation> grid = std::make_shared<Triangulation> (
-    #if PHILIP_DIM!=1
-                this->mpi_communicator
-    #endif
-        );
-
-    bool use_number_mesh_refinements = false;
-    if(this->all_param.flow_solver_param.number_of_mesh_refinements>0)
-        use_number_mesh_refinements = true;
-    
-    const unsigned int number_of_refinements = use_number_mesh_refinements ? this->all_param.flow_solver_param.number_of_mesh_refinements 
-                                                                           : log2(this->all_param.flow_solver_param.number_of_grid_elements_per_dimension);
-
-    const double domain_left = this->all_param.flow_solver_param.grid_left_bound;
-    const double domain_right = this->all_param.flow_solver_param.grid_right_bound;
-    const bool colorize = true;
-    
-    int left_boundary_id = 9999;
-    using flow_case_enum = Parameters::FlowSolverParam::FlowCaseType;
-    flow_case_enum flow_case_type = this->all_param.flow_solver_param.flow_case_type;
-
-    if (flow_case_type == flow_case_enum::sod_shock_tube
-        || flow_case_type == flow_case_enum::leblanc_shock_tube) {
-        left_boundary_id = 1001;
-    } else if (flow_case_type == flow_case_enum::shu_osher_problem) {
-        left_boundary_id = 1004;
-    }
-
-
-    Grids::non_periodic_cube<dim>(*grid, domain_left, domain_right, colorize, left_boundary_id);
-    grid->refine_global(number_of_refinements);
-
-    return grid;
-}
-
-template <int dim, int nstate>
-void NonPeriodicCubeFlow<dim,nstate>::display_additional_flow_case_specific_parameters() const
-{
-    this->pcout << "- - Courant-Friedrichs-Lewy number: " << this->all_param.flow_solver_param.courant_friedrichs_lewy_number << std::endl;
-}
-
-/*template <int dim, int nstate>
-double NonPeriodicCubeFlow<dim,nstate>::get_adaptive_time_step(std::shared_ptr<DGBase<dim,double>> dg) const
+double CubeFlow_UniformGrid<dim,nstate>::get_adaptive_time_step(std::shared_ptr<DGBase<dim,double>> dg) const
 {
     // compute time step based on advection speed (i.e. maximum local wave speed)
     const unsigned int number_of_degrees_of_freedom_per_state = dg->dof_handler.n_dofs()/nstate;
@@ -72,7 +26,7 @@ double NonPeriodicCubeFlow<dim,nstate>::get_adaptive_time_step(std::shared_ptr<D
 }
 
 template <int dim, int nstate>
-double NonPeriodicCubeFlow<dim,nstate>::get_adaptive_time_step_initial(std::shared_ptr<DGBase<dim,double>> dg)
+double CubeFlow_UniformGrid<dim,nstate>::get_adaptive_time_step_initial(std::shared_ptr<DGBase<dim,double>> dg)
 {
     // initialize the maximum local wave speed
     update_maximum_local_wave_speed(*dg);
@@ -82,7 +36,7 @@ double NonPeriodicCubeFlow<dim,nstate>::get_adaptive_time_step_initial(std::shar
 }
 
 template<int dim, int nstate>
-void NonPeriodicCubeFlow<dim, nstate>::update_maximum_local_wave_speed(DGBase<dim, double> &dg)
+void CubeFlow_UniformGrid<dim, nstate>::update_maximum_local_wave_speed(DGBase<dim, double> &dg)
 {    
     // Initialize the maximum local wave speed to zero
     this->maximum_local_wave_speed = 0.0;
@@ -116,12 +70,9 @@ void NonPeriodicCubeFlow<dim, nstate>::update_maximum_local_wave_speed(DGBase<di
         }
     }
     this->maximum_local_wave_speed = dealii::Utilities::MPI::max(this->maximum_local_wave_speed, this->mpi_communicator);
-}*/
+}
 
-#if PHILIP_DIM==2
-    template class NonPeriodicCubeFlow<PHILIP_DIM, 1>;
-#else
-    template class NonPeriodicCubeFlow <PHILIP_DIM,PHILIP_DIM+2>;
-#endif
+template class CubeFlow_UniformGrid <PHILIP_DIM, 1>;
+template class CubeFlow_UniformGrid <PHILIP_DIM, PHILIP_DIM + 2>;
 } // FlowSolver namespace
 } // PHiLiP namespace

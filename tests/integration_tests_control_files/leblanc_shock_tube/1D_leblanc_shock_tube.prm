@@ -15,10 +15,12 @@ set flux_nodes_type = GLL
 set use_split_form = false
 set conv_num_flux = lax_friedrichs
 
-# NSFR - Ra
+# NSFR
 #set use_split_form = true
 #set two_point_num_flux_type = Ra
-#set conv_num_flux = two_point_flux_with_lax_friedrichs_dissipation
+#set conv_num_flux = two_point_flux_with_roe_dissipation
+#set flux_reconstruction = cDG
+#set use_inverse_mass_on_the_fly = true
 
 
 subsection limiter
@@ -36,9 +38,10 @@ subsection ODE solver
   set ode_output = verbose
   set ode_solver_type = runge_kutta
   set initial_time_step = 0.00000001
-  set output_solution_every_x_steps = 1
+  #set output_solution_every_x_steps = 1
+  set output_solution_every_dt_time_intervals = 0.00001
   set runge_kutta_method = ssprk3_ex
-  set print_iteration_modulo = 100
+  #set print_iteration_modulo = 100
 end
 
 # freestream Mach number

@@ -111,14 +111,23 @@ protected:
     /// Function to compute the constant time step
     double get_constant_time_step(std::shared_ptr<DGBase<dim,double>> dg) const override;
 
-    /// Function to compute the adaptive time step
+/*    /// Function to compute the adaptive time step
     double get_adaptive_time_step(std::shared_ptr<DGBase<dim,double>> dg) const override;
 
     /// Function to compute the initial adaptive time step
     double get_adaptive_time_step_initial(std::shared_ptr<DGBase<dim,double>> dg) override;
 
     /// Updates the maximum local wave speed
-    void update_maximum_local_wave_speed(DGBase<dim, double> &dg);
+    void update_maximum_local_wave_speed(DGBase<dim, double> &dg);*/
+
+    /// Function to compute the adaptive time step
+    using CubeFlow_UniformGrid<dim, nstate>::get_adaptive_time_step;
+
+    /// Function to compute the initial adaptive time step
+    using CubeFlow_UniformGrid<dim, nstate>::get_adaptive_time_step_initial;
+
+    /// Updates the maximum local wave speed
+    using CubeFlow_UniformGrid<dim, nstate>::update_maximum_local_wave_speed;
 
     /// Compute the desired unsteady data and write it to a table
     void compute_unsteady_data_and_write_to_table(

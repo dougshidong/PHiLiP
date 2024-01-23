@@ -349,15 +349,16 @@ int AnisotropicMeshAdaptationCases<dim, nstate> :: run_test () const
             increase_grid_degree_and_interpolate_solution(flow_solver->dg);
             dealii::TrilinosWrappers::SparseMatrix regularization_matrix_poisson_q2;
             evaluate_regularization_matrix(regularization_matrix_poisson_q2, flow_solver->dg);
-            
+            flow_solver->dg->freeze_artificial_dissipation=true;
             std::unique_ptr<MeshOptimizer<dim,nstate>> mesh_optimizer_q2 = std::make_unique<MeshOptimizer<dim,nstate>> (flow_solver->dg,&param, true);
             mesh_optimizer_q2->run_full_space_optimizer(regularization_matrix_poisson_q2, true);
-            
+
+/*            
             refine_mesh_and_interpolate_solution(flow_solver->dg); 
             dealii::TrilinosWrappers::SparseMatrix regularization_matrix_poisson_q2_refined;
             evaluate_regularization_matrix(regularization_matrix_poisson_q2_refined, flow_solver->dg);
             mesh_optimizer_q2->run_full_space_optimizer(regularization_matrix_poisson_q2_refined, true);
-            
+*/            
 
             const double functional_error = evaluate_functional_error(flow_solver->dg);
             const double enthalpy_error = evaluate_enthalpy_error(flow_solver->dg);

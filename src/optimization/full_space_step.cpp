@@ -24,7 +24,7 @@ FullSpace_BirosGhattas(
     , parlist_(parlist)
     , regularization_matrix(regularization_matrix_)
     , pcout(std::cout, dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD)==0)
-    , use_lagrange_multiplier(true)
+    , use_lagrange_multiplier(false)
     , use_l1_merit_function(true)
 {
     // Parse parameter list
@@ -58,7 +58,7 @@ FullSpace_BirosGhattas(
     regularization_tol_high_control = parlist.sublist("Full Space").get("regularization_tol_high",1.0e-1);
     linear_iteration_limit = parlist.sublist("Full Space").get("Linear iteration Limit", 2000); 
     
-    regularization_parameter_sim = 0.0;
+    regularization_parameter_sim = 1.0;
     regularization_scaling_sim = 2.0;
     regularization_tol_low_sim = 1.0e-2;
     regularization_tol_high_sim = 1.0e-1;

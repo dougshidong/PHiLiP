@@ -238,8 +238,15 @@ void MeshOptimizer<dim,nstate>::run_full_space_optimizer(const dealii::TrilinosW
     const double timing_end = MPI_Wtime();
     *rcp_outstream << "The process took "<<timing_end - timing_start << " seconds to run."<<std::endl;
     //*rcp_outstream << "n_preconditioner_calls = "<<n_preconditioner_calls << std::endl;
-    filebuffer.close(); 
-    design_parameterization->output_files_for_postprocessing();
+    filebuffer.close();
+    if(dg->high_order_grid->grid_degree==1)
+    {
+        design_parameterization->output_control_nodes_with_interpolated_high_order_nodes();
+    }
+    else
+    {
+        design_parameterization->output_control_nodes_refined();
+    }
 }
     
 template<int dim, int nstate>

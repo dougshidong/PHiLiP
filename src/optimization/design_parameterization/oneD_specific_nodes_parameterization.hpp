@@ -37,7 +37,11 @@ public:
     
     void store_prespecified_control_nodes();
 
-    void output_files_for_postprocessing() const override;
+    void write_control_nodes_to_file(const std::vector<std::pair<double,double>> &final_control_nodes_list) const;
+    std::vector<std::pair<double,double>> get_final_control_nodes_list() const;
+    void output_control_nodes() const override;
+    void output_control_nodes_with_interpolated_high_order_nodes() const override;
+    void output_control_nodes_refined() const override;
 
 private:
     

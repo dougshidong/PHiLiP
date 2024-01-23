@@ -31,6 +31,18 @@ void AnisotropicMeshAdaptationCases<dim,nstate>::increase_grid_degree_and_interp
     const unsigned int poly_degree_updated = dg->all_parameters->flow_solver_param.max_poly_degree_for_adaptation - 1;
     dg->set_p_degree_and_interpolate_solution(poly_degree_updated);
 }
+    
+template<int dim, int nstate>
+void AnisotropicMeshAdaptationCases<dim,nstate>::refine_mesh_and_interpolate_solution(std::shared_ptr<DGBase<dim,double>> dg) const
+{
+    auto mesh_adaptation_param2 = dg->all_parameters->mesh_adaptation_param;
+    mesh_adaptation_param2.use_goal_oriented_mesh_adaptation = false;
+    mesh_adaptation_param2.refine_fraction = 1.0;
+    mesh_adaptation_param2.h_coarsen_fraction = 0.0;
+    std::unique_ptr<MeshAdaptation<dim,double>> meshadaptation =
+    std::make_unique<MeshAdaptation<dim,double>>(dg, &(mesh_adaptation_param2));
+    meshadaptation->adapt_mesh();
+}
 
 template<int dim, int nstate>
 void AnisotropicMeshAdaptationCases<dim,nstate>::evaluate_regularization_matrix(
@@ -341,7 +353,10 @@ int AnisotropicMeshAdaptationCases<dim, nstate> :: run_test () const
             std::unique_ptr<MeshOptimizer<dim,nstate>> mesh_optimizer_q2 = std::make_unique<MeshOptimizer<dim,nstate>> (flow_solver->dg,&param, true);
             mesh_optimizer_q2->run_full_space_optimizer(regularization_matrix_poisson_q2, true);
             
-            mesh_optimizer_q2->run_full_space_optimizer(regularization_matrix_poisson_q2, false);
+            refine_mesh_and_interpolate_solution(flow_solver->dg); 
+            dealii::TrilinosWrappers::SparseMatrix regularization_matrix_poisson_q2_refined;
+            evaluate_regularization_matrix(regularization_matrix_poisson_q2_refined, flow_solver->dg);
+            mesh_optimizer_q2->run_full_space_optimizer(regularization_matrix_poisson_q2_refined, true);
             
 
             const double functional_error = evaluate_functional_error(flow_solver->dg);
@@ -356,18 +371,6 @@ int AnisotropicMeshAdaptationCases<dim, nstate> :: run_test () const
             convergence_table_enthalpy.add_value("cells", flow_solver->dg->triangulation->n_global_active_cells());
             convergence_table_enthalpy.add_value("enthalpy_error",enthalpy_error);
 
-     //       increase_grid_degree_and_interpolate_solution(flow_solver->dg);
-     //       output_vtk_files(flow_solver->dg, output_val++);
-            /*      
-            auto mesh_adaptation_param2 = param.mesh_adaptation_param;
-            mesh_adaptation_param2.use_goal_oriented_mesh_adaptation = false;
-            mesh_adaptation_param2.refine_fraction = 1.0;
-            std::unique_ptr<MeshAdaptation<dim,double>> meshadaptation =
-            std::make_unique<MeshAdaptation<dim,double>>(flow_solver->dg, &(mesh_adaptation_param2));
-            meshadaptation->adapt_mesh();
-            flow_solver->run();
-            */
-        //}
     }
 
     if(run_fixedfraction_mesh_adaptation)

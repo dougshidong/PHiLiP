@@ -20,9 +20,16 @@ void BaseParameterization<dim> :: output_design_variables(unsigned int /*iterati
 }
 
 template<int dim>
-void BaseParameterization<dim> ::  output_files_for_postprocessing() const
+void BaseParameterization<dim> ::  output_control_nodes() const
 {
-    // Outputs nothing by default. Overriden in derived classes.
+}
+template<int dim>
+void BaseParameterization<dim> ::  output_control_nodes_with_interpolated_high_order_nodes() const
+{
+}
+template<int dim>
+void BaseParameterization<dim> ::  output_control_nodes_refined() const
+{
 }
 
 template<int dim>

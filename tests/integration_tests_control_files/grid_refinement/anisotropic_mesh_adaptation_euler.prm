@@ -59,7 +59,7 @@ end
 
 subsection mesh adaptation
    set total_mesh_adaptation_cycles = 0
-   set use_goal_oriented_mesh_adaptation = true
+   set use_goal_oriented_mesh_adaptation = false
    set mesh_adaptation_type = h_adaptation
    subsection fixed-fraction
      set refine_fraction = 1.0

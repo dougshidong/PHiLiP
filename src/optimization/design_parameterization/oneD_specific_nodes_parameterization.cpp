@@ -539,8 +539,9 @@ int OneDSpecificNodesParameterization<dim> :: check_if_node_belongs_to_the_regio
 }
 
 template<int dim>
-void OneDSpecificNodesParameterization<dim> :: output_files_for_postprocessing() const
+std::vector<std::pair<double,double>> OneDSpecificNodesParameterization<dim> :: get_final_control_nodes_list() const
 {
+    this->high_order_grid->volume_nodes.update_ghost_values();
     const unsigned int n_vol_nodes = this->high_order_grid->volume_nodes.size();
     dealii::IndexSet ghost_index_serial;
     ghost_index_serial.set_size(n_vol_nodes);
@@ -551,9 +552,9 @@ void OneDSpecificNodesParameterization<dim> :: output_files_for_postprocessing()
     volume_nodes_serial = this->high_order_grid->volume_nodes;
     volume_nodes_serial.update_ghost_values();
         
+    std::vector<std::pair<double,double>> final_control_nodes_list;
     if(this->mpi_rank == 0)
     {
-        std::vector<std::pair<double,double>> final_control_nodes_list;
         std::vector<double> xvals, yvals;
 
         for(unsigned int icontrol=0; icontrol<n_control_nodes; ++icontrol)
@@ -570,27 +571,16 @@ void OneDSpecificNodesParameterization<dim> :: output_files_for_postprocessing()
         std::sort(final_control_nodes_list.begin(), 
                   final_control_nodes_list.end(), 
                   [](const std::pair<double,double> &left, const std::pair<double,double> &right){return left.second < right.second;});
+    } // mpi rank = 0
+    return final_control_nodes_list;
+}
 
-        if(this->high_order_grid->grid_degree==1)
-        {
-            // Compute high-order q2 nodes at center
-            for(unsigned int icontrol=0; icontrol<n_control_nodes-1; ++icontrol)
-            {
-                const double xval_i = final_control_nodes_list[icontrol].first;
-                const double xval_ip1 = final_control_nodes_list[icontrol+1].first;
-                const double yval_i = final_control_nodes_list[icontrol].second;
-                const double yval_ip1 = final_control_nodes_list[icontrol+1].second;
-                const double xval_mid = (xval_ip1 + xval_i)/2.0;
-                const double yval_mid = (yval_ip1 + yval_i)/2.0;
-                final_control_nodes_list.push_back(std::make_pair(xval_mid, yval_mid));
-            }
-            
-            std::sort(final_control_nodes_list.begin(), final_control_nodes_list.end(), [](const std::pair<double,double> &left, const std::pair<double,double> &right) {
-            return left.second < right.second;
-            });
-        } // this->high_order_grid->grid_degree==1
-        
-        // Output nodes.
+template<int dim>
+void OneDSpecificNodesParameterization<dim> :: write_control_nodes_to_file(
+    const std::vector<std::pair<double,double>> &final_control_nodes_list) const
+{
+    if(this->mpi_rank == 0)
+    {
         std::ofstream outfile("q2_cylinder_controlnodes.txt"); 
 
         if(! outfile.is_open())
@@ -607,7 +597,80 @@ void OneDSpecificNodesParameterization<dim> :: output_files_for_postprocessing()
             outfile<<final_control_nodes_list[inode].first<<","<<final_control_nodes_list[inode].second<<"\n";
         }
         outfile.close();
-    } // this->mpi_rank == 0
+    } 
+}
+
+template<int dim>
+void OneDSpecificNodesParameterization<dim> :: output_control_nodes() const
+{
+    std::vector<std::pair<double,double>> final_control_nodes_list = get_final_control_nodes_list();
+    write_control_nodes_to_file(final_control_nodes_list);
+}
+
+template<int dim>
+void OneDSpecificNodesParameterization<dim> :: output_control_nodes_with_interpolated_high_order_nodes() const
+{
+    std::vector<std::pair<double,double>> final_control_nodes_list = get_final_control_nodes_list();
+    AssertDimension(final_control_nodes_list.size(), n_control_nodes);
+    if(this->mpi_rank == 0)
+    {
+        // Compute high-order q2 nodes at center
+        for(unsigned int icontrol=0; icontrol<n_control_nodes-1; ++icontrol)
+        {
+            const double xval_i = final_control_nodes_list[icontrol].first;
+            const double xval_ip1 = final_control_nodes_list[icontrol+1].first;
+            const double yval_i = final_control_nodes_list[icontrol].second;
+            const double yval_ip1 = final_control_nodes_list[icontrol+1].second;
+            const double xval_mid = (xval_ip1 + xval_i)/2.0;
+            const double yval_mid = (yval_ip1 + yval_i)/2.0;
+            final_control_nodes_list.push_back(std::make_pair(xval_mid, yval_mid));
+        }
+                
+        std::sort(final_control_nodes_list.begin(), final_control_nodes_list.end(), [](const std::pair<double,double> &left, const std::pair<double,double> &right) {
+        return left.second < right.second;
+        });
+    }
+
+    write_control_nodes_to_file(final_control_nodes_list); 
+}
+
+template<int dim>
+void OneDSpecificNodesParameterization<dim> :: output_control_nodes_refined() const
+{
+    std::vector<std::pair<double,double>> final_control_nodes_list = get_final_control_nodes_list();
+    AssertDimension(final_control_nodes_list.size(), n_control_nodes);
+    AssertDimension(this->high_order_grid->grid_degree,2);
+    if(this->mpi_rank == 0)
+    {
+        // Compute high-order q2 nodes at center
+        for(unsigned int icontrol=0; icontrol<n_control_nodes-2; icontrol+=2)
+        {
+            const double x1 = final_control_nodes_list[icontrol].first;
+            const double y1 = final_control_nodes_list[icontrol].second;
+            const double x2 = final_control_nodes_list[icontrol+1].first;
+            const double y2 = final_control_nodes_list[icontrol+1].second;
+            const double x3 = final_control_nodes_list[icontrol+2].first;
+            const double y3 = final_control_nodes_list[icontrol+2].second;
+            const double bx = 4*x2 - x3 - 3*x1;
+            const double ax = x3-x1-bx;
+            const double by = 4*y2 - y3 - 3*y1;
+            const double ay = y3-y1-by;
+            const double cx = x1;
+            const double cy = y1;
+            const double x12 = ax/16.0 + bx/4.0 + cx;
+            const double y12 = ay/16.0 + by/4.0 + cy;
+            const double x23 = ax*9.0/16.0 + bx*3.0/4.0 + cx;
+            const double y23 = ay*9.0/16.0 + by*3.0/4.0 + cy;
+            final_control_nodes_list.push_back(std::make_pair(x12, y12));
+            final_control_nodes_list.push_back(std::make_pair(x23, y23));
+        }
+                
+        std::sort(final_control_nodes_list.begin(), final_control_nodes_list.end(), [](const std::pair<double,double> &left, const std::pair<double,double> &right) {
+        return left.second < right.second;
+        });
+    }
+
+    write_control_nodes_to_file(final_control_nodes_list);     
 }
 
 template class OneDSpecificNodesParameterization<PHILIP_DIM>;

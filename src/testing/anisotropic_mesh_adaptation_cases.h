@@ -44,6 +44,9 @@ public:
         std::shared_ptr<DGBase<dim,double>> dg) const;
 
     void increase_grid_degree_and_interpolate_solution(std::shared_ptr<DGBase<dim,double>> dg) const;
+    
+    void refine_mesh_and_interpolate_solution(std::shared_ptr<DGBase<dim,double>> dg) const;
+
 }; 
 
 } // Tests namespace

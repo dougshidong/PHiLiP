@@ -557,8 +557,9 @@ double SpecificNodesParameterization<dim> :: get_slope_y(
 }
 
 template<int dim>
-void SpecificNodesParameterization<dim> ::  output_files_for_postprocessing() const 
+std::vector<std::pair<double,double>> SpecificNodesParameterization<dim> :: get_final_control_nodes_list() const
 {
+    this->high_order_grid->volume_nodes.update_ghost_values();
     const unsigned int n_vol_nodes = this->high_order_grid->volume_nodes.size();
     dealii::IndexSet ghost_index_serial;
     ghost_index_serial.set_size(n_vol_nodes);
@@ -568,62 +569,126 @@ void SpecificNodesParameterization<dim> ::  output_files_for_postprocessing() co
     volume_nodes_serial.reinit(local_range, ghost_index_serial, this->mpi_communicator);
     volume_nodes_serial = this->high_order_grid->volume_nodes;
     volume_nodes_serial.update_ghost_values();
+        
+    std::vector<std::pair<double,double>> final_control_nodes_list;
     if(this->mpi_rank == 0)
     {
-        if(this->high_order_grid->grid_degree==1)
+        std::vector<double> xvals, yvals;
+
+        for(unsigned int icontrol=0; icontrol<n_control_nodes; ++icontrol)
         {
-            std::ofstream outfile("q2_cylinder_controlnodes.txt"); 
-            std::vector<std::pair<double,double>> final_control_nodes_list;
-
-            if(! outfile.is_open())
+            const unsigned int ivol = control_index_to_vol_index[icontrol];
+            if(ivol % dim ==0)
             {
-                std::cout<<"Could not open the file. Aborting.."<<std::endl;
-                std::abort();
-            }
+                const double xval = volume_nodes_serial(ivol);
+                const double yval = volume_nodes_serial(ivol+1);
+                final_control_nodes_list.push_back(std::make_pair(xval, yval));
+            } 
+        }
+        // sort control nodes list in ascending order of y values.
+        std::sort(final_control_nodes_list.begin(), 
+                  final_control_nodes_list.end(), 
+                  [](const std::pair<double,double> &left, const std::pair<double,double> &right){return left.second < right.second;});
+    } // mpi rank = 0
+    return final_control_nodes_list;
+}
 
-            outfile<<"x,y"<<"\n";
+template<int dim>
+void SpecificNodesParameterization<dim> :: write_control_nodes_to_file(
+    const std::vector<std::pair<double,double>> &final_control_nodes_list) const
+{
+    if(this->mpi_rank == 0)
+    {
+        std::ofstream outfile("q2_cylinder_controlnodes.txt"); 
 
-            std::vector<double> xvals, yvals;
+        if(! outfile.is_open())
+        {
+            std::cout<<"Could not open the file. Aborting.."<<std::endl;
+            std::abort();
+        }
 
-            for(unsigned int icontrol=0; icontrol<n_control_nodes; ++icontrol)
-            {
-                const unsigned int ivol = control_index_to_vol_index[icontrol];
-                if(ivol % dim ==0)
-                {
-                    const double xval = volume_nodes_serial(ivol);
-                    const double yval = volume_nodes_serial(ivol+1);
-                    final_control_nodes_list.push_back(std::make_pair(xval, yval));
-                } 
-            }
-            // sort control nodes list in ascending order of y values.
-            std::sort(final_control_nodes_list.begin(), final_control_nodes_list.end(), [](const std::pair<double,double> &left, const std::pair<double,double> &right) {
-            return left.second < right.second;
-            });
+        outfile<<"x,y"<<"\n";
 
-            // Compute high-order q2 nodes at center
-            for(unsigned int icontrol=0; icontrol<n_control_nodes-1; ++icontrol)
-            {
-                const double xval_i = final_control_nodes_list[icontrol].first;
-                const double xval_ip1 = final_control_nodes_list[icontrol+1].first;
-                const double yval_i = final_control_nodes_list[icontrol].second;
-                const double yval_ip1 = final_control_nodes_list[icontrol+1].second;
-                const double xval_mid = (xval_ip1 + xval_i)/2.0;
-                const double yval_mid = (yval_ip1 + yval_i)/2.0;
-                final_control_nodes_list.push_back(std::make_pair(xval_mid, yval_mid));
-            }
-            
-            std::sort(final_control_nodes_list.begin(), final_control_nodes_list.end(), [](const std::pair<double,double> &left, const std::pair<double,double> &right) {
-            return left.second < right.second;
-            });
-            
-            // Write control nodes
-            for(unsigned int inode = 0; inode<final_control_nodes_list.size(); ++inode)
-            {
-                outfile<<final_control_nodes_list[inode].first<<","<<final_control_nodes_list[inode].second<<"\n";
-            }
-            outfile.close();
-        } // this->high_order_grid->grid_degree==1
-    } // this->mpi_rank == 0
+        // Write control nodes
+        for(unsigned int inode = 0; inode<final_control_nodes_list.size(); ++inode)
+        {
+            outfile<<final_control_nodes_list[inode].first<<","<<final_control_nodes_list[inode].second<<"\n";
+        }
+        outfile.close();
+    } 
+}
+
+template<int dim>
+void SpecificNodesParameterization<dim> :: output_control_nodes() const
+{
+    std::vector<std::pair<double,double>> final_control_nodes_list = get_final_control_nodes_list();
+    write_control_nodes_to_file(final_control_nodes_list);
+}
+
+template<int dim>
+void SpecificNodesParameterization<dim> :: output_control_nodes_with_interpolated_high_order_nodes() const
+{
+    std::vector<std::pair<double,double>> final_control_nodes_list = get_final_control_nodes_list();
+    AssertDimension(final_control_nodes_list.size(), n_control_nodes);
+    if(this->mpi_rank == 0)
+    {
+        // Compute high-order q2 nodes at center
+        for(unsigned int icontrol=0; icontrol<n_control_nodes-1; ++icontrol)
+        {
+            const double xval_i = final_control_nodes_list[icontrol].first;
+            const double xval_ip1 = final_control_nodes_list[icontrol+1].first;
+            const double yval_i = final_control_nodes_list[icontrol].second;
+            const double yval_ip1 = final_control_nodes_list[icontrol+1].second;
+            const double xval_mid = (xval_ip1 + xval_i)/2.0;
+            const double yval_mid = (yval_ip1 + yval_i)/2.0;
+            final_control_nodes_list.push_back(std::make_pair(xval_mid, yval_mid));
+        }
+                
+        std::sort(final_control_nodes_list.begin(), final_control_nodes_list.end(), [](const std::pair<double,double> &left, const std::pair<double,double> &right) {
+        return left.second < right.second;
+        });
+    }
+
+    write_control_nodes_to_file(final_control_nodes_list); 
+}
+
+template<int dim>
+void SpecificNodesParameterization<dim> :: output_control_nodes_refined() const
+{
+    std::vector<std::pair<double,double>> final_control_nodes_list = get_final_control_nodes_list();
+    AssertDimension(final_control_nodes_list.size(), n_control_nodes);
+    AssertDimension(this->high_order_grid->grid_degree,2);
+    if(this->mpi_rank == 0)
+    {
+        // Compute high-order q2 nodes at center
+        for(unsigned int icontrol=0; icontrol<n_control_nodes-2; icontrol+=2)
+        {
+            const double x1 = final_control_nodes_list[icontrol].first;
+            const double y1 = final_control_nodes_list[icontrol].second;
+            const double x2 = final_control_nodes_list[icontrol+1].first;
+            const double y2 = final_control_nodes_list[icontrol+1].second;
+            const double x3 = final_control_nodes_list[icontrol+2].first;
+            const double y3 = final_control_nodes_list[icontrol+2].second;
+            const double bx = 4*x2 - x3 - 3*x1;
+            const double ax = x3-x1-bx;
+            const double by = 4*y2 - y3 - 3*y1;
+            const double ay = y3-y1-by;
+            const double cx = x1;
+            const double cy = y1;
+            const double x12 = ax/16.0 + bx/4.0 + cx;
+            const double y12 = ay/16.0 + by/4.0 + cy;
+            const double x23 = ax*9.0/16.0 + bx*3.0/4.0 + cx;
+            const double y23 = ay*9.0/16.0 + by*3.0/4.0 + cy;
+            final_control_nodes_list.push_back(std::make_pair(x12, y12));
+            final_control_nodes_list.push_back(std::make_pair(x23, y23));
+        }
+                
+        std::sort(final_control_nodes_list.begin(), final_control_nodes_list.end(), [](const std::pair<double,double> &left, const std::pair<double,double> &right) {
+        return left.second < right.second;
+        });
+    }
+
+    write_control_nodes_to_file(final_control_nodes_list);     
 }
 
 template class SpecificNodesParameterization<PHILIP_DIM>;

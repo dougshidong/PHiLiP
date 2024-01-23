@@ -3,7 +3,7 @@ set(INITIAL_CONDITIONS_SOURCE
     initial_condition_function.cpp
     )
 
-set(POSSIBLE_N_SPECIES "0;2;5;9;11")
+set(POSSIBLE_N_SPECIES "0;11")
 
 foreach(nspecies ${POSSIBLE_N_SPECIES})
 foreach(dim RANGE 1 3)

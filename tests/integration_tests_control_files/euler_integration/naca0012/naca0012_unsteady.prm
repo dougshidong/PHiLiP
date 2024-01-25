@@ -1,15 +1,14 @@
 # Listing of Parameters                                                                                                                                                                                            
-# Listing of Parameters                                                                                                                                                                                            
 # ---------------------
 
 set test_type = naca0012_unsteady_check_quick
 set dimension = 2 
 
-set use_weak_form = false
+set use_weak_form = true # will be changed by test [strong/weak]
 set pde_type  = euler
-set conv_num_flux = roe
+set conv_num_flux = roe # will be changed by test [roe/two_point_flux]
 set overintegration = 10 
-set output_face_results_vtk = true
+set two_point_num_flux_type = Ra # only used if conv_num_flux == two_point_flux
 
 subsection euler
   set reference_length = 1.0 
@@ -20,16 +19,18 @@ end
 subsection ODE solver
   set output_solution_every_x_steps = 10
   set ode_solver_type  = runge_kutta
-  set print_iteration_modulo              = 1
+  set print_iteration_modulo = 1
 end
 
 subsection flow_solver
   set flow_case_type = naca0012
   set steady_state = false
   set poly_degree = 3
-  set constant_time_step = 0.00005
+  set constant_time_step = 0.00005 # no testing has been done to ensure that this is stable for many time steps; it is only guaranteed to reach final_time as set here.
   set final_time = 0.0005
   subsection grid
     set input_mesh_filename = ../../../meshes/naca0012_hopw_ref2
   end
 end
+
+

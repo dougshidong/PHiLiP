@@ -30,11 +30,8 @@ public:
     int run_test () const override;
 protected:
 
-    /// Reinit parameters based on a specified Atwood number
-    /** Atwood number quantifies the density difference
-     * A = \frac{\rho_2-\rho1}{\rho_1+\rho_2}
-     */
-    Parameters::AllParameters reinit_params(double atwood_number) const;
+    /// Reinit parameters based on specified weak/strong form and convective num flux
+    Parameters::AllParameters reinit_params(const bool use_weak_form_input, const bool use_two_point_flux_input) const;
 };
 
 } // End of Tests namespace

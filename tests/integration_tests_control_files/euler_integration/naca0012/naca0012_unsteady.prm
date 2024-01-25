@@ -7,7 +7,7 @@ set dimension = 2
 set use_weak_form = true # will be changed by test [strong/weak]
 set pde_type  = euler
 set conv_num_flux = roe # will be changed by test [roe/two_point_flux]
-set overintegration = 10 
+set overintegration = 2 
 set two_point_num_flux_type = Ra # only used if conv_num_flux == two_point_flux
 
 subsection euler

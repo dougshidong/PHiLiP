@@ -23,7 +23,7 @@ subsection euler
 end
 
 subsection artificial dissipation
-  set add_artificial_dissipation = true
+  set add_artificial_dissipation = false
   set artificial_dissipation_type = laplacian
   set mu_artificial_dissipation = 0.0
   set kappa_artificial_dissipation = 1.0

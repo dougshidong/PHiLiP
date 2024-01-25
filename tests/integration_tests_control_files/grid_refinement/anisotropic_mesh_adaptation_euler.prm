@@ -12,7 +12,7 @@ set conv_num_flux = hllc
 
 set diss_num_flux = symm_internal_penalty
 
-set overintegration = 6
+#set overintegration = 6
 #set output_face_results_vtk = true
 #set sipg_penalty_factor = 20.0
 
@@ -25,7 +25,7 @@ end
 subsection artificial dissipation
   set add_artificial_dissipation = true
   set artificial_dissipation_type = laplacian
-  set mu_artificial_dissipation = 1.0
+  set mu_artificial_dissipation = 0.0
   set kappa_artificial_dissipation = 1.0
 end
 
@@ -72,7 +72,7 @@ subsection optimization
     set use_fine_solution = false
 
     set gradient_tolerance = 1.0e-10 
-    set max_design_cycles = 200
+    set max_design_cycles = 15
     set linear_iteration_limit = 1000
     set initial_step_size = 1.0
     set functional_evaluation_limit = 30
@@ -91,7 +91,7 @@ end
 subsection ODE solver
   #set output_solution_every_x_steps = 1
   set nonlinear_max_iterations            = 2000
-  set nonlinear_steady_residual_tolerance = 1e-11
+  set nonlinear_steady_residual_tolerance = 1e-14
   set ode_solver_type  = implicit
   set initial_time_step = 1
 #  set time_step_factor_residual = 15.0

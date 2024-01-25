@@ -302,6 +302,7 @@ int AnisotropicMeshAdaptationCases<dim, nstate> :: run_test () const
     std::unique_ptr<FlowSolver::FlowSolver<dim,nstate>> flow_solver = FlowSolver::FlowSolverFactory<dim,nstate>::select_flow_case(&param, parameter_handler);
     
     flow_solver->run();
+    flow_solver->dg->freeze_artificial_dissipation=true;
     output_vtk_files(flow_solver->dg, output_val++);
     //return 0;
     flow_solver->use_polynomial_ramping = false;
@@ -334,7 +335,7 @@ int AnisotropicMeshAdaptationCases<dim, nstate> :: run_test () const
             Parameters::AllParameters param_q1 = param;
             //param_q1.optimization_param.regularization_parameter = 5.0;
             //param_q1.optimization_param.regularization_scaling = 1.1;
-            param_q1.optimization_param.max_design_cycles = 3;
+            param_q1.optimization_param.max_design_cycles = 15;
             
             std::unique_ptr<MeshOptimizer<dim,nstate>> mesh_optimizer_q1 = 
                             std::make_unique<MeshOptimizer<dim,nstate>> (flow_solver->dg, &param_q1, true);
@@ -352,6 +353,7 @@ int AnisotropicMeshAdaptationCases<dim, nstate> :: run_test () const
             flow_solver->dg->freeze_artificial_dissipation=true;
             std::unique_ptr<MeshOptimizer<dim,nstate>> mesh_optimizer_q2 = std::make_unique<MeshOptimizer<dim,nstate>> (flow_solver->dg,&param, true);
             mesh_optimizer_q2->run_full_space_optimizer(regularization_matrix_poisson_q2, true);
+            flow_solver->run();
 
 /*            
             refine_mesh_and_interpolate_solution(flow_solver->dg); 

@@ -174,12 +174,6 @@ int ODESolverBase<dim,real,MeshType>::steady_state ()
         ramped_CFL = std::max(ramped_CFL,initial_CFL*CFL_factor);
         pcout << "Initial CFL = " << initial_CFL << ". Current CFL = " << ramped_CFL << std::endl;
 
-        if (this->residual_norm < 1e-12) {
-            this->dg->freeze_artificial_dissipation = true;
-        } else {
-            this->dg->freeze_artificial_dissipation = false;
-        }
-
         const bool pseudotime = true;
         step_in_time(ramped_CFL, pseudotime);
 

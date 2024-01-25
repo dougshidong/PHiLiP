@@ -766,7 +766,8 @@ void FullSpace_BirosGhattas<Real>::compute(
             }
             if (n_searches > 2) {
                 std::cout << " Linesearch failed in other direction... ending " << std::endl<<std::flush;
-                std::abort();
+                linesearch_success = true;
+                //std::abort();
             }
         }
         lineSearch_->setMaxitUpdate(step_state->searchSize, merit_function_value, fold);

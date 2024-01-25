@@ -72,7 +72,7 @@ subsection optimization
     set use_fine_solution = false
 
     set gradient_tolerance = 1.0e-10 
-    set max_design_cycles = 15
+    set max_design_cycles = 10
     set linear_iteration_limit = 1000
     set initial_step_size = 1.0
     set functional_evaluation_limit = 30

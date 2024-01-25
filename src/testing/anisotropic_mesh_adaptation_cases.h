@@ -38,6 +38,9 @@ public:
     
     /// Evaluates l2 norm of solution error.
     double evaluate_enthalpy_error(std::shared_ptr<DGBase<dim,double>> dg) const;
+    
+    /// Project surface nodes to cylinder.
+    void project_surface_nodes_on_cylinder(std::shared_ptr<DGBase<dim,double>> dg) const;
 
     void evaluate_regularization_matrix(
         dealii::TrilinosWrappers::SparseMatrix &regularization_matrix,

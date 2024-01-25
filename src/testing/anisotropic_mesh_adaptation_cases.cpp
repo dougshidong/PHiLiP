@@ -30,6 +30,32 @@ void AnisotropicMeshAdaptationCases<dim,nstate>::increase_grid_degree_and_interp
 
     const unsigned int poly_degree_updated = dg->all_parameters->flow_solver_param.max_poly_degree_for_adaptation - 1;
     dg->set_p_degree_and_interpolate_solution(poly_degree_updated);
+    project_surface_nodes_on_cylinder(dg);
+}
+
+template<int dim, int nstate>
+void AnisotropicMeshAdaptationCases<dim,nstate>::project_surface_nodes_on_cylinder(std::shared_ptr<DGBase<dim,double>> dg) const
+{
+   const unsigned int n_surf_nodes = dg->high_order_grid->surface_nodes.size();
+    const dealii::IndexSet &surface_range = dg->high_order_grid->surface_nodes.get_partitioner()->locally_owned_range();
+    for(unsigned int i_surf = 0; i_surf < n_surf_nodes; ++i_surf)
+    {
+        if(!(surface_range.is_element(i_surf))) continue;
+        const unsigned int vol_index = dg->high_order_grid->surface_to_volume_indices(i_surf);
+        if(vol_index%dim==0)
+        {
+            const double x = dg->high_order_grid->volume_nodes(vol_index);
+            const double y = dg->high_order_grid->volume_nodes(vol_index+1);
+            const double norm_val  = sqrt(x*x + y*y); 
+            const double radius = 1.0;
+            if( abs(norm_val - radius) < 0.05)
+            {
+                dg->high_order_grid->volume_nodes(vol_index) = radius*x/norm_val;
+                dg->high_order_grid->volume_nodes(vol_index+1) = radius*y/norm_val;
+            }
+        }
+    }
+    dg->high_order_grid->volume_nodes.update_ghost_values();
 }
     
 template<int dim, int nstate>
@@ -341,7 +367,7 @@ int AnisotropicMeshAdaptationCases<dim, nstate> :: run_test () const
             evaluate_regularization_matrix(regularization_matrix_poisson_q2, flow_solver->dg);
             flow_solver->dg->freeze_artificial_dissipation=true;
             std::unique_ptr<MeshOptimizer<dim,nstate>> mesh_optimizer_q2 = std::make_unique<MeshOptimizer<dim,nstate>> (flow_solver->dg,&param, true);
-            mesh_optimizer_q2->run_full_space_optimizer(regularization_matrix_poisson_q2, true);
+            mesh_optimizer_q2->run_full_space_optimizer(regularization_matrix_poisson_q2, false);
             output_vtk_files(flow_solver->dg, output_val++);
 
             const double functional_error = evaluate_functional_error(flow_solver->dg);

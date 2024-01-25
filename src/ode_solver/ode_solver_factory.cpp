@@ -11,6 +11,7 @@
 #include <deal.II/distributed/solution_transfer.h>
 #include "runge_kutta_methods/runge_kutta_methods.h"
 #include "runge_kutta_methods/rk_tableau_base.h"
+#include "relaxation_runge_kutta/empty_RRK_base.h"
 
 namespace PHiLiP {
 namespace ODE {
@@ -121,6 +122,9 @@ std::shared_ptr<ODESolverBase<dim,real,MeshType>> ODESolverFactory<dim,real,Mesh
     dealii::ConditionalOStream pcout(std::cout, dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD)==0);
 
     std::shared_ptr<RKTableauBase<dim,real,MeshType>> rk_tableau = create_RKTableau(dg_input);
+    std::shared_ptr<EmptyRRKBase<dim,real,MeshType>> RRK_object = create_RRKObject();//dg_input);
+    (void) RRK_object;
+
     const int n_rk_stages = dg_input->all_parameters->ode_solver_param.n_rk_stages;
     using ODEEnum = Parameters::ODESolverParam::ODESolverEnum;
     const ODEEnum ode_solver_type = dg_input->all_parameters->ode_solver_param.ode_solver_type;
@@ -152,16 +156,16 @@ std::shared_ptr<ODESolverBase<dim,real,MeshType>> ODESolverFactory<dim,real,Mesh
         pcout << "Creating Runge Kutta ODE Solver with " 
               << n_rk_stages << " stage(s)..." << std::endl;
         if (n_rk_stages == 1){
-            return std::make_shared<RungeKuttaODESolver<dim,real,1,MeshType>>(dg_input,rk_tableau);
+            return std::make_shared<RungeKuttaODESolver<dim,real,1,MeshType>>(dg_input,rk_tableau,RRK_object);
         }
         else if (n_rk_stages == 2){
-            return std::make_shared<RungeKuttaODESolver<dim,real,2,MeshType>>(dg_input,rk_tableau);
+            return std::make_shared<RungeKuttaODESolver<dim,real,2,MeshType>>(dg_input,rk_tableau,RRK_object);
         }
         else if (n_rk_stages == 3){
-            return std::make_shared<RungeKuttaODESolver<dim,real,3,MeshType>>(dg_input,rk_tableau);
+            return std::make_shared<RungeKuttaODESolver<dim,real,3,MeshType>>(dg_input,rk_tableau,RRK_object);
         }
         else if (n_rk_stages == 4){
-            return std::make_shared<RungeKuttaODESolver<dim,real,4,MeshType>>(dg_input,rk_tableau);
+            return std::make_shared<RungeKuttaODESolver<dim,real,4,MeshType>>(dg_input,rk_tableau,RRK_object);
         }
         else{
             pcout << "Error: invalid number of stages. Aborting..." << std::endl;
@@ -263,6 +267,14 @@ std::shared_ptr<RKTableauBase<dim,real,MeshType>> ODESolverFactory<dim,real,Mesh
         std::abort();
         return nullptr;
     }
+}
+
+template <int dim, typename real, typename MeshType>
+std::shared_ptr<EmptyRRKBase<dim,real,MeshType>> ODESolverFactory<dim,real,MeshType>::create_RRKObject() //std::shared_ptr< DGBase<dim,real,MeshType> > dg_input)
+{
+    //(void) dg_input;
+    return std::make_shared<EmptyRRKBase<dim,real,MeshType>> ();
+
 }
 
 template class ODESolverFactory<PHILIP_DIM, double, dealii::Triangulation<PHILIP_DIM>>;

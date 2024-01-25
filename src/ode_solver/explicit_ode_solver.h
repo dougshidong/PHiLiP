@@ -5,6 +5,7 @@
 #include "dg/dg_base.hpp"
 #include "ode_solver_base.h"
 #include "runge_kutta_methods/rk_tableau_base.h"
+#include "relaxation_runge_kutta/empty_RRK_base.h"
 
 namespace PHiLiP {
 namespace ODE {
@@ -19,7 +20,8 @@ class RungeKuttaODESolver: public ODESolverBase <dim, real, MeshType>
 {
 public:
     RungeKuttaODESolver(std::shared_ptr< DGBase<dim, real, MeshType> > dg_input,
-            std::shared_ptr<RKTableauBase<dim,real,MeshType>> rk_tableau_input); ///< Constructor.
+            std::shared_ptr<RKTableauBase<dim,real,MeshType>> rk_tableau_input,
+            std::shared_ptr<EmptyRRKBase<dim,real,MeshType>> RRK_object_input); ///< Constructor.
 
     /// Destructor
     ~RungeKuttaODESolver() {};
@@ -33,6 +35,10 @@ public:
 protected:
     /// Stores Butcher tableau a and b, which specify the RK method
     std::shared_ptr<RKTableauBase<dim,real,MeshType>> butcher_tableau;
+
+    /// Stores functions related to relaxation Runge-Kutta (RRK).
+    /// Functions are empty by default.
+    std::shared_ptr<EmptyRRKBase<dim,real,MeshType>> relaxation_runge_kutta;
 
     /// Implicit solver for diagonally-implicit RK methods, using Jacobian-free Newton-Krylov 
     /** This is initialized for any RK method, but solution-sized vectors are 

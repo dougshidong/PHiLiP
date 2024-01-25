@@ -6,9 +6,11 @@ namespace ODE {
 
 template <int dim, typename real, int n_rk_stages, typename MeshType> 
 RungeKuttaODESolver<dim,real,n_rk_stages, MeshType>::RungeKuttaODESolver(std::shared_ptr< DGBase<dim, real, MeshType> > dg_input,
-        std::shared_ptr<RKTableauBase<dim,real,MeshType>> rk_tableau_input)
+        std::shared_ptr<RKTableauBase<dim,real,MeshType>> rk_tableau_input,
+        std::shared_ptr<EmptyRRKBase<dim,real,MeshType>> RRK_object_input)
         : ODESolverBase<dim,real,MeshType>(dg_input)
         , butcher_tableau(rk_tableau_input)
+        , relaxation_runge_kutta(RRK_object_input)
         , solver(dg_input)
 {}
 

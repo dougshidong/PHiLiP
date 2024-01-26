@@ -583,7 +583,7 @@ int EulerTaylorGreen<dim, nstate>::run_test() const
 
     // Create DG
     std::shared_ptr < PHiLiP::DGBase<dim, double> > dg = PHiLiP::DGFactory<dim,double>::create_discontinuous_galerkin(&all_parameters_new, poly_degree, poly_degree, grid_degree, grid);
-    dg->allocate_system ();
+    dg->allocate_system (false,false,false);
 
     pcout << "Implement initial conditions" << std::endl;
     std::shared_ptr< InitialConditionFunction<dim,nstate,double> > initial_condition_function = 

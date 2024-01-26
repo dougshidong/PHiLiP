@@ -50,6 +50,8 @@ public:
     
     void refine_mesh_and_interpolate_solution(std::shared_ptr<DGBase<dim,double>> dg) const;
 
+    void test_numerical_flux(std::shared_ptr<DGBase<dim,double>> dg) const;
+
 }; 
 
 } // Tests namespace

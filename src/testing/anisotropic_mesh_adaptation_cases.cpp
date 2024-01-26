@@ -71,6 +71,111 @@ void AnisotropicMeshAdaptationCases<dim,nstate>::refine_mesh_and_interpolate_sol
 }
 
 template<int dim, int nstate>
+void AnisotropicMeshAdaptationCases<dim,nstate>::test_numerical_flux(std::shared_ptr<DGBase<dim,double>> dg) const
+{
+if constexpr (nstate==dim+2)
+{
+    std::cout<<"Verifying if the flux is upwinding at mesh face on the shock."<<std::endl;
+    Physics::Euler<dim,nstate,double> euler_physics_double
+        = Physics::Euler<dim, nstate, double>(
+                dg->all_parameters->euler_param.ref_length,
+                dg->all_parameters->euler_param.gamma_gas,
+                dg->all_parameters->euler_param.mach_inf,
+                dg->all_parameters->euler_param.angle_of_attack,
+                dg->all_parameters->euler_param.side_slip_angle);
+    
+    dg->solution.update_ghost_values();
+    const unsigned int poly_degree = dg->get_min_fe_degree();
+    
+    const dealii::Mapping<dim> &mapping = (*(dg->high_order_grid->mapping_fe_field));
+    dealii::FEFaceValues<dim,dim> fe_face_values_int(mapping, dg->fe_collection[poly_degree], 
+                                dg->face_quadrature_collection[poly_degree],dealii::update_normal_vectors | dealii::update_values | update_quadrature_points); 
+    dealii::FEFaceValues<dim,dim> fe_face_values_ext(mapping, dg->fe_collection[poly_degree], 
+                                dg->face_quadrature_collection[poly_degree],dealii::update_normal_vectors | dealii::update_values | update_quadrature_points); 
+    const unsigned int n_face_quad_pts = fe_face_values_int.n_quadrature_points;
+    const unsigned int n_dofs_cell = fe_face_values_int.dofs_per_cell;
+    std::array<double,nstate> soln_int_at_q;
+    std::array<double,nstate> soln_ext_at_q;
+    std::vector<dealii::types::global_dof_index> dofs_indices_int(n_dofs_cell);
+    std::vector<dealii::types::global_dof_index> dofs_indices_ext(n_dofs_cell);
+
+    for(const auto &cell: dg->dof_handler.active_cell_iterators())
+    {
+        if(!cell->is_locally_owned()){continue;}
+        cell->get_dof_indices(dofs_indices_int);
+        for (unsigned int iface=0; iface < dealii::GeometryInfo<dim>::faces_per_cell; ++iface)
+        {
+            auto current_face = cell->face(iface);
+            if(current_face->at_boundary()){continue;}
+            const auto neighbor_cell = cell->neighbor_or_periodic_neighbor(iface);
+            if(!dg->current_cell_should_do_work(cell, neighbor_cell)){continue;}
+            const unsigned int neighbor_iface = current_cell->neighbor_of_neighbor(iface);
+            neighbor_cell->get_dof_indices(dofs_indices_ext);
+            fe_face_values_int.reinit(cell,iface);
+            fe_face_values_ext.reinit(neighbor_cell,neighbor_iface);
+
+            for(unsigned int iquad = 0; iquad < n_face_quad_points; ++iquad)
+            {
+                soln_int_at_q.fill(0.0); 
+                soln_ext_at_q.fill(0.0);
+                for(unsigned int idof = 0; idof < fe_face_values_int.dofs_per_cell; ++idof)
+                {
+                    const unsigned int istate = fe_face_values_int.get_fe().system_to_component_index(idof).first;
+                    soln_int_at_q[istate] += dg->solution(dofs_indices_int[idof])*fe_face_values_int.shape_value_component(idof, iquad, istate);
+                }
+                for(unsigned int idof = 0; idof < fe_face_values_ext.dofs_per_cell; ++idof)
+                {
+                    const unsigned int istate = fe_face_values_ext.get_fe().system_to_component_index(idof).first;
+                    soln_ext_at_q[istate] += dg->solution(dofs_indices_ext[idof])*fe_face_values_ext.shape_value_component(idof, iquad, istate);
+                }
+                const dealii::Tensor<1,dim,double> & normal_int = fe_face_values_int.normal_vector(iquad);
+
+                std::array<double, nstate> numerical_flux_dot_n = dg->conv_num_flux_double->evaluate_flux(soln_int_at_q, soln_ext_at_q, normal_int);
+
+                const double mach_int = euler_physics_double.compute_mach_number(soln_int_at_q);
+                const double mach_ext = euler_physics_double.compute_mach_number(soln_ext_at_q);
+                std::array<double, nstate> expected_flux_dot_n = 0;
+                if(mach_int>mach_ext)
+                {
+                    std::array<dealii::Tensor<1,dim,double>,nstate> flux_int = euler_physics_double.convective_flux(soln_int_at_q);
+                    for(int d=0; d<dim; ++d)
+                    {
+                        for(int istate=0; istate<nstate; ++istate)
+                        {
+                            expected_flux_dot_n[istate] += flux_int[istate][d]*normal_int[d]; 
+                        }
+                    }                
+                }
+                else
+                {
+                    std::array<dealii::Tensor<1,dim,double>,nstate> flux_ext = euler_physics_double.convective_flux(soln_ext_at_q);
+                    for(int d=0; d<dim; ++d)
+                    {
+                        for(int istate=0; istate<nstate; ++istate)
+                        {
+                            expected_flux_dot_n[istate] += flux_ext[istate][d]*normal_int[d]; 
+                        }
+                    }
+                }
+
+                std::array<double, nstate> diff_flux;
+                for(int istate=0; istate<nstate; ++istate)
+                {
+                    diff_flux[istate] = abs(expected_flux_dot_n[istate] - numerical_flux_dot_n[istate]);
+                }
+                if(diff_flux.norm() > 1.0e-12)
+                {
+                    std::cout<<"Numerical flux is not upwinding at "<<fe_face_values_int.quadrature_point(iquad)<<std::endl;
+                    std::cout<<"Norm of the difference = "<<diff_flux.norm()<<std::endl;
+                }
+            } //iquad 
+
+        } //iface
+    } //cell
+} // if constexpr
+}
+
+template<int dim, int nstate>
 void AnisotropicMeshAdaptationCases<dim,nstate>::evaluate_regularization_matrix(
     dealii::TrilinosWrappers::SparseMatrix &regularization_matrix, 
     std::shared_ptr<DGBase<dim,double>> dg) const

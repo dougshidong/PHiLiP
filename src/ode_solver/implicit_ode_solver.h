@@ -49,8 +49,14 @@ public:
     /// Line search algorithm
     double linesearch ();
 
+    /// Line search algorithm (Updated)
+    double linesearch_new ();
+
     /// Evaluate CFL
     void evaluate_cfl (double step_length, double initial_residual);
+
+    /// Evaluate CFL (Updated)
+    void evaluate_cfl_new (double step_length, double initial_residual);
 
 };
 

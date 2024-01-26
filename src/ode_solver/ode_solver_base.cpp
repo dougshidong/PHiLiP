@@ -103,7 +103,9 @@ int ODESolverBase<dim,real,MeshType>::steady_state ()
     pcout << " Evaluating right-hand side and setting system_matrix to Jacobian before starting iterations... " << std::endl;
     this->dg->assemble_residual ();
     initial_residual_norm = this->dg->get_residual_l2norm();
+    this->initial_nonlinear_residual_norm = initial_residual_norm;
     this->residual_norm = initial_residual_norm;
+
     pcout << " ********************************************************** "
           << std::endl
           << " Initial absolute residual norm: " << this->residual_norm
@@ -115,8 +117,9 @@ int ODESolverBase<dim,real,MeshType>::steady_state ()
     }
 
     // Initial Courant-Friedrichs-Lax number
-    const double minimum_CFL = 0.1;
+    // const double minimum_CFL = 0.1;
     const double initial_CFL = all_parameters->ode_solver_param.initial_time_step;
+    this->CFL_current = initial_CFL;
     CFL_factor = 1.0;
 
     auto initial_solution = dg->solution;
@@ -145,7 +148,7 @@ int ODESolverBase<dim,real,MeshType>::steady_state ()
               << std::endl
               << " Nonlinear iteration: " << this->current_iteration
               << " Residual norm (normalized) : " << this->residual_norm
-              << " ( " << this->residual_norm / this->initial_residual_norm << " ) "
+              << " ( " << this->residual_norm / this->initial_nonlinear_residual_norm << " ) "
               << " CFL factor: " << CFL_factor
               << std::endl;
 
@@ -158,11 +161,12 @@ int ODESolverBase<dim,real,MeshType>::steady_state ()
             pcout << " Evaluating right-hand side and setting system_matrix to Jacobian... " << std::endl;
         }
 
-        double ramped_CFL = initial_CFL * CFL_factor;
-        if (this->residual_norm_decrease < 1.0 && this->ode_param.perform_cfl_ramping == true) {
-            ramped_CFL *= pow((1.0-std::log10(this->residual_norm_decrease)*ode_param.time_step_factor_residual), ode_param.time_step_factor_residual_exp);
-        }
-        ramped_CFL = std::max({ramped_CFL,initial_CFL*CFL_factor,minimum_CFL});
+        double ramped_CFL = this->CFL_current;
+        // double ramped_CFL = initial_CFL * CFL_factor;
+        // if (this->residual_norm_decrease < 1.0 && this->ode_param.perform_cfl_ramping == true) {
+        //     ramped_CFL *= pow((1.0-std::log10(this->residual_norm_decrease)*ode_param.time_step_factor_residual), ode_param.time_step_factor_residual_exp);
+        // }
+        // ramped_CFL = std::max({ramped_CFL,initial_CFL*this->CFL_factor,minimum_CFL});
         pcout << " Initial CFL = " << initial_CFL << ". Current CFL = " << ramped_CFL << ". CFL Factor = " << CFL_factor << std::endl;
 
         if (this->residual_norm < 1e-12) {
@@ -186,10 +190,18 @@ int ODESolverBase<dim,real,MeshType>::steady_state ()
 
         old_residual_norm = this->residual_norm;
         this->residual_norm = this->dg->get_residual_l2norm();
-        this->residual_norm_decrease = this->residual_norm / this->initial_residual_norm;
+        this->residual_norm_decrease = this->residual_norm / this->initial_nonlinear_residual_norm;
+        this->updated_nonlinear_residual_norm = this->residual_norm;
 
         convergence_error = this->residual_norm > ode_param.nonlinear_steady_residual_tolerance
                             && this->residual_norm_decrease > ode_param.nonlinear_steady_residual_tolerance;
+
+    pcout << " Nonlinear Iteration: " << this->current_iteration
+          << " " << this->updated_nonlinear_residual_norm
+          << " " << ramped_CFL
+          << " " << this->CFL_factor
+          << std::endl;
+
     }
     if (this->residual_norm > 1e5
         || std::isnan(this->residual_norm)

@@ -65,6 +65,9 @@ public:
 
     double residual_norm; ///< Current residual norm. Only makes sense for steady state
     double residual_norm_decrease; ///< Current residual norm normalized by initial residual. Only makes sense for steady state
+    double initial_nonlinear_residual_norm; ///< Initial Nonlinear Residual Norm
+    double updated_nonlinear_residual_norm; ///< Updated Nonlinear Residual Norm
+    double lastCFLupdated_nonlinear_residual_norm; ///< Nonlinear Residual Norm at the Last CFL Update
 
 protected:
     /// CFL factor for (un)successful linesearches
@@ -73,6 +76,7 @@ protected:
      *  or accept a higher residual, halve the CFL on top of the residual (de)ramping
      */
     double CFL_factor;
+    double CFL_current;
 
     double update_norm; ///< Norm of the solution update.
     double initial_residual_norm; ///< Initial residual norm.

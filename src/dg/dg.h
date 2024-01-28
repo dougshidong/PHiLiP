@@ -909,8 +909,6 @@ private:
      *  For a locally owned neighbor cell, cell with lower index does work or if both cells have same index, then cell at the lower level does the work
      *  See https://www.dealii.org/developer/doxygen/deal.II/classTriaAccessorBase.html#a695efcbe84fefef3e4c93ee7bdb446ad
      */
-    template<typename DoFCellAccessorType1, typename DoFCellAccessorType2>
-    bool current_cell_should_do_the_work (const DoFCellAccessorType1 &current_cell, const DoFCellAccessorType2 &neighbor_cell) const;
 
     /// Used in the delegated constructor
     /** The main reason we use this weird function is because all of the above objects
@@ -920,6 +918,8 @@ private:
     MassiveCollectionTuple create_collection_tuple(const unsigned int max_degree, const int nstate, const Parameters::AllParameters *const parameters_input) const;
 
 public:
+    template<typename DoFCellAccessorType1, typename DoFCellAccessorType2>
+    bool current_cell_should_do_the_work (const DoFCellAccessorType1 &current_cell, const DoFCellAccessorType2 &neighbor_cell) const;
     /// Flag to freeze artificial dissipation.
     bool freeze_artificial_dissipation;
     /// Stores maximum artificial dissipation while assembling the residual.

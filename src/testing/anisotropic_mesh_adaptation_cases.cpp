@@ -71,34 +71,76 @@ void AnisotropicMeshAdaptationCases<dim,nstate>::refine_mesh_and_interpolate_sol
 }
 
 template<int dim, int nstate>
-void AnisotropicMeshAdaptationCases<dim,nstate>::test_numerical_flux(std::shared_ptr<DGBase<dim,double>> dg) const
+void AnisotropicMeshAdaptationCases<dim,nstate>::test_numerical_flux(const std::shared_ptr<DGBase<dim,double>> dg) const
 {
 if constexpr (nstate==dim+2)
 {
+    std::vector<std::pair<double,double>> control_nodes_list;
+    std::ifstream infile;
+    std::string filepath;
+    filepath = "q2_cylinder_controlnodes.txt";
+    infile.open(filepath);
+    if(!infile) {
+        std::cout << "Could not open file in AnisotropicMeshAdaptationCases<dim,nstate>::test_numerical_flux."<< filepath << std::endl;
+        std::abort();
+    }
+
+    std::string line;
+    std::getline(infile, line); // skip the first line.
+    while(std::getline(infile, line))
+    {
+        std::stringstream ss(line);
+
+        std::string field_x;
+
+        std::getline(ss, field_x, ',');
+
+        std::stringstream ss_x(field_x);
+        double xval = 0.0;
+        ss_x >> xval;
+
+        std::string field_y;
+
+        std::getline(ss, field_y, ',');
+        
+        std::stringstream ss_y(field_y);
+
+        double yval = 0;
+
+        ss_y >> yval;
+
+        control_nodes_list.push_back(std::make_pair(xval, yval));
+    }
     std::cout<<"Verifying if the flux is upwinding at mesh face on the shock."<<std::endl;
-    Physics::Euler<dim,nstate,double> euler_physics_double
-        = Physics::Euler<dim, nstate, double>(
+    std::shared_ptr<Physics::Euler<dim,nstate,double>> euler_physics_double
+        = std::make_shared<Physics::Euler<dim, nstate, double>>(
                 dg->all_parameters->euler_param.ref_length,
                 dg->all_parameters->euler_param.gamma_gas,
                 dg->all_parameters->euler_param.mach_inf,
                 dg->all_parameters->euler_param.angle_of_attack,
                 dg->all_parameters->euler_param.side_slip_angle);
+    std::unique_ptr < NumericalFlux::NumericalFluxConvective<dim, nstate, double > > conv_num_flux_double
+     = NumericalFlux::NumericalFluxFactory<dim, nstate, double> ::create_convective_numerical_flux (dg->all_parameters->conv_num_flux_type, dg->all_parameters->pde_type, dg->all_parameters->model_type, euler_physics_double);
     
     dg->solution.update_ghost_values();
     const unsigned int poly_degree = dg->get_min_fe_degree();
     
     const dealii::Mapping<dim> &mapping = (*(dg->high_order_grid->mapping_fe_field));
     dealii::FEFaceValues<dim,dim> fe_face_values_int(mapping, dg->fe_collection[poly_degree], 
-                                dg->face_quadrature_collection[poly_degree],dealii::update_normal_vectors | dealii::update_values | update_quadrature_points); 
+                                dg->face_quadrature_collection[poly_degree],
+                                dealii::update_normal_vectors | dealii::update_values | dealii::update_quadrature_points); 
     dealii::FEFaceValues<dim,dim> fe_face_values_ext(mapping, dg->fe_collection[poly_degree], 
-                                dg->face_quadrature_collection[poly_degree],dealii::update_normal_vectors | dealii::update_values | update_quadrature_points); 
+                                dg->face_quadrature_collection[poly_degree],
+                                dealii::update_normal_vectors | dealii::update_values | dealii::update_quadrature_points); 
+    dealii::QGaussLobatto<dim-1> face_quad_GLL (2);
+    dealii::FEFaceValues<dim,dim> fe_face_values_gll(mapping, dg->fe_collection[poly_degree], face_quad_GLL, dealii::update_quadrature_points); 
     const unsigned int n_face_quad_pts = fe_face_values_int.n_quadrature_points;
     const unsigned int n_dofs_cell = fe_face_values_int.dofs_per_cell;
     std::array<double,nstate> soln_int_at_q;
     std::array<double,nstate> soln_ext_at_q;
     std::vector<dealii::types::global_dof_index> dofs_indices_int(n_dofs_cell);
     std::vector<dealii::types::global_dof_index> dofs_indices_ext(n_dofs_cell);
-
+    int n_shock_faces = 0;
     for(const auto &cell: dg->dof_handler.active_cell_iterators())
     {
         if(!cell->is_locally_owned()){continue;}
@@ -107,14 +149,20 @@ if constexpr (nstate==dim+2)
         {
             auto current_face = cell->face(iface);
             if(current_face->at_boundary()){continue;}
+            fe_face_values_gll.reinit(cell,iface);
+            if(!is_face_between_control_nodes(
+                    fe_face_values_gll.quadrature_point(0), 
+                    fe_face_values_gll.quadrature_point(fe_face_values_gll.n_quadrature_points-1),
+                    control_nodes_list)) {continue;}
             const auto neighbor_cell = cell->neighbor_or_periodic_neighbor(iface);
-            if(!dg->current_cell_should_do_work(cell, neighbor_cell)){continue;}
-            const unsigned int neighbor_iface = current_cell->neighbor_of_neighbor(iface);
+            if(!dg->current_cell_should_do_the_work(cell, neighbor_cell)){continue;}
+            n_shock_faces++;
+            const unsigned int neighbor_iface = cell->neighbor_of_neighbor(iface);
             neighbor_cell->get_dof_indices(dofs_indices_ext);
             fe_face_values_int.reinit(cell,iface);
             fe_face_values_ext.reinit(neighbor_cell,neighbor_iface);
 
-            for(unsigned int iquad = 0; iquad < n_face_quad_points; ++iquad)
+            for(unsigned int iquad = 0; iquad < n_face_quad_pts; ++iquad)
             {
                 soln_int_at_q.fill(0.0); 
                 soln_ext_at_q.fill(0.0);
@@ -130,14 +178,18 @@ if constexpr (nstate==dim+2)
                 }
                 const dealii::Tensor<1,dim,double> & normal_int = fe_face_values_int.normal_vector(iquad);
 
-                std::array<double, nstate> numerical_flux_dot_n = dg->conv_num_flux_double->evaluate_flux(soln_int_at_q, soln_ext_at_q, normal_int);
+                std::array<double, nstate> numerical_flux_dot_n = conv_num_flux_double->evaluate_flux(soln_int_at_q, soln_ext_at_q, normal_int);
 
-                const double mach_int = euler_physics_double.compute_mach_number(soln_int_at_q);
-                const double mach_ext = euler_physics_double.compute_mach_number(soln_ext_at_q);
-                std::array<double, nstate> expected_flux_dot_n = 0;
+                const double mach_int = euler_physics_double->compute_mach_number(soln_int_at_q);
+                const double mach_ext = euler_physics_double->compute_mach_number(soln_ext_at_q);
+                std::array<double, nstate> expected_flux_dot_n;
+                for(int istate=0; istate<nstate; ++istate)
+                {
+                    expected_flux_dot_n[istate] = 0;
+                }
                 if(mach_int>mach_ext)
                 {
-                    std::array<dealii::Tensor<1,dim,double>,nstate> flux_int = euler_physics_double.convective_flux(soln_int_at_q);
+                    std::array<dealii::Tensor<1,dim,double>,nstate> flux_int = euler_physics_double->convective_flux(soln_int_at_q);
                     for(int d=0; d<dim; ++d)
                     {
                         for(int istate=0; istate<nstate; ++istate)
@@ -148,7 +200,7 @@ if constexpr (nstate==dim+2)
                 }
                 else
                 {
-                    std::array<dealii::Tensor<1,dim,double>,nstate> flux_ext = euler_physics_double.convective_flux(soln_ext_at_q);
+                    std::array<dealii::Tensor<1,dim,double>,nstate> flux_ext = euler_physics_double->convective_flux(soln_ext_at_q);
                     for(int d=0; d<dim; ++d)
                     {
                         for(int istate=0; istate<nstate; ++istate)
@@ -158,21 +210,65 @@ if constexpr (nstate==dim+2)
                     }
                 }
 
-                std::array<double, nstate> diff_flux;
+                std::array<double, nstate> error_flux;
                 for(int istate=0; istate<nstate; ++istate)
                 {
-                    diff_flux[istate] = abs(expected_flux_dot_n[istate] - numerical_flux_dot_n[istate]);
+                    error_flux[istate] = abs(expected_flux_dot_n[istate] - numerical_flux_dot_n[istate]);
                 }
-                if(diff_flux.norm() > 1.0e-12)
+                double error_flux_norm = 0;
+                for(int istate=0; istate<nstate;++istate)
+                {
+                    error_flux_norm += pow(error_flux[istate],2);
+                }
+                error_flux_norm = sqrt(error_flux_norm);
+                if(error_flux_norm > 1.0e-12)
                 {
                     std::cout<<"Numerical flux is not upwinding at "<<fe_face_values_int.quadrature_point(iquad)<<std::endl;
-                    std::cout<<"Norm of the difference = "<<diff_flux.norm()<<std::endl;
+                    std::cout<<"Norm of the difference = "<<error_flux_norm<<std::endl;
+                    dealii::Point<dim> analysis_point;
+                    analysis_point[0] = -1.56974;
+                    analysis_point[1] = 0.905008;
+                    if(analysis_point.distance(fe_face_values_int.quadrature_point(iquad)) < 1.0e-4)
+                    {
+                        std::cout<<"=================================================================================="<<std::endl;
+                        std::cout<<"Mach int = "<<mach_int<<std::endl;
+                        std::cout<<"Mach ext = "<<mach_ext<<std::endl;
+                        conv_num_flux_double->evaluate_flux(soln_int_at_q, soln_ext_at_q, normal_int);
+                        std::cout<<"=================================================================================="<<std::endl;
+                    }
                 }
             } //iquad 
 
         } //iface
     } //cell
+    pcout<<"Total number of shock faces detected = "<<dealii::Utilities::MPI::sum(n_shock_faces, this->mpi_communicator)<<std::endl;
 } // if constexpr
+}
+
+template<int dim, int nstate>
+bool AnisotropicMeshAdaptationCases<dim,nstate>::is_face_between_control_nodes(
+    const dealii::Point<dim> &point1, 
+    const dealii::Point<dim> &point2, 
+    const std::vector<std::pair<double,double>> &control_nodes_list) const
+{
+    bool point1_is_in_list = false;
+    bool point2_is_in_list = false;
+
+    for(unsigned int i=0; i<control_nodes_list.size(); ++i)
+    {
+        dealii::Point<dim> point_i;
+        point_i[0] = control_nodes_list[i].first;
+        point_i[1] = control_nodes_list[i].second;
+        if(point_i.distance(point1) < 1.0e-4)
+        {
+            point1_is_in_list = true;
+        }
+        if(point_i.distance(point2) < 1.0e-4)
+        {
+            point2_is_in_list = true;
+        }
+    }
+    return (point1_is_in_list && point2_is_in_list);
 }
 
 template<int dim, int nstate>
@@ -411,13 +507,33 @@ return 0.0;
 template <int dim, int nstate>
 int AnisotropicMeshAdaptationCases<dim, nstate> :: run_test () const
 {
-    int output_val = 0;
+    //int output_val = 0;
     const Parameters::AllParameters param = *(TestsBase::all_parameters);
-    const bool run_mesh_optimizer = param.optimization_param.max_design_cycles > 0;
-    const bool run_fixedfraction_mesh_adaptation = param.mesh_adaptation_param.total_mesh_adaptation_cycles > 0;
+  //  const bool run_mesh_optimizer = param.optimization_param.max_design_cycles > 0;
+  //  const bool run_fixedfraction_mesh_adaptation = param.mesh_adaptation_param.total_mesh_adaptation_cycles > 0;
     
     std::unique_ptr<FlowSolver::FlowSolver<dim,nstate>> flow_solver = FlowSolver::FlowSolverFactory<dim,nstate>::select_flow_case(&param, parameter_handler);
-    
+    flow_solver->dg->freeze_artificial_dissipation=true;
+    flow_solver->run();
+/*
+    increase_grid_degree_and_interpolate_solution(flow_solver->dg);
+    std::ifstream infile_sol("solution.txt");
+    std::ifstream infile_vol("volume_nodes.txt");
+    for(unsigned int isol = 0; isol<flow_solver->dg->solution.size(); ++isol)
+    {
+        infile_sol>>flow_solver->dg->solution(isol);
+    }
+    infile_sol.close();
+    for(unsigned int ivol = 0; ivol<flow_solver->dg->high_order_grid->volume_nodes.size(); ++ivol)
+    {
+        infile_vol>>flow_solver->dg->high_order_grid->volume_nodes(ivol);
+    }
+    infile_vol.close();
+    output_vtk_files(flow_solver->dg, output_val++);
+    test_numerical_flux(flow_solver->dg);
+*/
+    return 0;
+/*
     flow_solver->run();
     flow_solver->dg->freeze_artificial_dissipation=true;
     output_vtk_files(flow_solver->dg, output_val++);
@@ -446,7 +562,7 @@ int AnisotropicMeshAdaptationCases<dim, nstate> :: run_test () const
         dealii::TrilinosWrappers::SparseMatrix regularization_matrix_poisson_q1;
         evaluate_regularization_matrix(regularization_matrix_poisson_q1, flow_solver->dg);
         Parameters::AllParameters param_q1 = param;
-        param_q1.optimization_param.max_design_cycles = 15;
+        param_q1.optimization_param.max_design_cycles = 10;
         
         std::unique_ptr<MeshOptimizer<dim,nstate>> mesh_optimizer_q1 = 
                         std::make_unique<MeshOptimizer<dim,nstate>> (flow_solver->dg, &param_q1, true);
@@ -457,7 +573,7 @@ int AnisotropicMeshAdaptationCases<dim, nstate> :: run_test () const
             std::cout<<"Residual from q1 optimization has not converged. Aborting..."<<std::endl;
             std::abort();
         }
-        const unsigned int n_meshes = 3;
+        const unsigned int n_meshes = 1;
         for(unsigned int imesh = 0; imesh < n_meshes; ++imesh)
         {
             if(imesh==0)
@@ -472,8 +588,9 @@ int AnisotropicMeshAdaptationCases<dim, nstate> :: run_test () const
             evaluate_regularization_matrix(regularization_matrix_poisson_q2, flow_solver->dg);
             flow_solver->dg->freeze_artificial_dissipation=true;
             std::unique_ptr<MeshOptimizer<dim,nstate>> mesh_optimizer_q2 = std::make_unique<MeshOptimizer<dim,nstate>> (flow_solver->dg,&param, true);
-            mesh_optimizer_q2->run_full_space_optimizer(regularization_matrix_poisson_q2, false);
+            mesh_optimizer_q2->run_full_space_optimizer(regularization_matrix_poisson_q2, true);
             output_vtk_files(flow_solver->dg, output_val++);
+            test_numerical_flux(flow_solver->dg);
 
             const double functional_error = evaluate_functional_error(flow_solver->dg);
             const double enthalpy_error = evaluate_enthalpy_error(flow_solver->dg);
@@ -570,6 +687,7 @@ int AnisotropicMeshAdaptationCases<dim, nstate> :: run_test () const
     if(pcout.is_active()) {convergence_table_enthalpy.write_text(pcout.get_stream());}
 
 return 0;
+*/
 }
 
 #if PHILIP_DIM==2

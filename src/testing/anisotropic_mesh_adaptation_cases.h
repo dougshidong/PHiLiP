@@ -50,7 +50,11 @@ public:
     
     void refine_mesh_and_interpolate_solution(std::shared_ptr<DGBase<dim,double>> dg) const;
 
-    void test_numerical_flux(std::shared_ptr<DGBase<dim,double>> dg) const;
+    void test_numerical_flux(const std::shared_ptr<DGBase<dim,double>> dg) const;
+
+    bool is_face_between_control_nodes(const dealii::Point<dim> &point1, 
+                                       const dealii::Point<dim> &point2, 
+                                       const std::vector<std::pair<double,double>> &control_nodes_list) const;
 
 }; 
 

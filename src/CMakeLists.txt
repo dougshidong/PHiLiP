@@ -18,7 +18,7 @@ add_subdirectory(reduced_order)
 add_subdirectory(flow_solver)
 add_subdirectory(testing)
 
-set(POSSIBLE_N_SPECIES "0;11")
+set(POSSIBLE_N_SPECIES "1;11")
 
 foreach(nspecies ${POSSIBLE_N_SPECIES})
 foreach(dim RANGE 1 3)
@@ -58,7 +58,7 @@ foreach(dim RANGE 1 3)
     # #####################################################
     # Main executable
     # Simply calls the case manager given an input file
-    if(${nspecies} EQUAL "0")
+    if(${nspecies} EQUAL "1")
         string(CONCAT MAIN_TARGET PHiLiP_${dim}D)
     else()
         string(CONCAT MAIN_TARGET PHiLiP_${dim}D_${nspecies}-SPECIES)

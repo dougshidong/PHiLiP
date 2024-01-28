@@ -9,12 +9,12 @@ set(DG_SOURCE
     artificial_dissipation_factory.cpp
     )
 
-set(POSSIBLE_N_SPECIES "0;11")
+set(POSSIBLE_N_SPECIES "1;11")
 
 foreach(nspecies ${POSSIBLE_N_SPECIES})
 foreach(dim RANGE 1 3)
     # Output library
-    if(${nspecies} EQUAL "0")
+    if(${nspecies} EQUAL "1")
         string(CONCAT DiscontinuousGalerkinLib DiscontinuousGalerkin_${dim}D)
     else()
         string(CONCAT DiscontinuousGalerkinLib DiscontinuousGalerkin_${dim}D_${nspecies}-SPECIES)

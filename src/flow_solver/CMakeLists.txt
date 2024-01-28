@@ -13,12 +13,12 @@ set(FLOW_SOLVER_SOURCE
     flow_solver.cpp
     flow_solver_factory.cpp)
 
-set(POSSIBLE_N_SPECIES "0;11")
+set(POSSIBLE_N_SPECIES "1;11")
 
 foreach(nspecies ${POSSIBLE_N_SPECIES})
 foreach(dim RANGE 1 3)
     # Output library
-    if(${nspecies} EQUAL "0")
+    if(${nspecies} EQUAL "1")
         string(CONCAT FlowSolverLib FlowSolver_${dim}D)
     else()
         string(CONCAT FlowSolverLib FlowSolver_${dim}D_${nspecies}-SPECIES)

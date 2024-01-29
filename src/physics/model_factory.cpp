@@ -190,16 +190,7 @@ template class ModelFactory<PHILIP_DIM, 3, double>;
 template class ModelFactory<PHILIP_DIM, 4, double>;
 template class ModelFactory<PHILIP_DIM, 5, double>;
 template class ModelFactory<PHILIP_DIM, 6, double>;
-template class ModelFactory<PHILIP_DIM, 7, double>;
 template class ModelFactory<PHILIP_DIM, 8, double>;
-template class ModelFactory<PHILIP_DIM, 9, double>;
-template class ModelFactory<PHILIP_DIM, 10, double>;
-template class ModelFactory<PHILIP_DIM, 11, double>;
-template class ModelFactory<PHILIP_DIM, 12, double>;
-template class ModelFactory<PHILIP_DIM, 13, double>;
-template class ModelFactory<PHILIP_DIM, 14, double>;
-template class ModelFactory<PHILIP_DIM, 15, double>;
-template class ModelFactory<PHILIP_DIM, 5+11, double>; // "maximum n_state" = "5+maximum_n_species"
 
 template class ModelFactory<PHILIP_DIM, 1, FadType>;
 template class ModelFactory<PHILIP_DIM, 2, FadType>;
@@ -207,16 +198,7 @@ template class ModelFactory<PHILIP_DIM, 3, FadType>;
 template class ModelFactory<PHILIP_DIM, 4, FadType>;
 template class ModelFactory<PHILIP_DIM, 5, FadType>;
 template class ModelFactory<PHILIP_DIM, 6, FadType>;
-template class ModelFactory<PHILIP_DIM, 7, FadType>;
 template class ModelFactory<PHILIP_DIM, 8, FadType>;
-template class ModelFactory<PHILIP_DIM, 9, FadType>;
-template class ModelFactory<PHILIP_DIM, 10, FadType>;
-template class ModelFactory<PHILIP_DIM, 11, FadType>;
-template class ModelFactory<PHILIP_DIM, 12, FadType>;
-template class ModelFactory<PHILIP_DIM, 13, FadType>;
-template class ModelFactory<PHILIP_DIM, 14, FadType>;
-template class ModelFactory<PHILIP_DIM, 15, FadType>;
-template class ModelFactory<PHILIP_DIM, 5+11, FadType>; // "maximum n_state" = "5+maximum_n_species"
 
 template class ModelFactory<PHILIP_DIM, 1, RadType>;
 template class ModelFactory<PHILIP_DIM, 2, RadType>;
@@ -224,16 +206,7 @@ template class ModelFactory<PHILIP_DIM, 3, RadType>;
 template class ModelFactory<PHILIP_DIM, 4, RadType>;
 template class ModelFactory<PHILIP_DIM, 5, RadType>;
 template class ModelFactory<PHILIP_DIM, 6, RadType>;
-template class ModelFactory<PHILIP_DIM, 7, RadType>;
 template class ModelFactory<PHILIP_DIM, 8, RadType>;
-template class ModelFactory<PHILIP_DIM, 9, RadType>;
-template class ModelFactory<PHILIP_DIM, 10, RadType>;
-template class ModelFactory<PHILIP_DIM, 11, RadType>;
-template class ModelFactory<PHILIP_DIM, 12, RadType>;
-template class ModelFactory<PHILIP_DIM, 13, RadType>;
-template class ModelFactory<PHILIP_DIM, 14, RadType>;
-template class ModelFactory<PHILIP_DIM, 15, RadType>;
-template class ModelFactory<PHILIP_DIM, 5+11, RadType>; // "maximum n_state" = "5+maximum_n_species"
 
 template class ModelFactory<PHILIP_DIM, 1, FadFadType>;
 template class ModelFactory<PHILIP_DIM, 2, FadFadType>;
@@ -241,16 +214,7 @@ template class ModelFactory<PHILIP_DIM, 3, FadFadType>;
 template class ModelFactory<PHILIP_DIM, 4, FadFadType>;
 template class ModelFactory<PHILIP_DIM, 5, FadFadType>;
 template class ModelFactory<PHILIP_DIM, 6, FadFadType>;
-template class ModelFactory<PHILIP_DIM, 7, FadFadType>;
 template class ModelFactory<PHILIP_DIM, 8, FadFadType>;
-template class ModelFactory<PHILIP_DIM, 9, FadFadType>;
-template class ModelFactory<PHILIP_DIM, 10, FadFadType>;
-template class ModelFactory<PHILIP_DIM, 11, FadFadType>;
-template class ModelFactory<PHILIP_DIM, 12, FadFadType>;
-template class ModelFactory<PHILIP_DIM, 13, FadFadType>;
-template class ModelFactory<PHILIP_DIM, 14, FadFadType>;
-template class ModelFactory<PHILIP_DIM, 15, FadFadType>;
-template class ModelFactory<PHILIP_DIM, 5+11, FadFadType>; // "maximum n_state" = "5+maximum_n_species"
 
 template class ModelFactory<PHILIP_DIM, 1, RadFadType>;
 template class ModelFactory<PHILIP_DIM, 2, RadFadType>;
@@ -258,16 +222,7 @@ template class ModelFactory<PHILIP_DIM, 3, RadFadType>;
 template class ModelFactory<PHILIP_DIM, 4, RadFadType>;
 template class ModelFactory<PHILIP_DIM, 5, RadFadType>;
 template class ModelFactory<PHILIP_DIM, 6, RadFadType>;
-template class ModelFactory<PHILIP_DIM, 7, RadFadType>;
 template class ModelFactory<PHILIP_DIM, 8, RadFadType>;
-template class ModelFactory<PHILIP_DIM, 9, RadFadType>;
-template class ModelFactory<PHILIP_DIM, 10, RadFadType>;
-template class ModelFactory<PHILIP_DIM, 11, RadFadType>;
-template class ModelFactory<PHILIP_DIM, 12, RadFadType>;
-template class ModelFactory<PHILIP_DIM, 13, RadFadType>;
-template class ModelFactory<PHILIP_DIM, 14, RadFadType>;
-template class ModelFactory<PHILIP_DIM, 15, RadFadType>;
-template class ModelFactory<PHILIP_DIM, 5+11, RadFadType>; // "maximum n_state" = "5+maximum_n_species"
 
 } // Physics namespace
 } // PHiLiP namespace

@@ -3145,7 +3145,6 @@ template class DGStrong <PHILIP_DIM, 3, double, dealii::Triangulation<PHILIP_DIM
 template class DGStrong <PHILIP_DIM, 4, double, dealii::Triangulation<PHILIP_DIM>>;
 template class DGStrong <PHILIP_DIM, 5, double, dealii::Triangulation<PHILIP_DIM>>;
 template class DGStrong <PHILIP_DIM, 6, double, dealii::Triangulation<PHILIP_DIM>>;
-// template class DGStrong <PHILIP_DIM, PHILIP_DIM+2+(N_SPECIES-1),double, dealii::Triangulation<PHILIP_DIM>>; // TO DO: (dim+2)+(nspecies-1) 
 
 template class DGStrong <PHILIP_DIM, 1, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
 template class DGStrong <PHILIP_DIM, 2, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
@@ -3153,7 +3152,6 @@ template class DGStrong <PHILIP_DIM, 3, double, dealii::parallel::shared::Triang
 template class DGStrong <PHILIP_DIM, 4, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
 template class DGStrong <PHILIP_DIM, 5, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
 template class DGStrong <PHILIP_DIM, 6, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
-// template class DGStrong <PHILIP_DIM, PHILIP_DIM+2+(N_SPECIES-1),double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>; // TO DO: (dim+2)+(nspecies-1) 
 
 #if PHILIP_DIM!=1
 template class DGStrong <PHILIP_DIM, 1, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
@@ -3162,7 +3160,6 @@ template class DGStrong <PHILIP_DIM, 3, double, dealii::parallel::distributed::T
 template class DGStrong <PHILIP_DIM, 4, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
 template class DGStrong <PHILIP_DIM, 5, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
 template class DGStrong <PHILIP_DIM, 6, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
-// template class DGStrong <PHILIP_DIM, PHILIP_DIM+2+(N_SPECIES-1),double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>; // TO DO: (dim+2)+(nspecies-1) 
 #endif
 
 } // PHiLiP namespace

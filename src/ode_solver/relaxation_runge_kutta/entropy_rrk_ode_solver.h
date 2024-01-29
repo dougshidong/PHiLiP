@@ -9,15 +9,15 @@ namespace ODE {
 
 /// Relaxation Runge-Kutta ODE solver, calculating the relaxation parameter as in Ranocha 2020
 #if PHILIP_DIM==1
-template <int dim, typename real, int n_rk_stages, typename MeshType = dealii::Triangulation<dim>>
+template <int dim, typename real, typename MeshType = dealii::Triangulation<dim>>
 #else
-template <int dim, typename real, int n_rk_stages, typename MeshType = dealii::parallel::distributed::Triangulation<dim>>
+template <int dim, typename real, typename MeshType = dealii::parallel::distributed::Triangulation<dim>>
 #endif
-class EntropyRRKODESolver: public RRKODESolverBase<dim, real, n_rk_stages, MeshType>
+class EntropyRRKODESolver: public RRKODESolverBase<dim, real, MeshType>
 {
 public:
     /// Default constructor that will set the constants.
-    EntropyRRKODESolver(std::shared_ptr< DGBase<dim, real, MeshType> > dg_input,
+    EntropyRRKODESolver(
             std::shared_ptr<RKTableauBase<dim,real,MeshType>> rk_tableau_input);
 
 protected:

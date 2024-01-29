@@ -1,7 +1,8 @@
 #ifndef __EMPTY_RRK_BASE_H__
 #define __EMPTY_RRK_BASE_H__
 
-#include "dg/dg_base.hpp"
+//#include "dg/dg_base.hpp"
+#include "ode_solver/runge_kutta_methods/rk_tableau_base.h"
 //#include "ode_solver/runge_kutta_ode_solver.h"
 //#include "ode_solver/explicit_ode_solver.h"
 
@@ -20,23 +21,20 @@ class EmptyRRKBase
 {
 public:
     /// Default constructor that will set the constants.
-    EmptyRRKBase();
-            //std::shared_ptr<RKTableauBase<dim,real,MeshType>> rk_tableau_input);
+    EmptyRRKBase(std::shared_ptr<RKTableauBase<dim,real,MeshType>> /*rk_tableau_input*/);
 
     /// Calculate FR entropy adjustment
     /** Empty here
      */
-    double compute_FR_entropy_contribution(const bool /*compute_K_norm*/) const {
+    virtual double compute_FR_entropy_contribution(const bool /*compute_K_norm*/) const {
         return 0.0;
     };
 
-protected:
-    
     /// Update stored quantities at the current stage
     /** Does nothing here */
-    void store_stage_solutions(const int /*istage*/) {};
+    virtual void store_stage_solutions(const int /*istage*/) {};
 
-    double modify_time_step(const double dt) {
+    virtual double modify_time_step(const double dt) {
         return dt;
     }; // will likely also need to pass DG 
     

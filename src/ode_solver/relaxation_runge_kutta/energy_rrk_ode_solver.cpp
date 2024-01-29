@@ -3,17 +3,18 @@
 namespace PHiLiP {
 namespace ODE {
 
-template <int dim, typename real, int n_rk_stages, typename MeshType>
-EnergyRRKODESolver<dim,real,n_rk_stages,MeshType>::EnergyRRKODESolver(std::shared_ptr< DGBase<dim, real, MeshType> > dg_input,
+template <int dim, typename real, typename MeshType>
+EnergyRRKODESolver<dim,real,MeshType>::EnergyRRKODESolver(
             std::shared_ptr<RKTableauBase<dim,real,MeshType>> rk_tableau_input)
-        : RungeKuttaODESolver<dim,real,n_rk_stages,MeshType>(dg_input,rk_tableau_input)
+        : EmptyRRKBase<dim,real,MeshType>(rk_tableau_input)
+        , n_rk_stages(rk_tableau_input->n_rk_stages)
 {
 
     relaxation_parameter=1.0;
 }
 
-template <int dim, typename real, int n_rk_stages, typename MeshType>
-void EnergyRRKODESolver<dim,real,n_rk_stages,MeshType>::modify_time_step(real &dt)
+template <int dim, typename real, typename MeshType>
+double EnergyRRKODESolver<dim,real,MeshType>::modify_time_step(const double dt)
 {
     // Update solution such that dg is holding u^n (not last stage of RK)
     this->dg->solution = this->solution_update;
@@ -27,10 +28,12 @@ void EnergyRRKODESolver<dim,real,n_rk_stages,MeshType>::modify_time_step(real &d
         std::abort();
     }
     dt *= relaxation_parameter;
+
+    return dt;
 }
 
-template <int dim, typename real, int n_rk_stages, typename MeshType>
-real EnergyRRKODESolver<dim,real,n_rk_stages,MeshType>::compute_relaxation_parameter(real & /*dt*/)
+template <int dim, typename real, typename MeshType>
+real EnergyRRKODESolver<dim,real,MeshType>::compute_relaxation_parameter(real & /*dt*/)
 {
     //See Ketcheson 2019, Eq. 2.4
     double gamma = 1;
@@ -49,8 +52,8 @@ real EnergyRRKODESolver<dim,real,n_rk_stages,MeshType>::compute_relaxation_param
     return gamma;
 }
 
-template <int dim, typename real, int n_rk_stages, typename MeshType>
-real EnergyRRKODESolver<dim,real,n_rk_stages,MeshType>::compute_inner_product (
+template <int dim, typename real, typename MeshType>
+real EnergyRRKODESolver<dim,real,MeshType>::compute_inner_product (
         const dealii::LinearAlgebra::distributed::Vector<double> &stage_i,
         const dealii::LinearAlgebra::distributed::Vector<double> &stage_j
         ) const
@@ -69,19 +72,10 @@ real EnergyRRKODESolver<dim,real,n_rk_stages,MeshType>::compute_inner_product (
     return result;
 }
 
-template class EnergyRRKODESolver<PHILIP_DIM, double,1, dealii::Triangulation<PHILIP_DIM> >;
-template class EnergyRRKODESolver<PHILIP_DIM, double,2, dealii::Triangulation<PHILIP_DIM> >;
-template class EnergyRRKODESolver<PHILIP_DIM, double,3, dealii::Triangulation<PHILIP_DIM> >;
-template class EnergyRRKODESolver<PHILIP_DIM, double,4, dealii::Triangulation<PHILIP_DIM> >;
-template class EnergyRRKODESolver<PHILIP_DIM, double,1, dealii::parallel::shared::Triangulation<PHILIP_DIM> >;
-template class EnergyRRKODESolver<PHILIP_DIM, double,2, dealii::parallel::shared::Triangulation<PHILIP_DIM> >;
-template class EnergyRRKODESolver<PHILIP_DIM, double,3, dealii::parallel::shared::Triangulation<PHILIP_DIM> >;
-template class EnergyRRKODESolver<PHILIP_DIM, double,4, dealii::parallel::shared::Triangulation<PHILIP_DIM> >;
+template class EnergyRRKODESolver<PHILIP_DIM, double, dealii::Triangulation<PHILIP_DIM> >;
+template class EnergyRRKODESolver<PHILIP_DIM, double, dealii::parallel::shared::Triangulation<PHILIP_DIM> >;
 #if PHILIP_DIM != 1
-    template class EnergyRRKODESolver<PHILIP_DIM, double,1, dealii::parallel::distributed::Triangulation<PHILIP_DIM> >;
-    template class EnergyRRKODESolver<PHILIP_DIM, double,2, dealii::parallel::distributed::Triangulation<PHILIP_DIM> >;
-    template class EnergyRRKODESolver<PHILIP_DIM, double,3, dealii::parallel::distributed::Triangulation<PHILIP_DIM> >;
-    template class EnergyRRKODESolver<PHILIP_DIM, double,4, dealii::parallel::distributed::Triangulation<PHILIP_DIM> >;
+    template class EnergyRRKODESolver<PHILIP_DIM, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM> >;
 #endif
 
 } // ODESolver namespace

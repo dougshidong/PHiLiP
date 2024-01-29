@@ -3,15 +3,15 @@
 namespace PHiLiP {
 namespace ODE {
 
-template <int dim, typename real, int n_rk_stages, typename MeshType>
-EntropyRRKODESolver<dim,real,n_rk_stages,MeshType>::EntropyRRKODESolver(std::shared_ptr< DGBase<dim, real, MeshType> > dg_input,
+template <int dim, typename real, typename MeshType>
+EntropyRRKODESolver<dim,real,MeshType>::EntropyRRKODESolver(
             std::shared_ptr<RKTableauBase<dim,real,MeshType>> rk_tableau_input)
-        : RRKODESolverBase<dim,real,n_rk_stages,MeshType>(dg_input,rk_tableau_input)
+        : RRKODESolverBase<dim,real,MeshType>(rk_tableau_input)
 {
 }
 
-template <int dim, typename real, int n_rk_stages, typename MeshType>
-real EntropyRRKODESolver<dim,real,n_rk_stages,MeshType>::compute_relaxation_parameter(real &dt)
+template <int dim, typename real, typename MeshType>
+real EntropyRRKODESolver<dim,real,MeshType>::compute_relaxation_parameter(real &dt)
 {
     // Console output is based on linearsolverparam
     const bool do_output = (this->dg->all_parameters->linear_solver_param.linear_solver_output == Parameters::OutputEnum::verbose); 
@@ -169,8 +169,8 @@ real EntropyRRKODESolver<dim,real,n_rk_stages,MeshType>::compute_relaxation_para
 }
 
 
-template <int dim, typename real, int n_rk_stages, typename MeshType>
-real EntropyRRKODESolver<dim,real,n_rk_stages,MeshType>::compute_root_function(
+template <int dim, typename real, typename MeshType>
+real EntropyRRKODESolver<dim,real,MeshType>::compute_root_function(
         const double gamma,
         const dealii::LinearAlgebra::distributed::Vector<double> &u_n,
         const dealii::LinearAlgebra::distributed::Vector<double> &step_direction,
@@ -184,8 +184,8 @@ real EntropyRRKODESolver<dim,real,n_rk_stages,MeshType>::compute_root_function(
 }
 
 
-template <int dim, typename real, int n_rk_stages, typename MeshType>
-real EntropyRRKODESolver<dim,real,n_rk_stages,MeshType>::compute_numerical_entropy(
+template <int dim, typename real, typename MeshType>
+real EntropyRRKODESolver<dim,real,MeshType>::compute_numerical_entropy(
         const dealii::LinearAlgebra::distributed::Vector<double> &u) const 
 {
     real num_entropy = compute_integrated_numerical_entropy(u);
@@ -195,8 +195,8 @@ real EntropyRRKODESolver<dim,real,n_rk_stages,MeshType>::compute_numerical_entro
 }
 
 
-template <int dim, typename real, int n_rk_stages, typename MeshType>
-real EntropyRRKODESolver<dim,real,n_rk_stages,MeshType>::compute_integrated_numerical_entropy(
+template <int dim, typename real, typename MeshType>
+real EntropyRRKODESolver<dim,real,MeshType>::compute_integrated_numerical_entropy(
         const dealii::LinearAlgebra::distributed::Vector<double> &u) const
 {
     // This function is reproduced from flow_solver_cases/periodic_turbulence
@@ -389,8 +389,8 @@ real EntropyRRKODESolver<dim,real,n_rk_stages,MeshType>::compute_integrated_nume
     return integrated_quantity;
 }
 
-template <int dim, typename real, int n_rk_stages, typename MeshType>
-real EntropyRRKODESolver<dim,real,n_rk_stages,MeshType>::compute_entropy_change_estimate(real &dt, const bool use_M_norm_for_entropy_change_est) const
+template <int dim, typename real, typename MeshType>
+real EntropyRRKODESolver<dim,real,MeshType>::compute_entropy_change_estimate(real &dt, const bool use_M_norm_for_entropy_change_est) const
 {
     double entropy_change_estimate = 0;
 
@@ -424,19 +424,10 @@ real EntropyRRKODESolver<dim,real,n_rk_stages,MeshType>::compute_entropy_change_
     return dt * entropy_change_estimate;
 }
 
-template class EntropyRRKODESolver<PHILIP_DIM, double,1, dealii::Triangulation<PHILIP_DIM> >;
-template class EntropyRRKODESolver<PHILIP_DIM, double,2, dealii::Triangulation<PHILIP_DIM> >;
-template class EntropyRRKODESolver<PHILIP_DIM, double,3, dealii::Triangulation<PHILIP_DIM> >;
-template class EntropyRRKODESolver<PHILIP_DIM, double,4, dealii::Triangulation<PHILIP_DIM> >;
-template class EntropyRRKODESolver<PHILIP_DIM, double,1, dealii::parallel::shared::Triangulation<PHILIP_DIM> >;
-template class EntropyRRKODESolver<PHILIP_DIM, double,2, dealii::parallel::shared::Triangulation<PHILIP_DIM> >;
-template class EntropyRRKODESolver<PHILIP_DIM, double,3, dealii::parallel::shared::Triangulation<PHILIP_DIM> >;
-template class EntropyRRKODESolver<PHILIP_DIM, double,4, dealii::parallel::shared::Triangulation<PHILIP_DIM> >;
+template class EntropyRRKODESolver<PHILIP_DIM, double, dealii::Triangulation<PHILIP_DIM> >;
+template class EntropyRRKODESolver<PHILIP_DIM, double, dealii::parallel::shared::Triangulation<PHILIP_DIM> >;
 #if PHILIP_DIM != 1
-    template class EntropyRRKODESolver<PHILIP_DIM, double,1, dealii::parallel::distributed::Triangulation<PHILIP_DIM> >;
-    template class EntropyRRKODESolver<PHILIP_DIM, double,2, dealii::parallel::distributed::Triangulation<PHILIP_DIM> >;
-    template class EntropyRRKODESolver<PHILIP_DIM, double,3, dealii::parallel::distributed::Triangulation<PHILIP_DIM> >;
-    template class EntropyRRKODESolver<PHILIP_DIM, double,4, dealii::parallel::distributed::Triangulation<PHILIP_DIM> >;
+    template class EntropyRRKODESolver<PHILIP_DIM, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM> >;
 #endif
 
 } // ODESolver namespace

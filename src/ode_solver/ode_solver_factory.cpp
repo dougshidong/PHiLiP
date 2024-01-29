@@ -122,13 +122,12 @@ std::shared_ptr<ODESolverBase<dim,real,MeshType>> ODESolverFactory<dim,real,Mesh
     dealii::ConditionalOStream pcout(std::cout, dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD)==0);
 
     std::shared_ptr<RKTableauBase<dim,real,MeshType>> rk_tableau = create_RKTableau(dg_input);
-    std::shared_ptr<EmptyRRKBase<dim,real,MeshType>> RRK_object = create_RRKObject();//dg_input);
-    (void) RRK_object;
+    std::shared_ptr<EmptyRRKBase<dim,real,MeshType>> RRK_object = create_RRKObject(dg_input, rk_tableau);
 
     const int n_rk_stages = dg_input->all_parameters->ode_solver_param.n_rk_stages;
     using ODEEnum = Parameters::ODESolverParam::ODESolverEnum;
     const ODEEnum ode_solver_type = dg_input->all_parameters->ode_solver_param.ode_solver_type;
-    if (ode_solver_type == ODEEnum::runge_kutta_solver && dg_input->all_parameters->flow_solver_param.do_calculate_numerical_entropy) {
+    /*if (ode_solver_type == ODEEnum::runge_kutta_solver && dg_input->all_parameters->flow_solver_param.do_calculate_numerical_entropy) {
         // If calculating numerical entropy, select the derived class which has that functionality
         // Hard-coded templating of n_rk_stages because it is not known at compile time
         pcout << "Creating Runge Kutta ODE Solver with " 
@@ -150,8 +149,8 @@ std::shared_ptr<ODESolverBase<dim,real,MeshType>> ODESolverFactory<dim,real,Mesh
             std::abort();
             return nullptr;
         }
-    }
-    else if (ode_solver_type == ODEEnum::runge_kutta_solver) {
+    }*/
+    if (ode_solver_type == ODEEnum::runge_kutta_solver) {
         // Hard-coded templating of n_rk_stages because it is not known at compile time
         pcout << "Creating Runge Kutta ODE Solver with " 
               << n_rk_stages << " stage(s)..." << std::endl;
@@ -173,6 +172,7 @@ std::shared_ptr<ODESolverBase<dim,real,MeshType>> ODESolverFactory<dim,real,Mesh
             return nullptr;
         }
     }
+    /*
     else if (ode_solver_type == ODEEnum::rrk_explicit_solver){
 
         using PDEEnum = Parameters::AllParameters::PartialDifferentialEquation;
@@ -231,6 +231,7 @@ std::shared_ptr<ODESolverBase<dim,real,MeshType>> ODESolverFactory<dim,real,Mesh
             return nullptr;
         }
     }
+    */
     else {
         display_error_ode_solver_factory(ode_solver_type, false);
         return nullptr;
@@ -270,10 +271,13 @@ std::shared_ptr<RKTableauBase<dim,real,MeshType>> ODESolverFactory<dim,real,Mesh
 }
 
 template <int dim, typename real, typename MeshType>
-std::shared_ptr<EmptyRRKBase<dim,real,MeshType>> ODESolverFactory<dim,real,MeshType>::create_RRKObject() //std::shared_ptr< DGBase<dim,real,MeshType> > dg_input)
+std::shared_ptr<EmptyRRKBase<dim,real,MeshType>> ODESolverFactory<dim,real,MeshType>::create_RRKObject( std::shared_ptr< DGBase<dim,real,MeshType> > dg_input,
+       std::shared_ptr<RKTableauBase<dim,real,MeshType>> rk_tableau)
 {
-    //(void) dg_input;
-    return std::make_shared<EmptyRRKBase<dim,real,MeshType>> ();
+    (void) dg_input;
+    (void) rk_tableau;
+    return std::make_shared<EmptyRRKBase<dim,real,MeshType>> (rk_tableau); //NOTE : I probably don't need to pass rk_tableau here. Likely only need to pass it to higher classes.
+
 
 }
 

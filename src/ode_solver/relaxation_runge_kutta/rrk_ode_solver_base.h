@@ -11,15 +11,15 @@ namespace ODE {
 
 /// Relaxation Runge-Kutta ODE solver base class derived from RungeKuttaODESolver.
 #if PHILIP_DIM==1
-template <int dim, typename real, int n_rk_stages, typename MeshType = dealii::Triangulation<dim>>
+template <int dim, typename real, typename MeshType = dealii::Triangulation<dim>>
 #else
-template <int dim, typename real, int n_rk_stages, typename MeshType = dealii::parallel::distributed::Triangulation<dim>>
+template <int dim, typename real, typename MeshType = dealii::parallel::distributed::Triangulation<dim>>
 #endif
-class RRKODESolverBase: public RKNumEntropy<dim, real, n_rk_stages, MeshType>
+class RRKODESolverBase: public RKNumEntropy<dim, real, MeshType>
 {
 public:
     /// Default constructor that will set the constants.
-    RRKODESolverBase(std::shared_ptr< DGBase<dim, real, MeshType> > dg_input,
+    RRKODESolverBase(
             std::shared_ptr<RKTableauBase<dim,real,MeshType>> rk_tableau_input);
 
     /// Relaxation Runge-Kutta parameter gamma^n
@@ -31,7 +31,7 @@ public:
 protected:
 
     /// Modify timestep based on relaxation
-    void modify_time_step (real &dt) override;
+    double modify_time_step (const double dt) override;
     
 
     /// Compute relaxation parameter explicitly (i.e. if energy is the entropy variable)

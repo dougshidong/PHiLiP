@@ -5,10 +5,15 @@
 namespace PHiLiP {
 namespace ODE {
 
-template <int dim, typename real, int n_rk_stages, typename MeshType>
-RKNumEntropy<dim,real,n_rk_stages,MeshType>::RKNumEntropy(std::shared_ptr< DGBase<dim, real, MeshType> > dg_input,
+template <int dim, typename real, typename MeshType>
+RKNumEntropy<dim,real,MeshType>::RKNumEntropy(
             std::shared_ptr<RKTableauBase<dim,real,MeshType>> rk_tableau_input)
-        : RungeKuttaODESolver<dim,real,n_rk_stages,MeshType>(dg_input,rk_tableau_input)
+        : EmptyRRKBase<dim,real,MeshType>(rk_tableau_input)
+        , rk_tableau(rk_tableau_input)
+        , n_rk_stages(rk_tableau->n_rk_stages)
+        , mpi_communicator(MPI_COMM_WORLD)
+        , mpi_rank(dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD))
+        , pcout(std::cout, mpi_rank==0)
 {
     this->rk_stage_solution.resize(n_rk_stages);
    
@@ -19,16 +24,16 @@ RKNumEntropy<dim,real,n_rk_stages,MeshType>::RKNumEntropy(std::shared_ptr< DGBas
                 Physics::PhysicsFactory<dim,dim+2,double>::create_Physics(&parameters_euler));
 }
 
-template <int dim, typename real, int n_rk_stages, typename MeshType>
-void RKNumEntropy<dim,real,n_rk_stages,MeshType>::store_stage_solutions(const int istage)
+template <int dim, typename real, typename MeshType>
+void RKNumEntropy<dim,real,MeshType>::store_stage_solutions(const int istage)
 {
     //Store the solution value
     //This function is called before rk_stage is modified to hold the time-derivative
     this->rk_stage_solution[istage]=this->rk_stage[istage]; 
 }
 
-template <int dim, typename real, int n_rk_stages, typename MeshType>
-dealii::LinearAlgebra::distributed::Vector<double> RKNumEntropy<dim,real,n_rk_stages,MeshType>::compute_entropy_vars(const dealii::LinearAlgebra::distributed::Vector<double> &u) const
+template <int dim, typename real, typename MeshType>
+dealii::LinearAlgebra::distributed::Vector<double> RKNumEntropy<dim,real,MeshType>::compute_entropy_vars(const dealii::LinearAlgebra::distributed::Vector<double> &u) const
 {
     // hard-code nstate for Euler/NS - ODESolverFactory has already ensured that we use Euler/NS
     const unsigned int nstate = dim + 2;
@@ -102,8 +107,8 @@ dealii::LinearAlgebra::distributed::Vector<double> RKNumEntropy<dim,real,n_rk_st
 }
 
 
-template <int dim, typename real, int n_rk_stages, typename MeshType>
-double RKNumEntropy<dim,real,n_rk_stages,MeshType>::compute_FR_entropy_contribution(const bool compute_K_norm) const
+template <int dim, typename real, typename MeshType>
+double RKNumEntropy<dim,real,MeshType>::compute_FR_entropy_contribution(const bool compute_K_norm) const
 {
     double entropy_contribution = 0;
 
@@ -147,19 +152,10 @@ double RKNumEntropy<dim,real,n_rk_stages,MeshType>::compute_FR_entropy_contribut
     return entropy_contribution;
 }
 
-template class RKNumEntropy<PHILIP_DIM, double,1, dealii::Triangulation<PHILIP_DIM> >;
-template class RKNumEntropy<PHILIP_DIM, double,2, dealii::Triangulation<PHILIP_DIM> >;
-template class RKNumEntropy<PHILIP_DIM, double,3, dealii::Triangulation<PHILIP_DIM> >;
-template class RKNumEntropy<PHILIP_DIM, double,4, dealii::Triangulation<PHILIP_DIM> >;
-template class RKNumEntropy<PHILIP_DIM, double,1, dealii::parallel::shared::Triangulation<PHILIP_DIM> >;
-template class RKNumEntropy<PHILIP_DIM, double,2, dealii::parallel::shared::Triangulation<PHILIP_DIM> >;
-template class RKNumEntropy<PHILIP_DIM, double,3, dealii::parallel::shared::Triangulation<PHILIP_DIM> >;
-template class RKNumEntropy<PHILIP_DIM, double,4, dealii::parallel::shared::Triangulation<PHILIP_DIM> >;
+template class RKNumEntropy<PHILIP_DIM, double, dealii::Triangulation<PHILIP_DIM> >;
+template class RKNumEntropy<PHILIP_DIM, double, dealii::parallel::shared::Triangulation<PHILIP_DIM> >;
 #if PHILIP_DIM != 1
-    template class RKNumEntropy<PHILIP_DIM, double,1, dealii::parallel::distributed::Triangulation<PHILIP_DIM> >;
-    template class RKNumEntropy<PHILIP_DIM, double,2, dealii::parallel::distributed::Triangulation<PHILIP_DIM> >;
-    template class RKNumEntropy<PHILIP_DIM, double,3, dealii::parallel::distributed::Triangulation<PHILIP_DIM> >;
-    template class RKNumEntropy<PHILIP_DIM, double,4, dealii::parallel::distributed::Triangulation<PHILIP_DIM> >;
+    template class RKNumEntropy<PHILIP_DIM, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM> >;
 #endif
 
 } // ODESolver namespace

@@ -326,130 +326,225 @@ std::array<real, nstate> BassiRebay2<dim,nstate,real>
 }
 
 // Instantiation
+#if N_SPECIES>1
+template class NumericalFluxDissipative<PHILIP_DIM, (PHILIP_DIM+2)+(N_SPECIES-1), double>;
+#else
 template class NumericalFluxDissipative<PHILIP_DIM, 1, double>;
 template class NumericalFluxDissipative<PHILIP_DIM, 2, double>;
 template class NumericalFluxDissipative<PHILIP_DIM, 3, double>;
 template class NumericalFluxDissipative<PHILIP_DIM, 4, double>;
 template class NumericalFluxDissipative<PHILIP_DIM, 5, double>;
 template class NumericalFluxDissipative<PHILIP_DIM, 6, double>;
+#endif
+
+#if N_SPECIES>1
+template class NumericalFluxDissipative<PHILIP_DIM, (PHILIP_DIM+2)+(N_SPECIES-1), FadType >;
+#else
 template class NumericalFluxDissipative<PHILIP_DIM, 1, FadType >;
 template class NumericalFluxDissipative<PHILIP_DIM, 2, FadType >;
 template class NumericalFluxDissipative<PHILIP_DIM, 3, FadType >;
 template class NumericalFluxDissipative<PHILIP_DIM, 4, FadType >;
 template class NumericalFluxDissipative<PHILIP_DIM, 5, FadType >;
 template class NumericalFluxDissipative<PHILIP_DIM, 6, FadType >;
+#endif
+
+#if N_SPECIES>1
+template class NumericalFluxDissipative<PHILIP_DIM, (PHILIP_DIM+2)+(N_SPECIES-1), RadType >;
+#else
 template class NumericalFluxDissipative<PHILIP_DIM, 1, RadType >;
 template class NumericalFluxDissipative<PHILIP_DIM, 2, RadType >;
 template class NumericalFluxDissipative<PHILIP_DIM, 3, RadType >;
 template class NumericalFluxDissipative<PHILIP_DIM, 4, RadType >;
 template class NumericalFluxDissipative<PHILIP_DIM, 5, RadType >;
 template class NumericalFluxDissipative<PHILIP_DIM, 6, RadType >;
+#endif
+
+#if N_SPECIES>1
+template class NumericalFluxDissipative<PHILIP_DIM, (PHILIP_DIM+2)+(N_SPECIES-1), FadFadType >;
+#else
 template class NumericalFluxDissipative<PHILIP_DIM, 1, FadFadType >;
 template class NumericalFluxDissipative<PHILIP_DIM, 2, FadFadType >;
 template class NumericalFluxDissipative<PHILIP_DIM, 3, FadFadType >;
 template class NumericalFluxDissipative<PHILIP_DIM, 4, FadFadType >;
 template class NumericalFluxDissipative<PHILIP_DIM, 5, FadFadType >;
 template class NumericalFluxDissipative<PHILIP_DIM, 6, FadFadType >;
+#endif
+
+#if N_SPECIES>1
+template class NumericalFluxDissipative<PHILIP_DIM, (PHILIP_DIM+2)+(N_SPECIES-1), RadFadType >;
+#else
 template class NumericalFluxDissipative<PHILIP_DIM, 1, RadFadType >;
 template class NumericalFluxDissipative<PHILIP_DIM, 2, RadFadType >;
 template class NumericalFluxDissipative<PHILIP_DIM, 3, RadFadType >;
 template class NumericalFluxDissipative<PHILIP_DIM, 4, RadFadType >;
 template class NumericalFluxDissipative<PHILIP_DIM, 5, RadFadType >;
 template class NumericalFluxDissipative<PHILIP_DIM, 6, RadFadType >;
+#endif
 
-
+#if N_SPECIES>1
+template class SymmetricInternalPenalty<PHILIP_DIM, (PHILIP_DIM+2)+(N_SPECIES-1), double>;
+#else
 template class SymmetricInternalPenalty<PHILIP_DIM, 1, double>;
 template class SymmetricInternalPenalty<PHILIP_DIM, 2, double>;
 template class SymmetricInternalPenalty<PHILIP_DIM, 3, double>;
 template class SymmetricInternalPenalty<PHILIP_DIM, 4, double>;
 template class SymmetricInternalPenalty<PHILIP_DIM, 5, double>;
 template class SymmetricInternalPenalty<PHILIP_DIM, 6, double>;
+#endif
+
+#if N_SPECIES>1
+template class SymmetricInternalPenalty<PHILIP_DIM, (PHILIP_DIM+2)+(N_SPECIES-1), FadType >;
+#else
 template class SymmetricInternalPenalty<PHILIP_DIM, 1, FadType >;
 template class SymmetricInternalPenalty<PHILIP_DIM, 2, FadType >;
 template class SymmetricInternalPenalty<PHILIP_DIM, 3, FadType >;
 template class SymmetricInternalPenalty<PHILIP_DIM, 4, FadType >;
 template class SymmetricInternalPenalty<PHILIP_DIM, 5, FadType >;
 template class SymmetricInternalPenalty<PHILIP_DIM, 6, FadType >;
+#endif
+
+#if N_SPECIES>1
+template class SymmetricInternalPenalty<PHILIP_DIM, (PHILIP_DIM+2)+(N_SPECIES-1), RadType >;
+#else
 template class SymmetricInternalPenalty<PHILIP_DIM, 1, RadType >;
 template class SymmetricInternalPenalty<PHILIP_DIM, 2, RadType >;
 template class SymmetricInternalPenalty<PHILIP_DIM, 3, RadType >;
 template class SymmetricInternalPenalty<PHILIP_DIM, 4, RadType >;
 template class SymmetricInternalPenalty<PHILIP_DIM, 5, RadType >;
 template class SymmetricInternalPenalty<PHILIP_DIM, 6, RadType >;
+#endif
+
+#if N_SPECIES>1
+template class SymmetricInternalPenalty<PHILIP_DIM, (PHILIP_DIM+2)+(N_SPECIES-1), FadFadType >;
+#else
 template class SymmetricInternalPenalty<PHILIP_DIM, 1, FadFadType >;
 template class SymmetricInternalPenalty<PHILIP_DIM, 2, FadFadType >;
 template class SymmetricInternalPenalty<PHILIP_DIM, 3, FadFadType >;
 template class SymmetricInternalPenalty<PHILIP_DIM, 4, FadFadType >;
 template class SymmetricInternalPenalty<PHILIP_DIM, 5, FadFadType >;
 template class SymmetricInternalPenalty<PHILIP_DIM, 6, FadFadType >;
+#endif
+
+#if N_SPECIES>1
+template class SymmetricInternalPenalty<PHILIP_DIM, (PHILIP_DIM+2)+(N_SPECIES-1), RadFadType >;
+#else
 template class SymmetricInternalPenalty<PHILIP_DIM, 1, RadFadType >;
 template class SymmetricInternalPenalty<PHILIP_DIM, 2, RadFadType >;
 template class SymmetricInternalPenalty<PHILIP_DIM, 3, RadFadType >;
 template class SymmetricInternalPenalty<PHILIP_DIM, 4, RadFadType >;
 template class SymmetricInternalPenalty<PHILIP_DIM, 5, RadFadType >;
 template class SymmetricInternalPenalty<PHILIP_DIM, 6, RadFadType >;
+#endif
 
+#if N_SPECIES>1
+template class BassiRebay2<PHILIP_DIM, (PHILIP_DIM+2)+(N_SPECIES-1), double>;
+#else
 template class BassiRebay2<PHILIP_DIM, 1, double>;
 template class BassiRebay2<PHILIP_DIM, 2, double>;
 template class BassiRebay2<PHILIP_DIM, 3, double>;
 template class BassiRebay2<PHILIP_DIM, 4, double>;
 template class BassiRebay2<PHILIP_DIM, 5, double>;
 template class BassiRebay2<PHILIP_DIM, 6, double>;
+#endif
+
+#if N_SPECIES>1
+template class BassiRebay2<PHILIP_DIM, (PHILIP_DIM+2)+(N_SPECIES-1), FadType >;
+#else
 template class BassiRebay2<PHILIP_DIM, 1, FadType >;
 template class BassiRebay2<PHILIP_DIM, 2, FadType >;
 template class BassiRebay2<PHILIP_DIM, 3, FadType >;
 template class BassiRebay2<PHILIP_DIM, 4, FadType >;
 template class BassiRebay2<PHILIP_DIM, 5, FadType >;
 template class BassiRebay2<PHILIP_DIM, 6, FadType >;
+#endif
+
+#if N_SPECIES>1
+template class BassiRebay2<PHILIP_DIM, (PHILIP_DIM+2)+(N_SPECIES-1), RadType >;
+#else
 template class BassiRebay2<PHILIP_DIM, 1, RadType >;
 template class BassiRebay2<PHILIP_DIM, 2, RadType >;
 template class BassiRebay2<PHILIP_DIM, 3, RadType >;
 template class BassiRebay2<PHILIP_DIM, 4, RadType >;
 template class BassiRebay2<PHILIP_DIM, 5, RadType >;
 template class BassiRebay2<PHILIP_DIM, 6, RadType >;
+#endif
+
+#if N_SPECIES>1
+template class BassiRebay2<PHILIP_DIM, (PHILIP_DIM+2)+(N_SPECIES-1), FadFadType >;
+#else
 template class BassiRebay2<PHILIP_DIM, 1, FadFadType >;
 template class BassiRebay2<PHILIP_DIM, 2, FadFadType >;
 template class BassiRebay2<PHILIP_DIM, 3, FadFadType >;
 template class BassiRebay2<PHILIP_DIM, 4, FadFadType >;
 template class BassiRebay2<PHILIP_DIM, 5, FadFadType >;
 template class BassiRebay2<PHILIP_DIM, 6, FadFadType >;
+#endif
+
+#if N_SPECIES>1
+template class BassiRebay2<PHILIP_DIM, (PHILIP_DIM+2)+(N_SPECIES-1), RadFadType >;
+#else
 template class BassiRebay2<PHILIP_DIM, 1, RadFadType >;
 template class BassiRebay2<PHILIP_DIM, 2, RadFadType >;
 template class BassiRebay2<PHILIP_DIM, 3, RadFadType >;
 template class BassiRebay2<PHILIP_DIM, 4, RadFadType >;
 template class BassiRebay2<PHILIP_DIM, 5, RadFadType >;
 template class BassiRebay2<PHILIP_DIM, 6, RadFadType >;
+#endif
 
+#if N_SPECIES>1
+template class CentralViscousNumericalFlux<PHILIP_DIM, (PHILIP_DIM+2)+(N_SPECIES-1), double>;
+#else
 template class CentralViscousNumericalFlux<PHILIP_DIM, 1, double>;
 template class CentralViscousNumericalFlux<PHILIP_DIM, 2, double>;
 template class CentralViscousNumericalFlux<PHILIP_DIM, 3, double>;
 template class CentralViscousNumericalFlux<PHILIP_DIM, 4, double>;
 template class CentralViscousNumericalFlux<PHILIP_DIM, 5, double>;
 template class CentralViscousNumericalFlux<PHILIP_DIM, 6, double>;
+#endif
+
+#if N_SPECIES>1
+template class CentralViscousNumericalFlux<PHILIP_DIM, (PHILIP_DIM+2)+(N_SPECIES-1), FadType >;
+#else
 template class CentralViscousNumericalFlux<PHILIP_DIM, 1, FadType >;
 template class CentralViscousNumericalFlux<PHILIP_DIM, 2, FadType >;
 template class CentralViscousNumericalFlux<PHILIP_DIM, 3, FadType >;
 template class CentralViscousNumericalFlux<PHILIP_DIM, 4, FadType >;
 template class CentralViscousNumericalFlux<PHILIP_DIM, 5, FadType >;
 template class CentralViscousNumericalFlux<PHILIP_DIM, 6, FadType >;
+#endif
+
+#if N_SPECIES>1
+template class CentralViscousNumericalFlux<PHILIP_DIM, (PHILIP_DIM+2)+(N_SPECIES-1), RadType >;
+#else
 template class CentralViscousNumericalFlux<PHILIP_DIM, 1, RadType >;
 template class CentralViscousNumericalFlux<PHILIP_DIM, 2, RadType >;
 template class CentralViscousNumericalFlux<PHILIP_DIM, 3, RadType >;
 template class CentralViscousNumericalFlux<PHILIP_DIM, 4, RadType >;
 template class CentralViscousNumericalFlux<PHILIP_DIM, 5, RadType >;
 template class CentralViscousNumericalFlux<PHILIP_DIM, 6, RadType >;
+#endif
+
+#if N_SPECIES>1
+template class CentralViscousNumericalFlux<PHILIP_DIM, (PHILIP_DIM+2)+(N_SPECIES-1), FadFadType >;
+#else
 template class CentralViscousNumericalFlux<PHILIP_DIM, 1, FadFadType >;
 template class CentralViscousNumericalFlux<PHILIP_DIM, 2, FadFadType >;
 template class CentralViscousNumericalFlux<PHILIP_DIM, 3, FadFadType >;
 template class CentralViscousNumericalFlux<PHILIP_DIM, 4, FadFadType >;
 template class CentralViscousNumericalFlux<PHILIP_DIM, 5, FadFadType >;
 template class CentralViscousNumericalFlux<PHILIP_DIM, 6, FadFadType >;
+#endif
+
+#if N_SPECIES>1
+template class CentralViscousNumericalFlux<PHILIP_DIM, (PHILIP_DIM+2)+(N_SPECIES-1), RadFadType >;
+#else
 template class CentralViscousNumericalFlux<PHILIP_DIM, 1, RadFadType >;
 template class CentralViscousNumericalFlux<PHILIP_DIM, 2, RadFadType >;
 template class CentralViscousNumericalFlux<PHILIP_DIM, 3, RadFadType >;
 template class CentralViscousNumericalFlux<PHILIP_DIM, 4, RadFadType >;
 template class CentralViscousNumericalFlux<PHILIP_DIM, 5, RadFadType >;
 template class CentralViscousNumericalFlux<PHILIP_DIM, 6, RadFadType >;
+#endif
 
 } // NumericalFlux namespace
 } // PHiLiP namespace

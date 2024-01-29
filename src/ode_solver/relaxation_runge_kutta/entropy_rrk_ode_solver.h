@@ -25,7 +25,7 @@ protected:
     /// Compute relaxation parameter numerically (i.e. if energy is NOT the entropy variable)
     /// See Ranocha 2020, Eq. 2.4
     real compute_relaxation_parameter(const real dt,
-            std::shared_ptr<DGBase<dim,double>> dg,
+            std::shared_ptr<DGBase<dim,real,MeshType>> dg,
             std::vector<dealii::LinearAlgebra::distributed::Vector<double>> &rk_stage,
             dealii::LinearAlgebra::distributed::Vector<double> &solution_update
             ) override;
@@ -37,21 +37,21 @@ protected:
             const dealii::LinearAlgebra::distributed::Vector<double> &d,
             const double eta_n,
             const double e,
-            std::shared_ptr<DGBase<dim,double>> dg) const;
+            std::shared_ptr<DGBase<dim,real,MeshType>> dg) const;
 
     /// Compute numerical entropy
     real compute_numerical_entropy(
             const dealii::LinearAlgebra::distributed::Vector<double> &u,
-            std::shared_ptr<DGBase<dim,double>> dg) const;
+            std::shared_ptr<DGBase<dim,real,MeshType>> dg) const;
     
     /// Compute numerical entropy by integrating over quadrature points
     real compute_integrated_numerical_entropy(
             const dealii::LinearAlgebra::distributed::Vector<double> &u,
-            std::shared_ptr<DGBase<dim,double>> dg) const;
+            std::shared_ptr<DGBase<dim,real,MeshType>> dg) const;
     
     /// Compute the estimated entropy change during a timestep
     real compute_entropy_change_estimate(const real dt,
-            std::shared_ptr<DGBase<dim,double>> dg,
+            std::shared_ptr<DGBase<dim,real,MeshType>> dg,
             std::vector<dealii::LinearAlgebra::distributed::Vector<double>> &rk_stage,
             const bool use_M_norm_for_entropy_change_est = true) const;
 

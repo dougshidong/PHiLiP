@@ -30,7 +30,7 @@ protected:
     /// Compute relaxation parameter explicitly (i.e. if energy is the entropy variable)
     /// See Ketcheson 2019, Eq. 2.4
     real compute_relaxation_parameter(const real dt,
-            std::shared_ptr<DGBase<dim,double>> dg,
+            std::shared_ptr<DGBase<dim,real,MeshType>> dg,
             std::vector<dealii::LinearAlgebra::distributed::Vector<double>> &rk_stage,
             dealii::LinearAlgebra::distributed::Vector<double> &/*solution_update*/
             ) override;
@@ -41,7 +41,7 @@ protected:
     real compute_inner_product(
             const dealii::LinearAlgebra::distributed::Vector<double> &stage_i,
             const dealii::LinearAlgebra::distributed::Vector<double> &stage_j,
-            std::shared_ptr<DGBase<dim,double>> dg
+            std::shared_ptr<DGBase<dim,real,MeshType>> dg
             ) const;
 
 public:

@@ -27,7 +27,7 @@ public:
     /** Empty here
      */
     virtual double compute_FR_entropy_contribution(const real /*dt*/,
-            std::shared_ptr<DGBase<dim,double>>/* dg*/,
+            std::shared_ptr<DGBase<dim,real,MeshType>>/* dg*/,
             std::vector<dealii::LinearAlgebra::distributed::Vector<double>> &/*rk_stage*/,
             const bool /*compute_K_norm*/) const{
         return 0.0;
@@ -39,7 +39,7 @@ public:
             const dealii::LinearAlgebra::distributed::Vector<double> /*rk_stage_i*/) {};
 
     virtual real modify_time_step(const real dt, 
-            std::shared_ptr<DGBase<dim,double>> /*dg*/,
+            std::shared_ptr<DGBase<dim,real,MeshType>> /*dg*/,
             std::vector<dealii::LinearAlgebra::distributed::Vector<double>> &/*rk_stage*/,
             dealii::LinearAlgebra::distributed::Vector<double> &/*solution_update*/
             ) {

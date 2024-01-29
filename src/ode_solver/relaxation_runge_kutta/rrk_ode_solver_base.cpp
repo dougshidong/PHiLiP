@@ -13,7 +13,7 @@ RRKODESolverBase<dim,real,MeshType>::RRKODESolverBase(
 
 template <int dim, typename real, typename MeshType>
 real RRKODESolverBase<dim,real,MeshType>::modify_time_step(const real dt,
-            std::shared_ptr<DGBase<dim,double>> dg,
+            std::shared_ptr<DGBase<dim,real,MeshType>> dg,
             std::vector<dealii::LinearAlgebra::distributed::Vector<double>> &rk_stage,
             dealii::LinearAlgebra::distributed::Vector<double> &solution_update)
 {

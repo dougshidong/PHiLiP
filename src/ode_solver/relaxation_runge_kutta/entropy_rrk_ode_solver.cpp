@@ -14,7 +14,7 @@ EntropyRRKODESolver<dim,real,MeshType>::EntropyRRKODESolver(
 
 template <int dim, typename real, typename MeshType>
 real EntropyRRKODESolver<dim,real,MeshType>::compute_relaxation_parameter(const real dt,
-            std::shared_ptr<DGBase<dim,double>> dg,
+            std::shared_ptr<DGBase<dim,real,MeshType>> dg,
             std::vector<dealii::LinearAlgebra::distributed::Vector<double>> &rk_stage,
             dealii::LinearAlgebra::distributed::Vector<double> &solution_update
             ) 
@@ -185,7 +185,7 @@ real EntropyRRKODESolver<dim,real,MeshType>::compute_root_function(
         const dealii::LinearAlgebra::distributed::Vector<double> &step_direction,
         const double num_entropy_n,
         const double entropy_change_est,
-        std::shared_ptr<DGBase<dim,double>> dg) const
+        std::shared_ptr<DGBase<dim,real,MeshType>> dg) const
 {
     dealii::LinearAlgebra::distributed::Vector<double> temp = u_n;
     temp.add(gamma, step_direction);
@@ -197,7 +197,7 @@ real EntropyRRKODESolver<dim,real,MeshType>::compute_root_function(
 template <int dim, typename real, typename MeshType>
 real EntropyRRKODESolver<dim,real,MeshType>::compute_numerical_entropy(
         const dealii::LinearAlgebra::distributed::Vector<double> &u,
-        std::shared_ptr<DGBase<dim,double>> dg) const 
+        std::shared_ptr<DGBase<dim,real,MeshType>> dg) const 
 {
     real num_entropy = compute_integrated_numerical_entropy(u,dg);
 
@@ -209,7 +209,7 @@ real EntropyRRKODESolver<dim,real,MeshType>::compute_numerical_entropy(
 template <int dim, typename real, typename MeshType>
 real EntropyRRKODESolver<dim,real,MeshType>::compute_integrated_numerical_entropy(
         const dealii::LinearAlgebra::distributed::Vector<double> &u,
-        std::shared_ptr<DGBase<dim,double>> dg) const
+        std::shared_ptr<DGBase<dim,real,MeshType>> dg) const
 {
     // This function is reproduced from flow_solver_cases/periodic_turbulence
     // Check that poly_degree is uniform everywhere
@@ -413,7 +413,7 @@ real EntropyRRKODESolver<dim,real,MeshType>::compute_integrated_numerical_entrop
 
 template <int dim, typename real, typename MeshType>
 real EntropyRRKODESolver<dim,real,MeshType>::compute_entropy_change_estimate(const real dt,
-        std::shared_ptr<DGBase<dim,double>> dg,
+        std::shared_ptr<DGBase<dim,real,MeshType>> dg,
         std::vector<dealii::LinearAlgebra::distributed::Vector<double>> &rk_stage,
         const bool use_M_norm_for_entropy_change_est) const
 {

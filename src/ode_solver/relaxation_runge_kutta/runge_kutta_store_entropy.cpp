@@ -29,7 +29,7 @@ void RKNumEntropy<dim,real,MeshType>::store_stage_solutions(const int istage, co
 
 template <int dim, typename real, typename MeshType>
 dealii::LinearAlgebra::distributed::Vector<double> RKNumEntropy<dim,real,MeshType>::compute_entropy_vars(const dealii::LinearAlgebra::distributed::Vector<double> &u,
-        std::shared_ptr<DGBase<dim,double>> dg) const
+        std::shared_ptr<DGBase<dim,real,MeshType>> dg) const
 {
     //// TEMP Allow this to be any physics.
     // hard-code nstate for Euler/NS - ODESolverFactory has already ensured that we use Euler/NS
@@ -112,7 +112,7 @@ dealii::LinearAlgebra::distributed::Vector<double> RKNumEntropy<dim,real,MeshTyp
 
 template <int dim, typename real, typename MeshType>
 double RKNumEntropy<dim,real,MeshType>::compute_FR_entropy_contribution(const real dt, 
-        std::shared_ptr<DGBase<dim,double>> dg,
+        std::shared_ptr<DGBase<dim,real,MeshType>> dg,
         std::vector<dealii::LinearAlgebra::distributed::Vector<double>> &rk_stage,
         const bool compute_K_norm) const
 {

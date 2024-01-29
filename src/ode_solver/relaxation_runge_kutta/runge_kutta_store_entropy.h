@@ -25,7 +25,7 @@ public:
     /** FR_contribution = dt \sum_i=1^s b_i v^{(i)} K du^{(i)}/dt
      */
     double compute_FR_entropy_contribution(const real dt,
-            std::shared_ptr<DGBase<dim,double>> dg,
+            std::shared_ptr<DGBase<dim,real,MeshType>> dg,
             std::vector<dealii::LinearAlgebra::distributed::Vector<double>> &rk_stage,
             const bool compute_K_norm) const override;
     
@@ -58,7 +58,7 @@ protected:
     /// Return the entropy variables from a solution vector u
     dealii::LinearAlgebra::distributed::Vector<double> compute_entropy_vars(
             const dealii::LinearAlgebra::distributed::Vector<double> &u,
-            std::shared_ptr<DGBase<dim,double>> dg) const;
+            std::shared_ptr<DGBase<dim,real,MeshType>> dg) const;
 
     // Euler physics pointer
     //std::shared_ptr < Physics::Euler<dim, dim+2, double > > euler_physics;

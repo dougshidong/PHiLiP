@@ -14,7 +14,7 @@ EnergyRRKODESolver<dim,real,MeshType>::EnergyRRKODESolver(
 
 template <int dim, typename real, typename MeshType>
 real EnergyRRKODESolver<dim,real,MeshType>::compute_relaxation_parameter(const real /*dt*/,
-            std::shared_ptr<DGBase<dim,double>> dg,
+            std::shared_ptr<DGBase<dim,real,MeshType>> dg,
             std::vector<dealii::LinearAlgebra::distributed::Vector<double>> &rk_stage,
             dealii::LinearAlgebra::distributed::Vector<double> &/*solution_update*/
         )
@@ -40,7 +40,7 @@ template <int dim, typename real, typename MeshType>
 real EnergyRRKODESolver<dim,real,MeshType>::compute_inner_product (
         const dealii::LinearAlgebra::distributed::Vector<double> &stage_i,
         const dealii::LinearAlgebra::distributed::Vector<double> &stage_j,
-        std::shared_ptr<DGBase<dim,double>> dg
+        std::shared_ptr<DGBase<dim,real,MeshType>> dg
         ) const
 {
     // Calculate by matrix-vector product u_i^T M u_j

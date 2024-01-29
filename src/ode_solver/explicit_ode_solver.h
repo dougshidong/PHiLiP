@@ -49,19 +49,6 @@ protected:
     /// Storage for the derivative at each Runge-Kutta stage
     std::vector<dealii::LinearAlgebra::distributed::Vector<double>> rk_stage;
     
-    /// Modify timestep
-    virtual void modify_time_step(real &dt); 
-
-    /// Update stored quantities at the current stage
-    /** Empty in this class.
-     *  Included such that RRK can store the solution at each stage. */
-    virtual void store_stage_solutions(const int /*istage*/) {};
-    
-    /// Compute contribution to entropy from FR.
-    /** Empty in this class.
-     *  Only relevant when numerical entropy must be computed for a non-cDG case. */
-    virtual double compute_FR_entropy_contribution(const bool /*compute_K_norm=true*/) const {return 0;};
-
     /// Indicator for zero diagonal elements; used to toggle implicit solve.
     std::vector<bool> butcher_tableau_aii_is_zero;
 };

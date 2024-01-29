@@ -70,7 +70,7 @@ void RungeKuttaODESolver<dim,real,n_rk_stages,MeshType>::step_in_time (real dt, 
         
         // If using the entropy formulation of RRK, solutions must be stored.
         // Call store_stage_solutions before overwriting rk_stage with the derivative.
-        store_stage_solutions(i);
+        relaxation_runge_kutta->store_stage_solutions(i, rk_stage[i]);
 
         this->dg->solution = this->rk_stage[i];
 
@@ -87,7 +87,8 @@ void RungeKuttaODESolver<dim,real,n_rk_stages,MeshType>::step_in_time (real dt, 
         }
     }
 
-    modify_time_step(dt);
+    // Modify time step according to RRK. Returns unmodified time step size if not using RRK.
+    dt = relaxation_runge_kutta->modify_time_step(dt, this->dg, this->rk_stage, this->solution_update);
     this->modified_time_step = dt;
 
     //assemble solution from stages
@@ -102,17 +103,12 @@ void RungeKuttaODESolver<dim,real,n_rk_stages,MeshType>::step_in_time (real dt, 
     }
     this->dg->solution = this->solution_update; // u_np1 = u_n + dt* sum(k_i * b_i)
 
-    this->dg->FR_entropy_contribution = compute_FR_entropy_contribution(true);
-    this->dg->entropy_M_norm = compute_FR_entropy_contribution(false);
+    // Calculate numerical entropy with FR correction. Does nothing if use has not selected param.
+    this->dg->FR_entropy_contribution = relaxation_runge_kutta->compute_FR_entropy_contribution(dt, this->dg, this->rk_stage, true);
+    this->dg->entropy_M_norm = relaxation_runge_kutta->compute_FR_entropy_contribution(dt, this->dg, this->rk_stage, false);
 
     ++(this->current_iteration);
     this->current_time += dt;
-}
-
-template <int dim, typename real, int n_rk_stages, typename MeshType> 
-void RungeKuttaODESolver<dim,real,n_rk_stages,MeshType>::modify_time_step(real &/*dt*/)
-{
-    //do nothing
 }
 
 template <int dim, typename real, int n_rk_stages, typename MeshType> 

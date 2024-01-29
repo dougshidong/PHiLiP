@@ -32,7 +32,7 @@ protected:
 
     /// Modify timestep based on relaxation
     real modify_time_step (const real dt,
-            std::shared_ptr<DGBase<dim,double>> dg,
+            std::shared_ptr<DGBase<dim,real,MeshType>> dg,
             std::vector<dealii::LinearAlgebra::distributed::Vector<double>> &rk_stage,
             dealii::LinearAlgebra::distributed::Vector<double> & solution_update) override;
     
@@ -41,7 +41,7 @@ protected:
     /// See Ketcheson 2019, Eq. 2.4
     /// See Ranocha 2020, Eq. 2.4
     virtual real compute_relaxation_parameter(const real dt,
-            std::shared_ptr<DGBase<dim,double>> dg,
+            std::shared_ptr<DGBase<dim,real,MeshType>> dg,
             std::vector<dealii::LinearAlgebra::distributed::Vector<double>> &rk_stage,
             dealii::LinearAlgebra::distributed::Vector<double> &/*solution_update*/
             ) = 0;

@@ -211,17 +211,54 @@ std::array<real, nstate> HLLCBaselineNumericalFluxConvective<dim,nstate,real>::e
     const real sound_L = euler_physics->compute_sound(density_L, pressure_L);
     const real sound_R = euler_physics->compute_sound(density_R, pressure_R);
 /*
+    // Pressure PVRS approach
     const real density_avg = 0.5*(density_L + density_R);
     const real sound_avg = 0.5*(sound_L + sound_R);
-
     const real pressure_pvrs = 0.5*(pressure_L + pressure_R) - 0.5*(velocity_dot_n_R - velocity_dot_n_L)*density_avg*sound_avg;
     real pressure_star = 0;
     if(pressure_pvrs > 0.0)
     {
         pressure_star = pressure_pvrs;
     }
-
-    const real gam_fraction = (1.4 + 1.0)/(2.0*1.4);
+*/
+    // Hybrid scheme
+    const real density_avg = 0.5*(density_L + density_R);
+    const real sound_avg = 0.5*(sound_L + sound_R);
+    const real pressure_pvrs = 0.5*(pressure_L + pressure_R) - 0.5*(velocity_dot_n_R - velocity_dot_n_L)*density_avg*sound_avg;
+    real p_min = pressure_L;
+    if(pressure_R<p_min)
+    {
+        p_min = pressure_R;
+    }
+    real pressure_star = 0;
+    if(pressure_pvrs <= p_min)
+    {
+        // Two–Rarefaction Riemann solver TRRS approach
+        std::cout<<"Rarefaction detected."<<std::endl;
+        const real zval = (euler_physics->gam - 1.0)/(2.0*euler_physics->gam);
+        const real kernelval = (sound_L + sound_R - (euler_physics->gam-1.0)/2.0*(velocity_dot_n_R - velocity_dot_n_L)) 
+                                / (sound_L/pow(pressure_L,zval) + sound_R/pow(pressure_R,zval));
+        pressure_star = pow(kernelval,1.0/zval);
+    }
+    else
+    {
+        std::cout<<"Shock detected."<<std::endl;
+        // Two–Shock Riemann solver TSRS approach
+        real p0 = 0.0;
+        if(pressure_pvrs>0.0)
+        {
+            p0 = pressure_pvrs;
+        }
+        const real A_L = 2.0/((euler_physics->gam+1)*density_L);
+        const real A_R = 2.0/((euler_physics->gam+1)*density_R);
+        const real B_L = (euler_physics->gam - 1.0)/(euler_physics->gam + 1.0)*pressure_L;
+        const real B_R = (euler_physics->gam - 1.0)/(euler_physics->gam + 1.0)*pressure_R;
+        const real g_L = sqrt(A_L/(p0 + B_L));
+        const real g_R = sqrt(A_R/(p0 + B_R));
+        pressure_star = (g_L*pressure_L + g_R*pressure_R - (velocity_dot_n_R - velocity_dot_n_L))/(g_L+g_R);
+    }
+    // Kernel of pressure-based approach.
+    const real gam_fraction = (euler_physics->gam + 1.0)/(2.0*euler_physics->gam);
     real q_L = 1.0;
     if(pressure_star > pressure_L)
     {
@@ -237,7 +274,8 @@ std::array<real, nstate> HLLCBaselineNumericalFluxConvective<dim,nstate,real>::e
 
     const real S_L = velocity_dot_n_L - sound_L*q_L;
     const real S_R = velocity_dot_n_R + sound_R*q_R;
-*/
+
+/*
     // Einfieldt's approach
     const real eta2 = 0.5 * sqrt(density_L)*sqrt(density_R)/(pow(sqrt(density_L) + sqrt(density_R),2));
     const real dbar_squared = (sqrt(density_L)*pow(sound_L,2) + sqrt(density_R)*pow(sound_R,2))/(sqrt(density_L) + sqrt(density_R))
@@ -246,11 +284,28 @@ std::array<real, nstate> HLLCBaselineNumericalFluxConvective<dim,nstate,real>::e
     const real ubar = (sqrt(density_L)*velocity_dot_n_L + sqrt(density_R)*velocity_dot_n_R)/(sqrt(density_L) + sqrt(density_R));
     const real S_L = ubar - dbar;
     const real S_R = ubar + dbar;
-
+*/
+/*
+    // Simple Davis approach
+    const real S_L = velocity_dot_n_L - sound_L;
+    const real S_R = velocity_dot_n_R + sound_R;
+*/
+/*
+    // Using Roe based approaximations.
+    (void) sound_L; (void) sound_R;
+    const real ubar = (sqrt(density_L)*velocity_dot_n_L + sqrt(density_R)*velocity_dot_n_R)/(sqrt(density_L) + sqrt(density_R));
+    const real enthalpy_bar = (sqrt(density_L)*euler_physics->compute_specific_enthalpy(soln_int, density_L) 
+                            + sqrt(density_R)*euler_physics->compute_specific_enthalpy(soln_ext, density_R))/(sqrt(density_L) + sqrt(density_R));
+    const real sound_bar = sqrt(euler_physics->gamm1*(enthalpy_bar - 0.5*pow(ubar,2)));
+    const real S_L = ubar - sound_bar;
+    const real S_R = ubar + sound_bar;
+*/
 
     const real S_star = 
             (pressure_R - pressure_L + density_L*velocity_dot_n_L*(S_L - velocity_dot_n_L) 
             - density_R*velocity_dot_n_R*(S_R - velocity_dot_n_R))/(density_L*(S_L - velocity_dot_n_L) - density_R*(S_R - velocity_dot_n_R));
+    std::cout<<"S_L = "<<S_L<<"  S_R = "<<S_R<<"  S_star = "<<S_star<<std::endl;
+    
 
     std::array<real, nstate> soln_star_L;
     std::array<real, nstate> soln_star_R;
@@ -662,7 +717,7 @@ std::array<real, nstate> RoeBaseRiemannSolverDissipation<dim,nstate,real>
         eig_R[i] = abs(eig_R[i]);
     }
     // Evaluate entropy fix on wave speeds
-    evaluate_entropy_fix (eig_L, eig_R, eig_ravg, vel2_ravg, sound_ravg, sound_L, sound_R, pressure_L, pressure_R);
+    //evaluate_entropy_fix (eig_L, eig_R, eig_ravg, vel2_ravg, sound_ravg, sound_L, sound_R, pressure_L, pressure_R);
 
     // Evaluate additional modifications to the Roe-Pike scheme (if applicable)
     evaluate_additional_modifications (soln_int, soln_ext, eig_L, eig_R, dVn, dVt);

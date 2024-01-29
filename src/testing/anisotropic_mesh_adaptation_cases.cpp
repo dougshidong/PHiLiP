@@ -140,6 +140,8 @@ if constexpr (nstate==dim+2)
     std::array<double,nstate> soln_ext_at_q;
     std::vector<dealii::types::global_dof_index> dofs_indices_int(n_dofs_cell);
     std::vector<dealii::types::global_dof_index> dofs_indices_ext(n_dofs_cell);
+    int n_quads_not_on_shock_upwinding = 0;
+    int n_quads_on_shock_not_upwinding = 0;
     int n_shock_faces = 0;
     for(const auto &cell: dg->dof_handler.active_cell_iterators())
     {
@@ -149,14 +151,15 @@ if constexpr (nstate==dim+2)
         {
             auto current_face = cell->face(iface);
             if(current_face->at_boundary()){continue;}
-            fe_face_values_gll.reinit(cell,iface);
-            if(!is_face_between_control_nodes(
-                    fe_face_values_gll.quadrature_point(0), 
-                    fe_face_values_gll.quadrature_point(fe_face_values_gll.n_quadrature_points-1),
-                    control_nodes_list)) {continue;}
             const auto neighbor_cell = cell->neighbor_or_periodic_neighbor(iface);
             if(!dg->current_cell_should_do_the_work(cell, neighbor_cell)){continue;}
-            n_shock_faces++;
+            fe_face_values_gll.reinit(cell,iface);
+            const bool face_is_on_shock = is_face_between_control_nodes(
+                    fe_face_values_gll.quadrature_point(0), 
+                    fe_face_values_gll.quadrature_point(fe_face_values_gll.n_quadrature_points-1),
+                    control_nodes_list);
+            if(face_is_on_shock){n_shock_faces++;}
+            bool is_upwinding = false;
             const unsigned int neighbor_iface = cell->neighbor_of_neighbor(iface);
             neighbor_cell->get_dof_indices(dofs_indices_ext);
             fe_face_values_int.reinit(cell,iface);
@@ -164,6 +167,7 @@ if constexpr (nstate==dim+2)
 
             for(unsigned int iquad = 0; iquad < n_face_quad_pts; ++iquad)
             {
+                std::cout<<"======================================================================="<<std::endl;
                 soln_int_at_q.fill(0.0); 
                 soln_ext_at_q.fill(0.0);
                 for(unsigned int idof = 0; idof < fe_face_values_int.dofs_per_cell; ++idof)
@@ -221,27 +225,31 @@ if constexpr (nstate==dim+2)
                     error_flux_norm += pow(error_flux[istate],2);
                 }
                 error_flux_norm = sqrt(error_flux_norm);
-                if(error_flux_norm > 1.0e-12)
+                if(error_flux_norm < 1.0e-12)
                 {
-                    std::cout<<"Numerical flux is not upwinding at "<<fe_face_values_int.quadrature_point(iquad)<<std::endl;
-                    std::cout<<"Norm of the difference = "<<error_flux_norm<<std::endl;
-                    dealii::Point<dim> analysis_point;
-                    analysis_point[0] = -1.56974;
-                    analysis_point[1] = 0.905008;
-                    if(analysis_point.distance(fe_face_values_int.quadrature_point(iquad)) < 1.0e-4)
-                    {
-                        std::cout<<"=================================================================================="<<std::endl;
-                        std::cout<<"Mach int = "<<mach_int<<std::endl;
-                        std::cout<<"Mach ext = "<<mach_ext<<std::endl;
-                        conv_num_flux_double->evaluate_flux(soln_int_at_q, soln_ext_at_q, normal_int);
-                        std::cout<<"=================================================================================="<<std::endl;
-                    }
+                    is_upwinding = true;
                 }
-            } //iquad 
 
+                if(face_is_on_shock && !is_upwinding)
+                {
+                    std::cout<<"Location: "<<fe_face_values_int.quadrature_point(iquad)<<std::endl;
+                    std::cout<<"On shock but not upwinding."<<std::endl;
+                    std::cout<<"Difference in flux = "<<error_flux_norm<<std::endl;
+                    ++n_quads_on_shock_not_upwinding;
+                }
+                if(!face_is_on_shock && is_upwinding)
+                {
+                    std::cout<<"Location: "<<fe_face_values_int.quadrature_point(iquad)<<std::endl;
+                    std::cout<<"Not on shock but still upwinding."<<std::endl;
+                    ++n_quads_not_on_shock_upwinding;
+                }
+                std::cout<<"======================================================================="<<std::endl;
+            } //iquad 
         } //iface
     } //cell
-    pcout<<"Total number of shock faces detected = "<<dealii::Utilities::MPI::sum(n_shock_faces, this->mpi_communicator)<<std::endl;
+    pcout<<"Total number of shock faces = "<<dealii::Utilities::MPI::sum(n_shock_faces, this->mpi_communicator)<<std::endl;
+    pcout<<"Total number of quads on shock but not upwinding = "<<dealii::Utilities::MPI::sum(n_quads_on_shock_not_upwinding, this->mpi_communicator)<<std::endl;
+    pcout<<"Total number of quads not on shock but still upwinding = "<<dealii::Utilities::MPI::sum(n_quads_not_on_shock_upwinding, this->mpi_communicator)<<std::endl;
 } // if constexpr
 }
 
@@ -507,15 +515,14 @@ return 0.0;
 template <int dim, int nstate>
 int AnisotropicMeshAdaptationCases<dim, nstate> :: run_test () const
 {
-    //int output_val = 0;
+    int output_val = 0;
     const Parameters::AllParameters param = *(TestsBase::all_parameters);
   //  const bool run_mesh_optimizer = param.optimization_param.max_design_cycles > 0;
   //  const bool run_fixedfraction_mesh_adaptation = param.mesh_adaptation_param.total_mesh_adaptation_cycles > 0;
     
     std::unique_ptr<FlowSolver::FlowSolver<dim,nstate>> flow_solver = FlowSolver::FlowSolverFactory<dim,nstate>::select_flow_case(&param, parameter_handler);
     flow_solver->dg->freeze_artificial_dissipation=true;
-    flow_solver->run();
-/*
+
     increase_grid_degree_and_interpolate_solution(flow_solver->dg);
     std::ifstream infile_sol("solution.txt");
     std::ifstream infile_vol("volume_nodes.txt");
@@ -531,7 +538,7 @@ int AnisotropicMeshAdaptationCases<dim, nstate> :: run_test () const
     infile_vol.close();
     output_vtk_files(flow_solver->dg, output_val++);
     test_numerical_flux(flow_solver->dg);
-*/
+
     return 0;
 /*
     flow_solver->run();

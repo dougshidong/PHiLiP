@@ -609,12 +609,16 @@ template class FlowSolver <PHILIP_DIM,PHILIP_DIM>;
 #endif
 
 #if PHILIP_DIM!=1
+#if N_SPECIES>1
+template class FlowSolver <PHILIP_DIM,(PHILIP_DIM+2)+(N_SPECIES-1)>;
+#else
 template class FlowSolver <PHILIP_DIM,1>;
 template class FlowSolver <PHILIP_DIM,2>;
 template class FlowSolver <PHILIP_DIM,3>;
 template class FlowSolver <PHILIP_DIM,4>;
 template class FlowSolver <PHILIP_DIM,5>;
 template class FlowSolver <PHILIP_DIM,6>;
+#endif
 #endif
 
 } // FlowSolver namespace

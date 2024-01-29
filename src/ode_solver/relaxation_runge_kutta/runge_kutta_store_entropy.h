@@ -24,7 +24,10 @@ public:
     /// Calculate FR entropy adjustment
     /** FR_contribution = dt \sum_i=1^s b_i v^{(i)} K du^{(i)}/dt
      */
-    double compute_FR_entropy_contribution(const bool compute_K_norm) const override;
+    double compute_FR_entropy_contribution(const real dt,
+            std::shared_ptr<DGBase<dim,double>> dg,
+            std::vector<dealii::LinearAlgebra::distributed::Vector<double>> &rk_stage,
+            const bool compute_K_norm) const override;
     
     using EmptyRRKBase<dim, real, MeshType>::compute_FR_entropy_contribution;
     using EmptyRRKBase<dim, real, MeshType>::modify_time_step;
@@ -34,7 +37,7 @@ public:
 protected:
 
     /// Store pointer to RK tableau
-    std::shared_ptr<RKTableauBase<dim,real,MeshType>> rk_tableau;
+    std::shared_ptr<RKTableauBase<dim,real,MeshType>> butcher_tableau;
 
     /// Number of RK stages
     const int n_rk_stages;
@@ -49,13 +52,16 @@ protected:
 
     /// Update stored quantities at the current stage
     /** Stores solution at stage, rk_stage_solution */
-    void store_stage_solutions(const int istage) override;
+    void store_stage_solutions(const int istage,
+            const dealii::LinearAlgebra::distributed::Vector<double> rk_stage_i) override;
     
     /// Return the entropy variables from a solution vector u
-    dealii::LinearAlgebra::distributed::Vector<double> compute_entropy_vars(const dealii::LinearAlgebra::distributed::Vector<double> &u) const;
+    dealii::LinearAlgebra::distributed::Vector<double> compute_entropy_vars(
+            const dealii::LinearAlgebra::distributed::Vector<double> &u,
+            std::shared_ptr<DGBase<dim,double>> dg) const;
 
     // Euler physics pointer
-    std::shared_ptr < Physics::Euler<dim, dim+2, double > > euler_physics;
+    //std::shared_ptr < Physics::Euler<dim, dim+2, double > > euler_physics;
 
 };
 

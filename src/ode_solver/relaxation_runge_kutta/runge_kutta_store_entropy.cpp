@@ -9,62 +9,65 @@ template <int dim, typename real, typename MeshType>
 RKNumEntropy<dim,real,MeshType>::RKNumEntropy(
             std::shared_ptr<RKTableauBase<dim,real,MeshType>> rk_tableau_input)
         : EmptyRRKBase<dim,real,MeshType>(rk_tableau_input)
-        , rk_tableau(rk_tableau_input)
-        , n_rk_stages(rk_tableau->n_rk_stages)
+        , butcher_tableau(rk_tableau_input)
+        , n_rk_stages(butcher_tableau->n_rk_stages)
         , mpi_communicator(MPI_COMM_WORLD)
         , mpi_rank(dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD))
         , pcout(std::cout, mpi_rank==0)
 {
     this->rk_stage_solution.resize(n_rk_stages);
    
-    // TEMP this should select the actual physics of the problem
-    PHiLiP::Parameters::AllParameters parameters_euler = *(this->dg->all_parameters);
-    parameters_euler.pde_type = Parameters::AllParameters::PartialDifferentialEquation::euler;
-    this->euler_physics = std::dynamic_pointer_cast<Physics::Euler<dim,dim+2,double>>(
-                Physics::PhysicsFactory<dim,dim+2,double>::create_Physics(&parameters_euler));
 }
 
 template <int dim, typename real, typename MeshType>
-void RKNumEntropy<dim,real,MeshType>::store_stage_solutions(const int istage)
+void RKNumEntropy<dim,real,MeshType>::store_stage_solutions(const int istage, const dealii::LinearAlgebra::distributed::Vector<double> rk_stage_i)
 {
     //Store the solution value
     //This function is called before rk_stage is modified to hold the time-derivative
-    this->rk_stage_solution[istage]=this->rk_stage[istage]; 
+    this->rk_stage_solution[istage] = rk_stage_i; 
 }
 
 template <int dim, typename real, typename MeshType>
-dealii::LinearAlgebra::distributed::Vector<double> RKNumEntropy<dim,real,MeshType>::compute_entropy_vars(const dealii::LinearAlgebra::distributed::Vector<double> &u) const
+dealii::LinearAlgebra::distributed::Vector<double> RKNumEntropy<dim,real,MeshType>::compute_entropy_vars(const dealii::LinearAlgebra::distributed::Vector<double> &u,
+        std::shared_ptr<DGBase<dim,double>> dg) const
 {
+    //// TEMP Allow this to be any physics.
     // hard-code nstate for Euler/NS - ODESolverFactory has already ensured that we use Euler/NS
     const unsigned int nstate = dim + 2;
     // Currently only implemented for constant p
-    const unsigned int poly_degree = this->dg->get_max_fe_degree();
-    if (poly_degree != this->dg->get_min_fe_degree()){
+    const unsigned int poly_degree = dg->get_max_fe_degree();
+    if (poly_degree != dg->get_min_fe_degree()){
         this->pcout << "Error: Entropy RRK is only implemented for uniform p. Aborting..." << std::endl;
         std::abort();
     }
+    
+    // TEMP this should select the actual physics of the problem
+    PHiLiP::Parameters::AllParameters parameters_euler = *(dg->all_parameters);
+    parameters_euler.pde_type = Parameters::AllParameters::PartialDifferentialEquation::euler;
+    std::shared_ptr < Physics::Euler<dim, dim+2, double > > euler_physics = std::dynamic_pointer_cast<Physics::Euler<dim,dim+2,double>>(
+                Physics::PhysicsFactory<dim,dim+2,double>::create_Physics(&parameters_euler));
 
-    const unsigned int n_dofs_cell = this->dg->fe_collection[poly_degree].dofs_per_cell;
-    const unsigned int n_quad_pts = this->dg->volume_quadrature_collection[poly_degree].size();
+    const unsigned int n_dofs_cell = dg->fe_collection[poly_degree].dofs_per_cell;
+    const unsigned int n_quad_pts = dg->volume_quadrature_collection[poly_degree].size();
     const unsigned int n_shape_fns = n_dofs_cell / nstate;
     //We have to project the vector of entropy variables because the mass matrix has an interpolation from solution nodes built into it.
-    OPERATOR::vol_projection_operator<dim,2*dim> vol_projection(1, poly_degree, this->dg->max_grid_degree);
-    vol_projection.build_1D_volume_operator(this->dg->oneD_fe_collection_1state[poly_degree], this->dg->oneD_quadrature_collection[poly_degree]);
+    OPERATOR::vol_projection_operator<dim,2*dim> vol_projection(1, poly_degree, dg->max_grid_degree);
+    vol_projection.build_1D_volume_operator(dg->oneD_fe_collection_1state[poly_degree], dg->oneD_quadrature_collection[poly_degree]);
 
-    OPERATOR::basis_functions<dim,2*dim> soln_basis(1, poly_degree, this->dg->max_grid_degree);
-    soln_basis.build_1D_volume_operator(this->dg->oneD_fe_collection_1state[poly_degree], this->dg->oneD_quadrature_collection[poly_degree]);
+    OPERATOR::basis_functions<dim,2*dim> soln_basis(1, poly_degree, dg->max_grid_degree);
+    soln_basis.build_1D_volume_operator(dg->oneD_fe_collection_1state[poly_degree], dg->oneD_quadrature_collection[poly_degree]);
 
-    dealii::LinearAlgebra::distributed::Vector<double> entropy_var_hat_global(this->dg->right_hand_side);
+    dealii::LinearAlgebra::distributed::Vector<double> entropy_var_hat_global(dg->right_hand_side);
     std::vector<dealii::types::global_dof_index> dofs_indices (n_dofs_cell);
 
-    for (auto cell = this->dg->dof_handler.begin_active(); cell!=this->dg->dof_handler.end(); ++cell) {
+    for (auto cell = dg->dof_handler.begin_active(); cell!=dg->dof_handler.end(); ++cell) {
         if (!cell->is_locally_owned()) continue;
         cell->get_dof_indices (dofs_indices);
 
         std::array<std::vector<double>,nstate> soln_coeff;
         for(unsigned int idof=0; idof<n_dofs_cell; idof++){
-            const unsigned int istate = this->dg->fe_collection[poly_degree].system_to_component_index(idof).first;
-            const unsigned int ishape = this->dg->fe_collection[poly_degree].system_to_component_index(idof).second;
+            const unsigned int istate = dg->fe_collection[poly_degree].system_to_component_index(idof).first;
+            const unsigned int ishape = dg->fe_collection[poly_degree].system_to_component_index(idof).second;
             if(ishape == 0)
                 soln_coeff[istate].resize(n_shape_fns);
             soln_coeff[istate][ishape] = u(dofs_indices[idof]);
@@ -83,7 +86,7 @@ dealii::LinearAlgebra::distributed::Vector<double> RKNumEntropy<dim,real,MeshTyp
                 soln_state[istate] = soln_at_q[istate][iquad];
             }
 
-            std::array<double,nstate> entropy_var = this->euler_physics->compute_entropy_variables(soln_state);
+            std::array<double,nstate> entropy_var = euler_physics->compute_entropy_variables(soln_state);
 
             for(unsigned int istate=0; istate<nstate; istate++){
                 if(iquad==0)
@@ -108,7 +111,10 @@ dealii::LinearAlgebra::distributed::Vector<double> RKNumEntropy<dim,real,MeshTyp
 
 
 template <int dim, typename real, typename MeshType>
-double RKNumEntropy<dim,real,MeshType>::compute_FR_entropy_contribution(const bool compute_K_norm) const
+double RKNumEntropy<dim,real,MeshType>::compute_FR_entropy_contribution(const real dt, 
+        std::shared_ptr<DGBase<dim,double>> dg,
+        std::vector<dealii::LinearAlgebra::distributed::Vector<double>> &rk_stage,
+        const bool compute_K_norm) const
 {
     double entropy_contribution = 0;
 
@@ -116,16 +122,16 @@ double RKNumEntropy<dim,real,MeshType>::compute_FR_entropy_contribution(const bo
 
         // Recall rk_stage is IMM * RHS
         // therefore, RHS = M * rk_stage = M * du/dt
-        dealii::LinearAlgebra::distributed::Vector<double> M_matrix_times_rk_stage(this->dg->solution);
-        dealii::LinearAlgebra::distributed::Vector<double> MpK_matrix_times_rk_stage(this->dg->solution);
-        if(this->dg->all_parameters->use_inverse_mass_on_the_fly)
+        dealii::LinearAlgebra::distributed::Vector<double> M_matrix_times_rk_stage(dg->solution);
+        dealii::LinearAlgebra::distributed::Vector<double> MpK_matrix_times_rk_stage(dg->solution);
+        if(dg->all_parameters->use_inverse_mass_on_the_fly)
         {
-            this->dg->apply_global_mass_matrix(this->rk_stage[istage],M_matrix_times_rk_stage,
+            dg->apply_global_mass_matrix(rk_stage[istage],M_matrix_times_rk_stage,
                     false, // use_auxiliary_eq,
                     true // use M norm
                     );
 
-            this->dg->apply_global_mass_matrix(this->rk_stage[istage],MpK_matrix_times_rk_stage,
+            dg->apply_global_mass_matrix(rk_stage[istage],MpK_matrix_times_rk_stage,
                     false, // use_auxiliary_eq,
                     false // use M+K norm
                     );
@@ -134,8 +140,17 @@ double RKNumEntropy<dim,real,MeshType>::compute_FR_entropy_contribution(const bo
             std::abort();
         }
         
-        //transform solution into entropy variables
-        dealii::LinearAlgebra::distributed::Vector<double> entropy_var_hat_global = this->compute_entropy_vars(this->rk_stage_solution[istage]);
+        // transform solution into entropy variables based on PDE type
+        using PDEEnum = Parameters::AllParameters::PartialDifferentialEquation;
+        dealii::LinearAlgebra::distributed::Vector<double> entropy_var_hat_global=0;
+        if (dg->all_parameters->pde_type == PDEEnum::burgers_inviscid){
+            entropy_var_hat_global = this->rk_stage_solution[istage];
+        } else if (dg->all_parameters->pde_type == PDEEnum::euler || dg->all_parameters->pde_type == PDEEnum::navier_stokes) {
+            entropy_var_hat_global = this->compute_entropy_vars(this->rk_stage_solution[istage], dg);
+        } else {
+            this->pcout << "ERROR: Cannot store FR-corrected numerical entropy for this PDE type. Aborting..." << std::endl;
+            std::abort();
+        }
         
         double entropy_contribution_stage = 0;
         if (compute_K_norm) {
@@ -147,7 +162,7 @@ double RKNumEntropy<dim,real,MeshType>::compute_FR_entropy_contribution(const bo
         entropy_contribution += this->butcher_tableau->get_b(istage) * entropy_contribution_stage;
     }
 
-    entropy_contribution *= this->modified_time_step;
+    entropy_contribution *= dt;
 
     return entropy_contribution;
 }

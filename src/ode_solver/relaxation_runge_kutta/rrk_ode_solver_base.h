@@ -31,13 +31,20 @@ public:
 protected:
 
     /// Modify timestep based on relaxation
-    double modify_time_step (const double dt) override;
+    real modify_time_step (const real dt,
+            std::shared_ptr<DGBase<dim,double>> dg,
+            std::vector<dealii::LinearAlgebra::distributed::Vector<double>> &rk_stage,
+            dealii::LinearAlgebra::distributed::Vector<double> & solution_update) override;
     
 
     /// Compute relaxation parameter explicitly (i.e. if energy is the entropy variable)
     /// See Ketcheson 2019, Eq. 2.4
     /// See Ranocha 2020, Eq. 2.4
-    virtual real compute_relaxation_parameter(real &dt) = 0;
+    virtual real compute_relaxation_parameter(const real dt,
+            std::shared_ptr<DGBase<dim,double>> dg,
+            std::vector<dealii::LinearAlgebra::distributed::Vector<double>> &rk_stage,
+            dealii::LinearAlgebra::distributed::Vector<double> &/*solution_update*/
+            ) = 0;
 
 };
 

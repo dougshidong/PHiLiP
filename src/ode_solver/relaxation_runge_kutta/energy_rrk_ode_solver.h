@@ -18,7 +18,7 @@ template <int dim, typename real, typename MeshType = dealii::Triangulation<dim>
 #else
 template <int dim, typename real, typename MeshType = dealii::parallel::distributed::Triangulation<dim>>
 #endif
-class EnergyRRKODESolver: public EmptyRRKBase<dim, real, MeshType>
+class EnergyRRKODESolver: public RRKODESolverBase<dim, real, MeshType>
 {
 public:
     /// Default constructor that will set the constants.
@@ -27,22 +27,21 @@ public:
 
 protected:
 
-    /// Number of RK stages
-    const double n_rk_stages;
-
-    /// Modify timestep based on relaxation
-    double modify_time_step(const double dt) override; 
-
     /// Compute relaxation parameter explicitly (i.e. if energy is the entropy variable)
     /// See Ketcheson 2019, Eq. 2.4
-    real compute_relaxation_parameter(real &dt);
+    real compute_relaxation_parameter(const real dt,
+            std::shared_ptr<DGBase<dim,double>> dg,
+            std::vector<dealii::LinearAlgebra::distributed::Vector<double>> &rk_stage,
+            dealii::LinearAlgebra::distributed::Vector<double> &/*solution_update*/
+            ) override;
     
     /// Compute inner product according to the nodes being used
     /** This is the same calculation as energy, but using the residual instead of solution
      */
     real compute_inner_product(
             const dealii::LinearAlgebra::distributed::Vector<double> &stage_i,
-            const dealii::LinearAlgebra::distributed::Vector<double> &stage_j
+            const dealii::LinearAlgebra::distributed::Vector<double> &stage_j,
+            std::shared_ptr<DGBase<dim,double>> dg
             ) const;
 
 public:

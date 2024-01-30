@@ -10,7 +10,7 @@ namespace FlowSolver {
 /// Create specified flow solver as FlowSolver object 
 /** Factory design pattern whose job is to create the correct flow solver
  */
-template <int dim, int nstate>
+template <int dim, int nstate, int nspecies=1>
 class FlowSolverFactory
 {
 public:

@@ -19,9 +19,9 @@ namespace FlowSolver {
 //=========================================================
 //                  FLOW SOLVER FACTORY
 //=========================================================
-template <int dim, int nstate>
+template <int dim, int nstate, int nspecies>
 std::unique_ptr < FlowSolver<dim,nstate> >
-FlowSolverFactory<dim,nstate>
+FlowSolverFactory<dim,nstate,nspecies>
 ::select_flow_case(const Parameters::AllParameters *const parameters_input,
                    const dealii::ParameterHandler &parameter_handler_input)
 {
@@ -89,7 +89,8 @@ FlowSolverFactory<dim,nstate>
             return std::make_unique<FlowSolver<dim,nstate>>(parameters_input, flow_solver_case, parameter_handler_input);
         }
     } else if (flow_type == FlowCaseEnum::multi_species_acoustic_wave){
-        if constexpr (dim==2 && nstate==PHILIP_DIM+2+(N_SPECIES-1)){
+        std::cout << "############### flow type is multi_species_acoustic_wave ###################" << std::endl;
+        if constexpr (nspecies>1 && (dim==2 && nstate==dim+2+(nspecies-1))){ //TO DO THIS DOES NOT WORK
             std::shared_ptr<FlowSolverCaseBase<dim, nstate>> flow_solver_case = std::make_shared<PeriodicCubeFlow<dim,nstate>>(parameters_input);
             return std::make_unique<FlowSolver<dim,nstate>>(parameters_input, flow_solver_case, parameter_handler_input);
         }
@@ -100,8 +101,8 @@ FlowSolverFactory<dim,nstate>
     return nullptr;
 }
 
-template<int dim, int nstate>
-std::unique_ptr< FlowSolverBase > FlowSolverFactory<dim,nstate>
+template<int dim, int nstate, int nspecies>
+std::unique_ptr< FlowSolverBase > FlowSolverFactory<dim,nstate,nspecies>
 ::create_flow_solver(const Parameters::AllParameters *const parameters_input,
                      const dealii::ParameterHandler &parameter_handler_input)
 {
@@ -114,9 +115,9 @@ std::unique_ptr< FlowSolverBase > FlowSolverFactory<dim,nstate>
         // then create the selected flow case with template parameters dim and nstate
         // Otherwise, keep decreasing nstate and dim until it matches
         if(nstate == parameters_input->nstate) 
-            return FlowSolverFactory<dim,nstate>::select_flow_case(parameters_input,parameter_handler_input);
+            return FlowSolverFactory<dim,nstate,nspecies>::select_flow_case(parameters_input,parameter_handler_input);
         else if constexpr (nstate > 1)
-            return FlowSolverFactory<dim,nstate-1>::create_flow_solver(parameters_input,parameter_handler_input);
+            return FlowSolverFactory<dim,nstate-1,nspecies>::create_flow_solver(parameters_input,parameter_handler_input);
         else
             return nullptr;
     }

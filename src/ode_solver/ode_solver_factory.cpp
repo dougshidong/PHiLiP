@@ -2,7 +2,7 @@
 #include "parameters/all_parameters.h"
 #include "ode_solver_base.h"
 //#include "runge_kutta_ode_solver.h"
-#include "explicit_ode_solver.h"
+#include "runge_kutta_ode_solver.h"
 #include "implicit_ode_solver.h"
 #include "relaxation_runge_kutta/energy_rrk_ode_solver.h"
 #include "relaxation_runge_kutta/entropy_rrk_ode_solver.h"

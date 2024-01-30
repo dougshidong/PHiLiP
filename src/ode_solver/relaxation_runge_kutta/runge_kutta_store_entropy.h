@@ -3,7 +3,7 @@
 
 #include "dg/dg_base.hpp"
 //#include "ode_solver/runge_kutta_ode_solver.h"
-#include "ode_solver/explicit_ode_solver.h"
+#include "ode_solver/runge_kutta_ode_solver.h"
 
 namespace PHiLiP {
 namespace ODE {

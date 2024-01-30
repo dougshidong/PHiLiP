@@ -1,8 +1,7 @@
 set(ODE_SOURCE
     ode_solver_factory.cpp
     ode_solver_base.cpp
-    #runge_kutta_ode_solver.cpp
-    explicit_ode_solver.cpp
+    runge_kutta_ode_solver.cpp
     runge_kutta_methods/runge_kutta_methods.cpp
     runge_kutta_methods/rk_tableau_base.cpp
     relaxation_runge_kutta/empty_RRK_base.cpp

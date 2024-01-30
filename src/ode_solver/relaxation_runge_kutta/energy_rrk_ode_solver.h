@@ -5,7 +5,7 @@
 #include "rrk_ode_solver_base.h"
 #include "ode_solver/ode_solver_base.h"
 //#include "runge_kutta_ode_solver.h"
-#include "ode_solver/explicit_ode_solver.h"
+#include "ode_solver/runge_kutta_ode_solver.h"
 
 namespace PHiLiP {
 namespace ODE {

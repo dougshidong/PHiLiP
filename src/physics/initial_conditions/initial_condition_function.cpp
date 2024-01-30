@@ -802,7 +802,7 @@ InitialConditionFactory<dim,nstate, real>::create_InitialConditionFunction(
             return std::make_shared<InitialConditionFunction_AcousticWave_Species<dim,nstate,real> >(param);
         }
     } else if (flow_type == FlowCaseEnum::multi_species_acoustic_wave) {
-        if constexpr (dim==2 && nstate==dim+2+(N_SPECIES-1)){ 
+        if constexpr (N_SPECIES>1 && (dim==2 && nstate==dim+2+(N_SPECIES-1))){ 
             return std::make_shared<InitialConditionFunction_AcousticWave_MultiSpecies<dim,nstate,real> >(param);
         }
     } else {

@@ -13,11 +13,11 @@ template <int dim, typename real, typename MeshType = dealii::Triangulation<dim>
 #else
 template <int dim, typename real, typename MeshType = dealii::parallel::distributed::Triangulation<dim>>
 #endif
-class EntropyRRKODESolver: public RRKODESolverBase<dim, real, MeshType>
+class RootFindingRRKODESolver: public RRKODESolverBase<dim, real, MeshType>
 {
 public:
     /// Default constructor that will set the constants.
-    explicit EntropyRRKODESolver(
+    explicit RootFindingRRKODESolver(
             std::shared_ptr<RKTableauBase<dim,real,MeshType>> rk_tableau_input);
 
 protected:

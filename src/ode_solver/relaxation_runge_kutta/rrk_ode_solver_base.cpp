@@ -7,7 +7,6 @@ template <int dim, typename real, typename MeshType>
 RRKODESolverBase<dim,real,MeshType>::RRKODESolverBase(
             std::shared_ptr<RKTableauBase<dim,real,MeshType>> rk_tableau_input)
         : RKNumEntropy<dim,real,MeshType>(rk_tableau_input)
-        , relaxation_parameter(1.0)
 {
     // Do nothing
 }

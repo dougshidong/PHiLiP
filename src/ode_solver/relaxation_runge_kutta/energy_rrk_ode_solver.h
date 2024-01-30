@@ -18,11 +18,11 @@ template <int dim, typename real, typename MeshType = dealii::Triangulation<dim>
 #else
 template <int dim, typename real, typename MeshType = dealii::parallel::distributed::Triangulation<dim>>
 #endif
-class EnergyRRKODESolver: public RRKODESolverBase<dim, real, MeshType>
+class AlgebraicRRKODESolver: public RRKODESolverBase<dim, real, MeshType>
 {
 public:
     /// Default constructor that will set the constants.
-    explicit EnergyRRKODESolver(
+    explicit AlgebraicRRKODESolver(
             std::shared_ptr<RKTableauBase<dim,real,MeshType>> rk_tableau_input);
 
 protected:
@@ -41,12 +41,6 @@ protected:
             const dealii::LinearAlgebra::distributed::Vector<double> &stage_j,
             std::shared_ptr<DGBase<dim,real,MeshType>> dg
             ) const;
-
-public:
-
-    /// Value of the relaxation parameter.
-    real relaxation_parameter;
-
 
 };
 

@@ -19,14 +19,14 @@ class RRKODESolverBase: public RKNumEntropy<dim, real, MeshType>
 {
 public:
     /// Constructor
-    RRKODESolverBase(
+    explicit RRKODESolverBase(
             std::shared_ptr<RKTableauBase<dim,real,MeshType>> rk_tableau_input);
 
     /// Relaxation Runge-Kutta parameter gamma^n
     /** See:  Ketcheson 2019, "Relaxation Runge--Kutta methods: Conservation and stability for inner-product norms"
      *       Ranocha 2020, "Relaxation Runge--Kutta Methods: Fully Discrete Explicit Entropy-Stable Schemes for the Compressible Euler and Navier--Stokes Equations"
      */
-    real relaxation_parameter;
+    real relaxation_parameter = 1.0;
 
 protected:
 

@@ -134,7 +134,6 @@ int TimeRefinementStudy<dim, nstate>::run_test() const
         using ODESolverEnum = Parameters::ODESolverParam::ODESolverEnum;
         if(params.ode_solver_param.ode_solver_type == ODESolverEnum::rrk_explicit_solver){
             //for burgers, this is the average gamma over the runtime
-            const double final_time_actual = flow_solver->ode_solver->current_time;
             const double gamma_aggregate_m1 = final_time_actual / (n_timesteps * dt)-1;
             convergence_table.add_value("gamma_aggregate_m1", gamma_aggregate_m1);
             convergence_table.set_precision("gamma_aggregate_m1", 16);

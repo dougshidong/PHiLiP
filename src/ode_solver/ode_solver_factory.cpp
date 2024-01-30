@@ -206,32 +206,29 @@ std::shared_ptr<EmptyRRKBase<dim,real,MeshType>> ODESolverFactory<dim,real,MeshT
         using NumFluxEnum = Parameters::AllParameters::TwoPointNumericalFlux;
         const NumFluxEnum two_point_num_flux_type = dg_input->all_parameters->two_point_num_flux_type;
         
-        enum NumEntropyEnum {energy, entropy};
+        enum NumEntropyEnum {energy, nonlinear};
         NumEntropyEnum numerical_entropy_type;
-        std::string numerical_entropy_string;
+        std::string rrk_type_string;
         if (pde_type == PDEEnum::burgers_inviscid){
             numerical_entropy_type = NumEntropyEnum::energy;
-            numerical_entropy_string = "Energy";
+            rrk_type_string = "Algebraic";
         } else if ((pde_type == PDEEnum::euler || pde_type == PDEEnum::navier_stokes)
                     && (two_point_num_flux_type != NumFluxEnum::KG)){
-            numerical_entropy_type = NumEntropyEnum::entropy;
-            numerical_entropy_string = "Entropy";
+            numerical_entropy_type = NumEntropyEnum::nonlinear;
+            rrk_type_string = "Root-finding";
         } else{
             pcout << "PDE type has no assigned numerical entropy variable. Aborting..." << std::endl;
             std::abort();
         }
 
-        pcout << "Adding " << numerical_entropy_string << " Relaxation Runge Kutta to the ODE solver..." << std::endl;
+        pcout << "Adding " << rrk_type_string << " Relaxation Runge Kutta to the ODE solver..." << std::endl;
         if (numerical_entropy_type==NumEntropyEnum::energy)
-            return std::make_shared<EnergyRRKODESolver<dim,real,MeshType>>(rk_tableau);
-        else if (numerical_entropy_type==NumEntropyEnum::entropy)
-            return std::make_shared<EntropyRRKODESolver<dim,real,MeshType>>(rk_tableau);
+            return std::make_shared<AlgebraicRRKODESolver<dim,real,MeshType>>(rk_tableau);
+        else if (numerical_entropy_type==NumEntropyEnum::nonlinear)
+            return std::make_shared<RootFindingRRKODESolver<dim,real,MeshType>>(rk_tableau);
         else return nullptr; // no need for message as numerical_entropy_type has already been checked
-        
     } else {
-        pcout << "Making empty RRK" << std::endl;
         return std::make_shared<EmptyRRKBase<dim,real,MeshType>> (rk_tableau);
-
     }
 }
 

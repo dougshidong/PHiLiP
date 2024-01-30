@@ -4,16 +4,15 @@ namespace PHiLiP {
 namespace ODE {
 
 template <int dim, typename real, typename MeshType>
-EnergyRRKODESolver<dim,real,MeshType>::EnergyRRKODESolver(
+AlgebraicRRKODESolver<dim,real,MeshType>::AlgebraicRRKODESolver(
             std::shared_ptr<RKTableauBase<dim,real,MeshType>> rk_tableau_input)
         : RRKODESolverBase<dim,real,MeshType>(rk_tableau_input)
-        , relaxation_parameter(1.0)
 {
     // Do nothing
 }
 
 template <int dim, typename real, typename MeshType>
-real EnergyRRKODESolver<dim,real,MeshType>::compute_relaxation_parameter(const real /*dt*/,
+real AlgebraicRRKODESolver<dim,real,MeshType>::compute_relaxation_parameter(const real /*dt*/,
             std::shared_ptr<DGBase<dim,real,MeshType>> dg,
             std::vector<dealii::LinearAlgebra::distributed::Vector<double>> &rk_stage,
             dealii::LinearAlgebra::distributed::Vector<double> &/*solution_update*/
@@ -37,7 +36,7 @@ real EnergyRRKODESolver<dim,real,MeshType>::compute_relaxation_parameter(const r
 }
 
 template <int dim, typename real, typename MeshType>
-real EnergyRRKODESolver<dim,real,MeshType>::compute_inner_product (
+real AlgebraicRRKODESolver<dim,real,MeshType>::compute_inner_product (
         const dealii::LinearAlgebra::distributed::Vector<double> &stage_i,
         const dealii::LinearAlgebra::distributed::Vector<double> &stage_j,
         std::shared_ptr<DGBase<dim,real,MeshType>> dg
@@ -57,10 +56,10 @@ real EnergyRRKODESolver<dim,real,MeshType>::compute_inner_product (
     return result;
 }
 
-template class EnergyRRKODESolver<PHILIP_DIM, double, dealii::Triangulation<PHILIP_DIM> >;
-template class EnergyRRKODESolver<PHILIP_DIM, double, dealii::parallel::shared::Triangulation<PHILIP_DIM> >;
+template class AlgebraicRRKODESolver<PHILIP_DIM, double, dealii::Triangulation<PHILIP_DIM> >;
+template class AlgebraicRRKODESolver<PHILIP_DIM, double, dealii::parallel::shared::Triangulation<PHILIP_DIM> >;
 #if PHILIP_DIM != 1
-    template class EnergyRRKODESolver<PHILIP_DIM, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM> >;
+    template class AlgebraicRRKODESolver<PHILIP_DIM, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM> >;
 #endif
 
 } // ODESolver namespace

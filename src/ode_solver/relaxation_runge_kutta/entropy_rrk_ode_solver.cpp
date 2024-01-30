@@ -6,14 +6,14 @@ namespace PHiLiP {
 namespace ODE {
 
 template <int dim, typename real, typename MeshType>
-EntropyRRKODESolver<dim,real,MeshType>::EntropyRRKODESolver(
+RootFindingRRKODESolver<dim,real,MeshType>::RootFindingRRKODESolver(
             std::shared_ptr<RKTableauBase<dim,real,MeshType>> rk_tableau_input)
         : RRKODESolverBase<dim,real,MeshType>(rk_tableau_input)
 {
 }
 
 template <int dim, typename real, typename MeshType>
-real EntropyRRKODESolver<dim,real,MeshType>::compute_relaxation_parameter(const real dt,
+real RootFindingRRKODESolver<dim,real,MeshType>::compute_relaxation_parameter(const real dt,
             std::shared_ptr<DGBase<dim,real,MeshType>> dg,
             std::vector<dealii::LinearAlgebra::distributed::Vector<double>> &rk_stage,
             dealii::LinearAlgebra::distributed::Vector<double> &solution_update
@@ -179,7 +179,7 @@ real EntropyRRKODESolver<dim,real,MeshType>::compute_relaxation_parameter(const 
 
 
 template <int dim, typename real, typename MeshType>
-real EntropyRRKODESolver<dim,real,MeshType>::compute_root_function(
+real RootFindingRRKODESolver<dim,real,MeshType>::compute_root_function(
         const double gamma,
         const dealii::LinearAlgebra::distributed::Vector<double> &u_n,
         const dealii::LinearAlgebra::distributed::Vector<double> &step_direction,
@@ -195,7 +195,7 @@ real EntropyRRKODESolver<dim,real,MeshType>::compute_root_function(
 
 
 template <int dim, typename real, typename MeshType>
-real EntropyRRKODESolver<dim,real,MeshType>::compute_numerical_entropy(
+real RootFindingRRKODESolver<dim,real,MeshType>::compute_numerical_entropy(
         const dealii::LinearAlgebra::distributed::Vector<double> &u,
         std::shared_ptr<DGBase<dim,real,MeshType>> dg) const 
 {
@@ -207,7 +207,7 @@ real EntropyRRKODESolver<dim,real,MeshType>::compute_numerical_entropy(
 
 
 template <int dim, typename real, typename MeshType>
-real EntropyRRKODESolver<dim,real,MeshType>::compute_integrated_numerical_entropy(
+real RootFindingRRKODESolver<dim,real,MeshType>::compute_integrated_numerical_entropy(
         const dealii::LinearAlgebra::distributed::Vector<double> &u,
         std::shared_ptr<DGBase<dim,real,MeshType>> dg) const
 {
@@ -379,7 +379,7 @@ real EntropyRRKODESolver<dim,real,MeshType>::compute_integrated_numerical_entrop
 }
 
 template <int dim, typename real, typename MeshType>
-real EntropyRRKODESolver<dim,real,MeshType>::compute_entropy_change_estimate(const real dt,
+real RootFindingRRKODESolver<dim,real,MeshType>::compute_entropy_change_estimate(const real dt,
         std::shared_ptr<DGBase<dim,real,MeshType>> dg,
         std::vector<dealii::LinearAlgebra::distributed::Vector<double>> &rk_stage,
         const bool use_M_norm_for_entropy_change_est) const
@@ -416,10 +416,10 @@ real EntropyRRKODESolver<dim,real,MeshType>::compute_entropy_change_estimate(con
     return dt * entropy_change_estimate;
 }
 
-template class EntropyRRKODESolver<PHILIP_DIM, double, dealii::Triangulation<PHILIP_DIM> >;
-template class EntropyRRKODESolver<PHILIP_DIM, double, dealii::parallel::shared::Triangulation<PHILIP_DIM> >;
+template class RootFindingRRKODESolver<PHILIP_DIM, double, dealii::Triangulation<PHILIP_DIM> >;
+template class RootFindingRRKODESolver<PHILIP_DIM, double, dealii::parallel::shared::Triangulation<PHILIP_DIM> >;
 #if PHILIP_DIM != 1
-    template class EntropyRRKODESolver<PHILIP_DIM, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM> >;
+    template class RootFindingRRKODESolver<PHILIP_DIM, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM> >;
 #endif
 
 } // ODESolver namespace

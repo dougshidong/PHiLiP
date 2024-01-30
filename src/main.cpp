@@ -68,10 +68,12 @@ int main (int argc, char *argv[])
             pcout << "Flow simulation complete with run error code: " << run_error << std::endl;
         }
         else if(all_parameters.run_type == PHiLiP::Parameters::AllParameters::RunType::integration_test) {
+        if constexpr (number_of_species==1) {
             std::unique_ptr<PHiLiP::Tests::TestsBase> test = PHiLiP::Tests::TestsFactory<max_dim,max_nstate>::create_test(&all_parameters,parameter_handler);
             run_error = test->run_test();
             pcout << "Finished integration test with run error code: " << run_error << std::endl;
         }
+    }
     }
     catch (std::exception &exc)
     {

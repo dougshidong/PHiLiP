@@ -26,9 +26,6 @@
 namespace PHiLiP {
 
 template <int dim, typename real, typename MeshType>
-MeshErrorEstimateBase<dim, real, MeshType> :: ~MeshErrorEstimateBase(){}
-
-template <int dim, typename real, typename MeshType>
 MeshErrorEstimateBase<dim, real, MeshType> :: MeshErrorEstimateBase(std::shared_ptr< DGBase<dim, real, MeshType> > dg_input)
     : dg(dg_input)
     {}

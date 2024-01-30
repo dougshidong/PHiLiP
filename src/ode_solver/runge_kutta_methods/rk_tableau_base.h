@@ -23,7 +23,7 @@ public:
     RKTableauBase(const int n_rk_stages, const std::string rk_method_string_input); 
 
     /// Destructor
-    ~RKTableauBase() {};
+    virtual ~RKTableauBase() = default;
 
     /// Returns Butcher tableau "a" coefficient at position [i][j]
     double get_a(const int i, const int j) const;

@@ -24,12 +24,12 @@ class FlowSolverCaseBase
 {
 public:
     ///Constructor
-    FlowSolverCaseBase(const Parameters::AllParameters *const parameters_input);
+    explicit FlowSolverCaseBase(const Parameters::AllParameters *const parameters_input);
 
     std::shared_ptr<InitialConditionFunction<dim,nstate,double>> initial_condition_function; ///< Initial condition function
 
     /// Destructor
-    ~FlowSolverCaseBase() {};
+    virtual ~FlowSolverCaseBase() = default;
 
     /// Displays the flow setup parameters
     void display_flow_solver_setup(std::shared_ptr<DGBase<dim,double>> dg) const;

@@ -11,7 +11,6 @@ namespace Parameters {
 class ODESolverParam
 {
 public:
-    ODESolverParam (); ///< Constructor.
     /// Types of ODE solver
     enum ODESolverEnum {
         runge_kutta_solver, /// Runge-Kutta (RK), explicit or diagonally implicit 

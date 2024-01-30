@@ -23,9 +23,6 @@ public:
             std::shared_ptr<RKTableauBase<dim,real,MeshType>> rk_tableau_input,
             std::shared_ptr<EmptyRRKBase<dim,real,MeshType>> RRK_object_input); ///< Constructor.
 
-    /// Destructor
-    ~RungeKuttaODESolver() {};
-
     /// Function to evaluate solution update
     void step_in_time(real dt, const bool pseudotime);
 

@@ -3,8 +3,6 @@
 namespace PHiLiP {
 namespace Parameters {
 
-ODESolverParam::ODESolverParam () {}
-
 void ODESolverParam::declare_parameters (dealii::ParameterHandler &prm)
 {
     prm.enter_subsection("ODE solver");

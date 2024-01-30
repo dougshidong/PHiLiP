@@ -455,14 +455,6 @@ DGWeak<dim,nstate,real,MeshType>::DGWeak(
     const std::shared_ptr<Triangulation> triangulation_input)
     : DGBaseState<dim,nstate,real,MeshType>::DGBaseState(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input)
 { }
-// Destructor
-template <int dim, int nstate, typename real,typename MeshType>
-DGWeak<dim,nstate,real,MeshType>::~DGWeak ()
-{
-    pcout << "Destructing DGWeak..." << std::endl;
-}
-
-
 
 template <int dim, int nstate, typename real, typename MeshType>
 void DGWeak<dim,nstate,real,MeshType>::assemble_volume_term_explicit(
@@ -1485,7 +1477,7 @@ dealii::Quadrature<dim> project_face_quadrature(
                                                  dealii::ReferenceCell::get_hypercube(dim), face_quadrature_lower_dim)
                                            : dealii::QProjector<dim>::project_to_all_subfaces(
                                                  dealii::ReferenceCell::get_hypercube(dim), face_quadrature_lower_dim);
-        const unsigned int n_face_quad_pts = face_quadrature.size();
+        const unsigned int n_face_quad_pts = face_quadrature_lower_dim.size();
         std::vector<dealii::Point<dim>> points(n_face_quad_pts);
         std::vector<double> weights(n_face_quad_pts);
         for (unsigned int iquad = 0; iquad < n_face_quad_pts; ++iquad) {

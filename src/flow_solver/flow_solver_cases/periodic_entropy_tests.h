@@ -13,10 +13,7 @@ class PeriodicEntropyTests : public PeriodicCubeFlow<dim,nstate>
 public:
 
     /// Constructor.
-    PeriodicEntropyTests(const Parameters::AllParameters *const parameters_input);
-
-    /// Destructor
-    ~PeriodicEntropyTests() {};
+    explicit PeriodicEntropyTests(const Parameters::AllParameters *const parameters_input);
 
     /// Calculate numerical entropy
     /// Calls compute_integrated_quantities

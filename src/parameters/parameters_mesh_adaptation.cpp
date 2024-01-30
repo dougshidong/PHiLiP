@@ -3,8 +3,6 @@
 namespace PHiLiP {
 namespace Parameters {
 
-MeshAdaptationParam::MeshAdaptationParam() {}
-
 void MeshAdaptationParam::declare_parameters (dealii::ParameterHandler &prm)
 {
     prm.enter_subsection("mesh adaptation");

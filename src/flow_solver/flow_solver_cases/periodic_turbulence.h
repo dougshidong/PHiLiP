@@ -20,11 +20,8 @@ class PeriodicTurbulence : public PeriodicCubeFlow<dim,nstate>
 
 public:
     /// Constructor.
-    PeriodicTurbulence(const Parameters::AllParameters *const parameters_input);
+    explicit PeriodicTurbulence(const Parameters::AllParameters *const parameters_input);
 
-    /// Destructor
-    ~PeriodicTurbulence() {};
-    
     /** Computes the integrated quantities over the domain simultaneously and updates the array storing them
      *  Note: For efficiency, this also simultaneously updates the local maximum wave speed
      * */

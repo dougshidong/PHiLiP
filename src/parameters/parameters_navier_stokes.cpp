@@ -3,9 +3,6 @@
 namespace PHiLiP {
 namespace Parameters {
     
-// NavierStokes inputs
-NavierStokesParam::NavierStokesParam () {}
-
 void NavierStokesParam::declare_parameters (dealii::ParameterHandler &prm)
 {
     prm.enter_subsection("navier_stokes");

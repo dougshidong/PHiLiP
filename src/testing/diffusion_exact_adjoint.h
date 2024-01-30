@@ -59,9 +59,6 @@ protected:
     using dealii::Function<dim,real>::gradient;
     using dealii::Function<dim,real>::hessian;
 public:
-    /// constructor
-    ManufacturedSolutionU(){}
-
     /// overriding the function for the value and gradient
     real value (const dealii::Point<dim,real> &pos, const unsigned int istate = 0) const override;
 
@@ -84,9 +81,6 @@ protected:
     using dealii::Function<dim,real>::gradient;
     using dealii::Function<dim,real>::hessian;
 public:
-    /// constructor
-    ManufacturedSolutionV(){}
-
     /// overriding the function for the value and gradient
     real value (const dealii::Point<dim,real> &pos, const unsigned int istate = 0) const override;
 
@@ -290,14 +284,8 @@ template <int dim, int nstate>
 class DiffusionExactAdjoint : public TestsBase
 {
 public: 
-    /// deleting the default constructor
-    DiffusionExactAdjoint() = delete;
-
     /// Constructor to call the TestsBase constructor to set parameters = parameters_input
-    DiffusionExactAdjoint(const Parameters::AllParameters *const parameters_input);
-
-    /// destructor 
-    ~DiffusionExactAdjoint(){};
+    explicit DiffusionExactAdjoint(const Parameters::AllParameters *const parameters_input);
 
     /** perform test described above
      *  Ideally the results from both adjoints will converge to within a sufficient tolerance

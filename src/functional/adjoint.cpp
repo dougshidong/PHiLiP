@@ -49,10 +49,6 @@ Adjoint<dim, nstate, real, MeshType>::Adjoint(
             coarse_fe_index[cell->active_cell_index()] = cell->active_fe_index();
 }
 
-// destructor
-template <int dim, int nstate, typename real, typename MeshType>
-Adjoint<dim, nstate, real, MeshType>::~Adjoint(){}
-
 template <int dim, int nstate, typename real, typename MeshType>
 void Adjoint<dim, nstate, real, MeshType>::reinit()
 {

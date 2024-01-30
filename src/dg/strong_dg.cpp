@@ -29,13 +29,6 @@ DGStrong<dim,nstate,real,MeshType>::DGStrong(
     : DGBaseState<dim,nstate,real,MeshType>::DGBaseState(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input)
 { }
 
-// Destructor
-template <int dim, int nstate, typename real, typename MeshType>
-DGStrong<dim,nstate,real,MeshType>::~DGStrong()
-{
-    pcout << "Destructing DGStrong..." << std::endl;
-}
-
 /***********************************************************
 *
 *       Build operators and solve for RHS
@@ -1704,12 +1697,27 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_boundary_term_strong(
         const double face_Jac_norm_scaled = unit_phys_normal_int.norm();
         unit_phys_normal_int /= face_Jac_norm_scaled;//normalize it. 
 
-        std::array<real,nstate> soln_state;
-        std::array<dealii::Tensor<1,dim,real>,nstate> aux_soln_state;
+        //get the projected entropy variables, soln, and 
+        //auxiliary solution on the surface point.
+        std::array<real,nstate> entropy_var_face_int;
+        std::array<dealii::Tensor<1,dim,real>,nstate> aux_soln_state_int;
+        std::array<real,nstate> soln_interp_to_face_int;
         for(int istate=0; istate<nstate; istate++){
-            soln_state[istate] = soln_at_surf_q[istate][iquad];
+            soln_interp_to_face_int[istate] = soln_at_surf_q[istate][iquad];
+            entropy_var_face_int[istate] = projected_entropy_var_surf[istate][iquad];
             for(int idim=0; idim<dim; idim++){
-                aux_soln_state[istate][idim] = aux_soln_at_surf_q[istate][idim][iquad];
+                aux_soln_state_int[istate][idim] = aux_soln_at_surf_q[istate][idim][iquad];
+            }
+        }
+
+        //extract solution on surface from projected entropy variables
+        std::array<real,nstate> soln_state_int;
+        soln_state_int = this->pde_physics_double->compute_conservative_variables_from_entropy_variables (entropy_var_face_int);
+
+
+        if(!this->all_parameters->use_split_form && !this->all_parameters->use_curvilinear_split_form){
+            for(int istate=0; istate<nstate; istate++){
+                soln_state_int[istate] = soln_at_surf_q[istate][iquad];
             }
         }
 
@@ -1719,19 +1727,23 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_boundary_term_strong(
         for(int idim=0; idim<dim; idim++){
             surf_flux_node[idim] = metric_oper.flux_nodes_surf[iface][idim][iquad];
         }
-        this->pde_physics_double->boundary_face_values (boundary_id, surf_flux_node, unit_phys_normal_int, soln_state, aux_soln_state, soln_boundary, grad_soln_boundary);
+        //I am not sure if BC should be from solution interpolated to face
+        //or solution from the projected entropy variables.
+        //Now, it uses projected entropy variables for NSFR, and solution
+        //interpolated to face for conservative DG.
+        this->pde_physics_double->boundary_face_values (boundary_id, surf_flux_node, unit_phys_normal_int, soln_state_int, aux_soln_state_int, soln_boundary, grad_soln_boundary);
         
         // Convective numerical flux.
         std::array<real,nstate> conv_num_flux_dot_n_at_q;
-        conv_num_flux_dot_n_at_q = this->conv_num_flux_double->evaluate_flux(soln_state, soln_boundary, unit_phys_normal_int);
+        conv_num_flux_dot_n_at_q = this->conv_num_flux_double->evaluate_flux(soln_state_int, soln_boundary, unit_phys_normal_int);
         
         // Dissipative numerical flux
         std::array<real,nstate> diss_auxi_num_flux_dot_n_at_q;
         diss_auxi_num_flux_dot_n_at_q = this->diss_num_flux_double->evaluate_auxiliary_flux(
             current_cell_index, current_cell_index,
             0.0, 0.0,
-            soln_state, soln_boundary,
-            aux_soln_state, grad_soln_boundary,
+            soln_interp_to_face_int, soln_boundary,
+            aux_soln_state_int, grad_soln_boundary,
             unit_phys_normal_int, penalty, true);
 
         for(int istate=0; istate<nstate; istate++){
@@ -2084,8 +2096,10 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_strong(
     // we exploit the fact that the unit reference normal has a value of 0 in all reference directions except
     // the outward reference normal dircetion.
     const dealii::Tensor<1,dim,double> unit_ref_normal_int = dealii::GeometryInfo<dim>::unit_normal_vector[iface];
+    const dealii::Tensor<1,dim,double> unit_ref_normal_ext = dealii::GeometryInfo<dim>::unit_normal_vector[neighbor_iface];
     // Extract the reference direction that is outward facing on the facet.
-    const int dim_not_zero = iface / 2;//reference direction of face integer division
+    const int dim_not_zero_int = iface / 2;//reference direction of face integer division
+    const int dim_not_zero_ext = neighbor_iface / 2;//reference direction of face integer division
 
     std::array<std::vector<real>,nstate> conv_int_vol_ref_flux_interp_to_face_dot_ref_normal;
     std::array<std::vector<real>,nstate> conv_ext_vol_ref_flux_interp_to_face_dot_ref_normal;
@@ -2104,32 +2118,32 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_strong(
         // interpolate reference volume convective flux to the facet, and apply unit reference normal as scaled by 1.0 or -1.0
         if(!this->all_parameters->use_split_form && !this->all_parameters->use_curvilinear_split_form){
             flux_basis_int.matrix_vector_mult_surface_1D(iface, 
-                                                         conv_ref_flux_at_vol_q_int[istate][dim_not_zero],
+                                                         conv_ref_flux_at_vol_q_int[istate][dim_not_zero_int],
                                                          conv_int_vol_ref_flux_interp_to_face_dot_ref_normal[istate],
                                                          flux_basis_int.oneD_surf_operator,//the flux basis interpolates from the flux nodes
                                                          flux_basis_int.oneD_vol_operator,
-                                                         false, unit_ref_normal_int[dim_not_zero]);//don't add to previous value, scale by unit_normal int
+                                                         false, unit_ref_normal_int[dim_not_zero_int]);//don't add to previous value, scale by unit_normal int
             flux_basis_ext.matrix_vector_mult_surface_1D(neighbor_iface, 
-                                                         conv_ref_flux_at_vol_q_ext[istate][dim_not_zero],
+                                                         conv_ref_flux_at_vol_q_ext[istate][dim_not_zero_ext],
                                                          conv_ext_vol_ref_flux_interp_to_face_dot_ref_normal[istate],
                                                          flux_basis_ext.oneD_surf_operator,
                                                          flux_basis_ext.oneD_vol_operator,
-                                                         false, -unit_ref_normal_int[dim_not_zero]);//don't add to previous value, unit_normal ext is -unit normal int
+                                                         false, unit_ref_normal_ext[dim_not_zero_ext]);//don't add to previous value, unit_normal ext is -unit normal int
         }
 
         // interpolate reference volume dissipative flux to the facet, and apply unit reference normal as scaled by 1.0 or -1.0
         flux_basis_int.matrix_vector_mult_surface_1D(iface, 
-                                                     diffusive_ref_flux_at_vol_q_int[istate][dim_not_zero],
+                                                     diffusive_ref_flux_at_vol_q_int[istate][dim_not_zero_int],
                                                      diffusive_int_vol_ref_flux_interp_to_face_dot_ref_normal[istate],
                                                      flux_basis_int.oneD_surf_operator,
                                                      flux_basis_int.oneD_vol_operator,
-                                                     false, unit_ref_normal_int[dim_not_zero]);
+                                                     false, unit_ref_normal_int[dim_not_zero_int]);
         flux_basis_ext.matrix_vector_mult_surface_1D(neighbor_iface, 
-                                                     diffusive_ref_flux_at_vol_q_ext[istate][dim_not_zero],
+                                                     diffusive_ref_flux_at_vol_q_ext[istate][dim_not_zero_ext],
                                                      diffusive_ext_vol_ref_flux_interp_to_face_dot_ref_normal[istate],
                                                      flux_basis_ext.oneD_surf_operator,
                                                      flux_basis_ext.oneD_vol_operator,
-                                                     false, -unit_ref_normal_int[dim_not_zero]);
+                                                     false, unit_ref_normal_ext[dim_not_zero_ext]);
     }
 
 
@@ -2223,8 +2237,8 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_strong(
     std::vector<unsigned int> Hadamard_rows_sparsity_ext(row_size_ext);
     std::vector<unsigned int> Hadamard_columns_sparsity_ext(col_size_ext);
     if(this->all_parameters->use_split_form || this->all_parameters->use_curvilinear_split_form){
-        flux_basis_int.sum_factorized_Hadamard_surface_sparsity_pattern(n_face_quad_pts, n_quad_pts_1D_int, Hadamard_rows_sparsity_int, Hadamard_columns_sparsity_int, dim_not_zero);
-        flux_basis_ext.sum_factorized_Hadamard_surface_sparsity_pattern(n_face_quad_pts, n_quad_pts_1D_ext, Hadamard_rows_sparsity_ext, Hadamard_columns_sparsity_ext, dim_not_zero);
+        flux_basis_int.sum_factorized_Hadamard_surface_sparsity_pattern(n_face_quad_pts, n_quad_pts_1D_int, Hadamard_rows_sparsity_int, Hadamard_columns_sparsity_int, dim_not_zero_int);
+        flux_basis_ext.sum_factorized_Hadamard_surface_sparsity_pattern(n_face_quad_pts, n_quad_pts_1D_ext, Hadamard_rows_sparsity_ext, Hadamard_columns_sparsity_ext, dim_not_zero_ext);
     }
 
     std::array<std::vector<real>,nstate> surf_vol_ref_2pt_flux_interp_surf_int;
@@ -2301,7 +2315,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_strong(
                         0.5*(metric_cofactor_surf + metric_cofactor_vol_int),
                         conv_ref_flux_2pt);
                     //only store the dim not zero in reference space bc dot product with unit ref normal later.
-                    surface_ref_2pt_flux_int[istate][iquad_face][column_index] = conv_ref_flux_2pt[dim_not_zero];
+                    surface_ref_2pt_flux_int[istate][iquad_face][column_index] = conv_ref_flux_2pt[dim_not_zero_int];
                 }
             }
             for(unsigned int row_index = iquad_face * n_quad_pts_1D_ext, column_index = 0; 
@@ -2340,7 +2354,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_strong(
                         0.5*(metric_cofactor_surf + metric_cofactor_vol_ext),
                         conv_ref_flux_2pt);
                     //only store the dim not zero in reference space bc dot product with unit ref normal later.
-                    surface_ref_2pt_flux_ext[istate][iquad_face][column_index] = conv_ref_flux_2pt[dim_not_zero];
+                    surface_ref_2pt_flux_ext[istate][iquad_face][column_index] = conv_ref_flux_2pt[dim_not_zero_ext];
                 }
             }
         }
@@ -2356,7 +2370,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_strong(
                                                                       flux_basis_int.oneD_surf_operator[iface_1D], 
                                                                       oneD_quad_weights_vol_int,
                                                                       surf_oper_sparse_int,
-                                                                      dim_not_zero);
+                                                                      dim_not_zero_int);
         const int neighbor_iface_1D = neighbor_iface % 2;//the reference neighbour face number
         const std::vector<double> &oneD_quad_weights_vol_ext = this->oneD_quadrature_collection[poly_degree_ext].get_weights();
         dealii::FullMatrix<real> surf_oper_sparse_ext(n_face_quad_pts, n_quad_pts_1D_ext);
@@ -2365,7 +2379,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_strong(
                                                                       flux_basis_ext.oneD_surf_operator[neighbor_iface_1D], 
                                                                       oneD_quad_weights_vol_ext,
                                                                       surf_oper_sparse_ext,
-                                                                      dim_not_zero);
+                                                                      dim_not_zero_ext);
 
         // Apply the surface Hadamard products and multiply with vector of ones for both off diagonal terms in
         // Eq.(15) in Chan, Jesse. "Skew-symmetric entropy stable modal discontinuous Galerkin formulations." Journal of Scientific Computing 81.1 (2019): 459-485.
@@ -2389,20 +2403,20 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_strong(
                 for(unsigned int iquad_int=0; iquad_int<n_quad_pts_1D_int; iquad_int++){
                     surf_vol_ref_2pt_flux_interp_surf_int[istate][iface_quad] 
                         -= surface_ref_2pt_flux_int_Hadamard_with_surf_oper[iface_quad][iquad_int]
-                        * unit_ref_normal_int[dim_not_zero];
+                        * unit_ref_normal_int[dim_not_zero_int];
                     const unsigned int column_index = iface_quad * n_quad_pts_1D_int + iquad_int;
                     surf_vol_ref_2pt_flux_interp_vol_int[istate][Hadamard_columns_sparsity_int[column_index]] 
                         += surface_ref_2pt_flux_int_Hadamard_with_surf_oper[iface_quad][iquad_int]
-                        * unit_ref_normal_int[dim_not_zero];
+                        * unit_ref_normal_int[dim_not_zero_int];
                 }
                 for(unsigned int iquad_ext=0; iquad_ext<n_quad_pts_1D_ext; iquad_ext++){
                     surf_vol_ref_2pt_flux_interp_surf_ext[istate][iface_quad] 
                         -= surface_ref_2pt_flux_ext_Hadamard_with_surf_oper[iface_quad][iquad_ext]
-                        * (-unit_ref_normal_int[dim_not_zero]);
+                        * (unit_ref_normal_ext[dim_not_zero_ext]);
                     const unsigned int column_index = iface_quad * n_quad_pts_1D_ext + iquad_ext;
                     surf_vol_ref_2pt_flux_interp_vol_ext[istate][Hadamard_columns_sparsity_ext[column_index]] 
                         += surface_ref_2pt_flux_ext_Hadamard_with_surf_oper[iface_quad][iquad_ext]
-                        * (-unit_ref_normal_int[dim_not_zero]);
+                        * (unit_ref_normal_ext[dim_not_zero_ext]);
                 }
             }
         }

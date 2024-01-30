@@ -12,10 +12,7 @@ class Periodic1DUnsteady : public PeriodicCubeFlow<dim,nstate>
 public:
 
     /// Constructor.
-    Periodic1DUnsteady(const Parameters::AllParameters *const parameters_input);
-
-    /// Destructor
-    ~Periodic1DUnsteady() {};
+    explicit Periodic1DUnsteady(const Parameters::AllParameters *const parameters_input);
 
     /// Calculate energy as a matrix-vector product,  solution^T (M+K) solution
     double compute_energy(const std::shared_ptr <DGBase<dim, double>> dg) const;

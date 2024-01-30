@@ -25,10 +25,7 @@ class NACA0012 : public FlowSolverCaseBase<dim,nstate>
 #endif
 public:
     /// Constructor.
-    NACA0012(const Parameters::AllParameters *const parameters_input);
-
-    /// Destructor
-    ~NACA0012() {};
+    explicit NACA0012(const Parameters::AllParameters *const parameters_input);
 
     /// Function to generate the grid
     std::shared_ptr<Triangulation> generate_grid() const override;
@@ -53,7 +50,7 @@ protected:
             const std::shared_ptr <DGBase<dim, double>> dg,
             const std::shared_ptr<dealii::TableHandler> unsteady_data_table) override;
 
-private:
+public:
     /// Compute lift
     double compute_lift(std::shared_ptr<DGBase<dim, double>> dg) const;
 

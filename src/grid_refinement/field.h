@@ -23,6 +23,8 @@ template <int dim, typename real>
 class Element
 {
 public:
+        /// Destructor
+        virtual ~Element() = default;
 	/// Reference for element size
 	/** Allows direct read/write of scale of mean element axis.
 	  * Measure of element (length, area, volume) will be \f$scale^{dim}\f$
@@ -450,6 +452,9 @@ template <int dim, typename real>
 class Field 
 {
 public:
+        /// Destructor
+        virtual ~Field() = default;
+
 	/// reinitialize the internal data structure 
 	virtual void reinit(
 		const unsigned int size) = 0;

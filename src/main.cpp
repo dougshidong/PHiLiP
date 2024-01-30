@@ -60,7 +60,7 @@ int main (int argc, char *argv[])
         AssertDimension(all_parameters.dimension, PHILIP_DIM);
 
         const int max_dim = PHILIP_DIM;
-        const int max_nstate = 5 + N_SPECIES;
+        const int max_nstate = (PHILIP_DIM+2)+(N_SPECIES-1);
 
         if(all_parameters.run_type == PHiLiP::Parameters::AllParameters::RunType::flow_simulation) {
             std::unique_ptr<PHiLiP::FlowSolver::FlowSolverBase> flow_solver = PHiLiP::FlowSolver::FlowSolverFactory<max_dim,max_nstate>::create_flow_solver(&all_parameters,parameter_handler);

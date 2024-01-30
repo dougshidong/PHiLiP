@@ -67,7 +67,6 @@ public:
     EulerExplicit(const int n_rk_stages, const std::string rk_method_string_input) 
         : RKTableauBase<dim,real,MeshType>(n_rk_stages, rk_method_string_input) { }
 
-<<<<<<< HEAD
 protected:
     /// Setter for butcher_tableau_a
     void set_a() override;
@@ -93,8 +92,6 @@ public:
     HeunExplicit(const int n_rk_stages, const std::string rk_method_string_input) 
         : RKTableauBase<dim,real,MeshType>(n_rk_stages, rk_method_string_input) { }
 
-=======
->>>>>>> master
 protected:
     /// Setter for butcher_tableau_a
     void set_a() override;

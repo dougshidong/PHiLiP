@@ -197,7 +197,6 @@ std::shared_ptr<EmptyRRKBase<dim,real,MeshType>> ODESolverFactory<dim,real,MeshT
 
     if (ode_solver_type == ODEEnum::runge_kutta_solver && dg_input->all_parameters->flow_solver_param.do_calculate_numerical_entropy) {
         // If calculating numerical entropy, select the class which has that functionality
-        pcout << "placeholder" ;
             return std::make_shared<RKNumEntropy<dim,real,MeshType>>(rk_tableau);
     }
     else if (ode_solver_type == ODEEnum::rrk_explicit_solver){
@@ -222,7 +221,7 @@ std::shared_ptr<EmptyRRKBase<dim,real,MeshType>> ODESolverFactory<dim,real,MeshT
             std::abort();
         }
 
-        pcout << "Creating " << numerical_entropy_string << " Relaxation Runge Kutta ODE Solver" ;
+        pcout << "Adding " << numerical_entropy_string << " Relaxation Runge Kutta to the ODE solver..." << std::endl;
         if (numerical_entropy_type==NumEntropyEnum::energy)
             return std::make_shared<EnergyRRKODESolver<dim,real,MeshType>>(rk_tableau);
         else if (numerical_entropy_type==NumEntropyEnum::entropy)
@@ -230,7 +229,9 @@ std::shared_ptr<EmptyRRKBase<dim,real,MeshType>> ODESolverFactory<dim,real,MeshT
         else return nullptr; // no need for message as numerical_entropy_type has already been checked
         
     } else {
-        return std::make_shared<EmptyRRKBase<dim,real,MeshType>> (rk_tableau); //NOTE : I probably don't need to pass rk_tableau here. Likely only need to pass it to higher classes.
+        pcout << "Making empty RRK" << std::endl;
+        return std::make_shared<EmptyRRKBase<dim,real,MeshType>> (rk_tableau);
+
     }
 }
 

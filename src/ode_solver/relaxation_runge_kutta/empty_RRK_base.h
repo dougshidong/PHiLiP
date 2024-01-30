@@ -36,7 +36,8 @@ public:
     /// Update stored quantities at the current stage
     /** Does nothing here */
     virtual void store_stage_solutions(const int /*istage*/,
-            const dealii::LinearAlgebra::distributed::Vector<double> /*rk_stage_i*/) {};
+            const dealii::LinearAlgebra::distributed::Vector<double> /*rk_stage_i*/) {
+    };
 
     virtual real modify_time_step(const real dt, 
             std::shared_ptr<DGBase<dim,real,MeshType>> /*dg*/,

@@ -30,6 +30,7 @@ RealGas<dim,nstate,real>::RealGas (
     , u_ref(mach_ref*sqrt(gam_ref*R_Air_Dim*temperature_ref)) /// [m/s]
     , u_ref_sqr(u_ref*u_ref) /// [m/s]^2
     , tol(1.0e-10) /// []
+    // TO DO: nstate-dim-1 = nspecies
 {
     this->real_gas_cap = std::dynamic_pointer_cast<PHiLiP::RealGasConstants::AllRealGasConstants>(
                 std::make_shared<PHiLiP::RealGasConstants::AllRealGasConstants>());
@@ -183,6 +184,87 @@ inline std::array<real,nstate> RealGas<dim,nstate,real>
     return conservative_soln;
 }
 
+/* MAIN FUNCTIONS */
+/// f_M1: mixture density
+template <int dim, int nstate, typename real>
+template<typename real2>
+inline real2 RealGas<dim,nstate,real>
+:: compute_mixture_density ( const std::array<real2,nstate> &conservative_soln ) const
+{
+    const real2 mixture_density = conservative_soln[0];
+    return mixture_density;
+}
+
+/// f_M6: species densities
+template <int dim, int nstate, typename real>
+template<typename real2>
+inline dealii::Tensor<1,nstate-dim-1,real2> RealGas<dim,nstate,real>
+::compute_species_densities ( const std::array<real2,nstate> &conservative_soln ) const
+{
+    const real2 mixture_density = compute_mixture_density(conservative_soln);
+    dealii::Tensor<1,nstate-dim-1,real2> species_densities;
+    real2 sum = 0.0;
+    for (int s=0; s<(nstate-dim-1)-1; ++s) 
+        { 
+            species_densities[s] = conservative_soln[nstate+s]; 
+            sum += species_densities[s];
+        }
+    species_densities[(nstate-dim-1)-1] = mixture_density - sum;
+    return species_densities;
+}
+
+/// f_M7: mass fractions
+template <int dim, int nstate, typename real>
+template<typename real2>
+inline dealii::Tensor<1,nstate-dim-1,real2> RealGas<dim,nstate,real>
+::compute_mass_fractions ( const std::array<real2,nstate> &conservative_soln ) const
+{
+    const real2 mixture_density = compute_mixture_density(conservative_soln);
+    const dealii::Tensor<1,nstate-dim-1,real2> species_densities = compute_species_densities(conservative_soln);
+    dealii::Tensor<1,nstate-dim-1,real2> mass_fractions;
+    for (int s=0; s<(nstate-dim-1)-1; ++s) 
+        { 
+            mass_fractions[s] = species_densities[s]/mixture_density; 
+        }
+    return mass_fractions;
+}
+
+/// f_M8: mixture_from_species
+template <int dim, int nstate, typename real>
+template <typename real2>
+inline real2 RealGas<dim,nstate,real>
+::compute_mixture_from_species ( const dealii::Tensor<1,nstate-dim-1,real2> &mass_fractions, const dealii::Tensor<1,nstate-dim-1,real2> &species) const
+{
+    real2 mixture = 0.0; 
+    for (int s=0; s<(nstate-dim-1); ++s) 
+        { 
+            mixture += mass_fractions[s]*species[s]; 
+        }   
+    return mixture;
+}
+
+/// f_M9: dimensional temperature
+template <int dim, int nstate, typename real>
+template<typename real2>
+inline real2 RealGas<dim,nstate,real>
+::compute_dimensional_temperature ( const real temperature ) const
+{
+    const real2 dimensional_temperature = temperature*this->temperature_ref;
+    return dimensional_temperature;
+}
+
+// /// f_M10: species specific heat at constant pressure
+// template <int dim, int nstate, typename real>
+// template<typename real2>
+// inline real2 RealGas<dim,nstate,real>
+// ::compute_species_specific_Cp ( const real temperature ) const
+// {
+//     const real2 dimensional_temperature = compute_dimensional_temperature(temperature);
+//     return dimensional_temperature;
+// }
+
+
+//// up
 template <int dim, int nstate, typename real>
 template<typename real2>
 inline dealii::Tensor<1,dim,real2> RealGas<dim,nstate,real>

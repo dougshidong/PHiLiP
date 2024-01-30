@@ -117,6 +117,29 @@ public: /// used for initial condition (initial_condition_function.cpp)
     /// Opposite of convert_primitive_to_conservative
     std::array<real,nstate> convert_primitive_to_conservative ( const std::array<real,nstate> &primitive_soln ) const;
 
+/* MAIN FUNCTIONS */
+protected:
+    /// f_M1: Compute mixture density from conservative_soln 
+    template<typename real2>
+    real2 compute_mixture_density ( const std::array<real2,nstate> &conservative_soln ) const;
+
+    /// f_M6: Compute species densities from conservative_soln 
+    template<typename real2>
+    dealii::Tensor<1,nstate-dim-1,real2> compute_species_densities ( const std::array<real2,nstate> &conservative_soln ) const;
+
+    /// f_M7: Compute mass fractions from conservative_soln 
+    template<typename real2>
+    dealii::Tensor<1,nstate-dim-1,real2> compute_mass_fractions ( const std::array<real2,nstate> &conservative_soln ) const;
+
+    /// f_M8: Compute mixture from mass fractions and species
+    template<typename real2>
+    real2 compute_mixture_from_species( const dealii::Tensor<1,nstate-dim-1,real2> &mass_fractions, const dealii::Tensor<1,nstate-dim-1,real2> &species) const;
+
+    /// f_M9: Compute dimensional temperature from (non-dimensional) temperature
+    template<typename real2>
+    real2 compute_dimensional_temperature ( const real temperature ) const;
+    
+
 protected:
     /// Compute velocities from conservative_soln (use compute_density)
     template<typename real2>

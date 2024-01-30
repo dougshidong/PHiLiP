@@ -42,7 +42,7 @@ RealGas<dim,nstate,real>::RealGas (
     }
     
     // std::cout<<"In constructor of real gas."<<std::endl<<std::flush;
-    static_assert(nstate==dim+2+(N_SPECIES-1), "Physics::RealGas() should be created with nstate=PHILIP_DIM+2+(N_SPECIES-1)"); // TO DO: UPDATE THIS with nspecies
+    static_assert(nstate==(dim+2)+(N_SPECIES-1), "Physics::RealGas() should be created with nstate=(PHILIP_DIM+2)+(N_SPECIES-1)"); // TO DO: UPDATE THIS with nspecies
 }
 
 template <int dim, int nstate, typename real>

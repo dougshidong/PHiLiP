@@ -55,7 +55,7 @@ LocalSolution<real, dim, n_components>::evaluate_reference_gradients(const std::
 }
 
 // Define a sequence of indices representing the range [1, 7]
-#define POSSIBLE_NSTATE (1)(2)(3)(4)(5)(6)(7)
+#define POSSIBLE_NSTATE (1)(2)(3)(4)(5)(6)(7)(14)
 
 // Define a macro to instantiate MyTemplate for a specific index
 #define INSTANTIATE_DISTRIBUTED(r, data, nstate)                  \

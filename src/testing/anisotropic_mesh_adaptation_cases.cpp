@@ -517,12 +517,13 @@ int AnisotropicMeshAdaptationCases<dim, nstate> :: run_test () const
 {
     int output_val = 0;
     const Parameters::AllParameters param = *(TestsBase::all_parameters);
-  //  const bool run_mesh_optimizer = param.optimization_param.max_design_cycles > 0;
-  //  const bool run_fixedfraction_mesh_adaptation = param.mesh_adaptation_param.total_mesh_adaptation_cycles > 0;
+    const bool run_mesh_optimizer = param.optimization_param.max_design_cycles > 0;
+    const bool run_fixedfraction_mesh_adaptation = param.mesh_adaptation_param.total_mesh_adaptation_cycles > 0;
     
     std::unique_ptr<FlowSolver::FlowSolver<dim,nstate>> flow_solver = FlowSolver::FlowSolverFactory<dim,nstate>::select_flow_case(&param, parameter_handler);
-    flow_solver->dg->freeze_artificial_dissipation=true;
 
+/*
+    flow_solver->dg->freeze_artificial_dissipation=true;
     increase_grid_degree_and_interpolate_solution(flow_solver->dg);
     std::ifstream infile_sol("solution.txt");
     std::ifstream infile_vol("volume_nodes.txt");
@@ -538,9 +539,12 @@ int AnisotropicMeshAdaptationCases<dim, nstate> :: run_test () const
     infile_vol.close();
     output_vtk_files(flow_solver->dg, output_val++);
     test_numerical_flux(flow_solver->dg);
+    flow_solver->use_polynomial_ramping = false;
+    flow_solver->run();
 
     return 0;
-/*
+*/
+
     flow_solver->run();
     flow_solver->dg->freeze_artificial_dissipation=true;
     output_vtk_files(flow_solver->dg, output_val++);
@@ -598,6 +602,7 @@ int AnisotropicMeshAdaptationCases<dim, nstate> :: run_test () const
             mesh_optimizer_q2->run_full_space_optimizer(regularization_matrix_poisson_q2, true);
             output_vtk_files(flow_solver->dg, output_val++);
             test_numerical_flux(flow_solver->dg);
+            flow_solver->run();
 
             const double functional_error = evaluate_functional_error(flow_solver->dg);
             const double enthalpy_error = evaluate_enthalpy_error(flow_solver->dg);
@@ -694,7 +699,7 @@ int AnisotropicMeshAdaptationCases<dim, nstate> :: run_test () const
     if(pcout.is_active()) {convergence_table_enthalpy.write_text(pcout.get_stream());}
 
 return 0;
-*/
+
 }
 
 #if PHILIP_DIM==2

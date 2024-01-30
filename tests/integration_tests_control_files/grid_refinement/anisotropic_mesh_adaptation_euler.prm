@@ -12,7 +12,7 @@ set conv_num_flux = hllc
 
 set diss_num_flux = symm_internal_penalty
 
-#set overintegration = 6
+set overintegration = 5
 #set output_face_results_vtk = true
 #set sipg_penalty_factor = 20.0
 

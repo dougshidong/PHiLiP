@@ -234,7 +234,6 @@ std::array<real, nstate> HLLCBaselineNumericalFluxConvective<dim,nstate,real>::e
     if(pressure_pvrs <= p_min)
     {
         // Two–Rarefaction Riemann solver TRRS approach
-        std::cout<<"Rarefaction detected."<<std::endl;
         const real zval = (euler_physics->gam - 1.0)/(2.0*euler_physics->gam);
         const real kernelval = (sound_L + sound_R - (euler_physics->gam-1.0)/2.0*(velocity_dot_n_R - velocity_dot_n_L)) 
                                 / (sound_L/pow(pressure_L,zval) + sound_R/pow(pressure_R,zval));
@@ -242,7 +241,6 @@ std::array<real, nstate> HLLCBaselineNumericalFluxConvective<dim,nstate,real>::e
     }
     else
     {
-        std::cout<<"Shock detected."<<std::endl;
         // Two–Shock Riemann solver TSRS approach
         real p0 = 0.0;
         if(pressure_pvrs>0.0)
@@ -304,7 +302,6 @@ std::array<real, nstate> HLLCBaselineNumericalFluxConvective<dim,nstate,real>::e
     const real S_star = 
             (pressure_R - pressure_L + density_L*velocity_dot_n_L*(S_L - velocity_dot_n_L) 
             - density_R*velocity_dot_n_R*(S_R - velocity_dot_n_R))/(density_L*(S_L - velocity_dot_n_L) - density_R*(S_R - velocity_dot_n_R));
-    std::cout<<"S_L = "<<S_L<<"  S_R = "<<S_R<<"  S_star = "<<S_star<<std::endl;
     
 
     std::array<real, nstate> soln_star_L;
@@ -356,13 +353,44 @@ std::array<real, nstate> HLLCBaselineNumericalFluxConvective<dim,nstate,real>::e
 
     std::array<real, nstate> numerical_flux_dot_n;
 
-    if(0.0 < S_L)
+    if(S_L >= 0.0)
     {
         for(int s=0; s<nstate; ++s)
         {
             numerical_flux_dot_n[s] = numerical_flux_dot_n_L[s];
         }
     }
+    else if(S_R <= 0.0)
+    {
+        for(int s=0; s<nstate; ++s)
+        {
+            numerical_flux_dot_n[s] = numerical_flux_dot_n_R[s];
+        } 
+    }
+/*
+    // Shock-stable modiﬁcation of the HLLC Riemann solver.
+    else
+    {
+        const real Ma_limit = 0.1;
+        const real Ma_local = std::max(abs(velocity_dot_n_L/sound_L), abs(velocity_dot_n_R/sound_R));
+        const real pi = 4.0*atan(1.0);
+        real min_val = 1.0;
+        if((Ma_local/Ma_limit) < min_val)
+        {
+            min_val = (Ma_local/Ma_limit);
+        }
+        const real phi = sin(min_val*pi/2.0);
+        const real S_L_lm = phi*S_L;
+        const real S_R_lm = phi*S_R;
+        
+        for(int s=0; s<nstate; ++s)
+        {
+            numerical_flux_dot_n[s] = 0.5*(numerical_flux_dot_n_L[s] + numerical_flux_dot_n_R[s]) +
+                0.5*(S_L_lm*(soln_star_L[s] - soln_int[s]) + abs(S_star)*(soln_star_L[s] - soln_star_R[s]) + S_R_lm*(soln_star_R[s] - soln_ext[s]));
+
+        }
+    }
+*/
     else if( (S_L <= 0.0) && (0.0 < S_star))
     {
         for(int s=0; s<nstate; ++s)
@@ -375,13 +403,6 @@ std::array<real, nstate> HLLCBaselineNumericalFluxConvective<dim,nstate,real>::e
         for(int s=0; s<nstate; ++s)
         {
             numerical_flux_dot_n[s] = numerical_flux_dot_n_R[s] + S_R*(soln_star_R[s] - soln_ext[s]);
-        } 
-    }
-    else if(S_R <= 0.0)
-    {
-        for(int s=0; s<nstate; ++s)
-        {
-            numerical_flux_dot_n[s] = numerical_flux_dot_n_R[s];
         } 
     }
     else
@@ -439,16 +460,17 @@ std::array<real, nstate> LaxFriedrichsRiemannSolverDissipation<dim,nstate,real>
 template <int dim, int nstate, typename real>
 void RoePikeRiemannSolverDissipation<dim,nstate,real>
 ::evaluate_entropy_fix (
-    const std::array<real, 3> &/*eig_L*/,
-    const std::array<real, 3> &/*eig_R*/,
+    const std::array<real, 3> &eig_L,
+    const std::array<real, 3> &eig_R,
     std::array<real, 3> & eig_RoeAvg,
     const real /*vel2_ravg*/,
     const real /*sound_ravg*/,
-    const real /*sound_L*/,
-    const real /* sound_R*/,
-    const real /*pressure_L*/,
-    const real /*pressure_R*/) const
+    const real sound_L,
+    const real sound_R,
+    const real pressure_L,
+    const real pressure_R) const
 {
+/*
     real max_eig = -1.0;
     for(int i=0; i<3; ++i)
     {
@@ -465,7 +487,8 @@ void RoePikeRiemannSolverDissipation<dim,nstate,real>
             eig_RoeAvg[i] = (eig_RoeAvg[i]*eig_RoeAvg[i] + delta*delta)/(2.0*delta);
         }
     }
-/*
+*/
+
     const real u_L = eig_L[2] - sound_L;
     const real u_R = eig_R[2] - sound_R;
     const double gamma_val = 1.4;
@@ -509,7 +532,7 @@ void RoePikeRiemannSolverDissipation<dim,nstate,real>
             eig_RoeAvg[2] = abs(lambda5_new_star) + abs(lambda5_new_R);
         }
     }
-*/
+
 }
 
 template <int dim, int nstate, typename real>
@@ -717,7 +740,7 @@ std::array<real, nstate> RoeBaseRiemannSolverDissipation<dim,nstate,real>
         eig_R[i] = abs(eig_R[i]);
     }
     // Evaluate entropy fix on wave speeds
-    //evaluate_entropy_fix (eig_L, eig_R, eig_ravg, vel2_ravg, sound_ravg, sound_L, sound_R, pressure_L, pressure_R);
+    evaluate_entropy_fix (eig_L, eig_R, eig_ravg, vel2_ravg, sound_ravg, sound_L, sound_R, pressure_L, pressure_R);
 
     // Evaluate additional modifications to the Roe-Pike scheme (if applicable)
     evaluate_additional_modifications (soln_int, soln_ext, eig_L, eig_R, dVn, dVt);

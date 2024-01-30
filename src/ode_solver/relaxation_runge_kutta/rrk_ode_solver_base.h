@@ -9,7 +9,7 @@
 namespace PHiLiP {
 namespace ODE {
 
-/// Relaxation Runge-Kutta ODE solver base class derived from RungeKuttaODESolver.
+/// Relaxation Runge-Kutta ODE solver base class
 #if PHILIP_DIM==1
 template <int dim, typename real, typename MeshType = dealii::Triangulation<dim>>
 #else
@@ -18,7 +18,7 @@ template <int dim, typename real, typename MeshType = dealii::parallel::distribu
 class RRKODESolverBase: public RKNumEntropy<dim, real, MeshType>
 {
 public:
-    /// Default constructor that will set the constants.
+    /// Constructor
     RRKODESolverBase(
             std::shared_ptr<RKTableauBase<dim,real,MeshType>> rk_tableau_input);
 

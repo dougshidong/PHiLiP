@@ -17,7 +17,7 @@ class EntropyRRKODESolver: public RRKODESolverBase<dim, real, MeshType>
 {
 public:
     /// Default constructor that will set the constants.
-    EntropyRRKODESolver(
+    explicit EntropyRRKODESolver(
             std::shared_ptr<RKTableauBase<dim,real,MeshType>> rk_tableau_input);
 
 protected:
@@ -54,7 +54,7 @@ protected:
             std::shared_ptr<DGBase<dim,real,MeshType>> dg,
             std::vector<dealii::LinearAlgebra::distributed::Vector<double>> &rk_stage,
             const bool use_M_norm_for_entropy_change_est = true) const;
-
+private:
     /// Storing cumulative entropy change for output 
     real FR_entropy_cumulative = 0;
 

@@ -8,7 +8,10 @@
 namespace PHiLiP {
 namespace ODE {
 
-/// Relaxation Runge-Kutta ODE solver base class derived from RungeKuttaODESolver.
+/// This class is to compute the FR correction to numerical entropy.
+/// It is intended to be used in cases where we compare semi-discrete NSFR
+/// with fully-discrete NSFR, such that numerical entropy is reported in a consistent fashion.
+/// This class does not modify the behaviour of the ODE solver.
 #if PHILIP_DIM==1
 template <int dim, typename real, typename MeshType = dealii::Triangulation<dim>>
 #else
@@ -18,7 +21,7 @@ class RKNumEntropy: public EmptyRRKBase <dim, real, MeshType>
 {
 public:
     /// Default constructor that will set the constants.
-    RKNumEntropy(
+    explicit RKNumEntropy(
             std::shared_ptr<RKTableauBase<dim,real,MeshType>> rk_tableau_input);
 
     /// Calculate FR entropy adjustment
@@ -29,6 +32,7 @@ public:
             std::vector<dealii::LinearAlgebra::distributed::Vector<double>> &rk_stage,
             const bool compute_K_norm) const override;
     
+    // "using" keyword to prevent compiler complaining
     using EmptyRRKBase<dim, real, MeshType>::compute_FR_entropy_contribution;
     using EmptyRRKBase<dim, real, MeshType>::modify_time_step;
     using EmptyRRKBase<dim, real, MeshType>::store_stage_solutions;

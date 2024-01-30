@@ -22,7 +22,7 @@ class EnergyRRKODESolver: public RRKODESolverBase<dim, real, MeshType>
 {
 public:
     /// Default constructor that will set the constants.
-    EnergyRRKODESolver(
+    explicit EnergyRRKODESolver(
             std::shared_ptr<RKTableauBase<dim,real,MeshType>> rk_tableau_input);
 
 protected:
@@ -36,8 +36,6 @@ protected:
             ) override;
     
     /// Compute inner product according to the nodes being used
-    /** This is the same calculation as energy, but using the residual instead of solution
-     */
     real compute_inner_product(
             const dealii::LinearAlgebra::distributed::Vector<double> &stage_i,
             const dealii::LinearAlgebra::distributed::Vector<double> &stage_j,

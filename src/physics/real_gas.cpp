@@ -433,11 +433,13 @@ dealii::UpdateFlags RealGas<dim,nstate,real>
 
 
 // Instantiate explicitly
-template class RealGas < PHILIP_DIM, PHILIP_DIM+2+(N_SPECIES-1), double     >;
-template class RealGas < PHILIP_DIM, PHILIP_DIM+2+(N_SPECIES-1), FadType    >;
-template class RealGas < PHILIP_DIM, PHILIP_DIM+2+(N_SPECIES-1), RadType    >;
-template class RealGas < PHILIP_DIM, PHILIP_DIM+2+(N_SPECIES-1), FadFadType >;
-template class RealGas < PHILIP_DIM, PHILIP_DIM+2+(N_SPECIES-1), RadFadType >;
+#if N_SPECIES>1
+template class RealGas < PHILIP_DIM, (PHILIP_DIM+2)+(N_SPECIES-1), double     >;
+template class RealGas < PHILIP_DIM, (PHILIP_DIM+2)+(N_SPECIES-1), FadType    >;
+template class RealGas < PHILIP_DIM, (PHILIP_DIM+2)+(N_SPECIES-1), RadType    >;
+template class RealGas < PHILIP_DIM, (PHILIP_DIM+2)+(N_SPECIES-1), FadFadType >;
+template class RealGas < PHILIP_DIM, (PHILIP_DIM+2)+(N_SPECIES-1), RadFadType >;
+#endif
 
 } // Physics namespace
 } // PHiLiP namespace

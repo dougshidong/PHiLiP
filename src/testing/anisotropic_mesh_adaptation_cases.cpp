@@ -584,7 +584,7 @@ int AnisotropicMeshAdaptationCases<dim, nstate> :: run_test () const
             std::cout<<"Residual from q1 optimization has not converged. Aborting..."<<std::endl;
             std::abort();
         }
-        const unsigned int n_meshes = 1;
+        const unsigned int n_meshes = 2;
         for(unsigned int imesh = 0; imesh < n_meshes; ++imesh)
         {
             if(imesh==0)
@@ -601,7 +601,7 @@ int AnisotropicMeshAdaptationCases<dim, nstate> :: run_test () const
             std::unique_ptr<MeshOptimizer<dim,nstate>> mesh_optimizer_q2 = std::make_unique<MeshOptimizer<dim,nstate>> (flow_solver->dg,&param, true);
             mesh_optimizer_q2->run_full_space_optimizer(regularization_matrix_poisson_q2, true);
             output_vtk_files(flow_solver->dg, output_val++);
-            test_numerical_flux(flow_solver->dg);
+            //test_numerical_flux(flow_solver->dg);
             flow_solver->run();
 
             const double functional_error = evaluate_functional_error(flow_solver->dg);

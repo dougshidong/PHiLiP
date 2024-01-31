@@ -24,7 +24,7 @@ FullSpace_BirosGhattas(
     , parlist_(parlist)
     , regularization_matrix(regularization_matrix_)
     , pcout(std::cout, dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD)==0)
-    , use_lagrange_multiplier(false)
+    , use_lagrange_multiplier(true)
     , use_l1_merit_function(true)
 {
     // Parse parameter list

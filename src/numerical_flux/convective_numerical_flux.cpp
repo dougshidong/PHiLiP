@@ -367,7 +367,7 @@ std::array<real, nstate> HLLCBaselineNumericalFluxConvective<dim,nstate,real>::e
             numerical_flux_dot_n[s] = numerical_flux_dot_n_R[s];
         } 
     }
-/*
+
     // Shock-stable modiﬁcation of the HLLC Riemann solver.
     else
     {
@@ -390,7 +390,7 @@ std::array<real, nstate> HLLCBaselineNumericalFluxConvective<dim,nstate,real>::e
 
         }
     }
-*/
+/*
     else if( (S_L <= 0.0) && (0.0 < S_star))
     {
         for(int s=0; s<nstate; ++s)
@@ -410,7 +410,7 @@ std::array<real, nstate> HLLCBaselineNumericalFluxConvective<dim,nstate,real>::e
         std::cout<<"Shouldn't have reached here in HLLC flux."<<std::endl;
         std::abort();
     }
-
+*/
     return numerical_flux_dot_n;
 }
 

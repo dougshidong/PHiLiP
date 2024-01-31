@@ -1128,7 +1128,7 @@ void Euler<dim,nstate,real>
     dealii::Tensor<1,dim,real> velocities_bc;
     for (int d=0; d<dim; d++) {
         //velocities_bc[d] = velocities_int[d] - 2.0*(vel_int_dot_normal)*surface_normal[d];
-        velocities_bc[d] = velocities_int[d] - vel_int_dot_normal*normal_int[d];
+        velocities_bc[d] = velocities_int[d] - 2.0*vel_int_dot_normal*normal_int[d];
         //velocities_bc[d] = velocities_int[d] - (vel_int_dot_normal)*surface_normal[d];
         //velocities_bc[d] += velocities_int[d] * surface_normal.norm_square();
     }

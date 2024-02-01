@@ -34,6 +34,14 @@ double Periodic1DUnsteady<dim, nstate>::compute_energy(
 }
 
 template <int dim, int nstate>
+double Periodic1DUnsteady<dim, nstate>::get_numerical_entropy(
+        const std::shared_ptr <DGBase<dim, double>> dg
+        ) const
+{
+    return compute_energy(dg);
+}
+
+template <int dim, int nstate>
 void Periodic1DUnsteady<dim, nstate>::compute_unsteady_data_and_write_to_table(
        const unsigned int current_iteration,
         const double current_time,

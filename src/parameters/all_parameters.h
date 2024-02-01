@@ -188,7 +188,7 @@ public:
         taylor_green_vortex_restart_check,
         time_refinement_study,
         time_refinement_study_reference,
-        burgers_energy_conservation_rrk,
+        rrk_numerical_entropy_conservation_check,
         euler_entropy_conserving_split_forms_check,
         h_refinement_study_isentropic_vortex,
         khi_robustness,

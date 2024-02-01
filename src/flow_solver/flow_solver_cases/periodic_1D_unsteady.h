@@ -16,6 +16,10 @@ public:
 
     /// Calculate energy as a matrix-vector product,  solution^T (M+K) solution
     double compute_energy(const std::shared_ptr <DGBase<dim, double>> dg) const;
+
+    /// Calculate numerical entropy.
+    /// Here, is a wrapper for compute_energy. Used by tests.
+    double get_numerical_entropy(const std::shared_ptr <DGBase<dim, double>> dg) const;
 protected:
 
     /// Compute the desired unsteady data and write it to a table

@@ -77,7 +77,10 @@ public:
             const double current_time) const;
 
     /// Calculate numerical entropy by matrix-vector product
-    double get_numerical_entropy(const std::shared_ptr <DGBase<dim, double>> dg) const;
+    double calculate_numerical_entropy(const std::shared_ptr <DGBase<dim, double>> dg) const;
+    
+    /// Retrieves cumulative_numerical_entropy_change_FRcorrected
+    double get_numerical_entropy(const std::shared_ptr <DGBase<dim, double>> /*dg*/) const;
 
 protected:
     /// Filename (with extension) for the unsteady data table

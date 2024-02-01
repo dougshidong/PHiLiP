@@ -623,7 +623,13 @@ double PeriodicTurbulence<dim, nstate>::get_strain_rate_tensor_based_dissipation
 }
 
 template<int dim, int nstate>
-double PeriodicTurbulence<dim, nstate>::get_numerical_entropy(
+double PeriodicTurbulence<dim, nstate>::get_numerical_entropy(const std::shared_ptr <DGBase<dim, double>> /*dg*/) const
+{
+    return cumulative_numerical_entropy_change_FRcorrected;
+}
+
+template<int dim, int nstate>
+double PeriodicTurbulence<dim, nstate>::calculate_numerical_entropy(
         const std::shared_ptr <DGBase<dim, double>> dg
         ) const
 {
@@ -754,7 +760,7 @@ void PeriodicTurbulence<dim, nstate>::compute_unsteady_data_and_write_to_table(
     double current_numerical_entropy_change_FRcorrected=0;
     
     if (do_calculate_numerical_entropy){
-        const double current_numerical_entropy = this->get_numerical_entropy(dg);
+        const double current_numerical_entropy = this->calculate_numerical_entropy(dg);
         if (current_iteration==0) {
             this->previous_numerical_entropy = current_numerical_entropy;
             this->initial_numerical_entropy_abs = abs(current_numerical_entropy);

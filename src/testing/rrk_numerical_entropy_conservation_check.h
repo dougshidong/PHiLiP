@@ -1,21 +1,22 @@
-#ifndef __BURGERS_ENERGY_CONSERVATION_RRK__
-#define __BURGERS_ENERGY_CONSERVATION_RRK__
+#ifndef __RRK_NUMERICAL_ENTROPY_CONSERVATION_CHECK__
+#define __RRK_NUMERICAL_ENTROPY_CONSERVATION_CHECK__
 
 #include <deal.II/base/convergence_table.h>
 
 #include "dg/dg_base.hpp"
 #include "tests.h"
+#include "flow_solver/flow_solver.h"
 
 namespace PHiLiP {
 namespace Tests {
 
-/// Verify energy conservation for inviscid Burgers using split form and RRK
+/// Verify numerical_entropy conservation for inviscid Burgers using split form and RRK
 template <int dim, int nstate>
-class BurgersEnergyConservationRRK: public TestsBase
+class RRKNumericalEntropyConservationCheck: public TestsBase
 {
 public:
     /// Constructor
-    BurgersEnergyConservationRRK(
+    RRKNumericalEntropyConservationCheck(
             const Parameters::AllParameters *const parameters_input,
             const dealii::ParameterHandler &parameter_handler_input);
 
@@ -29,18 +30,18 @@ protected:
     /// Reinitialize parameters. Necessary because all_parameters is constant.
     Parameters::AllParameters reinit_params(bool use_rrk, double time_step_size) const;
     
-    /// Compare the energy after flow simulation to initial, and return test fail int
-    int compare_energy_to_initial(
-            const std::shared_ptr <DGBase<dim, double>> dg,
-            const double initial_energy,
+    /// Compare the numerical_entropy after flow simulation to initial, and return test fail int
+    int compare_numerical_entropy_to_initial(
+            const std::unique_ptr<FlowSolver::FlowSolver<dim,nstate>> &flow_solver,
+            const double initial_numerical_entropy,
             const double final_time_actual,
             bool expect_conservation
             ) const;
 
-    /// runs flow solver. Returns 0 (pass) or 1 (fail) based on energy conservation of calculation.
-    int get_energy_and_compare_to_initial(
+    /// runs flow solver. Returns 0 (pass) or 1 (fail) based on numerical_entropy conservation of calculation.
+    int get_numerical_entropy_and_compare_to_initial(
             const Parameters::AllParameters params,
-            const double energy_initial,
+            const double numerical_entropy_initial,
             bool expect_conservation
             ) const;
 

@@ -3,8 +3,8 @@
 #include "ode_solver_base.h"
 #include "runge_kutta_ode_solver.h"
 #include "implicit_ode_solver.h"
-#include "relaxation_runge_kutta/energy_rrk_ode_solver.h"
-#include "relaxation_runge_kutta/entropy_rrk_ode_solver.h"
+#include "relaxation_runge_kutta/algebraic_rrk_ode_solver.h"
+#include "relaxation_runge_kutta/root_finding_rrk_ode_solver.h"
 #include "pod_galerkin_ode_solver.h"
 #include "pod_petrov_galerkin_ode_solver.h"
 #include <deal.II/distributed/solution_transfer.h>

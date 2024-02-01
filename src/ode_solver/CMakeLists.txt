@@ -7,8 +7,8 @@ set(ODE_SOURCE
     relaxation_runge_kutta/empty_RRK_base.cpp
     relaxation_runge_kutta/runge_kutta_store_entropy.cpp
     relaxation_runge_kutta/rrk_ode_solver_base.cpp
-    relaxation_runge_kutta/energy_rrk_ode_solver.cpp
-    relaxation_runge_kutta/entropy_rrk_ode_solver.cpp
+    relaxation_runge_kutta/algebraic_rrk_ode_solver.cpp
+    relaxation_runge_kutta/root_finding_rrk_ode_solver.cpp
     implicit_ode_solver.cpp
     pod_galerkin_ode_solver.cpp
     pod_petrov_galerkin_ode_solver.cpp

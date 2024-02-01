@@ -1,4 +1,4 @@
-#include "energy_rrk_ode_solver.h"
+#include "algebraic_rrk_ode_solver.h"
 
 namespace PHiLiP {
 namespace ODE {

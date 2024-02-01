@@ -1,4 +1,4 @@
-#include "entropy_rrk_ode_solver.h"
+#include "root_finding_rrk_ode_solver.h"
 #include "physics/euler.h"
 #include "physics/physics_factory.h"
 

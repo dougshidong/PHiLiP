@@ -26,8 +26,8 @@ protected:
     /// See Ranocha 2020, Eq. 2.4
     real compute_relaxation_parameter(const real dt,
             std::shared_ptr<DGBase<dim,real,MeshType>> dg,
-            std::vector<dealii::LinearAlgebra::distributed::Vector<double>> &rk_stage,
-            dealii::LinearAlgebra::distributed::Vector<double> &solution_update
+            const std::vector<dealii::LinearAlgebra::distributed::Vector<double>> &rk_stage,
+            const dealii::LinearAlgebra::distributed::Vector<double> &solution_update
             ) override;
 
     /// Compute the remainder of the root function Ranocha 2020 Eq. 2.4
@@ -52,7 +52,7 @@ protected:
     /// Compute the estimated entropy change during a timestep
     real compute_entropy_change_estimate(const real dt,
             std::shared_ptr<DGBase<dim,real,MeshType>> dg,
-            std::vector<dealii::LinearAlgebra::distributed::Vector<double>> &rk_stage,
+            const std::vector<dealii::LinearAlgebra::distributed::Vector<double>> &rk_stage,
             const bool use_M_norm_for_entropy_change_est = true) const;
 private:
     /// Storing cumulative entropy change for output 

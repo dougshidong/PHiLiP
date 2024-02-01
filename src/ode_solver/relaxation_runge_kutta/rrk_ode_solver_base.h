@@ -2,7 +2,6 @@
 #define __RRK_ODE_SOLVER_BASE_H__
 
 #include "dg/dg_base.hpp"
-//#include "ode_solver/runge_kutta_ode_solver.h"
 #include "ode_solver/runge_kutta_ode_solver.h"
 #include "ode_solver/relaxation_runge_kutta/runge_kutta_store_entropy.h"
 
@@ -33,8 +32,8 @@ protected:
     /// Modify timestep based on relaxation
     real modify_time_step (const real dt,
             std::shared_ptr<DGBase<dim,real,MeshType>> dg,
-            std::vector<dealii::LinearAlgebra::distributed::Vector<double>> &rk_stage,
-            dealii::LinearAlgebra::distributed::Vector<double> & solution_update) override;
+            const std::vector<dealii::LinearAlgebra::distributed::Vector<double>> &rk_stage,
+            const dealii::LinearAlgebra::distributed::Vector<double> & solution_update) override;
     
 
     /// Compute relaxation parameter explicitly (i.e. if energy is the entropy variable)
@@ -42,8 +41,8 @@ protected:
     /// See Ranocha 2020, Eq. 2.4
     virtual real compute_relaxation_parameter(const real dt,
             std::shared_ptr<DGBase<dim,real,MeshType>> dg,
-            std::vector<dealii::LinearAlgebra::distributed::Vector<double>> &rk_stage,
-            dealii::LinearAlgebra::distributed::Vector<double> &/*solution_update*/
+            const std::vector<dealii::LinearAlgebra::distributed::Vector<double>> &rk_stage,
+            const dealii::LinearAlgebra::distributed::Vector<double> &/*solution_update*/
             ) = 0;
 
 };

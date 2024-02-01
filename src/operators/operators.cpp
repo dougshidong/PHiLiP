@@ -3005,5 +3005,3 @@ template class local_flux_basis_stiffness <PHILIP_DIM, 5, 2*PHILIP_DIM>;
 
 } // OPERATOR namespace
 } // PHiLiP namespace
-
-

@@ -1,7 +1,6 @@
 #include "ode_solver_factory.h"
 #include "parameters/all_parameters.h"
 #include "ode_solver_base.h"
-//#include "runge_kutta_ode_solver.h"
 #include "runge_kutta_ode_solver.h"
 #include "implicit_ode_solver.h"
 #include "relaxation_runge_kutta/energy_rrk_ode_solver.h"
@@ -89,7 +88,7 @@ void ODESolverFactory<dim,real,MeshType>::display_error_ode_solver_factory(Param
     using ODEEnum = Parameters::ODESolverParam::ODESolverEnum;
 
     std::string solver_string;    
-    if (ode_solver_type == ODEEnum::runge_kutta_solver)            solver_string = "runge_kutta";
+    if (ode_solver_type == ODEEnum::runge_kutta_solver)                 solver_string = "runge_kutta";
     else if (ode_solver_type == ODEEnum::implicit_solver)               solver_string = "implicit";
     else if (ode_solver_type == ODEEnum::rrk_explicit_solver)           solver_string = "rrk_explicit";
     else if (ode_solver_type == ODEEnum::pod_galerkin_solver)           solver_string = "pod_galerkin";

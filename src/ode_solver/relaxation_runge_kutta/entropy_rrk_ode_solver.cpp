@@ -15,15 +15,15 @@ RootFindingRRKODESolver<dim,real,MeshType>::RootFindingRRKODESolver(
 template <int dim, typename real, typename MeshType>
 real RootFindingRRKODESolver<dim,real,MeshType>::compute_relaxation_parameter(const real dt,
             std::shared_ptr<DGBase<dim,real,MeshType>> dg,
-            std::vector<dealii::LinearAlgebra::distributed::Vector<double>> &rk_stage,
-            dealii::LinearAlgebra::distributed::Vector<double> &solution_update
+            const std::vector<dealii::LinearAlgebra::distributed::Vector<double>> &rk_stage,
+            const dealii::LinearAlgebra::distributed::Vector<double> &solution_update
             ) 
 {
     // Console output is based on linearsolverparam
     const bool do_output = (dg->all_parameters->linear_solver_param.linear_solver_output == Parameters::OutputEnum::verbose); 
 
-    // Note to self: this is repeating steps that are also done in runge_kutta_ode_solver.
-    // Should be combined.
+    // Note: there is some overlap in computations here and in runge_kutta_ode_solver.
+    // In future optimization, this could be improved.
     dealii::LinearAlgebra::distributed::Vector<double> step_direction;
     step_direction.reinit(rk_stage[0]);
     for (int i = 0; i < this->n_rk_stages; ++i){
@@ -39,6 +39,8 @@ real RootFindingRRKODESolver<dim,real,MeshType>::compute_relaxation_parameter(co
     const dealii::LinearAlgebra::distributed::Vector<double> u_n = solution_update;
     const double num_entropy_n = compute_numerical_entropy(u_n,dg);
     
+    // Allow user to manually select bisection or secant solver.
+    // As secant method is nearly always preferable, this is hard-coded.
     const bool use_secant = true;
     bool secant_failed = false;
 
@@ -365,8 +367,6 @@ real RootFindingRRKODESolver<dim,real,MeshType>::compute_integrated_numerical_en
             // Compute integrated quantities here
             //#####################################################################
             const double quadrature_entropy = euler_physics->compute_numerical_entropy_function(soln_at_q);
-            //Using std::cout because of cell->is_locally_owned check 
-            if (isnan(quadrature_entropy))  std::cout << "WARNING: NaN entropy detected at a node!"  << std::endl;
             integrated_quantity += quadrature_entropy * quad_weights[iquad] * metric_oper.det_Jac_vol[iquad];
             //#####################################################################
         }
@@ -381,7 +381,7 @@ real RootFindingRRKODESolver<dim,real,MeshType>::compute_integrated_numerical_en
 template <int dim, typename real, typename MeshType>
 real RootFindingRRKODESolver<dim,real,MeshType>::compute_entropy_change_estimate(const real dt,
         std::shared_ptr<DGBase<dim,real,MeshType>> dg,
-        std::vector<dealii::LinearAlgebra::distributed::Vector<double>> &rk_stage,
+        const std::vector<dealii::LinearAlgebra::distributed::Vector<double>> &rk_stage,
         const bool use_M_norm_for_entropy_change_est) const
 {
     double entropy_change_estimate = 0;

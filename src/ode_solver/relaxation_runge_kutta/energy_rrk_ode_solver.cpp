@@ -14,8 +14,8 @@ AlgebraicRRKODESolver<dim,real,MeshType>::AlgebraicRRKODESolver(
 template <int dim, typename real, typename MeshType>
 real AlgebraicRRKODESolver<dim,real,MeshType>::compute_relaxation_parameter(const real /*dt*/,
             std::shared_ptr<DGBase<dim,real,MeshType>> dg,
-            std::vector<dealii::LinearAlgebra::distributed::Vector<double>> &rk_stage,
-            dealii::LinearAlgebra::distributed::Vector<double> &/*solution_update*/
+            const std::vector<dealii::LinearAlgebra::distributed::Vector<double>> &rk_stage,
+            const dealii::LinearAlgebra::distributed::Vector<double> &/*solution_update*/
         )
 {
     //See Ketcheson 2019, Eq. 2.4

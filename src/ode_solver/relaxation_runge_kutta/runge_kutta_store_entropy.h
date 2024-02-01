@@ -2,7 +2,6 @@
 #define __RK_NUM_ENTROPY_H__
 
 #include "dg/dg_base.hpp"
-//#include "ode_solver/runge_kutta_ode_solver.h"
 #include "ode_solver/runge_kutta_ode_solver.h"
 
 namespace PHiLiP {
@@ -29,7 +28,7 @@ public:
      */
     double compute_FR_entropy_contribution(const real dt,
             std::shared_ptr<DGBase<dim,real,MeshType>> dg,
-            std::vector<dealii::LinearAlgebra::distributed::Vector<double>> &rk_stage,
+            const std::vector<dealii::LinearAlgebra::distributed::Vector<double>> &rk_stage,
             const bool compute_K_norm) const override;
     
     // "using" keyword to prevent compiler complaining

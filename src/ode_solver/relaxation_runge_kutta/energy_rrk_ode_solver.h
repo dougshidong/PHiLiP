@@ -4,7 +4,6 @@
 #include "dg/dg_base.hpp"
 #include "rrk_ode_solver_base.h"
 #include "ode_solver/ode_solver_base.h"
-//#include "runge_kutta_ode_solver.h"
 #include "ode_solver/runge_kutta_ode_solver.h"
 
 namespace PHiLiP {
@@ -31,8 +30,8 @@ protected:
     /// See Ketcheson 2019, Eq. 2.4
     real compute_relaxation_parameter(const real dt,
             std::shared_ptr<DGBase<dim,real,MeshType>> dg,
-            std::vector<dealii::LinearAlgebra::distributed::Vector<double>> &rk_stage,
-            dealii::LinearAlgebra::distributed::Vector<double> &/*solution_update*/
+            const std::vector<dealii::LinearAlgebra::distributed::Vector<double>> &rk_stage,
+            const dealii::LinearAlgebra::distributed::Vector<double> &/*solution_update*/
             ) override;
     
     /// Compute inner product according to the nodes being used

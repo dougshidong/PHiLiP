@@ -31,7 +31,6 @@ template <int dim, typename real, typename MeshType>
 dealii::LinearAlgebra::distributed::Vector<double> RKNumEntropy<dim,real,MeshType>::compute_entropy_vars(const dealii::LinearAlgebra::distributed::Vector<double> &u,
         std::shared_ptr<DGBase<dim,real,MeshType>> dg) const
 {
-    //// TEMP Allow this to be any physics.
     // hard-code nstate for Euler/NS - ODESolverFactory has already ensured that we use Euler/NS
     const unsigned int nstate = dim + 2;
     // Currently only implemented for constant p
@@ -41,7 +40,7 @@ dealii::LinearAlgebra::distributed::Vector<double> RKNumEntropy<dim,real,MeshTyp
         std::abort();
     }
     
-    // TEMP this should select the actual physics of the problem
+    // Select Euler physics. ODESolverFactory has already ensured that we are using Euler orSelect Euler physics. ODESolverFactory has already ensured that we are using Euler or NS, which both use the same entropy variable computation.
     PHiLiP::Parameters::AllParameters parameters_euler = *(dg->all_parameters);
     parameters_euler.pde_type = Parameters::AllParameters::PartialDifferentialEquation::euler;
     std::shared_ptr < Physics::Euler<dim, dim+2, double > > euler_physics = std::dynamic_pointer_cast<Physics::Euler<dim,dim+2,double>>(
@@ -113,7 +112,7 @@ dealii::LinearAlgebra::distributed::Vector<double> RKNumEntropy<dim,real,MeshTyp
 template <int dim, typename real, typename MeshType>
 double RKNumEntropy<dim,real,MeshType>::compute_FR_entropy_contribution(const real dt, 
         std::shared_ptr<DGBase<dim,real,MeshType>> dg,
-        std::vector<dealii::LinearAlgebra::distributed::Vector<double>> &rk_stage,
+        const std::vector<dealii::LinearAlgebra::distributed::Vector<double>> &rk_stage,
         const bool compute_K_norm) const
 {
     double entropy_contribution = 0;

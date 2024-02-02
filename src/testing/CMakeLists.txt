@@ -38,21 +38,13 @@ set(TESTS_SOURCE
     real_gas_vs_euler_primitive_to_conservative_check.cpp
     )
 
-set(POSSIBLE_N_SPECIES "1;11")
-
-foreach(nspecies ${POSSIBLE_N_SPECIES})
 foreach(dim RANGE 1 3)
     # Output library
-    if(${nspecies} EQUAL "1")
-        string(CONCAT TestsLib Tests_${dim}D)
-    else()
-        string(CONCAT TestsLib Tests_${dim}D_${nspecies}-SPECIES)
-    endif()
+   string(CONCAT TestsLib Tests_${dim}D)
 
     add_library(${TestsLib} STATIC ${TESTS_SOURCE})
     # Replace occurences of PHILIP_DIM with 1, 2, or 3 in the code
     target_compile_definitions(${TestsLib} PRIVATE PHILIP_DIM=${dim})
-    target_compile_definitions(${TestsLib} PRIVATE N_SPECIES=${nspecies})
 
     # Library dependency
     string(CONCAT GridsLib Grids_${dim}D)
@@ -103,5 +95,4 @@ foreach(dim RANGE 1 3)
     unset(FlowSolverLib)
     unset(ExactSolutionsLib)
     unset(MeshAdaptationLib)
-endforeach()
 endforeach()

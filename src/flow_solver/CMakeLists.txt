@@ -13,20 +13,12 @@ set(FLOW_SOLVER_SOURCE
     flow_solver.cpp
     flow_solver_factory.cpp)
 
-set(POSSIBLE_N_SPECIES "1;11")
-
-foreach(nspecies ${POSSIBLE_N_SPECIES})
 foreach(dim RANGE 1 3)
     # Output library
-    if(${nspecies} EQUAL "1")
-        string(CONCAT FlowSolverLib FlowSolver_${dim}D)
-    else()
-        string(CONCAT FlowSolverLib FlowSolver_${dim}D_${nspecies}-SPECIES)
-    endif()
+    string(CONCAT FlowSolverLib FlowSolver_${dim}D)
     add_library(${FlowSolverLib} STATIC ${FLOW_SOLVER_SOURCE})
     # Replace occurences of PHILIP_DIM with 1, 2, or 3 in the code
     target_compile_definitions(${FlowSolverLib} PRIVATE PHILIP_DIM=${dim})
-    target_compile_definitions(${FlowSolverLib} PRIVATE N_SPECIES=${nspecies})
 
     # Library dependency
     string(CONCAT GridsLib Grids_${dim}D)
@@ -59,5 +51,4 @@ foreach(dim RANGE 1 3)
     unset(InitialConditionsLib)
     unset(PODLib)
     unset(MeshAdaptationLib)
-endforeach()
 endforeach()

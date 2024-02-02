@@ -21,16 +21,9 @@ SET(SOURCE
     real_gas.cpp
     model_factory.cpp)
 
-set(POSSIBLE_N_SPECIES "1;11")
-
-foreach(nspecies ${POSSIBLE_N_SPECIES})
 foreach(dim RANGE 1 3)
     # Output library
-    if(${nspecies} EQUAL "1")
-        string(CONCAT PhysicsLib Physics_${dim}D)
-    else()
-        string(CONCAT PhysicsLib Physics_${dim}D_${nspecies}-SPECIES)
-    endif()
+    string(CONCAT PhysicsLib Physics_${dim}D)
     add_library(${PhysicsLib} STATIC ${SOURCE})
 
     # Library dependency
@@ -47,10 +40,8 @@ foreach(dim RANGE 1 3)
     endif()
 
     target_compile_definitions(${PhysicsLib} PRIVATE PHILIP_DIM=${dim})
-    target_compile_definitions(${PhysicsLib} PRIVATE N_SPECIES=${nspecies})
 
     # Setup target with deal.II
     unset(PhysicsLib)
 
-endforeach()
 endforeach()

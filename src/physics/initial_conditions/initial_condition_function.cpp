@@ -670,12 +670,9 @@ real InitialConditionFunction_AcousticWave_MultiSpecies<dim,nstate,real>
     if constexpr(dim == 2) {
         const real x = point[0], y = point[1];
 
-        //
-        value = 1.0;
-
         if(istate==0) {
-            // density
-            value = 1.0;
+            // mixture density
+            value = 0.99;
         }
         if(istate==1) {
             // x-velocity
@@ -698,6 +695,9 @@ real InitialConditionFunction_AcousticWave_MultiSpecies<dim,nstate,real>
             double fy = (1.0/sqrt(2.0*pi*sigma*sigma))*exp(-((y-mu)*(y-mu))/(2.0*(sigma*sigma)));
             value = 1.0/(this->gamma_gas*this->mach_inf_sqr) + fx*fy;
             value = value*3.0/3.0; // chnege this if you want to vary initial temperature 
+        }else{
+            // other species density
+            value = 0.01;
         }
     }
     return value;
@@ -712,12 +712,10 @@ real InitialConditionFunction_AcousticWave_MultiSpecies<dim,nstate,real>
     if constexpr(dim == 2) {
         std::array<real,nstate> soln_primitive;
 
-        soln_primitive[0] = primitive_value(point,0);
-        soln_primitive[1] = primitive_value(point,1);
-        soln_primitive[2] = primitive_value(point,2);
-        soln_primitive[3] = primitive_value(point,3);
-        //
-        soln_primitive[4] = primitive_value(point,4);
+        for (int i=0; i<nstate; i++)
+        {
+            soln_primitive[i] = primitive_value(point,i);
+        }
 
         const std::array<real,nstate> soln_conservative = this->real_gas_physics->convert_primitive_to_conservative(soln_primitive);
         value = soln_conservative[istate];

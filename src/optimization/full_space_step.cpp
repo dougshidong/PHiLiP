@@ -52,13 +52,13 @@ FullSpace_BirosGhattas(
     esec_ = StringToESecant(secantName_);
     secant_ = SecantFactory<Real>(parlist);
 
-    regularization_parameter_control = parlist.sublist("Full Space").get("regularization_parameter",1.0);
+    regularization_parameter_control = parlist.sublist("Full Space").get("regularization_parameter_control",1.0);
     regularization_scaling_control = parlist.sublist("Full Space").get("regularization_scaling",10.0);
     regularization_tol_low_control = parlist.sublist("Full Space").get("regularization_tol_low",1.0e-2);
     regularization_tol_high_control = parlist.sublist("Full Space").get("regularization_tol_high",1.0e-1);
     linear_iteration_limit = parlist.sublist("Full Space").get("Linear iteration Limit", 2000); 
     
-    regularization_parameter_sim = 1.0;
+    regularization_parameter_sim = parlist.sublist("Full Space").get("regularization_parameter_sim",1.0);;
     regularization_scaling_sim = 2.0;
     regularization_tol_low_sim = 1.0e-2;
     regularization_tol_high_sim = 1.0e-1;

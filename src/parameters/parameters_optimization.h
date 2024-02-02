@@ -57,8 +57,11 @@ public:
     /// Flag to use fine solution as an initial guess. Used for full space goal oriented mesh optimization.
     bool use_fine_solution;
 
-    /// Regularization parameter to be multiplied with identity an dadded to the hessian of control variables.
-    double regularization_parameter;
+    /// Regularization parameter to be multiplied with identity and added to the hessian of control variables.
+    double regularization_parameter_control;
+    
+    /// Regularization parameter to be multiplied with identity and added to the hessian of control variables.
+    double regularization_parameter_sim;
 
     /// Scaling for regularization parameter after each iteration.
     double regularization_scaling;

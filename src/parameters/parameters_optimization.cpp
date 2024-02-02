@@ -106,7 +106,11 @@ void OptimizationParam::declare_parameters (dealii::ParameterHandler &prm)
                             dealii::Patterns::Bool(),
                             "Use fine solution as initial guess.");
         
-        prm.declare_entry("regularization_parameter", "0.0",
+        prm.declare_entry("regularization_parameter_control", "0.0",
+                           dealii::Patterns::Double(0.0, 1e100),
+                           "Regularization parameter times identity added to the hessian of control variables.");
+        
+        prm.declare_entry("regularization_parameter_sim", "0.0",
                            dealii::Patterns::Double(0.0, 1e100),
                            "Regularization parameter times identity added to the hessian of control variables.");
         
@@ -148,7 +152,8 @@ void OptimizationParam::parse_parameters (dealii::ParameterHandler &prm)
         use_coarse_residual = prm.get_bool("use_coarse_residual");
         use_fine_solution = prm.get_bool("use_fine_solution");
         
-        regularization_parameter = prm.get_double("regularization_parameter");
+        regularization_parameter_control = prm.get_double("regularization_parameter_control");
+        regularization_parameter_sim = prm.get_double("regularization_parameter_sim");
         regularization_scaling = prm.get_double("regularization_scaling");
         regularization_tol_high = prm.get_double("regularization_tol_high");
         regularization_tol_low = prm.get_double("regularization_tol_low");

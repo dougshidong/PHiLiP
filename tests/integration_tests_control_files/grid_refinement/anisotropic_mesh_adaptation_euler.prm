@@ -82,7 +82,8 @@ subsection optimization
     set full_space_preconditioner = P2A
     set mesh_weight_factor = 0.0
 
-    set regularization_parameter = 1.0
+    set regularization_parameter_control = 1.0
+    set regularization_parameter_sim = 0.0
     set regularization_scaling = 2.0
     set regularization_tol_low = 1.0e-2
     set regularization_tol_high = 1.0e-1

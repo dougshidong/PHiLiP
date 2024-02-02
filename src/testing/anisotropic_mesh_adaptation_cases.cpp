@@ -630,6 +630,7 @@ int AnisotropicMeshAdaptationCases<dim, nstate> :: run_test () const
         evaluate_regularization_matrix(regularization_matrix_poisson_q1, flow_solver->dg);
         Parameters::AllParameters param_q1 = param;
         param_q1.optimization_param.max_design_cycles = 10;
+        param_q1.optimization_param.regularization_parameter_sim = 1.0;
         
         std::unique_ptr<MeshOptimizer<dim,nstate>> mesh_optimizer_q1 = 
                         std::make_unique<MeshOptimizer<dim,nstate>> (flow_solver->dg, &param_q1, true);
@@ -640,7 +641,7 @@ int AnisotropicMeshAdaptationCases<dim, nstate> :: run_test () const
             std::cout<<"Residual from q1 optimization has not converged. Aborting..."<<std::endl;
             std::abort();
         }
-        const unsigned int n_meshes = 1;
+        const unsigned int n_meshes = 2;
         for(unsigned int imesh = 0; imesh < n_meshes; ++imesh)
         {
             if(imesh==0)
@@ -651,10 +652,16 @@ int AnisotropicMeshAdaptationCases<dim, nstate> :: run_test () const
             {
                 refine_mesh_and_interpolate_solution(flow_solver->dg); 
             }
+            Parameters::AllParameters param_q2 = param;
+            if(imesh==0)
+            {
+                param_q2.optimization_param.max_design_cycles = 20;
+                param_q2.optimization_param.regularization_parameter_sim = 1.0;
+            }
             dealii::TrilinosWrappers::SparseMatrix regularization_matrix_poisson_q2;
             evaluate_regularization_matrix(regularization_matrix_poisson_q2, flow_solver->dg);
             flow_solver->dg->freeze_artificial_dissipation=true;
-            std::unique_ptr<MeshOptimizer<dim,nstate>> mesh_optimizer_q2 = std::make_unique<MeshOptimizer<dim,nstate>> (flow_solver->dg,&param, true);
+            std::unique_ptr<MeshOptimizer<dim,nstate>> mesh_optimizer_q2 = std::make_unique<MeshOptimizer<dim,nstate>> (flow_solver->dg,&param_q2, true);
             mesh_optimizer_q2->run_full_space_optimizer(regularization_matrix_poisson_q2, true);
             output_vtk_files(flow_solver->dg, output_val++);
             //test_numerical_flux(flow_solver->dg);

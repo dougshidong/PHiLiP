@@ -126,7 +126,8 @@ Teuchos::ParameterList MeshOptimizer<dim,nstate>::get_parlist()
     {
         parlist.sublist("Full Space").set("Preconditioner", all_parameters->optimization_param.full_space_preconditioner);
         parlist.sublist("Full Space").set("Linear iteration Limit", all_parameters->optimization_param.linear_iteration_limit);
-        parlist.sublist("Full Space").set("regularization_parameter", all_parameters->optimization_param.regularization_parameter);
+        parlist.sublist("Full Space").set("regularization_parameter_control", all_parameters->optimization_param.regularization_parameter_control);
+        parlist.sublist("Full Space").set("regularization_parameter_sim", all_parameters->optimization_param.regularization_parameter_sim);
         parlist.sublist("Full Space").set("regularization_scaling", all_parameters->optimization_param.regularization_scaling);
         parlist.sublist("Full Space").set("regularization_tol_low", all_parameters->optimization_param.regularization_tol_low);
         parlist.sublist("Full Space").set("regularization_tol_high", all_parameters->optimization_param.regularization_tol_high);

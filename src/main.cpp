@@ -58,14 +58,12 @@ int main (int argc, char *argv[])
         all_parameters.parse_parameters (parameter_handler);
         
         AssertDimension(all_parameters.dimension, PHILIP_DIM);
-        AssertDimension(all_parameters.number_of_species, N_SPECIES);
 
         const int max_dim = PHILIP_DIM;
-        const int number_of_species = N_SPECIES;
         const int max_nstate = 5;
 
         if(all_parameters.run_type == PHiLiP::Parameters::AllParameters::RunType::flow_simulation) {
-            std::unique_ptr<PHiLiP::FlowSolver::FlowSolverBase> flow_solver = PHiLiP::FlowSolver::FlowSolverFactory<max_dim,max_nstate,number_of_species>::create_flow_solver(&all_parameters,parameter_handler);
+            std::unique_ptr<PHiLiP::FlowSolver::FlowSolverBase> flow_solver = PHiLiP::FlowSolver::FlowSolverFactory<max_dim,max_nstate>::create_flow_solver(&all_parameters,parameter_handler);
             run_error = flow_solver->run();
             pcout << "Flow simulation complete with run error code: " << run_error << std::endl;
         }

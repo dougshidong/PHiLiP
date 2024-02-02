@@ -4659,6 +4659,16 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_auxiliary_residual ()
     //Do Nothing.
 }
 
+template <int dim, int nstate, typename real, typename MeshType>
+void DGWeak<dim,nstate,real,MeshType>::set_upwinding_flux(const bool _use_upwinding)
+{
+    DGBaseState<dim,nstate,real,MeshType>::conv_num_flux_double->set_upwinding_flux(_use_upwinding);
+    DGBaseState<dim,nstate,real,MeshType>::conv_num_flux_fad->set_upwinding_flux(_use_upwinding);
+    DGBaseState<dim,nstate,real,MeshType>::conv_num_flux_rad->set_upwinding_flux(_use_upwinding);
+    DGBaseState<dim,nstate,real,MeshType>::conv_num_flux_fad_fad->set_upwinding_flux(_use_upwinding);
+    DGBaseState<dim,nstate,real,MeshType>::conv_num_flux_rad_fad->set_upwinding_flux(_use_upwinding); 
+}
+
 // using default MeshType = Triangulation
 // 1D: dealii::Triangulation<dim>;
 // Otherwise: dealii::parallel::distributed::Triangulation<dim>;

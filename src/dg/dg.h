@@ -642,6 +642,8 @@ public:
     /// Sets the current time within DG to be used for unsteady source terms.
     void set_current_time(const real current_time_input);
 
+    virtual void set_upwinding_flux(const bool /*_use_upwinding*/) {};
+
 protected:
     /// The current time set in set_current_time()
     real current_time;

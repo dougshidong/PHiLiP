@@ -22,6 +22,8 @@ public:
         const std::array<real, nstate> &soln_int,
         const std::array<real, nstate> &soln_ext,
         const dealii::Tensor<1,dim,real> &normal1) const = 0;
+
+    virtual void set_upwinding_flux(const bool use_upwinding) = 0;
 };
 
 /// Central numerical flux. Derived from BaselineNumericalFluxConvective.
@@ -41,6 +43,8 @@ public:
         const std::array<real, nstate> &soln_int,
         const std::array<real, nstate> &soln_ext,
         const dealii::Tensor<1,dim,real> &normal1) const;
+    
+    void set_upwinding_flux(const bool /*use_upwinding*/) {}
 
 protected:
     /// Numerical flux requires physics to evaluate convective flux
@@ -64,6 +68,8 @@ public:
         const std::array<real, nstate> &soln_int,
         const std::array<real, nstate> &soln_ext,
         const dealii::Tensor<1,dim,real> &normal1) const;
+    
+    void set_upwinding_flux(const bool /*use_upwinding*/) {}
 
 protected:
     /// Numerical flux requires physics to evaluate split form convective flux.
@@ -87,9 +93,13 @@ public:
         const std::array<real, nstate> &soln_int,
         const std::array<real, nstate> &soln_ext,
         const dealii::Tensor<1,dim,real> &normal1) const override;
+    
+    void set_upwinding_flux(const bool _use_upwinding);
 
 protected:
     const std::shared_ptr < Physics::Euler<dim, nstate, real> > euler_physics;
+
+    bool use_upwinding = false;
 };
 
 /// Base class of Riemann solver dissipation (i.e. upwind-term) for numerical flux associated with convection
@@ -296,6 +306,8 @@ public:
         const std::array<real, nstate> &soln_int,
         const std::array<real, nstate> &soln_ext,
         const dealii::Tensor<1,dim,real> &normal1) const;
+
+    void set_upwinding_flux(const bool use_upwinding);
 };
 
 /// Lax-Friedrichs numerical flux. Derived from NumericalFluxConvective.

@@ -51,6 +51,12 @@ std::array<real, nstate> NumericalFluxConvective<dim,nstate,real>
     return numerical_flux_dot_n;
 }
 
+template<int dim, int nstate, typename real>
+void NumericalFluxConvective<dim,nstate,real>::set_upwinding_flux(const bool _use_upwinding)
+{
+    this->baseline->set_upwinding_flux(_use_upwinding);
+}
+
 template <int dim, int nstate, typename real>
 LaxFriedrichs<dim, nstate, real>::LaxFriedrichs(
     std::shared_ptr<Physics::PhysicsBase<dim, nstate, real>> physics_input)
@@ -179,6 +185,12 @@ std::array<real, nstate> EntropyConservingBaselineNumericalFluxConvective<dim,ns
         numerical_flux_dot_n[s] = flux_dot_n;
     }
     return numerical_flux_dot_n;
+}
+
+template <int dim, int nstate, typename real>
+void HLLCBaselineNumericalFluxConvective<dim,nstate,real>::set_upwinding_flux(const bool _use_upwinding)
+{
+    use_upwinding = _use_upwinding;
 }
 
 template <int dim, int nstate, typename real>
@@ -351,16 +363,27 @@ std::array<real, nstate> HLLCBaselineNumericalFluxConvective<dim,nstate,real>::e
         numerical_flux_dot_n_R[s] = flux_dot_n_R;
     }
 
+    bool upwind_left = false;
+    bool upwind_right = false;
+
+    if(use_upwinding)
+    {
+        const real mach_int = euler_physics->compute_mach_number(soln_int);
+        const real mach_ext = euler_physics->compute_mach_number(soln_ext);
+        upwind_left = (mach_int > 2.7) && (mach_ext < 1.7);
+        upwind_right = (mach_ext > 2.7) && (mach_int < 1.7);
+    }
+
     std::array<real, nstate> numerical_flux_dot_n;
 
-    if(S_L >= 0.0)
+    if( (S_L >= 0.0) || upwind_left)
     {
         for(int s=0; s<nstate; ++s)
         {
             numerical_flux_dot_n[s] = numerical_flux_dot_n_L[s];
         }
     }
-    else if(S_R <= 0.0)
+    else if( (S_R <= 0.0) || upwind_right)
     {
         for(int s=0; s<nstate; ++s)
         {

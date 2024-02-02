@@ -28,6 +28,8 @@ public:
         const std::shared_ptr<Triangulation> triangulation_input);
 
     ~DGWeak(); ///< Destructor.
+    
+    void set_upwinding_flux(const bool _use_upwinding) override;
 
 private:
 

@@ -282,9 +282,6 @@ PhysicsFactory<dim,nstate,real>
 }
 
 /// TO DO: adding tempalte from 1 to "maximum n_state" = "5+maximum_n_species" 1 by 1, boost loop
-#if N_SPECIES>1
-template class PhysicsFactory<PHILIP_DIM, (PHILIP_DIM+2)+(N_SPECIES-1), double>;
-#else
 template class PhysicsFactory<PHILIP_DIM, 1, double>;
 template class PhysicsFactory<PHILIP_DIM, 2, double>;
 template class PhysicsFactory<PHILIP_DIM, 3, double>;
@@ -292,11 +289,7 @@ template class PhysicsFactory<PHILIP_DIM, 4, double>;
 template class PhysicsFactory<PHILIP_DIM, 5, double>;
 template class PhysicsFactory<PHILIP_DIM, 6, double>;
 template class PhysicsFactory<PHILIP_DIM, 8, double>;
-#endif
 
-#if N_SPECIES>1
-template class PhysicsFactory<PHILIP_DIM, (PHILIP_DIM+2)+(N_SPECIES-1), FadType >;
-#else
 template class PhysicsFactory<PHILIP_DIM, 1, FadType >;
 template class PhysicsFactory<PHILIP_DIM, 2, FadType >;
 template class PhysicsFactory<PHILIP_DIM, 3, FadType >;
@@ -304,11 +297,7 @@ template class PhysicsFactory<PHILIP_DIM, 4, FadType >;
 template class PhysicsFactory<PHILIP_DIM, 5, FadType >;
 template class PhysicsFactory<PHILIP_DIM, 6, FadType >;
 template class PhysicsFactory<PHILIP_DIM, 8, FadType >;
-#endif
 
-#if N_SPECIES>1
-template class PhysicsFactory<PHILIP_DIM, (PHILIP_DIM+2)+(N_SPECIES-1), RadType >;
-#else
 template class PhysicsFactory<PHILIP_DIM, 1, RadType >;
 template class PhysicsFactory<PHILIP_DIM, 2, RadType >;
 template class PhysicsFactory<PHILIP_DIM, 3, RadType >;
@@ -316,11 +305,7 @@ template class PhysicsFactory<PHILIP_DIM, 4, RadType >;
 template class PhysicsFactory<PHILIP_DIM, 5, RadType >;
 template class PhysicsFactory<PHILIP_DIM, 6, RadType >;
 template class PhysicsFactory<PHILIP_DIM, 8, RadType >;
-#endif
 
-#if N_SPECIES>1
-template class PhysicsFactory<PHILIP_DIM, (PHILIP_DIM+2)+(N_SPECIES-1), FadFadType >;
-#else
 template class PhysicsFactory<PHILIP_DIM, 1, FadFadType >;
 template class PhysicsFactory<PHILIP_DIM, 2, FadFadType >;
 template class PhysicsFactory<PHILIP_DIM, 3, FadFadType >;
@@ -328,11 +313,7 @@ template class PhysicsFactory<PHILIP_DIM, 4, FadFadType >;
 template class PhysicsFactory<PHILIP_DIM, 5, FadFadType >;
 template class PhysicsFactory<PHILIP_DIM, 6, FadFadType >;
 template class PhysicsFactory<PHILIP_DIM, 8, FadFadType >;
-#endif
 
-#if N_SPECIES>1
-template class PhysicsFactory<PHILIP_DIM, (PHILIP_DIM+2)+(N_SPECIES-1), RadFadType >;
-#else
 template class PhysicsFactory<PHILIP_DIM, 1, RadFadType >;
 template class PhysicsFactory<PHILIP_DIM, 2, RadFadType >;
 template class PhysicsFactory<PHILIP_DIM, 3, RadFadType >;
@@ -340,8 +321,6 @@ template class PhysicsFactory<PHILIP_DIM, 4, RadFadType >;
 template class PhysicsFactory<PHILIP_DIM, 5, RadFadType >;
 template class PhysicsFactory<PHILIP_DIM, 6, RadFadType >;
 template class PhysicsFactory<PHILIP_DIM, 8, RadFadType >;
-#endif
-
 
 } // Physics namespace
 } // PHiLiP namespace

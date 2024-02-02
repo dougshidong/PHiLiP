@@ -3928,32 +3928,21 @@ void DGWeak<dim,nstate,real,MeshType>::allocate_dual_vector ()
 // using default MeshType = Triangulation
 // 1D: dealii::Triangulation<dim>;
 // Otherwise: dealii::parallel::distributed::Triangulation<dim>;
-#if N_SPECIES>1
-template class DGWeak <PHILIP_DIM, (PHILIP_DIM+2)+(N_SPECIES-1),double, dealii::Triangulation<PHILIP_DIM>>;
-#else
 template class DGWeak <PHILIP_DIM, 1, double, dealii::Triangulation<PHILIP_DIM>>;
 template class DGWeak <PHILIP_DIM, 2, double, dealii::Triangulation<PHILIP_DIM>>;
 template class DGWeak <PHILIP_DIM, 3, double, dealii::Triangulation<PHILIP_DIM>>;
 template class DGWeak <PHILIP_DIM, 4, double, dealii::Triangulation<PHILIP_DIM>>;
 template class DGWeak <PHILIP_DIM, 5, double, dealii::Triangulation<PHILIP_DIM>>;
 template class DGWeak <PHILIP_DIM, 6, double, dealii::Triangulation<PHILIP_DIM>>;
-#endif
 
-#if N_SPECIES>1
-template class DGWeak <PHILIP_DIM, (PHILIP_DIM+2)+(N_SPECIES-1),double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
-#else
 template class DGWeak <PHILIP_DIM, 1, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
 template class DGWeak <PHILIP_DIM, 2, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
 template class DGWeak <PHILIP_DIM, 3, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
 template class DGWeak <PHILIP_DIM, 4, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
 template class DGWeak <PHILIP_DIM, 5, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
 template class DGWeak <PHILIP_DIM, 6, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
-#endif
 
 #if PHILIP_DIM!=1
-#if N_SPECIES!=1
-template class DGWeak <PHILIP_DIM, (PHILIP_DIM+2)+(N_SPECIES-1),double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>; 
-#else
 template class DGWeak <PHILIP_DIM, 1, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
 template class DGWeak <PHILIP_DIM, 2, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
 template class DGWeak <PHILIP_DIM, 3, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
@@ -3961,5 +3950,4 @@ template class DGWeak <PHILIP_DIM, 4, double, dealii::parallel::distributed::Tri
 template class DGWeak <PHILIP_DIM, 5, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
 template class DGWeak <PHILIP_DIM, 6, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
 #endif
-#endif 
 } // PHiLiP namespace

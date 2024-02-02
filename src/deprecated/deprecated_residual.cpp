@@ -1952,15 +1952,11 @@ void DGWeak<dim,nstate,real>::assemble_face_term_hessian(
     }
 }
 
-#if N_SPECIES>1
-template class DGWeak <PHILIP_DIM, (PHILIP_DIM+2)+(N_SPECIES-1), double>;
-#else
 template class DGWeak <PHILIP_DIM, 1, double>;
 template class DGWeak <PHILIP_DIM, 2, double>;
 template class DGWeak <PHILIP_DIM, 3, double>;
 template class DGWeak <PHILIP_DIM, 4, double>;
 template class DGWeak <PHILIP_DIM, 5, double>;
-#endif
 
 } // PHiLiP namespace
 

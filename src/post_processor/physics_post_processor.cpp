@@ -113,16 +113,12 @@ dealii::UpdateFlags PhysicsPostprocessor<dim,nstate>::get_needed_update_flags ()
 }
 
 /// TO DO: adding tempalte from 1 to "maximum n_state" = "5+maximum_n_species" 1 by 1, boost loop
-#if N_SPECIES>1
-template class PhysicsPostprocessor < PHILIP_DIM, (PHILIP_DIM+2)+(N_SPECIES-1) >;
-#else
 template class PhysicsPostprocessor < PHILIP_DIM, 1 >;
 template class PhysicsPostprocessor < PHILIP_DIM, 2 >;
 template class PhysicsPostprocessor < PHILIP_DIM, 3 >;
 template class PhysicsPostprocessor < PHILIP_DIM, 4 >;
 template class PhysicsPostprocessor < PHILIP_DIM, 5 >;
 template class PhysicsPostprocessor < PHILIP_DIM, 6 >;
-#endif
 } // Postprocess namespace
 } // PHiLiP namespace
 

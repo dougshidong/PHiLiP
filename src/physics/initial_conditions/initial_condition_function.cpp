@@ -812,27 +812,19 @@ InitialConditionFactory<dim,nstate, real>::create_InitialConditionFunction(
     return nullptr;
 }
 
-#if N_SPECIES>1
-template class InitialConditionFunction <PHILIP_DIM, (PHILIP_DIM+2)+(N_SPECIES-1), double>; 
-#else
 template class InitialConditionFunction <PHILIP_DIM, 1, double>;
 template class InitialConditionFunction <PHILIP_DIM, 2, double>;
 template class InitialConditionFunction <PHILIP_DIM, 3, double>;
 template class InitialConditionFunction <PHILIP_DIM, 4, double>;
 template class InitialConditionFunction <PHILIP_DIM, 5, double>;
 template class InitialConditionFunction <PHILIP_DIM, 6, double>;
-#endif
 
-#if N_SPECIES>1
-template class InitialConditionFactory <PHILIP_DIM, (PHILIP_DIM+2)+(N_SPECIES-1), double>; 
-#else
 template class InitialConditionFactory <PHILIP_DIM, 1, double>;
 template class InitialConditionFactory <PHILIP_DIM, 2, double>;
 template class InitialConditionFactory <PHILIP_DIM, 3, double>;
 template class InitialConditionFactory <PHILIP_DIM, 4, double>;
 template class InitialConditionFactory <PHILIP_DIM, 5, double>;
 template class InitialConditionFactory <PHILIP_DIM, 6, double>;
-#endif
  
 #if PHILIP_DIM==1
 template class InitialConditionFunction_BurgersViscous <PHILIP_DIM, 1, double>;
@@ -851,19 +843,12 @@ template class InitialConditionFunction_IsentropicVortex <PHILIP_DIM, PHILIP_DIM
 #endif
 
 #if PHILIP_DIM==2
-#if N_SPECIES>1
-template class InitialConditionFunction_AcousticWave_MultiSpecies <PHILIP_DIM, (PHILIP_DIM+2)+(N_SPECIES-1), double>;
-#else
 template class InitialConditionFunction_KHI <PHILIP_DIM, PHILIP_DIM+2, double>;
 template class InitialConditionFunction_AcousticWave_Air <PHILIP_DIM, PHILIP_DIM+2, double>;
 template class InitialConditionFunction_AcousticWave_Species <PHILIP_DIM, PHILIP_DIM+2, double>;
 #endif
-#endif
 
 // functions instantiated for all dim
-#if N_SPECIES>1
-template class InitialConditionFunction_Zero <PHILIP_DIM, (PHILIP_DIM+2)+(N_SPECIES-1), double>; 
-#else
 template class InitialConditionFunction_Zero <PHILIP_DIM,1, double>;
 template class InitialConditionFunction_Zero <PHILIP_DIM,2, double>;
 template class InitialConditionFunction_Zero <PHILIP_DIM,3, double>;
@@ -874,6 +859,5 @@ template class InitialConditionFunction_Advection <PHILIP_DIM, 1, double>;
 template class InitialConditionFunction_AdvectionEnergy <PHILIP_DIM, 1, double>;
 template class InitialConditionFunction_ConvDiff <PHILIP_DIM, 1, double>;
 template class InitialConditionFunction_ConvDiffEnergy <PHILIP_DIM,1,double>;
-#endif
 
 } // PHiLiP namespace

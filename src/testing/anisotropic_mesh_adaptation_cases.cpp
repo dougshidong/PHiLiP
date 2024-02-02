@@ -23,6 +23,68 @@ AnisotropicMeshAdaptationCases<dim, nstate> :: AnisotropicMeshAdaptationCases(
 {}
 
 template<int dim, int nstate>
+void AnisotropicMeshAdaptationCases<dim,nstate>::write_solution_volume_nodes_to_file(std::shared_ptr<DGBase<dim,double>> dg) const
+{
+    dg->high_order_grid->volume_nodes.update_ghost_values();
+    dg->solution.update_ghost_values();
+    const std::string filename_soln = "solution_" + std::to_string(this->mpi_rank);
+    const std::string filename_volnodes = "volnodes_" + std::to_string(this->mpi_rank);
+    const dealii::IndexSet &soln_range = dg->solution.get_partitioner()->locally_owned_range();
+    const dealii::IndexSet &vol_range = dg->high_order_grid->volume_nodes.get_partitioner()->locally_owned_range();
+
+    std::ofstream outfile_soln(filename_soln);
+    std::ofstream outfile_volnodes(filename_volnodes);
+
+    if( (!outfile_soln.is_open()) || (!outfile_volnodes.is_open()))
+    {
+        std::cout<<"Could not open file. Aborting.."<<std::endl;
+        std::abort();
+    }
+
+    for(const auto &isol : soln_range)
+    {
+        outfile_soln<<dg->solution(isol)<<"\n";
+    }
+    for(const auto &ivol : vol_range)
+    {
+        outfile_volnodes<<dg->high_order_grid->volume_nodes(ivol)<<"\n";
+    }
+    outfile_soln.close();
+    outfile_volnodes.close();
+}
+
+template<int dim, int nstate>
+void AnisotropicMeshAdaptationCases<dim,nstate>::read_solution_volume_nodes_from_file(std::shared_ptr<DGBase<dim,double>> dg) const
+{
+    const std::string filename_soln = "solution_" + std::to_string(this->mpi_rank);
+    const std::string filename_volnodes = "volnodes_" + std::to_string(this->mpi_rank);
+    const dealii::IndexSet &soln_range = dg->solution.get_partitioner()->locally_owned_range();
+    const dealii::IndexSet &vol_range = dg->high_order_grid->volume_nodes.get_partitioner()->locally_owned_range();
+
+    std::ifstream infile_soln(filename_soln);
+    std::ifstream infile_volnodes(filename_volnodes);
+
+    if( (!infile_soln.is_open()) || (!infile_volnodes.is_open()))
+    {
+        std::cout<<"Could not open file. Aborting.."<<std::endl;
+        std::abort();
+    }
+
+    for(const auto &isol : soln_range)
+    {
+        infile_soln>>dg->solution(isol);
+    }
+    for(const auto &ivol : vol_range)
+    {
+        infile_volnodes>>dg->high_order_grid->volume_nodes(ivol);
+    }
+    infile_soln.close();
+    infile_volnodes.close();
+    dg->high_order_grid->volume_nodes.update_ghost_values();
+    dg->solution.update_ghost_values();
+}
+
+template<int dim, int nstate>
 void AnisotropicMeshAdaptationCases<dim,nstate>::increase_grid_degree_and_interpolate_solution(std::shared_ptr<DGBase<dim,double>> dg) const
 {
     const unsigned int grid_degree_updated = 2;
@@ -158,7 +220,7 @@ if constexpr (nstate==dim+2)
                     fe_face_values_gll.quadrature_point(0), 
                     fe_face_values_gll.quadrature_point(fe_face_values_gll.n_quadrature_points-1),
                     control_nodes_list);
-            if(face_is_on_shock){n_shock_faces++;}
+            if(face_is_on_shock){n_shock_faces++;} else {continue;}
             bool is_upwinding = false;
             const unsigned int neighbor_iface = cell->neighbor_of_neighbor(iface);
             neighbor_cell->get_dof_indices(dofs_indices_ext);
@@ -167,7 +229,6 @@ if constexpr (nstate==dim+2)
 
             for(unsigned int iquad = 0; iquad < n_face_quad_pts; ++iquad)
             {
-                std::cout<<"======================================================================="<<std::endl;
                 soln_int_at_q.fill(0.0); 
                 soln_ext_at_q.fill(0.0);
                 for(unsigned int idof = 0; idof < fe_face_values_int.dofs_per_cell; ++idof)
@@ -230,12 +291,14 @@ if constexpr (nstate==dim+2)
                     is_upwinding = true;
                 }
 
-                if(face_is_on_shock && !is_upwinding)
+                if(face_is_on_shock && (!is_upwinding))
                 {
+                    std::cout<<"======================================================================="<<std::endl;
                     std::cout<<"Location: "<<fe_face_values_int.quadrature_point(iquad)<<std::endl;
                     std::cout<<"On shock but not upwinding."<<std::endl;
                     std::cout<<"Difference in flux = "<<error_flux_norm<<std::endl;
                     ++n_quads_on_shock_not_upwinding;
+                    std::cout<<"======================================================================="<<std::endl;
                 }
                 if(!face_is_on_shock && is_upwinding)
                 {
@@ -243,7 +306,6 @@ if constexpr (nstate==dim+2)
                     std::cout<<"Not on shock but still upwinding."<<std::endl;
                     ++n_quads_not_on_shock_upwinding;
                 }
-                std::cout<<"======================================================================="<<std::endl;
             } //iquad 
         } //iface
     } //cell
@@ -515,6 +577,23 @@ return 0.0;
 template <int dim, int nstate>
 int AnisotropicMeshAdaptationCases<dim, nstate> :: run_test () const
 {
+/*
+    int output_val = 0;
+    const Parameters::AllParameters param = *(TestsBase::all_parameters);
+    std::unique_ptr<FlowSolver::FlowSolver<dim,nstate>> flow_solver = FlowSolver::FlowSolverFactory<dim,nstate>::select_flow_case(&param, parameter_handler);
+
+    flow_solver->dg->freeze_artificial_dissipation=true;
+    flow_solver->use_polynomial_ramping = false;
+    increase_grid_degree_and_interpolate_solution(flow_solver->dg);
+    read_solution_volume_nodes_from_file(flow_solver->dg);
+    flow_solver->dg->assemble_residual();
+    test_numerical_flux(flow_solver->dg);
+    output_vtk_files(flow_solver->dg, output_val++);
+    flow_solver->run();
+    output_vtk_files(flow_solver->dg, output_val++);
+    return 0;
+*/
+
     int output_val = 0;
     const Parameters::AllParameters param = *(TestsBase::all_parameters);
     const bool run_mesh_optimizer = param.optimization_param.max_design_cycles > 0;
@@ -522,34 +601,11 @@ int AnisotropicMeshAdaptationCases<dim, nstate> :: run_test () const
     
     std::unique_ptr<FlowSolver::FlowSolver<dim,nstate>> flow_solver = FlowSolver::FlowSolverFactory<dim,nstate>::select_flow_case(&param, parameter_handler);
 
-/*
+    flow_solver->run();
     flow_solver->dg->freeze_artificial_dissipation=true;
-    increase_grid_degree_and_interpolate_solution(flow_solver->dg);
-    std::ifstream infile_sol("solution.txt");
-    std::ifstream infile_vol("volume_nodes.txt");
-    for(unsigned int isol = 0; isol<flow_solver->dg->solution.size(); ++isol)
-    {
-        infile_sol>>flow_solver->dg->solution(isol);
-    }
-    infile_sol.close();
-    for(unsigned int ivol = 0; ivol<flow_solver->dg->high_order_grid->volume_nodes.size(); ++ivol)
-    {
-        infile_vol>>flow_solver->dg->high_order_grid->volume_nodes(ivol);
-    }
-    infile_vol.close();
-    output_vtk_files(flow_solver->dg, output_val++);
-    test_numerical_flux(flow_solver->dg);
     flow_solver->use_polynomial_ramping = false;
-    flow_solver->run();
-
-    return 0;
-*/
-
-    flow_solver->run();
-    flow_solver->dg->freeze_artificial_dissipation=true;
     output_vtk_files(flow_solver->dg, output_val++);
     //return 0;
-    flow_solver->use_polynomial_ramping = false;
 
     std::vector<double> functional_error_vector;
     std::vector<double> enthalpy_error_vector;
@@ -584,7 +640,7 @@ int AnisotropicMeshAdaptationCases<dim, nstate> :: run_test () const
             std::cout<<"Residual from q1 optimization has not converged. Aborting..."<<std::endl;
             std::abort();
         }
-        const unsigned int n_meshes = 2;
+        const unsigned int n_meshes = 1;
         for(unsigned int imesh = 0; imesh < n_meshes; ++imesh)
         {
             if(imesh==0)
@@ -602,7 +658,7 @@ int AnisotropicMeshAdaptationCases<dim, nstate> :: run_test () const
             mesh_optimizer_q2->run_full_space_optimizer(regularization_matrix_poisson_q2, true);
             output_vtk_files(flow_solver->dg, output_val++);
             //test_numerical_flux(flow_solver->dg);
-            flow_solver->run();
+            //flow_solver->run();
 
             const double functional_error = evaluate_functional_error(flow_solver->dg);
             const double enthalpy_error = evaluate_enthalpy_error(flow_solver->dg);

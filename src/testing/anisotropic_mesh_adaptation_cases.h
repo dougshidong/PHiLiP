@@ -55,6 +55,9 @@ public:
     bool is_face_between_control_nodes(const dealii::Point<dim> &point1, 
                                        const dealii::Point<dim> &point2, 
                                        const std::vector<std::pair<double,double>> &control_nodes_list) const;
+    
+    void write_solution_volume_nodes_to_file(std::shared_ptr<DGBase<dim,double>> dg) const;
+    void read_solution_volume_nodes_from_file(std::shared_ptr<DGBase<dim,double>> dg) const;
 
 }; 
 

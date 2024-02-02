@@ -25,7 +25,7 @@ FullSpace_BirosGhattas(
     , regularization_matrix(regularization_matrix_)
     , pcout(std::cout, dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD)==0)
     , use_lagrange_multiplier(true)
-    , use_l1_merit_function(true)
+    , use_l1_merit_function(false)
 {
     // Parse parameter list
     ROL::ParameterList& Llist = parlist.sublist("Step").sublist("Line Search");
@@ -667,7 +667,7 @@ void FullSpace_BirosGhattas<Real>::compute(
     const auto reduced_gradient = (dynamic_cast<Vector_SimOpt<Real>&>(*lagrangian_gradient)).get_2();
     //penalty_value_ = std::max(1.0/reduced_gradient->norm(), 1.0);
     //penalty_value_ = 0.0;
-    penalty_value_ = std::max(1e-2/lagrangian_gradient->norm(), 1.0);
+    penalty_value_ = std::max(1e-3/lagrangian_gradient->norm(), 1.0);
     pcout
         << "Finished computeAugmentedLagrangianPenalty..."
         << std::endl;

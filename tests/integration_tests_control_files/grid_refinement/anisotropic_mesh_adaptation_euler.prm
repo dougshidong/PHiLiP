@@ -12,7 +12,7 @@ set conv_num_flux = hllc
 
 set diss_num_flux = symm_internal_penalty
 
-set overintegration = 5
+set overintegration = 2
 #set output_face_results_vtk = true
 #set sipg_penalty_factor = 20.0
 
@@ -72,7 +72,7 @@ subsection optimization
     set use_fine_solution = false
 
     set gradient_tolerance = 1.0e-10 
-    set max_design_cycles = 10
+    set max_design_cycles = 20
     set linear_iteration_limit = 1000
     set initial_step_size = 1.0
     set functional_evaluation_limit = 30

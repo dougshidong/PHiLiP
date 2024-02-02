@@ -658,8 +658,8 @@ InitialConditionFunction_AcousticWave_MultiSpecies<dim,nstate,real>
     // Note that Euler primitive/conservative vars are the same as NS
     PHiLiP::Parameters::AllParameters parameters_euler = *param;
     parameters_euler.pde_type = Parameters::AllParameters::PartialDifferentialEquation::real_gas;
-    this->real_gas_physics = std::dynamic_pointer_cast<Physics::RealGas<dim,(PHILIP_DIM+2)+(N_SPECIES-1),double>>(
-                Physics::PhysicsFactory<dim,(PHILIP_DIM+2)+(N_SPECIES-1),double>::create_Physics(&parameters_euler));
+    this->real_gas_physics = std::dynamic_pointer_cast<Physics::RealGas<dim,dim+2+2-1,double>>( // TO DO: N_SPECIES
+                Physics::PhysicsFactory<dim,dim+2+2-1,double>::create_Physics(&parameters_euler)); // TO DO: N_SPECIES
 }
 template <int dim, int nstate, typename real>
 real InitialConditionFunction_AcousticWave_MultiSpecies<dim,nstate,real>
@@ -802,7 +802,7 @@ InitialConditionFactory<dim,nstate, real>::create_InitialConditionFunction(
             return std::make_shared<InitialConditionFunction_AcousticWave_Species<dim,nstate,real> >(param);
         }
     } else if (flow_type == FlowCaseEnum::multi_species_acoustic_wave) {
-        if constexpr (N_SPECIES>1 && (dim==2 && nstate==dim+2+(N_SPECIES-1))){ 
+        if constexpr (dim==2 && nstate==dim+2+2-1){ // TO DO: N_SPECIES
             return std::make_shared<InitialConditionFunction_AcousticWave_MultiSpecies<dim,nstate,real> >(param);
         }
     } else {

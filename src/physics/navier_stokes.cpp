@@ -613,7 +613,8 @@ dealii::Tensor<2,dim,real> NavierStokes<dim,nstate,real>
 
     // Strain rate tensor, S_{i,j}
     const dealii::Tensor<2,dim,real> strain_rate_tensor = compute_strain_rate_tensor_from_conservative(conservative_soln, conservative_soln_gradient);
-    const real strain_rate_tensor_magnitude = get_tensor_magnitude(strain_rate_tensor);
+    // -- Magnitude: same magnitude calculation as Smagorinsky model with the sqrt(2) factor, see Lilly 1991
+    const real strain_rate_tensor_magnitude = sqrt(2.0*get_tensor_magnitude_sqr(strain_rate_tensor));
 
     // Compute divergence of velocity
     real strain_rate_tensor_trace = 0.0;

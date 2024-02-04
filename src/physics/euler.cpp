@@ -26,16 +26,16 @@ Euler<dim,nstate,real>::Euler (
     , ref_length(ref_length)
     , gam(gamma_gas)
     , gamm1(gam-1.0)
-    //, density_inf(gam) // Nondimensional - Free stream values
-    , density_inf(1.0) 
+    , density_inf(gam) // Nondimensional - Free stream values
+    //, density_inf(1.0) 
     , mach_inf(mach_inf)
     , mach_inf_sqr(mach_inf*mach_inf)
     , angle_of_attack(angle_of_attack)
     , side_slip_angle(side_slip_angle)
-    //, sound_inf(1.0)
-    //, pressure_inf(1.0)
-    , sound_inf(1.0/(mach_inf))
-    , pressure_inf(1.0/(gam*mach_inf_sqr))
+    , sound_inf(1.0)
+    , pressure_inf(1.0)
+    //, sound_inf(1.0/(mach_inf))
+    //, pressure_inf(1.0/(gam*mach_inf_sqr))
     , entropy_inf(pressure_inf*pow(density_inf,-gam))
     , two_point_num_flux_type(two_point_num_flux_type_input)
     //, internal_energy_inf(1.0/(gam*(gam-1.0)*mach_inf_sqr)) 
@@ -55,10 +55,10 @@ Euler<dim,nstate,real>::Euler (
     if(dim==1) {
         velocities_inf[0] = 1.0;
     } else if(dim==2) {
-        //velocities_inf[0] = mach_inf*cos(angle_of_attack);
-        //velocities_inf[1] = mach_inf*sin(angle_of_attack); // Maybe minus?? -- Clarify with Doug
-        velocities_inf[0] = cos(angle_of_attack);
-        velocities_inf[1] = sin(angle_of_attack); 
+        velocities_inf[0] = mach_inf*cos(angle_of_attack);
+        velocities_inf[1] = mach_inf*sin(angle_of_attack); // Maybe minus?? -- Clarify with Doug
+        //velocities_inf[0] = cos(angle_of_attack);
+        //velocities_inf[1] = sin(angle_of_attack); 
     } else if (dim==3) {
         velocities_inf[0] = cos(angle_of_attack)*cos(side_slip_angle);
         velocities_inf[1] = sin(angle_of_attack)*cos(side_slip_angle);
@@ -67,8 +67,8 @@ Euler<dim,nstate,real>::Euler (
 
     assert(std::abs(velocities_inf.norm() - 1.0) < 1e-14);
 
-    //const double velocity_inf_sqr = mach_inf_sqr;
-    const double velocity_inf_sqr = 1.0;
+    const double velocity_inf_sqr = mach_inf_sqr;
+    //const double velocity_inf_sqr = 1.0;
     dynamic_pressure_inf = 0.5 * density_inf * velocity_inf_sqr;
 
     enthalpy_inf = gam/gamm1 * pressure_inf/density_inf + 0.5*velocity_inf_sqr;

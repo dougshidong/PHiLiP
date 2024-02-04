@@ -246,7 +246,7 @@ void MeshOptimizer<dim,nstate>::run_full_space_optimizer(const dealii::TrilinosW
     }
     else
     {
-        design_parameterization->output_control_nodes_refined();
+        design_parameterization->output_control_nodes();
     }
 }
     

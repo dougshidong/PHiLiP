@@ -650,7 +650,7 @@ int AnisotropicMeshAdaptationCases<dim, nstate> :: run_test () const
             }
             else
             {
-                refine_mesh_and_interpolate_solution(flow_solver->dg); 
+                //refine_mesh_and_interpolate_solution(flow_solver->dg); 
             }
             Parameters::AllParameters param_q2 = param;
             if(imesh==0)
@@ -661,6 +661,10 @@ int AnisotropicMeshAdaptationCases<dim, nstate> :: run_test () const
             dealii::TrilinosWrappers::SparseMatrix regularization_matrix_poisson_q2;
             evaluate_regularization_matrix(regularization_matrix_poisson_q2, flow_solver->dg);
             flow_solver->dg->freeze_artificial_dissipation=true;
+            if(imesh == 1)
+            {
+                flow_solver->dg->set_upwinding_flux(true);
+            }
             std::unique_ptr<MeshOptimizer<dim,nstate>> mesh_optimizer_q2 = std::make_unique<MeshOptimizer<dim,nstate>> (flow_solver->dg,&param_q2, true);
             mesh_optimizer_q2->run_full_space_optimizer(regularization_matrix_poisson_q2, true);
             output_vtk_files(flow_solver->dg, output_val++);

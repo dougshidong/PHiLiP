@@ -46,7 +46,7 @@ public:
     {
         //const double density_bc = 2.33333*euler_physics.density_inf;
         const double density_bc = euler_physics.density_inf;
-        const double pressure_bc = 1.0/(euler_physics.gam*euler_physics.mach_inf_sqr);
+        const double pressure_bc = euler_physics.pressure_inf;
         std::array<double,nstate> primitive_boundary_values;
         primitive_boundary_values[0] = density_bc;
         for (int d=0;d<dim;d++) { primitive_boundary_values[1+d] = euler_physics.velocities_inf[d]; }

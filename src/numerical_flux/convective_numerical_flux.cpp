@@ -233,6 +233,7 @@ std::array<real, nstate> HLLCBaselineNumericalFluxConvective<dim,nstate,real>::e
         pressure_star = pressure_pvrs;
     }
 */
+
     // Hybrid scheme
     const real density_avg = 0.5*(density_L + density_R);
     const real sound_avg = 0.5*(sound_L + sound_R);
@@ -282,8 +283,8 @@ std::array<real, nstate> HLLCBaselineNumericalFluxConvective<dim,nstate,real>::e
         q_R = sqrt(val);
     }
 
-    const real S_L = velocity_dot_n_L - sound_L*q_L;
-    const real S_R = velocity_dot_n_R + sound_R*q_R;
+    real S_L = velocity_dot_n_L - sound_L*q_L;
+    real S_R = velocity_dot_n_R + sound_R*q_R;
 
 /*
     // Einfieldt's approach
@@ -292,14 +293,16 @@ std::array<real, nstate> HLLCBaselineNumericalFluxConvective<dim,nstate,real>::e
                                 + eta2*pow(velocity_dot_n_R - velocity_dot_n_L,2);
     const real dbar = sqrt(dbar_squared);
     const real ubar = (sqrt(density_L)*velocity_dot_n_L + sqrt(density_R)*velocity_dot_n_R)/(sqrt(density_L) + sqrt(density_R));
-    const real S_L = ubar - dbar;
-    const real S_R = ubar + dbar;
+    real S_L = ubar - dbar;
+    real S_R = ubar + dbar;
 */
-/*
-    // Simple Davis approach
-    const real S_L = velocity_dot_n_L - sound_L;
-    const real S_R = velocity_dot_n_R + sound_R;
-*/
+    if(use_upwinding)
+    {
+        // Simple Davis approach
+        S_L = velocity_dot_n_L - sound_L;
+        S_R = velocity_dot_n_R + sound_R;
+    }
+
 /*
     // Using Roe based approaximations.
     (void) sound_L; (void) sound_R;
@@ -363,27 +366,17 @@ std::array<real, nstate> HLLCBaselineNumericalFluxConvective<dim,nstate,real>::e
         numerical_flux_dot_n_R[s] = flux_dot_n_R;
     }
 
-    bool upwind_left = false;
-    bool upwind_right = false;
-
-    if(use_upwinding)
-    {
-        const real mach_int = euler_physics->compute_mach_number(soln_int);
-        const real mach_ext = euler_physics->compute_mach_number(soln_ext);
-        upwind_left = (mach_int > 2.7) && (mach_ext < 1.7);
-        upwind_right = (mach_ext > 2.7) && (mach_int < 1.7);
-    }
 
     std::array<real, nstate> numerical_flux_dot_n;
 
-    if( (S_L >= 0.0) || upwind_left)
+    if( (S_L >= 0.0) )
     {
         for(int s=0; s<nstate; ++s)
         {
             numerical_flux_dot_n[s] = numerical_flux_dot_n_L[s];
         }
     }
-    else if( (S_R <= 0.0) || upwind_right)
+    else if( (S_R <= 0.0) )
     {
         for(int s=0; s<nstate; ++s)
         {
@@ -414,6 +407,7 @@ std::array<real, nstate> HLLCBaselineNumericalFluxConvective<dim,nstate,real>::e
         }
     }
 */
+
 
     else if( (S_L <= 0.0) && (0.0 < S_star))
     {

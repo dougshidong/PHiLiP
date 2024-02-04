@@ -651,6 +651,7 @@ int AnisotropicMeshAdaptationCases<dim, nstate> :: run_test () const
         // q2 initial run
         {
             increase_grid_degree_and_interpolate_solution(flow_solver->dg);
+    /*
             Parameters::AllParameters param_q2 = param;
             param_q2.optimization_param.max_design_cycles = 20;
             param_q2.optimization_param.regularization_parameter_sim = 1.0;
@@ -661,6 +662,7 @@ int AnisotropicMeshAdaptationCases<dim, nstate> :: run_test () const
             const bool output_refined_nodes = false;
             mesh_optimizer_q2->run_full_space_optimizer(regularization_matrix_poisson_q2, use_oneD_parameteriation, output_refined_nodes);
             output_vtk_files(flow_solver->dg, output_val++);
+        */
         }
 
         const unsigned int n_meshes = 2;

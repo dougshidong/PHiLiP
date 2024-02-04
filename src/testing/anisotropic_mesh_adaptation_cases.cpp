@@ -624,52 +624,60 @@ int AnisotropicMeshAdaptationCases<dim, nstate> :: run_test () const
     dealii::ConvergenceTable convergence_table_enthalpy;
     if(run_mesh_optimizer)
     {
+        const bool use_oneD_parameteriation = true;
         flow_solver->dg->freeze_artificial_dissipation=true;
-        flow_solver->dg->set_p_degree_and_interpolate_solution(1);
-        dealii::TrilinosWrappers::SparseMatrix regularization_matrix_poisson_q1;
-        evaluate_regularization_matrix(regularization_matrix_poisson_q1, flow_solver->dg);
-        Parameters::AllParameters param_q1 = param;
-        param_q1.optimization_param.max_design_cycles = 10;
-        param_q1.optimization_param.regularization_parameter_sim = 1.0;
-        
-        std::unique_ptr<MeshOptimizer<dim,nstate>> mesh_optimizer_q1 = 
-                        std::make_unique<MeshOptimizer<dim,nstate>> (flow_solver->dg, &param_q1, true);
-        mesh_optimizer_q1->run_full_space_optimizer(regularization_matrix_poisson_q1, true);
-        flow_solver->run();
-        if(flow_solver->dg->get_residual_l2norm() > 1.0e-10)
+
+        // q1 initial run
         {
-            std::cout<<"Residual from q1 optimization has not converged. Aborting..."<<std::endl;
-            std::abort();
+            flow_solver->dg->set_p_degree_and_interpolate_solution(1);
+            dealii::TrilinosWrappers::SparseMatrix regularization_matrix_poisson_q1;
+            evaluate_regularization_matrix(regularization_matrix_poisson_q1, flow_solver->dg);
+            Parameters::AllParameters param_q1 = param;
+            param_q1.optimization_param.max_design_cycles = 10;
+            param_q1.optimization_param.regularization_parameter_sim = 1.0;
+            
+            std::unique_ptr<MeshOptimizer<dim,nstate>> mesh_optimizer_q1 = 
+                            std::make_unique<MeshOptimizer<dim,nstate>> (flow_solver->dg, &param_q1, true);
+            const bool output_refined_nodes = false;
+            mesh_optimizer_q1->run_full_space_optimizer(regularization_matrix_poisson_q1, use_oneD_parameteriation, output_refined_nodes);
+            flow_solver->run();
+            if(flow_solver->dg->get_residual_l2norm() > 1.0e-10)
+            {
+                std::cout<<"Residual from q1 optimization has not converged. Aborting..."<<std::endl;
+                std::abort();
+            }
         }
+
+        // q2 initial run
+        {
+            increase_grid_degree_and_interpolate_solution(flow_solver->dg);
+            Parameters::AllParameters param_q2 = param;
+            param_q2.optimization_param.max_design_cycles = 20;
+            param_q2.optimization_param.regularization_parameter_sim = 1.0;
+            dealii::TrilinosWrappers::SparseMatrix regularization_matrix_poisson_q2;
+            evaluate_regularization_matrix(regularization_matrix_poisson_q2, flow_solver->dg);
+            flow_solver->dg->freeze_artificial_dissipation=true;
+            std::unique_ptr<MeshOptimizer<dim,nstate>> mesh_optimizer_q2 = std::make_unique<MeshOptimizer<dim,nstate>> (flow_solver->dg,&param_q2, true);
+            const bool output_refined_nodes = false;
+            mesh_optimizer_q2->run_full_space_optimizer(regularization_matrix_poisson_q2, use_oneD_parameteriation, output_refined_nodes);
+            output_vtk_files(flow_solver->dg, output_val++);
+        }
+
         const unsigned int n_meshes = 2;
         for(unsigned int imesh = 0; imesh < n_meshes; ++imesh)
         {
-            if(imesh==0)
+            if(imesh>0)
             {
-                increase_grid_degree_and_interpolate_solution(flow_solver->dg);
-            }
-            else
-            {
-                //refine_mesh_and_interpolate_solution(flow_solver->dg); 
-            }
-            Parameters::AllParameters param_q2 = param;
-            if(imesh==0)
-            {
-                param_q2.optimization_param.max_design_cycles = 20;
-                param_q2.optimization_param.regularization_parameter_sim = 1.0;
+                refine_mesh_and_interpolate_solution(flow_solver->dg); 
             }
             dealii::TrilinosWrappers::SparseMatrix regularization_matrix_poisson_q2;
             evaluate_regularization_matrix(regularization_matrix_poisson_q2, flow_solver->dg);
             flow_solver->dg->freeze_artificial_dissipation=true;
-            if(imesh == 1)
-            {
-                flow_solver->dg->set_upwinding_flux(true);
-            }
-            std::unique_ptr<MeshOptimizer<dim,nstate>> mesh_optimizer_q2 = std::make_unique<MeshOptimizer<dim,nstate>> (flow_solver->dg,&param_q2, true);
-            mesh_optimizer_q2->run_full_space_optimizer(regularization_matrix_poisson_q2, true);
+            flow_solver->dg->set_upwinding_flux(true);
+            std::unique_ptr<MeshOptimizer<dim,nstate>> mesh_optimizer_q2 = std::make_unique<MeshOptimizer<dim,nstate>> (flow_solver->dg,&param, true);
+            const bool output_refined_nodes = true;
+            mesh_optimizer_q2->run_full_space_optimizer(regularization_matrix_poisson_q2, use_oneD_parameteriation, output_refined_nodes);
             output_vtk_files(flow_solver->dg, output_val++);
-            //test_numerical_flux(flow_solver->dg);
-            //flow_solver->run();
 
             const double functional_error = evaluate_functional_error(flow_solver->dg);
             const double enthalpy_error = evaluate_enthalpy_error(flow_solver->dg);
@@ -682,7 +690,7 @@ int AnisotropicMeshAdaptationCases<dim, nstate> :: run_test () const
             convergence_table_functional.add_value("functional_error",functional_error);
             convergence_table_enthalpy.add_value("cells", flow_solver->dg->triangulation->n_global_active_cells());
             convergence_table_enthalpy.add_value("enthalpy_error",enthalpy_error);
-        } //imesh loop=
+        } //imesh loop
     }
 
     if(run_fixedfraction_mesh_adaptation)

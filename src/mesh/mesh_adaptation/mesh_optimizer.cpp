@@ -153,7 +153,10 @@ Teuchos::ParameterList MeshOptimizer<dim,nstate>::get_parlist()
 }
 
 template<int dim, int nstate>
-void MeshOptimizer<dim,nstate>::run_full_space_optimizer(const dealii::TrilinosWrappers::SparseMatrix &regularization_matrix_poisson, const bool use_oneD_parameterization)
+void MeshOptimizer<dim,nstate>::run_full_space_optimizer(
+    const dealii::TrilinosWrappers::SparseMatrix &regularization_matrix_poisson, 
+    const bool use_oneD_parameterization,
+    const bool output_refined_nodes)
 {
 //==================================================================================================================================
     // Set up objective function and design parameteriation pointers.
@@ -246,7 +249,14 @@ void MeshOptimizer<dim,nstate>::run_full_space_optimizer(const dealii::TrilinosW
     }
     else
     {
-        design_parameterization->output_control_nodes();
+        if(output_refined_nodes)
+        {
+            design_parameterization->output_control_nodes_refined();
+        }
+        else
+        {
+            design_parameterization->output_control_nodes();
+        }
     }
 }
     

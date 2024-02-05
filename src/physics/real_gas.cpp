@@ -42,12 +42,12 @@ RealGas<dim,nstate,real>::RealGas (
     //     std::cout<< real_gas_cap->Sp_name[ispecies] << ",   Molecular weight: " << real_gas_cap->Sp_WSp_W[ispecies] <<std::endl;    
     // }
 
-    for(int ispecies=0; ispecies<11; ispecies++) 
+    for(int ispecies=0; ispecies<2; ispecies++) 
     {
         // for (int i=0; i<9; i++)
         // {
             // std::cout<< i << std::endl;
-            std::cout<< real_gas_cap->Sp_name[ispecies] << ", H0: " << real_gas_cap->Sp_EnthalpyFormation[ispecies]<<std::endl;   
+            std::cout<< real_gas_cap->Sp_name[ispecies] << ", value: " << real_gas_cap->NASACAPCoeffs[ispecies][0][0]<<std::endl;   
         // } 
     }
     

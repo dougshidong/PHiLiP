@@ -115,27 +115,6 @@ double PeriodicTurbulence<dim,nstate>::get_constant_time_step(std::shared_ptr<DG
     }
 }
 
-// template <int dim, int nstate>
-// double PeriodicTurbulence<dim,nstate>::get_adaptive_time_step(std::shared_ptr<DGBase<dim,double>> dg) const
-// {
-//     // compute time step based on advection speed (i.e. maximum local wave speed)
-//     const unsigned int number_of_degrees_of_freedom_per_state = dg->dof_handler.n_dofs()/nstate;
-//     const double approximate_grid_spacing = (this->domain_right-this->domain_left)/pow(number_of_degrees_of_freedom_per_state,(1.0/dim));
-//     const double cfl_number = this->all_param.flow_solver_param.courant_friedrichs_lewy_number;
-//     const double time_step = cfl_number * approximate_grid_spacing / this->maximum_local_wave_speed;
-//     return time_step;
-// }
-
-// template <int dim, int nstate>
-// double PeriodicTurbulence<dim,nstate>::get_adaptive_time_step_initial(std::shared_ptr<DGBase<dim,double>> dg)
-// {
-//     // initialize the maximum local wave speed
-//     update_maximum_local_wave_speed(*dg);
-//     // compute time step based on advection speed (i.e. maximum local wave speed)
-//     const double time_step = get_adaptive_time_step(dg);
-//     return time_step;
-// }
-
 std::string get_padded_mpi_rank_string(const int mpi_rank_input) {
     // returns the mpi rank as a string with appropriate padding
     std::string mpi_rank_string = std::to_string(mpi_rank_input);

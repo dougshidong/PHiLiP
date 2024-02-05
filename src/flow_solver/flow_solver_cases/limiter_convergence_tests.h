@@ -33,6 +33,19 @@ public:
     /// Function to compute the initial adaptive time step
     double get_adaptive_time_step_initial(std::shared_ptr<DGBase<dim,double>> dg) override;
 
+    /// Updates the maximum local wave speed
+    void check_limiter_principle(DGBase<dim, double>& dg);
+
+    /// Filename (with extension) for the unsteady data table
+    const std::string unsteady_data_table_filename_with_extension;
+
+    /// Compute the desired unsteady data and write it to a table
+    void compute_unsteady_data_and_write_to_table(
+        const unsigned int current_iteration,
+        const double current_time,
+        const std::shared_ptr <DGBase<dim, double>> dg,
+        const std::shared_ptr<dealii::TableHandler> unsteady_data_table) override;
+
 protected:
     /// Display additional more specific flow case parameters
     void display_additional_flow_case_specific_parameters() const override;

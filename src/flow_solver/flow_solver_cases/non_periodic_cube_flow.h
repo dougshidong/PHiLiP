@@ -36,6 +36,19 @@ class NonPeriodicCubeFlow : public CubeFlow_UniformGrid<dim, nstate>
     /// Updates the maximum local wave speed
     using CubeFlow_UniformGrid<dim, nstate>::update_maximum_local_wave_speed;
     // void update_maximum_local_wave_speed(DGBase<dim, double> &dg);
+
+    /// Updates the maximum local wave speed
+    void check_positivity_density(DGBase<dim, double>& dg);
+
+    /// Filename (with extension) for the unsteady data table
+    const std::string unsteady_data_table_filename_with_extension;
+
+    /// Compute the desired unsteady data and write it to a table
+    void compute_unsteady_data_and_write_to_table(
+        const unsigned int current_iteration,
+        const double current_time,
+        const std::shared_ptr <DGBase<dim, double>> dg,
+        const std::shared_ptr<dealii::TableHandler> unsteady_data_table) override;
  
  private:
     /// Maximum local wave speed (i.e. convective eigenvalue)

@@ -84,12 +84,12 @@ public:
         // std::string nameinitmixfrac = "./InitialMixtureFiles/InitialMixtureFractions_Clarey2019.txt";
 
         /* Clarey 'nitrogen': */
-        // std::string namechem = "./ReactionFiles/airmech_clarey2019_nitrogen.kinetics";
-        // std::string nameinitmixfrac = "./InitialMixtureFiles/InitialMixtureFractions_Clarey_nitrogen.txt";
+        // std::string namechem = "/home/liki/Codes/NEQZD/ReactionFiles/airmech_clarey2019_nitrogen.kinetics";
+        // std::string nameinitmixfrac = "/home/liki/Codes/NEQZD/InitialMixtureFractions_Clarey_nitrogen.txt";
 
         /* Clarey '5species': */
-        // std::string namechem = "./ReactionFiles/airmech_clarey2019_5species.kinetics";
-        // std::string nameinitmixfrac = "./InitialMixtureFiles/InitialMixtureFractions_Clarey_5species.txt";
+        // std::string namechem = "/home/liki/Codes/NEQZD/ReactionFiles/airmech_clarey2019_5species.kinetics";
+        // std::string nameinitmixfrac = "/home/liki/Codes/NEQZD/InitialMixtureFiles/InitialMixtureFractions_Clarey_5species.txt";
 
         /* '11species': */
         std::string namechem = "/home/liki/Codes/NEQZD/ReactionFiles/airmech_clarey2019.kinetics";

@@ -498,7 +498,7 @@ double AnisotropicMeshAdaptationCases<dim,nstate> :: output_vtk_files(std::share
 template <int dim, int nstate>
 double AnisotropicMeshAdaptationCases<dim,nstate> :: evaluate_functional_error(std::shared_ptr<DGBase<dim,double>> dg) const
 {
-    const double functional_exact = (5.79555511474609375*2.0)*1.0*1.0;
+    const double functional_exact = (5.79555511474609375*2.0)*1.4*3.0;
     std::shared_ptr< Functional<dim, nstate, double> > functional
                                 = FunctionalFactory<dim,nstate,double>::create_Functional(dg->all_parameters->functional_param, dg);
     const double functional_val = functional->evaluate_functional();
@@ -665,7 +665,7 @@ int AnisotropicMeshAdaptationCases<dim, nstate> :: run_test () const
         */
         }
 
-        const unsigned int n_meshes = 2;
+        const unsigned int n_meshes = 3;
         for(unsigned int imesh = 0; imesh < n_meshes; ++imesh)
         {
             if(imesh>0)

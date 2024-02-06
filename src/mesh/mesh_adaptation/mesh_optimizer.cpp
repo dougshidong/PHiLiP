@@ -156,7 +156,8 @@ template<int dim, int nstate>
 void MeshOptimizer<dim,nstate>::run_full_space_optimizer(
     const dealii::TrilinosWrappers::SparseMatrix &regularization_matrix_poisson, 
     const bool use_oneD_parameterization,
-    const bool output_refined_nodes)
+    const bool output_refined_nodes,
+    const int output_no)
 {
 //==================================================================================================================================
     // Set up objective function and design parameteriation pointers.
@@ -188,7 +189,8 @@ void MeshOptimizer<dim,nstate>::run_full_space_optimizer(
     
     // Set up output stream. 
     std::filebuf filebuffer;
-    if (this->mpi_rank == 0) filebuffer.open("full_space_optimization_run.log", std::ios::out);
+    std::string logfile = "full_space_optimization_run_" + std::to_string(output_no) + ".log";
+    if (this->mpi_rank == 0) filebuffer.open(logfile, std::ios::out);
     std::ostream std_outstream(&filebuffer);
    
     ROL::nullstream null_stream;

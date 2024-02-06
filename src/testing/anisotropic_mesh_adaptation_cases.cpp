@@ -639,7 +639,7 @@ int AnisotropicMeshAdaptationCases<dim, nstate> :: run_test () const
             std::unique_ptr<MeshOptimizer<dim,nstate>> mesh_optimizer_q1 = 
                             std::make_unique<MeshOptimizer<dim,nstate>> (flow_solver->dg, &param_q1, true);
             const bool output_refined_nodes = false;
-            mesh_optimizer_q1->run_full_space_optimizer(regularization_matrix_poisson_q1, use_oneD_parameteriation, output_refined_nodes);
+            mesh_optimizer_q1->run_full_space_optimizer(regularization_matrix_poisson_q1, use_oneD_parameteriation, output_refined_nodes, output_val-1);
             /*
             flow_solver->run();
             if(flow_solver->dg->get_residual_l2norm() > 1.0e-10)
@@ -667,7 +667,7 @@ int AnisotropicMeshAdaptationCases<dim, nstate> :: run_test () const
         */
         }
 
-        const unsigned int n_meshes = 3;
+        const unsigned int n_meshes = 4;
         for(unsigned int imesh = 0; imesh < n_meshes; ++imesh)
         {
             if(imesh>0)
@@ -680,7 +680,7 @@ int AnisotropicMeshAdaptationCases<dim, nstate> :: run_test () const
             flow_solver->dg->set_upwinding_flux(true);
             std::unique_ptr<MeshOptimizer<dim,nstate>> mesh_optimizer_q2 = std::make_unique<MeshOptimizer<dim,nstate>> (flow_solver->dg,&param, true);
             const bool output_refined_nodes = true;
-            mesh_optimizer_q2->run_full_space_optimizer(regularization_matrix_poisson_q2, use_oneD_parameteriation, output_refined_nodes);
+            mesh_optimizer_q2->run_full_space_optimizer(regularization_matrix_poisson_q2, use_oneD_parameteriation, output_refined_nodes, output_val);
             output_vtk_files(flow_solver->dg, output_val++);
 
             const double functional_error = evaluate_functional_error(flow_solver->dg);

@@ -28,7 +28,8 @@ public:
     /// Runs full-space optimizer.
     void run_full_space_optimizer(const dealii::TrilinosWrappers::SparseMatrix &regularization_matrix, 
                                   const bool use_oneD_parameterization, 
-                                  const bool output_refined_nodes);
+                                  const bool output_refined_nodes,
+                                  const int output_no);
 
     void form_regularization_marix(
         dealii::TrilinosWrappers::SparseMatrix &regularization_matrix,

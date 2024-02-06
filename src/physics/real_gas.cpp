@@ -188,7 +188,7 @@ inline std::array<real,nstate> RealGas<dim,nstate,real>
     std::array<real, nstate> conservative_soln;
     for (int i=0; i<nstate; i++)
     {
-        conservative_soln[i] = 1.0*primitive_soln[0];
+        conservative_soln[i] = 1.0*primitive_soln[i];
     }
 
     return conservative_soln;
@@ -216,7 +216,7 @@ inline dealii::Tensor<1,nstate-dim-1,real2> RealGas<dim,nstate,real>
     real2 sum = 0.0;
     for (int s=0; s<(nstate-dim-1)-1; ++s) 
         { 
-            species_densities[s] = conservative_soln[nstate+s]; 
+            species_densities[s] = conservative_soln[dim+2+s]; 
             sum += species_densities[s];
         }
     species_densities[(nstate-dim-1)-1] = mixture_density - sum;
@@ -327,19 +327,19 @@ dealii::Vector<double> RealGas<dim,nstate,real>::post_compute_derived_quantities
         /*const std::array<double, nstate> primitive_soln = convert_conservative_to_primitive<real>(conservative_soln);*/
         // if (primitive_soln[0] < 0) this->pcout << evaluation_points << std::endl;
 
-        // Density
+        // Mixture density
           /*computed_quantities(++current_data_index) = primitive_soln[0];*/
-            computed_quantities(++current_data_index) = conservative_soln[0];
+            computed_quantities(++current_data_index) = compute_mixture_density(conservative_soln);
         // Velocities
         for (unsigned int d=0; d<dim; ++d) {
             /*computed_quantities(++current_data_index) = primitive_soln[1+d];*/
             computed_quantities(++current_data_index) = conservative_soln[1+d]/conservative_soln[0];
         }
-        // Momentum
+        // Mixture momentum
         for (unsigned int d=0; d<dim; ++d) {
             computed_quantities(++current_data_index) = conservative_soln[1+d];
         }
-        // Energy
+        // Mixture energy
         computed_quantities(++current_data_index) = conservative_soln[nstate-1];
         // Pressure
         /*computed_quantities(++current_data_index) = primitive_soln[nstate-1];*/
@@ -362,6 +362,11 @@ dealii::Vector<double> RealGas<dim,nstate,real>::post_compute_derived_quantities
         computed_quantities(++current_data_index) = 999;
         // temperature dim
         computed_quantities(++current_data_index) = 999;
+        // species densities
+        for (unsigned int s=0; s<nstate-dim-1; ++s) 
+        {
+            computed_quantities(++current_data_index) = compute_species_densities(conservative_soln)[s];
+        }     
 
     }
     if (computed_quantities.size()-1 != current_data_index) {
@@ -379,22 +384,25 @@ std::vector<dealii::DataComponentInterpretation::DataComponentInterpretation> Re
 {
     namespace DCI = dealii::DataComponentInterpretation;
     std::vector<DCI::DataComponentInterpretation> interpretation = PhysicsBase<dim,nstate,real>::post_get_data_component_interpretation (); // state variables
-    interpretation.push_back (DCI::component_is_scalar); // Density
+    interpretation.push_back (DCI::component_is_scalar); // Mixture density
     for (unsigned int d=0; d<dim; ++d) {
         interpretation.push_back (DCI::component_is_part_of_vector); // Velocity
     }
     for (unsigned int d=0; d<dim; ++d) {
-        interpretation.push_back (DCI::component_is_part_of_vector); // Momentum
+        interpretation.push_back (DCI::component_is_part_of_vector); // Mixture momentum
     }
-    interpretation.push_back (DCI::component_is_scalar); // Energy
-    interpretation.push_back (DCI::component_is_scalar); // Pressure
+    interpretation.push_back (DCI::component_is_scalar); // Mixture energy
+    interpretation.push_back (DCI::component_is_scalar); // Mixture pressure
     interpretation.push_back (DCI::component_is_scalar); // Pressure coefficient
     interpretation.push_back (DCI::component_is_scalar); // Temperature
     interpretation.push_back (DCI::component_is_scalar); // Entropy generation
     interpretation.push_back (DCI::component_is_scalar); // Mach number
     interpretation.push_back (DCI::component_is_scalar); // e_comparison
     interpretation.push_back (DCI::component_is_scalar); // Sound 
-    interpretation.push_back (DCI::component_is_scalar); // temperature (Dim)
+    interpretation.push_back (DCI::component_is_scalar); // Temperature (Dim)
+    for (unsigned int s=0; s<nstate-dim-1; ++s) {
+        interpretation.push_back (DCI::component_is_part_of_vector); // Species densities
+    }
 
     std::vector<std::string> names = post_get_names();
     if (names.size() != interpretation.size()) {
@@ -408,14 +416,14 @@ std::vector<std::string> RealGas<dim,nstate,real>
 ::post_get_names () const
 {
     std::vector<std::string> names = PhysicsBase<dim,nstate,real>::post_get_names ();
-    names.push_back ("density");
+    names.push_back ("mixture_density");
     for (unsigned int d=0; d<dim; ++d) {
       names.push_back ("velocity");
     }
     for (unsigned int d=0; d<dim; ++d) {
-      names.push_back ("momentum");
+      names.push_back ("mixture_momentum");
     }
-    names.push_back ("energy");
+    names.push_back ("mixture_energy");
     names.push_back ("pressure");
     names.push_back ("pressure_coeffcient");
     names.push_back ("temperature");
@@ -425,6 +433,10 @@ std::vector<std::string> RealGas<dim,nstate,real>
     names.push_back ("e_comparison");
     names.push_back ("speed_of_sound");
     names.push_back ("dimensional_temperature");
+    for (unsigned int s=0; s<nstate-dim-1; ++s) 
+    {
+      names.push_back ("species_densities");
+    }
 
     return names;
 }

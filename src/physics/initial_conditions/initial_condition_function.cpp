@@ -672,7 +672,7 @@ real InitialConditionFunction_AcousticWave_MultiSpecies<dim,nstate,real>
 
         if(istate==0) {
             // mixture density
-            value = 0.99;
+            value = 1.00;
         }
         if(istate==1) {
             // x-velocity
@@ -695,9 +695,10 @@ real InitialConditionFunction_AcousticWave_MultiSpecies<dim,nstate,real>
             double fy = (1.0/sqrt(2.0*pi*sigma*sigma))*exp(-((y-mu)*(y-mu))/(2.0*(sigma*sigma)));
             value = 1.0/(this->gamma_gas*this->mach_inf_sqr) + fx*fy;
             value = value*3.0/3.0; // chnege this if you want to vary initial temperature 
-        }else{
-            // other species density
-            value = 0.01;
+        }
+        if(istate==4){
+            // other species density (N2)
+            value = 0.788475;
         }
     }
     return value;

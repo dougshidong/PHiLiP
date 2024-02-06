@@ -262,7 +262,7 @@ inline real RealGas<dim,nstate,real>
     return dimensional_temperature;
 }
 
-/// f_M9.5: species specific heat at constant pressure
+/// f_M9.5: species gas constants
 template <int dim, int nstate, typename real>
 dealii::Tensor<1,nstate-dim-1,real> RealGas<dim,nstate,real>
 ::compute_Rs (  const real Ru ) const

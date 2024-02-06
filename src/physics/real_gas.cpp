@@ -316,6 +316,20 @@ dealii::Tensor<1,nstate-dim-1,real> RealGas<dim,nstate,real>
     return Cp;
 }
 
+/// f_M11: species specific heat at constant volume
+template <int dim, int nstate, typename real>
+dealii::Tensor<1,nstate-dim-1,real> RealGas<dim,nstate,real>
+::compute_species_specific_Cv ( const real temperature ) const
+{
+    const dealii::Tensor<1,nstate-dim-1,real> Cp = compute_species_specific_Cp(temperature);
+    const dealii::Tensor<1,nstate-dim-1,real> Rs = compute_Rs(this->Ru);
+    dealii::Tensor<1,nstate-dim-1,real> Cv;
+    for (int s=0; s<(nstate-dim-1); ++s) 
+    {
+        Cv[s] = Cp[s] - Rs[s];
+    }
+    return Cv;
+}
 
 //// up
 template <int dim, int nstate, typename real>

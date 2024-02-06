@@ -143,6 +143,9 @@ protected:
 
     /// f_M10: Compute species specific Cp from temperature 
     dealii::Tensor<1,nstate-dim-1,real> compute_species_specific_Cp ( const real temperature ) const;
+
+    /// f_M11: Compute species specific Cv from temperature 
+    dealii::Tensor<1,nstate-dim-1,real> compute_species_specific_Cv ( const real temperature ) const;
     
 
 protected:

@@ -255,11 +255,10 @@ inline real2 RealGas<dim,nstate,real>
 
 /// f_M9: dimensional temperature
 template <int dim, int nstate, typename real>
-template<typename real2>
-inline real2 RealGas<dim,nstate,real>
+inline real RealGas<dim,nstate,real>
 ::compute_dimensional_temperature ( const real temperature ) const
 {
-    const real2 dimensional_temperature = temperature*this->temperature_ref;
+    const real dimensional_temperature = temperature*this->temperature_ref;
     return dimensional_temperature;
 }
 

@@ -136,8 +136,7 @@ protected:
     real2 compute_mixture_from_species( const dealii::Tensor<1,nstate-dim-1,real2> &mass_fractions, const dealii::Tensor<1,nstate-dim-1,real2> &species) const;
 
     /// f_M9: Compute dimensional temperature from (non-dimensional) temperature
-    template<typename real2>
-    real2 compute_dimensional_temperature ( const real temperature ) const;
+    real compute_dimensional_temperature ( const real temperature ) const;
 
     /// f_M9.5: Compute Rs
     dealii::Tensor<1,nstate-dim-1,real> compute_Rs ( const real Ru ) const;

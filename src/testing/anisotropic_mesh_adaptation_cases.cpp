@@ -27,8 +27,12 @@ void AnisotropicMeshAdaptationCases<dim,nstate>::write_solution_volume_nodes_to_
 {
     dg->high_order_grid->volume_nodes.update_ghost_values();
     dg->solution.update_ghost_values();
-    const std::string filename_soln = "solution_" + std::to_string(this->mpi_rank);
-    const std::string filename_volnodes = "volnodes_" + std::to_string(this->mpi_rank);
+    const int n_cells = dg->triangulation->n_global_active_cells();
+    const int poly_degree = dg->get_min_fe_degree();
+    const std::string filename_soln = 
+                    "solution_" + std::to_string(this->mpi_rank) + "_cells" + std::to_string(n_cells) + "_p" + std::to_string(poly_degree);
+    const std::string filename_volnodes = 
+                    "volnodes_" + std::to_string(this->mpi_rank) + "_cells" + std::to_string(n_cells) + "_p" + std::to_string(poly_degree);
     const dealii::IndexSet &soln_range = dg->solution.get_partitioner()->locally_owned_range();
     const dealii::IndexSet &vol_range = dg->high_order_grid->volume_nodes.get_partitioner()->locally_owned_range();
 
@@ -43,11 +47,11 @@ void AnisotropicMeshAdaptationCases<dim,nstate>::write_solution_volume_nodes_to_
 
     for(const auto &isol : soln_range)
     {
-        outfile_soln<<dg->solution(isol)<<"\n";
+        outfile_soln<<std::setprecision(16)<<dg->solution(isol)<<"\n";
     }
     for(const auto &ivol : vol_range)
     {
-        outfile_volnodes<<dg->high_order_grid->volume_nodes(ivol)<<"\n";
+        outfile_volnodes<<std::setprecision(16)<<dg->high_order_grid->volume_nodes(ivol)<<"\n";
     }
     outfile_soln.close();
     outfile_volnodes.close();
@@ -56,8 +60,12 @@ void AnisotropicMeshAdaptationCases<dim,nstate>::write_solution_volume_nodes_to_
 template<int dim, int nstate>
 void AnisotropicMeshAdaptationCases<dim,nstate>::read_solution_volume_nodes_from_file(std::shared_ptr<DGBase<dim,double>> dg) const
 {
-    const std::string filename_soln = "solution_" + std::to_string(this->mpi_rank);
-    const std::string filename_volnodes = "volnodes_" + std::to_string(this->mpi_rank);
+    const int n_cells = dg->triangulation->n_global_active_cells();
+    const int poly_degree = dg->get_min_fe_degree();
+    const std::string filename_soln = 
+                    "solution_" + std::to_string(this->mpi_rank) + "_cells" + std::to_string(n_cells) + "_p" + std::to_string(poly_degree);
+    const std::string filename_volnodes = 
+                    "volnodes_" + std::to_string(this->mpi_rank) + "_cells" + std::to_string(n_cells) + "_p" + std::to_string(poly_degree);
     const dealii::IndexSet &soln_range = dg->solution.get_partitioner()->locally_owned_range();
     const dealii::IndexSet &vol_range = dg->high_order_grid->volume_nodes.get_partitioner()->locally_owned_range();
 
@@ -682,6 +690,7 @@ int AnisotropicMeshAdaptationCases<dim, nstate> :: run_test () const
             const bool output_refined_nodes = true;
             mesh_optimizer_q2->run_full_space_optimizer(regularization_matrix_poisson_q2, use_oneD_parameteriation, output_refined_nodes, output_val);
             output_vtk_files(flow_solver->dg, output_val++);
+            write_solution_volume_nodes_to_file(flow_solver->dg);
 
             const double functional_error = evaluate_functional_error(flow_solver->dg);
             const double enthalpy_error = evaluate_enthalpy_error(flow_solver->dg);

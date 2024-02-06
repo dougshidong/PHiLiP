@@ -70,8 +70,8 @@ double PeriodicEntropyTests<dim, nstate>::compute_integrated_quantities(DGBase<d
     const unsigned int grid_degree = dg.high_order_grid->fe_system.tensor_degree();
     const unsigned int poly_degree = dg.max_degree;
     // Construct the basis functions and mapping shape functions.
-    OPERATOR::basis_functions<dim,2*dim> soln_basis(1, poly_degree, grid_degree); 
-    OPERATOR::mapping_shape_functions<dim,2*dim> mapping_basis(1, poly_degree, grid_degree);
+    OPERATOR::basis_functions<dim,2*dim,double> soln_basis(1, poly_degree, grid_degree); 
+    OPERATOR::mapping_shape_functions<dim,2*dim,double> mapping_basis(1, poly_degree, grid_degree);
     // Build basis function volume operator and gradient operator from 1D finite element for 1 state.
     soln_basis.build_1D_volume_operator(dg.oneD_fe_collection_1state[poly_degree], quad_extra_1D);
     soln_basis.build_1D_gradient_operator(dg.oneD_fe_collection_1state[poly_degree], quad_extra_1D);

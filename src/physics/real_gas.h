@@ -138,6 +138,12 @@ protected:
     /// f_M9: Compute dimensional temperature from (non-dimensional) temperature
     template<typename real2>
     real2 compute_dimensional_temperature ( const real temperature ) const;
+
+    /// f_M9.5: Compute Rs
+    dealii::Tensor<1,nstate-dim-1,real> compute_Rs ( const real Ru ) const;
+
+    /// f_M10: Compute species specific Cp from temperature 
+    dealii::Tensor<1,nstate-dim-1,real> compute_species_specific_Cp ( const real temperature ) const;
     
 
 protected:

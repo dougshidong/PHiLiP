@@ -263,15 +263,59 @@ inline real2 RealGas<dim,nstate,real>
     return dimensional_temperature;
 }
 
-// /// f_M10: species specific heat at constant pressure
-// template <int dim, int nstate, typename real>
-// template<typename real2>
-// inline real2 RealGas<dim,nstate,real>
-// ::compute_species_specific_Cp ( const real temperature ) const
-// {
-//     const real2 dimensional_temperature = compute_dimensional_temperature(temperature);
-//     return dimensional_temperature;
-// }
+/// f_M9.5: species specific heat at constant pressure
+template <int dim, int nstate, typename real>
+dealii::Tensor<1,nstate-dim-1,real> RealGas<dim,nstate,real>
+::compute_Rs (  const real Ru ) const
+{
+    dealii::Tensor<1,nstate-dim-1,real> Rs;
+    for (int s=0; s<(nstate-dim-1); ++s) 
+    {
+        Rs[s] = Ru/real_gas_cap->Sp_W[s]/this->R_ref;
+    }
+    return Rs;
+}
+
+/// f_M10: species specific heat at constant pressure
+template <int dim, int nstate, typename real>
+dealii::Tensor<1,nstate-dim-1,real> RealGas<dim,nstate,real>
+::compute_species_specific_Cp ( const real temperature ) const
+{
+    const real dimensional_temperature = compute_dimensional_temperature(temperature);
+    dealii::Tensor<1,nstate-dim-1,real> Cp;
+    const dealii::Tensor<1,nstate-dim-1,real> Rs = compute_Rs(this->Ru);
+    int temperature_zone;
+    /// species loop
+    for (int s=0; s<(nstate-dim-1); ++s) 
+        { 
+            /// temperature limits if-else
+            if(real_gas_cap->NASACAPTemperatureLimits[s][0]<=dimensional_temperature && dimensional_temperature<=real_gas_cap->NASACAPTemperatureLimits[s][1])
+            {
+                temperature_zone = 0;
+            }
+            else if (real_gas_cap->NASACAPTemperatureLimits[s][1]<=dimensional_temperature && dimensional_temperature<=real_gas_cap->NASACAPTemperatureLimits[s][2])
+            {
+                temperature_zone = 1;
+            }
+            else if (real_gas_cap->NASACAPTemperatureLimits[s][2]<=dimensional_temperature && dimensional_temperature<=real_gas_cap->NASACAPTemperatureLimits[s][3])
+            {
+                temperature_zone = 2;
+            }
+            else
+            {
+                std::cout<<"Out of NASA CAP temperature limits."<<std::endl;
+                std::abort();
+            }
+            /// main computation
+            Cp[s] = 0.0;
+            for (int i=0; i<7; i++)
+            {
+                Cp[s] += real_gas_cap->NASACAPCoeffs[s][i][temperature_zone]*pow(dimensional_temperature,i-2);
+            }
+            Cp[s] *= Rs[s];
+        }
+    return Cp;
+}
 
 
 //// up

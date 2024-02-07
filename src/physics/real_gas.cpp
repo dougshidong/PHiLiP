@@ -331,6 +331,52 @@ dealii::Tensor<1,nstate-dim-1,real> RealGas<dim,nstate,real>
     return Cv;
 }
 
+/// f_M12: species specific enthalpy
+template <int dim, int nstate, typename real>
+dealii::Tensor<1,nstate-dim-1,real> RealGas<dim,nstate,real>
+::compute_species_specific_enthalpy ( const real temperature ) const
+{
+    const real dimensional_temperature = compute_dimensional_temperature(temperature);
+    dealii::Tensor<1,nstate-dim-1,real> h;
+    const dealii::Tensor<1,nstate-dim-1,real> Rs = compute_Rs(this->Ru);
+    int temperature_zone;
+    /// species loop
+    for (int s=0; s<(nstate-dim-1); ++s) 
+        { 
+            /// temperature limits if-else
+            if(real_gas_cap->NASACAPTemperatureLimits[s][0]<=dimensional_temperature && dimensional_temperature<=real_gas_cap->NASACAPTemperatureLimits[s][1])
+            {
+                temperature_zone = 0;
+            }
+            else if (real_gas_cap->NASACAPTemperatureLimits[s][1]<=dimensional_temperature && dimensional_temperature<=real_gas_cap->NASACAPTemperatureLimits[s][2])
+            {
+                temperature_zone = 1;
+            }
+            else if (real_gas_cap->NASACAPTemperatureLimits[s][2]<=dimensional_temperature && dimensional_temperature<=real_gas_cap->NASACAPTemperatureLimits[s][3])
+            {
+                temperature_zone = 2;
+            }
+            else
+            {
+                std::cout<<"Out of NASA CAP temperature limits."<<std::endl;
+                std::abort();
+            }
+            /// main computation
+            h[s] = -real_gas_cap->NASACAPCoeffs[s][0][temperature_zone]*pow(dimensional_temperature,-2)
+                   +real_gas_cap->NASACAPCoeffs[s][1][temperature_zone]*pow(dimensional_temperature,-1)*log(dimensional_temperature) 
+                   +real_gas_cap->NASACAPCoeffs[s][7][temperature_zone]*pow(dimensional_temperature,-1); // The first 2 terms and the last term
+            for (int i=0+2; i<7; i++)
+            {
+                h[s] += real_gas_cap->NASACAPCoeffs[s][i][temperature_zone]*pow(dimensional_temperature,i-2)/((double)(i-1));
+            }
+            /// dimensional value
+            h[s] *= (Rs[s]*this->R_ref)*dimensional_temperature;
+            /// non-dimensionalize
+            h[s] /= this->u_ref_sqr;
+        }
+    return h;
+}
+
 //// up
 template <int dim, int nstate, typename real>
 template<typename real2>

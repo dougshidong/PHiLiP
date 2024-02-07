@@ -146,7 +146,9 @@ protected:
 
     /// f_M11: Compute species specific Cv from temperature 
     dealii::Tensor<1,nstate-dim-1,real> compute_species_specific_Cv ( const real temperature ) const;
-    
+
+    /// f_M12: Compute species specific enthalpy from temperature 
+    dealii::Tensor<1,nstate-dim-1,real> compute_species_specific_enthalpy ( const real temperature ) const;    
 
 protected:
     /// Compute velocities from conservative_soln (use compute_density)

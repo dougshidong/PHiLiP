@@ -809,5 +809,46 @@ void AllRealGasConstants::InitEOSVariables()
     }
 }
 
+// //===============================================
+// void AllRealGasConstants::NASACAP_GetHSCp(double *H, double *S, double *Cp_molar,
+//  double *Cv_molar, double RT)
+// {
+//     // return H, S, and Cp  (in J/mol-K)
+//     double T = RT/R_universal;
+
+//     GetNASACAP_TemperatureIndex(T, Sp_TempIndex);
+
+//     for(int i=0; i<N_species; i++)
+//     {
+//         if (Sp_TempIndex[i] != -1)
+//         {
+//             int T_Index = Sp_TempIndex[i];
+//             Cp_molar[i] = 0.0;
+//             S[i] = -0.5*NASACAPCoeffs[i][0][T_Index]*pow(T, -2.0) - NASACAPCoeffs[i][1][T_Index]/T + NASACAPCoeffs[i][2][T_Index]*log(T);
+//             H[i] = -NASACAPCoeffs[i][0][T_Index]*pow(T, -2.0) + NASACAPCoeffs[i][1][T_Index]*log(T)/T;
+
+//             for(int j=0; j<7; j++)
+//             {
+//                 Cp_molar[i] += NASACAPCoeffs[i][j][T_Index]*pow(T, double(j-2));
+//                 if(j > 1)
+//                 {
+//                     H[i] += NASACAPCoeffs[i][j][T_Index]*pow(T, double(j-2))/(double(j-1));
+//                 }
+//                 if(j > 2)
+//                 {
+//                     S[i] += NASACAPCoeffs[i][j][T_Index]*pow(T, double(j-2))/(double(j-2)); 
+//                 }
+//             }
+//             H[i] += NASACAPCoeffs[i][7][T_Index]/T;
+//             S[i] += NASACAPCoeffs[i][8][T_Index];
+            
+//             Cp_molar[i] *= R_universal; // [J/mol-K]
+//             Cv_molar[i] = Cp_molar[i] - R_universal; // [J/mol-K] 
+//             H[i] *= RT; // [J/mol]
+//             S[i] *= R_universal; // [J/mol-K]
+//         }
+//     }
+// }
+
 } // RealGasConstants namespace
 } // PHiLiP namespace

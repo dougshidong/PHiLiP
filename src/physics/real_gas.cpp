@@ -331,6 +331,64 @@ dealii::Tensor<1,nstate-dim-1,real> RealGas<dim,nstate,real>
     return Cv;
 }
 
+// //===============================================
+// double *dvector(int n)
+// {
+//     double *v = new double[n];
+//     return v;
+// }
+// //===============================================
+//     constexpr int nspecies = nstate-dim-1;
+//     double *H = dvector(nspecies);
+//     double *S = dvector(nspecies);
+//     double *Cp_molar = dvector(nspecies);
+//     double *Cv_molar = dvector(nspecies);
+//     const real R_universal = 8.314510; // COPIED FROM LEGACY CODE
+//     double RT = R_universal*temperature;
+//     real_gas_cap->NASACAP_GetHSCp(H, S, Cp_molar, Cv_molar, RT);
+    
+//     dealii::Tensor<1,nspecies,real> specific_enthalpy;
+//     for(int s=0; s<nspecies;++s){
+//         specific_enthalpy[s] = H[s];
+//         std::cout<< real_gas_cap->Sp_name[s] << ",   Specific enthalpy: " << specific_enthalpy[s] << std::endl;
+//     }
+//     return specific_enthalpy;
+
+//     // return H, S, and Cp  (in J/mol-K)
+//     double T = RT/R_universal;
+
+//     GetNASACAP_TemperatureIndex(T, Sp_TempIndex);
+
+//     for(int i=0; i<N_species; i++)
+//     {
+//         if (Sp_TempIndex[i] != -1)
+//         {
+//             int T_Index = Sp_TempIndex[i];
+//             Cp_molar[i] = 0.0;
+//             S[i] = -0.5*NASACAPCoeffs[i][0][T_Index]*pow(T, -2.0) - NASACAPCoeffs[i][1][T_Index]/T + NASACAPCoeffs[i][2][T_Index]*log(T);
+//             H[i] = -NASACAPCoeffs[i][0][T_Index]*pow(T, -2.0) + NASACAPCoeffs[i][1][T_Index]*log(T)/T;
+
+//             for(int j=0; j<7; j++)
+//             {
+//                 Cp_molar[i] += NASACAPCoeffs[i][j][T_Index]*pow(T, double(j-2));
+//                 if(j > 1)
+//                 {
+//                     H[i] += NASACAPCoeffs[i][j][T_Index]*pow(T, double(j-2))/(double(j-1));
+//                 }
+//                 if(j > 2)
+//                 {
+//                     S[i] += NASACAPCoeffs[i][j][T_Index]*pow(T, double(j-2))/(double(j-2)); 
+//                 }
+//             }
+//             H[i] += NASACAPCoeffs[i][7][T_Index]/T;
+//             S[i] += NASACAPCoeffs[i][8][T_Index];
+            
+//             Cp_molar[i] *= R_universal; // [J/mol-K]
+//             Cv_molar[i] = Cp_molar[i] - R_universal; // [J/mol-K] 
+//             H[i] *= RT; // [J/mol]
+//             S[i] *= R_universal; // [J/mol-K]
+//         }
+//     }
 //// up
 template <int dim, int nstate, typename real>
 template<typename real2>

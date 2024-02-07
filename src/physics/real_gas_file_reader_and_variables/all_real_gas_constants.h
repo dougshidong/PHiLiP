@@ -165,11 +165,6 @@ public:
     /*}
     ReactiveVars reactive;*/
 
-// public:
-//     void NASACAP_GetHSCp(
-//         double *H, double *S, double *Cp_molar,
-//         double *Cv_molar, double RT);
-
 protected:
     dealii::ConditionalOStream pcout; ///< Parallel std::cout that only outputs on mpi_rank==0
     void getSpeciesIndex(int i, std::string sp);

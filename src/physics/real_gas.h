@@ -124,31 +124,28 @@ protected:
     real2 compute_mixture_density ( const std::array<real2,nstate> &conservative_soln ) const;
 
     /// f_M6: Compute species densities from conservative_soln 
-    template<typename real2>
-    dealii::Tensor<1,nstate-dim-1,real2> compute_species_densities ( const std::array<real2,nstate> &conservative_soln ) const;
+    std::array<real,nstate-dim-1> compute_species_densities ( const std::array<real,nstate> &conservative_soln ) const;
 
     /// f_M7: Compute mass fractions from conservative_soln 
-    template<typename real2>
-    dealii::Tensor<1,nstate-dim-1,real2> compute_mass_fractions ( const std::array<real2,nstate> &conservative_soln ) const;
+    std::array<real,nstate-dim-1> compute_mass_fractions ( const std::array<real,nstate> &conservative_soln ) const;
 
     /// f_M8: Compute mixture from mass fractions and species
-    template<typename real2>
-    real2 compute_mixture_from_species( const dealii::Tensor<1,nstate-dim-1,real2> &mass_fractions, const dealii::Tensor<1,nstate-dim-1,real2> &species) const;
+    real compute_mixture_from_species( const std::array<real,nstate-dim-1> &mass_fractions, const std::array<real,nstate-dim-1> &species ) const;
 
     /// f_M9: Compute dimensional temperature from (non-dimensional) temperature
     real compute_dimensional_temperature ( const real temperature ) const;
 
-    /// f_M9.5: Compute Rs
-    dealii::Tensor<1,nstate-dim-1,real> compute_Rs ( const real Ru ) const;
+    /// f_M9.5: Compute Rs from Ru
+    std::array<real,nstate-dim-1> compute_Rs ( const real Ru ) const;
 
     /// f_M10: Compute species specific Cp from temperature 
-    dealii::Tensor<1,nstate-dim-1,real> compute_species_specific_Cp ( const real temperature ) const;
+    std::array<real,nstate-dim-1> compute_species_specific_Cp ( const real temperature ) const;
 
     /// f_M11: Compute species specific Cv from temperature 
-    dealii::Tensor<1,nstate-dim-1,real> compute_species_specific_Cv ( const real temperature ) const;
+    std::array<real,nstate-dim-1>compute_species_specific_Cv ( const real temperature ) const;
 
     /// f_M12: Compute species specific enthalpy from temperature 
-    dealii::Tensor<1,nstate-dim-1,real> compute_species_specific_enthalpy ( const real temperature ) const;    
+    std::array<real,nstate-dim-1> compute_species_specific_enthalpy ( const real temperature ) const;   
 
 protected:
     /// Compute velocities from conservative_soln (use compute_density)

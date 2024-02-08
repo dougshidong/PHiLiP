@@ -1543,8 +1543,11 @@ void DGBase<dim,real,MeshType>::assemble_residual (const bool compute_dRdW, cons
         system_matrix.compress(dealii::VectorOperation::add);
 
         if (global_mass_matrix.m() != system_matrix.m()) {
-            const bool do_inverse_mass_matrix = false;
-            evaluate_mass_matrices (do_inverse_mass_matrix);
+            if(high_order_grid->grid_degree==1)
+            {
+                const bool do_inverse_mass_matrix = false;
+                evaluate_mass_matrices (do_inverse_mass_matrix);
+            }
         }
         if (CFL_mass != 0.0) {
             time_scaled_mass_matrices(CFL_mass);

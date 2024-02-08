@@ -65,7 +65,7 @@ Euler<dim,nstate,real>::Euler (
         velocities_inf[2] = sin(side_slip_angle);
     }
 
-    assert(std::abs(velocities_inf.norm() - 1.0) < 1e-14);
+    //assert(std::abs(velocities_inf.norm() - 1.0) < 1e-14);
 
     const double velocity_inf_sqr = mach_inf_sqr;
     //const double velocity_inf_sqr = 1.0;

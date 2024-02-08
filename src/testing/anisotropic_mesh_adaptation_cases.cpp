@@ -498,6 +498,7 @@ double AnisotropicMeshAdaptationCases<dim,nstate> :: output_vtk_files(std::share
 
     std::unique_ptr<DualWeightedResidualError<dim, nstate , double>> dwr_error_val = std::make_unique<DualWeightedResidualError<dim, nstate , double>>(dg);
     const double abs_dwr_error = dwr_error_val->total_dual_weighted_residual_error();
+    dg->assemble_residual();
     return abs_dwr_error;
 
     return 0;
@@ -638,6 +639,7 @@ int AnisotropicMeshAdaptationCases<dim, nstate> :: run_test () const
         // q1 initial run
         {
             flow_solver->dg->set_p_degree_and_interpolate_solution(1);
+            /* Uncomment later
             dealii::TrilinosWrappers::SparseMatrix regularization_matrix_poisson_q1;
             evaluate_regularization_matrix(regularization_matrix_poisson_q1, flow_solver->dg);
             Parameters::AllParameters param_q1 = param;
@@ -648,6 +650,7 @@ int AnisotropicMeshAdaptationCases<dim, nstate> :: run_test () const
                             std::make_unique<MeshOptimizer<dim,nstate>> (flow_solver->dg, &param_q1, true);
             const bool output_refined_nodes = false;
             mesh_optimizer_q1->run_full_space_optimizer(regularization_matrix_poisson_q1, use_oneD_parameteriation, output_refined_nodes, output_val-1);
+            */
             /*
             flow_solver->run();
             if(flow_solver->dg->get_residual_l2norm() > 1.0e-10)
@@ -676,6 +679,7 @@ int AnisotropicMeshAdaptationCases<dim, nstate> :: run_test () const
         }
 
         const unsigned int n_meshes = 4;
+    /* Uncomment later
         for(unsigned int imesh = 0; imesh < n_meshes; ++imesh)
         {
             if(imesh>0)
@@ -704,6 +708,41 @@ int AnisotropicMeshAdaptationCases<dim, nstate> :: run_test () const
             convergence_table_enthalpy.add_value("cells", flow_solver->dg->triangulation->n_global_active_cells());
             convergence_table_enthalpy.add_value("enthalpy_error",enthalpy_error);
         } //imesh loop
+    */
+        for(unsigned int imesh = 0; imesh < n_meshes; ++imesh)
+        {
+            if(imesh>0)
+            {
+                refine_mesh_and_interpolate_solution(flow_solver->dg); 
+            }
+            if(imesh==2)
+            {
+                (void) use_oneD_parameteriation;
+                pcout<<"Reading mesh and solution from file."<<std::endl;
+                read_solution_volume_nodes_from_file(flow_solver->dg);
+                flow_solver->dg->set_upwinding_flux(true);
+                pcout<<"Ncells = "<<flow_solver->dg->triangulation->n_global_active_cells()<<std::endl;
+                pcout<<"Residual norm before = "<<flow_solver->dg->get_residual_l2norm()<<std::endl;
+                pcout<<"Assembling residual."<<std::endl;
+                flow_solver->dg->assemble_residual();
+                pcout<<"Residual norm after = "<<flow_solver->dg->right_hand_side.l2_norm()<<std::endl;
+                pcout<<"Outputting file."<<std::endl;
+                output_vtk_files(flow_solver->dg, output_val++);
+            }
+            if(imesh==3)
+            {
+                pcout<<"Ncells = "<<flow_solver->dg->triangulation->n_global_active_cells()<<std::endl;
+                dealii::TrilinosWrappers::SparseMatrix regularization_matrix_poisson_q2;
+                evaluate_regularization_matrix(regularization_matrix_poisson_q2, flow_solver->dg);
+                flow_solver->dg->freeze_artificial_dissipation=true;
+                flow_solver->dg->set_upwinding_flux(true);
+                std::unique_ptr<MeshOptimizer<dim,nstate>> mesh_optimizer_q2 = std::make_unique<MeshOptimizer<dim,nstate>> (flow_solver->dg,&param, true);
+                const bool output_refined_nodes = true;
+                mesh_optimizer_q2->run_full_space_optimizer(regularization_matrix_poisson_q2, use_oneD_parameteriation, output_refined_nodes, output_val);
+                output_vtk_files(flow_solver->dg, output_val++);
+                
+            }
+        }
     }
 
     if(run_fixedfraction_mesh_adaptation)

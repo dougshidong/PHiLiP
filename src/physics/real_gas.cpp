@@ -42,14 +42,16 @@ RealGas<dim,nstate,real>::RealGas (
     //     std::cout<< real_gas_cap->Sp_name[ispecies] << ",   Molecular weight: " << real_gas_cap->Sp_WSp_W[ispecies] <<std::endl;    
     // }
 
-    for(int ispecies=0; ispecies<2; ispecies++) 
-    {
-        // for (int i=0; i<9; i++)
-        // {
-            // std::cout<< i << std::endl;
-            std::cout<< real_gas_cap->Sp_name[ispecies] << ", value: " << real_gas_cap->NASACAPCoeffs[ispecies][0][0]<<std::endl;   
-        // } 
-    }
+/// out put test of ral_gas-cap
+    // for(int ispecies=0; ispecies<2; ispecies++) 
+    // {
+    //     // for (int i=0; i<9; i++)
+    //     // {
+    //         // std::cout<< i << std::endl;
+    //         std::cout<< real_gas_cap->Sp_name[ispecies] << ", value: " << real_gas_cap->NASACAPCoeffs[ispecies][0][0]<<std::endl;   
+    //     // } 
+    // }
+/// out put test of ral_gas-cap
     
     // std::cout<<"In constructor of real gas."<<std::endl<<std::flush;
     static_assert(nstate==dim+2+2-1, "Physics::RealGas() should be created with nstate=(PHILIP_DIM+2)+(N_SPECIES-1)"); // TO DO: UPDATE THIS with nspecies

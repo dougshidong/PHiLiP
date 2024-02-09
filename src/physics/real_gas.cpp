@@ -183,19 +183,6 @@ void RealGas<dim,nstate,real>
     // TO DO: Update this you are using any kind of BC that is not periodic
 }
 
-template <int dim, int nstate, typename real>
-inline std::array<real,nstate> RealGas<dim,nstate,real>
-::convert_primitive_to_conservative ( const std::array<real,nstate> &primitive_soln ) const
-{
-    std::array<real, nstate> conservative_soln;
-    for (int i=0; i<nstate; i++)
-    {
-        conservative_soln[i] = 1.0*primitive_soln[i];
-    }
-
-    return conservative_soln;
-}
-
 /* MAIN FUNCTIONS */
 /// f_M1: mixture density
 template <int dim, int nstate, typename real>
@@ -374,6 +361,79 @@ std::array<real,nstate-dim-1> RealGas<dim,nstate,real>
             h[s] /= this->u_ref_sqr;
         }
     return h;
+}
+
+/* Supporting FUNCTIONS */
+/// f_S19: primitive to conservative
+template <int dim, int nstate, typename real>
+inline std::array<real,nstate> RealGas<dim,nstate,real>
+::convert_primitive_to_conservative ( const std::array<real,nstate> &primitive_soln ) const /// TO DO: delete new and delete the original function
+{
+    /* definitions */
+    std::array<real, nstate> conservative_soln;
+    // for (int i=0; i<nstate; i++) {conservative_soln[i] = 0.0;}
+    const real mixture_density = compute_mixture_density(primitive_soln);
+    std::array<real, dim> vel;
+    // for (int d=0; d<dim; ++d) { vel[d] = primitive_soln[1+d]; }
+
+    real vel2 = 1.0;
+    real sum = 0.0;
+    std::array<real,nstate-dim-1> species_densities;
+    std::array<real,nstate-dim-1> mass_fractions;
+    const std::array<real,nstate-dim-1> Rs = compute_Rs(this->Ru);
+    const real mixture_pressure = primitive_soln[dim+2-1];
+    std::array<real,nstate-dim-1> species_specific_internal_energy;
+    std::array<real,nstate-dim-1> species_specific_total_energy;
+
+    /* mixture density */
+    conservative_soln[0] = mixture_density;
+
+    /* mixture momentum */
+    for (int d=0; d<dim; ++d) 
+    {
+        vel[d] = primitive_soln[1+d];
+        vel2 *= vel[d];
+        conservative_soln[1+d] = mixture_density*vel[d];
+    }
+
+    /* mixture energy */
+    // species densities
+    for (int s=0; s<(nstate-dim-1)-1; ++s) 
+    { 
+        species_densities[s] = primitive_soln[dim+2+s];
+        sum += species_densities[s];
+    }
+    species_densities[(nstate-dim-1)-1] = mixture_density - sum;
+    // mass fractions
+    for (int s=0; s<(nstate-dim-1); ++s) 
+    { 
+        mass_fractions[s] = species_densities[s]/mixture_density;
+    }    
+    // mixturegas constant
+    const real mixture_gas_constant = compute_mixture_from_species(mass_fractions,Rs);
+    // temperature
+    const real temperature = mixture_pressure/(mixture_density*mixture_gas_constant) * (this->u_ref_sqr/(this->R_ref*this->temperature_ref));
+    // specific kinetic energy
+    const real specific_kinetic_energy = 0.50*vel2;
+    // species specific enthalpy
+    const std::array<real,nstate-dim-1> species_specific_enthalpy = compute_species_specific_enthalpy(temperature); 
+    // species energy
+    for (int s=0; s<(nstate-dim-1); ++s) 
+    { 
+      species_specific_internal_energy[s] = species_specific_enthalpy[s] - Rs[s]*temperature;
+      species_specific_total_energy[s] =  species_specific_internal_energy[s] + specific_kinetic_energy;
+    }     
+    // mixture energy
+    const real mixture_specific_total_energy = compute_mixture_from_species(mass_fractions,species_specific_total_energy);
+    conservative_soln[dim+2-1] = mixture_specific_total_energy;
+
+    /* species densities */
+    for (int s=0; s<(nstate-dim-1)-1; ++s) 
+    {
+        conservative_soln[dim+2+s] = species_densities[s];
+    }
+
+    return conservative_soln;
 }
 
 //// up

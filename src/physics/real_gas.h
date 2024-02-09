@@ -114,8 +114,9 @@ public: /// used for initial condition (initial_condition_function.cpp)
     /// Given primitive variables [density, [velocities], pressure],
     /// returns conservative variables [density, [momentum], total energy].
     ///
-    /// Opposite of convert_primitive_to_conservative
-    std::array<real,nstate> convert_primitive_to_conservative ( const std::array<real,nstate> &primitive_soln ) const;
+
+    /// f_S10: Convert primitive solutions to conservative solutions // TO DO: delete new and delete the original function
+    std::array<real,nstate> convert_primitive_to_conservative ( const std::array<real,nstate> &primitive_soln ) const; 
 
 /* MAIN FUNCTIONS */
 protected:

@@ -1523,9 +1523,12 @@ void DGBase<dim,real,MeshType>::assemble_residual (const bool compute_dRdW, cons
         right_hand_side.add(1.0);
         if (compute_dRdW) {
             std::cout << " Filling up Jacobian with mass matrix. " << std::endl;
-            const bool do_inverse_mass_matrix = false;
-            evaluate_mass_matrices (do_inverse_mass_matrix);
-            system_matrix.copy_from(global_mass_matrix);
+            if(high_order_grid->grid_degree==1)
+            {
+                const bool do_inverse_mass_matrix = false;
+                evaluate_mass_matrices (do_inverse_mass_matrix);
+                system_matrix.copy_from(global_mass_matrix);
+            }
         }
         //if (compute_dRdX) {
         //    dRdXv.trilinos_matrix().

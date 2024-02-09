@@ -383,7 +383,7 @@ void OneDSpecificNodesParameterization<dim> :: compute_dXv_dXp(MatrixType &dXv_d
 
     const unsigned int n_vol_nodes = this->high_order_grid->volume_nodes.size();
     
-    dealii::DynamicSparsityPattern dsp(n_vol_nodes, n_control_nodes, volume_range);
+    dealii::DynamicSparsityPattern dsp(n_vol_nodes, n_control_nodes, locally_relevant_dofs);
     for(unsigned int i_control=0; i_control<n_control_nodes; ++i_control)
     {
         const unsigned int ivol = control_index_to_vol_index[i_control];
@@ -611,9 +611,9 @@ template<int dim>
 void OneDSpecificNodesParameterization<dim> :: output_control_nodes_with_interpolated_high_order_nodes() const
 {
     std::vector<std::pair<double,double>> final_control_nodes_list = get_final_control_nodes_list();
-    AssertDimension(final_control_nodes_list.size(), n_control_nodes);
     if(this->mpi_rank == 0)
     {
+        AssertDimension(final_control_nodes_list.size(), n_control_nodes);
         // Compute high-order q2 nodes at center
         for(unsigned int icontrol=0; icontrol<n_control_nodes-1; ++icontrol)
         {

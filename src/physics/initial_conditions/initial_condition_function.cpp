@@ -698,7 +698,7 @@ real InitialConditionFunction_AcousticWave_MultiSpecies<dim,nstate,real>
         }
         if(istate==4){
             // other species density (N2)
-            value = 0.788475;
+            value = 0.79;
         }
     }
     return value;

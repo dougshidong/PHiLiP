@@ -174,7 +174,7 @@ inline std::array<real,nstate> InviscidRealGas<dim,nstate,real>
     const real vel2 = compute_velocity_squared(vel);
     const real kinetic_energy = 0.5*density*vel2;
     const real enthalpy = compute_enthalpy(temperature);
-    const real specific_internal_energy = enthalpy - (this->R_ref*this->temperature_ref/this->u_ref_sqr)*this->R_Air_NonDim*temperature;
+    const real specific_internal_energy = enthalpy - this->R_Air_NonDim*temperature;
     const real total_energy = density*specific_internal_energy + kinetic_energy; //rhoE
     std::array<real, nstate> conservative_soln;
     conservative_soln[0] = density;

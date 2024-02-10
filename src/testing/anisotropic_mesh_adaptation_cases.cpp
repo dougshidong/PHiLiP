@@ -25,8 +25,6 @@ AnisotropicMeshAdaptationCases<dim, nstate> :: AnisotropicMeshAdaptationCases(
 template<int dim, int nstate>
 void AnisotropicMeshAdaptationCases<dim,nstate>::write_solution_volume_nodes_to_file(std::shared_ptr<DGBase<dim,double>> dg) const
 {
-    dg->high_order_grid->volume_nodes.update_ghost_values();
-    dg->solution.update_ghost_values();
     const int n_cells = dg->triangulation->n_global_active_cells();
     const int poly_degree = dg->get_min_fe_degree();
     const std::string filename_soln = 

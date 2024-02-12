@@ -104,7 +104,7 @@ real RealGas<dim,nstate,real>
     const std::array<real,nstate> &conservative_soln,
     const dealii::Tensor<1,dim,real> &normal) const
 {
-    const dealii::Tensor<1,dim,real> vel = compute_velocities<real>(conservative_soln);
+    const dealii::Tensor<1,dim,real> vel = compute_velocities(conservative_soln);
 
     const real sound = compute_sound (conservative_soln);
     real vel_dot_n = 0.0;
@@ -192,6 +192,50 @@ inline real2 RealGas<dim,nstate,real>
 {
     const real2 mixture_density = conservative_soln[0];
     return mixture_density;
+}
+
+/// f_M2: velocities
+template <int dim, int nstate, typename real>
+inline dealii::Tensor<1,dim,real> RealGas<dim,nstate,real>
+::compute_velocities ( const std::array<real,nstate> &conservative_soln ) const
+{
+    const real mixture_density = compute_mixture_density(conservative_soln);
+    dealii::Tensor<1,dim,real> vel;
+    for (int d=0; d<dim; ++d) { vel[d] = conservative_soln[1+d]/mixture_density; }
+    return vel;
+}
+
+/// f_M3: squared velocities
+template <int dim, int nstate, typename real>
+inline real RealGas<dim,nstate,real>
+::compute_velocity_squared ( const std::array<real,nstate> &conservative_soln ) const
+{
+    const dealii::Tensor<1,dim,real> vel = compute_velocities(conservative_soln);
+    real vel2 = 0.0;
+    for (int d=0; d<dim; d++) { 
+        vel2 = vel2 + vel[d]*vel[d]; 
+    }  
+    return vel2;
+}
+
+/// f_M4: specific kinetic energy
+template <int dim, int nstate, typename real>
+inline real RealGas<dim,nstate,real>
+::compute_specific_kinetic_energy ( const std::array<real,nstate> &conservative_soln ) const
+{
+    const real vel2 = compute_velocity_squared(conservative_soln);
+    const real k = 0.5*vel2;
+    return k;
+}
+
+/// f_M5: mixture specific total energy
+template <int dim, int nstate, typename real>
+inline real RealGas<dim,nstate,real>
+::compute_mixture_specific_total_energy ( const std::array<real,nstate> &conservative_soln ) const
+{
+    const real mixture_density = compute_mixture_density(conservative_soln);
+    const real mixture_specific_total_energy = conservative_soln[dim+2-1]/mixture_density;
+    return mixture_specific_total_energy;
 }
 
 /// f_M6: species densities

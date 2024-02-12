@@ -124,6 +124,18 @@ protected:
     template<typename real2>
     real2 compute_mixture_density ( const std::array<real2,nstate> &conservative_soln ) const;
 
+    /// f_M2: Compute velocities from conservative_soln 
+    dealii::Tensor<1,dim,real> compute_velocities ( const std::array<real,nstate> &conservative_soln ) const;
+
+    /// f_M3: Compute squared velocities from conservative_soln
+    real compute_velocity_squared ( const std::array<real,nstate> &conservative_soln ) const;
+
+    /// f_M4: Compute specific kinetic energy from conservative-soln
+    real compute_specific_kinetic_energy ( const std::array<real,nstate> &conservative_soln ) const;
+
+    /// f_M5: Compute mixture specific total energy from conservative_soln
+    real compute_mixture_specific_total_energy ( const std::array<real,nstate> &conservative_soln ) const;
+
     /// f_M6: Compute species densities from conservative_soln 
     std::array<real,nstate-dim-1> compute_species_densities ( const std::array<real,nstate> &conservative_soln ) const;
 
@@ -148,10 +160,6 @@ protected:
     /// f_M12: Compute species specific enthalpy from temperature 
     std::array<real,nstate-dim-1> compute_species_specific_enthalpy ( const real temperature ) const;   
 
-protected:
-    /// Compute velocities from conservative_soln (use compute_density)
-    template<typename real2>
-    dealii::Tensor<1,dim,real2> compute_velocities ( const std::array<real2,nstate> &conservative_soln ) const;
 
     /// Evaluate speed of sound from conservative variables
     real compute_sound ( const std::array<real,nstate> &conservative_soln ) const;

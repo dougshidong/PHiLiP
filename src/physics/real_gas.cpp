@@ -481,16 +481,6 @@ inline std::array<real,nstate> RealGas<dim,nstate,real>
 }
 
 //// up
-template <int dim, int nstate, typename real>
-template<typename real2>
-inline dealii::Tensor<1,dim,real2> RealGas<dim,nstate,real>
-::compute_velocities ( const std::array<real2,nstate> &conservative_soln ) const
-{
-    const real2 density = conservative_soln[0];
-    dealii::Tensor<1,dim,real2> vel;
-    for (int d=0; d<dim; ++d) { vel[d] = conservative_soln[1+d]/density; }
-    return vel;
-}
 
 template <int dim, int nstate, typename real>
 inline real RealGas<dim,nstate,real>

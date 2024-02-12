@@ -420,7 +420,7 @@ inline std::array<real,nstate> RealGas<dim,nstate,real>
     std::array<real, dim> vel;
     // for (int d=0; d<dim; ++d) { vel[d] = primitive_soln[1+d]; }
 
-    real vel2 = 1.0;
+    real vel2 = 0.0;
     real sum = 0.0;
     std::array<real,nstate-dim-1> species_densities;
     std::array<real,nstate-dim-1> mass_fractions;

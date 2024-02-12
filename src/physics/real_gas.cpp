@@ -392,7 +392,7 @@ inline std::array<real,nstate> RealGas<dim,nstate,real>
     for (int d=0; d<dim; ++d) 
     {
         vel[d] = primitive_soln[1+d];
-        vel2 *= vel[d];
+        vel2 = vel2 + vel[d]*vel[d]; ;
         conservative_soln[1+d] = mixture_density*vel[d];
     }
 

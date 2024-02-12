@@ -407,6 +407,21 @@ std::array<real,nstate-dim-1> RealGas<dim,nstate,real>
     return h;
 }
 
+/// f_M13: species specific internal energy
+template <int dim, int nstate, typename real>
+std::array<real,nstate-dim-1> RealGas<dim,nstate,real>
+::compute_species_specific_internal_energy( const real temperature ) const
+{
+    const std::array<real,nstate-dim-1> h = compute_species_specific_enthalpy(temperature);
+    const std::array<real,nstate-dim-1> Rs = compute_Rs(this->Ru);
+    std::array<real,nstate-dim-1> e;
+    for (int s=0; s<(nstate-dim-1); ++s) 
+    {
+        e[s] = h[s] - Rs[s]*temperature;
+    }
+    return e;
+}
+
 /* Supporting FUNCTIONS */
 /// f_S19: primitive to conservative
 template <int dim, int nstate, typename real>

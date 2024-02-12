@@ -160,6 +160,8 @@ protected:
     /// f_M12: Compute species specific enthalpy from temperature 
     std::array<real,nstate-dim-1> compute_species_specific_enthalpy ( const real temperature ) const;   
 
+    /// f_M13: Compute species specificinternal energy from temperature 
+    std::array<real,nstate-dim-1> compute_species_specific_internal_energy ( const real temperature ) const;
 
     /// Evaluate speed of sound from conservative variables
     real compute_sound ( const std::array<real,nstate> &conservative_soln ) const;

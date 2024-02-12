@@ -529,14 +529,14 @@ dealii::Vector<double> RealGas<dim,nstate,real>::post_compute_derived_quantities
         // Velocities
         for (unsigned int d=0; d<dim; ++d) {
             /*computed_quantities(++current_data_index) = primitive_soln[1+d];*/
-            computed_quantities(++current_data_index) = conservative_soln[1+d]/conservative_soln[0];
+            computed_quantities(++current_data_index) = compute_velocities(conservative_soln)[d];
         }
         // Mixture momentum
         for (unsigned int d=0; d<dim; ++d) {
             computed_quantities(++current_data_index) = conservative_soln[1+d];
         }
         // Mixture energy
-        computed_quantities(++current_data_index) = conservative_soln[nstate-1];
+        computed_quantities(++current_data_index) = compute_mixture_specific_total_energy(conservative_soln);
         // Pressure
         /*computed_quantities(++current_data_index) = primitive_soln[nstate-1];*/
         computed_quantities(++current_data_index) = 999;

@@ -263,7 +263,7 @@ inline std::array<real,nstate-dim-1> RealGas<dim,nstate,real>
     const real mixture_density = compute_mixture_density(conservative_soln);
     const std::array<real,nstate-dim-1> species_densities = compute_species_densities(conservative_soln);
     std::array<real,nstate-dim-1> mass_fractions;
-    for (int s=0; s<(nstate-dim-1)-1; ++s) 
+    for (int s=0; s<nstate-dim-1; ++s) 
         { 
             mass_fractions[s] = species_densities[s]/mixture_density; 
         }

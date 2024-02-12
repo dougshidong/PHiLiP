@@ -92,15 +92,16 @@ void OneDSpecificNodesParameterization<dim> :: compute_control_index_to_vol_inde
 {
     const unsigned int n_vol_nodes = this->high_order_grid->volume_nodes.size();
     const unsigned int n_surf_nodes = this->high_order_grid->surface_nodes.size();
+    this->high_order_grid->volume_nodes.update_ghost_values();
 
     dealii::LinearAlgebra::distributed::Vector<int> is_a_control_node;
     is_a_control_node.reinit(this->high_order_grid->volume_nodes); // Copies parallel layout, without values. Initializes to 0 by default.
     is_a_control_node = 0;
-    is_a_control_node.update_ghost_values();
+    //is_a_control_node.update_ghost_values();
     
     is_on_boundary.reinit(this->high_order_grid->volume_nodes); // Copies parallel layout, without values. Initializes to 0 by default.
     is_on_boundary = 0;
-    is_on_boundary.update_ghost_values();
+    //is_on_boundary.update_ghost_values();
     const dealii::IndexSet &surface_range = this->high_order_grid->surface_nodes.get_partitioner()->locally_owned_range();
     for(unsigned int i_surf = 0; i_surf < n_surf_nodes; ++i_surf)
     {
@@ -108,9 +109,11 @@ void OneDSpecificNodesParameterization<dim> :: compute_control_index_to_vol_inde
         const unsigned int vol_index = this->high_order_grid->surface_to_volume_indices(i_surf);
         is_on_boundary(vol_index) = 1;
     }
+    is_on_boundary.compress(dealii::VectorOperation::insert);
     is_on_boundary.update_ghost_values();
 
     VectorType slopeval_global(this->high_order_grid->volume_nodes);
+    slopeval_global = 0;
 
     // Get locally owned volume and surface ranges of indices held by current processor.
     const dealii::IndexSet &volume_range = this->high_order_grid->volume_nodes.get_partitioner()->locally_owned_range();
@@ -143,6 +146,8 @@ void OneDSpecificNodesParameterization<dim> :: compute_control_index_to_vol_inde
             }
         }
     }
+    is_a_control_node.compress(dealii::VectorOperation::insert);
+    slopeval_global.compress(dealii::VectorOperation::insert);
     is_a_control_node.update_ghost_values();
     slopeval_global.update_ghost_values();
      
@@ -350,6 +355,10 @@ void OneDSpecificNodesParameterization<dim> :: compute_control_index_to_vol_inde
         }
     }
     AssertDimension(count1, higher_index);
+    control_index_to_vol_index.compress(dealii::VectorOperation::insert);
+    control_index_to_left_vol_index.compress(dealii::VectorOperation::insert);
+    control_index_to_right_vol_index.compress(dealii::VectorOperation::insert);
+    slope_vals.compress(dealii::VectorOperation::insert);
     control_index_to_vol_index.update_ghost_values();
     control_index_to_left_vol_index.update_ghost_values();
     control_index_to_right_vol_index.update_ghost_values();
@@ -369,9 +378,8 @@ void OneDSpecificNodesParameterization<dim> :: initialize_design_variables(Vecto
             design_var[i_control] = this->high_order_grid->volume_nodes[vol_index];
         }
     }
-    design_var.update_ghost_values();
+    design_var.compress(dealii::VectorOperation::insert);
     current_design_var = design_var;
-    current_design_var.update_ghost_values();
 }
 
 template<int dim>
@@ -386,6 +394,7 @@ void OneDSpecificNodesParameterization<dim> :: compute_dXv_dXp(MatrixType &dXv_d
     dealii::DynamicSparsityPattern dsp(n_vol_nodes, n_control_nodes, locally_relevant_dofs);
     for(unsigned int i_control=0; i_control<n_control_nodes; ++i_control)
     {
+        if(!control_index_range.is_element(i_control)) {continue;}
         const unsigned int ivol = control_index_to_vol_index[i_control];
         if(volume_range.is_element(ivol))
         {
@@ -398,16 +407,16 @@ void OneDSpecificNodesParameterization<dim> :: compute_dXv_dXp(MatrixType &dXv_d
             const unsigned int ivol1 = control_index_to_left_vol_index[i_control];
             const unsigned int ivol2 = control_index_to_right_vol_index[i_control];
 
-            if(volume_range.is_element(ivol1))
-            {
+            //if(volume_range.is_element(ivol1))
+           // {
                 dsp.add(ivol1, i_control);
                 dsp.add(ivol1+1,i_control); 
-            }
-            if(volume_range.is_element(ivol2))
-            {
+           // }
+           // if(volume_range.is_element(ivol2))
+           // {
                 dsp.add(ivol2, i_control);
                 dsp.add(ivol2+1,i_control); 
-            }
+           // }
             
         }
     
@@ -419,6 +428,7 @@ void OneDSpecificNodesParameterization<dim> :: compute_dXv_dXp(MatrixType &dXv_d
 
     for(unsigned int i_control=0; i_control<n_control_nodes; ++i_control)
     {
+        if(!control_index_range.is_element(i_control)) {continue;}
         const unsigned int ivol = control_index_to_vol_index[i_control];
         if(volume_range.is_element(ivol))
         {
@@ -431,23 +441,22 @@ void OneDSpecificNodesParameterization<dim> :: compute_dXv_dXp(MatrixType &dXv_d
         {
             const unsigned int ivol1 = control_index_to_left_vol_index[i_control];
             const unsigned int ivol2 = control_index_to_right_vol_index[i_control];
+            const double half_slope = 0.5*slope_vals(i_control);
 
-            if(volume_range.is_element(ivol1))
-            {
+            //if(volume_range.is_element(ivol1))
+            //{
                 dXv_dXp.set(ivol1, i_control, 0.5);
-                const double half_slope = 0.5*slope_vals(i_control);
                 dXv_dXp.set(ivol1+1,i_control,half_slope);
-            }
-            if(volume_range.is_element(ivol2))
-            {
+            //}
+            //if(volume_range.is_element(ivol2))
+            //{
                 dXv_dXp.set(ivol2, i_control, 0.5);
-                const double half_slope = 0.5*slope_vals(i_control);
                 dXv_dXp.set(ivol2+1,i_control,half_slope);
-            } 
+            //} 
         }
     }
 
-    dXv_dXp.compress(dealii::VectorOperation::insert);
+    dXv_dXp.compress(dealii::VectorOperation::add);
 }
 
 template<int dim>
@@ -467,10 +476,10 @@ bool OneDSpecificNodesParameterization<dim> ::update_mesh_from_design_variables(
     }
     VectorType change_in_des_var = design_var;
     change_in_des_var -= current_design_var;
-    change_in_des_var.update_ghost_values();
+    //change_in_des_var.update_ghost_values();
 
     current_design_var = design_var;
-    current_design_var.update_ghost_values();
+    //current_design_var.update_ghost_values();
     dXv_dXp.vmult_add(this->high_order_grid->volume_nodes, change_in_des_var); // Xv = Xv + dXv_dXp*(Xp,new - Xp); Gives Xv for surface nodes and Xp,new for inner vol nodes. 
     this->high_order_grid->volume_nodes.update_ghost_values();
     mesh_updated = true;
@@ -492,7 +501,7 @@ int OneDSpecificNodesParameterization<dim> :: is_design_variable_valid(
     VectorType vol_nodes_from_design_var = this->high_order_grid->volume_nodes;
     VectorType change_in_des_var = design_var;
     change_in_des_var -= current_design_var;
-    change_in_des_var.update_ghost_values();
+    //change_in_des_var.update_ghost_values();
 
     dXv_dXp.vmult_add(vol_nodes_from_design_var, change_in_des_var); // Xv = Xv + dXv_dXp*(Xp,new - Xp); Gives Xv for surface nodes and Xp,new for inner vol nodes. 
     vol_nodes_from_design_var.update_ghost_values();
@@ -541,7 +550,7 @@ int OneDSpecificNodesParameterization<dim> :: check_if_node_belongs_to_the_regio
 template<int dim>
 std::vector<std::pair<double,double>> OneDSpecificNodesParameterization<dim> :: get_final_control_nodes_list() const
 {
-    this->high_order_grid->volume_nodes.update_ghost_values();
+    //this->high_order_grid->volume_nodes.update_ghost_values();
     const unsigned int n_vol_nodes = this->high_order_grid->volume_nodes.size();
     dealii::IndexSet ghost_index_serial;
     ghost_index_serial.set_size(n_vol_nodes);

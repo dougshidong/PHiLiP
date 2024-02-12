@@ -175,7 +175,6 @@ void MeshOptimizer<dim,nstate>::run_full_space_optimizer(
     std::shared_ptr<Functional<dim, nstate, double>> objective_function = std::make_shared<DualWeightedResidualObjFunc2<dim, nstate, double>> (dg);
 
     // Initialize variables.
-    dg->solution.update_ghost_values();
     dg->set_dual(dg->solution);
 
     DealiiVector state_variables = dg->solution;
@@ -183,10 +182,6 @@ void MeshOptimizer<dim,nstate>::run_full_space_optimizer(
     DealiiVector design_variables;
     design_parameterization->initialize_design_variables(design_variables);
 
-    state_variables.update_ghost_values();
-    dual_variables.update_ghost_values();
-    design_variables.update_ghost_values();
-    
     // Set up output stream. 
     std::filebuf filebuffer;
     std::string logfile = "full_space_optimization_run_" + std::to_string(output_no) + ".log";

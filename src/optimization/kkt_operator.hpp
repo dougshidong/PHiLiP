@@ -138,7 +138,6 @@ public:
         const auto &dealii_input = PHiLiP::ROL_vector_to_dealii_vector_reference(input_vec);
         auto dealii_input_scaled = dealii_input;
         dealii_input_scaled *= regularization_parameter_control;
-        dealii_input_scaled.update_ghost_values();
         auto &dealii_output = PHiLiP::ROL_vector_to_dealii_vector_reference(output_vec);
         regularization_matrix.vmult_add(dealii_output, dealii_input_scaled);
     }

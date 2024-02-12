@@ -51,7 +51,7 @@ dealii::SparsityPattern DGBase<dim,real,MeshType>::get_dRdX_sparsity_pattern ()
     const unsigned int n_rows = n_residuals;
     const unsigned int n_cols = n_nodes_coeff;
 
-    dealii::DynamicSparsityPattern dsp(n_rows, n_cols);
+    dealii::DynamicSparsityPattern dsp(n_rows, n_cols, locally_relevant_dofs);
 
     const unsigned int n_node_cell = high_order_grid->get_current_fe_system().n_dofs_per_cell();
     std::vector<dealii::types::global_dof_index> resi_indices;

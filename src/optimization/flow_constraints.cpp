@@ -73,7 +73,7 @@ void FlowConstraints<dim>
 {
     (void) flag; (void) iter;
     dg->solution = ROL_vector_to_dealii_vector_reference(des_var_sim);
-    dg->solution.update_ghost_values();
+    //dg->solution.update_ghost_values();
 }
 
 template<int dim>
@@ -142,7 +142,7 @@ void FlowConstraints<dim>
         std::cout<<"Returning big_number from FlowConstraints::value()."<<std::endl;
         constraint = 0;
         constraint.add(big_number);
-        constraint.update_ghost_values();
+        //constraint.update_ghost_values();
     }
     else
     {
@@ -557,7 +557,6 @@ void FlowConstraints<dim>
     if(i_print) std::cout << __PRETTY_FUNCTION__ << std::endl;
     (void) tol;
     dg->set_dual(ROL_vector_to_dealii_vector_reference(dual));
-    dg->dual.update_ghost_values();
     update_1(des_var_sim);
     update_2(des_var_ctl);
 
@@ -587,7 +586,6 @@ void FlowConstraints<dim>
     update_2(des_var_ctl);
 
     dg->set_dual(ROL_vector_to_dealii_vector_reference(dual));
-    dg->dual.update_ghost_values();
 
     const auto &input_vector_v = ROL_vector_to_dealii_vector_reference(input_vector);
 
@@ -644,7 +642,6 @@ void FlowConstraints<dim>
     update_2(des_var_ctl);
 
     dg->set_dual(ROL_vector_to_dealii_vector_reference(dual));
-    dg->dual.update_ghost_values();
 
     const auto &input_vector_v = ROL_vector_to_dealii_vector_reference(input_vector);
 
@@ -704,7 +701,6 @@ void FlowConstraints<dim>
     update_2(des_var_ctl);
 
     dg->set_dual(ROL_vector_to_dealii_vector_reference(dual));
-    dg->dual.update_ghost_values();
 
     const auto &input_vector_v = ROL_vector_to_dealii_vector_reference(input_vector);
 

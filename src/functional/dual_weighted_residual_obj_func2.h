@@ -224,6 +224,15 @@ private:
     /// Stores \f[r_x \f] on coarse space. 
     MatrixType r_x;
 
+    /// Stores dwr_diag
+    MatrixType dwr_diag;
+    
+    /// Stores residualfine_diag
+    MatrixType residualfine_diag;
+
+    /// Stores adjoint_diag
+    MatrixType adjoint_diag;
+
     /// Functional used to create the objective function.
     std::shared_ptr< Functional<dim, nstate, real> > functional;
     

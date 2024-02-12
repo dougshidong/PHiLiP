@@ -91,7 +91,7 @@ int main (int argc, char * argv[])
         dealii::QGauss<1> quad_1D (poly_degree+1);
         const dealii::FE_DGQ<1> fe(poly_degree);
         const dealii::FESystem<1,1> fe_system(fe, nstate);
-        PHiLiP::OPERATOR::basis_functions<dim,2*dim> basis_1D(nstate, poly_degree, 1);
+        PHiLiP::OPERATOR::basis_functions<dim,2*dim,real> basis_1D(nstate, poly_degree, 1);
         basis_1D.build_1D_volume_operator(fe, quad_1D);
         basis_1D.build_1D_gradient_operator(fe, quad_1D);
         dealii::FullMatrix<double> basis_dim(n_dofs);

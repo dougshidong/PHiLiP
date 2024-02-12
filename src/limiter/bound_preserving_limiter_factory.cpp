@@ -27,9 +27,18 @@ std::unique_ptr< BoundPreservingLimiter<dim, real> >
         const Parameters::AllParameters* const parameters_input)
 {
     using limiter_enum = Parameters::LimiterParam::LimiterType;
+    using flux_nodes_enum = Parameters::AllParameters::FluxNodes;
+
     limiter_enum limiter_type = parameters_input->limiter_param.bound_preserving_limiter;
+    flux_nodes_enum flux_nodes_type = parameters_input->flux_nodes_type;
+
     bool apply_tvb = parameters_input->limiter_param.use_tvb_limiter;
-    if (limiter_type == limiter_enum::none) {
+    bool curvilinear_grid = parameters_input->use_curvilinear_grid;
+
+    if(curvilinear_grid) {
+        std::cout << "Error: Cannot create limiter for curvilinear grid" << std::endl;
+        std::abort();
+    } else if (limiter_type == limiter_enum::none) {
         if (apply_tvb == true) {
             if (dim == 1)
                 return std::make_unique < TVBLimiter<dim, nstate, real> >(parameters_input);
@@ -44,11 +53,16 @@ std::unique_ptr< BoundPreservingLimiter<dim, real> >
         return std::make_unique< MaximumPrincipleLimiter<dim, nstate, real> >(parameters_input);
     } else if (limiter_type == limiter_enum::positivity_preservingZhang2010
                 || limiter_type == limiter_enum::positivity_preservingWang2012) {
-        if (nstate == dim + 2)
+        if (nstate == dim + 2 && flux_nodes_type != flux_nodes_enum::GL)
             return std::make_unique< PositivityPreservingLimiter<dim, nstate, real> >(parameters_input);
         else {
-            std::cout << "Error: Cannot create Positivity-Preserving limiter for nstate_input != dim + 2" << std::endl;
-            std::abort();
+            if(nstate != dim + 2) {
+                std::cout << "Error: Cannot create Positivity-Preserving limiter for nstate_input != dim + 2" << std::endl;
+                std::abort();
+            } else if (flux_nodes_type == flux_nodes_enum::GL) {
+                std::cout << "Error: Cannot create Positivity-Preserving limiter for GL quadrature nodes" << std::endl;
+                std::abort();
+            }
         }
     }
 

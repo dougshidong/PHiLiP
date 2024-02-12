@@ -10,12 +10,6 @@ namespace FlowSolver {
 template <int dim, int nstate>
 class CubeFlow_UniformGrid : public FlowSolverCaseBase<dim, nstate>
 {
-#if PHILIP_DIM==1
-     using Triangulation = dealii::Triangulation<PHILIP_DIM>;
- #else
-     using Triangulation = dealii::parallel::distributed::Triangulation<PHILIP_DIM>;
- #endif
-
  public:
      explicit CubeFlow_UniformGrid(const Parameters::AllParameters *const parameters_input);
      
@@ -28,7 +22,7 @@ class CubeFlow_UniformGrid : public FlowSolverCaseBase<dim, nstate>
     /// Updates the maximum local wave speed
     void update_maximum_local_wave_speed(DGBase<dim, double> &dg);
  
- private:
+ protected:
     /// Maximum local wave speed (i.e. convective eigenvalue)
     double maximum_local_wave_speed;
 

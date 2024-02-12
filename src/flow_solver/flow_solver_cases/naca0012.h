@@ -50,7 +50,7 @@ protected:
             const std::shared_ptr <DGBase<dim, double>> dg,
             const std::shared_ptr<dealii::TableHandler> unsteady_data_table) override;
 
-private:
+public:
     /// Compute lift
     double compute_lift(std::shared_ptr<DGBase<dim, double>> dg) const;
 

@@ -69,8 +69,8 @@ void NonPeriodicCubeFlow<dim, nstate>::check_positivity_density(DGBase<dim, doub
     const unsigned int init_grid_degree = dg.max_grid_degree;
     const unsigned int poly_degree = this->all_param.flow_solver_param.poly_degree;
     //Constructor for the operators
-    OPERATOR::basis_functions<dim, 2 * dim> soln_basis(1, poly_degree, init_grid_degree);
-    OPERATOR::vol_projection_operator<dim, 2 * dim> soln_basis_projection_oper(1, dg.max_degree, init_grid_degree);
+    OPERATOR::basis_functions<dim, 2 * dim, double> soln_basis(1, poly_degree, init_grid_degree);
+    OPERATOR::vol_projection_operator<dim, 2 * dim, double> soln_basis_projection_oper(1, dg.max_degree, init_grid_degree);
 
 
     // Build the oneD operator to perform interpolation/projection

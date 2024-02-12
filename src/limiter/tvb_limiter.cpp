@@ -123,7 +123,7 @@ std::array<real, nstate> TVBLimiter<dim, nstate, real>::get_neighbour_cell_avg(
     const dealii::LinearAlgebra::distributed::Vector<double>&       solution,
     const dealii::hp::FECollection<dim>&                            fe_collection,
     const dealii::hp::QCollection<dim>&                             volume_quadrature_collection,
-    OPERATOR::basis_functions<dim, 2 * dim>                         soln_basis,
+    OPERATOR::basis_functions<dim, 2 * dim, real>                         soln_basis,
     const int                                                       poly_degree,
     const std::vector<dealii::types::global_dof_index>&             neigh_dofs_indices,
     const unsigned int                                              n_dofs_neigh_cell)
@@ -193,8 +193,8 @@ void TVBLimiter<dim, nstate, real>::limit(
     //modal coefficients.
     const unsigned int init_grid_degree = grid_degree;
     //Constructor for the operators
-    OPERATOR::basis_functions<dim, 2 * dim> soln_basis(1, max_degree, init_grid_degree);
-    OPERATOR::vol_projection_operator<dim, 2 * dim> soln_basis_projection_oper(1, max_degree, init_grid_degree);
+    OPERATOR::basis_functions<dim, 2 * dim, real> soln_basis(1, max_degree, init_grid_degree);
+    OPERATOR::vol_projection_operator<dim, 2 * dim, real> soln_basis_projection_oper(1, max_degree, init_grid_degree);
 
 
     //build the oneD operator to perform interpolation/projection

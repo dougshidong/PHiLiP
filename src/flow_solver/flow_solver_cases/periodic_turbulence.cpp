@@ -178,12 +178,12 @@ void PeriodicTurbulence<dim, nstate>::output_velocity_field(
     dealii::FE_DGQArbitraryNodes<1,1> equidistant_finite_element(vol_quad_equidistant_1D);
 
     const unsigned int init_grid_degree = dg->high_order_grid->fe_system.tensor_degree();
-    OPERATOR::basis_functions<dim,2*dim> soln_basis(1, dg->max_degree, init_grid_degree); 
+    OPERATOR::basis_functions<dim,2*dim,double> soln_basis(1, dg->max_degree, init_grid_degree); 
     soln_basis.build_1D_volume_operator(dg->oneD_fe_collection_1state[dg->max_degree], vol_quad_equidistant_1D);
     soln_basis.build_1D_gradient_operator(dg->oneD_fe_collection_1state[dg->max_degree], vol_quad_equidistant_1D);
 
     // mapping basis for the equidistant node set because we output the physical coordinates
-    OPERATOR::mapping_shape_functions<dim,2*dim> mapping_basis_at_equidistant(1, dg->max_degree, init_grid_degree);
+    OPERATOR::mapping_shape_functions<dim,2*dim,double> mapping_basis_at_equidistant(1, dg->max_degree, init_grid_degree);
     mapping_basis_at_equidistant.build_1D_shape_functions_at_grid_nodes(dg->high_order_grid->oneD_fe_system, dg->high_order_grid->oneD_grid_nodes);
     mapping_basis_at_equidistant.build_1D_shape_functions_at_flux_nodes(dg->high_order_grid->oneD_fe_system, vol_quad_equidistant_1D, dg->oneD_face_quadrature);
 
@@ -320,63 +320,6 @@ void PeriodicTurbulence<dim, nstate>::output_velocity_field(
     this->pcout << "done." << std::endl;
 }
 
-// template<int dim, int nstate>
-// void PeriodicTurbulence<dim, nstate>::update_maximum_local_wave_speed(DGBase<dim, double> &dg)
-// {    
-//     // Initialize the maximum local wave speed to zero
-//     this->maximum_local_wave_speed = 0.0;
-
-//     // Overintegrate the error to make sure there is not integration error in the error estimate
-//     int overintegrate = 10;
-//    // int overintegrate = 0;
-//     const unsigned int grid_degree = dg.high_order_grid->fe_system.tensor_degree();
-//     const unsigned int poly_degree = dg.max_degree;
-//     dealii::QGauss<dim> quad_extra(dg.max_degree+1+overintegrate);
-//     const unsigned int n_quad_pts = quad_extra.size();
-//     dealii::QGauss<1> quad_extra_1D(dg.max_degree+1+overintegrate);
-//     OPERATOR::basis_functions<dim,2*dim> soln_basis(1, poly_degree, grid_degree); 
-//     soln_basis.build_1D_volume_operator(dg.oneD_fe_collection_1state[poly_degree], quad_extra_1D);
-
-//     const unsigned int n_dofs = dg.fe_collection[poly_degree].n_dofs_per_cell();
-//     const unsigned int n_shape_fns = n_dofs / nstate;
-
-//     std::vector<dealii::types::global_dof_index> dofs_indices (n_dofs);
-//     for (auto cell = dg.dof_handler.begin_active(); cell!=dg.dof_handler.end(); ++cell) {
-//         if (!cell->is_locally_owned()) continue;
-//         cell->get_dof_indices (dofs_indices);
-
-//         std::array<std::vector<double>,nstate> soln_coeff;
-//         for (unsigned int idof = 0; idof < n_dofs; ++idof) {
-//             const unsigned int istate = dg.fe_collection[poly_degree].system_to_component_index(idof).first;
-//             const unsigned int ishape = dg.fe_collection[poly_degree].system_to_component_index(idof).second;
-//             if(ishape == 0){
-//                 soln_coeff[istate].resize(n_shape_fns);
-//             }
-         
-//             soln_coeff[istate][ishape] = dg.solution(dofs_indices[idof]);
-//         }
-//         std::array<std::vector<double>,nstate> soln_at_q_vect;
-//         for(int istate=0; istate<nstate; istate++){
-//             soln_at_q_vect[istate].resize(n_quad_pts);
-//             // Interpolate soln coeff to volume cubature nodes.
-//             soln_basis.matrix_vector_mult_1D(soln_coeff[istate], soln_at_q_vect[istate],
-//                                              soln_basis.oneD_vol_operator);
-//         }
-
-//         for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
-//             std::array<double,nstate> soln_at_q;
-//             for(int istate=0; istate<nstate; istate++){
-//                 soln_at_q[istate] = soln_at_q_vect[istate][iquad];
-//             }
-
-//             // Update the maximum local wave speed (i.e. convective eigenvalue)
-//             const double local_wave_speed = this->navier_stokes_physics->max_convective_eigenvalue(soln_at_q);
-//             if(local_wave_speed > this->maximum_local_wave_speed) this->maximum_local_wave_speed = local_wave_speed;
-//         }
-//     }
-//     this->maximum_local_wave_speed = dealii::Utilities::MPI::max(this->maximum_local_wave_speed, this->mpi_communicator);
-// }
-
 template<int dim, int nstate>
 void PeriodicTurbulence<dim, nstate>::compute_and_update_integrated_quantities(DGBase<dim, double> &dg)
 {
@@ -397,8 +340,8 @@ void PeriodicTurbulence<dim, nstate>::compute_and_update_integrated_quantities(D
     const unsigned int grid_degree = dg.high_order_grid->fe_system.tensor_degree();
     const unsigned int poly_degree = dg.max_degree;
     // Construct the basis functions and mapping shape functions.
-    OPERATOR::basis_functions<dim,2*dim> soln_basis(1, poly_degree, grid_degree); 
-    OPERATOR::mapping_shape_functions<dim,2*dim> mapping_basis(1, poly_degree, grid_degree);
+    OPERATOR::basis_functions<dim,2*dim,double> soln_basis(1, poly_degree, grid_degree); 
+    OPERATOR::mapping_shape_functions<dim,2*dim,double> mapping_basis(1, poly_degree, grid_degree);
     // Build basis function volume operator and gradient operator from 1D finite element for 1 state.
     soln_basis.build_1D_volume_operator(dg.oneD_fe_collection_1state[poly_degree], quad_extra_1D);
     soln_basis.build_1D_gradient_operator(dg.oneD_fe_collection_1state[poly_degree], quad_extra_1D);
@@ -611,14 +554,14 @@ double PeriodicTurbulence<dim, nstate>::get_numerical_entropy(
     const unsigned int n_quad_pts = dg->volume_quadrature_collection[poly_degree].size();
     const unsigned int n_shape_fns = n_dofs_cell / nstate;
 
-    OPERATOR::vol_projection_operator<dim,2*dim> vol_projection(1, poly_degree, dg->max_grid_degree);
+    OPERATOR::vol_projection_operator<dim,2*dim,double> vol_projection(1, poly_degree, dg->max_grid_degree);
     vol_projection.build_1D_volume_operator(dg->oneD_fe_collection_1state[poly_degree], dg->oneD_quadrature_collection[poly_degree]);
 
     // Construct the basis functions and mapping shape functions.
-    OPERATOR::basis_functions<dim,2*dim> soln_basis(1, poly_degree, dg->max_grid_degree); 
+    OPERATOR::basis_functions<dim,2*dim,double> soln_basis(1, poly_degree, dg->max_grid_degree); 
     soln_basis.build_1D_volume_operator(dg->oneD_fe_collection_1state[poly_degree], dg->oneD_quadrature_collection[poly_degree]);
 
-    OPERATOR::mapping_shape_functions<dim,2*dim> mapping_basis(1, poly_degree, dg->max_grid_degree);
+    OPERATOR::mapping_shape_functions<dim,2*dim,double> mapping_basis(1, poly_degree, dg->max_grid_degree);
     mapping_basis.build_1D_shape_functions_at_grid_nodes(dg->high_order_grid->oneD_fe_system, dg->high_order_grid->oneD_grid_nodes);
     mapping_basis.build_1D_shape_functions_at_flux_nodes(dg->high_order_grid->oneD_fe_system, dg->oneD_quadrature_collection[poly_degree], dg->oneD_face_quadrature);
 

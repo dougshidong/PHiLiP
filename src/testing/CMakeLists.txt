@@ -35,6 +35,7 @@ set(TESTS_SOURCE
     homogeneous_isotropic_turbulence_initialization_check.cpp
     khi_robustness.cpp
     bound_preserving_limiter_tests.cpp
+    naca0012_unsteady_check_quick.cpp
     )
 
 foreach(dim RANGE 1 3)

@@ -197,8 +197,8 @@ void PositivityPreservingLimiter<dim, nstate, real>::limit(
     const unsigned int init_grid_degree = grid_degree;
 
     // Constructor for the operators
-    OPERATOR::basis_functions<dim, 2 * dim> soln_basis(1, max_degree, init_grid_degree);
-    OPERATOR::vol_projection_operator<dim, 2 * dim> soln_basis_projection_oper(1, max_degree, init_grid_degree);
+    OPERATOR::basis_functions<dim, 2 * dim, real> soln_basis(1, max_degree, init_grid_degree);
+    OPERATOR::vol_projection_operator<dim, 2 * dim, real> soln_basis_projection_oper(1, max_degree, init_grid_degree);
 
     // Build the oneD operator to perform interpolation/projection
     soln_basis.build_1D_volume_operator(oneD_fe_collection_1state[max_degree], oneD_quadrature_collection[max_degree]);
@@ -223,9 +223,9 @@ void PositivityPreservingLimiter<dim, nstate, real>::limit(
         std::array<std::vector<real>, nstate> soln_coeff;
 
         const unsigned int n_shape_fns = n_dofs_curr_cell / nstate;
-        std::array<real, nstate> local_min;
+        real local_min_density = 1e6;
+
         for (unsigned int istate = 0; istate < nstate; ++istate) {
-            local_min[istate] = 1e9;
             soln_coeff[istate].resize(n_shape_fns);
         }
 
@@ -235,8 +235,8 @@ void PositivityPreservingLimiter<dim, nstate, real>::limit(
             const unsigned int ishape = fe_collection[poly_degree].system_to_component_index(idof).second;
             soln_coeff[istate][ishape] = solution[current_dofs_indices[idof]]; //
 
-            if (soln_coeff[istate][ishape] < local_min[istate])
-                local_min[istate] = soln_coeff[istate][ishape];
+            // if (soln_coeff[istate][ishape] < local_min_density)
+            //     local_min_density = soln_coeff[istate][ishape];
         }
 
         const unsigned int n_quad_pts = volume_quadrature_collection[poly_degree].size();
@@ -250,6 +250,10 @@ void PositivityPreservingLimiter<dim, nstate, real>::limit(
                 soln_basis.oneD_vol_operator);
         }
 
+        for (unsigned int iquad = 0; iquad < n_quad_pts; ++iquad) {
+            if (soln_at_q[0][iquad] < local_min_density)
+                local_min_density = soln_at_q[0][iquad];
+        }
         // Obtain solution cell average
         std::array<real, nstate> soln_cell_avg = get_soln_cell_avg(soln_at_q, n_quad_pts, quad_weights);
 
@@ -262,12 +266,12 @@ void PositivityPreservingLimiter<dim, nstate, real>::limit(
         }
         
         // Obtain value used to linearly scale density
-        real theta = get_density_scaling_value(soln_cell_avg[0], local_min[0], pos_eps, p_avg);
+        real theta = get_density_scaling_value(soln_cell_avg[0], local_min_density, pos_eps, p_avg);
 
         // Apply limiter on density values at quadrature points
         for (unsigned int iquad = 0; iquad < n_quad_pts; ++iquad) {
             if (isnan(soln_at_q[0][iquad])) {
-                std::cout << "Error: Density is NaN - Aborting... " << std::endl << std::flush;
+                std::cout << "Error: Density at quadrature point is NaN - Aborting... " << std::endl << std::flush;
                 std::abort();
             }
             soln_at_q[0][iquad] = theta * (soln_at_q[0][iquad] - soln_cell_avg[0])

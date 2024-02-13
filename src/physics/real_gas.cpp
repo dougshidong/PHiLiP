@@ -518,6 +518,50 @@ inline real RealGas<dim,nstate,real>
     return mixture_specific_total_enthalpy;
 }
 
+/// f_M18: convective flux
+template <int dim, int nstate, typename real>
+std::array<dealii::Tensor<1,dim,real>,nstate> RealGas<dim,nstate,real>
+::convective_flux (const std::array<real,nstate> &conservative_soln) const  
+{
+    /* definitions */
+    std::array<dealii::Tensor<1,dim,real>,nstate> conv_flux;
+    const real mixture_density = compute_mixture_density(conservative_soln);
+    const dealii::Tensor<1,dim,real> vel = compute_velocities(conservative_soln);
+    const real mixture_pressure = compute_mixture_pressure(conservative_soln);
+    const real mixture_specific_total_enthalpy = compute_mixture_specific_total_enthalpy(conservative_soln);
+    const std::array<real,nstate-dim-1> species_densities = compute_species_densities(conservative_soln);
+
+    // flux dimension loop; E -> F -> G
+    for (int flux_dim=0; flux_dim<dim; ++flux_dim) 
+    {
+        /* A) mixture density equations */
+        conv_flux[0][flux_dim] = conservative_soln[1+flux_dim];
+
+        /* B) mixture momentum equations */
+        for (int velocity_dim=0; velocity_dim<dim; ++velocity_dim)
+        {
+            conv_flux[1+velocity_dim][flux_dim] = mixture_density*vel[flux_dim]*vel[velocity_dim];
+        }
+        conv_flux[1+flux_dim][flux_dim] += mixture_pressure; // Add diagonal of pressure
+
+        /* C) mixture energy equations */
+        conv_flux[dim+2-1][flux_dim] = mixture_density*vel[flux_dim]*mixture_specific_total_enthalpy;
+
+        /* D) species density equations */
+        for (int s=0; s<(nstate-dim-1)-1; ++s)
+        {
+             conv_flux[nstate-1+s][flux_dim] = species_densities[s]*vel[flux_dim];
+        }
+    }
+
+    // for (int i=0; i<nstate; i++)
+    // {
+    //     conv_flux[i] = conservative_soln[i]*0.0;
+    // }
+    return conv_flux;
+}
+
+
 /* Supporting FUNCTIONS */
 /// f_S19: primitive to conservative
 template <int dim, int nstate, typename real>
@@ -598,19 +642,6 @@ inline real RealGas<dim,nstate,real>
 ::compute_sound ( const std::array<real,nstate> &conservative_soln ) const
 {
     return conservative_soln[0]*0.0;
-}
-
-/// IT IS FOR ALGORITHM 7
-template <int dim, int nstate, typename real>
-std::array<dealii::Tensor<1,dim,real>,nstate> RealGas<dim,nstate,real>
-::convective_flux (const std::array<real,nstate> &conservative_soln) const
-{
-    std::array<dealii::Tensor<1,dim,real>,nstate> conv_flux;
-    for (int i=0; i<nstate; i++)
-    {
-        conv_flux[i] = conservative_soln[i]*0.0;
-    }
-    return conv_flux;
 }
 
 template <int dim, int nstate, typename real>

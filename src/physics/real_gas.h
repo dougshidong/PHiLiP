@@ -174,13 +174,15 @@ protected:
 
     /// f_M17: Compute mixture_specific_total_energy from conservative_soln
     real compute_mixture_specific_total_enthalpy ( const std::array<real,nstate> &conservative_soln ) const;
+
+    /// f_M18: Compute convective flux from conservative_soln
+    std::array<dealii::Tensor<1,dim,real>,nstate> convective_flux ( 
+        const std::array<real,nstate> &conservative_soln) const;
+
+
 protected:
     /// Evaluate speed of sound from conservative variables
     real compute_sound ( const std::array<real,nstate> &conservative_soln ) const;
-
-    /// Compute convective flux from conservative_soln
-    std::array<dealii::Tensor<1,dim,real>,nstate> convective_flux (
-        const std::array<real,nstate> &conservative_soln) const;
 
 protected:
     /// For post processing purposes (update comment later)

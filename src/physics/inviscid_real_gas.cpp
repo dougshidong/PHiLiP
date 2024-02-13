@@ -512,6 +512,8 @@ dealii::Vector<double> InviscidRealGas<dim,nstate,real>::post_compute_derived_qu
         computed_quantities(++current_data_index) = compute_sound(conservative_soln);
         // temperature dim
         computed_quantities(++current_data_index) = compute_temperature(conservative_soln)*this->temperature_ref;
+        // total enthalpy 
+        computed_quantities(++current_data_index) = compute_total_enthalpy(conservative_soln);
 
     }
     if (computed_quantities.size()-1 != current_data_index) {
@@ -545,6 +547,7 @@ std::vector<dealii::DataComponentInterpretation::DataComponentInterpretation> In
     interpretation.push_back (DCI::component_is_scalar); // e_comparison
     interpretation.push_back (DCI::component_is_scalar); // Sound 
     interpretation.push_back (DCI::component_is_scalar); // temperature (Dim)
+    interpretation.push_back (DCI::component_is_scalar); // total enthalpy
 
     std::vector<std::string> names = post_get_names();
     if (names.size() != interpretation.size()) {
@@ -575,6 +578,7 @@ std::vector<std::string> InviscidRealGas<dim,nstate,real>
     names.push_back ("e_comparison");
     names.push_back ("speed_of_sound");
     names.push_back ("dimensional_temperature");
+    names.push_back ("total_enthalpy");
 
     return names;
 }

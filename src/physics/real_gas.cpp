@@ -699,7 +699,7 @@ dealii::Vector<double> RealGas<dim,nstate,real>::post_compute_derived_quantities
         // speed of sound
         computed_quantities(++current_data_index) = 999;
         // temperature dim
-        computed_quantities(++current_data_index) = 999;
+        computed_quantities(++current_data_index) = compute_temperature(conservative_soln)*this->temperature_ref;
         // species densities
         for (unsigned int s=0; s<nstate-dim-1; ++s) 
         {

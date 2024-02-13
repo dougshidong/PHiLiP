@@ -422,6 +422,75 @@ std::array<real,nstate-dim-1> RealGas<dim,nstate,real>
     return e;
 }
 
+/// f_M14: compute_temperature
+template <int dim, int nstate, typename real>
+inline real RealGas<dim,nstate,real>
+::compute_temperature ( const std::array<real,nstate> &conservative_soln ) const
+{
+    /* definitions */
+    const std::array<real,nstate-dim-1> mass_fractions = compute_mass_fractions(conservative_soln);
+    const real specific_kinetic_energy= compute_specific_kinetic_energy(conservative_soln);
+    const real mixture_gas_constant = compute_mixture_gas_constant(conservative_soln);
+    const real mixture_specific_total_energy = compute_mixture_specific_total_energy(conservative_soln);
+
+    // const real mixture_density = compute_mixture_density(conservative_soln);
+    // const real initial_pressure = mixture_density*(this->gam_ref-1.0)*(mixture_specific_total_energy - specific_kinetic_energy);
+    // const real initial_temperature = initial_pressure/(mixture_density*mixture_gas_constant) * (this->gam_ref*this->mach_ref_sqr);
+
+    std::array<real,nstate-dim-1> species_specific_enthalpy;
+    real mixture_specific_internal_energy;
+    real mixture_specific_enthalpy;
+
+    real f;
+    std::array<real,nstate-dim-1> Cv;
+    real mixture_Cv;
+    real f_d; // f'
+    real T_npo; // T_(n+1)
+    real err = 999.9;
+    real step = 0.0;
+
+    /* compute temperature using Newton-Raphson method */
+    real T_n = 2.0*this->temperature_ref; // 2.0 can be initial temperature, but it fails if initilal temperature is close to the (lower) limit.
+    std::cout<<"start"<<std::endl;
+    do
+    {
+        /// 1) f(T_n)
+        // mixture specific internal energy: e = E - k
+        mixture_specific_internal_energy = (mixture_specific_total_energy - specific_kinetic_energy)*this->u_ref_sqr; // dim
+        // species specific enthalpy at T_n
+        species_specific_enthalpy = compute_species_specific_enthalpy(T_n/this->temperature_ref); // non-dim
+        // mixture specific enthalpy at T_n
+        mixture_specific_enthalpy = compute_mixture_from_species(mass_fractions,species_specific_enthalpy)*this->u_ref_sqr; // dim
+
+        // Newton-Raphson function
+        f = (mixture_specific_enthalpy - mixture_gas_constant*this->R_ref* T_n) - mixture_specific_internal_energy; // dim
+
+        /// 2) f'(T_n)
+        // Cv at T_n
+        Cv = compute_species_specific_Cv(T_n/this->temperature_ref); // non-dim
+        // mixture Cv
+        mixture_Cv = compute_mixture_from_species(mass_fractions,Cv)*this->R_ref; // dim
+        // Newton-Raphson derivertive function
+        f_d = mixture_Cv;
+
+        /// 3) main part
+        T_npo = T_n - f/f_d; // dim
+        err = abs(T_npo-T_n);
+        step += 1.0;
+        std::cout<<"T_n+1, T_n, err, i ="<<T_npo<<", "<<T_n<<", "<<err<<","<<step<<std::endl;
+        // update T
+        T_n = T_npo;
+    }
+    while (err>this->tol);
+    std::cout<<"end"<<std::endl;
+
+    T_n /= temperature_ref; // non-dim
+
+    std::cout<<T_n<<std::endl;
+
+    return T_n;
+}
+
 /// f_M15: compute_mixture_gas_constant
 template <int dim, int nstate, typename real>
 inline real RealGas<dim,nstate,real>
@@ -572,7 +641,7 @@ dealii::Vector<double> RealGas<dim,nstate,real>::post_compute_derived_quantities
         computed_quantities(++current_data_index) = 999;
         // Temperature
         /*computed_quantities(++current_data_index) = compute_temperature<real>(primitive_soln);*/
-        computed_quantities(++current_data_index) = 999;     //note: missing <real>
+        computed_quantities(++current_data_index) = compute_temperature(conservative_soln);
         // Entropy generation
         /*computed_quantities(++current_data_index) = compute_entropy_measure(conservative_soln) - entropy_inf;*/
         computed_quantities(++current_data_index) = 999;

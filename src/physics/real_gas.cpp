@@ -244,11 +244,13 @@ inline std::array<real,nstate-dim-1> RealGas<dim,nstate,real>
 ::compute_species_densities ( const std::array<real,nstate> &conservative_soln ) const
 {
     const real mixture_density = compute_mixture_density(conservative_soln);
+    // std::cout<<mixture_density<<std::endl;
     std::array<real,nstate-dim-1> species_densities;
     real sum = 0.0;
     for (int s=0; s<(nstate-dim-1)-1; ++s) 
         { 
             species_densities[s] = conservative_soln[dim+2+s]; 
+            // std::cout<<species_densities[s]<<std::endl;
             sum += species_densities[s];
         }
     species_densities[(nstate-dim-1)-1] = mixture_density - sum;
@@ -646,7 +648,23 @@ dealii::Vector<double> RealGas<dim,nstate,real>::post_compute_derived_quantities
         for (unsigned int s=0; s<nstate-dim-1; ++s) 
         {
             computed_quantities(++current_data_index) = compute_species_densities(conservative_soln)[s];
-        }     
+        }    
+        // const real temp = 600.0/298.15;
+        // const real cpa = compute_dimensional_temperature(temp);
+        // std::cout<<cpa<<std::endl;
+        // const real cpb = compute_species_specific_Cp(temp)[1];
+        // std::cout<<cpb<<std::endl;
+        // const real Rss = compute_Rs(this->Ru)[0];
+        // std::cout<<Rss*this->R_ref<<std::endl;
+        // const real cvv = compute_species_specific_Cv(temp)[1];
+        // std::cout<<cvv*this->R_ref<<std::endl;
+        // const real hh = compute_species_specific_enthalpy(temp)[0];
+        // std::cout<<hh*this->u_ref_sqr<<std::endl;
+        // for (int i=0; i<nstate; i++)
+        // {
+        //     std::cout<<i<<std::endl;
+        //     std::cout<<convert_primitive_to_conservative_new(conservative_soln)[i]<<std::endl;
+        // }
 
     }
     if (computed_quantities.size()-1 != current_data_index) {

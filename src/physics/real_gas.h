@@ -172,6 +172,8 @@ protected:
     /// f_M16: Compute mixture pressure from conservative_soln
     real compute_mixture_pressure ( const std::array<real,nstate> &conservative_soln ) const;
 
+    /// f_M17: Compute mixture_specific_total_energy from conservative_soln
+    real compute_mixture_specific_total_enthalpy ( const std::array<real,nstate> &conservative_soln ) const;
 protected:
     /// Evaluate speed of sound from conservative variables
     real compute_sound ( const std::array<real,nstate> &conservative_soln ) const;

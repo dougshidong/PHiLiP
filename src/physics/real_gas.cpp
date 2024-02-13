@@ -505,6 +505,18 @@ inline real RealGas<dim,nstate,real>
     return mixture_pressure;
 }
 
+/// f_M17: compute_mixture_specific_total_enthalpy
+template <int dim, int nstate, typename real>
+inline real RealGas<dim,nstate,real>
+::compute_mixture_specific_total_enthalpy ( const std::array<real,nstate> &conservative_soln ) const
+{
+    const real mixture_specific_total_energy = compute_mixture_specific_total_energy(conservative_soln);
+    const real mixture_pressure = compute_mixture_pressure(conservative_soln);
+    const real mixture_density = compute_mixture_density(conservative_soln);
+    const real mixture_specific_total_enthalpy = mixture_specific_total_energy + mixture_pressure/mixture_density;
+
+    return mixture_specific_total_enthalpy;
+}
 
 /* Supporting FUNCTIONS */
 /// f_S19: primitive to conservative
@@ -661,7 +673,9 @@ dealii::Vector<double> RealGas<dim,nstate,real>::post_compute_derived_quantities
         for (unsigned int s=0; s<nstate-dim-1; ++s) 
         {
             computed_quantities(++current_data_index) = compute_species_densities(conservative_soln)[s];
-        }    
+        }
+        // mixture specific total enthalpy
+        computed_quantities(++current_data_index) = compute_mixture_specific_total_enthalpy(conservative_soln);  
         // const real temp = 600.0/298.15;
         // const real cpa = compute_dimensional_temperature(temp);
         // std::cout<<cpa<<std::endl;
@@ -714,6 +728,7 @@ std::vector<dealii::DataComponentInterpretation::DataComponentInterpretation> Re
     for (unsigned int s=0; s<nstate-dim-1; ++s) {
         interpretation.push_back (DCI::component_is_part_of_vector); // Species densities
     }
+    interpretation.push_back (DCI::component_is_scalar); // Mixture specific total enthalpy
 
     std::vector<std::string> names = post_get_names();
     if (names.size() != interpretation.size()) {
@@ -748,6 +763,7 @@ std::vector<std::string> RealGas<dim,nstate,real>
     {
       names.push_back ("species_densities");
     }
+    names.push_back ("mixture_specific_total_enthalpy");
 
     return names;
 }

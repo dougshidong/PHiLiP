@@ -566,7 +566,7 @@ std::array<dealii::Tensor<1,dim,real>,nstate> RealGas<dim,nstate,real>
 /// f_S19: primitive to conservative
 template <int dim, int nstate, typename real>
 inline std::array<real,nstate> RealGas<dim,nstate,real>
-::convert_primitive_to_conservative ( const std::array<real,nstate> &primitive_soln ) const /// TO DO: delete new and delete the original function
+::convert_primitive_to_conservative ( const std::array<real,nstate> &primitive_soln ) const 
 {
     /* definitions */
     std::array<real, nstate> conservative_soln;

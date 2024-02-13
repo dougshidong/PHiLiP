@@ -492,6 +492,19 @@ inline real RealGas<dim,nstate,real>
     return mixture_gas_constant;
 }
 
+/// f_M16: compute_mixture_pressure
+template <int dim, int nstate, typename real>
+inline real RealGas<dim,nstate,real>
+::compute_mixture_pressure ( const std::array<real,nstate> &conservative_soln ) const
+{
+    const real mixture_density = compute_mixture_density(conservative_soln);
+    const real mixture_gas_constant = compute_mixture_gas_constant(conservative_soln);
+    const real temperature = compute_temperature(conservative_soln);
+    const real mixture_pressure = mixture_density*mixture_gas_constant*temperature/(this->gam_ref*this->mach_ref_sqr);
+
+    return mixture_pressure;
+}
+
 
 /* Supporting FUNCTIONS */
 /// f_S19: primitive to conservative
@@ -625,7 +638,7 @@ dealii::Vector<double> RealGas<dim,nstate,real>::post_compute_derived_quantities
         computed_quantities(++current_data_index) = compute_mixture_specific_total_energy(conservative_soln);
         // Pressure
         /*computed_quantities(++current_data_index) = primitive_soln[nstate-1];*/
-        computed_quantities(++current_data_index) = 999;
+        computed_quantities(++current_data_index) = compute_mixture_pressure(conservative_soln);
         // Pressure coefficient
         /*computed_quantities(++current_data_index) = (primitive_soln[nstate-1] - pressure_inf) / dynamic_pressure_inf;*/
         computed_quantities(++current_data_index) = 999;
@@ -722,7 +735,7 @@ std::vector<std::string> RealGas<dim,nstate,real>
       names.push_back ("mixture_momentum");
     }
     names.push_back ("mixture_energy");
-    names.push_back ("pressure");
+    names.push_back ("mixture_pressure");
     names.push_back ("pressure_coeffcient");
     names.push_back ("temperature");
 

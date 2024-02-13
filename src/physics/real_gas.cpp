@@ -433,10 +433,6 @@ inline real RealGas<dim,nstate,real>
     const real mixture_gas_constant = compute_mixture_gas_constant(conservative_soln);
     const real mixture_specific_total_energy = compute_mixture_specific_total_energy(conservative_soln);
 
-    // const real mixture_density = compute_mixture_density(conservative_soln);
-    // const real initial_pressure = mixture_density*(this->gam_ref-1.0)*(mixture_specific_total_energy - specific_kinetic_energy);
-    // const real initial_temperature = initial_pressure/(mixture_density*mixture_gas_constant) * (this->gam_ref*this->mach_ref_sqr);
-
     std::array<real,nstate-dim-1> species_specific_enthalpy;
     real mixture_specific_internal_energy;
     real mixture_specific_enthalpy;
@@ -447,11 +443,9 @@ inline real RealGas<dim,nstate,real>
     real f_d; // f'
     real T_npo; // T_(n+1)
     real err = 999.9;
-    real step = 0.0;
 
     /* compute temperature using Newton-Raphson method */
     real T_n = 2.0*this->temperature_ref; // 2.0 can be initial temperature, but it fails if initilal temperature is close to the (lower) limit.
-    std::cout<<"start"<<std::endl;
     do
     {
         /// 1) f(T_n)
@@ -461,7 +455,6 @@ inline real RealGas<dim,nstate,real>
         species_specific_enthalpy = compute_species_specific_enthalpy(T_n/this->temperature_ref); // non-dim
         // mixture specific enthalpy at T_n
         mixture_specific_enthalpy = compute_mixture_from_species(mass_fractions,species_specific_enthalpy)*this->u_ref_sqr; // dim
-
         // Newton-Raphson function
         f = (mixture_specific_enthalpy - mixture_gas_constant*this->R_ref* T_n) - mixture_specific_internal_energy; // dim
 
@@ -476,17 +469,12 @@ inline real RealGas<dim,nstate,real>
         /// 3) main part
         T_npo = T_n - f/f_d; // dim
         err = abs(T_npo-T_n);
-        step += 1.0;
-        std::cout<<"T_n+1, T_n, err, i ="<<T_npo<<", "<<T_n<<", "<<err<<","<<step<<std::endl;
         // update T
         T_n = T_npo;
     }
     while (err>this->tol);
-    std::cout<<"end"<<std::endl;
 
     T_n /= temperature_ref; // non-dim
-
-    std::cout<<T_n<<std::endl;
 
     return T_n;
 }

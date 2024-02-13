@@ -168,6 +168,8 @@ protected:
 
     /// f_M15: Compute mixture gas constant from conservative_soln
     real compute_mixture_gas_constant ( const std::array<real,nstate> &conservative_soln ) const;
+
+protected:
     /// Evaluate speed of sound from conservative variables
     real compute_sound ( const std::array<real,nstate> &conservative_soln ) const;
 

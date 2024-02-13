@@ -637,18 +637,20 @@ int AnisotropicMeshAdaptationCases<dim, nstate> :: run_test () const
         // q1 initial run
         {
             flow_solver->dg->set_p_degree_and_interpolate_solution(1);
-            /* Uncomment later
+            
             dealii::TrilinosWrappers::SparseMatrix regularization_matrix_poisson_q1;
             evaluate_regularization_matrix(regularization_matrix_poisson_q1, flow_solver->dg);
             Parameters::AllParameters param_q1 = param;
             param_q1.optimization_param.max_design_cycles = 4;
             param_q1.optimization_param.regularization_parameter_sim = 1.0;
+            param_q1.optimization_param.regularization_parameter_control = 1.0;
             
             std::unique_ptr<MeshOptimizer<dim,nstate>> mesh_optimizer_q1 = 
                             std::make_unique<MeshOptimizer<dim,nstate>> (flow_solver->dg, &param_q1, true);
             const bool output_refined_nodes = false;
             mesh_optimizer_q1->run_full_space_optimizer(regularization_matrix_poisson_q1, use_oneD_parameteriation, output_refined_nodes, output_val-1);
-            */
+            output_vtk_files(flow_solver->dg, output_val-1);
+            
             /*
             flow_solver->run();
             if(flow_solver->dg->get_residual_l2norm() > 1.0e-10)
@@ -677,7 +679,6 @@ int AnisotropicMeshAdaptationCases<dim, nstate> :: run_test () const
         }
 
         const unsigned int n_meshes = 4;
-    /* Uncomment later
         for(unsigned int imesh = 0; imesh < n_meshes; ++imesh)
         {
             if(imesh>0)
@@ -706,7 +707,7 @@ int AnisotropicMeshAdaptationCases<dim, nstate> :: run_test () const
             convergence_table_enthalpy.add_value("cells", flow_solver->dg->triangulation->n_global_active_cells());
             convergence_table_enthalpy.add_value("enthalpy_error",enthalpy_error);
         } //imesh loop
-    */
+        /*
         for(unsigned int imesh = 0; imesh < n_meshes; ++imesh)
         {
             if(imesh>0)
@@ -741,6 +742,7 @@ int AnisotropicMeshAdaptationCases<dim, nstate> :: run_test () const
                 
             }
         }
+        */
     }
 
     if(run_fixedfraction_mesh_adaptation)

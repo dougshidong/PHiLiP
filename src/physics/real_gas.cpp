@@ -417,7 +417,7 @@ std::array<real,nstate-dim-1> RealGas<dim,nstate,real>
     std::array<real,nstate-dim-1> e;
     for (int s=0; s<(nstate-dim-1); ++s) 
     {
-        e[s] = h[s] - Rs[s]*temperature;
+        e[s] = h[s] - (this->R_ref*this->temperature_ref/this->u_ref_sqr)* Rs[s]*temperature;
     }
     return e;
 }
@@ -491,7 +491,7 @@ inline std::array<real,nstate> RealGas<dim,nstate,real>
     // species energy
     for (int s=0; s<(nstate-dim-1); ++s) 
     { 
-      species_specific_internal_energy[s] = species_specific_enthalpy[s] - Rs[s]*temperature;
+      species_specific_internal_energy[s] = species_specific_enthalpy[s] - (this->R_ref*this->temperature_ref/this->u_ref_sqr)* Rs[s]*temperature;
       species_specific_total_energy[s] =  species_specific_internal_energy[s] + specific_kinetic_energy;
     }     
     // mixture energy

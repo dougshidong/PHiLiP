@@ -130,7 +130,7 @@ protected:
     /// f_M3: Compute squared velocities from conservative_soln
     real compute_velocity_squared ( const std::array<real,nstate> &conservative_soln ) const;
 
-    /// f_M4: Compute specific kinetic energy from conservative-soln
+    /// f_M4: Compute specific kinetic energy from conservative_soln
     real compute_specific_kinetic_energy ( const std::array<real,nstate> &conservative_soln ) const;
 
     /// f_M5: Compute mixture specific total energy from conservative_soln

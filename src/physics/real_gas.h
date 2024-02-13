@@ -163,6 +163,8 @@ protected:
     /// f_M13: Compute species specificinternal energy from temperature 
     std::array<real,nstate-dim-1> compute_species_specific_internal_energy ( const real temperature ) const;
 
+    /// f_M15: Compute mixture gas constant from conservative_soln
+    real compute_mixture_gas_constant ( const std::array<real,nstate> &conservative_soln ) const;
     /// Evaluate speed of sound from conservative variables
     real compute_sound ( const std::array<real,nstate> &conservative_soln ) const;
 

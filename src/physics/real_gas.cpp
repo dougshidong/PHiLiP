@@ -422,6 +422,18 @@ std::array<real,nstate-dim-1> RealGas<dim,nstate,real>
     return e;
 }
 
+/// f_M15: compute_mixture_gas_constant
+template <int dim, int nstate, typename real>
+inline real RealGas<dim,nstate,real>
+::compute_mixture_gas_constant ( const std::array<real,nstate> &conservative_soln ) const
+{
+    const std::array<real,nstate-dim-1> mass_fractions = compute_mass_fractions(conservative_soln);
+    const std::array<real,nstate-dim-1> Rs = compute_Rs(this->Ru);
+    const real mixture_gas_constant = compute_mixture_from_species(mass_fractions,Rs);
+    return mixture_gas_constant;
+}
+
+
 /* Supporting FUNCTIONS */
 /// f_S19: primitive to conservative
 template <int dim, int nstate, typename real>

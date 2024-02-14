@@ -635,6 +635,39 @@ inline std::array<real,nstate> RealGas<dim,nstate,real>
     return conservative_soln;
 }
 
+/// f_M20: species specific heat ratio
+template <int dim, int nstate, typename real>
+inline std::array<real,nstate-dim-1> RealGas<dim,nstate,real>
+::compute_species_specific_heat_ratio ( const std::array<real,nstate> &conservative_soln ) const
+{
+    const real temperature = compute_temperature(conservative_soln);
+    const std::array<real,nstate-dim-1> Cp = compute_species_specific_Cp(temperature);
+    const std::array<real,nstate-dim-1> Cv = compute_species_specific_Cv(temperature);
+    std::array<real,nstate-dim-1> gamma;
+
+    for (int s=0; s<(nstate-dim-1); ++s) 
+    {
+        gamma[s] = Cp[s]/Cv[s];
+    }
+    return gamma;
+}
+
+/// f_M21: species speed of sound
+template <int dim, int nstate, typename real>
+inline std::array<real,nstate-dim-1> RealGas<dim,nstate,real>
+::compute_species_speed_of_sound ( const std::array<real,nstate> &conservative_soln ) const
+{
+    const real temperature = compute_temperature(conservative_soln);
+    const std::array<real,nstate-dim-1> gamma = compute_species_specific_heat_ratio(conservative_soln);
+    const std::array<real,nstate-dim-1> Rs = compute_Rs(this->Ru);
+    std::array<real,nstate-dim-1> speed_of_sound;
+    for (int s=0; s<nstate-dim-1; ++s) 
+        { 
+            speed_of_sound[s] = sqrt(gamma[s]*Rs[s]*temperature/(this->gam_ref*this->mach_ref_sqr)); 
+        }
+    return speed_of_sound;
+}
+
 //// up
 
 template <int dim, int nstate, typename real>
@@ -707,6 +740,17 @@ dealii::Vector<double> RealGas<dim,nstate,real>::post_compute_derived_quantities
         }
         // mixture specific total enthalpy
         computed_quantities(++current_data_index) = compute_mixture_specific_total_enthalpy(conservative_soln);  
+        // species specific heat ratio
+        for (unsigned int s=0; s<nstate-dim-1; ++s) 
+        {
+            computed_quantities(++current_data_index) = compute_species_specific_heat_ratio(conservative_soln)[s];
+        }
+        // species speed of sound
+        for (unsigned int s=0; s<nstate-dim-1; ++s) 
+        {
+            computed_quantities(++current_data_index) = compute_species_speed_of_sound(conservative_soln)[s];
+        }
+
         // const real temp = 600.0/298.15;
         // const real cpa = compute_dimensional_temperature(temp);
         // std::cout<<cpa<<std::endl;
@@ -760,6 +804,12 @@ std::vector<dealii::DataComponentInterpretation::DataComponentInterpretation> Re
         interpretation.push_back (DCI::component_is_part_of_vector); // Species densities
     }
     interpretation.push_back (DCI::component_is_scalar); // Mixture specific total enthalpy
+    for (unsigned int s=0; s<nstate-dim-1; ++s) {
+        interpretation.push_back (DCI::component_is_part_of_vector); // Species specific heat ratio
+    }
+    for (unsigned int s=0; s<nstate-dim-1; ++s) {
+        interpretation.push_back (DCI::component_is_part_of_vector); // Species speed of sound
+    }
 
     std::vector<std::string> names = post_get_names();
     if (names.size() != interpretation.size()) {
@@ -795,6 +845,14 @@ std::vector<std::string> RealGas<dim,nstate,real>
       names.push_back ("species_densities");
     }
     names.push_back ("mixture_specific_total_enthalpy");
+    for (unsigned int s=0; s<nstate-dim-1; ++s) 
+    {
+      names.push_back ("species_specific_heat_ratio");
+    }
+    for (unsigned int s=0; s<nstate-dim-1; ++s) 
+    {
+      names.push_back ("species_speed_of_sound");
+    }
 
     return names;
 }

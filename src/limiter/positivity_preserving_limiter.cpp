@@ -137,12 +137,12 @@ template <int dim, int nstate, typename real>
 real PositivityPreservingLimiter<dim, nstate, real>::get_density_scaling_value(
     const double    density_avg,
     const double    density_min,
-    const double    pos_eps,
+    const double    lower_bound,
     const double    p_avg)
 {
     // Get epsilon (lower bound for rho) for theta limiter
-    real eps = std::min({ pos_eps, density_avg, p_avg });
-    if (eps < 0) eps = pos_eps;
+    real eps = std::min({ lower_bound, density_avg, p_avg });
+    if (eps < 0) eps = lower_bound;
 
     real theta = 1.0; // Value used to linearly scale density 
     if (density_avg - density_min > 1e-13)
@@ -235,7 +235,7 @@ void PositivityPreservingLimiter<dim, nstate, real>::limit(
             const unsigned int ishape = fe_collection[poly_degree].system_to_component_index(idof).second;
             soln_coeff[istate][ishape] = solution[current_dofs_indices[idof]]; //
 
-            // if (soln_coeff[istate][ishape] < local_min_density)
+            // if (istate == 0 && soln_coeff[istate][ishape] < local_min_density)
             //     local_min_density = soln_coeff[istate][ishape];
         }
 
@@ -257,7 +257,7 @@ void PositivityPreservingLimiter<dim, nstate, real>::limit(
         // Obtain solution cell average
         std::array<real, nstate> soln_cell_avg = get_soln_cell_avg(soln_at_q, n_quad_pts, quad_weights);
 
-        real pos_eps = this->all_parameters->limiter_param.min_density;
+        real lower_bound = this->all_parameters->limiter_param.min_density;
         real p_avg = 1e-13;
 
         if (nstate == dim + 2) {
@@ -266,7 +266,7 @@ void PositivityPreservingLimiter<dim, nstate, real>::limit(
         }
         
         // Obtain value used to linearly scale density
-        real theta = get_density_scaling_value(soln_cell_avg[0], local_min_density, pos_eps, p_avg);
+        real theta = get_density_scaling_value(soln_cell_avg[0], local_min_density, lower_bound, p_avg);
 
         // Apply limiter on density values at quadrature points
         for (unsigned int iquad = 0; iquad < n_quad_pts; ++iquad) {
@@ -294,7 +294,7 @@ void PositivityPreservingLimiter<dim, nstate, real>::limit(
             }
 
             // Obtain value used to linearly scale state variables
-            std::vector<real> theta2 = get_theta2_Zhang2010(p_lim, soln_cell_avg, soln_at_q, n_quad_pts, pos_eps, euler_physics->gam);
+            std::vector<real> theta2 = get_theta2_Zhang2010(p_lim, soln_cell_avg, soln_at_q, n_quad_pts, lower_bound, euler_physics->gam);
 
             // Limit values at quadrature points
             for (unsigned int istate = 0; istate < nstate; ++istate) {

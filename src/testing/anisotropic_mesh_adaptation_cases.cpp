@@ -637,19 +637,23 @@ int AnisotropicMeshAdaptationCases<dim, nstate> :: run_test () const
         // q1 initial run
         {
             flow_solver->dg->set_p_degree_and_interpolate_solution(1);
+
+            if(flow_solver->dg->all_parameters->flow_solver_param.max_poly_degree_for_adaptation==2)
+            {
             
-            dealii::TrilinosWrappers::SparseMatrix regularization_matrix_poisson_q1;
-            evaluate_regularization_matrix(regularization_matrix_poisson_q1, flow_solver->dg);
-            Parameters::AllParameters param_q1 = param;
-            param_q1.optimization_param.max_design_cycles = 4;
-            param_q1.optimization_param.regularization_parameter_sim = 1.0;
-            param_q1.optimization_param.regularization_parameter_control = 1.0;
-            
-            std::unique_ptr<MeshOptimizer<dim,nstate>> mesh_optimizer_q1 = 
-                            std::make_unique<MeshOptimizer<dim,nstate>> (flow_solver->dg, &param_q1, true);
-            const bool output_refined_nodes = false;
-            mesh_optimizer_q1->run_full_space_optimizer(regularization_matrix_poisson_q1, use_oneD_parameteriation, output_refined_nodes, output_val-1);
-            output_vtk_files(flow_solver->dg, output_val-1);
+                dealii::TrilinosWrappers::SparseMatrix regularization_matrix_poisson_q1;
+                evaluate_regularization_matrix(regularization_matrix_poisson_q1, flow_solver->dg);
+                Parameters::AllParameters param_q1 = param;
+                param_q1.optimization_param.max_design_cycles = 4;
+                param_q1.optimization_param.regularization_parameter_sim = 1.0;
+                param_q1.optimization_param.regularization_parameter_control = 1.0;
+                
+                std::unique_ptr<MeshOptimizer<dim,nstate>> mesh_optimizer_q1 = 
+                                std::make_unique<MeshOptimizer<dim,nstate>> (flow_solver->dg, &param_q1, true);
+                const bool output_refined_nodes = false;
+                mesh_optimizer_q1->run_full_space_optimizer(regularization_matrix_poisson_q1, use_oneD_parameteriation, output_refined_nodes, output_val-1);
+                output_vtk_files(flow_solver->dg, output_val-1);
+            }
             
             /*
             flow_solver->run();
@@ -664,6 +668,16 @@ int AnisotropicMeshAdaptationCases<dim, nstate> :: run_test () const
         // q2 initial run
         {
             increase_grid_degree_and_interpolate_solution(flow_solver->dg);
+            const unsigned int poly_degree = flow_solver->dg->get_min_fe_degree();
+            if(poly_degree > 1)
+            {
+                const unsigned int poly_degree_lower = poly_degree - 1;
+                flow_solver->dg->set_p_degree_and_interpolate_solution(poly_degree_lower);
+                read_solution_volume_nodes_from_file(flow_solver->dg);
+                flow_solver->dg->set_p_degree_and_interpolate_solution(poly_degree);
+                flow_solver->dg->set_upwinding_flux(true);
+                flow_solver->dg->assemble_residual();
+            }
     /*
             Parameters::AllParameters param_q2 = param;
             param_q2.optimization_param.max_design_cycles = 20;
@@ -683,7 +697,7 @@ int AnisotropicMeshAdaptationCases<dim, nstate> :: run_test () const
         {
             if(imesh>0)
             {
-                refine_mesh_and_interpolate_solution(flow_solver->dg); 
+                refine_mesh_and_interpolate_solution(flow_solver->dg);
             }
             dealii::TrilinosWrappers::SparseMatrix regularization_matrix_poisson_q2;
             evaluate_regularization_matrix(regularization_matrix_poisson_q2, flow_solver->dg);

@@ -53,7 +53,7 @@ std::unique_ptr< BoundPreservingLimiter<dim, real> >
         return std::make_unique< MaximumPrincipleLimiter<dim, nstate, real> >(parameters_input);
     } else if (limiter_type == limiter_enum::positivity_preservingZhang2010
                 || limiter_type == limiter_enum::positivity_preservingWang2012) {
-        if (nstate == dim + 2 && flux_nodes_type != flux_nodes_enum::GL)
+        if (nstate == dim + 2 && flux_nodes_type == flux_nodes_enum::GLL)
             return std::make_unique< PositivityPreservingLimiter<dim, nstate, real> >(parameters_input);
         else {
             if(nstate != dim + 2) {

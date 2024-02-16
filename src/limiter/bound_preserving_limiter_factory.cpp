@@ -59,7 +59,7 @@ std::unique_ptr< BoundPreservingLimiter<dim, real> >
             if(nstate != dim + 2) {
                 std::cout << "Error: Cannot create Positivity-Preserving limiter for nstate_input != dim + 2" << std::endl;
                 std::abort();
-            } else if (flux_nodes_type == flux_nodes_enum::GL) {
+            } else if (flux_nodes_type != flux_nodes_enum::GLL) {
                 std::cout << "Error: Cannot create Positivity-Preserving limiter for GL quadrature nodes" << std::endl;
                 std::abort();
             }

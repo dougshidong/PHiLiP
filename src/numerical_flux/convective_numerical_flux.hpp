@@ -299,6 +299,8 @@ protected:
 
     /// Upwind convective numerical flux object
     std::unique_ptr< RiemannSolverDissipation<dim,nstate,real> > riemann_solver_dissipation;
+    
+    bool use_upwinding = false;
 
 public:
     /// Returns the convective numerical flux at an interface.
@@ -307,7 +309,7 @@ public:
         const std::array<real, nstate> &soln_ext,
         const dealii::Tensor<1,dim,real> &normal1) const;
 
-    void set_upwinding_flux(const bool use_upwinding);
+    void set_upwinding_flux(const bool _use_upwinding);
 };
 
 /// Lax-Friedrichs numerical flux. Derived from NumericalFluxConvective.

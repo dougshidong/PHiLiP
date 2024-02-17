@@ -48,6 +48,53 @@ std::array<real, nstate> NumericalFluxConvective<dim,nstate,real>
     for (int s=0; s<nstate; s++) {
         numerical_flux_dot_n[s] = baseline_flux_dot_n[s] + riemann_solver_dissipation_dot_n[s];
     }
+
+    if(use_upwinding)
+    {
+        const real gam = 1.4;
+        real mach_int = 0;
+        real density_int = 0;
+        real pressure_int = 0;
+        { // Compute mach int
+            const real velocity_int =sqrt( (pow(soln_int[1],2) + pow(soln_int[2],2))/pow(soln_int[0],2) );
+            density_int = soln_int[0];
+            pressure_int = (gam-1.0)* (soln_int[3] - 0.5*density_int*pow(velocity_int,2));
+            const real sound_int = sqrt(gam*pressure_int/density_int);
+            mach_int = velocity_int/sound_int;
+        }
+        real mach_ext = 0;
+        real density_ext = 0;
+        real pressure_ext = 0;
+        { // Compute mach ext
+            const real velocity_ext =sqrt( (pow(soln_ext[1],2) + pow(soln_ext[2],2))/pow(soln_ext[0],2) );
+            density_ext = soln_ext[0];
+            pressure_ext = (gam-1.0)* (soln_ext[3] - 0.5*density_ext*pow(velocity_ext,2));
+            const real sound_ext = sqrt(gam*pressure_ext/density_ext);
+            mach_ext = velocity_ext/sound_ext;
+        }
+        const bool upwind_int = (mach_int>2.0) && (mach_ext<1.8);
+        const bool upwind_ext = (mach_ext>2.0) && (mach_int<1.8);
+        if(upwind_int)
+        {
+           const real u_int = soln_int[1]/soln_int[0]; 
+           const real v_int = soln_int[2]/soln_int[0]; 
+           const real enthalpy_int = (soln_int[3] + pressure_int)/density_int;
+           numerical_flux_dot_n[0] = density_int*u_int*normal_int[0] + density_int*v_int*normal_int[1];
+           numerical_flux_dot_n[1] = (density_int*pow(u_int,2) + pressure_int)*normal_int[0] + density_int*u_int*v_int*normal_int[1];
+           numerical_flux_dot_n[2] = density_int*u_int*v_int*normal_int[0] + (density_int*pow(v_int,2) + pressure_int)*normal_int[1];
+           numerical_flux_dot_n[3] = density_int*enthalpy_int*(u_int*normal_int[0]+v_int*normal_int[1]);
+        }
+        else if(upwind_ext)
+        {
+           const real u_ext = soln_ext[1]/soln_ext[0]; 
+           const real v_ext = soln_ext[2]/soln_ext[0]; 
+           const real enthalpy_ext = (soln_ext[3] + pressure_ext)/density_ext;
+           numerical_flux_dot_n[0] = density_ext*u_ext*normal_int[0] + density_ext*v_ext*normal_int[1];
+           numerical_flux_dot_n[1] = (density_ext*pow(u_ext,2) + pressure_ext)*normal_int[0] + density_ext*u_ext*v_ext*normal_int[1];
+           numerical_flux_dot_n[2] = density_ext*u_ext*v_ext*normal_int[0] + (density_ext*pow(v_ext,2) + pressure_ext)*normal_int[1];
+           numerical_flux_dot_n[3] = density_ext*enthalpy_ext*(u_ext*normal_int[0]+v_ext*normal_int[1]);
+        }
+    }
     return numerical_flux_dot_n;
 }
 
@@ -55,6 +102,7 @@ template<int dim, int nstate, typename real>
 void NumericalFluxConvective<dim,nstate,real>::set_upwinding_flux(const bool _use_upwinding)
 {
     this->baseline->set_upwinding_flux(_use_upwinding);
+    use_upwinding = _use_upwinding;
 }
 
 template <int dim, int nstate, typename real>
@@ -488,7 +536,8 @@ void RoePikeRiemannSolverDissipation<dim,nstate,real>
     const real pressure_L,
     const real pressure_R) const
 {
-    (void) sound_L; (void) sound_R; (void) pressure_L; (void) pressure_R;
+    (void) sound_L; (void) sound_R; (void) pressure_L; (void) pressure_R; (void) eig_L; (void) eig_R;
+    
     // Harten-Hyman
     for(int i=0; i<3; ++i)
     {
@@ -511,8 +560,9 @@ void RoePikeRiemannSolverDissipation<dim,nstate,real>
             eig_RoeAvg[i] = abs(eig_RoeAvg[i]);
         }
     }
+    
 /*
-    Hartmann
+    //    Hartmann
     real max_eig = -1.0;
     for(int i=0; i<3; ++i)
     {
@@ -775,6 +825,7 @@ std::array<real, nstate> RoeBaseRiemannSolverDissipation<dim,nstate,real>
     for (int d=0;d<dim;d++) {
         dVt[d] = (velocities_R[d] - velocities_L[d]) - dVn*normal_int[d];
     }
+    
 
     // Evaluate entropy fix on wave speeds
     evaluate_entropy_fix (eig_L, eig_R, eig_ravg, vel2_ravg, sound_ravg, sound_L, sound_R, pressure_L, pressure_R);
@@ -785,7 +836,7 @@ std::array<real, nstate> RoeBaseRiemannSolverDissipation<dim,nstate,real>
         eig_L[i] = abs(eig_L[i]);
         eig_R[i] = abs(eig_R[i]);
     }
-
+    
     // Evaluate additional modifications to the Roe-Pike scheme (if applicable)
     evaluate_additional_modifications (soln_int, soln_ext, eig_L, eig_R, dVn, dVt);
 

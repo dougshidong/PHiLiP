@@ -43,9 +43,7 @@ public:
 protected:
     const double Ru; ///< universal gas constant: [J/(mol·K)]
     const double MW_Air; ///< molar weight of Air: [kg/mol]
-    const double R_Air_Dim; ///< gas constant of Air: [J/(kg·K)] 
     const double R_ref; ///< reference gas constant: [J/(kg·K)] 
-    const double R_Air_NonDim; ///< gas constant of Air: [NonDimensional]
     const double temperature_ref; ///< reference temperature [K]
     const double u_ref; ///< reference velocity [m/s]
     const double u_ref_sqr; ///< reference velocity squared[m/s]^2

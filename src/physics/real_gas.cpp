@@ -23,11 +23,9 @@ RealGas<dim,nstate,real>::RealGas (
     , two_point_num_flux_type(parameters_input->two_point_num_flux_type)
     , Ru(8.31446261815324) /// [J/(mol·K)]
     , MW_Air(28.9651159 * pow(10,-3)) /// [kg/mol]
-    , R_Air_Dim(Ru/MW_Air) /// [J/(kg·K)] 
-    , R_ref(R_Air_Dim) /// [J/(kg·K)] 
-    , R_Air_NonDim(R_Air_Dim/R_ref) /// []
+    , R_ref(Ru/MW_Air) /// = Ru/MW_Air [J/(kg·K)]
     , temperature_ref(298.15) /// [K]
-    , u_ref(mach_ref*sqrt(gam_ref*R_Air_Dim*temperature_ref)) /// [m/s]
+    , u_ref(mach_ref*sqrt(gam_ref*R_ref*temperature_ref)) /// [m/s]
     , u_ref_sqr(u_ref*u_ref) /// [m/s]^2
     , tol(1.0e-10) /// []
     // TO DO: nstate-dim-1 = nspecies

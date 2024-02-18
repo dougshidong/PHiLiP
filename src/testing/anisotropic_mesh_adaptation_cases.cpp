@@ -177,6 +177,36 @@ void AnisotropicMeshAdaptationCases<dim,nstate>::project_surface_nodes_on_cylind
                 dg->high_order_grid->volume_nodes(vol_index) = radius*x/norm_val;
                 dg->high_order_grid->volume_nodes(vol_index+1) = radius*y/norm_val;
             }
+           
+            std::array<double,8> x_current, y_current;
+            x_current[0] = -1.33452; y_current[0] = -5.22545;
+            x_current[1] = -2.21783; y_current[1] = -3.91914;
+            x_current[2] = -2.71661; y_current[2] = -2.39584;
+            x_current[3] = -2.94507; y_current[3] = -0.80438;
+            x_current[4] = -2.94507; y_current[4] = 0.80438;
+            x_current[5] = -2.71661; y_current[5] = 2.39584;
+            x_current[6] = -2.21783; y_current[6] = 3.91914;
+            x_current[7] = -1.33452; y_current[7] = 5.22545;
+            
+            std::array<double,8> x_expected, y_expected;
+            x_expected[0] = -1.411329; y_expected[0] = -5.29458198;
+            x_expected[1] = -2.2618578; y_expected[1] = -3.941573;
+            x_expected[2] = -2.75121157; y_expected[2] = -2.39235;
+            x_expected[3] = -2.97271948; y_expected[3] = -0.807314;
+            x_expected[4] = x_expected[3]; y_expected[4] = -y_expected[3];
+            x_expected[5] = x_expected[2]; y_expected[5] = -y_expected[2];
+            x_expected[6] = x_expected[1]; y_expected[6] = -y_expected[1];
+            x_expected[7] = x_expected[0]; y_expected[7] = -y_expected[0];
+
+            for(int j=0; j<8; ++j)
+            {
+                const double norm2 = sqrt(pow(x-x_current[j],2) + pow(y-y_current[j],2));
+                if(norm2 < 1.0e-3)
+                {
+                    dg->high_order_grid->volume_nodes(vol_index) = x_expected[j];
+                    dg->high_order_grid->volume_nodes(vol_index+1) = y_expected[j];
+                }
+            }
         }
     }
     dg->high_order_grid->volume_nodes.update_ghost_values();
@@ -611,6 +641,10 @@ double AnisotropicMeshAdaptationCases<dim,nstate> :: evaluate_functional_error(s
                         functional_exact -= euler_physics_double->density_inf *
                             (euler_physics_double->velocities_inf*normal) *
                             fe_face_values_bc.JxW(iquad);
+                    }
+                    else if(boundary_id == 1008) // supersonic outflow
+                    {
+                        functional_exact += 0.5*euler_physics_double->enthalpy_inf*fe_face_values_bc.JxW(iquad);
                     }
 
                 } //quad loop

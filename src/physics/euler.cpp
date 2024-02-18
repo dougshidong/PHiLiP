@@ -50,9 +50,15 @@ Euler<dim,nstate,real>::Euler (
         velocities_inf[0] = cos(angle_of_attack);
         velocities_inf[1] = sin(angle_of_attack); // Maybe minus?? -- Clarify with Doug
     } else if (dim==3) {
+        //velocities_inf[0] = cos(angle_of_attack)*cos(side_slip_angle);
+        //velocities_inf[1] = sin(angle_of_attack)*cos(side_slip_angle);
+        //velocities_inf[2] = sin(side_slip_angle);
+
+        // Hack to get 3d naca0012 working. It has swapped coordinates.
         velocities_inf[0] = cos(angle_of_attack)*cos(side_slip_angle);
-        velocities_inf[1] = sin(angle_of_attack)*cos(side_slip_angle);
-        velocities_inf[2] = sin(side_slip_angle);
+        velocities_inf[2] = sin(angle_of_attack)*cos(side_slip_angle);
+        velocities_inf[1] = sin(side_slip_angle);
+
     }
 
     assert(std::abs(velocities_inf.norm() - 1.0) < 1e-14);

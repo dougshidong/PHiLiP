@@ -17,8 +17,13 @@ doc/html/**
 *.gnuplot
 *.swp
 *.swo
+*.sw*
 *.vtk
+*.msh
 build*/
+cmake-build*/
+.idea/
+callgrind.out.*
 .vscode/settings.json
 src/.vscode/settings.json
 src/dummy/*

@@ -1,0 +1,42 @@
+{
+    "configurations": [
+        {
+            "name": "Linux",
+            "includePath": [
+                "${workspaceFolder}/**",
+                "${env:TRILINOS_DIR}/include",
+                "${env:DEAL_II_DIR}/include",
+                "${env:P4EST_DIR}/include",
+                "${env:PETSC_DIR}/include",
+                "${env:PETSC_DIR}/${env:PETSC_ARCH}/include",
+                "${env:DEAL_II_DIR}/bundled/tbb-2018_U2/include",
+                "${env:DEAL_II_DIR}/bundled/boost-1.70.0/include",
+                "${env:DEAL_II_DIR}/bundled/muparser_v2_2_4/include",
+                "${env:DEAL_II_DIR}/bundled/taskflow-2.5.0/include",
+                "${env:DEAL_II_DIR}/bundled/umfpack/AMD/Include",
+                "${env:DEAL_II_DIR}/bundled/umfpack/UMFPACK/Include",
+                "/usr/include",
+                "/usr/local/include"
+            ],
+            "browse": {
+                "path": [
+                    "${workspaceFolder}/**",
+                    "${env:TRILINOS_DIR}/include",
+                    "${env:DEAL_II_DIR}/include",
+                    "${env:P4EST_DIR}/include",
+                    "${env:PETSC_DIR}/include",
+                    "/usr/include",
+                    "/usr/local/include"
+                ],
+                "limitSymbolsToIncludedHeaders": true
+            },
+            "defines": [],
+            "compilerPath": "/usr/bin/mpicxx",
+            "cStandard": "c11",
+            "cppStandard": "c++17",
+            "intelliSenseMode": "linux-gcc-x64",
+            "configurationProvider": "ms-vscode.cmake-tools"
+        }
+    ],
+    "version": 4
+}

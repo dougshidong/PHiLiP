@@ -147,7 +147,6 @@ write_convergence_table_to_output_file(
     convergence_table.write_text(error_table_file);
 }
 
-
 template<int dim, int nstate>
 int GridStudy<dim,nstate>
 ::run_test () const
@@ -191,18 +190,6 @@ int GridStudy<dim,nstate>
                 dealii::Triangulation<dim>::smoothing_on_coarsening));
 
         dealii::GridGenerator::subdivided_hyper_cube(*grid_super_fine, n_1d_cells[n_grids_input-1]);
-        //dealii::Point<dim> p1, p2;
-        //const double DX = 3;
-        //for (int d=0;d<dim;++d) {
-        //    p1[d] = 0.0-DX;
-        //    p2[d] = 1.0+DX;
-        //}
-        //const std::vector<unsigned int> repetitions(dim,n_1d_cells[n_grids_input-1]);
-        //dealii::GridGenerator::subdivided_hyper_rectangle<dim,dim>(*grid_super_fine, repetitions, p1, p2);
-
-        //grid_super_fine->clear();
-        //const std::vector<unsigned int> n_subdivisions(dim,n_1d_cells[n_grids_input-1]);
-        //PHiLiP::Grids::curved_periodic_sine_grid<dim,Triangulation>(*grid_super_fine, n_subdivisions);
         for (auto cell = grid_super_fine->begin_active(); cell != grid_super_fine->end(); ++cell) {
             for (unsigned int face=0; face<dealii::GeometryInfo<dim>::faces_per_cell; ++face) {
                 if (cell->face(face)->at_boundary()) cell->face(face)->set_boundary_id (1000);
@@ -262,15 +249,6 @@ int GridStudy<dim,nstate>
         for (unsigned int igrid=0; igrid<n_grids; ++igrid) {
             grid->clear();
             dealii::GridGenerator::subdivided_hyper_cube(*grid, n_1d_cells[igrid]);
-            //dealii::Point<dim> p1, p2;
-            //const double DX = 3;
-            //for (int d=0;d<dim;++d) {
-            //    p1[d] = 0.0-DX;
-            //    p2[d] = 1.0+DX;
-            //}
-            //const std::vector<unsigned int> repetitions(dim,n_1d_cells[igrid]);
-            //dealii::GridGenerator::subdivided_hyper_rectangle<dim,dim>(*grid, repetitions, p1, p2);
-
             for (auto cell = grid->begin_active(); cell != grid->end(); ++cell) {
                 // Set a dummy boundary ID
                 cell->set_material_id(9002);
@@ -278,58 +256,8 @@ int GridStudy<dim,nstate>
                     if (cell->face(face)->at_boundary()) cell->face(face)->set_boundary_id (1000);
                 }
             }
-            //dealii::GridTools::transform (&warp, *grid);
             // Warp grid if requested in input file
             if (manu_grid_conv_param.grid_type == GridEnum::sinehypercube) dealii::GridTools::transform (&warp, *grid);
-            
-
-            //grid->clear();
-            //const std::vector<unsigned int> n_subdivisions(dim,n_1d_cells[igrid]);
-            //PHiLiP::Grids::curved_periodic_sine_grid<dim,Triangulation>(*grid, n_subdivisions);
-            //for (auto cell = grid->begin_active(); cell != grid->end(); ++cell) {
-            //    for (unsigned int face=0; face<dealii::GeometryInfo<dim>::faces_per_cell; ++face) {
-            //        if (cell->face(face)->at_boundary()) cell->face(face)->set_boundary_id (1000);
-            //    }
-            //}
-
-            // // Generate hypercube
-            // if ( igrid==0 && (manu_grid_conv_param.grid_type == GridEnum::hypercube || manu_grid_conv_param.grid_type == GridEnum::sinehypercube ) ) {
-
-            //     grid->clear();
-            //     dealii::GridGenerator::subdivided_hyper_cube(*, n_1d_cells[igrid]);
-            //     for (auto cell = grid->begin_active(); cell != grid->end(); ++cell) {
-            //         // Set a dummy boundary ID
-            //         cell->set_material_id(9002);
-            //         for (unsigned int face=0; face<dealii::GeometryInfo<dim>::faces_per_cell; ++face) {
-            //             if (cell->face(face)->at_boundary()) cell->face(face)->set_boundary_id (1000);
-            //         }
-            //     }
-            //     // Warp grid if requested in input file
-            //     if (manu_grid_conv_param.grid_type == GridEnum::sinehypercube) dealii::GridTools::transform (&warp, *grid);
-            // } else {
-            //     dealii::GridRefinement::refine_and_coarsen_fixed_number(*grid,
-            //                                     estimated_error_per_cell,
-            //                                     0.3,
-            //                                     0.03);
-            //     grid->execute_coarsening_and_refinement();
-            // }
-
-            //for (int i=0; i<5;i++) {
-            //    int icell = 0;
-            //    for (auto cell = grid->begin_active(grid->n_levels()-1); cell!=grid->end(); ++cell) {
-            //        if (!cell->is_locally_owned()) continue;
-            //        icell++;
-            //        if (icell < 2) {
-            //            cell->set_refine_flag();
-            //        }
-            //        //else if (icell%2 == 0) {
-            //        //    cell->set_refine_flag();
-            //        //} else if (icell%3 == 0) {
-            //        //    //cell->set_coarsen_flag();
-            //        //}
-            //    }
-            //    grid->execute_coarsening_and_refinement();
-            //}
 
             // Distort grid by random amount if requested
             const double random_factor = manu_grid_conv_param.random_distortion;
@@ -361,15 +289,11 @@ int GridStudy<dim,nstate>
             //std::string gridname = "grid-"+std::to_string(igrid)+".eps";
             //if (dim == 2) print_mesh_info (*grid, gridname);
 
-            using FadType = Sacado::Fad::DFad<double>;
-
             // Create DG object using the factory
             std::shared_ptr < DGBase<dim, double> > dg = DGFactory<dim,double>::create_discontinuous_galerkin(&param, poly_degree, grid);
             dg->allocate_system ();
-            //dg->evaluate_inverse_mass_matrices();
-            //
-            // PhysicsBase required for exact solution and output error
 
+            // PhysicsBase required for exact solution and output error
             initialize_perturbed_solution(*(dg), *(physics_double));
 
             // Create ODE solver using the factory and providing the DG object
@@ -463,21 +387,6 @@ int GridStudy<dim,nstate>
             double solution_integral = integrate_solution_over_domain(*dg);
 
             if (manu_grid_conv_param.output_solution) {
-                /*
-                dg->output_results_vtk(igrid);
-
-                std::string write_posname = "error-"+std::to_string(igrid)+".pos";
-                std::ofstream outpos(write_posname);
-                GridRefinement::GmshOut<dim,double>::write_pos(grid,estimated_error_per_cell_double,outpos);
-
-                std::shared_ptr< GridRefinement::GridRefinementBase<dim,nstate,double> >  gr 
-                    = GridRefinement::GridRefinementFactory<dim,nstate,double>::create_GridRefinement(param.grid_refinement_study_param.grid_refinement_param_vector[0],dg,physics_double);
-
-                gr->refine_grid();
-
-                // dg->output_results_vtk(igrid);
-                */
-            
                 // Use gr->output_results_vtk(), which includes L2error per cell, instead of dg->output_results_vtk() as done above
                 std::shared_ptr< GridRefinement::GridRefinementBase<dim,nstate,double> >  gr 
                    = GridRefinement::GridRefinementFactory<dim,nstate,double>::create_GridRefinement(param.grid_refinement_study_param.grid_refinement_param_vector[0],dg,physics_double);

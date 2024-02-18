@@ -66,11 +66,14 @@ void ImplicitODESolver<dim,real,MeshType>::step_in_time (real dt, const bool pse
         this->pcout << " Evaluating system update... " << std::endl;
     }
 
-    solve_linear (
+    std::pair<unsigned int, double> iteration_residual = solve_linear (
             this->dg->system_matrix,
             this->dg->right_hand_side,
             this->solution_update,
             this->ODESolverBase<dim,real,MeshType>::all_parameters->linear_solver_param);
+    if (iteration_residual.first == 99999) {
+        this->CFL_factor *= 0.2;
+    }
 
     linesearch();
 
@@ -116,7 +119,7 @@ double ImplicitODESolver<dim,real,MeshType>::linesearch ()
         new_l2residual = this->dg->get_residual_l2norm();
         this->pcout << " Step length " << step_length << " . Old l2residual: " << initial_l2residual << " New l2residual: " << new_l2residual << std::endl;
     }
-    if (iline == 0) this->CFL_factor *= 2.0;
+    if (iline == 0) this->CFL_factor *= 1.2;
     if (iline >= maxline/2) this->CFL_factor *= 0.5;
     if (iline == maxline) {
         this->pcout << " Reached maximum number of linesearches. Terminating... " << std::endl;

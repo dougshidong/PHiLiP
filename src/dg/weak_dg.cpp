@@ -686,7 +686,7 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_boundary_term(
             interpolation_operator[idof][iquad] = fe_soln.shape_value(idof,unit_quad_pts[iquad]);
         }
     }
-    std::array<dealii::FullMatrix<real2>,dim> gradient_operator;
+    std::array<dealii::Table<2,real2>,dim> gradient_operator;
     for (int d=0;d<dim;++d) {
         gradient_operator[d].reinit(dealii::TableIndices<2>(n_soln_dofs, n_quad_pts));
     }

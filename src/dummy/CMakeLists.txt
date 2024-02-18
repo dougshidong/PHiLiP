@@ -88,7 +88,7 @@ unset(TARGET ${SMALL_TEST})
 set(SMALL_TEST codipack_vector_rad_fad)
 set(TARGET ${SMALL_TEST})
 set(SMALL_TEST_SRC 
-    codipack_vector_rad_fad_3.cpp)
+    codipack_vector_rad_fad.cpp)
 #set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -DCODI_UseForcedInlines")
 add_executable(${SMALL_TEST} ${SMALL_TEST_SRC})
 target_link_libraries(${SMALL_TEST} open-pal)

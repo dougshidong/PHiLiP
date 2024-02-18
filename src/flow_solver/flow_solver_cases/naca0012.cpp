@@ -65,12 +65,15 @@ std::shared_ptr<Triangulation> NACA0012<dim,nstate>::generate_grid() const
 template <int dim, int nstate>
 void NACA0012<dim,nstate>::set_higher_order_grid(std::shared_ptr<DGBase<dim, double>> dg) const
 {
-    const std::string mesh_filename = this->all_param.flow_solver_param.input_mesh_filename+std::string(".msh");
-    std::shared_ptr<HighOrderGrid<dim,double>> naca0012_mesh = read_gmsh<dim, dim> (mesh_filename);
+    // const std::string mesh_filename = this->all_param.flow_solver_param.input_mesh_filename+std::string(".msh");
+    // std::shared_ptr<HighOrderGrid<dim,double>> naca0012_mesh = read_gmsh<dim, dim> (mesh_filename);
+    // dg->set_high_order_grid(naca0012_mesh);
+    // for (unsigned int i=0; i<this->all_param.grid_refinement_study_param.num_refinements; ++i) {
+    //     dg->high_order_grid->refine_global();
+    // }
+    const std::string mesh_filename = "../../../meshes/naca0012_hopw_ref" + std::to_string(this->all_param.grid_refinement_study_param.num_refinements) + ".msh";
+    std::shared_ptr<HighOrderGrid<dim,double>> naca0012_mesh = read_gmsh<dim, dim> (mesh_filename, true);
     dg->set_high_order_grid(naca0012_mesh);
-    for (unsigned int i=0; i<this->all_param.grid_refinement_study_param.num_refinements; ++i) {
-        dg->high_order_grid->refine_global();
-    }
 }
 
 template <int dim, int nstate>
@@ -82,8 +85,8 @@ void NACA0012<dim,nstate>::steady_state_postprocessing(std::shared_ptr<DGBase<di
     LiftDragFunctional<dim,dim+2,double> drag_functional(dg, LiftDragFunctional<dim,dim+2,double>::Functional_types::drag);
     double drag = drag_functional.evaluate_functional();
 
-    this->pcout << " Resulting lift : " << lift << std::endl;
-    this->pcout << " Resulting drag : " << drag << std::endl;
+    this->pcout << " Resulting lift : " << std::setprecision(10) << lift << std::endl;
+    this->pcout << " Resulting drag : " << std::setprecision(10) << drag << std::endl;
 }
 
 #if PHILIP_DIM==2

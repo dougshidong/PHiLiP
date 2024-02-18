@@ -28,6 +28,7 @@ PDAS_KKT_System( const ROL::Ptr<ROL::Objective<Real> > &objective,
     , bounded_constraint_tolerance_(constraint_tolerance)
     , secant_(secant)
     , useSecant_(useSecant)
+    , pcout(std::cout, dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD)==0)
 {
     temp_design_          = design_variables_->clone();
     temp_dual_equality_   = dual_equality_->clone();
@@ -105,7 +106,7 @@ void PDAS_KKT_System<Real>::apply( ROL::Vector<Real> &Hv, const ROL::Vector<Real
     const ROL::Ptr< const ROL::Vector<Real> > input_dual_equality    = input_partitioned.get(1);
     const ROL::Ptr< const ROL::Vector<Real> > input_dual_inequality  = input_partitioned.get(2);
 
-    MPI_Barrier(MPI_COMM_WORLD);
+    //MPI_Barrier(MPI_COMM_WORLD);
     static int ii = 0; (void) ii;
     //std::cout << __PRETTY_FUNCTION__ << " " << ii++ << std::endl;
     //std::cout << "input_design " << input_design->norm() << std::endl;
@@ -129,7 +130,7 @@ void PDAS_KKT_System<Real>::apply( ROL::Vector<Real> &Hv, const ROL::Vector<Real
 
         secant_->applyB(*getCtlOpt(*output_design),*getCtlOpt(*input_design));
         if (add_identity_ != 0.0) {
-            std::cout << "Adding identity matrix of " << add_identity_ << std::endl;
+            //pcout << "Adding identity matrix of " << add_identity_ << std::endl;
             getCtlOpt(*output_design)->axpy(add_identity_,*getCtlOpt(*input_design));
         }
         //secant_->applyB(*getCtlOpt(*output_design),*getCtlOpt(*input_design));
@@ -153,7 +154,7 @@ void PDAS_KKT_System<Real>::apply( ROL::Vector<Real> &Hv, const ROL::Vector<Real
             getCtlOpt(*output_design)->axpy(secantFactor,*getCtlOpt(*temp_design));
         }
 
-        std::cout << "Adding max eig estimate identity matrix of " << max_eig_estimate_ << std::endl;
+        //pcout << "Adding max eig estimate identity matrix of " << max_eig_estimate_ << std::endl;
 
         const double identity_plus_eig = add_identity_ + max_eig_estimate_;
 
@@ -161,7 +162,7 @@ void PDAS_KKT_System<Real>::apply( ROL::Vector<Real> &Hv, const ROL::Vector<Real
         // output_design->axpy(one,*temp_design_);
         // output_design->scale(one/2.0);
         if (identity_plus_eig != 0.0) {
-            std::cout << "Adding identity matrix of " << identity_plus_eig << std::endl;
+            pcout << "Adding identity matrix of " << identity_plus_eig << std::endl;
             getCtlOpt(*output_design)->axpy(identity_plus_eig,*getCtlOpt(*input_design));
         }
 
@@ -204,9 +205,9 @@ void PDAS_KKT_System<Real>::apply( ROL::Vector<Real> &Hv, const ROL::Vector<Real
     //// Rows 7 & 9
     output_dual_inequality->zero();
     if (SYMMETRIZE_MATRIX_) {
-        temp_dual_inequality_->set(*input_dual_inequality);
-        bound_constraints_->pruneActive(*temp_dual_inequality_,*des_plus_dual_,bounded_constraint_tolerance_);
-        output_dual_inequality->axpy(one,*temp_dual_inequality_);
+        //temp_dual_inequality_->set(*input_dual_inequality);
+        //bound_constraints_->pruneActive(*temp_dual_inequality_,*des_plus_dual_,bounded_constraint_tolerance_);
+        //output_dual_inequality->axpy(one,*temp_dual_inequality_);
     } else {
         temp_dual_inequality_->set(*input_dual_inequality);
         bound_constraints_->pruneActive(*temp_dual_inequality_,*des_plus_dual_,bounded_constraint_tolerance_);

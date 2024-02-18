@@ -59,7 +59,19 @@ FlowSolver<dim, nstate>::FlowSolver(
         pcout << "Initializing solution from restart file..." << std::flush;
         const std::string restart_filename_without_extension = get_restart_filename_without_extension(flow_solver_param.restart_file_index);
 #if PHILIP_DIM>1
+        while(dg->triangulation->n_levels() != 1) {
+            for (const auto &cell : dg->triangulation->active_cell_iterators()) {
+                cell->clear_refine_flag();
+                cell->set_coarsen_flag();
+            }
+            dg->triangulation->execute_coarsening_and_refinement();
+            //dg->triangulation->coarsen_global();
+        }
         dg->triangulation->load(flow_solver_param.restart_files_directory_name + std::string("/") + restart_filename_without_extension);
+
+        dg->dof_handler.initialize(*(dg->triangulation), dg->fe_collection);
+        dg->dof_handler.deserialize_active_fe_indices();
+        dg->dof_handler.distribute_dofs(dg->fe_collection);
         
         // Note: Future development with hp-capabilities, see section "Note on usage with DoFHandler with hp-capabilities"
         // ----- Ref: https://www.dealii.org/current/doxygen/deal.II/classparallel_1_1distributed_1_1SolutionTransfer.html
@@ -311,7 +323,10 @@ void FlowSolver<dim,nstate>::output_restart_files(
     const std::string restart_filename_without_extension = get_restart_filename_without_extension(current_restart_index);
 
     // solution files
-    dealii::parallel::distributed::SolutionTransfer<dim, dealii::LinearAlgebra::distributed::Vector<double>, dealii::DoFHandler<dim>> solution_transfer(dg->dof_handler);
+    dealii::parallel::distributed::SolutionTransfer<dim,
+        dealii::LinearAlgebra::distributed::Vector<double>,
+        dealii::DoFHandler<dim>> solution_transfer(dg->dof_handler);
+    dg->dof_handler.prepare_for_serialization_of_active_fe_indices();
     // Note: Future development with hp-capabilities, see section "Note on usage with DoFHandler with hp-capabilities"
     // ----- Ref: https://www.dealii.org/current/doxygen/deal.II/classparallel_1_1distributed_1_1SolutionTransfer.html
     solution_transfer.prepare_for_serialization(dg->solution);

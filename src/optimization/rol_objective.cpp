@@ -44,7 +44,7 @@ template <int dim, int nstate>
 void ROLObjectiveSimOpt<dim,nstate>::update(
     const ROL::Vector<double> &des_var_sim,
     const ROL::Vector<double> &des_var_ctl,
-    bool /*flag*/, int /*iter*/)
+    bool /*flag*/, int iter)
 {
     functional.set_state(ROL_vector_to_dealii_vector_reference(des_var_sim));
 
@@ -70,6 +70,9 @@ void ROLObjectiveSimOpt<dim,nstate>::update(
         functional.dg->high_order_grid->ensure_conforming_mesh();
         functional.dg->high_order_grid->volume_nodes.update_ghost_values();
     }
+    if (iter >= 90000) {
+        functional.dg->output_results_vtk(iter);
+    }
 }
 
 
@@ -90,7 +93,9 @@ double ROLObjectiveSimOpt<dim,nstate>::value(
     const bool compute_dIdW = false;
     const bool compute_dIdX = false;
     const bool compute_d2I = false;
-    return functional.evaluate_functional( compute_dIdW, compute_dIdX, compute_d2I );
+    const double value = functional.evaluate_functional( compute_dIdW, compute_dIdX, compute_d2I );
+    std::cout << "Objective value: " << value << std::endl;
+    return value;
 }
 
 template <int dim, int nstate>
@@ -119,7 +124,9 @@ void ROLObjectiveSimOpt<dim,nstate>::gradient_2(
 {
     update(des_var_sim, des_var_ctl);
 
-    const bool compute_dIdW = false, compute_dIdX = true, compute_d2I = false;
+    const bool compute_dIdW = false;
+    const bool compute_dIdX = true;
+    const bool compute_d2I = false;
     functional.evaluate_functional( compute_dIdW, compute_dIdX, compute_d2I );
 
     const auto &dIdXv = functional.dIdX;
@@ -216,7 +223,9 @@ void ROLObjectiveSimOpt<dim,nstate>::hessVec_12(
 
     auto &dealii_output = ROL_vector_to_dealii_vector_reference(output_vector);
     {
-        const bool compute_dIdW = false, compute_dIdX = false, compute_d2I = true;
+        const bool compute_dIdW = false;
+        const bool compute_dIdX = false;
+        const bool compute_d2I = true;
         functional.evaluate_functional( compute_dIdW, compute_dIdX, compute_d2I );
         functional.d2IdWdX.vmult(dealii_output, dXvdXp_input);
     }
@@ -308,7 +317,9 @@ void ROLObjectiveSimOpt<dim,nstate>::hessVec_22(
 
     auto d2IdXdXp_input = functional.dg->high_order_grid->volume_nodes;
     {
-        const bool compute_dIdW = false, compute_dIdX = false, compute_d2I = true;
+        const bool compute_dIdW = false;
+        const bool compute_dIdX = false;
+        const bool compute_d2I = true;
         functional.evaluate_functional( compute_dIdW, compute_dIdX, compute_d2I );
         functional.d2IdXdX.vmult(d2IdXdXp_input, dXvdXp_input);
     }

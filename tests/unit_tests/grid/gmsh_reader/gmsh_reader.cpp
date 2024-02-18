@@ -29,7 +29,7 @@ int main (int argc, char * argv[])
         }
     }
 
-    std::shared_ptr< HighOrderGrid<dim, double> > high_order_grid = read_gmsh <dim, dim> (filename);
+    std::shared_ptr< HighOrderGrid<dim, double> > high_order_grid = read_gmsh <dim, dim> (filename, false);
 
 
     dealii::GridOut gridout;

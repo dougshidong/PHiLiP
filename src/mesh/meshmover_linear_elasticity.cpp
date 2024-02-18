@@ -375,7 +375,7 @@ namespace MeshMover {
         assemble_system();
 
         const bool log_history = (this_mpi_process == 0);
-        dealii::SolverControl solver_control(10000, 1e-14 * input_vector_norm, log_history);
+        dealii::SolverControl solver_control(1000, 1e-14 * input_vector_norm, log_history);
         //dealii::SolverControl solver_control(20000, 1e-14, log_history);
         solver_control.log_frequency(100);
         const int max_n_tmp_vectors=200;
@@ -394,8 +394,8 @@ namespace MeshMover {
         //precondition.initialize(system_matrix, precond_settings);
 
         dealii::TrilinosWrappers::PreconditionILUT  precondition;
-        const unsigned int ilut_fill=50;
-        const double ilut_drop=1e-15;
+        const unsigned int ilut_fill=20;
+        const double ilut_drop=1e-11;
         const double ilut_atol=1e-4;
         const double ilut_rtol=1.001;
         const unsigned int overlap=1;
@@ -485,10 +485,10 @@ namespace MeshMover {
         //precondition.initialize(system_matrix, precond_settings);
 
         dealii::TrilinosWrappers::PreconditionILUT  precondition;
-        const unsigned int ilut_fill=50;
-        const double ilut_drop=1e-15;
+        const unsigned int ilut_fill=10;
+        const double ilut_drop=1e-10;
         const double ilut_atol=1e-4;
-        const double ilut_rtol=1.001;
+        const double ilut_rtol=1.01;
         const unsigned int overlap=1;
         dealii::TrilinosWrappers::PreconditionILUT::AdditionalData precond_settings(ilut_drop, ilut_fill, ilut_atol, ilut_rtol, overlap);
         precondition.initialize(system_matrix, precond_settings);
@@ -524,9 +524,9 @@ namespace MeshMover {
                 output_vector = 0.0;
             } else {
                 const bool log_history = (this_mpi_process == 0);
-                dealii::SolverControl solver_control(10000, 1e-14 * input_vector_norm, log_history);
+                dealii::SolverControl solver_control(200, 1e-11, log_history);
                 //dealii::SolverControl solver_control(20000, 1e-14, log_history);
-                solver_control.log_frequency(100);
+                solver_control.log_frequency(30);
                 const int max_n_tmp_vectors=200;
                 const bool right_preconditioning=true;
                 const bool use_default_residual=true;

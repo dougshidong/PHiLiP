@@ -534,7 +534,9 @@ int OptimizationInverseManufactured<dim,nstate>
  // Assemble KKT rhs
  dealii::LinearAlgebra::distributed::BlockVector<double> kkt_rhs(3);
     pcout << "Evaluating KKT right-hand side: dIdW, dIdX, d2I, Residual..." << std::endl;
- compute_dIdW = true, compute_dIdX = true, compute_d2I = true;
+ compute_dIdW = true;
+ compute_dIdX = true;
+ compute_d2I = true;
  (void) inverse_target_functional.evaluate_functional(compute_dIdW, compute_dIdX, compute_d2I);
  bool compute_dRdW = false, compute_dRdX = false, compute_d2R = false;
  dg->assemble_residual(compute_dRdW, compute_dRdX, compute_d2R);

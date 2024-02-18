@@ -1,4 +1,4 @@
-add_subdirectory(gmsh_reader)
+# add_subdirectory(gmsh_reader)
 
 set(TEST_SRC
     ffd_test.cpp

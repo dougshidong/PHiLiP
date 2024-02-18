@@ -4,17 +4,19 @@
 #SBATCH --job-name=compile_PHiLiP
 #SBATCH --output=%x-%j.out
 #SBATCH --nodes=1
-#SBATCH --ntasks-per-node=40                          ## <-- refer to https://docs.computecanada.ca/wiki/Advanced_MPI_scheduling
-#SBATCH --mem=0                                       ## <-- total shared memory; --mem=0 means to reserve all the available memory on each node assigned to the job
-#SBATCH --mail-user=firstname.lastname@mail.mcgill.ca ## <-- for receiving job updates via email
-#SBATCH --mail-type=ALL                               ## <-- what kind of updates to receive by email
+#SBATCH --ntasks-per-node=16                          ## <-- refer to https://docs.computecanada.ca/wiki/Advanced_MPI_scheduling
+#SBATCH --mem=63G                                     ## <-- total shared memory per node; refer to https://docs.computecanada.ca/wiki/Advanced_MPI_scheduling
+##SBATCH --mail-type=ALL                               ## <-- what kind of updates to receive by email
+##SBATCH --mail-user=firstname.lastname@mail.mcgill.ca ## <-- for receiving job updates via email
 
 CLUSTER_NAME="narval" ## <-- Enter cluster name here in lowercase
-SLURM_USER="username" ## <-- Enter compute canada username here
-NUM_PROCS="40"        ## WARNING: must correspond to nodes*(ntasks-per-node) above
+SLURM_USER="ddong" ## <-- Enter compute canada username here
+NUM_PROCS="16"        ## WARNING: must correspond to nodes*(ntasks-per-node) above
 RUN_CTEST=false
 
 ## Below are the modules needed to compile PHiLiP
+
+echo "Loading modules..."
 module --force purge
 module load StdEnv/2020
 ##module load intel/2020.1.217
@@ -26,7 +28,7 @@ module load petsc/3.14.1
 module load trilinos/13.0.1
 export TRILINOS_DIR=$EBROOTTRILINOS
 module load opencascade/7.5.0
-module load gmsh/4.7.0
+module load gmsh/4.11.1
 module load metis/5.1.0
 module load muparser/2.3.2
 module load boost-mpi/1.72.0
@@ -49,22 +51,32 @@ if [ ${CLUSTER_NAME} == "beluga" ]; then
 elif [ ${CLUSTER_NAME} == "narval" ]; then
     export DEAL_II_DIR=/project/def-nadaraja/Libraries/dealii_updated_reinstalled/dealii/install/install
 fi
-export GMSH_DIR=/cvmfs/soft.computecanada.ca/easybuild/software/2020/avx512/Compiler/intel2020/gmsh/4.7.0
+export GMSH_DIR=/cvmfs/soft.computecanada.ca/easybuild/software/2020/avx512/Compiler/intel2020/gmsh/4.11.1
 export OMP_NUM_THREADS=1
 
+echo "Going to SLURM_TMPDIR=${SLURM_TMPDIR}..."
 cd ${SLURM_TMPDIR}
+echo "rsyncing ${SLURM_SUBMIT_DIR} to ${SLURM_TMPDIR}"
+echo "rsync  -axvH --no-g --no-p --exclude 'build*' --exclude .git --exclude '*.log' --exclude '*.out' --exclude 'restart*' ${SLURM_SUBMIT_DIR} ."
 rsync  -axvH --no-g --no-p --exclude 'build*' --exclude .git --exclude '*.log' --exclude '*.out' ${SLURM_SUBMIT_DIR} .
-mkdir build_release
 
+echo "Making build_release"
+mkdir build_release
 cd build_release
-cmake -DDEAL_II_DIR=$DEAL_II_DIR ../PHiLiP -DMPIMAX=${NUM_PROCS} -DCMAKE_BUILD_TYPE=Release -DGMSH_DIR=$GMSH_DIR/bin/gmsh -DGMSH_LIB=$GMSH_DIR -DCMAKE_SKIP_INSTALL_RPATH=ON 
+echo "Triggering cmake..."
+ls
+pwd
+cmake -DDEAL_II_DIR=$DEAL_II_DIR ../PHiLiP_fullspace -DMPIMAX=${NUM_PROCS} -DCMAKE_BUILD_TYPE=Release -DGMSH_DIR=$GMSH_DIR/bin/gmsh -DGMSH_LIB=$GMSH_DIR -DCMAKE_SKIP_INSTALL_RPATH=ON 
+echo "Triggering make..."
 make -j${NUM_PROCS}
 if [ "${RUN_CTEST}" = true ]; then
     ctest
 fi
 
 for((i=1;i<=3;i++)); do
+	echo "Copying result from ${SLURM_TMPDIR}/build_release/bin/PHiLiP_${i}D to /home/${SLURM_USER}/scratch/PHiLiP_${i}"
 	cp ${SLURM_TMPDIR}/build_release/bin/PHiLiP_${i}D /home/${SLURM_USER}/scratch/PHiLiP_${i}D
 done
 
+echo "rsyncing ${SLURM_TMPDIR}/build_release to ${SLURM_SUBMIT_DIR}"
 rsync -axvH --no-g --no-p  ${SLURM_TMPDIR}/build_release ${SLURM_SUBMIT_DIR}

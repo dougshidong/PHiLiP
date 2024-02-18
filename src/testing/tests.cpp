@@ -237,6 +237,7 @@ std::unique_ptr< TestsBase > TestsFactory<dim,nstate,MeshType>
         if constexpr (dim==2 && nstate==dim+2) return std::make_unique<EulerNACAOptimization<dim,nstate>>(parameters_input);
     } else if(test_type == Test_enum::euler_naca_drag_optimization_lift_constrained) {
         if constexpr (dim==2 && nstate==dim+2) return std::make_unique<EulerNACADragOptimizationLiftConstrained<dim,nstate>>(parameters_input);
+        if constexpr (dim==3 && nstate==dim+2) return std::make_unique<EulerNACADragOptimizationLiftConstrained<dim,nstate>>(parameters_input);
     } else if(test_type == Test_enum::euler_naca_optimization_constrained) {
         if constexpr (dim==2 && nstate==dim+2) return std::make_unique<EulerNACAOptimizationConstrained<dim,nstate>>(parameters_input);
     } else if(test_type == Test_enum::shock_1d) {

@@ -835,7 +835,7 @@ int AnisotropicMeshAdaptationCases<dim, nstate> :: run_test () const
         */
         }
 
-        const unsigned int n_meshes = 2;
+        const unsigned int n_meshes = 4;
         for(unsigned int imesh = 0; imesh < n_meshes; ++imesh)
         {
             if(imesh>0)

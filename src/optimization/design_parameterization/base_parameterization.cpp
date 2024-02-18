@@ -20,7 +20,7 @@ void BaseParameterization<dim> :: output_design_variables(unsigned int /*iterati
 }
 
 template<int dim>
-void BaseParameterization<dim> ::  output_control_nodes() const
+void BaseParameterization<dim> ::  output_control_nodes(const std::string /*filename*/) const
 {
 }
 template<int dim>

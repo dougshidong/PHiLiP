@@ -248,11 +248,13 @@ void MeshOptimizer<dim,nstate>::run_full_space_optimizer(
     {
         if(output_refined_nodes)
         {
+            std::string filename = "q2_controlnodes_cells";
+            const unsigned int poly_degree = dg->get_min_fe_degree();
+            const unsigned int n_cells = dg->triangulation->n_global_active_cells();
+            filename += std::to_string(n_cells) + "_p";
+            filename += std::to_string(poly_degree);
+            design_parameterization->output_control_nodes(filename);
             design_parameterization->output_control_nodes_refined();
-        }
-        else
-        {
-            design_parameterization->output_control_nodes();
         }
     }
 }

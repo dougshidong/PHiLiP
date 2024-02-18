@@ -619,7 +619,7 @@ void SpecificNodesParameterization<dim> :: write_control_nodes_to_file(
 }
 
 template<int dim>
-void SpecificNodesParameterization<dim> :: output_control_nodes() const
+void SpecificNodesParameterization<dim> :: output_control_nodes(const std::string /*filename*/) const
 {
     std::vector<std::pair<double,double>> final_control_nodes_list = get_final_control_nodes_list();
     write_control_nodes_to_file(final_control_nodes_list);

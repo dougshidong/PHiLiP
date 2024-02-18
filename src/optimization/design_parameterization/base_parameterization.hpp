@@ -42,7 +42,7 @@ public:
     /// Checks if the updated design variable doesn't distort the mesh (which is possible when backtracking with high initial step length). Returns 0 if everything is good.
     virtual int is_design_variable_valid(const MatrixType &dXv_dXp, const VectorType &design_var) const;
 
-    virtual void output_control_nodes() const;
+    virtual void output_control_nodes(const std::string filename) const;
     virtual void output_control_nodes_with_interpolated_high_order_nodes() const;
     virtual void output_control_nodes_refined() const;
 

@@ -58,6 +58,7 @@ public:
     
     void write_solution_volume_nodes_to_file(std::shared_ptr<DGBase<dim,double>> dg) const;
     void read_solution_volume_nodes_from_file(std::shared_ptr<DGBase<dim,double>> dg) const;
+    void update_q2_controlnodes_file(std::shared_ptr<DGBase<dim,double>> dg) const;
 
 }; 
 

@@ -586,11 +586,12 @@ std::vector<std::pair<double,double>> OneDSpecificNodesParameterization<dim> :: 
 
 template<int dim>
 void OneDSpecificNodesParameterization<dim> :: write_control_nodes_to_file(
-    const std::vector<std::pair<double,double>> &final_control_nodes_list) const
+    const std::vector<std::pair<double,double>> &final_control_nodes_list,
+    const std::string filename) const
 {
     if(this->mpi_rank == 0)
     {
-        std::ofstream outfile("q2_cylinder_controlnodes.txt"); 
+        std::ofstream outfile(filename); 
 
         if(! outfile.is_open())
         {
@@ -610,10 +611,10 @@ void OneDSpecificNodesParameterization<dim> :: write_control_nodes_to_file(
 }
 
 template<int dim>
-void OneDSpecificNodesParameterization<dim> :: output_control_nodes() const
+void OneDSpecificNodesParameterization<dim> :: output_control_nodes(const std::string filename) const
 {
     std::vector<std::pair<double,double>> final_control_nodes_list = get_final_control_nodes_list();
-    write_control_nodes_to_file(final_control_nodes_list);
+    write_control_nodes_to_file(final_control_nodes_list, filename);
 }
 
 template<int dim>
@@ -639,8 +640,8 @@ void OneDSpecificNodesParameterization<dim> :: output_control_nodes_with_interpo
         return left.second < right.second;
         });
     }
-
-    write_control_nodes_to_file(final_control_nodes_list); 
+    const std::string filename = "q2_cylinder_controlnodes.txt";
+    write_control_nodes_to_file(final_control_nodes_list, filename); 
 }
 
 template<int dim>
@@ -679,7 +680,8 @@ void OneDSpecificNodesParameterization<dim> :: output_control_nodes_refined() co
         });
     }
 
-    write_control_nodes_to_file(final_control_nodes_list);     
+    const std::string filename = "q2_cylinder_controlnodes.txt";
+    write_control_nodes_to_file(final_control_nodes_list, filename);     
 }
 
 template class OneDSpecificNodesParameterization<PHILIP_DIM>;

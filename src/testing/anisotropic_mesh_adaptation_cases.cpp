@@ -89,6 +89,62 @@ void AnisotropicMeshAdaptationCases<dim,nstate>::read_solution_volume_nodes_from
     dg->high_order_grid->volume_nodes.update_ghost_values();
     dg->solution.update_ghost_values();
 }
+    
+template<int dim, int nstate>
+void AnisotropicMeshAdaptationCases<dim,nstate>::update_q2_controlnodes_file(std::shared_ptr<DGBase<dim,double>> dg) const
+{
+    std::string filename_in = "q2_controlnodes_cells";
+    const unsigned int poly_degree = dg->get_min_fe_degree();
+    const unsigned int n_cells = dg->triangulation->n_global_active_cells();
+    filename_in += std::to_string(n_cells) + "_p";
+    filename_in += std::to_string(poly_degree);
+
+    const std::string filename_out = "q2_cylinder_controlnodes.txt";
+
+    if(this->mpi_rank==0)
+    {
+    
+        std::ifstream infile(filename_in);
+        std::ofstream outfile(filename_out);
+
+        if( (!infile.is_open()) || (!outfile.is_open()))
+        {
+            std::cout<<"Could not open file in src/testing/anisotropic_mesh_adaptation_cases.cpp. Aborting.."<<std::endl;
+            std::abort();
+        }
+        
+        std::string line;
+        std::getline(infile, line); // skip the first line.
+        outfile<<"x,y"<<'\n';
+        while(std::getline(infile, line))
+        {
+            std::stringstream ss(line);
+
+            std::string field_x;
+
+            std::getline(ss, field_x, ',');
+
+            std::stringstream ss_x(field_x);
+            double xval = 0.0;
+            ss_x >> xval;
+
+            std::string field_y;
+
+            std::getline(ss, field_y, ',');
+            
+            std::stringstream ss_y(field_y);
+
+            double yval = 0;
+
+            ss_y >> yval;
+
+            outfile<<xval<<","<<yval<<'\n';
+        }
+        infile.close();
+        outfile.close();
+    } // mpi_rank==0
+
+}
 
 template<int dim, int nstate>
 void AnisotropicMeshAdaptationCases<dim,nstate>::increase_grid_degree_and_interpolate_solution(std::shared_ptr<DGBase<dim,double>> dg) const
@@ -605,6 +661,7 @@ int AnisotropicMeshAdaptationCases<dim, nstate> :: run_test () const
     const Parameters::AllParameters param = *(TestsBase::all_parameters);
     const bool run_mesh_optimizer = param.optimization_param.max_design_cycles > 0;
     const bool run_fixedfraction_mesh_adaptation = param.mesh_adaptation_param.total_mesh_adaptation_cycles > 0;
+    const bool read_from_file = (param.flow_solver_param.max_poly_degree_for_adaptation > 2);
     
     std::unique_ptr<FlowSolver::FlowSolver<dim,nstate>> flow_solver = FlowSolver::FlowSolverFactory<dim,nstate>::select_flow_case(&param, parameter_handler);
 
@@ -638,25 +695,28 @@ int AnisotropicMeshAdaptationCases<dim, nstate> :: run_test () const
         {
             flow_solver->dg->set_p_degree_and_interpolate_solution(1);
 
-            dealii::TrilinosWrappers::SparseMatrix regularization_matrix_poisson_q1;
-            evaluate_regularization_matrix(regularization_matrix_poisson_q1, flow_solver->dg);
-            Parameters::AllParameters param_q1 = param;
-            if(flow_solver->dg->all_parameters->flow_solver_param.max_poly_degree_for_adaptation==2)
+            if(!read_from_file)
             {
-                param_q1.optimization_param.max_design_cycles = 4;
+
+                dealii::TrilinosWrappers::SparseMatrix regularization_matrix_poisson_q1;
+                evaluate_regularization_matrix(regularization_matrix_poisson_q1, flow_solver->dg);
+                Parameters::AllParameters param_q1 = param;
+                if(flow_solver->dg->all_parameters->flow_solver_param.max_poly_degree_for_adaptation==2)
+                {
+                    param_q1.optimization_param.max_design_cycles = 4;
+                }
+                else
+                {
+                    param_q1.optimization_param.max_design_cycles = 4;
+                }
+                param_q1.optimization_param.regularization_parameter_sim = 1.0;
+                param_q1.optimization_param.regularization_parameter_control = 1.0;
+                std::unique_ptr<MeshOptimizer<dim,nstate>> mesh_optimizer_q1 = 
+                                std::make_unique<MeshOptimizer<dim,nstate>> (flow_solver->dg, &param_q1, true);
+                const bool output_refined_nodes = false;
+                mesh_optimizer_q1->run_full_space_optimizer(regularization_matrix_poisson_q1, use_oneD_parameteriation, output_refined_nodes, output_val-1);
+                output_vtk_files(flow_solver->dg, output_val-1);
             }
-            else
-            {
-                param_q1.optimization_param.max_design_cycles = 4;
-            }
-            param_q1.optimization_param.regularization_parameter_sim = 1.0;
-            param_q1.optimization_param.regularization_parameter_control = 1.0;
-            std::unique_ptr<MeshOptimizer<dim,nstate>> mesh_optimizer_q1 = 
-                            std::make_unique<MeshOptimizer<dim,nstate>> (flow_solver->dg, &param_q1, true);
-            const bool output_refined_nodes = false;
-            mesh_optimizer_q1->run_full_space_optimizer(regularization_matrix_poisson_q1, use_oneD_parameteriation, output_refined_nodes, output_val-1);
-            output_vtk_files(flow_solver->dg, output_val-1);
-            
             /*
             flow_solver->run();
             if(flow_solver->dg->get_residual_l2norm() > 1.0e-10)
@@ -684,12 +744,21 @@ int AnisotropicMeshAdaptationCases<dim, nstate> :: run_test () const
         */
         }
 
-        const unsigned int n_meshes = 4;
+        const unsigned int n_meshes = 2;
         for(unsigned int imesh = 0; imesh < n_meshes; ++imesh)
         {
             if(imesh>0)
             {
                 refine_mesh_and_interpolate_solution(flow_solver->dg);
+            }
+            if(read_from_file)
+            {
+                const unsigned int poly_degree_current = flow_solver->dg->get_min_fe_degree();
+                const unsigned int poly_degree_coarse = poly_degree_current-1;
+                flow_solver->dg->set_p_degree_and_interpolate_solution(poly_degree_coarse);
+                read_solution_volume_nodes_from_file(flow_solver->dg);
+                update_q2_controlnodes_file(flow_solver->dg);
+                flow_solver->dg->set_p_degree_and_interpolate_solution(poly_degree_current);
             }
             dealii::TrilinosWrappers::SparseMatrix regularization_matrix_poisson_q2;
             evaluate_regularization_matrix(regularization_matrix_poisson_q2, flow_solver->dg);

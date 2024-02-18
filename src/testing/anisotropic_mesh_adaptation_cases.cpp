@@ -561,11 +561,68 @@ double AnisotropicMeshAdaptationCases<dim,nstate> :: output_vtk_files(std::share
 template <int dim, int nstate>
 double AnisotropicMeshAdaptationCases<dim,nstate> :: evaluate_functional_error(std::shared_ptr<DGBase<dim,double>> dg) const
 {
-    const double functional_exact = (5.79555511474609375*2.0)*1.4*3.0;
+    double functional_exact_global = 0;
+    if constexpr(nstate==dim+2)
+    {
+        double functional_exact = 0;
+        std::shared_ptr<Physics::Euler<dim,nstate,double>> euler_physics_double
+            = std::make_shared<Physics::Euler<dim, nstate, double>>(
+                    dg->all_parameters->euler_param.ref_length,
+                    dg->all_parameters->euler_param.gamma_gas,
+                    dg->all_parameters->euler_param.mach_inf,
+                    dg->all_parameters->euler_param.angle_of_attack,
+                    dg->all_parameters->euler_param.side_slip_angle);
+        std::unique_ptr < NumericalFlux::NumericalFluxConvective<dim, nstate, double > > conv_num_flux_double
+         = NumericalFlux::NumericalFluxFactory<dim, nstate, double> ::create_convective_numerical_flux (dg->all_parameters->conv_num_flux_type, dg->all_parameters->pde_type, dg->all_parameters->model_type, euler_physics_double);
+        
+        const unsigned int poly_degree = dg->get_min_fe_degree();
+        
+        const dealii::Mapping<dim> &mapping = (*(dg->high_order_grid->mapping_fe_field));
+        dealii::FEFaceValues<dim,dim> fe_face_values_bc(mapping, dg->fe_collection[poly_degree], 
+                                    dg->face_quadrature_collection[poly_degree],
+                                    dealii::update_normal_vectors | dealii::update_values | dealii::update_quadrature_points); 
+        const unsigned int n_face_quad_pts = fe_face_values_bc.n_quadrature_points;
+        const unsigned int n_dofs_cell = fe_face_values_bc.dofs_per_cell;
+        std::array<double,nstate> soln_at_q;
+        std::vector<dealii::types::global_dof_index> dofs_indices(n_dofs_cell);
+        for(const auto &cell: dg->dof_handler.active_cell_iterators())
+        {
+            if(!cell->is_locally_owned()){continue;}
+            cell->get_dof_indices(dofs_indices);
+            for (unsigned int iface=0; iface < dealii::GeometryInfo<dim>::faces_per_cell; ++iface)
+            {
+                auto current_face = cell->face(iface);
+                if(!current_face->at_boundary()){continue;}
+                const unsigned int boundary_id = current_face->boundary_id();
+
+                fe_face_values_bc.reinit(cell,iface);
+                for(unsigned int iquad = 0; iquad < n_face_quad_pts; ++iquad)
+                {
+                    soln_at_q.fill(0.0); 
+                    for(unsigned int idof = 0; idof < fe_face_values_bc.dofs_per_cell; ++idof)
+                    {
+                        const unsigned int istate = fe_face_values_bc.get_fe().system_to_component_index(idof).first;
+                        soln_at_q[istate] += dg->solution(dofs_indices[idof])*fe_face_values_bc.shape_value_component(idof, iquad, istate);
+                    }
+                    const dealii::Tensor<1,dim,double> & normal = fe_face_values_bc.normal_vector(iquad);
+
+                    if(boundary_id == 1007) // supersonic inflow
+                    {
+                        functional_exact -= euler_physics_double->density_inf *
+                            (euler_physics_double->velocities_inf*normal) *
+                            fe_face_values_bc.JxW(iquad);
+                    }
+
+                } //quad loop
+            } // face loop
+        } // cell loop
+    
+    functional_exact_global = dealii::Utilities::MPI::sum(functional_exact, mpi_communicator);
+    } // const expr nstate==dim+2
     std::shared_ptr< Functional<dim, nstate, double> > functional
                                 = FunctionalFactory<dim,nstate,double>::create_Functional(dg->all_parameters->functional_param, dg);
     const double functional_val = functional->evaluate_functional();
-    const double error_val = abs(functional_val - functional_exact);
+    const double error_val = abs(functional_val - functional_exact_global);
     return error_val;
 }
 

@@ -733,6 +733,97 @@ inline real InitialConditionFunction_AcousticWave_MultiSpecies<dim, nstate, real
     return value;
 }
 
+// ========================================================
+// 1D Vortex advection  (Multi Species) -- Initial Condition 
+// ========================================================
+template <int dim, int nstate, typename real>
+InitialConditionFunction_MultiSpecies_VortexAdvection<dim,nstate,real>
+::InitialConditionFunction_MultiSpecies_VortexAdvection(
+        Parameters::AllParameters const *const param)
+    : InitialConditionFunction<dim,nstate,real>()
+    , gamma_gas(param->euler_param.gamma_gas)
+    , mach_inf(param->euler_param.mach_inf)
+    , mach_inf_sqr(mach_inf*mach_inf)
+{
+    // Euler object; create using dynamic_pointer_cast and the create_Physics factory
+    // Note that Euler primitive/conservative vars are the same as NS
+    PHiLiP::Parameters::AllParameters parameters_euler = *param;
+    parameters_euler.pde_type = Parameters::AllParameters::PartialDifferentialEquation::real_gas;
+    this->real_gas_physics = std::dynamic_pointer_cast<Physics::RealGas<dim,dim+2+2-1,double>>( // TO DO: N_SPECIES, dim+2+3-1
+                Physics::PhysicsFactory<dim,dim+2+2-1,double>::create_Physics(&parameters_euler)); // TO DO: N_SPECIES, dim+2+3-1
+}
+template <int dim, int nstate, typename real>
+real InitialConditionFunction_MultiSpecies_VortexAdvection<dim,nstate,real>
+::primitive_value(const dealii::Point<dim,real> &point, const unsigned int istate) const
+{
+    // Note: This is in non-dimensional form (free-stream values as reference)
+    real value = 0.;
+    if constexpr(dim == 2) {
+        const real x = point[0], y = point[1];
+
+        if(istate==0) {
+            // mixture density
+            value = 1.00;
+        }
+        if(istate==1) {
+            // x-velocity
+            // value = sin(x)*cos(y);
+            value = 0.5;
+        }
+        if(istate==2) {
+            // y-velocity
+            // value = -cos(x)*sin(y);
+            value = 0.5;
+        }
+        if(istate==3) {
+            // pressure
+            // value = 1.0/(this->gamma_gas*this->mach_inf_sqr) + (1.0/16.0)*(cos(2.0*x)+cos(2.0*y))*(2.0);
+            // value = 1.0 + (x-x+y-y);
+            double const sigma = 0.5;
+            double const pi = 6.28318530717958623200 / 2; // pi
+            double const mu = 6.28318530717958623200 / 2 ; //max of x
+            double fx = (1.0/sqrt(2.0*pi*sigma*sigma))*exp(-((x-mu)*(x-mu))/(2.0*(sigma*sigma)));
+            double fy = (1.0/sqrt(2.0*pi*sigma*sigma))*exp(-((y-mu)*(y-mu))/(2.0*(sigma*sigma)));
+            value = 1.0/(this->gamma_gas*this->mach_inf_sqr) + fx*fy;
+            value = value*6.0/3.0; // chnege this if you want to vary initial temperature 
+        }
+        if(istate==4){
+            // other species density (N2)
+            value = 0.79;
+        }
+    }
+    return value;
+}
+
+template <int dim, int nstate, typename real>
+real InitialConditionFunction_MultiSpecies_VortexAdvection<dim,nstate,real>
+::convert_primitive_to_conversative_value(
+    const dealii::Point<dim,real> &point, const unsigned int istate) const
+{
+    real value = 0.0;
+    if constexpr(dim == 2) {
+        std::array<real,nstate> soln_primitive;
+
+        for (int i=0; i<nstate; i++)
+        {
+            soln_primitive[i] = primitive_value(point,i);
+        }
+
+        const std::array<real,nstate> soln_conservative = this->real_gas_physics->convert_primitive_to_conservative(soln_primitive);
+        value = soln_conservative[istate];
+    }
+    return value;
+}
+
+template <int dim, int nstate, typename real>
+inline real InitialConditionFunction_MultiSpecies_VortexAdvection<dim, nstate, real>
+::value(const dealii::Point<dim,real> &point, const unsigned int istate) const
+{
+    real value = 0.0;
+    value = convert_primitive_to_conversative_value(point,istate);
+    return value;
+}
+
 // =========================================================
 // Initial Condition Factory
 // =========================================================
@@ -803,6 +894,10 @@ InitialConditionFactory<dim,nstate, real>::create_InitialConditionFunction(
     } else if (flow_type == FlowCaseEnum::multi_species_acoustic_wave) {
         if constexpr (dim==2 && nstate==dim+2+2-1){ // TO DO: N_SPECIES
             return std::make_shared<InitialConditionFunction_AcousticWave_MultiSpecies<dim,nstate,real> >(param);
+        }
+    } else if (flow_type == FlowCaseEnum::multi_species_vortex_advection) {
+        if constexpr (dim==2 && nstate==dim+2+2-1){ // TO DO: N_SPECIES, dim = 1, nstate = dim+2+3-1
+            return std::make_shared<InitialConditionFunction_MultiSpecies_VortexAdvection<dim,nstate,real> >(param);
         }
     } else {
         std::cout << "Invalid Flow Case Type. You probably forgot to add it to the list of flow cases in initial_condition_function.cpp" << std::endl;

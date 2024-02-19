@@ -16,3 +16,16 @@ add_test(
   COMMAND mpirun -np ${MPIMAX} ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_2D -i ${CMAKE_CURRENT_BINARY_DIR}/2d_multi_species_acoustic_wave.prm
   WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
 )
+
+# =======================================
+# Vortex advection 1D
+# =======================================
+# ----------------------------------------
+# Vortex advectiion 1D (Air composition)
+# ----------------------------------------
+configure_file(1d_multi_species_vortex_advection.prm 1d_multi_species_vortex_advection.prm COPYONLY)
+add_test(
+  NAME MPI_1D_MULTI_SPECIES_VORTEX_ADVECTION
+  COMMAND mpirun -np ${MPIMAX} ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_2D -i ${CMAKE_CURRENT_BINARY_DIR}/1d_multi_species_vortex_advection.prm
+  WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
+)

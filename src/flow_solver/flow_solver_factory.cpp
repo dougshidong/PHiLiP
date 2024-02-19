@@ -93,6 +93,11 @@ FlowSolverFactory<dim,nstate>
             std::shared_ptr<FlowSolverCaseBase<dim, nstate>> flow_solver_case = std::make_shared<PeriodicCubeFlow<dim,nstate>>(parameters_input);
             return std::make_unique<FlowSolver<dim,nstate>>(parameters_input, flow_solver_case, parameter_handler_input);
         }
+    } else if (flow_type == FlowCaseEnum::multi_species_vortex_advection){
+        if constexpr (dim==2 && nstate==dim+2+2-1){ // TO  DO: dim = 1, nstate = dim+2+3-1
+            std::shared_ptr<FlowSolverCaseBase<dim, nstate>> flow_solver_case = std::make_shared<PeriodicCubeFlow<dim,nstate>>(parameters_input);
+            return std::make_unique<FlowSolver<dim,nstate>>(parameters_input, flow_solver_case, parameter_handler_input);
+        }
     } else {
         std::cout << "Invalid flow case. You probably forgot to add it to the list of flow cases in flow_solver_factory.cpp" << std::endl;
         std::abort();

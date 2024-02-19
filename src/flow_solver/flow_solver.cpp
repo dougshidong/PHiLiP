@@ -585,7 +585,7 @@ int FlowSolver<dim,nstate>::run() const
         // Steady-state solution
         //----------------------------------------------------
         using ODEEnum = Parameters::ODESolverParam::ODESolverEnum;
-        if(flow_solver_param.steady_state_polynomial_ramping && (ode_param.ode_solver_type != ODEEnum::pod_galerkin_solver && ode_param.ode_solver_type != ODEEnum::pod_petrov_galerkin_solver)) {
+        if(flow_solver_param.steady_state_polynomial_ramping && (ode_param.ode_solver_type != ODEEnum::pod_galerkin_solver && ode_param.ode_solver_type != ODEEnum::pod_petrov_galerkin_solver && ode_param.ode_solver_type != ODEEnum::hyper_reduced_petrov_galerkin_solver)) {
             ode_solver->initialize_steady_polynomial_ramping(poly_degree);
         }
 

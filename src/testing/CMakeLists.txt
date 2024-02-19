@@ -25,7 +25,7 @@ set(TESTS_SOURCE
     anisotropic_mesh_adaptation_cases.cpp
     taylor_green_vortex_energy_check.cpp
     taylor_green_vortex_restart_check.cpp
-    pod_adaptive_sampling.cpp
+    pod_adaptive_sampling_run.cpp
     pod_adaptive_sampling_testing.cpp
     reduced_order.cpp
     time_refinement_study.cpp
@@ -35,6 +35,12 @@ set(TESTS_SOURCE
     euler_entropy_conserving_split_forms_check.cpp
     homogeneous_isotropic_turbulence_initialization_check.cpp
     khi_robustness.cpp
+    build_NNLS_problem.cpp
+    hyper_reduction_comparison.cpp
+    hyper_adaptive_sampling_run.cpp
+    hyper_reduction_post_sampling.cpp
+    ROM_error_post_sampling.cpp
+    HROM_error_post_sampling.cpp
     naca0012_unsteady_check_quick.cpp
     )
 

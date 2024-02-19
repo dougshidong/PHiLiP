@@ -9,7 +9,7 @@
 #include <deal.II/lac/vector.h>
 
 #include "parameters/all_parameters.h"
-#include "dg/dg.h"
+#include "dg/dg_base.hpp"
 
 
 namespace PHiLiP {

@@ -43,6 +43,7 @@
 #include "euler_entropy_conserving_split_forms_check.h"
 #include "homogeneous_isotropic_turbulence_initialization_check.h"
 #include "khi_robustness.h"
+#include "naca0012_unsteady_check_quick.h"
 #include "build_NNLS_problem.h"
 #include "hyper_reduction_comparison.h"
 #include "hyper_adaptive_sampling_run.h"
@@ -319,6 +320,8 @@ std::unique_ptr< TestsBase > TestsFactory<dim,nstate,MeshType>
         if constexpr ((dim==2 && nstate==dim+2) || (dim==1 && nstate==1))  return std::make_unique<ROMErrorPostSampling<dim,nstate>>(parameters_input, parameter_handler_input);
     } else if(test_type == Test_enum::HROM_error_post_sampling) {
         if constexpr ((dim==2 && nstate==dim+2) || (dim==1 && nstate==1))  return std::make_unique<HROMErrorPostSampling<dim,nstate>>(parameters_input, parameter_handler_input);
+    } else if(test_type == Test_enum::naca0012_unsteady_check_quick){
+        if constexpr (dim==2 && nstate==dim+2)  return std::make_unique<NACA0012UnsteadyCheckQuick<dim, nstate>>(parameters_input, parameter_handler_input);
     } else {
         std::cout << "Invalid test. You probably forgot to add it to the list of tests in tests.cpp" << std::endl;
         std::abort();

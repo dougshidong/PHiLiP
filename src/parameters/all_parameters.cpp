@@ -185,13 +185,14 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       " burgers_energy_conservation_rrk | "
                       " euler_entropy_conserving_split_forms_check | "
                       " h_refinement_study_isentropic_vortex | "
-                      " khi_robustness | "
                       " build_NNLS_problem |"
                       " hyper_reduction_comparison |"
                       " hyper_adaptive_sampling_run |"
                       " hyper_reduction_post_sampling |"
                       " ROM_error_post_sampling |"
-                      " HROM_error_post_sampling"),
+                      " HROM_error_post_sampling | "
+                      " naca0012_unsteady_check_quick | "
+                      " khi_robustness"),
                       "The type of test we want to solve. "
                       "Choices are " 
                       " <run_control | " 
@@ -229,13 +230,14 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       "  burgers_energy_conservation_rrk | "
                       "  euler_entropy_conserving_split_forms_check | "
                       "  h_refinement_study_isentropic_vortex | "
-                      "  khi_robustness | "
                       "  build_NNLS_problem |"
-                      " hyper_reduction_comparison |"
-                      " hyper_adaptive_sampling_run |"
-                      " hyper_reduction_post_sampling |"
-                      " ROM_error_post_sampling |"
-                      " HROM_error_post_sampling.");
+                      "  hyper_reduction_comparison |"
+                      "  hyper_adaptive_sampling_run |"
+                      "  hyper_reduction_post_sampling |"
+                      "  ROM_error_post_sampling |"
+                      "  HROM_error_post_sampling | "
+                      "  naca0012_unsteady_check_quick | "
+                      "  khi_robustness>.");
 
     prm.declare_entry("pde_type", "advection",
                       dealii::Patterns::Selection(
@@ -418,7 +420,8 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
     else if (test_string == "hyper_reduction_post_sampling")            { test_type = hyper_reduction_post_sampling; }
     else if (test_string == "ROM_error_post_sampling")                  { test_type = ROM_error_post_sampling; }
     else if (test_string == "HROM_error_post_sampling")                 { test_type = HROM_error_post_sampling; }
-
+    else if (test_string == "naca0012_unsteady_check_quick")            { test_type = naca0012_unsteady_check_quick; }
+    
     overintegration = prm.get_integer("overintegration");
 
     use_weak_form = prm.get_bool("use_weak_form");

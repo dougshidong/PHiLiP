@@ -78,7 +78,7 @@ int main (int argc, char * argv[])
     std::array<clock_t,poly_max> time_diff_original;
     for(unsigned int poly_degree=poly_min; poly_degree<poly_max; poly_degree++){
 
-        PHiLiP::OPERATOR::basis_functions<dim,2*dim> basis(nstate,poly_degree, 1);
+        PHiLiP::OPERATOR::basis_functions<dim,2*dim,real> basis(nstate,poly_degree, 1);
         dealii::QGauss<1> quad1D (poly_degree+1);
         const dealii::FE_DGQArbitraryNodes<1> fe_dg(quad1D);
         const dealii::FESystem<1,1> fe_system(fe_dg, 1);

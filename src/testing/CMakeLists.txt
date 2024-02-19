@@ -41,6 +41,7 @@ set(TESTS_SOURCE
     hyper_reduction_post_sampling.cpp
     ROM_error_post_sampling.cpp
     HROM_error_post_sampling.cpp
+    naca0012_unsteady_check_quick.cpp
     )
 
 foreach(dim RANGE 1 3)

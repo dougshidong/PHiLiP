@@ -17,7 +17,6 @@ class PeriodicTurbulence : public PeriodicCubeFlow<dim,nstate>
      *  Corresponds to the number of items in IntegratedQuantitiesEnum
      * */
     static const int NUMBER_OF_INTEGRATED_QUANTITIES = 5;
-
 public:
     /// Constructor.
     explicit PeriodicTurbulence(const Parameters::AllParameters *const parameters_input);

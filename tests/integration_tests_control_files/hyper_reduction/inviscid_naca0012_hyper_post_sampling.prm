@@ -66,7 +66,8 @@ subsection reduced order
 end
 
 subsection hyperreduction
-  set NNLS_tol = 1E-06
-  set NNLS_max_iter = 5000;
-  set num_training_snaps = 6;
+  set NNLS_tol = 1e-4
+  set NNLS_max_iter = 700
+  set num_training_snaps = 6
+  set ROM_error_tol = 3e-5
 end

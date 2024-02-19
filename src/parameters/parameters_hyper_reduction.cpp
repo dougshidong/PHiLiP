@@ -27,6 +27,9 @@ void HyperReductionParam::declare_parameters (dealii::ParameterHandler &prm)
         prm.declare_entry("adapt_sampling_bool","true",
                           dealii::Patterns::Bool(),
                           "Set as true by default (i.e. runs adaptive sampling procedure before hyperreduction). ");
+        prm.declare_entry("ROM_error_tol", "0",
+                          dealii::Patterns::Double(0, dealii::Patterns::Double::max_double_value),
+                          "Minimum Error for ROM sampling point to be included in post-sampling HROM analysis");
     }
     prm.leave_subsection();
 }
@@ -40,6 +43,7 @@ void HyperReductionParam::parse_parameters (dealii::ParameterHandler &prm)
         training_data = prm.get("training_data");
         num_training_snaps = prm.get_integer("num_training_snaps");
         adapt_sampling_bool = prm.get_bool("adapt_sampling_bool");
+        ROM_error_tol = prm.get_double("ROM_error_tol");
     }
     prm.leave_subsection();
 }

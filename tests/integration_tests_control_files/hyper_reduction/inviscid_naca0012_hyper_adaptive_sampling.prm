@@ -1,7 +1,7 @@
 # Listing of Parameters
 # ---------------------
 
-set test_type = hyper_adaptive_sampling_test
+set test_type = hyper_adaptive_sampling_run
 set dimension = 2
 set pde_type  = euler
 
@@ -63,4 +63,11 @@ subsection reduced order
   set parameter_max_values = 0.9, 5
   set num_halton = 0
   set recomputation_coefficient = 5
+end
+
+subsection hyperreduction
+  set NNLS_tol = 1E-04
+  set NNLS_max_iter = 5000
+  set num_training_snaps = 6
+  set training_data = jacobian
 end

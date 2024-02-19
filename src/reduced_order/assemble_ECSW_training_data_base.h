@@ -1,5 +1,5 @@
-#ifndef __ASSEMBLE_PROBLEM_ECSW__
-#define __ASSEMBLE_PROBLEM_ECSW__
+#ifndef __ASSEMBLE_ECSW_BASE__
+#define __ASSEMBLE_ECSW_BASE__
 
 #include <eigen/Eigen/Dense>
 #include <Epetra_CrsMatrix.h>
@@ -7,34 +7,33 @@
 #include <Epetra_Vector.h>
 #include <EpetraExt_MatrixMatrix.h>
 #include "dg/dg_base.hpp"
-#include "reduced_order/pod_basis_base.h"
-#include "testing/pod_adaptive_sampling.h"
+#include "pod_basis_base.h"
 #include "parameters/all_parameters.h"
 
 namespace PHiLiP {
 namespace HyperReduction {
 using Eigen::MatrixXd;
+using Eigen::RowVectorXd;
 using Eigen::VectorXd;
 
-/// Class for assembling NNLS problem (C matrix & d vector from the residual of each snapshot) for finding
-/// the weights for the ECSW hyper-reduction approach. NOTE: This class does not solve for the weights, but
-/// A and b can be passed to the NNLS solver class.
+/// Base class for assembling the ECSW training data. Training data can be residual-based or Jacobian-based.
+/// NOTE: This class does not solve for the weights, but A and b can be passed to the NNLS solver class.
 
 template <int dim, int nstate>
-class AssembleECSW
+class AssembleECSWBase
 {
 public:
     /// Constructor
-    AssembleECSW(
+    AssembleECSWBase(
         const PHiLiP::Parameters::AllParameters *const parameters_input,
         const dealii::ParameterHandler &parameter_handler_input,
         std::shared_ptr<DGBase<dim,double>> &dg_input, 
         std::shared_ptr<ProperOrthogonalDecomposition::PODBase<dim>> pod,
-        std::shared_ptr<Tests::AdaptiveSampling<dim,nstate>> parameter_sampling_input,
+        MatrixXd snapshot_parameters_input,
         Parameters::ODESolverParam::ODESolverEnum ode_solver_type);
 
     /// Destructor
-    ~AssembleECSW () {};
+    virtual ~AssembleECSWBase () {};
 
     const Parameters::AllParameters *const all_parameters; ///< Pointer to all parameters
 
@@ -47,12 +46,12 @@ public:
     /// POD
     std::shared_ptr<ProperOrthogonalDecomposition::PODBase<dim>> pod;
 
-    /// Sampling Class (currently being used for the reinitParams and snapshot_parameters)
-    std::shared_ptr<Tests::AdaptiveSampling<dim,nstate>> parameter_sampling;
+    /// Matrix of snapshot parameters
+    mutable MatrixXd snapshot_parameters;
 
     const MPI_Comm mpi_communicator; ///< MPI communicator.
 
-    /// ODE Solve Type/ Projection Type (galerkin or petrov-galerkins)
+    /// ODE Solve Type/ Projection Type (galerkin or petrov-galerkin)
     Parameters::ODESolverParam::ODESolverEnum ode_solver_type;
 
     /// Matrix for the NNLS Problem
@@ -64,12 +63,17 @@ public:
     /// Generate Test Basis from the pod and snapshot info depending on the ode_solve_type (copied from the ODE solvers)
     std::shared_ptr<Epetra_CrsMatrix> local_generate_test_basis(Epetra_CrsMatrix &system_matrix, const Epetra_CrsMatrix &pod_basis);
     
+    /// Reinitialize parameters
+    Parameters::AllParameters reinitParams(const RowVectorXd& parameter) const;
+
+    /// Update POD and Snapshot Parameters
+    void updatePODSnaps(std::shared_ptr<ProperOrthogonalDecomposition::PODBase<dim>> pod_update, MatrixXd snapshot_parameters_update);
+
     /// Fill entries of A and b
-    void build_problem();
+    virtual void build_problem() = 0;
 };
 
-}
-}
-
+} // HyperReduction namespace
+} // PHiLiP namespace
 
 #endif

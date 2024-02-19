@@ -28,7 +28,7 @@ end
 #Reduced order parameters
 subsection reduced order
   set adaptation_tolerance = 1e-04
-  set path_to_search = .
+  set path_to_search = ./burgers
   set reduced_residual_tolerance = 1e-14
   set parameter_names = rewienski_b
   set parameter_min_values = 0.01

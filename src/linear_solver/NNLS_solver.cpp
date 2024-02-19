@@ -253,15 +253,26 @@ bool NNLS_solver::solve(){
 
     double normb[1];
     b_.Norm2(normb);
-    // Exit Condition on the residual based on the norm of b
-    if ((normRes[0]) <= (all_parameters->hyper_reduction_param.NNLS_tol * normb[0])){
-      return true;
-    }
 
     // Old exit condition dependent on the maxGradient
     if (grad_exit_crit_){
       if (maxGradient < all_parameters->hyper_reduction_param.NNLS_tol){
         std::cout << "Exited due to Gradient Criteria" << std::endl;
+        std::cout << "Norm-2 of b" << std::endl;
+        std::cout << normb[0] << std::endl;
+        std::cout << "Norm-2 of the residual (b-A*x)" << std::endl;
+        std::cout << normRes[0] << std::endl;
+        return true;
+      }
+    }
+    // Exit Condition on the residual based on the norm of b
+    else {
+      if ((normRes[0]) <= (all_parameters->hyper_reduction_param.NNLS_tol * normb[0])){
+        std::cout << "Exited due to Residual Criteria" << std::endl;
+        std::cout << "Norm-2 of b" << std::endl;
+        std::cout << normb[0] << std::endl;
+        std::cout << "Norm-2 of the residual (b-A*x)" << std::endl;
+        std::cout << normRes[0] << std::endl;
         return true;
       }
     }

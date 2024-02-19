@@ -7,7 +7,8 @@
 namespace PHiLiP {
 namespace Tests {
 
-/// Hyper-reduction test, verifies accuracy of the solution with ECSW hyper-reduction of the residual and Jacobian
+/// Compare FOM, ROM, and HROM (when hyperreduction is conducted after the adaptive sampling procedure)
+/// Check accuracy in the solution and the functional at one parameter location
 template <int dim, int nstate>
 class HyperReductionComparison: public TestsBase
 {
@@ -19,7 +20,7 @@ public:
     /// Reinitialize parameters
     Parameters::AllParameters reinitParams(const int max_iter) const;
     
-    /// Run Hyper-reduction tes
+    /// Build three models and evaluate error measures
     int run_test () const override;
 
     /// Dummy parameter handler because flowsolver requires it

@@ -1,5 +1,5 @@
-#ifndef __BUILD_NNLS_PROBLEM_H__
-#define __BUILD_NNLS_PROBLEM_H__
+#ifndef __POD_ADAPTIVE_SAMPLING_RUN_H__
+#define __POD_ADAPTIVE_SAMPLING_RUN_H__
 
 #include "tests.h"
 #include "parameters/all_parameters.h"
@@ -7,18 +7,16 @@
 namespace PHiLiP {
 namespace Tests {
 
-/// Test assembling NNLS problem from Online POD
-/// Note: An instance of AdaptiveSampling is built, but the sampling is not run to completion, only the initial snapshots are placed
-/// Results compared to NNLS solution for MATLAB
+/// Runs adaptive sampling procedure 
 template <int dim, int nstate>
-class BuildNNLSProblem: public TestsBase
+class AdaptiveSamplingRun: public TestsBase
 {
 public:
     /// Constructor.
-    BuildNNLSProblem(const Parameters::AllParameters *const parameters_input,
+    AdaptiveSamplingRun(const Parameters::AllParameters *const parameters_input,
                  const dealii::ParameterHandler &parameter_handler_input);
-
-    /// Run Assemble Problem ECSW
+    
+    /// Run adaptive sampling procedure 
     int run_test () const override;
 
     /// Dummy parameter handler because flowsolver requires it

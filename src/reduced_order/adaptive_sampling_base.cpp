@@ -1,31 +1,32 @@
-#include "pod_adaptive_sampling.h"
+#include "adaptive_sampling_base.h"
 #include <iostream>
 #include <filesystem>
 #include "functional/functional.h"
 #include <deal.II/lac/trilinos_sparse_matrix.h>
 #include <deal.II/lac/vector_operation.h>
-#include "reduced_order/reduced_order_solution.h"
+#include "reduced_order_solution.h"
 #include "flow_solver/flow_solver.h"
 #include "flow_solver/flow_solver_factory.h"
 #include <cmath>
-#include "reduced_order/rbf_interpolation.h"
+#include "rbf_interpolation.h"
 #include "ROL_Algorithm.hpp"
 #include "ROL_LineSearchStep.hpp"
 #include "ROL_StatusTest.hpp"
 #include "ROL_Stream.hpp"
 #include "ROL_Bounds.hpp"
-#include "reduced_order/halton.h"
-#include "reduced_order/min_max_scaler.h"
-#include "tests.h"
+#include "halton.h"
+#include "min_max_scaler.h"
 
 namespace PHiLiP {
-namespace Tests {
 
 template<int dim, int nstate>
-AdaptiveSampling<dim, nstate>::AdaptiveSampling(const PHiLiP::Parameters::AllParameters *const parameters_input,
+AdaptiveSamplingBase<dim, nstate>::AdaptiveSamplingBase(const PHiLiP::Parameters::AllParameters *const parameters_input,
                                                 const dealii::ParameterHandler &parameter_handler_input)
-        : TestsBase::TestsBase(parameters_input)
+        : all_parameters(parameters_input)
         , parameter_handler(parameter_handler_input)
+        , mpi_communicator(MPI_COMM_WORLD)
+        , mpi_rank(dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD))
+        , pcout(std::cout, mpi_rank==0)
 {
     configureInitialParameterSpace();
     std::unique_ptr<FlowSolver::FlowSolver<dim,nstate>> flow_solver = FlowSolver::FlowSolverFactory<dim,nstate>::select_flow_case(all_parameters, parameter_handler);
@@ -38,60 +39,7 @@ AdaptiveSampling<dim, nstate>::AdaptiveSampling(const PHiLiP::Parameters::AllPar
 }
 
 template <int dim, int nstate>
-int AdaptiveSampling<dim, nstate>::run_test() const
-{
-    this->pcout << "Starting adaptive sampling process" << std::endl;
-
-    placeInitialSnapshots();
-    current_pod->computeBasis();
-
-    MatrixXd rom_points = nearest_neighbors->kPairwiseNearestNeighborsMidpoint();
-    pcout << rom_points << std::endl;
-
-    placeROMLocations(rom_points);
-
-    RowVectorXd max_error_params = getMaxErrorROM();
-    int iteration = 0;
-
-    while(max_error > all_parameters->reduced_order_param.adaptation_tolerance){
-
-        outputIterationData(iteration);
-
-        this->pcout << "Sampling snapshot at " << max_error_params << std::endl;
-        dealii::LinearAlgebra::distributed::Vector<double> fom_solution = solveSnapshotFOM(max_error_params);
-        snapshot_parameters.conservativeResize(snapshot_parameters.rows()+1, snapshot_parameters.cols());
-        snapshot_parameters.row(snapshot_parameters.rows()-1) = max_error_params;
-        nearest_neighbors->updateSnapshots(snapshot_parameters, fom_solution);
-        current_pod->addSnapshot(fom_solution);
-        current_pod->computeBasis();
-
-        //Update previous ROM errors with updated current_pod
-        for(auto it = rom_locations.begin(); it != rom_locations.end(); ++it){
-            it->get()->compute_initial_rom_to_final_rom_error(current_pod);
-            it->get()->compute_total_error();
-        }
-
-        updateNearestExistingROMs(max_error_params);
-
-        rom_points = nearest_neighbors->kNearestNeighborsMidpoint(max_error_params);
-        pcout << rom_points << std::endl;
-
-        placeROMLocations(rom_points);
-
-        //Update max error
-        max_error_params = getMaxErrorROM();
-
-        this->pcout << "Max error is: " << max_error << std::endl;
-        iteration++;
-    }
-
-    outputIterationData(iteration);
-
-    return 0;
-}
-
-template <int dim, int nstate>
-void AdaptiveSampling<dim, nstate>::outputIterationData(int iteration) const{
+void AdaptiveSamplingBase<dim, nstate>::outputIterationData(int iteration) const{
     std::unique_ptr<dealii::TableHandler> snapshot_table = std::make_unique<dealii::TableHandler>();
 
     std::ofstream solution_out_file("solution_snapshots_iteration_" +  std::to_string(iteration) + ".txt");
@@ -127,7 +75,7 @@ void AdaptiveSampling<dim, nstate>::outputIterationData(int iteration) const{
 }
 
 template <int dim, int nstate>
-RowVectorXd AdaptiveSampling<dim, nstate>::getMaxErrorROM() const{
+RowVectorXd AdaptiveSamplingBase<dim, nstate>::getMaxErrorROM() const{
     this->pcout << "Updating RBF interpolation..." << std::endl;
 
     int n_rows = snapshot_parameters.rows() + rom_locations.size();
@@ -208,7 +156,7 @@ RowVectorXd AdaptiveSampling<dim, nstate>::getMaxErrorROM() const{
 
         // Run Algorithm
         //ROL::Ptr<std::ostream> outStream;
-        //outStream = ROL::makePtrFromRef(std::cout);
+        //outStream = ROL::makePtrFromRef(this->pcout);
         //algo.run(x, rbf, bcon,true, *outStream);
         algo.run(x, rbf, bcon,false);
 
@@ -245,7 +193,7 @@ RowVectorXd AdaptiveSampling<dim, nstate>::getMaxErrorROM() const{
 }
 
 template <int dim, int nstate>
-void AdaptiveSampling<dim, nstate>::placeInitialSnapshots() const{
+void AdaptiveSamplingBase<dim, nstate>::placeInitialSnapshots() const{
     for(auto snap_param : snapshot_parameters.rowwise()){
         this->pcout << "Sampling initial snapshot at " << snap_param << std::endl;
         dealii::LinearAlgebra::distributed::Vector<double> fom_solution = solveSnapshotFOM(snap_param);
@@ -255,80 +203,7 @@ void AdaptiveSampling<dim, nstate>::placeInitialSnapshots() const{
 }
 
 template <int dim, int nstate>
-bool AdaptiveSampling<dim, nstate>::placeROMLocations(const MatrixXd& rom_points) const{
-    bool error_greater_than_tolerance = false;
-    for(auto midpoint : rom_points.rowwise()){
-
-        //Check if ROM point already exists as another ROM point
-        auto element = std::find_if(rom_locations.begin(), rom_locations.end(), [&midpoint](std::unique_ptr<ProperOrthogonalDecomposition::ROMTestLocation<dim,nstate>>& location){ return location->parameter.isApprox(midpoint);} );
-
-        //Check if ROM point already exists as a snapshot
-        bool snapshot_exists = false;
-        for(auto snap_param : snapshot_parameters.rowwise()){
-            if(snap_param.isApprox(midpoint)){
-                snapshot_exists = true;
-            }
-        }
-
-        if(element == rom_locations.end() && snapshot_exists == false){
-            //ProperOrthogonalDecomposition::ROMSolution<dim, nstate> rom_solution = solveSnapshotROM(midpoint);
-            std::unique_ptr<ProperOrthogonalDecomposition::ROMSolution<dim, nstate>> rom_solution = solveSnapshotROM(midpoint);
-            rom_locations.emplace_back(std::make_unique<ProperOrthogonalDecomposition::ROMTestLocation<dim,nstate>>(midpoint, std::move(rom_solution)));
-            if(abs(rom_locations.back()->total_error) > all_parameters->reduced_order_param.adaptation_tolerance){
-                error_greater_than_tolerance = true;
-            }
-        }
-        else{
-            this->pcout << "ROM already computed." << std::endl;
-        }
-    }
-    return error_greater_than_tolerance;
-}
-
-template <int dim, int nstate>
-void AdaptiveSampling<dim, nstate>::updateNearestExistingROMs(const RowVectorXd& /*parameter*/) const{
-
-    pcout << "Verifying ROM points for recomputation." << std::endl;
-    //Assemble ROM points in a matrix
-    MatrixXd rom_points(0,0);
-    for(auto it = rom_locations.begin(); it != rom_locations.end(); ++it){
-        rom_points.conservativeResize(rom_points.rows()+1, it->get()->parameter.cols());
-        rom_points.row(rom_points.rows()-1) = it->get()->parameter;
-    }
-
-    //Get distances between each ROM point and all other ROM points
-    for(auto point : rom_points.rowwise()) {
-        ProperOrthogonalDecomposition::MinMaxScaler scaler;
-        MatrixXd scaled_rom_points = scaler.fit_transform(rom_points);
-        RowVectorXd scaled_point = scaler.transform(point);
-
-        VectorXd distances = (scaled_rom_points.rowwise() - scaled_point).rowwise().squaredNorm();
-
-        std::vector<int> index(distances.size());
-        std::iota(index.begin(), index.end(), 0);
-
-        std::sort(index.begin(), index.end(),
-                  [&](const int &a, const int &b) {
-                      return distances[a] < distances[b];
-                  });
-
-        pcout << "Searching ROM points near: " << point << std::endl;
-        double local_mean_error = 0;
-        for (int i = 1; i < rom_points.cols() + 2; i++) {
-            local_mean_error = local_mean_error + std::abs(rom_locations[index[i]]->total_error);
-        }
-        local_mean_error = local_mean_error / (rom_points.cols() + 1);
-        if ((std::abs(rom_locations[index[0]]->total_error) > all_parameters->reduced_order_param.recomputation_coefficient * local_mean_error) || (std::abs(rom_locations[index[0]]->total_error) < (1/all_parameters->reduced_order_param.recomputation_coefficient) * local_mean_error)) {
-            pcout << "Total error greater than tolerance. Recomputing ROM solution" << std::endl;
-            std::unique_ptr<ProperOrthogonalDecomposition::ROMSolution<dim, nstate>> rom_solution = solveSnapshotROM(rom_locations[index[0]]->parameter);
-            std::unique_ptr<ProperOrthogonalDecomposition::ROMTestLocation<dim, nstate>> rom_location = std::make_unique<ProperOrthogonalDecomposition::ROMTestLocation<dim, nstate>>(rom_locations[index[0]]->parameter, std::move(rom_solution));
-            rom_locations[index[0]] = std::move(rom_location);
-        }
-    }
-}
-
-template <int dim, int nstate>
-dealii::LinearAlgebra::distributed::Vector<double> AdaptiveSampling<dim, nstate>::solveSnapshotFOM(const RowVectorXd& parameter) const{
+dealii::LinearAlgebra::distributed::Vector<double> AdaptiveSamplingBase<dim, nstate>::solveSnapshotFOM(const RowVectorXd& parameter) const{
     this->pcout << "Solving FOM at " << parameter << std::endl;
     Parameters::AllParameters params = reinitParams(parameter);
 
@@ -345,34 +220,7 @@ dealii::LinearAlgebra::distributed::Vector<double> AdaptiveSampling<dim, nstate>
 }
 
 template <int dim, int nstate>
-std::unique_ptr<ProperOrthogonalDecomposition::ROMSolution<dim,nstate>> AdaptiveSampling<dim, nstate>::solveSnapshotROM(const RowVectorXd& parameter) const{
-    this->pcout << "Solving ROM at " << parameter << std::endl;
-    Parameters::AllParameters params = reinitParams(parameter);
-
-    std::unique_ptr<FlowSolver::FlowSolver<dim,nstate>> flow_solver = FlowSolver::FlowSolverFactory<dim,nstate>::select_flow_case(&params, parameter_handler);
-
-    // Solve implicit solution
-    auto ode_solver_type = Parameters::ODESolverParam::ODESolverEnum::pod_petrov_galerkin_solver;
-    flow_solver->ode_solver =  PHiLiP::ODE::ODESolverFactory<dim, double>::create_ODESolver_manual(ode_solver_type, flow_solver->dg, current_pod);
-    //flow_solver->dg->solution = nearest_neighbors->nearestNeighborMidpointSolution(parameter);
-    flow_solver->ode_solver->allocate_ode_system();
-    flow_solver->ode_solver->steady_state();
-
-    // Create functional
-    std::shared_ptr<Functional<dim,nstate,double>> functional = FunctionalFactory<dim,nstate,double>::create_Functional(params.functional_param, flow_solver->dg);
-    functional->evaluate_functional( true, false, false);
-
-    dealii::LinearAlgebra::distributed::Vector<double> solution(flow_solver->dg->solution);
-    dealii::LinearAlgebra::distributed::Vector<double> gradient(functional->dIdw);
-
-    std::unique_ptr<ProperOrthogonalDecomposition::ROMSolution<dim,nstate>> rom_solution = std::make_unique<ProperOrthogonalDecomposition::ROMSolution<dim, nstate>>(params, solution, gradient);
-    this->pcout << "Done solving ROM." << std::endl;
-
-    return rom_solution;
-}
-
-template <int dim, int nstate>
-Parameters::AllParameters AdaptiveSampling<dim, nstate>::reinitParams(const RowVectorXd& parameter) const{
+Parameters::AllParameters AdaptiveSamplingBase<dim, nstate>::reinitParams(const RowVectorXd& parameter) const{
     // Copy all parameters
     PHiLiP::Parameters::AllParameters parameters = *(this->all_parameters);
 
@@ -422,7 +270,7 @@ Parameters::AllParameters AdaptiveSampling<dim, nstate>::reinitParams(const RowV
 }
 
 template <int dim, int nstate>
-void AdaptiveSampling<dim, nstate>::configureInitialParameterSpace() const
+void AdaptiveSamplingBase<dim, nstate>::configureInitialParameterSpace() const
 {
     const double pi = atan(1.0) * 4.0;
 
@@ -499,12 +347,11 @@ void AdaptiveSampling<dim, nstate>::configureInitialParameterSpace() const
 }
 
 #if PHILIP_DIM==1
-        template class AdaptiveSampling<PHILIP_DIM, PHILIP_DIM>;
+        template class AdaptiveSamplingBase<PHILIP_DIM, PHILIP_DIM>;
 #endif
 
 #if PHILIP_DIM!=1
-        template class AdaptiveSampling<PHILIP_DIM, PHILIP_DIM+2>;
+        template class AdaptiveSamplingBase<PHILIP_DIM, PHILIP_DIM+2>;
 #endif
 
-}
 }

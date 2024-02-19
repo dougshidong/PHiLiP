@@ -1,4 +1,4 @@
-#include "assemble_problem_ECSW.h"
+#include "assemble_ECSW_residual.h"
 #include <eigen/Eigen/Dense>
 #include <Epetra_CrsMatrix.h>
 #include <Epetra_Map.h>
@@ -14,70 +14,54 @@ namespace HyperReduction {
 using Eigen::MatrixXd;
 
 template <int dim, int nstate>
-AssembleECSW<dim,nstate>::AssembleECSW(
+AssembleECSWRes<dim,nstate>::AssembleECSWRes(
     const PHiLiP::Parameters::AllParameters *const parameters_input,
     const dealii::ParameterHandler &parameter_handler_input,
     std::shared_ptr<DGBase<dim,double>> &dg_input, 
     std::shared_ptr<ProperOrthogonalDecomposition::PODBase<dim>> pod, 
-    std::shared_ptr<Tests::AdaptiveSampling<dim,nstate>> parameter_sampling_input,
+    MatrixXd snapshot_parameters_input,
     Parameters::ODESolverParam::ODESolverEnum ode_solver_type)
-        : all_parameters(parameters_input)
-        , parameter_handler(parameter_handler_input)
-        , dg(dg_input)
-        , pod(pod)
-        , parameter_sampling(parameter_sampling_input)
-        , mpi_communicator(MPI_COMM_WORLD)
-        , ode_solver_type(ode_solver_type)
-        , A(std::make_shared<dealii::TrilinosWrappers::SparseMatrix>())
+        : AssembleECSWBase<dim, nstate>(parameters_input, parameter_handler_input, dg_input, pod, snapshot_parameters_input, ode_solver_type)
 {
 }
 
 template <int dim, int nstate>
-std::shared_ptr<Epetra_CrsMatrix> AssembleECSW<dim,nstate>::local_generate_test_basis(Epetra_CrsMatrix &system_matrix, const Epetra_CrsMatrix &pod_basis){
-    using ODEEnum = Parameters::ODESolverParam::ODESolverEnum;
-    if(ode_solver_type == ODEEnum::pod_galerkin_solver){ 
-        return std::make_shared<Epetra_CrsMatrix>(pod_basis);
-    }
-    else if(ode_solver_type == ODEEnum::pod_petrov_galerkin_solver || ode_solver_type == ODEEnum::hyper_reduced_petrov_galerkin_solver){ 
-        Epetra_Map system_matrix_rowmap = system_matrix.RowMap();
-        Epetra_CrsMatrix petrov_galerkin_basis(Epetra_DataAccess::Copy, system_matrix_rowmap, pod_basis.NumGlobalCols());
-        EpetraExt::MatrixMatrix::Multiply(system_matrix, false, pod_basis, false, petrov_galerkin_basis, true);
-
-        return std::make_shared<Epetra_CrsMatrix>(petrov_galerkin_basis);
-    }
-    else {
-        return nullptr;
-    }
-}
-
-template <int dim, int nstate>
-void AssembleECSW<dim,nstate>::build_problem(){
-    std::cout << "Solve for A and b for NNLS Problem from POD Snapshots"<< std::endl;
-    MatrixXd snapshotMatrix = pod->getSnapshotMatrix();
-    const Epetra_CrsMatrix epetra_pod_basis = pod->getPODBasis()->trilinos_matrix();
-    Epetra_CrsMatrix epetra_system_matrix = dg->system_matrix.trilinos_matrix();
+void AssembleECSWRes<dim,nstate>::build_problem(){
+    std::cout << "Solve for A and b for the NNLS Problem from POD Snapshots"<< std::endl;
+    MatrixXd snapshotMatrix = this->pod->getSnapshotMatrix();
+    const Epetra_CrsMatrix epetra_pod_basis = this->pod->getPODBasis()->trilinos_matrix();
+    Epetra_CrsMatrix epetra_system_matrix = this->dg->system_matrix.trilinos_matrix();
 
     // Get dimensions of the problem
     int num_snaps = snapshotMatrix.cols(); // Number of snapshots used to build the POD basis
     int n = epetra_pod_basis.NumGlobalCols(); // Reduced subspace dimension
     int N = epetra_pod_basis.NumGlobalRows(); // Length of solution vector
-    int N_e = dg->triangulation->n_active_cells(); // Number of elements (equal to N if there is one DOF per cell)
+    int N_e = this->dg->triangulation->n_active_cells(); // Number of elements (equal to N if there is one DOF per cell)
 
     // Create empty and temporary C and d structs
     Epetra_MpiComm epetra_comm(MPI_COMM_WORLD);
-    Epetra_Map RowMap((n*num_snaps), 0, epetra_comm);
+    int training_snaps;
+    // Check if all or a subset of the snapshots will be used for training
+    if (this->all_parameters->hyper_reduction_param.num_training_snaps != 0) {
+        std::cout << "LIMITED NUMBER OF SNAPSHOTS"<< std::endl;
+        training_snaps = this->all_parameters->hyper_reduction_param.num_training_snaps;
+    }
+    else{
+        training_snaps = num_snaps;
+    }
+    Epetra_Map RowMap((n*training_snaps), 0, epetra_comm); // Number of rows in residual based training matrix = n * (number of training snapshots)
     Epetra_Map ColMap(N_e, 0, epetra_comm);
 
     Epetra_CrsMatrix C(Epetra_DataAccess::Copy, RowMap, N_e);
     Epetra_Vector d(RowMap);
 
-    // Loop through the snapshots used to build the POD to find residuals
-    const unsigned int max_dofs_per_cell = dg->dof_handler.get_fe_collection().max_dofs_per_cell();
+    // Loop through the given number of training snapshots to find residuals
+    const unsigned int max_dofs_per_cell = this->dg->dof_handler.get_fe_collection().max_dofs_per_cell();
     std::vector<dealii::types::global_dof_index> current_dofs_indices(max_dofs_per_cell); 
     int row_num = 0;
     int snap_num = 0;
-    for(auto snap_param : parameter_sampling->snapshot_parameters.rowwise()){
-        std::cout << "snap_param" << std::endl;
+    for(auto snap_param : this->snapshot_parameters.rowwise()){
+        std::cout << "Snapshot Parameter Values" << std::endl;
         std::cout << snap_param << std::endl;
         dealii::LinearAlgebra::ReadWriteVector<double> snapshot_s;
         snapshot_s.reinit(N_e);
@@ -85,29 +69,30 @@ void AssembleECSW<dim,nstate>::build_problem(){
         for (int snap_row = 0; snap_row < N_e; snap_row++){
             snapshot_s(snap_row) = snapshotMatrix(snap_row, snap_num);
         }
-        dealii::LinearAlgebra::distributed::Vector<double> reference_solution(dg->solution);
+        dealii::LinearAlgebra::distributed::Vector<double> reference_solution(this->dg->solution);
         reference_solution.import(snapshot_s, dealii::VectorOperation::values::insert);
         
-        // Modifiy parameters for snapshot and create new flow solver
-        Parameters::AllParameters params = parameter_sampling->reinitParams(snap_param);
-        std::unique_ptr<FlowSolver::FlowSolver<dim,nstate>> flow_solver = FlowSolver::FlowSolverFactory<dim,nstate>::select_flow_case(&params, parameter_handler);
-        dg = flow_solver->dg;
+        // Modifiy parameters for snapshot location and create new flow solver
+        Parameters::AllParameters params = this->reinitParams(snap_param);
+        std::unique_ptr<FlowSolver::FlowSolver<dim,nstate>> flow_solver = FlowSolver::FlowSolverFactory<dim,nstate>::select_flow_case(&params, this->parameter_handler);
+        this->dg = flow_solver->dg;
 
-        // Set solution to snapshot and re-compute the residual
-        dg->solution = reference_solution;
+        // Set solution to snapshot and re-compute the residual/Jacobian
+        this->dg->solution = reference_solution;
         const bool compute_dRdW = true;
-        dg->assemble_residual(compute_dRdW);
-        Epetra_Vector epetra_right_hand_side(Epetra_DataAccess::Copy, epetra_system_matrix.RowMap(), dg->right_hand_side.begin());
+        this->dg->assemble_residual(compute_dRdW);
+        Epetra_Vector epetra_right_hand_side(Epetra_DataAccess::Copy, epetra_system_matrix.RowMap(), this->dg->right_hand_side.begin());
 
         // Compute test basis
-        epetra_system_matrix = dg->system_matrix.trilinos_matrix();
-        std::shared_ptr<Epetra_CrsMatrix> epetra_test_basis = local_generate_test_basis(epetra_system_matrix, epetra_pod_basis);
+        epetra_system_matrix = this->dg->system_matrix.trilinos_matrix();
+        std::shared_ptr<Epetra_CrsMatrix> epetra_test_basis = this->local_generate_test_basis(epetra_system_matrix, epetra_pod_basis);
+
         // Loop through the elements
-        for (const auto &cell : dg->dof_handler.active_cell_iterators())
+        for (const auto &cell : this->dg->dof_handler.active_cell_iterators())
         {
             int cell_num = cell->active_cell_index();
             const int fe_index_curr_cell = cell->active_fe_index();
-            const dealii::FESystem<dim,dim> &current_fe_ref = dg->fe_collection[fe_index_curr_cell];
+            const dealii::FESystem<dim,dim> &current_fe_ref = this->dg->fe_collection[fe_index_curr_cell];
             const int n_dofs_curr_cell = current_fe_ref.n_dofs_per_cell();
 
             current_dofs_indices.resize(n_dofs_curr_cell);
@@ -125,12 +110,11 @@ void AssembleECSW<dim,nstate>::build_problem(){
             }
             L_e.FillComplete(LeColMap, LeRowMap);
 
-            // Extract residual contributions  of the current cell into global dimension
+            // Extract residual contributions of the current cell into global dimension
             Epetra_Vector local_r(LeRowMap);
             Epetra_Vector global_r_e(LeColMap);
             L_e.Multiply(false, epetra_right_hand_side, local_r);
             L_e.Multiply(true, local_r, global_r_e);
-
 
             // Find reduced-order representation of contribution
             Epetra_Map cseRowMap(n, 0, epetra_comm);
@@ -151,6 +135,14 @@ void AssembleECSW<dim,nstate>::build_problem(){
         }
         row_num+=n;
         snap_num+=1;
+
+        // Check if number of training snapshots has been reached
+        if (this->all_parameters->hyper_reduction_param.num_training_snaps != 0) {
+            std::cout << "LIMITED NUMBER OF SNAPSHOTS"<< std::endl;
+            if (snap_num > (this->all_parameters->hyper_reduction_param.num_training_snaps-1)){
+                break;
+            }
+        }
     }
 
     C.FillComplete(ColMap, RowMap);
@@ -162,21 +154,20 @@ void AssembleECSW<dim,nstate>::build_problem(){
     // std::cout << d << std::endl;
 
     // Sub temp C and d into class A and b
-    A->reinit(C);
-    b.reinit(d.GlobalLength());
+    this->A->reinit(C);
+    this->b.reinit(d.GlobalLength());
     for(int z = 0 ; z < d.GlobalLength() ; z++){
-        b(z) = d[z];
+        this->b(z) = d[z];
     }
 }
 
-
 #if PHILIP_DIM==1
-        template class AssembleECSW<PHILIP_DIM, PHILIP_DIM>;
+        template class AssembleECSWRes<PHILIP_DIM, PHILIP_DIM>;
 #endif
 
 #if PHILIP_DIM!=1
-        template class AssembleECSW<PHILIP_DIM, PHILIP_DIM+2>;
+        template class AssembleECSWRes<PHILIP_DIM, PHILIP_DIM+2>;
 #endif
 
-}
-}
+} // HyperReduction namespace
+} // PHiLiP namespace

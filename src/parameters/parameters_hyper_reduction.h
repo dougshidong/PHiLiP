@@ -25,6 +25,9 @@ public:
     /// Run Adapative Sampling (Online POD) or use Snapshots in path_to_search in Reduced Order Params
     bool adapt_sampling_bool;
 
+    /// Minimum Error for ROM sampling point to be included in post-sampling HROM analysis
+    double ROM_error_tol;
+
     /// Declares the possible variables and sets the defaults.
     static void declare_parameters (dealii::ParameterHandler &prm);
     /// Parses input file and sets the variables.

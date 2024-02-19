@@ -28,7 +28,7 @@ end
 #Reduced order parameters
 subsection reduced order
   set adaptation_tolerance = 1e-04
-  set path_to_search = .
+  set path_to_search = ./burgers
   set reduced_residual_tolerance = 1e-14
   set parameter_names = rewienski_b
   set parameter_min_values = 0.01
@@ -62,4 +62,8 @@ subsection manufactured solution convergence study
  set use_manufactured_source_term = true
 end
 
-
+subsection hyperreduction
+  set NNLS_tol = 1E-06
+  set NNLS_max_iter = 5000
+  set training_data = jacobian
+end

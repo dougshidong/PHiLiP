@@ -181,7 +181,7 @@ public:
         reduced_order,
         convection_diffusion_periodicity,
         POD_adaptation,
-        POD_adaptive_sampling,
+        POD_adaptive_sampling_run,
         adaptive_sampling_testing,
         finite_difference_sensitivity,
         advection_periodicity,
@@ -198,10 +198,10 @@ public:
         homogeneous_isotropic_turbulence_initialization_check,
         build_NNLS_problem,
         hyper_reduction_comparison,
-        hyper_adaptive_sampling_test,
+        hyper_adaptive_sampling_run,
         hyper_reduction_post_sampling,
-        error_post_sampling,
-        hyper_error_post_sampling
+        ROM_error_post_sampling,
+        HROM_error_post_sampling
     };
     /// Store selected TestType from the input file.
     TestType test_type;

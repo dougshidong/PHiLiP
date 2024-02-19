@@ -1,7 +1,7 @@
 # Listing of Parameters
 # ---------------------
 
-set test_type = hyper_error_post_sampling
+set test_type = ROM_error_post_sampling
 set dimension = 2
 set pde_type  = euler
 
@@ -56,7 +56,7 @@ end
 #Reduced order parameters
 subsection reduced order
   set adaptation_tolerance = 1E-03
-  set path_to_search = ./hyper_adapt
+  set path_to_search = ./normal_adapt
   set reduced_residual_tolerance = 5e-13
   set parameter_names = mach, alpha
   set parameter_min_values = 0.5, 0

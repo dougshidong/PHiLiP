@@ -32,7 +32,7 @@
 #include "convection_diffusion_explicit_periodic.h"
 #include "dual_weighted_residual_mesh_adaptation.h"
 #include "anisotropic_mesh_adaptation_cases.h"
-#include "pod_adaptive_sampling.h"
+#include "pod_adaptive_sampling_run.h"
 #include "pod_adaptive_sampling_testing.h"
 #include "taylor_green_vortex_energy_check.h"
 #include "taylor_green_vortex_restart_check.h"
@@ -45,10 +45,10 @@
 #include "khi_robustness.h"
 #include "build_NNLS_problem.h"
 #include "hyper_reduction_comparison.h"
-#include "hyper_adaptive_sampling_test.h"
+#include "hyper_adaptive_sampling_run.h"
 #include "hyper_reduction_post_sampling.h"
-#include "error_post_sampling.h"
-#include "hyper_error_post_sampling.h"
+#include "ROM_error_post_sampling.h"
+#include "HROM_error_post_sampling.h"
 
 namespace PHiLiP {
 namespace Tests {
@@ -279,8 +279,8 @@ std::unique_ptr< TestsBase > TestsFactory<dim,nstate,MeshType>
         if constexpr (dim==1 && nstate==1) return std::make_unique<Shock1D<dim,nstate>>(parameters_input);
     } else if(test_type == Test_enum::reduced_order) {
         if constexpr ((dim==2 && nstate==dim+2) || (dim==1 && nstate==1)) return std::make_unique<ReducedOrder<dim,nstate>>(parameters_input, parameter_handler_input);
-    } else if(test_type == Test_enum::POD_adaptive_sampling) {
-        if constexpr ((dim==2 && nstate==dim+2) || (dim==1 && nstate==1)) return std::make_unique<AdaptiveSampling<dim,nstate>>(parameters_input,parameter_handler_input);
+    } else if(test_type == Test_enum::POD_adaptive_sampling_run) {
+        if constexpr ((dim==2 && nstate==dim+2) || (dim==1 && nstate==1)) return std::make_unique<AdaptiveSamplingRun<dim,nstate>>(parameters_input,parameter_handler_input);
     } else if(test_type == Test_enum::adaptive_sampling_testing) {
         if constexpr ((dim==2 && nstate==dim+2) || (dim==1 && nstate==1)) return std::make_unique<AdaptiveSamplingTesting<dim,nstate>>(parameters_input,parameter_handler_input);
     } else if(test_type == Test_enum::euler_naca0012) {
@@ -311,14 +311,14 @@ std::unique_ptr< TestsBase > TestsFactory<dim,nstate,MeshType>
         if constexpr (dim==1 && nstate==1)  return std::make_unique<BuildNNLSProblem<dim,nstate>>(parameters_input, parameter_handler_input);
     } else if(test_type == Test_enum::hyper_reduction_comparison) {
         if constexpr (dim==1 && nstate==1)  return std::make_unique<HyperReductionComparison<dim,nstate>>(parameters_input, parameter_handler_input);
-    } else if(test_type == Test_enum::hyper_adaptive_sampling_test) {
-        if constexpr ((dim==2 && nstate==dim+2) || (dim==1 && nstate==1))  return std::make_unique<HyperAdaptiveSamplingTest<dim,nstate>>(parameters_input, parameter_handler_input);
+    } else if(test_type == Test_enum::hyper_adaptive_sampling_run) {
+        if constexpr ((dim==2 && nstate==dim+2) || (dim==1 && nstate==1))  return std::make_unique<HyperAdaptiveSamplingRun<dim,nstate>>(parameters_input, parameter_handler_input);
     } else if(test_type == Test_enum::hyper_reduction_post_sampling) {
         if constexpr ((dim==2 && nstate==dim+2) || (dim==1 && nstate==1))  return std::make_unique<HyperReductionPostSampling<dim,nstate>>(parameters_input, parameter_handler_input);
-    } else if(test_type == Test_enum::error_post_sampling) {
-        if constexpr ((dim==2 && nstate==dim+2) || (dim==1 && nstate==1))  return std::make_unique<ErrorPostSampling<dim,nstate>>(parameters_input, parameter_handler_input);
-    } else if(test_type == Test_enum::hyper_error_post_sampling) {
-        if constexpr ((dim==2 && nstate==dim+2) || (dim==1 && nstate==1))  return std::make_unique<HyperErrorPostSampling<dim,nstate>>(parameters_input, parameter_handler_input);
+    } else if(test_type == Test_enum::ROM_error_post_sampling) {
+        if constexpr ((dim==2 && nstate==dim+2) || (dim==1 && nstate==1))  return std::make_unique<ROMErrorPostSampling<dim,nstate>>(parameters_input, parameter_handler_input);
+    } else if(test_type == Test_enum::HROM_error_post_sampling) {
+        if constexpr ((dim==2 && nstate==dim+2) || (dim==1 && nstate==1))  return std::make_unique<HROMErrorPostSampling<dim,nstate>>(parameters_input, parameter_handler_input);
     } else {
         std::cout << "Invalid test. You probably forgot to add it to the list of tests in tests.cpp" << std::endl;
         std::abort();

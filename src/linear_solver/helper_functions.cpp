@@ -12,7 +12,6 @@
 #include <Epetra_MultiVector.h>
 #include <Epetra_LinearProblem.h>
 #include <EpetraExt_MatrixMatrix.h>
-#include <eigen/test/random_matrix_helper.h>
 
 using namespace Eigen;
 /// @brief Fills the entries in an empty Eigen::MatrixXd from an Epetra_Vector structure

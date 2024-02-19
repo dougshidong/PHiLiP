@@ -1,5 +1,5 @@
-#ifndef __HYPER_REDUCTION_POST_SAMPLING_H__
-#define __HYPER_REDUCTION_POST_SAMPLING_H__
+#ifndef __ROM_ERROR_POST_SAMPLING_H__
+#define __ROM_ERROR_POST_SAMPLING_H__
 
 #include "tests.h"
 #include "parameters/all_parameters.h"
@@ -10,28 +10,29 @@ namespace Tests {
 
 using Eigen::MatrixXd;
 
-/// Evaluates HROM at ROM points from an adaptive sampling procedure run without hyperreduction
+/// Find the "true" error between the FOM and a ROM (with no hyperreduction) built from the snapshots after
+/// an adaptive sampling procedure has been run.
 /// NOTE: The folder the test reads from should only contain the outputted files from the last iteration of
-/// the adaptive sampling procedure. It should include one text file beginning with "snapshot_table", one
-/// beginning with "solution_snapshots", and one beginning with "rom_table".
+/// the adaptive sampling procedure. It should include one text file beginning with "snapshot_table" and one
+/// beginning with "solution_snapshots".
 template <int dim, int nstate>
-class HyperReductionPostSampling: public TestsBase
+class ROMErrorPostSampling: public TestsBase
 {
 public:
     /// Constructor.
-    HyperReductionPostSampling(const Parameters::AllParameters *const parameters_input,
+    ROMErrorPostSampling(const Parameters::AllParameters *const parameters_input,
                  const dealii::ParameterHandler &parameter_handler_input);
     
     /// Reinitialize parameters
-    Parameters::AllParameters reinitParams(const int max_iter) const;
+    Parameters::AllParameters reinitParams(std::string path) const;
     
     /// Read snapshot locations from the text file
     bool getSnapshotParamsFromFile() const;
 
-    /// Read ROM locations from the text file
-    bool getROMParamsFromFile() const;
+    /// Place 400 distributed points across the parameter domain for error sampling
+    void getROMPoints() const;
 
-    /// Conduct hyperreduction and evaluate HROM at ROM points
+    /// Evaluate and output the "true" error at ROM Points
     int run_test () const override;
 
     /// Dummy parameter handler because flowsolver requires it
@@ -40,7 +41,7 @@ public:
     /// Matrix of snapshot parameters
     mutable MatrixXd snapshot_parameters;
 
-    /// Matrix of ROM points
+    /// Matrix of error sampling points
     mutable MatrixXd rom_points;
     
 };

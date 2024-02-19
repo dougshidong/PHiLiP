@@ -25,7 +25,7 @@ set(TESTS_SOURCE
     anisotropic_mesh_adaptation_cases.cpp
     taylor_green_vortex_energy_check.cpp
     taylor_green_vortex_restart_check.cpp
-    pod_adaptive_sampling.cpp
+    pod_adaptive_sampling_run.cpp
     pod_adaptive_sampling_testing.cpp
     reduced_order.cpp
     time_refinement_study.cpp
@@ -37,10 +37,10 @@ set(TESTS_SOURCE
     khi_robustness.cpp
     build_NNLS_problem.cpp
     hyper_reduction_comparison.cpp
-    hyper_adaptive_sampling_test.cpp
+    hyper_adaptive_sampling_run.cpp
     hyper_reduction_post_sampling.cpp
-    error_post_sampling.cpp
-    hyper_error_post_sampling.cpp
+    ROM_error_post_sampling.cpp
+    HROM_error_post_sampling.cpp
     )
 
 foreach(dim RANGE 1 3)
@@ -65,7 +65,6 @@ foreach(dim RANGE 1 3)
     string(CONCAT FlowSolverLib FlowSolver_${dim}D)
     string(CONCAT ExactSolutionsLib ExactSolutions_${dim}D)
     string(CONCAT MeshAdaptationLib MeshAdaptation_${dim}D)
-    string(CONCAT ECSWLib ECSW_${dim}D)
     target_link_libraries(${TestsLib} ${GridsLib})
     target_link_libraries(${TestsLib} ${NumericalFluxLib})
     target_link_libraries(${TestsLib} ${PhysicsLib})
@@ -80,7 +79,6 @@ foreach(dim RANGE 1 3)
     target_link_libraries(${TestsLib} ${FlowSolverLib})
     target_link_libraries(${TestsLib} ${ExactSolutionsLib})
     target_link_libraries(${TestsLib} ${MeshAdaptationLib})
-    target_link_libraries(${TestsLib} ${ECSWLib})
     # Setup target with deal.II
     if(NOT DOC_ONLY)
         DEAL_II_SETUP_TARGET(${TestsLib})
@@ -101,5 +99,4 @@ foreach(dim RANGE 1 3)
     unset(FlowSolverLib)
     unset(ExactSolutionsLib)
     unset(MeshAdaptationLib)
-    unset(ECSWLib)
 endforeach()

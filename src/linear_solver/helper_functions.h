@@ -14,7 +14,6 @@
 #include <Epetra_MultiVector.h>
 #include <Epetra_LinearProblem.h>
 #include <EpetraExt_MatrixMatrix.h>
-#include <eigen/test/random_matrix_helper.h>
 
 /// Helper functions for transferring information between Epetra and Eigen structures
 

@@ -1,7 +1,7 @@
 # Listing of Parameters
 # ---------------------
 
-set test_type = hyper_adaptive_sampling_test
+set test_type = hyper_adaptive_sampling_run
 
 # Number of dimensions
 set dimension = 1
@@ -62,4 +62,8 @@ subsection manufactured solution convergence study
  set use_manufactured_source_term = true
 end
 
-
+subsection hyperreduction
+  set NNLS_tol = 1E-04
+  set NNLS_max_iter = 5000
+  set training_data = jacobian
+end

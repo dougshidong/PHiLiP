@@ -3,26 +3,6 @@ set(TEST_OUTPUT_DIR ${CMAKE_CURRENT_BINARY_DIR})
 file(GLOB MY_FILES "*.csv")
 file(COPY ${MY_FILES} DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
 
-# =======================================
-# Test Burgers Rewienski Galerkin and Petrov-Galerkin reduced-order solvers
-# =======================================
-#Be careful when using bash in cmake, the test will pass if the only last command executed successfully (i.e. if the last command is rm *.txt, the test will always pass)
-# configure_file(1d_burgers_rewienski_reduced_order_consistency_snapshots.sh 1d_burgers_rewienski_reduced_order_consistency_snapshots.sh COPYONLY)
-# configure_file(1d_burgers_rewienski_reduced_order_consistency.prm 1d_burgers_rewienski_reduced_order_consistency.prm COPYONLY)
-# add_test(
-#         NAME 1D_BURGERS_NNLS_PROBLEM_ASSEMBLY
-#         COMMAND bash -c
-#         "rm *.txt ;
-#         ./1d_burgers_rewienski_reduced_order_consistency_snapshots.sh ${EXECUTABLE_OUTPUT_PATH}
-#         return_val1=$? ;
-#         mpirun -np 1 ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_1D -i ${CMAKE_CURRENT_BINARY_DIR}/1d_burgers_rewienski_reduced_order_consistency.prm ;
-#         return_val2=$? ;
-#         rm *.txt ;
-#         if [ $return_val1 -ne 0 ] || [ $return_val2 -ne 0 ]; then exit 1; else exit 0; fi"
-#         WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
-# )
-
-configure_file(1d_burgers_rewienski_reduced_order_consistency_snapshots.sh 1d_burgers_rewienski_reduced_order_consistency_snapshots.sh COPYONLY)
 configure_file(1d_burgers_rewienski_build_NNLS_problem.prm 1d_burgers_rewienski_build_NNLS_problem.prm COPYONLY)
 add_test(
         NAME 1D_BURGERS_NNLS_PROBLEM_ASSEMBLY
@@ -65,16 +45,16 @@ add_test(
         WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
 )
 
-configure_file(error_NACA_n_hyp.prm error_NACA_n_hyp.prm  COPYONLY)
+configure_file(ROM_error_NACA.prm ROM_error_NACA.prm  COPYONLY)
 add_test(
-        NAME ERROR_NACA_N_HYP
-        COMMAND mpirun -np 1 ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_2D -i ${CMAKE_CURRENT_BINARY_DIR}/error_NACA_n_hyp.prm 
+        NAME ROM_ERROR_NACA
+        COMMAND mpirun -np 1 ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_2D -i ${CMAKE_CURRENT_BINARY_DIR}/ROM_error_NACA.prm 
         WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
 )
 
-configure_file(hyp_error_NACA.prm hyp_error_NACA.prm  COPYONLY)
+configure_file(HROM_error_NACA.prm HROM_error_NACA.prm  COPYONLY)
 add_test(
-        NAME HYP_ERROR_NACA_N_HYP
-        COMMAND mpirun -np 1 ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_2D -i ${CMAKE_CURRENT_BINARY_DIR}/hyp_error_NACA.prm 
+        NAME HROM_ERROR_NACA
+        COMMAND mpirun -np 1 ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_2D -i ${CMAKE_CURRENT_BINARY_DIR}/HROM_error_NACA.prm 
         WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
 )

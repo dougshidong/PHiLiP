@@ -4,7 +4,6 @@
 #include <vector>
 #include <fstream>
 #include <eigen/Eigen/QR>
-#include <eigen/test/random_matrix_helper.h>
 #include "parameters/parameters.h"
 //#include <eigen/Eigen/SVD>
 
@@ -26,6 +25,97 @@ Parameters::AllParameters reinitParams(Parameters::AllParameters all_parameters,
     parameters.hyper_reduction_param.NNLS_tol = tol;
     parameters.hyper_reduction_param.NNLS_max_iter = max_iter;
     return parameters;
+}
+
+// THE FOLLOWING THREE FUNCTIONS ARE COPIED FROM eigen/test/random_matrix_helper.h in Eigen
+/**
+ * Generate a random unitary matrix of prescribed dimension.
+ *
+ * The algorithm is using a random Householder sequence to produce
+ * a random unitary matrix.
+ *
+ * @tparam MatrixType type of matrix to generate
+ * @param dim row and column dimension of the requested square matrix
+ * @return random unitary matrix
+ */
+template<typename MatrixType>
+MatrixType generateRandomUnitaryMatrix(const Index dim)
+{
+  typedef typename internal::traits<MatrixType>::Scalar Scalar;
+  typedef Matrix<Scalar, Dynamic, 1> VectorType;
+
+  MatrixType v = MatrixType::Identity(dim, dim);
+  VectorType h = VectorType::Zero(dim);
+  for (Index i = 0; i < dim; ++i)
+  {
+    v.col(i).tail(dim - i - 1) = VectorType::Random(dim - i - 1);
+    h(i) = 2 / v.col(i).tail(dim - i).squaredNorm();
+  }
+
+  const Eigen::HouseholderSequence<MatrixType, VectorType> HSeq(v, h);
+  return MatrixType(HSeq);
+}
+
+/**
+ * Generation of random matrix with prescribed singular values.
+ *
+ * We generate random matrices with given singular values by setting up
+ * a singular value decomposition. By choosing the number of zeros as
+ * singular values we can specify the rank of the matrix.
+ * Moreover, we also control its spectral norm, which is the largest
+ * singular value, as well as its condition number with respect to the
+ * l2-norm, which is the quotient of the largest and smallest singular
+ * value.
+ *
+ * Reference: For details on the method see e.g. Section 8.1 (pp. 62 f) in
+ *
+ *   C. C. Paige, M. A. Saunders,
+ *   LSQR: An algorithm for sparse linear equations and sparse least squares.
+ *   ACM Transactions on Mathematical Software 8(1), pp. 43-71, 1982.
+ *   https://web.stanford.edu/group/SOL/software/lsqr/lsqr-toms82a.pdf
+ *
+ * and also the LSQR webpage https://web.stanford.edu/group/SOL/software/lsqr/.
+ *
+ * @tparam MatrixType matrix type to generate
+ * @tparam RealScalarVectorType vector type with real entries used for singular values
+ * @param svs vector of desired singular values
+ * @param rows row dimension of requested random matrix
+ * @param cols column dimension of requested random matrix
+ * @param M generated matrix with prescribed singular values
+ */
+template<typename MatrixType, typename RealScalarVectorType>
+void generateRandomMatrixSvs(const RealScalarVectorType &svs, const Index rows, const Index cols, MatrixType& M)
+{
+  enum { Rows = MatrixType::RowsAtCompileTime, Cols = MatrixType::ColsAtCompileTime };
+  typedef typename internal::traits<MatrixType>::Scalar Scalar;
+  typedef Matrix<Scalar, Rows, Rows> MatrixAType;
+  typedef Matrix<Scalar, Cols, Cols> MatrixBType;
+
+  const Index min_dim = (std::min)(rows, cols);
+
+  const MatrixAType U = generateRandomUnitaryMatrix<MatrixAType>(rows);
+  const MatrixBType V = generateRandomUnitaryMatrix<MatrixBType>(cols);
+
+  M = U.block(0, 0, rows, min_dim) * svs.asDiagonal() * V.block(0, 0, cols, min_dim).transpose();
+}
+
+template<typename VectorType, typename RealScalar>
+VectorType setupRangeSvs(const Index dim, const RealScalar min, const RealScalar max)
+{
+  VectorType svs = VectorType::Random(dim);
+  if(dim == 0)
+    return svs;
+  if(dim == 1)
+  {
+    svs(0) = min;
+    return svs;
+  }
+  std::sort(svs.begin(), svs.end(), std::greater<RealScalar>());
+
+  // scale to range [min, max]
+  const RealScalar c_min = svs(dim - 1), c_max = svs(0);
+  svs = (svs - VectorType::Constant(dim, c_min)) / (c_max - c_min);
+  return min * (VectorType::Ones(dim) - svs) + max * svs;
 }
 
 /// @brief Check that 'x' solves the NNLS optimization problem `min ||A*x-b|| s.t. 0 <= x`

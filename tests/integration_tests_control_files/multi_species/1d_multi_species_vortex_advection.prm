@@ -2,7 +2,7 @@
 # ---------------------
 # Number of dimensions
 
-set dimension = 2
+set dimension = 1
 set number_of_species = 2
 set run_type = flow_simulation
 set pde_type = real_gas

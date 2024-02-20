@@ -732,22 +732,26 @@ dealii::Vector<double> RealGas<dim,nstate,real>::post_compute_derived_quantities
         // temperature dim
         computed_quantities(++current_data_index) = compute_temperature(conservative_soln)*this->temperature_ref;
         // species densities
-        for (unsigned int s=0; s<nstate-dim-1; ++s) 
-        {
-            computed_quantities(++current_data_index) = compute_species_densities(conservative_soln)[s];
-        }
+        // for (unsigned int s=0; s<nstate-dim-1; ++s) 
+        // {
+        //     computed_quantities(++current_data_index) = compute_species_densities(conservative_soln)[s];
+        // }
         // mixture specific total enthalpy
         computed_quantities(++current_data_index) = compute_mixture_specific_total_enthalpy(conservative_soln);  
         // species specific heat ratio
-        for (unsigned int s=0; s<nstate-dim-1; ++s) 
-        {
-            computed_quantities(++current_data_index) = compute_species_specific_heat_ratio(conservative_soln)[s];
-        }
+        // for (unsigned int s=0; s<nstate-dim-1; ++s) 
+        // {
+        //     computed_quantities(++current_data_index) = compute_species_specific_heat_ratio(conservative_soln)[s];
+        // }
         // species speed of sound
+        // for (unsigned int s=0; s<nstate-dim-1; ++s) 
+        // {
+        //     computed_quantities(++current_data_index) = compute_species_speed_of_sound(conservative_soln)[s];
+        // }
         for (unsigned int s=0; s<nstate-dim-1; ++s) 
         {
-            computed_quantities(++current_data_index) = compute_species_speed_of_sound(conservative_soln)[s];
-        }
+            computed_quantities(++current_data_index) = compute_mass_fractions(conservative_soln)[s];
+        }        
 
         // const real temp = 600.0/298.15;
         // const real cpa = compute_dimensional_temperature(temp);
@@ -798,15 +802,18 @@ std::vector<dealii::DataComponentInterpretation::DataComponentInterpretation> Re
     interpretation.push_back (DCI::component_is_scalar); // e_comparison
     interpretation.push_back (DCI::component_is_scalar); // Sound 
     interpretation.push_back (DCI::component_is_scalar); // Temperature (Dim)
-    for (unsigned int s=0; s<nstate-dim-1; ++s) {
-        interpretation.push_back (DCI::component_is_part_of_vector); // Species densities
-    }
+    // for (unsigned int s=0; s<nstate-dim-1; ++s) {
+    //     interpretation.push_back (DCI::component_is_part_of_vector); // Species densities
+    // }
     interpretation.push_back (DCI::component_is_scalar); // Mixture specific total enthalpy
+    // for (unsigned int s=0; s<nstate-dim-1; ++s) {
+    //     interpretation.push_back (DCI::component_is_part_of_vector); // Species specific heat ratio
+    // }
+    // for (unsigned int s=0; s<nstate-dim-1; ++s) {
+    //     interpretation.push_back (DCI::component_is_part_of_vector); // Species speed of sound
+    // }
     for (unsigned int s=0; s<nstate-dim-1; ++s) {
-        interpretation.push_back (DCI::component_is_part_of_vector); // Species specific heat ratio
-    }
-    for (unsigned int s=0; s<nstate-dim-1; ++s) {
-        interpretation.push_back (DCI::component_is_part_of_vector); // Species speed of sound
+         interpretation.push_back (DCI::component_is_scalar); // Mass fractions
     }
 
     std::vector<std::string> names = post_get_names();
@@ -838,18 +845,18 @@ std::vector<std::string> RealGas<dim,nstate,real>
     names.push_back ("e_comparison");
     names.push_back ("speed_of_sound");
     names.push_back ("dimensional_temperature");
-    for (unsigned int s=0; s<nstate-dim-1; ++s) 
-    {
-      names.push_back ("species_densities");
-    }
+    // for (unsigned int s=0; s<nstate-dim-1; ++s) 
+    // {
+    //   names.push_back ("species_densities");
+    // }
     names.push_back ("mixture_specific_total_enthalpy");
+    // for (unsigned int s=0; s<nstate-dim-1; ++s) 
+    // {
+    //   names.push_back ("species_specific_heat_ratio");
+    // }
     for (unsigned int s=0; s<nstate-dim-1; ++s) 
     {
-      names.push_back ("species_specific_heat_ratio");
-    }
-    for (unsigned int s=0; s<nstate-dim-1; ++s) 
-    {
-      names.push_back ("species_speed_of_sound");
+      names.push_back (real_gas_cap->Sp_name[s]);
     }
 
     return names;

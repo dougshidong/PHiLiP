@@ -480,6 +480,17 @@ public:
         }
         return nonsim_dual_equality;
     }
+    void extract_nonsim_dual_equality(
+        const ROL::PartitionedVector<Real> &dual_equality,
+        std::vector<ROL::Ptr<ROL::Vector<Real>>> &nonsim_dual_equality) const
+    {
+        const unsigned int n_vec = dual_equality.numVectors();
+		pcout << "dual_equality.numVectors(): " << dual_equality.numVectors() << std::endl;
+        for (unsigned int i_vec = 1; i_vec < n_vec; ++i_vec) {
+            nonsim_dual_equality[i_vec-1] = dual_equality.get(i_vec)->clone();
+            nonsim_dual_equality[i_vec-1]->set( *(dual_equality.get(i_vec)) );
+        }
+    }
 
     ROL::Ptr<const ROL::PartitionedVector<Real>> extract_control_and_slacks( const ROL::PartitionedVector<Real> &design_variables ) const
     {
@@ -742,18 +753,23 @@ public:
 		task_end["Initialize Vectors 2"] = std::chrono::system_clock::now();
 
 		task_start["Initialize Vectors 3"] = std::chrono::system_clock::now();
+        const ROL::PartitionedVector<Real> &input_dual_inequality_partitioned = cast<const ROL::PartitionedVector<Real>&>(*input_dual_inequality);
+        const auto& input_dual_equality_partitioned = cast<const ROL::PartitionedVector<Real>&>(*input_dual_equality);
+		pcout << "input_dual_inequality_partitioned.numVectors(): " << input_dual_inequality_partitioned.numVectors() << std::endl;
+
 		task_start["Initialize Vectors 3 extract_nonsim-dual_equality"] = std::chrono::system_clock::now();
-        std::vector<ROL::Ptr<ROL::Vector<Real>>> input_nonsimdual_stdvec = extract_nonsim_dual_equality( cast<const ROL::PartitionedVector<Real>&>(*input_dual_equality) );
+        const unsigned int n_vec_dual_equality   = input_dual_equality_partitioned.numVectors();
+        const unsigned int n_vec_dual_inequality = input_dual_inequality_partitioned.numVectors();
+        std::vector<ROL::Ptr<ROL::Vector<Real>>> input_nonsimdual_stdvec( n_vec_dual_equality + n_vec_dual_inequality );
+        extract_nonsim_dual_equality( input_dual_equality_partitioned, input_nonsimdual_stdvec );
+
 		task_end["Initialize Vectors 3 extract_nonsim-dual_equality"] = std::chrono::system_clock::now();
 		task_start["Initialize Vectors 3 cast 1"] = std::chrono::system_clock::now();
-        const ROL::PartitionedVector<Real> &input_dual_inequality_partitioned = cast<const ROL::PartitionedVector<Real>&>(*input_dual_inequality);
 		task_end["Initialize Vectors 3 cast 1"] = std::chrono::system_clock::now();
-		pcout << "input_dual_inequality_partitioned.numVectors(): " << input_dual_inequality_partitioned.numVectors() << std::endl;
-        const unsigned int n_vec_dual_inequality = input_dual_inequality_partitioned.numVectors();
 		task_start["Initialize Vectors 3 push_back"] = std::chrono::system_clock::now();
         for (unsigned int i_vec = 0; i_vec < n_vec_dual_inequality; ++i_vec) {
-            input_nonsimdual_stdvec.push_back(input_dual_inequality_partitioned.get(i_vec)->clone());
-            input_nonsimdual_stdvec.back()->set(*(input_dual_inequality_partitioned.get(i_vec)));
+            input_nonsimdual_stdvec[i_vec+n_vec_dual_equality] = input_dual_inequality_partitioned.get(i_vec)->clone();
+            input_nonsimdual_stdvec[i_vec+n_vec_dual_equality]->set(*(input_dual_inequality_partitioned.get(i_vec)));
         }
 		task_end["Initialize Vectors 3 push_back"] = std::chrono::system_clock::now();
 		task_end["Initialize Vectors 3"] = std::chrono::system_clock::now();

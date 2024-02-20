@@ -758,8 +758,8 @@ real InitialConditionFunction_MultiSpecies_VortexAdvection<dim,nstate,real>
 {
     // Note: This is in non-dimensional form (free-stream values as reference)
     real value = 0.;
-    if constexpr(dim == 2) {
-        const real x = point[0], y = point[1];
+    if constexpr(dim == 1) {
+        const real x = point[0];
 
         if(istate==0) {
             // mixture density
@@ -771,11 +771,6 @@ real InitialConditionFunction_MultiSpecies_VortexAdvection<dim,nstate,real>
             value = 0.5;
         }
         if(istate==2) {
-            // y-velocity
-            // value = -cos(x)*sin(y);
-            value = 0.5;
-        }
-        if(istate==3) {
             // pressure
             // value = 1.0/(this->gamma_gas*this->mach_inf_sqr) + (1.0/16.0)*(cos(2.0*x)+cos(2.0*y))*(2.0);
             // value = 1.0 + (x-x+y-y);
@@ -783,11 +778,11 @@ real InitialConditionFunction_MultiSpecies_VortexAdvection<dim,nstate,real>
             double const pi = 6.28318530717958623200 / 2; // pi
             double const mu = 6.28318530717958623200 / 2 ; //max of x
             double fx = (1.0/sqrt(2.0*pi*sigma*sigma))*exp(-((x-mu)*(x-mu))/(2.0*(sigma*sigma)));
-            double fy = (1.0/sqrt(2.0*pi*sigma*sigma))*exp(-((y-mu)*(y-mu))/(2.0*(sigma*sigma)));
+            double fy = (1.0/sqrt(2.0*pi*sigma*sigma))*exp(-((pi-mu)*(pi-mu))/(2.0*(sigma*sigma)));
             value = 1.0/(this->gamma_gas*this->mach_inf_sqr) + fx*fy;
             value = value*6.0/3.0; // chnege this if you want to vary initial temperature 
         }
-        if(istate==4){
+        if(istate==3){
             // other species density (N2)
             value = 0.79;
         }
@@ -801,7 +796,7 @@ real InitialConditionFunction_MultiSpecies_VortexAdvection<dim,nstate,real>
     const dealii::Point<dim,real> &point, const unsigned int istate) const
 {
     real value = 0.0;
-    if constexpr(dim == 2) {
+    if constexpr(dim == 1) {
         std::array<real,nstate> soln_primitive;
 
         for (int i=0; i<nstate; i++)
@@ -896,7 +891,7 @@ InitialConditionFactory<dim,nstate, real>::create_InitialConditionFunction(
             return std::make_shared<InitialConditionFunction_AcousticWave_MultiSpecies<dim,nstate,real> >(param);
         }
     } else if (flow_type == FlowCaseEnum::multi_species_vortex_advection) {
-        if constexpr (dim==2 && nstate==dim+2+2-1){ // TO DO: N_SPECIES, dim = 1, nstate = dim+2+3-1
+        if constexpr (dim==1 && nstate==dim+2+2-1){ // TO DO: N_SPECIES, dim = 1, nstate = dim+2+3-1
             return std::make_shared<InitialConditionFunction_MultiSpecies_VortexAdvection<dim,nstate,real> >(param);
         }
     } else {

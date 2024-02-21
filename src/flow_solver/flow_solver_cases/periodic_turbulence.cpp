@@ -629,7 +629,7 @@ double PeriodicTurbulence<dim, nstate>::get_numerical_entropy(const std::shared_
 }
 
 template<int dim, int nstate>
-double PeriodicTurbulence<dim, nstate>::calculate_numerical_entropy(
+double PeriodicTurbulence<dim, nstate>::compute_current_integrated_numerical_entropy(
         const std::shared_ptr <DGBase<dim, double>> dg
         ) const
 {
@@ -721,7 +721,7 @@ double PeriodicTurbulence<dim, nstate>::calculate_numerical_entropy(
         for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
 
             std::array<double,nstate> soln_state;
-            // Extract solution and gradient in a way that the physics ca n use them.
+            // Extract solution in a way that the physics ca n use them.
             for(int istate=0; istate<nstate; istate++){
                 soln_state[istate] = soln_at_q[istate][iquad];
             }
@@ -760,7 +760,7 @@ void PeriodicTurbulence<dim, nstate>::compute_unsteady_data_and_write_to_table(
     double current_numerical_entropy_change_FRcorrected=0;
     
     if (do_calculate_numerical_entropy){
-        const double current_numerical_entropy = this->calculate_numerical_entropy(dg);
+        const double current_numerical_entropy = this->compute_current_integrated_numerical_entropy(dg);
         if (current_iteration==0) {
             this->previous_numerical_entropy = current_numerical_entropy;
             this->initial_numerical_entropy_abs = abs(current_numerical_entropy);

@@ -26,7 +26,7 @@ public:
     /// Calculate FR entropy adjustment
     /** FR_contribution = dt \sum_i=1^s b_i v^{(i)} K du^{(i)}/dt
      */
-    double compute_FR_entropy_contribution(const real dt,
+    real compute_FR_entropy_contribution(const real dt,
             std::shared_ptr<DGBase<dim,real,MeshType>> dg,
             const std::vector<dealii::LinearAlgebra::distributed::Vector<double>> &rk_stage,
             const bool compute_K_norm) const override;

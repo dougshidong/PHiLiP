@@ -81,14 +81,14 @@ void PeriodicCubeFlow<dim,nstate>::display_grid_parameters() const
     std::string c_parameter_string;
     using FREnum = Parameters::AllParameters::Flux_Reconstruction;
     FREnum fr_type = this->all_param.flux_reconstruction_type;
-    if (fr_type == FREnum::cDG)         c_parameter_string = "cDG";
-    if (fr_type == FREnum::cSD)         c_parameter_string = "cSD";
-    if (fr_type == FREnum::cHU)         c_parameter_string = "cHU";
-    if (fr_type == FREnum::cNegative)   c_parameter_string = "cNegative";
-    if (fr_type == FREnum::cNegative2)  c_parameter_string = "cNegative2";
-    if (fr_type == FREnum::cPlus)       c_parameter_string = "cPlus";
-    if (fr_type == FREnum::c10Thousand) c_parameter_string = "c10Thousand";
-    if (fr_type == FREnum::cHULumped)   c_parameter_string = "cHULumped";
+    if (fr_type == FREnum::cDG)              c_parameter_string = "cDG";
+    else if (fr_type == FREnum::cSD)         c_parameter_string = "cSD";
+    else if (fr_type == FREnum::cHU)         c_parameter_string = "cHU";
+    else if (fr_type == FREnum::cNegative)   c_parameter_string = "cNegative";
+    else if (fr_type == FREnum::cNegative2)  c_parameter_string = "cNegative2";
+    else if (fr_type == FREnum::cPlus)       c_parameter_string = "cPlus";
+    else if (fr_type == FREnum::c10Thousand) c_parameter_string = "c10Thousand";
+    else if (fr_type == FREnum::cHULumped)   c_parameter_string = "cHULumped";
 
     this->pcout << "- Using c parameter: " << c_parameter_string << std::endl;
 }

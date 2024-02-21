@@ -41,10 +41,10 @@ dealii::LinearAlgebra::distributed::Vector<double> RKNumEntropy<dim,real,MeshTyp
     }
     
     // Select Euler physics. ODESolverFactory has already ensured that we are using Euler orSelect Euler physics. ODESolverFactory has already ensured that we are using Euler or NS, which both use the same entropy variable computation.
-    PHiLiP::Parameters::AllParameters parameters_euler = *(dg->all_parameters);
-    parameters_euler.pde_type = Parameters::AllParameters::PartialDifferentialEquation::euler;
+    PHiLiP::Parameters::AllParameters parameters_using_euler_pde_type = *(dg->all_parameters);
+    parameters_using_euler_pde_type.pde_type = Parameters::AllParameters::PartialDifferentialEquation::euler;
     std::shared_ptr < Physics::Euler<dim, dim+2, double > > euler_physics = std::dynamic_pointer_cast<Physics::Euler<dim,dim+2,double>>(
-                Physics::PhysicsFactory<dim,dim+2,double>::create_Physics(&parameters_euler));
+                Physics::PhysicsFactory<dim,dim+2,double>::create_Physics(&parameters_using_euler_pde_type));
 
     const unsigned int n_dofs_cell = dg->fe_collection[poly_degree].dofs_per_cell;
     const unsigned int n_quad_pts = dg->volume_quadrature_collection[poly_degree].size();
@@ -110,7 +110,7 @@ dealii::LinearAlgebra::distributed::Vector<double> RKNumEntropy<dim,real,MeshTyp
 
 
 template <int dim, typename real, typename MeshType>
-double RKNumEntropy<dim,real,MeshType>::compute_FR_entropy_contribution(const real dt, 
+real RKNumEntropy<dim,real,MeshType>::compute_FR_entropy_contribution(const real dt, 
         std::shared_ptr<DGBase<dim,real,MeshType>> dg,
         const std::vector<dealii::LinearAlgebra::distributed::Vector<double>> &rk_stage,
         const bool compute_K_norm) const

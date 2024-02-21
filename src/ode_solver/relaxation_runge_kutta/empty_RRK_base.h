@@ -23,7 +23,7 @@ public:
     /// Calculate FR entropy adjustment
     /** Empty here
      */
-    virtual double compute_FR_entropy_contribution(const real /*dt*/,
+    virtual real compute_FR_entropy_contribution(const real /*dt*/,
             std::shared_ptr<DGBase<dim,real,MeshType>>/* dg*/,
             const std::vector<dealii::LinearAlgebra::distributed::Vector<double>> &/*rk_stage*/,
             const bool /*compute_K_norm*/) const{

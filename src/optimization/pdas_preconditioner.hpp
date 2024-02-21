@@ -487,7 +487,9 @@ public:
         const unsigned int n_vec = dual_equality.numVectors();
 		pcout << "dual_equality.numVectors(): " << dual_equality.numVectors() << std::endl;
         for (unsigned int i_vec = 1; i_vec < n_vec; ++i_vec) {
+            std::cout << "Cloning vector " << i_vec << std::endl;
             nonsim_dual_equality[i_vec-1] = dual_equality.get(i_vec)->clone();
+            std::cout << "Setting vector " << i_vec << std::endl;
             nonsim_dual_equality[i_vec-1]->set( *(dual_equality.get(i_vec)) );
         }
     }
@@ -760,16 +762,23 @@ public:
 		task_start["Initialize Vectors 3 extract_nonsim-dual_equality"] = std::chrono::system_clock::now();
         const unsigned int n_vec_dual_equality   = input_dual_equality_partitioned.numVectors();
         const unsigned int n_vec_dual_inequality = input_dual_inequality_partitioned.numVectors();
-        std::vector<ROL::Ptr<ROL::Vector<Real>>> input_nonsimdual_stdvec( n_vec_dual_equality + n_vec_dual_inequality );
+		pcout << "Allocating vector of size: " << (n_vec_dual_equality-1) + n_vec_dual_inequality << std::endl;
+        std::vector<ROL::Ptr<ROL::Vector<Real>>> input_nonsimdual_stdvec( (n_vec_dual_equality-1) + n_vec_dual_inequality );
+        std::cout << "Extracting nonsim-dual_equality" << std::endl;
         extract_nonsim_dual_equality( input_dual_equality_partitioned, input_nonsimdual_stdvec );
+        std::cout << "Finished extracting nonsim-dual_equality" << std::endl;
 
 		task_end["Initialize Vectors 3 extract_nonsim-dual_equality"] = std::chrono::system_clock::now();
 		task_start["Initialize Vectors 3 cast 1"] = std::chrono::system_clock::now();
 		task_end["Initialize Vectors 3 cast 1"] = std::chrono::system_clock::now();
 		task_start["Initialize Vectors 3 push_back"] = std::chrono::system_clock::now();
         for (unsigned int i_vec = 0; i_vec < n_vec_dual_inequality; ++i_vec) {
-            input_nonsimdual_stdvec[i_vec+n_vec_dual_equality] = input_dual_inequality_partitioned.get(i_vec)->clone();
-            input_nonsimdual_stdvec[i_vec+n_vec_dual_equality]->set(*(input_dual_inequality_partitioned.get(i_vec)));
+            task_start["Initialize Vectors 3 clone"+std::to_string(i_vec)] = std::chrono::system_clock::now();
+            input_nonsimdual_stdvec[i_vec+(n_vec_dual_equality-1)] = input_dual_inequality_partitioned.get(i_vec)->clone();
+            task_end["Initialize Vectors 3 clone"+std::to_string(i_vec)] = std::chrono::system_clock::now();
+            task_start["Initialize Vectors 3 set"+std::to_string(i_vec)] = std::chrono::system_clock::now();
+            input_nonsimdual_stdvec[i_vec+(n_vec_dual_equality-1)]->set(*(input_dual_inequality_partitioned.get(i_vec)));
+            task_end["Initialize Vectors 3 set"+std::to_string(i_vec)] = std::chrono::system_clock::now();
         }
 		task_end["Initialize Vectors 3 push_back"] = std::chrono::system_clock::now();
 		task_end["Initialize Vectors 3"] = std::chrono::system_clock::now();

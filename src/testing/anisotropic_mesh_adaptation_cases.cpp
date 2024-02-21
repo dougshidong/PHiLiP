@@ -836,6 +836,7 @@ int AnisotropicMeshAdaptationCases<dim, nstate> :: run_test () const
         }
 
         const unsigned int n_meshes = 4;
+        /*
         for(unsigned int imesh = 0; imesh < n_meshes; ++imesh)
         {
             if(imesh>0)
@@ -873,42 +874,45 @@ int AnisotropicMeshAdaptationCases<dim, nstate> :: run_test () const
             convergence_table_enthalpy.add_value("cells", flow_solver->dg->triangulation->n_global_active_cells());
             convergence_table_enthalpy.add_value("enthalpy_error",enthalpy_error);
         } //imesh loop
-        /*
+        */
+        
         for(unsigned int imesh = 0; imesh < n_meshes; ++imesh)
         {
-            if(imesh>0)
+            if( imesh!= (n_meshes-1) )
             {
                 refine_mesh_and_interpolate_solution(flow_solver->dg); 
+                continue;
             }
-            if(imesh==2)
+            if(read_from_file)
             {
-                (void) use_oneD_parameteriation;
-                pcout<<"Reading mesh and solution from file."<<std::endl;
+                const unsigned int poly_degree_current = flow_solver->dg->get_min_fe_degree();
+                const unsigned int poly_degree_coarse = poly_degree_current-1;
+                flow_solver->dg->set_p_degree_and_interpolate_solution(poly_degree_coarse);
                 read_solution_volume_nodes_from_file(flow_solver->dg);
-                flow_solver->dg->set_upwinding_flux(true);
-                pcout<<"Ncells = "<<flow_solver->dg->triangulation->n_global_active_cells()<<std::endl;
-                pcout<<"Residual norm before = "<<flow_solver->dg->get_residual_l2norm()<<std::endl;
-                pcout<<"Assembling residual."<<std::endl;
-                flow_solver->dg->assemble_residual();
-                pcout<<"Residual norm after = "<<flow_solver->dg->right_hand_side.l2_norm()<<std::endl;
-                pcout<<"Outputting file."<<std::endl;
-                output_vtk_files(flow_solver->dg, output_val++);
+                update_q2_controlnodes_file(flow_solver->dg);
+                flow_solver->dg->set_p_degree_and_interpolate_solution(poly_degree_current);
             }
-            if(imesh==3)
-            {
-                pcout<<"Ncells = "<<flow_solver->dg->triangulation->n_global_active_cells()<<std::endl;
-                dealii::TrilinosWrappers::SparseMatrix regularization_matrix_poisson_q2;
-                evaluate_regularization_matrix(regularization_matrix_poisson_q2, flow_solver->dg);
-                flow_solver->dg->freeze_artificial_dissipation=true;
-                flow_solver->dg->set_upwinding_flux(true);
-                std::unique_ptr<MeshOptimizer<dim,nstate>> mesh_optimizer_q2 = std::make_unique<MeshOptimizer<dim,nstate>> (flow_solver->dg,&param, true);
-                const bool output_refined_nodes = true;
-                mesh_optimizer_q2->run_full_space_optimizer(regularization_matrix_poisson_q2, use_oneD_parameteriation, output_refined_nodes, output_val);
-                output_vtk_files(flow_solver->dg, output_val++);
-                
-            }
+            pcout<<"Ncells = "<<flow_solver->dg->triangulation->n_global_active_cells()<<std::endl;
+            dealii::TrilinosWrappers::SparseMatrix regularization_matrix_poisson_q2;
+            evaluate_regularization_matrix(regularization_matrix_poisson_q2, flow_solver->dg);
+            flow_solver->dg->freeze_artificial_dissipation=true;
+            flow_solver->dg->set_upwinding_flux(true);
+            std::unique_ptr<MeshOptimizer<dim,nstate>> mesh_optimizer_q2 = std::make_unique<MeshOptimizer<dim,nstate>> (flow_solver->dg,&param, true);
+            const bool output_refined_nodes = true;
+            mesh_optimizer_q2->run_full_space_optimizer(regularization_matrix_poisson_q2, use_oneD_parameteriation, output_refined_nodes, output_val);
+            const double functional_error = evaluate_functional_error(flow_solver->dg);
+            const double enthalpy_error = evaluate_enthalpy_error(flow_solver->dg);
+            functional_error_vector.push_back(functional_error);
+            enthalpy_error_vector.push_back(enthalpy_error);
+            n_dofs_vector.push_back(flow_solver->dg->n_dofs());
+            n_cycle_vector.push_back(current_cycle++);
+
+            convergence_table_functional.add_value("cells", flow_solver->dg->triangulation->n_global_active_cells());
+            convergence_table_functional.add_value("functional_error",functional_error);
+            convergence_table_enthalpy.add_value("cells", flow_solver->dg->triangulation->n_global_active_cells());
+            convergence_table_enthalpy.add_value("enthalpy_error",enthalpy_error);
+            output_vtk_files(flow_solver->dg, output_val++);            
         }
-        */
     }
 
     if(run_fixedfraction_mesh_adaptation)

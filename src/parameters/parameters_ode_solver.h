@@ -71,6 +71,12 @@ public:
     /// Flag to signal that automatic differentiation (AD) matrix dRdW must be allocated
     bool allocate_matrix_dRdW;
 
+    /// Do output for root solving routine
+    OutputEnum rrk_root_solver_output;
+
+    /// Tolerance for RRK root solver, default value 5E-10
+    double relaxation_runge_kutta_root_tolerance;
+
     static void declare_parameters (dealii::ParameterHandler &prm); ///< Declares the possible variables and sets the defaults.
     void parse_parameters (dealii::ParameterHandler &prm); ///< Parses input file and sets the variables.
 };

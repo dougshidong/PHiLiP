@@ -31,7 +31,11 @@ subsection ODE solver
   set ode_output = quiet
   set ode_solver_type = rrk_explicit
   set runge_kutta_method = ssprk3_ex
+  subsection rrk root solver
+    set rrk_root_solver_output = verbose
+  end
 end
+
 
 # Reference for freestream values specified below:
 # Diosady, L., and S. Murman. "Case 3.3: Taylor green vortex evolution." Case Summary for 3rd International Workshop on Higher-Order CFD Methods. 2015.

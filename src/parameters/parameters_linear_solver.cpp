@@ -74,10 +74,6 @@ void LinearSolverParam::declare_parameters (dealii::ParameterHandler &prm)
         }
         prm.leave_subsection();
 
-        prm.declare_entry("relaxation_runge_kutta_root_tolerance", "5E-10",
-                          dealii::Patterns::Double(),
-                          "Tolerance for root-finding problem in entropy RRK ode solver."
-                          "Defult 5E-10 is suitable in most cases.");
     }
     prm.leave_subsection();
 }
@@ -118,7 +114,6 @@ void LinearSolverParam ::parse_parameters (dealii::ParameterHandler &prm)
         }
         prm.leave_subsection();
 
-        relaxation_runge_kutta_root_tolerance = prm.get_double("relaxation_runge_kutta_root_tolerance");
     }
     prm.leave_subsection();
 }

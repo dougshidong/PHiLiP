@@ -20,7 +20,7 @@ real RootFindingRRKODESolver<dim,real,MeshType>::compute_relaxation_parameter(co
             ) 
 {
     // Console output is based on linearsolverparam
-    const bool do_output = (dg->all_parameters->linear_solver_param.linear_solver_output == Parameters::OutputEnum::verbose); 
+    const bool do_output = (dg->all_parameters->ode_solver_param.rrk_root_solver_output == Parameters::OutputEnum::verbose); 
 
     // Note: there is some overlap in computations here and in runge_kutta_ode_solver.
     // In future optimization, this could be improved.
@@ -46,7 +46,7 @@ real RootFindingRRKODESolver<dim,real,MeshType>::compute_relaxation_parameter(co
 
     // k, kp1, km1 denote iteration indices of secant or bisection solvers
     double gamma_kp1 = 0; 
-    const double conv_tol = dg->all_parameters->linear_solver_param.relaxation_runge_kutta_root_tolerance;
+    const double conv_tol = dg->all_parameters->ode_solver_param.relaxation_runge_kutta_root_tolerance;
     int iter_counter = 0;
     const int iter_limit = 100;
     if (use_secant){

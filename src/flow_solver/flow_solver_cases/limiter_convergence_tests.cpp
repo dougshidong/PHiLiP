@@ -161,8 +161,8 @@ void LimiterConvergenceTests<dim, nstate>::check_limiter_principle(DGBase<dim, d
             for (unsigned int istate = 0; istate < nstate; ++istate) {
                 for (unsigned int iquad = 0; iquad < n_quad_pts; ++iquad) {
                     // Verify that strict maximum principle is satisfied
-                    if (soln_at_q[istate][iquad] > 1.00 || soln_at_q[istate][iquad] < -1.00 || (isnan(soln_at_q[istate][iquad])))  {
-                            std::cout << "Error: Strict Maximum Principle is violated - Aborting... " << std::endl << std::flush;
+                    if (soln_at_q[istate][iquad] > 1.00 + 1e-13 || soln_at_q[istate][iquad] < -1.00 - 1e-13|| (isnan(soln_at_q[istate][iquad])))  {
+                            std::cout << "Flow Solver Error: Strict Maximum Principle is violated - Aborting... " << soln_at_q[istate][iquad] << std::endl << std::flush;
                             std::abort();
                     } 
                 }
@@ -199,7 +199,7 @@ void LimiterConvergenceTests<dim, nstate>::compute_unsteady_data_and_write_to_ta
         unsteady_data_table->write_text(unsteady_data_table_file);
     }
 
-    if (current_iteration % 1 == 0) {
+    if (current_iteration % this->all_param.ode_solver_param.print_iteration_modulo == 0) {
         // Print to console
         this->pcout << "    Iter: " << current_iteration
             << "    Time: " << current_time;

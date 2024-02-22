@@ -148,7 +148,7 @@ void NonPeriodicCubeFlow<dim, nstate>::compute_unsteady_data_and_write_to_table(
         unsteady_data_table->write_text(unsteady_data_table_file);
     }
 
-    if (current_iteration % 1 == 0) {
+    if (current_iteration % this->all_param.ode_solver_param.print_iteration_modulo == 0) {
         // Print to console
         this->pcout << "    Iter: " << current_iteration
             << "    Time: " << current_time;

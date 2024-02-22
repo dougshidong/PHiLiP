@@ -1297,6 +1297,8 @@ void PrimalDualActiveSetStep<Real>::compute(
             const bool use_second_order_terms = false;
             const bool use_approximate_preconditioner = DO_USE_APPROXIMATE_PRECONDITIONER;
             precond = ROL::makePtr<PDAS_P24_Constrained_Preconditioner<Real>>(
+                rhs_partitioned,
+                search_partitioned,
                 old_design_var_ptr,
                 //ROL::makePtrFromRef(objective_simopt),
                 state_constraints_ptr,

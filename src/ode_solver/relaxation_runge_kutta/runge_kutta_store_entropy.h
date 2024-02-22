@@ -63,9 +63,6 @@ protected:
             const dealii::LinearAlgebra::distributed::Vector<double> &u,
             std::shared_ptr<DGBase<dim,real,MeshType>> dg) const;
 
-    // Euler physics pointer
-    //std::shared_ptr < Physics::Euler<dim, dim+2, double > > euler_physics;
-
 };
 
 } // ODE namespace

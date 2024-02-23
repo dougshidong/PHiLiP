@@ -95,9 +95,13 @@ public:
         // std::string namechem = "/home/liki/Codes/NEQZD/ReactionFiles/airmech_clarey2019.kinetics";
         // std::string nameinitmixfrac = "/home/liki/Codes/NEQZD/InitialMixtureFiles/InitialMixtureFractions_11species.txt";
 
-        /* 'N2_O2': */
-        std::string namechem = "/home/liki/Codes/NEQZD/ReactionFiles/N2_O2.kinetics";
-        std::string nameinitmixfrac = "/home/liki/Codes/NEQZD/InitialMixtureFiles/InitialMixtureFractions_N2_O2.txt";
+        // /* 'N2_O2': */
+        // std::string namechem = "/home/liki/Codes/NEQZD/ReactionFiles/N2_O2.kinetics";
+        // std::string nameinitmixfrac = "/home/liki/Codes/NEQZD/InitialMixtureFiles/InitialMixtureFractions_N2_O2.txt";
+
+        /* 'H2_O2_N2': */
+        std::string namechem = "/home/liki/Codes/NEQZD/ReactionFiles/H2_O2_N2.kinetics";
+        std::string nameinitmixfrac = "/home/liki/Codes/NEQZD/InitialMixtureFiles/InitialMixtureFractions_H2_O2_N2.txt";
 
         /* Ibraguimova 'oxygen': */
         // std::string namechem = "./ReactionFiles/airmech_clarey2019_oxygen.kinetics";

@@ -749,8 +749,8 @@ InitialConditionFunction_MultiSpecies_VortexAdvection<dim,nstate,real>
     // Note that Euler primitive/conservative vars are the same as NS
     PHiLiP::Parameters::AllParameters parameters_euler = *param;
     parameters_euler.pde_type = Parameters::AllParameters::PartialDifferentialEquation::real_gas;
-    this->real_gas_physics = std::dynamic_pointer_cast<Physics::RealGas<dim,dim+2+2-1,double>>( // TO DO: N_SPECIES, dim+2+3-1
-                Physics::PhysicsFactory<dim,dim+2+2-1,double>::create_Physics(&parameters_euler)); // TO DO: N_SPECIES, dim+2+3-1
+    this->real_gas_physics = std::dynamic_pointer_cast<Physics::RealGas<dim,dim+2+3-1,double>>( // TO DO: N_SPECIES, dim+2+3-1
+                Physics::PhysicsFactory<dim,dim+2+3-1,double>::create_Physics(&parameters_euler)); // TO DO: N_SPECIES, dim+2+3-1
 }
 template <int dim, int nstate, typename real>
 real InitialConditionFunction_MultiSpecies_VortexAdvection<dim,nstate,real>
@@ -784,7 +784,11 @@ real InitialConditionFunction_MultiSpecies_VortexAdvection<dim,nstate,real>
         }
         if(istate==3){
             // other species density (N2)
-            value = 0.79;
+            value = 0.4;
+        }
+        if(istate==4){
+            // other species density (O2)
+            value = 0.21;
         }
     }
     return value;
@@ -891,7 +895,7 @@ InitialConditionFactory<dim,nstate, real>::create_InitialConditionFunction(
             return std::make_shared<InitialConditionFunction_AcousticWave_MultiSpecies<dim,nstate,real> >(param);
         }
     } else if (flow_type == FlowCaseEnum::multi_species_vortex_advection) {
-        if constexpr (dim==1 && nstate==dim+2+2-1){ // TO DO: N_SPECIES, dim = 1, nstate = dim+2+3-1
+        if constexpr (dim==1 && nstate==dim+2+3-1){ // TO DO: N_SPECIES, dim = 1, nstate = dim+2+3-1
             return std::make_shared<InitialConditionFunction_MultiSpecies_VortexAdvection<dim,nstate,real> >(param);
         }
     } else {

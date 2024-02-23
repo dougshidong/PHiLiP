@@ -44,7 +44,8 @@ DGFactory<dim,real,MeshType>
             return std::make_shared< DGWeak<dim,dim+2,real,MeshType> >(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input);
         } else if (pde_type == PDE_enum::real_gas) {
             // TO DO: will need to modify the nstate; i suggest adding it as a compile time constant; eg PHiLiP_2D_10species then nstate=(nspecies-1)+dim+2
-            return std::make_shared< DGWeak<dim,dim+2+2-1,real,MeshType> >(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input); // TO DO:  N_SPECIES
+            // TO DO: modify this when you change number of species
+            return std::make_shared< DGWeak<dim,dim+2+3-1,real,MeshType> >(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input); // TO DO:  N_SPECIES
         } else if ((pde_type == PDE_enum::physics_model) && (model_type == Model_enum::reynolds_averaged_navier_stokes) && (rans_model_type == RANSModel_enum::SA_negative)) {
             return std::make_shared< DGWeak<dim,dim+3,real,MeshType> >(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input);
         }
@@ -76,7 +77,8 @@ DGFactory<dim,real,MeshType>
             return std::make_shared< DGStrong<dim,dim+2,real,MeshType> >(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input);
         } else if (pde_type == PDE_enum::real_gas) {
             // TO DO: will need to modify the nstate; i suggest adding it as a compile time constant; eg PHiLiP_2D_10species then nstate=(nspecies-1)+dim+2
-            return std::make_shared< DGStrong<dim,dim+2+2-1,real,MeshType> >(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input); // TO DO: N_SPECIES
+            // TO DO: modify this when you change number of species
+            return std::make_shared< DGStrong<dim,dim+2+3-1,real,MeshType> >(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input); // TO DO: N_SPECIES
         } else if ((pde_type == PDE_enum::physics_model) && (model_type == Model_enum::reynolds_averaged_navier_stokes) && (rans_model_type == RANSModel_enum::SA_negative)) {
             return std::make_shared< DGStrong<dim,dim+3,real,MeshType> >(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input);
         }

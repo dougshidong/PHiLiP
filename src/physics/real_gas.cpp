@@ -595,18 +595,18 @@ inline std::array<real,nstate> RealGas<dim,nstate,real>
     }
 
     /* mixture energy */
-    // species densities
+    // mass fractions
     for (int s=0; s<(nstate-dim-1)-1; ++s) 
     { 
-        species_densities[s] = primitive_soln[dim+2+s];
-        sum += species_densities[s];
+        mass_fractions[s] = primitive_soln[dim+2+s];
+        sum += mass_fractions[s];
     }
-    species_densities[(nstate-dim-1)-1] = mixture_density - sum;
-    // mass fractions
-    for (int s=0; s<(nstate-dim-1); ++s) 
+    mass_fractions[(nstate-dim-1)-1] = 1.00 - sum;     
+    // species densities
+    for (int s=0; s<nstate-dim-1; ++s) 
     { 
-        mass_fractions[s] = species_densities[s]/mixture_density;
-    }    
+        species_densities[s] = mixture_density*mass_fractions[s];
+    }
     // mixturegas constant
     const real mixture_gas_constant = compute_mixture_from_species(mass_fractions,Rs);
     // temperature

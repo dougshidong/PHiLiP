@@ -623,7 +623,7 @@ inline std::array<real,nstate> RealGas<dim,nstate,real>
     }     
     // mixture energy
     const real mixture_specific_total_energy = compute_mixture_from_species(mass_fractions,species_specific_total_energy);
-    conservative_soln[dim+2-1] = mixture_specific_total_energy;
+    conservative_soln[dim+2-1] = mixture_density*mixture_specific_total_energy;
 
     /* species densities */
     for (int s=0; s<(nstate-dim-1)-1; ++s) 

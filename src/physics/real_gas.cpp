@@ -28,6 +28,7 @@ RealGas<dim,nstate,real>::RealGas (
     , u_ref(mach_ref*sqrt(gam_ref*R_ref*temperature_ref)) /// [m/s]
     , u_ref_sqr(u_ref*u_ref) /// [m/s]^2
     , tol(1.0e-10) /// []
+    , density_ref(1.225) /// [kg/m^3]
     // TO DO: nstate-dim-1 = nspecies
 {
     this->real_gas_cap = std::dynamic_pointer_cast<PHiLiP::RealGasConstants::AllRealGasConstants>(

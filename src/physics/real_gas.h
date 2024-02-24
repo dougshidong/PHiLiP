@@ -40,7 +40,7 @@ public:
     const double mach_ref_sqr; ///< reference mach number (Farfield Mach number squared)
     const two_point_num_flux_enum two_point_num_flux_type; ///< Two point numerical flux type (for split form)
 
-protected:
+public:
     const double Ru; ///< universal gas constant: [J/(mol·K)]
     const double MW_Air; ///< molar weight of Air: [kg/mol]
     const double R_ref; ///< reference gas constant: [J/(kg·K)] 
@@ -147,9 +147,11 @@ protected:
     /// f_M9: Compute dimensional temperature from (non-dimensional) temperature
     real compute_dimensional_temperature ( const real temperature ) const;
 
+public:
     /// f_M9.5: Compute Rs from Ru
     std::array<real,nstate-dim-1> compute_Rs ( const real Ru ) const;
 
+protected:
     /// f_M10: Compute species specific Cp from temperature 
     std::array<real,nstate-dim-1> compute_species_specific_Cp ( const real temperature ) const;
 

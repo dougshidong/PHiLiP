@@ -760,35 +760,50 @@ real InitialConditionFunction_MultiSpecies_VortexAdvection<dim,nstate,real>
     real value = 0.;
     if constexpr(dim == 1) {
         const real x = point[0];
+        const real x_0 = 5.0;
+        const real r = sqrt((x-x_0)*(x-x_0));
+        const real T_0 = 300.0; // [K]
+        const real big_gamma = 50.0;
+        const real gamma_0 = 1.4;
+        const real y_H2_0 = 0.01277;
+        const real y_O2_0 = 0.101;
+        const real a_1 = 0.005;
+        const real a_2 = 0.03;
+        const real pi = 6.28318530717958623200 / 2; // pi
 
+        const real pressure = 101325; // [N/m^2]
+        const real velocity = 100.0; // [m/s]
+        const real exp = std::exp(0.50*(1-r*r));
+        const real coeff = 2*pi/(gamma_0*big_gamma);
+        const real temperature = T_0 - (gamma_0-1.0)*big_gamma*big_gamma/(8.0*gamma_0*pi)*exp;
+        const real y_H2 = (y_H2_0 - a_1*coeff*exp);
+        const real y_O2 = (y_O2_0 - a_2*coeff*exp);
+        const real y_N2 = 1.0 - y_H2 - y_O2;
+
+        const std::array Rs = this->real_gas_physics->compute_Rs(this->real_gas_physics->Ru);
+        const real R_mixture = (y_H2*Rs[0] + y_O2*Rs[1] + y_N2*Rs[2])*this->real_gas_physics->R_ref;
+        const real density = pressure/(R_mixture*temperature);
+
+        // dimnsionalized above, non-dimensionalized below
         if(istate==0) {
             // mixture density
-            value = 1.00;
+            value = density / this->real_gas_physics->density_ref;
         }
         if(istate==1) {
             // x-velocity
-            // value = sin(x)*cos(y);
-            value = 0.5;
+            value = velocity / this->real_gas_physics->u_ref;
         }
         if(istate==2) {
             // pressure
-            // value = 1.0/(this->gamma_gas*this->mach_inf_sqr) + (1.0/16.0)*(cos(2.0*x)+cos(2.0*y))*(2.0);
-            // value = 1.0 + (x-x+y-y);
-            double const sigma = 0.5;
-            double const pi = 6.28318530717958623200 / 2; // pi
-            double const mu = 6.28318530717958623200 / 2 ; //max of x
-            double fx = (1.0/sqrt(2.0*pi*sigma*sigma))*exp(-((x-mu)*(x-mu))/(2.0*(sigma*sigma)));
-            double fy = (1.0/sqrt(2.0*pi*sigma*sigma))*exp(-((pi-mu)*(pi-mu))/(2.0*(sigma*sigma)));
-            value = 1.0/(this->gamma_gas*this->mach_inf_sqr) + fx*fy;
-            value = value*6.0/3.0; // chnege this if you want to vary initial temperature 
+            value = pressure / (this->real_gas_physics->density_ref*this->real_gas_physics->u_ref_sqr);
         }
         if(istate==3){
             // other species density (N2)
-            value = 0.4;
+            value = y_H2;
         }
         if(istate==4){
             // other species density (O2)
-            value = 0.21;
+            value = y_O2;
         }
     }
     return value;

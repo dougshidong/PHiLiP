@@ -35,15 +35,15 @@ std::unique_ptr< BoundPreservingLimiter<dim, real> >
     bool apply_tvb = parameters_input->limiter_param.use_tvb_limiter;
     bool curvilinear_grid = parameters_input->use_curvilinear_grid;
 
-    if(curvilinear_grid) {
-        std::cout << "Error: Cannot create limiter for curvilinear grid" << std::endl;
-        std::abort();
-    } else if (flux_nodes_type != flux_nodes_enum::GLL) {
-        std::cout << "Error: Can only use limiter with GLL flux nodes" << std::endl;
-        std::abort();
-    } else if (limiter_type == limiter_enum::none) {
+    if (limiter_type == limiter_enum::none) {
         if (apply_tvb == true) {
-            if (dim == 1)
+            if(curvilinear_grid) {
+                std::cout << "Error: Cannot create limiter for curvilinear grid" << std::endl;
+                std::abort();
+            } else if (flux_nodes_type != flux_nodes_enum::GLL) {
+                std::cout << "Error: Can only use limiter with GLL flux nodes" << std::endl;
+                std::abort();
+            } else if (dim == 1)
                 return std::make_unique < TVBLimiter<dim, nstate, real> >(parameters_input);
             else {
                 std::cout << "Error: Cannot create TVB limiter for dim > 1" << std::endl;
@@ -52,6 +52,12 @@ std::unique_ptr< BoundPreservingLimiter<dim, real> >
         }
         else
             return nullptr;
+    } else if(curvilinear_grid) {
+        std::cout << "Error: Cannot create limiter for curvilinear grid" << std::endl;
+        std::abort();
+    } else if (flux_nodes_type != flux_nodes_enum::GLL) {
+        std::cout << "Error: Can only use limiter with GLL flux nodes" << std::endl;
+        std::abort();
     } else if (limiter_type == limiter_enum::maximum_principle) {
         return std::make_unique< MaximumPrincipleLimiter<dim, nstate, real> >(parameters_input);
     } else if (limiter_type == limiter_enum::positivity_preservingZhang2010

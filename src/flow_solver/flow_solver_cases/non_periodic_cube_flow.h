@@ -27,15 +27,12 @@ class NonPeriodicCubeFlow : public CubeFlow_UniformGrid<dim, nstate>
  protected:
     /// Function to compute the adaptive time step
     using CubeFlow_UniformGrid<dim, nstate>::get_adaptive_time_step;
-    // double get_adaptive_time_step(std::shared_ptr<DGBase<dim,double>> dg) const override;
 
     /// Function to compute the initial adaptive time step
     using CubeFlow_UniformGrid<dim, nstate>::get_adaptive_time_step_initial;
-    // double get_adaptive_time_step_initial(std::shared_ptr<DGBase<dim,double>> dg) override;
 
     /// Updates the maximum local wave speed
     using CubeFlow_UniformGrid<dim, nstate>::update_maximum_local_wave_speed;
-    // void update_maximum_local_wave_speed(DGBase<dim, double> &dg);
 
     /// Updates the maximum local wave speed
     void check_positivity_density(DGBase<dim, double>& dg);

@@ -8,7 +8,7 @@ set pde_type = euler
 
 # DG formulation
 set use_weak_form = false
-set flux_nodes_type = GL
+set flux_nodes_type = GLL
 
 # Strong DG - LaxF
 #set use_split_form = false

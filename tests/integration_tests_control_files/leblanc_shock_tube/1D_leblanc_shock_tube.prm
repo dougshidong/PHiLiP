@@ -50,10 +50,10 @@ end
 
 subsection flow_solver
   set flow_case_type = leblanc_shock_tube
-  set poly_degree = 3
+  set poly_degree = 2
   set final_time = 0.0001
   #set constant_time_step = 0.0024
-  set courant_friedrichs_lewy_number = 0.3
+  set courant_friedrichs_lewy_number = 0.47
   set adaptive_time_step = true
   set unsteady_data_table_filename = leblanc_shock_energy
   subsection grid

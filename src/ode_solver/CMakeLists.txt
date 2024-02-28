@@ -23,8 +23,10 @@ foreach(dim RANGE 1 3)
     # Library dependency
     string(CONCAT HighOrderGridLib HighOrderGrid_${dim}D)
     string(CONCAT DiscontinuousGalerkinLib DiscontinuousGalerkin_${dim}D)
+    string(CONCAT LimiterLib Limiter_${dim}D)
     string(CONCAT LinearSolverLib LinearSolver)
     target_link_libraries(${ODESolverLib} ${DiscontinuousGalerkinLib})
+    target_link_libraries(${ODESolverLib} ${LimiterLib})
     target_link_libraries(${ODESolverLib} ${HighOrderGridLib})
     target_link_libraries(${ODESolverLib} ${LinearSolverLib})
     # Setup target with deal.II
@@ -35,6 +37,7 @@ foreach(dim RANGE 1 3)
 
     unset(ODESolverLib)
     unset(DiscontinuousGalerkinLib)
+    unset(LimiterLib)
     unset(HighOrderGridLib)
 
 endforeach()

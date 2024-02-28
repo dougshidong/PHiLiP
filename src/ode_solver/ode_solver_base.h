@@ -4,7 +4,8 @@
 #include <deal.II/base/conditional_ostream.h>
 #include <deal.II/base/table_handler.h>
 #include <deal.II/lac/vector.h>
-
+#include "parameters/all_parameters.h"
+#include "limiter/bound_preserving_limiter_factory.hpp"
 #include <iostream>
 #include <stdexcept>
 
@@ -85,6 +86,9 @@ protected:
 public:
     /// Smart pointer to DGBase
     std::shared_ptr<DGBase<dim,real,MeshType>> dg;
+
+    /// Pointer to BoundPreservingLimiter
+    std::unique_ptr<BoundPreservingLimiter<dim,real>> limiter;
 
 protected:
     /// Input parameters.

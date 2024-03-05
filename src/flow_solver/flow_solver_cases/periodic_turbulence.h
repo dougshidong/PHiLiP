@@ -77,7 +77,13 @@ public:
             const double current_time) const;
 
     /// Calculate numerical entropy by matrix-vector product
-    double compute_current_integrated_numerical_entropy(const std::shared_ptr <DGBase<dim, double>> dg) const;
+    double compute_current_integrated_numerical_entropy(
+            const std::shared_ptr <DGBase<dim, double>> dg) const;
+
+    /// Update numerical entropy variables
+    void update_numerical_entropy(
+            const unsigned int current_iteration,
+            const std::shared_ptr <DGBase<dim, double>> dg);
     
     /// Retrieves cumulative_numerical_entropy_change_FRcorrected
     double get_numerical_entropy(const std::shared_ptr <DGBase<dim, double>> /*dg*/) const;
@@ -107,7 +113,6 @@ protected:
     bool is_decaying_homogeneous_isotropic_turbulence = false; ///< Identified if DHIT case; initialized as false.
     bool is_viscous_flow = true; ///< Identifies if viscous flow; initialized as true.
     bool do_calculate_numerical_entropy=false; ///< Identifies if numerical entropy should be calculated; initialized as false.
-    bool do_calculate_overintegrated_quantities=false; ///< Identifies if overintegrated quantities should be calculated; initialized as false.
 
     /// Display additional more specific flow case parameters
     void display_additional_flow_case_specific_parameters() const override;

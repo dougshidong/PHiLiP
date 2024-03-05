@@ -40,7 +40,6 @@ PeriodicTurbulence<dim, nstate>::PeriodicTurbulence(const PHiLiP::Parameters::Al
     this->is_decaying_homogeneous_isotropic_turbulence = (flow_type == FlowCaseEnum::decaying_homogeneous_isotropic_turbulence);
     this->is_viscous_flow = (this->all_param.pde_type != Parameters::AllParameters::PartialDifferentialEquation::euler);
     this->do_calculate_numerical_entropy= this->all_param.flow_solver_param.do_calculate_numerical_entropy;
-    this->do_calculate_overintegrated_quantities= this->all_param.flow_solver_param.do_calculate_overintegrated_quantities;
 
     // Navier-Stokes object; create using dynamic_pointer_cast and the create_Physics factory
     PHiLiP::Parameters::AllParameters parameters_navier_stokes = this->all_param;
@@ -735,6 +734,26 @@ double PeriodicTurbulence<dim, nstate>::compute_current_integrated_numerical_ent
     return mpi_integrated_numerical_entropy;
 }
 
+
+template <int dim, int nstate>
+void PeriodicTurbulence<dim, nstate>::update_numerical_entropy(
+        const unsigned int current_iteration,
+        const std::shared_ptr <DGBase<dim, double>> dg)
+{
+
+    const double current_numerical_entropy = this->compute_current_integrated_numerical_entropy(dg);
+
+    if (current_iteration==0) {
+        this->previous_numerical_entropy = current_numerical_entropy;
+        this->initial_numerical_entropy_abs = abs(current_numerical_entropy);
+    }
+
+    const double current_numerical_entropy_change_FRcorrected = (current_numerical_entropy - previous_numerical_entropy + dg->FR_entropy_contribution)/initial_numerical_entropy_abs;
+    this->previous_numerical_entropy = current_numerical_entropy;
+    this->cumulative_numerical_entropy_change_FRcorrected+=current_numerical_entropy_change_FRcorrected;
+
+}
+
 template <int dim, int nstate>
 void PeriodicTurbulence<dim, nstate>::compute_unsteady_data_and_write_to_table(
         const unsigned int current_iteration,
@@ -743,8 +762,8 @@ void PeriodicTurbulence<dim, nstate>::compute_unsteady_data_and_write_to_table(
         const std::shared_ptr <dealii::TableHandler> unsteady_data_table)
 {
     // Compute and update integrated quantities
-    if (do_calculate_overintegrated_quantities) this->compute_and_update_integrated_quantities(*dg);
-    // Get computed quantities. If do_calculate_overintegrated_quantities == false, they will be set as NaN.
+    this->compute_and_update_integrated_quantities(*dg);
+    // Get computed quantities.
     const double integrated_kinetic_energy = this->get_integrated_kinetic_energy();
     const double integrated_enstrophy = this->get_integrated_enstrophy();
     const double vorticity_based_dissipation_rate = this->get_vorticity_based_dissipation_rate();
@@ -752,35 +771,25 @@ void PeriodicTurbulence<dim, nstate>::compute_unsteady_data_and_write_to_table(
     const double deviatoric_strain_rate_tensor_based_dissipation_rate = this->get_deviatoric_strain_rate_tensor_based_dissipation_rate();
     const double strain_rate_tensor_based_dissipation_rate = this->get_strain_rate_tensor_based_dissipation_rate();
     
-    // TEMP - should code gamma storage part this nicer
     using ODEEnum = Parameters::ODESolverParam::ODESolverEnum;
     const bool is_rrk = (this->all_param.ode_solver_param.ode_solver_type == ODEEnum::rrk_explicit_solver);
     const double relaxation_parameter = dg->relaxation_parameter;
 
-    double current_numerical_entropy_change_FRcorrected=0;
-    
     if (do_calculate_numerical_entropy){
-        const double current_numerical_entropy = this->compute_current_integrated_numerical_entropy(dg);
-        if (current_iteration==0) {
-            this->previous_numerical_entropy = current_numerical_entropy;
-            this->initial_numerical_entropy_abs = abs(current_numerical_entropy);
-        }
-        current_numerical_entropy_change_FRcorrected = (current_numerical_entropy - previous_numerical_entropy + dg->FR_entropy_contribution)/initial_numerical_entropy_abs;
-        this->previous_numerical_entropy = current_numerical_entropy;
+        this->update_numerical_entropy(current_iteration, dg);
     }
-    this->cumulative_numerical_entropy_change_FRcorrected+=current_numerical_entropy_change_FRcorrected;
 
     if(this->mpi_rank==0) {
         // Add values to data table
         this->add_value_to_data_table(current_time,"time",unsteady_data_table);
         if(do_calculate_numerical_entropy) this->add_value_to_data_table(this->cumulative_numerical_entropy_change_FRcorrected,"numerical_entropy_scaled_cumulative",unsteady_data_table);
         if(is_rrk) this->add_value_to_data_table(relaxation_parameter, "relaxation_parameter",unsteady_data_table);
-        if (do_calculate_overintegrated_quantities) this->add_value_to_data_table(integrated_kinetic_energy,"kinetic_energy",unsteady_data_table);
-        if (do_calculate_overintegrated_quantities) this->add_value_to_data_table(integrated_enstrophy,"enstrophy",unsteady_data_table);
-        if(is_viscous_flow && do_calculate_overintegrated_quantities) this->add_value_to_data_table(vorticity_based_dissipation_rate,"eps_vorticity",unsteady_data_table);
-        if (do_calculate_overintegrated_quantities) this->add_value_to_data_table(pressure_dilatation_based_dissipation_rate,"eps_pressure",unsteady_data_table);
-        if(is_viscous_flow && do_calculate_overintegrated_quantities) this->add_value_to_data_table(strain_rate_tensor_based_dissipation_rate,"eps_strain",unsteady_data_table);
-        if(is_viscous_flow && do_calculate_overintegrated_quantities) this->add_value_to_data_table(deviatoric_strain_rate_tensor_based_dissipation_rate,"eps_dev_strain",unsteady_data_table);
+        this->add_value_to_data_table(integrated_kinetic_energy,"kinetic_energy",unsteady_data_table);
+        this->add_value_to_data_table(integrated_enstrophy,"enstrophy",unsteady_data_table);
+        if(is_viscous_flow) this->add_value_to_data_table(vorticity_based_dissipation_rate,"eps_vorticity",unsteady_data_table);
+        this->add_value_to_data_table(pressure_dilatation_based_dissipation_rate,"eps_pressure",unsteady_data_table);
+        if(is_viscous_flow) this->add_value_to_data_table(strain_rate_tensor_based_dissipation_rate,"eps_strain",unsteady_data_table);
+        if(is_viscous_flow) this->add_value_to_data_table(deviatoric_strain_rate_tensor_based_dissipation_rate,"eps_dev_strain",unsteady_data_table);
         // Write to file
         std::ofstream unsteady_data_table_file(this->unsteady_data_table_filename_with_extension);
         unsteady_data_table->write_text(unsteady_data_table_file);
@@ -789,17 +798,14 @@ void PeriodicTurbulence<dim, nstate>::compute_unsteady_data_and_write_to_table(
     
     this->pcout << "    Iter: " << current_iteration
                 << "    Time: " << current_time;
-    if (do_calculate_overintegrated_quantities) {
-        this->pcout << "    Energy: " << integrated_kinetic_energy
-                    << "    Enstrophy: " << integrated_enstrophy;
-    }
-    if(is_viscous_flow && do_calculate_overintegrated_quantities) {
+    this->pcout << "    Energy: " << integrated_kinetic_energy
+                << "    Enstrophy: " << integrated_enstrophy;
+    if(is_viscous_flow) {
         this->pcout << "    eps_vorticity: " << vorticity_based_dissipation_rate
                     << "    eps_p+eps_strain: " << (pressure_dilatation_based_dissipation_rate + strain_rate_tensor_based_dissipation_rate);
     }
     if(do_calculate_numerical_entropy){
         this->pcout << "    Num. Entropy cumulative, FR corrected: " << std::setprecision(16) << this->cumulative_numerical_entropy_change_FRcorrected; 
-        this->pcout << "    Num. Entropy change, FR corrected: " << std::setprecision(16) << current_numerical_entropy_change_FRcorrected; 
     }
     if(is_rrk){
         this->pcout << "    Relaxation Parameter: " << std::setprecision(16) << relaxation_parameter;
@@ -807,7 +813,7 @@ void PeriodicTurbulence<dim, nstate>::compute_unsteady_data_and_write_to_table(
     this->pcout << std::endl;
 
     // Abort if energy is nan
-    if(do_calculate_overintegrated_quantities && std::isnan(integrated_kinetic_energy)) {
+    if(std::isnan(integrated_kinetic_energy)) {
         this->pcout << " ERROR: Kinetic energy at time " << current_time << " is nan." << std::endl;
         this->pcout << "        Consider decreasing the time step / CFL number." << std::endl;
         std::abort();

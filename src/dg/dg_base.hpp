@@ -273,6 +273,9 @@ public:
     *   in each cell using sum-factorization techniques.
     *   use_M_norm flag allows the unmodified mass matrix to be used 
     *   for FR, i.e., use M rather than M+K.
+    *   For example, if this function is used for an inner product <a,b>,
+    *       setting `use_M_norm = true` will result in an M norm (L2) inner product,
+    *       whereas setting `use_M_norm = false` will result in an M+K norm (broken Sobolev) inner product.
     */
     void apply_global_mass_matrix(
         const dealii::LinearAlgebra::distributed::Vector<double> &input_vector,

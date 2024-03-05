@@ -667,7 +667,7 @@ std::array<dealii::Tensor<1,dim,real>,nstate> Euler<dim, nstate, real>
         conv_num_split_flux[nstate-1][flux_dim] -= ( 0.5 *(pressure1*vel1[flux_dim] + pressure2*vel2[flux_dim]));
     }
 
-   return conv_num_split_flux;
+   return conv_num_split_flux; 
 
 }
 
@@ -1166,7 +1166,7 @@ void Euler<dim,nstate,real>
         for (int istate=0; istate<nstate; ++istate) {
             soln_bc[istate] = soln_int[istate];
         }
-    }
+    } 
     else {
         const std::array<real,nstate> primitive_interior_values = convert_conservative_to_primitive<real>(soln_int);
         const real pressure_int = primitive_interior_values[nstate-1];
@@ -1267,7 +1267,7 @@ void Euler<dim,nstate,real>
 
       //this->pcout << " entropy_bc " << compute_entropy_measure(soln_bc) << "entropy_inf" << entropy_inf << std::endl;
 
-   }
+   } 
    else {
       // Supersonic inflow, sec 2.9
 
@@ -1331,32 +1331,32 @@ void Euler<dim,nstate,real>
     if (boundary_type == 1000) {
         // Manufactured solution boundary condition
         boundary_manufactured_solution (pos, normal_int, soln_int, soln_grad_int, soln_bc, soln_grad_bc);
-    }
+    } 
     else if (boundary_type == 1001) {
         // Wall boundary condition (slip for Euler, no-slip for Navier-Stokes; done through polymorphism)
         boundary_wall (normal_int, soln_int, soln_grad_int, soln_bc, soln_grad_bc);
-    }
+    } 
     else if (boundary_type == 1002) {
         // Pressure outflow boundary condition (back pressure)
         const real back_pressure = 0.99;
         boundary_pressure_outflow (total_inlet_pressure, back_pressure, soln_int, soln_bc);
-    }
+    } 
     else if (boundary_type == 1003) {
         // Inflow boundary condition
         boundary_inflow (total_inlet_pressure, total_inlet_temperature, normal_int, soln_int, soln_bc);
-    }
+    } 
     else if (boundary_type == 1004) {
         // Riemann-based farfield boundary condition
         boundary_riemann (normal_int, soln_int, soln_bc);
-    }
+    } 
     else if (boundary_type == 1005) {
         // Simple farfield boundary condition
         boundary_farfield(soln_bc);
-    }
+    } 
     else if (boundary_type == 1006) {
         // Slip wall boundary condition
         boundary_slip_wall (normal_int, soln_int, soln_grad_int, soln_bc, soln_grad_bc);
-    }
+    } 
     else {
         this->pcout << "Invalid boundary_type: " << boundary_type << std::endl;
         std::abort();

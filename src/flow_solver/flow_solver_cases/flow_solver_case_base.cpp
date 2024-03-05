@@ -97,6 +97,31 @@ void FlowSolverCaseBase<dim,nstate>::display_flow_solver_setup(std::shared_ptr<D
     const double number_of_degrees_of_freedom_per_dim = pow(number_of_degrees_of_freedom_per_state,(1.0/dim));
     pcout << "- Degrees of freedom (per state): " << number_of_degrees_of_freedom_per_state << " " << "(" << number_of_degrees_of_freedom_per_dim << " per state per dim)" << std::endl;
     pcout << "- Number of active cells: " << dg->triangulation->n_global_active_cells() << std::endl;
+    
+    const bool use_weak_form = this->all_param.use_weak_form;
+    
+    if (use_weak_form == false){
+        this->pcout << "- Using strong DG" << std::endl;
+
+        // only print c param for strong DG as FR is implemented only for strong
+        std::string c_parameter_string;
+        using FREnum = Parameters::AllParameters::Flux_Reconstruction;
+        FREnum fr_type = this->all_param.flux_reconstruction_type;
+        if (fr_type == FREnum::cDG)              c_parameter_string = "cDG";
+        else if (fr_type == FREnum::cSD)         c_parameter_string = "cSD";
+        else if (fr_type == FREnum::cHU)         c_parameter_string = "cHU";
+        else if (fr_type == FREnum::cNegative)   c_parameter_string = "cNegative";
+        else if (fr_type == FREnum::cNegative2)  c_parameter_string = "cNegative2";
+        else if (fr_type == FREnum::cPlus)       c_parameter_string = "cPlus";
+        else if (fr_type == FREnum::c10Thousand) c_parameter_string = "c10Thousand";
+        else if (fr_type == FREnum::cHULumped)   c_parameter_string = "cHULumped";
+
+        this->pcout << "- - Using c parameter: " << c_parameter_string << std::endl;
+    }
+    else{
+        this->pcout << "- Using weak DG" << std::endl;
+
+    }
 
     const std::string flow_case_string = this->get_flow_case_string();
     pcout << "- Flow case: " << flow_case_string << " " << std::flush;

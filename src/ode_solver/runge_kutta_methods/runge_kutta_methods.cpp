@@ -119,7 +119,7 @@ void DIRK2Implicit<dim,real,MeshType> :: set_a()
 {
     // two-stage, stiffly-accurate, L-stable SDIRK, gamma = (2 - sqrt(2))/2
     // see "Diagonally Implicit Runge-Kutta Methods for Ordinary Differential Equations. A Review"
-    // Kennedy & Carpenter
+    // Kennedy & Carpenter, 2016
     // Sec. 4.1.2
     const double gam = 1.0 - sqrt(2.0)/2.0;
     const double butcher_tableau_a_values[4] = {gam,0,(1-gam),gam};
@@ -148,7 +148,7 @@ void DIRK3Implicit<dim,real,MeshType> :: set_a()
 {
     // three-stage, stiffly-accurate SDIRK, gamma = 0.43586652150845899941601945
     // see "Diagonally Implicit Runge-Kutta Methods for Ordinary Differential Equations. A Review"
-    // Kennedy & Carpenter
+    // Kennedy & Carpenter, 2016
     // Sec. 5.1.3
     const double butcher_tableau_a_values[9] = {gam,       0,   0,
                                                 (c2-gam),  gam, 0,

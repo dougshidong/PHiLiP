@@ -8,6 +8,10 @@ namespace PHiLiP {
 namespace ODE {
 
 /// Relaxation Runge-Kutta ODE solver, calculating the relaxation parameter as in Ranocha 2020
+/// see
+/// Ranocha, Hendrik, et al. "Relaxation Runge--Kutta methods: 
+/// Fully discrete explicit entropy-stable schemes for the compressible Euler 
+/// and Navier--Stokes equations." SIAM Journal on Scientific Computing 42.2 (2020): A612-A638.
 #if PHILIP_DIM==1
 template <int dim, typename real, typename MeshType = dealii::Triangulation<dim>>
 #else

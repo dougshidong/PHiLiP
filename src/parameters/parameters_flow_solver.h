@@ -114,8 +114,6 @@ public:
     DensityInitialConditionType density_initial_condition_type;
     /// For TGV, flag to calculate and write numerical entropy
     bool do_calculate_numerical_entropy;
-    /// For TGV, flag to calculate and write overintegrated quantities (KE, enstrophy, etc)
-    bool do_calculate_overintegrated_quantities;
 
     /// For KHI, the atwood number
     double atwood_number;

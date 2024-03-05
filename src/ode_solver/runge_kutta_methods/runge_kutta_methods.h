@@ -7,6 +7,8 @@ namespace PHiLiP {
 namespace ODE {
 
 /// Third-order strong stability preserving explicit RK
+/** see 
+ *  Shu, Chi-Wang, and Stanley Osher. "Efficient implementation of essentially non-oscillatory shock-capturing schemes." Journal of computational physics 77.2 (1988): 439-471. */
 #if PHILIP_DIM==1
 template <int dim, typename real, typename MeshType = dealii::Triangulation<dim>>
 #else
@@ -31,6 +33,9 @@ protected:
 };
 
 /// Classical fourth-order explicit RK
+/** See
+ * https://en.wikipedia.org/wiki/List_of_Runge–Kutta_methods
+ * Section titled "Classic fourth-order method" */
 #if PHILIP_DIM==1
 template <int dim, typename real, typename MeshType = dealii::Triangulation<dim>>
 #else
@@ -80,6 +85,9 @@ protected:
 
 
 ///  Heun's method (explicit trapezoid rule; SSP 2,2)
+/** See
+ * https://en.wikipedia.org/wiki/List_of_Runge–Kutta_methods
+ * Section titled "Heun's method" */
 #if PHILIP_DIM==1
 template <int dim, typename real, typename MeshType = dealii::Triangulation<dim>>
 #else
@@ -129,6 +137,10 @@ protected:
 };
 
 /// Second-order diagonally-implicit RK
+/// two-stage, stiffly-accurate, L-stable SDIRK, gamma = (2 - sqrt(2))/2
+/// see "Diagonally Implicit Runge-Kutta Methods for Ordinary Differential Equations. A Review"
+/// Kennedy & Carpenter, 2016
+/// Sec. 4.1.2
 #if PHILIP_DIM==1
 template <int dim, typename real, typename MeshType = dealii::Triangulation<dim>>
 #else
@@ -153,6 +165,10 @@ protected:
 };
 
 /// Third-order diagonally-implicit RK
+/// three-stage, stiffly-accurate SDIRK, gamma = 0.43586652150845899941601945
+/// see "Diagonally Implicit Runge-Kutta Methods for Ordinary Differential Equations. A Review"
+/// Kennedy & Carpenter, 2016
+/// Sec. 5.1.3
 #if PHILIP_DIM==1
 template <int dim, typename real, typename MeshType = dealii::Triangulation<dim>>
 #else

@@ -42,13 +42,13 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_volume_term_and_build_operator
     const std::vector<dealii::types::global_dof_index>     &metric_dof_indices,
     const unsigned int                                     poly_degree,
     const unsigned int                                     grid_degree,
-    OPERATOR::basis_functions<dim,2*dim>                   &soln_basis,
-    OPERATOR::basis_functions<dim,2*dim>                   &flux_basis,
-    OPERATOR::local_basis_stiffness<dim,2*dim>             &flux_basis_stiffness,
-    OPERATOR::vol_projection_operator<dim,2*dim>           &soln_basis_projection_oper_int,
-    OPERATOR::vol_projection_operator<dim,2*dim>           &soln_basis_projection_oper_ext,
+    OPERATOR::basis_functions<dim,2*dim,real>                   &soln_basis,
+    OPERATOR::basis_functions<dim,2*dim,real>                   &flux_basis,
+    OPERATOR::local_basis_stiffness<dim,2*dim,real>             &flux_basis_stiffness,
+    OPERATOR::vol_projection_operator<dim,2*dim,real>           &soln_basis_projection_oper_int,
+    OPERATOR::vol_projection_operator<dim,2*dim,real>           &soln_basis_projection_oper_ext,
     OPERATOR::metric_operators<real,dim,2*dim>             &metric_oper,
-    OPERATOR::mapping_shape_functions<dim,2*dim>           &mapping_basis,
+    OPERATOR::mapping_shape_functions<dim,2*dim,real>           &mapping_basis,
     std::array<std::vector<real>,dim>                      &mapping_support_points,
     dealii::hp::FEValues<dim,dim>                          &/*fe_values_collection_volume*/,
     dealii::hp::FEValues<dim,dim>                          &/*fe_values_collection_volume_lagrange*/,
@@ -132,13 +132,13 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_boundary_term_and_build_operat
     const std::vector<dealii::types::global_dof_index>     &/*metric_dof_indices*/,
     const unsigned int                                     poly_degree,
     const unsigned int                                     /*grid_degree*/,
-    OPERATOR::basis_functions<dim,2*dim>                   &soln_basis,
-    OPERATOR::basis_functions<dim,2*dim>                   &flux_basis,
-    OPERATOR::local_basis_stiffness<dim,2*dim>             &/*flux_basis_stiffness*/,
-    OPERATOR::vol_projection_operator<dim,2*dim>           &soln_basis_projection_oper_int,
-    OPERATOR::vol_projection_operator<dim,2*dim>           &/*soln_basis_projection_oper_ext*/,
+    OPERATOR::basis_functions<dim,2*dim,real>                   &soln_basis,
+    OPERATOR::basis_functions<dim,2*dim,real>                   &flux_basis,
+    OPERATOR::local_basis_stiffness<dim,2*dim,real>             &/*flux_basis_stiffness*/,
+    OPERATOR::vol_projection_operator<dim,2*dim,real>           &soln_basis_projection_oper_int,
+    OPERATOR::vol_projection_operator<dim,2*dim,real>           &/*soln_basis_projection_oper_ext*/,
     OPERATOR::metric_operators<real,dim,2*dim>             &metric_oper,
-    OPERATOR::mapping_shape_functions<dim,2*dim>           &mapping_basis,
+    OPERATOR::mapping_shape_functions<dim,2*dim,real>           &mapping_basis,
     std::array<std::vector<real>,dim>                      &mapping_support_points,
     dealii::hp::FEFaceValues<dim,dim>                      &/*fe_values_collection_face_int*/,
     const dealii::FESystem<dim,dim>                        &/*current_fe_ref*/,
@@ -199,16 +199,16 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_and_build_operators(
     const unsigned int                                     poly_degree_ext,
     const unsigned int                                     /*grid_degree_int*/,
     const unsigned int                                     grid_degree_ext,
-    OPERATOR::basis_functions<dim,2*dim>                   &soln_basis_int,
-    OPERATOR::basis_functions<dim,2*dim>                   &soln_basis_ext,
-    OPERATOR::basis_functions<dim,2*dim>                   &flux_basis_int,
-    OPERATOR::basis_functions<dim,2*dim>                   &flux_basis_ext,
-    OPERATOR::local_basis_stiffness<dim,2*dim>             &flux_basis_stiffness,
-    OPERATOR::vol_projection_operator<dim,2*dim>           &soln_basis_projection_oper_int,
-    OPERATOR::vol_projection_operator<dim,2*dim>           &soln_basis_projection_oper_ext,
+    OPERATOR::basis_functions<dim,2*dim,real>                   &soln_basis_int,
+    OPERATOR::basis_functions<dim,2*dim,real>                   &soln_basis_ext,
+    OPERATOR::basis_functions<dim,2*dim,real>                   &flux_basis_int,
+    OPERATOR::basis_functions<dim,2*dim,real>                   &flux_basis_ext,
+    OPERATOR::local_basis_stiffness<dim,2*dim,real>             &flux_basis_stiffness,
+    OPERATOR::vol_projection_operator<dim,2*dim,real>           &soln_basis_projection_oper_int,
+    OPERATOR::vol_projection_operator<dim,2*dim,real>           &soln_basis_projection_oper_ext,
     OPERATOR::metric_operators<real,dim,2*dim>             &metric_oper_int,
     OPERATOR::metric_operators<real,dim,2*dim>             &metric_oper_ext,
-    OPERATOR::mapping_shape_functions<dim,2*dim>           &mapping_basis,
+    OPERATOR::mapping_shape_functions<dim,2*dim,real>           &mapping_basis,
     std::array<std::vector<real>,dim>                      &mapping_support_points,
     dealii::hp::FEFaceValues<dim,dim>                      &/*fe_values_collection_face_int*/,
     dealii::hp::FEFaceValues<dim,dim>                      &/*fe_values_collection_face_ext*/,
@@ -327,16 +327,16 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_subface_term_and_build_operato
     const unsigned int                                     poly_degree_ext,
     const unsigned int                                     grid_degree_int,
     const unsigned int                                     grid_degree_ext,
-    OPERATOR::basis_functions<dim,2*dim>                   &soln_basis_int,
-    OPERATOR::basis_functions<dim,2*dim>                   &soln_basis_ext,
-    OPERATOR::basis_functions<dim,2*dim>                   &flux_basis_int,
-    OPERATOR::basis_functions<dim,2*dim>                   &flux_basis_ext,
-    OPERATOR::local_basis_stiffness<dim,2*dim>             &flux_basis_stiffness,
-    OPERATOR::vol_projection_operator<dim,2*dim>           &soln_basis_projection_oper_int,
-    OPERATOR::vol_projection_operator<dim,2*dim>           &soln_basis_projection_oper_ext,
+    OPERATOR::basis_functions<dim,2*dim,real>                   &soln_basis_int,
+    OPERATOR::basis_functions<dim,2*dim,real>                   &soln_basis_ext,
+    OPERATOR::basis_functions<dim,2*dim,real>                   &flux_basis_int,
+    OPERATOR::basis_functions<dim,2*dim,real>                   &flux_basis_ext,
+    OPERATOR::local_basis_stiffness<dim,2*dim,real>             &flux_basis_stiffness,
+    OPERATOR::vol_projection_operator<dim,2*dim,real>           &soln_basis_projection_oper_int,
+    OPERATOR::vol_projection_operator<dim,2*dim,real>           &soln_basis_projection_oper_ext,
     OPERATOR::metric_operators<real,dim,2*dim>             &metric_oper_int,
     OPERATOR::metric_operators<real,dim,2*dim>             &metric_oper_ext,
-    OPERATOR::mapping_shape_functions<dim,2*dim>           &mapping_basis,
+    OPERATOR::mapping_shape_functions<dim,2*dim,real>           &mapping_basis,
     std::array<std::vector<real>,dim>                      &mapping_support_points,
     dealii::hp::FEFaceValues<dim,dim>                      &fe_values_collection_face_int,
     dealii::hp::FESubfaceValues<dim,dim>                   &/*fe_values_collection_subface*/,
@@ -423,14 +423,14 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_auxiliary_residual()
          
         dealii::hp::FEValues<dim,dim>        fe_values_collection_volume_lagrange (mapping_collection, this->fe_collection_lagrange, this->volume_quadrature_collection, this->volume_update_flags);
 
-        OPERATOR::basis_functions<dim,2*dim> soln_basis_int(1, this->max_degree, this->max_grid_degree); 
-        OPERATOR::basis_functions<dim,2*dim> soln_basis_ext(1, this->max_degree, this->max_grid_degree); 
-        OPERATOR::basis_functions<dim,2*dim> flux_basis_int(1, this->max_degree, this->max_grid_degree); 
-        OPERATOR::basis_functions<dim,2*dim> flux_basis_ext(1, this->max_degree, this->max_grid_degree); 
-        OPERATOR::local_basis_stiffness<dim,2*dim> flux_basis_stiffness(1, this->max_degree, this->max_grid_degree); 
-        OPERATOR::mapping_shape_functions<dim,2*dim> mapping_basis(1, this->max_grid_degree, this->max_grid_degree);
-        OPERATOR::vol_projection_operator<dim,2*dim> soln_basis_projection_oper_int(1, this->max_degree, this->max_grid_degree); 
-        OPERATOR::vol_projection_operator<dim,2*dim> soln_basis_projection_oper_ext(1, this->max_degree, this->max_grid_degree); 
+        OPERATOR::basis_functions<dim,2*dim,real> soln_basis_int(1, this->max_degree, this->max_grid_degree); 
+        OPERATOR::basis_functions<dim,2*dim,real> soln_basis_ext(1, this->max_degree, this->max_grid_degree); 
+        OPERATOR::basis_functions<dim,2*dim,real> flux_basis_int(1, this->max_degree, this->max_grid_degree); 
+        OPERATOR::basis_functions<dim,2*dim,real> flux_basis_ext(1, this->max_degree, this->max_grid_degree); 
+        OPERATOR::local_basis_stiffness<dim,2*dim,real> flux_basis_stiffness(1, this->max_degree, this->max_grid_degree); 
+        OPERATOR::mapping_shape_functions<dim,2*dim,real> mapping_basis(1, this->max_grid_degree, this->max_grid_degree);
+        OPERATOR::vol_projection_operator<dim,2*dim,real> soln_basis_projection_oper_int(1, this->max_degree, this->max_grid_degree); 
+        OPERATOR::vol_projection_operator<dim,2*dim,real> soln_basis_projection_oper_ext(1, this->max_degree, this->max_grid_degree); 
          
         this->reinit_operators_for_cell_residual_loop(
             this->max_degree, this->max_degree, this->max_grid_degree, 
@@ -501,8 +501,8 @@ template <int dim, int nstate, typename real, typename MeshType>
 void DGStrong<dim,nstate,real,MeshType>::assemble_volume_term_auxiliary_equation(
     const std::vector<dealii::types::global_dof_index> &current_dofs_indices,
     const unsigned int poly_degree,
-    OPERATOR::basis_functions<dim,2*dim> &soln_basis,
-    OPERATOR::basis_functions<dim,2*dim> &flux_basis,
+    OPERATOR::basis_functions<dim,2*dim,real> &soln_basis,
+    OPERATOR::basis_functions<dim,2*dim,real> &flux_basis,
     OPERATOR::metric_operators<real,dim,2*dim> &metric_oper,
     std::vector<dealii::Tensor<1,dim,real>> &local_auxiliary_RHS)
 {
@@ -578,7 +578,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_boundary_term_auxiliary_equati
     const unsigned int poly_degree,
     const unsigned int boundary_id,
     const std::vector<dealii::types::global_dof_index> &dofs_indices,
-    OPERATOR::basis_functions<dim,2*dim> &soln_basis,
+    OPERATOR::basis_functions<dim,2*dim,real> &soln_basis,
     OPERATOR::metric_operators<real,dim,2*dim> &metric_oper,
     std::vector<dealii::Tensor<1,dim,real>> &local_auxiliary_RHS)
 {
@@ -726,8 +726,8 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_auxiliary_equation(
     const unsigned int poly_degree_ext,
     const std::vector<dealii::types::global_dof_index> &dof_indices_int,
     const std::vector<dealii::types::global_dof_index> &dof_indices_ext,
-    OPERATOR::basis_functions<dim,2*dim> &soln_basis_int,
-    OPERATOR::basis_functions<dim,2*dim> &soln_basis_ext,
+    OPERATOR::basis_functions<dim,2*dim,real> &soln_basis_int,
+    OPERATOR::basis_functions<dim,2*dim,real> &soln_basis_ext,
     OPERATOR::metric_operators<real,dim,2*dim> &metric_oper_int,
     std::vector<dealii::Tensor<1,dim,real>> &local_auxiliary_RHS_int,
     std::vector<dealii::Tensor<1,dim,real>> &local_auxiliary_RHS_ext)
@@ -881,10 +881,10 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_volume_term_strong(
     const dealii::types::global_dof_index                  current_cell_index,
     const std::vector<dealii::types::global_dof_index>     &cell_dofs_indices,
     const unsigned int                                     poly_degree,
-    OPERATOR::basis_functions<dim,2*dim>                   &soln_basis,
-    OPERATOR::basis_functions<dim,2*dim>                   &flux_basis,
-    OPERATOR::local_basis_stiffness<dim,2*dim>             &flux_basis_stiffness,
-    OPERATOR::vol_projection_operator<dim,2*dim>           &soln_basis_projection_oper,
+    OPERATOR::basis_functions<dim,2*dim,real>                   &soln_basis,
+    OPERATOR::basis_functions<dim,2*dim,real>                   &flux_basis,
+    OPERATOR::local_basis_stiffness<dim,2*dim,real>             &flux_basis_stiffness,
+    OPERATOR::vol_projection_operator<dim,2*dim,real>           &soln_basis_projection_oper,
     OPERATOR::metric_operators<real,dim,2*dim>             &metric_oper,
     dealii::Vector<real>                                   &local_rhs_int_cell)
 {
@@ -1316,9 +1316,9 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_boundary_term_strong(
     const unsigned int poly_degree, 
     const real penalty,
     const std::vector<dealii::types::global_dof_index> &dof_indices,
-    OPERATOR::basis_functions<dim,2*dim> &soln_basis,
-    OPERATOR::basis_functions<dim,2*dim> &flux_basis,
-    OPERATOR::vol_projection_operator<dim,2*dim> &soln_basis_projection_oper,
+    OPERATOR::basis_functions<dim,2*dim,real> &soln_basis,
+    OPERATOR::basis_functions<dim,2*dim,real> &flux_basis,
+    OPERATOR::vol_projection_operator<dim,2*dim,real> &soln_basis_projection_oper,
     OPERATOR::metric_operators<real,dim,2*dim> &metric_oper,
     dealii::Vector<real> &local_rhs_cell)
 {
@@ -1814,12 +1814,12 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_strong(
     const real penalty,
     const std::vector<dealii::types::global_dof_index> &dof_indices_int,
     const std::vector<dealii::types::global_dof_index> &dof_indices_ext,
-    OPERATOR::basis_functions<dim,2*dim>               &soln_basis_int,
-    OPERATOR::basis_functions<dim,2*dim>               &soln_basis_ext,
-    OPERATOR::basis_functions<dim,2*dim>               &flux_basis_int,
-    OPERATOR::basis_functions<dim,2*dim>               &flux_basis_ext,
-    OPERATOR::vol_projection_operator<dim,2*dim>       &soln_basis_projection_oper_int,
-    OPERATOR::vol_projection_operator<dim,2*dim>       &soln_basis_projection_oper_ext,
+    OPERATOR::basis_functions<dim,2*dim,real>               &soln_basis_int,
+    OPERATOR::basis_functions<dim,2*dim,real>               &soln_basis_ext,
+    OPERATOR::basis_functions<dim,2*dim,real>               &flux_basis_int,
+    OPERATOR::basis_functions<dim,2*dim,real>               &flux_basis_ext,
+    OPERATOR::vol_projection_operator<dim,2*dim,real>       &soln_basis_projection_oper_int,
+    OPERATOR::vol_projection_operator<dim,2*dim,real>       &soln_basis_projection_oper_ext,
     OPERATOR::metric_operators<real,dim,2*dim>         &metric_oper_int,
     OPERATOR::metric_operators<real,dim,2*dim>         &metric_oper_ext,
     dealii::Vector<real>                               &local_rhs_int_cell,

@@ -152,11 +152,19 @@ std::array<real,nstate> Euler<dim,nstate,real>
 template <int dim, int nstate, typename real>
 template<typename real2>
 bool Euler<dim,nstate,real>::check_positive_quantity(real2 &qty, const std::string qty_name) const {
+    using limiter_enum = Parameters::LimiterParam::LimiterType;
     bool qty_is_positive;
-    if (qty < 0.0) {
-        // Refer to base class for non-physical results handling
-        qty = this->template handle_non_physical_result<real2>(qty_name + " is negative.");
-        qty_is_positive = false;
+
+    if (this->all_parameters->limiter_param.bound_preserving_limiter != limiter_enum::positivity_preservingZhang2010
+        && this->all_parameters->limiter_param.bound_preserving_limiter != limiter_enum::positivity_preservingWang2012) {
+        if (qty < 0.0) {
+            // Refer to base class for non-physical results handling
+            qty = this->template handle_non_physical_result<real2>(qty_name + " is negative.");
+            qty_is_positive = false;
+        }
+        else {
+            qty_is_positive = true;
+        }
     } else {
         qty_is_positive = true;
     }
@@ -177,7 +185,6 @@ inline std::array<real2,nstate> Euler<dim,nstate,real>
 
     check_positive_quantity<real2>(density, "density");
     check_positive_quantity<real2>(pressure, "pressure");
-
     primitive_soln[0] = density;
     for (int d=0; d<dim; ++d) {
         primitive_soln[1+d] = vel[d];
@@ -371,7 +378,6 @@ inline real2 Euler<dim,nstate,real>
     real2 pressure = gamm1*(tot_energy - 0.5*density*vel2);
     
     check_positive_quantity<real2>(pressure, "pressure");
-    
     return pressure;
 }
 

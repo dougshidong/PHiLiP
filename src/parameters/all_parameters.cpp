@@ -1,5 +1,6 @@
 #include <deal.II/base/mpi.h>
 #include <deal.II/base/utilities.h>
+#include <deal.II/base/patterns.h>
 
 #include "parameters/all_parameters.h"
 
@@ -21,6 +22,7 @@ AllParameters::AllParameters ()
     , physics_model_param(PhysicsModelParam())
     , grid_refinement_study_param(GridRefinementStudyParam())
     , artificial_dissipation_param(ArtificialDissipationParam())
+    , limiter_param(LimiterParam())
     , flow_solver_param(FlowSolverParam())
     , mesh_adaptation_param(MeshAdaptationParam())
     , functional_param(FunctionalParam())
@@ -151,6 +153,8 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       dealii::Patterns::Selection(
                       " run_control | "
                       " grid_refinement_study | "
+                      " advection_limiter | "
+                      " burgers_limiter | "
                       " burgers_energy_stability | "
                       " diffusion_exact_adjoint | "
                       " optimization_inverse_manufactured | "
@@ -185,11 +189,14 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       " euler_entropy_conserving_split_forms_check | "
                       " h_refinement_study_isentropic_vortex | "
                       " naca0012_unsteady_check_quick | "
-                      " khi_robustness"),
+                      " khi_robustness | "
+                      " low_density "),
                       "The type of test we want to solve. "
                       "Choices are " 
                       " <run_control | " 
                       "  grid_refinement_study | "
+                      "  advection_limiter | "
+                      "  burgers_limiter | "
                       "  burgers_energy_stability | "
                       "  diffusion_exact_adjoint | "
                       "  optimization_inverse_manufactured | "
@@ -224,7 +231,8 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       "  euler_entropy_conserving_split_forms_check | "
                       "  h_refinement_study_isentropic_vortex | "
                       "  naca0012_unsteady_check_quick | "
-                      "  khi_robustness>.");
+                      "  khi_robustness | "
+                      "  low_density>.");
 
     prm.declare_entry("pde_type", "advection",
                       dealii::Patterns::Selection(
@@ -337,6 +345,7 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
     Parameters::BurgersParam::declare_parameters (prm);
     Parameters::GridRefinementStudyParam::declare_parameters (prm);
     Parameters::ArtificialDissipationParam::declare_parameters (prm);
+    Parameters::LimiterParam::declare_parameters(prm);
     Parameters::MeshAdaptationParam::declare_parameters (prm);
     Parameters::FlowSolverParam::declare_parameters (prm);
     Parameters::FunctionalParam::declare_parameters (prm);
@@ -361,9 +370,11 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
     else if (mesh_type_string == "parallel_shared_triangulation")      { mesh_type = parallel_shared_triangulation; }
     else if (mesh_type_string == "parallel_distributed_triangulation") { mesh_type = parallel_distributed_triangulation; }
 
-    const std::string test_string = prm.get("test_type");
+const std::string test_string = prm.get("test_type");
     if      (test_string == "run_control")                              { test_type = run_control; }
     else if (test_string == "grid_refinement_study")                    { test_type = grid_refinement_study; }
+    else if (test_string == "advection_limiter")                        { test_type = advection_limiter; }
+    else if (test_string == "burgers_limiter")                          { test_type = burgers_limiter; }
     else if (test_string == "burgers_energy_stability")                 { test_type = burgers_energy_stability; }
     else if (test_string == "diffusion_exact_adjoint")                  { test_type = diffusion_exact_adjoint; }
     else if (test_string == "euler_gaussian_bump")                      { test_type = euler_gaussian_bump; }
@@ -401,6 +412,7 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
                                                                         { test_type = euler_entropy_conserving_split_forms_check; }
     else if (test_string == "h_refinement_study_isentropic_vortex")     { test_type = h_refinement_study_isentropic_vortex; }
     else if (test_string == "khi_robustness")                           { test_type = khi_robustness; }
+    else if (test_string == "low_density")                              { test_type = low_density; }
     else if (test_string == "naca0012_unsteady_check_quick")            { test_type = naca0012_unsteady_check_quick; }
     
     overintegration = prm.get_integer("overintegration");
@@ -528,6 +540,9 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
 
     pcout << "Parsing artificial dissipation subsection..." << std::endl;
     artificial_dissipation_param.parse_parameters (prm);
+
+    pcout << "Parsing limiter subsection..." << std::endl;
+    limiter_param.parse_parameters(prm);
     
     pcout << "Parsing flow solver subsection..." << std::endl;
     flow_solver_param.parse_parameters (prm);

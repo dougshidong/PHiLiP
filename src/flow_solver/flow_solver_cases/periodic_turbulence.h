@@ -17,7 +17,6 @@ class PeriodicTurbulence : public PeriodicCubeFlow<dim,nstate>
      *  Corresponds to the number of items in IntegratedQuantitiesEnum
      * */
     static const int NUMBER_OF_INTEGRATED_QUANTITIES = 5;
-
 public:
     /// Constructor.
     explicit PeriodicTurbulence(const Parameters::AllParameters *const parameters_input);
@@ -121,13 +120,13 @@ protected:
     double get_constant_time_step(std::shared_ptr<DGBase<dim,double>> dg) const override;
 
     /// Function to compute the adaptive time step
-    double get_adaptive_time_step(std::shared_ptr<DGBase<dim,double>> dg) const override;
+    using CubeFlow_UniformGrid<dim, nstate>::get_adaptive_time_step;
 
     /// Function to compute the initial adaptive time step
-    double get_adaptive_time_step_initial(std::shared_ptr<DGBase<dim,double>> dg) override;
+    using CubeFlow_UniformGrid<dim, nstate>::get_adaptive_time_step_initial;
 
     /// Updates the maximum local wave speed
-    void update_maximum_local_wave_speed(DGBase<dim, double> &dg);
+    using CubeFlow_UniformGrid<dim, nstate>::update_maximum_local_wave_speed;
 
     /// Compute the desired unsteady data and write it to a table
     void compute_unsteady_data_and_write_to_table(

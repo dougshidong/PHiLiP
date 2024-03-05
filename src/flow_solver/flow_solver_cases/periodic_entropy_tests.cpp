@@ -84,8 +84,8 @@ double PeriodicEntropyTests<dim, nstate>::compute_integrated_quantities(DGBase<d
     const unsigned int n_quad_pts = n_quad_pts_; 
 
     // Construct the basis functions and mapping shape functions.
-    OPERATOR::basis_functions<dim,2*dim> soln_basis(1, poly_degree, grid_degree); 
-    OPERATOR::mapping_shape_functions<dim,2*dim> mapping_basis(1, poly_degree, grid_degree);
+    OPERATOR::basis_functions<dim,2*dim,double> soln_basis(1, poly_degree, grid_degree); 
+    OPERATOR::mapping_shape_functions<dim,2*dim,double> mapping_basis(1, poly_degree, grid_degree);
     // Build basis function volume operator and gradient operator from 1D finite element for 1 state.
     soln_basis.build_1D_volume_operator(dg.oneD_fe_collection_1state[poly_degree], quad_1D);
     soln_basis.build_1D_gradient_operator(dg.oneD_fe_collection_1state[poly_degree], quad_1D);

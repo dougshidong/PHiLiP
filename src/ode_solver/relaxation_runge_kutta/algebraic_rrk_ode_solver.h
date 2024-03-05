@@ -10,8 +10,7 @@ namespace PHiLiP {
 namespace ODE {
 
 /// Relaxation Runge-Kutta ODE solver, calculating the relaxation parameter as in Ketcheson 2019
-/** "Relaxation Runge-Kutta Methods: Conservation and Stability for Inner-Product Norms" 
- */
+/** "Relaxation Runge-Kutta Methods: Conservation and Stability for Inner-Product Norms"  */
 #if PHILIP_DIM==1
 template <int dim, typename real, typename MeshType = dealii::Triangulation<dim>>
 #else

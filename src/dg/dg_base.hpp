@@ -272,17 +272,17 @@ public:
     /// Applies the local metric dependent mass matrices when the global is not stored.
     /** We use matrix-free methods to apply the local mass matrix on-the-fly 
     *   in each cell using sum-factorization techniques.
-    *   use_M_norm flag allows the unmodified mass matrix to be used 
+    *   use_unmodified_mass_matrix flag allows the unmodified mass matrix to be used 
     *   for FR, i.e., use M rather than M+K.
     *   For example, if this function is used for an inner product <a,b>,
-    *       setting `use_M_norm = true` will result in an M norm (L2) inner product,
-    *       whereas setting `use_M_norm = false` will result in an M+K norm (broken Sobolev) inner product.
+    *       setting `use_unmodified_mass_matrix = true` will result in an M norm (L2) inner product,
+    *       whereas setting `use_unmodified_mass_matrix = false` will result in an M+K norm (broken Sobolev) inner product.
     */
     void apply_global_mass_matrix(
         const dealii::LinearAlgebra::distributed::Vector<double> &input_vector,
         dealii::LinearAlgebra::distributed::Vector<double> &output_vector,
         const bool use_auxiliary_eq = false,
-        const bool use_M_norm = false);
+        const bool use_unmodified_mass_matrix = false);
 
     /// Evaluates the maximum stable time step
     /** If exact_time_stepping = true, use the same time step for the entire solution

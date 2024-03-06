@@ -2622,14 +2622,14 @@ void DGBase<dim,real,MeshType>::apply_global_mass_matrix(
         const dealii::LinearAlgebra::distributed::Vector<double> &input_vector,
         dealii::LinearAlgebra::distributed::Vector<double> &output_vector,
         const bool use_auxiliary_eq,
-        const bool use_M_norm)
+        const bool use_unmodified_mass_matrix)
 {
     using FR_enum = Parameters::AllParameters::Flux_Reconstruction;
     using FR_Aux_enum = Parameters::AllParameters::Flux_Reconstruction_Aux;
     const FR_enum FR_cDG = FR_enum::cDG;
     // if using only the M norm, set c=0 through the choice of cDG, which results in K=0
     // and the un-modified mass matrix will be applied.
-    const FR_enum FR_Type = (use_M_norm) ? FR_cDG : this->all_parameters->flux_reconstruction_type;
+    const FR_enum FR_Type = (use_unmodified_mass_matrix) ? FR_cDG : this->all_parameters->flux_reconstruction_type;
     const FR_Aux_enum FR_Type_Aux = this->all_parameters->flux_reconstruction_aux_type;
      
     const unsigned int init_grid_degree = high_order_grid->fe_system.tensor_degree();

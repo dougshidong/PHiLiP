@@ -719,8 +719,8 @@ void PeriodicTurbulence<dim, nstate>::compute_unsteady_data_and_write_to_table(
     // Print to console
     
     this->pcout << "    Iter: " << current_iteration
-                << "    Time: " << current_time;
-    this->pcout << "    Energy: " << integrated_kinetic_energy
+                << "    Time: " << current_time
+                << "    Energy: " << integrated_kinetic_energy
                 << "    Enstrophy: " << integrated_enstrophy;
     if(is_viscous_flow) {
         this->pcout << "    eps_vorticity: " << vorticity_based_dissipation_rate

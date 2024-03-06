@@ -546,7 +546,7 @@ double PeriodicTurbulence<dim, nstate>::get_strain_rate_tensor_based_dissipation
 template<int dim, int nstate>
 double PeriodicTurbulence<dim, nstate>::get_numerical_entropy(const std::shared_ptr <DGBase<dim, double>> /*dg*/) const
 {
-    return cumulative_numerical_entropy_change_FRcorrected;
+    return this->cumulative_numerical_entropy_change_FRcorrected;
 }
 
 template<int dim, int nstate>

@@ -741,9 +741,6 @@ void PeriodicTurbulence<dim, nstate>::compute_unsteady_data_and_write_to_table(
         std::abort();
     }
 
-    previous_time = current_time;
-    dt_target = this->get_adaptive_time_step(dg);
-
     // Output velocity field for spectra obtaining kinetic energy spectra
     if(output_velocity_field_at_fixed_times) {
         const double time_step = this->get_time_step();

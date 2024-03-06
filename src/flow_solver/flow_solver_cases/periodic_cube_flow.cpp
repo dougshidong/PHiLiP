@@ -77,7 +77,6 @@ void PeriodicCubeFlow<dim,nstate>::display_grid_parameters() const
     if constexpr(dim==1) this->pcout << "- - Domain length: " << this->domain_size << std::endl;
     if constexpr(dim==2) this->pcout << "- - Domain area: " << this->domain_size << std::endl;
     if constexpr(dim==3) this->pcout << "- - Domain volume: " << this->domain_size << std::endl;
-
 }
 
 template <int dim, int nstate>

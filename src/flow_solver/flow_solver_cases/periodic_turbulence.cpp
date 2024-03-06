@@ -670,7 +670,7 @@ void PeriodicTurbulence<dim, nstate>::update_numerical_entropy(
         this->initial_numerical_entropy_abs = abs(current_numerical_entropy);
     }
 
-    const double current_numerical_entropy_change_FRcorrected = (current_numerical_entropy - previous_numerical_entropy + dg->FR_entropy_contribution)/initial_numerical_entropy_abs;
+    const double current_numerical_entropy_change_FRcorrected = (current_numerical_entropy - previous_numerical_entropy + dg->FR_entropy_contribution_RRK_solver)/initial_numerical_entropy_abs;
     this->previous_numerical_entropy = current_numerical_entropy;
     this->cumulative_numerical_entropy_change_FRcorrected+=current_numerical_entropy_change_FRcorrected;
 
@@ -695,7 +695,7 @@ void PeriodicTurbulence<dim, nstate>::compute_unsteady_data_and_write_to_table(
     
     using ODEEnum = Parameters::ODESolverParam::ODESolverEnum;
     const bool is_rrk = (this->all_param.ode_solver_param.ode_solver_type == ODEEnum::rrk_explicit_solver);
-    const double relaxation_parameter = dg->relaxation_parameter;
+    const double relaxation_parameter = dg->relaxation_parameter_RRK_solver;
 
     if (do_calculate_numerical_entropy){
         this->update_numerical_entropy(current_iteration, dg);

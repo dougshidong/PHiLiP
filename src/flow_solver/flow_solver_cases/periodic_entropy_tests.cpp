@@ -253,7 +253,7 @@ void PeriodicEntropyTests<dim, nstate>::compute_unsteady_data_and_write_to_table
     // entropy on the solution nodes rather than by overintegrating.
     const double current_numerical_entropy = this->compute_integrated_quantities(*dg, IntegratedQuantityEnum::numerical_entropy, 0); //do not overintegrate
     if (current_iteration==0) this->previous_numerical_entropy = current_numerical_entropy;
-    const double entropy = current_numerical_entropy - previous_numerical_entropy + dg->FR_entropy_contribution;
+    const double entropy = current_numerical_entropy - previous_numerical_entropy + dg->FR_entropy_contribution_RRK_solver;
     this->previous_numerical_entropy = current_numerical_entropy;
 
     if (std::isnan(entropy)){
@@ -265,7 +265,7 @@ void PeriodicEntropyTests<dim, nstate>::compute_unsteady_data_and_write_to_table
     }
     if (current_iteration == 0)  initial_entropy = current_numerical_entropy;
 
-    double relaxation_parameter = dg->relaxation_parameter;
+    double relaxation_parameter = dg->relaxation_parameter_RRK_solver;
 
     const double kinetic_energy = this->compute_integrated_quantities(*dg, IntegratedQuantityEnum::kinetic_energy);
     if (std::isnan(kinetic_energy)){

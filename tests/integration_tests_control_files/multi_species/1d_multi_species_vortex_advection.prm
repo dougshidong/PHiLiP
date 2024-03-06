@@ -44,13 +44,13 @@ end
 subsection flow_solver
   set flow_case_type = multi_species_vortex_advection
   set poly_degree = 5
-  set final_time = 34.614724700315755e-0
+  set final_time = 34.614724700315755e-1
   # set final_time = 1.2566370614400000e-2
   set adaptive_time_step = false
-  set constant_time_step = 34.614724700315755e-5
+  set constant_time_step = 34.614724700315755e-6
   subsection grid
     set grid_left_bound = 0.0
     set grid_right_bound = 10.0
-    set number_of_grid_elements_per_dimension = 16
+    set number_of_grid_elements_per_dimension = 512
   end
 end

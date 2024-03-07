@@ -606,6 +606,7 @@ int FlowSolver<dim,nstate>::run() const
 
 #if PHILIP_DIM==1
 template class FlowSolver <PHILIP_DIM,PHILIP_DIM>;
+template class FlowSolver <PHILIP_DIM,PHILIP_DIM+2>;
 template class FlowSolver <PHILIP_DIM,PHILIP_DIM+2+3-1>; // TO DO: N_SPECIES
 #endif
 

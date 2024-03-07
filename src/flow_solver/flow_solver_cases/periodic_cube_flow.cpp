@@ -87,6 +87,7 @@ void PeriodicCubeFlow<dim,nstate>::display_additional_flow_case_specific_paramet
 
 #if PHILIP_DIM==1
 template class PeriodicCubeFlow <PHILIP_DIM,PHILIP_DIM>;
+template class PeriodicCubeFlow <PHILIP_DIM,PHILIP_DIM+2>; // euler (1-species)_
 template class PeriodicCubeFlow <PHILIP_DIM,PHILIP_DIM+2+3-1>; // TO DO: N_SPECIES
 #else
 template class PeriodicCubeFlow <PHILIP_DIM,PHILIP_DIM+2>;

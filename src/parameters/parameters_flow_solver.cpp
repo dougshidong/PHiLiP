@@ -36,6 +36,7 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
                           " acoustic_wave_species | "
                           " multi_species_acoustic_wave | "
                           " multi_species_vortex_advection| "
+                          " euler_vortex_advection| "
                           " non_periodic_cube_flow "),
                           "The type of flow we want to simulate. "
                           "Choices are "
@@ -55,6 +56,7 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
                           " acoustic_wave_species | "
                           " multi_species_acoustic_wave | "
                           " multi_species_vortex_advection| "
+                          " euler_vortex_advection| "
                           " non_periodic_cube_flow>. ");
 
         prm.declare_entry("poly_degree", "1",
@@ -331,6 +333,7 @@ void FlowSolverParam::parse_parameters(dealii::ParameterHandler &prm)
         else if (flow_case_type_string == "acoustic_wave_species")      {flow_case_type = acoustic_wave_species;}
         else if (flow_case_type_string == "multi_species_acoustic_wave"){flow_case_type = multi_species_acoustic_wave;}
         else if (flow_case_type_string == "multi_species_vortex_advection"){flow_case_type = multi_species_vortex_advection;}
+        else if (flow_case_type_string == "euler_vortex_advection"){flow_case_type = euler_vortex_advection;}
         else if (flow_case_type_string == "kelvin_helmholtz_instability")   
                                                                         {flow_case_type = kelvin_helmholtz_instability;}
         else if (flow_case_type_string == "non_periodic_cube_flow")     {flow_case_type = non_periodic_cube_flow;}

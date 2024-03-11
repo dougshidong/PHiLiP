@@ -90,6 +90,15 @@ dealii::Tensor<1,dim,real2> NavierStokes<dim,nstate,real>
     }
     return velocities_parallel_to_wall;
 }
+    
+template <int dim, int nstate, typename real>
+std::array<dealii::Tensor<1,dim,real>,nstate> NavierStokes<dim,nstate,real>
+::convert_conservative_gradient_to_primitive_gradient_untemplated (
+        const std::array<real,nstate> &conservative_soln,
+        const std::array<dealii::Tensor<1,dim,real>,nstate> &conservative_soln_gradient) const
+{
+	return  convert_conservative_gradient_to_primitive_gradient<real> (conservative_soln,conservative_soln_gradient);
+}
 
 template <int dim, int nstate, typename real>
 template<typename real2>
@@ -685,6 +694,16 @@ dealii::Tensor<2,dim,real2> NavierStokes<dim,nstate,real>
         = compute_viscous_stress_tensor_via_scaled_viscosity_and_strain_rate_tensor<real2>(scaled_viscosity_coefficient,strain_rate_tensor);
 
     return viscous_stress_tensor;
+}
+
+template <int dim, int nstate, typename real>
+dealii::Tensor<2,dim,real> NavierStokes<dim,nstate,real>
+::compute_viscous_stress_tensor_untemplated (
+    const std::array<real,nstate> &primitive_soln,
+    const std::array<dealii::Tensor<1,dim,real>,nstate> &primitive_soln_gradient) const 
+{
+    std::cout<<"In NavierStokes:compute_viscous_stress_tensor_untemplated"<<std::endl;
+    return compute_viscous_stress_tensor<real> (primitive_soln,primitive_soln_gradient);
 }
 
 template <int dim, int nstate, typename real>

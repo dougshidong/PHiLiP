@@ -96,20 +96,38 @@ public:
         const dealii::Point<dim,real2> &/*phys_coord*/,
         const dealii::Tensor<1,dim,real2> &normal,
         const std::array<real2,nstate> &soln_at_q,
-        const std::array<dealii::Tensor<1,dim,real2>,nstate> &/*soln_grad_at_q*/) const
+        const std::array<dealii::Tensor<1,dim,real2>,nstate> &soln_grad_at_q) const
     {
         if (boundary_id == 1001) {
             assert(soln_at_q.size() == dim+2);
             const Physics::Euler<dim,dim+2,real2> &euler = dynamic_cast< const Physics::Euler<dim,dim+2,real2> &> (physics);
 
-            real2 pressure = euler.compute_pressure (soln_at_q);
+            const real2 pressure = euler.compute_pressure (soln_at_q);
+			// Step 1: Primitive solution
+			const std::array<real2,nstate> primitive_soln = euler.convert_conservative_to_primitive(soln_at_q); // from Euler
+			
+			// Step 2: Gradient of primitive solution
+			const std::array<dealii::Tensor<1,dim,real2>,nstate> primitive_soln_gradient = physics.convert_conservative_gradient_to_primitive_gradient_untemplated(soln_at_q, soln_grad_at_q);
+			
+			// Step 3: Viscous stress tensor, Velocities, Heat flux
+			const dealii::Tensor<2,dim,real2> viscous_stress_tensor = physics.compute_viscous_stress_tensor_untemplated(primitive_soln, primitive_soln_gradient);
+			std::cout<<"Norm of viscous stress tensor = "<<  viscous_stress_tensor[0][0]<<std::endl;
+			dealii::Tensor<1,dim,real2> viscous_tensor_times_normal;
+			for(int i=0; i<dim; i++){
+				viscous_tensor_times_normal[i] = 0;
+			}
+			for (int i=0;i<dim;i++){
+			    for (int j=0;j<dim;j++){
+				    viscous_tensor_times_normal[i]+= viscous_stress_tensor[i][j]*normal[j];
+				}
+			}
 
-            //std::cout << " force_dimensionalization_factor: " << force_dimensionalization_factor
+		    //std::cout << " force_dimensionalization_factor: " << force_dimensionalization_factor
             //          << " pressure: " << pressure
             //          << " normal*force_vector: " << normal*force_vector
             //          << std::endl;
 
-            return force_dimensionalization_factor * pressure * (normal * force_vector);
+            return force_dimensionalization_factor * (pressure * (normal * force_vector) -  viscous_tensor_times_normal*force_vector);
         } 
         return (real2) 0.0;
     }

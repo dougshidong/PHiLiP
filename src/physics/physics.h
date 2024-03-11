@@ -237,6 +237,35 @@ public:
     /** Only update the solution at the output points.
      */
     virtual dealii::UpdateFlags post_get_needed_update_flags () const;
+
+    /// Function to handle nonphysical results
+    /** This is to be called by derived physics classes
+     *  when a nonphysical quantity is detected there.
+     *  e.g., negative density in Euler.
+     *  The behavior is determined by the value of
+     *  non_physical_behavior_type.
+     *  Returns BIG_NUMBER.
+     */
+    template<typename real2> 
+    real2 handle_non_physical_result (const std::string message = "") const;
+	
+	/** Obtain gradient of primitive variables from gradient of conservative variables */
+    virtual std::array<dealii::Tensor<1,dim,real>,nstate> 
+    convert_conservative_gradient_to_primitive_gradient_untemplated (
+        const std::array<real,nstate> &conservative_soln,
+        const std::array<dealii::Tensor<1,dim,real>,nstate> &conservative_soln_gradient) const;
+
+    virtual dealii::Tensor<2,dim,real>
+	compute_viscous_stress_tensor_untemplated (
+		const std::array<real,nstate> &primitive_soln,
+		const std::array<dealii::Tensor<1,dim,real>,nstate> &primitive_soln_gradient) const;
+
+
+public:
+
+    /// BIG_NUMBER which is returned in place of NaN according to handle_non_physical_result()
+    /** Type double so that typecasting works with all real types */
+    const double BIG_NUMBER = 1e100;
     
 protected:
     /// ConditionalOStream.

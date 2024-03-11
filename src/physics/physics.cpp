@@ -277,6 +277,55 @@ dealii::UpdateFlags PhysicsBase<dim,nstate,real>
     return dealii::update_values;
 }
 
+template <int dim, int nstate, typename real>
+template<typename real2>
+real2 PhysicsBase<dim,nstate,real>
+::handle_non_physical_result(const std::string message) const
+{
+    if (this->non_physical_behavior_type == NonPhysicalBehaviorEnum::abort_run) {
+        std::cout << "ERROR: Non-physical result has been detected. ";
+        if (!message.empty()) {
+            std::cout << std::endl << "    Message: " << message << std::endl;
+        }
+        std::cout << " Aborting... " << std::endl << std::flush;
+        std::abort();
+    } else if (this->non_physical_behavior_type == NonPhysicalBehaviorEnum::print_warning) {
+        std::cout << "WARNING: Non-physical result has been detected at a node." << std::endl;
+        if (!message.empty()) {
+            std::cout << std::endl << "    Message: " << message << std::endl;
+        }
+    } else if (this->non_physical_behavior_type == NonPhysicalBehaviorEnum::return_big_number) {
+        // do nothing -- assume that the test or iterative solver can handle this.
+    }
+        
+    return (real2)BIG_NUMBER;
+}
+
+template <int dim, int nstate, typename real>
+std::array<dealii::Tensor<1,dim,real>,nstate> PhysicsBase<dim,nstate,real>
+::convert_conservative_gradient_to_primitive_gradient_untemplated (
+	const std::array<real,nstate> & /*conservative_soln*/,
+	const std::array<dealii::Tensor<1,dim,real>,nstate> &/*conservative_soln_gradient*/) const
+{
+	std::array<dealii::Tensor<1,dim,real>,nstate> zero_tensor;
+	for(int i=0; i<nstate; ++i)
+	{
+		zero_tensor[i]=0;
+	}
+	return zero_tensor;
+}
+
+template <int dim, int nstate, typename real>
+dealii::Tensor<2,dim,real>  PhysicsBase<dim,nstate,real>
+::compute_viscous_stress_tensor_untemplated (
+	const std::array<real,nstate> &/*primitive_soln*/,
+	const std::array<dealii::Tensor<1,dim,real>,nstate> &/*primitive_soln_gradient*/) const
+{
+	dealii::Tensor<2,dim,real>  zero_tensor;
+	zero_tensor=0;
+	return zero_tensor;
+}
+
 template class PhysicsBase < PHILIP_DIM, 1, double >;
 template class PhysicsBase < PHILIP_DIM, 2, double >;
 template class PhysicsBase < PHILIP_DIM, 3, double >;

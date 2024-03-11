@@ -41,6 +41,7 @@ Euler<dim,nstate,real>::Euler (
     , temperature_ref(298.15) /// [K]
     , u_ref(mach_inf*sqrt(gam*R_Air_Dim*temperature_ref)) /// [m/s]
     , u_ref_sqr(u_ref*u_ref) /// [m/s]^2
+    , density_ref(1.225) /// [kg/m^3]
     //, internal_energy_inf(1.0/(gam*(gam-1.0)*mach_inf_sqr)) 
     // Note: Eq.(3.11.18) has a typo in internal_energy_inf expression, mach_inf_sqr should be in denominator. 
 {

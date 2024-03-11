@@ -865,27 +865,31 @@ real InitialConditionFunction_Euler_VortexAdvection<dim,nstate,real>
     real value = 0.;
     if constexpr(dim == 1) {
         const real x = point[0];
+        const real x_0 = 5.0;
+        const real r = sqrt((x-x_0)*(x-x_0));
+        const real T_0 = 300.0; // [K]
+        const real big_gamma = 50.0;
+        const real gamma_0 = 1.4;
+        const real pi = 6.28318530717958623200 / 2; // pi
 
+        const real pressure = 101325; // [N/m^2]
+        const real velocity = 100.0; // [m/s]
+        const real exp = std::exp(0.50*(1-r*r));
+        const real temperature = T_0 - (gamma_0-1.0)*big_gamma*big_gamma/(8.0*gamma_0*pi)*exp;
+        const real density = pressure/(this->euler_physics->R_Air_Dim*temperature);
+
+        // dimnsionalized above, non-dimensionalized below
         if(istate==0) {
-            // density
-            value = 1.0;
+            // mixture density
+            value = density / this->euler_physics->density_ref;
         }
         if(istate==1) {
             // x-velocity
-            // value = sin(x)*cos(y);
-            value = 0.0;
+            value = velocity / this->euler_physics->u_ref;
         }
         if(istate==2) {
             // pressure
-            // value = 1.0/(this->gamma_gas*this->mach_inf_sqr) + (1.0/16.0)*(cos(2.0*x)+cos(2.0*y))*(2.0);
-            // value = 1.0 + (x-x+y-y);
-            double const sigma = 0.5;
-            double const pi = 6.28318530717958623200 / 2; // pi
-            double const mu = 6.28318530717958623200 / 2 ; //max of x
-            double fx = (1.0/sqrt(2.0*pi*sigma*sigma))*exp(-((x-mu)*(x-mu))/(2.0*(sigma*sigma)));
-            double fy = (1.0/sqrt(2.0*pi*sigma*sigma))*exp(-((pi-mu)*(pi-mu))/(2.0*(sigma*sigma)));
-            value = 1.0/(this->gamma_gas*this->mach_inf_sqr) + fx*fy;
-            value = value*3.0/3.0; // chnege this if you want to vary initial temperature 
+            value = pressure / (this->euler_physics->density_ref*this->euler_physics->u_ref_sqr);
         }
     }
     return value;

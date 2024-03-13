@@ -97,7 +97,7 @@ std::array<dealii::Tensor<1,dim,real>,nstate> NavierStokes<dim,nstate,real>
         const std::array<real,nstate> &conservative_soln,
         const std::array<dealii::Tensor<1,dim,real>,nstate> &conservative_soln_gradient) const
 {
-	return  convert_conservative_gradient_to_primitive_gradient<real> (conservative_soln,conservative_soln_gradient);
+	return  this->template convert_conservative_gradient_to_primitive_gradient_templated<real>(conservative_soln,conservative_soln_gradient);
 }
 
 template <int dim, int nstate, typename real>
@@ -703,7 +703,7 @@ dealii::Tensor<2,dim,real> NavierStokes<dim,nstate,real>
     const std::array<dealii::Tensor<1,dim,real>,nstate> &primitive_soln_gradient) const 
 {
     std::cout<<"In NavierStokes:compute_viscous_stress_tensor_untemplated"<<std::endl;
-    return compute_viscous_stress_tensor<real> (primitive_soln,primitive_soln_gradient);
+    return this->template compute_viscous_stress_tensor<real>(primitive_soln,primitive_soln_gradient);
 }
 
 template <int dim, int nstate, typename real>

@@ -237,18 +237,6 @@ public:
     /** Only update the solution at the output points.
      */
     virtual dealii::UpdateFlags post_get_needed_update_flags () const;
-
-	/** Obtain gradient of primitive variables from gradient of conservative variables */
-    virtual std::array<dealii::Tensor<1,dim,real>,nstate> 
-    convert_conservative_gradient_to_primitive_gradient_untemplated (
-        const std::array<real,nstate> &conservative_soln,
-        const std::array<dealii::Tensor<1,dim,real>,nstate> &conservative_soln_gradient) const;
-
-    virtual dealii::Tensor<2,dim,real>
-	compute_viscous_stress_tensor_untemplated (
-		const std::array<real,nstate> &primitive_soln,
-		const std::array<dealii::Tensor<1,dim,real>,nstate> &primitive_soln_gradient) const;
-
 protected:
     /// ConditionalOStream.
     /** Used as std::cout, but only prints if mpi_rank == 0

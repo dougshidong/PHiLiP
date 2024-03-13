@@ -226,7 +226,6 @@ public:
     ///
     /// Opposite of convert_primitive_to_conservative
     std::array<real,nstate> convert_primitive_to_conservative ( const std::array<real,nstate> &primitive_soln ) const;
-    
     /** Obtain gradient of primitive variables from gradient of conservative variables */
     template<typename real2>
     std::array<dealii::Tensor<1,dim,real2>,nstate> 

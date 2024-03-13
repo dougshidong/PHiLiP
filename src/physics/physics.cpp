@@ -277,38 +277,6 @@ dealii::UpdateFlags PhysicsBase<dim,nstate,real>
     return dealii::update_values;
 }
 
-
-
-template <int dim, int nstate, typename real>
-std::array<dealii::Tensor<1,dim,real>,nstate> PhysicsBase<dim,nstate,real>
-::convert_conservative_gradient_to_primitive_gradient_untemplated (
-	const std::array<real,nstate> & /*conservative_soln*/,
-	const std::array<dealii::Tensor<1,dim,real>,nstate> &/*conservative_soln_gradient*/) const
-{
-	std::array<dealii::Tensor<1,dim,real>,nstate> zero_tensor;
-	for (int s=0; s<nstate; ++s) {
-        for (int d=0; d<dim; ++d) {
-            zero_tensor[s][d] = 0.0;
-        }
-    }
-	return zero_tensor;
-}
-
-template <int dim, int nstate, typename real>
-dealii::Tensor<2,dim,real>  PhysicsBase<dim,nstate,real>
-::compute_viscous_stress_tensor_untemplated (
-	const std::array<real,nstate> &/*primitive_soln*/,
-	const std::array<dealii::Tensor<1,dim,real>,nstate> &/*primitive_soln_gradient*/) const
-{
-	dealii::Tensor<2,dim,real>  zero_tensor;
-	for (int d1=0; d1<dim; ++d1) {
-        for (int d2=0; d2<dim; ++d2) {
-            zero_tensor[d1][d2] = 0.0;
-        }
-    }
-	return zero_tensor;
-}
-
 template class PhysicsBase < PHILIP_DIM, 1, double >;
 template class PhysicsBase < PHILIP_DIM, 2, double >;
 template class PhysicsBase < PHILIP_DIM, 3, double >;

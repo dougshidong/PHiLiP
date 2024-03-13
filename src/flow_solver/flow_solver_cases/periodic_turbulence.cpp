@@ -670,7 +670,7 @@ void PeriodicTurbulence<dim, nstate>::update_numerical_entropy(
         this->initial_numerical_entropy_abs = abs(current_numerical_entropy);
     }
 
-    const double current_numerical_entropy_change_FRcorrected = (current_numerical_entropy - previous_numerical_entropy + dg->FR_entropy_contribution_RRK_solver)/initial_numerical_entropy_abs;
+    const double current_numerical_entropy_change_FRcorrected = (current_numerical_entropy - this->previous_numerical_entropy + dg->FR_entropy_contribution_RRK_solver)/this->initial_numerical_entropy_abs;
     this->previous_numerical_entropy = current_numerical_entropy;
     this->cumulative_numerical_entropy_change_FRcorrected+=current_numerical_entropy_change_FRcorrected;
 

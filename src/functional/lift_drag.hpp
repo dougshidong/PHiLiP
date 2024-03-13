@@ -108,7 +108,7 @@ public:
 
             /// Pointer to Navier-Stokes physics object
             using PDE_enum = Parameters::AllParameters::PartialDifferentialEquation;
-            std::shared_ptr< Physics::NavierStokes<dim,dim+2,real2> > navier_stokes_physics = dynamic_pointer_cast<Physics::NavierStokes<dim,dim+2,real2>> (Physics::PhysicsFactory<dim,dim+2,real2>::create_Physics(this->all_parameters, PDE_enum::navier_stokes, nullptr));
+            std::shared_ptr< Physics::NavierStokes<dim,dim+2,real2> > navier_stokes_physics = std::dynamic_pointer_cast<Physics::NavierStokes<dim,dim+2,real2>> (Physics::PhysicsFactory<dim,dim+2,real2>::create_Physics(this->all_parameters, PDE_enum::navier_stokes, nullptr));
 
             // Compute pressure (same as Euler physics)
             const real2 pressure = navier_stokes_physics->compute_pressure (soln_at_q);

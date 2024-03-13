@@ -108,7 +108,7 @@ public:
 
             /// Pointer to Navier-Stokes physics object
             using PDE_enum = Parameters::AllParameters::PartialDifferentialEquation;
-            std::shared_ptr< Physics::NavierStokes<dim,dim+2,real2> > navier_stokes_physics = dynamic_cast<Physics::NavierStokes<dim,dim+2,real2>> (Physics::PhysicsFactory<dim,dim+2,real2>::create_Physics(parameters_input, PDE_enum::NavierStokes, nullptr));
+            std::shared_ptr< Physics::NavierStokes<dim,dim+2,real2> > navier_stokes_physics = dynamic_cast<Physics::NavierStokes<dim,dim+2,real2>> (Physics::PhysicsFactory<dim,dim+2,real2>::create_Physics(this->all_parameters, PDE_enum::navier_stokes, nullptr));
 
             // Compute pressure (same as Euler physics)
             const real2 pressure = navier_stokes_physics->compute_pressure (soln_at_q);
@@ -119,7 +119,7 @@ public:
 				viscous_tensor_times_normal[i] = 0;
 			}
             // add viscous stress tensor contribution if viscous (i.e. not Euler)
-            if(all_parameters->pde_type != PDE_enum::Euler) {
+            if(this->all_parameters->pde_type != PDE_enum::euler) {
                 // Compute viscous stress tensor
                 const dealii::Tensor<2,dim,real2> viscous_stress_tensor = navier_stokes_physics->compute_viscous_stress_tensor_from_conservative_templated(soln_at_q, soln_grad_at_q);
                 // std::cout<<"Norm of viscous stress tensor = "<<  viscous_stress_tensor[0][0]<<std::endl;

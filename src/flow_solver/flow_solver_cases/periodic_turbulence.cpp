@@ -717,7 +717,6 @@ void PeriodicTurbulence<dim, nstate>::compute_unsteady_data_and_write_to_table(
         unsteady_data_table->write_text(unsteady_data_table_file);
     }
     // Print to console
-    
     this->pcout << "    Iter: " << current_iteration
                 << "    Time: " << current_time
                 << "    Energy: " << integrated_kinetic_energy

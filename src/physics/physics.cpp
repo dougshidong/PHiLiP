@@ -277,29 +277,7 @@ dealii::UpdateFlags PhysicsBase<dim,nstate,real>
     return dealii::update_values;
 }
 
-template <int dim, int nstate, typename real>
-template<typename real2>
-real2 PhysicsBase<dim,nstate,real>
-::handle_non_physical_result(const std::string message) const
-{
-    if (this->non_physical_behavior_type == NonPhysicalBehaviorEnum::abort_run) {
-        std::cout << "ERROR: Non-physical result has been detected. ";
-        if (!message.empty()) {
-            std::cout << std::endl << "    Message: " << message << std::endl;
-        }
-        std::cout << " Aborting... " << std::endl << std::flush;
-        std::abort();
-    } else if (this->non_physical_behavior_type == NonPhysicalBehaviorEnum::print_warning) {
-        std::cout << "WARNING: Non-physical result has been detected at a node." << std::endl;
-        if (!message.empty()) {
-            std::cout << std::endl << "    Message: " << message << std::endl;
-        }
-    } else if (this->non_physical_behavior_type == NonPhysicalBehaviorEnum::return_big_number) {
-        // do nothing -- assume that the test or iterative solver can handle this.
-    }
-        
-    return (real2)BIG_NUMBER;
-}
+
 
 template <int dim, int nstate, typename real>
 std::array<dealii::Tensor<1,dim,real>,nstate> PhysicsBase<dim,nstate,real>
@@ -308,10 +286,11 @@ std::array<dealii::Tensor<1,dim,real>,nstate> PhysicsBase<dim,nstate,real>
 	const std::array<dealii::Tensor<1,dim,real>,nstate> &/*conservative_soln_gradient*/) const
 {
 	std::array<dealii::Tensor<1,dim,real>,nstate> zero_tensor;
-	for(int i=0; i<nstate; ++i)
-	{
-		zero_tensor[i]=0;
-	}
+	for (int s=0; s<nstate; ++s) {
+        for (int d=0; d<dim; ++d) {
+            zero_tensor[s][d] = 0.0;
+        }
+    }
 	return zero_tensor;
 }
 
@@ -322,7 +301,11 @@ dealii::Tensor<2,dim,real>  PhysicsBase<dim,nstate,real>
 	const std::array<dealii::Tensor<1,dim,real>,nstate> &/*primitive_soln_gradient*/) const
 {
 	dealii::Tensor<2,dim,real>  zero_tensor;
-	zero_tensor=0;
+	for (int d1=0; d1<dim; ++d1) {
+        for (int d2=0; d2<dim; ++d2) {
+            zero_tensor[d1][d2] = 0.0;
+        }
+    }
 	return zero_tensor;
 }
 

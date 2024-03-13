@@ -3,6 +3,8 @@
 
 #include "functional.h"
 #include "parameters/all_parameters.h"
+#include "physics/physics_factory.h"
+#include "physics/navier_stokes.h"
 
 namespace PHiLiP {
 
@@ -94,7 +96,7 @@ public:
     /** Used only in the computation of evaluate_function(). If not overriden returns 0. */
     template<typename real2>
     real2 evaluate_boundary_integrand(
-        const PHiLiP::Physics::PhysicsBase<dim,nstate,real2> &physics,
+        const PHiLiP::Physics::PhysicsBase<dim,nstate,real2> &/*physics*/,
         const unsigned int boundary_id,
         const dealii::Point<dim,real2> &/*phys_coord*/,
         const dealii::Tensor<1,dim,real2> &normal,
@@ -103,27 +105,30 @@ public:
     {
         if (boundary_id == 1001) {
             assert(soln_at_q.size() == dim+2);
-            const Physics::Euler<dim,dim+2,real2> &euler = dynamic_cast< const Physics::Euler<dim,dim+2,real2> &> (physics);
 
-            const real2 pressure = euler.compute_pressure (soln_at_q);
-			// Step 1: Primitive solution
-			const std::array<real2,nstate> primitive_soln = euler.convert_conservative_to_primitive(soln_at_q); // from Euler
+            /// Pointer to Navier-Stokes physics object
+            using PDE_enum = Parameters::AllParameters::PartialDifferentialEquation;
+            std::shared_ptr< Physics::NavierStokes<dim,dim+2,real2> > navier_stokes_physics = dynamic_cast<Physics::NavierStokes<dim,dim+2,real2>> (Physics::create_Physics(parameters_input, PDE_enum::NavierStokes, nullptr));
+
+            // Compute pressure (same as Euler physics)
+            const real2 pressure = navier_stokes_physics->compute_pressure (soln_at_q);
 			
-			// Step 2: Gradient of primitive solution
-			const std::array<dealii::Tensor<1,dim,real2>,nstate> primitive_soln_gradient = physics.convert_conservative_gradient_to_primitive_gradient_untemplated(soln_at_q, soln_grad_at_q);
-			
-			// Step 3: Viscous stress tensor, Velocities, Heat flux
-			const dealii::Tensor<2,dim,real2> viscous_stress_tensor = physics.compute_viscous_stress_tensor_untemplated(primitive_soln, primitive_soln_gradient);
-			std::cout<<"Norm of viscous stress tensor = "<<  viscous_stress_tensor[0][0]<<std::endl;
+            // Initialize
 			dealii::Tensor<1,dim,real2> viscous_tensor_times_normal;
 			for(int i=0; i<dim; i++){
 				viscous_tensor_times_normal[i] = 0;
 			}
-			for (int i=0;i<dim;i++){
-			    for (int j=0;j<dim;j++){
-				    viscous_tensor_times_normal[i]+= viscous_stress_tensor[i][j]*normal[j];
-				}
-			}
+            // add viscous stress tensor contribution if viscous (i.e. not Euler)
+            if(all_parameters->pde_type != PDE_enum::Euler) {
+                // Compute viscous stress tensor
+                const dealii::Tensor<2,dim,real2> viscous_stress_tensor = navier_stokes_physics->compute_viscous_stress_tensor_from_conservative_templated(soln_at_q, soln_grad_at_q);
+                // std::cout<<"Norm of viscous stress tensor = "<<  viscous_stress_tensor[0][0]<<std::endl;
+                for (int i=0;i<dim;i++){
+                    for (int j=0;j<dim;j++){
+                        viscous_tensor_times_normal[i]+= viscous_stress_tensor[i][j]*normal[j];
+                    }
+                }
+            }
 
 		    //std::cout << " force_dimensionalization_factor: " << force_dimensionalization_factor
             //          << " pressure: " << pressure

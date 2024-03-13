@@ -66,15 +66,10 @@ public:
     virtual std::array<real,nstate> convert_primitive_to_conservative ( const std::array<real,nstate> &primitive_soln ) const = 0;
 
     /** Obtain gradient of primitive variables from gradient of conservative variables */
-    //virtual std::array<dealii::Tensor<1,dim,real>,nstate> 
-    //convert_conservative_gradient_to_primitive_gradient (
-    //    const std::array<real,nstate> &conservative_soln,
-    //    const std::array<dealii::Tensor<1,dim,real>,nstate> &conservative_soln_gradient) const = 0;
-
     virtual std::array<dealii::Tensor<1,dim,real>,nstate> 
-    convert_conservative_gradient_to_primitive_gradient_untemplated (
+    convert_conservative_gradient_to_primitive_gradient (
         const std::array<real,nstate> &conservative_soln,
-        const std::array<dealii::Tensor<1,dim,real>,nstate> &conservative_soln_gradient) const = 0;
+        const std::array<dealii::Tensor<1,dim,real>,nstate> &conservative_soln_gradient) const;
 
     /** Obtain gradient of conservative variables from gradient of primitive variables */
     virtual std::array<dealii::Tensor<1,dim,real>,nstate> 

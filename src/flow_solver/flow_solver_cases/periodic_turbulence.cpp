@@ -685,7 +685,7 @@ void PeriodicTurbulence<dim, nstate>::compute_unsteady_data_and_write_to_table(
 {
     // Compute and update integrated quantities
     this->compute_and_update_integrated_quantities(*dg);
-    // Get computed quantities.
+    // Get computed quantities
     const double integrated_kinetic_energy = this->get_integrated_kinetic_energy();
     const double integrated_enstrophy = this->get_integrated_enstrophy();
     const double vorticity_based_dissipation_rate = this->get_vorticity_based_dissipation_rate();

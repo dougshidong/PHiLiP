@@ -679,8 +679,8 @@ template <int dim, int nstate, typename real>
 template<typename real2>
 dealii::Tensor<2,dim,real2> NavierStokes<dim,nstate,real>
 ::compute_viscous_stress_tensor_from_conservative_templated (
-    const std::array<real,nstate> &conservative_soln,
-    const std::array<dealii::Tensor<1,dim,real>,nstate> &conservative_soln_gradient) const
+    const std::array<real2,nstate> &conservative_soln,
+    const std::array<dealii::Tensor<1,dim,real2>,nstate> &conservative_soln_gradient) const
 {
     // Step 1: Primitive solution
     const std::array<real2,nstate> primitive_soln = this->template convert_conservative_to_primitive_templated<real2>(conservative_soln); // from Euler

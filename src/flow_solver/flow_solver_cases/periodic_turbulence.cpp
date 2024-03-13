@@ -764,7 +764,6 @@ void PeriodicTurbulence<dim, nstate>::compute_unsteady_data_and_write_to_table(
             }
         }
     }
-
 }
 
 #if PHILIP_DIM==3

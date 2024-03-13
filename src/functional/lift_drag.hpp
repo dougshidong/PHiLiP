@@ -2,6 +2,7 @@
 #define __PHILIP_LIFT_DRAG_H__
 
 #include "functional.h"
+#include "parameters/all_parameters.h"
 
 namespace PHiLiP {
 
@@ -59,6 +60,8 @@ private:
      *
      */
     const double force_dimensionalization_factor;
+
+    const Parameters::AllParameters *const all_parameters; ///< Pointer to all parameters
 
     /// Compute force dimensionalization factor.
     double initialize_force_dimensionalization_factor();

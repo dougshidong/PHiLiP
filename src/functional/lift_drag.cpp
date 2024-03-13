@@ -15,6 +15,7 @@ LiftDragFunctional<dim,nstate,real,MeshType>
     , lift_vector(initialize_lift_vector(this->rotation_matrix))
     , drag_vector(initialize_drag_vector(this->rotation_matrix))
     , force_dimensionalization_factor(this->initialize_force_dimensionalization_factor())
+    , all_parameters(dg_input->all_parameters)
 {
     switch(functional_type) {
         case Functional_types::lift : this->force_vector = lift_vector; break;

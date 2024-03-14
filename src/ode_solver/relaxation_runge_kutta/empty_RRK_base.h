@@ -48,6 +48,27 @@ public:
         return dt;
     };
     
+public:
+    
+    /// Entropy FR correction at the current timestep
+    /** Used in entropy-RRK ODE solver.
+     * This is stored in dg such that both flow solver case and ode solver can access it. 
+     * flow solver cases have no access to ode solver. */
+    double FR_entropy_contribution_RRK_solver = 0;
+    
+    /// Entropy in the M norm
+    /** Rather than M+K norm, which is relevant for stabililty in FR.
+     * Used in entropy-RRK ODE solver.
+     * This is stored in dg such that both flow solver case and ode solver can access it. 
+     * flow solver cases have no access to ode solver. */
+//    double entropy_M_norm_RRK_solver=0;
+
+    /// Relaxation parameter
+    /** Used in RRK ODE solver.
+     * This is stored in dg such that both flow solver case and ode solver can access it. 
+     * flow solver cases have no access to ode solver. */
+    double relaxation_parameter_RRK_solver=1;
+
 };
 
 } // ODE namespace

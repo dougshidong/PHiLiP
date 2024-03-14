@@ -187,6 +187,15 @@ void FlowSolverCaseBase<dim, nstate>::steady_state_postprocessing(std::shared_pt
 
 template <int dim, int nstate>
 void FlowSolverCaseBase<dim, nstate>::compute_unsteady_data_and_write_to_table(
+        const std::shared_ptr<ODE::ODESolverBase<dim, double>> ode_solver, 
+        const std::shared_ptr <DGBase<dim, double>> dg,
+        const std::shared_ptr <dealii::TableHandler> unsteady_data_table)
+{
+    this->compute_unsteady_data_and_write_to_table(ode_solver->current_iteration, ode_solver->current_time, dg, unsteady_data_table);
+}
+
+template <int dim, int nstate>
+void FlowSolverCaseBase<dim, nstate>::compute_unsteady_data_and_write_to_table(
         const unsigned int /*current_iteration*/,
         const double /*current_time*/,
         const std::shared_ptr <DGBase<dim, double>> /*dg*/,

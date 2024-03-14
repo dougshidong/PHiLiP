@@ -40,6 +40,7 @@ protected:
             const int overintegrate=10 // Overintegrate for KE, don't for num. entropy
             ) const;
 
+    using FlowSolverCaseBase<dim,nstate>::compute_unsteady_data_and_write_to_table;
     /// Compute the desired unsteady data and write it to a table
     void compute_unsteady_data_and_write_to_table(
             const unsigned int current_iteration,

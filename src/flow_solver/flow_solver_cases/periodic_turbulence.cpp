@@ -14,6 +14,8 @@
 #include <string>
 #include <deal.II/base/quadrature_lib.h>
 
+#include "ode_solver/runge_kutta_ode_solver.h"
+
 namespace PHiLiP {
 
 namespace FlowSolver {
@@ -659,6 +661,7 @@ double PeriodicTurbulence<dim, nstate>::compute_current_integrated_numerical_ent
 
 template <int dim, int nstate>
 void PeriodicTurbulence<dim, nstate>::update_numerical_entropy(
+        const double FR_entropy_contribution_RRK_solver,
         const unsigned int current_iteration,
         const std::shared_ptr <DGBase<dim, double>> dg)
 {
@@ -670,7 +673,7 @@ void PeriodicTurbulence<dim, nstate>::update_numerical_entropy(
         this->initial_numerical_entropy_abs = abs(current_numerical_entropy);
     }
 
-    const double current_numerical_entropy_change_FRcorrected = (current_numerical_entropy - this->previous_numerical_entropy + dg->FR_entropy_contribution_RRK_solver)/this->initial_numerical_entropy_abs;
+    const double current_numerical_entropy_change_FRcorrected = (current_numerical_entropy - this->previous_numerical_entropy + FR_entropy_contribution_RRK_solver)/this->initial_numerical_entropy_abs;
     this->previous_numerical_entropy = current_numerical_entropy;
     this->cumulative_numerical_entropy_change_FRcorrected+=current_numerical_entropy_change_FRcorrected;
 
@@ -678,11 +681,32 @@ void PeriodicTurbulence<dim, nstate>::update_numerical_entropy(
 
 template <int dim, int nstate>
 void PeriodicTurbulence<dim, nstate>::compute_unsteady_data_and_write_to_table(
-        const unsigned int current_iteration,
-        const double current_time,
+        const std::shared_ptr<ODE::ODESolverBase<dim, double>> ode_solver, 
         const std::shared_ptr <DGBase<dim, double>> dg,
         const std::shared_ptr <dealii::TableHandler> unsteady_data_table)
 {
+    using ODEEnum = Parameters::ODESolverParam::ODESolverEnum;
+    ODEEnum ode_solver_type = this->all_param.ode_solver_param.ode_solver_type;
+    if ( (ode_solver_type != ODEEnum::rrk_explicit_solver) 
+            && (ode_solver_type != ODEEnum::runge_kutta_solver))
+    {
+        this->pcout << "ERROR: Specified ode solver is not RK-based." << std::endl
+                    << "This will cause errors in periodic_turbulence." << std::endl;
+        std::abort();
+        // Dynamic casting to runge_kutta_ode_solver will cause issues if another ODE solver is used.
+        // This weakness is not addressed in the code as we use an RK-based ODE solver all conceivable viscous periodic cases.
+    }
+   
+    const int n_rk_stages = 3; // Hard-coded for testing.
+    //If we need to do any computations in the future, please refer to the structure in ode_solver_factory.
+    std::shared_ptr<ODE::RungeKuttaODESolver<dim,double,n_rk_stages>> runge_kutta_ode_solver = 
+        std::dynamic_pointer_cast<ODE::RungeKuttaODESolver<dim,double,n_rk_stages>>(ode_solver);
+
+
+    //unpack current iteration and current time from ode solver
+    const unsigned int current_iteration = ode_solver->current_iteration;
+    const double current_time = ode_solver->current_time;
+
     // Compute and update integrated quantities
     this->compute_and_update_integrated_quantities(*dg);
     // Get computed quantities
@@ -693,12 +717,11 @@ void PeriodicTurbulence<dim, nstate>::compute_unsteady_data_and_write_to_table(
     const double deviatoric_strain_rate_tensor_based_dissipation_rate = this->get_deviatoric_strain_rate_tensor_based_dissipation_rate();
     const double strain_rate_tensor_based_dissipation_rate = this->get_strain_rate_tensor_based_dissipation_rate();
     
-    using ODEEnum = Parameters::ODESolverParam::ODESolverEnum;
     const bool is_rrk = (this->all_param.ode_solver_param.ode_solver_type == ODEEnum::rrk_explicit_solver);
-    const double relaxation_parameter = dg->relaxation_parameter_RRK_solver;
+    const double relaxation_parameter = runge_kutta_ode_solver->relaxation_runge_kutta->relaxation_parameter_RRK_solver;
 
     if (do_calculate_numerical_entropy){
-        this->update_numerical_entropy(current_iteration, dg);
+        this->update_numerical_entropy(runge_kutta_ode_solver->relaxation_runge_kutta->FR_entropy_contribution_RRK_solver,current_iteration, dg);
     }
 
     if(this->mpi_rank==0) {

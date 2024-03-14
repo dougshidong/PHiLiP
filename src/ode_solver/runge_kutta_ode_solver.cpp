@@ -115,8 +115,8 @@ void RungeKuttaODESolver<dim,real,n_rk_stages,MeshType>::step_in_time (real dt, 
     this->dg->solution = this->solution_update; // u_np1 = u_n + dt* sum(k_i * b_i)
 
     // Calculate numerical entropy with FR correction. Does nothing if use has not selected param.
-    this->dg->FR_entropy_contribution_RRK_solver = relaxation_runge_kutta->compute_FR_entropy_contribution(dt, this->dg, this->rk_stage, true);
-    this->dg->entropy_M_norm_RRK_solver = relaxation_runge_kutta->compute_FR_entropy_contribution(dt, this->dg, this->rk_stage, false);
+    this->relaxation_runge_kutta->FR_entropy_contribution_RRK_solver = relaxation_runge_kutta->compute_FR_entropy_contribution(dt, this->dg, this->rk_stage, true);
+    //this->dg->entropy_M_norm_RRK_solver = relaxation_runge_kutta->compute_FR_entropy_contribution(dt, this->dg, this->rk_stage, false);
 
     // Apply limiter at every RK stage
     if (this->limiter) {

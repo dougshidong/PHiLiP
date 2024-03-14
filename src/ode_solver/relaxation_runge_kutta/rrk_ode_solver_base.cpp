@@ -22,7 +22,7 @@ real RRKODESolverBase<dim,real,MeshType>::modify_time_step(const real dt,
     dg->assemble_residual();
 
     relaxation_parameter = compute_relaxation_parameter(dt, dg, rk_stage, solution_update);
-    dg->relaxation_parameter_RRK_solver = relaxation_parameter;
+    this->relaxation_parameter_RRK_solver = relaxation_parameter;
 
     if (relaxation_parameter < 0.5 ){
         this->pcout << "RRK failed to find a reasonable relaxation factor. Aborting..." << std::endl;

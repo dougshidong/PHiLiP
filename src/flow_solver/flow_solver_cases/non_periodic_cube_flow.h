@@ -40,6 +40,7 @@ class NonPeriodicCubeFlow : public CubeFlow_UniformGrid<dim, nstate>
     /// Filename (with extension) for the unsteady data table
     const std::string unsteady_data_table_filename_with_extension;
 
+    using FlowSolverCaseBase<dim,nstate>::compute_unsteady_data_and_write_to_table;
     /// Compute the desired unsteady data and write it to a table
     void compute_unsteady_data_and_write_to_table(
         const unsigned int current_iteration,

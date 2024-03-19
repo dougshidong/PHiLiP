@@ -84,7 +84,16 @@ int HyperreducedAdaptiveSampling<dim, nstate>::run_sampling() const
 
     while(this->max_error > this->all_parameters->reduced_order_param.adaptation_tolerance){
 
-        this->outputIterationData(iteration);
+        this->outputIterationData(std::to_string(iteration));
+        std::unique_ptr<dealii::TableHandler> weights_table = std::make_unique<dealii::TableHandler>();
+        for(int i = 0 ; i < weights.GlobalLength() ; i++){
+            weights_table->add_value("ECSW Weights", weights[i]);
+            weights_table->set_precision("ECSW Weights", 16);
+        }
+
+        std::ofstream weights_table_file("weights_table_iteration_" + std::to_string(iteration) + ".txt");
+        weights_table->write_text(weights_table_file, dealii::TableHandler::TextOutputFormat::org_mode_table);
+        weights_table_file.close();
 
         this->pcout << "Sampling snapshot at " << max_error_params << std::endl;
         dealii::LinearAlgebra::distributed::Vector<double> fom_solution = this->solveSnapshotFOM(max_error_params);
@@ -140,7 +149,16 @@ int HyperreducedAdaptiveSampling<dim, nstate>::run_sampling() const
         iteration++;
     }
 
-    this->outputIterationData(iteration);
+    this->outputIterationData("final");
+    std::unique_ptr<dealii::TableHandler> weights_table = std::make_unique<dealii::TableHandler>();
+    for(int i = 0 ; i < weights.GlobalLength() ; i++){
+        weights_table->add_value("ECSW Weights", weights[i]);
+        weights_table->set_precision("ECSW Weights", 16);
+    }
+
+    std::ofstream weights_table_file("weights_table_iteration_final.txt");
+    weights_table->write_text(weights_table_file, dealii::TableHandler::TextOutputFormat::org_mode_table);
+    weights_table_file.close();
 
     return 0;
 }

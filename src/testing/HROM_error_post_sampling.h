@@ -38,7 +38,7 @@ public:
     void getROMPoints() const;
 
     /// Read ECSW weights from the text file 
-    std::shared_ptr<Epetra_Vector> getWeightsFromFile() const;
+    bool getWeightsFromFile() const;
 
     /// Evaluate and output the "true" error at ROM Points
     int run_test () const override;
@@ -51,7 +51,9 @@ public:
 
     /// Matrix of error sampling points
     mutable MatrixXd rom_points;
-    
+
+    /// Ptr vector of ECSW Weights
+    mutable std::shared_ptr<Epetra_Vector> ptr_weights;
 };
 } // End of Tests namespace
 } // End of PHiLiP namespace

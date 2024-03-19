@@ -9,7 +9,9 @@
 #include "linear_solver/NNLS_solver.h"
 #include "linear_solver/helper_functions.h"
 #include "reduced_order/pod_adaptive_sampling.h"
+#include <eigen/Eigen/Dense>
 #include <iostream>
+#include <filesystem>
 
 namespace PHiLiP {
 namespace Tests {
@@ -30,6 +32,88 @@ Parameters::AllParameters HyperReductionComparison<dim, nstate>::reinitParams(co
     return parameters;
 }
 
+
+template <int dim, int nstate>
+bool HyperReductionComparison<dim, nstate>::getSnapshotParamsFromFile() const{
+    bool file_found = false;
+    snapshot_parameters(0,0);
+    std::string path = all_parameters->reduced_order_param.path_to_search; //Search specified directory for files containing "solutions_table"
+
+    std::vector<std::filesystem::path> files_in_directory;
+    std::copy(std::filesystem::directory_iterator(path), std::filesystem::directory_iterator(), std::back_inserter(files_in_directory));
+    std::sort(files_in_directory.begin(), files_in_directory.end()); //Sort files so that the order is the same as for the sensitivity basis
+
+    for (const auto & entry : files_in_directory){
+        if(std::string(entry.filename()).std::string::find("snapshot_table") != std::string::npos){
+            pcout << "Processing " << entry << std::endl;
+            file_found = true;
+            std::ifstream myfile(entry);
+            if(!myfile)
+            {
+                pcout << "Error opening file." << std::endl;
+                std::abort();
+            }
+            std::string line;
+            int rows = 0;
+            int cols = 0;
+            //First loop set to count rows and columns
+            while(std::getline(myfile, line)){ //for each line
+                std::istringstream stream(line);
+                std::string field;
+                cols = 0;
+                bool any_entry = false;
+                while (getline(stream, field,' ')){ //parse data values on each line
+                    if (field.empty()){ //due to whitespace
+                        continue;
+                    } try{
+                        std::stod(field);
+                        cols++;
+                        any_entry = true;
+                    } catch (...){
+                        continue;
+                    } 
+                }
+                if (any_entry){
+                    rows++;
+                }
+                
+            }
+
+            snapshot_parameters.conservativeResize(rows, snapshot_parameters.cols()+cols);
+
+            int row = 0;
+            myfile.clear();
+            myfile.seekg(0); //Bring back to beginning of file
+            //Second loop set to build solutions matrix
+            while(std::getline(myfile, line)){ //for each line
+                std::istringstream stream(line);
+                std::string field;
+                int col = 0;
+                bool any_entry = false;
+                while (getline(stream, field,' ')) { //parse data values on each line
+                    if (field.empty()) {
+                        continue;
+                    }
+                    try{
+                        double num_string = std::stod(field);
+                        std::cout << field << std::endl;
+                        snapshot_parameters(row, col) = num_string;
+                        col++;
+                        any_entry = true;
+                    } catch (...){
+                        continue;
+                    }
+                }
+                if (any_entry){
+                    row++;
+                }
+            }
+            myfile.close();
+        }
+    }
+    return file_found;
+}
+
 template <int dim, int nstate>
 int HyperReductionComparison<dim, nstate>::run_test() const
 {
@@ -47,9 +131,24 @@ int HyperReductionComparison<dim, nstate>::run_test() const
     std::unique_ptr<FlowSolver::FlowSolver<dim,nstate>> flow_solver_hyper_reduced_petrov_galerkin = FlowSolver::FlowSolverFactory<dim,nstate>::select_flow_case(&new_parameters, parameter_handler);
     auto ode_solver_type = Parameters::ODESolverParam::ODESolverEnum::hyper_reduced_petrov_galerkin_solver;
 
-    // Run Adaptive Sampling to choose snapshot locations and create POD basis
+    // Run Adaptive Sampling to choose snapshot locations or load from file
     std::shared_ptr<AdaptiveSampling<dim,nstate>> parameter_sampling = std::make_unique<AdaptiveSampling<dim,nstate>>(all_parameters, parameter_handler);
-    parameter_sampling->run_sampling();
+    if (this->all_parameters->hyper_reduction_param.adapt_sampling_bool) {
+        parameter_sampling->run_sampling();
+    }
+    else{
+        bool snap_found = getSnapshotParamsFromFile();
+        if (snap_found){
+            parameter_sampling->snapshot_parameters = snapshot_parameters;
+        }
+        else{
+            return -1;
+        }
+        std::shared_ptr<ProperOrthogonalDecomposition::OfflinePOD<dim>> pod_petrov_galerkin = std::make_shared<ProperOrthogonalDecomposition::OfflinePOD<dim>>(flow_solver_petrov_galerkin->dg);
+        parameter_sampling->current_pod->basis = pod_petrov_galerkin->basis;
+        parameter_sampling->current_pod->referenceState = pod_petrov_galerkin->referenceState;
+        parameter_sampling->current_pod->snapshotMatrix = pod_petrov_galerkin->snapshotMatrix;
+    }
     MatrixXd snapshot_parameters = parameter_sampling->snapshot_parameters;
 
     // Find C and d for NNLS Problem

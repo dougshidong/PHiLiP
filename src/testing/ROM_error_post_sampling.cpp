@@ -176,7 +176,7 @@ int ROMErrorPostSampling<dim, nstate>::run_test() const
     parameter_sampling->placeROMLocations(rom_points);
 
     // Output Error Table like an iteration in the adaptive sampling procedure
-    parameter_sampling->outputIterationData(1000);
+    parameter_sampling->outputIterationData("ROM_post_sampling");
     return 0;
 }
 

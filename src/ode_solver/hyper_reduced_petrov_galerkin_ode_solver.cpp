@@ -118,21 +118,19 @@ void HyperReducedODESolver<dim,real,MeshType>::step_in_time (real /*dt*/, const 
     const bool compute_dRdW = true;
     this->dg->assemble_residual(compute_dRdW);
 
-    // this->dg->system_matrix *= -1.0;
-
     if ((this->ode_param.ode_output) == Parameters::OutputEnum::verbose &&
         (this->current_iteration%this->ode_param.print_iteration_modulo) == 0 ) {
         this->pcout << " Evaluating system update... " << std::endl;
     }
-    // Build hyper-reduced Jacobian
+    // Build hyperreduced Jacobian
     Epetra_CrsMatrix epetra_system_matrix = this->dg->system_matrix.trilinos_matrix();
     std::shared_ptr<Epetra_CrsMatrix> reduced_system_matrix = generate_hyper_reduced_jacobian(epetra_system_matrix);
 
-    // Find test basis W with hyper-reduced Jacobian
+    // Find test basis W with hyperreduced Jacobian
     const Epetra_CrsMatrix epetra_pod_basis = pod->getPODBasis()->trilinos_matrix();
     std::shared_ptr<Epetra_CrsMatrix> epetra_test_basis = generate_test_basis(*reduced_system_matrix, epetra_pod_basis);
 
-    // Build hyper-reduced residual
+    // Build hyperreduced residual
     Epetra_Vector epetra_right_hand_side(Epetra_DataAccess::View, epetra_system_matrix.RowMap(), this->dg->right_hand_side.begin());
     std::shared_ptr<Epetra_Vector> hyper_reduced_rhs = generate_hyper_reduced_residual(epetra_right_hand_side, *epetra_test_basis);
     hyper_reduced_rhs->Scale(-1.0);
@@ -142,20 +140,16 @@ void HyperReducedODESolver<dim,real,MeshType>::step_in_time (real /*dt*/, const 
     Epetra_Vector epetra_reduced_solution_update(epetra_reduced_lhs->DomainMap());
     Epetra_LinearProblem linearProblem(epetra_reduced_lhs.get(), &epetra_reduced_solution_update, hyper_reduced_rhs.get());
 
-    // this->pcout << *epetra_reduced_lhs << std::endl;
-    // this->pcout << *hyper_reduced_rhs << std::endl;
-
     Amesos_Lapack Solver(linearProblem);
     Teuchos::ParameterList List;
-    // List.set("OutputLevel", 2);
     Solver.SetParameters(List);
     Solver.SymbolicFactorization();
     Solver.NumericFactorization();
     Solver.Solve();
 
-    // this->pcout << epetra_reduced_solution_update << std::endl;
-
     const dealii::LinearAlgebra::distributed::Vector<double> old_solution(this->dg->solution);
+    
+    // Line search parameters (currently identical to reduced-order ode solver values)
     double step_length = 1.0;
     const double step_reduction = 0.5;
     const int maxline = 10;
@@ -171,14 +165,7 @@ void HyperReducedODESolver<dim,real,MeshType>::step_in_time (real /*dt*/, const 
 
     epetra_pod_basis.Multiply(false, epetra_reduced_solution_update, epetra_solution_update);
     epetra_solution.Update(1, epetra_solution_update, 1);
-    //this->pcout << "Updated Solution" << std::endl;
-    //this->pcout << epetra_solution<< std::endl;
     this->dg->assemble_residual();
-    // this->dg->system_matrix *= -1.0;
-    // epetra_system_matrix = this->dg->system_matrix.trilinos_matrix();
-    // reduced_system_matrix = generate_hyper_reduced_jacobian(epetra_system_matrix);
-    // Find test basis W with hyper-reduced Jacobian after solution update
-    // epetra_test_basis = generate_test_basis(*reduced_system_matrix, epetra_pod_basis);
     hyper_reduced_rhs = generate_hyper_reduced_residual(epetra_right_hand_side, *epetra_test_basis);
     double new_residual;
     hyper_reduced_rhs->Norm2(&new_residual);
@@ -197,11 +184,6 @@ void HyperReducedODESolver<dim,real,MeshType>::step_in_time (real /*dt*/, const 
         epetra_pod_basis.Multiply(false, epetra_linesearch_reduced_solution_update, epetra_solution_update);
         epetra_solution.Update(1, epetra_solution_update, 1);
         this->dg->assemble_residual();
-        // this->dg->system_matrix *= -1.0;
-        // epetra_system_matrix = this->dg->system_matrix.trilinos_matrix();
-        // reduced_system_matrix = generate_hyper_reduced_jacobian(epetra_system_matrix);
-        // // Find test basis W with hyper-reduced Jacobian
-        // epetra_test_basis = generate_test_basis(*reduced_system_matrix, epetra_pod_basis);
         std::shared_ptr<Epetra_Vector> hyper_reduced_rhs = generate_hyper_reduced_residual(epetra_right_hand_side, *epetra_test_basis);
         hyper_reduced_rhs->Norm2(&new_residual);
         new_residual /= this->dg->right_hand_side.size();
@@ -215,11 +197,6 @@ void HyperReducedODESolver<dim,real,MeshType>::step_in_time (real /*dt*/, const 
         this->pcout << " Line search failed. Will accept any valid residual less than " << reduction_tolerance_2 << " times the current " << initial_residual << "residual. " << std::endl;
         epetra_solution.Update(1, epetra_solution_update, 1);
         this->dg->assemble_residual();
-        // this->dg->system_matrix *= -1.0;
-        // epetra_system_matrix = this->dg->system_matrix.trilinos_matrix();
-        // reduced_system_matrix = generate_hyper_reduced_jacobian(epetra_system_matrix);
-        // // Find test basis W with hyper-reduced Jacobian
-        // epetra_test_basis = generate_test_basis(*reduced_system_matrix, epetra_pod_basis);
         std::shared_ptr<Epetra_Vector> hyper_reduced_rhs = generate_hyper_reduced_residual(epetra_right_hand_side, *epetra_test_basis);
         hyper_reduced_rhs->Norm2(&new_residual);
         new_residual /= this->dg->right_hand_side.size();
@@ -232,11 +209,6 @@ void HyperReducedODESolver<dim,real,MeshType>::step_in_time (real /*dt*/, const 
             epetra_pod_basis.Multiply(false, epetra_linesearch_reduced_solution_update, epetra_solution_update);
             epetra_solution.Update(1, epetra_solution_update, 1);
             this->dg->assemble_residual();
-            // this->dg->system_matrix *= -1.0;
-            // epetra_system_matrix = this->dg->system_matrix.trilinos_matrix();
-            // reduced_system_matrix = generate_hyper_reduced_jacobian(epetra_system_matrix);
-            // // Find test basis W with hyper-reduced Jacobian
-            // epetra_test_basis = generate_test_basis(*reduced_system_matrix, epetra_pod_basis);
             std::shared_ptr<Epetra_Vector> hyper_reduced_rhs = generate_hyper_reduced_residual(epetra_right_hand_side, *epetra_test_basis);
             hyper_reduced_rhs->Norm2(&new_residual);
             new_residual /= this->dg->right_hand_side.size();
@@ -249,11 +221,6 @@ void HyperReducedODESolver<dim,real,MeshType>::step_in_time (real /*dt*/, const 
         step_length = -1.0;
         epetra_solution.Update(-1, epetra_solution_update, 1);
         this->dg->assemble_residual();
-        // this->dg->system_matrix *= -1.0;
-        // epetra_system_matrix = this->dg->system_matrix.trilinos_matrix();
-        // reduced_system_matrix = generate_hyper_reduced_jacobian(epetra_system_matrix);
-        // // Find test basis W with hyper-reduced Jacobian
-        // epetra_test_basis = generate_test_basis(*reduced_system_matrix, epetra_pod_basis);
         std::shared_ptr<Epetra_Vector> hyper_reduced_rhs = generate_hyper_reduced_residual(epetra_right_hand_side, *epetra_test_basis);
         hyper_reduced_rhs->Norm2(&new_residual);
         new_residual /= this->dg->right_hand_side.size();
@@ -266,11 +233,6 @@ void HyperReducedODESolver<dim,real,MeshType>::step_in_time (real /*dt*/, const 
             epetra_pod_basis.Multiply(false, epetra_linesearch_reduced_solution_update, epetra_solution_update);
             epetra_solution.Update(1, epetra_solution_update, 1);
             this->dg->assemble_residual();
-            // this->dg->system_matrix *= -1.0;
-            // epetra_system_matrix = this->dg->system_matrix.trilinos_matrix();
-            // reduced_system_matrix = generate_hyper_reduced_jacobian(epetra_system_matrix);
-            // // Find test basis W with hyper-reduced Jacobian
-            // epetra_test_basis = generate_test_basis(*reduced_system_matrix, epetra_pod_basis);
             std::shared_ptr<Epetra_Vector> hyper_reduced_rhs = generate_hyper_reduced_residual(epetra_right_hand_side, *epetra_test_basis);
             hyper_reduced_rhs->Norm2(&new_residual);
             new_residual /= this->dg->right_hand_side.size();
@@ -283,11 +245,6 @@ void HyperReducedODESolver<dim,real,MeshType>::step_in_time (real /*dt*/, const 
         step_length = -1.0;
         epetra_solution.Update(-1, epetra_solution_update, 1);
         this->dg->assemble_residual();
-        // this->dg->system_matrix *= -1.0;
-        // epetra_system_matrix = this->dg->system_matrix.trilinos_matrix();
-        // reduced_system_matrix = generate_hyper_reduced_jacobian(epetra_system_matrix);
-        // // Find test basis W with hyper-reduced Jacobian
-        // epetra_test_basis = generate_test_basis(*reduced_system_matrix, epetra_pod_basis);
         std::shared_ptr<Epetra_Vector> hyper_reduced_rhs = generate_hyper_reduced_residual(epetra_right_hand_side, *epetra_test_basis);
         hyper_reduced_rhs->Norm2(&new_residual);
         new_residual /= this->dg->right_hand_side.size();
@@ -300,11 +257,6 @@ void HyperReducedODESolver<dim,real,MeshType>::step_in_time (real /*dt*/, const 
             epetra_pod_basis.Multiply(false, epetra_linesearch_reduced_solution_update, epetra_solution_update);
             epetra_solution.Update(1, epetra_solution_update, 1);
             this->dg->assemble_residual();
-            // this->dg->system_matrix *= -1.0;
-            // epetra_system_matrix = this->dg->system_matrix.trilinos_matrix();
-            // reduced_system_matrix = generate_hyper_reduced_jacobian(epetra_system_matrix);
-            // // Find test basis W with hyper-reduced Jacobian
-            // epetra_test_basis = generate_test_basis(*reduced_system_matrix, epetra_pod_basis);
             std::shared_ptr<Epetra_Vector> hyper_reduced_rhs = generate_hyper_reduced_residual(epetra_right_hand_side, *epetra_test_basis);
             hyper_reduced_rhs->Norm2(&new_residual);
             new_residual /= this->dg->right_hand_side.size();
@@ -393,15 +345,12 @@ std::shared_ptr<Epetra_CrsMatrix> HyperReducedODESolver<dim,real,MeshType>::gene
             int *global_indices = new int[system_matrix.NumGlobalCols()];
             int numE;
             int row_num = current_dofs_indices[0];
-            // this -> pcout << row_num << std::endl;
             system_matrix.ExtractGlobalRowCopy(row_num, system_matrix.NumGlobalCols(), numE, row, global_indices);
             int neighbour_dofs_curr_cell = 0;
             for (int i = 0; i < numE; i++){
                 neighbour_dofs_curr_cell +=1;
                 neighbour_dofs_indices.resize(neighbour_dofs_curr_cell);
-                // this -> pcout << "col" << global_indices[i]<< std::endl;
                 neighbour_dofs_indices[neighbour_dofs_curr_cell-1] = global_indices[i];
-                // this -> pcout << "ind " << neighbour_dofs_indices[neighbour_dofs_curr_cell-1] << std::endl;
             }
 
             // Create L_e matrix and transposed L_e matrixfor current cell
@@ -418,8 +367,6 @@ std::shared_ptr<Epetra_CrsMatrix> HyperReducedODESolver<dim,real,MeshType>::gene
                 L_e_T.InsertGlobalValues(col, 1, &posOne , &i);
             }
             L_e.FillComplete(system_matrix_rowmap, LeRowMap);
-            // this->pcout << "L_e" << std::endl;
-            // this->pcout << L_e << std::endl;
             L_e_T.FillComplete(LeRowMap, system_matrix_rowmap);
 
             for(int i = 0; i < neighbour_dofs_curr_cell; i++){
@@ -427,36 +374,24 @@ std::shared_ptr<Epetra_CrsMatrix> HyperReducedODESolver<dim,real,MeshType>::gene
                 L_e_PLUS.InsertGlobalValues(i, 1, &posOne , &col);
             }
             L_e_PLUS.FillComplete(system_matrix_rowmap, LePLUSRowMap);
-            // this->pcout << "L_e_PLUS" << std::endl;
-            // this->pcout << L_e_PLUS << std::endl;
 
             // Find contribution of element to the Jacobian
             Epetra_CrsMatrix J_L_e_T(Epetra_DataAccess::Copy, system_matrix_rowmap, neighbour_dofs_curr_cell);
             Epetra_CrsMatrix J_e_m(Epetra_DataAccess::Copy, LeRowMap, neighbour_dofs_curr_cell);
             EpetraExt::MatrixMatrix::Multiply(system_matrix, false, L_e_PLUS, true, J_L_e_T, true);
-            // this->pcout << "J_L_e_T" << std::endl;
-            // this->pcout << J_L_e_T << std::endl;
             EpetraExt::MatrixMatrix::Multiply(L_e, false, J_L_e_T, false, J_e_m, true);
-            // this->pcout << "J_e_m" << std::endl;
-            // this->pcout << J_e_m << std::endl;
 
             // Jacobian for this element in the global dimensions
             Epetra_CrsMatrix J_temp(Epetra_DataAccess::Copy, LeRowMap, N);
             Epetra_CrsMatrix J_global_e(Epetra_DataAccess::Copy, system_matrix_rowmap, N);
             EpetraExt::MatrixMatrix::Multiply(J_e_m, false, L_e_PLUS, false, J_temp, true);
-            // this->pcout << "J_temp" << std::endl;
-            // this->pcout << J_temp << std::endl;
             EpetraExt::MatrixMatrix::Multiply(L_e_T, false, J_temp, false, J_global_e, true);
-            // this->pcout << "J_global_e" << std::endl;
-            // this->pcout << J_global_e << std::endl;
 
             // Add the contribution of the element to the hyper-reduced Jacobian with scaling from the weights
             double scaling = xi[cell->active_cell_index()];
             EpetraExt::MatrixMatrix::Add(J_global_e, false, scaling, reduced_jacobian, 1.0);
         }
     }
-    // std::cout << "Final Reduced J" << std::endl;
-    // std::cout << reduced_jacobian << std::endl;
     reduced_jacobian.FillComplete();
     return std::make_shared<Epetra_CrsMatrix>(reduced_jacobian);
 }
@@ -516,8 +451,6 @@ std::shared_ptr<Epetra_Vector> HyperReducedODESolver<dim,real,MeshType>::generat
             }
         }
     }
-    // std::cout << "Reduced Residual" << std::endl;
-    // std::cout << hyper_reduced_residual << std::endl;
     return std::make_shared<Epetra_Vector>(hyper_reduced_residual);
 }
 

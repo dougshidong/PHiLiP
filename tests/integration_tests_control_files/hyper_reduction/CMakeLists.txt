@@ -13,48 +13,108 @@ add_test(
 configure_file(1d_burgers_rewienski_hyper_reduction_test.prm 1d_burgers_rewienski_hyper_reduction_test.prm COPYONLY)
 add_test(
         NAME 1D_BURGERS_HYPER_REDUCTION_TEST
-        COMMAND mpirun -np 1 ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_1D -i ${CMAKE_CURRENT_BINARY_DIR}/1d_burgers_rewienski_hyper_reduction_test.prm 
+        COMMAND bash -c
+        " 
+        if [ -d  ${CMAKE_CURRENT_BINARY_DIR}/1d_burgers_one_param ]; then
+                mpirun -np 1 ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_1D -i ${CMAKE_CURRENT_BINARY_DIR}/1d_burgers_rewienski_hyper_reduction_test.prm 
+        elif [ -d  ${CMAKE_CURRENT_BINARY_DIR}/../reduced_order/1d_burgers_one_param ]; then
+                cp -r ${CMAKE_CURRENT_BINARY_DIR}/../reduced_order/1d_burgers_one_param ${CMAKE_CURRENT_BINARY_DIR}/;
+                mpirun -np 1 ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_1D -i ${CMAKE_CURRENT_BINARY_DIR}/1d_burgers_rewienski_hyper_reduction_test.prm 
+        else
+                echo 'Run 1D_BURGERS_REWIENSKI_ONE_PARAM_ADAPTIVE_SAMPLING test first; ensure folder 1d_burgers_one_param exists in the reduced_order folder';
+                exit 1;
+        fi"  
         WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
 )
 
 configure_file(1d_burgers_rewienski_hyper_adaptive_sampling.prm 1d_burgers_rewienski_hyper_adaptive_sampling.prm COPYONLY)
 add_test(
         NAME 1D_BURGERS_HYPER_ADAPTIVE_SAMPLING_TEST
-        COMMAND mpirun -np 1 ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_1D -i ${CMAKE_CURRENT_BINARY_DIR}/1d_burgers_rewienski_hyper_adaptive_sampling.prm 
+        COMMAND bash -c
+        "mpirun -np 1 ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_1D -i ${CMAKE_CURRENT_BINARY_DIR}/1d_burgers_rewienski_hyper_adaptive_sampling.prm
+        mkdir -p 1d_burgers_hyper_adapt_results;
+        mv rom_table_iteration_final.txt ./1d_burgers_hyper_adapt_results ;
+        mv snapshot_table_iteration_final.txt ./1d_burgers_hyper_adapt_results ;
+        mv solution_snapshots_iteration_final.txt ./1d_burgers_hyper_adapt_results ;
+        mv weights_table_iteration_final.txt ./1d_burgers_hyper_adapt_results ; "
         WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
 )
 
 configure_file(1d_burgers_rewienski_hyper_post_sampling.prm 1d_burgers_rewienski_hyper_post_sampling.prm COPYONLY)
 add_test(
         NAME 1D_BURGERS_HYPER_POST_SAMPLING
-        COMMAND mpirun -np 1 ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_1D -i ${CMAKE_CURRENT_BINARY_DIR}/1d_burgers_rewienski_hyper_post_sampling.prm 
+        COMMAND bash -c
+        "
+        if [ -d  ${CMAKE_CURRENT_BINARY_DIR}/1d_burgers_one_param ]; then
+                mpirun -np 1 ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_1D -i ${CMAKE_CURRENT_BINARY_DIR}/1d_burgers_rewienski_hyper_post_sampling.prm;
+        elif [ -d  ${CMAKE_CURRENT_BINARY_DIR}/../reduced_order/1d_burgers_one_param ]; then
+                cp -r ${CMAKE_CURRENT_BINARY_DIR}/../reduced_order/1d_burgers_one_param ${CMAKE_CURRENT_BINARY_DIR}/;
+                mpirun -np 1 ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_1D -i ${CMAKE_CURRENT_BINARY_DIR}/1d_burgers_rewienski_hyper_post_sampling.prm;
+        else
+                echo 'Run 1D_BURGERS_REWIENSKI_ONE_PARAM_ADAPTIVE_SAMPLING test first; ensure folder 1d_burgers_one_param exists in the reduced_order folder';
+                exit 1;
+        fi"
         WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
 )
 
 configure_file(inviscid_naca0012_hyper_post_sampling.prm inviscid_naca0012_hyper_post_sampling.prm COPYONLY)
 add_test(
         NAME INVISCID_NACA0012_HYPER_POST_SAMPLING
-        COMMAND mpirun -np 1 ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_2D -i ${CMAKE_CURRENT_BINARY_DIR}/inviscid_naca0012_hyper_post_sampling.prm
+        COMMAND bash -c 
+        "if [ -d  ${CMAKE_CURRENT_BINARY_DIR}/NACA_rom_adapt_results ]; then
+                mpirun -np 1 ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_2D -i ${CMAKE_CURRENT_BINARY_DIR}/inviscid_naca0012_hyper_post_sampling.prm;
+        elif [ -d  ${CMAKE_CURRENT_BINARY_DIR}/../reduced_order/NACA_rom_adapt_results ]; then
+                cp -r ${CMAKE_CURRENT_BINARY_DIR}/../reduced_order/NACA_rom_adapt_results ${CMAKE_CURRENT_BINARY_DIR}/;
+                mpirun -np  1 ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_2D -i ${CMAKE_CURRENT_BINARY_DIR}/inviscid_naca0012_hyper_post_sampling.prm;
+        
+        else
+                echo 'Run INVISCID_NACA0012_ADAPTIVE_SAMPLING test first; ensure folder NACA_rom_adapt_results exists in the reduced_order folder';
+                exit 1;
+        fi"
         WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
 )
 
 configure_file(inviscid_naca0012_hyper_adaptive_sampling.prm inviscid_naca0012_hyper_adaptive_sampling.prm COPYONLY)
 add_test(
-        NAME INVISCID_NACA0012_HYPER_ADAPTIVE_SAMPLING_TEST
-        COMMAND mpirun -np 1 ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_2D -i ${CMAKE_CURRENT_BINARY_DIR}/inviscid_naca0012_hyper_adaptive_sampling.prm
+        NAME INVISCID_NACA0012_HYPER_ADAPTIVE_SAMPLING_RUN
+        COMMAND bash -c
+        "
+        mpirun -np 1 ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_2D -i ${CMAKE_CURRENT_BINARY_DIR}/inviscid_naca0012_hyper_adaptive_sampling.prm
+        mkdir -p NACA_hyper_adapt_results;
+        mv rom_table_iteration_final.txt ./NACA_hyper_adapt_results ;
+        mv snapshot_table_iteration_final.txt ./NACA_hyper_adapt_results ;
+        mv solution_snapshots_iteration_final.txt ./NACA_hyper_adapt_results ;
+        mv weights_table_iteration_final.txt ./NACA_hyper_adapt_results ; "
         WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
 )
 
-configure_file(ROM_error_NACA.prm ROM_error_NACA.prm  COPYONLY)
-add_test(
-        NAME ROM_ERROR_NACA
-        COMMAND mpirun -np 1 ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_2D -i ${CMAKE_CURRENT_BINARY_DIR}/ROM_error_NACA.prm 
-        WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
-)
+# Uncomment the following two tests if you would like to find the "true" error between the models built adaptively with and without hyperreduction
+# Running them are expensive as they calculate the error at 400 parameter locations, and do not test any additional areas of the reduced order code
+# configure_file(ROM_error_NACA.prm ROM_error_NACA.prm  COPYONLY)
+# add_test(
+#         NAME ROM_ERROR_NACA
+#         COMMAND bash -c
+#         "if [ -d  ${CMAKE_CURRENT_BINARY_DIR}/NACA_rom_adapt_results ]; then
+#                 mpirun -np 1 ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_2D -i ${CMAKE_CURRENT_BINARY_DIR}/ROM_error_NACA.prm;
+#         elif [ -d  ${CMAKE_CURRENT_BINARY_DIR}/../reduced_order/NACA_rom_adapt_results ]; then
+#                 cp -r ${CMAKE_CURRENT_BINARY_DIR}/../reduced_order/NACA_rom_adapt_results ${CMAKE_CURRENT_BINARY_DIR}/;
+#                 mpirun -np  1 ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_2D -i ${CMAKE_CURRENT_BINARY_DIR}/ROM_error_NACA.prm;
+#         else
+#                 echo 'Run INVISCID_NACA0012_ADAPTIVE_SAMPLING test first; ensure folder NACA_rom_adapt_results exists in the reduced_order folder';
+#                 exit 1;
+#         fi"
+#         WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
+# )
 
-configure_file(HROM_error_NACA.prm HROM_error_NACA.prm  COPYONLY)
-add_test(
-        NAME HROM_ERROR_NACA
-        COMMAND mpirun -np 1 ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_2D -i ${CMAKE_CURRENT_BINARY_DIR}/HROM_error_NACA.prm 
-        WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
-)
+# configure_file(HROM_error_NACA.prm HROM_error_NACA.prm  COPYONLY)
+# add_test(
+#         NAME HROM_ERROR_NACA
+#         COMMAND bash -c
+#         "if [ -d  ${CMAKE_CURRENT_BINARY_DIR}/NACA_hyper_adapt_results ]; then
+#                 mpirun -np 1 ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_2D -i ${CMAKE_CURRENT_BINARY_DIR}/HROM_error_NACA.prm;
+#         else
+#                 echo 'Run INVISCID_NACA0012_HYPER_ADAPTIVE_SAMPLING_RUN test first; ensure folder NACA_hyper_adapt_results exists';
+#                 exit 1;
+#         fi"
+#         WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
+# )

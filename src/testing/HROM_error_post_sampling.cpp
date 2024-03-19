@@ -152,7 +152,8 @@ void HROMErrorPostSampling<dim, nstate>::getROMPoints() const{
 }
 
 template <int dim, int nstate>
-std::shared_ptr<Epetra_Vector> HROMErrorPostSampling<dim, nstate>::getWeightsFromFile() const{
+bool HROMErrorPostSampling<dim, nstate>::getWeightsFromFile() const{
+    bool file_found = false;
     Epetra_MpiComm epetra_comm(MPI_COMM_WORLD);
     VectorXd weights_eig;
     int rows = 0;
@@ -165,6 +166,7 @@ std::shared_ptr<Epetra_Vector> HROMErrorPostSampling<dim, nstate>::getWeightsFro
     for (const auto & entry : files_in_directory){
         if(std::string(entry.filename()).std::string::find("weights") != std::string::npos){
             pcout << "Processing " << entry << std::endl;
+            file_found = true;
             std::ifstream myfile(entry);
             if(!myfile)
             {
@@ -174,7 +176,21 @@ std::shared_ptr<Epetra_Vector> HROMErrorPostSampling<dim, nstate>::getWeightsFro
             std::string line;
 
             while(std::getline(myfile, line)){ //for each line
-                rows++;
+                std::istringstream stream(line);
+                std::string field;
+                while (getline(stream, field,' ')) { //parse data values on each line
+                    if (field.empty()) {
+                        continue;
+                    }
+                    else {
+                        try{
+                            std::stod(field);
+                            rows++;
+                        } catch (...){
+                            continue;
+                        }
+                    }
+                }
             }
 
             weights_eig.resize(rows);
@@ -211,7 +227,8 @@ std::shared_ptr<Epetra_Vector> HROMErrorPostSampling<dim, nstate>::getWeightsFro
         weights[i] = weights_eig(i);
     }
 
-    return std::make_shared<Epetra_Vector>(weights);
+    ptr_weights = std::make_shared<Epetra_Vector>(weights);
+    return file_found;
 }
 
 template <int dim, int nstate>
@@ -234,19 +251,26 @@ int HROMErrorPostSampling<dim, nstate>::run_test() const
         std::cout << snapshot_parameters << std::endl;
     }
     else{
+        std::cout << "File with snapshots not found in folder" << std::endl;
         return -1;
     }
     getROMPoints();
     std::cout << "ROM Locations" << std::endl;
     std::cout << rom_points << std::endl; 
 
-    std::shared_ptr<Epetra_Vector> weights = getWeightsFromFile();
-    std::cout << "ECSW Weights"<< std::endl;
-    std::cout << *weights << std::endl;
+    bool weights_found = getWeightsFromFile();
+    if (weights_found){
+        std::cout << "ECSW Weights" << std::endl;
+        std::cout << *ptr_weights << std::endl;
+    }
+    else{
+        std::cout << "File with weights not found in folder" << std::endl;
+        return -1;
+    }
 
-    hyper_reduced_ROM_solver->placeROMLocations(rom_points, *weights);
+    hyper_reduced_ROM_solver->placeROMLocations(rom_points, *ptr_weights);
 
-    hyper_reduced_ROM_solver->outputIterationData(1000);
+    hyper_reduced_ROM_solver->outputIterationData("HROM_post_sampling");
     return 0;
 }
 

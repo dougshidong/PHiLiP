@@ -39,10 +39,10 @@ AdaptiveSamplingBase<dim, nstate>::AdaptiveSamplingBase(const PHiLiP::Parameters
 }
 
 template <int dim, int nstate>
-void AdaptiveSamplingBase<dim, nstate>::outputIterationData(int iteration) const{
+void AdaptiveSamplingBase<dim, nstate>::outputIterationData(std::string iteration) const{
     std::unique_ptr<dealii::TableHandler> snapshot_table = std::make_unique<dealii::TableHandler>();
 
-    std::ofstream solution_out_file("solution_snapshots_iteration_" +  std::to_string(iteration) + ".txt");
+    std::ofstream solution_out_file("solution_snapshots_iteration_" +  iteration + ".txt");
     unsigned int precision = 16;
     current_pod->dealiiSnapshotMatrix.print_formatted(solution_out_file, precision);
     solution_out_file.close();
@@ -54,7 +54,7 @@ void AdaptiveSamplingBase<dim, nstate>::outputIterationData(int iteration) const
         }
     }
 
-    std::ofstream snapshot_table_file("snapshot_table_iteration_" + std::to_string(iteration) + ".txt");
+    std::ofstream snapshot_table_file("snapshot_table_iteration_" + iteration + ".txt");
     snapshot_table->write_text(snapshot_table_file, dealii::TableHandler::TextOutputFormat::org_mode_table);
     snapshot_table_file.close();
 
@@ -69,7 +69,7 @@ void AdaptiveSamplingBase<dim, nstate>::outputIterationData(int iteration) const
         rom_table->set_precision("ROM_errors", 16);
     }
 
-    std::ofstream rom_table_file("rom_table_iteration_" + std::to_string(iteration) + ".txt");
+    std::ofstream rom_table_file("rom_table_iteration_" + iteration + ".txt");
     rom_table->write_text(rom_table_file, dealii::TableHandler::TextOutputFormat::org_mode_table);
     rom_table_file.close();
 }

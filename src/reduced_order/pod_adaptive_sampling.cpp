@@ -43,7 +43,7 @@ int AdaptiveSampling<dim, nstate>::run_sampling() const
 
     while(this->max_error > this->all_parameters->reduced_order_param.adaptation_tolerance){
 
-        this->outputIterationData(iteration);
+        this->outputIterationData(std::to_string(iteration));
 
         this->pcout << "Sampling snapshot at " << max_error_params << std::endl;
         dealii::LinearAlgebra::distributed::Vector<double> fom_solution = this->solveSnapshotFOM(max_error_params);
@@ -73,7 +73,7 @@ int AdaptiveSampling<dim, nstate>::run_sampling() const
         iteration++;
     }
 
-    this->outputIterationData(iteration);
+    this->outputIterationData("final");
 
     return 0;
 }

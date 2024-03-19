@@ -28,7 +28,7 @@ end
 #Reduced order parameters
 subsection reduced order
   set adaptation_tolerance = 1e-04
-  set path_to_search = ./burgers
+  set path_to_search = ./1d_burgers_one_param
   set reduced_residual_tolerance = 1e-14
   set parameter_names = rewienski_b
   set parameter_min_values = 0.01
@@ -53,8 +53,8 @@ end
 
 subsection ODE solver
  set initial_time_step = 0.05
- set nonlinear_max_iterations            = 100
- set nonlinear_steady_residual_tolerance = 1e-10
+ set nonlinear_max_iterations            = 50
+ set nonlinear_steady_residual_tolerance = 1e-14
  set print_iteration_modulo              = 1
  set ode_solver_type                     = implicit
  end
@@ -66,4 +66,5 @@ subsection hyperreduction
   set NNLS_tol = 1E-06
   set NNLS_max_iter = 5000
   set training_data = jacobian
+  set adapt_sampling_bool = false
 end

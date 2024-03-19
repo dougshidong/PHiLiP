@@ -223,18 +223,14 @@ int HyperReductionPostSampling<dim, nstate>::run_test() const
 {
     pcout << "Starting hyperreduction test..." << std::endl;
 
-    // Create POD Petrov-Galerkin ROM without Hyperreduction
-    std::unique_ptr<FlowSolver::FlowSolver<dim,nstate>> flow_solver_petrov_galerkin = FlowSolver::FlowSolverFactory<dim,nstate>::select_flow_case(all_parameters, parameter_handler);
-    
     // Create POD Petrov-Galerkin ROM with Hyperreduction
-    Parameters::AllParameters new_parameters = reinitParams(50);
-    std::unique_ptr<FlowSolver::FlowSolver<dim,nstate>> flow_solver_hyper_reduced_petrov_galerkin = FlowSolver::FlowSolverFactory<dim,nstate>::select_flow_case(&new_parameters, parameter_handler);
+    std::unique_ptr<FlowSolver::FlowSolver<dim,nstate>> flow_solver_hyper_reduced_petrov_galerkin = FlowSolver::FlowSolverFactory<dim,nstate>::select_flow_case(all_parameters, parameter_handler);
     auto ode_solver_type = Parameters::ODESolverParam::ODESolverEnum::hyper_reduced_petrov_galerkin_solver;
 
     // Run Adaptive Sampling to choose snapshot locations and create POD basis
     std::shared_ptr<AdaptiveSampling<dim,nstate>> parameter_sampling = std::make_unique<AdaptiveSampling<dim,nstate>>(all_parameters, parameter_handler);
     
-    std::shared_ptr<ProperOrthogonalDecomposition::OfflinePOD<dim>> pod_petrov_galerkin = std::make_shared<ProperOrthogonalDecomposition::OfflinePOD<dim>>(flow_solver_petrov_galerkin->dg);
+    std::shared_ptr<ProperOrthogonalDecomposition::OfflinePOD<dim>> pod_petrov_galerkin = std::make_shared<ProperOrthogonalDecomposition::OfflinePOD<dim>>(flow_solver_hyper_reduced_petrov_galerkin->dg);
     parameter_sampling->current_pod->basis = pod_petrov_galerkin->basis;
     parameter_sampling->current_pod->referenceState = pod_petrov_galerkin->referenceState;
     parameter_sampling->current_pod->snapshotMatrix = pod_petrov_galerkin->snapshotMatrix;
@@ -287,7 +283,7 @@ int HyperReductionPostSampling<dim, nstate>::run_test() const
     hyper_reduced_ROM_solver->current_pod = parameter_sampling->current_pod;
     hyper_reduced_ROM_solver->snapshot_parameters = parameter_sampling->snapshot_parameters;
     hyper_reduced_ROM_solver->placeROMLocations(rom_points, weights);
-    hyper_reduced_ROM_solver->outputIterationData(1000);
+    hyper_reduced_ROM_solver->outputIterationData("HROM_post_sampling");
     
     return 0;
 }

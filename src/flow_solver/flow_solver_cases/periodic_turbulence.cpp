@@ -115,27 +115,6 @@ double PeriodicTurbulence<dim,nstate>::get_constant_time_step(std::shared_ptr<DG
     }
 }
 
-template <int dim, int nstate>
-double PeriodicTurbulence<dim,nstate>::get_adaptive_time_step(std::shared_ptr<DGBase<dim,double>> dg) const
-{
-    // compute time step based on advection speed (i.e. maximum local wave speed)
-    const unsigned int number_of_degrees_of_freedom_per_state = dg->dof_handler.n_dofs()/nstate;
-    const double approximate_grid_spacing = (this->domain_right-this->domain_left)/pow(number_of_degrees_of_freedom_per_state,(1.0/dim));
-    const double cfl_number = this->all_param.flow_solver_param.courant_friedrichs_lewy_number;
-    const double time_step = cfl_number * approximate_grid_spacing / this->maximum_local_wave_speed;
-    return time_step;
-}
-
-template <int dim, int nstate>
-double PeriodicTurbulence<dim,nstate>::get_adaptive_time_step_initial(std::shared_ptr<DGBase<dim,double>> dg)
-{
-    // initialize the maximum local wave speed
-    update_maximum_local_wave_speed(*dg);
-    // compute time step based on advection speed (i.e. maximum local wave speed)
-    const double time_step = get_adaptive_time_step(dg);
-    return time_step;
-}
-
 std::string get_padded_mpi_rank_string(const int mpi_rank_input) {
     // returns the mpi rank as a string with appropriate padding
     std::string mpi_rank_string = std::to_string(mpi_rank_input);
@@ -339,63 +318,6 @@ void PeriodicTurbulence<dim, nstate>::output_velocity_field(
     }
     FILE.close();
     this->pcout << "done." << std::endl;
-}
-
-template<int dim, int nstate>
-void PeriodicTurbulence<dim, nstate>::update_maximum_local_wave_speed(DGBase<dim, double> &dg)
-{    
-    // Initialize the maximum local wave speed to zero
-    this->maximum_local_wave_speed = 0.0;
-
-    // Overintegrate the error to make sure there is not integration error in the error estimate
-    int overintegrate = 10;
-   // int overintegrate = 0;
-    const unsigned int grid_degree = dg.high_order_grid->fe_system.tensor_degree();
-    const unsigned int poly_degree = dg.max_degree;
-    dealii::QGauss<dim> quad_extra(dg.max_degree+1+overintegrate);
-    const unsigned int n_quad_pts = quad_extra.size();
-    dealii::QGauss<1> quad_extra_1D(dg.max_degree+1+overintegrate);
-    OPERATOR::basis_functions<dim,2*dim,double> soln_basis(1, poly_degree, grid_degree); 
-    soln_basis.build_1D_volume_operator(dg.oneD_fe_collection_1state[poly_degree], quad_extra_1D);
-
-    const unsigned int n_dofs = dg.fe_collection[poly_degree].n_dofs_per_cell();
-    const unsigned int n_shape_fns = n_dofs / nstate;
-
-    std::vector<dealii::types::global_dof_index> dofs_indices (n_dofs);
-    for (auto cell = dg.dof_handler.begin_active(); cell!=dg.dof_handler.end(); ++cell) {
-        if (!cell->is_locally_owned()) continue;
-        cell->get_dof_indices (dofs_indices);
-
-        std::array<std::vector<double>,nstate> soln_coeff;
-        for (unsigned int idof = 0; idof < n_dofs; ++idof) {
-            const unsigned int istate = dg.fe_collection[poly_degree].system_to_component_index(idof).first;
-            const unsigned int ishape = dg.fe_collection[poly_degree].system_to_component_index(idof).second;
-            if(ishape == 0){
-                soln_coeff[istate].resize(n_shape_fns);
-            }
-         
-            soln_coeff[istate][ishape] = dg.solution(dofs_indices[idof]);
-        }
-        std::array<std::vector<double>,nstate> soln_at_q_vect;
-        for(int istate=0; istate<nstate; istate++){
-            soln_at_q_vect[istate].resize(n_quad_pts);
-            // Interpolate soln coeff to volume cubature nodes.
-            soln_basis.matrix_vector_mult_1D(soln_coeff[istate], soln_at_q_vect[istate],
-                                             soln_basis.oneD_vol_operator);
-        }
-
-        for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
-            std::array<double,nstate> soln_at_q;
-            for(int istate=0; istate<nstate; istate++){
-                soln_at_q[istate] = soln_at_q_vect[istate][iquad];
-            }
-
-            // Update the maximum local wave speed (i.e. convective eigenvalue)
-            const double local_wave_speed = this->navier_stokes_physics->max_convective_eigenvalue(soln_at_q);
-            if(local_wave_speed > this->maximum_local_wave_speed) this->maximum_local_wave_speed = local_wave_speed;
-        }
-    }
-    this->maximum_local_wave_speed = dealii::Utilities::MPI::max(this->maximum_local_wave_speed, this->mpi_communicator);
 }
 
 template<int dim, int nstate>

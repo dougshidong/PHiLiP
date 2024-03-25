@@ -45,7 +45,7 @@ public:
             const std::vector<dealii::LinearAlgebra::distributed::Vector<double>> &/*rk_stage*/,
             const dealii::LinearAlgebra::distributed::Vector<double> &/*solution_update*/
             ) {
-        // Return unmodified dt
+        // Return 1 such that the time step isn't modified
         return 1.0;
     };
     

@@ -33,12 +33,10 @@ protected:
     /// Stores Butcher tableau a and b, which specify the RK method
     std::shared_ptr<RKTableauBase<dim,real,MeshType>> butcher_tableau;
 
-public:
     /// Stores functions related to relaxation Runge-Kutta (RRK).
     /// Functions are empty by default.
     std::shared_ptr<EmptyRRKBase<dim,real,MeshType>> relaxation_runge_kutta;
 
-protected:
     /// Implicit solver for diagonally-implicit RK methods, using Jacobian-free Newton-Krylov 
     /** This is initialized for any RK method, but solution-sized vectors are 
      *  only initialized if there is an implicit solve

@@ -239,11 +239,14 @@ double PeriodicEntropyTests<dim, nstate>::compute_entropy(
 
 template <int dim, int nstate>
 void PeriodicEntropyTests<dim, nstate>::compute_unsteady_data_and_write_to_table(
-       const unsigned int current_iteration,
-        const double current_time,
-        const std::shared_ptr <DGBase<dim, double>> dg ,
-        const std::shared_ptr <dealii::TableHandler> unsteady_data_table )
+        const std::shared_ptr<ODE::ODESolverBase<dim, double>> ode_solver, 
+        const std::shared_ptr <DGBase<dim, double>> dg,
+        const std::shared_ptr<dealii::TableHandler> unsteady_data_table)
 {
+    //unpack current iteration and current time from ode solver
+    const unsigned int current_iteration = ode_solver->current_iteration;
+    const double current_time = ode_solver->current_time;
+
     const double dt = this->get_constant_time_step(dg);
     
     using ODEEnum = Parameters::ODESolverParam::ODESolverEnum;
@@ -253,7 +256,7 @@ void PeriodicEntropyTests<dim, nstate>::compute_unsteady_data_and_write_to_table
     // entropy on the solution nodes rather than by overintegrating.
     const double current_numerical_entropy = this->compute_integrated_quantities(*dg, IntegratedQuantityEnum::numerical_entropy, 0); //do not overintegrate
     if (current_iteration==0) this->previous_numerical_entropy = current_numerical_entropy;
-    const double entropy = current_numerical_entropy - previous_numerical_entropy + dg->FR_entropy_contribution_RRK_solver;
+    const double entropy = current_numerical_entropy - previous_numerical_entropy + ode_solver->FR_entropy_contribution_RRK_solver;
     this->previous_numerical_entropy = current_numerical_entropy;
 
     if (std::isnan(entropy)){
@@ -265,7 +268,7 @@ void PeriodicEntropyTests<dim, nstate>::compute_unsteady_data_and_write_to_table
     }
     if (current_iteration == 0)  initial_entropy = current_numerical_entropy;
 
-    double relaxation_parameter = dg->relaxation_parameter_RRK_solver;
+    double relaxation_parameter = ode_solver->relaxation_parameter_RRK_solver;
 
     const double kinetic_energy = this->compute_integrated_quantities(*dg, IntegratedQuantityEnum::kinetic_energy);
     if (std::isnan(kinetic_energy)){

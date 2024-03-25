@@ -33,7 +33,7 @@ public:
     
     // "using" keyword to prevent compiler complaining
     using EmptyRRKBase<dim, real, MeshType>::compute_FR_entropy_contribution;
-    using EmptyRRKBase<dim, real, MeshType>::modify_time_step;
+    using EmptyRRKBase<dim, real, MeshType>::update_relaxation_parameter;
     using EmptyRRKBase<dim, real, MeshType>::store_stage_solutions;
     
 

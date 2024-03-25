@@ -12,7 +12,7 @@ RRKODESolverBase<dim,real,MeshType>::RRKODESolverBase(
 }
 
 template <int dim, typename real, typename MeshType>
-real RRKODESolverBase<dim,real,MeshType>::modify_time_step(const real dt,
+real RRKODESolverBase<dim,real,MeshType>::update_relaxation_parameter(const real dt,
             std::shared_ptr<DGBase<dim,real,MeshType>> dg,
             const std::vector<dealii::LinearAlgebra::distributed::Vector<double>> &rk_stage,
             const dealii::LinearAlgebra::distributed::Vector<double> &solution_update) 
@@ -22,15 +22,15 @@ real RRKODESolverBase<dim,real,MeshType>::modify_time_step(const real dt,
     dg->assemble_residual();
 
     relaxation_parameter = compute_relaxation_parameter(dt, dg, rk_stage, solution_update);
-    this->relaxation_parameter_RRK_solver = relaxation_parameter;
+    const double relaxation_parameter_RRK_solver = relaxation_parameter;
 
     if (relaxation_parameter < 0.5 ){
         this->pcout << "RRK failed to find a reasonable relaxation factor. Aborting..." << std::endl;
         relaxation_parameter=1.0;
         std::abort();
     }
-    const real dt_modified = dt * relaxation_parameter;
-    return dt_modified;
+
+    return relaxation_parameter_RRK_solver;
 }
 
 template class RRKODESolverBase<PHILIP_DIM, double, dealii::Triangulation<PHILIP_DIM> >;

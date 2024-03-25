@@ -29,8 +29,9 @@ public:
 
 protected:
 
-    /// Modify timestep based on relaxation
-    real modify_time_step (const real dt,
+    /// Calculate the relaxation parameter at the current time step
+    /// Calls compute_relaxation_parameter, which updates according to the desired RRK variant
+    real update_relaxation_parameter (const real dt,
             std::shared_ptr<DGBase<dim,real,MeshType>> dg,
             const std::vector<dealii::LinearAlgebra::distributed::Vector<double>> &rk_stage,
             const dealii::LinearAlgebra::distributed::Vector<double> & solution_update) override;

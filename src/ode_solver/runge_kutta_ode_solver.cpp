@@ -98,8 +98,10 @@ void RungeKuttaODESolver<dim,real,n_rk_stages,MeshType>::step_in_time (real dt, 
         }
     }
 
-    // Modify time step according to RRK. Returns unmodified time step size if not using RRK.
-    dt = relaxation_runge_kutta->modify_time_step(dt, this->dg, this->rk_stage, this->solution_update);
+    // Calculates relaxation parameter and modify the time step size as dt*=relaxation_parameter.
+    // if not using RRK, the relaxation parameter will be set to 1, such that dt is not modified.
+    this->relaxation_parameter_RRK_solver = relaxation_runge_kutta->update_relaxation_parameter(dt, this->dg, this->rk_stage, this->solution_update);
+    dt *= this->relaxation_parameter_RRK_solver;
     this->modified_time_step = dt;
 
     //assemble solution from stages
@@ -115,8 +117,7 @@ void RungeKuttaODESolver<dim,real,n_rk_stages,MeshType>::step_in_time (real dt, 
     this->dg->solution = this->solution_update; // u_np1 = u_n + dt* sum(k_i * b_i)
 
     // Calculate numerical entropy with FR correction. Does nothing if use has not selected param.
-    this->relaxation_runge_kutta->FR_entropy_contribution_RRK_solver = relaxation_runge_kutta->compute_FR_entropy_contribution(dt, this->dg, this->rk_stage, true);
-    //this->dg->entropy_M_norm_RRK_solver = relaxation_runge_kutta->compute_FR_entropy_contribution(dt, this->dg, this->rk_stage, false);
+    this->FR_entropy_contribution_RRK_solver = relaxation_runge_kutta->compute_FR_entropy_contribution(dt, this->dg, this->rk_stage, true);
 
     // Apply limiter at every RK stage
     if (this->limiter) {

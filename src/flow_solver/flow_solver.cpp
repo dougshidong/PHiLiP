@@ -521,7 +521,7 @@ int FlowSolver<dim,nstate>::run() const
                     const bool is_output_time = ((ode_solver->current_time <= current_desired_time_for_output_restart_files_every_dt_time_intervals) && 
                                                  ((ode_solver->current_time + next_time_step) > current_desired_time_for_output_restart_files_every_dt_time_intervals));
                     if (is_output_time) {
-                        const unsigned int file_number = current_desired_time_for_output_restart_files_every_dt_time_intervals / flow_solver_param.output_restart_files_every_dt_time_intervals;
+                        const unsigned int file_number = int(round(current_desired_time_for_output_restart_files_every_dt_time_intervals / flow_solver_param.output_restart_files_every_dt_time_intervals));
                         output_restart_files(file_number, next_time_step, unsteady_data_table);
                         current_desired_time_for_output_restart_files_every_dt_time_intervals += flow_solver_param.output_restart_files_every_dt_time_intervals;
                     }
@@ -540,7 +540,7 @@ int FlowSolver<dim,nstate>::run() const
                 const bool is_output_iteration = (ode_solver->current_iteration % ode_param.output_solution_every_x_steps == 0);
                 if (is_output_iteration) {
                     pcout << "  ... Writing vtk solution file ..." << std::endl;
-                    const int file_number = ode_solver->current_iteration / ode_param.output_solution_every_x_steps;
+                    const unsigned int file_number = ode_solver->current_iteration / ode_param.output_solution_every_x_steps;
                     dg->output_results_vtk(file_number,ode_solver->current_time);
                 }
             } else if(ode_param.output_solution_every_dt_time_intervals > 0.0) {
@@ -548,7 +548,7 @@ int FlowSolver<dim,nstate>::run() const
                                              ((ode_solver->current_time + next_time_step) > ode_solver->current_desired_time_for_output_solution_every_dt_time_intervals));
                 if (is_output_time) {
                     pcout << "  ... Writing vtk solution file ..." << std::endl;
-                    const int file_number = ode_solver->current_desired_time_for_output_solution_every_dt_time_intervals / ode_param.output_solution_every_dt_time_intervals;
+                    const unsigned int file_number = int(round(ode_solver->current_desired_time_for_output_solution_every_dt_time_intervals / ode_param.output_solution_every_dt_time_intervals));
                     dg->output_results_vtk(file_number,ode_solver->current_time);
                     ode_solver->current_desired_time_for_output_solution_every_dt_time_intervals += ode_param.output_solution_every_dt_time_intervals;
                 }

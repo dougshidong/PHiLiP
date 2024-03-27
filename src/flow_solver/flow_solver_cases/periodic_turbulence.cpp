@@ -14,8 +14,6 @@
 #include <string>
 #include <deal.II/base/quadrature_lib.h>
 
-#include "ode_solver/runge_kutta_ode_solver.h"
-
 namespace PHiLiP {
 
 namespace FlowSolver {

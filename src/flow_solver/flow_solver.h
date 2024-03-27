@@ -22,7 +22,7 @@
 #include "dg/dg_factory.hpp"
 #include "physics/physics_factory.h"
 //#include "ode_solver/runge_kutta_ode_solver.h"
-#include "ode_solver/explicit_ode_solver.h"
+#include "ode_solver/runge_kutta_ode_solver.h"
 #include "ode_solver/ode_solver_factory.h"
 #include <deal.II/base/table_handler.h>
 #include <string>

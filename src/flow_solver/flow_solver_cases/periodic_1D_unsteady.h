@@ -14,10 +14,15 @@ public:
     /// Constructor.
     explicit Periodic1DUnsteady(const Parameters::AllParameters *const parameters_input);
 
-    /// Calculate energy
-    double compute_energy_collocated(const std::shared_ptr <DGBase<dim, double>> dg) const;
+    /// Calculate energy as a matrix-vector product,  solution^T (M+K) solution
+    double compute_energy(const std::shared_ptr <DGBase<dim, double>> dg) const;
+
+    /// Calculate numerical entropy.
+    /// Here, is a wrapper for compute_energy. Used by tests.
+    double get_numerical_entropy(const std::shared_ptr <DGBase<dim, double>> dg) const;
 protected:
 
+    using FlowSolverCaseBase<dim,nstate>::compute_unsteady_data_and_write_to_table;
     /// Compute the desired unsteady data and write it to a table
     void compute_unsteady_data_and_write_to_table(
             const unsigned int current_iteration,

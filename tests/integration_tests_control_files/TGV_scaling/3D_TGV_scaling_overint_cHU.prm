@@ -18,9 +18,7 @@ set two_point_num_flux_type = Ra
 
 set use_curvilinear_split_form = false
 
-set use_curvilinear_grid = true
-
-set energy_file = cplus_overint_curv
+set energy_file = cplus_overint
 
 # The PDE we want to solve
 set pde_type = euler
@@ -31,7 +29,7 @@ set conv_num_flux = roe
 
 set use_energy = true
 
-set flux_reconstruction = cPlus
+set flux_reconstruction = cHU
 
 set use_inverse_mass_on_the_fly = true
 

@@ -40,8 +40,7 @@ int EulerSplitEntropyCheck<dim, nstate>::run_test() const
         std::unique_ptr<FlowSolver::FlowSolver<dim,nstate>> flow_solver = FlowSolver::FlowSolverFactory<dim,nstate>::select_flow_case(&parameters, parameter_handler);
 
         // Compute  initial and final entropy
-        std::unique_ptr<FlowSolver::PeriodicTurbulence<dim, nstate>> flow_solver_case = std::make_unique<FlowSolver::PeriodicTurbulence<dim,nstate>>(this->all_parameters);
-        const double initial_entropy = flow_solver_case->get_numerical_entropy(flow_solver->dg); 
+        std::shared_ptr<FlowSolver::PeriodicTurbulence<dim, nstate>> flow_solver_case = std::dynamic_pointer_cast<FlowSolver::PeriodicTurbulence<dim, nstate>>(flow_solver->flow_solver_case);
         flow_solver_case->compute_and_update_integrated_quantities(*flow_solver->dg);
         const double initial_KE = flow_solver_case->get_integrated_kinetic_energy();
 
@@ -52,16 +51,14 @@ int EulerSplitEntropyCheck<dim, nstate>::run_test() const
 
         //Compare initial and final entropy to confirm entropy preservation
         
-        pcout << "Initial num. entropy:   " << std::setprecision(16) << initial_entropy << std::endl 
-              << "Final:                  " << final_entropy << std::endl 
-              << "Scaled difference:      " << abs((initial_entropy-final_entropy)/initial_entropy) 
-              << std::endl << std::endl;
-        pcout << "Initial kinetic energy: " << std::setprecision(16) << initial_KE << std::endl 
+        pcout << "Final numerical entropy: " << final_entropy << std::endl;
+        pcout << "Initial kinetic energy: " << std::setprecision(16) << initial_KE << std::endl
               << "Final:                  " << final_KE << std::endl
-              << "Scaled difference:      " << abs((initial_KE-final_KE)/initial_KE) 
+              << "Scaled difference:      " << abs((initial_KE-final_KE)/initial_KE)
               << std::endl << std::endl;
 
-        if (abs((initial_entropy-final_entropy)/initial_entropy) > tol){
+
+        if (abs(final_entropy) > tol){
             pcout << "Entropy change is not within allowable tolerance. Test failing." << std::endl;
             testfail = 1;
         } else pcout << "Entropy change is allowable." << std::endl;

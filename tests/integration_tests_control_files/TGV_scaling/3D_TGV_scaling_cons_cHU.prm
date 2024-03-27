@@ -12,24 +12,24 @@ set do_renumber_dofs = false
 
 set overintegration = 0
 
-set use_split_form = true
+set use_split_form = false
 
 set two_point_num_flux_type = Ra
 
 set use_curvilinear_split_form = false
 
-set energy_file = cplus_split_form
+set energy_file = cplus_cons
 
 # The PDE we want to solve
 set pde_type = euler
 
 #set conv_num_flux = two_point_flux_with_lax_friedrichs_dissipation
-set conv_num_flux = two_point_flux
-#set conv_num_flux = roe
+#set conv_num_flux = two_point_flux
+set conv_num_flux = roe
 
 set use_energy = true
 
-set flux_reconstruction = cPlus
+set flux_reconstruction = cHU
 
 set use_inverse_mass_on_the_fly = true
 

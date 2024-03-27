@@ -73,6 +73,7 @@ void LinearSolverParam::declare_parameters (dealii::ParameterHandler &prm)
                               " Default value is the square root of machine epsilon.");
         }
         prm.leave_subsection();
+
     }
     prm.leave_subsection();
 }
@@ -112,6 +113,7 @@ void LinearSolverParam ::parse_parameters (dealii::ParameterHandler &prm)
             perturbation_magnitude = prm.get_double("perturbation_magnitude");
         }
         prm.leave_subsection();
+
     }
     prm.leave_subsection();
 }

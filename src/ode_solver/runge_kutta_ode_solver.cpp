@@ -1,14 +1,15 @@
-#include "explicit_ode_solver.h"
-//#include "runge_kutta_ode_solve.h"
+#include "runge_kutta_ode_solver.h"
 
 namespace PHiLiP {
 namespace ODE {
 
 template <int dim, typename real, int n_rk_stages, typename MeshType> 
 RungeKuttaODESolver<dim,real,n_rk_stages, MeshType>::RungeKuttaODESolver(std::shared_ptr< DGBase<dim, real, MeshType> > dg_input,
-        std::shared_ptr<RKTableauBase<dim,real,MeshType>> rk_tableau_input)
+        std::shared_ptr<RKTableauBase<dim,real,MeshType>> rk_tableau_input,
+        std::shared_ptr<EmptyRRKBase<dim,real,MeshType>> RRK_object_input)
         : ODESolverBase<dim,real,MeshType>(dg_input)
         , butcher_tableau(rk_tableau_input)
+        , relaxation_runge_kutta(RRK_object_input)
         , solver(dg_input)
 {}
 
@@ -65,7 +66,11 @@ void RungeKuttaODESolver<dim,real,n_rk_stages,MeshType>::step_in_time (real dt, 
             this->rk_stage[i] = solver.current_solution_estimate;
 
         } // u_n + dt * sum(a_ij * k_j) <explicit> + dt * a_ii * u^(i) <implicit>
-            
+        
+        // If using the entropy formulation of RRK, solutions must be stored.
+        // Call store_stage_solutions before overwriting rk_stage with the derivative.
+        relaxation_runge_kutta->store_stage_solutions(i, rk_stage[i]);
+
         this->dg->solution = this->rk_stage[i];
 
         // Apply limiter at every RK stage
@@ -93,7 +98,10 @@ void RungeKuttaODESolver<dim,real,n_rk_stages,MeshType>::step_in_time (real dt, 
         }
     }
 
-    modify_time_step(dt);
+    // Calculates relaxation parameter and modify the time step size as dt*=relaxation_parameter.
+    // if not using RRK, the relaxation parameter will be set to 1, such that dt is not modified.
+    this->relaxation_parameter_RRK_solver = relaxation_runge_kutta->update_relaxation_parameter(dt, this->dg, this->rk_stage, this->solution_update);
+    dt *= this->relaxation_parameter_RRK_solver;
     this->modified_time_step = dt;
 
     //assemble solution from stages
@@ -107,6 +115,9 @@ void RungeKuttaODESolver<dim,real,n_rk_stages,MeshType>::step_in_time (real dt, 
         }
     }
     this->dg->solution = this->solution_update; // u_np1 = u_n + dt* sum(k_i * b_i)
+
+    // Calculate numerical entropy with FR correction. Does nothing if use has not selected param.
+    this->FR_entropy_contribution_RRK_solver = relaxation_runge_kutta->compute_FR_entropy_contribution(dt, this->dg, this->rk_stage, true);
 
     // Apply limiter at every RK stage
     if (this->limiter) {
@@ -125,12 +136,6 @@ void RungeKuttaODESolver<dim,real,n_rk_stages,MeshType>::step_in_time (real dt, 
 }
 
 template <int dim, typename real, int n_rk_stages, typename MeshType> 
-void RungeKuttaODESolver<dim,real,n_rk_stages,MeshType>::modify_time_step(real &/*dt*/)
-{
-    //do nothing
-}
-
-template <int dim, typename real, int n_rk_stages, typename MeshType> 
 void RungeKuttaODESolver<dim,real,n_rk_stages,MeshType>::allocate_ode_system ()
 {
     this->pcout << "Allocating ODE system..." << std::flush;
@@ -138,6 +143,12 @@ void RungeKuttaODESolver<dim,real,n_rk_stages,MeshType>::allocate_ode_system ()
     if(this->all_parameters->use_inverse_mass_on_the_fly == false) {
         this->pcout << " evaluating inverse mass matrix..." << std::flush;
         this->dg->evaluate_mass_matrices(true); // creates and stores global inverse mass matrix
+        //RRK needs both mass matrix and inverse mass matrix
+        using ODEEnum = Parameters::ODESolverParam::ODESolverEnum;
+        ODEEnum ode_type = this->ode_param.ode_solver_type;
+        if (ode_type == ODEEnum::rrk_explicit_solver){
+            this->dg->evaluate_mass_matrices(false); // creates and stores global mass matrix
+        }
     }
     this->pcout << std::endl;
 

@@ -120,6 +120,17 @@ public:
 protected:
     double original_time_step;///< Original time step before calling step_in_time
     double modified_time_step;///< Modified time step after calling step_in_time
+public:
+    
+    /// Entropy FR correction at the current timestep
+    /** Used in entropy-RRK ODE solver.
+     ** This is stored in ode_solver_base such that both flow solver case and ode solver can access it. */
+    double FR_entropy_contribution_RRK_solver = 0;
+    
+    /// Relaxation parameter
+    /** Used in RRK ODE solver.
+     ** This is stored in ode_solver_base such that both flow solver case and ode solver can access it. */
+    double relaxation_parameter_RRK_solver=1;
 
 protected:
     const MPI_Comm mpi_communicator; ///< MPI communicator.

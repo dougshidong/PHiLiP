@@ -108,4 +108,18 @@ add_test(
     COMMAND mpirun -n ${MPIMAX} ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_3D -i ${CMAKE_CURRENT_BINARY_DIR}/3D_navier_stokes_RRK_check.prm
     WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
 )
+# =======================================                                                                                                                                                                          
+# Inviscid Isentropic Vortex -- 2D -- h refinement
+# =======================================
+# ----------------------------------------
+# - Check that orders are correct when using RRK
+# - Parameters are  chosen to run in a reasonable amount of time
+# - Number of refinements and end time should be increased for better results
+# ----------------------------------------
+configure_file(2D_inviscid_isentropic_vortex_h_refinement.prm 2D_inviscid_isentropic_vortex_h_refinement.prm COPYONLY)
+add_test(
+    NAME MPI_2D_H_REFINEMENT_RRK_INVISCID_ISENTROPIC_VORTEX
+  COMMAND mpirun -np ${MPIMAX} ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_2D -i ${CMAKE_CURRENT_BINARY_DIR}/2D_inviscid_isentropic_vortex_h_refinement.prm
+  WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
+)
 

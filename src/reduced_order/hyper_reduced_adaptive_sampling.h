@@ -37,6 +37,8 @@ public:
     /// Solve reduced-order solution
     std::unique_ptr<ProperOrthogonalDecomposition::ROMSolution<dim,nstate>> solveSnapshotROM(const RowVectorXd& parameter, Epetra_Vector weights) const;
 
+    /// Ptr vector of ECSW Weights
+    mutable std::shared_ptr<Epetra_Vector> ptr_weights;
 };
 
 }

@@ -36,6 +36,7 @@ set(TESTS_SOURCE
     homogeneous_isotropic_turbulence_initialization_check.cpp
     khi_robustness.cpp
     real_gas_vs_euler_primitive_to_conservative_check.cpp
+    euler_vortex_advection_error_study.cpp
     )
 
 foreach(dim RANGE 1 3)

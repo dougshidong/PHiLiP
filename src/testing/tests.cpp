@@ -44,6 +44,7 @@
 #include "homogeneous_isotropic_turbulence_initialization_check.h"
 #include "khi_robustness.h"
 #include "real_gas_vs_euler_primitive_to_conservative_check.h"
+#include "euler_vortex_advection_error_study.h"
 
 namespace PHiLiP {
 namespace Tests {
@@ -304,6 +305,8 @@ std::unique_ptr< TestsBase > TestsFactory<dim,nstate,MeshType>
         if constexpr (dim==2 && nstate==dim+2)  return std::make_unique<KHIRobustness<dim, nstate>>(parameters_input, parameter_handler_input);
     } else if(test_type == Test_enum::real_gas_vs_euler_primitive_to_conservative_check) {
         if constexpr (nstate==dim+2)  return std::make_unique<RealGasVsEulerPrimitiveToConservativeCheck<dim, nstate>>(parameters_input, parameter_handler_input);
+    } else if(test_type == Test_enum::euler_vortex_advection_error_study) {
+        if constexpr (dim==1 && nstate==dim+2)  return std::make_unique<EulerVortexAdvectionErrorStudy<dim, nstate>>(parameters_input, parameter_handler_input);
     } else {
         std::cout << "Invalid test. You probably forgot to add it to the list of tests in tests.cpp" << std::endl;
         std::abort();

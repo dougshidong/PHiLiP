@@ -48,7 +48,7 @@ double EulerVortexAdvectionErrorStudy<dim,nstate>
     Parameters::AllParameters param = *(TestsBase::all_parameters);
 
     Assert(dim == param.dimension, dealii::ExcDimensionMismatch(dim, param.dimension));
-    // Assert(dim == 2, dealii::ExcDimensionMismatch(dim, param.dimension));
+    // Assert(dim == 2, dealii::ExcDimensionMismatch(dim, param.dimension)); // NOTE: this was originally on for bump case
     //Assert(param.pde_type != param.PartialDifferentialEquation::euler, dealii::ExcNotImplemented());
     //if (param.pde_type == param.PartialDifferentialEquation::euler) return 1;
 
@@ -117,6 +117,7 @@ double EulerVortexAdvectionErrorStudy<dim,nstate>
                     dealii::update_values | dealii::update_JxW_values | dealii::update_quadrature_points);
             const unsigned int n_quad_pts = fe_values_extra.n_quadrature_points;
             std::array<double,nstate> soln_at_q;
+            // TO DO: define exact_at_q
 
             double l2error = 0;
 
@@ -136,6 +137,12 @@ double EulerVortexAdvectionErrorStudy<dim,nstate>
                         const unsigned int istate = fe_values_extra.get_fe().system_to_component_index(idof).first;
                         soln_at_q[istate] += flow_solver->dg->solution[dofs_indices[idof]] * fe_values_extra.shape_value_component(idof, iquad, istate);
                     }
+
+                    // TO DO: get x here 
+                    const dealii::Point<dim> qpoint = (fe_values_extra.quadrature_point(iquad));
+                    double x = qpoint[0];
+                    x = x+0.0;
+                    // TO DO: get exact_at_q here using x
 
                     double unumerical, uexact;
                     if(param.artificial_dissipation_param.use_enthalpy_error)

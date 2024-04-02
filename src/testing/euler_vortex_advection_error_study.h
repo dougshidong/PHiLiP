@@ -24,7 +24,7 @@ public:
     const dealii::ParameterHandler &parameter_handler;
 
     /// Returns either the order of convergence or enthalpy, depending on the test type.
-    double run_euler_gaussian_bump () const;
+    double run_error_study () const;
 
     /// Grid convergence on Euler Gaussian Bump
     /** Will run the a grid convergence test for various p

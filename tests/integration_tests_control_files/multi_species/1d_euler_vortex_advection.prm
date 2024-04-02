@@ -8,6 +8,8 @@ set pde_type = euler
 
 # DG formulation
 set use_weak_form = true
+#set use_inverse_mass_on_the_fly = true
+#set overintegration = 2
 # set flux_nodes_type = GLL
 set non_physical_behavior = abort_run
 

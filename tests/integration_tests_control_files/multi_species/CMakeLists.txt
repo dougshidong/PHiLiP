@@ -43,7 +43,7 @@ add_test(
 # ----------------------------------------
 configure_file(1d_euler_vortex_advection_error_study.prm 1d_euler_vortex_advection_error_study.prm COPYONLY)
 add_test(
-  NAME MPI_1D_EULER_VORTEX_ADVECTION_ERROR_STUDY
+  NAME MPI_1D_EULER_VORTEX_ERROR_STUDY
   COMMAND mpirun -n 1 ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_1D -i ${CMAKE_CURRENT_BINARY_DIR}/1d_euler_vortex_advection_error_study.prm
   WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
 )

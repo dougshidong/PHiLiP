@@ -839,7 +839,7 @@ inline real InitialConditionFunction_MultiSpecies_VortexAdvection<dim, nstate, r
 }
 
 // ========================================================
-// D Vortex advection  (Euler) -- Initial Condition 
+// 1D Vortex advection  (Euler) -- Initial Condition 
 // ========================================================
 template <int dim, int nstate, typename real>
 InitialConditionFunction_Euler_VortexAdvection<dim,nstate,real>

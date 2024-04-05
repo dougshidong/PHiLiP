@@ -1356,7 +1356,12 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_boundary_term(
     for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
         const dealii::Tensor<1,dim,real2> normal_int = phys_unit_normal[iquad];
         physics.boundary_face_values (boundary_id, real_quad_pts[iquad], normal_int, soln_int[iquad], soln_grad_int[iquad], soln_ext[iquad], soln_grad_ext[iquad]);
-        physics.boundary_face_values_viscous_flux (boundary_id, real_quad_pts[iquad], normal_int, soln_int[iquad], soln_grad_int[iquad], soln_int[iquad], soln_grad_int[iquad], soln_ext_viscous_flux[iquad], soln_grad_ext_viscous_flux[iquad]);
+        if (boundary_id == 1001) {
+            physics.boundary_face_values_viscous_flux (boundary_id, real_quad_pts[iquad], normal_int, soln_int[iquad], soln_grad_int[iquad], soln_int[iquad], soln_grad_int[iquad], soln_ext_viscous_flux[iquad], soln_grad_ext_viscous_flux[iquad]);
+        }
+        else{
+            physics.boundary_face_values (boundary_id, real_quad_pts[iquad], normal_int, soln_int[iquad], soln_grad_int[iquad], soln_ext_viscous_flux[iquad], soln_grad_ext_viscous_flux[iquad]);
+        }
     }
 
     // Assemble BR2 gradient correction right-hand side

@@ -6,7 +6,6 @@ configure_file(naca0012_hopw_ref3.msh naca0012_hopw_ref3.msh COPYONLY)
 configure_file(naca0012_hopw_ref4.msh naca0012_hopw_ref4.msh COPYONLY)
 configure_file(naca0012_hopw_ref5.msh naca0012_hopw_ref5.msh COPYONLY)
 
-
 set (filename "naca0012_hopw_ref0.msh")
 if(NOT EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/${filename})
     message(SEND_ERROR

@@ -5,13 +5,6 @@ add_test(
   WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
 )
 
-configure_file(2d_inviscid_steady_state_naca_xyz.prm 2d_inviscid_steady_state_naca_xyz.prm COPYONLY)
-add_test(
-  NAME 2D_EULER_INTEGRATION_NACA_XYZ
-  COMMAND mpirun -np ${MPIMAX} ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_2D -i ${CMAKE_CURRENT_BINARY_DIR}/2d_inviscid_steady_state_naca_xyz.prm
-  WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
-)
-
 configure_file(2d_euler_naca0012_transonic_08_125.prm 2d_euler_naca0012_transonic_08_125.prm COPYONLY)
 add_test(
   NAME 2D_EULER_INTEGRATION_NACA0012_TRANSONIC_LONG

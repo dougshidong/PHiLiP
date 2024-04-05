@@ -9,7 +9,7 @@
 #SBATCH --mail-user=firstname.lastname@mail.mcgill.ca ## <-- for receiving job updates via email
 #SBATCH --mail-type=ALL                               ## <-- what kind of updates to receive by email
 
-SLURM_USER="username"                    ## <-- Enter compute canada username here
+SLURM_USER="dominicr"                    ## <-- Enter compute canada username here
 PARAMETERS_FILE="my_parameters_file.prm" ## <-- Enter .prm filename here
 PHiLiP_DIMENSIONS="2"                    ## WARNING: must correspond to the DIM in the .prm file
 NUM_PROCS="40"                           ## WARNING: must correspond to nodes*(ntasks-per-node) above

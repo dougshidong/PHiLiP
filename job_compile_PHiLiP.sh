@@ -10,7 +10,7 @@
 #SBATCH --mail-type=ALL                               ## <-- what kind of updates to receive by email
 
 CLUSTER_NAME="narval" ## <-- Enter cluster name here in lowercase
-SLURM_USER="username" ## <-- Enter compute canada username here
+SLURM_USER="dominicr" ## <-- Enter compute canada username here
 NUM_PROCS="16"        ## WARNING: must correspond to nodes*(ntasks-per-node) above
 RUN_CTEST=false
 

@@ -83,7 +83,9 @@ double EulerVortexAdvectionErrorStudy<dim,nstate>
     for (unsigned int poly_degree = p_start; poly_degree <= p_end; ++poly_degree) {
         // p0 tends to require a finer grid to reach asymptotic region
 
-        std::vector<double> error(n_grids);
+        std::vector<double> error_L2(n_grids);
+        std::vector<double> error_L1(n_grids);
+        std::vector<double> error_Linf(n_grids);                
         std::vector<double> grid_size(n_grids);
 
         dealii::ConvergenceTable convergence_table;
@@ -125,6 +127,9 @@ double EulerVortexAdvectionErrorStudy<dim,nstate>
             std::array<double,nstate> exact_at_q;
 
             double l2error = 0;
+            double l1error = 0;
+            double linferror = 0;
+            double linferror_candidate = 0;
 
             std::vector<dealii::types::global_dof_index> dofs_indices (fe_values_extra.dofs_per_cell);
 
@@ -177,9 +182,14 @@ double EulerVortexAdvectionErrorStudy<dim,nstate>
                     unumerical = soln_at_q[0];
                     uexact = exact_at_q[0];
                     l2error += pow(unumerical - uexact, 2) * fe_values_extra.JxW(iquad);
+                    l1error += abs(unumerical - uexact   ) * fe_values_extra.JxW(iquad);
+                    linferror_candidate = abs(unumerical - uexact);
+                    if(linferror_candidate > linferror) {linferror = linferror_candidate;}
                 }
             }
-            const double l2error_mpi_sum = std::sqrt(dealii::Utilities::MPI::sum(l2error, mpi_communicator));
+            const double l2error_mpi_sum = std::sqrt(dealii::Utilities::MPI::sum(l2error, mpi_communicator)); 
+            const double l1error_mpi_sum =           dealii::Utilities::MPI::sum(l1error, mpi_communicator);
+            const double linferror_mpi_max =         dealii::Utilities::MPI::max(linferror, mpi_communicator);
             last_error = l2error_mpi_sum;
 
             const unsigned int n_dofs = flow_solver->dg->dof_handler.n_dofs();
@@ -188,13 +198,17 @@ double EulerVortexAdvectionErrorStudy<dim,nstate>
             // Convergence table
             double dx = 1.0/pow(n_dofs,(1.0/dim));
             grid_size[igrid] = dx;
-            error[igrid] = l2error_mpi_sum;
+            error_L2[igrid] = l2error_mpi_sum;
+            error_L1[igrid] = l1error_mpi_sum;
+            error_Linf[igrid] = linferror_mpi_max;
 
             convergence_table.add_value("p", poly_degree);
             convergence_table.add_value("cells", n_global_active_cells);
             convergence_table.add_value("DoFs", n_dofs);
             convergence_table.add_value("dx", dx);
-            convergence_table.add_value(error_string, l2error_mpi_sum);
+            convergence_table.add_value("L1_error(density)", l1error_mpi_sum);
+            convergence_table.add_value("L2_error(density)", l2error_mpi_sum);
+            convergence_table.add_value("Linf_error(density)", linferror_mpi_max);
             convergence_table.add_value("Residual",flow_solver->ode_solver->residual_norm);
             
             if(flow_solver->ode_solver->residual_norm > 1e-10)
@@ -205,21 +219,35 @@ double EulerVortexAdvectionErrorStudy<dim,nstate>
             artificial_dissipation_max_coeff = flow_solver->dg->max_artificial_dissipation_coeff;
 
             pcout << " Grid size h: " << dx 
+                 << " L1-error: " << l1error_mpi_sum
                  << " L2-error: " << l2error_mpi_sum
+                 << " Linf-error: " << linferror_mpi_max
                  << " Residual: " << flow_solver->ode_solver->residual_norm
                  << std::endl;
 
             if (igrid > 0) {
-                const double slope_soln_err = log(error[igrid]/error[igrid-1])
+                const double slope_soln_err_l1 = log(error_L1[igrid]/error_L1[igrid-1])
+                                      / log(grid_size[igrid]/grid_size[igrid-1]);
+                const double slope_soln_err_l2 = log(error_L2[igrid]/error_L2[igrid-1])
+                                      / log(grid_size[igrid]/grid_size[igrid-1]);
+                const double slope_soln_err_linf = log(error_Linf[igrid]/error_Linf[igrid-1])
                                       / log(grid_size[igrid]/grid_size[igrid-1]);
                 pcout << "From grid " << igrid-1
                      << "  to grid " << igrid
                      << "  dimension: " << dim
                      << "  polynomial degree p: " << poly_degree
                      << std::endl
-                     <<" " << error_string << 1 << "  " << error[igrid-1]
-                     <<" " << error_string << 2 << "  " << error[igrid]
-                     << "  slope " << slope_soln_err
+                     <<" " << "L1_error(density) " << 1 << "  " << error_L1[igrid-1]
+                     <<" " << "L1_error(density) " << 2 << "  " << error_L1[igrid]
+                     << "  slope " << slope_soln_err_l1
+                     << std::endl
+                     <<" " << "L2_error(density) " << 1 << "  " << error_L2[igrid-1]
+                     <<" " << "L2_error(density) " << 2 << "  " << error_L2[igrid]
+                     << "  slope " << slope_soln_err_l2
+                     << std::endl
+                     <<" " << "Linf_error(density) " << 1 << "  " << error_Linf[igrid-1]
+                     <<" " << "Linf_error(density) " << 2 << "  " << error_Linf[igrid]
+                     << "  slope " << slope_soln_err_linf
                      << std::endl;
             }
 

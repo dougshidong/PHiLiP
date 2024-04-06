@@ -91,8 +91,8 @@ double EulerVortexAdvectionErrorStudy<dim,nstate>
         dealii::ConvergenceTable convergence_table;
 
         const std::vector<int> n_1d_cells = get_number_1d_cells(n_grids);
-        param.flow_solver_param.number_of_subdivisions_in_x_direction = n_1d_cells[0] * 4;
-        param.flow_solver_param.number_of_subdivisions_in_y_direction = n_1d_cells[0];
+        // param.flow_solver_param.number_of_subdivisions_in_x_direction = n_1d_cells[0] * 4;
+        // param.flow_solver_param.number_of_subdivisions_in_y_direction = n_1d_cells[0];
 
         for (unsigned int igrid=0; igrid<n_grids; ++igrid) {
 

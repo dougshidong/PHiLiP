@@ -76,6 +76,10 @@ double EulerVortexAdvectionErrorStudy<dim,nstate>
     std::vector<double> fail_conv_slop;
     std::vector<dealii::ConvergenceTable> convergence_table_vector;
 
+    // Create initial condition function
+    std::shared_ptr< InitialConditionFunction<dim,nstate,double> > initial_condition_function = 
+    InitialConditionFactory<dim,nstate,double>::create_InitialConditionFunction(&param);
+
     for (unsigned int poly_degree = p_start; poly_degree <= p_end; ++poly_degree) {
         // p0 tends to require a finer grid to reach asymptotic region
 
@@ -117,7 +121,8 @@ double EulerVortexAdvectionErrorStudy<dim,nstate>
                     dealii::update_values | dealii::update_JxW_values | dealii::update_quadrature_points);
             const unsigned int n_quad_pts = fe_values_extra.n_quadrature_points;
             std::array<double,nstate> soln_at_q;
-            // TO DO: define exact_at_q
+            // TO DO: define exact_at_q ... DONE
+            std::array<double,nstate> exact_at_q;
 
             double l2error = 0;
 
@@ -153,11 +158,20 @@ double EulerVortexAdvectionErrorStudy<dim,nstate>
                         uexact = euler_physics_double.gam*euler_physics_double.pressure_inf/euler_physics_double.density_inf*(1.0/euler_physics_double.gamm1+0.5*euler_physics_double.mach_inf_sqr);
                     } 
                     else
+                    // TO DO: get exact_at_q here using x or qpoint ... DONE
+                    for (unsigned int istate=0; istate<nstate; ++istate)
                     {
                         error_string = "L2_entropy_error";
                         const double entropy_inf = euler_physics_double.entropy_inf;
                         unumerical = euler_physics_double.compute_entropy_measure(soln_at_q);
                         uexact = entropy_inf;
+                        // Note: This is in non-dimensional form (free-stream values as reference)
+                        if constexpr(dim == 1)
+                        {
+                            exact_at_q[istate] = flow_solver->flow_solver_case->initial_condition_function->value(qpoint,istate);
+                        } else {
+                            exact_at_q[istate] = 0.0;
+                        }
                     }
                     l2error += pow(unumerical - uexact, 2) * fe_values_extra.JxW(iquad);
                 }

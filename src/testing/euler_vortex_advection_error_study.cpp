@@ -96,7 +96,7 @@ double EulerVortexAdvectionErrorStudy<dim,nstate>
 
         for (unsigned int igrid=0; igrid<n_grids; ++igrid) {
 
-            // param.flow_solver_param.number_of_grid_elements_per_dimension = n_1d_cells[igrid];
+            param.flow_solver_param.number_of_grid_elements_per_dimension = n_1d_cells[igrid];
 
             const double solution_degree = poly_degree;
             const double grid_degree = solution_degree+1;

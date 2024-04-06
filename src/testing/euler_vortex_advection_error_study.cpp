@@ -143,11 +143,8 @@ double EulerVortexAdvectionErrorStudy<dim,nstate>
                         soln_at_q[istate] += flow_solver->dg->solution[dofs_indices[idof]] * fe_values_extra.shape_value_component(idof, iquad, istate);
                     }
 
-                    // TO DO: get x here 
+                    // TO DO: get x here ... DONE
                     const dealii::Point<dim> qpoint = (fe_values_extra.quadrature_point(iquad));
-                    double x = qpoint[0];
-                    x = x+0.0;
-                    // TO DO: get exact_at_q here using x
 
                     double unumerical, uexact;
                     if(param.artificial_dissipation_param.use_enthalpy_error)

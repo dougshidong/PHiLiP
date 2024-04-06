@@ -45,7 +45,7 @@ end
 subsection flow_solver
   set flow_case_type = euler_vortex_advection
   #####set poly_degree = 1
-  set final_time = 34.614724700315755e-4
+  set final_time = 34.614724700315755e-1
   set adaptive_time_step = false
   set constant_time_step = 34.614724700315755e-6
   subsection grid
@@ -67,8 +67,8 @@ subsection manufactured solution convergence study
   set grid_progression_add  = 0
 
   # Initial grid of size (initial_grid_size)^dim
-  set initial_grid_size = 4
+  set initial_grid_size = 16
 
   # Number of grids in grid study
-  set number_of_grids   = 3
+  set number_of_grids   = 5
 end

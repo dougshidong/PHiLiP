@@ -28,7 +28,7 @@ set diss_num_flux = symm_internal_penalty
 
 # ODE solver
 subsection ODE solver
-  set output_solution_every_x_steps = 100
+  set output_solution_every_x_steps = 10000
   set ode_output = quiet
   set ode_solver_type = runge_kutta
   set runge_kutta_method = ssprk3_ex
@@ -52,6 +52,6 @@ subsection flow_solver
   subsection grid
     set grid_left_bound = 0.0
     set grid_right_bound = 10.0
-    set number_of_grid_elements_per_dimension = 128
+    set number_of_grid_elements_per_dimension = 16
   end
 end 

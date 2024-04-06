@@ -146,22 +146,9 @@ double EulerVortexAdvectionErrorStudy<dim,nstate>
                     // TO DO: get x here ... DONE
                     const dealii::Point<dim> qpoint = (fe_values_extra.quadrature_point(iquad));
 
-                    double unumerical, uexact;
-                    if(param.artificial_dissipation_param.use_enthalpy_error)
-                    {
-                        error_string = "L2_enthalpy_error";
-                        const double pressure = euler_physics_double.compute_pressure(soln_at_q);
-                        unumerical = euler_physics_double.compute_specific_enthalpy(soln_at_q,pressure);
-                        uexact = euler_physics_double.gam*euler_physics_double.pressure_inf/euler_physics_double.density_inf*(1.0/euler_physics_double.gamm1+0.5*euler_physics_double.mach_inf_sqr);
-                    } 
-                    else
                     // TO DO: get exact_at_q here using x or qpoint ... DONE
                     for (unsigned int istate=0; istate<nstate; ++istate)
                     {
-                        error_string = "L2_entropy_error";
-                        const double entropy_inf = euler_physics_double.entropy_inf;
-                        unumerical = euler_physics_double.compute_entropy_measure(soln_at_q);
-                        uexact = entropy_inf;
                         // Note: This is in non-dimensional form (free-stream values as reference)
                         if constexpr(dim == 1)
                         {
@@ -170,6 +157,25 @@ double EulerVortexAdvectionErrorStudy<dim,nstate>
                             exact_at_q[istate] = 0.0;
                         }
                     }
+
+                    double unumerical, uexact;
+                    // if(param.artificial_dissipation_param.use_enthalpy_error)
+                    // {
+                    //     error_string = "L2_enthalpy_error";
+                    //     const double pressure = euler_physics_double.compute_pressure(soln_at_q);
+                    //     unumerical = euler_physics_double.compute_specific_enthalpy(soln_at_q,pressure);
+                    //     uexact = euler_physics_double.gam*euler_physics_double.pressure_inf/euler_physics_double.density_inf*(1.0/euler_physics_double.gamm1+0.5*euler_physics_double.mach_inf_sqr);
+                    // } 
+                    // else
+                    // {
+                    //     error_string = "L2_entropy_error";
+                    //     const double entropy_inf = euler_physics_double.entropy_inf;
+                    //     unumerical = euler_physics_double.compute_entropy_measure(soln_at_q);
+                    //     uexact = entropy_inf;
+                    // }
+                    error_string = "L2_density_error";
+                    unumerical = soln_at_q[0];
+                    uexact = exact_at_q[0];
                     l2error += pow(unumerical - uexact, 2) * fe_values_extra.JxW(iquad);
                 }
             }

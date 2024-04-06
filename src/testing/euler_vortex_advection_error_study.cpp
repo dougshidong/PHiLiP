@@ -286,7 +286,7 @@ double EulerVortexAdvectionErrorStudy<dim,nstate>
 
         if(n_grids>=2)
         {
-            last_slope = log(error[n_grids-1]/error[n_grids-2]) / log(grid_size[n_grids-1]/grid_size[n_grids-2]);
+            last_slope = log(error_L2[n_grids-1]/error_L2[n_grids-2]) / log(grid_size[n_grids-1]/grid_size[n_grids-2]);
         }
 
         const double slope_avg = last_slope;

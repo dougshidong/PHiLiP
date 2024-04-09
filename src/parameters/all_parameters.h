@@ -198,6 +198,7 @@ public:
         homogeneous_isotropic_turbulence_initialization_check,
         real_gas_vs_euler_primitive_to_conservative_check,
         euler_vortex_advection_error_study,
+        multi_species_vortex_advection_error_study,
     };
     /// Store selected TestType from the input file.
     TestType test_type;

@@ -46,6 +46,9 @@ double EulerVortexAdvectionErrorStudy<dim,nstate>
     using ManParam = Parameters::ManufacturedConvergenceStudyParam;
     using GridEnum = ManParam::GridEnum;
     Parameters::AllParameters param = *(TestsBase::all_parameters);
+    // output file 
+    std::ofstream outdata;
+    outdata.open("test.txt");
 
     Assert(dim == param.dimension, dealii::ExcDimensionMismatch(dim, param.dimension));
     // Assert(dim == 2, dealii::ExcDimensionMismatch(dim, param.dimension)); // NOTE: this was originally on for bump case
@@ -224,6 +227,12 @@ double EulerVortexAdvectionErrorStudy<dim,nstate>
                  << " Linf-error: " << linferror_mpi_max
                  << " Residual: " << flow_solver->ode_solver->residual_norm
                  << std::endl;
+            // file output
+            outdata << dx << " " 
+                    << l1error_mpi_sum << " "
+                    << l2error_mpi_sum << " "
+                    << linferror_mpi_max << " "
+                    << std::endl;
 
             if (igrid > 0) {
                 const double slope_soln_err_l1 = log(error_L1[igrid]/error_L1[igrid-1])

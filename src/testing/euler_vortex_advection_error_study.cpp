@@ -7,7 +7,7 @@
 #include "euler_vortex_advection_error_study.h"
 
 #include "physics/initial_conditions/initial_condition_function.h" 
-#include "physics/euler.h"
+// #include "physics/euler.h"
 
 #include "flow_solver/flow_solver_factory.h"
 
@@ -59,14 +59,14 @@ double EulerVortexAdvectionErrorStudy<dim,nstate>
 
     const unsigned int n_grids             = manu_grid_conv_param.number_of_grids;
 
-    Physics::Euler<dim,nstate,double> euler_physics_double
-        = Physics::Euler<dim, nstate, double>(
-                &param,
-                param.euler_param.ref_length,
-                param.euler_param.gamma_gas,
-                param.euler_param.mach_inf,
-                param.euler_param.angle_of_attack,
-                param.euler_param.side_slip_angle);
+    // Physics::Euler<dim,nstate,double> euler_physics_double
+    //     = Physics::Euler<dim, nstate, double>(
+    //             &param,
+    //             param.euler_param.ref_length,
+    //             param.euler_param.gamma_gas,
+    //             param.euler_param.mach_inf,
+    //             param.euler_param.angle_of_attack,
+    //             param.euler_param.side_slip_angle);
 
     std::string error_string;
     bool has_residual_converged = true;

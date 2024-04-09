@@ -36,6 +36,9 @@ public:
 
     /// Calls setters for butcher tableau
     void set_tableau();
+
+    /// Store number of stages
+    const int n_rk_stages;
     
 protected:
 

@@ -6,6 +6,7 @@
 #include "parameters/all_parameters.h"
 #include "reduced_order/pod_basis_base.h"
 #include "runge_kutta_methods/rk_tableau_base.h"
+#include "relaxation_runge_kutta/empty_RRK_base.h"
 
 namespace PHiLiP {
 namespace ODE {
@@ -40,6 +41,10 @@ public:
 
     /// Creates an RKTableau object based on the specified RK method
     static std::shared_ptr<RKTableauBase<dim,real,MeshType>> create_RKTableau(std::shared_ptr< DGBase<dim,real,MeshType> > dg_input);
+    
+    /// Creates an RRK object with specified RRK type; if no RRK is being used, creates an RRK object with empty functions. 
+    static std::shared_ptr<EmptyRRKBase<dim,real,MeshType>> create_RRKObject(std::shared_ptr< DGBase<dim,real,MeshType> > dg_input,
+            std::shared_ptr<RKTableauBase<dim,real,MeshType>> rk_tableau);
 
 };
 

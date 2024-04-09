@@ -98,16 +98,33 @@ void ODESolverParam::declare_parameters (dealii::ParameterHandler &prm)
                           dealii::Patterns::Selection(
                           " rk4_ex | "
                           " ssprk3_ex | "
+                          " heun2_ex | "
                           " euler_ex | "
                           " euler_im | "
-                          " dirk_2_im"),
+                          " dirk_2_im | "
+                          " dirk_3_im"),
                           "Runge-kutta method to use. Methods with _ex are explicit, and with _im are implicit."
                           "Choices are "
                           " <rk4_ex | "
                           " ssprk3_ex | "
+                          " heun2_ex | "
                           " euler_ex | "
                           " euler_im | "
-                          " dirk_2_im>.");
+                          " dirk_2_im | "
+                          " dirk_3_im>.");
+        prm.enter_subsection("rrk root solver");
+        {
+            prm.declare_entry("rrk_root_solver_output", "quiet",
+                              dealii::Patterns::Selection("quiet|verbose"),
+                              "State whether output from rrk root solver should be printed. "
+                              "Choices are <quiet|verbose>.");
+
+            prm.declare_entry("relaxation_runge_kutta_root_tolerance", "5e-10",
+                              dealii::Patterns::Double(),
+                              "Tolerance for root-finding problem in entropy RRK ode solver."
+                              "Defult 5E-10 is suitable in most cases.");
+        }
+        prm.leave_subsection();
 
     }
     prm.leave_subsection();
@@ -167,6 +184,11 @@ void ODESolverParam::parse_parameters (dealii::ParameterHandler &prm)
             n_rk_stages  = 3;
             rk_order = 3;
         }
+        else if (rk_method_string == "heun2_ex"){
+            runge_kutta_method = RKMethodEnum::heun2_ex;
+            n_rk_stages  = 2;
+            rk_order = 2;
+        }
         else if (rk_method_string == "euler_ex"){
             runge_kutta_method = RKMethodEnum::euler_ex;
             n_rk_stages  = 1;
@@ -182,6 +204,20 @@ void ODESolverParam::parse_parameters (dealii::ParameterHandler &prm)
             n_rk_stages  = 2;
             rk_order = 2;
         }
+        else if (rk_method_string == "dirk_3_im"){
+            runge_kutta_method = RKMethodEnum::dirk_3_im;
+            n_rk_stages  = 3;
+            rk_order = 3;
+        }
+        prm.enter_subsection("rrk root solver");
+        {
+            const std::string output_string_rrk = prm.get("rrk_root_solver_output");
+            if (output_string_rrk == "verbose") rrk_root_solver_output = verbose;
+            else if (output_string_rrk == "quiet")   rrk_root_solver_output = quiet;
+
+            relaxation_runge_kutta_root_tolerance = prm.get_double("relaxation_runge_kutta_root_tolerance");
+        }
+        prm.leave_subsection();
 
     }
     prm.leave_subsection();

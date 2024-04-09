@@ -3,7 +3,7 @@
 # Number of dimensions
 
 set dimension = 1 
-set test_type = burgers_energy_conservation_rrk 
+set test_type = rrk_numerical_entropy_conservation_check 
 set pde_type = burgers_inviscid
 
 # Note: this is required to correctly calculate energy
@@ -14,6 +14,9 @@ set use_weak_form = false
 set flux_nodes_type = GLL
 set use_split_form = true
 set conv_num_flux = two_point_flux
+set flux_reconstruction = cDG
+
+set use_inverse_mass_on_the_fly = true
 
 # ODE solver
 subsection ODE solver

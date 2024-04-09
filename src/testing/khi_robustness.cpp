@@ -51,11 +51,21 @@ int KHIRobustness<dim, nstate>::run_test() const
         }
 
         end_times[i_run] = flow_solver->ode_solver->current_time;
+
         this->pcout << "End times for all runs so far:" << std::endl;
         for (unsigned int j = 0; j < i_run+1; ++j){
             this->pcout << "    A = " << A_range[j] << "    end_time = " << end_times[j] << std::endl;
         }
         this->pcout << std::endl << std::endl;
+
+        if (mpi_rank==0){
+            std::ofstream current_end_times;
+            current_end_times.open("khi_end_times.txt");
+            for (unsigned int j = 0; j < i_run+1; ++j){
+                current_end_times << A_range[j] << " "  << end_times[j] << std::endl;
+            }
+            current_end_times.close();
+        }
     }
 
     return 0; //Always pass as the flow_solver runs are expected to crash

@@ -474,6 +474,8 @@ template <int dim, int nstate, typename real>
 class NavierStokes_ChannelFlowConstantSourceTerm : public NavierStokes <dim, nstate, real>
 {
 public:
+    using thermal_boundary_condition_enum = Parameters::NavierStokesParam::ThermalBoundaryCondition;
+    using two_point_num_flux_enum = Parameters::AllParameters::TwoPointNumericalFlux;
     /// Constructor
     NavierStokes_ChannelFlowConstantSourceTerm( 
         const double                                              ref_length,

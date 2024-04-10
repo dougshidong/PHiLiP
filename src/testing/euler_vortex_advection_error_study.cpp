@@ -49,6 +49,17 @@ double EulerVortexAdvectionErrorStudy<dim,nstate>
     // output file 
     std::ofstream outdata;
     outdata.open("test.txt");
+    // // flowtype
+    // using FlowCaseEnum = Parameters::FlowSolverParam::FlowCaseType;
+    // const FlowCaseEnum flow_type = param.flow_solver_param.flow_case_type;
+    // if (flow_type == FlowCaseEnum::euler_vortex_advection)
+    // {
+    //     std::cout << "euler_vortex_advection! \n \n " << std::endl;    
+    // } 
+    // else if (flow_type == FlowCaseEnum::multi_species_vortex_advection)
+    // {
+    //     std::cout << "multi-species_vortex_advection! \n \n " << std::endl; 
+    // }
 
     Assert(dim == param.dimension, dealii::ExcDimensionMismatch(dim, param.dimension));
     // Assert(dim == 2, dealii::ExcDimensionMismatch(dim, param.dimension)); // NOTE: this was originally on for bump case

@@ -210,6 +210,7 @@ public:
         euler,
         mhd,
         navier_stokes,
+        navier_stokes_channel_flow_constant_source_term,
         physics_model,
         physics_model_filtered,
     };

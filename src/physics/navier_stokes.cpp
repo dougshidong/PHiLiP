@@ -27,7 +27,8 @@ NavierStokes<dim, nstate, real>::NavierStokes(
     const double                                              isothermal_wall_temperature,
     const thermal_boundary_condition_enum                     thermal_boundary_condition_type,
     std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function,
-    const two_point_num_flux_enum                             two_point_num_flux_type)
+    const two_point_num_flux_enum                             two_point_num_flux_type,
+    const bool                                                has_nonzero_physical_source)
     : Euler<dim,nstate,real>(ref_length, 
                              gamma_gas, 
                              mach_inf, 
@@ -36,7 +37,7 @@ NavierStokes<dim, nstate, real>::NavierStokes(
                              manufactured_solution_function,
                              two_point_num_flux_type,
                              true,  //has_nonzero_diffusion = true
-                             false) //has_nonzero_physical_source = false
+                             has_nonzero_physical_source) //has_nonzero_physical_source = false
     , viscosity_coefficient_inf(1.0) // Nondimensional - Free stream values
     , use_constant_viscosity(use_constant_viscosity)
     , constant_viscosity(constant_viscosity) // Nondimensional - Free stream values
@@ -1390,13 +1391,77 @@ dealii::UpdateFlags NavierStokes<dim,nstate,real>
            ;
 }
 
+template <int dim, int nstate, typename real>
+NavierStokes_ChannelFlowConstantSourceTerm<dim, nstate, real>::NavierStokes_ChannelFlowConstantSourceTerm( 
+    const double                                              ref_length,
+    const double                                              gamma_gas,
+    const double                                              mach_inf,
+    const double                                              angle_of_attack,
+    const double                                              side_slip_angle,
+    const double                                              prandtl_number,
+    const double                                              reynolds_number_inf,
+    const bool                                                use_constant_viscosity,
+    const double                                              constant_viscosity,
+    const double                                              reynolds_number_based_on_friction_velocity,
+    const double                                              half_channel_height,
+    const double                                              temperature_inf,
+    const double                                              isothermal_wall_temperature,
+    const thermal_boundary_condition_enum                     thermal_boundary_condition_type,
+    std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function,
+    const two_point_num_flux_enum                             two_point_num_flux_type)
+    : NavierStokes<dim,nstate,real>(
+                             ref_length, 
+                             gamma_gas, 
+                             mach_inf, 
+                             angle_of_attack, 
+                             side_slip_angle, 
+                             prandtl_number, 
+                             reynolds_number_inf, 
+                             use_constant_viscosity, 
+                             constant_viscosity, 
+                             temperature_inf, 
+                             isothermal_wall_temperature, 
+                             thermal_boundary_condition_type, 
+                             manufactured_solution_function,
+                             two_point_num_flux_type,
+                             true,  //has_nonzero_diffusion = true
+                             true) //has_nonzero_physical_source = true
+    , x_momentum_constant_source_term(pow((1.0/half_channel_height),3.0)*pow((reynolds_number_based_on_friction_velocity/this->reynolds_number_inf),2.0))
+{
+    static_assert(nstate==dim+2, "Physics::NavierStokes_ChannelFlowConstantSourceTerm() should be created with nstate=dim+2");
+    // Nothing to do here so far
+}
+
+template <int dim, int nstate, typename real>
+std::array<real,nstate> NavierStokes_ChannelFlowConstantSourceTerm<dim,nstate,real>
+::physical_source_term (
+    const dealii::Point<dim,real> &/*pos*/,
+    const std::array<real,nstate> &solution,
+    const std::array<dealii::Tensor<1,dim,real>,nstate> &/*solution_gradient*/,
+    const dealii::types::global_dof_index /*cell_index*/) const
+{
+    std::array<real,nstate> physical_source;
+    for (int i=0; i<nstate; i++) {
+        physical_source[i] = 0;
+    }
+    physical_source[1] = this->x_momentum_constant_source_term; // x-momentum
+    const dealii::Tensor<1,dim,real> vel = this->template compute_velocities<real>(solution);
+    physical_source[nstate-1] = vel[0]*physical_source[1];
+    
+    return physical_source;
+}
+
 // Instantiate explicitly
 template class NavierStokes < PHILIP_DIM, PHILIP_DIM+2, double >;
 template class NavierStokes < PHILIP_DIM, PHILIP_DIM+2, FadType  >;
 template class NavierStokes < PHILIP_DIM, PHILIP_DIM+2, RadType  >;
 template class NavierStokes < PHILIP_DIM, PHILIP_DIM+2, FadFadType >;
 template class NavierStokes < PHILIP_DIM, PHILIP_DIM+2, RadFadType >;
-
+template class NavierStokes_ChannelFlowConstantSourceTerm < PHILIP_DIM, PHILIP_DIM+2, double >;
+template class NavierStokes_ChannelFlowConstantSourceTerm < PHILIP_DIM, PHILIP_DIM+2, FadType  >;
+template class NavierStokes_ChannelFlowConstantSourceTerm < PHILIP_DIM, PHILIP_DIM+2, RadType  >;
+template class NavierStokes_ChannelFlowConstantSourceTerm < PHILIP_DIM, PHILIP_DIM+2, FadFadType >;
+template class NavierStokes_ChannelFlowConstantSourceTerm < PHILIP_DIM, PHILIP_DIM+2, RadFadType >;
 //==============================================================================
 // -> Templated member functions:
 //------------------------------------------------------------------------------

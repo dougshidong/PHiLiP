@@ -129,6 +129,26 @@ PhysicsFactory<dim,nstate,real>
                 manufactured_solution_function,
                 parameters_input->two_point_num_flux_type);
         }
+    } else if (pde_type == PDE_enum::navier_stokes_channel_flow_constant_source_term) {
+        if constexpr (nstate==dim+2) {
+            return std::make_shared < NavierStokes_ChannelFlowConstantSourceTerm<dim,nstate,real> > (
+                parameters_input->euler_param.ref_length,
+                parameters_input->euler_param.gamma_gas,
+                parameters_input->euler_param.mach_inf,
+                parameters_input->euler_param.angle_of_attack,
+                parameters_input->euler_param.side_slip_angle,
+                parameters_input->navier_stokes_param.prandtl_number,
+                parameters_input->navier_stokes_param.reynolds_number_inf,
+                parameters_input->navier_stokes_param.use_constant_viscosity,
+                parameters_input->navier_stokes_param.nondimensionalized_constant_viscosity,
+                parameters_input->flow_solver_param.turbulent_channel_friction_velocity_reynolds_number,
+                (parameters_input->flow_solver_param.turbulent_channel_domain_length_y_direction/2.0), // half channel height
+                parameters_input->navier_stokes_param.temperature_inf,
+                parameters_input->navier_stokes_param.nondimensionalized_isothermal_wall_temperature,
+                parameters_input->navier_stokes_param.thermal_boundary_condition_type,
+                manufactured_solution_function,
+                parameters_input->two_point_num_flux_type);
+        }
     } else if (pde_type == PDE_enum::physics_model || pde_type == PDE_enum::physics_model_filtered) {
         if constexpr (nstate>=dim+2) {
             return create_Physics_Model(parameters_input,

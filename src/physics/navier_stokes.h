@@ -40,7 +40,8 @@ public:
         const double                                              isothermal_wall_temperature = 1.0,
         const thermal_boundary_condition_enum                     thermal_boundary_condition_type = thermal_boundary_condition_enum::adiabatic,
         std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function = nullptr,
-        const two_point_num_flux_enum                             two_point_num_flux_type = two_point_num_flux_enum::KG);
+        const two_point_num_flux_enum                             two_point_num_flux_type = two_point_num_flux_enum::KG,
+        const bool                                                has_nonzero_physical_source = false);
 
     /// Nondimensionalized viscosity coefficient at infinity.
     const double viscosity_coefficient_inf;
@@ -466,6 +467,44 @@ public:
     /// Returns the the magnitude of the tensor (i.e. the double dot product of a tensor with itself)
     real get_tensor_magnitude (const dealii::Tensor<2,dim,real> &tensor) const;
 
+};
+
+/// Navier-Stokes equations with constant physical source term for the turbulent channel flow case. Derived from Navier-Stokes. 
+template <int dim, int nstate, typename real>
+class NavierStokes_ChannelFlowConstantSourceTerm : public NavierStokes <dim, nstate, real>
+{
+public:
+    /// Constructor
+    NavierStokes_ChannelFlowConstantSourceTerm( 
+        const double                                              ref_length,
+        const double                                              gamma_gas,
+        const double                                              mach_inf,
+        const double                                              angle_of_attack,
+        const double                                              side_slip_angle,
+        const double                                              prandtl_number,
+        const double                                              reynolds_number_inf,
+        const bool                                                use_constant_viscosity,
+        const double                                              constant_viscosity,
+        const double                                              reynolds_number_based_on_friction_velocity,
+        const double                                              half_channel_height,
+        const double                                              temperature_inf = 273.15,
+        const double                                              isothermal_wall_temperature = 1.0,
+        const thermal_boundary_condition_enum                     thermal_boundary_condition_type = thermal_boundary_condition_enum::adiabatic,
+        std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function = nullptr,
+        const two_point_num_flux_enum                             two_point_num_flux_type = two_point_num_flux_enum::KG);
+
+    /// Nondimensional constant source term for x-momentum
+    const double x_momentum_constant_source_term;
+
+    /// Destructor
+    ~NavierStokes_ChannelFlowConstantSourceTerm() {};
+
+    /// Physical source term for turbulent channel flow case
+    std::array<real,nstate> physical_source_term (
+        const dealii::Point<dim,real> &pos,
+        const std::array<real,nstate> &solution,
+        const std::array<dealii::Tensor<1,dim,real>,nstate> &solution_gradient,
+        const dealii::types::global_dof_index cell_index) const override;
 };
 
 } // Physics namespace

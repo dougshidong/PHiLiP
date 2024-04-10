@@ -1424,7 +1424,6 @@ NavierStokes_ChannelFlowConstantSourceTerm<dim, nstate, real>::NavierStokes_Chan
                              thermal_boundary_condition_type, 
                              manufactured_solution_function,
                              two_point_num_flux_type,
-                             true,  //has_nonzero_diffusion = true
                              true) //has_nonzero_physical_source = true
     , x_momentum_constant_source_term(pow((1.0/half_channel_height),3.0)*pow((reynolds_number_based_on_friction_velocity/this->reynolds_number_inf),2.0))
 {

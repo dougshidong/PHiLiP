@@ -310,6 +310,9 @@ std::unique_ptr< TestsBase > TestsFactory<dim,nstate,MeshType>
     // TO  DO: dim = 1, nstate = dim+2+3-1
     } else if(test_type == Test_enum::multi_species_vortex_advection_error_study) {
         if constexpr (dim==1 && nstate==dim+2+3-1)  return std::make_unique<EulerVortexAdvectionErrorStudy<dim, nstate>>(parameters_input, parameter_handler_input);   
+    // TO  DO: dim = 1, nstate = dim+2+3-1
+    } else if(test_type == Test_enum::multi_species_calorically_perfect_euler_vortex_advection_error_study) {
+        if constexpr (dim==1 && nstate==dim+2+3-1)  return std::make_unique<EulerVortexAdvectionErrorStudy<dim, nstate>>(parameters_input, parameter_handler_input);            
     } else {
         std::cout << "Invalid test. You probably forgot to add it to the list of tests in tests.cpp" << std::endl;
         std::abort();

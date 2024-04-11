@@ -236,7 +236,7 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       " euler |"
                       " mhd |"
                       " navier_stokes |"
-                      "  navier_stokes_channel_flow_constant_source_term | "
+                      " navier_stokes_channel_flow_constant_source_term | "
                       " physics_model_filtered |"
                       " physics_model"),
                       "The PDE we want to solve. "

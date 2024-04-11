@@ -217,6 +217,7 @@ public:
         navier_stokes,
         inviscid_real_gas,
         real_gas,
+        multi_species_calorically_perfect_euler,
         physics_model,
     };
     /// Store the PDE type to be solved

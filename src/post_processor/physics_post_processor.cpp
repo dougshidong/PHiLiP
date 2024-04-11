@@ -39,6 +39,9 @@ std::unique_ptr< dealii::DataPostprocessor<dim> > PostprocessorFactory<dim>
     } else if (pde_type == PDE_enum::real_gas) {
     // TO DO: modify this when you change number of species
         return std::make_unique< PhysicsPostprocessor<dim,dim+2+3-1> >(parameters_input); // TO DO: N_SPECIES
+    } else if (pde_type == PDE_enum::multi_species_calorically_perfect_euler) {
+    // TO DO: modify this when you change number of species
+        return std::make_unique< PhysicsPostprocessor<dim,dim+2+3-1> >(parameters_input); // TO DO: N_SPECIES        
     } else if ((pde_type == PDE_enum::physics_model) && (model_type == Model_enum::reynolds_averaged_navier_stokes) && (rans_model_type == RANSModel_enum::SA_negative)) {
         return std::make_unique< PhysicsPostprocessor<dim,dim+3> >(parameters_input);
     } 

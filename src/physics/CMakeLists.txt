@@ -19,6 +19,7 @@ SET(SOURCE
     negative_spalart_allmaras_rans_model.cpp
     inviscid_real_gas.cpp
     real_gas.cpp
+    multi_species_calorically_perfect_euler.cpp
     model_factory.cpp)
 
 foreach(dim RANGE 1 3)

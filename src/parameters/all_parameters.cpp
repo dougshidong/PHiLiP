@@ -248,6 +248,7 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       " navier_stokes |"
                       " inviscid_real_gas | "
                       " real_gas | "
+                      " multi_species_calorically_perfect_euler | "                      
                       " physics_model"),
                       "The PDE we want to solve. "
                       "Choices are " 
@@ -263,6 +264,7 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       "  navier_stokes |"
                       "  inviscid_real_gas | "
                       "  real_gas | "
+                      "  multi_species_calorically_perfect_euler | "
                       "  physics_model>.");
 
     prm.declare_entry("model_type", "large_eddy_simulation",
@@ -596,6 +598,10 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
         pde_type = real_gas;
         nstate = dimension+2+(number_of_species-1);
     }
+    else if(pde_string == "multi_species_calorically_perfect_euler") {
+        pde_type = multi_species_calorically_perfect_euler;
+        nstate = dimension+2+(number_of_species-1);
+    }  
     else if (pde_string == "physics_model") {
         pde_type = physics_model;
         if (model_type == large_eddy_simulation)

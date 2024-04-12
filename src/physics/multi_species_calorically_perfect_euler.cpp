@@ -3,8 +3,6 @@
 
 #include "ADTypes.hpp"
 
-#include "physics.h"
-#include "euler.h"
 #include "multi_species_calorically_perfect_euler.h" 
 
 namespace PHiLiP {
@@ -16,10 +14,10 @@ MultiSpeciesCaloricallyPerfect<dim,nstate,real>::MultiSpeciesCaloricallyPerfect 
     std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function,
     const bool                                                has_nonzero_diffusion,
     const bool                                                has_nonzero_physical_source)
-    : PhysicsBase<dim,nstate,real>(parameters_input, has_nonzero_diffusion,has_nonzero_physical_source,manufactured_solution_function)
+    : RealGas<dim,nstate,real>(parameters_input,manufactured_solution_function,has_nonzero_diffusion,has_nonzero_physical_source)
 {
     this->real_gas_cap = std::dynamic_pointer_cast<PHiLiP::RealGasConstants::AllRealGasConstants>(
-                std::make_shared<PHiLiP::RealGasConstants::AllRealGasConstants>());
+        std::make_shared<PHiLiP::RealGasConstants::AllRealGasConstants>());
     static_assert(nstate==dim+2+3-1, "Physics::MultiSpeciesCaloricallyPerfect() should be created with nstate=(PHILIP_DIM+2)+(N_SPECIES-1)"); // TO DO: UPDATE THIS with nspecies
 }
 
@@ -30,32 +28,29 @@ std::array<dealii::Tensor<1,dim,real>,nstate> MultiSpeciesCaloricallyPerfect<dim
 {
     /* definitions */
     std::array<dealii::Tensor<1,dim,real>,nstate> conv_flux;
-    const real mixture_density = compute_mixture_density(conservative_soln);
-    const dealii::Tensor<1,dim,real> vel = compute_velocities(conservative_soln);
-    const real mixture_pressure = compute_mixture_pressure(conservative_soln);
-    const real mixture_specific_total_enthalpy = compute_mixture_specific_total_enthalpy(conservative_soln);
-    const std::array<real,nstate-dim-1> species_densities = compute_species_densities(conservative_soln);
+    const real test = this->template compute_specific_kinetic_energy(conservative_soln);
+    const real check = real_gas_cap->Sp_W[0];
 
     // flux dimension loop; E -> F -> G
     for (int flux_dim=0; flux_dim<dim; ++flux_dim) 
     {
         /* A) mixture density equations */
-        conv_flux[0][flux_dim] = conservative_soln[1+flux_dim];
+        conv_flux[0][flux_dim] = 0.0*conservative_soln[flux_dim];
 
         /* B) mixture momentum equations */
         for (int velocity_dim=0; velocity_dim<dim; ++velocity_dim)
         {
-            conv_flux[1+velocity_dim][flux_dim] = mixture_density*vel[flux_dim]*vel[velocity_dim];
+            conv_flux[1+velocity_dim][flux_dim] = 0.0*test;
         }
-        conv_flux[1+flux_dim][flux_dim] += mixture_pressure; // Add diagonal of pressure
+        conv_flux[1+flux_dim][flux_dim] += 0.0*check; // Add diagonal of pressure
 
         /* C) mixture energy equations */
-        conv_flux[dim+2-1][flux_dim] = mixture_density*vel[flux_dim]*mixture_specific_total_enthalpy;
+        conv_flux[dim+2-1][flux_dim] = 0.0;
 
         /* D) species density equations */
         for (int s=0; s<(nstate-dim-1)-1; ++s)
         {
-             conv_flux[nstate-1+s][flux_dim] = species_densities[s]*vel[flux_dim];
+             conv_flux[nstate-1+s][flux_dim] = 0.0;
         }
     }
 

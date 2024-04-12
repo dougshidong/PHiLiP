@@ -17,19 +17,6 @@ MultiSpeciesCaloricallyPerfect<dim,nstate,real>::MultiSpeciesCaloricallyPerfect 
     const bool                                                has_nonzero_diffusion,
     const bool                                                has_nonzero_physical_source)
     : PhysicsBase<dim,nstate,real>(parameters_input, has_nonzero_diffusion,has_nonzero_physical_source,manufactured_solution_function)
-    , gam_ref(parameters_input->euler_param.gamma_gas)
-    , mach_ref(parameters_input->euler_param.mach_inf)
-    , mach_ref_sqr(mach_ref*mach_ref)
-    , two_point_num_flux_type(parameters_input->two_point_num_flux_type)
-    , Ru(8.31446261815324) /// [J/(mol·K)]
-    , MW_Air(28.9651159 * pow(10,-3)) /// [kg/mol]
-    , R_ref(Ru/MW_Air) /// = Ru/MW_Air [J/(kg·K)]
-    , temperature_ref(298.15) /// [K]
-    , u_ref(mach_ref*sqrt(gam_ref*R_ref*temperature_ref)) /// [m/s]
-    , u_ref_sqr(u_ref*u_ref) /// [m/s]^2
-    , tol(1.0e-10) /// []
-    , density_ref(1.225) /// [kg/m^3]
-    // TO DO: nstate-dim-1 = nspecies
 {
     this->real_gas_cap = std::dynamic_pointer_cast<PHiLiP::RealGasConstants::AllRealGasConstants>(
                 std::make_shared<PHiLiP::RealGasConstants::AllRealGasConstants>());

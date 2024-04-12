@@ -27,10 +27,11 @@ public:
 public:
     /// Pointer to all real gas constants object for accessing the coefficients and properties (CAP)
     std::shared_ptr< PHiLiP::RealGasConstants::AllRealGasConstants > real_gas_cap;
-protected:
-    /// f_M18: Compute convective flux from conservative_soln
-    std::array<dealii::Tensor<1,dim,real>,nstate> convective_flux ( 
-        const std::array<real,nstate> &conservative_soln) const override;
+// protected:
+//     /// f_M18: Compute convective flux from conservative_soln
+//     std::array<dealii::Tensor<1,dim,real>,nstate> convective_flux ( 
+//         const std::array<real,nstate> &conservative_soln) const override;
+    
 };
 
 } // Physics namespace

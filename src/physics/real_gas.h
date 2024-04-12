@@ -177,7 +177,7 @@ protected:
     real compute_mixture_specific_total_enthalpy ( const std::array<real,nstate> &conservative_soln ) const;
 
     /// f_M18: Compute convective flux from conservative_soln
-    virtual std::array<dealii::Tensor<1,dim,real>,nstate> convective_flux ( 
+    std::array<dealii::Tensor<1,dim,real>,nstate> convective_flux ( 
         const std::array<real,nstate> &conservative_soln) const;
 
 protected:

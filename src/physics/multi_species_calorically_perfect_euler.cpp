@@ -61,6 +61,19 @@ MultiSpeciesCaloricallyPerfect<dim,nstate,real>::MultiSpeciesCaloricallyPerfect 
 //     return conv_flux;
 // }
 
+/// f_M14: compute_temperature
+template <int dim, int nstate, typename real>
+inline real MultiSpeciesCaloricallyPerfect<dim,nstate,real>
+::compute_temperature ( const std::array<real,nstate> &conservative_soln ) const
+{
+    const real mixture_density = conservative_soln[0]; // TO DO: use compute_mixture_density
+    const real mixture_gas_constant = this->template compute_mixture_gas_constant(conservative_soln);
+    const real mixture_pressure = compute_mixture_pressure(conservative_soln);
+    const real temperature = mixture_pressure/(mixture_density*mixture_gas_constant)*(this->gam_ref*this->mach_ref_sqr);
+
+    return temperature;
+}
+
 /// f_M16: compute_mixture_pressure
 template <int dim, int nstate, typename real>
 inline real MultiSpeciesCaloricallyPerfect<dim,nstate,real>

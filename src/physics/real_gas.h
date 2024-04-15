@@ -165,7 +165,7 @@ protected:
     std::array<real,nstate-dim-1> compute_species_specific_internal_energy ( const real temperature ) const;
 
     /// f_M14: Compute temperature from conservative_soln
-    real compute_temperature ( const std::array<real,nstate> &conservative_soln ) const;
+    virtual real compute_temperature ( const std::array<real,nstate> &conservative_soln ) const;
 
     /// f_M15: Compute mixture gas constant from conservative_soln
     real compute_mixture_gas_constant ( const std::array<real,nstate> &conservative_soln ) const;

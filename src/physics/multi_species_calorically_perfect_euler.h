@@ -31,7 +31,10 @@ public:
 //     /// f_M18: Compute convective flux from conservative_soln
 //     std::array<dealii::Tensor<1,dim,real>,nstate> convective_flux ( 
 //         const std::array<real,nstate> &conservative_soln) const override;
-    
+
+    /// f_S19: Convert primitive solutions to conservative solutions // TO DO: delete new and delete the original function
+    virtual std::array<real,nstate> convert_primitive_to_conservative ( const std::array<real,nstate> &primitive_soln ) const override; 
+
 // /// Mian functions
 protected:
     /// f_M14: Compute temperature from conservative_soln

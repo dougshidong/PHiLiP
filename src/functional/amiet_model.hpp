@@ -78,13 +78,13 @@ private:
     /// @brief Dimensionalized sound speed of free stream. Units: [m/s].
     const real sound_inf;
     /// @brief Reference flow speed. Units: [m/s].
-    const real ref_U;
+    const real ref_speed;
     /// @brief Reference dynamic viscosity. Units: [kg/(m*s)].
     const real ref_viscosity;
     /// @brief Dimensionalized flow speed of free stream. Units: [m/s].
-    const real U_inf;
+    //const real U_inf;
     /// @brief Dimensionalized density of free stream. Units: [kg/m^3].
-    const real density_inf;
+    //const real density_inf;
 
     /// @brief Dimensionalized chord length of airfoil. Units: [m].
     const real chord_length;
@@ -94,32 +94,32 @@ private:
     /// @brief Ratio of free-stream and convection speed of turbulence, alpha = U_inf/U_c.
     const real alpha;
     /// @brief Dimensionalized convection velocity of turbulence. Units: [m/s].
-    const real U_c;
+    //const real U_c;
     /// @brief Dimensionalized edge velocity of boundary layer. Units: [m/s].
-    const real U_edge;
+    //const real U_edge;
     /// @brief Dimensionalized friction velocity of boundary layer. Units: [m/s].
-    const real friction_velocity;
+    //const real friction_velocity;
     /// @brief Dimensionalized boundary layer thickness. Units: [m].
-    const real boundary_layer_thickness;
+    //const real boundary_layer_thickness;
     /// @brief Dimensionalized displacement thickness. Units: [m].
-    const real displacement_thickness;
+    //const real displacement_thickness;
     /// @brief Dimensionalized momentum thickness. Units: [m].
-    const real momentum_thickness;
+    //const real momentum_thickness;
     /// @brief Dimensionalized wall shear stress. Units: [Pa].
-    const real wall_shear_stress;
+    //const real wall_shear_stress;
     /// @brief Dimensionalized maximum shear stress over extraction line. Units: [Pa].
-    const real maximum_shear_stress;
+    //const real maximum_shear_stress;
     /// @brief Dimensionalized kinematic viscosity. Units: [m^2/s].
-    const real kinematic_viscosity;
+    //const real kinematic_viscosity;
     /// @brief Dimensionalized pressure gradient over stream wise direction. Units: [Pa/m].
-    const real pressure_gradient_tangential;
+    //const real pressure_gradient_tangential;
 
     /// @brief Clauser's equilibrium parameter.
-    const real clauser_equilibrium_parameter;
+    //const real clauser_equilibrium_parameter;
     /// @brief Cole's wake parameter.
-    const real cole_wake_parameter;
+    //const real cole_wake_parameter;
     /// @brief Zagarola-Smits's parameter.
-    const real zagarola_smits_parameter;
+    //const real zagarola_smits_parameter;
 
     /// @brief Half of chord length
     const real b;
@@ -129,9 +129,13 @@ private:
     const real S0;
 
     /// @brief Vector of wall-pressure spectrum over investigated frequency range
-    std::vector<real> Phi_pp;
+    //std::vector<real> Phi_pp;
     /// @brief Vector of far-field acoustic spectrum over investigated frequency range
-    std::vector<real> S_pp;
+    //std::vector<real> S_pp;
+
+    //dealii::LinearAlgebra::distributed::Vector<FadFadType> solution_fad_fad;
+
+    //dealii::LinearAlgebra::distributed::Vector<FadFadType> volume_nodes_fad_fad;
 
 public:
     /// Constructor
@@ -142,22 +146,96 @@ public:
     /// Destructor
     ~AmietModelFunctional(){};
 
-    real evaluate_functional( const bool compute_dIdW = false, const bool compute_dIdX = false, const bool compute_d2I = false) override;
+    /// Allocate and setup the derivative dW_int_dW vector.
+    //void allocate_dW_int_dW();
+
+    real evaluate_functional(
+        const bool compute_dIdW = false, 
+        const bool compute_dIdX = false, 
+        const bool compute_d2I = false) override;
 
     /// Function to evaluate wall-pressure power spectral density, Phi_pp, for a given frequency, omega.
-    real wall_pressure_PSD(const real omega) const;
+    template <typename real2>
+    real2 wall_pressure_PSD(
+        const real omega,
+        const real speed_free_stream,
+        const real density_free_stream,
+        const real edge_velocity,
+        const real boundary_layer_thickness,
+        const real maximum_shear_stress,
+        const real2 displacement_thickness,
+        const real2 momentum_thickness,
+        const real2 friction_velocity,
+        const real2 wall_shear_stress,
+        const real2 pressure_gradient_tangential,
+        const real2 kinematic_viscosity) const;
 
     /// Function to evaluate wall-pressure power spectral density using Goody's model.
-    real wall_pressure_PSD_Goody(const real omega) const;
+    template <typename real2>
+    real2 wall_pressure_PSD_Goody(
+        const real omega,
+        const real edge_velocity,
+        const real boundary_layer_thickness,
+        const real2 friction_velocity,
+        const real2 wall_shear_stress,
+        const real2 kinematic_viscosity) const;
 
     /// Function to evaluate wall-pressure power spectral density using Rozenburg's model.
-    real wall_pressure_PSD_Rozenburg(const real omega) const;
+    template <typename real2>
+    real2 wall_pressure_PSD_Rozenburg(
+        const real omega,
+        const real edge_velocity,
+        const real boundary_layer_thickness,
+        const real maximum_shear_stress,
+        const real2 displacement_thickness,
+        const real2 momentum_thickness,
+        const real2 friction_velocity,
+        const real2 wall_shear_stress,
+        const real2 pressure_gradient_tangential,
+        const real2 kinematic_viscosity) const;
 
     /// Function to evaluate wall-pressure power spectral density using Kamruzzaman's model.
-    real wall_pressure_PSD_Kamruzzaman(const real omega) const;
+    template <typename real2>
+    real2 wall_pressure_PSD_Kamruzzaman(
+        const real omega,
+        const real speed_free_stream,
+        const real density_free_stream,
+        const real edge_velocity,
+        const real2 displacement_thickness,
+        const real2 momentum_thickness,
+        const real2 friction_velocity,
+        const real2 wall_shear_stress,
+        const real2 pressure_gradient_tangential,
+        const real2 kinematic_viscosity) const;
+
+    template <typename real2>
+    real2 evaluate_time_scale_ratio(
+        const real boundary_layer_thickness,
+        const real edge_velocity,
+        const real2 friction_velocity,
+        const real2 kinematic_viscosity) const;
+
+    template <typename real2>
+    real2 evaluate_clauser_equilibrium_parameter(
+        const real2 momentum_thickness,
+        const real2 wall_shear_stress,
+        const real2 pressure_gradient_tangential) const;
+
+    template <typename real2>
+    real2 evaluate_cole_wake_parameter(
+        const real2 momentum_thickness,
+        const real2 wall_shear_stress,
+        const real2 pressure_gradient_tangential) const;
+
+    template <typename real2>
+    real2 evaluate_zagarola_smits_parameter(
+        const real boundary_layer_thickness,
+        const real2 displacement_thickness) const;
 
     /// Function to evaluate spanwise correlation length using Corcos's model.
-    real spanwise_correlation_length(const real omega) const;
+    real spanwise_correlation_length(
+        const real omega,
+        const real U_c) const;
 
     /// Function to evaluate complex function of Fresnel integral
     std::complex<real> E (const std::complex<real> z) const;
@@ -198,15 +276,25 @@ public:
     /// Function to evaluate radiation integral involving main contribution and/or back-scattering correction for supercritical or subcritical gust
     std::complex<real> radiation_integral_trailing_edge (const real omega) const;
 
-    /// Evaluate far-field acoustic power spectral density, S_pp, for a given frequency, omega.
-    real acoustic_PSD(const real omega,
-                      const real Phi_pp_of_sampling) const;
+    /// Function to evaluate far-field acoustic power spectral density, S_pp, for a given frequency, omega.
+    template <typename real2>
+    real2 acoustic_PSD(
+        const real omega,
+        const real U_c,
+        const real2 Phi_pp_of_sampling) const;
 
     /// Function to evaluate vector of wall-pressure spectrum and far-field acoustic spectrum over investigated frequency range
-    void evaluate_wall_pressure_acoustic_spectrum();
+    //void evaluate_wall_pressure_acoustic_spectrum();
+
+    /// Function to evaluate overall far-field sound pressure level (OASPL) over investigated frequency range
+    template <typename real2>
+    real2 evaluate_overall_sound_pressure_level(const std::vector<real2> S_pp);
 
     /// Function to output vector of wall-pressure spectrum and far-field acoustic spectrum over investigated frequency range in a .dat file
-    void output_wall_pressure_acoustic_spectrum_dat();
+    template <typename real2>
+    void output_wall_pressure_acoustic_spectrum_dat(
+        const std::vector<real2> &Phi_pp,
+        const std::vector<real2> &S_pp);
 
 };
 } // PHiLiP namespace

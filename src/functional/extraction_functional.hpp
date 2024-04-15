@@ -29,6 +29,7 @@ private:
      */
     using Functional<dim,nstate,real,MeshType>::evaluate_volume_integrand;
 
+public:
     /// @brief Extraction start point on solid boundary surface.
     dealii::Point<dim,real> start_point;
 
@@ -39,47 +40,49 @@ private:
     dealii::Tensor<1,dim,real> start_point_tangential_vector;
 
     /// @brief Interpolated solutions at extraction start point.
-    std::array<real,nstate> soln_at_start_point;
+    //std::array<real,nstate> soln_at_start_point;
 
     /// @brief Interpolated solution gradients at extraction start point.
-    std::array<dealii::Tensor<1,dim,real>,nstate> soln_grad_at_start_point;
+    //std::array<dealii::Tensor<1,dim,real>,nstate> soln_grad_at_start_point;
 
     /// @brief Extraction end point. 
     dealii::Point<dim,real> end_point;
 
     /// @brief Interpolated solutions at extraction end point.
-    std::array<real,nstate> soln_at_end_point;
+    //std::array<real,nstate> soln_at_end_point;
 
     /// @brief Interpolated solution gradients at extraction end point.
-    std::array<dealii::Tensor<1,dim,real>,nstate> soln_grad_at_end_point;
+    //std::array<dealii::Tensor<1,dim,real>,nstate> soln_grad_at_end_point;
 
     /// @brief Number of sampling points over the extraction line.
     const int number_of_sampling;
 
+    /// @brief Number of total sampling points over the extraction line, including start and end points.
+    const int number_of_total_sampling;
+
     /// @brief Coordinate of sampling points over extraction line.
-    std::vector<dealii::Point<dim,real>> coord_of_sampling;
+    //std::vector<dealii::Point<dim,real>> coord_of_sampling;
 
     /// @brief Interpolated solutions at each sampling points over extraction line.
-    std::vector<std::array<real,nstate>> soln_of_sampling;
+    //std::vector<std::array<real,nstate>> soln_of_sampling;
 
     /// @brief Interpolated solution gradients at each sampling points over extraction line.
-    std::vector<std::array<dealii::Tensor<1,dim,real>,nstate>> soln_grad_of_sampling;
+    //std::vector<std::array<dealii::Tensor<1,dim,real>,nstate>> soln_grad_of_sampling;
 
     /// @brief Length of extraction line 
     real length_of_sampling;
 
-public:
     /// @brief Converged speed of free-stream flow over extraction line.
-    real U_inf;
+    //real U_inf;
 
     /// @brief Converged density of free-stream flow over extraction line.
-    real density_inf;
+    //real density_inf;
 
     /// @brief Navier-Stokes physics reference.
-    const Physics::NavierStokes<dim,dim+2,real> &navier_stokes_real;
+    const Physics::NavierStokes<dim,dim+2,FadType> &navier_stokes_fad;
 
     /// @brief Reynolds-averaged Navier-Stokes negative SA model pointer.
-    std::shared_ptr <Physics::ReynoldsAveragedNavierStokes_SAneg<dim,dim+3,real>> rans_sa_neg_real;
+    std::shared_ptr <Physics::ReynoldsAveragedNavierStokes_SAneg<dim,dim+3,FadType>> rans_sa_neg_fad;
 
 public:
     /// Constructor
@@ -90,64 +93,162 @@ public:
     /// Destructor
     ~ExtractionFunctional(){};
 
-    real evaluate_functional( const bool compute_dIdW = false, const bool compute_dIdX = false, const bool compute_d2I = false) override;
+    real evaluate_functional(
+        const bool compute_dIdW = false,
+        const bool compute_dIdX = false,
+        const bool compute_d2I = false) override;
 
 public:
+    //std::vector<dealii::Point<dim,real>> evaluate_straight_line_sampling_point_coord();
+    
     /// Function to interpolate solutions and solution gradients on sampling points over extraction line.
-    void evaluate_straight_line_sampling_point_soln();
+    //void evaluate_straight_line_sampling_point_soln();
 
     /// Function to interpolate solutions and solution gradients on extraction start and end points.
-    void evaluate_start_end_point_soln();
+    //void evaluate_start_end_point_soln();
+
+    void evaluate_extraction_start_point_coord();
+
+    void evaluate_extraction_start_point_normal_tangential_vector();
+
+    void evaluate_extraction_end_point_coord();
+
+    std::vector<dealii::Point<dim,real>> evaluate_straight_line_sampling_point_coord();
+
+    std::vector<dealii::Point<dim,real>> evaluate_straight_line_total_sampling_point_coord();
+
+    std::vector<std::pair<dealii::DoFHandler<dim>::active_cell_iterator,dealii::Point<dim,real>>> find_active_cell_around_points(
+        const dealii::hp::MappingCollection<dim> mapping_collection,
+        const dealii::DoFHandler<dim> dof_handler,
+        const std::vector<dealii::Point<dim,real>> coord_of_total_sampling) const;
+
+    template <typename real2>
+    std::array<real2,nstate> point_value(
+        const dealii::Point<dim,real> &coord_of_sampling,
+        const dealii::hp::MappingCollection<dim> &mapping_collection,
+        const dealii::hp::FECollection<dim> &fe_collection,
+        const std::pair<dealii::DoFHandler<dim>::active_cell_iterator,dealii::Point<dim,real>> &cell_index_and_ref_point_of_sampling,
+        const std::vector<real2> &soln_coeff,
+        const std::vector<dealii::types::global_dof_index> &cell_soln_dofs_indices) const;
+
+    template <typename real2>
+    std::array<dealii::Tensor<1,dim,real2>,nstate> point_gradient(
+        const dealii::Point<dim,real> &coord_of_sampling,
+        const dealii::hp::MappingCollection<dim> &mapping_collection,
+        const dealii::hp::FECollection<dim> &fe_collection,
+        const std::pair<dealii::DoFHandler<dim>::active_cell_iterator,dealii::Point<dim,real>> &cell_index_and_ref_point_of_sampling,
+        const std::vector<real2> &soln_coeff,
+        const std::vector<dealii::types::global_dof_index> &cell_soln_dofs_indices) const;
+
+    //template <typename real2>
+    //std::vector<std::array<real2,nstate>> evaluate_straight_line_sampling_point_soln(
+    //    const std::vector<dealii::Point<dim,real>> &coord_of_sampling,
+    //    const dealii::LinearAlgebra::distributed::Vector<real2> &solution_vector) const;
+
+    //template <typename real2>
+    //std::vector<std::array<dealii::Tensor<1,dim,real2>,nstate>> evaluate_straight_line_sampling_point_soln_grad(
+    //    const std::vector<dealii::Point<dim,real>> &coord_of_sampling,
+    //    const dealii::LinearAlgebra::distributed::Vector<real2> &solution_vector) const;
+
+    //template <typename real2>
+    //std::array<real2,nstate> evaluate_start_point_soln(
+    //    const dealii::LinearAlgebra::distributed::Vector<real2> &solution_vector) const;
+
+    //template <typename real2>
+    //std::array<real2,nstate> evaluate_end_point_soln(
+    //    const dealii::LinearAlgebra::distributed::Vector<real2> &solution_vector) const;
+
+    //template <typename real2>
+    //std::array<dealii::Tensor<1,dim,real2>,nstate> evaluate_start_point_soln_grad(
+    //    const dealii::LinearAlgebra::distributed::Vector<real2> &solution_vector) const;
+
+    //template <typename real2>
+    //std::array<dealii::Tensor<1,dim,real2>,nstate> evaluate_end_point_soln_grad(
+    //    const dealii::LinearAlgebra::distributed::Vector<real2> &solution_vector) const;
 
     /// Function to evaluate straight line integral.
-    real evaluate_straight_line_integral(
+    template<typename real2>
+    real2 evaluate_straight_line_integral(
         const Functional_types &functional_type,
-        const dealii::Point<dim,real> &start_point,
-        const dealii::Point<dim,real> &end_point) const;
+        const std::vector<std::array<real2,nstate>> &soln_of_total_sampling) const;
 
     /// Function to evaluate integrand of straight line integral.
-    real evaluate_straight_line_integrand(
+    template<typename real2>
+    real2 evaluate_straight_line_integrand(
         const Functional_types &functional_type,
-        const dealii::Tensor<1,dim,real> &normal,
-        const std::array<real,nstate> &soln_at_q,
-        const std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_at_q) const;
+        const std::pair<real,real> &values_free_stream,
+        const dealii::Tensor<1,dim,real> &tangential,
+        const std::array<real2,nstate> &soln_at_q) const;
 
     /// Function to evaluate integrand for displacement thickness.
-    real evaluate_displacement_thickness_integrand(
-        const dealii::Tensor<1,dim,real> &normal,
-        const std::array<real,nstate> &soln_at_q) const;
+    template<typename real2>
+    real2 evaluate_displacement_thickness_integrand(
+        const std::pair<real,real> &values_free_stream,
+        const dealii::Tensor<1,dim,real> &tangential,
+        const std::array<real2,nstate> &soln_at_q) const;
 
     /// Function to evaluate integrand for momentum thickness.
-    real evaluate_momentum_thickness_integrand(
-        const dealii::Tensor<1,dim,real> &normal,
-        const std::array<real,nstate> &soln_at_q) const;
+    template<typename real2>
+    real2 evaluate_momentum_thickness_integrand(
+        const std::pair<real,real> &values_free_stream,
+        const dealii::Tensor<1,dim,real> &tangential,
+        const std::array<real2,nstate> &soln_at_q) const;
+
+    /// Function to evaluate kinematic viscosity.
+    template<typename real2>
+    real2 evaluate_kinematic_viscosity(const std::vector<std::array<real2,nstate>> &soln_of_total_sampling) const;
 
     /// Function to evaluate displacement thickness.
-    real evaluate_displacement_thickness() const;
+    template<typename real2>
+    real2 evaluate_displacement_thickness(const std::vector<std::array<real2,nstate>> &soln_of_total_sampling) const;
 
     /// Function to evaluate momentum thickness.
-    real evaluate_momentum_thickness() const;
+    template<typename real2>
+    real2 evaluate_momentum_thickness(const std::vector<std::array<real2,nstate>> &soln_of_total_sampling) const;
 
     /// Function to evaluate edge velocity of boundary layer.
-    real evaluate_edge_velocity() const;
+    template<typename real2>
+    real evaluate_edge_velocity(const std::vector<std::array<real2,nstate>> &soln_of_total_sampling) const;
+
+    /// Function to evaluate shear stress at extraction location.
+    template<typename real2>
+    real2 evaluate_shear_stress(
+        const std::array<real2,nstate> &soln_at_q,
+        const std::array<dealii::Tensor<1,dim,real2>,nstate> &soln_grad_at_q) const;
 
     /// Function to evaluate wall shear stress at extraction location.
-    real evaluate_wall_shear_stress() const;
+    template<typename real2>
+    real2 evaluate_wall_shear_stress(
+        const std::vector<std::array<real2,nstate>> &soln_of_total_sampling,
+        const std::vector<std::array<dealii::Tensor<1,dim,real2>,nstate>> &soln_grad_of_total_sampling) const;
 
     /// Function to evaluate maximum shear stress over extraction line.
-    real evaluate_maximum_shear_stress() const;
+    template<typename real2>
+    real evaluate_maximum_shear_stress(
+        const std::vector<std::array<real2,nstate>> &soln_of_total_sampling,
+        const std::vector<std::array<dealii::Tensor<1,dim,real2>,nstate>> &soln_grad_of_total_sampling) const;
 
     /// Function to evaluate friction velocity at extraction location.
-    real evaluate_friction_velocity() const;
+    template<typename real2>
+    real2 evaluate_friction_velocity(
+        const std::vector<std::array<real2,nstate>> &soln_of_total_sampling,
+        const std::vector<std::array<dealii::Tensor<1,dim,real2>,nstate>> &soln_grad_of_total_sampling) const;
 
     /// Function to evaluate boundary layer thickness at extraction location.
-    real evaluate_boundary_layer_thickness() const;
+    template<typename real2>
+    real evaluate_boundary_layer_thickness(
+        const std::vector<dealii::Point<dim,real>> &coord_of_total_sampling,
+        const std::vector<std::array<real2,nstate>> &soln_of_total_sampling) const;
 
     /// Function to evaluate pressure gradient over tangential direction on solid body at extraction location.
-    real evaluate_pressure_gradient_tangential() const;
+    template<typename real2>
+    real2 evaluate_pressure_gradient_tangential(
+        const std::vector<std::array<real2,nstate>> &soln_of_total_sampling,
+        const std::vector<std::array<dealii::Tensor<1,dim,real2>,nstate>> &soln_grad_of_total_sampling) const;
 
     /// Function to evaluate converged free-stream values, i.e. free-stream velocity and density, over extraction line.
-    void evaluate_converged_free_stream_value();
+    template<typename real2>
+    std::pair<real,real> evaluate_converged_free_stream_values(const std::vector<std::array<real2,nstate>> &soln_of_total_sampling) const;
 };
 
 } // PHiLiP namespace

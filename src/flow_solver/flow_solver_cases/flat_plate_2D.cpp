@@ -89,36 +89,15 @@ void FlatPlate2D<dim,nstate>::steady_state_postprocessing(std::shared_ptr<DGBase
     
         ExtractionFunctional<dim,nstate,double,Triangulation> boundary_layer_extraction(dg, extraction_point, number_of_sampling);
 
-        const double displacement_thickness = boundary_layer_extraction.evaluate_displacement_thickness();
-
-        const double momentum_thickness = boundary_layer_extraction.evaluate_momentum_thickness();
-
-        const double edge_velocity = boundary_layer_extraction.evaluate_edge_velocity();
-
-        const double wall_shear_stress = boundary_layer_extraction.evaluate_wall_shear_stress();
-
-        const double maximum_shear_stress = boundary_layer_extraction.evaluate_maximum_shear_stress();
-
-        const double friction_velocity = boundary_layer_extraction.evaluate_friction_velocity();
-
-        const double boundary_layer_thickness = boundary_layer_extraction.evaluate_boundary_layer_thickness();
-    
-        this->pcout << " Extracted displacement_thickness : "   << displacement_thickness   << std::endl;
-        this->pcout << " Extracted momentum_thickness : "       << momentum_thickness       << std::endl;
-        this->pcout << " Extracted edge_velocity : "            << edge_velocity            << std::endl;
-        this->pcout << " Extracted wall_shear_stress : "        << wall_shear_stress        << std::endl;
-        this->pcout << " Extracted maximum_shear_stress : "     << maximum_shear_stress     << std::endl;
-        this->pcout << " Extracted friction_velocity : "        << friction_velocity        << std::endl;
-        this->pcout << " Extracted boundary_layer_thickness : " << boundary_layer_thickness << std::endl;
-
         dealii::Point<3,double> observer_coord_ref;
         observer_coord_ref[0] = this->all_param.amiet_param.observer_coord_ref_x;
         observer_coord_ref[1] = this->all_param.amiet_param.observer_coord_ref_y;
         observer_coord_ref[2] = this->all_param.amiet_param.observer_coord_ref_z;
 
         AmietModelFunctional<dim,nstate,double,Triangulation> amiet_acoustic_response(dg,boundary_layer_extraction,observer_coord_ref);
-        amiet_acoustic_response.evaluate_wall_pressure_acoustic_spectrum();
-        amiet_acoustic_response.output_wall_pressure_acoustic_spectrum_dat();
+        
+        real OASPL_flat_plat_2D;
+        OASPL_flat_plat_2D = amiet_acoustic_response.evaluate_functional(true,false,false);
     }
 }
 

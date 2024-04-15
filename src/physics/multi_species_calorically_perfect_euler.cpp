@@ -61,6 +61,27 @@ MultiSpeciesCaloricallyPerfect<dim,nstate,real>::MultiSpeciesCaloricallyPerfect 
 //     return conv_flux;
 // }
 
+/// f_M20: species specific heat ratio
+template <int dim, int nstate, typename real>
+inline std::array<real,nstate-dim-1> MultiSpeciesCaloricallyPerfect<dim,nstate,real>
+::compute_species_specific_heat_ratio ( const std::array<real,nstate> &conservative_soln ) const
+{
+    const real temperature = 298.15/this->temperature_ref; 
+    const std::array<real,nstate-dim-1> Cp = this->template compute_species_specific_Cp(temperature);
+    const std::array<real,nstate-dim-1> Cv = this->template compute_species_specific_Cv(temperature);
+    std::array<real,nstate-dim-1> gamma;
+
+    for (int s=0; s<(nstate-dim-1); ++s) 
+    {
+        gamma[s] = Cp[s]/Cv[s];
+    }
+
+    real dummy = conservative_soln[0];
+    dummy += 0.0;
+
+    return gamma;
+}
+
 // Instantiate explicitly
 // TO DO: Modify this when you change number of species
 template class MultiSpeciesCaloricallyPerfect < PHILIP_DIM, PHILIP_DIM+2+3-1, double     >;

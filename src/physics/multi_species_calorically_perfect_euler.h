@@ -32,6 +32,12 @@ public:
 //     std::array<dealii::Tensor<1,dim,real>,nstate> convective_flux ( 
 //         const std::array<real,nstate> &conservative_soln) const override;
     
+/// Suporting functions
+protected:
+    /// f_S20: Compute species specific heat ratio from conservative_soln
+    std::array<real,nstate-dim-1> compute_species_specific_heat_ratio ( const std::array<real,nstate> &conservative_soln ) const override;
+
+
 };
 
 } // Physics namespace

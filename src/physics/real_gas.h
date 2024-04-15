@@ -182,7 +182,7 @@ protected:
 
 protected:
     /// f_S20: Compute species specific heat ratio from conservative_soln
-    std::array<real,nstate-dim-1> compute_species_specific_heat_ratio ( const std::array<real,nstate> &conservative_soln ) const;
+    virtual std::array<real,nstate-dim-1> compute_species_specific_heat_ratio ( const std::array<real,nstate> &conservative_soln ) const;
 
     /// f_M21: Compute species speed of soound from conservative_soln 
     std::array<real,nstate-dim-1> compute_species_speed_of_sound ( const std::array<real,nstate> &conservative_soln ) const;

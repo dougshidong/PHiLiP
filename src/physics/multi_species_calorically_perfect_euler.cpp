@@ -61,6 +61,21 @@ MultiSpeciesCaloricallyPerfect<dim,nstate,real>::MultiSpeciesCaloricallyPerfect 
 //     return conv_flux;
 // }
 
+/// f_M16: compute_mixture_pressure
+template <int dim, int nstate, typename real>
+inline real MultiSpeciesCaloricallyPerfect<dim,nstate,real>
+::compute_mixture_pressure ( const std::array<real,nstate> &conservative_soln ) const
+{
+    const real mixture_density = conservative_soln[0]; // TO DO: use compute_mixture_density
+    const std::array<real,nstate-dim-1> gamma = compute_species_specific_heat_ratio(conservative_soln);
+    const std::array<real,nstate-dim-1> mass_fractions = this->template compute_mass_fractions(conservative_soln);
+    const real mixture_gamma = this->template compute_mixture_from_species(mass_fractions,gamma);
+    const real E = this->template compute_mixture_specific_total_energy(conservative_soln);
+    const real k = this->template compute_specific_kinetic_energy(conservative_soln);
+    const real mixture_pressure = mixture_density*(mixture_gamma*this->gam_ref-1.0)*(E-k);
+
+    return mixture_pressure;
+}
 /// f_M20: species specific heat ratio
 template <int dim, int nstate, typename real>
 inline std::array<real,nstate-dim-1> MultiSpeciesCaloricallyPerfect<dim,nstate,real>

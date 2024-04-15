@@ -32,6 +32,9 @@ public:
 //     std::array<dealii::Tensor<1,dim,real>,nstate> convective_flux ( 
 //         const std::array<real,nstate> &conservative_soln) const override;
     
+    /// f_M16: Compute mixture pressure from conservative_soln
+    real compute_mixture_pressure ( const std::array<real,nstate> &conservative_soln ) const override;    
+
 /// Suporting functions
 protected:
     /// f_S20: Compute species specific heat ratio from conservative_soln

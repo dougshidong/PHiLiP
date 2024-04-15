@@ -1202,7 +1202,7 @@ void NavierStokes<dim,nstate,real>
    std::array<real,nstate> &soln_bc,
    std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_bc) const
 {
-    // using thermal_boundary_condition_enum = Parameters::NavierStokesParam::ThermalBoundaryCondition;
+    using thermal_boundary_condition_enum = Parameters::NavierStokesParam::ThermalBoundaryCondition;
 
     // No-slip wall boundary conditions
 
@@ -1216,6 +1216,10 @@ void NavierStokes<dim,nstate,real>
     // -- gradient of solution at boundary
     for (int istate=0; istate<nstate; ++istate) {
         soln_grad_bc[istate] = soln_grad_int[istate];
+    }
+    // If adiabatic wall, set gradient to zero
+    if(thermal_boundary_condition_type == thermal_boundary_condition_enum::adiabatic){
+        soln_grad_bc[nstate] = 0.0;
     }
 }
 

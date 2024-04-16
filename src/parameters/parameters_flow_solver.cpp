@@ -28,6 +28,7 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
                           " channel_flow | "
                           " isentropic_vortex | "
                           " kelvin_helmholtz_instability | "
+                          " dipole_wall_collision | "
                           " non_periodic_cube_flow "),
                           "The type of flow we want to simulate. "
                           "Choices are "
@@ -44,6 +45,7 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
                           " channel_flow | "
                           " isentropic_vortex | "
                           " kelvin_helmholtz_instability | "
+                          " dipole_wall_collision | "
                           " non_periodic_cube_flow>. ");
 
         prm.declare_entry("poly_degree", "1",
@@ -332,6 +334,7 @@ void FlowSolverParam::parse_parameters(dealii::ParameterHandler &prm)
         else if (flow_case_type_string == "kelvin_helmholtz_instability")   
                                                                         {flow_case_type = kelvin_helmholtz_instability;}
         else if (flow_case_type_string == "non_periodic_cube_flow")     {flow_case_type = non_periodic_cube_flow;}
+        else if (flow_case_type_string == "dipole_wall_collision")      {flow_case_type = dipole_wall_collision;}
 
         poly_degree = prm.get_integer("poly_degree");
         

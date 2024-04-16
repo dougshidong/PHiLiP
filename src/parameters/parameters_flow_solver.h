@@ -29,6 +29,7 @@ public:
         channel_flow,
         isentropic_vortex,
         kelvin_helmholtz_instability,
+        dipole_wall_collision,
         non_periodic_cube_flow
         };
     FlowCaseType flow_case_type; ///< Selected FlowCaseType from the input file

@@ -11,6 +11,7 @@ set(FLOW_SOLVER_SOURCE
     flow_solver_cases/naca0012.cpp
     flow_solver_cases/gaussian_bump.cpp
     flow_solver_cases/channel_flow.cpp
+    flow_solver_cases/dipole_wall_collision.cpp
     flow_solver.cpp
     flow_solver_factory.cpp)
 

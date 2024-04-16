@@ -148,6 +148,10 @@ public:
     /// Constructor for NavierStokesBase
     InitialConditionFunction_NavierStokesBase (
             Parameters::AllParameters const *const param);
+
+    const double gamma_gas; ///< Constant heat capacity ratio of fluid.
+    const double mach_inf; ///< Farfield Mach number.
+    const double mach_inf_sqr; ///< Farfield Mach number squared.
         
     /// Value of initial condition expressed in terms of conservative variables
     real value (const dealii::Point<dim,real> &point, const unsigned int istate = 0) const override;
@@ -167,9 +171,6 @@ protected:
 template <int dim, int nstate, typename real>
 class InitialConditionFunction_TaylorGreenVortex : public InitialConditionFunction_NavierStokesBase<dim,nstate,real>
 {
-protected:
-    using dealii::Function<dim,real>::value; ///< dealii::Function we are templating on
-
 public:
     /// Constructor for TaylorGreenVortex_InitialCondition with uniform density
     /** Calls the Function(const unsigned int n_components) constructor in deal.II
@@ -181,10 +182,6 @@ public:
      */
     InitialConditionFunction_TaylorGreenVortex (
             Parameters::AllParameters const *const param);
-
-    const double gamma_gas; ///< Constant heat capacity ratio of fluid.
-    const double mach_inf; ///< Farfield Mach number.
-    const double mach_inf_sqr; ///< Farfield Mach number squared.
 
 protected:
     /// Value of initial condition expressed in terms of primitive variables
@@ -216,6 +213,28 @@ public:
 protected:
     /// Value of initial condition for density
     real density(const dealii::Point<dim,real> &point) const override;
+};
+
+/// Initial Condition Function: Dipole Wall Collision
+template <int dim, int nstate, typename real>
+class InitialConditionFunction_DipoleWallCollision : public InitialConditionFunction_NavierStokesBase<dim,nstate,real>
+{
+public:
+    /// Constructor
+    /** Calls the Function(const unsigned int n_components) constructor in deal.II
+     *  This sets the public attribute n_components = nstate, which can then be accessed
+     *  by all the other functions
+     *  Reference: 
+     *  These initial conditions are given in nondimensional form (free-stream as reference)
+     */
+    InitialConditionFunction_DipoleWallCollision (
+            Parameters::AllParameters const *const param);
+
+    double extremum_vorticity_value; // Extremum vorticity value
+
+protected:
+    /// Value of initial condition expressed in terms of primitive variables
+    real primitive_value(const dealii::Point<dim,real> &point, const unsigned int istate = 0) const override;
 };
 
 /// Initial Condition Function: 1D Burgers Rewienski

@@ -231,18 +231,13 @@ real InitialConditionFunction_NavierStokesBase<dim,nstate,real>
     const dealii::Point<dim,real> &point, const unsigned int istate) const
 {
     real value = 0.0;
-    if constexpr(dim == 3) {
-        std::array<real,nstate> soln_primitive;
-
-        soln_primitive[0] = primitive_value(point,0);
-        soln_primitive[1] = primitive_value(point,1);
-        soln_primitive[2] = primitive_value(point,2);
-        soln_primitive[3] = primitive_value(point,3);
-        soln_primitive[4] = primitive_value(point,4);
-
-        const std::array<real,nstate> soln_conservative = this->euler_physics->convert_primitive_to_conservative(soln_primitive);
-        value = soln_conservative[istate];
+    
+    std::array<real,nstate> soln_primitive;
+    for (int i=0; i<nstate; ++i){
+        soln_primitive[i] = primitive_value(point,i);
     }
+    const std::array<real,nstate> soln_conservative = this->euler_physics->convert_primitive_to_conservative(soln_primitive);
+    value = soln_conservative[istate];
 
     return value;
 }

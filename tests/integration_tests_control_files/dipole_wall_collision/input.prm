@@ -1,0 +1,109 @@
+# Listing of Parameters
+# ---------------------
+ 
+# Solver dim and run type
+set dimension = 2
+set run_type = flow_simulation
+ 
+# DG related parameters
+set overintegration = 0
+set use_weak_form = false
+set flux_nodes_type = GL
+set use_split_form = true
+set use_curvilinear_split_form = false
+set use_weight_adjusted_mass = false
+set all_boundaries_are_periodic = false
+set check_same_coords_in_weak_dg = false
+set flux_reconstruction = cDG
+set flux_reconstruction_aux = kDG
+set use_inverse_mass_on_the_fly = true
+ 
+# PDE
+set pde_type = navier_stokes
+set model_type = large_eddy_simulation
+ 
+# numerical fluxes
+set two_point_num_flux_type = IR
+set conv_num_flux = roe
+#set conv_num_flux = two_point_flux
+set diss_num_flux = symm_internal_penalty
+#set diss_num_flux = bassi_rebay_2
+ 
+# additional parameters
+set solution_vtk_files_directory_name = solution_files
+set output_high_order_grid = false
+set enable_higher_order_vtk_output = true
+set do_renumber_dofs = false
+ 
+# ODE solver
+subsection ODE solver
+  set ode_output = quiet
+  set ode_solver_type = runge_kutta
+  set output_solution_every_x_steps = 10000
+  set output_solution_at_fixed_times = false
+  set runge_kutta_method = ssprk3_ex
+end
+ 
+# Euler; freestream Mach number
+subsection euler
+  set reference_length = 1.0
+  set mach_infinity = 0.01
+  set gamma_gas = 1.4
+end
+ 
+# Navier-Stokes; freestream Reynolds number and Prandtl number
+subsection navier_stokes
+  set prandtl_number = 0.71
+  set reynolds_number_inf = 1000
+  set temperature_inf = 273.15
+  set nondimensionalized_isothermal_wall_temperature = 1.0
+  set thermal_boundary_condition_type = adiabatic
+  set use_constant_viscosity = true
+  set nondimensionalized_constant_viscosity = 1.0
+end
+ 
+# Physics Model
+subsection physics_model
+  set euler_turbulence = false
+  subsection large_eddy_simulation
+    set SGS_model_type = smagorinsky
+    set turbulent_prandtl_number = 0.6
+    set smagorinsky_model_constant = 0.10
+    set WALE_model_constant = 0.10
+    set vreman_model_constant = 0.10
+    set ratio_of_filter_width_to_cell_size = 1.0
+    set do_compute_filtered_solution = false
+    set apply_modal_high_pass_filter_on_filtered_solution = false
+    set poly_degree_max_large_scales = 4
+    set dynamic_smagorinsky_model_constant_clipping_limit = 0.01
+    set apply_low_reynolds_number_eddy_viscosity_correction = false
+  end
+end
+ 
+# Flow Solver
+subsection flow_solver
+  set flow_case_type = dipole_wall_collision
+  set poly_degree = 3
+  set final_time = 1.0
+  set constant_time_step = 0.00001
+  set courant_friedrichs_lewy_number = 0.1
+  set unsteady_data_table_filename = turbulent_quantities
+  set steady_state = false
+  set adaptive_time_step = false
+  set output_restart_files = false
+  set restart_files_directory_name = restart_files
+  set output_restart_files_every_dt_time_intervals = 1.0
+  subsection grid
+    set grid_degree = 1
+  end
+  subsection grid
+    set grid_left_bound = -1.0
+    set grid_right_bound = 1.0
+    set number_of_grid_elements_per_dimension = 8
+  end
+  set apply_initial_condition_method = project_initial_condition_function
+  subsection output_velocity_field
+    set output_velocity_field_at_fixed_times = false
+  end
+  set do_compute_unsteady_data_and_write_to_table = true
+end

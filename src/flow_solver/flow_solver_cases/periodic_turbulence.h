@@ -15,7 +15,7 @@ class PeriodicTurbulence : public PeriodicCubeFlow<dim,nstate>
     /** Number of different computed quantities
      *  Corresponds to the number of items in IntegratedQuantitiesEnum
      * */
-    static const int NUMBER_OF_INTEGRATED_QUANTITIES = 5;
+    static const int NUMBER_OF_INTEGRATED_QUANTITIES = 7;
 
 public:
     /// Constructor.
@@ -42,6 +42,12 @@ public:
      *                Computers & Fluids 221 (2021): 104922.
      * */
     double get_integrated_enstrophy() const;
+
+    /// Gets the nondimensional integrated incompressible kinetic energy given a DG object from dg->solution
+    double get_integrated_incompressible_kinetic_energy() const;
+
+    /// Gets the nondimensional integrated incompressible enstrophy given a DG object from dg->solution
+    double get_integrated_incompressible_enstrophy() const;
 
     /** Gets non-dimensional theoretical vorticity tensor based dissipation rate 
      *  Note: For incompressible flows or when dilatation effects are negligible 
@@ -140,7 +146,9 @@ protected:
         enstrophy,
         pressure_dilatation,
         deviatoric_strain_rate_tensor_magnitude_sqr,
-        strain_rate_tensor_magnitude_sqr
+        strain_rate_tensor_magnitude_sqr,
+        incompressible_kinetic_energy,
+        incompressible_enstrophy
     };
     /// Array for storing the integrated quantities; done for computational efficiency
     std::array<double,NUMBER_OF_INTEGRATED_QUANTITIES> integrated_quantities;

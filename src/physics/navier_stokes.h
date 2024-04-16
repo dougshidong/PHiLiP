@@ -197,6 +197,11 @@ public:
         const std::array<real,nstate> &conservative_soln,
         const std::array<dealii::Tensor<1,dim,real>,nstate> &conservative_soln_gradient) const;
 
+    /// Evaluate incompressible enstrophy from conservative variables and gradient of conservative variables
+    real compute_incompressible_enstrophy (
+        const std::array<real,nstate> &conservative_soln,
+        const std::array<dealii::Tensor<1,dim,real>,nstate> &conservative_soln_gradient) const;
+
     /** Evaluate non-dimensional theoretical vorticity-based dissipation rate integrated enstrophy. 
      *  Note: For incompressible flows or when dilatation effects are negligible
      *  -- Reference: Cox, Christopher, et al. "Accuracy, stability, and performance comparison 

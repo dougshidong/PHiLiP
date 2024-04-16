@@ -544,6 +544,8 @@ void PeriodicTurbulence<dim, nstate>::compute_and_update_integrated_quantities(D
             integrand_values[IntegratedQuantitiesEnum::pressure_dilatation] = this->navier_stokes_physics->compute_pressure_dilatation(soln_at_q,soln_grad_at_q);
             integrand_values[IntegratedQuantitiesEnum::deviatoric_strain_rate_tensor_magnitude_sqr] = this->navier_stokes_physics->compute_deviatoric_strain_rate_tensor_magnitude_sqr(soln_at_q,soln_grad_at_q);
             integrand_values[IntegratedQuantitiesEnum::strain_rate_tensor_magnitude_sqr] = this->navier_stokes_physics->compute_strain_rate_tensor_magnitude_sqr(soln_at_q,soln_grad_at_q);
+            integrand_values[IntegratedQuantitiesEnum::incompressible_kinetic_energy] = this->navier_stokes_physics->compute_incompressible_kinetic_energy_from_conservative_solution(soln_at_q);
+            integrand_values[IntegratedQuantitiesEnum::incompressible_enstrophy] = this->navier_stokes_physics->compute_incompressible_enstrophy(soln_at_q,soln_grad_at_q);
 
             for(int i_quantity=0; i_quantity<NUMBER_OF_INTEGRATED_QUANTITIES; ++i_quantity) {
                 integral_values[i_quantity] += integrand_values[i_quantity] * quad_weights[iquad] * metric_oper.det_Jac_vol[iquad];
@@ -583,6 +585,18 @@ template<int dim, int nstate>
 double PeriodicTurbulence<dim, nstate>::get_integrated_enstrophy() const
 {
     return this->integrated_quantities[IntegratedQuantitiesEnum::enstrophy];
+}
+
+template<int dim, int nstate>
+double PeriodicTurbulence<dim, nstate>::get_integrated_incompressible_kinetic_energy() const
+{
+    return this->integrated_quantities[IntegratedQuantitiesEnum::incompressible_kinetic_energy];
+}
+
+template<int dim, int nstate>
+double PeriodicTurbulence<dim, nstate>::get_integrated_incompressible_enstrophy() const
+{
+    return this->integrated_quantities[IntegratedQuantitiesEnum::incompressible_enstrophy];
 }
 
 template<int dim, int nstate>
@@ -748,7 +762,9 @@ void PeriodicTurbulence<dim, nstate>::compute_unsteady_data_and_write_to_table(
     const double pressure_dilatation_based_dissipation_rate = this->get_pressure_dilatation_based_dissipation_rate();
     const double deviatoric_strain_rate_tensor_based_dissipation_rate = this->get_deviatoric_strain_rate_tensor_based_dissipation_rate();
     const double strain_rate_tensor_based_dissipation_rate = this->get_strain_rate_tensor_based_dissipation_rate();
-    
+    const double integrated_incompressible_kinetic_energy = this->get_integrated_incompressible_kinetic_energy();
+    const double integrated_incompressible_enstrophy = this->get_integrated_incompressible_enstrophy();
+
     double numerical_entropy = 0;
     if (do_calculate_numerical_entropy) numerical_entropy = this->get_numerical_entropy(dg);
 
@@ -762,6 +778,8 @@ void PeriodicTurbulence<dim, nstate>::compute_unsteady_data_and_write_to_table(
         this->add_value_to_data_table(pressure_dilatation_based_dissipation_rate,"eps_pressure",unsteady_data_table);
         if(is_viscous_flow) this->add_value_to_data_table(strain_rate_tensor_based_dissipation_rate,"eps_strain",unsteady_data_table);
         if(is_viscous_flow) this->add_value_to_data_table(deviatoric_strain_rate_tensor_based_dissipation_rate,"eps_dev_strain",unsteady_data_table);
+        this->add_value_to_data_table(integrated_incompressible_kinetic_energy,"incompressible_kinetic_energy",unsteady_data_table);
+        this->add_value_to_data_table(integrated_incompressible_enstrophy,"incompressible_enstrophy",unsteady_data_table);
         // Write to file
         std::ofstream unsteady_data_table_file(this->unsteady_data_table_filename_with_extension);
         unsteady_data_table->write_text(unsteady_data_table_file);

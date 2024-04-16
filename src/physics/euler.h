@@ -284,8 +284,14 @@ public:
     /// Given primitive variables, returns kinetic energy
     real compute_kinetic_energy_from_primitive_solution ( const std::array<real,nstate> &primitive_soln ) const;
 
+    /// Given primitive variables, returns incompressible kinetic energy
+    real compute_incompressible_kinetic_energy_from_primitive_solution ( const std::array<real,nstate> &primitive_soln ) const;
+
     /// Given conservative variables, returns kinetic energy
     real compute_kinetic_energy_from_conservative_solution ( const std::array<real,nstate> &conservative_soln ) const;
+
+    /// Given conservative variables, returns incompressible kinetic energy
+    real compute_incompressible_kinetic_energy_from_conservative_solution ( const std::array<real,nstate> &conservative_soln ) const;
 
     /// Evaluate entropy from conservative variables
     /** Note that it is not the actual entropy since it's missing some constants.

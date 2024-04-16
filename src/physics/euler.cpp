@@ -378,10 +378,29 @@ inline real Euler<dim,nstate,real>
 
 template <int dim, int nstate, typename real>
 inline real Euler<dim,nstate,real>
+::compute_incompressible_kinetic_energy_from_primitive_solution ( const std::array<real,nstate> &primitive_soln ) const
+{
+    const dealii::Tensor<1,dim,real> velocities = extract_velocities_from_primitive<real>(primitive_soln);
+    const real vel2 = compute_velocity_squared<real>(velocities);
+    const real kinetic_energy = 0.5*vel2;
+    return kinetic_energy;
+}
+
+template <int dim, int nstate, typename real>
+inline real Euler<dim,nstate,real>
 ::compute_kinetic_energy_from_conservative_solution ( const std::array<real,nstate> &conservative_soln ) const
 {
     const std::array<real,nstate> primitive_soln = convert_conservative_to_primitive_templated<real>(conservative_soln);
     const real kinetic_energy = compute_kinetic_energy_from_primitive_solution(primitive_soln);
+    return kinetic_energy;
+}
+
+template <int dim, int nstate, typename real>
+inline real Euler<dim,nstate,real>
+::compute_incompressible_kinetic_energy_from_conservative_solution ( const std::array<real,nstate> &conservative_soln ) const
+{
+    const std::array<real,nstate> primitive_soln = convert_conservative_to_primitive_templated<real>(conservative_soln);
+    const real kinetic_energy = compute_incompressible_kinetic_energy_from_primitive_solution(primitive_soln);
     return kinetic_energy;
 }
 

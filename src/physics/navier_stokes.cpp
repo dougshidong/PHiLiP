@@ -1237,7 +1237,7 @@ void NavierStokes<dim,nstate,real>
     }
     // If adiabatic wall, set gradient to zero
     if(thermal_boundary_condition_type == thermal_boundary_condition_enum::adiabatic){
-        soln_grad_bc[nstate] = 0.0;
+        soln_grad_bc[nstate-1] = 0.0;
     }
 }
 

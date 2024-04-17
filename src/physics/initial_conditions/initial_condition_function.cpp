@@ -352,9 +352,9 @@ real InitialConditionFunction_DipoleWallCollision<dim,nstate,real>
         const real x = point[0], y = point[1];
         // center coordinates for dipoles 1 and 2
         const real x1 = 0.0;
-        const real y1 = -0.1;
+        const real y1 = 0.1;
         const real x2 = 0.0;
-        const real y2 = 0.1;
+        const real y2 = -0.1;
         // corresponding radii (non-dimensional)
         const real r0 = 0.1;
         const real r1 = sqrt((x-x1)*(x-x1) + (y-y1)*(y-y1));

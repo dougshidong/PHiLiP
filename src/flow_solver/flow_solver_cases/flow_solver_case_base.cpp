@@ -90,7 +90,10 @@ std::string FlowSolverCaseBase<dim, nstate>::get_flow_case_string() const
     if (flow_case_type == FlowCaseEnum::naca0012)                   {flow_case_string = "naca0012";}
     if (flow_case_type == FlowCaseEnum::periodic_1D_unsteady)       {flow_case_string = "periodic_1D_unsteady";}
     if (flow_case_type == FlowCaseEnum::gaussian_bump)              {flow_case_string = "gaussian_bump";}
-    if (flow_case_type == FlowCaseEnum::dipole_wall_collision)      {flow_case_string = "dipole_wall_collision";}
+    if (flow_case_type == FlowCaseEnum::dipole_wall_collision_normal)
+                                                                    {flow_case_string = "dipole_wall_collision_normal";}
+    if (flow_case_type == FlowCaseEnum::dipole_wall_collision_oblique)
+                                                                    {flow_case_string = "dipole_wall_collision_oblique";}
     
     return flow_case_string;
 }

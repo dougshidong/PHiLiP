@@ -56,8 +56,8 @@ std::shared_ptr<Triangulation> DipoleWallCollision<dim,nstate>::generate_grid() 
         if(!this->is_oblique) {
             // grid_type_string = "Doubly periodic square.";
             std::vector<dealii::GridTools::PeriodicFacePair<typename dealii::Triangulation<dim>::cell_iterator> > matched_pairs;
-            dealii::GridTools::collect_periodic_faces(*grid,0,1,0,matched_pairs); // x-direction
-            // dealii::GridTools::collect_periodic_faces(*grid,2,3,1,matched_pairs); // y-direction
+            // dealii::GridTools::collect_periodic_faces(*grid,0,1,0,matched_pairs); // x-direction
+            dealii::GridTools::collect_periodic_faces(*grid,2,3,1,matched_pairs); // y-direction
             // dealii::GridTools::collect_periodic_faces(*grid,4,5,2,matched_pairs); // z-direction
             grid->add_periodicity(matched_pairs);
         }
@@ -71,9 +71,9 @@ std::shared_ptr<Triangulation> DipoleWallCollision<dim,nstate>::generate_grid() 
             if (cell->face(face)->at_boundary()) {
                 unsigned int current_id = cell->face(face)->boundary_id();
                 if(this->is_oblique) {
-                    if (current_id == 0 || current_id == 1) cell->face(face)->set_boundary_id (1001); // Left and right wall
+                    if (current_id == 2 || current_id == 3) cell->face(face)->set_boundary_id (1001); // Bottom and top wall
                 }
-                if (current_id == 2 || current_id == 3) cell->face(face)->set_boundary_id (1001); // Bottom and top wall
+                if (current_id == 0 || current_id == 1) cell->face(face)->set_boundary_id (1001); // Left and right wall
                 // could simply introduce different boundary id if using a wall model
             }
         }

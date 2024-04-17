@@ -18,8 +18,9 @@ namespace FlowSolver {
 //=========================================================
 template <int dim, int nstate>
 DipoleWallCollision<dim, nstate>::DipoleWallCollision(const PHiLiP::Parameters::AllParameters *const parameters_input,
-                                                      const bool is_oblique)
+                                                      const bool is_oblique_)
         : PeriodicTurbulence<dim, nstate>(parameters_input)
+        , is_oblique(is_oblique_)
 { }
 
 template <int dim, int nstate>

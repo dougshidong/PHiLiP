@@ -19,10 +19,12 @@ class DipoleWallCollision : public PeriodicTurbulence<dim,nstate>
 public:
     /// Constructor.
     DipoleWallCollision(const Parameters::AllParameters *const parameters_input,
-                        const bool is_oblique=false);
+                        const bool is_oblique_=false);
 
     /// Destructor
     ~DipoleWallCollision() {};
+
+    const bool is_oblique; /// Flag to distinguish if oblique case
 
     /// Function to generate the grid
     std::shared_ptr<Triangulation> generate_grid() const override;

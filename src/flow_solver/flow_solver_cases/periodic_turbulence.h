@@ -49,6 +49,9 @@ public:
     /// Gets the nondimensional integrated incompressible enstrophy given a DG object from dg->solution
     double get_integrated_incompressible_enstrophy() const;
 
+    /// Gets the nondimensional integrated incompressible palinstrophy given a DG object from dg->solution
+    double get_integrated_incompressible_palinstrophy() const;
+
     /** Gets non-dimensional theoretical vorticity tensor based dissipation rate 
      *  Note: For incompressible flows or when dilatation effects are negligible 
      *  -- Reference: Cox, Christopher, et al. "Accuracy, stability, and performance comparison 

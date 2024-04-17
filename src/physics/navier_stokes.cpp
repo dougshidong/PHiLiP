@@ -456,6 +456,24 @@ real NavierStokes<dim,nstate,real>
 
 template <int dim, int nstate, typename real>
 real NavierStokes<dim,nstate,real>
+::compute_incompressible_palinstrophy (
+    const std::array<real,nstate> &/*conservative_soln*/,
+    const std::array<dealii::Tensor<1,dim,real>,3> &vorticity_gradient) const
+{
+    // Compute vorticity gradient magnitude squared
+    real vorticity_gradient_magnitude_sqr = 0.0;
+    for(int istate=0; istate<3; ++istate) {
+        for(int d=0; d<dim; ++d) {
+            vorticity_gradient_magnitude_sqr += vorticity_gradient[istate][d]*vorticity_gradient[istate][d];
+        }
+    }
+    // Compute incompressible palinstrophy
+    const real palinstrophy = 0.5*vorticity_magnitude_sqr;
+    return palinstrophy;
+}
+
+template <int dim, int nstate, typename real>
+real NavierStokes<dim,nstate,real>
 ::compute_vorticity_based_dissipation_rate_from_integrated_enstrophy (
     const real integrated_enstrophy) const
 {

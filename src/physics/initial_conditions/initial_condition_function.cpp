@@ -343,10 +343,10 @@ InitialConditionFunction_DipoleWallCollision<dim,nstate,real>
     : InitialConditionFunction_NavierStokesBase<dim,nstate,real>(param)
     , extremum_vorticity_value(extremum_vorticity_value_)
     , r0(dipole_radius)
-    , x1(dipole_radius*cos(dipole_angle_to_x_axis_in_degrees*(3.141592653589793238/180.0)))
-    , y1(dipole_radius*sin(dipole_angle_to_x_axis_in_degrees*(3.141592653589793238/180.0)))
-    , x2(-dipole_radius*cos(dipole_angle_to_x_axis_in_degrees*(3.141592653589793238/180.0)))
-    , y2(-dipole_radius*sin(dipole_angle_to_x_axis_in_degrees*(3.141592653589793238/180.0)))
+    , x1(dipole_radius*cos(dipole_axis_angle_wrt_x_axis_in_degrees*(3.141592653589793238/180.0)))
+    , y1(dipole_radius*sin(dipole_axis_angle_wrt_x_axis_in_degrees*(3.141592653589793238/180.0)))
+    , x2(-dipole_radius*cos(dipole_axis_angle_wrt_x_axis_in_degrees*(3.141592653589793238/180.0)))
+    , y2(-dipole_radius*sin(dipole_axis_angle_wrt_x_axis_in_degrees*(3.141592653589793238/180.0)))
 { }
 
 template <int dim, int nstate, typename real>

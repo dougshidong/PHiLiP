@@ -59,6 +59,7 @@ std::shared_ptr<Triangulation> DipoleWallCollision<dim,nstate>::generate_grid() 
         // dealii::GridTools::collect_periodic_faces(*grid,4,5,2,matched_pairs); // z-direction
         grid->add_periodicity(matched_pairs);
     }
+    grid->refine_global(number_of_refinements);
     // assign wall boundary conditions
     for (typename Triangulation::active_cell_iterator cell = grid->begin_active(); cell != grid->end(); ++cell) {
         if (!cell->is_locally_owned()) continue;
@@ -71,7 +72,6 @@ std::shared_ptr<Triangulation> DipoleWallCollision<dim,nstate>::generate_grid() 
             }
         }
     }
-    grid->refine_global(number_of_refinements);    
 
     return grid;
 }

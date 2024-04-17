@@ -93,6 +93,10 @@ real ExtractionFunctional<dim,nstate,real,MeshType>
                       const bool compute_d2I)
 {
     // Todo: this function is no longer needed once a new class is built for extraction
+    (void) compute_dIdW;
+    (void) compute_dIdX;
+    (void) compute_d2I;
+
     double value = 0.0;
     return value;
 }
@@ -170,7 +174,7 @@ void ExtractionFunctional<dim,nstate,real,MeshType>
 //----------------------------------------------------------------
 template <int dim,int nstate,typename real,typename MeshType>
 std::vector<dealii::Point<dim,real>> ExtractionFunctional<dim,nstate,real,MeshType>
-::evaluate_straight_line_sampling_point_coord()
+::evaluate_straight_line_sampling_point_coord() const
 {
     std::vector<dealii::Point<dim,real>> coord_of_sampling;
     coord_of_sampling.resize(number_of_sampling);
@@ -193,11 +197,11 @@ std::vector<dealii::Point<dim,real>> ExtractionFunctional<dim,nstate,real,MeshTy
 //----------------------------------------------------------------
 template <int dim,int nstate,typename real,typename MeshType>
 std::vector<dealii::Point<dim,real>> ExtractionFunctional<dim,nstate,real,MeshType>
-::evaluate_straight_line_total_sampling_point_coord()
+::evaluate_straight_line_total_sampling_point_coord() const
 {
     std::vector<dealii::Point<dim,real>> coord_of_sampling;
 
-    coord_of_sampling = this->evaluate_straight_line_sampling_point_coord()
+    coord_of_sampling = this->evaluate_straight_line_sampling_point_coord();
 
     std::vector<dealii::Point<dim,real>> coord_of_total_sampling;
 
@@ -213,21 +217,21 @@ std::vector<dealii::Point<dim,real>> ExtractionFunctional<dim,nstate,real,MeshTy
 }
 //----------------------------------------------------------------
 template <int dim,int nstate,typename real,typename MeshType>
-std::vector<std::pair<dealii::DoFHandler<dim>::active_cell_iterator,dealii::Point<dim,real>>> ExtractionFunctional<dim,nstate,real,MeshType>
+std::vector<std::pair<typename dealii::DoFHandler<dim>::active_cell_iterator,typename dealii::Point<dim,real>>> ExtractionFunctional<dim,nstate,real,MeshType>
 ::find_active_cell_around_points(
-        const dealii::hp::MappingCollection<dim> mapping_collection,
-        const dealii::DoFHandler<dim> dof_handler,
-        const std::vector<dealii::Point<dim,real>> coord_of_total_sampling)
+        const dealii::hp::MappingCollection<dim> &mapping_collection,
+        const dealii::DoFHandler<dim> &dof_handler,
+        const std::vector<dealii::Point<dim,real>> &coord_of_total_sampling) const 
 {
-    std::vector<std::pair<dealii::DoFHandler<dim>::active_cell_iterator,dealii::Point<dim,real>>> cell_index_and_ref_points_of_total_sampling;
-    number_of_total_sampling = coord_of_total_sampling.size();
-    if(number_of_total_sampling != number_of_sampling+2){
-        std::cout << "ERROR: The number of total sampling is not provided correctly..." << std::endl;
-        std::abort();
-    }
+    std::vector<std::pair<typename dealii::DoFHandler<dim>::active_cell_iterator,typename dealii::Point<dim,real>>> cell_index_and_ref_points_of_total_sampling;
+    //number_of_total_sampling = coord_of_total_sampling.size();
+    //if(number_of_total_sampling != number_of_sampling+2){
+    //    std::cout << "ERROR: The number of total sampling is not provided correctly..." << std::endl;
+    //    std::abort();
+    //}
 
     for(int i=0;i<number_of_total_sampling;++i){
-        cell_index_and_ref_points_of_total_sampling = dealii::GridTools::find_active_cell_around_point(mapping_collection,
+        cell_index_and_ref_points_of_total_sampling[i] = dealii::GridTools::find_active_cell_around_point(mapping_collection,
                                                                                                        dof_handler,
                                                                                                        coord_of_total_sampling[i]);
     }
@@ -241,9 +245,9 @@ std::array<real2,nstate> ExtractionFunctional<dim,nstate,real,MeshType>
 ::point_value(const dealii::Point<dim,real> &coord_of_sampling,
               const dealii::hp::MappingCollection<dim> &mapping_collection,
               const dealii::hp::FECollection<dim> &fe_collection,
-              const std::pair<dealii::DoFHandler<dim>::active_cell_iterator,dealii::Point<dim,real>> &cell_index_and_ref_point_of_sampling,
+              const std::pair<typename dealii::DoFHandler<dim>::active_cell_iterator,typename dealii::Point<dim,real>> &cell_index_and_ref_point_of_sampling,
               const std::vector<real2> &soln_coeff,
-              const std::vector<dealii::types::global_dof_index> &cell_soln_dofs_indices)
+              const std::vector<dealii::types::global_dof_index> &cell_soln_dofs_indices) const
 {
     const dealii::Quadrature<dim> quadrature(dealii::GeometryInfo<dim>::project_to_unit_cell(cell_index_and_ref_point_of_sampling.second));
     dealii::hp::FEValues<dim, dim> hp_fe_values(mapping_collection,
@@ -251,7 +255,7 @@ std::array<real2,nstate> ExtractionFunctional<dim,nstate,real,MeshType>
                                                 dealii::hp::QCollection<dim>(quadrature),
                                                 dealii::update_values);
     hp_fe_values.reinit(cell_index_and_ref_point_of_sampling.first);
-    const FEValues<dim, dim> &fe_values = hp_fe_values.get_present_fe_values();
+    const dealii::FEValues<dim, dim> &fe_values = hp_fe_values.get_present_fe_values();
 
     std::vector<dealii::Vector<real2>> u_value(1, dealii::Vector<real2>(fe_collection.n_components()));
     fe_values.get_function_values(soln_coeff, cell_soln_dofs_indices, u_value);
@@ -271,9 +275,9 @@ std::array<dealii::Tensor<1,dim,real2>,nstate> ExtractionFunctional<dim,nstate,r
 ::point_gradient(const dealii::Point<dim,real> &coord_of_sampling,
                  const dealii::hp::MappingCollection<dim> &mapping_collection,
                  const dealii::hp::FECollection<dim> &fe_collection,
-                 const std::pair<dealii::DoFHandler<dim>::active_cell_iterator,dealii::Point<dim,real>> &cell_index_and_ref_point_of_sampling,
+                 const std::pair<typename dealii::DoFHandler<dim>::active_cell_iterator,typename dealii::Point<dim,real>> &cell_index_and_ref_point_of_sampling,
                  const std::vector<real2> &soln_coeff,
-                 const std::vector<dealii::types::global_dof_index> &cell_soln_dofs_indices)
+                 const std::vector<dealii::types::global_dof_index> &cell_soln_dofs_indices) const
 {
     const dealii::Quadrature<dim> quadrature(dealii::GeometryInfo<dim>::project_to_unit_cell(cell_index_and_ref_point_of_sampling.second));
     dealii::hp::FEValues<dim, dim> hp_fe_values(mapping_collection,
@@ -281,12 +285,10 @@ std::array<dealii::Tensor<1,dim,real2>,nstate> ExtractionFunctional<dim,nstate,r
                                                 dealii::hp::QCollection<dim>(quadrature),
                                                 dealii::update_gradients);
     hp_fe_values.reinit(cell_index_and_ref_point_of_sampling.first);
-    const FEValues<dim, dim> &fe_values = hp_fe_values.get_present_fe_values();
+    const dealii::FEValues<dim, dim> &fe_values = hp_fe_values.get_present_fe_values();
 
     std::vector<std::vector<dealii::Tensor<1, dim, real2>>> u_gradient(1, std::vector<dealii::Tensor<1, dim, real2>>(fe_collection.n_components()));
     fe_values.get_function_gradients(soln_coeff, cell_soln_dofs_indices, u_gradient);
-
-    gradient = u_gradient[0];
 
     std::array<dealii::Tensor<1,dim,real2>,nstate> interpolated_soln_grad;
     for(int i=0;i<nstate;++i){
@@ -462,8 +464,8 @@ real2 ExtractionFunctional<dim,nstate,real,MeshType>
         U_tangential_at_q += velocity_at_q[d]*tangential[d];
     }
 
-    speed_free_stream = values_free_stream.first;
-    density_free_stream = values_free_stream.second;
+    real speed_free_stream = values_free_stream.first;
+    real density_free_stream = values_free_stream.second;
     return 1.0-density_at_q*U_tangential_at_q/(density_free_stream*speed_free_stream);
 }
 //----------------------------------------------------------------
@@ -490,8 +492,8 @@ real2 ExtractionFunctional<dim,nstate,real,MeshType>
         U_tangential_at_q += velocity_at_q[d]*tangential[d];
     }
 
-    speed_free_stream = values_free_stream.first;
-    density_free_stream = values_free_stream.second;
+    real speed_free_stream = values_free_stream.first;
+    real density_free_stream = values_free_stream.second;
     return density_at_q*U_tangential_at_q/(density_free_stream*speed_free_stream)*(1.0-U_tangential_at_q/speed_free_stream);
 }
 //----------------------------------------------------------------
@@ -515,7 +517,7 @@ real2 ExtractionFunctional<dim,nstate,real,MeshType>
 
     const std::array<real2,dim+2> primitive_soln_at_wall = navier_stokes_fad.convert_conservative_to_primitive(ns_soln_of_sampling);
     density_at_wall = primitive_soln_at_wall[0];
-    dynamic_viscosity_at_wall = navier_stokes_fad.compute_viscosity_coefficient(primitive_soln_of_sampling);
+    dynamic_viscosity_at_wall = navier_stokes_fad.compute_viscosity_coefficient(primitive_soln_at_wall);
     kinematic_viscosity_at_wall = dynamic_viscosity_at_wall/density_at_wall;
 
     return kinematic_viscosity_at_wall;
@@ -589,7 +591,7 @@ real2 ExtractionFunctional<dim,nstate,real,MeshType>
         std::cout << "ERROR: Extraction functional only support nstate == dim+2 or dim+3..." << std::endl;
         std::abort();
     }
-    real2 shear_stress;
+    real2 shear_stress_at_q;
     const std::array<real2,dim+2> primitive_soln_at_q = navier_stokes_fad.convert_conservative_to_primitive(ns_soln_at_q);
     const std::array<dealii::Tensor<1,dim,real2>,dim+2> primitive_soln_grad_at_q = navier_stokes_fad.convert_conservative_gradient_to_primitive_gradient(ns_soln_at_q,ns_soln_grad_at_q);
     dealii::Tensor<2,dim,real2> viscous_stress_tensor_at_q = navier_stokes_fad.compute_viscous_stress_tensor(primitive_soln_at_q,primitive_soln_grad_at_q);
@@ -743,7 +745,7 @@ std::pair<real,real> ExtractionFunctional<dim,nstate,real,MeshType>
             std::cout << "ERROR: Extraction functional only support nstate == dim+2 or dim+3..." << std::endl;
             std::abort();
         }
-        flow_speed_sampling_n = navier_stokes_fad.compute_velocities(ns_soln_of_sampling).norm();
+        speed_sampling_n = navier_stokes_fad.compute_velocities(ns_soln_of_sampling).norm();
         if(std::abs(speed_sampling-speed_sampling_n)<=tolerance){
             if(consecutive_sensor){
                 if constexpr(std::is_same<real2,real>::value){

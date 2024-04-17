@@ -79,8 +79,8 @@ private:
     const real sound_inf;
     /// @brief Reference flow speed. Units: [m/s].
     const real ref_speed;
-    /// @brief Reference dynamic viscosity. Units: [kg/(m*s)].
-    const real ref_viscosity;
+    /// @brief Reference kinematic viscosity. Units: [kg/(m*s)].
+    const real ref_kinematic_viscosity;
     /// @brief Dimensionalized flow speed of free stream. Units: [m/s].
     //const real U_inf;
     /// @brief Dimensionalized density of free stream. Units: [kg/m^3].

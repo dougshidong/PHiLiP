@@ -22,6 +22,9 @@ private:
     using FadType = Sacado::Fad::DFad<real>; ///< Sacado AD type for first derivatives.
     using FadFadType = Sacado::Fad::DFad<FadType>; ///< Sacado AD type that allows 2nd derivatives.
 
+    //using active_cell_iterator = typename dealii::DoFHandler<dim>::active_cell_iterator;
+    //using point = typename dealii::Point<dim,real>;
+
     /// Avoid warning that the function was hidden [-Woverloaded-virtual].
     /** The compiler would otherwise hide Functional::evaluate_volume_integrand, which is fine for 
      *  us, but is a typical bug that other people have. This 'using' imports the base class function
@@ -113,21 +116,21 @@ public:
 
     void evaluate_extraction_end_point_coord();
 
-    std::vector<dealii::Point<dim,real>> evaluate_straight_line_sampling_point_coord();
+    std::vector<dealii::Point<dim,real>> evaluate_straight_line_sampling_point_coord() const;
 
-    std::vector<dealii::Point<dim,real>> evaluate_straight_line_total_sampling_point_coord();
+    std::vector<dealii::Point<dim,real>> evaluate_straight_line_total_sampling_point_coord() const;
 
-    std::vector<std::pair<dealii::DoFHandler<dim>::active_cell_iterator,dealii::Point<dim,real>>> find_active_cell_around_points(
-        const dealii::hp::MappingCollection<dim> mapping_collection,
-        const dealii::DoFHandler<dim> dof_handler,
-        const std::vector<dealii::Point<dim,real>> coord_of_total_sampling) const;
+    std::vector<std::pair<typename dealii::DoFHandler<dim>::active_cell_iterator,typename dealii::Point<dim,real>>> find_active_cell_around_points(
+        const dealii::hp::MappingCollection<dim> &mapping_collection,
+        const dealii::DoFHandler<dim> &dof_handler,
+        const std::vector<dealii::Point<dim,real>> &coord_of_total_sampling) const;
 
     template <typename real2>
     std::array<real2,nstate> point_value(
         const dealii::Point<dim,real> &coord_of_sampling,
         const dealii::hp::MappingCollection<dim> &mapping_collection,
         const dealii::hp::FECollection<dim> &fe_collection,
-        const std::pair<dealii::DoFHandler<dim>::active_cell_iterator,dealii::Point<dim,real>> &cell_index_and_ref_point_of_sampling,
+        const std::pair<typename dealii::DoFHandler<dim>::active_cell_iterator,typename dealii::Point<dim,real>> &cell_index_and_ref_point_of_sampling,
         const std::vector<real2> &soln_coeff,
         const std::vector<dealii::types::global_dof_index> &cell_soln_dofs_indices) const;
 
@@ -136,7 +139,7 @@ public:
         const dealii::Point<dim,real> &coord_of_sampling,
         const dealii::hp::MappingCollection<dim> &mapping_collection,
         const dealii::hp::FECollection<dim> &fe_collection,
-        const std::pair<dealii::DoFHandler<dim>::active_cell_iterator,dealii::Point<dim,real>> &cell_index_and_ref_point_of_sampling,
+        const std::pair<typename dealii::DoFHandler<dim>::active_cell_iterator,typename dealii::Point<dim,real>> &cell_index_and_ref_point_of_sampling,
         const std::vector<real2> &soln_coeff,
         const std::vector<dealii::types::global_dof_index> &cell_soln_dofs_indices) const;
 

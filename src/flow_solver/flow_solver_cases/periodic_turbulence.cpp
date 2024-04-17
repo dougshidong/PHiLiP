@@ -543,7 +543,7 @@ void PeriodicTurbulence<dim, nstate>::compute_and_update_integrated_quantities(D
                     soln_grad_at_q[istate][idim] = soln_grad_at_q_vect[istate][idim][iquad];
                 }
             }
-            dealii::Tensor<1,3,real> vorticity_at_q = this->navier_stokes_physics->compute_vorticity(soln_at_q,soln_grad_at_q);
+            dealii::Tensor<1,3,double> vorticity_at_q = this->navier_stokes_physics->compute_vorticity(soln_at_q,soln_grad_at_q);
             for(int istate=0; istate<3; istate++){
                 vorticity_at_q_vect[istate][iquad] = vorticity_at_q[istate];
             }

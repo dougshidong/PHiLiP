@@ -554,7 +554,7 @@ void PeriodicTurbulence<dim, nstate>::compute_and_update_integrated_quantities(D
         // with the basis functions in each reference direction.
         std::array<dealii::Tensor<1,dim,std::vector<double>>,3> vorticity_grad_at_q_vect;
         for(int istate=0; istate<3; istate++){
-            std::vector<real> vorticity_coeff(n_shape_fns);
+            std::vector<double> vorticity_coeff(n_shape_fns);
             soln_basis_projection_oper.matrix_vector_mult_1D(vorticity_at_q_vect[istate], vorticity_coeff,
                                                               soln_basis_projection_oper.oneD_vol_operator);
             // We need to first compute the reference gradient of the solution, then transform that to a physical gradient.

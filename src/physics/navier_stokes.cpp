@@ -468,7 +468,7 @@ real NavierStokes<dim,nstate,real>
         }
     }
     // Compute incompressible palinstrophy
-    const real palinstrophy = 0.5*vorticity_magnitude_sqr;
+    const real palinstrophy = 0.5*vorticity_gradient_magnitude_sqr;
     return palinstrophy;
 }
 

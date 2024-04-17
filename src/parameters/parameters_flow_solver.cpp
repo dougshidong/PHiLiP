@@ -28,7 +28,8 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
                           " channel_flow | "
                           " isentropic_vortex | "
                           " kelvin_helmholtz_instability | "
-                          " dipole_wall_collision | "
+                          " dipole_wall_collision_normal | "
+                          " dipole_wall_collision_oblique | "
                           " non_periodic_cube_flow "),
                           "The type of flow we want to simulate. "
                           "Choices are "
@@ -45,7 +46,8 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
                           " channel_flow | "
                           " isentropic_vortex | "
                           " kelvin_helmholtz_instability | "
-                          " dipole_wall_collision | "
+                          " dipole_wall_collision_normal | "
+                          " dipole_wall_collision_oblique | "
                           " non_periodic_cube_flow>. ");
 
         prm.declare_entry("poly_degree", "1",
@@ -334,7 +336,10 @@ void FlowSolverParam::parse_parameters(dealii::ParameterHandler &prm)
         else if (flow_case_type_string == "kelvin_helmholtz_instability")   
                                                                         {flow_case_type = kelvin_helmholtz_instability;}
         else if (flow_case_type_string == "non_periodic_cube_flow")     {flow_case_type = non_periodic_cube_flow;}
-        else if (flow_case_type_string == "dipole_wall_collision")      {flow_case_type = dipole_wall_collision;}
+        else if (flow_case_type_string == "dipole_wall_collision_normal")     
+                                                                        {flow_case_type = dipole_wall_collision_normal;}
+        else if (flow_case_type_string == "dipole_wall_collision_oblique")
+                                                                        {flow_case_type = dipole_wall_collision_oblique;}
 
         poly_degree = prm.get_integer("poly_degree");
         

@@ -17,7 +17,8 @@ namespace FlowSolver {
 // DIPOLE WALL COLLISION CLASS
 //=========================================================
 template <int dim, int nstate>
-DipoleWallCollision<dim, nstate>::DipoleWallCollision(const PHiLiP::Parameters::AllParameters *const parameters_input)
+DipoleWallCollision<dim, nstate>::DipoleWallCollision(const PHiLiP::Parameters::AllParameters *const parameters_input,
+                                                      const bool is_oblique)
         : PeriodicTurbulence<dim, nstate>(parameters_input)
 { }
 
@@ -52,12 +53,14 @@ std::shared_ptr<Triangulation> DipoleWallCollision<dim,nstate>::generate_grid() 
     const bool colorize = true;
     dealii::GridGenerator::hyper_cube(*grid, this->domain_left, this->domain_right, colorize);
     if constexpr(dim==2) {
-        // grid_type_string = "Doubly periodic square.";
-        std::vector<dealii::GridTools::PeriodicFacePair<typename dealii::Triangulation<dim>::cell_iterator> > matched_pairs;
-        dealii::GridTools::collect_periodic_faces(*grid,0,1,0,matched_pairs); // x-direction
-        // dealii::GridTools::collect_periodic_faces(*grid,2,3,1,matched_pairs); // y-direction
-        // dealii::GridTools::collect_periodic_faces(*grid,4,5,2,matched_pairs); // z-direction
-        grid->add_periodicity(matched_pairs);
+        if(!this->is_oblique) {
+            // grid_type_string = "Doubly periodic square.";
+            std::vector<dealii::GridTools::PeriodicFacePair<typename dealii::Triangulation<dim>::cell_iterator> > matched_pairs;
+            dealii::GridTools::collect_periodic_faces(*grid,0,1,0,matched_pairs); // x-direction
+            // dealii::GridTools::collect_periodic_faces(*grid,2,3,1,matched_pairs); // y-direction
+            // dealii::GridTools::collect_periodic_faces(*grid,4,5,2,matched_pairs); // z-direction
+            grid->add_periodicity(matched_pairs);
+        }
     }
     grid->refine_global(number_of_refinements);
     // assign wall boundary conditions
@@ -67,6 +70,9 @@ std::shared_ptr<Triangulation> DipoleWallCollision<dim,nstate>::generate_grid() 
         for (unsigned int face=0; face<dealii::GeometryInfo<dim>::faces_per_cell; ++face) {
             if (cell->face(face)->at_boundary()) {
                 unsigned int current_id = cell->face(face)->boundary_id();
+                if(this->is_oblique) {
+                    if (current_id == 0 || current_id == 1) cell->face(face)->set_boundary_id (1001); // Left and right wall
+                }
                 if (current_id == 2 || current_id == 3) cell->face(face)->set_boundary_id (1001); // Bottom and top wall
                 // could simply introduce different boundary id if using a wall model
             }
@@ -76,8 +82,17 @@ std::shared_ptr<Triangulation> DipoleWallCollision<dim,nstate>::generate_grid() 
     return grid;
 }
 
+//=========================================================
+// DIPOLE WALL COLLISION CLASS -- OBLIQUE
+//=========================================================
+template <int dim, int nstate>
+DipoleWallCollision_Oblique<dim, nstate>::DipoleWallCollision_Oblique(const PHiLiP::Parameters::AllParameters *const parameters_input)
+        : DipoleWallCollision<dim, nstate>(parameters_input,true)
+{ }
+
 #if PHILIP_DIM==2
 template class DipoleWallCollision <PHILIP_DIM,PHILIP_DIM+2>;
+template class DipoleWallCollision_Oblique <PHILIP_DIM,PHILIP_DIM+2>;
 #endif
 
 } // FlowSolver namespace

@@ -35,9 +35,14 @@ FlowSolverFactory<dim,nstate>
             std::shared_ptr<FlowSolverCaseBase<dim, nstate>> flow_solver_case = std::make_shared<PeriodicTurbulence<dim,nstate>>(parameters_input);
             return std::make_unique<FlowSolver<dim,nstate>>(parameters_input, flow_solver_case, parameter_handler_input);
         }
-    } else if (flow_type == FlowCaseEnum::dipole_wall_collision){
+    } else if (flow_type == FlowCaseEnum::dipole_wall_collision_normal){
         if constexpr (dim==2 && nstate==dim+2){
             std::shared_ptr<FlowSolverCaseBase<dim, nstate>> flow_solver_case = std::make_shared<DipoleWallCollision<dim,nstate>>(parameters_input);
+            return std::make_unique<FlowSolver<dim,nstate>>(parameters_input, flow_solver_case, parameter_handler_input);
+        }
+    } else if (flow_type == FlowCaseEnum::dipole_wall_collision_oblique){
+        if constexpr (dim==2 && nstate==dim+2){
+            std::shared_ptr<FlowSolverCaseBase<dim, nstate>> flow_solver_case = std::make_shared<DipoleWallCollision_Oblique<dim,nstate>>(parameters_input);
             return std::make_unique<FlowSolver<dim,nstate>>(parameters_input, flow_solver_case, parameter_handler_input);
         }
     } else if (flow_type == FlowCaseEnum::decaying_homogeneous_isotropic_turbulence){

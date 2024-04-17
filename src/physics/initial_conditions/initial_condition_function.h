@@ -228,13 +228,53 @@ public:
      *  These initial conditions are given in nondimensional form (free-stream as reference)
      */
     InitialConditionFunction_DipoleWallCollision (
-            Parameters::AllParameters const *const param);
+            Parameters::AllParameters const *const param,
+            const real extremum_vorticity_value_,
+            const real dipole_radius,
+            const real dipole_axis_angle_wrt_x_axis_in_degrees);
 
-    double extremum_vorticity_value; // Extremum vorticity value
+    const real extremum_vorticity_value; // Extremum vorticity value
+    const real r0; // dipole radius
+    const real x1; // x-coordinate of dipole 1
+    const real y1; // y-coordinate of dipole 1
+    const real x2; // x-coordinate of dipole 2
+    const real y2; // y-coordinate of dipole 2
 
 protected:
     /// Value of initial condition expressed in terms of primitive variables
     real primitive_value(const dealii::Point<dim,real> &point, const unsigned int istate = 0) const override;
+};
+
+/// Initial Condition Function: Dipole Wall Collision Normal
+template <int dim, int nstate, typename real>
+class InitialConditionFunction_DipoleWallCollision_Normal : public InitialConditionFunction_DipoleWallCollision<dim,nstate,real>
+{
+public:
+    /// Constructor
+    /** Calls the Function(const unsigned int n_components) constructor in deal.II
+     *  This sets the public attribute n_components = nstate, which can then be accessed
+     *  by all the other functions
+     *  Reference: 
+     *  These initial conditions are given in nondimensional form (free-stream as reference)
+     */
+    InitialConditionFunction_DipoleWallCollision_Normal (
+            Parameters::AllParameters const *const param);
+};
+
+/// Initial Condition Function: Dipole Wall Collision Oblique
+template <int dim, int nstate, typename real>
+class InitialConditionFunction_DipoleWallCollision_Oblique : public InitialConditionFunction_DipoleWallCollision<dim,nstate,real>
+{
+public:
+    /// Constructor
+    /** Calls the Function(const unsigned int n_components) constructor in deal.II
+     *  This sets the public attribute n_components = nstate, which can then be accessed
+     *  by all the other functions
+     *  Reference: 
+     *  These initial conditions are given in nondimensional form (free-stream as reference)
+     */
+    InitialConditionFunction_DipoleWallCollision_Oblique (
+            Parameters::AllParameters const *const param);
 };
 
 /// Initial Condition Function: 1D Burgers Rewienski

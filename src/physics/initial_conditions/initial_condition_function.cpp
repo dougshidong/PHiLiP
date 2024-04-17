@@ -336,11 +336,18 @@ real InitialConditionFunction_TaylorGreenVortex_Isothermal<dim,nstate,real>
 template <int dim, int nstate, typename real>
 InitialConditionFunction_DipoleWallCollision<dim,nstate,real>
 ::InitialConditionFunction_DipoleWallCollision (
-        Parameters::AllParameters const *const param)
+        Parameters::AllParameters const *const param,
+        const real extremum_vorticity_value_,
+        const real dipole_radius,
+        const real dipole_axis_angle_wrt_x_axis_in_degrees)
     : InitialConditionFunction_NavierStokesBase<dim,nstate,real>(param)
-{
-    extremum_vorticity_value = 299.528385375226; // reference: Keetels et al. 2007
-}
+    , extremum_vorticity_value(extremum_vorticity_value_)
+    , r0(dipole_radius)
+    , x1(dipole_radius*cos(dipole_angle_to_x_axis_in_degrees*(3.141592653589793238/180.0)))
+    , y1(dipole_radius*sin(dipole_angle_to_x_axis_in_degrees*(3.141592653589793238/180.0)))
+    , x2(-dipole_radius*cos(dipole_angle_to_x_axis_in_degrees*(3.141592653589793238/180.0)))
+    , y2(-dipole_radius*sin(dipole_angle_to_x_axis_in_degrees*(3.141592653589793238/180.0)))
+{ }
 
 template <int dim, int nstate, typename real>
 real InitialConditionFunction_DipoleWallCollision<dim,nstate,real>
@@ -350,15 +357,9 @@ real InitialConditionFunction_DipoleWallCollision<dim,nstate,real>
     real value = 0.;
     if constexpr(dim == 2) {
         const real x = point[0], y = point[1];
-        // center coordinates for dipoles 1 and 2
-        const real x1 = 0.0;
-        const real y1 = 0.1;
-        const real x2 = 0.0;
-        const real y2 = -0.1;
         // corresponding radii (non-dimensional)
-        const real r0 = 0.1;
-        const real r1 = sqrt((x-x1)*(x-x1) + (y-y1)*(y-y1));
-        const real r2 = sqrt((x-x2)*(x-x2) + (y-y2)*(y-y2));
+        const real r1 = sqrt((x-this->x1)*(x-this->x1) + (y-this->y1)*(y-this->y1));
+        const real r2 = sqrt((x-this->x2)*(x-this->x2) + (y-this->y2)*(y-this->y2));
 
         if(istate==0) {
             // density
@@ -366,22 +367,50 @@ real InitialConditionFunction_DipoleWallCollision<dim,nstate,real>
         }
         if(istate==1) {
             // x-velocity
-            value = -0.5*abs(extremum_vorticity_value)*(y-y1)*exp(-(r1/r0)*(r1/r0))
-                    +0.5*abs(extremum_vorticity_value)*(y-y2)*exp(-(r2/r0)*(r2/r0));
+            value = -0.5*abs(extremum_vorticity_value)*(y-this->y1)*exp(-(r1/this->r0)*(r1/this->r0))
+                    +0.5*abs(extremum_vorticity_value)*(y-this->y2)*exp(-(r2/this->r0)*(r2/this->r0));
         }
         if(istate==2) {
             // y-velocity
-            value = 0.5*abs(extremum_vorticity_value)*(x-x1)*exp(-(r1/r0)*(r1/r0))
-                    -0.5*abs(extremum_vorticity_value)*(x-x2)*exp(-(r2/r0)*(r2/r0));
+            value = 0.5*abs(extremum_vorticity_value)*(x-this->x1)*exp(-(r1/this->r0)*(r1/this->r0))
+                    -0.5*abs(extremum_vorticity_value)*(x-this->x2)*exp(-(r2/this->r0)*(r2/this->r0));
         }
         if(istate==3) {
             // pressure
             value = 1.0/(this->gamma_gas*this->mach_inf_sqr)
-                    - (1.0/16.0)*pow(extremum_vorticity_value*r0,2.0)*(exp(-2.0*(r1/r0)*(r1/r0))+exp(-2.0*(r2/r0)*(r2/r0)));
+                    - (1.0/16.0)*pow(this->extremum_vorticity_value*this->r0,2.0)*(exp(-2.0*(r1/this->r0)*(r1/this->r0))+exp(-2.0*(r2/this->r0)*(r2/this->r0)));
         }
     }
     return value;
 }
+
+// ========================================================
+// Dipole Wall Collision Normal -- Initial Condition
+// ========================================================
+template <int dim, int nstate, typename real>
+InitialConditionFunction_DipoleWallCollision_Normal<dim,nstate,real>
+::InitialConditionFunction_DipoleWallCollision_Normal (
+        Parameters::AllParameters const *const param)
+    : InitialConditionFunction_DipoleWallCollision<dim,nstate,real>(
+        param,
+        299.528385375226, // reference: Keetels et al. 2007
+        0.1, // dipole radius
+        90.0) // dipole axis angle wrt to x-axis
+{}
+
+// ========================================================
+// Dipole Wall Collision Oblique -- Initial Condition
+// ========================================================
+template <int dim, int nstate, typename real>
+InitialConditionFunction_DipoleWallCollision_Oblique<dim,nstate,real>
+::InitialConditionFunction_DipoleWallCollision_Oblique (
+        Parameters::AllParameters const *const param)
+    : InitialConditionFunction_DipoleWallCollision<dim,nstate,real>(
+        param,
+        299.528385375226, // reference: Keetels et al. 2007
+        0.1, // dipole radius
+        30.0) // dipole axis angle wrt to x-axis
+{}
 
 // ========================================================
 // 1D BURGERS REWIENSKI -- Initial Condition
@@ -741,9 +770,14 @@ InitialConditionFactory<dim,nstate, real>::create_InitialConditionFunction(
                         param);
             }
         }
-    } else if (flow_type == FlowCaseEnum::dipole_wall_collision) {
+    } else if (flow_type == FlowCaseEnum::dipole_wall_collision_normal) {
         if constexpr (dim==2 && nstate==dim+2){ 
-            return std::make_shared<InitialConditionFunction_DipoleWallCollision<dim,nstate,real> >(
+            return std::make_shared<InitialConditionFunction_DipoleWallCollision_Normal<dim,nstate,real> >(
+                        param);
+        }
+    } else if (flow_type == FlowCaseEnum::dipole_wall_collision_oblique) {
+        if constexpr (dim==2 && nstate==dim+2){ 
+            return std::make_shared<InitialConditionFunction_DipoleWallCollision_Oblique<dim,nstate,real> >(
                         param);
         }
     } else if (flow_type == FlowCaseEnum::decaying_homogeneous_isotropic_turbulence) {
@@ -862,7 +896,8 @@ template class InitialConditionFunction_IsentropicVortex <PHILIP_DIM, PHILIP_DIM
 #endif
 #if PHILIP_DIM==2
 template class InitialConditionFunction_KHI <PHILIP_DIM, PHILIP_DIM+2, double>;
-template class InitialConditionFunction_DipoleWallCollision <PHILIP_DIM, PHILIP_DIM+2, double>;
+template class InitialConditionFunction_DipoleWallCollision_Normal <PHILIP_DIM, PHILIP_DIM+2, double>;
+template class InitialConditionFunction_DipoleWallCollision_Oblique <PHILIP_DIM, PHILIP_DIM+2, double>;
 #endif
 // functions instantiated for all dim
 template class InitialConditionFunction_Zero <PHILIP_DIM,1, double>;

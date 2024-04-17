@@ -18,13 +18,25 @@ class DipoleWallCollision : public PeriodicTurbulence<dim,nstate>
 {
 public:
     /// Constructor.
-    DipoleWallCollision(const Parameters::AllParameters *const parameters_input);
+    DipoleWallCollision(const Parameters::AllParameters *const parameters_input,
+                        const bool is_oblique=false);
 
     /// Destructor
     ~DipoleWallCollision() {};
 
     /// Function to generate the grid
     std::shared_ptr<Triangulation> generate_grid() const override;
+};
+
+template <int dim, int nstate>
+class DipoleWallCollision_Oblique : public PeriodicTurbulence<dim,nstate>
+{
+public:
+    /// Constructor.
+    DipoleWallCollision_Oblique(const Parameters::AllParameters *const parameters_input);
+
+    /// Destructor
+    ~DipoleWallCollision_Oblique() {};
 };
 
 } // FlowSolver namespace

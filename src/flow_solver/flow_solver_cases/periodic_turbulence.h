@@ -15,7 +15,7 @@ class PeriodicTurbulence : public PeriodicCubeFlow<dim,nstate>
     /** Number of different computed quantities
      *  Corresponds to the number of items in IntegratedQuantitiesEnum
      * */
-    static const int NUMBER_OF_INTEGRATED_QUANTITIES = 7;
+    static const int NUMBER_OF_INTEGRATED_QUANTITIES = 8;
 
 public:
     /// Constructor.
@@ -151,7 +151,8 @@ protected:
         deviatoric_strain_rate_tensor_magnitude_sqr,
         strain_rate_tensor_magnitude_sqr,
         incompressible_kinetic_energy,
-        incompressible_enstrophy
+        incompressible_enstrophy,
+        incompressible_palinstrophy
     };
     /// Array for storing the integrated quantities; done for computational efficiency
     std::array<double,NUMBER_OF_INTEGRATED_QUANTITIES> integrated_quantities;

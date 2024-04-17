@@ -29,7 +29,7 @@ public:
 };
 
 template <int dim, int nstate>
-class DipoleWallCollision_Oblique : public PeriodicTurbulence<dim,nstate>
+class DipoleWallCollision_Oblique : public DipoleWallCollision<dim,nstate>
 {
 public:
     /// Constructor.

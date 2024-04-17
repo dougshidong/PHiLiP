@@ -896,6 +896,7 @@ template class InitialConditionFunction_IsentropicVortex <PHILIP_DIM, PHILIP_DIM
 #endif
 #if PHILIP_DIM==2
 template class InitialConditionFunction_KHI <PHILIP_DIM, PHILIP_DIM+2, double>;
+template class InitialConditionFunction_DipoleWallCollision <PHILIP_DIM, PHILIP_DIM+2, double>;
 template class InitialConditionFunction_DipoleWallCollision_Normal <PHILIP_DIM, PHILIP_DIM+2, double>;
 template class InitialConditionFunction_DipoleWallCollision_Oblique <PHILIP_DIM, PHILIP_DIM+2, double>;
 #endif

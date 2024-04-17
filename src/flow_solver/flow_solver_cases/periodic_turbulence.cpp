@@ -605,7 +605,7 @@ void PeriodicTurbulence<dim, nstate>::compute_and_update_integrated_quantities(D
             integrand_values[IntegratedQuantitiesEnum::strain_rate_tensor_magnitude_sqr] = this->navier_stokes_physics->compute_strain_rate_tensor_magnitude_sqr(soln_at_q,soln_grad_at_q);
             integrand_values[IntegratedQuantitiesEnum::incompressible_kinetic_energy] = this->navier_stokes_physics->compute_incompressible_kinetic_energy_from_conservative_solution(soln_at_q);
             integrand_values[IntegratedQuantitiesEnum::incompressible_enstrophy] = this->navier_stokes_physics->compute_incompressible_enstrophy(soln_at_q,soln_grad_at_q);
-            integrand_values[IntegratedQuantitiesEnum::incompressible_palinstrophy] = this->navier_stokes_physics->compute_incompressible_palinstrophy(vorticity_grad_at_q);
+            integrand_values[IntegratedQuantitiesEnum::incompressible_palinstrophy] = this->navier_stokes_physics->compute_incompressible_palinstrophy(soln_at_q,vorticity_grad_at_q);
 
             for(int i_quantity=0; i_quantity<NUMBER_OF_INTEGRATED_QUANTITIES; ++i_quantity) {
                 integral_values[i_quantity] += integrand_values[i_quantity] * quad_weights[iquad] * metric_oper.det_Jac_vol[iquad];

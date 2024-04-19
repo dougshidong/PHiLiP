@@ -15,9 +15,17 @@ MultiSpeciesCaloricallyPerfect<dim,nstate,real>::MultiSpeciesCaloricallyPerfect 
     const bool                                                has_nonzero_diffusion,
     const bool                                                has_nonzero_physical_source)
     : RealGas<dim,nstate,real>(parameters_input,manufactured_solution_function,has_nonzero_diffusion,has_nonzero_physical_source)
+    , Cp(this->compute_species_specific_Cp(298.15/this->temperature_ref))
+    , Cv(this->compute_species_specific_Cv(298.15/this->temperature_ref))
 {
     this->real_gas_cap = std::dynamic_pointer_cast<PHiLiP::RealGasConstants::AllRealGasConstants>(
         std::make_shared<PHiLiP::RealGasConstants::AllRealGasConstants>());
+
+    for (int s=0; s<(nstate-dim-1); ++s) 
+    {
+        this->gamma[s] = Cp[s]/Cv[s];
+    }
+
     static_assert(nstate==dim+2+3-1, "Physics::MultiSpeciesCaloricallyPerfect() should be created with nstate=(PHILIP_DIM+2)+(N_SPECIES-1)"); // TO DO: UPDATE THIS with nspecies
 }
 
@@ -153,22 +161,9 @@ inline std::array<real,nstate> MultiSpeciesCaloricallyPerfect<dim,nstate,real>
 /// f_M20: species specific heat ratio
 template <int dim, int nstate, typename real>
 inline std::array<real,nstate-dim-1> MultiSpeciesCaloricallyPerfect<dim,nstate,real>
-::compute_species_specific_heat_ratio ( const std::array<real,nstate> &conservative_soln ) const
+::compute_species_specific_heat_ratio ( const std::array<real,nstate> &/*conservative_soln*/ ) const
 {
-    const real temperature = 298.15/this->temperature_ref; 
-    const std::array<real,nstate-dim-1> Cp = this->template compute_species_specific_Cp(temperature);
-    const std::array<real,nstate-dim-1> Cv = this->template compute_species_specific_Cv(temperature);
-    std::array<real,nstate-dim-1> gamma;
-
-    for (int s=0; s<(nstate-dim-1); ++s) 
-    {
-        gamma[s] = Cp[s]/Cv[s];
-    }
-
-    real dummy = conservative_soln[0];
-    dummy += 0.0;
-
-    return gamma;
+    return this->gamma;
 }
 
 // Instantiate explicitly

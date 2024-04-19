@@ -22,9 +22,14 @@ public:
         const bool                                                has_nonzero_diffusion = false,
         const bool                                                has_nonzero_physical_source = false);
 
+private:
+    const std::array<real,nstate-dim-1> Cp;
+    const std::array<real,nstate-dim-1> Cv;
+
+public:
     /// Destructor
     ~MultiSpeciesCaloricallyPerfect() {};
-public:
+
     /// Pointer to all real gas constants object for accessing the coefficients and properties (CAP)
     std::shared_ptr< PHiLiP::RealGasConstants::AllRealGasConstants > real_gas_cap;
 // protected:
@@ -48,7 +53,8 @@ protected:
     /// f_S20: Compute species specific heat ratio from conservative_soln
     std::array<real,nstate-dim-1> compute_species_specific_heat_ratio ( const std::array<real,nstate> &conservative_soln ) const override;
 
-
+private:
+    std::array<real,nstate-dim-1> gamma;
 };
 
 } // Physics namespace

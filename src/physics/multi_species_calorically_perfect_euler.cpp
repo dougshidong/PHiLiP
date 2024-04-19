@@ -67,7 +67,7 @@ inline real MultiSpeciesCaloricallyPerfect<dim,nstate,real>
 ::compute_temperature ( const std::array<real,nstate> &conservative_soln ) const
 {
     const real mixture_density = conservative_soln[0]; // TO DO: use compute_mixture_density
-    const real mixture_gas_constant = this->template compute_mixture_gas_constant(conservative_soln);
+    const real mixture_gas_constant = this->compute_mixture_gas_constant(conservative_soln);
     const real mixture_pressure = compute_mixture_pressure(conservative_soln);
     const real temperature = mixture_pressure/(mixture_density*mixture_gas_constant)*(this->gam_ref*this->mach_ref_sqr);
 
@@ -81,10 +81,10 @@ inline real MultiSpeciesCaloricallyPerfect<dim,nstate,real>
 {
     const real mixture_density = conservative_soln[0]; // TO DO: use compute_mixture_density
     const std::array<real,nstate-dim-1> gamma = compute_species_specific_heat_ratio(conservative_soln);
-    const std::array<real,nstate-dim-1> mass_fractions = this->template compute_mass_fractions(conservative_soln);
-    const real mixture_gamma = this->template compute_mixture_from_species(mass_fractions,gamma);
-    const real E = this->template compute_mixture_specific_total_energy(conservative_soln);
-    const real k = this->template compute_specific_kinetic_energy(conservative_soln);
+    const std::array<real,nstate-dim-1> mass_fractions = this->compute_mass_fractions(conservative_soln);
+    const real mixture_gamma = this->compute_mixture_from_species(mass_fractions,gamma);
+    const real E = this->compute_mixture_specific_total_energy(conservative_soln);
+    const real k = this->compute_specific_kinetic_energy(conservative_soln);
     const real mixture_pressure = mixture_density*(mixture_gamma*this->gam_ref-1.0)*(E-k);
 
     return mixture_pressure;
@@ -134,7 +134,7 @@ inline std::array<real,nstate> MultiSpeciesCaloricallyPerfect<dim,nstate,real>
         species_densities[s] = mixture_density*mass_fractions[s];
     }
     // mixturegas gamma
-    const real mixture_gamma = this->template compute_mixture_from_species(mass_fractions,gamma_s);
+    const real mixture_gamma = this->compute_mixture_from_species(mass_fractions,gamma_s);
     // specific kinetic energy
     const real specific_kinetic_energy = 0.50*vel2;  
     // mixture energy

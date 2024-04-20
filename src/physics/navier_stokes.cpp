@@ -1345,6 +1345,19 @@ dealii::Vector<double> NavierStokes<dim,nstate,real>::post_compute_derived_quant
         computed_quantities(++current_data_index) = compute_vorticity_magnitude(conservative_soln,conservative_soln_gradient);
         // Enstrophy
         computed_quantities(++current_data_index) = compute_enstrophy(conservative_soln,conservative_soln_gradient);
+        // Viscous stress tensor
+        if constexpr(dim==2) {
+            // Vorticity
+            dealii::Tensor<2,2,double> viscous_stress_tensor = compute_viscous_stress_tensor_from_conservative_templated<double>(conservative_soln,conservative_soln_gradient);
+            //First line of viscous stress tensor
+            for (unsigned int d=0; d<2; ++d) {
+                computed_quantities(++current_data_index) = viscous_stress_tensor[0][d];
+            }
+            //Second line of viscous stress tensor
+            for (unsigned int d=0; d<2; ++d) {
+                computed_quantities(++current_data_index) = viscous_stress_tensor[1][d];
+            }
+        }
 
     }
     if (computed_quantities.size()-1 != current_data_index) {
@@ -1382,6 +1395,14 @@ std::vector<dealii::DataComponentInterpretation::DataComponentInterpretation> Na
     }
     interpretation.push_back (DCI::component_is_scalar); // Vorticity magnitude
     interpretation.push_back (DCI::component_is_scalar); // Enstrophy
+    if constexpr(dim==2) {
+        for (unsigned int d=0; d<2; ++d) {
+            interpretation.push_back (DCI::component_is_part_of_vector); // First line of viscous Stress Tensor
+        }
+        for (unsigned int d=0; d<2; ++d) {
+            interpretation.push_back (DCI::component_is_part_of_vector); // Second line of viscous Stress Tensor
+        }
+    }
 
     std::vector<std::string> names = post_get_names();
     if (names.size() != interpretation.size()) {
@@ -1417,6 +1438,16 @@ std::vector<std::string> NavierStokes<dim,nstate,real>
     }
     names.push_back ("vorticity_magnitude");
     names.push_back ("enstrophy");
+    if constexpr(dim==2) {
+        // First line of viscous Stress Tensor
+        for (unsigned int d=0; d<2; ++d) {
+            names.push_back ("du_viscous_stress_tensor");
+        }
+        // Second line of viscous Stress Tensor
+        for (unsigned int d=0; d<2; ++d) {
+            names.push_back ("dv_viscous_stress_tensor");
+        }
+    }
     return names;
 }
 

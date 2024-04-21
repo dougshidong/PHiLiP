@@ -152,7 +152,7 @@ std::shared_ptr<Triangulation> DipoleWallCollision<dim,nstate>::generate_grid_st
 
     // get step size for each cell
     // - uniform spacing in x and z
-    const double uniform_spacing_x = domain_length_x/double(number_of_cells_x_direction);
+    // const double uniform_spacing_x = domain_length_x/double(number_of_cells_x_direction);
     const double uniform_spacing_y = domain_length_x/double(number_of_cells_y_direction);
     /*const double uniform_spacing_z = domain_length_z/double(number_of_cells_z_direction);*/
     // - get stretched spacing for possible wall-normal directions

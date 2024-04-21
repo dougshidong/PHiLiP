@@ -162,7 +162,7 @@ std::shared_ptr<Triangulation> DipoleWallCollision<dim,nstate>::generate_grid_st
     std::vector<std::vector<double> > step_sizes(dim);
     // x-direction (wall normal)
     for (int i=0; i<number_of_cells_x_direction; i++) {
-        step_sizes[0].push_back(step_size_x_direction[j]);
+        step_sizes[0].push_back(step_size_x_direction[i]);
     }
     // y-direction
     for (int j=0; j<number_of_cells_y_direction; j++) {

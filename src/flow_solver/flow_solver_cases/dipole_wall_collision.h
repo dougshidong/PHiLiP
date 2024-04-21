@@ -25,9 +25,22 @@ public:
     ~DipoleWallCollision() {};
 
     const bool is_oblique; /// Flag to distinguish if oblique case
+    const bool do_use_stretched_mesh; /// Flag to use stretched mesh
 
     /// Function to generate the grid
     std::shared_ptr<Triangulation> generate_grid() const override;
+
+private:
+    /// Function to generate the uniform grid
+    std::shared_ptr<Triangulation> generate_grid_uniform() const;
+
+    /// Function to generate the stretched grid
+    std::shared_ptr<Triangulation> generate_grid_stretched() const;
+
+    /// Returns a vector of mesh step sizes for a stretched mesh with clustering at the walls
+    std::vector<double> get_mesh_step_size_stretched(
+        const int number_of_cells_, 
+        const double domain_length_) const;
 };
 
 template <int dim, int nstate>

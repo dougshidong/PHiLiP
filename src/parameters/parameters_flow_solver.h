@@ -125,6 +125,9 @@ public:
     /// Selected DensityInitialConditionType from the input file
     TurbulentChannelMeshStretchingFunctionType turbulent_channel_mesh_stretching_function_type;
 
+    /// For dipole wall collision, flag to use stretched mesh
+    bool do_use_stretched_mesh;
+    
     /// For KHI, the atwood number
     double atwood_number;
 

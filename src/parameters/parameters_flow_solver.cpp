@@ -260,6 +260,9 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
             prm.declare_entry("do_use_stretched_mesh", "false",
                               dealii::Patterns::Bool(),
                               "Flag to use stretched mesh. By default, false (i.e. use uniform mesh).");
+            prm.declare_entry("do_compute_angular_momentum", "false",
+                              dealii::Patterns::Bool(),
+                              "Flag to compute the angular momentum. By default, false.");
         }
         prm.leave_subsection();
 
@@ -430,6 +433,7 @@ void FlowSolverParam::parse_parameters(dealii::ParameterHandler &prm)
         prm.enter_subsection("dipole_wall_collision");
         {
             do_use_stretched_mesh = prm.get_bool("do_use_stretched_mesh");
+            do_compute_angular_momentum = prm.get_bool("do_compute_angular_momentum");
         }
         prm.leave_subsection();
 

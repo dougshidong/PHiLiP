@@ -30,6 +30,7 @@ PeriodicTurbulence<dim, nstate>::PeriodicTurbulence(const PHiLiP::Parameters::Al
         , output_vorticity_magnitude_field_in_addition_to_velocity(this->all_param.flow_solver_param.output_vorticity_magnitude_field_in_addition_to_velocity)
         , output_flow_field_files_directory_name(this->all_param.flow_solver_param.output_flow_field_files_directory_name)
         , output_solution_at_exact_fixed_times(this->all_param.ode_solver_param.output_solution_at_exact_fixed_times)
+        , do_compute_angular_momentum(this->all_param.flow_solver_param.do_compute_angular_momentum)
 {
     // Get the flow case type
     using FlowCaseEnum = Parameters::FlowSolverParam::FlowCaseType;
@@ -403,6 +404,16 @@ void PeriodicTurbulence<dim, nstate>::update_maximum_local_wave_speed(DGBase<dim
     this->maximum_local_wave_speed = dealii::Utilities::MPI::max(this->maximum_local_wave_speed, this->mpi_communicator);
 }
 
+template <int dim, int nstate>
+double PeriodicTurbulence<dim,nstate>::compute_angular_momentum(const dealii::Point<dim> position, const dealii::Tensor<1,3,double> vorticity) const
+{
+    // Reference: Equation 13 in article H.J.H. Clercx, C.-H. Bruneau / Computers & Fluids 35 (2006) 245–279
+    const double radius_squared = position.norm_square(); // radius squared (i.e. r^2)
+    const double vorticity_magnitude = vorticity.norm();
+    const double angular_momentum = 0.5*radius_squared*vorticity_magnitude; // Note: removed the negative sign since since vorticity magnitude will always be positive
+    return angular_momentum;
+}
+
 template<int dim, int nstate>
 void PeriodicTurbulence<dim, nstate>::compute_and_update_integrated_quantities(DGBase<dim, double> &dg)
 {
@@ -437,7 +448,8 @@ void PeriodicTurbulence<dim, nstate>::compute_and_update_integrated_quantities(D
     const std::vector<double> &quad_weights = quad_extra.get_weights();
     // If in the future we need the physical quadrature node location, turn these flags to true and the constructor will
     // automatically compute it for you. Currently set to false as to not compute extra unused terms.
-    const bool store_vol_flux_nodes = false;//currently doesn't need the volume physical nodal position
+    bool store_vol_flux_nodes = false;//currently doesn't need the volume physical nodal position
+    if(this->do_compute_angular_momentum) store_vol_flux_nodes = true;
     const bool store_surf_flux_nodes = false;//currently doesn't need the surface physical nodal position
 
     const unsigned int n_dofs = dg.fe_collection[poly_degree].n_dofs_per_cell();
@@ -586,13 +598,21 @@ void PeriodicTurbulence<dim, nstate>::compute_and_update_integrated_quantities(D
 
             std::array<double,nstate> soln_at_q;
             std::array<dealii::Tensor<1,dim,double>,nstate> soln_grad_at_q;
+            dealii::Tensor<1,3,double> vorticity_at_q;
             std::array<dealii::Tensor<1,dim,double>,3> vorticity_grad_at_q;
             // Extract solution and gradient in a way that the physics can use them.
             for(int istate=0; istate<nstate; istate++){
                 soln_at_q[istate] = soln_at_q_vect[istate][iquad];
+                if(istate<3) vorticity_at_q[istate] = vorticity_at_q_vect[istate][iquad];
                 for(int idim=0; idim<dim; idim++){
                     soln_grad_at_q[istate][idim] = soln_grad_at_q_vect[istate][idim][iquad];
                     if(istate<3) vorticity_grad_at_q[istate][idim] = vorticity_grad_at_q_vect[istate][idim][iquad];
+                }
+            }
+            const dealii::Point<dim> qpoint;
+            if(this->do_compute_angular_momentum){
+                for(int idim=0; idim<dim; idim++){
+                    qpoint[idim] = metric_oper.flux_nodes_vol[idim][iquad];
                 }
             }
 
@@ -606,7 +626,8 @@ void PeriodicTurbulence<dim, nstate>::compute_and_update_integrated_quantities(D
             integrand_values[IntegratedQuantitiesEnum::incompressible_kinetic_energy] = this->navier_stokes_physics->compute_incompressible_kinetic_energy_from_conservative_solution(soln_at_q);
             integrand_values[IntegratedQuantitiesEnum::incompressible_enstrophy] = this->navier_stokes_physics->compute_incompressible_enstrophy(soln_at_q,soln_grad_at_q);
             integrand_values[IntegratedQuantitiesEnum::incompressible_palinstrophy] = this->navier_stokes_physics->compute_incompressible_palinstrophy(soln_at_q,vorticity_grad_at_q);
-
+            if(this->do_compute_angular_momentum) integrand_values[IntegratedQuantitiesEnum::angular_momentum] = this->compute_angular_momentum(qpoint,vorticity_at_q);
+            else integrand_values[IntegratedQuantitiesEnum::angular_momentum] = 0.0;
             for(int i_quantity=0; i_quantity<NUMBER_OF_INTEGRATED_QUANTITIES; ++i_quantity) {
                 integral_values[i_quantity] += integrand_values[i_quantity] * quad_weights[iquad] * metric_oper.det_Jac_vol[iquad];
             }
@@ -665,6 +686,11 @@ double PeriodicTurbulence<dim, nstate>::get_integrated_incompressible_palinstrop
     return this->integrated_quantities[IntegratedQuantitiesEnum::incompressible_palinstrophy];
 }
 
+template<int dim, int nstate>
+double PeriodicTurbulence<dim, nstate>::get_integrated_angular_momentum() const
+{
+    return this->integrated_quantities[IntegratedQuantitiesEnum::angular_momentum];
+}
 
 template<int dim, int nstate>
 double PeriodicTurbulence<dim, nstate>::get_vorticity_based_dissipation_rate() const
@@ -832,6 +858,8 @@ void PeriodicTurbulence<dim, nstate>::compute_unsteady_data_and_write_to_table(
     const double integrated_incompressible_kinetic_energy = this->get_integrated_incompressible_kinetic_energy();
     const double integrated_incompressible_enstrophy = this->get_integrated_incompressible_enstrophy();
     const double integrated_incompressible_palinstrophy = this->get_integrated_incompressible_palinstrophy();
+    double integrated_angular_momentum = 0.0;
+    if(this->do_compute_angular_momentum) integrated_angular_momentum = this->get_integrated_angular_momentum();
 
     double numerical_entropy = 0;
     if (do_calculate_numerical_entropy) numerical_entropy = this->get_numerical_entropy(dg);
@@ -849,6 +877,7 @@ void PeriodicTurbulence<dim, nstate>::compute_unsteady_data_and_write_to_table(
         this->add_value_to_data_table(integrated_incompressible_kinetic_energy,"incompressible_kinetic_energy",unsteady_data_table);
         this->add_value_to_data_table(integrated_incompressible_enstrophy,"incompressible_enstrophy",unsteady_data_table);
         this->add_value_to_data_table(integrated_incompressible_palinstrophy,"incompressible_palinstrophy",unsteady_data_table);
+        if(this->do_compute_angular_momentum) this->add_value_to_data_table(integrated_angular_momentum,"angular_momentum",unsteady_data_table);
         // Write to file
         std::ofstream unsteady_data_table_file(this->unsteady_data_table_filename_with_extension);
         unsteady_data_table->write_text(unsteady_data_table_file);

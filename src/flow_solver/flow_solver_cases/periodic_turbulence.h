@@ -15,7 +15,7 @@ class PeriodicTurbulence : public PeriodicCubeFlow<dim,nstate>
     /** Number of different computed quantities
      *  Corresponds to the number of items in IntegratedQuantitiesEnum
      * */
-    static const int NUMBER_OF_INTEGRATED_QUANTITIES = 8;
+    static const int NUMBER_OF_INTEGRATED_QUANTITIES = 9;
 
 public:
     /// Constructor.
@@ -51,6 +51,9 @@ public:
 
     /// Gets the nondimensional integrated incompressible palinstrophy given a DG object from dg->solution
     double get_integrated_incompressible_palinstrophy() const;
+
+    /// Gets the nondimensional integrated angular momentum given a DG object from dg->solution
+    double get_integrated_angular_momentum() const;
 
     /** Gets non-dimensional theoretical vorticity tensor based dissipation rate 
      *  Note: For incompressible flows or when dilatation effects are negligible 
@@ -108,6 +111,9 @@ protected:
 
     const bool output_solution_at_exact_fixed_times;///< Flag for outputting the solution at exact fixed times by decreasing the time step on the fly
 
+    /// Flag to compute angular momentum
+    const bool do_compute_angular_momentum;
+
     /// Pointer to Navier-Stokes physics object for computing things on the fly
     std::shared_ptr< Physics::NavierStokes<dim,dim+2,double> > navier_stokes_physics;
 
@@ -134,6 +140,9 @@ protected:
     /// Updates the maximum local wave speed
     void update_maximum_local_wave_speed(DGBase<dim, double> &dg);
 
+    /// Function to compute the angular momentum
+    double compute_angular_momentum(const dealii::Point<dim> position, const dealii::Tensor<1,3,double> vorticity) const;
+
 public:
     /// Compute the desired unsteady data and write it to a table
     virtual void compute_unsteady_data_and_write_to_table(
@@ -152,7 +161,8 @@ protected:
         strain_rate_tensor_magnitude_sqr,
         incompressible_kinetic_energy,
         incompressible_enstrophy,
-        incompressible_palinstrophy
+        incompressible_palinstrophy,
+        angular_momentum
     };
     /// Array for storing the integrated quantities; done for computational efficiency
     std::array<double,NUMBER_OF_INTEGRATED_QUANTITIES> integrated_quantities;

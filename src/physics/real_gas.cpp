@@ -27,7 +27,7 @@ RealGas<dim,nstate,real>::RealGas (
     , temperature_ref(298.15) /// [K]
     , u_ref(mach_ref*sqrt(gam_ref*R_ref*temperature_ref)) /// [m/s]
     , u_ref_sqr(u_ref*u_ref) /// [m/s]^2
-    , tol(1.0e-10) /// []
+    , tol(1.0e-14) /// []
     , density_ref(1.225) /// [kg/m^3]
     // TO DO: nstate-dim-1 = nspecies
 {
@@ -445,6 +445,7 @@ inline real RealGas<dim,nstate,real>
     real f_d; // f'
     real T_npo; // T_(n+1)
     real err = 999.9;
+    int itr = 0;
 
     /* compute temperature using Newton-Raphson method */
     real T_n = 2.0*this->temperature_ref; // 2.0 can be initial temperature, but it fails if initilal temperature is close to the (lower) limit.
@@ -470,13 +471,23 @@ inline real RealGas<dim,nstate,real>
 
         /// 3) main part
         T_npo = T_n - f/f_d; // dim
-        err = abs(T_npo-T_n);
+        err = abs((T_npo-T_n)/this->temperature_ref);
+
+        itr += 1;
+
         // update T
         T_n = T_npo;
     }
     while (err>this->tol);
+    // std::cout << std::setprecision(20)
+    //               << "  itr:"     << itr   << 
+    //                  ", T_n:"     << T_n   << 
+    //                  ", T_(n+1):" << T_npo <<
+    //                  ", err:"     << err   <<
+    //                  std::endl;
 
     T_n /= temperature_ref; // non-dim
+    // abort();
 
     return T_n;
 }

@@ -1028,6 +1028,87 @@ inline real InitialConditionFunction_MultiSpecies_CaloricallyPerfect_Euler_Vorte
     return value;
 }
 
+// ========================================================
+// 1D Bubble advection  (Euler) -- Initial Condition 
+// ========================================================
+template <int dim, int nstate, typename real>
+InitialConditionFunction_Euler_BubbleAdvection<dim,nstate,real>
+::InitialConditionFunction_Euler_BubbleAdvection (
+        Parameters::AllParameters const *const param)
+    : InitialConditionFunction<dim,nstate,real>()
+    , gamma_gas(param->euler_param.gamma_gas)
+    , mach_inf(param->euler_param.mach_inf)
+    , mach_inf_sqr(mach_inf*mach_inf)
+{
+    // Euler object; create using dynamic_pointer_cast and the create_Physics factory
+    // Note that Euler primitive/conservative vars are the same as NS
+    PHiLiP::Parameters::AllParameters parameters_euler = *param;
+    parameters_euler.pde_type = Parameters::AllParameters::PartialDifferentialEquation::euler;
+    this->euler_physics = std::dynamic_pointer_cast<Physics::Euler<dim,dim+2,double>>(
+                Physics::PhysicsFactory<dim,dim+2,double>::create_Physics(&parameters_euler));
+}
+template <int dim, int nstate, typename real>
+real InitialConditionFunction_Euler_BubbleAdvection<dim,nstate,real>
+::primitive_value(const dealii::Point<dim,real> &point, const unsigned int istate) const
+{
+    // Note: This is in non-dimensional form (free-stream values as reference)
+    real value = 0.;
+    if constexpr(dim == 1) {
+        const real x = point[0];
+        const real xi = 10.0;
+        const real T_0 = 300.0; // [K]
+        const real theta = 7.0;
+
+        const real pressure = 10000; // [N/m^2] -> [bar]
+        const real velocity = 50.0; // [m/s]
+        const real temperature = 0.5*((1.0+theta) +(1.0-theta)*tanh(abs(x)-xi))*T_0; // [K]
+        const real density = pressure/(this->euler_physics->R_Air_Dim*temperature);
+
+        // dimnsionalized above, non-dimensionalized below
+        if(istate==0) {
+            // mixture density
+            value = density / this->euler_physics->density_ref;
+        }
+        if(istate==1) {
+            // x-velocity
+            value = velocity / this->euler_physics->u_ref;
+        }
+        if(istate==2) {
+            // pressure
+            value = pressure / (this->euler_physics->density_ref*this->euler_physics->u_ref_sqr);
+        }
+    }
+    return value;
+}
+
+template <int dim, int nstate, typename real>
+real InitialConditionFunction_Euler_BubbleAdvection<dim,nstate,real>
+::convert_primitive_to_conversative_value(
+    const dealii::Point<dim,real> &point, const unsigned int istate) const
+{
+    real value = 0.0;
+    if constexpr(dim == 1) {
+        std::array<real,nstate> soln_primitive;
+
+        soln_primitive[0] = primitive_value(point,0);
+        soln_primitive[1] = primitive_value(point,1);
+        soln_primitive[2] = primitive_value(point,2);
+
+        const std::array<real,nstate> soln_conservative = this->euler_physics->convert_primitive_to_conservative(soln_primitive);
+        value = soln_conservative[istate];
+    }
+    return value;
+}
+
+template <int dim, int nstate, typename real>
+inline real InitialConditionFunction_Euler_BubbleAdvection<dim, nstate, real>
+::value(const dealii::Point<dim,real> &point, const unsigned int istate) const
+{
+    real value = 0.0;
+    value = convert_primitive_to_conversative_value(point,istate);
+    return value;
+}
+
 // =========================================================
 // Initial Condition Factory
 // =========================================================
@@ -1111,6 +1192,10 @@ InitialConditionFactory<dim,nstate, real>::create_InitialConditionFunction(
         if constexpr (dim==1 && nstate==dim+2+3-1){ 
             return std::make_shared<InitialConditionFunction_MultiSpecies_CaloricallyPerfect_Euler_VortexAdvection<dim,nstate,real> >(param);
         }
+    } else if (flow_type == FlowCaseEnum::euler_bubble_advection) {
+        if constexpr (dim==1 && nstate==dim+2){ 
+            return std::make_shared<InitialConditionFunction_Euler_BubbleAdvection<dim,nstate,real> >(param);
+        }        
     } else {
         std::cout << "Invalid Flow Case Type. You probably forgot to add it to the list of flow cases in initial_condition_function.cpp" << std::endl;
         std::abort();

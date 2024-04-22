@@ -56,3 +56,12 @@ add_test(
   COMMAND mpirun -n 1 ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_1D -i ${CMAKE_CURRENT_BINARY_DIR}/1d_multi_species_vortex_advection_error_study.prm
   WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
 )
+# ----------------------------------------
+# Bubble advectiion 1D (Euler, error test)
+# ----------------------------------------
+configure_file(1d_euler_bubble_advection_error_study.prm 1d_euler_bubble_advection_error_study.prm COPYONLY)
+add_test(
+  NAME MPI_1D_EULER_BUBBLE_ERROR_STUDY
+  COMMAND mpirun -n 1 ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_1D -i ${CMAKE_CURRENT_BINARY_DIR}/1d_euler_bubble_advection_error_study.prm
+  WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
+)

@@ -33,6 +33,7 @@ public:
         multi_species_vortex_advection,
         euler_vortex_advection,
         multi_species_calorically_perfect_euler_vortex_advection,
+        euler_bubble_advection,        
         non_periodic_cube_flow
         };
     FlowCaseType flow_case_type; ///< Selected FlowCaseType from the input file

@@ -38,6 +38,7 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
                           " multi_species_vortex_advection| "
                           " euler_vortex_advection| "
                           " multi_species_calorically_perfect_euler_vortex_advection| "                  
+                          " euler_bubble_advection| "                      
                           " non_periodic_cube_flow "),
                           "The type of flow we want to simulate. "
                           "Choices are "
@@ -59,6 +60,7 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
                           " multi_species_vortex_advection| "
                           " euler_vortex_advection| "
                           " multi_species_calorically_perfect_euler_vortex_advection| "                         
+                          " euler_bubble_advection| "                                          
                           " non_periodic_cube_flow>. ");
 
         prm.declare_entry("poly_degree", "1",
@@ -337,6 +339,7 @@ void FlowSolverParam::parse_parameters(dealii::ParameterHandler &prm)
         else if (flow_case_type_string == "multi_species_vortex_advection"){flow_case_type = multi_species_vortex_advection;}
         else if (flow_case_type_string == "euler_vortex_advection"){flow_case_type = euler_vortex_advection;}
         else if (flow_case_type_string == "multi_species_calorically_perfect_euler_vortex_advection"){flow_case_type = multi_species_calorically_perfect_euler_vortex_advection;}
+        else if (flow_case_type_string == "euler_bubble_advection"){flow_case_type = euler_bubble_advection;}        
         else if (flow_case_type_string == "kelvin_helmholtz_instability")   
                                                                         {flow_case_type = kelvin_helmholtz_instability;}
         else if (flow_case_type_string == "non_periodic_cube_flow")     {flow_case_type = non_periodic_cube_flow;}

@@ -609,7 +609,7 @@ void PeriodicTurbulence<dim, nstate>::compute_and_update_integrated_quantities(D
                     if(istate<3) vorticity_grad_at_q[istate][idim] = vorticity_grad_at_q_vect[istate][idim][iquad];
                 }
             }
-            const dealii::Point<dim> qpoint;
+            dealii::Point<dim> qpoint;
             if(this->do_compute_angular_momentum){
                 for(int idim=0; idim<dim; idim++){
                     qpoint[idim] = metric_oper.flux_nodes_vol[idim][iquad];

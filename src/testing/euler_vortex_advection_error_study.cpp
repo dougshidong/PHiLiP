@@ -60,6 +60,14 @@ double EulerVortexAdvectionErrorStudy<dim,nstate>
     // {
     //     std::cout << "multi-species_vortex_advection! \n \n " << std::endl; 
     // }
+    // else if (flow_type == FlowCaseEnum::multi_species_calorically_perfect_euler_vortex_advection)
+    // {
+    //     std::cout << "multi-species_calorically_perfect_vortex_advection! \n \n " << std::endl; 
+    // }
+    // else if (flow_type == FlowCaseEnum::euler_bubble_advection)
+    // {
+    //     std::cout << "euler_bubble_advection! \n \n " << std::endl; 
+    // }
 
     Assert(dim == param.dimension, dealii::ExcDimensionMismatch(dim, param.dimension));
     // Assert(dim == 2, dealii::ExcDimensionMismatch(dim, param.dimension)); // NOTE: this was originally on for bump case

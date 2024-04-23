@@ -96,8 +96,10 @@ void FlatPlate2D<dim,nstate>::steady_state_postprocessing(std::shared_ptr<DGBase
 
         AmietModelFunctional<dim,nstate,double,Triangulation> amiet_acoustic_response(dg,boundary_layer_extraction,observer_coord_ref);
         
-        real OASPL_flat_plat_2D;
+        double OASPL_flat_plat_2D;
         OASPL_flat_plat_2D = amiet_acoustic_response.evaluate_functional(true,false,false);
+
+        this->pcout << "The Overall-Averaged Sound Pressure Level for the 2-D flat plate is: " << OASPL_flat_plat_2D << std::endl;
     }
 }
 

@@ -144,8 +144,10 @@ void Airfoil2D<dim,nstate>::steady_state_postprocessing(std::shared_ptr<DGBase<d
 
         AmietModelFunctional<dim,nstate,double,Triangulation> amiet_acoustic_response(dg,boundary_layer_extraction,observer_coord_ref);
 
-        real OASPL_airfoil_2D;
+        double OASPL_airfoil_2D;
         OASPL_airfoil_2D = amiet_acoustic_response.evaluate_functional(true,false,false);
+
+        this->pcout << "The Overall-Averaged Sound Pressure Level for the 2-D airfoil is: " << OASPL_airfoil_2D << std::endl;
     }
 }
 

@@ -223,7 +223,7 @@ std::vector<std::pair<typename dealii::DoFHandler<dim>::active_cell_iterator,typ
         const dealii::DoFHandler<dim> &dof_handler,
         const std::vector<dealii::Point<dim,real>> &coord_of_total_sampling) const 
 {
-    std::vector<std::pair<typename dealii::DoFHandler<dim>::active_cell_iterator,typename dealii::Point<dim,real>>> cell_index_and_ref_points_of_total_sampling;
+    std::vector<std::pair<typename dealii::DoFHandler<dim>::active_cell_iterator,typename dealii::Point<dim,real>>> cell_index_and_ref_points_of_total_sampling(number_of_total_sampling);
     //number_of_total_sampling = coord_of_total_sampling.size();
     //if(number_of_total_sampling != number_of_sampling+2){
     //    std::cout << "ERROR: The number of total sampling is not provided correctly..." << std::endl;
@@ -232,8 +232,8 @@ std::vector<std::pair<typename dealii::DoFHandler<dim>::active_cell_iterator,typ
 
     for(int i=0;i<number_of_total_sampling;++i){
         cell_index_and_ref_points_of_total_sampling[i] = dealii::GridTools::find_active_cell_around_point(mapping_collection,
-                                                                                                       dof_handler,
-                                                                                                       coord_of_total_sampling[i]);
+                                                                                                          dof_handler,
+                                                                                                          coord_of_total_sampling[i]);
     }
 
     return cell_index_and_ref_points_of_total_sampling;
@@ -249,6 +249,7 @@ std::array<real2,nstate> ExtractionFunctional<dim,nstate,real,MeshType>
               const std::vector<real2> &soln_coeff,
               const std::vector<dealii::types::global_dof_index> &cell_soln_dofs_indices) const
 {
+    (void) coord_of_sampling;
     const dealii::Quadrature<dim> quadrature(dealii::GeometryInfo<dim>::project_to_unit_cell(cell_index_and_ref_point_of_sampling.second));
     dealii::hp::FEValues<dim, dim> hp_fe_values(mapping_collection,
                                                 fe_collection,
@@ -257,13 +258,48 @@ std::array<real2,nstate> ExtractionFunctional<dim,nstate,real,MeshType>
     hp_fe_values.reinit(cell_index_and_ref_point_of_sampling.first);
     const dealii::FEValues<dim, dim> &fe_values = hp_fe_values.get_present_fe_values();
 
-    std::vector<dealii::Vector<real2>> u_value(1, dealii::Vector<real2>(fe_collection.n_components()));
-    fe_values.get_function_values(soln_coeff, cell_soln_dofs_indices, u_value);
+    //test 1
+    //dealii::Vector<real> soln_coeff_vec(soln_coeff.size());
+    //if constexpr(std::is_same<real2,FadFadType>::value){
+    //    for(long unsigned int i=0;i<soln_coeff.size();++i){
+    //        soln_coeff_vec[i] = soln_coeff[i].val().val();
+    //    }
+    //}
+    //std::vector<dealii::Vector<real>> u_value(1, dealii::Vector<real>(fe_collection.n_components()));
+    //fe_values.get_function_values(soln_coeff_vec, cell_soln_dofs_indices, u_value);
+    //test 1
 
+    //test 2
+    (void) cell_soln_dofs_indices;
     std::array<real2,nstate> interpolated_soln;
     for(int i=0;i<nstate;++i){
-        interpolated_soln[i] = u_value[0][i];
+        interpolated_soln[i] = 0.0;
     }
+    const dealii::FiniteElement<dim,dim> & fe = fe_values.get_fe();
+    const unsigned int dofs_per_cell = fe.n_dofs_per_cell();
+    const unsigned int n_components = fe.n_components();
+    for (unsigned int shape_func = 0; shape_func < dofs_per_cell;++shape_func){
+        const real2 value = soln_coeff[shape_func];
+        if (fe.is_primitive(shape_func)){
+            const unsigned int comp = fe.system_to_component_index(shape_func).first;
+            interpolated_soln[comp] += value*fe_values.shape_value(shape_func,0);
+        }
+        else{
+            for (unsigned int c = 0; c < n_components; ++c){
+                interpolated_soln[c] += value*fe_values.shape_value_component(shape_func,0,c);
+            }
+        }
+    }
+    //test 2
+
+
+    //std::vector<dealii::Vector<real2>> u_value(1, dealii::Vector<real2>(fe_collection.n_components()));
+    //fe_values.get_function_values(soln_coeff, cell_soln_dofs_indices, u_value);
+
+    //std::array<real2,nstate> interpolated_soln;
+    //for(int i=0;i<nstate;++i){
+    //    interpolated_soln[i] = u_value[0][i];
+    //}
 
     return interpolated_soln;
 }
@@ -279,6 +315,7 @@ std::array<dealii::Tensor<1,dim,real2>,nstate> ExtractionFunctional<dim,nstate,r
                  const std::vector<real2> &soln_coeff,
                  const std::vector<dealii::types::global_dof_index> &cell_soln_dofs_indices) const
 {
+    (void) coord_of_sampling;
     const dealii::Quadrature<dim> quadrature(dealii::GeometryInfo<dim>::project_to_unit_cell(cell_index_and_ref_point_of_sampling.second));
     dealii::hp::FEValues<dim, dim> hp_fe_values(mapping_collection,
                                                 fe_collection,
@@ -287,15 +324,51 @@ std::array<dealii::Tensor<1,dim,real2>,nstate> ExtractionFunctional<dim,nstate,r
     hp_fe_values.reinit(cell_index_and_ref_point_of_sampling.first);
     const dealii::FEValues<dim, dim> &fe_values = hp_fe_values.get_present_fe_values();
 
-    std::vector<std::vector<dealii::Tensor<1, dim, real2>>> u_gradient(1, std::vector<dealii::Tensor<1, dim, real2>>(fe_collection.n_components()));
-    fe_values.get_function_gradients(soln_coeff, cell_soln_dofs_indices, u_gradient);
+    //test 1
+    //dealii::Vector<real> soln_coeff_vec(soln_coeff.size());
+    //if constexpr(std::is_same<real2,FadFadType>::value){
+    //    for(long unsigned int i=0;i<soln_coeff.size();++i){
+    //        soln_coeff_vec[i] = soln_coeff[i].val().val();
+    //    }
+    //}
+    //std::vector<std::vector<dealii::Tensor<1, dim, real>>> u_gradient(1, std::vector<dealii::Tensor<1, dim, real>>(fe_collection.n_components()));
+    //fe_values.get_function_gradients(soln_coeff_vec, cell_soln_dofs_indices, u_gradient);
+    //test 1
 
+    //test 2
+    (void) cell_soln_dofs_indices;
     std::array<dealii::Tensor<1,dim,real2>,nstate> interpolated_soln_grad;
     for(int i=0;i<nstate;++i){
         for(int j=0;j<dim;++j){
-            interpolated_soln_grad[i][j] = u_gradient[0][i][j];
+            interpolated_soln_grad[i][j] = 0.0;
         }
     }
+    const dealii::FiniteElement<dim,dim> & fe = fe_values.get_fe();
+    const unsigned int dofs_per_cell = fe.n_dofs_per_cell();
+    const unsigned int n_components = fe.n_components();
+    for (unsigned int shape_func = 0; shape_func < dofs_per_cell;++shape_func){
+        const real2 value = soln_coeff[shape_func];
+        if (fe.is_primitive(shape_func)){
+            const unsigned int comp = fe.system_to_component_index(shape_func).first;
+            interpolated_soln_grad[comp] += value*fe_values.shape_grad(shape_func,0);
+        }
+        else{
+            for (unsigned int c = 0; c < n_components; ++c){
+                interpolated_soln_grad[c] += value*fe_values.shape_grad_component(shape_func,0,c);
+            }
+        }
+    }
+    //test 2
+
+    //std::vector<std::vector<dealii::Tensor<1, dim, real2>>> u_gradient(1, std::vector<dealii::Tensor<1, dim, real2>>(fe_collection.n_components()));
+    //fe_values.get_function_gradients(soln_coeff, cell_soln_dofs_indices, u_gradient);
+
+    //std::array<dealii::Tensor<1,dim,real2>,nstate> interpolated_soln_grad;
+    //for(int i=0;i<nstate;++i){
+    //    for(int j=0;j<dim;++j){
+    //        interpolated_soln_grad[i][j] = u_gradient[0][i][j];
+    //    }
+    //}
 
     return interpolated_soln_grad;
 }
@@ -675,7 +748,7 @@ real ExtractionFunctional<dim,nstate,real,MeshType>
             std::abort();
         }
         real2 edge_velocity_n = navier_stokes_fad.compute_velocities(ns_soln_of_sampling).norm();
-        if((edge_velocity_n-0.99*values_free_stream.first)<=tolerance && std::abs(edge_velocity-edge_velocity_n)<=tolerance) {
+        if(edge_velocity_n>=0.99*values_free_stream.first && std::abs(edge_velocity-edge_velocity_n)<=tolerance) {
             boundary_layer_thickness = this->start_point.distance(coord_of_total_sampling[i]);
             std::cout << "Captured boundary layer thickness..." << std::endl;
             return boundary_layer_thickness;
@@ -779,6 +852,119 @@ std::pair<real,real> ExtractionFunctional<dim,nstate,real,MeshType>
 #if PHILIP_DIM!=1
 template class ExtractionFunctional <PHILIP_DIM, PHILIP_DIM+2, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
 template class ExtractionFunctional <PHILIP_DIM, PHILIP_DIM+3, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
-#endif
 
+template std::array<FadFadType,PHILIP_DIM+2> 
+ExtractionFunctional <PHILIP_DIM, PHILIP_DIM+2, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>::point_value(
+    const dealii::Point<PHILIP_DIM,double> &coord_of_sampling,
+    const dealii::hp::MappingCollection<PHILIP_DIM> &mapping_collection,
+    const dealii::hp::FECollection<PHILIP_DIM> &fe_collection,
+    const std::pair<typename dealii::DoFHandler<PHILIP_DIM>::active_cell_iterator,typename dealii::Point<PHILIP_DIM,double>> &cell_index_and_ref_point_of_sampling,
+    const std::vector<FadFadType> &soln_coeff,
+    const std::vector<dealii::types::global_dof_index> &cell_soln_dofs_indices) const;
+template std::array<FadFadType,PHILIP_DIM+3> 
+ExtractionFunctional <PHILIP_DIM, PHILIP_DIM+3, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>::point_value(
+    const dealii::Point<PHILIP_DIM,double> &coord_of_sampling,
+    const dealii::hp::MappingCollection<PHILIP_DIM> &mapping_collection,
+    const dealii::hp::FECollection<PHILIP_DIM> &fe_collection,
+    const std::pair<typename dealii::DoFHandler<PHILIP_DIM>::active_cell_iterator,typename dealii::Point<PHILIP_DIM,double>> &cell_index_and_ref_point_of_sampling,
+    const std::vector<FadFadType> &soln_coeff,
+    const std::vector<dealii::types::global_dof_index> &cell_soln_dofs_indices) const;
+
+template std::array<dealii::Tensor<1,PHILIP_DIM,FadFadType>,PHILIP_DIM+2> 
+ExtractionFunctional <PHILIP_DIM, PHILIP_DIM+2, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>::point_gradient(
+    const dealii::Point<PHILIP_DIM,double> &coord_of_sampling,
+    const dealii::hp::MappingCollection<PHILIP_DIM> &mapping_collection,
+    const dealii::hp::FECollection<PHILIP_DIM> &fe_collection,
+    const std::pair<typename dealii::DoFHandler<PHILIP_DIM>::active_cell_iterator,typename dealii::Point<PHILIP_DIM,double>> &cell_index_and_ref_point_of_sampling,
+    const std::vector<FadFadType> &soln_coeff,
+    const std::vector<dealii::types::global_dof_index> &cell_soln_dofs_indices) const;
+template std::array<dealii::Tensor<1,PHILIP_DIM,FadFadType>,PHILIP_DIM+3> 
+ExtractionFunctional <PHILIP_DIM, PHILIP_DIM+3, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>::point_gradient(
+    const dealii::Point<PHILIP_DIM,double> &coord_of_sampling,
+    const dealii::hp::MappingCollection<PHILIP_DIM> &mapping_collection,
+    const dealii::hp::FECollection<PHILIP_DIM> &fe_collection,
+    const std::pair<typename dealii::DoFHandler<PHILIP_DIM>::active_cell_iterator,typename dealii::Point<PHILIP_DIM,double>> &cell_index_and_ref_point_of_sampling,
+    const std::vector<FadFadType> &soln_coeff,
+    const std::vector<dealii::types::global_dof_index> &cell_soln_dofs_indices) const;
+
+template std::pair<double,double> 
+ExtractionFunctional <PHILIP_DIM, PHILIP_DIM+2, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>::evaluate_converged_free_stream_values(
+    const std::vector<std::array<FadType,PHILIP_DIM+2>> &soln_of_total_sampling) const;
+template std::pair<double,double> 
+ExtractionFunctional <PHILIP_DIM, PHILIP_DIM+3, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>::evaluate_converged_free_stream_values(
+    const std::vector<std::array<FadType,PHILIP_DIM+3>> &soln_of_total_sampling) const;
+
+template double 
+ExtractionFunctional <PHILIP_DIM, PHILIP_DIM+2, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>::evaluate_boundary_layer_thickness(
+    const std::vector<dealii::Point<PHILIP_DIM,double>> &coord_of_total_sampling,
+    const std::vector<std::array<FadType,PHILIP_DIM+2>> &soln_of_total_sampling) const;
+template double 
+ExtractionFunctional <PHILIP_DIM, PHILIP_DIM+3, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>::evaluate_boundary_layer_thickness(
+    const std::vector<dealii::Point<PHILIP_DIM,double>> &coord_of_total_sampling,
+    const std::vector<std::array<FadType,PHILIP_DIM+3>> &soln_of_total_sampling) const;
+
+template double 
+ExtractionFunctional <PHILIP_DIM, PHILIP_DIM+2, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>::evaluate_edge_velocity(
+    const std::vector<std::array<FadType,PHILIP_DIM+2>> &soln_of_total_sampling) const;
+template double 
+ExtractionFunctional <PHILIP_DIM, PHILIP_DIM+3, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>::evaluate_edge_velocity(
+    const std::vector<std::array<FadType,PHILIP_DIM+3>> &soln_of_total_sampling) const;
+
+template double 
+ExtractionFunctional <PHILIP_DIM, PHILIP_DIM+2, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>::evaluate_maximum_shear_stress(
+    const std::vector<std::array<FadType,PHILIP_DIM+2>> &soln_of_total_sampling,
+    const std::vector<std::array<dealii::Tensor<1,PHILIP_DIM,FadType>,PHILIP_DIM+2>> &soln_grad_of_total_sampling) const;
+template double 
+ExtractionFunctional <PHILIP_DIM, PHILIP_DIM+3, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>::evaluate_maximum_shear_stress(
+    const std::vector<std::array<FadType,PHILIP_DIM+3>> &soln_of_total_sampling,
+    const std::vector<std::array<dealii::Tensor<1,PHILIP_DIM,FadType>,PHILIP_DIM+3>> &soln_grad_of_total_sampling) const;
+
+template FadType 
+ExtractionFunctional <PHILIP_DIM, PHILIP_DIM+2, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>::evaluate_displacement_thickness(
+    const std::vector<std::array<FadType,PHILIP_DIM+2>> &soln_of_total_sampling) const;
+template FadType 
+ExtractionFunctional <PHILIP_DIM, PHILIP_DIM+3, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>::evaluate_displacement_thickness(
+    const std::vector<std::array<FadType,PHILIP_DIM+3>> &soln_of_total_sampling) const;
+
+template FadType 
+ExtractionFunctional <PHILIP_DIM, PHILIP_DIM+2, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>::evaluate_momentum_thickness(
+    const std::vector<std::array<FadType,PHILIP_DIM+2>> &soln_of_total_sampling) const;
+template FadType 
+ExtractionFunctional <PHILIP_DIM, PHILIP_DIM+3, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>::evaluate_momentum_thickness(
+    const std::vector<std::array<FadType,PHILIP_DIM+3>> &soln_of_total_sampling) const;
+
+template FadType 
+ExtractionFunctional <PHILIP_DIM, PHILIP_DIM+2, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>::evaluate_friction_velocity(
+    const std::vector<std::array<FadType,PHILIP_DIM+2>> &soln_of_total_sampling,
+    const std::vector<std::array<dealii::Tensor<1,PHILIP_DIM,FadType>,PHILIP_DIM+2>> &soln_grad_of_total_sampling) const;
+template FadType 
+ExtractionFunctional <PHILIP_DIM, PHILIP_DIM+3, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>::evaluate_friction_velocity(
+    const std::vector<std::array<FadType,PHILIP_DIM+3>> &soln_of_total_sampling,
+    const std::vector<std::array<dealii::Tensor<1,PHILIP_DIM,FadType>,PHILIP_DIM+3>> &soln_grad_of_total_sampling) const;
+
+template FadType 
+ExtractionFunctional <PHILIP_DIM, PHILIP_DIM+2, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>::evaluate_pressure_gradient_tangential(
+    const std::vector<std::array<FadType,PHILIP_DIM+2>> &soln_of_total_sampling,
+    const std::vector<std::array<dealii::Tensor<1,PHILIP_DIM,FadType>,PHILIP_DIM+2>> &soln_grad_of_total_sampling) const;
+template FadType 
+ExtractionFunctional <PHILIP_DIM, PHILIP_DIM+3, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>::evaluate_pressure_gradient_tangential(
+    const std::vector<std::array<FadType,PHILIP_DIM+3>> &soln_of_total_sampling,
+    const std::vector<std::array<dealii::Tensor<1,PHILIP_DIM,FadType>,PHILIP_DIM+3>> &soln_grad_of_total_sampling) const;
+
+template FadType 
+ExtractionFunctional <PHILIP_DIM, PHILIP_DIM+2, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>::evaluate_wall_shear_stress(
+    const std::vector<std::array<FadType,PHILIP_DIM+2>> &soln_of_total_sampling,
+    const std::vector<std::array<dealii::Tensor<1,PHILIP_DIM,FadType>,PHILIP_DIM+2>> &soln_grad_of_total_sampling) const;
+template FadType 
+ExtractionFunctional <PHILIP_DIM, PHILIP_DIM+3, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>::evaluate_wall_shear_stress(
+    const std::vector<std::array<FadType,PHILIP_DIM+3>> &soln_of_total_sampling,
+    const std::vector<std::array<dealii::Tensor<1,PHILIP_DIM,FadType>,PHILIP_DIM+3>> &soln_grad_of_total_sampling) const;
+
+template FadType 
+ExtractionFunctional <PHILIP_DIM, PHILIP_DIM+2, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>::evaluate_kinematic_viscosity(
+    const std::vector<std::array<FadType,PHILIP_DIM+2>> &soln_of_total_sampling) const;
+template FadType 
+ExtractionFunctional <PHILIP_DIM, PHILIP_DIM+3, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>::evaluate_kinematic_viscosity(
+    const std::vector<std::array<FadType,PHILIP_DIM+3>> &soln_of_total_sampling) const;
+#endif
 } // PHiLiP namespace

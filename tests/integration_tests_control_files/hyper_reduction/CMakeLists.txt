@@ -118,3 +118,16 @@ add_test(
 #         fi"
 #         WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
 # )
+
+configure_file(1d_burgers_rewienski_hyper_sampling_new_error.prm 1d_burgers_rewienski_hyper_sampling_new_error.prm COPYONLY)
+add_test(
+        NAME 1D_BURGERS_HYPER_SAMPLING_NEW_ERROR
+        COMMAND bash -c
+        "mpirun -np 1 ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_1D -i ${CMAKE_CURRENT_BINARY_DIR}/1d_burgers_rewienski_hyper_sampling_new_error.prm
+        mkdir -p 1d_burgers_hyper_new_error_results;
+        mv rom_table_iteration_final.txt ./1d_burgers_hyper_new_error_results ;
+        mv snapshot_table_iteration_final.txt ./1d_burgers_new_error_results ;
+        mv solution_snapshots_iteration_final.txt ./1d_burgers_hyper_new_error_results ;
+        mv weights_table_iteration_final.txt ./1d_burgers_hyper_new_error_results ; "
+        WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
+)

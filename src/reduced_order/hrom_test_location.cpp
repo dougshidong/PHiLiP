@@ -88,7 +88,7 @@ void HROMTestLocation<dim, nstate>::compute_initial_rom_to_final_rom_error(std::
     flow_solver->dg->assemble_residual(compute_dRdW);
 
     // Build hyperreduced Jacobian
-    Epetra_CrsMatrix epetra_system_matrix = this->dg->system_matrix.trilinos_matrix();
+    Epetra_CrsMatrix epetra_system_matrix = flow_solver->dg->system_matrix.trilinos_matrix();
     std::shared_ptr<Epetra_CrsMatrix> reduced_system_matrix = generate_hyper_reduced_jacobian(epetra_system_matrix);
 
     // Find test basis W with hyperreduced Jacobian

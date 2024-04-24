@@ -191,6 +191,7 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       " hyper_reduction_post_sampling |"
                       " ROM_error_post_sampling |"
                       " HROM_error_post_sampling | "
+                      " hyper_adaptive_sampling_new_error |"
                       " naca0012_unsteady_check_quick | "
                       " khi_robustness"),
                       "The type of test we want to solve. "
@@ -236,6 +237,7 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       "  hyper_reduction_post_sampling |"
                       "  ROM_error_post_sampling |"
                       "  HROM_error_post_sampling | "
+                      "  hyper_adaptive_sampling_new_error |"
                       "  naca0012_unsteady_check_quick | "
                       "  khi_robustness>.");
 
@@ -420,6 +422,7 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
     else if (test_string == "hyper_reduction_post_sampling")            { test_type = hyper_reduction_post_sampling; }
     else if (test_string == "ROM_error_post_sampling")                  { test_type = ROM_error_post_sampling; }
     else if (test_string == "HROM_error_post_sampling")                 { test_type = HROM_error_post_sampling; }
+    else if (test_string == "hyper_adaptive_sampling_new_error")        { test_type = hyper_adaptive_sampling_new_error; }
     else if (test_string == "naca0012_unsteady_check_quick")            { test_type = naca0012_unsteady_check_quick; }
     
     overintegration = prm.get_integer("overintegration");

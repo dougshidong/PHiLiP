@@ -41,6 +41,7 @@ set(TESTS_SOURCE
     hyper_reduction_post_sampling.cpp
     ROM_error_post_sampling.cpp
     HROM_error_post_sampling.cpp
+    hyper_adaptive_sampling_new_error.cpp
     naca0012_unsteady_check_quick.cpp
     )
 

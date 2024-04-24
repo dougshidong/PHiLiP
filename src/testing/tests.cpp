@@ -50,6 +50,7 @@
 #include "hyper_reduction_post_sampling.h"
 #include "ROM_error_post_sampling.h"
 #include "HROM_error_post_sampling.h"
+#include "hyper_adaptive_sampling_new_error.h"
 
 namespace PHiLiP {
 namespace Tests {
@@ -320,6 +321,8 @@ std::unique_ptr< TestsBase > TestsFactory<dim,nstate,MeshType>
         if constexpr ((dim==2 && nstate==dim+2) || (dim==1 && nstate==1))  return std::make_unique<ROMErrorPostSampling<dim,nstate>>(parameters_input, parameter_handler_input);
     } else if(test_type == Test_enum::HROM_error_post_sampling) {
         if constexpr ((dim==2 && nstate==dim+2) || (dim==1 && nstate==1))  return std::make_unique<HROMErrorPostSampling<dim,nstate>>(parameters_input, parameter_handler_input);
+    } else if(test_type == Test_enum::hyper_adaptive_sampling_new_error) {
+        if constexpr ((dim==2 && nstate==dim+2) || (dim==1 && nstate==1))  return std::make_unique<HyperAdaptiveSamplingNewError<dim,nstate>>(parameters_input, parameter_handler_input);
     } else if(test_type == Test_enum::naca0012_unsteady_check_quick){
         if constexpr (dim==2 && nstate==dim+2)  return std::make_unique<NACA0012UnsteadyCheckQuick<dim, nstate>>(parameters_input, parameter_handler_input);
     } else {

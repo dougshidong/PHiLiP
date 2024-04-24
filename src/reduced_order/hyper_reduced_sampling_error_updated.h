@@ -48,7 +48,7 @@ public:
     std::shared_ptr<ProperOrthogonalDecomposition::NearestNeighbors> nearest_neighbors;
 
     /// Run test
-    int run () const;
+    int run_sampling () const;
 
     /// Placement of initial snapshots
     void placeInitialSnapshots() const;

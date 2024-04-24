@@ -42,7 +42,7 @@ HyperreducedSamplingErrorUpdated<dim, nstate>::HyperreducedSamplingErrorUpdated(
 }
 
 template <int dim, int nstate>
-int HyperreducedSamplingErrorUpdated<dim, nstate>::run() const
+int HyperreducedSamplingErrorUpdated<dim, nstate>::run_sampling() const
 {
     std::cout << "Starting adaptive sampling process" << std::endl;
 

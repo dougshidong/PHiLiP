@@ -81,10 +81,6 @@ private:
     const real ref_speed;
     /// @brief Reference kinematic viscosity. Units: [kg/(m*s)].
     const real ref_kinematic_viscosity;
-    /// @brief Dimensionalized flow speed of free stream. Units: [m/s].
-    //const real U_inf;
-    /// @brief Dimensionalized density of free stream. Units: [kg/m^3].
-    //const real density_inf;
 
     /// @brief Dimensionalized chord length of airfoil. Units: [m].
     const real chord_length;
@@ -93,33 +89,6 @@ private:
 
     /// @brief Ratio of free-stream and convection speed of turbulence, alpha = U_inf/U_c.
     const real alpha;
-    /// @brief Dimensionalized convection velocity of turbulence. Units: [m/s].
-    //const real U_c;
-    /// @brief Dimensionalized edge velocity of boundary layer. Units: [m/s].
-    //const real U_edge;
-    /// @brief Dimensionalized friction velocity of boundary layer. Units: [m/s].
-    //const real friction_velocity;
-    /// @brief Dimensionalized boundary layer thickness. Units: [m].
-    //const real boundary_layer_thickness;
-    /// @brief Dimensionalized displacement thickness. Units: [m].
-    //const real displacement_thickness;
-    /// @brief Dimensionalized momentum thickness. Units: [m].
-    //const real momentum_thickness;
-    /// @brief Dimensionalized wall shear stress. Units: [Pa].
-    //const real wall_shear_stress;
-    /// @brief Dimensionalized maximum shear stress over extraction line. Units: [Pa].
-    //const real maximum_shear_stress;
-    /// @brief Dimensionalized kinematic viscosity. Units: [m^2/s].
-    //const real kinematic_viscosity;
-    /// @brief Dimensionalized pressure gradient over stream wise direction. Units: [Pa/m].
-    //const real pressure_gradient_tangential;
-
-    /// @brief Clauser's equilibrium parameter.
-    //const real clauser_equilibrium_parameter;
-    /// @brief Cole's wake parameter.
-    //const real cole_wake_parameter;
-    /// @brief Zagarola-Smits's parameter.
-    //const real zagarola_smits_parameter;
 
     /// @brief Half of chord length
     const real b;
@@ -127,15 +96,6 @@ private:
     const real beta_sqr;
     /// @brief S0 = sqrt(x^2+beta^2*(y^2+z^2))
     const real S0;
-
-    /// @brief Vector of wall-pressure spectrum over investigated frequency range
-    //std::vector<real> Phi_pp;
-    /// @brief Vector of far-field acoustic spectrum over investigated frequency range
-    //std::vector<real> S_pp;
-
-    //dealii::LinearAlgebra::distributed::Vector<FadFadType> solution_fad_fad;
-
-    //dealii::LinearAlgebra::distributed::Vector<FadFadType> volume_nodes_fad_fad;
 
 public:
     /// Constructor
@@ -145,9 +105,6 @@ public:
         const dealii::Point<3,real> & observer_coord_ref_input);
     /// Destructor
     ~AmietModelFunctional(){};
-
-    /// Allocate and setup the derivative dW_int_dW vector.
-    //void allocate_dW_int_dW();
 
     real evaluate_functional(
         const bool compute_dIdW = false, 
@@ -282,9 +239,6 @@ public:
         const real omega,
         const real U_c,
         const real2 Phi_pp_of_sampling) const;
-
-    /// Function to evaluate vector of wall-pressure spectrum and far-field acoustic spectrum over investigated frequency range
-    //void evaluate_wall_pressure_acoustic_spectrum();
 
     /// Function to evaluate overall far-field sound pressure level (OASPL) over investigated frequency range
     template <typename real2>

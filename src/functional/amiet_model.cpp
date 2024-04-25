@@ -40,31 +40,6 @@ AmietModelFunctional<dim,nstate,real,MeshType>
 {
     std::complex<real> imag (0.0,1.0);
     imag_unit = imag;
- 
-    //std::cout << "ref_density is "                   << ref_density << std::endl;
-    //std::cout << "ref_temperature is "               << ref_temperature << std::endl;
-    //std::cout << "ref_U is "                         << ref_U << std::endl;
-    //std::cout << "ref_viscosity is "                 << ref_viscosity << std::endl;
-
-    //std::cout << "U_inf is "                         << U_inf << std::endl;
-    //std::cout << "sound_inf is "                     << sound_inf << std::endl;
-    //std::cout << "density_inf is "                   << density_inf << std::endl;
-    //std::cout << "U_c is "                           << U_c << std::endl;
-    //std::cout << "U_edge is "                        << U_edge << std::endl;
-    //std::cout << "friction_velocity is "             << friction_velocity << std::endl;
-    //std::cout << "boundary_layer_thickness is "      << boundary_layer_thickness << std::endl;
-    //std::cout << "displacement_thickness is "        << displacement_thickness << std::endl;
-    //std::cout << "momentum_thickness is "            << momentum_thickness << std::endl;
-    //std::cout << "wall_shear_stress is "             << wall_shear_stress << std::endl;
-    //std::cout << "maximum_shear_stress is "          << maximum_shear_stress << std::endl;
-    //std::cout << "kinematic_viscosity is "           << kinematic_viscosity << std::endl;
-    //std::cout << "pressure_gradient_tangential is "  << pressure_gradient_tangential << std::endl;
-    //std::cout << "clauser_equilibrium_parameter is " << clauser_equilibrium_parameter << std::endl;
-    //std::cout << "cole_wake_parameter is "           << cole_wake_parameter << std::endl;
-    //std::cout << "zagarola_smits_parameter is "      << zagarola_smits_parameter << std::endl;
-
-    //Phi_pp.resize(numb_of_omega);
-    //S_pp.resize(numb_of_omega);
 }
 //----------------------------------------------------------------
 template <int dim,int nstate,typename real,typename MeshType>
@@ -83,28 +58,15 @@ real AmietModelFunctional<dim,nstate,real,MeshType>
     // Note: for reduced space method compute_d2I should be false
     bool actually_compute_d2I   = compute_d2I;
 
-    this->pcout << "debug 0_0 " << std::endl;
-
     this->pcout << "Evaluating functional... ";
     this->need_compute(actually_compute_value, actually_compute_dIdW, actually_compute_dIdX, actually_compute_d2I);
     this->pcout << std::endl;
-
-    this->pcout << "debug 0_1 " << std::endl;
 
     if (!actually_compute_value && !actually_compute_dIdW && !actually_compute_dIdX && !actually_compute_d2I) {
         return this->current_functional_value;
     }
 
-    this->pcout << "debug 0_2 " << std::endl;
-
     // To obtain the local derivatives
-    // Todo: remove metric elements if not needed
-    //const dealii::FESystem<dim,dim> &fe_metric = dg->high_order_grid->fe_system;
-    //const unsigned int n_metric_dofs_cell = fe_metric.dofs_per_cell;
-    //std::vector<dealii::types::global_dof_index> cell_metric_dofs_indices(n_metric_dofs_cell);
-
-    this->pcout << "debug 0_3 " << std::endl;
-
     const unsigned int max_dofs_per_cell = this->dg->dof_handler.get_fe_collection().max_dofs_per_cell();
     std::vector<dealii::types::global_dof_index> cell_soln_dofs_indices(max_dofs_per_cell);
 
@@ -115,36 +77,12 @@ real AmietModelFunctional<dim,nstate,real,MeshType>
     const auto mapping = (*(this->dg->high_order_grid->mapping_fe_field));
     dealii::hp::MappingCollection<dim> mapping_collection(mapping);
 
-    this->pcout << "debug 0_4 " << std::endl;
-
     this->allocate_derivatives(actually_compute_dIdW, actually_compute_dIdX, actually_compute_d2I);
-
-    this->pcout << "debug 0_5 " << std::endl;
 
     // local derivative of interpolated solutions wrt flow solutions
     std::vector<real> local_dW_int_i_dW;
     // local derivative of interpolated solutions gradient wrt flow solutions
     std::vector<std::vector<real>> local_dW_grad_int_i_dW(dim);
-
-    // Todo: define this function
-    //allocate_dW_int_dW();
-
-    //dealii::Point<dim,real> extraction_point;
-    //if constexpr(dim==2){
-    //    extraction_point[0] = this->dg->all_parameters.boundary_layer_extraction_param.extraction_point_x;
-    //    extraction_point[1] = this->dg->all_parameters.boundary_layer_extraction_param.extraction_point_y;
-    //} else if constexpr(dim==3){
-    //    extraction_point[0] = this->dg->all_parameters.boundary_layer_extraction_param.extraction_point_x;
-    //    extraction_point[1] = this->dg->all_parameters.boundary_layer_extraction_param.extraction_point_y;
-    //    extraction_point[2] = this->dg->all_parameters.boundary_layer_extraction_param.extraction_point_z;
-    //}
-    //// Note: number_of_sampling contains only the sampling quadrature points
-    //int number_of_sampling = this->dg->all_parameters.boundary_layer_extraction_param.number_of_sampling;
-    //// Note: number_of_total_sampling contains the start and end points as well as all sampling quadrature points
-    //int number_of_total_sampling = number_of_sampling+2;
-    //ExtractionFunctional<dim,nstate,real,MeshType> boundary_layer_extraction(this->dg, extraction_point, number_of_sampling);
-
-    this->pcout << "debug 0_6 " << std::endl;
 
     // coord_of_total_sampling: vector contains coordinates of start and end points as well as all sampling quadrature points
     int number_of_total_sampling = boundary_layer_extraction.number_of_total_sampling;
@@ -152,36 +90,28 @@ real AmietModelFunctional<dim,nstate,real,MeshType>
     coord_of_total_sampling.resize(number_of_total_sampling);
     coord_of_total_sampling = boundary_layer_extraction.evaluate_straight_line_total_sampling_point_coord();
 
-    this->pcout << "debug 0_7 " << std::endl;
-
     std::vector<std::pair<typename dealii::DoFHandler<dim>::active_cell_iterator,typename dealii::Point<dim,real>>> cell_index_and_ref_points_of_total_sampling(number_of_total_sampling);
 
     cell_index_and_ref_points_of_total_sampling = boundary_layer_extraction.find_active_cell_around_points(mapping_collection,this->dg->dof_handler,coord_of_total_sampling);
 
-    this->pcout << "debug 0_8 " << std::endl;
-
-    // Todo: MPI version of W_int and W_grad_int
+    // Todo: W_int and W_grad_int needs to be communicated
     std::vector<std::array<FadType,nstate>> soln_of_total_sampling(number_of_total_sampling);
     std::vector<std::array<dealii::Tensor<1,dim,FadType>,nstate>> soln_grad_of_total_sampling(number_of_total_sampling);
 
     int n_total_int_indep = number_of_total_sampling*nstate;
 
     std::vector<std::vector<real>> dW_int_dW(n_total_int_indep,std::vector<real>(this->dg->dof_handler.n_dofs()));
-    std::vector<std::vector<real>> dW_grad_int_dW(3*n_total_int_indep,std::vector<real>(this->dg->dof_handler.n_dofs()));
-
-    this->pcout << "debug 0 " << std::endl;
+    std::vector<std::vector<real>> dW_grad_int_dW(dim*n_total_int_indep,std::vector<real>(this->dg->dof_handler.n_dofs()));
 
     this->dg->solution.update_ghost_values();
-    //auto metric_cell = dg->high_order_grid->dof_handler_grid.begin_active();
     auto soln_cell = this->dg->dof_handler.begin_active();
-    for( ; soln_cell != this->dg->dof_handler.end(); ++soln_cell/*, ++metric_cell*/) {
+    for( ; soln_cell != this->dg->dof_handler.end(); ++soln_cell) {
         if(!soln_cell->is_locally_owned()) continue;
 
         unsigned int sampling_index;
         for(int i=0;i<number_of_total_sampling;++i){
             if(cell_index_and_ref_points_of_total_sampling[i].first == soln_cell){
                 sampling_index = i;
-
                 const unsigned int i_fele = soln_cell->active_fe_index();
 
                 // Get solution coefficients
@@ -191,44 +121,17 @@ real AmietModelFunctional<dim,nstate,real,MeshType>
                 soln_cell->get_dof_indices(cell_soln_dofs_indices);
                 soln_coeff.resize(n_soln_dofs_cell);
 
-                // Get metric coefficients
-                //metric_cell->get_dof_indices (cell_metric_dofs_indices);
-                //std::vector< FadFadType > coords_coeff(n_metric_dofs_cell);
-                //for (unsigned int idof = 0; idof < n_metric_dofs_cell; ++idof) {
-                //    coords_coeff[idof] = dg->high_order_grid->volume_nodes[cell_metric_dofs_indices[idof]];
-                //}
-
                 // Setup automatic differentiation
                 unsigned int n_total_indep = 0;
-                if (actually_compute_dIdW /*|| actually_compute_d2I*/) n_total_indep += n_soln_dofs_cell;
-                //if (actually_compute_dIdX || actually_compute_d2I) n_total_indep += n_metric_dofs_cell;
+                if (actually_compute_dIdW) n_total_indep += n_soln_dofs_cell;
                 unsigned int i_derivative = 0;
                 for(unsigned int idof = 0; idof < n_soln_dofs_cell; ++idof) {
                     const real val = this->dg->solution[cell_soln_dofs_indices[idof]];
                     soln_coeff[idof] = val;
-                    if (actually_compute_dIdW /*|| actually_compute_d2I*/)
+                    if (actually_compute_dIdW)
                         soln_coeff[idof].diff(i_derivative++, n_total_indep);
                 }
-                //for (unsigned int idof = 0; idof < n_metric_dofs_cell; ++idof) {
-                //    const real val = dg->high_order_grid->volume_nodes[cell_metric_dofs_indices[idof]];
-                //    coords_coeff[idof] = val;
-                //    if (actually_compute_dIdX || actually_compute_d2I) coords_coeff[idof].diff(i_derivative++, n_total_indep);
-                //}
                 AssertDimension(i_derivative, n_total_indep);
-                //if (actually_compute_d2I) {
-                    //unsigned int i_derivative = 0;
-                    //for(unsigned int idof = 0; idof < n_soln_dofs_cell; ++idof) {
-                    //    const real val = dg->solution[cell_soln_dofs_indices[idof]];
-                    //    soln_coeff[idof].val() = val;
-                    //    soln_coeff[idof].val().diff(i_derivative++, n_total_indep);
-                    //}
-                    //for (unsigned int idof = 0; idof < n_metric_dofs_cell; ++idof) {
-                    //    const real val = dg->high_order_grid->volume_nodes[cell_metric_dofs_indices[idof]];
-                    //    coords_coeff[idof].val() = val;
-                    //    coords_coeff[idof].val().diff(i_derivative++, n_total_indep);
-                    //}
-                //}
-                //AssertDimension(i_derivative, n_total_indep);
 
                 std::array<FadFadType,nstate> soln_of_sampling;
                 std::array<dealii::Tensor<1,dim,FadFadType>,nstate> soln_grad_of_sampling;
@@ -257,8 +160,6 @@ real AmietModelFunctional<dim,nstate,real,MeshType>
                     }
                 }
 
-                this->pcout << "debug 1 for sampling_index " << sampling_index << std::endl;
-
                 // getting the values and adding them to the derivaitve vector
                 if (actually_compute_dIdW) {
                     local_dW_int_i_dW.resize(n_soln_dofs_cell);
@@ -269,10 +170,6 @@ real AmietModelFunctional<dim,nstate,real,MeshType>
                         }
                         AssertDimension(i_derivative, n_total_indep);
                         unsigned int global_int_dof_index = sampling_index*nstate+s;
-                        //dW_int_dW->add(global_int_dof_index, cell_soln_dofs_indices, local_dW_int_i_dW);
-
-                        this->pcout << "debug 2 for sampling_index " << sampling_index << std::endl;
-
                         for(unsigned int idof = 0; idof < n_soln_dofs_cell; ++idof){
                             dW_int_dW[global_int_dof_index][cell_soln_dofs_indices[idof]] = local_dW_int_i_dW[idof];
                         }
@@ -289,20 +186,22 @@ real AmietModelFunctional<dim,nstate,real,MeshType>
                             }
                             AssertDimension(i_derivative, n_total_indep);
                         }
-                        unsigned int global_int_dof_index_x = 0*n_total_int_indep+sampling_index*nstate+s;
-                        unsigned int global_int_dof_index_y = 1*n_total_int_indep+sampling_index*nstate+s;
-                        #if dim==3
-                        unsigned int global_int_dof_index_z = 2*n_total_int_indep+sampling_index*nstate+s;
-                        #endif
-
-                        this->pcout << "debug 3 for sampling_index " << sampling_index << std::endl;
-
+                        //unsigned int global_int_dof_index_x = 0*n_total_int_indep+sampling_index*nstate+s;
+                        //unsigned int global_int_dof_index_y = 1*n_total_int_indep+sampling_index*nstate+s;
+                        //#if dim==3
+                        //unsigned int global_int_dof_index_z = 2*n_total_int_indep+sampling_index*nstate+s;
+                        //#endif
+                        //for(unsigned int idof = 0; idof < n_soln_dofs_cell; ++idof){
+                        //    dW_grad_int_dW[global_int_dof_index_x][cell_soln_dofs_indices[idof]] = local_dW_grad_int_i_dW[0][idof];
+                        //    dW_grad_int_dW[global_int_dof_index_y][cell_soln_dofs_indices[idof]] = local_dW_grad_int_i_dW[1][idof];
+                        //    #if dim==3
+                        //    dW_grad_int_dW[global_int_dof_index_z][cell_soln_dofs_indices[idof]] = local_dW_grad_int_i_dW[2][idof];
+                        //    #endif
+                        //}
                         for(unsigned int idof = 0; idof < n_soln_dofs_cell; ++idof){
-                            dW_grad_int_dW[global_int_dof_index_x][cell_soln_dofs_indices[idof]] = local_dW_grad_int_i_dW[0][idof];
-                            dW_grad_int_dW[global_int_dof_index_y][cell_soln_dofs_indices[idof]] = local_dW_grad_int_i_dW[1][idof];
-                            #if dim==3
-                            dW_grad_int_dW[global_int_dof_index_z][cell_soln_dofs_indices[idof]] = local_dW_grad_int_i_dW[2][idof];
-                            #endif
+                            for(unsigned int d=0;d<dim;++d){
+                                dW_grad_int_dW[d*n_total_int_indep+sampling_index*nstate+s][cell_soln_dofs_indices[idof]] = local_dW_grad_int_i_dW[d][idof];
+                            }
                         }
                     }
                 
@@ -310,35 +209,28 @@ real AmietModelFunctional<dim,nstate,real,MeshType>
                 if (actually_compute_dIdX) {
                     std::cout << "ERROR: No dependency of coordinate exists for Amiet's model..." << std::endl;
                 }
-                //if (actually_compute_dIdW || actually_compute_dIdX) AssertDimension(i_derivative, n_total_indep);
                 if (actually_compute_d2I) {
                     std::cout << "ERROR: Full space method are not supported for Amiet's model..." << std::endl;
                 }
-                //AssertDimension(i_derivative, n_total_indep);
             }
         }
     }
     
-    // Todo: maynot need compress operation due to no ghost cells are involved
-    //if (actually_compute_dIdW) dW_int_dW->compress(dealii::VectorOperation::add);
-
-    this->pcout << "debug 4 " << std::endl;
-
     unsigned int i_int_derivative = 0;
     for(int int_i=0;int_i<number_of_total_sampling;++int_i){
         for(int s=0;s<nstate;++s){
-            soln_of_total_sampling[int_i][s].diff(i_int_derivative++,n_total_int_indep+3*n_total_int_indep);
+            soln_of_total_sampling[int_i][s].diff(i_int_derivative++,n_total_int_indep+dim*n_total_int_indep);
         }
     }
     AssertDimension(i_int_derivative, n_total_int_indep);
     for(int int_i=0;int_i<number_of_total_sampling;++int_i){
         for(int s=0;s<nstate;++s){
             for(int d=0;d<dim;++d){
-                soln_grad_of_total_sampling[int_i][s][d].diff(i_int_derivative++,n_total_int_indep+3*n_total_int_indep);
+                soln_grad_of_total_sampling[int_i][s][d].diff(i_int_derivative++,n_total_int_indep+dim*n_total_int_indep);
             }
         }
     }
-    AssertDimension(i_int_derivative, n_total_int_indep+3*n_total_int_indep);
+    AssertDimension(i_int_derivative, n_total_int_indep+dim*n_total_int_indep);
 
     std::pair<real,real> values_free_stream = boundary_layer_extraction.evaluate_converged_free_stream_values(soln_of_total_sampling);
 
@@ -378,7 +270,6 @@ real AmietModelFunctional<dim,nstate,real,MeshType>
     S_pp_fad.resize(numb_of_omega);
 
     for (int i=0;i<numb_of_omega;++i){
-        // Todo: create a vector for omega?
         const real omega_of_sampling = omega_min+i*d_omega;
         Phi_pp_fad[i] = wall_pressure_PSD(omega_of_sampling,
                                           speed_free_stream,
@@ -395,19 +286,15 @@ real AmietModelFunctional<dim,nstate,real,MeshType>
         S_pp_fad[i] = acoustic_PSD(omega_of_sampling,U_c,Phi_pp_fad[i]);
     }
 
-    this->pcout << "debug 5 " << std::endl;
-
     output_wall_pressure_acoustic_spectrum_dat(Phi_pp_fad,S_pp_fad);
 
     FadType OASPL_fad = evaluate_overall_sound_pressure_level(S_pp_fad);
 
-    // Todo: dIdW_int needs to be distributed vector to conduct multiplication of dIdW_int and dW_int_dW
+    // Todo: dIdW_int and dIdW_grad_int needs to be distributed vectors so that dIdW_int*dW_int_dW and dIdW_grad_int*dW_grad_int_dW an be done distributively 
     std::vector<real> dIdW_int;
     dIdW_int.resize(n_total_int_indep);
     std::vector<real> dIdW_grad_int;
-    dIdW_grad_int.resize(3*n_total_int_indep);
-
-    this->pcout << "debug 6 " << std::endl;
+    dIdW_grad_int.resize(dim*n_total_int_indep);
 
     i_int_derivative = 0;
     for(int int_i=0;int_i<number_of_total_sampling;++int_i){
@@ -415,22 +302,15 @@ real AmietModelFunctional<dim,nstate,real,MeshType>
             dIdW_int[int_i*nstate+s] = OASPL_fad.dx(i_int_derivative++);
         }
     }
-
-    this->pcout << "debug 7 " << std::endl;
-
     AssertDimension(i_int_derivative, n_total_int_indep);
     for(int int_i=0;int_i<number_of_total_sampling;++int_i){
         for(int s=0;s<nstate;++s){
             for(int d=0;d<dim;++d){
-                dIdW_grad_int[dim*n_total_int_indep+int_i*nstate+s] = OASPL_fad.dx(i_int_derivative++);
+                dIdW_grad_int[d*n_total_int_indep+int_i*nstate+s] = OASPL_fad.dx(i_int_derivative++);
             }
         }
     }
-    AssertDimension(i_int_derivative, n_total_int_indep+3*n_total_int_indep);
-
-    //dW_int_dW.Tvmult(dIdw, dIdW_int);
-
-    this->pcout << "debug 8 " << std::endl;
+    AssertDimension(i_int_derivative, n_total_int_indep+dim*n_total_int_indep);
 
     std::vector<real> dIdw(this->dg->dof_handler.n_dofs());
     for(long unsigned int col=0;col<dIdw.size();++col){
@@ -438,12 +318,17 @@ real AmietModelFunctional<dim,nstate,real,MeshType>
             dIdw[col] += dIdW_int[row]*dW_int_dW[row][col];
         }
     }
-
-    this->pcout << "debug 9 " << std::endl;
-
     for(long unsigned int col=0;col<dIdw.size();++col){
-        for(int row=0;row<3*n_total_int_indep;++row){
+        for(int row=0;row<dim*n_total_int_indep;++row){
             dIdw[col] += dIdW_grad_int[row]*dW_grad_int_dW[row][col];
+        }
+    }
+
+    if(dIdw.size() != this->dIdw.size()){
+        this->pcout << "dIdw.size() and this->dIdw.size() are different..." << std::endl;
+    } else{
+        for(long unsigned int col=0;col<dIdw.size();++col){
+            this->dIdw[col] = dIdw[col];
         }
     }
 
@@ -451,25 +336,6 @@ real AmietModelFunctional<dim,nstate,real,MeshType>
 
     return this->current_functional_value;
 }
-////----------------------------------------------------------------
-//template <int dim, int nstate, typename real, typename MeshType>
-//template <typename real2>
-//void AmietModelFunctional<dim,nstate,real,MeshType>
-//::allocate_W_X(dealii::LinearAlgebra::distributed::Vector<real2> &solution_input,
-//               dealii::LinearAlgebra::distributed::Vector<real2> &volume_nodes_input) const
-//{
-//    // allocating the vector for solution_input
-//    dealii::IndexSet locally_owned_dofs_soln = dg->dof_handler.locally_owned_dofs();
-//    solution_input.reinit(locally_owned_dofs_soln, MPI_COMM_WORLD);
-//
-//    // allocating the vector for volume_nodes_input
-//    dealii::IndexSet locally_owned_dofs_vol = dg->high_order_grid->dof_handler_grid.locally_owned_dofs();
-//    dealii::IndexSet locally_relevant_dofs, ghost_dofs;
-//    dealii::DoFTools::extract_locally_relevant_dofs(dg->high_order_grid->dof_handler_grid, locally_relevant_dofs);
-//    ghost_dofs = locally_relevant_dofs;
-//    ghost_dofs.subtract_set(locally_owned_dofs_vol);
-//    volume_nodes_input.reinit(locally_owned_dofs_vol, ghost_dofs, MPI_COMM_WORLD);
-//}
 //----------------------------------------------------------------
 template <int dim,int nstate,typename real,typename MeshType>
 template <typename real2>
@@ -858,17 +724,6 @@ real2 AmietModelFunctional<dim,nstate,real,MeshType>
 
     return S_pp_of_sampling;
 }
-////----------------------------------------------------------------
-//template <int dim,int nstate,typename real,typename MeshType>
-//void AmietModelFunctional<dim,nstate,real,MeshType>
-//::evaluate_wall_pressure_acoustic_spectrum()
-//{   
-//    for (int i=0;i<numb_of_omega;++i){
-//        const real omega_of_sampling = omega_min+i*d_omega;
-//        Phi_pp[i] = wall_pressure_PSD(omega_of_sampling);
-//        S_pp[i] = acoustic_PSD(omega_of_sampling,Phi_pp[i]);
-//    }
-//}
 //----------------------------------------------------------------
 template <int dim,int nstate,typename real,typename MeshType>
 template <typename real2>

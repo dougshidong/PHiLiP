@@ -138,9 +138,11 @@ protected:
     /// f_M6: Compute species densities from conservative_soln 
     std::array<real,nstate-dim-1> compute_species_densities ( const std::array<real,nstate> &conservative_soln ) const;
 
+public:
     /// f_M7: Compute mass fractions from conservative_soln 
     std::array<real,nstate-dim-1> compute_mass_fractions ( const std::array<real,nstate> &conservative_soln ) const;
 
+protected:
     /// f_M8: Compute mixture from mass fractions and species
     real compute_mixture_from_species( const std::array<real,nstate-dim-1> &mass_fractions, const std::array<real,nstate-dim-1> &species ) const;
 

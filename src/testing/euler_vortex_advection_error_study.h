@@ -27,6 +27,9 @@ protected:
     //  Compute temperature from conservative solutions using different functions depending on physics model
     double compute_temperature ( const std::array<double,nstate> &conservative_soln ) const;
 
+     //  Compute mass fractions of the #1 species from conservative solutions using different functions depending on physics model
+    double compute_mass_fractions_1st ( const std::array<double,nstate> &conservative_soln ) const;   
+
     /// Parameter handler for storing the .prm file being ran
     const dealii::ParameterHandler &parameter_handler;
 

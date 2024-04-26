@@ -51,7 +51,7 @@ double EulerVortexAdvectionErrorStudy<dim,nstate>
     using FlowCaseEnum = Parameters::FlowSolverParam::FlowCaseType;
     const FlowCaseEnum flow_type = param.flow_solver_param.flow_case_type;
     // Euler
-    if (flow_type == FlowCaseEnum::euler_vortex_advection)
+    if (flow_type == FlowCaseEnum::euler_vortex_advection || flow_type == FlowCaseEnum::euler_bubble_advection)
     {
         if constexpr (dim==1 && nstate==dim+2)
         {
@@ -109,7 +109,7 @@ double EulerVortexAdvectionErrorStudy<dim,nstate>
     using FlowCaseEnum = Parameters::FlowSolverParam::FlowCaseType;
     const FlowCaseEnum flow_type = param.flow_solver_param.flow_case_type;
     // Euler
-    if (flow_type == FlowCaseEnum::euler_vortex_advection)
+    if (flow_type == FlowCaseEnum::euler_vortex_advection || flow_type == FlowCaseEnum::euler_bubble_advection)
     {
         if constexpr (dim==1 && nstate==dim+2)
         {

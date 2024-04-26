@@ -21,8 +21,11 @@ public:
                       const dealii::ParameterHandler &parameter_handler_input);
 
 protected:
-    /// f_M14: Compute temperature from conservative_soln
+    //  Compute pressure from conservative solutions using different functions depending on physics model
     double compute_pressure ( const std::array<double,nstate> &conservative_soln ) const;
+
+    //  Compute temperature from conservative solutions using different functions depending on physics model
+    double compute_temperature ( const std::array<double,nstate> &conservative_soln ) const;
 
     /// Parameter handler for storing the .prm file being ran
     const dealii::ParameterHandler &parameter_handler;

@@ -43,7 +43,7 @@ template <int dim, int nstate>
 double EulerVortexAdvectionErrorStudy<dim,nstate>
 ::compute_pressure ( const std::array<double,nstate> &conservative_soln ) const
 {
-    double pressure;
+    double pressure = conservative_soln[0];
 
     using ManParam = Parameters::ManufacturedConvergenceStudyParam;
     Parameters::AllParameters param = *(TestsBase::all_parameters);
@@ -97,6 +97,65 @@ double EulerVortexAdvectionErrorStudy<dim,nstate>
     return pressure;
 }
 
+template <int dim, int nstate>
+double EulerVortexAdvectionErrorStudy<dim,nstate>
+::compute_temperature ( const std::array<double,nstate> &conservative_soln ) const
+{
+    double temperature = conservative_soln[0];
+
+    using ManParam = Parameters::ManufacturedConvergenceStudyParam;
+    Parameters::AllParameters param = *(TestsBase::all_parameters);
+
+    using FlowCaseEnum = Parameters::FlowSolverParam::FlowCaseType;
+    const FlowCaseEnum flow_type = param.flow_solver_param.flow_case_type;
+    // Euler
+    if (flow_type == FlowCaseEnum::euler_vortex_advection)
+    {
+        if constexpr (dim==1 && nstate==dim+2)
+        {
+            // std::cout << "euler_vortex_advection! \n \n " << std::endl;
+            Physics::Euler<dim,nstate,double> euler_physics_double
+            = Physics::Euler<dim, nstate, double>(
+                &param,
+                param.euler_param.ref_length,
+                param.euler_param.gamma_gas,
+                param.euler_param.mach_inf,
+                param.euler_param.angle_of_attack,
+                param.euler_param.side_slip_angle);
+
+            const double pressure =  euler_physics_double.compute_pressure(conservative_soln);
+            const double density = conservative_soln[0];
+            temperature = euler_physics_double.compute_temperature_from_density_pressure(density,pressure);
+        }
+    }
+    // Multi-Species Calorically-Imperfect Euler
+    else if (flow_type == FlowCaseEnum::multi_species_vortex_advection) 
+    {
+        if constexpr (dim==1 && nstate==dim+2+3-1) // TO DO: N_SPECIES, dim = 1, nstate = dim+2+3-1
+        {
+            // std::cout << "multi-species_calorically-imperfect_vortex_advection! \n \n " << std::endl;
+            Physics::RealGas<dim,nstate,double> realgas_physics_double
+            = Physics::RealGas<dim, nstate, double>(
+                &param);
+            temperature =  realgas_physics_double.compute_temperature(conservative_soln);
+        }
+    }
+    // Multi-Species Calorically-Perfect Euler
+    else if (flow_type == FlowCaseEnum::multi_species_calorically_perfect_euler_vortex_advection) 
+    {
+        if constexpr (dim==1 && nstate==dim+2+3-1) // TO DO: N_SPECIES, dim = 1, nstate = dim+2+3-1
+        {
+            // std::cout << "multi-species_calorically_perfect_vortex_advection! \n \n " << std::endl;
+            Physics::MultiSpeciesCaloricallyPerfect<dim,nstate,double> multispecies_calorically_perfect_physics_double
+            = Physics::MultiSpeciesCaloricallyPerfect<dim, nstate, double>(
+                &param);
+            temperature =  multispecies_calorically_perfect_physics_double.compute_temperature(conservative_soln);
+        }
+    }
+    
+    return temperature;
+}
+
 template<int dim, int nstate>
 double EulerVortexAdvectionErrorStudy<dim,nstate>
 ::run_error_study() const
@@ -111,6 +170,9 @@ double EulerVortexAdvectionErrorStudy<dim,nstate>
     //  pressure
     std::ofstream outdata_pressure;
     outdata_pressure.open("pressure_error.txt");
+    //  temperature
+    std::ofstream outdata_temperature;
+    outdata_temperature.open("temperature_error.txt");    
     // // flowtype
     // using FlowCaseEnum = Parameters::FlowSolverParam::FlowCaseType;
     // const FlowCaseEnum flow_type = param.flow_solver_param.flow_case_type;
@@ -172,10 +234,14 @@ double EulerVortexAdvectionErrorStudy<dim,nstate>
         std::vector<double> error_L2_density(n_grids);
         std::vector<double> error_L1_density(n_grids);
         std::vector<double> error_Linf_density(n_grids);
-        // presssure
+        // pressure
         std::vector<double> error_L2_pressure(n_grids);
         std::vector<double> error_L1_pressure(n_grids);
         std::vector<double> error_Linf_pressure(n_grids);
+        // temperature
+        std::vector<double> error_L2_temperature(n_grids);
+        std::vector<double> error_L1_temperature(n_grids);
+        std::vector<double> error_Linf_temperature(n_grids);        
 
         dealii::ConvergenceTable convergence_table;
 
@@ -225,6 +291,11 @@ double EulerVortexAdvectionErrorStudy<dim,nstate>
             double l1error_pressure = 0;
             double linferror_pressure = 0;
             double linferror_pressure_candidate = 0;
+            // temperature
+            double l2error_temperature = 0;
+            double l1error_temperature = 0;
+            double linferror_temperature = 0;
+            double linferror_temperature_candidate = 0;            
 
             std::vector<dealii::types::global_dof_index> dofs_indices (fe_values_extra.dofs_per_cell);
 
@@ -260,6 +331,7 @@ double EulerVortexAdvectionErrorStudy<dim,nstate>
 
                     double density_numerical, density_exact;
                     double pressure_numerical, pressure_exact;
+                    double temperature_numerical, temperature_exact;                    
                     // if(param.artificial_dissipation_param.use_enthalpy_error)
                     // {
                     //     error_string = "L2_enthalpy_error";
@@ -283,6 +355,9 @@ double EulerVortexAdvectionErrorStudy<dim,nstate>
                     // pressure
                     pressure_numerical = compute_pressure(soln_at_q);
                     pressure_exact =     compute_pressure(exact_at_q);
+                    // temperature
+                    temperature_numerical = compute_temperature(soln_at_q);
+                    temperature_exact =     compute_temperature(exact_at_q);                    
  
                     // error
                     // density
@@ -295,6 +370,11 @@ double EulerVortexAdvectionErrorStudy<dim,nstate>
                     l1error_pressure += abs(pressure_numerical - pressure_exact   ) * fe_values_extra.JxW(iquad);
                     linferror_pressure_candidate = abs(pressure_numerical - pressure_exact);
                     if(linferror_pressure_candidate > linferror_pressure) {linferror_pressure = linferror_pressure_candidate;}
+                    // temperature
+                    l2error_temperature += pow(temperature_numerical - temperature_exact, 2) * fe_values_extra.JxW(iquad);
+                    l1error_temperature += abs(temperature_numerical - temperature_exact   ) * fe_values_extra.JxW(iquad);
+                    linferror_temperature_candidate = abs(temperature_numerical - temperature_exact);
+                    if(linferror_temperature_candidate > linferror_temperature) {linferror_temperature = linferror_temperature_candidate;}                    
                 }
             }
             // density
@@ -305,6 +385,10 @@ double EulerVortexAdvectionErrorStudy<dim,nstate>
             const double l2error_pressure_mpi_sum = std::sqrt(dealii::Utilities::MPI::sum(l2error_pressure, mpi_communicator)); 
             const double l1error_pressure_mpi_sum =           dealii::Utilities::MPI::sum(l1error_pressure, mpi_communicator);
             const double linferror_pressure_mpi_max =         dealii::Utilities::MPI::max(linferror_pressure, mpi_communicator);
+            // temperature
+            const double l2error_temperature_mpi_sum = std::sqrt(dealii::Utilities::MPI::sum(l2error_temperature, mpi_communicator)); 
+            const double l1error_temperature_mpi_sum =           dealii::Utilities::MPI::sum(l1error_temperature, mpi_communicator);
+            const double linferror_temperature_mpi_max =         dealii::Utilities::MPI::max(linferror_temperature, mpi_communicator);            
 
             last_error = l2error_density_mpi_sum;
 
@@ -322,6 +406,10 @@ double EulerVortexAdvectionErrorStudy<dim,nstate>
             error_L2_pressure[igrid] = l2error_pressure_mpi_sum;
             error_L1_pressure[igrid] = l1error_pressure_mpi_sum;
             error_Linf_pressure[igrid] = linferror_pressure_mpi_max;
+            // temperature
+            error_L2_temperature[igrid] = l2error_temperature_mpi_sum;
+            error_L1_temperature[igrid] = l1error_temperature_mpi_sum;
+            error_Linf_temperature[igrid] = linferror_temperature_mpi_max;            
 
             convergence_table.add_value("p", poly_degree);
             convergence_table.add_value("cells", n_global_active_cells);
@@ -333,6 +421,9 @@ double EulerVortexAdvectionErrorStudy<dim,nstate>
             convergence_table.add_value("L1_error(pressure)", l1error_pressure_mpi_sum);
             convergence_table.add_value("L2_error(pressure)", l2error_pressure_mpi_sum);
             convergence_table.add_value("Linf_error(pressure)", linferror_pressure_mpi_max);
+            convergence_table.add_value("L1_error(temperature)", l1error_temperature_mpi_sum);
+            convergence_table.add_value("L2_error(temperature)", l2error_temperature_mpi_sum);
+            convergence_table.add_value("Linf_error(temperature)", linferror_temperature_mpi_max);            
             convergence_table.add_value("Residual",flow_solver->ode_solver->residual_norm);
             
             if(flow_solver->ode_solver->residual_norm > 1e-10)
@@ -360,6 +451,15 @@ double EulerVortexAdvectionErrorStudy<dim,nstate>
                  << " Residual: " << flow_solver->ode_solver->residual_norm
                  << std::endl;
 
+            // temperature
+            pcout << "Temperature Error"
+                 << " Grid size h: " << dx 
+                 << " L1-error: " << l1error_temperature_mpi_sum
+                 << " L2-error: " << l2error_temperature_mpi_sum
+                 << " Linf-error: " << linferror_temperature_mpi_max
+                 << " Residual: " << flow_solver->ode_solver->residual_norm
+                 << std::endl;                 
+
             // file output
             // density
             outdata_density << dx << " " 
@@ -373,6 +473,12 @@ double EulerVortexAdvectionErrorStudy<dim,nstate>
                     << l2error_pressure_mpi_sum << " "
                     << linferror_pressure_mpi_max << " "
                     << std::endl;
+            // temperature
+            outdata_temperature << dx << " " 
+                    << l1error_temperature_mpi_sum << " "
+                    << l2error_temperature_mpi_sum << " "
+                    << linferror_temperature_mpi_max << " "
+                    << std::endl;                    
 
             if (igrid > 0) {
                 pcout << "From grid " << igrid-1
@@ -421,6 +527,26 @@ double EulerVortexAdvectionErrorStudy<dim,nstate>
                      <<" " << "Linf_error " << 2 << "  " << error_Linf_pressure[igrid]
                      << "  slope " << slope_soln_err_linf
                      << std::endl;
+                // temperature
+                slope_soln_err_l1 = log(error_L1_temperature[igrid]/error_L1_temperature[igrid-1])
+                                      / log(grid_size[igrid]/grid_size[igrid-1]);
+                slope_soln_err_l2 = log(error_L2_temperature[igrid]/error_L2_temperature[igrid-1])
+                                      / log(grid_size[igrid]/grid_size[igrid-1]);
+                slope_soln_err_linf = log(error_Linf_temperature[igrid]/error_Linf_temperature[igrid-1])
+                                      / log(grid_size[igrid]/grid_size[igrid-1]);
+                pcout <<"Temperature"           
+                     <<" " << "L1_error " << 1 << "  " << error_L1_temperature[igrid-1]
+                     <<" " << "L1_error " << 2 << "  " << error_L1_temperature[igrid]
+                     << "  slope " << slope_soln_err_l1
+                     << std::endl
+                     <<" " << "L2_error " << 1 << "  " << error_L2_temperature[igrid-1]
+                     <<" " << "L2_error " << 2 << "  " << error_L2_temperature[igrid]
+                     << "  slope " << slope_soln_err_l2
+                     << std::endl
+                     <<" " << "Linf_error " << 1 << "  " << error_Linf_temperature[igrid-1]
+                     <<" " << "Linf_error " << 2 << "  " << error_Linf_temperature[igrid]
+                     << "  slope " << slope_soln_err_linf
+                     << std::endl;                     
             }
 
             //output_results (igrid);

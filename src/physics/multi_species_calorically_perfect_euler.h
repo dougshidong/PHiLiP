@@ -41,7 +41,7 @@ public:
     virtual std::array<real,nstate> convert_primitive_to_conservative ( const std::array<real,nstate> &primitive_soln ) const override; 
 
 // /// Mian functions
-protected:
+public:
     /// f_M14: Compute temperature from conservative_soln
     real compute_temperature ( const std::array<real,nstate> &conservative_soln ) const override;
 

@@ -170,9 +170,11 @@ protected:
     /// f_M15: Compute mixture gas constant from conservative_soln
     real compute_mixture_gas_constant ( const std::array<real,nstate> &conservative_soln ) const;
 
+public:
     /// f_M16: Compute mixture pressure from conservative_soln
     virtual real compute_mixture_pressure ( const std::array<real,nstate> &conservative_soln ) const;
 
+protected:
     /// f_M17: Compute mixture_specific_total_energy from conservative_soln
     real compute_mixture_specific_total_enthalpy ( const std::array<real,nstate> &conservative_soln ) const;
 

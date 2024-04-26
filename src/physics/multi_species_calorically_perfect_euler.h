@@ -45,6 +45,7 @@ protected:
     /// f_M14: Compute temperature from conservative_soln
     real compute_temperature ( const std::array<real,nstate> &conservative_soln ) const override;
 
+public:
     /// f_M16: Compute mixture pressure from conservative_soln
     real compute_mixture_pressure ( const std::array<real,nstate> &conservative_soln ) const override;    
 

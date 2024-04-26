@@ -20,6 +20,10 @@ public:
     EulerVortexAdvectionErrorStudy(const Parameters::AllParameters *const parameters_input,
                       const dealii::ParameterHandler &parameter_handler_input);
 
+protected:
+    /// f_M14: Compute temperature from conservative_soln
+    double compute_pressure ( const std::array<double,nstate> &conservative_soln ) const;
+
     /// Parameter handler for storing the .prm file being ran
     const dealii::ParameterHandler &parameter_handler;
 

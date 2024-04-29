@@ -68,7 +68,7 @@ double EulerVortexAdvectionErrorStudy<dim,nstate>
             pressure =  euler_physics_double.compute_pressure(conservative_soln);
         }
     }
-    // Multi-Species Calorically-Imperfect Euler
+    // Multi-Species Calorically-Imperfect Euler Vortex
     else if (flow_type == FlowCaseEnum::multi_species_vortex_advection) 
     {
         if constexpr (dim==1 && nstate==dim+2+3-1) // TO DO: N_SPECIES, dim = 1, nstate = dim+2+3-1

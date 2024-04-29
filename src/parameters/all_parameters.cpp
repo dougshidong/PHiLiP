@@ -235,7 +235,7 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       "  euler_vortex_advection_error_study | "
                       "  multi_species_vortex_advection_error_study | "
                       "  multi_species_calorically_perfect_euler_vortex_advection_error_study | "                       
-                      " euler_bubble_advection_error_study | "                                     
+                      "  euler_bubble_advection_error_study | "  
                       "  khi_robustness>.");
 
     prm.declare_entry("pde_type", "advection",

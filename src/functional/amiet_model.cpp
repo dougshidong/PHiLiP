@@ -100,11 +100,49 @@ real AmietModelFunctional<dim,nstate,real,MeshType>
 
     int n_total_int_indep = number_of_total_sampling*nstate;
 
-    std::vector<std::vector<real>> dW_int_dW(n_total_int_indep,std::vector<real>(this->dg->dof_handler.n_dofs()));
-    std::vector<std::vector<real>> dW_grad_int_dW(dim*n_total_int_indep,std::vector<real>(this->dg->dof_handler.n_dofs()));
+    //std::vector<std::vector<real>> dW_int_dW(n_total_int_indep,std::vector<real>(this->dg->dof_handler.n_dofs()));
+    //std::vector<std::vector<real>> dW_grad_int_dW(dim*n_total_int_indep,std::vector<real>(this->dg->dof_handler.n_dofs()));
+
+    dealii::IndexSet W_int_local_range;
+    dealii::IndexSet W_int_total_range((unsigned int)n_total_int_indep);
+    W_int_total_range.add_range(0,n_total_int_indep);
+
+    std::vector<unsigned int> W_int_global_index;
+
+    auto soln_cell = this->dg->dof_handler.begin_active();
+    for( ; soln_cell != this->dg->dof_handler.end(); ++soln_cell) {
+        if(!soln_cell->is_locally_owned()) continue;
+
+        unsigned int sampling_index;
+        for(int i=0;i<number_of_total_sampling;++i){
+            if(cell_index_and_ref_points_of_total_sampling[i].first == soln_cell){
+                sampling_index = i;
+                W_int_local_range.add_range(sampling_index*nstate,sampling_index*nstate+nstate);
+
+                for(unsigned int s=0;s<nstate;++s){
+                    W_int_global_index.push_back(sampling_index*nstate+s);
+                }
+            }
+        }
+    }
+
+    dealii::LinearAlgebra::distributed::Vector<double> W_int;
+    W_int.reinit(W_int_local_range,W_int_total_range,MPI_COMM_WORLD);
+
+    dealii::LinearAlgebra::distributed::Vector<double> W_grad_int;
+    W_int.reinit(W_grad_int_local_range,W_grad_int_total_range,MPI_COMM_WORLD);
+
+    unsigned int W_int_local_own = W_int_global_index.size();
+
+    dealii::TrilinosWrappers::SparseMatrix dW_int_dW;
+
+    dealii::SparsityPattern sparsity_pattern_dRdW = this->dg->get_dRdW_sparsity_pattern();
+    const dealii::IndexSet &col_parallel_partitioning_dW_int_dW = this->dg->locally_owned_dofs;
+
+    dW_int_dW.reinit(W_int_local_range, col_parallel_partitioning_dW_int_dW, sparsity_pattern_dRdW, MPI_COMM_WORLD);
 
     this->dg->solution.update_ghost_values();
-    auto soln_cell = this->dg->dof_handler.begin_active();
+    soln_cell = this->dg->dof_handler.begin_active();
     for( ; soln_cell != this->dg->dof_handler.end(); ++soln_cell) {
         if(!soln_cell->is_locally_owned()) continue;
 
@@ -151,17 +189,36 @@ real AmietModelFunctional<dim,nstate,real,MeshType>
                                                                                  cell_soln_dofs_indices);
 
                 for(unsigned int s=0;s<nstate;++s){
-                    soln_of_total_sampling[sampling_index][s] = soln_of_sampling[s].val();
+                    W_int[sampling_index*nstate+s] = soln_of_sampling[s].val().val();
                 }
 
                 for(unsigned int s=0;s<nstate;++s){
                     for(unsigned int d=0;d<dim;++d){
-                        soln_grad_of_total_sampling[sampling_index][s][d] = soln_grad_of_sampling[s][d].val();
+                        W_grad_int[d*sampling_index*nstate+s] = soln_grad_of_sampling[s][d].val().val();
                     }
                 }
 
+                //for(unsigned int s=0;s<nstate;++s){
+                //    for(unsigned int d=0;d<dim;++d){
+                //        soln_grad_of_total_sampling[sampling_index][s][d] = soln_grad_of_sampling[s][d].val();
+                //    }
+                //}
+
                 // getting the values and adding them to the derivaitve vector
                 if (actually_compute_dIdW) {
+                    //local_dW_int_i_dW.resize(n_soln_dofs_cell);
+                    //for(unsigned int s=0;s<nstate;++s){
+                    //    i_derivative = 0;
+                    //    for(unsigned int idof = 0; idof < n_soln_dofs_cell; ++idof){
+                    //        local_dW_int_i_dW[idof] = soln_of_sampling[s].dx(i_derivative++).val();
+                    //    }
+                    //    AssertDimension(i_derivative, n_total_indep);
+                    //    unsigned int global_int_dof_index = sampling_index*nstate+s;
+                    //    for(unsigned int idof = 0; idof < n_soln_dofs_cell; ++idof){
+                    //        dW_int_dW[global_int_dof_index][cell_soln_dofs_indices[idof]] = local_dW_int_i_dW[idof];
+                    //    }
+                    //}
+
                     local_dW_int_i_dW.resize(n_soln_dofs_cell);
                     for(unsigned int s=0;s<nstate;++s){
                         i_derivative = 0;
@@ -170,9 +227,7 @@ real AmietModelFunctional<dim,nstate,real,MeshType>
                         }
                         AssertDimension(i_derivative, n_total_indep);
                         unsigned int global_int_dof_index = sampling_index*nstate+s;
-                        for(unsigned int idof = 0; idof < n_soln_dofs_cell; ++idof){
-                            dW_int_dW[global_int_dof_index][cell_soln_dofs_indices[idof]] = local_dW_int_i_dW[idof];
-                        }
+                        dW_int_dW.add(global_int_dof_index,cell_soln_dofs_indices,local_dW_int_i_dW);
                     }
 
                     for(unsigned int d=0;d<dim;++d){
@@ -186,18 +241,6 @@ real AmietModelFunctional<dim,nstate,real,MeshType>
                             }
                             AssertDimension(i_derivative, n_total_indep);
                         }
-                        //unsigned int global_int_dof_index_x = 0*n_total_int_indep+sampling_index*nstate+s;
-                        //unsigned int global_int_dof_index_y = 1*n_total_int_indep+sampling_index*nstate+s;
-                        //#if dim==3
-                        //unsigned int global_int_dof_index_z = 2*n_total_int_indep+sampling_index*nstate+s;
-                        //#endif
-                        //for(unsigned int idof = 0; idof < n_soln_dofs_cell; ++idof){
-                        //    dW_grad_int_dW[global_int_dof_index_x][cell_soln_dofs_indices[idof]] = local_dW_grad_int_i_dW[0][idof];
-                        //    dW_grad_int_dW[global_int_dof_index_y][cell_soln_dofs_indices[idof]] = local_dW_grad_int_i_dW[1][idof];
-                        //    #if dim==3
-                        //    dW_grad_int_dW[global_int_dof_index_z][cell_soln_dofs_indices[idof]] = local_dW_grad_int_i_dW[2][idof];
-                        //    #endif
-                        //}
                         for(unsigned int idof = 0; idof < n_soln_dofs_cell; ++idof){
                             for(unsigned int d=0;d<dim;++d){
                                 dW_grad_int_dW[d*n_total_int_indep+sampling_index*nstate+s][cell_soln_dofs_indices[idof]] = local_dW_grad_int_i_dW[d][idof];
@@ -215,10 +258,13 @@ real AmietModelFunctional<dim,nstate,real,MeshType>
             }
         }
     }
+
+    W_int.update_ghost_values();
     
     unsigned int i_int_derivative = 0;
     for(int int_i=0;int_i<number_of_total_sampling;++int_i){
         for(int s=0;s<nstate;++s){
+            soln_of_total_sampling[int_i][s] = W_int[int_i*nstate+s];
             soln_of_total_sampling[int_i][s].diff(i_int_derivative++,n_total_int_indep+dim*n_total_int_indep);
         }
     }
@@ -291,18 +337,25 @@ real AmietModelFunctional<dim,nstate,real,MeshType>
     FadType OASPL_fad = evaluate_overall_sound_pressure_level(S_pp_fad);
 
     // Todo: dIdW_int and dIdW_grad_int needs to be distributed vectors so that dIdW_int*dW_int_dW and dIdW_grad_int*dW_grad_int_dW an be done distributively 
-    std::vector<real> dIdW_int;
-    dIdW_int.resize(n_total_int_indep);
+    //std::vector<real> dIdW_int;
+    //dIdW_int.resize(n_total_int_indep);
     std::vector<real> dIdW_grad_int;
     dIdW_grad_int.resize(dim*n_total_int_indep);
 
-    i_int_derivative = 0;
-    for(int int_i=0;int_i<number_of_total_sampling;++int_i){
-        for(int s=0;s<nstate;++s){
-            dIdW_int[int_i*nstate+s] = OASPL_fad.dx(i_int_derivative++);
-        }
+    dealii::LinearAlgebra::distributed::Vector<double> dIdW_int;
+    dIdW_int.reinit(W_int_local_range,MPI_COMM_WORLD);
+
+    for(unsigned int i=0;i<W_int_local_own;++i){
+        dIdW_int[W_int_global_index[i]] = OASPL_fad.dx(W_int_global_index[i]);
     }
-    AssertDimension(i_int_derivative, n_total_int_indep);
+
+    //i_int_derivative = 0;
+    //for(int int_i=0;int_i<number_of_total_sampling;++int_i){
+    //    for(int s=0;s<nstate;++s){
+    //        dIdW_int[int_i*nstate+s] = OASPL_fad.dx(i_int_derivative++);
+    //    }
+    //}
+    //AssertDimension(i_int_derivative, n_total_int_indep);
     for(int int_i=0;int_i<number_of_total_sampling;++int_i){
         for(int s=0;s<nstate;++s){
             for(int d=0;d<dim;++d){
@@ -312,25 +365,27 @@ real AmietModelFunctional<dim,nstate,real,MeshType>
     }
     AssertDimension(i_int_derivative, n_total_int_indep+dim*n_total_int_indep);
 
-    std::vector<real> dIdw(this->dg->dof_handler.n_dofs());
-    for(long unsigned int col=0;col<dIdw.size();++col){
-        for(int row=0;row<n_total_int_indep;++row){
-            dIdw[col] += dIdW_int[row]*dW_int_dW[row][col];
-        }
-    }
-    for(long unsigned int col=0;col<dIdw.size();++col){
-        for(int row=0;row<dim*n_total_int_indep;++row){
-            dIdw[col] += dIdW_grad_int[row]*dW_grad_int_dW[row][col];
-        }
-    }
+    //std::vector<real> dIdw(this->dg->dof_handler.n_dofs());
+    //for(long unsigned int col=0;col<dIdw.size();++col){
+    //    for(int row=0;row<n_total_int_indep;++row){
+    //        dIdw[col] += dIdW_int[row]*dW_int_dW[row][col];
+    //    }
+    //}
+    //for(long unsigned int col=0;col<dIdw.size();++col){
+    //    for(int row=0;row<dim*n_total_int_indep;++row){
+    //        dIdw[col] += dIdW_grad_int[row]*dW_grad_int_dW[row][col];
+    //    }
+    //}
 
-    if(dIdw.size() != this->dIdw.size()){
-        this->pcout << "dIdw.size() and this->dIdw.size() are different..." << std::endl;
-    } else{
-        for(long unsigned int col=0;col<dIdw.size();++col){
-            this->dIdw[col] = dIdw[col];
-        }
-    }
+    //if(dIdw.size() != this->dIdw.size()){
+    //    this->pcout << "dIdw.size() and this->dIdw.size() are different..." << std::endl;
+    //} else{
+    //    for(long unsigned int col=0;col<dIdw.size();++col){
+    //        this->dIdw[col] = dIdw[col];
+    //    }
+    //}
+
+    dW_int_dW.Tvmult(this->dIdw,dIdW_int);
 
     this->current_functional_value = OASPL_fad.val();
 

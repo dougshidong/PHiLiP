@@ -1054,14 +1054,16 @@ real InitialConditionFunction_Euler_BubbleAdvection<dim,nstate,real>
     // Note: This is in non-dimensional form (free-stream values as reference)
     real value = 0.;
     if constexpr(dim == 1) {
+        const real relax = 0.75;
+
         const real x = point[0];
-        const real xi = 10.0;
+        const real xi = 10.0/2.0;
         const real T_0 = 300.0; // [K]
-        const real theta = 7.0;
+        const real theta = 2.0;
 
         const real pressure = 10000; // [N/m^2] -> [bar]
-        const real velocity = 50.0; // [m/s]
-        const real temperature = 0.5*((1.0+theta) +(1.0-theta)*tanh(abs(x)-xi))*T_0; // [K]
+        const real velocity = 50.0/2.0; // [m/s]
+        const real temperature = 0.5*((1.0+theta) +(1.0-theta)*tanh(relax*(abs(x)-xi)))*T_0; // [K]
         const real density = pressure/(this->euler_physics->R_Air_Dim*temperature);
 
         // dimnsionalized above, non-dimensionalized below

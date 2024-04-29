@@ -49,8 +49,8 @@ subsection flow_solver
   set adaptive_time_step = false
   set constant_time_step = 34.614724700315755e-4
   subsection grid
-    set grid_left_bound = -25.0
-    set grid_right_bound = 25.0
+    set grid_left_bound = -12.5
+    set grid_right_bound = 12.5
     #####set number_of_grid_elements_per_dimension = 16
   end
 end 
@@ -67,7 +67,7 @@ subsection manufactured solution convergence study
   set grid_progression_add  = 0
 
   # Initial grid of size (initial_grid_size)^dim
-  set initial_grid_size = 16
+  set initial_grid_size = 4
 
   # Number of grids in grid study
   set number_of_grids   = 5

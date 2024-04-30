@@ -74,19 +74,20 @@ add_test(
         WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
 )
 
-configure_file(inviscid_naca0012_hyper_adaptive_sampling.prm inviscid_naca0012_hyper_adaptive_sampling.prm COPYONLY)
-add_test(
-        NAME INVISCID_NACA0012_HYPER_ADAPTIVE_SAMPLING_RUN
-        COMMAND bash -c
-        "
-        mpirun -np 1 ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_2D -i ${CMAKE_CURRENT_BINARY_DIR}/inviscid_naca0012_hyper_adaptive_sampling.prm
-        mkdir -p NACA_hyper_adapt_results;
-        mv rom_table_iteration_final.txt ./NACA_hyper_adapt_results ;
-        mv snapshot_table_iteration_final.txt ./NACA_hyper_adapt_results ;
-        mv solution_snapshots_iteration_final.txt ./NACA_hyper_adapt_results ;
-        mv weights_table_iteration_final.txt ./NACA_hyper_adapt_results ; "
-        WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
-)
+# The following test can only be run on Narval currently with a 2009G node as they require a large amount of memory
+# configure_file(inviscid_naca0012_hyper_adaptive_sampling.prm inviscid_naca0012_hyper_adaptive_sampling.prm COPYONLY)
+# add_test(
+#         NAME INVISCID_NACA0012_HYPER_ADAPTIVE_SAMPLING_RUN
+#         COMMAND bash -c
+#         "
+#         mpirun -np 1 ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_2D -i ${CMAKE_CURRENT_BINARY_DIR}/inviscid_naca0012_hyper_adaptive_sampling.prm
+#         mkdir -p NACA_hyper_adapt_results;
+#         mv rom_table_iteration_final.txt ./NACA_hyper_adapt_results ;
+#         mv snapshot_table_iteration_final.txt ./NACA_hyper_adapt_results ;
+#         mv solution_snapshots_iteration_final.txt ./NACA_hyper_adapt_results ;
+#         mv weights_table_iteration_final.txt ./NACA_hyper_adapt_results ; "
+#         WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
+# )
 
 # Uncomment the following two tests if you would like to find the "true" error between the models built adaptively with and without hyperreduction
 # Running them are expensive as they calculate the error at 400 parameter locations, and do not test any additional areas of the reduced order code

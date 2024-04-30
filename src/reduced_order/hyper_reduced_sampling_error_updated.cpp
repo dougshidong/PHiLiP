@@ -80,9 +80,9 @@ int HyperreducedSamplingErrorUpdated<dim, nstate>::run_sampling() const
     bool exit_con = NNLS_prob.solve();
     std::cout << exit_con << std::endl;
 
-    Epetra_Vector weights = NNLS_prob.getSolution();
-    std::cout << "ECSW Weights"<< std::endl;
-    std::cout << weights << std::endl;
+    ptr_weights = std::make_shared<Epetra_Vector>(NNLS_prob.getSolution());
+    this->pcout << "ECSW Weights"<< std::endl;
+    this->pcout << *ptr_weights << std::endl;
 
     MatrixXd rom_points = nearest_neighbors->kPairwiseNearestNeighborsMidpoint();
     std::cout << "ROM Points"<< std::endl;
@@ -95,7 +95,16 @@ int HyperreducedSamplingErrorUpdated<dim, nstate>::run_sampling() const
 
     while(max_error > all_parameters->reduced_order_param.adaptation_tolerance){
 
-        outputIterationData(iteration);
+        outputIterationData(std::to_string(iteration));
+        std::unique_ptr<dealii::TableHandler> weights_table = std::make_unique<dealii::TableHandler>();
+        for(int i = 0 ; i < ptr_weights->GlobalLength() ; i++){
+            weights_table->add_value("ECSW Weights", (*ptr_weights)[i]);
+            weights_table->set_precision("ECSW Weights", 16);
+        }
+
+        std::ofstream weights_table_file("weights_table_iteration_" + std::to_string(iteration) + ".txt");
+        weights_table->write_text(weights_table_file, dealii::TableHandler::TextOutputFormat::org_mode_table);
+        weights_table_file.close();
 
         std::cout << "Sampling snapshot at " << max_error_params << std::endl;
         dealii::LinearAlgebra::distributed::Vector<double> fom_solution = solveSnapshotFOM(max_error_params);
@@ -106,14 +115,9 @@ int HyperreducedSamplingErrorUpdated<dim, nstate>::run_sampling() const
         current_pod->computeBasis();
 
         // Find C and d for NNLS Problem
-        std::cout << "Construct instance of Assembler..."<< std::endl;  
-        std::shared_ptr<HyperReduction::AssembleECSWBase<dim,nstate>> constructer_NNLS_problem;
-        if (this->all_parameters->hyper_reduction_param.training_data == "residual")         
-            constructer_NNLS_problem = std::make_shared<HyperReduction::AssembleECSWRes<dim,nstate>>(this->all_parameters, this->parameter_handler, flow_solver->dg, this->current_pod, this->snapshot_parameters, ode_solver_type);
-        else {
-            constructer_NNLS_problem = std::make_shared<HyperReduction::AssembleECSWJac<dim,nstate>>(this->all_parameters, this->parameter_handler, flow_solver->dg, this->current_pod, this->snapshot_parameters, ode_solver_type);
-        }
-        std::cout << "Build Problem..."<< std::endl;
+        this->pcout << "Update Assembler..."<< std::endl;
+        constructer_NNLS_problem->updatePODSnaps(this->current_pod, this->snapshot_parameters);
+        this->pcout << "Build Problem..."<< std::endl;
         constructer_NNLS_problem->build_problem();
 
         // Transfer b vector (RHS of NNLS problem) to Epetra structure
@@ -133,9 +137,9 @@ int HyperreducedSamplingErrorUpdated<dim, nstate>::run_sampling() const
         bool exit_con = NNLS_prob.solve();
         std::cout << exit_con << std::endl;
         
-        Epetra_Vector weights = NNLS_prob.getSolution();
-        std::cout << "ECSW Weights"<< std::endl;
-        std::cout << weights << std::endl;
+        ptr_weights = std::make_shared<Epetra_Vector>(NNLS_prob.getSolution());
+        this->pcout << "ECSW Weights"<< std::endl;
+        this->pcout << *ptr_weights << std::endl;
 
         //Update previous ROM errors with updated current_pod
         for(auto it = rom_locations.begin(); it != rom_locations.end(); ++it){
@@ -157,16 +161,25 @@ int HyperreducedSamplingErrorUpdated<dim, nstate>::run_sampling() const
         iteration++;
     }
 
-    outputIterationData(iteration);
+    outputIterationData("final");
+    std::unique_ptr<dealii::TableHandler> weights_table = std::make_unique<dealii::TableHandler>();
+    for(int i = 0 ; i < ptr_weights->GlobalLength() ; i++){
+        weights_table->add_value("ECSW Weights", (*ptr_weights)[i]);
+        weights_table->set_precision("ECSW Weights", 16);
+    }
+
+    std::ofstream weights_table_file("weights_table_iteration_final.txt");
+    weights_table->write_text(weights_table_file, dealii::TableHandler::TextOutputFormat::org_mode_table);
+    weights_table_file.close();
 
     return 0;
 }
 
 template <int dim, int nstate>
-void HyperreducedSamplingErrorUpdated<dim, nstate>::outputIterationData(int iteration) const{
+void HyperreducedSamplingErrorUpdated<dim, nstate>::outputIterationData(std::string iteration) const{
     std::unique_ptr<dealii::TableHandler> snapshot_table = std::make_unique<dealii::TableHandler>();
 
-    std::ofstream solution_out_file("solution_snapshots_iteration_" +  std::to_string(iteration) + ".txt");
+    std::ofstream solution_out_file("solution_snapshots_iteration_" +  iteration + ".txt");
     unsigned int precision = 16;
     current_pod->dealiiSnapshotMatrix.print_formatted(solution_out_file, precision);
     solution_out_file.close();
@@ -178,7 +191,7 @@ void HyperreducedSamplingErrorUpdated<dim, nstate>::outputIterationData(int iter
         }
     }
 
-    std::ofstream snapshot_table_file("snapshot_table_iteration_" + std::to_string(iteration) + ".txt");
+    std::ofstream snapshot_table_file("snapshot_table_iteration_" + iteration + ".txt");
     snapshot_table->write_text(snapshot_table_file, dealii::TableHandler::TextOutputFormat::org_mode_table);
     snapshot_table_file.close();
 
@@ -193,7 +206,7 @@ void HyperreducedSamplingErrorUpdated<dim, nstate>::outputIterationData(int iter
         rom_table->set_precision("ROM_errors", 16);
     }
 
-    std::ofstream rom_table_file("rom_table_iteration_" + std::to_string(iteration) + ".txt");
+    std::ofstream rom_table_file("rom_table_iteration_" + iteration + ".txt");
     rom_table->write_text(rom_table_file, dealii::TableHandler::TextOutputFormat::org_mode_table);
     rom_table_file.close();
 }

@@ -75,7 +75,7 @@ public:
     void configureInitialParameterSpace() const;
 
     /// Output for each iteration
-    void outputIterationData(int iteration) const;
+    void outputIterationData(std::string iteration) const;
 };
 
 }

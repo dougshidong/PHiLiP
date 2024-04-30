@@ -40,10 +40,10 @@ protected:
             const int overintegrate=10 // Overintegrate for KE, don't for num. entropy
             ) const;
 
+    using FlowSolverCaseBase<dim,nstate>::compute_unsteady_data_and_write_to_table;
     /// Compute the desired unsteady data and write it to a table
     void compute_unsteady_data_and_write_to_table(
-            const unsigned int current_iteration,
-            const double current_time,
+            const std::shared_ptr<ODE::ODESolverBase<dim, double>> ode_solver, 
             const std::shared_ptr <DGBase<dim, double>> dg,
             const std::shared_ptr<dealii::TableHandler> unsteady_data_table) override;
     
@@ -52,6 +52,9 @@ protected:
     
     /// Storing entropy at first step
     double initial_entropy;
+
+    /// Store previous entropy
+    double previous_numerical_entropy;
     
     /// Last time (for calculating relaxation factor)
     double previous_time=0;

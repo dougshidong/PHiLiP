@@ -32,7 +32,13 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
                           " gaussian_bump | "
                           " isentropic_vortex | "
                           " kelvin_helmholtz_instability | "
-                          " non_periodic_cube_flow "),
+                          " non_periodic_cube_flow | "
+                          " sod_shock_tube | "
+                          " low_density_2d | "
+                          " leblanc_shock_tube | "
+                          " shu_osher_problem | "
+                          " advection_limiter | "
+                          " burgers_limiter "),
                           "The type of flow we want to simulate. "
                           "Choices are "
                           " <taylor_green_vortex | "
@@ -47,7 +53,13 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
                           " gaussian_bump | "
                           " isentropic_vortex | "
                           " kelvin_helmholtz_instability | "
-                          " non_periodic_cube_flow>. ");
+                          " non_periodic_cube_flow | "
+                          " sod_shock_tube | "
+                          " low_density_2d | "
+                          " leblanc_shock_tube | "
+                          " shu_osher_problem | "
+                          " advection_limiter | "
+                          " burgers_limiter >. ");
 
         prm.declare_entry("poly_degree", "1",
                           dealii::Patterns::Integer(0, dealii::Patterns::Integer::max_int_value),
@@ -238,9 +250,11 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
                               "Choices are "
                               " <uniform | "
                               " isothermal>.");
+            
             prm.declare_entry("do_calculate_numerical_entropy", "false",
                               dealii::Patterns::Bool(),
                               "Flag to calculate numerical entropy and write to file. By default, do not calculate.");
+            
         }
         prm.leave_subsection();
 
@@ -322,7 +336,13 @@ void FlowSolverParam::parse_parameters(dealii::ParameterHandler &prm)
         else if (flow_case_type_string == "kelvin_helmholtz_instability")   
                                                                         {flow_case_type = kelvin_helmholtz_instability;}
         else if (flow_case_type_string == "non_periodic_cube_flow")     {flow_case_type = non_periodic_cube_flow;}
-
+        else if (flow_case_type_string == "sod_shock_tube")             {flow_case_type = sod_shock_tube;}
+        else if (flow_case_type_string == "low_density_2d")             {flow_case_type = low_density_2d;}
+        else if (flow_case_type_string == "leblanc_shock_tube")         {flow_case_type = leblanc_shock_tube;}
+        else if (flow_case_type_string == "shu_osher_problem")          {flow_case_type = shu_osher_problem;}
+        else if (flow_case_type_string == "advection_limiter")          {flow_case_type = advection_limiter;}
+        else if (flow_case_type_string == "burgers_limiter")            {flow_case_type = burgers_limiter;}
+        
         poly_degree = prm.get_integer("poly_degree");
         
         // get max poly degree for adaptation

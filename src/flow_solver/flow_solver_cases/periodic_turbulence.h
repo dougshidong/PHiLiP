@@ -76,7 +76,17 @@ public:
             const double current_time) const;
 
     /// Calculate numerical entropy by matrix-vector product
-    double get_numerical_entropy(const std::shared_ptr <DGBase<dim, double>> dg) const;
+    double compute_current_integrated_numerical_entropy(
+            const std::shared_ptr <DGBase<dim, double>> dg) const;
+
+    /// Update numerical entropy variables
+    void update_numerical_entropy(
+            const double FR_entropy_contribution_RRK_solver,
+            const unsigned int current_iteration,
+            const std::shared_ptr <DGBase<dim, double>> dg);
+    
+    /// Retrieves cumulative_numerical_entropy_change_FRcorrected
+    double get_numerical_entropy(const std::shared_ptr <DGBase<dim, double>> /*dg*/) const;
 
 protected:
     /// Filename (with extension) for the unsteady data table
@@ -111,18 +121,18 @@ protected:
     double get_constant_time_step(std::shared_ptr<DGBase<dim,double>> dg) const override;
 
     /// Function to compute the adaptive time step
-    double get_adaptive_time_step(std::shared_ptr<DGBase<dim,double>> dg) const override;
+    using CubeFlow_UniformGrid<dim, nstate>::get_adaptive_time_step;
 
     /// Function to compute the initial adaptive time step
-    double get_adaptive_time_step_initial(std::shared_ptr<DGBase<dim,double>> dg) override;
+    using CubeFlow_UniformGrid<dim, nstate>::get_adaptive_time_step_initial;
 
     /// Updates the maximum local wave speed
-    void update_maximum_local_wave_speed(DGBase<dim, double> &dg);
+    using CubeFlow_UniformGrid<dim, nstate>::update_maximum_local_wave_speed;
 
+    using FlowSolverCaseBase<dim,nstate>::compute_unsteady_data_and_write_to_table;
     /// Compute the desired unsteady data and write it to a table
     void compute_unsteady_data_and_write_to_table(
-            const unsigned int current_iteration,
-            const double current_time,
+            const std::shared_ptr<ODE::ODESolverBase<dim, double>> ode_solver, 
             const std::shared_ptr <DGBase<dim, double>> dg,
             const std::shared_ptr<dealii::TableHandler> unsteady_data_table) override;
 
@@ -139,6 +149,15 @@ protected:
 
     /// Maximum local wave speed (i.e. convective eigenvalue)
     double maximum_local_wave_speed;
+
+    /// Numerical entropy at previous timestep
+    double previous_numerical_entropy = 0;
+
+    /// Cumulative change in numerical entropy
+    double cumulative_numerical_entropy_change_FRcorrected = 0;
+
+    /// Numerical entropy at initial time
+    double initial_numerical_entropy_abs = 0;
 
     /// Times at which to output the velocity field
     dealii::Table<1,double> output_velocity_field_times;

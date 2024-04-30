@@ -3,6 +3,7 @@
 
 #include <deal.II/base/conditional_ostream.h>
 #include <deal.II/base/parameter_handler.h>
+#include <deal.II/base/tensor.h>
 
 #include "parameters.h"
 #include "parameters/parameters_ode_solver.h"
@@ -19,6 +20,7 @@
 #include "parameters/parameters_grid_refinement_study.h"
 #include "parameters/parameters_grid_refinement.h"
 #include "parameters/parameters_artificial_dissipation.h"
+#include "parameters/parameters_limiter.h"
 #include "parameters/parameters_flow_solver.h"
 #include "parameters/parameters_mesh_adaptation.h"
 #include "parameters/parameters_functional.h"
@@ -56,6 +58,8 @@ public:
     GridRefinementStudyParam grid_refinement_study_param;
     /// Contains parameters for artificial dissipation
     ArtificialDissipationParam artificial_dissipation_param;
+    /// Contains parameters for limiter
+    LimiterParam limiter_param;
     /// Contains the parameters for simulation cases (flow solver test)
     FlowSolverParam flow_solver_param;
     /// Constains parameters for mesh adaptation
@@ -161,6 +165,8 @@ public:
     enum TestType {
         run_control,
         grid_refinement_study,
+        advection_limiter,
+        burgers_limiter,
         burgers_energy_stability,
         diffusion_exact_adjoint,
         euler_gaussian_bump,
@@ -191,7 +197,7 @@ public:
         taylor_green_vortex_restart_check,
         time_refinement_study,
         time_refinement_study_reference,
-        burgers_energy_conservation_rrk,
+        rrk_numerical_entropy_conservation_check,
         euler_entropy_conserving_split_forms_check,
         h_refinement_study_isentropic_vortex,
         khi_robustness,
@@ -204,6 +210,7 @@ public:
         ROM_error_post_sampling,
         HROM_error_post_sampling,
         hyper_adaptive_sampling_new_error
+        low_density
     };
     /// Store selected TestType from the input file.
     TestType test_type;
@@ -303,7 +310,7 @@ public:
     /** Tolerance for checking that the determinant of surface jacobians at element faces matches.
      *  Note: Currently only used in weak dg. */
     double matching_surface_jac_det_tolerance;
-    
+
     /// Declare parameters that can be set as inputs and set up the default options
     /** This subroutine should call the sub-parameter classes static declare_parameters()
       * such that each sub-parameter class is responsible to declare their own parameters.

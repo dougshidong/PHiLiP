@@ -165,6 +165,7 @@ public:
         const real2 pressure_gradient_tangential,
         const real2 kinematic_viscosity) const;
 
+    /// Function to evaluate time-scale ratio R_T.
     template <typename real2>
     real2 evaluate_time_scale_ratio(
         const real boundary_layer_thickness,
@@ -172,18 +173,21 @@ public:
         const real2 friction_velocity,
         const real2 kinematic_viscosity) const;
 
+    /// Function to evaluate Clauser's equilibrium parameter beta_c.
     template <typename real2>
     real2 evaluate_clauser_equilibrium_parameter(
         const real2 momentum_thickness,
         const real2 wall_shear_stress,
         const real2 pressure_gradient_tangential) const;
 
+    /// Function to evaluate Coles' wake parameter Pi.
     template <typename real2>
     real2 evaluate_cole_wake_parameter(
         const real2 momentum_thickness,
         const real2 wall_shear_stress,
         const real2 pressure_gradient_tangential) const;
 
+    /// Function to evaluate Zagarola-Smits's parameter Delta_star.
     template <typename real2>
     real2 evaluate_zagarola_smits_parameter(
         const real boundary_layer_thickness,

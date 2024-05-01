@@ -186,18 +186,6 @@ real AmietModelFunctional<dim,nstate,real,MeshType>
                             }
                             AssertDimension(i_derivative, n_total_indep);
                         }
-                        //unsigned int global_int_dof_index_x = 0*n_total_int_indep+sampling_index*nstate+s;
-                        //unsigned int global_int_dof_index_y = 1*n_total_int_indep+sampling_index*nstate+s;
-                        //#if dim==3
-                        //unsigned int global_int_dof_index_z = 2*n_total_int_indep+sampling_index*nstate+s;
-                        //#endif
-                        //for(unsigned int idof = 0; idof < n_soln_dofs_cell; ++idof){
-                        //    dW_grad_int_dW[global_int_dof_index_x][cell_soln_dofs_indices[idof]] = local_dW_grad_int_i_dW[0][idof];
-                        //    dW_grad_int_dW[global_int_dof_index_y][cell_soln_dofs_indices[idof]] = local_dW_grad_int_i_dW[1][idof];
-                        //    #if dim==3
-                        //    dW_grad_int_dW[global_int_dof_index_z][cell_soln_dofs_indices[idof]] = local_dW_grad_int_i_dW[2][idof];
-                        //    #endif
-                        //}
                         for(unsigned int idof = 0; idof < n_soln_dofs_cell; ++idof){
                             for(unsigned int d=0;d<dim;++d){
                                 dW_grad_int_dW[d*n_total_int_indep+sampling_index*nstate+s][cell_soln_dofs_indices[idof]] = local_dW_grad_int_i_dW[d][idof];
@@ -415,7 +403,6 @@ real2 AmietModelFunctional<dim,nstate,real,MeshType>
     const real i = 1.0;
 
     const real2 Phi_star = wall_shear_stress*wall_shear_stress*boundary_layer_thickness/edge_velocity;
-    //const real2 R_T = (boundary_layer_thickness/edge_velocity)/(kinematic_viscosity/(friction_velocity*friction_velocity));
     const real2 R_T = evaluate_time_scale_ratio(boundary_layer_thickness,edge_velocity,friction_velocity,kinematic_viscosity);
     const real2 omega_star = omega*boundary_layer_thickness/edge_velocity;
 
@@ -450,7 +437,6 @@ real2 AmietModelFunctional<dim,nstate,real,MeshType>
     const real f = 8.8;
     const real g = -0.57;
     const real i = 4.76;
-    //const real2 R_T = (boundary_layer_thickness/edge_velocity)/(kinematic_viscosity/(friction_velocity*friction_velocity));
     const real2 R_T = evaluate_time_scale_ratio(boundary_layer_thickness,edge_velocity,friction_velocity,kinematic_viscosity);
 
     const real2 const_l = 3.0;

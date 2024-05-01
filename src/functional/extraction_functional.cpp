@@ -30,60 +30,10 @@ ExtractionFunctional<dim,nstate,real,MeshType>
     }
 
     this->evaluate_extraction_start_point_coord();
-    //std::cout << "Original start_point of boundary layer extraction is " << start_point[0] << "," << start_point[1] << std::endl;
-    //for (auto cell = this->dg->triangulation->begin_active(); cell != this->dg->triangulation->end(); ++cell) {
-    //    for (unsigned int face=0; face<dealii::GeometryInfo<dim>::faces_per_cell; ++face) {
-    //        if (cell->face(face)->at_boundary()) {
-    //            // Todo: need a more general condition
-    //            if (std::abs(cell->face(face)->center()[0]-start_point[0])<=1e-3 && cell->face(face)->center()[1]>=0.0){
-    //                start_point = cell->face(face)->center();
-    //            }
-    //        }
-    //    }
-    //}
-    //std::cout << "Corrected start_point of boundary layer extraction is " << start_point[0] << "," << start_point[1] << std::endl;
 
     this->evaluate_extraction_start_point_normal_tangential_vector();
-    //const auto extraction_cell = dealii::GridTools::find_active_cell_around_point(*(this->dg->triangulation),start_point);
-    //if(extraction_cell->at_boundary()){
-    //    std::cout << "Captured cell that extraction point belongs to..." << std::endl;
-    //    for (unsigned int face=0; face<dealii::GeometryInfo<dim>::faces_per_cell; ++face) {
-    //        if (extraction_cell->face(face)->at_boundary()) {
-    //            start_point_normal_vector = extraction_cell->face(face)->get_manifold().normal_vector(extraction_cell->face(face),start_point);
-    //            start_point_normal_vector*= -1.0;
-    //            dealii::Point<dim,real> start_point_neighbor = start_point;
-    //            // Todo: need to change to the point on the same boundary line/surface
-    //            start_point_neighbor[0] += 1e-3;
-    //            start_point_tangential_vector = extraction_cell->face(face)->get_manifold().get_tangent_vector(start_point,start_point_neighbor);
-    //            for(int d=0;d<dim;++d){
-    //                start_point_tangential_vector[d] /= start_point_tangential_vector.norm();
-    //            }
-    //            std::cout << "Captured normal and tangential vector of extraction point..." << std::endl;
-    //        }
-    //    }
-    //} else {
-    //    std::cout << "ERROR: Fail to capture cell that extraction point belongs to..." << std::endl;
-    //    std::abort();
-    //}
 
     this->evaluate_extraction_end_point_coord();
-    //length_of_sampling = 8.0*(0.37*this->start_point[0]/pow(navier_stokes_real.reynolds_number_inf,1.0/5.0));
-    //std::cout << "Length_of_sampling for the boundary layer extraction is " << length_of_sampling << std::endl;
-
-    //this->end_point = this->start_point+this->start_point_normal_vector*length_of_sampling;
-
-    //coord_of_sampling.resize(this->number_of_sampling);
-    //soln_of_sampling.resize(this->number_of_sampling);
-    //soln_grad_of_sampling.resize(this->number_of_sampling);
-
-    //this->evaluate_straight_line_sampling_point_soln(coord_of_sampling,soln_of_sampling,soln_grad_of_sampling);
-
-    //this->evaluate_start_end_point_soln();
-
-    //this->evaluate_converged_free_stream_value();
-
-    //std::cout << "Captured U_inf is " << this->U_inf << std::endl;
-    //std::cout << "Captured density_inf is " << this->density_inf << std::endl;
 }
 //----------------------------------------------------------------
 template <int dim,int nstate,typename real,typename MeshType>
@@ -224,11 +174,6 @@ std::vector<std::pair<typename dealii::DoFHandler<dim>::active_cell_iterator,typ
         const std::vector<dealii::Point<dim,real>> &coord_of_total_sampling) const 
 {
     std::vector<std::pair<typename dealii::DoFHandler<dim>::active_cell_iterator,typename dealii::Point<dim,real>>> cell_index_and_ref_points_of_total_sampling(number_of_total_sampling);
-    //number_of_total_sampling = coord_of_total_sampling.size();
-    //if(number_of_total_sampling != number_of_sampling+2){
-    //    std::cout << "ERROR: The number of total sampling is not provided correctly..." << std::endl;
-    //    std::abort();
-    //}
 
     for(int i=0;i<number_of_total_sampling;++i){
         cell_index_and_ref_points_of_total_sampling[i] = dealii::GridTools::find_active_cell_around_point(mapping_collection,
@@ -258,18 +203,6 @@ std::array<real2,nstate> ExtractionFunctional<dim,nstate,real,MeshType>
     hp_fe_values.reinit(cell_index_and_ref_point_of_sampling.first);
     const dealii::FEValues<dim, dim> &fe_values = hp_fe_values.get_present_fe_values();
 
-    //test 1
-    //dealii::Vector<real> soln_coeff_vec(soln_coeff.size());
-    //if constexpr(std::is_same<real2,FadFadType>::value){
-    //    for(long unsigned int i=0;i<soln_coeff.size();++i){
-    //        soln_coeff_vec[i] = soln_coeff[i].val().val();
-    //    }
-    //}
-    //std::vector<dealii::Vector<real>> u_value(1, dealii::Vector<real>(fe_collection.n_components()));
-    //fe_values.get_function_values(soln_coeff_vec, cell_soln_dofs_indices, u_value);
-    //test 1
-
-    //test 2
     (void) cell_soln_dofs_indices;
     std::array<real2,nstate> interpolated_soln;
     for(int i=0;i<nstate;++i){
@@ -290,16 +223,6 @@ std::array<real2,nstate> ExtractionFunctional<dim,nstate,real,MeshType>
             }
         }
     }
-    //test 2
-
-
-    //std::vector<dealii::Vector<real2>> u_value(1, dealii::Vector<real2>(fe_collection.n_components()));
-    //fe_values.get_function_values(soln_coeff, cell_soln_dofs_indices, u_value);
-
-    //std::array<real2,nstate> interpolated_soln;
-    //for(int i=0;i<nstate;++i){
-    //    interpolated_soln[i] = u_value[0][i];
-    //}
 
     return interpolated_soln;
 }
@@ -324,18 +247,6 @@ std::array<dealii::Tensor<1,dim,real2>,nstate> ExtractionFunctional<dim,nstate,r
     hp_fe_values.reinit(cell_index_and_ref_point_of_sampling.first);
     const dealii::FEValues<dim, dim> &fe_values = hp_fe_values.get_present_fe_values();
 
-    //test 1
-    //dealii::Vector<real> soln_coeff_vec(soln_coeff.size());
-    //if constexpr(std::is_same<real2,FadFadType>::value){
-    //    for(long unsigned int i=0;i<soln_coeff.size();++i){
-    //        soln_coeff_vec[i] = soln_coeff[i].val().val();
-    //    }
-    //}
-    //std::vector<std::vector<dealii::Tensor<1, dim, real>>> u_gradient(1, std::vector<dealii::Tensor<1, dim, real>>(fe_collection.n_components()));
-    //fe_values.get_function_gradients(soln_coeff_vec, cell_soln_dofs_indices, u_gradient);
-    //test 1
-
-    //test 2
     (void) cell_soln_dofs_indices;
     std::array<dealii::Tensor<1,dim,real2>,nstate> interpolated_soln_grad;
     for(int i=0;i<nstate;++i){
@@ -358,116 +269,9 @@ std::array<dealii::Tensor<1,dim,real2>,nstate> ExtractionFunctional<dim,nstate,r
             }
         }
     }
-    //test 2
-
-    //std::vector<std::vector<dealii::Tensor<1, dim, real2>>> u_gradient(1, std::vector<dealii::Tensor<1, dim, real2>>(fe_collection.n_components()));
-    //fe_values.get_function_gradients(soln_coeff, cell_soln_dofs_indices, u_gradient);
-
-    //std::array<dealii::Tensor<1,dim,real2>,nstate> interpolated_soln_grad;
-    //for(int i=0;i<nstate;++i){
-    //    for(int j=0;j<dim;++j){
-    //        interpolated_soln_grad[i][j] = u_gradient[0][i][j];
-    //    }
-    //}
 
     return interpolated_soln_grad;
 }
-//----------------------------------------------------------------
-//template <int dim,int nstate,typename real,typename MeshType>
-//template <typename real2>
-//std::vector<std::array<real2,nstate>> ExtractionFunctional<dim,nstate,real,MeshType>
-//::evaluate_straight_line_sampling_point_soln(const std::vector<dealii::Point<dim,real>> &coord_of_sampling,
-//                                             const dealii::LinearAlgebra::distributed::Vector<real2> &solution_vector)
-//{
-//    std::vector<std::array<real2,nstate>> soln_of_sampling
-//    soln_of_sampling.resize(number_of_sampling);
-//    for(int i=0;i<number_of_sampling;++i){
-//        dealii::Vector<real2> soln;
-//        dealii::VectorTools::point_value(this->dg->dof_handler,solution_vector,coord_of_sampling[i],soln);
-//        std::array<real2,nstate> soln_at_q;
-//        for(int s=0;s<nstate;++s){
-//            soln_at_q[s] = soln[s];
-//        }
-//        soln_of_sampling[i] = soln_at_q;
-//    }
-//    return soln_of_sampling;
-//}
-//----------------------------------------------------------------
-//template <int dim,int nstate,typename real,typename MeshType>
-//template <typename real2>
-//std::vector<std::array<dealii::Tensor<1,dim,real2>,nstate>> ExtractionFunctional<dim,nstate,real,MeshType>
-//::evaluate_straight_line_sampling_point_soln_grad(const std::vector<dealii::Point<dim,real>> &coord_of_sampling,
-//                                                  const dealii::LinearAlgebra::distributed::Vector<real2> &solution_vector)
-//{
-//    std::vector<std::array<dealii::Tensor<1,dim,real2>,nstate>> soln_grad_of_sampling;
-//    soln_grad_of_sampling.resize(number_of_sampling);
-//    for(int i=0;i<number_of_sampling;++i){
-//        std::vector<dealii::Tensor<1,dim,real2>> soln_grad;
-//        dealii::VectorTools::point_gradient(this->dg->dof_handler,solution_vector,coord_of_sampling[i],soln_grad);
-//        std::array<dealii::Tensor<1,dim,real2>,nstate> soln_grad_at_q;
-//        for(int s=0;s<nstate;++s){
-//            soln_grad_at_q[s] = soln_grad[s];
-//        }
-//        soln_grad_of_sampling[i] = soln_grad_at_q;
-//    }
-//    return soln_grad_of_sampling;
-//}
-//----------------------------------------------------------------
-//template <int dim,int nstate,typename real,typename MeshType>
-//template <typename real2>
-//std::array<real2,nstate> ExtractionFunctional<dim,nstate,real,MeshType>
-//::evaluate_start_point_soln(const dealii::LinearAlgebra::distributed::Vector<real2> &solution_vector)
-//{
-//    std::array<real2,nstate> soln_at_start_point;
-//    dealii::Vector<real2> soln;
-//    dealii::VectorTools::point_value(this->dg->dof_handler,solution_vector,this->start_point,soln);
-//    for(int s=0;s<nstate;++s){
-//        soln_at_start_point[s] = soln[s];
-//    }
-//    return soln_at_start_point;
-//}
-//----------------------------------------------------------------
-//template <int dim,int nstate,typename real,typename MeshType>
-//template <typename real2>
-//std::array<real2,nstate> ExtractionFunctional<dim,nstate,real,MeshType>
-//::evaluate_end_point_soln(const dealii::LinearAlgebra::distributed::Vector<real2> &solution_vector)
-//{
-//    std::array<real2,nstate> soln_at_end_point;
-//    dealii::Vector<real2> soln;
-//    dealii::VectorTools::point_value(this->dg->dof_handler,solution_vector,this->end_point,soln);
-//    for(int s=0;s<nstate;++s){
-//        soln_at_end_point[s] = soln[s];
-//    }
-//    return soln_at_end_point;
-//}
-//----------------------------------------------------------------
-//template <int dim,int nstate,typename real,typename MeshType>
-//template <typename real2>
-//std::array<dealii::Tensor<1,dim,real2>,nstate> ExtractionFunctional<dim,nstate,real,MeshType>
-//::evaluate_start_point_soln_grad(const dealii::LinearAlgebra::distributed::Vector<real2> &solution_vector)
-//{
-//    std::array<dealii::Tensor<1,dim,real2>,nstate> soln_grad_at_start_point;
-//    std::vector<dealii::Tensor<1,dim,real2>> soln_grad;
-//    dealii::VectorTools::point_gradient(this->dg->dof_handler,solution_vector,this->start_point,soln_grad);
-//    for(int s=0;s<nstate;++s){
-//        soln_grad_at_start_point[s] = soln_grad[s];
-//    }
-//    return soln_grad_at_start_point;
-//}
-//----------------------------------------------------------------
-//template <int dim,int nstate,typename real,typename MeshType>
-//template <typename real2>
-//std::array<dealii::Tensor<1,dim,real2>,nstate> ExtractionFunctional<dim,nstate,real,MeshType>
-//::evaluate_end_point_soln_grad(const dealii::LinearAlgebra::distributed::Vector<real2> &solution_vector)
-//{
-//    std::array<dealii::Tensor<1,dim,real2>,nstate> soln_grad_at_end_point;
-//    std::vector<dealii::Tensor<1,dim,real>> soln_grad;
-//    dealii::VectorTools::point_gradient(this->dg->dof_handler,solution_vector,this->end_point,soln_grad);
-//    for(int s=0;s<nstate;++s){
-//        soln_grad_at_end_point[s] = soln_grad[s];
-//    }
-//    return soln_grad_at_end_point;
-//}
 //----------------------------------------------------------------
 template <int dim,int nstate,typename real,typename MeshType>
 template <typename real2>
@@ -621,27 +425,6 @@ template <typename real2>
 real ExtractionFunctional<dim,nstate,real,MeshType>
 ::evaluate_edge_velocity(const std::vector<std::array<real2,nstate>> &soln_of_total_sampling) const
 {
-    //const real tolerance = 1e-3;
-    //real2 edge_velocity;
-    //for(int i=0;i<number_of_sampling;++i){
-    //    std::array<real2,dim+2> ns_soln_of_sampling;
-    //    if constexpr(nstate==dim+2){
-    //        ns_soln_of_sampling = soln_of_sampling[i];
-    //    } else if constexpr(nstate==dim+3){
-    //        ns_soln_of_sampling = rans_sa_neg_fad->extract_rans_conservative_solution(soln_of_sampling[i]);
-    //    } else {
-    //        std::cout << "ERROR: Extraction functional only support nstate == dim+2 or dim+3..." << std::endl;
-    //        std::abort();
-    //    }
-    //    edge_velocity = navier_stokes_fad.compute_velocities(ns_soln_of_sampling).norm();
-    //    if ((edge_velocity-0.99*U_inf)<=tolerance){
-    //        std::cout << "Captured edge vbelocity..." << std::endl;
-    //        return edge_velocity;
-    //    }
-    //}
-    //std::cout << "ERROR: Fail to capture edge velocity..." << std::endl;
-    //std::abort();
-
     const std::pair<real,real> values_free_stream = evaluate_converged_free_stream_values(soln_of_total_sampling);
     return 0.99*values_free_stream.first;
 }

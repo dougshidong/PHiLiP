@@ -3,6 +3,7 @@ SET(SOURCE
     target_functional.cpp
     target_boundary_functional.cpp
     adjoint.cpp
+    acoustic_adjoint.cpp
     lift_drag.cpp
     target_wall_pressure.cpp
     extraction_functional.cpp

@@ -22,9 +22,6 @@ private:
     using FadType = Sacado::Fad::DFad<real>; ///< Sacado AD type for first derivatives.
     using FadFadType = Sacado::Fad::DFad<FadType>; ///< Sacado AD type that allows 2nd derivatives.
 
-    //using active_cell_iterator = typename dealii::DoFHandler<dim>::active_cell_iterator;
-    //using point = typename dealii::Point<dim,real>;
-
     /// Avoid warning that the function was hidden [-Woverloaded-virtual].
     /** The compiler would otherwise hide Functional::evaluate_volume_integrand, which is fine for 
      *  us, but is a typical bug that other people have. This 'using' imports the base class function
@@ -42,20 +39,8 @@ public:
     /// @brief Tangential vector (points to flow direction) on the solid boundary surface at extraction start point. 
     dealii::Tensor<1,dim,real> start_point_tangential_vector;
 
-    /// @brief Interpolated solutions at extraction start point.
-    //std::array<real,nstate> soln_at_start_point;
-
-    /// @brief Interpolated solution gradients at extraction start point.
-    //std::array<dealii::Tensor<1,dim,real>,nstate> soln_grad_at_start_point;
-
     /// @brief Extraction end point. 
     dealii::Point<dim,real> end_point;
-
-    /// @brief Interpolated solutions at extraction end point.
-    //std::array<real,nstate> soln_at_end_point;
-
-    /// @brief Interpolated solution gradients at extraction end point.
-    //std::array<dealii::Tensor<1,dim,real>,nstate> soln_grad_at_end_point;
 
     /// @brief Number of sampling points over the extraction line.
     const int number_of_sampling;
@@ -63,23 +48,8 @@ public:
     /// @brief Number of total sampling points over the extraction line, including start and end points.
     const int number_of_total_sampling;
 
-    /// @brief Coordinate of sampling points over extraction line.
-    //std::vector<dealii::Point<dim,real>> coord_of_sampling;
-
-    /// @brief Interpolated solutions at each sampling points over extraction line.
-    //std::vector<std::array<real,nstate>> soln_of_sampling;
-
-    /// @brief Interpolated solution gradients at each sampling points over extraction line.
-    //std::vector<std::array<dealii::Tensor<1,dim,real>,nstate>> soln_grad_of_sampling;
-
     /// @brief Length of extraction line 
     real length_of_sampling;
-
-    /// @brief Converged speed of free-stream flow over extraction line.
-    //real U_inf;
-
-    /// @brief Converged density of free-stream flow over extraction line.
-    //real density_inf;
 
     /// @brief Navier-Stokes physics reference.
     const Physics::NavierStokes<dim,dim+2,FadType> &navier_stokes_fad;
@@ -102,29 +72,28 @@ public:
         const bool compute_d2I = false) override;
 
 public:
-    //std::vector<dealii::Point<dim,real>> evaluate_straight_line_sampling_point_coord();
-    
-    /// Function to interpolate solutions and solution gradients on sampling points over extraction line.
-    //void evaluate_straight_line_sampling_point_soln();
-
-    /// Function to interpolate solutions and solution gradients on extraction start and end points.
-    //void evaluate_start_end_point_soln();
-
+    /// Function to evaluate start point coordinates.
     void evaluate_extraction_start_point_coord();
 
+    /// Function to evaluate start point normal and tangential vectors.
     void evaluate_extraction_start_point_normal_tangential_vector();
 
+    /// Function to evaluate end point coordinates.
     void evaluate_extraction_end_point_coord();
 
+    /// Function to evaluate only sampling points coordinates, excluding start and end points.
     std::vector<dealii::Point<dim,real>> evaluate_straight_line_sampling_point_coord() const;
 
+    /// Function to evaluate all sampling points coordinates, including start and end points.
     std::vector<dealii::Point<dim,real>> evaluate_straight_line_total_sampling_point_coord() const;
 
+    /// Function to evaluate cell iterators that own sampling points and corresponding unit cell corrdinates.
     std::vector<std::pair<typename dealii::DoFHandler<dim>::active_cell_iterator,typename dealii::Point<dim,real>>> find_active_cell_around_points(
         const dealii::hp::MappingCollection<dim> &mapping_collection,
         const dealii::DoFHandler<dim> &dof_handler,
         const std::vector<dealii::Point<dim,real>> &coord_of_total_sampling) const;
 
+    /// Function to evaluate interpolated solution values.
     template <typename real2>
     std::array<real2,nstate> point_value(
         const dealii::Point<dim,real> &coord_of_sampling,
@@ -134,6 +103,7 @@ public:
         const std::vector<real2> &soln_coeff,
         const std::vector<dealii::types::global_dof_index> &cell_soln_dofs_indices) const;
 
+    /// Function to evaluate interpolated solution gradients.
     template <typename real2>
     std::array<dealii::Tensor<1,dim,real2>,nstate> point_gradient(
         const dealii::Point<dim,real> &coord_of_sampling,
@@ -142,32 +112,6 @@ public:
         const std::pair<typename dealii::DoFHandler<dim>::active_cell_iterator,typename dealii::Point<dim,real>> &cell_index_and_ref_point_of_sampling,
         const std::vector<real2> &soln_coeff,
         const std::vector<dealii::types::global_dof_index> &cell_soln_dofs_indices) const;
-
-    //template <typename real2>
-    //std::vector<std::array<real2,nstate>> evaluate_straight_line_sampling_point_soln(
-    //    const std::vector<dealii::Point<dim,real>> &coord_of_sampling,
-    //    const dealii::LinearAlgebra::distributed::Vector<real2> &solution_vector) const;
-
-    //template <typename real2>
-    //std::vector<std::array<dealii::Tensor<1,dim,real2>,nstate>> evaluate_straight_line_sampling_point_soln_grad(
-    //    const std::vector<dealii::Point<dim,real>> &coord_of_sampling,
-    //    const dealii::LinearAlgebra::distributed::Vector<real2> &solution_vector) const;
-
-    //template <typename real2>
-    //std::array<real2,nstate> evaluate_start_point_soln(
-    //    const dealii::LinearAlgebra::distributed::Vector<real2> &solution_vector) const;
-
-    //template <typename real2>
-    //std::array<real2,nstate> evaluate_end_point_soln(
-    //    const dealii::LinearAlgebra::distributed::Vector<real2> &solution_vector) const;
-
-    //template <typename real2>
-    //std::array<dealii::Tensor<1,dim,real2>,nstate> evaluate_start_point_soln_grad(
-    //    const dealii::LinearAlgebra::distributed::Vector<real2> &solution_vector) const;
-
-    //template <typename real2>
-    //std::array<dealii::Tensor<1,dim,real2>,nstate> evaluate_end_point_soln_grad(
-    //    const dealii::LinearAlgebra::distributed::Vector<real2> &solution_vector) const;
 
     /// Function to evaluate straight line integral.
     template<typename real2>

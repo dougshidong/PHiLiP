@@ -99,7 +99,7 @@ void FlatPlate2D<dim,nstate>::steady_state_postprocessing(std::shared_ptr<DGBase
             std::make_shared< AmietModelFunctional<dim,nstate,double,Triangulation> >(dg,boundary_layer_extraction,observer_coord_ref);
         
         double OASPL_flat_plat_2D;
-        OASPL_flat_plat_2D = amiet_acoustic_response->evaluate_functional(true,false,false);
+        OASPL_flat_plat_2D = amiet_acoustic_response->evaluate_functional(true,true,false);
 
         this->pcout << "The Overall-Averaged Sound Pressure Level for the 2-D flat plate is: " << OASPL_flat_plat_2D << std::endl;
 
@@ -108,6 +108,10 @@ void FlatPlate2D<dim,nstate>::steady_state_postprocessing(std::shared_ptr<DGBase
         this->pcout << "Solving adjoint linear system..." << std::endl;
         amiet_adjoint.compute_adjoint();
         this->pcout << "Adjoint linear system is solved..." << std::endl;
+
+        this->pcout << "Computing functional derivative wrt volume nodes..." << std::endl;
+        amiet_adjoint.compute_dIdXv();
+        this->pcout << "Computation is done..." << std::endl;
 
         this->pcout << "Writting adjoint solutions..." << std::endl;
         amiet_adjoint.output_results_vtk(666);

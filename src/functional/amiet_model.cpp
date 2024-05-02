@@ -194,9 +194,6 @@ real AmietModelFunctional<dim,nstate,real,MeshType>
                     }
                 
                 }
-                if (actually_compute_dIdX) {
-                    std::cout << "ERROR: No dependency of coordinate exists for Amiet's model..." << std::endl;
-                }
                 if (actually_compute_d2I) {
                     std::cout << "ERROR: Full space method are not supported for Amiet's model..." << std::endl;
                 }

@@ -65,15 +65,16 @@ void AcousticAdjoint<dim, nstate, real, MeshType>::compute_adjoint()
     this->adjoint.update_ghost_values();
 }
 //----------------------------------------------------------------
-// I am here
-//template <int dim, int nstate, typename real, typename MeshType>
-//void AcousticAdjoint<dim, nstate, real, MeshType>::compute_dIdXv()
-//{
-//    dealii::LinearAlgebra::distributed::Vector<real> dIdXv;
-//
-//    this->dg->dRdXv.Tmult(dIdXv,this->adjoint);
-//
-//}
+template <int dim, int nstate, typename real, typename MeshType>
+void AcousticAdjoint<dim, nstate, real, MeshType>::compute_dIdXv()
+{
+    this->dIdXv = this->functional->dIdX;
+
+    this->dg->dRdXv.Tvmult(this->dIdXv,this->adjoint);
+
+    this->dIdXv.compress(dealii::VectorOperation::add);
+    this->dIdXv.update_ghost_values();
+}
 //----------------------------------------------------------------
 template <int dim, int nstate, typename real, typename MeshType>
 void AcousticAdjoint<dim, nstate, real, MeshType>::output_results_vtk(const unsigned int cycle)
@@ -120,6 +121,7 @@ void AcousticAdjoint<dim, nstate, real, MeshType>::output_results_vtk(const unsi
     }
 
     data_out.add_data_vector(dIdw, dIdw_names, dealii::DataOut_DoFData<dealii::DoFHandler<dim>,dim>::DataVectorType::type_dof_data);
+    data_out.add_data_vector(dIdXv, "dIdXv", dealii::DataOut_DoFData<dealii::DoFHandler<dim>,dim>::DataVectorType::type_cell_data);
     data_out.add_data_vector(adjoint, adjoint_names, dealii::DataOut_DoFData<dealii::DoFHandler<dim>,dim>::DataVectorType::type_dof_data);
 
     const int iproc = dealii::Utilities::MPI::this_mpi_process(mpi_communicator);

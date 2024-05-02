@@ -52,6 +52,9 @@ public:
     /// Function to solve adjoint linear system.
     void compute_adjoint();
 
+    /// Function to evaluate objective gradient wrt volume nodes.
+    void compute_dIdXv();
+
     /// Outputs the adjoint solutions.
     /** Similar to DGBase::output_results_vtk() but generates separate file only includes the adjoint solutions and dIdw.
      */
@@ -64,8 +67,10 @@ public:
     
     /// Grid
     std::shared_ptr<MeshType> triangulation;
-    /// functional derivative
+    /// functional derivative wrt solution
     dealii::LinearAlgebra::distributed::Vector<real> dIdw;
+    /// functional derivative wrt volume nodes
+    dealii::LinearAlgebra::distributed::Vector<real> dIdXv;
     /// adjoint (\f$\psi_h\f$)
     dealii::LinearAlgebra::distributed::Vector<real> adjoint;
 

@@ -81,14 +81,14 @@ int HyperreducedSamplingErrorUpdated<dim, nstate>::run_sampling() const
     std::cout << exit_con << std::endl;
 
     ptr_weights = std::make_shared<Epetra_Vector>(NNLS_prob.getSolution());
-    this->pcout << "ECSW Weights"<< std::endl;
-    this->pcout << *ptr_weights << std::endl;
+    std::cout << "ECSW Weights"<< std::endl;
+    std::cout << *ptr_weights << std::endl;
 
     MatrixXd rom_points = nearest_neighbors->kPairwiseNearestNeighborsMidpoint();
     std::cout << "ROM Points"<< std::endl;
     std::cout << rom_points << std::endl;
 
-    placeROMLocations(rom_points, weights);
+    placeROMLocations(rom_points, *ptr_weights);
 
     RowVectorXd max_error_params = getMaxErrorROM();
     int iteration = 0;
@@ -115,9 +115,9 @@ int HyperreducedSamplingErrorUpdated<dim, nstate>::run_sampling() const
         current_pod->computeBasis();
 
         // Find C and d for NNLS Problem
-        this->pcout << "Update Assembler..."<< std::endl;
+        std::cout << "Update Assembler..."<< std::endl;
         constructer_NNLS_problem->updatePODSnaps(this->current_pod, this->snapshot_parameters);
-        this->pcout << "Build Problem..."<< std::endl;
+        std::cout << "Build Problem..."<< std::endl;
         constructer_NNLS_problem->build_problem();
 
         // Transfer b vector (RHS of NNLS problem) to Epetra structure
@@ -132,14 +132,13 @@ int HyperreducedSamplingErrorUpdated<dim, nstate>::run_sampling() const
         // Solve NNLS Problem for ECSW weights
         std::cout << "Create NNLS problem..."<< std::endl;
         NNLS_solver NNLS_prob(all_parameters, parameter_handler, constructer_NNLS_problem->A->trilinos_matrix(), Comm, b_Epetra);
-        // NNLS_prob.startingSolution(weights);
         std::cout << "Solve NNLS problem..."<< std::endl;
         bool exit_con = NNLS_prob.solve();
         std::cout << exit_con << std::endl;
         
         ptr_weights = std::make_shared<Epetra_Vector>(NNLS_prob.getSolution());
-        this->pcout << "ECSW Weights"<< std::endl;
-        this->pcout << *ptr_weights << std::endl;
+        std::cout << "ECSW Weights"<< std::endl;
+        std::cout << *ptr_weights << std::endl;
 
         //Update previous ROM errors with updated current_pod
         for(auto it = rom_locations.begin(); it != rom_locations.end(); ++it){
@@ -147,12 +146,12 @@ int HyperreducedSamplingErrorUpdated<dim, nstate>::run_sampling() const
             it->get()->compute_total_error();
         }
 
-        updateNearestExistingROMs(max_error_params, weights);
+        updateNearestExistingROMs(max_error_params, *ptr_weights);
 
         rom_points = nearest_neighbors->kNearestNeighborsMidpoint(max_error_params);
         std::cout << rom_points << std::endl;
 
-        placeROMLocations(rom_points, weights);
+        placeROMLocations(rom_points, *ptr_weights);
 
         //Update max error
         max_error_params = getMaxErrorROM();

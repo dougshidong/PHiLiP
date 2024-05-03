@@ -47,6 +47,9 @@ public:
     /// Nearest neighbors of snapshots
     std::shared_ptr<ProperOrthogonalDecomposition::NearestNeighbors> nearest_neighbors;
 
+    /// Ptr vector of ECSW Weights
+    mutable std::shared_ptr<Epetra_Vector> ptr_weights;
+
     /// Run test
     int run_sampling () const;
 

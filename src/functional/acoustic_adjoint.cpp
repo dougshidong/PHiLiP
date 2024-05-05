@@ -53,7 +53,7 @@ template <int dim, int nstate, typename real, typename MeshType>
 void AcousticAdjoint<dim, nstate, real, MeshType>::compute_adjoint()
 {
     this->adjoint.reinit(dg->solution);
-    this->dg->assemble_residual(true);
+    this->dg->assemble_residual(true,false,false);
 
     AssertDimension(this->functional->dIdw.size(), this->adjoint.size());
     AssertDimension(this->dg->system_matrix_transpose.n(), this->adjoint.size());
@@ -68,6 +68,8 @@ void AcousticAdjoint<dim, nstate, real, MeshType>::compute_adjoint()
 template <int dim, int nstate, typename real, typename MeshType>
 void AcousticAdjoint<dim, nstate, real, MeshType>::compute_dIdXv()
 {
+    this->dg->assemble_residual(false,true,false);
+
     this->dIdXv = this->functional->dIdX;
 
     this->dg->dRdXv.Tvmult(this->dIdXv,this->adjoint);

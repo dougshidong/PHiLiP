@@ -17,6 +17,7 @@
 #include "functional/lift_drag.hpp"
 #include "functional/extraction_functional.hpp"
 #include "functional/amiet_model.hpp"
+#include "functional/acoustic_adjoint.hpp"
 
 namespace PHiLiP {
 namespace FlowSolver {
@@ -142,12 +143,27 @@ void Airfoil2D<dim,nstate>::steady_state_postprocessing(std::shared_ptr<DGBase<d
         observer_coord_ref[1] = this->all_param.amiet_param.observer_coord_ref_y;
         observer_coord_ref[2] = this->all_param.amiet_param.observer_coord_ref_z;
 
-        AmietModelFunctional<dim,nstate,double,Triangulation> amiet_acoustic_response(dg,boundary_layer_extraction,observer_coord_ref);
+        std::shared_ptr< AmietModelFunctional<dim,nstate,double,Triangulation> > amiet_acoustic_response = 
+            std::make_shared< AmietModelFunctional<dim,nstate,double,Triangulation> >(dg,boundary_layer_extraction,observer_coord_ref);
 
         double OASPL_airfoil_2D;
-        OASPL_airfoil_2D = amiet_acoustic_response.evaluate_functional(true,false,false);
+        OASPL_airfoil_2D = amiet_acoustic_response->evaluate_functional(true,true,false);
 
         this->pcout << "The Overall-Averaged Sound Pressure Level for the 2-D airfoil is: " << OASPL_airfoil_2D << std::endl;
+
+        AcousticAdjoint <dim,nstate,double,Triangulation> amiet_adjoint(dg,amiet_acoustic_response);
+
+        this->pcout << "Solving adjoint linear system..." << std::endl;
+        amiet_adjoint.compute_adjoint();
+        this->pcout << "Adjoint linear system is solved..." << std::endl;
+
+        this->pcout << "Computing functional derivative wrt volume nodes..." << std::endl;
+        amiet_adjoint.compute_dIdXv();
+        this->pcout << "Computation is done..." << std::endl;
+
+        this->pcout << "Writting adjoint solutions..." << std::endl;
+        amiet_adjoint.output_results_vtk(666);
+        this->pcout << "Writting adjoint solutions is done..." << std::endl;
     }
 }
 

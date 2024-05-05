@@ -533,7 +533,7 @@ real ExtractionFunctional<dim,nstate,real,MeshType>
         real2 edge_velocity_n = navier_stokes_fad.compute_velocities(ns_soln_of_sampling).norm();
         if(edge_velocity_n>=0.99*values_free_stream.first && std::abs(edge_velocity-edge_velocity_n)<=tolerance) {
             boundary_layer_thickness = this->start_point.distance(coord_of_total_sampling[i]);
-            std::cout << "Captured boundary layer thickness..." << std::endl;
+            //std::cout << "Captured boundary layer thickness..." << std::endl;
             return boundary_layer_thickness;
         } else {
             edge_velocity = edge_velocity_n;
@@ -614,7 +614,7 @@ std::pair<real,real> ExtractionFunctional<dim,nstate,real,MeshType>
                 }
                 values_free_stream.first = speed_free_stream;
                 values_free_stream.second = density_free_stream;
-                std::cout << "Captured converged free stream values..." << std::endl;
+                //std::cout << "Captured converged free stream values..." << std::endl;
                 return values_free_stream;
             }
             consecutive_counter++;
@@ -674,9 +674,19 @@ template std::pair<double,double>
 ExtractionFunctional <PHILIP_DIM, PHILIP_DIM+2, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>::evaluate_converged_free_stream_values(
     const std::vector<std::array<FadType,PHILIP_DIM+2>> &soln_of_total_sampling) const;
 template std::pair<double,double> 
+ExtractionFunctional <PHILIP_DIM, PHILIP_DIM+2, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>::evaluate_converged_free_stream_values(
+    const std::vector<std::array<double,PHILIP_DIM+2>> &soln_of_total_sampling) const;
+template std::pair<double,double> 
 ExtractionFunctional <PHILIP_DIM, PHILIP_DIM+3, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>::evaluate_converged_free_stream_values(
     const std::vector<std::array<FadType,PHILIP_DIM+3>> &soln_of_total_sampling) const;
+template std::pair<double,double> 
+ExtractionFunctional <PHILIP_DIM, PHILIP_DIM+3, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>::evaluate_converged_free_stream_values(
+    const std::vector<std::array<double,PHILIP_DIM+3>> &soln_of_total_sampling) const;
 
+template double 
+ExtractionFunctional <PHILIP_DIM, PHILIP_DIM+2, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>::evaluate_boundary_layer_thickness(
+    const std::vector<dealii::Point<PHILIP_DIM,double>> &coord_of_total_sampling,
+    const std::vector<std::array<double,PHILIP_DIM+2>> &soln_of_total_sampling) const;
 template double 
 ExtractionFunctional <PHILIP_DIM, PHILIP_DIM+2, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>::evaluate_boundary_layer_thickness(
     const std::vector<dealii::Point<PHILIP_DIM,double>> &coord_of_total_sampling,
@@ -684,19 +694,37 @@ ExtractionFunctional <PHILIP_DIM, PHILIP_DIM+2, double, dealii::parallel::distri
 template double 
 ExtractionFunctional <PHILIP_DIM, PHILIP_DIM+3, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>::evaluate_boundary_layer_thickness(
     const std::vector<dealii::Point<PHILIP_DIM,double>> &coord_of_total_sampling,
+    const std::vector<std::array<double,PHILIP_DIM+3>> &soln_of_total_sampling) const;
+template double 
+ExtractionFunctional <PHILIP_DIM, PHILIP_DIM+3, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>::evaluate_boundary_layer_thickness(
+    const std::vector<dealii::Point<PHILIP_DIM,double>> &coord_of_total_sampling,
     const std::vector<std::array<FadType,PHILIP_DIM+3>> &soln_of_total_sampling) const;
 
 template double 
 ExtractionFunctional <PHILIP_DIM, PHILIP_DIM+2, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>::evaluate_edge_velocity(
+    const std::vector<std::array<double,PHILIP_DIM+2>> &soln_of_total_sampling) const;
+template double 
+ExtractionFunctional <PHILIP_DIM, PHILIP_DIM+2, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>::evaluate_edge_velocity(
     const std::vector<std::array<FadType,PHILIP_DIM+2>> &soln_of_total_sampling) const;
+template double 
+ExtractionFunctional <PHILIP_DIM, PHILIP_DIM+3, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>::evaluate_edge_velocity(
+    const std::vector<std::array<double,PHILIP_DIM+3>> &soln_of_total_sampling) const;
 template double 
 ExtractionFunctional <PHILIP_DIM, PHILIP_DIM+3, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>::evaluate_edge_velocity(
     const std::vector<std::array<FadType,PHILIP_DIM+3>> &soln_of_total_sampling) const;
 
 template double 
 ExtractionFunctional <PHILIP_DIM, PHILIP_DIM+2, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>::evaluate_maximum_shear_stress(
+    const std::vector<std::array<double,PHILIP_DIM+2>> &soln_of_total_sampling,
+    const std::vector<std::array<dealii::Tensor<1,PHILIP_DIM,double>,PHILIP_DIM+2>> &soln_grad_of_total_sampling) const;
+template double 
+ExtractionFunctional <PHILIP_DIM, PHILIP_DIM+2, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>::evaluate_maximum_shear_stress(
     const std::vector<std::array<FadType,PHILIP_DIM+2>> &soln_of_total_sampling,
     const std::vector<std::array<dealii::Tensor<1,PHILIP_DIM,FadType>,PHILIP_DIM+2>> &soln_grad_of_total_sampling) const;
+template double 
+ExtractionFunctional <PHILIP_DIM, PHILIP_DIM+3, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>::evaluate_maximum_shear_stress(
+    const std::vector<std::array<double,PHILIP_DIM+3>> &soln_of_total_sampling,
+    const std::vector<std::array<dealii::Tensor<1,PHILIP_DIM,double>,PHILIP_DIM+3>> &soln_grad_of_total_sampling) const;
 template double 
 ExtractionFunctional <PHILIP_DIM, PHILIP_DIM+3, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>::evaluate_maximum_shear_stress(
     const std::vector<std::array<FadType,PHILIP_DIM+3>> &soln_of_total_sampling,

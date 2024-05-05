@@ -1450,6 +1450,7 @@ template FadType    Euler < PHILIP_DIM, PHILIP_DIM+2, FadFadType >::compute_pres
 template FadType    Euler < PHILIP_DIM, PHILIP_DIM+2, RadFadType >::compute_pressure< FadType    >(const std::array<FadType,   PHILIP_DIM+2> &conservative_soln) const;
 // -- compute_temperature()
 template double     Euler < PHILIP_DIM, PHILIP_DIM+2, double     >::compute_temperature< double     >(const std::array<double,    PHILIP_DIM+2> &primitive_soln) const;
+template double     Euler < PHILIP_DIM, PHILIP_DIM+2, FadType    >::compute_temperature< double     >(const std::array<double,    PHILIP_DIM+2> &primitive_soln) const;
 template FadType    Euler < PHILIP_DIM, PHILIP_DIM+2, FadType    >::compute_temperature< FadType    >(const std::array<FadType,   PHILIP_DIM+2> &primitive_soln) const;
 template RadType    Euler < PHILIP_DIM, PHILIP_DIM+2, RadType    >::compute_temperature< RadType    >(const std::array<RadType,   PHILIP_DIM+2> &primitive_soln) const;
 template FadFadType Euler < PHILIP_DIM, PHILIP_DIM+2, FadFadType >::compute_temperature< FadFadType >(const std::array<FadFadType,PHILIP_DIM+2> &primitive_soln) const;
@@ -1472,6 +1473,7 @@ template FadType    Euler < PHILIP_DIM, PHILIP_DIM+2, FadFadType >::compute_velo
 template FadType    Euler < PHILIP_DIM, PHILIP_DIM+2, RadFadType >::compute_velocity_squared< FadType    >(const dealii::Tensor<1,PHILIP_DIM,FadType   > &velocities) const;
 // -- convert_conservative_to_primitive()
 template std::array<double,    PHILIP_DIM+2> Euler < PHILIP_DIM, PHILIP_DIM+2, double     >::convert_conservative_to_primitive< double     >(const std::array<double,    PHILIP_DIM+2> &conservative_soln) const;
+template std::array<double,    PHILIP_DIM+2> Euler < PHILIP_DIM, PHILIP_DIM+2, FadType    >::convert_conservative_to_primitive< double     >(const std::array<double,    PHILIP_DIM+2> &conservative_soln) const;
 template std::array<FadType,   PHILIP_DIM+2> Euler < PHILIP_DIM, PHILIP_DIM+2, FadType    >::convert_conservative_to_primitive< FadType    >(const std::array<FadType,   PHILIP_DIM+2> &conservative_soln) const;
 template std::array<RadType,   PHILIP_DIM+2> Euler < PHILIP_DIM, PHILIP_DIM+2, RadType    >::convert_conservative_to_primitive< RadType    >(const std::array<RadType,   PHILIP_DIM+2> &conservative_soln) const;
 template std::array<FadFadType,PHILIP_DIM+2> Euler < PHILIP_DIM, PHILIP_DIM+2, FadFadType >::convert_conservative_to_primitive< FadFadType >(const std::array<FadFadType,PHILIP_DIM+2> &conservative_soln) const;
@@ -1483,6 +1485,7 @@ template std::array<FadType,   PHILIP_DIM+2> Euler < PHILIP_DIM, PHILIP_DIM+2, F
 template std::array<FadType,   PHILIP_DIM+2> Euler < PHILIP_DIM, PHILIP_DIM+2, RadFadType >::convert_conservative_to_primitive< FadType    >(const std::array<FadType,   PHILIP_DIM+2> &conservative_soln) const;
 // -- extract_velocities_from_primitive()
 template dealii::Tensor<1,PHILIP_DIM,double    > Euler < PHILIP_DIM, PHILIP_DIM+2, double     >::extract_velocities_from_primitive< double     >(const std::array<double,    PHILIP_DIM+2> &primitive_soln) const;
+template dealii::Tensor<1,PHILIP_DIM,double    > Euler < PHILIP_DIM, PHILIP_DIM+2, FadType    >::extract_velocities_from_primitive< double     >(const std::array<double,    PHILIP_DIM+2> &primitive_soln) const;
 template dealii::Tensor<1,PHILIP_DIM,FadType   > Euler < PHILIP_DIM, PHILIP_DIM+2, FadType    >::extract_velocities_from_primitive< FadType    >(const std::array<FadType,   PHILIP_DIM+2> &primitive_soln) const;
 template dealii::Tensor<1,PHILIP_DIM,RadType   > Euler < PHILIP_DIM, PHILIP_DIM+2, RadType    >::extract_velocities_from_primitive< RadType    >(const std::array<RadType,   PHILIP_DIM+2> &primitive_soln) const;
 template dealii::Tensor<1,PHILIP_DIM,FadFadType> Euler < PHILIP_DIM, PHILIP_DIM+2, FadFadType >::extract_velocities_from_primitive< FadFadType >(const std::array<FadFadType,PHILIP_DIM+2> &primitive_soln) const;
@@ -1494,6 +1497,7 @@ template dealii::Tensor<1,PHILIP_DIM,FadType   > Euler < PHILIP_DIM, PHILIP_DIM+
 template dealii::Tensor<1,PHILIP_DIM,FadType   > Euler < PHILIP_DIM, PHILIP_DIM+2, RadFadType >::extract_velocities_from_primitive< FadType    >(const std::array<FadType,   PHILIP_DIM+2> &primitive_soln) const;
 // -- compute_velocities()
 template dealii::Tensor<1,PHILIP_DIM,double    > Euler < PHILIP_DIM, PHILIP_DIM+2, double     >::compute_velocities< double     >(const std::array<double,    PHILIP_DIM+2> &conservative_soln) const;
+template dealii::Tensor<1,PHILIP_DIM,double    > Euler < PHILIP_DIM, PHILIP_DIM+2, FadType    >::compute_velocities< double     >(const std::array<double,    PHILIP_DIM+2> &conservative_soln) const;
 template dealii::Tensor<1,PHILIP_DIM,FadType   > Euler < PHILIP_DIM, PHILIP_DIM+2, FadType    >::compute_velocities< FadType    >(const std::array<FadType,   PHILIP_DIM+2> &conservative_soln) const;
 template dealii::Tensor<1,PHILIP_DIM,RadType   > Euler < PHILIP_DIM, PHILIP_DIM+2, RadType    >::compute_velocities< RadType    >(const std::array<RadType,   PHILIP_DIM+2> &conservative_soln) const;
 template dealii::Tensor<1,PHILIP_DIM,FadFadType> Euler < PHILIP_DIM, PHILIP_DIM+2, FadFadType >::compute_velocities< FadFadType >(const std::array<FadFadType,PHILIP_DIM+2> &conservative_soln) const;

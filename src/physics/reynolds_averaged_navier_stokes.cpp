@@ -728,6 +728,7 @@ template FadType    ReynoldsAveragedNavierStokesBase < PHILIP_DIM, PHILIP_DIM+3,
 
 // -- extract_rans_conservative_solution()
 template std::array<double,     PHILIP_DIM+2> ReynoldsAveragedNavierStokesBase < PHILIP_DIM, PHILIP_DIM+3, double     >::extract_rans_conservative_solution< double     >(const std::array<double,     PHILIP_DIM+3> &conservative_soln) const;
+template std::array<double,     PHILIP_DIM+2> ReynoldsAveragedNavierStokesBase < PHILIP_DIM, PHILIP_DIM+3, FadType    >::extract_rans_conservative_solution< double     >(const std::array<double,     PHILIP_DIM+3> &conservative_soln) const;
 template std::array<FadType,    PHILIP_DIM+2> ReynoldsAveragedNavierStokesBase < PHILIP_DIM, PHILIP_DIM+3, FadType    >::extract_rans_conservative_solution< FadType    >(const std::array<FadType,    PHILIP_DIM+3> &conservative_soln) const;
 template std::array<RadType,    PHILIP_DIM+2> ReynoldsAveragedNavierStokesBase < PHILIP_DIM, PHILIP_DIM+3, RadType    >::extract_rans_conservative_solution< RadType    >(const std::array<RadType,    PHILIP_DIM+3> &conservative_soln) const;
 template std::array<FadFadType, PHILIP_DIM+2> ReynoldsAveragedNavierStokesBase < PHILIP_DIM, PHILIP_DIM+3, FadFadType >::extract_rans_conservative_solution< FadFadType >(const std::array<FadFadType, PHILIP_DIM+3> &conservative_soln) const;
@@ -740,6 +741,7 @@ template std::array<FadType, PHILIP_DIM+2> ReynoldsAveragedNavierStokesBase < PH
 
 // -- extract_rans_solution_gradient()
 template std::array<dealii::Tensor<1,PHILIP_DIM,double    >,PHILIP_DIM+2> ReynoldsAveragedNavierStokesBase < PHILIP_DIM, PHILIP_DIM+3, double     >::extract_rans_solution_gradient< double     >(const std::array<dealii::Tensor<1,PHILIP_DIM,double    >,PHILIP_DIM+3> &solution_gradient) const;
+template std::array<dealii::Tensor<1,PHILIP_DIM,double    >,PHILIP_DIM+2> ReynoldsAveragedNavierStokesBase < PHILIP_DIM, PHILIP_DIM+3, FadType    >::extract_rans_solution_gradient< double     >(const std::array<dealii::Tensor<1,PHILIP_DIM,double    >,PHILIP_DIM+3> &solution_gradient) const;
 template std::array<dealii::Tensor<1,PHILIP_DIM,FadType   >,PHILIP_DIM+2> ReynoldsAveragedNavierStokesBase < PHILIP_DIM, PHILIP_DIM+3, FadType    >::extract_rans_solution_gradient< FadType    >(const std::array<dealii::Tensor<1,PHILIP_DIM,FadType   >,PHILIP_DIM+3> &solution_gradient) const;
 template std::array<dealii::Tensor<1,PHILIP_DIM,RadType   >,PHILIP_DIM+2> ReynoldsAveragedNavierStokesBase < PHILIP_DIM, PHILIP_DIM+3, RadType    >::extract_rans_solution_gradient< RadType    >(const std::array<dealii::Tensor<1,PHILIP_DIM,RadType   >,PHILIP_DIM+3> &solution_gradient) const;
 template std::array<dealii::Tensor<1,PHILIP_DIM,FadFadType>,PHILIP_DIM+2> ReynoldsAveragedNavierStokesBase < PHILIP_DIM, PHILIP_DIM+3, FadFadType >::extract_rans_solution_gradient< FadFadType >(const std::array<dealii::Tensor<1,PHILIP_DIM,FadFadType>,PHILIP_DIM+3> &solution_gradient) const;

@@ -204,14 +204,24 @@ real AmietModelFunctional<dim,nstate,real,MeshType>
     unsigned int i_int_derivative = 0;
     for(int int_i=0;int_i<number_of_total_sampling;++int_i){
         for(int s=0;s<nstate;++s){
-            soln_of_total_sampling[int_i][s].diff(i_int_derivative++,n_total_int_indep+dim*n_total_int_indep);
+            // Note: n_total_int_indep is the number of independent variables from the interpolated solution W_int;
+            // Note: dim*n_total_int_indep is the number of independent variables from the interpolated solution gradient W_grad_int;
+            // Note: 3 is the number of extra independent variables whose derivatives are calculated using finite difference,
+            //       i.e. boundary layer thickness, edge velocity and maximum shear stress in Amiet's model,
+            //       because AD algorithm is not valid for them to calculate the corresponding derivatives.
+            soln_of_total_sampling[int_i][s].diff(i_int_derivative++,n_total_int_indep+dim*n_total_int_indep+3);
         }
     }
     AssertDimension(i_int_derivative, n_total_int_indep);
     for(int int_i=0;int_i<number_of_total_sampling;++int_i){
         for(int s=0;s<nstate;++s){
             for(int d=0;d<dim;++d){
-                soln_grad_of_total_sampling[int_i][s][d].diff(i_int_derivative++,n_total_int_indep+dim*n_total_int_indep);
+                // Note: n_total_int_indep is the number of independent variables from the interpolated solution W_int;
+                // Note: dim*n_total_int_indep is the number of independent variables from the interpolated solution gradient W_grad_int;
+                // Note: 3 is the number of extra independent variables whose derivatives are calculated using finite difference,
+                //       i.e. boundary layer thickness, edge velocity and maximum shear stress in Amiet's model,
+                //       because AD algorithm is not valid for them to calculate the corresponding derivatives.
+                soln_grad_of_total_sampling[int_i][s][d].diff(i_int_derivative++,n_total_int_indep+dim*n_total_int_indep+3);
             }
         }
     }
@@ -234,6 +244,15 @@ real AmietModelFunctional<dim,nstate,real,MeshType>
     this->pcout << "The boundary_layer_thickness is: " << boundary_layer_thickness << std::endl;
     this->pcout << "The edge_velocity is: "            << edge_velocity            << std::endl;
     this->pcout << "The maximum_shear_stress is: "     << maximum_shear_stress     << std::endl;
+
+    FadType boundary_layer_thickness_fad = boundary_layer_thickness;
+    FadType edge_velocity_fad            = edge_velocity;
+    FadType maximum_shear_stress_fad     = maximum_shear_stress;
+
+    boundary_layer_thickness_fad.diff(i_int_derivative++,n_total_int_indep+dim*n_total_int_indep+3);
+    edge_velocity_fad.diff(i_int_derivative++,n_total_int_indep+dim*n_total_int_indep+3);
+    maximum_shear_stress_fad.diff(i_int_derivative++,n_total_int_indep+dim*n_total_int_indep+3);
+    AssertDimension(i_int_derivative, n_total_int_indep+dim*n_total_int_indep+3);
 
     FadType displacement_thickness_fad       = boundary_layer_extraction.evaluate_displacement_thickness(soln_of_total_sampling)*ref_length;
     FadType momentum_thickness_fad           = boundary_layer_extraction.evaluate_momentum_thickness(soln_of_total_sampling)*ref_length;
@@ -276,36 +295,110 @@ real AmietModelFunctional<dim,nstate,real,MeshType>
     FadType OASPL_fad = evaluate_overall_sound_pressure_level(S_pp_fad);
 
     // Todo: dIdW_int and dIdW_grad_int needs to be distributed vectors so that dIdW_int*dW_int_dW and dIdW_grad_int*dW_grad_int_dW an be done distributively 
-    std::vector<real> dIdW_int;
-    dIdW_int.resize(n_total_int_indep);
-    std::vector<real> dIdW_grad_int;
-    dIdW_grad_int.resize(dim*n_total_int_indep);
+    std::vector<real> dIdW_int_AD(n_total_int_indep);
+    std::vector<real> dIdW_grad_int_AD(dim*n_total_int_indep);
+
+    std::vector<real> dIdW_int_FD(n_total_int_indep);
+    std::vector<real> dIdW_grad_int_FD(dim*n_total_int_indep);
 
     i_int_derivative = 0;
     for(int int_i=0;int_i<number_of_total_sampling;++int_i){
         for(int s=0;s<nstate;++s){
-            dIdW_int[int_i*nstate+s] = OASPL_fad.dx(i_int_derivative++);
+            dIdW_int_AD[int_i*nstate+s] = OASPL_fad.dx(i_int_derivative++);
         }
     }
     AssertDimension(i_int_derivative, n_total_int_indep);
     for(int int_i=0;int_i<number_of_total_sampling;++int_i){
         for(int s=0;s<nstate;++s){
             for(int d=0;d<dim;++d){
-                dIdW_grad_int[d*n_total_int_indep+int_i*nstate+s] = OASPL_fad.dx(i_int_derivative++);
+                dIdW_grad_int_AD[d*n_total_int_indep+int_i*nstate+s] = OASPL_fad.dx(i_int_derivative++);
             }
         }
     }
     AssertDimension(i_int_derivative, n_total_int_indep+dim*n_total_int_indep);
 
+    real dId_boundary_layer_thickness = OASPL_fad.dx(i_int_derivative++);
+    real dId_edge_velocity            = OASPL_fad.dx(i_int_derivative++);
+    real dId_maximum_shear_stress     = OASPL_fad.dx(i_int_derivative++);
+    AssertDimension(i_int_derivative, n_total_int_indep+dim*n_total_int_indep+3);
+
+    std::vector<real> d_boundary_layer_thickness_dW_int(n_total_int_indep);
+    std::vector<real> d_edge_velocity_dW_int(n_total_int_indep);
+    std::vector<real> d_maximum_shear_stress_dW_int(n_total_int_indep);
+    std::vector<real> d_maximum_shear_stress_dW_grad_int(dim*n_total_int_indep);
+
+    std::vector<std::array<real,nstate>> perturbed_soln_of_total_sampling(number_of_total_sampling);
+    std::vector<std::array<dealii::Tensor<1,dim,real>,nstate>> perturbed_soln_grad_of_total_sampling(number_of_total_sampling);
+    for(int int_i=0;int_i<number_of_total_sampling;++int_i){
+        for(int s=0;s<nstate;++s){
+            perturbed_soln_of_total_sampling[int_i][s] = soln_of_total_sampling[int_i][s].val();
+        }
+    }
+    for(int int_i=0;int_i<number_of_total_sampling;++int_i){
+        for(int s=0;s<nstate;++s){
+            for(int d=0;d<dim;++d){
+                perturbed_soln_grad_of_total_sampling[int_i][s][d] = soln_grad_of_total_sampling[int_i][s][d].val();
+            }
+        }
+    }
+
+    for(int int_i=0;int_i<number_of_total_sampling;++int_i){
+        for(int s=0;s<nstate;++s){
+            real perturb_size = 1e-5;
+            perturbed_soln_of_total_sampling[int_i][s] += perturb_size;
+
+            real perturbed_boundary_layer_thickness = boundary_layer_extraction.evaluate_boundary_layer_thickness(coord_of_total_sampling,perturbed_soln_of_total_sampling)*ref_length;
+            real perturbed_edge_velocity            = boundary_layer_extraction.evaluate_edge_velocity(perturbed_soln_of_total_sampling)*ref_speed;
+            real perturbed_maximum_shear_stress     = boundary_layer_extraction.evaluate_maximum_shear_stress(perturbed_soln_of_total_sampling,perturbed_soln_grad_of_total_sampling)*ref_density*ref_speed*ref_speed;
+        
+            real d_boundary_layer_thickness = perturbed_boundary_layer_thickness - boundary_layer_thickness;
+            real d_edge_velocity            = perturbed_edge_velocity - edge_velocity;
+            real d_maximum_shear_stress     = perturbed_maximum_shear_stress - maximum_shear_stress;
+
+            d_boundary_layer_thickness_dW_int[int_i*nstate+s] = d_boundary_layer_thickness/perturb_size;
+            d_edge_velocity_dW_int[int_i*nstate+s]            = d_edge_velocity/perturb_size;
+            d_maximum_shear_stress_dW_int[int_i*nstate+s]     = d_maximum_shear_stress/perturb_size;
+
+            perturbed_soln_of_total_sampling[int_i][s] -= perturb_size;
+        }
+    }
+
+    for(int i=0;i<n_total_int_indep;++i){
+        dIdW_int_FD[i] = dId_boundary_layer_thickness*d_boundary_layer_thickness_dW_int[i] 
+                       + dId_edge_velocity*d_edge_velocity_dW_int[i] 
+                       + dId_maximum_shear_stress*d_maximum_shear_stress_dW_int[i];
+    }
+
+    for(int int_i=0;int_i<number_of_total_sampling;++int_i){
+        for(int s=0;s<nstate;++s){
+            for(int d=0;d<dim;++d){
+                real perturb_size = 1e-5;
+                perturbed_soln_grad_of_total_sampling[int_i][s][d] += perturb_size;
+
+                real perturbed_maximum_shear_stress = boundary_layer_extraction.evaluate_maximum_shear_stress(perturbed_soln_of_total_sampling,perturbed_soln_grad_of_total_sampling)*ref_density*ref_speed*ref_speed;
+                
+                real d_maximum_shear_stress = perturbed_maximum_shear_stress - maximum_shear_stress;
+
+                d_maximum_shear_stress_dW_grad_int[d*n_total_int_indep+int_i*nstate+s] = d_maximum_shear_stress/perturb_size;
+
+                perturbed_soln_grad_of_total_sampling[int_i][s][d] -= perturb_size;
+            }
+        }
+    }
+
+    for(int i=0;i<n_total_int_indep;++i){
+        dIdW_grad_int_FD[i] = dId_maximum_shear_stress*d_maximum_shear_stress_dW_grad_int[i];
+    }
+
     std::vector<real> dIdw(this->dg->dof_handler.n_dofs());
     for(long unsigned int col=0;col<dIdw.size();++col){
         for(int row=0;row<n_total_int_indep;++row){
-            dIdw[col] += dIdW_int[row]*dW_int_dW[row][col];
+            dIdw[col] += (dIdW_int_AD[row]+dIdW_int_FD[row])*dW_int_dW[row][col];
         }
     }
     for(long unsigned int col=0;col<dIdw.size();++col){
         for(int row=0;row<dim*n_total_int_indep;++row){
-            dIdw[col] += dIdW_grad_int[row]*dW_grad_int_dW[row][col];
+            dIdw[col] += (dIdW_grad_int_AD[row]+dIdW_grad_int_FD[row])*dW_grad_int_dW[row][col];
         }
     }
 

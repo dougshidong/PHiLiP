@@ -23,9 +23,6 @@ public:
         const bool                                                   has_nonzero_diffusion,
         const bool                                                   has_nonzero_physical_source);
 
-    /// Destructor
-    ~PhysicsModel() {};
-
     /// Number of model equations (i.e. those additional to the baseline physics)
     const int n_model_equations;
 
@@ -83,8 +80,13 @@ public:
         const std::array<real,nstate> &/*solution*/,
         const dealii::Tensor<1,dim,real> &/*normal*/) const;
 
-    /// Maximum convective eigenvalue used in Lax-Friedrichs
+    /// Maximum convective eigenvalue
     real max_convective_eigenvalue (const std::array<real,nstate> &soln) const;
+
+    /// Maximum convective normal eigenvalue (used in Lax-Friedrichs)
+    real max_convective_normal_eigenvalue (
+        const std::array<real,nstate> &soln,
+        const dealii::Tensor<1,dim,real> &normal) const override;
 
     /// Maximum viscous eigenvalue.
     real max_viscous_eigenvalue (const std::array<real,nstate> &soln) const;

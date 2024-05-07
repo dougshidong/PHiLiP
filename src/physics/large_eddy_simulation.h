@@ -17,6 +17,7 @@ public:
     using two_point_num_flux_enum = Parameters::AllParameters::TwoPointNumericalFlux;
     /// Constructor
 	LargeEddySimulationBase(
+        const Parameters::AllParameters *const                    parameters_input,
 	    const double                                              ref_length,
         const double                                              gamma_gas,
         const double                                              mach_inf,
@@ -24,6 +25,8 @@ public:
         const double                                              side_slip_angle,
         const double                                              prandtl_number,
         const double                                              reynolds_number_inf,
+        const bool                                                use_constant_viscosity,
+        const double                                              constant_viscosity,
         const double                                              temperature_inf,
         const double                                              turbulent_prandtl_number,
         const double                                              ratio_of_filter_width_to_cell_size,
@@ -31,9 +34,6 @@ public:
         const thermal_boundary_condition_enum                     thermal_boundary_condition_type = thermal_boundary_condition_enum::adiabatic,
         std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function = nullptr,
         const two_point_num_flux_enum                             two_point_num_flux_type = two_point_num_flux_enum::KG);
-
-    /// Destructor
-    ~LargeEddySimulationBase() {};
 
     /// Turbulent Prandtl number
     const double turbulent_prandtl_number;
@@ -63,6 +63,12 @@ public:
     /// Maximum convective eigenvalue of the additional models' PDEs
     /** For LES model, this value is assigned to be zero */
     real max_convective_eigenvalue (const std::array<real,nstate> &soln) const;
+
+    /// Maximum convective normal eigenvalue (used in Lax-Friedrichs) of the additional models' PDEs
+    /** For LES model, this value is assigned to be zero */
+    real max_convective_normal_eigenvalue (
+        const std::array<real,nstate> &soln,
+        const dealii::Tensor<1,dim,real> &normal) const;
 
     /// Source term for manufactured solution functions
     std::array<real,nstate> source_term (
@@ -156,6 +162,7 @@ public:
      *  Reference: de la Llave Plata et al. (2019). "On the performance of a high-order multiscale DG approach to LES at increasing Reynolds number."
      */
     LargeEddySimulation_Smagorinsky(
+        const Parameters::AllParameters *const                    parameters_input,
         const double                                              ref_length,
         const double                                              gamma_gas,
         const double                                              mach_inf,
@@ -163,6 +170,8 @@ public:
         const double                                              side_slip_angle,
         const double                                              prandtl_number,
         const double                                              reynolds_number_inf,
+        const bool                                                use_constant_viscosity,
+        const double                                              constant_viscosity,
         const double                                              temperature_inf,
         const double                                              turbulent_prandtl_number,
         const double                                              ratio_of_filter_width_to_cell_size,
@@ -174,9 +183,6 @@ public:
 
     /// SGS model constant
     const double model_constant;
-
-    /// Destructor
-    ~LargeEddySimulation_Smagorinsky() {};
 
     /// Returns the product of the eddy viscosity model constant and the filter width
     double get_model_constant_times_filter_width (const dealii::types::global_dof_index cell_index) const;
@@ -256,6 +262,7 @@ public:
      *  Reference 2: Nicoud & Ducros (1999) "Subgrid-scale stress modelling based on the square of the velocity gradient tensor"
      */
     LargeEddySimulation_WALE(
+        const Parameters::AllParameters *const                    parameters_input,
         const double                                              ref_length,
         const double                                              gamma_gas,
         const double                                              mach_inf,
@@ -263,6 +270,8 @@ public:
         const double                                              side_slip_angle,
         const double                                              prandtl_number,
         const double                                              reynolds_number_inf,
+        const bool                                                use_constant_viscosity,
+        const double                                              constant_viscosity,
         const double                                              temperature_inf,
         const double                                              turbulent_prandtl_number,
         const double                                              ratio_of_filter_width_to_cell_size,
@@ -272,10 +281,7 @@ public:
         std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function = nullptr,
         const two_point_num_flux_enum                             two_point_num_flux_type = two_point_num_flux_enum::KG);
 
-    /// Destructor
-    ~LargeEddySimulation_WALE() {};
-
-    /** Nondimensionalized eddy viscosity for the WALE model. 
+    /** Nondimensionalized eddy viscosity for the WALE model.
      *  Reference: Nicoud & Ducros (1999) "Subgrid-scale stress modelling based on the square of the velocity gradient tensor"
      */
     real compute_eddy_viscosity(
@@ -312,6 +318,7 @@ public:
      *  Reference: Vreman, A. W. (2004) "An eddy-viscosity subgrid-scale model for turbulent shear flow: Algebraic theory and applications."
      */
     LargeEddySimulation_Vreman(
+        const Parameters::AllParameters *const                    parameters_input,
         const double                                              ref_length,
         const double                                              gamma_gas,
         const double                                              mach_inf,
@@ -319,6 +326,8 @@ public:
         const double                                              side_slip_angle,
         const double                                              prandtl_number,
         const double                                              reynolds_number_inf,
+        const bool                                                use_constant_viscosity,
+        const double                                              constant_viscosity,
         const double                                              temperature_inf,
         const double                                              turbulent_prandtl_number,
         const double                                              ratio_of_filter_width_to_cell_size,
@@ -328,10 +337,7 @@ public:
         std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function = nullptr,
         const two_point_num_flux_enum                             two_point_num_flux_type = two_point_num_flux_enum::KG);
 
-    /// Destructor
-    ~LargeEddySimulation_Vreman() {};
-
-    /** Nondimensionalized eddy viscosity for the Vreman model. 
+    /** Nondimensionalized eddy viscosity for the Vreman model.
      *  Reference: Vreman, A. W. (2004) "An eddy-viscosity subgrid-scale model for turbulent shear flow: Algebraic theory and applications."
      */
     real compute_eddy_viscosity(

@@ -81,9 +81,11 @@ std::string FlowSolverCaseBase<dim, nstate>::get_flow_case_string() const
     if (flow_case_type == FlowCaseEnum::naca0012)                   {flow_case_string = "naca0012";}
     if (flow_case_type == FlowCaseEnum::periodic_1D_unsteady)       {flow_case_string = "periodic_1D_unsteady";}
     if (flow_case_type == FlowCaseEnum::gaussian_bump)              {flow_case_string = "gaussian_bump";}
+    if (flow_case_type == FlowCaseEnum::advection_limiter)          {flow_case_string = "advection_limiter";}
     if (flow_case_type == FlowCaseEnum::wall_distance_evaluation)   {flow_case_string = "wall_distance_evaluation";}
     if (flow_case_type == FlowCaseEnum::flat_plate_2D)              {flow_case_string = "flat_plate_2D";}
-    
+    if (flow_case_type == FlowCaseEnum::airfoil_2D)                 {flow_case_string = "airfoil_2D";}
+
     return flow_case_string;
 }
 
@@ -100,6 +102,40 @@ void FlowSolverCaseBase<dim,nstate>::display_flow_solver_setup(std::shared_ptr<D
     const double number_of_degrees_of_freedom_per_dim = pow(number_of_degrees_of_freedom_per_state,(1.0/dim));
     pcout << "- Degrees of freedom (per state): " << number_of_degrees_of_freedom_per_state << " " << "(" << number_of_degrees_of_freedom_per_dim << " per state per dim)" << std::endl;
     pcout << "- Number of active cells: " << dg->triangulation->n_global_active_cells() << std::endl;
+    
+    const bool use_weak_form = this->all_param.use_weak_form;
+    
+    if (use_weak_form == false){
+        this->pcout << "- Using strong DG" << std::endl;
+
+        // only print c param for strong DG as FR is implemented only for strong
+        std::string c_parameter_string;
+        using FREnum = Parameters::AllParameters::Flux_Reconstruction;
+        FREnum fr_type = this->all_param.flux_reconstruction_type;
+        if (fr_type == FREnum::cDG)              c_parameter_string = "cDG";
+        else if (fr_type == FREnum::cSD)         c_parameter_string = "cSD";
+        else if (fr_type == FREnum::cHU)         c_parameter_string = "cHU";
+        else if (fr_type == FREnum::cNegative)   c_parameter_string = "cNegative";
+        else if (fr_type == FREnum::cNegative2)  c_parameter_string = "cNegative2";
+        else if (fr_type == FREnum::cPlus)       c_parameter_string = "cPlus";
+        else if (fr_type == FREnum::c10Thousand) c_parameter_string = "c10Thousand";
+        else if (fr_type == FREnum::cHULumped)   c_parameter_string = "cHULumped";
+
+        if (c_parameter_string == "cDG" ) {
+            // No additional output to indicate classical strong DG
+        } else {
+            this->pcout << "- - Using flux reconstruction c parameter: " << c_parameter_string << std::endl;
+        }
+
+        const bool use_split_form = this->all_param.use_split_form;
+        if (use_split_form){
+            this->pcout << "- - Using split form " << std::endl;
+        }
+    }
+    else{
+        this->pcout << "- Using weak DG" << std::endl;
+
+    }
 
     const std::string flow_case_string = this->get_flow_case_string();
     pcout << "- Flow case: " << flow_case_string << " " << std::flush;
@@ -123,10 +159,10 @@ template <int dim, int nstate>
 double FlowSolverCaseBase<dim,nstate>::get_constant_time_step(std::shared_ptr<DGBase<dim,double>> /*dg*/) const
 {
     if(all_param.flow_solver_param.constant_time_step > 0.0) {
-        pcout << "Using constant time step in FlowSolver parameters." << std::endl;
+        // Using constant time step in FlowSolver parameters.
         return all_param.flow_solver_param.constant_time_step;
     } else {
-        pcout << "Using initial time step in ODE parameters." <<std::endl;
+        // Using initial time step in ODE parameters.
         return all_param.ode_solver_param.initial_time_step;
     }
 }
@@ -140,9 +176,26 @@ double FlowSolverCaseBase<dim,nstate>::get_adaptive_time_step(std::shared_ptr<DG
 }
 
 template <int dim, int nstate>
+double FlowSolverCaseBase<dim,nstate>::get_adaptive_time_step_initial(std::shared_ptr<DGBase<dim,double>> /*dg*/)
+{
+    pcout << "ERROR: Base definition for get_adaptive_time_step_initial() has not yet been implemented. " <<std::flush;
+    std::abort();
+    return 0.0;
+}
+
+template <int dim, int nstate>
 void FlowSolverCaseBase<dim, nstate>::steady_state_postprocessing(std::shared_ptr <DGBase<dim, double>> /*dg*/) const
 {
     // do nothing by default
+}
+
+template <int dim, int nstate>
+void FlowSolverCaseBase<dim, nstate>::compute_unsteady_data_and_write_to_table(
+        const std::shared_ptr<ODE::ODESolverBase<dim, double>> ode_solver, 
+        const std::shared_ptr <DGBase<dim, double>> dg,
+        const std::shared_ptr <dealii::TableHandler> unsteady_data_table)
+{
+    this->compute_unsteady_data_and_write_to_table(ode_solver->current_iteration, ode_solver->current_time, dg, unsteady_data_table);
 }
 
 template <int dim, int nstate>
@@ -164,6 +217,19 @@ void FlowSolverCaseBase<dim, nstate>::add_value_to_data_table(
     data_table->add_value(value_string, value);
     data_table->set_precision(value_string, 16);
     data_table->set_scientific(value_string, true);
+}
+
+template <int dim, int nstate>
+void FlowSolverCaseBase<dim, nstate>::set_time_step(
+    const double time_step_input)
+{
+    this->time_step = time_step_input;
+}
+
+template <int dim, int nstate>
+double FlowSolverCaseBase<dim, nstate>::get_time_step() const
+{
+    return this->time_step;
 }
 
 template class FlowSolverCaseBase<PHILIP_DIM,1>;

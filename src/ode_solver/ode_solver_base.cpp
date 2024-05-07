@@ -1,4 +1,5 @@
 #include "ode_solver_base.h"
+#include "limiter/bound_preserving_limiter_factory.hpp"
 
 namespace PHiLiP {
 namespace ODE{
@@ -6,15 +7,30 @@ namespace ODE{
 template <int dim, typename real, typename MeshType>
 ODESolverBase<dim,real,MeshType>::ODESolverBase(std::shared_ptr< DGBase<dim, real, MeshType> > dg_input)
         : dg(dg_input)
+        , limiter(BoundPreservingLimiterFactory<dim, 6, real>::create_limiter(dg->all_parameters))
         , all_parameters(dg->all_parameters)
         , ode_param(all_parameters->ode_solver_param)
         , current_time(ode_param.initial_time)
         , current_iteration(ode_param.initial_iteration)
         , current_desired_time_for_output_solution_every_dt_time_intervals(ode_param.initial_desired_time_for_output_solution_every_dt_time_intervals)
+        , original_time_step(0.0)
+        , modified_time_step(0.0)
         , mpi_communicator(MPI_COMM_WORLD)
         , mpi_rank(dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD))
         , pcout(std::cout, mpi_rank==0)
-        {}
+{}
+
+template <int dim, typename real, typename MeshType>
+double ODESolverBase<dim,real,MeshType>::get_original_time_step() const
+{
+    return this->original_time_step;
+}
+
+template <int dim, typename real, typename MeshType>
+double ODESolverBase<dim,real,MeshType>::get_modified_time_step() const
+{
+    return this->modified_time_step;
+}
 
 template <int dim, typename real, typename MeshType>
 void ODESolverBase<dim,real,MeshType>::initialize_steady_polynomial_ramping (const unsigned int global_final_poly_degree)

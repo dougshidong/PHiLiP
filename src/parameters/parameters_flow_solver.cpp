@@ -1,13 +1,18 @@
+#include <deal.II/base/mpi.h>
+#include <deal.II/base/utilities.h>
+#include <deal.II/base/conditional_ostream.h>
+
 #include "parameters_flow_solver.h"
 
 #include <string>
 
+//for checking output directories
+#include <sys/types.h>
+#include <sys/stat.h>
+
 namespace PHiLiP {
 
 namespace Parameters {
-
-// Flow Solver inputs
-FlowSolverParam::FlowSolverParam() {}
 
 void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
 {
@@ -16,6 +21,7 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
         prm.declare_entry("flow_case_type","taylor_green_vortex",
                           dealii::Patterns::Selection(
                           " taylor_green_vortex | "
+                          " decaying_homogeneous_isotropic_turbulence | "
                           " burgers_viscous_snapshot | "
                           " naca0012 | "
                           " burgers_rewienski_snapshot | "
@@ -24,13 +30,22 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
                           " advection | "
                           " periodic_1D_unsteady | "
                           " gaussian_bump | "
-                          " sshock | "
+                          " isentropic_vortex | "
+                          " kelvin_helmholtz_instability | "
+                          " non_periodic_cube_flow | "
+                          " sod_shock_tube | "
+                          " low_density_2d | "
+                          " leblanc_shock_tube | "
+                          " shu_osher_problem | "
+                          " advection_limiter | "
+                          " burgers_limiter | "
                           " wall_distance_evaluation | "
                           " flat_plate_2D | "
                           " airfoil_2D"),
                           "The type of flow we want to simulate. "
                           "Choices are "
                           " <taylor_green_vortex | "
+                          " decaying_homogeneous_isotropic_turbulence | "
                           " burgers_viscous_snapshot | "
                           " naca0012 | "
                           " burgers_rewienski_snapshot | "
@@ -39,7 +54,15 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
                           " advection | "
                           " periodic_1D_unsteady | "
                           " gaussian_bump | "
-                          " sshock | "
+                          " isentropic_vortex | "
+                          " kelvin_helmholtz_instability | "
+                          " non_periodic_cube_flow | "
+                          " sod_shock_tube | "
+                          " low_density_2d | "
+                          " leblanc_shock_tube | "
+                          " shu_osher_problem | "
+                          " advection_limiter | "
+                          " burgers_limiter | "
                           " wall_distance_evaluation | "
                           " flat_plate_2D | "
                           " airfoil_2D>. ");
@@ -62,7 +85,7 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
                           dealii::Patterns::Double(0, dealii::Patterns::Double::max_double_value),
                           "Constant time step.");
 
-        prm.declare_entry("courant_friedrich_lewy_number", "1",
+        prm.declare_entry("courant_friedrichs_lewy_number", "1",
                           dealii::Patterns::Double(0, dealii::Patterns::Double::max_double_value),
                           "Courant-Friedrich-Lewy (CFL) number for constant time step.");
 
@@ -112,7 +135,7 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
 
         prm.enter_subsection("grid");
         {
-            prm.declare_entry("input_mesh_filename", "naca0012",
+            prm.declare_entry("input_mesh_filename", "",
                               dealii::Patterns::FileName(dealii::Patterns::FileName::FileType::input),
                               "Filename of the input mesh: input_mesh_filename.msh. For cases that import a mesh file.");
 
@@ -135,6 +158,55 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
             prm.declare_entry("number_of_mesh_refinements", "0",
                               dealii::Patterns::Integer(0, dealii::Patterns::Integer::max_int_value),
                               "Number of mesh refinements for Gaussian bump and naca0012 based cases.");
+
+            prm.declare_entry("use_gmsh_mesh", "false",
+                              dealii::Patterns::Bool(),
+                              "Use the input .msh file which calls read_gmsh. False by default.");
+
+            prm.declare_entry("mesh_reader_verbose_output", "false",
+                              dealii::Patterns::Bool(),
+                              "Flag for verbose (true) or quiet (false) mesh reader output.");
+
+            prm.enter_subsection("gmsh_boundary_IDs");
+            {
+
+                prm.declare_entry("use_periodic_BC_in_x", "false",
+                                  dealii::Patterns::Bool(),
+                                  "Use periodic boundary condition in the x-direction. False by default.");
+
+                prm.declare_entry("use_periodic_BC_in_y", "false",
+                                  dealii::Patterns::Bool(),
+                                  "Use periodic boundary condition in the y-direction. False by default.");
+
+                prm.declare_entry("use_periodic_BC_in_z", "false",
+                                  dealii::Patterns::Bool(),
+                                  "Use periodic boundary condition in the z-direction. False by default.");
+
+                prm.declare_entry("x_periodic_id_face_1", "2001",
+                                  dealii::Patterns::Integer(1, dealii::Patterns::Integer::max_int_value),
+                                  "Boundary ID for the first periodic boundary face in the x-direction.");
+
+                prm.declare_entry("x_periodic_id_face_2", "2002",
+                                  dealii::Patterns::Integer(1, dealii::Patterns::Integer::max_int_value),
+                                  "Boundary ID for the second periodic boundary face in the x-direction.");
+
+                prm.declare_entry("y_periodic_id_face_1", "2003",
+                                  dealii::Patterns::Integer(1, dealii::Patterns::Integer::max_int_value),
+                                  "Boundary ID for the first periodic boundary face in the y-direction.");
+
+                prm.declare_entry("y_periodic_id_face_2", "2004",
+                                  dealii::Patterns::Integer(1, dealii::Patterns::Integer::max_int_value),
+                                  "Boundary ID for the second periodic boundary face in the y-direction.");
+
+                prm.declare_entry("z_periodic_id_face_1", "2005",
+                                  dealii::Patterns::Integer(1, dealii::Patterns::Integer::max_int_value),
+                                  "Boundary ID for the first periodic boundary face in the z-direction.");
+
+                prm.declare_entry("z_periodic_id_face_2", "2006",
+                                  dealii::Patterns::Integer(1, dealii::Patterns::Integer::max_int_value),
+                                  "Boundary ID for the second periodic boundary face in the z-direction.");
+            }
+            prm.leave_subsection();
 
             prm.enter_subsection("gaussian_bump");
             {
@@ -280,27 +352,80 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
                               "Choices are "
                               " <uniform | "
                               " isothermal>.");
+            
             prm.declare_entry("do_calculate_numerical_entropy", "false",
                               dealii::Patterns::Bool(),
                               "Flag to calculate numerical entropy and write to file. By default, do not calculate.");
-
+            
         }
         prm.leave_subsection();
 
-        prm.declare_entry("interpolate_initial_condition", "true",
-                          dealii::Patterns::Bool(),
-                          "Interpolate the initial condition function onto the DG solution. If false, then it projects the physical value. True by default.");
+        prm.enter_subsection("kelvin_helmholtz_instability");
+        {
+            prm.declare_entry("atwood_number", "0.5",
+                              dealii::Patterns::Double(0.0, 1.0),
+                              "Atwood number, which characterizes the density difference "
+                              "between the layers of fluid.");
+        }
+        prm.leave_subsection();
 
+        prm.declare_entry("apply_initial_condition_method", "interpolate_initial_condition_function",
+                          dealii::Patterns::Selection(
+                          " interpolate_initial_condition_function | "
+                          " project_initial_condition_function | "
+                          " read_values_from_file_and_project "),
+                          "The method used for applying the initial condition. "
+                          "Choices are "
+                          " <interpolate_initial_condition_function | "
+                          " project_initial_condition_function | " 
+                          " read_values_from_file_and_project>.");
+
+        prm.declare_entry("input_flow_setup_filename_prefix", "setup",
+                          dealii::Patterns::FileName(dealii::Patterns::FileName::FileType::input),
+                          "Filename prefix of the input flow setup file. "
+                          "Example: 'setup' for files named setup-0000i.dat, where i is the MPI rank. "
+                          "For initializing the flow with values from a file. "
+                          "To be set when apply_initial_condition_method is read_values_from_file_and_project.");
+
+        prm.enter_subsection("output_velocity_field");
+        {
+            prm.declare_entry("output_velocity_field_at_fixed_times", "false",
+                              dealii::Patterns::Bool(),
+                              "Output velocity field (at equidistant nodes) at fixed times. False by default.");
+
+            prm.declare_entry("output_velocity_field_times_string", " ",
+                              dealii::Patterns::FileName(dealii::Patterns::FileName::FileType::input),
+                              "String of the times at which to output the velocity field. "
+                              "Example: '0.0 1.0 2.0 3.0 ' or '0.0 1.0 2.0 3.0'");
+
+            prm.declare_entry("output_vorticity_magnitude_field_in_addition_to_velocity", "false",
+                              dealii::Patterns::Bool(),
+                              "Output vorticity magnitude field in addition to velocity field. False by default.");
+
+            prm.declare_entry("output_flow_field_files_directory_name", ".",
+                              dealii::Patterns::FileName(dealii::Patterns::FileName::FileType::input),
+                              "Name of directory for writing flow field files. Current directory by default.");
+        }
+        prm.leave_subsection();
+
+        prm.declare_entry("end_exactly_at_final_time", "true",
+                          dealii::Patterns::Bool(),
+                          "Flag to adjust the last timestep such that the simulation "
+                          "ends exactly at final_time. True by default.");
     }
     prm.leave_subsection();
 }
 
 void FlowSolverParam::parse_parameters(dealii::ParameterHandler &prm)
 {   
+    const int mpi_rank = dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD);
+    dealii::ConditionalOStream pcout(std::cout, mpi_rank==0);
     prm.enter_subsection("flow_solver");
     {
         const std::string flow_case_type_string = prm.get("flow_case_type");
         if      (flow_case_type_string == "taylor_green_vortex")        {flow_case_type = taylor_green_vortex;}
+        else if (flow_case_type_string == "decaying_homogeneous_isotropic_turbulence") 
+                                                                        {flow_case_type = decaying_homogeneous_isotropic_turbulence;}
         else if (flow_case_type_string == "burgers_viscous_snapshot")   {flow_case_type = burgers_viscous_snapshot;}
         else if (flow_case_type_string == "burgers_rewienski_snapshot") {flow_case_type = burgers_rewienski_snapshot;}
         else if (flow_case_type_string == "naca0012")                   {flow_case_type = naca0012;}
@@ -309,11 +434,20 @@ void FlowSolverParam::parse_parameters(dealii::ParameterHandler &prm)
         else if (flow_case_type_string == "advection")                  {flow_case_type = advection;}
         else if (flow_case_type_string == "periodic_1D_unsteady")       {flow_case_type = periodic_1D_unsteady;}
         else if (flow_case_type_string == "gaussian_bump")              {flow_case_type = gaussian_bump;}
-        else if (flow_case_type_string == "sshock")                     {flow_case_type = sshock;}
+        else if (flow_case_type_string == "isentropic_vortex")          {flow_case_type = isentropic_vortex;}
+        else if (flow_case_type_string == "kelvin_helmholtz_instability")   
+                                                                        {flow_case_type = kelvin_helmholtz_instability;}
+        else if (flow_case_type_string == "non_periodic_cube_flow")     {flow_case_type = non_periodic_cube_flow;}
+        else if (flow_case_type_string == "sod_shock_tube")             {flow_case_type = sod_shock_tube;}
+        else if (flow_case_type_string == "low_density_2d")             {flow_case_type = low_density_2d;}
+        else if (flow_case_type_string == "leblanc_shock_tube")         {flow_case_type = leblanc_shock_tube;}
+        else if (flow_case_type_string == "shu_osher_problem")          {flow_case_type = shu_osher_problem;}
+        else if (flow_case_type_string == "advection_limiter")          {flow_case_type = advection_limiter;}
+        else if (flow_case_type_string == "burgers_limiter")            {flow_case_type = burgers_limiter;}
         else if (flow_case_type_string == "wall_distance_evaluation")   {flow_case_type = wall_distance_evaluation;}
         else if (flow_case_type_string == "flat_plate_2D")              {flow_case_type = flat_plate_2D;}
         else if (flow_case_type_string == "airfoil_2D")                 {flow_case_type = airfoil_2D;}
-
+        
         poly_degree = prm.get_integer("poly_degree");
         
         // get max poly degree for adaptation
@@ -323,7 +457,7 @@ void FlowSolverParam::parse_parameters(dealii::ParameterHandler &prm)
         
         final_time = prm.get_double("final_time");
         constant_time_step = prm.get_double("constant_time_step");
-        courant_friedrich_lewy_number = prm.get_double("courant_friedrich_lewy_number");
+        courant_friedrichs_lewy_number = prm.get_double("courant_friedrichs_lewy_number");
         unsteady_data_table_filename = prm.get("unsteady_data_table_filename");
         steady_state = prm.get_bool("steady_state");
         steady_state_polynomial_ramping = prm.get_bool("steady_state_polynomial_ramping");
@@ -332,6 +466,13 @@ void FlowSolverParam::parse_parameters(dealii::ParameterHandler &prm)
         restart_computation_from_file = prm.get_bool("restart_computation_from_file");
         output_restart_files = prm.get_bool("output_restart_files");
         restart_files_directory_name = prm.get("restart_files_directory_name");
+        // Check if directory exists - see https://stackoverflow.com/a/18101042
+        struct stat info_restart;
+        if( stat( restart_files_directory_name.c_str(), &info_restart ) != 0 ){
+            pcout << "Error: No restart files directory named " << restart_files_directory_name << " exists." << std::endl
+                      << "Please create the directory and restart. Aborting..." << std::endl;
+            std::abort();
+        }
         restart_file_index = prm.get_integer("restart_file_index");
         output_restart_files_every_x_steps = prm.get_integer("output_restart_files_every_x_steps");
         output_restart_files_every_dt_time_intervals = prm.get_double("output_restart_files_every_dt_time_intervals");
@@ -344,6 +485,22 @@ void FlowSolverParam::parse_parameters(dealii::ParameterHandler &prm)
             grid_right_bound = prm.get_double("grid_right_bound");
             number_of_grid_elements_per_dimension = prm.get_integer("number_of_grid_elements_per_dimension");
             number_of_mesh_refinements = prm.get_integer("number_of_mesh_refinements");
+            use_gmsh_mesh = prm.get_bool("use_gmsh_mesh");
+            mesh_reader_verbose_output = prm.get_bool("mesh_reader_verbose_output");
+
+            prm.enter_subsection("gmsh_boundary_IDs");
+            {
+                use_periodic_BC_in_x = prm.get_bool("use_periodic_BC_in_x");
+                use_periodic_BC_in_y = prm.get_bool("use_periodic_BC_in_y");
+                use_periodic_BC_in_z = prm.get_bool("use_periodic_BC_in_z");
+                x_periodic_id_face_1 = prm.get_integer("x_periodic_id_face_1");
+                x_periodic_id_face_2 = prm.get_integer("x_periodic_id_face_2");
+                y_periodic_id_face_1 = prm.get_integer("y_periodic_id_face_1");
+                y_periodic_id_face_2 = prm.get_integer("y_periodic_id_face_2");
+                z_periodic_id_face_1 = prm.get_integer("z_periodic_id_face_1");
+                z_periodic_id_face_2 = prm.get_integer("z_periodic_id_face_2");
+            }
+            prm.leave_subsection();
 
             prm.enter_subsection("gaussian_bump");
             {
@@ -402,8 +559,37 @@ void FlowSolverParam::parse_parameters(dealii::ParameterHandler &prm)
         }
         prm.leave_subsection();
 
-        interpolate_initial_condition = prm.get_bool("interpolate_initial_condition");
+        prm.enter_subsection("kelvin_helmholtz_instability");
+        {
+            atwood_number = prm.get_double("atwood_number");
+        }
+        prm.leave_subsection();
+
+        const std::string apply_initial_condition_method_string = prm.get("apply_initial_condition_method");
+        if      (apply_initial_condition_method_string == "interpolate_initial_condition_function") {apply_initial_condition_method = interpolate_initial_condition_function;}
+        else if (apply_initial_condition_method_string == "project_initial_condition_function")     {apply_initial_condition_method = project_initial_condition_function;}
+        else if (apply_initial_condition_method_string == "read_values_from_file_and_project")      {apply_initial_condition_method = read_values_from_file_and_project;}
         
+        input_flow_setup_filename_prefix = prm.get("input_flow_setup_filename_prefix");
+
+        prm.enter_subsection("output_velocity_field");
+        {
+          output_velocity_field_at_fixed_times = prm.get_bool("output_velocity_field_at_fixed_times");
+          output_velocity_field_times_string = prm.get("output_velocity_field_times_string");
+          number_of_times_to_output_velocity_field = get_number_of_values_in_string(output_velocity_field_times_string);
+          output_vorticity_magnitude_field_in_addition_to_velocity = prm.get_bool("output_vorticity_magnitude_field_in_addition_to_velocity");
+          output_flow_field_files_directory_name = prm.get("output_flow_field_files_directory_name");
+            // Check if directory exists - see https://stackoverflow.com/a/18101042
+            struct stat info_flow;
+            if( stat( output_flow_field_files_directory_name.c_str(), &info_flow ) != 0 ){
+                pcout << "Error: No flow field files directory named " << output_flow_field_files_directory_name << " exists." << std::endl
+                          << "Please create the directory and restart. Aborting..." << std::endl;
+                std::abort();
+            }
+        }
+        prm.leave_subsection();
+
+        end_exactly_at_final_time = prm.get_bool("end_exactly_at_final_time");
     }
     prm.leave_subsection();
 }

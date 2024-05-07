@@ -191,7 +191,7 @@ int test()
     parameter_handler.set("pde_type", "euler");
     parameter_handler.set("conv_num_flux", "lax_friedrichs");
     parameter_handler.set("dimension", (long int)dim);
-    parameter_handler.set("use_collocated_nodes", false);
+    parameter_handler.set("flux_nodes_type", "GL");
     parameter_handler.enter_subsection("euler");
     parameter_handler.set("mach_infinity", 0.3);
     parameter_handler.set("angle_of_attack", 36.0);
@@ -246,6 +246,7 @@ int test()
 
             // Initialize coarse grid solution with free-stream
             Physics::Euler<dim,dim+2,double> euler_physics_double = Physics::Euler<dim, dim+2, double>(
+                        &param,
                         param.euler_param.ref_length,
                         param.euler_param.gamma_gas,
                         param.euler_param.mach_inf,

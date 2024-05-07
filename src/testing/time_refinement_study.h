@@ -1,9 +1,10 @@
 #ifndef __TIME_REFINEMENT_STUDY__
 #define __TIME_REFINEMENT_STUDY__
 
-#include "tests.h"
 #include <deal.II/base/convergence_table.h>
-#include "dg/dg.h"
+
+#include "dg/dg_base.hpp"
+#include "tests.h"
 
 namespace PHiLiP {
 namespace Tests {
@@ -18,9 +19,6 @@ public:
             const Parameters::AllParameters *const parameters_input,
             const dealii::ParameterHandler &parameter_handler_input);
 
-    /// Destructor
-    ~TimeRefinementStudy() {};
-
     /// Parameter handler for storing the .prm file being ran
     const dealii::ParameterHandler &parameter_handler;
     
@@ -33,8 +31,11 @@ protected:
     /// Ratio to refine by
     const double refine_ratio;
 
-    /// Calculate L2 error at the final time in the passed parameters
-    double calculate_L2_error_at_final_time_wrt_function(std::shared_ptr<DGBase<dim,double>> dg,const Parameters::AllParameters parameters, double final_time) const;
+    /// Calculate Lp error at the final time in the passed parameters
+    /// norm_p is used to indicate the error order -- e.g., norm_p=2 
+    /// is L2 norm
+    /// Negative norm_p is used to indicate L_infinity norm
+    double calculate_Lp_error_at_final_time_wrt_function(std::shared_ptr<DGBase<dim,double>> dg,const Parameters::AllParameters parameters, double final_time, int norm_p) const;
 
     /// Reinitialize parameters while refining the timestep. Necessary because all_parameters is constant.
     Parameters::AllParameters reinit_params_and_refine_timestep(int refinement) const;

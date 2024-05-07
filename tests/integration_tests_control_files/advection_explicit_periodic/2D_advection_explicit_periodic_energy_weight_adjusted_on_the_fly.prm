@@ -9,7 +9,9 @@ set use_weak_form = false
 
 set overintegration = 0
 
-set use_collocated_nodes = false
+set flux_nodes_type = GL
+
+set do_renumber_dofs = false
 
 set use_split_form = false
 
@@ -49,11 +51,12 @@ subsection ODE solver
   set initial_time_step = 0.001
 
   set runge_kutta_method = rk4_ex
+#  set runge_kutta_method = euler_ex
 
 end
 
 subsection flow_solver
     set flow_case_type = advection
-    set interpolate_initial_condition = false
+    set apply_initial_condition_method = project_initial_condition_function
 end
 

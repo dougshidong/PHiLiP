@@ -1,7 +1,12 @@
 #include <deal.II/base/mpi.h>
 #include <deal.II/base/utilities.h>
+#include <deal.II/base/patterns.h>
 
 #include "parameters/all_parameters.h"
+
+//for checking output directories
+#include <sys/types.h>
+#include <sys/stat.h>
 
 namespace PHiLiP {
 namespace Parameters {
@@ -17,6 +22,7 @@ AllParameters::AllParameters ()
     , physics_model_param(PhysicsModelParam())
     , grid_refinement_study_param(GridRefinementStudyParam())
     , artificial_dissipation_param(ArtificialDissipationParam())
+    , limiter_param(LimiterParam())
     , flow_solver_param(FlowSolverParam())
     , mesh_adaptation_param(MeshAdaptationParam())
     , functional_param(FunctionalParam())
@@ -66,9 +72,11 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       dealii::Patterns::Bool(),
                       "Use weak form by default. If false, use strong form.");
 
-    prm.declare_entry("use_collocated_nodes", "false",
-                      dealii::Patterns::Bool(),
-                      "Use Gauss-Legendre by default. Otherwise, use Gauss-Lobatto to collocate.");
+    prm.declare_entry("flux_nodes_type", "GL",
+                      dealii::Patterns::Selection(
+                      "GL | GLL"),
+                      "Flux nodes type, default is GL for uncollocated. NOTE: Solution nodes are type GLL."
+                      "Choices are <GL | GLL>.");
 
     prm.declare_entry("use_split_form", "false",
                       dealii::Patterns::Bool(),
@@ -84,6 +92,10 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       dealii::Patterns::Bool(),
                       "Use original form by defualt. Otherwise, split the curvilinear fluxes.");
 
+    prm.declare_entry("store_residual_cpu_time", "false",
+                      dealii::Patterns::Bool(),
+                      "Do not store the residual local processor cpu time by default. Store the residual cpu time if true.");
+
     prm.declare_entry("use_weight_adjusted_mass", "false",
                       dealii::Patterns::Bool(),
                       "Use original form by defualt. Otherwise, use the weight adjusted low storage mass matrix for curvilinear.");
@@ -91,6 +103,10 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
     prm.declare_entry("use_periodic_bc", "false",
                       dealii::Patterns::Bool(),
                       "Use other boundary conditions by default. Otherwise use periodic (for 1d burgers only");
+
+    prm.declare_entry("use_curvilinear_grid", "false",
+                      dealii::Patterns::Bool(),
+                      "Use straight grid by default. Curvilinear is true. Only used in taylor_green_scaling test.");
 
     prm.declare_entry("use_energy", "false",
                       dealii::Patterns::Bool(),
@@ -129,6 +145,10 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       dealii::Patterns::Bool(),
                       "Build global mass inverse matrix and apply it. Otherwise, use inverse mass on-the-fly by default for explicit timestepping.");
 
+    prm.declare_entry("check_valid_metric_Jacobian", "true",
+                      dealii::Patterns::Bool(),
+                      "Check validty of metric Jacobian when high-order grid is constructed by default. Do not check if false. Not checking is useful if the metric terms are built on the fly with operators, it reduces the memory cost for high polynomial grids. The metric Jacobian is never checked for strong form, regardless of the user input.");
+
     prm.declare_entry("energy_file", "energy_file",
                       dealii::Patterns::FileName(dealii::Patterns::FileName::FileType::input),
                       "Input file for energy test.");
@@ -137,6 +157,8 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       dealii::Patterns::Selection(
                       " run_control | "
                       " grid_refinement_study | "
+                      " advection_limiter | "
+                      " burgers_limiter | "
                       " burgers_energy_stability | "
                       " diffusion_exact_adjoint | "
                       " optimization_inverse_manufactured | "
@@ -148,6 +170,7 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       " euler_vortex | "
                       " euler_entropy_waves | "
                       " euler_split_taylor_green | "
+                      " taylor_green_scaling | "
                       " euler_bump_optimization | "
                       " euler_naca_optimization | "
                       " shock_1d | "
@@ -160,16 +183,24 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       " finite_difference_sensitivity | "
                       " advection_periodicity | "
                       " dual_weighted_residual_mesh_adaptation | "
+                      " anisotropic_mesh_adaptation | "
                       " taylor_green_vortex_energy_check | "
                       " taylor_green_vortex_restart_check | "
+                      " homogeneous_isotropic_turbulence_initialization_check | "
                       " time_refinement_study | "
                       " time_refinement_study_reference | "
-                      " burgers_energy_conservation_rrk | "
-                      " euler_ismail_roe_entropy_check"),
+                      " rrk_numerical_entropy_conservation_check | "
+                      " euler_entropy_conserving_split_forms_check | "
+                      " h_refinement_study_isentropic_vortex | "
+                      " naca0012_unsteady_check_quick | "
+                      " khi_robustness | "
+                      " low_density "),
                       "The type of test we want to solve. "
                       "Choices are " 
                       " <run_control | " 
                       "  grid_refinement_study | "
+                      "  advection_limiter | "
+                      "  burgers_limiter | "
                       "  burgers_energy_stability | "
                       "  diffusion_exact_adjoint | "
                       "  optimization_inverse_manufactured | "
@@ -181,6 +212,7 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       "  euler_vortex | "
                       "  euler_entropy_waves | "
                       "  euler_split_taylor_green |"
+                      " taylor_green_scaling | "
                       "  euler_bump_optimization | "
                       "  euler_naca_optimization | "
                       "  shock_1d | "
@@ -193,12 +225,18 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       "  finite_difference_sensitivity | "
                       "  advection_periodicity | "
                       "  dual_weighted_residual_mesh_adaptation | "
+                      "  anisotropic_mesh_adaptation | "
                       "  taylor_green_vortex_energy_check | "
                       "  taylor_green_vortex_restart_check | "
+                      "  homogeneous_isotropic_turbulence_initialization_check | "
                       "  time_refinement_study | "
                       "  time_refinement_study_reference | "
-                      "  burgers_energy_conservation_rrk | "
-                      "  euler_ismail_roe_entropy_check>.");
+                      "  rrk_numerical_entropy_conservation_check | "
+                      "  euler_entropy_conserving_split_forms_check | "
+                      "  h_refinement_study_isentropic_vortex | "
+                      "  naca0012_unsteady_check_quick | "
+                      "  khi_robustness | "
+                      "  low_density>.");
 
     prm.declare_entry("pde_type", "advection",
                       dealii::Patterns::Selection(
@@ -263,6 +301,15 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       "Dissipative numerical flux. "
                       "Choices are <symm_internal_penalty | bassi_rebay_2 | central_visc_flux>.");
 
+    prm.declare_entry("non_physical_behavior", "return_big_number",
+                      dealii::Patterns::Selection("return_big_number | abort_run | print_warning"),
+                      "Behavior when a nonphysical result is detected in physics, "
+                      "For example negative density or NaN. "
+                      "return_big_number will set the quantity to BIG_NUMBER without any warnings "
+                      "abort_run will std::abort() "
+                      "print_warning will return BIG_NUMBER and print a warning to console. "
+                      "Choices are <return_big_number | abort_run | print_warning>.");
+
     prm.declare_entry("solution_vtk_files_directory_name", ".",
                       dealii::Patterns::FileName(dealii::Patterns::FileName::FileType::input),
                       "Name of directory for writing solution vtk files. Current directory by default.");
@@ -271,13 +318,28 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       dealii::Patterns::Bool(),
                       "Outputs the high-order mesh vtu files. False by default");
 
-    prm.declare_entry("enable_higher_order_vtk_output", "false",
+    prm.declare_entry("enable_higher_order_vtk_output", "true",
                       dealii::Patterns::Bool(),
-                      "Enable writing of higher-order vtk files."
-                      "False by default. If modified to true,"
-                      "number of subdivisions will be chosen"
-                      "according to the max of grid_degree"
-                      "and poly_degree.");
+                      "Enable writing of higher-order vtk files. True by default; "
+                      "number of subdivisions is chosen according to the max of grid_degree and poly_degree.");
+
+    prm.declare_entry("output_face_results_vtk", "false",
+                      dealii::Patterns::Bool(),
+                      "Outputs the surface solution vtk files. False by default");
+
+    prm.declare_entry("do_renumber_dofs", "true",
+                      dealii::Patterns::Bool(),
+                      "Flag for renumbering DOFs using Cuthill-McKee renumbering. True by default. Set to false if doing 3D unsteady flow simulations.");
+
+    prm.declare_entry("renumber_dofs_type", "CuthillMckee",
+                      dealii::Patterns::Selection(
+                      "CuthillMckee"),
+                      "Renumber the dof handler type. Currently the only choice is Cuthill-Mckee.");
+
+    prm.declare_entry("matching_surface_jac_det_tolerance", "1.3e-11",
+                      dealii::Patterns::Double(0, dealii::Patterns::Double::max_double_value),
+                      "Tolerance for checking that the determinant of surface jacobians at element faces matches. "
+                      "Note: Currently only used in weak dg.");
 
     Parameters::LinearSolverParam::declare_parameters (prm);
     Parameters::ManufacturedConvergenceStudyParam::declare_parameters (prm);
@@ -289,6 +351,7 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
     Parameters::BurgersParam::declare_parameters (prm);
     Parameters::GridRefinementStudyParam::declare_parameters (prm);
     Parameters::ArtificialDissipationParam::declare_parameters (prm);
+    Parameters::LimiterParam::declare_parameters(prm);
     Parameters::MeshAdaptationParam::declare_parameters (prm);
     Parameters::FlowSolverParam::declare_parameters (prm);
     Parameters::FunctionalParam::declare_parameters (prm);
@@ -316,9 +379,11 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
     else if (mesh_type_string == "parallel_shared_triangulation")      { mesh_type = parallel_shared_triangulation; }
     else if (mesh_type_string == "parallel_distributed_triangulation") { mesh_type = parallel_distributed_triangulation; }
 
-    const std::string test_string = prm.get("test_type");
+const std::string test_string = prm.get("test_type");
     if      (test_string == "run_control")                              { test_type = run_control; }
     else if (test_string == "grid_refinement_study")                    { test_type = grid_refinement_study; }
+    else if (test_string == "advection_limiter")                        { test_type = advection_limiter; }
+    else if (test_string == "burgers_limiter")                          { test_type = burgers_limiter; }
     else if (test_string == "burgers_energy_stability")                 { test_type = burgers_energy_stability; }
     else if (test_string == "diffusion_exact_adjoint")                  { test_type = diffusion_exact_adjoint; }
     else if (test_string == "euler_gaussian_bump")                      { test_type = euler_gaussian_bump; }
@@ -331,6 +396,7 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
     else if (test_string == "advection_periodicity")                    { test_type = advection_periodicity; }
     else if (test_string == "convection_diffusion_periodicity")         { test_type = convection_diffusion_periodicity; }
     else if (test_string == "euler_split_taylor_green")                 { test_type = euler_split_taylor_green; }
+    else if (test_string == "taylor_green_scaling")                     { test_type = taylor_green_scaling; }
     else if (test_string == "euler_bump_optimization")                  { test_type = euler_bump_optimization; }
     else if (test_string == "euler_naca_optimization")                  { test_type = euler_naca_optimization; }
     else if (test_string == "shock_1d")                                 { test_type = shock_1d; }
@@ -342,18 +408,34 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
     else if (test_string == "euler_naca0012")                           { test_type = euler_naca0012; }
     else if (test_string == "optimization_inverse_manufactured")        { test_type = optimization_inverse_manufactured; }
     else if (test_string == "dual_weighted_residual_mesh_adaptation")   { test_type = dual_weighted_residual_mesh_adaptation; }
+    else if (test_string == "anisotropic_mesh_adaptation")              { test_type = anisotropic_mesh_adaptation; }
     else if (test_string == "taylor_green_vortex_energy_check")         { test_type = taylor_green_vortex_energy_check; }
     else if (test_string == "taylor_green_vortex_restart_check")        { test_type = taylor_green_vortex_restart_check; }
+    else if (test_string == "homogeneous_isotropic_turbulence_initialization_check")
+                                                                        { test_type = homogeneous_isotropic_turbulence_initialization_check; }
     else if (test_string == "time_refinement_study")                    { test_type = time_refinement_study; }
     else if (test_string == "time_refinement_study_reference")          { test_type = time_refinement_study_reference; }
-    else if (test_string == "burgers_energy_conservation_rrk")          { test_type = burgers_energy_conservation_rrk; }
-    else if (test_string == "euler_ismail_roe_entropy_check")           { test_type = euler_ismail_roe_entropy_check; }
+    else if (test_string == "h_refinement_study_isentropic_vortex")     { test_type = h_refinement_study_isentropic_vortex; }
+    else if (test_string == "rrk_numerical_entropy_conservation_check") { test_type = rrk_numerical_entropy_conservation_check; }
+    else if (test_string == "euler_entropy_conserving_split_forms_check") 
+                                                                        { test_type = euler_entropy_conserving_split_forms_check; }
+    else if (test_string == "h_refinement_study_isentropic_vortex")     { test_type = h_refinement_study_isentropic_vortex; }
+    else if (test_string == "khi_robustness")                           { test_type = khi_robustness; }
+    else if (test_string == "low_density")                              { test_type = low_density; }
+    else if (test_string == "naca0012_unsteady_check_quick")            { test_type = naca0012_unsteady_check_quick; }
     
     overintegration = prm.get_integer("overintegration");
 
     use_weak_form = prm.get_bool("use_weak_form");
+
     embedded_pde = prm.get_bool("embedded_pde");
-    use_collocated_nodes = prm.get_bool("use_collocated_nodes");
+    
+    const std::string flux_nodes_string = prm.get("flux_nodes_type");
+    if (flux_nodes_string == "GL") { flux_nodes_type = FluxNodes::GL; }
+    if (flux_nodes_string == "GLL") { flux_nodes_type = FluxNodes::GLL; }
+
+    use_collocated_nodes = (flux_nodes_type==FluxNodes::GLL) && (overintegration==0);
+
     use_split_form = prm.get_bool("use_split_form");
 
     const std::string two_point_num_flux_string = prm.get("two_point_num_flux_type");
@@ -363,6 +445,8 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
     if (two_point_num_flux_string == "Ra") { two_point_num_flux_type = TwoPointNumericalFlux::Ra; }
 
     use_curvilinear_split_form = prm.get_bool("use_curvilinear_split_form");
+    use_curvilinear_grid = prm.get_bool("use_curvilinear_grid");
+    store_residual_cpu_time = prm.get_bool("store_residual_cpu_time");
     use_weight_adjusted_mass = prm.get_bool("use_weight_adjusted_mass");
     use_periodic_bc = prm.get_bool("use_periodic_bc");
     use_energy = prm.get_bool("use_energy");
@@ -371,6 +455,10 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
     sipg_penalty_factor = prm.get_double("sipg_penalty_factor");
     use_invariant_curl_form = prm.get_bool("use_invariant_curl_form");
     use_inverse_mass_on_the_fly = prm.get_bool("use_inverse_mass_on_the_fly");
+    check_valid_metric_Jacobian = prm.get_bool("check_valid_metric_Jacobian");
+    if(!use_weak_form){
+        check_valid_metric_Jacobian = false;
+    }
 
     energy_file = prm.get("energy_file");
 
@@ -411,9 +499,28 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
     if (flux_reconstruction_aux_string == "kPlus")       { flux_reconstruction_aux_type = kPlus; }
     if (flux_reconstruction_aux_string == "k10Thousand") { flux_reconstruction_aux_type = k10Thousand; }
 
+    const std::string non_physical_behavior_string = prm.get("non_physical_behavior");
+    if (non_physical_behavior_string == "return_big_number") { non_physical_behavior_type = NonPhysicalBehaviorEnum::return_big_number;}
+    if (non_physical_behavior_string == "abort_run")         { non_physical_behavior_type = NonPhysicalBehaviorEnum::abort_run;}
+    if (non_physical_behavior_string == "print_warning")     { non_physical_behavior_type = NonPhysicalBehaviorEnum::print_warning;}
+
     solution_vtk_files_directory_name = prm.get("solution_vtk_files_directory_name");
+    // Check if directory exists - see https://stackoverflow.com/a/18101042
+    struct stat info_vtk;
+    if( stat( solution_vtk_files_directory_name.c_str(), &info_vtk ) != 0 ){
+        pcout << "Error: No solution vtk files directory named " << solution_vtk_files_directory_name << " exists." << std::endl
+                  << "Please create the directory and restart. Aborting..." << std::endl;
+        std::abort();
+    }
     output_high_order_grid = prm.get_bool("output_high_order_grid");
     enable_higher_order_vtk_output = prm.get_bool("enable_higher_order_vtk_output");
+    output_face_results_vtk = prm.get_bool("output_face_results_vtk");
+    do_renumber_dofs = prm.get_bool("do_renumber_dofs");
+
+    const std::string renumber_dofs_type_string = prm.get("renumber_dofs_type");
+    if (renumber_dofs_type_string == "CuthillMckee") { renumber_dofs_type = RenumberDofsType::CuthillMckee; }
+
+    matching_surface_jac_det_tolerance = prm.get_double("matching_surface_jac_det_tolerance");
 
     pcout << "Parsing linear solver subsection..." << std::endl;
     linear_solver_param.parse_parameters (prm);
@@ -444,6 +551,9 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
 
     pcout << "Parsing artificial dissipation subsection..." << std::endl;
     artificial_dissipation_param.parse_parameters (prm);
+
+    pcout << "Parsing limiter subsection..." << std::endl;
+    limiter_param.parse_parameters(prm);
     
     pcout << "Parsing flow solver subsection..." << std::endl;
     flow_solver_param.parse_parameters (prm);

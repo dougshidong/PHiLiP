@@ -89,21 +89,19 @@ protected:
 public:
     /// Constructor
     MHD(
+        const Parameters::AllParameters *const                    parameters_input,
         const double                                              gamma_gas, 
         const dealii::Tensor<2,3,double>                          input_diffusion_tensor = Parameters::ManufacturedSolutionParam::get_default_diffusion_tensor(),
         std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function = nullptr,
         const bool                                                has_nonzero_diffusion = false,
         const bool                                                has_nonzero_physical_source = false)
-    : PhysicsBase<dim,nstate,real>(has_nonzero_diffusion, has_nonzero_physical_source, input_diffusion_tensor, manufactured_solution_function)
+    : PhysicsBase<dim,nstate,real>(parameters_input, has_nonzero_diffusion, has_nonzero_physical_source, input_diffusion_tensor, manufactured_solution_function)
     , gam(gamma_gas)
     , gamm1(gam-1.0)
     {
         static_assert(nstate==8, "Physics::MHD() should be created with nstate=8");
 
     };
-    /// Destructor
-    ~MHD ()
-    {};
 
     /// Constant heat capacity ratio of air
     const double gam;
@@ -131,7 +129,7 @@ public:
         const std::array<real,nstate> &/*conservative_soln*/,
         const dealii::Tensor<1,dim,real> &/*normal*/) const;
 
-    /// Maximum convective eigenvalue used in Lax-Friedrichs
+    /// Maximum convective eigenvalue
     real max_convective_eigenvalue (const std::array<real,nstate> &soln) const;
 
     /// Maximum viscous eigenvalue.
@@ -261,6 +259,16 @@ public:
     real compute_mean_specific_energy(
         const std::array<real,nstate> &conservative_soln1,
         const std::array<real,nstate> &convervative_soln2) const;
+
+    /// Evaluates boundary values and gradients on the other side of the face.
+    void boundary_face_values (
+        const int /*boundary_type*/,
+        const dealii::Point<dim, real> &/*pos*/,
+        const dealii::Tensor<1,dim,real> &/*normal*/,
+        const std::array<real,nstate> &/*soln_int*/,
+        const std::array<dealii::Tensor<1,dim,real>,nstate> &/*soln_grad_int*/,
+        std::array<real,nstate> &/*soln_bc*/,
+        std::array<dealii::Tensor<1,dim,real>,nstate> &/*soln_grad_bc*/) const;
 
 //    void boundary_face_values (
 //        const int /*boundary_type*/,

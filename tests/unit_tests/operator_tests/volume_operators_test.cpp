@@ -77,7 +77,7 @@ int main (int argc, char * argv[])
     all_parameters_new.flux_reconstruction_type = FR_enum::cHU;
     // all_parameters_new.overintegration = 2;
     // const unsigned int overint= all_parameters_new.overintegration;
-    // all_parameters_new.use_collocated_nodes = true;
+    // all_parameters_new.flux_nodes_type = Parameters::AllParameters::FluxNodes::GLL;
 
     // double skew_sym = 0.0;
     double M_K_HU =0.0;
@@ -112,7 +112,7 @@ int main (int argc, char * argv[])
         const dealii::FE_DGQ<dim> fe_dim(poly_degree);
         const dealii::FESystem<dim,dim> fe_system_dim(fe_dim, nstate);
 
-        PHiLiP::OPERATOR::local_mass<dim,2*dim> mass_matrix(nstate, poly_degree, 1);
+        PHiLiP::OPERATOR::local_mass<dim,2*dim,real> mass_matrix(nstate, poly_degree, 1);
         dealii::QGauss<1> quad1D (poly_degree+1);
         const dealii::FE_DGQ<1> fe_dg(poly_degree);
         const dealii::FESystem<1,1> fe_system(fe_dg, nstate);
@@ -122,7 +122,7 @@ int main (int argc, char * argv[])
                                                     mass_matrix.oneD_vol_operator,
                                                     mass_matrix.oneD_vol_operator,mass_matrix.oneD_vol_operator);
 
-        PHiLiP::OPERATOR::local_Flux_Reconstruction_operator<dim,2*dim> local_FR(nstate, poly_degree, 1, FR_enum::cHU);
+        PHiLiP::OPERATOR::local_Flux_Reconstruction_operator<dim,2*dim,real> local_FR(nstate, poly_degree, 1, FR_enum::cHU);
         local_FR.build_1D_volume_operator(fe_system,quad1D);
         dealii::FullMatrix<real> FR_dim(n_dofs);
         FR_dim = local_FR.build_dim_Flux_Reconstruction_operator(mass_matrix.oneD_vol_operator, nstate, n_dofs);

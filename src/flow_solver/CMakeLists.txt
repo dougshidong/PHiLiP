@@ -1,14 +1,17 @@
 
 set(FLOW_SOLVER_SOURCE
     flow_solver_cases/flow_solver_case_base.cpp
+    flow_solver_cases/cube_flow_uniform_grid.cpp
     flow_solver_cases/periodic_cube_flow.cpp
     flow_solver_cases/non_periodic_cube_flow.cpp
     flow_solver_cases/periodic_turbulence.cpp
     flow_solver_cases/periodic_1D_unsteady.cpp
+    flow_solver_cases/periodic_entropy_tests.cpp
     flow_solver_cases/1D_burgers_rewienski_snapshot.cpp
     flow_solver_cases/1d_burgers_viscous_snapshot.cpp
     flow_solver_cases/naca0012.cpp
     flow_solver_cases/gaussian_bump.cpp
+    flow_solver_cases/limiter_convergence_tests.cpp
     flow_solver_cases/wall_cube.cpp
     flow_solver_cases/flat_plate_2D.cpp
     flow_solver_cases/airfoil_2D.cpp
@@ -30,6 +33,7 @@ foreach(dim RANGE 1 3)
     string(CONCAT ODESolverLib ODESolver_${dim}D)
     string(CONCAT InitialConditionsLib InitialConditions_${dim}D)
     string(CONCAT PODLib POD_${dim}D)
+    string(CONCAT MeshAdaptationLib MeshAdaptation_${dim}D)
     target_link_libraries(${FlowSolverLib} ${GridsLib})
     target_link_libraries(${FlowSolverLib} ${PhysicsLib})
     target_link_libraries(${FlowSolverLib} ${FunctionalLib})
@@ -37,6 +41,7 @@ foreach(dim RANGE 1 3)
     target_link_libraries(${FlowSolverLib} ${ODESolverLib})
     target_link_libraries(${FlowSolverLib} ${InitialConditionsLib})
     target_link_libraries(${FlowSolverLib} ${PODLib})
+    target_link_libraries(${FlowSolverLib} ${MeshAdaptationLib})
     # Setup target with deal.II
     if(NOT DOC_ONLY)
         DEAL_II_SETUP_TARGET(${FlowSolverLib})
@@ -50,4 +55,5 @@ foreach(dim RANGE 1 3)
     unset(PhysicsLib)
     unset(InitialConditionsLib)
     unset(PODLib)
+    unset(MeshAdaptationLib)
 endforeach()

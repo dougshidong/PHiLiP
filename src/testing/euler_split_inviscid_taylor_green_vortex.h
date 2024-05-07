@@ -41,7 +41,7 @@ public:
     /// Constructor.
     /** Simply calls the TestsBase constructor to set its parameters = parameters_input
      * */
-    EulerTaylorGreen(const Parameters::AllParameters *const parameters_input);
+    explicit EulerTaylorGreen(const Parameters::AllParameters *const parameters_input);
 
     /// Ensure that the kinetic energy is bounded.
     /** If the kinetic energy increases about its initial value, then the test should fail.
@@ -53,20 +53,23 @@ private:
     /// Computes kinetic energy.
     /** In the future this function should change to: let \f$ v\f$ represent the kinetic energy "entropy" variables, it computes \f$v(M+K)u^T\f$. 
     */
-    double compute_kinetic_energy(std::shared_ptr < DGBase<dim, double> > &dg, unsigned int poly_degree) const;
-    
+    double compute_kinetic_energy(const std::shared_ptr < DGBase<dim, double> > &dg, unsigned int poly_degree) const;
     ///Computes entropy in the norm.
     /** That is let \f$ v\f$ represent the entropy variables, it computes \f$v(M+K)u^T\f$. 
      */
-    double compute_entropy(std::shared_ptr < DGBase<dim, double> > &dg, unsigned int poly_degree) const;
-    
+    double compute_entropy(const std::shared_ptr < DGBase<dim, double> > &dg, unsigned int poly_degree) const;
     ///Computes change in entropy in the norm.
     /** That is let \f$ v\f$ represent the entropy variables, it computes \f$v(M+K)\frac{du}{dt}^T\f$. 
      */
-    std::array<double,2> compute_change_in_entropy(std::shared_ptr < DGBase<dim, double> > &dg, unsigned int poly_degree) const;
-    
-    /// Computes the timestep from max eigenvector.
-    double get_timestep(std::shared_ptr < DGBase<dim, double> > &dg, unsigned int poly_degree, const double delta_x) const;
+   // double compute_change_in_entropy(std::shared_ptr < DGBase<dim, double> > &dg, unsigned int poly_degree) const;
+    std::array<double,2> compute_change_in_entropy(const std::shared_ptr < DGBase<dim, double> > &dg, unsigned int poly_degree) const;
+    ///Computes the volume term kinetic energy production.
+    /* Based off unpublished work can show that the volume term vanishes for kinetic energy
+    * from its corresponding shuffle condition.
+    */
+    double compute_volume_term(const std::shared_ptr < DGBase<dim, double> > &dg, unsigned int poly_degree) const;
+    /// Computes the timestep from max eignevector.
+    double get_timestep(const std::shared_ptr < DGBase<dim, double> > &dg, unsigned int poly_degree, const double delta_x) const;
 };
 
 
@@ -74,3 +77,4 @@ private:
 } //PHiLiP
 
 #endif
+

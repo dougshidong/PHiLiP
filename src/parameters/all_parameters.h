@@ -3,6 +3,7 @@
 
 #include <deal.II/base/conditional_ostream.h>
 #include <deal.II/base/parameter_handler.h>
+#include <deal.II/base/tensor.h>
 
 #include "parameters.h"
 #include "parameters/parameters_ode_solver.h"
@@ -18,6 +19,7 @@
 #include "parameters/parameters_grid_refinement_study.h"
 #include "parameters/parameters_grid_refinement.h"
 #include "parameters/parameters_artificial_dissipation.h"
+#include "parameters/parameters_limiter.h"
 #include "parameters/parameters_flow_solver.h"
 #include "parameters/parameters_mesh_adaptation.h"
 #include "parameters/parameters_functional.h"
@@ -56,6 +58,8 @@ public:
     GridRefinementStudyParam grid_refinement_study_param;
     /// Contains parameters for artificial dissipation
     ArtificialDissipationParam artificial_dissipation_param;
+    /// Contains parameters for limiter
+    LimiterParam limiter_param;
     /// Contains the parameters for simulation cases (flow solver test)
     FlowSolverParam flow_solver_param;
     /// Constains parameters for mesh adaptation
@@ -102,7 +106,12 @@ public:
     /// Flag to use weak or strong form of DG
     bool use_weak_form;
 
-    /// Flag to use Gauss-Lobatto Nodes;
+    /// Flux nodes type
+    enum FluxNodes { GL, GLL };
+    /// Store selected FluxNodes from the input file
+    FluxNodes flux_nodes_type;
+
+    /// Flag for using collocated nodes; determined based on flux_nodes_type and overintegration input parameters
     bool use_collocated_nodes;
 
     /// Flag to use split form.
@@ -119,10 +128,16 @@ public:
     /// Flag to use weight-adjusted Mass Matrix for curvilinear elements.
     bool use_weight_adjusted_mass;
 
+    /// Flag to store the residual local processor cput time.
+    bool store_residual_cpu_time;
+
     /// Flag to use periodic BC.
     /** Not fully tested.
      */
     bool use_periodic_bc;
+
+    /// Flag to use curvilinear grid.
+    bool use_curvilinear_grid;
 
     ///Flag to use an energy monotonicity test
     bool use_energy;
@@ -146,6 +161,9 @@ public:
     /// Flag to use inverse mass matrix on-the-fly for explicit solves.
     bool use_inverse_mass_on_the_fly;
 
+    /// Flag to check if the metric Jacobian is valid when high-order grid is constructed.
+    bool check_valid_metric_Jacobian;
+
     /// Energy file.
     std::string energy_file;
 
@@ -156,6 +174,8 @@ public:
     enum TestType {
         run_control,
         grid_refinement_study,
+        advection_limiter,
+        burgers_limiter,
         burgers_energy_stability,
         diffusion_exact_adjoint,
         euler_gaussian_bump,
@@ -166,6 +186,7 @@ public:
         euler_vortex,
         euler_entropy_waves,
         euler_split_taylor_green,
+        taylor_green_scaling,
         burgers_split_form,
         optimization_inverse_manufactured,
         euler_bump_optimization,
@@ -180,12 +201,18 @@ public:
         finite_difference_sensitivity,
         advection_periodicity,
         dual_weighted_residual_mesh_adaptation,
+        anisotropic_mesh_adaptation,
         taylor_green_vortex_energy_check,
         taylor_green_vortex_restart_check,
         time_refinement_study,
         time_refinement_study_reference,
-        burgers_energy_conservation_rrk,
-        euler_ismail_roe_entropy_check,
+        rrk_numerical_entropy_conservation_check,
+        euler_entropy_conserving_split_forms_check,
+        h_refinement_study_isentropic_vortex,
+        khi_robustness,
+        naca0012_unsteady_check_quick,
+        homogeneous_isotropic_turbulence_initialization_check,
+        low_density
     };
     /// Store selected TestType from the input file.
     TestType test_type;
@@ -258,6 +285,11 @@ public:
     /// Store flux reconstruction type for the auxiliary variables
     Flux_Reconstruction_Aux flux_reconstruction_aux_type;
 
+    /// Enum of nonphysical behavior
+    enum NonPhysicalBehaviorEnum {return_big_number, abort_run, print_warning};
+    /// Specify behavior on nonphysical results
+    NonPhysicalBehaviorEnum non_physical_behavior_type;
+
     /// Name of directory for writing solution vtk files
     std::string solution_vtk_files_directory_name;
 
@@ -266,6 +298,21 @@ public:
 
     /// Enable writing of higher-order vtk results
     bool enable_higher_order_vtk_output;
+
+    /// Flag for outputting the surface solution vtk files
+    bool output_face_results_vtk;
+
+    /// Flag for renumbering DOFs
+    bool do_renumber_dofs;
+
+    /// Renumber dofs type.
+    enum RenumberDofsType { CuthillMckee };
+    /// Store selected RenumberDofsType from the input file.
+    RenumberDofsType renumber_dofs_type;
+
+    /** Tolerance for checking that the determinant of surface jacobians at element faces matches.
+     *  Note: Currently only used in weak dg. */
+    double matching_surface_jac_det_tolerance;
 
     /// Declare parameters that can be set as inputs and set up the default options
     /** This subroutine should call the sub-parameter classes static declare_parameters()

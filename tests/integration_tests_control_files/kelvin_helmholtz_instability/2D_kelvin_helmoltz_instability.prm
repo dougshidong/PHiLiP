@@ -1,0 +1,51 @@
+# Listing of Parameters
+# ---------------------
+# Number of dimensions
+
+set dimension = 2 
+set run_type = integration_test 
+set test_type = khi_robustness
+set pde_type = euler
+
+# DG formulation
+set use_weak_form = false
+set use_split_form = true
+set flux_nodes_type = GL
+
+set flux_reconstruction = cDG
+set use_inverse_mass_on_the_fly = true
+
+# Note: this was added to turn off check_same_coords() -- has no other function when dim!=1
+set use_periodic_bc = true
+
+# numerical fluxes
+set conv_num_flux = two_point_flux_with_lax_friedrichs_dissipation
+set two_point_num_flux_type = Ra
+
+# ODE solver
+subsection ODE solver
+  set ode_output = verbose 
+  set ode_solver_type = runge_kutta 
+  set runge_kutta_method = rk4_ex
+end
+
+subsection linear solver
+  set linear_solver_output = quiet
+end
+
+subsection flow_solver
+  set flow_case_type = kelvin_helmholtz_instability
+  #set poly_degree = 7 # To match Chan 2022 Fig. 7 b
+  set poly_degree = 3 # For faster run time during ctest
+  set final_time = 10
+  set courant_friedrichs_lewy_number = 0.05
+  set unsteady_data_table_filename = khi_time_table
+  subsection grid
+    set grid_left_bound = -1.0
+    set grid_right_bound = 1.0
+    set number_of_grid_elements_per_dimension = 16
+  end
+  subsection kelvin_helmholtz_instability
+    set atwood_number = 0.9 # This is modified by khi_robustness test
+  end
+end

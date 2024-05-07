@@ -3,7 +3,7 @@
 
 // for FlowSolver class:
 #include "physics/initial_conditions/initial_condition_function.h"
-#include "dg/dg.h"
+#include "dg/dg_base.hpp"
 #include "physics/physics.h"
 #include "parameters/all_parameters.h"
 #include <deal.II/base/table_handler.h>

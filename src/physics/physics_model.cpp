@@ -23,7 +23,7 @@ PhysicsModel<dim,nstate,real,nstate_baseline_physics>::PhysicsModel(
     std::shared_ptr< ManufacturedSolutionFunction<dim,real> >    manufactured_solution_function,
     const bool                                                   has_nonzero_diffusion,
     const bool                                                   has_nonzero_physical_source)
-    : PhysicsBase<dim,nstate,real>(has_nonzero_diffusion, has_nonzero_physical_source, manufactured_solution_function)
+    : PhysicsBase<dim,nstate,real>(parameters_input, has_nonzero_diffusion, has_nonzero_physical_source, manufactured_solution_function)
     , n_model_equations(nstate-nstate_baseline_physics)
     , physics_baseline(PhysicsFactory<dim,nstate_baseline_physics,real>::create_Physics(parameters_input, baseline_physics_type))
     , model(model_input)
@@ -259,6 +259,27 @@ real PhysicsModel<dim,nstate,real,nstate_baseline_physics>
             baseline_conservative_soln[s] = conservative_soln[s];
         }
         real baseline_max_eig = physics_baseline->max_convective_eigenvalue(baseline_conservative_soln);
+        max_eig = max_eig > baseline_max_eig ? max_eig : baseline_max_eig;
+    }
+    return max_eig;
+}
+
+template <int dim, int nstate, typename real, int nstate_baseline_physics>
+real PhysicsModel<dim,nstate,real,nstate_baseline_physics>
+::max_convective_normal_eigenvalue (
+    const std::array<real,nstate> &conservative_soln,
+    const dealii::Tensor<1,dim,real> &normal) const
+{
+    real max_eig;
+    if constexpr(nstate==nstate_baseline_physics) {
+        max_eig = physics_baseline->max_convective_normal_eigenvalue(conservative_soln,normal);
+    } else {
+        max_eig = model->max_convective_normal_eigenvalue(conservative_soln,normal);
+        std::array<real,nstate_baseline_physics> baseline_conservative_soln;
+        for(int s=0; s<nstate_baseline_physics; ++s){
+            baseline_conservative_soln[s] = conservative_soln[s];
+        }
+        real baseline_max_eig = physics_baseline->max_convective_normal_eigenvalue(baseline_conservative_soln,normal);
         max_eig = max_eig > baseline_max_eig ? max_eig : baseline_max_eig;
     }
     return max_eig;

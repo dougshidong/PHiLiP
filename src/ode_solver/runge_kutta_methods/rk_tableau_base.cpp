@@ -5,9 +5,10 @@ namespace PHiLiP {
 namespace ODE {
 
 template <int dim, typename real, typename MeshType> 
-RKTableauBase<dim,real, MeshType> :: RKTableauBase (const int n_rk_stages, 
+RKTableauBase<dim,real, MeshType> :: RKTableauBase (const int n_rk_stages_input, 
         const std::string rk_method_string_input)
-    : pcout(std::cout, dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD)==0)
+    : n_rk_stages(n_rk_stages_input)
+    , pcout(std::cout, dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD)==0)
     , rk_method_string(rk_method_string_input)
 {
     this->butcher_tableau_a.reinit(n_rk_stages,n_rk_stages);

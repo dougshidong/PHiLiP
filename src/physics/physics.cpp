@@ -14,12 +14,15 @@ namespace Physics {
 
 template <int dim, int nstate, typename real>
 PhysicsBase<dim,nstate,real>::PhysicsBase(
+    const Parameters::AllParameters *const                    parameters_input,
     const bool                                                has_nonzero_diffusion_input,
     const bool                                                has_nonzero_physical_source_input,
     const dealii::Tensor<2,3,double>                          input_diffusion_tensor,
     std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function_input)
     : has_nonzero_diffusion(has_nonzero_diffusion_input)
     , has_nonzero_physical_source(has_nonzero_physical_source_input)
+    , all_parameters(parameters_input)
+    , non_physical_behavior_type(all_parameters->non_physical_behavior_type)
     , manufactured_solution_function(manufactured_solution_function_input)
     , pcout(std::cout, dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD)==0)
 {
@@ -46,10 +49,12 @@ PhysicsBase<dim,nstate,real>::PhysicsBase(
 
 template <int dim, int nstate, typename real>
 PhysicsBase<dim,nstate,real>::PhysicsBase(
+    const Parameters::AllParameters *const                    parameters_input,
     const bool                                                has_nonzero_diffusion_input,
     const bool                                                has_nonzero_physical_source_input,
     std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function_input)
     : PhysicsBase<dim,nstate,real>(
+        parameters_input,
         has_nonzero_diffusion_input,
         has_nonzero_physical_source_input,
         Parameters::ManufacturedSolutionParam::get_default_diffusion_tensor(),
@@ -65,6 +70,15 @@ std::array<dealii::Tensor<1,dim,real>,nstate> PhysicsBase<dim,nstate,real>::conv
     std::abort();
     std::array<dealii::Tensor<1,dim,real>,nstate> dummy;
     return dummy;
+}
+
+template <int dim, int nstate, typename real>
+real PhysicsBase<dim,nstate,real>
+::max_convective_normal_eigenvalue (
+    const std::array<real,nstate> &conservative_soln,
+    const dealii::Tensor<1,dim,real> &/*normal*/) const
+{
+    return max_convective_eigenvalue(conservative_soln);
 }
 
 /*
@@ -124,55 +138,6 @@ std::array<real,nstate> PhysicsBase<dim,nstate,real>
     std::array<real,nstate> physical_source;
     physical_source.fill(0.0);
     return physical_source;
-}
-
-template <int dim, int nstate, typename real>
-void PhysicsBase<dim,nstate,real>
-::boundary_face_values (
-   const int /*boundary_type*/,
-   const dealii::Point<dim, real> &pos,
-   const dealii::Tensor<1,dim,real> &normal_int,
-   const std::array<real,nstate> &soln_int,
-   const std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_int,
-   std::array<real,nstate> &soln_bc,
-   std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_bc) const
-{
-    std::array<real,nstate> boundary_values;
-    std::array<dealii::Tensor<1,dim,real>,nstate> boundary_gradients;
-    for (int s=0; s<nstate; s++) {
-        boundary_values[s] = this->manufactured_solution_function->value (pos, s);
-        boundary_gradients[s] = this->manufactured_solution_function->gradient (pos, s);
-    }
-
-    for (int istate=0; istate<nstate; ++istate) {
-
-        std::array<real,nstate> characteristic_dot_n = convective_eigenvalues(boundary_values, normal_int);
-        const bool inflow = (characteristic_dot_n[istate] <= 0.);
-
-        if (inflow) { // Dirichlet boundary condition
-            // soln_bc[istate] = boundary_values[istate];
-            // soln_grad_bc[istate] = soln_grad_int[istate];
-
-            soln_bc[istate] = boundary_values[istate];
-            soln_grad_bc[istate] = soln_grad_int[istate];
-
-        } else { // Neumann boundary condition
-            // //soln_bc[istate] = soln_int[istate];
-            // //soln_bc[istate] = boundary_values[istate];
-            // soln_bc[istate] = -soln_int[istate]+2*boundary_values[istate];
-
-            soln_bc[istate] = soln_int[istate];
-
-            // **************************************************************************************************************
-            // Note I don't know how to properly impose the soln_grad_bc to obtain an adjoint consistent scheme
-            // Currently, Neumann boundary conditions are only imposed for the linear advection
-            // Therefore, soln_grad_bc does not affect the solution
-            // **************************************************************************************************************
-            soln_grad_bc[istate] = soln_grad_int[istate];
-            //soln_grad_bc[istate] = boundary_gradients[istate];
-            //soln_grad_bc[istate] = -soln_grad_int[istate]+2*boundary_gradients[istate];
-        }
-    }
 }
 
 template <int dim, int nstate, typename real>
@@ -247,6 +212,30 @@ real PhysicsBase<dim,nstate,real>
     return post_processed_scalar;
 }
 
+template <int dim, int nstate, typename real>
+template<typename real2>
+real2 PhysicsBase<dim,nstate,real>
+::handle_non_physical_result(const std::string message) const
+{
+    if (this->non_physical_behavior_type == NonPhysicalBehaviorEnum::abort_run) {
+        std::cout << "ERROR: Non-physical result has been detected. ";
+        if (!message.empty()) {
+            std::cout << std::endl << "    Message: " << message << std::endl;
+        }
+        std::cout << " Aborting... " << std::endl << std::flush;
+        std::abort();
+    } else if (this->non_physical_behavior_type == NonPhysicalBehaviorEnum::print_warning) {
+        std::cout << "WARNING: Non-physical result has been detected at a node." << std::endl;
+        if (!message.empty()) {
+            std::cout << std::endl << "    Message: " << message << std::endl;
+        }
+    } else if (this->non_physical_behavior_type == NonPhysicalBehaviorEnum::return_big_number) {
+        // do nothing -- assume that the test or iterative solver can handle this.
+    }
+        
+    return (real2)BIG_NUMBER;
+}
+
 template class PhysicsBase < PHILIP_DIM, 1, double >;
 template class PhysicsBase < PHILIP_DIM, 2, double >;
 template class PhysicsBase < PHILIP_DIM, 3, double >;
@@ -287,6 +276,89 @@ template class PhysicsBase < PHILIP_DIM, 5, RadFadType >;
 template class PhysicsBase < PHILIP_DIM, 6, RadFadType >;
 template class PhysicsBase < PHILIP_DIM, 8, RadFadType >;
 
+//==============================================================================
+// -> Templated member functions: // could be automated later on using Boost MPL
+//------------------------------------------------------------------------------
+// -- handle_non_physical_result
+template double PhysicsBase < PHILIP_DIM, 1, double >::handle_non_physical_result<double>(const std::string message) const;
+template double PhysicsBase < PHILIP_DIM, 2, double >::handle_non_physical_result<double>(const std::string message) const;
+template double PhysicsBase < PHILIP_DIM, 3, double >::handle_non_physical_result<double>(const std::string message) const;
+template double PhysicsBase < PHILIP_DIM, 4, double >::handle_non_physical_result<double>(const std::string message) const;
+template double PhysicsBase < PHILIP_DIM, 5, double >::handle_non_physical_result<double>(const std::string message) const;
+template double PhysicsBase < PHILIP_DIM, 6, double >::handle_non_physical_result<double>(const std::string message) const;
+template double PhysicsBase < PHILIP_DIM, 8, double >::handle_non_physical_result<double>(const std::string message) const;
+
+template FadType PhysicsBase < PHILIP_DIM, 1, FadType >::handle_non_physical_result<FadType>(const std::string message) const;
+template FadType PhysicsBase < PHILIP_DIM, 2, FadType >::handle_non_physical_result<FadType>(const std::string message) const;
+template FadType PhysicsBase < PHILIP_DIM, 3, FadType >::handle_non_physical_result<FadType>(const std::string message) const;
+template FadType PhysicsBase < PHILIP_DIM, 4, FadType >::handle_non_physical_result<FadType>(const std::string message) const;
+template FadType PhysicsBase < PHILIP_DIM, 5, FadType >::handle_non_physical_result<FadType>(const std::string message) const;
+template FadType PhysicsBase < PHILIP_DIM, 6, FadType >::handle_non_physical_result<FadType>(const std::string message) const;
+template FadType PhysicsBase < PHILIP_DIM, 8, FadType >::handle_non_physical_result<FadType>(const std::string message) const;
+
+template RadType PhysicsBase < PHILIP_DIM, 1, RadType >::handle_non_physical_result<RadType>(const std::string message) const;
+template RadType PhysicsBase < PHILIP_DIM, 2, RadType >::handle_non_physical_result<RadType>(const std::string message) const;
+template RadType PhysicsBase < PHILIP_DIM, 3, RadType >::handle_non_physical_result<RadType>(const std::string message) const;
+template RadType PhysicsBase < PHILIP_DIM, 4, RadType >::handle_non_physical_result<RadType>(const std::string message) const;
+template RadType PhysicsBase < PHILIP_DIM, 5, RadType >::handle_non_physical_result<RadType>(const std::string message) const;
+template RadType PhysicsBase < PHILIP_DIM, 6, RadType >::handle_non_physical_result<RadType>(const std::string message) const;
+template RadType PhysicsBase < PHILIP_DIM, 8, RadType >::handle_non_physical_result<RadType>(const std::string message) const;
+
+template FadFadType PhysicsBase < PHILIP_DIM, 1, FadFadType >::handle_non_physical_result<FadFadType>(const std::string message) const;
+template FadFadType PhysicsBase < PHILIP_DIM, 2, FadFadType >::handle_non_physical_result<FadFadType>(const std::string message) const;
+template FadFadType PhysicsBase < PHILIP_DIM, 3, FadFadType >::handle_non_physical_result<FadFadType>(const std::string message) const;
+template FadFadType PhysicsBase < PHILIP_DIM, 4, FadFadType >::handle_non_physical_result<FadFadType>(const std::string message) const;
+template FadFadType PhysicsBase < PHILIP_DIM, 5, FadFadType >::handle_non_physical_result<FadFadType>(const std::string message) const;
+template FadFadType PhysicsBase < PHILIP_DIM, 6, FadFadType >::handle_non_physical_result<FadFadType>(const std::string message) const;
+template FadFadType PhysicsBase < PHILIP_DIM, 8, FadFadType >::handle_non_physical_result<FadFadType>(const std::string message) const;
+
+template RadFadType PhysicsBase < PHILIP_DIM, 1, RadFadType >::handle_non_physical_result<RadFadType>(const std::string message) const;
+template RadFadType PhysicsBase < PHILIP_DIM, 2, RadFadType >::handle_non_physical_result<RadFadType>(const std::string message) const;
+template RadFadType PhysicsBase < PHILIP_DIM, 3, RadFadType >::handle_non_physical_result<RadFadType>(const std::string message) const;
+template RadFadType PhysicsBase < PHILIP_DIM, 4, RadFadType >::handle_non_physical_result<RadFadType>(const std::string message) const;
+template RadFadType PhysicsBase < PHILIP_DIM, 5, RadFadType >::handle_non_physical_result<RadFadType>(const std::string message) const;
+template RadFadType PhysicsBase < PHILIP_DIM, 6, RadFadType >::handle_non_physical_result<RadFadType>(const std::string message) const;
+template RadFadType PhysicsBase < PHILIP_DIM, 8, RadFadType >::handle_non_physical_result<RadFadType>(const std::string message) const;
+ // -- -- instantiate all the real types with real2 = FadType for automatic differentiation in NavierStokes::dissipative_flux_directional_jacobian() 
+template FadType PhysicsBase < PHILIP_DIM, 1, double >::handle_non_physical_result<FadType>(const std::string message) const;
+template FadType PhysicsBase < PHILIP_DIM, 2, double >::handle_non_physical_result<FadType>(const std::string message) const;
+template FadType PhysicsBase < PHILIP_DIM, 3, double >::handle_non_physical_result<FadType>(const std::string message) const;
+template FadType PhysicsBase < PHILIP_DIM, 4, double >::handle_non_physical_result<FadType>(const std::string message) const;
+template FadType PhysicsBase < PHILIP_DIM, 5, double >::handle_non_physical_result<FadType>(const std::string message) const;
+template FadType PhysicsBase < PHILIP_DIM, 6, double >::handle_non_physical_result<FadType>(const std::string message) const;
+template FadType PhysicsBase < PHILIP_DIM, 8, double >::handle_non_physical_result<FadType>(const std::string message) const;
+
+template FadType PhysicsBase < PHILIP_DIM, 1, RadType >::handle_non_physical_result<FadType>(const std::string message) const;
+template FadType PhysicsBase < PHILIP_DIM, 2, RadType >::handle_non_physical_result<FadType>(const std::string message) const;
+template FadType PhysicsBase < PHILIP_DIM, 3, RadType >::handle_non_physical_result<FadType>(const std::string message) const;
+template FadType PhysicsBase < PHILIP_DIM, 4, RadType >::handle_non_physical_result<FadType>(const std::string message) const;
+template FadType PhysicsBase < PHILIP_DIM, 5, RadType >::handle_non_physical_result<FadType>(const std::string message) const;
+template FadType PhysicsBase < PHILIP_DIM, 6, RadType >::handle_non_physical_result<FadType>(const std::string message) const;
+template FadType PhysicsBase < PHILIP_DIM, 8, RadType >::handle_non_physical_result<FadType>(const std::string message) const;
+
+template FadType PhysicsBase < PHILIP_DIM, 1, FadFadType >::handle_non_physical_result<FadType>(const std::string message) const;
+template FadType PhysicsBase < PHILIP_DIM, 2, FadFadType >::handle_non_physical_result<FadType>(const std::string message) const;
+template FadType PhysicsBase < PHILIP_DIM, 3, FadFadType >::handle_non_physical_result<FadType>(const std::string message) const;
+template FadType PhysicsBase < PHILIP_DIM, 4, FadFadType >::handle_non_physical_result<FadType>(const std::string message) const;
+template FadType PhysicsBase < PHILIP_DIM, 5, FadFadType >::handle_non_physical_result<FadType>(const std::string message) const;
+template FadType PhysicsBase < PHILIP_DIM, 6, FadFadType >::handle_non_physical_result<FadType>(const std::string message) const;
+template FadType PhysicsBase < PHILIP_DIM, 8, FadFadType >::handle_non_physical_result<FadType>(const std::string message) const;
+
+template FadType PhysicsBase < PHILIP_DIM, 1, RadFadType >::handle_non_physical_result<FadType>(const std::string message) const;
+template FadType PhysicsBase < PHILIP_DIM, 2, RadFadType >::handle_non_physical_result<FadType>(const std::string message) const;
+template FadType PhysicsBase < PHILIP_DIM, 3, RadFadType >::handle_non_physical_result<FadType>(const std::string message) const;
+template FadType PhysicsBase < PHILIP_DIM, 4, RadFadType >::handle_non_physical_result<FadType>(const std::string message) const;
+template FadType PhysicsBase < PHILIP_DIM, 5, RadFadType >::handle_non_physical_result<FadType>(const std::string message) const;
+template FadType PhysicsBase < PHILIP_DIM, 6, RadFadType >::handle_non_physical_result<FadType>(const std::string message) const;
+template FadType PhysicsBase < PHILIP_DIM, 8, RadFadType >::handle_non_physical_result<FadType>(const std::string message) const;
+
+template double PhysicsBase < PHILIP_DIM, 1, FadType >::handle_non_physical_result<double>(const std::string message) const;
+template double PhysicsBase < PHILIP_DIM, 2, FadType >::handle_non_physical_result<double>(const std::string message) const;
+template double PhysicsBase < PHILIP_DIM, 3, FadType >::handle_non_physical_result<double>(const std::string message) const;
+template double PhysicsBase < PHILIP_DIM, 4, FadType >::handle_non_physical_result<double>(const std::string message) const;
+template double PhysicsBase < PHILIP_DIM, 5, FadType >::handle_non_physical_result<double>(const std::string message) const;
+template double PhysicsBase < PHILIP_DIM, 6, FadType >::handle_non_physical_result<double>(const std::string message) const;
+template double PhysicsBase < PHILIP_DIM, 8, FadType >::handle_non_physical_result<double>(const std::string message) const;
 } // Physics namespace
 } // PHiLiP namespace
 

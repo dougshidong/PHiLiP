@@ -3,8 +3,6 @@
 namespace PHiLiP {
 namespace Parameters {
 
-ODESolverParam::ODESolverParam () {}
-
 void ODESolverParam::declare_parameters (dealii::ParameterHandler &prm)
 {
     prm.enter_subsection("ODE solver");
@@ -21,6 +19,20 @@ void ODESolverParam::declare_parameters (dealii::ParameterHandler &prm)
         prm.declare_entry("output_solution_every_dt_time_intervals", "0.0",
                           dealii::Patterns::Double(0,dealii::Patterns::Double::max_double_value),
                           "Outputs the solution at time intervals of dt in .vtk file");
+
+        prm.declare_entry("output_solution_at_fixed_times", "false",
+                          dealii::Patterns::Bool(),
+                          "Output solution at fixed times. False by default.");
+
+        prm.declare_entry("output_solution_fixed_times_string", " ",
+                          dealii::Patterns::FileName(dealii::Patterns::FileName::FileType::input),
+                          "String of the times at which to output the velocity field. "
+                          "Example: '0.0 1.0 2.0 3.0 ' or '0.0 1.0 2.0 3.0'");
+
+        prm.declare_entry("output_solution_at_exact_fixed_times", "false",
+                          dealii::Patterns::Bool(),
+                          "Output solution at exact fixed times by decreasing the time step on the fly. False by default. "
+                          "NOTE: Should be set to false if doing stability studies so that the time step is never influenced by solution file soutput times.");
 
         prm.declare_entry("ode_solver_type", "implicit",
                           dealii::Patterns::Selection(
@@ -86,16 +98,33 @@ void ODESolverParam::declare_parameters (dealii::ParameterHandler &prm)
                           dealii::Patterns::Selection(
                           " rk4_ex | "
                           " ssprk3_ex | "
+                          " heun2_ex | "
                           " euler_ex | "
                           " euler_im | "
-                          " dirk_2_im"),
+                          " dirk_2_im | "
+                          " dirk_3_im"),
                           "Runge-kutta method to use. Methods with _ex are explicit, and with _im are implicit."
                           "Choices are "
                           " <rk4_ex | "
                           " ssprk3_ex | "
+                          " heun2_ex | "
                           " euler_ex | "
                           " euler_im | "
-                          " dirk_2_im>.");
+                          " dirk_2_im | "
+                          " dirk_3_im>.");
+        prm.enter_subsection("rrk root solver");
+        {
+            prm.declare_entry("rrk_root_solver_output", "quiet",
+                              dealii::Patterns::Selection("quiet|verbose"),
+                              "State whether output from rrk root solver should be printed. "
+                              "Choices are <quiet|verbose>.");
+
+            prm.declare_entry("relaxation_runge_kutta_root_tolerance", "5e-10",
+                              dealii::Patterns::Double(),
+                              "Tolerance for root-finding problem in entropy RRK ode solver."
+                              "Defult 5E-10 is suitable in most cases.");
+        }
+        prm.leave_subsection();
 
     }
     prm.leave_subsection();
@@ -111,13 +140,23 @@ void ODESolverParam::parse_parameters (dealii::ParameterHandler &prm)
 
         output_solution_every_x_steps = prm.get_integer("output_solution_every_x_steps");
         output_solution_every_dt_time_intervals = prm.get_double("output_solution_every_dt_time_intervals");
+        output_solution_at_fixed_times = prm.get_bool("output_solution_at_fixed_times");
+        output_solution_fixed_times_string = prm.get("output_solution_fixed_times_string");
+        number_of_fixed_times_to_output_solution = get_number_of_values_in_string(output_solution_fixed_times_string);
+        output_solution_at_exact_fixed_times = prm.get_bool("output_solution_at_exact_fixed_times");
 
+        // Assign ode_solver_type and the allocate AD matrix dRdW flag
         const std::string solver_string = prm.get("ode_solver_type");
-        if (solver_string == "runge_kutta")                 ode_solver_type = ODESolverEnum::runge_kutta_solver;
-        else if (solver_string == "implicit")               ode_solver_type = ODESolverEnum::implicit_solver;
-        else if (solver_string == "rrk_explicit")           ode_solver_type = ODESolverEnum::rrk_explicit_solver;
-        else if (solver_string == "pod_galerkin")           ode_solver_type = ODESolverEnum::pod_galerkin_solver;
-        else if (solver_string == "pod_petrov_galerkin")    ode_solver_type = ODESolverEnum::pod_petrov_galerkin_solver;
+        if (solver_string == "runge_kutta")              { ode_solver_type = ODESolverEnum::runge_kutta_solver;
+                                                           allocate_matrix_dRdW = false; }
+        else if (solver_string == "implicit")            { ode_solver_type = ODESolverEnum::implicit_solver;
+                                                           allocate_matrix_dRdW = true; }
+        else if (solver_string == "rrk_explicit")        { ode_solver_type = ODESolverEnum::rrk_explicit_solver;
+                                                           allocate_matrix_dRdW = false; }
+        else if (solver_string == "pod_galerkin")        { ode_solver_type = ODESolverEnum::pod_galerkin_solver;
+                                                           allocate_matrix_dRdW = true; }
+        else if (solver_string == "pod_petrov_galerkin") { ode_solver_type = ODESolverEnum::pod_petrov_galerkin_solver;
+                                                           allocate_matrix_dRdW = true; }
 
         nonlinear_steady_residual_tolerance  = prm.get_double("nonlinear_steady_residual_tolerance");
         nonlinear_max_iterations = prm.get_integer("nonlinear_max_iterations");
@@ -145,6 +184,11 @@ void ODESolverParam::parse_parameters (dealii::ParameterHandler &prm)
             n_rk_stages  = 3;
             rk_order = 3;
         }
+        else if (rk_method_string == "heun2_ex"){
+            runge_kutta_method = RKMethodEnum::heun2_ex;
+            n_rk_stages  = 2;
+            rk_order = 2;
+        }
         else if (rk_method_string == "euler_ex"){
             runge_kutta_method = RKMethodEnum::euler_ex;
             n_rk_stages  = 1;
@@ -160,6 +204,20 @@ void ODESolverParam::parse_parameters (dealii::ParameterHandler &prm)
             n_rk_stages  = 2;
             rk_order = 2;
         }
+        else if (rk_method_string == "dirk_3_im"){
+            runge_kutta_method = RKMethodEnum::dirk_3_im;
+            n_rk_stages  = 3;
+            rk_order = 3;
+        }
+        prm.enter_subsection("rrk root solver");
+        {
+            const std::string output_string_rrk = prm.get("rrk_root_solver_output");
+            if (output_string_rrk == "verbose") rrk_root_solver_output = verbose;
+            else if (output_string_rrk == "quiet")   rrk_root_solver_output = quiet;
+
+            relaxation_runge_kutta_root_tolerance = prm.get_double("relaxation_runge_kutta_root_tolerance");
+        }
+        prm.leave_subsection();
 
     }
     prm.leave_subsection();

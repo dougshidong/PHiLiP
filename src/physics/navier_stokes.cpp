@@ -13,6 +13,7 @@ namespace Physics {
 
 template <int dim, int nstate, typename real>
 NavierStokes<dim, nstate, real>::NavierStokes( 
+    const Parameters::AllParameters *const                    parameters_input,
     const double                                              ref_length,
     const double                                              gamma_gas,
     const double                                              mach_inf,
@@ -20,12 +21,15 @@ NavierStokes<dim, nstate, real>::NavierStokes(
     const double                                              side_slip_angle,
     const double                                              prandtl_number,
     const double                                              reynolds_number_inf,
+    const bool                                                use_constant_viscosity,
+    const double                                              constant_viscosity,
     const double                                              temperature_inf,
     const double                                              isothermal_wall_temperature,
     const thermal_boundary_condition_enum                     thermal_boundary_condition_type,
     std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function,
     const two_point_num_flux_enum                             two_point_num_flux_type)
-    : Euler<dim,nstate,real>(ref_length, 
+    : Euler<dim,nstate,real>(parameters_input,
+                             ref_length, 
                              gamma_gas, 
                              mach_inf, 
                              angle_of_attack, 
@@ -35,6 +39,8 @@ NavierStokes<dim, nstate, real>::NavierStokes(
                              true,  //has_nonzero_diffusion = true
                              false) //has_nonzero_physical_source = false
     , viscosity_coefficient_inf(1.0) // Nondimensional - Free stream values
+    , use_constant_viscosity(use_constant_viscosity)
+    , constant_viscosity(constant_viscosity) // Nondimensional - Free stream values
     , prandtl_number(prandtl_number)
     , reynolds_number_inf(reynolds_number_inf)
     , isothermal_wall_temperature(isothermal_wall_temperature) // Nondimensional - Free stream values
@@ -116,6 +122,22 @@ template <int dim, int nstate, typename real>
 template<typename real2>
 inline real2 NavierStokes<dim,nstate,real>
 ::compute_viscosity_coefficient (const std::array<real2,nstate> &primitive_soln) const
+{   
+    // Use either Sutherland's law or constant viscosity
+    real2 viscosity_coefficient;
+    if(use_constant_viscosity){
+        viscosity_coefficient = 1.0*constant_viscosity;
+    } else {
+        viscosity_coefficient = compute_viscosity_coefficient_sutherlands_law<real2>(primitive_soln);
+    }
+
+    return viscosity_coefficient;
+}
+
+template <int dim, int nstate, typename real>
+template<typename real2>
+inline real2 NavierStokes<dim,nstate,real>
+::compute_viscosity_coefficient_sutherlands_law (const std::array<real2,nstate> &primitive_soln) const
 {
     /* Nondimensionalized viscosity coefficient, \mu^{*}
      * Reference: Masatsuka 2018 "I do like CFD", p.148, eq.(4.14.16)
@@ -251,19 +273,40 @@ dealii::Tensor<1,3,real2> NavierStokes<dim,nstate,real>
 
 template <int dim, int nstate, typename real>
 real NavierStokes<dim,nstate,real>
-::compute_enstrophy (
+::compute_vorticity_magnitude_sqr (
     const std::array<real,nstate> &conservative_soln,
     const std::array<dealii::Tensor<1,dim,real>,nstate> &conservative_soln_gradient) const
 {
     // Compute the vorticity
     dealii::Tensor<1,3,real> vorticity = compute_vorticity(conservative_soln, conservative_soln_gradient);
-    // Compute enstrophy
-    real enstrophy = 0.0;
+    // Compute vorticity magnitude squared
+    real vorticity_magnitude_sqr = 0.0;
     for(int d=0; d<3; ++d) {
-        enstrophy += vorticity[d]*vorticity[d];
+        vorticity_magnitude_sqr += vorticity[d]*vorticity[d];
     }
+    return vorticity_magnitude_sqr;
+}
+
+template <int dim, int nstate, typename real>
+real NavierStokes<dim,nstate,real>
+::compute_vorticity_magnitude (
+    const std::array<real,nstate> &conservative_soln,
+    const std::array<dealii::Tensor<1,dim,real>,nstate> &conservative_soln_gradient) const
+{
+    real vorticity_magnitude_sqr = compute_vorticity_magnitude_sqr(conservative_soln, conservative_soln_gradient);
+    real vorticity_magnitude = sqrt(vorticity_magnitude_sqr); 
+    return vorticity_magnitude;
+}
+
+template <int dim, int nstate, typename real>
+real NavierStokes<dim,nstate,real>
+::compute_enstrophy (
+    const std::array<real,nstate> &conservative_soln,
+    const std::array<dealii::Tensor<1,dim,real>,nstate> &conservative_soln_gradient) const
+{
+    // Compute enstrophy
     const real density = conservative_soln[0];
-    enstrophy *= 0.5*density;
+    real enstrophy = 0.5*density*compute_vorticity_magnitude_sqr(conservative_soln, conservative_soln_gradient);
     return enstrophy;
 }
 
@@ -395,6 +438,33 @@ dealii::Tensor<2,dim,real2> NavierStokes<dim,nstate,real>
         }
     }
     return strain_rate_tensor;
+}
+
+template <int dim, int nstate, typename real>
+real NavierStokes<dim,nstate,real>
+::compute_strain_rate_tensor_magnitude_sqr (
+    const std::array<real,nstate> &conservative_soln,
+    const std::array<dealii::Tensor<1,dim,real>,nstate> &conservative_soln_gradient) const
+{
+    // Get velocity gradient
+    const std::array<dealii::Tensor<1,dim,real>,nstate> primitive_soln_gradient = convert_conservative_gradient_to_primitive_gradient<real>(conservative_soln, conservative_soln_gradient);
+    const dealii::Tensor<2,dim,real> velocities_gradient = extract_velocities_gradient_from_primitive_solution_gradient<real>(primitive_soln_gradient);
+
+    // Compute the strain rate tensor
+    const dealii::Tensor<2,dim,real> strain_rate_tensor = compute_strain_rate_tensor(velocities_gradient);
+    // Get magnitude squared
+    real strain_rate_tensor_magnitude_sqr = get_tensor_magnitude_sqr(strain_rate_tensor);
+    
+    return strain_rate_tensor_magnitude_sqr;
+}
+
+template <int dim, int nstate, typename real>
+real NavierStokes<dim,nstate,real>
+::compute_strain_rate_tensor_based_dissipation_rate_from_integrated_strain_rate_tensor_magnitude_sqr (
+    const real integrated_strain_rate_tensor_magnitude_sqr) const
+{
+    real dissipation_rate = 2.0*integrated_strain_rate_tensor_magnitude_sqr/(this->reynolds_number_inf);
+    return dissipation_rate;
 }
 
 template <int dim, int nstate, typename real>

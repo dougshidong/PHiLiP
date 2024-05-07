@@ -21,7 +21,7 @@
 
 #include "parameters/all_parameters.h"
 
-#include "dg/dg.h"
+#include "dg/dg_base.hpp"
 #include "acoustic_adjoint.hpp"
 #include "functional.h"
 #include "physics/physics.h"

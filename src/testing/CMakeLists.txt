@@ -1,4 +1,3 @@
-
 set(TESTS_SOURCE
     tests.cpp
     grid_study.cpp
@@ -19,8 +18,10 @@ set(TESTS_SOURCE
     advection_explicit_periodic.cpp
     convection_diffusion_explicit_periodic.cpp
     euler_split_inviscid_taylor_green_vortex.cpp
+    TGV_scaling.cpp
     optimization_inverse_manufactured/optimization_inverse_manufactured.cpp
     dual_weighted_residual_mesh_adaptation.cpp
+    anisotropic_mesh_adaptation_cases.cpp
     taylor_green_vortex_energy_check.cpp
     taylor_green_vortex_restart_check.cpp
     pod_adaptive_sampling.cpp
@@ -28,8 +29,14 @@ set(TESTS_SOURCE
     reduced_order.cpp
     time_refinement_study.cpp
     time_refinement_study_reference.cpp
-    burgers_energy_conservation_rrk.cpp
-    euler_ismail_roe_entropy_check.cpp)
+    h_refinement_study_isentropic_vortex.cpp
+    rrk_numerical_entropy_conservation_check.cpp
+    euler_entropy_conserving_split_forms_check.cpp
+    homogeneous_isotropic_turbulence_initialization_check.cpp
+    khi_robustness.cpp
+    bound_preserving_limiter_tests.cpp
+    naca0012_unsteady_check_quick.cpp
+    )
 
 foreach(dim RANGE 1 3)
     # Output library
@@ -52,6 +59,7 @@ foreach(dim RANGE 1 3)
     string(CONCAT InitialConditionsLib InitialConditions_${dim}D)
     string(CONCAT FlowSolverLib FlowSolver_${dim}D)
     string(CONCAT ExactSolutionsLib ExactSolutions_${dim}D)
+    string(CONCAT MeshAdaptationLib MeshAdaptation_${dim}D)
     target_link_libraries(${TestsLib} ${GridsLib})
     target_link_libraries(${TestsLib} ${NumericalFluxLib})
     target_link_libraries(${TestsLib} ${PhysicsLib})
@@ -65,6 +73,7 @@ foreach(dim RANGE 1 3)
     target_link_libraries(${TestsLib} ${InitialConditionsLib})
     target_link_libraries(${TestsLib} ${FlowSolverLib})
     target_link_libraries(${TestsLib} ${ExactSolutionsLib})
+    target_link_libraries(${TestsLib} ${MeshAdaptationLib})
     # Setup target with deal.II
     if(NOT DOC_ONLY)
         DEAL_II_SETUP_TARGET(${TestsLib})
@@ -84,4 +93,5 @@ foreach(dim RANGE 1 3)
     unset(InitialConditionsLib)
     unset(FlowSolverLib)
     unset(ExactSolutionsLib)
+    unset(MeshAdaptationLib)
 endforeach()

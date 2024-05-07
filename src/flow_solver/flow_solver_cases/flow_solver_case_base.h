@@ -2,12 +2,14 @@
 #define __FLOW_SOLVER_CASE_BASE__
 
 // for FlowSolver class:
-#include "physics/initial_conditions/initial_condition_function.h"
-#include "dg/dg.h"
-#include "parameters/all_parameters.h"
 #include <deal.II/base/table_handler.h>
 #include <deal.II/distributed/shared_tria.h>
 #include <deal.II/distributed/tria.h>
+
+#include "dg/dg_base.hpp"
+#include "parameters/all_parameters.h"
+#include "physics/initial_conditions/initial_condition_function.h"
+#include "ode_solver/ode_solver_base.h"
 
 namespace PHiLiP {
 namespace FlowSolver {
@@ -23,12 +25,12 @@ class FlowSolverCaseBase
 {
 public:
     ///Constructor
-    FlowSolverCaseBase(const Parameters::AllParameters *const parameters_input);
+    explicit FlowSolverCaseBase(const Parameters::AllParameters *const parameters_input);
 
     std::shared_ptr<InitialConditionFunction<dim,nstate,double>> initial_condition_function; ///< Initial condition function
 
     /// Destructor
-    ~FlowSolverCaseBase() {};
+    virtual ~FlowSolverCaseBase() = default;
 
     /// Displays the flow setup parameters
     void display_flow_solver_setup(std::shared_ptr<DGBase<dim,double>> dg) const;
@@ -38,6 +40,13 @@ public:
 
     /// Set higher order grid
     virtual void set_higher_order_grid(std::shared_ptr <DGBase<dim, double>> dg) const;
+
+    /// Virtual function to write unsteady snapshot data to table
+    /// Defaults to passing only ode_solver->current_iteration and ode_solver->current_time to the second definition
+    virtual void compute_unsteady_data_and_write_to_table(
+            const std::shared_ptr<ODE::ODESolverBase<dim, double>> ode_solver, 
+            const std::shared_ptr <DGBase<dim, double>> dg,
+            const std::shared_ptr<dealii::TableHandler> unsteady_data_table);
 
     /// Virtual function to write unsteady snapshot data to table
     virtual void compute_unsteady_data_and_write_to_table(
@@ -52,8 +61,14 @@ public:
     /// Virtual function to compute the adaptive time step
     virtual double get_adaptive_time_step(std::shared_ptr <DGBase<dim, double>> dg) const;
 
+    /// Virtual function to compute the initial adaptive time step
+    virtual double get_adaptive_time_step_initial(std::shared_ptr <DGBase<dim, double>> dg);
+
     /// Virtual function for postprocessing when solving for steady state
     virtual void steady_state_postprocessing(std::shared_ptr <DGBase<dim, double>> dg) const;
+
+    /// Setter for time step
+    void set_time_step(const double time_step_input);
 
 protected:
     const Parameters::AllParameters all_param; ///< All parameters
@@ -75,6 +90,9 @@ protected:
     /// Display additional more specific flow case parameters
     virtual void display_additional_flow_case_specific_parameters() const = 0;
 
+    /// Getter for time step
+    double get_time_step() const;
+
 private:
     /// Returns the pde type string from the all_param class member
     std::string get_pde_string() const;
@@ -82,6 +100,8 @@ private:
     /// Returns the flow case type string from the all_param class member
     std::string get_flow_case_string() const;
 
+    /// Current time step
+    double time_step;
 };
 
 } // FlowSolver namespace

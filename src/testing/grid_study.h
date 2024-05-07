@@ -1,11 +1,12 @@
 #ifndef __GRID_STUDY_H__
 #define __GRID_STUDY_H__
 
-#include "tests.h"
-#include "dg/dg.h"
-#include "physics/physics.h"
-#include "parameters/all_parameters.h"
 #include <deal.II/base/convergence_table.h>
+
+#include "dg/dg_base.hpp"
+#include "parameters/all_parameters.h"
+#include "physics/physics.h"
+#include "tests.h"
 
 namespace PHiLiP {
 namespace Tests {
@@ -20,9 +21,7 @@ public:
     /// Constructor.
     /** Simply calls the TestsBase constructor to set its parameters = parameters_input
      */
-    GridStudy(const Parameters::AllParameters *const parameters_input);
-
-    ~GridStudy() {}; ///< Destructor.
+    explicit GridStudy(const Parameters::AllParameters *const parameters_input);
 
     /// Manufactured grid convergence
     /** Will run the a grid convergence test for various p

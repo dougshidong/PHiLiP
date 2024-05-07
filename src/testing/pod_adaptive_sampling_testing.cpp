@@ -1,15 +1,18 @@
 #include "pod_adaptive_sampling_testing.h"
-#include "tests.h"
-#include <fstream>
+
 #include <deal.II/base/numbers.h>
-#include "parameters/all_parameters.h"
-#include "ode_solver/ode_solver_factory.h"
+
+#include <eigen/Eigen/Dense>
+#include <fstream>
+
+#include "dg/dg_base.hpp"
 #include "flow_solver/flow_solver.h"
 #include "flow_solver/flow_solver_factory.h"
-#include "dg/dg.h"
 #include "functional/functional.h"
-#include <eigen/Eigen/Dense>
+#include "ode_solver/ode_solver_factory.h"
+#include "parameters/all_parameters.h"
 #include "reduced_order/pod_basis_offline.h"
+#include "tests.h"
 
 namespace PHiLiP {
 namespace Tests {

@@ -8,10 +8,14 @@ set pde_type = navier_stokes
 
 # DG formulation
 set use_weak_form = true
-# set use_collocated_nodes = true
+# set flux_nodes_type = GLL
+set non_physical_behavior = abort_run
 
 # Note: this was added to turn off check_same_coords() -- has no other function when dim!=1
 set use_periodic_bc = true
+
+# degree of freedom renumbering not necessary for explicit time advancement cases
+set do_renumber_dofs = false
 
 # numerical fluxes
 set conv_num_flux = roe
@@ -42,7 +46,7 @@ subsection flow_solver
   set flow_case_type = taylor_green_vortex
   set poly_degree = 2
   set final_time = 1.2566370614400000e-02
-  set courant_friedrich_lewy_number = 0.003
+  set courant_friedrichs_lewy_number = 0.003
   set unsteady_data_table_filename = tgv_kinetic_energy_vs_time_table_for_restart_check
   set output_restart_files = true
   subsection grid

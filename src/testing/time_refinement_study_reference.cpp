@@ -20,24 +20,38 @@ TimeRefinementStudyReference<dim, nstate>::TimeRefinementStudyReference(
 template <int dim, int nstate>
 Parameters::AllParameters TimeRefinementStudyReference<dim,nstate>::reinit_params_for_reference_solution(int number_of_timesteps, double final_time) const
 {
-     PHiLiP::Parameters::AllParameters parameters = *(this->all_parameters);
+    PHiLiP::Parameters::AllParameters parameters = *(this->all_parameters);
 
-     const double dt = final_time/number_of_timesteps;     
-     parameters.ode_solver_param.initial_time_step = dt;
-     
-     pcout << "Using timestep size dt = " << dt << " for reference solution." << std::endl;
-     
-     return parameters;
+    const double dt = final_time/number_of_timesteps;     
+    parameters.ode_solver_param.initial_time_step = dt;
+    
+    parameters.flow_solver_param.final_time = final_time;
+
+    //Change to RK because at small dt RRK is more costly but doesn't impact solution much
+    using ODESolverEnum = Parameters::ODESolverParam::ODESolverEnum;
+    parameters.ode_solver_param.ode_solver_type = ODESolverEnum::runge_kutta_solver;
+
+    pcout << "Using timestep size dt = " << dt << " for reference solution." << std::endl;
+
+    return parameters;
 }
 
 template <int dim, int nstate>
 Parameters::AllParameters TimeRefinementStudyReference<dim,nstate>::reinit_params_and_refine_timestep(int refinement) const
 {
-     PHiLiP::Parameters::AllParameters parameters = *(this->all_parameters);
+    PHiLiP::Parameters::AllParameters parameters = *(this->all_parameters);
+    
+    parameters.flow_solver_param.unsteady_data_table_filename += std::to_string(refinement);
      
-     parameters.ode_solver_param.initial_time_step *= pow(refine_ratio,refinement);
-     
-     return parameters;
+    parameters.ode_solver_param.initial_time_step *= pow(refine_ratio,refinement);
+
+    //For RRK, do not end at exact time because of how relaxation parameter convergence is calculatd
+    using ODESolverEnum = Parameters::ODESolverParam::ODESolverEnum;
+    if (parameters.ode_solver_param.ode_solver_type == ODESolverEnum::rrk_explicit_solver){
+        parameters.flow_solver_param.end_exactly_at_final_time = false;
+    }
+
+    return parameters;
 }
 
 template <int dim, int nstate>
@@ -48,6 +62,8 @@ dealii::LinearAlgebra::distributed::Vector<double> TimeRefinementStudyReference<
     const Parameters::AllParameters params_reference = reinit_params_for_reference_solution(number_of_timesteps_for_reference_solution, final_time);
     std::unique_ptr<FlowSolver::FlowSolver<dim,nstate,1>> flow_solver_reference = FlowSolver::FlowSolverFactory<dim,nstate,1>::select_flow_case(&params_reference, parameter_handler);
     static_cast<void>(flow_solver_reference->run());
+    
+    pcout << "   Actual final time: " << flow_solver_reference->ode_solver->current_time << std::endl;
 
     return flow_solver_reference->dg->solution;
 }
@@ -96,10 +112,9 @@ int TimeRefinementStudyReference<dim, nstate>::run_test() const
     const double initial_time_step = this->all_parameters->ode_solver_param.initial_time_step;
     const int n_steps = round(final_time/initial_time_step);
     if (n_steps * initial_time_step != final_time){
-        pcout << "Error: final_time is not evenly divisible by initial_time_step!" << std::endl
+        pcout << "WARNING: final_time is not evenly divisible by initial_time_step!" << std::endl
               << "Remainder is " << fmod(final_time, initial_time_step)
-              << ". Modify parameters to run this test." << std::endl;
-        std::abort();
+              << ". Consider modifying parameters." << std::endl;
     }
 
     int testfail = 0;
@@ -108,7 +123,7 @@ int TimeRefinementStudyReference<dim, nstate>::run_test() const
     std::unique_ptr<FlowSolver::Periodic1DUnsteady<dim, nstate>> flow_solver_case = std::make_unique<FlowSolver::Periodic1DUnsteady<dim,nstate>>(this->all_parameters);
 
     pcout << "\n\n-------------------------------------------------------" << std::endl;
-    pcout << "Calculating reference solution at target final_time = " << final_time << " ..."<<std::endl;
+    pcout << "Calculating reference solution at target final_time = " << std::setprecision(16) << final_time << " ..."<<std::endl;
     pcout << "-------------------------------------------------------" << std::endl;
     
     const double final_time_target = this->all_parameters->flow_solver_param.final_time;
@@ -126,10 +141,13 @@ int TimeRefinementStudyReference<dim, nstate>::run_test() const
 
         const Parameters::AllParameters params = reinit_params_and_refine_timestep(refinement);
         std::unique_ptr<FlowSolver::FlowSolver<dim,nstate,1>> flow_solver = FlowSolver::FlowSolverFactory<dim,nstate,1>::select_flow_case(&params, parameter_handler);
-        const double energy_initial = flow_solver_case->compute_energy_collocated(flow_solver->dg);
+        const double energy_initial = flow_solver_case->compute_energy(flow_solver->dg);
         static_cast<void>(flow_solver->run());
 
         const double final_time_actual = flow_solver->ode_solver->current_time;
+        pcout << "   Actual final time: " << final_time_actual << std::endl;
+        
+        const int n_timesteps= flow_solver->ode_solver->current_iteration;
 
         //check L2 error
         const double L2_error = calculate_L2_error_at_final_time_wrt_reference(
@@ -146,22 +164,20 @@ int TimeRefinementStudyReference<dim, nstate>::run_test() const
         convergence_table.set_scientific("dt", true);
         convergence_table.add_value("final_time", final_time_actual );
         convergence_table.set_precision("final_time", 16);
+        convergence_table.add_value("n_timesteps", n_timesteps);
         convergence_table.add_value("L2_error",L2_error);
         convergence_table.set_precision("L2_error", 16);
         convergence_table.evaluate_convergence_rates("L2_error", "dt", dealii::ConvergenceTable::reduction_rate_log2, 1);
         
-        if (params.use_collocated_nodes){
-            //current energy calculation is only valid for collocated nodes
-            const double energy_end = flow_solver_case->compute_energy_collocated(flow_solver->dg);
-            const double energy_change = energy_initial - energy_end;
-            convergence_table.add_value("energy_change", energy_change);
-            convergence_table.set_precision("energy_change", 16);
-            convergence_table.evaluate_convergence_rates("energy_change", "dt", dealii::ConvergenceTable::reduction_rate_log2, 1);
-        }
+        const double energy_end = flow_solver_case->compute_energy(flow_solver->dg);
+        const double energy_change = energy_initial - energy_end;
+        convergence_table.add_value("energy_change", energy_change);
+        convergence_table.set_precision("energy_change", 16);
+        convergence_table.evaluate_convergence_rates("energy_change", "dt", dealii::ConvergenceTable::reduction_rate_log2, 1);
         
         if(params.ode_solver_param.ode_solver_type == ODESolverEnum::rrk_explicit_solver){
             //for burgers, this is the average gamma over the runtime
-            const double gamma_aggregate_m1 = (final_time_actual / final_time_target)-1;
+            const double gamma_aggregate_m1 = final_time_actual / (n_timesteps * dt)-1;
             convergence_table.add_value("gamma_aggregate_m1", gamma_aggregate_m1);
             convergence_table.set_precision("gamma_aggregate_m1", 16);
             convergence_table.set_scientific("gamma_aggregate_m1", true);

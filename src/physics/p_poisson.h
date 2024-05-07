@@ -24,6 +24,7 @@ protected:
 public:
     /// Constructor
     p_Poisson (
+        const Parameters::AllParameters *const                    parameters_input,
         const double                                              factor_p_input,
         const double                                              stable_factor_input,
         std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function = nullptr,

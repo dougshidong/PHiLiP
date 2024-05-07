@@ -24,10 +24,12 @@ end
 
 subsection mesh adaptation
     set total_mesh_adaptation_cycles = 4
-    set mesh_adaptation_type = h_adaptation
-    set refine_fraction = 0.05
-    set h_coarsen_fraction = 0.025
     set use_goal_oriented_mesh_adaptation = true
+    set mesh_adaptation_type = h_adaptation
+    subsection fixed-fraction
+      set refine_fraction = 0.05
+      set h_coarsen_fraction = 0.025
+    end
 end
 
 subsection ODE solver
@@ -75,7 +77,7 @@ subsection manufactured solution convergence study
 end
 
 subsection flow_solver
-  set flow_case_type = sshock
+  set flow_case_type = non_periodic_cube_flow
   set steady_state = true
   set steady_state_polynomial_ramping = false
   set poly_degree = 2

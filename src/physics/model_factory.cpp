@@ -46,6 +46,7 @@ ModelFactory<dim,nstate,real>
                     // Smagorinsky model
                     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
                     return std::make_shared < LargeEddySimulation_Smagorinsky<dim,nstate,real> > (
+                        parameters_input,
                         parameters_input->euler_param.ref_length,
                         parameters_input->euler_param.gamma_gas,
                         parameters_input->euler_param.mach_inf,
@@ -53,6 +54,8 @@ ModelFactory<dim,nstate,real>
                         parameters_input->euler_param.side_slip_angle,
                         parameters_input->navier_stokes_param.prandtl_number,
                         parameters_input->navier_stokes_param.reynolds_number_inf,
+                        parameters_input->navier_stokes_param.use_constant_viscosity,
+                        parameters_input->navier_stokes_param.nondimensionalized_constant_viscosity,
                         parameters_input->navier_stokes_param.temperature_inf,
                         parameters_input->physics_model_param.turbulent_prandtl_number,
                         parameters_input->physics_model_param.ratio_of_filter_width_to_cell_size,
@@ -66,6 +69,7 @@ ModelFactory<dim,nstate,real>
                     // WALE (Wall-Adapting Local Eddy-viscosity) eddy viscosity model
                     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
                     return std::make_shared < LargeEddySimulation_WALE<dim,nstate,real> > (
+                        parameters_input,
                         parameters_input->euler_param.ref_length,
                         parameters_input->euler_param.gamma_gas,
                         parameters_input->euler_param.mach_inf,
@@ -73,6 +77,8 @@ ModelFactory<dim,nstate,real>
                         parameters_input->euler_param.side_slip_angle,
                         parameters_input->navier_stokes_param.prandtl_number,
                         parameters_input->navier_stokes_param.reynolds_number_inf,
+                        parameters_input->navier_stokes_param.use_constant_viscosity,
+                        parameters_input->navier_stokes_param.nondimensionalized_constant_viscosity,
                         parameters_input->navier_stokes_param.temperature_inf,
                         parameters_input->physics_model_param.turbulent_prandtl_number,
                         parameters_input->physics_model_param.ratio_of_filter_width_to_cell_size,
@@ -86,6 +92,7 @@ ModelFactory<dim,nstate,real>
                     // Vreman eddy viscosity model
                     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
                     return std::make_shared < LargeEddySimulation_Vreman<dim,nstate,real> > (
+                        parameters_input,
                         parameters_input->euler_param.ref_length,
                         parameters_input->euler_param.gamma_gas,
                         parameters_input->euler_param.mach_inf,
@@ -93,6 +100,8 @@ ModelFactory<dim,nstate,real>
                         parameters_input->euler_param.side_slip_angle,
                         parameters_input->navier_stokes_param.prandtl_number,
                         parameters_input->navier_stokes_param.reynolds_number_inf,
+                        parameters_input->navier_stokes_param.use_constant_viscosity,
+                        parameters_input->navier_stokes_param.nondimensionalized_constant_viscosity,
                         parameters_input->navier_stokes_param.temperature_inf,
                         parameters_input->physics_model_param.turbulent_prandtl_number,
                         parameters_input->physics_model_param.ratio_of_filter_width_to_cell_size,
@@ -127,6 +136,7 @@ ModelFactory<dim,nstate,real>
                     // SA negative model
                     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -      
                     return std::make_shared < ReynoldsAveragedNavierStokes_SAneg<dim,nstate,real> > (
+                        parameters_input,
                         parameters_input->euler_param.ref_length,
                         parameters_input->euler_param.gamma_gas,
                         parameters_input->euler_param.mach_inf,
@@ -134,6 +144,8 @@ ModelFactory<dim,nstate,real>
                         parameters_input->euler_param.side_slip_angle,
                         parameters_input->navier_stokes_param.prandtl_number,
                         parameters_input->navier_stokes_param.reynolds_number_inf,
+                        parameters_input->navier_stokes_param.use_constant_viscosity,
+                        parameters_input->navier_stokes_param.nondimensionalized_constant_viscosity,
                         parameters_input->physics_model_param.turbulent_prandtl_number,
                         parameters_input->navier_stokes_param.temperature_inf,
                         parameters_input->navier_stokes_param.nondimensionalized_isothermal_wall_temperature,

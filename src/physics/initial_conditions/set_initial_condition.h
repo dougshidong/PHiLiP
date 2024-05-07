@@ -1,9 +1,11 @@
 #ifndef __SET_INITIAL_CONDITION_H__
 #define __SET_INITIAL_CONDITION_H__
 
-#include "parameters/all_parameters.h"
-#include "dg/dg.h"
+#include <string>
+
+#include "dg/dg_base.hpp"
 #include "initial_condition_function.h"
+#include "parameters/all_parameters.h"
 
 namespace PHiLiP {
 
@@ -36,6 +38,11 @@ private:
     static void project_initial_condition(
         std::shared_ptr< InitialConditionFunction<dim,nstate,double> > &initial_condition_function,
         std::shared_ptr < PHiLiP::DGBase<dim,real> > &dg); 
+
+    /// Reads values from file and projects
+    static void read_values_from_file_and_project(
+        std::shared_ptr < PHiLiP::DGBase<dim,real> > &dg,
+        const std::string input_filename_prefix);
 };
 
 }//end PHiLiP namespace

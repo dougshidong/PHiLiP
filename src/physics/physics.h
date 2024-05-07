@@ -34,8 +34,12 @@ template <int dim, int nstate, typename real>
 class PhysicsBase
 {
 public:
+
+    using NonPhysicalBehaviorEnum = Parameters::AllParameters::NonPhysicalBehaviorEnum;
+
     /// Default constructor that will set the constants.
     PhysicsBase(
+        const Parameters::AllParameters *const                    parameters_input,
         const bool                                                has_nonzero_diffusion_input,
         const bool                                                has_nonzero_physical_source_input,
         const dealii::Tensor<2,3,double>                          input_diffusion_tensor = Parameters::ManufacturedSolutionParam::get_default_diffusion_tensor(),
@@ -43,18 +47,25 @@ public:
 
     /// Constructor that will call default constructor.
     PhysicsBase(
+        const Parameters::AllParameters *const                    parameters_input,
         const bool                                                has_nonzero_diffusion_input,
         const bool                                                has_nonzero_physical_source_input,
         std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function_input = nullptr);
 
     /// Virtual destructor required for abstract classes.
-    virtual ~PhysicsBase() {};
+    virtual ~PhysicsBase() = default;
 
     /// Flag to signal that diffusion term is non-zero
     const bool has_nonzero_diffusion;
 
     /// Flag to signal that physical source term is non-zero
     const bool has_nonzero_physical_source;
+
+    /// Pointer to parameters object
+    const Parameters::AllParameters *const all_parameters;
+    
+    /// Determines type of nonphysical behavior
+    const NonPhysicalBehaviorEnum non_physical_behavior_type;    
 
     /// Manufactured solution function
     std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function;
@@ -83,8 +94,13 @@ public:
         const std::array<real,nstate> &/*solution*/,
         const dealii::Tensor<1,dim,real> &/*normal*/) const = 0;
 
-    /// Maximum convective eigenvalue used in Lax-Friedrichs
+    /// Maximum convective eigenvalue
     virtual real max_convective_eigenvalue (const std::array<real,nstate> &soln) const = 0;
+
+    /// Maximum convective normal eigenvalue (used in Lax-Friedrichs)
+    virtual real max_convective_normal_eigenvalue (
+        const std::array<real,nstate> &soln,
+        const dealii::Tensor<1,dim,real> &normal) const;
 
     /// Maximum viscous eigenvalue.
     virtual real max_viscous_eigenvalue (const std::array<real,nstate> &soln) const = 0;
@@ -136,7 +152,7 @@ public:
         const std::array<real,nstate> &/*soln_int*/,
         const std::array<dealii::Tensor<1,dim,real>,nstate> &/*soln_grad_int*/,
         std::array<real,nstate> &/*soln_bc*/,
-        std::array<dealii::Tensor<1,dim,real>,nstate> &/*soln_grad_bc*/) const;
+        std::array<dealii::Tensor<1,dim,real>,nstate> &/*soln_grad_bc*/) const = 0;
 
     /// Returns current vector solution to be used by PhysicsPostprocessor to output current solution.
     /** The implementation in this Physics base class simply returns the stored solution.
@@ -179,6 +195,23 @@ public:
     virtual real post_processed_scalar (
         const std::array<real,nstate> &solution,
         const std::array<dealii::Tensor<1,dim,real>,nstate> &solution_gradient) const;
+
+    /// Function to handle nonphysical results
+    /** This is to be called by derived physics classes
+     *  when a nonphysical quantity is detected there.
+     *  e.g., negative density in Euler.
+     *  The behavior is determined by the value of
+     *  non_physical_behavior_type.
+     *  Returns BIG_NUMBER.
+     */
+    template<typename real2> 
+    real2 handle_non_physical_result (const std::string message = "") const;
+
+public:
+
+    /// BIG_NUMBER which is returned in place of NaN according to handle_non_physical_result()
+    /** Type double so that typecasting works with all real types */
+    const double BIG_NUMBER = 1e100;
     
 protected:
     /// ConditionalOStream.

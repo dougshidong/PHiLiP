@@ -37,9 +37,6 @@ template <int dim, int nstate, typename real, typename MeshType = dealii::parall
 class GridRefinement_Continuous : public GridRefinementBase<dim,nstate,real,MeshType>
 {
 public:
-    /// Deleted default constructor
-    GridRefinement_Continuous() = delete;
-
     // overriding the other constructors to call delegated constructor for this class
 
     /// Constructor. Stores the adjoint object, physics and parameters

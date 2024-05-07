@@ -14,7 +14,8 @@ public:
     enum MeshAdaptationType{
         h_adaptation,
         p_adaptation,
-        hp_adaptation
+        hp_adaptation,
+        anisotropic_adaptation
     };
     /// Selection of mesh adaptation type
     MeshAdaptationType mesh_adaptation_type;
@@ -34,8 +35,11 @@ public:
     /// Tolerance to decide between h- or p-refinement
     double hp_smoothness_tolerance;
 
-    /// Constructor of mesh adaptation parameters.
-    MeshAdaptationParam();
+    /// Continuous equivalent of number of vertices/elements. Used in anisotropic mesh adaptation.
+    double mesh_complexity_anisotropic_adaptation;
+
+    /// Lp norm w.r.t. which the optimization is performed in the continuous mesh framework.
+    double norm_Lp_anisotropic_adaptation;
 
     /// Declare parameters
     static void declare_parameters (dealii::ParameterHandler &prm);

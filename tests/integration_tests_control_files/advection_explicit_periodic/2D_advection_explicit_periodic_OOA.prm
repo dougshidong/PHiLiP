@@ -9,7 +9,7 @@ set use_weak_form = false
 
 set overintegration = 0
 
-set use_collocated_nodes = false
+set flux_nodes_type = GL
 
 set use_split_form = false
 
@@ -54,5 +54,5 @@ end
 
 subsection flow_solver
     set flow_case_type = convection_diffusion
-    set interpolate_initial_condition = false
+    set apply_initial_condition_method = project_initial_condition_function
 end

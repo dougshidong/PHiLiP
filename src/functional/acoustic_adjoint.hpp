@@ -13,7 +13,7 @@
 #include "parameters/all_parameters.h"
 
 #include "functional.h"
-#include "dg/dg.h"
+#include "dg/dg_base.hpp"
 #include "physics/physics.h"
 
 namespace PHiLiP {

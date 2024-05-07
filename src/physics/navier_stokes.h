@@ -26,6 +26,7 @@ public:
     using two_point_num_flux_enum = Parameters::AllParameters::TwoPointNumericalFlux;
     /// Constructor
     NavierStokes( 
+        const Parameters::AllParameters *const                    parameters_input,
         const double                                              ref_length,
         const double                                              gamma_gas,
         const double                                              mach_inf,
@@ -33,6 +34,8 @@ public:
         const double                                              side_slip_angle,
         const double                                              prandtl_number,
         const double                                              reynolds_number_inf,
+        const bool                                                use_constant_viscosity,
+        const double                                              constant_viscosity,
         const double                                              temperature_inf = 273.15,
         const double                                              isothermal_wall_temperature = 1.0,
         const thermal_boundary_condition_enum                     thermal_boundary_condition_type = thermal_boundary_condition_enum::adiabatic,
@@ -41,6 +44,10 @@ public:
 
     /// Nondimensionalized viscosity coefficient at infinity.
     const double viscosity_coefficient_inf;
+    /// Flag to use constant viscosity instead of Sutherland's law of viscosity
+    const bool use_constant_viscosity;
+    /// Nondimensionalized constant viscosity
+    const double constant_viscosity;
     /// Prandtl number
     const double prandtl_number;
     /// Farfield (free stream) Reynolds number
@@ -62,8 +69,6 @@ protected:
     //@}
 
 public:
-    /// Destructor
-    ~NavierStokes() {};
 
     /** Obtain gradient of primitive variables from gradient of conservative variables */
     template<typename real2>
@@ -79,6 +84,14 @@ public:
         const std::array<dealii::Tensor<1,dim,real2>,nstate> &primitive_soln_gradient) const;
 
     /** Nondimensionalized viscosity coefficient, mu*
+     *  Based on the use_constant_viscosity flag, it returns a value based on either:
+     *  (1) Sutherland's viscosity law, or
+     *  (2) Constant nondimensionalized viscosity value
+     */
+    template<typename real2>
+    real2 compute_viscosity_coefficient (const std::array<real2,nstate> &primitive_soln) const;
+
+    /** Nondimensionalized viscosity coefficient, mu*
      *  Reference: Masatsuka 2018 "I do like CFD", p.148, eq.(4.14.16)
      * 
      *  Based on Sutherland's law for viscosity
@@ -86,7 +99,7 @@ public:
      * * Values: https://www.cfd-online.com/Wiki/Sutherland%27s_law
      */
     template<typename real2>
-    real2 compute_viscosity_coefficient (const std::array<real2,nstate> &primitive_soln) const;
+    real2 compute_viscosity_coefficient_sutherlands_law (const std::array<real2,nstate> &primitive_soln) const;
 
     /** Scaled nondimensionalized viscosity coefficient, hat{mu*}, given nondimensionalized viscosity coefficient
      *  Reference: Masatsuka 2018 "I do like CFD", p.148, eq.(4.14.14)
@@ -135,6 +148,16 @@ public:
     dealii::Tensor<1,3,real2> compute_vorticity (
         const std::array<real2,nstate> &conservative_soln,
         const std::array<dealii::Tensor<1,dim,real2>,nstate> &conservative_soln_gradient) const;
+
+    /// Evaluate vorticity magnitude squared from conservative variables and gradient of conservative variables
+    real compute_vorticity_magnitude_sqr (
+        const std::array<real,nstate> &conservative_soln,
+        const std::array<dealii::Tensor<1,dim,real>,nstate> &conservative_soln_gradient) const;
+
+    /// Evaluate vorticity magnitude from conservative variables and gradient of conservative variables
+    real compute_vorticity_magnitude (
+        const std::array<real,nstate> &conservative_soln,
+        const std::array<dealii::Tensor<1,dim,real>,nstate> &conservative_soln_gradient) const;
 
     /// Evaluate enstrophy from conservative variables and gradient of conservative variables
     real compute_enstrophy (
@@ -195,6 +218,21 @@ public:
     dealii::Tensor<2,dim,real2> 
     compute_strain_rate_tensor (
         const dealii::Tensor<2,dim,real2> &vel_gradient) const;
+
+    /// Evaluate the square of the strain-rate tensor magnitude (i.e. double dot product) from conservative variables and gradient of conservative variables
+    real compute_strain_rate_tensor_magnitude_sqr (
+        const std::array<real,nstate> &conservative_soln,
+        const std::array<dealii::Tensor<1,dim,real>,nstate> &conservative_soln_gradient) const;
+
+    /** Evaluate non-dimensional theoretical strain-rate tensor based dissipation rate from integrated
+     *  strain-rate tensor magnitude squared.
+     *  -- Reference: Navah, Farshad, et al. "A High-Order Variational Multiscale Approach 
+     *                to Turbulence for Compact Nodal Schemes." 
+     *  -- Equation (E.9) with free-stream nondimensionalization applied
+     * */
+    real compute_strain_rate_tensor_based_dissipation_rate_from_integrated_strain_rate_tensor_magnitude_sqr (
+        const real integrated_strain_rate_tensor_magnitude_sqr) const;
+
 
     /** Nondimensionalized viscous stress tensor, tau*
      *  Reference: Masatsuka 2018 "I do like CFD", p.148, eq.(4.14.12)

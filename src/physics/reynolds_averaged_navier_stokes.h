@@ -17,6 +17,7 @@ public:
     using two_point_num_flux_enum = Parameters::AllParameters::TwoPointNumericalFlux;
     /// Constructor
 	ReynoldsAveragedNavierStokesBase(
+        const Parameters::AllParameters *const                    parameters_input,
 	    const double                                              ref_length,
         const double                                              gamma_gas,
         const double                                              mach_inf,
@@ -24,15 +25,14 @@ public:
         const double                                              side_slip_angle,
         const double                                              prandtl_number,
         const double                                              reynolds_number_inf,
+        const bool                                                use_constant_viscosity,
+        const double                                              constant_viscosity,
         const double                                              turbulent_prandtl_number,
         const double                                              temperature_inf = 273.15,
         const double                                              isothermal_wall_temperature = 1.0,
         const thermal_boundary_condition_enum                     thermal_boundary_condition_type = thermal_boundary_condition_enum::adiabatic,
         std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function = nullptr,
         const two_point_num_flux_enum                             two_point_num_flux_type = two_point_num_flux_enum::KG);
-
-    /// Destructor
-    ~ReynoldsAveragedNavierStokesBase() {};
 
     /// Number of PDEs for RANS equations
     static const int nstate_navier_stokes = dim+2;
@@ -67,6 +67,13 @@ public:
     /** For RANS model, this value is assigned to be the maximum eigenvalue of the turbulence model 
      *  In most of the RANS models, the maximum eigenvalue of the convective flux is the flow velocity */
     real max_convective_eigenvalue (const std::array<real,nstate> &soln) const;
+
+    /// Maximum convective normal eigenvalue (used in Lax-Friedrichs) of the additional models' PDEs
+    /** For RANS model, this value is assigned to be the maximum eigenvalue of the turbulence model 
+     *  In most of the RANS models, the maximum normal eigenvalue of the convective flux is the flow normal velocity */
+    real max_convective_normal_eigenvalue (
+        const std::array<real,nstate> &soln,
+        const dealii::Tensor<1,dim,real> &normal) const;
 
     /// Source term for manufactured solution functions
     std::array<real,nstate> source_term (

@@ -6,13 +6,12 @@
 #include "physics.h"
 #include "euler.h"
 
-const double BIG_NUMBER = 1e100;
-
 namespace PHiLiP {
 namespace Physics {
 
 template <int dim, int nstate, typename real>
 Euler<dim,nstate,real>::Euler ( 
+    const Parameters::AllParameters *const                    parameters_input,
     const double                                              ref_length,
     const double                                              gamma_gas,
     const double                                              mach_inf,
@@ -22,7 +21,7 @@ Euler<dim,nstate,real>::Euler (
     const two_point_num_flux_enum                             two_point_num_flux_type_input,
     const bool                                                has_nonzero_diffusion,
     const bool                                                has_nonzero_physical_source)
-    : PhysicsBase<dim,nstate,real>(has_nonzero_diffusion,has_nonzero_physical_source,manufactured_solution_function)
+    : PhysicsBase<dim,nstate,real>(parameters_input, has_nonzero_diffusion,has_nonzero_physical_source,manufactured_solution_function)
     , ref_length(ref_length)
     , gam(gamma_gas)
     , gamm1(gam-1.0)
@@ -45,8 +44,8 @@ Euler<dim,nstate,real>::Euler (
 
     // For now, don't allow side-slip angle
     if (std::abs(side_slip_angle) >= 1e-14) {
-        std::cout << "Side slip angle = " << side_slip_angle << ". Side_slip_angle must be zero. " << std::endl;
-        std::cout << "I have not figured out the side slip angles just yet." << std::endl;
+        this->pcout << "Side slip angle = " << side_slip_angle << ". Side_slip_angle must be zero. " << std::endl;
+        this->pcout << "I have not figured out the side slip angles just yet." << std::endl;
         std::abort();
     }
     if(dim==1) {
@@ -152,6 +151,29 @@ std::array<real,nstate> Euler<dim,nstate,real>
 
 template <int dim, int nstate, typename real>
 template<typename real2>
+bool Euler<dim,nstate,real>::check_positive_quantity(real2 &qty, const std::string qty_name) const {
+    using limiter_enum = Parameters::LimiterParam::LimiterType;
+    bool qty_is_positive;
+
+    if (this->all_parameters->limiter_param.bound_preserving_limiter != limiter_enum::positivity_preservingZhang2010
+        && this->all_parameters->limiter_param.bound_preserving_limiter != limiter_enum::positivity_preservingWang2012) {
+        if (qty < 0.0) {
+            // Refer to base class for non-physical results handling
+            qty = this->template handle_non_physical_result<real2>(qty_name + " is negative.");
+            qty_is_positive = false;
+        }
+        else {
+            qty_is_positive = true;
+        }
+    } else {
+        qty_is_positive = true;
+    }
+
+    return qty_is_positive;
+}
+
+template <int dim, int nstate, typename real>
+template<typename real2>
 inline std::array<real2,nstate> Euler<dim,nstate,real>
 ::convert_conservative_to_primitive ( const std::array<real2,nstate> &conservative_soln ) const
 {
@@ -161,11 +183,8 @@ inline std::array<real2,nstate> Euler<dim,nstate,real>
     dealii::Tensor<1,dim,real2> vel = compute_velocities<real2>(conservative_soln);
     real2 pressure = compute_pressure<real2>(conservative_soln);
 
-    //if (density < 0.0) density = density_inf;
-    //if (pressure < 0.0) pressure = pressure_inf;
-    if (density < 0.0) density = BIG_NUMBER;
-    if (pressure < 0.0) pressure = BIG_NUMBER;
-
+    check_positive_quantity<real2>(density, "density");
+    check_positive_quantity<real2>(pressure, "pressure");
     primitive_soln[0] = density;
     for (int d=0; d<dim; ++d) {
         primitive_soln[1+d] = vel[d];
@@ -269,7 +288,6 @@ inline real Euler<dim,nstate,real>
 ::compute_entropy_measure ( const std::array<real,nstate> &conservative_soln ) const
 {
     real density = conservative_soln[0];
-    //if (density < 0.0) density = density_inf;//BIG_NUMBER;
     const real pressure = compute_pressure<real>(conservative_soln);
     return compute_entropy_measure(density, pressure);
 }
@@ -278,11 +296,11 @@ template <int dim, int nstate, typename real>
 inline real Euler<dim,nstate,real>
 ::compute_entropy_measure ( const real density, const real pressure ) const
 {
-    if (density < 0.0) {
-        return BIG_NUMBER;
-    } else {
-        return pressure*pow(density,-gam);
-    }
+    //Copy such that we don't modify the original density that is passed
+    real density_check = density;
+    const bool density_is_positive = check_positive_quantity<real>(density_check, "density");
+    if (density_is_positive)     return pressure*pow(density,-gam);
+    else                         return (real)this->BIG_NUMBER;
 }
 
 
@@ -294,6 +312,20 @@ inline real Euler<dim,nstate,real>
     const real total_energy = conservative_soln[nstate-1];
     const real specific_enthalpy = (total_energy+pressure)/density;
     return specific_enthalpy;
+}
+
+template <int dim, int nstate, typename real>
+inline real Euler<dim,nstate,real>
+::compute_numerical_entropy_function ( const std::array<real,nstate> &conservative_soln ) const
+{
+    const real pressure = compute_pressure<real>(conservative_soln);
+    const real density = conservative_soln[0];
+
+    const real entropy = compute_entropy<real>(density, pressure);
+
+    const real numerical_entropy_function = - density * entropy;
+
+    return numerical_entropy_function;
 }
 
 template <int dim, int nstate, typename real>
@@ -345,13 +377,29 @@ inline real2 Euler<dim,nstate,real>
     const real2 vel2 = compute_velocity_squared<real2>(vel);
     real2 pressure = gamm1*(tot_energy - 0.5*density*vel2);
     
-    if(pressure<0.0) {
-        //pressure = pressure_inf;
-        pressure = BIG_NUMBER;
-    }
-    //assert(pressure>0.0);
-    
+    check_positive_quantity<real2>(pressure, "pressure");
     return pressure;
+}
+
+
+template <int dim, int nstate, typename real>
+template<typename real2>
+inline real2 Euler<dim,nstate,real>
+:: compute_entropy (const real2 density, const real2 pressure) const
+{
+    // copy density and pressure such that the check will not modify originals
+    real2 density_check = density; 
+    real2 pressure_check = pressure;
+    const bool density_is_positive = check_positive_quantity(density_check, "density");
+    const bool pressure_is_positive = check_positive_quantity(pressure_check, "pressure");
+    if (density_is_positive && pressure_is_positive) {
+        real2 entropy = pressure * pow(density, -gam);
+        entropy = log(entropy);
+        return entropy;
+    } else {
+        return (real2)this->BIG_NUMBER;
+    }
+
 }
 
 template <int dim, int nstate, typename real>
@@ -359,11 +407,7 @@ inline real Euler<dim,nstate,real>
 ::compute_sound ( const std::array<real,nstate> &conservative_soln ) const
 {
     real density = conservative_soln[0];
-    if(density<0.0) {
-        //density = density_inf;
-        density = BIG_NUMBER;
-    }
-    //assert(density>0.0);
+    check_positive_quantity<real>(density, "density");
     const real pressure = compute_pressure<real>(conservative_soln);
     const real sound = sqrt(pressure*gam/density);
     return sound;
@@ -453,106 +497,6 @@ std::array<real,nstate> Euler<dim, nstate, real>
 }
 
 template <int dim, int nstate, typename real>
-std::array<dealii::Tensor<1,dim,real>,nstate> Euler<dim, nstate, real>
-::convective_numerical_split_flux_chandrashekar(const std::array<real,nstate> &conservative_soln1,
-                                                const std::array<real,nstate> &conservative_soln2) const
-{
-
-    std::array<dealii::Tensor<1,dim,real>,nstate> conv_num_split_flux;
-    const real rho_log = compute_ismail_roe_logarithmic_mean(conservative_soln1[0], conservative_soln2[0]);
-    const real pressure1 = compute_pressure<real>(conservative_soln1);
-    const real pressure2 = compute_pressure<real>(conservative_soln2);
-
-    const real beta1 = conservative_soln1[0]/(2.0*pressure1);
-    const real beta2 = conservative_soln2[0]/(2.0*pressure2);
-
-    const real beta_log = compute_ismail_roe_logarithmic_mean(beta1, beta2);
-    const dealii::Tensor<1,dim,real> vel1 = compute_velocities<real>(conservative_soln1);
-    const dealii::Tensor<1,dim,real> vel2 = compute_velocities<real>(conservative_soln2);
-
-    const real pressure_hat = 0.5*(conservative_soln1[0] + conservative_soln2[0])/(2.0*0.5*(beta1+beta2));
-
-    dealii::Tensor<1,dim,real> vel_avg;
-    real vel_square_avg = 0.0;;
-    for(int idim=0; idim<dim; idim++){
-        vel_avg[idim] = 0.5*(vel1[idim]+vel2[idim]);
-        vel_square_avg += (0.5 *(vel1[idim]+vel2[idim])) * (0.5 *(vel1[idim]+vel2[idim]));
-    }
-
-    real enthalpy_hat = 1.0/(2.0*beta_log*gamm1) + vel_square_avg + pressure_hat/rho_log;
-
-    for(int idim=0; idim<dim; idim++){
-        enthalpy_hat -= 0.5*(0.5*(vel1[idim]*vel1[idim] + vel2[idim]*vel2[idim]));
-    }
-
-    for(int flux_dim=0; flux_dim<dim; flux_dim++){
-        // Density equation
-        conv_num_split_flux[0][flux_dim] = rho_log * vel_avg[flux_dim];
-        // Momentum equation
-        for (int velocity_dim=0; velocity_dim<dim; ++velocity_dim){
-            conv_num_split_flux[1+velocity_dim][flux_dim] = rho_log*vel_avg[flux_dim]*vel_avg[velocity_dim];
-        }
-        conv_num_split_flux[1+flux_dim][flux_dim] += pressure_hat; // Add diagonal of pressure
-
-        // Energy equation
-        conv_num_split_flux[nstate-1][flux_dim] = rho_log * vel_avg[flux_dim] * enthalpy_hat;
-    }
-
-   return conv_num_split_flux; 
-
-}
-template <int dim, int nstate, typename real>
-std::array<dealii::Tensor<1,dim,real>,nstate> Euler<dim, nstate, real>
-::convective_numerical_split_flux_ranocha(const std::array<real,nstate> &conservative_soln1,
-                                                const std::array<real,nstate> &conservative_soln2) const
-{
-
-    std::array<dealii::Tensor<1,dim,real>,nstate> conv_num_split_flux;
-    const real rho_log = compute_ismail_roe_logarithmic_mean(conservative_soln1[0], conservative_soln2[0]);
-    const real pressure1 = compute_pressure<real>(conservative_soln1);
-    const real pressure2 = compute_pressure<real>(conservative_soln2);
-
-    const real beta1 = conservative_soln1[0]/(pressure1);
-    const real beta2 = conservative_soln2[0]/(pressure2);
-
-    const real beta_log = compute_ismail_roe_logarithmic_mean(beta1, beta2);
-    const dealii::Tensor<1,dim,real> vel1 = compute_velocities<real>(conservative_soln1);
-    const dealii::Tensor<1,dim,real> vel2 = compute_velocities<real>(conservative_soln2);
-
-    const real pressure_hat = 0.5*(pressure1+pressure2);
-
-    dealii::Tensor<1,dim,real> vel_avg;
-    real vel_square_avg = 0.0;;
-    for(int idim=0; idim<dim; idim++){
-        vel_avg[idim] = 0.5*(vel1[idim]+vel2[idim]);
-        vel_square_avg += (0.5 *(vel1[idim]+vel2[idim])) * (0.5 *(vel1[idim]+vel2[idim]));
-    }
-
-    real enthalpy_hat = 1.0/(beta_log*gamm1) + vel_square_avg + 2.0*pressure_hat/rho_log;
-
-    for(int idim=0; idim<dim; idim++){
-        enthalpy_hat -= 0.5*(0.5*(vel1[idim]*vel1[idim] + vel2[idim]*vel2[idim]));
-    }
-
-    for(int flux_dim=0; flux_dim<dim; flux_dim++){
-        // Density equation
-        conv_num_split_flux[0][flux_dim] = rho_log * vel_avg[flux_dim];
-        // Momentum equation
-        for (int velocity_dim=0; velocity_dim<dim; ++velocity_dim){
-            conv_num_split_flux[1+velocity_dim][flux_dim] = rho_log*vel_avg[flux_dim]*vel_avg[velocity_dim];
-        }
-        conv_num_split_flux[1+flux_dim][flux_dim] += pressure_hat; // Add diagonal of pressure
-
-        // Energy equation
-        conv_num_split_flux[nstate-1][flux_dim] = rho_log * vel_avg[flux_dim] * enthalpy_hat;
-        conv_num_split_flux[nstate-1][flux_dim] -= ( 0.5 *(pressure1*vel1[flux_dim] + pressure2*vel2[flux_dim]));
-    }
-
-   return conv_num_split_flux; 
-
-}
-
-template <int dim, int nstate, typename real>
 real Euler<dim, nstate, real>
 ::compute_ismail_roe_logarithmic_mean(const real val1, const real val2) const
 {
@@ -634,6 +578,106 @@ std::array<dealii::Tensor<1,dim,real>,nstate> Euler<dim, nstate, real>
 }
 
 template <int dim, int nstate, typename real>
+std::array<dealii::Tensor<1,dim,real>,nstate> Euler<dim, nstate, real>
+::convective_numerical_split_flux_chandrashekar(const std::array<real,nstate> &conservative_soln1,
+                                                const std::array<real,nstate> &conservative_soln2) const
+{
+
+    std::array<dealii::Tensor<1,dim,real>,nstate> conv_num_split_flux;
+    const real rho_log = compute_ismail_roe_logarithmic_mean(conservative_soln1[0], conservative_soln2[0]);
+    const real pressure1 = compute_pressure<real>(conservative_soln1);
+    const real pressure2 = compute_pressure<real>(conservative_soln2);
+
+    const real beta1 = conservative_soln1[0]/(2.0*pressure1);
+    const real beta2 = conservative_soln2[0]/(2.0*pressure2);
+
+    const real beta_log = compute_ismail_roe_logarithmic_mean(beta1, beta2);
+    const dealii::Tensor<1,dim,real> vel1 = compute_velocities<real>(conservative_soln1);
+    const dealii::Tensor<1,dim,real> vel2 = compute_velocities<real>(conservative_soln2);
+
+    const real pressure_hat = 0.5*(conservative_soln1[0] + conservative_soln2[0])/(2.0*0.5*(beta1+beta2));
+
+    dealii::Tensor<1,dim,real> vel_avg;
+    real vel_square_avg = 0.0;;
+    for(int idim=0; idim<dim; idim++){
+        vel_avg[idim] = 0.5*(vel1[idim]+vel2[idim]);
+        vel_square_avg += (0.5 *(vel1[idim]+vel2[idim])) * (0.5 *(vel1[idim]+vel2[idim]));
+    }
+
+    real enthalpy_hat = 1.0/(2.0*beta_log*gamm1) + vel_square_avg + pressure_hat/rho_log;
+
+    for(int idim=0; idim<dim; idim++){
+        enthalpy_hat -= 0.5*(0.5*(vel1[idim]*vel1[idim] + vel2[idim]*vel2[idim]));
+    }
+
+    for(int flux_dim=0; flux_dim<dim; flux_dim++){
+        // Density equation
+        conv_num_split_flux[0][flux_dim] = rho_log * vel_avg[flux_dim];
+        // Momentum equation
+        for (int velocity_dim=0; velocity_dim<dim; ++velocity_dim){
+            conv_num_split_flux[1+velocity_dim][flux_dim] = rho_log*vel_avg[flux_dim]*vel_avg[velocity_dim];
+        }
+        conv_num_split_flux[1+flux_dim][flux_dim] += pressure_hat; // Add diagonal of pressure
+
+        // Energy equation
+        conv_num_split_flux[nstate-1][flux_dim] = rho_log * vel_avg[flux_dim] * enthalpy_hat;
+    }
+
+   return conv_num_split_flux; 
+}
+
+template <int dim, int nstate, typename real>
+std::array<dealii::Tensor<1,dim,real>,nstate> Euler<dim, nstate, real>
+::convective_numerical_split_flux_ranocha(const std::array<real,nstate> &conservative_soln1,
+                                                const std::array<real,nstate> &conservative_soln2) const
+{
+
+    std::array<dealii::Tensor<1,dim,real>,nstate> conv_num_split_flux;
+    const real rho_log = compute_ismail_roe_logarithmic_mean(conservative_soln1[0], conservative_soln2[0]);
+    const real pressure1 = compute_pressure<real>(conservative_soln1);
+    const real pressure2 = compute_pressure<real>(conservative_soln2);
+
+    const real beta1 = conservative_soln1[0]/(pressure1);
+    const real beta2 = conservative_soln2[0]/(pressure2);
+
+    const real beta_log = compute_ismail_roe_logarithmic_mean(beta1, beta2);
+    const dealii::Tensor<1,dim,real> vel1 = compute_velocities<real>(conservative_soln1);
+    const dealii::Tensor<1,dim,real> vel2 = compute_velocities<real>(conservative_soln2);
+
+    const real pressure_hat = 0.5*(pressure1+pressure2);
+
+    dealii::Tensor<1,dim,real> vel_avg;
+    real vel_square_avg = 0.0;;
+    for(int idim=0; idim<dim; idim++){
+        vel_avg[idim] = 0.5*(vel1[idim]+vel2[idim]);
+        vel_square_avg += (0.5 *(vel1[idim]+vel2[idim])) * (0.5 *(vel1[idim]+vel2[idim]));
+    }
+
+    real enthalpy_hat = 1.0/(beta_log*gamm1) + vel_square_avg + 2.0*pressure_hat/rho_log;
+
+    for(int idim=0; idim<dim; idim++){
+        enthalpy_hat -= 0.5*(0.5*(vel1[idim]*vel1[idim] + vel2[idim]*vel2[idim]));
+    }
+
+    for(int flux_dim=0; flux_dim<dim; flux_dim++){
+        // Density equation
+        conv_num_split_flux[0][flux_dim] = rho_log * vel_avg[flux_dim];
+        // Momentum equation
+        for (int velocity_dim=0; velocity_dim<dim; ++velocity_dim){
+            conv_num_split_flux[1+velocity_dim][flux_dim] = rho_log*vel_avg[flux_dim]*vel_avg[velocity_dim];
+        }
+        conv_num_split_flux[1+flux_dim][flux_dim] += pressure_hat; // Add diagonal of pressure
+
+        // Energy equation
+        conv_num_split_flux[nstate-1][flux_dim] = rho_log * vel_avg[flux_dim] * enthalpy_hat;
+        conv_num_split_flux[nstate-1][flux_dim] -= ( 0.5 *(pressure1*vel1[flux_dim] + pressure2*vel2[flux_dim]));
+    }
+
+   return conv_num_split_flux; 
+
+}
+
+template <int dim, int nstate, typename real>
 std::array<real,nstate> Euler<dim, nstate, real>
 ::compute_entropy_variables (
     const std::array<real,nstate> &conservative_soln) const
@@ -642,9 +686,7 @@ std::array<real,nstate> Euler<dim, nstate, real>
     const real density = conservative_soln[0];
     const real pressure = compute_pressure<real>(conservative_soln);
     
-    real entropy = pressure * pow(density, -gam);
-    if (entropy > 0)    entropy = log( entropy );
-    else                entropy = BIG_NUMBER;
+    const real entropy = compute_entropy<real>(density, pressure);
 
     const real rho_theta = pressure / gamm1;
 
@@ -872,6 +914,22 @@ real Euler<dim,nstate,real>
     const real max_eig = sqrt(vel2) + sound;
 
     return max_eig;
+}
+
+template <int dim, int nstate, typename real>
+real Euler<dim,nstate,real>
+::max_convective_normal_eigenvalue (
+    const std::array<real,nstate> &conservative_soln,
+    const dealii::Tensor<1,dim,real> &normal) const
+{
+    const dealii::Tensor<1,dim,real> vel = compute_velocities<real>(conservative_soln);
+
+    const real sound = compute_sound (conservative_soln);
+    real vel_dot_n = 0.0;
+    for (int d=0;d<dim;++d) { vel_dot_n += vel[d]*normal[d]; };
+    const real max_normal_eig = abs(vel_dot_n) + sound;
+
+    return max_normal_eig;
 }
 
 template <int dim, int nstate, typename real>
@@ -1173,7 +1231,7 @@ void Euler<dim,nstate,real>
    if(mach_inf < 1.0) {
       // Subsonic inflow, sec 2.7
 
-      //std::cout << "Subsonic inflow, mach=" << mach_i << std::endl;
+      //this->pcout << "Subsonic inflow, mach=" << mach_i << std::endl;
 
       // Want to solve for c_b (sound_bc), to then solve for U (velocity_magnitude_bc) and M_b (mach_bc)
       // Eq. 37
@@ -1200,8 +1258,8 @@ void Euler<dim,nstate,real>
       const real radicant = 1.0+0.5*gamm1*mach_bc*mach_bc;
       const real pressure_bc = total_inlet_pressure * pow(radicant, -gam/gamm1);
       const real temperature_bc = total_inlet_temperature * pow(radicant, -1.0);
-      //std::cout << " pressure_bc " << pressure_bc << "pressure_inf" << pressure_inf << std::endl;
-      //std::cout << " temperature_bc " << temperature_bc << "temperature_inf" << temperature_inf << std::endl;
+      //this->pcout << " pressure_bc " << pressure_bc << "pressure_inf" << pressure_inf << std::endl;
+      //this->pcout << " temperature_bc " << temperature_bc << "temperature_inf" << temperature_inf << std::endl;
 
       const real density_bc  = compute_density_from_pressure_temperature(pressure_bc, temperature_bc);
       std::array<real,nstate> primitive_boundary_values;
@@ -1213,7 +1271,7 @@ void Euler<dim,nstate,real>
           soln_bc[istate] = conservative_bc[istate];
       }
 
-      //std::cout << " entropy_bc " << compute_entropy_measure(soln_bc) << "entropy_inf" << entropy_inf << std::endl;
+      //this->pcout << " entropy_bc " << compute_entropy_measure(soln_bc) << "entropy_inf" << entropy_inf << std::endl;
 
    } 
    else {
@@ -1221,7 +1279,7 @@ void Euler<dim,nstate,real>
 
       // Specify all quantities through
       // total_inlet_pressure, total_inlet_temperature, mach_inf & angle_of_attack
-      //std::cout << "Supersonic inflow, mach=" << mach_i << std::endl;
+      //this->pcout << "Supersonic inflow, mach=" << mach_i << std::endl;
       const real radicant = 1.0+0.5*gamm1*mach_inf_sqr;
       const real static_inlet_pressure    = total_inlet_pressure * pow(radicant, -gam/gamm1);
       const real static_inlet_temperature = total_inlet_temperature * pow(radicant, -1.0);
@@ -1308,7 +1366,7 @@ void Euler<dim,nstate,real>
         boundary_slip_wall (normal_int, soln_int, soln_grad_int, soln_bc, soln_grad_bc);
     } 
     else {
-        std::cout << "Invalid boundary_type: " << boundary_type << std::endl;
+        this->pcout << "Invalid boundary_type: " << boundary_type << std::endl;
         std::abort();
     }
 }
@@ -1332,7 +1390,7 @@ dealii::Vector<double> Euler<dim,nstate,real>::post_compute_derived_quantities_v
             conservative_soln[s] = uh(s);
         }
         const std::array<double, nstate> primitive_soln = convert_conservative_to_primitive<real>(conservative_soln);
-        // if (primitive_soln[0] < 0) std::cout << evaluation_points << std::endl;
+        // if (primitive_soln[0] < 0) this->pcout << evaluation_points << std::endl;
 
         // Density
         computed_quantities(++current_data_index) = primitive_soln[0];
@@ -1359,7 +1417,7 @@ dealii::Vector<double> Euler<dim,nstate,real>::post_compute_derived_quantities_v
 
     }
     if (computed_quantities.size()-1 != current_data_index) {
-        std::cout << " Did not assign a value to all the data. Missing " << computed_quantities.size() - current_data_index << " variables."
+        this->pcout << " Did not assign a value to all the data. Missing " << computed_quantities.size() - current_data_index << " variables."
                   << " If you added a new output variable, make sure the names and DataComponentInterpretation match the above. "
                   << std::endl;
     }
@@ -1389,7 +1447,7 @@ std::vector<dealii::DataComponentInterpretation::DataComponentInterpretation> Eu
 
     std::vector<std::string> names = post_get_names();
     if (names.size() != interpretation.size()) {
-        std::cout << "Number of DataComponentInterpretation is not the same as number of names for output file" << std::endl;
+        this->pcout << "Number of DataComponentInterpretation is not the same as number of names for output file" << std::endl;
     }
     return interpretation;
 }
@@ -1437,6 +1495,17 @@ template class Euler < PHILIP_DIM, PHILIP_DIM+2, RadFadType >;
 //==============================================================================
 // -> Templated member functions: // could be automated later on using Boost MPL
 //------------------------------------------------------------------------------
+// -- check_positive_quantity
+template bool Euler < PHILIP_DIM, PHILIP_DIM+2, double     >::check_positive_quantity< double     >(double     &qty, const std::string qty_name) const;
+template bool Euler < PHILIP_DIM, PHILIP_DIM+2, FadType    >::check_positive_quantity< FadType    >(FadType    &qty, const std::string qty_name) const;
+template bool Euler < PHILIP_DIM, PHILIP_DIM+2, RadType    >::check_positive_quantity< RadType    >(RadType    &qty, const std::string qty_name) const;
+template bool Euler < PHILIP_DIM, PHILIP_DIM+2, FadFadType >::check_positive_quantity< FadFadType >(FadFadType &qty, const std::string qty_name) const;
+template bool Euler < PHILIP_DIM, PHILIP_DIM+2, RadFadType >::check_positive_quantity< RadFadType >(RadFadType &qty, const std::string qty_name) const;
+// -- -- instantiate all the real types with real2 = FadType for automatic differentiation in NavierStokes::dissipative_flux_directional_jacobian()
+template bool Euler < PHILIP_DIM, PHILIP_DIM+2, double     >::check_positive_quantity< FadType    >(FadType    &qty, const std::string qty_name) const;
+template bool Euler < PHILIP_DIM, PHILIP_DIM+2, RadType    >::check_positive_quantity< FadType    >(FadType    &qty, const std::string qty_name) const;
+template bool Euler < PHILIP_DIM, PHILIP_DIM+2, FadFadType >::check_positive_quantity< FadType    >(FadType    &qty, const std::string qty_name) const;
+template bool Euler < PHILIP_DIM, PHILIP_DIM+2, RadFadType >::check_positive_quantity< FadType    >(FadType    &qty, const std::string qty_name) const;
 // -- compute_pressure()
 template double     Euler < PHILIP_DIM, PHILIP_DIM+2, double     >::compute_pressure< double     >(const std::array<double,    PHILIP_DIM+2> &conservative_soln) const;
 template FadType    Euler < PHILIP_DIM, PHILIP_DIM+2, FadType    >::compute_pressure< FadType    >(const std::array<FadType,   PHILIP_DIM+2> &conservative_soln) const;

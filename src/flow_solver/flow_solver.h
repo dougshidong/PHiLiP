@@ -7,20 +7,22 @@
 #include "parameters/all_parameters.h"
 
 // for generate_grid
-#include <deal.II/grid/tria.h>
+#include <deal.II/base/function.h>
 #include <deal.II/distributed/shared_tria.h>
 #include <deal.II/distributed/tria.h>
-#include <deal.II/base/function.h>
-#include <stdlib.h>
-#include <iostream>
 #include <deal.II/dofs/dof_tools.h>
 #include <deal.II/grid/grid_tools.h>
+#include <deal.II/grid/tria.h>
 #include <deal.II/numerics/vector_tools.h>
-#include "physics/physics_factory.h"
-#include "dg/dg.h"
+#include <stdlib.h>
+
+#include <iostream>
+
+#include "dg/dg_base.hpp"
 #include "dg/dg_factory.hpp"
+#include "physics/physics_factory.h"
 //#include "ode_solver/runge_kutta_ode_solver.h"
-#include "ode_solver/explicit_ode_solver.h"
+#include "ode_solver/runge_kutta_ode_solver.h"
 #include "ode_solver/ode_solver_factory.h"
 #include <deal.II/base/table_handler.h>
 #include <string>
@@ -43,11 +45,8 @@ namespace FlowSolver {
 class FlowSolverBase
 {
 public:
-    /// Constructor
-    FlowSolverBase () {};
-
     /// Destructor
-    virtual ~FlowSolverBase() {};
+    virtual ~FlowSolverBase() = default;
 
     /// Basically the main and only function of this class.
     /** This will get overloaded by the derived flow solver class.
@@ -74,9 +73,6 @@ public:
         std::shared_ptr<FlowSolverCaseBase<dim, sub_nstate>> sub_flow_solver_case_input,
         const std::vector<dealii::ParameterHandler> &parameter_handler_input);
     
-    /// Destructor
-    ~FlowSolver() {};
-
     /// Pointer to Flow Solver Case
     std::shared_ptr<FlowSolverCaseBase<dim, nstate>> flow_solver_case;
 
@@ -101,7 +97,7 @@ public:
         const std::shared_ptr <dealii::TableHandler> data_table) const;
 
     /// Returns the restart filename without extension given a restart index (adds padding appropriately)
-    std::string get_restart_filename_without_extension(const int restart_index_input) const;
+    std::string get_restart_filename_without_extension(const unsigned int restart_index_input) const;
 
 protected:
     const MPI_Comm mpi_communicator; ///< MPI communicator.
@@ -125,6 +121,10 @@ protected:
 
     /// Name of the reference copy of inputted parameters file; for restart purposes
     const std::string input_parameters_file_reference_copy_filename;
+
+    const bool do_output_solution_at_fixed_times; ///< Flag for outputting solution at fixed times
+    const unsigned int number_of_fixed_times_to_output_solution; ///< Number of fixed times to output the solution
+    const bool output_solution_at_exact_fixed_times;///< Flag for outputting the solution at exact fixed times by decreasing the time step on the fly
     
 public:
     /// Pointer to dg so it can be accessed externally.
@@ -139,7 +139,7 @@ private:
     std::vector<std::string> get_data_table_column_names(const std::string string_input) const;
 
     /// Writes a parameter file (.prm) for restarting the computation with
-    void write_restart_parameter_file(const int restart_index_input,
+    void write_restart_parameter_file(const unsigned int restart_index_input,
                                       const double constant_time_step_input) const;
 
     /// Converts a double to a string with scientific format and with full precision
@@ -148,7 +148,7 @@ private:
 #if PHILIP_DIM>1
     /// Outputs all the necessary restart files
     void output_restart_files(
-        const int current_restart_index,
+        const unsigned int current_restart_index,
         const double constant_time_step,
         const std::shared_ptr <dealii::TableHandler> unsteady_data_table) const;
 #endif
@@ -158,13 +158,15 @@ private:
      */
     void perform_steady_state_mesh_adaptation() const;
 
+    /// Fixed times at which to output the solution
+    dealii::Table<1,double> output_solution_fixed_times;
+
 public:
     /// Pointer to sub dg so it can be accessed externally.
     std::shared_ptr<DGBase<dim, double>> sub_dg = nullptr;
 
     /// Pointer to sub ode solver so it can be accessed externally.
     std::shared_ptr<ODE::ODESolverBase<dim, double>> sub_ode_solver = nullptr;
-
 };
 
 } // FlowSolver namespace

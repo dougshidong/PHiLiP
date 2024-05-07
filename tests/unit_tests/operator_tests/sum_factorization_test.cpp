@@ -99,7 +99,7 @@ int main (int argc, char * argv[])
     PHiLiP::Parameters::AllParameters all_parameters_new;
     all_parameters_new.parse_parameters (parameter_handler);
     all_parameters_new.nstate = nstate;
-    // all_parameters_new.use_collocated_nodes = true;
+    // all_parameters_new.flux_nodes_type = Parameters::AllParameters::FluxNodes::GLL;
     dealii::ConditionalOStream pcout(std::cout, dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD)==0);
 
     bool different = false;
@@ -111,8 +111,8 @@ int main (int argc, char * argv[])
     std::array<clock_t,poly_max> time_diff_mass;
     std::array<clock_t,poly_max> time_diff_mass_sum;
     for(unsigned int poly_degree=poly_min; poly_degree<poly_max; poly_degree++){
-        PHiLiP::OPERATOR::local_mass<dim,2*dim> mass_matrix(nstate, poly_degree, 1);
-        PHiLiP::OPERATOR::basis_functions<dim,2*dim> basis(nstate, poly_degree, 1);
+        PHiLiP::OPERATOR::local_mass<dim,2*dim,real> mass_matrix(nstate, poly_degree, 1);
+        PHiLiP::OPERATOR::basis_functions<dim,2*dim,real> basis(nstate, poly_degree, 1);
         dealii::QGauss<1> quad1D (poly_degree+1);
         const dealii::FE_DGQ<1> fe_dg(poly_degree);
         const dealii::FESystem<1,1> fe_system(fe_dg, nstate);

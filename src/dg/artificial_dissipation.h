@@ -49,7 +49,7 @@ class ArtificialDissipationBase
     }
 
     /// Virtual destructor of ArtificialDissipationBase
-    virtual ~ArtificialDissipationBase() = 0;
+    virtual ~ArtificialDissipationBase() = default;
 
 };
 
@@ -85,18 +85,14 @@ class LaplacianArtificialDissipation: public ArtificialDissipationBase <dim, nst
  
     public:
     /// Constructor of LaplacianArtificialDissipation.
-    LaplacianArtificialDissipation(): 
-    convection_diffusion_double(false,true,this->diffusion_tensor,Parameters::ManufacturedSolutionParam::get_default_advection_vector(),1.0),
-    convection_diffusion_FadType(false,true,this->diffusion_tensor,Parameters::ManufacturedSolutionParam::get_default_advection_vector(),1.0),
-    convection_diffusion_RadType(false,true,this->diffusion_tensor,Parameters::ManufacturedSolutionParam::get_default_advection_vector(),1.0),
-    convection_diffusion_FadFadType(false,true,this->diffusion_tensor,Parameters::ManufacturedSolutionParam::get_default_advection_vector(),1.0),
-    convection_diffusion_RadFadType(false,true,this->diffusion_tensor,Parameters::ManufacturedSolutionParam::get_default_advection_vector(),1.0)
+    explicit LaplacianArtificialDissipation(const Parameters::AllParameters *const parameters_input):
+    convection_diffusion_double(parameters_input,false,true,this->diffusion_tensor,Parameters::ManufacturedSolutionParam::get_default_advection_vector(),1.0),
+    convection_diffusion_FadType(parameters_input,false,true,this->diffusion_tensor,Parameters::ManufacturedSolutionParam::get_default_advection_vector(),1.0),
+    convection_diffusion_RadType(parameters_input,false,true,this->diffusion_tensor,Parameters::ManufacturedSolutionParam::get_default_advection_vector(),1.0),
+    convection_diffusion_FadFadType(parameters_input,false,true,this->diffusion_tensor,Parameters::ManufacturedSolutionParam::get_default_advection_vector(),1.0),
+    convection_diffusion_RadFadType(parameters_input,false,true,this->diffusion_tensor,Parameters::ManufacturedSolutionParam::get_default_advection_vector(),1.0)
     {}
 
-    /// Destructor of LaplacianArtificialDissipation
-    ~LaplacianArtificialDissipation() {};
-
- 
     /// Laplacian flux function overloaded with type double.
     std::array<dealii::Tensor<1,dim,double>,nstate>  calc_artificial_dissipation_flux(
     const std::array<double,nstate> &conservative_soln, const std::array<dealii::Tensor<1,dim,double>,nstate> &solution_gradient, double artificial_viscosity) override;
@@ -150,16 +146,68 @@ class PhysicalArtificialDissipation: public ArtificialDissipationBase <dim, nsta
 
     public:
     /// Constructor of PhysicalArtificialDissipation.
-    PhysicalArtificialDissipation(const Parameters::AllParameters *const parameters_input): //input_parameters(parameters_input) {}
-    navier_stokes_double(parameters_input->euler_param.ref_length,parameters_input->euler_param.gamma_gas,parameters_input->euler_param.mach_inf,parameters_input->euler_param.angle_of_attack, parameters_input->euler_param.side_slip_angle,0.75,1.0),
-    navier_stokes_FadType(parameters_input->euler_param.ref_length,parameters_input->euler_param.gamma_gas,parameters_input->euler_param.mach_inf,parameters_input->euler_param.angle_of_attack, parameters_input->euler_param.side_slip_angle,0.75,1.0),
-    navier_stokes_RadType(parameters_input->euler_param.ref_length,parameters_input->euler_param.gamma_gas,parameters_input->euler_param.mach_inf,parameters_input->euler_param.angle_of_attack, parameters_input->euler_param.side_slip_angle,0.75,1.0),
-    navier_stokes_FadFadType(parameters_input->euler_param.ref_length,parameters_input->euler_param.gamma_gas,parameters_input->euler_param.mach_inf,parameters_input->euler_param.angle_of_attack, parameters_input->euler_param.side_slip_angle,0.75,1.0),
-    navier_stokes_RadFadType(parameters_input->euler_param.ref_length,parameters_input->euler_param.gamma_gas,parameters_input->euler_param.mach_inf,parameters_input->euler_param.angle_of_attack, parameters_input->euler_param.side_slip_angle,0.75,1.0)
+    explicit PhysicalArtificialDissipation(const Parameters::AllParameters *const parameters_input): //input_parameters(parameters_input) {}
+    navier_stokes_double(
+        parameters_input,
+        parameters_input->euler_param.ref_length,
+        parameters_input->euler_param.gamma_gas,
+        parameters_input->euler_param.mach_inf,
+        parameters_input->euler_param.angle_of_attack,
+        parameters_input->euler_param.side_slip_angle,
+        0.75,
+        1.0,
+        parameters_input->navier_stokes_param.use_constant_viscosity,
+        parameters_input->navier_stokes_param.nondimensionalized_constant_viscosity,
+        parameters_input->navier_stokes_param.temperature_inf),
+    navier_stokes_FadType(
+        parameters_input,
+        parameters_input->euler_param.ref_length,
+        parameters_input->euler_param.gamma_gas,
+        parameters_input->euler_param.mach_inf,
+        parameters_input->euler_param.angle_of_attack,
+        parameters_input->euler_param.side_slip_angle,
+        0.75,
+        1.0,
+        parameters_input->navier_stokes_param.use_constant_viscosity,
+        parameters_input->navier_stokes_param.nondimensionalized_constant_viscosity,
+        parameters_input->navier_stokes_param.temperature_inf),
+    navier_stokes_RadType(
+        parameters_input,
+        parameters_input->euler_param.ref_length,
+        parameters_input->euler_param.gamma_gas,
+        parameters_input->euler_param.mach_inf,
+        parameters_input->euler_param.angle_of_attack,
+        parameters_input->euler_param.side_slip_angle,
+        0.75,
+        1.0,
+        parameters_input->navier_stokes_param.use_constant_viscosity,
+        parameters_input->navier_stokes_param.nondimensionalized_constant_viscosity,
+        parameters_input->navier_stokes_param.temperature_inf),
+    navier_stokes_FadFadType(
+        parameters_input,
+        parameters_input->euler_param.ref_length,
+        parameters_input->euler_param.gamma_gas,
+        parameters_input->euler_param.mach_inf,
+        parameters_input->euler_param.angle_of_attack,
+        parameters_input->euler_param.side_slip_angle,
+        0.75,
+        1.0,
+        parameters_input->navier_stokes_param.use_constant_viscosity,
+        parameters_input->navier_stokes_param.nondimensionalized_constant_viscosity,
+        parameters_input->navier_stokes_param.temperature_inf),
+    navier_stokes_RadFadType(
+        parameters_input,
+        parameters_input->euler_param.ref_length,
+        parameters_input->euler_param.gamma_gas,
+        parameters_input->euler_param.mach_inf,
+        parameters_input->euler_param.angle_of_attack,
+        parameters_input->euler_param.side_slip_angle,
+        0.75,
+        1.0,
+        parameters_input->navier_stokes_param.use_constant_viscosity,
+        parameters_input->navier_stokes_param.nondimensionalized_constant_viscosity,
+        parameters_input->navier_stokes_param.temperature_inf)
     {}
-
-    /// Destructor of PhysicalArtificialDissipation
-    ~PhysicalArtificialDissipation() {};
 
     /// Physical flux function overloaded with type double.
     std::array<dealii::Tensor<1,dim,double>,nstate>  calc_artificial_dissipation_flux(
@@ -216,16 +264,68 @@ class EnthalpyConservingArtificialDissipation: public ArtificialDissipationBase 
 
     public:
     /// Constructor of EnthalpyConservingArtificialDissipation
-    EnthalpyConservingArtificialDissipation(const Parameters::AllParameters *const parameters_input): //input_parameters(parameters_input) {}
-    navier_stokes_double(parameters_input->euler_param.ref_length,parameters_input->euler_param.gamma_gas,parameters_input->euler_param.mach_inf,parameters_input->euler_param.angle_of_attack, parameters_input->euler_param.side_slip_angle,0.75,1.0),
-    navier_stokes_FadType(parameters_input->euler_param.ref_length,parameters_input->euler_param.gamma_gas,parameters_input->euler_param.mach_inf,parameters_input->euler_param.angle_of_attack, parameters_input->euler_param.side_slip_angle,0.75,1.0),
-    navier_stokes_RadType(parameters_input->euler_param.ref_length,parameters_input->euler_param.gamma_gas,parameters_input->euler_param.mach_inf,parameters_input->euler_param.angle_of_attack, parameters_input->euler_param.side_slip_angle,0.75,1.0),
-    navier_stokes_FadFadType(parameters_input->euler_param.ref_length,parameters_input->euler_param.gamma_gas,parameters_input->euler_param.mach_inf,parameters_input->euler_param.angle_of_attack, parameters_input->euler_param.side_slip_angle,0.75,1.0),
-    navier_stokes_RadFadType(parameters_input->euler_param.ref_length,parameters_input->euler_param.gamma_gas,parameters_input->euler_param.mach_inf,parameters_input->euler_param.angle_of_attack, parameters_input->euler_param.side_slip_angle,0.75,1.0)
+    explicit EnthalpyConservingArtificialDissipation(const Parameters::AllParameters *const parameters_input): //input_parameters(parameters_input) {}
+    navier_stokes_double(
+        parameters_input,
+        parameters_input->euler_param.ref_length,
+        parameters_input->euler_param.gamma_gas,
+        parameters_input->euler_param.mach_inf,
+        parameters_input->euler_param.angle_of_attack,
+        parameters_input->euler_param.side_slip_angle,
+        0.75,
+        1.0,
+        parameters_input->navier_stokes_param.use_constant_viscosity,
+        parameters_input->navier_stokes_param.nondimensionalized_constant_viscosity,
+        parameters_input->navier_stokes_param.temperature_inf),
+    navier_stokes_FadType(
+        parameters_input,
+        parameters_input->euler_param.ref_length,
+        parameters_input->euler_param.gamma_gas,
+        parameters_input->euler_param.mach_inf,
+        parameters_input->euler_param.angle_of_attack,
+        parameters_input->euler_param.side_slip_angle,
+        0.75,
+        1.0,
+        parameters_input->navier_stokes_param.use_constant_viscosity,
+        parameters_input->navier_stokes_param.nondimensionalized_constant_viscosity,
+        parameters_input->navier_stokes_param.temperature_inf),
+    navier_stokes_RadType(
+        parameters_input,
+        parameters_input->euler_param.ref_length,
+        parameters_input->euler_param.gamma_gas,
+        parameters_input->euler_param.mach_inf,
+        parameters_input->euler_param.angle_of_attack,
+        parameters_input->euler_param.side_slip_angle,
+        0.75,
+        1.0,
+        parameters_input->navier_stokes_param.use_constant_viscosity,
+        parameters_input->navier_stokes_param.nondimensionalized_constant_viscosity,
+        parameters_input->navier_stokes_param.temperature_inf),
+    navier_stokes_FadFadType(
+        parameters_input,
+        parameters_input->euler_param.ref_length,
+        parameters_input->euler_param.gamma_gas,
+        parameters_input->euler_param.mach_inf,
+        parameters_input->euler_param.angle_of_attack,
+        parameters_input->euler_param.side_slip_angle,
+        0.75,
+        1.0,
+        parameters_input->navier_stokes_param.use_constant_viscosity,
+        parameters_input->navier_stokes_param.nondimensionalized_constant_viscosity,
+        parameters_input->navier_stokes_param.temperature_inf),
+    navier_stokes_RadFadType(
+        parameters_input,
+        parameters_input->euler_param.ref_length,
+        parameters_input->euler_param.gamma_gas,
+        parameters_input->euler_param.mach_inf,
+        parameters_input->euler_param.angle_of_attack,
+        parameters_input->euler_param.side_slip_angle,
+        0.75,
+        1.0,
+        parameters_input->navier_stokes_param.use_constant_viscosity,
+        parameters_input->navier_stokes_param.nondimensionalized_constant_viscosity,
+        parameters_input->navier_stokes_param.temperature_inf)
     {}
-
-    /// Destructor of EnthalpyConservingArtificialDissipation
-    ~EnthalpyConservingArtificialDissipation() {};
 
     /// Enthalpy laplacian flux function overloaded with type double.
     std::array<dealii::Tensor<1,dim,double>,nstate>  calc_artificial_dissipation_flux(

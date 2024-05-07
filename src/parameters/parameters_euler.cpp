@@ -3,9 +3,6 @@
 namespace PHiLiP {
 namespace Parameters {
 
-// Euler inputs
-EulerParam::EulerParam () {}
-
 void EulerParam::declare_parameters (dealii::ParameterHandler &prm)
 {
     prm.enter_subsection("euler");

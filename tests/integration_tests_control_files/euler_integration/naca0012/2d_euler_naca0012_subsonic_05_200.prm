@@ -20,7 +20,7 @@ set conv_num_flux = roe
 set overintegration = 0
 
 #set sipg_penalty_factor = 20
-
+set output_face_results_vtk = true
 
 subsection euler
   set reference_length = 1.0

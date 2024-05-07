@@ -1,9 +1,9 @@
 #ifndef __ADVECTION_EXPLICIT_PERIODIC_H__
 #define __ADVECTION_EXPLICIT_PERIODIC_H__
 
-#include "tests.h"
-#include "dg/dg.h"
+#include "dg/dg_base.hpp"
 #include "parameters/all_parameters.h"
+#include "tests.h"
 
 namespace PHiLiP {
 namespace Tests {
@@ -14,11 +14,8 @@ class AdvectionPeriodic: public TestsBase
 {
 public:
     /// Constructor
-    AdvectionPeriodic(const Parameters::AllParameters *const parameters_input);
+    explicit AdvectionPeriodic(const Parameters::AllParameters *const parameters_input);
 
-    /// Destructor
-    ~AdvectionPeriodic() {};
-    
     /// Run test
     int run_test () const override;
 private:

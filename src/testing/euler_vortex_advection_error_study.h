@@ -28,7 +28,10 @@ protected:
     double compute_temperature ( const std::array<double,nstate> &conservative_soln ) const;
 
      //  Compute mass fractions of the #1 species from conservative solutions using different functions depending on physics model
-    double compute_mass_fractions_1st ( const std::array<double,nstate> &conservative_soln ) const;   
+    double compute_mass_fractions_1st ( const std::array<double,nstate> &conservative_soln ) const;  
+
+    // 1/10 cycle exact solutioons
+    double compute_exact_at_q ( const dealii::Point<dim,double> &point, const unsigned int istate ) const;
 
     /// Parameter handler for storing the .prm file being ran
     const dealii::ParameterHandler &parameter_handler;

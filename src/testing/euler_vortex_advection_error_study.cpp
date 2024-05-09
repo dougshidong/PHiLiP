@@ -221,6 +221,7 @@ double EulerVortexAdvectionErrorStudy<dim,nstate>
     using GridEnum = ManParam::GridEnum;
     Parameters::AllParameters param = *(TestsBase::all_parameters);
     // output file 
+    // error
     // density
     std::ofstream outdata_density;
     outdata_density.open("density_error.txt");
@@ -232,7 +233,22 @@ double EulerVortexAdvectionErrorStudy<dim,nstate>
     outdata_temperature.open("temperature_error.txt");    
     //  mass_fractions_1st
     std::ofstream outdata_mass_fractions_1st;
-    outdata_mass_fractions_1st.open("mass_fractions_1st_error.txt");    
+    outdata_mass_fractions_1st.open("mass_fractions_1st_error.txt");   
+    // slope
+    // density
+    std::ofstream outdata_slope_density;
+    outdata_slope_density.open("slope_density_error.txt");
+    //  pressure
+    std::ofstream outdata_slope_pressure;
+    outdata_slope_pressure.open("slope_pressure_error.txt");
+    //  temperature
+    std::ofstream outdata_slope_temperature;
+    outdata_slope_temperature.open("slope_temperature_error.txt");    
+    //  mass_fractions_1st
+    std::ofstream outdata_slope_mass_fractions_1st;
+    outdata_slope_mass_fractions_1st.open("slope_mass_fractions_1st_error.txt"); 
+
+
     // // flowtype
     // using FlowCaseEnum = Parameters::FlowSolverParam::FlowCaseType;
     // const FlowCaseEnum flow_type = param.flow_solver_param.flow_case_type;
@@ -611,6 +627,12 @@ double EulerVortexAdvectionErrorStudy<dim,nstate>
                      <<" " << "Linf_error " << 2 << "  " << error_Linf_density[igrid]
                      << "  slope " << slope_soln_err_linf
                      << std::endl;
+                // file output
+                outdata_slope_density << dx << " " 
+                    << slope_soln_err_l1 << " "
+                    << slope_soln_err_l2 << " "
+                    << slope_soln_err_linf << " "
+                    << std::endl;     
                 // pressure
                 slope_soln_err_l1 = log(error_L1_pressure[igrid]/error_L1_pressure[igrid-1])
                                       / log(grid_size[igrid]/grid_size[igrid-1]);
@@ -631,6 +653,12 @@ double EulerVortexAdvectionErrorStudy<dim,nstate>
                      <<" " << "Linf_error " << 2 << "  " << error_Linf_pressure[igrid]
                      << "  slope " << slope_soln_err_linf
                      << std::endl;
+                // file output
+                outdata_slope_pressure << dx << " " 
+                    << slope_soln_err_l1 << " "
+                    << slope_soln_err_l2 << " "
+                    << slope_soln_err_linf << " "
+                    << std::endl;        
                 // temperature
                 slope_soln_err_l1 = log(error_L1_temperature[igrid]/error_L1_temperature[igrid-1])
                                       / log(grid_size[igrid]/grid_size[igrid-1]);
@@ -650,7 +678,13 @@ double EulerVortexAdvectionErrorStudy<dim,nstate>
                      <<" " << "Linf_error " << 1 << "  " << error_Linf_temperature[igrid-1]
                      <<" " << "Linf_error " << 2 << "  " << error_Linf_temperature[igrid]
                      << "  slope " << slope_soln_err_linf
-                     << std::endl;      
+                     << std::endl;     
+                // file output
+                outdata_slope_temperature << dx << " " 
+                    << slope_soln_err_l1 << " "
+                    << slope_soln_err_l2 << " "
+                    << slope_soln_err_linf << " "
+                    << std::endl;                      
                 // mass_fractions_1st
                 slope_soln_err_l1 = log(error_L1_mass_fractions_1st[igrid]/error_L1_mass_fractions_1st[igrid-1])
                                       / log(grid_size[igrid]/grid_size[igrid-1]);
@@ -670,7 +704,13 @@ double EulerVortexAdvectionErrorStudy<dim,nstate>
                      <<" " << "Linf_error " << 1 << "  " << error_Linf_mass_fractions_1st[igrid-1]
                      <<" " << "Linf_error " << 2 << "  " << error_Linf_mass_fractions_1st[igrid]
                      << "  slope " << slope_soln_err_linf
-                     << std::endl;                                    
+                     << std::endl;
+                // file output
+                outdata_slope_mass_fractions_1st << dx << " " 
+                    << slope_soln_err_l1 << " "
+                    << slope_soln_err_l2 << " "
+                    << slope_soln_err_linf << " "  
+                    << std::endl;                                                                             
             }
 
             //output_results (igrid);

@@ -54,8 +54,6 @@ protected:
     /// Physics that should correspond to the one in DGBase
     std::shared_ptr<Physics::PhysicsBase<dim,nstate,FadFadType>> physics_fad_fad;
 
-    std::shared_ptr<Physics::PhysicsBase<dim,nstate,real>> physics_real;
-
 public:
     /// Destructor
     virtual ~Functional() = default;

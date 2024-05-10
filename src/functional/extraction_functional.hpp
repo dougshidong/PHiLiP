@@ -51,8 +51,8 @@ public:
     /// @brief Length of extraction line 
     real length_of_sampling;
 
-    /// @brief Navier-Stokes physics reference.
-    const Physics::NavierStokes<dim,dim+2,FadType> &navier_stokes_fad;
+    /// @brief Navier-Stokes physics pointer.
+    std::shared_ptr <Physics::NavierStokes<dim,dim+2,FadType>> navier_stokes_fad;
 
     /// @brief Reynolds-averaged Navier-Stokes negative SA model pointer.
     std::shared_ptr <Physics::ReynoldsAveragedNavierStokes_SAneg<dim,dim+3,FadType>> rans_sa_neg_fad;

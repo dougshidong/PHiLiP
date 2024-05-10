@@ -102,8 +102,8 @@ void FlowSolver<dim,nstate,sub_nstate>::main_flow_solver_setup()
 {
     flow_solver_case->set_higher_order_grid(dg);
     if (ode_param.allocate_matrix_dRdW) {
-        pcout << "Note: Allocating DG with AD matrix dRdW only." << std::endl;
-        dg->allocate_system(true,false,false); // FlowSolver only requires dRdW to be allocated
+        pcout << "Note: Allocating DG with AD matrix dRdW and dRdX only." << std::endl;
+        dg->allocate_system(true,true,false); // FlowSolver only requires dRdW to be allocated
     } else {
         pcout << "Note: Allocating DG without AD matrices." << std::endl;
         dg->allocate_system(false,false,false);

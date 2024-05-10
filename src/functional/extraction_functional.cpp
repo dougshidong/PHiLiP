@@ -23,8 +23,9 @@ ExtractionFunctional<dim,nstate,real,MeshType>
     , start_point(start_point_input)
     , number_of_sampling(number_of_sampling_input)
     , number_of_total_sampling(number_of_sampling+2)
-    , navier_stokes_fad(dynamic_cast< Physics::NavierStokes<dim,dim+2,FadType> &>(*(PHiLiP::Physics::PhysicsFactory<dim,dim+2,FadType>::create_Physics(this->dg->all_parameters, Parameters::AllParameters::PartialDifferentialEquation::navier_stokes))))
 {
+    navier_stokes_fad = std::dynamic_pointer_cast< Physics::NavierStokes<dim,dim+2,FadType> >(PHiLiP::Physics::PhysicsFactory<dim,dim+2,FadType>::create_Physics(this->dg->all_parameters, Parameters::AllParameters::PartialDifferentialEquation::navier_stokes));
+
     if (nstate==dim+3){
         rans_sa_neg_fad = std::dynamic_pointer_cast< Physics::ReynoldsAveragedNavierStokes_SAneg<dim,dim+3,FadType> >(PHiLiP::Physics::ModelFactory<dim,dim+3,FadType>::create_Model(this->dg->all_parameters)); 
     }
@@ -111,7 +112,7 @@ template <int dim,int nstate,typename real,typename MeshType>
 void ExtractionFunctional<dim,nstate,real,MeshType>
 ::evaluate_extraction_end_point_coord()
 {
-    this->length_of_sampling = 8.0*(0.37*this->start_point[0]/pow(navier_stokes_fad.reynolds_number_inf,1.0/5.0));
+    this->length_of_sampling = 8.0*(0.37*this->start_point[0]/pow(navier_stokes_fad->reynolds_number_inf,1.0/5.0));
     std::cout << "Length_of_sampling for the boundary layer extraction is " << this->length_of_sampling << std::endl;
     this->end_point = this->start_point+this->start_point_normal_vector*length_of_sampling;
     if(dim==2)
@@ -335,7 +336,7 @@ real2 ExtractionFunctional<dim,nstate,real,MeshType>
         std::abort();
     }
     const real2 density_at_q = ns_soln_at_q[0];
-    const dealii::Tensor<1,dim,real2> velocity_at_q = navier_stokes_fad.compute_velocities(ns_soln_at_q);
+    const dealii::Tensor<1,dim,real2> velocity_at_q = navier_stokes_fad->compute_velocities(ns_soln_at_q);
     real2 U_tangential_at_q = 0.0;
     for(int d=0;d<dim;++d){
         U_tangential_at_q += velocity_at_q[d]*tangential[d];
@@ -363,7 +364,7 @@ real2 ExtractionFunctional<dim,nstate,real,MeshType>
         std::abort();
     }
     const real2 density_at_q = ns_soln_at_q[0];
-    const dealii::Tensor<1,dim,real2> velocity_at_q = navier_stokes_fad.compute_velocities(ns_soln_at_q);
+    const dealii::Tensor<1,dim,real2> velocity_at_q = navier_stokes_fad->compute_velocities(ns_soln_at_q);
     real2 U_tangential_at_q = 0.0;
     for(int d=0;d<dim;++d){
         U_tangential_at_q += velocity_at_q[d]*tangential[d];
@@ -392,9 +393,9 @@ real2 ExtractionFunctional<dim,nstate,real,MeshType>
         std::abort();
     }
 
-    const std::array<real2,dim+2> primitive_soln_at_wall = navier_stokes_fad.convert_conservative_to_primitive(ns_soln_of_sampling);
+    const std::array<real2,dim+2> primitive_soln_at_wall = navier_stokes_fad->convert_conservative_to_primitive(ns_soln_of_sampling);
     density_at_wall = primitive_soln_at_wall[0];
-    dynamic_viscosity_at_wall = navier_stokes_fad.compute_viscosity_coefficient(primitive_soln_at_wall);
+    dynamic_viscosity_at_wall = navier_stokes_fad->compute_viscosity_coefficient(primitive_soln_at_wall);
     kinematic_viscosity_at_wall = dynamic_viscosity_at_wall/density_at_wall;
 
     return kinematic_viscosity_at_wall;
@@ -448,9 +449,9 @@ real2 ExtractionFunctional<dim,nstate,real,MeshType>
         std::abort();
     }
     real2 shear_stress_at_q;
-    const std::array<real2,dim+2> primitive_soln_at_q = navier_stokes_fad.convert_conservative_to_primitive(ns_soln_at_q);
-    const std::array<dealii::Tensor<1,dim,real2>,dim+2> primitive_soln_grad_at_q = navier_stokes_fad.convert_conservative_gradient_to_primitive_gradient(ns_soln_at_q,ns_soln_grad_at_q);
-    dealii::Tensor<2,dim,real2> viscous_stress_tensor_at_q = navier_stokes_fad.compute_viscous_stress_tensor(primitive_soln_at_q,primitive_soln_grad_at_q);
+    const std::array<real2,dim+2> primitive_soln_at_q = navier_stokes_fad->convert_conservative_to_primitive(ns_soln_at_q);
+    const std::array<dealii::Tensor<1,dim,real2>,dim+2> primitive_soln_grad_at_q = navier_stokes_fad->convert_conservative_gradient_to_primitive_gradient(ns_soln_at_q,ns_soln_grad_at_q);
+    dealii::Tensor<2,dim,real2> viscous_stress_tensor_at_q = navier_stokes_fad->compute_viscous_stress_tensor(primitive_soln_at_q,primitive_soln_grad_at_q);
     dealii::Tensor<1,dim,real2> shear_stress_vector_at_q;
     for (int r=0;r<dim;++r){
         for (int c=0;c<dim;++c){
@@ -520,7 +521,7 @@ real ExtractionFunctional<dim,nstate,real,MeshType>
         std::cout << "ERROR: Extraction functional only support nstate == dim+2 or dim+3..." << std::endl;
         std::abort();
     }
-    real2 edge_velocity = navier_stokes_fad.compute_velocities(ns_soln_of_sampling).norm();
+    real2 edge_velocity = navier_stokes_fad->compute_velocities(ns_soln_of_sampling).norm();
     for(int i=1;i<number_of_total_sampling;++i){
         if constexpr(nstate==dim+2){
             ns_soln_of_sampling = soln_of_total_sampling[i];
@@ -530,7 +531,7 @@ real ExtractionFunctional<dim,nstate,real,MeshType>
             std::cout << "ERROR: Extraction functional only support nstate == dim+2 or dim+3..." << std::endl;
             std::abort();
         }
-        real2 edge_velocity_n = navier_stokes_fad.compute_velocities(ns_soln_of_sampling).norm();
+        real2 edge_velocity_n = navier_stokes_fad->compute_velocities(ns_soln_of_sampling).norm();
         if(edge_velocity_n>=0.99*values_free_stream.first && std::abs(edge_velocity-edge_velocity_n)<=tolerance) {
             boundary_layer_thickness = this->start_point.distance(coord_of_total_sampling[i]);
             //std::cout << "Captured boundary layer thickness..." << std::endl;
@@ -562,7 +563,7 @@ real2 ExtractionFunctional<dim,nstate,real,MeshType>
         std::abort();
     }
 
-    dealii::Tensor<1,dim,real2> pressure_gradient = navier_stokes_fad.convert_conservative_gradient_to_primitive_gradient(ns_soln_of_sampling,ns_soln_grad_of_sampling)[dim+2-1];
+    dealii::Tensor<1,dim,real2> pressure_gradient = navier_stokes_fad->convert_conservative_gradient_to_primitive_gradient(ns_soln_of_sampling,ns_soln_grad_of_sampling)[dim+2-1];
     real2 pressure_gradient_tangential = 0.0;
     for(int d=0;d<dim;++d){
         pressure_gradient_tangential += pressure_gradient[d]*this->start_point_tangential_vector[d];
@@ -590,7 +591,7 @@ std::pair<real,real> ExtractionFunctional<dim,nstate,real,MeshType>
         std::cout << "ERROR: Extraction functional only support nstate == dim+2 or dim+3..." << std::endl;
         std::abort();
     }
-    real2 speed_sampling = navier_stokes_fad.compute_velocities(ns_soln_of_sampling).norm();
+    real2 speed_sampling = navier_stokes_fad->compute_velocities(ns_soln_of_sampling).norm();
     real2 speed_sampling_n;
     for(int i=1;i<number_of_total_sampling;++i){
         if constexpr(nstate==dim+2){
@@ -601,7 +602,7 @@ std::pair<real,real> ExtractionFunctional<dim,nstate,real,MeshType>
             std::cout << "ERROR: Extraction functional only support nstate == dim+2 or dim+3..." << std::endl;
             std::abort();
         }
-        speed_sampling_n = navier_stokes_fad.compute_velocities(ns_soln_of_sampling).norm();
+        speed_sampling_n = navier_stokes_fad->compute_velocities(ns_soln_of_sampling).norm();
         if(std::abs(speed_sampling-speed_sampling_n)<=tolerance){
             if(consecutive_sensor){
                 if constexpr(std::is_same<real2,real>::value){

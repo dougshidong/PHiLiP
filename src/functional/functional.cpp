@@ -335,9 +335,6 @@ Functional<dim,nstate,real,MeshType>::Functional(
     std::shared_ptr<Physics::ModelBase<dim,nstate,FadFadType>> model_fad_fad = Physics::ModelFactory<dim,nstate,FadFadType>::create_Model(dg->all_parameters);
     physics_fad_fad = Physics::PhysicsFactory<dim,nstate,FadFadType>::create_Physics(dg->all_parameters,model_fad_fad);
 
-    std::shared_ptr<Physics::ModelBase<dim,nstate,real>> model_real = Physics::ModelFactory<dim,nstate,real>::create_Model(dg->all_parameters);
-    physics_real = Physics::PhysicsFactory<dim,nstate,real>::create_Physics(dg->all_parameters,model_real);
-
     init_vectors();
 }
 template <int dim, int nstate, typename real, typename MeshType>

@@ -351,7 +351,8 @@ protected:
 
 };
 
-/// Initial Condition Function: 1D Sod Shock Tube
+/// Initial Condition Function: 1D Sod Shock Tube 
+//  (can run 2D and 3D by extruding in those directions)
 /** See Chen & Shu, Entropy stable high order discontinuous 
 *   Galerkin methods with suitable quadrature rules for hyperbolic 
 *   conservation laws., 2017, Pg. 25
@@ -368,6 +369,45 @@ public:
     /** Calls the Function(const unsigned int n_components) constructor in deal.II*/
     explicit InitialConditionFunction_SodShockTube (
             Parameters::AllParameters const* const param);
+};
+
+/// Initial Condition Function: Explosion Problem
+//  Cylindrical/Spherical (2D/3D) extension of Sod Shock Tube
+/** See Dumbser & Loubere, A simple robust and accurate a posteriori 
+ *  sub-cell..., 2016, Pg. 17
+*/
+template <int dim, int nstate, typename real>
+class InitialConditionFunction_ExplosionProblem : public InitialConditionFunction_EulerBase<dim, nstate, real>
+{
+protected:
+    /// Value of initial condition expressed in terms of primitive variables
+    real primitive_value(const dealii::Point<dim, real>& point, const unsigned int istate = 0) const override;
+
+public:
+    /// Constructor for InitialConditionFunction_DoubleMachReflection
+    /** Calls the Function(const unsigned int n_components) constructor in deal.II*/
+    explicit InitialConditionFunction_ExplosionProblem(
+        Parameters::AllParameters const* const param);
+};
+
+/// Initial Condition Function: 1D Leblanc Shock Tube
+//  Cylindrical extension (2D) also implemented
+/** See Zhang & Shu, On positivity-preserving high order
+*   discontinuous Galerkin schemes for compressible Euler
+*   equations on rectangular meshes, 2010 Pg. 14
+*/
+template <int dim, int nstate, typename real>
+class InitialConditionFunction_LeblancShockTube : public InitialConditionFunction_EulerBase<dim, nstate, real>
+{
+protected:
+    /// Value of initial condition expressed in terms of primitive variables
+    real primitive_value(const dealii::Point<dim, real>& point, const unsigned int istate = 0) const override;
+
+public:
+    /// Constructor for InitialConditionFunction_SodShockTube
+    /** Calls the Function(const unsigned int n_components) constructor in deal.II*/
+    explicit InitialConditionFunction_LeblancShockTube(
+        Parameters::AllParameters const* const param);
 };
 
 /// Initial Condition Function: 2D Low Density Euler
@@ -389,25 +429,6 @@ public:
         Parameters::AllParameters const* const param);
 };
 
-/// Initial Condition Function: 1D Leblanc Shock Tube
-/** See Zhang & Shu, On positivity-preserving high order
-*   discontinuous Galerkin schemes for compressible Euler
-*   equations on rectangular meshes, 2010 Pg. 14
-*/
-template <int dim, int nstate, typename real>
-class InitialConditionFunction_LeblancShockTube : public InitialConditionFunction_EulerBase<dim, nstate, real>
-{
-protected:
-    /// Value of initial condition expressed in terms of primitive variables
-    real primitive_value(const dealii::Point<dim, real>& point, const unsigned int istate = 0) const override;
-
-public:
-    /// Constructor for InitialConditionFunction_SodShockTube
-    /** Calls the Function(const unsigned int n_components) constructor in deal.II*/
-    explicit InitialConditionFunction_LeblancShockTube(
-        Parameters::AllParameters const* const param);
-};
-
 /// Initial Condition Function: 1D Shu Osher Problem
 /** See Johnsen et al., Assessment of high-resolution methods 
 *   for numerical simulations of compressible turbulence with 
@@ -424,6 +445,87 @@ public:
     /// Constructor for InitialConditionFunction_SodShockTube
     /** Calls the Function(const unsigned int n_components) constructor in deal.II*/
     explicit InitialConditionFunction_ShuOsherProblem(
+        Parameters::AllParameters const* const param);
+};
+
+/// Initial Condition Function: 2D Double Mach Reflection Problem
+/** See Xu & Shu, Third order maximum-principle-satisfying 
+ *  and positivity-preserving Lax-Wendroff discontinuous Galerkin 
+ *  methods for hyperbolic conservation laws, 2022 pg. 29
+*/
+template <int dim, int nstate, typename real>
+class InitialConditionFunction_DoubleMachReflection : public InitialConditionFunction_EulerBase<dim, nstate, real>
+{
+protected:
+    /// Value of initial condition expressed in terms of primitive variables
+    real primitive_value(const dealii::Point<dim, real>& point, const unsigned int istate = 0) const override;
+
+public:
+    /// Constructor for InitialConditionFunction_DoubleMachReflection
+    /** Calls the Function(const unsigned int n_components) constructor in deal.II*/
+    explicit InitialConditionFunction_DoubleMachReflection(
+        Parameters::AllParameters const* const param);
+};
+
+/// Initial Condition Function: 2D Sedov Blast Wave
+/** See Xu & Shu, Third order maximum-principle-satisfying 
+ *  and positivity-preserving Lax-Wendroff discontinuous Galerkin 
+ *  methods for hyperbolic conservation laws, 2022 pg. 25
+*/
+template <int dim, int nstate, typename real>
+class InitialConditionFunction_SedovBlastWave : public InitialConditionFunction<dim, nstate, real>
+{
+protected:
+    using dealii::Function<dim,real>::value; ///< dealii::Function we are templating on
+
+public:
+    /// Constructor for InitialConditionFunction_SedovBlastWave
+    /** Calls the Function(const unsigned int n_components) constructor in deal.II*/
+    explicit InitialConditionFunction_SedovBlastWave(
+        Parameters::AllParameters const* const param);
+
+
+    /// Value of initial condition
+    real value(const dealii::Point<dim,real> &point, const unsigned int istate = 0) const override;
+
+    int n_subdivisions;
+    double h;
+
+};
+
+/// Initial Condition Function: 2D Mach 3 Wind Tunnel Problem
+/** INCLUDE REFERENCE LATER
+*/
+template <int dim, int nstate, typename real>
+class InitialConditionFunction_Mach3WindTunnel : public InitialConditionFunction_EulerBase<dim, nstate, real>
+{
+protected:
+    /// Value of initial condition expressed in terms of primitive variables
+    real primitive_value(const dealii::Point<dim, real>& /*point*/, const unsigned int istate = 0) const override;
+
+public:
+    /// Constructor for InitialConditionFunction_SodShockTube
+    /** Calls the Function(const unsigned int n_components) constructor in deal.II*/
+    explicit InitialConditionFunction_Mach3WindTunnel(
+        Parameters::AllParameters const* const param);
+};
+
+/// Initial Condition Function: 2D Shock Diffraction Problem
+/** See Xu & Shu, Third order maximum-principle-satisfying 
+ *  and positivity-preserving Lax-Wendroff discontinuous Galerkin 
+ *  methods for hyperbolic conservation laws, 2022 pg. 30
+*/
+template <int dim, int nstate, typename real>
+class InitialConditionFunction_ShockDiffraction : public InitialConditionFunction_EulerBase<dim, nstate, real>
+{
+protected:
+    /// Value of initial condition expressed in terms of primitive variables
+    real primitive_value(const dealii::Point<dim, real>& point, const unsigned int istate = 0) const override;
+
+public:
+    /// Constructor for InitialConditionFunction_SodShockTube
+    /** Calls the Function(const unsigned int n_components) constructor in deal.II*/
+    explicit InitialConditionFunction_ShockDiffraction(
         Parameters::AllParameters const* const param);
 };
 

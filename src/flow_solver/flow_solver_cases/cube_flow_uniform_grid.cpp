@@ -18,7 +18,11 @@ double CubeFlow_UniformGrid<dim,nstate>::get_adaptive_time_step(std::shared_ptr<
 {
     // compute time step based on advection speed (i.e. maximum local wave speed)
     const unsigned int number_of_degrees_of_freedom_per_state = dg->dof_handler.n_dofs()/nstate;
-    const double approximate_grid_spacing = (this->all_param.flow_solver_param.grid_right_bound-this->all_param.flow_solver_param.grid_left_bound)/pow(number_of_degrees_of_freedom_per_state,(1.0/dim));
+    double approximate_grid_spacing = 0.0;
+    if(this->all_param.flow_solver_param.grid_xmax == this->all_param.flow_solver_param.grid_xmin)
+        approximate_grid_spacing = (this->all_param.flow_solver_param.grid_right_bound-this->all_param.flow_solver_param.grid_left_bound)/pow(number_of_degrees_of_freedom_per_state,(1.0/dim));
+    else
+        approximate_grid_spacing = (this->all_param.flow_solver_param.grid_xmax-this->all_param.flow_solver_param.grid_xmin)/pow(number_of_degrees_of_freedom_per_state,(1.0/dim));
     const double cfl_number = this->all_param.flow_solver_param.courant_friedrichs_lewy_number;
     const double time_step = cfl_number * approximate_grid_spacing / this->maximum_local_wave_speed;
     

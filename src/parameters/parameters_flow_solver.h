@@ -33,7 +33,12 @@ public:
         leblanc_shock_tube,
         shu_osher_problem,
         advection_limiter,
-        burgers_limiter
+        burgers_limiter,
+        double_mach_reflection,
+        sedov_blast_wave,
+        mach_3_wind_tunnel,
+        shock_diffraction,
+        explosion_problem
         };
     FlowCaseType flow_case_type; ///< Selected FlowCaseType from the input file
 
@@ -102,6 +107,16 @@ public:
     int number_of_subdivisions_in_x_direction; ///< Number of subdivisions in x direction for gaussian bump case
     int number_of_subdivisions_in_y_direction; ///< Number of subdivisions in y direction for gaussian bump case
     int number_of_subdivisions_in_z_direction; ///< Number of subdivisions in z direction for gaussian bump case
+    double grid_xmax; ///< Maximum x bound of domain for positivity_preserving_tests
+    double grid_xmin; ///< Minimum x bound of domain for positivity_preserving_tests
+    double grid_ymax; ///< Maximum y bound of domain for positivity_preserving_tests
+    double grid_ymin; ///< Minimum y bound of domain for positivity_preserving_tests
+    double grid_zmax; ///< Maximum z bound of domain for positivity_preserving_tests
+    double grid_zmin; ///< Minimum z bound of domain for positivity_preserving_tests
+
+    unsigned int number_of_grid_elements_x; ///< Number of subdivisions in x direction for positivity_preserving_tests
+    unsigned int number_of_grid_elements_y; ///< Number of subdivisions in y direction for positivity_preserving_tests
+    unsigned int number_of_grid_elements_z; ///< Number of subdivisions in z direction for positivity_preserving_tests
 
     /** For taylor green vortex integration tests, expected kinetic energy at final time. */
     double expected_kinetic_energy_at_final_time;

@@ -2,7 +2,7 @@
 # ---------------------
 # Number of dimensions
 
-set dimension = 1
+set dimension = 3
 set run_type = flow_simulation
 set pde_type = euler
 
@@ -18,7 +18,7 @@ set flux_nodes_type = GLL
 set use_split_form = true
 set two_point_num_flux_type = Ra
 set conv_num_flux = two_point_flux_with_roe_dissipation
-set flux_reconstruction = cPlus
+set flux_reconstruction = cDG
 set use_inverse_mass_on_the_fly = true
 
 #limiter flags
@@ -46,12 +46,18 @@ subsection flow_solver
   set flow_case_type = sod_shock_tube
   set poly_degree = 3
   set final_time = 0.2
-  set courant_friedrichs_lewy_number = 0.66
+  set courant_friedrichs_lewy_number = 0.05
   set adaptive_time_step = true
   set unsteady_data_table_filename = sod_shock_energy
   subsection grid
     set grid_xmin = -0.5
     set grid_xmax = 0.5
+    set grid_ymin = -0.05
+    set grid_ymax = 0.05
+    set grid_zmin = -0.05
+    set grid_zmax = 0.05
     set number_of_grid_elements_x = 100
+    set number_of_grid_elements_y = 10
+    set number_of_grid_elements_z = 10
   end
 end

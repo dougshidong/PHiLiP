@@ -81,7 +81,6 @@ double BoundPreservingLimiterTests<dim, nstate>::calculate_l2error(
             const dealii::Point<dim> qpoint = (fe_values_extra.quadrature_point(iquad));
             double uexact = calculate_uexact(qpoint, adv_speeds, final_time);
             l2error += pow(soln_at_q[0] - uexact, 2) * fe_values_extra.JxW(iquad);
-            std::cout << soln_at_q[0] << "   " << uexact << std::endl << std::endl;
         }
     }
     const double l2error_mpi_sum = std::sqrt(dealii::Utilities::MPI::sum(l2error, this->mpi_communicator));

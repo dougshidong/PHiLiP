@@ -1,5 +1,7 @@
 #include "positivity_preserving_limiter.h"
 #include "tvb_limiter.h"
+#include <eigen/unsupported/Eigen/Polynomials>
+#include <eigen/Eigen/Dense>
 
 namespace PHiLiP {
 /**********************************
@@ -75,6 +77,8 @@ std::vector<real> PositivityPreservingLimiter<dim, nstate, real>::get_theta2_Zha
     const double                                    gamma)
 {
     std::vector<real> theta2(n_quad_pts, 1); // Value used to linearly scale state variables
+    Eigen::PolynomialSolver<double, 2> solver; // Solver to find smallest root
+
     for (unsigned int iquad = 0; iquad < n_quad_pts; ++iquad) {
         if (p_lim[iquad] >= eps) {
             theta2[iquad] = 1;
@@ -99,16 +103,10 @@ std::vector<real> PositivityPreservingLimiter<dim, nstate, real>::get_theta2_Zha
                 s_coeff3 -= 0.5 * pow(soln_cell_avg[3], 2);
             }
 
-            real discriminant = s_coeff2 * s_coeff2 - 4 * s_coeff1 * s_coeff3;
-
-            if (discriminant >= 0) {
-                real t1 = (-s_coeff2 + sqrt(discriminant)) / (2 * s_coeff1);
-                real t2 = (-s_coeff2 - sqrt(discriminant)) / (2 * s_coeff1);
-                theta2[iquad] = std::min(t1, t2);
-            }
-            else {
-                theta2[iquad] = 0;
-            }
+            Eigen::Vector3d coeff(s_coeff3, s_coeff2, s_coeff1);
+            solver.compute(coeff);
+            const Eigen::PolynomialSolver<double, 2>::RootType &r = solver.smallestRoot();
+            theta2[iquad] = r.real();
         }
     }
 
@@ -560,6 +558,7 @@ void PositivityPreservingLimiter<dim, nstate, real>::limit(
 
             // Compute pressure at solution points
             std::vector< real > p_lim;
+            p_lim.resize(n_quad_pts);
             for (unsigned int iquad = 0; iquad < n_quad_pts; ++iquad) {
                 for (unsigned int istate = 0; istate < nstate; ++istate) {
                     soln_at_iquad[istate] = soln_coeff[istate][iquad];
@@ -589,18 +588,13 @@ void PositivityPreservingLimiter<dim, nstate, real>::limit(
             std::abort();
         }
 
-        if(theta < 1.0 || theta2 < 1.0) {
-            std::cout << "Limiter Turned On" << std::endl;
-        }
+        // if(theta < 1.0 || theta2 < 1.0) {
+        //     std::cout << "Limiter Turned On" << std::endl;
+        // }
         // Write limited solution back and verify that positivity of density is satisfied
         write_limited_solution(solution, soln_coeff, n_shape_fns, current_dofs_indices);
     }
 }
 
-template class PositivityPreservingLimiter <PHILIP_DIM, 1, double>;
-template class PositivityPreservingLimiter <PHILIP_DIM, 2, double>;
-template class PositivityPreservingLimiter <PHILIP_DIM, 3, double>;
-template class PositivityPreservingLimiter <PHILIP_DIM, 4, double>;
-template class PositivityPreservingLimiter <PHILIP_DIM, 5, double>;
-template class PositivityPreservingLimiter <PHILIP_DIM, 6, double>;
+template class PositivityPreservingLimiter <PHILIP_DIM, PHILIP_DIM + 2, double>;
 } // PHiLiP namespace

@@ -40,6 +40,7 @@ end
 # freestream Mach number
 subsection euler
   set mach_infinity = 5.09
+  set custom_boundary_for_each_state = 7.041132906907898,4.07794695481336,0.0,30.05945,0.0
 end
 
 subsection flow_solver
@@ -51,12 +52,14 @@ subsection flow_solver
   set adaptive_time_step = true
   set unsteady_data_table_filename = shock_diffraction_energy
   subsection grid
-    set grid_xmin = 0.0
-    set grid_xmax = 13.0
-    set grid_ymin = 0.0
-    set grid_ymax = 11.0
+    subsection positivity_preserving_tests
+      set grid_xmin = 0.0
+      set grid_xmax = 13.0
+      set grid_ymin = 0.0
+      set grid_ymax = 11.0
 
-    set number_of_grid_elements_x = 208
-    set number_of_grid_elements_y = 176
+      set number_of_grid_elements_x = 208
+      set number_of_grid_elements_y = 176
+    end
   end
 end

@@ -51,11 +51,13 @@ subsection flow_solver
   set adaptive_time_step = true
   set unsteady_data_table_filename = sedov_blast_wave_energy
   subsection grid
-    set grid_xmin = 0.0
-    set grid_xmax = 1.1
-    set grid_ymin = 0.0
-    set grid_ymax = 1.1
-    set number_of_grid_elements_x = 160
-    set number_of_grid_elements_y = 160
+    subsection positivity_preserving_tests
+      set grid_xmin = 0.0
+      set grid_xmax = 1.1
+      set grid_ymin = 0.0
+      set grid_ymax = 1.1
+      set number_of_grid_elements_x = 160
+      set number_of_grid_elements_y = 160
+    end
   end
 end

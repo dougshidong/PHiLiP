@@ -50,14 +50,16 @@ subsection flow_solver
   set adaptive_time_step = true
   set unsteady_data_table_filename = sod_shock_energy
   subsection grid
-    set grid_xmin = -0.5
-    set grid_xmax = 0.5
-    set grid_ymin = -0.05
-    set grid_ymax = 0.05
-    set grid_zmin = -0.05
-    set grid_zmax = 0.05
-    set number_of_grid_elements_x = 100
-    set number_of_grid_elements_y = 10
-    set number_of_grid_elements_z = 10
+    subsection positivity_preserving_tests
+      set grid_xmin = -0.5
+      set grid_xmax = 0.5
+      set grid_ymin = -0.05
+      set grid_ymax = 0.05
+      set grid_zmin = -0.05
+      set grid_zmax = 0.05
+      set number_of_grid_elements_x = 100
+      set number_of_grid_elements_y = 10
+      set number_of_grid_elements_z = 10
+    end
   end
 end

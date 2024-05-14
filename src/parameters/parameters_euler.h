@@ -17,6 +17,10 @@ public:
     /// Input file provides in degrees, but the value stored here is in radians
     double side_slip_angle;
 
+    /// Custom boundary values
+    /** These boundary conditions can only be used in Euler so max length is max nstate = dim + 2 = 5 **/
+    dealii::Tensor<1, 5, double> custom_boundary_for_each_state;
+
     /// Declares the possible variables and sets the defaults.
     static void declare_parameters (dealii::ParameterHandler &prm);
     /// Parses input file and sets the variables.

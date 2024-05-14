@@ -40,6 +40,7 @@ end
 # freestream Mach number
 subsection euler
   set mach_infinity = 3.0
+  set custom_boundary_for_each_state = 1.4,3.0,0.0,1.0,0.0
 end
 
 subsection flow_solver
@@ -51,11 +52,13 @@ subsection flow_solver
   set adaptive_time_step = true
   set unsteady_data_table_filename = mach_3_wind_tunnel_energy
   subsection grid
-    set grid_xmin = 0.0
-    set grid_xmax = 3.0
-    set grid_ymin = 0.0
-    set grid_ymax = 1.0
-    set number_of_grid_elements_x = 300
-    set number_of_grid_elements_y = 100
+    subsection positivity_preserving_tests
+      set grid_xmin = 0.0
+      set grid_xmax = 3.0
+      set grid_ymin = 0.0
+      set grid_ymax = 1.0
+      set number_of_grid_elements_x = 300
+      set number_of_grid_elements_y = 100
+    end
   end
 end

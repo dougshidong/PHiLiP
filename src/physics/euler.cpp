@@ -1319,6 +1319,23 @@ void Euler<dim,nstate,real>
    }
 }
 
+
+template <int dim, int nstate, typename real>
+void Euler<dim, nstate, real>
+::boundary_custom(
+    std::array<real, nstate>& soln_bc) const
+{
+    std::array<real, nstate> primitive_boundary_values;
+    for (int istate = 0; istate < nstate; ++istate) {
+            primitive_boundary_values[istate] = this->all_parameters->euler_param.custom_boundary_for_each_state[istate];
+    }
+
+    const std::array<real, nstate> conservative_bc = convert_primitive_to_conservative(primitive_boundary_values);
+    for (int istate = 0; istate < nstate; ++istate) {
+        soln_bc[istate] = conservative_bc[istate];
+    }
+}
+
 template <int dim, int nstate, typename real>
 void Euler<dim,nstate,real>
 ::boundary_face_values (
@@ -1362,6 +1379,10 @@ void Euler<dim,nstate,real>
     else if (boundary_type == 1006) {
         // Slip wall boundary condition
         boundary_slip_wall (normal_int, soln_int, soln_grad_int, soln_bc, soln_grad_bc);
+    }
+    else if (boundary_type == 1007) {
+        // Slip wall boundary condition
+        boundary_custom (soln_bc);
     } 
     else {
         this->pcout << "Invalid boundary_type: " << boundary_type << std::endl;

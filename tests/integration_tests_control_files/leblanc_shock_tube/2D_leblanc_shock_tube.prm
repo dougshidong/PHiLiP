@@ -57,11 +57,13 @@ subsection flow_solver
   set adaptive_time_step = true
   set unsteady_data_table_filename = leblanc_shock_energy
   subsection grid
-    set grid_xmin = -20.0
-    set grid_xmax = 20.0
-    set grid_ymin = -20.0
-    set grid_ymax = 20.0
-    set number_of_grid_elements_x = 100
-    set number_of_grid_elements_y = 100
+    subsection positivity_preserving_tests
+      set grid_xmin = -20.0
+      set grid_xmax = 20.0
+      set grid_ymin = -20.0
+      set grid_ymax = 20.0
+      set number_of_grid_elements_x = 100
+      set number_of_grid_elements_y = 100
+    end
   end
 end

@@ -427,6 +427,10 @@ protected:
     void boundary_farfield (
         std::array<real,nstate> &soln_bc) const;
 
+    /// Boundary conditions based on user-defined values
+    void boundary_custom (
+        std::array<real,nstate> &soln_bc) const;
+
     /// Get manufactured solution value
     std::array<real,nstate> get_manufactured_solution_value(
         const dealii::Point<dim,real> &pos) const;

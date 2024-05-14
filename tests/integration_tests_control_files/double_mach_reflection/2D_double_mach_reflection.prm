@@ -40,6 +40,7 @@ end
 # freestream Mach number
 subsection euler
   set mach_infinity = 10.0
+  set custom_boundary_for_each_state = 8.0,7.1447095812216,-4.125,116.5,0.0
 end
 
 subsection flow_solver
@@ -51,11 +52,13 @@ subsection flow_solver
   set adaptive_time_step = true
   set unsteady_data_table_filename = double_mach_shock_energy
   subsection grid
-    set grid_left_bound = 0.0
-    set grid_right_bound = 4.0
-	set grid_top_bound = 3.0
-	set grid_bottom_bound = 0.0
-    set number_of_grid_elements_x = 120
-    set number_of_grid_elements_y = 90
+    subsection positivity_preserving_tests
+      set grid_xmin = 0.0
+      set grid_xmax = 4.0
+      set grid_ymax = 3.0
+      set grid_ymin = 0.0
+      set number_of_grid_elements_x = 120
+      set number_of_grid_elements_y = 90
+    end
   end
 end

@@ -433,17 +433,17 @@ void PositivityPreservingLimiter<dim, nstate, real>::limit(
             for (int istate = 0; istate < nstate; istate++) {
                 soln_at_q_dim[istate].resize(n_quad_pts);
 
-                if(dim >= 1) {
+                if(idim >= 1) {
                     soln_basis_GLL.matrix_vector_mult(soln_coeff[istate], soln_at_q_dim[istate],
                         soln_basis_GLL.oneD_vol_operator, soln_basis_GL.oneD_vol_operator, soln_basis_GL.oneD_vol_operator);
                 }
 
-                if(dim >= 2) {
+                if(idim >= 2) {
                     soln_basis_GLL.matrix_vector_mult(soln_coeff[istate], soln_at_q_dim[istate],
                         soln_basis_GL.oneD_vol_operator, soln_basis_GLL.oneD_vol_operator, soln_basis_GL.oneD_vol_operator);
                 }
 
-                if(dim == 3) {
+                if(idim == 3) {
                     soln_basis_GLL.matrix_vector_mult(soln_coeff[istate], soln_at_q_dim[istate],
                         soln_basis_GL.oneD_vol_operator, soln_basis_GL.oneD_vol_operator, soln_basis_GLL.oneD_vol_operator);
                 }

@@ -45,6 +45,7 @@ subsection navier_stokes
 end
 
 subsection linear solver
+set linear_solver_type = direct
   #set linear_solver_output = verbose
   subsection gmres options
     # Factor by which the diagonal of the matrix will be scaled, which

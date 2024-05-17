@@ -13,6 +13,9 @@
 #include "flow_solver_cases/non_periodic_cube_flow.h"
 #include "flow_solver_cases/channel_flow.h"
 
+//#include "flow_solver_cases/wall_cube.h"
+//#include "flow_solver_cases/flat_plate_2D.h"
+#include "flow_solver_cases/airfoil_2D.h"
 
 namespace PHiLiP {
 

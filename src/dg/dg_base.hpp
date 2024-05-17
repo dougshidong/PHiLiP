@@ -568,8 +568,30 @@ public:
      *  perform the work on all the faces.
      *  All the active cells must be traversed to ensure that the right hand side is correct.
      */
-    template<typename DoFCellAccessorType1, typename DoFCellAccessorType2>
+    template<typename DoFCellAccessorType1, typename DoFCellAccessorType2> // To be deleted
     void assemble_cell_residual (
+        const DoFCellAccessorType1 &current_cell,
+        const DoFCellAccessorType2 &current_metric_cell,
+        const bool compute_dRdW, const bool compute_dRdX, const bool compute_d2R,
+        dealii::hp::FEValues<dim,dim>                                      &fe_values_collection_volume,
+        dealii::hp::FEFaceValues<dim,dim>                                  &fe_values_collection_face_int,
+        dealii::hp::FEFaceValues<dim,dim>                                  &fe_values_collection_face_ext,
+        dealii::hp::FESubfaceValues<dim,dim>                               &fe_values_collection_subface,
+        dealii::hp::FEValues<dim,dim>                                      &fe_values_collection_volume_lagrange,
+        OPERATOR::basis_functions<dim,2*dim,real>                          &soln_basis_int,
+        OPERATOR::basis_functions<dim,2*dim,real>                          &soln_basis_ext,
+        OPERATOR::basis_functions<dim,2*dim,real>                          &flux_basis_int,
+        OPERATOR::basis_functions<dim,2*dim,real>                          &flux_basis_ext,
+        OPERATOR::local_basis_stiffness<dim,2*dim,real>                    &flux_basis_stiffness,
+        OPERATOR::vol_projection_operator<dim,2*dim,real>                  &soln_basis_projection_oper_int,
+        OPERATOR::vol_projection_operator<dim,2*dim,real>                  &soln_basis_projection_oper_ext,
+        OPERATOR::mapping_shape_functions<dim,2*dim,real>                  &mapping_basis,
+        const bool                                                         compute_auxiliary_right_hand_side,//flag on whether computing the Auxiliary variable's equations' residuals
+        dealii::LinearAlgebra::distributed::Vector<double>                 &rhs,
+        std::array<dealii::LinearAlgebra::distributed::Vector<double>,dim> &rhs_aux);
+    
+    template<typename DoFCellAccessorType1, typename DoFCellAccessorType2>
+    void assemble_cell_residual_derivatives (
         const DoFCellAccessorType1 &current_cell,
         const DoFCellAccessorType2 &current_metric_cell,
         const bool compute_dRdW, const bool compute_dRdX, const bool compute_d2R,

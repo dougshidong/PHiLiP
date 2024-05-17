@@ -374,6 +374,38 @@ void FlowSolverParam::parse_parameters(dealii::ParameterHandler &prm)
                 bump_height = prm.get_double("bump_height");
             }
             prm.leave_subsection();
+
+            // prm.enter_subsection("flat_plate_2D");
+            // {
+            //     number_of_subdivisions_in_x_direction_free = prm.get_integer("number_of_subdivisions_in_x_direction_free");
+            //     number_of_subdivisions_in_x_direction_plate = prm.get_integer("number_of_subdivisions_in_x_direction_plate");
+            //     number_of_subdivisions_in_y_direction = prm.get_integer("number_of_subdivisions_in_y_direction");
+            //     number_of_subdivisions_in_z_direction = prm.get_integer("number_of_subdivisions_in_z_direction");
+            //     free_length = prm.get_double("free_length");
+            //     free_height = prm.get_double("free_height");
+            //     plate_length = prm.get_double("plate_length");
+            //     skewness_x_free = prm.get_double("skewness_x_free");
+            //     skewness_x_plate = prm.get_double("skewness_x_plate");
+            //     skewness_y = prm.get_double("skewness_y");
+            //     skewness_z = prm.get_double("skewness_z");
+            // }
+            // prm.leave_subsection();
+
+            prm.enter_subsection("airfoil_2D");
+            {
+                airfoil_length = prm.get_double("airfoil_length");
+                height = prm.get_double("height");
+                length_b2 = prm.get_double("length_b2");
+                incline_factor = prm.get_double("incline_factor");
+                bias_factor = prm.get_double("bias_factor");
+                refinements = prm.get_integer("refinements");
+                n_subdivision_x_0 = prm.get_integer("n_subdivision_x_0");
+                n_subdivision_x_1 = prm.get_integer("n_subdivision_x_1");
+                n_subdivision_x_2 = prm.get_integer("n_subdivision_x_2");
+                n_subdivision_y = prm.get_integer("n_subdivision_y");
+                airfoil_sampling_factor = prm.get_integer("airfoil_sampling_factor");
+            }
+            prm.leave_subsection();
         }       
         prm.leave_subsection();
 

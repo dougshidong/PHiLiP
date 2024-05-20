@@ -46,6 +46,8 @@ end
 subsection flow_solver
   set flow_case_type = multi_species_vortex_advection
   #####set poly_degree = 1
+  # 1 cycle = 3.4614724700315755
+
   set final_time = 34.614724700315755e-1
   set adaptive_time_step = false
   set constant_time_step = 34.614724700315755e-6

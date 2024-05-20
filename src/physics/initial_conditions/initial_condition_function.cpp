@@ -1061,7 +1061,7 @@ real InitialConditionFunction_Euler_BubbleAdvection<dim,nstate,real>
         const real T_0 = 300.0; // [K]
         const real theta = 2.0;
 
-        const real pressure = 10000; // [N/m^2] -> [bar]
+        const real pressure = 100000; // [N/m^2] -> [bar]
         const real velocity = 50.0/2.0; // [m/s]
         const real temperature = 0.5*((1.0+theta) +(1.0-theta)*tanh(relax*(abs(x)-xi)))*T_0; // [K]
         const real density = pressure/(this->euler_physics->R_Air_Dim*temperature);

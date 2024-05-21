@@ -4,7 +4,7 @@
 #include "dg_base_state.hpp"
 #include "physics/model_factory.h"
 #include "physics/physics_factory.h"
-
+#include "ADTypes.hpp"
 namespace PHiLiP {
 
 template <int dim, int nstate, typename real, typename MeshType>
@@ -216,6 +216,38 @@ real DGBaseState<dim, nstate, real, MeshType>::evaluate_CFL(std::vector<std::arr
 
     return min_cfl;
 }
+    
+template <int dim, int nstate, typename real, typename MeshType>
+template<typename adtype>
+Physics::PhysicsBase<dim, nstate, adtype> & DGBaseState<dim, nstate, real, MeshType>::get_physics() const
+{
+    if(std::is_same<adtype, double>::value)
+    {
+        return *pde_physics_double;
+    }
+    else if(std::is_same<adtype, FadType>::value)
+    {
+        return *pde_physics_fad;
+    }
+    else if(std::is_same<adtype, RadType>::value)
+    {
+        return *pde_physics_rad;
+    }
+    else if(std::is_same<adtype, FadFadType>::value)
+    {
+        return *pde_physics_fad_fad;
+    }
+    else if(std::is_same<adtype, RadFadType>::value)
+    {
+        return *pde_physics_rad_fad;
+    }
+    else 
+    {
+        std::cout<<"Unknown adtype to get physics object. Aborting..."<<std::endl;
+        std::abort();
+    }
+    return *pde_physics_double;
+}
 
 // Define a sequence of indices representing the range [1, 5]
 #define POSSIBLE_NSTATE (1)(2)(3)(4)(5)(6)
@@ -236,4 +268,33 @@ BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_SHARED, _, POSSIBLE_NSTATE)
     template class DGBaseState <PHILIP_DIM, index, double, dealii::Triangulation<PHILIP_DIM>>;
 BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_TRIA, _, POSSIBLE_NSTATE)
 
+#define INSTANTIATE_GET_PHYSICS_DISTRIBUTED(r, data, index) {\
+    template Physics::PhysicsBase<PHILIP_DIM, index, double> & DGBaseState <PHILIP_DIM, index, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>> :: get_physics<double>() const; \
+    template Physics::PhysicsBase<PHILIP_DIM, index, FadType> & DGBaseState <PHILIP_DIM, index, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>> :: get_physics<FadType>() const; \ 
+    template Physics::PhysicsBase<PHILIP_DIM, index, RadType> & DGBaseState <PHILIP_DIM, index, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>> :: get_physics<RadType>() const; \ 
+    template Physics::PhysicsBase<PHILIP_DIM, index, FadFadType> & DGBaseState <PHILIP_DIM, index, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>> :: get_physics<FadFadType>() const; \ 
+    template Physics::PhysicsBase<PHILIP_DIM, index, RadFadType> & DGBaseState <PHILIP_DIM, index, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>> :: get_physics<RadFadType>() const; \ 
+}
+
+#define INSTANTIATE_GET_PHYSICS_SHARED(r, data, index) {\
+    template Physics::PhysicsBase<PHILIP_DIM, index, double> & DGBaseState <PHILIP_DIM, index, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>> :: get_physics<double>() const; \
+    template Physics::PhysicsBase<PHILIP_DIM, index, FadType> & DGBaseState <PHILIP_DIM, index, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>> :: get_physics<FadType>() const; \ 
+    template Physics::PhysicsBase<PHILIP_DIM, index, RadType> & DGBaseState <PHILIP_DIM, index, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>> :: get_physics<RadType>() const; \ 
+    template Physics::PhysicsBase<PHILIP_DIM, index, FadFadType> & DGBaseState <PHILIP_DIM, index, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>> :: get_physics<FadFadType>() const; \ 
+    template Physics::PhysicsBase<PHILIP_DIM, index, RadFadType> & DGBaseState <PHILIP_DIM, index, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>> :: get_physics<RadFadType>() const; \ 
+}
+
+#define INSTANTIATE_GET_PHYSICS_TRIA(r, data, index) {\
+    template Physics::PhysicsBase<PHILIP_DIM, index, double> & DGBaseState <PHILIP_DIM, index, double, dealii::Triangulation<PHILIP_DIM>> :: get_physics<double>() const; \
+    template Physics::PhysicsBase<PHILIP_DIM, index, FadType> & DGBaseState <PHILIP_DIM, index, double, dealii::Triangulation<PHILIP_DIM>> :: get_physics<FadType>() const; \ 
+    template Physics::PhysicsBase<PHILIP_DIM, index, RadType> & DGBaseState <PHILIP_DIM, index, double, dealii::Triangulation<PHILIP_DIM>> :: get_physics<RadType>() const; \ 
+    template Physics::PhysicsBase<PHILIP_DIM, index, FadFadType> & DGBaseState <PHILIP_DIM, index, double, dealii::Triangulation<PHILIP_DIM>> :: get_physics<FadFadType>() const; \ 
+    template Physics::PhysicsBase<PHILIP_DIM, index, RadFadType> & DGBaseState <PHILIP_DIM, index, double, dealii::Triangulation<PHILIP_DIM>> :: get_physics<RadFadType>() const; \ 
+}
+
+#if PHILIP_DIM!=1
+BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_GET_PHYSICS_DISTRIBUTED, _, POSSIBLE_NSTATE)
+#endif
+BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_GET_PHYSICS_SHARED, _, POSSIBLE_NSTATE)
+BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_GET_PHYSICS_TRIA, _, POSSIBLE_NSTATE)
 }  // namespace PHiLiP

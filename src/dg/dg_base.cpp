@@ -451,7 +451,7 @@ bool DGBase<dim,real,MeshType>::current_cell_should_do_the_work (
     
 template <int dim, typename real, typename MeshType>
 template<typename DoFCellAccessorType1, typename DoFCellAccessorType2, typename adtype>
-void DGBase<dim,real,MeshType>::assemble_cell_residual_derivatives (
+void DGBase<dim,real,MeshType>::assemble_cell_residual_and_ad_derivatives (
     const DoFCellAccessorType1 &current_cell,
     const DoFCellAccessorType2 &current_metric_cell,
     const bool compute_dRdW, const bool compute_dRdX, const bool compute_d2R,
@@ -545,11 +545,6 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual_derivatives (
     const dealii::FESystem<dim> &fe_metric = this->high_order_grid->fe_system;
     LocalSolution<adtype, dim, dim> local_metric_int(fe_metric);
     
-    std::vector<real> local_dual_int(n_dofs_curr_cell);
-    for (unsigned int idof=0; idof<n_dofs_curr_cell; ++idof) {
-        local_dual_int[idof] = this->dual[current_dofs_indices[idof]];
-    }
-    
     for (unsigned int idof = 0; idof < n_metric_dofs_cell; ++idof) 
     {
         const real val = this->high_order_grid->volume_nodes[metric_dof_indices[idof]];
@@ -570,7 +565,7 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual_derivatives (
 
     int tape_index = 0;
 
-    assemble_volume_term_and_ad_derivatives(
+    assemble_volume_term_and_ad_derivatives<adtype>(
         current_cell,
         current_cell_index,
         current_dofs_indices,
@@ -611,7 +606,7 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual_derivatives (
 
             const unsigned int boundary_id = current_face->boundary_id();
 
-            assemble_boundary_term_and_ad_derivatives(
+            assemble_boundary_term_and_ad_derivatives<adtype>(
                 current_cell,
                 current_cell_index,
                 iface,
@@ -680,7 +675,7 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual_derivatives (
                                                                            store_vol_flux_nodes,
                                                                            store_surf_flux_nodes);
 
-                assemble_face_term_and_ad_derivatives(
+                assemble_face_term_and_ad_derivatives<adtype>(
                     current_cell,
                     neighbor_cell,
                     current_cell_index,
@@ -775,7 +770,7 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual_derivatives (
                                                                store_vol_flux_nodes,
                                                                store_surf_flux_nodes);
 
-            assemble_subface_term_and_build_operators(
+            assemble_subface_term_and_ad_derivatives<adtype>(
                 current_cell,
                 neighbor_cell,
                 current_cell_index,
@@ -858,7 +853,7 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual_derivatives (
                                                                store_vol_flux_nodes,
                                                                store_surf_flux_nodes);
 
-            assemble_face_term_and_build_operators(
+            assemble_face_term_and_ad_derivatives<adtype>(
                 current_cell,
                 neighbor_cell,
                 current_cell_index,
@@ -922,10 +917,11 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual_derivatives (
 }
 
 template <int dim, int nstate, typename real, typename MeshType>
+template <typename adtype>
 void DGWeak<dim,nstate,real,MeshType>::assemble_volume_term_and_ad_derivatives(
     typename dealii::DoFHandler<dim>::active_cell_iterator cell,
     const dealii::types::global_dof_index                  current_cell_index,
-    const std::vector<dealii::types::global_dof_index>     &cell_dofs_indices,
+    const std::vector<dealii::types::global_dof_index>     &soln_dofs_indices,
     const std::vector<dealii::types::global_dof_index>     &metric_dof_indices,
     const unsigned int                                     poly_degree,
     const unsigned int                                     grid_degree,
@@ -939,12 +935,47 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_volume_term_and_ad_derivatives(
     std::array<std::vector<real>,dim>                      &/*mapping_support_points*/,
     dealii::hp::FEValues<dim,dim>                          &fe_values_collection_volume,
     dealii::hp::FEValues<dim,dim>                          &fe_values_collection_volume_lagrange,
-    const dealii::FESystem<dim,dim>                        &current_fe_ref,
-    dealii::Vector<real>                                   &local_rhs_int_cell,
+    const dealii::FESystem<dim,dim>                        &fe_soln,
+    dealii::Vector<real>                                   &local_rhs_cell,
     std::vector<dealii::Tensor<1,dim,real>>                &/*local_auxiliary_RHS*/,
+    const LocalSolution<adtype, dim, nstate>               &local_metric_int,
+    codi::TapeHelper<adtype>                               &th,
     const bool                                             /*compute_auxiliary_right_hand_side*/,
     const bool compute_dRdW, const bool compute_dRdX, const bool compute_d2R)
 {
+    // Current reference element related to this physical cell
+    const int i_fele = cell->active_fe_index();
+    const int i_quad = i_fele;
+    const int i_mapp = 0;
+    fe_values_collection_volume.reinit (cell, i_quad, i_mapp, i_fele);
+    dealii::TriaIterator<dealii::CellAccessor<dim,dim>> cell_iterator = static_cast<dealii::TriaIterator<dealii::CellAccessor<dim,dim>> > (cell);
+    fe_values_collection_volume_lagrange.reinit (cell_iterator, i_quad, i_mapp, i_fele);
+
+    const dealii::FEValues<dim,dim> &fe_values_vol = fe_values_collection_volume.get_present_fe_values();
+    const dealii::FEValues<dim,dim> &fe_values_lagrange = fe_values_collection_volume_lagrange.get_present_fe_values();
+    //Note the explicit is called first to set the max_dt_cell to a non-zero value.
+    assemble_volume_term_explicit (
+        cell,
+        current_cell_index,
+        fe_values_vol,
+        cell_dofs_indices,
+        metric_dof_indices,
+        poly_degree, grid_degree,
+        local_rhs_int_cell,
+        fe_values_lagrange);
+    //set current rhs to zero since the explicit call was just to set the max_dt_cell.
+    local_rhs_int_cell*=0.0;
+
+    const dealii::Quadrature<dim> &quadrature = volume_quadrature_collection[i_quad];
+    assemble_volume_term_derivatives (
+        cell,
+        current_cell_index,
+        fe_values_vol, fe_soln, quadrature,
+        metric_dof_indices, soln_dofs_indices,
+        local_rhs_cell, fe_values_lagrange,
+        compute_dRdW, compute_dRdX, compute_d2R);
+    
+}
 
 
 template <int dim, typename real, typename MeshType>

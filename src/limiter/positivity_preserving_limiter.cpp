@@ -363,7 +363,7 @@ void PositivityPreservingLimiter<dim, nstate, real>::limit(
     //create 1D solution polynomial basis functions to interpolate the solution to the quadrature nodes
     const unsigned int init_grid_degree = grid_degree;
 
-    // Construct 
+    // Construct 1D Quad Points
     dealii::QGauss<1> oneD_quad_GL(max_degree + 1);
     dealii::QGaussLobatto<1> oneD_quad_GLL(max_degree + 1);
 
@@ -433,17 +433,17 @@ void PositivityPreservingLimiter<dim, nstate, real>::limit(
             for (int istate = 0; istate < nstate; istate++) {
                 soln_at_q_dim[istate].resize(n_quad_pts);
 
-                if(idim == 1) {
+                if(idim == 0) {
                     soln_basis_GLL.matrix_vector_mult(soln_coeff[istate], soln_at_q_dim[istate],
                         soln_basis_GLL.oneD_vol_operator, soln_basis_GL.oneD_vol_operator, soln_basis_GL.oneD_vol_operator);
                 }
 
-                if(idim == 2) {
+                if(idim == 1) {
                     soln_basis_GLL.matrix_vector_mult(soln_coeff[istate], soln_at_q_dim[istate],
                         soln_basis_GL.oneD_vol_operator, soln_basis_GLL.oneD_vol_operator, soln_basis_GL.oneD_vol_operator);
                 }
 
-                if(idim == 3) {
+                if(idim == 2) {
                     soln_basis_GLL.matrix_vector_mult(soln_coeff[istate], soln_at_q_dim[istate],
                         soln_basis_GL.oneD_vol_operator, soln_basis_GL.oneD_vol_operator, soln_basis_GLL.oneD_vol_operator);
                 }

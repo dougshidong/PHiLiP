@@ -520,17 +520,31 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual_and_ad_derivatives (
     }
 
     unsigned int n_tapes = 1;
-    // Compute number of faces on which derivative computations are required.
+    // Compute number of tapes using which the derivatives are computated.
     for (unsigned int iface=0; iface < dealii::GeometryInfo<dim>::faces_per_cell; ++iface) 
     {
-
         auto current_face = current_cell->face(iface);
-
-        const bool face_computes_residual =  (current_face->at_boundary() && !current_cell->has_periodic_neighbor(iface))
-                                          || (current_face->at_boundary() && current_cell->has_periodic_neighbor(iface)) // Update later
-                                          || (current_cell->neighbor(iface)->face(current_cell->neighbor_face_no(iface))->has_children())
-                                          || (current_cell_should_do_the_work(current_cell, current_cell->neighbor(iface)));
-        if(face_computes_residual) {n_tapes++;}
+        
+        if (current_face->at_boundary() && !current_cell->has_periodic_neighbor(iface))
+        {
+            n_tapes++;
+        }
+        else if (current_face->at_boundary() && current_cell->has_periodic_neighbor(iface))
+        {
+            const auto neighbor_cell = current_cell->periodic_neighbor(iface);
+            if (!current_cell->periodic_neighbor_is_coarser(iface) && current_cell_should_do_the_work(current_cell, neighbor_cell)) 
+            {
+                n_tapes++;
+            }
+        }
+        else if(current_cell->neighbor(iface)->face(current_cell->neighbor_face_no(iface))->has_children())
+        {
+            n_tapes++;
+        }
+        else if(current_cell_should_do_the_work(current_cell, current_cell->neighbor(iface)))
+        {
+            n_tapes++;
+        }
     }
 
     using TH = codi::TapeHelper<adtype>;
@@ -899,6 +913,12 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual_and_ad_derivatives (
             // but will be evaluated when we visit the other cell.
         }
     } // end of face loop
+    
+    for (unsigned int idof = 0; idof < n_metric_dofs_cell; ++idof) 
+    {
+        adtype::getGlobalTape().deactivateValue(local_metric_int.coefficients[idof]);
+    }
+
     AssertDimension(tape_index, n_tapes);
     if(compute_auxiliary_right_hand_side) {
         // Add local contribution from current cell to global vector
@@ -916,9 +936,9 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual_and_ad_derivatives (
     }
 }
 
-template <int dim, int nstate, typename real, typename MeshType>
+template <int dim, typename real, typename MeshType>
 template <typename adtype>
-void DGWeak<dim,nstate,real,MeshType>::assemble_volume_term_and_ad_derivatives(
+void DGBase<dim,real,MeshType>::assemble_volume_term_and_ad_derivatives(
     typename dealii::DoFHandler<dim>::active_cell_iterator cell,
     const dealii::types::global_dof_index                  current_cell_index,
     const std::vector<dealii::types::global_dof_index>     &soln_dofs_indices,
@@ -967,13 +987,6 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_volume_term_and_ad_derivatives(
     local_rhs_cell*=0.0;
 
     const dealii::Quadrature<dim> &quadrature = volume_quadrature_collection[i_quad];
-    assemble_volume_term_derivatives (
-        cell,
-        current_cell_index,
-        fe_values_vol, fe_soln, quadrature,
-        metric_dof_indices, soln_dofs_indices,
-        local_rhs_cell, fe_values_lagrange,
-        compute_dRdW, compute_dRdX, compute_d2R);
     
     const unsigned int n_soln_dofs = fe_soln.dofs_per_cell;
 
@@ -1016,7 +1029,6 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_volume_term_and_ad_derivatives(
         local_solution, local_metric,
         local_dual,
         quadrature,
-        physics,
         rhs, dual_dot_residual,
         compute_metric_derivatives, fe_values_vol);
     
@@ -1036,6 +1048,202 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_volume_term_and_ad_derivatives(
         AssertIsFinite(local_rhs_cell(itest));
     }
     
+    if (compute_dRdW) {
+        typename TH::JacobianType& jac = th.createJacobian();
+        th.evalJacobian(jac);
+        for (unsigned int itest=0; itest<n_soln_dofs; ++itest) {
+
+            std::vector<real> residual_derivatives(n_soln_dofs);
+            for (unsigned int idof = 0; idof < n_soln_dofs; ++idof) {
+                const unsigned int i_dx = idof+w_start;
+                residual_derivatives[idof] = jac(itest,i_dx);
+                AssertIsFinite(residual_derivatives[idof]);
+            }
+            const bool elide_zero_values = false;
+            this->system_matrix.add(soln_dof_indices[itest], soln_dof_indices, residual_derivatives, elide_zero_values);
+        }
+        th.deleteJacobian(jac);
+
+    }
+    
+    if (compute_dRdX) {
+        typename TH::JacobianType& jac = th.createJacobian();
+        th.evalJacobian(jac);
+        for (unsigned int itest=0; itest<n_soln_dofs; ++itest) {
+            std::vector<real> residual_derivatives(n_metric_dofs);
+            for (unsigned int idof = 0; idof < n_metric_dofs; ++idof) {
+                const unsigned int i_dx = idof+x_start;
+                residual_derivatives[idof] = jac(itest,i_dx);
+            }
+            this->dRdXv.add(soln_dof_indices[itest], metric_dof_indices, residual_derivatives);
+        }
+        th.deleteJacobian(jac);
+    }
+    
+    if (compute_d2R) {
+        typename TH::HessianType& hes = th.createHessian();
+        th.evalHessian(hes);
+
+        int i_dependent = (compute_dRdW || compute_dRdX) ? n_soln_dofs : 0;
+
+        std::vector<real> dWidW(n_soln_dofs);
+        std::vector<real> dWidX(n_metric_dofs);
+        std::vector<real> dXidX(n_metric_dofs);
+
+        for (unsigned int idof=0; idof<n_soln_dofs; ++idof) {
+
+            const unsigned int i_dx = idof+w_start;
+
+            for (unsigned int jdof=0; jdof<n_soln_dofs; ++jdof) {
+                const unsigned int j_dx = jdof+w_start;
+                dWidW[jdof] = hes(i_dependent,i_dx,j_dx);
+            }
+            this->d2RdWdW.add(soln_dof_indices[idof], soln_dof_indices, dWidW);
+
+            for (unsigned int jdof=0; jdof<n_metric_dofs; ++jdof) {
+                const unsigned int j_dx = jdof+x_start;
+                dWidX[jdof] = hes(i_dependent,i_dx,j_dx);
+            }
+            this->d2RdWdX.add(soln_dof_indices[idof], metric_dof_indices, dWidX);
+        }
+
+        for (unsigned int idof=0; idof<n_metric_dofs; ++idof) {
+
+            const unsigned int i_dx = idof+x_start;
+
+            for (unsigned int jdof=0; jdof<n_metric_dofs; ++jdof) {
+                const unsigned int j_dx = jdof+x_start;
+                dXidX[jdof] = hes(i_dependent,i_dx,j_dx);
+            }
+            this->d2RdXdX.add(metric_dof_indices[idof], metric_dof_indices, dXidX);
+        }
+
+        th.deleteHessian(hes);
+    }
+
+    for (unsigned int idof = 0; idof < n_soln_dofs; ++idof) {
+        adtype::getGlobalTape().deactivateValue(local_solution.coefficients[idof]);
+    }
+    
+}
+
+template <int dim, typename real, typename MeshType>
+template <typename adtype>
+void DGBase<dim,real,MeshType>::assemble_boundary_term_and_build_operators(
+    typename dealii::DoFHandler<dim>::active_cell_iterator cell,
+    const dealii::types::global_dof_index                  current_cell_index,
+    const unsigned int                                     iface,
+    const unsigned int                                     boundary_id,
+    const real                                             penalty,
+    const std::vector<dealii::types::global_dof_index>     &soln_dofs_indices,
+    const std::vector<dealii::types::global_dof_index>     &metric_dof_indices,
+    const unsigned int                                     /*poly_degree*/,
+    const unsigned int                                     /*grid_degree*/,
+    OPERATOR::basis_functions<dim,2*dim,real>                   &/*soln_basis*/,
+    OPERATOR::basis_functions<dim,2*dim,real>                   &/*flux_basis*/,
+    OPERATOR::local_basis_stiffness<dim,2*dim,real>             &/*flux_basis_stiffness*/,
+    OPERATOR::vol_projection_operator<dim,2*dim,real>           &/*soln_basis_projection_oper_int*/,
+    OPERATOR::vol_projection_operator<dim,2*dim,real>           &/*soln_basis_projection_oper_ext*/,
+    OPERATOR::metric_operators<real,dim,2*dim>             &/*metric_oper*/,
+    OPERATOR::mapping_shape_functions<dim,2*dim,real>           &/*mapping_basis*/,
+    std::array<std::vector<real>,dim>                      &/*mapping_support_points*/,
+    dealii::hp::FEFaceValues<dim,dim>                      &fe_values_collection_face_int,
+    const dealii::FESystem<dim,dim>                        &fe_soln,
+    dealii::Vector<real>                                   &local_rhs_cell,
+    std::vector<dealii::Tensor<1,dim,real>>                &/*local_auxiliary_RHS*/,
+    const LocalSolution<adtype, dim, dim>                  &local_metric,
+    codi::TapeHelper<adtype>                               &th,
+    const bool                                             /*compute_auxiliary_right_hand_side*/,
+    const bool compute_dRdW, const bool compute_dRdX, const bool compute_d2R)
+{
+    // Current reference element related to this physical cell
+    const int i_fele = cell->active_fe_index();
+    const int i_quad = i_fele;
+    const int i_mapp = 0;
+
+    fe_values_collection_face_int.reinit (cell, iface, i_quad, i_mapp, i_fele);
+    const dealii::FEFaceValues<dim,dim> &fe_values_boundary = fe_values_collection_face_int.get_present_fe_values();
+    const dealii::Quadrature<dim-1> quadrature = this->face_quadrature_collection[i_quad];
+    
+    const dealii::FESystem<dim> &fe_metric = this->high_order_grid->fe_system;
+    const unsigned int n_soln_dofs = fe_values_boundary.dofs_per_cell;
+    const unsigned int n_metric_dofs = fe_metric.dofs_per_cell;
+
+    (void) compute_dRdW; (void) compute_dRdX; (void) compute_d2R;
+    const bool compute_metric_derivatives = true;//(!compute_dRdX && !compute_d2R) ? false : true;
+    AssertDimension (n_soln_dofs, soln_dof_indices.size());
+
+    LocalSolution<adtype, dim, nstate> local_solution(fe_soln);
+
+    unsigned int w_start, w_end, x_start, x_end;
+    automatic_differentiation_indexing_1( compute_dRdW, compute_dRdX, compute_d2R,
+                                          n_soln_dofs, n_metric_dofs,
+                                          w_start, w_end, x_start, x_end );
+    
+    for (unsigned int idof = 0; idof < n_soln_dofs; ++idof) {
+        const real val = this->solution(soln_dof_indices[idof]);
+        local_solution.coefficients[idof] = val;
+
+        if (compute_dRdW || compute_d2R) {
+            th.registerInput(local_solution.coefficients[idof]);
+        } else {
+            adtype::getGlobalTape().deactivateValue(local_solution.coefficients[idof]);
+        }
+    }
+
+
+    std::vector<real> local_dual(n_soln_dofs);
+    for (unsigned int itest=0; itest<n_soln_dofs; ++itest) {
+        local_dual[itest] = this->dual[soln_dof_indices[itest]];
+    }
+
+    std::vector<adtype> rhs(n_soln_dofs);
+    adtype dual_dot_residual;
+    assemble_boundary_term_ad(
+        cell,
+        current_cell_index,
+        local_solution,
+        local_metric,
+        local_dual,
+        iface,
+        boundary_id,
+        fe_values_boundary,
+        penalty,
+        quadrature,
+        rhs,
+        dual_dot_residual,
+        compute_metric_derivatives);
+
+    if (compute_dRdW || compute_dRdX) {
+        for (unsigned int itest=0; itest<n_soln_dofs; ++itest) {
+            th.registerOutput(rhs[itest]);
+        }
+    } else if (compute_d2R) {
+        th.registerOutput(dual_dot_residual);
+    }
+    if (compute_dRdW || compute_dRdX || compute_d2R) {
+        th.stopRecording();
+    }
+
+    for (unsigned int itest=0; itest<n_soln_dofs; ++itest) {
+        local_rhs_cell(itest) += getValue<adtype>(rhs[itest]);
+        AssertIsFinite(local_rhs_cell(itest));
+    }
+
+
+
+}
+
+/// Returns the value from a CoDiPack variable.
+/** The recursive calling allows to retrieve nested CoDiPack types.
+ */
+template <typename real>
+double getValue(const real &x) {
+    if constexpr (std::is_same<real, double>::value) {
+        return x;
+    } else {
+        return getValue(x.value());
+    }
 }
 
 /// Derivative indexing when only 1 cell is concerned.

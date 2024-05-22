@@ -961,10 +961,10 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_volume_term_and_ad_derivatives(
         cell_dofs_indices,
         metric_dof_indices,
         poly_degree, grid_degree,
-        local_rhs_int_cell,
+        local_rhs_cell,
         fe_values_lagrange);
     //set current rhs to zero since the explicit call was just to set the max_dt_cell.
-    local_rhs_int_cell*=0.0;
+    local_rhs_cell*=0.0;
 
     const dealii::Quadrature<dim> &quadrature = volume_quadrature_collection[i_quad];
     assemble_volume_term_derivatives (
@@ -975,6 +975,102 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_volume_term_and_ad_derivatives(
         local_rhs_cell, fe_values_lagrange,
         compute_dRdW, compute_dRdX, compute_d2R);
     
+    const unsigned int n_soln_dofs = fe_soln.dofs_per_cell;
+
+    AssertDimension (n_soln_dofs, soln_dof_indices.size());
+
+    const dealii::FESystem<dim> &fe_metric = this->high_order_grid->fe_system;
+    const unsigned int n_metric_dofs = fe_metric.dofs_per_cell;
+
+    std::vector<real> local_dual(n_soln_dofs);
+    for (unsigned int itest=0; itest<n_soln_dofs; ++itest) {
+        const unsigned int global_residual_row = soln_dof_indices[itest];
+        local_dual[itest] = this->dual[global_residual_row];
+    }
+
+    (void) compute_dRdW; (void) compute_dRdX; (void) compute_d2R;
+    const bool compute_metric_derivatives = true;//(!compute_dRdX && !compute_d2R) ? false : true;
+
+    unsigned int w_start, w_end, x_start, x_end;
+    automatic_differentiation_indexing_1( compute_dRdW, compute_dRdX, compute_d2R,
+                                          n_soln_dofs, n_metric_dofs,
+                                          w_start, w_end, x_start, x_end );
+    
+    LocalSolution<adtype, dim, nstate> local_solution(fe_soln);
+    for (unsigned int idof = 0; idof < n_soln_dofs; ++idof) {
+        const real val = this->solution(soln_dof_indices[idof]);
+        local_solution.coefficients[idof] = val;
+
+        if (compute_dRdW || compute_d2R) {
+            th.registerInput(local_solution.coefficients[idof]);
+        } else {
+            adtype::getGlobalTape().deactivateValue(local_solution.coefficients[idof]);
+        }
+    }
+    
+    adtype dual_dot_residual = 0.0;
+    std::vector<adtype> rhs(n_soln_dofs);
+    assemble_volume_term_ad<adtype>(
+        cell,
+        current_cell_index,
+        local_solution, local_metric,
+        local_dual,
+        quadrature,
+        physics,
+        rhs, dual_dot_residual,
+        compute_metric_derivatives, fe_values_vol);
+    
+    if (compute_dRdW || compute_dRdX) {
+        for (unsigned int itest=0; itest<n_soln_dofs; ++itest) {
+            th.registerOutput(rhs[itest]);
+        }
+    } else if (compute_d2R) {
+        th.registerOutput(dual_dot_residual);
+    }
+    if (compute_dRdW || compute_dRdX || compute_d2R) {
+        th.stopRecording();
+    }
+    
+    for (unsigned int itest=0; itest<n_soln_dofs; ++itest) {
+        local_rhs_cell(itest) += getValue<adtype>(rhs[itest]);
+        AssertIsFinite(local_rhs_cell(itest));
+    }
+    
+}
+
+/// Derivative indexing when only 1 cell is concerned.
+/// Derivatives are ordered such that x comes first with index 0, then w.
+/// If derivatives with respect to x are not needed, then derivatives
+/// with respect to w will start at index 0. This function is for a single
+/// cell's DoFs.
+void automatic_differentiation_indexing_1(
+    const bool compute_dRdW, const bool compute_dRdX, const bool compute_d2R,
+    const unsigned int n_soln_dofs, const unsigned int n_metric_dofs,
+    unsigned int &w_start, unsigned int &w_end,
+    unsigned int &x_start, unsigned int &x_end)
+{
+    w_start = 0;
+    w_end = 0;
+    x_start = 0;
+    x_end = 0;
+    if (compute_d2R || (compute_dRdW && compute_dRdX)) {
+        x_start = 0;
+        x_end = x_start + n_metric_dofs;
+        w_start = x_end;
+        w_end = w_start + n_soln_dofs;
+    } else if (compute_dRdW) {
+        x_start = 0;
+        x_end   = x_start + 0;
+        w_start = x_end;
+        w_end   = w_start + n_soln_dofs;
+    } else if (compute_dRdX) {
+        x_start = 0;
+        x_end   = x_start + n_metric_dofs;
+        w_start = x_end;
+        w_end   = w_start + 0;
+    } else {
+        std::cout << "Called the derivative version of the residual without requesting the derivative" << std::endl;
+    }
 }
 
 

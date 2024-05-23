@@ -230,6 +230,58 @@ private:
         std::vector<real2> &rhs_ext,
         real2 &dual_dot_residual,
         const bool compute_dRdW, const bool compute_dRdX, const bool compute_d2R);
+    
+    template <typename adtype>
+    void assemble_volume_term_ad(
+        typename dealii::DoFHandler<dim>::active_cell_iterator cell,
+        const dealii::types::global_dof_index current_cell_index,
+        const LocalSolution<adtype, dim, nstate> &local_solution,
+        const LocalSolution<adtype, dim, dim> &local_metric,
+        const std::vector<real> &local_dual,
+        const dealii::Quadrature<dim> &quadrature,
+        std::vector<adtype> &rhs, adtype &dual_dot_residual,
+        const bool compute_metric_derivatives,
+        const dealii::FEValues<dim,dim> &fe_values_vol) override;
+    
+    template <typename adtype>
+    void assemble_boundary_term_ad(
+        typename dealii::DoFHandler<dim>::active_cell_iterator cell,
+        const dealii::types::global_dof_index current_cell_index,
+        const LocalSolution<adtype, dim, nstate> &local_solution,
+        const LocalSolution<adtype, dim, dim> &local_metric,
+        const std::vector< real > &local_dual,
+        const unsigned int face_number,
+        const unsigned int boundary_id,
+        const dealii::FEFaceValuesBase<dim,dim> &fe_values_boundary,
+        const real penalty,
+        const dealii::Quadrature<dim-1> &quadrature,
+        std::vector<adtype> &rhs,
+        adtype &dual_dot_residual,
+        const bool compute_metric_derivatives) override;
+    
+    template <typename adtype>
+    void assemble_face_term_ad(
+        typename dealii::DoFHandler<dim>::active_cell_iterator cell,
+        const dealii::types::global_dof_index current_cell_index,
+        const dealii::types::global_dof_index neighbor_cell_index,
+        const LocalSolution<adtype, dim, nstate> &soln_int,
+        const LocalSolution<adtype, dim, nstate> &soln_ext,
+        const LocalSolution<adtype, dim, dim> &metric_int,
+        const LocalSolution<adtype, dim, dim> &metric_ext,
+        const std::vector< double > &dual_int,
+        const std::vector< double > &dual_ext,
+        const std::pair<unsigned int, int> face_subface_int,
+        const std::pair<unsigned int, int> face_subface_ext,
+        const typename dealii::QProjector<dim>::DataSetDescriptor face_data_set_int,
+        const typename dealii::QProjector<dim>::DataSetDescriptor face_data_set_ext,
+        const dealii::FEFaceValuesBase<dim,dim>     &fe_values_int,
+        const dealii::FEFaceValuesBase<dim,dim>     &fe_values_ext,
+        const real penalty,
+        const dealii::Quadrature<dim-1> &face_quadrature,
+        std::vector<adtype> &rhs_int,
+        std::vector<adtype> &rhs_ext,
+        adtype &dual_dot_residual,
+        const bool compute_dRdW, const bool compute_dRdX, const bool compute_d2R) override;
 
 private:
 

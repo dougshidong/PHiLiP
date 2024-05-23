@@ -3914,6 +3914,116 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_subface_term_and_build_operators
 }
 
 template <int dim, int nstate, typename real, typename MeshType>
+template <typename adtype>
+void DGWeak<dim,nstate,real,MeshType>::assemble_volume_term_ad(
+    typename dealii::DoFHandler<dim>::active_cell_iterator cell,
+    const dealii::types::global_dof_index current_cell_index,
+    const LocalSolution<adtype, dim, nstate> &local_solution,
+    const LocalSolution<adtype, dim, dim> &local_metric,
+    const std::vector<real> &local_dual,
+    const dealii::Quadrature<dim> &quadrature,
+    std::vector<adtype> &rhs, adtype &dual_dot_residual,
+    const bool compute_metric_derivatives,
+    const dealii::FEValues<dim,dim> &fe_values_vol)
+{
+    assemble_volume_term<adtype>(
+        cell,
+        current_cell_index,
+        local_solution, local_metric,
+        local_dual,
+        quadrature,
+        this->get_physics(adtype()),
+        rhs, dual_dot_residual,
+        compute_metric_derivatives, fe_values_vol);
+}
+
+template <int dim, int nstate, typename real, typename MeshType>
+template <typename adtype>
+void DGWeak<dim,nstate,real,MeshType>::assemble_boundary_term_ad(
+    typename dealii::DoFHandler<dim>::active_cell_iterator cell,
+    const dealii::types::global_dof_index current_cell_index,
+    const LocalSolution<adtype, dim, nstate> &local_solution,
+    const LocalSolution<adtype, dim, dim> &local_metric,
+    const std::vector< real > &local_dual,
+    const unsigned int face_number,
+    const unsigned int boundary_id,
+    const dealii::FEFaceValuesBase<dim,dim> &fe_values_boundary,
+    const real penalty,
+    const dealii::Quadrature<dim-1> &quadrature,
+    std::vector<adtype> &rhs,
+    adtype &dual_dot_residual,
+    const bool compute_metric_derivatives)
+{
+    assemble_boundary_term<adtype>(
+        cell,
+        current_cell_index,
+        local_solution,
+        local_metric,
+        local_dual,
+        face_number,
+        boundary_id,
+        this->get_physics(adtype()),
+        this->get_conv_num_flux(adtype()),
+        this->get_diss_num_flux(adtype()),
+        fe_values_boundary,
+        penalty,
+        quadrature,
+        rhs,
+        dual_dot_residual,
+        compute_metric_derivatives);
+}
+    
+template <int dim, int nstate, typename real, typename MeshType>
+template <typename adtype>
+void DGWeak<dim,nstate,real,MeshType>::assemble_face_term_ad(
+    typename dealii::DoFHandler<dim>::active_cell_iterator cell,
+    const dealii::types::global_dof_index current_cell_index,
+    const dealii::types::global_dof_index neighbor_cell_index,
+    const LocalSolution<adtype, dim, nstate> &soln_int,
+    const LocalSolution<adtype, dim, nstate> &soln_ext,
+    const LocalSolution<adtype, dim, dim> &metric_int,
+    const LocalSolution<adtype, dim, dim> &metric_ext,
+    const std::vector< double > &dual_int,
+    const std::vector< double > &dual_ext,
+    const std::pair<unsigned int, int> face_subface_int,
+    const std::pair<unsigned int, int> face_subface_ext,
+    const typename dealii::QProjector<dim>::DataSetDescriptor face_data_set_int,
+    const typename dealii::QProjector<dim>::DataSetDescriptor face_data_set_ext,
+    const dealii::FEFaceValuesBase<dim,dim>     &fe_values_int,
+    const dealii::FEFaceValuesBase<dim,dim>     &fe_values_ext,
+    const real penalty,
+    const dealii::Quadrature<dim-1> &face_quadrature,
+    std::vector<adtype> &rhs_int,
+    std::vector<adtype> &rhs_ext,
+    adtype &dual_dot_residual,
+    const bool compute_dRdW, const bool compute_dRdX, const bool compute_d2R)
+{
+    
+    assemble_face_term<adtype>(
+        cell,
+        current_cell_index,
+        neighbor_cell_index,
+        soln_int, soln_ext, metric_int, metric_ext,
+        dual_int,
+        dual_ext,
+        face_subface_int,
+        face_subface_ext,
+        face_data_set_int,
+        face_data_set_ext,
+        this->get_physics(adtype()),
+        this->get_conv_num_flux(adtype()),
+        this->get_diss_num_flux(adtype()),
+        fe_values_int,
+        fe_values_ext,
+        penalty,
+        face_quadrature,
+        rhs_int,
+        rhs_ext,
+        dual_dot_residual,
+        compute_dRdW, compute_dRdX, compute_d2R);
+}
+
+template <int dim, int nstate, typename real, typename MeshType>
 void DGWeak<dim,nstate,real,MeshType>::assemble_auxiliary_residual ()
 {
     //Do Nothing.

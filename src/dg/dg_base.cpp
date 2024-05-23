@@ -1048,6 +1048,7 @@ void DGBase<dim,real,MeshType>::assemble_volume_term_and_build_operators_ad(
         AssertIsFinite(local_rhs_cell(itest));
     }
     
+    using TH = codi::TapeHelper<adtype>;
     if (compute_dRdW) {
         typename TH::JacobianType& jac = th.createJacobian();
         th.evalJacobian(jac);
@@ -1230,6 +1231,7 @@ void DGBase<dim,real,MeshType>::assemble_boundary_term_and_build_operators_ad(
         AssertIsFinite(local_rhs_cell(itest));
     }
 
+    using TH = codi::TapeHelper<adtype>;
     if (compute_dRdW) {
         typename TH::JacobianType& jac = th.createJacobian();
         th.evalJacobian(jac);
@@ -1548,7 +1550,324 @@ void DGBase<dim,real,MeshType>::assemble_face_subface_term_derivatives_ad(
         n_soln_dofs_int, n_soln_dofs_ext, n_metric_dofs,
         w_int_start, w_int_end, w_ext_start, w_ext_end,
         x_int_start, x_int_end, x_ext_start, x_ext_end);
+
+
+    for (unsigned int idof = 0; idof < n_metric_dofs; ++idof) {
+        const real val = this->high_order_grid->volume_nodes[metric_dof_indices_ext[idof]];
+        metric_ext.coefficients[idof] = val;
+        if (compute_dRdX || compute_d2R) {
+            th.registerInput(metric_ext.coefficients[idof]);
+        } else {
+            adtype::getGlobalTape().deactivateValue(metric_ext.coefficients[idof]);
+        }
+    }
+    for (unsigned int idof = 0; idof < n_soln_dofs_int; ++idof) {
+        const real val = this->solution(soln_dof_indices_int[idof]);
+        soln_int.coefficients[idof] = val;
+        if (compute_dRdW || compute_d2R) {
+            th.registerInput(soln_int.coefficients[idof]);
+        } else {
+            adtype::getGlobalTape().deactivateValue(soln_int.coefficients[idof]);
+        }
+    }
+    for (unsigned int idof = 0; idof < n_soln_dofs_ext; ++idof) {
+        const real val = this->solution(soln_dof_indices_ext[idof]);
+        soln_ext.coefficients[idof] = val;
+        if (compute_dRdW || compute_d2R) {
+            th.registerInput(soln_ext.coefficients[idof]);
+        } else {
+            adtype::getGlobalTape().deactivateValue(soln_ext.coefficients[idof]);
+        }
+    }
+
+    std::vector<double> dual_int(n_soln_dofs_int);
+    std::vector<double> dual_ext(n_soln_dofs_ext);
+
+    for (unsigned int itest=0; itest<n_soln_dofs_int; ++itest) {
+        const unsigned int global_residual_row = soln_dof_indices_int[itest];
+        dual_int[itest] = this->dual[global_residual_row];
+    }
+    for (unsigned int itest=0; itest<n_soln_dofs_ext; ++itest) {
+        const unsigned int global_residual_row = soln_dof_indices_ext[itest];
+        dual_ext[itest] = this->dual[global_residual_row];
+    }
+
+    std::vector<adtype> rhs_int(n_soln_dofs_int);
+    std::vector<adtype> rhs_ext(n_soln_dofs_ext);
+    adtype dual_dot_residual;
+    
+    assemble_face_term_ad<adtype>(
+        cell,
+        current_cell_index,
+        neighbor_cell_index,
+        soln_int, soln_ext, metric_int, metric_ext,
+        dual_int,
+        dual_ext,
+        face_subface_int,
+        face_subface_ext,
+        face_data_set_int,
+        face_data_set_ext,
+        physics,
+        conv_num_flux,
+        diss_num_flux,
+        fe_values_int,
+        fe_values_ext,
+        penalty,
+        face_quadrature,
+        rhs_int,
+        rhs_ext,
+        dual_dot_residual,
+        compute_dRdW, compute_dRdX, compute_d2R);
+
+    if (compute_dRdW || compute_dRdX) {
+        for (unsigned int itest=0; itest<n_soln_dofs_int; ++itest) {
+            th.registerOutput(rhs_int[itest]);
+        }
+        for (unsigned int itest=0; itest<n_soln_dofs_ext; ++itest) {
+            th.registerOutput(rhs_ext[itest]);
+        }
+    } else if (compute_d2R) {
+        th.registerOutput(dual_dot_residual);
+    }
+    if (compute_dRdW || compute_dRdX || compute_d2R) {
+        th.stopRecording();
+        //adtype::getGlobalTape().printStatistics();
+    }
+    
+    for (unsigned int itest_int=0; itest_int<n_soln_dofs_int; ++itest_int) {
+        local_rhs_int_cell[itest_int] += getValue<adtype>(rhs_int[itest_int]);
+    }
+    for (unsigned int itest_ext=0; itest_ext<n_soln_dofs_ext; ++itest_ext) {
+        local_rhs_ext_cell[itest_ext] += getValue<adtype>(rhs_ext[itest_ext]);
+    }
+    
+    using TH = codi::TapeHelper<adtype>;
+    if (compute_dRdW || compute_dRdX) {
+        typename TH::JacobianType& jac = th.createJacobian();
+        th.evalJacobian(jac);
+
+        if (compute_dRdW) {
+            std::vector<real> residual_derivatives(n_soln_dofs_int);
+
+            for (unsigned int itest_int=0; itest_int<n_soln_dofs_int; ++itest_int) {
+                int i_dependent = itest_int;
+
+                // dR_int_dW_int
+                residual_derivatives.resize(n_soln_dofs_int);
+                for (unsigned int idof = 0; idof < n_soln_dofs_int; ++idof) {
+                    const unsigned int i_dx = idof+w_int_start;
+                    residual_derivatives[idof] = jac(i_dependent,i_dx);
+                }
+                const bool elide_zero_values = false;
+                this->system_matrix.add(soln_dof_indices_int[itest_int], soln_dof_indices_int, residual_derivatives, elide_zero_values);
+
+                // dR_int_dW_ext
+                residual_derivatives.resize(n_soln_dofs_ext);
+                for (unsigned int idof = 0; idof < n_soln_dofs_ext; ++idof) {
+                    const unsigned int i_dx = idof+w_ext_start;
+                    residual_derivatives[idof] = jac(i_dependent,i_dx);
+                }
+                this->system_matrix.add(soln_dof_indices_int[itest_int], soln_dof_indices_ext, residual_derivatives, elide_zero_values);
+            }
+
+            for (unsigned int itest_ext=0; itest_ext<n_soln_dofs_ext; ++itest_ext) {
+
+                int i_dependent = n_soln_dofs_int + itest_ext;
+
+                // dR_ext_dW_int
+                residual_derivatives.resize(n_soln_dofs_int);
+                for (unsigned int idof = 0; idof < n_soln_dofs_int; ++idof) {
+                    const unsigned int i_dx = idof+w_int_start;
+                    residual_derivatives[idof] = jac(i_dependent,i_dx);
+                }
+                const bool elide_zero_values = false;
+                this->system_matrix.add(soln_dof_indices_ext[itest_ext], soln_dof_indices_int, residual_derivatives, elide_zero_values);
+
+                // dR_ext_dW_ext
+                residual_derivatives.resize(n_soln_dofs_ext);
+                for (unsigned int idof = 0; idof < n_soln_dofs_ext; ++idof) {
+                    const unsigned int i_dx = idof+w_ext_start;
+                    residual_derivatives[idof] = jac(i_dependent,i_dx);
+                }
+                this->system_matrix.add(soln_dof_indices_ext[itest_ext], soln_dof_indices_ext, residual_derivatives, elide_zero_values);
+            }
+        }
+
+        if (compute_dRdX) {
+            std::vector<real> residual_derivatives(n_metric_dofs);
+
+            for (unsigned int itest_int=0; itest_int<n_soln_dofs_int; ++itest_int) {
+
+                int i_dependent = itest_int;
+
+                // dR_int_dX_int
+                for (unsigned int idof = 0; idof < n_metric_dofs; ++idof) {
+                    const unsigned int i_dx = idof+x_int_start;
+                    residual_derivatives[idof] = jac(i_dependent,i_dx);
+                }
+                this->dRdXv.add(soln_dof_indices_int[itest_int], metric_dof_indices_int, residual_derivatives);
+
+                // dR_int_dX_ext
+                for (unsigned int idof = 0; idof < n_metric_dofs; ++idof) {
+                    const unsigned int i_dx = idof+x_ext_start;
+                    residual_derivatives[idof] = jac(i_dependent,i_dx);
+                }
+                this->dRdXv.add(soln_dof_indices_int[itest_int], metric_dof_indices_ext, residual_derivatives);
+            }
+
+            for (unsigned int itest_ext=0; itest_ext<n_soln_dofs_ext; ++itest_ext) {
+
+                int i_dependent = n_soln_dofs_int + itest_ext;
+
+                // dR_ext_dX_int
+                for (unsigned int idof = 0; idof < n_metric_dofs; ++idof) {
+                    const unsigned int i_dx = idof+x_int_start;
+                    residual_derivatives[idof] = jac(i_dependent,i_dx);
+                }
+                this->dRdXv.add(soln_dof_indices_ext[itest_ext], metric_dof_indices_int, residual_derivatives);
+
+                // dR_ext_dX_ext
+                for (unsigned int idof = 0; idof < n_metric_dofs; ++idof) {
+                    const unsigned int i_dx = idof+x_ext_start;
+                    residual_derivatives[idof] = jac(i_dependent,i_dx);
+                }
+                this->dRdXv.add(soln_dof_indices_ext[itest_ext], metric_dof_indices_ext, residual_derivatives);
+            }
+        }
+
+        th.deleteJacobian(jac);
+    }
+
+    if (compute_d2R) {
+        typename TH::HessianType& hes = th.createHessian();
+        th.evalHessian(hes);
+
+        std::vector<real> dWidW(n_soln_dofs_int);
+        std::vector<real> dWidX(n_metric_dofs);
+        std::vector<real> dXidX(n_metric_dofs);
+
+        int i_dependent = (compute_dRdW || compute_dRdX) ? n_soln_dofs_int + n_soln_dofs_ext : 0;
+
+        for (unsigned int idof=0; idof<n_soln_dofs_int; ++idof) {
+
+            const unsigned int i_dx = idof+w_int_start;
+
+            // dWint_dWint
+            for (unsigned int jdof=0; jdof<n_soln_dofs_int; ++jdof) {
+                const unsigned int j_dx = jdof+w_int_start;
+                dWidW[jdof] = hes(i_dependent,i_dx,j_dx);
+            }
+            this->d2RdWdW.add(soln_dof_indices_int[idof], soln_dof_indices_int, dWidW);
+
+            // dWint_dWext
+            for (unsigned int jdof=0; jdof<n_soln_dofs_ext; ++jdof) {
+                const unsigned int j_dx = jdof+w_ext_start;
+                dWidW[jdof] = hes(i_dependent,i_dx,j_dx);
+            }
+            this->d2RdWdW.add(soln_dof_indices_int[idof], soln_dof_indices_ext, dWidW);
+
+            // dWint_dXint
+            for (unsigned int jdof=0; jdof<n_metric_dofs; ++jdof) {
+                const unsigned int j_dx = jdof+x_int_start;
+                dWidX[jdof] = hes(i_dependent,i_dx,j_dx);
+            }
+            this->d2RdWdX.add(soln_dof_indices_int[idof], metric_dof_indices_int, dWidX);
+
+            // dWint_dXext
+            for (unsigned int jdof=0; jdof<n_metric_dofs; ++jdof) {
+                const unsigned int j_dx = jdof+x_ext_start;
+                dWidX[jdof] = hes(i_dependent,i_dx,j_dx);
+            }
+            this->d2RdWdX.add(soln_dof_indices_int[idof], metric_dof_indices_ext, dWidX);
+        }
+
+        for (unsigned int idof=0; idof<n_metric_dofs; ++idof) {
+
+            const unsigned int i_dx = idof+x_int_start;
+
+            // dXint_dXint
+            for (unsigned int jdof=0; jdof<n_metric_dofs; ++jdof) {
+                const unsigned int j_dx = jdof+x_int_start;
+                dXidX[jdof] = hes(i_dependent,i_dx,j_dx);
+            }
+            this->d2RdXdX.add(metric_dof_indices_int[idof], metric_dof_indices_int, dXidX);
+
+            // dXint_dXext
+            for (unsigned int jdof=0; jdof<n_metric_dofs; ++jdof) {
+                const unsigned int j_dx = jdof+x_ext_start;
+                dXidX[jdof] = hes(i_dependent,i_dx,j_dx);
+            }
+            this->d2RdXdX.add(metric_dof_indices_int[idof], metric_dof_indices_ext, dXidX);
+        }
+
+        dWidW.resize(n_soln_dofs_ext);
+
+        for (unsigned int idof=0; idof<n_soln_dofs_ext; ++idof) {
+
+            const unsigned int i_dx = idof+w_ext_start;
+
+            // dWext_dWint
+            for (unsigned int jdof=0; jdof<n_soln_dofs_int; ++jdof) {
+                const unsigned int j_dx = jdof+w_int_start;
+                dWidW[jdof] = hes(i_dependent,i_dx,j_dx);
+            }
+            this->d2RdWdW.add(soln_dof_indices_ext[idof], soln_dof_indices_int, dWidW);
+
+            // dWext_dWext
+            for (unsigned int jdof=0; jdof<n_soln_dofs_ext; ++jdof) {
+                const unsigned int j_dx = jdof+w_ext_start;
+                dWidW[jdof] = hes(i_dependent,i_dx,j_dx);
+            }
+            this->d2RdWdW.add(soln_dof_indices_ext[idof], soln_dof_indices_ext, dWidW);
+
+            // dWext_dXint
+            for (unsigned int jdof=0; jdof<n_metric_dofs; ++jdof) {
+                const unsigned int j_dx = jdof+x_int_start;
+                dWidX[jdof] = hes(i_dependent,i_dx,j_dx);
+            }
+            this->d2RdWdX.add(soln_dof_indices_ext[idof], metric_dof_indices_int, dWidX);
+
+            // dWext_dXext
+            for (unsigned int jdof=0; jdof<n_metric_dofs; ++jdof) {
+                const unsigned int j_dx = jdof+x_ext_start;
+                dWidX[jdof] = hes(i_dependent,i_dx,j_dx);
+            }
+            this->d2RdWdX.add(soln_dof_indices_ext[idof], metric_dof_indices_ext, dWidX);
+        }
+
+        for (unsigned int idof=0; idof<n_metric_dofs; ++idof) {
+
+            const unsigned int i_dx = idof+x_ext_start;
+
+            // dXext_dXint
+            for (unsigned int jdof=0; jdof<n_metric_dofs; ++jdof) {
+                const unsigned int j_dx = jdof+x_int_start;
+                dXidX[jdof] = hes(i_dependent,i_dx,j_dx);
+            }
+            this->d2RdXdX.add(metric_dof_indices_ext[idof], metric_dof_indices_int, dXidX);
+
+            // dXext_dXext
+            for (unsigned int jdof=0; jdof<n_metric_dofs; ++jdof) {
+                const unsigned int j_dx = jdof+x_ext_start;
+                dXidX[jdof] = hes(i_dependent,i_dx,j_dx);
+            }
+            this->d2RdXdX.add(metric_dof_indices_ext[idof], metric_dof_indices_ext, dXidX);
+        }
+
+        th.deleteHessian(hes);
+    }
+
+    for (unsigned int idof = 0; idof < n_soln_dofs_int; ++idof) {
+        adtype::getGlobalTape().deactivateValue(soln_int.coefficients[idof]);
+    }
+    for (unsigned int idof = 0; idof < n_soln_dofs_ext; ++idof) {
+        adtype::getGlobalTape().deactivateValue(soln_ext.coefficients[idof]);
+    }
+    for (unsigned int idof = 0; idof < n_metric_dofs; ++idof) {
+        adtype::getGlobalTape().deactivateValue(metric_ext.coefficients[idof]);
+    }
 }
+
 /// Returns the value from a CoDiPack variable.
 /** The recursive calling allows to retrieve nested CoDiPack types.
  */

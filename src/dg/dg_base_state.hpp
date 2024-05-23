@@ -113,11 +113,6 @@ class DGBaseState : public DGBase<dim, real, MeshType>
     /** Usually called after setting physics.
      */
     void reset_numerical_fluxes();
-
-    /// Return physics of the appropriate typename.
-    template<typename adtype>
-    Physics::PhysicsBase<dim, nstate, adtype> & get_physics() const;
-
 }; // end of DGBaseState class
 
 }  // namespace PHiLiP

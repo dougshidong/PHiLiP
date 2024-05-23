@@ -579,7 +579,7 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual_and_ad_derivatives (
 
     int tape_index = 0;
 
-    assemble_volume_term_and_ad_derivatives<adtype>(
+    assemble_volume_term_and_build_operators_ad<adtype>(
         current_cell,
         current_cell_index,
         current_dofs_indices,
@@ -620,7 +620,7 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual_and_ad_derivatives (
 
             const unsigned int boundary_id = current_face->boundary_id();
 
-            assemble_boundary_term_and_ad_derivatives<adtype>(
+            assemble_boundary_term_and_build_operators_ad<adtype>(
                 current_cell,
                 current_cell_index,
                 iface,
@@ -689,7 +689,7 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual_and_ad_derivatives (
                                                                            store_vol_flux_nodes,
                                                                            store_surf_flux_nodes);
 
-                assemble_face_term_and_ad_derivatives<adtype>(
+                assemble_face_term_and_build_operators_ad<adtype>(
                     current_cell,
                     neighbor_cell,
                     current_cell_index,
@@ -784,7 +784,7 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual_and_ad_derivatives (
                                                                store_vol_flux_nodes,
                                                                store_surf_flux_nodes);
 
-            assemble_subface_term_and_ad_derivatives<adtype>(
+            assemble_subface_term_and_build_operators_ad<adtype>(
                 current_cell,
                 neighbor_cell,
                 current_cell_index,
@@ -867,7 +867,7 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual_and_ad_derivatives (
                                                                store_vol_flux_nodes,
                                                                store_surf_flux_nodes);
 
-            assemble_face_term_and_ad_derivatives<adtype>(
+            assemble_face_term_and_build_operators_ad<adtype>(
                 current_cell,
                 neighbor_cell,
                 current_cell_index,
@@ -938,7 +938,7 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual_and_ad_derivatives (
 
 template <int dim, typename real, typename MeshType>
 template <typename adtype>
-void DGBase<dim,real,MeshType>::assemble_volume_term_and_ad_derivatives(
+void DGBase<dim,real,MeshType>::assemble_volume_term_and_build_operators_ad(
     typename dealii::DoFHandler<dim>::active_cell_iterator cell,
     const dealii::types::global_dof_index                  current_cell_index,
     const std::vector<dealii::types::global_dof_index>     &soln_dofs_indices,
@@ -1129,7 +1129,7 @@ void DGBase<dim,real,MeshType>::assemble_volume_term_and_ad_derivatives(
 
 template <int dim, typename real, typename MeshType>
 template <typename adtype>
-void DGBase<dim,real,MeshType>::assemble_boundary_term_and_build_operators(
+void DGBase<dim,real,MeshType>::assemble_boundary_term_and_build_operators_ad(
     typename dealii::DoFHandler<dim>::active_cell_iterator cell,
     const dealii::types::global_dof_index                  current_cell_index,
     const unsigned int                                     iface,
@@ -1199,7 +1199,7 @@ void DGBase<dim,real,MeshType>::assemble_boundary_term_and_build_operators(
 
     std::vector<adtype> rhs(n_soln_dofs);
     adtype dual_dot_residual;
-    assemble_boundary_term_ad(
+    assemble_boundary_term_ad<adtype>(
         cell,
         current_cell_index,
         local_solution,
@@ -1230,10 +1230,305 @@ void DGBase<dim,real,MeshType>::assemble_boundary_term_and_build_operators(
         AssertIsFinite(local_rhs_cell(itest));
     }
 
+    if (compute_dRdW) {
+        typename TH::JacobianType& jac = th.createJacobian();
+        th.evalJacobian(jac);
+        for (unsigned int itest=0; itest<n_soln_dofs; ++itest) {
 
+            std::vector<real> residual_derivatives(n_soln_dofs);
+            for (unsigned int idof = 0; idof < n_soln_dofs; ++idof) {
+                const unsigned int i_dx = idof+w_start;
+                residual_derivatives[idof] = jac(itest,i_dx);
+                AssertIsFinite(residual_derivatives[idof]);
+            }
+            const bool elide_zero_values = false;
+            this->system_matrix.add(soln_dof_indices[itest], soln_dof_indices, residual_derivatives, elide_zero_values);
+        }
+        th.deleteJacobian(jac);
+
+    }
+
+    if (compute_dRdX) {
+        typename TH::JacobianType& jac = th.createJacobian();
+        th.evalJacobian(jac);
+        for (unsigned int itest=0; itest<n_soln_dofs; ++itest) {
+            std::vector<real> residual_derivatives(n_metric_dofs);
+            for (unsigned int idof = 0; idof < n_metric_dofs; ++idof) {
+                const unsigned int i_dx = idof+x_start;
+                residual_derivatives[idof] = jac(itest,i_dx);
+            }
+            this->dRdXv.add(soln_dof_indices[itest], metric_dof_indices, residual_derivatives);
+        }
+        th.deleteJacobian(jac);
+    }
+
+    if (compute_d2R) {
+        typename TH::HessianType& hes = th.createHessian();
+        th.evalHessian(hes);
+
+        int i_dependent = (compute_dRdW || compute_dRdX) ? n_soln_dofs : 0;
+
+        std::vector<real> dWidW(n_soln_dofs);
+        std::vector<real> dWidX(n_metric_dofs);
+        std::vector<real> dXidX(n_metric_dofs);
+
+        for (unsigned int idof=0; idof<n_soln_dofs; ++idof) {
+
+            const unsigned int i_dx = idof+w_start;
+
+            for (unsigned int jdof=0; jdof<n_soln_dofs; ++jdof) {
+                const unsigned int j_dx = jdof+w_start;
+                dWidW[jdof] = hes(i_dependent,i_dx,j_dx);
+            }
+            this->d2RdWdW.add(soln_dof_indices[idof], soln_dof_indices, dWidW);
+
+            for (unsigned int jdof=0; jdof<n_metric_dofs; ++jdof) {
+                const unsigned int j_dx = jdof+x_start;
+                dWidX[jdof] = hes(i_dependent,i_dx,j_dx);
+            }
+            this->d2RdWdX.add(soln_dof_indices[idof], metric_dof_indices, dWidX);
+        }
+
+        for (unsigned int idof=0; idof<n_metric_dofs; ++idof) {
+
+            const unsigned int i_dx = idof+x_start;
+
+            for (unsigned int jdof=0; jdof<n_metric_dofs; ++jdof) {
+                const unsigned int j_dx = jdof+x_start;
+                dXidX[jdof] = hes(i_dependent,i_dx,j_dx);
+            }
+            this->d2RdXdX.add(metric_dof_indices[idof], metric_dof_indices, dXidX);
+        }
+
+        th.deleteHessian(hes);
+    }
+    for (unsigned int idof = 0; idof < n_soln_dofs; ++idof) {
+        adtype::getGlobalTape().deactivateValue(local_solution.coefficients[idof]);
+    }
 
 }
 
+template <int dim, typename real, typename MeshType>
+template <typename adtype>
+void DGBase<dim,nstate,real,MeshType>::assemble_face_term_and_build_operators_ad(
+    typename dealii::DoFHandler<dim>::active_cell_iterator cell,
+    typename dealii::DoFHandler<dim>::active_cell_iterator neighbor_cell,
+    const dealii::types::global_dof_index                  current_cell_index,
+    const dealii::types::global_dof_index                  neighbor_cell_index,
+    const unsigned int                                     iface,
+    const unsigned int                                     neighbor_iface,
+    const real                                             penalty,
+    const std::vector<dealii::types::global_dof_index>     &current_dofs_indices,
+    const std::vector<dealii::types::global_dof_index>     &neighbor_dofs_indices,
+    const std::vector<dealii::types::global_dof_index>     &current_metric_dofs_indices,
+    const std::vector<dealii::types::global_dof_index>     &neighbor_metric_dofs_indices,
+    const unsigned int                                     /*poly_degree_int*/,
+    const unsigned int                                     /*poly_degree_ext*/,
+    const unsigned int                                     /*grid_degree_int*/,
+    const unsigned int                                     /*grid_degree_ext*/,
+    OPERATOR::basis_functions<dim,2*dim,real>                   &/*soln_basis_int*/,
+    OPERATOR::basis_functions<dim,2*dim,real>                   &/*soln_basis_ext*/,
+    OPERATOR::basis_functions<dim,2*dim,real>                   &/*flux_basis_int*/,
+    OPERATOR::basis_functions<dim,2*dim,real>                   &/*flux_basis_ext*/,
+    OPERATOR::local_basis_stiffness<dim,2*dim,real>             &/*flux_basis_stiffness*/,
+    OPERATOR::vol_projection_operator<dim,2*dim,real>           &/*soln_basis_projection_oper_int*/,
+    OPERATOR::vol_projection_operator<dim,2*dim,real>           &/*soln_basis_projection_oper_ext*/,
+    OPERATOR::metric_operators<real,dim,2*dim>             &/*metric_oper_int*/,
+    OPERATOR::metric_operators<real,dim,2*dim>             &/*metric_oper_ext*/,
+    OPERATOR::mapping_shape_functions<dim,2*dim,real>           &/*mapping_basis*/,
+    std::array<std::vector<real>,dim>                      &/*mapping_support_points*/,
+    dealii::hp::FEFaceValues<dim,dim>                      &fe_values_collection_face_int,
+    dealii::hp::FEFaceValues<dim,dim>                      &fe_values_collection_face_ext,
+    dealii::Vector<real>                                   &current_cell_rhs,
+    dealii::Vector<real>                                   &neighbor_cell_rhs,
+    std::vector<dealii::Tensor<1,dim,real>>                &/*current_cell_rhs_aux*/,
+    dealii::LinearAlgebra::distributed::Vector<double>     &rhs,
+    std::array<dealii::LinearAlgebra::distributed::Vector<double>,dim> &/*rhs_aux*/,
+    const LocalSolution<adtype, dim, dim>                  &local_metric,
+    codi::TapeHelper<adtype>                               &th,
+    const bool                                             /*compute_auxiliary_right_hand_side*/,
+    const bool compute_dRdW, const bool compute_dRdX, const bool compute_d2R)
+{
+    // Current reference element related to this physical cell
+    const int i_fele = cell->active_fe_index();
+    const int i_quad = i_fele;
+    const int i_mapp = 0;
+    const int i_fele_n = neighbor_cell->active_fe_index(), i_quad_n = i_fele_n, i_mapp_n = 0;
+
+    fe_values_collection_face_int.reinit (cell, iface, i_quad, i_mapp, i_fele);
+    fe_values_collection_face_ext.reinit (neighbor_cell, neighbor_iface, i_quad_n, i_mapp_n, i_fele_n);
+
+    //only need to compute fevalues for the weak form.
+    const dealii::FEFaceValues<dim,dim> &fe_values_face_int = fe_values_collection_face_int.get_present_fe_values();
+    const dealii::FEFaceValues<dim,dim> &fe_values_face_ext = fe_values_collection_face_ext.get_present_fe_values();
+    const dealii::Quadrature<dim-1> &used_face_quadrature = this->face_quadrature_collection[(i_quad_n > i_quad) ? i_quad_n : i_quad]; // Use larger quadrature order on the face
+
+    std::pair<unsigned int, int> face_subface_int = std::make_pair(iface, -1);
+    std::pair<unsigned int, int> face_subface_ext = std::make_pair(neighbor_iface, -1);
+    const auto face_data_set_int = dealii::QProjector<dim>::DataSetDescriptor::face (
+                                                                                  dealii::ReferenceCell::get_hypercube(dim),
+                                                                                  iface,
+                                                                                  cell->face_orientation(iface),
+                                                                                  cell->face_flip(iface),
+                                                                                  cell->face_rotation(iface),
+                                                                                  used_face_quadrature.size());
+    const auto face_data_set_ext = dealii::QProjector<dim>::DataSetDescriptor::face (
+                                                                                  dealii::ReferenceCell::get_hypercube(dim),
+                                                                                  neighbor_iface,
+                                                                                  neighbor_cell->face_orientation(neighbor_iface),
+                                                                                  neighbor_cell->face_flip(neighbor_iface),
+                                                                                  neighbor_cell->face_rotation(neighbor_iface),
+                                                                                  used_face_quadrature.size());
+
+    assemble_face_subface_term_derivatives_ad<adtype> (
+        cell,
+        current_cell_index,
+        neighbor_cell_index,
+        face_subface_int, face_subface_ext,
+        face_data_set_int,
+        face_data_set_ext,
+        fe_values_face_int, fe_values_face_ext,
+        penalty,
+        this->fe_collection[i_fele], this->fe_collection[i_fele_n],
+        used_face_quadrature,
+        current_metric_dofs_indices, neighbor_metric_dofs_indices,
+        current_dofs_indices, neighbor_dofs_indices,
+        current_cell_rhs, neighbor_cell_rhs,
+        local_metric, th,
+        compute_dRdW, compute_dRdX, compute_d2R);
+
+    // Add local contribution from neighbor cell to global vector
+    const unsigned int n_dofs_neigh_cell = this->fe_collection[neighbor_cell->active_fe_index()].n_dofs_per_cell();
+    for (unsigned int i=0; i<n_dofs_neigh_cell; ++i) {
+        rhs[neighbor_dofs_indices[i]] += neighbor_cell_rhs[i];
+    }
+}
+
+template <int dim, typename real, typename MeshType>
+template <typename adtype>
+void DGBase<dim,real,MeshType>::assemble_subface_term_and_build_operators_ad(
+    typename dealii::DoFHandler<dim>::active_cell_iterator cell,
+    typename dealii::DoFHandler<dim>::active_cell_iterator neighbor_cell,
+    const dealii::types::global_dof_index                  current_cell_index,
+    const dealii::types::global_dof_index                  neighbor_cell_index,
+    const unsigned int                                     iface,
+    const unsigned int                                     neighbor_iface,
+    const unsigned int                                     neighbor_i_subface,
+    const real                                             penalty,
+    const std::vector<dealii::types::global_dof_index>     &current_dofs_indices,
+    const std::vector<dealii::types::global_dof_index>     &neighbor_dofs_indices,
+    const std::vector<dealii::types::global_dof_index>     &current_metric_dofs_indices,
+    const std::vector<dealii::types::global_dof_index>     &neighbor_metric_dofs_indices,
+    const unsigned int                                     /*poly_degree_int*/,
+    const unsigned int                                     /*poly_degree_ext*/,
+    const unsigned int                                     /*grid_degree_int*/,
+    const unsigned int                                     /*grid_degree_ext*/,
+    OPERATOR::basis_functions<dim,2*dim,real>                   &/*soln_basis_int*/,
+    OPERATOR::basis_functions<dim,2*dim,real>                   &/*soln_basis_ext*/,
+    OPERATOR::basis_functions<dim,2*dim,real>                   &/*flux_basis_int*/,
+    OPERATOR::basis_functions<dim,2*dim,real>                   &/*flux_basis_ext*/,
+    OPERATOR::local_basis_stiffness<dim,2*dim,real>             &/*flux_basis_stiffness*/,
+    OPERATOR::vol_projection_operator<dim,2*dim,real>           &/*soln_basis_projection_oper_int*/,
+    OPERATOR::vol_projection_operator<dim,2*dim,real>           &/*soln_basis_projection_oper_ext*/,
+    OPERATOR::metric_operators<real,dim,2*dim>             &/*metric_oper_int*/,
+    OPERATOR::metric_operators<real,dim,2*dim>             &/*metric_oper_ext*/,
+    OPERATOR::mapping_shape_functions<dim,2*dim,real>           &/*mapping_basis*/,
+    std::array<std::vector<real>,dim>                      &/*mapping_support_points*/,
+    dealii::hp::FEFaceValues<dim,dim>                      &fe_values_collection_face_int,
+    dealii::hp::FESubfaceValues<dim,dim>                   &fe_values_collection_subface,
+    dealii::Vector<real>                                   &current_cell_rhs,
+    dealii::Vector<real>                                   &neighbor_cell_rhs,
+    std::vector<dealii::Tensor<1,dim,real>>                &/*current_cell_rhs_aux*/,
+    dealii::LinearAlgebra::distributed::Vector<double>     &rhs,
+    std::array<dealii::LinearAlgebra::distributed::Vector<double>,dim> &/*rhs_aux*/,
+    const LocalSolution<adtype, dim, dim>                  &local_metric,
+    codi::TapeHelper<adtype>                               &th,
+    const bool                                             /*compute_auxiliary_right_hand_side*/,
+    const bool compute_dRdW, const bool compute_dRdX, const bool compute_d2R)
+{
+    // Current reference element related to this physical cell
+    const int i_fele = cell->active_fe_index();
+    const int i_quad = i_fele;
+    const int i_mapp = 0;
+    const int i_fele_n = neighbor_cell->active_fe_index(), i_quad_n = i_fele_n, i_mapp_n = 0;
+
+    fe_values_collection_face_int.reinit (cell, iface, i_quad, i_mapp, i_fele);
+    fe_values_collection_subface.reinit (neighbor_cell, neighbor_iface, neighbor_i_subface, i_quad_n, i_mapp_n, i_fele_n);
+
+    const dealii::FEFaceValues<dim,dim> &fe_values_face_int = fe_values_collection_face_int.get_present_fe_values();
+    const dealii::FESubfaceValues<dim,dim> &fe_values_face_ext = fe_values_collection_subface.get_present_fe_values();
+    const dealii::Quadrature<dim-1> &used_face_quadrature = this->face_quadrature_collection[(i_quad_n > i_quad) ? i_quad_n : i_quad]; // Use larger quadrature order on the face
+    std::pair<unsigned int, int> face_subface_int = std::make_pair(iface, -1);
+    std::pair<unsigned int, int> face_subface_ext = std::make_pair(neighbor_iface, (int)neighbor_i_subface);
+
+    const auto face_data_set_int = dealii::QProjector<dim>::DataSetDescriptor::face(
+                                                                                     dealii::ReferenceCell::get_hypercube(dim),
+                                                                                     iface,
+                                                                                     cell->face_orientation(iface),
+                                                                                     cell->face_flip(iface),
+                                                                                     cell->face_rotation(iface),
+                                                                                     used_face_quadrature.size());
+    const auto face_data_set_ext = dealii::QProjector<dim>::DataSetDescriptor::subface (
+                                                                                        dealii::ReferenceCell::get_hypercube(dim),
+                                                                                        neighbor_iface,
+                                                                                        neighbor_i_subface,
+                                                                                        neighbor_cell->face_orientation(neighbor_iface),
+                                                                                        neighbor_cell->face_flip(neighbor_iface),
+                                                                                        neighbor_cell->face_rotation(neighbor_iface),
+                                                                                        used_face_quadrature.size(),
+                                                                                neighbor_cell->subface_case(neighbor_iface));
+
+    assemble_face_subface_term_derivatives_ad<adtype>(
+        cell,
+        current_cell_index,
+        neighbor_cell_index,
+        face_subface_int, face_subface_ext,
+        face_data_set_int,
+        face_data_set_ext,
+        fe_values_face_int, fe_values_face_ext,
+        penalty,
+        this->fe_collection[i_fele], this->fe_collection[i_fele_n],
+        used_face_quadrature,
+        current_metric_dofs_indices, neighbor_metric_dofs_indices,
+        current_dofs_indices, neighbor_dofs_indices,
+        current_cell_rhs, neighbor_cell_rhs,
+        local_metric, th,
+        compute_dRdW, compute_dRdX, compute_d2R);
+
+    // Add local contribution from neighbor cell to global vector
+    const unsigned int n_dofs_neigh_cell = this->fe_collection[neighbor_cell->active_fe_index()].n_dofs_per_cell();
+    for (unsigned int i=0; i<n_dofs_neigh_cell; ++i) {
+        rhs[neighbor_dofs_indices[i]] += neighbor_cell_rhs[i];
+    }
+}
+
+template <int dim, typename real, typename MeshType>
+template <typename adtype>
+void DGBase<dim,real,MeshType>::assemble_face_subface_term_derivatives_ad(
+    typename dealii::DoFHandler<dim>::active_cell_iterator cell,
+    const dealii::types::global_dof_index current_cell_index,
+    const dealii::types::global_dof_index neighbor_cell_index,
+    const std::pair<unsigned int, int> face_subface_int,
+    const std::pair<unsigned int, int> face_subface_ext,
+    const typename dealii::QProjector<dim>::DataSetDescriptor face_data_set_int,
+    const typename dealii::QProjector<dim>::DataSetDescriptor face_data_set_ext,
+    const dealii::FEFaceValuesBase<dim,dim>     &fe_values_int,
+    const dealii::FEFaceValuesBase<dim,dim>     &fe_values_ext,
+    const real penalty,
+    const dealii::FESystem<dim,dim> &fe_int,
+    const dealii::FESystem<dim,dim> &fe_ext,
+    const dealii::Quadrature<dim-1> &face_quadrature,
+    const std::vector<dealii::types::global_dof_index> &metric_dof_indices_int,
+    const std::vector<dealii::types::global_dof_index> &metric_dof_indices_ext,
+    const std::vector<dealii::types::global_dof_index> &soln_dof_indices_int,
+    const std::vector<dealii::types::global_dof_index> &soln_dof_indices_ext,
+    dealii::Vector<real>          &local_rhs_int_cell,
+    dealii::Vector<real>          &local_rhs_ext_cell,
+    const LocalSolution<adtype, dim, dim>                  &local_metric,
+    codi::TapeHelper<adtype>                               &th,
+    const bool compute_dRdW, const bool compute_dRdX, const bool compute_d2R)
+{
+}
 /// Returns the value from a CoDiPack variable.
 /** The recursive calling allows to retrieve nested CoDiPack types.
  */

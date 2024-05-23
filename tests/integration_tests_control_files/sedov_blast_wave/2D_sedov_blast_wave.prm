@@ -16,9 +16,9 @@ set flux_nodes_type = GLL
 
 # NSFR - Ra
 set use_split_form = true
-set two_point_num_flux_type = CH
+set two_point_num_flux_type = Ra
 set conv_num_flux = two_point_flux_with_roe_dissipation
-set flux_reconstruction = cHU
+set flux_reconstruction = cDG
 set use_inverse_mass_on_the_fly = true
 
 subsection limiter
@@ -39,7 +39,7 @@ end
 
 # freestream Mach number
 subsection euler
-  set mach_infinity = 0.01
+  set mach_infinity = 0.1
 end
 
 subsection flow_solver
@@ -47,15 +47,15 @@ subsection flow_solver
   set poly_degree = 3
   set final_time = 1.0
   #set constant_time_step = 0.0001
-  set courant_friedrichs_lewy_number = 0.5
+  set courant_friedrichs_lewy_number = 0.8
   set adaptive_time_step = true
   set unsteady_data_table_filename = sedov_blast_wave_energy
   subsection grid
     subsection positivity_preserving_tests
-      set grid_xmin = 0.0
-      set grid_xmax = 1.1
-      set grid_ymin = 0.0
-      set grid_ymax = 1.1
+      set grid_xmin = -1.5
+      set grid_xmax = 1.5
+      set grid_ymin = -1.5
+      set grid_ymax = 1.5
       set number_of_grid_elements_x = 160
       set number_of_grid_elements_y = 160
     end

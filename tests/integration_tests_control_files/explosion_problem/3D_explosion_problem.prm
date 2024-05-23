@@ -44,7 +44,7 @@ end
 
 subsection flow_solver
   set flow_case_type = explosion_problem
-  set poly_degree = 2
+  set poly_degree = 3
   set final_time = 0.2
   set courant_friedrichs_lewy_number = 0.5
   set adaptive_time_step = true
@@ -58,9 +58,9 @@ subsection flow_solver
       set grid_zmin = -1.0
       set grid_zmax = 1.0
     
-      set number_of_grid_elements_x = 5
-      set number_of_grid_elements_y = 10
-      set number_of_grid_elements_z = 10
+      set number_of_grid_elements_x = 10
+      set number_of_grid_elements_y = 20
+      set number_of_grid_elements_z = 20
     end
   end
 end

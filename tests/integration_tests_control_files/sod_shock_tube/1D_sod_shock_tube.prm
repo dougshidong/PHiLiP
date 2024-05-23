@@ -11,15 +11,15 @@ set use_weak_form = false
 set flux_nodes_type = GLL
 
 # Strong DG - LaxF
-set use_split_form = false
-set conv_num_flux = lax_friedrichs
+#set use_split_form = false
+#set conv_num_flux = lax_friedrichs
 
 # NSFR
-#set use_split_form = true
-#set two_point_num_flux_type = Ra
-#set conv_num_flux = two_point_flux_with_roe_dissipation
-#set flux_reconstruction = cPlus
-#set use_inverse_mass_on_the_fly = true
+set use_split_form = true
+set two_point_num_flux_type = Ra
+set conv_num_flux = two_point_flux_with_roe_dissipation
+set flux_reconstruction = cDG
+set use_inverse_mass_on_the_fly = true
 
 #limiter flags
 subsection limiter
@@ -46,14 +46,14 @@ subsection flow_solver
   set flow_case_type = sod_shock_tube
   set poly_degree = 3
   set final_time = 0.2
-  set courant_friedrichs_lewy_number = 0.66
+  set courant_friedrichs_lewy_number = 0.56
   set adaptive_time_step = true
   set unsteady_data_table_filename = sod_shock_energy
   subsection grid
     subsection positivity_preserving_tests
       set grid_xmin = -0.5
       set grid_xmax = 0.5
-      set number_of_grid_elements_x = 100
+      set number_of_grid_elements_x = 300
     end
   end
 end

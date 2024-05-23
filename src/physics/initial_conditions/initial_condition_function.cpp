@@ -862,20 +862,26 @@ template <int dim, int nstate, typename real>
 InitialConditionFunction_SedovBlastWave<dim, nstate, real>
 ::InitialConditionFunction_SedovBlastWave(
     Parameters::AllParameters const* const param)
-    : n_subdivisions(param->flow_solver_param.number_of_grid_elements_x)
+    : InitialConditionFunction_EulerBase<dim, nstate, real>(param)
+    , gamma_gas(param->euler_param.gamma_gas)
+    , n_subdivisions(param->flow_solver_param.number_of_grid_elements_x)
+    , xmax(param->flow_solver_param.grid_xmax)
+    , xmin(param->flow_solver_param.grid_xmin)
 {
-    this->h = 1.1/n_subdivisions;
+    this->h = (xmax-xmin)/double(n_subdivisions);
 }
 
 
 template <int dim, int nstate, typename real>
 real InitialConditionFunction_SedovBlastWave<dim, nstate, real>
-::value(const dealii::Point<dim, real>& point, const unsigned int istate) const
+::primitive_value(const dealii::Point<dim, real>& point, const unsigned int istate) const
 {
     real value = 0.0;
     if constexpr (dim == 2 && nstate == (dim + 2)) {
         const real x = point[0];
         const real y = point[1];
+        real r = sqrt(pow(x,2)+pow(y,2));
+        //real r_0 = 4*this->h;
 
         if (istate == 0) {
             // density
@@ -890,11 +896,11 @@ real InitialConditionFunction_SedovBlastWave<dim, nstate, real>
             value = 0.0;
         }
         else if (istate == 3) {
-            // energy
-            if(x <= this->h && y <= this->h)
-                value = 0.244816/(pow(this->h, 2));
+            // pressure
+            if(r < this->h)//r_0)
+                value = (this->gamma_gas - 1.0)*(0.244816/pow(this->h,2));///(this->gamma_gas - 1.0)/(dealii::numbers::PI*pow(r_0,2));
             else
-                value = 1e-12;
+                value = 4e-13;//1e-5;
         }
 
     }
@@ -997,6 +1003,45 @@ real InitialConditionFunction_ShockDiffraction<dim, nstate, real>
     return value;
 }
 
+
+// ========================================================
+// Astrophysical Mach Jet (2D) -- Initial Condition
+// INCLUDE REFERENCE LATER
+// ========================================================
+template <int dim, int nstate, typename real>
+InitialConditionFunction_AstrophysicalJet<dim, nstate, real>
+::InitialConditionFunction_AstrophysicalJet(
+    Parameters::AllParameters const* const param)
+    : InitialConditionFunction_EulerBase<dim, nstate, real>(param)
+{}
+
+template <int dim, int nstate, typename real>
+real InitialConditionFunction_AstrophysicalJet<dim, nstate, real>
+::primitive_value(const dealii::Point<dim, real>& /*point*/, const unsigned int istate) const
+{
+    real value = 0.0;
+    if constexpr (dim == 2 && nstate == (dim + 2)) {
+
+        if (istate == 0) {
+            // density
+            value = 0.5;
+        }
+        else if (istate == 1) {
+            // x-velocity
+            value = 0.0;
+        }
+        else if (istate == 2) {
+            // y-velocity
+            value = 0.0;
+        }
+        else if (istate == 3) {
+            // pressure
+            value = 0.4127;
+        }
+    }
+    return value;
+}
+
 // ========================================================
 // ZERO INITIAL CONDITION
 // ========================================================
@@ -1092,6 +1137,8 @@ InitialConditionFactory<dim,nstate, real>::create_InitialConditionFunction(
         if constexpr (dim == 2 && nstate == dim + 2)  return std::make_shared<InitialConditionFunction_SedovBlastWave<dim, nstate, real> >(param);
     } else if (flow_type == FlowCaseEnum::shock_diffraction) {
         if constexpr (dim == 2 && nstate == dim + 2)  return std::make_shared<InitialConditionFunction_ShockDiffraction<dim, nstate, real> >(param);
+    } else if (flow_type == FlowCaseEnum::astrophysical_jet) {
+        if constexpr (dim == 2 && nstate == dim + 2)  return std::make_shared<InitialConditionFunction_AstrophysicalJet<dim, nstate, real> >(param);
     } else if (flow_type == FlowCaseEnum::advection_limiter) {
         if constexpr (dim < 3 && nstate == 1)  return std::make_shared<InitialConditionFunction_Advection<dim, nstate, real> >();
     } else if (flow_type == FlowCaseEnum::burgers_limiter) {
@@ -1139,6 +1186,7 @@ template class InitialConditionFunction_DoubleMachReflection <PHILIP_DIM, PHILIP
 template class InitialConditionFunction_Mach3WindTunnel <PHILIP_DIM, PHILIP_DIM+2, double>;
 template class InitialConditionFunction_SedovBlastWave <PHILIP_DIM, PHILIP_DIM+2, double>;
 template class InitialConditionFunction_ShockDiffraction <PHILIP_DIM, PHILIP_DIM+2, double>;
+template class InitialConditionFunction_AstrophysicalJet <PHILIP_DIM, PHILIP_DIM+2, double>;
 #endif
 
 #if PHILIP_DIM < 3

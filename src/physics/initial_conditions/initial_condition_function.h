@@ -473,7 +473,7 @@ public:
  *  methods for hyperbolic conservation laws, 2022 pg. 25
 */
 template <int dim, int nstate, typename real>
-class InitialConditionFunction_SedovBlastWave : public InitialConditionFunction<dim, nstate, real>
+class InitialConditionFunction_SedovBlastWave : public InitialConditionFunction_EulerBase<dim, nstate, real>
 {
 protected:
     using dealii::Function<dim,real>::value; ///< dealii::Function we are templating on
@@ -486,9 +486,12 @@ public:
 
 
     /// Value of initial condition
-    real value(const dealii::Point<dim,real> &point, const unsigned int istate = 0) const override;
+    real primitive_value(const dealii::Point<dim,real> &point, const unsigned int istate = 0) const override;
 
-    int n_subdivisions;
+    const double gamma_gas;
+    const int n_subdivisions;
+    const double xmax;
+    const double xmin;
     double h;
 
 };
@@ -526,6 +529,26 @@ public:
     /// Constructor for InitialConditionFunction_SodShockTube
     /** Calls the Function(const unsigned int n_components) constructor in deal.II*/
     explicit InitialConditionFunction_ShockDiffraction(
+        Parameters::AllParameters const* const param);
+};
+
+
+/// Initial Condition Function: 2D Shock Diffraction Problem
+/** See Xu & Shu, Third order maximum-principle-satisfying 
+ *  and positivity-preserving Lax-Wendroff discontinuous Galerkin 
+ *  methods for hyperbolic conservation laws, 2022 pg. 30
+*/
+template <int dim, int nstate, typename real>
+class InitialConditionFunction_AstrophysicalJet : public InitialConditionFunction_EulerBase<dim, nstate, real>
+{
+protected:
+    /// Value of initial condition expressed in terms of primitive variables
+    real primitive_value(const dealii::Point<dim, real>& point, const unsigned int istate = 0) const override;
+
+public:
+    /// Constructor for InitialConditionFunction_AstrophysicalJet
+    /** Calls the Function(const unsigned int n_components) constructor in deal.II*/
+    explicit InitialConditionFunction_AstrophysicalJet(
         Parameters::AllParameters const* const param);
 };
 

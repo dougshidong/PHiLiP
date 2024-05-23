@@ -17,7 +17,7 @@ set conv_num_flux = lax_friedrichs
 
 subsection limiter
   set bound_preserving_limiter = positivity_preservingWang2012
-  set min_density = 0.0099
+  set min_density = 1e-13
 
   set use_OOA = true
 end

@@ -5,7 +5,7 @@ set test_type = burgers_limiter
 set dimension = 2
 
 set use_weak_form = false
-set flux_nodes_type = GL
+set flux_nodes_type = GLL
 
 # Strong DG - LaxF
 #set use_split_form = false

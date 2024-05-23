@@ -1381,9 +1381,9 @@ void Euler<dim,nstate,real>
         boundary_slip_wall (normal_int, soln_int, soln_grad_int, soln_bc, soln_grad_bc);
     }
     else if (boundary_type == 1007) {
-        // Slip wall boundary condition
+        // Custom boundary condition
         boundary_custom (soln_bc);
-    } 
+    }
     else {
         this->pcout << "Invalid boundary_type: " << boundary_type << std::endl;
         std::abort();

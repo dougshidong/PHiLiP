@@ -74,6 +74,9 @@ std::shared_ptr<Triangulation> PositivityPreservingTests<dim,nstate>::generate_g
     else if (dim==2 && flow_case_type == flow_case_enum::shock_diffraction) {
         Grids::shock_diffraction_grid<dim>(*grid, &this->all_param);
     }
+    else if (dim==2 && flow_case_type == flow_case_enum::astrophysical_jet) {
+        Grids::astrophysical_jet_grid<dim>(*grid, &this->all_param);
+    }
 
     return grid;
 }

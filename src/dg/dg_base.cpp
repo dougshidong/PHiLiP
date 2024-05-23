@@ -1524,10 +1524,30 @@ void DGBase<dim,real,MeshType>::assemble_face_subface_term_derivatives_ad(
     const std::vector<dealii::types::global_dof_index> &soln_dof_indices_ext,
     dealii::Vector<real>          &local_rhs_int_cell,
     dealii::Vector<real>          &local_rhs_ext_cell,
-    const LocalSolution<adtype, dim, dim>                  &local_metric,
+    const LocalSolution<adtype, dim, dim>                  &metric_int,
     codi::TapeHelper<adtype>                               &th,
     const bool compute_dRdW, const bool compute_dRdX, const bool compute_d2R)
 {
+    const dealii::FESystem<dim> &fe_metric = this->high_order_grid->fe_system;
+    const unsigned int n_metric_dofs = fe_metric.dofs_per_cell;
+    const unsigned int n_soln_dofs_int = fe_int.dofs_per_cell;
+    const unsigned int n_soln_dofs_ext = fe_ext.dofs_per_cell;
+
+    AssertDimension (n_soln_dofs_int, soln_dof_indices_int.size());
+    AssertDimension (n_soln_dofs_ext, soln_dof_indices_ext.size());
+
+    LocalSolution<adtype, dim, nstate> soln_int(fe_int);
+    LocalSolution<adtype, dim, nstate> soln_ext(fe_ext);
+    LocalSolution<adtype, dim, dim> metric_ext(fe_metric);
+
+    // Current derivative ordering is: metric_int, metric_ext, soln_int, soln_ext 
+    unsigned int w_int_start, w_int_end, w_ext_start, w_ext_end,
+                 x_int_start, x_int_end, x_ext_start, x_ext_end;
+    automatic_differentiation_indexing_2(
+        compute_dRdW, compute_dRdX, compute_d2R,
+        n_soln_dofs_int, n_soln_dofs_ext, n_metric_dofs,
+        w_int_start, w_int_end, w_ext_start, w_ext_end,
+        x_int_start, x_int_end, x_ext_start, x_ext_end);
 }
 /// Returns the value from a CoDiPack variable.
 /** The recursive calling allows to retrieve nested CoDiPack types.
@@ -1571,6 +1591,52 @@ void automatic_differentiation_indexing_1(
         x_end   = x_start + n_metric_dofs;
         w_start = x_end;
         w_end   = w_start + 0;
+    } else {
+        std::cout << "Called the derivative version of the residual without requesting the derivative" << std::endl;
+    }
+}
+
+/// Derivative indexing when 2 cells are concerned.
+/// Derivatives are ordered such that x comes first with index 0, then w.
+/// If derivatives with respect to x are not needed, then derivatives
+/// with respect to w will start at index 0. This function is for a single
+/// cell's DoFs.
+void automatic_differentiation_indexing_2(
+    const bool compute_dRdW, const bool compute_dRdX, const bool compute_d2R,
+    const unsigned int n_soln_dofs_int, const unsigned int n_soln_dofs_ext, const unsigned int n_metric_dofs,
+    unsigned int &w_int_start, unsigned int &w_int_end, unsigned int &w_ext_start, unsigned int &w_ext_end,
+    unsigned int &x_int_start, unsigned int &x_int_end, unsigned int &x_ext_start, unsigned int &x_ext_end)
+{
+    // Current derivative order is: metric_int, metric_ext, soln_int, soln_ext
+    w_int_start = 0; w_int_end = 0; w_ext_start = 0; w_ext_end = 0;
+    x_int_start = 0; x_int_end = 0; x_ext_start = 0; x_ext_end = 0;
+    if (compute_d2R || (compute_dRdW && compute_dRdX)) {
+        x_int_start = 0;
+        x_int_end = x_int_start + n_metric_dofs;
+        x_ext_start = x_int_end;
+        x_ext_end = x_ext_start + n_metric_dofs;
+        w_int_start = x_ext_end;
+        w_int_end = w_int_start + n_soln_dofs_int;
+        w_ext_start = w_int_end;
+        w_ext_end = w_ext_start + n_soln_dofs_ext;
+    } else if (compute_dRdW) {
+        x_int_start = 0;
+        x_int_end = 0;
+        x_ext_start = 0;
+        x_ext_end = 0;
+        w_int_start = x_ext_end;
+        w_int_end = w_int_start + n_soln_dofs_int;
+        w_ext_start = w_int_end;
+        w_ext_end = w_ext_start + n_soln_dofs_ext;
+    } else if (compute_dRdX) {
+        x_int_start = 0;
+        x_int_end = x_int_start + n_metric_dofs;
+        x_ext_start = x_int_end;
+        x_ext_end = x_ext_start + n_metric_dofs;
+        w_int_start = x_ext_end;
+        w_int_end = w_int_start + 0;
+        w_ext_start = w_int_end;
+        w_ext_end = w_ext_start + 0;
     } else {
         std::cout << "Called the derivative version of the residual without requesting the derivative" << std::endl;
     }

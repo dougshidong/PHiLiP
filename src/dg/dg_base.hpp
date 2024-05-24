@@ -747,16 +747,39 @@ public:
         const bool                                             /*compute_auxiliary_right_hand_side*/,
         const bool compute_dRdW, const bool compute_dRdX, const bool compute_d2R);
     
-    template <typename adtype>
     virtual void assemble_volume_term_ad(
         typename dealii::DoFHandler<dim>::active_cell_iterator cell,
         const dealii::types::global_dof_index current_cell_index,
-        const std::vector<adtype> &soln_coeffs,
-        const std::vector<adtype> &metric_coeffs,
+        const std::vector<double> &soln_coeffs,
+        const std::vector<double> &metric_coeffs,
         const std::vector<real> &local_dual,
         const dealii::Quadrature<dim> &quadrature,
         const dealii::FESystem<dim,dim> &fe_soln,
-        std::vector<adtype> &rhs, adtype &dual_dot_residual,
+        std::vector<double> &rhs, double &dual_dot_residual,
+        const bool compute_metric_derivatives,
+        const dealii::FEValues<dim,dim> &fe_values_vol)=0;
+    
+    virtual void assemble_volume_term_ad(
+        typename dealii::DoFHandler<dim>::active_cell_iterator cell,
+        const dealii::types::global_dof_index current_cell_index,
+        const std::vector<codi_JacobianComputationType> &soln_coeffs,
+        const std::vector<codi_JacobianComputationType> &metric_coeffs,
+        const std::vector<real> &local_dual,
+        const dealii::Quadrature<dim> &quadrature,
+        const dealii::FESystem<dim,dim> &fe_soln,
+        std::vector<codi_JacobianComputationType> &rhs, codi_JacobianComputationType &dual_dot_residual,
+        const bool compute_metric_derivatives,
+        const dealii::FEValues<dim,dim> &fe_values_vol)=0;
+    
+    virtual void assemble_volume_term_ad(
+        typename dealii::DoFHandler<dim>::active_cell_iterator cell,
+        const dealii::types::global_dof_index current_cell_index,
+        const std::vector<codi_HessianComputationType> &soln_coeffs,
+        const std::vector<codi_HessianComputationType> &metric_coeffs,
+        const std::vector<real> &local_dual,
+        const dealii::Quadrature<dim> &quadrature,
+        const dealii::FESystem<dim,dim> &fe_soln,
+        std::vector<codi_HessianComputationType> &rhs, codi_HessianComputationType &dual_dot_residual,
         const bool compute_metric_derivatives,
         const dealii::FEValues<dim,dim> &fe_values_vol)=0;
     

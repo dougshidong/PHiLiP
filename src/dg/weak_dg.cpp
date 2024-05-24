@@ -3918,14 +3918,31 @@ template <typename adtype>
 void DGWeak<dim,nstate,real,MeshType>::assemble_volume_term_ad(
     typename dealii::DoFHandler<dim>::active_cell_iterator cell,
     const dealii::types::global_dof_index current_cell_index,
-    const LocalSolution<adtype, dim, nstate> &local_solution,
-    const LocalSolution<adtype, dim, dim> &local_metric,
+    const std::vector<adtype> &soln_coeffs,
+    const std::vector<adtype> &metric_coeffs,
     const std::vector<real> &local_dual,
     const dealii::Quadrature<dim> &quadrature,
+    const dealii::FESystem<dim,dim> &fe_soln,
     std::vector<adtype> &rhs, adtype &dual_dot_residual,
     const bool compute_metric_derivatives,
     const dealii::FEValues<dim,dim> &fe_values_vol)
 {
+    const dealii::FESystem<dim> &fe_metric = this->high_order_grid->fe_system;
+    const unsigned int n_metric_dofs = fe_metric.dofs_per_cell;
+    const unsigned int n_soln_dofs = fe_soln.dofs_per_cell;
+
+    AssertDimension (n_soln_dofs, soln_dof_indices.size());
+
+    LocalSolution<adtype, dim, nstate> local_solution(fe_soln);
+    LocalSolution<adtype, dim, dim> local_metric(fe_metric);
+    for(unsigned int i=0; i<n_soln_dofs; ++i)
+    {
+        local_solution.coefficients[i] = soln_coeffs[i];
+    }
+    for(unsigned int i=0; i<n_metric_dofs; ++i)
+    {
+        local_metric.coefficients[i] = metric_coeffs[i];
+    }
     assemble_volume_term<adtype>(
         cell,
         current_cell_index,
@@ -3942,18 +3959,32 @@ template <typename adtype>
 void DGWeak<dim,nstate,real,MeshType>::assemble_boundary_term_ad(
     typename dealii::DoFHandler<dim>::active_cell_iterator cell,
     const dealii::types::global_dof_index current_cell_index,
-    const LocalSolution<adtype, dim, nstate> &local_solution,
-    const LocalSolution<adtype, dim, dim> &local_metric,
+    const std::vector<adtype> &soln_coeffs,
+    const std::vector<adtype> &metric_coeffs,
     const std::vector< real > &local_dual,
     const unsigned int face_number,
     const unsigned int boundary_id,
     const dealii::FEFaceValuesBase<dim,dim> &fe_values_boundary,
     const real penalty,
     const dealii::Quadrature<dim-1> &quadrature,
+    const dealii::FESystem<dim,dim> &fe_soln,
     std::vector<adtype> &rhs,
     adtype &dual_dot_residual,
     const bool compute_metric_derivatives)
 {
+    const dealii::FESystem<dim> &fe_metric = this->high_order_grid->fe_system;
+    const unsigned int n_soln_dofs = fe_values_boundary.dofs_per_cell;
+    const unsigned int n_metric_dofs = fe_metric.dofs_per_cell;
+    LocalSolution<adtype, dim, nstate> local_solution(fe_soln);
+    LocalSolution<adtype, dim, dim> local_metric(fe_metric);
+    for(unsigned int i=0; i<n_soln_dofs; ++i)
+    {
+        local_solution.coefficients[i] = soln_coeffs[i];
+    }
+    for(unsigned int i=0; i<n_metric_dofs; ++i)
+    {
+        local_metric.coefficients[i] = metric_coeffs[i];
+    }
     assemble_boundary_term<adtype>(
         cell,
         current_cell_index,
@@ -3979,10 +4010,10 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_face_term_ad(
     typename dealii::DoFHandler<dim>::active_cell_iterator cell,
     const dealii::types::global_dof_index current_cell_index,
     const dealii::types::global_dof_index neighbor_cell_index,
-    const LocalSolution<adtype, dim, nstate> &soln_int,
-    const LocalSolution<adtype, dim, nstate> &soln_ext,
-    const LocalSolution<adtype, dim, dim> &metric_int,
-    const LocalSolution<adtype, dim, dim> &metric_ext,
+    const std::vector<adtype> &soln_int,
+    const std::vector<adtype> &soln_ext,
+    const std::vector<adtype> &metric_int,
+    const std::vector<adtype> &metric_ext,
     const std::vector< double > &dual_int,
     const std::vector< double > &dual_ext,
     const std::pair<unsigned int, int> face_subface_int,
@@ -3991,6 +4022,8 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_face_term_ad(
     const typename dealii::QProjector<dim>::DataSetDescriptor face_data_set_ext,
     const dealii::FEFaceValuesBase<dim,dim>     &fe_values_int,
     const dealii::FEFaceValuesBase<dim,dim>     &fe_values_ext,
+    const dealii::FESystem<dim,dim> &fe_int,
+    const dealii::FESystem<dim,dim> &fe_ext,
     const real penalty,
     const dealii::Quadrature<dim-1> &face_quadrature,
     std::vector<adtype> &rhs_int,
@@ -3998,12 +4031,35 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_face_term_ad(
     adtype &dual_dot_residual,
     const bool compute_dRdW, const bool compute_dRdX, const bool compute_d2R)
 {
+    const dealii::FESystem<dim> &fe_metric = this->high_order_grid->fe_system;
+    const unsigned int n_metric_dofs = fe_metric.dofs_per_cell;
+    const unsigned int n_soln_dofs_int = fe_int.dofs_per_cell;
+    const unsigned int n_soln_dofs_ext = fe_ext.dofs_per_cell;
+
+    AssertDimension (n_soln_dofs_int, soln_dof_indices_int.size());
+    AssertDimension (n_soln_dofs_ext, soln_dof_indices_ext.size());
+
+    LocalSolution<adtype, dim, nstate> local_soln_int(fe_int);
+    LocalSolution<adtype, dim, nstate> local_soln_ext(fe_ext);
+    LocalSolution<adtype, dim, dim> local_metric_int(fe_metric);
+    LocalSolution<adtype, dim, dim> local_metric_ext(fe_metric);
+
+    for (unsigned int idof = 0; idof < n_soln_dofs_int; ++idof) {
+        local_soln_int.coefficients[idof] = soln_int[idof];
+    }
+    for (unsigned int idof = 0; idof < n_soln_dofs_ext; ++idof) {
+        local_soln_ext.coefficients[idof] = soln_ext[idof];
+    }
+    for (unsigned int idof = 0; idof < n_metric_dofs; ++idof) {
+        local_metric_int.coefficients[idof] = metric_int[idof];
+        local_metric_ext.coefficients[idof] = metric_ext[idof];
+    }
     
     assemble_face_term<adtype>(
         cell,
         current_cell_index,
         neighbor_cell_index,
-        soln_int, soln_ext, metric_int, metric_ext,
+        local_soln_int, local_soln_ext, local_metric_int, local_metric_ext,
         dual_int,
         dual_ext,
         face_subface_int,

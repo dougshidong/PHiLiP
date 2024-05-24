@@ -751,8 +751,8 @@ public:
     virtual void assemble_volume_term_ad(
         typename dealii::DoFHandler<dim>::active_cell_iterator cell,
         const dealii::types::global_dof_index current_cell_index,
-        const std::vector<adtype> &local_solution,
-        const std::vector<adtype> &local_metric,
+        const std::vector<adtype> &soln_coeffs,
+        const std::vector<adtype> &metric_coeffs,
         const std::vector<real> &local_dual,
         const dealii::Quadrature<dim> &quadrature,
         const dealii::FESystem<dim,dim> &fe_soln,
@@ -764,8 +764,8 @@ public:
     virtual void assemble_boundary_term_ad(
         typename dealii::DoFHandler<dim>::active_cell_iterator cell,
         const dealii::types::global_dof_index current_cell_index,
-        std::vector<adtype> &local_solution,
-        std::vector<adtype> &local_metric,
+        const std::vector<adtype> &soln_coeffs,
+        const std::vector<adtype> &metric_coeffs,
         const std::vector< real > &local_dual,
         const unsigned int face_number,
         const unsigned int boundary_id,

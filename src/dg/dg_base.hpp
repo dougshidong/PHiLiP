@@ -591,7 +591,7 @@ public:
         std::array<dealii::LinearAlgebra::distributed::Vector<double>,dim> &rhs_aux);
     
     template<typename DoFCellAccessorType1, typename DoFCellAccessorType2>
-    void assemble_cell_residual_derivatives (
+    void assemble_cell_residual_and_ad_derivatives (
         const DoFCellAccessorType1 &current_cell,
         const DoFCellAccessorType2 &current_metric_cell,
         const bool compute_dRdW, const bool compute_dRdX, const bool compute_d2R,
@@ -633,7 +633,7 @@ public:
         const dealii::FESystem<dim,dim>                        &fe_soln,
         dealii::Vector<real>                                   &local_rhs_cell,
         std::vector<dealii::Tensor<1,dim,real>>                &/*local_auxiliary_RHS*/,
-        const LocalSolution<adtype, dim, nstate>               &local_metric_int,
+        std::vector<adtype>               &local_metric_int,
         codi::TapeHelper<adtype>                               &th,
         const bool                                             /*compute_auxiliary_right_hand_side*/,
         const bool compute_dRdW, const bool compute_dRdX, const bool compute_d2R);
@@ -673,7 +673,7 @@ public:
         std::vector<dealii::Tensor<1,dim,real>>                &/*current_cell_rhs_aux*/,
         dealii::LinearAlgebra::distributed::Vector<double>     &rhs,
         std::array<dealii::LinearAlgebra::distributed::Vector<double>,dim> &/*rhs_aux*/,
-        const LocalSolution<adtype, dim, dim>                  &local_metric,
+        std::vector<adtype>                  &local_metric,
         codi::TapeHelper<adtype>                               &th,
         const bool                                             /*compute_auxiliary_right_hand_side*/,
         const bool compute_dRdW, const bool compute_dRdX, const bool compute_d2R);
@@ -701,7 +701,7 @@ public:
         const dealii::FESystem<dim,dim>                        &fe_soln,
         dealii::Vector<real>                                   &local_rhs_cell,
         std::vector<dealii::Tensor<1,dim,real>>                &/*local_auxiliary_RHS*/,
-        const LocalSolution<adtype, dim, dim>                  &local_metric,
+        std::vector<adtype>                  &local_metric,
         codi::TapeHelper<adtype>                               &th,
         const bool                                             /*compute_auxiliary_right_hand_side*/,
         const bool compute_dRdW, const bool compute_dRdX, const bool compute_d2R);
@@ -742,7 +742,7 @@ public:
         std::vector<dealii::Tensor<1,dim,real>>                &/*current_cell_rhs_aux*/,
         dealii::LinearAlgebra::distributed::Vector<double>     &rhs,
         std::array<dealii::LinearAlgebra::distributed::Vector<double>,dim> &/*rhs_aux*/,
-        const LocalSolution<adtype, dim, dim>                  &local_metric,
+        std::vector<adtype>                  &local_metric,
         codi::TapeHelper<adtype>                               &th,
         const bool                                             /*compute_auxiliary_right_hand_side*/,
         const bool compute_dRdW, const bool compute_dRdX, const bool compute_d2R);
@@ -751,8 +751,8 @@ public:
     virtual void assemble_volume_term_ad(
         typename dealii::DoFHandler<dim>::active_cell_iterator cell,
         const dealii::types::global_dof_index current_cell_index,
-        const LocalSolution<real2, dim, nstate> &local_solution,
-        const LocalSolution<real2, dim, dim> &local_metric,
+        const std::vector<adtype> &local_solution,
+        const std::vector<adtype> &local_metric,
         const std::vector<real> &local_dual,
         const dealii::Quadrature<dim> &quadrature,
         std::vector<adtype> &rhs, adtype &dual_dot_residual,
@@ -763,8 +763,8 @@ public:
     virtual void assemble_boundary_term_ad(
         typename dealii::DoFHandler<dim>::active_cell_iterator cell,
         const dealii::types::global_dof_index current_cell_index,
-        const LocalSolution<adtype, dim, nstate> &local_solution,
-        const LocalSolution<adtype, dim, dim> &local_metric,
+        std::vector<adtype> &local_solution,
+        std::vector<adtype> &local_metric,
         const std::vector< real > &local_dual,
         const unsigned int face_number,
         const unsigned int boundary_id,
@@ -780,10 +780,10 @@ public:
         typename dealii::DoFHandler<dim>::active_cell_iterator cell,
         const dealii::types::global_dof_index current_cell_index,
         const dealii::types::global_dof_index neighbor_cell_index,
-        const LocalSolution<adtype, dim, nstate> &soln_int,
-        const LocalSolution<adtype, dim, nstate> &soln_ext,
-        const LocalSolution<adtype, dim, dim> &metric_int,
-        const LocalSolution<adtype, dim, dim> &metric_ext,
+        std::vector<adtype> &soln_int,
+        std::vector<adtype> &soln_ext,
+        std::vector<adtype> &metric_int,
+        std::vector<adtype> &metric_ext,
         const std::vector< double > &dual_int,
         const std::vector< double > &dual_ext,
         const std::pair<unsigned int, int> face_subface_int,

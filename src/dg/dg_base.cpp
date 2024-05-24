@@ -557,23 +557,23 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual_and_ad_derivatives (
     }
     
     const dealii::FESystem<dim> &fe_metric = this->high_order_grid->fe_system;
-    LocalSolution<adtype, dim, dim> local_metric_int(fe_metric);
+    std::vector<adtype> local_metric_int(fe_metric.dofs_per_cell);
     
     for (unsigned int idof = 0; idof < n_metric_dofs_cell; ++idof) 
     {
         const real val = this->high_order_grid->volume_nodes[metric_dof_indices[idof]];
-        local_metric_int.coefficients[idof] = val;
+        local_metric_int[idof] = val;
 
         if (compute_dRdX || compute_d2R) 
         {
             for(int itape=0; itape<n_tapes; ++itape)
             {
-                th[itape].registerInput(local_metric_int.coefficients[idof]);
+                th[itape].registerInput(local_metric_int[idof]);
             }
         } 
         else 
         {
-            adtype::getGlobalTape().deactivateValue(local_metric_int.coefficients[idof]);
+            adtype::getGlobalTape().deactivateValue(local_metric_int[idof]);
         }
     }
 
@@ -916,7 +916,7 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual_and_ad_derivatives (
     
     for (unsigned int idof = 0; idof < n_metric_dofs_cell; ++idof) 
     {
-        adtype::getGlobalTape().deactivateValue(local_metric_int.coefficients[idof]);
+        adtype::getGlobalTape().deactivateValue(local_metric_int[idof]);
     }
 
     AssertDimension(tape_index, n_tapes);
@@ -958,7 +958,7 @@ void DGBase<dim,real,MeshType>::assemble_volume_term_and_build_operators_ad(
     const dealii::FESystem<dim,dim>                        &fe_soln,
     dealii::Vector<real>                                   &local_rhs_cell,
     std::vector<dealii::Tensor<1,dim,real>>                &/*local_auxiliary_RHS*/,
-    const LocalSolution<adtype, dim, nstate>               &local_metric_int,
+    std::vector<adtype>                                    &local_metric_int,
     codi::TapeHelper<adtype>                               &th,
     const bool                                             /*compute_auxiliary_right_hand_side*/,
     const bool compute_dRdW, const bool compute_dRdX, const bool compute_d2R)
@@ -1009,15 +1009,15 @@ void DGBase<dim,real,MeshType>::assemble_volume_term_and_build_operators_ad(
                                           n_soln_dofs, n_metric_dofs,
                                           w_start, w_end, x_start, x_end );
     
-    LocalSolution<adtype, dim, nstate> local_solution(fe_soln);
+    std::vector<adtype> local_solution(fe_soln.dofs_per_cell);
     for (unsigned int idof = 0; idof < n_soln_dofs; ++idof) {
         const real val = this->solution(soln_dof_indices[idof]);
-        local_solution.coefficients[idof] = val;
+        local_solution[idof] = val;
 
         if (compute_dRdW || compute_d2R) {
-            th.registerInput(local_solution.coefficients[idof]);
+            th.registerInput(local_solution[idof]);
         } else {
-            adtype::getGlobalTape().deactivateValue(local_solution.coefficients[idof]);
+            adtype::getGlobalTape().deactivateValue(local_solution[idof]);
         }
     }
     
@@ -1123,7 +1123,7 @@ void DGBase<dim,real,MeshType>::assemble_volume_term_and_build_operators_ad(
     }
 
     for (unsigned int idof = 0; idof < n_soln_dofs; ++idof) {
-        adtype::getGlobalTape().deactivateValue(local_solution.coefficients[idof]);
+        adtype::getGlobalTape().deactivateValue(local_solution[idof]);
     }
     
 }
@@ -1152,7 +1152,7 @@ void DGBase<dim,real,MeshType>::assemble_boundary_term_and_build_operators_ad(
     const dealii::FESystem<dim,dim>                        &fe_soln,
     dealii::Vector<real>                                   &local_rhs_cell,
     std::vector<dealii::Tensor<1,dim,real>>                &/*local_auxiliary_RHS*/,
-    const LocalSolution<adtype, dim, dim>                  &local_metric,
+    std::vector<adtype>                  &local_metric,
     codi::TapeHelper<adtype>                               &th,
     const bool                                             /*compute_auxiliary_right_hand_side*/,
     const bool compute_dRdW, const bool compute_dRdX, const bool compute_d2R)
@@ -1174,7 +1174,7 @@ void DGBase<dim,real,MeshType>::assemble_boundary_term_and_build_operators_ad(
     const bool compute_metric_derivatives = true;//(!compute_dRdX && !compute_d2R) ? false : true;
     AssertDimension (n_soln_dofs, soln_dof_indices.size());
 
-    LocalSolution<adtype, dim, nstate> local_solution(fe_soln);
+    std::vector<adtype> local_solution(fe_soln.dofs_per_cell);
 
     unsigned int w_start, w_end, x_start, x_end;
     automatic_differentiation_indexing_1( compute_dRdW, compute_dRdX, compute_d2R,
@@ -1183,12 +1183,12 @@ void DGBase<dim,real,MeshType>::assemble_boundary_term_and_build_operators_ad(
     
     for (unsigned int idof = 0; idof < n_soln_dofs; ++idof) {
         const real val = this->solution(soln_dof_indices[idof]);
-        local_solution.coefficients[idof] = val;
+        local_solution[idof] = val;
 
         if (compute_dRdW || compute_d2R) {
-            th.registerInput(local_solution.coefficients[idof]);
+            th.registerInput(local_solution[idof]);
         } else {
-            adtype::getGlobalTape().deactivateValue(local_solution.coefficients[idof]);
+            adtype::getGlobalTape().deactivateValue(local_solution[idof]);
         }
     }
 
@@ -1305,7 +1305,7 @@ void DGBase<dim,real,MeshType>::assemble_boundary_term_and_build_operators_ad(
         th.deleteHessian(hes);
     }
     for (unsigned int idof = 0; idof < n_soln_dofs; ++idof) {
-        adtype::getGlobalTape().deactivateValue(local_solution.coefficients[idof]);
+        adtype::getGlobalTape().deactivateValue(local_solution[idof]);
     }
 
 }
@@ -1346,7 +1346,7 @@ void DGBase<dim,nstate,real,MeshType>::assemble_face_term_and_build_operators_ad
     std::vector<dealii::Tensor<1,dim,real>>                &/*current_cell_rhs_aux*/,
     dealii::LinearAlgebra::distributed::Vector<double>     &rhs,
     std::array<dealii::LinearAlgebra::distributed::Vector<double>,dim> &/*rhs_aux*/,
-    const LocalSolution<adtype, dim, dim>                  &local_metric,
+    std::vector<adtype>                  &local_metric,
     codi::TapeHelper<adtype>                               &th,
     const bool                                             /*compute_auxiliary_right_hand_side*/,
     const bool compute_dRdW, const bool compute_dRdX, const bool compute_d2R)
@@ -1443,7 +1443,7 @@ void DGBase<dim,real,MeshType>::assemble_subface_term_and_build_operators_ad(
     std::vector<dealii::Tensor<1,dim,real>>                &/*current_cell_rhs_aux*/,
     dealii::LinearAlgebra::distributed::Vector<double>     &rhs,
     std::array<dealii::LinearAlgebra::distributed::Vector<double>,dim> &/*rhs_aux*/,
-    const LocalSolution<adtype, dim, dim>                  &local_metric,
+    std::vector<adtype>                  &local_metric,
     codi::TapeHelper<adtype>                               &th,
     const bool                                             /*compute_auxiliary_right_hand_side*/,
     const bool compute_dRdW, const bool compute_dRdX, const bool compute_d2R)
@@ -1526,7 +1526,7 @@ void DGBase<dim,real,MeshType>::assemble_face_subface_term_derivatives_ad(
     const std::vector<dealii::types::global_dof_index> &soln_dof_indices_ext,
     dealii::Vector<real>          &local_rhs_int_cell,
     dealii::Vector<real>          &local_rhs_ext_cell,
-    const LocalSolution<adtype, dim, dim>                  &metric_int,
+    std::vector<adtype>                  &metric_int,
     codi::TapeHelper<adtype>                               &th,
     const bool compute_dRdW, const bool compute_dRdX, const bool compute_d2R)
 {
@@ -1538,9 +1538,9 @@ void DGBase<dim,real,MeshType>::assemble_face_subface_term_derivatives_ad(
     AssertDimension (n_soln_dofs_int, soln_dof_indices_int.size());
     AssertDimension (n_soln_dofs_ext, soln_dof_indices_ext.size());
 
-    LocalSolution<adtype, dim, nstate> soln_int(fe_int);
-    LocalSolution<adtype, dim, nstate> soln_ext(fe_ext);
-    LocalSolution<adtype, dim, dim> metric_ext(fe_metric);
+    std::vector<adtype> soln_int(fe_int.dofs_per_cell);
+    std::vector<adtype> soln_ext(fe_ext.dofs_per_cell);
+    std::vector<adtype> metric_ext(fe_metric.dofs_per_cell);
 
     // Current derivative ordering is: metric_int, metric_ext, soln_int, soln_ext 
     unsigned int w_int_start, w_int_end, w_ext_start, w_ext_end,
@@ -1554,29 +1554,29 @@ void DGBase<dim,real,MeshType>::assemble_face_subface_term_derivatives_ad(
 
     for (unsigned int idof = 0; idof < n_metric_dofs; ++idof) {
         const real val = this->high_order_grid->volume_nodes[metric_dof_indices_ext[idof]];
-        metric_ext.coefficients[idof] = val;
+        metric_ext[idof] = val;
         if (compute_dRdX || compute_d2R) {
-            th.registerInput(metric_ext.coefficients[idof]);
+            th.registerInput(metric_ext[idof]);
         } else {
-            adtype::getGlobalTape().deactivateValue(metric_ext.coefficients[idof]);
+            adtype::getGlobalTape().deactivateValue(metric_ext[idof]);
         }
     }
     for (unsigned int idof = 0; idof < n_soln_dofs_int; ++idof) {
         const real val = this->solution(soln_dof_indices_int[idof]);
-        soln_int.coefficients[idof] = val;
+        soln_int[idof] = val;
         if (compute_dRdW || compute_d2R) {
-            th.registerInput(soln_int.coefficients[idof]);
+            th.registerInput(soln_int[idof]);
         } else {
-            adtype::getGlobalTape().deactivateValue(soln_int.coefficients[idof]);
+            adtype::getGlobalTape().deactivateValue(soln_int[idof]);
         }
     }
     for (unsigned int idof = 0; idof < n_soln_dofs_ext; ++idof) {
         const real val = this->solution(soln_dof_indices_ext[idof]);
-        soln_ext.coefficients[idof] = val;
+        soln_ext[idof] = val;
         if (compute_dRdW || compute_d2R) {
-            th.registerInput(soln_ext.coefficients[idof]);
+            th.registerInput(soln_ext[idof]);
         } else {
-            adtype::getGlobalTape().deactivateValue(soln_ext.coefficients[idof]);
+            adtype::getGlobalTape().deactivateValue(soln_ext[idof]);
         }
     }
 
@@ -1855,13 +1855,13 @@ void DGBase<dim,real,MeshType>::assemble_face_subface_term_derivatives_ad(
     }
 
     for (unsigned int idof = 0; idof < n_soln_dofs_int; ++idof) {
-        adtype::getGlobalTape().deactivateValue(soln_int.coefficients[idof]);
+        adtype::getGlobalTape().deactivateValue(soln_int[idof]);
     }
     for (unsigned int idof = 0; idof < n_soln_dofs_ext; ++idof) {
-        adtype::getGlobalTape().deactivateValue(soln_ext.coefficients[idof]);
+        adtype::getGlobalTape().deactivateValue(soln_ext[idof]);
     }
     for (unsigned int idof = 0; idof < n_metric_dofs; ++idof) {
-        adtype::getGlobalTape().deactivateValue(metric_ext.coefficients[idof]);
+        adtype::getGlobalTape().deactivateValue(metric_ext[idof]);
     }
 }
 
@@ -2764,28 +2764,77 @@ void DGBase<dim,real,MeshType>::assemble_residual (const bool compute_dRdW, cons
         auto metric_cell = high_order_grid->dof_handler_grid.begin_active();
         for (auto soln_cell = dof_handler.begin_active(); soln_cell != dof_handler.end(); ++soln_cell, ++metric_cell) {
             if (!soln_cell->is_locally_owned()) continue;
-
+            
             // Add right-hand side contributions this cell can compute
-            assemble_cell_residual (
-                soln_cell,
-                metric_cell,
-                compute_dRdW, compute_dRdX, compute_d2R,
-                fe_values_collection_volume,
-                fe_values_collection_face_int,
-                fe_values_collection_face_ext,
-                fe_values_collection_subface,
-                fe_values_collection_volume_lagrange,
-                soln_basis_int,
-                soln_basis_ext,
-                flux_basis_int,
-                flux_basis_ext,
-                flux_basis_stiffness,
-                soln_basis_projection_oper_int,
-                soln_basis_projection_oper_ext,
-                mapping_basis,
-                false,
-                right_hand_side,
-                auxiliary_right_hand_side);
+            if(compute_d2R)
+            {
+                assemble_cell_residual_and_ad_derivatives<codi_HessianComputationType>(
+                    soln_cell,
+                    metric_cell,
+                    compute_dRdW, compute_dRdX, compute_d2R,
+                    fe_values_collection_volume,
+                    fe_values_collection_face_int,
+                    fe_values_collection_face_ext,
+                    fe_values_collection_subface,
+                    fe_values_collection_volume_lagrange,
+                    soln_basis_int,
+                    soln_basis_ext,
+                    flux_basis_int,
+                    flux_basis_ext,
+                    flux_basis_stiffness,
+                    soln_basis_projection_oper_int,
+                    soln_basis_projection_oper_ext,
+                    mapping_basis,
+                    false,
+                    right_hand_side,
+                    auxiliary_right_hand_side);
+            }
+            else if (compute_dRdW || compute_dRdX)
+            {
+                assemble_cell_residual_and_ad_derivatives<codi_JacobianComputationType>(
+                    soln_cell,
+                    metric_cell,
+                    compute_dRdW, compute_dRdX, compute_d2R,
+                    fe_values_collection_volume,
+                    fe_values_collection_face_int,
+                    fe_values_collection_face_ext,
+                    fe_values_collection_subface,
+                    fe_values_collection_volume_lagrange,
+                    soln_basis_int,
+                    soln_basis_ext,
+                    flux_basis_int,
+                    flux_basis_ext,
+                    flux_basis_stiffness,
+                    soln_basis_projection_oper_int,
+                    soln_basis_projection_oper_ext,
+                    mapping_basis,
+                    false,
+                    right_hand_side,
+                    auxiliary_right_hand_side);
+            }
+            else
+            {
+                assemble_cell_residual_and_ad_derivatives<real>(
+                    soln_cell,
+                    metric_cell,
+                    compute_dRdW, compute_dRdX, compute_d2R,
+                    fe_values_collection_volume,
+                    fe_values_collection_face_int,
+                    fe_values_collection_face_ext,
+                    fe_values_collection_subface,
+                    fe_values_collection_volume_lagrange,
+                    soln_basis_int,
+                    soln_basis_ext,
+                    flux_basis_int,
+                    flux_basis_ext,
+                    flux_basis_stiffness,
+                    soln_basis_projection_oper_int,
+                    soln_basis_projection_oper_ext,
+                    mapping_basis,
+                    false,
+                    right_hand_side,
+                    auxiliary_right_hand_side);
+            }
         } // end of cell loop
 
         if(all_parameters->store_residual_cpu_time){

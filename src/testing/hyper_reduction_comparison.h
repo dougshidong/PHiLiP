@@ -23,9 +23,6 @@ public:
     /// Reinitialize parameters
     Parameters::AllParameters reinitParams(const int max_iter) const;
 
-    /// Read snapshot locations from the text file
-    bool getSnapshotParamsFromFile() const;
-    
     /// Build three models and evaluate error measures
     int run_test () const override;
 

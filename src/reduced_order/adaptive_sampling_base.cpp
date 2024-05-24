@@ -83,39 +83,37 @@ RowVectorXd AdaptiveSamplingBase<dim, nstate>::getMaxErrorROM() const{
     VectorXd errors(n_rows);
 
     int i;
+    // Loop through FOM snapshot locations and add zero error to errors vector
     for(i = 0 ; i < snapshot_parameters.rows() ; i++){
         errors(i) = 0;
         parameters.row(i) = snapshot_parameters.row(i);
     }
     this->pcout << i << std::endl;
+    // Loop through ROM points and add total errror to errors vector (both FOM snaps and ROM points are used to build RBF)
     for(auto it = rom_locations.begin(); it != rom_locations.end(); ++it){
         parameters.row(i) = it->get()->parameter.array();
         errors(i) = it->get()->total_error;
         i++;
     }
 
-    //Must scale both axes between [0,1] for the 2d rbf interpolation to work optimally
+    // Must scale both axes between [0,1] for the 2d rbf interpolation to work optimally
     ProperOrthogonalDecomposition::MinMaxScaler scaler;
     MatrixXd parameters_scaled = scaler.fit_transform(parameters);
 
-    //Construct radial basis function
+    // Construct radial basis function
     std::string kernel = "thin_plate_spline";
     ProperOrthogonalDecomposition::RBFInterpolation rbf = ProperOrthogonalDecomposition::RBFInterpolation(parameters_scaled, errors, kernel);
 
     // Set parameters.
     ROL::ParameterList parlist;
-    //parlist.sublist("General").set("Recompute Objective Function",false);
-    //parlist.sublist("Step").sublist("Line Search").set("Initial Step Size", 1.0);
-    //parlist.sublist("Step").sublist("Line Search").set("User Defined Initial Step Size",true);
     parlist.sublist("Step").sublist("Line Search").sublist("Line-Search Method").set("Type","Backtracking");
     parlist.sublist("Step").sublist("Line Search").sublist("Descent Method").set("Type","Quasi-Newton Method");
     parlist.sublist("Step").sublist("Line Search").sublist("Secant").set("Type","Limited-Memory BFGS");
-    //parlist.sublist("Step").sublist("Line Search").sublist("Curvature Condition").set("Type","Null Curvature Condition");
     parlist.sublist("Status Test").set("Gradient Tolerance",1.e-10);
     parlist.sublist("Status Test").set("Step Tolerance",1.e-14);
     parlist.sublist("Status Test").set("Iteration Limit",100);
 
-    //Find max error and parameters by minimizing function starting at each ROM location
+    // Find max error and parameters by minimizing function starting at each ROM location
     RowVectorXd max_error_params(parameters.cols());
     max_error = 0;
 
@@ -155,9 +153,6 @@ RowVectorXd AdaptiveSamplingBase<dim, nstate>::getMaxErrorROM() const{
         ROL::StdVector<double> x(x_ptr);
 
         // Run Algorithm
-        //ROL::Ptr<std::ostream> outStream;
-        //outStream = ROL::makePtrFromRef(this->pcout);
-        //algo.run(x, rbf, bcon,true, *outStream);
         algo.run(x, rbf, bcon,false);
 
         ROL::Ptr<std::vector<double>> x_min = x.getVector();
@@ -180,7 +175,7 @@ RowVectorXd AdaptiveSamplingBase<dim, nstate>::getMaxErrorROM() const{
         }
     }
 
-    //Check if max_error_params is a ROM point
+    // Check if max_error_params is a ROM point
     for(auto it = rom_locations.begin(); it != rom_locations.end(); ++it){
         if(max_error_params.isApprox(it->get()->parameter)){
             this->pcout << "Max error location is approximately the same as a ROM location. Removing ROM location." << std::endl;
@@ -281,10 +276,10 @@ void AdaptiveSamplingBase<dim, nstate>::configureInitialParameterSpace() const
         parameter1_range.resize(2);
         parameter1_range << all_parameters->reduced_order_param.parameter_min_values[0], all_parameters->reduced_order_param.parameter_max_values[0];
         if(all_parameters->reduced_order_param.parameter_names[0] == "alpha"){
-            parameter1_range *= pi/180; //convert to radians
+            parameter1_range *= pi/180; // convert to radians
         }
 
-        //Place parameters at 2 ends and center
+        // Place parameters at 2 ends and center
         snapshot_parameters.resize(3,1);
         snapshot_parameters  << parameter1_range[0],
                                 parameter1_range[1],
@@ -311,10 +306,10 @@ void AdaptiveSamplingBase<dim, nstate>::configureInitialParameterSpace() const
         parameter2_range.resize(2);
         parameter2_range << all_parameters->reduced_order_param.parameter_min_values[1], all_parameters->reduced_order_param.parameter_max_values[1];
         if(all_parameters->reduced_order_param.parameter_names[1] == "alpha"){
-            parameter2_range *= pi/180; //convert to radians
+            parameter2_range *= pi/180; // convert to radians
         }
 
-        //Place 9 parameters in a grid
+        // Place 9 parameters in a grid
         snapshot_parameters.resize(9,2);
         snapshot_parameters  << parameter1_range[0], parameter2_range[0],
                                 parameter1_range[0], parameter2_range[1],

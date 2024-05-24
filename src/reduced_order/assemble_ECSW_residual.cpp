@@ -33,10 +33,10 @@ void AssembleECSWRes<dim,nstate>::build_problem(){
     Epetra_CrsMatrix epetra_system_matrix = this->dg->system_matrix.trilinos_matrix();
 
     // Get dimensions of the problem
-    int num_snaps = snapshotMatrix.cols(); // Number of snapshots used to build the POD basis
-    int n = epetra_pod_basis.NumGlobalCols(); // Reduced subspace dimension
-    int N = epetra_pod_basis.NumGlobalRows(); // Length of solution vector
-    int N_e = this->dg->triangulation->n_active_cells(); // Number of elements (equal to N if there is one DOF per cell)
+    int num_snaps_POD = snapshotMatrix.cols(); // Number of snapshots used to build the POD basis
+    int n_reduced_dim_POD = epetra_pod_basis.NumGlobalCols(); // Reduced subspace dimension
+    int N_FOM_dim = epetra_pod_basis.NumGlobalRows(); // Length of solution vector
+    int num_elements_N_e = this->dg->triangulation->n_active_cells(); // Number of elements (equal to N if there is one DOF per cell)
 
     // Create empty and temporary C and d structs
     Epetra_MpiComm epetra_comm(MPI_COMM_WORLD);
@@ -47,12 +47,12 @@ void AssembleECSWRes<dim,nstate>::build_problem(){
         training_snaps = this->all_parameters->hyper_reduction_param.num_training_snaps;
     }
     else{
-        training_snaps = num_snaps;
+        training_snaps = num_snaps_POD;
     }
-    Epetra_Map RowMap((n*training_snaps), 0, epetra_comm); // Number of rows in residual based training matrix = n * (number of training snapshots)
-    Epetra_Map ColMap(N_e, 0, epetra_comm);
+    Epetra_Map RowMap((n_reduced_dim_POD*training_snaps), 0, epetra_comm); // Number of rows in residual based training matrix = n * (number of training snapshots)
+    Epetra_Map ColMap(num_elements_N_e, 0, epetra_comm);
 
-    Epetra_CrsMatrix C(Epetra_DataAccess::Copy, RowMap, N_e);
+    Epetra_CrsMatrix C(Epetra_DataAccess::Copy, RowMap, num_elements_N_e);
     Epetra_Vector d(RowMap);
 
     // Loop through the given number of training snapshots to find residuals
@@ -64,9 +64,9 @@ void AssembleECSWRes<dim,nstate>::build_problem(){
         std::cout << "Snapshot Parameter Values" << std::endl;
         std::cout << snap_param << std::endl;
         dealii::LinearAlgebra::ReadWriteVector<double> snapshot_s;
-        snapshot_s.reinit(N_e);
+        snapshot_s.reinit(num_elements_N_e);
         // Extract snapshot from the snapshotMatrix
-        for (int snap_row = 0; snap_row < N_e; snap_row++){
+        for (int snap_row = 0; snap_row < num_elements_N_e; snap_row++){
             snapshot_s(snap_row) = snapshotMatrix(snap_row, snap_num);
         }
         dealii::LinearAlgebra::distributed::Vector<double> reference_solution(this->dg->solution);
@@ -100,8 +100,8 @@ void AssembleECSWRes<dim,nstate>::build_problem(){
 
             // Create L_e matrix for current cell
             Epetra_Map LeRowMap(n_dofs_curr_cell, 0, epetra_comm);
-            Epetra_Map LeColMap(N, 0, epetra_comm);
-            Epetra_CrsMatrix L_e(Epetra_DataAccess::Copy, LeRowMap, N);
+            Epetra_Map LeColMap(N_FOM_dim, 0, epetra_comm);
+            Epetra_CrsMatrix L_e(Epetra_DataAccess::Copy, LeRowMap, N_FOM_dim);
             double posOne = 1.0;
 
             for(int i = 0; i < n_dofs_curr_cell; i++){
@@ -117,23 +117,23 @@ void AssembleECSWRes<dim,nstate>::build_problem(){
             L_e.Multiply(true, local_r, global_r_e);
 
             // Find reduced-order representation of contribution
-            Epetra_Map cseRowMap(n, 0, epetra_comm);
+            Epetra_Map cseRowMap(n_reduced_dim_POD, 0, epetra_comm);
             Epetra_Vector c_se(cseRowMap);
 
             epetra_test_basis->Multiply(true, global_r_e, c_se);
-            double *c_se_array = new double[n];
+            double *c_se_array = new double[n_reduced_dim_POD];
 
             c_se.ExtractCopy(c_se_array);
             
             // Sub into entries of C and d
-            for (int k = 0; k < n; ++k){
+            for (int k = 0; k < n_reduced_dim_POD; ++k){
                 int place = row_num+k;
                 C.InsertGlobalValues(place, 1, &c_se_array[k], &cell_num);
                 d.SumIntoGlobalValues(1, &c_se_array[k], &place);
             }
             
         }
-        row_num+=n;
+        row_num+=n_reduced_dim_POD;
         snap_num+=1;
 
         // Check if number of training snapshots has been reached
@@ -146,12 +146,6 @@ void AssembleECSWRes<dim,nstate>::build_problem(){
     }
 
     C.FillComplete(ColMap, RowMap);
-
-    // std::cout << " Matrix C "<< std::endl;
-    // std::cout << C << std::endl;
-
-    // std::cout << " Vector d "<< std::endl;
-    // std::cout << d << std::endl;
 
     // Sub temp C and d into class A and b
     this->A->reinit(C);

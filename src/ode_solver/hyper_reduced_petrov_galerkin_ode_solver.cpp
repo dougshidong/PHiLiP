@@ -18,7 +18,7 @@ template <int dim, typename real, typename MeshType>
 HyperReducedODESolver<dim,real,MeshType>::HyperReducedODESolver(std::shared_ptr< DGBase<dim, real, MeshType> > dg_input, std::shared_ptr<ProperOrthogonalDecomposition::PODBase<dim>> pod, Epetra_Vector weights)
         : ODESolverBase<dim,real,MeshType>(dg_input)
         , pod(pod)
-        , xi(weights)
+        , ECSW_weights(weights)
 {}
 
 template <int dim, typename real, typename MeshType>
@@ -47,8 +47,6 @@ int HyperReducedODESolver<dim,real,MeshType>::steady_state ()
     // Find test basis W with hyper-reduced Jacobian
     const Epetra_CrsMatrix epetra_pod_basis = pod->getPODBasis()->trilinos_matrix();
     std::shared_ptr<Epetra_CrsMatrix> epetra_test_basis = generate_test_basis(*reduced_system_matrix, epetra_pod_basis);
-    // this->pcout << "Test Basis" << std::endl;
-    // this->pcout << *epetra_test_basis << std::endl;
 
     // Build hyper-reduced residual
     Epetra_Vector epetra_right_hand_side(Epetra_DataAccess::Copy, epetra_system_matrix.RowMap(), this->dg->right_hand_side.begin());
@@ -333,7 +331,7 @@ std::shared_ptr<Epetra_CrsMatrix> HyperReducedODESolver<dim,real,MeshType>::gene
     for (const auto &cell : this->dg->dof_handler.active_cell_iterators())
     {
         // Add the contributilons of an element if the weight from the NNLS is non-zero
-        if (xi[cell->active_cell_index()] != 0){
+        if (ECSW_weights[cell->active_cell_index()] != 0){
             const int fe_index_curr_cell = cell->active_fe_index();
             const dealii::FESystem<dim,dim> &current_fe_ref = this->dg->fe_collection[fe_index_curr_cell];
             const int n_dofs_curr_cell = current_fe_ref.n_dofs_per_cell();
@@ -388,7 +386,7 @@ std::shared_ptr<Epetra_CrsMatrix> HyperReducedODESolver<dim,real,MeshType>::gene
             EpetraExt::MatrixMatrix::Multiply(L_e_T, false, J_temp, false, J_global_e, true);
 
             // Add the contribution of the element to the hyper-reduced Jacobian with scaling from the weights
-            double scaling = xi[cell->active_cell_index()];
+            double scaling = ECSW_weights[cell->active_cell_index()];
             EpetraExt::MatrixMatrix::Add(J_global_e, false, scaling, reduced_jacobian, 1.0);
         }
     }
@@ -412,7 +410,7 @@ std::shared_ptr<Epetra_Vector> HyperReducedODESolver<dim,real,MeshType>::generat
     for (const auto &cell : this->dg->dof_handler.active_cell_iterators())
     {
         // Add the contributions of an element if the weight from the NNLS is non-zero
-        if (xi[cell->active_cell_index()] != 0){
+        if (ECSW_weights[cell->active_cell_index()] != 0){
             const int fe_index_curr_cell = cell->active_fe_index();
             const dealii::FESystem<dim,dim> &current_fe_ref = this->dg->fe_collection[fe_index_curr_cell];
             const int n_dofs_curr_cell = current_fe_ref.n_dofs_per_cell();
@@ -441,7 +439,7 @@ std::shared_ptr<Epetra_Vector> HyperReducedODESolver<dim,real,MeshType>::generat
             // Find reduced representation of residual and scale by weight
             Epetra_Vector reduced_rhs_e(test_basis_colmap);
             test_basis.Multiply(true, global_r_e, reduced_rhs_e);
-            reduced_rhs_e.Scale(xi[cell->active_cell_index()]);
+            reduced_rhs_e.Scale(ECSW_weights[cell->active_cell_index()]);
             double *reduced_rhs_array = new double[reduced_rhs_e.GlobalLength()];
 
             // Add to hyper-reduced representation of the residual

@@ -4,18 +4,18 @@
 #include "functional/functional.h"
 #include <deal.II/lac/trilinos_sparse_matrix.h>
 #include <deal.II/lac/vector_operation.h>
-#include "reduced_order/reduced_order_solution.h"
+#include "reduced_order_solution.h"
 #include "flow_solver/flow_solver.h"
 #include "flow_solver/flow_solver_factory.h"
 #include <cmath>
-#include "reduced_order/rbf_interpolation.h"
+#include "rbf_interpolation.h"
 #include "ROL_Algorithm.hpp"
 #include "ROL_LineSearchStep.hpp"
 #include "ROL_StatusTest.hpp"
 #include "ROL_Stream.hpp"
 #include "ROL_Bounds.hpp"
-#include "reduced_order/halton.h"
-#include "reduced_order/min_max_scaler.h"
+#include "halton.h"
+#include "min_max_scaler.h"
 #include "pod_adaptive_sampling.h"
 #include "assemble_ECSW_residual.h"
 #include "assemble_ECSW_jacobian.h"
@@ -29,6 +29,9 @@ HyperreducedSamplingErrorUpdated<dim, nstate>::HyperreducedSamplingErrorUpdated(
                                                 const dealii::ParameterHandler &parameter_handler_input)
         : all_parameters(parameters_input),
         parameter_handler(parameter_handler_input)
+        , mpi_communicator(MPI_COMM_WORLD)
+        , mpi_rank(dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD))
+        , pcout(std::cout, mpi_rank==0)
 {
     configureInitialParameterSpace();
     std::unique_ptr<FlowSolver::FlowSolver<dim,nstate>> flow_solver = FlowSolver::FlowSolverFactory<dim,nstate>::select_flow_case(all_parameters, parameter_handler);
@@ -44,7 +47,7 @@ HyperreducedSamplingErrorUpdated<dim, nstate>::HyperreducedSamplingErrorUpdated(
 template <int dim, int nstate>
 int HyperreducedSamplingErrorUpdated<dim, nstate>::run_sampling() const
 {
-    std::cout << "Starting adaptive sampling process" << std::endl;
+    this->pcout << "Starting adaptive sampling process" << std::endl;
 
     std::unique_ptr<FlowSolver::FlowSolver<dim,nstate>> flow_solver = FlowSolver::FlowSolverFactory<dim,nstate>::select_flow_case(all_parameters, parameter_handler);
 
@@ -54,14 +57,14 @@ int HyperreducedSamplingErrorUpdated<dim, nstate>::run_sampling() const
     auto ode_solver_type = Parameters::ODESolverParam::ODESolverEnum::hyper_reduced_petrov_galerkin_solver;
     
     // Find C and d for NNLS Problem
-    std::cout << "Construct instance of Assembler..."<< std::endl;  
+    this->pcout << "Construct instance of Assembler..."<< std::endl;  
     std::shared_ptr<HyperReduction::AssembleECSWBase<dim,nstate>> constructer_NNLS_problem;
     if (this->all_parameters->hyper_reduction_param.training_data == "residual")         
         constructer_NNLS_problem = std::make_shared<HyperReduction::AssembleECSWRes<dim,nstate>>(this->all_parameters, this->parameter_handler, flow_solver->dg, this->current_pod, this->snapshot_parameters, ode_solver_type);
     else {
         constructer_NNLS_problem = std::make_shared<HyperReduction::AssembleECSWJac<dim,nstate>>(this->all_parameters, this->parameter_handler, flow_solver->dg, this->current_pod, this->snapshot_parameters, ode_solver_type);
     }
-    std::cout << "Build Problem..."<< std::endl;
+    this->pcout << "Build Problem..."<< std::endl;
     constructer_NNLS_problem->build_problem();
 
     // Transfer b vector (RHS of NNLS problem) to Epetra structure
@@ -74,19 +77,19 @@ int HyperreducedSamplingErrorUpdated<dim, nstate>::run_sampling() const
     }
 
     // Solve NNLS Problem for ECSW weights
-    std::cout << "Create NNLS problem..."<< std::endl;
+    this->pcout << "Create NNLS problem..."<< std::endl;
     NNLS_solver NNLS_prob(all_parameters, parameter_handler, constructer_NNLS_problem->A->trilinos_matrix(), Comm, b_Epetra);
-    std::cout << "Solve NNLS problem..."<< std::endl;
+    this->pcout << "Solve NNLS problem..."<< std::endl;
     bool exit_con = NNLS_prob.solve();
-    std::cout << exit_con << std::endl;
+    this->pcout << exit_con << std::endl;
 
     ptr_weights = std::make_shared<Epetra_Vector>(NNLS_prob.getSolution());
-    std::cout << "ECSW Weights"<< std::endl;
-    std::cout << *ptr_weights << std::endl;
+    this->pcout << "ECSW Weights"<< std::endl;
+    this->pcout << *ptr_weights << std::endl;
 
     MatrixXd rom_points = nearest_neighbors->kPairwiseNearestNeighborsMidpoint();
-    std::cout << "ROM Points"<< std::endl;
-    std::cout << rom_points << std::endl;
+    this->pcout << "ROM Points"<< std::endl;
+    this->pcout << rom_points << std::endl;
 
     placeROMLocations(rom_points, *ptr_weights);
 
@@ -106,7 +109,7 @@ int HyperreducedSamplingErrorUpdated<dim, nstate>::run_sampling() const
         weights_table->write_text(weights_table_file, dealii::TableHandler::TextOutputFormat::org_mode_table);
         weights_table_file.close();
 
-        std::cout << "Sampling snapshot at " << max_error_params << std::endl;
+        this->pcout << "Sampling snapshot at " << max_error_params << std::endl;
         dealii::LinearAlgebra::distributed::Vector<double> fom_solution = solveSnapshotFOM(max_error_params);
         snapshot_parameters.conservativeResize(snapshot_parameters.rows()+1, snapshot_parameters.cols());
         snapshot_parameters.row(snapshot_parameters.rows()-1) = max_error_params;
@@ -115,9 +118,9 @@ int HyperreducedSamplingErrorUpdated<dim, nstate>::run_sampling() const
         current_pod->computeBasis();
 
         // Find C and d for NNLS Problem
-        std::cout << "Update Assembler..."<< std::endl;
+        this->pcout << "Update Assembler..."<< std::endl;
         constructer_NNLS_problem->updatePODSnaps(this->current_pod, this->snapshot_parameters);
-        std::cout << "Build Problem..."<< std::endl;
+        this->pcout << "Build Problem..."<< std::endl;
         constructer_NNLS_problem->build_problem();
 
         // Transfer b vector (RHS of NNLS problem) to Epetra structure
@@ -130,15 +133,15 @@ int HyperreducedSamplingErrorUpdated<dim, nstate>::run_sampling() const
         }
 
         // Solve NNLS Problem for ECSW weights
-        std::cout << "Create NNLS problem..."<< std::endl;
+        this->pcout << "Create NNLS problem..."<< std::endl;
         NNLS_solver NNLS_prob(all_parameters, parameter_handler, constructer_NNLS_problem->A->trilinos_matrix(), Comm, b_Epetra);
-        std::cout << "Solve NNLS problem..."<< std::endl;
+        this->pcout << "Solve NNLS problem..."<< std::endl;
         bool exit_con = NNLS_prob.solve();
-        std::cout << exit_con << std::endl;
+        this->pcout << exit_con << std::endl;
         
         ptr_weights = std::make_shared<Epetra_Vector>(NNLS_prob.getSolution());
-        std::cout << "ECSW Weights"<< std::endl;
-        std::cout << *ptr_weights << std::endl;
+        this->pcout << "ECSW Weights"<< std::endl;
+        this->pcout << *ptr_weights << std::endl;
 
         //Update previous ROM errors with updated current_pod
         for(auto it = rom_locations.begin(); it != rom_locations.end(); ++it){
@@ -149,14 +152,14 @@ int HyperreducedSamplingErrorUpdated<dim, nstate>::run_sampling() const
         updateNearestExistingROMs(max_error_params, *ptr_weights);
 
         rom_points = nearest_neighbors->kNearestNeighborsMidpoint(max_error_params);
-        std::cout << rom_points << std::endl;
+        this->pcout << rom_points << std::endl;
 
         placeROMLocations(rom_points, *ptr_weights);
 
         //Update max error
         max_error_params = getMaxErrorROM();
 
-        std::cout << "Max error is: " << max_error << std::endl;
+        this->pcout << "Max error is: " << max_error << std::endl;
         iteration++;
     }
 
@@ -212,7 +215,7 @@ void HyperreducedSamplingErrorUpdated<dim, nstate>::outputIterationData(std::str
 
 template <int dim, int nstate>
 RowVectorXd HyperreducedSamplingErrorUpdated<dim, nstate>::getMaxErrorROM() const{
-    std::cout << "Updating RBF interpolation..." << std::endl;
+    this->pcout << "Updating RBF interpolation..." << std::endl;
 
     int n_rows = snapshot_parameters.rows() + rom_locations.size();
     MatrixXd parameters(n_rows, snapshot_parameters.cols());
@@ -223,7 +226,7 @@ RowVectorXd HyperreducedSamplingErrorUpdated<dim, nstate>::getMaxErrorROM() cons
         errors(i) = 0;
         parameters.row(i) = snapshot_parameters.row(i);
     }
-    std::cout << i << std::endl;
+    this->pcout << i << std::endl;
     for(auto it = rom_locations.begin(); it != rom_locations.end(); ++it){
         parameters.row(i) = it->get()->parameter.array();
         errors(i) = it->get()->total_error;
@@ -240,13 +243,9 @@ RowVectorXd HyperreducedSamplingErrorUpdated<dim, nstate>::getMaxErrorROM() cons
 
     // Set parameters.
     ROL::ParameterList parlist;
-    //parlist.sublist("General").set("Recompute Objective Function",false);
-    //parlist.sublist("Step").sublist("Line Search").set("Initial Step Size", 1.0);
-    //parlist.sublist("Step").sublist("Line Search").set("User Defined Initial Step Size",true);
     parlist.sublist("Step").sublist("Line Search").sublist("Line-Search Method").set("Type","Backtracking");
     parlist.sublist("Step").sublist("Line Search").sublist("Descent Method").set("Type","Quasi-Newton Method");
     parlist.sublist("Step").sublist("Line Search").sublist("Secant").set("Type","Limited-Memory BFGS");
-    //parlist.sublist("Step").sublist("Line Search").sublist("Curvature Condition").set("Type","Null Curvature Condition");
     parlist.sublist("Status Test").set("Gradient Tolerance",1.e-10);
     parlist.sublist("Status Test").set("Step Tolerance",1.e-14);
     parlist.sublist("Status Test").set("Iteration Limit",100);
@@ -281,19 +280,16 @@ RowVectorXd HyperreducedSamplingErrorUpdated<dim, nstate>::getMaxErrorROM() cons
             (*x_ptr)[j] = rom_scaled(j);
         }
 
-        std::cout << "Unscaled parameter: " << rom_unscaled << std::endl;
-        std::cout << "Scaled parameter: ";
+        this->pcout << "Unscaled parameter: " << rom_unscaled << std::endl;
+        this->pcout << "Scaled parameter: ";
         for(int j = 0 ; j < dimension ; j++){
-            std::cout << (*x_ptr)[j] << " ";
+            this->pcout << (*x_ptr)[j] << " ";
         }
-        std::cout << std::endl;
+        this->pcout << std::endl;
 
         ROL::StdVector<double> x(x_ptr);
 
         // Run Algorithm
-        //ROL::Ptr<std::ostream> outStream;
-        //outStream = ROL::makePtrFromRef(std::cout);
-        //algo.run(x, rbf, bcon,true, *outStream);
         algo.run(x, rbf, bcon,false);
 
         ROL::Ptr<std::vector<double>> x_min = x.getVector();
@@ -304,22 +300,22 @@ RowVectorXd HyperreducedSamplingErrorUpdated<dim, nstate>::getMaxErrorROM() cons
 
         RowVectorXd rom_unscaled_optim = scaler.inverse_transform(rom_scaled);
 
-        std::cout << "Parameters of optimization convergence: " << rom_unscaled_optim << std::endl;
+        this->pcout << "Parameters of optimization convergence: " << rom_unscaled_optim << std::endl;
 
         double error = std::abs(rbf.evaluate(rom_scaled));
-        std::cout << "RBF error at optimization convergence: " << error << std::endl;
+        this->pcout << "RBF error at optimization convergence: " << error << std::endl;
         if(error > max_error){
-            std::cout << "RBF error is greater than current max error. Updating max error." << std::endl;
+            this->pcout << "RBF error is greater than current max error. Updating max error." << std::endl;
             max_error = error;
             max_error_params = rom_unscaled_optim;
-            std::cout << "RBF Max error: " << max_error << std::endl;
+            this->pcout << "RBF Max error: " << max_error << std::endl;
         }
     }
 
     //Check if max_error_params is a ROM point
     for(auto it = rom_locations.begin(); it != rom_locations.end(); ++it){
         if(max_error_params.isApprox(it->get()->parameter)){
-            std::cout << "Max error location is approximately the same as a ROM location. Removing ROM location." << std::endl;
+            this->pcout << "Max error location is approximately the same as a ROM location. Removing ROM location." << std::endl;
             rom_locations.erase(it);
             break;
         }
@@ -331,7 +327,7 @@ RowVectorXd HyperreducedSamplingErrorUpdated<dim, nstate>::getMaxErrorROM() cons
 template <int dim, int nstate>
 void HyperreducedSamplingErrorUpdated<dim, nstate>::placeInitialSnapshots() const{
     for(auto snap_param : snapshot_parameters.rowwise()){
-        std::cout << "Sampling initial snapshot at " << snap_param << std::endl;
+        this->pcout << "Sampling initial snapshot at " << snap_param << std::endl;
         dealii::LinearAlgebra::distributed::Vector<double> fom_solution = solveSnapshotFOM(snap_param);
         nearest_neighbors->updateSnapshots(snapshot_parameters, fom_solution);
         current_pod->addSnapshot(fom_solution);
@@ -365,7 +361,7 @@ bool HyperreducedSamplingErrorUpdated<dim, nstate>::placeROMLocations(const Matr
             }
         }
         else{
-            std::cout << "ROM already computed." << std::endl;
+            this->pcout << "ROM already computed." << std::endl;
         }
     }
     return error_greater_than_tolerance;
@@ -375,7 +371,7 @@ template <int dim, int nstate>
 void HyperreducedSamplingErrorUpdated<dim, nstate>::updateNearestExistingROMs(const RowVectorXd& /*parameter*/, Epetra_Vector weights) const{
     std::unique_ptr<FlowSolver::FlowSolver<dim,nstate>> flow_solver = FlowSolver::FlowSolverFactory<dim,nstate>::select_flow_case(all_parameters, parameter_handler);
 
-    std::cout << "Verifying ROM points for recomputation." << std::endl;
+    this->pcout << "Verifying ROM points for recomputation." << std::endl;
     //Assemble ROM points in a matrix
     MatrixXd rom_points(0,0);
     for(auto it = rom_locations.begin(); it != rom_locations.end(); ++it){
@@ -399,14 +395,14 @@ void HyperreducedSamplingErrorUpdated<dim, nstate>::updateNearestExistingROMs(co
                       return distances[a] < distances[b];
                   });
 
-        std::cout << "Searching ROM points near: " << point << std::endl;
+        this->pcout << "Searching ROM points near: " << point << std::endl;
         double local_mean_error = 0;
         for (int i = 1; i < rom_points.cols() + 2; i++) {
             local_mean_error = local_mean_error + std::abs(rom_locations[index[i]]->total_error);
         }
         local_mean_error = local_mean_error / (rom_points.cols() + 1);
         if ((std::abs(rom_locations[index[0]]->total_error) > all_parameters->reduced_order_param.recomputation_coefficient * local_mean_error) || (std::abs(rom_locations[index[0]]->total_error) < (1/all_parameters->reduced_order_param.recomputation_coefficient) * local_mean_error)) {
-            std::cout << "Total error greater than tolerance. Recomputing ROM solution" << std::endl;
+            this->pcout << "Total error greater than tolerance. Recomputing ROM solution" << std::endl;
             std::unique_ptr<ProperOrthogonalDecomposition::ROMSolution<dim, nstate>> rom_solution = solveSnapshotROM(rom_locations[index[0]]->parameter, weights);
             std::unique_ptr<ProperOrthogonalDecomposition::HROMTestLocation<dim, nstate>> rom_location = std::make_unique<ProperOrthogonalDecomposition::HROMTestLocation<dim, nstate>>(rom_locations[index[0]]->parameter, std::move(rom_solution), flow_solver->dg, weights);
             rom_locations[index[0]] = std::move(rom_location);
@@ -416,7 +412,7 @@ void HyperreducedSamplingErrorUpdated<dim, nstate>::updateNearestExistingROMs(co
 
 template <int dim, int nstate>
 dealii::LinearAlgebra::distributed::Vector<double> HyperreducedSamplingErrorUpdated<dim, nstate>::solveSnapshotFOM(const RowVectorXd& parameter) const{
-    std::cout << "Solving FOM at " << parameter << std::endl;
+    this->pcout << "Solving FOM at " << parameter << std::endl;
     Parameters::AllParameters params = reinitParams(parameter);
 
     std::unique_ptr<FlowSolver::FlowSolver<dim,nstate>> flow_solver = FlowSolver::FlowSolverFactory<dim,nstate>::select_flow_case(&params, parameter_handler);
@@ -427,13 +423,13 @@ dealii::LinearAlgebra::distributed::Vector<double> HyperreducedSamplingErrorUpda
     flow_solver->ode_solver->allocate_ode_system();
     flow_solver->run();
 
-    std::cout << "Done solving FOM." << std::endl;
+    this->pcout << "Done solving FOM." << std::endl;
     return flow_solver->dg->solution;
 }
 
 template <int dim, int nstate>
 std::unique_ptr<ProperOrthogonalDecomposition::ROMSolution<dim,nstate>> HyperreducedSamplingErrorUpdated<dim, nstate>::solveSnapshotROM(const RowVectorXd& parameter, Epetra_Vector weights) const{
-    std::cout << "Solving ROM at " << parameter << std::endl;
+    this->pcout << "Solving ROM at " << parameter << std::endl;
     Parameters::AllParameters params = reinitParams(parameter);
 
     std::unique_ptr<FlowSolver::FlowSolver<dim,nstate>> flow_solver = FlowSolver::FlowSolverFactory<dim,nstate>::select_flow_case(&params, parameter_handler);
@@ -453,7 +449,7 @@ std::unique_ptr<ProperOrthogonalDecomposition::ROMSolution<dim,nstate>> Hyperred
     dealii::LinearAlgebra::distributed::Vector<double> gradient(functional->dIdw);
 
     std::unique_ptr<ProperOrthogonalDecomposition::ROMSolution<dim,nstate>> rom_solution = std::make_unique<ProperOrthogonalDecomposition::ROMSolution<dim, nstate>>(params, solution, gradient);
-    std::cout << "Done solving ROM." << std::endl;
+    this->pcout << "Done solving ROM." << std::endl;
 
     return rom_solution;
 }
@@ -502,7 +498,7 @@ Parameters::AllParameters HyperreducedSamplingErrorUpdated<dim, nstate>::reinitP
         }
     }
     else{
-        std::cout << "Invalid flow case. You probably forgot to specify a flow case in the prm file." << std::endl;
+        this->pcout << "Invalid flow case. You probably forgot to specify a flow case in the prm file." << std::endl;
         std::abort();
     }
     return parameters;
@@ -539,7 +535,7 @@ void HyperreducedSamplingErrorUpdated<dim, nstate>::configureInitialParameterSpa
         }
         delete [] seq;
 
-        std::cout << snapshot_parameters << std::endl;
+        this->pcout << snapshot_parameters << std::endl;
     }
     else if(all_parameters->reduced_order_param.parameter_names.size() == 2){
         RowVectorXd parameter1_range;
@@ -581,7 +577,7 @@ void HyperreducedSamplingErrorUpdated<dim, nstate>::configureInitialParameterSpa
         }
         delete [] seq;
 
-        std::cout << snapshot_parameters << std::endl;
+        this->pcout << snapshot_parameters << std::endl;
     }
 }
 

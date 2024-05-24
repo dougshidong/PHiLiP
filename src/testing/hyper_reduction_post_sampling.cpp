@@ -10,6 +10,7 @@
 #include "linear_solver/helper_functions.h"
 #include "reduced_order/pod_adaptive_sampling.h"
 #include "reduced_order/hyper_reduced_adaptive_sampling.h"
+#include "rom_import_helper_functions.h"
 #include <eigen/Eigen/Dense>
 #include <iostream>
 #include <filesystem>
@@ -32,87 +33,6 @@ Parameters::AllParameters HyperReductionPostSampling<dim, nstate>::reinitParams(
 
     parameters.ode_solver_param.nonlinear_max_iterations = max_iter;
     return parameters;
-}
-
-template <int dim, int nstate>
-bool HyperReductionPostSampling<dim, nstate>::getSnapshotParamsFromFile() const{
-    bool file_found = false;
-    snapshot_parameters(0,0);
-    std::string path = all_parameters->reduced_order_param.path_to_search; //Search specified directory for files containing "solutions_table"
-
-    std::vector<std::filesystem::path> files_in_directory;
-    std::copy(std::filesystem::directory_iterator(path), std::filesystem::directory_iterator(), std::back_inserter(files_in_directory));
-    std::sort(files_in_directory.begin(), files_in_directory.end()); //Sort files so that the order is the same as for the sensitivity basis
-
-    for (const auto & entry : files_in_directory){
-        if(std::string(entry.filename()).std::string::find("snapshot_table") != std::string::npos){
-            pcout << "Processing " << entry << std::endl;
-            file_found = true;
-            std::ifstream myfile(entry);
-            if(!myfile)
-            {
-                pcout << "Error opening file." << std::endl;
-                std::abort();
-            }
-            std::string line;
-            int rows = 0;
-            int cols = 0;
-            //First loop set to count rows and columns
-            while(std::getline(myfile, line)){ //for each line
-                std::istringstream stream(line);
-                std::string field;
-                cols = 0;
-                bool any_entry = false;
-                while (getline(stream, field,' ')){ //parse data values on each line
-                    if (field.empty()){ //due to whitespace
-                        continue;
-                    } try{
-                        std::stod(field);
-                        cols++;
-                        any_entry = true;
-                    } catch (...){
-                        continue;
-                    } 
-                }
-                if (any_entry){
-                    rows++;
-                }
-                
-            }
-
-            snapshot_parameters.conservativeResize(rows, snapshot_parameters.cols()+cols);
-
-            int row = 0;
-            myfile.clear();
-            myfile.seekg(0); //Bring back to beginning of file
-            //Second loop set to build solutions matrix
-            while(std::getline(myfile, line)){ //for each line
-                std::istringstream stream(line);
-                std::string field;
-                int col = 0;
-                bool any_entry = false;
-                while (getline(stream, field,' ')) { //parse data values on each line
-                    if (field.empty()) {
-                        continue;
-                    }
-                    try{
-                        double num_string = std::stod(field);
-                        std::cout << field << std::endl;
-                        snapshot_parameters(row, col) = num_string;
-                        col++;
-                        any_entry = true;
-                    } catch (...){
-                        continue;
-                    }
-                }
-                if (any_entry){
-                    row++;
-                }
-            }
-            myfile.close();
-        }
-    }
-    return file_found;
 }
 
 template <int dim, int nstate>
@@ -234,13 +154,16 @@ int HyperReductionPostSampling<dim, nstate>::run_test() const
     parameter_sampling->current_pod->basis = pod_petrov_galerkin->basis;
     parameter_sampling->current_pod->referenceState = pod_petrov_galerkin->referenceState;
     parameter_sampling->current_pod->snapshotMatrix = pod_petrov_galerkin->snapshotMatrix;
-    bool snap_found = getSnapshotParamsFromFile();
+    snapshot_parameters(0,0);
+    std::string path = all_parameters->reduced_order_param.path_to_search; //Search specified directory for files containing "solutions_table"
+    bool snap_found = getSnapshotParamsFromFile(snapshot_parameters, path);
     if (snap_found){
         parameter_sampling->snapshot_parameters = snapshot_parameters;
         std::cout << "snapshot_parameters" << std::endl;
         std::cout << snapshot_parameters << std::endl;
     }
     else{
+        std::cout << "File with snapshots not found in folder" << std::endl;
         return -1;
     }
     getROMParamsFromFile();

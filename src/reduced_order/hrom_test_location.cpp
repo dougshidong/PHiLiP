@@ -63,13 +63,13 @@ void HROMTestLocation<dim, nstate>::compute_FOM_to_initial_ROM_error(){
     linear_solver_param.ilut_drop = 1e-8;
     linear_solver_param.ilut_atol = 1e-5;
     linear_solver_param.ilut_rtol = 1.0+1e-2;
-    //linear_solver_param.linear_solver_output = Parameters::OutputEnum::verbose;
+    linear_solver_param.linear_solver_output = Parameters::OutputEnum::verbose;
     linear_solver_param.linear_solver_type = Parameters::LinearSolverParam::LinearSolverEnum::gmres;
 
-    //linear_solver_param.linear_solver_type = Parameters::LinearSolverParam::direct;
+    linear_solver_param.linear_solver_type = Parameters::LinearSolverParam::direct;
     solve_linear(system_matrix_transpose, gradient*=-1.0, adjoint, linear_solver_param);
 
-    //Compute dual weighted residual
+    // Compute dual weighted residual
     fom_to_initial_rom_error = 0;
     fom_to_initial_rom_error = -(adjoint * flow_solver->dg->right_hand_side);
 
@@ -120,7 +120,7 @@ void HROMTestLocation<dim, nstate>::compute_initial_rom_to_final_rom_error(std::
     Epetra_Vector epetra_residual(Epetra_DataAccess::Copy, epetra_petrov_galerkin_basis.RangeMap(), const_cast<double *>(flow_solver->dg->right_hand_side.begin()));
     epetra_petrov_galerkin_basis.Multiply(true, epetra_residual, epetra_reduced_residual);
 
-    //Compute dual weighted residual
+    // Compute dual weighted residual
     initial_rom_to_final_rom_error = 0;
     epetra_reduced_adjoint.Dot(epetra_reduced_residual, &initial_rom_to_final_rom_error);
     initial_rom_to_final_rom_error *= -1;

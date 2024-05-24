@@ -30,12 +30,6 @@ public:
     
     /// Reinitialize parameters
     Parameters::AllParameters reinitParams(std::string path) const;
-    
-    /// Read snapshot locations from the text file
-    bool getSnapshotParamsFromFile() const;
-
-    /// Place 400 distributed points across the parameter domain for error sampling
-    void getROMPoints() const;
 
     /// Read ECSW weights from the text file 
     bool getWeightsFromFile() const;

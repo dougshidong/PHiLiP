@@ -119,7 +119,6 @@ void NNLS_solver::PositiveSetMatrix(Epetra_CrsMatrix &P_mat){
   // Create matrix P_mat which contains the positive set of columns in A
 
   // Create map between index_set and the columns to be added to P_mat
- // int colMap[colMap_size];
   std::vector<int> colMap(A_.NumGlobalCols());
   int numCol = 0;
   for(int j = 0; j < A_.NumGlobalCols(); j++){
@@ -147,7 +146,6 @@ void NNLS_solver::PositiveSetMatrix(Epetra_CrsMatrix &P_mat){
 
 void NNLS_solver::SubIntoX(Epetra_Vector &temp){
   // Substitute new values into the solution vector
-  // int colMap[x_.GlobalLength()];
   std::vector<int> colMap(A_.NumGlobalCols());
   int numCol = 0;
   for(int j = 0; j < x_.GlobalLength(); j++){
@@ -166,7 +164,6 @@ void NNLS_solver::SubIntoX(Epetra_Vector &temp){
 
 void NNLS_solver::AddIntoX(Epetra_Vector &temp, double alpha){
   // Add vector temp time scalar alpha into the vector x
-  // int colMap[x_.GlobalLength()];
   std::vector<int> colMap(A_.NumGlobalCols());
   int numCol = 0;
   for(int j = 0; j < x_.GlobalLength(); j++){
@@ -230,7 +227,6 @@ bool NNLS_solver::solve(){
     AtA.Multiply(false, x_, AtAx);
     gradient = Atb;
     gradient.Update(-1.0, AtAx, 1.0); // gradient = A^T * (b-A*x)
-    // std::cout << gradient << std::endl;
 
     grad_col = *gradient(0);
     for(int i = 0; i < gradient.GlobalLength() ; ++i){
@@ -247,7 +243,6 @@ bool NNLS_solver::solve(){
     residual = b_;
     A_.Multiply(false, x_, Ax);
     residual.Update(-1.0, Ax, 1.0); // residual = b - A*x
-    // std::cout << residual << std::endl;
     double normRes[1];
     residual.Norm2(normRes);
 
@@ -330,7 +325,6 @@ bool NNLS_solver::solve(){
         Solver->NumericFactorization();
         Solver->Solve();
       }
-      //std::cout << temp << std::endl;
       iter_++; // The solve is expensive, so that is what we count as an iteration
       
       // Check feasability...
@@ -354,13 +348,11 @@ bool NNLS_solver::solve(){
       // If solution is feasible, exit to outer loop
       if (feasible){
         SubIntoX(temp);
-        // std::cout << "sub temp: " << x_ << std::endl;
         break;
       }
 
       // Infeasible solution -> interpolate to feasible one
       AddIntoX(temp, alpha);
-      // std::cout << "added with alpha: " << x_ << std::endl;
 
       // Remove the infeasibleIdx column from the inactive set
       moveToActiveSet(infeasibleIdx);

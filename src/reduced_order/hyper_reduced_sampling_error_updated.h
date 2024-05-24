@@ -3,19 +3,20 @@
 
 #include <deal.II/numerics/vector_tools.h>
 #include "parameters/all_parameters.h"
-#include "reduced_order/pod_basis_online.h"
-#include "reduced_order/hrom_test_location.h"
+#include "pod_basis_online.h"
+#include "hrom_test_location.h"
 #include <eigen/Eigen/Dense>
-#include "reduced_order/nearest_neighbors.h"
+#include "nearest_neighbors.h"
 
 namespace PHiLiP {
-
 using DealiiVector = dealii::LinearAlgebra::distributed::Vector<double>;
 using Eigen::MatrixXd;
 using Eigen::RowVectorXd;
 using Eigen::VectorXd;
 
-/// POD adaptive sampling
+/// Hyperreduced Adaptive Sampling with the updated error indicator
+// Currently seperate from the adaptive sampling base as the pointer of ROM locations has
+// been changed to a have type HROMTestLocation to update DWR errors
 template <int dim, int nstate>
 class HyperreducedSamplingErrorUpdated
 {
@@ -49,6 +50,14 @@ public:
 
     /// Ptr vector of ECSW Weights
     mutable std::shared_ptr<Epetra_Vector> ptr_weights;
+
+    const MPI_Comm mpi_communicator; ///< MPI communicator.
+    const int mpi_rank; ///< MPI rank.
+
+    /// ConditionalOStream.
+    /** Used as std::cout, but only prints if mpi_rank == 0
+     */
+    dealii::ConditionalOStream pcout;
 
     /// Run test
     int run_sampling () const;

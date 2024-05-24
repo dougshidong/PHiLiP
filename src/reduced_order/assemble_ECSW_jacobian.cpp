@@ -34,10 +34,10 @@ void AssembleECSWJac<dim,nstate>::build_problem(){
     Epetra_Map system_matrix_rowmap = epetra_system_matrix.RowMap();
 
     // Get dimensions of the problem
-    int num_snaps = snapshotMatrix.cols(); // Number of snapshots used to build the POD basis
-    int n = epetra_pod_basis.NumGlobalCols(); // Reduced subspace dimension
-    int N = epetra_pod_basis.NumGlobalRows(); // Length of solution vector
-    int N_e = this->dg->triangulation->n_active_cells(); // Number of elements (equal to N if there is one DOF per cell)
+    int num_snaps_POD = snapshotMatrix.cols(); // Number of snapshots used to build the POD basis
+    int n_reduced_dim_POD = epetra_pod_basis.NumGlobalCols(); // Reduced subspace dimension
+    int N_FOM_dim = epetra_pod_basis.NumGlobalRows(); // Length of solution vector
+    int num_elements_N_e = this->dg->triangulation->n_active_cells(); // Number of elements (equal to N if there is one DOF per cell)
 
     // Create empty and temporary C and d structs
     Epetra_MpiComm epetra_comm(MPI_COMM_WORLD);
@@ -48,12 +48,12 @@ void AssembleECSWJac<dim,nstate>::build_problem(){
         training_snaps = this->all_parameters->hyper_reduction_param.num_training_snaps;
     }
     else{
-        training_snaps = num_snaps;
+        training_snaps = num_snaps_POD;
     }
-    Epetra_Map RowMap((n*n*training_snaps), 0, epetra_comm); // Number of rows in Jacobian based training matrix = n^2 * (number of training snapshots)
-    Epetra_Map ColMap(N_e, 0, epetra_comm);
+    Epetra_Map RowMap((n_reduced_dim_POD*n_reduced_dim_POD*training_snaps), 0, epetra_comm); // Number of rows in Jacobian based training matrix = n^2 * (number of training snapshots)
+    Epetra_Map ColMap(num_elements_N_e, 0, epetra_comm);
 
-    Epetra_CrsMatrix C(Epetra_DataAccess::Copy, RowMap, N_e);
+    Epetra_CrsMatrix C(Epetra_DataAccess::Copy, RowMap, num_elements_N_e);
     Epetra_Vector d(RowMap);
 
     // Loop through the given number of training snapshots to find Jacobian values
@@ -66,9 +66,9 @@ void AssembleECSWJac<dim,nstate>::build_problem(){
         std::cout << "Snapshot Parameter Values" << std::endl;
         std::cout << snap_param << std::endl;
         dealii::LinearAlgebra::ReadWriteVector<double> snapshot_s;
-        snapshot_s.reinit(N_e);
+        snapshot_s.reinit(num_elements_N_e);
         // Extract snapshot from the snapshotMatrix
-        for (int snap_row = 0; snap_row < N_e; snap_row++){
+        for (int snap_row = 0; snap_row < num_elements_N_e; snap_row++){
             snapshot_s(snap_row) = snapshotMatrix(snap_row, snap_num);
         }
         dealii::LinearAlgebra::distributed::Vector<double> reference_solution(this->dg->solution);
@@ -87,6 +87,7 @@ void AssembleECSWJac<dim,nstate>::build_problem(){
 
         // Compute test basis
         epetra_system_matrix = this->dg->system_matrix.trilinos_matrix(); // Jacobian at snapshot location
+        system_matrix_rowmap = epetra_system_matrix.RowMap();
         std::shared_ptr<Epetra_CrsMatrix> epetra_test_basis = this->local_generate_test_basis(epetra_system_matrix, epetra_pod_basis);
         
         // Loop through elements 
@@ -116,10 +117,10 @@ void AssembleECSWJac<dim,nstate>::build_problem(){
             }
 
             Epetra_Map LeRowMap(n_dofs_curr_cell, 0, epetra_comm);
-            Epetra_CrsMatrix L_e(Epetra_DataAccess::Copy, LeRowMap, N);
+            Epetra_CrsMatrix L_e(Epetra_DataAccess::Copy, LeRowMap, N_FOM_dim);
             Epetra_CrsMatrix L_e_T(Epetra_DataAccess::Copy, system_matrix_rowmap, n_dofs_curr_cell);
             Epetra_Map LePLUSRowMap(neighbour_dofs_curr_cell, 0, epetra_comm);
-            Epetra_CrsMatrix L_e_PLUS(Epetra_DataAccess::Copy, LePLUSRowMap, N);
+            Epetra_CrsMatrix L_e_PLUS(Epetra_DataAccess::Copy, LePLUSRowMap, N_FOM_dim);
             double posOne = 1.0;
 
             for(int i = 0; i < n_dofs_curr_cell; i++){
@@ -143,17 +144,17 @@ void AssembleECSWJac<dim,nstate>::build_problem(){
             EpetraExt::MatrixMatrix::Multiply(L_e, false, J_L_e_T, false, J_e_m, true);
 
             // Jacobian for this element in the global dimensions
-            Epetra_CrsMatrix J_temp(Epetra_DataAccess::Copy, LeRowMap, N);
-            Epetra_CrsMatrix J_global_e(Epetra_DataAccess::Copy, system_matrix_rowmap, N);
+            Epetra_CrsMatrix J_temp(Epetra_DataAccess::Copy, LeRowMap, N_FOM_dim);
+            Epetra_CrsMatrix J_global_e(Epetra_DataAccess::Copy, system_matrix_rowmap, N_FOM_dim);
             EpetraExt::MatrixMatrix::Multiply(J_e_m, false, L_e_PLUS, false, J_temp, true);
             EpetraExt::MatrixMatrix::Multiply(L_e_T, false, J_temp, false, J_global_e, true);
 
             // Post-multiply by the ROB V
-            Epetra_CrsMatrix J_e_V(Epetra_DataAccess::Copy, system_matrix_rowmap, n);
+            Epetra_CrsMatrix J_e_V(Epetra_DataAccess::Copy, system_matrix_rowmap, n_reduced_dim_POD);
             EpetraExt::MatrixMatrix::Multiply(J_global_e, false, epetra_pod_basis, false, J_e_V, true);
             
             // Assemble the transpose of the test basis
-            Epetra_CrsMatrix W_T(Epetra_DataAccess::Copy, epetra_test_basis->ColMap(), N);
+            Epetra_CrsMatrix W_T(Epetra_DataAccess::Copy, epetra_test_basis->ColMap(), N_FOM_dim);
             for(int i =0; i < epetra_test_basis->NumGlobalRows(); i++){
                 double *row = new double[epetra_test_basis->NumGlobalCols()];
                 int *global_cols = new int[epetra_test_basis->NumGlobalCols()];
@@ -168,11 +169,11 @@ void AssembleECSWJac<dim,nstate>::build_problem(){
             W_T.FillComplete(epetra_test_basis->RowMap(), epetra_test_basis->ColMap());
 
             // Pre-multiply by the tranpose of the test basis
-            Epetra_CrsMatrix W_T_J_e_V(Epetra_DataAccess::Copy, W_T.RowMap(), n);
+            Epetra_CrsMatrix W_T_J_e_V(Epetra_DataAccess::Copy, W_T.RowMap(), n_reduced_dim_POD);
             EpetraExt::MatrixMatrix::Multiply(W_T, false, J_e_V, false, W_T_J_e_V , true);
 
             // Stack into n^2 vector
-            Epetra_Map cseRowMap(n*n, 0, epetra_comm);
+            Epetra_Map cseRowMap(n_reduced_dim_POD*n_reduced_dim_POD, 0, epetra_comm);
             Epetra_Vector c_se(cseRowMap);
             for(int i =0; i < W_T_J_e_V.NumGlobalRows(); i++){
                 double *row = new double[W_T_J_e_V.NumGlobalCols()];
@@ -182,23 +183,23 @@ void AssembleECSWJac<dim,nstate>::build_problem(){
                 W_T_J_e_V.ExtractGlobalRowCopy(globalRow, W_T_J_e_V.NumGlobalCols(), numE , row, global_cols);
                 for(int j = 0; j < numE; j++){
                     int col = global_cols[j];
-                    int idx = col*n + i; 
+                    int idx = col*n_reduced_dim_POD + i; 
                     c_se[idx] = row[j];
                 }
             }
 
-            double *c_se_array = new double[n*n];
+            double *c_se_array = new double[n_reduced_dim_POD*n_reduced_dim_POD];
 
             c_se.ExtractCopy(c_se_array);
             
             // Sub into entries of C and d
-            for (int k = 0; k < (n*n); ++k){
+            for (int k = 0; k < (n_reduced_dim_POD*n_reduced_dim_POD); ++k){
                 int place = row_num+k;
                 C.InsertGlobalValues(place, 1, &c_se_array[k], &cell_num);
                 d.SumIntoGlobalValues(1, &c_se_array[k], &place);
             }       
         }
-        row_num+=(n*n);
+        row_num+=(n_reduced_dim_POD*n_reduced_dim_POD);
         snap_num+=1;
         
         // Check if number of training snapshots has been reached
@@ -211,12 +212,6 @@ void AssembleECSWJac<dim,nstate>::build_problem(){
     }
 
     C.FillComplete(ColMap, RowMap);
-
-    // std::cout << " Matrix C "<< std::endl;
-    // std::cout << C << std::endl;
-
-    // std::cout << " Vector d "<< std::endl;
-    // std::cout << d << std::endl;
 
     // Sub temp C and d into class A and b
     this->A->reinit(C);

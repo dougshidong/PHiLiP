@@ -18,13 +18,13 @@ class HyperReducedODESolver: public ODESolverBase<dim, real, MeshType>
 {
 public:
     /// Default constructor that will set the constants.
-    HyperReducedODESolver(std::shared_ptr< DGBase<dim, real, MeshType> > dg_input, std::shared_ptr<ProperOrthogonalDecomposition::PODBase<dim>> pod, Epetra_Vector weights); ///< Constructor.
+    HyperReducedODESolver(std::shared_ptr< DGBase<dim, real, MeshType> > dg_input, std::shared_ptr<ProperOrthogonalDecomposition::PODBase<dim>> pod, Epetra_Vector weights);
 
     ///POD
     std::shared_ptr<ProperOrthogonalDecomposition::PODBase<dim>> pod;
 
     /// ECSW hyper-reduction weights
-    Epetra_Vector xi;
+    Epetra_Vector ECSW_weights;
 
     /// Destructor
     virtual ~HyperReducedODESolver() {};

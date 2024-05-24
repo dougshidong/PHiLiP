@@ -10,7 +10,8 @@ namespace PHiLiP {
 namespace ProperOrthogonalDecomposition {
 using Eigen::RowVectorXd;
 
-/// Class to compute and store adjoint-based error estimates
+/// Class to compute and store adjoint-based error estimates with hyperreduction
+// Based very closely on the ROMTestLocation class
 template <int dim, int nstate>
 class HROMTestLocation
 {

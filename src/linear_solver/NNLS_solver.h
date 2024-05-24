@@ -4,7 +4,18 @@
  * https://www.mathworks.com/help/matlab/ref/lsqnonneg.html
  */
 
-/** From Eigen NNLS: Non-Negative Least Squares (NNLS) Module
+/** From Eigen NNLS:
+ * Non-Negagive Least Squares Algorithm for Eigen.
+ *
+ * Copyright (C) 2021 Essex Edwards, <essex.edwards@gmail.com>
+ * Copyright (C) 2013 Hannes Matuschek, hannes.matuschek at uni-potsdam.de
+ *
+ * This Source Code Form is subject to the terms of the Mozilla
+ * Public License v. 2.0. If a copy of the MPL was not distributed
+ * with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ *
+ * 
+ * Non-Negative Least Squares (NNLS) Module
  * This module provides a single class @c Eigen::NNLS implementing the NNLS algorithm.
  * The algorithm is described in "SOLVING LEAST SQUARES PROBLEMS", by Charles L. Lawson and
  * Richard J. Hanson, Prentice-Hall, 1974 and solves optimization problems of the form
@@ -39,7 +50,6 @@
 #include <iostream>
 #include <string>
 #include <AztecOO_config.h>
-//#include <mpi.h>
 #include <Epetra_MpiComm.h>
 #include <Epetra_ConfigDefs.h>
 #include <Epetra_Map.h>

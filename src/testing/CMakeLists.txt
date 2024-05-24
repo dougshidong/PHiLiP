@@ -27,6 +27,7 @@ set(TESTS_SOURCE
     pod_adaptive_sampling_run.cpp
     pod_adaptive_sampling_testing.cpp
     reduced_order.cpp
+    rom_import_helper_functions.cpp
     time_refinement_study.cpp
     time_refinement_study_reference.cpp
     h_refinement_study_isentropic_vortex.cpp

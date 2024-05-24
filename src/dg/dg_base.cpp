@@ -1029,6 +1029,7 @@ void DGBase<dim,real,MeshType>::assemble_volume_term_and_build_operators_ad(
         local_solution, local_metric,
         local_dual,
         quadrature,
+        fe_soln,
         rhs, dual_dot_residual,
         compute_metric_derivatives, fe_values_vol);
     
@@ -1209,6 +1210,7 @@ void DGBase<dim,real,MeshType>::assemble_boundary_term_and_build_operators_ad(
         iface,
         boundary_id,
         fe_values_boundary,
+        fe_soln,
         penalty,
         quadrature,
         rhs,
@@ -1609,6 +1611,8 @@ void DGBase<dim,real,MeshType>::assemble_face_subface_term_derivatives_ad(
         face_data_set_ext,
         fe_values_int,
         fe_values_ext,
+        fe_int,
+        fe_ext,
         penalty,
         face_quadrature,
         rhs_int,

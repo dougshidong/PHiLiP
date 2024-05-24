@@ -239,6 +239,7 @@ private:
         const LocalSolution<adtype, dim, dim> &local_metric,
         const std::vector<real> &local_dual,
         const dealii::Quadrature<dim> &quadrature,
+        const dealii::FESystem<dim,dim> &fe_soln,
         std::vector<adtype> &rhs, adtype &dual_dot_residual,
         const bool compute_metric_derivatives,
         const dealii::FEValues<dim,dim> &fe_values_vol) override;
@@ -255,6 +256,7 @@ private:
         const dealii::FEFaceValuesBase<dim,dim> &fe_values_boundary,
         const real penalty,
         const dealii::Quadrature<dim-1> &quadrature,
+        const dealii::FESystem<dim,dim> &fe_soln,
         std::vector<adtype> &rhs,
         adtype &dual_dot_residual,
         const bool compute_metric_derivatives) override;
@@ -276,6 +278,8 @@ private:
         const typename dealii::QProjector<dim>::DataSetDescriptor face_data_set_ext,
         const dealii::FEFaceValuesBase<dim,dim>     &fe_values_int,
         const dealii::FEFaceValuesBase<dim,dim>     &fe_values_ext,
+        const dealii::FESystem<dim,dim> &fe_int,
+        const dealii::FESystem<dim,dim> &fe_ext,
         const real penalty,
         const dealii::Quadrature<dim-1> &face_quadrature,
         std::vector<adtype> &rhs_int,

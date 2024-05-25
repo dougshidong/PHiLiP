@@ -1347,8 +1347,10 @@ dealii::Vector<double> NavierStokes<dim,nstate,real>::post_compute_derived_quant
         computed_quantities(++current_data_index) = compute_enstrophy(conservative_soln,conservative_soln_gradient);
         // Viscous stress tensor
         if constexpr(dim==2) {
-            // Vorticity
-            dealii::Tensor<2,2,double> viscous_stress_tensor = compute_viscous_stress_tensor_from_conservative_templated<double>(conservative_soln,conservative_soln_gradient);
+            // Calculate primitive solution gradient
+            const std::array<dealii::Tensor<1,dim,real>,nstate> primitive_soln_gradient = this->template convert_conservative_gradient_to_primitive_gradient_templated<real>(conservative_soln, conservative_soln_gradient);
+            // Viscous stress tensor
+            dealii::Tensor<2,2,double> viscous_stress_tensor = compute_viscous_stress_tensor<real>(primitive_soln,primitive_soln_gradient);
             //First line of viscous stress tensor
             for (unsigned int d=0; d<2; ++d) {
                 computed_quantities(++current_data_index) = viscous_stress_tensor[0][d];

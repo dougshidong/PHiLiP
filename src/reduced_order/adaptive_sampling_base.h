@@ -16,6 +16,11 @@ using Eigen::VectorXd;
 
 /// Adaptive sampling base class
 /// Can then be built with or without hyperreduction
+
+/*
+Based on the work in Donovan Blais' thesis:
+Goal-Oriented Adaptive Sampling for Projection-Based Reduced-Order Models, 2022
+*/
 template <int dim, int nstate>
 class AdaptiveSamplingBase
 {

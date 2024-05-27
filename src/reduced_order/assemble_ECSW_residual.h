@@ -21,6 +21,15 @@ using Eigen::VectorXd;
 /// the weights for the ECSW hyper-reduction approach. NOTE: This class does not solve for the weights, but
 /// A and b can be passed to the NNLS solver class.
 
+/*
+Reference for the ECSW training data assembly, find details in section 4.1 and Equation (17):
+"Mesh sampling and weighting for the hyperreduction of nonlinear Petrov–Galerkin reduced-order models with local reduced-order bases"
+Sebastian Grimberg, Charbel Farhat, Radek Tezaur, Charbel Bou-Mosleh
+International Journal for Numerical Methods in Engineering, 2020
+https://onlinelibrary.wiley.com/doi/10.1002/nme.6603
+NOTE: The above presents the approach for training with the residual data
+*/
+
 template <int dim, int nstate>
 class AssembleECSWRes: public AssembleECSWBase<dim,nstate>
 {

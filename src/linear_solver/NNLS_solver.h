@@ -18,7 +18,8 @@
  * Non-Negative Least Squares (NNLS) Module
  * This module provides a single class @c Eigen::NNLS implementing the NNLS algorithm.
  * The algorithm is described in "SOLVING LEAST SQUARES PROBLEMS", by Charles L. Lawson and
- * Richard J. Hanson, Prentice-Hall, 1974 and solves optimization problems of the form
+ * Richard J. Hanson, Prentice-Hall, 1974 https://epubs.siam.org/doi/10.1137/1.9781611971217
+ * and solves optimization problems of the form
  *
  * \f[ \min \left\Vert Ax-b\right\Vert_2^2\quad s.t.\, x\ge 0\,.\f]
  *
@@ -38,7 +39,7 @@
 /* Note: This solver is based on a modified version of the algorithm descrived in "SOLVING 
  * LEAST SQUARES PROBLEMS". This is because in the context of Energy Conserving Sampling
  * and Weighting a modified exit condition was introduced. The details regarding the exit
- * condition are described in the following paper:
+ * condition (EQUATION 13) are described in the following paper:
  * https://onlinelibrary.wiley.com/doi/full/10.1002/nme.5332
  * More details on the ECSW hyper-reduction technique can be found in:
  * https://onlinelibrary.wiley.com/doi/full/10.1002/nme.4820

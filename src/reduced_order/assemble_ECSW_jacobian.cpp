@@ -1,9 +1,4 @@
 #include "assemble_ECSW_jacobian.h"
-#include <eigen/Eigen/Dense>
-#include <Epetra_CrsMatrix.h>
-#include <Epetra_Map.h>
-#include <Epetra_Vector.h>
-#include <EpetraExt_MatrixMatrix.h>
 #include <iostream>
 
 #include "flow_solver/flow_solver.h"

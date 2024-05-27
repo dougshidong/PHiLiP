@@ -12,6 +12,15 @@ using Eigen::RowVectorXd;
 
 /// Class to compute and store adjoint-based error estimates with hyperreduction
 // Based very closely on the ROMTestLocation class
+
+/*
+Based on the work in Donovan Blais' thesis:
+Goal-Oriented Adaptive Sampling for Projection-Based Reduced-Order Models, 2022
+
+Details on the ROM points/errors can be found in sections 5 and 6
+
+Derivation of the new error indicator will likely be detailed in Calista Biondic's thesis
+*/
 template <int dim, int nstate>
 class HROMTestLocation
 {

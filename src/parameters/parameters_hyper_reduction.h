@@ -11,6 +11,8 @@ class HyperReductionParam
 public:
 
     /// Tolerance for NNLS Solver
+    /* Equivalant to epsilon in Equation (18) of
+    https://onlinelibrary.wiley.com/doi/10.1002/nme.6603 */
     double NNLS_tol;
 
     /// Maximum number of iterations for NNLS Solver

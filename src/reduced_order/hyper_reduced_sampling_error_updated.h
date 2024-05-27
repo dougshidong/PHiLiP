@@ -17,6 +17,16 @@ using Eigen::VectorXd;
 /// Hyperreduced Adaptive Sampling with the updated error indicator
 // Currently seperate from the adaptive sampling base as the pointer of ROM locations has
 // been changed to a have type HROMTestLocation to update DWR errors
+
+/*
+Based on the work in Donovan Blais' thesis:
+Goal-Oriented Adaptive Sampling for Projection-Based Reduced-Order Models, 2022
+
+Details on the ROM points/errors can be found in sections 5 and 6
+
+Derivation of the new error indicator will likely be detailed in Calista Biondic's thesis
+*/
+
 template <int dim, int nstate>
 class HyperreducedSamplingErrorUpdated
 {

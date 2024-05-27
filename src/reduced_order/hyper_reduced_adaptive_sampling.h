@@ -17,6 +17,17 @@ using Eigen::RowVectorXd;
 using Eigen::VectorXd;
 
 /// Hyperreduced adaptive sampling
+
+/*
+Based on the work in Donovan Blais' thesis:
+Goal-Oriented Adaptive Sampling for Projection-Based Reduced-Order Models, 2022
+ 
+and the ECSW hyperreduction technique:
+"Mesh sampling and weighting for the hyperreduction of nonlinear Petrov–Galerkin reduced-order models with local reduced-order bases"
+Sebastian Grimberg, Charbel Farhat, Radek Tezaur, Charbel Bou-Mosleh
+International Journal for Numerical Methods in Engineering, 2020
+https://onlinelibrary.wiley.com/doi/10.1002/nme.6603
+*/
 template <int dim, int nstate>
 class HyperreducedAdaptiveSampling: public AdaptiveSamplingBase<dim,nstate>
 {

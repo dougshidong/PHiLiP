@@ -1,8 +1,5 @@
 #include "hyper_reduced_petrov_galerkin_ode_solver.h"
-#include "dg/dg_base.hpp"
-#include "ode_solver_base.h"
 #include "linear_solver/linear_solver.h"
-#include "reduced_order/pod_basis_base.h"
 #include <deal.II/lac/trilinos_sparsity_pattern.h>
 #include <Epetra_Vector.h>
 #include <deal.II/lac/la_parallel_vector.h>
@@ -317,8 +314,9 @@ std::shared_ptr<Epetra_CrsMatrix> HyperReducedODESolver<dim,real,MeshType>::gene
 template <int dim, typename real, typename MeshType>
 std::shared_ptr<Epetra_CrsMatrix> HyperReducedODESolver<dim,real,MeshType>::generate_hyper_reduced_jacobian(const Epetra_CrsMatrix &system_matrix)
 {
-    // NOTE: ASSUMING L_e matrix is equal to the L_e_plus matrix (i.e. no neighbouring elements considered in stencil)
-    // Create empty Hyper-reduced Jacobian Epetra structure
+    /* Refer to Equation (12) in:
+    https://onlinelibrary.wiley.com/doi/10.1002/nme.6603 (includes definitions of matrices used below such as L_e and L_e_PLUS)
+    Create empty Hyper-reduced Jacobian Epetra structure */
     Epetra_MpiComm epetra_comm(MPI_COMM_WORLD);
     Epetra_Map system_matrix_rowmap = system_matrix.RowMap();
     Epetra_CrsMatrix reduced_jacobian(Epetra_DataAccess::Copy, system_matrix_rowmap, system_matrix.NumGlobalCols());
@@ -397,8 +395,9 @@ std::shared_ptr<Epetra_CrsMatrix> HyperReducedODESolver<dim,real,MeshType>::gene
 template <int dim, typename real, typename MeshType>
 std::shared_ptr<Epetra_Vector> HyperReducedODESolver<dim,real,MeshType>::generate_hyper_reduced_residual(Epetra_Vector epetra_right_hand_side, Epetra_CrsMatrix &test_basis)
 {
-    // NOTE: ASSUMING L_e matrix is equal to the L_e_plus matrix (i.e. no neighbouring elements considered in stencil)
-    // Create empty Hyper-reduced residual Epetra structure
+    /* Refer to Equation (10) in:
+    https://onlinelibrary.wiley.com/doi/10.1002/nme.6603 (includes definitions of matrices used below such as L_e and L_e_PLUS)   
+    Create empty Hyper-reduced residual Epetra structure */
     Epetra_MpiComm epetra_comm(MPI_COMM_WORLD);
     Epetra_Map test_basis_colmap = test_basis.ColMap();
     Epetra_Vector hyper_reduced_residual(test_basis_colmap);
@@ -464,7 +463,7 @@ std::shared_ptr<Epetra_CrsMatrix> HyperReducedODESolver<dim,real,MeshType>::gene
 template class HyperReducedODESolver<PHILIP_DIM, double, dealii::Triangulation<PHILIP_DIM>>;
 template class HyperReducedODESolver<PHILIP_DIM, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
 #if PHILIP_DIM != 1
-template class HyperReducedODESolver<PHILIP_DIM, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+    template class HyperReducedODESolver<PHILIP_DIM, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
 #endif
 
 } // ODE namespace

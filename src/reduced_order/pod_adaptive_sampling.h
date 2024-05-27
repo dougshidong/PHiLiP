@@ -17,6 +17,10 @@ using Eigen::RowVectorXd;
 using Eigen::VectorXd;
 
 /// POD adaptive sampling
+/*
+Based on the work in Donovan Blais' thesis:
+Goal-Oriented Adaptive Sampling for Projection-Based Reduced-Order Models, 2022
+*/
 template <int dim, int nstate>
 class AdaptiveSampling: public AdaptiveSamplingBase<dim,nstate>
 {

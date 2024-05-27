@@ -9,6 +9,25 @@ namespace PHiLiP {
 namespace ODE {
 
 /// Hyper-Reduced POD-Petrov-Galerkin ODE solver derived from ODESolver.
+
+/*
+Reference for Petrov-Galerkin projection: Refer to Equation (23) in the following reference:
+"Efficient non-linear model reduction via a least-squares Petrov–Galerkin projection and compressive tensor approximations"
+Kevin Carlberg, Charbel Bou-Mosleh, Charbel Farhat
+International Journal for Numerical Methods in Engineering, 2011
+Petrov-Galerkin projection, test basis W = JV, pod basis V, system matrix J
+W^T*J*V*p = -W^T*R
+ */
+
+/*
+Reference for the hyperreduction of the residual and the Jacobian via the ECSW approach: Refer to Equation (10) and (12) in:
+"Mesh sampling and weighting for the hyperreduction of nonlinear Petrov–Galerkin reduced-order models with local reduced-order bases"
+Sebastian Grimberg, Charbel Farhat, Radek Tezaur, Charbel Bou-Mosleh
+International Journal for Numerical Methods in Engineering, 2020
+https://onlinelibrary.wiley.com/doi/10.1002/nme.6603
+Provides detail on how the hyperreduced residual and Jacobian are evaluated
+*/
+
 #if PHILIP_DIM==1
 template <int dim, typename real, typename MeshType = dealii::Triangulation<dim>>
 #else
@@ -36,6 +55,11 @@ public:
     void step_in_time(real dt, const bool pseudotime) override;
 
     /// Function to allocate the ODE system
+    /*Projection of initial conditions on reduced-order subspace, refer to Equation 19 in:
+    Washabaugh, K. M., Zahr, M. J., & Farhat, C. (2016).
+    On the use of discrete nonlinear reduced-order models for the prediction of steady-state flows past parametrically deformed complex geometries.
+    In 54th AIAA Aerospace Sciences Meeting (p. 1814).
+    */
     void allocate_ode_system () override;
 
     /// Generate test basis

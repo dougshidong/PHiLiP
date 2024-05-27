@@ -250,6 +250,9 @@ bool NNLS_solver::solve(){
     b_.Norm2(normb);
 
     // Old exit condition dependent on the maxGradient
+    // Original exit condition presented in "SOLVING LEAST SQUARES PROBLEMS", by Charles L. Lawson and
+    // Richard J. Hanson, Prentice-Hall, 1974
+    // https://epubs.siam.org/doi/10.1137/1.9781611971217
     if (grad_exit_crit_){
       if (maxGradient < all_parameters->hyper_reduction_param.NNLS_tol){
         std::cout << "Exited due to Gradient Criteria" << std::endl;
@@ -261,6 +264,9 @@ bool NNLS_solver::solve(){
       }
     }
     // Exit Condition on the residual based on the norm of b
+    // Updated exit condition presented in "Accelerated mesh sampling for the hyper reduction of nonlinear computational models",
+    // by Chapman et. al, 2016 (EQUATION 13)
+    // https://onlinelibrary.wiley.com/doi/full/10.1002/nme.5332
     else {
       if ((normRes[0]) <= (all_parameters->hyper_reduction_param.NNLS_tol * normb[0])){
         std::cout << "Exited due to Residual Criteria" << std::endl;
@@ -275,7 +281,8 @@ bool NNLS_solver::solve(){
     moveToInactiveSet(argmaxGradient);
 
     // INNER LOOP
-    while(true){
+    bool no_feasible_soln = true;
+    while(no_feasible_soln){
       // Check if max. number of iterations is reached
       if (iter_ >= all_parameters->hyper_reduction_param.NNLS_max_iter){
         return false;
@@ -348,14 +355,15 @@ bool NNLS_solver::solve(){
       // If solution is feasible, exit to outer loop
       if (feasible){
         SubIntoX(temp);
-        break;
+        no_feasible_soln = false;
       }
+      else{
+        // Infeasible solution -> interpolate to feasible one
+        AddIntoX(temp, alpha);
 
-      // Infeasible solution -> interpolate to feasible one
-      AddIntoX(temp, alpha);
-
-      // Remove the infeasibleIdx column from the inactive set
-      moveToActiveSet(infeasibleIdx);
+        // Remove the infeasibleIdx column from the inactive set
+        moveToActiveSet(infeasibleIdx);
+      }
     }
     
   }

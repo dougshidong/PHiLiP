@@ -27,7 +27,7 @@ HROMTestLocation<dim, nstate>::HROMTestLocation(const RowVectorXd& parameter, st
         , mpi_rank(dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD))
         , pcout(std::cout, mpi_rank==0)
         , dg(dg_input)
-        , xi(weights)
+        , ECSW_weights(weights)
 {
     pcout << "Creating ROM test location..." << std::endl;
     compute_FOM_to_initial_ROM_error();
@@ -152,7 +152,7 @@ std::shared_ptr<Epetra_CrsMatrix> HROMTestLocation<dim, nstate>::generate_hyper_
     for (const auto &cell : this->dg->dof_handler.active_cell_iterators())
     {
         // Add the contributilons of an element if the weight from the NNLS is non-zero
-        if (xi[cell->active_cell_index()] != 0){
+        if (ECSW_weights[cell->active_cell_index()] != 0){
             const int fe_index_curr_cell = cell->active_fe_index();
             const dealii::FESystem<dim,dim> &current_fe_ref = this->dg->fe_collection[fe_index_curr_cell];
             const int n_dofs_curr_cell = current_fe_ref.n_dofs_per_cell();
@@ -207,7 +207,7 @@ std::shared_ptr<Epetra_CrsMatrix> HROMTestLocation<dim, nstate>::generate_hyper_
             EpetraExt::MatrixMatrix::Multiply(L_e_T, false, J_temp, false, J_global_e, true);
 
             // Add the contribution of the element to the hyper-reduced Jacobian with scaling from the weights
-            double scaling = xi[cell->active_cell_index()];
+            double scaling = ECSW_weights[cell->active_cell_index()];
             EpetraExt::MatrixMatrix::Add(J_global_e, false, scaling, reduced_jacobian, 1.0);
         }
     }

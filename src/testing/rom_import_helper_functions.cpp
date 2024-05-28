@@ -9,6 +9,7 @@
 #include <Epetra_Vector.h>
 
 namespace PHiLiP {
+namespace Tests {
 
 bool getSnapshotParamsFromFile(Eigen::MatrixXd snapshot_parameters, std::string path) {
     bool file_found = false;
@@ -117,4 +118,5 @@ void getROMPoints(Eigen::MatrixXd rom_points, const Parameters::AllParameters *c
     }
 }
 
+} // End of Tests namespace
 } // End of PHiLiP namespace

@@ -143,7 +143,7 @@ int HyperreducedSamplingErrorUpdated<dim, nstate>::run_sampling() const
         this->pcout << "ECSW Weights"<< std::endl;
         this->pcout << *ptr_weights << std::endl;
 
-        //Update previous ROM errors with updated current_pod
+        // Update previous ROM errors with updated current_pod
         for(auto it = rom_locations.begin(); it != rom_locations.end(); ++it){
             it->get()->compute_initial_rom_to_final_rom_error(current_pod);
             it->get()->compute_total_error();
@@ -156,7 +156,7 @@ int HyperreducedSamplingErrorUpdated<dim, nstate>::run_sampling() const
 
         placeROMLocations(rom_points, *ptr_weights);
 
-        //Update max error
+        // Update max error
         max_error_params = getMaxErrorROM();
 
         this->pcout << "Max error is: " << max_error << std::endl;
@@ -233,15 +233,15 @@ RowVectorXd HyperreducedSamplingErrorUpdated<dim, nstate>::getMaxErrorROM() cons
         i++;
     }
 
-    //Must scale both axes between [0,1] for the 2d rbf interpolation to work optimally
+    // Must scale both axes between [0,1] for the 2d rbf interpolation to work optimally
     ProperOrthogonalDecomposition::MinMaxScaler scaler;
     MatrixXd parameters_scaled = scaler.fit_transform(parameters);
 
-    //Construct radial basis function
+    // Construct radial basis function
     std::string kernel = "thin_plate_spline";
     ProperOrthogonalDecomposition::RBFInterpolation rbf = ProperOrthogonalDecomposition::RBFInterpolation(parameters_scaled, errors, kernel);
 
-    // Set parameters.
+    // Set parameters
     ROL::ParameterList parlist;
     parlist.sublist("Step").sublist("Line Search").sublist("Line-Search Method").set("Type","Backtracking");
     parlist.sublist("Step").sublist("Line Search").sublist("Descent Method").set("Type","Quasi-Newton Method");
@@ -250,7 +250,7 @@ RowVectorXd HyperreducedSamplingErrorUpdated<dim, nstate>::getMaxErrorROM() cons
     parlist.sublist("Status Test").set("Step Tolerance",1.e-14);
     parlist.sublist("Status Test").set("Iteration Limit",100);
 
-    //Find max error and parameters by minimizing function starting at each ROM location
+    // Find max error and parameters by minimizing function starting at each ROM location
     RowVectorXd max_error_params(parameters.cols());
     max_error = 0;
 
@@ -259,14 +259,14 @@ RowVectorXd HyperreducedSamplingErrorUpdated<dim, nstate>::getMaxErrorROM() cons
         Eigen::RowVectorXd rom_unscaled = it->get()->parameter;
         Eigen::RowVectorXd rom_scaled = scaler.transform(rom_unscaled);
 
-        //start bounds
+        // start bounds
         int dimension = parameters.cols();
         ROL::Ptr<std::vector<double>> l_ptr = ROL::makePtr<std::vector<double>>(dimension,0.0);
         ROL::Ptr<std::vector<double>> u_ptr = ROL::makePtr<std::vector<double>>(dimension,1.0);
         ROL::Ptr<ROL::Vector<double>> lo = ROL::makePtr<ROL::StdVector<double>>(l_ptr);
         ROL::Ptr<ROL::Vector<double>> up = ROL::makePtr<ROL::StdVector<double>>(u_ptr);
         ROL::Bounds<double> bcon(lo,up);
-        //end bounds
+        // end bounds
 
         ROL::Ptr<ROL::Step<double>> step = ROL::makePtr<ROL::LineSearchStep<double>>(parlist);
         ROL::Ptr<ROL::StatusTest<double>> status = ROL::makePtr<ROL::StatusTest<double>>(parlist);
@@ -312,7 +312,7 @@ RowVectorXd HyperreducedSamplingErrorUpdated<dim, nstate>::getMaxErrorROM() cons
         }
     }
 
-    //Check if max_error_params is a ROM point
+    // Check if max_error_params is a ROM point
     for(auto it = rom_locations.begin(); it != rom_locations.end(); ++it){
         if(max_error_params.isApprox(it->get()->parameter)){
             this->pcout << "Max error location is approximately the same as a ROM location. Removing ROM location." << std::endl;
@@ -341,10 +341,10 @@ bool HyperreducedSamplingErrorUpdated<dim, nstate>::placeROMLocations(const Matr
 
     for(auto midpoint : rom_points.rowwise()){
 
-        //Check if ROM point already exists as another ROM point
+        // Check if ROM point already exists as another ROM point
         auto element = std::find_if(rom_locations.begin(), rom_locations.end(), [&midpoint](std::unique_ptr<ProperOrthogonalDecomposition::HROMTestLocation<dim,nstate>>& location){ return location->parameter.isApprox(midpoint);} );
 
-        //Check if ROM point already exists as a snapshot
+        // Check if ROM point already exists as a snapshot
         bool snapshot_exists = false;
         for(auto snap_param : snapshot_parameters.rowwise()){
             if(snap_param.isApprox(midpoint)){
@@ -353,7 +353,6 @@ bool HyperreducedSamplingErrorUpdated<dim, nstate>::placeROMLocations(const Matr
         }
 
         if(element == rom_locations.end() && snapshot_exists == false){
-            //ProperOrthogonalDecomposition::ROMSolution<dim, nstate> rom_solution = solveSnapshotROM(midpoint);
             std::unique_ptr<ProperOrthogonalDecomposition::ROMSolution<dim, nstate>> rom_solution = solveSnapshotROM(midpoint, weights);
             rom_locations.emplace_back(std::make_unique<ProperOrthogonalDecomposition::HROMTestLocation<dim,nstate>>(midpoint, std::move(rom_solution), flow_solver->dg, weights));
             if(abs(rom_locations.back()->total_error) > all_parameters->reduced_order_param.adaptation_tolerance){
@@ -372,14 +371,14 @@ void HyperreducedSamplingErrorUpdated<dim, nstate>::updateNearestExistingROMs(co
     std::unique_ptr<FlowSolver::FlowSolver<dim,nstate>> flow_solver = FlowSolver::FlowSolverFactory<dim,nstate>::select_flow_case(all_parameters, parameter_handler);
 
     this->pcout << "Verifying ROM points for recomputation." << std::endl;
-    //Assemble ROM points in a matrix
+    // Assemble ROM points in a matrix
     MatrixXd rom_points(0,0);
     for(auto it = rom_locations.begin(); it != rom_locations.end(); ++it){
         rom_points.conservativeResize(rom_points.rows()+1, it->get()->parameter.cols());
         rom_points.row(rom_points.rows()-1) = it->get()->parameter;
     }
 
-    //Get distances between each ROM point and all other ROM points
+    // Get distances between each ROM point and all other ROM points
     for(auto point : rom_points.rowwise()) {
         ProperOrthogonalDecomposition::MinMaxScaler scaler;
         MatrixXd scaled_rom_points = scaler.fit_transform(rom_points);
@@ -437,7 +436,6 @@ std::unique_ptr<ProperOrthogonalDecomposition::ROMSolution<dim,nstate>> Hyperred
     // Solve implicit solution
     auto ode_solver_type = Parameters::ODESolverParam::ODESolverEnum::hyper_reduced_petrov_galerkin_solver;
     flow_solver->ode_solver =  PHiLiP::ODE::ODESolverFactory<dim, double>::create_ODESolver_manual(ode_solver_type, flow_solver->dg, current_pod, weights);
-    //flow_solver->dg->solution = nearest_neighbors->nearestNeighborMidpointSolution(parameter);
     flow_solver->ode_solver->allocate_ode_system();
     flow_solver->ode_solver->steady_state();
 
@@ -519,7 +517,7 @@ void HyperreducedSamplingErrorUpdated<dim, nstate>::configureInitialParameterSpa
             parameter1_range *= pi/180; //convert to radians
         }
 
-        //Place parameters at 2 ends and center
+        // Place parameters at 2 ends and center
         snapshot_parameters.resize(3,1);
         snapshot_parameters  << parameter1_range[0],
                                 parameter1_range[1],
@@ -549,7 +547,7 @@ void HyperreducedSamplingErrorUpdated<dim, nstate>::configureInitialParameterSpa
             parameter2_range *= pi/180; //convert to radians
         }
 
-        //Place 9 parameters in a grid
+        // Place 9 parameters in a grid
         snapshot_parameters.resize(9,2);
         snapshot_parameters  << parameter1_range[0], parameter2_range[0],
                                 parameter1_range[0], parameter2_range[1],

@@ -129,7 +129,7 @@ int HyperreducedAdaptiveSampling<dim, nstate>::run_sampling() const
         this->pcout << "ECSW Weights"<< std::endl;
         this->pcout << *ptr_weights << std::endl;
 
-        //Update previous ROM errors with updated current_pod
+        // Update previous ROM errors with updated current_pod
         for(auto it = this->rom_locations.begin(); it != this->rom_locations.end(); ++it){
             it->get()->compute_initial_rom_to_final_rom_error(this->current_pod);
             it->get()->compute_total_error();
@@ -142,7 +142,7 @@ int HyperreducedAdaptiveSampling<dim, nstate>::run_sampling() const
 
         this->placeROMLocations(rom_points, *ptr_weights);
 
-        //Update max error
+        // Update max error
         max_error_params = this->getMaxErrorROM();
 
         this->pcout << "Max error is: " << this->max_error << std::endl;
@@ -168,10 +168,10 @@ bool HyperreducedAdaptiveSampling<dim, nstate>::placeROMLocations(const MatrixXd
     bool error_greater_than_tolerance = false;
     for(auto midpoint : rom_points.rowwise()){
 
-        //Check if ROM point already exists as another ROM point
+        // Check if ROM point already exists as another ROM point
         auto element = std::find_if(this->rom_locations.begin(), this->rom_locations.end(), [&midpoint](std::unique_ptr<ProperOrthogonalDecomposition::ROMTestLocation<dim,nstate>>& location){ return location->parameter.isApprox(midpoint);} );
 
-        //Check if ROM point already exists as a snapshot
+        // Check if ROM point already exists as a snapshot
         bool snapshot_exists = false;
         for(auto snap_param : this->snapshot_parameters.rowwise()){
             if(snap_param.isApprox(midpoint)){
@@ -180,7 +180,6 @@ bool HyperreducedAdaptiveSampling<dim, nstate>::placeROMLocations(const MatrixXd
         }
 
         if(element == this->rom_locations.end() && snapshot_exists == false){
-            //ProperOrthogonalDecomposition::ROMSolution<dim, nstate> rom_solution = solveSnapshotROM(midpoint);
             std::unique_ptr<ProperOrthogonalDecomposition::ROMSolution<dim, nstate>> rom_solution = solveSnapshotROM(midpoint, weights);
             this->rom_locations.emplace_back(std::make_unique<ProperOrthogonalDecomposition::ROMTestLocation<dim,nstate>>(midpoint, std::move(rom_solution)));
             if(abs(this->rom_locations.back()->total_error) > this->all_parameters->reduced_order_param.adaptation_tolerance){
@@ -198,14 +197,14 @@ template <int dim, int nstate>
 void HyperreducedAdaptiveSampling<dim, nstate>::updateNearestExistingROMs(const RowVectorXd& /*parameter*/, Epetra_Vector weights) const{
 
     this->pcout << "Verifying ROM points for recomputation." << std::endl;
-    //Assemble ROM points in a matrix
+    // Assemble ROM points in a matrix
     MatrixXd rom_points(0,0);
     for(auto it = this->rom_locations.begin(); it != this->rom_locations.end(); ++it){
         rom_points.conservativeResize(rom_points.rows()+1, it->get()->parameter.cols());
         rom_points.row(rom_points.rows()-1) = it->get()->parameter;
     }
 
-    //Get distances between each ROM point and all other ROM points
+    // Get distances between each ROM point and all other ROM points
     for(auto point : rom_points.rowwise()) {
         ProperOrthogonalDecomposition::MinMaxScaler scaler;
         MatrixXd scaled_rom_points = scaler.fit_transform(rom_points);
@@ -246,7 +245,6 @@ std::unique_ptr<ProperOrthogonalDecomposition::ROMSolution<dim,nstate>> Hyperred
     // Solve implicit solution
     auto ode_solver_type = Parameters::ODESolverParam::ODESolverEnum::hyper_reduced_petrov_galerkin_solver;
     flow_solver->ode_solver =  PHiLiP::ODE::ODESolverFactory<dim, double>::create_ODESolver_manual(ode_solver_type, flow_solver->dg, this->current_pod, weights);
-    //flow_solver->dg->solution = nearest_neighbors->nearestNeighborMidpointSolution(parameter);
     flow_solver->ode_solver->allocate_ode_system();
     flow_solver->ode_solver->steady_state();
 

@@ -70,7 +70,7 @@ public:
     std::shared_ptr<DGBase<dim,double>> dg;
 
     /// ECSW hyper-reduction weights
-    Epetra_Vector xi;
+    Epetra_Vector ECSW_weights;
 
 };
 

@@ -123,8 +123,9 @@ void ODESolverFactory<dim,real,MeshType>::display_error_ode_solver_factory(Param
     else if (ode_solver_type == ODEEnum::rrk_explicit_solver)           solver_string = "rrk_explicit";
     else if (ode_solver_type == ODEEnum::pod_galerkin_solver)           solver_string = "pod_galerkin";
     else if (ode_solver_type == ODEEnum::pod_petrov_galerkin_solver)    solver_string = "pod_petrov_galerkin";
-    else if (ode_solver_type == ODEEnum::hyper_reduced_petrov_galerkin_solver)    solver_string = "hyper_reduced_petrov_galerkin";
-    else solver_string = "undefined";
+    else if (ode_solver_type == ODEEnum::hyper_reduced_petrov_galerkin_solver)    
+                                                                        solver_string = "hyper_reduced_petrov_galerkin";
+    else                                                                solver_string = "undefined";
 
     dealii::ConditionalOStream pcout(std::cout, dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD)==0);
     pcout << "********************************************************************" << std::endl;

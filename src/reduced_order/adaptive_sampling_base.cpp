@@ -89,7 +89,7 @@ RowVectorXd AdaptiveSamplingBase<dim, nstate>::getMaxErrorROM() const{
         parameters.row(i) = snapshot_parameters.row(i);
     }
     this->pcout << i << std::endl;
-    // Loop through ROM points and add total errror to errors vector (both FOM snaps and ROM points are used to build RBF)
+    // Loop through ROM points and add total error to errors vector (both FOM snaps and ROM points are used to build RBF)
     for(auto it = rom_locations.begin(); it != rom_locations.end(); ++it){
         parameters.row(i) = it->get()->parameter.array();
         errors(i) = it->get()->total_error;
@@ -342,11 +342,11 @@ void AdaptiveSamplingBase<dim, nstate>::configureInitialParameterSpace() const
 }
 
 #if PHILIP_DIM==1
-        template class AdaptiveSamplingBase<PHILIP_DIM, PHILIP_DIM>;
+    template class AdaptiveSamplingBase<PHILIP_DIM, PHILIP_DIM>;
 #endif
 
 #if PHILIP_DIM!=1
-        template class AdaptiveSamplingBase<PHILIP_DIM, PHILIP_DIM+2>;
+    template class AdaptiveSamplingBase<PHILIP_DIM, PHILIP_DIM+2>;
 #endif
 
 }

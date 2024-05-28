@@ -12,6 +12,7 @@
 #include <Epetra_Vector.h>
 
 namespace PHiLiP {
+namespace Tests {
 
 using Eigen::MatrixXd;
 using Eigen::VectorXd;
@@ -23,6 +24,7 @@ bool getSnapshotParamsFromFile(Eigen::MatrixXd snapshot_parameters, std::string 
 /// Place 400 distributed points across the parameter domain for error sampling
 void getROMPoints(Eigen::MatrixXd rom_points, const Parameters::AllParameters *const all_parameters);
 
+} // End of Tests namespace
 } // End of PHiLiP namespace
 
 #endif

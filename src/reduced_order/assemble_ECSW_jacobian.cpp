@@ -217,11 +217,11 @@ void AssembleECSWJac<dim,nstate>::build_problem(){
 }
 
 #if PHILIP_DIM==1
-        template class AssembleECSWJac<PHILIP_DIM, PHILIP_DIM>;
+    template class AssembleECSWJac<PHILIP_DIM, PHILIP_DIM>;
 #endif
 
 #if PHILIP_DIM!=1
-        template class AssembleECSWJac<PHILIP_DIM, PHILIP_DIM+2>;
+    template class AssembleECSWJac<PHILIP_DIM, PHILIP_DIM+2>;
 #endif
 
 } // HyperReduction namespace

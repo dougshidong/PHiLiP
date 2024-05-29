@@ -14,6 +14,7 @@ namespace Physics {
 //================================================================
 template <int dim, int nstate, typename real>
 NavierStokesWithModelSourceTerms<dim, nstate, real>::NavierStokesWithModelSourceTerms(
+    const Parameters::AllParameters *const                    parameters_input,
     const double                                              ref_length,
     const double                                              gamma_gas,
     const double                                              mach_inf,
@@ -30,6 +31,7 @@ NavierStokesWithModelSourceTerms<dim, nstate, real>::NavierStokesWithModelSource
     const two_point_num_flux_enum                             two_point_num_flux_type)
     : ModelBase<dim,nstate,real>(manufactured_solution_function) 
     , navier_stokes_physics(std::make_unique < NavierStokes<dim,nstate,real> > (
+            parameters_input,
             ref_length,
             gamma_gas,
             mach_inf,

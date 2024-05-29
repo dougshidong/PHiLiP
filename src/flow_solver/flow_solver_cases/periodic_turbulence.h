@@ -1,10 +1,11 @@
 #ifndef __PERIODIC_TURBULENCE_H__
 #define __PERIODIC_TURBULENCE_H__
 
-#include "periodic_cube_flow.h"
-#include "dg/dg.h"
-#include "physics/navier_stokes.h"
 #include <deal.II/base/table.h>
+
+#include "dg/dg_base.hpp"
+#include "periodic_cube_flow.h"
+#include "physics/navier_stokes.h"
 
 namespace PHiLiP {
 namespace FlowSolver {
@@ -16,14 +17,10 @@ class PeriodicTurbulence : public PeriodicCubeFlow<dim,nstate>
      *  Corresponds to the number of items in IntegratedQuantitiesEnum
      * */
     static const int NUMBER_OF_INTEGRATED_QUANTITIES = 5;
-
 public:
     /// Constructor.
-    PeriodicTurbulence(const Parameters::AllParameters *const parameters_input);
+    explicit PeriodicTurbulence(const Parameters::AllParameters *const parameters_input);
 
-    /// Destructor
-    ~PeriodicTurbulence() {};
-    
     /** Computes the integrated quantities over the domain simultaneously and updates the array storing them
      *  Note: For efficiency, this also simultaneously updates the local maximum wave speed
      * */
@@ -79,7 +76,17 @@ public:
             const double current_time) const;
 
     /// Calculate numerical entropy by matrix-vector product
-    double get_numerical_entropy(const std::shared_ptr <DGBase<dim, double>> dg) const;
+    double compute_current_integrated_numerical_entropy(
+            const std::shared_ptr <DGBase<dim, double>> dg) const;
+
+    /// Update numerical entropy variables
+    void update_numerical_entropy(
+            const double FR_entropy_contribution_RRK_solver,
+            const unsigned int current_iteration,
+            const std::shared_ptr <DGBase<dim, double>> dg);
+    
+    /// Retrieves cumulative_numerical_entropy_change_FRcorrected
+    double get_numerical_entropy(const std::shared_ptr <DGBase<dim, double>> /*dg*/) const;
 
 protected:
     /// Filename (with extension) for the unsteady data table
@@ -115,21 +122,17 @@ public:
     /// Function to compute the constant time step
     double get_constant_time_step(std::shared_ptr<DGBase<dim,double>> dg) const override;
 
-    /// Function to compute the adaptive time step
-    virtual double get_adaptive_time_step(std::shared_ptr<DGBase<dim,double>> dg) const override;
-
-    /// Function to compute the initial adaptive time step
-    virtual double get_adaptive_time_step_initial(std::shared_ptr<DGBase<dim,double>> dg) override;
-
 protected:
+    /// Function to compute the adaptive time step
+    double get_adaptive_time_step(std::shared_ptr<DGBase<dim,double>> dg) const override;
+
     /// Updates the maximum local wave speed
-    void update_maximum_local_wave_speed(DGBase<dim, double> &dg);
+    void update_maximum_local_wave_speed(DGBase<dim, double> &dg) override;
 
 public:
     /// Compute the desired unsteady data and write it to a table
     virtual void compute_unsteady_data_and_write_to_table(
-            const unsigned int current_iteration,
-            const double current_time,
+            const std::shared_ptr<ODE::ODESolverBase<dim, double>> ode_solver, 
             const std::shared_ptr <DGBase<dim, double>> dg,
             const std::shared_ptr<dealii::TableHandler> unsteady_data_table) override;
 
@@ -148,8 +151,14 @@ protected:
     /// Integrated kinetic energy over the domain at previous time step; used for ensuring a physically consistent simulation
     double integrated_kinetic_energy_at_previous_time_step;
 
-    /// Maximum local wave speed (i.e. convective eigenvalue)
-    double maximum_local_wave_speed;
+    /// Numerical entropy at previous timestep
+    double previous_numerical_entropy = 0;
+
+    /// Cumulative change in numerical entropy
+    double cumulative_numerical_entropy_change_FRcorrected = 0;
+
+    /// Numerical entropy at initial time
+    double initial_numerical_entropy_abs = 0;
 
     /// Times at which to output the velocity field
     dealii::Table<1,double> output_velocity_field_times;

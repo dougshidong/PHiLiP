@@ -20,9 +20,6 @@ ModelBase<dim, nstate, real>::ModelBase(
 {}
 //----------------------------------------------------------------
 template <int dim, int nstate, typename real>
-ModelBase<dim,nstate,real>::~ModelBase() {}
-//----------------------------------------------------------------
-template <int dim, int nstate, typename real>
 std::array<real,nstate> ModelBase<dim, nstate, real>
 ::physical_source_term (
     const dealii::Point<dim,real> &/*pos*/,

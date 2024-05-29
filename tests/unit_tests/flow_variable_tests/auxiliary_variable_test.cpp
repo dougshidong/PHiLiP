@@ -37,18 +37,18 @@
 
 // Finally, we take our exact solution from the library as well as volume_quadrature
 // and additional tools.
+#include <deal.II/fe/mapping_q.h>
+#include <deal.II/grid/manifold_lib.h>
 #include <deal.II/numerics/data_out.h>
 #include <deal.II/numerics/data_out_dof_data.h>
 #include <deal.II/numerics/vector_tools.h>
 #include <deal.II/numerics/vector_tools.templates.h>
 
-#include "parameters/all_parameters.h"
-#include "parameters/parameters.h"
-#include "dg/dg.h"
-#include <deal.II/grid/manifold_lib.h>
-#include <deal.II/fe/mapping_q.h>
+#include "dg/dg_base.hpp"
 #include "dg/dg_factory.hpp"
 #include "operators/operators.h"
+#include "parameters/all_parameters.h"
+#include "parameters/parameters.h"
 
 const double TOLERANCE = 1E-6;
 using namespace std;
@@ -148,11 +148,11 @@ int main (int argc, char * argv[])
             const unsigned int n_grid_nodes = n_metric_dofs / dim;
             auto metric_cell = dg->high_order_grid->dof_handler_grid.begin_active();
 
-            PHiLiP::OPERATOR::mapping_shape_functions<dim,2*dim> mapping_basis(dg->nstate, poly_degree, 1);
+            PHiLiP::OPERATOR::mapping_shape_functions<dim,2*dim,real> mapping_basis(dg->nstate, poly_degree, 1);
             mapping_basis.build_1D_shape_functions_at_grid_nodes(dg->high_order_grid->oneD_fe_system, dg->high_order_grid->oneD_grid_nodes);
             mapping_basis.build_1D_shape_functions_at_flux_nodes(dg->high_order_grid->oneD_fe_system, dg->oneD_quadrature_collection[poly_degree], dg->oneD_face_quadrature);
 
-            OPERATOR::vol_projection_operator<dim,2*dim> vol_projection(dg->nstate, dg->max_degree, dg->max_grid_degree);
+            OPERATOR::vol_projection_operator<dim,2*dim,real> vol_projection(dg->nstate, dg->max_degree, dg->max_grid_degree);
             vol_projection.build_1D_volume_operator(dg->oneD_fe_collection[dg->max_degree], dg->oneD_quadrature_collection[dg->max_degree]);
 
             for (auto current_cell = dg->dof_handler.begin_active(); current_cell!=dg->dof_handler.end(); ++current_cell, ++metric_cell) {

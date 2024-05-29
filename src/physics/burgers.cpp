@@ -6,6 +6,25 @@ namespace PHiLiP {
 namespace Physics {
 
 template <int dim, int nstate, typename real>
+Burgers<dim,nstate,real>::Burgers(
+    const Parameters::AllParameters *const                    parameters_input,
+    const double                                              diffusion_coefficient,
+    const bool                                                convection, 
+    const bool                                                diffusion,
+    const dealii::Tensor<2,3,double>                          input_diffusion_tensor,
+    std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function,
+    const Parameters::AllParameters::TestType                 parameters_test,
+    const bool                                                has_nonzero_physical_source)
+    : PhysicsBase<dim,nstate,real>(parameters_input, diffusion, has_nonzero_physical_source, input_diffusion_tensor, manufactured_solution_function)
+    , diffusion_scaling_coeff(diffusion_coefficient)
+    , hasConvection(convection)
+    , hasDiffusion(diffusion)
+    , test_type(parameters_test)
+{
+    static_assert(nstate==dim, "Physics::Burgers() should be created with nstate==dim");
+}
+
+template <int dim, int nstate, typename real>
 void Burgers<dim,nstate,real>
 ::boundary_face_values (
    const int /*boundary_type*/,
@@ -225,15 +244,43 @@ std::array<real,nstate> Burgers<dim,nstate,real>
 
     using TestType = Parameters::AllParameters::TestType;
 
-    if(this->test_type == TestType::burgers_energy_stability){
+    if(this->test_type == TestType::burgers_energy_stability || this->test_type == TestType::burgers_limiter){
         for(int istate =0; istate<nstate; istate++){
             source[istate] = 0.0;
             const double pi = atan(1)*4.0;
-            for(int idim=0; idim< dim; idim++){
-              // source[istate] += pi * cos(pi*(pos[idim] - current_time))
-              //                     *(-0.99 + sin(pi * (pos[idim] - current_time)));
-               source[istate] += pi * sin(pi*(pos[idim] - current_time))
-                                   *(1.0 - cos(pi * (pos[idim] - current_time)));
+            const real pi_xmt = pi * (pos[0] - current_time);
+            const real pi_ymt = pi * (pos[1] - current_time);
+            const real pi_zmt = pi * (pos[2] - current_time);
+
+            if(dim==1)
+            {
+                source[istate] = pi * sin(pi_xmt)
+                                   *(1.0 - cos(pi_xmt));
+            }
+
+            if(dim==2)
+            {
+                const real sourcedt = pi*sin(pi_xmt)*cos(pi_ymt)
+                               +pi*cos(pi_xmt)*sin(pi_ymt);
+                const real sourcedx = -pi*sin(pi_xmt)*(cos(pi_xmt))
+                               *pow(cos(pi_ymt),2.0);
+                const real sourcedy = -pi*sin(pi_ymt)*(cos(pi_ymt))
+                               *pow(cos(pi_xmt),2.0);
+                source[istate] = sourcedt + sourcedx + sourcedy;
+            }
+
+            if(dim==3)
+            {
+                const real sourcedt = pi*sin(pi_xmt)*cos(pi_ymt)*cos(pi_zmt)
+                               +pi*cos(pi_xmt)*sin(pi_ymt)*cos(pi_zmt)
+                               +pi*cos(pi_xmt)*cos(pi_ymt)*sin(pi_zmt);
+                const real sourcedx = -pi*sin(pi_xmt)*(cos(pi_xmt))
+                               *pow(cos(pi_ymt),2.0)*pow(cos(pi_zmt),2.0);
+                const real sourcedy = -pi*sin(pi_ymt)*(cos(pi_ymt))
+                               *pow(cos(pi_xmt),2.0)*pow(cos(pi_zmt),2.0);
+                const real sourcedz = -pi*sin(pi_zmt)*(cos(pi_zmt))
+                               *pow(cos(pi_xmt),2.0)*pow(cos(pi_ymt),2.0);
+                source[istate] = sourcedt + sourcedx + sourcedy + sourcedz;
             }
         }
     }

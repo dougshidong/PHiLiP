@@ -39,10 +39,10 @@ public:
     /// Constructor.
     /** Must call reinit on the vector to have something valid.
      */
-    dealiiSolverVectorWrappingROL() {};
+    dealiiSolverVectorWrappingROL() = default;
 
     /// Constructor where data is given.
-    dealiiSolverVectorWrappingROL(ROL::Ptr<ROL::Vector<Real>> input_vector)
+    explicit dealiiSolverVectorWrappingROL(ROL::Ptr<ROL::Vector<Real>> input_vector)
     : rol_vector_ptr(input_vector)
     {};
 

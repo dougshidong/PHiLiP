@@ -2,6 +2,7 @@
 #define __PERIODIC_CUBE_FLOW_H__
 
 #include "flow_solver_case_base.h"
+#include "cube_flow_uniform_grid.h"
 
 namespace PHiLiP {
 namespace FlowSolver {
@@ -13,14 +14,11 @@ using Triangulation = dealii::parallel::distributed::Triangulation<PHILIP_DIM>;
 #endif
 
 template <int dim, int nstate>
-class PeriodicCubeFlow : public FlowSolverCaseBase<dim,nstate>
+class PeriodicCubeFlow : public CubeFlow_UniformGrid<dim,nstate>
 {
 public:
     /// Constructor.
-    PeriodicCubeFlow(const Parameters::AllParameters *const parameters_input);
-
-    /// Destructor
-    ~PeriodicCubeFlow() {};
+    explicit PeriodicCubeFlow(const Parameters::AllParameters *const parameters_input);
 
     /// Function to generate the grid
     virtual std::shared_ptr<Triangulation> generate_grid() const override;

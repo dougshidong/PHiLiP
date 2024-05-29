@@ -15,9 +15,6 @@ set flux_nodes_type = GL
 set use_inverse_mass_on_the_fly = true
 set all_boundaries_are_periodic = true
 
-# memory allocation
-set do_renumber_dofs = false
-
 # degree of freedom renumbering not necessary for explicit time advancement cases
 set do_renumber_dofs = false
 

@@ -1,6 +1,7 @@
 set(DG_SOURCE
     dg_factory.cpp
-    dg.cpp
+    dg_base.cpp
+    dg_base_state.cpp
     residual_sparsity_patterns.cpp
     weak_dg.cpp
     strong_dg.cpp
@@ -15,13 +16,16 @@ foreach(dim RANGE 1 3)
     add_library(${DiscontinuousGalerkinLib} STATIC ${DG_SOURCE})
     # Replace occurences of PHILIP_DIM with 1, 2, or 3 in the code
     target_compile_definitions(${DiscontinuousGalerkinLib} PRIVATE PHILIP_DIM=${dim})
+    set_source_files_properties(${DG_SOURCE} LANGUAGE CXX)
 
     # Library dependency
+    string(CONCAT SolutionLib Solution_${dim}D)
     string(CONCAT HighOrderGridLib HighOrderGrid_${dim}D)
     string(CONCAT PostprocessingLib Postprocessing_${dim}D)
     string(CONCAT NumericalFluxLib NumericalFlux_${dim}D)
     string(CONCAT PhysicsLib Physics_${dim}D)
     string(CONCAT OperatorsLib Operator_Lib_${dim}D)
+    target_link_libraries(${DiscontinuousGalerkinLib} ${SolutionLib})
     target_link_libraries(${DiscontinuousGalerkinLib} ${HighOrderGridLib})
     target_link_libraries(${DiscontinuousGalerkinLib} ${PostprocessingLib})
     target_link_libraries(${DiscontinuousGalerkinLib} ${NumericalFluxLib})
@@ -32,6 +36,7 @@ foreach(dim RANGE 1 3)
         DEAL_II_SETUP_TARGET(${DiscontinuousGalerkinLib})
     endif()
 
+    unset(SolutionLib)
     unset(HighOrderGridLib)
     unset(PostprocessingLib)
     unset(DiscontinuousGalerkinLib)

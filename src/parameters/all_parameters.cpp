@@ -1,7 +1,12 @@
 #include <deal.II/base/mpi.h>
 #include <deal.II/base/utilities.h>
+#include <deal.II/base/patterns.h>
 
 #include "parameters/all_parameters.h"
+
+//for checking output directories
+#include <sys/types.h>
+#include <sys/stat.h>
 
 namespace PHiLiP {
 namespace Parameters {
@@ -17,6 +22,7 @@ AllParameters::AllParameters ()
     , physics_model_param(PhysicsModelParam())
     , grid_refinement_study_param(GridRefinementStudyParam())
     , artificial_dissipation_param(ArtificialDissipationParam())
+    , limiter_param(LimiterParam())
     , flow_solver_param(FlowSolverParam())
     , mesh_adaptation_param(MeshAdaptationParam())
     , functional_param(FunctionalParam())
@@ -104,6 +110,10 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       dealii::Patterns::Bool(),
                       "Use straight grid by default. Curvilinear is true. Only used in taylor_green_scaling test.");
 
+    prm.declare_entry("use_curvilinear_grid", "false",
+                      dealii::Patterns::Bool(),
+                      "Use straight grid by default. Curvilinear is true. Only used in taylor_green_scaling test.");
+
     prm.declare_entry("use_energy", "false",
                       dealii::Patterns::Bool(),
                       "Not calculate energy by default. Otherwise, get energy per iteration.");
@@ -149,6 +159,8 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       dealii::Patterns::Selection(
                       " run_control | "
                       " grid_refinement_study | "
+                      " advection_limiter | "
+                      " burgers_limiter | "
                       " burgers_energy_stability | "
                       " diffusion_exact_adjoint | "
                       " optimization_inverse_manufactured | "
@@ -179,14 +191,18 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       " homogeneous_isotropic_turbulence_initialization_check | "
                       " time_refinement_study | "
                       " time_refinement_study_reference | "
-                      " burgers_energy_conservation_rrk | "
+                      " rrk_numerical_entropy_conservation_check | "
                       " euler_entropy_conserving_split_forms_check | "
                       " h_refinement_study_isentropic_vortex | "
-                      " khi_robustness"),
+                      " naca0012_unsteady_check_quick | "
+                      " khi_robustness | "
+                      " low_density "),
                       "The type of test we want to solve. "
                       "Choices are " 
                       " <run_control | " 
                       "  grid_refinement_study | "
+                      "  advection_limiter | "
+                      "  burgers_limiter | "
                       "  burgers_energy_stability | "
                       "  diffusion_exact_adjoint | "
                       "  optimization_inverse_manufactured | "
@@ -217,10 +233,12 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       "  homogeneous_isotropic_turbulence_initialization_check | "
                       "  time_refinement_study | "
                       "  time_refinement_study_reference | "
-                      "  burgers_energy_conservation_rrk | "
+                      "  rrk_numerical_entropy_conservation_check | "
                       "  euler_entropy_conserving_split_forms_check | "
                       "  h_refinement_study_isentropic_vortex | "
-                      "  khi_robustness>.");
+                      "  naca0012_unsteady_check_quick | "
+                      "  khi_robustness | "
+                      "  low_density>.");
 
     prm.declare_entry("pde_type", "advection",
                       dealii::Patterns::Selection(
@@ -287,6 +305,15 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       "Dissipative numerical flux. "
                       "Choices are <symm_internal_penalty | bassi_rebay_2 | central_visc_flux>.");
 
+    prm.declare_entry("non_physical_behavior", "return_big_number",
+                      dealii::Patterns::Selection("return_big_number | abort_run | print_warning"),
+                      "Behavior when a nonphysical result is detected in physics, "
+                      "For example negative density or NaN. "
+                      "return_big_number will set the quantity to BIG_NUMBER without any warnings "
+                      "abort_run will std::abort() "
+                      "print_warning will return BIG_NUMBER and print a warning to console. "
+                      "Choices are <return_big_number | abort_run | print_warning>.");
+
     prm.declare_entry("solution_vtk_files_directory_name", ".",
                       dealii::Patterns::FileName(dealii::Patterns::FileName::FileType::input),
                       "Name of directory for writing solution vtk files. Current directory by default.");
@@ -313,6 +340,11 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       "CuthillMckee"),
                       "Renumber the dof handler type. Currently the only choice is Cuthill-Mckee.");
 
+    prm.declare_entry("matching_surface_jac_det_tolerance", "1.3e-11",
+                      dealii::Patterns::Double(0, dealii::Patterns::Double::max_double_value),
+                      "Tolerance for checking that the determinant of surface jacobians at element faces matches. "
+                      "Note: Currently only used in weak dg.");
+
     Parameters::LinearSolverParam::declare_parameters (prm);
     Parameters::ManufacturedConvergenceStudyParam::declare_parameters (prm);
     Parameters::ODESolverParam::declare_parameters (prm);
@@ -323,6 +355,7 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
     Parameters::BurgersParam::declare_parameters (prm);
     Parameters::GridRefinementStudyParam::declare_parameters (prm);
     Parameters::ArtificialDissipationParam::declare_parameters (prm);
+    Parameters::LimiterParam::declare_parameters(prm);
     Parameters::MeshAdaptationParam::declare_parameters (prm);
     Parameters::FlowSolverParam::declare_parameters (prm);
     Parameters::FunctionalParam::declare_parameters (prm);
@@ -347,9 +380,11 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
     else if (mesh_type_string == "parallel_shared_triangulation")      { mesh_type = parallel_shared_triangulation; }
     else if (mesh_type_string == "parallel_distributed_triangulation") { mesh_type = parallel_distributed_triangulation; }
 
-    const std::string test_string = prm.get("test_type");
+const std::string test_string = prm.get("test_type");
     if      (test_string == "run_control")                              { test_type = run_control; }
     else if (test_string == "grid_refinement_study")                    { test_type = grid_refinement_study; }
+    else if (test_string == "advection_limiter")                        { test_type = advection_limiter; }
+    else if (test_string == "burgers_limiter")                          { test_type = burgers_limiter; }
     else if (test_string == "burgers_energy_stability")                 { test_type = burgers_energy_stability; }
     else if (test_string == "diffusion_exact_adjoint")                  { test_type = diffusion_exact_adjoint; }
     else if (test_string == "euler_gaussian_bump")                      { test_type = euler_gaussian_bump; }
@@ -381,11 +416,14 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
                                                                         { test_type = homogeneous_isotropic_turbulence_initialization_check; }
     else if (test_string == "time_refinement_study")                    { test_type = time_refinement_study; }
     else if (test_string == "time_refinement_study_reference")          { test_type = time_refinement_study_reference; }
-    else if (test_string == "burgers_energy_conservation_rrk")          { test_type = burgers_energy_conservation_rrk; }
+    else if (test_string == "h_refinement_study_isentropic_vortex")     { test_type = h_refinement_study_isentropic_vortex; }
+    else if (test_string == "rrk_numerical_entropy_conservation_check") { test_type = rrk_numerical_entropy_conservation_check; }
     else if (test_string == "euler_entropy_conserving_split_forms_check") 
                                                                         { test_type = euler_entropy_conserving_split_forms_check; }
     else if (test_string == "h_refinement_study_isentropic_vortex")     { test_type = h_refinement_study_isentropic_vortex; }
     else if (test_string == "khi_robustness")                           { test_type = khi_robustness; }
+    else if (test_string == "low_density")                              { test_type = low_density; }
+    else if (test_string == "naca0012_unsteady_check_quick")            { test_type = naca0012_unsteady_check_quick; }
     
     // WARNING: Must assign model_type before pde_type
     const std::string model_string = prm.get("model_type");
@@ -512,7 +550,19 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
     if (flux_reconstruction_aux_string == "kPlus")       { flux_reconstruction_aux_type = kPlus; }
     if (flux_reconstruction_aux_string == "k10Thousand") { flux_reconstruction_aux_type = k10Thousand; }
 
+    const std::string non_physical_behavior_string = prm.get("non_physical_behavior");
+    if (non_physical_behavior_string == "return_big_number") { non_physical_behavior_type = NonPhysicalBehaviorEnum::return_big_number;}
+    if (non_physical_behavior_string == "abort_run")         { non_physical_behavior_type = NonPhysicalBehaviorEnum::abort_run;}
+    if (non_physical_behavior_string == "print_warning")     { non_physical_behavior_type = NonPhysicalBehaviorEnum::print_warning;}
+
     solution_vtk_files_directory_name = prm.get("solution_vtk_files_directory_name");
+    // Check if directory exists - see https://stackoverflow.com/a/18101042
+    struct stat info_vtk;
+    if( stat( solution_vtk_files_directory_name.c_str(), &info_vtk ) != 0 ){
+        pcout << "Error: No solution vtk files directory named " << solution_vtk_files_directory_name << " exists." << std::endl
+                  << "Please create the directory and restart. Aborting..." << std::endl;
+        std::abort();
+    }
     output_high_order_grid = prm.get_bool("output_high_order_grid");
     enable_higher_order_vtk_output = prm.get_bool("enable_higher_order_vtk_output");
     output_face_results_vtk = prm.get_bool("output_face_results_vtk");
@@ -521,7 +571,7 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
     const std::string renumber_dofs_type_string = prm.get("renumber_dofs_type");
     if (renumber_dofs_type_string == "CuthillMckee") { renumber_dofs_type = RenumberDofsType::CuthillMckee; }
 
-    output_high_order_grid = prm.get_bool("output_high_order_grid");
+    matching_surface_jac_det_tolerance = prm.get_double("matching_surface_jac_det_tolerance");
 
     pcout << "Parsing linear solver subsection..." << std::endl;
     linear_solver_param.parse_parameters (prm);
@@ -552,6 +602,9 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
 
     pcout << "Parsing artificial dissipation subsection..." << std::endl;
     artificial_dissipation_param.parse_parameters (prm);
+
+    pcout << "Parsing limiter subsection..." << std::endl;
+    limiter_param.parse_parameters(prm);
     
     pcout << "Parsing flow solver subsection..." << std::endl;
     flow_solver_param.parse_parameters (prm);
@@ -587,7 +640,17 @@ void AllParameters::modify_parameters () {
       euler_param.ref_length = flow_solver_param.turbulent_channel_domain_length_y_direction/2.0; // corresponds to half channel height
       
       pcout << "done." << std::endl;
+    } 
+    else if((pde_type == PartialDifferentialEquation::navier_stokes || 
+             (pde_type == PartialDifferentialEquation::physics_model || pde_type == PartialDifferentialEquation::physics_model_filtered)) && 
+              (flow_solver_param.flow_case_type == flow_solver_param.FlowCaseType::taylor_green_vortex || 
+                flow_solver_param.flow_case_type == flow_solver_param.FlowCaseType::decaying_homogeneous_isotropic_turbulence)) {
+      pcout << "Setting non_physical_behavior_type = NonPhysicalBehaviorEnum::abort_run... " << std::flush;
+      non_physical_behavior_type = NonPhysicalBehaviorEnum::abort_run;
+      pcout << "done." << std::endl;
     }
+
+    
 }
 
 } // Parameters namespace

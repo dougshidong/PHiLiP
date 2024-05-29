@@ -1,23 +1,22 @@
 #ifndef __MESHERRORESTIMATE_H__
 #define __MESHERRORESTIMATE_H__
 
-#include "parameters/all_parameters.h"
-#include "dg/dg.h"
-#include <deal.II/grid/grid_refinement.h>
-#include <deal.II/grid/tria.h>
-#include <deal.II/distributed/shared_tria.h>
-#include <deal.II/distributed/tria.h>
 #include <deal.II/distributed/grid_refinement.h>
-
-#include <vector>
-#include <iostream>
-
-#include <deal.II/lac/la_parallel_vector.h>
+#include <deal.II/distributed/shared_tria.h>
 #include <deal.II/distributed/solution_transfer.h>
-
+#include <deal.II/distributed/tria.h>
 #include <deal.II/fe/fe_q.h>
 #include <deal.II/fe/fe_values.h>
+#include <deal.II/grid/grid_refinement.h>
+#include <deal.II/grid/tria.h>
+#include <deal.II/lac/la_parallel_vector.h>
+
+#include <iostream>
+#include <vector>
+
+#include "dg/dg_base.hpp"
 #include "functional/functional.h"
+#include "parameters/all_parameters.h"
 #include "physics/physics.h"
 
 namespace PHiLiP {
@@ -38,10 +37,10 @@ public:
     virtual dealii::Vector<real> compute_cellwise_errors () = 0;
 
     /// Constructor
-    MeshErrorEstimateBase(std::shared_ptr< DGBase<dim, real, MeshType> > dg_input);
+    explicit MeshErrorEstimateBase(std::shared_ptr< DGBase<dim, real, MeshType> > dg_input);
 
     /// Virtual Destructor
-    virtual ~MeshErrorEstimateBase() = 0;
+    virtual ~MeshErrorEstimateBase() = default;
 
     /// Pointer to DGBase
     std::shared_ptr<DGBase<dim,real,MeshType>> dg;
@@ -62,10 +61,7 @@ public:
     dealii::Vector<real> compute_cellwise_errors () override;
 
     /// Constructor
-    ResidualErrorEstimate(std::shared_ptr<DGBase<dim,real,MeshType>> dg_input);
-
-    /// Destructor
-    ~ResidualErrorEstimate() {};
+    explicit ResidualErrorEstimate(std::shared_ptr<DGBase<dim,real,MeshType>> dg_input);
 
 };
 
@@ -105,12 +101,9 @@ public:
      *  Also stores the current solution and distribution of polynomial orders
      *  for the mesh for converting back to coarse state after refinement.
      */
-    DualWeightedResidualError(std::shared_ptr< DGBase<dim, real, MeshType> > dg_input);
+    explicit DualWeightedResidualError(std::shared_ptr< DGBase<dim, real, MeshType> > dg_input);
 
-    ///Destructor
-    ~DualWeightedResidualError() {};
-
-    /// Reinitializes member variables of DualWeightedResidualError. 
+    /// Reinitializes member variables of DualWeightedResidualError.
     /** Sets solution_refinement_state to SolutionRefinementStateEnum::coarse and stores the current
      *  solution and polynomial order distribution
      */

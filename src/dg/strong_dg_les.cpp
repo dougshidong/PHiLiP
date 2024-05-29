@@ -194,8 +194,8 @@ void DGStrongLES_ShearImproved<dim,nstate,real,MeshType>::update_cellwise_mean_q
     const unsigned int grid_degree = this->high_order_grid->fe_system.tensor_degree();
     const unsigned int poly_degree = this->max_degree;
     // Construct the basis functions and mapping shape functions.
-    OPERATOR::basis_functions<dim,2*dim> soln_basis(1, poly_degree, grid_degree); 
-    OPERATOR::mapping_shape_functions<dim,2*dim> mapping_basis(1, poly_degree, grid_degree);
+    OPERATOR::basis_functions<dim,2*dim,real> soln_basis(1, poly_degree, grid_degree); 
+    OPERATOR::mapping_shape_functions<dim,2*dim,real> mapping_basis(1, poly_degree, grid_degree);
     // Build basis function volume operator and gradient operator from 1D finite element for 1 state.
     soln_basis.build_1D_volume_operator(this->oneD_fe_collection_1state[poly_degree], quad_extra_1D);
     soln_basis.build_1D_gradient_operator(this->oneD_fe_collection_1state[poly_degree], quad_extra_1D);
@@ -246,7 +246,7 @@ void DGStrongLES_ShearImproved<dim,nstate,real,MeshType>::update_cellwise_mean_q
             mapping_support_points[istate][igrid_node] = val; 
         }
         // Construct the metric operators.
-        OPERATOR::metric_operators<double, dim, 2*dim> metric_oper(nstate, poly_degree, grid_degree, store_vol_flux_nodes, store_surf_flux_nodes);
+        OPERATOR::metric_operators<real, dim, 2*dim> metric_oper(nstate, poly_degree, grid_degree, store_vol_flux_nodes, store_surf_flux_nodes);
         // Build the metric terms to compute the gradient and volume node positions.
         // This functions will compute the determinant of the metric Jacobian and metric cofactor matrix. 
         // If flags store_vol_flux_nodes and store_surf_flux_nodes set as true it will also compute the physical quadrature positions.
@@ -354,10 +354,10 @@ void DGStrongLES_ShearImproved<dim,nstate,real,MeshType>::update_cellwise_mean_q
             // -- Constructor for tensor product polynomials based on Polynomials::Legendre interpolation. 
             dealii::FE_DGQLegendre<1,1> legendre_poly_1D(poly_degree);
             // -- Projection operator for legendre basis
-            OPERATOR::vol_projection_operator<dim,2*dim> legendre_soln_basis_projection_oper(1, poly_degree, grid_degree);
+            OPERATOR::vol_projection_operator<dim,2*dim,real> legendre_soln_basis_projection_oper(1, poly_degree, grid_degree);
             legendre_soln_basis_projection_oper.build_1D_volume_operator(legendre_poly_1D, quad_extra_1D);
             // -- Legendre basis functions 
-            OPERATOR::basis_functions<dim,2*dim> legendre_soln_basis(1, poly_degree, grid_degree);
+            OPERATOR::basis_functions<dim,2*dim,real> legendre_soln_basis(1, poly_degree, grid_degree);
             legendre_soln_basis.build_1D_volume_operator(legendre_poly_1D, quad_extra_1D);
             legendre_soln_basis.build_1D_gradient_operator(legendre_poly_1D, quad_extra_1D);
             for(int istate=0; istate<nstate; istate++){
@@ -526,8 +526,8 @@ void DGStrongLES_DynamicSmagorinsky<dim,nstate,real,MeshType>::update_cellwise_m
     const unsigned int grid_degree = this->high_order_grid->fe_system.tensor_degree();
     const unsigned int poly_degree = this->max_degree;
     // Construct the basis functions and mapping shape functions.
-    OPERATOR::basis_functions<dim,2*dim> soln_basis(1, poly_degree, grid_degree); 
-    OPERATOR::mapping_shape_functions<dim,2*dim> mapping_basis(1, poly_degree, grid_degree);
+    OPERATOR::basis_functions<dim,2*dim,real> soln_basis(1, poly_degree, grid_degree); 
+    OPERATOR::mapping_shape_functions<dim,2*dim,real> mapping_basis(1, poly_degree, grid_degree);
     // Build basis function volume operator and gradient operator from 1D finite element for 1 state.
     soln_basis.build_1D_volume_operator(this->oneD_fe_collection_1state[poly_degree], quad_extra_1D);
     soln_basis.build_1D_gradient_operator(this->oneD_fe_collection_1state[poly_degree], quad_extra_1D);
@@ -574,7 +574,7 @@ void DGStrongLES_DynamicSmagorinsky<dim,nstate,real,MeshType>::update_cellwise_m
             mapping_support_points[istate][igrid_node] = val; 
         }
         // Construct the metric operators.
-        OPERATOR::metric_operators<double, dim, 2*dim> metric_oper(nstate, poly_degree, grid_degree, store_vol_flux_nodes, store_surf_flux_nodes);
+        OPERATOR::metric_operators<real, dim, 2*dim> metric_oper(nstate, poly_degree, grid_degree, store_vol_flux_nodes, store_surf_flux_nodes);
         // Build the metric terms to compute the gradient and volume node positions.
         // This functions will compute the determinant of the metric Jacobian and metric cofactor matrix. 
         // If flags store_vol_flux_nodes and store_surf_flux_nodes set as true it will also compute the physical quadrature positions.
@@ -710,10 +710,10 @@ void DGStrongLES_DynamicSmagorinsky<dim,nstate,real,MeshType>::update_cellwise_m
             // -- Constructor for tensor product polynomials based on Polynomials::Legendre interpolation. 
             dealii::FE_DGQLegendre<1,1> legendre_poly_1D(poly_degree);
             // -- Projection operator for legendre basis
-            OPERATOR::vol_projection_operator<dim,2*dim> legendre_soln_basis_projection_oper(1, poly_degree, grid_degree);
+            OPERATOR::vol_projection_operator<dim,2*dim,real> legendre_soln_basis_projection_oper(1, poly_degree, grid_degree);
             legendre_soln_basis_projection_oper.build_1D_volume_operator(legendre_poly_1D, quad_extra_1D);
             // -- Legendre basis functions 
-            OPERATOR::basis_functions<dim,2*dim> legendre_soln_basis(1, poly_degree, grid_degree);
+            OPERATOR::basis_functions<dim,2*dim,real> legendre_soln_basis(1, poly_degree, grid_degree);
             legendre_soln_basis.build_1D_volume_operator(legendre_poly_1D, quad_extra_1D);
             legendre_soln_basis.build_1D_gradient_operator(legendre_poly_1D, quad_extra_1D);
             for(int istate=0; istate<nstate; istate++){

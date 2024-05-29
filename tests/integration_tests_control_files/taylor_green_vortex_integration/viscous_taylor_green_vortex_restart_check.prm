@@ -9,12 +9,10 @@ set pde_type = navier_stokes
 # DG formulation
 set use_weak_form = true
 # set flux_nodes_type = GLL
+set non_physical_behavior = abort_run
 
 set all_boundaries_are_periodic = true
 set check_same_coords_in_weak_dg = false
-
-# memory allocation
-set do_renumber_dofs = false
 
 # degree of freedom renumbering not necessary for explicit time advancement cases
 set do_renumber_dofs = false

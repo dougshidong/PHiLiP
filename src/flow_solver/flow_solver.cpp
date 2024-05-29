@@ -486,7 +486,7 @@ int FlowSolver<dim,nstate>::run() const
             // no restart:
             if(do_compute_unsteady_data_and_write_to_table){
                 pcout << "Writing unsteady data computed at initial time... " << std::endl;
-                flow_solver_case->compute_unsteady_data_and_write_to_table(ode_solver->current_iteration, ode_solver->current_time, dg, unsteady_data_table);
+                flow_solver_case->compute_unsteady_data_and_write_to_table(ode_solver, dg, unsteady_data_table);
                 pcout << "done." << std::endl;
             }
         }
@@ -526,7 +526,7 @@ int FlowSolver<dim,nstate>::run() const
 
             // Compute the unsteady quantities, write to the dealii table, and output to file
             if(do_compute_unsteady_data_and_write_to_table){
-                flow_solver_case->compute_unsteady_data_and_write_to_table(ode_solver->current_iteration, ode_solver->current_time, dg, unsteady_data_table);
+                flow_solver_case->compute_unsteady_data_and_write_to_table(ode_solver, dg, unsteady_data_table);
             }
             // update next time step
             if(flow_solver_param.adaptive_time_step == true) {
@@ -562,7 +562,7 @@ int FlowSolver<dim,nstate>::run() const
                 const bool is_output_iteration = (ode_solver->current_iteration % ode_param.output_solution_every_x_steps == 0);
                 if (is_output_iteration) {
                     pcout << "  ... Writing vtk solution file ..." << std::endl;
-                    const int file_number = ode_solver->current_iteration / ode_param.output_solution_every_x_steps;
+                    const unsigned int file_number = ode_solver->current_iteration / ode_param.output_solution_every_x_steps;
                     dg->output_results_vtk(file_number,ode_solver->current_time);
                 }
             } else if(ode_param.output_solution_every_dt_time_intervals > 0.0) {
@@ -571,7 +571,7 @@ int FlowSolver<dim,nstate>::run() const
                                             || (ode_solver->current_time > ode_solver->current_desired_time_for_output_solution_every_dt_time_intervals);
                 if (is_output_time) {
                     pcout << "  ... Writing vtk solution file ..." << std::endl;
-                    const int file_number = ode_solver->current_desired_time_for_output_solution_every_dt_time_intervals / ode_param.output_solution_every_dt_time_intervals;
+                    const unsigned int file_number = int(round(ode_solver->current_desired_time_for_output_solution_every_dt_time_intervals / ode_param.output_solution_every_dt_time_intervals));
                     dg->output_results_vtk(file_number,ode_solver->current_time);
                     ode_solver->current_desired_time_for_output_solution_every_dt_time_intervals += ode_param.output_solution_every_dt_time_intervals;
                 }
@@ -646,6 +646,7 @@ int FlowSolver<dim,nstate>::run() const
 
 #if PHILIP_DIM==1
 template class FlowSolver <PHILIP_DIM,PHILIP_DIM>;
+template class FlowSolver <PHILIP_DIM,PHILIP_DIM+2>;
 #endif
 
 #if PHILIP_DIM!=1

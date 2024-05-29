@@ -20,8 +20,6 @@ protected:
 public:
     /// Constructor
     InitialConditionFunction();
-    /// Destructor
-    ~InitialConditionFunction() {};
 
     /// Value of the initial condition
     virtual real value (const dealii::Point<dim,real> &point, const unsigned int istate = 0) const = 0;
@@ -42,7 +40,7 @@ public:
     /// Constructor.
     /** Evaluates the primary farfield solution and converts it into the store farfield_conservative solution
      */
-    FreeStreamInitialConditions (const Physics::Euler<dim,nstate,double> euler_physics)
+    explicit FreeStreamInitialConditions (const Physics::Euler<dim,nstate,double> euler_physics)
             : InitialConditionFunction<dim,nstate,real>()
     {
         //const double density_bc = 2.33333*euler_physics.density_inf;
@@ -118,9 +116,36 @@ protected:
     real x_velocity (const dealii::Point<dim,real> &point, const real density, const real temperature) const override;
 };
 
+/// Initial Condition Function: Euler Equations (primitive values)
+template <int dim, int nstate, typename real>
+class InitialConditionFunction_EulerBase : public InitialConditionFunction<dim, nstate, real>
+{
+protected:
+    using dealii::Function<dim, real>::value; ///< dealii::Function we are templating on
+
+public:
+    /// Constructor for test cases using Euler equations.
+    explicit InitialConditionFunction_EulerBase(
+        Parameters::AllParameters const* const param);
+
+    /// Value of initial condition expressed in terms of conservative variables
+    real value(const dealii::Point<dim, real>& point, const unsigned int istate = 0) const override;
+
+protected:
+    /// Value of initial condition expressed in terms of primitive variables
+    virtual real primitive_value(const dealii::Point<dim, real>& point, const unsigned int istate = 0) const = 0;
+
+    /// Converts value from: primitive to conservative
+    real convert_primitive_to_conversative_value(const dealii::Point<dim, real>& point, const unsigned int istate = 0) const;
+
+private:
+    // Euler physics pointer. Used to convert primitive to conservative.
+    std::shared_ptr < Physics::Euler<dim, nstate, double > > euler_physics;
+};
+
 /// Initial Condition Function: Taylor Green Vortex (uniform density)
 template <int dim, int nstate, typename real>
-class InitialConditionFunction_TaylorGreenVortex : public InitialConditionFunction<dim,nstate,real>
+class InitialConditionFunction_TaylorGreenVortex : public InitialConditionFunction_EulerBase<dim,nstate,real>
 {
 protected:
     using dealii::Function<dim,real>::value; ///< dealii::Function we are templating on
@@ -134,25 +159,16 @@ public:
      *             (2) de la Llave Plata et al. (2019). "On the performance of a high-order multiscale DG approach to LES at increasing Reynolds number."
      *  These initial conditions are given in nondimensional form (free-stream as reference)
      */
-    InitialConditionFunction_TaylorGreenVortex (
+    explicit InitialConditionFunction_TaylorGreenVortex (
             Parameters::AllParameters const *const param);
 
     const double gamma_gas; ///< Constant heat capacity ratio of fluid.
     const double mach_inf; ///< Farfield Mach number.
     const double mach_inf_sqr; ///< Farfield Mach number squared.
-        
-    /// Value of initial condition expressed in terms of conservative variables
-    real value (const dealii::Point<dim,real> &point, const unsigned int istate = 0) const override;
 
 protected:
     /// Value of initial condition expressed in terms of primitive variables
     real primitive_value(const dealii::Point<dim,real> &point, const unsigned int istate = 0) const;
-    
-    /// Converts value from: primitive to conservative
-    real convert_primitive_to_conversative_value(const dealii::Point<dim,real> &point, const unsigned int istate = 0) const;
-
-    // Euler physics pointer. Used to convert primitive to conservative.
-    std::shared_ptr < Physics::Euler<dim, nstate, double > > euler_physics;
 
     /// Value of initial condition for density
     virtual real density(const dealii::Point<dim,real> &point) const;
@@ -174,7 +190,7 @@ public:
      *                (2) Brian Vermeire 2014 Thesis  
      *  These initial conditions are given in nondimensional form (free-stream as reference)
      */
-    InitialConditionFunction_TaylorGreenVortex_Isothermal (
+    explicit InitialConditionFunction_TaylorGreenVortex_Isothermal (
             Parameters::AllParameters const *const param);
 
 protected:
@@ -347,7 +363,7 @@ public:
      *  Non-dimensional initialization, i.e. directly using Table 1
      *  Increased domain from L=5 -> L=10 per recommendation of Spiegel et al
      */
-    InitialConditionFunction_IsentropicVortex (
+    explicit InitialConditionFunction_IsentropicVortex (
             Parameters::AllParameters const *const param);
 
     /// Value of initial condition
@@ -376,7 +392,7 @@ protected:
     
 public:
     /// Constructor
-    InitialConditionFunction_KHI(
+    explicit InitialConditionFunction_KHI(
             Parameters::AllParameters const *const param);
 
     /// Value of initial condition
@@ -390,6 +406,82 @@ protected:
     // Euler physics pointer. Used to convert primitive to conservative.
     std::shared_ptr < Physics::Euler<dim, nstate, double > > euler_physics;
 
+};
+
+/// Initial Condition Function: 1D Sod Shock Tube
+/** See Chen & Shu, Entropy stable high order discontinuous 
+*   Galerkin methods with suitable quadrature rules for hyperbolic 
+*   conservation laws., 2017, Pg. 25
+*/
+template <int dim, int nstate, typename real>
+class InitialConditionFunction_SodShockTube: public InitialConditionFunction_EulerBase<dim,nstate,real>
+{
+protected:
+    /// Value of initial condition expressed in terms of primitive variables
+    real primitive_value(const dealii::Point<dim, real>& point, const unsigned int istate = 0) const override;
+
+public:
+    /// Constructor for InitialConditionFunction_SodShockTube
+    /** Calls the Function(const unsigned int n_components) constructor in deal.II*/
+    explicit InitialConditionFunction_SodShockTube (
+            Parameters::AllParameters const* const param);
+};
+
+/// Initial Condition Function: 2D Low Density Euler
+/** See Zhang & Shu, On positivity-preserving high order 
+*   discontinuous Galerkin schemes for compressible Euler 
+*   equations on rectangular meshes, 2010 Pg. 10
+*/
+template <int dim, int nstate, typename real>
+class InitialConditionFunction_LowDensity2D: public InitialConditionFunction_EulerBase<dim,nstate,real>
+{
+protected:
+    /// Value of initial condition expressed in terms of primitive variables
+    real primitive_value(const dealii::Point<dim, real>& point, const unsigned int istate = 0) const override;
+
+public:
+    /// Constructor for InitialConditionFunction_SodShockTube
+    /** Calls the Function(const unsigned int n_components) constructor in deal.II*/
+    explicit InitialConditionFunction_LowDensity2D(
+        Parameters::AllParameters const* const param);
+};
+
+/// Initial Condition Function: 1D Leblanc Shock Tube
+/** See Zhang & Shu, On positivity-preserving high order
+*   discontinuous Galerkin schemes for compressible Euler
+*   equations on rectangular meshes, 2010 Pg. 14
+*/
+template <int dim, int nstate, typename real>
+class InitialConditionFunction_LeblancShockTube : public InitialConditionFunction_EulerBase<dim, nstate, real>
+{
+protected:
+    /// Value of initial condition expressed in terms of primitive variables
+    real primitive_value(const dealii::Point<dim, real>& point, const unsigned int istate = 0) const override;
+
+public:
+    /// Constructor for InitialConditionFunction_SodShockTube
+    /** Calls the Function(const unsigned int n_components) constructor in deal.II*/
+    explicit InitialConditionFunction_LeblancShockTube(
+        Parameters::AllParameters const* const param);
+};
+
+/// Initial Condition Function: 1D Shu Osher Problem
+/** See Johnsen et al., Assessment of high-resolution methods 
+*   for numerical simulations of compressible turbulence with 
+*   shock waves, 2010 Pg. 7
+*/
+template <int dim, int nstate, typename real>
+class InitialConditionFunction_ShuOsherProblem : public InitialConditionFunction_EulerBase<dim, nstate, real>
+{
+protected:
+    /// Value of initial condition expressed in terms of primitive variables
+    real primitive_value(const dealii::Point<dim, real>& point, const unsigned int istate = 0) const override;
+
+public:
+    /// Constructor for InitialConditionFunction_SodShockTube
+    /** Calls the Function(const unsigned int n_components) constructor in deal.II*/
+    explicit InitialConditionFunction_ShuOsherProblem(
+        Parameters::AllParameters const* const param);
 };
 
 /// Initial condition 0.

@@ -44,11 +44,13 @@ ChannelFlow<dim, nstate>::ChannelFlow(const PHiLiP::Parameters::AllParameters *c
 
 template <int dim, int nstate>
 void ChannelFlow<dim, nstate>::compute_unsteady_data_and_write_to_table(
-        const unsigned int current_iteration,
-        const double current_time,
+        const std::shared_ptr <ODE::ODESolverBase<dim, double>> ode_solver,
         const std::shared_ptr <DGBase<dim, double>> dg,
         const std::shared_ptr <dealii::TableHandler> unsteady_data_table)
 {
+    // unpack current iteration and current time from ode solver
+    const unsigned int current_iteration = ode_solver->current_iteration;
+    const double current_time = ode_solver->current_time;
     // Update maximum local wave speed for adaptive time_step
     this->update_maximum_local_wave_speed(*dg);
     // get averaged wall shear stress

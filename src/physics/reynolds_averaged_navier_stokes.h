@@ -17,6 +17,7 @@ public:
     using two_point_num_flux_enum = Parameters::AllParameters::TwoPointNumericalFlux;
     /// Constructor
 	ReynoldsAveragedNavierStokesBase(
+        const Parameters::AllParameters *const                    parameters_input,
 	    const double                                              ref_length,
         const double                                              gamma_gas,
         const double                                              mach_inf,
@@ -32,9 +33,6 @@ public:
         const thermal_boundary_condition_enum                     thermal_boundary_condition_type = thermal_boundary_condition_enum::adiabatic,
         std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function = nullptr,
         const two_point_num_flux_enum                             two_point_num_flux_type = two_point_num_flux_enum::KG);
-
-    /// Destructor
-    ~ReynoldsAveragedNavierStokesBase() {};
 
     /// Number of PDEs for RANS equations
     static const int nstate_navier_stokes = dim+2;

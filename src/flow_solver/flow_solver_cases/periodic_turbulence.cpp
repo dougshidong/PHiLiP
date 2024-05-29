@@ -118,27 +118,6 @@ double PeriodicTurbulence<dim,nstate>::get_constant_time_step(std::shared_ptr<DG
     }
 }
 
-template <int dim, int nstate>
-double PeriodicTurbulence<dim,nstate>::get_adaptive_time_step(std::shared_ptr<DGBase<dim,double>> dg) const
-{
-    // compute time step based on advection speed (i.e. maximum local wave speed)
-    const unsigned int number_of_degrees_of_freedom_per_state = dg->dof_handler.n_dofs()/nstate;
-    const double approximate_grid_spacing = (this->domain_right-this->domain_left)/pow(number_of_degrees_of_freedom_per_state,(1.0/dim));
-    const double cfl_number = this->all_param.flow_solver_param.courant_friedrichs_lewy_number;
-    const double time_step = cfl_number * approximate_grid_spacing / this->maximum_local_wave_speed;
-    return time_step;
-}
-
-template <int dim, int nstate>
-double PeriodicTurbulence<dim,nstate>::get_adaptive_time_step_initial(std::shared_ptr<DGBase<dim,double>> dg)
-{
-    // initialize the maximum local wave speed
-    update_maximum_local_wave_speed(*dg);
-    // compute time step based on advection speed (i.e. maximum local wave speed)
-    const double time_step = get_adaptive_time_step(dg);
-    return time_step;
-}
-
 std::string get_padded_mpi_rank_string(const int mpi_rank_input) {
     // returns the mpi rank as a string with appropriate padding
     std::string mpi_rank_string = std::to_string(mpi_rank_input);
@@ -202,12 +181,12 @@ void PeriodicTurbulence<dim, nstate>::output_velocity_field(
     dealii::FE_DGQArbitraryNodes<1,1> equidistant_finite_element(vol_quad_equidistant_1D);
 
     const unsigned int init_grid_degree = dg->high_order_grid->fe_system.tensor_degree();
-    OPERATOR::basis_functions<dim,2*dim> soln_basis(1, dg->max_degree, init_grid_degree); 
+    OPERATOR::basis_functions<dim,2*dim,double> soln_basis(1, dg->max_degree, init_grid_degree); 
     soln_basis.build_1D_volume_operator(dg->oneD_fe_collection_1state[dg->max_degree], vol_quad_equidistant_1D);
     soln_basis.build_1D_gradient_operator(dg->oneD_fe_collection_1state[dg->max_degree], vol_quad_equidistant_1D);
 
     // mapping basis for the equidistant node set because we output the physical coordinates
-    OPERATOR::mapping_shape_functions<dim,2*dim> mapping_basis_at_equidistant(1, dg->max_degree, init_grid_degree);
+    OPERATOR::mapping_shape_functions<dim,2*dim,double> mapping_basis_at_equidistant(1, dg->max_degree, init_grid_degree);
     mapping_basis_at_equidistant.build_1D_shape_functions_at_grid_nodes(dg->high_order_grid->oneD_fe_system, dg->high_order_grid->oneD_grid_nodes);
     mapping_basis_at_equidistant.build_1D_shape_functions_at_flux_nodes(dg->high_order_grid->oneD_fe_system, vol_quad_equidistant_1D, dg->oneD_face_quadrature);
 
@@ -343,6 +322,17 @@ void PeriodicTurbulence<dim, nstate>::output_velocity_field(
     this->pcout << "done." << std::endl;
 }
 
+template <int dim, int nstate>
+double PeriodicTurbulence<dim,nstate>::get_adaptive_time_step(std::shared_ptr<DGBase<dim,double>> dg) const
+{
+    // compute time step based on advection speed (i.e. maximum local wave speed)
+    const unsigned int number_of_degrees_of_freedom_per_state = dg->dof_handler.n_dofs()/nstate;
+    const double approximate_grid_spacing = (this->domain_right-this->domain_left)/pow(number_of_degrees_of_freedom_per_state,(1.0/dim));
+    const double cfl_number = this->all_param.flow_solver_param.courant_friedrichs_lewy_number;
+    const double time_step = cfl_number * approximate_grid_spacing / this->maximum_local_wave_speed;
+    return time_step;
+}
+
 template<int dim, int nstate>
 void PeriodicTurbulence<dim, nstate>::update_maximum_local_wave_speed(DGBase<dim, double> &dg)
 {
@@ -357,7 +347,7 @@ void PeriodicTurbulence<dim, nstate>::update_maximum_local_wave_speed(DGBase<dim
     dealii::QGauss<dim> quad_extra(dg.max_degree+1+overintegrate);
     const unsigned int n_quad_pts = quad_extra.size();
     dealii::QGauss<1> quad_extra_1D(dg.max_degree+1+overintegrate);
-    OPERATOR::basis_functions<dim,2*dim> soln_basis(1, poly_degree, grid_degree); 
+    OPERATOR::basis_functions<dim,2*dim,double> soln_basis(1, poly_degree, grid_degree); 
     soln_basis.build_1D_volume_operator(dg.oneD_fe_collection_1state[poly_degree], quad_extra_1D);
 
     const unsigned int n_dofs = dg.fe_collection[poly_degree].n_dofs_per_cell();
@@ -420,8 +410,8 @@ void PeriodicTurbulence<dim, nstate>::compute_and_update_integrated_quantities(D
     const unsigned int grid_degree = dg.high_order_grid->fe_system.tensor_degree();
     const unsigned int poly_degree = dg.max_degree;
     // Construct the basis functions and mapping shape functions.
-    OPERATOR::basis_functions<dim,2*dim> soln_basis(1, poly_degree, grid_degree); 
-    OPERATOR::mapping_shape_functions<dim,2*dim> mapping_basis(1, poly_degree, grid_degree);
+    OPERATOR::basis_functions<dim,2*dim,double> soln_basis(1, poly_degree, grid_degree); 
+    OPERATOR::mapping_shape_functions<dim,2*dim,double> mapping_basis(1, poly_degree, grid_degree);
     // Build basis function volume operator and gradient operator from 1D finite element for 1 state.
     soln_basis.build_1D_volume_operator(dg.oneD_fe_collection_1state[poly_degree], quad_extra_1D);
     soln_basis.build_1D_gradient_operator(dg.oneD_fe_collection_1state[poly_degree], quad_extra_1D);
@@ -625,7 +615,13 @@ double PeriodicTurbulence<dim, nstate>::get_strain_rate_tensor_based_dissipation
 }
 
 template<int dim, int nstate>
-double PeriodicTurbulence<dim, nstate>::get_numerical_entropy(
+double PeriodicTurbulence<dim, nstate>::get_numerical_entropy(const std::shared_ptr <DGBase<dim, double>> /*dg*/) const
+{
+    return this->cumulative_numerical_entropy_change_FRcorrected;
+}
+
+template<int dim, int nstate>
+double PeriodicTurbulence<dim, nstate>::compute_current_integrated_numerical_entropy(
         const std::shared_ptr <DGBase<dim, double>> dg
         ) const
 {
@@ -635,14 +631,14 @@ double PeriodicTurbulence<dim, nstate>::get_numerical_entropy(
     const unsigned int n_quad_pts = dg->volume_quadrature_collection[poly_degree].size();
     const unsigned int n_shape_fns = n_dofs_cell / nstate;
 
-    OPERATOR::vol_projection_operator<dim,2*dim> vol_projection(1, poly_degree, dg->max_grid_degree);
+    OPERATOR::vol_projection_operator<dim,2*dim,double> vol_projection(1, poly_degree, dg->max_grid_degree);
     vol_projection.build_1D_volume_operator(dg->oneD_fe_collection_1state[poly_degree], dg->oneD_quadrature_collection[poly_degree]);
 
     // Construct the basis functions and mapping shape functions.
-    OPERATOR::basis_functions<dim,2*dim> soln_basis(1, poly_degree, dg->max_grid_degree); 
+    OPERATOR::basis_functions<dim,2*dim,double> soln_basis(1, poly_degree, dg->max_grid_degree); 
     soln_basis.build_1D_volume_operator(dg->oneD_fe_collection_1state[poly_degree], dg->oneD_quadrature_collection[poly_degree]);
 
-    OPERATOR::mapping_shape_functions<dim,2*dim> mapping_basis(1, poly_degree, dg->max_grid_degree);
+    OPERATOR::mapping_shape_functions<dim,2*dim,double> mapping_basis(1, poly_degree, dg->max_grid_degree);
     mapping_basis.build_1D_shape_functions_at_grid_nodes(dg->high_order_grid->oneD_fe_system, dg->high_order_grid->oneD_grid_nodes);
     mapping_basis.build_1D_shape_functions_at_flux_nodes(dg->high_order_grid->oneD_fe_system, dg->oneD_quadrature_collection[poly_degree], dg->oneD_face_quadrature);
 
@@ -717,7 +713,7 @@ double PeriodicTurbulence<dim, nstate>::get_numerical_entropy(
         for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
 
             std::array<double,nstate> soln_state;
-            // Extract solution and gradient in a way that the physics ca n use them.
+            // Extract solution in a way that the physics ca n use them.
             for(int istate=0; istate<nstate; istate++){
                 soln_state[istate] = soln_at_q[istate][iquad];
             }
@@ -726,16 +722,42 @@ double PeriodicTurbulence<dim, nstate>::get_numerical_entropy(
         }
     }
     // update integrated quantities and return
-    return dealii::Utilities::MPI::sum(integral_numerical_entropy_function, this->mpi_communicator);
+    const double mpi_integrated_numerical_entropy = dealii::Utilities::MPI::sum(integral_numerical_entropy_function, this->mpi_communicator);
+
+    return mpi_integrated_numerical_entropy;
+}
+
+
+template <int dim, int nstate>
+void PeriodicTurbulence<dim, nstate>::update_numerical_entropy(
+        const double FR_entropy_contribution_RRK_solver,
+        const unsigned int current_iteration,
+        const std::shared_ptr <DGBase<dim, double>> dg)
+{
+
+    const double current_numerical_entropy = this->compute_current_integrated_numerical_entropy(dg);
+
+    if (current_iteration==0) {
+        this->previous_numerical_entropy = current_numerical_entropy;
+        this->initial_numerical_entropy_abs = abs(current_numerical_entropy);
+    }
+
+    const double current_numerical_entropy_change_FRcorrected = (current_numerical_entropy - this->previous_numerical_entropy + FR_entropy_contribution_RRK_solver)/this->initial_numerical_entropy_abs;
+    this->previous_numerical_entropy = current_numerical_entropy;
+    this->cumulative_numerical_entropy_change_FRcorrected+=current_numerical_entropy_change_FRcorrected;
+
 }
 
 template <int dim, int nstate>
 void PeriodicTurbulence<dim, nstate>::compute_unsteady_data_and_write_to_table(
-        const unsigned int current_iteration,
-        const double current_time,
+        const std::shared_ptr <ODE::ODESolverBase<dim, double>> ode_solver,
         const std::shared_ptr <DGBase<dim, double>> dg,
         const std::shared_ptr <dealii::TableHandler> unsteady_data_table)
 {
+    // unpack current iteration and current time from ode solver
+    const unsigned int current_iteration = ode_solver->current_iteration;
+    const double current_time = ode_solver->current_time;
+
     // Compute and update integrated quantities
     this->compute_and_update_integrated_quantities(*dg);
     // Get computed quantities
@@ -746,13 +768,19 @@ void PeriodicTurbulence<dim, nstate>::compute_unsteady_data_and_write_to_table(
     const double deviatoric_strain_rate_tensor_based_dissipation_rate = this->get_deviatoric_strain_rate_tensor_based_dissipation_rate();
     const double strain_rate_tensor_based_dissipation_rate = this->get_strain_rate_tensor_based_dissipation_rate();
     
-    double numerical_entropy = 0;
-    if (do_calculate_numerical_entropy) numerical_entropy = this->get_numerical_entropy(dg);
+    using ODEEnum = Parameters::ODESolverParam::ODESolverEnum;
+    const bool is_rrk = (this->all_param.ode_solver_param.ode_solver_type == ODEEnum::rrk_explicit_solver);
+    const double relaxation_parameter = ode_solver->relaxation_parameter_RRK_solver;
+
+    if (do_calculate_numerical_entropy){
+        this->update_numerical_entropy(ode_solver->FR_entropy_contribution_RRK_solver,current_iteration, dg);
+    }
 
     if(this->mpi_rank==0) {
         // Add values to data table
         this->add_value_to_data_table(current_time,"time",unsteady_data_table);
-        if(do_calculate_numerical_entropy) this->add_value_to_data_table(numerical_entropy,"numerical_entropy",unsteady_data_table);
+        if(do_calculate_numerical_entropy) this->add_value_to_data_table(this->cumulative_numerical_entropy_change_FRcorrected,"numerical_entropy_scaled_cumulative",unsteady_data_table);
+        if(is_rrk) this->add_value_to_data_table(relaxation_parameter, "relaxation_parameter",unsteady_data_table);
         this->add_value_to_data_table(integrated_kinetic_energy,"kinetic_energy",unsteady_data_table);
         this->add_value_to_data_table(integrated_enstrophy,"enstrophy",unsteady_data_table);
         if(is_viscous_flow) this->add_value_to_data_table(vorticity_based_dissipation_rate,"eps_vorticity",unsteady_data_table);
@@ -773,7 +801,10 @@ void PeriodicTurbulence<dim, nstate>::compute_unsteady_data_and_write_to_table(
                     << "    eps_p+eps_strain: " << (pressure_dilatation_based_dissipation_rate + strain_rate_tensor_based_dissipation_rate);
     }
     if(do_calculate_numerical_entropy){
-        this->pcout << "    Num. Entropy: " << std::setprecision(16) << numerical_entropy;
+        this->pcout << "    Num. Entropy cumulative, FR corrected: " << std::setprecision(16) << this->cumulative_numerical_entropy_change_FRcorrected; 
+    }
+    if(is_rrk){
+        this->pcout << "    Relaxation Parameter: " << std::setprecision(16) << relaxation_parameter;
     }
     this->pcout << std::endl;
 

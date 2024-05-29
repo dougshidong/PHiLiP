@@ -17,6 +17,7 @@ public:
     using two_point_num_flux_enum = Parameters::AllParameters::TwoPointNumericalFlux;
     /// Constructor
 	LargeEddySimulationBase(
+        const Parameters::AllParameters *const                    parameters_input,
 	    const double                                              ref_length,
         const double                                              gamma_gas,
         const double                                              mach_inf,
@@ -33,9 +34,6 @@ public:
         const thermal_boundary_condition_enum                     thermal_boundary_condition_type = thermal_boundary_condition_enum::adiabatic,
         std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function = nullptr,
         const two_point_num_flux_enum                             two_point_num_flux_type = two_point_num_flux_enum::KG);
-
-    /// Destructor
-    ~LargeEddySimulationBase() {};
 
     /// Turbulent Prandtl number
     const double turbulent_prandtl_number;
@@ -198,6 +196,7 @@ public:
      *  Reference: de la Llave Plata et al. (2019). "On the performance of a high-order multiscale DG approach to LES at increasing Reynolds number."
      */
     LargeEddySimulation_Smagorinsky(
+        const Parameters::AllParameters *const                    parameters_input,
         const double                                              ref_length,
         const double                                              gamma_gas,
         const double                                              mach_inf,
@@ -329,6 +328,7 @@ public:
      *  Reference 2: Nicoud & Ducros (1999) "Subgrid-scale stress modelling based on the square of the velocity gradient tensor"
      */
     LargeEddySimulation_WALE(
+        const Parameters::AllParameters *const                    parameters_input,
         const double                                              ref_length,
         const double                                              gamma_gas,
         const double                                              mach_inf,
@@ -348,10 +348,7 @@ public:
         const two_point_num_flux_enum                             two_point_num_flux_type = two_point_num_flux_enum::KG,
         const bool                                                apply_low_reynolds_number_eddy_viscosity_correction = false);
 
-    /// Destructor
-    ~LargeEddySimulation_WALE() {};
-
-    /** Nondimensionalized eddy viscosity for the WALE model. 
+    /** Nondimensionalized eddy viscosity for the WALE model.
      *  Reference: Nicoud & Ducros (1999) "Subgrid-scale stress modelling based on the square of the velocity gradient tensor"
      */
     real compute_eddy_viscosity(
@@ -388,6 +385,7 @@ public:
      *  Reference: Vreman, A. W. (2004) "An eddy-viscosity subgrid-scale model for turbulent shear flow: Algebraic theory and applications."
      */
     LargeEddySimulation_Vreman(
+        const Parameters::AllParameters *const                    parameters_input,
         const double                                              ref_length,
         const double                                              gamma_gas,
         const double                                              mach_inf,
@@ -407,10 +405,7 @@ public:
         const two_point_num_flux_enum                             two_point_num_flux_type = two_point_num_flux_enum::KG,
         const bool                                                apply_low_reynolds_number_eddy_viscosity_correction = false);
 
-    /// Destructor
-    ~LargeEddySimulation_Vreman() {};
-
-    /** Nondimensionalized eddy viscosity for the Vreman model. 
+    /** Nondimensionalized eddy viscosity for the Vreman model.
      *  Reference: Vreman, A. W. (2004) "An eddy-viscosity subgrid-scale model for turbulent shear flow: Algebraic theory and applications."
      */
     real compute_eddy_viscosity(
@@ -448,6 +443,7 @@ public:
      *  Reference 2: E. Leveque, F. Toschi, L. Shao and J.-P. Bertoglio (2007, J. Fluid Mech.) "Shear-improved Smagorinsky model for large-eddy simulation of wall-bounded turbulent flows"
      */
     LargeEddySimulation_ShearImprovedSmagorinsky(
+        const Parameters::AllParameters *const                    parameters_input,
         const double                                              ref_length,
         const double                                              gamma_gas,
         const double                                              mach_inf,
@@ -511,6 +507,7 @@ public:
      *  Reference: J.-B. Chapelier, M. de la Llave Plata, E. Lamballais (2016) "Development of a multiscale LES model in the context of a modal discontinuous Galerkin method"
      */
     LargeEddySimulation_VMS(
+        const Parameters::AllParameters *const                    parameters_input,
         const double                                              ref_length,
         const double                                              gamma_gas,
         const double                                              mach_inf,
@@ -559,6 +556,7 @@ public:
      *  Reference: J.-B. Chapelier, M. de la Llave Plata, E. Lamballais (2016) "Development of a multiscale LES model in the context of a modal discontinuous Galerkin method"
      */
     LargeEddySimulation_SmallSmallVMS(
+        const Parameters::AllParameters *const                    parameters_input,
         const double                                              ref_length,
         const double                                              gamma_gas,
         const double                                              mach_inf,
@@ -596,6 +594,7 @@ public:
      *  Reference: J.-B. Chapelier, M. de la Llave Plata, E. Lamballais (2016) "Development of a multiscale LES model in the context of a modal discontinuous Galerkin method"
      */
     LargeEddySimulation_AllAllVMS(
+        const Parameters::AllParameters *const                    parameters_input,
         const double                                              ref_length,
         const double                                              gamma_gas,
         const double                                              mach_inf,
@@ -633,6 +632,7 @@ public:
      *  Reference: Flad and Gassner 2017
      */
     LargeEddySimulation_DynamicSmagorinsky(
+        const Parameters::AllParameters *const                    parameters_input,
         const double                                              ref_length,
         const double                                              gamma_gas,
         const double                                              mach_inf,

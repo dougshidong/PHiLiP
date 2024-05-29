@@ -25,6 +25,7 @@
 #include "physics/euler.h"
 #include "physics/manufactured_solution.h"
 #include "dg/dg_factory.hpp"
+#include "dg/dg_base_state.hpp"
 #include "ode_solver/ode_solver_factory.h"
 
 #include "functional/functional.h"
@@ -358,30 +359,30 @@ int DiffusionExactAdjoint<dim,nstate>::run_test() const
 
     // creating the physics objects
     std::shared_ptr< Physics::PhysicsBase<dim, nstate, double> > physics_u_double 
-          = std::make_shared< diffusion_u<dim, nstate, double> >(convection, diffusion);
+          = std::make_shared< diffusion_u<dim, nstate, double> >(&param, convection, diffusion);
     std::shared_ptr< Physics::PhysicsBase<dim, nstate, double> > physics_v_double  
-          = std::make_shared< diffusion_v<dim, nstate, double> >(convection, diffusion);
+          = std::make_shared< diffusion_v<dim, nstate, double> >(&param, convection, diffusion);
 
     // for adjoint, also need the AD'd physics
     std::shared_ptr< Physics::PhysicsBase<dim, nstate, FadType> > physics_u_fadtype 
-          = std::make_shared< diffusion_u<dim, nstate, FadType> >(convection, diffusion);
+          = std::make_shared< diffusion_u<dim, nstate, FadType> >(&param, convection, diffusion);
     std::shared_ptr< Physics::PhysicsBase<dim, nstate, FadType> > physics_v_fadtype 
-          = std::make_shared< diffusion_v<dim, nstate, FadType> >(convection, diffusion);
+          = std::make_shared< diffusion_v<dim, nstate, FadType> >(&param, convection, diffusion);
 
     std::shared_ptr< Physics::PhysicsBase<dim, nstate, RadType> > physics_u_radtype 
-          = std::make_shared< diffusion_u<dim, nstate, RadType> >(convection, diffusion);
+          = std::make_shared< diffusion_u<dim, nstate, RadType> >(&param, convection, diffusion);
     std::shared_ptr< Physics::PhysicsBase<dim, nstate, RadType> > physics_v_radtype 
-          = std::make_shared< diffusion_v<dim, nstate, RadType> >(convection, diffusion);
+          = std::make_shared< diffusion_v<dim, nstate, RadType> >(&param, convection, diffusion);
 
     std::shared_ptr< Physics::PhysicsBase<dim, nstate, FadFadType> > physics_u_fadfadtype 
-          = std::make_shared< diffusion_u<dim, nstate, FadFadType> >(convection, diffusion);
+          = std::make_shared< diffusion_u<dim, nstate, FadFadType> >(&param, convection, diffusion);
     std::shared_ptr< Physics::PhysicsBase<dim, nstate, FadFadType> > physics_v_fadfadtype 
-          = std::make_shared< diffusion_v<dim, nstate, FadFadType> >(convection, diffusion);
+          = std::make_shared< diffusion_v<dim, nstate, FadFadType> >(&param, convection, diffusion);
 
     std::shared_ptr< Physics::PhysicsBase<dim, nstate, RadFadType> > physics_u_radfadtype 
-          = std::make_shared< diffusion_u<dim, nstate, RadFadType> >(convection, diffusion);
+          = std::make_shared< diffusion_u<dim, nstate, RadFadType> >(&param, convection, diffusion);
     std::shared_ptr< Physics::PhysicsBase<dim, nstate, RadFadType> > physics_v_radfadtype 
-          = std::make_shared< diffusion_v<dim, nstate, RadFadType> >(convection, diffusion);
+          = std::make_shared< diffusion_v<dim, nstate, RadFadType> >(&param, convection, diffusion);
 
     // exact value to be used in checks below
     const double pi = std::acos(-1);

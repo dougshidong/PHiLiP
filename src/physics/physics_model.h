@@ -33,9 +33,6 @@ public:
         const bool                                                   has_nonzero_diffusion,
         const bool                                                   has_nonzero_physical_source);
 
-    /// Destructor
-    ~PhysicsModel() {};
-
     /// Number of model equations (i.e. those additional to the baseline physics)
     const int n_model_equations;
 

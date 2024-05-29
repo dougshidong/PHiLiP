@@ -1,4 +1,3 @@
-
 set(TESTS_SOURCE
     tests.cpp
     grid_study.cpp
@@ -31,10 +30,12 @@ set(TESTS_SOURCE
     time_refinement_study.cpp
     time_refinement_study_reference.cpp
     h_refinement_study_isentropic_vortex.cpp
-    burgers_energy_conservation_rrk.cpp
+    rrk_numerical_entropy_conservation_check.cpp
     euler_entropy_conserving_split_forms_check.cpp
     homogeneous_isotropic_turbulence_initialization_check.cpp
     khi_robustness.cpp
+    bound_preserving_limiter_tests.cpp
+    naca0012_unsteady_check_quick.cpp
     )
 
 foreach(dim RANGE 1 3)

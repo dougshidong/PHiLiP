@@ -13,6 +13,7 @@ namespace Physics {
 
 template <int dim, int nstate, typename real>
 NavierStokes<dim, nstate, real>::NavierStokes( 
+    const Parameters::AllParameters *const                    parameters_input,
     const double                                              ref_length,
     const double                                              gamma_gas,
     const double                                              mach_inf,
@@ -27,7 +28,8 @@ NavierStokes<dim, nstate, real>::NavierStokes(
     const thermal_boundary_condition_enum                     thermal_boundary_condition_type,
     std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function,
     const two_point_num_flux_enum                             two_point_num_flux_type)
-    : Euler<dim,nstate,real>(ref_length, 
+    : Euler<dim,nstate,real>(parameters_input,
+                             ref_length, 
                              gamma_gas, 
                              mach_inf, 
                              angle_of_attack, 

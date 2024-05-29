@@ -23,7 +23,7 @@ PhysicsModel<dim,nstate,real,nstate_baseline_physics>::PhysicsModel(
     std::shared_ptr< ManufacturedSolutionFunction<dim,real> >    manufactured_solution_function,
     const bool                                                   has_nonzero_diffusion,
     const bool                                                   has_nonzero_physical_source)
-    : PhysicsBase<dim,nstate,real>(has_nonzero_diffusion, has_nonzero_physical_source, manufactured_solution_function)
+    : PhysicsBase<dim,nstate,real>(parameters_input, has_nonzero_diffusion, has_nonzero_physical_source, manufactured_solution_function)
     , n_model_equations(nstate-nstate_baseline_physics)
     , physics_baseline(PhysicsFactory<dim,nstate_baseline_physics,real>::create_Physics(parameters_input, baseline_physics_type))
     , model(model_input)

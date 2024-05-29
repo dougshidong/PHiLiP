@@ -38,24 +38,23 @@
 
 // Finally, we take our exact solution from the library as well as volume_quadrature
 // and additional tools.
+#include <deal.II/dofs/dof_handler.h>
+#include <deal.II/fe/fe_dgq.h>
+#include <deal.II/fe/fe_system.h>
+#include <deal.II/fe/mapping_fe_field.h>
+#include <deal.II/fe/mapping_q.h>
+#include <deal.II/fe/mapping_q_generic.h>
+#include <deal.II/grid/manifold_lib.h>
 #include <deal.II/numerics/data_out.h>
 #include <deal.II/numerics/data_out_dof_data.h>
 #include <deal.II/numerics/vector_tools.h>
 #include <deal.II/numerics/vector_tools.templates.h>
 
-#include <deal.II/grid/manifold_lib.h>
-#include <deal.II/fe/mapping_q.h>
-#include <deal.II/fe/mapping_q_generic.h>
-#include <deal.II/fe/fe_dgq.h>
-#include <deal.II/fe/fe_system.h>
-#include <deal.II/dofs/dof_handler.h>
-#include <deal.II/fe/mapping_fe_field.h> 
-
+#include "dg/dg_base.hpp"
+#include "dg/dg_factory.hpp"
+#include "operators/operators.h"
 #include "parameters/all_parameters.h"
 #include "parameters/parameters.h"
-#include "operators/operators.h"
-#include "dg/dg.h"
-#include "dg/dg_factory.hpp"
 
 const double TOLERANCE = 1E-6;
 using namespace std;
@@ -113,7 +112,7 @@ int main (int argc, char * argv[])
         const unsigned int n_dofs_1D = nstate * (poly_degree+1);
 
         // build stiffness 1D
-        PHiLiP::OPERATOR::local_basis_stiffness<dim,2*dim> stiffness(nstate, poly_degree, 1);
+        PHiLiP::OPERATOR::local_basis_stiffness<dim,2*dim,real> stiffness(nstate, poly_degree, 1);
         dealii::QGauss<1> quad1D (poly_degree+1);
         const dealii::FE_DGQ<1> fe_dg(poly_degree);
         const dealii::FESystem<1,1> fe_system(fe_dg, nstate);
@@ -127,9 +126,9 @@ int main (int argc, char * argv[])
         // compute surface integral
         dealii::FullMatrix<real> face_int_parts(n_dofs_1D);
         dealii::QGauss<0> face_quad1D (poly_degree+1);
-        PHiLiP::OPERATOR::face_integral_basis<dim,2*dim> face_int(nstate, poly_degree, 1);
+        PHiLiP::OPERATOR::face_integral_basis<dim,2*dim,real> face_int(nstate, poly_degree, 1);
         face_int.build_1D_surface_operator(fe_system, face_quad1D);
-        PHiLiP::OPERATOR::basis_functions<dim,2*dim> face_basis(nstate, poly_degree, 1);
+        PHiLiP::OPERATOR::basis_functions<dim,2*dim,real> face_basis(nstate, poly_degree, 1);
         face_basis.build_1D_surface_operator(fe_system, face_quad1D);
 
         const unsigned int n_face_quad_pts = face_quad1D.size();
@@ -159,7 +158,7 @@ int main (int argc, char * argv[])
             }
         }
 
-        PHiLiP::OPERATOR::lifting_operator<dim,2*dim> lifting(nstate, poly_degree, 1);
+        PHiLiP::OPERATOR::lifting_operator<dim,2*dim,real> lifting(nstate, poly_degree, 1);
         lifting.build_1D_volume_operator(fe_system, quad1D);
         lifting.build_1D_surface_operator(fe_system, face_quad1D);
         std::array<dealii::FullMatrix<real>,2> surface_int_from_lift;
@@ -175,7 +174,7 @@ int main (int argc, char * argv[])
                 }
             }
         }
-        PHiLiP::OPERATOR::lifting_operator_FR<dim,2*dim> lifting_FR(nstate, poly_degree, 1, FR_enum::cPlus);
+        PHiLiP::OPERATOR::lifting_operator_FR<dim,2*dim,real> lifting_FR(nstate, poly_degree, 1, FR_enum::cPlus);
         lifting_FR.build_1D_volume_operator(fe_system, quad1D);
         lifting_FR.build_1D_surface_operator(fe_system, face_quad1D);
         std::array<dealii::FullMatrix<real>,2> surface_int_from_lift_FR;

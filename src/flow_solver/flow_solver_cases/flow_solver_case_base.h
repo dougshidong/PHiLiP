@@ -2,12 +2,14 @@
 #define __FLOW_SOLVER_CASE_BASE__
 
 // for FlowSolver class:
-#include "physics/initial_conditions/initial_condition_function.h"
-#include "dg/dg.h"
-#include "parameters/all_parameters.h"
 #include <deal.II/base/table_handler.h>
 #include <deal.II/distributed/shared_tria.h>
 #include <deal.II/distributed/tria.h>
+
+#include "dg/dg_base.hpp"
+#include "parameters/all_parameters.h"
+#include "physics/initial_conditions/initial_condition_function.h"
+#include "ode_solver/ode_solver_base.h"
 
 namespace PHiLiP {
 namespace FlowSolver {
@@ -23,12 +25,12 @@ class FlowSolverCaseBase
 {
 public:
     ///Constructor
-    FlowSolverCaseBase(const Parameters::AllParameters *const parameters_input);
+    explicit FlowSolverCaseBase(const Parameters::AllParameters *const parameters_input);
 
     std::shared_ptr<InitialConditionFunction<dim,nstate,double>> initial_condition_function; ///< Initial condition function
 
     /// Destructor
-    ~FlowSolverCaseBase() {};
+    virtual ~FlowSolverCaseBase() = default;
 
     /// Displays the flow setup parameters
     void display_flow_solver_setup(std::shared_ptr<DGBase<dim,double>> dg) const;
@@ -41,10 +43,9 @@ public:
 
     /// Virtual function to write unsteady snapshot data to table
     virtual void compute_unsteady_data_and_write_to_table(
-            const unsigned int current_iteration,
-            const double current_time,
+            const std::shared_ptr <ODE::ODESolverBase<dim, double>> ode_solver, 
             const std::shared_ptr <DGBase<dim, double>> dg,
-            const std::shared_ptr<dealii::TableHandler> unsteady_data_table);
+            const std::shared_ptr <dealii::TableHandler> unsteady_data_table);
 
     /// Virtual function to compute the constant time step
     virtual double get_constant_time_step(std::shared_ptr <DGBase<dim, double>> dg) const;

@@ -39,10 +39,12 @@
 #include "time_refinement_study.h"
 #include "time_refinement_study_reference.h"
 #include "h_refinement_study_isentropic_vortex.h"
-#include "burgers_energy_conservation_rrk.h"
+#include "rrk_numerical_entropy_conservation_check.h"
 #include "euler_entropy_conserving_split_forms_check.h"
 #include "homogeneous_isotropic_turbulence_initialization_check.h"
 #include "khi_robustness.h"
+#include "bound_preserving_limiter_tests.h"
+#include "naca0012_unsteady_check_quick.h"
 
 namespace PHiLiP {
 namespace Tests {
@@ -297,12 +299,20 @@ std::unique_ptr< TestsBase > TestsFactory<dim,nstate,MeshType>
         if constexpr (dim+2==nstate && dim!=1)  return std::make_unique<HRefinementStudyIsentropicVortex<dim, nstate>>(parameters_input, parameter_handler_input);
     } else if(test_type == Test_enum::time_refinement_study_reference) {
         if constexpr (dim==1 && nstate==1)  return std::make_unique<TimeRefinementStudyReference<dim, nstate>>(parameters_input, parameter_handler_input);
-    } else if(test_type == Test_enum::burgers_energy_conservation_rrk) {
-        if constexpr (dim==1 && nstate==1)  return std::make_unique<BurgersEnergyConservationRRK<dim, nstate>>(parameters_input, parameter_handler_input);
+    } else if(test_type == Test_enum::rrk_numerical_entropy_conservation_check) {
+        if constexpr ((dim==1 && nstate==1) || (dim==3 && nstate==dim+2))  return std::make_unique<RRKNumericalEntropyConservationCheck<dim, nstate>>(parameters_input, parameter_handler_input);
     } else if(test_type == Test_enum::euler_entropy_conserving_split_forms_check) {
         if constexpr (dim==3 && nstate==dim+2)  return std::make_unique<EulerSplitEntropyCheck<dim, nstate>>(parameters_input, parameter_handler_input);
     } else if(test_type == Test_enum::khi_robustness) {
         if constexpr (dim==2 && nstate==dim+2)  return std::make_unique<KHIRobustness<dim, nstate>>(parameters_input, parameter_handler_input);
+    } else if (test_type == Test_enum::advection_limiter) {
+        if constexpr (nstate == 1 && dim < 3) return std::make_unique<BoundPreservingLimiterTests<dim, nstate>>(parameters_input, parameter_handler_input);
+    } else if (test_type == Test_enum::burgers_limiter) {
+        if constexpr (nstate == dim && dim < 3) return std::make_unique<BoundPreservingLimiterTests<dim, nstate>>(parameters_input, parameter_handler_input);
+    } else if(test_type == Test_enum::low_density) {
+        if constexpr (dim==2 && nstate==dim+2)  return std::make_unique<BoundPreservingLimiterTests<dim, nstate>>(parameters_input, parameter_handler_input);
+    } else if(test_type == Test_enum::naca0012_unsteady_check_quick){
+        if constexpr (dim==2 && nstate==dim+2)  return std::make_unique<NACA0012UnsteadyCheckQuick<dim, nstate>>(parameters_input, parameter_handler_input);
     } else {
         std::cout << "Invalid test. You probably forgot to add it to the list of tests in tests.cpp" << std::endl;
         std::abort();

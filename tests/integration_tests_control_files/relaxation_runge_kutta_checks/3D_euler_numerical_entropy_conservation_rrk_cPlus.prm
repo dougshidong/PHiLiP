@@ -1,0 +1,56 @@
+# Listing of Parameters
+# ---------------------
+# Number of dimensions
+
+set dimension = 3
+set run_type = integration_test
+set test_type = rrk_numerical_entropy_conservation_check 
+set pde_type = euler
+
+# DG formulation
+set use_weak_form = false
+set use_split_form = true
+set flux_nodes_type = GLL
+
+set flux_reconstruction = cPlus
+set use_inverse_mass_on_the_fly = true
+
+# Note: this was added to turn off check_same_coords() -- has no other function when dim!=1
+set all_boundaries_are_periodic = true
+
+# numerical fluxes
+set conv_num_flux = two_point_flux
+set two_point_num_flux_type = Ra
+
+# ODE solver
+subsection ODE solver
+  set ode_output = quiet
+  set ode_solver_type = rrk_explicit #this is changed by the test
+  set runge_kutta_method = ssprk3_ex
+  subsection rrk root solver
+    set rrk_root_solver_output = quiet
+  end
+end
+
+# freestream Mach number
+subsection euler
+  set mach_infinity = 0.1
+end
+
+
+subsection flow_solver
+  set flow_case_type = taylor_green_vortex
+  set poly_degree = 3 
+  set final_time = 0.1
+  set courant_friedrichs_lewy_number = 0.1
+  set unsteady_data_table_filename = tgv_kinetic_energy_vs_time_table
+  subsection grid
+    set grid_left_bound = 0.0
+    set grid_right_bound = 6.28318530717958623200
+    set number_of_grid_elements_per_dimension = 4
+  end
+  subsection taylor_green_vortex
+    set do_calculate_numerical_entropy = true
+    set density_initial_condition_type = isothermal
+  end
+end

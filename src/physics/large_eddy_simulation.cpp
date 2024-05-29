@@ -15,6 +15,7 @@ namespace Physics {
 //================================================================
 template <int dim, int nstate, typename real>
 LargeEddySimulationBase<dim, nstate, real>::LargeEddySimulationBase(
+    const Parameters::AllParameters *const                    parameters_input,
     const double                                              ref_length,
     const double                                              gamma_gas,
     const double                                              mach_inf,
@@ -35,6 +36,7 @@ LargeEddySimulationBase<dim, nstate, real>::LargeEddySimulationBase(
     , turbulent_prandtl_number(turbulent_prandtl_number)
     , ratio_of_filter_width_to_cell_size(ratio_of_filter_width_to_cell_size)
     , navier_stokes_physics(std::make_unique < NavierStokes<dim,nstate,real> > (
+            parameters_input,
             ref_length,
             gamma_gas,
             mach_inf,
@@ -528,6 +530,7 @@ std::array<real,nstate> LargeEddySimulationBase<dim,nstate,real>
 //================================================================
 template <int dim, int nstate, typename real>
 LargeEddySimulation_Smagorinsky<dim, nstate, real>::LargeEddySimulation_Smagorinsky(
+    const Parameters::AllParameters *const                    parameters_input,
     const double                                              ref_length,
     const double                                              gamma_gas,
     const double                                              mach_inf,
@@ -546,7 +549,8 @@ LargeEddySimulation_Smagorinsky<dim, nstate, real>::LargeEddySimulation_Smagorin
     std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function,
     const two_point_num_flux_enum                             two_point_num_flux_type,
     const bool                                                apply_low_reynolds_number_eddy_viscosity_correction)
-    : LargeEddySimulationBase<dim,nstate,real>(ref_length,
+    : LargeEddySimulationBase<dim,nstate,real>(parameters_input,
+                                               ref_length,
                                                gamma_gas,
                                                mach_inf,
                                                angle_of_attack,
@@ -831,6 +835,7 @@ dealii::Tensor<2,dim,real2> LargeEddySimulation_Smagorinsky<dim,nstate,real>
 //================================================================
 template <int dim, int nstate, typename real>
 LargeEddySimulation_WALE<dim, nstate, real>::LargeEddySimulation_WALE(
+    const Parameters::AllParameters *const                    parameters_input,
     const double                                              ref_length,
     const double                                              gamma_gas,
     const double                                              mach_inf,
@@ -849,7 +854,8 @@ LargeEddySimulation_WALE<dim, nstate, real>::LargeEddySimulation_WALE(
     std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function,
     const two_point_num_flux_enum                             two_point_num_flux_type,
     const bool                                                apply_low_reynolds_number_eddy_viscosity_correction)
-    : LargeEddySimulation_Smagorinsky<dim,nstate,real>(ref_length,
+    : LargeEddySimulation_Smagorinsky<dim,nstate,real>(parameters_input,
+                                                       ref_length,
                                                        gamma_gas,
                                                        mach_inf,
                                                        angle_of_attack,
@@ -960,6 +966,7 @@ real2 LargeEddySimulation_WALE<dim,nstate,real>
 //================================================================
 template <int dim, int nstate, typename real>
 LargeEddySimulation_Vreman<dim, nstate, real>::LargeEddySimulation_Vreman(
+    const Parameters::AllParameters *const                    parameters_input,
     const double                                              ref_length,
     const double                                              gamma_gas,
     const double                                              mach_inf,
@@ -978,7 +985,8 @@ LargeEddySimulation_Vreman<dim, nstate, real>::LargeEddySimulation_Vreman(
     std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function,
     const two_point_num_flux_enum                             two_point_num_flux_type,
     const bool                                                apply_low_reynolds_number_eddy_viscosity_correction)
-    : LargeEddySimulation_Smagorinsky<dim,nstate,real>(ref_length,
+    : LargeEddySimulation_Smagorinsky<dim,nstate,real>(parameters_input,
+                                                       ref_length,
                                                        gamma_gas,
                                                        mach_inf,
                                                        angle_of_attack,
@@ -1083,6 +1091,7 @@ real2 LargeEddySimulation_Vreman<dim,nstate,real>
 //================================================================
 template <int dim, int nstate, typename real>
 LargeEddySimulation_ShearImprovedSmagorinsky<dim, nstate, real>::LargeEddySimulation_ShearImprovedSmagorinsky(
+    const Parameters::AllParameters *const                    parameters_input,
     const double                                              ref_length,
     const double                                              gamma_gas,
     const double                                              mach_inf,
@@ -1101,7 +1110,8 @@ LargeEddySimulation_ShearImprovedSmagorinsky<dim, nstate, real>::LargeEddySimula
     std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function,
     const two_point_num_flux_enum                             two_point_num_flux_type,
     const bool                                                apply_low_reynolds_number_eddy_viscosity_correction)
-    : LargeEddySimulation_Smagorinsky<dim,nstate,real>(ref_length,
+    : LargeEddySimulation_Smagorinsky<dim,nstate,real>(parameters_input,
+                                                       ref_length,
                                                        gamma_gas,
                                                        mach_inf,
                                                        angle_of_attack,
@@ -1178,6 +1188,7 @@ real2 LargeEddySimulation_ShearImprovedSmagorinsky<dim,nstate,real>
 //================================================================
 template <int dim, int nstate, typename real>
 LargeEddySimulation_VMS<dim, nstate, real>::LargeEddySimulation_VMS(
+    const Parameters::AllParameters *const                    parameters_input,
     const double                                              ref_length,
     const double                                              gamma_gas,
     const double                                              mach_inf,
@@ -1200,7 +1211,8 @@ LargeEddySimulation_VMS<dim, nstate, real>::LargeEddySimulation_VMS(
     std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function,
     const two_point_num_flux_enum                             two_point_num_flux_type,
     const bool                                                apply_low_reynolds_number_eddy_viscosity_correction)
-    : LargeEddySimulation_Smagorinsky<dim,nstate,real>(ref_length,
+    : LargeEddySimulation_Smagorinsky<dim,nstate,real>(parameters_input,
+                                                       ref_length,
                                                        gamma_gas,
                                                        mach_inf,
                                                        angle_of_attack,
@@ -1245,6 +1257,7 @@ double LargeEddySimulation_VMS<dim,nstate,real>
 //================================================================
 template <int dim, int nstate, typename real>
 LargeEddySimulation_SmallSmallVMS<dim, nstate, real>::LargeEddySimulation_SmallSmallVMS(
+    const Parameters::AllParameters *const                    parameters_input,
     const double                                              ref_length,
     const double                                              gamma_gas,
     const double                                              mach_inf,
@@ -1266,7 +1279,8 @@ LargeEddySimulation_SmallSmallVMS<dim, nstate, real>::LargeEddySimulation_SmallS
     std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function,
     const two_point_num_flux_enum                             two_point_num_flux_type,
     const bool                                                apply_low_reynolds_number_eddy_viscosity_correction)
-    : LargeEddySimulation_VMS<dim,nstate,real>(ref_length,
+    : LargeEddySimulation_VMS<dim,nstate,real>(parameters_input,
+                                               ref_length,
                                                gamma_gas,
                                                mach_inf,
                                                angle_of_attack,
@@ -1295,6 +1309,7 @@ LargeEddySimulation_SmallSmallVMS<dim, nstate, real>::LargeEddySimulation_SmallS
 //================================================================
 template <int dim, int nstate, typename real>
 LargeEddySimulation_AllAllVMS<dim, nstate, real>::LargeEddySimulation_AllAllVMS(
+    const Parameters::AllParameters *const                    parameters_input,
     const double                                              ref_length,
     const double                                              gamma_gas,
     const double                                              mach_inf,
@@ -1316,7 +1331,8 @@ LargeEddySimulation_AllAllVMS<dim, nstate, real>::LargeEddySimulation_AllAllVMS(
     std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function,
     const two_point_num_flux_enum                             two_point_num_flux_type,
     const bool                                                apply_low_reynolds_number_eddy_viscosity_correction)
-    : LargeEddySimulation_VMS<dim,nstate,real>(ref_length,
+    : LargeEddySimulation_VMS<dim,nstate,real>(parameters_input,
+                                               ref_length,
                                                gamma_gas,
                                                mach_inf,
                                                angle_of_attack,
@@ -1345,6 +1361,7 @@ LargeEddySimulation_AllAllVMS<dim, nstate, real>::LargeEddySimulation_AllAllVMS(
 //================================================================
 template <int dim, int nstate, typename real>
 LargeEddySimulation_DynamicSmagorinsky<dim, nstate, real>::LargeEddySimulation_DynamicSmagorinsky(
+    const Parameters::AllParameters *const                    parameters_input,
     const double                                              ref_length,
     const double                                              gamma_gas,
     const double                                              mach_inf,
@@ -1363,7 +1380,8 @@ LargeEddySimulation_DynamicSmagorinsky<dim, nstate, real>::LargeEddySimulation_D
     std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function,
     const two_point_num_flux_enum                             two_point_num_flux_type,
     const bool                                                apply_low_reynolds_number_eddy_viscosity_correction)
-    : LargeEddySimulation_Smagorinsky<dim,nstate,real>(ref_length,
+    : LargeEddySimulation_Smagorinsky<dim,nstate,real>(parameters_input,
+                                                       ref_length,
                                                        gamma_gas,
                                                        mach_inf,
                                                        angle_of_attack,

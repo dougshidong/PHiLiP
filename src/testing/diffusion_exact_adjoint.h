@@ -1,18 +1,18 @@
 #ifndef __DIFFUSION_EXACT_ADJOINT_H__
 #define __DIFFUSION_EXACT_ADJOINT_H__
 
-#include <memory>
-
 #include <deal.II/base/tensor.h>
 #include <deal.II/base/types.h>
 
-#include "tests.h"
-#include "dg/dg.h"
-#include "physics/physics.h"
+#include <memory>
+
+#include "dg/dg_base.hpp"
+#include "functional/functional.h"
+#include "parameters/all_parameters.h"
 #include "physics/convection_diffusion.h"
 #include "physics/manufactured_solution.h"
-#include "parameters/all_parameters.h"
-#include "functional/functional.h"
+#include "physics/physics.h"
+#include "tests.h"
 
 namespace PHiLiP {
 namespace Tests {
@@ -59,9 +59,6 @@ protected:
     using dealii::Function<dim,real>::gradient;
     using dealii::Function<dim,real>::hessian;
 public:
-    /// constructor
-    ManufacturedSolutionU(){}
-
     /// overriding the function for the value and gradient
     real value (const dealii::Point<dim,real> &pos, const unsigned int istate = 0) const override;
 
@@ -84,9 +81,6 @@ protected:
     using dealii::Function<dim,real>::gradient;
     using dealii::Function<dim,real>::hessian;
 public:
-    /// constructor
-    ManufacturedSolutionV(){}
-
     /// overriding the function for the value and gradient
     real value (const dealii::Point<dim,real> &pos, const unsigned int istate = 0) const override;
 
@@ -117,10 +111,12 @@ protected:
 public:
     /// constructor
     diffusion_objective(
+        const Parameters::AllParameters *const                  parameters_input,
         const bool                                              convection, 
         const bool                                              diffusion,
         std::shared_ptr<ManufacturedSolutionFunction<dim,real>> manufactured_solution_function): 
             Physics::ConvectionDiffusion<dim,nstate,real>::ConvectionDiffusion(
+                parameters_input,
                 convection, 
                 diffusion,
                 default_diffusion_tensor(),
@@ -177,9 +173,11 @@ protected:
 public:
     /// constructor
     diffusion_u(
+        const Parameters::AllParameters *const parameters_input,
         const bool convection, 
         const bool diffusion): 
             diffusion_objective<dim,nstate,real>::diffusion_objective(
+                parameters_input,
                 convection, 
                 diffusion,
                 std::make_shared<ManufacturedSolutionU<dim,real>>())
@@ -214,9 +212,11 @@ protected:
 public:
     /// constructor
     diffusion_v(
+        const Parameters::AllParameters *const parameters_input,
         const bool convection, 
         const bool diffusion): 
             diffusion_objective<dim,nstate,real>::diffusion_objective(
+                parameters_input,
                 convection, 
                 diffusion,
                 std::make_shared<ManufacturedSolutionV<dim,real>>())
@@ -284,14 +284,8 @@ template <int dim, int nstate>
 class DiffusionExactAdjoint : public TestsBase
 {
 public: 
-    /// deleting the default constructor
-    DiffusionExactAdjoint() = delete;
-
     /// Constructor to call the TestsBase constructor to set parameters = parameters_input
-    DiffusionExactAdjoint(const Parameters::AllParameters *const parameters_input);
-
-    /// destructor 
-    ~DiffusionExactAdjoint(){};
+    explicit DiffusionExactAdjoint(const Parameters::AllParameters *const parameters_input);
 
     /** perform test described above
      *  Ideally the results from both adjoints will converge to within a sufficient tolerance

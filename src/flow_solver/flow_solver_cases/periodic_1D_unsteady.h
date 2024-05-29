@@ -12,19 +12,18 @@ class Periodic1DUnsteady : public PeriodicCubeFlow<dim,nstate>
 public:
 
     /// Constructor.
-    Periodic1DUnsteady(const Parameters::AllParameters *const parameters_input);
+    explicit Periodic1DUnsteady(const Parameters::AllParameters *const parameters_input);
 
-    /// Destructor
-    ~Periodic1DUnsteady() {};
+    /// Calculate energy as a matrix-vector product,  solution^T (M+K) solution
+    double compute_energy(const std::shared_ptr <DGBase<dim, double>> dg) const;
 
-    /// Calculate energy
-    double compute_energy_collocated(const std::shared_ptr <DGBase<dim, double>> dg) const;
+    /// Calculate numerical entropy.
+    /// Here, is a wrapper for compute_energy. Used by tests.
+    double get_numerical_entropy(const std::shared_ptr <DGBase<dim, double>> dg) const;
 protected:
-
     /// Compute the desired unsteady data and write it to a table
     void compute_unsteady_data_and_write_to_table(
-            const unsigned int current_iteration,
-            const double current_time,
+            const std::shared_ptr <ODE::ODESolverBase<dim, double>> ode_solver,
             const std::shared_ptr <DGBase<dim, double>> dg,
             const std::shared_ptr<dealii::TableHandler> unsteady_data_table) override;
     

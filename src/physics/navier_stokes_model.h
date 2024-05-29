@@ -17,6 +17,7 @@ public:
     using two_point_num_flux_enum = Parameters::AllParameters::TwoPointNumericalFlux;
     /// Constructor
     NavierStokesWithModelSourceTerms(
+        const Parameters::AllParameters *const                    parameters_input,
         const double                                              ref_length,
         const double                                              gamma_gas,
         const double                                              mach_inf,

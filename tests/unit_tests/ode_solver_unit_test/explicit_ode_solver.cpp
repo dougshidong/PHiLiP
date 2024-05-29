@@ -1,20 +1,20 @@
-#include <deal.II/base/mpi.h>
+#include <deal.II/base/convergence_table.h>
 #include <deal.II/base/function.h>
+#include <deal.II/base/function_parser.h>
+#include <deal.II/base/mpi.h>
 #include <deal.II/base/tensor.h>
-#include <deal.II/grid/tria.h>
 #include <deal.II/grid/grid_generator.h>
 #include <deal.II/grid/grid_tools.h>
-#include <deal.II/base/function_parser.h>
+#include <deal.II/grid/tria.h>
 #include <deal.II/numerics/vector_tools.h>
-#include <deal.II/base/convergence_table.h>
+
+#include "dg/dg_base.hpp"
+#include "dg/dg_factory.hpp"
+#include "numerical_flux/numerical_flux_factory.hpp"
+#include "ode_solver/ode_solver_factory.h"
 #include "parameters/all_parameters.h"
 #include "parameters/parameters.h"
-#include "numerical_flux/numerical_flux_factory.hpp"
 #include "physics/physics_factory.h"
-#include "dg/dg.h"
-#include "dg/dg_factory.hpp"
-#include "ode_solver/ode_solver_factory.h"
-
 
 int main (int argc, char * argv[])
 {

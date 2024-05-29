@@ -21,6 +21,7 @@ add_test(
   WORKING_DIRECTORY ${TEST_OUTPUT_DIR}                                                                                                                                                                                                      
 )                                                                                                                       
 
+<<<<<<< HEAD
 ##Linear grid cplus
 set(TEST_OUTPUT_DIR ${CMAKE_CURRENT_BINARY_DIR})                                                                     
 configure_file(3D_TGV_scaling_split_form_cplus.prm 3D_TGV_scaling_split_form_cplus.prm COPYONLY)                                                                                                                                            
@@ -41,6 +42,28 @@ configure_file(3D_TGV_scaling_cons_cplus.prm 3D_TGV_scaling_cons_cplus.prm COPYO
 add_test(                                                                                                                                                                                                                                 
  NAME MPI_3D_TAYLOR_GREEN_SCALING_CONSERVATIVE_CPLUS                                                                                                                                                                                    
  COMMAND mpirun -n ${MPIMAX} ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_3D -i ${CMAKE_CURRENT_BINARY_DIR}/3D_TGV_scaling_cons_cplus.prm                                                                                                                                                                                                                                  
+=======
+##Linear grid cHU
+set(TEST_OUTPUT_DIR ${CMAKE_CURRENT_BINARY_DIR})                                                                     
+configure_file(3D_TGV_scaling_split_form_cHU.prm 3D_TGV_scaling_split_form_cHU.prm COPYONLY)                                                                                                                                            
+add_test(                                                                                                                                                                                                                                 
+ NAME MPI_3D_TAYLOR_GREEN_SCALING_SPLIT_FORM_CHU                                                                                                                                                                                    
+ COMMAND mpirun -n ${MPIMAX} ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_3D -i ${CMAKE_CURRENT_BINARY_DIR}/3D_TGV_scaling_split_form_cHU.prm                                                                                                                                                                                                                                  
+  WORKING_DIRECTORY ${TEST_OUTPUT_DIR}                                                                                                                                                                                                      
+)                                                                                                                       
+set(TEST_OUTPUT_DIR ${CMAKE_CURRENT_BINARY_DIR})                                                                     
+configure_file(3D_TGV_scaling_overint_cHU.prm 3D_TGV_scaling_overint_cHU.prm COPYONLY)                                                                                                                                            
+add_test(                                                                                                                                                                                                                                 
+ NAME MPI_3D_TAYLOR_GREEN_SCALING_OVERINTEGRATION_CHU                                                                                                                                                                                    
+ COMMAND mpirun -n ${MPIMAX} ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_3D -i ${CMAKE_CURRENT_BINARY_DIR}/3D_TGV_scaling_overint_cHU.prm                                                                                                                                                                                                                                  
+  WORKING_DIRECTORY ${TEST_OUTPUT_DIR}                                                                                                                                                                                                      
+)                                                                                                                       
+set(TEST_OUTPUT_DIR ${CMAKE_CURRENT_BINARY_DIR})                                                                     
+configure_file(3D_TGV_scaling_cons_cHU.prm 3D_TGV_scaling_cons_cHU.prm COPYONLY)                                                                                                                                            
+add_test(                                                                                                                                                                                                                                 
+ NAME MPI_3D_TAYLOR_GREEN_SCALING_CONSERVATIVE_CHU                                                                                                                                                                                    
+ COMMAND mpirun -n ${MPIMAX} ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_3D -i ${CMAKE_CURRENT_BINARY_DIR}/3D_TGV_scaling_cons_cHU.prm                                                                                                                                                                                                                                  
+>>>>>>> origin/master
   WORKING_DIRECTORY ${TEST_OUTPUT_DIR}                                                                                                                                                                                                      
 )                                                                                                                       
 
@@ -68,25 +91,25 @@ add_test(
   WORKING_DIRECTORY ${TEST_OUTPUT_DIR}                                                                                                                                                                                                      
 )                                                                                                                       
 
-##Curvilinear Grid Cplus
+##Curvilinear Grid cHU
 set(TEST_OUTPUT_DIR ${CMAKE_CURRENT_BINARY_DIR})                                                                     
-configure_file(3D_TGV_scaling_split_form_curv_cplus.prm 3D_TGV_scaling_split_form_curv_cplus.prm COPYONLY)                                                                                                                                            
+configure_file(3D_TGV_scaling_split_form_curv_cHU.prm 3D_TGV_scaling_split_form_curv_cHU.prm COPYONLY)                                                                                                                                            
 add_test(                                                                                                                                                                                                                                 
- NAME MPI_3D_TAYLOR_GREEN_SCALING_SPLIT_FORM_CPLUS_CURV                                                                                                                                                                                    
- COMMAND mpirun -n ${MPIMAX} ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_3D -i ${CMAKE_CURRENT_BINARY_DIR}/3D_TGV_scaling_split_form_curv_cplus.prm                                                                                                                                                                                                                                  
+ NAME MPI_3D_TAYLOR_GREEN_SCALING_SPLIT_FORM_CHU_CURV                                                                                                                                                                                    
+ COMMAND mpirun -n ${MPIMAX} ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_3D -i ${CMAKE_CURRENT_BINARY_DIR}/3D_TGV_scaling_split_form_curv_cHU.prm                                                                                                                                                                                                                                  
   WORKING_DIRECTORY ${TEST_OUTPUT_DIR}                                                                                                                                                                                                      
 )                                                                                                                       
 set(TEST_OUTPUT_DIR ${CMAKE_CURRENT_BINARY_DIR})                                                                     
-configure_file(3D_TGV_scaling_overint_curv_cplus.prm 3D_TGV_scaling_overint_curv_cplus.prm COPYONLY)                                                                                                                                            
+configure_file(3D_TGV_scaling_overint_curv_cHU.prm 3D_TGV_scaling_overint_curv_cHU.prm COPYONLY)                                                                                                                                            
 add_test(                                                                                                                                                                                                                                 
- NAME MPI_3D_TAYLOR_GREEN_SCALING_OVERINTEGRATION_CPLUS_CURV                                                                                                                                                                                    
- COMMAND mpirun -n ${MPIMAX} ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_3D -i ${CMAKE_CURRENT_BINARY_DIR}/3D_TGV_scaling_overint_curv_cplus.prm                                                                                                                                                                                                                                  
+ NAME MPI_3D_TAYLOR_GREEN_SCALING_OVERINTEGRATION_CHU_CURV                                                                                                                                                                                    
+ COMMAND mpirun -n ${MPIMAX} ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_3D -i ${CMAKE_CURRENT_BINARY_DIR}/3D_TGV_scaling_overint_curv_cHU.prm                                                                                                                                                                                                                                  
   WORKING_DIRECTORY ${TEST_OUTPUT_DIR}                                                                                                                                                                                                      
 )                                                                                                                       
 set(TEST_OUTPUT_DIR ${CMAKE_CURRENT_BINARY_DIR})                                                                     
-configure_file(3D_TGV_scaling_cons_curv_cplus.prm 3D_TGV_scaling_cons_curv_cplus.prm COPYONLY)                                                                                                                                            
+configure_file(3D_TGV_scaling_cons_curv_cHU.prm 3D_TGV_scaling_cons_curv_cHU.prm COPYONLY)                                                                                                                                            
 add_test(                                                                                                                                                                                                                                 
- NAME MPI_3D_TAYLOR_GREEN_SCALING_CONSERVATIVE_CPLUS_CURV                                                                                                                                                                                    
- COMMAND mpirun -n ${MPIMAX} ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_3D -i ${CMAKE_CURRENT_BINARY_DIR}/3D_TGV_scaling_cons_curv_cplus.prm                                                                                                                                                                                                                                  
+ NAME MPI_3D_TAYLOR_GREEN_SCALING_CONSERVATIVE_CHU_CURV                                                                                                                                                                                    
+ COMMAND mpirun -n ${MPIMAX} ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_3D -i ${CMAKE_CURRENT_BINARY_DIR}/3D_TGV_scaling_cons_curv_cHU.prm                                                                                                                                                                                                                                  
   WORKING_DIRECTORY ${TEST_OUTPUT_DIR}                                                                                                                                                                                                      
 )                                                                                                                       

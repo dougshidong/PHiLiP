@@ -14,8 +14,7 @@ set use_weak_form = true
 set all_boundaries_are_periodic = true
 set check_same_coords_in_weak_dg = false
 
-# memory allocation
-set do_renumber_dofs = false
+set non_physical_behavior = abort_run
 
 # degree of freedom renumbering not necessary for explicit time advancement cases
 set do_renumber_dofs = false

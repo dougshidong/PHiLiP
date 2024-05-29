@@ -53,6 +53,7 @@ public:
 
     /// Constructor
     ConvectionDiffusion (
+        const Parameters::AllParameters *const                    parameters_input,
         const bool                                                convection = true, 
         const bool                                                diffusion = true,
         const dealii::Tensor<2,3,double>                          input_diffusion_tensor = Parameters::ManufacturedSolutionParam::get_default_diffusion_tensor(),
@@ -61,7 +62,7 @@ public:
         std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function = nullptr,
         const Parameters::AllParameters::TestType                 parameters_test = Parameters::AllParameters::TestType::run_control,
         const bool                                                has_nonzero_physical_source = false) : 
-            PhysicsBase<dim,nstate,real>(diffusion, has_nonzero_physical_source, input_diffusion_tensor, manufactured_solution_function), 
+            PhysicsBase<dim,nstate,real>(parameters_input, diffusion, has_nonzero_physical_source, input_diffusion_tensor, manufactured_solution_function), 
             linear_advection_velocity{input_advection_vector[0], input_advection_vector[1], input_advection_vector[2]},
             diffusion_scaling_coeff(input_diffusion_coefficient),
             hasConvection(convection), 
@@ -69,8 +70,6 @@ public:
             test_type(parameters_test)
     {};
 
-    /// Destructor
-    ~ConvectionDiffusion () {};
     /// Convective flux: \f$ \mathbf{F}_{conv} =  u \f$
     std::array<dealii::Tensor<1,dim,real>,nstate> convective_flux (const std::array<real,nstate> &solution) const;
 

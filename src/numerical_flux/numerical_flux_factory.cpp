@@ -69,6 +69,14 @@ NumericalFluxFactory<dim, nstate, real>
     using Model_enum = Parameters::AllParameters::ModelType;
     std::shared_ptr<Physics::PhysicsBase<dim, nstate, real>> euler_based_physics_to_be_passed = physics_input;
 
+    if(pde_type!=PDE_enum::euler && 
+        pde_type!=PDE_enum::navier_stokes && 
+        !(pde_type==PDE_enum::physics_model && model_type==Model_enum::large_eddy_simulation)) 
+    {
+        std::cout << "Invalid convective numerical flux for pde_type. Aborting..." << std::endl;
+        std::abort();
+    }
+
 #if PHILIP_DIM==3
     if(((pde_type==PDE_enum::physics_model || pde_type==PDE_enum::physics_model_filtered) && 
         (model_type==Model_enum::large_eddy_simulation || model_type==Model_enum::navier_stokes_model))) 

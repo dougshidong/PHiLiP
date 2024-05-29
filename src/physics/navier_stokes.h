@@ -27,6 +27,7 @@ public:
     using two_point_num_flux_enum = Parameters::AllParameters::TwoPointNumericalFlux;
     /// Constructor
     NavierStokes( 
+        const Parameters::AllParameters *const                    parameters_input,
         const double                                              ref_length,
         const double                                              gamma_gas,
         const double                                              mach_inf,
@@ -69,8 +70,6 @@ protected:
     //@}
 
 public:
-    /// Destructor
-    ~NavierStokes() {};
 
     /** Nondimensionalized temperature gradient */
     template<typename real2>

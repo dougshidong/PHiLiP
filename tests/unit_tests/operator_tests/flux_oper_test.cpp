@@ -37,26 +37,24 @@
 
 // Finally, we take our exact solution from the library as well as volume_quadrature
 // and additional tools.
+#include <deal.II/dofs/dof_handler.h>
+#include <deal.II/fe/fe_bernstein.h>
+#include <deal.II/fe/fe_dgq.h>
+#include <deal.II/fe/fe_system.h>
+#include <deal.II/fe/mapping_fe_field.h>
+#include <deal.II/fe/mapping_q.h>
+#include <deal.II/fe/mapping_q_generic.h>
+#include <deal.II/grid/manifold_lib.h>
 #include <deal.II/numerics/data_out.h>
 #include <deal.II/numerics/data_out_dof_data.h>
 #include <deal.II/numerics/vector_tools.h>
 #include <deal.II/numerics/vector_tools.templates.h>
 
-#include <deal.II/grid/manifold_lib.h>
-#include <deal.II/fe/mapping_q.h>
-#include <deal.II/fe/mapping_q_generic.h>
-#include <deal.II/fe/fe_dgq.h>
-#include <deal.II/fe/fe_system.h>
-#include <deal.II/dofs/dof_handler.h>
-#include <deal.II/fe/mapping_fe_field.h> 
-
-#include <deal.II/fe/fe_bernstein.h>
-
+#include "dg/dg_base.hpp"
+#include "dg/dg_factory.hpp"
+#include "operators/operators.h"
 #include "parameters/all_parameters.h"
 #include "parameters/parameters.h"
-#include "operators/operators.h"
-#include "dg/dg.h"
-#include "dg/dg_factory.hpp"
 
 const double TOLERANCE = 1E-6;
 using namespace std;
@@ -116,14 +114,14 @@ int main (int argc, char * argv[])
         const dealii::FESystem<1,1> fe_system(fe_dg, nstate);
         const dealii::FE_DGQArbitraryNodes<1> fe_dg_flux(quad1D);
         const dealii::FESystem<1,1> fe_system_flux(fe_dg_flux, nstate);
-        PHiLiP::OPERATOR::vol_integral_gradient_basis<dim,2*dim> vol_int_grad_basis(nstate, poly_degree, 1);
+        PHiLiP::OPERATOR::vol_integral_gradient_basis<dim,2*dim,real> vol_int_grad_basis(nstate, poly_degree, 1);
         vol_int_grad_basis.build_1D_gradient_operator(fe_system, quad1D);
-        PHiLiP::OPERATOR::local_flux_basis_stiffness<dim,nstate,2*dim> flux_stiffness(poly_degree, 1);
+        PHiLiP::OPERATOR::local_flux_basis_stiffness<dim,nstate,2*dim,real> flux_stiffness(poly_degree, 1);
         flux_stiffness.build_1D_gradient_state_operator(fe_system_flux, quad1D);
         flux_stiffness.build_1D_volume_state_operator(fe_system, quad1D);
 
-        // PHiLiP::OPERATOR::basis_functions_state<dim,nstate,2*dim> flux_basis_quad(poly_degree, 1);
-        PHiLiP::OPERATOR::flux_basis_functions_state<dim,nstate,2*dim> flux_basis_quad(poly_degree, 1);
+        // PHiLiP::OPERATOR::basis_functions_state<dim,nstate,2*dim,real> flux_basis_quad(poly_degree, 1);
+        PHiLiP::OPERATOR::flux_basis_functions_state<dim,nstate,2*dim,real> flux_basis_quad(poly_degree, 1);
         flux_basis_quad.build_1D_volume_state_operator(fe_system_flux, quad1D);
 
         dealii::FullMatrix<real> vol_int_parts(n_dofs_1D);
@@ -134,7 +132,7 @@ int main (int argc, char * argv[])
         dealii::QGauss<0> face_quad1D (poly_degree+1);
         dealii::FullMatrix<real> surf_int_parts(n_dofs_1D);
         flux_basis_quad.build_1D_surface_state_operator(fe_system_flux, face_quad1D);
-        PHiLiP::OPERATOR::face_integral_basis<dim,2*dim> surf_int_basis(nstate, poly_degree, 1);
+        PHiLiP::OPERATOR::face_integral_basis<dim,2*dim,real> surf_int_basis(nstate, poly_degree, 1);
         surf_int_basis.build_1D_surface_operator(fe_system, face_quad1D);
         for(unsigned int iface=0; iface< dealii::GeometryInfo<1>::faces_per_cell; iface++){
             const dealii::Tensor<1,1,real> unit_normal_1D = dealii::GeometryInfo<1>::unit_normal_vector[iface];

@@ -998,10 +998,10 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_volume_term_strong(
         // -- Constructor for tensor product polynomials based on Polynomials::Legendre interpolation. 
         dealii::FE_DGQLegendre<1,1> legendre_poly_1D(poly_degree);
         // -- Projection operator for legendre basis
-        OPERATOR::vol_projection_operator<dim,2*dim> legendre_soln_basis_projection_oper(1, poly_degree, this->max_grid_degree);
+        OPERATOR::vol_projection_operator<dim,2*dim,real> legendre_soln_basis_projection_oper(1, poly_degree, this->max_grid_degree);
         legendre_soln_basis_projection_oper.build_1D_volume_operator(legendre_poly_1D, this->oneD_quadrature_collection[poly_degree]);
         // -- Legendre basis functions 
-        OPERATOR::basis_functions<dim,2*dim> legendre_soln_basis(1, poly_degree, this->max_grid_degree);
+        OPERATOR::basis_functions<dim,2*dim,real> legendre_soln_basis(1, poly_degree, this->max_grid_degree);
         legendre_soln_basis.build_1D_volume_operator(legendre_poly_1D, this->oneD_quadrature_collection[poly_degree]);
         for(int istate=0; istate<nstate; istate++){
             //==================================================
@@ -1636,10 +1636,10 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_boundary_term_strong(
         // -- Constructor for tensor product polynomials based on Polynomials::Legendre interpolation. 
         dealii::FE_DGQLegendre<1,1> legendre_poly_1D(poly_degree);
         // -- Projection operator for legendre basis
-        OPERATOR::vol_projection_operator<dim,2*dim> legendre_soln_basis_projection_oper(1, poly_degree, this->max_grid_degree);
+        OPERATOR::vol_projection_operator<dim,2*dim,real> legendre_soln_basis_projection_oper(1, poly_degree, this->max_grid_degree);
         legendre_soln_basis_projection_oper.build_1D_volume_operator(legendre_poly_1D, this->oneD_quadrature_collection[poly_degree]);
         // -- Legendre basis functions 
-        OPERATOR::basis_functions<dim,2*dim> legendre_soln_basis(1, poly_degree, this->max_grid_degree);
+        OPERATOR::basis_functions<dim,2*dim,real> legendre_soln_basis(1, poly_degree, this->max_grid_degree);
         legendre_soln_basis.build_1D_volume_operator(legendre_poly_1D, this->oneD_quadrature_collection[poly_degree]);
         legendre_soln_basis.build_1D_surface_operator(legendre_poly_1D, this->oneD_face_quadrature);
         for(int istate=0; istate<nstate; istate++){
@@ -2466,15 +2466,15 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_strong(
         dealii::FE_DGQLegendre<1,1> legendre_poly_1D_int(poly_degree_int);
         dealii::FE_DGQLegendre<1,1> legendre_poly_1D_ext(poly_degree_ext);
         // -- Projection operator for legendre basis
-        OPERATOR::vol_projection_operator<dim,2*dim> legendre_soln_basis_projection_oper_int(1, poly_degree_int, this->max_grid_degree);
+        OPERATOR::vol_projection_operator<dim,2*dim,real> legendre_soln_basis_projection_oper_int(1, poly_degree_int, this->max_grid_degree);
         legendre_soln_basis_projection_oper_int.build_1D_volume_operator(legendre_poly_1D_int, this->oneD_quadrature_collection[poly_degree_int]);
-        OPERATOR::vol_projection_operator<dim,2*dim> legendre_soln_basis_projection_oper_ext(1, poly_degree_ext, this->max_grid_degree);
+        OPERATOR::vol_projection_operator<dim,2*dim,real> legendre_soln_basis_projection_oper_ext(1, poly_degree_ext, this->max_grid_degree);
         legendre_soln_basis_projection_oper_ext.build_1D_volume_operator(legendre_poly_1D_ext, this->oneD_quadrature_collection[poly_degree_ext]);
         // -- Legendre basis functions 
-        OPERATOR::basis_functions<dim,2*dim> legendre_soln_basis_int(1, poly_degree_int, this->max_grid_degree);
+        OPERATOR::basis_functions<dim,2*dim,real> legendre_soln_basis_int(1, poly_degree_int, this->max_grid_degree);
         legendre_soln_basis_int.build_1D_volume_operator(legendre_poly_1D_int, this->oneD_quadrature_collection[poly_degree_int]);
         legendre_soln_basis_int.build_1D_surface_operator(legendre_poly_1D_int, this->oneD_face_quadrature);
-        OPERATOR::basis_functions<dim,2*dim> legendre_soln_basis_ext(1, poly_degree_ext, this->max_grid_degree);
+        OPERATOR::basis_functions<dim,2*dim,real> legendre_soln_basis_ext(1, poly_degree_ext, this->max_grid_degree);
         legendre_soln_basis_ext.build_1D_volume_operator(legendre_poly_1D_ext, this->oneD_quadrature_collection[poly_degree_ext]);
         legendre_soln_basis_ext.build_1D_surface_operator(legendre_poly_1D_ext, this->oneD_face_quadrature);
         for(int istate=0; istate<nstate; istate++){

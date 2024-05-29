@@ -21,28 +21,6 @@ add_test(
   WORKING_DIRECTORY ${TEST_OUTPUT_DIR}                                                                                                                                                                                                      
 )                                                                                                                       
 
-<<<<<<< HEAD
-##Linear grid cplus
-set(TEST_OUTPUT_DIR ${CMAKE_CURRENT_BINARY_DIR})                                                                     
-configure_file(3D_TGV_scaling_split_form_cplus.prm 3D_TGV_scaling_split_form_cplus.prm COPYONLY)                                                                                                                                            
-add_test(                                                                                                                                                                                                                                 
- NAME MPI_3D_TAYLOR_GREEN_SCALING_SPLIT_FORM_CPLUS                                                                                                                                                                                    
- COMMAND mpirun -n ${MPIMAX} ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_3D -i ${CMAKE_CURRENT_BINARY_DIR}/3D_TGV_scaling_split_form_cplus.prm                                                                                                                                                                                                                                  
-  WORKING_DIRECTORY ${TEST_OUTPUT_DIR}                                                                                                                                                                                                      
-)                                                                                                                       
-set(TEST_OUTPUT_DIR ${CMAKE_CURRENT_BINARY_DIR})                                                                     
-configure_file(3D_TGV_scaling_overint_cplus.prm 3D_TGV_scaling_overint_cplus.prm COPYONLY)                                                                                                                                            
-add_test(                                                                                                                                                                                                                                 
- NAME MPI_3D_TAYLOR_GREEN_SCALING_OVERINTEGRATION_CPLUS                                                                                                                                                                                    
- COMMAND mpirun -n ${MPIMAX} ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_3D -i ${CMAKE_CURRENT_BINARY_DIR}/3D_TGV_scaling_overint_cplus.prm                                                                                                                                                                                                                                  
-  WORKING_DIRECTORY ${TEST_OUTPUT_DIR}                                                                                                                                                                                                      
-)                                                                                                                       
-set(TEST_OUTPUT_DIR ${CMAKE_CURRENT_BINARY_DIR})                                                                     
-configure_file(3D_TGV_scaling_cons_cplus.prm 3D_TGV_scaling_cons_cplus.prm COPYONLY)                                                                                                                                            
-add_test(                                                                                                                                                                                                                                 
- NAME MPI_3D_TAYLOR_GREEN_SCALING_CONSERVATIVE_CPLUS                                                                                                                                                                                    
- COMMAND mpirun -n ${MPIMAX} ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_3D -i ${CMAKE_CURRENT_BINARY_DIR}/3D_TGV_scaling_cons_cplus.prm                                                                                                                                                                                                                                  
-=======
 ##Linear grid cHU
 set(TEST_OUTPUT_DIR ${CMAKE_CURRENT_BINARY_DIR})                                                                     
 configure_file(3D_TGV_scaling_split_form_cHU.prm 3D_TGV_scaling_split_form_cHU.prm COPYONLY)                                                                                                                                            
@@ -63,7 +41,6 @@ configure_file(3D_TGV_scaling_cons_cHU.prm 3D_TGV_scaling_cons_cHU.prm COPYONLY)
 add_test(                                                                                                                                                                                                                                 
  NAME MPI_3D_TAYLOR_GREEN_SCALING_CONSERVATIVE_CHU                                                                                                                                                                                    
  COMMAND mpirun -n ${MPIMAX} ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_3D -i ${CMAKE_CURRENT_BINARY_DIR}/3D_TGV_scaling_cons_cHU.prm                                                                                                                                                                                                                                  
->>>>>>> origin/master
   WORKING_DIRECTORY ${TEST_OUTPUT_DIR}                                                                                                                                                                                                      
 )                                                                                                                       
 

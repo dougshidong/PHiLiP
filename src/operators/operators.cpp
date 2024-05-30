@@ -1512,7 +1512,7 @@ void local_Flux_Reconstruction_operator<dim,n_faces,real>::get_FR_correction_par
     }
     else if(FR_param_type == FR_enum::c10Thousand){ 
         //Set the value to 10000 for arbitrary high-numbers.
-        c = 10000.0;
+        c = 3.67e-3 * 10;//10000.0;
     }
     else if(FR_param_type == FR_enum::cPlus){ 
         get_c_plus_parameter(curr_cell_degree, c); 

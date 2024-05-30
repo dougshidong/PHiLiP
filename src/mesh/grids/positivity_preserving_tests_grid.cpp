@@ -323,6 +323,7 @@ void astrophysical_jet_grid(
     dealii::GridGenerator::subdivided_hyper_rectangle(grid, n_subdivisions, p1, p2, true);
 
     double left_y = 0.0;
+    double dy = (ymax-ymin)/n_subdivisions_y;
 
     // Set boundary type and design type
     for (typename dealii::parallel::distributed::Triangulation<dim>::active_cell_iterator cell = grid.begin_active(); cell != grid.end(); ++cell) {
@@ -331,7 +332,7 @@ void astrophysical_jet_grid(
                 unsigned int current_id = cell->face(face)->boundary_id();
                 if (current_id == 0) {
                     //cell->face(face)->set_boundary_id(1007); // x_left, Farfield
-                    if (left_y >= 0.45 && left_y <0.55) {
+                    if (left_y >= 0.45 && left_y <=0.55-dy) {
                         left_y += cell->extent_in_direction(1);
                         cell->face(face)->set_boundary_id(1007); // y_bottom, Symmetry/Wall
                     }

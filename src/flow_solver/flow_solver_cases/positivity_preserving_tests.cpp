@@ -62,9 +62,6 @@ std::shared_ptr<Triangulation> PositivityPreservingTests<dim,nstate>::generate_g
     else if (dim == 2 && flow_case_type == flow_case_enum::leblanc_shock_tube) {
         Grids::explosion_problem_grid<dim>(*grid, &this->all_param);
     }
-    else if (dim==2 && flow_case_type == flow_case_enum::double_mach_reflection) {
-        Grids::double_mach_reflection_grid<dim>(*grid, &this->all_param);
-    }
     else if (dim==2 && flow_case_type == flow_case_enum::sedov_blast_wave) {
         Grids::sedov_blast_wave_grid<dim>(*grid, &this->all_param);
     }
@@ -76,6 +73,16 @@ std::shared_ptr<Triangulation> PositivityPreservingTests<dim,nstate>::generate_g
     }
     else if (dim==2 && flow_case_type == flow_case_enum::astrophysical_jet) {
         Grids::astrophysical_jet_grid<dim>(*grid, &this->all_param);
+    }
+    else if (dim==2 && flow_case_type == flow_case_enum::double_mach_reflection) {
+        if(this->all_param.flow_solver_param.use_gmsh_mesh) {
+            const std::string mesh_filename = this->all_param.flow_solver_param.input_mesh_filename+std::string(".msh");
+            const bool use_mesh_smoothing = false;
+            std::shared_ptr<HighOrderGrid<dim,double>> dmr_mesh = read_gmsh<dim, dim> (mesh_filename, this->all_param.do_renumber_dofs, 0, use_mesh_smoothing);
+            return dmr_mesh->triangulation;
+        } else {
+            Grids::double_mach_reflection_grid<dim>(*grid, &this->all_param);
+        }
     }
 
     return grid;

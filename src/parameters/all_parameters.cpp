@@ -18,6 +18,7 @@ AllParameters::AllParameters ()
     , euler_param(EulerParam())
     , navier_stokes_param(NavierStokesParam())
     , reduced_order_param(ReducedOrderModelParam())
+    , hyper_reduction_param(HyperReductionParam())
     , burgers_param(BurgersParam())
     , physics_model_param(PhysicsModelParam())
     , grid_refinement_study_param(GridRefinementStudyParam())
@@ -174,7 +175,7 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       " reduced_order | "
                       " convection_diffusion_periodicity |"
                       " POD_adaptation | "
-                      " POD_adaptive_sampling | "
+                      " POD_adaptive_sampling_run | "
                       " adaptive_sampling_testing | "
                       " finite_difference_sensitivity | "
                       " advection_periodicity | "
@@ -188,6 +189,13 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       " rrk_numerical_entropy_conservation_check | "
                       " euler_entropy_conserving_split_forms_check | "
                       " h_refinement_study_isentropic_vortex | "
+                      " build_NNLS_problem |"
+                      " hyper_reduction_comparison |"
+                      " hyper_adaptive_sampling_run |"
+                      " hyper_reduction_post_sampling |"
+                      " ROM_error_post_sampling |"
+                      " HROM_error_post_sampling | "
+                      " hyper_adaptive_sampling_new_error |"
                       " naca0012_unsteady_check_quick | "
                       " khi_robustness | "
                       " low_density "),
@@ -216,7 +224,7 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       "  convection_diffusion_periodicity |"
                       "  reduced_order | "
                       "  POD_adaptation | "
-                      "  POD_adaptive_sampling | "
+                      "  POD_adaptive_sampling_run | "
                       "  adaptive_sampling_testing | "
                       "  finite_difference_sensitivity | "
                       "  advection_periodicity | "
@@ -230,6 +238,13 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       "  rrk_numerical_entropy_conservation_check | "
                       "  euler_entropy_conserving_split_forms_check | "
                       "  h_refinement_study_isentropic_vortex | "
+                      "  build_NNLS_problem |"
+                      "  hyper_reduction_comparison |"
+                      "  hyper_adaptive_sampling_run |"
+                      "  hyper_reduction_post_sampling |"
+                      "  ROM_error_post_sampling |"
+                      "  HROM_error_post_sampling | "
+                      "  hyper_adaptive_sampling_new_error |"
                       "  naca0012_unsteady_check_quick | "
                       "  khi_robustness | "
                       "  low_density>.");
@@ -342,6 +357,7 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
     Parameters::NavierStokesParam::declare_parameters (prm);
     Parameters::PhysicsModelParam::declare_parameters (prm);
     Parameters::ReducedOrderModelParam::declare_parameters (prm);
+    Parameters::HyperReductionParam::declare_parameters (prm);
     Parameters::BurgersParam::declare_parameters (prm);
     Parameters::GridRefinementStudyParam::declare_parameters (prm);
     Parameters::ArtificialDissipationParam::declare_parameters (prm);
@@ -393,7 +409,7 @@ const std::string test_string = prm.get("test_type");
     else if (test_string == "shock_1d")                                 { test_type = shock_1d; }
     else if (test_string == "reduced_order")                            { test_type = reduced_order; }
     else if (test_string == "POD_adaptation")                           { test_type = POD_adaptation; }
-    else if (test_string == "POD_adaptive_sampling")                    { test_type = POD_adaptive_sampling; }
+    else if (test_string == "POD_adaptive_sampling_run")                { test_type = POD_adaptive_sampling_run; }
     else if (test_string == "adaptive_sampling_testing")                { test_type = adaptive_sampling_testing; }
     else if (test_string == "finite_difference_sensitivity")            { test_type = finite_difference_sensitivity; }
     else if (test_string == "euler_naca0012")                           { test_type = euler_naca0012; }
@@ -412,6 +428,13 @@ const std::string test_string = prm.get("test_type");
                                                                         { test_type = euler_entropy_conserving_split_forms_check; }
     else if (test_string == "h_refinement_study_isentropic_vortex")     { test_type = h_refinement_study_isentropic_vortex; }
     else if (test_string == "khi_robustness")                           { test_type = khi_robustness; }
+    else if (test_string == "build_NNLS_problem")                       { test_type = build_NNLS_problem; }
+    else if (test_string == "hyper_reduction_comparison")               { test_type = hyper_reduction_comparison; }
+    else if (test_string == "hyper_adaptive_sampling_run")              { test_type = hyper_adaptive_sampling_run; }
+    else if (test_string == "hyper_reduction_post_sampling")            { test_type = hyper_reduction_post_sampling; }
+    else if (test_string == "ROM_error_post_sampling")                  { test_type = ROM_error_post_sampling; }
+    else if (test_string == "HROM_error_post_sampling")                 { test_type = HROM_error_post_sampling; }
+    else if (test_string == "hyper_adaptive_sampling_new_error")        { test_type = hyper_adaptive_sampling_new_error; }
     else if (test_string == "low_density")                              { test_type = low_density; }
     else if (test_string == "naca0012_unsteady_check_quick")            { test_type = naca0012_unsteady_check_quick; }
     
@@ -528,6 +551,9 @@ const std::string test_string = prm.get("test_type");
 
     pcout << "Parsing reduced order subsection..." << std::endl;
     reduced_order_param.parse_parameters (prm);
+
+    pcout << "Parsing hyperreduction subsection..." << std::endl;
+    hyper_reduction_param.parse_parameters (prm);
 
     pcout << "Parsing Burgers subsection..." << std::endl;
     burgers_param.parse_parameters (prm);

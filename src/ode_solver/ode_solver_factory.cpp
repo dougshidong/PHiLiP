@@ -7,6 +7,7 @@
 #include "relaxation_runge_kutta/root_finding_rrk_ode_solver.h"
 #include "pod_galerkin_ode_solver.h"
 #include "pod_petrov_galerkin_ode_solver.h"
+#include "hyper_reduced_petrov_galerkin_ode_solver.h"
 #include <deal.II/distributed/solution_transfer.h>
 #include "runge_kutta_methods/runge_kutta_methods.h"
 #include "runge_kutta_methods/rk_tableau_base.h"
@@ -50,6 +51,21 @@ std::shared_ptr<ODESolverBase<dim,real,MeshType>> ODESolverFactory<dim,real,Mesh
 }
 
 template <int dim, typename real, typename MeshType>
+std::shared_ptr<ODESolverBase<dim,real,MeshType>> ODESolverFactory<dim,real,MeshType>::create_ODESolver(std::shared_ptr< DGBase<dim,real,MeshType> > dg_input, std::shared_ptr<ProperOrthogonalDecomposition::PODBase<dim>> pod, Epetra_Vector weights)
+{
+    dealii::ConditionalOStream pcout(std::cout, dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD)==0);
+    pcout << "Creating ODE Solver..." << std::endl;
+    using ODEEnum = Parameters::ODESolverParam::ODESolverEnum;
+    const ODEEnum ode_solver_type = dg_input->all_parameters->ode_solver_param.ode_solver_type;
+    if(ode_solver_type == ODEEnum::hyper_reduced_petrov_galerkin_solver) 
+        return std::make_shared<HyperReducedODESolver<dim,real,MeshType>>(dg_input, pod, weights);
+    else {
+        display_error_ode_solver_factory(ode_solver_type, true);
+        return nullptr;
+    }
+}
+
+template <int dim, typename real, typename MeshType>
 std::shared_ptr<ODESolverBase<dim,real,MeshType>> ODESolverFactory<dim,real,MeshType>::create_ODESolver_manual(Parameters::ODESolverParam::ODESolverEnum ode_solver_type, std::shared_ptr< DGBase<dim,real,MeshType> > dg_input)
 {
     dealii::ConditionalOStream pcout(std::cout, dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD)==0);
@@ -81,6 +97,20 @@ std::shared_ptr<ODESolverBase<dim,real,MeshType>> ODESolverFactory<dim,real,Mesh
     }
 }
 
+template <int dim, typename real, typename MeshType>
+std::shared_ptr<ODESolverBase<dim,real,MeshType>> ODESolverFactory<dim,real,MeshType>::create_ODESolver_manual(Parameters::ODESolverParam::ODESolverEnum ode_solver_type, std::shared_ptr< DGBase<dim,real,MeshType> > dg_input, std::shared_ptr<ProperOrthogonalDecomposition::PODBase<dim>> pod, Epetra_Vector weights)
+{
+    dealii::ConditionalOStream pcout(std::cout, dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD)==0);
+    pcout << "Creating ODE Solver..." << std::endl;
+    using ODEEnum = Parameters::ODESolverParam::ODESolverEnum;
+    if(ode_solver_type == ODEEnum::hyper_reduced_petrov_galerkin_solver) 
+        return std::make_shared<HyperReducedODESolver<dim,real,MeshType>>(dg_input, pod, weights);
+    else {
+        display_error_ode_solver_factory(ode_solver_type, true);
+        return nullptr;
+    }
+}
+
 
 template <int dim, typename real, typename MeshType>
 void ODESolverFactory<dim,real,MeshType>::display_error_ode_solver_factory(Parameters::ODESolverParam::ODESolverEnum ode_solver_type, bool reduced_order) 
@@ -93,7 +123,9 @@ void ODESolverFactory<dim,real,MeshType>::display_error_ode_solver_factory(Param
     else if (ode_solver_type == ODEEnum::rrk_explicit_solver)           solver_string = "rrk_explicit";
     else if (ode_solver_type == ODEEnum::pod_galerkin_solver)           solver_string = "pod_galerkin";
     else if (ode_solver_type == ODEEnum::pod_petrov_galerkin_solver)    solver_string = "pod_petrov_galerkin";
-    else solver_string = "undefined";
+    else if (ode_solver_type == ODEEnum::hyper_reduced_petrov_galerkin_solver)    
+                                                                        solver_string = "hyper_reduced_petrov_galerkin";
+    else                                                                solver_string = "undefined";
 
     dealii::ConditionalOStream pcout(std::cout, dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD)==0);
     pcout << "********************************************************************" << std::endl;

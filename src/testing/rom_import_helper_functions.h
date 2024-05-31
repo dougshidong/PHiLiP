@@ -19,10 +19,10 @@ using Eigen::VectorXd;
 using Eigen::RowVectorXd;
 
 /// Read snapshot locations from the text file
-bool getSnapshotParamsFromFile(Eigen::MatrixXd snapshot_parameters, std::string path);
+bool getSnapshotParamsFromFile(Eigen::MatrixXd& snapshot_parameters, std::string path);
 
 /// Place 400 distributed points across the parameter domain for error sampling
-void getROMPoints(Eigen::MatrixXd rom_points, const Parameters::AllParameters *const all_parameters);
+void getROMPoints(Eigen::MatrixXd& rom_points, const Parameters::AllParameters *const all_parameters);
 
 } // End of Tests namespace
 } // End of PHiLiP namespace

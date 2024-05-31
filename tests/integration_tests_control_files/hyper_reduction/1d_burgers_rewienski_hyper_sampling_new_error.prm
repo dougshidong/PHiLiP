@@ -26,7 +26,7 @@ end
 
 #Reduced order parameters
 subsection reduced order
-  set adaptation_tolerance = 1e-04
+  set adaptation_tolerance = 2e-01
   set path_to_search = .
   set reduced_residual_tolerance = 1e-14
   set parameter_names = rewienski_b

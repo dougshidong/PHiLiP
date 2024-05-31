@@ -11,7 +11,7 @@
 namespace PHiLiP {
 namespace Tests {
 
-bool getSnapshotParamsFromFile(Eigen::MatrixXd snapshot_parameters, std::string path) {
+bool getSnapshotParamsFromFile(Eigen::MatrixXd& snapshot_parameters, std::string path) {
     bool file_found = false;
 
     std::vector<std::filesystem::path> files_in_directory;
@@ -86,7 +86,7 @@ bool getSnapshotParamsFromFile(Eigen::MatrixXd snapshot_parameters, std::string 
     return file_found;
 }
 
-void getROMPoints(Eigen::MatrixXd rom_points, const Parameters::AllParameters *const all_parameters) {
+void getROMPoints(Eigen::MatrixXd& rom_points, const Parameters::AllParameters *const all_parameters) {
     const double pi = atan(1.0) * 4.0;
     rom_points.conservativeResize(400, 2);
     RowVectorXd parameter1_range;

@@ -450,10 +450,10 @@ bool DGBase<dim,real,MeshType>::current_cell_should_do_the_work (
 }
     
 template <int dim, typename real, typename MeshType>
-template<typename DoFCellAccessorType1, typename DoFCellAccessorType2, typename adtype>
+template<typename adtype>
 void DGBase<dim,real,MeshType>::assemble_cell_residual_and_ad_derivatives (
-    const DoFCellAccessorType1 &current_cell,
-    const DoFCellAccessorType2 &current_metric_cell,
+    const dealii::TriaActiveIterator<dealii::DoFCellAccessor<dim, dim, false>> &current_cell,
+    const dealii::TriaActiveIterator<dealii::DoFCellAccessor<dim, dim, false>> &current_metric_cell,
     const bool compute_dRdW, const bool compute_dRdX, const bool compute_d2R,
     dealii::hp::FEValues<dim,dim>                                      &fe_values_collection_volume,
     dealii::hp::FEFaceValues<dim,dim>                                  &fe_values_collection_face_int,
@@ -519,7 +519,7 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual_and_ad_derivatives (
         std::abort();
     }
 
-    unsigned int n_tapes = 1;
+    int n_tapes = 1;
     // Compute number of tapes using which the derivatives are computated.
     for (unsigned int iface=0; iface < dealii::GeometryInfo<dim>::faces_per_cell; ++iface) 
     {
@@ -561,7 +561,7 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual_and_ad_derivatives (
     
     for (unsigned int idof = 0; idof < n_metric_dofs_cell; ++idof) 
     {
-        const real val = this->high_order_grid->volume_nodes[metric_dof_indices[idof]];
+        const real val = this->high_order_grid->volume_nodes[current_metric_dofs_indices[idof]];
         local_metric_int[idof] = val;
 
         if (compute_dRdX || compute_d2R) 
@@ -942,7 +942,7 @@ void DGBase<dim,real,MeshType>::assemble_volume_term_and_build_operators_ad(
     typename dealii::DoFHandler<dim>::active_cell_iterator cell,
     const dealii::types::global_dof_index                  current_cell_index,
     const std::vector<dealii::types::global_dof_index>     &soln_dofs_indices,
-    const std::vector<dealii::types::global_dof_index>     &metric_dof_indices,
+    const std::vector<dealii::types::global_dof_index>     &metric_dofs_indices,
     const unsigned int                                     poly_degree,
     const unsigned int                                     grid_degree,
     OPERATOR::basis_functions<dim,2*dim,real>                   &/*soln_basis*/,
@@ -978,8 +978,8 @@ void DGBase<dim,real,MeshType>::assemble_volume_term_and_build_operators_ad(
         cell,
         current_cell_index,
         fe_values_vol,
-        cell_dofs_indices,
-        metric_dof_indices,
+        soln_dofs_indices,
+        metric_dofs_indices,
         poly_degree, grid_degree,
         local_rhs_cell,
         fe_values_lagrange);
@@ -990,14 +990,14 @@ void DGBase<dim,real,MeshType>::assemble_volume_term_and_build_operators_ad(
     
     const unsigned int n_soln_dofs = fe_soln.dofs_per_cell;
 
-    AssertDimension (n_soln_dofs, soln_dof_indices.size());
+    AssertDimension (n_soln_dofs, soln_dofs_indices.size());
 
     const dealii::FESystem<dim> &fe_metric = this->high_order_grid->fe_system;
     const unsigned int n_metric_dofs = fe_metric.dofs_per_cell;
 
     std::vector<real> local_dual(n_soln_dofs);
     for (unsigned int itest=0; itest<n_soln_dofs; ++itest) {
-        const unsigned int global_residual_row = soln_dof_indices[itest];
+        const unsigned int global_residual_row = soln_dofs_indices[itest];
         local_dual[itest] = this->dual[global_residual_row];
     }
 
@@ -1011,7 +1011,7 @@ void DGBase<dim,real,MeshType>::assemble_volume_term_and_build_operators_ad(
     
     std::vector<adtype> local_solution(fe_soln.dofs_per_cell);
     for (unsigned int idof = 0; idof < n_soln_dofs; ++idof) {
-        const real val = this->solution(soln_dof_indices[idof]);
+        const real val = this->solution(soln_dofs_indices[idof]);
         local_solution[idof] = val;
 
         if (compute_dRdW || compute_d2R) {
@@ -1023,10 +1023,10 @@ void DGBase<dim,real,MeshType>::assemble_volume_term_and_build_operators_ad(
     
     adtype dual_dot_residual = 0.0;
     std::vector<adtype> rhs(n_soln_dofs);
-    assemble_volume_term_ad<adtype>(
+    assemble_volume_term_ad(
         cell,
         current_cell_index,
-        local_solution, local_metric,
+        local_solution, local_metric_int,
         local_dual,
         quadrature,
         fe_soln,
@@ -1062,7 +1062,7 @@ void DGBase<dim,real,MeshType>::assemble_volume_term_and_build_operators_ad(
                 AssertIsFinite(residual_derivatives[idof]);
             }
             const bool elide_zero_values = false;
-            this->system_matrix.add(soln_dof_indices[itest], soln_dof_indices, residual_derivatives, elide_zero_values);
+            this->system_matrix.add(soln_dofs_indices[itest], soln_dofs_indices, residual_derivatives, elide_zero_values);
         }
         th.deleteJacobian(jac);
 
@@ -1077,7 +1077,7 @@ void DGBase<dim,real,MeshType>::assemble_volume_term_and_build_operators_ad(
                 const unsigned int i_dx = idof+x_start;
                 residual_derivatives[idof] = jac(itest,i_dx);
             }
-            this->dRdXv.add(soln_dof_indices[itest], metric_dof_indices, residual_derivatives);
+            this->dRdXv.add(soln_dofs_indices[itest], metric_dofs_indices, residual_derivatives);
         }
         th.deleteJacobian(jac);
     }
@@ -1100,13 +1100,13 @@ void DGBase<dim,real,MeshType>::assemble_volume_term_and_build_operators_ad(
                 const unsigned int j_dx = jdof+w_start;
                 dWidW[jdof] = hes(i_dependent,i_dx,j_dx);
             }
-            this->d2RdWdW.add(soln_dof_indices[idof], soln_dof_indices, dWidW);
+            this->d2RdWdW.add(soln_dofs_indices[idof], soln_dofs_indices, dWidW);
 
             for (unsigned int jdof=0; jdof<n_metric_dofs; ++jdof) {
                 const unsigned int j_dx = jdof+x_start;
                 dWidX[jdof] = hes(i_dependent,i_dx,j_dx);
             }
-            this->d2RdWdX.add(soln_dof_indices[idof], metric_dof_indices, dWidX);
+            this->d2RdWdX.add(soln_dofs_indices[idof], metric_dofs_indices, dWidX);
         }
 
         for (unsigned int idof=0; idof<n_metric_dofs; ++idof) {
@@ -1117,7 +1117,7 @@ void DGBase<dim,real,MeshType>::assemble_volume_term_and_build_operators_ad(
                 const unsigned int j_dx = jdof+x_start;
                 dXidX[jdof] = hes(i_dependent,i_dx,j_dx);
             }
-            this->d2RdXdX.add(metric_dof_indices[idof], metric_dof_indices, dXidX);
+            this->d2RdXdX.add(metric_dofs_indices[idof], metric_dofs_indices, dXidX);
         }
 
         th.deleteHessian(hes);
@@ -1138,7 +1138,7 @@ void DGBase<dim,real,MeshType>::assemble_boundary_term_and_build_operators_ad(
     const unsigned int                                     boundary_id,
     const real                                             penalty,
     const std::vector<dealii::types::global_dof_index>     &soln_dofs_indices,
-    const std::vector<dealii::types::global_dof_index>     &metric_dof_indices,
+    const std::vector<dealii::types::global_dof_index>     &metric_dofs_indices,
     const unsigned int                                     /*poly_degree*/,
     const unsigned int                                     /*grid_degree*/,
     OPERATOR::basis_functions<dim,2*dim,real>                   &/*soln_basis*/,
@@ -1173,7 +1173,7 @@ void DGBase<dim,real,MeshType>::assemble_boundary_term_and_build_operators_ad(
 
     (void) compute_dRdW; (void) compute_dRdX; (void) compute_d2R;
     const bool compute_metric_derivatives = true;//(!compute_dRdX && !compute_d2R) ? false : true;
-    AssertDimension (n_soln_dofs, soln_dof_indices.size());
+    AssertDimension (n_soln_dofs, soln_dofs_indices.size());
 
     std::vector<adtype> local_solution(fe_soln.dofs_per_cell);
 
@@ -1183,7 +1183,7 @@ void DGBase<dim,real,MeshType>::assemble_boundary_term_and_build_operators_ad(
                                           w_start, w_end, x_start, x_end );
     
     for (unsigned int idof = 0; idof < n_soln_dofs; ++idof) {
-        const real val = this->solution(soln_dof_indices[idof]);
+        const real val = this->solution(soln_dofs_indices[idof]);
         local_solution[idof] = val;
 
         if (compute_dRdW || compute_d2R) {
@@ -1196,12 +1196,12 @@ void DGBase<dim,real,MeshType>::assemble_boundary_term_and_build_operators_ad(
 
     std::vector<real> local_dual(n_soln_dofs);
     for (unsigned int itest=0; itest<n_soln_dofs; ++itest) {
-        local_dual[itest] = this->dual[soln_dof_indices[itest]];
+        local_dual[itest] = this->dual[soln_dofs_indices[itest]];
     }
 
     std::vector<adtype> rhs(n_soln_dofs);
     adtype dual_dot_residual;
-    assemble_boundary_term_ad<adtype>(
+    assemble_boundary_term_ad(
         cell,
         current_cell_index,
         local_solution,
@@ -1246,7 +1246,7 @@ void DGBase<dim,real,MeshType>::assemble_boundary_term_and_build_operators_ad(
                 AssertIsFinite(residual_derivatives[idof]);
             }
             const bool elide_zero_values = false;
-            this->system_matrix.add(soln_dof_indices[itest], soln_dof_indices, residual_derivatives, elide_zero_values);
+            this->system_matrix.add(soln_dofs_indices[itest], soln_dofs_indices, residual_derivatives, elide_zero_values);
         }
         th.deleteJacobian(jac);
 
@@ -1261,7 +1261,7 @@ void DGBase<dim,real,MeshType>::assemble_boundary_term_and_build_operators_ad(
                 const unsigned int i_dx = idof+x_start;
                 residual_derivatives[idof] = jac(itest,i_dx);
             }
-            this->dRdXv.add(soln_dof_indices[itest], metric_dof_indices, residual_derivatives);
+            this->dRdXv.add(soln_dofs_indices[itest], metric_dofs_indices, residual_derivatives);
         }
         th.deleteJacobian(jac);
     }
@@ -1284,13 +1284,13 @@ void DGBase<dim,real,MeshType>::assemble_boundary_term_and_build_operators_ad(
                 const unsigned int j_dx = jdof+w_start;
                 dWidW[jdof] = hes(i_dependent,i_dx,j_dx);
             }
-            this->d2RdWdW.add(soln_dof_indices[idof], soln_dof_indices, dWidW);
+            this->d2RdWdW.add(soln_dofs_indices[idof], soln_dofs_indices, dWidW);
 
             for (unsigned int jdof=0; jdof<n_metric_dofs; ++jdof) {
                 const unsigned int j_dx = jdof+x_start;
                 dWidX[jdof] = hes(i_dependent,i_dx,j_dx);
             }
-            this->d2RdWdX.add(soln_dof_indices[idof], metric_dof_indices, dWidX);
+            this->d2RdWdX.add(soln_dofs_indices[idof], metric_dofs_indices, dWidX);
         }
 
         for (unsigned int idof=0; idof<n_metric_dofs; ++idof) {
@@ -1301,7 +1301,7 @@ void DGBase<dim,real,MeshType>::assemble_boundary_term_and_build_operators_ad(
                 const unsigned int j_dx = jdof+x_start;
                 dXidX[jdof] = hes(i_dependent,i_dx,j_dx);
             }
-            this->d2RdXdX.add(metric_dof_indices[idof], metric_dof_indices, dXidX);
+            this->d2RdXdX.add(metric_dofs_indices[idof], metric_dofs_indices, dXidX);
         }
 
         th.deleteHessian(hes);
@@ -1314,7 +1314,7 @@ void DGBase<dim,real,MeshType>::assemble_boundary_term_and_build_operators_ad(
 
 template <int dim, typename real, typename MeshType>
 template <typename adtype>
-void DGBase<dim,nstate,real,MeshType>::assemble_face_term_and_build_operators_ad(
+void DGBase<dim,real,MeshType>::assemble_face_term_and_build_operators_ad(
     typename dealii::DoFHandler<dim>::active_cell_iterator cell,
     typename dealii::DoFHandler<dim>::active_cell_iterator neighbor_cell,
     const dealii::types::global_dof_index                  current_cell_index,
@@ -1522,10 +1522,10 @@ void DGBase<dim,real,MeshType>::assemble_face_subface_term_derivatives_ad(
     const dealii::FESystem<dim,dim> &fe_int,
     const dealii::FESystem<dim,dim> &fe_ext,
     const dealii::Quadrature<dim-1> &face_quadrature,
-    const std::vector<dealii::types::global_dof_index> &metric_dof_indices_int,
-    const std::vector<dealii::types::global_dof_index> &metric_dof_indices_ext,
-    const std::vector<dealii::types::global_dof_index> &soln_dof_indices_int,
-    const std::vector<dealii::types::global_dof_index> &soln_dof_indices_ext,
+    const std::vector<dealii::types::global_dof_index> &metric_dofs_indices_int,
+    const std::vector<dealii::types::global_dof_index> &metric_dofs_indices_ext,
+    const std::vector<dealii::types::global_dof_index> &soln_dofs_indices_int,
+    const std::vector<dealii::types::global_dof_index> &soln_dofs_indices_ext,
     dealii::Vector<real>          &local_rhs_int_cell,
     dealii::Vector<real>          &local_rhs_ext_cell,
     std::vector<adtype>                  &metric_int,
@@ -1537,8 +1537,8 @@ void DGBase<dim,real,MeshType>::assemble_face_subface_term_derivatives_ad(
     const unsigned int n_soln_dofs_int = fe_int.dofs_per_cell;
     const unsigned int n_soln_dofs_ext = fe_ext.dofs_per_cell;
 
-    AssertDimension (n_soln_dofs_int, soln_dof_indices_int.size());
-    AssertDimension (n_soln_dofs_ext, soln_dof_indices_ext.size());
+    AssertDimension (n_soln_dofs_int, soln_dofs_indices_int.size());
+    AssertDimension (n_soln_dofs_ext, soln_dofs_indices_ext.size());
 
     std::vector<adtype> soln_int(fe_int.dofs_per_cell);
     std::vector<adtype> soln_ext(fe_ext.dofs_per_cell);
@@ -1555,7 +1555,7 @@ void DGBase<dim,real,MeshType>::assemble_face_subface_term_derivatives_ad(
 
 
     for (unsigned int idof = 0; idof < n_metric_dofs; ++idof) {
-        const real val = this->high_order_grid->volume_nodes[metric_dof_indices_ext[idof]];
+        const real val = this->high_order_grid->volume_nodes[metric_dofs_indices_ext[idof]];
         metric_ext[idof] = val;
         if (compute_dRdX || compute_d2R) {
             th.registerInput(metric_ext[idof]);
@@ -1564,7 +1564,7 @@ void DGBase<dim,real,MeshType>::assemble_face_subface_term_derivatives_ad(
         }
     }
     for (unsigned int idof = 0; idof < n_soln_dofs_int; ++idof) {
-        const real val = this->solution(soln_dof_indices_int[idof]);
+        const real val = this->solution(soln_dofs_indices_int[idof]);
         soln_int[idof] = val;
         if (compute_dRdW || compute_d2R) {
             th.registerInput(soln_int[idof]);
@@ -1573,7 +1573,7 @@ void DGBase<dim,real,MeshType>::assemble_face_subface_term_derivatives_ad(
         }
     }
     for (unsigned int idof = 0; idof < n_soln_dofs_ext; ++idof) {
-        const real val = this->solution(soln_dof_indices_ext[idof]);
+        const real val = this->solution(soln_dofs_indices_ext[idof]);
         soln_ext[idof] = val;
         if (compute_dRdW || compute_d2R) {
             th.registerInput(soln_ext[idof]);
@@ -1586,11 +1586,11 @@ void DGBase<dim,real,MeshType>::assemble_face_subface_term_derivatives_ad(
     std::vector<double> dual_ext(n_soln_dofs_ext);
 
     for (unsigned int itest=0; itest<n_soln_dofs_int; ++itest) {
-        const unsigned int global_residual_row = soln_dof_indices_int[itest];
+        const unsigned int global_residual_row = soln_dofs_indices_int[itest];
         dual_int[itest] = this->dual[global_residual_row];
     }
     for (unsigned int itest=0; itest<n_soln_dofs_ext; ++itest) {
-        const unsigned int global_residual_row = soln_dof_indices_ext[itest];
+        const unsigned int global_residual_row = soln_dofs_indices_ext[itest];
         dual_ext[itest] = this->dual[global_residual_row];
     }
 
@@ -1598,7 +1598,7 @@ void DGBase<dim,real,MeshType>::assemble_face_subface_term_derivatives_ad(
     std::vector<adtype> rhs_ext(n_soln_dofs_ext);
     adtype dual_dot_residual;
     
-    assemble_face_term_ad<adtype>(
+    assemble_face_term_ad(
         cell,
         current_cell_index,
         neighbor_cell_index,
@@ -1660,7 +1660,7 @@ void DGBase<dim,real,MeshType>::assemble_face_subface_term_derivatives_ad(
                     residual_derivatives[idof] = jac(i_dependent,i_dx);
                 }
                 const bool elide_zero_values = false;
-                this->system_matrix.add(soln_dof_indices_int[itest_int], soln_dof_indices_int, residual_derivatives, elide_zero_values);
+                this->system_matrix.add(soln_dofs_indices_int[itest_int], soln_dofs_indices_int, residual_derivatives, elide_zero_values);
 
                 // dR_int_dW_ext
                 residual_derivatives.resize(n_soln_dofs_ext);
@@ -1668,7 +1668,7 @@ void DGBase<dim,real,MeshType>::assemble_face_subface_term_derivatives_ad(
                     const unsigned int i_dx = idof+w_ext_start;
                     residual_derivatives[idof] = jac(i_dependent,i_dx);
                 }
-                this->system_matrix.add(soln_dof_indices_int[itest_int], soln_dof_indices_ext, residual_derivatives, elide_zero_values);
+                this->system_matrix.add(soln_dofs_indices_int[itest_int], soln_dofs_indices_ext, residual_derivatives, elide_zero_values);
             }
 
             for (unsigned int itest_ext=0; itest_ext<n_soln_dofs_ext; ++itest_ext) {
@@ -1682,7 +1682,7 @@ void DGBase<dim,real,MeshType>::assemble_face_subface_term_derivatives_ad(
                     residual_derivatives[idof] = jac(i_dependent,i_dx);
                 }
                 const bool elide_zero_values = false;
-                this->system_matrix.add(soln_dof_indices_ext[itest_ext], soln_dof_indices_int, residual_derivatives, elide_zero_values);
+                this->system_matrix.add(soln_dofs_indices_ext[itest_ext], soln_dofs_indices_int, residual_derivatives, elide_zero_values);
 
                 // dR_ext_dW_ext
                 residual_derivatives.resize(n_soln_dofs_ext);
@@ -1690,7 +1690,7 @@ void DGBase<dim,real,MeshType>::assemble_face_subface_term_derivatives_ad(
                     const unsigned int i_dx = idof+w_ext_start;
                     residual_derivatives[idof] = jac(i_dependent,i_dx);
                 }
-                this->system_matrix.add(soln_dof_indices_ext[itest_ext], soln_dof_indices_ext, residual_derivatives, elide_zero_values);
+                this->system_matrix.add(soln_dofs_indices_ext[itest_ext], soln_dofs_indices_ext, residual_derivatives, elide_zero_values);
             }
         }
 
@@ -1706,14 +1706,14 @@ void DGBase<dim,real,MeshType>::assemble_face_subface_term_derivatives_ad(
                     const unsigned int i_dx = idof+x_int_start;
                     residual_derivatives[idof] = jac(i_dependent,i_dx);
                 }
-                this->dRdXv.add(soln_dof_indices_int[itest_int], metric_dof_indices_int, residual_derivatives);
+                this->dRdXv.add(soln_dofs_indices_int[itest_int], metric_dofs_indices_int, residual_derivatives);
 
                 // dR_int_dX_ext
                 for (unsigned int idof = 0; idof < n_metric_dofs; ++idof) {
                     const unsigned int i_dx = idof+x_ext_start;
                     residual_derivatives[idof] = jac(i_dependent,i_dx);
                 }
-                this->dRdXv.add(soln_dof_indices_int[itest_int], metric_dof_indices_ext, residual_derivatives);
+                this->dRdXv.add(soln_dofs_indices_int[itest_int], metric_dofs_indices_ext, residual_derivatives);
             }
 
             for (unsigned int itest_ext=0; itest_ext<n_soln_dofs_ext; ++itest_ext) {
@@ -1725,14 +1725,14 @@ void DGBase<dim,real,MeshType>::assemble_face_subface_term_derivatives_ad(
                     const unsigned int i_dx = idof+x_int_start;
                     residual_derivatives[idof] = jac(i_dependent,i_dx);
                 }
-                this->dRdXv.add(soln_dof_indices_ext[itest_ext], metric_dof_indices_int, residual_derivatives);
+                this->dRdXv.add(soln_dofs_indices_ext[itest_ext], metric_dofs_indices_int, residual_derivatives);
 
                 // dR_ext_dX_ext
                 for (unsigned int idof = 0; idof < n_metric_dofs; ++idof) {
                     const unsigned int i_dx = idof+x_ext_start;
                     residual_derivatives[idof] = jac(i_dependent,i_dx);
                 }
-                this->dRdXv.add(soln_dof_indices_ext[itest_ext], metric_dof_indices_ext, residual_derivatives);
+                this->dRdXv.add(soln_dofs_indices_ext[itest_ext], metric_dofs_indices_ext, residual_derivatives);
             }
         }
 
@@ -1758,28 +1758,28 @@ void DGBase<dim,real,MeshType>::assemble_face_subface_term_derivatives_ad(
                 const unsigned int j_dx = jdof+w_int_start;
                 dWidW[jdof] = hes(i_dependent,i_dx,j_dx);
             }
-            this->d2RdWdW.add(soln_dof_indices_int[idof], soln_dof_indices_int, dWidW);
+            this->d2RdWdW.add(soln_dofs_indices_int[idof], soln_dofs_indices_int, dWidW);
 
             // dWint_dWext
             for (unsigned int jdof=0; jdof<n_soln_dofs_ext; ++jdof) {
                 const unsigned int j_dx = jdof+w_ext_start;
                 dWidW[jdof] = hes(i_dependent,i_dx,j_dx);
             }
-            this->d2RdWdW.add(soln_dof_indices_int[idof], soln_dof_indices_ext, dWidW);
+            this->d2RdWdW.add(soln_dofs_indices_int[idof], soln_dofs_indices_ext, dWidW);
 
             // dWint_dXint
             for (unsigned int jdof=0; jdof<n_metric_dofs; ++jdof) {
                 const unsigned int j_dx = jdof+x_int_start;
                 dWidX[jdof] = hes(i_dependent,i_dx,j_dx);
             }
-            this->d2RdWdX.add(soln_dof_indices_int[idof], metric_dof_indices_int, dWidX);
+            this->d2RdWdX.add(soln_dofs_indices_int[idof], metric_dofs_indices_int, dWidX);
 
             // dWint_dXext
             for (unsigned int jdof=0; jdof<n_metric_dofs; ++jdof) {
                 const unsigned int j_dx = jdof+x_ext_start;
                 dWidX[jdof] = hes(i_dependent,i_dx,j_dx);
             }
-            this->d2RdWdX.add(soln_dof_indices_int[idof], metric_dof_indices_ext, dWidX);
+            this->d2RdWdX.add(soln_dofs_indices_int[idof], metric_dofs_indices_ext, dWidX);
         }
 
         for (unsigned int idof=0; idof<n_metric_dofs; ++idof) {
@@ -1791,14 +1791,14 @@ void DGBase<dim,real,MeshType>::assemble_face_subface_term_derivatives_ad(
                 const unsigned int j_dx = jdof+x_int_start;
                 dXidX[jdof] = hes(i_dependent,i_dx,j_dx);
             }
-            this->d2RdXdX.add(metric_dof_indices_int[idof], metric_dof_indices_int, dXidX);
+            this->d2RdXdX.add(metric_dofs_indices_int[idof], metric_dofs_indices_int, dXidX);
 
             // dXint_dXext
             for (unsigned int jdof=0; jdof<n_metric_dofs; ++jdof) {
                 const unsigned int j_dx = jdof+x_ext_start;
                 dXidX[jdof] = hes(i_dependent,i_dx,j_dx);
             }
-            this->d2RdXdX.add(metric_dof_indices_int[idof], metric_dof_indices_ext, dXidX);
+            this->d2RdXdX.add(metric_dofs_indices_int[idof], metric_dofs_indices_ext, dXidX);
         }
 
         dWidW.resize(n_soln_dofs_ext);
@@ -1812,28 +1812,28 @@ void DGBase<dim,real,MeshType>::assemble_face_subface_term_derivatives_ad(
                 const unsigned int j_dx = jdof+w_int_start;
                 dWidW[jdof] = hes(i_dependent,i_dx,j_dx);
             }
-            this->d2RdWdW.add(soln_dof_indices_ext[idof], soln_dof_indices_int, dWidW);
+            this->d2RdWdW.add(soln_dofs_indices_ext[idof], soln_dofs_indices_int, dWidW);
 
             // dWext_dWext
             for (unsigned int jdof=0; jdof<n_soln_dofs_ext; ++jdof) {
                 const unsigned int j_dx = jdof+w_ext_start;
                 dWidW[jdof] = hes(i_dependent,i_dx,j_dx);
             }
-            this->d2RdWdW.add(soln_dof_indices_ext[idof], soln_dof_indices_ext, dWidW);
+            this->d2RdWdW.add(soln_dofs_indices_ext[idof], soln_dofs_indices_ext, dWidW);
 
             // dWext_dXint
             for (unsigned int jdof=0; jdof<n_metric_dofs; ++jdof) {
                 const unsigned int j_dx = jdof+x_int_start;
                 dWidX[jdof] = hes(i_dependent,i_dx,j_dx);
             }
-            this->d2RdWdX.add(soln_dof_indices_ext[idof], metric_dof_indices_int, dWidX);
+            this->d2RdWdX.add(soln_dofs_indices_ext[idof], metric_dofs_indices_int, dWidX);
 
             // dWext_dXext
             for (unsigned int jdof=0; jdof<n_metric_dofs; ++jdof) {
                 const unsigned int j_dx = jdof+x_ext_start;
                 dWidX[jdof] = hes(i_dependent,i_dx,j_dx);
             }
-            this->d2RdWdX.add(soln_dof_indices_ext[idof], metric_dof_indices_ext, dWidX);
+            this->d2RdWdX.add(soln_dofs_indices_ext[idof], metric_dofs_indices_ext, dWidX);
         }
 
         for (unsigned int idof=0; idof<n_metric_dofs; ++idof) {
@@ -1845,14 +1845,14 @@ void DGBase<dim,real,MeshType>::assemble_face_subface_term_derivatives_ad(
                 const unsigned int j_dx = jdof+x_int_start;
                 dXidX[jdof] = hes(i_dependent,i_dx,j_dx);
             }
-            this->d2RdXdX.add(metric_dof_indices_ext[idof], metric_dof_indices_int, dXidX);
+            this->d2RdXdX.add(metric_dofs_indices_ext[idof], metric_dofs_indices_int, dXidX);
 
             // dXext_dXext
             for (unsigned int jdof=0; jdof<n_metric_dofs; ++jdof) {
                 const unsigned int j_dx = jdof+x_ext_start;
                 dXidX[jdof] = hes(i_dependent,i_dx,j_dx);
             }
-            this->d2RdXdX.add(metric_dof_indices_ext[idof], metric_dof_indices_ext, dXidX);
+            this->d2RdXdX.add(metric_dofs_indices_ext[idof], metric_dofs_indices_ext, dXidX);
         }
 
         th.deleteHessian(hes);
@@ -1869,24 +1869,19 @@ void DGBase<dim,real,MeshType>::assemble_face_subface_term_derivatives_ad(
     }
 }
 
-/// Returns the value from a CoDiPack variable.
-/** The recursive calling allows to retrieve nested CoDiPack types.
- */
-template <typename real>
-double getValue(const real &x) {
-    if constexpr (std::is_same<real, double>::value) {
+template <int dim, typename real, typename MeshType>
+template <typename real2>
+double DGBase<dim,real,MeshType>::getValue(const real2 &x) 
+{
+    if constexpr (std::is_same<real2, double>::value) {
         return x;
     } else {
         return getValue(x.value());
     }
 }
 
-/// Derivative indexing when only 1 cell is concerned.
-/// Derivatives are ordered such that x comes first with index 0, then w.
-/// If derivatives with respect to x are not needed, then derivatives
-/// with respect to w will start at index 0. This function is for a single
-/// cell's DoFs.
-void automatic_differentiation_indexing_1(
+template <int dim, typename real, typename MeshType>
+void DGBase<dim,real,MeshType>::automatic_differentiation_indexing_1(
     const bool compute_dRdW, const bool compute_dRdX, const bool compute_d2R,
     const unsigned int n_soln_dofs, const unsigned int n_metric_dofs,
     unsigned int &w_start, unsigned int &w_end,
@@ -1916,12 +1911,8 @@ void automatic_differentiation_indexing_1(
     }
 }
 
-/// Derivative indexing when 2 cells are concerned.
-/// Derivatives are ordered such that x comes first with index 0, then w.
-/// If derivatives with respect to x are not needed, then derivatives
-/// with respect to w will start at index 0. This function is for a single
-/// cell's DoFs.
-void automatic_differentiation_indexing_2(
+template <int dim, typename real, typename MeshType>
+void DGBase<dim,real,MeshType>::automatic_differentiation_indexing_2(
     const bool compute_dRdW, const bool compute_dRdX, const bool compute_d2R,
     const unsigned int n_soln_dofs_int, const unsigned int n_soln_dofs_ext, const unsigned int n_metric_dofs,
     unsigned int &w_int_start, unsigned int &w_int_end, unsigned int &w_ext_start, unsigned int &w_ext_end,
@@ -3721,8 +3712,8 @@ void DGBase<dim,real,MeshType>::evaluate_mass_matrices (bool do_inverse_mass_mat
         const dealii::FESystem<dim> &fe_metric = high_order_grid->fe_system;
         const unsigned int n_metric_dofs = high_order_grid->fe_system.dofs_per_cell;
         const unsigned int n_grid_nodes  = n_metric_dofs/dim;
-        std::vector<dealii::types::global_dof_index> metric_dof_indices(n_metric_dofs);
-        metric_cell->get_dof_indices (metric_dof_indices);
+        std::vector<dealii::types::global_dof_index> metric_dofs_indices(n_metric_dofs);
+        metric_cell->get_dof_indices (metric_dofs_indices);
         // get mapping_support points
         std::array<std::vector<real>,dim> mapping_support_points;
         for(int idim=0; idim<dim; idim++){
@@ -3730,7 +3721,7 @@ void DGBase<dim,real,MeshType>::evaluate_mass_matrices (bool do_inverse_mass_mat
         }
         const std::vector<unsigned int > &index_renumbering = dealii::FETools::hierarchic_to_lexicographic_numbering<dim>(curr_grid_degree);
         for (unsigned int idof = 0; idof< n_metric_dofs; ++idof) {
-            const real val = (high_order_grid->volume_nodes[metric_dof_indices[idof]]);
+            const real val = (high_order_grid->volume_nodes[metric_dofs_indices[idof]]);
             const unsigned int istate = fe_metric.system_to_component_index(idof).first; 
             const unsigned int ishape = fe_metric.system_to_component_index(idof).second; 
             const unsigned int igrid_node = index_renumbering[ishape];
@@ -4091,8 +4082,8 @@ void DGBase<dim,real,MeshType>::apply_inverse_global_mass_matrix(
 
         // get mapping support points and determinant of Jacobian
         // setup metric cell
-        std::vector<dealii::types::global_dof_index> metric_dof_indices(n_metric_dofs);
-        metric_cell->get_dof_indices (metric_dof_indices);
+        std::vector<dealii::types::global_dof_index> metric_dofs_indices(n_metric_dofs);
+        metric_cell->get_dof_indices (metric_dofs_indices);
         // get mapping_support points
         std::array<std::vector<real>,dim> mapping_support_points;
         for(int idim=0; idim<dim; idim++){
@@ -4100,7 +4091,7 @@ void DGBase<dim,real,MeshType>::apply_inverse_global_mass_matrix(
         }
         const std::vector<unsigned int > &index_renumbering = dealii::FETools::hierarchic_to_lexicographic_numbering<dim>(grid_degree);
         for (unsigned int idof = 0; idof< n_metric_dofs; ++idof) {
-            const real val = (high_order_grid->volume_nodes[metric_dof_indices[idof]]);
+            const real val = (high_order_grid->volume_nodes[metric_dofs_indices[idof]]);
             const unsigned int istate = fe_metric.system_to_component_index(idof).first; 
             const unsigned int ishape = fe_metric.system_to_component_index(idof).second; 
             const unsigned int igrid_node = index_renumbering[ishape];
@@ -4257,8 +4248,8 @@ void DGBase<dim,real,MeshType>::apply_global_mass_matrix(
 
         //get mapping support points and determinant of Jacobian
         //setup metric cell
-        std::vector<dealii::types::global_dof_index> metric_dof_indices(n_metric_dofs);
-        metric_cell->get_dof_indices (metric_dof_indices);
+        std::vector<dealii::types::global_dof_index> metric_dofs_indices(n_metric_dofs);
+        metric_cell->get_dof_indices (metric_dofs_indices);
         // get mapping_support points
         std::array<std::vector<real>,dim> mapping_support_points;
         for(int idim=0; idim<dim; idim++){
@@ -4266,7 +4257,7 @@ void DGBase<dim,real,MeshType>::apply_global_mass_matrix(
         }
         const std::vector<unsigned int > &index_renumbering = dealii::FETools::hierarchic_to_lexicographic_numbering<dim>(grid_degree);
         for (unsigned int idof = 0; idof< n_metric_dofs; ++idof) {
-            const real val = (high_order_grid->volume_nodes[metric_dof_indices[idof]]);
+            const real val = (high_order_grid->volume_nodes[metric_dofs_indices[idof]]);
             const unsigned int istate = fe_metric.system_to_component_index(idof).first; 
             const unsigned int ishape = fe_metric.system_to_component_index(idof).second; 
             const unsigned int igrid_node = index_renumbering[ishape];

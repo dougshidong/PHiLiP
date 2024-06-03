@@ -590,10 +590,10 @@ public:
         dealii::LinearAlgebra::distributed::Vector<double>                 &rhs,
         std::array<dealii::LinearAlgebra::distributed::Vector<double>,dim> &rhs_aux);
     
-    template<typename DoFCellAccessorType1, typename DoFCellAccessorType2>
+    template<typename adtype>
     void assemble_cell_residual_and_ad_derivatives (
-        const DoFCellAccessorType1 &current_cell,
-        const DoFCellAccessorType2 &current_metric_cell,
+        const dealii::TriaActiveIterator<dealii::DoFCellAccessor<dim, dim, false>> &current_cell,
+        const dealii::TriaActiveIterator<dealii::DoFCellAccessor<dim, dim, false>> &current_metric_cell,
         const bool compute_dRdW, const bool compute_dRdX, const bool compute_d2R,
         dealii::hp::FEValues<dim,dim>                                      &fe_values_collection_volume,
         dealii::hp::FEFaceValues<dim,dim>                                  &fe_values_collection_face_int,
@@ -745,6 +745,31 @@ public:
         std::vector<adtype>                  &local_metric,
         codi::TapeHelper<adtype>                               &th,
         const bool                                             /*compute_auxiliary_right_hand_side*/,
+        const bool compute_dRdW, const bool compute_dRdX, const bool compute_d2R);
+
+    template <typename adtype>
+    void assemble_face_subface_term_derivatives_ad(
+        typename dealii::DoFHandler<dim>::active_cell_iterator cell,
+        const dealii::types::global_dof_index current_cell_index,
+        const dealii::types::global_dof_index neighbor_cell_index,
+        const std::pair<unsigned int, int> face_subface_int,
+        const std::pair<unsigned int, int> face_subface_ext,
+        const typename dealii::QProjector<dim>::DataSetDescriptor face_data_set_int,
+        const typename dealii::QProjector<dim>::DataSetDescriptor face_data_set_ext,
+        const dealii::FEFaceValuesBase<dim,dim>     &fe_values_int,
+        const dealii::FEFaceValuesBase<dim,dim>     &fe_values_ext,
+        const real penalty,
+        const dealii::FESystem<dim,dim> &fe_int,
+        const dealii::FESystem<dim,dim> &fe_ext,
+        const dealii::Quadrature<dim-1> &face_quadrature,
+        const std::vector<dealii::types::global_dof_index> &metric_dofs_indices_int,
+        const std::vector<dealii::types::global_dof_index> &metric_dofs_indices_ext,
+        const std::vector<dealii::types::global_dof_index> &soln_dofs_indices_int,
+        const std::vector<dealii::types::global_dof_index> &soln_dofs_indices_ext,
+        dealii::Vector<real>          &local_rhs_int_cell,
+        dealii::Vector<real>          &local_rhs_ext_cell,
+        std::vector<adtype>                  &metric_int,
+        codi::TapeHelper<adtype>                               &th,
         const bool compute_dRdW, const bool compute_dRdX, const bool compute_d2R);
     
     virtual void assemble_volume_term_ad(
@@ -906,6 +931,33 @@ public:
         codi_HessianComputationType &dual_dot_residual,
         const bool compute_dRdW, const bool compute_dRdX, const bool compute_d2R)=0;
 
+    /// Returns the value from a CoDiPack variable.
+    /** The recursive calling allows to retrieve nested CoDiPack types.
+     */
+    template <typename real2>
+    double getValue(const real2 &x);
+   
+    /// Derivative indexing when only 1 cell is concerned.
+    /// Derivatives are ordered such that x comes first with index 0, then w.
+    /// If derivatives with respect to x are not needed, then derivatives
+    /// with respect to w will start at index 0. This function is for a single
+    /// cell's DoFs.
+    void automatic_differentiation_indexing_1(
+        const bool compute_dRdW, const bool compute_dRdX, const bool compute_d2R,
+        const unsigned int n_soln_dofs, const unsigned int n_metric_dofs,
+        unsigned int &w_start, unsigned int &w_end,
+        unsigned int &x_start, unsigned int &x_end);
+    
+    /// Derivative indexing when 2 cells are concerned.
+    /// Derivatives are ordered such that x comes first with index 0, then w.
+    /// If derivatives with respect to x are not needed, then derivatives
+    /// with respect to w will start at index 0. This function is for a single
+    /// cell's DoFs.
+    void automatic_differentiation_indexing_2(
+        const bool compute_dRdW, const bool compute_dRdX, const bool compute_d2R,
+        const unsigned int n_soln_dofs_int, const unsigned int n_soln_dofs_ext, const unsigned int n_metric_dofs,
+        unsigned int &w_int_start, unsigned int &w_int_end, unsigned int &w_ext_start, unsigned int &w_ext_end,
+        unsigned int &x_int_start, unsigned int &x_int_end, unsigned int &x_ext_start, unsigned int &x_ext_end);
     /// Finite Element Collection for p-finite-element to represent the solution
     /** This is a collection of FESystems */
     const dealii::hp::FECollection<dim>    fe_collection;

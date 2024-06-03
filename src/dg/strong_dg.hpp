@@ -405,6 +405,7 @@ protected:
                 quadrature,
                 *(DGBaseState<dim,nstate,real,MeshType>::pde_physics_double),
                 fe_soln,
+                rhs,
                 dual_dot_residual,
                 compute_metric_derivatives,
                 fe_values_vol);
@@ -431,6 +432,7 @@ protected:
                 quadrature,
                 *(DGBaseState<dim,nstate,real,MeshType>::pde_physics_rad),
                 fe_soln,
+                rhs,
                 dual_dot_residual,
                 compute_metric_derivatives,
                 fe_values_vol);
@@ -457,6 +459,7 @@ protected:
                 quadrature,
                 *(DGBaseState<dim,nstate,real,MeshType>::pde_physics_rad_fad),
                 fe_soln,
+                rhs,
                 dual_dot_residual,
                 compute_metric_derivatives,
                 fe_values_vol);
@@ -477,9 +480,9 @@ protected:
         const NumericalFlux::NumericalFluxConvective<dim, nstate, adtype> &/*conv_num_flux*/,
         const NumericalFlux::NumericalFluxDissipative<dim, nstate, adtype> &/*diss_num_flux*/,
         const dealii::FEFaceValuesBase<dim,dim> &/*fe_values_boundary*/,
+        const dealii::FESystem<dim,dim> &/*fe_soln*/,
         const real /*penalty*/,
         const dealii::Quadrature<dim-1> &/*quadrature*/,
-        const dealii::FESystem<dim,dim> &fe_soln,
         std::vector<adtype> &/*rhs*/,
         adtype &/*dual_dot_residual*/,
         const bool /*compute_metric_derivatives*/) 

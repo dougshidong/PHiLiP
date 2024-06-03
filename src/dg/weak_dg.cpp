@@ -3969,9 +3969,9 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_boundary_term_ad(
     const NumericalFlux::NumericalFluxConvective<dim, nstate, adtype> &conv_num_flux,
     const NumericalFlux::NumericalFluxDissipative<dim, nstate, adtype> &diss_num_flux,
     const dealii::FEFaceValuesBase<dim,dim> &fe_values_boundary,
+    const dealii::FESystem<dim,dim> &fe_soln,
     const real penalty,
     const dealii::Quadrature<dim-1> &quadrature,
-    const dealii::FESystem<dim,dim> &fe_soln,
     std::vector<adtype> &rhs,
     adtype &dual_dot_residual,
     const bool compute_metric_derivatives)

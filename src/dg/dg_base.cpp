@@ -1005,9 +1005,12 @@ void DGBase<dim,real,MeshType>::assemble_volume_term_and_build_operators_ad(
     const bool compute_metric_derivatives = true;//(!compute_dRdX && !compute_d2R) ? false : true;
 
     unsigned int w_start, w_end, x_start, x_end;
-    automatic_differentiation_indexing_1( compute_dRdW, compute_dRdX, compute_d2R,
-                                          n_soln_dofs, n_metric_dofs,
-                                          w_start, w_end, x_start, x_end );
+    if(compute_dRdW || compute_dRdX || compute_d2R)
+    {
+        automatic_differentiation_indexing_1( compute_dRdW, compute_dRdX, compute_d2R,
+                                              n_soln_dofs, n_metric_dofs,
+                                              w_start, w_end, x_start, x_end );
+    }
     
     std::vector<adtype> local_solution(fe_soln.dofs_per_cell);
     for (unsigned int idof = 0; idof < n_soln_dofs; ++idof) {
@@ -1178,9 +1181,12 @@ void DGBase<dim,real,MeshType>::assemble_boundary_term_and_build_operators_ad(
     std::vector<adtype> local_solution(fe_soln.dofs_per_cell);
 
     unsigned int w_start, w_end, x_start, x_end;
-    automatic_differentiation_indexing_1( compute_dRdW, compute_dRdX, compute_d2R,
-                                          n_soln_dofs, n_metric_dofs,
-                                          w_start, w_end, x_start, x_end );
+    if(compute_dRdW || compute_dRdX || compute_d2R)
+    {
+        automatic_differentiation_indexing_1( compute_dRdW, compute_dRdX, compute_d2R,
+                                              n_soln_dofs, n_metric_dofs,
+                                              w_start, w_end, x_start, x_end );
+    }
     
     for (unsigned int idof = 0; idof < n_soln_dofs; ++idof) {
         const real val = this->solution(soln_dofs_indices[idof]);
@@ -1547,11 +1553,14 @@ void DGBase<dim,real,MeshType>::assemble_face_subface_term_derivatives_ad(
     // Current derivative ordering is: metric_int, metric_ext, soln_int, soln_ext 
     unsigned int w_int_start, w_int_end, w_ext_start, w_ext_end,
                  x_int_start, x_int_end, x_ext_start, x_ext_end;
-    automatic_differentiation_indexing_2(
-        compute_dRdW, compute_dRdX, compute_d2R,
-        n_soln_dofs_int, n_soln_dofs_ext, n_metric_dofs,
-        w_int_start, w_int_end, w_ext_start, w_ext_end,
-        x_int_start, x_int_end, x_ext_start, x_ext_end);
+    if(compute_dRdW || compute_dRdX || compute_d2R)
+    {
+        automatic_differentiation_indexing_2(
+            compute_dRdW, compute_dRdX, compute_d2R,
+            n_soln_dofs_int, n_soln_dofs_ext, n_metric_dofs,
+            w_int_start, w_int_end, w_ext_start, w_ext_end,
+            x_int_start, x_int_end, x_ext_start, x_ext_end);
+    }
 
 
     for (unsigned int idof = 0; idof < n_metric_dofs; ++idof) {
@@ -2809,7 +2818,7 @@ void DGBase<dim,real,MeshType>::assemble_residual (const bool compute_dRdW, cons
             }
             else
             {
-                assemble_cell_residual_and_ad_derivatives<real>(
+                assemble_cell_residual_and_ad_derivatives<codi_JacobianComputationType>(
                     soln_cell,
                     metric_cell,
                     compute_dRdW, compute_dRdX, compute_d2R,

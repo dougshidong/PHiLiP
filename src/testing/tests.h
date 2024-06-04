@@ -7,7 +7,7 @@
 #include <deal.II/base/conditional_ostream.h>
 #include <deal.II/base/parameter_handler.h>
 
-//#include "dg/dg.h"
+//#include "dg/dg_base.hpp"
 namespace PHiLiP {
 namespace Tests {
 

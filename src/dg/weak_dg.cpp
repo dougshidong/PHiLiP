@@ -1632,7 +1632,7 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_face_term(
     }
 #endif
     if(this->all_parameters->check_same_coords_in_weak_dg) {
-        check_same_coords<dim,real2>(unit_quad_pts_int, unit_quad_pts_ext, coords_coeff_int, coords_coeff_ext, fe_metric, 1e-10);
+        check_same_coords<dim,real2>(unit_quad_pts_int, unit_quad_pts_ext, metric_int, metric_ext, 1e-10);
     }
 
     // Compute metrics
@@ -1915,8 +1915,8 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_face_term(
         diss_flux_jump_ext = physics.dissipative_flux (soln_ext_at_q[iquad], diss_soln_jump_ext, neighbor_cell_index);
 
         if (this->all_parameters->artificial_dissipation_param.add_artificial_dissipation) {
-            const DirectionalState artificial_diss_flux_jump_int =  this->artificial_dissip->calc_artificial_dissipation_flux(soln_int[iquad], diss_soln_jump_int, artificial_diss_coeff_at_q[iquad]);
-            const DirectionalState artificial_diss_flux_jump_ext =  this->artificial_dissip->calc_artificial_dissipation_flux(soln_ext[iquad], diss_soln_jump_ext, artificial_diss_coeff_at_q[iquad]);
+            const DirectionalState artificial_diss_flux_jump_int =  this->artificial_dissip->calc_artificial_dissipation_flux(soln_int_at_q[iquad], diss_soln_jump_int, artificial_diss_coeff_at_q[iquad]);
+            const DirectionalState artificial_diss_flux_jump_ext =  this->artificial_dissip->calc_artificial_dissipation_flux(soln_ext_at_q[iquad], diss_soln_jump_ext, artificial_diss_coeff_at_q[iquad]);
             for (int s=0; s<nstate; s++) {
                 diss_flux_jump_int[s] += artificial_diss_flux_jump_int[s];
                 diss_flux_jump_ext[s] += artificial_diss_flux_jump_ext[s];
@@ -1931,7 +1931,7 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_face_term(
             artificial_diss_coeff_at_q[iquad],
             soln_int_at_q[iquad], soln_ext_at_q[iquad],
             soln_grad_int[iquad], soln_grad_ext[iquad],
-            soln_int[iquad], soln_ext[iquad],
+            soln_int_at_q[iquad], soln_ext_at_q[iquad],
             soln_grad_int[iquad], soln_grad_ext[iquad],
             phys_unit_normal_int[iquad], penalty, false);
 

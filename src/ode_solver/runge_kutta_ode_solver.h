@@ -48,6 +48,9 @@ protected:
     
     /// Indicator for zero diagonal elements; used to toggle implicit solve.
     std::vector<bool> butcher_tableau_aii_is_zero;
+
+    /// Flag for ANY implicit stages, initialize to false
+    bool butcher_tableau_has_implicit_stages = false;
 };
 
 } // ODE namespace

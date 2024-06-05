@@ -18,6 +18,19 @@ void RungeKuttaODESolver<dim,real,n_rk_stages,MeshType>::step_in_time (real dt, 
 {
     this->original_time_step = dt;
     this->solution_update = this->dg->solution; //storing u_n
+    if (butcher_tableau_has_implicit_stages){
+        // Store residual of u_n in he JFNK solver.
+        // This is used for stage-value prediction.
+
+        solver.slope_at_previous_step.reinit(this->solution_update);
+        this->dg->assemble_residual();
+
+        if(this->all_parameters->use_inverse_mass_on_the_fly){
+            this->dg->apply_inverse_global_mass_matrix(this->dg->right_hand_side, solver.slope_at_previous_step);
+        } else{
+            this->dg->global_inverse_mass_matrix.vmult(solver.slope_at_previous_step, this->dg->right_hand_side);
+        }
+    }
 
     //calculating stages **Note that rk_stage[i] stores the RHS at a partial time-step (not solution u)
     for (int i = 0; i < n_rk_stages; ++i){
@@ -62,7 +75,7 @@ void RungeKuttaODESolver<dim,real,n_rk_stages,MeshType>::step_in_time (real dt, 
             */
 
             //JFNK version
-            solver.solve(dt*this->butcher_tableau->get_a(i,i), this->rk_stage[i]);
+            solver.solve(dt*this->butcher_tableau->get_a(i,i), this->rk_stage[i], dt*this->butcher_tableau->get_c(i));
             this->rk_stage[i] = solver.current_solution_estimate;
 
         } // u_n + dt * sum(a_ij * k_j) <explicit> + dt * a_ii * u^(i) <implicit>
@@ -162,9 +175,12 @@ void RungeKuttaODESolver<dim,real,n_rk_stages,MeshType>::allocate_ode_system ()
     this->butcher_tableau_aii_is_zero.resize(n_rk_stages);
     std::fill(this->butcher_tableau_aii_is_zero.begin(),
               this->butcher_tableau_aii_is_zero.end(),
-              false); 
+              true); 
     for (int i=0; i<n_rk_stages; ++i) {
-        if (this->butcher_tableau->get_a(i,i)==0.0)     this->butcher_tableau_aii_is_zero[i] = true;
+        if (this->butcher_tableau->get_a(i,i)!=0.0){
+            this->butcher_tableau_aii_is_zero[i] = false;
+            this->butcher_tableau_has_implicit_stages = true;
+        }
     }
 }
 

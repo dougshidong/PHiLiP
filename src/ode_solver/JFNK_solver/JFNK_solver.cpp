@@ -27,13 +27,19 @@ JFNKSolver<dim,real,MeshType>::JFNKSolver(std::shared_ptr< DGBase<dim, real, Mes
 
 template <int dim, typename real, typename MeshType>
 void JFNKSolver<dim,real,MeshType>::solve (real dt,
-        dealii::LinearAlgebra::distributed::Vector<double> &previous_step_solution)
+        dealii::LinearAlgebra::distributed::Vector<double> &previous_step_solution,
+        real stage_dt
+        )
 { 
     double update_norm = 1.0;
     int Newton_iter_counter = 0;
     
     jacobian_vector_product.reinit_for_next_timestep(dt, perturbation_magnitude, previous_step_solution);
+
+    //stage value prediction
     current_solution_estimate = previous_step_solution;
+    current_solution_estimate.add(stage_dt, slope_at_previous_step);
+
     solution_update_newton.reinit(previous_step_solution);
 
     while ((update_norm > epsilon_Newton) && (Newton_iter_counter < max_Newton_iter)){

@@ -25,7 +25,8 @@ public:
      * Calls solver_GMRES.solve(...) for inner loop (GMRES iterations)
      */
     void solve(real dt,
-               dealii::LinearAlgebra::distributed::Vector<double> &previous_step_solution);
+               dealii::LinearAlgebra::distributed::Vector<double> &previous_step_solution,
+               real stage_dt);
 
     /// current estimate for the solution
     dealii::LinearAlgebra::distributed::Vector<double> current_solution_estimate;
@@ -73,6 +74,11 @@ protected:
     
     /// Update to solution during Newton iterations
     dealii::LinearAlgebra::distributed::Vector<double> solution_update_newton;
+public:    
+    /// Store slope calculated at previous time step
+    /** Used in stage value prediction
+     */
+    dealii::LinearAlgebra::distributed::Vector<double> slope_at_previous_step;
 };
 
 }

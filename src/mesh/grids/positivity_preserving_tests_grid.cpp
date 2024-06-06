@@ -38,6 +38,26 @@ void shock_tube_1D_grid(
 }
 
 template<int dim, typename TriangulationType>
+void nonsmooth_case_grid(
+    TriangulationType&  grid,
+    const Parameters::AllParameters *const parameters_input)
+{
+    double xmax = parameters_input->flow_solver_param.grid_xmax;
+    double xmin = parameters_input->flow_solver_param.grid_xmin;
+    unsigned int n_subdivisions_x = parameters_input->flow_solver_param.number_of_grid_elements_x;
+
+    dealii::GridGenerator::subdivided_hyper_cube(grid, n_subdivisions_x, xmin, xmax, true);
+
+    for (typename dealii::parallel::distributed::Triangulation<dim>::active_cell_iterator cell = grid.begin_active(); cell != grid.end(); ++cell) {
+        for (unsigned int face = 0; face < dealii::GeometryInfo<PHILIP_DIM>::faces_per_cell; ++face) {
+            if (cell->face(face)->at_boundary()) {
+                cell->face(face)->set_boundary_id(1000);
+            }
+        }
+    }
+}
+
+template<int dim, typename TriangulationType>
 void explosion_problem_grid(
     TriangulationType& grid,
     const Parameters::AllParameters* const parameters_input)
@@ -338,7 +358,7 @@ void astrophysical_jet_grid(
                     }
                     else {
                         left_y += cell->extent_in_direction(1);
-                        cell->face(face)->set_boundary_id(1001);
+                        cell->face(face)->set_boundary_id(1008);
                     }
                 }
                 else if (current_id == 1) {
@@ -362,6 +382,9 @@ template void shock_tube_1D_grid<1, dealii::Triangulation<1>>(
 #else
 template void explosion_problem_grid<PHILIP_DIM, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>(
     dealii::parallel::distributed::Triangulation<PHILIP_DIM>& grid,
+    const Parameters::AllParameters* const parameters_input);
+template void nonsmooth_case_grid<2, dealii::parallel::distributed::Triangulation<2>>(
+    dealii::parallel::distributed::Triangulation<2>& grid,
     const Parameters::AllParameters* const parameters_input);
 template void double_mach_reflection_grid<2, dealii::parallel::distributed::Triangulation<2>>(
     dealii::parallel::distributed::Triangulation<2>&    grid,

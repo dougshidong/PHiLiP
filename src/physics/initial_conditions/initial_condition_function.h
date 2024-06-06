@@ -223,6 +223,24 @@ public:
     real value (const dealii::Point<dim,real> &point, const unsigned int istate) const override;
 };
 
+
+/// Initial Condition Function: 2D Nonsmooth case
+template <int dim, int nstate, typename real>
+class InitialConditionFunction_NonSmooth
+        : public InitialConditionFunction<dim,nstate,real>
+{
+protected:
+    using dealii::Function<dim,real>::value; ///< dealii::Function we are templating on
+
+public:
+    /// Constructor for InitialConditionFunction_Inviscid
+    /** Calls the Function(const unsigned int n_components) constructor in deal.II*/
+    InitialConditionFunction_NonSmooth ();
+
+    /// Value of initial condition
+    real value (const dealii::Point<dim,real> &point, const unsigned int istate) const override;
+};
+
 /// Initial Condition Function: Advection Energy
 template <int dim, int nstate, typename real>
 class InitialConditionFunction_AdvectionEnergy

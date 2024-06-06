@@ -1,5 +1,6 @@
 #include "positivity_preserving_tests.h"
 #include "mesh/grids/positivity_preserving_tests_grid.h"
+#include "mesh/grids/straight_periodic_cube.hpp"
 #include <deal.II/grid/grid_generator.h>
 #include "physics/physics_factory.h"
 
@@ -75,16 +76,8 @@ std::shared_ptr<Triangulation> PositivityPreservingTests<dim,nstate>::generate_g
         Grids::astrophysical_jet_grid<dim>(*grid, &this->all_param);
     }
     else if (dim==2 && flow_case_type == flow_case_enum::double_mach_reflection) {
-        if(this->all_param.flow_solver_param.use_gmsh_mesh) {
-            const std::string mesh_filename = this->all_param.flow_solver_param.input_mesh_filename+std::string(".msh");
-            const bool use_mesh_smoothing = false;
-            std::shared_ptr<HighOrderGrid<dim,double>> dmr_mesh = read_gmsh<dim, dim> (mesh_filename, this->all_param.do_renumber_dofs, 0, use_mesh_smoothing);
-            return dmr_mesh->triangulation;
-        } else {
             Grids::double_mach_reflection_grid<dim>(*grid, &this->all_param);
-        }
     }
-
     return grid;
 }
 
@@ -177,7 +170,9 @@ void PositivityPreservingTests<dim, nstate>::compute_unsteady_data_and_write_to_
     const unsigned int current_iteration = ode_solver->current_iteration;
     const double current_time = ode_solver->current_time;
 
-    this->check_positivity_density(*dg);
+    if(nstate == dim + 2)
+        this->check_positivity_density(*dg);
+
     if (this->mpi_rank == 0) {
 
         unsteady_data_table->add_value("iteration", current_iteration);

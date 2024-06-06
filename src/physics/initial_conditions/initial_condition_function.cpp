@@ -241,6 +241,46 @@ inline real InitialConditionFunction_Advection<dim,nstate,real>
     return value;
 }
 
+
+// ========================================================
+// 2D Nonsmooth Case - 
+// ========================================================
+template <int dim, int nstate, typename real>
+InitialConditionFunction_NonSmooth<dim,nstate,real>
+::InitialConditionFunction_NonSmooth()
+        : InitialConditionFunction<dim,nstate,real>()
+{
+    // Nothing to do here yet
+}
+
+template <int dim, int nstate, typename real>
+inline real InitialConditionFunction_NonSmooth<dim,nstate,real>
+::value(const dealii::Point<dim,real> &point, const unsigned int /*istate*/) const
+{
+    real value = 1.0;
+    if constexpr(dim == 1)
+        std::abort();
+    if constexpr(dim == 2){
+        double x = abs(point[0]);
+        double y = point[1];
+
+        double r = sqrt(pow(x,2)+pow(y,2));
+        double theta = atan(y/x);
+
+        double bound = (1.0/8.0)*(3.0+pow(3.0,sin(5.0*theta)));
+
+        if(r <= bound)
+            value = 1.0;
+        else
+            value = 0.0;
+    }
+    if constexpr(dim == 3)
+        std::abort();
+
+    return value;
+}
+
+
 // ========================================================
 // Convection_diffusion -- Initial Condition
 // ========================================================
@@ -1105,6 +1145,8 @@ InitialConditionFactory<dim,nstate, real>::create_InitialConditionFunction(
         if constexpr (dim==1 && nstate==1) return std::make_shared<InitialConditionFunction_BurgersInviscidEnergy<dim,nstate,real> > ();
     } else if (flow_type == FlowCaseEnum::advection && param->use_energy==true) {
         if constexpr (nstate==1) return std::make_shared<InitialConditionFunction_AdvectionEnergy<dim,nstate,real> > ();
+    } else if (flow_type == FlowCaseEnum::nonsmooth_case) {
+        if constexpr (dim==2 && nstate==1) return std::make_shared<InitialConditionFunction_NonSmooth<dim,nstate,real> > ();
     } else if (flow_type == FlowCaseEnum::advection && param->use_energy==false) {
         if constexpr (nstate==1) return std::make_shared<InitialConditionFunction_Advection<dim,nstate,real> > ();
     } else if (flow_type == FlowCaseEnum::convection_diffusion && !param->use_energy) {
@@ -1187,6 +1229,7 @@ template class InitialConditionFunction_Mach3WindTunnel <PHILIP_DIM, PHILIP_DIM+
 template class InitialConditionFunction_SedovBlastWave <PHILIP_DIM, PHILIP_DIM+2, double>;
 template class InitialConditionFunction_ShockDiffraction <PHILIP_DIM, PHILIP_DIM+2, double>;
 template class InitialConditionFunction_AstrophysicalJet <PHILIP_DIM, PHILIP_DIM+2, double>;
+template class InitialConditionFunction_NonSmooth <PHILIP_DIM, 1, double>;
 #endif
 
 #if PHILIP_DIM < 3

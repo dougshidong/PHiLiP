@@ -427,8 +427,12 @@ protected:
     void boundary_farfield (
         std::array<real,nstate> &soln_bc) const;
 
-    /// Boundary conditions based on user-defined values
+    /// Custom boundary conditions for the left boundary of the astrophysical mach jet case where it is not hypersonic inflow.
     void boundary_custom (
+        std::array<real,nstate> &soln_bc) const;
+
+    /// Boundary conditions based on user-defined values
+    void boundary_astrophysical_inflow (
         std::array<real,nstate> &soln_bc) const;
 
     /// Get manufactured solution value

@@ -1,0 +1,60 @@
+# -------------------
+set dimension = 2
+set run_type = flow_simulation
+
+set use_weak_form = false
+set flux_nodes_type = GLL
+
+# Strong DG - LaxF
+#set use_split_form = false
+#set conv_num_flux = lax_friedrichs
+
+# NSFR - Ra
+set use_split_form = true
+set two_point_num_flux_type = Ra
+set conv_num_flux = two_point_flux_with_lax_friedrichs_dissipation
+set flux_reconstruction = cDG
+set use_inverse_mass_on_the_fly = true
+
+# The PDE we want to solve
+set pde_type = advection
+set use_periodic_bc = true
+
+subsection limiter
+  set bound_preserving_limiter = maximum_principle
+end
+
+set do_renumber_dofs = false
+
+# ODE solver
+subsection ODE solver
+  set ode_output = verbose
+  set ode_solver_type = runge_kutta
+  set initial_time_step = 0.00000001
+  set output_solution_every_x_steps = 10
+  set runge_kutta_method = ssprk3_ex
+  set print_iteration_modulo = 1
+  #set output_solution_every_dt_time_intervals = 0.01
+end
+
+subsection flow_solver
+  set flow_case_type = nonsmooth_case
+  set poly_degree = 3
+  set final_time = 1.8
+  set constant_time_step = 0.01
+  #set courant_friedrichs_lewy_number = 0.8
+  set adaptive_time_step = false
+  set unsteady_data_table_filename = nonsmooth_case_energy
+  subsection grid
+    subsection positivity_preserving_tests
+      set grid_xmin = -1.0
+      set grid_xmax = 1.0
+      set grid_ymin = -1.0
+      set grid_ymax = 1.0
+
+      set number_of_grid_elements_x = 128
+      set number_of_grid_elements_y = 128
+    end
+	set number_of_mesh_refinements = 7
+  end
+end

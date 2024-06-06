@@ -39,7 +39,8 @@ public:
         mach_3_wind_tunnel,
         shock_diffraction,
         explosion_problem,
-        astrophysical_jet
+        astrophysical_jet,
+        nonsmooth_case
         };
     FlowCaseType flow_case_type; ///< Selected FlowCaseType from the input file
 

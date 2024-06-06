@@ -47,7 +47,7 @@ subsection flow_solver
   set poly_degree = 3
   set final_time = 1.0
   #set constant_time_step = 0.0001
-  set courant_friedrichs_lewy_number = 0.5
+  set courant_friedrichs_lewy_number = 0.82
   set adaptive_time_step = true
   set unsteady_data_table_filename = sedov_blast_wave_energy
   subsection grid
@@ -56,8 +56,8 @@ subsection flow_solver
       set grid_xmax = 1.5
       set grid_ymin = -1.5
       set grid_ymax = 1.5
-      set number_of_grid_elements_x = 160
-      set number_of_grid_elements_y = 160
+      set number_of_grid_elements_x = 250
+      set number_of_grid_elements_y = 250
     end
   end
 end

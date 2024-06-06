@@ -15,6 +15,13 @@ void shock_tube_1D_grid(
     TriangulationType&  grid,
     const Parameters::AllParameters *const parameters_input);
 
+
+template<int dim, typename TriangulationType>
+void nonsmooth_case_grid(
+    TriangulationType&  grid,
+    const Parameters::AllParameters *const parameters_input);
+
+
 template<int dim, typename TriangulationType>
 void explosion_problem_grid(
     TriangulationType& grid,

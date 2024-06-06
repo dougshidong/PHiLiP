@@ -39,6 +39,7 @@ std::shared_ptr<Triangulation> LimiterConvergenceTests<dim,nstate>::generate_gri
 
     double left = this->all_param.flow_solver_param.grid_left_bound;
     double right = this->all_param.flow_solver_param.grid_right_bound;
+
     const unsigned int number_of_refinements = this->all_param.flow_solver_param.number_of_mesh_refinements;
 
     PHiLiP::Grids::straight_periodic_cube<dim, Triangulation>(grid, left, right, pow(2.0, number_of_refinements));
@@ -78,6 +79,9 @@ double LimiterConvergenceTests<dim, nstate>::get_adaptive_time_step(std::shared_
 
     if (flow_case == flow_case_enum::low_density_2d)
         time_step = (1.0 / 50.0) * pow(delta_x , 2.0);
+
+    if (flow_case == flow_case_enum::nonsmooth_case)
+        time_step =  0.00001;
 
     return time_step;
 }
@@ -157,7 +161,7 @@ void LimiterConvergenceTests<dim, nstate>::check_limiter_principle(DGBase<dim, d
             soln_at_q[istate].resize(n_quad_pts);
             soln_basis.matrix_vector_mult_1D(soln_coeff[istate], soln_at_q[istate], soln_basis.oneD_vol_operator);
         }
-        if(flow_case == flow_case_enum::advection_limiter || flow_case == flow_case_enum::burgers_limiter){
+        if(flow_case == flow_case_enum::advection_limiter || flow_case == flow_case_enum::burgers_limiter || flow_case == flow_case_enum::nonsmooth_case){
             for (unsigned int istate = 0; istate < nstate; ++istate) {
                 for (unsigned int iquad = 0; iquad < n_quad_pts; ++iquad) {
                     // Verify that strict maximum principle is satisfied

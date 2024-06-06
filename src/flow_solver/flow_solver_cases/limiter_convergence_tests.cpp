@@ -37,8 +37,19 @@ std::shared_ptr<Triangulation> LimiterConvergenceTests<dim,nstate>::generate_gri
             dealii::Triangulation<dim>::smoothing_on_coarsening));
 #endif
 
-    double left = this->all_param.flow_solver_param.grid_left_bound;
-    double right = this->all_param.flow_solver_param.grid_right_bound;
+    using flow_case_enum = Parameters::FlowSolverParam::FlowCaseType;
+    flow_case_enum flow_case = this->all_param.flow_solver_param.flow_case_type;
+
+    double left = 0.0; double right = 0.0;
+
+    if (flow_case == flow_case_enum::nonsmooth_case) {
+        left = this->all_param.flow_solver_param.grid_xmin;
+        right = this->all_param.flow_solver_param.grid_xmax;
+    } else {
+        left = this->all_param.flow_solver_param.grid_left_bound;
+        right = this->all_param.flow_solver_param.grid_right_bound;
+    }
+
 
     const unsigned int number_of_refinements = this->all_param.flow_solver_param.number_of_mesh_refinements;
 
@@ -83,6 +94,7 @@ double LimiterConvergenceTests<dim, nstate>::get_adaptive_time_step(std::shared_
     if (flow_case == flow_case_enum::nonsmooth_case)
         time_step =  0.00001;
 
+    std::cout << time_step << std::endl << std::endl;
     return time_step;
 }
 

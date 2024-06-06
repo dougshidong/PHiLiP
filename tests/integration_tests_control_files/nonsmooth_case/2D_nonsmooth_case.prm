@@ -41,7 +41,7 @@ subsection flow_solver
   set flow_case_type = nonsmooth_case
   set poly_degree = 3
   set final_time = 1.8
-  set constant_time_step = 0.01
+  set constant_time_step = 0.001
   #set courant_friedrichs_lewy_number = 0.8
   set adaptive_time_step = false
   set unsteady_data_table_filename = nonsmooth_case_energy

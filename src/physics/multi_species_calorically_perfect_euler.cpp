@@ -26,7 +26,7 @@ MultiSpeciesCaloricallyPerfect<dim,nstate,real>::MultiSpeciesCaloricallyPerfect 
         this->gamma[s] = Cp[s]/Cv[s];
     }
 
-    static_assert(nstate==dim+2+3-1, "Physics::MultiSpeciesCaloricallyPerfect() should be created with nstate=(PHILIP_DIM+2)+(N_SPECIES-1)"); // TO DO: UPDATE THIS with nspecies
+    static_assert(nstate==dim+2+2-1, "Physics::MultiSpeciesCaloricallyPerfect() should be created with nstate=(PHILIP_DIM+2)+(N_SPECIES-1)"); // TO DO: UPDATE THIS with nspecies
 }
 
 // /// f_M18: convective flux
@@ -168,11 +168,11 @@ inline std::array<real,nstate-dim-1> MultiSpeciesCaloricallyPerfect<dim,nstate,r
 
 // Instantiate explicitly
 // TO DO: Modify this when you change number of species
-template class MultiSpeciesCaloricallyPerfect < PHILIP_DIM, PHILIP_DIM+2+3-1, double     >;
-template class MultiSpeciesCaloricallyPerfect < PHILIP_DIM, PHILIP_DIM+2+3-1, FadType    >;
-template class MultiSpeciesCaloricallyPerfect < PHILIP_DIM, PHILIP_DIM+2+3-1, RadType    >;
-template class MultiSpeciesCaloricallyPerfect < PHILIP_DIM, PHILIP_DIM+2+3-1, FadFadType >;
-template class MultiSpeciesCaloricallyPerfect < PHILIP_DIM, PHILIP_DIM+2+3-1, RadFadType >;
+template class MultiSpeciesCaloricallyPerfect < PHILIP_DIM, PHILIP_DIM+2+2-1, double     >;
+template class MultiSpeciesCaloricallyPerfect < PHILIP_DIM, PHILIP_DIM+2+2-1, FadType    >;
+template class MultiSpeciesCaloricallyPerfect < PHILIP_DIM, PHILIP_DIM+2+2-1, RadType    >;
+template class MultiSpeciesCaloricallyPerfect < PHILIP_DIM, PHILIP_DIM+2+2-1, FadFadType >;
+template class MultiSpeciesCaloricallyPerfect < PHILIP_DIM, PHILIP_DIM+2+2-1, RadFadType >;
 
 } // Physics namespace
 } // PHiLiP namespace

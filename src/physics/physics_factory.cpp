@@ -156,7 +156,7 @@ PhysicsFactory<dim,nstate,real>
         }
     } else if (pde_type == PDE_enum::multi_species_calorically_perfect_euler) {
         // TO DO: modify this when you change number of species
-        if constexpr (nstate==dim+2+3-1) { // TO DO: N_SPECIES
+        if constexpr (nstate==dim+2+2-1) { // TO DO: N_SPECIES
             return std::make_shared < MultiSpeciesCaloricallyPerfect<dim,nstate,real> > (
                 parameters_input,
                 manufactured_solution_function);

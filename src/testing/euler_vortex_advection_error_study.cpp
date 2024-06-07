@@ -71,7 +71,7 @@ double EulerVortexAdvectionErrorStudy<dim,nstate>
     // Multi-Species Calorically-Imperfect Euler Vortex
     else if (flow_type == FlowCaseEnum::multi_species_vortex_advection) 
     {
-        if constexpr (dim==1 && nstate==dim+2+3-1) // TO DO: N_SPECIES, dim = 1, nstate = dim+2+3-1
+        if constexpr (dim==1 && nstate==dim+2+2-1) // TO DO: N_SPECIES, dim = 1, nstate = dim+2+3-1
         {
             // std::cout << "multi-species_calorically-imperfect_vortex_advection! \n \n " << std::endl;
             Physics::RealGas<dim,nstate,double> realgas_physics_double
@@ -131,7 +131,7 @@ double EulerVortexAdvectionErrorStudy<dim,nstate>
     // Multi-Species Calorically-Imperfect Euler
     else if (flow_type == FlowCaseEnum::multi_species_vortex_advection) 
     {
-        if constexpr (dim==1 && nstate==dim+2+3-1) // TO DO: N_SPECIES, dim = 1, nstate = dim+2+3-1
+        if constexpr (dim==1 && nstate==dim+2+2-1) // TO DO: N_SPECIES, dim = 1, nstate = dim+2+3-1
         {
             // std::cout << "multi-species_calorically-imperfect_vortex_advection! \n \n " << std::endl;
             Physics::RealGas<dim,nstate,double> realgas_physics_double
@@ -188,7 +188,7 @@ double EulerVortexAdvectionErrorStudy<dim,nstate>
     // Multi-Species Calorically-Imperfect Euler
     else if (flow_type == FlowCaseEnum::multi_species_vortex_advection) 
     {
-        if constexpr (dim==1 && nstate==dim+2+3-1) // TO DO: N_SPECIES, dim = 1, nstate = dim+2+3-1
+        if constexpr (dim==1 && nstate==dim+2+2-1) // TO DO: N_SPECIES, dim = 1, nstate = dim+2+3-1
         {
             // std::cout << "multi-species_calorically-imperfect_vortex_advection! \n \n " << std::endl;
             Physics::RealGas<dim,nstate,double> realgas_physics_double

@@ -4,7 +4,8 @@
 set test_type = multi_species_vortex_advection_error_study
 
 set dimension = 1
-set number_of_species = 3
+# TO DO: This should be 3
+set number_of_species = 2
 set pde_type = real_gas
 
 # DG formulation

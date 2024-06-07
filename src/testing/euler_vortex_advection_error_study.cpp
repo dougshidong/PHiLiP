@@ -1060,7 +1060,7 @@ double EulerVortexAdvectionErrorStudy<dim,nstate>
 // template class EulerVortexAdvectionErrorStudy <PHILIP_DIM,PHILIP_DIM>;
 template class EulerVortexAdvectionErrorStudy <PHILIP_DIM,PHILIP_DIM+2>; // euler (1-species)_
 #if PHILIP_DIM==1
-template class EulerVortexAdvectionErrorStudy <PHILIP_DIM,PHILIP_DIM+2+3-1>; // TO DO: N_SPECIES
+template class EulerVortexAdvectionErrorStudy <PHILIP_DIM,PHILIP_DIM+2+2-1>; // TO DO: N_SPECIES
 #endif
 // #else
 // template class EulerVortexAdvectionErrorStudy <PHILIP_DIM,PHILIP_DIM+2>;

@@ -38,7 +38,7 @@ std::unique_ptr< dealii::DataPostprocessor<dim> > PostprocessorFactory<dim>
         return std::make_unique< PhysicsPostprocessor<dim,dim+2> >(parameters_input);
     } else if (pde_type == PDE_enum::real_gas) {
     // TO DO: modify this when you change number of species
-        return std::make_unique< PhysicsPostprocessor<dim,dim+2+3-1> >(parameters_input); // TO DO: N_SPECIES
+        return std::make_unique< PhysicsPostprocessor<dim,dim+2+2-1> >(parameters_input); // TO DO: N_SPECIES
     } else if (pde_type == PDE_enum::multi_species_calorically_perfect_euler) {
     // TO DO: modify this when you change number of species
         return std::make_unique< PhysicsPostprocessor<dim,dim+2+3-1> >(parameters_input); // TO DO: N_SPECIES        

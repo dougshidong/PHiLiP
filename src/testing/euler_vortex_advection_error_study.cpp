@@ -83,7 +83,7 @@ double EulerVortexAdvectionErrorStudy<dim,nstate>
     // Multi-Species Calorically-Perfect Euler
     else if (flow_type == FlowCaseEnum::multi_species_calorically_perfect_euler_vortex_advection) 
     {
-        if constexpr (dim==1 && nstate==dim+2+3-1) // TO DO: N_SPECIES, dim = 1, nstate = dim+2+3-1
+        if constexpr (dim==1 && nstate==dim+2+2-1) // TO DO: N_SPECIES, dim = 1, nstate = dim+2+3-1
         {
             // std::cout << "multi-species_calorically_perfect_vortex_advection! \n \n " << std::endl;
             Physics::MultiSpeciesCaloricallyPerfect<dim,nstate,double> multispecies_calorically_perfect_physics_double
@@ -143,7 +143,7 @@ double EulerVortexAdvectionErrorStudy<dim,nstate>
     // Multi-Species Calorically-Perfect Euler
     else if (flow_type == FlowCaseEnum::multi_species_calorically_perfect_euler_vortex_advection) 
     {
-        if constexpr (dim==1 && nstate==dim+2+3-1) // TO DO: N_SPECIES, dim = 1, nstate = dim+2+3-1
+        if constexpr (dim==1 && nstate==dim+2+2-1) // TO DO: N_SPECIES, dim = 1, nstate = dim+2+3-1
         {
             // std::cout << "multi-species_calorically_perfect_vortex_advection! \n \n " << std::endl;
             Physics::MultiSpeciesCaloricallyPerfect<dim,nstate,double> multispecies_calorically_perfect_physics_double
@@ -200,7 +200,7 @@ double EulerVortexAdvectionErrorStudy<dim,nstate>
     // Multi-Species Calorically-Perfect Euler
     else if (flow_type == FlowCaseEnum::multi_species_calorically_perfect_euler_vortex_advection) 
     {
-        if constexpr (dim==1 && nstate==dim+2+3-1) // TO DO: N_SPECIES, dim = 1, nstate = dim+2+3-1
+        if constexpr (dim==1 && nstate==dim+2+2-1) // TO DO: N_SPECIES, dim = 1, nstate = dim+2+3-1
         {
             // std::cout << "multi-species_calorically_perfect_vortex_advection! \n \n " << std::endl;
             Physics::MultiSpeciesCaloricallyPerfect<dim,nstate,double> multispecies_calorically_perfect_physics_double

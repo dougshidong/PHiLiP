@@ -940,8 +940,8 @@ InitialConditionFunction_MultiSpecies_CaloricallyPerfect_Euler_VortexAdvection<d
     // Note that Euler primitive/conservative vars are the same as NS
     PHiLiP::Parameters::AllParameters parameters_euler = *param;
     parameters_euler.pde_type = Parameters::AllParameters::PartialDifferentialEquation::multi_species_calorically_perfect_euler;
-    this->multi_species_calorically_perfect_euler_physics = std::dynamic_pointer_cast<Physics::MultiSpeciesCaloricallyPerfect<dim,dim+2+3-1,double>>( // TO DO: N_SPECIES, dim+2+3-1
-                Physics::PhysicsFactory<dim,dim+2+3-1,double>::create_Physics(&parameters_euler)); // TO DO: N_SPECIES, dim+2+3-1
+    this->multi_species_calorically_perfect_euler_physics = std::dynamic_pointer_cast<Physics::MultiSpeciesCaloricallyPerfect<dim,dim+2+2-1,double>>( // TO DO: N_SPECIES, dim+2+3-1
+                Physics::PhysicsFactory<dim,dim+2+2-1,double>::create_Physics(&parameters_euler)); // TO DO: N_SPECIES, dim+2+3-1
 }
 template <int dim, int nstate, typename real>
 real InitialConditionFunction_MultiSpecies_CaloricallyPerfect_Euler_VortexAdvection<dim,nstate,real>
@@ -957,9 +957,9 @@ real InitialConditionFunction_MultiSpecies_CaloricallyPerfect_Euler_VortexAdvect
         const real big_gamma = 50.0;
         const real gamma_0 = 1.4;
         const real y_H2_0 = 0.01277;
-        const real y_O2_0 = 0.101;
+        // const real y_O2_0 = 0.101;
         const real a_1 = 0.005;
-        const real a_2 = 0.03;
+        // const real a_2 = 0.03;
         const real pi = 6.28318530717958623200 / 2; // pi
 
         const real pressure = 101325; // [N/m^2]
@@ -968,11 +968,12 @@ real InitialConditionFunction_MultiSpecies_CaloricallyPerfect_Euler_VortexAdvect
         const real coeff = 2*pi/(gamma_0*big_gamma);
         const real temperature = T_0 - (gamma_0-1.0)*big_gamma*big_gamma/(8.0*gamma_0*pi)*exp;
         const real y_H2 = (y_H2_0 - a_1*coeff*exp);
-        const real y_O2 = (y_O2_0 - a_2*coeff*exp);
-        const real y_N2 = 1.0 - y_H2 - y_O2;
+        const real y_O2 = 1.0 - y_H2;
+        // const real y_O2 = (y_O2_0 - a_2*coeff*exp);
+        // const real y_N2 = 1.0 - y_H2 - y_O2;
 
         const std::array Rs = this->multi_species_calorically_perfect_euler_physics->compute_Rs(this->multi_species_calorically_perfect_euler_physics->Ru);
-        const real R_mixture = (y_H2*Rs[0] + y_O2*Rs[1] + y_N2*Rs[2])*this->multi_species_calorically_perfect_euler_physics->R_ref;
+        const real R_mixture = (y_H2*Rs[0] + y_O2*Rs[1])*this->multi_species_calorically_perfect_euler_physics->R_ref;
         const real density = pressure/(R_mixture*temperature);
 
         // dimnsionalized above, non-dimensionalized below
@@ -992,10 +993,10 @@ real InitialConditionFunction_MultiSpecies_CaloricallyPerfect_Euler_VortexAdvect
             // other species density (N2)
             value = y_H2;
         }
-        if(istate==4){
-            // other species density (O2)
-            value = y_O2;
-        }
+        // if(istate==4){
+        //     // other species density (O2)
+        //     value = y_O2;
+        // }
     }
     return value;
 }
@@ -1192,7 +1193,7 @@ InitialConditionFactory<dim,nstate, real>::create_InitialConditionFunction(
             return std::make_shared<InitialConditionFunction_Euler_VortexAdvection<dim,nstate,real> >(param);
         }
     } else if (flow_type == FlowCaseEnum::multi_species_calorically_perfect_euler_vortex_advection) {
-        if constexpr (dim==1 && nstate==dim+2+3-1){ 
+        if constexpr (dim==1 && nstate==dim+2+2-1){ // TO DO: N_SPECIES, dim = 1, nstate = dim+2+3-1
             return std::make_shared<InitialConditionFunction_MultiSpecies_CaloricallyPerfect_Euler_VortexAdvection<dim,nstate,real> >(param);
         }
     } else if (flow_type == FlowCaseEnum::euler_bubble_advection) {

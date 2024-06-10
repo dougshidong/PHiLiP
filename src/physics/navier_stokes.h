@@ -178,6 +178,14 @@ public:
         const std::array<real,nstate> &conservative_soln,
         const std::array<dealii::Tensor<1,dim,real>,nstate> &conservative_soln_gradient) const;
 
+    /** Evaluate second invariant (i.e. Q-criterion) from conservative variables and gradient of conservative variables
+     *  -- Reference: Jeong J, Hussain F. On the identification of a vortex. Journal of Fluid Mechanics. 1995;285:69-94. doi:10.1017/S0022112095000462 
+     *  -- Equation (2)
+     * */
+    real compute_second_invariant (
+        const std::array<real,nstate> &conservative_soln,
+        const std::array<dealii::Tensor<1,dim,real>,nstate> &conservative_soln_gradient) const;
+
     /// Evaluate enstrophy from conservative variables and gradient of conservative variables
     real compute_enstrophy (
         const std::array<real,nstate> &conservative_soln,
@@ -199,6 +207,12 @@ public:
      *                Computers & Fluids 221 (2021): 104922.
      * */
     real compute_pressure_dilatation (
+        const std::array<real,nstate> &conservative_soln,
+        const std::array<dealii::Tensor<1,dim,real>,nstate> &conservative_soln_gradient) const;
+
+    /** Evaluate dilatation from conservative variables and gradient of conservative variables 
+     * */
+    real compute_dilatation (
         const std::array<real,nstate> &conservative_soln,
         const std::array<dealii::Tensor<1,dim,real>,nstate> &conservative_soln_gradient) const;
 

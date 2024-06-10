@@ -59,13 +59,11 @@ void Airfoil2D<dim,nstate>::display_additional_flow_case_specific_parameters() c
 template <int dim, int nstate>
 std::shared_ptr<Triangulation> Airfoil2D<dim,nstate>::generate_grid() const
 {
-    std::shared_ptr<Triangulation> grid = std::make_shared<Triangulation> (
+    std::shared_ptr<dealii::parallel::distributed::Triangulation<2> > grid = std::make_shared<dealii::parallel::distributed::Triangulation<2> > (
 #if PHILIP_DIM!=1
     this->mpi_communicator
 #endif
     );
-
-#if PHILIP_DIM==2
     dealii::GridGenerator::Airfoil::AdditionalData airfoil_data;
     airfoil_data.airfoil_type = "NACA";
     airfoil_data.naca_id      = "0012";
@@ -84,25 +82,6 @@ std::shared_ptr<Triangulation> Airfoil2D<dim,nstate>::generate_grid() const
 
     dealii::GridGenerator::Airfoil::create_triangulation(*grid, airfoil_data);
 
-//    // Assign a manifold to have curved geometry
-//    unsigned int manifold_id = 0;
-//    grid->reset_all_manifolds();
-//    grid->set_all_manifold_ids(manifold_id);
-//    // Set Flat manifold on the domain, but not on the boundary.
-//    grid->set_manifold(manifold_id, dealii::FlatManifold<2>());
-//
-//    manifold_id = 1;
-//    bool is_upper = true;
-//    const Grids::NACAManifold<2,1> upper_naca(airfoil_data.naca_id, is_upper);
-//    grid->set_all_manifold_ids_on_boundary(2,manifold_id); // upper airfoil side
-//    grid->set_manifold(manifold_id, upper_naca);
-//
-//    is_upper = false;
-//    const Grids::NACAManifold<2,1> lower_naca(airfoil_data.naca_id, is_upper);
-//    manifold_id = 2;
-//    grid->set_all_manifold_ids_on_boundary(3,manifold_id); // lower airfoil side
-//    grid->set_manifold(manifold_id, lower_naca); 
-
     // Set boundary type and design type
     for (typename dealii::parallel::distributed::Triangulation<2>::active_cell_iterator cell = grid->begin_active(); cell != grid->end(); ++cell) {
         for (unsigned int face=0; face<dealii::GeometryInfo<2>::faces_per_cell; ++face) {
@@ -116,57 +95,80 @@ std::shared_ptr<Triangulation> Airfoil2D<dim,nstate>::generate_grid() const
             }
         }
     }
+
+#if PHILIP_DIM==1
+    std::shared_ptr<Triangulation> grid_1D;
+    return grid_1D;  
+#endif  
+#if PHILIP_DIM==2
+    std::shared_ptr<Triangulation> grid_2D = grid;
+    return grid_2D;  
 #endif
-    return grid;
+#if PHILIP_DIM==3
+    std::shared_ptr<dealii::parallel::distributed::Triangulation<2> > grid_2D = grid;
+    std::shared_ptr<Triangulation> grid_3D = std::make_shared<Triangulation>(
+    #if PHILIP_DIM!=1
+        this->mpi_communicator
+    #endif
+    );
+    const unsigned int n_slices = 2;
+    const double height = 0.2;
+    const bool copy_manifold_ids = false;
+    //const std::vector<types::manifold_id> manifold_priorities = {};
+    dealii::GridGenerator::extrude_triangulation(*grid_2D, n_slices, height, *grid_3D, copy_manifold_ids);
+
+
+    //Loop through cells to define boundary id's (periodic) on the z plane. 
+    for (typename dealii::parallel::distributed::Triangulation<3>::active_cell_iterator cell = grid_3D->begin_active(); cell != grid_3D->end(); ++cell) {
+        for (unsigned int face=0; face<dealii::GeometryInfo<3>::faces_per_cell; ++face) {
+            if (cell->face(face)->at_boundary()) {
+                unsigned int current_id = cell->face(face)->boundary_id();
+                if (current_id == 1006) { //Dealii automatically assigns the next available number to the new boundaries when creating the 3D mesh. Thus, since the largest number used is 1005, it assigns 1006 and 1007 to the new boundaries. 
+                    cell->face(face)->set_boundary_id (2005); // z = 0 boundaries
+                } else if(current_id == 1007){
+                    cell->face(face)->set_boundary_id (2006); // z = height boundaries
+                }
+            }
+        }
+    }
+
+    // Periodic boundary parameters
+    const bool periodic_x = false;
+    const bool periodic_y = false;
+    const bool periodic_z = true;
+    const int x_periodic_1 = 0; 
+    const int x_periodic_2 = 0;
+    const int y_periodic_1 = 0; 
+    const int y_periodic_2 = 0;
+    const int z_periodic_1 = 2005; 
+    const int z_periodic_2 = 2006;
+
+    //Check for periodic boundary conditions and apply
+    std::vector<dealii::GridTools::PeriodicFacePair<typename dealii::Triangulation<dim>::cell_iterator> > matched_pairs;
+    
+    if (periodic_x) {
+        dealii::GridTools::collect_periodic_faces(*grid_3D, x_periodic_1, x_periodic_2, 0, matched_pairs);
+    }
+
+    if (periodic_y) {
+        dealii::GridTools::collect_periodic_faces(*grid_3D, y_periodic_1, y_periodic_2, 1, matched_pairs);
+    }
+
+    if (periodic_z) {
+        dealii::GridTools::collect_periodic_faces(*grid_3D, z_periodic_1, z_periodic_2, 2, matched_pairs);
+    }
+
+    if (periodic_x || periodic_y || periodic_z) {
+        grid_3D->add_periodicity(matched_pairs);
+    }
+    return grid_3D;
+#endif
 }
 
 template <int dim, int nstate>
 void Airfoil2D<dim,nstate>::steady_state_postprocessing(std::shared_ptr<DGBase<dim, double>> dg) const
 {
     if constexpr(nstate!=1){
-        dealii::Point<dim,double> extraction_point;
-        if constexpr(dim==2){
-            //extraction_point[0] = this->all_param.boundary_layer_extraction_param.extraction_point_x;
-            //extraction_point[1] = this->all_param.boundary_layer_extraction_param.extraction_point_y;
-        } else if constexpr(dim==3){
-            extraction_point[0] = this->all_param.boundary_layer_extraction_param.extraction_point_x;
-            extraction_point[1] = this->all_param.boundary_layer_extraction_param.extraction_point_y;
-            extraction_point[2] = this->all_param.boundary_layer_extraction_param.extraction_point_z;
-        }
-        //int number_of_sampling = this->all_param.boundary_layer_extraction_param.number_of_sampling;
-    
-        //ExtractionFunctional<dim,nstate,double,Triangulation> boundary_layer_extraction(dg, extraction_point, number_of_sampling);
-
-        // const double displacement_thickness = boundary_layer_extraction.evaluate_displacement_thickness();
-
-        // const double momentum_thickness = boundary_layer_extraction.evaluate_momentum_thickness();
-
-        // const double edge_velocity = boundary_layer_extraction.evaluate_edge_velocity();
-
-        // const double wall_shear_stress = boundary_layer_extraction.evaluate_wall_shear_stress();
-
-        // const double maximum_shear_stress = boundary_layer_extraction.evaluate_maximum_shear_stress();
-
-        // const double friction_velocity = boundary_layer_extraction.evaluate_friction_velocity();
-
-        // const double boundary_layer_thickness = boundary_layer_extraction.evaluate_boundary_layer_thickness();
-    
-        // this->pcout << " Extracted displacement_thickness : "   << displacement_thickness   << std::endl;
-        // this->pcout << " Extracted momentum_thickness : "       << momentum_thickness       << std::endl;
-        // this->pcout << " Extracted edge_velocity : "            << edge_velocity            << std::endl;
-        // this->pcout << " Extracted wall_shear_stress : "        << wall_shear_stress        << std::endl;
-        // this->pcout << " Extracted maximum_shear_stress : "     << maximum_shear_stress     << std::endl;
-        // this->pcout << " Extracted friction_velocity : "        << friction_velocity        << std::endl;
-        // this->pcout << " Extracted boundary_layer_thickness : " << boundary_layer_thickness << std::endl;
-
-        dealii::Point<3,double> observer_coord_ref;
-        //observer_coord_ref[0] = this->all_param.amiet_param.observer_coord_ref_x;
-        //observer_coord_ref[1] = this->all_param.amiet_param.observer_coord_ref_y;
-        //observer_coord_ref[2] = this->all_param.amiet_param.observer_coord_ref_z;
-
-        //AmietModelFunctional<dim,nstate,double,Triangulation> amiet_acoustic_response(dg,boundary_layer_extraction,observer_coord_ref);
-        //amiet_acoustic_response.evaluate_wall_pressure_acoustic_spectrum();
-        //amiet_acoustic_response.output_wall_pressure_acoustic_spectrum_dat();
         LiftDragFunctional<dim,dim+2,double,Triangulation> lift_functional(dg, LiftDragFunctional<dim,dim+2,double,Triangulation>::Functional_types::lift);
         double lift = lift_functional.evaluate_functional();
 
@@ -178,7 +180,7 @@ void Airfoil2D<dim,nstate>::steady_state_postprocessing(std::shared_ptr<DGBase<d
     }
 }
 
-#if PHILIP_DIM==2
+#if PHILIP_DIM!=1
     template class Airfoil2D <PHILIP_DIM,1>;
     template class Airfoil2D <PHILIP_DIM,PHILIP_DIM+2>;
     template class Airfoil2D <PHILIP_DIM,PHILIP_DIM+3>;

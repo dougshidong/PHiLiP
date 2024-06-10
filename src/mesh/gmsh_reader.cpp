@@ -1819,13 +1819,13 @@ read_gmsh(std::string filename, const bool do_renumber_dofs, int requested_grid_
   // default parameters
   const bool periodic_x = false;
   const bool periodic_y = false;
-  const bool periodic_z = false;
+  const bool periodic_z = true;
   const int x_periodic_1 = 0; 
   const int x_periodic_2 = 0;
   const int y_periodic_1 = 0; 
   const int y_periodic_2 = 0;
-  const int z_periodic_1 = 0; 
-  const int z_periodic_2 = 0;
+  const int z_periodic_1 = 2005; 
+  const int z_periodic_2 = 2006;
   const bool mesh_reader_verbose_output = true;
 
   return read_gmsh<dim,spacedim>(filename, 

@@ -634,7 +634,6 @@ public:
         dealii::Vector<real>                                   &local_rhs_cell,
         std::vector<dealii::Tensor<1,dim,real>>                &/*local_auxiliary_RHS*/,
         std::vector<adtype>               &local_metric_int,
-        codi::TapeHelper<adtype>                               &th,
         const bool                                             /*compute_auxiliary_right_hand_side*/,
         const bool compute_dRdW, const bool compute_dRdX, const bool compute_d2R);
 
@@ -674,7 +673,6 @@ public:
         dealii::LinearAlgebra::distributed::Vector<double>     &rhs,
         std::array<dealii::LinearAlgebra::distributed::Vector<double>,dim> &/*rhs_aux*/,
         std::vector<adtype>                  &local_metric,
-        codi::TapeHelper<adtype>                               &th,
         const bool                                             /*compute_auxiliary_right_hand_side*/,
         const bool compute_dRdW, const bool compute_dRdX, const bool compute_d2R);
 
@@ -702,7 +700,6 @@ public:
         dealii::Vector<real>                                   &local_rhs_cell,
         std::vector<dealii::Tensor<1,dim,real>>                &/*local_auxiliary_RHS*/,
         std::vector<adtype>                  &local_metric,
-        codi::TapeHelper<adtype>                               &th,
         const bool                                             /*compute_auxiliary_right_hand_side*/,
         const bool compute_dRdW, const bool compute_dRdX, const bool compute_d2R);
 
@@ -743,7 +740,6 @@ public:
         dealii::LinearAlgebra::distributed::Vector<double>     &rhs,
         std::array<dealii::LinearAlgebra::distributed::Vector<double>,dim> &/*rhs_aux*/,
         std::vector<adtype>                  &local_metric,
-        codi::TapeHelper<adtype>                               &th,
         const bool                                             /*compute_auxiliary_right_hand_side*/,
         const bool compute_dRdW, const bool compute_dRdX, const bool compute_d2R);
 
@@ -769,7 +765,6 @@ public:
         dealii::Vector<real>          &local_rhs_int_cell,
         dealii::Vector<real>          &local_rhs_ext_cell,
         std::vector<adtype>                  &metric_int,
-        codi::TapeHelper<adtype>                               &th,
         const bool compute_dRdW, const bool compute_dRdX, const bool compute_d2R);
     
     virtual void assemble_volume_term_ad(

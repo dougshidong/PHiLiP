@@ -324,6 +324,34 @@ real NavierStokes<dim,nstate,real>
 
 template <int dim, int nstate, typename real>
 real NavierStokes<dim,nstate,real>
+::compute_second_invariant (
+    const std::array<real,nstate> &conservative_soln,
+    const std::array<dealii::Tensor<1,dim,real>,nstate> &conservative_soln_gradient) const
+{
+    // Reference: Jeong J, Hussain F. On the identification of a vortex. Journal of Fluid Mechanics. 1995;285:69-94. doi:10.1017/S0022112095000462 
+    // -- Equation (2)
+    // Compute the second invariant (i.e. Q-criterion)
+    real second_invariant = 0.0;
+    if constexpr(dim>1) {
+        // Get velocity gradient
+        const std::array<dealii::Tensor<1,dim,real>,nstate> primitive_soln_gradient = this->template convert_conservative_gradient_to_primitive_gradient_templated<real>(conservative_soln, conservative_soln_gradient);
+        const dealii::Tensor<2,dim,real> velocities_gradient = extract_velocities_gradient_from_primitive_solution_gradient<real>(primitive_soln_gradient);
+        // Get symmetric strain rate tensor, S_{i,j}
+        const dealii::Tensor<2,dim,real> strain_rate_tensor_symmetric = compute_strain_rate_tensor<real>(velocities_gradient);
+        // Compute anti-symmetric strain rate tensor, \Omega_{i,j}
+        dealii::Tensor<2,dim,real> strain_rate_tensor_antisymmetric;
+        for (int d1=0; d1<dim; d1++) {
+            for (int d2=0; d2<dim; d2++) {
+                strain_rate_tensor_antisymmetric[d1][d2] = 0.5*(velocities_gradient[d1][d2] - velocities_gradient[d2][d1]);
+            }
+        }
+        second_invariant = 0.5*(get_tensor_magnitude_sqr(strain_rate_tensor_antisymmetric) - get_tensor_magnitude_sqr(strain_rate_tensor_symmetric));
+    }
+    return second_invariant;
+}
+
+template <int dim, int nstate, typename real>
+real NavierStokes<dim,nstate,real>
 ::compute_enstrophy (
     const std::array<real,nstate> &conservative_soln,
     const std::array<dealii::Tensor<1,dim,real>,nstate> &conservative_soln_gradient) const
@@ -352,18 +380,30 @@ real NavierStokes<dim,nstate,real>
     // Get pressure
     const real pressure = this->template compute_pressure<real>(conservative_soln);
 
+    // Compute the pressure dilatation
+    real pressure_dilatation = compute_dilatation(conservative_soln,conservative_soln_gradient);
+    pressure_dilatation *= pressure;
+
+    return pressure_dilatation;
+}
+
+template <int dim, int nstate, typename real>
+real NavierStokes<dim,nstate,real>
+::compute_dilatation (
+    const std::array<real,nstate> &conservative_soln,
+    const std::array<dealii::Tensor<1,dim,real>,nstate> &conservative_soln_gradient) const
+{
     // Get velocity gradient
     const std::array<dealii::Tensor<1,dim,real>,nstate> primitive_soln_gradient = this->template convert_conservative_gradient_to_primitive_gradient_templated<real>(conservative_soln, conservative_soln_gradient);
     const dealii::Tensor<2,dim,real> velocities_gradient = extract_velocities_gradient_from_primitive_solution_gradient<real>(primitive_soln_gradient);
 
-    // Compute the pressure dilatation
-    real pressure_dilatation = 0.0;
+    // Compute the dilatation
+    real dilatation = 0.0;
     for(int d=0; d<dim; ++d) {
-        pressure_dilatation += velocities_gradient[d][d]; // divergence
+        dilatation += velocities_gradient[d][d]; // divergence
     }
-    pressure_dilatation *= pressure;
 
-    return pressure_dilatation;
+    return dilatation;
 }
 
 template <int dim, int nstate, typename real>
@@ -1207,6 +1247,10 @@ dealii::Vector<double> NavierStokes<dim,nstate,real>::post_compute_derived_quant
         computed_quantities(++current_data_index) = compute_vorticity_magnitude(conservative_soln,conservative_soln_gradient);
         // Enstrophy
         computed_quantities(++current_data_index) = compute_enstrophy(conservative_soln,conservative_soln_gradient);
+        // Second-invariant Q
+        computed_quantities(++current_data_index) = compute_second_invariant(conservative_soln,conservative_soln_gradient);
+        // Dilatation
+        computed_quantities(++current_data_index) = compute_dilatation(conservative_soln,conservative_soln_gradient);
 
     }
     if (computed_quantities.size()-1 != current_data_index) {
@@ -1244,6 +1288,8 @@ std::vector<dealii::DataComponentInterpretation::DataComponentInterpretation> Na
     }
     interpretation.push_back (DCI::component_is_scalar); // Vorticity magnitude
     interpretation.push_back (DCI::component_is_scalar); // Enstrophy
+    interpretation.push_back (DCI::component_is_scalar); // Second-invariant Q
+    interpretation.push_back (DCI::component_is_scalar); // Dilatation
 
     std::vector<std::string> names = post_get_names();
     if (names.size() != interpretation.size()) {
@@ -1279,6 +1325,8 @@ std::vector<std::string> NavierStokes<dim,nstate,real>
     }
     names.push_back ("vorticity_magnitude");
     names.push_back ("enstrophy");
+    names.push_back ("second_invariant_Q");
+    names.push_back ("dilatation");
     return names;
 }
 

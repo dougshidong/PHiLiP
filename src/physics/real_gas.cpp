@@ -877,7 +877,13 @@ std::vector<std::string> RealGas<dim,nstate,real>
     // }
     for (unsigned int s=0; s<nstate-dim-1; ++s) 
     {
-      names.push_back (real_gas_cap->Sp_name[s]);
+      std::string string_mass_fraction = "mass_fraction";
+      std::string string_species_mass_fraction = string_mass_fraction + "_" + real_gas_cap->Sp_name[s];
+      names.push_back (string_species_mass_fraction);
+    }
+    for (unsigned int s=0; s<nstate-dim-1; ++s) 
+    {
+      names.push_back ("species_density");
     }
 
     return names;

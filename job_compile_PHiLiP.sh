@@ -35,7 +35,7 @@ export P4EST_DIR=$EBROOTP4EST
 module load slepc/3.14.2
 module load gsl/2.6
 module load cmake/3.18.4
-
+module load ninja/1.11.1
 module load netcdf-c++-mpi/4.2
 
 ##module load netcdf-mpi
@@ -57,8 +57,8 @@ rsync  -axvH --no-g --no-p --exclude 'build*' --exclude .git --exclude '*.log' -
 mkdir build_release
 
 cd build_release
-cmake -DDEAL_II_DIR=$DEAL_II_DIR ../PHiLiP -DMPIMAX=${NUM_PROCS} -DCMAKE_BUILD_TYPE=Release -DGMSH_DIR=$GMSH_DIR/bin/gmsh -DGMSH_LIB=$GMSH_DIR -DCMAKE_SKIP_INSTALL_RPATH=ON 
-make -j${NUM_PROCS}
+PARALLEL_LEVEL=${NUM_PROCS} cmake -DDEAL_II_DIR=$DEAL_II_DIR ../PHiLiP -DMPIMAX=${NUM_PROCS} -DCMAKE_BUILD_TYPE=Release -DGMSH_DIR=$GMSH_DIR/bin/gmsh -DGMSH_LIB=$GMSH_DIR -DCMAKE_SKIP_INSTALL_RPATH=ON -GNinja
+ninja
 if [ "${RUN_CTEST}" = true ]; then
     ctest
 fi

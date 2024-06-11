@@ -608,15 +608,15 @@ double EulerVortexAdvectionErrorStudy<dim,nstate>
                         soln_at_q[istate] += flow_solver->dg->solution[dofs_indices[idof]] * fe_values_extra.shape_value_component(idof, iquad, istate);
                     }
 
-                    // TO DO: get x here ... DONE
-                    const dealii::Point<dim> qpoint = (fe_values_extra.quadrature_point(iquad));
-
                     // TO DO: get exact_at_q here using x or qpoint ... DONE
                     for (unsigned int istate=0; istate<nstate; ++istate)
                     {
                         // Note: This is in non-dimensional form (free-stream values as reference)
                         if constexpr(dim == 1)
                         {
+                            // TO DO: get x here ... DONE
+                            const dealii::Point<dim> qpoint = (fe_values_extra.quadrature_point(iquad));
+                            
                             exact_at_q[istate] = flow_solver->flow_solver_case->initial_condition_function->value(qpoint,istate);
                         } else {
                             exact_at_q[istate] = 0.0;

@@ -1113,6 +1113,122 @@ inline real InitialConditionFunction_Euler_BubbleAdvection<dim, nstate, real>
     return value;
 }
 
+// =============================================================
+// Isentropic Euler Vortex (Multi Species) -- Initial Condition 
+// =============================================================
+template <int dim, int nstate, typename real>
+InitialConditionFunction_MultiSpecies_IsentropicEulerVortex<dim,nstate,real>
+::InitialConditionFunction_MultiSpecies_IsentropicEulerVortex (
+        Parameters::AllParameters const *const param)
+    : InitialConditionFunction<dim,nstate,real>()
+    , gamma_gas(param->euler_param.gamma_gas)
+    , mach_inf(param->euler_param.mach_inf)
+    , mach_inf_sqr(mach_inf*mach_inf)
+{
+    // Euler object; create using dynamic_pointer_cast and the create_Physics factory
+    // Note that Euler primitive/conservative vars are the same as NS
+    PHiLiP::Parameters::AllParameters parameters_euler = *param;
+    parameters_euler.pde_type = Parameters::AllParameters::PartialDifferentialEquation::real_gas;
+    this->real_gas_physics = std::dynamic_pointer_cast<Physics::RealGas<dim,dim+2+2-1,double>>( // TO DO: N_SPECIES
+                Physics::PhysicsFactory<dim,dim+2+2-1,double>::create_Physics(&parameters_euler)); // TO DO: N_SPECIES
+}
+template <int dim, int nstate, typename real>
+real InitialConditionFunction_MultiSpecies_IsentropicEulerVortex<dim,nstate,real>
+::primitive_value(const dealii::Point<dim,real> &point, const unsigned int istate) const
+{
+    // Note: This is in non-dimensional form (free-stream values as reference)
+    real value = 0.;
+    if constexpr(dim == 2) {
+        const real x = point[0];
+        const real y = point[1];
+
+        // constant value
+        const real x_0 = 0.0;
+        const real y_0 = 0.0;
+        const real beta = 13.5;
+        const real radius = 1.5;
+        const real U_0 = 0.0;
+        const real V_0 = 1.0;
+        const real M = 0.40;
+        const real pi = 6.28318530717958623200 / 2; // pi
+        const real L = 10.0;
+        const real alpha_N2 = 0.50*sin(pi/L*(x-x_0))+0.50;
+        const real alpha_O2 = 1.0 - alpha_N2;
+
+        // const std::array Cp_s = this->real_gas_physics->compute_species_specific_Cp(this->real_gas_physics->temperature_ref);
+        // const std::array Cv_s = this->real_gas_physics->compute_species_specific_Cv(this->real_gas_physics->temperature_ref);
+        // const real gamma_N2 = Cp_s[0]/Cv_s[0];
+        // const real gamma_O2 = Cp_s[1]/Cv_s[1];
+
+        // TO DO MIXTURE GAMMA
+        const real mixture_gamma = 1.4;
+
+        const real f = (1.0 - (x-x_0)*(x-x_0) - (y-y_0)*(y-y_0)) / (2.0*radius*radius);
+        // const real density_N2 = pow( (1.0 - ((gamma_N2-1.0)*beta*beta*M*M/(8.0*pi*pi))*exp(2.0*f)), 1.0/(gamma_N2) );
+        // const real density_O2 = pow( (1.0 - ((gamma_O2-1.0)*beta*beta*M*M/(8.0*pi*pi))*exp(2.0*f)), 1.0/(gamma_O2) );
+        const real density_N2 = alpha_N2*pow( (1.0 - ((mixture_gamma-1.0)*beta*beta*M*M/(8.0*pi*pi))*exp(2.0*f)), 1.0/(mixture_gamma-1.0) );
+        const real density_O2 = alpha_O2*pow( (1.0 - ((mixture_gamma-1.0)*beta*beta*M*M/(8.0*pi*pi))*exp(2.0*f)), 1.0/(mixture_gamma-1.0) );
+        const real mixture_density = density_N2 + density_O2;
+        const real u = U_0 + beta*y/(2.0*pi*radius)*exp(f);
+        const real v = V_0 - beta*x/(2.0*pi*radius)*exp(f);
+
+        const real temperature_modification = 2.0;
+        const real mixture_pressure = 1.0/(mixture_gamma*M*M)*pow(mixture_density,mixture_gamma) * temperature_modification;
+
+        // dimnsionalized above, non-dimensionalized below
+        if(istate==0) {
+            // mixture density
+            value = mixture_density;     // / this->real_gas_physics->density_ref;
+        }
+        if(istate==1) {
+            // x-velocity
+            value = u;    // / this->real_gas_physics->u_ref;
+        }
+        if(istate==2) {
+            // y-velocity
+            value = v;   // / this->real_gas_physics->u_ref;
+        }
+        if(istate==3) {
+            // pressure
+            value = mixture_pressure;    // / (this->real_gas_physics->density_ref*this->real_gas_physics->u_ref_sqr);
+        }
+        if(istate==4){
+            // other species density (N2)
+            value = density_N2/mixture_density;
+        }
+    }
+    return value;
+}
+
+template <int dim, int nstate, typename real>
+real InitialConditionFunction_MultiSpecies_IsentropicEulerVortex<dim,nstate,real>
+::convert_primitive_to_conversative_value(
+    const dealii::Point<dim,real> &point, const unsigned int istate) const
+{
+    real value = 0.0;
+    if constexpr(dim == 2) {
+        std::array<real,nstate> soln_primitive;
+
+        for (int i=0; i<nstate; i++)
+        {
+            soln_primitive[i] = primitive_value(point,i);
+        }
+
+        const std::array<real,nstate> soln_conservative = this->real_gas_physics->convert_primitive_to_conservative(soln_primitive);
+        value = soln_conservative[istate];
+    }
+    return value;
+}
+
+template <int dim, int nstate, typename real>
+inline real InitialConditionFunction_MultiSpecies_IsentropicEulerVortex<dim, nstate, real>
+::value(const dealii::Point<dim,real> &point, const unsigned int istate) const
+{
+    real value = 0.0;
+    value = convert_primitive_to_conversative_value(point,istate);
+    return value;
+}
+
 // =========================================================
 // Initial Condition Factory
 // =========================================================
@@ -1199,6 +1315,10 @@ InitialConditionFactory<dim,nstate, real>::create_InitialConditionFunction(
     } else if (flow_type == FlowCaseEnum::euler_bubble_advection) {
         if constexpr (dim==1 && nstate==dim+2){ 
             return std::make_shared<InitialConditionFunction_Euler_BubbleAdvection<dim,nstate,real> >(param);
+        }
+    } else if (flow_type == FlowCaseEnum::multi_species_isentropic_euler_vortex) {
+        if constexpr (dim==2 && nstate==dim+2+2-1){ // TO DO: N_SPECIES
+            return std::make_shared<InitialConditionFunction_MultiSpecies_IsentropicEulerVortex<dim,nstate,real> >(param);
         }        
     } else {
         std::cout << "Invalid Flow Case Type. You probably forgot to add it to the list of flow cases in initial_condition_function.cpp" << std::endl;
@@ -1241,6 +1361,7 @@ template class InitialConditionFunction_IsentropicVortex <PHILIP_DIM, PHILIP_DIM
 template class InitialConditionFunction_KHI <PHILIP_DIM, PHILIP_DIM+2, double>;
 template class InitialConditionFunction_AcousticWave_Air <PHILIP_DIM, PHILIP_DIM+2, double>;
 template class InitialConditionFunction_AcousticWave_Species <PHILIP_DIM, PHILIP_DIM+2, double>;
+template class InitialConditionFunction_MultiSpecies_IsentropicEulerVortex <PHILIP_DIM, PHILIP_DIM+3, double>;
 #endif
 
 // functions instantiated for all dim

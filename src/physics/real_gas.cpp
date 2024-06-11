@@ -764,6 +764,11 @@ dealii::Vector<double> RealGas<dim,nstate,real>::post_compute_derived_quantities
         for (unsigned int s=0; s<nstate-dim-1; ++s) 
         {
             computed_quantities(++current_data_index) = compute_mass_fractions(conservative_soln)[s];
+        }
+        // species densities
+        for (unsigned int s=0; s<nstate-dim-1; ++s) 
+        {
+            computed_quantities(++current_data_index) = compute_species_densities(conservative_soln)[s];
         }        
 
         // const real temp = 600.0/298.15;
@@ -827,6 +832,9 @@ std::vector<dealii::DataComponentInterpretation::DataComponentInterpretation> Re
     // }
     for (unsigned int s=0; s<nstate-dim-1; ++s) {
          interpretation.push_back (DCI::component_is_scalar); // Mass fractions
+    }
+    for (unsigned int s=0; s<nstate-dim-1; ++s) {
+        interpretation.push_back (DCI::component_is_part_of_vector); // Species densities
     }
 
     std::vector<std::string> names = post_get_names();

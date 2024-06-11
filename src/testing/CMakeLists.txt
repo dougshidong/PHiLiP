@@ -37,6 +37,7 @@ set(TESTS_SOURCE
     khi_robustness.cpp
     real_gas_vs_euler_primitive_to_conservative_check.cpp
     euler_vortex_advection_error_study.cpp
+    multi_species_isentropic_euler_vortex_test.cpp
     )
 
 foreach(dim RANGE 1 3)

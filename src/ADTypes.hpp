@@ -26,6 +26,15 @@ using codi_HessianComputationType  = codi::RealReversePrimalIndexGen< codi::Real
 //using RadFadType = codi_JacobianComputationType; ///< Reverse only mode that only allows Jacobian computation.
 using RadType = codi_JacobianComputationType; ///< CoDiPaco reverse-AD type for first derivatives.
 using RadFadType = codi_HessianComputationType ; ///< Nested reverse-forward mode type for Jacobian and Hessian computation using TapeHelper.
+
+/// Tape helper class derived from CoDiPack 
+template<typename adtype>
+class codi_TapeHelper : public codi::TapeHelper<adtype>
+{
+public:
+    /// Returns reference to codi::TapeHelper<adtype>::inputValues which can be used in PHiLiP to add inputs that have already been registered in the global tape.
+    std::vector<typename adtype::GradientData>& getinputValues() {return this->inputValues;} 
+};
 } // PHiLiP namespace
 
 #endif

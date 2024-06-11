@@ -879,16 +879,11 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual_and_ad_derivatives (
         }
     } // end of face loop
     
-    for (unsigned int idof = 0; idof < n_metric_dofs_cell; ++idof) 
-    {
-        tape.deactivateValue(local_metric_int[idof]);
-    }
     if(compute_dRdW || compute_dRdX || compute_d2R)
     {
         tape.setPassive();
     }
 
-    AssertDimension(tape_index, n_tapes);
     if(compute_auxiliary_right_hand_side) {
         // Add local contribution from current cell to global vector
         for (unsigned int i=0; i<n_dofs_curr_cell; ++i) {
@@ -980,17 +975,14 @@ void DGBase<dim,real,MeshType>::assemble_volume_term_and_build_operators_ad(
                                               w_start, w_end, x_start, x_end );
     }
     
-    using TH = codi::TapeHelper<adtype>;
+    using TH = codi_TapeHelper<adtype>;
     TH th;
-    typename adtype::TapeType &tape =  adtype::getGlobalTape();
-    
-    for (unsigned int idof = 0; idof < n_metric_dofs; ++idof) {
-        if (compute_dRdX || compute_d2R) {
-            th.registerInput(local_metric_int[idof]);
-        } else {
-            tape.deactivateValue(local_metric_int[idof]);
+    typename adtype::TapeType &tape =  adtype::getGlobalTape(); 
+    if (compute_dRdX || compute_d2R) {
+        for (unsigned int idof = 0; idof < n_metric_dofs; ++idof) {
+            th.getinputValues().push_back(local_metric_int[idof].getGradientData());
         }
-    }
+    } 
     
     std::vector<adtype> local_solution(fe_soln.dofs_per_cell);
     for (unsigned int idof = 0; idof < n_soln_dofs; ++idof) {
@@ -1162,17 +1154,14 @@ void DGBase<dim,real,MeshType>::assemble_boundary_term_and_build_operators_ad(
                                               w_start, w_end, x_start, x_end );
     }
     
-    using TH = codi::TapeHelper<adtype>;
+    using TH = codi_TapeHelper<adtype>;
     TH th;
     typename adtype::TapeType &tape =  adtype::getGlobalTape();
-    
-    for (unsigned int idof = 0; idof < n_metric_dofs; ++idof) {
-        if (compute_dRdX || compute_d2R) {
-            th.registerInput(local_metric[idof]);
-        } else {
-            tape.deactivateValue(local_metric[idof]);
+    if (compute_dRdX || compute_d2R) {
+        for (unsigned int idof = 0; idof < n_metric_dofs; ++idof) {
+            th.getinputValues().push_back(local_metric[idof].getGradientData());
         }
-    }
+    } 
     
     for (unsigned int idof = 0; idof < n_soln_dofs; ++idof) {
         const real val = this->solution(soln_dofs_indices[idof]);
@@ -1541,18 +1530,15 @@ void DGBase<dim,real,MeshType>::assemble_face_subface_term_derivatives_ad(
             x_int_start, x_int_end, x_ext_start, x_ext_end);
     }
     
-    using TH = codi::TapeHelper<adtype>;
+    using TH = codi_TapeHelper<adtype>;
     TH th;
     typename adtype::TapeType &tape =  adtype::getGlobalTape();
     
-    for (unsigned int idof = 0; idof < n_metric_dofs; ++idof) {
-        if (compute_dRdX || compute_d2R) {
-            th.registerInput(metric_int[idof]);
-        } else {
-            tape.deactivateValue(metric_int[idof]);
+    if (compute_dRdX || compute_d2R) {
+        for (unsigned int idof = 0; idof < n_metric_dofs; ++idof) {
+            th.getinputValues().push_back(metric_int[idof].getGradientData());
         }
-    }
-
+    } 
 
     for (unsigned int idof = 0; idof < n_metric_dofs; ++idof) {
         const real val = this->high_order_grid->volume_nodes[metric_dofs_indices_ext[idof]];
@@ -1638,7 +1624,6 @@ void DGBase<dim,real,MeshType>::assemble_face_subface_term_derivatives_ad(
         local_rhs_ext_cell[itest_ext] += getValue<adtype>(rhs_ext[itest_ext]);
     }
     
-    using TH = codi::TapeHelper<adtype>;
     if (compute_dRdW || compute_dRdX) {
         typename TH::JacobianType& jac = th.createJacobian();
         th.evalJacobian(jac);
@@ -2760,29 +2745,6 @@ void DGBase<dim,real,MeshType>::assemble_residual (const bool compute_dRdW, cons
             if(compute_d2R)
             {
                 assemble_cell_residual_and_ad_derivatives<codi_HessianComputationType>(
-                    soln_cell,
-                    metric_cell,
-                    compute_dRdW, compute_dRdX, compute_d2R,
-                    fe_values_collection_volume,
-                    fe_values_collection_face_int,
-                    fe_values_collection_face_ext,
-                    fe_values_collection_subface,
-                    fe_values_collection_volume_lagrange,
-                    soln_basis_int,
-                    soln_basis_ext,
-                    flux_basis_int,
-                    flux_basis_ext,
-                    flux_basis_stiffness,
-                    soln_basis_projection_oper_int,
-                    soln_basis_projection_oper_ext,
-                    mapping_basis,
-                    false,
-                    right_hand_side,
-                    auxiliary_right_hand_side);
-            }
-            else if (compute_dRdW || compute_dRdX)
-            {
-                assemble_cell_residual_and_ad_derivatives<codi_JacobianComputationType>(
                     soln_cell,
                     metric_cell,
                     compute_dRdW, compute_dRdX, compute_d2R,

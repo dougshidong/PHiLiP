@@ -11,10 +11,10 @@ set use_periodic_bc = true
 
 # ODE solver
 subsection ODE solver
-  set ode_solver_type = runge_kutta
+  set ode_solver_type = low_storage_runge_kutta
   set output_solution_every_dt_time_intervals = 0.1
   set initial_time_step = 5E-3
-  set runge_kutta_method = low_storage_runge_kutta_solver
+  # set runge_kutta_method = low_storage_runge_kutta_solver
 end
 
 subsection manufactured solution convergence study 

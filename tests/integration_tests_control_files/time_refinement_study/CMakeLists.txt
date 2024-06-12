@@ -17,6 +17,22 @@ add_test(
 # ----------------------------------------
 
 # =======================================
+# Time Study (Linear Advection Low-Storage RK)
+# =======================================
+# ----------------------------------------
+# Time refinement study on linear advection using a sinusoidal initial condition
+# L2 error calculated with respect to the exact solution
+# Test will fail if the convergence order is not close to the expected order
+# ----------------------------------------
+configure_file(low_storage_rk_time_refinement_study_advection_explicit.prm low_storage_rk_time_refinement_study_advection_explicit.prm COPYONLY)
+add_test(
+    NAME 1D_TIME_REFINEMENT_STUDY_ADVECTION_LOW_STORAGE
+  COMMAND mpirun -np 1 ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_1D -i ${CMAKE_CURRENT_BINARY_DIR}/low_storage_rk_time_refinement_study_advection_explicit.prm
+    WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
+)
+# ----------------------------------------
+
+# =======================================
 # Time Study (Linear Advection Implicit RK)
 # =======================================
 # ----------------------------------------

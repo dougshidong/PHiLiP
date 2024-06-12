@@ -91,8 +91,11 @@ void LowStorageRungeKuttaODESolver<dim,real,n_rk_stages,MeshType>::allocate_ode_
             this->dg->evaluate_mass_matrices(false); // creates and stores global mass matrix
         }
     }
+    
     this->pcout << std::endl;
 
+    this->butcher_tableau->set_tableau();
+/*
     this->rk_stage.resize(n_rk_stages);
     for (int i=0; i<n_rk_stages; ++i) {
         this->rk_stage[i].reinit(this->dg->solution);
@@ -106,7 +109,9 @@ void LowStorageRungeKuttaODESolver<dim,real,n_rk_stages,MeshType>::allocate_ode_
               false); 
     for (int i=0; i<n_rk_stages; ++i) {
         if (this->butcher_tableau->get_a(i,i)==0.0)     this->butcher_tableau_aii_is_zero[i] = true;
+    
     }
+    */
 }
 
 template class LowStorageRungeKuttaODESolver<PHILIP_DIM, double,1, dealii::Triangulation<PHILIP_DIM> >;

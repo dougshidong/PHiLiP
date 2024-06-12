@@ -58,6 +58,8 @@ real AmietModelFunctional<dim,nstate,real,MeshType>
     // Note: for reduced space method compute_d2I should be false
     bool actually_compute_d2I   = compute_d2I;
 
+    std::cout << "pin 0 in amiet_model..." << std::endl;
+
     this->pcout << "Evaluating functional... ";
     this->need_compute(actually_compute_value, actually_compute_dIdW, actually_compute_dIdX, actually_compute_d2I);
     this->pcout << std::endl;
@@ -66,9 +68,13 @@ real AmietModelFunctional<dim,nstate,real,MeshType>
         return this->current_functional_value;
     }
 
+    std::cout << "pin 01 in amiet_model..." << std::endl;
+
     // To obtain the local derivatives
     const unsigned int max_dofs_per_cell = this->dg->dof_handler.get_fe_collection().max_dofs_per_cell();
     std::vector<dealii::types::global_dof_index> cell_soln_dofs_indices(max_dofs_per_cell);
+
+    std::cout << "pin 02 in amiet_model..." << std::endl;
 
     const dealii::hp::FECollection<dim> fe_collection = this->dg->dof_handler.get_fe_collection();
 
@@ -77,12 +83,18 @@ real AmietModelFunctional<dim,nstate,real,MeshType>
     const auto mapping = (*(this->dg->high_order_grid->mapping_fe_field));
     dealii::hp::MappingCollection<dim> mapping_collection(mapping);
 
+    std::cout << "pin 03 in amiet_model..." << std::endl;
+
     this->allocate_derivatives(actually_compute_dIdW, actually_compute_dIdX, actually_compute_d2I);
+
+    std::cout << "pin 04 in amiet_model..." << std::endl;
 
     // local derivative of interpolated solutions wrt flow solutions
     std::vector<real> local_dW_int_i_dW;
     // local derivative of interpolated solutions gradient wrt flow solutions
     std::vector<std::vector<real>> local_dW_grad_int_i_dW(dim);
+
+    std::cout << "pin 1 in amiet_model..." << std::endl;
 
     // coord_of_total_sampling: vector contains coordinates of start and end points as well as all sampling quadrature points
     int number_of_total_sampling = boundary_layer_extraction.number_of_total_sampling;
@@ -90,9 +102,13 @@ real AmietModelFunctional<dim,nstate,real,MeshType>
     coord_of_total_sampling.resize(number_of_total_sampling);
     coord_of_total_sampling = boundary_layer_extraction.evaluate_straight_line_total_sampling_point_coord();
 
+    std::cout << "pin 2 in amiet_model..." << std::endl;
+
     std::vector<std::pair<typename dealii::DoFHandler<dim>::active_cell_iterator,typename dealii::Point<dim,real>>> cell_index_and_ref_points_of_total_sampling(number_of_total_sampling);
 
+    std::cout << "pin before boundary_layer_extraction.find_active_cell_around_points... " << std::endl;
     cell_index_and_ref_points_of_total_sampling = boundary_layer_extraction.find_active_cell_around_points(mapping_collection,this->dg->dof_handler,coord_of_total_sampling);
+    std::cout << "pin after boundary_layer_extraction.find_active_cell_around_points... " << std::endl;
 
     // Todo: W_int and W_grad_int needs to be communicated
     std::vector<std::array<FadType,nstate>> soln_of_total_sampling(number_of_total_sampling);
@@ -113,6 +129,7 @@ real AmietModelFunctional<dim,nstate,real,MeshType>
     for( ; soln_cell != this->dg->dof_handler.end(); ++soln_cell) {
         if(!soln_cell->is_locally_owned()) continue;
 
+        std::cout << "pin before cell_index_and_ref_points_of_total_sampling to be used " << std::endl;
         unsigned int sampling_index;
         for(int i=0;i<number_of_total_sampling;++i){
             if(cell_index_and_ref_points_of_total_sampling[i].first == soln_cell){
@@ -124,13 +141,14 @@ real AmietModelFunctional<dim,nstate,real,MeshType>
                 }
             }
         }
+        std::cout << "pin after cell_index_and_ref_points_of_total_sampling to be used " << std::endl;
     }
 
     dealii::LinearAlgebra::distributed::Vector<double> W_int;
     W_int.reinit(W_int_local_range,W_int_total_range,MPI_COMM_WORLD);
 
-    dealii::LinearAlgebra::distributed::Vector<double> W_grad_int;
-    W_int.reinit(W_grad_int_local_range,W_grad_int_total_range,MPI_COMM_WORLD);
+    //dealii::LinearAlgebra::distributed::Vector<double> W_grad_int;
+    //W_grad_int.reinit(W_grad_int_local_range,W_grad_int_total_range,MPI_COMM_WORLD);
 
     unsigned int W_int_local_own = W_int_global_index.size();
 
@@ -192,11 +210,11 @@ real AmietModelFunctional<dim,nstate,real,MeshType>
                     W_int[sampling_index*nstate+s] = soln_of_sampling[s].val().val();
                 }
 
-                for(unsigned int s=0;s<nstate;++s){
-                    for(unsigned int d=0;d<dim;++d){
-                        W_grad_int[d*sampling_index*nstate+s] = soln_grad_of_sampling[s][d].val().val();
-                    }
-                }
+                //for(unsigned int s=0;s<nstate;++s){
+                //    for(unsigned int d=0;d<dim;++d){
+                //        W_grad_int[d*sampling_index*nstate+s] = soln_grad_of_sampling[s][d].val().val();
+                //    }
+                //}
 
                 //for(unsigned int s=0;s<nstate;++s){
                 //    for(unsigned int d=0;d<dim;++d){
@@ -241,11 +259,11 @@ real AmietModelFunctional<dim,nstate,real,MeshType>
                             }
                             AssertDimension(i_derivative, n_total_indep);
                         }
-                        for(unsigned int idof = 0; idof < n_soln_dofs_cell; ++idof){
-                            for(unsigned int d=0;d<dim;++d){
-                                dW_grad_int_dW[d*n_total_int_indep+sampling_index*nstate+s][cell_soln_dofs_indices[idof]] = local_dW_grad_int_i_dW[d][idof];
-                            }
-                        }
+                        //for(unsigned int idof = 0; idof < n_soln_dofs_cell; ++idof){
+                        //    for(unsigned int d=0;d<dim;++d){
+                        //        dW_grad_int_dW[d*n_total_int_indep+sampling_index*nstate+s][cell_soln_dofs_indices[idof]] = local_dW_grad_int_i_dW[d][idof];
+                        //    }
+                        //}
                     }
                 
                 }

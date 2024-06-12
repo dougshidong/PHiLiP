@@ -230,6 +230,7 @@ std::vector<std::pair<typename dealii::DoFHandler<dim>::active_cell_iterator,typ
     //    std::abort();
     //}
 
+    std::cout << "pin 0 in find_active_cell_around_points..." << std::endl;
     for(int i=0;i<number_of_total_sampling;++i){
         cell_index_and_ref_points_of_total_sampling[i] = dealii::GridTools::find_active_cell_around_point(mapping_collection,
                                                                                                           dof_handler,

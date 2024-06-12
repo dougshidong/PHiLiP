@@ -135,14 +135,18 @@ void Airfoil2D<dim,nstate>::steady_state_postprocessing(std::shared_ptr<DGBase<d
         }
         int number_of_sampling = this->all_param.boundary_layer_extraction_param.number_of_sampling;
     
+        std::cout << "pin 0 in airfoil_2D..." << std::endl;
         ExtractionFunctional<dim,nstate,double,Triangulation> boundary_layer_extraction(dg, extraction_point, number_of_sampling);
+        std::cout << "pin 1 in airfoil_2D..." << std::endl;
 
         dealii::Point<3,double> observer_coord_ref;
         observer_coord_ref[0] = this->all_param.amiet_param.observer_coord_ref_x;
         observer_coord_ref[1] = this->all_param.amiet_param.observer_coord_ref_y;
         observer_coord_ref[2] = this->all_param.amiet_param.observer_coord_ref_z;
 
+        std::cout << "pin 2 in airfoil_2D..." << std::endl;
         AmietModelFunctional<dim,nstate,double,Triangulation> amiet_acoustic_response(dg,boundary_layer_extraction,observer_coord_ref);
+        std::cout << "pin 3 in airfoil_2D..." << std::endl;
 
         double OASPL_airfoil_2D;
         OASPL_airfoil_2D = amiet_acoustic_response.evaluate_functional(true,false,false);

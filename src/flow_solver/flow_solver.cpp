@@ -566,7 +566,7 @@ int FlowSolver<dim,nstate,sub_nstate>::run() const
 
         if(sub_dg){
             pcout << "Start calculation for the sub ODE solver..." << std::endl;
-            sub_ode_solver->steady_state();
+            //sub_ode_solver->steady_state();
             sub_flow_solver_case->steady_state_postprocessing(sub_dg);
             pcout << "End calculation for the sub ODE solver..." << std::endl;
 
@@ -586,7 +586,7 @@ int FlowSolver<dim,nstate,sub_nstate>::run() const
 
         pcout << "Start calculation for the main ODE solver..." << std::endl;
         
-        ode_solver->steady_state();
+        //ode_solver->steady_state();
         flow_solver_case->steady_state_postprocessing(dg);
         
         const bool use_mesh_adaptation = (all_param.mesh_adaptation_param.total_mesh_adaptation_cycles > 0);

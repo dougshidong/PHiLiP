@@ -14,6 +14,7 @@ public:
     /// Types of ODE solver
     enum ODESolverEnum {
         runge_kutta_solver, /// Runge-Kutta (RK), explicit or diagonally implicit 
+        low_storage_runge_kutta_solver, /// Low Storage Runge-Kutta RK43S*
         implicit_solver,  /// Backward-Euler
         rrk_explicit_solver, /// Explicit RK using the relaxation Runge-Kutta method (Ketcheson, 2019)
         pod_galerkin_solver, ///Proper Orthogonal Decomposition with Galerkin projection

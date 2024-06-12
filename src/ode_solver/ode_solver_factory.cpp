@@ -2,6 +2,7 @@
 #include "parameters/all_parameters.h"
 #include "ode_solver_base.h"
 #include "runge_kutta_ode_solver.h"
+#include "low_storage_runge_kutta_ode_solver.h"
 #include "implicit_ode_solver.h"
 #include "relaxation_runge_kutta/algebraic_rrk_ode_solver.h"
 #include "relaxation_runge_kutta/root_finding_rrk_ode_solver.h"
@@ -10,6 +11,7 @@
 #include <deal.II/distributed/solution_transfer.h>
 #include "runge_kutta_methods/runge_kutta_methods.h"
 #include "runge_kutta_methods/rk_tableau_base.h"
+#include "runge_kutta_methods/low_storage_rk_tableau_base.h"
 #include "relaxation_runge_kutta/empty_RRK_base.h"
 
 namespace PHiLiP {
@@ -22,8 +24,8 @@ std::shared_ptr<ODESolverBase<dim,real,MeshType>> ODESolverFactory<dim,real,Mesh
     pcout << "Creating ODE Solver..." << std::endl;
     using ODEEnum = Parameters::ODESolverParam::ODESolverEnum;
     const ODEEnum ode_solver_type = dg_input->all_parameters->ode_solver_param.ode_solver_type;
-    if((ode_solver_type == ODEEnum::runge_kutta_solver)||(ode_solver_type == ODEEnum::rrk_explicit_solver))     
-        return create_RungeKuttaODESolver(dg_input);
+    if((ode_solver_type == ODEEnum::runge_kutta_solver)||(ode_solver_type == ODEEnum::rrk_explicit_solver || ode_solver_type == ODEEnum::low_storage_runge_kutta_solver))     
+        return create_RungeKuttaODESolver(dg_input); 
     if(ode_solver_type == ODEEnum::implicit_solver)         
         return std::make_shared<ImplicitODESolver<dim,real,MeshType>>(dg_input);
     else {
@@ -147,11 +149,41 @@ std::shared_ptr<ODESolverBase<dim,real,MeshType>> ODESolverFactory<dim,real,Mesh
             std::abort();
             return nullptr;
         }
-    }
-    else {
+    } else if (ode_solver_type == ODEEnum::low_storage_runge_kutta_solver) {
+         std::shared_ptr<LowStorageRKTableauBase<dim,real,MeshType>> ls_rk_tableau = create_LowStorageRKTableau(dg_input);;
+         // ls_rk_tableau = std::make_shared<LowStorageRKTableauBase<dim, real, MeshType>> ("LSRK");
+        // Hard-coded templating of n_rk_stages because it is not known at compile time
+        pcout << "Creating Low-Storage Runge Kutta ODE Solver with " 
+              << n_rk_stages << " stage(s)..." << std::endl;
+        if (n_rk_stages == 1){
+            return std::make_shared<LowStorageRungeKuttaODESolver<dim,real,1,MeshType>>(dg_input,ls_rk_tableau,RRK_object);
+        }
+        else if (n_rk_stages == 2){
+
+            return std::make_shared<LowStorageRungeKuttaODESolver<dim,real,2,MeshType>>(dg_input,ls_rk_tableau,RRK_object);
+        }
+        else if (n_rk_stages == 3){
+            return std::make_shared<LowStorageRungeKuttaODESolver<dim,real,3,MeshType>>(dg_input,ls_rk_tableau,RRK_object);
+        }
+        else if (n_rk_stages == 4){
+            return std::make_shared<LowStorageRungeKuttaODESolver<dim,real,4,MeshType>>(dg_input,ls_rk_tableau,RRK_object);
+        }
+        else{
+            pcout << "Error: invalid number of stages. Aborting..." << std::endl;
+            std::abort();
+            return nullptr;
+        }
+    } else {
         display_error_ode_solver_factory(ode_solver_type, false);
         return nullptr;
     }
+}
+
+template <int dim, typename real, typename MeshType>
+std::shared_ptr<LowStorageRKTableauBase<dim,real,MeshType>> ODESolverFactory<dim,real,MeshType>::create_LowStorageRKTableau(std::shared_ptr< DGBase<dim,real,MeshType> > dg_input)
+{
+    (void) dg_input;
+    return std::make_shared<LowStorageRKTableauBase<dim, real, MeshType>> ("LSRK");
 }
 
 template <int dim, typename real, typename MeshType>

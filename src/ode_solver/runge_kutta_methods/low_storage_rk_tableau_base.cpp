@@ -51,7 +51,7 @@ void LowStorageRKTableauBase<dim,real,MeshType> :: set_gamma()
     const double gamma[6][3] = {{0.0, 0.0, 0.0}, {0.0, 1.0, 0.0}, {-0.497531095840104, 1.384996869124138, 0.0}, {1.010070514199942, 3.878155713328178, 0.0}, {-3.196559004608766,-2.324512951813145, 1.642598936063715}, {1.717835630267259, -0.514633322274467, 0.188295940828347}};
     for (int i = 0; i < 6; i++){
         for (int j = 0; j < 3; j++){
-            this->butcher_tableau_gamma(i,j) = gamma[i][j];
+            this->butcher_tableau_gamma[i][j] = gamma[i][j];
         }
     }
 }

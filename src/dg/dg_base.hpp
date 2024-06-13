@@ -613,7 +613,7 @@ public:
         std::array<dealii::LinearAlgebra::distributed::Vector<double>,dim> &rhs_aux);
 
     template <typename adtype>
-    void assemble_volume_term_and_build_operators_ad(
+    void assemble_volume_codi_taped_derivatives_ad(
         typename dealii::DoFHandler<dim>::active_cell_iterator cell,
         const dealii::types::global_dof_index                  current_cell_index,
         const std::vector<dealii::types::global_dof_index>     &soln_dofs_indices,
@@ -638,7 +638,7 @@ public:
         const bool compute_dRdW, const bool compute_dRdX, const bool compute_d2R);
 
     template <typename adtype>
-    void assemble_face_term_and_build_operators_ad(
+    void assemble_face_codi_taped_derivatives_ad(
         typename dealii::DoFHandler<dim>::active_cell_iterator cell,
         typename dealii::DoFHandler<dim>::active_cell_iterator neighbor_cell,
         const dealii::types::global_dof_index                  current_cell_index,
@@ -677,7 +677,7 @@ public:
         const bool compute_dRdW, const bool compute_dRdX, const bool compute_d2R);
 
     template <typename adtype>
-    void assemble_boundary_term_and_build_operators_ad(
+    void assemble_boundary_codi_taped_derivatives_ad(
         typename dealii::DoFHandler<dim>::active_cell_iterator cell,
         const dealii::types::global_dof_index                  current_cell_index,
         const unsigned int                                     iface,
@@ -704,7 +704,7 @@ public:
         const bool compute_dRdW, const bool compute_dRdX, const bool compute_d2R);
 
     template <typename adtype>
-    void assemble_subface_term_and_build_operators_ad(
+    void assemble_subface_codi_taped_derivatives_ad(
         typename dealii::DoFHandler<dim>::active_cell_iterator cell,
         typename dealii::DoFHandler<dim>::active_cell_iterator neighbor_cell,
         const dealii::types::global_dof_index                  current_cell_index,
@@ -744,7 +744,7 @@ public:
         const bool compute_dRdW, const bool compute_dRdX, const bool compute_d2R);
 
     template <typename adtype>
-    void assemble_face_subface_term_derivatives_ad(
+    void assemble_face_subface_codi_taped_derivatives_ad(
         typename dealii::DoFHandler<dim>::active_cell_iterator cell,
         const dealii::types::global_dof_index current_cell_index,
         const dealii::types::global_dof_index neighbor_cell_index,
@@ -767,7 +767,7 @@ public:
         std::vector<adtype>                  &metric_int,
         const bool compute_dRdW, const bool compute_dRdX, const bool compute_d2R);
     
-    virtual void assemble_volume_term_ad(
+    virtual void assemble_volume_term_and_build_operators_ad(
         typename dealii::DoFHandler<dim>::active_cell_iterator cell,
         const dealii::types::global_dof_index current_cell_index,
         const std::vector<double> &soln_coeffs,
@@ -779,7 +779,7 @@ public:
         const bool compute_metric_derivatives,
         const dealii::FEValues<dim,dim> &fe_values_vol)=0;
     
-    virtual void assemble_volume_term_ad(
+    virtual void assemble_volume_term_and_build_operators_ad(
         typename dealii::DoFHandler<dim>::active_cell_iterator cell,
         const dealii::types::global_dof_index current_cell_index,
         const std::vector<codi_JacobianComputationType> &soln_coeffs,
@@ -791,7 +791,7 @@ public:
         const bool compute_metric_derivatives,
         const dealii::FEValues<dim,dim> &fe_values_vol)=0;
     
-    virtual void assemble_volume_term_ad(
+    virtual void assemble_volume_term_and_build_operators_ad(
         typename dealii::DoFHandler<dim>::active_cell_iterator cell,
         const dealii::types::global_dof_index current_cell_index,
         const std::vector<codi_HessianComputationType> &soln_coeffs,
@@ -803,7 +803,7 @@ public:
         const bool compute_metric_derivatives,
         const dealii::FEValues<dim,dim> &fe_values_vol)=0;
     
-    virtual void assemble_boundary_term_ad(
+    virtual void assemble_boundary_term_and_build_operators_ad(
         typename dealii::DoFHandler<dim>::active_cell_iterator cell,
         const dealii::types::global_dof_index current_cell_index,
         const std::vector<double> &soln_coeffs,
@@ -819,7 +819,7 @@ public:
         double &dual_dot_residual,
         const bool compute_metric_derivatives)=0;
     
-    virtual void assemble_boundary_term_ad(
+    virtual void assemble_boundary_term_and_build_operators_ad(
         typename dealii::DoFHandler<dim>::active_cell_iterator cell,
         const dealii::types::global_dof_index current_cell_index,
         const std::vector<codi_JacobianComputationType> &soln_coeffs,
@@ -835,7 +835,7 @@ public:
         codi_JacobianComputationType &dual_dot_residual,
         const bool compute_metric_derivatives)=0;
     
-    virtual void assemble_boundary_term_ad(
+    virtual void assemble_boundary_term_and_build_operators_ad(
         typename dealii::DoFHandler<dim>::active_cell_iterator cell,
         const dealii::types::global_dof_index current_cell_index,
         const std::vector<codi_HessianComputationType> &soln_coeffs,
@@ -851,7 +851,7 @@ public:
         codi_HessianComputationType &dual_dot_residual,
         const bool compute_metric_derivatives)=0;
     
-    virtual void assemble_face_term_ad(
+    virtual void assemble_face_term_and_build_operators_ad(
         typename dealii::DoFHandler<dim>::active_cell_iterator cell,
         const dealii::types::global_dof_index current_cell_index,
         const dealii::types::global_dof_index neighbor_cell_index,
@@ -876,7 +876,7 @@ public:
         double &dual_dot_residual,
         const bool compute_dRdW, const bool compute_dRdX, const bool compute_d2R)=0;
     
-    virtual void assemble_face_term_ad(
+    virtual void assemble_face_term_and_build_operators_ad(
         typename dealii::DoFHandler<dim>::active_cell_iterator cell,
         const dealii::types::global_dof_index current_cell_index,
         const dealii::types::global_dof_index neighbor_cell_index,
@@ -901,7 +901,7 @@ public:
         codi_JacobianComputationType &dual_dot_residual,
         const bool compute_dRdW, const bool compute_dRdX, const bool compute_d2R)=0;
     
-    virtual void assemble_face_term_ad(
+    virtual void assemble_face_term_and_build_operators_ad(
         typename dealii::DoFHandler<dim>::active_cell_iterator cell,
         const dealii::types::global_dof_index current_cell_index,
         const dealii::types::global_dof_index neighbor_cell_index,

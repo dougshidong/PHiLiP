@@ -232,7 +232,7 @@ private:
         const bool compute_dRdW, const bool compute_dRdX, const bool compute_d2R);
     
     template <typename adtype>
-    void assemble_volume_term_ad(
+    void assemble_volume_term_and_build_operators_ad(
         typename dealii::DoFHandler<dim>::active_cell_iterator cell,
         const dealii::types::global_dof_index current_cell_index,
         const std::vector<adtype> &soln_coeffs,
@@ -245,7 +245,7 @@ private:
         const bool compute_metric_derivatives,
         const dealii::FEValues<dim,dim> &fe_values_vol);
     
-    void assemble_volume_term_ad(
+    void assemble_volume_term_and_build_operators_ad(
         typename dealii::DoFHandler<dim>::active_cell_iterator cell,
         const dealii::types::global_dof_index current_cell_index,
         const std::vector<double> &soln_coeffs,
@@ -257,7 +257,7 @@ private:
         const bool compute_metric_derivatives,
         const dealii::FEValues<dim,dim> &fe_values_vol) override
     {
-        assemble_volume_term_ad<double>(
+        assemble_volume_term_and_build_operators_ad<double>(
                 cell,
                 current_cell_index,
                 soln_coeffs,
@@ -272,7 +272,7 @@ private:
                 fe_values_vol);
     }
     
-    void assemble_volume_term_ad(
+    void assemble_volume_term_and_build_operators_ad(
         typename dealii::DoFHandler<dim>::active_cell_iterator cell,
         const dealii::types::global_dof_index current_cell_index,
         const std::vector<codi_JacobianComputationType> &soln_coeffs,
@@ -284,7 +284,7 @@ private:
         const bool compute_metric_derivatives,
         const dealii::FEValues<dim,dim> &fe_values_vol) override
     {
-        assemble_volume_term_ad<codi_JacobianComputationType>(
+        assemble_volume_term_and_build_operators_ad<codi_JacobianComputationType>(
                 cell,
                 current_cell_index,
                 soln_coeffs,
@@ -299,7 +299,7 @@ private:
                 fe_values_vol);
     }
     
-    void assemble_volume_term_ad(
+    void assemble_volume_term_and_build_operators_ad(
         typename dealii::DoFHandler<dim>::active_cell_iterator cell,
         const dealii::types::global_dof_index current_cell_index,
         const std::vector<codi_HessianComputationType> &soln_coeffs,
@@ -311,7 +311,7 @@ private:
         const bool compute_metric_derivatives,
         const dealii::FEValues<dim,dim> &fe_values_vol) override
     {
-        assemble_volume_term_ad<codi_HessianComputationType>(
+        assemble_volume_term_and_build_operators_ad<codi_HessianComputationType>(
                 cell,
                 current_cell_index,
                 soln_coeffs,
@@ -327,7 +327,7 @@ private:
     }
     
     template <typename adtype>
-    void assemble_boundary_term_ad(
+    void assemble_boundary_term_and_build_operators_ad(
         typename dealii::DoFHandler<dim>::active_cell_iterator cell,
         const dealii::types::global_dof_index current_cell_index,
         const std::vector<adtype> &soln_coeffs,
@@ -346,7 +346,7 @@ private:
         adtype &dual_dot_residual,
         const bool compute_metric_derivatives);
     
-    void assemble_boundary_term_ad(
+    void assemble_boundary_term_and_build_operators_ad(
         typename dealii::DoFHandler<dim>::active_cell_iterator cell,
         const dealii::types::global_dof_index current_cell_index,
         const std::vector<double> &soln_coeffs,
@@ -362,7 +362,7 @@ private:
         double &dual_dot_residual,
         const bool compute_metric_derivatives) override
     {
-        assemble_boundary_term_ad<double>(
+        assemble_boundary_term_and_build_operators_ad<double>(
             cell, 
             current_cell_index,
             soln_coeffs,
@@ -382,7 +382,7 @@ private:
             compute_metric_derivatives);
     }
     
-    void assemble_boundary_term_ad(
+    void assemble_boundary_term_and_build_operators_ad(
         typename dealii::DoFHandler<dim>::active_cell_iterator cell,
         const dealii::types::global_dof_index current_cell_index,
         const std::vector<codi_JacobianComputationType> &soln_coeffs,
@@ -398,7 +398,7 @@ private:
         codi_JacobianComputationType &dual_dot_residual,
         const bool compute_metric_derivatives) override
     {
-        assemble_boundary_term_ad<codi_JacobianComputationType>(
+        assemble_boundary_term_and_build_operators_ad<codi_JacobianComputationType>(
             cell, 
             current_cell_index,
             soln_coeffs,
@@ -418,7 +418,7 @@ private:
             compute_metric_derivatives);
     }
     
-    void assemble_boundary_term_ad(
+    void assemble_boundary_term_and_build_operators_ad(
         typename dealii::DoFHandler<dim>::active_cell_iterator cell,
         const dealii::types::global_dof_index current_cell_index,
         const std::vector<codi_HessianComputationType> &soln_coeffs,
@@ -434,7 +434,7 @@ private:
         codi_HessianComputationType &dual_dot_residual,
         const bool compute_metric_derivatives) override
     {
-        assemble_boundary_term_ad<codi_HessianComputationType>(
+        assemble_boundary_term_and_build_operators_ad<codi_HessianComputationType>(
             cell, 
             current_cell_index,
             soln_coeffs,
@@ -455,7 +455,7 @@ private:
     }
     
     template <typename adtype>
-    void assemble_face_term_ad(
+    void assemble_face_term_and_build_operators_ad(
         typename dealii::DoFHandler<dim>::active_cell_iterator cell,
         const dealii::types::global_dof_index current_cell_index,
         const dealii::types::global_dof_index neighbor_cell_index,
@@ -483,7 +483,7 @@ private:
         adtype &dual_dot_residual,
         const bool compute_dRdW, const bool compute_dRdX, const bool compute_d2R);
 
-    void assemble_face_term_ad(
+    void assemble_face_term_and_build_operators_ad(
         typename dealii::DoFHandler<dim>::active_cell_iterator cell,
         const dealii::types::global_dof_index current_cell_index,
         const dealii::types::global_dof_index neighbor_cell_index,
@@ -508,7 +508,7 @@ private:
         double &dual_dot_residual,
         const bool compute_dRdW, const bool compute_dRdX, const bool compute_d2R) override
     {
-        assemble_face_term_ad<double>(
+        assemble_face_term_and_build_operators_ad<double>(
             cell,
             current_cell_index,
             neighbor_cell_index,
@@ -537,7 +537,7 @@ private:
             compute_dRdW, compute_dRdX, compute_d2R);
     }
     
-    void assemble_face_term_ad(
+    void assemble_face_term_and_build_operators_ad(
         typename dealii::DoFHandler<dim>::active_cell_iterator cell,
         const dealii::types::global_dof_index current_cell_index,
         const dealii::types::global_dof_index neighbor_cell_index,
@@ -562,7 +562,7 @@ private:
         codi_JacobianComputationType &dual_dot_residual,
         const bool compute_dRdW, const bool compute_dRdX, const bool compute_d2R) override
     {
-        assemble_face_term_ad<codi_JacobianComputationType>(
+        assemble_face_term_and_build_operators_ad<codi_JacobianComputationType>(
             cell,
             current_cell_index,
             neighbor_cell_index,
@@ -590,7 +590,7 @@ private:
             dual_dot_residual,
             compute_dRdW, compute_dRdX, compute_d2R);
     }
-    void assemble_face_term_ad(
+    void assemble_face_term_and_build_operators_ad(
         typename dealii::DoFHandler<dim>::active_cell_iterator cell,
         const dealii::types::global_dof_index current_cell_index,
         const dealii::types::global_dof_index neighbor_cell_index,
@@ -615,7 +615,7 @@ private:
         codi_HessianComputationType &dual_dot_residual,
         const bool compute_dRdW, const bool compute_dRdX, const bool compute_d2R) override
     {
-        assemble_face_term_ad<codi_HessianComputationType>(
+        assemble_face_term_and_build_operators_ad<codi_HessianComputationType>(
             cell,
             current_cell_index,
             neighbor_cell_index,

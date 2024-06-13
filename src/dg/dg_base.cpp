@@ -551,7 +551,7 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual_and_ad_derivatives (
     Position tape_position_metric_jacobian = tape.getPosition();
     
     
-    assemble_volume_term_and_build_operators_ad<adtype>(
+    assemble_volume_codi_taped_derivatives_ad<adtype>(
         current_cell,
         current_cell_index,
         current_dofs_indices,
@@ -591,7 +591,7 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual_and_ad_derivatives (
             
             tape.reset(tape_position_metric_jacobian);
             tape.clearAdjoints();
-            assemble_boundary_term_and_build_operators_ad<adtype>(
+            assemble_boundary_codi_taped_derivatives_ad<adtype>(
                 current_cell,
                 current_cell_index,
                 iface,
@@ -659,7 +659,7 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual_and_ad_derivatives (
 
                 tape.reset(tape_position_metric_jacobian);
                 tape.clearAdjoints();
-                assemble_face_term_and_build_operators_ad<adtype>(
+                assemble_face_codi_taped_derivatives_ad<adtype>(
                     current_cell,
                     neighbor_cell,
                     current_cell_index,
@@ -753,7 +753,7 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual_and_ad_derivatives (
 
             tape.reset(tape_position_metric_jacobian);
             tape.clearAdjoints();
-            assemble_subface_term_and_build_operators_ad<adtype>(
+            assemble_subface_codi_taped_derivatives_ad<adtype>(
                 current_cell,
                 neighbor_cell,
                 current_cell_index,
@@ -835,7 +835,7 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual_and_ad_derivatives (
 
             tape.reset(tape_position_metric_jacobian);
             tape.clearAdjoints();
-            assemble_face_term_and_build_operators_ad<adtype>(
+            assemble_face_codi_taped_derivatives_ad<adtype>(
                 current_cell,
                 neighbor_cell,
                 current_cell_index,
@@ -902,7 +902,7 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual_and_ad_derivatives (
 
 template <int dim, typename real, typename MeshType>
 template <typename adtype>
-void DGBase<dim,real,MeshType>::assemble_volume_term_and_build_operators_ad(
+void DGBase<dim,real,MeshType>::assemble_volume_codi_taped_derivatives_ad(
     typename dealii::DoFHandler<dim>::active_cell_iterator cell,
     const dealii::types::global_dof_index                  current_cell_index,
     const std::vector<dealii::types::global_dof_index>     &soln_dofs_indices,
@@ -998,7 +998,7 @@ void DGBase<dim,real,MeshType>::assemble_volume_term_and_build_operators_ad(
     
     adtype dual_dot_residual = 0.0;
     std::vector<adtype> rhs(n_soln_dofs);
-    assemble_volume_term_ad(
+    assemble_volume_term_and_build_operators_ad(
         cell,
         current_cell_index,
         local_solution, local_metric_int,
@@ -1101,7 +1101,7 @@ void DGBase<dim,real,MeshType>::assemble_volume_term_and_build_operators_ad(
 
 template <int dim, typename real, typename MeshType>
 template <typename adtype>
-void DGBase<dim,real,MeshType>::assemble_boundary_term_and_build_operators_ad(
+void DGBase<dim,real,MeshType>::assemble_boundary_codi_taped_derivatives_ad(
     typename dealii::DoFHandler<dim>::active_cell_iterator cell,
     const dealii::types::global_dof_index                  current_cell_index,
     const unsigned int                                     iface,
@@ -1182,7 +1182,7 @@ void DGBase<dim,real,MeshType>::assemble_boundary_term_and_build_operators_ad(
 
     std::vector<adtype> rhs(n_soln_dofs);
     adtype dual_dot_residual;
-    assemble_boundary_term_ad(
+    assemble_boundary_term_and_build_operators_ad(
         cell,
         current_cell_index,
         local_solution,
@@ -1291,7 +1291,7 @@ void DGBase<dim,real,MeshType>::assemble_boundary_term_and_build_operators_ad(
 
 template <int dim, typename real, typename MeshType>
 template <typename adtype>
-void DGBase<dim,real,MeshType>::assemble_face_term_and_build_operators_ad(
+void DGBase<dim,real,MeshType>::assemble_face_codi_taped_derivatives_ad(
     typename dealii::DoFHandler<dim>::active_cell_iterator cell,
     typename dealii::DoFHandler<dim>::active_cell_iterator neighbor_cell,
     const dealii::types::global_dof_index                  current_cell_index,
@@ -1360,7 +1360,7 @@ void DGBase<dim,real,MeshType>::assemble_face_term_and_build_operators_ad(
                                                                                   neighbor_cell->face_rotation(neighbor_iface),
                                                                                   used_face_quadrature.size());
 
-    assemble_face_subface_term_derivatives_ad<adtype> (
+    assemble_face_subface_codi_taped_derivatives_ad<adtype> (
         cell,
         current_cell_index,
         neighbor_cell_index,
@@ -1386,7 +1386,7 @@ void DGBase<dim,real,MeshType>::assemble_face_term_and_build_operators_ad(
 
 template <int dim, typename real, typename MeshType>
 template <typename adtype>
-void DGBase<dim,real,MeshType>::assemble_subface_term_and_build_operators_ad(
+void DGBase<dim,real,MeshType>::assemble_subface_codi_taped_derivatives_ad(
     typename dealii::DoFHandler<dim>::active_cell_iterator cell,
     typename dealii::DoFHandler<dim>::active_cell_iterator neighbor_cell,
     const dealii::types::global_dof_index                  current_cell_index,
@@ -1457,7 +1457,7 @@ void DGBase<dim,real,MeshType>::assemble_subface_term_and_build_operators_ad(
                                                                                         used_face_quadrature.size(),
                                                                                 neighbor_cell->subface_case(neighbor_iface));
 
-    assemble_face_subface_term_derivatives_ad<adtype>(
+    assemble_face_subface_codi_taped_derivatives_ad<adtype>(
         cell,
         current_cell_index,
         neighbor_cell_index,
@@ -1483,7 +1483,7 @@ void DGBase<dim,real,MeshType>::assemble_subface_term_and_build_operators_ad(
 
 template <int dim, typename real, typename MeshType>
 template <typename adtype>
-void DGBase<dim,real,MeshType>::assemble_face_subface_term_derivatives_ad(
+void DGBase<dim,real,MeshType>::assemble_face_subface_codi_taped_derivatives_ad(
     typename dealii::DoFHandler<dim>::active_cell_iterator cell,
     const dealii::types::global_dof_index current_cell_index,
     const dealii::types::global_dof_index neighbor_cell_index,
@@ -1584,7 +1584,7 @@ void DGBase<dim,real,MeshType>::assemble_face_subface_term_derivatives_ad(
     std::vector<adtype> rhs_ext(n_soln_dofs_ext);
     adtype dual_dot_residual;
     
-    assemble_face_term_ad(
+    assemble_face_term_and_build_operators_ad(
         cell,
         current_cell_index,
         neighbor_cell_index,

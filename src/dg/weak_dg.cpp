@@ -3915,7 +3915,7 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_subface_term_and_build_operators
 
 template <int dim, int nstate, typename real, typename MeshType>
 template <typename adtype>
-void DGWeak<dim,nstate,real,MeshType>::assemble_volume_term_ad(
+void DGWeak<dim,nstate,real,MeshType>::assemble_volume_term_and_build_operators_ad(
     typename dealii::DoFHandler<dim>::active_cell_iterator cell,
     const dealii::types::global_dof_index current_cell_index,
     const std::vector<adtype> &soln_coeffs,
@@ -3957,7 +3957,7 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_volume_term_ad(
 
 template <int dim, int nstate, typename real, typename MeshType>
 template <typename adtype>
-void DGWeak<dim,nstate,real,MeshType>::assemble_boundary_term_ad(
+void DGWeak<dim,nstate,real,MeshType>::assemble_boundary_term_and_build_operators_ad(
     typename dealii::DoFHandler<dim>::active_cell_iterator cell,
     const dealii::types::global_dof_index current_cell_index,
     const std::vector<adtype> &soln_coeffs,
@@ -4010,7 +4010,7 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_boundary_term_ad(
     
 template <int dim, int nstate, typename real, typename MeshType>
 template <typename adtype>
-void DGWeak<dim,nstate,real,MeshType>::assemble_face_term_ad(
+void DGWeak<dim,nstate,real,MeshType>::assemble_face_term_and_build_operators_ad(
     typename dealii::DoFHandler<dim>::active_cell_iterator cell,
     const dealii::types::global_dof_index current_cell_index,
     const dealii::types::global_dof_index neighbor_cell_index,

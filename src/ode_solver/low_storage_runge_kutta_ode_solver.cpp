@@ -19,7 +19,6 @@ void LowStorageRungeKuttaODESolver<dim,real,n_rk_stages,MeshType>::step_in_time 
     this->original_time_step = dt;
     this->solution_update = this->dg->solution; //storing u_n
     (void) pseudotime;
-    //My first change.
 
     //const double gamma[6][3] = {{0.0, 0.0, 0.0}, {0.0, 1.0, 0.0}, {-0.497531095840104, 1.384996869124138, 0.0}, {1.010070514199942, 3.878155713328178, 0.0}, {-3.196559004608766,-2.324512951813145, 1.642598936063715}, {1.717835630267259, -0.514633322274467, 0.188295940828347}};
     //double beta[6] = {0.0, 0.075152045700771, 0.211361016946069, 1.100713347634329, 0.728537814675568, 0.393172889823198};
@@ -35,14 +34,23 @@ void LowStorageRungeKuttaODESolver<dim,real,n_rk_stages,MeshType>::step_in_time 
     dealii::LinearAlgebra::distributed::Vector<double> s1 = s3;
     //rhs.reinit(this->solution_update);
     //rhs = s3;
-    dealii::LinearAlgebra::distributed::Vector<double> u_hat = s2;
+    //dealii::LinearAlgebra::distributed::Vector<double> u_hat = s2;
     //u_hat.reinit(this->solution_update);
     //u_hat = s2;
 
     dealii::LinearAlgebra::distributed::Vector<double> rhs = s1;
 
     int m = 5;
+    int q_hat = 3;
+    int k = q_hat +1;
     double sum_delta = 0;
+    double error = 0.0;
+    double w = 0.0;
+    double atol = 0.001;
+    double rtol = 0.001;
+    double epsilon[3] = {1, 1, 1};
+    double beta_controller[3] = {0.70, -0.40, 0};
+
 
     for (int i = 1; i < m+1; i++ ){
         // s2 = s2 + delta[i-1] * s1;
@@ -68,11 +76,26 @@ void LowStorageRungeKuttaODESolver<dim,real,n_rk_stages,MeshType>::step_in_time 
     s2 /= sum_delta;
 
     this->dg->solution = s1;
-    u_hat = s2;
+    //u_hat = s2;
+
+    // error based step size 
+    
+    for (dealii::LinearAlgebra::distributed::Vector<double>::size_type i = 0; i < s1.local_size(); ++i) {
+        error = s1.local_element(i) - s2.local_element(i);
+        w = w + pow(error / (atol + rtol * std::max(std::abs(s1.local_element(i)), std::abs(s2.local_element(i)))), 2);
+    }
+    w = pow(w / s1.local_size(), 1/2);
+    epsilon[2] = epsilon[1];
+    epsilon[1] = epsilon[0];
+    epsilon[0] = 1 / w;
+    dt = pow(epsilon[0], beta_controller[0]/k) * pow(epsilon[1], beta_controller[1]/k) * pow(epsilon[2], beta_controller[2]/k) * dt;
+    
 
     ++(this->current_iteration);
     this->current_time += dt;
     this->pcout << "Time is: " << this->current_time <<std::endl;
+    this->pcout << "dt" << dt;
+
 }
 
 

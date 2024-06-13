@@ -175,6 +175,7 @@ public:
         euler_naca_optimization,
         shock_1d,
         euler_naca0012,
+        navier_stokes_naca0012,
         reduced_order,
         convection_diffusion_periodicity,
         POD_adaptation,

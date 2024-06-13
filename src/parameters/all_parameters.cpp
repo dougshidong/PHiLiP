@@ -165,6 +165,7 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       " euler_naca_optimization | "
                       " shock_1d | "
                       " euler_naca0012 | "
+                      " navier_stokes_naca0012 | "
                       " reduced_order | "
                       " convection_diffusion_periodicity |"
                       " POD_adaptation | "
@@ -204,6 +205,7 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       "  euler_naca_optimization | "
                       "  shock_1d | "
                       "  euler_naca0012 | "
+                      " navier_stokes_naca0012 | "
                       "  convection_diffusion_periodicity |"
                       "  reduced_order | "
                       "  POD_adaptation | "
@@ -379,6 +381,7 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
     else if (test_string == "adaptive_sampling_testing")                { test_type = adaptive_sampling_testing; }
     else if (test_string == "finite_difference_sensitivity")            { test_type = finite_difference_sensitivity; }
     else if (test_string == "euler_naca0012")                           { test_type = euler_naca0012; }
+    else if (test_string == "navier_stokes_naca0012")                   { test_type = navier_stokes_naca0012; }
     else if (test_string == "optimization_inverse_manufactured")        { test_type = optimization_inverse_manufactured; }
     else if (test_string == "dual_weighted_residual_mesh_adaptation")   { test_type = dual_weighted_residual_mesh_adaptation; }
     else if (test_string == "anisotropic_mesh_adaptation")              { test_type = anisotropic_mesh_adaptation; }

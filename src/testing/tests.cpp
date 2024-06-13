@@ -28,6 +28,7 @@
 #include "euler_naca0012_optimization.hpp"
 #include "shock_1d.h"
 #include "euler_naca0012.hpp"
+#include "navier_stokes_naca0012.h"
 #include "reduced_order.h"
 #include "convection_diffusion_explicit_periodic.h"
 #include "dual_weighted_residual_mesh_adaptation.h"
@@ -282,6 +283,8 @@ std::unique_ptr< TestsBase > TestsFactory<dim,nstate,MeshType>
         if constexpr ((dim==2 && nstate==dim+2) || (dim==1 && nstate==1)) return std::make_unique<AdaptiveSamplingTesting<dim,nstate>>(parameters_input,parameter_handler_input);
     } else if(test_type == Test_enum::euler_naca0012) {
         if constexpr (dim==2 && nstate==dim+2) return std::make_unique<EulerNACA0012<dim,nstate>>(parameters_input,parameter_handler_input);
+    } else if(test_type == Test_enum::navier_stokes_naca0012) {
+        if constexpr (dim!=1 && nstate==dim+2) return std::make_unique<NavierStokesNACA0012<dim,nstate>>(parameters_input,parameter_handler_input);
     } else if(test_type == Test_enum::dual_weighted_residual_mesh_adaptation) {
         if constexpr (dim==2 && nstate==1)  return std::make_unique<DualWeightedResidualMeshAdaptation<dim, nstate>>(parameters_input,parameter_handler_input);
     } else if(test_type == Test_enum::anisotropic_mesh_adaptation) {

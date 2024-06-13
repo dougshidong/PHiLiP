@@ -8,6 +8,7 @@ set(TESTS_SOURCE
     euler_gaussian_bump.cpp
     euler_gaussian_bump_enthalpy_check.cpp
     euler_naca0012.cpp
+    navier_stokes_naca0012.cpp
     euler_bump_optimization.cpp
     euler_naca0012_optimization.cpp
     shock_1d.cpp

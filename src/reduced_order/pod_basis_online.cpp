@@ -94,6 +94,11 @@ dealii::LinearAlgebra::ReadWriteVector<double> OnlinePOD<dim>::getReferenceState
     return referenceState;
 }
 
+template <int dim>
+MatrixXd OnlinePOD<dim>::getSnapshotMatrix() {
+    return snapshotMatrix;
+}
+
 template class OnlinePOD <PHILIP_DIM>;
 
 }

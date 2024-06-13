@@ -15,6 +15,7 @@
 #include "parameters/parameters_physics_model.h"
 
 #include "parameters/parameters_reduced_order.h"
+#include "parameters/parameters_hyper_reduction.h"
 #include "parameters/parameters_burgers.h"
 #include "parameters/parameters_grid_refinement_study.h"
 #include "parameters/parameters_grid_refinement.h"
@@ -47,6 +48,8 @@ public:
     NavierStokesParam navier_stokes_param;
     /// Contains parameters for the Reduced-Order model
     ReducedOrderModelParam reduced_order_param;
+    /// Contains parameters for Hyperreduction
+    HyperReductionParam hyper_reduction_param;
     /// Contains parameters for Burgers equation
     BurgersParam burgers_param;
     /// Contains parameters for Physics Model
@@ -184,7 +187,7 @@ public:
         reduced_order,
         convection_diffusion_periodicity,
         POD_adaptation,
-        POD_adaptive_sampling,
+        POD_adaptive_sampling_run,
         adaptive_sampling_testing,
         finite_difference_sensitivity,
         advection_periodicity,
@@ -200,6 +203,13 @@ public:
         khi_robustness,
         naca0012_unsteady_check_quick,
         homogeneous_isotropic_turbulence_initialization_check,
+        build_NNLS_problem,
+        hyper_reduction_comparison,
+        hyper_adaptive_sampling_run,
+        hyper_reduction_post_sampling,
+        ROM_error_post_sampling,
+        HROM_error_post_sampling,
+        hyper_adaptive_sampling_new_error,
         low_density
     };
     /// Store selected TestType from the input file.

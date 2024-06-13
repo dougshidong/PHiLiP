@@ -407,6 +407,26 @@ real NavierStokes<dim,nstate,real>
 }
 
 template <int dim, int nstate, typename real>
+real NavierStokes<dim,nstate,real>
+::compute_density_gradient_magnitude (
+    const std::array<real,nstate> &/*conservative_soln*/,
+    const std::array<dealii::Tensor<1,dim,real>,nstate> &conservative_soln_gradient) const
+{
+    // Get density gradient
+    dealii::Tensor<1,dim,real> density_gradient;
+    for (int d=0; d<dim; d++) {
+        density_gradient[d] = conservative_soln_gradient[0][d];
+    }
+    // compute magnitude
+    real density_gradient_magnitude = 0.0;
+    for (int d=0; d<dim; d++) {
+        density_gradient_magnitude += density_gradient[d]*density_gradient[d];
+    }
+    density_gradient_magnitude = sqrt(density_gradient_magnitude);
+    return density_gradient_magnitude;
+}
+
+template <int dim, int nstate, typename real>
 dealii::Tensor<2,dim,real> NavierStokes<dim,nstate,real>
 ::compute_strain_rate_tensor_from_conservative (
     const std::array<real,nstate> &conservative_soln,
@@ -1251,6 +1271,8 @@ dealii::Vector<double> NavierStokes<dim,nstate,real>::post_compute_derived_quant
         computed_quantities(++current_data_index) = compute_second_invariant(conservative_soln,conservative_soln_gradient);
         // Dilatation
         computed_quantities(++current_data_index) = compute_dilatation(conservative_soln,conservative_soln_gradient);
+        // Density gradient magnitude
+        computed_quantities(++current_data_index) = compute_density_gradient_magnitude(conservative_soln,conservative_soln_gradient);
 
     }
     if (computed_quantities.size()-1 != current_data_index) {
@@ -1290,6 +1312,7 @@ std::vector<dealii::DataComponentInterpretation::DataComponentInterpretation> Na
     interpretation.push_back (DCI::component_is_scalar); // Enstrophy
     interpretation.push_back (DCI::component_is_scalar); // Second-invariant Q
     interpretation.push_back (DCI::component_is_scalar); // Dilatation
+    interpretation.push_back (DCI::component_is_scalar); // Density gradient magnitude
 
     std::vector<std::string> names = post_get_names();
     if (names.size() != interpretation.size()) {
@@ -1327,6 +1350,8 @@ std::vector<std::string> NavierStokes<dim,nstate,real>
     names.push_back ("enstrophy");
     names.push_back ("second_invariant_Q");
     names.push_back ("dilatation");
+    names.push_back ("density_gradient_magnitude");
+
     return names;
 }
 

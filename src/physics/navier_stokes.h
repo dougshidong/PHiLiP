@@ -217,6 +217,12 @@ public:
         const std::array<real,nstate> &conservative_soln,
         const std::array<dealii::Tensor<1,dim,real>,nstate> &conservative_soln_gradient) const;
 
+    /** Evaluate density gradient magnitude from conservative variables and gradient of conservative variables 
+     * */
+    real compute_density_gradient_magnitude (
+        const std::array<real,nstate> &conservative_soln,
+        const std::array<dealii::Tensor<1,dim,real>,nstate> &conservative_soln_gradient) const;
+
     /** Evaluate the deviatoric strain-rate tensor from conservative variables and gradient of conservative variables
      *  -- Reference: de la Llave Plata et al. (2019). "On the performance of a high-order multiscale DG approach to LES at increasing Reynolds number."
      * */

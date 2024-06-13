@@ -47,7 +47,7 @@ void LowStorageRungeKuttaODESolver<dim,real,n_rk_stages,MeshType>::step_in_time 
     double atol = 0.001;
     double rtol = 0.001;
     double error = 0.0;
-    //double w = 0.0;
+    w = 0.0;
     //double atol = 0.001;
     //double rtol = 0.001;
     //double epsilon[3] = {1, 1, 1};
@@ -95,14 +95,22 @@ void LowStorageRungeKuttaODESolver<dim,real,n_rk_stages,MeshType>::step_in_time 
 
    for (dealii::LinearAlgebra::distributed::Vector<double>::size_type i = 0; i < s1.local_size(); ++i) {
         error = s1.local_element(i) - s2.local_element(i);
+        //this->pcout << "diff " << error;
         w = w + pow(error / (atol + rtol * std::max(std::abs(s1.local_element(i)), std::abs(s2.local_element(i)))), 2);
+        //this->pcout << "w " << w;
     }
-    w = pow(w / s1.local_size(), 1/2);
-
+    this->pcout << std::endl;
+    //this->pcout << "w " << w;
+    w = pow(w / s1.local_size(), 0.5);
+    //this->pcout << " size s1 " << s1.local_size();
+    //this->pcout << " math " << w/s1.local_size();
+    //this->pcout << "w " << pow(w / s1.local_size(), 1/2);
+    //this->pcout << "w " << w;
     ++(this->current_iteration);
     this->current_time += dt;
-    this->pcout << "Time is: " << this->current_time <<std::endl;
-    this->pcout << "dt" << dt;
+    this->pcout << " Time is: " << this->current_time <<std::endl;
+    // this->pcout << "w" << w;
+    //this->pcout << "dt" << dt;
 
 }
 template <int dim, typename real, int n_rk_stages, typename MeshType> 
@@ -122,8 +130,10 @@ double LowStorageRungeKuttaODESolver<dim,real,n_rk_stages,MeshType>::err_time_st
     epsilon[2] = epsilon[1];
     epsilon[1] = epsilon[0];
     epsilon[0] = 1 / w;
-
+    //this->pcout << "dt" << dt;
+    //this->pcout << "epsilon" << epsilon[0];
     dt = pow(epsilon[0], beta_controller[0]/k) * pow(epsilon[1], beta_controller[1]/k) * pow(epsilon[2], beta_controller[2]/k) * dt;
+    this->pcout << "dt" << dt;
     return dt;
 }
 

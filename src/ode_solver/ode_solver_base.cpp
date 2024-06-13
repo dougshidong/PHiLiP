@@ -19,6 +19,12 @@ ODESolverBase<dim,real,MeshType>::ODESolverBase(std::shared_ptr< DGBase<dim, rea
         , mpi_rank(dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD))
         , pcout(std::cout, mpi_rank==0)
 {}
+template <int dim, typename real, typename MeshType> 
+double ODESolverBase<dim,real,MeshType>::err_time_step (real dt, const bool pseudotime)
+{
+    (void) pseudotime;
+    return dt;
+}
 
 template <int dim, typename real, typename MeshType>
 double ODESolverBase<dim,real,MeshType>::get_original_time_step() const

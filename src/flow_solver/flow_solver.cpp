@@ -500,10 +500,10 @@ int FlowSolver<dim,nstate>::run() const
             }
 
             // update time step in flow_solver_case
-            flow_solver_case->set_time_step(time_step);
-
+            ode_solver->step_in_time(time_step,false);
+            next_time_step = ode_solver->err_time_step(time_step,false);
             // advance solution
-            ode_solver->step_in_time(time_step,false); // pseudotime==false
+            // ode_solver->err_time_step(time_step); // pseudotime==false
 
             // Compute the unsteady quantities, write to the dealii table, and output to file
             flow_solver_case->compute_unsteady_data_and_write_to_table(ode_solver, dg, unsteady_data_table);

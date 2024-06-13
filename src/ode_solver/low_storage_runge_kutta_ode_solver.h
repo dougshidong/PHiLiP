@@ -24,6 +24,8 @@ public:
             std::shared_ptr<EmptyRRKBase<dim,real,MeshType>> RRK_object_input); ///< Constructor.
 
     /// Function to evaluate solution update
+    double err_time_step(real dt, const bool pseudotime);
+
     void step_in_time(real dt, const bool pseudotime);
 
     /// Function to allocate the ODE system
@@ -48,6 +50,8 @@ protected:
     
     /// Indicator for zero diagonal elements; used to toggle implicit solve.
     std::vector<bool> butcher_tableau_aii_is_zero;
+
+    real w;
 };
 
 } // ODE namespace

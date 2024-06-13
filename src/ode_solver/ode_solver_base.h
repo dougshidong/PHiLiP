@@ -42,6 +42,8 @@ public:
     /// Evaluate steady state solution.
     virtual int steady_state ();
 
+    virtual double err_time_step (real dt, const bool pseudotime);
+
     /// Ramps up the solution from p0 all the way up to the given global_final_poly_degree.
     /** This first interpolates the current solution to the P0 space as an initial solution.
      *  The P0 is then solved, interpolated to P1, and the process is repeated until the

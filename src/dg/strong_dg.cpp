@@ -1529,6 +1529,17 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_boundary_term_strong(
     // Interpolate modal soln coefficients to the facet.
     std::array<std::vector<real>,nstate> soln_at_surf_q;
     std::array<dealii::Tensor<1,dim,std::vector<real>>,nstate> aux_soln_at_surf_q;
+    // Opposite surface solution for wall model
+    std::array<std::vector<real>,nstate> soln_at_opposite_surf_q;
+
+    // Get opposite face index
+    const int opposite_iface = (iface == 0) ? 1 : (
+                                (iface == 1) ? 0 : (
+                                    (iface == 2) ? 3 : (
+                                        (iface == 3) ? 2 :( 
+                                            ((iface == 4) ? 5 :(
+                                                ((iface == 5) ? 4)))))));
+
     for(int istate=0; istate<nstate; ++istate){
         //allocate
         soln_at_vol_q[istate].resize(n_quad_pts_vol);
@@ -1541,6 +1552,14 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_boundary_term_strong(
         //solve soln at facet cubature nodes
         soln_basis.matrix_vector_mult_surface_1D(iface,
                                                  soln_coeff[istate], soln_at_surf_q[istate],
+                                                 soln_basis.oneD_surf_operator,
+                                                 soln_basis.oneD_vol_operator);
+
+        //allocate
+        soln_at_opposite_surf_q[istate].resize(n_face_quad_pts);
+        //solve soln at facet cubature nodes
+        soln_basis.matrix_vector_mult_surface_1D(opposite_iface,
+                                                 soln_coeff[istate], soln_at_opposite_surf_q[istate],
                                                  soln_basis.oneD_surf_operator,
                                                  soln_basis.oneD_vol_operator);
 
@@ -2074,11 +2093,13 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_boundary_term_strong(
         unit_phys_normal_int /= face_Jac_norm_scaled;//normalize it. 
 
         std::array<real,nstate> soln_state;
+        std::array<real,nstate> opposite_surf_soln_state;
         std::array<dealii::Tensor<1,dim,real>,nstate> aux_soln_state;
         std::array<real,nstate> filtered_soln_state;
         std::array<dealii::Tensor<1,dim,real>,nstate> filtered_aux_soln_state;
         for(int istate=0; istate<nstate; istate++){
             soln_state[istate] = soln_at_surf_q[istate][iquad];
+            opposite_surf_soln_state[istate] = soln_at_opposite_surf_q[istate][iquad];
             if(this->do_compute_filtered_solution) filtered_soln_state[istate] = legendre_soln_at_surf_q[istate][iquad];
             for(int idim=0; idim<dim; idim++){
                 aux_soln_state[istate][idim] = aux_soln_at_surf_q[istate][idim][iquad];
@@ -2099,6 +2120,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_boundary_term_strong(
         conv_num_flux_dot_n_at_q = this->conv_num_flux_double->evaluate_flux(soln_state, soln_boundary, unit_phys_normal_int);
         
         // Dissipative numerical flux
+        // pass opposite_soln_state instead of soln_state
         this->pde_physics_double->boundary_face_values_viscous_flux (boundary_id, surf_flux_node, unit_phys_normal_int, soln_state, aux_soln_state, filtered_soln_state, filtered_aux_soln_state, soln_boundary, grad_soln_boundary);
         std::array<real,nstate> diss_auxi_num_flux_dot_n_at_q;
         diss_auxi_num_flux_dot_n_at_q = this->diss_num_flux_double->evaluate_auxiliary_flux(

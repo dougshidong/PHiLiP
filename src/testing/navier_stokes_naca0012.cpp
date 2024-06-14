@@ -23,7 +23,7 @@
 
 #include <fstream>
 
-#include "dg/dg_base.hpp"
+#include "dg/dg.h"
 #include "functional/lift_drag.hpp"
 #include "mesh/gmsh_reader.hpp"
 #include "mesh/grids/naca_airfoil_grid.hpp"

@@ -3,7 +3,7 @@
 
 #include <deal.II/grid/manifold_lib.h>
 
-#include "dg/dg_base.hpp"
+#include "dg/dg.h"
 #include "parameters/all_parameters.h"
 #include "physics/physics.h"
 #include "tests.h"

@@ -58,8 +58,25 @@ protected:
 
     const unsigned int airfoil_sampling_factor;
 
+    /// Filename (with extension) for the unsteady data table
+    const std::string unsteady_data_table_filename_with_extension;
+
+    void compute_unsteady_data_and_write_to_table(
+            const unsigned int current_iteration,
+            const double current_time,
+            const std::shared_ptr <DGBase<dim, double>> dg,
+            const std::shared_ptr<dealii::TableHandler> unsteady_data_table) override;
+
     /// Display additional more specific flow case parameters
     void display_additional_flow_case_specific_parameters() const override;
+
+
+private:
+    /// Compute lift
+    double compute_lift(std::shared_ptr<DGBase<dim, double>> dg) const;
+
+    /// Compute drag
+    double compute_drag(std::shared_ptr<DGBase<dim, double>> dg) const;
 };
 
 } // FlowSolver namespace

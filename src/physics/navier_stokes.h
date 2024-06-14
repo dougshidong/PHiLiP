@@ -434,12 +434,12 @@ protected:
      *  * Given by equations 460-461 of the following paper:
      *  * * Hartmann, Ralf. "Numerical analysis of higher order discontinuous Galerkin finite element methods." (2008): 1-107.
      */
-    void boundary_wall (
+    void boundary_wall_viscous_flux (
         const dealii::Tensor<1,dim,real> &normal_int,
         const std::array<real,nstate> &soln_int,
         const std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_int,
         std::array<real,nstate> &soln_bc,
-        std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_bc) const override;
+        std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_bc) const;
 
     /// Evaluate the manufactured solution boundary conditions.
     void boundary_manufactured_solution (

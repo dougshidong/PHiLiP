@@ -37,6 +37,7 @@ Airfoil2D<dim, nstate>::Airfoil2D(const PHiLiP::Parameters::AllParameters *const
         , n_subdivision_x_2(this->all_param.flow_solver_param.n_subdivision_x_2)
         , n_subdivision_y(this->all_param.flow_solver_param.n_subdivision_y)
         , airfoil_sampling_factor(this->all_param.flow_solver_param.airfoil_sampling_factor)
+        , unsteady_data_table_filename_with_extension(this->all_param.flow_solver_param.unsteady_data_table_filename+".txt")
 {}
 
 template <int dim, int nstate>
@@ -166,6 +167,23 @@ std::shared_ptr<Triangulation> Airfoil2D<dim,nstate>::generate_grid() const
 }
 
 template <int dim, int nstate>
+double Airfoil2D<dim,nstate>::compute_lift(std::shared_ptr<DGBase<dim, double>> dg) const
+{
+    LiftDragFunctional<dim,dim+2,double,Triangulation> lift_functional(dg, LiftDragFunctional<dim,dim+2,double,Triangulation>::Functional_types::lift);
+    const double lift = lift_functional.evaluate_functional();
+    return lift;
+}
+
+template <int dim, int nstate>
+double Airfoil2D<dim,nstate>::compute_drag(std::shared_ptr<DGBase<dim, double>> dg) const
+{
+    LiftDragFunctional<dim,dim+2,double,Triangulation> drag_functional(dg, LiftDragFunctional<dim,dim+2,double,Triangulation>::Functional_types::drag);
+    const double drag = drag_functional.evaluate_functional();
+    return drag;
+}
+
+
+template <int dim, int nstate>
 void Airfoil2D<dim,nstate>::steady_state_postprocessing(std::shared_ptr<DGBase<dim, double>> dg) const
 {
     if constexpr(nstate!=1){
@@ -180,10 +198,45 @@ void Airfoil2D<dim,nstate>::steady_state_postprocessing(std::shared_ptr<DGBase<d
     }
 }
 
+template <int dim, int nstate>
+void Airfoil2D<dim, nstate>::compute_unsteady_data_and_write_to_table(
+        const unsigned int current_iteration,
+        const double current_time,
+        const std::shared_ptr <DGBase<dim, double>> dg,
+        const std::shared_ptr <dealii::TableHandler> unsteady_data_table)
+{
+    // Compute aerodynamic values
+    const double lift = this->compute_lift(dg);
+    const double drag = this->compute_drag(dg);
+
+    if(this->mpi_rank==0) {
+        // Add values to data table
+        this->add_value_to_data_table(current_time,"time",unsteady_data_table);
+        this->add_value_to_data_table(lift,"lift",unsteady_data_table);
+        this->add_value_to_data_table(drag,"drag",unsteady_data_table);
+        // Write to file
+        std::ofstream unsteady_data_table_file(this->unsteady_data_table_filename_with_extension);
+        unsteady_data_table->write_text(unsteady_data_table_file);
+    }
+    // Print to console
+    this->pcout << "    Iter: " << current_iteration
+                << "    Time: " << current_time
+                << "    Lift: " << lift
+                << "    Drag: " << drag;
+    this->pcout << std::endl;
+
+    // Abort if energy is nan
+    if(std::isnan(lift) || std::isnan(drag)) {
+        this->pcout << " ERROR: Lift or drag at time " << current_time << " is nan." << std::endl;
+        this->pcout << "        Consider decreasing the time step / CFL number." << std::endl;
+        std::abort();
+    }
+}
+
 #if PHILIP_DIM!=1
-    template class Airfoil2D <PHILIP_DIM,1>;
+    //template class Airfoil2D <PHILIP_DIM,1>;
     template class Airfoil2D <PHILIP_DIM,PHILIP_DIM+2>;
-    template class Airfoil2D <PHILIP_DIM,PHILIP_DIM+3>;
+    //template class Airfoil2D <PHILIP_DIM,PHILIP_DIM+3>;
 #endif
 
 } // FlowSolver namespace

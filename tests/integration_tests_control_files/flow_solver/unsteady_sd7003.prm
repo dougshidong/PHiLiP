@@ -19,7 +19,7 @@ subsection ODE solver
   set ode_output = quiet
   set ode_solver_type = runge_kutta
   set output_solution_every_x_steps = 1
-  set initial_time_step = 1.0e-5
+  set initial_time_step = 1.0e-7
   set runge_kutta_method = ssprk3_ex
 end
 
@@ -55,7 +55,19 @@ subsection flow_solver
   # set courant_friedrichs_lewy_number = 0.01
   set unsteady_data_table_filename = sd7003_unsteady_data_table
   subsection grid
-    set input_mesh_filename = ../../meshes/SD7003_4_cell_spanwise
+    set input_mesh_filename = /home/dominic_roy2/Codes/PHiLiP/tests/meshes/SD7003
     # set grid_degree = 0
+	set use_gmsh_mesh = true
+    subsection gmsh_boundary_IDs
+      set use_periodic_BC_in_x = true
+      set use_periodic_BC_in_y = true
+      set use_periodic_BC_in_z = true
+      set x_periodic_id_face_1 = 2001
+      set x_periodic_id_face_2 = 2002
+      set y_periodic_id_face_1 = 2003
+      set y_periodic_id_face_2 = 2004
+      set z_periodic_id_face_1 = 2005
+      set z_periodic_id_face_2 = 2006
+    end
   end
 end

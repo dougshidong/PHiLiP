@@ -3921,13 +3921,38 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_volume_term_and_build_operators_
     const std::vector<adtype> &soln_coeffs,
     const std::vector<adtype> &metric_coeffs,
     const std::vector<real> &local_dual,
-    const dealii::Quadrature<dim> &quadrature,
     const Physics::PhysicsBase<dim, nstate, adtype> &physics,
+    dealii::hp::FEValues<dim,dim>  &fe_values_collection_volume,
+    dealii::hp::FEValues<dim,dim>  &fe_values_collection_volume_lagrange,
     const dealii::FESystem<dim,dim> &fe_soln,
-    std::vector<adtype> &rhs, adtype &dual_dot_residual,
-    const bool compute_metric_derivatives,
-    const dealii::FEValues<dim,dim> &fe_values_vol)
+    std::vector<adtype> &rhs, 
+    adtype &dual_dot_residual)
 {
+    // Current reference element related to this physical cell
+    const int i_fele = cell->active_fe_index();
+    const int i_quad = i_fele;
+    const int i_mapp = 0;
+    fe_values_collection_volume.reinit (cell, i_quad, i_mapp, i_fele);
+    dealii::TriaIterator<dealii::CellAccessor<dim,dim>> cell_iterator = static_cast<dealii::TriaIterator<dealii::CellAccessor<dim,dim>> > (cell);
+    fe_values_collection_volume_lagrange.reinit (cell_iterator, i_quad, i_mapp, i_fele);
+
+    const dealii::FEValues<dim,dim> &fe_values_vol = fe_values_collection_volume.get_present_fe_values();
+    const dealii::FEValues<dim,dim> &fe_values_lagrange = fe_values_collection_volume_lagrange.get_present_fe_values();
+    //Note the explicit is called first to set the max_dt_cell to a non-zero value.
+    assemble_volume_term_explicit (
+        cell,
+        current_cell_index,
+        fe_values_vol,
+        soln_dofs_indices,
+        metric_dofs_indices,
+        poly_degree, grid_degree,
+        local_rhs_cell,
+        fe_values_lagrange);
+    //set current rhs to zero since the explicit call was just to set the max_dt_cell.
+    local_rhs_cell*=0.0;
+
+    const dealii::Quadrature<dim> &quadrature = this->volume_quadrature_collection[i_quad];
+    
     const dealii::FESystem<dim> &fe_metric = this->high_order_grid->fe_system;
     const unsigned int n_metric_dofs = fe_metric.dofs_per_cell;
     const unsigned int n_soln_dofs = fe_soln.dofs_per_cell;
@@ -3944,6 +3969,9 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_volume_term_and_build_operators_
     {
         local_metric.coefficients[i] = metric_coeffs[i];
     }
+
+    const bool compute_metric_derivatives = true;
+
     assemble_volume_term<adtype>(
         cell,
         current_cell_index,
@@ -3968,14 +3996,21 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_boundary_term_and_build_operator
     const Physics::PhysicsBase<dim, nstate, adtype> &physics,
     const NumericalFlux::NumericalFluxConvective<dim, nstate, adtype> &conv_num_flux,
     const NumericalFlux::NumericalFluxDissipative<dim, nstate, adtype> &diss_num_flux,
-    const dealii::FEFaceValuesBase<dim,dim> &fe_values_boundary,
+    dealii::hp::FEFaceValues<dim,dim> &fe_values_collection_face_int,
     const dealii::FESystem<dim,dim> &fe_soln,
     const real penalty,
-    const dealii::Quadrature<dim-1> &quadrature,
     std::vector<adtype> &rhs,
-    adtype &dual_dot_residual,
-    const bool compute_metric_derivatives)
+    adtype &dual_dot_residual)
 {
+    // Current reference element related to this physical cell
+    const int i_fele = cell->active_fe_index();
+    const int i_quad = i_fele;
+    const int i_mapp = 0;
+
+    fe_values_collection_face_int.reinit (cell, iface, i_quad, i_mapp, i_fele);
+    const dealii::FEFaceValues<dim,dim> &fe_values_boundary = fe_values_collection_face_int.get_present_fe_values();
+    const dealii::Quadrature<dim-1> quadrature = this->face_quadrature_collection[i_quad];
+    
     const dealii::FESystem<dim> &fe_metric = this->high_order_grid->fe_system;
     const unsigned int n_soln_dofs = fe_values_boundary.dofs_per_cell;
     const unsigned int n_metric_dofs = fe_metric.dofs_per_cell;
@@ -3989,6 +4024,9 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_boundary_term_and_build_operator
     {
         local_metric.coefficients[i] = metric_coeffs[i];
     }
+    
+    const bool compute_metric_derivatives = true;
+
     assemble_boundary_term<adtype>(
         cell,
         current_cell_index,

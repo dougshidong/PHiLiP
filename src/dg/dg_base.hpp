@@ -773,11 +773,11 @@ public:
         const std::vector<double> &soln_coeffs,
         const std::vector<double> &metric_coeffs,
         const std::vector<real> &local_dual,
-        const dealii::Quadrature<dim> &quadrature,
+        dealii::hp::FEValues<dim,dim>  &fe_values_collection_volume,
+        dealii::hp::FEValues<dim,dim>  &fe_values_collection_volume_lagrange,
         const dealii::FESystem<dim,dim> &fe_soln,
-        std::vector<double> &rhs, double &dual_dot_residual,
-        const bool compute_metric_derivatives,
-        const dealii::FEValues<dim,dim> &fe_values_vol)=0;
+        std::vector<double> &rhs, 
+        double &dual_dot_residual)=0;
     
     virtual void assemble_volume_term_and_build_operators_ad(
         typename dealii::DoFHandler<dim>::active_cell_iterator cell,
@@ -785,11 +785,11 @@ public:
         const std::vector<codi_JacobianComputationType> &soln_coeffs,
         const std::vector<codi_JacobianComputationType> &metric_coeffs,
         const std::vector<real> &local_dual,
-        const dealii::Quadrature<dim> &quadrature,
+        dealii::hp::FEValues<dim,dim>  &fe_values_collection_volume,
+        dealii::hp::FEValues<dim,dim>  &fe_values_collection_volume_lagrange,
         const dealii::FESystem<dim,dim> &fe_soln,
-        std::vector<codi_JacobianComputationType> &rhs, codi_JacobianComputationType &dual_dot_residual,
-        const bool compute_metric_derivatives,
-        const dealii::FEValues<dim,dim> &fe_values_vol)=0;
+        std::vector<codi_JacobianComputationType> &rhs, 
+        codi_JacobianComputationType &dual_dot_residual)=0;
     
     virtual void assemble_volume_term_and_build_operators_ad(
         typename dealii::DoFHandler<dim>::active_cell_iterator cell,
@@ -797,11 +797,11 @@ public:
         const std::vector<codi_HessianComputationType> &soln_coeffs,
         const std::vector<codi_HessianComputationType> &metric_coeffs,
         const std::vector<real> &local_dual,
-        const dealii::Quadrature<dim> &quadrature,
+        dealii::hp::FEValues<dim,dim>  &fe_values_collection_volume,
+        dealii::hp::FEValues<dim,dim>  &fe_values_collection_volume_lagrange,
         const dealii::FESystem<dim,dim> &fe_soln,
-        std::vector<codi_HessianComputationType> &rhs, codi_HessianComputationType &dual_dot_residual,
-        const bool compute_metric_derivatives,
-        const dealii::FEValues<dim,dim> &fe_values_vol)=0;
+        std::vector<codi_HessianComputationType> &rhs, 
+        codi_HessianComputationType &dual_dot_residual)=0;
     
     virtual void assemble_boundary_term_and_build_operators_ad(
         typename dealii::DoFHandler<dim>::active_cell_iterator cell,
@@ -811,13 +811,11 @@ public:
         const std::vector< real > &local_dual,
         const unsigned int face_number,
         const unsigned int boundary_id,
-        const dealii::FEFaceValuesBase<dim,dim> &fe_values_boundary,
+        dealii::hp::FEFaceValues<dim,dim> &fe_values_collection_face_int,
         const dealii::FESystem<dim,dim> &fe_soln,
         const real penalty,
-        const dealii::Quadrature<dim-1> &quadrature,
         std::vector<double> &rhs,
-        double &dual_dot_residual,
-        const bool compute_metric_derivatives)=0;
+        double &dual_dot_residual)=0;
     
     virtual void assemble_boundary_term_and_build_operators_ad(
         typename dealii::DoFHandler<dim>::active_cell_iterator cell,
@@ -827,13 +825,11 @@ public:
         const std::vector< real > &local_dual,
         const unsigned int face_number,
         const unsigned int boundary_id,
-        const dealii::FEFaceValuesBase<dim,dim> &fe_values_boundary,
+        dealii::hp::FEFaceValues<dim,dim> &fe_values_collection_face_int,
         const dealii::FESystem<dim,dim> &fe_soln,
         const real penalty,
-        const dealii::Quadrature<dim-1> &quadrature,
         std::vector<codi_JacobianComputationType> &rhs,
-        codi_JacobianComputationType &dual_dot_residual,
-        const bool compute_metric_derivatives)=0;
+        codi_JacobianComputationType &dual_dot_residual)=0;
     
     virtual void assemble_boundary_term_and_build_operators_ad(
         typename dealii::DoFHandler<dim>::active_cell_iterator cell,
@@ -843,13 +839,11 @@ public:
         const std::vector< real > &local_dual,
         const unsigned int face_number,
         const unsigned int boundary_id,
-        const dealii::FEFaceValuesBase<dim,dim> &fe_values_boundary,
+        dealii::hp::FEFaceValues<dim,dim> &fe_values_collection_face_int,
         const dealii::FESystem<dim,dim> &fe_soln,
         const real penalty,
-        const dealii::Quadrature<dim-1> &quadrature,
         std::vector<codi_HessianComputationType> &rhs,
-        codi_HessianComputationType &dual_dot_residual,
-        const bool compute_metric_derivatives)=0;
+        codi_HessianComputationType &dual_dot_residual)=0;
     
     virtual void assemble_face_term_and_build_operators_ad(
         typename dealii::DoFHandler<dim>::active_cell_iterator cell,

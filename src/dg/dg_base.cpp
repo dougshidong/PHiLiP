@@ -926,37 +926,11 @@ void DGBase<dim,real,MeshType>::assemble_volume_codi_taped_derivatives_ad(
     const bool                                             /*compute_auxiliary_right_hand_side*/,
     const bool compute_dRdW, const bool compute_dRdX, const bool compute_d2R)
 {
-    // Current reference element related to this physical cell
-    const int i_fele = cell->active_fe_index();
-    const int i_quad = i_fele;
-    const int i_mapp = 0;
-    fe_values_collection_volume.reinit (cell, i_quad, i_mapp, i_fele);
-    dealii::TriaIterator<dealii::CellAccessor<dim,dim>> cell_iterator = static_cast<dealii::TriaIterator<dealii::CellAccessor<dim,dim>> > (cell);
-    fe_values_collection_volume_lagrange.reinit (cell_iterator, i_quad, i_mapp, i_fele);
-
-    const dealii::FEValues<dim,dim> &fe_values_vol = fe_values_collection_volume.get_present_fe_values();
-    const dealii::FEValues<dim,dim> &fe_values_lagrange = fe_values_collection_volume_lagrange.get_present_fe_values();
-    //Note the explicit is called first to set the max_dt_cell to a non-zero value.
-    assemble_volume_term_explicit (
-        cell,
-        current_cell_index,
-        fe_values_vol,
-        soln_dofs_indices,
-        metric_dofs_indices,
-        poly_degree, grid_degree,
-        local_rhs_cell,
-        fe_values_lagrange);
-    //set current rhs to zero since the explicit call was just to set the max_dt_cell.
-    local_rhs_cell*=0.0;
-
-    const dealii::Quadrature<dim> &quadrature = volume_quadrature_collection[i_quad];
-    
     const unsigned int n_soln_dofs = fe_soln.dofs_per_cell;
 
     AssertDimension (n_soln_dofs, soln_dofs_indices.size());
 
-    const dealii::FESystem<dim> &fe_metric = this->high_order_grid->fe_system;
-    const unsigned int n_metric_dofs = fe_metric.dofs_per_cell;
+    const unsigned int n_metric_dofs = this->high_order_grid->fe_system.dofs_per_cell;
 
     std::vector<real> local_dual(n_soln_dofs);
     for (unsigned int itest=0; itest<n_soln_dofs; ++itest) {
@@ -964,8 +938,6 @@ void DGBase<dim,real,MeshType>::assemble_volume_codi_taped_derivatives_ad(
         local_dual[itest] = this->dual[global_residual_row];
     }
 
-    (void) compute_dRdW; (void) compute_dRdX; (void) compute_d2R;
-    const bool compute_metric_derivatives = true;//(!compute_dRdX && !compute_d2R) ? false : true;
 
     unsigned int w_start, w_end, x_start, x_end;
     if(compute_dRdW || compute_dRdX || compute_d2R)
@@ -1001,12 +973,13 @@ void DGBase<dim,real,MeshType>::assemble_volume_codi_taped_derivatives_ad(
     assemble_volume_term_and_build_operators_ad(
         cell,
         current_cell_index,
-        local_solution, local_metric_int,
+        local_solution, 
+        local_metric_int,
         local_dual,
-        quadrature,
+        fe_values_collection_volume,
+        fe_values_collection_volume_lagrange,
         fe_soln,
-        rhs, dual_dot_residual,
-        compute_metric_derivatives, fe_values_vol);
+        rhs, dual_dot_residual);
     
     if (compute_dRdW || compute_dRdX) {
         for (unsigned int itest=0; itest<n_soln_dofs; ++itest) {
@@ -1127,21 +1100,9 @@ void DGBase<dim,real,MeshType>::assemble_boundary_codi_taped_derivatives_ad(
     const bool                                             /*compute_auxiliary_right_hand_side*/,
     const bool compute_dRdW, const bool compute_dRdX, const bool compute_d2R)
 {
-    // Current reference element related to this physical cell
-    const int i_fele = cell->active_fe_index();
-    const int i_quad = i_fele;
-    const int i_mapp = 0;
+    const unsigned int n_soln_dofs = fe_soln.dofs_per_cell;
+    const unsigned int n_metric_dofs = this->high_order_grid->fe_system.dofs_per_cell;
 
-    fe_values_collection_face_int.reinit (cell, iface, i_quad, i_mapp, i_fele);
-    const dealii::FEFaceValues<dim,dim> &fe_values_boundary = fe_values_collection_face_int.get_present_fe_values();
-    const dealii::Quadrature<dim-1> quadrature = this->face_quadrature_collection[i_quad];
-    
-    const dealii::FESystem<dim> &fe_metric = this->high_order_grid->fe_system;
-    const unsigned int n_soln_dofs = fe_values_boundary.dofs_per_cell;
-    const unsigned int n_metric_dofs = fe_metric.dofs_per_cell;
-
-    (void) compute_dRdW; (void) compute_dRdX; (void) compute_d2R;
-    const bool compute_metric_derivatives = true;//(!compute_dRdX && !compute_d2R) ? false : true;
     AssertDimension (n_soln_dofs, soln_dofs_indices.size());
 
     std::vector<adtype> local_solution(fe_soln.dofs_per_cell);
@@ -1190,13 +1151,11 @@ void DGBase<dim,real,MeshType>::assemble_boundary_codi_taped_derivatives_ad(
         local_dual,
         iface,
         boundary_id,
-        fe_values_boundary,
+        fe_values_collection_face_int,
         fe_soln,
         penalty,
-        quadrature,
         rhs,
-        dual_dot_residual,
-        compute_metric_derivatives);
+        dual_dot_residual);
 
     if (compute_dRdW || compute_dRdX) {
         for (unsigned int itest=0; itest<n_soln_dofs; ++itest) {
@@ -1455,7 +1414,7 @@ void DGBase<dim,real,MeshType>::assemble_subface_codi_taped_derivatives_ad(
                                                                                         neighbor_cell->face_flip(neighbor_iface),
                                                                                         neighbor_cell->face_rotation(neighbor_iface),
                                                                                         used_face_quadrature.size(),
-                                                                                neighbor_cell->subface_case(neighbor_iface));
+                                                                                        neighbor_cell->subface_case(neighbor_iface));
 
     assemble_face_subface_codi_taped_derivatives_ad<adtype>(
         cell,

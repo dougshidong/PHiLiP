@@ -374,12 +374,12 @@ protected:
         const std::vector<adtype> &/*soln_coeffs*/,
         const std::vector<adtype> &/*metric_coeffs*/,
         const std::vector<real> &/*local_dual*/,
-        const dealii::Quadrature<dim> &/*quadrature*/,
         const Physics::PhysicsBase<dim, nstate, adtype> &/*physics*/,
+        dealii::hp::FEValues<dim,dim>  &/*fe_values_collection_volume*/,
+        dealii::hp::FEValues<dim,dim>  &/*fe_values_collection_volume_lagrange*/,
         const dealii::FESystem<dim,dim>  &/*fe_soln*/,
-        std::vector<adtype> &/*rhs*/, adtype &/*dual_dot_residual*/,
-        const bool /*compute_metric_derivatives*/,
-        const dealii::FEValues<dim,dim> &/*fe_values_vol*/) 
+        std::vector<adtype> &/*rhs*/, 
+        adtype &/*dual_dot_residual*/) 
     {
         // Do nothing for now.
     }
@@ -390,11 +390,11 @@ protected:
         const std::vector<double> &soln_coeffs,
         const std::vector<double> &metric_coeffs,
         const std::vector<real> &local_dual,
-        const dealii::Quadrature<dim> &quadrature,
+        dealii::hp::FEValues<dim,dim>  &fe_values_collection_volume,
+        dealii::hp::FEValues<dim,dim>  &fe_values_collection_volume_lagrange,
         const dealii::FESystem<dim,dim> &fe_soln,
-        std::vector<double> &rhs, double &dual_dot_residual,
-        const bool compute_metric_derivatives,
-        const dealii::FEValues<dim,dim> &fe_values_vol) override
+        std::vector<double> &rhs, 
+        double &dual_dot_residual) override
     {
         assemble_volume_term_and_build_operators_ad<double>(
                 cell,
@@ -402,13 +402,12 @@ protected:
                 soln_coeffs,
                 metric_coeffs,
                 local_dual,
-                quadrature,
                 *(DGBaseState<dim,nstate,real,MeshType>::pde_physics_double),
+                fe_values_collection_volume,
+                fe_values_collection_volume_lagrange,
                 fe_soln,
                 rhs,
-                dual_dot_residual,
-                compute_metric_derivatives,
-                fe_values_vol);
+                dual_dot_residual);
     }
     
     void assemble_volume_term_and_build_operators_ad(
@@ -417,11 +416,11 @@ protected:
         const std::vector<codi_JacobianComputationType> &soln_coeffs,
         const std::vector<codi_JacobianComputationType> &metric_coeffs,
         const std::vector<real> &local_dual,
-        const dealii::Quadrature<dim> &quadrature,
+        dealii::hp::FEValues<dim,dim>  &fe_values_collection_volume,
+        dealii::hp::FEValues<dim,dim>  &fe_values_collection_volume_lagrange,
         const dealii::FESystem<dim,dim> &fe_soln,
-        std::vector<codi_JacobianComputationType> &rhs, codi_JacobianComputationType &dual_dot_residual,
-        const bool compute_metric_derivatives,
-        const dealii::FEValues<dim,dim> &fe_values_vol) override
+        std::vector<codi_JacobianComputationType> &rhs, 
+        codi_JacobianComputationType &dual_dot_residual) override
     {
         assemble_volume_term_and_build_operators_ad<codi_JacobianComputationType>(
                 cell,
@@ -429,13 +428,12 @@ protected:
                 soln_coeffs,
                 metric_coeffs,
                 local_dual,
-                quadrature,
                 *(DGBaseState<dim,nstate,real,MeshType>::pde_physics_rad),
+                fe_values_collection_volume,
+                fe_values_collection_volume_lagrange,
                 fe_soln,
                 rhs,
-                dual_dot_residual,
-                compute_metric_derivatives,
-                fe_values_vol);
+                dual_dot_residual);
     }
     
     void assemble_volume_term_and_build_operators_ad(
@@ -444,11 +442,11 @@ protected:
         const std::vector<codi_HessianComputationType> &soln_coeffs,
         const std::vector<codi_HessianComputationType> &metric_coeffs,
         const std::vector<real> &local_dual,
-        const dealii::Quadrature<dim> &quadrature,
+        dealii::hp::FEValues<dim,dim>  &fe_values_collection_volume,
+        dealii::hp::FEValues<dim,dim>  &fe_values_collection_volume_lagrange,
         const dealii::FESystem<dim,dim> &fe_soln,
-        std::vector<codi_HessianComputationType> &rhs, codi_HessianComputationType &dual_dot_residual,
-        const bool compute_metric_derivatives,
-        const dealii::FEValues<dim,dim> &fe_values_vol) override
+        std::vector<codi_HessianComputationType> &rhs, 
+        codi_HessianComputationType &dual_dot_residual) override
     {
         assemble_volume_term_and_build_operators_ad<codi_HessianComputationType>(
                 cell,
@@ -456,13 +454,12 @@ protected:
                 soln_coeffs,
                 metric_coeffs,
                 local_dual,
-                quadrature,
                 *(DGBaseState<dim,nstate,real,MeshType>::pde_physics_rad_fad),
+                fe_values_collection_volume,
+                fe_values_collection_volume_lagrange,
                 fe_soln,
                 rhs,
-                dual_dot_residual,
-                compute_metric_derivatives,
-                fe_values_vol);
+                dual_dot_residual);
     }
 
     
@@ -479,13 +476,11 @@ protected:
         const Physics::PhysicsBase<dim, nstate, adtype> &/*physics*/,
         const NumericalFlux::NumericalFluxConvective<dim, nstate, adtype> &/*conv_num_flux*/,
         const NumericalFlux::NumericalFluxDissipative<dim, nstate, adtype> &/*diss_num_flux*/,
-        const dealii::FEFaceValuesBase<dim,dim> &/*fe_values_boundary*/,
+        dealii::hp::FEFaceValues<dim,dim> &/*fe_values_collection_face_int*/,
         const dealii::FESystem<dim,dim> &/*fe_soln*/,
         const real /*penalty*/,
-        const dealii::Quadrature<dim-1> &/*quadrature*/,
         std::vector<adtype> &/*rhs*/,
-        adtype &/*dual_dot_residual*/,
-        const bool /*compute_metric_derivatives*/) 
+        adtype &/*dual_dot_residual*/) 
     {
         // Do nothing for now.
     }
@@ -498,13 +493,11 @@ protected:
         const std::vector< real > &local_dual,
         const unsigned int face_number,
         const unsigned int boundary_id,
-        const dealii::FEFaceValuesBase<dim,dim> &fe_values_boundary,
+        dealii::hp::FEFaceValues<dim,dim> &fe_values_collection_face_int,
         const dealii::FESystem<dim,dim> &fe_soln,
         const real penalty,
-        const dealii::Quadrature<dim-1> &quadrature,
         std::vector<double> &rhs,
-        double &dual_dot_residual,
-        const bool compute_metric_derivatives) override
+        double &dual_dot_residual) override
     {
         assemble_boundary_term_and_build_operators_ad<double>(
             cell, 
@@ -517,13 +510,11 @@ protected:
             *(DGBaseState<dim,nstate,real,MeshType>::pde_physics_double),
             *(DGBaseState<dim,nstate,real,MeshType>::conv_num_flux_double),
             *(DGBaseState<dim,nstate,real,MeshType>::diss_num_flux_double),
-            fe_values_boundary,
+            fe_values_collection_face_int,
             fe_soln,
             penalty,
-            quadrature,
             rhs,
-            dual_dot_residual,
-            compute_metric_derivatives);
+            dual_dot_residual);
     }
     
     void assemble_boundary_term_and_build_operators_ad(
@@ -534,13 +525,11 @@ protected:
         const std::vector< real > &local_dual,
         const unsigned int face_number,
         const unsigned int boundary_id,
-        const dealii::FEFaceValuesBase<dim,dim> &fe_values_boundary,
+        dealii::hp::FEFaceValues<dim,dim> &fe_values_collection_face_int,
         const dealii::FESystem<dim,dim> &fe_soln,
         const real penalty,
-        const dealii::Quadrature<dim-1> &quadrature,
         std::vector<codi_JacobianComputationType> &rhs,
-        codi_JacobianComputationType &dual_dot_residual,
-        const bool compute_metric_derivatives) override
+        codi_JacobianComputationType &dual_dot_residual) override
     {
         assemble_boundary_term_and_build_operators_ad<codi_JacobianComputationType>(
             cell, 
@@ -553,13 +542,11 @@ protected:
             *(DGBaseState<dim,nstate,real,MeshType>::pde_physics_rad),
             *(DGBaseState<dim,nstate,real,MeshType>::conv_num_flux_rad),
             *(DGBaseState<dim,nstate,real,MeshType>::diss_num_flux_rad),
-            fe_values_boundary,
+            fe_values_collection_face_int,
             fe_soln,
             penalty,
-            quadrature,
             rhs,
-            dual_dot_residual,
-            compute_metric_derivatives);
+            dual_dot_residual);
     }
     
     void assemble_boundary_term_and_build_operators_ad(
@@ -570,13 +557,11 @@ protected:
         const std::vector< real > &local_dual,
         const unsigned int face_number,
         const unsigned int boundary_id,
-        const dealii::FEFaceValuesBase<dim,dim> &fe_values_boundary,
+        dealii::hp::FEFaceValues<dim,dim> &fe_values_collection_face_int,
         const dealii::FESystem<dim,dim> &fe_soln,
         const real penalty,
-        const dealii::Quadrature<dim-1> &quadrature,
         std::vector<codi_HessianComputationType> &rhs,
-        codi_HessianComputationType &dual_dot_residual,
-        const bool compute_metric_derivatives) override
+        codi_HessianComputationType &dual_dot_residual) override
     {
         assemble_boundary_term_and_build_operators_ad<codi_HessianComputationType>(
             cell, 
@@ -589,13 +574,11 @@ protected:
             *(DGBaseState<dim,nstate,real,MeshType>::pde_physics_rad_fad),
             *(DGBaseState<dim,nstate,real,MeshType>::conv_num_flux_rad_fad),
             *(DGBaseState<dim,nstate,real,MeshType>::diss_num_flux_rad_fad),
-            fe_values_boundary,
+            fe_values_collection_face_int,
             fe_soln,
             penalty,
-            quadrature,
             rhs,
-            dual_dot_residual,
-            compute_metric_derivatives);
+            dual_dot_residual);
     }
     
     template <typename adtype>

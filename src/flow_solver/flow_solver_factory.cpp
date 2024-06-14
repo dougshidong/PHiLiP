@@ -56,6 +56,9 @@ FlowSolverFactory<dim,nstate>
         if constexpr (dim==2 && nstate==dim+2){
             std::shared_ptr<FlowSolverCaseBase<dim, nstate>> flow_solver_case = std::make_shared<NACA0012<dim,nstate>>(parameters_input);
             return std::make_unique<FlowSolver<dim,nstate>>(parameters_input, flow_solver_case, parameter_handler_input);
+        } else if constexpr (dim==3 && nstate==dim+2){
+            std::shared_ptr<FlowSolverCaseBase<dim, nstate>> flow_solver_case = std::make_shared<NACA0012<dim,nstate>>(parameters_input);
+            return std::make_unique<FlowSolver<dim,nstate>>(parameters_input, flow_solver_case, parameter_handler_input);
         }
     } else if (flow_type == FlowCaseEnum::periodic_1D_unsteady){
         if constexpr (dim==1 && nstate==dim){
@@ -63,7 +66,7 @@ FlowSolverFactory<dim,nstate>
             return std::make_unique<FlowSolver<dim,nstate>>(parameters_input, flow_solver_case, parameter_handler_input);
         }
     } else if (flow_type == FlowCaseEnum::gaussian_bump){
-        if constexpr (dim==2 && nstate==dim+2){
+        if constexpr (dim>1 && nstate==dim+2){
             std::shared_ptr<FlowSolverCaseBase<dim, nstate>> flow_solver_case = std::make_shared<GaussianBump<dim, nstate>>(parameters_input);
             return std::make_unique<FlowSolver<dim, nstate>>(parameters_input, flow_solver_case, parameter_handler_input);
         }
@@ -95,6 +98,9 @@ FlowSolverFactory<dim,nstate>
             std::shared_ptr<FlowSolverCaseBase<dim, nstate>> flow_solver_case = std::make_shared<Airfoil2D<dim, nstate>>(parameters_input);
             return std::make_unique<FlowSolver<dim, nstate>>(parameters_input, flow_solver_case, parameter_handler_input);
         } else if constexpr (dim==2 && nstate==dim+3){
+            std::shared_ptr<FlowSolverCaseBase<dim, nstate>> flow_solver_case = std::make_shared<Airfoil2D<dim, nstate>>(parameters_input);
+            return std::make_unique<FlowSolver<dim, nstate>>(parameters_input, flow_solver_case, parameter_handler_input);
+        } else if constexpr (dim==3 && nstate==dim+2){
             std::shared_ptr<FlowSolverCaseBase<dim, nstate>> flow_solver_case = std::make_shared<Airfoil2D<dim, nstate>>(parameters_input);
             return std::make_unique<FlowSolver<dim, nstate>>(parameters_input, flow_solver_case, parameter_handler_input);
         }

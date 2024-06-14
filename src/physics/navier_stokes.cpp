@@ -1222,10 +1222,39 @@ void NavierStokes<dim,nstate,real>
 {
     using thermal_boundary_condition_enum = Parameters::NavierStokesParam::ThermalBoundaryCondition;
 
-    // No-slip wall boundary conditions
+    //// No-slip wall boundary conditions
+    //// Given by equations 460-461 of the following paper
+    //// Hartmann, Ralf. "Numerical analysis of higher order discontinuous Galerkin finite element methods." (2008): 1-107.
+    //const std::array<real,nstate> primitive_interior_values = this->template convert_conservative_to_primitive_templated<real>(soln_int);
+
+    //// Copy density
+    //std::array<real,nstate> primitive_boundary_values;
+    //primitive_boundary_values[0] = primitive_interior_values[0];
+
+    // Associated thermal boundary condition
+    //if(thermal_boundary_condition_type == thermal_boundary_condition_enum::isothermal) { 
+    //    // isothermal boundary
+    //primitive_boundary_values[nstate-1] = this->compute_pressure_from_density_temperature(primitive_boundary_values[0], isothermal_wall_temperature);
+    //} else if(thermal_boundary_condition_type == thermal_boundary_condition_enum::adiabatic) {
+    //    // adiabatic boundary
+    //    primitive_boundary_values[nstate-1] = primitive_interior_values[nstate-1];
+    //}
+
+    //// No-slip boundary condition on velocity
+    //dealii::Tensor<1,dim,real> velocities_bc;
+    //for (int d=0; d<dim; d++) {
+    //    velocities_bc[d] = 0.0;
+    //}
+    //for (int d=0; d<dim; ++d) {
+    //    primitive_boundary_values[1+d] = velocities_bc[d];
+    //}
 
     // Apply boundary conditions:
     // -- solution at boundary
+    //const std::array<real,nstate> modified_conservative_boundary_values = this->convert_primitive_to_conservative(primitive_boundary_values);
+    //for (int istate=0; istate<nstate; ++istate) {
+    //    soln_bc[istate] = modified_conservative_boundary_values[istate];
+    //}
     soln_bc[0] = soln_int[0];
     soln_bc[nstate-1] = soln_int[nstate-1];
     for (int d=0; d<dim; ++d) {
@@ -1240,6 +1269,7 @@ void NavierStokes<dim,nstate,real>
         soln_grad_bc[nstate-1] = 0.0;
     }
 }
+
 
 template <int dim, int nstate, typename real>
 void NavierStokes<dim,nstate,real>
@@ -1340,6 +1370,24 @@ dealii::Vector<double> NavierStokes<dim,nstate,real>::post_compute_derived_quant
                 computed_quantities(++current_data_index) = viscous_stress_tensor[1][d];
             }
         }
+        else if constexpr(dim==3) {
+            // Calculate primitive solution gradient
+            const std::array<dealii::Tensor<1,dim,real>,nstate> primitive_soln_gradient = this->template convert_conservative_gradient_to_primitive_gradient_templated<real>(conservative_soln, conservative_soln_gradient);
+            // Viscous stress tensor
+            dealii::Tensor<2,3,double> viscous_stress_tensor = compute_viscous_stress_tensor<real>(primitive_soln,primitive_soln_gradient);
+            //First line of viscous stress tensor
+            for (unsigned int d=0; d<3; ++d) {
+                computed_quantities(++current_data_index) = viscous_stress_tensor[0][d];
+            }
+            //Second line of viscous stress tensor
+            for (unsigned int d=0; d<3; ++d) {
+                computed_quantities(++current_data_index) = viscous_stress_tensor[1][d];
+            }
+            //Third line of viscous stress tensor
+            for (unsigned int d=0; d<3; ++d) {
+                computed_quantities(++current_data_index) = viscous_stress_tensor[2][d];
+            }
+        }
 
     }
     if (computed_quantities.size()-1 != current_data_index) {
@@ -1385,6 +1433,18 @@ std::vector<dealii::DataComponentInterpretation::DataComponentInterpretation> Na
             interpretation.push_back (DCI::component_is_part_of_vector); // Second line of viscous Stress Tensor
         }
     }
+    else if constexpr(dim==3) {
+        for (unsigned int d=0; d<3; ++d) {
+            interpretation.push_back (DCI::component_is_part_of_vector); // First line of viscous Stress Tensor
+        }
+        for (unsigned int d=0; d<3; ++d) {
+            interpretation.push_back (DCI::component_is_part_of_vector); // Second line of viscous Stress Tensor
+        }
+        for (unsigned int d=0; d<3; ++d) {
+            interpretation.push_back (DCI::component_is_part_of_vector); // Third line of viscous Stress Tensor
+        }
+    }
+
 
     std::vector<std::string> names = post_get_names();
     if (names.size() != interpretation.size()) {
@@ -1428,6 +1488,20 @@ std::vector<std::string> NavierStokes<dim,nstate,real>
         // Second line of viscous Stress Tensor
         for (unsigned int d=0; d<2; ++d) {
             names.push_back ("dv_viscous_stress_tensor");
+        }
+    }
+    else if constexpr(dim==3) {
+        // First line of viscous Stress Tensor
+        for (unsigned int d=0; d<3; ++d) {
+            names.push_back ("du_viscous_stress_tensor");
+        }
+        // Second line of viscous Stress Tensor
+        for (unsigned int d=0; d<3; ++d) {
+            names.push_back ("dv_viscous_stress_tensor");
+        }
+        // Third line of viscous Stress Tensor
+        for (unsigned int d=0; d<3; ++d) {
+            names.push_back ("dz_viscous_stress_tensor");
         }
     }
     return names;

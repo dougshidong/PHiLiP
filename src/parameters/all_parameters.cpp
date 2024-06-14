@@ -165,6 +165,7 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       " euler_naca_optimization | "
                       " shock_1d | "
                       " euler_naca0012 | "
+                      " navier_stokes_naca0012 | "
                       " reduced_order | "
                       " convection_diffusion_periodicity |"
                       " POD_adaptation | "
@@ -204,6 +205,7 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       "  euler_naca_optimization | "
                       "  shock_1d | "
                       "  euler_naca0012 | "
+                      " navier_stokes_naca0012 | "
                       "  convection_diffusion_periodicity |"
                       "  reduced_order | "
                       "  POD_adaptation | "
@@ -315,6 +317,11 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       "CuthillMckee"),
                       "Renumber the dof handler type. Currently the only choice is Cuthill-Mckee.");
 
+    prm.declare_entry("matching_surface_jac_det_tolerance", "1.3e-11",
+                      dealii::Patterns::Double(0, dealii::Patterns::Double::max_double_value),
+                      "Tolerance for checking that the determinant of surface jacobians at element faces matches. "
+                      "Note: Currently only used in weak dg.");
+
     Parameters::LinearSolverParam::declare_parameters (prm);
     Parameters::ManufacturedConvergenceStudyParam::declare_parameters (prm);
     Parameters::ODESolverParam::declare_parameters (prm);
@@ -374,6 +381,7 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
     else if (test_string == "adaptive_sampling_testing")                { test_type = adaptive_sampling_testing; }
     else if (test_string == "finite_difference_sensitivity")            { test_type = finite_difference_sensitivity; }
     else if (test_string == "euler_naca0012")                           { test_type = euler_naca0012; }
+    else if (test_string == "navier_stokes_naca0012")                   { test_type = navier_stokes_naca0012; }
     else if (test_string == "optimization_inverse_manufactured")        { test_type = optimization_inverse_manufactured; }
     else if (test_string == "dual_weighted_residual_mesh_adaptation")   { test_type = dual_weighted_residual_mesh_adaptation; }
     else if (test_string == "anisotropic_mesh_adaptation")              { test_type = anisotropic_mesh_adaptation; }
@@ -525,7 +533,7 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
     const std::string renumber_dofs_type_string = prm.get("renumber_dofs_type");
     if (renumber_dofs_type_string == "CuthillMckee") { renumber_dofs_type = RenumberDofsType::CuthillMckee; }
 
-    output_high_order_grid = prm.get_bool("output_high_order_grid");
+    matching_surface_jac_det_tolerance = prm.get_double("matching_surface_jac_det_tolerance");
 
     pcout << "Parsing linear solver subsection..." << std::endl;
     linear_solver_param.parse_parameters (prm);

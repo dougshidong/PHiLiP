@@ -52,6 +52,8 @@ protected:
     std::vector<bool> butcher_tableau_aii_is_zero;
 
     real w;
+
+    double epsilon[3];
 };
 
 } // ODE namespace

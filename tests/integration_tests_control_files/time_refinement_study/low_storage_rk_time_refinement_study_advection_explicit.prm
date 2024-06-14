@@ -13,7 +13,7 @@ set use_periodic_bc = true
 subsection ODE solver
   set ode_solver_type = low_storage_runge_kutta
   set output_solution_every_dt_time_intervals = 0.1
-  set initial_time_step = 5E-3
+  set initial_time_step = 1.0E-3
   # set runge_kutta_method = low_storage_runge_kutta_solver
 end
 
@@ -25,7 +25,7 @@ end
 
 
 subsection time_refinement_study
-  set number_of_times_to_solve = 5
+  set number_of_times_to_solve = 1
   set refinement_ratio = 0.8
 end
 

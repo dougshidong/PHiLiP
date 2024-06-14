@@ -11,7 +11,10 @@ LowStorageRungeKuttaODESolver<dim,real,n_rk_stages, MeshType>::LowStorageRungeKu
         , butcher_tableau(rk_tableau_input)
         , relaxation_runge_kutta(RRK_object_input)
         , solver(dg_input)
-{}
+{       epsilon[0] = 1.0;
+        epsilon[1] = 1.0;
+        epsilon[2] = 1.0;
+}
 
 template <int dim, typename real, int n_rk_stages, typename MeshType>
 void LowStorageRungeKuttaODESolver<dim,real,n_rk_stages,MeshType>::step_in_time (real dt, const bool pseudotime)
@@ -44,8 +47,8 @@ void LowStorageRungeKuttaODESolver<dim,real,n_rk_stages,MeshType>::step_in_time 
     //int q_hat = 3;
     //int k = q_hat +1;
     double sum_delta = 0;
-    double atol = 0.001;
-    double rtol = 0.001;
+    double atol = 0.01;
+    double rtol = 0.01;
     double error = 0.0;
     w = 0.0;
     //double atol = 0.001;
@@ -110,7 +113,7 @@ void LowStorageRungeKuttaODESolver<dim,real,n_rk_stages,MeshType>::step_in_time 
     this->current_time += dt;
     this->pcout << " Time is: " << this->current_time <<std::endl;
     // this->pcout << "w" << w;
-    //this->pcout << "dt" << dt;
+    this->pcout << "dt" << dt;
 
 }
 template <int dim, typename real, int n_rk_stages, typename MeshType> 
@@ -121,7 +124,6 @@ double LowStorageRungeKuttaODESolver<dim,real,n_rk_stages,MeshType>::err_time_st
     int k = q_hat +1;
    // double error = 0.0;
     //double w = 0.0;
-    double epsilon[3] = {1, 1, 1};
     double beta_controller[3] = {0.70, -0.40, 0};
 
     // error based step size 
@@ -129,10 +131,11 @@ double LowStorageRungeKuttaODESolver<dim,real,n_rk_stages,MeshType>::err_time_st
 
     epsilon[2] = epsilon[1];
     epsilon[1] = epsilon[0];
-    epsilon[0] = 1 / w;
+    epsilon[0] = 1.0 / w;
     //this->pcout << "dt" << dt;
     //this->pcout << "epsilon" << epsilon[0];
-    dt = pow(epsilon[0], beta_controller[0]/k) * pow(epsilon[1], beta_controller[1]/k) * pow(epsilon[2], beta_controller[2]/k) * dt;
+    dt = pow(epsilon[0], 1.0 * beta_controller[0]/k) * pow(epsilon[1], 1.0 * beta_controller[1]/k) * pow(epsilon[2], 1.0 * beta_controller[2]/k) * dt;
+    this->pcout << std::endl;
     this->pcout << "dt" << dt;
     return dt;
 }

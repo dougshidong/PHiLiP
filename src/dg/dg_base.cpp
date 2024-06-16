@@ -976,10 +976,15 @@ void DGBase<dim,real,MeshType>::assemble_volume_codi_taped_derivatives_ad(
         local_solution, 
         local_metric_int,
         local_dual,
+        soln_dofs_indices,
+        metric_dofs_indices,
+        poly_degree,
+        grid_degree,
         fe_values_collection_volume,
         fe_values_collection_volume_lagrange,
         fe_soln,
-        rhs, dual_dot_residual);
+        rhs, 
+        dual_dot_residual);
     
     if (compute_dRdW || compute_dRdX) {
         for (unsigned int itest=0; itest<n_soln_dofs; ++itest) {

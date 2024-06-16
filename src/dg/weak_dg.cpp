@@ -3921,6 +3921,10 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_volume_term_and_build_operators_
     const std::vector<adtype> &soln_coeffs,
     const std::vector<adtype> &metric_coeffs,
     const std::vector<real> &local_dual,
+    const std::vector<dealii::types::global_dof_index>  &soln_dofs_indices,
+    const std::vector<dealii::types::global_dof_index>  &metric_dofs_indices,
+    const unsigned int  poly_degree,
+    const unsigned int  grid_degree,
     const Physics::PhysicsBase<dim, nstate, adtype> &physics,
     dealii::hp::FEValues<dim,dim>  &fe_values_collection_volume,
     dealii::hp::FEValues<dim,dim>  &fe_values_collection_volume_lagrange,
@@ -3938,6 +3942,12 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_volume_term_and_build_operators_
 
     const dealii::FEValues<dim,dim> &fe_values_vol = fe_values_collection_volume.get_present_fe_values();
     const dealii::FEValues<dim,dim> &fe_values_lagrange = fe_values_collection_volume_lagrange.get_present_fe_values();
+    
+    const dealii::FESystem<dim> &fe_metric = this->high_order_grid->fe_system;
+    const unsigned int n_metric_dofs = fe_metric.dofs_per_cell;
+    const unsigned int n_soln_dofs = fe_soln.dofs_per_cell;
+    
+    dealii::Vector<real> local_rhs_dummy (n_soln_dofs); 
     //Note the explicit is called first to set the max_dt_cell to a non-zero value.
     assemble_volume_term_explicit (
         cell,
@@ -3946,16 +3956,11 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_volume_term_and_build_operators_
         soln_dofs_indices,
         metric_dofs_indices,
         poly_degree, grid_degree,
-        local_rhs_cell,
+        local_rhs_dummy,
         fe_values_lagrange);
-    //set current rhs to zero since the explicit call was just to set the max_dt_cell.
-    local_rhs_cell*=0.0;
 
     const dealii::Quadrature<dim> &quadrature = this->volume_quadrature_collection[i_quad];
     
-    const dealii::FESystem<dim> &fe_metric = this->high_order_grid->fe_system;
-    const unsigned int n_metric_dofs = fe_metric.dofs_per_cell;
-    const unsigned int n_soln_dofs = fe_soln.dofs_per_cell;
 
     AssertDimension (n_soln_dofs, soln_dof_indices.size());
 

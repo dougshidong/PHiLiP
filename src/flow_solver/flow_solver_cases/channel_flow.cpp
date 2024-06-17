@@ -152,6 +152,10 @@ std::vector<double> ChannelFlow<dim,nstate>::get_mesh_step_size_y_direction() co
         step_size_y_direction = get_mesh_step_size_y_direction_HOPW();
     } else if(turbulent_channel_mesh_stretching_function_type == turbulent_channel_mesh_stretching_function_enum::carton_de_wiart_et_al){
         step_size_y_direction = get_mesh_step_size_y_direction_carton_de_wiart_et_al();
+    } else if(turbulent_channel_mesh_stretching_function_type == turbulent_channel_mesh_stretching_function_enum::uniform){
+        // for wall model use uniform grid
+        const double uniform_spacing_y = this->domain_length_y/double(this->number_of_cells_y_direction);
+        step_size_y_direction.fill(uniform_spacing_y);
     } else {
         this->pcout << "ERROR: Invalid turbulent_channel_mesh_stretching_function_type. Aborting..." << std::endl;
         std::abort();
@@ -268,9 +272,7 @@ std::shared_ptr<Triangulation> ChannelFlow<dim,nstate>::generate_grid() const
     const double uniform_spacing_x = domain_length_x/double(number_of_cells_x_direction);
     const double uniform_spacing_z = domain_length_z/double(number_of_cells_z_direction);
     // - get stretched spacing for y-direction to capture boundary layer
-    // std::vector<double> step_size_y_direction = get_mesh_step_size_y_direction();
-    // for wall model use uniform grid
-    const double uniform_spacing_y = domain_length_y/double(number_of_cells_y_direction);
+    std::vector<double> step_size_y_direction = get_mesh_step_size_y_direction();
 
     std::vector<std::vector<double> > step_sizes(dim);
     // x-direction
@@ -279,8 +281,7 @@ std::shared_ptr<Triangulation> ChannelFlow<dim,nstate>::generate_grid() const
     }
     // y-direction
     for (int j=0; j<number_of_cells_y_direction; j++) {
-        // step_sizes[1].push_back(step_size_y_direction[j]);
-        step_sizes[1].push_back(uniform_spacing_y);
+        step_sizes[1].push_back(step_size_y_direction[j]);
     }
     // z-direction
     for (int k=0; k<number_of_cells_z_direction; k++) {

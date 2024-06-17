@@ -233,11 +233,13 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
                               dealii::Patterns::Selection(
                               " gullbrand | "
                               " carton_de_wiart_et_al | "
+                              " uniform | "
                               " hopw "),
                               "The type of mesh stretching function for channel flow case. "
                               "Choices are "
                               " <gullbrand | "
                               " carton_de_wiart_et_al | "
+                              " uniform | "
                               " hopw>.");
             prm.declare_entry("xvelocity_initial_condition_type", "laminar",
                               dealii::Patterns::Selection(
@@ -422,6 +424,7 @@ void FlowSolverParam::parse_parameters(dealii::ParameterHandler &prm)
             if      (turbulent_channel_mesh_stretching_function_type_string == "gullbrand")             {turbulent_channel_mesh_stretching_function_type = gullbrand;}
             else if (turbulent_channel_mesh_stretching_function_type_string == "hopw")                  {turbulent_channel_mesh_stretching_function_type = hopw;}
             else if (turbulent_channel_mesh_stretching_function_type_string == "carton_de_wiart_et_al") {turbulent_channel_mesh_stretching_function_type = carton_de_wiart_et_al;}
+            else if (turbulent_channel_mesh_stretching_function_type_string == "uniform")               {turbulent_channel_mesh_stretching_function_type = uniform;}
             const std::string xvelocity_initial_condition_type_string = prm.get("xvelocity_initial_condition_type");
             if      (xvelocity_initial_condition_type_string == "laminar")      {xvelocity_initial_condition_type = laminar;}
             else if (xvelocity_initial_condition_type_string == "turbulent")    {xvelocity_initial_condition_type = turbulent;}

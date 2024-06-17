@@ -13,7 +13,7 @@ LowStorageRungeKuttaODESolver<dim,real,n_rk_stages, MeshType>::LowStorageRungeKu
         , solver(dg_input)
 {       epsilon[0] = 1.0;
         epsilon[1] = 1.0;
-        epsilon[2] = 1.0;
+        epsilon[2] = 1.0; 
 }
 
 template <int dim, typename real, int n_rk_stages, typename MeshType>
@@ -46,11 +46,13 @@ void LowStorageRungeKuttaODESolver<dim,real,n_rk_stages,MeshType>::step_in_time 
     int m = 5;
     //int q_hat = 3;
     //int k = q_hat +1;
+    
     double sum_delta = 0;
-    double atol = 0.01;
-    double rtol = 0.01;
+    double atol = 0.1;
+    double rtol = 0.1;
     double error = 0.0;
     w = 0.0;
+    
     //double atol = 0.001;
     //double rtol = 0.001;
     //double epsilon[3] = {1, 1, 1};
@@ -85,7 +87,7 @@ void LowStorageRungeKuttaODESolver<dim,real,n_rk_stages,MeshType>::step_in_time 
 
     // error based step size 
     
-    /*
+    
     for (dealii::LinearAlgebra::distributed::Vector<double>::size_type i = 0; i < s1.local_size(); ++i) {
         error = s1.local_element(i) - s2.local_element(i);
         w = w + pow(error / (atol + rtol * std::max(std::abs(s1.local_element(i)), std::abs(s2.local_element(i)))), 2);
@@ -94,7 +96,7 @@ void LowStorageRungeKuttaODESolver<dim,real,n_rk_stages,MeshType>::step_in_time 
     epsilon[2] = epsilon[1];
     epsilon[1] = epsilon[0];
     epsilon[0] = 1 / w;
-    */
+    
 
    for (dealii::LinearAlgebra::distributed::Vector<double>::size_type i = 0; i < s1.local_size(); ++i) {
         error = s1.local_element(i) - s2.local_element(i);
@@ -109,6 +111,7 @@ void LowStorageRungeKuttaODESolver<dim,real,n_rk_stages,MeshType>::step_in_time 
     //this->pcout << " math " << w/s1.local_size();
     //this->pcout << "w " << pow(w / s1.local_size(), 1/2);
     //this->pcout << "w " << w;
+
     ++(this->current_iteration);
     this->current_time += dt;
     this->pcout << " Time is: " << this->current_time <<std::endl;
@@ -116,6 +119,8 @@ void LowStorageRungeKuttaODESolver<dim,real,n_rk_stages,MeshType>::step_in_time 
     this->pcout << "dt" << dt;
 
 }
+
+
 template <int dim, typename real, int n_rk_stages, typename MeshType> 
 double LowStorageRungeKuttaODESolver<dim,real,n_rk_stages,MeshType>::err_time_step (real dt, const bool pseudotime)
 {
@@ -139,6 +144,7 @@ double LowStorageRungeKuttaODESolver<dim,real,n_rk_stages,MeshType>::err_time_st
     this->pcout << "dt" << dt;
     return dt;
 }
+
 
 template <int dim, typename real, int n_rk_stages, typename MeshType> 
 void LowStorageRungeKuttaODESolver<dim,real,n_rk_stages,MeshType>::allocate_ode_system ()

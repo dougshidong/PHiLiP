@@ -4012,7 +4012,7 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_boundary_term_and_build_operator
     const int i_quad = i_fele;
     const int i_mapp = 0;
 
-    fe_values_collection_face_int.reinit (cell, iface, i_quad, i_mapp, i_fele);
+    fe_values_collection_face_int.reinit (cell, face_number, i_quad, i_mapp, i_fele);
     const dealii::FEFaceValues<dim,dim> &fe_values_boundary = fe_values_collection_face_int.get_present_fe_values();
     const dealii::Quadrature<dim-1> quadrature = this->face_quadrature_collection[i_quad];
     
@@ -4055,31 +4055,32 @@ template <int dim, int nstate, typename real, typename MeshType>
 template <typename adtype>
 void DGWeak<dim,nstate,real,MeshType>::assemble_face_term_and_build_operators_ad(
     typename dealii::DoFHandler<dim>::active_cell_iterator cell,
+    typename dealii::DoFHandler<dim>::active_cell_iterator neighbor_cell,
     const dealii::types::global_dof_index current_cell_index,
     const dealii::types::global_dof_index neighbor_cell_index,
+    const unsigned int iface,
+    const unsigned int neighbor_iface,
     const std::vector<adtype> &soln_int,
     const std::vector<adtype> &soln_ext,
     const std::vector<adtype> &metric_int,
     const std::vector<adtype> &metric_ext,
     const std::vector< double > &dual_int,
     const std::vector< double > &dual_ext,
-    const std::pair<unsigned int, int> face_subface_int,
-    const std::pair<unsigned int, int> face_subface_ext,
-    const typename dealii::QProjector<dim>::DataSetDescriptor face_data_set_int,
-    const typename dealii::QProjector<dim>::DataSetDescriptor face_data_set_ext,
     const Physics::PhysicsBase<dim, nstate, adtype> &physics,
     const NumericalFlux::NumericalFluxConvective<dim, nstate, adtype> &conv_num_flux,
     const NumericalFlux::NumericalFluxDissipative<dim, nstate, adtype> &diss_num_flux,
-    const dealii::FEFaceValuesBase<dim,dim>     &fe_values_int,
-    const dealii::FEFaceValuesBase<dim,dim>     &fe_values_ext,
+    dealii::hp::FEFaceValues<dim,dim>  &fe_values_collection_face_int,
+    dealii::hp::FEFaceValues<dim,dim>  &fe_values_collection_face_ext,
+    dealii::hp::FESubfaceValues<dim,dim>  &fe_values_collection_subface,
     const dealii::FESystem<dim,dim> &fe_int,
     const dealii::FESystem<dim,dim> &fe_ext,
     const real penalty,
-    const dealii::Quadrature<dim-1> &face_quadrature,
     std::vector<adtype> &rhs_int,
     std::vector<adtype> &rhs_ext,
     adtype &dual_dot_residual,
-    const bool compute_dRdW, const bool compute_dRdX, const bool compute_d2R)
+    const bool compute_dRdW, const bool compute_dRdX, const bool compute_d2R,
+    const bool is_a_subface,
+    const unsigned int neighbor_i_subface)
 {
     const dealii::FESystem<dim> &fe_metric = this->high_order_grid->fe_system;
     const unsigned int n_metric_dofs = fe_metric.dofs_per_cell;
@@ -4088,6 +4089,17 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_face_term_and_build_operators_ad
 
     AssertDimension (n_soln_dofs_int, soln_dof_indices_int.size());
     AssertDimension (n_soln_dofs_ext, soln_dof_indices_ext.size());
+    
+    const int i_fele = cell->active_fe_index();
+    const int i_quad = i_fele;
+    const int i_mapp = 0;
+    const int i_fele_n = neighbor_cell->active_fe_index();
+    const int i_quad_n = i_fele_n;
+    const int i_mapp_n = 0;
+
+    fe_values_collection_face_int.reinit (cell, iface, i_quad, i_mapp, i_fele);
+    const dealii::FEFaceValues<dim,dim> &fe_values_face_int = fe_values_collection_face_int.get_present_fe_values();
+    const dealii::Quadrature<dim-1> &face_quadrature = this->face_quadrature_collection[(i_quad_n > i_quad) ? i_quad_n : i_quad]; // Use larger quadrature order on the face
 
     LocalSolution<adtype, dim, nstate> local_soln_int(fe_int);
     LocalSolution<adtype, dim, nstate> local_soln_ext(fe_ext);
@@ -4105,28 +4117,89 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_face_term_and_build_operators_ad
         local_metric_ext.coefficients[idof] = metric_ext[idof];
     }
     
-    assemble_face_term<adtype>(
-        cell,
-        current_cell_index,
-        neighbor_cell_index,
-        local_soln_int, local_soln_ext, local_metric_int, local_metric_ext,
-        dual_int,
-        dual_ext,
-        face_subface_int,
-        face_subface_ext,
-        face_data_set_int,
-        face_data_set_ext,
-        physics,
-        conv_num_flux,
-        diss_num_flux,
-        fe_values_int,
-        fe_values_ext,
-        penalty,
-        face_quadrature,
-        rhs_int,
-        rhs_ext,
-        dual_dot_residual,
-        compute_dRdW, compute_dRdX, compute_d2R);
+    std::pair<unsigned int, int> face_subface_int = std::make_pair(iface, -1);
+
+    const auto face_data_set_int = dealii::QProjector<dim>::DataSetDescriptor::face(
+                                                                                     dealii::ReferenceCell::get_hypercube(dim),
+                                                                                     iface,
+                                                                                     cell->face_orientation(iface),
+                                                                                     cell->face_flip(iface),
+                                                                                     cell->face_rotation(iface),
+                                                                                     face_quadrature.size());
+                                                                                    
+    if(is_a_subface)
+    {
+        fe_values_collection_subface.reinit (neighbor_cell, neighbor_iface, neighbor_i_subface, i_quad_n, i_mapp_n, i_fele_n);
+        const dealii::FESubfaceValues<dim,dim> &fe_values_face_ext = fe_values_collection_subface.get_present_fe_values();
+        std::pair<unsigned int, int> face_subface_ext = std::make_pair(neighbor_iface, (int)neighbor_i_subface);
+        const auto face_data_set_ext = dealii::QProjector<dim>::DataSetDescriptor::subface (
+                                                                                            dealii::ReferenceCell::get_hypercube(dim),
+                                                                                            neighbor_iface,
+                                                                                            neighbor_i_subface,
+                                                                                            neighbor_cell->face_orientation(neighbor_iface),
+                                                                                            neighbor_cell->face_flip(neighbor_iface),
+                                                                                            neighbor_cell->face_rotation(neighbor_iface),
+                                                                                            face_quadrature.size(),
+                                                                                            neighbor_cell->subface_case(neighbor_iface));
+        assemble_face_term<adtype>(
+            cell,
+            current_cell_index,
+            neighbor_cell_index,
+            local_soln_int, local_soln_ext, local_metric_int, local_metric_ext,
+            dual_int,
+            dual_ext,
+            face_subface_int,
+            face_subface_ext,
+            face_data_set_int,
+            face_data_set_ext,
+            physics,
+            conv_num_flux,
+            diss_num_flux,
+            fe_values_face_int,
+            fe_values_face_ext,
+            penalty,
+            face_quadrature,
+            rhs_int,
+            rhs_ext,
+            dual_dot_residual,
+            compute_dRdW, compute_dRdX, compute_d2R);
+    }
+    else
+    {
+        fe_values_collection_face_ext.reinit (neighbor_cell, neighbor_iface, i_quad_n, i_mapp_n, i_fele_n);
+        const dealii::FEFaceValues<dim,dim> &fe_values_face_ext = fe_values_collection_face_ext.get_present_fe_values();
+        std::pair<unsigned int, int> face_subface_ext = std::make_pair(neighbor_iface, -1);
+        const auto face_data_set_ext = dealii::QProjector<dim>::DataSetDescriptor::face (
+                                                                                      dealii::ReferenceCell::get_hypercube(dim),
+                                                                                      neighbor_iface,
+                                                                                      neighbor_cell->face_orientation(neighbor_iface),
+                                                                                      neighbor_cell->face_flip(neighbor_iface),
+                                                                                      neighbor_cell->face_rotation(neighbor_iface),
+                                                                                      face_quadrature.size());
+        assemble_face_term<adtype>(
+            cell,
+            current_cell_index,
+            neighbor_cell_index,
+            local_soln_int, local_soln_ext, local_metric_int, local_metric_ext,
+            dual_int,
+            dual_ext,
+            face_subface_int,
+            face_subface_ext,
+            face_data_set_int,
+            face_data_set_ext,
+            physics,
+            conv_num_flux,
+            diss_num_flux,
+            fe_values_face_int,
+            fe_values_face_ext,
+            penalty,
+            face_quadrature,
+            rhs_int,
+            rhs_ext,
+            dual_dot_residual,
+            compute_dRdW, compute_dRdX, compute_d2R);
+    }
+    
 }
 
 template <int dim, int nstate, typename real, typename MeshType>

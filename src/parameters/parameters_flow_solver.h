@@ -127,6 +127,9 @@ public:
 
     /// For dipole wall collision, flag to use stretched mesh
     bool do_use_stretched_mesh;
+
+    /// For dipole wall collision, flag to compute angular momentum
+    bool do_compute_angular_momentum;
     
     /// For KHI, the atwood number
     double atwood_number;

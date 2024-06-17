@@ -1108,16 +1108,14 @@ std::array<real,nstate> NavierStokes<dim,nstate,real>
 ::dissipative_flux_dot_normal (
         const std::array<real,nstate> &solution,
         const std::array<dealii::Tensor<1,dim,real>,nstate> &solution_gradient,
-        const std::array<real,nstate> &/*filtered_solution*/,
-        const std::array<dealii::Tensor<1,dim,real>,nstate> &/*filtered_solution_gradient*/,
+        const std::array<real,nstate> &filtered_solution,
+        const std::array<dealii::Tensor<1,dim,real>,nstate> &filtered_solution_gradient,
         const bool on_boundary,
-        const dealii::types::global_dof_index /*cell_index*/,
+        const dealii::types::global_dof_index cell_index,
         const dealii::Tensor<1,dim,real> &normal,
         const int boundary_type)
 {
-    std::array<dealii::Tensor<1,dim,real>,nstate> dissipative_flux;
     std::array<real,nstate> dissipative_flux_dot_normal;
-    dissipative_flux_dot_normal.fill(0.0); // initialize
     // Associated thermal boundary condition
     if((on_boundary && (thermal_boundary_condition_type == thermal_boundary_condition_enum::adiabatic))
         && ((boundary_type == 1001) || (boundary_type == 1006))) { 
@@ -1125,38 +1123,74 @@ std::array<real,nstate> NavierStokes<dim,nstate,real>
         /** If adiabatic on either slip (1001) or no-slip (1006) wall BCs */
         // adiabatic boundary
         // --> Modify viscous flux such that normal_vector dot gradient of temperature must be zero
-
-        // REFERENCES:
-        /* (1) Masatsuka 2018 "I do like CFD", p.148, eq.(4.12.1-4.12.4)
-         * (2) For the boundary condition case, refer to the equation above equation 458 of the following paper:
-         *  Hartmann, Ralf. "Numerical analysis of higher order discontinuous Galerkin finite element methods." (2008): 1-107.
-         */
-
-        // Step 1: Primitive solution
-        const std::array<real,nstate> primitive_soln = this->template convert_conservative_to_primitive_templated<real>(solution); // from Euler
-        
-        // Step 2: Gradient of primitive solution
-        const std::array<dealii::Tensor<1,dim,real>,nstate> primitive_soln_gradient = this->template convert_conservative_gradient_to_primitive_gradient_templated<real>(solution, solution_gradient);
-        
-        // Step 3: Viscous stress tensor, Velocities, Heat flux
-        const dealii::Tensor<2,dim,real> viscous_stress_tensor = compute_viscous_stress_tensor<real>(primitive_soln, primitive_soln_gradient);
-        const dealii::Tensor<1,dim,real> vel = this->template extract_velocities_from_primitive<real>(primitive_soln); // from Euler
-        /* ---> Impose adiabatic boundary condition by modifying the heat flux. */
-        dealii::Tensor<1,dim,real> heat_flux;
-        for (int flux_dim=0; flux_dim<dim; ++flux_dim) {
-            // set the heat flux to zero since we want the normal dot gradient of temperature to be zero for an adiabatic boundary
-            heat_flux[flux_dim] = 0.0;
-        }
-
-        // Step 4: Construct viscous flux; Note: sign corresponds to LHS
-        dissipative_flux = dissipative_flux_given_velocities_viscous_stress_tensor_and_heat_flux<real>(vel,viscous_stress_tensor,heat_flux);
+        dissipative_flux_dot_normal = this->dissipative_flux_dot_normal_on_adiabatic_boundary (
+                                                           solution,
+                                                           solution_gradient,
+                                                           filtered_solution,
+                                                           filtered_solution_gradient,
+                                                           cell_index,
+                                                           normal);
     } else {
         // if not on boundary and for all other types of boundary conditions (including isothermal) --> no change to dissipative flux
         // no change to dissipative flux for BCs that do not impose a condition on the gradient at the boundary
+        std::array<dealii::Tensor<1,dim,real>,nstate> dissipative_flux;
         dissipative_flux = dissipative_flux_templated<real>(solution,solution_gradient);
+        // compute the dot product with the normal vector
+        dissipative_flux_dot_normal.fill(0.0); // initialize
+        for (int s=0; s<nstate; s++) {
+            for (int d=0; d<dim; ++d) {
+                dissipative_flux_dot_normal[s] += dissipative_flux[s][d] * normal[d];//compute dot product
+            }
+        }
     }
 
+    return dissipative_flux_dot_normal;
+}
+
+template <int dim, int nstate, typename real>
+std::array<real,nstate> NavierStokes<dim,nstate,real>
+::dissipative_flux_dot_normal_on_adiabatic_boundary (
+        const std::array<real,nstate> &solution,
+        const std::array<dealii::Tensor<1,dim,real>,nstate> &solution_gradient,
+        const std::array<real,nstate> &/*filtered_solution*/,
+        const std::array<dealii::Tensor<1,dim,real>,nstate> &/*filtered_solution_gradient*/,
+        const dealii::types::global_dof_index /*cell_index*/,
+        const dealii::Tensor<1,dim,real> &normal)
+{
+    std::array<real,nstate> dissipative_flux_dot_normal;
+    
+    /** If adiabatic on either slip (1001) or no-slip (1006) wall BCs */
+    // adiabatic boundary
+    // --> Modify viscous flux such that normal_vector dot gradient of temperature must be zero
+
+    // REFERENCES:
+    /* (1) Masatsuka 2018 "I do like CFD", p.148, eq.(4.12.1-4.12.4)
+     * (2) For the boundary condition case, refer to the equation above equation 458 of the following paper:
+     *  Hartmann, Ralf. "Numerical analysis of higher order discontinuous Galerkin finite element methods." (2008): 1-107.
+     */
+
+    // Step 1: Primitive solution
+    const std::array<real,nstate> primitive_soln = this->template convert_conservative_to_primitive_templated<real>(solution); // from Euler
+    
+    // Step 2: Gradient of primitive solution
+    const std::array<dealii::Tensor<1,dim,real>,nstate> primitive_soln_gradient = this->template convert_conservative_gradient_to_primitive_gradient_templated<real>(solution, solution_gradient);
+    
+    // Step 3: Viscous stress tensor, Velocities, Heat flux
+    const dealii::Tensor<2,dim,real> viscous_stress_tensor = compute_viscous_stress_tensor<real>(primitive_soln, primitive_soln_gradient);
+    const dealii::Tensor<1,dim,real> vel = this->template extract_velocities_from_primitive<real>(primitive_soln); // from Euler
+    /* ---> Impose adiabatic boundary condition by modifying the heat flux. */
+    dealii::Tensor<1,dim,real> heat_flux;
+    for (int flux_dim=0; flux_dim<dim; ++flux_dim) {
+        // set the heat flux to zero since we want the normal dot gradient of temperature to be zero for an adiabatic boundary
+        heat_flux[flux_dim] = 0.0;
+    }
+
+    // Step 4: Construct viscous flux; Note: sign corresponds to LHS
+    std::array<dealii::Tensor<1,dim,real>,nstate> dissipative_flux;
+    dissipative_flux = dissipative_flux_given_velocities_viscous_stress_tensor_and_heat_flux<real>(vel,viscous_stress_tensor,heat_flux);
+
     // compute the dot product with the normal vector
+    dissipative_flux_dot_normal.fill(0.0); // initialize
     for (int s=0; s<nstate; s++) {
         for (int d=0; d<dim; ++d) {
             dissipative_flux_dot_normal[s] += dissipative_flux[s][d] * normal[d];//compute dot product
@@ -1216,7 +1250,7 @@ void NavierStokes<dim,nstate,real>
         // Manufactured solution boundary condition
         boundary_manufactured_solution (pos, normal_int, soln_int, soln_grad_int, soln_bc, soln_grad_bc);
     } 
-    else if (boundary_type == 1001) {
+    else if (boundary_type == 1001 || boundary_type == 1006) {
         // Wall boundary condition
         boundary_wall_viscous_flux (normal_int, soln_int, soln_grad_int, soln_bc, soln_grad_bc);
     }
@@ -1483,6 +1517,99 @@ std::array<real,nstate> NavierStokes_ChannelFlowConstantSourceTerm<dim,nstate,re
     return physical_source;
 }
 
+template <int dim, int nstate, typename real>
+NavierStokes_ChannelFlowConstantSourceTerm_WallModel<dim, nstate, real>::NavierStokes_ChannelFlowConstantSourceTerm_WallModel( 
+    const double                                              ref_length,
+    const double                                              gamma_gas,
+    const double                                              mach_inf,
+    const double                                              angle_of_attack,
+    const double                                              side_slip_angle,
+    const double                                              prandtl_number,
+    const double                                              reynolds_number_inf,
+    const bool                                                use_constant_viscosity,
+    const double                                              constant_viscosity,
+    const double                                              reynolds_number_based_on_friction_velocity,
+    const double                                              half_channel_height,
+    const double                                              temperature_inf,
+    const double                                              isothermal_wall_temperature,
+    const thermal_boundary_condition_enum                     thermal_boundary_condition_type,
+    std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function,
+    const two_point_num_flux_enum                             two_point_num_flux_type)
+    : NavierStokes_ChannelFlowConstantSourceTerm<dim,nstate,real>(
+                             ref_length, 
+                             gamma_gas, 
+                             mach_inf, 
+                             angle_of_attack, 
+                             side_slip_angle, 
+                             prandtl_number, 
+                             reynolds_number_inf, 
+                             use_constant_viscosity, 
+                             constant_viscosity,
+                             reynolds_number_based_on_friction_velocity,
+                             half_channel_height,
+                             temperature_inf, 
+                             isothermal_wall_temperature, 
+                             thermal_boundary_condition_type, 
+                             manufactured_solution_function,
+                             two_point_num_flux_type)
+{
+    static_assert(nstate==dim+2, "Physics::NavierStokes_ChannelFlowConstantSourceTerm_WallModel() should be created with nstate=dim+2");
+    // Nothing to do here so far
+}
+
+template <int dim, int nstate, typename real>
+std::array<real,nstate> NavierStokes_ChannelFlowConstantSourceTerm_WallModel<dim,nstate,real>
+::dissipative_flux_dot_normal_on_adiabatic_boundary (
+        const std::array<real,nstate> &solution,
+        const std::array<dealii::Tensor<1,dim,real>,nstate> &solution_gradient,
+        const std::array<real,nstate> &/*filtered_solution*/,
+        const std::array<dealii::Tensor<1,dim,real>,nstate> &/*filtered_solution_gradient*/,
+        const dealii::types::global_dof_index /*cell_index*/,
+        const dealii::Tensor<1,dim,real> &normal)
+{
+    std::array<real,nstate> dissipative_flux_dot_normal;
+    
+    /** If adiabatic on either slip (1001) or no-slip (1006) wall BCs */
+    // adiabatic boundary
+    // --> Modify viscous flux such that normal_vector dot gradient of temperature must be zero
+
+    // REFERENCES:
+    /* (1) Masatsuka 2018 "I do like CFD", p.148, eq.(4.12.1-4.12.4)
+     * (2) For the boundary condition case, refer to the equation above equation 458 of the following paper:
+     *  Hartmann, Ralf. "Numerical analysis of higher order discontinuous Galerkin finite element methods." (2008): 1-107.
+     */
+
+    // Step 1: Primitive solution
+    const std::array<real,nstate> primitive_soln = this->template convert_conservative_to_primitive_templated<real>(solution); // from Euler
+    
+    // Step 2: Gradient of primitive solution
+    const std::array<dealii::Tensor<1,dim,real>,nstate> primitive_soln_gradient = this->template convert_conservative_gradient_to_primitive_gradient_templated<real>(solution, solution_gradient);
+    
+    // Step 3: Viscous stress tensor, Velocities, Heat flux
+    const dealii::Tensor<2,dim,real> viscous_stress_tensor = compute_viscous_stress_tensor<real>(primitive_soln, primitive_soln_gradient);
+    const dealii::Tensor<1,dim,real> vel = this->template extract_velocities_from_primitive<real>(primitive_soln); // from Euler
+    /* ---> Impose adiabatic boundary condition by modifying the heat flux. */
+    dealii::Tensor<1,dim,real> heat_flux;
+    for (int flux_dim=0; flux_dim<dim; ++flux_dim) {
+        // set the heat flux to zero since we want the normal dot gradient of temperature to be zero for an adiabatic boundary
+        heat_flux[flux_dim] = 0.0;
+    }
+
+    // Step 4: Construct viscous flux; Note: sign corresponds to LHS
+    std::array<dealii::Tensor<1,dim,real>,nstate> dissipative_flux;
+    dissipative_flux = dissipative_flux_given_velocities_viscous_stress_tensor_and_heat_flux<real>(vel,viscous_stress_tensor,heat_flux);
+
+    // compute the dot product with the normal vector
+    dissipative_flux_dot_normal.fill(0.0); // initialize
+    for (int s=0; s<nstate; s++) {
+        for (int d=0; d<dim; ++d) {
+            dissipative_flux_dot_normal[s] += dissipative_flux[s][d] * normal[d];//compute dot product
+        }
+    }
+
+    return dissipative_flux_dot_normal;
+}
+
 // Instantiate explicitly
 template class NavierStokes < PHILIP_DIM, PHILIP_DIM+2, double >;
 template class NavierStokes < PHILIP_DIM, PHILIP_DIM+2, FadType  >;
@@ -1494,6 +1621,11 @@ template class NavierStokes_ChannelFlowConstantSourceTerm < PHILIP_DIM, PHILIP_D
 template class NavierStokes_ChannelFlowConstantSourceTerm < PHILIP_DIM, PHILIP_DIM+2, RadType  >;
 template class NavierStokes_ChannelFlowConstantSourceTerm < PHILIP_DIM, PHILIP_DIM+2, FadFadType >;
 template class NavierStokes_ChannelFlowConstantSourceTerm < PHILIP_DIM, PHILIP_DIM+2, RadFadType >;
+template class NavierStokes_ChannelFlowConstantSourceTerm_WallModel < PHILIP_DIM, PHILIP_DIM+2, double >;
+template class NavierStokes_ChannelFlowConstantSourceTerm_WallModel < PHILIP_DIM, PHILIP_DIM+2, FadType  >;
+template class NavierStokes_ChannelFlowConstantSourceTerm_WallModel < PHILIP_DIM, PHILIP_DIM+2, RadType  >;
+template class NavierStokes_ChannelFlowConstantSourceTerm_WallModel < PHILIP_DIM, PHILIP_DIM+2, FadFadType >;
+template class NavierStokes_ChannelFlowConstantSourceTerm_WallModel < PHILIP_DIM, PHILIP_DIM+2, RadFadType >;
 //==============================================================================
 // -> Templated member functions:
 //------------------------------------------------------------------------------

@@ -343,6 +343,21 @@ public:
         const dealii::Tensor<1,dim,real> &normal,
         const int boundary_type) override;
 
+    /** Nondimensionalized viscous flux (i.e. dissipative flux) dot normal vector that accounts for gradient boundary conditions
+     *  when the on boundary flag is true
+     *  References: 
+     *  (1) Masatsuka 2018 "I do like CFD", p.142, eq.(4.12.1-4.12.4),
+     *  (2) For the boundary condition case, refer to the equation above equation 458 of the following paper:
+     *      Hartmann, Ralf. "Numerical analysis of higher order discontinuous Galerkin finite element methods." (2008): 1-107.
+     */
+    virtual std::array<real,nstate> dissipative_flux_dot_normal_on_adiabatic_boundary (
+        const std::array<real,nstate> &solution,
+        const std::array<dealii::Tensor<1,dim,real>,nstate> &solution_gradient,
+        const std::array<real,nstate> &filtered_solution,
+        const std::array<dealii::Tensor<1,dim,real>,nstate> &filtered_solution_gradient,
+        const dealii::types::global_dof_index cell_index,
+        const dealii::Tensor<1,dim,real> &normal);
+
     /** Nondimensionalized viscous flux (i.e. dissipative flux)
      *  Reference: Masatsuka 2018 "I do like CFD", p.142, eq.(4.12.1-4.12.4)
      */
@@ -421,7 +436,7 @@ protected:
         const std::array<dealii::Tensor<1,dim,real2>,nstate> &solution_gradient) const;
 
     /// Boundary face values for viscous fluxes
-    void boundary_face_values_viscous_flux (
+    virtual void boundary_face_values_viscous_flux (
         const int boundary_type,
         const dealii::Point<dim, real> &pos,
         const dealii::Tensor<1,dim,real> &normal,
@@ -517,6 +532,51 @@ public:
         const std::array<real,nstate> &solution,
         const std::array<dealii::Tensor<1,dim,real>,nstate> &solution_gradient,
         const dealii::types::global_dof_index cell_index) const override;
+};
+
+/// Navier-Stokes equations with constant physical source term for the turbulent channel flow case and wall model. Derived from NavierStokes_ChannelFlowConstantSourceTerm. 
+template <int dim, int nstate, typename real>
+class NavierStokes_ChannelFlowConstantSourceTerm_WallModel : public NavierStokes_ChannelFlowConstantSourceTerm <dim, nstate, real>
+{
+public:
+    using thermal_boundary_condition_enum = Parameters::NavierStokesParam::ThermalBoundaryCondition;
+    using two_point_num_flux_enum = Parameters::AllParameters::TwoPointNumericalFlux;
+    /// Constructor
+    NavierStokes_ChannelFlowConstantSourceTerm_WallModel( 
+        const double                                              ref_length,
+        const double                                              gamma_gas,
+        const double                                              mach_inf,
+        const double                                              angle_of_attack,
+        const double                                              side_slip_angle,
+        const double                                              prandtl_number,
+        const double                                              reynolds_number_inf,
+        const bool                                                use_constant_viscosity,
+        const double                                              constant_viscosity,
+        const double                                              reynolds_number_based_on_friction_velocity,
+        const double                                              half_channel_height,
+        const double                                              temperature_inf = 273.15,
+        const double                                              isothermal_wall_temperature = 1.0,
+        const thermal_boundary_condition_enum                     thermal_boundary_condition_type = thermal_boundary_condition_enum::adiabatic,
+        std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function = nullptr,
+        const two_point_num_flux_enum                             two_point_num_flux_type = two_point_num_flux_enum::KG);
+
+    /// Destructor
+    ~NavierStokes_ChannelFlowConstantSourceTerm_WallModel() {};
+
+    /** Nondimensionalized viscous flux (i.e. dissipative flux) dot normal vector that accounts for gradient boundary conditions
+     *  when the on boundary flag is true -- contains the wall model
+     *  References: 
+     *  (1) Masatsuka 2018 "I do like CFD", p.142, eq.(4.12.1-4.12.4),
+     *  (2) For the boundary condition case, refer to the equation above equation 458 of the following paper:
+     *      Hartmann, Ralf. "Numerical analysis of higher order discontinuous Galerkin finite element methods." (2008): 1-107.
+     */
+    std::array<real,nstate> dissipative_flux_dot_normal_on_adiabatic_boundary (
+        const std::array<real,nstate> &solution,
+        const std::array<dealii::Tensor<1,dim,real>,nstate> &solution_gradient,
+        const std::array<real,nstate> &filtered_solution,
+        const std::array<dealii::Tensor<1,dim,real>,nstate> &filtered_solution_gradient,
+        const dealii::types::global_dof_index cell_index,
+        const dealii::Tensor<1,dim,real> &normal) override;
 };
 
 } // Physics namespace

@@ -268,7 +268,9 @@ std::shared_ptr<Triangulation> ChannelFlow<dim,nstate>::generate_grid() const
     const double uniform_spacing_x = domain_length_x/double(number_of_cells_x_direction);
     const double uniform_spacing_z = domain_length_z/double(number_of_cells_z_direction);
     // - get stretched spacing for y-direction to capture boundary layer
-    std::vector<double> step_size_y_direction = get_mesh_step_size_y_direction();
+    // std::vector<double> step_size_y_direction = get_mesh_step_size_y_direction();
+    // for wall model use uniform grid
+    const double uniform_spacing_y = domain_length_y/double(number_of_cells_y_direction);
 
     std::vector<std::vector<double> > step_sizes(dim);
     // x-direction
@@ -277,7 +279,8 @@ std::shared_ptr<Triangulation> ChannelFlow<dim,nstate>::generate_grid() const
     }
     // y-direction
     for (int j=0; j<number_of_cells_y_direction; j++) {
-        step_sizes[1].push_back(step_size_y_direction[j]);
+        // step_sizes[1].push_back(step_size_y_direction[j]);
+        step_sizes[1].push_back(uniform_spacing_y);
     }
     // z-direction
     for (int k=0; k<number_of_cells_z_direction; k++) {
@@ -304,6 +307,7 @@ std::shared_ptr<Triangulation> ChannelFlow<dim,nstate>::generate_grid() const
                 unsigned int current_id = cell->face(face)->boundary_id();
                 if (current_id == 2 || current_id == 3) cell->face(face)->set_boundary_id (1001); // Bottom and top wall
                 // could simply introduce different boundary id if using a wall model
+                // -- could be problematic since need same boundary ID for Euler boundary_face_values
             }
         }
     }

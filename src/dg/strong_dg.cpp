@@ -2120,7 +2120,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_boundary_term_strong(
         conv_num_flux_dot_n_at_q = this->conv_num_flux_double->evaluate_flux(soln_state, soln_boundary, unit_phys_normal_int);
         
         // Dissipative numerical flux
-        // pass opposite_soln_state instead of soln_state
+        // pass opposite_soln_state instead of soln_state -- nevermind
         this->pde_physics_double->boundary_face_values_viscous_flux (boundary_id, surf_flux_node, unit_phys_normal_int, soln_state, aux_soln_state, filtered_soln_state, filtered_aux_soln_state, soln_boundary, grad_soln_boundary);
         std::array<real,nstate> diss_auxi_num_flux_dot_n_at_q;
         diss_auxi_num_flux_dot_n_at_q = this->diss_num_flux_double->evaluate_auxiliary_flux(

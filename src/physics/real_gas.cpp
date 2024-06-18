@@ -834,7 +834,7 @@ std::vector<dealii::DataComponentInterpretation::DataComponentInterpretation> Re
          interpretation.push_back (DCI::component_is_scalar); // Mass fractions
     }
     for (unsigned int s=0; s<nstate-dim-1; ++s) {
-        interpretation.push_back (DCI::component_is_part_of_vector); // Species densities
+        interpretation.push_back (DCI::component_is_scalar); // Species densities
     }
 
     std::vector<std::string> names = post_get_names();
@@ -883,7 +883,9 @@ std::vector<std::string> RealGas<dim,nstate,real>
     }
     for (unsigned int s=0; s<nstate-dim-1; ++s) 
     {
-      names.push_back ("species_density");
+      std::string string_density = "species_density";
+      std::string string_species_density = string_density + "_" + real_gas_cap->Sp_name[s];
+      names.push_back (string_species_density);
     }
 
     return names;

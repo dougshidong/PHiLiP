@@ -548,7 +548,7 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual_and_ad_derivatives (
 
     // Compute metric Jacobians of current cell here.
 
-    Position tape_position_metric_jacobian = tape.getPosition();
+    Position tape_position_metric_jacobian_int = tape.getPosition();
     
     
     assemble_volume_codi_taped_derivatives_ad<adtype>(
@@ -589,7 +589,7 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual_and_ad_derivatives (
 
             const unsigned int boundary_id = current_face->boundary_id();
             
-            tape.reset(tape_position_metric_jacobian);
+            tape.reset(tape_position_metric_jacobian_int);
             tape.clearAdjoints();
             assemble_boundary_codi_taped_derivatives_ad<adtype>(
                 current_cell,
@@ -657,7 +657,7 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual_and_ad_derivatives (
                                                                            store_vol_flux_nodes,
                                                                            store_surf_flux_nodes);
 
-                tape.reset(tape_position_metric_jacobian);
+                tape.reset(tape_position_metric_jacobian_int);
                 tape.clearAdjoints();
                 const dealii::FESystem<dim,dim> &neighbor_fe_ref = fe_collection[i_fele_n];
                 assemble_face_codi_taped_derivatives_ad<adtype>(
@@ -755,7 +755,7 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual_and_ad_derivatives (
                                                                store_vol_flux_nodes,
                                                                store_surf_flux_nodes);
 
-            tape.reset(tape_position_metric_jacobian);
+            tape.reset(tape_position_metric_jacobian_int);
             tape.clearAdjoints();
             const dealii::FESystem<dim,dim> &neighbor_fe_ref = fe_collection[i_fele_n];
             assemble_face_codi_taped_derivatives_ad<adtype>(
@@ -842,7 +842,7 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual_and_ad_derivatives (
                                                                store_vol_flux_nodes,
                                                                store_surf_flux_nodes);
 
-            tape.reset(tape_position_metric_jacobian);
+            tape.reset(tape_position_metric_jacobian_int);
             tape.clearAdjoints();
             const dealii::FESystem<dim,dim> &neighbor_fe_ref = fe_collection[i_fele_n];
             assemble_face_codi_taped_derivatives_ad<adtype>(

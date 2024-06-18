@@ -123,12 +123,30 @@ void double_mach_reflection_grid(
     
     std::vector<unsigned int> n_subdivisions(2);
 
-    n_subdivisions[0] = n_subdivisions_x;//log2(128);
-    n_subdivisions[1] = n_subdivisions_y;//log2(64);
+    // n_subdivisions[0] = n_subdivisions_x;//log2(128);
+    // n_subdivisions[1] = n_subdivisions_y;//log2(64);
 
-    dealii::GridGenerator::subdivided_hyper_rectangle(grid, n_subdivisions, p1, p2, true);
+    const double uniform_spacing_x = (xmax-xmin)/n_subdivisions_x;
+    std::vector<std::vector<double> > step_sizes(dim);
+    // x-direction
+    for (unsigned int i=0; i<n_subdivisions_x; i++) {
+        step_sizes[0].push_back(uniform_spacing_x);
+    }
+    // y-direction
+    double y_spacing = uniform_spacing_x;
+    for (unsigned int j=0; j<n_subdivisions_y; j++) {
+        if(j < n_subdivisions_x/2.0)
+            step_sizes[1].push_back(uniform_spacing_x);
+        else{
+            y_spacing *= 2.0;
+            step_sizes[1].push_back(y_spacing);
+        }
+    }
+
+    dealii::GridGenerator::subdivided_hyper_rectangle(grid, step_sizes, p1, p2, true);
 
     double bottom_x = 0.0;
+    double right_y = 0.0;
 
     // Set boundary type and design type
     for (typename dealii::parallel::distributed::Triangulation<dim>::active_cell_iterator cell = grid.begin_active(); cell != grid.end(); ++cell) {
@@ -136,7 +154,13 @@ void double_mach_reflection_grid(
             if (cell->face(face)->at_boundary()) {
                 unsigned int current_id = cell->face(face)->boundary_id();
                 if (current_id == 0) {
-                    cell->face(face)->set_boundary_id(1007); // x_left, post-shock
+                    if(right_y<=2.0){
+                        right_y += cell->extent_in_direction(1);
+                        cell->face(face)->set_boundary_id(1007); // x_left, post-shock
+                    }
+                    else {
+                        cell->face(face)->set_boundary_id(1001);
+                    }
                 }
                 else if (current_id == 1) {
                     cell->face(face)->set_boundary_id(1004); // x_right, riemann
@@ -152,7 +176,7 @@ void double_mach_reflection_grid(
                     }
                 }
                 else if (current_id == 3) {
-                    cell->face(face)->set_boundary_id(1001);
+                    cell->face(face)->set_boundary_id(1004);
                 }
             }
         }
@@ -241,7 +265,7 @@ void mach_3_wind_tunnel_grid(
                         cell->face(face)->set_boundary_id(1001); // x_right, Symmetry/Wall 
                     }
                     else {
-                        cell->face(face)->set_boundary_id(1002); // x_right, Outflow
+                        cell->face(face)->set_boundary_id(1009); // x_right, Outflow
                     }
                 }
                 else if (face == 2 || face == 3) {

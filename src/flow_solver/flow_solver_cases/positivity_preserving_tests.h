@@ -34,8 +34,11 @@ class PositivityPreservingTests : public CubeFlow_UniformGrid<dim, nstate>
     /// Updates the maximum local wave speed
     using CubeFlow_UniformGrid<dim, nstate>::update_maximum_local_wave_speed;
 
-    /// Updates the maximum local wave speed
+    /// Check positivity of density and total energy + verify that density is not NaN
     void check_positivity_density(DGBase<dim, double>& dg);
+
+    /// Updates the maximum local wave speed
+    double compute_integrated_entropy(DGBase<dim, double>& dg) const;
 
     /// Filename (with extension) for the unsteady data table
     const std::string unsteady_data_table_filename_with_extension;
@@ -51,8 +54,14 @@ class PositivityPreservingTests : public CubeFlow_UniformGrid<dim, nstate>
     /// Maximum local wave speed (i.e. convective eigenvalue)
     double maximum_local_wave_speed;
 
-    /// Pointer to Physics object for computing things on the fly
-    std::shared_ptr< Physics::PhysicsBase<dim,nstate,double> > pde_physics;
+    /// Storing entropy at first step
+    double initial_entropy;
+
+    /// Store previous entropy
+    double previous_numerical_entropy;
+
+    // euler physics pointer for computing physical quantities.
+    std::shared_ptr < Physics::Euler<dim, nstate, double > > euler_physics;
 
 };
 

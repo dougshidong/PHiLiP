@@ -187,6 +187,13 @@ void PositivityPreservingLimiter<dim, nstate, real>::write_limited_solution(
                 std::cout << "Error: Density is a negative value - Aborting... " << std::endl << solution[current_dofs_indices[idof]] << std::endl << std::flush;
                 std::abort();
             }
+
+            // Verify that positivity of Total Energy is preserved after application of theta2 limiter
+            if (istate == (nstate - 1) && solution[current_dofs_indices[idof]] < 0) {
+                std::cout << "Error: Total Energy is a negative value - Aborting... " << std::endl << solution[current_dofs_indices[idof]] << std::endl << std::flush;
+                std::abort();
+            }
+
             // Verify that the solution values haven't been changed to NaN as a result of all quad pts in a cell having negative density 
             // (all quad pts having negative density would result in the local maximum convective eigenvalue being zero leading to division by zero)
             if (isnan(solution[current_dofs_indices[idof]])) {

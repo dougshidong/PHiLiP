@@ -60,7 +60,7 @@ subsection flow_solver
     subsection positivity_preserving_tests
       set grid_xmin = -10.0
       set grid_xmax = 10.0
-      set number_of_grid_elements_x = 400
+      set number_of_grid_elements_x = 512
     end
   end
 end

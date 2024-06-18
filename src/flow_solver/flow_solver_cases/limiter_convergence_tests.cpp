@@ -94,7 +94,6 @@ double LimiterConvergenceTests<dim, nstate>::get_adaptive_time_step(std::shared_
     if (flow_case == flow_case_enum::nonsmooth_case)
         time_step =  0.00001;
 
-    std::cout << time_step << std::endl << std::endl;
     return time_step;
 }
 

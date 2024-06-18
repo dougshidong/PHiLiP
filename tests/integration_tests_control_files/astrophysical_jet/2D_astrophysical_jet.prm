@@ -59,8 +59,8 @@ subsection flow_solver
       set grid_ymin = -0.5
       set grid_ymax = 0.5
 
-      set number_of_grid_elements_x = 300
-      set number_of_grid_elements_y = 150
+      set number_of_grid_elements_x = 320
+      set number_of_grid_elements_y = 160
     end
   end
 end

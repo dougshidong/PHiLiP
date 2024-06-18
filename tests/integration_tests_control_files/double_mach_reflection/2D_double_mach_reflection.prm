@@ -16,10 +16,12 @@ set flux_nodes_type = GLL
 
 # NSFR - Ra
 set use_split_form = true
-set two_point_num_flux_type = IR
-set conv_num_flux = two_point_flux_with_lax_friedrichs_dissipation
-set flux_reconstruction = cPlus
+set two_point_num_flux_type = Ra
+set conv_num_flux = two_point_flux_with_roe_dissipation
+set flux_reconstruction = cDG
 set use_inverse_mass_on_the_fly = true
+
+set non_physical_behavior=abort_run
 
 subsection limiter
   set bound_preserving_limiter = positivity_preservingWang2012
@@ -31,10 +33,10 @@ subsection ODE solver
   set ode_output = verbose
   set ode_solver_type = runge_kutta
   set initial_time_step = 0.00000001
-  #set output_solution_every_x_steps = 5
+  set output_solution_every_x_steps = 5
   set runge_kutta_method = ssprk3_ex
   set print_iteration_modulo = 1
-  set output_solution_every_dt_time_intervals = 0.01
+  #set output_solution_every_dt_time_intervals = 0.01
 end
 
 # freestream Mach number
@@ -45,7 +47,7 @@ end
 
 subsection flow_solver
   set flow_case_type = double_mach_reflection
-  set poly_degree = 5
+  set poly_degree = 3
   set final_time = 0.2
   #set constant_time_step = 0.0001
   set courant_friedrichs_lewy_number = 0.15
@@ -57,8 +59,8 @@ subsection flow_solver
       set grid_xmax = 4.0
       set grid_ymax = 3.0
       set grid_ymin = 0.0
-      set number_of_grid_elements_x = 120
-      set number_of_grid_elements_y = 90
+      set number_of_grid_elements_x = 280
+      set number_of_grid_elements_y = 144
     end
   end
 end

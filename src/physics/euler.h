@@ -435,6 +435,13 @@ protected:
     void boundary_astrophysical_inflow (
         std::array<real,nstate> &soln_bc) const;
 
+    /// Wall boundary condition
+    void boundary_do_nothing (
+        const std::array<real,nstate> &soln_int,
+        const std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_int,
+        std::array<real,nstate> &soln_bc,
+        std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_bc) const;
+
     /// Get manufactured solution value
     std::array<real,nstate> get_manufactured_solution_value(
         const dealii::Point<dim,real> &pos) const;

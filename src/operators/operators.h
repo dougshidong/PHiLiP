@@ -352,6 +352,15 @@ public:
         const dealii::FullMatrix<double> &input_mat2,
         dealii::FullMatrix<double> &output_mat);
 
+    /// Returns the reference cell's face number in standard orientation.
+    unsigned int reference_face_number(
+        const bool iface,
+        const bool face_orientation,
+        const bool face_flip,
+        const bool face_rotation);
+
+
+
 //protected:
 public:
     ///Stores the one dimensional volume operator.

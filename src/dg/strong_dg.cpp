@@ -133,7 +133,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_volume_term_and_build_operator
 }
 template <int dim, int nstate, typename real, typename MeshType>
 void DGStrong<dim,nstate,real,MeshType>::assemble_boundary_term_and_build_operators(
-    typename dealii::DoFHandler<dim>::active_cell_iterator /*cell*/,
+    typename dealii::DoFHandler<dim>::active_cell_iterator cell,
     const dealii::types::global_dof_index                  current_cell_index,
     const unsigned int                                     iface,
     const unsigned int                                     boundary_id,
@@ -170,16 +170,19 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_boundary_term_and_build_operat
         mapping_basis,
         this->all_parameters->use_invariant_curl_form);
 
+    //check if the reference face changes orientation for unstructured 3D
+    const unsigned int face_int = soln_basis.reference_face_number(iface, cell->face_orientation(iface), cell->face_flip(iface), cell->face_rotation(iface));
+
     if(compute_auxiliary_right_hand_side){
         assemble_boundary_term_auxiliary_equation (
-            iface, current_cell_index, poly_degree,
+            face_int, current_cell_index, poly_degree,
             boundary_id, cell_dofs_indices, 
             soln_basis, metric_oper,
             local_auxiliary_RHS);
     }
     else{
         assemble_boundary_term_strong (
-            iface,
+            face_int,
             current_cell_index,
             boundary_id, poly_degree, penalty, 
             cell_dofs_indices, 
@@ -194,7 +197,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_boundary_term_and_build_operat
 
 template <int dim, int nstate, typename real, typename MeshType>
 void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_and_build_operators(
-    typename dealii::DoFHandler<dim>::active_cell_iterator /*cell*/,
+    typename dealii::DoFHandler<dim>::active_cell_iterator cell,
     typename dealii::DoFHandler<dim>::active_cell_iterator neighbor_cell,
     const dealii::types::global_dof_index                  current_cell_index,
     const dealii::types::global_dof_index                  neighbor_cell_index,
@@ -243,6 +246,11 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_and_build_operators(
         mapping_basis,
         this->all_parameters->use_invariant_curl_form);
 
+    //check if the reference face changes orientation for unstructured 3D
+    const unsigned int face_int = soln_basis_int.reference_face_number(iface, cell->face_orientation(iface), cell->face_flip(iface), cell->face_rotation(iface));
+    const unsigned int face_ext = soln_basis_ext.reference_face_number(neighbor_iface, neighbor_cell->face_orientation(neighbor_iface), neighbor_cell->face_flip(neighbor_iface), neighbor_cell->face_rotation(neighbor_iface));
+
+
     if(poly_degree_ext != soln_basis_ext.current_degree){
         soln_basis_ext.current_degree    = poly_degree_ext; 
         flux_basis_ext.current_degree    = poly_degree_ext; 
@@ -283,7 +291,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_and_build_operators(
         const unsigned int n_dofs_neigh_cell = this->fe_collection[neighbor_cell->active_fe_index()].n_dofs_per_cell();
         std::vector<dealii::Tensor<1,dim,double>> neighbor_cell_rhs_aux (n_dofs_neigh_cell ); // defaults to 0.0 initialization
         assemble_face_term_auxiliary_equation (
-            iface, neighbor_iface, 
+            face_int, face_ext, 
             current_cell_index, neighbor_cell_index,
             poly_degree_int, poly_degree_ext,
             current_dofs_indices, neighbor_dofs_indices,
@@ -299,7 +307,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_and_build_operators(
     }
     else{
         assemble_face_term_strong (
-            iface, neighbor_iface, 
+            face_int, face_ext, 
             current_cell_index,
             neighbor_cell_index,
             poly_degree_int, poly_degree_ext,

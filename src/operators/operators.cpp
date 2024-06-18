@@ -1060,6 +1060,43 @@ void SumFactorizedOperators<dim,n_faces>::sum_factorized_Hadamard_surface_basis_
     }
 }
 
+template <int dim, int n_faces>  
+unsigned int SumFactorizedOperators<dim,n_faces>::reference_face_number(
+    const bool iface,
+    const bool face_orientation,
+    const bool face_flip,
+    const bool face_rotation)
+{
+    unsigned int face_number = 100;
+    if(face_orientation){
+        face_number = iface;
+    }
+    else{
+        std::cout<<"Cell face was rotated by Deal.ii!"<<std::endl;
+        if(face_flip && !face_rotation){
+            if(iface%2==0)
+                face_number = iface + 1;
+            if(iface%2==1)
+                face_number = iface - 1;
+        }
+        if(!face_flip && face_rotation){
+            std::cout<<"Cannot handle reference cell face rotations!. Aborting..."<<std::endl;
+            std::abort();
+        }
+        if(!face_flip && face_rotation){
+            std::cout<<"Cannot handle reference cell face rotations!. Aborting..."<<std::endl;
+            std::abort();
+        }
+    }
+    if(face_number == 100){
+            std::cout<<"Cannot handle reference cell not face orientation and no rotations!. Aborting..."<<std::endl;
+            std::abort();
+    }
+
+    return face_number;
+
+}
+
 /*******************************************
  *
  *      VOLUME OPERATORS FUNCTIONS

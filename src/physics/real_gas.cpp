@@ -449,6 +449,7 @@ inline real RealGas<dim,nstate,real>
 
     /* compute temperature using Newton-Raphson method */
     real T_n = 2.0*this->temperature_ref; // 2.0 can be initial temperature, but it fails if initilal temperature is close to the (lower) limit.
+    // real T_n = 5.0*this->temperature_ref; // TO DO: use this if you run high-temperature vortex advection test
     do
     {
         /// 1) f(T_n)

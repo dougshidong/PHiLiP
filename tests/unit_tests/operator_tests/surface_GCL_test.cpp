@@ -298,7 +298,7 @@ int main (int argc, char * argv[])
         dealii::QGauss<1> flux_quad(poly_degree +1);
         dealii::QGauss<0> flux_quad_face(poly_degree +1);
 
-        PHiLiP::OPERATOR::mapping_shape_functions<dim,2*dim,real> mapping_basis(nstate,poly_degree,grid_degree);
+        PHiLiP::OPERATOR::mapping_shape_functions<dim,2*dim> mapping_basis(nstate,poly_degree,grid_degree);
         mapping_basis.build_1D_shape_functions_at_grid_nodes(fe_sys_grid, grid_quad);
         mapping_basis.build_1D_shape_functions_at_flux_nodes(fe_sys_grid, flux_quad, flux_quad_face);
 

@@ -49,7 +49,7 @@ namespace OPERATOR {
  * (3) Flux Operators: See above. It is important to note that since flux operators are "collocated" on the cubature set, the number of degrees of freedom of the flux basis MUST equal the number of cubature nodes. Importantly on the surface, the flux basis interpolates from the volume to the surface, thus corresponds to volume cubature nodes collocation.  
  * (4) Metric Operators: Since the solution polynomial degree for each state varies, along with the local grid element's polynomial degree varying, the operators distinguish between polynomial degree (for solution or flux) and grid degree (for element). Explicitly, they first go vector of grid_degree, then vector of polynomial degree for the ones that are applied on the flux nodes. The mapping-support-points follow the standard from dealii, where they are always Gauss-Legendre-Lobatto quadrature nodes making the polynomial elements continuous in a sense. 
  */
-template <int dim, int n_faces, typename real>
+template <int dim, int n_faces>
 class OperatorsBase
 {
 public:
@@ -97,25 +97,28 @@ public:
     ///Standard function to compute factorial of a number.
     double compute_factorial(double n);
 
-    ///virtual function to be defined.
-    virtual void matrix_vector_mult(
-                const std::vector<real> &input_vect,
-                std::vector<real> &output_vect,
-                const dealii::FullMatrix<double> &basis_x,
-                const dealii::FullMatrix<double> &basis_y,
-                const dealii::FullMatrix<double> &basis_z,
-                const bool adding = false,
-                const double factor = 1.0) = 0;
-    ///virtual function to be defined.
-    virtual void inner_product(
-                const std::vector<real> &input_vect,
-                const std::vector<real> &weight_vect,
-                std::vector<real> &output_vect,
-                const dealii::FullMatrix<double> &basis_x,
-                const dealii::FullMatrix<double> &basis_y,
-                const dealii::FullMatrix<double> &basis_z,
-                const bool adding = false,
-                const double factor = 1.0) = 0;
+    ///Base matrix vetor mult never implemented.
+//    ///virtual function to be defined.
+//    template <typename real>
+//    virtual void matrix_vector_mult(
+//                const std::vector<real> &input_vect,
+//                std::vector<real> &output_vect,
+//                const dealii::FullMatrix<double> &basis_x,
+//                const dealii::FullMatrix<double> &basis_y,
+//                const dealii::FullMatrix<double> &basis_z,
+//                const bool adding = false,
+//                const double factor = 1.0) = 0;
+//    ///virtual function to be defined.
+//    template <typename real>
+//    virtual void inner_product(
+//                const std::vector<real> &input_vect,
+//                const std::vector<real> &weight_vect,
+//                std::vector<real> &output_vect,
+//                const dealii::FullMatrix<double> &basis_x,
+//                const dealii::FullMatrix<double> &basis_y,
+//                const dealii::FullMatrix<double> &basis_z,
+//                const bool adding = false,
+//                const double factor = 1.0) = 0;
 protected:
 
     const MPI_Comm mpi_communicator; ///< MPI communicator.
@@ -127,8 +130,8 @@ protected:
 * sum factorization to perform their operations.
 * Note that we assume tensor product elements in this operators class.
 */
-template<int dim, int n_faces, typename real>
-class SumFactorizedOperators : public OperatorsBase<dim,n_faces,real>
+template<int dim, int n_faces>
+class SumFactorizedOperators : public OperatorsBase<dim,n_faces>
 {
 public:
     /// Precompute 1D operator in constructor
@@ -144,6 +147,7 @@ public:
     * we compute \f$v^T=\mathbf{A}u^T\f$.
     * Lastly, the adding allows the result to add onto the previous output_vect scaled by "factor".
     */
+    template <typename real>
     void matrix_vector_mult(
             const std::vector<real> &input_vect,
             std::vector<real> &output_vect,
@@ -151,7 +155,7 @@ public:
             const dealii::FullMatrix<double> &basis_y,
             const dealii::FullMatrix<double> &basis_z,
             const bool adding = false,
-            const double factor = 1.0) override;
+            const double factor = 1.0);
     ///Computes the divergence using the sum factorization matrix-vector multiplication.
     /** Often, we compute a dot product in dim, where each matrix multiplictaion uses
     * sum factorization. Example, consider taking the reference divergence of the reference flux:
@@ -163,6 +167,7 @@ public:
     * + \left( \mathbf{\chi}(\mathbf{\xi}) \otimes \mathbf{\chi}(\mathbf{\eta} \otimes \frac{d\mathbf{\chi}(\mathbf{\zeta})}{d\zeta})\right) \left(\hat{\mathbf{f}^r}\right)^T,
     * \f] where we use sum factorization to evaluate each matrix-vector multiplication in each dim direction.
     */
+    template <typename real>
     void divergence_matrix_vector_mult(
             const dealii::Tensor<1,dim,std::vector<real>> &input_vect,
             std::vector<real> &output_vect,
@@ -174,6 +179,7 @@ public:
             const dealii::FullMatrix<double> &gradient_basis_z);
 
     ///Computes the divergence using sum-factorization where the basis are the same in each direction.
+    template <typename real>
     void divergence_matrix_vector_mult_1D(
             const dealii::Tensor<1,dim,std::vector<real>> &input_vect,
             std::vector<real> &output_vect,
@@ -181,6 +187,7 @@ public:
             const dealii::FullMatrix<double> &gradient_basis);
 
     ///Computes the gradient of a scalar using sum-factorization.
+    template <typename real>
     void gradient_matrix_vector_mult(
             const std::vector<real> &input_vect,
             dealii::Tensor<1,dim,std::vector<real>> &output_vect,
@@ -191,6 +198,7 @@ public:
             const dealii::FullMatrix<double> &gradient_basis_y,
             const dealii::FullMatrix<double> &gradient_basis_z);
     ///Computes the gradient of a scalar using sum-factorization where the basis are the same in each direction.
+    template <typename real>
     void gradient_matrix_vector_mult_1D(
             const std::vector<real> &input_vect,
             dealii::Tensor<1,dim,std::vector<real>> &output_vect,
@@ -200,6 +208,7 @@ public:
     ///Computes the inner product between a matrix and a vector multiplied by some weight function.  
     /** That is, we compute \f$ \int Awu d\mathbf{\Omega}_r = \mathbf{A}^T \text{diag}(w) \mathbf{u}^T \f$. When using this function, pass \f$ \mathbf{A} \f$ and NOT it's transpose--the function transposes it in the first few lines.
     */
+    template <typename real>
     void inner_product(
             const std::vector<real> &input_vect,
             const std::vector<real> &weight_vect,
@@ -208,7 +217,7 @@ public:
             const dealii::FullMatrix<double> &basis_y,
             const dealii::FullMatrix<double> &basis_z,
             const bool adding = false,
-            const double factor = 1.0) override;
+            const double factor = 1.0);
 
 
     ///Computes the divergence of the 2pt flux Hadamard products, then sums the rows.
@@ -217,19 +226,19 @@ public:
     * to be \f$ \mathcal{O}(n^{d+1})\f$.
     */
     void divergence_two_pt_flux_Hadamard_product(
-            const dealii::Tensor<1,dim,dealii::FullMatrix<real>> &input_mat,
-            std::vector<real> &output_vect,
-            const std::vector<real> &weights,
+            const dealii::Tensor<1,dim,dealii::FullMatrix<double>> &input_mat,
+            std::vector<double> &output_vect,
+            const std::vector<double> &weights,
             const dealii::FullMatrix<double> &basis,
             const double scaling = 2.0);//the only direction that isn't identity
 
 
     /// Computes the surface cross Hadamard products for skew-symmetric form from Eq. (15) in Chan, Jesse. "Skew-symmetric entropy stable modal discontinuous Galerkin formulations." Journal of Scientific Computing 81.1 (2019): 459-485.
     void surface_two_pt_flux_Hadamard_product(
-            const dealii::FullMatrix<real> &input_mat,
-            std::vector<real> &output_vect_vol,
-            std::vector<real> &output_vect_surf,
-            const std::vector<real> &weights,
+            const dealii::FullMatrix<double> &input_mat,
+            std::vector<double> &output_vect_vol,
+            std::vector<double> &output_vect_surf,
+            const std::vector<double> &weights,
             const std::array<dealii::FullMatrix<double>,2> &surf_basis,
             const unsigned int iface,
             const unsigned int dim_not_zero,
@@ -246,10 +255,10 @@ public:
     * This is NOT for GENERAL Hadamard products since those are \f$ \mathcal{O}(n^{2d})\f$ .
     */
     void two_pt_flux_Hadamard_product(
-            const dealii::FullMatrix<real> &input_mat,
-            dealii::FullMatrix<real> &output_mat,
+            const dealii::FullMatrix<double> &input_mat,
+            dealii::FullMatrix<double> &output_mat,
             const dealii::FullMatrix<double> &basis,//the only direction that isn't identity
-            const std::vector<real> &weights,//vector storing diagonal entries for case not identity
+            const std::vector<double> &weights,//vector storing diagonal entries for case not identity
             const int direction);//direction for the derivative that corresponds to basis
 
 
@@ -293,6 +302,7 @@ public:
     /** This is for the case where the operator of size dim is the dyadic product of
     * the same 1D operator in each direction
     */
+    template <typename real>
     void matrix_vector_mult_1D(
             const std::vector<real> &input_vect,
             std::vector<real> &output_vect,
@@ -304,6 +314,7 @@ public:
     /* This is for the case where the operator of size dim is the dyadic product of
     * the same 1D operator in each direction
     */
+    template <typename real>
     void inner_product_1D(
             const std::vector<real> &input_vect,
             const std::vector<real> &weight_vect,
@@ -319,6 +330,7 @@ public:
     * Explicitly, this passes basis_surf in the direction by face_number, and basis_vol
     * in all other directions.
     */
+    template <typename real>
     void matrix_vector_mult_surface_1D(
             const unsigned int face_number,
             const std::vector<real> &input_vect,
@@ -329,6 +341,7 @@ public:
             const double factor = 1.0);
 
     /// Apply sum-factorization inner product on a surface.
+    template <typename real>
     void inner_product_surface_1D(
             const unsigned int face_number,
             const std::vector<real> &input_vect,
@@ -345,9 +358,19 @@ public:
     * \f$ A \circ B = C \implies \left( C \right)_{ij} = \left( A \right)_{ij}\left( B \right)_{ij}\f$.
     */
     void Hadamard_product(
-        const dealii::FullMatrix<real> &input_mat1,
-        const dealii::FullMatrix<real> &input_mat2,
-        dealii::FullMatrix<real> &output_mat);
+        const dealii::FullMatrix<double> &input_mat1,
+        const dealii::FullMatrix<double> &input_mat2,
+        dealii::FullMatrix<double> &output_mat);
+
+    ///Computes a single Hadamard product for AD type.
+    /** The input_mat is a matrix of double, input vector is a matrix stored as a vector
+    * in contiguous memory, and outputs a matrix stored as a vector in contiguous memory.
+    */
+    template <typename real>
+    void Hadamard_product_AD(
+        const dealii::FullMatrix<double> &input_mat,
+        const std::vector<real> &input_vect,
+        std::vector<real> &output_vect);
 
 //protected:
 public:
@@ -377,8 +400,8 @@ public:
 /* This class stores the basis functions evaluated at volume and facet
 * cubature nodes, as well as it's gradient in REFERENCE space.
 */
-template<int dim, int n_faces, typename real>
-class basis_functions : public SumFactorizedOperators<dim,n_faces,real>
+template<int dim, int n_faces>
+class basis_functions : public SumFactorizedOperators<dim,n_faces>
 {
 public:
     /// Constructor.
@@ -412,8 +435,8 @@ public:
 };
 
 ///\f$ \mathbf{W}*\mathbf{\chi}(\mathbf{\xi}_v^r) \f$  That is Quadrature Weights multiplies with basis_at_vol_cubature.
-template<int dim, int n_faces, typename real>
-class vol_integral_basis : public SumFactorizedOperators<dim,n_faces,real>
+template<int dim, int n_faces>
+class vol_integral_basis : public SumFactorizedOperators<dim,n_faces>
 {
 public:
     /// Constructor.
@@ -432,8 +455,8 @@ public:
 };
 
 ///Local mass matrix without jacobian dependence.
-template<int dim, int n_faces, typename real>
-class local_mass : public SumFactorizedOperators<dim,n_faces,real>
+template<int dim, int n_faces>
+class local_mass : public SumFactorizedOperators<dim,n_faces>
 {
 public:
     /// Constructor.
@@ -457,7 +480,7 @@ public:
     dealii::FullMatrix<double> build_dim_mass_matrix(
         const int nstate,
         const unsigned int n_dofs, const unsigned int n_quad_pts,
-        basis_functions<dim,n_faces,real> &basis,
+        basis_functions<dim,n_faces> &basis,
         const std::vector<double> &det_Jac,
         const std::vector<double> &quad_weights);
 };
@@ -468,8 +491,8 @@ public:
         (\mathbf{S}_\xi)_{ij}  = \int_\mathbf{{\Omega}_r} \mathbf{\chi}_i(\mathbf{\xi}^r) \frac{\mathbf{\chi}_{j}(\mathbf{\xi}^r)}{\partial \xi} d\mathbf{\Omega}_r
         \f]
 */
-template<int dim, int n_faces, typename real>
-class local_basis_stiffness : public SumFactorizedOperators<dim,n_faces,real>
+template<int dim, int n_faces>
+class local_basis_stiffness : public SumFactorizedOperators<dim,n_faces>
 {
 public:
     /// Constructor.
@@ -495,8 +518,8 @@ public:
 };
 
 ///This is the solution basis \f$\mathbf{D}_i\f$, the modal differential opertaor commonly seen in DG defined as \f$\mathbf{D}_i=\mathbf{M}^{-1}*\mathbf{S}_i\f$.
-template<int dim, int n_faces, typename real>
-class modal_basis_differential_operator : public SumFactorizedOperators<dim,n_faces,real>
+template<int dim, int n_faces>
+class modal_basis_differential_operator : public SumFactorizedOperators<dim,n_faces>
 {
 public:
     /// Constructor.
@@ -515,8 +538,8 @@ public:
 };
 
 ///\f$ p\f$ -th order modal derivative of basis fuctions, ie/\f$ [D_\xi^p, D_\eta^p, D_\zeta^p]\f$
-template<int dim, int n_faces, typename real>
-class derivative_p : public SumFactorizedOperators<dim,n_faces,real>
+template<int dim, int n_faces>
+class derivative_p : public SumFactorizedOperators<dim,n_faces>
 {
 public:
     /// Constructor.
@@ -535,8 +558,8 @@ public:
 };
 
 /// ESFR correction matrix without jac dependence
-template<int dim, int n_faces, typename real>
-class local_Flux_Reconstruction_operator : public SumFactorizedOperators<dim,n_faces,real>
+template<int dim, int n_faces>
+class local_Flux_Reconstruction_operator : public SumFactorizedOperators<dim,n_faces>
 {
 public:
     ///Constructor.
@@ -651,8 +674,8 @@ public:
 * ie/ local_Flux_Reconstruction_operator_aux[degree_index][dimension_index] = Flux_Reconstruction_operator for AUX eaquation in direction dimension_index for
 * polynomial degree of degree_index+1
 */
-template<int dim, int n_faces, typename real>
-class local_Flux_Reconstruction_operator_aux : public local_Flux_Reconstruction_operator<dim,n_faces,real>
+template<int dim, int n_faces>
+class local_Flux_Reconstruction_operator_aux : public local_Flux_Reconstruction_operator<dim,n_faces>
 {
 public:
     ///Constructor.
@@ -690,8 +713,8 @@ public:
 };
 
 ///Projection operator corresponding to basis functions onto M-norm (L2).
-template<int dim, int n_faces, typename real>
-class vol_projection_operator : public SumFactorizedOperators<dim,n_faces,real>
+template<int dim, int n_faces>
+class vol_projection_operator : public SumFactorizedOperators<dim,n_faces>
 {
 public:
     ///Constructor.
@@ -716,8 +739,8 @@ public:
 };
 
 ///Projection operator corresponding to basis functions onto \f$(M+K)\f$-norm.
-template<int dim, int n_faces, typename real>
-class vol_projection_operator_FR : public vol_projection_operator<dim,n_faces,real>
+template<int dim, int n_faces>
+class vol_projection_operator_FR : public vol_projection_operator<dim,n_faces>
 {
 public:
     ///Constructor.
@@ -747,8 +770,8 @@ public:
 };
 
 ///Projection operator corresponding to basis functions onto \f$(M+K)\f$-norm for auxiliary equation.
-template<int dim, int n_faces, typename real>
-class vol_projection_operator_FR_aux : public vol_projection_operator<dim,n_faces,real>
+template<int dim, int n_faces>
+class vol_projection_operator_FR_aux : public vol_projection_operator<dim,n_faces>
 {
 public:
     ///Constructor.
@@ -778,8 +801,8 @@ public:
 };
 
 ///The metric independent inverse of the FR mass matrix \f$(M+K)^{-1}\f$.
-template<int dim, int n_faces, typename real>
-class FR_mass_inv : public SumFactorizedOperators<dim,n_faces,real>
+template<int dim, int n_faces>
+class FR_mass_inv : public SumFactorizedOperators<dim,n_faces>
 {
 public:
     ///Constructor.
@@ -801,8 +824,8 @@ public:
             const dealii::Quadrature<1> &quadrature);
 };
 ///The metric independent inverse of the FR mass matrix for auxiliary equation \f$(M+K)^{-1}\f$.
-template<int dim, int n_faces, typename real>
-class FR_mass_inv_aux : public SumFactorizedOperators<dim,n_faces,real>
+template<int dim, int n_faces>
+class FR_mass_inv_aux : public SumFactorizedOperators<dim,n_faces>
 {
 public:
     ///Constructor.
@@ -824,8 +847,8 @@ public:
             const dealii::Quadrature<1> &quadrature);
 };
 ///The metric independent FR mass matrix \f$(M+K)\f$.
-template<int dim, int n_faces, typename real>
-class FR_mass : public SumFactorizedOperators<dim,n_faces,real>
+template<int dim, int n_faces>
+class FR_mass : public SumFactorizedOperators<dim,n_faces>
 {
 public:
     ///Constructor.
@@ -848,8 +871,8 @@ public:
 };
 
 ///The metric independent FR mass matrix for auxiliary equation \f$(M+K)\f$.
-template<int dim, int n_faces, typename real>
-class FR_mass_aux : public SumFactorizedOperators<dim,n_faces,real>
+template<int dim, int n_faces>
+class FR_mass_aux : public SumFactorizedOperators<dim,n_faces>
 {
 public:
     ///Constructor.
@@ -879,8 +902,8 @@ public:
  *           \mathbf{W}\nabla\Big(\chi_i(\mathbf{\xi}^r)\Big)  
  *   \f]
  */
-template <int dim, int n_faces, typename real>  
-class vol_integral_gradient_basis : public SumFactorizedOperators<dim,n_faces,real>
+template <int dim, int n_faces>  
+class vol_integral_gradient_basis : public SumFactorizedOperators<dim,n_faces>
 {
 public:
     ///Constructor.
@@ -912,8 +935,8 @@ public:
 *ie/ diag of REFERENCE unit normal times facet quadrature weights times solution basis functions evaluated on that face
 *in DG surface integral would be transpose(face_integral_basis) times flux_on_face
 */
-template<int dim, int n_faces, typename real>
-class face_integral_basis : public SumFactorizedOperators<dim,n_faces,real>
+template<int dim, int n_faces>
+class face_integral_basis : public SumFactorizedOperators<dim,n_faces>
 {
 public:
     ///Constructor.
@@ -937,8 +960,8 @@ public:
 *NOTE this doesn't have metric Jacobian dependence, for DG solver
 *we build that using the functions below on the fly!
 */
-template<int dim, int n_faces, typename real>
-class lifting_operator : public SumFactorizedOperators<dim,n_faces,real>
+template<int dim, int n_faces>
+class lifting_operator : public SumFactorizedOperators<dim,n_faces>
 {
 public:
     ///Constructor.
@@ -978,8 +1001,8 @@ public:
 * L_{FR}:\: <L_{FR} u,v>_{\mathbf{\Omega}_r} = <u,v>_{\mathbf{\Gamma}_2}, \forall v\in P^p(\mathbf{\Omega}_r)
 * \f].
 */
-template<int dim, int n_faces, typename real>
-class lifting_operator_FR : public lifting_operator<dim,n_faces,real>
+template<int dim, int n_faces>
+class lifting_operator_FR : public lifting_operator<dim,n_faces>
 {
 public:
     ///Constructor.
@@ -1022,8 +1045,8 @@ public:
 * collocated on the mapping support points.
 * By default, we use Gauss-Lobatto-Legendre as the mapping support points.
 */
-template<int dim, int n_faces, typename real>
-class mapping_shape_functions: public SumFactorizedOperators<dim,n_faces,real>
+template<int dim, int n_faces>
+class mapping_shape_functions: public SumFactorizedOperators<dim,n_faces>
 {
 public:
     ///Constructor.
@@ -1039,10 +1062,10 @@ public:
     unsigned int current_grid_degree;
 
     ///Object of mapping shape functions evaluated at grid nodes.
-    basis_functions<dim,n_faces,real> mapping_shape_functions_grid_nodes;
+    basis_functions<dim,n_faces> mapping_shape_functions_grid_nodes;
 
     ///Object of mapping shape functions evaluated at flux nodes.
-    basis_functions<dim,n_faces,real> mapping_shape_functions_flux_nodes;
+    basis_functions<dim,n_faces> mapping_shape_functions_flux_nodes;
 
     ///Constructs the volume operator and gradient operator.
     /**
@@ -1083,7 +1106,7 @@ public:
 *****************************************************************************/
 ///Base metric operators class that stores functions used in both the volume and on surface.
 template <typename real, int dim, int n_faces>  
-class metric_operators: public SumFactorizedOperators<dim,n_faces,real>
+class metric_operators: public SumFactorizedOperators<dim,n_faces>
 {
 public:
     ///Constructor.
@@ -1134,7 +1157,7 @@ public:
         const unsigned int n_quad_pts,//number volume quad pts
         const unsigned int n_metric_dofs,//dofs of metric basis. NOTE: this is the number of mapping support points
         const std::array<std::vector<real>,dim> &mapping_support_points,
-        mapping_shape_functions<dim,n_faces,real> &mapping_basis);
+        mapping_shape_functions<dim,n_faces> &mapping_basis);
 
     ///Builds the volume metric operators.
     /** Builds and stores volume metric cofactor and determinant of metric Jacobian
@@ -1145,7 +1168,7 @@ public:
         const unsigned int n_quad_pts,//number volume quad pts
         const unsigned int n_metric_dofs,//dofs of metric basis. NOTE: this is the number of mapping support points
         const std::array<std::vector<real>,dim> &mapping_support_points,
-        mapping_shape_functions<dim,n_faces,real> &mapping_basis,
+        mapping_shape_functions<dim,n_faces> &mapping_basis,
         const bool use_invariant_curl_form = false);
 
     ///Builds the facet metric operators.
@@ -1158,7 +1181,7 @@ public:
         const unsigned int n_quad_pts,//number facet quad pts
         const unsigned int n_metric_dofs,//dofs of metric basis. NOTE: this is the number of mapping support points
         const std::array<std::vector<real>,dim> &mapping_support_points,
-        mapping_shape_functions<dim,n_faces,real> &mapping_basis,
+        mapping_shape_functions<dim,n_faces> &mapping_basis,
         const bool use_invariant_curl_form = false);
 
     ///The volume metric cofactor matrix.
@@ -1288,8 +1311,8 @@ protected:
 /**Note that dofs and quad points aren't templated because they are variable with respect to each polynomial degree. 
 *Also I couldn't template by polynomial degree/grid degree since they aren't compile time constant expressions.
 */
-template <int dim, int nstate, int n_faces, typename real>  
-class SumFactorizedOperatorsState : public SumFactorizedOperators<dim,n_faces,real>
+template <int dim, int nstate, int n_faces>  
+class SumFactorizedOperatorsState : public SumFactorizedOperators<dim,n_faces>
 {
 public:
     ///Constructor.
@@ -1312,8 +1335,8 @@ public:
 };//end of OperatorsBaseState Class
 
 ///The basis functions separated by nstate with n shape functions.
-template <int dim, int nstate, int n_faces, typename real>  
-class basis_functions_state : public SumFactorizedOperatorsState<dim,nstate,n_faces,real>
+template <int dim, int nstate, int n_faces>  
+class basis_functions_state : public SumFactorizedOperatorsState<dim,nstate,n_faces>
 {
 public:
     ///Constructor.
@@ -1344,8 +1367,8 @@ public:
 /** The flux basis are collocated on the flux nodes (volume cubature nodes).
 * Thus, they are the order of the quadrature set, not by the state!
 */
-template <int dim, int nstate, int n_faces, typename real>  
-class flux_basis_functions_state : public SumFactorizedOperatorsState<dim,nstate,n_faces,real>
+template <int dim, int nstate, int n_faces>  
+class flux_basis_functions_state : public SumFactorizedOperatorsState<dim,nstate,n_faces>
 {
 public:
     ///Constructor.
@@ -1379,8 +1402,8 @@ public:
      (\mathbf{S}_{\text{FLUX},\xi})_{ij}  = \int_\mathbf{{\Omega}_r} \mathbf{\chi}_i(\mathbf{\xi}^r) \frac{\mathbf{\chi}_{\text{FLUX},j}(\mathbf{\xi}^r)}{\partial \xi} d\mathbf{\Omega}_r
      \f]
 */
-template <int dim, int nstate, int n_faces, typename real>  
-class local_flux_basis_stiffness : public flux_basis_functions_state<dim,nstate,n_faces,real>
+template <int dim, int nstate, int n_faces>  
+class local_flux_basis_stiffness : public flux_basis_functions_state<dim,nstate,n_faces>
 {
 public:
     ///Constructor.

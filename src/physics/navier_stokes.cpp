@@ -101,6 +101,17 @@ dealii::Tensor<1,dim,real2> NavierStokes<dim,nstate,real>
 {
     // compute wall parallel velocities
     const dealii::Tensor<1,dim,real2> velocities_parallel_to_wall = compute_velocities_parallel_to_wall(conservative_soln,normal_vector);
+    // compute tangent vector
+    const dealii::Tensor<1,dim,real2> tangent_vector = compute_wall_tangent_vector_from_velocities_parallel_to_wall(velocities_parallel_to_wall);
+    return tangent_vector;
+}
+
+template <int dim, int nstate, typename real>
+template<typename real2>
+dealii::Tensor<1,dim,real2> NavierStokes<dim,nstate,real>
+::compute_wall_tangent_vector_from_velocities_parallel_to_wall(
+    const dealii::Tensor<1,dim,real2> &velocities_parallel_to_wall) const
+{
     // get magnitude
     real2 magnitude = 0.0;
     for(int d=0;d<dim;++d){
@@ -1254,6 +1265,10 @@ void NavierStokes<dim,nstate,real>
         // Wall boundary condition
         boundary_wall_viscous_flux (normal_int, soln_int, soln_grad_int, soln_bc, soln_grad_bc);
     }
+    // (1006)
+    // {
+    //     this->boundary_slip_wall (normal_int, soln_int, soln_grad_int, soln_bc, soln_grad_bc);
+    // }
 }
 
 template <int dim, int nstate, typename real>
@@ -1530,6 +1545,7 @@ NavierStokes_ChannelFlowConstantSourceTerm_WallModel<dim, nstate, real>::NavierS
     const double                                              constant_viscosity,
     const double                                              reynolds_number_based_on_friction_velocity,
     const double                                              half_channel_height,
+    const double                                              distance_from_wall_for_wall_model_input_velocity,
     const double                                              temperature_inf,
     const double                                              isothermal_wall_temperature,
     const thermal_boundary_condition_enum                     thermal_boundary_condition_type,
@@ -1552,10 +1568,13 @@ NavierStokes_ChannelFlowConstantSourceTerm_WallModel<dim, nstate, real>::NavierS
                              thermal_boundary_condition_type, 
                              manufactured_solution_function,
                              two_point_num_flux_type)
+    , distance_from_wall_for_wall_model_input_velocity(distance_from_wall_for_wall_model_input_velocity)
 {
     static_assert(nstate==dim+2, "Physics::NavierStokes_ChannelFlowConstantSourceTerm_WallModel() should be created with nstate=dim+2");
     // Nothing to do here so far
 }
+
+
 
 template <int dim, int nstate, typename real>
 std::array<real,nstate> NavierStokes_ChannelFlowConstantSourceTerm_WallModel<dim,nstate,real>
@@ -1567,47 +1586,74 @@ std::array<real,nstate> NavierStokes_ChannelFlowConstantSourceTerm_WallModel<dim
         const dealii::types::global_dof_index /*cell_index*/,
         const dealii::Tensor<1,dim,real> &normal)
 {
-    std::array<real,nstate> dissipative_flux_dot_normal;
-    
-    /** If adiabatic on either slip (1001) or no-slip (1006) wall BCs */
-    // adiabatic boundary
-    // --> Modify viscous flux such that normal_vector dot gradient of temperature must be zero
+    /* Input variable 'solution' is actually solution at the wall element opposing face.
+       This means that for a channel flow with a uniform grid, this is solution is 
+       at a distance dy = domain_length_y/(number_of_elements_y_direction) from the wall.
+    */
 
-    // REFERENCES:
-    /* (1) Masatsuka 2018 "I do like CFD", p.148, eq.(4.12.1-4.12.4)
-     * (2) For the boundary condition case, refer to the equation above equation 458 of the following paper:
-     *  Hartmann, Ralf. "Numerical analysis of higher order discontinuous Galerkin finite element methods." (2008): 1-107.
-     */
+    // Get the wall parallel velocities; equivalent Frere thesis eq.(2.40)
+    const dealii::Tensor<1,dim,real> velocities_parallel_to_wall = this->template compute_velocities_parallel_to_wall<real>(solution,normal_vector);
 
-    // Step 1: Primitive solution
-    const std::array<real,nstate> primitive_soln = this->template convert_conservative_to_primitive_templated<real>(solution); // from Euler
-    
-    // Step 2: Gradient of primitive solution
-    const std::array<dealii::Tensor<1,dim,real>,nstate> primitive_soln_gradient = this->template convert_conservative_gradient_to_primitive_gradient_templated<real>(solution, solution_gradient);
-    
-    // Step 3: Viscous stress tensor, Velocities, Heat flux
-    const dealii::Tensor<2,dim,real> viscous_stress_tensor = compute_viscous_stress_tensor<real>(primitive_soln, primitive_soln_gradient);
-    const dealii::Tensor<1,dim,real> vel = this->template extract_velocities_from_primitive<real>(primitive_soln); // from Euler
-    /* ---> Impose adiabatic boundary condition by modifying the heat flux. */
-    dealii::Tensor<1,dim,real> heat_flux;
-    for (int flux_dim=0; flux_dim<dim; ++flux_dim) {
-        // set the heat flux to zero since we want the normal dot gradient of temperature to be zero for an adiabatic boundary
-        heat_flux[flux_dim] = 0.0;
+    // Get wall tangent vector; equivalent Frere thesis eq.(2.40)
+    const dealii::Tensor<1,dim,real> wall_tangent_vector = this->template compute_wall_tangent_vector_from_velocities_parallel_to_wall<real>(velocities_parallel_to_wall);
+
+    // Get wall parallel velocity component; Frere thesis eq.(2.41)
+    real velocity_parallel_to_wall = 0.0;
+    for (int d=0; d<dim; ++d) {
+        velocity_parallel_to_wall += velocities_parallel_to_wall[d]*wall_tangent_vector[d];
     }
 
-    // Step 4: Construct viscous flux; Note: sign corresponds to LHS
-    std::array<dealii::Tensor<1,dim,real>,nstate> dissipative_flux;
-    dissipative_flux = dissipative_flux_given_velocities_viscous_stress_tensor_and_heat_flux<real>(vel,viscous_stress_tensor,heat_flux);
+    // Get wall shear stress magnitude from wall model
+    const real wall_shear_stress_magnitude = (
+                    this->distance_from_wall_for_wall_model_input_velocity,
+                    velocity_parallel_to_wall);
 
-    // compute the dot product with the normal vector
+    // Compute the dissipative flux dot normal vector; Frere thesis eq.(2.39)
+    std::array<real,nstate> dissipative_flux_dot_normal;    
     dissipative_flux_dot_normal.fill(0.0); // initialize
-    for (int s=0; s<nstate; s++) {
-        for (int d=0; d<dim; ++d) {
-            dissipative_flux_dot_normal[s] += dissipative_flux[s][d] * normal[d];//compute dot product
-        }
+    for (int d=0; d<dim; ++d) {
+        dissipative_flux_dot_normal[1+d] += wall_shear_stress_magnitude * wall_tangent_vector[d]; // Frere thesis eq.(2.39)
     }
-
     return dissipative_flux_dot_normal;
+}
+
+template <typename real>
+WallModelLookUpTable::WallModelLookUpTable()
+    : xData({0.0, 3.0, 5.0, 8.0, 10.0, 20.0, 35.0, 50.0, 75.0, 100.0, 125.0, 150.0,
+             200.0, 250.0, 300.0, 350.0, 400.0, 500.0, 575.0, 650.0, 725.0, 800.0, 900.0, 1000.0})
+    , yData({0.0000000000000e+00, 6.6159130344294e+00, 1.6060817028163e+01, 3.4871735764788e+01,
+             4.9571228279016e+01, 1.3778400828324e+02, 2.9428383798019e+02, 4.6681694258993e+02, 
+             7.7798288968624e+02, 1.1109207283094e+03, 1.4603806972090e+03, 1.8230693459482e+03, 
+             2.5798975867201e+03, 3.3699659153899e+03, 4.1865253644967e+03, 5.0251156052179e+03, 
+             5.8825662330447e+03, 7.6450966158508e+03, 9.0023092992007e+03, 1.0385338644756e+04, 
+             1.1791191697889e+04, 1.3217498477068e+04, 1.5147782638025e+04, 1.7107366776649e+04}) // TO DO: swap the x and y since want to find y+
+    , size(NUMBER_OF_SAMPLE_POINTS)
+    , pcout(std::cout, dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD)==0)
+{ }
+
+template <typename real>
+real WallModelLookUpTable::
+interpolate(double x, bool extrapolate )
+{
+   int i = 0; // find left end of interval for interpolation
+   if ( x >= this->xData[this->size - 2] ) // special case: beyond right end
+   {
+      i = this->size - 2;
+   }
+   else
+   {
+      while ( x > this->xData[i+1] ) i++;
+   }
+   real xL = this->xData[i], yL = this->yData[i], xR = this->xData[i+1], yR = this->yData[i+1]; // points on either side (unless beyond ends)
+   if ( !extrapolate ) // if beyond ends of array and not extrapolating
+   {
+      if ( x < xL ) yR = yL;
+      if ( x > xR ) yL = yR;
+   }
+
+   real dydx = ( yR - yL ) / ( xR - xL ); // gradient
+
+   return yL + dydx * ( x - xL ); // linear interpolation
 }
 
 // Instantiate explicitly

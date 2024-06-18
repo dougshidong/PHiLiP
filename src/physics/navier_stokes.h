@@ -91,6 +91,11 @@ public:
         const std::array<real2,nstate> &conservative_soln,
         const dealii::Tensor<1,dim,real2> &normal_vector) const;
 
+    /** Nondimensionalized wall tangent vector from velocities parallel to wall */
+    template<typename real2>
+    dealii::Tensor<1,dim,real2> compute_wall_tangent_vector_from_velocities_parallel_to_wall(
+        const dealii::Tensor<1,dim,real2> &velocities_parallel_to_wall) const;
+
     /** Nondimensionalized wall shear stress */
     template<typename real2>
     real2 compute_wall_shear_stress (
@@ -554,6 +559,7 @@ public:
         const double                                              constant_viscosity,
         const double                                              reynolds_number_based_on_friction_velocity,
         const double                                              half_channel_height,
+        const double                                              distance_from_wall_for_wall_model_input_velocity,
         const double                                              temperature_inf = 273.15,
         const double                                              isothermal_wall_temperature = 1.0,
         const thermal_boundary_condition_enum                     thermal_boundary_condition_type = thermal_boundary_condition_enum::adiabatic,
@@ -562,6 +568,9 @@ public:
 
     /// Destructor
     ~NavierStokes_ChannelFlowConstantSourceTerm_WallModel() {};
+
+    /// Distance from wall for wall model input velocity
+    const double distance_from_wall_for_wall_model_input_velocity;
 
     /** Nondimensionalized viscous flux (i.e. dissipative flux) dot normal vector that accounts for gradient boundary conditions
      *  when the on boundary flag is true -- contains the wall model
@@ -577,6 +586,30 @@ public:
         const std::array<dealii::Tensor<1,dim,real>,nstate> &filtered_solution_gradient,
         const dealii::types::global_dof_index cell_index,
         const dealii::Tensor<1,dim,real> &normal) override;
+};
+
+/// Wall Model Look up table
+class WallModelLookUpTable
+{
+    /** Number of different computed quantities
+     *  Corresponds to the number of items in IntegratedQuantitiesEnum
+     * */
+    static const int NUMBER_OF_SAMPLE_POINTS = 24;
+public: // NOTES: Could template this for real
+    WallModelLookUpTable(); //< Constructor
+
+    ~WallModelLookUpTable(){}; //< Destructor
+
+    double get_wall_friction_velocity(double wall_parallel_velocity, double distance);
+
+private:
+    const std::vector<double,NUMBER_OF_SAMPLE_POINTS> xData, yData; /// x and y data for the look up table
+    const int size;
+    double interpolate(double x, bool extrapolate );/// interpolate function
+    /// ConditionalOStream.
+    /** Used as std::cout, but only prints if mpi_rank == 0
+     */
+    dealii::ConditionalOStream pcout;
 };
 
 } // Physics namespace

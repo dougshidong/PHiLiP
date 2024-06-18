@@ -191,6 +191,7 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       " real_gas_vs_euler_primitive_to_conservative_check | "
                       " euler_vortex_advection_error_study | "
                       " multi_species_vortex_advection_error_study | "
+                      " multi_species_high_temperature_vortex_advection_error_study | "
                       " multi_species_calorically_perfect_euler_vortex_advection_error_study | "           
                       " euler_bubble_advection_error_study | "   
                       " multi_species_isentropic_euler_vortex_test | "   
@@ -235,6 +236,7 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       "  real_gas_vs_euler_primitive_to_conservative_check | "
                       "  euler_vortex_advection_error_study | "
                       "  multi_species_vortex_advection_error_study | "
+                      "  multi_species_high_temperature_vortex_advection_error_study | "
                       "  multi_species_calorically_perfect_euler_vortex_advection_error_study | "                       
                       "  euler_bubble_advection_error_study | "  
                       "  multi_species_isentropic_euler_vortex_test | "
@@ -424,6 +426,7 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
                                                                         { test_type = real_gas_vs_euler_primitive_to_conservative_check;}
     else if (test_string == "euler_vortex_advection_error_study")       { test_type = euler_vortex_advection_error_study; }
     else if (test_string == "multi_species_vortex_advection_error_study"){ test_type = multi_species_vortex_advection_error_study; }
+    else if (test_string == "multi_species_high_temperature_vortex_advection_error_study"){ test_type = multi_species_high_temperature_vortex_advection_error_study; }    
     else if (test_string == "multi_species_calorically_perfect_euler_vortex_advection_error_study"){ test_type = multi_species_calorically_perfect_euler_vortex_advection_error_study; }
     else if (test_string == "euler_bubble_advection_error_study")       { test_type = euler_bubble_advection_error_study; }    
     else if (test_string == "multi_species_isentropic_euler_vortex_test"){ test_type = multi_species_isentropic_euler_vortex_test; }

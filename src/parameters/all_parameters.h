@@ -199,6 +199,7 @@ public:
         real_gas_vs_euler_primitive_to_conservative_check,
         euler_vortex_advection_error_study,
         multi_species_vortex_advection_error_study,
+        multi_species_high_temperature_vortex_advection_error_study,
         multi_species_calorically_perfect_euler_vortex_advection_error_study,
         euler_bubble_advection_error_study,    
         multi_species_isentropic_euler_vortex_test,   

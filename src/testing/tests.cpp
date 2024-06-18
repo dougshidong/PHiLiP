@@ -311,6 +311,9 @@ std::unique_ptr< TestsBase > TestsFactory<dim,nstate,MeshType>
     // TO  DO: dim = 1, nstate = dim+2+3-1
     } else if(test_type == Test_enum::multi_species_vortex_advection_error_study) {
         if constexpr (dim==1 && nstate==dim+2+2-1)  return std::make_unique<EulerVortexAdvectionErrorStudy<dim, nstate>>(parameters_input, parameter_handler_input);   
+   // TO  DO: dim = 1, nstate = dim+2+3-1
+    } else if(test_type == Test_enum::multi_species_high_temperature_vortex_advection_error_study) {
+        if constexpr (dim==1 && nstate==dim+2+2-1)  return std::make_unique<EulerVortexAdvectionErrorStudy<dim, nstate>>(parameters_input, parameter_handler_input);       
     // TO  DO: dim = 1, nstate = dim+2+3-1
     } else if(test_type == Test_enum::multi_species_calorically_perfect_euler_vortex_advection_error_study) {
         if constexpr (dim==1 && nstate==dim+2+2-1)  return std::make_unique<EulerVortexAdvectionErrorStudy<dim, nstate>>(parameters_input, parameter_handler_input);            

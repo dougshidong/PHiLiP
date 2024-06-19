@@ -80,7 +80,7 @@ protected:
 
     /// Builds the necessary operators and assembles boundary residual for either primary or auxiliary.
     void assemble_boundary_term_and_build_operators(
-        typename dealii::DoFHandler<dim>::active_cell_iterator /*cell*/,
+        typename dealii::DoFHandler<dim>::active_cell_iterator cell,
         const dealii::types::global_dof_index                  current_cell_index,
         const unsigned int                                     iface,
         const unsigned int                                     boundary_id,
@@ -106,8 +106,8 @@ protected:
 
     /// Builds the necessary operators and assembles face residual.
     void assemble_face_term_and_build_operators(
-        typename dealii::DoFHandler<dim>::active_cell_iterator /*cell*/,
-        typename dealii::DoFHandler<dim>::active_cell_iterator /*neighbor_cell*/,
+        typename dealii::DoFHandler<dim>::active_cell_iterator cell,
+        typename dealii::DoFHandler<dim>::active_cell_iterator neighbor_cell,
         const dealii::types::global_dof_index                  current_cell_index,
         const dealii::types::global_dof_index                  neighbor_cell_index,
         const unsigned int                                     iface,
@@ -200,6 +200,7 @@ public:
 protected:
     /// Evaluate the boundary RHS for the auxiliary equation.
     void assemble_boundary_term_auxiliary_equation(
+        typename dealii::DoFHandler<dim>::active_cell_iterator cell,
         const unsigned int                                 iface,
         const dealii::types::global_dof_index              current_cell_index,
         const unsigned int                                 poly_degree,
@@ -217,6 +218,7 @@ public:
     * \f]
     */
     void assemble_face_term_auxiliary_equation(
+        typename dealii::DoFHandler<dim>::active_cell_iterator cell,
         const unsigned int                                 iface, 
         const unsigned int                                 neighbor_iface,
         const dealii::types::global_dof_index              current_cell_index,
@@ -264,6 +266,7 @@ protected:
 
     /// Strong form primary equation's boundary right-hand-side.
     void assemble_boundary_term_strong(
+        typename dealii::DoFHandler<dim>::active_cell_iterator cell,
         const unsigned int                                 iface, 
         const dealii::types::global_dof_index              current_cell_index,
         const unsigned int                                 boundary_id,
@@ -286,6 +289,8 @@ protected:
     * \f]
     */
     void assemble_face_term_strong(
+        typename dealii::DoFHandler<dim>::active_cell_iterator cell,
+        typename dealii::DoFHandler<dim>::active_cell_iterator neighbor_cell,
         const unsigned int                                 iface, 
         const unsigned int                                 neighbor_iface, 
         const dealii::types::global_dof_index              current_cell_index,

@@ -415,6 +415,7 @@ int main (int argc, char * argv[])
                      
                     //evaluate facet auxiliary RHS
                     dg->assemble_face_term_auxiliary_equation (
+                       current_cell,
                         iface, neighbor_iface, 
                         current_cell_index, neighbor_cell_index,
                         poly_degree, poly_degree,

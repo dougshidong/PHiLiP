@@ -1062,55 +1062,82 @@ void SumFactorizedOperators<dim,n_faces>::sum_factorized_Hadamard_surface_basis_
 
 template <int dim, int n_faces>  
 unsigned int SumFactorizedOperators<dim,n_faces>::reference_face_number(
-    const bool iface,
-    const bool face_orientation,
+    const unsigned int iface,
+    const bool /*face_orientation*/,
     const bool face_flip,
     const bool face_rotation)
 {
     unsigned int face_number = 100;
-    if(face_orientation){
+    if(!face_flip && !face_rotation){
         face_number = iface;
-        //std::cout<<"Correct face orientation. Face id is:"<<iface<<std::endl;
     }
-    else{
-	//std::cout<<"face_orientation:"<<face_orientation<<std::endl;
-      //  std::cout<<"Cell face was rotated by Deal.ii! Face id is:"<<iface<<std::endl;	
-//	std::cout<<"face orientation"<<face_orientation<<std::endl;
-//	std::cout<<"face flip"<<face_flip<<std::endl;
-//	std::cout<<"face rotation"<<face_rotation<<std::endl;
-        if(!face_flip && !face_rotation){
-         //   std::cout<<"Cannot handle reference cell face flip!"<<std::endl;   
-	    if(iface%2==0)
-                face_number = iface + 1;
-            if(iface%2==1)
-                face_number = iface - 1;
-	   // std::abort();
-	 //  face_number = iface;
-        }
-        if(!face_flip && face_rotation){
-        std::cout<<"Cell face was rotated by Deal.ii! Face id is:"<<iface<<std::endl;	
-	std::cout<<"face orientation"<<face_orientation<<std::endl;
-	std::cout<<"face flip"<<face_flip<<std::endl;
-	std::cout<<"face rotation"<<face_rotation<<std::endl;
-            std::cout<<"Cannot handle reference cell face rotations!. Aborting..."<<std::endl;
-            std::abort();
-        }
-        if(face_flip && face_rotation){
-            std::cout<<"Cannot handle reference cell face flip and rotations!. Aborting..."<<std::endl;
-        std::cout<<"Cell face was rotated by Deal.ii! Face id is:"<<iface<<std::endl;	
-	std::cout<<"face orientation"<<face_orientation<<std::endl;
-	std::cout<<"face flip"<<face_flip<<std::endl;
-	std::cout<<"face rotation"<<face_rotation<<std::endl;
-            std::abort();
-        }
+    else if(!face_flip && face_rotation){//90 degree rotation
+        //Not fully verified yet
+        std::cout<<"Cannot handle reference cell face rotations!. Aborting..."<<std::endl;
+        std::abort();
+    }
+    else if(face_flip && !face_rotation){//180 degree rotation
+        //Not fully verified yet
+	if(iface%2==0)
+            face_number = iface + 1;
+        if(iface%2==1)
+            face_number = iface - 1;
+       // std::cout<<"Cannot handle reference cell face rotations!. Aborting..."<<std::endl;
+       // std::abort();
+    }
+    else if(face_flip && face_rotation){//270 degree rotation
+        //Not fully verified yet
+        std::cout<<"Cannot handle reference cell face rotations!. Aborting..."<<std::endl;
+        std::abort();
     }
     if(face_number == 100){
-            std::cout<<"Cannot handle reference cell no face orientation and no rotations!. Aborting..."<<std::endl;
-            //std::cout<<"face_flip:"<<face_flip<<std::endl;
-            //std::cout<<"face_rotation:"<<face_rotation<<std::endl;
-            //std::abort();
+        std::cout<<"face rotated condition not yet considered."<<std::endl;
+        std::abort();
     }
 
+//    if(face_orientation){
+//        face_number = iface;
+//       // std::cout<<"Correct face orientation. Face id is:"<<iface<<std::endl;
+//    }
+//    else{
+////	std::cout<<"face_orientation:"<<face_orientation<<std::endl;
+//      //  std::cout<<"Cell face was rotated by Deal.ii! Face id is:"<<iface<<std::endl;	
+////	std::cout<<"face orientation"<<face_orientation<<std::endl;
+////	std::cout<<"face flip"<<face_flip<<std::endl;
+////	std::cout<<"face rotation"<<face_rotation<<std::endl;
+//     //   if(!face_flip && !face_rotation){
+////         //   std::cout<<"Cannot handle reference cell face flip!"<<std::endl;   
+////	    if(iface%2==0)
+////                face_number = iface + 1;
+////            if(iface%2==1)
+////                face_number = iface - 1;
+////	   // std::abort();
+//           face_number = iface;
+//        }
+//        if(!face_flip && face_rotation){
+//        std::cout<<"Cell face was rotated by Deal.ii! Face id is:"<<iface<<std::endl;	
+//        std::cout<<"face orientation"<<face_orientation<<std::endl;
+//        std::cout<<"face flip"<<face_flip<<std::endl;
+//        std::cout<<"face rotation"<<face_rotation<<std::endl;
+//            std::cout<<"Cannot handle reference cell face rotations!. Aborting..."<<std::endl;
+//            std::abort();
+//        }
+//        if(face_flip && face_rotation){
+//            std::cout<<"Cannot handle reference cell face flip and rotations!. Aborting..."<<std::endl;
+//        std::cout<<"Cell face was rotated by Deal.ii! Face id is:"<<iface<<std::endl;	
+//        std::cout<<"face orientation"<<face_orientation<<std::endl;
+//        std::cout<<"face flip"<<face_flip<<std::endl;
+//        std::cout<<"face rotation"<<face_rotation<<std::endl;
+//            std::abort();
+//        }
+//    }
+//    if(face_number == 100){
+//            std::cout<<"Cannot handle reference cell no face orientation and no rotations!. Aborting..."<<std::endl;
+//            //std::cout<<"face_flip:"<<face_flip<<std::endl;
+//            //std::cout<<"face_rotation:"<<face_rotation<<std::endl;
+//            //std::abort();
+//    }
+//
     return face_number;
 
 }

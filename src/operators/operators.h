@@ -354,7 +354,7 @@ public:
 
     /// Returns the reference cell's face number in standard orientation.
     unsigned int reference_face_number(
-        const bool iface,
+        const unsigned int iface,
         const bool face_orientation,
         const bool face_flip,
         const bool face_rotation);

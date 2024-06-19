@@ -242,6 +242,8 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_and_build_operators(
     //check if the reference face changes orientation for unstructured 3D
     const unsigned int face_int = soln_basis_int.reference_face_number(iface, cell->face_orientation(iface), cell->face_flip(iface), cell->face_rotation(iface));
     const unsigned int face_ext = soln_basis_ext.reference_face_number(neighbor_iface, neighbor_cell->face_orientation(neighbor_iface), neighbor_cell->face_flip(neighbor_iface), neighbor_cell->face_rotation(neighbor_iface));
+
+
     //build the surface metric operators for interior
     metric_oper_int.build_facet_metric_operators(
         face_int,
@@ -597,7 +599,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_volume_term_auxiliary_equation
 
 template <int dim, int nstate, typename real, typename MeshType>
 void DGStrong<dim,nstate,real,MeshType>::assemble_boundary_term_auxiliary_equation(
-    typename dealii::DoFHandler<dim>::active_cell_iterator /*cell*/,
+    typename dealii::DoFHandler<dim>::active_cell_iterator cell,
     const unsigned int iface,
     const dealii::types::global_dof_index current_cell_index,
     const unsigned int poly_degree,
@@ -670,8 +672,9 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_boundary_term_auxiliary_equati
 
     //evaluate physical facet fluxes dot product with physical unit normal scaled by determinant of metric facet Jacobian
     //the outward reference normal dircetion.
-    const dealii::Tensor<1,dim,double> unit_ref_normal_int = dealii::GeometryInfo<dim>::unit_normal_vector[iface];
-   // const dealii::Tensor<1,dim,double> unit_ref_normal_int = (cell->face_orientation(iface)) ? dealii::GeometryInfo<dim>::unit_normal_vector[iface] : - dealii::GeometryInfo<dim>::unit_normal_vector[iface];
+   // const dealii::Tensor<1,dim,double> unit_ref_normal_int = dealii::GeometryInfo<dim>::unit_normal_vector[iface];
+    const dealii::Tensor<1,dim,double> unit_ref_normal_int = (cell->face_orientation(iface)) ? dealii::GeometryInfo<dim>::unit_normal_vector[iface] : - dealii::GeometryInfo<dim>::unit_normal_vector[iface];
+
     std::array<dealii::Tensor<1,dim,std::vector<real>>,nstate> surf_num_flux_minus_surf_soln_dot_normal;
     for(unsigned int iquad=0; iquad<n_face_quad_pts; iquad++){
         //Copy Metric Cofactor on the facet in a way can use for transforming Tensor Blocks to reference space
@@ -746,7 +749,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_boundary_term_auxiliary_equati
 /*********************************************************************************/
 template <int dim, int nstate, typename real, typename MeshType>
 void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_auxiliary_equation(
-    typename dealii::DoFHandler<dim>::active_cell_iterator/* cell*/,
+    typename dealii::DoFHandler<dim>::active_cell_iterator cell,
     const unsigned int iface, const unsigned int neighbor_iface,
     const dealii::types::global_dof_index current_cell_index,
     const dealii::types::global_dof_index neighbor_cell_index,
@@ -818,8 +821,9 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_auxiliary_equation(
 
     //evaluate physical facet fluxes dot product with physical unit normal scaled by determinant of metric facet Jacobian
     //the outward reference normal dircetion.
-    const dealii::Tensor<1,dim,double> unit_ref_normal_int = dealii::GeometryInfo<dim>::unit_normal_vector[iface];
-   // const dealii::Tensor<1,dim,double> unit_ref_normal_int = (cell->face_orientation(iface)) ? dealii::GeometryInfo<dim>::unit_normal_vector[iface] : -dealii::GeometryInfo<dim>::unit_normal_vector[iface];
+   // const dealii::Tensor<1,dim,double> unit_ref_normal_int = dealii::GeometryInfo<dim>::unit_normal_vector[iface];
+    const dealii::Tensor<1,dim,double> unit_ref_normal_int = (cell->face_orientation(iface)) ? dealii::GeometryInfo<dim>::unit_normal_vector[iface] : -dealii::GeometryInfo<dim>::unit_normal_vector[iface];
+
     std::array<dealii::Tensor<1,dim,std::vector<real>>,nstate> surf_num_flux_minus_surf_soln_int_dot_normal;
     std::array<dealii::Tensor<1,dim,std::vector<real>>,nstate> surf_num_flux_minus_surf_soln_ext_dot_normal;
     for (unsigned int iquad=0; iquad<n_face_quad_pts; ++iquad) {
@@ -1488,7 +1492,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_volume_term_strong(
 
 template <int dim, int nstate, typename real, typename MeshType>
 void DGStrong<dim,nstate,real,MeshType>::assemble_boundary_term_strong(
-    typename dealii::DoFHandler<dim>::active_cell_iterator /*cell*/,
+    typename dealii::DoFHandler<dim>::active_cell_iterator cell,
     const unsigned int iface, 
     const dealii::types::global_dof_index current_cell_index,
     const unsigned int boundary_id,
@@ -1871,8 +1875,9 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_boundary_term_strong(
     // Since we are computing a dot product with the unit reference normal,
     // we exploit the fact that the unit reference normal has a value of 0 in all reference directions except
     // the outward reference normal dircetion.
-    const dealii::Tensor<1,dim,double> unit_ref_normal_int = dealii::GeometryInfo<dim>::unit_normal_vector[iface];
-   // const dealii::Tensor<1,dim,double> unit_ref_normal_int =(cell->face_orientation(iface)) ?  dealii::GeometryInfo<dim>::unit_normal_vector[iface] : -dealii::GeometryInfo<dim>::unit_normal_vector[iface];
+    //const dealii::Tensor<1,dim,double> unit_ref_normal_int = dealii::GeometryInfo<dim>::unit_normal_vector[iface];
+    const dealii::Tensor<1,dim,double> unit_ref_normal_int =(cell->face_orientation(iface)) ?  dealii::GeometryInfo<dim>::unit_normal_vector[iface] : -dealii::GeometryInfo<dim>::unit_normal_vector[iface];
+
     const int dim_not_zero = iface / 2;//reference direction of face integer division
 
     std::array<std::vector<real>,nstate> conv_int_vol_ref_flux_interp_to_face_dot_ref_normal;
@@ -2191,8 +2196,8 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_boundary_term_strong(
 
 template <int dim, int nstate, typename real, typename MeshType>
 void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_strong(
-    typename dealii::DoFHandler<dim>::active_cell_iterator /*cell*/,
-    typename dealii::DoFHandler<dim>::active_cell_iterator /*neighbor_cell*/,
+    typename dealii::DoFHandler<dim>::active_cell_iterator cell,
+    typename dealii::DoFHandler<dim>::active_cell_iterator neighbor_cell,
     const unsigned int iface, const unsigned int neighbor_iface, 
     const dealii::types::global_dof_index current_cell_index,
     const dealii::types::global_dof_index neighbor_cell_index,
@@ -2852,10 +2857,10 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_strong(
     // Since we are computing a dot product with the unit reference normal,
     // we exploit the fact that the unit reference normal has a value of 0 in all reference directions except
     // the outward reference normal dircetion.
-    const dealii::Tensor<1,dim,double> unit_ref_normal_int = dealii::GeometryInfo<dim>::unit_normal_vector[iface];
-    const dealii::Tensor<1,dim,double> unit_ref_normal_ext = dealii::GeometryInfo<dim>::unit_normal_vector[neighbor_iface];
-  //  const dealii::Tensor<1,dim,double> unit_ref_normal_int =(cell->face_orientation(iface))? dealii::GeometryInfo<dim>::unit_normal_vector[iface] : -dealii::GeometryInfo<dim>::unit_normal_vector[iface] ;
-  //  const dealii::Tensor<1,dim,double> unit_ref_normal_ext =(neighbor_cell->face_orientation(iface))? dealii::GeometryInfo<dim>::unit_normal_vector[neighbor_iface] : -dealii::GeometryInfo<dim>::unit_normal_vector[neighbor_iface] ;
+   // const dealii::Tensor<1,dim,double> unit_ref_normal_int = dealii::GeometryInfo<dim>::unit_normal_vector[iface];
+   // const dealii::Tensor<1,dim,double> unit_ref_normal_ext = dealii::GeometryInfo<dim>::unit_normal_vector[neighbor_iface];
+    const dealii::Tensor<1,dim,double> unit_ref_normal_int =(cell->face_orientation(iface))? dealii::GeometryInfo<dim>::unit_normal_vector[iface] : -dealii::GeometryInfo<dim>::unit_normal_vector[iface] ;
+    const dealii::Tensor<1,dim,double> unit_ref_normal_ext =(neighbor_cell->face_orientation(iface))? dealii::GeometryInfo<dim>::unit_normal_vector[neighbor_iface] : -dealii::GeometryInfo<dim>::unit_normal_vector[neighbor_iface] ;
     // Extract the reference direction that is outward facing on the facet.
     const int dim_not_zero_int = iface / 2;//reference direction of face integer division
     const int dim_not_zero_ext = neighbor_iface / 2;//reference direction of face integer division

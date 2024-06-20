@@ -1365,13 +1365,13 @@ template <int dim, int nstate, typename real>
 void Euler<dim, nstate, real>
 ::boundary_do_nothing(
     const std::array<real, nstate>& soln_int,
-    const std::array<dealii::Tensor<1, dim, real>, nstate>& soln_grad_int,
+    const std::array<dealii::Tensor<1, dim, real>, nstate>& /*soln_grad_int*/,
     std::array<real, nstate>& soln_bc,
     std::array<dealii::Tensor<1, dim, real>, nstate>& soln_grad_bc) const
 {
     for (int istate = 0; istate < nstate; ++istate) {
             soln_bc[istate] = soln_int[istate];
-            soln_grad_bc[istate] = soln_grad_int[istate];
+            soln_grad_bc[istate] = 0;//soln_grad_int[istate];
     }
     
 }

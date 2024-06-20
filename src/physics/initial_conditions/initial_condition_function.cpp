@@ -921,7 +921,7 @@ real InitialConditionFunction_SedovBlastWave<dim, nstate, real>
         const real x = point[0];
         const real y = point[1];
         real r = sqrt(pow(x,2)+pow(y,2));
-        //real r_0 = 4*this->h;
+        real r_0 = 4*this->h;
 
         if (istate == 0) {
             // density
@@ -937,10 +937,10 @@ real InitialConditionFunction_SedovBlastWave<dim, nstate, real>
         }
         else if (istate == 3) {
             // pressure
-            if(r < this->h)//r_0)
-                value = (this->gamma_gas - 1.0)*(0.244816/pow(this->h,2));///(this->gamma_gas - 1.0)/(dealii::numbers::PI*pow(r_0,2));
+            if(r < r_0)
+                value = (this->gamma_gas - 1.0)/(dealii::numbers::PI*pow(r_0,2));
             else
-                value = 4e-13;//1e-5;
+                value = 1e-5;
         }
 
     }

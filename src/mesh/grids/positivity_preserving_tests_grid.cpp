@@ -265,7 +265,7 @@ void mach_3_wind_tunnel_grid(
                         cell->face(face)->set_boundary_id(1001); // x_right, Symmetry/Wall 
                     }
                     else {
-                        cell->face(face)->set_boundary_id(1009); // x_right, Outflow
+                        cell->face(face)->set_boundary_id(1002); // x_right, Outflow
                     }
                 }
                 else if (face == 2 || face == 3) {

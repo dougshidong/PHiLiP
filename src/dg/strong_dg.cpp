@@ -30,6 +30,7 @@ DGStrong<dim,nstate,real,MeshType>::DGStrong(
     , do_compute_filtered_solution(this->all_parameters->physics_model_param.do_compute_filtered_solution)
     , apply_modal_high_pass_filter_on_filtered_solution(this->all_parameters->physics_model_param.apply_modal_high_pass_filter_on_filtered_solution)
     , poly_degree_max_large_scales(this->all_parameters->physics_model_param.poly_degree_max_large_scales)
+    , using_wall_model(this->all_parameters->using_wall_model)
 { }
 
 // Destructor
@@ -2123,14 +2124,24 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_boundary_term_strong(
         // pass opposite_soln_state instead of soln_state -- nevermind
         this->pde_physics_double->boundary_face_values_viscous_flux (boundary_id, surf_flux_node, unit_phys_normal_int, soln_state, aux_soln_state, filtered_soln_state, filtered_aux_soln_state, soln_boundary, grad_soln_boundary);
         std::array<real,nstate> diss_auxi_num_flux_dot_n_at_q;
-        diss_auxi_num_flux_dot_n_at_q = this->diss_num_flux_double->evaluate_auxiliary_flux(
-            current_cell_index, current_cell_index,
-            0.0, 0.0,
-            soln_state, soln_boundary,
-            aux_soln_state, grad_soln_boundary,
-            filtered_soln_state, soln_boundary,
-            filtered_aux_soln_state, grad_soln_boundary,
-            unit_phys_normal_int, penalty, true, boundary_id);
+        if(this->using_wall_model && ((boundary_id == 1001) || (boundary_id == 1006))) {
+            diss_auxi_num_flux_dot_n_at_q = this->pde_physics_double->dissipative_flux_dot_normal(
+                opposite_surf_soln_state, aux_soln_state, 
+                filtered_soln_state, filtered_aux_soln_state,
+                true, // on_boundary == true
+                current_cell_index, 
+                unit_phys_normal_int,
+                boundary_id);
+        } else {
+            diss_auxi_num_flux_dot_n_at_q = this->diss_num_flux_double->evaluate_auxiliary_flux(
+                current_cell_index, current_cell_index,
+                0.0, 0.0,
+                soln_state, soln_boundary,
+                aux_soln_state, grad_soln_boundary,
+                filtered_soln_state, soln_boundary,
+                filtered_aux_soln_state, grad_soln_boundary,
+                unit_phys_normal_int, penalty, true, boundary_id);
+        }
 
         for(int istate=0; istate<nstate; istate++){
             // allocate

@@ -131,6 +131,8 @@ PhysicsFactory<dim,nstate,real>
         }
     } else if (pde_type == PDE_enum::navier_stokes_channel_flow_constant_source_term) {
         if constexpr (nstate==dim+2) {
+            const real domain_length_y_direction = parameters_input->flow_solver_param.turbulent_channel_domain_length_y_direction;
+            const real half_channel_height = domain_length_y_direction/2.0;
             return std::make_shared < NavierStokes_ChannelFlowConstantSourceTerm<dim,nstate,real> > (
                 parameters_input->euler_param.ref_length,
                 parameters_input->euler_param.gamma_gas,
@@ -142,7 +144,33 @@ PhysicsFactory<dim,nstate,real>
                 parameters_input->navier_stokes_param.use_constant_viscosity,
                 parameters_input->navier_stokes_param.nondimensionalized_constant_viscosity,
                 parameters_input->flow_solver_param.turbulent_channel_friction_velocity_reynolds_number,
-                (parameters_input->flow_solver_param.turbulent_channel_domain_length_y_direction/2.0), // half channel height
+                half_channel_height,
+                parameters_input->navier_stokes_param.temperature_inf,
+                parameters_input->navier_stokes_param.nondimensionalized_isothermal_wall_temperature,
+                parameters_input->navier_stokes_param.thermal_boundary_condition_type,
+                manufactured_solution_function,
+                parameters_input->two_point_num_flux_type);
+        }
+    } else if (pde_type == PDE_enum::navier_stokes_channel_flow_constant_source_term_wall_model) {
+        if constexpr (nstate==dim+2) {
+            const real domain_length_y_direction = parameters_input->flow_solver_param.turbulent_channel_domain_length_y_direction;
+            const real half_channel_height = domain_length_y_direction/2.0;
+            const real number_of_cells_y_direction = parameters_input->flow_solver_param.turbulent_channel_number_of_cells_y_direction;
+            const real uniform_spacing_y_direction = domain_length_y_direction/double(number_of_cells_y_direction);
+
+            return std::make_shared < NavierStokes_ChannelFlowConstantSourceTerm_WallModel<dim,nstate,real> > (
+                parameters_input->euler_param.ref_length,
+                parameters_input->euler_param.gamma_gas,
+                parameters_input->euler_param.mach_inf,
+                parameters_input->euler_param.angle_of_attack,
+                parameters_input->euler_param.side_slip_angle,
+                parameters_input->navier_stokes_param.prandtl_number,
+                parameters_input->navier_stokes_param.reynolds_number_inf,
+                parameters_input->navier_stokes_param.use_constant_viscosity,
+                parameters_input->navier_stokes_param.nondimensionalized_constant_viscosity,
+                parameters_input->flow_solver_param.turbulent_channel_friction_velocity_reynolds_number,
+                half_channel_height,
+                uniform_spacing_y_direction,
                 parameters_input->navier_stokes_param.temperature_inf,
                 parameters_input->navier_stokes_param.nondimensionalized_isothermal_wall_temperature,
                 parameters_input->navier_stokes_param.thermal_boundary_condition_type,

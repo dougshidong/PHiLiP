@@ -817,7 +817,7 @@ real InitialConditionFunction_LowDensity2D<dim, nstate, real>
         const real y = point[1];
         if (istate == 0) {
             // density
-            value = 1 + 0.99 * sin(x + y);
+            value = 1 + 0.999 * sin(x + y);
         }
         if (istate == 1) {
             // x-velocity

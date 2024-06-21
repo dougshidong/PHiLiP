@@ -2,6 +2,7 @@
 #include <iostream>
 #include <stdlib.h>
 #include "mesh/gmsh_reader.hpp"
+#include "physics/physics_factory.h"
 
 #include <deal.II/grid/grid_generator.h>
 #include <deal.II/grid/grid_refinement.h>
@@ -17,7 +18,11 @@ template <int dim, int nstate>
 LimiterConvergenceTests<dim, nstate>::LimiterConvergenceTests(const PHiLiP::Parameters::AllParameters *const parameters_input)
     : FlowSolverCaseBase<dim, nstate>(parameters_input)
     , unsteady_data_table_filename_with_extension(this->all_param.flow_solver_param.unsteady_data_table_filename+".txt")
-{}
+{
+    //create the Physics object
+    this->pde_physics = std::dynamic_pointer_cast<Physics::PhysicsBase<dim,nstate,double>>(
+                Physics::PhysicsFactory<dim,nstate,double>::create_Physics(parameters_input));
+}
 
 template <int dim, int nstate>
 std::shared_ptr<Triangulation> LimiterConvergenceTests<dim,nstate>::generate_grid() const
@@ -68,6 +73,7 @@ double LimiterConvergenceTests<dim, nstate>::get_adaptive_time_step(std::shared_
 
     double left = this->all_param.flow_solver_param.grid_left_bound;
     double right = this->all_param.flow_solver_param.grid_right_bound;
+    const unsigned int number_of_degrees_of_freedom_per_state = dg->dof_handler.n_dofs()/nstate;
 
     const unsigned int n_global_active_cells = dg->triangulation->n_global_active_cells();
     const unsigned int n_dofs_cfl = dg->dof_handler.n_dofs() / nstate;
@@ -88,8 +94,11 @@ double LimiterConvergenceTests<dim, nstate>::get_adaptive_time_step(std::shared_
     if(flow_case == flow_case_enum::burgers_limiter)
         time_step = (PHILIP_DIM == 2) ? (1.0 / 14.0) * delta_x : (1.0 / 24.0) * delta_x;
 
-    if (flow_case == flow_case_enum::low_density_2d)
-        time_step = (1.0 / 50.0) * pow(delta_x , 2.0);
+    if (flow_case == flow_case_enum::low_density_2d){
+        const double approximate_grid_spacing = (this->all_param.flow_solver_param.grid_xmax-this->all_param.flow_solver_param.grid_xmin)/pow(number_of_degrees_of_freedom_per_state,(1.0/dim));
+        const double cfl_number = this->all_param.flow_solver_param.courant_friedrichs_lewy_number;
+        time_step = cfl_number * approximate_grid_spacing / this->maximum_local_wave_speed;
+    }
 
     if (flow_case == flow_case_enum::nonsmooth_case)
         time_step =  0.00001;
@@ -100,11 +109,53 @@ double LimiterConvergenceTests<dim, nstate>::get_adaptive_time_step(std::shared_
 template <int dim, int nstate>
 double LimiterConvergenceTests<dim, nstate>::get_adaptive_time_step_initial(std::shared_ptr<DGBase<dim, double>> dg)
 {
+    if(nstate == dim + 2){
+        // initialize the maximum local wave speed
+        update_maximum_local_wave_speed(*dg);
+    }
     // compute time step for each case such that results show dominant spatial accuracy
     const double time_step = get_adaptive_time_step(dg);
 
     return time_step;
 }
+
+template<int dim, int nstate>
+void LimiterConvergenceTests<dim, nstate>::update_maximum_local_wave_speed(DGBase<dim, double> &dg)
+{    
+    // Initialize the maximum local wave speed to zero
+    this->maximum_local_wave_speed = 0.0;
+
+    // Overintegrate the error to make sure there is not integration error in the error estimate
+    int overintegrate = 10;
+    dealii::QGauss<dim> quad_extra(dg.max_degree+1+overintegrate);
+    dealii::FEValues<dim,dim> fe_values_extra(*(dg.high_order_grid->mapping_fe_field), dg.fe_collection[dg.max_degree], quad_extra,
+                                              dealii::update_values | dealii::update_gradients | dealii::update_JxW_values | dealii::update_quadrature_points);
+
+    const unsigned int n_quad_pts = fe_values_extra.n_quadrature_points;
+    std::array<double,nstate> soln_at_q;
+
+    std::vector<dealii::types::global_dof_index> dofs_indices (fe_values_extra.dofs_per_cell);
+    for (auto cell = dg.dof_handler.begin_active(); cell!=dg.dof_handler.end(); ++cell) {
+        if (!cell->is_locally_owned()) continue;
+        fe_values_extra.reinit (cell);
+        cell->get_dof_indices (dofs_indices);
+
+        for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
+
+            std::fill(soln_at_q.begin(), soln_at_q.end(), 0.0);
+            for (unsigned int idof=0; idof<fe_values_extra.dofs_per_cell; ++idof) {
+                const unsigned int istate = fe_values_extra.get_fe().system_to_component_index(idof).first;
+                soln_at_q[istate] += dg.solution[dofs_indices[idof]] * fe_values_extra.shape_value_component(idof, iquad, istate);
+            }
+
+            // Update the maximum local wave speed (i.e. convective eigenvalue)
+            const double local_wave_speed = this->pde_physics->max_convective_eigenvalue(soln_at_q);
+            if(local_wave_speed > this->maximum_local_wave_speed) this->maximum_local_wave_speed = local_wave_speed;
+        }
+    }
+    this->maximum_local_wave_speed = dealii::Utilities::MPI::max(this->maximum_local_wave_speed, this->mpi_communicator);
+}
+
 
 template <int dim, int nstate>
 void LimiterConvergenceTests<dim, nstate>::display_additional_flow_case_specific_parameters() const

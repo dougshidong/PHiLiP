@@ -34,6 +34,124 @@ DGStrong<dim,nstate,real,MeshType>::DGStrong(
 *       Build operators and solve for RHS
 *
 ***********************************************************/
+//template <int dim, int nstate, typename real, typename MeshType>
+//template <typename adtype>
+//void DGStrong<dim,nstate,real,MeshType>::assemble_volume_term_and_build_operators_ad(
+//    typename dealii::DoFHandler<dim>::active_cell_iterator cell,
+//    const dealii::types::global_dof_index                  current_cell_index,
+//    const std::vector<adtype>                              &soln_coeffs,
+//    const dealii::Tensor<1,dim,std::vector<adtype>>        &aux_soln_coeffs,
+//    const std::vector<adtype>                              &metric_coeffs,
+//    const std::vector<real>                                &local_dual,
+//    const std::vector<dealii::types::global_dof_index>     &soln_dofs_indices,
+//    const std::vector<dealii::types::global_dof_index>     &metric_dofs_indices,
+//    const unsigned int                                     poly_degree,
+//    const unsigned int                                     grid_degree,
+//    const Physics::PhysicsBase<dim, nstate, adtype>        &physics,
+//    OPERATOR::basis_functions<dim,2*dim>                   &soln_basis,
+//    OPERATOR::basis_functions<dim,2*dim>                   &flux_basis,
+//    OPERATOR::local_basis_stiffness<dim,2*dim>             &flux_basis_stiffness,
+//    OPERATOR::vol_projection_operator<dim,2*dim>           &soln_basis_projection_oper_int,
+//    OPERATOR::vol_projection_operator<dim,2*dim>           &soln_basis_projection_oper_ext,
+//    OPERATOR::metric_operators<adtype,dim,2*dim>           &metric_oper,
+//    OPERATOR::mapping_shape_functions<dim,2*dim>           &mapping_basis,
+//    std::array<std::vector<adtype>,dim>                    &mapping_support_points,
+//    dealii::hp::FEValues<dim,dim>                          &/*fe_values_collection_volume*/,
+//    dealii::hp::FEValues<dim,dim>                          &/*fe_values_collection_volume_lagrange*/,
+//    const dealii::FESystem<dim,dim>                        &/*fe_soln*/,
+//    std::vector<adtype>                                    &local_rhs_int_cell, 
+//    std::vector<dealii::Tensor<1,dim,adtype>>              &local_auxiliary_RHS,
+//    const bool                                             compute_auxiliary_right_hand_side,
+//    adtype                                                 &dual_dot_residual) 
+//{
+//    // Check if the current cell's poly degree etc is different then previous cell's.
+//    // If the current cell's poly degree is different, then we recompute the 1D 
+//    // polynomial basis functions. Otherwise, we use the previous values in reference space.
+//    if(poly_degree != soln_basis.current_degree){
+//        soln_basis.current_degree = poly_degree; 
+//        flux_basis.current_degree = poly_degree; 
+//        mapping_basis.current_degree  = grid_degree; 
+//        this->reinit_operators_for_cell_residual_loop(poly_degree, poly_degree, grid_degree, 
+//                                                      soln_basis, soln_basis, 
+//                                                      flux_basis, flux_basis, 
+//                                                      flux_basis_stiffness, 
+//                                                      soln_basis_projection_oper_int, soln_basis_projection_oper_ext,
+//                                                      mapping_basis);
+//    }
+//
+//    const dealii::FESystem<dim> &fe_metric = this->high_order_grid->fe_system;
+//    const unsigned int n_metric_dofs = fe_metric.dofs_per_cell;
+//    const unsigned int n_grid_nodes  = n_metric_dofs / dim;
+//    //Rewrite the high_order_grid->volume_nodes in a way we can use sum-factorization on.
+//    //That is, splitting up the vector by the dimension.
+//    for(int idim=0; idim<dim; idim++){
+//        mapping_support_points[idim].resize(n_grid_nodes);
+//    }
+//    const std::vector<unsigned int > &index_renumbering = dealii::FETools::hierarchic_to_lexicographic_numbering<dim>(grid_degree);
+//    for (unsigned int idof = 0; idof< n_metric_dofs; ++idof) {
+//        const unsigned int istate = fe_metric.system_to_component_index(idof).first; 
+//        const unsigned int ishape = fe_metric.system_to_component_index(idof).second; 
+//        const unsigned int igrid_node = index_renumbering[ishape];
+//        mapping_support_points[istate][igrid_node] = metric_coeffs[idof]; 
+//    }
+//
+//    //build the volume metric cofactor matrix and the determinant of the volume metric Jacobian
+//    //Also, computes the physical volume flux nodes if needed from flag passed to constructor in dg.cpp
+//    metric_oper.build_volume_metric_operators(
+//        this->volume_quadrature_collection[poly_degree].size(), n_grid_nodes,
+//        mapping_support_points,
+//        mapping_basis,
+//        this->all_parameters->use_invariant_curl_form);
+//
+//    std::array<std::vector<adtype>,nstate> soln_coeff_states;
+//    std::array<dealii::Tensor<1,dim,std::vector<adtype>>,nstate> aux_soln_coeff_states;
+//    for (unsigned int idof = 0; idof < n_dofs_cell; ++idof) {
+//        const unsigned int istate = this->fe_collection[poly_degree].system_to_component_index(idof).first;
+//        const unsigned int ishape = this->fe_collection[poly_degree].system_to_component_index(idof).second;
+//        if(ishape == 0)
+//            soln_coeff_states[istate].resize(n_shape_fns);
+//        soln_coeff_states[istate][ishape] = soln_coeffs[idof];
+//        for(int idim=0; idim<dim; idim++){
+//            if(ishape == 0)
+//                aux_soln_coeff_states[istate][idim].resize(n_shape_fns);
+//            if(this->use_auxiliary_eq){
+//                aux_soln_coeff_states[istate][idim][ishape] = aux_soln_coeff[idim][idof];
+//            }
+//            else{
+//                aux_soln_coeff_states[istate][idim][ishape] = 0.0;
+//            }
+//        }
+//    }
+//
+//    if(compute_auxiliary_right_hand_side){
+//        assemble_volume_term_auxiliary_equation<adtype> (
+//            soln_coeff_states,
+//            poly_degree,
+//            soln_coeffs,
+//            soln_basis,
+//            flux_basis,
+//            metric_oper,
+//            local_auxiliary_RHS);
+//    }
+//    else{
+//        assemble_volume_term_strong<adtype>(
+//            cell,
+//            current_cell_index,
+//            soln_coeff_states,
+//            aux_soln_coeff_states,
+//            poly_degree,
+//            soln_coeffs,
+//            soln_basis,
+//            flux_basis,
+//            flux_basis_stiffness,
+//            soln_basis_projection_oper_int,
+//            metric_oper,
+//            physics,
+//            local_rhs_int_cell);
+//    }
+//
+//}
+
 template <int dim, int nstate, typename real, typename MeshType>
 void DGStrong<dim,nstate,real,MeshType>::assemble_volume_term_and_build_operators(
     typename dealii::DoFHandler<dim>::active_cell_iterator cell,
@@ -498,9 +616,12 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_auxiliary_residual()
  **************************************************/
 
 template <int dim, int nstate, typename real, typename MeshType>
+//template <typename real2>
 void DGStrong<dim,nstate,real,MeshType>::assemble_volume_term_auxiliary_equation(
     const std::vector<dealii::types::global_dof_index> &current_dofs_indices,
+//    const std::array<std::vector<adtype>,nstate> &soln_coeff,
     const unsigned int poly_degree,
+ //   std::vector<real2> &soln_coeff,
     OPERATOR::basis_functions<dim,2*dim> &soln_basis,
     OPERATOR::basis_functions<dim,2*dim> &flux_basis,
     OPERATOR::metric_operators<real,dim,2*dim> &metric_oper,
@@ -880,13 +1001,15 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_volume_term_strong(
     typename dealii::DoFHandler<dim>::active_cell_iterator cell,
     const dealii::types::global_dof_index                  current_cell_index,
     const std::vector<dealii::types::global_dof_index>     &cell_dofs_indices,
+//    const std::array<std::vector<adtype>,nstate>           &soln_coeff,
     const unsigned int                                     poly_degree,
     OPERATOR::basis_functions<dim,2*dim>                   &soln_basis,
     OPERATOR::basis_functions<dim,2*dim>                   &flux_basis,
     OPERATOR::local_basis_stiffness<dim,2*dim>             &flux_basis_stiffness,
     OPERATOR::vol_projection_operator<dim,2*dim>           &soln_basis_projection_oper,
     OPERATOR::metric_operators<real,dim,2*dim>             &metric_oper,
-    dealii::Vector<real>                                   &local_rhs_int_cell)
+//    const Physics::PhysicsBase<dim, nstate, real2>         &pde_physics,
+    dealii::Vector<real>                                     &local_rhs_int_cell)
 {
     (void) current_cell_index;
 

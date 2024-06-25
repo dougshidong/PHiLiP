@@ -572,6 +572,8 @@ public:
     /// Distance from wall for wall model input velocity
     const double distance_from_wall_for_wall_model_input_velocity;
 
+    std::shared_ptr < WallModelLookUpTable<real> > wall_model_look_up_table;
+
     /** Nondimensionalized viscous flux (i.e. dissipative flux) dot normal vector that accounts for gradient boundary conditions
      *  when the on boundary flag is true -- contains the wall model
      *  References: 
@@ -596,20 +598,26 @@ class WallModelLookUpTable
      * */
     static const int NUMBER_OF_SAMPLE_POINTS = 24;
 public: // NOTES: Could template this for real
-    WallModelLookUpTable(); //< Constructor
+    WallModelLookUpTable(); ///< Constructor
 
-    ~WallModelLookUpTable(){}; //< Destructor
-
-    double get_wall_friction_velocity(double wall_parallel_velocity, double distance);
+    ~WallModelLookUpTable(){}; ///< Destructor
 
 private:
-    const std::vector<double,NUMBER_OF_SAMPLE_POINTS> xData, yData; /// x and y data for the look up table
-    const int size;
-    double interpolate(double x, bool extrapolate );/// interpolate function
+    const std::vector<real,NUMBER_OF_SAMPLE_POINTS> xData, yData; ///< x and y data for the look up table
+    const int size; ///< Size of interpolation data vectors
+    real interpolate(const real x, const bool extrapolate ) const; ///< interpolate function
     /// ConditionalOStream.
     /** Used as std::cout, but only prints if mpi_rank == 0
      */
     dealii::ConditionalOStream pcout;
+
+public:
+    /// Returns the wall shear stress magnitude calculated from the wall model
+    real get_wall_shear_stress_magnitude(
+        const real wall_parallel_velocity, 
+        const real distance, 
+        const real viscosity_coefficient,
+        const real density) const;
 };
 
 } // Physics namespace

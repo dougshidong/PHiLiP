@@ -1571,7 +1571,7 @@ NavierStokes_ChannelFlowConstantSourceTerm_WallModel<dim, nstate, real>::NavierS
     , distance_from_wall_for_wall_model_input_velocity(distance_from_wall_for_wall_model_input_velocity)
 {
     static_assert(nstate==dim+2, "Physics::NavierStokes_ChannelFlowConstantSourceTerm_WallModel() should be created with nstate=dim+2");
-    // Nothing to do here so far
+    wall_model_look_up_table = std::dynamic_pointer_cast<WallModelLookUpTable<real>>();
 }
 
 
@@ -1604,9 +1604,15 @@ std::array<real,nstate> NavierStokes_ChannelFlowConstantSourceTerm_WallModel<dim
     }
 
     // Get wall shear stress magnitude from wall model
-    const real wall_shear_stress_magnitude = (
+    const std::array<real, nstate> primitive_soln = this->template convert_conservative_to_primitive_templated<real>(solution);
+    const real viscosity_coefficient = this->template compute_viscosity_coefficient<real>(primitive_soln);
+    const real density = solution[0];
+    const real wall_shear_stress_magnitude =
+            this->wall_model_look_up_table->get_wall_shear_stress_magnitude(
+                    velocity_parallel_to_wall,
                     this->distance_from_wall_for_wall_model_input_velocity,
-                    velocity_parallel_to_wall);
+                    viscosity_coefficient,
+                    density);
 
     // Compute the dissipative flux dot normal vector; Frere thesis eq.(2.39)
     std::array<real,nstate> dissipative_flux_dot_normal;    
@@ -1633,7 +1639,23 @@ WallModelLookUpTable::WallModelLookUpTable()
 
 template <typename real>
 real WallModelLookUpTable::
-interpolate(double x, bool extrapolate )
+get_wall_shear_stress_magnitude(
+    const real wall_parallel_velocity, 
+    const real distance, 
+    const real viscosity_coefficient,
+    const real density) const
+{
+    const real kinematic_viscosity = viscosity_coefficient/density;
+    const real u_plus_y_plus = wall_parallel_velocity*distance/kinematic_viscosity;
+    const real y_plus = this->interpolate(u_plus_y_plus,false);
+    const real wall_friction_velocity = kinematic_viscosity*y_plus/distance;
+    const real wall_shear_stress = density*wall_friction_velocity*wall_friction_velocity;
+    return wall_shear_stress;
+}
+
+template <typename real>
+real WallModelLookUpTable::
+interpolate(const real x, const bool extrapolate) const
 {
    int i = 0; // find left end of interval for interpolation
    if ( x >= this->xData[this->size - 2] ) // special case: beyond right end
@@ -1672,6 +1694,11 @@ template class NavierStokes_ChannelFlowConstantSourceTerm_WallModel < PHILIP_DIM
 template class NavierStokes_ChannelFlowConstantSourceTerm_WallModel < PHILIP_DIM, PHILIP_DIM+2, RadType  >;
 template class NavierStokes_ChannelFlowConstantSourceTerm_WallModel < PHILIP_DIM, PHILIP_DIM+2, FadFadType >;
 template class NavierStokes_ChannelFlowConstantSourceTerm_WallModel < PHILIP_DIM, PHILIP_DIM+2, RadFadType >;
+template class WallModelLookUpTable<double>;
+template class WallModelLookUpTable<FadType>;
+template class WallModelLookUpTable<RadType>;
+template class WallModelLookUpTable<FadFadType>;
+template class WallModelLookUpTable<RadFadType>;
 //==============================================================================
 // -> Templated member functions:
 //------------------------------------------------------------------------------

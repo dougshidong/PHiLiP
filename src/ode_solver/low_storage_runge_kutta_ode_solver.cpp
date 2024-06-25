@@ -48,8 +48,8 @@ void LowStorageRungeKuttaODESolver<dim,real,n_rk_stages,MeshType>::step_in_time 
     //int k = q_hat +1;
     
     double sum_delta = 0;
-    double atol = 0.1;
-    double rtol = 0.1;
+    double atol = 0.001;
+    double rtol = 0.001;
     double error = 0.0;
     w = 0.0;
     
@@ -97,20 +97,26 @@ void LowStorageRungeKuttaODESolver<dim,real,n_rk_stages,MeshType>::step_in_time 
     epsilon[1] = epsilon[0];
     epsilon[0] = 1 / w;
     */
-
+   double global_size = dealii::Utilities::MPI::sum(s1.local_size(), this->mpi_communicator);
    for (dealii::LinearAlgebra::distributed::Vector<double>::size_type i = 0; i < s1.local_size(); ++i) {
         error = s1.local_element(i) - s2.local_element(i);
         //this->pcout << "diff " << error;
         w = w + pow(error / (atol + rtol * std::max(std::abs(s1.local_element(i)), std::abs(s2.local_element(i)))), 2);
         //this->pcout << "w " << w;
     }
+    // loop sums elements at each mpi processor
     this->pcout << std::endl;
     //this->pcout << "w " << w;
-    w = pow(w / s1.local_size(), 0.5);
+
+    w = dealii::Utilities::MPI::sum(w, this->mpi_communicator);
+    // sums over all elements
+    w = pow(w / global_size, 0.5);
+
     //this->pcout << " size s1 " << s1.local_size();
     //this->pcout << " math " << w/s1.local_size();
     //this->pcout << "w " << pow(w / s1.local_size(), 1/2);
-    //this->pcout << "w " << w;
+    this->pcout << std::endl;
+    std::cout << "w " << w;
 
     ++(this->current_iteration);
     this->current_time += dt;

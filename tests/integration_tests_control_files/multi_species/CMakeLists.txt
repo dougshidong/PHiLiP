@@ -86,6 +86,15 @@ add_test(
   COMMAND mpirun -np ${MPIMAX} ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_2D -i ${CMAKE_CURRENT_BINARY_DIR}/2d_multi_species_vortex_advection.prm
   WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
 )
+# ----------------------------------------
+# Vortex advectiion 2D (Multi-Species, error test)
+# ----------------------------------------
+configure_file(2d_multi_species_vortex_advection_error_study.prm 2d_multi_species_vortex_advection_error_study.prm COPYONLY)
+add_test(
+  NAME MPI_2D_MULTI_SPECIES_VORTEX_ERROR_STUDY
+  COMMAND mpirun -np ${MPIMAX} ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_2D -i ${CMAKE_CURRENT_BINARY_DIR}/2d_multi_species_vortex_advection_error_study.prm
+  WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
+)
 
 # =======================================
 # Isentropic Euler Vortex 2D

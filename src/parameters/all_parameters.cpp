@@ -194,7 +194,8 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       " multi_species_high_temperature_vortex_advection_error_study | "
                       " multi_species_calorically_perfect_euler_vortex_advection_error_study | "           
                       " euler_bubble_advection_error_study | "   
-                      " multi_species_isentropic_euler_vortex_test | "   
+                      " multi_species_isentropic_euler_vortex_test | "
+                      " multi_species_two_dimensional_vortex_advection_error_study |"   
                       " khi_robustness"),
                       "The type of test we want to solve. "
                       "Choices are " 
@@ -240,6 +241,7 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       "  multi_species_calorically_perfect_euler_vortex_advection_error_study | "                       
                       "  euler_bubble_advection_error_study | "  
                       "  multi_species_isentropic_euler_vortex_test | "
+                      "  multi_species_two_dimensional_vortex_advection_error_study |"
                       "  khi_robustness>.");
 
     prm.declare_entry("pde_type", "advection",
@@ -430,6 +432,7 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
     else if (test_string == "multi_species_calorically_perfect_euler_vortex_advection_error_study"){ test_type = multi_species_calorically_perfect_euler_vortex_advection_error_study; }
     else if (test_string == "euler_bubble_advection_error_study")       { test_type = euler_bubble_advection_error_study; }    
     else if (test_string == "multi_species_isentropic_euler_vortex_test"){ test_type = multi_species_isentropic_euler_vortex_test; }
+    else if (test_string == "multi_species_two_dimensional_vortex_advection_error_study"){ test_type = multi_species_two_dimensional_vortex_advection_error_study; }
     else if (test_string == "khi_robustness")                           { test_type = khi_robustness; }
     
     overintegration = prm.get_integer("overintegration");

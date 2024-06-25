@@ -202,7 +202,8 @@ public:
         multi_species_high_temperature_vortex_advection_error_study,
         multi_species_calorically_perfect_euler_vortex_advection_error_study,
         euler_bubble_advection_error_study,    
-        multi_species_isentropic_euler_vortex_test,   
+        multi_species_isentropic_euler_vortex_test,
+        multi_species_two_dimensional_vortex_advection_error_study,   
     };
     /// Store selected TestType from the input file.
     TestType test_type;

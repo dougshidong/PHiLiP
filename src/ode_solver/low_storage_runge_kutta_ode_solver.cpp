@@ -87,7 +87,7 @@ void LowStorageRungeKuttaODESolver<dim,real,n_rk_stages,MeshType>::step_in_time 
 
     // error based step size 
     
-    
+    /*
     for (dealii::LinearAlgebra::distributed::Vector<double>::size_type i = 0; i < s1.local_size(); ++i) {
         error = s1.local_element(i) - s2.local_element(i);
         w = w + pow(error / (atol + rtol * std::max(std::abs(s1.local_element(i)), std::abs(s2.local_element(i)))), 2);
@@ -96,7 +96,7 @@ void LowStorageRungeKuttaODESolver<dim,real,n_rk_stages,MeshType>::step_in_time 
     epsilon[2] = epsilon[1];
     epsilon[1] = epsilon[0];
     epsilon[0] = 1 / w;
-    
+    */
 
    for (dealii::LinearAlgebra::distributed::Vector<double>::size_type i = 0; i < s1.local_size(); ++i) {
         error = s1.local_element(i) - s2.local_element(i);

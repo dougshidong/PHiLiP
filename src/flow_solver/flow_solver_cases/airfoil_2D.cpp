@@ -89,7 +89,7 @@ std::shared_ptr<Triangulation> Airfoil2D<dim,nstate>::generate_grid() const
             if (cell->face(face)->at_boundary()) {
                 unsigned int current_id = cell->face(face)->boundary_id();
                 if (current_id == 0 || current_id == 1 || current_id == 4 || current_id == 5) {
-                    cell->face(face)->set_boundary_id (1005); // farfield
+                    cell->face(face)->set_boundary_id (1004); // farfield
                 } else {
                     cell->face(face)->set_boundary_id (1001); // wall
                 }
@@ -112,7 +112,7 @@ std::shared_ptr<Triangulation> Airfoil2D<dim,nstate>::generate_grid() const
         this->mpi_communicator
     #endif
     );
-    const unsigned int n_slices = 2;
+    const unsigned int n_slices = 17;
     const double height = 0.2;
     const bool copy_manifold_ids = false;
     //const std::vector<types::manifold_id> manifold_priorities = {};
@@ -124,10 +124,10 @@ std::shared_ptr<Triangulation> Airfoil2D<dim,nstate>::generate_grid() const
         for (unsigned int face=0; face<dealii::GeometryInfo<3>::faces_per_cell; ++face) {
             if (cell->face(face)->at_boundary()) {
                 unsigned int current_id = cell->face(face)->boundary_id();
-                if (current_id == 1006) { //Dealii automatically assigns the next available number to the new boundaries when creating the 3D mesh. Thus, since the largest number used is 1005, it assigns 1006 and 1007 to the new boundaries. 
-                    cell->face(face)->set_boundary_id (2005); // z = 0 boundaries
-                } else if(current_id == 1007){
-                    cell->face(face)->set_boundary_id (2006); // z = height boundaries
+                if (current_id == 1005) { //Dealii automatically assigns the next available number to the new boundaries when creating the 3D mesh. Thus, since the largest number used is 1005, it assigns 1006 and 1007 to the new boundaries. 
+                    cell->face(face)->set_boundary_id (1006); //(2005); // z = 0 boundaries
+                } else if(current_id == 1006){
+                    cell->face(face)->set_boundary_id (1006); //(2006); // z = height boundaries
                 }
             }
         }

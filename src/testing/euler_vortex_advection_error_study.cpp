@@ -399,7 +399,7 @@ double EulerVortexAdvectionErrorStudy<dim,nstate>
                 &param);
 
             const double speed = 10.0;
-            const double t_end = 34.614724700315755e-1;
+            const double t_end = 34.614724700315755e-2;
             const double t_cycle = realgas_physics_double.u_ref*0.10;
             const double cycle = t_end/t_cycle;
             const double moved = speed*cycle;
@@ -469,7 +469,7 @@ double EulerVortexAdvectionErrorStudy<dim,nstate>
                 &param);
 
             const double speed = 10.0;
-            const double t_end = 34.614724700315755e-1;
+            const double t_end = 34.614724700315755e-2;
             const double t_cycle = realgas_physics_double.u_ref*0.10;
             const double cycle = t_end/t_cycle;
             const double moved = speed*cycle;

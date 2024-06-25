@@ -510,20 +510,27 @@ double EulerVortexAdvectionErrorStudy<dim,nstate>
             soln_primitive[3] = y_H2;
 
             const std::array<double,nstate> soln_conservative = realgas_physics_double.convert_primitive_to_conservative(soln_primitive);
-            if(istate==0) {
-            // mixture density
             value = soln_conservative[istate];
-            }
-            if(istate==1) {
-            // x-velocity
-            value = soln_conservative[istate];
-            }
-            if(istate==2) {
-            // pressure
-            value = soln_conservative[istate];
-            }
-            if(istate==3) {
-            // Y_H2
+            // if(istate==0) {
+            // // mixture density
+            // value = soln_conservative[istate];
+            // }
+            // if(istate==1) {
+            // // x-velocity
+            // value = soln_conservative[istate];
+            // }
+            // if(istate==2) {
+            // // pressure
+            // value = soln_conservative[istate];
+            // }
+            // if(istate==3) {
+            // // Y_H2
+            // value = soln_conservative[istate];
+            // }
+        
+        }
+    }
+
     // 2D Multi-Species Euler (Calorically Imperfect) Vortex
     else if (flow_type == FlowCaseEnum::multi_species_two_dimensional_vortex_advection)
     {
@@ -577,9 +584,10 @@ double EulerVortexAdvectionErrorStudy<dim,nstate>
             soln_primitive[4] = y_H2;
 
             const std::array<double,nstate> soln_conservative = realgas_physics_double.convert_primitive_to_conservative(soln_primitive);
+            value = soln_conservative[istate];
             // if(istate==0) {
             // // mixture density
-            value = soln_conservative[istate];
+            // value = soln_conservative[istate];
             // }
             // if(istate==1) {
             // // x-velocity

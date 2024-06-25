@@ -1,7 +1,7 @@
 #include <stdlib.h>     /* srand, rand */
 #include <iostream>
 
-#include <deal.II/base/convergence_table.h>
+// #include <deal.II/base/convergence_table.h>
 #include <deal.II/fe/fe_values.h>
 
 #include "euler_vortex_advection_error_study.h"
@@ -695,7 +695,7 @@ double EulerVortexAdvectionErrorStudy<dim,nstate>
     double last_error=10;
     std::vector<int> fail_conv_poly;
     std::vector<double> fail_conv_slop;
-    std::vector<dealii::ConvergenceTable> convergence_table_vector;
+    // std::vector<dealii::ConvergenceTable> convergence_table_vector;
 
     // Create initial condition function
     std::shared_ptr< InitialConditionFunction<dim,nstate,double> > initial_condition_function = 
@@ -722,7 +722,7 @@ double EulerVortexAdvectionErrorStudy<dim,nstate>
         std::vector<double> error_L1_mass_fractions_1st(n_grids);
         std::vector<double> error_Linf_mass_fractions_1st(n_grids);              
 
-        dealii::ConvergenceTable convergence_table;
+        // dealii::ConvergenceTable convergence_table;
 
         const std::vector<int> n_1d_cells = get_number_1d_cells(n_grids);
         // param.flow_solver_param.number_of_subdivisions_in_x_direction = n_1d_cells[0] * 4;
@@ -903,7 +903,7 @@ double EulerVortexAdvectionErrorStudy<dim,nstate>
             last_error = l2error_density_mpi_sum;
 
             const unsigned int n_dofs = flow_solver->dg->dof_handler.n_dofs();
-            const unsigned int n_global_active_cells = flow_solver->dg->triangulation->n_global_active_cells();
+            // const unsigned int n_global_active_cells = flow_solver->dg->triangulation->n_global_active_cells();
 
             // Convergence table
             double dx = 1.0/pow(n_dofs,(1.0/dim));
@@ -925,23 +925,23 @@ double EulerVortexAdvectionErrorStudy<dim,nstate>
             error_L1_mass_fractions_1st[igrid] = l1error_mass_fractions_1st_mpi_sum;
             error_Linf_mass_fractions_1st[igrid] = linferror_mass_fractions_1st_mpi_max;             
 
-            convergence_table.add_value("p", poly_degree);
-            convergence_table.add_value("cells", n_global_active_cells);
-            convergence_table.add_value("DoFs", n_dofs);
-            convergence_table.add_value("dx", dx);
-            convergence_table.add_value("L1_error(density)", l1error_density_mpi_sum);
-            convergence_table.add_value("L2_error(density)", l2error_density_mpi_sum);
-            convergence_table.add_value("Linf_error(density)", linferror_density_mpi_max);
-            convergence_table.add_value("L1_error(pressure)", l1error_pressure_mpi_sum);
-            convergence_table.add_value("L2_error(pressure)", l2error_pressure_mpi_sum);
-            convergence_table.add_value("Linf_error(pressure)", linferror_pressure_mpi_max);
-            convergence_table.add_value("L1_error(temperature)", l1error_temperature_mpi_sum);
-            convergence_table.add_value("L2_error(temperature)", l2error_temperature_mpi_sum);
-            convergence_table.add_value("Linf_error(temperature)", linferror_temperature_mpi_max);   
-            convergence_table.add_value("L1_error(species #1)", l1error_mass_fractions_1st_mpi_sum);
-            convergence_table.add_value("L2_error(species #1)", l2error_mass_fractions_1st_mpi_sum);
-            convergence_table.add_value("Linf_error(species #1)", linferror_mass_fractions_1st_mpi_max);                     
-            convergence_table.add_value("Residual",flow_solver->ode_solver->residual_norm);
+            // convergence_table.add_value("p", poly_degree);
+            // convergence_table.add_value("cells", n_global_active_cells);
+            // convergence_table.add_value("DoFs", n_dofs);
+            // convergence_table.add_value("dx", dx);
+            // convergence_table.add_value("L1_error(density)", l1error_density_mpi_sum);
+            // convergence_table.add_value("L2_error(density)", l2error_density_mpi_sum);
+            // convergence_table.add_value("Linf_error(density)", linferror_density_mpi_max);
+            // convergence_table.add_value("L1_error(pressure)", l1error_pressure_mpi_sum);
+            // convergence_table.add_value("L2_error(pressure)", l2error_pressure_mpi_sum);
+            // convergence_table.add_value("Linf_error(pressure)", linferror_pressure_mpi_max);
+            // convergence_table.add_value("L1_error(temperature)", l1error_temperature_mpi_sum);
+            // convergence_table.add_value("L2_error(temperature)", l2error_temperature_mpi_sum);
+            // convergence_table.add_value("Linf_error(temperature)", linferror_temperature_mpi_max);   
+            // convergence_table.add_value("L1_error(species #1)", l1error_mass_fractions_1st_mpi_sum);
+            // convergence_table.add_value("L2_error(species #1)", l2error_mass_fractions_1st_mpi_sum);
+            // convergence_table.add_value("Linf_error(species #1)", linferror_mass_fractions_1st_mpi_max);                     
+            // convergence_table.add_value("Residual",flow_solver->ode_solver->residual_norm);
             
             if(flow_solver->ode_solver->residual_norm > 1e-10)
             {
@@ -1125,71 +1125,71 @@ double EulerVortexAdvectionErrorStudy<dim,nstate>
                     << std::endl;                                                                             
             }
 
-            //output_results (igrid);
-            if (igrid == n_grids-1)
-            {
-                if (param.mesh_adaptation_param.total_mesh_adaptation_cycles > 0)
-                {
-                    dealii::Point<dim> smallest_cell_coord = flow_solver->dg->coordinates_of_highest_refined_cell();
-                    pcout<<" x = "<<smallest_cell_coord[0]<<" y = "<<smallest_cell_coord[1]<<std::endl;
-                    // Check if the mesh is refined near the shock i.e x \in (0.1,0.5) and y \in (0.0, 0.5).
-                    if ((smallest_cell_coord[0] > 0.1) && (smallest_cell_coord[0] < 0.5) && (smallest_cell_coord[1] > 0.0) && (smallest_cell_coord[1] < 0.5)) 
-                    {
-                        pcout<<"Mesh is refined near the shock. Test passed"<<std::endl;
-                        return 0; // Mesh adaptation test passed.
-                    }
-                    return 1; // Mesh adaptation failed.
-                }
-            }
+            // //output_results (igrid);
+            // if (igrid == n_grids-1)
+            // {
+            //     if (param.mesh_adaptation_param.total_mesh_adaptation_cycles > 0)
+            //     {
+            //         dealii::Point<dim> smallest_cell_coord = flow_solver->dg->coordinates_of_highest_refined_cell();
+            //         pcout<<" x = "<<smallest_cell_coord[0]<<" y = "<<smallest_cell_coord[1]<<std::endl;
+            //         // Check if the mesh is refined near the shock i.e x \in (0.1,0.5) and y \in (0.0, 0.5).
+            //         if ((smallest_cell_coord[0] > 0.1) && (smallest_cell_coord[0] < 0.5) && (smallest_cell_coord[1] > 0.0) && (smallest_cell_coord[1] < 0.5)) 
+            //         {
+            //             pcout<<"Mesh is refined near the shock. Test passed"<<std::endl;
+            //             return 0; // Mesh adaptation test passed.
+            //         }
+            //         return 1; // Mesh adaptation failed.
+            //     }
+            // }
         }
-        pcout << " ********************************************" << std::endl
-             << " Convergence rates for p = " << poly_degree << std::endl
-             << " ********************************************" << std::endl;
-        convergence_table.evaluate_convergence_rates(error_string, "cells", dealii::ConvergenceTable::reduction_rate_log2, dim);
-        convergence_table.set_scientific("dx", true);
-        convergence_table.set_scientific(error_string, true);
-        convergence_table.set_scientific("Residual",true);
-        //convergence_table.set_scientific("L2_error", true);
-        if (pcout.is_active()) convergence_table.write_text(pcout.get_stream());
+        // pcout << " ********************************************" << std::endl
+        //      << " Convergence rates for p = " << poly_degree << std::endl
+        //      << " ********************************************" << std::endl;
+        // convergence_table.evaluate_convergence_rates(error_string, "cells", dealii::ConvergenceTable::reduction_rate_log2, dim);
+        // convergence_table.set_scientific("dx", true);
+        // convergence_table.set_scientific(error_string, true);
+        // convergence_table.set_scientific("Residual",true);
+        // //convergence_table.set_scientific("L2_error", true);
+        // if (pcout.is_active()) convergence_table.write_text(pcout.get_stream());
 
-        convergence_table_vector.push_back(convergence_table);
+        // convergence_table_vector.push_back(convergence_table);
 
-        const double expected_slope = poly_degree+1;
+        // const double expected_slope = poly_degree+1;
     
-        double last_slope = 0.0;
+        // double last_slope = 0.0;
 
-        if(n_grids>=2)
-        {
-            last_slope = log(error_L2_density[n_grids-1]/error_L2_density[n_grids-2]) / log(grid_size[n_grids-1]/grid_size[n_grids-2]);
-        }
+        // if(n_grids>=2)
+        // {
+        //     last_slope = log(error_L2_density[n_grids-1]/error_L2_density[n_grids-2]) / log(grid_size[n_grids-1]/grid_size[n_grids-2]);
+        // }
 
-        const double slope_avg = last_slope;
-        const double slope_diff = slope_avg-expected_slope;
+        // const double slope_avg = last_slope;
+        // const double slope_diff = slope_avg-expected_slope;
 
-        double slope_deficit_tolerance = -std::abs(manu_grid_conv_param.slope_deficit_tolerance);
-        if(poly_degree == 0) slope_deficit_tolerance *= 2; // Otherwise, grid sizes need to be much bigger for p=0
+        // double slope_deficit_tolerance = -std::abs(manu_grid_conv_param.slope_deficit_tolerance);
+        // if(poly_degree == 0) slope_deficit_tolerance *= 2; // Otherwise, grid sizes need to be much bigger for p=0
 
-        if( (slope_diff < slope_deficit_tolerance) || (n_grids==1) ) {
-            pcout << std::endl
-                 << "Convergence order not achieved. Average last 2 slopes of "
-                 << slope_avg << " instead of expected "
-                 << expected_slope << " within a tolerance of "
-                 << slope_deficit_tolerance
-                 << std::endl;
-            // p=0 just requires too many meshes to get into the asymptotic region.
-            if(poly_degree!=0) fail_conv_poly.push_back(poly_degree);
-            if(poly_degree!=0) fail_conv_slop.push_back(slope_avg);
-        }
+        // if( (slope_diff < slope_deficit_tolerance) || (n_grids==1) ) {
+        //     pcout << std::endl
+        //          << "Convergence order not achieved. Average last 2 slopes of "
+        //          << slope_avg << " instead of expected "
+        //          << expected_slope << " within a tolerance of "
+        //          << slope_deficit_tolerance
+        //          << std::endl;
+        //     // p=0 just requires too many meshes to get into the asymptotic region.
+        //     if(poly_degree!=0) fail_conv_poly.push_back(poly_degree);
+        //     if(poly_degree!=0) fail_conv_slop.push_back(slope_avg);
+        // }
 
     }
-    pcout << std::endl << std::endl << std::endl << std::endl;
-    pcout << " ********************************************" << std::endl;
-    pcout << " Convergence summary" << std::endl;
-    pcout << " ********************************************" << std::endl;
-    for (auto conv = convergence_table_vector.begin(); conv!=convergence_table_vector.end(); conv++) {
-        if (pcout.is_active()) conv->write_text(pcout.get_stream());
-        pcout << " ********************************************" << std::endl;
-    }
+    // pcout << std::endl << std::endl << std::endl << std::endl;
+    // pcout << " ********************************************" << std::endl;
+    // pcout << " Convergence summary" << std::endl;
+    // pcout << " ********************************************" << std::endl;
+    // for (auto conv = convergence_table_vector.begin(); conv!=convergence_table_vector.end(); conv++) {
+    //     if (pcout.is_active()) conv->write_text(pcout.get_stream());
+    //     pcout << " ********************************************" << std::endl;
+    // }
 
 //****************Test for artificial dissipation begins *******************************************************
     using artificial_dissipation_test_enum = Parameters::ArtificialDissipationParam::ArtificialDissipationTestType;

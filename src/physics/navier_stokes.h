@@ -591,6 +591,7 @@ public:
 };
 
 /// Wall Model Look up table
+template <typename real>
 class WallModelLookUpTable
 {
     /** Number of different computed quantities

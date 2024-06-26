@@ -556,10 +556,6 @@ private:
     const std::array<real,NUMBER_OF_SAMPLE_POINTS> xData, yData; ///< x and y data for the look up table
     const int size; ///< Size of interpolation data vectors
     real interpolate(const real x, const bool extrapolate ) const; ///< interpolate function
-    /// ConditionalOStream.
-    /** Used as std::cout, but only prints if mpi_rank == 0
-     */
-    dealii::ConditionalOStream pcout;
 
 public:
     /// Returns the wall shear stress magnitude calculated from the wall model

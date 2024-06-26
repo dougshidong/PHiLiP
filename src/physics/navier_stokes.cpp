@@ -1634,7 +1634,6 @@ WallModelLookUpTable<real>::WallModelLookUpTable()
              5.8825662330447e+03, 7.6450966158508e+03, 9.0023092992007e+03, 1.0385338644756e+04, 
              1.1791191697889e+04, 1.3217498477068e+04, 1.5147782638025e+04, 1.7107366776649e+04}) // TO DO: swap the x and y since want to find y+
     , size(NUMBER_OF_SAMPLE_POINTS)
-    , pcout(std::cout, dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD)==0)
 { }
 
 template <typename real>

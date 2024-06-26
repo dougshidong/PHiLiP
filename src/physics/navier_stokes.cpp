@@ -1581,7 +1581,7 @@ template <int dim, int nstate, typename real>
 std::array<real,nstate> NavierStokes_ChannelFlowConstantSourceTerm_WallModel<dim,nstate,real>
 ::dissipative_flux_dot_normal_on_adiabatic_boundary (
         const std::array<real,nstate> &solution,
-        const std::array<dealii::Tensor<1,dim,real>,nstate> &solution_gradient,
+        const std::array<dealii::Tensor<1,dim,real>,nstate> &/*solution_gradient*/,
         const std::array<real,nstate> &/*filtered_solution*/,
         const std::array<dealii::Tensor<1,dim,real>,nstate> &/*filtered_solution_gradient*/,
         const dealii::types::global_dof_index /*cell_index*/,

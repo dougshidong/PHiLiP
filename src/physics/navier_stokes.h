@@ -539,6 +539,37 @@ public:
         const dealii::types::global_dof_index cell_index) const override;
 };
 
+/// Wall Model Look up table
+template <typename real>
+class WallModelLookUpTable
+{
+    /** Number of different computed quantities
+     *  Corresponds to the number of items in IntegratedQuantitiesEnum
+     * */
+    static const int NUMBER_OF_SAMPLE_POINTS = 24;
+public: // NOTES: Could template this for real
+    WallModelLookUpTable(); ///< Constructor
+
+    ~WallModelLookUpTable(){}; ///< Destructor
+
+private:
+    const std::vector<real,NUMBER_OF_SAMPLE_POINTS> xData, yData; ///< x and y data for the look up table
+    const int size; ///< Size of interpolation data vectors
+    real interpolate(const real x, const bool extrapolate ) const; ///< interpolate function
+    /// ConditionalOStream.
+    /** Used as std::cout, but only prints if mpi_rank == 0
+     */
+    dealii::ConditionalOStream pcout;
+
+public:
+    /// Returns the wall shear stress magnitude calculated from the wall model
+    real get_wall_shear_stress_magnitude(
+        const real wall_parallel_velocity, 
+        const real distance, 
+        const real viscosity_coefficient,
+        const real density) const;
+};
+
 /// Navier-Stokes equations with constant physical source term for the turbulent channel flow case and wall model. Derived from NavierStokes_ChannelFlowConstantSourceTerm. 
 template <int dim, int nstate, typename real>
 class NavierStokes_ChannelFlowConstantSourceTerm_WallModel : public NavierStokes_ChannelFlowConstantSourceTerm <dim, nstate, real>
@@ -588,37 +619,6 @@ public:
         const std::array<dealii::Tensor<1,dim,real>,nstate> &filtered_solution_gradient,
         const dealii::types::global_dof_index cell_index,
         const dealii::Tensor<1,dim,real> &normal) override;
-};
-
-/// Wall Model Look up table
-template <typename real>
-class WallModelLookUpTable
-{
-    /** Number of different computed quantities
-     *  Corresponds to the number of items in IntegratedQuantitiesEnum
-     * */
-    static const int NUMBER_OF_SAMPLE_POINTS = 24;
-public: // NOTES: Could template this for real
-    WallModelLookUpTable(); ///< Constructor
-
-    ~WallModelLookUpTable(){}; ///< Destructor
-
-private:
-    const std::vector<real,NUMBER_OF_SAMPLE_POINTS> xData, yData; ///< x and y data for the look up table
-    const int size; ///< Size of interpolation data vectors
-    real interpolate(const real x, const bool extrapolate ) const; ///< interpolate function
-    /// ConditionalOStream.
-    /** Used as std::cout, but only prints if mpi_rank == 0
-     */
-    dealii::ConditionalOStream pcout;
-
-public:
-    /// Returns the wall shear stress magnitude calculated from the wall model
-    real get_wall_shear_stress_magnitude(
-        const real wall_parallel_velocity, 
-        const real distance, 
-        const real viscosity_coefficient,
-        const real density) const;
 };
 
 } // Physics namespace

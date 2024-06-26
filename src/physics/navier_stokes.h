@@ -547,14 +547,13 @@ class WallModelLookUpTable
      *  Corresponds to the number of items in IntegratedQuantitiesEnum
      * */
     static const int NUMBER_OF_SAMPLE_POINTS = 24;
-public: // NOTES: Could template this for real
+public:
     WallModelLookUpTable(); ///< Constructor
 
     ~WallModelLookUpTable(){}; ///< Destructor
 
 private:
-    const std::array<real,NUMBER_OF_SAMPLE_POINTS> yData, xData; ///< x and y data for the look up table
-    const int size; ///< Size of interpolation data vectors
+    std::array<real,NUMBER_OF_SAMPLE_POINTS> yData, xData; ///< x and y data for the look up table
     real interpolate(const real x, const bool extrapolate ) const; ///< interpolate function
 
 public:

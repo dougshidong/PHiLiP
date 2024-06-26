@@ -1592,7 +1592,7 @@ std::array<real,nstate> NavierStokes_ChannelFlowConstantSourceTerm_WallModel<dim
     */
 
     // Get the wall parallel velocities; equivalent Frere thesis eq.(2.40)
-    const dealii::Tensor<1,dim,real> velocities_parallel_to_wall = this->template compute_velocities_parallel_to_wall<real>(solution,normal_vector);
+    const dealii::Tensor<1,dim,real> velocities_parallel_to_wall = this->template compute_velocities_parallel_to_wall<real>(solution,normal);
 
     // Get wall tangent vector; equivalent Frere thesis eq.(2.40)
     const dealii::Tensor<1,dim,real> wall_tangent_vector = this->template compute_wall_tangent_vector_from_velocities_parallel_to_wall<real>(velocities_parallel_to_wall);
@@ -1624,7 +1624,7 @@ std::array<real,nstate> NavierStokes_ChannelFlowConstantSourceTerm_WallModel<dim
 }
 
 template <typename real>
-WallModelLookUpTable::WallModelLookUpTable()
+WallModelLookUpTable<real>::WallModelLookUpTable()
     : xData({0.0, 3.0, 5.0, 8.0, 10.0, 20.0, 35.0, 50.0, 75.0, 100.0, 125.0, 150.0,
              200.0, 250.0, 300.0, 350.0, 400.0, 500.0, 575.0, 650.0, 725.0, 800.0, 900.0, 1000.0})
     , yData({0.0000000000000e+00, 6.6159130344294e+00, 1.6060817028163e+01, 3.4871735764788e+01,
@@ -1638,7 +1638,7 @@ WallModelLookUpTable::WallModelLookUpTable()
 { }
 
 template <typename real>
-real WallModelLookUpTable::
+real WallModelLookUpTable<real>::
 get_wall_shear_stress_magnitude(
     const real wall_parallel_velocity, 
     const real distance, 
@@ -1654,7 +1654,7 @@ get_wall_shear_stress_magnitude(
 }
 
 template <typename real>
-real WallModelLookUpTable::
+real WallModelLookUpTable<real>::
 interpolate(const real x, const bool extrapolate) const
 {
    int i = 0; // find left end of interval for interpolation

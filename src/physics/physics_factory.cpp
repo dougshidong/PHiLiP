@@ -131,8 +131,8 @@ PhysicsFactory<dim,nstate,real>
         }
     } else if (pde_type == PDE_enum::navier_stokes_channel_flow_constant_source_term) {
         if constexpr (nstate==dim+2) {
-            const real domain_length_y_direction = parameters_input->flow_solver_param.turbulent_channel_domain_length_y_direction;
-            const real half_channel_height = domain_length_y_direction/2.0;
+            const double domain_length_y_direction = parameters_input->flow_solver_param.turbulent_channel_domain_length_y_direction;
+            const double half_channel_height = domain_length_y_direction/2.0;
             return std::make_shared < NavierStokes_ChannelFlowConstantSourceTerm<dim,nstate,real> > (
                 parameters_input->euler_param.ref_length,
                 parameters_input->euler_param.gamma_gas,
@@ -153,11 +153,10 @@ PhysicsFactory<dim,nstate,real>
         }
     } else if (pde_type == PDE_enum::navier_stokes_channel_flow_constant_source_term_wall_model) {
         if constexpr (nstate==dim+2) {
-            const real domain_length_y_direction = parameters_input->flow_solver_param.turbulent_channel_domain_length_y_direction;
-            const real half_channel_height = domain_length_y_direction/2.0;
-            const real number_of_cells_y_direction = parameters_input->flow_solver_param.turbulent_channel_number_of_cells_y_direction;
-            const real uniform_spacing_y_direction = domain_length_y_direction/double(number_of_cells_y_direction);
-
+            const double domain_length_y_direction = parameters_input->flow_solver_param.turbulent_channel_domain_length_y_direction;
+            const double half_channel_height = domain_length_y_direction/2.0;
+            const int number_of_cells_y_direction = parameters_input->flow_solver_param.turbulent_channel_number_of_cells_y_direction;
+            const double uniform_spacing_y_direction = domain_length_y_direction/double(number_of_cells_y_direction);
             return std::make_shared < NavierStokes_ChannelFlowConstantSourceTerm_WallModel<dim,nstate,real> > (
                 parameters_input->euler_param.ref_length,
                 parameters_input->euler_param.gamma_gas,

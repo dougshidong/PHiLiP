@@ -548,10 +548,10 @@ class WallModelLookUpTable
      * */
     static const int NUMBER_OF_SAMPLE_POINTS = 24;
     ///< x and y data for the look up table
-    static const std::array<real,NUMBER_OF_SAMPLE_POINTS> yData = 
+    static constexpr std::array<real,NUMBER_OF_SAMPLE_POINTS> yData = 
             {{0.0, 3.0, 5.0, 8.0, 10.0, 20.0, 35.0, 50.0, 75.0, 100.0, 125.0, 150.0,
               200.0, 250.0, 300.0, 350.0, 400.0, 500.0, 575.0, 650.0, 725.0, 800.0, 900.0, 1000.0}};
-    static const std::array<real,NUMBER_OF_SAMPLE_POINTS> xData = 
+    static constexpr std::array<real,NUMBER_OF_SAMPLE_POINTS> xData = 
             {{0.0000000000000e+00, 6.6159130344294e+00, 1.6060817028163e+01, 3.4871735764788e+01,
               4.9571228279016e+01, 1.3778400828324e+02, 2.9428383798019e+02, 4.6681694258993e+02, 
               7.7798288968624e+02, 1.1109207283094e+03, 1.4603806972090e+03, 1.8230693459482e+03, 

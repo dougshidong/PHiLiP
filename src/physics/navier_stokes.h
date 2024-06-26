@@ -553,7 +553,7 @@ public: // NOTES: Could template this for real
     ~WallModelLookUpTable(){}; ///< Destructor
 
 private:
-    const std::vector<real,NUMBER_OF_SAMPLE_POINTS> xData, yData; ///< x and y data for the look up table
+    const std::array<real,NUMBER_OF_SAMPLE_POINTS> xData, yData; ///< x and y data for the look up table
     const int size; ///< Size of interpolation data vectors
     real interpolate(const real x, const bool extrapolate ) const; ///< interpolate function
     /// ConditionalOStream.

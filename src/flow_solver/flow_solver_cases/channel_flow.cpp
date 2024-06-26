@@ -155,7 +155,9 @@ std::vector<double> ChannelFlow<dim,nstate>::get_mesh_step_size_y_direction() co
     } else if(turbulent_channel_mesh_stretching_function_type == turbulent_channel_mesh_stretching_function_enum::uniform_mesh_no_stretching){
         // for wall model use uniform grid (i.e. no stretching)
         const double uniform_spacing_y = this->domain_length_y/double(this->number_of_cells_y_direction);
-        step_size_y_direction.fill(uniform_spacing_y);
+        for (int j=0; j<this->number_of_cells_y_direction; j++) {
+            step_size_y_direction.push_back(uniform_spacing_y);
+        }
     } else {
         this->pcout << "ERROR: Invalid turbulent_channel_mesh_stretching_function_type. Aborting..." << std::endl;
         std::abort();

@@ -1569,7 +1569,7 @@ NavierStokes_ChannelFlowConstantSourceTerm_WallModel<dim, nstate, real>::NavierS
                              manufactured_solution_function,
                              two_point_num_flux_type)
     , distance_from_wall_for_wall_model_input_velocity(distance_from_wall_for_wall_model_input_velocity)
-    , wall_model_look_up_table(std::unique_ptr<WallModelLookUpTable<real>>());
+    , wall_model_look_up_table(std::unique_ptr<WallModelLookUpTable<real>>())
 {
     static_assert(nstate==dim+2, "Physics::NavierStokes_ChannelFlowConstantSourceTerm_WallModel() should be created with nstate=dim+2");
     // Nothing to do here so far

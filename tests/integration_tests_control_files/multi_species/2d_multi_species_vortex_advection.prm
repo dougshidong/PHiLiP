@@ -27,7 +27,7 @@ set diss_num_flux = symm_internal_penalty
 
 # ODE solver
 subsection ODE solver
-  set output_solution_every_x_steps = 1000
+  set output_solution_every_x_steps = 1
   set ode_output = quiet
   set ode_solver_type = runge_kutta
   set runge_kutta_method = ssprk3_ex
@@ -44,7 +44,7 @@ end
 subsection flow_solver
   set flow_case_type = multi_species_two_dimensional_vortex_advection
   set poly_degree = 2
-  set final_time = 34.614724700315755e-1
+  set final_time = 34.614724700315755e-5
   set adaptive_time_step = false
   set constant_time_step = 34.614724700315755e-6
   subsection grid

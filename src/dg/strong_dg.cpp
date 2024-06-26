@@ -1537,9 +1537,13 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_boundary_term_strong(
     const int opposite_iface = (iface == 0) ? 1 : (
                                 (iface == 1) ? 0 : (
                                     (iface == 2) ? 3 : (
-                                        (iface == 3) ? 2 :( 
-                                            ((iface == 4) ? 5 :(
-                                                ((iface == 5) ? 4)))))));
+                                        (iface == 3) ? 2 : ( 
+                                            (iface == 4) ? 5 : (
+                                                (iface == 5) ? 4 : -1)))));
+    if(opposite_iface == -1) {
+        pcout << "ERROR: Invalid iface, opposite_iface is -1. Aborting..."<<std::endl;
+        std::abort();
+    }
 
     for(int istate=0; istate<nstate; ++istate){
         //allocate
@@ -1555,14 +1559,15 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_boundary_term_strong(
                                                  soln_coeff[istate], soln_at_surf_q[istate],
                                                  soln_basis.oneD_surf_operator,
                                                  soln_basis.oneD_vol_operator);
-
-        //allocate
-        soln_at_opposite_surf_q[istate].resize(n_face_quad_pts);
-        //solve soln at facet cubature nodes
-        soln_basis.matrix_vector_mult_surface_1D(opposite_iface,
-                                                 soln_coeff[istate], soln_at_opposite_surf_q[istate],
-                                                 soln_basis.oneD_surf_operator,
-                                                 soln_basis.oneD_vol_operator);
+        if(this->using_wall_model && ((boundary_id == 1001) || (boundary_id == 1006))) {
+            //allocate
+            soln_at_opposite_surf_q[istate].resize(n_face_quad_pts);
+            //solve soln at facet cubature nodes
+            soln_basis.matrix_vector_mult_surface_1D(opposite_iface,
+                                                     soln_coeff[istate], soln_at_opposite_surf_q[istate],
+                                                     soln_basis.oneD_surf_operator,
+                                                     soln_basis.oneD_vol_operator);
+        }
 
         for(int idim=0; idim<dim; idim++){
             //alocate
@@ -2100,7 +2105,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_boundary_term_strong(
         std::array<dealii::Tensor<1,dim,real>,nstate> filtered_aux_soln_state;
         for(int istate=0; istate<nstate; istate++){
             soln_state[istate] = soln_at_surf_q[istate][iquad];
-            opposite_surf_soln_state[istate] = soln_at_opposite_surf_q[istate][iquad];
+            if(this->using_wall_model && ((boundary_id == 1001) || (boundary_id == 1006))) opposite_surf_soln_state[istate] = soln_at_opposite_surf_q[istate][iquad];
             if(this->do_compute_filtered_solution) filtered_soln_state[istate] = legendre_soln_at_surf_q[istate][iquad];
             for(int idim=0; idim<dim; idim++){
                 aux_soln_state[istate][idim] = aux_soln_at_surf_q[istate][idim][iquad];

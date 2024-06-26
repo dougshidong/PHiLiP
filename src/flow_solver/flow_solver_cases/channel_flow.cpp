@@ -152,8 +152,8 @@ std::vector<double> ChannelFlow<dim,nstate>::get_mesh_step_size_y_direction() co
         step_size_y_direction = get_mesh_step_size_y_direction_HOPW();
     } else if(turbulent_channel_mesh_stretching_function_type == turbulent_channel_mesh_stretching_function_enum::carton_de_wiart_et_al){
         step_size_y_direction = get_mesh_step_size_y_direction_carton_de_wiart_et_al();
-    } else if(turbulent_channel_mesh_stretching_function_type == turbulent_channel_mesh_stretching_function_enum::uniform){
-        // for wall model use uniform grid
+    } else if(turbulent_channel_mesh_stretching_function_type == turbulent_channel_mesh_stretching_function_enum::uniform_mesh_no_stretching){
+        // for wall model use uniform grid (i.e. no stretching)
         const double uniform_spacing_y = this->domain_length_y/double(this->number_of_cells_y_direction);
         step_size_y_direction.fill(uniform_spacing_y);
     } else {

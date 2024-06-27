@@ -517,9 +517,10 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual_and_ad_derivatives (
     //flag to terminate if strong form and implicit
     if((this->all_parameters->use_weak_form==false) 
        && (this->all_parameters->ode_solver_param.ode_solver_type
-                    == Parameters::ODESolverParam::ODESolverEnum::implicit_solver))
+                    == Parameters::ODESolverParam::ODESolverEnum::implicit_solver)
+       && this->use_auxiliary_eq)
     {
-        pcout<<"ERROR: Implicit does not currently work for strong form. Aborting..."<<std::endl;
+        pcout<<"ERROR: Implicit does not currently work for strong form with Auxiliary Equation. The added terms dR/dq * dq/du needs to be added. Aborting..."<<std::endl;
         std::abort();
     }
 

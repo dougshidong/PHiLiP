@@ -572,7 +572,8 @@ public:
         const real wall_parallel_velocity, 
         const real distance, 
         const real viscosity_coefficient,
-        const real density) const;
+        const real density,
+        const double reynolds_number_inf) const;
 };
 
 /// Navier-Stokes equations with constant physical source term for the turbulent channel flow case and wall model. Derived from NavierStokes_ChannelFlowConstantSourceTerm. 

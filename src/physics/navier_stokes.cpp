@@ -1613,7 +1613,8 @@ std::array<real,nstate> NavierStokes_ChannelFlowConstantSourceTerm_WallModel<dim
                     velocity_parallel_to_wall,
                     this->distance_from_wall_for_wall_model_input_velocity,
                     viscosity_coefficient,
-                    density);
+                    density,
+                    this->reynolds_number_inf);
 
     // Compute the dissipative flux dot normal vector; Frere thesis eq.(2.39)
     std::array<real,nstate> dissipative_flux_dot_normal;    
@@ -1636,12 +1637,12 @@ get_wall_shear_stress_magnitude(
     const real wall_parallel_velocity, 
     const real distance, 
     const real viscosity_coefficient,
-    const real density) const
+    const real density,
+    const double reynolds_number_inf) const
 {
-    const real kinematic_viscosity = viscosity_coefficient/density;
-    const real u_plus_y_plus = wall_parallel_velocity*distance/kinematic_viscosity;
-    const real y_plus = this->interpolate(u_plus_y_plus,false);
-    const real wall_friction_velocity = kinematic_viscosity*y_plus/distance;
+    const real u_parallel_plus_y_plus = reynolds_number_inf*density*distance*wall_parallel_velocity/viscosity_coefficient;
+    const real y_plus = this->interpolate(u_parallel_plus_y_plus,false);
+    const real wall_friction_velocity = y_plus*viscosity_coefficient/(density*distance*reynolds_number_inf);
     const real wall_shear_stress = density*wall_friction_velocity*wall_friction_velocity;
     return wall_shear_stress;
 }

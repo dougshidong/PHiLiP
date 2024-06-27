@@ -41,11 +41,45 @@ DGStrong<dim,nstate,real,MeshType>::DGStrong(
     : DGBaseState<dim,nstate,real,MeshType>::DGBaseState(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input)
 { }
 
+template <int dim, int nstate, typename real, typename MeshType>
+template <typename adtype>
+void DGStrong<dim,nstate,real,MeshType>::build_volume_metric_operators(
+    const unsigned int poly_degree,
+    const unsigned int grid_degree,
+    const std::vector<adtype>                    &metric_coeffs,
+    OPERATOR::metric_operators<adtype,dim,2*dim> &metric_oper,
+    OPERATOR::mapping_shape_functions<dim,2*dim> &mapping_basis,
+    std::array<std::vector<adtype>,dim>          &mapping_support_points)
+{
+    const dealii::FESystem<dim> &fe_metric = this->high_order_grid->fe_system;
+    const unsigned int n_metric_dofs = fe_metric.dofs_per_cell;
+    const unsigned int n_grid_nodes  = n_metric_dofs / dim;
+    //Rewrite the high_order_grid->volume_nodes in a way we can use sum-factorization on.
+    //That is, splitting up the vector by the dimension.
+    for(int idim=0; idim<dim; idim++){
+        mapping_support_points[idim].resize(n_grid_nodes);
+    }
+    const std::vector<unsigned int > &index_renumbering = dealii::FETools::hierarchic_to_lexicographic_numbering<dim>(grid_degree);
+    for (unsigned int idof = 0; idof< n_metric_dofs; ++idof) {
+        const adtype val = metric_coeffs[idof];
+        const unsigned int istate = fe_metric.system_to_component_index(idof).first; 
+        const unsigned int ishape = fe_metric.system_to_component_index(idof).second; 
+        const unsigned int igrid_node = index_renumbering[ishape];
+        mapping_support_points[istate][igrid_node] = val; 
+    }
+    metric_oper.build_volume_metric_operators(
+        this->volume_quadrature_collection[poly_degree].size(), n_grid_nodes,
+        mapping_support_points,
+        mapping_basis,
+        this->all_parameters->use_invariant_curl_form);
+}
+
 /***********************************************************
 *
 *       Build operators and solve for RHS
 *
 ***********************************************************/
+
 template <int dim, int nstate, typename real, typename MeshType>
 template <typename adtype>
 void DGStrong<dim,nstate,real,MeshType>::assemble_volume_term_and_build_operators_ad_templated(
@@ -53,7 +87,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_volume_term_and_build_operator
     const dealii::types::global_dof_index                  current_cell_index,
     const std::vector<adtype>                              &soln_coeffs,
     const dealii::Tensor<1,dim,std::vector<adtype>>        &aux_soln_coeffs,
-    const std::vector<adtype>                              &metric_coeffs,
+    const std::vector<adtype>                              &/*metric_coeffs*/,
     const std::vector<real>                                &/*local_dual*/,
     const std::vector<dealii::types::global_dof_index>     &/*soln_dofs_indices*/,
     const std::vector<dealii::types::global_dof_index>     &/*metric_dofs_indices*/,
@@ -67,7 +101,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_volume_term_and_build_operator
     OPERATOR::vol_projection_operator<dim,2*dim>           &soln_basis_projection_oper_ext,
     OPERATOR::metric_operators<adtype,dim,2*dim>           &metric_oper,
     OPERATOR::mapping_shape_functions<dim,2*dim>           &mapping_basis,
-    std::array<std::vector<adtype>,dim>                    &mapping_support_points,
+    std::array<std::vector<adtype>,dim>                    &/*mapping_support_points*/,
     dealii::hp::FEValues<dim,dim>                          &/*fe_values_collection_volume*/,
     dealii::hp::FEValues<dim,dim>                          &/*fe_values_collection_volume_lagrange*/,
     const dealii::FESystem<dim,dim>                        &/*fe_soln*/,
@@ -91,30 +125,30 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_volume_term_and_build_operator
                                                       mapping_basis);
     }
 
-    const dealii::FESystem<dim> &fe_metric = this->high_order_grid->fe_system;
-    const unsigned int n_metric_dofs = fe_metric.dofs_per_cell;
-    const unsigned int n_grid_nodes  = n_metric_dofs / dim;
-    //Rewrite the high_order_grid->volume_nodes in a way we can use sum-factorization on.
-    //That is, splitting up the vector by the dimension.
-    for(int idim=0; idim<dim; idim++){
-        mapping_support_points[idim].resize(n_grid_nodes);
-    }
-    const std::vector<unsigned int > &index_renumbering = dealii::FETools::hierarchic_to_lexicographic_numbering<dim>(grid_degree);
-    for (unsigned int idof = 0; idof< n_metric_dofs; ++idof) {
-        const adtype val = metric_coeffs[idof];
-        const unsigned int istate = fe_metric.system_to_component_index(idof).first; 
-        const unsigned int ishape = fe_metric.system_to_component_index(idof).second; 
-        const unsigned int igrid_node = index_renumbering[ishape];
-        mapping_support_points[istate][igrid_node] = val; 
-    }
-
-    //build the volume metric cofactor matrix and the determinant of the volume metric Jacobian
-    //Also, computes the physical volume flux nodes if needed from flag passed to constructor in dg.cpp
-    metric_oper.build_volume_metric_operators(
-        this->volume_quadrature_collection[poly_degree].size(), n_grid_nodes,
-        mapping_support_points,
-        mapping_basis,
-        this->all_parameters->use_invariant_curl_form);
+//    const dealii::FESystem<dim> &fe_metric = this->high_order_grid->fe_system;
+//    const unsigned int n_metric_dofs = fe_metric.dofs_per_cell;
+//    const unsigned int n_grid_nodes  = n_metric_dofs / dim;
+//    //Rewrite the high_order_grid->volume_nodes in a way we can use sum-factorization on.
+//    //That is, splitting up the vector by the dimension.
+//    for(int idim=0; idim<dim; idim++){
+//        mapping_support_points[idim].resize(n_grid_nodes);
+//    }
+//    const std::vector<unsigned int > &index_renumbering = dealii::FETools::hierarchic_to_lexicographic_numbering<dim>(grid_degree);
+//    for (unsigned int idof = 0; idof< n_metric_dofs; ++idof) {
+//        const adtype val = metric_coeffs[idof];
+//        const unsigned int istate = fe_metric.system_to_component_index(idof).first; 
+//        const unsigned int ishape = fe_metric.system_to_component_index(idof).second; 
+//        const unsigned int igrid_node = index_renumbering[ishape];
+//        mapping_support_points[istate][igrid_node] = val; 
+//    }
+//
+//    //build the volume metric cofactor matrix and the determinant of the volume metric Jacobian
+//    //Also, computes the physical volume flux nodes if needed from flag passed to constructor in dg.cpp
+//    metric_oper.build_volume_metric_operators(
+//        this->volume_quadrature_collection[poly_degree].size(), n_grid_nodes,
+//        mapping_support_points,
+//        mapping_basis,
+//        this->all_parameters->use_invariant_curl_form);
 
     //Fetch the modal soln coefficients and the modal auxiliary soln coefficients
     //We immediately separate them by state as to be able to use sum-factorization

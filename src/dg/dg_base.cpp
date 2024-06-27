@@ -552,10 +552,11 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual_and_ad_derivatives (
     }
 
     // Compute metric Jacobians of current cell here.
-
-    Position tape_position_metric_jacobian_int = tape.getPosition();
-    
     std::array<std::vector<adtype>,dim> mapping_support_points;
+    build_volume_metric_operators(poly_degree, grid_degree, local_metric_coeff_int, metric_oper_int, mapping_basis, mapping_support_points);
+    
+    //set tape position for metric jacobian int
+    Position tape_position_metric_jacobian_int = tape.getPosition();
     
     assemble_volume_codi_taped_derivatives_ad<adtype>(
         current_cell,

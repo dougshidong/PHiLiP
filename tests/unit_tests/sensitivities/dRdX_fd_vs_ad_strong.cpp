@@ -221,15 +221,15 @@ int main (int argc, char * argv[])
 //#endif
     };
     std::vector<std::string> pde_name {
-         " PDEType::diffusion "
-        , " PDEType::advection "
+        // " PDEType::diffusion "
+         " PDEType::advection "
         // , " PDEType::convection_diffusion "
         , " PDEType::advection_vector "
         , " PDEType::euler "
-        , " PDEType::navier_stokes "
-#if PHILIP_DIM==3
-        , " PDEType::physics_model "
-#endif
+      //  , " PDEType::navier_stokes "
+//#if PHILIP_DIM==3
+//        , " PDEType::physics_model "
+//#endif
     };
 #if PHILIP_DIM==3
     ModelType model = ModelType::large_eddy_simulation

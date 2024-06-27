@@ -1324,6 +1324,29 @@ public:
     */
     virtual void allocate_dual_vector (const bool compute_d2R) = 0;
 
+    /// Builds volume metric operators (metric cofactor and determinant of metric Jacobian).
+    virtual void build_volume_metric_operators(
+        const unsigned int poly_degree,
+        const unsigned int grid_degree,
+        const std::vector<double>                    &metric_coeffs,
+        OPERATOR::metric_operators<double,dim,2*dim> &metric_oper,
+        OPERATOR::mapping_shape_functions<dim,2*dim> &mapping_basis,
+        std::array<std::vector<double>,dim>          &mapping_support_points) =0;
+    virtual void build_volume_metric_operators(
+        const unsigned int poly_degree,
+        const unsigned int grid_degree,
+        const std::vector<codi_JacobianComputationType>                    &metric_coeffs,
+        OPERATOR::metric_operators<codi_JacobianComputationType,dim,2*dim> &metric_oper,
+        OPERATOR::mapping_shape_functions<dim,2*dim>                       &mapping_basis,
+        std::array<std::vector<codi_JacobianComputationType>,dim>          &mapping_support_points) =0;
+    virtual void build_volume_metric_operators(
+        const unsigned int poly_degree,
+        const unsigned int grid_degree,
+        const std::vector<codi_HessianComputationType>                    &metric_coeffs,
+        OPERATOR::metric_operators<codi_HessianComputationType,dim,2*dim> &metric_oper,
+        OPERATOR::mapping_shape_functions<dim,2*dim>                      &mapping_basis,
+        std::array<std::vector<codi_HessianComputationType>,dim>          &mapping_support_points) =0;
+
 protected:
     MPI_Comm mpi_communicator; ///< MPI communicator
     dealii::ConditionalOStream pcout; ///< Parallel std::cout that only outputs on mpi_rank==0

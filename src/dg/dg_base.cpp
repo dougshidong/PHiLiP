@@ -1244,7 +1244,7 @@ void DGBase<dim,real,MeshType>::assemble_boundary_codi_taped_derivatives_ad(
             aux_rhs[idim].resize(n_soln_dofs);
         }
     }
-    adtype dual_dot_residual;
+    adtype dual_dot_residual = 0.0;
     assemble_boundary_term_and_build_operators_ad(
         cell,
         current_cell_index,
@@ -1538,7 +1538,7 @@ void DGBase<dim,real,MeshType>::assemble_face_codi_taped_derivatives_ad(
             aux_rhs_ext[idim].resize(n_soln_dofs_ext);
         }
     }
-    adtype dual_dot_residual;
+    adtype dual_dot_residual = 0.0;
     
     assemble_face_term_and_build_operators_ad(
             cell,

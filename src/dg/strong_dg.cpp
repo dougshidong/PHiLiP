@@ -88,7 +88,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_volume_term_and_build_operator
     const std::vector<adtype>                              &soln_coeffs,
     const dealii::Tensor<1,dim,std::vector<adtype>>        &aux_soln_coeffs,
     const std::vector<adtype>                              &/*metric_coeffs*/,
-    const std::vector<real>                                &/*local_dual*/,
+    const std::vector<real>                                &local_dual,
     const std::vector<dealii::types::global_dof_index>     &/*soln_dofs_indices*/,
     const std::vector<dealii::types::global_dof_index>     &/*metric_dofs_indices*/,
     const unsigned int                                     poly_degree,
@@ -108,7 +108,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_volume_term_and_build_operator
     std::vector<adtype>                                    &rhs, 
     dealii::Tensor<1,dim,std::vector<adtype>>              &local_auxiliary_RHS,
     const bool                                             compute_auxiliary_right_hand_side,
-    adtype                                                 &/*dual_dot_residual*/)
+    adtype                                                 &dual_dot_residual)
 {
     // Check if the current cell's poly degree etc is different then previous cell's.
     // If the current cell's poly degree is different, then we recompute the 1D 
@@ -200,6 +200,9 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_volume_term_and_build_operator
             metric_oper,
             physics,
             rhs);
+        for(unsigned int idof=0; idof<n_dofs_cell; idof++){
+            dual_dot_residual += rhs[idof] * local_dual[idof];
+        }
     }
 }
 
@@ -299,7 +302,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_boundary_term_and_build_operat
     const std::vector<adtype>                                          &soln_coeffs,
     const dealii::Tensor<1,dim,std::vector<adtype>>                    &aux_soln_coeffs,
     const std::vector<adtype>                                          &/*metric_coeffs*/,
-    const std::vector<real>                                            &/*local_dual*/,
+    const std::vector<real>                                            &local_dual,
     const unsigned int                                                 face_number,
     const unsigned int                                                 boundary_id,
     const Physics::PhysicsBase<dim, nstate, adtype>                    &physics,
@@ -319,7 +322,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_boundary_term_and_build_operat
     std::vector<adtype>                                                &rhs,
     dealii::Tensor<1,dim,std::vector<adtype>>                          &local_auxiliary_RHS,
     const bool                                                         compute_auxiliary_right_hand_side,
-    adtype                                                             &/*dual_dot_residual*/)
+    adtype                                                             &dual_dot_residual)
 {
 
     const dealii::FESystem<dim> &fe_metric = this->high_order_grid->fe_system;
@@ -382,6 +385,9 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_boundary_term_and_build_operat
             metric_oper,
             physics, conv_num_flux, diss_num_flux,
             rhs);
+        for(unsigned int idof=0; idof<n_dofs_cell; idof++){
+            dual_dot_residual += rhs[idof] * local_dual[idof];
+        }
     }
 
 }
@@ -463,8 +469,8 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_and_build_operators_
     const dealii::Tensor<1,dim,std::vector<adtype>>                    &aux_soln_coeffs_ext,
     const std::vector<adtype>                                          &/*metric_coeff_int*/,
     const std::vector<adtype>                                          &metric_coeff_ext,
-    const std::vector< double >                                        &/*dual_int*/,
-    const std::vector< double >                                        &/*dual_ext*/,
+    const std::vector< double >                                        &dual_int,
+    const std::vector< double >                                        &dual_ext,
     const unsigned int                                                 poly_degree_int,
     const unsigned int                                                 poly_degree_ext,
     const unsigned int                                                 /*grid_degree_int*/,
@@ -494,7 +500,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_and_build_operators_
     dealii::Tensor<1,dim,std::vector<adtype>>                          &aux_rhs_int,
     dealii::Tensor<1,dim,std::vector<adtype>>                          &aux_rhs_ext,
     const bool                                                         compute_auxiliary_right_hand_side,
-    adtype                                                             &/*dual_dot_residual*/,
+    adtype                                                             &dual_dot_residual,
     const bool                                                         /*is_a_subface*/,
     const unsigned int                                                 /*neighbor_i_subface*/)
 {
@@ -624,6 +630,12 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_and_build_operators_
             metric_oper_int, metric_oper_ext,
             physics, conv_num_flux, diss_num_flux,
             rhs_int, rhs_ext);
+        for(unsigned int idof=0; idof<n_dofs_int; idof++){
+            dual_dot_residual += rhs_int[idof] * dual_int[idof];
+        }
+        for(unsigned int idof=0; idof<n_dofs_ext; idof++){
+            dual_dot_residual += rhs_ext[idof] * dual_ext[idof];
+        }
     }
 
 }

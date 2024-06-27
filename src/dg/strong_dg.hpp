@@ -55,7 +55,7 @@ protected:
         const std::vector<adtype>                              &soln_coeffs,
         const dealii::Tensor<1,dim,std::vector<adtype>>        &aux_soln_coeffs,
         const std::vector<adtype>                              &metric_coeffs,
-        const std::vector<real>                                &/*local_dual*/,
+        const std::vector<real>                                &local_dual,
         const std::vector<dealii::types::global_dof_index>     &soln_dofs_indices,
         const std::vector<dealii::types::global_dof_index>     &metric_dofs_indices,
         const unsigned int                                     poly_degree,
@@ -75,7 +75,7 @@ protected:
         std::vector<adtype>                                    &rhs, 
         dealii::Tensor<1,dim,std::vector<adtype>>              &local_auxiliary_RHS,
         const bool                                             compute_auxiliary_right_hand_side,
-        adtype                                                 &/*dual_dot_residual*/);
+        adtype                                                 &dual_dot_residual);
     
     void assemble_volume_term_and_build_operators_ad(
         typename dealii::DoFHandler<dim>::active_cell_iterator cell,
@@ -253,7 +253,7 @@ protected:
         const std::vector<adtype>                                          &soln_coeffs,
         const dealii::Tensor<1,dim,std::vector<adtype>>                    &aux_soln_coeffs,
         const std::vector<adtype>                                          &metric_coeffs,
-        const std::vector<real>                                            &/*local_dual*/,
+        const std::vector<real>                                            &local_dual,
         const unsigned int                                                 face_number,
         const unsigned int                                                 boundary_id,
         const Physics::PhysicsBase<dim, nstate, adtype>                    &physics,
@@ -273,7 +273,7 @@ protected:
         std::vector<adtype>                                                &rhs,
         dealii::Tensor<1,dim,std::vector<adtype>>                          &local_auxiliary_RHS,
         const bool                                                         compute_auxiliary_right_hand_side,
-        adtype                                                             &/*dual_dot_residual*/);
+        adtype                                                             &dual_dot_residual);
     
     void assemble_boundary_term_and_build_operators_ad(
         typename dealii::DoFHandler<dim>::active_cell_iterator             cell,
@@ -451,8 +451,8 @@ protected:
         const dealii::Tensor<1,dim,std::vector<adtype>>                    &aux_soln_coeffs_ext,
         const std::vector<adtype>                                          &metric_coeff_int,
         const std::vector<adtype>                                          &metric_coeff_ext,
-        const std::vector< double >                                        &/*dual_int*/,
-        const std::vector< double >                                        &/*dual_ext*/,
+        const std::vector< double >                                        &dual_int,
+        const std::vector< double >                                        &dual_ext,
         const unsigned int                                                 poly_degree_int,
         const unsigned int                                                 poly_degree_ext,
         const unsigned int                                                 grid_degree_int,
@@ -482,7 +482,7 @@ protected:
         dealii::Tensor<1,dim,std::vector<adtype>>                          &aux_rhs_int,
         dealii::Tensor<1,dim,std::vector<adtype>>                          &aux_rhs_ext,
         const bool                                                         compute_auxiliary_right_hand_side,
-        adtype                                                             &/*dual_dot_residual*/,
+        adtype                                                             &dual_dot_residual,
         const bool                                                         /*is_a_subface*/,
         const unsigned int                                                 /*neighbor_i_subface*/);
     

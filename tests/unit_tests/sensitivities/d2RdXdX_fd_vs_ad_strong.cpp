@@ -364,7 +364,7 @@ int main (int argc, char * argv[])
            //PDEType::diffusion
           PDEType::advection
          //, PDEType::convection_diffusion
-         //, PDEType::advection_vector
+         , PDEType::advection_vector
          , PDEType::euler
         // , PDEType::navier_stokes
 //#if PHILIP_DIM==3
@@ -375,7 +375,7 @@ int main (int argc, char * argv[])
          //" PDEType::diffusion "
          " PDEType::advection "
         //, " PDEType::convection_diffusion "
-        //, " PDEType::advection_vector "
+        , " PDEType::advection_vector "
         , " PDEType::euler "
        // , " PDEType::navier_stokes "
 //#if PHILIP_DIM==3

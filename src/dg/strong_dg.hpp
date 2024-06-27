@@ -33,10 +33,10 @@ public:
      *  Quaegebeur, Nadarajah, Navah and Zwanenburg 2019: Stability of Energy Stable Flux 
      *                Reconstruction for the Diffusion Problem Using Compact Numerical Fluxes
      */
-    void assemble_auxiliary_residual ();
+    void assemble_auxiliary_residual (const bool compute_dRdW, const bool compute_dRdX, const bool compute_d2R);
 
     /// Allocate the dual vector for optimization.
-    void allocate_dual_vector ();
+    void allocate_dual_vector (const bool compute_d2R);
 
 private:
     /// Assembles the auxiliary equations' cell residuals.
@@ -50,35 +50,32 @@ protected:
     /// Builds the necessary operators and assembles volume residual for either primary or auxiliary.
     template <typename adtype>
     void assemble_volume_term_and_build_operators_ad_templated(
-        typename dealii::DoFHandler<dim>::active_cell_iterator /*cell*/,
-        const dealii::types::global_dof_index                  /*current_cell_index*/,
-        const std::vector<adtype>                              &/*soln_coeffs*/,
-        const dealii::Tensor<1,dim,std::vector<adtype>>        &/*aux_soln_coeffs*/,
-        const std::vector<adtype>                              &/*metric_coeffs*/,
+        typename dealii::DoFHandler<dim>::active_cell_iterator cell,
+        const dealii::types::global_dof_index                  current_cell_index,
+        const std::vector<adtype>                              &soln_coeffs,
+        const dealii::Tensor<1,dim,std::vector<adtype>>        &aux_soln_coeffs,
+        const std::vector<adtype>                              &metric_coeffs,
         const std::vector<real>                                &/*local_dual*/,
-        const std::vector<dealii::types::global_dof_index>     &/*soln_dofs_indices*/,
-        const std::vector<dealii::types::global_dof_index>     &/*metric_dofs_indices*/,
-        const unsigned int                                     /*poly_degree*/,
-        const unsigned int                                     /*grid_degree*/,
-        const Physics::PhysicsBase<dim, nstate, adtype>        &/*physics*/,
-        OPERATOR::basis_functions<dim,2*dim>                   &/*soln_basis*/,
-        OPERATOR::basis_functions<dim,2*dim>                   &/*flux_basis*/,
-        OPERATOR::local_basis_stiffness<dim,2*dim>             &/*flux_basis_stiffness*/,
-        OPERATOR::vol_projection_operator<dim,2*dim>           &/*soln_basis_projection_oper_int*/,
-        OPERATOR::vol_projection_operator<dim,2*dim>           &/*soln_basis_projection_oper_ext*/,
-        OPERATOR::metric_operators<adtype,dim,2*dim>           &/*metric_oper*/,
-        OPERATOR::mapping_shape_functions<dim,2*dim>           &/*mapping_basis*/,
-        std::array<std::vector<adtype>,dim>                    &/*mapping_support_points*/,
+        const std::vector<dealii::types::global_dof_index>     &soln_dofs_indices,
+        const std::vector<dealii::types::global_dof_index>     &metric_dofs_indices,
+        const unsigned int                                     poly_degree,
+        const unsigned int                                     grid_degree,
+        const Physics::PhysicsBase<dim, nstate, adtype>        &physics,
+        OPERATOR::basis_functions<dim,2*dim>                   &soln_basis,
+        OPERATOR::basis_functions<dim,2*dim>                   &flux_basis,
+        OPERATOR::local_basis_stiffness<dim,2*dim>             &flux_basis_stiffness,
+        OPERATOR::vol_projection_operator<dim,2*dim>           &soln_basis_projection_oper_int,
+        OPERATOR::vol_projection_operator<dim,2*dim>           &soln_basis_projection_oper_ext,
+        OPERATOR::metric_operators<adtype,dim,2*dim>           &metric_oper,
+        OPERATOR::mapping_shape_functions<dim,2*dim>           &mapping_basis,
+        std::array<std::vector<adtype>,dim>                    &mapping_support_points,
         dealii::hp::FEValues<dim,dim>                          &/*fe_values_collection_volume*/,
         dealii::hp::FEValues<dim,dim>                          &/*fe_values_collection_volume_lagrange*/,
         const dealii::FESystem<dim,dim>                        &/*fe_soln*/,
-        std::vector<adtype>                                    &/*rhs*/, 
-        dealii::Tensor<1,dim,std::vector<adtype>>              &/*local_auxiliary_RHS*/,
-        const bool                                             /*compute_auxiliary_right_hand_side*/,
-        adtype                                                 &/*dual_dot_residual*/)
-    {
-        //do nothing for now
-    }
+        std::vector<adtype>                                    &rhs, 
+        dealii::Tensor<1,dim,std::vector<adtype>>              &local_auxiliary_RHS,
+        const bool                                             compute_auxiliary_right_hand_side,
+        adtype                                                 &/*dual_dot_residual*/);
     
     void assemble_volume_term_and_build_operators_ad(
         typename dealii::DoFHandler<dim>::active_cell_iterator cell,
@@ -251,35 +248,32 @@ protected:
     /// Builds the necessary operators and assembles boundary residual for either primary or auxiliary.
     template <typename adtype>
     void assemble_boundary_term_and_build_operators_ad_templated(
-        typename dealii::DoFHandler<dim>::active_cell_iterator             /*cell*/,
-        const dealii::types::global_dof_index                              /*current_cell_index*/,
-        const std::vector<adtype>                                          &/*soln_coeffs*/,
-        const dealii::Tensor<1,dim,std::vector<adtype>>                    &/*aux_soln_coeffs*/,
-        const std::vector<adtype>                                          &/*metric_coeffs*/,
+        typename dealii::DoFHandler<dim>::active_cell_iterator             cell,
+        const dealii::types::global_dof_index                              current_cell_index,
+        const std::vector<adtype>                                          &soln_coeffs,
+        const dealii::Tensor<1,dim,std::vector<adtype>>                    &aux_soln_coeffs,
+        const std::vector<adtype>                                          &metric_coeffs,
         const std::vector<real>                                            &/*local_dual*/,
-        const unsigned int                                                 /*face_number*/,
-        const unsigned int                                                 /*boundary_id*/,
-        const Physics::PhysicsBase<dim, nstate, adtype>                    &/*physics*/,
-        const NumericalFlux::NumericalFluxConvective<dim, nstate, adtype>  &/*conv_num_flux*/,
-        const NumericalFlux::NumericalFluxDissipative<dim, nstate, adtype> &/*diss_num_flux*/,
-        const unsigned int                                                 /*poly_degree*/,
-        const unsigned int                                                 /*grid_degree*/,
-        OPERATOR::basis_functions<dim,2*dim>                               &/*soln_basis*/,
-        OPERATOR::basis_functions<dim,2*dim>                               &/*flux_basis*/,
-        OPERATOR::vol_projection_operator<dim,2*dim>                       &/*soln_basis_projection_oper_int*/,
-        OPERATOR::metric_operators<adtype,dim,2*dim>                       &/*metric_oper*/,
-        OPERATOR::mapping_shape_functions<dim,2*dim>                       &/*mapping_basis*/,
-        std::array<std::vector<adtype>,dim>                                &/*mapping_support_points*/,
+        const unsigned int                                                 face_number,
+        const unsigned int                                                 boundary_id,
+        const Physics::PhysicsBase<dim, nstate, adtype>                    &physics,
+        const NumericalFlux::NumericalFluxConvective<dim, nstate, adtype>  &conv_num_flux,
+        const NumericalFlux::NumericalFluxDissipative<dim, nstate, adtype> &diss_num_flux,
+        const unsigned int                                                 poly_degree,
+        const unsigned int                                                 grid_degree,
+        OPERATOR::basis_functions<dim,2*dim>                               &soln_basis,
+        OPERATOR::basis_functions<dim,2*dim>                               &flux_basis,
+        OPERATOR::vol_projection_operator<dim,2*dim>                       &soln_basis_projection_oper_int,
+        OPERATOR::metric_operators<adtype,dim,2*dim>                       &metric_oper,
+        OPERATOR::mapping_shape_functions<dim,2*dim>                       &mapping_basis,
+        std::array<std::vector<adtype>,dim>                                &mapping_support_points,
         dealii::hp::FEFaceValues<dim,dim>                                  &/*fe_values_collection_face_int*/,
         const dealii::FESystem<dim,dim>                                    &/*fe_soln*/,
-        const real                                                         /*penalty*/,
-        std::vector<adtype>                                                &/*rhs*/,
-        dealii::Tensor<1,dim,std::vector<adtype>>                          &/*local_auxiliary_RHS*/,
-        const bool                                                         /*compute_auxiliary_right_hand_side*/,
-        adtype                                                             &/*dual_dot_residual*/)
-    {
-        //do nothing for now
-    }
+        const real                                                         penalty,
+        std::vector<adtype>                                                &rhs,
+        dealii::Tensor<1,dim,std::vector<adtype>>                          &local_auxiliary_RHS,
+        const bool                                                         compute_auxiliary_right_hand_side,
+        adtype                                                             &/*dual_dot_residual*/);
     
     void assemble_boundary_term_and_build_operators_ad(
         typename dealii::DoFHandler<dim>::active_cell_iterator             cell,
@@ -445,55 +439,52 @@ protected:
     
     template <typename adtype>
     void assemble_face_term_and_build_operators_ad_templated(
-        typename dealii::DoFHandler<dim>::active_cell_iterator             /*cell*/,
-        typename dealii::DoFHandler<dim>::active_cell_iterator             /*neighbor_cell*/,
-        const dealii::types::global_dof_index                              /*current_cell_index*/,
-        const dealii::types::global_dof_index                              /*neighbor_cell_index*/,
-        const unsigned int                                                 /*iface*/,
-        const unsigned int                                                 /*neighbor_iface*/,
-        const std::vector<adtype>                                          &/*soln_coeff_int*/,
-        const std::vector<adtype>                                          &/*soln_coeff_ext*/,
-        const dealii::Tensor<1,dim,std::vector<adtype>>                    &/*aux_soln_coeff_int*/,
-        const dealii::Tensor<1,dim,std::vector<adtype>>                    &/*aux_soln_coeff_ext*/,
-        const std::vector<adtype>                                          &/*metric_coeff_int*/,
-        const std::vector<adtype>                                          &/*metric_coeff_ext*/,
+        typename dealii::DoFHandler<dim>::active_cell_iterator             cell,
+        typename dealii::DoFHandler<dim>::active_cell_iterator             neighbor_cell,
+        const dealii::types::global_dof_index                              current_cell_index,
+        const dealii::types::global_dof_index                              neighbor_cell_index,
+        const unsigned int                                                 iface,
+        const unsigned int                                                 neighbor_iface,
+        const std::vector<adtype>                                          &soln_coeffs_int,
+        const std::vector<adtype>                                          &soln_coeffs_ext,
+        const dealii::Tensor<1,dim,std::vector<adtype>>                    &aux_soln_coeffs_int,
+        const dealii::Tensor<1,dim,std::vector<adtype>>                    &aux_soln_coeffs_ext,
+        const std::vector<adtype>                                          &metric_coeff_int,
+        const std::vector<adtype>                                          &metric_coeff_ext,
         const std::vector< double >                                        &/*dual_int*/,
         const std::vector< double >                                        &/*dual_ext*/,
-        const unsigned int                                                 /*poly_degree_int*/,
-        const unsigned int                                                 /*poly_degree_ext*/,
-        const unsigned int                                                 /*grid_degree_int*/,
-        const unsigned int                                                 /*grid_degree_ext*/,
-        OPERATOR::basis_functions<dim,2*dim>                               &/*soln_basis_int*/,
-        OPERATOR::basis_functions<dim,2*dim>                               &/*soln_basis_ext*/,
-        OPERATOR::basis_functions<dim,2*dim>                               &/*flux_basis_int*/,
-        OPERATOR::basis_functions<dim,2*dim>                               &/*flux_basis_ext*/,
-        OPERATOR::local_basis_stiffness<dim,2*dim>                         &/*flux_basis_stiffness*/,
-        OPERATOR::vol_projection_operator<dim,2*dim>                       &/*soln_basis_projection_oper_int*/,
-        OPERATOR::vol_projection_operator<dim,2*dim>                       &/*soln_basis_projection_oper_ext*/,
-        OPERATOR::metric_operators<adtype,dim,2*dim>                       &/*metric_oper_int*/,
-        OPERATOR::metric_operators<adtype,dim,2*dim>                       &/*metric_oper_ext*/,
-        OPERATOR::mapping_shape_functions<dim,2*dim>                       &/*mapping_basis*/,
-        std::array<std::vector<adtype>,dim>                                &/*mapping_support_points*/,
-        const Physics::PhysicsBase<dim, nstate, adtype>                    &/*physics*/,
-        const NumericalFlux::NumericalFluxConvective<dim, nstate, adtype>  &/*conv_num_flux*/,
-        const NumericalFlux::NumericalFluxDissipative<dim, nstate, adtype> &/*diss_num_flux*/,
+        const unsigned int                                                 poly_degree_int,
+        const unsigned int                                                 poly_degree_ext,
+        const unsigned int                                                 grid_degree_int,
+        const unsigned int                                                 grid_degree_ext,
+        OPERATOR::basis_functions<dim,2*dim>                               &soln_basis_int,
+        OPERATOR::basis_functions<dim,2*dim>                               &soln_basis_ext,
+        OPERATOR::basis_functions<dim,2*dim>                               &flux_basis_int,
+        OPERATOR::basis_functions<dim,2*dim>                               &flux_basis_ext,
+        OPERATOR::local_basis_stiffness<dim,2*dim>                         &flux_basis_stiffness,
+        OPERATOR::vol_projection_operator<dim,2*dim>                       &soln_basis_projection_oper_int,
+        OPERATOR::vol_projection_operator<dim,2*dim>                       &soln_basis_projection_oper_ext,
+        OPERATOR::metric_operators<adtype,dim,2*dim>                       &metric_oper_int,
+        OPERATOR::metric_operators<adtype,dim,2*dim>                       &metric_oper_ext,
+        OPERATOR::mapping_shape_functions<dim,2*dim>                       &mapping_basis,
+        std::array<std::vector<adtype>,dim>                                &mapping_support_points,
+        const Physics::PhysicsBase<dim, nstate, adtype>                    &physics,
+        const NumericalFlux::NumericalFluxConvective<dim, nstate, adtype>  &conv_num_flux,
+        const NumericalFlux::NumericalFluxDissipative<dim, nstate, adtype> &diss_num_flux,
         dealii::hp::FEFaceValues<dim,dim>                                  &/*fe_values_collection_face_int*/,
         dealii::hp::FEFaceValues<dim,dim>                                  &/*fe_values_collection_face_ext*/,
         dealii::hp::FESubfaceValues<dim,dim>                               &/*fe_values_collection_subface*/,
         const dealii::FESystem<dim,dim>                                    &/*fe_int*/,
         const dealii::FESystem<dim,dim>                                    &/*fe_ext*/,
-        const real                                                         /*penalty*/,
-        std::vector<adtype>                                                &/*rhs_int*/,
-        std::vector<adtype>                                                &/*rhs_ext*/,
-        dealii::Tensor<1,dim,std::vector<adtype>>                          &/*aux_rhs_int*/,
-        dealii::Tensor<1,dim,std::vector<adtype>>                          &/*aux_rhs_ext*/,
-        const bool                                                         /*compute_auxiliary_right_hand_side*/,
+        const real                                                         penalty,
+        std::vector<adtype>                                                &rhs_int,
+        std::vector<adtype>                                                &rhs_ext,
+        dealii::Tensor<1,dim,std::vector<adtype>>                          &aux_rhs_int,
+        dealii::Tensor<1,dim,std::vector<adtype>>                          &aux_rhs_ext,
+        const bool                                                         compute_auxiliary_right_hand_side,
         adtype                                                             &/*dual_dot_residual*/,
         const bool                                                         /*is_a_subface*/,
-        const unsigned int                                                 /*neighbor_i_subface*/)
-    {
-        //do nothing for now
-    }
+        const unsigned int                                                 /*neighbor_i_subface*/);
     
     void assemble_face_term_and_build_operators_ad(
         typename dealii::DoFHandler<dim>::active_cell_iterator             cell,
@@ -785,91 +776,100 @@ protected:
 
     /// Builds the necessary operators and assembles volume residual for either primary or auxiliary.
     void assemble_volume_term_and_build_operators(
-        typename dealii::DoFHandler<dim>::active_cell_iterator cell,
-        const dealii::types::global_dof_index                  current_cell_index,
-        const std::vector<dealii::types::global_dof_index>     &cell_dofs_indices,
-        const std::vector<dealii::types::global_dof_index>     &metric_dof_indices,
-        const unsigned int                                     poly_degree,
-        const unsigned int                                     grid_degree,
-        OPERATOR::basis_functions<dim,2*dim>              &soln_basis,
-        OPERATOR::basis_functions<dim,2*dim>              &flux_basis,
-        OPERATOR::local_basis_stiffness<dim,2*dim>        &flux_basis_stiffness,
-        OPERATOR::vol_projection_operator<dim,2*dim>      &soln_basis_projection_oper_int,
-        OPERATOR::vol_projection_operator<dim,2*dim>      &soln_basis_projection_oper_ext,
-        OPERATOR::metric_operators<real,dim,2*dim>             &metric_oper,
-        OPERATOR::mapping_shape_functions<dim,2*dim>      &mapping_basis,
-        std::array<std::vector<real>,dim>                      &mapping_support_points,
+        typename dealii::DoFHandler<dim>::active_cell_iterator /*cell*/,
+        const dealii::types::global_dof_index                  /*current_cell_index*/,
+        const std::vector<dealii::types::global_dof_index>     &/*cell_dofs_indices*/,
+        const std::vector<dealii::types::global_dof_index>     &/*metric_dof_indices*/,
+        const unsigned int                                     /*poly_degree*/,
+        const unsigned int                                     /*grid_degree*/,
+        OPERATOR::basis_functions<dim,2*dim>              &/*soln_basis*/,
+        OPERATOR::basis_functions<dim,2*dim>              &/*flux_basis*/,
+        OPERATOR::local_basis_stiffness<dim,2*dim>        &/*flux_basis_stiffness*/,
+        OPERATOR::vol_projection_operator<dim,2*dim>      &/*soln_basis_projection_oper_int*/,
+        OPERATOR::vol_projection_operator<dim,2*dim>      &/*soln_basis_projection_oper_ext*/,
+        OPERATOR::metric_operators<real,dim,2*dim>             &/*metric_oper*/,
+        OPERATOR::mapping_shape_functions<dim,2*dim>      &/*mapping_basis*/,
+        std::array<std::vector<real>,dim>                      &/*mapping_support_points*/,
         dealii::hp::FEValues<dim,dim>                          &/*fe_values_collection_volume*/,
         dealii::hp::FEValues<dim,dim>                          &/*fe_values_collection_volume_lagrange*/,
         const dealii::FESystem<dim,dim>                        &/*current_fe_ref*/,
-        dealii::Vector<real>                                   &local_rhs_int_cell,
-        std::vector<dealii::Tensor<1,dim,real>>                &local_auxiliary_RHS,
-        const bool                                             compute_auxiliary_right_hand_side,
-        const bool /*compute_dRdW*/, const bool /*compute_dRdX*/, const bool /*compute_d2R*/);
+        dealii::Vector<real>                                   &/*local_rhs_int_cell*/,
+        std::vector<dealii::Tensor<1,dim,real>>                &/*local_auxiliary_RHS*/,
+        const bool                                             /*compute_auxiliary_right_hand_side*/,
+        const bool /*compute_dRdW*/, const bool /*compute_dRdX*/, const bool /*compute_d2R*/)
+    {
+        //Do nothing.
+    }
 
     /// Builds the necessary operators and assembles boundary residual for either primary or auxiliary.
     void assemble_boundary_term_and_build_operators(
         typename dealii::DoFHandler<dim>::active_cell_iterator /*cell*/,
-        const dealii::types::global_dof_index                  current_cell_index,
-        const unsigned int                                     iface,
-        const unsigned int                                     boundary_id,
-        const real                                             penalty,
-        const std::vector<dealii::types::global_dof_index>     &cell_dofs_indices,
-        const std::vector<dealii::types::global_dof_index>     &metric_dof_indices,
-        const unsigned int                                     poly_degree,
-        const unsigned int                                     grid_degree,
-        OPERATOR::basis_functions<dim,2*dim>              &soln_basis,
-        OPERATOR::basis_functions<dim,2*dim>              &flux_basis,
-        OPERATOR::local_basis_stiffness<dim,2*dim>        &flux_basis_stiffness,
-        OPERATOR::vol_projection_operator<dim,2*dim>      &soln_basis_projection_oper_int,
-        OPERATOR::vol_projection_operator<dim,2*dim>      &soln_basis_projection_oper_ext,
-        OPERATOR::metric_operators<real,dim,2*dim>             &metric_oper,
-        OPERATOR::mapping_shape_functions<dim,2*dim>      &mapping_basis,
-        std::array<std::vector<real>,dim>                      &mapping_support_points,
+        const dealii::types::global_dof_index                  /*current_cell_index*/,
+        const unsigned int                                     /*iface*/,
+        const unsigned int                                     /*boundary_id*/,
+        const real                                             /*penalty*/,
+        const std::vector<dealii::types::global_dof_index>     &/*cell_dofs_indices*/,
+        const std::vector<dealii::types::global_dof_index>     &/*metric_dof_indices*/,
+        const unsigned int                                     /*poly_degree*/,
+        const unsigned int                                     /*grid_degree*/,
+        OPERATOR::basis_functions<dim,2*dim>              &/*soln_basis*/,
+        OPERATOR::basis_functions<dim,2*dim>              &/*flux_basis*/,
+        OPERATOR::local_basis_stiffness<dim,2*dim>        &/*flux_basis_stiffness*/,
+        OPERATOR::vol_projection_operator<dim,2*dim>      &/*soln_basis_projection_oper_int*/,
+        OPERATOR::vol_projection_operator<dim,2*dim>      &/*soln_basis_projection_oper_ext*/,
+        OPERATOR::metric_operators<real,dim,2*dim>             &/*metric_oper*/,
+        OPERATOR::mapping_shape_functions<dim,2*dim>      &/*mapping_basis*/,
+        std::array<std::vector<real>,dim>                      &/*mapping_support_points*/,
         dealii::hp::FEFaceValues<dim,dim>                      &/*fe_values_collection_face_int*/,
         const dealii::FESystem<dim,dim>                        &/*current_fe_ref*/,
-        dealii::Vector<real>                                   &local_rhs_int_cell,
-        std::vector<dealii::Tensor<1,dim,real>>                &local_auxiliary_RHS,
-        const bool                                             compute_auxiliary_right_hand_side,
-        const bool /*compute_dRdW*/, const bool /*compute_dRdX*/, const bool /*compute_d2R*/);
+        dealii::Vector<real>                                   &/*local_rhs_int_cell*/,
+        std::vector<dealii::Tensor<1,dim,real>>                &/*local_auxiliary_RHS*/,
+        const bool                                             /*compute_auxiliary_right_hand_side*/,
+        const bool /*compute_dRdW*/, const bool /*compute_dRdX*/, const bool /*compute_d2R*/)
+    {
+        //Do nothing.
+    }
 
     /// Builds the necessary operators and assembles face residual.
     void assemble_face_term_and_build_operators(
         typename dealii::DoFHandler<dim>::active_cell_iterator /*cell*/,
         typename dealii::DoFHandler<dim>::active_cell_iterator /*neighbor_cell*/,
-        const dealii::types::global_dof_index                  current_cell_index,
-        const dealii::types::global_dof_index                  neighbor_cell_index,
-        const unsigned int                                     iface,
-        const unsigned int                                     neighbor_iface,
-        const real                                             penalty,
-        const std::vector<dealii::types::global_dof_index>     &current_dofs_indices,
-        const std::vector<dealii::types::global_dof_index>     &neighbor_dofs_indices,
-        const std::vector<dealii::types::global_dof_index>     &current_metric_dofs_indices,
-        const std::vector<dealii::types::global_dof_index>     &neighbor_metric_dofs_indices,
-        const unsigned int                                     poly_degree_int,
-        const unsigned int                                     poly_degree_ext,
-        const unsigned int                                     grid_degree_int,
-        const unsigned int                                     grid_degree_ext,
-        OPERATOR::basis_functions<dim,2*dim>              &soln_basis_int,
-        OPERATOR::basis_functions<dim,2*dim>              &soln_basis_ext,
-        OPERATOR::basis_functions<dim,2*dim>              &flux_basis_int,
-        OPERATOR::basis_functions<dim,2*dim>              &flux_basis_ext,
-        OPERATOR::local_basis_stiffness<dim,2*dim>        &flux_basis_stiffness,
-        OPERATOR::vol_projection_operator<dim,2*dim>      &soln_basis_projection_oper_int,
-        OPERATOR::vol_projection_operator<dim,2*dim>      &soln_basis_projection_oper_ext,
-        OPERATOR::metric_operators<real,dim,2*dim>             &metric_oper_int,
-        OPERATOR::metric_operators<real,dim,2*dim>             &metric_oper_ext,
-        OPERATOR::mapping_shape_functions<dim,2*dim>      &mapping_basis,
-        std::array<std::vector<real>,dim>                      &mapping_support_points,
+        const dealii::types::global_dof_index                  /*current_cell_index*/,
+        const dealii::types::global_dof_index                  /*neighbor_cell_index*/,
+        const unsigned int                                     /*iface*/,
+        const unsigned int                                     /*neighbor_iface*/,
+        const real                                             /*penalty*/,
+        const std::vector<dealii::types::global_dof_index>     &/*current_dofs_indices*/,
+        const std::vector<dealii::types::global_dof_index>     &/*neighbor_dofs_indices*/,
+        const std::vector<dealii::types::global_dof_index>     &/*current_metric_dofs_indices*/,
+        const std::vector<dealii::types::global_dof_index>     &/*neighbor_metric_dofs_indices*/,
+        const unsigned int                                     /*poly_degree_int*/,
+        const unsigned int                                     /*poly_degree_ext*/,
+        const unsigned int                                     /*grid_degree_int*/,
+        const unsigned int                                     /*grid_degree_ext*/,
+        OPERATOR::basis_functions<dim,2*dim>              &/*soln_basis_int*/,
+        OPERATOR::basis_functions<dim,2*dim>              &/*soln_basis_ext*/,
+        OPERATOR::basis_functions<dim,2*dim>              &/*flux_basis_int*/,
+        OPERATOR::basis_functions<dim,2*dim>              &/*flux_basis_ext*/,
+        OPERATOR::local_basis_stiffness<dim,2*dim>        &/*flux_basis_stiffness*/,
+        OPERATOR::vol_projection_operator<dim,2*dim>      &/*soln_basis_projection_oper_int*/,
+        OPERATOR::vol_projection_operator<dim,2*dim>      &/*soln_basis_projection_oper_ext*/,
+        OPERATOR::metric_operators<real,dim,2*dim>             &/*metric_oper_int*/,
+        OPERATOR::metric_operators<real,dim,2*dim>             &/*metric_oper_ext*/,
+        OPERATOR::mapping_shape_functions<dim,2*dim>      &/*mapping_basis*/,
+        std::array<std::vector<real>,dim>                      &/*mapping_support_points*/,
         dealii::hp::FEFaceValues<dim,dim>                      &/*fe_values_collection_face_int*/,
         dealii::hp::FEFaceValues<dim,dim>                      &/*fe_values_collection_face_ext*/,
-        dealii::Vector<real>                                   &current_cell_rhs,
-        dealii::Vector<real>                                   &neighbor_cell_rhs,
-        std::vector<dealii::Tensor<1,dim,real>>                &current_cell_rhs_aux,
-        dealii::LinearAlgebra::distributed::Vector<double>     &rhs,
-        std::array<dealii::LinearAlgebra::distributed::Vector<double>,dim> &rhs_aux,
-        const bool                                             compute_auxiliary_right_hand_side,
-        const bool compute_dRdW, const bool compute_dRdX, const bool compute_d2R);
+        dealii::Vector<real>                                   &/*current_cell_rhs*/,
+        dealii::Vector<real>                                   &/*neighbor_cell_rhs*/,
+        std::vector<dealii::Tensor<1,dim,real>>                &/*current_cell_rhs_aux*/,
+        dealii::LinearAlgebra::distributed::Vector<double>     &/*rhs*/,
+        std::array<dealii::LinearAlgebra::distributed::Vector<double>,dim> &/*rhs_aux*/,
+        const bool                                             /*compute_auxiliary_right_hand_side*/,
+        const bool /*compute_dRdW*/, const bool /*compute_dRdX*/, const bool /*compute_d2R*/)
+    {
+        //Do nothing.
+    }
 
     /// Builds the necessary operators and assembles subface residual.
     /** Not verified
@@ -918,27 +918,29 @@ public:
     * \int_{\mathbf{\Omega}_r} \chi_i(\mathbf{\xi}^r) \left( \nabla^r(u) \right)\mathbf{C}_m(\mathbf{\xi}^r) d\mathbf{\Omega}_r,\:\forall i=1,\dots,N_p.
     * \f]
     */
- //   template <typename real2>
+    template <typename adtype>
     void assemble_volume_term_auxiliary_equation(
-//        const std::array<std::vector<adtype>,nstate>       &soln_coeff,
-        const std::vector<dealii::types::global_dof_index> &current_dofs_indices,
-        const unsigned int                                 poly_degree,
-        OPERATOR::basis_functions<dim,2*dim>               &soln_basis,
-        OPERATOR::basis_functions<dim,2*dim>               &flux_basis,
-        OPERATOR::metric_operators<real,dim,2*dim>        &metric_oper,
-        std::vector<dealii::Tensor<1,dim,real>>           &local_auxiliary_RHS);
+        const std::array<std::vector<adtype>,nstate>  &soln_coeff,
+        const unsigned int                            poly_degree,
+        OPERATOR::basis_functions<dim,2*dim>          &soln_basis,
+        OPERATOR::basis_functions<dim,2*dim>          &flux_basis,
+        OPERATOR::metric_operators<adtype,dim,2*dim>  &metric_oper,
+        dealii::Tensor<1,dim,std::vector<adtype>>     &local_auxiliary_RHS);
 
 protected:
     /// Evaluate the boundary RHS for the auxiliary equation.
+    template <typename adtype>
     void assemble_boundary_term_auxiliary_equation(
         const unsigned int                                 iface,
         const dealii::types::global_dof_index              current_cell_index,
+        const std::array<std::vector<adtype>,nstate>       &soln_coeff,
         const unsigned int                                 poly_degree,
         const unsigned int                                 boundary_id,
-        const std::vector<dealii::types::global_dof_index> &dofs_indices,
-        OPERATOR::basis_functions<dim,2*dim>          &soln_basis,
-        OPERATOR::metric_operators<real,dim,2*dim>         &metric_oper,
-        std::vector<dealii::Tensor<1,dim,real>>            &local_auxiliary_RHS);
+        OPERATOR::basis_functions<dim,2*dim>               &soln_basis,
+        OPERATOR::metric_operators<adtype,dim,2*dim>       &metric_oper,
+        const Physics::PhysicsBase<dim, nstate, adtype>                    &pde_physics,
+        const NumericalFlux::NumericalFluxDissipative<dim, nstate, adtype> &diss_num_flux,
+        dealii::Tensor<1,dim,std::vector<adtype>>          &local_auxiliary_RHS);
 
 public:
     /// Evaluate the facet RHS for the auxiliary equation.
@@ -947,20 +949,23 @@ public:
     * - u\right]d\mathbf{\Gamma}_r,\:\forall i=1,\dots,N_p.
     * \f]
     */
+    template <typename adtype>
     void assemble_face_term_auxiliary_equation(
         const unsigned int                                 iface, 
         const unsigned int                                 neighbor_iface,
         const dealii::types::global_dof_index              current_cell_index,
         const dealii::types::global_dof_index              neighbor_cell_index,
+        const std::array<std::vector<adtype>,nstate>       &soln_coeff_int,
+        const std::array<std::vector<adtype>,nstate>       &soln_coeff_ext,
         const unsigned int                                 poly_degree_int, 
         const unsigned int                                 poly_degree_ext,
-        const std::vector<dealii::types::global_dof_index> &dof_indices_int,
-        const std::vector<dealii::types::global_dof_index> &dof_indices_ext,
-        OPERATOR::basis_functions<dim,2*dim>          &soln_basis_int,
-        OPERATOR::basis_functions<dim,2*dim>          &soln_basis_ext,
-        OPERATOR::metric_operators<real,dim,2*dim>         &metric_oper_int,
-        std::vector<dealii::Tensor<1,dim,real>>            &local_auxiliary_RHS_int,
-        std::vector<dealii::Tensor<1,dim,real>>            &local_auxiliary_RHS_ext);
+        OPERATOR::basis_functions<dim,2*dim>               &soln_basis_int,
+        OPERATOR::basis_functions<dim,2*dim>               &soln_basis_ext,
+        OPERATOR::metric_operators<adtype,dim,2*dim>       &metric_oper_int,
+        const Physics::PhysicsBase<dim, nstate, adtype>                    &pde_physics,
+        const NumericalFlux::NumericalFluxDissipative<dim, nstate, adtype> &diss_num_flux,
+        dealii::Tensor<1,dim,std::vector<adtype>>          &local_auxiliary_RHS_int,
+        dealii::Tensor<1,dim,std::vector<adtype>>          &local_auxiliary_RHS_ext);
 
 protected:
     /// Strong form primary equation's volume right-hand-side.
@@ -981,34 +986,39 @@ protected:
     * where \f$ (\mathbf{F})_{ij} = 0.5\left( \mathbf{C}_m(\mathbf{\xi}_i^r)+\mathbf{C}_m(\mathbf{\xi}_j^r) \right) \cdot \mathbf{f}_s(\mathbf{u}(\mathbf{\xi}_i^r),\mathbf{u}(\mathbf{\xi}_j^r)) \f$; that is, the 
     * matrix of REFERENCE two-point entropy conserving fluxes.
     */
- //   template <typename real2>
+    template <typename adtype>
     void assemble_volume_term_strong(
         typename dealii::DoFHandler<dim>::active_cell_iterator cell,
         const dealii::types::global_dof_index                  current_cell_index,
-  //      const std::array<std::vector<adtype>,nstate>           &soln_coeff,
-        const std::vector<dealii::types::global_dof_index>     &cell_dofs_indices,
+        const std::array<std::vector<adtype>,nstate>           &soln_coeff,
+        const std::array<dealii::Tensor<1,dim,std::vector<adtype>>,nstate>           &aux_soln_coeff,
         const unsigned int                                     poly_degree,
         OPERATOR::basis_functions<dim,2*dim>                   &soln_basis,
         OPERATOR::basis_functions<dim,2*dim>                   &flux_basis,
         OPERATOR::local_basis_stiffness<dim,2*dim>             &flux_basis_stiffness,
         OPERATOR::vol_projection_operator<dim,2*dim>           &soln_basis_projection_oper,
-        OPERATOR::metric_operators<real,dim,2*dim>            &metric_oper,
-//        const Physics::PhysicsBase<dim, nstate, real>         &pde_physics,
-        dealii::Vector<real>                                     &local_rhs_int_cell);
+        OPERATOR::metric_operators<adtype,dim,2*dim>             &metric_oper,
+        const Physics::PhysicsBase<dim, nstate, adtype>          &pde_physics,
+        std::vector<adtype>                                    &local_rhs_int_cell);
 
     /// Strong form primary equation's boundary right-hand-side.
+    template <typename adtype>
     void assemble_boundary_term_strong(
-        const unsigned int                                 iface, 
-        const dealii::types::global_dof_index              current_cell_index,
-        const unsigned int                                 boundary_id,
-        const unsigned int                                 poly_degree, 
-        const real                                         penalty,
-        const std::vector<dealii::types::global_dof_index> &dof_indices,
-        OPERATOR::basis_functions<dim,2*dim>          &soln_basis,
-        OPERATOR::basis_functions<dim,2*dim>          &flux_basis,
-        OPERATOR::vol_projection_operator<dim,2*dim>  &soln_basis_projection_oper,
-        OPERATOR::metric_operators<real,dim,2*dim>         &metric_oper,
-        dealii::Vector<real>                               &local_rhs_cell);
+        const unsigned int                                                 iface, 
+        const dealii::types::global_dof_index                              current_cell_index,
+        const std::array<std::vector<adtype>,nstate>                       &soln_coeff,
+        const std::array<dealii::Tensor<1,dim,std::vector<adtype>>,nstate> &aux_soln_coeff,
+        const unsigned int                                                 boundary_id,
+        const unsigned int                                                 poly_degree, 
+        const real                                                         penalty,
+        OPERATOR::basis_functions<dim,2*dim>                               &soln_basis,
+        OPERATOR::basis_functions<dim,2*dim>                               &flux_basis,
+        OPERATOR::vol_projection_operator<dim,2*dim>                       &soln_basis_projection_oper,
+        OPERATOR::metric_operators<adtype,dim,2*dim>                       &metric_oper,
+        const Physics::PhysicsBase<dim, nstate, adtype>                    &pde_physics,
+        const NumericalFlux::NumericalFluxConvective<dim, nstate, adtype>  &conv_num_flux,
+        const NumericalFlux::NumericalFluxDissipative<dim, nstate, adtype> &diss_num_flux,
+        std::vector<adtype>                                                &local_rhs_cell);
 
     /// Strong form primary equation's facet right-hand-side.
     /**
@@ -1019,26 +1029,32 @@ protected:
     * ,\:\forall i=1,\dots,N_p.
     * \f]
     */
+    template <typename adtype>
     void assemble_face_term_strong(
-        const unsigned int                                 iface, 
-        const unsigned int                                 neighbor_iface, 
-        const dealii::types::global_dof_index              current_cell_index,
-        const dealii::types::global_dof_index              neighbor_cell_index,
-        const unsigned int                                 poly_degree_int, 
-        const unsigned int                                 poly_degree_ext, 
-        const real                                         penalty,
-        const std::vector<dealii::types::global_dof_index> &dof_indices_int,
-        const std::vector<dealii::types::global_dof_index> &dof_indices_ext,
-        OPERATOR::basis_functions<dim,2*dim>          &soln_basis_int,
-        OPERATOR::basis_functions<dim,2*dim>          &soln_basis_ext,
-        OPERATOR::basis_functions<dim,2*dim>          &flux_basis_int,
-        OPERATOR::basis_functions<dim,2*dim>          &flux_basis_ext,
-        OPERATOR::vol_projection_operator<dim,2*dim>  &soln_basis_projection_oper_int,
-        OPERATOR::vol_projection_operator<dim,2*dim>  &soln_basis_projection_oper_ext,
-        OPERATOR::metric_operators<real,dim,2*dim>         &metric_oper_int,
-        OPERATOR::metric_operators<real,dim,2*dim>         &metric_oper_ext,
-        dealii::Vector<real>                               &local_rhs_int_cell,
-        dealii::Vector<real>                               &local_rhs_ext_cell);
+        const unsigned int                                                 iface, 
+        const unsigned int                                                 neighbor_iface, 
+        const dealii::types::global_dof_index                              current_cell_index,
+        const dealii::types::global_dof_index                              neighbor_cell_index,
+        const std::array<std::vector<adtype>,nstate>                       &soln_coeff_int,
+        const std::array<std::vector<adtype>,nstate>                       &soln_coeff_ext,
+        const std::array<dealii::Tensor<1,dim,std::vector<adtype>>,nstate> &aux_soln_coeff_int,
+        const std::array<dealii::Tensor<1,dim,std::vector<adtype>>,nstate> &aux_soln_coeff_ext,
+        const unsigned int                                                 poly_degree_int, 
+        const unsigned int                                                 poly_degree_ext, 
+        const real                                                         penalty,
+        OPERATOR::basis_functions<dim,2*dim>                               &soln_basis_int,
+        OPERATOR::basis_functions<dim,2*dim>                               &soln_basis_ext,
+        OPERATOR::basis_functions<dim,2*dim>                               &flux_basis_int,
+        OPERATOR::basis_functions<dim,2*dim>                               &flux_basis_ext,
+        OPERATOR::vol_projection_operator<dim,2*dim>                       &soln_basis_projection_oper_int,
+        OPERATOR::vol_projection_operator<dim,2*dim>                       &soln_basis_projection_oper_ext,
+        OPERATOR::metric_operators<adtype,dim,2*dim>                       &metric_oper_int,
+        OPERATOR::metric_operators<adtype,dim,2*dim>                       &metric_oper_ext,
+        const Physics::PhysicsBase<dim, nstate, adtype>                    &pde_physics,
+        const NumericalFlux::NumericalFluxConvective<dim, nstate, adtype>  &conv_num_flux,
+        const NumericalFlux::NumericalFluxDissipative<dim, nstate, adtype> &diss_num_flux,
+        std::vector<adtype>                                                  &local_rhs_int_cell,
+        std::vector<adtype>                                                  &local_rhs_ext_cell);
 
 protected:
     /// Evaluate the integral over the cell volume and the specified derivatives.

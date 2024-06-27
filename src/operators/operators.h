@@ -211,7 +211,7 @@ public:
     template <typename real>
     void inner_product(
             const std::vector<real> &input_vect,
-            const std::vector<real> &weight_vect,
+            const std::vector<double> &weight_vect,
             std::vector<real> &output_vect,
             const dealii::FullMatrix<double> &basis_x,
             const dealii::FullMatrix<double> &basis_y,
@@ -317,7 +317,7 @@ public:
     template <typename real>
     void inner_product_1D(
             const std::vector<real> &input_vect,
-            const std::vector<real> &weight_vect,
+            const std::vector<double> &weight_vect,
             std::vector<real> &output_vect,
             const dealii::FullMatrix<double> &basis_x,
             const bool adding  = false,
@@ -345,7 +345,7 @@ public:
     void inner_product_surface_1D(
             const unsigned int face_number,
             const std::vector<real> &input_vect,
-            const std::vector<real> &weight_vect,
+            const std::vector<double> &weight_vect,
             std::vector<real> &output_vect,
             const std::array<dealii::FullMatrix<double>,2> &basis_surf,//only 2 faces in 1D
             const dealii::FullMatrix<double> &basis_vol,
@@ -367,7 +367,7 @@ public:
     * in contiguous memory, and outputs a matrix stored as a vector in contiguous memory.
     */
     template <typename real>
-    void Hadamard_product_AD(
+    void Hadamard_product_AD_vector(
         const dealii::FullMatrix<double> &input_mat,
         const std::vector<real> &input_vect,
         std::vector<real> &output_vect);

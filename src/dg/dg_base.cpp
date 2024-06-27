@@ -482,9 +482,9 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual_and_ad_derivatives (
     const unsigned int n_dofs_curr_cell = current_fe_ref.n_dofs_per_cell();
     
     // Local vector contribution from each cell
-    dealii::Vector<real> current_cell_rhs (n_dofs_curr_cell); // Defaults to 0.0 initialization
+    std::vector<real> current_cell_rhs (n_dofs_curr_cell); // Defaults to 0.0 initialization
     // Local vector contribution from each cell for Auxiliary equations
-    dealii::Tensor<1,dim,std::vector<double>> current_cell_rhs_aux;// Defaults to 0.0 initialization
+    dealii::Tensor<1,dim,std::vector<real>> current_cell_rhs_aux;// Defaults to 0.0 initialization
     if(compute_auxiliary_right_hand_side){
         for(int idim=0; idim<dim; idim++){
             current_cell_rhs_aux[idim].resize(n_dofs_curr_cell);
@@ -633,7 +633,7 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual_and_ad_derivatives (
                 Assert (current_cell->periodic_neighbor(iface).state() == dealii::IteratorState::valid, dealii::ExcInternalError());
 
                 const unsigned int n_dofs_neigh_cell = fe_collection[neighbor_cell->active_fe_index()].n_dofs_per_cell();
-                dealii::Vector<real> neighbor_cell_rhs (n_dofs_neigh_cell); // Defaults to 0.0 initialization
+                std::vector<real> neighbor_cell_rhs (n_dofs_neigh_cell); // Defaults to 0.0 initialization
 
                 // Obtain the mapping from local dof indices to global dof indices for neighbor cell
                 neighbor_dofs_indices.resize(n_dofs_neigh_cell);
@@ -737,7 +737,7 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual_and_ad_derivatives (
             const int i_fele_n = neighbor_cell->active_fe_index();//, i_quad_n = i_fele_n, i_mapp_n = 0;
 
             const unsigned int n_dofs_neigh_cell = fe_collection[i_fele_n].n_dofs_per_cell();
-            dealii::Vector<real> neighbor_cell_rhs (n_dofs_neigh_cell); // Defaults to 0.0 initialization
+            std::vector<real> neighbor_cell_rhs (n_dofs_neigh_cell); // Defaults to 0.0 initialization
 
             // Obtain the mapping from local dof indices to global dof indices for neighbor cell
             neighbor_dofs_indices.resize(n_dofs_neigh_cell);
@@ -819,7 +819,7 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual_and_ad_derivatives (
             const unsigned int n_dofs_neigh_cell = fe_collection[neighbor_cell->active_fe_index()].n_dofs_per_cell();
 
             // Local rhs contribution from neighbor
-            dealii::Vector<real> neighbor_cell_rhs (n_dofs_neigh_cell); // Defaults to 0.0 initialization
+            std::vector<real> neighbor_cell_rhs (n_dofs_neigh_cell); // Defaults to 0.0 initialization
 
             // Obtain the mapping from local dof indices to global dof indices for neighbor cell
             neighbor_dofs_indices.resize(n_dofs_neigh_cell);
@@ -902,9 +902,9 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual_and_ad_derivatives (
 
     if(compute_auxiliary_right_hand_side) {
         // Add local contribution from current cell to global vector
-        for (unsigned int i=0; i<n_dofs_curr_cell; ++i) {
-            for(int idim=0; idim<dim; idim++){
-                rhs_aux[idim][current_dofs_indices[i]] += current_cell_rhs_aux[i][idim];
+        for(int idim=0; idim<dim; idim++){
+            for (unsigned int i=0; i<n_dofs_curr_cell; ++i) {
+                rhs_aux[idim][current_dofs_indices[i]] += current_cell_rhs_aux[idim][i];
             }
         }
     }
@@ -936,7 +936,7 @@ void DGBase<dim,real,MeshType>::assemble_volume_codi_taped_derivatives_ad(
     dealii::hp::FEValues<dim,dim>                          &fe_values_collection_volume,
     dealii::hp::FEValues<dim,dim>                          &fe_values_collection_volume_lagrange,
     const dealii::FESystem<dim,dim>                        &fe_soln,
-    dealii::Vector<real>                                   &local_rhs_cell,
+    std::vector<real>                                      &local_rhs_cell,
     dealii::Tensor<1,dim,std::vector<real>>                &local_auxiliary_RHS,
     std::vector<adtype>                                    &local_metric_coeff_int,
     const bool                                             compute_auxiliary_right_hand_side,
@@ -951,11 +951,12 @@ void DGBase<dim,real,MeshType>::assemble_volume_codi_taped_derivatives_ad(
     std::vector<real> local_dual(n_soln_dofs);
     for (unsigned int itest=0; itest<n_soln_dofs; ++itest) {
         const unsigned int global_residual_row = soln_dofs_indices[itest];
-        local_dual[itest] = this->dual[global_residual_row];
+        if(compute_d2R)//only if compute_d2R do we have the dual allocated
+            local_dual[itest] = this->dual[global_residual_row];
     }
 
 
-    unsigned int w_start, w_end, x_start, x_end;
+    unsigned int w_start=0, w_end=0, x_start=0, x_end=0;
     if(compute_dRdW || compute_dRdX || compute_d2R)
     {
         automatic_differentiation_indexing_1( compute_dRdW, compute_dRdX, compute_d2R,
@@ -987,13 +988,15 @@ void DGBase<dim,real,MeshType>::assemble_volume_codi_taped_derivatives_ad(
     for(unsigned int idim=0; idim<dim; idim++){
         local_aux_solution[idim].resize(n_soln_dofs);
         for (unsigned int idof = 0; idof < n_soln_dofs; ++idof) {
-            const real val = this->auxiliary_solution[idim](soln_dofs_indices[idof]);
-            local_solution[idof] = val;
+            if(this->use_auxiliary_eq){//only if use auxiliary equation has the auxiliary solution initialized
+                const real val = this->auxiliary_solution[idim](soln_dofs_indices[idof]);
+                local_aux_solution[idim][idof] = val;
+            }
          
-            if (compute_dRdW || compute_d2R) {
-                th.registerInput(local_solution[idof]);
+            if ((compute_dRdW || compute_d2R) && this->use_auxiliary_eq) {
+                th.registerInput(local_aux_solution[idim][idof]);
             } else {
-                tape.deactivateValue(local_solution[idof]);
+                tape.deactivateValue(local_aux_solution[idim][idof]);
             }
         }
     }
@@ -1002,6 +1005,11 @@ void DGBase<dim,real,MeshType>::assemble_volume_codi_taped_derivatives_ad(
     adtype dual_dot_residual = 0.0;
     std::vector<adtype> rhs(n_soln_dofs);
     dealii::Tensor<1,dim,std::vector<adtype>> rhs_aux;
+    if(compute_auxiliary_right_hand_side){
+        for(int idim=0; idim<dim; idim++){
+            rhs_aux[idim].resize(n_soln_dofs);
+        }
+    }
     assemble_volume_term_and_build_operators_ad(
         cell,
         current_cell_index,
@@ -1030,23 +1038,34 @@ void DGBase<dim,real,MeshType>::assemble_volume_codi_taped_derivatives_ad(
         dual_dot_residual);
     
     if (compute_dRdW || compute_dRdX) {
-        for (unsigned int itest=0; itest<n_soln_dofs; ++itest) {
-            th.registerOutput(rhs[itest]);
+        if(compute_auxiliary_right_hand_side){
+            for(int idim=0; idim<dim; idim++){
+                for (unsigned int itest=0; itest<n_soln_dofs; ++itest) {
+                    th.registerOutput(rhs_aux[idim][itest]);
+                }
+            }
+        }
+        else{
+            for (unsigned int itest=0; itest<n_soln_dofs; ++itest) {
+                th.registerOutput(rhs[itest]);
+            }
         }
     } else if (compute_d2R) {
         th.registerOutput(dual_dot_residual);
     }
     
-    for (unsigned int itest=0; itest<n_soln_dofs; ++itest) {
-        local_rhs_cell(itest) += getValue<adtype>(rhs[itest]);
-        AssertIsFinite(local_rhs_cell(itest));
-    }
     if(compute_auxiliary_right_hand_side){
         for(int idim=0; idim<dim; idim++){
             for (unsigned int itest=0; itest<n_soln_dofs; ++itest) {
                 local_auxiliary_RHS[idim][itest] += getValue<adtype>(rhs_aux[idim][itest]);
                 AssertIsFinite(local_auxiliary_RHS[idim][itest]);
             }
+        }
+    }
+    else{
+        for (unsigned int itest=0; itest<n_soln_dofs; ++itest) {
+            local_rhs_cell[itest] += getValue<adtype>(rhs[itest]);
+            AssertIsFinite(local_rhs_cell[itest]);
         }
     }
     
@@ -1124,6 +1143,9 @@ void DGBase<dim,real,MeshType>::assemble_volume_codi_taped_derivatives_ad(
 
     for (unsigned int idof = 0; idof < n_soln_dofs; ++idof) {
         tape.deactivateValue(local_solution[idof]);
+        for(int idim=0; idim<dim; idim++){
+            tape.deactivateValue(local_aux_solution[idim][idof]);
+        }
     }
     
 }
@@ -1148,7 +1170,7 @@ void DGBase<dim,real,MeshType>::assemble_boundary_codi_taped_derivatives_ad(
     std::array<std::vector<adtype>,dim>                    &mapping_support_points,
     dealii::hp::FEFaceValues<dim,dim>                      &fe_values_collection_face_int,
     const dealii::FESystem<dim,dim>                        &fe_soln,
-    dealii::Vector<real>                                   &local_rhs_cell,
+    std::vector<real>                                      &local_rhs_cell,
     dealii::Tensor<1,dim,std::vector<real>>                &local_auxiliary_RHS,
     std::vector<adtype>                                    &local_metric_coeff,
     const bool                                             compute_auxiliary_right_hand_side,
@@ -1161,7 +1183,7 @@ void DGBase<dim,real,MeshType>::assemble_boundary_codi_taped_derivatives_ad(
 
     std::vector<adtype> local_solution(fe_soln.dofs_per_cell);
 
-    unsigned int w_start, w_end, x_start, x_end;
+    unsigned int w_start=0, w_end=0, x_start=0, x_end=0;
     if(compute_dRdW || compute_dRdX || compute_d2R)
     {
         automatic_differentiation_indexing_1( compute_dRdW, compute_dRdX, compute_d2R,
@@ -1193,10 +1215,12 @@ void DGBase<dim,real,MeshType>::assemble_boundary_codi_taped_derivatives_ad(
     for(int idim=0; idim<dim; idim++){
         local_aux_solution[idim].resize(n_soln_dofs);
         for (unsigned int idof = 0; idof < n_soln_dofs; ++idof) {
-            const real val = this->auxiliary_solution[idim](soln_dofs_indices[idof]);
-            local_aux_solution[idim][idof] = val;
+            if(this->use_auxiliary_eq){
+                const real val = this->auxiliary_solution[idim](soln_dofs_indices[idof]);
+                local_aux_solution[idim][idof] = val;
+            }
          
-            if (compute_dRdW || compute_d2R) {
+            if ((compute_dRdW || compute_d2R) && this->use_auxiliary_eq) {
                 th.registerInput(local_aux_solution[idim][idof]);
             } else {
                 tape.deactivateValue(local_aux_solution[idim][idof]);
@@ -1207,7 +1231,8 @@ void DGBase<dim,real,MeshType>::assemble_boundary_codi_taped_derivatives_ad(
 
     std::vector<real> local_dual(n_soln_dofs);
     for (unsigned int itest=0; itest<n_soln_dofs; ++itest) {
-        local_dual[itest] = this->dual[soln_dofs_indices[itest]];
+        if(compute_d2R)//only if compute_d2R do we have the dual allocated
+            local_dual[itest] = this->dual[soln_dofs_indices[itest]];
     }
 
     std::vector<adtype> rhs(n_soln_dofs);
@@ -1261,8 +1286,8 @@ void DGBase<dim,real,MeshType>::assemble_boundary_codi_taped_derivatives_ad(
     }
 
     for (unsigned int itest=0; itest<n_soln_dofs; ++itest) {
-        local_rhs_cell(itest) += getValue<adtype>(rhs[itest]);
-        AssertIsFinite(local_rhs_cell(itest));
+        local_rhs_cell[itest] += getValue<adtype>(rhs[itest]);
+        AssertIsFinite(local_rhs_cell[itest]);
     }
 
     if(compute_auxiliary_right_hand_side){
@@ -1387,8 +1412,8 @@ void DGBase<dim,real,MeshType>::assemble_face_codi_taped_derivatives_ad(
     OPERATOR::mapping_shape_functions<dim,2*dim>           &mapping_basis,
     std::array<std::vector<adtype>,dim>                    &mapping_support_points,
     std::vector<adtype>                                    &metric_coeff_int,
-    dealii::Vector<real> &local_rhs_int_cell,
-    dealii::Vector<real> &local_rhs_ext_cell,
+    std::vector<real> &local_rhs_int_cell,
+    std::vector<real> &local_rhs_ext_cell,
     dealii::Tensor<1,dim,std::vector<real>>  &current_cell_rhs_aux,
     dealii::LinearAlgebra::distributed::Vector<double>  &rhs,
     std::array<dealii::LinearAlgebra::distributed::Vector<double>,dim> &rhs_aux,
@@ -1412,8 +1437,8 @@ void DGBase<dim,real,MeshType>::assemble_face_codi_taped_derivatives_ad(
     dealii::Tensor<1,dim,std::vector<adtype>> aux_soln_coeff_ext;
 
     // Current derivative ordering is: metric_int, metric_ext, soln_int, soln_ext 
-    unsigned int w_int_start, w_int_end, w_ext_start, w_ext_end,
-                 x_int_start, x_int_end, x_ext_start, x_ext_end;
+    unsigned int w_int_start=0, w_int_end=0, w_ext_start=0, w_ext_end=0,
+                 x_int_start=0, x_int_end=0, x_ext_start=0, x_ext_end=0;
     if(compute_dRdW || compute_dRdX || compute_d2R)
     {
         automatic_differentiation_indexing_2(
@@ -1461,19 +1486,25 @@ void DGBase<dim,real,MeshType>::assemble_face_codi_taped_derivatives_ad(
         }
     }
     for(int idim=0; idim<dim; idim++){
+        aux_soln_coeff_int[idim].resize(n_soln_dofs_int);
+        aux_soln_coeff_ext[idim].resize(n_soln_dofs_ext);
         for (unsigned int idof = 0; idof < n_soln_dofs_int; ++idof) {
-            const real val = this->auxiliary_solution[idim](soln_dofs_indices_int[idof]);
-            aux_soln_coeff_int[idim][idof] = val;
-            if (compute_dRdW || compute_d2R) {
+            if(this->use_auxiliary_eq){
+                const real val = this->auxiliary_solution[idim](soln_dofs_indices_int[idof]);
+                aux_soln_coeff_int[idim][idof] = val;
+            }
+            if ((compute_dRdW || compute_d2R) && this->use_auxiliary_eq) {
                 th.registerInput(aux_soln_coeff_int[idim][idof]);
             } else {
                 tape.deactivateValue(aux_soln_coeff_int[idim][idof]);
             }
         }
         for (unsigned int idof = 0; idof < n_soln_dofs_ext; ++idof) {
-            const real val = this->auxiliary_solution[idim](soln_dofs_indices_ext[idof]);
-            aux_soln_coeff_ext[idim][idof] = val;
-            if (compute_dRdW || compute_d2R) {
+            if(this->use_auxiliary_eq){
+                const real val = this->auxiliary_solution[idim](soln_dofs_indices_ext[idof]);
+                aux_soln_coeff_ext[idim][idof] = val;
+            }
+            if ((compute_dRdW || compute_d2R) && this->use_auxiliary_eq) {
                 th.registerInput(aux_soln_coeff_ext[idim][idof]);
             } else {
                 tape.deactivateValue(aux_soln_coeff_ext[idim][idof]);
@@ -1486,17 +1517,25 @@ void DGBase<dim,real,MeshType>::assemble_face_codi_taped_derivatives_ad(
 
     for (unsigned int itest=0; itest<n_soln_dofs_int; ++itest) {
         const unsigned int global_residual_row = soln_dofs_indices_int[itest];
-        dual_int[itest] = this->dual[global_residual_row];
+        if(compute_d2R)//only if compute_d2R do we have the dual allocated
+            dual_int[itest] = this->dual[global_residual_row];
     }
     for (unsigned int itest=0; itest<n_soln_dofs_ext; ++itest) {
         const unsigned int global_residual_row = soln_dofs_indices_ext[itest];
-        dual_ext[itest] = this->dual[global_residual_row];
+        if(compute_d2R)//only if compute_d2R do we have the dual allocated
+            dual_ext[itest] = this->dual[global_residual_row];
     }
 
     std::vector<adtype> rhs_int(n_soln_dofs_int);
     std::vector<adtype> rhs_ext(n_soln_dofs_ext);
     dealii::Tensor<1,dim,std::vector<adtype>> aux_rhs_int;
     dealii::Tensor<1,dim,std::vector<adtype>> aux_rhs_ext;
+    if(compute_auxiliary_right_hand_side){
+        for(int idim=0; idim<dim; idim++){
+            aux_rhs_int[idim].resize(n_soln_dofs_int);
+            aux_rhs_ext[idim].resize(n_soln_dofs_ext);
+        }
+    }
     adtype dual_dot_residual;
     
     assemble_face_term_and_build_operators_ad(
@@ -1556,18 +1595,6 @@ void DGBase<dim,real,MeshType>::assemble_face_codi_taped_derivatives_ad(
         th.registerOutput(dual_dot_residual);
     }
     
-    for (unsigned int itest_int=0; itest_int<n_soln_dofs_int; ++itest_int) {
-        local_rhs_int_cell[itest_int] += getValue<adtype>(rhs_int[itest_int]);
-    }
-    for (unsigned int itest_ext=0; itest_ext<n_soln_dofs_ext; ++itest_ext) {
-        local_rhs_ext_cell[itest_ext] += getValue<adtype>(rhs_ext[itest_ext]);
-    }
-
-    // Add local contribution from neighbor cell to global vector
-    for (unsigned int itest_ext=0; itest_ext<n_soln_dofs_ext; ++itest_ext) {
-        rhs[soln_dofs_indices_ext[itest_ext]] += local_rhs_ext_cell[itest_ext];
-    }
-
     if(compute_auxiliary_right_hand_side){
         for(int idim=0; idim<dim; idim++){
             for (unsigned int itest_int=0; itest_int<n_soln_dofs_int; ++itest_int) {
@@ -1581,6 +1608,19 @@ void DGBase<dim,real,MeshType>::assemble_face_codi_taped_derivatives_ad(
             for (unsigned int itest_ext=0; itest_ext<n_soln_dofs_ext; ++itest_ext) {
                 rhs_aux[idim][soln_dofs_indices_ext[itest_ext]] += getValue<adtype>(aux_rhs_ext[idim][itest_ext]);
             }
+        }
+    }
+    else{
+        for (unsigned int itest_int=0; itest_int<n_soln_dofs_int; ++itest_int) {
+            local_rhs_int_cell[itest_int] += getValue<adtype>(rhs_int[itest_int]);
+        }
+        for (unsigned int itest_ext=0; itest_ext<n_soln_dofs_ext; ++itest_ext) {
+            local_rhs_ext_cell[itest_ext] += getValue<adtype>(rhs_ext[itest_ext]);
+        }
+         
+        // Add local contribution from neighbor cell to global vector
+        for (unsigned int itest_ext=0; itest_ext<n_soln_dofs_ext; ++itest_ext) {
+            rhs[soln_dofs_indices_ext[itest_ext]] += local_rhs_ext_cell[itest_ext];
         }
     }
     
@@ -1652,7 +1692,7 @@ void DGBase<dim,real,MeshType>::assemble_face_codi_taped_derivatives_ad(
                 // dR_int_dX_ext
                 for (unsigned int idof = 0; idof < n_metric_dofs; ++idof) {
                     const unsigned int i_dx = idof+x_ext_start;
-                    residual_derivatives[idof] = jac(i_dependent,i_dx);
+                   residual_derivatives[idof] = jac(i_dependent,i_dx);
                 }
                 this->dRdXv.add(soln_dofs_indices_int[itest_int], metric_dofs_indices_ext, residual_derivatives);
             }
@@ -2698,7 +2738,7 @@ void DGBase<dim,real,MeshType>::assemble_residual (const bool compute_dRdW, cons
         if(all_parameters->pde_type == Parameters::AllParameters::PartialDifferentialEquation::physics_model) update_model_variables();
 
         // assembles and solves for auxiliary variable if necessary.
-        assemble_auxiliary_residual();
+        assemble_auxiliary_residual(compute_dRdW, compute_dRdX, compute_d2R);
 
         dealii::Timer timer;
         if(all_parameters->store_residual_cpu_time){
@@ -3386,7 +3426,7 @@ void DGBase<dim,real,MeshType>::allocate_system (
     right_hand_side.reinit(locally_owned_dofs, ghost_dofs, mpi_communicator);
     right_hand_side.add(1.0); // Avoid 0 initial residual for output and logarithmic visualization.
 
-    allocate_dual_vector();
+    allocate_dual_vector(compute_d2R);
 
     // Set use_auxiliary_eq flag
     set_use_auxiliary_eq();
@@ -4591,4 +4631,141 @@ DGBase<PHILIP_DIM,double,dealii::parallel::shared::Triangulation<PHILIP_DIM>>::a
     const bool compute_auxiliary_right_hand_side,
     dealii::LinearAlgebra::distributed::Vector<double> &rhs,
     std::array<dealii::LinearAlgebra::distributed::Vector<double>,PHILIP_DIM> &rhs_aux);
+
+
+
+template void 
+DGBase<PHILIP_DIM,double,dealii::Triangulation<PHILIP_DIM>>::assemble_cell_residual_and_ad_derivatives<codi_JacobianComputationType> (
+    const dealii::TriaActiveIterator<dealii::DoFCellAccessor<PHILIP_DIM, PHILIP_DIM, false>> &current_cell,
+    const dealii::TriaActiveIterator<dealii::DoFCellAccessor<PHILIP_DIM, PHILIP_DIM, false>> &current_metric_cell,
+    const bool compute_dRdW, const bool compute_dRdX, const bool compute_d2R,
+    dealii::hp::FEValues<PHILIP_DIM,PHILIP_DIM>                                      &fe_values_collection_volume,
+    dealii::hp::FEFaceValues<PHILIP_DIM,PHILIP_DIM>                                  &fe_values_collection_face_int,
+    dealii::hp::FEFaceValues<PHILIP_DIM,PHILIP_DIM>                                  &fe_values_collection_face_ext,
+    dealii::hp::FESubfaceValues<PHILIP_DIM,PHILIP_DIM>                               &fe_values_collection_subface,
+    dealii::hp::FEValues<PHILIP_DIM,PHILIP_DIM>                                      &fe_values_collection_volume_lagrange,
+    OPERATOR::basis_functions<PHILIP_DIM,2*PHILIP_DIM>                               &soln_basis_int,
+    OPERATOR::basis_functions<PHILIP_DIM,2*PHILIP_DIM>                               &soln_basis_ext,
+    OPERATOR::basis_functions<PHILIP_DIM,2*PHILIP_DIM>                               &flux_basis_int,
+    OPERATOR::basis_functions<PHILIP_DIM,2*PHILIP_DIM>                               &flux_basis_ext,
+    OPERATOR::local_basis_stiffness<PHILIP_DIM,2*PHILIP_DIM>                         &flux_basis_stiffness,
+    OPERATOR::vol_projection_operator<PHILIP_DIM,2*PHILIP_DIM>                       &soln_basis_projection_oper_int,
+    OPERATOR::vol_projection_operator<PHILIP_DIM,2*PHILIP_DIM>                       &soln_basis_projection_oper_ext,
+    OPERATOR::mapping_shape_functions<PHILIP_DIM,2*PHILIP_DIM>                       &mapping_basis,
+    const bool                                                         compute_auxiliary_right_hand_side,//flag on whether computing the Auxiliary variable's equations' residuals
+    dealii::LinearAlgebra::distributed::Vector<double>                 &rhs,
+    std::array<dealii::LinearAlgebra::distributed::Vector<double>,PHILIP_DIM> &rhs_aux);
+
+template void 
+DGBase<PHILIP_DIM,double,dealii::Triangulation<PHILIP_DIM>>::assemble_cell_residual_and_ad_derivatives<codi_HessianComputationType> (
+    const dealii::TriaActiveIterator<dealii::DoFCellAccessor<PHILIP_DIM, PHILIP_DIM, false>> &current_cell,
+    const dealii::TriaActiveIterator<dealii::DoFCellAccessor<PHILIP_DIM, PHILIP_DIM, false>> &current_metric_cell,
+    const bool compute_dRdW, const bool compute_dRdX, const bool compute_d2R,
+    dealii::hp::FEValues<PHILIP_DIM,PHILIP_DIM>                                      &fe_values_collection_volume,
+    dealii::hp::FEFaceValues<PHILIP_DIM,PHILIP_DIM>                                  &fe_values_collection_face_int,
+    dealii::hp::FEFaceValues<PHILIP_DIM,PHILIP_DIM>                                  &fe_values_collection_face_ext,
+    dealii::hp::FESubfaceValues<PHILIP_DIM,PHILIP_DIM>                               &fe_values_collection_subface,
+    dealii::hp::FEValues<PHILIP_DIM,PHILIP_DIM>                                      &fe_values_collection_volume_lagrange,
+    OPERATOR::basis_functions<PHILIP_DIM,2*PHILIP_DIM>                               &soln_basis_int,
+    OPERATOR::basis_functions<PHILIP_DIM,2*PHILIP_DIM>                               &soln_basis_ext,
+    OPERATOR::basis_functions<PHILIP_DIM,2*PHILIP_DIM>                               &flux_basis_int,
+    OPERATOR::basis_functions<PHILIP_DIM,2*PHILIP_DIM>                               &flux_basis_ext,
+    OPERATOR::local_basis_stiffness<PHILIP_DIM,2*PHILIP_DIM>                         &flux_basis_stiffness,
+    OPERATOR::vol_projection_operator<PHILIP_DIM,2*PHILIP_DIM>                       &soln_basis_projection_oper_int,
+    OPERATOR::vol_projection_operator<PHILIP_DIM,2*PHILIP_DIM>                       &soln_basis_projection_oper_ext,
+    OPERATOR::mapping_shape_functions<PHILIP_DIM,2*PHILIP_DIM>                       &mapping_basis,
+    const bool                                                         compute_auxiliary_right_hand_side,//flag on whether computing the Auxiliary variable's equations' residuals
+    dealii::LinearAlgebra::distributed::Vector<double>                 &rhs,
+    std::array<dealii::LinearAlgebra::distributed::Vector<double>,PHILIP_DIM> &rhs_aux);
+
+template void 
+DGBase<PHILIP_DIM,double,dealii::parallel::distributed::Triangulation<PHILIP_DIM>>::assemble_cell_residual_and_ad_derivatives<codi_JacobianComputationType> (
+    const dealii::TriaActiveIterator<dealii::DoFCellAccessor<PHILIP_DIM, PHILIP_DIM, false>> &current_cell,
+    const dealii::TriaActiveIterator<dealii::DoFCellAccessor<PHILIP_DIM, PHILIP_DIM, false>> &current_metric_cell,
+    const bool compute_dRdW, const bool compute_dRdX, const bool compute_d2R,
+    dealii::hp::FEValues<PHILIP_DIM,PHILIP_DIM>                                      &fe_values_collection_volume,
+    dealii::hp::FEFaceValues<PHILIP_DIM,PHILIP_DIM>                                  &fe_values_collection_face_int,
+    dealii::hp::FEFaceValues<PHILIP_DIM,PHILIP_DIM>                                  &fe_values_collection_face_ext,
+    dealii::hp::FESubfaceValues<PHILIP_DIM,PHILIP_DIM>                               &fe_values_collection_subface,
+    dealii::hp::FEValues<PHILIP_DIM,PHILIP_DIM>                                      &fe_values_collection_volume_lagrange,
+    OPERATOR::basis_functions<PHILIP_DIM,2*PHILIP_DIM>                               &soln_basis_int,
+    OPERATOR::basis_functions<PHILIP_DIM,2*PHILIP_DIM>                               &soln_basis_ext,
+    OPERATOR::basis_functions<PHILIP_DIM,2*PHILIP_DIM>                               &flux_basis_int,
+    OPERATOR::basis_functions<PHILIP_DIM,2*PHILIP_DIM>                               &flux_basis_ext,
+    OPERATOR::local_basis_stiffness<PHILIP_DIM,2*PHILIP_DIM>                         &flux_basis_stiffness,
+    OPERATOR::vol_projection_operator<PHILIP_DIM,2*PHILIP_DIM>                       &soln_basis_projection_oper_int,
+    OPERATOR::vol_projection_operator<PHILIP_DIM,2*PHILIP_DIM>                       &soln_basis_projection_oper_ext,
+    OPERATOR::mapping_shape_functions<PHILIP_DIM,2*PHILIP_DIM>                       &mapping_basis,
+    const bool                                                         compute_auxiliary_right_hand_side,//flag on whether computing the Auxiliary variable's equations' residuals
+    dealii::LinearAlgebra::distributed::Vector<double>                 &rhs,
+    std::array<dealii::LinearAlgebra::distributed::Vector<double>,PHILIP_DIM> &rhs_aux);
+
+template void 
+DGBase<PHILIP_DIM,double,dealii::parallel::distributed::Triangulation<PHILIP_DIM>>::assemble_cell_residual_and_ad_derivatives<codi_HessianComputationType> (
+    const dealii::TriaActiveIterator<dealii::DoFCellAccessor<PHILIP_DIM, PHILIP_DIM, false>> &current_cell,
+    const dealii::TriaActiveIterator<dealii::DoFCellAccessor<PHILIP_DIM, PHILIP_DIM, false>> &current_metric_cell,
+    const bool compute_dRdW, const bool compute_dRdX, const bool compute_d2R,
+    dealii::hp::FEValues<PHILIP_DIM,PHILIP_DIM>                                      &fe_values_collection_volume,
+    dealii::hp::FEFaceValues<PHILIP_DIM,PHILIP_DIM>                                  &fe_values_collection_face_int,
+    dealii::hp::FEFaceValues<PHILIP_DIM,PHILIP_DIM>                                  &fe_values_collection_face_ext,
+    dealii::hp::FESubfaceValues<PHILIP_DIM,PHILIP_DIM>                               &fe_values_collection_subface,
+    dealii::hp::FEValues<PHILIP_DIM,PHILIP_DIM>                                      &fe_values_collection_volume_lagrange,
+    OPERATOR::basis_functions<PHILIP_DIM,2*PHILIP_DIM>                               &soln_basis_int,
+    OPERATOR::basis_functions<PHILIP_DIM,2*PHILIP_DIM>                               &soln_basis_ext,
+    OPERATOR::basis_functions<PHILIP_DIM,2*PHILIP_DIM>                               &flux_basis_int,
+    OPERATOR::basis_functions<PHILIP_DIM,2*PHILIP_DIM>                               &flux_basis_ext,
+    OPERATOR::local_basis_stiffness<PHILIP_DIM,2*PHILIP_DIM>                         &flux_basis_stiffness,
+    OPERATOR::vol_projection_operator<PHILIP_DIM,2*PHILIP_DIM>                       &soln_basis_projection_oper_int,
+    OPERATOR::vol_projection_operator<PHILIP_DIM,2*PHILIP_DIM>                       &soln_basis_projection_oper_ext,
+    OPERATOR::mapping_shape_functions<PHILIP_DIM,2*PHILIP_DIM>                       &mapping_basis,
+    const bool                                                         compute_auxiliary_right_hand_side,//flag on whether computing the Auxiliary variable's equations' residuals
+    dealii::LinearAlgebra::distributed::Vector<double>                 &rhs,
+    std::array<dealii::LinearAlgebra::distributed::Vector<double>,PHILIP_DIM> &rhs_aux);
+
+
+
+template void 
+DGBase<PHILIP_DIM,double,dealii::parallel::shared::Triangulation<PHILIP_DIM>>::assemble_cell_residual_and_ad_derivatives<codi_JacobianComputationType> (
+    const dealii::TriaActiveIterator<dealii::DoFCellAccessor<PHILIP_DIM, PHILIP_DIM, false>> &current_cell,
+    const dealii::TriaActiveIterator<dealii::DoFCellAccessor<PHILIP_DIM, PHILIP_DIM, false>> &current_metric_cell,
+    const bool compute_dRdW, const bool compute_dRdX, const bool compute_d2R,
+    dealii::hp::FEValues<PHILIP_DIM,PHILIP_DIM>                                      &fe_values_collection_volume,
+    dealii::hp::FEFaceValues<PHILIP_DIM,PHILIP_DIM>                                  &fe_values_collection_face_int,
+    dealii::hp::FEFaceValues<PHILIP_DIM,PHILIP_DIM>                                  &fe_values_collection_face_ext,
+    dealii::hp::FESubfaceValues<PHILIP_DIM,PHILIP_DIM>                               &fe_values_collection_subface,
+    dealii::hp::FEValues<PHILIP_DIM,PHILIP_DIM>                                      &fe_values_collection_volume_lagrange,
+    OPERATOR::basis_functions<PHILIP_DIM,2*PHILIP_DIM>                               &soln_basis_int,
+    OPERATOR::basis_functions<PHILIP_DIM,2*PHILIP_DIM>                               &soln_basis_ext,
+    OPERATOR::basis_functions<PHILIP_DIM,2*PHILIP_DIM>                               &flux_basis_int,
+    OPERATOR::basis_functions<PHILIP_DIM,2*PHILIP_DIM>                               &flux_basis_ext,
+    OPERATOR::local_basis_stiffness<PHILIP_DIM,2*PHILIP_DIM>                         &flux_basis_stiffness,
+    OPERATOR::vol_projection_operator<PHILIP_DIM,2*PHILIP_DIM>                       &soln_basis_projection_oper_int,
+    OPERATOR::vol_projection_operator<PHILIP_DIM,2*PHILIP_DIM>                       &soln_basis_projection_oper_ext,
+    OPERATOR::mapping_shape_functions<PHILIP_DIM,2*PHILIP_DIM>                       &mapping_basis,
+    const bool                                                         compute_auxiliary_right_hand_side,//flag on whether computing the Auxiliary variable's equations' residuals
+    dealii::LinearAlgebra::distributed::Vector<double>                 &rhs,
+    std::array<dealii::LinearAlgebra::distributed::Vector<double>,PHILIP_DIM> &rhs_aux);
+
+template void 
+DGBase<PHILIP_DIM,double,dealii::parallel::shared::Triangulation<PHILIP_DIM>>::assemble_cell_residual_and_ad_derivatives<codi_HessianComputationType> (
+    const dealii::TriaActiveIterator<dealii::DoFCellAccessor<PHILIP_DIM, PHILIP_DIM, false>> &current_cell,
+    const dealii::TriaActiveIterator<dealii::DoFCellAccessor<PHILIP_DIM, PHILIP_DIM, false>> &current_metric_cell,
+    const bool compute_dRdW, const bool compute_dRdX, const bool compute_d2R,
+    dealii::hp::FEValues<PHILIP_DIM,PHILIP_DIM>                                      &fe_values_collection_volume,
+    dealii::hp::FEFaceValues<PHILIP_DIM,PHILIP_DIM>                                  &fe_values_collection_face_int,
+    dealii::hp::FEFaceValues<PHILIP_DIM,PHILIP_DIM>                                  &fe_values_collection_face_ext,
+    dealii::hp::FESubfaceValues<PHILIP_DIM,PHILIP_DIM>                               &fe_values_collection_subface,
+    dealii::hp::FEValues<PHILIP_DIM,PHILIP_DIM>                                      &fe_values_collection_volume_lagrange,
+    OPERATOR::basis_functions<PHILIP_DIM,2*PHILIP_DIM>                               &soln_basis_int,
+    OPERATOR::basis_functions<PHILIP_DIM,2*PHILIP_DIM>                               &soln_basis_ext,
+    OPERATOR::basis_functions<PHILIP_DIM,2*PHILIP_DIM>                               &flux_basis_int,
+    OPERATOR::basis_functions<PHILIP_DIM,2*PHILIP_DIM>                               &flux_basis_ext,
+    OPERATOR::local_basis_stiffness<PHILIP_DIM,2*PHILIP_DIM>                         &flux_basis_stiffness,
+    OPERATOR::vol_projection_operator<PHILIP_DIM,2*PHILIP_DIM>                       &soln_basis_projection_oper_int,
+    OPERATOR::vol_projection_operator<PHILIP_DIM,2*PHILIP_DIM>                       &soln_basis_projection_oper_ext,
+    OPERATOR::mapping_shape_functions<PHILIP_DIM,2*PHILIP_DIM>                       &mapping_basis,
+    const bool                                                         compute_auxiliary_right_hand_side,//flag on whether computing the Auxiliary variable's equations' residuals
+    dealii::LinearAlgebra::distributed::Vector<double>                 &rhs,
+    std::array<dealii::LinearAlgebra::distributed::Vector<double>,PHILIP_DIM> &rhs_aux);
+
 } // PHiLiP namespace

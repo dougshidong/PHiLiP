@@ -4245,15 +4245,16 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_face_term_and_build_operators_ad
 }
 
 template <int dim, int nstate, typename real, typename MeshType>
-void DGWeak<dim,nstate,real,MeshType>::assemble_auxiliary_residual ()
+void DGWeak<dim,nstate,real,MeshType>::assemble_auxiliary_residual (const bool /*compute_dRdW*/, const bool /*compute_dRdX*/, const bool /*compute_d2R*/)
 {
     //Do Nothing.
 }
 
 template <int dim, int nstate, typename real, typename MeshType>
-void DGWeak<dim,nstate,real,MeshType>::allocate_dual_vector ()
+void DGWeak<dim,nstate,real,MeshType>::allocate_dual_vector (const bool compute_d2R)
 {
-    this->dual.reinit(this->locally_owned_dofs, this->ghost_dofs, this->mpi_communicator);
+    if(compute_d2R)
+        this->dual.reinit(this->locally_owned_dofs, this->ghost_dofs, this->mpi_communicator);
 }
 
 // using default MeshType = Triangulation

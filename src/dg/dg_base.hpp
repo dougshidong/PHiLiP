@@ -631,7 +631,7 @@ public:
         dealii::hp::FEValues<dim,dim>                          &fe_values_collection_volume,
         dealii::hp::FEValues<dim,dim>                          &fe_values_collection_volume_lagrange,
         const dealii::FESystem<dim,dim>                        &fe_soln,
-        dealii::Vector<real>                                   &local_rhs_cell,
+        std::vector<real>                                      &local_rhs_cell,
         dealii::Tensor<1,dim,std::vector<real>>                &local_auxiliary_RHS,
         std::vector<adtype>                                    &local_metric_coeff_int,
         const bool                                             compute_auxiliary_right_hand_side,
@@ -656,7 +656,7 @@ public:
         std::array<std::vector<adtype>,dim>                    &mapping_support_points,
         dealii::hp::FEFaceValues<dim,dim>                      &fe_values_collection_face_int,
         const dealii::FESystem<dim,dim>                        &fe_soln,
-        dealii::Vector<real>                                   &local_rhs_cell,
+        std::vector<real>                                      &local_rhs_cell,
         dealii::Tensor<1,dim,std::vector<real>>                &local_auxiliary_RHS,
         std::vector<adtype>                                    &local_metric_coeff,
         const bool                                             compute_auxiliary_right_hand_side,
@@ -696,8 +696,8 @@ public:
         OPERATOR::mapping_shape_functions<dim,2*dim>           &mapping_basis,
         std::array<std::vector<adtype>,dim>                    &mapping_support_points,
         std::vector<adtype>                                    &metric_coeff_int,
-        dealii::Vector<real> &local_rhs_int_cell,
-        dealii::Vector<real> &local_rhs_ext_cell,
+        std::vector<real> &local_rhs_int_cell,
+        std::vector<real> &local_rhs_ext_cell,
         dealii::Tensor<1,dim,std::vector<real>>  &current_cell_rhs_aux,
         dealii::LinearAlgebra::distributed::Vector<double>  &rhs,
         std::array<dealii::LinearAlgebra::distributed::Vector<double>,dim> &rhs_aux,
@@ -1317,12 +1317,12 @@ public:
     void allocate_auxiliary_equation ();
 
     /// Asembles the auxiliary equations' residuals and solves.
-    virtual void assemble_auxiliary_residual () = 0;
+    virtual void assemble_auxiliary_residual (const bool compute_dRdW, const bool compute_dRdX, const bool compute_d2R) = 0;
 
     /// Allocate the dual vector for optimization.
     /** Currently only used in weak form.
     */
-    virtual void allocate_dual_vector () = 0;
+    virtual void allocate_dual_vector (const bool compute_d2R) = 0;
 
 protected:
     MPI_Comm mpi_communicator; ///< MPI communicator

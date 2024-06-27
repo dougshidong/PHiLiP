@@ -203,7 +203,7 @@ int main (int argc, char * argv[])
 
             pcout<<"assembling aux residual"<<std::endl;
             //Get auxiliary solution
-            dg->assemble_auxiliary_residual();
+            dg->assemble_auxiliary_residual(false,false,false);
 
 
             //TEST ERROR OOA

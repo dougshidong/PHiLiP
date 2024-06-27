@@ -158,10 +158,10 @@ private:
         const bool compute_dRdW, const bool compute_dRdX, const bool compute_d2R);
 
     /// Assembles the auxiliary equations' residuals and solves for the auxiliary variables.
-    void assemble_auxiliary_residual ();
+    void assemble_auxiliary_residual (const bool /*compute_dRdW*/, const bool /*compute_dRdX*/, const bool /*compute_d2R*/);
 
     /// Allocate the dual vector for optimization.
-    void allocate_dual_vector ();
+    void allocate_dual_vector (const bool compute_d2R);
 
     /// Main function responsible for evaluating the integral over the cell volume and the specified derivatives.
     /** This function templates the solution and metric coefficients in order to possible AD the residual.

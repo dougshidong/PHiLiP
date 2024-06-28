@@ -174,7 +174,7 @@ inline real InitialConditionFunction_TurbulentChannelFlow_Turbulent<dim, nstate,
     */
     const real kappa = 0.38; // von Karman's constant
     const real C = 4.1;
-    const real y_plus = density*friction_velocity*dist_from_wall/viscosity_coefficient;
+    const real y_plus = this->navier_stokes_physics.reynolds_number_inf*density*friction_velocity*dist_from_wall/viscosity_coefficient;
     const real u_plus = (1.0/kappa)*log(1.0+kappa*y_plus) + (C - (1.0/kappa)*log(kappa))*(1.0 - exp(-y_plus/11.0) - (y_plus/11.0)*exp(-y_plus/3.0));
     const real x_velocity = u_plus*friction_velocity;
     return x_velocity;

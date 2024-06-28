@@ -1641,7 +1641,7 @@ get_wall_shear_stress_magnitude(
     const double reynolds_number_inf) const
 {
     const real u_parallel_plus_y_plus = reynolds_number_inf*density*distance*wall_parallel_velocity/viscosity_coefficient;
-    const real y_plus = this->interpolate(u_parallel_plus_y_plus,false);
+    const real y_plus = this->interpolate(u_parallel_plus_y_plus,true);
     const real wall_friction_velocity = y_plus*viscosity_coefficient/(density*distance*reynolds_number_inf);
     const real wall_shear_stress = density*wall_friction_velocity*wall_friction_velocity;
     return wall_shear_stress;

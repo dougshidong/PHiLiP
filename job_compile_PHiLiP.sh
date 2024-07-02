@@ -53,7 +53,7 @@ export GMSH_DIR=/cvmfs/soft.computecanada.ca/easybuild/software/2020/avx512/Comp
 export OMP_NUM_THREADS=1
 
 cd ${SLURM_TMPDIR}
-rsync  -axvH --no-g --no-p --exclude 'build*' --exclude .git --exclude '*.log' --exclude '*.out' ${SLURM_SUBMIT_DIR} .
+rsync  -axvH --no-g --no-p --exclude 'build_release' --exclude 'build_debug' --exclude .git --exclude '*.log' --exclude '*.out' ${SLURM_SUBMIT_DIR} .
 mkdir build_release
 
 cd build_release

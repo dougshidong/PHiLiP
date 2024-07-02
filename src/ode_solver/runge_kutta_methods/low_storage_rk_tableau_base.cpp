@@ -5,7 +5,7 @@ namespace PHiLiP {
 namespace ODE {
 
 template <int dim, typename real, typename MeshType> 
-LowStorageRKTableauBase<dim,real, MeshType> :: LowStorageRKTableauBase ( 
+LowStorageRKTableauBase<dim,real, MeshType> :: LowStorageRKTableauBase (const int n_rk_stages, const int num_delta,
         const std::string rk_method_string_input)
     : rk_method_string(rk_method_string_input)
     , pcout(std::cout, dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD)==0)
@@ -13,9 +13,10 @@ LowStorageRKTableauBase<dim,real, MeshType> :: LowStorageRKTableauBase (
     //this->butcher_tableau_a.reinit(n_rk_stages,n_rk_stages);
     //this->butcher_tableau_b.reinit(n_rk_stages);
     //this->butcher_tableau_c.reinit(n_rk_stages);
-    this->butcher_tableau_gamma.reinit(6,3);
-    this->butcher_tableau_beta.reinit(6);
-    this->butcher_tableau_delta.reinit(7);
+    this->butcher_tableau_gamma.reinit(n_rk_stages+1,3);
+    this->butcher_tableau_beta.reinit(n_rk_stages+1);
+    this->butcher_tableau_delta.reinit(num_delta);
+    this->butcher_tableau_b_hat.reinit(n_rk_stages+2);
 }
 
 template <int dim, typename real, typename MeshType> 
@@ -45,9 +46,18 @@ double LowStorageRKTableauBase<dim,real, MeshType> :: get_delta (const int i) co
     return butcher_tableau_delta[i];
 }
 
+template <int dim, typename real, typename MeshType> 
+double LowStorageRKTableauBase<dim,real, MeshType> :: get_b_hat (const int i) const
+{
+    return butcher_tableau_b_hat[i];
+}
+
+
+/*
 template <int dim, typename real, typename MeshType>
 void LowStorageRKTableauBase<dim,real,MeshType> :: set_gamma()
 {
+    if 
     const double gamma[6][3] = {{0.0, 0.0, 0.0}, {0.0, 1.0, 0.0}, {-0.497531095840104, 1.384996869124138, 0.0}, {1.010070514199942, 3.878155713328178, 0.0}, {-3.196559004608766,-2.324512951813145, 1.642598936063715}, {1.717835630267259, -0.514633322274467, 0.188295940828347}};
     for (int i = 0; i < 6; i++){
         for (int j = 0; j < 3; j++){
@@ -70,7 +80,7 @@ void LowStorageRKTableauBase<dim,real,MeshType> :: set_delta()
     this->butcher_tableau_delta.fill(delta);
     
 }
-
+*/
 
 template class LowStorageRKTableauBase<PHILIP_DIM, double, dealii::Triangulation<PHILIP_DIM>>;
 template class LowStorageRKTableauBase<PHILIP_DIM, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;

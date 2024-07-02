@@ -32,8 +32,16 @@ void LowStorageRungeKuttaODESolver<dim,real,n_rk_stages,MeshType>::step_in_time 
     dealii::LinearAlgebra::distributed::Vector<double> storage_register_1 = storage_register_3;
 
     dealii::LinearAlgebra::distributed::Vector<double> rhs = storage_register_1;
+
+    dealii::LinearAlgebra::distributed::Vector<double> storage_register_4;
+
+    if (this->butcher_tableau->get_b_hat(n_rk_stages+1) != 0){
+        storage_register_4.reinit(this->solution_update);
+        storage_register_4 = this->dg->solution;
+    } 
+
     
-    int m = 5;
+    // int m = 5;
     
     double sum_delta = 0;
     double atol = 0.001;
@@ -41,7 +49,7 @@ void LowStorageRungeKuttaODESolver<dim,real,n_rk_stages,MeshType>::step_in_time 
     double error = 0.0;
     w = 0.0;
 
-    for (int i = 1; i < m+1; i++ ){
+    for (int i = 1; i < n_rk_stages +1; i++ ){
         // storage_register_2 = storage_register_2 + delta[i-1] * storage_register_1;
         storage_register_2.add(this->butcher_tableau->get_delta(i-1) , storage_register_1);
         this->dg->solution = rhs;
@@ -53,27 +61,46 @@ void LowStorageRungeKuttaODESolver<dim,real,n_rk_stages,MeshType>::step_in_time 
         storage_register_1.add(this->butcher_tableau->get_gamma(i, 2), storage_register_3);
         rhs *= dt;
         storage_register_1.add(this->butcher_tableau->get_beta(i), rhs);
+        if (this->butcher_tableau->get_b_hat(n_rk_stages + 1) != 0){
+            storage_register_4.add(this->butcher_tableau->get_b_hat(i), rhs);
+        } 
         rhs = storage_register_1;
 
     }
-    for (int i = 0; i < m+2; i++){
-        sum_delta = sum_delta + this->butcher_tableau->get_delta(i);
-    }
+    
     // storage_register_2 = (storage_register_2 + delta[m] * storage_register_1 + delta[m+1] * storage_register_3) / sum_delta;
-    storage_register_2.add(this->butcher_tableau->get_delta(m), storage_register_1);
-    storage_register_2.add(this->butcher_tableau->get_delta(m+1), storage_register_3);
-    storage_register_2 /= sum_delta;
-
+    if (this->butcher_tableau->get_b_hat(1) == 0){
+        for (int i = 0; i < n_rk_stages +2; i++){
+        sum_delta = sum_delta + this->butcher_tableau->get_delta(i);
+        }
+        storage_register_2.add(this->butcher_tableau->get_delta(n_rk_stages), storage_register_1);
+        storage_register_2.add(this->butcher_tableau->get_delta(n_rk_stages+1), storage_register_3);
+        storage_register_2 /= sum_delta;
+        // u_hat = s2
+    }
+    else if (this->butcher_tableau->get_b_hat(n_rk_stages+1) != 0){
+        storage_register_1 *= dt;
+        storage_register_4.add(this->butcher_tableau->get_b_hat(n_rk_stages + 1), storage_register_1);
+        // u_hat = s1
+    }
     this->dg->solution = storage_register_1;
     
     double global_size = dealii::Utilities::MPI::sum(storage_register_1.local_size(), this->mpi_communicator);
     
-    // loop sums elements at each mpi processor
-    for (dealii::LinearAlgebra::distributed::Vector<double>::size_type i = 0; i < storage_register_1.local_size(); ++i) {
-        error = storage_register_1.local_element(i) - storage_register_2.local_element(i);
-        w = w + pow(error / (atol + rtol * std::max(std::abs(storage_register_1.local_element(i)), std::abs(storage_register_2.local_element(i)))), 2);
+    if (this->butcher_tableau->get_b_hat(1) == 0){
+        // loop sums elements at each mpi processor
+        for (dealii::LinearAlgebra::distributed::Vector<double>::size_type i = 0; i < storage_register_1.local_size(); ++i) {
+            error = storage_register_1.local_element(i) - storage_register_2.local_element(i);
+            w = w + pow(error / (atol + rtol * std::max(std::abs(storage_register_1.local_element(i)), std::abs(storage_register_2.local_element(i)))), 2);
+        }
     }
-    
+    else if (this->butcher_tableau->get_b_hat(1) != 0){
+        // loop sums elements at each mpi processor
+        for (dealii::LinearAlgebra::distributed::Vector<double>::size_type i = 0; i < storage_register_1.local_size(); ++i) {
+            error = storage_register_1.local_element(i) - storage_register_4.local_element(i);
+            w = w + pow(error / (atol + rtol * std::max(std::abs(storage_register_1.local_element(i)), std::abs(storage_register_4.local_element(i)))), 2);
+        }
+    }
     this->pcout << std::endl;
 
     // sum over all elements
@@ -92,12 +119,12 @@ void LowStorageRungeKuttaODESolver<dim,real,n_rk_stages,MeshType>::step_in_time 
 
 
 template <int dim, typename real, int n_rk_stages, typename MeshType> 
-double LowStorageRungeKuttaODESolver<dim,real,n_rk_stages,MeshType>::err_time_step (real dt, const bool pseudotime)
+double LowStorageRungeKuttaODESolver<dim,real,n_rk_stages, MeshType>::err_time_step (real dt, const bool pseudotime)
 {
     (void) pseudotime;
     int q_hat = 3;
     int k = q_hat +1;
-    double beta_controller[3] = {0.70, -0.40, 0};
+    double beta_controller[3] = {0.70, -0.23, 0};
 
     // error based step size 
     

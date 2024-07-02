@@ -20,7 +20,7 @@ class LowStorageRKTableauBase
 {
 public:
     /// Default constructor that will set the constants.
-    LowStorageRKTableauBase(const std::string rk_method_string_input); 
+    LowStorageRKTableauBase(const int n_rk_stages, const int num_delta, const std::string rk_method_string_input); 
 
     /// Destructor
     virtual ~LowStorageRKTableauBase() = default;
@@ -41,6 +41,8 @@ public:
     /// Returns Butcher tableau "c" coefficient at position [i]
     double get_delta(const int i) const;
 
+    double get_b_hat(const int i) const;
+
     /// Calls setters for butcher tableau
     void set_tableau();
 
@@ -57,18 +59,23 @@ protected:
     
     /// Butcher tableau "c"
     dealii::Table<1,double> butcher_tableau_delta;
+
+    /// Butcher tableau "c"
+    dealii::Table<1,double> butcher_tableau_b_hat;
     
     /// Setter for butcher_tableau_a
     // virtual void set_a() = 0;
-    void set_gamma();
+    virtual void set_gamma() = 0;
 
     /// Setter for butcher_tableau_b
     // virtual void set_b() = 0;
-    void set_beta();
+    virtual void set_beta() = 0;
     
     /// Setter for butcher_tableau_c
     // virtual void set_c() = 0;
-    void set_delta();
+    virtual void set_delta() = 0;
+
+    virtual void set_b_hat() = 0;
 
 
 };

@@ -12,6 +12,7 @@
 #include "runge_kutta_methods/runge_kutta_methods.h"
 #include "runge_kutta_methods/rk_tableau_base.h"
 #include "runge_kutta_methods/low_storage_rk_tableau_base.h"
+#include "runge_kutta_methods/low_storage_runge_kutta_methods.h"
 #include "relaxation_runge_kutta/empty_RRK_base.h"
 
 namespace PHiLiP {
@@ -182,8 +183,21 @@ std::shared_ptr<ODESolverBase<dim,real,MeshType>> ODESolverFactory<dim,real,Mesh
 template <int dim, typename real, typename MeshType>
 std::shared_ptr<LowStorageRKTableauBase<dim,real,MeshType>> ODESolverFactory<dim,real,MeshType>::create_LowStorageRKTableau(std::shared_ptr< DGBase<dim,real,MeshType> > dg_input)
 {
-    (void) dg_input;
-    return std::make_shared<LowStorageRKTableauBase<dim, real, MeshType>> ("LSRK");
+    // (void) dg_input;
+    dealii::ConditionalOStream pcout(std::cout, dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD)==0);
+    using RKMethodEnum = Parameters::ODESolverParam::RKMethodEnum;
+    const RKMethodEnum rk_method = dg_input->all_parameters->ode_solver_param.runge_kutta_method;
+
+    const int n_rk_stages = dg_input->all_parameters->ode_solver_param.n_rk_stages;
+    const int num_delta = dg_input->all_parameters->ode_solver_param.num_delta;
+    if (rk_method == RKMethodEnum::RK3_2_5F_3SStarPlus)   return std::make_shared<RK3_2_5F_3SStarPlus<dim, real, MeshType>> (n_rk_stages, num_delta, "RK3_2_5F_3SStarPlus");
+    if (rk_method == RKMethodEnum::RK4_3_5_3SStar)      return std::make_shared<RK4_3_5_3SStar<dim, real, MeshType>>    (n_rk_stages, num_delta, "RK4_3_5_3SStar");
+    //return std::make_shared<LowStorageRKTableauBase<dim, real, MeshType>> ("LSRK");
+    else {
+        pcout << "Error: invalid RK method. Aborting..." << std::endl;
+        std::abort();
+        return nullptr;
+    }
 }
 
 template <int dim, typename real, typename MeshType>

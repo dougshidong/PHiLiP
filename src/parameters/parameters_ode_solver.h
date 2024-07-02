@@ -14,6 +14,7 @@ public:
     /// Types of ODE solver
     enum ODESolverEnum {
         runge_kutta_solver, /// Runge-Kutta (RK), explicit or diagonally implicit 
+        low_storage_runge_kutta_solver, /// Low Storage Runge-Kutta RK43S*
         implicit_solver,  /// Backward-Euler
         rrk_explicit_solver, /// Explicit RK using the relaxation Runge-Kutta method (Ketcheson, 2019)
         pod_galerkin_solver, ///Proper Orthogonal Decomposition with Galerkin projection
@@ -62,12 +63,15 @@ public:
         euler_ex, ///Forward Euler
         euler_im, ///Implicit Euler
         dirk_2_im, ///Second-order diagonally-implicit RK
-        dirk_3_im ///Third-order diagonally-implicit RK
+        dirk_3_im, ///Third-order diagonally-implicit RK
+        RK4_3_5_3SStar,
+        RK3_2_5F_3SStarPlus
     };
 
     RKMethodEnum runge_kutta_method; ///< Runge-kutta method.
     int n_rk_stages; ///< Number of stages for an RK method; assigned based on runge_kutta_method
     int rk_order; ///< Order of the RK method; assigned based on runge_kutta_method
+    int num_delta;
 
     /// Flag to signal that automatic differentiation (AD) matrix dRdW must be allocated
     bool allocate_matrix_dRdW;

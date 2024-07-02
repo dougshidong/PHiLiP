@@ -25,8 +25,8 @@ set two_point_num_flux_type = IR
 # ODE solver
 subsection ODE solver
   set ode_output = quiet 
-  set ode_solver_type = runge_kutta 
-  set runge_kutta_method = rk4_ex
+  set ode_solver_type = low_storage_runge_kutta 
+#  set runge_kutta_method = rk4_ex
 end
 
 subsection linear solver

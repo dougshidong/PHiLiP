@@ -1,4 +1,18 @@
 # =======================================
+# Euler Inviscid TGV Largest Stable CFL
+# =======================================
+# ----------------------------------------
+# 
+# ----------------------------------------
+
+configure_file(euler_inviscid_TGV_largest_stable_CFL.prm euler_inviscid_TGV_largest_stable_CFL.prm COPYONLY)
+add_test(
+    NAME MPI_3D_EULER_INVISCID_TGV_LARGEST_STABLE_CFL
+    COMMAND mpirun -n ${MPIMAX} ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_3D -i ${CMAKE_CURRENT_BINARY_DIR}/euler_inviscid_TGV_largest_stable_CFL.prm
+    WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
+)
+
+# =======================================
 # Energy conservation test for inviscid Burgers 
 # =======================================
 # ----------------------------------------

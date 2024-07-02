@@ -37,6 +37,7 @@ void ODESolverParam::declare_parameters (dealii::ParameterHandler &prm)
         prm.declare_entry("ode_solver_type", "implicit",
                           dealii::Patterns::Selection(
                           " runge_kutta | "
+                          " low_storage_runge_kutta | "
                           " implicit | "
                           " rrk_explicit | "
                           " pod_galerkin | "
@@ -45,6 +46,7 @@ void ODESolverParam::declare_parameters (dealii::ParameterHandler &prm)
                           "Type of ODE solver to use."
                           "Choices are "
                           " <runge_kutta | "
+                          " low_storage_runge_kutta | "
                           " implicit | "
                           " rrk_explicit | "
                           " pod_galerkin | "
@@ -151,6 +153,8 @@ void ODESolverParam::parse_parameters (dealii::ParameterHandler &prm)
         const std::string solver_string = prm.get("ode_solver_type");
         if (solver_string == "runge_kutta")              { ode_solver_type = ODESolverEnum::runge_kutta_solver;
                                                            allocate_matrix_dRdW = false; }
+        if (solver_string == "low_storage_runge_kutta")  { ode_solver_type = ODESolverEnum::low_storage_runge_kutta_solver;
+                                                           allocate_matrix_dRdW = false; }
         else if (solver_string == "implicit")            { ode_solver_type = ODESolverEnum::implicit_solver;
                                                            allocate_matrix_dRdW = true; }
         else if (solver_string == "rrk_explicit")        { ode_solver_type = ODESolverEnum::rrk_explicit_solver;
@@ -213,6 +217,17 @@ void ODESolverParam::parse_parameters (dealii::ParameterHandler &prm)
             n_rk_stages  = 3;
             rk_order = 3;
         }
+        else if (rk_method_string == "RK3_2_5F_3SStarPlus"){
+            runge_kutta_method = RKMethodEnum::RK3_2_5F_3SStarPlus;
+            n_rk_stages = 4;
+            num_delta = 5;
+        }
+        else if (rk_method_string == "RK4_3_5_3SStar"){
+            runge_kutta_method = RKMethodEnum::RK4_3_5_3SStar;
+            n_rk_stages = 5;
+            num_delta = 7;
+        }
+
         prm.enter_subsection("rrk root solver");
         {
             const std::string output_string_rrk = prm.get("rrk_root_solver_output");

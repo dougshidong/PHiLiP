@@ -500,19 +500,23 @@ int FlowSolver<dim,nstate>::run() const
             }
 
             // update time step in flow_solver_case
-            flow_solver_case->set_time_step(time_step);
-
+            ode_solver->step_in_time(time_step,false);
+            pcout << "time step " << time_step;
+            next_time_step = ode_solver->err_time_step(time_step,false); 
+            pcout << "next time step " << next_time_step;
             // advance solution
-            ode_solver->step_in_time(time_step,false); // pseudotime==false
+            // ode_solver->err_time_step(time_step); // pseudotime==false
 
             // Compute the unsteady quantities, write to the dealii table, and output to file
             flow_solver_case->compute_unsteady_data_and_write_to_table(ode_solver, dg, unsteady_data_table);
             // update next time step
-            if(flow_solver_param.adaptive_time_step == true) {
+            /*if(flow_solver_param.adaptive_time_step == true) {
                 next_time_step = flow_solver_case->get_adaptive_time_step(dg);
             } else {
                 next_time_step = flow_solver_case->get_constant_time_step(dg);
             }
+            */
+            
 
 #if PHILIP_DIM>1
             if(flow_solver_param.output_restart_files == true) {

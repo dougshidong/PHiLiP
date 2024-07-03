@@ -16,7 +16,7 @@ LowStorageRKTableauBase<dim,real, MeshType> :: LowStorageRKTableauBase (const in
     this->butcher_tableau_gamma.reinit(n_rk_stages+1,3);
     this->butcher_tableau_beta.reinit(n_rk_stages+1);
     this->butcher_tableau_delta.reinit(num_delta);
-    this->butcher_tableau_b_hat.reinit(n_rk_stages+2);
+    this->butcher_tableau_b_hat.reinit(n_rk_stages+1);
 }
 
 template <int dim, typename real, typename MeshType> 
@@ -25,6 +25,7 @@ void LowStorageRKTableauBase<dim,real, MeshType> :: set_tableau ()
     set_gamma();
     set_beta();
     set_delta();
+    set_b_hat();
     pcout << "Assigned RK method: " << rk_method_string << std::endl;
 }
 

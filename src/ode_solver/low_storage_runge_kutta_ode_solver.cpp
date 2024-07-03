@@ -26,51 +26,67 @@ void LowStorageRungeKuttaODESolver<dim,real,n_rk_stages,MeshType>::step_in_time 
     dealii::LinearAlgebra::distributed::Vector<double> storage_register_2;
     storage_register_2.reinit(this->solution_update);
     storage_register_2*=0;
-    dealii::LinearAlgebra::distributed::Vector<double> storage_register_3;
-    storage_register_3.reinit(this->solution_update);
-    storage_register_3 = this->dg->solution;
-    dealii::LinearAlgebra::distributed::Vector<double> storage_register_1 = storage_register_3;
+    dealii::LinearAlgebra::distributed::Vector<double> storage_register_1;
+    storage_register_1.reinit(this->solution_update);
+    storage_register_1 = this->dg->solution;
+    dealii::LinearAlgebra::distributed::Vector<double> storage_register_3 = storage_register_1;
 
     dealii::LinearAlgebra::distributed::Vector<double> rhs = storage_register_1;
 
     dealii::LinearAlgebra::distributed::Vector<double> storage_register_4;
-
-    if (this->butcher_tableau->get_b_hat(n_rk_stages+1) != 0){
-        storage_register_4.reinit(this->solution_update);
-        storage_register_4 = this->dg->solution;
+    //this->pcout << this->butcher_tableau->get_b_hat(0) ;
+    //this->pcout << this->butcher_tableau->get_b_hat(1) ;
+    //this->pcout << this->butcher_tableau->get_b_hat(2) ;
+    //this->pcout << this->butcher_tableau->get_b_hat(3) ;
+    if (this->butcher_tableau->get_b_hat(0) != 0.0){
+        this->pcout << "Initializing S4" << std::endl;
+        //storage_register_4.reinit(this->solution_update);
+        //storage_register_4 = this->dg->solution;
+        storage_register_4 = storage_register_1;
     } 
 
     
     // int m = 5;
     
     double sum_delta = 0;
+    /*
     double atol = 0.001;
     double rtol = 0.001;
     double error = 0.0;
     w = 0.0;
-
+*/
     for (int i = 1; i < n_rk_stages +1; i++ ){
         // storage_register_2 = storage_register_2 + delta[i-1] * storage_register_1;
+        //this->pcout << "Starting stage loop with i = " << i << std::endl;
+        //this->pcout << "deltai = " << this->butcher_tableau->get_delta(i-1);
         storage_register_2.add(this->butcher_tableau->get_delta(i-1) , storage_register_1);
         this->dg->solution = rhs;
         this->dg->assemble_residual();
         this->dg->apply_inverse_global_mass_matrix(this->dg->right_hand_side, rhs);
         // storage_register_1 = gamma[i][0] * storage_register_1 + gamma[i][1] * storage_register_2 + gamma[i][2] * storage_register_3 + beta[i] * dt * rhs;
         storage_register_1 *= this->butcher_tableau->get_gamma(i, 0);
+        //this->pcout << " gam1i = " << this->butcher_tableau->get_gamma(i, 0);
         storage_register_1.add(this->butcher_tableau->get_gamma(i, 1), storage_register_2);
+        //this->pcout << " gam2i = " << this->butcher_tableau->get_gamma(i, 1);
         storage_register_1.add(this->butcher_tableau->get_gamma(i, 2), storage_register_3);
+        //this->pcout << " gam3i = " << this->butcher_tableau->get_gamma(i, 2);
         rhs *= dt;
         storage_register_1.add(this->butcher_tableau->get_beta(i), rhs);
-        if (this->butcher_tableau->get_b_hat(n_rk_stages + 1) != 0){
-            storage_register_4.add(this->butcher_tableau->get_b_hat(i), rhs);
-        } 
+        this->pcout << " betai = " << this->butcher_tableau->get_beta(i);
+        if (this->butcher_tableau->get_b_hat(i) != 0.0){
+            storage_register_4.add(this->butcher_tableau->get_b_hat(i-1), rhs);
+            //this->pcout << "bhati = " << this->butcher_tableau->get_b_hat(i-1);
+        }
+        //this->pcout << std::endl;
+        // Check  bhat (i)
+        // rhs = dt * f(S1)
         rhs = storage_register_1;
-
     }
-    
+   // std::abort();
+    //rhs = storage_register_1;
     // storage_register_2 = (storage_register_2 + delta[m] * storage_register_1 + delta[m+1] * storage_register_3) / sum_delta;
     if (this->butcher_tableau->get_b_hat(1) == 0){
-        for (int i = 0; i < n_rk_stages +2; i++){
+        for (int i = 0; i < n_rk_stages +2; i++){ //change n_rk_stages+2 to num_delta on this line
         sum_delta = sum_delta + this->butcher_tableau->get_delta(i);
         }
         storage_register_2.add(this->butcher_tableau->get_delta(n_rk_stages), storage_register_1);
@@ -79,12 +95,13 @@ void LowStorageRungeKuttaODESolver<dim,real,n_rk_stages,MeshType>::step_in_time 
         // u_hat = s2
     }
     else if (this->butcher_tableau->get_b_hat(n_rk_stages+1) != 0){
-        storage_register_1 *= dt;
-        storage_register_4.add(this->butcher_tableau->get_b_hat(n_rk_stages + 1), storage_register_1);
-        // u_hat = s1
+        rhs *= dt;
+        storage_register_4.add(this->butcher_tableau->get_b_hat(n_rk_stages + 1), rhs);
+
     }
     this->dg->solution = storage_register_1;
     
+    /*
     double global_size = dealii::Utilities::MPI::sum(storage_register_1.local_size(), this->mpi_communicator);
     
     if (this->butcher_tableau->get_b_hat(1) == 0){
@@ -110,7 +127,7 @@ void LowStorageRungeKuttaODESolver<dim,real,n_rk_stages,MeshType>::step_in_time 
 
     this->pcout << std::endl;
     // std::cout << "w " << w;
-
+*/
     ++(this->current_iteration);
     this->current_time += dt;
     this->pcout << " Time is: " << this->current_time <<std::endl;
@@ -164,15 +181,18 @@ template class LowStorageRungeKuttaODESolver<PHILIP_DIM, double,1, dealii::Trian
 template class LowStorageRungeKuttaODESolver<PHILIP_DIM, double,2, dealii::Triangulation<PHILIP_DIM> >;
 template class LowStorageRungeKuttaODESolver<PHILIP_DIM, double,3, dealii::Triangulation<PHILIP_DIM> >;
 template class LowStorageRungeKuttaODESolver<PHILIP_DIM, double,4, dealii::Triangulation<PHILIP_DIM> >;
+template class LowStorageRungeKuttaODESolver<PHILIP_DIM, double,5, dealii::Triangulation<PHILIP_DIM> >;
 template class LowStorageRungeKuttaODESolver<PHILIP_DIM, double,1, dealii::parallel::shared::Triangulation<PHILIP_DIM> >;
 template class LowStorageRungeKuttaODESolver<PHILIP_DIM, double,2, dealii::parallel::shared::Triangulation<PHILIP_DIM> >;
 template class LowStorageRungeKuttaODESolver<PHILIP_DIM, double,3, dealii::parallel::shared::Triangulation<PHILIP_DIM> >;
 template class LowStorageRungeKuttaODESolver<PHILIP_DIM, double,4, dealii::parallel::shared::Triangulation<PHILIP_DIM> >;
+template class LowStorageRungeKuttaODESolver<PHILIP_DIM, double,5, dealii::parallel::shared::Triangulation<PHILIP_DIM> >;
 #if PHILIP_DIM != 1
     template class LowStorageRungeKuttaODESolver<PHILIP_DIM, double,1, dealii::parallel::distributed::Triangulation<PHILIP_DIM> >;
     template class LowStorageRungeKuttaODESolver<PHILIP_DIM, double,2, dealii::parallel::distributed::Triangulation<PHILIP_DIM> >;
     template class LowStorageRungeKuttaODESolver<PHILIP_DIM, double,3, dealii::parallel::distributed::Triangulation<PHILIP_DIM> >;
     template class LowStorageRungeKuttaODESolver<PHILIP_DIM, double,4, dealii::parallel::distributed::Triangulation<PHILIP_DIM> >;
+    template class LowStorageRungeKuttaODESolver<PHILIP_DIM, double,5, dealii::parallel::distributed::Triangulation<PHILIP_DIM> >;
 #endif
 
 } // ODESolver namespace

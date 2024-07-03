@@ -104,7 +104,9 @@ void ODESolverParam::declare_parameters (dealii::ParameterHandler &prm)
                           " euler_ex | "
                           " euler_im | "
                           " dirk_2_im | "
-                          " dirk_3_im"),
+                          " dirk_3_im | "
+                          " RK3_2_5F_3SStarPlus | "
+                          " RK4_3_5_3SStar "),
                           "Runge-kutta method to use. Methods with _ex are explicit, and with _im are implicit."
                           "Choices are "
                           " <rk4_ex | "
@@ -113,7 +115,9 @@ void ODESolverParam::declare_parameters (dealii::ParameterHandler &prm)
                           " euler_ex | "
                           " euler_im | "
                           " dirk_2_im | "
-                          " dirk_3_im>.");
+                          " dirk_3_im | "
+                          " RK4_3_5_3SStar"
+                          " RK3_2_5F_3SStarPlus | >.");
         prm.enter_subsection("rrk root solver");
         {
             prm.declare_entry("rrk_root_solver_output", "quiet",
@@ -215,7 +219,7 @@ void ODESolverParam::parse_parameters (dealii::ParameterHandler &prm)
         }
         else if (rk_method_string == "RK3_2_5F_3SStarPlus"){
             runge_kutta_method = RKMethodEnum::RK3_2_5F_3SStarPlus;
-            n_rk_stages = 4;
+            n_rk_stages = 5;
             num_delta = 5;
         }
         else if (rk_method_string == "RK4_3_5_3SStar"){

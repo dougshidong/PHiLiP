@@ -834,9 +834,6 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_auxiliary_equation(
     const unsigned int n_shape_fns_int = n_dofs_int / nstate;
     const unsigned int n_shape_fns_ext = n_dofs_ext / nstate;
 
-    AssertDimension (n_dofs_int, dof_indices_int.size());
-    AssertDimension (n_dofs_ext, dof_indices_ext.size());
-
     //Interpolate soln modal coefficients to the facet
     std::array<std::vector<adtype>,nstate> soln_at_surf_q_int;
     std::array<std::vector<adtype>,nstate> soln_at_surf_q_ext;
@@ -1393,8 +1390,6 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_boundary_term_strong(
     const unsigned int n_dofs = this->fe_collection[poly_degree].dofs_per_cell;
     const unsigned int n_shape_fns = n_dofs / nstate; 
     const std::vector<double> &face_quad_weights = this->face_quadrature_collection[poly_degree].get_weights();
-
-    AssertDimension (n_dofs, dof_indices.size());
 
     // Interpolate the modal coefficients to the volume cubature nodes.
     std::array<std::vector<adtype>,nstate> soln_at_vol_q;

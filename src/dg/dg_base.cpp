@@ -1295,7 +1295,7 @@ void DGBase<dim,real,MeshType>::assemble_boundary_codi_taped_derivatives_ad(
         for(int idim=0; idim<dim; idim++){
             for (unsigned int itest=0; itest<n_soln_dofs; ++itest) {
                 local_auxiliary_RHS[idim][itest] += getValue<adtype>(aux_rhs[idim][itest]);
-                AssertIsFinite(aux_rhs[idim][itest]);
+                AssertIsFinite(local_auxiliary_RHS[idim][itest]);
             }
         }
     }

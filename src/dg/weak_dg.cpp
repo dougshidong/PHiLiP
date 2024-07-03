@@ -1732,8 +1732,6 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_volume_term_and_build_operators_
     const dealii::Quadrature<dim> &quadrature = this->volume_quadrature_collection[i_quad];
     
 
-    AssertDimension (n_soln_dofs, soln_dof_indices.size());
-
     LocalSolution<adtype, dim, nstate> local_solution(fe_soln);
     LocalSolution<adtype, dim, dim> local_metric(fe_metric);
     for(unsigned int i=0; i<n_soln_dofs; ++i)
@@ -1888,9 +1886,6 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_face_term_and_build_operators_ad
     const unsigned int n_soln_dofs_int = fe_int.dofs_per_cell;
     const unsigned int n_soln_dofs_ext = fe_ext.dofs_per_cell;
 
-    AssertDimension (n_soln_dofs_int, soln_dof_indices_int.size());
-    AssertDimension (n_soln_dofs_ext, soln_dof_indices_ext.size());
-    
     const int i_fele = cell->active_fe_index();
     const int i_quad = i_fele;
     const int i_mapp = 0;

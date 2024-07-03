@@ -469,7 +469,7 @@ int main (int argc, char * argv[])
 
                     for(unsigned int idof=0; idof<n_dofs_cell; idof++){
                         for(int idim=0; idim<dim; idim++){
-                            if(std::abs(rhs_ext_strong[idof][idim]-rhs_ext_weak[idof][idim])>1e-13){
+                            if(std::abs(rhs_ext_strong[idim][idof]-rhs_ext_weak[idof][idim])>1e-13){
                                 pcout<<"The strong external cell face RHS is not correct."<<std::endl;
                                 return 1;
                             }

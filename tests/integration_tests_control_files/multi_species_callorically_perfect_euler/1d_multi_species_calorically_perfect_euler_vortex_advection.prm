@@ -3,7 +3,8 @@
 # Number of dimensions
 
 set dimension = 1
-set number_of_species = 3
+# TO DO: this should be 3
+set number_of_species = 2
 set run_type = flow_simulation
 set pde_type = multi_species_calorically_perfect_euler
 
@@ -27,7 +28,7 @@ set diss_num_flux = symm_internal_penalty
 
 # ODE solver
 subsection ODE solver
-  set output_solution_every_x_steps = 10
+  set output_solution_every_x_steps = 1
   set ode_output = quiet
   set ode_solver_type = runge_kutta
   set runge_kutta_method = ssprk3_ex

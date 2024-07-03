@@ -49,12 +49,12 @@ void LowStorageRungeKuttaODESolver<dim,real,n_rk_stages,MeshType>::step_in_time 
     // int m = 5;
     
     double sum_delta = 0;
-    /*
-    double atol = 0.001;
-    double rtol = 0.001;
+
+    double atol = 0.006;
+    double rtol = 0.006;
     double error = 0.0;
     w = 0.0;
-*/
+
     for (int i = 1; i < n_rk_stages +1; i++ ){
         // storage_register_2 = storage_register_2 + delta[i-1] * storage_register_1;
         //this->pcout << "Starting stage loop with i = " << i << std::endl;
@@ -83,7 +83,6 @@ void LowStorageRungeKuttaODESolver<dim,real,n_rk_stages,MeshType>::step_in_time 
         rhs = storage_register_1;
     }
    // std::abort();
-    //rhs = storage_register_1;
     // storage_register_2 = (storage_register_2 + delta[m] * storage_register_1 + delta[m+1] * storage_register_3) / sum_delta;
     if (this->butcher_tableau->get_b_hat(1) == 0){
         for (int i = 0; i < n_rk_stages +2; i++){ //change n_rk_stages+2 to num_delta on this line
@@ -92,6 +91,7 @@ void LowStorageRungeKuttaODESolver<dim,real,n_rk_stages,MeshType>::step_in_time 
         storage_register_2.add(this->butcher_tableau->get_delta(n_rk_stages), storage_register_1);
         storage_register_2.add(this->butcher_tableau->get_delta(n_rk_stages+1), storage_register_3);
         storage_register_2 /= sum_delta;
+        //this->pcout << "s2 " << sum_delta;
         // u_hat = s2
     }
     else if (this->butcher_tableau->get_b_hat(n_rk_stages+1) != 0){
@@ -101,7 +101,7 @@ void LowStorageRungeKuttaODESolver<dim,real,n_rk_stages,MeshType>::step_in_time 
     }
     this->dg->solution = storage_register_1;
     
-    /*
+
     double global_size = dealii::Utilities::MPI::sum(storage_register_1.local_size(), this->mpi_communicator);
     
     if (this->butcher_tableau->get_b_hat(1) == 0){
@@ -109,6 +109,7 @@ void LowStorageRungeKuttaODESolver<dim,real,n_rk_stages,MeshType>::step_in_time 
         for (dealii::LinearAlgebra::distributed::Vector<double>::size_type i = 0; i < storage_register_1.local_size(); ++i) {
             error = storage_register_1.local_element(i) - storage_register_2.local_element(i);
             w = w + pow(error / (atol + rtol * std::max(std::abs(storage_register_1.local_element(i)), std::abs(storage_register_2.local_element(i)))), 2);
+            //this->pcout << "w " << w;
         }
     }
     else if (this->butcher_tableau->get_b_hat(1) != 0){
@@ -127,7 +128,7 @@ void LowStorageRungeKuttaODESolver<dim,real,n_rk_stages,MeshType>::step_in_time 
 
     this->pcout << std::endl;
     // std::cout << "w " << w;
-*/
+
     ++(this->current_iteration);
     this->current_time += dt;
     this->pcout << " Time is: " << this->current_time <<std::endl;

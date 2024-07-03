@@ -65,10 +65,19 @@ void RK3_2_5F_3SStarPlus<dim,real,MeshType> :: set_gamma()
     }
 }
 
+/*
 template <int dim, typename real, typename MeshType>
 void RK3_2_5F_3SStarPlus<dim,real,MeshType> :: set_beta()
 {
     const double beta[6] = {0.0, 0.11479359710235412, 0.089334428531133159, 0.43558710250086169, 0.24735761882014512, 0.11292725304550591};
+    this->butcher_tableau_beta.fill(beta);
+}
+*/
+
+template <int dim, typename real, typename MeshType>
+void RK3_2_5F_3SStarPlus<dim,real,MeshType> :: set_beta()
+{
+    const double beta[6] = {0.0, 0.2300298624518076223899418286314123354, 0.3021434166948288809034402119555380003, 0.8025606185416310937583009085873554681, 0.4362158943603440930655148245148766471, 0.11292725304550591};
     this->butcher_tableau_beta.fill(beta);
 }
 

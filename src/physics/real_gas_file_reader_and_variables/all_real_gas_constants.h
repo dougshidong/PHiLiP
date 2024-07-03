@@ -100,7 +100,7 @@ public:
         // std::string nameinitmixfrac = "/home/liki/Codes/NEQZD/InitialMixtureFiles/InitialMixtureFractions_N2_O2.txt";
 
         /* 'H2_O2_N2': */
-        std::string namechem =        "/home/liki/Codes/PHiLiP/src/physics/real_gas_file_reader_and_variables/ReactionFiles/H2_O2_N2.kinetics";
+        std::string namechem = "/home/liki/Codes/PHiLiP/src/physics/real_gas_file_reader_and_variables/ReactionFiles/H2_O2_N2.kinetics";
         std::string nameinitmixfrac = "/home/liki/Codes/PHiLiP/src/physics/real_gas_file_reader_and_variables/InitialMixtureFiles/InitialMixtureFractions_H2_O2_N2.txt";
 
         /* Ibraguimova 'oxygen': */

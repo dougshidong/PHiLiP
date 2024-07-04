@@ -32,7 +32,7 @@ RealGas<dim,nstate,real>::RealGas (
     // TO DO: nstate-dim-1 = nspecies
 {
     this->real_gas_cap = std::dynamic_pointer_cast<PHiLiP::RealGasConstants::AllRealGasConstants>(
-                std::make_shared<PHiLiP::RealGasConstants::AllRealGasConstants>());
+                std::make_shared<PHiLiP::RealGasConstants::AllRealGasConstants>(parameters_input));
     // (void)real_gas_cap; // to ignore unused variable errors
     // real_gas_cap.Sp_W[real_gas_cap.i_N2]
 

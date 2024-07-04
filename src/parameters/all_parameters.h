@@ -306,6 +306,9 @@ public:
     /** Tolerance for checking that the determinant of surface jacobians at element faces matches.
      *  Note: Currently only used in weak dg. */
     double matching_surface_jac_det_tolerance;
+
+    std::string chemistry_input_file; ///< Name of directory for writing flow field files
+    std::string initial_mixture_fractions_input_file; ///< Name of directory for writing flow field files
     
     /// Declare parameters that can be set as inputs and set up the default options
     /** This subroutine should call the sub-parameter classes static declare_parameters()

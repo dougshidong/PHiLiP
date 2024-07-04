@@ -6,6 +6,7 @@
 
 #include "readspecies.h"
 // #include <string> // for strings
+#include "parameters/all_parameters.h"
 
 namespace PHiLiP {
 namespace RealGasConstants {
@@ -15,10 +16,13 @@ class AllRealGasConstants
 {
 public:
     /// Constructor
-    AllRealGasConstants();
+    AllRealGasConstants(const Parameters::AllParameters *const                    parameters_input);
 
     /// Destructor
     ~AllRealGasConstants() {};
+
+    std::string namechem;
+    std::string nameinitmixfrac;
 
     // Thermodynamic Nonequilibrium Flow Variables
     /*struct NonequilibriumVars
@@ -100,8 +104,8 @@ public:
         // std::string nameinitmixfrac = "/home/liki/Codes/NEQZD/InitialMixtureFiles/InitialMixtureFractions_N2_O2.txt";
 
         /* 'H2_O2_N2': */
-        std::string namechem = "/home/liki/Codes/PHiLiP/src/physics/real_gas_file_reader_and_variables/ReactionFiles/H2_O2_N2.kinetics";
-        std::string nameinitmixfrac = "/home/liki/Codes/PHiLiP/src/physics/real_gas_file_reader_and_variables/InitialMixtureFiles/InitialMixtureFractions_H2_O2_N2.txt";
+        // std::string namechem = "./ReactionFiles/H2_O2_N2.kinetics";
+        // std::string nameinitmixfrac = "./InitialMixtureFiles/InitialMixtureFractions_H2_O2_N2.txt";
 
         /* Ibraguimova 'oxygen': */
         // std::string namechem = "./ReactionFiles/airmech_clarey2019_oxygen.kinetics";

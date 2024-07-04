@@ -1,3 +1,6 @@
+add_subdirectory(InitialMixtureFiles)
+add_subdirectory(ReactionFiles)
+
 set(TEST_OUTPUT_DIR ${CMAKE_CURRENT_BINARY_DIR})
 
 # =======================================

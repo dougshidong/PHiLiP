@@ -21,12 +21,16 @@
 namespace PHiLiP {
 namespace RealGasConstants {
 
-AllRealGasConstants::AllRealGasConstants ()
+AllRealGasConstants::AllRealGasConstants (const Parameters::AllParameters *const                    parameters_input)
     : //manufactured_convergence_study_param(ManufacturedConvergenceStudyParam())
     // , reactive_var(EulerParam())
     // , nonequilibrium_var(NavierStokesParam())
     pcout(std::cout, dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD)==0)
 { 
+    this->namechem=parameters_input->chemistry_input_file;
+    this->nameinitmixfrac=parameters_input->initial_mixture_fractions_input_file;
+    pcout << "namechem = " << this->namechem << std::endl;
+    pcout << "nameinitmixfrac = " << this->nameinitmixfrac << std::endl;
     //-------------------------------------------
     //          READ SPECIES FILE
     //-------------------------------------------

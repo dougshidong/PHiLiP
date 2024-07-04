@@ -13,6 +13,10 @@ set(SOURCE
 set(AllRealGasConstantsLib AllRealGasConstantsLibrary)
 add_library(${AllRealGasConstantsLib} STATIC ${SOURCE})
 
+# Library dependency
+string(CONCAT ParameterLib ParametersLibrary)
+target_link_libraries(${AllRealGasConstantsLib} ${ParameterLib})
+
 # Setup target with deal.II
 if(NOT DOC_ONLY)
     DEAL_II_SETUP_TARGET(${AllRealGasConstantsLib})

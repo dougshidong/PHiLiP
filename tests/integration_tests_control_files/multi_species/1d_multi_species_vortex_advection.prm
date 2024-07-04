@@ -6,6 +6,9 @@ set dimension = 1
 set number_of_species = 3
 set run_type = flow_simulation
 set pde_type = real_gas
+set chemistry_input_file = ReactionFiles/H2_O2_N2.kinetics
+set initial_mixture_fractions_input_file = InitialMixtureFiles/InitialMixtureFractions_H2_O2_N2.txt
+
 
 # DG formulation
 set use_weak_form = true

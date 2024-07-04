@@ -19,7 +19,7 @@ MultiSpeciesCaloricallyPerfect<dim,nstate,real>::MultiSpeciesCaloricallyPerfect 
     , Cv(this->compute_species_specific_Cv(298.15/this->temperature_ref))
 {
     this->real_gas_cap = std::dynamic_pointer_cast<PHiLiP::RealGasConstants::AllRealGasConstants>(
-        std::make_shared<PHiLiP::RealGasConstants::AllRealGasConstants>());
+        std::make_shared<PHiLiP::RealGasConstants::AllRealGasConstants>(parameters_input));
 
     for (int s=0; s<(nstate-dim-1); ++s) 
     {

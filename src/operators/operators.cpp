@@ -1078,6 +1078,7 @@ unsigned int SumFactorizedOperators<dim,n_faces>::reference_face_number(
     }
     else if(face_flip && !face_rotation){//180 degree rotation
         //Not fully verified yet
+    std::cout<<"FACE FLIP!. Aborting..."<<std::endl;
 	if(iface%2==0)
             face_number = iface + 1;
         if(iface%2==1)

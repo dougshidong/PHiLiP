@@ -190,15 +190,17 @@ double TurbulentChannelFlowSkinFrictionCheck<dim, nstate>::get_bulk_velocity() c
         const double friction_velocity = reynolds_number_based_on_friction_velocity/reynolds_number_inf; // non-dimensional
         const double y_plus_max = reynolds_number_inf*density*friction_velocity*1.0/viscosity_coefficient; // dimensional
         const double y_plus_min = 0.0; // dimensional
-        const double integrand_wrt_y = 2.0*(get_integral_of_x_velocity(y_plus_max) - get_integral_of_x_velocity(y_plus_min)); // dimensional; symmetry applied
-        
+        const double integrand_wrt_yplus = 2.0*(get_integral_of_x_velocity(y_plus_max) - get_integral_of_x_velocity(y_plus_min)); // dimensional; symmetry applied
+        const double dyplus_dy = reynolds_number_inf*friction_velocity*density/viscosity_coefficient; // dimensional; ref_length=1 so its okay without it here
+        const double integrand_wrt_y = integrand_wrt_yplus/dyplus_dy;
+
         // domain
         const double domain_length_x = this->all_parameters->flow_solver_param.turbulent_channel_domain_length_x_direction; // non-dimensional
         const double domain_length_y = this->all_parameters->flow_solver_param.turbulent_channel_domain_length_y_direction; // non-dimensional
         const double domain_length_z = this->all_parameters->flow_solver_param.turbulent_channel_domain_length_z_direction; // non-dimensional
         const double domain_volume = domain_length_x*domain_length_y*domain_length_z; // non-dimensional
 
-        const double volume_integral = integrand_wrt_y*domain_length_x*domain_length_z;
+        const double volume_integral = integrand_wrt_y*domain_length_x*domain_length_z; // dimensional
 
         bulk_velocity = friction_velocity*volume_integral/domain_volume; // non-dimensional
         // note ref_length = 1.0 anyways so no need to worry about the dim integrand_wrt_y

@@ -190,7 +190,7 @@ double TurbulentChannelFlowSkinFrictionCheck<dim, nstate>::get_bulk_velocity() c
         const double friction_velocity = reynolds_number_based_on_friction_velocity/reynolds_number_inf; // non-dimensional
         const double y_plus_max = reynolds_number_inf*density*friction_velocity*1.0/viscosity_coefficient; // dimensional
         const double y_plus_min = 0.0; // dimensional
-        const double integrand_wrt_y = 2.0*(get_integral_of_x_velocity(y_plus_max) - get_integral_of_x_velocity(0.0)); // dimensional; symmetry applied
+        const double integrand_wrt_y = 2.0*(get_integral_of_x_velocity(y_plus_max) - get_integral_of_x_velocity(y_plus_min)); // dimensional; symmetry applied
         
         // domain
         const double domain_length_x = this->all_parameters->flow_solver_param.turbulent_channel_domain_length_x_direction; // non-dimensional

@@ -175,10 +175,6 @@ double TurbulentChannelFlowSkinFrictionCheck<dim, nstate>::get_bulk_velocity() c
     {
         bulk_velocity = 1.0;
     }
-    // else if(this->xvelocity_initial_condition_type == XVelocityInitialConditionEnum::manufactured)
-    // {
-    //     bulk_velocity = (3.0/8.0);
-    // }
     else if((this->xvelocity_initial_condition_type == XVelocityInitialConditionEnum::turbulent) || 
             (this->xvelocity_initial_condition_type == XVelocityInitialConditionEnum::manufactured))
     {
@@ -232,8 +228,8 @@ int TurbulentChannelFlowSkinFrictionCheck<dim, nstate>::run_test() const
     const double computed_wall_shear_stress = flow_solver_case->get_average_wall_shear_stress(*(flow_solver->dg));
     const double expected_wall_shear_stress = this->get_wall_shear_stress();
     const double relative_error_wall_shear_stress = abs(computed_wall_shear_stress - expected_wall_shear_stress);
-    pcout << "computed wall shear stress is " << computed_wall_shear_stress << std::endl; // remove
-    pcout << "expected wall shear stress is " << expected_wall_shear_stress << std::endl; // remove
+    pcout << "computed wall shear stress is " << computed_wall_shear_stress << std::endl;
+    pcout << "expected wall shear stress is " << expected_wall_shear_stress << std::endl;
     pcout << "error is " << relative_error_wall_shear_stress << std::endl;
     if (relative_error_wall_shear_stress > 1.0e-9) {
         pcout << "Computed wall shear stress is not within specified tolerance with respect to expected value." << std::endl;
@@ -247,21 +243,29 @@ int TurbulentChannelFlowSkinFrictionCheck<dim, nstate>::run_test() const
     const double expected_skin_friction_coefficient = this->get_skin_friction_coefficient();
     const double relative_error_bulk_velocity = abs(computed_bulk_velocity - expected_bulk_velocity);
     const double relative_error_skin_friction_coefficient = abs(computed_skin_friction_coefficient - expected_skin_friction_coefficient);
-    pcout << "computed skin friction coefficient is " << computed_skin_friction_coefficient << std::endl; // remove
-    pcout << "expected skin friction coefficient is " << expected_skin_friction_coefficient << std::endl; // remove
-    pcout << "error is " << relative_error_skin_friction_coefficient << std::endl;
-    if (relative_error_skin_friction_coefficient > 1.0e-9) {
-        pcout << "Computed skin friction coefficient is not within specified tolerance with respect to expected value." << std::endl;
-        // pcout << "Error is : " << relative_error_skin_friction_coefficient << std::endl;
-        // return 1;
-    }
-    pcout << "computed bulk velocity is " << computed_bulk_velocity << std::endl; // remove
-    pcout << "expected bulk velocity is " << expected_bulk_velocity << std::endl; // remove
+    pcout << "computed bulk velocity is " << computed_bulk_velocity << std::endl;
+    pcout << "expected bulk velocity is " << expected_bulk_velocity << std::endl;
     pcout << "error is " << relative_error_bulk_velocity << std::endl;
     if (relative_error_bulk_velocity > 1.0e-9) {
         pcout << "Computed bulk velocity is not within specified tolerance with respect to expected value." << std::endl;
         pcout << "Error is : " << relative_error_bulk_velocity << std::endl;
         return 1;
+    }
+    // Compare to empiral equation by Dean 1978
+    const double emperical_estimate_for_skin_friction_coefficient = 0.073*(2.0*this->all_parameters->navier_stokes_param.reynolds_number_inf)**(-1.0/4.0); // Dean's 1978 paper
+    pcout << "computed skin friction coefficient is " << computed_skin_friction_coefficient << std::endl;
+    pcout << "expected skin friction coefficient is " << expected_skin_friction_coefficient << std::endl;
+    pcout << "error is " << relative_error_skin_friction_coefficient << std::endl;
+    pcout << "emperical estimate for skin friction coefficient is " << emperical_estimate_for_skin_friction_coefficient << std::endl;
+    const double percent_emperical_estimate_error = 100.0*abs(computed_skin_friction_coefficient - emperical_estimate_for_skin_friction_coefficient)/emperical_estimate_for_skin_friction_coefficient;
+    pcout << "percent error with computed is " << percent_emperical_estimate_error << " %" << std::endl;
+    if (relative_error_skin_friction_coefficient > 1.0e-9) {
+        pcout << "Computed skin friction coefficient is not within specified tolerance with respect to expected value." << std::endl;
+        pcout << "Error is : " << relative_error_skin_friction_coefficient << std::endl;
+        return 1;
+    }
+    if(percent_emperical_estimate_error > 30.0) {
+        pcout << "Warning: considerable difference with emperical estimate for skin friction value." << std::endl;
     }
     pcout << " Test passed, computed wall shear stress, skin friction coefficient, and bulk velocity are within specified tolerance." << std::endl;
     return 0;

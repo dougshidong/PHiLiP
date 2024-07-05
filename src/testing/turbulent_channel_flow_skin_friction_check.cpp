@@ -200,7 +200,7 @@ double TurbulentChannelFlowSkinFrictionCheck<dim, nstate>::get_bulk_velocity() c
 
         const double volume_integral = integrand_wrt_y*domain_length_x*domain_length_z;
 
-        bulk_velocity = volume_integral/domain_volume;
+        bulk_velocity = friction_velocity*volume_integral/domain_volume; // non-dimensional
         // note ref_length = 1.0 anyways so no need to worry about the dim integrand_wrt_y
     }
     
@@ -243,17 +243,23 @@ int TurbulentChannelFlowSkinFrictionCheck<dim, nstate>::run_test() const
     const double expected_bulk_velocity = this->get_bulk_velocity();
     const double expected_skin_friction_coefficient = this->get_skin_friction_coefficient();
     const double relative_error_bulk_velocity = abs(computed_bulk_velocity - expected_bulk_velocity);
-    if (relative_error_bulk_velocity > 1.0e-9) {
-        pcout << "Computed bulk velocity is not within specified tolerance with respect to expected value." << std::endl;
-        return 1;
-    }
     const double relative_error_skin_friction_coefficient = abs(computed_skin_friction_coefficient - expected_skin_friction_coefficient);
+    pcout << "computed skin friction coefficient is " << computed_skin_friction_coefficient << std::endl; // remove
+    pcout << "expected skin friction coefficient is " << expected_skin_friction_coefficient << std::endl; // remove
+    pcout << "error is " << relative_error_skin_friction_coefficient << std::endl;
     if (relative_error_skin_friction_coefficient > 1.0e-9) {
         pcout << "Computed skin friction coefficient is not within specified tolerance with respect to expected value." << std::endl;
 	pcout << "Error is : " << relative_error_skin_friction_coefficient << std::endl;
         return 1;
     }
-    pcout << " Test passed, computed wall shear stress and skin friction coefficient are within specified tolerance." << std::endl;
+    pcout << "computed bulk velocity is " << computed_bulk_velocity << std::endl; // remove
+    pcout << "expected bulk velocity is " << expected_bulk_velocity << std::endl; // remove
+    pcout << "error is " << relative_error_bulk_velocity << std::endl;
+    if (relative_error_bulk_velocity > 1.0e-9) {
+        pcout << "Computed bulk velocity is not within specified tolerance with respect to expected value." << std::endl;
+        return 1;
+    }
+    pcout << " Test passed, computed wall shear stress, skin friction coefficient, and bulk velocity are within specified tolerance." << std::endl;
     return 0;
 }
 

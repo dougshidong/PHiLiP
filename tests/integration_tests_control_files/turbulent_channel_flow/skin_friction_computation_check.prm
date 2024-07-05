@@ -95,7 +95,7 @@ subsection flow_solver
   subsection channel_flow
     set channel_friction_velocity_reynolds_number = 395
     set turbulent_channel_number_of_cells_x_direction = 4
-    set turbulent_channel_number_of_cells_y_direction = 128
+    set turbulent_channel_number_of_cells_y_direction = 256
     set turbulent_channel_number_of_cells_z_direction = 4
     set turbulent_channel_domain_length_x_direction = 6.283185307179586476
     set turbulent_channel_domain_length_y_direction = 2.0

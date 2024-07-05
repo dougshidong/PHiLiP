@@ -74,11 +74,11 @@ double TurbulentChannelFlowSkinFrictionCheck<dim, nstate>::get_x_velocity_gradie
         const double ref_length = this->all_parameters->euler_param.ref_length;
         const double density = 1.0; // non-dimensional
         const double viscosity_coefficient = this->all_parameters->navier_stokes_param.nondimensionalized_constant_viscosity; // non-dimensional
-        const double friction_velocity = this->channel_friction_velocity_reynolds_number/this->navier_stokes_physics.reynolds_number_inf; // non-dimensional
+        const double reynolds_number_based_on_friction_velocity = this->all_parameters->flow_solver_param.turbulent_channel_friction_velocity_reynolds_number;
+        const double friction_velocity = reynolds_number_based_on_friction_velocity/reynolds_number_inf; // non-dimensional
         const double y_plus = reynolds_number_inf*density*friction_velocity*dist_from_wall/viscosity_coefficient; // dimensional
         // dimensional
         const double duplus_dyplus = (1.0/kappa)*(kappa/(1.0+kappa*y_plus)) + (C - (1.0/kappa)*log(kappa))*((1.0/11.0)*exp(-y_plus/11.0)+((y_plus-3.0)/33.0)*exp(-y_plus/3.0));
-
 
         // STEP 2
         const double du_duplus = friction_velocity; // pulled out non-dim factor for step 3

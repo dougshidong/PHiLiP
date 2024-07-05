@@ -95,7 +95,7 @@ double TurbulentChannelFlowSkinFrictionCheck<dim, nstate>::get_wall_shear_stress
     // for constant viscosity we can write:
     const double nondimensionalized_constant_viscosity = this->all_parameters->navier_stokes_param.nondimensionalized_constant_viscosity;
     const double scaled_nondim_viscosity = nondimensionalized_constant_viscosity/this->all_parameters->navier_stokes_param.reynolds_number_inf;
-    const double wall_shear_stress_top_wall = scaled_nondim_viscosity*get_x_velocity_gradient(this->y_top_wall)*this->normal_vector_top_wall;
+    const double wall_shear_stress_top_wall = scaled_nondim_viscosity*get_x_velocity_gradient(this->y_top_wall)*this->normal_vector_bottom_wall;//this->normal_vector_top_wall;
     const double wall_shear_stress_bottom_wall = scaled_nondim_viscosity*get_x_velocity_gradient(this->y_bottom_wall)*this->normal_vector_bottom_wall;
     const double average_wall_shear_stress = 0.5*(wall_shear_stress_top_wall + wall_shear_stress_bottom_wall);
     return average_wall_shear_stress;

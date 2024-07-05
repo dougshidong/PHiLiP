@@ -201,7 +201,7 @@ InitialConditionFunction_TurbulentChannelFlow_Manufactured<dim,nstate,real>
 
 template <int dim, int nstate, typename real>
 inline real InitialConditionFunction_TurbulentChannelFlow_Manufactured<dim, nstate, real>
-::y_velocity(const dealii::Point<dim,real> &point) const
+::y_velocity(const dealii::Point<dim,real> &/*point*/) const
 {
     // Manufactured velocity profile so that it is purely based on the x-velocity
     const real y_velocity = 0.0;

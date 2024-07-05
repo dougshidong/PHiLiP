@@ -71,7 +71,6 @@ double TurbulentChannelFlowSkinFrictionCheck<dim, nstate>::get_x_velocity_gradie
         
         // STEP 1
         const double reynolds_number_inf = this->all_parameters->navier_stokes_param.reynolds_number_inf;
-        const double ref_length = this->all_parameters->euler_param.ref_length;
         const double density = 1.0; // non-dimensional
         const double viscosity_coefficient = this->all_parameters->navier_stokes_param.nondimensionalized_constant_viscosity; // non-dimensional
         const double reynolds_number_based_on_friction_velocity = this->all_parameters->flow_solver_param.turbulent_channel_friction_velocity_reynolds_number;

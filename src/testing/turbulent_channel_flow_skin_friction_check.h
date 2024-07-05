@@ -29,22 +29,24 @@ public:
     /// Half channel height
     const double half_channel_height;
 
-    // Turbulent channel x-velocity initial condition type
+    /// Turbulent channel x-velocity initial condition type
     const XVelocityInitialConditionEnum xvelocity_initial_condition_type;
 
-    const double y_top_wall; // y-value for top wall
-    const double y_bottom_wall; // y-value for bottom wall
-    const double normal_vector_top_wall; // normal vector for top wall
-    const double normal_vector_bottom_wall; // normal vector for bottom wall
+    const double y_top_wall; ///< y-value for top wall
+    const double y_bottom_wall; ///< y-value for bottom wall
+    const double normal_vector_top_wall; ///< normal vector for top wall
+    const double normal_vector_bottom_wall; ///< normal vector for bottom wall
 
     /// Run test
     int run_test () const override;
 private:
-    double get_x_velocity(const double y) const;
-    double get_x_velocity_gradient(const double y) const;
-    double get_wall_shear_stress() const;
-    double get_bulk_velocity() const;
-    double get_skin_friction_coefficient() const;
+    double get_x_velocity(const double y) const;///< returns x-velocity
+    double get_x_velocity_gradient(const double y) const;///< returns x-velocity gradient
+    double get_wall_shear_stress() const;///< returns wall shear stress
+    double get_bulk_velocity() const;///< returns bulk velocity
+    double get_skin_friction_coefficient() const;///< returns skin friction coefficient
+    double get_integral_of_x_velocity(const double y_plus) const;///< returns integral of x-velocity
+{
     
 };
 

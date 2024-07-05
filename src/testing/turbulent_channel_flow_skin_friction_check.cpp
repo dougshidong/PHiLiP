@@ -58,7 +58,7 @@ double TurbulentChannelFlowSkinFrictionCheck<dim, nstate>::get_x_velocity(const 
         const double friction_velocity = reynolds_number_based_on_friction_velocity/reynolds_number_inf; // non-dimensional
         const double y_plus = reynolds_number_inf*density*friction_velocity*dist_from_wall/viscosity_coefficient; // dimensional
         const double u_plus = (1.0/kappa)*log(1.0+kappa*y_plus) + (C - (1.0/kappa)*log(kappa))*(1.0 - exp(-y_plus/11.0) - (y_plus/11.0)*exp(-y_plus/3.0)); // dimensional
-        const double x_velocity = u_plus*friction_velocity; // non-dimensional
+        x_velocity = u_plus*friction_velocity; // non-dimensional
     }
     return x_velocity;
 }

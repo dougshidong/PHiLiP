@@ -82,6 +82,10 @@ void LinearSolverParam ::parse_parameters (dealii::ParameterHandler &prm)
 {
     prm.enter_subsection("linear solver");
     {
+        atol = prm.get_double("atol");
+        rtol = prm.get_double("rtol");
+        //beta_controller = prm.get_double("beta_controller");
+
         const std::string output_string = prm.get("linear_solver_output");
         if (output_string == "verbose") linear_solver_output = verbose;
         if (output_string == "quiet") linear_solver_output = quiet;

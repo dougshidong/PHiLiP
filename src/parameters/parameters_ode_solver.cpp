@@ -221,11 +221,13 @@ void ODESolverParam::parse_parameters (dealii::ParameterHandler &prm)
             runge_kutta_method = RKMethodEnum::RK3_2_5F_3SStarPlus;
             n_rk_stages = 5;
             num_delta = 5;
+            rk_order = 3;
         }
         else if (rk_method_string == "RK4_3_5_3SStar"){
             runge_kutta_method = RKMethodEnum::RK4_3_5_3SStar;
             n_rk_stages = 5;
             num_delta = 7;
+            rk_order = 4;
         }
 
         prm.enter_subsection("rrk root solver");

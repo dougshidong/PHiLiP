@@ -39,6 +39,8 @@ public:
 
     unsigned int poly_degree; ///< Polynomial order (P) of the basis functions for DG.
     unsigned int max_poly_degree_for_adaptation; ///< Maximum polynomial order of the DG basis functions for adaptation.
+    
+
     double final_time; ///< Final solution time
     double constant_time_step; ///< Constant time step
     double courant_friedrichs_lewy_number; ///< Courant-Friedrich-Lewy (CFL) number for constant time step

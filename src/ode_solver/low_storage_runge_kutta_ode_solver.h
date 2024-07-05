@@ -54,6 +54,11 @@ protected:
     real w;
 
     double epsilon[3];
+    int num_delta;
+    int rk_order;
+    double atol;
+    double rtol;
+    //double beta_controller[3];
 };
 
 } // ODE namespace

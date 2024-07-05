@@ -1,5 +1,5 @@
 #include "periodic_turbulence.h"
-
+#include "ode_solver/low_storage_runge_kutta_ode_solver.h"
 #include <deal.II/base/function.h>
 #include <stdlib.h>
 #include <iostream>
@@ -686,7 +686,15 @@ void PeriodicTurbulence<dim, nstate>::compute_unsteady_data_and_write_to_table(
     //unpack current iteration and current time from ode solver
     const unsigned int current_iteration = ode_solver->current_iteration;
     const double current_time = ode_solver->current_time;
-
+    //std::shared_ptr<ODE::LowStorageRungeKuttaODESolver<dim, double, 5>> ode_solver_low_storage = std::dynamic_pointer_cast<ODE::LowStorageRungeKuttaODESolver<dim, double, 5>>(ode_solver);
+    //(void) ode_solver_low_storage;
+    //double eps0 = ode_solver_low_storage->epsilon[0];
+    //double eps1 = ode_solver_low_storage->epsilon[1];
+    //double eps2 = ode_solver_low_storage->epsilon[2];
+    //this->pcout << eps0 << std::endl;
+    //std::abort();
+    //double eps1[3] = ode_solver_low_storage.epsilon[1];
+    //double eps2[3] = ode_solver_low_storage.epsilon[2];
     // Compute and update integrated quantities
     this->compute_and_update_integrated_quantities(*dg);
     // Get computed quantities
@@ -707,6 +715,9 @@ void PeriodicTurbulence<dim, nstate>::compute_unsteady_data_and_write_to_table(
 
     if(this->mpi_rank==0) {
         // Add values to data table
+        //this->add_value_to_data_table(eps0,"epsilon0",unsteady_data_table);
+        //this->add_value_to_data_table(eps1,"epsilon1",unsteady_data_table);
+        //this->add_value_to_data_table(eps2,"epsilon2",unsteady_data_table);
         this->add_value_to_data_table(current_time,"time",unsteady_data_table);
         if(do_calculate_numerical_entropy) this->add_value_to_data_table(this->cumulative_numerical_entropy_change_FRcorrected,"numerical_entropy_scaled_cumulative",unsteady_data_table);
         if(is_rrk) this->add_value_to_data_table(relaxation_parameter, "relaxation_parameter",unsteady_data_table);

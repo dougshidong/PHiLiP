@@ -128,6 +128,7 @@ std::shared_ptr<ODESolverBase<dim,real,MeshType>> ODESolverFactory<dim,real,Mesh
 
 
     const int n_rk_stages = dg_input->all_parameters->ode_solver_param.n_rk_stages;
+    //const int num_delta = dg_input->all_parameters->ode_solver_param.num_delta;
     using ODEEnum = Parameters::ODESolverParam::ODESolverEnum;
     const ODEEnum ode_solver_type = dg_input->all_parameters->ode_solver_param.ode_solver_type;
     if (ode_solver_type == ODEEnum::runge_kutta_solver || ode_solver_type == ODEEnum::rrk_explicit_solver) {
@@ -159,20 +160,19 @@ std::shared_ptr<ODESolverBase<dim,real,MeshType>> ODESolverFactory<dim,real,Mesh
         pcout << "Creating Low-Storage Runge Kutta ODE Solver with " 
               << n_rk_stages << " stage(s)..." << std::endl;
         if (n_rk_stages == 1){
-            return std::make_shared<LowStorageRungeKuttaODESolver<dim,real,1,MeshType>>(dg_input,ls_rk_tableau,RRK_object);
+            return std::make_shared<LowStorageRungeKuttaODESolver<dim,real,1, MeshType>>(dg_input,ls_rk_tableau,RRK_object);
         }
         else if (n_rk_stages == 2){
-
-            return std::make_shared<LowStorageRungeKuttaODESolver<dim,real,2,MeshType>>(dg_input,ls_rk_tableau,RRK_object);
+            return std::make_shared<LowStorageRungeKuttaODESolver<dim,real,2, MeshType>>(dg_input,ls_rk_tableau,RRK_object);
         }
         else if (n_rk_stages == 3){
-            return std::make_shared<LowStorageRungeKuttaODESolver<dim,real,3,MeshType>>(dg_input,ls_rk_tableau,RRK_object);
+            return std::make_shared<LowStorageRungeKuttaODESolver<dim,real,3, MeshType>>(dg_input,ls_rk_tableau,RRK_object);
         }
-        else if (n_rk_stages == 4){
-            return std::make_shared<LowStorageRungeKuttaODESolver<dim,real,4,MeshType>>(dg_input,ls_rk_tableau,RRK_object);
+        else if (n_rk_stages == 4){      
+            return std::make_shared<LowStorageRungeKuttaODESolver<dim,real,4, MeshType>>(dg_input,ls_rk_tableau,RRK_object);
         }
         else if (n_rk_stages == 5){
-            return std::make_shared<LowStorageRungeKuttaODESolver<dim,real,5,MeshType>>(dg_input,ls_rk_tableau,RRK_object);
+            return std::make_shared<LowStorageRungeKuttaODESolver<dim,real,5, MeshType>>(dg_input,ls_rk_tableau,RRK_object);
         }
         else{
             pcout << "Error: invalid number of stages. Aborting..." << std::endl;

@@ -349,7 +349,6 @@ void FlowSolverParam::parse_parameters(dealii::ParameterHandler &prm)
         max_poly_degree_for_adaptation = prm.get_integer("max_poly_degree_for_adaptation");
         // -- set value to poly_degree if it is the default value
         if(max_poly_degree_for_adaptation == 0) max_poly_degree_for_adaptation = poly_degree;
-        
         final_time = prm.get_double("final_time");
         constant_time_step = prm.get_double("constant_time_step");
         courant_friedrichs_lewy_number = prm.get_double("courant_friedrichs_lewy_number");

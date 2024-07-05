@@ -46,8 +46,6 @@ private:
     double get_bulk_velocity() const;///< returns bulk velocity
     double get_skin_friction_coefficient() const;///< returns skin friction coefficient
     double get_integral_of_x_velocity(const double y_plus) const;///< returns integral of x-velocity
-{
-    
 };
 
 } // End of Tests namespace

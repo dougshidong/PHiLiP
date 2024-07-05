@@ -27,10 +27,39 @@ double TurbulentChannelFlowSkinFrictionCheck<dim, nstate>::get_x_velocity(const 
     {
         x_velocity = (15.0/8.0)*pow(1.0-pow(y/this->half_channel_height,2.0),2.0);
     }
-    // else if(this->xvelocity_initial_condition_type == XVelocityInitialConditionEnum::manufactured)
-    // {
-    //     x_velocity = (15.0/8.0)*pow(y/this->half_channel_height,4.0);
-    // }
+    else if((this->xvelocity_initial_condition_type == XVelocityInitialConditionEnum::turbulent) || 
+            (this->xvelocity_initial_condition_type == XVelocityInitialConditionEnum::manufactured))
+    {
+        // Turbulent velocity profile using Reichart's law of the wall
+        // -- apply initial condition symmetrically w.r.t. the top/bottom walls of the channel
+        double dist_from_wall = this->half_channel_height; // represents distance normal to top/bottom wall (which ever is closer); y-domain bounds are [-half_channel_height, half_channel_height]
+        if(y > 0.0){
+            dist_from_wall -= y; // distance from top wall
+        } else if(y < 0.0) {
+            dist_from_wall += y; // distance from bottom wall
+        } // note: dist_from_wall is non-dimensional
+
+        // Reichardt law of the wall (provides a smoothing between the linear and the log regions)
+        // References: 
+        /*  Frere, Carton de Wiart, Hillewaert, Chatelain, and Winckelmans 
+            "Application of wall-models to discontinuous Galerkin LES", Phys. Fluids 29, 2017
+
+            (Original paper) J. M.  Osterlund, A. V. Johansson, H. M. Nagib, and M. H. Hites, “A note
+            on the overlap region in turbulent boundary layers,” Phys. Fluids 12, 1–4, (2000).
+        */
+        const double kappa = 0.38; // von Karman's constant
+        const double C = 4.1;
+        
+        // STEP 1
+        const double reynolds_number_inf = this->all_parameters->navier_stokes_param.reynolds_number_inf;
+        const double density = 1.0; // non-dimensional
+        const double viscosity_coefficient = this->all_parameters->navier_stokes_param.nondimensionalized_constant_viscosity; // non-dimensional
+        const double reynolds_number_based_on_friction_velocity = this->all_parameters->flow_solver_param.turbulent_channel_friction_velocity_reynolds_number;
+        const double friction_velocity = reynolds_number_based_on_friction_velocity/reynolds_number_inf; // non-dimensional
+        const double y_plus = reynolds_number_inf*density*friction_velocity*dist_from_wall/viscosity_coefficient; // dimensional
+        const double u_plus = (1.0/kappa)*log(1.0+kappa*y_plus) + (C - (1.0/kappa)*log(kappa))*(1.0 - exp(-y_plus/11.0) - (y_plus/11.0)*exp(-y_plus/3.0)); // dimensional
+        const double x_velocity = u_plus*friction_velocity; // non-dimensional
+    }
     return x_velocity;
 }
 
@@ -111,6 +140,34 @@ double TurbulentChannelFlowSkinFrictionCheck<dim, nstate>::get_wall_shear_stress
 }
 
 template <int dim, int nstate>
+double TurbulentChannelFlowSkinFrictionCheck<dim, nstate>::get_integral_of_x_velocity(const double y_plus) const
+{
+    double value = 0.0;
+    if((this->xvelocity_initial_condition_type == XVelocityInitialConditionEnum::turbulent) || 
+            (this->xvelocity_initial_condition_type == XVelocityInitialConditionEnum::manufactured))
+    {
+        // Turbulent velocity profile using Reichart's law of the wall
+
+        // Reichardt law of the wall (provides a smoothing between the linear and the log regions)
+        // References: 
+        /*  Frere, Carton de Wiart, Hillewaert, Chatelain, and Winckelmans 
+            "Application of wall-models to discontinuous Galerkin LES", Phys. Fluids 29, 2017
+
+            (Original paper) J. M.  Osterlund, A. V. Johansson, H. M. Nagib, and M. H. Hites, “A note
+            on the overlap region in turbulent boundary layers,” Phys. Fluids 12, 1–4, (2000).
+        */
+        const double kappa = 0.38; // von Karman's constant
+        const double C = 4.1;
+        
+        // Analytical integral expression
+        // dimensional
+        value = ((1.0/kappa + y_plus)*log(1.0+kappa*y_plus) - y_plus)/kappa;
+        value += (C - (1.0/kappa)*log(kappa))*(y_plus + 11.0*exp(-y_plus/11.0) + (3.0/11.0)*(y_plus+3.0)*exp(-y_plus/3.0));
+    }
+    return value;
+}
+
+template <int dim, int nstate>
 double TurbulentChannelFlowSkinFrictionCheck<dim, nstate>::get_bulk_velocity() const
 {
     double bulk_velocity = 0.0;
@@ -125,7 +182,26 @@ double TurbulentChannelFlowSkinFrictionCheck<dim, nstate>::get_bulk_velocity() c
     else if((this->xvelocity_initial_condition_type == XVelocityInitialConditionEnum::turbulent) || 
             (this->xvelocity_initial_condition_type == XVelocityInitialConditionEnum::manufactured))
     {
-        bulk_velocity = 1.0;
+        // Turbulent velocity profile using Reichart's law of the wall
+        const double reynolds_number_inf = this->all_parameters->navier_stokes_param.reynolds_number_inf;
+        const double density = 1.0; // non-dimensional
+        const double viscosity_coefficient = this->all_parameters->navier_stokes_param.nondimensionalized_constant_viscosity; // non-dimensional
+        const double reynolds_number_based_on_friction_velocity = this->all_parameters->flow_solver_param.turbulent_channel_friction_velocity_reynolds_number;
+        const double friction_velocity = reynolds_number_based_on_friction_velocity/reynolds_number_inf; // non-dimensional
+        const double y_plus_max = reynolds_number_inf*density*friction_velocity*1.0/viscosity_coefficient; // dimensional
+        const double y_plus_min = 0.0; // dimensional
+        const double integrand_wrt_y = 2.0*(get_integral_of_x_velocity(y_plus_max) - get_integral_of_x_velocity(0.0)); // dimensional; symmetry applied
+        
+        // domain
+        const double domain_length_x = this->all_param.flow_solver_param.turbulent_channel_domain_length_x_direction; // non-dimensional
+        const double domain_length_y = this->all_parameters->flow_solver_param.turbulent_channel_domain_length_y_direction; // non-dimensional
+        const double domain_length_z = this->all_param.flow_solver_param.turbulent_channel_domain_length_z_direction; // non-dimensional
+        const double domain_volume = domain_length_x*domain_length_y*domain_length_z; // non-dimensional
+
+        const double volume_integral = integrand_wrt_y*domain_length_x*domain_length_z;
+
+        bulk_velocity = volume_integral/domain_volume;
+        // note ref_length = 1.0 anyways so no need to worry about the dim integrand_wrt_y
     }
     
     return bulk_velocity;

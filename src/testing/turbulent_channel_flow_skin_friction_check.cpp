@@ -27,10 +27,10 @@ double TurbulentChannelFlowSkinFrictionCheck<dim, nstate>::get_x_velocity(const 
     {
         x_velocity = (15.0/8.0)*pow(1.0-pow(y/this->half_channel_height,2.0),2.0);
     }
-    else if(this->xvelocity_initial_condition_type == XVelocityInitialConditionEnum::manufactured)
-    {
-        x_velocity = (15.0/8.0)*pow(y/this->half_channel_height,4.0);
-    }
+    // else if(this->xvelocity_initial_condition_type == XVelocityInitialConditionEnum::manufactured)
+    // {
+    //     x_velocity = (15.0/8.0)*pow(y/this->half_channel_height,4.0);
+    // }
     return x_velocity;
 }
 
@@ -41,13 +41,22 @@ double TurbulentChannelFlowSkinFrictionCheck<dim, nstate>::get_x_velocity_gradie
     double x_velocity_gradient = 0.0;
     if(this->xvelocity_initial_condition_type == XVelocityInitialConditionEnum::laminar)
     {
+        // Turbulent velocity profile using Reichart's law of the wall
+        // -- apply initial condition symmetrically w.r.t. the top/bottom walls of the channel
+        double dist_from_wall = this->half_channel_height; // represents distance normal to top/bottom wall (which ever is closer); y-domain bounds are [-half_channel_height, half_channel_height]
+        if(y > 0.0){
+            dist_from_wall -= y; // distance from top wall
+        } else if(y < 0.0) {
+            dist_from_wall += y; // distance from bottom wall
+        } // note: dist_from_wall is non-dimensional
         x_velocity_gradient = (15.0/2.0)*y*(y*y - this->half_channel_height*this->half_channel_height)/pow(this->half_channel_height,4.0);
     }
-    else if(this->xvelocity_initial_condition_type == XVelocityInitialConditionEnum::manufactured)
-    {
-        x_velocity_gradient = (15.0/2.0)*y*y*y/pow(this->half_channel_height,4.0);
-    }
-    else if(this->xvelocity_initial_condition_type == XVelocityInitialConditionEnum::turbulent)
+    // else if(this->xvelocity_initial_condition_type == XVelocityInitialConditionEnum::manufactured)
+    // {
+    //     x_velocity_gradient = (15.0/2.0)*y*y*y/pow(this->half_channel_height,4.0);
+    // }
+    else if((this->xvelocity_initial_condition_type == XVelocityInitialConditionEnum::turbulent) || 
+            (this->xvelocity_initial_condition_type == XVelocityInitialConditionEnum::manufactured))
     {
         // Turbulent velocity profile using Reichart's law of the wall
         // -- apply initial condition symmetrically w.r.t. the top/bottom walls of the channel
@@ -109,11 +118,12 @@ double TurbulentChannelFlowSkinFrictionCheck<dim, nstate>::get_bulk_velocity() c
     {
         bulk_velocity = 1.0;
     }
-    else if(this->xvelocity_initial_condition_type == XVelocityInitialConditionEnum::manufactured)
-    {
-        bulk_velocity = (3.0/8.0);
-    }
-    else if(this->xvelocity_initial_condition_type == XVelocityInitialConditionEnum::turbulent)
+    // else if(this->xvelocity_initial_condition_type == XVelocityInitialConditionEnum::manufactured)
+    // {
+    //     bulk_velocity = (3.0/8.0);
+    // }
+    else if((this->xvelocity_initial_condition_type == XVelocityInitialConditionEnum::turbulent) || 
+            (this->xvelocity_initial_condition_type == XVelocityInitialConditionEnum::manufactured))
     {
         bulk_velocity = 1.0;
     }

@@ -191,7 +191,7 @@ InitialConditionFunction_TurbulentChannelFlow_Manufactured<dim,nstate,real>
     const double domain_length_x_,
     const double domain_length_y_,
     const double domain_length_z_)
-    : InitialConditionFunction_TurbulentChannelFlow<dim,nstate,real>(
+    : InitialConditionFunction_TurbulentChannelFlow_Turbulent<dim,nstate,real>(
         navier_stokes_physics_,
         channel_friction_velocity_reynolds_number_,
         domain_length_x_,
@@ -201,11 +201,11 @@ InitialConditionFunction_TurbulentChannelFlow_Manufactured<dim,nstate,real>
 
 template <int dim, int nstate, typename real>
 inline real InitialConditionFunction_TurbulentChannelFlow_Manufactured<dim, nstate, real>
-::x_velocity(const dealii::Point<dim,real> &point, const real /*density*/, const real /*temperature*/) const
+::y_velocity(const dealii::Point<dim,real> &point) const
 {
-    // Manufactured velocity profile
-    const real x_velocity = (15.0/8.0)*pow(point[1]/this->half_channel_height,4.0);
-    return x_velocity;
+    // Manufactured velocity profile so that it is purely based on the x-velocity
+    const real y_velocity = 0.0;
+    return y_velocity;
 }
 
 // ========================================================

@@ -95,7 +95,7 @@ protected:
     /// x-velocity
     virtual real x_velocity (const dealii::Point<dim,real> &point, const real density, const real temperature) const;
     /// y-velocity
-    real y_velocity (const dealii::Point<dim,real> &point) const;
+    virtual real y_velocity (const dealii::Point<dim,real> &point) const;
 };
 
 template <int dim, int nstate, typename real>
@@ -119,7 +119,7 @@ protected:
 };
 
 template <int dim, int nstate, typename real>
-class InitialConditionFunction_TurbulentChannelFlow_Manufactured : public InitialConditionFunction_TurbulentChannelFlow<dim,nstate,real>
+class InitialConditionFunction_TurbulentChannelFlow_Manufactured : public InitialConditionFunction_TurbulentChannelFlow_Turbulent<dim,nstate,real>
 {
 public:
     /// Constructor.
@@ -133,8 +133,8 @@ public:
         const double domain_length_z_);
 
 protected:
-    /// x-velocity
-    real x_velocity (const dealii::Point<dim,real> &point, const real density, const real temperature) const override;
+    /// y-velocity
+    real y_velocity (const dealii::Point<dim,real> &point) const override;
 };
 
 /// Initial Condition Function: NavierStokesBase

@@ -252,7 +252,7 @@ int TurbulentChannelFlowSkinFrictionCheck<dim, nstate>::run_test() const
         return 1;
     }
     // Compare to empiral equation by Dean 1978
-    const double emperical_estimate_for_skin_friction_coefficient = 0.073*(2.0*this->all_parameters->navier_stokes_param.reynolds_number_inf)**(-1.0/4.0); // Dean's 1978 paper
+    const double emperical_estimate_for_skin_friction_coefficient = 0.073*pow(2.0*this->all_parameters->navier_stokes_param.reynolds_number_inf,(-1.0/4.0)); // Dean's 1978 paper
     pcout << "computed skin friction coefficient is " << computed_skin_friction_coefficient << std::endl;
     pcout << "expected skin friction coefficient is " << expected_skin_friction_coefficient << std::endl;
     pcout << "error is " << relative_error_skin_friction_coefficient << std::endl;

@@ -193,9 +193,9 @@ double TurbulentChannelFlowSkinFrictionCheck<dim, nstate>::get_bulk_velocity() c
         const double integrand_wrt_y = 2.0*(get_integral_of_x_velocity(y_plus_max) - get_integral_of_x_velocity(0.0)); // dimensional; symmetry applied
         
         // domain
-        const double domain_length_x = this->all_param.flow_solver_param.turbulent_channel_domain_length_x_direction; // non-dimensional
+        const double domain_length_x = this->all_parameters->flow_solver_param.turbulent_channel_domain_length_x_direction; // non-dimensional
         const double domain_length_y = this->all_parameters->flow_solver_param.turbulent_channel_domain_length_y_direction; // non-dimensional
-        const double domain_length_z = this->all_param.flow_solver_param.turbulent_channel_domain_length_z_direction; // non-dimensional
+        const double domain_length_z = this->all_parameters->flow_solver_param.turbulent_channel_domain_length_z_direction; // non-dimensional
         const double domain_volume = domain_length_x*domain_length_y*domain_length_z; // non-dimensional
 
         const double volume_integral = integrand_wrt_y*domain_length_x*domain_length_z;

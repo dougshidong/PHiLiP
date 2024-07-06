@@ -272,7 +272,7 @@ int TurbulentChannelFlowSkinFrictionCheck<dim, nstate>::run_test() const
     // (1) Compute wall shear stress
     std::unique_ptr<FlowSolver::ChannelFlow<dim, nstate>> flow_solver_case = std::make_unique<FlowSolver::ChannelFlow<dim,nstate>>(this->all_parameters);
     double computed_wall_shear_stress = 0.0;
-    if(this->all_parameters.using_wall_model) computed_wall_shear_stress = flow_solver_case->get_average_wall_shear_stress_from_wall_model(*(flow_solver->dg));
+    if(this->all_parameters->using_wall_model) computed_wall_shear_stress = flow_solver_case->get_average_wall_shear_stress_from_wall_model(*(flow_solver->dg));
     else computed_wall_shear_stress = flow_solver_case->get_average_wall_shear_stress(*(flow_solver->dg));
     const double expected_wall_shear_stress = this->get_wall_shear_stress();
     const double relative_error_wall_shear_stress = abs(computed_wall_shear_stress - expected_wall_shear_stress);

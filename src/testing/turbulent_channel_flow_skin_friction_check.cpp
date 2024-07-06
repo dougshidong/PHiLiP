@@ -21,7 +21,7 @@ TurbulentChannelFlowSkinFrictionCheck<dim, nstate>::TurbulentChannelFlowSkinFric
 {
     // NavierStokes_ChannelFlowConstantSourceTerm_WallModel object; create using dynamic_pointer_cast and the create_Physics factory
     using PDE_enum = Parameters::AllParameters::PartialDifferentialEquation;
-    PHiLiP::Parameters::AllParameters parameters_navier_stokes_channel_flow_constant_source_term_wall_model = this->all_parameters;
+    PHiLiP::Parameters::AllParameters parameters_navier_stokes_channel_flow_constant_source_term_wall_model = parameters_input;
     navier_stokes_channel_flow_constant_source_term_wall_model.pde_type = PDE_enum::navier_stokes_channel_flow_constant_source_term_wall_model;
     this->navier_stokes_channel_flow_constant_source_term_wall_model_physics = 
         std::dynamic_pointer_cast<Physics::NavierStokes_ChannelFlowConstantSourceTerm_WallModel<dim,dim+2,double>>(

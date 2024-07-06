@@ -226,6 +226,7 @@ double TurbulentChannelFlowSkinFrictionCheck<dim, nstate>::get_wall_shear_stress
     const double reynolds_number_based_on_friction_velocity = this->all_parameters->flow_solver_param.turbulent_channel_friction_velocity_reynolds_number;
     // non-dimensional wall shear stress value based on friction Reynolds number
     const double wall_shear_stress = density*pow((reynolds_number_based_on_friction_velocity*viscosity_coefficient/(reynolds_number_inf*density*delta)),2.0);
+    return wall_shear_stress;
 }
 
 template <int dim, int nstate>

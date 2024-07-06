@@ -46,6 +46,7 @@ private:
     double get_bulk_velocity() const;///< returns bulk velocity
     double get_skin_friction_coefficient() const;///< returns skin friction coefficient
     double get_integral_of_x_velocity(const double y_plus) const;///< returns integral of x-velocity
+    double get_wall_shear_stress_from_friction_reynolds_number() const;///< returns wall shear stress from friction Reynolds number
 };
 
 } // End of Tests namespace

@@ -217,6 +217,18 @@ double TurbulentChannelFlowSkinFrictionCheck<dim, nstate>::get_skin_friction_coe
 }
 
 template <int dim, int nstate>
+double TurbulentChannelFlowSkinFrictionCheck<dim, nstate>::get_wall_shear_stress_from_friction_reynolds_number() const
+{
+    const double reynolds_number_inf = this->all_parameters->navier_stokes_param.reynolds_number_inf;
+    const double density = 1.0; // non-dimensional
+    const double delta = 1.0; // non-dimensional
+    const double viscosity_coefficient = this->all_parameters->navier_stokes_param.nondimensionalized_constant_viscosity; // non-dimensional
+    const double reynolds_number_based_on_friction_velocity = this->all_parameters->flow_solver_param.turbulent_channel_friction_velocity_reynolds_number;
+    // non-dimensional wall shear stress value based on friction Reynolds number
+    const double wall_shear_stress = density*pow((reynolds_number_based_on_friction_velocity*viscosity_coefficient/(reynolds_number_inf*density*delta)),2.0);
+}
+
+template <int dim, int nstate>
 int TurbulentChannelFlowSkinFrictionCheck<dim, nstate>::run_test() const
 {
     // Integrate to final time
@@ -229,7 +241,8 @@ int TurbulentChannelFlowSkinFrictionCheck<dim, nstate>::run_test() const
     const double expected_wall_shear_stress = this->get_wall_shear_stress();
     const double relative_error_wall_shear_stress = abs(computed_wall_shear_stress - expected_wall_shear_stress);
     pcout << "computed wall shear stress is " << computed_wall_shear_stress << std::endl;
-    pcout << "expected wall shear stress is " << expected_wall_shear_stress << std::endl;
+    pcout << "expected wall shear stress is " << expected_wall_shear_stress <<
+             " (from friction Reynolds number value is: " << this->get_wall_shear_stress_from_friction_reynolds_number() << ")" << std::endl;
     pcout << "error is " << relative_error_wall_shear_stress << std::endl;
     // bulk velocity and skin friction coefficient
     flow_solver_case->set_bulk_flow_quantities(*(flow_solver->dg));

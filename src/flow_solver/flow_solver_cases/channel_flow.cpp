@@ -116,6 +116,19 @@ void ChannelFlow<dim,nstate>::display_grid_parameters() const
     this->pcout << "- - Number of cells in x-direction: " << this->number_of_cells_x_direction << std::endl;
     this->pcout << "- - Number of cells in y-direction: " << this->number_of_cells_y_direction << std::endl;
     this->pcout << "- - Number of cells in z-direction: " << this->number_of_cells_z_direction << std::endl;
+    using turbulent_channel_mesh_stretching_function_enum = Parameters::FlowSolverParam::TurbulentChannelMeshStretchingFunctionType;
+    const turbulent_channel_mesh_stretching_function_enum turbulent_channel_mesh_stretching_function_type = this->all_param.flow_solver_param.turbulent_channel_mesh_stretching_function_type;
+    std::string turbulent_channel_mesh_stretching_function_type_string;
+    if(turbulent_channel_mesh_stretching_function_type == turbulent_channel_mesh_stretching_function_enum::gullbrand){
+        turbulent_channel_mesh_stretching_function_type_string = "Gullbrand";
+    } else if(turbulent_channel_mesh_stretching_function_type == turbulent_channel_mesh_stretching_function_enum::hopw){
+        turbulent_channel_mesh_stretching_function_type_string = "HOPW";
+    } else if(turbulent_channel_mesh_stretching_function_type == turbulent_channel_mesh_stretching_function_enum::carton_de_wiart_et_al){
+        turbulent_channel_mesh_stretching_function_type_string = "carton_de_wiart_et_al";
+    } else if(turbulent_channel_mesh_stretching_function_type == turbulent_channel_mesh_stretching_function_enum::uniform_mesh_no_stretching){
+        turbulent_channel_mesh_stretching_function_type_string = "uniform_mesh_no_stretching";
+    }
+    this->pcout << "- - Mesh stretching function: " << turbulent_channel_mesh_stretching_function_type_string << std::endl;
 }
 
 template <int dim, int nstate>

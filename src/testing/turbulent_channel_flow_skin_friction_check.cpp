@@ -305,8 +305,14 @@ int TurbulentChannelFlowSkinFrictionCheck<dim, nstate>::run_test() const
     // (5) Check the wall model metrics
     if(this->check_wall_model) {
         pcout << "Wall model checks: " << std::endl;
-        const double wall_model_computed_wall_shear_stress = get_wall_shear_stress_from_wall_model();
-        pcout << " - computed wall shear stress: " << wall_model_computed_wall_shear_stress << std::endl;
+        const double computed_wall_shear_stress_wall_model = get_wall_shear_stress_from_wall_model();
+        pcout << " - computed wall shear stress from wall model: " << wall_model_computed_wall_shear_stress << std::endl;
+        pcout << " - expected wall shear stress is " << expected_wall_shear_stress <<
+             " (from friction Reynolds number value is: " << this->get_wall_shear_stress_from_friction_reynolds_number() << ")" << std::endl;
+        const double relative_error_wall_shear_stress_wall_model = abs(computed_wall_shear_stress_wall_model - expected_wall_shear_stress);
+        pcout << " - error is " << relative_error_wall_shear_stress_wall_model << std::endl;
+        // add condition here
+        pcout << " Test passed, wall model metrics are within specified tolerance." << std::endl; 
     }
 
     // Exit conditions
@@ -325,10 +331,7 @@ int TurbulentChannelFlowSkinFrictionCheck<dim, nstate>::run_test() const
             return 1;
         }
         pcout << " Test passed, computed wall shear stress, skin friction coefficient, and bulk velocity are within specified tolerance." << std::endl;    
-    } else {
-        // add condition here
-        pcout << " Test passed, wall model metrics are within specified tolerance." << std::endl;    
-    }
+    } 
     
     return 0;
 }

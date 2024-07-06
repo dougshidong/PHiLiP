@@ -7,7 +7,7 @@ set test_type = turbulent_channel_flow_skin_friction_check
 # DG related parameters
 set overintegration = 0
 set use_weak_form = false
-set flux_nodes_type = GL
+set flux_nodes_type = GLL
 set use_split_form = true
 set use_curvilinear_split_form = false
 set use_weight_adjusted_mass = false

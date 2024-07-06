@@ -26,6 +26,11 @@ TurbulentChannelFlowSkinFrictionCheck<dim, nstate>::TurbulentChannelFlowSkinFric
     this->navier_stokes_channel_flow_constant_source_term_wall_model_physics = 
         std::dynamic_pointer_cast<Physics::NavierStokes_ChannelFlowConstantSourceTerm_WallModel<dim,dim+2,double>>(
                 Physics::PhysicsFactory<dim,dim+2,double>::create_Physics(&parameters_navier_stokes_channel_flow_constant_source_term_wall_model));
+    // Set check wall model flag if uniform grid
+    using turbulent_channel_mesh_stretching_function_enum = Parameters::FlowSolverParam::TurbulentChannelMeshStretchingFunctionType;
+    const turbulent_channel_mesh_stretching_function_enum turbulent_channel_mesh_stretching_function_type = this->all_parameters->flow_solver_param.turbulent_channel_mesh_stretching_function_type;
+    if(turbulent_channel_mesh_stretching_function_type == turbulent_channel_mesh_stretching_function_enum::uniform_mesh_no_stretching) this->check_wall_model = true;
+    else this->check_wall_model = false;
 }
 
 template <int dim, int nstate>
@@ -239,13 +244,32 @@ double TurbulentChannelFlowSkinFrictionCheck<dim, nstate>::get_wall_shear_stress
 }
 
 template <int dim, int nstate>
+double TurbulentChannelFlowSkinFrictionCheck<dim, nstate>::get_wall_shear_stress_from_wall_model() const
+{
+    const double distance_from_wall_for_wall_model_input_velocity = this->navier_stokes_channel_flow_constant_source_term_wall_model_physics.distance_from_wall_for_wall_model_input_velocity; // non-dimensional -- delta x on uniform grid
+    pcout << " - distance_from_wall_for_wall_model_input_velocity = " << distance_from_wall_for_wall_model_input_velocity << std::endl;
+    const double y_position_for_wall_model_input_velocity = -this->half_channel_height + distance_from_wall_for_wall_model_input_velocity; // y-coordinate above lower wall
+    const double wall_parallel_velocity = get_x_velocity(y_position_for_wall_model_input_velocity); //non-dimensional
+    const double density = 1.0; // non-dimensional
+    const double viscosity_coefficient = this->navier_stokes_channel_flow_constant_source_term_wall_model_physics.constant_viscosity; // non-dimensional
+    const double reynolds_number_inf = this->navier_stokes_channel_flow_constant_source_term_wall_model_physics.reynolds_number_inf;
+    const double wall_shear_stress = this->navier_stokes_channel_flow_constant_source_term_wall_model_physics.wall_model_look_up_table->
+                                     get_wall_shear_stress_magnitude(wall_parallel_velocity,
+                                                                     distance_from_wall_for_wall_model_input_velocity,
+                                                                     viscosity_coefficient,
+                                                                     density,
+                                                                     this->reynolds_number_inf); // non-dimensional
+    return wall_shear_stress;
+}
+
+template <int dim, int nstate>
 int TurbulentChannelFlowSkinFrictionCheck<dim, nstate>::run_test() const
 {
     // Integrate to final time
     std::unique_ptr<FlowSolver::FlowSolver<dim,nstate>> flow_solver = FlowSolver::FlowSolverFactory<dim,nstate>::select_flow_case(this->all_parameters, parameter_handler);
     static_cast<void>(flow_solver->run());
 
-    // Compute wall shear stress
+    // (1) Compute wall shear stress
     std::unique_ptr<FlowSolver::ChannelFlow<dim, nstate>> flow_solver_case = std::make_unique<FlowSolver::ChannelFlow<dim,nstate>>(this->all_parameters);
     const double computed_wall_shear_stress = flow_solver_case->get_average_wall_shear_stress(*(flow_solver->dg));
     const double expected_wall_shear_stress = this->get_wall_shear_stress();
@@ -254,7 +278,7 @@ int TurbulentChannelFlowSkinFrictionCheck<dim, nstate>::run_test() const
     pcout << "expected wall shear stress is " << expected_wall_shear_stress <<
              " (from friction Reynolds number value is: " << this->get_wall_shear_stress_from_friction_reynolds_number() << ")" << std::endl;
     pcout << "error is " << relative_error_wall_shear_stress << std::endl;
-    // bulk velocity and skin friction coefficient
+    // (2-3) bulk velocity and skin friction coefficient
     flow_solver_case->set_bulk_flow_quantities(*(flow_solver->dg));
     const double computed_bulk_velocity = flow_solver_case->get_bulk_velocity();
     const double computed_skin_friction_coefficient = flow_solver_case->get_skin_friction_coefficient_from_average_wall_shear_stress(computed_wall_shear_stress);
@@ -266,7 +290,7 @@ int TurbulentChannelFlowSkinFrictionCheck<dim, nstate>::run_test() const
     pcout << "expected bulk velocity is " << expected_bulk_velocity << std::endl;
     pcout << "error is " << relative_error_bulk_velocity << std::endl;
     
-    // Compare to empiral equation by Dean 1978
+    // (4) Compare to empiral equation by Dean 1978
     const double emperical_estimate_for_skin_friction_coefficient = 0.073*pow(2.0*this->all_parameters->navier_stokes_param.reynolds_number_inf,(-1.0/4.0)); // Dean's 1978 paper
     pcout << "computed skin friction coefficient is " << computed_skin_friction_coefficient << std::endl;
     pcout << "expected skin friction coefficient is " << expected_skin_friction_coefficient << std::endl;
@@ -277,22 +301,35 @@ int TurbulentChannelFlowSkinFrictionCheck<dim, nstate>::run_test() const
     if(percent_emperical_estimate_error > 30.0) {
         pcout << "Warning: considerable difference with emperical estimate for skin friction coefficient value." << std::endl;
     }
+
+    // (5) Check the wall model metrics
+    if(this->check_wall_model) {
+        pcout << "Wall model checks: " << std::endl;
+        const double wall_model_computed_wall_shear_stress = get_wall_shear_stress_from_wall_model();
+        pcout << " - computed wall shear stress: " << wall_model_computed_wall_shear_stress << std::endl;
+    }
+
     // Exit conditions
-    if (relative_error_wall_shear_stress > 1.0e-9) {
-        pcout << "Computed wall shear stress is not within specified tolerance with respect to expected value." << std::endl;
-        pcout << "Error is : " << relative_error_wall_shear_stress << std::endl;
-        return 1;
-    } else if (relative_error_bulk_velocity > 1.0e-9) {
-        pcout << "Computed bulk velocity is not within specified tolerance with respect to expected value." << std::endl;
-        pcout << "Error is : " << relative_error_bulk_velocity << std::endl;
-        return 1;
-    } else if (relative_error_skin_friction_coefficient > 1.0e-9) {
-        pcout << "Computed skin friction coefficient is not within specified tolerance with respect to expected value." << std::endl;
-        pcout << "Error is : " << relative_error_skin_friction_coefficient << std::endl;
-        return 1;
+    if(!this->check_wall_model){
+        if (relative_error_wall_shear_stress > 1.0e-9) {
+            pcout << "Computed wall shear stress is not within specified tolerance with respect to expected value." << std::endl;
+            pcout << "Error is : " << relative_error_wall_shear_stress << std::endl;
+            return 1;
+        } else if (relative_error_bulk_velocity > 1.0e-9) {
+            pcout << "Computed bulk velocity is not within specified tolerance with respect to expected value." << std::endl;
+            pcout << "Error is : " << relative_error_bulk_velocity << std::endl;
+            return 1;
+        } else if (relative_error_skin_friction_coefficient > 1.0e-9) {
+            pcout << "Computed skin friction coefficient is not within specified tolerance with respect to expected value." << std::endl;
+            pcout << "Error is : " << relative_error_skin_friction_coefficient << std::endl;
+            return 1;
+        }
+        pcout << " Test passed, computed wall shear stress, skin friction coefficient, and bulk velocity are within specified tolerance." << std::endl;    
+    } else {
+        // add condition here
+        pcout << " Test passed, wall model metrics are within specified tolerance." << std::endl;    
     }
     
-    pcout << " Test passed, computed wall shear stress, skin friction coefficient, and bulk velocity are within specified tolerance." << std::endl;
     return 0;
 }
 

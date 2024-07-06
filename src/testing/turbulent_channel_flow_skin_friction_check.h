@@ -40,6 +40,7 @@ public:
 
     /// Pointer to Navier-Stokes physics object for computing things on the fly
     std::shared_ptr< Physics::NavierStokes_ChannelFlowConstantSourceTerm_WallModel<dim,dim+2,double> > navier_stokes_channel_flow_constant_source_term_wall_model_physics;
+    bool check_wall_model; ///< Flag for checking wall model (true if uniform grid)
 
     /// Run test
     int run_test () const override;
@@ -51,6 +52,7 @@ private:
     double get_skin_friction_coefficient() const;///< returns skin friction coefficient
     double get_integral_of_x_velocity(const double y_plus) const;///< returns integral of x-velocity
     double get_wall_shear_stress_from_friction_reynolds_number() const;///< returns wall shear stress from friction Reynolds number
+    double get_wall_shear_stress_from_wall_model() const;///< returns wall shear stress from wall model
 };
 
 } // End of Tests namespace

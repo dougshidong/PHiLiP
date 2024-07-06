@@ -88,6 +88,9 @@ protected:
 
     dealii::Tensor<2,dim,double> zero_tensor; ///< Tensor of zeros
 
+    /// Pointer to Navier-Stokes physics object for computing things on the fly
+    std::shared_ptr< Physics::NavierStokes_ChannelFlowConstantSourceTerm_WallModel<dim,dim+2,double> > navier_stokes_channel_flow_constant_source_term_wall_model_physics;
+
 public:
     /// Function to compute the adaptive time step
     double get_adaptive_time_step(std::shared_ptr<DGBase<dim,double>> dg) const override;
@@ -104,6 +107,9 @@ public:
 
     /// Get the average wall shear stress
     double get_average_wall_shear_stress(DGBase<dim, double> &dg) const;
+
+    /// Get the average wall shear stress from wall model
+    double get_average_wall_shear_stress_from_wall_model(DGBase<dim, double> &dg) const;
 
     double get_bulk_density() const; ///< Getter for the bulk density
     double get_bulk_velocity() const; ///< Getter for the bulk velocity

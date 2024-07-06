@@ -246,19 +246,19 @@ double TurbulentChannelFlowSkinFrictionCheck<dim, nstate>::get_wall_shear_stress
 template <int dim, int nstate>
 double TurbulentChannelFlowSkinFrictionCheck<dim, nstate>::get_wall_shear_stress_from_wall_model() const
 {
-    const double distance_from_wall_for_wall_model_input_velocity = this->navier_stokes_channel_flow_constant_source_term_wall_model_physics.distance_from_wall_for_wall_model_input_velocity; // non-dimensional -- delta x on uniform grid
+    const double distance_from_wall_for_wall_model_input_velocity = this->navier_stokes_channel_flow_constant_source_term_wall_model_physics->distance_from_wall_for_wall_model_input_velocity; // non-dimensional -- delta x on uniform grid
     pcout << " - distance_from_wall_for_wall_model_input_velocity = " << distance_from_wall_for_wall_model_input_velocity << std::endl;
     const double y_position_for_wall_model_input_velocity = -this->half_channel_height + distance_from_wall_for_wall_model_input_velocity; // y-coordinate above lower wall
     const double wall_parallel_velocity = get_x_velocity(y_position_for_wall_model_input_velocity); //non-dimensional
     const double density = 1.0; // non-dimensional
-    const double viscosity_coefficient = this->navier_stokes_channel_flow_constant_source_term_wall_model_physics.constant_viscosity; // non-dimensional
-    const double reynolds_number_inf = this->navier_stokes_channel_flow_constant_source_term_wall_model_physics.reynolds_number_inf;
-    const double wall_shear_stress = this->navier_stokes_channel_flow_constant_source_term_wall_model_physics.wall_model_look_up_table->
+    const double viscosity_coefficient = this->navier_stokes_channel_flow_constant_source_term_wall_model_physics->constant_viscosity; // non-dimensional
+    const double reynolds_number_inf = this->navier_stokes_channel_flow_constant_source_term_wall_model_physics->reynolds_number_inf;
+    const double wall_shear_stress = this->navier_stokes_channel_flow_constant_source_term_wall_model_physics->wall_model_look_up_table->
                                      get_wall_shear_stress_magnitude(wall_parallel_velocity,
                                                                      distance_from_wall_for_wall_model_input_velocity,
                                                                      viscosity_coefficient,
                                                                      density,
-                                                                     this->reynolds_number_inf); // non-dimensional
+                                                                     reynolds_number_inf); // non-dimensional
     return wall_shear_stress;
 }
 

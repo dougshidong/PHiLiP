@@ -9,6 +9,7 @@
 #include <deal.II/grid/grid_generator.h>
 #include <deal.II/grid/grid_tools.h>
 // #include "mesh/gmsh_reader.hpp" // uncomment this to use the gmsh reader
+#include "physics/physics_factory.h"
 
 namespace PHiLiP {
 
@@ -454,7 +455,7 @@ double ChannelFlow<dim, nstate>::get_average_wall_shear_stress_from_wall_model(D
                                                             (iface == 4) ? 5 : (
                                                                 (iface == 5) ? 4 : -1)))));
                     if(opposite_iface == -1) {
-                        pcout << "ERROR: Invalid iface, opposite_iface is -1. Aborting..."<<std::endl;
+                        this->pcout << "ERROR: Invalid iface, opposite_iface is -1. Aborting..."<<std::endl;
                         std::abort();
                     }
 

@@ -1,6 +1,7 @@
 #include "turbulent_channel_flow_skin_friction_check.h"
 #include "flow_solver/flow_solver_factory.h"
 #include "flow_solver/flow_solver_cases/channel_flow.h"
+#include "physics/physics_factory.h"
 
 namespace PHiLiP {
 namespace Tests {
@@ -17,7 +18,15 @@ TurbulentChannelFlowSkinFrictionCheck<dim, nstate>::TurbulentChannelFlowSkinFric
         , y_bottom_wall(-1.0)
         , normal_vector_top_wall(-1.0)
         , normal_vector_bottom_wall(1.0)
-{}
+{
+    // NavierStokes_ChannelFlowConstantSourceTerm_WallModel object; create using dynamic_pointer_cast and the create_Physics factory
+    using PDE_enum = Parameters::AllParameters::PartialDifferentialEquation;
+    PHiLiP::Parameters::AllParameters parameters_navier_stokes_channel_flow_constant_source_term_wall_model = this->all_parameters;
+    navier_stokes_channel_flow_constant_source_term_wall_model.pde_type = PDE_enum::navier_stokes_channel_flow_constant_source_term_wall_model;
+    this->navier_stokes_channel_flow_constant_source_term_wall_model_physics = 
+        std::dynamic_pointer_cast<Physics::NavierStokes_ChannelFlowConstantSourceTerm_WallModel<dim,dim+2,double>>(
+                Physics::PhysicsFactory<dim,dim+2,double>::create_Physics(&parameters_navier_stokes_channel_flow_constant_source_term_wall_model));
+}
 
 template <int dim, int nstate>
 double TurbulentChannelFlowSkinFrictionCheck<dim, nstate>::get_x_velocity(const double y) const 

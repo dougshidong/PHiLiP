@@ -3,6 +3,7 @@
 
 #include "tests.h"
 #include "parameters/parameters_flow_solver.h"
+#include "physics/navier_stokes.h"
 
 namespace PHiLiP {
 namespace Tests {
@@ -36,6 +37,9 @@ public:
     const double y_bottom_wall; ///< y-value for bottom wall
     const double normal_vector_top_wall; ///< normal vector for top wall
     const double normal_vector_bottom_wall; ///< normal vector for bottom wall
+
+    /// Pointer to Navier-Stokes physics object for computing things on the fly
+    std::shared_ptr< Physics::NavierStokes_ChannelFlowConstantSourceTerm_WallModel<dim,dim+2,double> > navier_stokes_channel_flow_constant_source_term_wall_model_physics;
 
     /// Run test
     int run_test () const override;

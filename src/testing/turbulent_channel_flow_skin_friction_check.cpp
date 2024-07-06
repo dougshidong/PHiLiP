@@ -309,10 +309,14 @@ int TurbulentChannelFlowSkinFrictionCheck<dim, nstate>::run_test() const
         pcout << " - computed wall shear stress from wall model: " << computed_wall_shear_stress_wall_model << std::endl;
         pcout << " - expected wall shear stress is " << expected_wall_shear_stress <<
              " (from friction Reynolds number value is: " << this->get_wall_shear_stress_from_friction_reynolds_number() << ")" << std::endl;
-        const double relative_error_wall_shear_stress_wall_model = abs(computed_wall_shear_stress_wall_model - expected_wall_shear_stress);
-        pcout << " - error is " << relative_error_wall_shear_stress_wall_model << std::endl;
-        // add condition here
-        pcout << " Test passed, wall model metrics are within specified tolerance." << std::endl; 
+        const double percent_error_wall_shear_stress_wall_model = 100.0*abs(computed_wall_shear_stress_wall_model - expected_wall_shear_stress)/expected_wall_shear_stress;
+        pcout << " - percent error is " << percent_error_wall_shear_stress_wall_model << " %" << std::endl;
+        if(percent_error_wall_shear_stress_wall_model > 30.0) {
+            pcout << "Error: considerable difference between wall model shear stress and expected value." << std::endl;
+            return 1;
+        } else {
+            pcout << " Test passed, wall model metrics are within specified tolerance." << std::endl; 
+        }
     }
 
     // Exit conditions

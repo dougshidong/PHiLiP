@@ -271,13 +271,16 @@ int TurbulentChannelFlowSkinFrictionCheck<dim, nstate>::run_test() const
 
     // (1) Compute wall shear stress
     std::unique_ptr<FlowSolver::ChannelFlow<dim, nstate>> flow_solver_case = std::make_unique<FlowSolver::ChannelFlow<dim,nstate>>(this->all_parameters);
-    const double computed_wall_shear_stress = flow_solver_case->get_average_wall_shear_stress(*(flow_solver->dg));
+    double computed_wall_shear_stress = 0.0;
+    if(this->all_parameters.using_wall_model) computed_wall_shear_stress = flow_solver_case->get_average_wall_shear_stress_from_wall_model(*(flow_solver->dg));
+    else computed_wall_shear_stress = flow_solver_case->get_average_wall_shear_stress(*(flow_solver->dg));
     const double expected_wall_shear_stress = this->get_wall_shear_stress();
     const double relative_error_wall_shear_stress = abs(computed_wall_shear_stress - expected_wall_shear_stress);
     pcout << "computed wall shear stress is " << computed_wall_shear_stress << std::endl;
     pcout << "expected wall shear stress is " << expected_wall_shear_stress <<
              " (from friction Reynolds number value is: " << this->get_wall_shear_stress_from_friction_reynolds_number() << ")" << std::endl;
     pcout << "error is " << relative_error_wall_shear_stress << std::endl;
+    pcout << std::endl;
     // (2-3) bulk velocity and skin friction coefficient
     flow_solver_case->set_bulk_flow_quantities(*(flow_solver->dg));
     const double computed_bulk_velocity = flow_solver_case->get_bulk_velocity();
@@ -289,7 +292,8 @@ int TurbulentChannelFlowSkinFrictionCheck<dim, nstate>::run_test() const
     pcout << "computed bulk velocity is " << computed_bulk_velocity << std::endl;
     pcout << "expected bulk velocity is " << expected_bulk_velocity << std::endl;
     pcout << "error is " << relative_error_bulk_velocity << std::endl;
-    
+    pcout << std::endl;
+
     // (4) Compare to empiral equation by Dean 1978
     const double emperical_estimate_for_skin_friction_coefficient = 0.073*pow(2.0*this->all_parameters->navier_stokes_param.reynolds_number_inf,(-1.0/4.0)); // Dean's 1978 paper
     pcout << "computed skin friction coefficient is " << computed_skin_friction_coefficient << std::endl;
@@ -301,18 +305,18 @@ int TurbulentChannelFlowSkinFrictionCheck<dim, nstate>::run_test() const
     if(percent_emperical_estimate_error > 30.0) {
         pcout << "Warning: considerable difference with emperical estimate for skin friction coefficient value." << std::endl;
     }
-
+    pcout << std::endl;
+    
     // (5) Check the wall model metrics
     if(this->check_wall_model) {
         pcout << "Wall model checks: " << std::endl;
         const double computed_wall_shear_stress_wall_model = get_wall_shear_stress_from_wall_model();
-        pcout << " - computed wall shear stress from wall model: " << computed_wall_shear_stress_wall_model << std::endl;
+        pcout << " - manually computed wall shear stress from wall model: " << computed_wall_shear_stress_wall_model << std::endl;
         pcout << " - expected wall shear stress is " << expected_wall_shear_stress <<
              " (from friction Reynolds number value is: " << this->get_wall_shear_stress_from_friction_reynolds_number() << ")" << std::endl;
         const double percent_error_wall_shear_stress_wall_model = 100.0*abs(computed_wall_shear_stress_wall_model - expected_wall_shear_stress)/expected_wall_shear_stress;
         pcout << " - percent error is " << percent_error_wall_shear_stress_wall_model << " %" << std::endl;
-        const double computed_wall_shear_stress_from_wall_model_proper = flow_solver_case->get_average_wall_shear_stress_from_wall_model(*(flow_solver->dg));
-        pcout << " - computed wall shear stress from wall model PROPER: " << computed_wall_shear_stress_from_wall_model_proper << std::endl;
+        pcout << " - NOTE: computed wall shear stress without using wall model yields: " << flow_solver_case->get_average_wall_shear_stress(*(flow_solver->dg)); << std::endl;
         if(percent_error_wall_shear_stress_wall_model > 5.0) {
             pcout << "Error: considerable difference between wall model shear stress and expected value." << std::endl;
             return 1;

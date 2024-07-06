@@ -306,7 +306,7 @@ int TurbulentChannelFlowSkinFrictionCheck<dim, nstate>::run_test() const
     if(this->check_wall_model) {
         pcout << "Wall model checks: " << std::endl;
         const double computed_wall_shear_stress_wall_model = get_wall_shear_stress_from_wall_model();
-        pcout << " - computed wall shear stress from wall model: " << wall_model_computed_wall_shear_stress << std::endl;
+        pcout << " - computed wall shear stress from wall model: " << computed_wall_shear_stress_wall_model << std::endl;
         pcout << " - expected wall shear stress is " << expected_wall_shear_stress <<
              " (from friction Reynolds number value is: " << this->get_wall_shear_stress_from_friction_reynolds_number() << ")" << std::endl;
         const double relative_error_wall_shear_stress_wall_model = abs(computed_wall_shear_stress_wall_model - expected_wall_shear_stress);

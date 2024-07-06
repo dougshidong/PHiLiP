@@ -317,7 +317,7 @@ int TurbulentChannelFlowSkinFrictionCheck<dim, nstate>::run_test() const
         const double percent_error_wall_shear_stress_wall_model = 100.0*abs(computed_wall_shear_stress_wall_model - expected_wall_shear_stress)/expected_wall_shear_stress;
         pcout << " - percent error is " << percent_error_wall_shear_stress_wall_model << " %" << std::endl;
         const double percent_error_wall_shear_stress_wall_model_vs_manual = 100.0*abs(computed_wall_shear_stress - computed_wall_shear_stress_wall_model)/computed_wall_shear_stress_wall_model;
-        pcout << " - percent error is between computed and manually computed wall shear stress from wall model is " << percent_error_wall_shear_stress_wall_model_vs_manual << " %" << std::endl;
+        pcout << " - percent error between computed and manually computed wall shear stress from wall model is " << percent_error_wall_shear_stress_wall_model_vs_manual << " %" << std::endl;
         pcout << " - NOTE: computed wall shear stress without using wall model yields: " << flow_solver_case->get_average_wall_shear_stress(*(flow_solver->dg)) << std::endl;
         if(percent_error_wall_shear_stress_wall_model > 5.0) {
             pcout << "Error: considerable difference between wall model shear stress and expected value." << std::endl;

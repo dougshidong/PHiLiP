@@ -50,7 +50,14 @@ protected:
     
     /// Indicator for zero diagonal elements; used to toggle implicit solve.
     std::vector<bool> butcher_tableau_aii_is_zero;
-
+/*
+    std::vector<dealii::LinearAlgebra::distributed::Vector<double>> storage_register_2;
+    std::vector<dealii::LinearAlgebra::distributed::Vector<double>> storage_register_1;
+    std::vector<dealii::LinearAlgebra::distributed::Vector<double>> storage_register_3;
+    std::vector<dealii::LinearAlgebra::distributed::Vector<double>> storage_register_4;
+    std::vector<dealii::LinearAlgebra::distributed::Vector<double>> rhs;
+*/ 
+    
     real w;
 
     double epsilon[3];

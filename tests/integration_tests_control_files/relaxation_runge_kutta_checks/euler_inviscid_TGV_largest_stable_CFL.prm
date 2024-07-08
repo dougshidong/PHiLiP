@@ -21,6 +21,11 @@ set use_periodic_bc = true
 set conv_num_flux = two_point_flux
 set two_point_num_flux_type = Ra
 
+subsection linear solver
+  set atol = 0.001
+  set rtol = 0.001
+end
+
 # ODE solver
 subsection ODE solver
   set ode_output = quiet

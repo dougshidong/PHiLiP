@@ -24,9 +24,9 @@ public:
      */
     OutputEnum linear_solver_output; ///< quiet or verbose.
     LinearSolverEnum linear_solver_type; ///< direct or gmres.
-    double atol;
-    double rtol;
-    //double beta_controller[3];
+    double atol; // Absolute tolerance
+    double rtol; // Relative tolerance
+    double beta_controller[3];
     // GMRES options
     double ilut_drop; ///< Threshold to drop terms close to zero.
     double ilut_rtol; ///< Multiplies diagonal by ilut_rtol for more diagonal dominance.

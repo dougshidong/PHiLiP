@@ -2078,7 +2078,6 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_boundary_term_strong(
     std::array<std::vector<real>,nstate> conv_flux_dot_normal;
     std::array<std::vector<real>,nstate> diss_flux_dot_normal_diff;
     // Get surface numerical fluxes
-    pcout << "===============================================================================================" << std::endl;
     for (unsigned int iquad=0; iquad<n_face_quad_pts; ++iquad) {
         // Copy Metric Cofactor on the facet in a way can use for transforming Tensor Blocks to reference space
         // The way it is stored in metric_operators is to use sum-factorization in each direction,
@@ -2148,12 +2147,6 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_boundary_term_strong(
                 filtered_aux_soln_state, grad_soln_boundary,
                 unit_phys_normal_int, penalty, true, boundary_id);
         }
-        pcout << "iquad = " << iquad << std::endl;
-        pcout << "    -----------------------------------------------------------------------------" << std::endl;
-        for(int istate=0; istate<nstate; istate++){
-            pcout << "        diss_auxi_num_flux_dot_n_at_q[" << istate << "] = " << diss_auxi_num_flux_dot_n_at_q[istate] << std::endl;
-        }
-        pcout << "    -----------------------------------------------------------------------------" << std::endl;
 
         for(int istate=0; istate<nstate; istate++){
             // allocate

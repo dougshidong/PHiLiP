@@ -24,6 +24,8 @@ public:
     OutputEnum ode_output; ///< verbose or quiet.
     ODESolverEnum ode_solver_type; ///< ODE solver type.
 
+    double atol; //Absolute tolerance
+    double rtol; //Relative tolerance
     int output_solution_every_x_steps; ///< Outputs the solution every x steps to .vtk file
     double output_solution_every_dt_time_intervals; ///< Outputs the solution every dt time intervals to .vtk file
     bool output_solution_at_fixed_times; ///< Flag for outputting solution at fixed times
@@ -63,8 +65,8 @@ public:
         euler_im, ///Implicit Euler
         dirk_2_im, ///Second-order diagonally-implicit RK
         dirk_3_im, ///Third-order diagonally-implicit RK
-        RK4_3_5_3SStar,
-        RK3_2_5F_3SStarPlus
+        RK4_3_5_3SStar, ///Fourth-order, three stage low-storage Runge-Kutta method
+        RK3_2_5F_3SStarPlus ///Third-order, FSAL, three stage low-storage Runge-Kutta method with a fourth register for an error estimate
     };
 
     RKMethodEnum runge_kutta_method; ///< Runge-kutta method.

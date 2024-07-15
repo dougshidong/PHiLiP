@@ -6,6 +6,11 @@
 namespace PHiLiP {
 namespace ODE {
 
+
+/// Three-register method that include an error estimate
+/** see 
+ *  David Ketcheson. "Runge-Kutta Methods with Minimum Storage Implementations" Journal of computational physics 229.5 (2010): 1763-1773. */
+
 #if PHILIP_DIM==1
 template <int dim, typename real, typename MeshType = dealii::Triangulation<dim>>
 #else
@@ -27,6 +32,12 @@ protected:
 };
 
 
+/// Three-register method that require a fourth register for the error estimate
+/** see 
+ *  Hedrik Ranocha, Lisandro Dalcin, Matteo Parsani, David Ketcheson. 
+ *  "Optimized Runge-Kutta Methods with Automatic Step Size Control for Compressible Computational Fluid Dynamics" Communications on Applied Mathematics and Computation Volume 4 (2022): 1191-1228. 
+ *  https://github.com/ranocha/Optimized-RK-CFD */
+ 
 #if PHILIP_DIM==1
 template <int dim, typename real, typename MeshType = dealii::Triangulation<dim>>
 #else

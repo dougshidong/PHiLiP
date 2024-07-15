@@ -22,7 +22,7 @@ ODESolverBase<dim,real,MeshType>::ODESolverBase(std::shared_ptr< DGBase<dim, rea
 
 
 template <int dim, typename real, typename MeshType> 
-double ODESolverBase<dim,real,MeshType>::err_time_step (real dt, const bool pseudotime)
+double ODESolverBase<dim,real,MeshType>::get_automatic_error_adaptive_step_size (real dt, const bool pseudotime)
 {
     (void) pseudotime;
     return dt;

@@ -10,7 +10,15 @@
 namespace PHiLiP {
 namespace ODE {
 
-/// Runge-Kutta ODE solver (explicit or implicit) derived from ODESolver.
+/// Low-Storage Runge-Kutta three-register methods
+/** see 
+ *  Hedrik Ranocha, Lisandro Dalcin, Matteo Parsani, David Ketcheson. 
+ *  "Optimized Runge-Kutta Methods with Automatic Step Size Control for Compressible Computational Fluid Dynamics" Communications on Applied Mathematics and Computation Volume 4 (2022): 1191-1228. 
+ *  https://github.com/ranocha/Optimized-RK-CFD
+ *  The correct coefficients for the [3S*+] method can be found here:
+ *  https://github.com/SciML/OrdinaryDiffEq.jl/blob/e17f08ff3916dfc95aa436da037799b6ddbe4cca/lib/OrdinaryDiffEqLowStorageRK/src/low_storage_rk_caches.jl */
+
+/// Low-Storage Runge-Kutta ODE solver derived from ODESolver.
 #if PHILIP_DIM==1
 template <int dim, typename real, int n_rk_stages, typename MeshType = dealii::Triangulation<dim>>
 #else
@@ -24,7 +32,7 @@ public:
             std::shared_ptr<EmptyRRKBase<dim,real,MeshType>> RRK_object_input); ///< Constructor.
 
     /// Function to evaluate solution update
-    double err_time_step(real dt, const bool pseudotime);
+    double get_automatic_error_adaptive_step_size(real dt, const bool pseudotime);
 
     void step_in_time(real dt, const bool pseudotime);
 
@@ -39,17 +47,9 @@ protected:
     /// Functions are empty by default.
     std::shared_ptr<EmptyRRKBase<dim,real,MeshType>> relaxation_runge_kutta;
 
-    /// Implicit solver for diagonally-implicit RK methods, using Jacobian-free Newton-Krylov 
-    /** This is initialized for any RK method, but solution-sized vectors are 
-     *  only initialized if there is an implicit solve
-     */
-    JFNKSolver<dim,real,MeshType> solver;
-    
     /// Storage for the derivative at each Runge-Kutta stage
     std::vector<dealii::LinearAlgebra::distributed::Vector<double>> rk_stage;
-    
-    /// Indicator for zero diagonal elements; used to toggle implicit solve.
-    std::vector<bool> butcher_tableau_aii_is_zero;
+
 /*
     std::vector<dealii::LinearAlgebra::distributed::Vector<double>> storage_register_2;
     std::vector<dealii::LinearAlgebra::distributed::Vector<double>> storage_register_1;
@@ -57,14 +57,24 @@ protected:
     std::vector<dealii::LinearAlgebra::distributed::Vector<double>> storage_register_4;
     std::vector<dealii::LinearAlgebra::distributed::Vector<double>> rhs;
 */ 
-    
+    /// Storage for the weighted/relative error estimate
     real w;
 
+    /// Storage for the error estimate at step n-1, n, and n+1
     double epsilon[3];
+
+    /// Storage for the number of delta values for a specified method
     int num_delta;
+    
+    /// Storage for the order of the specified Runge-Kutta method
     int rk_order;
+
+    /// Storage for the absolute tolerance
     double atol;
+
+    /// Storage for the relative tolerance
     double rtol;
+
     //double beta_controller[3];
 };
 

@@ -7,6 +7,14 @@ void ODESolverParam::declare_parameters (dealii::ParameterHandler &prm)
 {
     prm.enter_subsection("ODE solver");
     {
+        prm.declare_entry("atol", "0.001",
+                          dealii::Patterns::Double(),
+                          "Absolute Tolerance");
+
+        prm.declare_entry("rtol", "0.001",
+                          dealii::Patterns::Double(),
+                          "Relative Tolerance");
+
         prm.declare_entry("ode_output", "verbose",
                           dealii::Patterns::Selection("quiet|verbose"),
                           "State whether output from ODE solver should be printed. "
@@ -107,7 +115,7 @@ void ODESolverParam::declare_parameters (dealii::ParameterHandler &prm)
                           " dirk_3_im | "
                           " RK3_2_5F_3SStarPlus | "
                           " RK4_3_5_3SStar "),
-                          "Runge-kutta method to use. Methods with _ex are explicit, and with _im are implicit."
+                          "Runge-kutta method to use. Methods with _ex are explicit, and with _im are implicit. [3S*] and [3S*+] methods are low-storage RK methods"
                           "Choices are "
                           " <rk4_ex | "
                           " ssprk3_ex | "
@@ -166,6 +174,8 @@ void ODESolverParam::parse_parameters (dealii::ParameterHandler &prm)
         else if (solver_string == "pod_petrov_galerkin") { ode_solver_type = ODESolverEnum::pod_petrov_galerkin_solver;
                                                            allocate_matrix_dRdW = true; }
 
+        atol = prm.get_double("atol");
+        rtol = prm.get_double("rtol");
         nonlinear_steady_residual_tolerance  = prm.get_double("nonlinear_steady_residual_tolerance");
         nonlinear_max_iterations = prm.get_integer("nonlinear_max_iterations");
         initial_time_step  = prm.get_double("initial_time_step");

@@ -10,7 +10,6 @@ LowStorageRungeKuttaODESolver<dim,real,n_rk_stages, MeshType>::LowStorageRungeKu
         : ODESolverBase<dim,real,MeshType>(dg_input)
         , butcher_tableau(rk_tableau_input)
         , relaxation_runge_kutta(RRK_object_input)
-        , solver(dg_input)
 {       epsilon[0] = 1.0;
         epsilon[1] = 1.0;
         epsilon[2] = 1.0; 
@@ -125,7 +124,7 @@ void LowStorageRungeKuttaODESolver<dim,real,n_rk_stages, MeshType>::step_in_time
 
 
 template <int dim, typename real, int n_rk_stages, typename MeshType> 
-double LowStorageRungeKuttaODESolver<dim,real,n_rk_stages, MeshType>::err_time_step (real dt, const bool pseudotime)
+double LowStorageRungeKuttaODESolver<dim,real,n_rk_stages, MeshType>::get_automatic_error_adaptive_step_size (real dt, const bool pseudotime)
 {
     (void) pseudotime;
     //int q_hat = 2;

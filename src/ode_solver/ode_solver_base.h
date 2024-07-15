@@ -64,7 +64,7 @@ public:
     /// Virtual function to evaluate solution update
     virtual void step_in_time(real dt, const bool pseudotime) = 0;
 
-    virtual double err_time_step (real dt, const bool pseudotime);
+    virtual double get_automatic_error_adaptive_step_size (real dt, const bool pseudotime);
 
     /// Virtual function to allocate the ODE system
     virtual void allocate_ode_system () = 0;

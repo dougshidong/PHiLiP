@@ -840,6 +840,36 @@ double PeriodicTurbulence<dim, nstate>::get_numerical_entropy(
 }
 
 template <int dim, int nstate>
+void PeriodicTurbulence<dim, nstate>::output_velocity_field_if_current_time_is_output_time(
+        const double current_time,
+        const std::shared_ptr <DGBase<dim, double>> dg)
+{
+    // Output velocity field for spectra obtaining kinetic energy spectra
+    if(output_velocity_field_at_fixed_times) {
+        const double time_step = this->get_time_step();
+        const double next_time = current_time + time_step;
+        const double desired_time = this->output_velocity_field_times[this->index_of_current_desired_time_to_output_velocity_field];
+        // Check if current time is an output time
+        bool is_output_time = false; // default initialization
+        if(this->output_solution_at_exact_fixed_times) {
+            is_output_time = current_time == desired_time;
+        } else {
+            is_output_time = ((current_time<=desired_time) && (next_time>desired_time));
+        }
+        if(is_output_time) {
+            // Output velocity field for current index
+            this->output_velocity_field(dg, this->index_of_current_desired_time_to_output_velocity_field, current_time);
+            
+            // Update index s.t. it never goes out of bounds
+            if(this->index_of_current_desired_time_to_output_velocity_field 
+                < (this->number_of_times_to_output_velocity_field-1)) {
+                this->index_of_current_desired_time_to_output_velocity_field += 1;
+            }
+        }
+    }
+}
+
+template <int dim, int nstate>
 void PeriodicTurbulence<dim, nstate>::compute_unsteady_data_and_write_to_table(
         const unsigned int current_iteration,
         const double current_time,
@@ -914,30 +944,9 @@ void PeriodicTurbulence<dim, nstate>::compute_unsteady_data_and_write_to_table(
             this->integrated_kinetic_energy_at_previous_time_step = this->get_integrated_kinetic_energy();
         }
     }
-
-    // Output velocity field for spectra obtaining kinetic energy spectra
-    if(output_velocity_field_at_fixed_times) {
-        const double time_step = this->get_time_step();
-        const double next_time = current_time + time_step;
-        const double desired_time = this->output_velocity_field_times[this->index_of_current_desired_time_to_output_velocity_field];
-        // Check if current time is an output time
-        bool is_output_time = false; // default initialization
-        if(this->output_solution_at_exact_fixed_times) {
-            is_output_time = current_time == desired_time;
-        } else {
-            is_output_time = ((current_time<=desired_time) && (next_time>desired_time));
-        }
-        if(is_output_time) {
-            // Output velocity field for current index
-            this->output_velocity_field(dg, this->index_of_current_desired_time_to_output_velocity_field, current_time);
-            
-            // Update index s.t. it never goes out of bounds
-            if(this->index_of_current_desired_time_to_output_velocity_field 
-                < (this->number_of_times_to_output_velocity_field-1)) {
-                this->index_of_current_desired_time_to_output_velocity_field += 1;
-            }
-        }
-    }
+    
+    // Output velocity field if current time is output file
+    output_velocity_field_if_current_time_is_output_time(current_time, dg);
 }
 
 #if PHILIP_DIM!=1

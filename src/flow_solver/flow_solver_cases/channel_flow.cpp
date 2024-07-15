@@ -96,6 +96,9 @@ void ChannelFlow<dim, nstate>::compute_unsteady_data_and_write_to_table(
         this->pcout << "        Consider decreasing the time step / CFL number." << std::endl;
         std::abort();
     }
+
+    // Output velocity field if current time is output file
+    this->output_velocity_field_if_current_time_is_output_time(current_time, dg);
 }
 
 template <int dim, int nstate>

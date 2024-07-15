@@ -154,6 +154,7 @@ public:
     unsigned int number_of_times_to_output_velocity_field; ///< Number of fixed times to output the velocity field
     bool output_vorticity_magnitude_field_in_addition_to_velocity; ///< Flag for outputting vorticity magnitude field in addition to velocity field
     std::string output_flow_field_files_directory_name; ///< Name of directory for writing flow field files
+    unsigned int output_velocity_number_of_subvisions; ///< Number of subdivisions to apply when writting the velocity field at equidistant nodes
 
     bool end_exactly_at_final_time; ///< Flag to adjust the last timestep such that the simulation ends exactly at final_time
     bool do_compute_unsteady_data_and_write_to_table;///< Flag for computing unsteady data and writting to table

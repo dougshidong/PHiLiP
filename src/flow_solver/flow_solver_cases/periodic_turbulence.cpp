@@ -30,6 +30,7 @@ PeriodicTurbulence<dim, nstate>::PeriodicTurbulence(const PHiLiP::Parameters::Al
         , output_vorticity_magnitude_field_in_addition_to_velocity(this->all_param.flow_solver_param.output_vorticity_magnitude_field_in_addition_to_velocity)
         , output_flow_field_files_directory_name(this->all_param.flow_solver_param.output_flow_field_files_directory_name)
         , output_solution_at_exact_fixed_times(this->all_param.ode_solver_param.output_solution_at_exact_fixed_times)
+        , output_velocity_number_of_subvisions(this->all_param.flow_solver_param.output_velocity_number_of_subvisions)
         , do_compute_angular_momentum(this->all_param.flow_solver_param.do_compute_angular_momentum)
 {
     // Get the flow case type
@@ -143,6 +144,14 @@ double PeriodicTurbulence<dim,nstate>::get_adaptive_time_step_initial(std::share
     return time_step;
 }
 
+template <int dim, int nstate>
+unsigned int PeriodicTurbulence<dim,nstate>::get_number_of_degrees_of_freedom_per_state_from_poly_degree(const unsigned int poly_degree_input) const
+{
+    // expression for a uniform grid (i.e. same number of cells in all directions)
+    const unsigned int number_of_degrees_of_freedom_per_state = pow(this->number_of_cells_per_direction*(poly_degree_input+1),dim);
+    return number_of_degrees_of_freedom_per_state;
+}
+
 std::string get_padded_mpi_rank_string(const int mpi_rank_input) {
     // returns the mpi rank as a string with appropriate padding
     std::string mpi_rank_string = std::to_string(mpi_rank_input);
@@ -192,18 +201,20 @@ void PeriodicTurbulence<dim, nstate>::output_velocity_field(
     //-------------------------------------------------------------
     std::ofstream FILE (filename);
     
+    const unsigned int higher_poly_degree = this->output_velocity_number_of_subvisions*(dg->max_degree+1)-1; // Note: -1 so that n_quad_pts in 1D is n_subdiv*(P+1)
+    
     // check that the file is open and write DOFs
     if (!FILE.is_open()) {
         this->pcout << "ERROR: Cannot open file " << filename << std::endl;
         std::abort();
     } else if(this->mpi_rank==0) {
-        const unsigned int number_of_degrees_of_freedom_per_state = dg->dof_handler.n_dofs()/nstate;
+        const unsigned int number_of_degrees_of_freedom_per_state = this->get_number_of_degrees_of_freedom_per_state_from_poly_degree(higher_poly_degree);
         FILE << number_of_degrees_of_freedom_per_state << std::string("\n");
     }
 
     // build a basis oneD on equidistant nodes in 1D
-    dealii::Quadrature<1> vol_quad_equidistant_1D = dealii::QIterated<1>(dealii::QTrapez<1>(),dg->max_degree);
-    dealii::FE_DGQArbitraryNodes<1,1> equidistant_finite_element(vol_quad_equidistant_1D);
+    dealii::Quadrature<1> vol_quad_equidistant_1D = dealii::QIterated<1>(dealii::QTrapez<1>(),higher_poly_degree);
+    const unsigned int n_quad_pts = pow(vol_quad_equidistant_1D.size(),dim);
 
     const unsigned int init_grid_degree = dg->high_order_grid->fe_system.tensor_degree();
     OPERATOR::basis_functions<dim,2*dim> soln_basis(1, dg->max_degree, init_grid_degree); 
@@ -225,7 +236,6 @@ void PeriodicTurbulence<dim, nstate>::output_velocity_field(
         const unsigned int poly_degree = i_fele;
         const unsigned int n_dofs_cell = dg->fe_collection[poly_degree].dofs_per_cell;
         const unsigned int n_shape_fns = n_dofs_cell / nstate;
-        const unsigned int n_quad_pts = n_shape_fns;
 
         // We first need to extract the mapping support points (grid nodes) from high_order_grid.
         const dealii::FESystem<dim> &fe_metric = dg->high_order_grid->fe_system;
@@ -325,7 +335,7 @@ void PeriodicTurbulence<dim, nstate>::output_velocity_field(
             }
         }
         // write out all values at equidistant nodes
-        for(unsigned int ishape=0; ishape<n_shape_fns; ishape++){
+        for(unsigned int ishape=0; ishape<n_quad_pts; ishape++){
             dealii::Point<dim,double> vol_equid_node;
             // write coordinates
             for(int idim=0; idim<dim; idim++) {

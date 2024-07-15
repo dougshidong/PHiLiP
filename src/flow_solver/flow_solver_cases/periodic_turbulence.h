@@ -89,6 +89,9 @@ public:
      * */
     double get_strain_rate_tensor_based_dissipation_rate() const;
 
+    /// Get the number of degrees of freedom per state from a given poly degree
+    virtual unsigned int get_number_of_degrees_of_freedom_per_state_from_poly_degree(const unsigned int poly_degree_input) const;
+
     /// Output the velocity field to file
     void output_velocity_field(
             std::shared_ptr<DGBase<dim,double>> dg,
@@ -115,6 +118,8 @@ protected:
     const std::string output_flow_field_files_directory_name;
 
     const bool output_solution_at_exact_fixed_times;///< Flag for outputting the solution at exact fixed times by decreasing the time step on the fly
+
+    const unsigned int output_velocity_number_of_subvisions; ///< Number of subdivisions to apply when writting the velocity field at equidistant nodes
 
     /// Flag to compute angular momentum
     const bool do_compute_angular_momentum;

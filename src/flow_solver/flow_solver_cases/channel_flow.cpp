@@ -359,6 +359,16 @@ void ChannelFlow<dim,nstate>::set_higher_order_grid(std::shared_ptr<DGBase<dim, 
     // do nothing if using dealii mesh generator
 }
 
+template <int dim, int nstate>
+unsigned int ChannelFlow<dim,nstate>::get_number_of_degrees_of_freedom_per_state_from_poly_degree(const unsigned int poly_degree_input) const
+{
+    // expression for the channel flow grid (i.e. different number of cells in each direction)
+    const unsigned int number_of_degrees_of_freedom_per_state = this->number_of_cells_x_direction*(poly_degree_input+1)*
+                                                                 this->number_of_cells_y_direction*(poly_degree_input+1)*
+                                                                  this->number_of_cells_z_direction*(poly_degree_input+1);
+    return number_of_degrees_of_freedom_per_state;
+}
+
 template<int dim, int nstate>
 double ChannelFlow<dim, nstate>::get_average_wall_shear_stress(DGBase<dim, double> &dg) const
 {

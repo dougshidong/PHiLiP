@@ -105,6 +105,9 @@ public:
             const std::shared_ptr <DGBase<dim, double>> dg,
             const std::shared_ptr<dealii::TableHandler> unsteady_data_table) override;
 
+    /// Get the number of degrees of freedom per state from a given poly degree
+    unsigned int get_number_of_degrees_of_freedom_per_state_from_poly_degree(const unsigned int poly_degree_input) const override;
+
     /// Get the average wall shear stress
     double get_average_wall_shear_stress(DGBase<dim, double> &dg) const;
 

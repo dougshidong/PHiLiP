@@ -673,7 +673,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_boundary_term_auxiliary_equati
     //evaluate physical facet fluxes dot product with physical unit normal scaled by determinant of metric facet Jacobian
     //the outward reference normal dircetion.
    // const dealii::Tensor<1,dim,double> unit_ref_normal_int = dealii::GeometryInfo<dim>::unit_normal_vector[iface];
-    const dealii::Tensor<1,dim,double> unit_ref_normal_int = (cell->face_orientation(iface)) ? dealii::GeometryInfo<dim>::unit_normal_vector[iface] : - dealii::GeometryInfo<dim>::unit_normal_vector[iface];
+    const dealii::Tensor<1,dim,double> unit_ref_normal_int = (cell->face_orientation(iface)) ? dealii::GeometryInfo<dim>::unit_normal_vector[iface] :  dealii::GeometryInfo<dim>::unit_normal_vector[iface];
 
     std::array<dealii::Tensor<1,dim,std::vector<real>>,nstate> surf_num_flux_minus_surf_soln_dot_normal;
     for(unsigned int iquad=0; iquad<n_face_quad_pts; iquad++){
@@ -822,7 +822,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_auxiliary_equation(
     //evaluate physical facet fluxes dot product with physical unit normal scaled by determinant of metric facet Jacobian
     //the outward reference normal dircetion.
    // const dealii::Tensor<1,dim,double> unit_ref_normal_int = dealii::GeometryInfo<dim>::unit_normal_vector[iface];
-    const dealii::Tensor<1,dim,double> unit_ref_normal_int = (cell->face_orientation(iface)) ? dealii::GeometryInfo<dim>::unit_normal_vector[iface] : -dealii::GeometryInfo<dim>::unit_normal_vector[iface];
+    const dealii::Tensor<1,dim,double> unit_ref_normal_int = (cell->face_orientation(iface)) ? dealii::GeometryInfo<dim>::unit_normal_vector[iface] : dealii::GeometryInfo<dim>::unit_normal_vector[iface];
 
     std::array<dealii::Tensor<1,dim,std::vector<real>>,nstate> surf_num_flux_minus_surf_soln_int_dot_normal;
     std::array<dealii::Tensor<1,dim,std::vector<real>>,nstate> surf_num_flux_minus_surf_soln_ext_dot_normal;
@@ -1876,7 +1876,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_boundary_term_strong(
     // we exploit the fact that the unit reference normal has a value of 0 in all reference directions except
     // the outward reference normal dircetion.
     //const dealii::Tensor<1,dim,double> unit_ref_normal_int = dealii::GeometryInfo<dim>::unit_normal_vector[iface];
-    const dealii::Tensor<1,dim,double> unit_ref_normal_int =(cell->face_orientation(iface)) ?  dealii::GeometryInfo<dim>::unit_normal_vector[iface] : -dealii::GeometryInfo<dim>::unit_normal_vector[iface];
+    const dealii::Tensor<1,dim,double> unit_ref_normal_int =(cell->face_orientation(iface)) ?  dealii::GeometryInfo<dim>::unit_normal_vector[iface] : dealii::GeometryInfo<dim>::unit_normal_vector[iface];
 
     const int dim_not_zero = iface / 2;//reference direction of face integer division
 
@@ -2859,8 +2859,8 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_strong(
     // the outward reference normal dircetion.
    // const dealii::Tensor<1,dim,double> unit_ref_normal_int = dealii::GeometryInfo<dim>::unit_normal_vector[iface];
    // const dealii::Tensor<1,dim,double> unit_ref_normal_ext = dealii::GeometryInfo<dim>::unit_normal_vector[neighbor_iface];
-    const dealii::Tensor<1,dim,double> unit_ref_normal_int =(cell->face_orientation(iface))? dealii::GeometryInfo<dim>::unit_normal_vector[iface] : -dealii::GeometryInfo<dim>::unit_normal_vector[iface] ;
-    const dealii::Tensor<1,dim,double> unit_ref_normal_ext =(neighbor_cell->face_orientation(iface))? dealii::GeometryInfo<dim>::unit_normal_vector[neighbor_iface] : -dealii::GeometryInfo<dim>::unit_normal_vector[neighbor_iface] ;
+    const dealii::Tensor<1,dim,double> unit_ref_normal_int =(cell->face_orientation(iface))? dealii::GeometryInfo<dim>::unit_normal_vector[iface] : dealii::GeometryInfo<dim>::unit_normal_vector[iface] ;
+    const dealii::Tensor<1,dim,double> unit_ref_normal_ext =(neighbor_cell->face_orientation(iface))? dealii::GeometryInfo<dim>::unit_normal_vector[neighbor_iface] : dealii::GeometryInfo<dim>::unit_normal_vector[neighbor_iface] ;
     // Extract the reference direction that is outward facing on the facet.
     const int dim_not_zero_int = iface / 2;//reference direction of face integer division
     const int dim_not_zero_ext = neighbor_iface / 2;//reference direction of face integer division

@@ -69,7 +69,7 @@ std::shared_ptr<Triangulation> Airfoil2D<dim,nstate>::generate_grid() const
 #if PHILIP_DIM==2
     dealii::GridGenerator::Airfoil::AdditionalData airfoil_data;
     airfoil_data.airfoil_type = "NACA";
-    airfoil_data.naca_id      = "0012";
+    airfoil_data.naca_id      = "0018";
     airfoil_data.airfoil_length = airfoil_length;
     airfoil_data.height         = height;
     airfoil_data.length_b2      = length_b2;
@@ -162,8 +162,8 @@ void Airfoil2D<dim,nstate>::steady_state_postprocessing(std::shared_ptr<DGBase<d
         this->pcout << "Computation is done..." << std::endl;
 
         this->pcout << "Writting adjoint solutions..." << std::endl;
-        amiet_adjoint.output_results_vtk(666);
-        this->pcout << "Writting adjoint solutions is done..." << std::endl;
+       amiet_adjoint.output_results_vtk(666);
+       this->pcout << "Writting adjoint solutions is done..." << std::endl;
     }
 }
 

@@ -73,6 +73,7 @@ public:
     int n_rk_stages; ///< Number of stages for an RK method; assigned based on runge_kutta_method
     int rk_order; ///< Order of the RK method; assigned based on runge_kutta_method
     int num_delta;
+    bool is_3Sstarplus;
 
     /// Flag to signal that automatic differentiation (AD) matrix dRdW must be allocated
     bool allocate_matrix_dRdW;

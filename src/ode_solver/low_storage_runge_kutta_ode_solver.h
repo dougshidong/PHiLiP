@@ -50,15 +50,19 @@ protected:
     /// Storage for the derivative at each Runge-Kutta stage
     std::vector<dealii::LinearAlgebra::distributed::Vector<double>> rk_stage;
 
-/*
-    std::vector<dealii::LinearAlgebra::distributed::Vector<double>> storage_register_2;
-    std::vector<dealii::LinearAlgebra::distributed::Vector<double>> storage_register_1;
-    std::vector<dealii::LinearAlgebra::distributed::Vector<double>> storage_register_3;
-    std::vector<dealii::LinearAlgebra::distributed::Vector<double>> storage_register_4;
-    std::vector<dealii::LinearAlgebra::distributed::Vector<double>> rhs;
-*/ 
+
+    dealii::LinearAlgebra::distributed::Vector<double> storage_register_2;
+    dealii::LinearAlgebra::distributed::Vector<double> storage_register_1;
+    dealii::LinearAlgebra::distributed::Vector<double> storage_register_3;
+    dealii::LinearAlgebra::distributed::Vector<double> storage_register_4;
+    dealii::LinearAlgebra::distributed::Vector<double> rhs;
+
     /// Storage for the weighted/relative error estimate
     real w;
+
+    bool is_3Sstarplus;
+
+    double global_size;
 
     /// Storage for the error estimate at step n-1, n, and n+1
     double epsilon[3];

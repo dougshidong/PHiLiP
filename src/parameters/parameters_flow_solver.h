@@ -52,6 +52,7 @@ public:
     bool steady_state; ///<Flag for solving steady state solution
     bool steady_state_polynomial_ramping; ///< Flag for steady state polynomial ramping
 
+    bool error_adaptive_time_step;
     bool adaptive_time_step; ///< Flag for computing the time step on the fly
 
     /** Name of the output file for writing the sensitivity data;

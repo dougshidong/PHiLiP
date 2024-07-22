@@ -46,7 +46,8 @@ subsection flow_solver
   set final_time = 14
   set courant_friedrichs_lewy_number = 0.48
   set unsteady_data_table_filename = tgv_unsteady
-  set adaptive_time_step = true
+  set error_adaptive_time_step = true
+  set adaptive_time_step = false
   set end_exactly_at_final_time = false
   subsection grid
     set grid_left_bound = 0.0

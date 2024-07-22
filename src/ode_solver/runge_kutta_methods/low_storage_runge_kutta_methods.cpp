@@ -38,12 +38,14 @@ void RK4_3_5_3SStar<dim,real,MeshType> :: set_delta()
     
 }
 
+
 template <int dim, typename real, typename MeshType>
 void RK4_3_5_3SStar<dim,real,MeshType> :: set_b_hat()
 {
     const double b_hat[6] = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
     this->butcher_tableau_b_hat.fill(b_hat);
 }
+
 
 //##################################################################
 

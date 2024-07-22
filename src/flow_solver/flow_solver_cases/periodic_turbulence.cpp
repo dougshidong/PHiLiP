@@ -28,12 +28,12 @@ PeriodicTurbulence<dim, nstate>::PeriodicTurbulence(const PHiLiP::Parameters::Al
         , number_of_times_to_output_velocity_field(this->all_param.flow_solver_param.number_of_times_to_output_velocity_field)
         , output_velocity_field_at_fixed_times(this->all_param.flow_solver_param.output_velocity_field_at_fixed_times)
         , output_vorticity_magnitude_field_in_addition_to_velocity(this->all_param.flow_solver_param.output_vorticity_magnitude_field_in_addition_to_velocity)
+        , output_density_field_in_addition_to_velocity(this->all_param.flow_solver_param.output_density_field_in_addition_to_velocity)
+        , output_viscosity_field_in_addition_to_velocity(this->all_param.flow_solver_param.output_viscosity_field_in_addition_to_velocity)
         , output_flow_field_files_directory_name(this->all_param.flow_solver_param.output_flow_field_files_directory_name)
         , output_solution_at_exact_fixed_times(this->all_param.ode_solver_param.output_solution_at_exact_fixed_times)
         , output_velocity_number_of_subvisions(this->all_param.flow_solver_param.output_velocity_number_of_subvisions)
         , do_compute_angular_momentum(this->all_param.flow_solver_param.do_compute_angular_momentum)
-        , output_density_field_in_addition_to_velocity(this->all_param.flow_solver_param.output_density_field_in_addition_to_velocity)
-        , output_viscosity_field_in_addition_to_velocity(this->all_param.flow_solver_param.output_viscosity_field_in_addition_to_velocity)
 {
     // Get the flow case type
     using FlowCaseEnum = Parameters::FlowSolverParam::FlowCaseType;

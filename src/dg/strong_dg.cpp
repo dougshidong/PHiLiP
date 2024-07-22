@@ -675,6 +675,9 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_boundary_term_auxiliary_equati
    // const dealii::Tensor<1,dim,double> unit_ref_normal_int = dealii::GeometryInfo<dim>::unit_normal_vector[iface];
     const dealii::Tensor<1,dim,double> unit_ref_normal_int = (cell->face_orientation(iface)) ? dealii::GeometryInfo<dim>::unit_normal_vector[iface] :  dealii::GeometryInfo<dim>::unit_normal_vector[iface];
 
+    //pcout<<"BOUNDARY TERM AUXILLIARY unit_ref_normal_int. current_cell_index: " << current_cell_index <<" iface: "<<iface<<std::endl;
+    //pcout<<"unit_ref_normal_int direction : " << unit_ref_normal_int<<std::endl;
+
     std::array<dealii::Tensor<1,dim,std::vector<real>>,nstate> surf_num_flux_minus_surf_soln_dot_normal;
     for(unsigned int iquad=0; iquad<n_face_quad_pts; iquad++){
         //Copy Metric Cofactor on the facet in a way can use for transforming Tensor Blocks to reference space
@@ -704,6 +707,10 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_boundary_term_auxiliary_equati
         const double face_Jac_norm_scaled = unit_phys_normal_int.norm();
         unit_phys_normal_int /= face_Jac_norm_scaled;//normalize it. 
 
+        
+        //pcout<<"FACE TERM AUXILLIARY unit_phys_normal_int. current_cell_index: " << current_cell_index <<" iface: "<<iface<<std::endl;
+        //pcout<<"unit_phys_normal_int direction : " << unit_phys_normal_int<<std::endl;
+
         std::array<real,nstate> soln_boundary;
         std::array<dealii::Tensor<1,dim,real>,nstate> grad_soln_boundary;
         dealii::Point<dim,real> surf_flux_node;
@@ -728,6 +735,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_boundary_term_auxiliary_equati
             }
         }
     }
+    //pcout<<"\n"<<std::endl;
     //solve residual and set
     const std::vector<double> &surf_quad_weights = this->face_quadrature_collection[poly_degree].get_weights();
     for(int istate=0; istate<nstate; istate++){
@@ -824,6 +832,9 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_auxiliary_equation(
    // const dealii::Tensor<1,dim,double> unit_ref_normal_int = dealii::GeometryInfo<dim>::unit_normal_vector[iface];
     const dealii::Tensor<1,dim,double> unit_ref_normal_int = (cell->face_orientation(iface)) ? dealii::GeometryInfo<dim>::unit_normal_vector[iface] : dealii::GeometryInfo<dim>::unit_normal_vector[iface];
 
+    //pcout<<"FACE TERM AUXILLIARY unit_ref_normal_int. current_cell_index: " << current_cell_index <<" iface: "<<iface<<std::endl;
+    //pcout<<"unit_ref_normal_int direction : " << unit_ref_normal_int<<std::endl;
+
     std::array<dealii::Tensor<1,dim,std::vector<real>>,nstate> surf_num_flux_minus_surf_soln_int_dot_normal;
     std::array<dealii::Tensor<1,dim,std::vector<real>>,nstate> surf_num_flux_minus_surf_soln_ext_dot_normal;
     for (unsigned int iquad=0; iquad<n_face_quad_pts; ++iquad) {
@@ -845,6 +856,9 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_auxiliary_equation(
                                                         unit_phys_normal_int);
         const double face_Jac_norm_scaled = unit_phys_normal_int.norm();
         unit_phys_normal_int /= face_Jac_norm_scaled;//normalize it. 
+
+        //pcout<<"FACE TERM AUXILLIARY unit_phys_normal_int. current_cell_index: " << current_cell_index <<" iface: "<<iface<<std::endl;
+        //pcout<<"unit_phys_normal_int direction : " << unit_phys_normal_int<<std::endl;
 
         std::array<real,nstate> diss_soln_num_flux;
         std::array<real,nstate> soln_state_int;
@@ -871,6 +885,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_auxiliary_equation(
             }
         }
     }
+    //pcout<<"\n"<<std::endl;
     //solve residual and set
     const std::vector<double> &surf_quad_weights = this->face_quadrature_collection[poly_degree_int].get_weights();
     for(int istate=0; istate<nstate; istate++){
@@ -1878,6 +1893,24 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_boundary_term_strong(
     //const dealii::Tensor<1,dim,double> unit_ref_normal_int = dealii::GeometryInfo<dim>::unit_normal_vector[iface];
     const dealii::Tensor<1,dim,double> unit_ref_normal_int =(cell->face_orientation(iface)) ?  dealii::GeometryInfo<dim>::unit_normal_vector[iface] : dealii::GeometryInfo<dim>::unit_normal_vector[iface];
 
+    if(!cell->face_orientation(iface) /*&& (iface == 2 || iface == 3)*/){
+        //const dealii::Tensor<1,dim,double> unit_ref_normal_int = -dealii::GeometryInfo<dim>::unit_normal_vector[iface];
+        //const dealii::Tensor<1,dim,double> unit_ref_normal_ext = -dealii::GeometryInfo<dim>::unit_normal_vector[neighbor_iface];
+        pcout<<"BOUNDARY TERM unit_ref_normal_int does not have standard orientation! current_cell_index: " << current_cell_index <<" iface: "<<iface<<std::endl;
+        pcout<<"unit_ref_normal_int direction : " << unit_ref_normal_int<<std::endl;
+        pcout<<"boundary id : " <<boundary_id <<std::endl;
+        //pcout<<"neighbor_cell_index: " << neighbor_cell_index <<" neighbor_iface: "<<neighbor_iface<<std::endl;
+        //pcout<<"unit_ref_normal_ext direction : " << unit_ref_normal_ext <<"\n"<<std::endl;
+    } else /*(cell->face_orientation(iface) && neighbor_cell->face_orientation(iface))*/{
+        //const dealii::Tensor<1,dim,double> unit_ref_normal_int = dealii::GeometryInfo<dim>::unit_normal_vector[iface];
+        //const dealii::Tensor<1,dim,double> unit_ref_normal_ext = dealii::GeometryInfo<dim>::unit_normal_vector[neighbor_iface];
+        pcout<<"BOUNDARY TERM unit_ref_normal_int has standard orientation! current_cell_index: " << current_cell_index <<" iface: "<<iface<<std::endl;
+        pcout<<"unit_ref_normal_int direction : " << unit_ref_normal_int<<std::endl;
+        pcout<<"boundary id : " <<boundary_id <<std::endl;
+        //pcout<<"neighbor_cell_index: " << neighbor_cell_index <<" neighbor_iface: "<<neighbor_iface<<std::endl;
+        //pcout<<"unit_ref_normal_ext direction : " << unit_ref_normal_ext <<"\n"<<std::endl;
+    }
+
     const int dim_not_zero = iface / 2;//reference direction of face integer division
 
     std::array<std::vector<real>,nstate> conv_int_vol_ref_flux_interp_to_face_dot_ref_normal;
@@ -2098,6 +2131,9 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_boundary_term_strong(
                                                     unit_phys_normal_int);
         const double face_Jac_norm_scaled = unit_phys_normal_int.norm();
         unit_phys_normal_int /= face_Jac_norm_scaled;//normalize it. 
+        
+        pcout<<"BOUNDARY TERM unit_phys_normal_int. current_cell_index: " << current_cell_index <<" iface: "<<iface<<std::endl;
+        pcout<<"unit_ref_normal_int direction : " << unit_phys_normal_int<<std::endl;
 
         std::array<real,nstate> soln_state;
         std::array<dealii::Tensor<1,dim,real>,nstate> aux_soln_state;
@@ -2148,7 +2184,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_boundary_term_strong(
                                                      - diffusive_int_vol_ref_flux_interp_to_face_dot_ref_normal[istate][iquad];
         }
     }
-
+    pcout<<"\n"<<std::endl;
     //solve rhs
     for(int istate=0; istate<nstate; istate++){
         std::vector<real> rhs(n_shape_fns);
@@ -2859,8 +2895,31 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_strong(
     // the outward reference normal dircetion.
    // const dealii::Tensor<1,dim,double> unit_ref_normal_int = dealii::GeometryInfo<dim>::unit_normal_vector[iface];
    // const dealii::Tensor<1,dim,double> unit_ref_normal_ext = dealii::GeometryInfo<dim>::unit_normal_vector[neighbor_iface];
-    const dealii::Tensor<1,dim,double> unit_ref_normal_int =(cell->face_orientation(iface))? dealii::GeometryInfo<dim>::unit_normal_vector[iface] : dealii::GeometryInfo<dim>::unit_normal_vector[iface] ;
-    const dealii::Tensor<1,dim,double> unit_ref_normal_ext =(neighbor_cell->face_orientation(iface))? dealii::GeometryInfo<dim>::unit_normal_vector[neighbor_iface] : dealii::GeometryInfo<dim>::unit_normal_vector[neighbor_iface] ;
+    const dealii::Tensor<1,dim,double> unit_ref_normal_int =(cell->face_orientation(iface) || neighbor_cell->face_orientation(neighbor_iface))? dealii::GeometryInfo<dim>::unit_normal_vector[iface] : -dealii::GeometryInfo<dim>::unit_normal_vector[iface] ;
+    const dealii::Tensor<1,dim,double> unit_ref_normal_ext =(cell->face_orientation(iface) || neighbor_cell->face_orientation(neighbor_iface))? dealii::GeometryInfo<dim>::unit_normal_vector[neighbor_iface] : -dealii::GeometryInfo<dim>::unit_normal_vector[neighbor_iface] ;
+    if(!cell->face_orientation(iface) /*&& (iface == 2 || iface == 3)*/){
+        //const dealii::Tensor<1,dim,double> unit_ref_normal_int = -dealii::GeometryInfo<dim>::unit_normal_vector[iface];
+        //const dealii::Tensor<1,dim,double> unit_ref_normal_ext = -dealii::GeometryInfo<dim>::unit_normal_vector[neighbor_iface];
+        pcout<<"unit_ref_normal_int does not have standard orientation! current_cell_index: " << current_cell_index <<" iface: "<<iface<<std::endl;
+        pcout<<"unit_ref_normal_int direction : " << unit_ref_normal_int<<std::endl;
+        pcout<<"neighbor_cell_index: " << neighbor_cell_index <<" neighbor_iface: "<<neighbor_iface<<std::endl;
+        pcout<<"unit_ref_normal_ext direction : " << unit_ref_normal_ext <<std::endl;
+    } else if(!neighbor_cell->face_orientation(neighbor_iface) /*&& (neighbor_iface == 2 || neighbor_iface == 3)*/){
+        //const dealii::Tensor<1,dim,double> unit_ref_normal_int = -dealii::GeometryInfo<dim>::unit_normal_vector[iface];
+        //const dealii::Tensor<1,dim,double> unit_ref_normal_ext = -dealii::GeometryInfo<dim>::unit_normal_vector[neighbor_iface];
+        pcout<<"unit_ref_normal_ext does not have standard orientation! current_cell_index: " << current_cell_index <<" iface: "<<iface<<std::endl;
+        pcout<<"unit_ref_normal_int direction : " << unit_ref_normal_int<<std::endl;
+        pcout<<"neighbor_cell_index: " << neighbor_cell_index <<" neighbor_iface: "<<neighbor_iface<<std::endl;
+        pcout<<"unit_ref_normal_ext direction : " << unit_ref_normal_ext <<std::endl;
+    } else /*(cell->face_orientation(iface) && neighbor_cell->face_orientation(iface))*/{
+        //const dealii::Tensor<1,dim,double> unit_ref_normal_int = dealii::GeometryInfo<dim>::unit_normal_vector[iface];
+        //const dealii::Tensor<1,dim,double> unit_ref_normal_ext = dealii::GeometryInfo<dim>::unit_normal_vector[neighbor_iface];
+        pcout<<"BOTH unit_ref_normals have standard orientation! current_cell_index: " << current_cell_index <<" iface: "<<iface<<std::endl;
+        pcout<<"unit_ref_normal_int direction : " << unit_ref_normal_int<<std::endl;
+        pcout<<"neighbor_cell_index: " << neighbor_cell_index <<" neighbor_iface: "<<neighbor_iface<<std::endl;
+        pcout<<"unit_ref_normal_ext direction : " << unit_ref_normal_ext <<std::endl;
+    }
+    
     // Extract the reference direction that is outward facing on the facet.
     const int dim_not_zero_int = iface / 2;//reference direction of face integer division
     const int dim_not_zero_ext = neighbor_iface / 2;//reference direction of face integer division
@@ -3253,6 +3312,9 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_strong(
         // Note that the facet determinant of metric jacobian is the above norm multiplied by the determinant of the metric Jacobian evaluated on the facet.
         // Since the determinant of the metric Jacobian evaluated on the face cancels off, we can just scale the numerical flux by the norm.
 
+        pcout<<"FACE TERM unit_phys_normal_int! current_cell_index: " << current_cell_index <<" iface: "<<iface<<std::endl;
+        pcout<<"unit_phys_normal_int direction : " << unit_phys_normal_int<<std::endl;
+
         std::array<real,nstate> conv_num_flux_dot_n_at_q;
         std::array<real,nstate> diss_auxi_num_flux_dot_n_at_q;
         // Convective numerical flux. 
@@ -3284,7 +3346,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_strong(
             diss_auxi_num_flux_dot_n[istate][iquad] = face_Jac_norm_scaled * diss_auxi_num_flux_dot_n_at_q[istate];
         }
     }
-
+    pcout<<"\n"<<std::endl;
     // Compute RHS
     const std::vector<double> &surf_quad_weights = this->face_quadrature_collection[poly_degree_int].get_weights();
     for(int istate=0; istate<nstate; istate++){

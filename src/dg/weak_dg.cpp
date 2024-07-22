@@ -957,11 +957,16 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_face_term_explicit(
     //        }
     //    }
     //}
+    //pcout<<"FACE TERM AUXILLIARY unit_ref_normal_int. current_cell_index: " << current_cell_index <<" iface: "<<iface<<std::endl;
+    //pcout<<"unit_ref_normal_int direction : " <<dealii::GeometryInfo<dim>::unit_normal_vector[iface]<<std::endl;
 
     for (unsigned int iquad=0; iquad<n_face_quad_pts; ++iquad) {
 
         const dealii::Tensor<1,dim,real> normal_int = normals_int[iquad];
         const dealii::Tensor<1,dim,real> normal_ext = -normal_int;
+
+        //pcout<<"WEAK DG FACE TERM DERIVATIVE normal_int ! current_cell_index: " << current_cell_index <<" face_subface_int.first: "<<iface<<std::endl;
+        //pcout<<"normal_int direction: "<< normals_int[iquad] <<std::endl;
 
         // Interpolate solution to face
         for (unsigned int idof=0; idof<n_soln_dofs_int; ++idof) {
@@ -1009,6 +1014,7 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_face_term_explicit(
             soln_grad_int[iquad], soln_grad_ext[iquad],
             normal_int, penalty, false);
     }
+    pcout<<"\n"<<std::endl;
 
     // From test functions associated with interior cell point of view
     for (unsigned int itest_int=0; itest_int<n_soln_dofs_int; ++itest_int) {
@@ -1217,6 +1223,11 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_boundary_term(
     const dealii::Tensor<1,dim,real> unit_normal = dealii::GeometryInfo<dim>::unit_normal_vector[face_number];
     std::vector<dealii::Tensor<1,dim,real2>> phys_unit_normal(n_quad_pts);
 
+    pcout<<"WEAK DG BOUNDARY TERM normal_int ! current_cell_index: " << current_cell_index <<" face_subface_int.first: "<<face_number<<std::endl;
+    pcout<<"unit_normal_int direction : " << unit_normal << std::endl;
+    pcout<<"boundary id : " <<boundary_id <<std::endl;
+    //pcout<<"BOUNDARY TERM unit_phys_normal_int! current_cell_index: " << current_cell_index <<" iface: "<<face_number<<std::endl;
+    //pcout<<"unit_ref_normal_int direction : " <<std::endl;
     for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
         if (compute_metric_derivatives) {
             for (int d=0;d<dim;++d) { real_quad_pts[iquad][d] = 0;}
@@ -1252,8 +1263,11 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_boundary_term(
             surface_jac_det[iquad] = fe_values_boundary.JxW(iquad) / face_quadrature.weight(iquad);
             phys_unit_normal[iquad] = fe_values_boundary.normal_vector(iquad);
         }
-
+        //std::cout<<phys_unit_normal[iquad]<<std::endl;
+        pcout<<"WEAK DG BOUNDARY TERM normal_int ! current_cell_index: " << current_cell_index <<" face_subface_int.first: "<<face_number<<std::endl;
+        pcout<<"BOUNDARY TERM unit_phys_normal_int direction: "<< phys_unit_normal[iquad] <<std::endl;
     }
+    pcout<<"\n"<<std::endl;
 #ifdef KOPRIVA_METRICS_BOUNDARY
     auto old_jac_det = jac_det;
     auto old_jac_inv_tran = jac_inv_tran;
@@ -2133,6 +2147,12 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_face_term(
     const dealii::Tensor<1,dim,real> unit_normal_int = dealii::GeometryInfo<dim>::unit_normal_vector[face_subface_int.first];
     const dealii::Tensor<1,dim,real> unit_normal_ext = dealii::GeometryInfo<dim>::unit_normal_vector[face_subface_ext.first];
 
+    pcout<<"WEAK DG FACE TERM normal_int ! current_cell_index: " << current_cell_index <<" face_subface_int.first: "<<face_subface_int.first<<std::endl;
+    pcout<<"unit_normal_int direction : " << unit_normal_int<<std::endl;
+    pcout<<"neighbor_cell_index: " << neighbor_cell_index <<" face_subface_ext.first: "<<face_subface_ext.first<<std::endl;
+    pcout<<"unit_normal_ext direction : " << unit_normal_ext <<std::endl;
+
+
     // Use quadrature points of neighbor cell
     // Might want to use the maximum n_quad_pts1 and n_quad_pts2
     //const unsigned int n_face_quad_pts = fe_values_ext.n_quadrature_points;
@@ -2374,6 +2394,7 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_face_term(
 
             phys_unit_normal_int[iquad] = fe_values_int.normal_vector(iquad);
             phys_unit_normal_ext[iquad] = -phys_unit_normal_int[iquad]; // Must use opposite normal to be consistent with explicit
+
         }
         // When the cells do not have the same coarseness, their surface Jacobians will not be the same.
         // Therefore, we must use the Jacobians coming from the smaller face since it accurately represents
@@ -2394,8 +2415,12 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_face_term(
         }
 
         faceJxW[iquad] = surface_jac_det[iquad] * face_quadrature_int.weight(iquad);
+        pcout<<"WEAK DG FACE TERM normal_int ! current_cell_index: " << current_cell_index <<" face_subface_int.first: "<<face_subface_int.first<<std::endl;
+        pcout<<"FACE TERM unit_phys_normal_int direction: "<< phys_unit_normal_int[iquad] <<std::endl;
     }
-
+    pcout<<"\n"<<std::endl;
+    //pcout<<"FACE TERM unit_phys_normal_int! current_cell_index: " << current_cell_index <<" face_subface_int.first: "<<face_subface_int.first<<std::endl;
+    //pcout<<"unit_ref_normal_int direction : " << phys_unit_normal_int<<std::endl;
 
     // Interpolate solution
     std::vector<ADArray> soln_int(n_face_quad_pts), soln_ext(n_face_quad_pts);

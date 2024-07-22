@@ -1068,10 +1068,21 @@ unsigned int SumFactorizedOperators<dim,n_faces>::reference_face_number(
     const bool face_rotation)
 {
     unsigned int face_number = 100;
-    if(!face_flip && !face_rotation){
-        face_number = iface;
-    }
-    else if(!face_flip && face_rotation){//90 degree rotation
+    // if(!face_flip && !face_rotation /*&& !face_orientation*/){
+    //     if(iface==0){
+    //         face_number = 5;
+    //     }
+    //     else if(iface==1){
+    //         face_number = 4;
+    //     }
+    //     else if(iface==4){
+    //         face_number = 1;
+    //     }
+    //     else if(iface==5){
+    //         face_number = 0;
+    //     }
+    // }
+    if(!face_flip && face_rotation){//90 degree rotation
         //Not fully verified yet
         std::cout<<"Cannot handle reference cell face rotations!. Aborting..."<<std::endl;
         std::abort();
@@ -1083,13 +1094,16 @@ unsigned int SumFactorizedOperators<dim,n_faces>::reference_face_number(
             face_number = iface + 1;
         if(iface%2==1)
             face_number = iface - 1;
-       // std::cout<<"Cannot handle reference cell face rotations!. Aborting..."<<std::endl;
-       // std::abort();
+       std::cout<<"Cannot handle reference cell face rotations!. Aborting..."<<std::endl;
+       std::abort();
     }
     else if(face_flip && face_rotation){//270 degree rotation
         //Not fully verified yet
         std::cout<<"Cannot handle reference cell face rotations!. Aborting..."<<std::endl;
         std::abort();
+    }
+    else if(!face_flip && !face_rotation /*&& !face_orientation*/){//270 degree rotation
+        face_number = iface;
     }
     if(face_number == 100){
         std::cout<<"face rotated condition not yet considered."<<std::endl;

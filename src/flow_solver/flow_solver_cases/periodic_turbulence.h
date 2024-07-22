@@ -114,6 +114,12 @@ protected:
     /// Flag for outputting vorticity magnitude field in addition to velocity field at fixed times
     const bool output_vorticity_magnitude_field_in_addition_to_velocity;
 
+    /// Flag for outputting density field in addition to velocity field at fixed times
+    const bool output_density_field_in_addition_to_velocity;
+
+    /// Flag for outputting viscosity field in addition to velocity field at fixed times
+    const bool output_viscosity_field_in_addition_to_velocity;
+
     /// Directory for writting flow field files
     const std::string output_flow_field_files_directory_name;
 

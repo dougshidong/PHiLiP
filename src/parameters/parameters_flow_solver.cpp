@@ -310,6 +310,14 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
                               dealii::Patterns::Bool(),
                               "Output vorticity magnitude field in addition to velocity field. False by default.");
 
+            prm.declare_entry("output_density_field_in_addition_to_velocity", "false",
+                              dealii::Patterns::Bool(),
+                              "Output density field in addition to velocity field. False by default.");
+
+            prm.declare_entry("output_viscosity_field_in_addition_to_velocity", "false",
+                              dealii::Patterns::Bool(),
+                              "Output viscosity field in addition to velocity field. False by default.");
+
             prm.declare_entry("output_flow_field_files_directory_name", ".",
                               dealii::Patterns::FileName(dealii::Patterns::FileName::FileType::input),
                               "Name of directory for writing flow field files. Current directory by default.");
@@ -464,6 +472,8 @@ void FlowSolverParam::parse_parameters(dealii::ParameterHandler &prm)
           output_velocity_field_times_string = prm.get("output_velocity_field_times_string");
           number_of_times_to_output_velocity_field = get_number_of_values_in_string(output_velocity_field_times_string);
           output_vorticity_magnitude_field_in_addition_to_velocity = prm.get_bool("output_vorticity_magnitude_field_in_addition_to_velocity");
+          output_density_field_in_addition_to_velocity = prm.get_bool("output_density_field_in_addition_to_velocity");
+          output_viscosity_field_in_addition_to_velocity = prm.get_bool("output_viscosity_field_in_addition_to_velocity");
           output_flow_field_files_directory_name = prm.get("output_flow_field_files_directory_name");
           output_velocity_number_of_subvisions = prm.get_integer("output_velocity_number_of_subvisions");
         }

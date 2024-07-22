@@ -32,6 +32,8 @@ PeriodicTurbulence<dim, nstate>::PeriodicTurbulence(const PHiLiP::Parameters::Al
         , output_solution_at_exact_fixed_times(this->all_param.ode_solver_param.output_solution_at_exact_fixed_times)
         , output_velocity_number_of_subvisions(this->all_param.flow_solver_param.output_velocity_number_of_subvisions)
         , do_compute_angular_momentum(this->all_param.flow_solver_param.do_compute_angular_momentum)
+        , output_density_field_in_addition_to_velocity(this->all_param.flow_solver_param.output_density_field_in_addition_to_velocity)
+        , output_viscosity_field_in_addition_to_velocity(this->all_param.flow_solver_param.output_viscosity_field_in_addition_to_velocity)
 {
     // Get the flow case type
     using FlowCaseEnum = Parameters::FlowSolverParam::FlowCaseType;
@@ -313,6 +315,8 @@ void PeriodicTurbulence<dim, nstate>::output_velocity_field(
         // compute quantities at quad nodes (equisdistant)
         dealii::Tensor<1,dim,std::vector<double>> velocity_at_q;
         std::vector<double> vorticity_magnitude_at_q(n_quad_pts);
+        std::vector<double> density_at_q(n_quad_pts);
+        std::vector<double> viscosity_at_q(n_quad_pts);
         for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
             std::array<double,nstate> soln_state;
             std::array<dealii::Tensor<1,dim,double>,nstate> soln_grad_state;
@@ -333,6 +337,15 @@ void PeriodicTurbulence<dim, nstate>::output_velocity_field(
             if(output_vorticity_magnitude_field_in_addition_to_velocity) {
                 vorticity_magnitude_at_q[iquad] = this->navier_stokes_physics->compute_vorticity_magnitude(soln_state, soln_grad_state);
             }
+            // write density field if desired
+            if(output_density_field_in_addition_to_velocity) {
+                density_at_q[iquad] = soln_state[0];
+            }
+            // write viscosity field if desired
+            if(output_viscosity_field_in_addition_to_velocity) {
+                const std::array<double,nstate> primitive_soln = this->navier_stokes_physics->convert_conservative_to_primitive(soln_state);
+                viscosity_at_q[iquad] = this->navier_stokes_physics->compute_viscosity_coefficient(primitive_soln);
+            }
         }
         // write out all values at equidistant nodes
         for(unsigned int ishape=0; ishape<n_quad_pts; ishape++){
@@ -349,6 +362,14 @@ void PeriodicTurbulence<dim, nstate>::output_velocity_field(
             // write vorticity magnitude field if desired
             if(output_vorticity_magnitude_field_in_addition_to_velocity) {
                 FILE << std::setprecision(17) << vorticity_magnitude_at_q[ishape] << std::string(" ");
+            }
+            // write density field if desired
+            if(output_density_field_in_addition_to_velocity) {
+                FILE << std::setprecision(17) << density_at_q[ishape] << std::string(" ");
+            }
+            // write viscosity field if desired
+            if(output_viscosity_field_in_addition_to_velocity) {
+                FILE << std::setprecision(17) << viscosity_at_q[ishape] << std::string(" ");
             }
             FILE << std::string("\n"); // next line
         }

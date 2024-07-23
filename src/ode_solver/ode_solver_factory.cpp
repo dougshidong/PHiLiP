@@ -128,7 +128,6 @@ std::shared_ptr<ODESolverBase<dim,real,MeshType>> ODESolverFactory<dim,real,Mesh
 
 
     const int n_rk_stages = dg_input->all_parameters->ode_solver_param.n_rk_stages;
-    //const int num_delta = dg_input->all_parameters->ode_solver_param.num_delta;
     using ODEEnum = Parameters::ODESolverParam::ODESolverEnum;
     const ODEEnum ode_solver_type = dg_input->all_parameters->ode_solver_param.ode_solver_type;
     if (ode_solver_type == ODEEnum::runge_kutta_solver || ode_solver_type == ODEEnum::rrk_explicit_solver) {
@@ -195,6 +194,7 @@ std::shared_ptr<LowStorageRKTableauBase<dim,real,MeshType>> ODESolverFactory<dim
 
     const int n_rk_stages = dg_input->all_parameters->ode_solver_param.n_rk_stages;
     const int num_delta = dg_input->all_parameters->ode_solver_param.num_delta;
+    
     if (rk_method == RKMethodEnum::RK3_2_5F_3SStarPlus)   return std::make_shared<RK3_2_5F_3SStarPlus<dim, real, MeshType>> (n_rk_stages, num_delta, "RK3_2_5F_3SStarPlus");
     if (rk_method == RKMethodEnum::RK4_3_5_3SStar)      return std::make_shared<RK4_3_5_3SStar<dim, real, MeshType>>    (n_rk_stages, num_delta, "RK4_3_5_3SStar");
     //return std::make_shared<LowStorageRKTableauBase<dim, real, MeshType>> ("LSRK");

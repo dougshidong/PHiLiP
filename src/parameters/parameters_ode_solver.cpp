@@ -15,6 +15,18 @@ void ODESolverParam::declare_parameters (dealii::ParameterHandler &prm)
                           dealii::Patterns::Double(),
                           "Relative Tolerance");
 
+        prm.declare_entry("beta1", "0.70",
+                          dealii::Patterns::Double(),
+                          "Beta Controller 1");
+
+        prm.declare_entry("beta2", "-0.23",
+                          dealii::Patterns::Double(),
+                          "Beta controller 2");
+        
+        prm.declare_entry("beta3", "0.0",
+                          dealii::Patterns::Double(),
+                          "Beta controller 3");
+
         prm.declare_entry("ode_output", "verbose",
                           dealii::Patterns::Selection("quiet|verbose"),
                           "State whether output from ODE solver should be printed. "
@@ -176,6 +188,9 @@ void ODESolverParam::parse_parameters (dealii::ParameterHandler &prm)
 
         atol = prm.get_double("atol");
         rtol = prm.get_double("rtol");
+        beta1 = prm.get_double("beta1");
+        beta2 = prm.get_double("beta2");
+        beta3 = prm.get_double("beta3");
         nonlinear_steady_residual_tolerance  = prm.get_double("nonlinear_steady_residual_tolerance");
         nonlinear_max_iterations = prm.get_integer("nonlinear_max_iterations");
         initial_time_step  = prm.get_double("initial_time_step");

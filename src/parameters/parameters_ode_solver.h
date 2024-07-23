@@ -26,6 +26,9 @@ public:
 
     double atol; //Absolute tolerance
     double rtol; //Relative tolerance
+    double beta1; //First value for beta controller;
+    double beta2; //Second value for beta controller;
+    double beta3; //Third value for beta controller;
     int output_solution_every_x_steps; ///< Outputs the solution every x steps to .vtk file
     double output_solution_every_dt_time_intervals; ///< Outputs the solution every dt time intervals to .vtk file
     bool output_solution_at_fixed_times; ///< Flag for outputting solution at fixed times
@@ -72,8 +75,8 @@ public:
     RKMethodEnum runge_kutta_method; ///< Runge-kutta method.
     int n_rk_stages; ///< Number of stages for an RK method; assigned based on runge_kutta_method
     int rk_order; ///< Order of the RK method; assigned based on runge_kutta_method
-    int num_delta;
-    bool is_3Sstarplus;
+    int num_delta; ///< Number of delta values in low-storage RK methods
+    bool is_3Sstarplus; ///< True or false depending on what low-storage RK method is used
 
     /// Flag to signal that automatic differentiation (AD) matrix dRdW must be allocated
     bool allocate_matrix_dRdW;

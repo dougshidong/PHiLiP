@@ -60,8 +60,10 @@ protected:
     /// Storage for the weighted/relative error estimate
     real w;
 
+    /// Storage for the algorithm to use
     bool is_3Sstarplus;
 
+    /// Size of all elements
     double global_size;
 
     /// Storage for the error estimate at step n-1, n, and n+1
@@ -79,7 +81,14 @@ protected:
     /// Storage for the relative tolerance
     double rtol;
 
-    //double beta_controller[3];
+    /// Storage for the first beta controller value
+    double beta1;
+
+    /// Storage for the second beta controller value
+    double beta2;
+
+    /// Storage for the third beta controller value
+    double beta3;
 };
 
 } // ODE namespace

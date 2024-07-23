@@ -7,19 +7,6 @@ void LinearSolverParam::declare_parameters (dealii::ParameterHandler &prm)
 {
     prm.enter_subsection("linear solver");
     {
-        /*
-        prm.declare_entry("atol", "0.001",
-                          dealii::Patterns::Double(),
-                          "Absolute Tolerance");
-
-        prm.declare_entry("rtol", "0.001",
-                          dealii::Patterns::Double(),
-                          "Relative Tolerance");
-
-        prm.declare_entry("beta_controller", "{0.70, -0.23, 0}",
-                          dealii::Patterns::Double(),
-                          "Beta controller");
-        */
         prm.declare_entry("linear_solver_output", "quiet",
                           dealii::Patterns::Selection("quiet|verbose"),
                           "State whether output from linear solver should be printed. "
@@ -95,11 +82,6 @@ void LinearSolverParam ::parse_parameters (dealii::ParameterHandler &prm)
 {
     prm.enter_subsection("linear solver");
     {
-        //atol = prm.get_double("atol"); delete
-        //rtol = prm.get_double("rtol"); delete
-
-        //beta_controller = prm.get_double("beta_controller");
-
         const std::string output_string = prm.get("linear_solver_output");
         if (output_string == "verbose") linear_solver_output = verbose;
         if (output_string == "quiet") linear_solver_output = quiet;

@@ -49,8 +49,6 @@ public:
     
 protected:
 
-    
-
     /// Butcher tableau "a"
     dealii::Table<2,double> butcher_tableau_gamma;
 
@@ -63,20 +61,17 @@ protected:
     /// Butcher tableau "c"
     dealii::Table<1,double> butcher_tableau_b_hat;
     
-    /// Setter for butcher_tableau_a
-    // virtual void set_a() = 0;
+    /// Setter for gamma
     virtual void set_gamma() = 0;
 
-    /// Setter for butcher_tableau_b
-    // virtual void set_b() = 0;
+    /// Setter for beta
     virtual void set_beta() = 0;
     
-    /// Setter for butcher_tableau_c
-    // virtual void set_c() = 0;
+    /// Setter for delta
     virtual void set_delta() = 0;
 
+    /// Setter for b hat
     virtual void set_b_hat() = 0;
-
 
 };
 

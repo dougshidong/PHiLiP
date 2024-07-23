@@ -67,15 +67,6 @@ void RK3_2_5F_3SStarPlus<dim,real,MeshType> :: set_gamma()
     }
 }
 
-/*
-template <int dim, typename real, typename MeshType>
-void RK3_2_5F_3SStarPlus<dim,real,MeshType> :: set_beta()
-{
-    const double beta[6] = {0.0, 0.11479359710235412, 0.089334428531133159, 0.43558710250086169, 0.24735761882014512, 0.11292725304550591};
-    this->butcher_tableau_beta.fill(beta);
-}
-*/
-
 template <int dim, typename real, typename MeshType>
 void RK3_2_5F_3SStarPlus<dim,real,MeshType> :: set_beta()
 {
@@ -110,38 +101,6 @@ template class RK3_2_5F_3SStarPlus<PHILIP_DIM, double, dealii::parallel::shared:
 #if PHILIP_DIM != 1
     template class RK3_2_5F_3SStarPlus<PHILIP_DIM, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM> >;
 #endif
-
-/*
-template class EulerExplicit<PHILIP_DIM, double, dealii::Triangulation<PHILIP_DIM> >;
-template class EulerExplicit<PHILIP_DIM, double, dealii::parallel::shared::Triangulation<PHILIP_DIM> >;
-#if PHILIP_DIM != 1
-    template class EulerExplicit<PHILIP_DIM, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM> >;
-#endif
-
-template class HeunExplicit<PHILIP_DIM, double, dealii::Triangulation<PHILIP_DIM> >;
-template class HeunExplicit<PHILIP_DIM, double, dealii::parallel::shared::Triangulation<PHILIP_DIM> >;
-#if PHILIP_DIM != 1
-    template class HeunExplicit<PHILIP_DIM, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM> >;
-#endif
-
-template class EulerImplicit<PHILIP_DIM, double, dealii::Triangulation<PHILIP_DIM> >;
-template class EulerImplicit<PHILIP_DIM, double, dealii::parallel::shared::Triangulation<PHILIP_DIM> >;
-#if PHILIP_DIM != 1
-    template class EulerImplicit<PHILIP_DIM, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM> >;
-#endif
-
-template class DIRK2Implicit<PHILIP_DIM, double, dealii::Triangulation<PHILIP_DIM> >;
-template class DIRK2Implicit<PHILIP_DIM, double, dealii::parallel::shared::Triangulation<PHILIP_DIM> >;
-#if PHILIP_DIM != 1
-    template class DIRK2Implicit<PHILIP_DIM, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM> >;
-#endif
-
-template class DIRK3Implicit<PHILIP_DIM, double, dealii::Triangulation<PHILIP_DIM> >;
-template class DIRK3Implicit<PHILIP_DIM, double, dealii::parallel::shared::Triangulation<PHILIP_DIM> >;
-#if PHILIP_DIM != 1
-    template class DIRK3Implicit<PHILIP_DIM, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM> >;
-#endif
-*/
 
 } // ODESolver namespace
 } // PHiLiP namespace

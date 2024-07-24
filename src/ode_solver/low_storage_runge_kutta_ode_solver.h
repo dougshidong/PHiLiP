@@ -31,9 +31,13 @@ public:
             std::shared_ptr<LowStorageRKTableauBase<dim,real,MeshType>> rk_tableau_input,
             std::shared_ptr<EmptyRRKBase<dim,real,MeshType>> RRK_object_input); ///< Constructor.
 
-    /// Function to evaluate solution update
+    /// Function to evaluate automatic error adaptive time step
     double get_automatic_error_adaptive_step_size(real dt, const bool pseudotime);
 
+    /// Function to evaluate automatic initial adaptive time step
+    double get_automatic_initial_step_size(real dt, const bool pseudotime);
+
+    /// Function to advance time step
     void step_in_time(real dt, const bool pseudotime);
 
     /// Function to allocate the ODE system
@@ -59,6 +63,9 @@ protected:
 
     /// Storage for the weighted/relative error estimate
     real w;
+
+    real sum_d0;
+    real sum_d1;
 
     /// Storage for the algorithm to use
     bool is_3Sstarplus;

@@ -443,6 +443,9 @@ int FlowSolver<dim,nstate>::run() const
         if(flow_solver_param.adaptive_time_step == true) {
             pcout << "Setting initial adaptive time step... " << std::flush;
             time_step = flow_solver_case->get_adaptive_time_step_initial(dg);
+        } else if(flow_solver_param.error_adaptive_time_step == true) {
+            pcout << "Setting initial error adaptive time step... " << std::flush;
+            time_step = ode_solver->get_automatic_initial_step_size(time_step,false);
         } else {
             pcout << "Setting constant time step... " << std::flush;
             time_step = flow_solver_case->get_constant_time_step(dg);

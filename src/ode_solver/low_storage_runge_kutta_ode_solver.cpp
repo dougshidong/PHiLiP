@@ -102,7 +102,6 @@ void LowStorageRungeKuttaODESolver<dim,real,n_rk_stages, MeshType>::step_in_time
         }
  
     this->pcout << std::endl;
-
     ++(this->current_iteration);
     this->current_time += dt;
     this->pcout << " Time is: " << this->current_time <<std::endl;
@@ -139,7 +138,66 @@ double LowStorageRungeKuttaODESolver<dim,real,n_rk_stages, MeshType>::get_automa
     epsilon[1] = epsilon[0];
     epsilon[0] = 1.0 / w;
     dt = pow(epsilon[0], 1.0 * beta1/rk_order) * pow(epsilon[1], 1.0 * beta2/rk_order) * pow(epsilon[2], 1.0 * beta3/rk_order) * dt;
+    this->pcout << " dt: " << dt;
+    return dt;
+}
 
+template <int dim, typename real, int n_rk_stages, typename MeshType> 
+double LowStorageRungeKuttaODESolver<dim,real,n_rk_stages, MeshType>::get_automatic_initial_step_size (real dt, const bool /*pseudotime*/)
+{
+    double h0 = 0.0;
+    double h1 = 0.0;
+
+    double d0 = 0.0;
+    double d1 = 0.0;
+    double d2 = 0.0;
+
+    dealii::LinearAlgebra::distributed::Vector<double> u_n;
+    dealii::LinearAlgebra::distributed::Vector<double> rhs_initial;
+
+    this->solution_update = this->dg->solution;
+    u_n.reinit(this->solution_update);
+    rhs_initial.reinit(this->solution_update);
+    storage_register_1.reinit(this->solution_update);
+    storage_register_1 = this->dg->solution;
+    u_n = storage_register_1;
+    rhs = storage_register_1;
+
+    d0 = u_n.linfty_norm();
+    
+    this->dg->solution = rhs_initial;
+    this->dg->assemble_residual();
+    this->dg->apply_inverse_global_mass_matrix(this->dg->right_hand_side, rhs_initial);
+
+    d1 = rhs_initial.linfty_norm();
+
+    if (d0 < pow(10, -5) || d1 < pow(10, -5)){
+        h0 = pow(10, -6);
+    }else{
+        h0 = 0.01 * d0 / d1;
+    }
+
+    u_n.add(h0, rhs_initial);
+    this->dg->solution = u_n;
+    this->dg->assemble_residual();
+    this->dg->apply_inverse_global_mass_matrix(this->dg->right_hand_side, u_n);
+    
+    // Calculate d2
+    u_n.add(-1, rhs_initial);
+    d2 = u_n.linfty_norm();
+    d2 /= h0;
+
+    if (std::max(d1, d2) <= pow(10, -15))
+    {
+        h1 = std::max(pow(10, -6), pow(10, -3));
+    }
+    else
+    {
+        h1 = 0.01 / std::max(d1, d2);
+    }
+
+    dt = std::min(100 * h0, h1);
+    this->dg->solution = storage_register_1;
     return dt;
 }
 
@@ -160,7 +218,6 @@ void LowStorageRungeKuttaODESolver<dim,real,n_rk_stages, MeshType>::allocate_ode
     beta3 = this->ode_param.beta3;
 
     global_size = dealii::Utilities::MPI::sum(storage_register_1.local_size(), this->mpi_communicator);
-    this->pcout << "global size" << global_size;
     this->pcout << "Allocating ODE system..." << std::flush;
     this->solution_update.reinit(this->dg->right_hand_side);
     if(this->all_parameters->use_inverse_mass_on_the_fly == false) {

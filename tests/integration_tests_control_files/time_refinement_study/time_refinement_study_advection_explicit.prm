@@ -32,8 +32,8 @@ end
 
 
 subsection time_refinement_study
-  #set number_of_times_to_solve = 4
-  set number_of_times_to_solve = 1
+  set number_of_times_to_solve = 4
+  #set number_of_times_to_solve = 1
   set refinement_ratio = 0.8
 end
 

@@ -67,6 +67,9 @@ public:
     /// Virtual function to evaluate automatic error adaptive time step
     virtual double get_automatic_error_adaptive_step_size (real dt, const bool pseudotime);
 
+    /// Virtual function to evaluate initial automatic error adaptive time step
+    virtual double get_automatic_initial_step_size (real dt, const bool pseudotime);
+
     /// Virtual function to allocate the ODE system
     virtual void allocate_ode_system () = 0;
 

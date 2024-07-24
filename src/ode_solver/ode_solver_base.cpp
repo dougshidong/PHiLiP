@@ -28,6 +28,12 @@ double ODESolverBase<dim,real,MeshType>::get_automatic_error_adaptive_step_size 
     return dt;
 }
 
+template <int dim, typename real, typename MeshType> 
+double ODESolverBase<dim,real,MeshType>::get_automatic_initial_step_size (real dt, const bool pseudotime)
+{
+    (void) pseudotime;
+    return dt;
+}
 
 template <int dim, typename real, typename MeshType>
 double ODESolverBase<dim,real,MeshType>::get_original_time_step() const

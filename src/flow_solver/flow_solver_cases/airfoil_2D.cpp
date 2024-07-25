@@ -69,7 +69,7 @@ std::shared_ptr<Triangulation> Airfoil2D<dim,nstate>::generate_grid() const
 #if PHILIP_DIM==2
     dealii::GridGenerator::Airfoil::AdditionalData airfoil_data;
     airfoil_data.airfoil_type = "NACA";
-    airfoil_data.naca_id      = "0015";
+    airfoil_data.naca_id      = "0012";
     airfoil_data.airfoil_length = airfoil_length;
     airfoil_data.height         = height;
     airfoil_data.length_b2      = length_b2;

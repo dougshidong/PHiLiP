@@ -504,9 +504,7 @@ int FlowSolver<dim,nstate>::run() const
 
             // update time step in flow_solver_case
             ode_solver->step_in_time(time_step,false);
-            pcout << "time step " << time_step; 
-            this->pcout << std::endl;
-            pcout << "next time step " << next_time_step;
+            
             // advance solution
 
             // Compute the unsteady quantities, write to the dealii table, and output to file

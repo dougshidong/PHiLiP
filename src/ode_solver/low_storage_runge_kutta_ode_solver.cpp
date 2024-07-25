@@ -100,6 +100,11 @@ void LowStorageRungeKuttaODESolver<dim,real,n_rk_stages, MeshType>::step_in_time
             this->dg->oneD_fe_collection_1state,
             this->dg->oneD_quadrature_collection);
         }
+
+    if ((this->ode_param.ode_output) == Parameters::OutputEnum::verbose &&
+        (this->current_iteration%this->ode_param.print_iteration_modulo) == 0 ) {
+        this->pcout << " Evaluating system update... " << std::endl;
+    }
  
     this->pcout << std::endl;
     ++(this->current_iteration);
@@ -138,7 +143,6 @@ double LowStorageRungeKuttaODESolver<dim,real,n_rk_stages, MeshType>::get_automa
     epsilon[1] = epsilon[0];
     epsilon[0] = 1.0 / w;
     dt = pow(epsilon[0], 1.0 * beta1/rk_order) * pow(epsilon[1], 1.0 * beta2/rk_order) * pow(epsilon[2], 1.0 * beta3/rk_order) * dt;
-    this->pcout << " dt: " << dt;
     return dt;
 }
 
@@ -161,7 +165,7 @@ double LowStorageRungeKuttaODESolver<dim,real,n_rk_stages, MeshType>::get_automa
     storage_register_1.reinit(this->solution_update);
     storage_register_1 = this->dg->solution;
     u_n = storage_register_1;
-    rhs = storage_register_1;
+    rhs_initial = storage_register_1;
 
     d0 = u_n.linfty_norm();
     

@@ -32,13 +32,13 @@ public:
             std::shared_ptr<EmptyRRKBase<dim,real,MeshType>> RRK_object_input); ///< Constructor.
 
     /// Function to evaluate automatic error adaptive time step
-    double get_automatic_error_adaptive_step_size(real dt, const bool pseudotime);
+    double get_automatic_error_adaptive_step_size(real dt, const bool /*pseudotime*/);
 
     /// Function to evaluate automatic initial adaptive time step
-    double get_automatic_initial_step_size(real dt, const bool pseudotime);
+    double get_automatic_initial_step_size(real dt, const bool /*pseudotime*/);
 
     /// Function to advance time step
-    void step_in_time(real dt, const bool pseudotime);
+    void step_in_time(real dt, const bool /*pseudotime*/);
 
     /// Function to allocate the ODE system
     void allocate_ode_system ();
@@ -54,18 +54,23 @@ protected:
     /// Storage for the derivative at each Runge-Kutta stage
     std::vector<dealii::LinearAlgebra::distributed::Vector<double>> rk_stage;
 
-
-    dealii::LinearAlgebra::distributed::Vector<double> storage_register_2;
+    /// Storage of the solution for the first storage register
     dealii::LinearAlgebra::distributed::Vector<double> storage_register_1;
+
+    /// Storage of the solution for the second storage register  
+    dealii::LinearAlgebra::distributed::Vector<double> storage_register_2;
+
+    /// Storage of the solution for the third storage register
     dealii::LinearAlgebra::distributed::Vector<double> storage_register_3;
+
+    /// Storage of the solution for the fourth storage register
     dealii::LinearAlgebra::distributed::Vector<double> storage_register_4;
+
+    /// Storage of the solution when calculating the right hand side
     dealii::LinearAlgebra::distributed::Vector<double> rhs;
 
     /// Storage for the weighted/relative error estimate
     real w;
-
-    real sum_d0;
-    real sum_d1;
 
     /// Storage for the algorithm to use
     bool is_3Sstarplus;

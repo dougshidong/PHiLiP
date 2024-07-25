@@ -23,13 +23,16 @@ set two_point_num_flux_type = Ra
 
 # ODE solver
 subsection ODE solver
-  set atol = 0.0001
-  set rtol = 0.0001
+  set atol = 0.001
+  set rtol = 0.001
+  set beta1 = 0.70
+  set beta2 = -0.23
+  set beta3 = 0.0
   set ode_output = quiet
   set ode_solver_type = low_storage_runge_kutta
   #set ode_solver_type = rrk_explicit
   #set runge_kutta_method = ssprk3_ex
-  set runge_kutta_method = RK3_2_5F_3SStarPlus
+  set runge_kutta_method = RK4_3_5_3SStar
   subsection rrk root solver
     set rrk_root_solver_output = verbose
   end

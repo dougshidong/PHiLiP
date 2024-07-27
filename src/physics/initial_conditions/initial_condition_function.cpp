@@ -764,24 +764,24 @@ real InitialConditionFunction_ShuOsherProblem<dim, nstate, real>
     real value = 0.0;
     if constexpr (dim == 1 && nstate == (dim + 2)) {
         const real x = point[0];
-        if (x < -4.0) {
+        if (x < -4.5) {
             if (istate == 0) {
                 // density
-                value = 3.857143;
+                value = 1.515695;//3.857143;
             }
             else if (istate == 1) {
                 // x-velocity
-                value = 2.629369;
+                value = 0.523346;//2.629369;
             }
             else if (istate == 2) {
                 // pressure
-                value = 10.33333;
+                value = 1.80500;//10.33333;
             }
         }
         else {
             if (istate == 0) {
                 // density
-                value = 1 + 0.2 * sin(5 * x);
+                value = 1.0 + 0.1*sin(20*dealii::numbers::PI*x);//1 + 0.2 * sin(5 * x);
             }
             else if (istate == 1) {
                 // x-velocity
@@ -801,23 +801,26 @@ real InitialConditionFunction_ShuOsherProblem<dim, nstate, real>
 // See Zhang & Shu, On positivity-preserving..., 2010 Pg. 10
 // ========================================================
 template <int dim, int nstate, typename real>
-InitialConditionFunction_LowDensity2D<dim,nstate,real>
-::InitialConditionFunction_LowDensity2D(
+InitialConditionFunction_LowDensity<dim,nstate,real>
+::InitialConditionFunction_LowDensity(
     Parameters::AllParameters const* const param)
     : InitialConditionFunction_EulerBase<dim, nstate, real>(param)
 {}
 
 template <int dim, int nstate, typename real>
-real InitialConditionFunction_LowDensity2D<dim, nstate, real>
+real InitialConditionFunction_LowDensity<dim, nstate, real>
 ::primitive_value(const dealii::Point<dim, real>& point, const unsigned int istate) const
 {
     real value = 0.0;
-    if constexpr (dim == 2 && nstate == (dim + 2)) {
+    if constexpr (dim < 3 && nstate == (dim + 2)) {
         const real x = point[0];
-        const real y = point[1];
+        real y = 0.0;
+        if(dim == 2)
+            y = point[1];
+
         if (istate == 0) {
             // density
-            value = 1.0 + 0.999 * sin(x + y);
+            value = 1.0 + 0.999 * sin((x + y));
         }
         if (istate == 1) {
             // x-velocity
@@ -1165,8 +1168,8 @@ InitialConditionFactory<dim,nstate, real>::create_InitialConditionFunction(
         if constexpr (dim >= 1 && nstate == dim+2)  return std::make_shared<InitialConditionFunction_SodShockTube<dim,nstate,real> > (param);
     } else if (flow_type == FlowCaseEnum::explosion_problem) {
         if constexpr (dim>1 && nstate==dim+2)  return std::make_shared<InitialConditionFunction_ExplosionProblem<dim,nstate,real> > (param);
-    } else if (flow_type == FlowCaseEnum::low_density_2d) {
-        if constexpr (dim == 2 && nstate == dim+2)  return std::make_shared<InitialConditionFunction_LowDensity2D<dim,nstate,real> > (param);
+    } else if (flow_type == FlowCaseEnum::low_density) {
+        if constexpr (dim < 3 && nstate == dim+2)  return std::make_shared<InitialConditionFunction_LowDensity<dim,nstate,real> > (param);
     } else if (flow_type == FlowCaseEnum::leblanc_shock_tube) {
         if constexpr (dim < 3 && nstate == dim+2)  return std::make_shared<InitialConditionFunction_LeblancShockTube<dim,nstate,real> > (param);
     } else if (flow_type == FlowCaseEnum::shu_osher_problem) {
@@ -1223,7 +1226,6 @@ template class InitialConditionFunction_IsentropicVortex <PHILIP_DIM, PHILIP_DIM
 
 #if PHILIP_DIM==2
 template class InitialConditionFunction_KHI <PHILIP_DIM, PHILIP_DIM+2, double>;
-template class InitialConditionFunction_LowDensity2D <PHILIP_DIM, PHILIP_DIM+2, double>;
 template class InitialConditionFunction_DoubleMachReflection <PHILIP_DIM, PHILIP_DIM+2, double>;
 template class InitialConditionFunction_Mach3WindTunnel <PHILIP_DIM, PHILIP_DIM+2, double>;
 template class InitialConditionFunction_SedovBlastWave <PHILIP_DIM, PHILIP_DIM+2, double>;
@@ -1234,6 +1236,7 @@ template class InitialConditionFunction_NonSmooth <PHILIP_DIM, 1, double>;
 
 #if PHILIP_DIM < 3
 template class InitialConditionFunction_LeblancShockTube<PHILIP_DIM,PHILIP_DIM+2,double>;
+template class InitialConditionFunction_LowDensity <PHILIP_DIM, PHILIP_DIM+2, double>;
 #endif
 
 // functions instantiated for all dim

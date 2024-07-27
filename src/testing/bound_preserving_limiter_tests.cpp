@@ -30,8 +30,11 @@ double BoundPreservingLimiterTests<dim, nstate>::calculate_uexact(const dealii::
     const double pi = atan(1) * 4.0;
 
     double uexact = 1.0;
-    if (flow_case == Parameters::FlowSolverParam::FlowCaseType::low_density_2d && dim == 2) {
-        uexact = 1.00 + 0.999 * sin(qpoint[0] + qpoint[1] - (2.00 * final_time));
+    if (flow_case == Parameters::FlowSolverParam::FlowCaseType::low_density && dim == 2) {
+        uexact = 1.0 + 0.999 * sin((qpoint[0] + qpoint[1] - (2.00 * final_time)));
+    }
+    if (flow_case == Parameters::FlowSolverParam::FlowCaseType::low_density && dim == 1) {
+        uexact = 1.0 + 0.999 * sin((qpoint[0] - (final_time)));
     }
     else {
         for (int idim = 0; idim < dim; idim++) {
@@ -81,7 +84,9 @@ std::array<double,3> BoundPreservingLimiterTests<dim, nstate>::calculate_l_n_err
             }
 
             const dealii::Point<dim> qpoint = (fe_values_extra.quadrature_point(iquad));
-            double uexact = calculate_uexact(qpoint, adv_speeds, final_time);          
+            double uexact = calculate_uexact(qpoint, adv_speeds, final_time);   
+
+            //std::cout << "u:   " << soln_at_q[0] << "   uexact:   " << uexact << std::endl;       
             l1error += pow(abs(soln_at_q[0] - uexact), 1.0) * fe_values_extra.JxW(iquad);
             l2error += pow(abs(soln_at_q[0] - uexact), 2.0) * fe_values_extra.JxW(iquad);
             //L-infinity norm
@@ -132,7 +137,7 @@ int BoundPreservingLimiterTests<dim, nstate>::run_full_limiter_test() const
     using flow_case_enum = Parameters::FlowSolverParam::FlowCaseType;
     flow_case_enum flow_case = all_parameters_new.flow_solver_param.flow_case_type;
     const double pi = atan(1) * 4.0;
-    if (flow_case == Parameters::FlowSolverParam::FlowCaseType::low_density_2d) {
+    if (flow_case == Parameters::FlowSolverParam::FlowCaseType::low_density) {
         param.flow_solver_param.grid_left_bound = 0.0;
         param.flow_solver_param.grid_right_bound = 2.0 * pi;
 
@@ -163,7 +168,7 @@ int BoundPreservingLimiterTests<dim, nstate>::run_convergence_test() const
     std::vector<double> grid_size(n_grids);
     std::vector<double> soln_error_l2(n_grids);
 
-    for (unsigned int igrid = 3; igrid < n_grids; igrid++) {
+    for (unsigned int igrid = 2; igrid < n_grids; igrid++) {
 
         pcout << "\n" << "Creating FlowSolver" << std::endl;
 
@@ -174,7 +179,7 @@ int BoundPreservingLimiterTests<dim, nstate>::run_convergence_test() const
         flow_case_enum flow_case = all_parameters_new.flow_solver_param.flow_case_type;
         const double pi = atan(1) * 4.0;
 
-        if (flow_case == Parameters::FlowSolverParam::FlowCaseType::low_density_2d) {
+        if (flow_case == Parameters::FlowSolverParam::FlowCaseType::low_density) {
             param.flow_solver_param.grid_left_bound = 0.0;
             param.flow_solver_param.grid_right_bound = 2.0 * pi;
 
@@ -263,6 +268,7 @@ int BoundPreservingLimiterTests<dim, nstate>::run_convergence_test() const
 
 #if PHILIP_DIM==1
 template class BoundPreservingLimiterTests<PHILIP_DIM, PHILIP_DIM>;
+template class BoundPreservingLimiterTests<PHILIP_DIM, PHILIP_DIM + 2>;
 #elif PHILIP_DIM==2
 template class BoundPreservingLimiterTests<PHILIP_DIM, PHILIP_DIM>;
 template class BoundPreservingLimiterTests<PHILIP_DIM, PHILIP_DIM + 2>;

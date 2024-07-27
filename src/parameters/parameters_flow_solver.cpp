@@ -34,7 +34,7 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
                           " kelvin_helmholtz_instability | "
                           " non_periodic_cube_flow | "
                           " sod_shock_tube | "
-                          " low_density_2d | "
+                          " low_density | "
                           " leblanc_shock_tube | "
                           " shu_osher_problem | "
                           " advection_limiter | "
@@ -62,7 +62,7 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
                           " kelvin_helmholtz_instability | "
                           " non_periodic_cube_flow | "
                           " sod_shock_tube | "
-                          " low_density_2d | "
+                          " low_density | "
                           " leblanc_shock_tube | "
                           " shu_osher_problem | "
                           " advection_limiter | "
@@ -393,7 +393,7 @@ void FlowSolverParam::parse_parameters(dealii::ParameterHandler &prm)
         else if (flow_case_type_string == "non_periodic_cube_flow")     {flow_case_type = non_periodic_cube_flow;}
         // Positivity Preserving Tests
         else if (flow_case_type_string == "sod_shock_tube")             {flow_case_type = sod_shock_tube;}
-        else if (flow_case_type_string == "low_density_2d")             {flow_case_type = low_density_2d;}
+        else if (flow_case_type_string == "low_density")             {flow_case_type = low_density;}
         else if (flow_case_type_string == "leblanc_shock_tube")         {flow_case_type = leblanc_shock_tube;}
         else if (flow_case_type_string == "shu_osher_problem")          {flow_case_type = shu_osher_problem;}
         else if (flow_case_type_string == "advection_limiter")          {flow_case_type = advection_limiter;}

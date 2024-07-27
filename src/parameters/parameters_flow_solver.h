@@ -29,7 +29,7 @@ public:
         kelvin_helmholtz_instability,
         non_periodic_cube_flow,
         sod_shock_tube,
-        low_density_2d,
+        low_density,
         leblanc_shock_tube,
         shu_osher_problem,
         advection_limiter,

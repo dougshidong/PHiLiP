@@ -595,9 +595,9 @@ void PositivityPreservingLimiter<dim, nstate, real>::limit(
             std::abort();
         }
 
-        if(theta < 1.0 || theta2 < 1.0) {
-            std::cout << "Limiter Turned On" << std::endl;
-        }
+        // if(theta < 1.0 || theta2 < 1.0) {
+        //     std::cout << "Limiter Turned On" << std::endl;
+        // }
         // Write limited solution back and verify that positivity of density is satisfied
         write_limited_solution(solution, soln_coeff, n_shape_fns, current_dofs_indices);
     }

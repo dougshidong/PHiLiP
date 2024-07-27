@@ -250,7 +250,7 @@ void mach_3_wind_tunnel_grid(
     n_cells_remove[1] = (0.2/1.0)*n_subdivisions[1];
 
     dealii::GridGenerator::subdivided_hyper_L(grid, n_subdivisions, p1, p2, n_cells_remove);
-
+    double cell_length_y = ymax/n_subdivisions_y;
     // Set boundary type and design type
     double right_y = 0.0;
     for (typename dealii::parallel::distributed::Triangulation<dim>::active_cell_iterator cell = grid.begin_active(); cell != grid.end(); ++cell) {

@@ -434,7 +434,7 @@ public:
 *   equations on rectangular meshes, 2010 Pg. 10
 */
 template <int dim, int nstate, typename real>
-class InitialConditionFunction_LowDensity2D: public InitialConditionFunction_EulerBase<dim,nstate,real>
+class InitialConditionFunction_LowDensity: public InitialConditionFunction_EulerBase<dim,nstate,real>
 {
 protected:
     /// Value of initial condition expressed in terms of primitive variables
@@ -443,7 +443,7 @@ protected:
 public:
     /// Constructor for InitialConditionFunction_SodShockTube
     /** Calls the Function(const unsigned int n_components) constructor in deal.II*/
-    explicit InitialConditionFunction_LowDensity2D(
+    explicit InitialConditionFunction_LowDensity(
         Parameters::AllParameters const* const param);
 };
 

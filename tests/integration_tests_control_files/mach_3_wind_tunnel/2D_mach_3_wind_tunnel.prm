@@ -1,7 +1,7 @@
 # Listing of Parameters
 # ---------------------
 # Number of dimensions
-
+set solution_vtk_files_directory_name = /media/shruthi/doubleMachPartit/m3wt_trials
 set dimension = 2
 set run_type = flow_simulation
 set pde_type = euler
@@ -12,18 +12,18 @@ set flux_nodes_type = GLL
 
 # Strong DG - LaxF
 #set use_split_form = false
-#set conv_num_flux = lax_friedrichs
+#set conv_num_flux = roe
 
 # NSFR - Ra
 set use_split_form = true
 set two_point_num_flux_type = Ra
 set conv_num_flux = two_point_flux_with_roe_dissipation
-set flux_reconstruction = cDG
+set flux_reconstruction = c10Thousand
 set use_inverse_mass_on_the_fly = true
 
 subsection limiter
   set bound_preserving_limiter = positivity_preservingWang2012
-  set min_density = 1e-13
+  set min_density = 1e-6
 end
 
 # ODE solver
@@ -48,7 +48,7 @@ subsection flow_solver
   set poly_degree = 3
   set final_time = 4.0
   #set constant_time_step = 0.0001
-  set courant_friedrichs_lewy_number = 0.36
+  set courant_friedrichs_lewy_number = 0.35
   set adaptive_time_step = true
   set unsteady_data_table_filename = mach_3_wind_tunnel_energy
   subsection grid
@@ -57,8 +57,8 @@ subsection flow_solver
       set grid_xmax = 3.0
       set grid_ymin = 0.0
       set grid_ymax = 1.0
-      set number_of_grid_elements_x = 450
-      set number_of_grid_elements_y = 150
+      set number_of_grid_elements_x = 120
+      set number_of_grid_elements_y = 40
     end
   end
 end

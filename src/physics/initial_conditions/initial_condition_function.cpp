@@ -261,13 +261,13 @@ inline real InitialConditionFunction_NonSmooth<dim,nstate,real>
     if constexpr(dim == 1)
         std::abort();
     if constexpr(dim == 2){
-        double x = abs(point[0]);
-        double y = point[1];
+        real x = abs(point[0]);
+        real y = point[1];
 
-        double r = sqrt(pow(x,2)+pow(y,2));
-        double theta = atan(y/x);
+        real r = sqrt(pow(x,2)+pow(y,2));
+        real theta = atan(y/x);
 
-        double bound = (1.0/8.0)*(3.0+pow(3.0,sin(5.0*theta)));
+        real bound = (1.0/8.0)*(3.0+pow(3.0,sin(5.0*theta)));
 
         if(r <= bound)
             value = 1.0;
@@ -1085,6 +1085,149 @@ real InitialConditionFunction_AstrophysicalJet<dim, nstate, real>
     return value;
 }
 
+
+// ========================================================
+// Strong Vortex Shock Wave Interaction (2D) -- Initial Condition
+// INCLUDE REFERENCE LATER
+// ========================================================
+template <int dim, int nstate, typename real>
+InitialConditionFunction_SVSW<dim, nstate, real>
+::InitialConditionFunction_SVSW(
+    Parameters::AllParameters const* const param)
+    : InitialConditionFunction_EulerBase<dim, nstate, real>(param)
+{}
+
+template <int dim, int nstate, typename real>
+real InitialConditionFunction_SVSW<dim, nstate, real>
+::primitive_value(const dealii::Point<dim, real>& point, const unsigned int istate) const
+{
+    real value = 0.0;
+    real x = point[0];
+    real y = point[1];
+
+    if constexpr (dim == 2 && nstate == (dim + 2)) {
+
+        // Ideal gas
+        real gamma = 1.4;
+        real R = 1.0;
+
+        // Upstream conditions
+        real rho_u = 1.0;
+        real u_u = 1.5*sqrt(1.4);
+        real v_u = 0.0;
+        real p_u = 1.0;
+        real t_u = p_u/(rho_u*R);
+
+
+
+        // Shock condition
+        real M_s = 1.5;
+
+        // Downstream conditions
+        real rho_d = (rho_u * (gamma + 1.0) * M_s * M_s) / (2.0 + (gamma - 1.0) * M_s * M_s);
+        real u_d = (u_u * (2.0 + ((gamma - 1.0) * M_s * M_s)))/((gamma + 1.0) * M_s * M_s);
+        real v_d = 0.0;
+        real p_d = p_u * (1.0 + (2.0 * gamma / (gamma + 1.0)) * (M_s * M_s - 1.0));
+
+        if (x <= 0.5){
+            if (istate == 0) {
+                // density
+                value = rho_u;
+            }
+            else if (istate == 1) {
+                // x-velocity
+                value = u_u;
+            }
+            else if (istate == 2) {
+                // y-velocity
+                value = v_u;
+            }
+            else if (istate == 3) {
+                // pressure
+                value = p_u;
+            }
+        } else {
+            if (istate == 0) {
+                // density
+                value = rho_d;
+            }
+            else if (istate == 1) {
+                // x-velocity
+                value = u_d;
+            }
+            else if (istate == 2) {
+                // y-velocity
+                value = v_d;
+            }
+            else if (istate == 3) {
+                // pressure
+                value = p_d;
+            }            
+        }
+
+        if(x <= 0.5) {
+            // Vortex location
+            real x_c = 0.25; real y_c = 0.5;
+
+            // Vortex sizes
+            real a = 0.075; real b = 0.175;
+
+            // Vortex strength
+            real M_v = 0.9; real v_m = M_v * sqrt(gamma);
+
+            // Distance from vortex
+            real dx = x - x_c;
+            real dy = y - y_c;
+            real r = sqrt((dx*dx) + (dy*dy));
+
+            // if (x > 0.1 && x < 0.3 && y > 0.3 && y < 0.7){
+            //     std::cout << dx << "   " << dy << "   " << std::endl;
+            //     std::cout << dx * dx << "   " << dy*dy <<  "   " << (dx*dx) + (dy*dy) << std::endl;
+            //     std::cout << r << "   " << a << "   " << b << std::endl << std::endl;
+            // }
+
+            real temperature = 0.0;
+
+            // Superimpose vortex
+            if (r<=b) {
+                //std::cout << "Vortex Superimpose" << std::endl;
+                double sin_theta = dy/r;
+                double cos_theta = dx/r;
+
+                if (r<=a) {
+                    real mag = v_m * r / a;
+                    if(istate == 1)
+                        value = u_u - mag*sin_theta;
+                    else if(istate == 2)
+                        value = v_u + mag*cos_theta;
+                    else {
+                        // Temperature at a, integrated from ODE
+                        real radial_term = -2.0 * b * b * log(b) - (0.5 * a * a) + (2.0 * b * b * log(a)) + (0.5 * b * b * b * b / (a * a));
+                        real t_a = t_u - (gamma - 1.0) * pow(v_m * a / (a * a - b * b), 2.0) * radial_term / (R * gamma);
+                        radial_term = 0.5 * (1.0 - r * r / (a * a));
+                        temperature = t_a - (gamma - 1.0) * v_m * v_m * radial_term / (R * gamma);
+                    } 
+                } else {
+                    real mag = v_m * a * (r - b * b / r)/(a * a - b * b);
+                    if(istate == 1)
+                        value = u_u - mag * sin_theta;
+                    else if (istate == 2)
+                        value = v_u + mag * cos_theta;
+                    else {
+                        real radial_term = -2.0 * b * b * log(b) - (0.5 * r * r) + (2.0 * b * b * log(r)) + (0.5 * b * b * b * b / (r * r));
+                        temperature = t_u - (gamma - 1.0) * pow(v_m * a/(a * a - b * b), 2.0) * radial_term / (R * gamma);
+                    }
+                }
+
+                if (istate == 0)
+                    value = rho_u * pow(temperature/t_u, 1.0/(gamma - 1.0));
+                else if (istate == 3)
+                    value = p_u * pow(temperature/t_u, gamma/(gamma - 1.0));
+            }
+        }
+    }
+    return value;
+}
 // ========================================================
 // ZERO INITIAL CONDITION
 // ========================================================
@@ -1184,6 +1327,8 @@ InitialConditionFactory<dim,nstate, real>::create_InitialConditionFunction(
         if constexpr (dim == 2 && nstate == dim + 2)  return std::make_shared<InitialConditionFunction_ShockDiffraction<dim, nstate, real> >(param);
     } else if (flow_type == FlowCaseEnum::astrophysical_jet) {
         if constexpr (dim == 2 && nstate == dim + 2)  return std::make_shared<InitialConditionFunction_AstrophysicalJet<dim, nstate, real> >(param);
+    } else if (flow_type == FlowCaseEnum::svsw) {
+        if constexpr (dim == 2 && nstate == dim + 2)  return std::make_shared<InitialConditionFunction_SVSW<dim, nstate, real> >(param);
     } else if (flow_type == FlowCaseEnum::advection_limiter) {
         if constexpr (dim < 3 && nstate == 1)  return std::make_shared<InitialConditionFunction_Advection<dim, nstate, real> >();
     } else if (flow_type == FlowCaseEnum::burgers_limiter) {
@@ -1231,6 +1376,7 @@ template class InitialConditionFunction_Mach3WindTunnel <PHILIP_DIM, PHILIP_DIM+
 template class InitialConditionFunction_SedovBlastWave <PHILIP_DIM, PHILIP_DIM+2, double>;
 template class InitialConditionFunction_ShockDiffraction <PHILIP_DIM, PHILIP_DIM+2, double>;
 template class InitialConditionFunction_AstrophysicalJet <PHILIP_DIM, PHILIP_DIM+2, double>;
+template class InitialConditionFunction_SVSW <PHILIP_DIM, PHILIP_DIM+2, double>;
 template class InitialConditionFunction_NonSmooth <PHILIP_DIM, 1, double>;
 #endif
 

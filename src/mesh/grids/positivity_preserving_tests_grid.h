@@ -51,6 +51,11 @@ template<int dim, typename TriangulationType>
 void astrophysical_jet_grid(
     TriangulationType&  grid,
     const Parameters::AllParameters *const parameters_input);
+
+template<int dim, typename TriangulationType>
+void svsw_grid(
+    TriangulationType&  grid,
+    const Parameters::AllParameters *const parameters_input);
 } 
 
 // namespace PHiLiP::Grids

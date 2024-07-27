@@ -40,7 +40,8 @@ public:
         shock_diffraction,
         explosion_problem,
         astrophysical_jet,
-        nonsmooth_case
+        nonsmooth_case,
+        svsw
         };
     FlowCaseType flow_case_type; ///< Selected FlowCaseType from the input file
 

@@ -241,6 +241,46 @@ inline real InitialConditionFunction_Advection<dim,nstate,real>
     return value;
 }
 
+
+// ========================================================
+// 2D Nonsmooth Case - 
+// ========================================================
+template <int dim, int nstate, typename real>
+InitialConditionFunction_NonSmooth<dim,nstate,real>
+::InitialConditionFunction_NonSmooth()
+        : InitialConditionFunction<dim,nstate,real>()
+{
+    // Nothing to do here yet
+}
+
+template <int dim, int nstate, typename real>
+inline real InitialConditionFunction_NonSmooth<dim,nstate,real>
+::value(const dealii::Point<dim,real> &point, const unsigned int /*istate*/) const
+{
+    real value = 1.0;
+    if constexpr(dim == 1)
+        std::abort();
+    if constexpr(dim == 2){
+        real x = abs(point[0]);
+        real y = point[1];
+
+        real r = sqrt(pow(x,2)+pow(y,2));
+        real theta = atan(y/x);
+
+        real bound = (1.0/8.0)*(3.0+pow(3.0,sin(5.0*theta)));
+
+        if(r <= bound)
+            value = 1.0;
+        else
+            value = 0.0;
+    }
+    if constexpr(dim == 3)
+        std::abort();
+
+    return value;
+}
+
+
 // ========================================================
 // Convection_diffusion -- Initial Condition
 // ========================================================
@@ -464,6 +504,7 @@ inline real InitialConditionFunction_EulerBase<dim, nstate, real>
 // ========================================================
 // 1D Sod Shock tube -- Initial Condition
 // See Chen & Shu, Entropy stable high order..., 2017, Pg. 25
+// 2D and 3D can be run by extruding grid in those directions
 // ========================================================
 template <int dim, int nstate, typename real>
 InitialConditionFunction_SodShockTube<dim,nstate,real>
@@ -477,9 +518,52 @@ real InitialConditionFunction_SodShockTube<dim, nstate, real>
 ::primitive_value(const dealii::Point<dim, real>& point, const unsigned int istate) const
 {
     real value = 0.0;
-    if constexpr (dim == 1 && nstate == (dim+2)) {
+    if constexpr (nstate == (dim+2)) {
         const real x = point[0];
         if (x < 0) {
+            if (istate == 0) {
+                // density
+                value = 1.0;
+            }
+            if (istate == nstate - 1) {
+                // pressure
+                value = 1.0;
+            }
+        } else {
+            if (istate == 0) {
+                // density
+                value = 0.125;
+            }
+            if (istate == nstate - 1) {
+                // pressure
+                value = 0.1;
+            }
+        }
+    }
+
+    return value;
+}
+
+// ========================================================
+// 2D/3D Explosion Problem (Cylindrical and Spherical extension of Sod Shock Tube) -- Initial Condition
+// See Dumbser & Loubere, A simple robust and accurate a posteriori sub-cell..., 2016, Pg. 17
+// ========================================================
+template <int dim, int nstate, typename real>
+InitialConditionFunction_ExplosionProblem<dim, nstate, real>
+::InitialConditionFunction_ExplosionProblem(
+    Parameters::AllParameters const* const param)
+    : InitialConditionFunction_EulerBase<dim, nstate, real>(param)
+{}
+
+template <int dim, int nstate, typename real>
+real InitialConditionFunction_ExplosionProblem<dim, nstate, real>
+::primitive_value(const dealii::Point<dim, real>& point, const unsigned int istate) const
+{
+    real value = 0.0;
+    if constexpr (dim == 2 && nstate == (dim + 2)) {
+        const real x = point[0];
+        const real y = point[1];
+        if (sqrt(pow(x,2)+ pow(y,2)) <= 0.5){
             if (istate == 0) {
                 // density
                 value = 1.0;
@@ -489,10 +573,15 @@ real InitialConditionFunction_SodShockTube<dim, nstate, real>
                 value = 0.0;
             }
             if (istate == 2) {
+                // x-velocity
+                value = 0.0;
+            }
+            if (istate == 3) {
                 // pressure
                 value = 1.0;
             }
-        } else {
+        }
+        else {
             if (istate == 0) {
                 // density
                 value = 0.125;
@@ -502,56 +591,73 @@ real InitialConditionFunction_SodShockTube<dim, nstate, real>
                 value = 0.0;
             }
             if (istate == 2) {
+                // x-velocity
+                value = 0.0;
+            }
+            if (istate == 3) {
                 // pressure
                 value = 0.1;
             }
-        } 
+        }
     }
-    return value;
-}
 
-// ========================================================
-// 2D Low Density Euler -- Initial Condition
-// See Zhang & Shu, On positivity-preserving..., 2010 Pg. 10
-// ========================================================
-template <int dim, int nstate, typename real>
-InitialConditionFunction_LowDensity2D<dim,nstate,real>
-::InitialConditionFunction_LowDensity2D(
-    Parameters::AllParameters const* const param)
-    : InitialConditionFunction_EulerBase<dim, nstate, real>(param)
-{}
-
-template <int dim, int nstate, typename real>
-real InitialConditionFunction_LowDensity2D<dim, nstate, real>
-::primitive_value(const dealii::Point<dim, real>& point, const unsigned int istate) const
-{
-    real value = 0.0;
-    if constexpr (dim == 2 && nstate == (dim + 2)) {
+    if constexpr (dim == 3 && nstate == (dim + 2)) {
         const real x = point[0];
         const real y = point[1];
-        if (istate == 0) {
-            // density
-            value = 1 + 0.99 * sin(x + y);
+        const real z = point[2];
+        if (sqrt(pow(x,2) + pow(y,2) + pow(z,2)) <= 0.5){
+            if (istate == 0) {
+                // density
+                value = 1.0;
+            }
+            if (istate == 1) {
+                // x-velocity
+                value = 0.0;
+            }
+            if (istate == 2) {
+                // y-velocity
+                value = 0.0;
+            }
+            if (istate == 3) {
+                // z-velocity
+                value = 0.0;
+            }
+            if (istate == 4) {
+                // pressure
+                value = 1.0;
+            }
         }
-        if (istate == 1) {
-            // x-velocity
-            value = 1.0;
-        }
-        if (istate == 2) {
-            // y-velocity
-            value = 1.0;
-        }
-        if (istate == 3) {
-            // pressure
-            value = 1.0;
+        else {
+            if (istate == 0) {
+                // density
+                value = 0.125;
+            }
+            if (istate == 1) {
+                // x-velocity
+                value = 0.0;
+            }
+            if (istate == 2) {
+                // y-velocity
+                value = 0.0;
+            }
+            if (istate == 3) {
+                // z-velocity
+                value = 0.0;
+            }
+            if (istate == 4) {
+                // pressure
+                value = 0.1;
+            }
         }
     }
+
     return value;
 }
 
 // ========================================================
 // 1D Leblanc Shock tube -- Initial Condition
-// See Zhang & Shu, On positivity-preserving..., 2010 Pg. 14
+// 2D Cylindrical Extension of Leblanc -- Initial Condition
+// See Zhang & Shu, On positivity-preserving..., 2010 Pg. 14 for 1D
 // ========================================================
 template <int dim, int nstate, typename real>
 InitialConditionFunction_LeblancShockTube<dim,nstate,real>
@@ -565,7 +671,7 @@ real InitialConditionFunction_LeblancShockTube<dim, nstate, real>
 ::primitive_value(const dealii::Point<dim, real>& point, const unsigned int istate) const
 {
     real value = 0.0;
-    if constexpr (dim == 1 && nstate == (dim + 2)) {
+    if (dim == 1 && nstate == (dim + 2)) {
         const real x = point[0];
         if (x < 0) {
             if (istate == 0) {
@@ -596,6 +702,47 @@ real InitialConditionFunction_LeblancShockTube<dim, nstate, real>
             }
         }
     }
+
+    if constexpr (dim == 2 && nstate == (dim + 2)) {
+        const real x = point[0];
+        const real y = point[1];
+        if (sqrt(pow(x,2)+ pow(y,2)) <= 10.0){
+            if (istate == 0) {
+                // density
+                value = 2.0;
+            }
+            if (istate == 1) {
+                // x-velocity
+                value = 0.0;
+            }
+            if (istate == 2) {
+                // x-velocity
+                value = 0.0;
+            }
+            if (istate == 3) {
+                // pressure
+                value = pow(10.0, 9.0);
+            }
+        }
+        else {
+            if (istate == 0) {
+                // density
+                value = 0.001;
+            }
+            if (istate == 1) {
+                // x-velocity
+                value = 0.0;
+            }
+            if (istate == 2) {
+                // x-velocity
+                value = 0.0;
+            }
+            if (istate == 3) {
+                // pressure
+                value = 1.0;
+            }
+        }
+    }
     return value;
 }
 
@@ -617,24 +764,24 @@ real InitialConditionFunction_ShuOsherProblem<dim, nstate, real>
     real value = 0.0;
     if constexpr (dim == 1 && nstate == (dim + 2)) {
         const real x = point[0];
-        if (x < -4.0) {
+        if (x < -4.5) {
             if (istate == 0) {
                 // density
-                value = 3.857143;
+                value = 1.515695;//3.857143;
             }
             else if (istate == 1) {
                 // x-velocity
-                value = 2.629369;
+                value = 0.523346;//2.629369;
             }
             else if (istate == 2) {
                 // pressure
-                value = 10.33333;
+                value = 1.80500;//10.33333;
             }
         }
         else {
             if (istate == 0) {
                 // density
-                value = 1 + 0.2 * sin(5 * x);
+                value = 1.0 + 0.1*sin(20*dealii::numbers::PI*x);//1 + 0.2 * sin(5 * x);
             }
             else if (istate == 1) {
                 // x-velocity
@@ -649,6 +796,438 @@ real InitialConditionFunction_ShuOsherProblem<dim, nstate, real>
     return value;
 }
 
+// ========================================================
+// 2D Low Density Euler -- Initial Condition
+// See Zhang & Shu, On positivity-preserving..., 2010 Pg. 10
+// ========================================================
+template <int dim, int nstate, typename real>
+InitialConditionFunction_LowDensity<dim,nstate,real>
+::InitialConditionFunction_LowDensity(
+    Parameters::AllParameters const* const param)
+    : InitialConditionFunction_EulerBase<dim, nstate, real>(param)
+{}
+
+template <int dim, int nstate, typename real>
+real InitialConditionFunction_LowDensity<dim, nstate, real>
+::primitive_value(const dealii::Point<dim, real>& point, const unsigned int istate) const
+{
+    real value = 0.0;
+    if constexpr (dim < 3 && nstate == (dim + 2)) {
+        const real x = point[0];
+        real y = 0.0;
+        if(dim == 2)
+            y = point[1];
+
+        if (istate == 0) {
+            // density
+            value = 1.0 + 0.999 * sin((x + y));
+        }
+        if (istate == 1) {
+            // x-velocity
+            value = 1.0;
+        }
+        if (istate == 2) {
+            // y-velocity
+            value = 1.0;
+        }
+        if (istate == 3) {
+            // pressure
+            value = 1.0;
+        }
+    }
+    return value;
+}
+
+// ========================================================
+// Double Mach Reflection Problem (2D) -- Initial Condition
+// INCLUDE REFERENCE LATER
+// ========================================================
+template <int dim, int nstate, typename real>
+InitialConditionFunction_DoubleMachReflection<dim, nstate, real>
+::InitialConditionFunction_DoubleMachReflection(
+    Parameters::AllParameters const* const param)
+    : InitialConditionFunction_EulerBase<dim, nstate, real>(param)
+{}
+
+template <int dim, int nstate, typename real>
+real InitialConditionFunction_DoubleMachReflection<dim, nstate, real>
+::primitive_value(const dealii::Point<dim, real>& point, const unsigned int istate) const
+{
+    real value = 0.0;
+    if constexpr (dim == 2 && nstate == (dim + 2)) {
+        const real x = point[0];
+        const real y = point[1];
+        if (y > sqrt(3)*(x - (1.0/6.0))) {
+            if (istate == 0) {
+                // density
+                value = 8.0;
+            }
+            else if (istate == 1) {
+                // x-velocity
+                value = 33.0*sqrt(3.0)/8.0;
+            }
+            else if (istate == 2) {
+                // y-velocity
+                value = -33.0/8.0;
+            }
+            else if (istate == 3) {
+                // pressure
+                value = 116.5;
+            }
+        }
+        else {
+            if (istate == 0) {
+                // density
+                value = 1.4;
+            }
+            else if (istate == 1) {
+                // x-velocity
+                value = 0.0;
+            }
+            else if (istate == 2) {
+                // y-velocity
+                value = 0.0;
+            }
+            else if (istate == 3) {
+                // pressure
+                value = 1.0;
+            }
+        }
+    }
+    return value;
+}
+
+// ========================================================
+// Sedov Blast Wave (2D) -- Initial Condition
+// INCLUDE REFERENCE LATER
+// ========================================================
+template <int dim, int nstate, typename real>
+InitialConditionFunction_SedovBlastWave<dim, nstate, real>
+::InitialConditionFunction_SedovBlastWave(
+    Parameters::AllParameters const* const param)
+    : InitialConditionFunction_EulerBase<dim, nstate, real>(param)
+    , gamma_gas(param->euler_param.gamma_gas)
+    , n_subdivisions(param->flow_solver_param.number_of_grid_elements_x)
+    , xmax(param->flow_solver_param.grid_xmax)
+    , xmin(param->flow_solver_param.grid_xmin)
+{
+    this->h = (xmax-xmin)/double(n_subdivisions);
+}
+
+
+template <int dim, int nstate, typename real>
+real InitialConditionFunction_SedovBlastWave<dim, nstate, real>
+::primitive_value(const dealii::Point<dim, real>& point, const unsigned int istate) const
+{
+    real value = 0.0;
+    if constexpr (dim == 2 && nstate == (dim + 2)) {
+        const real x = point[0];
+        const real y = point[1];
+        real r = sqrt(pow(x,2)+pow(y,2));
+        real r_0 = 4*this->h;
+
+        if (istate == 0) {
+            // density
+            value = 1.0;
+        }
+        else if (istate == 1) {
+            // x-velocity
+            value = 0.0;
+        }
+        else if (istate == 2) {
+            // y-velocity
+            value = 0.0;
+        }
+        else if (istate == 3) {
+            // pressure
+            if(r < r_0)
+                value = (this->gamma_gas - 1.0)/(dealii::numbers::PI*pow(r_0,2));
+            else
+                value = 1e-5;
+        }
+
+    }
+    return value;
+}
+
+// ========================================================
+// Mach 3 Wind Tunnel with a Step Problem (2D) -- Initial Condition
+// INCLUDE REFERENCE LATER
+// ========================================================
+template <int dim, int nstate, typename real>
+InitialConditionFunction_Mach3WindTunnel<dim, nstate, real>
+::InitialConditionFunction_Mach3WindTunnel(
+    Parameters::AllParameters const* const param)
+    : InitialConditionFunction_EulerBase<dim, nstate, real>(param)
+{}
+
+template <int dim, int nstate, typename real>
+real InitialConditionFunction_Mach3WindTunnel<dim, nstate, real>
+::primitive_value(const dealii::Point<dim, real>& /*point*/, const unsigned int istate) const
+{
+    real value = 0.0;
+    if constexpr (dim == 2 && nstate == (dim + 2)) {
+        if (istate == 0) {
+            // density
+            value = 1.4;
+        }
+        else if (istate == 1) {
+            // x-velocity
+            value = 3.0;
+        }
+        else if (istate == 2) {
+            // y-velocity
+            value = 0.0;
+        }
+        else if (istate == 3) {
+            // pressure
+            value = 1.0;
+        }
+    }
+    return value;
+}
+
+// ========================================================
+// Shock Diffraction (backwards facing step) (2D) -- Initial Condition
+// INCLUDE REFERENCE LATER
+// ========================================================
+template <int dim, int nstate, typename real>
+InitialConditionFunction_ShockDiffraction<dim, nstate, real>
+::InitialConditionFunction_ShockDiffraction(
+    Parameters::AllParameters const* const param)
+    : InitialConditionFunction_EulerBase<dim, nstate, real>(param)
+{}
+
+template <int dim, int nstate, typename real>
+real InitialConditionFunction_ShockDiffraction<dim, nstate, real>
+::primitive_value(const dealii::Point<dim, real>& point, const unsigned int istate) const
+{
+    real value = 0.0;
+    real x = point[0];
+    //real y = point[1];
+    if constexpr (dim == 2 && nstate == (dim + 2)) {
+        if (x <= 0.5) {
+            if (istate == 0) {
+                // density
+                value = 7.041132906907898;
+            }
+            else if (istate == 1) {
+                // x-velocity
+                value = 4.07794695481336;
+            }
+            else if (istate == 2) {
+                // y-velocity
+                value = 0.0;
+            }
+            else if (istate == 3) {
+                // pressure
+                value = 30.05945;
+            }
+        }
+        else {
+           if (istate == 0) {
+               // density
+               value = 1.4;
+           }
+           else if (istate == 1) {
+               // x-velocity
+               value = 0.0;
+           }
+           else if (istate == 2) {
+               // y-velocity
+               value = 0.0;
+           }
+           else if (istate == 3) {
+               // pressure
+               value = 1.0;
+           }
+        }
+    }
+    return value;
+}
+
+
+// ========================================================
+// Astrophysical Mach Jet (2D) -- Initial Condition
+// INCLUDE REFERENCE LATER
+// ========================================================
+template <int dim, int nstate, typename real>
+InitialConditionFunction_AstrophysicalJet<dim, nstate, real>
+::InitialConditionFunction_AstrophysicalJet(
+    Parameters::AllParameters const* const param)
+    : InitialConditionFunction_EulerBase<dim, nstate, real>(param)
+{}
+
+template <int dim, int nstate, typename real>
+real InitialConditionFunction_AstrophysicalJet<dim, nstate, real>
+::primitive_value(const dealii::Point<dim, real>& /*point*/, const unsigned int istate) const
+{
+    real value = 0.0;
+    if constexpr (dim == 2 && nstate == (dim + 2)) {
+
+        if (istate == 0) {
+            // density
+            value = 0.5;
+        }
+        else if (istate == 1) {
+            // x-velocity
+            value = 0.0;
+        }
+        else if (istate == 2) {
+            // y-velocity
+            value = 0.0;
+        }
+        else if (istate == 3) {
+            // pressure
+            value = 0.4127;
+        }
+    }
+    return value;
+}
+
+
+// ========================================================
+// Strong Vortex Shock Wave Interaction (2D) -- Initial Condition
+// INCLUDE REFERENCE LATER
+// ========================================================
+template <int dim, int nstate, typename real>
+InitialConditionFunction_SVSW<dim, nstate, real>
+::InitialConditionFunction_SVSW(
+    Parameters::AllParameters const* const param)
+    : InitialConditionFunction_EulerBase<dim, nstate, real>(param)
+{}
+
+template <int dim, int nstate, typename real>
+real InitialConditionFunction_SVSW<dim, nstate, real>
+::primitive_value(const dealii::Point<dim, real>& point, const unsigned int istate) const
+{
+    real value = 0.0;
+    real x = point[0];
+    real y = point[1];
+
+    if constexpr (dim == 2 && nstate == (dim + 2)) {
+
+        // Ideal gas
+        real gamma = 1.4;
+        real R = 1.0;
+
+        // Upstream conditions
+        real rho_u = 1.0;
+        real u_u = 1.5*sqrt(1.4);
+        real v_u = 0.0;
+        real p_u = 1.0;
+        real t_u = p_u/(rho_u*R);
+
+
+
+        // Shock condition
+        real M_s = 1.5;
+
+        // Downstream conditions
+        real rho_d = (rho_u * (gamma + 1.0) * M_s * M_s) / (2.0 + (gamma - 1.0) * M_s * M_s);
+        real u_d = (u_u * (2.0 + ((gamma - 1.0) * M_s * M_s)))/((gamma + 1.0) * M_s * M_s);
+        real v_d = 0.0;
+        real p_d = p_u * (1.0 + (2.0 * gamma / (gamma + 1.0)) * (M_s * M_s - 1.0));
+
+        if (x <= 0.5){
+            if (istate == 0) {
+                // density
+                value = rho_u;
+            }
+            else if (istate == 1) {
+                // x-velocity
+                value = u_u;
+            }
+            else if (istate == 2) {
+                // y-velocity
+                value = v_u;
+            }
+            else if (istate == 3) {
+                // pressure
+                value = p_u;
+            }
+        } else {
+            if (istate == 0) {
+                // density
+                value = rho_d;
+            }
+            else if (istate == 1) {
+                // x-velocity
+                value = u_d;
+            }
+            else if (istate == 2) {
+                // y-velocity
+                value = v_d;
+            }
+            else if (istate == 3) {
+                // pressure
+                value = p_d;
+            }            
+        }
+
+        if(x <= 0.5) {
+            // Vortex location
+            real x_c = 0.25; real y_c = 0.5;
+
+            // Vortex sizes
+            real a = 0.075; real b = 0.175;
+
+            // Vortex strength
+            real M_v = 0.9; real v_m = M_v * sqrt(gamma);
+
+            // Distance from vortex
+            real dx = x - x_c;
+            real dy = y - y_c;
+            real r = sqrt((dx*dx) + (dy*dy));
+
+            // if (x > 0.1 && x < 0.3 && y > 0.3 && y < 0.7){
+            //     std::cout << dx << "   " << dy << "   " << std::endl;
+            //     std::cout << dx * dx << "   " << dy*dy <<  "   " << (dx*dx) + (dy*dy) << std::endl;
+            //     std::cout << r << "   " << a << "   " << b << std::endl << std::endl;
+            // }
+
+            real temperature = 0.0;
+
+            // Superimpose vortex
+            if (r<=b) {
+                //std::cout << "Vortex Superimpose" << std::endl;
+                double sin_theta = dy/r;
+                double cos_theta = dx/r;
+
+                if (r<=a) {
+                    real mag = v_m * r / a;
+                    if(istate == 1)
+                        value = u_u - mag*sin_theta;
+                    else if(istate == 2)
+                        value = v_u + mag*cos_theta;
+                    else {
+                        // Temperature at a, integrated from ODE
+                        real radial_term = -2.0 * b * b * log(b) - (0.5 * a * a) + (2.0 * b * b * log(a)) + (0.5 * b * b * b * b / (a * a));
+                        real t_a = t_u - (gamma - 1.0) * pow(v_m * a / (a * a - b * b), 2.0) * radial_term / (R * gamma);
+                        radial_term = 0.5 * (1.0 - r * r / (a * a));
+                        temperature = t_a - (gamma - 1.0) * v_m * v_m * radial_term / (R * gamma);
+                    } 
+                } else {
+                    real mag = v_m * a * (r - b * b / r)/(a * a - b * b);
+                    if(istate == 1)
+                        value = u_u - mag * sin_theta;
+                    else if (istate == 2)
+                        value = v_u + mag * cos_theta;
+                    else {
+                        real radial_term = -2.0 * b * b * log(b) - (0.5 * r * r) + (2.0 * b * b * log(r)) + (0.5 * b * b * b * b / (r * r));
+                        temperature = t_u - (gamma - 1.0) * pow(v_m * a/(a * a - b * b), 2.0) * radial_term / (R * gamma);
+                    }
+                }
+
+                if (istate == 0)
+                    value = rho_u * pow(temperature/t_u, 1.0/(gamma - 1.0));
+                else if (istate == 3)
+                    value = p_u * pow(temperature/t_u, gamma/(gamma - 1.0));
+            }
+        }
+    }
+    return value;
+}
 // ========================================================
 // ZERO INITIAL CONDITION
 // ========================================================
@@ -712,6 +1291,8 @@ InitialConditionFactory<dim,nstate, real>::create_InitialConditionFunction(
         if constexpr (dim==1 && nstate==1) return std::make_shared<InitialConditionFunction_BurgersInviscidEnergy<dim,nstate,real> > ();
     } else if (flow_type == FlowCaseEnum::advection && param->use_energy==true) {
         if constexpr (nstate==1) return std::make_shared<InitialConditionFunction_AdvectionEnergy<dim,nstate,real> > ();
+    } else if (flow_type == FlowCaseEnum::nonsmooth_case) {
+        if constexpr (dim==2 && nstate==1) return std::make_shared<InitialConditionFunction_NonSmooth<dim,nstate,real> > ();
     } else if (flow_type == FlowCaseEnum::advection && param->use_energy==false) {
         if constexpr (nstate==1) return std::make_shared<InitialConditionFunction_Advection<dim,nstate,real> > ();
     } else if (flow_type == FlowCaseEnum::convection_diffusion && !param->use_energy) {
@@ -727,13 +1308,27 @@ InitialConditionFactory<dim,nstate, real>::create_InitialConditionFunction(
     } else if (flow_type == FlowCaseEnum::non_periodic_cube_flow) {
         if constexpr (dim==2 && nstate==1)  return std::make_shared<InitialConditionFunction_Zero<dim,nstate,real> > ();
     } else if (flow_type == FlowCaseEnum::sod_shock_tube) {
-        if constexpr (dim==1 && nstate==dim+2)  return std::make_shared<InitialConditionFunction_SodShockTube<dim,nstate,real> > (param);
-    } else if (flow_type == FlowCaseEnum::low_density_2d) {
-        if constexpr (dim==2 && nstate==dim+2)  return std::make_shared<InitialConditionFunction_LowDensity2D<dim,nstate,real> > (param);
+        if constexpr (dim >= 1 && nstate == dim+2)  return std::make_shared<InitialConditionFunction_SodShockTube<dim,nstate,real> > (param);
+    } else if (flow_type == FlowCaseEnum::explosion_problem) {
+        if constexpr (dim>1 && nstate==dim+2)  return std::make_shared<InitialConditionFunction_ExplosionProblem<dim,nstate,real> > (param);
+    } else if (flow_type == FlowCaseEnum::low_density) {
+        if constexpr (dim < 3 && nstate == dim+2)  return std::make_shared<InitialConditionFunction_LowDensity<dim,nstate,real> > (param);
     } else if (flow_type == FlowCaseEnum::leblanc_shock_tube) {
-        if constexpr (dim==1 && nstate==dim+2)  return std::make_shared<InitialConditionFunction_LeblancShockTube<dim,nstate,real> > (param);
+        if constexpr (dim < 3 && nstate == dim+2)  return std::make_shared<InitialConditionFunction_LeblancShockTube<dim,nstate,real> > (param);
     } else if (flow_type == FlowCaseEnum::shu_osher_problem) {
         if constexpr (dim == 1 && nstate == dim + 2)  return std::make_shared<InitialConditionFunction_ShuOsherProblem<dim, nstate, real> >(param);
+    } else if (flow_type == FlowCaseEnum::double_mach_reflection) {
+        if constexpr (dim == 2 && nstate == dim + 2)  return std::make_shared<InitialConditionFunction_DoubleMachReflection<dim, nstate, real> >(param);
+    } else if (flow_type == FlowCaseEnum::mach_3_wind_tunnel) {
+        if constexpr (dim == 2 && nstate == dim + 2)  return std::make_shared<InitialConditionFunction_Mach3WindTunnel<dim, nstate, real> >(param);
+    } else if (flow_type == FlowCaseEnum::sedov_blast_wave) {
+        if constexpr (dim == 2 && nstate == dim + 2)  return std::make_shared<InitialConditionFunction_SedovBlastWave<dim, nstate, real> >(param);
+    } else if (flow_type == FlowCaseEnum::shock_diffraction) {
+        if constexpr (dim == 2 && nstate == dim + 2)  return std::make_shared<InitialConditionFunction_ShockDiffraction<dim, nstate, real> >(param);
+    } else if (flow_type == FlowCaseEnum::astrophysical_jet) {
+        if constexpr (dim == 2 && nstate == dim + 2)  return std::make_shared<InitialConditionFunction_AstrophysicalJet<dim, nstate, real> >(param);
+    } else if (flow_type == FlowCaseEnum::svsw) {
+        if constexpr (dim == 2 && nstate == dim + 2)  return std::make_shared<InitialConditionFunction_SVSW<dim, nstate, real> >(param);
     } else if (flow_type == FlowCaseEnum::advection_limiter) {
         if constexpr (dim < 3 && nstate == 1)  return std::make_shared<InitialConditionFunction_Advection<dim, nstate, real> >();
     } else if (flow_type == FlowCaseEnum::burgers_limiter) {
@@ -757,27 +1352,39 @@ template class InitialConditionFactory <PHILIP_DIM, 3, double>;
 template class InitialConditionFactory <PHILIP_DIM, 4, double>;
 template class InitialConditionFactory <PHILIP_DIM, 5, double>;
 template class InitialConditionFactory <PHILIP_DIM, 6, double>;
+
 #if PHILIP_DIM==1
 template class InitialConditionFunction_BurgersViscous <PHILIP_DIM, 1, double>;
 template class InitialConditionFunction_BurgersRewienski <PHILIP_DIM, 1, double>;
 template class InitialConditionFunction_BurgersInviscidEnergy <PHILIP_DIM, 1, double>;
-template class InitialConditionFunction_EulerBase <PHILIP_DIM,PHILIP_DIM+2,double>;
-template class InitialConditionFunction_SodShockTube <PHILIP_DIM,PHILIP_DIM+2,double>;
-template class InitialConditionFunction_LeblancShockTube <PHILIP_DIM,PHILIP_DIM+2,double>;
 template class InitialConditionFunction_ShuOsherProblem <PHILIP_DIM, PHILIP_DIM + 2, double>;
 #endif
+
 #if PHILIP_DIM==3
 template class InitialConditionFunction_TaylorGreenVortex <PHILIP_DIM, PHILIP_DIM+2, double>;
 template class InitialConditionFunction_TaylorGreenVortex_Isothermal <PHILIP_DIM, PHILIP_DIM+2, double>;
 #endif
+
 #if PHILIP_DIM>1
 template class InitialConditionFunction_IsentropicVortex <PHILIP_DIM, PHILIP_DIM+2, double>;
 #endif
+
 #if PHILIP_DIM==2
 template class InitialConditionFunction_KHI <PHILIP_DIM, PHILIP_DIM+2, double>;
-template class InitialConditionFunction_EulerBase <PHILIP_DIM, PHILIP_DIM + 2, double>;
-template class InitialConditionFunction_LowDensity2D <PHILIP_DIM, PHILIP_DIM+2, double>;
+template class InitialConditionFunction_DoubleMachReflection <PHILIP_DIM, PHILIP_DIM+2, double>;
+template class InitialConditionFunction_Mach3WindTunnel <PHILIP_DIM, PHILIP_DIM+2, double>;
+template class InitialConditionFunction_SedovBlastWave <PHILIP_DIM, PHILIP_DIM+2, double>;
+template class InitialConditionFunction_ShockDiffraction <PHILIP_DIM, PHILIP_DIM+2, double>;
+template class InitialConditionFunction_AstrophysicalJet <PHILIP_DIM, PHILIP_DIM+2, double>;
+template class InitialConditionFunction_SVSW <PHILIP_DIM, PHILIP_DIM+2, double>;
+template class InitialConditionFunction_NonSmooth <PHILIP_DIM, 1, double>;
 #endif
+
+#if PHILIP_DIM < 3
+template class InitialConditionFunction_LeblancShockTube<PHILIP_DIM,PHILIP_DIM+2,double>;
+template class InitialConditionFunction_LowDensity <PHILIP_DIM, PHILIP_DIM+2, double>;
+#endif
+
 // functions instantiated for all dim
 template class InitialConditionFunction_Zero <PHILIP_DIM,1, double>;
 template class InitialConditionFunction_Zero <PHILIP_DIM,2, double>;
@@ -790,5 +1397,7 @@ template class InitialConditionFunction_BurgersInviscid <PHILIP_DIM, PHILIP_DIM,
 template class InitialConditionFunction_AdvectionEnergy <PHILIP_DIM, 1, double>;
 template class InitialConditionFunction_ConvDiff <PHILIP_DIM, 1, double>;
 template class InitialConditionFunction_ConvDiffEnergy <PHILIP_DIM,1,double>;
+template class InitialConditionFunction_EulerBase <PHILIP_DIM,PHILIP_DIM+2,double>;
+template class InitialConditionFunction_SodShockTube <PHILIP_DIM,PHILIP_DIM+2,double>;
 
 } // PHiLiP namespace

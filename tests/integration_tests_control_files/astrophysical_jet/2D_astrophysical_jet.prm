@@ -1,0 +1,66 @@
+# Listing of Parameters
+# ---------------------
+# Number of dimensions
+
+set dimension = 2
+set run_type = flow_simulation
+set pde_type = euler
+
+# DG formulation
+set use_weak_form = false
+set flux_nodes_type = GLL
+
+# Strong DG - LaxF
+#set use_split_form = false
+#set conv_num_flux = lax_friedrichs
+
+# NSFR - Ra
+set use_split_form = true
+set two_point_num_flux_type = Ra
+set conv_num_flux = two_point_flux_with_roe_dissipation
+set flux_reconstruction = cPlus
+set use_inverse_mass_on_the_fly = true
+
+subsection limiter
+  set bound_preserving_limiter = positivity_preservingWang2012
+  set min_density = 1e-13
+end
+
+# ODE solver
+subsection ODE solver
+  set ode_output = verbose
+  set ode_solver_type = runge_kutta
+  set initial_time_step = 0.00000001
+  #set output_solution_every_x_steps = 5
+  set runge_kutta_method = ssprk3_ex
+  set print_iteration_modulo = 1
+  set output_solution_every_dt_time_intervals = 0.0005
+end
+
+# freestream Mach number
+subsection euler
+  set mach_infinity = 80
+  set gamma_gas = 1.667
+  set custom_boundary_for_each_state = 5,30,0.0,0.4127,0.0
+end
+
+subsection flow_solver
+  set flow_case_type = astrophysical_jet
+  set poly_degree = 3
+  set final_time = 0.07
+  #set constant_time_step = 0.0005
+  set courant_friedrichs_lewy_number = 0.01
+  set adaptive_time_step = true
+  set unsteady_data_table_filename = astrophysical_jet_energy
+  subsection grid
+    subsection positivity_preserving_tests
+      set grid_xmin = 0
+      set grid_xmax = 2
+      set grid_ymin = -0.5
+      set grid_ymax = 0.5
+
+      set number_of_grid_elements_x = 320
+      set number_of_grid_elements_y = 160
+    end
+  end
+end

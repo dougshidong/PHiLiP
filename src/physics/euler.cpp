@@ -299,6 +299,10 @@ inline real Euler<dim,nstate,real>
     //Copy such that we don't modify the original density that is passed
     real density_check = density;
     const bool density_is_positive = check_positive_quantity<real>(density_check, "density");
+
+    // if (density < 0.1){
+    //     std::cout << "density:   " << density << "   pressure:   " << pressure << "   gam:   " << gam << "   entropy_gen:   " << pressure*pow(density,-gam) << std::endl << std::endl;
+    // }
     if (density_is_positive)     return pressure*pow(density,-gam);
     else                         return (real)this->BIG_NUMBER;
 }
@@ -1319,6 +1323,63 @@ void Euler<dim,nstate,real>
    }
 }
 
+
+template <int dim, int nstate, typename real>
+void Euler<dim, nstate, real>
+::boundary_custom(
+    std::array<real, nstate>& soln_bc) const
+{
+    std::array<real, nstate> primitive_boundary_values;
+    for (int istate = 0; istate < nstate; ++istate) {
+            primitive_boundary_values[istate] = this->all_parameters->euler_param.custom_boundary_for_each_state[istate];
+    }
+
+    const std::array<real, nstate> conservative_bc = convert_primitive_to_conservative(primitive_boundary_values);
+    for (int istate = 0; istate < nstate; ++istate) {
+        soln_bc[istate] = conservative_bc[istate];
+    }
+}
+
+template <int dim, int nstate, typename real>
+void Euler<dim, nstate, real>
+::boundary_astrophysical_inflow(
+    std::array<real, nstate>& soln_bc) const
+{
+    std::array<real, nstate> primitive_boundary_values;
+    for (int istate = 0; istate < nstate; ++istate) {
+        if(istate == 0)
+            primitive_boundary_values[istate] = 0.5;
+        if(istate == 1)
+            primitive_boundary_values[istate] = 0.0;
+        if(istate == 2)
+            primitive_boundary_values[istate] = 0.0;
+        if(istate == 3)
+            primitive_boundary_values[istate] = 0.4127;
+        if(istate == 4)
+            primitive_boundary_values[istate] = 0.0;
+    }
+
+    const std::array<real, nstate> conservative_bc = convert_primitive_to_conservative(primitive_boundary_values);
+    for (int istate = 0; istate < nstate; ++istate) {
+        soln_bc[istate] = conservative_bc[istate];
+    }
+}
+
+template <int dim, int nstate, typename real>
+void Euler<dim, nstate, real>
+::boundary_do_nothing(
+    const std::array<real, nstate>& soln_int,
+    const std::array<dealii::Tensor<1, dim, real>, nstate>& /*soln_grad_int*/,
+    std::array<real, nstate>& soln_bc,
+    std::array<dealii::Tensor<1, dim, real>, nstate>& soln_grad_bc) const
+{
+    for (int istate = 0; istate < nstate; ++istate) {
+            soln_bc[istate] = soln_int[istate];
+            soln_grad_bc[istate] = 0;//soln_grad_int[istate];
+    }
+    
+}
+
 template <int dim, int nstate, typename real>
 void Euler<dim,nstate,real>
 ::boundary_face_values (
@@ -1362,7 +1423,19 @@ void Euler<dim,nstate,real>
     else if (boundary_type == 1006) {
         // Slip wall boundary condition
         boundary_slip_wall (normal_int, soln_int, soln_grad_int, soln_bc, soln_grad_bc);
-    } 
+    }
+    else if (boundary_type == 1007) {
+        // Custom boundary condition
+        boundary_custom (soln_bc);
+    }
+    else if (boundary_type == 1008) {
+        // Custom boundary condition
+        boundary_astrophysical_inflow (soln_bc);
+    }
+    else if (boundary_type == 1009) {
+        // Custom boundary condition
+        boundary_do_nothing (soln_int, soln_grad_int, soln_bc, soln_grad_bc);
+    }
     else {
         this->pcout << "Invalid boundary_type: " << boundary_type << std::endl;
         std::abort();

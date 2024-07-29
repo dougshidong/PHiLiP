@@ -417,11 +417,9 @@ Epetra_Vector NNLS_solver::allocateVectorSingleCore(Epetra_Vector &b){
 
 Epetra_Vector NNLS_solver::allocateToMultipleCores(Epetra_Vector &c)
 {
-  // Gather size of vector C
-  int c_size = c.GlobalLength();
   // Create new multi core map and gather old single core map
   Epetra_BlockMap old_map_c = c.Map();
-  Epetra_Map multi_core_c (c_size, 0, Comm_);
+  Epetra_BlockMap multi_core_c = this->Multi_x_.Map();
   // Create Epetra_importer object
   Epetra_Import c_importer (multi_core_c, old_map_c);
   // Create new c vector

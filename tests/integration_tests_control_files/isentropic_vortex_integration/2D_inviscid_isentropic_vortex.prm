@@ -48,5 +48,5 @@ subsection flow_solver
     set grid_right_bound = 10.0
     set number_of_grid_elements_per_dimension = 32
   end
-  #set interpolate_initial_condition = true
+  set apply_initial_condition_method = interpolate_initial_condition_function
 end

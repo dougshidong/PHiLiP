@@ -55,6 +55,8 @@ COMMAND ${MPIGO} $<TARGET_FILE:Tests.exe> nIter)
 ADD_TEST(NAME NNLS_max_iter
 COMMAND ${MPIGO} $<TARGET_FILE:Tests.exe> maxIter)
 
+ADD_TEST(NAME NNLS_multi_core
+COMMAND /usr/bin/mpiexec -np 2 $<TARGET_FILE:Tests.exe> multiCore)
 
 #set(TEST_SRC
 #	NNLS_tests.cpp)

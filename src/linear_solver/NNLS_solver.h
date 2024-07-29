@@ -57,6 +57,7 @@
 #include <Epetra_CrsMatrix.h>
 #include <Epetra_Vector.h>
 #include <Epetra_MultiVector.h>
+#include <Epetra_Import.h>
 #include <Epetra_LinearProblem.h>
 #include <EpetraExt_MatrixMatrix.h>
 #include <AztecOO.h>
@@ -117,12 +118,14 @@ public:
     bool solve();
 
     /// Returns protected approximate solution
-    Epetra_Vector & getSolution() {return x_;}
+    Epetra_Vector & getSolution() {return Multi_x_;}
 
     // Initiliazes the solution vector, must be used before .solve is called
     void startingSolution(Epetra_Vector &start) {
+        Epetra_Vector start_single_core = allocateVectorSingleCore(start);
+        std::cout << start_single_core << std::endl;
         P.flip();
-        SubIntoX(start);
+        SubIntoX(start_single_core);
         P.flip();}
   
     const Parameters::AllParameters *const all_parameters; ///< Pointer to all parameters
@@ -131,10 +134,11 @@ public:
     const dealii::ParameterHandler &parameter_handler;
 
 protected:
-    const Epetra_CrsMatrix A_;
     Epetra_MpiComm Comm_;
+    const Epetra_CrsMatrix A_;
     Epetra_Vector b_;
     Epetra_Vector x_;
+    Epetra_Vector Multi_x_;
     int LS_iter_; // needed if the an iterative solver is used
     double LS_tol_; // needed if the an iterative solver is used
     int numInactive_;
@@ -167,6 +171,15 @@ private:
 
     /// Moves the column at idx into the inactive set (updating the index_set, Z, P, and numInactive_)
     void moveToInactiveSet(int idx);
+
+    /// Re-allocates solution to multiple cores
+    Epetra_Vector allocateToMultipleCores(Epetra_Vector &c);
+
+    /// Allocates the incoming A Matrix to a single core
+    Epetra_CrsMatrix allocateMatrixSingleCore(const Epetra_CrsMatrix &A);
+    
+    /// Allocates the incoming b vector to a single core
+    Epetra_Vector allocateVectorSingleCore(Epetra_Vector &b);
 };
 } // PHiLiP namespace
 #endif  // NNLS_H

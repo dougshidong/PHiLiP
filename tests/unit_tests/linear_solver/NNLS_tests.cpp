@@ -169,7 +169,7 @@ bool verify_nnls_optimality(Eigen::MatrixXd &A, Eigen::MatrixXd &b_eig, Eigen::M
 /// @return boolean dependent on the exit condition of the NNLS solver and optimality/accuracy of the solutions
 bool test_nnls_known_CLASS(const PHiLiP::Parameters::AllParameters *const all_parameters,
                   const dealii::ParameterHandler &parameter_handler,
-                  Eigen::MatrixXd &A_eig, int col, int row, Eigen::MatrixXd &x_eig, Eigen::MatrixXd &b_eig, double *b_pt, Epetra_MpiComm &Comm){
+                  Eigen::MatrixXd &A_eig, int col, int row, Eigen::MatrixXd &x_eig, Eigen::MatrixXd &b_eig, Epetra_MpiComm &Comm){
   // Check solution of NNLS problem with a known solution
   // Returns true if the solver exits for any condition other than max_iter and if the solution x is accurate to the true solution and satisfies the conditions above
   
@@ -178,7 +178,8 @@ bool test_nnls_known_CLASS(const PHiLiP::Parameters::AllParameters *const all_pa
   std::cout << " Matrix A "<< std::endl;
   std::cout << A << std::endl;
   
-  Epetra_Vector b(Copy, A.RowMap(), b_pt);
+  Eigen::VectorXd b_vec = Eigen::Map<Eigen::VectorXd>(b_eig.data(), b_eig.size());
+  Epetra_Vector b(eig_to_epetra_vector(b_vec,row,Comm));
   std::cout << " Vector b "<< std::endl;
   std::cout << b << std::endl;
 
@@ -217,12 +218,12 @@ bool test_nnls_handles_Mx0_matrix(const PHiLiP::Parameters::AllParameters *const
   // Build matrix with no columns
   const int row = internal::random<int>(1, EIGEN_TEST_MAX_SIZE);
   MatrixXd A_eig(row, 0);
+  std::cout << A_eig << std::endl;
   VectorXd b_eig = VectorXd::Random(row);
 
-  double *b_pt = b_eig.data();
-
   Epetra_CrsMatrix A(eig_to_epetra_matrix(A_eig, 0, row, Comm));
-  Epetra_Vector b(Copy, A.RowMap(), b_pt);
+  Eigen::VectorXd b_vec = Eigen::Map<Eigen::VectorXd>(b_eig.data(), b_eig.size());
+  Epetra_Vector b(eig_to_epetra_vector(b_vec,row,Comm));
 
   // Create instance of NNLS solver, and call .solve to find the solution and exit conditions
   NNLS_solver NNLS_prob(all_parameters, parameter_handler, A, Comm, b);
@@ -238,7 +239,7 @@ bool test_nnls_handles_Mx0_matrix(const PHiLiP::Parameters::AllParameters *const
   bool opt = true;
   opt &= (NNLS_prob.iter_ == 0);
   Epetra_Vector x(NNLS_prob.getSolution());
-  opt &= (x.MyLength()== 0);
+  opt &= (x.GlobalLength()== 0);
   return opt;
 }
 
@@ -254,10 +255,11 @@ bool test_nnls_handles_0x0_matrix(const PHiLiP::Parameters::AllParameters *const
   MatrixXd A_eig(0, 0);
   VectorXd b_eig(0);
 
-  double *b_pt = b_eig.data();
+  //double *b_pt = b_eig.data();
 
   Epetra_CrsMatrix A(eig_to_epetra_matrix(A_eig, 0, 0, Comm));
-  Epetra_Vector b(Copy, A.RowMap(), b_pt);
+  Eigen::VectorXd b_vec = Eigen::Map<Eigen::VectorXd>(b_eig.data(), b_eig.size());
+  Epetra_Vector b(eig_to_epetra_vector(b_vec,0,Comm));
 
   // Create instance of NNLS solver, and call .solve to find the solution and exit conditions
   NNLS_solver NNLS_prob(all_parameters, parameter_handler, A, Comm, b);
@@ -273,7 +275,7 @@ bool test_nnls_handles_0x0_matrix(const PHiLiP::Parameters::AllParameters *const
   bool opt = true;
   opt &= (NNLS_prob.iter_ == 0);
   Epetra_Vector x(NNLS_prob.getSolution());
-  opt &= (x.MyLength()== 0);
+  opt &= (x.GlobalLength()== 0);
   return opt;
 }
 
@@ -305,7 +307,8 @@ bool test_nnls_random_problem(PHiLiP::Parameters::AllParameters *all_parameters,
   // Make a random RHS also with a random scaling
   using VectorB = decltype(A_eig.col(0).eval());
   MatrixXd b_eig = 100 * VectorB::Random(A_eig.rows());
-  double *b_pt = b_eig.data();
+  std::cout << b_eig << std::endl;
+  //double *b_pt = b_eig.data();
 
   // Estimate the tolerance and max_iter based on problem size
   using Scalar = typename MatrixXd::Scalar;
@@ -316,7 +319,8 @@ bool test_nnls_random_problem(PHiLiP::Parameters::AllParameters *all_parameters,
   
   // Convert Eigen structures to Epetra
   Epetra_CrsMatrix A(eig_to_epetra_matrix(A_eig, cols, rows, Comm));
-  Epetra_Vector b(Copy, A.RowMap(), b_pt);
+  Eigen::VectorXd b_vec = Eigen::Map<Eigen::VectorXd>(b_eig.data(), b_eig.size());
+  Epetra_Vector b(eig_to_epetra_vector(b_vec,rows,Comm));
 
   std::cout << " Matrix A "<< std::endl;
   std::cout << A << std::endl;
@@ -359,11 +363,12 @@ bool test_nnls_handles_zero_rhs(const PHiLiP::Parameters::AllParameters *const a
   MatrixXd A_eig = MatrixXd::Random(rows, cols);
   MatrixXd b_eig = VectorXd::Zero(rows);
 
-  double *b_pt = b_eig.data();
+  //double *b_pt = b_eig.data();
 
   // Convert Eigen structures to Epetra
   Epetra_CrsMatrix A(eig_to_epetra_matrix(A_eig, cols, rows, Comm));
-  Epetra_Vector b(Copy, A.RowMap(), b_pt);
+  Eigen::VectorXd b_vec = Eigen::Map<Eigen::VectorXd>(b_eig.data(), b_eig.size());
+  Epetra_Vector b(eig_to_epetra_vector(b_vec,rows,Comm));
 
   std::cout << " Matrix A "<< std::endl;
   std::cout << A << std::endl;
@@ -408,11 +413,12 @@ bool test_nnls_handles_dependent_columns(const PHiLiP::Parameters::AllParameters
   MatrixXd A_eig = MatrixXd::Random(rows, rank) * MatrixXd::Random(rank, cols);
   MatrixXd b_eig = VectorXd::Random(rows);
   
-  double *b_pt = b_eig.data();
+  //double *b_pt = b_eig.data();
 
   // Convert Eigen structures to Epetra
   Epetra_CrsMatrix A(eig_to_epetra_matrix(A_eig, cols, rows, Comm));
-  Epetra_Vector b(Copy, A.RowMap(), b_pt);
+  Eigen::VectorXd b_vec = Eigen::Map<Eigen::VectorXd>(b_eig.data(), b_eig.size());
+  Epetra_Vector b(eig_to_epetra_vector(b_vec,rows,Comm));
 
   std::cout << " Matrix A "<< std::endl;
   std::cout << A << std::endl;
@@ -459,11 +465,12 @@ bool test_nnls_handles_wide_matrix(const PHiLiP::Parameters::AllParameters *cons
   MatrixXd A_eig = MatrixXd::Random(rows, cols);
   MatrixXd b_eig = VectorXd::Random(rows);
   
-  double *b_pt = b_eig.data();
+  //double *b_pt = b_eig.data();
 
   // Convert Eigen structures to Epetra
   Epetra_CrsMatrix A(eig_to_epetra_matrix(A_eig, cols, rows, Comm));
-  Epetra_Vector b(Copy, A.RowMap(), b_pt);
+  Eigen::VectorXd b_vec = Eigen::Map<Eigen::VectorXd>(b_eig.data(), b_eig.size());
+  Epetra_Vector b(eig_to_epetra_vector(b_vec,rows,Comm));
 
   std::cout << " Matrix A "<< std::endl;
   std::cout << A << std::endl;
@@ -516,13 +523,15 @@ bool test_nnls_special_case_solves_in_zero_iterations(const PHiLiP::Parameters::
   MatrixXd x_eig = VectorXd::Random(n).cwiseAbs().array() + 1;  // all positive
   MatrixXd b_eig = A_eig * x_eig;
 
-  double *b_pt = b_eig.data();
-  double *x_pt = x_eig.data();
+  //double *b_pt = b_eig.data();
+  //double *x_pt = x_eig.data();
 
   // Convert Eigen structures to Epetra
   Epetra_CrsMatrix A(eig_to_epetra_matrix(A_eig, n, m, Comm));
-  Epetra_Vector b(Copy, A.RowMap(), b_pt);
-  Epetra_Vector x_start(Copy, A.ColMap(), x_pt);
+  Eigen::VectorXd b_vec = Eigen::Map<Eigen::VectorXd>(b_eig.data(), b_eig.size());
+  Epetra_Vector b(eig_to_epetra_vector(b_vec,b_vec.size(),Comm));
+  Eigen::VectorXd x_vec = Eigen::Map<Eigen::VectorXd>(x_eig.data(), x_eig.size());
+  Epetra_Vector x_start(eig_to_epetra_vector(x_vec,x_vec.size(),Comm));
 
   std::cout << " Matrix A "<< std::endl;
   std::cout << A << std::endl;
@@ -568,11 +577,12 @@ bool test_nnls_special_case_solves_in_n_iterations(const PHiLiP::Parameters::All
   MatrixXd x_eig = VectorXd::Random(n).cwiseAbs().array() + 1;  // all positive.
   MatrixXd b_eig = A_eig * x_eig;
 
-  double *b_pt = b_eig.data();
+  //double *b_pt = b_eig.data();
 
   // Convert Eigen structures to Epetra
   Epetra_CrsMatrix A(eig_to_epetra_matrix(A_eig, n, m, Comm));
-  Epetra_Vector b(Copy, A.RowMap(), b_pt);
+  Eigen::VectorXd b_vec = Eigen::Map<Eigen::VectorXd>(b_eig.data(), b_eig.size());
+  Epetra_Vector b(eig_to_epetra_vector(b_vec,m,Comm));
 
   std::cout << " Matrix A "<< std::endl;
   std::cout << A << std::endl;
@@ -624,11 +634,12 @@ bool test_nnls_returns_NoConvergence_when_maxIterations_is_too_low(PHiLiP::Param
   MatrixXd x_eig = VectorXd::Random(n).cwiseAbs().array() + 1;  // all positive.
   MatrixXd b_eig = A_eig * x_eig;
 
-  double *b_pt = b_eig.data();
+  //double *b_pt = b_eig.data();
 
   // Convert Eigen structures to Epetra
   Epetra_CrsMatrix A(eig_to_epetra_matrix(A_eig, n, m, Comm));
-  Epetra_Vector b(Copy, A.RowMap(), b_pt);
+  Eigen::VectorXd b_vec = Eigen::Map<Eigen::VectorXd>(b_eig.data(), b_eig.size());
+  Epetra_Vector b(eig_to_epetra_vector(b_vec,m,Comm));
 
   std::cout << " Matrix A "<< std::endl;
   std::cout << A << std::endl;
@@ -667,9 +678,8 @@ bool case_1 (const PHiLiP::Parameters::AllParameters *const all_parameters,
   A_eig << 1, 1,  2, 4,  3, 9,  4, 16;
   b_eig << 0.6, 2.2, 4.8, 8.4;
   x_eig << 0.1, 0.5;
-  double b_pt[] = {0.6, 2.2, 4.8, 8.4};
 
-  return test_nnls_known_CLASS(all_parameters, parameter_handler, A_eig, 2, 4, x_eig, b_eig, b_pt, Comm);
+  return test_nnls_known_CLASS(all_parameters, parameter_handler, A_eig, 2, 4, x_eig, b_eig, Comm);
 }
 
 /// @brief Case 2: 4x3 problem, unconstrained solution positive
@@ -686,9 +696,8 @@ bool case_2 (const PHiLiP::Parameters::AllParameters *const all_parameters,
        4, 16, 64;
   b_eig << 0.73, 3.24, 8.31, 16.72;
   x_eig << 0.1, 0.5, 0.13;
-  double b_pt[] = {0.73, 3.24, 8.31, 16.72};
 
-  return test_nnls_known_CLASS(all_parameters, parameter_handler, A_eig, 3, 4, x_eig, b_eig, b_pt, Comm);
+  return test_nnls_known_CLASS(all_parameters, parameter_handler, A_eig, 3, 4, x_eig, b_eig, Comm);
 }
 
 /// @brief Case 3: Simple 4x4 problem, unconstrained solution non-negative
@@ -702,9 +711,8 @@ bool case_3 (const PHiLiP::Parameters::AllParameters *const all_parameters,
   A_eig << 1, 1, 1, 1, 2, 4, 8, 16, 3, 9, 27, 81, 4, 16, 64, 256;
   b_eig << 0.73, 3.24, 8.31, 16.72;
   x_eig << 0.1, 0.5, 0.13, 0;
-  double b_pt[] = {0.73, 3.24, 8.31, 16.72};
 
-  return test_nnls_known_CLASS(all_parameters, parameter_handler, A_eig, 4, 4, x_eig, b_eig, b_pt, Comm);
+  return test_nnls_known_CLASS(all_parameters, parameter_handler, A_eig, 4, 4, x_eig, b_eig, Comm);
 }
 
 /// @brief Case 4: Simple 4x3 problem, unconstrained solution non-negative
@@ -718,9 +726,8 @@ bool case_4 (const PHiLiP::Parameters::AllParameters *const all_parameters,
   A_eig << 1, 1, 1, 2, 4, 8, 3, 9, 27, 4, 16, 64;
   b_eig << 0.23, 1.24, 3.81, 8.72;
   x_eig << 0.1, 0, 0.13;
-  double b_pt[] = {0.23, 1.24, 3.81, 8.72};
 
-  return test_nnls_known_CLASS(all_parameters, parameter_handler, A_eig, 3, 4, x_eig, b_eig, b_pt, Comm);
+  return test_nnls_known_CLASS(all_parameters, parameter_handler, A_eig, 3, 4, x_eig, b_eig, Comm);
 }
 
 /// @brief Case 5: Simple 4x3 problem, unconstrained solution indefinite
@@ -735,9 +742,8 @@ bool case_5 (const PHiLiP::Parameters::AllParameters *const all_parameters,
   b_eig << 0.13, 0.84, 2.91, 7.12;
    // Solution obtained by original nnls() implementation in Fortran
   x_eig << 0.0, 0.0, 0.1106544;
-  double b_pt[] = {0.13, 0.84, 2.91, 7.12};
 
-  return test_nnls_known_CLASS(all_parameters, parameter_handler, A_eig, 3, 4, x_eig, b_eig, b_pt, Comm);
+  return test_nnls_known_CLASS(all_parameters, parameter_handler, A_eig, 3, 4, x_eig, b_eig, Comm);
 }
 
 /// @brief Case MATLAB: 1024 x 49 problem from ECSW in MATLAB for Burgers' 1D
@@ -748,17 +754,54 @@ bool case_MATLAB (const PHiLiP::Parameters::AllParameters *const all_parameters,
   Eigen::MatrixXd b_eig = load_csv<MatrixXd>("d.csv");
   Eigen::MatrixXd x_eig = load_csv<MatrixXd>("x_pow_4.csv");
 
-  double *b_pt = b_eig.data();
 
-  return test_nnls_known_CLASS(all_parameters, parameter_handler, A_eig, 1024, 49, x_eig, b_eig, b_pt, Comm);
+  return test_nnls_known_CLASS(all_parameters, parameter_handler, A_eig, 1024, 49, x_eig, b_eig, Comm);
 }
 
+/// @brief Case multiCore: Testing NNLS on multiple cores
+bool test_nnls_multiCore(const PHiLiP::Parameters::AllParameters *const all_parameters,
+                  const dealii::ParameterHandler &parameter_handler,
+                  Epetra_MpiComm &Comm) {
+    bool ok = true;
+    PHiLiP::Parameters::AllParameters non_const_all_param = *all_parameters;
+    std::cout << "Case 1" << std::endl;
+    ok &= case_1(all_parameters, parameter_handler,Comm);
+    std::cout << "Case 2" << std::endl;
+    ok &= case_2(all_parameters, parameter_handler,Comm);
+    std::cout << "Case Mx0" << std::endl;
+    ok &= test_nnls_handles_Mx0_matrix(all_parameters, parameter_handler, Comm);
+    std::cout << "Case 0x0" << std::endl;
+    ok &= test_nnls_handles_0x0_matrix(all_parameters, parameter_handler, Comm);
+    std::cout << "Case Random" << std::endl;
+    ok &= test_nnls_random_problem(&non_const_all_param, parameter_handler, Comm);
+    std::cout << "Case Zero RHS" << std::endl;
+    ok &= test_nnls_handles_zero_rhs(all_parameters, parameter_handler, Comm);
+    std::cout << "Case Dependent Columns" << std::endl;
+    ok &= test_nnls_handles_dependent_columns(all_parameters, parameter_handler, Comm);
+    std::cout << "Case Wide Matrix" << std::endl;
+    ok &= test_nnls_handles_wide_matrix(all_parameters, parameter_handler, Comm);
+    std::cout << "Case Zero Iter" << std::endl;
+    ok &= test_nnls_special_case_solves_in_zero_iterations(all_parameters, parameter_handler, Comm);
+    std::cout << "Case N Iter" << std::endl;
+    ok &= test_nnls_special_case_solves_in_n_iterations(all_parameters, parameter_handler, Comm);
+    std::cout << "Case Max Iter too low" << std::endl;
+    ok &= test_nnls_returns_NoConvergence_when_maxIterations_is_too_low(&non_const_all_param, parameter_handler, Comm);
+    Parameters::AllParameters new_parameters = reinitParams(non_const_all_param, 1E-4, 10000);
+    ok &= case_MATLAB(&new_parameters, parameter_handler,Comm);
+    return ok;
+
+}
 
 int main(int argc, char *argv[]){
   MPI_Init(&argc,&argv);
   Epetra_MpiComm Comm( MPI_COMM_WORLD );
   //double tau = 1E-8;
   //const int max_iter = 10000;
+
+  // Setting the same seed on all cores for random functions
+  int seed = time(0);
+  MPI_Bcast(&seed,1,MPI_INT,0,MPI_COMM_WORLD);
+  srand((unsigned int) seed);
 
   bool ok = true;
 
@@ -783,6 +826,7 @@ int main(int argc, char *argv[]){
   std::string s_9 = "zeroIter";
   std::string s_10 = "nIter"; 
   std::string s_11 = "maxIter";
+  std::string s_12 = "multiCore";
    
   if (argv[1] == s_1){
     ok &= case_1(&new_parameters, parameter_handler, Comm);
@@ -822,6 +866,9 @@ int main(int argc, char *argv[]){
   }
   else if (argv[1] == s_11){
     ok &= test_nnls_returns_NoConvergence_when_maxIterations_is_too_low(&all_parameters, parameter_handler, Comm);
+  }
+  else if (argv[1] == s_12){
+    ok &= test_nnls_multiCore(&all_parameters, parameter_handler, Comm);
   }
   else {
     ok = false;

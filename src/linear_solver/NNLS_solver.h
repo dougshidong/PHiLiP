@@ -123,7 +123,6 @@ public:
     // Initiliazes the solution vector, must be used before .solve is called
     void startingSolution(Epetra_Vector &start) {
         Epetra_Vector start_single_core = allocateVectorSingleCore(start);
-        std::cout << start_single_core << std::endl;
         P.flip();
         SubIntoX(start_single_core);
         P.flip();}

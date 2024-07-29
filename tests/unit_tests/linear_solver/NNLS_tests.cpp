@@ -254,9 +254,7 @@ bool test_nnls_handles_0x0_matrix(const PHiLiP::Parameters::AllParameters *const
 // Build matrix with no rows and columns
   MatrixXd A_eig(0, 0);
   VectorXd b_eig(0);
-
-  //double *b_pt = b_eig.data();
-
+  
   Epetra_CrsMatrix A(eig_to_epetra_matrix(A_eig, 0, 0, Comm));
   Eigen::VectorXd b_vec = Eigen::Map<Eigen::VectorXd>(b_eig.data(), b_eig.size());
   Epetra_Vector b(eig_to_epetra_vector(b_vec,0,Comm));
@@ -307,8 +305,6 @@ bool test_nnls_random_problem(PHiLiP::Parameters::AllParameters *all_parameters,
   // Make a random RHS also with a random scaling
   using VectorB = decltype(A_eig.col(0).eval());
   MatrixXd b_eig = 100 * VectorB::Random(A_eig.rows());
-  std::cout << b_eig << std::endl;
-  //double *b_pt = b_eig.data();
 
   // Estimate the tolerance and max_iter based on problem size
   using Scalar = typename MatrixXd::Scalar;
@@ -363,7 +359,6 @@ bool test_nnls_handles_zero_rhs(const PHiLiP::Parameters::AllParameters *const a
   MatrixXd A_eig = MatrixXd::Random(rows, cols);
   MatrixXd b_eig = VectorXd::Zero(rows);
 
-  //double *b_pt = b_eig.data();
 
   // Convert Eigen structures to Epetra
   Epetra_CrsMatrix A(eig_to_epetra_matrix(A_eig, cols, rows, Comm));
@@ -412,8 +407,6 @@ bool test_nnls_handles_dependent_columns(const PHiLiP::Parameters::AllParameters
   const Index rows = internal::random<Index>(cols, EIGEN_TEST_MAX_SIZE);
   MatrixXd A_eig = MatrixXd::Random(rows, rank) * MatrixXd::Random(rank, cols);
   MatrixXd b_eig = VectorXd::Random(rows);
-  
-  //double *b_pt = b_eig.data();
 
   // Convert Eigen structures to Epetra
   Epetra_CrsMatrix A(eig_to_epetra_matrix(A_eig, cols, rows, Comm));
@@ -464,8 +457,7 @@ bool test_nnls_handles_wide_matrix(const PHiLiP::Parameters::AllParameters *cons
   const Index rows = internal::random<Index>(2, cols - 1);
   MatrixXd A_eig = MatrixXd::Random(rows, cols);
   MatrixXd b_eig = VectorXd::Random(rows);
-  
-  //double *b_pt = b_eig.data();
+
 
   // Convert Eigen structures to Epetra
   Epetra_CrsMatrix A(eig_to_epetra_matrix(A_eig, cols, rows, Comm));
@@ -523,9 +515,6 @@ bool test_nnls_special_case_solves_in_zero_iterations(const PHiLiP::Parameters::
   MatrixXd x_eig = VectorXd::Random(n).cwiseAbs().array() + 1;  // all positive
   MatrixXd b_eig = A_eig * x_eig;
 
-  //double *b_pt = b_eig.data();
-  //double *x_pt = x_eig.data();
-
   // Convert Eigen structures to Epetra
   Epetra_CrsMatrix A(eig_to_epetra_matrix(A_eig, n, m, Comm));
   Eigen::VectorXd b_vec = Eigen::Map<Eigen::VectorXd>(b_eig.data(), b_eig.size());
@@ -576,8 +565,6 @@ bool test_nnls_special_case_solves_in_n_iterations(const PHiLiP::Parameters::All
   MatrixXd A_eig = MatrixXd::Random(m, n);
   MatrixXd x_eig = VectorXd::Random(n).cwiseAbs().array() + 1;  // all positive.
   MatrixXd b_eig = A_eig * x_eig;
-
-  //double *b_pt = b_eig.data();
 
   // Convert Eigen structures to Epetra
   Epetra_CrsMatrix A(eig_to_epetra_matrix(A_eig, n, m, Comm));
@@ -633,8 +620,6 @@ bool test_nnls_returns_NoConvergence_when_maxIterations_is_too_low(PHiLiP::Param
   MatrixXd A_eig = MatrixXd::Random(m, n);
   MatrixXd x_eig = VectorXd::Random(n).cwiseAbs().array() + 1;  // all positive.
   MatrixXd b_eig = A_eig * x_eig;
-
-  //double *b_pt = b_eig.data();
 
   // Convert Eigen structures to Epetra
   Epetra_CrsMatrix A(eig_to_epetra_matrix(A_eig, n, m, Comm));
@@ -786,6 +771,7 @@ bool test_nnls_multiCore(const PHiLiP::Parameters::AllParameters *const all_para
     ok &= test_nnls_special_case_solves_in_n_iterations(all_parameters, parameter_handler, Comm);
     std::cout << "Case Max Iter too low" << std::endl;
     ok &= test_nnls_returns_NoConvergence_when_maxIterations_is_too_low(&non_const_all_param, parameter_handler, Comm);
+    std::cout << "Case MATLAB" << std::endl;
     Parameters::AllParameters new_parameters = reinitParams(non_const_all_param, 1E-4, 10000);
     ok &= case_MATLAB(&new_parameters, parameter_handler,Comm);
     return ok;

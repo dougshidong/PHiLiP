@@ -19,7 +19,7 @@ set flux_nodes_type = GLL
 set use_split_form = true
 set two_point_num_flux_type = Ra
 set conv_num_flux = two_point_flux_with_roe_dissipation
-set flux_reconstruction = cPlus
+set flux_reconstruction = cDG
 set use_inverse_mass_on_the_fly = true
 
 subsection limiter
@@ -29,12 +29,18 @@ end
 
 # ODE solver
 subsection ODE solver
-  set ode_output = verbose
-  set ode_solver_type = runge_kutta
+  set atol = 0.00000001
+  set rtol = 0.00000001
+  set beta1 = 0.70
+  set beta2 = -0.23
+  set beta3 = 0.0
+  set ode_output = quiet
+  set ode_solver_type = low_storage_runge_kutta
   set initial_time_step = 0.00000001
   #set output_solution_every_x_steps = 100
   set output_solution_every_dt_time_intervals = 0.1
-  set runge_kutta_method = ssprk3_ex
+  set runge_kutta_method = RK3_2_5F_3SStarPlus
+  #set runge_kutta_method = ssprk3_ex
   set print_iteration_modulo = 1
 end
 
@@ -45,15 +51,16 @@ end
 
 subsection flow_solver
   set flow_case_type = shu_osher_problem
-  set poly_degree = 2
+  set poly_degree = 3
   set final_time = 1.8
   #set constant_time_step = 0.0024
   set courant_friedrichs_lewy_number = 0.9
-  set adaptive_time_step = true
+  set adaptive_time_step = false
+  set error_adaptive_time_step = true
   set unsteady_data_table_filename = shu_osher_shock_energy
   subsection grid
     set grid_left_bound = -5.0
     set grid_right_bound = 5.0
-    set number_of_grid_elements_per_dimension = 256
+    set number_of_grid_elements_per_dimension = 128
   end
 end

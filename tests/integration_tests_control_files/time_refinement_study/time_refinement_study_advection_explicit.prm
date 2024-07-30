@@ -18,11 +18,13 @@ subsection ODE solver
   set initial_time_step = 2.5E-3
   set runge_kutta_method = RK4_3_5_3SStar
   #set runge_kutta_method = RK3_2_5F_3SStarPlus
-  set atol = 0.001
-  set rtol = 0.001
-  set beta1 = 0.70
-  set beta2 = -0.23
-  set beta3 = 0.0
+  subsection low-storage rk solver
+    set atol = 0.001
+    set rtol = 0.001
+    set beta1 = 0.70
+    set beta2 = -0.23
+    set beta3 = 0.0
+  end
 end
 
 subsection manufactured solution convergence study 

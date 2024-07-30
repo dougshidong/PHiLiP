@@ -149,13 +149,16 @@ double LowStorageRungeKuttaODESolver<dim,real,n_rk_stages, MeshType>::get_automa
 template <int dim, typename real, int n_rk_stages, typename MeshType> 
 double LowStorageRungeKuttaODESolver<dim,real,n_rk_stages, MeshType>::get_automatic_initial_step_size (real dt, const bool /*pseudotime*/)
 {
+    // h will store the starting step size
     double h0 = 0.0;
     double h1 = 0.0;
 
+    // d estimates the derivate of the solution
     double d0 = 0.0;
     double d1 = 0.0;
     double d2 = 0.0;
 
+    /// Storage of the solution to calculate the initial time step
     dealii::LinearAlgebra::distributed::Vector<double> u_n;
     dealii::LinearAlgebra::distributed::Vector<double> rhs_initial;
 

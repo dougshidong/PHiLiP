@@ -7,25 +7,6 @@ void ODESolverParam::declare_parameters (dealii::ParameterHandler &prm)
 {
     prm.enter_subsection("ODE solver");
     {
-        prm.declare_entry("atol", "0.001",
-                          dealii::Patterns::Double(),
-                          "Absolute Tolerance");
-
-        prm.declare_entry("rtol", "0.001",
-                          dealii::Patterns::Double(),
-                          "Relative Tolerance");
-
-        prm.declare_entry("beta1", "0.70",
-                          dealii::Patterns::Double(),
-                          "Beta Controller 1");
-
-        prm.declare_entry("beta2", "-0.23",
-                          dealii::Patterns::Double(),
-                          "Beta controller 2");
-        
-        prm.declare_entry("beta3", "0.0",
-                          dealii::Patterns::Double(),
-                          "Beta controller 3");
 
         prm.declare_entry("ode_output", "verbose",
                           dealii::Patterns::Selection("quiet|verbose"),
@@ -152,6 +133,29 @@ void ODESolverParam::declare_parameters (dealii::ParameterHandler &prm)
         }
         prm.leave_subsection();
 
+        prm.enter_subsection("low-storage rk solver");
+        {
+            prm.declare_entry("atol", "0.001",
+                          dealii::Patterns::Double(),
+                          "Absolute Tolerance for automatic step size controller");
+
+            prm.declare_entry("rtol", "0.001",
+                          dealii::Patterns::Double(),
+                          "Relative Tolerance for automatic step size controller");
+
+            prm.declare_entry("beta1", "0.70",
+                          dealii::Patterns::Double(),
+                          "Beta Controller 1 for automatic step size controller");
+
+            prm.declare_entry("beta2", "-0.23",
+                          dealii::Patterns::Double(),
+                          "Beta controller 2 for automatic step size controller");
+        
+            prm.declare_entry("beta3", "0.0",
+                           dealii::Patterns::Double(),
+                          "Beta controller 3 for automatic step size controller");
+        }
+        prm.leave_subsection();
     }
     prm.leave_subsection();
 }
@@ -186,11 +190,6 @@ void ODESolverParam::parse_parameters (dealii::ParameterHandler &prm)
         else if (solver_string == "pod_petrov_galerkin") { ode_solver_type = ODESolverEnum::pod_petrov_galerkin_solver;
                                                            allocate_matrix_dRdW = true; }
 
-        atol = prm.get_double("atol");
-        rtol = prm.get_double("rtol");
-        beta1 = prm.get_double("beta1");
-        beta2 = prm.get_double("beta2");
-        beta3 = prm.get_double("beta3");
         nonlinear_steady_residual_tolerance  = prm.get_double("nonlinear_steady_residual_tolerance");
         nonlinear_max_iterations = prm.get_integer("nonlinear_max_iterations");
         initial_time_step  = prm.get_double("initial_time_step");
@@ -264,6 +263,16 @@ void ODESolverParam::parse_parameters (dealii::ParameterHandler &prm)
             else if (output_string_rrk == "quiet")   rrk_root_solver_output = quiet;
 
             relaxation_runge_kutta_root_tolerance = prm.get_double("relaxation_runge_kutta_root_tolerance");
+        }
+        prm.leave_subsection();
+
+        prm.enter_subsection("low-storage rk solver");
+        {
+            atol = prm.get_double("atol");
+            rtol = prm.get_double("rtol");
+            beta1 = prm.get_double("beta1");
+            beta2 = prm.get_double("beta2");
+            beta3 = prm.get_double("beta3");
         }
         prm.leave_subsection();
 

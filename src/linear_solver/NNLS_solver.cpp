@@ -381,9 +381,9 @@ bool NNLS_solver::solve(){
 
 Epetra_CrsMatrix NNLS_solver::allocateMatrixSingleCore(const Epetra_CrsMatrix &A){
   // Gather Matrix Information
-  int A_rows = A.NumGlobalRows();
-  int A_cols = A.NumGlobalCols();
-  int rank = Comm_.MyPID(); 
+  const int A_rows = A.NumGlobalRows();
+  const int A_cols = A.NumGlobalCols();
+  const int rank = Comm_.MyPID(); 
   // Create new maps for one core and gather old maps
   Epetra_Map single_core_row_A (A_rows, (rank == 0) ?  A_rows : 0, 0 , Comm_);
   Epetra_Map single_core_col_A (A_cols, (rank == 0) ?  A_cols : 0, 0 , Comm_);
@@ -399,10 +399,10 @@ Epetra_CrsMatrix NNLS_solver::allocateMatrixSingleCore(const Epetra_CrsMatrix &A
   return A_temp;
 };
 
-Epetra_Vector NNLS_solver::allocateVectorSingleCore(Epetra_Vector &b){
+Epetra_Vector NNLS_solver::allocateVectorSingleCore(const Epetra_Vector &b){
   // Gather Vector Information
-  int rank = Comm_.MyPID();
-  int b_size = b.GlobalLength();
+  const int rank = Comm_.MyPID();
+  const int b_size = b.GlobalLength();
   // Create new map for one core and gather old map
   Epetra_Map single_core_b (b_size, (rank == 0) ? b_size : 0, 0, Comm_);
   Epetra_BlockMap old_map_b = b.Map();
@@ -415,7 +415,7 @@ Epetra_Vector NNLS_solver::allocateVectorSingleCore(Epetra_Vector &b){
   return b_temp;
 };
 
-Epetra_Vector NNLS_solver::allocateToMultipleCores(Epetra_Vector &c)
+Epetra_Vector NNLS_solver::allocateToMultipleCores(const Epetra_Vector &c)
 {
   // Create new multi core map and gather old single core map
   Epetra_BlockMap old_map_c = c.Map();

@@ -188,7 +188,7 @@ private:
     /// @brief Re-allocates solution to multiple cores
     /// @param c Epetra_vector to reallocate on multiple cores
     /// @return An Epetra_vector with the data of c distributed on multiple cores
-    Epetra_Vector allocateToMultipleCores(Epetra_Vector &c);
+    Epetra_Vector allocateToMultipleCores(const Epetra_Vector &c);
 
     /// @brief Allocates the incoming A Matrix to a single core
     /// @param A Epetra_CrsMatrix to reallocate on a single core
@@ -198,7 +198,7 @@ private:
     /// @brief Allocates the incoming b vector to a single core
     /// @param b Epetra_Vector to reallocate on a single core
     /// @return An Epetra_Vector with the data of b distributed on a single core
-    Epetra_Vector allocateVectorSingleCore(Epetra_Vector &b);
+    Epetra_Vector allocateVectorSingleCore(const Epetra_Vector &b);
 };
 } // PHiLiP namespace
 #endif  // NNLS_H

@@ -203,7 +203,7 @@ void NNLS_solver::moveToInactiveSet(int idx){
 }
 
 bool NNLS_solver::solve(){
-  int rank = this->Comm_.MyPID();
+  const int rank = this->Comm_.MyPID();
   iter_ = 0;
   numInactive_ = 0;
   // Pre-mult by A^T

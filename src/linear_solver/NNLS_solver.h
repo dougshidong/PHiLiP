@@ -120,7 +120,7 @@ public:
     /// Returns protected approximate solution
     Epetra_Vector & getSolution() {return Multi_x_;}
 
-    // Initiliazes the solution vector, must be used before .solve is called
+    /// Initiliazes the solution vector, must be used before .solve is called
     void startingSolution(Epetra_Vector &start) {
         Epetra_Vector start_single_core = allocateVectorSingleCore(start);
         P.flip();
@@ -133,23 +133,37 @@ public:
     const dealii::ParameterHandler &parameter_handler;
 
 protected:
+    /// Epetra Commuicator Object with MPI
     Epetra_MpiComm Comm_;
+    /// Epetra Matrix A allocated to a single core
     const Epetra_CrsMatrix A_;
+    /// Epetra Vector b allocated to a single core
     Epetra_Vector b_;
+    /// Epetra Vector x, to be solved. Allocated to a single core
     Epetra_Vector x_;
+    /// Epetra_Vector x, to be solved. Allocated to multiple cores
     Epetra_Vector Multi_x_;
-    int LS_iter_; // needed if the an iterative solver is used
-    double LS_tol_; // needed if the an iterative solver is used
+    /// Needed if the an iterative solver is used
+    int LS_iter_;
+    /// Needed if the an iterative solver is used
+    double LS_tol_; 
+    /// Number of inactive points
     int numInactive_;
+    /// Vector of booleans representing the columns in the active set
     std::vector<bool> Z;
+    /// Vector of boolean representing the columns in the inactive set
     std::vector<bool> P;
 
 public:
+    /// Boolean used for iterative solvers
     bool iter_solver_;
+    /// Boolean to use an exit Condition depending on maximum gradent
     bool grad_exit_crit_;
+    /// Number of iterations in the NNLS solver
     int iter_;
 
 protected:
+    /// Eigen Vector of the index_set
     Eigen::VectorXd index_set;
 
 private:
@@ -171,13 +185,19 @@ private:
     /// Moves the column at idx into the inactive set (updating the index_set, Z, P, and numInactive_)
     void moveToInactiveSet(int idx);
 
-    /// Re-allocates solution to multiple cores
+    /// @brief Re-allocates solution to multiple cores
+    /// @param c Epetra_vector to reallocate on multiple cores
+    /// @return An Epetra_vector with the data of c distributed on multiple cores
     Epetra_Vector allocateToMultipleCores(Epetra_Vector &c);
 
-    /// Allocates the incoming A Matrix to a single core
+    /// @brief Allocates the incoming A Matrix to a single core
+    /// @param A Epetra_CrsMatrix to reallocate on a single core
+    /// @return An Epetra_CrsMatrix with the data of A distributed on a single core
     Epetra_CrsMatrix allocateMatrixSingleCore(const Epetra_CrsMatrix &A);
     
-    /// Allocates the incoming b vector to a single core
+    /// @brief Allocates the incoming b vector to a single core
+    /// @param b Epetra_Vector to reallocate on a single core
+    /// @return An Epetra_Vector with the data of b distributed on a single core
     Epetra_Vector allocateVectorSingleCore(Epetra_Vector &b);
 };
 } // PHiLiP namespace

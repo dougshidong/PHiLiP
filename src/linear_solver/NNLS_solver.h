@@ -99,7 +99,7 @@ public:
         int LS_iter, 
         double LS_tol);
 
-    /// Constructor w/ Gradient Exit Condition & Iterative Linear Solver
+    /// Common Constructor w/ Gradient Exit Condition & Iterative Linear Solver
     NNLS_solver(
         const Parameters::AllParameters *const parameters_input,
         const dealii::ParameterHandler &parameter_handler_input,
@@ -118,11 +118,11 @@ public:
     bool solve();
 
     /// Returns protected approximate solution
-    Epetra_Vector & getSolution() {return Multi_x_;}
+    Epetra_Vector & getSolution() {return multi_x_;}
 
     /// Initiliazes the solution vector, must be used before .solve is called
     void startingSolution(Epetra_Vector &start) {
-        Epetra_Vector start_single_core = allocateVectorSingleCore(start);
+        Epetra_Vector start_single_core = allocateVectorToSingleCore(start);
         P.flip();
         SubIntoX(start_single_core);
         P.flip();}
@@ -142,7 +142,7 @@ protected:
     /// Epetra Vector x, to be solved. Allocated to a single core
     Epetra_Vector x_;
     /// Epetra_Vector x, to be solved. Allocated to multiple cores
-    Epetra_Vector Multi_x_;
+    Epetra_Vector multi_x_;
     /// Needed if the an iterative solver is used
     int LS_iter_;
     /// Needed if the an iterative solver is used
@@ -185,20 +185,23 @@ private:
     /// Moves the column at idx into the inactive set (updating the index_set, Z, P, and numInactive_)
     void moveToInactiveSet(int idx);
 
-    /// @brief Re-allocates solution to multiple cores
-    /// @param c Epetra_vector to reallocate on multiple cores
-    /// @return An Epetra_vector with the data of c distributed on multiple cores
-    Epetra_Vector allocateToMultipleCores(const Epetra_Vector &c);
+    /** @brief Re-allocates solution to multiple cores
+    *   @param c Epetra_vector to reallocate on multiple cores
+    *   @return An Epetra_vector with the data of c distributed on multiple cores
+    */
+    Epetra_Vector allocateVectorToMultipleCores(const Epetra_Vector &c);
 
-    /// @brief Allocates the incoming A Matrix to a single core
-    /// @param A Epetra_CrsMatrix to reallocate on a single core
-    /// @return An Epetra_CrsMatrix with the data of A distributed on a single core
-    Epetra_CrsMatrix allocateMatrixSingleCore(const Epetra_CrsMatrix &A);
+    /** @brief Allocates the incoming A Matrix to a single core
+    *   @param A Epetra_CrsMatrix to reallocate on a single core
+    *   @return An Epetra_CrsMatrix with the data of A distributed on a single core
+    */
+    Epetra_CrsMatrix allocateMatrixToSingleCore(const Epetra_CrsMatrix &A);
     
-    /// @brief Allocates the incoming b vector to a single core
-    /// @param b Epetra_Vector to reallocate on a single core
-    /// @return An Epetra_Vector with the data of b distributed on a single core
-    Epetra_Vector allocateVectorSingleCore(const Epetra_Vector &b);
+    /** @brief Allocates the incoming b vector to a single core
+    *   @param b Epetra_Vector to reallocate on a single core
+    *   @return An Epetra_Vector with the data of b distributed on a single core
+    */
+    Epetra_Vector allocateVectorToSingleCore(const Epetra_Vector &b);
 };
 } // PHiLiP namespace
 #endif  // NNLS_H

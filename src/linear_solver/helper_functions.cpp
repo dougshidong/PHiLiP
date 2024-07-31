@@ -14,12 +14,13 @@
 #include <EpetraExt_MatrixMatrix.h>
 
 using namespace Eigen;
-/// @brief Fills the entries in an empty Eigen::MatrixXd from an Epetra_Vector structure
-/// @param col length of the vector 
-/// @param x Full Epetra vector to copy
-/// @param x_eig Empty Eigen::MatrixXd
+/**  @brief Fills the entries in an empty Eigen::MatrixXd from an Epetra_Vector structure
+*    @param col length of the vector 
+*    @param x Full Epetra vector to copy
+*    @param x_eig Empty Eigen::MatrixXd
+*/
 void epetra_to_eig_vec(int col, Epetra_Vector &x, Eigen::MatrixXd &x_eig){
-  /// Gather local information
+  // Gather local information
   int local_size = x.MyLength();
   const Epetra_Comm& comm = x.Comm();
   int np = comm.NumProc();
@@ -45,12 +46,13 @@ void epetra_to_eig_vec(int col, Epetra_Vector &x, Eigen::MatrixXd &x_eig){
   }
 }
 
-/// @brief Returns an Epetra_CrsMatrix with the entries from an Eigen::MatrixXd structure
-/// @param A_eig Full Eigen Matrix to copy
-/// @param col number of columns
-/// @param row number of rows
-/// @param Comm MpiComm for Epetra Maps
-/// @return Full Epetra_CrsMatrix
+/**  @brief Returns an Epetra_CrsMatrix with the entries from an Eigen::MatrixXd structure
+*    @param A_eig Full Eigen Matrix to copy
+*    @param col number of columns
+*    @param row number of rows
+*    @param Comm MpiComm for Epetra Maps
+*    @return Full Epetra_CrsMatrix
+*/
 Epetra_CrsMatrix eig_to_epetra_matrix(Eigen::MatrixXd &A_eig, int col, int row, Epetra_MpiComm &Comm){
   // Create an empty Epetra structure with the right dimensions
   Epetra_Map RowMap(row,0,Comm);
@@ -83,11 +85,12 @@ MatrixXd epetra_to_eig_matrix(Epetra_CrsMatrix A_epetra){
   return A;
 }
 
-/// @brief Returns an Epetra_Vector with entries from an Eigen::Vector structure
-/// @param a_eigen Eigen Vector to copy
-/// @param size size of vector
-/// @param MpiComm for Epetra Maps
-/// @return Epetra_Vector
+/** @brief Returns an Epetra_Vector with entries from an Eigen::Vector structure
+*   @param a_eigen Eigen Vector to copy
+*   @param size size of vector
+*   @param MpiComm for Epetra Maps
+*   @return Epetra_Vector
+*/
 Epetra_Vector eig_to_epetra_vector(Eigen::VectorXd &a_eigen, int size, Epetra_MpiComm &Comm){
   // Create an Epetra Vector distributed along all cores in Comm
   Epetra_Map vecMap(size,0,Comm);

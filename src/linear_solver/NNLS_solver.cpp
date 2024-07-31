@@ -8,24 +8,16 @@ NNLS_solver::NNLS_solver(
   const dealii::ParameterHandler &parameter_handler_input,
   const Epetra_CrsMatrix &A, 
   Epetra_MpiComm &Comm, 
-  Epetra_Vector &b):
-    all_parameters(parameters_input),
-    parameter_handler(parameter_handler_input),
-    Comm_(Comm), 
-    A_(allocateMatrixSingleCore(A)),
-    b_(allocateVectorSingleCore(b)), 
-    x_(A_.ColMap()),
-    Multi_x_(A.DomainMap()),
-    LS_iter_(1000), 
-    LS_tol_(10E-8), 
-    Z(A_.NumGlobalCols()), 
-    P(A_.NumGlobalCols()), 
-    iter_solver_(false), 
-    grad_exit_crit_(false) 
-    {
-      index_set = Eigen::VectorXd::LinSpaced(A_.NumGlobalCols(), 0, A_.NumGlobalCols() -1); // Indices proceeding and including numInactive are in the P set (Inactive/Positive)
-      Z.flip(); // All columns begin in the Z set (Active)
-    }
+  Epetra_Vector &b): NNLS_solver(
+    parameters_input,
+    parameter_handler_input,
+    A,
+    Comm,
+    b,
+    false,
+    false,
+    1000,
+    10E-8) {}
 
 NNLS_solver::NNLS_solver(
   const Parameters::AllParameters *const parameters_input,
@@ -33,24 +25,16 @@ NNLS_solver::NNLS_solver(
   const Epetra_CrsMatrix &A, 
   Epetra_MpiComm &Comm, 
   Epetra_Vector &b,
-  bool grad_exit_crit):
-    all_parameters(parameters_input),
-    parameter_handler(parameter_handler_input),
-    Comm_(Comm), 
-    A_(allocateMatrixSingleCore(A)),  
-    b_(allocateVectorSingleCore(b)), 
-    x_(A_.ColMap()),
-    Multi_x_(A.DomainMap()),
-    LS_iter_(1000), 
-    LS_tol_(10E-8), 
-    Z(A_.NumGlobalCols()), 
-    P(A_.NumGlobalCols()), 
-    iter_solver_(false), 
-    grad_exit_crit_(grad_exit_crit) 
-    {
-      index_set = Eigen::VectorXd::LinSpaced(A_.NumGlobalCols(), 0, A_.NumGlobalCols() -1); // Indices proceeding and including numInactive are in the P set (Inactive/Positive)
-      Z.flip(); // All columns begin in the Z set (Active)
-    }
+  bool grad_exit_crit): NNLS_solver(
+    parameters_input,
+    parameter_handler_input,
+    A,
+    Comm,
+    b,
+    grad_exit_crit,
+    false,
+    1000,
+    10E-8) {}
 
 NNLS_solver::NNLS_solver(
   const Parameters::AllParameters *const parameters_input,
@@ -60,24 +44,16 @@ NNLS_solver::NNLS_solver(
   Epetra_Vector &b, 
   bool iter_solver, 
   int LS_iter, 
-  double LS_tol):
-    all_parameters(parameters_input),
-    parameter_handler(parameter_handler_input),
-    Comm_(Comm), 
-    A_(allocateMatrixSingleCore(A)), 
-    b_(allocateVectorSingleCore(b)), 
-    x_(A_.ColMap()), 
-    Multi_x_(A.DomainMap()),
-    LS_iter_(LS_iter), 
-    LS_tol_(LS_tol),
-    Z(A_.NumGlobalCols()), 
-    P(A_.NumGlobalCols()), 
-    iter_solver_(iter_solver), 
-    grad_exit_crit_(false) 
-    {
-      index_set = Eigen::VectorXd::LinSpaced(A_.NumGlobalCols(), 0, A_.NumGlobalCols() -1); // Indices proceeding and including numInactive are in the P set (Inactive/Positive)
-      Z.flip(); // All columns begin in the Z set (Active)
-    }
+  double LS_tol): NNLS_solver(
+    parameters_input,
+    parameter_handler_input,
+    A,
+    Comm,
+    b,
+    false,
+    iter_solver,
+    LS_iter,
+    LS_tol) {}
 
 NNLS_solver::NNLS_solver(
   const Parameters::AllParameters *const parameters_input,
@@ -92,10 +68,10 @@ NNLS_solver::NNLS_solver(
     all_parameters(parameters_input),
     parameter_handler(parameter_handler_input),
     Comm_(Comm), 
-    A_(allocateMatrixSingleCore(A)), 
-    b_(allocateVectorSingleCore(b)), 
+    A_(allocateMatrixToSingleCore(A)), 
+    b_(allocateVectorToSingleCore(b)), 
     x_(A_.ColMap()), 
-    Multi_x_(A.DomainMap()),
+    multi_x_(A.DomainMap()),
     LS_iter_(LS_iter), 
     LS_tol_(LS_tol),
     Z(A_.NumGlobalCols()), 
@@ -112,9 +88,9 @@ void NNLS_solver::Epetra_PermutationMatrix(Epetra_CrsMatrix &P_mat){
   // No longer in use
   double posOne = 1.0;
   for(int i = 0; i < P_mat.NumMyCols(); i++){
-    int GlobalRow = P_mat.GRID(i);
+    int globalRow = P_mat.GRID(i);
     if (P[i] == 1) {
-      P_mat.InsertGlobalValues(GlobalRow, 1, &posOne , &i);
+      P_mat.InsertGlobalValues(globalRow, 1, &posOne , &i);
     }
   }
 }
@@ -224,7 +200,7 @@ bool NNLS_solver::solve(){
   while(true){
     // Early exit if all variables are inactive, which breaks 'maxCoeff' below. 
     if (A_.NumGlobalCols() == numInactive_){
-      Multi_x_ = allocateToMultipleCores(this->x_);
+      multi_x_ = allocateVectorToMultipleCores(this->x_);
       return true;
     }
     AtA.Multiply(false, x_, AtAx);
@@ -265,7 +241,7 @@ bool NNLS_solver::solve(){
         std::cout << normb[0] << std::endl;
         std::cout << "Norm-2 of the residual (b-A*x)" << std::endl;
         std::cout << normRes[0] << std::endl;
-        Multi_x_ = allocateToMultipleCores(this->x_);
+        multi_x_ = allocateVectorToMultipleCores(this->x_);
         return true;
       }
     }
@@ -280,7 +256,7 @@ bool NNLS_solver::solve(){
         std::cout << normb[0] << std::endl;
         std::cout << "Norm-2 of the residual (b-A*x)" << std::endl;
         std::cout << normRes[0] << std::endl;
-        Multi_x_ = allocateToMultipleCores(this->x_);
+        multi_x_ = allocateVectorToMultipleCores(this->x_);
         return true;
       }
     }
@@ -292,7 +268,7 @@ bool NNLS_solver::solve(){
     while(no_feasible_soln){
       // Check if max. number of iterations is reached
       if (iter_ >= all_parameters->hyper_reduction_param.NNLS_max_iter){
-        Multi_x_ = allocateToMultipleCores(this->x_);
+        multi_x_ = allocateVectorToMultipleCores(this->x_);
         return false;
       } 
       // Create matrix P_mat with columns from set P
@@ -379,7 +355,7 @@ bool NNLS_solver::solve(){
   }
 }
 
-Epetra_CrsMatrix NNLS_solver::allocateMatrixSingleCore(const Epetra_CrsMatrix &A){
+Epetra_CrsMatrix NNLS_solver::allocateMatrixToSingleCore(const Epetra_CrsMatrix &A){
   // Gather Matrix Information
   const int A_rows = A.NumGlobalRows();
   const int A_cols = A.NumGlobalCols();
@@ -399,7 +375,7 @@ Epetra_CrsMatrix NNLS_solver::allocateMatrixSingleCore(const Epetra_CrsMatrix &A
   return A_temp;
 };
 
-Epetra_Vector NNLS_solver::allocateVectorSingleCore(const Epetra_Vector &b){
+Epetra_Vector NNLS_solver::allocateVectorToSingleCore(const Epetra_Vector &b){
   // Gather Vector Information
   const int rank = Comm_.MyPID();
   const int b_size = b.GlobalLength();
@@ -415,11 +391,11 @@ Epetra_Vector NNLS_solver::allocateVectorSingleCore(const Epetra_Vector &b){
   return b_temp;
 };
 
-Epetra_Vector NNLS_solver::allocateToMultipleCores(const Epetra_Vector &c)
+Epetra_Vector NNLS_solver::allocateVectorToMultipleCores(const Epetra_Vector &c)
 {
   // Create new multi core map and gather old single core map
   Epetra_BlockMap old_map_c = c.Map();
-  Epetra_BlockMap multi_core_c = this->Multi_x_.Map();
+  Epetra_BlockMap multi_core_c = this->multi_x_.Map();
   // Create Epetra_importer object
   Epetra_Import c_importer (multi_core_c, old_map_c);
   // Create new c vector

@@ -53,36 +53,6 @@ double LowStorageRKTableauBase<dim,real, MeshType> :: get_b_hat (const int i) co
     return butcher_tableau_b_hat[i];
 }
 
-
-/*
-template <int dim, typename real, typename MeshType>
-void LowStorageRKTableauBase<dim,real,MeshType> :: set_gamma()
-{
-    if 
-    const double gamma[6][3] = {{0.0, 0.0, 0.0}, {0.0, 1.0, 0.0}, {-0.497531095840104, 1.384996869124138, 0.0}, {1.010070514199942, 3.878155713328178, 0.0}, {-3.196559004608766,-2.324512951813145, 1.642598936063715}, {1.717835630267259, -0.514633322274467, 0.188295940828347}};
-    for (int i = 0; i < 6; i++){
-        for (int j = 0; j < 3; j++){
-            this->butcher_tableau_gamma[i][j] = gamma[i][j];
-        }
-    }
-}
-
-template <int dim, typename real, typename MeshType>
-void LowStorageRKTableauBase<dim,real,MeshType> :: set_beta()
-{
-    double beta[6] = {0.0, 0.075152045700771, 0.211361016946069, 1.100713347634329, 0.728537814675568, 0.393172889823198};
-    this->butcher_tableau_beta.fill(beta);
-}
-
-template <int dim, typename real, typename MeshType>
-void LowStorageRKTableauBase<dim,real,MeshType> :: set_delta()
-{
-    double delta[7] = {1.0, 0.081252332929194, -1.083849060586449, -1.096110881845602, 2.859440022030827, -0.655568367959557, -0.194421504490852};
-    this->butcher_tableau_delta.fill(delta);
-    
-}
-*/
-
 template class LowStorageRKTableauBase<PHILIP_DIM, double, dealii::Triangulation<PHILIP_DIM>>;
 template class LowStorageRKTableauBase<PHILIP_DIM, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
 #if PHILIP_DIM != 1

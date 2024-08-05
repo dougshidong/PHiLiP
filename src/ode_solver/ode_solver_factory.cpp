@@ -173,6 +173,9 @@ std::shared_ptr<ODESolverBase<dim,real,MeshType>> ODESolverFactory<dim,real,Mesh
         else if (n_rk_stages == 5){
             return std::make_shared<LowStorageRungeKuttaODESolver<dim,real,5, MeshType>>(dg_input,ls_rk_tableau,RRK_object);
         }
+        else if (n_rk_stages == 9){
+            return std::make_shared<LowStorageRungeKuttaODESolver<dim,real,9, MeshType>>(dg_input,ls_rk_tableau,RRK_object);
+        }
         else{
             pcout << "Error: invalid number of stages. Aborting..." << std::endl;
             std::abort();
@@ -197,6 +200,7 @@ std::shared_ptr<LowStorageRKTableauBase<dim,real,MeshType>> ODESolverFactory<dim
     
     if (rk_method == RKMethodEnum::RK3_2_5F_3SStarPlus)   return std::make_shared<RK3_2_5F_3SStarPlus<dim, real, MeshType>> (n_rk_stages, num_delta, "RK3_2_5F_3SStarPlus");
     if (rk_method == RKMethodEnum::RK4_3_5_3SStar)      return std::make_shared<RK4_3_5_3SStar<dim, real, MeshType>>    (n_rk_stages, num_delta, "RK4_3_5_3SStar");
+    if (rk_method == RKMethodEnum::RK4_3_9F_3SStarPlus)      return std::make_shared<RK4_3_9F_3SStarPlus<dim, real, MeshType>>    (n_rk_stages, num_delta, "RK4_3_9F_3SStarPlus");
     //return std::make_shared<LowStorageRKTableauBase<dim, real, MeshType>> ("LSRK");
     else {
         pcout << "Error: invalid LS RK method. Aborting..." << std::endl;
@@ -238,7 +242,11 @@ std::shared_ptr<RKTableauBase<dim,real,MeshType>> ODESolverFactory<dim,real,Mesh
         if (rk_method == RKMethodEnum::RK4_3_5_3SStar) {
             pcout << "WARNING: returning dummy RK method!" << std::endl;
             return std::make_shared<SSPRK3Explicit<dim, real, MeshType>> (n_rk_stages, "3rd order SSP (explicit)");
-        }   
+        }
+        if (rk_method == RKMethodEnum::RK4_3_9F_3SStarPlus) {
+            pcout << "WARNING: returning dummy RK method!" << std::endl;
+            return std::make_shared<SSPRK3Explicit<dim, real, MeshType>> (n_rk_stages, "3rd order SSP (explicit)");
+        }      
         pcout << "Error: invalid RK method. Aborting..." << std::endl;
         std::abort();
         return nullptr;

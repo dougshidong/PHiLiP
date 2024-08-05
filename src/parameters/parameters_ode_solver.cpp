@@ -107,7 +107,8 @@ void ODESolverParam::declare_parameters (dealii::ParameterHandler &prm)
                           " dirk_2_im | "
                           " dirk_3_im | "
                           " RK3_2_5F_3SStarPlus | "
-                          " RK4_3_5_3SStar "),
+                          " RK4_3_5_3SStar | "
+                          " RK4_3_9F_3SStarPlus "),
                           "Runge-kutta method to use. Methods with _ex are explicit, and with _im are implicit. [3S*] and [3S*+] methods are low-storage RK methods"
                           "Choices are "
                           " <rk4_ex | "
@@ -117,8 +118,9 @@ void ODESolverParam::declare_parameters (dealii::ParameterHandler &prm)
                           " euler_im | "
                           " dirk_2_im | "
                           " dirk_3_im | "
-                          " RK4_3_5_3SStar"
-                          " RK3_2_5F_3SStarPlus | >.");
+                          " RK4_3_5_3SStar | "
+                          " RK3_2_5F_3SStarPlus | "
+                          " RK4_3_9F_3SStarPlus >.");
         prm.enter_subsection("rrk root solver");
         {
             prm.declare_entry("rrk_root_solver_output", "quiet",
@@ -254,6 +256,13 @@ void ODESolverParam::parse_parameters (dealii::ParameterHandler &prm)
             num_delta = 7;
             rk_order = 4;
             is_3Sstarplus = false;
+        }
+        else if (rk_method_string == "RK4_3_9F_3SStarPlus"){
+            runge_kutta_method = RKMethodEnum::RK4_3_9F_3SStarPlus;
+            n_rk_stages = 9;
+            num_delta = 9;
+            rk_order = 4;
+            is_3Sstarplus = true;
         }
 
         prm.enter_subsection("rrk root solver");

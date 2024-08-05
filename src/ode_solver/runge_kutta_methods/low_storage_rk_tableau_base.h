@@ -32,15 +32,16 @@ protected:
     dealii::ConditionalOStream pcout; ///< Parallel std::cout that only outputs on mpi_rank==0
     
 public:
-    /// Returns Butcher tableau "a" coefficient at position [i][j]
+    /// Returns Butcher tableau "gamma" coefficient at position [i][j]
     double get_gamma(const int i, const int j) const;
 
-    /// Returns Butcher tableau "b" coefficient at position [i]
+    /// Returns Butcher tableau "beta" coefficient at position [i]
     double get_beta(const int i) const;
 
-    /// Returns Butcher tableau "c" coefficient at position [i]
+    /// Returns Butcher tableau "delta" coefficient at position [i]
     double get_delta(const int i) const;
 
+    /// Returns Butcher tableau "b hat" coefficient at position [i]
     double get_b_hat(const int i) const;
 
     /// Calls setters for butcher tableau
@@ -49,16 +50,16 @@ public:
     
 protected:
 
-    /// Butcher tableau "a"
+    /// Butcher tableau "gamma"
     dealii::Table<2,double> butcher_tableau_gamma;
 
-    /// Butcher tableau "b"
+    /// Butcher tableau "beta"
     dealii::Table<1,double> butcher_tableau_beta;
     
-    /// Butcher tableau "c"
+    /// Butcher tableau "delta"
     dealii::Table<1,double> butcher_tableau_delta;
 
-    /// Butcher tableau "c"
+    /// Butcher tableau "b hat"
     dealii::Table<1,double> butcher_tableau_b_hat;
     
     /// Setter for gamma

@@ -84,6 +84,32 @@ protected:
     void set_b_hat() override;
 };
 
+/// Three-register method that require a fourth register for the error estimate
+/** see 
+ *  Hedrik Ranocha, Lisandro Dalcin, Matteo Parsani, David Ketcheson. 
+ *  "Optimized Runge-Kutta Methods with Automatic Step Size Control for Compressible Computational Fluid Dynamics" Communications on Applied Mathematics and Computation Volume 4 (2022): 1191-1228. 
+ *  https://github.com/ranocha/Optimized-RK-CFD */
+ 
+#if PHILIP_DIM==1
+template <int dim, typename real, typename MeshType = dealii::Triangulation<dim>>
+#else
+template <int dim, typename real, typename MeshType = dealii::parallel::distributed::Triangulation<dim>>
+#endif
+class RK5_4_10F_3SStarPlus: public LowStorageRKTableauBase <dim, real, MeshType>
+{
+public:
+    /// Constructor
+    RK5_4_10F_3SStarPlus(const int n_rk_stages, const int num_delta, const std::string rk_method_string_input) 
+        : LowStorageRKTableauBase<dim,real,MeshType>(n_rk_stages, num_delta, rk_method_string_input) { }
+
+protected:
+    /// Setters
+    void set_gamma() override;
+    void set_beta() override;
+    void set_delta() override;
+    void set_b_hat() override;
+};
+
 
 } // ODE namespace
 } // PHiLiP namespace

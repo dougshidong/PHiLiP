@@ -146,6 +146,62 @@ void RK4_3_9F_3SStarPlus<dim,real,MeshType> :: set_b_hat()
 
 //##################################################################
 
+// RK5(4)10F[3S*+]
+
+template <int dim, typename real, typename MeshType>
+void RK5_4_10F_3SStarPlus<dim,real,MeshType> :: set_gamma()
+{
+    const double gamma[11][3] = {{0.0, 0.0, 0.0}, // Ignored
+                                {0.0, 1.0, 0.0}, // first loop
+                                {0.4043660121685749695640462197806189975, 0.6871467028161416909922221357014564412, 0.0}, 
+                                {-0.8503427289575839690883191973980814832, 1.093024748914750833700799552463885117, 0.0}, 
+                                {-6.950894175262117526410215315179482885, 3.225975379607193001678365742708874597, -2.393405133244194727221124311276648940}, 
+                                {0.9238765192731084931855438934978371889, 1.041153702510101386914019859778740444, -1.902854422421760920850597670305403139},
+                                {-2.563178056509891340215942413817786020, 1.292821487912164945157744726076279306, -2.820042207399977261483046412236557428},
+                                {0.2545744879365226143946122067064118430, 0.7391462755788122847651304143259254381, -1.832698465277380999601896111079977378},
+                                {0.3125831707411998258746812355492206137, 0.1239129251371800313941948224441873274, -0.2199094483084671192328083958346519535},
+                                {-0.7007114414440507927791249989236719346, 0.1842753472370123193132193302369345580, -0.4082430635847870963724591602173546218},
+                                {0.4839621016023833375810172323297465039, 0.05712788998796583446479387686662738843, -0.1377669797880289713535665985132703979}};
+    for (int i = 0; i < 11; i++){
+        for (int j = 0; j < 3; j++){
+            this->butcher_tableau_gamma[i][j] = gamma[i][j];
+        }
+    }
+}
+
+template <int dim, typename real, typename MeshType>
+void RK5_4_10F_3SStarPlus<dim,real,MeshType> :: set_beta()
+{
+    const double beta[11] = {0.0, 0.2597883554788674084039539165398464630, 0.01777008889438867858759149597539211023, 0.2481636629715501931294746189266601496,
+                            0.7941736871152005775821844297293296135, 0.3885391285642019129575902994397298066, 0.1455051657916305055730603387469193768, 
+                            0.1587517385964749337690916959584348979, 0.1650605617880053419242434594242509601, 0.2118093284937153836908655490906875007,
+                            0.1559392342362059886106995325687547506};
+    this->butcher_tableau_beta.fill(beta);
+}
+
+template <int dim, typename real, typename MeshType>
+void RK5_4_10F_3SStarPlus<dim,real,MeshType> :: set_delta()
+{
+    const double delta[10] = {1.0, -0.1331778419508803397033287009506932673, 0.8260422814750207498262063505871077303,
+                            1.513700425755728332485300719652378197, -1.305810059935023735972298885749903694, 3.036678802924163246003321318996156380,
+                            -1.449458274398895177922690618003584514, 3.834313899176362315089976408899373409, 4.122293760012985409330881631526514714,
+                            0.0};
+    this->butcher_tableau_delta.fill(delta);
+    
+}
+
+template <int dim, typename real, typename MeshType>
+void RK5_4_10F_3SStarPlus<dim,real,MeshType> :: set_b_hat()
+{
+    const double b_hat[11] = {-0.02019255440012066080909442770590267512, 0.02737903480959184339932730854141598275, 0.3028818636145965534365173822296811090, 
+                             -0.03656843880622222190071445247906780540, 0.3982664774676767729863101188528827405, -0.05715959421140685436681459970502471634,
+                             0.09849855103848558320961101178888983150, 0.06654601552456084978615342374581437947, 0.09073479542748112726465375642050504556,
+                             0.08432289325330803924891866923939606351, 0.04529095628204896774513180907141004447};
+    this->butcher_tableau_b_hat.fill(b_hat);   
+}
+
+//##################################################################
+
 template class RK4_3_5_3SStar<PHILIP_DIM, double, dealii::Triangulation<PHILIP_DIM> >;
 template class RK4_3_5_3SStar<PHILIP_DIM, double, dealii::parallel::shared::Triangulation<PHILIP_DIM> >;
 #if PHILIP_DIM != 1
@@ -162,6 +218,12 @@ template class RK4_3_9F_3SStarPlus<PHILIP_DIM, double, dealii::Triangulation<PHI
 template class RK4_3_9F_3SStarPlus<PHILIP_DIM, double, dealii::parallel::shared::Triangulation<PHILIP_DIM> >;
 #if PHILIP_DIM != 1
     template class RK4_3_9F_3SStarPlus<PHILIP_DIM, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM> >;
+#endif
+
+template class RK5_4_10F_3SStarPlus<PHILIP_DIM, double, dealii::Triangulation<PHILIP_DIM> >;
+template class RK5_4_10F_3SStarPlus<PHILIP_DIM, double, dealii::parallel::shared::Triangulation<PHILIP_DIM> >;
+#if PHILIP_DIM != 1
+    template class RK5_4_10F_3SStarPlus<PHILIP_DIM, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM> >;
 #endif
 
 } // ODESolver namespace

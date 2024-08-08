@@ -17,8 +17,9 @@ subsection ODE solver
   set initial_time_step = 5E-3 #(convergence test)
   #set initial_time_step = 2.5E-3
   #set runge_kutta_method = RK4_3_5_3SStar
-  set runge_kutta_method = RK4_3_9F_3SStarPlus
+  #set runge_kutta_method = RK4_3_9F_3SStarPlus
   #set runge_kutta_method = RK3_2_5F_3SStarPlus
+  set runge_kutta_method = RK5_4_10F_3SStarPlus
   subsection low-storage rk solver
     set atol = 0.00001
     set rtol = 0.00001

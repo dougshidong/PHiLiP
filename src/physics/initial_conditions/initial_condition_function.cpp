@@ -1228,6 +1228,7 @@ real InitialConditionFunction_SVSW<dim, nstate, real>
     }
     return value;
 }
+
 // ========================================================
 // ZERO INITIAL CONDITION
 // ========================================================

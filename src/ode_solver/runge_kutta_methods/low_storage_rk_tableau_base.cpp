@@ -10,9 +10,6 @@ LowStorageRKTableauBase<dim,real, MeshType> :: LowStorageRKTableauBase (const in
     : rk_method_string(rk_method_string_input)
     , pcout(std::cout, dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD)==0)
 {
-    //this->butcher_tableau_a.reinit(n_rk_stages,n_rk_stages);
-    //this->butcher_tableau_b.reinit(n_rk_stages);
-    //this->butcher_tableau_c.reinit(n_rk_stages);
     this->butcher_tableau_gamma.reinit(n_rk_stages+1,3);
     this->butcher_tableau_beta.reinit(n_rk_stages+1);
     this->butcher_tableau_delta.reinit(num_delta);

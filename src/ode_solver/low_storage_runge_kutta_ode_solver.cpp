@@ -84,8 +84,7 @@ void LowStorageRungeKuttaODESolver<dim,real,n_rk_stages, MeshType>::step_in_time
         this->dg->assemble_residual();
         this->dg->apply_inverse_global_mass_matrix(this->dg->right_hand_side, rhs);
         rhs *= dt;
-        storage_register_4.add(this->butcher_tableau->get_b_hat(n_rk_stages), rhs);
-
+        storage_register_4.add(this->butcher_tableau->get_b_hat(n_rk_stages), rhs);       
     }
     this->dg->solution = storage_register_1;
 

@@ -74,7 +74,7 @@ double TimeRefinementStudy<dim,nstate>::calculate_Lp_error_at_final_time_wrt_fun
 template <int dim, int nstate>
 int TimeRefinementStudy<dim, nstate>::run_test() const
 {
-
+    
     const double final_time = this->all_parameters->flow_solver_param.final_time;
     const double initial_time_step = this->all_parameters->ode_solver_param.initial_time_step;
     const int n_steps = floor(final_time/initial_time_step);
@@ -140,7 +140,7 @@ int TimeRefinementStudy<dim, nstate>::run_test() const
             convergence_table.set_scientific("gamma_aggregate_m1", true);
             convergence_table.evaluate_convergence_rates("gamma_aggregate_m1", "dt", dealii::ConvergenceTable::reduction_rate_log2, 1);
         }
-
+ 
         //Checking convergence order
         const double expected_order = params.ode_solver_param.rk_order;
         const double order_tolerance = 0.1;

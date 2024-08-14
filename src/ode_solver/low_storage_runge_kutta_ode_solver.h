@@ -101,6 +101,7 @@ protected:
 
     /// Storage for the third beta controller value
     double beta3;
+
 };
 
 } // ODE namespace

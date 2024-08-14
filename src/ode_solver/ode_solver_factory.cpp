@@ -154,7 +154,7 @@ std::shared_ptr<ODESolverBase<dim,real,MeshType>> ODESolverFactory<dim,real,Mesh
         }
     } else if (ode_solver_type == ODEEnum::low_storage_runge_kutta_solver) {
          std::shared_ptr<LowStorageRKTableauBase<dim,real,MeshType>> ls_rk_tableau = create_LowStorageRKTableau(dg_input);;
-         // ls_rk_tableau = std::make_shared<LowStorageRKTableauBase<dim, real, MeshType>> ("LSRK");
+
         // Hard-coded templating of n_rk_stages because it is not known at compile time
         pcout << "Creating Low-Storage Runge Kutta ODE Solver with " 
               << n_rk_stages << " stage(s)..." << std::endl;
@@ -193,7 +193,7 @@ std::shared_ptr<ODESolverBase<dim,real,MeshType>> ODESolverFactory<dim,real,Mesh
 template <int dim, typename real, typename MeshType>
 std::shared_ptr<LowStorageRKTableauBase<dim,real,MeshType>> ODESolverFactory<dim,real,MeshType>::create_LowStorageRKTableau(std::shared_ptr< DGBase<dim,real,MeshType> > dg_input)
 {
-    // (void) dg_input;
+
     dealii::ConditionalOStream pcout(std::cout, dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD)==0);
     using RKMethodEnum = Parameters::ODESolverParam::RKMethodEnum;
     const RKMethodEnum rk_method = dg_input->all_parameters->ode_solver_param.runge_kutta_method;
@@ -205,7 +205,6 @@ std::shared_ptr<LowStorageRKTableauBase<dim,real,MeshType>> ODESolverFactory<dim
     if (rk_method == RKMethodEnum::RK4_3_5_3SStar)      return std::make_shared<RK4_3_5_3SStar<dim, real, MeshType>>    (n_rk_stages, num_delta, "RK4_3_5_3SStar");
     if (rk_method == RKMethodEnum::RK4_3_9F_3SStarPlus)      return std::make_shared<RK4_3_9F_3SStarPlus<dim, real, MeshType>>    (n_rk_stages, num_delta, "RK4_3_9F_3SStarPlus");
     if (rk_method == RKMethodEnum::RK5_4_10F_3SStarPlus)      return std::make_shared<RK5_4_10F_3SStarPlus<dim, real, MeshType>>    (n_rk_stages, num_delta, "RK5_4_10F_3SStarPlus");
-    //return std::make_shared<LowStorageRKTableauBase<dim, real, MeshType>> ("LSRK");
     else {
         pcout << "Error: invalid LS RK method. Aborting..." << std::endl;
         std::abort();

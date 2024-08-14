@@ -26,13 +26,20 @@ set two_point_num_flux_type = IR
 subsection ODE solver
   set ode_output = quiet 
   set ode_solver_type = low_storage_runge_kutta 
-  set runge_kutta_method = RK3_2_5F_3SStarPlus
+  set runge_kutta_method = RK4_3_5_3SStar
+  #set runge_kutta_method = RK4_3_9F_3SStarPlus
+  #set runge_kutta_method = RK3_2_5F_3SStarPlus
+  #set runge_kutta_method = RK5_4_10F_3SStarPlus
+  subsection low-storage rk solver
+    set atol = 1e-5
+    set rtol = 1e-5
+    set beta1 = 0.70
+    set beta2 = -0.23
+    set beta3 = 0.00
+   end
 end
 
 subsection linear solver
-  set atol = 0.001
-  set rtol = 0.001
-  #set beta_controller = {0.70, -0.23, 0}
   set linear_solver_output = quiet
 end
 
@@ -42,20 +49,21 @@ subsection euler
 end
 
 subsection time_refinement_study
-  set number_of_times_to_solve = 2
+  set number_of_times_to_solve = 1
   set refinement_ratio = 0.5
 end
 
 subsection flow_solver
   set flow_case_type = isentropic_vortex
-  set poly_degree = 3
-  #set final_time = 23.66431913239 #=20 * sqrt(1.4), time for vortex to advect around the domain
-  set final_time = 5.9160797831 #1/4 cycle to make ctest faster. Full cycle is recommended for better results.
+  set poly_degree = 2
+  set error_adaptive_time_step = true
+  set final_time = 23.66431913239 #=20 * sqrt(1.4), time for vortex to advect around the domain
+  #set final_time = 5.9160797831 #1/4 cycle to make ctest faster. Full cycle is recommended for better results.
   set courant_friedrichs_lewy_number = 0.1
   set unsteady_data_table_filename = isentropic_vortex_time_table
   subsection grid
     set grid_left_bound = -10.0
     set grid_right_bound = 10.0
-    set number_of_grid_elements_per_dimension = 8
+    set number_of_grid_elements_per_dimension = 32
   end
 end

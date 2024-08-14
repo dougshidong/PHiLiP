@@ -30,7 +30,7 @@
 
 #include "physics/euler.h"
 #include "physics/manufactured_solution.h"
-#include "dg/dg.h"
+#include "dg/dg_base.hpp"
 #include "ode_solver/ode_solver_factory.h"
 
 #include "functional/functional.h"

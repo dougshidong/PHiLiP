@@ -1,31 +1,37 @@
-#include "pod_adaptive_sampling.h"
+#include "hyper_reduced_sampling_error_updated.h"
 #include <iostream>
 #include <filesystem>
 #include "functional/functional.h"
 #include <deal.II/lac/trilinos_sparse_matrix.h>
 #include <deal.II/lac/vector_operation.h>
-#include "reduced_order/reduced_order_solution.h"
+#include "reduced_order_solution.h"
 #include "flow_solver/flow_solver.h"
 #include "flow_solver/flow_solver_factory.h"
 #include <cmath>
-#include "reduced_order/rbf_interpolation.h"
+#include "rbf_interpolation.h"
 #include "ROL_Algorithm.hpp"
 #include "ROL_LineSearchStep.hpp"
 #include "ROL_StatusTest.hpp"
 #include "ROL_Stream.hpp"
 #include "ROL_Bounds.hpp"
-#include "reduced_order/halton.h"
-#include "reduced_order/min_max_scaler.h"
-#include "tests.h"
+#include "halton.h"
+#include "min_max_scaler.h"
+#include "pod_adaptive_sampling.h"
+#include "assemble_ECSW_residual.h"
+#include "assemble_ECSW_jacobian.h"
+#include "linear_solver/NNLS_solver.h"
+#include "linear_solver/helper_functions.h"
 
 namespace PHiLiP {
-namespace Tests {
 
 template<int dim, int nstate>
-AdaptiveSampling<dim, nstate>::AdaptiveSampling(const PHiLiP::Parameters::AllParameters *const parameters_input,
+HyperreducedSamplingErrorUpdated<dim, nstate>::HyperreducedSamplingErrorUpdated(const PHiLiP::Parameters::AllParameters *const parameters_input,
                                                 const dealii::ParameterHandler &parameter_handler_input)
-        : TestsBase::TestsBase(parameters_input)
-        , parameter_handler(parameter_handler_input)
+        : all_parameters(parameters_input),
+        parameter_handler(parameter_handler_input)
+        , mpi_communicator(MPI_COMM_WORLD)
+        , mpi_rank(dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD))
+        , pcout(std::cout, mpi_rank==0)
 {
     configureInitialParameterSpace();
     std::unique_ptr<FlowSolver::FlowSolver<dim,nstate>> flow_solver = FlowSolver::FlowSolverFactory<dim,nstate>::select_flow_case(all_parameters, parameter_handler);
@@ -35,27 +41,73 @@ AdaptiveSampling<dim, nstate>::AdaptiveSampling(const PHiLiP::Parameters::AllPar
     system_matrix->copy_from(flow_solver->dg->system_matrix);
     current_pod = std::make_shared<ProperOrthogonalDecomposition::OnlinePOD<dim>>(system_matrix);
     nearest_neighbors = std::make_shared<ProperOrthogonalDecomposition::NearestNeighbors>();
+    const Epetra_CrsMatrix epetra_pod_basis = current_pod->getPODBasis()->trilinos_matrix();
 }
 
 template <int dim, int nstate>
-int AdaptiveSampling<dim, nstate>::run_test() const
+int HyperreducedSamplingErrorUpdated<dim, nstate>::run_sampling() const
 {
     this->pcout << "Starting adaptive sampling process" << std::endl;
+
+    std::unique_ptr<FlowSolver::FlowSolver<dim,nstate>> flow_solver = FlowSolver::FlowSolverFactory<dim,nstate>::select_flow_case(all_parameters, parameter_handler);
 
     placeInitialSnapshots();
     current_pod->computeBasis();
 
-    MatrixXd rom_points = nearest_neighbors->kPairwiseNearestNeighborsMidpoint();
-    pcout << rom_points << std::endl;
+    auto ode_solver_type = Parameters::ODESolverParam::ODESolverEnum::hyper_reduced_petrov_galerkin_solver;
+    
+    // Find C and d for NNLS Problem
+    this->pcout << "Construct instance of Assembler..."<< std::endl;  
+    std::shared_ptr<HyperReduction::AssembleECSWBase<dim,nstate>> constructer_NNLS_problem;
+    if (this->all_parameters->hyper_reduction_param.training_data == "residual")         
+        constructer_NNLS_problem = std::make_shared<HyperReduction::AssembleECSWRes<dim,nstate>>(this->all_parameters, this->parameter_handler, flow_solver->dg, this->current_pod, this->snapshot_parameters, ode_solver_type);
+    else {
+        constructer_NNLS_problem = std::make_shared<HyperReduction::AssembleECSWJac<dim,nstate>>(this->all_parameters, this->parameter_handler, flow_solver->dg, this->current_pod, this->snapshot_parameters, ode_solver_type);
+    }
+    this->pcout << "Build Problem..."<< std::endl;
+    constructer_NNLS_problem->build_problem();
 
-    placeROMLocations(rom_points);
+    // Transfer b vector (RHS of NNLS problem) to Epetra structure
+    Epetra_MpiComm Comm( MPI_COMM_WORLD );
+    Epetra_Map bMap = (constructer_NNLS_problem->A->trilinos_matrix()).RowMap();
+    Epetra_Vector b_Epetra (bMap);
+    auto b = constructer_NNLS_problem->b;
+    for(unsigned int i = 0 ; i < b.size() ; i++){
+        b_Epetra[i] = b(i);
+    }
+
+    // Solve NNLS Problem for ECSW weights
+    this->pcout << "Create NNLS problem..."<< std::endl;
+    NNLS_solver NNLS_prob(all_parameters, parameter_handler, constructer_NNLS_problem->A->trilinos_matrix(), Comm, b_Epetra);
+    this->pcout << "Solve NNLS problem..."<< std::endl;
+    bool exit_con = NNLS_prob.solve();
+    this->pcout << exit_con << std::endl;
+
+    ptr_weights = std::make_shared<Epetra_Vector>(NNLS_prob.getSolution());
+    this->pcout << "ECSW Weights"<< std::endl;
+    this->pcout << *ptr_weights << std::endl;
+
+    MatrixXd rom_points = nearest_neighbors->kPairwiseNearestNeighborsMidpoint();
+    this->pcout << "ROM Points"<< std::endl;
+    this->pcout << rom_points << std::endl;
+
+    placeROMLocations(rom_points, *ptr_weights);
 
     RowVectorXd max_error_params = getMaxErrorROM();
     int iteration = 0;
 
     while(max_error > all_parameters->reduced_order_param.adaptation_tolerance){
 
-        outputIterationData(iteration);
+        outputIterationData(std::to_string(iteration));
+        std::unique_ptr<dealii::TableHandler> weights_table = std::make_unique<dealii::TableHandler>();
+        for(int i = 0 ; i < ptr_weights->GlobalLength() ; i++){
+            weights_table->add_value("ECSW Weights", (*ptr_weights)[i]);
+            weights_table->set_precision("ECSW Weights", 16);
+        }
+
+        std::ofstream weights_table_file("weights_table_iteration_" + std::to_string(iteration) + ".txt");
+        weights_table->write_text(weights_table_file, dealii::TableHandler::TextOutputFormat::org_mode_table);
+        weights_table_file.close();
 
         this->pcout << "Sampling snapshot at " << max_error_params << std::endl;
         dealii::LinearAlgebra::distributed::Vector<double> fom_solution = solveSnapshotFOM(max_error_params);
@@ -65,36 +117,71 @@ int AdaptiveSampling<dim, nstate>::run_test() const
         current_pod->addSnapshot(fom_solution);
         current_pod->computeBasis();
 
-        //Update previous ROM errors with updated current_pod
+        // Find C and d for NNLS Problem
+        this->pcout << "Update Assembler..."<< std::endl;
+        constructer_NNLS_problem->updatePODSnaps(this->current_pod, this->snapshot_parameters);
+        this->pcout << "Build Problem..."<< std::endl;
+        constructer_NNLS_problem->build_problem();
+
+        // Transfer b vector (RHS of NNLS problem) to Epetra structure
+        Epetra_MpiComm Comm( MPI_COMM_WORLD );
+        Epetra_Map bMap = (constructer_NNLS_problem->A->trilinos_matrix()).RowMap();
+        Epetra_Vector b_Epetra (bMap);
+        auto b = constructer_NNLS_problem->b;
+        for(unsigned int i = 0 ; i < b.size() ; i++){
+            b_Epetra[i] = b(i);
+        }
+
+        // Solve NNLS Problem for ECSW weights
+        this->pcout << "Create NNLS problem..."<< std::endl;
+        NNLS_solver NNLS_prob(all_parameters, parameter_handler, constructer_NNLS_problem->A->trilinos_matrix(), Comm, b_Epetra);
+        this->pcout << "Solve NNLS problem..."<< std::endl;
+        bool exit_con = NNLS_prob.solve();
+        this->pcout << exit_con << std::endl;
+        
+        ptr_weights = std::make_shared<Epetra_Vector>(NNLS_prob.getSolution());
+        this->pcout << "ECSW Weights"<< std::endl;
+        this->pcout << *ptr_weights << std::endl;
+
+        // Update previous ROM errors with updated current_pod
         for(auto it = rom_locations.begin(); it != rom_locations.end(); ++it){
             it->get()->compute_initial_rom_to_final_rom_error(current_pod);
             it->get()->compute_total_error();
         }
 
-        updateNearestExistingROMs(max_error_params);
+        updateNearestExistingROMs(max_error_params, *ptr_weights);
 
         rom_points = nearest_neighbors->kNearestNeighborsMidpoint(max_error_params);
-        pcout << rom_points << std::endl;
+        this->pcout << rom_points << std::endl;
 
-        placeROMLocations(rom_points);
+        placeROMLocations(rom_points, *ptr_weights);
 
-        //Update max error
+        // Update max error
         max_error_params = getMaxErrorROM();
 
         this->pcout << "Max error is: " << max_error << std::endl;
         iteration++;
     }
 
-    outputIterationData(iteration);
+    outputIterationData("final");
+    std::unique_ptr<dealii::TableHandler> weights_table = std::make_unique<dealii::TableHandler>();
+    for(int i = 0 ; i < ptr_weights->GlobalLength() ; i++){
+        weights_table->add_value("ECSW Weights", (*ptr_weights)[i]);
+        weights_table->set_precision("ECSW Weights", 16);
+    }
+
+    std::ofstream weights_table_file("weights_table_iteration_final.txt");
+    weights_table->write_text(weights_table_file, dealii::TableHandler::TextOutputFormat::org_mode_table);
+    weights_table_file.close();
 
     return 0;
 }
 
 template <int dim, int nstate>
-void AdaptiveSampling<dim, nstate>::outputIterationData(int iteration) const{
+void HyperreducedSamplingErrorUpdated<dim, nstate>::outputIterationData(std::string iteration) const{
     std::unique_ptr<dealii::TableHandler> snapshot_table = std::make_unique<dealii::TableHandler>();
 
-    std::ofstream solution_out_file("solution_snapshots_iteration_" +  std::to_string(iteration) + ".txt");
+    std::ofstream solution_out_file("solution_snapshots_iteration_" +  iteration + ".txt");
     unsigned int precision = 16;
     current_pod->dealiiSnapshotMatrix.print_formatted(solution_out_file, precision);
     solution_out_file.close();
@@ -106,7 +193,7 @@ void AdaptiveSampling<dim, nstate>::outputIterationData(int iteration) const{
         }
     }
 
-    std::ofstream snapshot_table_file("snapshot_table_iteration_" + std::to_string(iteration) + ".txt");
+    std::ofstream snapshot_table_file("snapshot_table_iteration_" + iteration + ".txt");
     snapshot_table->write_text(snapshot_table_file, dealii::TableHandler::TextOutputFormat::org_mode_table);
     snapshot_table_file.close();
 
@@ -121,13 +208,13 @@ void AdaptiveSampling<dim, nstate>::outputIterationData(int iteration) const{
         rom_table->set_precision("ROM_errors", 16);
     }
 
-    std::ofstream rom_table_file("rom_table_iteration_" + std::to_string(iteration) + ".txt");
+    std::ofstream rom_table_file("rom_table_iteration_" + iteration + ".txt");
     rom_table->write_text(rom_table_file, dealii::TableHandler::TextOutputFormat::org_mode_table);
     rom_table_file.close();
 }
 
 template <int dim, int nstate>
-RowVectorXd AdaptiveSampling<dim, nstate>::getMaxErrorROM() const{
+RowVectorXd HyperreducedSamplingErrorUpdated<dim, nstate>::getMaxErrorROM() const{
     this->pcout << "Updating RBF interpolation..." << std::endl;
 
     int n_rows = snapshot_parameters.rows() + rom_locations.size();
@@ -146,28 +233,24 @@ RowVectorXd AdaptiveSampling<dim, nstate>::getMaxErrorROM() const{
         i++;
     }
 
-    //Must scale both axes between [0,1] for the 2d rbf interpolation to work optimally
+    // Must scale both axes between [0,1] for the 2d rbf interpolation to work optimally
     ProperOrthogonalDecomposition::MinMaxScaler scaler;
     MatrixXd parameters_scaled = scaler.fit_transform(parameters);
 
-    //Construct radial basis function
+    // Construct radial basis function
     std::string kernel = "thin_plate_spline";
     ProperOrthogonalDecomposition::RBFInterpolation rbf = ProperOrthogonalDecomposition::RBFInterpolation(parameters_scaled, errors, kernel);
 
-    // Set parameters.
+    // Set parameters
     ROL::ParameterList parlist;
-    //parlist.sublist("General").set("Recompute Objective Function",false);
-    //parlist.sublist("Step").sublist("Line Search").set("Initial Step Size", 1.0);
-    //parlist.sublist("Step").sublist("Line Search").set("User Defined Initial Step Size",true);
     parlist.sublist("Step").sublist("Line Search").sublist("Line-Search Method").set("Type","Backtracking");
     parlist.sublist("Step").sublist("Line Search").sublist("Descent Method").set("Type","Quasi-Newton Method");
     parlist.sublist("Step").sublist("Line Search").sublist("Secant").set("Type","Limited-Memory BFGS");
-    //parlist.sublist("Step").sublist("Line Search").sublist("Curvature Condition").set("Type","Null Curvature Condition");
     parlist.sublist("Status Test").set("Gradient Tolerance",1.e-10);
     parlist.sublist("Status Test").set("Step Tolerance",1.e-14);
     parlist.sublist("Status Test").set("Iteration Limit",100);
 
-    //Find max error and parameters by minimizing function starting at each ROM location
+    // Find max error and parameters by minimizing function starting at each ROM location
     RowVectorXd max_error_params(parameters.cols());
     max_error = 0;
 
@@ -176,14 +259,14 @@ RowVectorXd AdaptiveSampling<dim, nstate>::getMaxErrorROM() const{
         Eigen::RowVectorXd rom_unscaled = it->get()->parameter;
         Eigen::RowVectorXd rom_scaled = scaler.transform(rom_unscaled);
 
-        //start bounds
+        // start bounds
         int dimension = parameters.cols();
         ROL::Ptr<std::vector<double>> l_ptr = ROL::makePtr<std::vector<double>>(dimension,0.0);
         ROL::Ptr<std::vector<double>> u_ptr = ROL::makePtr<std::vector<double>>(dimension,1.0);
         ROL::Ptr<ROL::Vector<double>> lo = ROL::makePtr<ROL::StdVector<double>>(l_ptr);
         ROL::Ptr<ROL::Vector<double>> up = ROL::makePtr<ROL::StdVector<double>>(u_ptr);
         ROL::Bounds<double> bcon(lo,up);
-        //end bounds
+        // end bounds
 
         ROL::Ptr<ROL::Step<double>> step = ROL::makePtr<ROL::LineSearchStep<double>>(parlist);
         ROL::Ptr<ROL::StatusTest<double>> status = ROL::makePtr<ROL::StatusTest<double>>(parlist);
@@ -207,9 +290,6 @@ RowVectorXd AdaptiveSampling<dim, nstate>::getMaxErrorROM() const{
         ROL::StdVector<double> x(x_ptr);
 
         // Run Algorithm
-        //ROL::Ptr<std::ostream> outStream;
-        //outStream = ROL::makePtrFromRef(std::cout);
-        //algo.run(x, rbf, bcon,true, *outStream);
         algo.run(x, rbf, bcon,false);
 
         ROL::Ptr<std::vector<double>> x_min = x.getVector();
@@ -232,7 +312,7 @@ RowVectorXd AdaptiveSampling<dim, nstate>::getMaxErrorROM() const{
         }
     }
 
-    //Check if max_error_params is a ROM point
+    // Check if max_error_params is a ROM point
     for(auto it = rom_locations.begin(); it != rom_locations.end(); ++it){
         if(max_error_params.isApprox(it->get()->parameter)){
             this->pcout << "Max error location is approximately the same as a ROM location. Removing ROM location." << std::endl;
@@ -245,7 +325,7 @@ RowVectorXd AdaptiveSampling<dim, nstate>::getMaxErrorROM() const{
 }
 
 template <int dim, int nstate>
-void AdaptiveSampling<dim, nstate>::placeInitialSnapshots() const{
+void HyperreducedSamplingErrorUpdated<dim, nstate>::placeInitialSnapshots() const{
     for(auto snap_param : snapshot_parameters.rowwise()){
         this->pcout << "Sampling initial snapshot at " << snap_param << std::endl;
         dealii::LinearAlgebra::distributed::Vector<double> fom_solution = solveSnapshotFOM(snap_param);
@@ -255,14 +335,16 @@ void AdaptiveSampling<dim, nstate>::placeInitialSnapshots() const{
 }
 
 template <int dim, int nstate>
-bool AdaptiveSampling<dim, nstate>::placeROMLocations(const MatrixXd& rom_points) const{
+bool HyperreducedSamplingErrorUpdated<dim, nstate>::placeROMLocations(const MatrixXd& rom_points, Epetra_Vector weights) const{
     bool error_greater_than_tolerance = false;
+    std::unique_ptr<FlowSolver::FlowSolver<dim,nstate>> flow_solver = FlowSolver::FlowSolverFactory<dim,nstate>::select_flow_case(all_parameters, parameter_handler);
+
     for(auto midpoint : rom_points.rowwise()){
 
-        //Check if ROM point already exists as another ROM point
-        auto element = std::find_if(rom_locations.begin(), rom_locations.end(), [&midpoint](std::unique_ptr<ProperOrthogonalDecomposition::ROMTestLocation<dim,nstate>>& location){ return location->parameter.isApprox(midpoint);} );
+        // Check if ROM point already exists as another ROM point
+        auto element = std::find_if(rom_locations.begin(), rom_locations.end(), [&midpoint](std::unique_ptr<ProperOrthogonalDecomposition::HROMTestLocation<dim,nstate>>& location){ return location->parameter.isApprox(midpoint);} );
 
-        //Check if ROM point already exists as a snapshot
+        // Check if ROM point already exists as a snapshot
         bool snapshot_exists = false;
         for(auto snap_param : snapshot_parameters.rowwise()){
             if(snap_param.isApprox(midpoint)){
@@ -271,9 +353,8 @@ bool AdaptiveSampling<dim, nstate>::placeROMLocations(const MatrixXd& rom_points
         }
 
         if(element == rom_locations.end() && snapshot_exists == false){
-            //ProperOrthogonalDecomposition::ROMSolution<dim, nstate> rom_solution = solveSnapshotROM(midpoint);
-            std::unique_ptr<ProperOrthogonalDecomposition::ROMSolution<dim, nstate>> rom_solution = solveSnapshotROM(midpoint);
-            rom_locations.emplace_back(std::make_unique<ProperOrthogonalDecomposition::ROMTestLocation<dim,nstate>>(midpoint, std::move(rom_solution)));
+            std::unique_ptr<ProperOrthogonalDecomposition::ROMSolution<dim, nstate>> rom_solution = solveSnapshotROM(midpoint, weights);
+            rom_locations.emplace_back(std::make_unique<ProperOrthogonalDecomposition::HROMTestLocation<dim,nstate>>(midpoint, std::move(rom_solution), flow_solver->dg, weights));
             if(abs(rom_locations.back()->total_error) > all_parameters->reduced_order_param.adaptation_tolerance){
                 error_greater_than_tolerance = true;
             }
@@ -286,17 +367,18 @@ bool AdaptiveSampling<dim, nstate>::placeROMLocations(const MatrixXd& rom_points
 }
 
 template <int dim, int nstate>
-void AdaptiveSampling<dim, nstate>::updateNearestExistingROMs(const RowVectorXd& /*parameter*/) const{
+void HyperreducedSamplingErrorUpdated<dim, nstate>::updateNearestExistingROMs(const RowVectorXd& /*parameter*/, Epetra_Vector weights) const{
+    std::unique_ptr<FlowSolver::FlowSolver<dim,nstate>> flow_solver = FlowSolver::FlowSolverFactory<dim,nstate>::select_flow_case(all_parameters, parameter_handler);
 
-    pcout << "Verifying ROM points for recomputation." << std::endl;
-    //Assemble ROM points in a matrix
+    this->pcout << "Verifying ROM points for recomputation." << std::endl;
+    // Assemble ROM points in a matrix
     MatrixXd rom_points(0,0);
     for(auto it = rom_locations.begin(); it != rom_locations.end(); ++it){
         rom_points.conservativeResize(rom_points.rows()+1, it->get()->parameter.cols());
         rom_points.row(rom_points.rows()-1) = it->get()->parameter;
     }
 
-    //Get distances between each ROM point and all other ROM points
+    // Get distances between each ROM point and all other ROM points
     for(auto point : rom_points.rowwise()) {
         ProperOrthogonalDecomposition::MinMaxScaler scaler;
         MatrixXd scaled_rom_points = scaler.fit_transform(rom_points);
@@ -312,23 +394,23 @@ void AdaptiveSampling<dim, nstate>::updateNearestExistingROMs(const RowVectorXd&
                       return distances[a] < distances[b];
                   });
 
-        pcout << "Searching ROM points near: " << point << std::endl;
+        this->pcout << "Searching ROM points near: " << point << std::endl;
         double local_mean_error = 0;
         for (int i = 1; i < rom_points.cols() + 2; i++) {
             local_mean_error = local_mean_error + std::abs(rom_locations[index[i]]->total_error);
         }
         local_mean_error = local_mean_error / (rom_points.cols() + 1);
         if ((std::abs(rom_locations[index[0]]->total_error) > all_parameters->reduced_order_param.recomputation_coefficient * local_mean_error) || (std::abs(rom_locations[index[0]]->total_error) < (1/all_parameters->reduced_order_param.recomputation_coefficient) * local_mean_error)) {
-            pcout << "Total error greater than tolerance. Recomputing ROM solution" << std::endl;
-            std::unique_ptr<ProperOrthogonalDecomposition::ROMSolution<dim, nstate>> rom_solution = solveSnapshotROM(rom_locations[index[0]]->parameter);
-            std::unique_ptr<ProperOrthogonalDecomposition::ROMTestLocation<dim, nstate>> rom_location = std::make_unique<ProperOrthogonalDecomposition::ROMTestLocation<dim, nstate>>(rom_locations[index[0]]->parameter, std::move(rom_solution));
+            this->pcout << "Total error greater than tolerance. Recomputing ROM solution" << std::endl;
+            std::unique_ptr<ProperOrthogonalDecomposition::ROMSolution<dim, nstate>> rom_solution = solveSnapshotROM(rom_locations[index[0]]->parameter, weights);
+            std::unique_ptr<ProperOrthogonalDecomposition::HROMTestLocation<dim, nstate>> rom_location = std::make_unique<ProperOrthogonalDecomposition::HROMTestLocation<dim, nstate>>(rom_locations[index[0]]->parameter, std::move(rom_solution), flow_solver->dg, weights);
             rom_locations[index[0]] = std::move(rom_location);
         }
     }
 }
 
 template <int dim, int nstate>
-dealii::LinearAlgebra::distributed::Vector<double> AdaptiveSampling<dim, nstate>::solveSnapshotFOM(const RowVectorXd& parameter) const{
+dealii::LinearAlgebra::distributed::Vector<double> HyperreducedSamplingErrorUpdated<dim, nstate>::solveSnapshotFOM(const RowVectorXd& parameter) const{
     this->pcout << "Solving FOM at " << parameter << std::endl;
     Parameters::AllParameters params = reinitParams(parameter);
 
@@ -345,16 +427,15 @@ dealii::LinearAlgebra::distributed::Vector<double> AdaptiveSampling<dim, nstate>
 }
 
 template <int dim, int nstate>
-std::unique_ptr<ProperOrthogonalDecomposition::ROMSolution<dim,nstate>> AdaptiveSampling<dim, nstate>::solveSnapshotROM(const RowVectorXd& parameter) const{
+std::unique_ptr<ProperOrthogonalDecomposition::ROMSolution<dim,nstate>> HyperreducedSamplingErrorUpdated<dim, nstate>::solveSnapshotROM(const RowVectorXd& parameter, Epetra_Vector weights) const{
     this->pcout << "Solving ROM at " << parameter << std::endl;
     Parameters::AllParameters params = reinitParams(parameter);
 
     std::unique_ptr<FlowSolver::FlowSolver<dim,nstate>> flow_solver = FlowSolver::FlowSolverFactory<dim,nstate>::select_flow_case(&params, parameter_handler);
 
     // Solve implicit solution
-    auto ode_solver_type = Parameters::ODESolverParam::ODESolverEnum::pod_petrov_galerkin_solver;
-    flow_solver->ode_solver =  PHiLiP::ODE::ODESolverFactory<dim, double>::create_ODESolver_manual(ode_solver_type, flow_solver->dg, current_pod);
-    //flow_solver->dg->solution = nearest_neighbors->nearestNeighborMidpointSolution(parameter);
+    auto ode_solver_type = Parameters::ODESolverParam::ODESolverEnum::hyper_reduced_petrov_galerkin_solver;
+    flow_solver->ode_solver =  PHiLiP::ODE::ODESolverFactory<dim, double>::create_ODESolver_manual(ode_solver_type, flow_solver->dg, current_pod, weights);
     flow_solver->ode_solver->allocate_ode_system();
     flow_solver->ode_solver->steady_state();
 
@@ -372,7 +453,7 @@ std::unique_ptr<ProperOrthogonalDecomposition::ROMSolution<dim,nstate>> Adaptive
 }
 
 template <int dim, int nstate>
-Parameters::AllParameters AdaptiveSampling<dim, nstate>::reinitParams(const RowVectorXd& parameter) const{
+Parameters::AllParameters HyperreducedSamplingErrorUpdated<dim, nstate>::reinitParams(const RowVectorXd& parameter) const{
     // Copy all parameters
     PHiLiP::Parameters::AllParameters parameters = *(this->all_parameters);
 
@@ -422,7 +503,7 @@ Parameters::AllParameters AdaptiveSampling<dim, nstate>::reinitParams(const RowV
 }
 
 template <int dim, int nstate>
-void AdaptiveSampling<dim, nstate>::configureInitialParameterSpace() const
+void HyperreducedSamplingErrorUpdated<dim, nstate>::configureInitialParameterSpace() const
 {
     const double pi = atan(1.0) * 4.0;
 
@@ -436,7 +517,7 @@ void AdaptiveSampling<dim, nstate>::configureInitialParameterSpace() const
             parameter1_range *= pi/180; //convert to radians
         }
 
-        //Place parameters at 2 ends and center
+        // Place parameters at 2 ends and center
         snapshot_parameters.resize(3,1);
         snapshot_parameters  << parameter1_range[0],
                                 parameter1_range[1],
@@ -466,7 +547,7 @@ void AdaptiveSampling<dim, nstate>::configureInitialParameterSpace() const
             parameter2_range *= pi/180; //convert to radians
         }
 
-        //Place 9 parameters in a grid
+        // Place 9 parameters in a grid
         snapshot_parameters.resize(9,2);
         snapshot_parameters  << parameter1_range[0], parameter2_range[0],
                                 parameter1_range[0], parameter2_range[1],
@@ -499,12 +580,11 @@ void AdaptiveSampling<dim, nstate>::configureInitialParameterSpace() const
 }
 
 #if PHILIP_DIM==1
-        template class AdaptiveSampling<PHILIP_DIM, PHILIP_DIM>;
+        template class HyperreducedSamplingErrorUpdated<PHILIP_DIM, PHILIP_DIM>;
 #endif
 
 #if PHILIP_DIM!=1
-        template class AdaptiveSampling<PHILIP_DIM, PHILIP_DIM+2>;
+        template class HyperreducedSamplingErrorUpdated<PHILIP_DIM, PHILIP_DIM+2>;
 #endif
 
-}
 }

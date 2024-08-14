@@ -18,7 +18,8 @@ public:
         implicit_solver,  /// Backward-Euler
         rrk_explicit_solver, /// Explicit RK using the relaxation Runge-Kutta method (Ketcheson, 2019)
         pod_galerkin_solver, ///Proper Orthogonal Decomposition with Galerkin projection
-        pod_petrov_galerkin_solver ///Proper Orthogonal Decomposition with Petrov-Galerkin projection (LSPG)
+        pod_petrov_galerkin_solver, ///Proper Orthogonal Decomposition with Petrov-Galerkin projection (LSPG)
+        hyper_reduced_petrov_galerkin_solver ///Proper Orthogonal Decomposition with Petrov-Galerkin projection (LSPG) and ECSW Hyper-reduction
     };
 
     OutputEnum ode_output; ///< verbose or quiet.

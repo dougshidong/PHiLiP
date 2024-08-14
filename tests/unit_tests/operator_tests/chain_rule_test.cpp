@@ -54,7 +54,7 @@
 #include "parameters/parameters.h"
 #include "operators/operators.h"
 #include "operators/operators_factory.hpp"
-#include "dg/dg.h"
+#include "dg/dg_base.hpp"
 #include "dg/dg_factory.hpp"
 
 const double TOLERANCE = 1E-6;

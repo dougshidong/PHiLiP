@@ -29,15 +29,12 @@ end
 
 # ODE solver
 subsection ODE solver
-  set atol = 0.0001
-  set rtol = 0.0001
   set ode_output = quiet
-  set ode_solver_type = low_storage_runge_kutta
-  set runge_kutta_method = RK3_2_5F_3SStarPlus
+  set ode_solver_type = runge_kutta
   set initial_time_step = 0.01
   #set output_solution_every_x_steps = 100
   set output_solution_every_dt_time_intervals = 0.01
-  #set runge_kutta_method = ssprk3_ex 
+  set runge_kutta_method = ssprk3_ex 
 end
 
 # freestream Mach number
@@ -50,8 +47,7 @@ subsection flow_solver
   set poly_degree = 2
   set final_time = 0.13
   set courant_friedrichs_lewy_number = 0.6
-  set error_adaptive_time_step = true
-  set adaptive_time_step = false
+  set adaptive_time_step = true
   set unsteady_data_table_filename = sod_shock_energy
   subsection grid
     set grid_left_bound = -0.5

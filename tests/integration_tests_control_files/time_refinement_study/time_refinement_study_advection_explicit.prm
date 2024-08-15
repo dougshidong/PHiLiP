@@ -11,22 +11,10 @@ set use_periodic_bc = true
 
 # ODE solver
 subsection ODE solver
-  set ode_output = quiet
-  set ode_solver_type = low_storage_runge_kutta
+  set ode_solver_type = runge_kutta
   set output_solution_every_dt_time_intervals = 0.1
-  #set initial_time_step = 5E-3 #(convergence test)
   set initial_time_step = 2.5E-3
-  #set runge_kutta_method = RK4_3_5_3SStar
-  set runge_kutta_method = RK4_3_9F_3SStarPlus
-  #set runge_kutta_method = RK3_2_5F_3SStarPlus
-  #set runge_kutta_method = RK5_4_10F_3SStarPlus
-  subsection low-storage rk solver
-    set atol = 1e-5
-    set rtol = 1e-5
-    set beta1 = 0.70
-    set beta2 = -0.23
-    set beta3 = 0.00
-  end
+  set runge_kutta_method = ssprk3_ex
 end
 
 subsection manufactured solution convergence study 
@@ -37,17 +25,14 @@ end
 
 
 subsection time_refinement_study
-  #set number_of_times_to_solve = 4
-  set number_of_times_to_solve = 1
-  set refinement_ratio = 0.8
+  set number_of_times_to_solve = 4
+  set refinement_ratio = 0.5
 end
 
 subsection flow_solver
   set flow_case_type = periodic_1D_unsteady
   set final_time = 1.0
   set poly_degree = 5
-  set adaptive_time_step = false
-  set error_adaptive_time_step = true
   subsection grid
     set grid_left_bound = 0.0
     set grid_right_bound = 2.0

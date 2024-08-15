@@ -29,8 +29,8 @@ set diss_num_flux = symm_internal_penalty
 # ODE solver
 subsection ODE solver
   set ode_output = quiet
-  set ode_solver_type = low_storage_runge_kutta
-  #set runge_kutta_method = ssprk3_ex
+  set ode_solver_type = rrk_explicit
+  set runge_kutta_method = ssprk3_ex
   subsection rrk root solver
     set rrk_root_solver_output = verbose
   end
@@ -54,7 +54,7 @@ end
 subsection flow_solver
   set flow_case_type = taylor_green_vortex
   set poly_degree = 2
-  set final_time = 10
+  set final_time = 0.1
   set courant_friedrichs_lewy_number = 0.1
   set unsteady_data_table_filename = turbulent_quantities
   subsection grid

@@ -1,9 +1,3 @@
-/* Non-Negagive Least Squares Solver for Epetra Structures
- * Based on the NNLS in Eigen unsupported and in MATLAB:
- * https://gitlab.com/libeigen/eigen/-/blob/master/unsupported/Eigen/NNLS
- * https://www.mathworks.com/help/matlab/ref/lsqnonneg.html
- */
-
 /** From Eigen NNLS:
  * Non-Negagive Least Squares Algorithm for Eigen.
  *
@@ -68,6 +62,12 @@
 
 using Eigen::Matrix;
 namespace PHiLiP {
+/**  Non-Negagive Least Squares Solver for Epetra Structures
+ *   Based on the NNLS in Eigen unsupported and in MATLAB:
+ *   https://gitlab.com/libeigen/eigen/-/blob/master/unsupported/Eigen/NNLS
+ *   https://www.mathworks.com/help/matlab/ref/lsqnonneg.html
+ */
+
 class NNLS_solver
 {
 public:

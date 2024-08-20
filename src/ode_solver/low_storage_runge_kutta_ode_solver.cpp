@@ -10,14 +10,25 @@ LowStorageRungeKuttaODESolver<dim,real,n_rk_stages, MeshType>::LowStorageRungeKu
         : ODESolverBase<dim,real,MeshType>(dg_input)
         , butcher_tableau(rk_tableau_input)
         , relaxation_runge_kutta(RRK_object_input)
-{       epsilon[0] = 1.0;
-        epsilon[1] = 1.0;
-        epsilon[2] = 1.0; 
-}
+        , epsilon{1.0, 1.0, 1.0} 
+        , atol(this->ode_param.atol)
+        , rtol(this->ode_param.rtol)
+        , rk_order(this->ode_param.rk_order)
+        , is_3Sstarplus(this->ode_param.is_3Sstarplus)
+        , num_delta(this->ode_param.num_delta)
+        , beta1(this->ode_param.beta1)
+        , beta2(this->ode_param.beta2)
+        , beta3(this->ode_param.beta3)
+{}
 
 template <int dim, typename real, int n_rk_stages, typename MeshType>
-void LowStorageRungeKuttaODESolver<dim,real,n_rk_stages, MeshType>::step_in_time (real dt, const bool /*pseudotime*/)
+void LowStorageRungeKuttaODESolver<dim,real,n_rk_stages, MeshType>::step_in_time (real dt, const bool pseudotime)
 {
+    if(pseudotime == true){
+        std::cout << "Error: pseudotime low-storage RK is not implemented." << std::endl;
+        std::abort();
+    }
+
     this->original_time_step = dt;
     this->solution_update = this->dg->solution; //storing u_n
     double sum_delta = 0.0;
@@ -88,7 +99,7 @@ void LowStorageRungeKuttaODESolver<dim,real,n_rk_stages, MeshType>::step_in_time
     }
     this->dg->solution = storage_register_1;
 
-    // Apply limiter at every RK stage
+    // Apply limiter after final RK stage
     if (this->limiter) {
         this->limiter->limit(this->dg->solution,
             this->dg->dof_handler,
@@ -99,17 +110,16 @@ void LowStorageRungeKuttaODESolver<dim,real,n_rk_stages, MeshType>::step_in_time
             this->dg->oneD_fe_collection_1state,
             this->dg->oneD_quadrature_collection);
         }
-
-    if ((this->ode_param.ode_output) == Parameters::OutputEnum::verbose &&
-        (this->current_iteration%this->ode_param.print_iteration_modulo) == 0 ) {
-        this->pcout << " Evaluating system update... " << std::endl;
-    }
  
     this->pcout << std::endl;
     ++(this->current_iteration);
     this->current_time += dt;
-    this->pcout << " Time is: " << this->current_time <<std::endl;
-    this->pcout << std::endl;
+
+    if ((this->ode_param.ode_output) == Parameters::OutputEnum::verbose &&
+        (this->current_iteration%this->ode_param.print_iteration_modulo) == 0 ) {
+            this->pcout << " Time is: " << this->current_time <<std::endl;
+            this->pcout << std::endl;
+    }
 }
 
 template <int dim, typename real, int n_rk_stages, typename MeshType> 
@@ -133,7 +143,6 @@ double LowStorageRungeKuttaODESolver<dim,real,n_rk_stages, MeshType>::get_automa
             w = w + pow(error / (atol + rtol * std::max(std::abs(storage_register_1.local_element(i)), std::abs(storage_register_4.local_element(i)))), 2);
         }
     }
-    this->pcout << std::endl;
 
     // sum over all elements
     w = dealii::Utilities::MPI::sum(w, this->mpi_communicator);
@@ -177,8 +186,8 @@ double LowStorageRungeKuttaODESolver<dim,real,n_rk_stages, MeshType>::get_automa
 
     d1 = rhs_initial.linfty_norm();
 
-    if (d0 < pow(10, -5) || d1 < pow(10, -5)){
-        h0 = pow(10, -6);
+    if (d0 < 1e-5 || d1 < 1e-5){
+        h0 = 1e-6;
     }else{
         h0 = 0.01 * d0 / d1;
     }
@@ -193,9 +202,9 @@ double LowStorageRungeKuttaODESolver<dim,real,n_rk_stages, MeshType>::get_automa
     d2 = u_n.linfty_norm();
     d2 /= h0;
 
-    if (std::max(d1, d2) <= pow(10, -15))
+    if (std::max(d1, d2) <= 1e-15)
     {
-        h1 = std::max(pow(10, -6), pow(10, -3));
+        h1 = std::max(1e-6, h0 * 1e-3);
     }
     else
     {
@@ -214,19 +223,13 @@ void LowStorageRungeKuttaODESolver<dim,real,n_rk_stages, MeshType>::allocate_ode
     this->solution_update.reinit(this->dg->solution);
     storage_register_1.reinit(this->solution_update);
 
-    atol = this->ode_param.atol;
-    rtol = this->ode_param.rtol;
-    rk_order = this->ode_param.rk_order;
-    is_3Sstarplus = this->ode_param.is_3Sstarplus;
-    num_delta = this->ode_param.num_delta;
-    beta1 = this->ode_param.beta1;
-    beta2 = this->ode_param.beta2;
-    beta3 = this->ode_param.beta3;
-
     global_size = dealii::Utilities::MPI::sum(storage_register_1.local_size(), this->mpi_communicator);
     this->pcout << "Allocating ODE system..." << std::flush;
     this->solution_update.reinit(this->dg->right_hand_side);
     if(this->all_parameters->use_inverse_mass_on_the_fly == false) {
+        this->pcout << " use_inverse_mass_on_the_fly == false. Aborting!" << std::flush;
+        std::abort();
+        /*
         this->pcout << " evaluating inverse mass matrix..." << std::flush;
         this->dg->evaluate_mass_matrices(true); // creates and stores global inverse mass matrix
         //RRK needs both mass matrix and inverse mass matrix
@@ -235,6 +238,7 @@ void LowStorageRungeKuttaODESolver<dim,real,n_rk_stages, MeshType>::allocate_ode
         if (ode_type == ODEEnum::rrk_explicit_solver){
             this->dg->evaluate_mass_matrices(false); // creates and stores global mass matrix
         }
+        */
     }
     
     this->pcout << std::endl;

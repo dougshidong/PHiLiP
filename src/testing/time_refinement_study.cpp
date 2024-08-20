@@ -121,7 +121,7 @@ int TimeRefinementStudy<dim, nstate>::run_test() const
         if (this->all_parameters->ode_solver_param.runge_kutta_method == PHiLiP::Parameters::ODESolverParam::RK3_2_5F_3SStarPlus 
             && this->all_parameters->ode_solver_param.atol == 1e-4 && this->all_parameters->ode_solver_param.rtol == 1e-4 
             && this->all_parameters->time_refinement_study_param.number_of_times_to_solve == 1){
-            double L2_error_expected = 1.51122453e-8; 
+            double L2_error_expected = 2.14808703658e-5; 
             pcout << " Expected L2 error is: " << L2_error_expected << std::endl;
             if (L2_error > L2_error_expected + 1e-16 || L2_error < L2_error_expected - 1e-16){
                 testfail = 1;

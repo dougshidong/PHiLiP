@@ -18,6 +18,12 @@ namespace ODE {
  *  The correct coefficients for the [3S*+] method can be found here:
  *  https://github.com/SciML/OrdinaryDiffEq.jl/blob/e17f08ff3916dfc95aa436da037799b6ddbe4cca/lib/OrdinaryDiffEqLowStorageRK/src/low_storage_rk_caches.jl */
 
+/// Initial Starting Step Size
+/** see
+ * Hairer, E., Wanner, G., & Norsett, S. (1993). Solving ordinary differential equations 1. Nonstiff problems E. Hairer ; G. Wanner (2nd ed.). Springer. 
+ * Page 169
+*/
+
 /// Low-Storage Runge-Kutta ODE solver derived from ODESolver.
 #if PHILIP_DIM==1
 template <int dim, typename real, int n_rk_stages, typename MeshType = dealii::Triangulation<dim>>
@@ -72,35 +78,35 @@ protected:
     /// Storage for the weighted/relative error estimate
     real w;
 
-    /// Storage for the algorithm to use
-    bool is_3Sstarplus;
-
     /// Size of all elements
     double global_size;
 
     /// Storage for the error estimate at step n-1, n, and n+1
     double epsilon[3];
 
-    /// Storage for the number of delta values for a specified method
-    int num_delta;
-    
-    /// Storage for the order of the specified Runge-Kutta method
-    int rk_order;
-
     /// Storage for the absolute tolerance
-    double atol;
+    const double atol;
 
     /// Storage for the relative tolerance
-    double rtol;
+    const double rtol;
+
+    /// Storage for the order of the specified Runge-Kutta method
+    const int rk_order;
+
+    /// Storage for the algorithm to use
+    const bool is_3Sstarplus;
+
+    /// Storage for the number of delta values for a specified method
+    const int num_delta;
 
     /// Storage for the first beta controller value
-    double beta1;
+    const double beta1;
 
     /// Storage for the second beta controller value
-    double beta2;
+    const double beta2;
 
     /// Storage for the third beta controller value
-    double beta3;
+    const double beta3;
 
 };
 

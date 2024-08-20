@@ -93,11 +93,11 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
 
         prm.declare_entry("error_adaptive_time_step", "false",
                           dealii::Patterns::Bool(),
-                          "Adapt the time step on the fly for unsteady flow simulations. False by default (i.e. constant time step by default).");
+                          "Adapt the time step on the fly for unsteady flow simulations according to an estimate of temporal error. False by default (i.e. constant time step by default).");
 
         prm.declare_entry("adaptive_time_step", "false",
                           dealii::Patterns::Bool(),
-                          "Adapt the time step on the fly for unsteady flow simulations. False by default (i.e. constant time step by default).");
+                          "Adapt the time step on the fly for unsteady flow simulations according to a CFL condition. False by default (i.e. constant time step by default).");
 
         prm.declare_entry("steady_state_polynomial_ramping", "false",
                           dealii::Patterns::Bool(),

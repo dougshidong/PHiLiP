@@ -9,7 +9,9 @@ namespace ODE {
 
 /// Three-register method that include an error estimate
 /** see 
- *  David Ketcheson. "Runge-Kutta Methods with Minimum Storage Implementations" Journal of computational physics 229.5 (2010): 1763-1773. */
+ *  David Ketcheson. "Runge-Kutta Methods with Minimum Storage Implementations" Journal of computational physics 229.5 (2010): 1763-1773. 
+ * 
+ *  Naming convention: RK4 with an embedded RK3 method, 5 stages, 3S* method*/
 
 #if PHILIP_DIM==1
 template <int dim, typename real, typename MeshType = dealii::Triangulation<dim>>
@@ -36,7 +38,9 @@ protected:
 /** see 
  *  Hedrik Ranocha, Lisandro Dalcin, Matteo Parsani, David Ketcheson. 
  *  "Optimized Runge-Kutta Methods with Automatic Step Size Control for Compressible Computational Fluid Dynamics" Communications on Applied Mathematics and Computation Volume 4 (2022): 1191-1228. 
- *  https://github.com/ranocha/Optimized-RK-CFD */
+ *  https://github.com/ranocha/Optimized-RK-CFD 
+ * 
+ * Naming convention: RK3 with an embedded RK2 method, 6 stages FSAL, 3S*+ method*/
  
 #if PHILIP_DIM==1
 template <int dim, typename real, typename MeshType = dealii::Triangulation<dim>>
@@ -62,7 +66,10 @@ protected:
 /** see 
  *  Hedrik Ranocha, Lisandro Dalcin, Matteo Parsani, David Ketcheson. 
  *  "Optimized Runge-Kutta Methods with Automatic Step Size Control for Compressible Computational Fluid Dynamics" Communications on Applied Mathematics and Computation Volume 4 (2022): 1191-1228. 
- *  https://github.com/ranocha/Optimized-RK-CFD */
+ *  https://github.com/ranocha/Optimized-RK-CFD 
+ * 
+ * 
+ * Naming convention: RK4 with an embedded RK3 method, 10 stages FSAL, 3S*+ method*/
  
 #if PHILIP_DIM==1
 template <int dim, typename real, typename MeshType = dealii::Triangulation<dim>>
@@ -88,7 +95,10 @@ protected:
 /** see 
  *  Hedrik Ranocha, Lisandro Dalcin, Matteo Parsani, David Ketcheson. 
  *  "Optimized Runge-Kutta Methods with Automatic Step Size Control for Compressible Computational Fluid Dynamics" Communications on Applied Mathematics and Computation Volume 4 (2022): 1191-1228. 
- *  https://github.com/ranocha/Optimized-RK-CFD */
+ *  https://github.com/ranocha/Optimized-RK-CFD 
+ * 
+ *  
+ *  Naming convention: RK5 with an embedded RK4 method, 11 stages FSAL, 3S*+ method*/
  
 #if PHILIP_DIM==1
 template <int dim, typename real, typename MeshType = dealii::Triangulation<dim>>

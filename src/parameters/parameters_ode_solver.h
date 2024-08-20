@@ -14,7 +14,7 @@ public:
     /// Types of ODE solver
     enum ODESolverEnum {
         runge_kutta_solver, /// Runge-Kutta (RK), explicit or diagonally implicit 
-        low_storage_runge_kutta_solver, /// Low Storage Runge-Kutta RK43S*
+        low_storage_runge_kutta_solver, /// Low Storage Runge-Kutta
         implicit_solver,  /// Backward-Euler
         rrk_explicit_solver, /// Explicit RK using the relaxation Runge-Kutta method (Ketcheson, 2019)
         pod_galerkin_solver, ///Proper Orthogonal Decomposition with Galerkin projection
@@ -25,11 +25,11 @@ public:
     OutputEnum ode_output; ///< verbose or quiet.
     ODESolverEnum ode_solver_type; ///< ODE solver type.
 
-    double atol; //Absolute tolerance
-    double rtol; //Relative tolerance
-    double beta1; //First value for beta controller;
-    double beta2; //Second value for beta controller;
-    double beta3; //Third value for beta controller;
+    double atol; ///< Absolute tolerance
+    double rtol; ///< Relative tolerance
+    double beta1; ///< First value for beta controller;
+    double beta2; ///< Second value for beta controller;
+    double beta3; ///< Third value for beta controller;
     int output_solution_every_x_steps; ///< Outputs the solution every x steps to .vtk file
     double output_solution_every_dt_time_intervals; ///< Outputs the solution every dt time intervals to .vtk file
     bool output_solution_at_fixed_times; ///< Flag for outputting solution at fixed times

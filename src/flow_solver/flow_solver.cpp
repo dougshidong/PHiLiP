@@ -440,12 +440,14 @@ int FlowSolver<dim,nstate>::run() const
         // Initialize time step
         //----------------------------------------------------
         double time_step = 0.0;
-        if(flow_solver_param.adaptive_time_step == true) {
-            pcout << "WARNING: adaptive time step is different from error adaptive time step " << std::endl;
+        if(flow_solver_param.adaptive_time_step == true && flow_solver_param.error_adaptive_time_step == true){
+            pcout << "WARNING: CFL-adaptation and error-adaptation cannot be used at the same time. Aborting!" << std::endl;
+            std::abort();
+        }
+        else if(flow_solver_param.adaptive_time_step == true) {
             pcout << "Setting initial adaptive time step... " << std::flush;
             time_step = flow_solver_case->get_adaptive_time_step_initial(dg);
         } else if(flow_solver_param.error_adaptive_time_step == true) {
-            pcout << "WARNING: error adaptive time step is different from adaptive time step " << std::endl;
             pcout << "Setting initial error adaptive time step... " << std::flush;
             time_step = ode_solver->get_automatic_initial_step_size(time_step,false);
         } else {
@@ -505,9 +507,9 @@ int FlowSolver<dim,nstate>::run() const
             }
 
             // update time step in flow_solver_case
+            flow_solver_case->set_time_step(time_step);
+
             ode_solver->step_in_time(time_step,false);
-            
-            // advance solution
 
             // Compute the unsteady quantities, write to the dealii table, and output to file
             flow_solver_case->compute_unsteady_data_and_write_to_table(ode_solver, dg, unsteady_data_table);

@@ -1450,6 +1450,159 @@ inline real InitialConditionFunction_MultiSpecies_TwoDimnsional_VortexAdvection<
     return value;
 }
 
+// ========================================================
+// 2D fuel drop advection  (Multi Species) -- Initial Condition 
+// ========================================================
+template <int dim, int nstate, typename real>
+InitialConditionFunction_MultiSpecies_FuelDropAdvection<dim,nstate,real>
+::InitialConditionFunction_MultiSpecies_FuelDropAdvection(
+        Parameters::AllParameters const *const param)
+    : InitialConditionFunction<dim,nstate,real>()
+    , gamma_gas(param->euler_param.gamma_gas)
+    , mach_inf(param->euler_param.mach_inf)
+    , mach_inf_sqr(mach_inf*mach_inf)
+{
+    // Euler object; create using dynamic_pointer_cast and the create_Physics factory
+    // Note that Euler primitive/conservative vars are the same as NS
+    PHiLiP::Parameters::AllParameters parameters_euler = *param;
+    parameters_euler.pde_type = Parameters::AllParameters::PartialDifferentialEquation::real_gas;
+    this->real_gas_physics = std::dynamic_pointer_cast<Physics::RealGas<dim,dim+2+2-1,double>>( // TO DO: N_SPECIES, dim+2+3-1
+                Physics::PhysicsFactory<dim,dim+2+2-1,double>::create_Physics(&parameters_euler)); // TO DO: N_SPECIES, dim+2+3-1
+}
+template <int dim, int nstate, typename real>
+real InitialConditionFunction_MultiSpecies_FuelDropAdvection<dim,nstate,real>
+::primitive_value(const dealii::Point<dim,real> &point, const unsigned int istate) const
+{
+    // Note: This is in non-dimensional form (free-stream values as reference)
+    real value = 0.;
+    if constexpr(dim == 2) {
+        const real x = point[0];
+        const real y = point[1];
+
+        const real x_0 = 0.50;
+        const real y_0 = 0.50;
+
+        const real r = sqrt((x-x_0)*(x-x_0) + (y-y_0)*(y-y_0));
+        // const real r_0 = 1.0/4.0;
+
+        real mass_fraction_fuel;
+        real mass_fraction_N2;
+        const std::array Rs = this->real_gas_physics->compute_Rs(this->real_gas_physics->Ru);
+        const real velocity = 50.0;
+
+        // const real steep = 30.0;
+        const real r_0 = 1.0/3.141592653589793;
+        real steep;
+        if (r<r_0)
+        {
+            steep = 23.0;
+            mass_fraction_fuel = 1.0 - 0.5*(1 + tanh( steep*(r-r_0) ));
+        }
+        else
+        {
+            steep = 60.0;
+            mass_fraction_fuel = 1.0 - 0.5*(1 + tanh( steep*(r-r_0) ));          
+        }
+
+        // mass_fraction_fuel = 1.0 - 0.5*(1 + tanh( steep*(r-r_0) ));
+        mass_fraction_N2 = 1.0 - mass_fraction_fuel;
+        const real R_mixture = (mass_fraction_N2*Rs[0] + mass_fraction_fuel*Rs[1])*this->real_gas_physics->R_ref;
+
+        // N2
+        // const real density_N2 = 21.73909636;
+        // const real temperature_N2 = 573.0;
+        // fuel
+        // const real density_fuel = 642.3913026; 
+        // const real temperature_fuel = 363.0;
+
+        // mixture
+        // const real density  = mass_fraction_fuel*density_fuel + mass_fraction_N2*density_N2;  
+        // const real temperature = 363.0;
+        // const real pressure = 12397*30*30*1.225;
+        // const real temperature = pressure / (density*R_mixture);
+        // const real temperature = mass_fraction_fuel*temperature_fuel+mass_fraction_N2*temperature_N2;
+        // const real pressure = density*R_mixture*temperature;
+
+        const real temperature = 573.0;
+        const real pressure = 600*100*100;
+        const real density = pressure/(R_mixture*temperature);
+
+
+        // if (drop > r*r) // outside drop
+        // {
+        //     velocity = 50.0; //[m/s]
+        //     pressure = 6.0*pow(10,6); //[N/m^2]
+        //     temperature = 900; //[K]
+        //     mass_fraction_fuel = 0.0;
+        //     mass_fraction_N2 = 1.0;
+        //     R_mixture = (mass_fraction_fuel*Rs[0] + mass_fraction_N2*Rs[1])*this->real_gas_physics->R_ref;
+        //     density = pressure/(R_mixture*temperature);
+        // }
+        // else // inside drop
+        // {
+        //     density = 642; //[kg/m^3]
+        //     velocity = 50.0; //[m/s]
+        //     temperature = 363; //[K]
+        //     mass_fraction_fuel = 1.0;
+        //     mass_fraction_N2 = 0.0;
+        //     R_mixture = (mass_fraction_fuel*Rs[0] + mass_fraction_N2*Rs[1])*this->real_gas_physics->R_ref;
+        //     pressure = density*R_mixture*temperature;
+        // }
+
+        // dimnsionalized above, non-dimensionalized below
+        if(istate==0) {
+            // mixture density
+            value = density / this->real_gas_physics->density_ref;
+        }
+        if(istate==1) {
+            // x-velocity
+            value = velocity / this->real_gas_physics->u_ref;
+        }
+        if(istate==2) {
+            // y-velocity
+            value = 0.0 / this->real_gas_physics->u_ref;
+        }
+        if(istate==3) {
+            // pressure
+            value = pressure / (this->real_gas_physics->density_ref*this->real_gas_physics->u_ref_sqr);
+        }
+        if(istate==4){
+            // species mass fraction density (N2)
+            value = mass_fraction_N2;
+        }
+    }
+    return value;
+}
+
+template <int dim, int nstate, typename real>
+real InitialConditionFunction_MultiSpecies_FuelDropAdvection<dim,nstate,real>
+::convert_primitive_to_conversative_value(
+    const dealii::Point<dim,real> &point, const unsigned int istate) const
+{
+    real value = 0.0;
+    if constexpr(dim == 2) {
+        std::array<real,nstate> soln_primitive;
+
+        for (int i=0; i<nstate; i++)
+        {
+            soln_primitive[i] = primitive_value(point,i);
+        }
+
+        const std::array<real,nstate> soln_conservative = this->real_gas_physics->convert_primitive_to_conservative(soln_primitive);
+        value = soln_conservative[istate];
+    }
+    return value;
+}
+
+template <int dim, int nstate, typename real>
+inline real InitialConditionFunction_MultiSpecies_FuelDropAdvection<dim, nstate, real>
+::value(const dealii::Point<dim,real> &point, const unsigned int istate) const
+{
+    real value = 0.0;
+    value = convert_primitive_to_conversative_value(point,istate);
+    return value;
+}
+
 // =========================================================
 // Initial Condition Factory
 // =========================================================
@@ -1548,7 +1701,11 @@ InitialConditionFactory<dim,nstate, real>::create_InitialConditionFunction(
     } else if (flow_type == FlowCaseEnum::multi_species_two_dimensional_vortex_advection) {
         if constexpr (dim==2 && nstate==dim+2+2-1){ // TO DO: N_SPECIES
             return std::make_shared<InitialConditionFunction_MultiSpecies_TwoDimnsional_VortexAdvection<dim,nstate,real> >(param);
-        }        
+        }
+    } else if (flow_type == FlowCaseEnum::multi_species_fuel_drop_advection) {
+        if constexpr (dim==2 && nstate==dim+2+2-1){ // TO DO: N_SPECIES
+            return std::make_shared<InitialConditionFunction_MultiSpecies_FuelDropAdvection<dim,nstate,real> >(param);
+        }          
     } else {
         std::cout << "Invalid Flow Case Type. You probably forgot to add it to the list of flow cases in initial_condition_function.cpp" << std::endl;
         std::abort();
@@ -1592,6 +1749,7 @@ template class InitialConditionFunction_AcousticWave_Air <PHILIP_DIM, PHILIP_DIM
 template class InitialConditionFunction_AcousticWave_Species <PHILIP_DIM, PHILIP_DIM+2, double>;
 template class InitialConditionFunction_MultiSpecies_IsentropicEulerVortex <PHILIP_DIM, PHILIP_DIM+3, double>;
 template class InitialConditionFunction_MultiSpecies_TwoDimnsional_VortexAdvection <PHILIP_DIM, PHILIP_DIM+3, double>;
+template class InitialConditionFunction_MultiSpecies_FuelDropAdvection <PHILIP_DIM, PHILIP_DIM+3, double>;
 #endif
 
 // functions instantiated for all dim

@@ -29,8 +29,8 @@ AllRealGasConstants::AllRealGasConstants (const Parameters::AllParameters *const
 { 
     this->namechem=parameters_input->chemistry_input_file;
     this->nameinitmixfrac=parameters_input->initial_mixture_fractions_input_file;
-    pcout << "namechem = " << this->namechem << std::endl;
-    pcout << "nameinitmixfrac = " << this->nameinitmixfrac << std::endl;
+    // pcout << "namechem = " << this->namechem << std::endl;
+    // pcout << "nameinitmixfrac = " << this->nameinitmixfrac << std::endl;
     //-------------------------------------------
     //          READ SPECIES FILE
     //-------------------------------------------

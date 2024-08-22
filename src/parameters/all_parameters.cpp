@@ -355,7 +355,15 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       dealii::Patterns::FileName(dealii::Patterns::FileName::FileType::input),
                       "Filename of the unsteady data table output file: unsteady_data_table_filename.txt.");
 
+    prm.declare_entry("chemistry_input_file", "N2_O2.kinetics",
+                      dealii::Patterns::FileName(dealii::Patterns::FileName::FileType::input),
+                      "Filename of the unsteady data table output file: unsteady_data_table_filename.txt.");
+
     prm.declare_entry("initial_mixture_fractions_input_file", "InitialMixtureFractions_H2_O2_N2.txt",
+                      dealii::Patterns::FileName(dealii::Patterns::FileName::FileType::input),
+                      "Filename of the unsteady data table output file: unsteady_data_table_filename.txt.");
+
+    prm.declare_entry("initial_mixture_fractions_input_file", "InitialMixtureFractions_N2_O2.txt",
                       dealii::Patterns::FileName(dealii::Patterns::FileName::FileType::input),
                       "Filename of the unsteady data table output file: unsteady_data_table_filename.txt.");
 

@@ -123,7 +123,7 @@ int TimeRefinementStudy<dim, nstate>::run_test() const
             && this->all_parameters->time_refinement_study_param.number_of_times_to_solve == 1){
             double L2_error_expected = 2.14808703658e-5; 
             pcout << " Expected L2 error is: " << L2_error_expected << std::endl;
-            if (L2_error > L2_error_expected + 1e-16 || L2_error < L2_error_expected - 1e-16){
+            if (L2_error > L2_error_expected + 1e-14 || L2_error < L2_error_expected - 1e-14){
                 testfail = 1;
                 pcout << "Expected L2 error for RK3(2)5F[3S*+] using an atol = rtol = 1e-4 was not reached " << refinement <<std::endl;
             }

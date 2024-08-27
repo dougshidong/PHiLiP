@@ -355,7 +355,8 @@ bool NNLS_solver::solve(){
   }
 }
 
-Epetra_CrsMatrix NNLS_solver::allocateMatrixToSingleCore(const Epetra_CrsMatrix &A){
+Epetra_CrsMatrix NNLS_solver::allocateMatrixToSingleCore(const Epetra_CrsMatrix &A)
+{
   // Gather Matrix Information
   const int A_rows = A.NumGlobalRows();
   const int A_cols = A.NumGlobalCols();
@@ -373,9 +374,10 @@ Epetra_CrsMatrix NNLS_solver::allocateMatrixToSingleCore(const Epetra_CrsMatrix 
   A_temp.Import(A, A_importer, Epetra_CombineMode::Insert);
   A_temp.FillComplete(single_core_col_A,single_core_row_A);
   return A_temp;
-};
+}
 
-Epetra_Vector NNLS_solver::allocateVectorToSingleCore(const Epetra_Vector &b){
+Epetra_Vector NNLS_solver::allocateVectorToSingleCore(const Epetra_Vector &b)
+{
   // Gather Vector Information
   const int rank = Comm_.MyPID();
   const int b_size = b.GlobalLength();
@@ -389,7 +391,7 @@ Epetra_Vector NNLS_solver::allocateVectorToSingleCore(const Epetra_Vector &b){
   // Load the data from vector b (Multi core) into b_temp (Single core)
   b_temp.Import(b, b_importer, Epetra_CombineMode::Insert);
   return b_temp;
-};
+}
 
 Epetra_Vector NNLS_solver::allocateVectorToMultipleCores(const Epetra_Vector &c)
 {
@@ -404,5 +406,5 @@ Epetra_Vector NNLS_solver::allocateVectorToMultipleCores(const Epetra_Vector &c)
   c_temp.Import(c, c_importer, Epetra_CombineMode::Insert);
   return c_temp;
 
-};
+}
 } // PHiLiP namespace

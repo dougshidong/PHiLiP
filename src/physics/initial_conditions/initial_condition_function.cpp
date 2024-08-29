@@ -764,24 +764,24 @@ real InitialConditionFunction_ShuOsherProblem<dim, nstate, real>
     real value = 0.0;
     if constexpr (dim == 1 && nstate == (dim + 2)) {
         const real x = point[0];
-        if (x < -4.5) {
+        if (x < -4) {
             if (istate == 0) {
                 // density
-                value = 1.515695;//3.857143;
+                value = 3.857143;
             }
             else if (istate == 1) {
                 // x-velocity
-                value = 0.523346;//2.629369;
+                value = 2.629369;
             }
             else if (istate == 2) {
                 // pressure
-                value = 1.80500;//10.33333;
+                value = 10.33333;
             }
         }
         else {
             if (istate == 0) {
                 // density
-                value = 1.0 + 0.1*sin(20*dealii::numbers::PI*x);//1 + 0.2 * sin(5 * x);
+                value = 1 + 0.2 * sin(5 * x);
             }
             else if (istate == 1) {
                 // x-velocity

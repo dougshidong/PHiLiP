@@ -1129,7 +1129,7 @@ real InitialConditionFunction_SVSW<dim, nstate, real>
         real v_d = 0.0;
         real p_d = p_u * (1.0 + (2.0 * gamma / (gamma + 1.0)) * (M_s * M_s - 1.0));
 
-        if (x <= 0.5){
+        if (x <= 2.0){
             if (istate == 0) {
                 // density
                 value = rho_u;
@@ -1165,7 +1165,7 @@ real InitialConditionFunction_SVSW<dim, nstate, real>
             }            
         }
 
-        if(x <= 0.5) {
+        if(x <= 2.0) {
             // Vortex location
             real x_c = 0.25; real y_c = 0.5;
 

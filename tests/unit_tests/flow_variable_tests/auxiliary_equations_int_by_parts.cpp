@@ -136,11 +136,11 @@ void assemble_face_term_auxiliary_weak(
         soln_at_surf_q_int[istate].resize(n_face_quad_pts);
         soln_at_surf_q_ext[istate].resize(n_face_quad_pts);
         //solve soln at facet cubature nodes
-        soln_basis_int.matrix_vector_mult_surface_1D(iface,
+        soln_basis_int.matrix_vector_mult_surface_1D(/*cell->face_orientation(iface)*/true,iface,
                                                      soln_coeff_int[istate], soln_at_surf_q_int[istate],
                                                      soln_basis_int.oneD_surf_operator,
                                                      soln_basis_int.oneD_vol_operator);
-        soln_basis_ext.matrix_vector_mult_surface_1D(neighbor_iface,
+        soln_basis_ext.matrix_vector_mult_surface_1D(/*neighbor_cell->face_orientation(neighbor_iface)*/true, neighbor_iface,
                                                      soln_coeff_ext[istate], soln_at_surf_q_ext[istate],
                                                      soln_basis_ext.oneD_surf_operator,
                                                      soln_basis_ext.oneD_vol_operator);
@@ -204,7 +204,7 @@ void assemble_face_term_auxiliary_weak(
         for(int idim=0; idim<dim; idim++){
             std::vector<double> rhs_int(n_shape_fns_int);
 
-            soln_basis_int.inner_product_surface_1D(iface, 
+            soln_basis_int.inner_product_surface_1D(true, iface, 
                                                 surf_num_flux_int_dot_normal[istate][idim],
                                                 surf_quad_weights, rhs_int,
                                                 soln_basis_int.oneD_surf_operator,
@@ -216,7 +216,7 @@ void assemble_face_term_auxiliary_weak(
             }
             std::vector<double> rhs_ext(n_shape_fns_ext);
 
-            soln_basis_ext.inner_product_surface_1D(neighbor_iface, 
+            soln_basis_ext.inner_product_surface_1D(true, neighbor_iface, 
                                                 surf_num_flux_ext_dot_normal[istate][idim],
                                                 surf_quad_weights, rhs_ext,
                                                 soln_basis_ext.oneD_surf_operator,
@@ -344,7 +344,6 @@ int main (int argc, char * argv[])
             //loop over cells and compare rhs strong versus rhs weak
             for (auto current_cell = dg->dof_handler.begin_active(); current_cell!=dg->dof_handler.end(); ++current_cell, ++metric_cell) {
                 if (!current_cell->is_locally_owned()) continue;
-            
                 //get mapping support points
                 std::vector<dealii::types::global_dof_index> current_metric_dofs_indices(n_metric_dofs);
                 metric_cell->get_dof_indices (current_metric_dofs_indices);
@@ -416,6 +415,7 @@ int main (int argc, char * argv[])
                     //evaluate facet auxiliary RHS
                     dg->assemble_face_term_auxiliary_equation (
                        current_cell,
+                       neighbor_cell,
                         iface, neighbor_iface, 
                         current_cell_index, neighbor_cell_index,
                         poly_degree, poly_degree,

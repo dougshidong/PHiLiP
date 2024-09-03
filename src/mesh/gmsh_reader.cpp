@@ -255,7 +255,8 @@ void rotate_indices(std::vector<unsigned int> &numbers, const unsigned int n_ind
                   for (unsigned int iy = 0; iy < n; ++iy)
                       for (unsigned int ix = 0; ix < n; ++ix)
                       {
-                          unsigned int k = (ix * n * n) + (n - 1) + (iy * n) - (iz);
+                          //unsigned int k = (ix * n * n) + (n - 1) + (iy * n) - (iz);
+                          unsigned int k = ((1-ix) * n * n) + (n - 1) + (iy * n) - (1-iz);
                           numbers[k] = l++;
                           if(mesh_reader_verbose_output) pcout << "3D rotation matrix, physical node mapping, Y-axis : " << k << std::endl;
                       }
@@ -266,7 +267,8 @@ void rotate_indices(std::vector<unsigned int> &numbers, const unsigned int n_ind
                   for (unsigned int iy = 0; iy < n; ++iy)
                       for (unsigned int ix = 0; ix < n; ++ix)
                       {
-                          unsigned int k = (n * (n - 1)) + ix - (iy * n) + (n * n * iz);
+                          //unsigned int k = (n * (n - 1)) + ix - (iy * n) + (n * n * iz);
+                          unsigned int k = (1-ix) * n + n - (iy + 1) + (n * n * (1-iz));
                           numbers[k] = l++;
                           if(mesh_reader_verbose_output) pcout << "3D rotation matrix, physical node mapping, Flip-axis : " << k << std::endl;
                       }
@@ -1368,7 +1370,7 @@ read_gmsh(std::string filename,
         triangulation = std::make_shared<Triangulation>(MPI_COMM_WORLD); // Dealii's default mesh smoothing flag is none. 
     }
 
-    auto high_order_grid = std::make_shared<HighOrderGrid<dim, double>>(grid_order, triangulation);
+    auto high_order_grid = std::make_shared<HighOrderGrid<dim, double>>(grid_order, triangulation,true,false);
   
     unsigned int n_entity_blocks, n_cells;
     int min_ele_tag, max_ele_tag;
@@ -1680,10 +1682,28 @@ read_gmsh(std::string filename,
 
                 const unsigned int base_index = i_vertex;
                 const unsigned int lexicographic_index = deal_h2l[base_index];
+                // unsigned int lexicographic_index_corrected;
+
+                // if(lexicographic_index==2){
+                //     lexicographic_index_corrected = 1;
+                // }
+                // else if(lexicographic_index==1){
+                //     lexicographic_index_corrected = 2;
+                // }
+                // // else if(lexicographic_index==5){
+                // //     lexicographic_index_corrected = 6;
+                // // }
+                // // else if(lexicographic_index==6){
+                // //     lexicographic_index_corrected = 5;
+                // // }
+                // else{
+                //     lexicographic_index_corrected = lexicographic_index;
+                // }
 
                 const unsigned int vertex_id = high_order_vertices_id_rotated[lexicographic_index];
                 const dealii::Point<dim,double> vertex = all_vertices[vertex_id];
-
+                
+    
 
                 for (int d = 0; d < dim; ++d) {
                     const unsigned int comp = d;
@@ -1755,7 +1775,7 @@ read_gmsh(std::string filename,
 
 
     if (requested_grid_order > 0) {
-        auto grid = std::make_shared<HighOrderGrid<dim, double>>(requested_grid_order, triangulation);
+        auto grid = std::make_shared<HighOrderGrid<dim, double>>(requested_grid_order, triangulation,true,false);
         grid->initialize_with_triangulation_manifold();
         
         /// Convert the mesh by interpolating from one order to another.
@@ -1819,7 +1839,7 @@ read_gmsh(std::string filename, const bool do_renumber_dofs, int requested_grid_
   // default parameters
   const bool periodic_x = false;
   const bool periodic_y = false;
-  const bool periodic_z = false; //true;
+  const bool periodic_z = 0; //true;
   const int x_periodic_1 = 0; 
   const int x_periodic_2 = 0;
   const int y_periodic_1 = 0; 

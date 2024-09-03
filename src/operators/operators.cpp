@@ -193,6 +193,47 @@ SumFactorizedOperators<dim,n_faces>::SumFactorizedOperators(
 {}
 
 template <int dim, int n_faces>  
+void SumFactorizedOperators<dim,n_faces>::face_orientation_tensor_product(
+    const bool face_orientation,
+    const unsigned int /*face_number*/,
+    std::vector<double> &output_vect,
+    const dealii::FullMatrix<double> &basis) 
+{
+    std::vector<double> output_vect_temp = output_vect;
+    const unsigned int columns = basis.n();
+    if(!face_orientation){
+        for(unsigned int ydof=0; ydof<columns; ydof++){ 
+            for(unsigned int xdof=0; xdof<columns; xdof++){//x runs fastest
+                output_vect[xdof+ydof*columns] = output_vect_temp[columns*xdof+ydof];
+            }
+        }
+    }
+}
+
+template <int dim, int n_faces>  
+void SumFactorizedOperators<dim,n_faces>::face_orientation_inner_product(
+    const bool face_orientation,
+    const unsigned int /*face_number*/,
+    const std::vector<double> &input_vect,
+    const std::vector<double> &weight_vect,
+    std::vector<double> &output_vect,
+    std::vector<double> &weight_output_vect,
+    const dealii::FullMatrix<double> &basis)
+{
+    output_vect = input_vect;
+    weight_output_vect = weight_vect;
+    const unsigned int columns = basis.n();
+    if(!face_orientation){
+        for(unsigned int ydof=0; ydof<columns; ydof++){ 
+            for(unsigned int xdof=0; xdof<columns; xdof++){//x runs fastest
+                output_vect[xdof+ydof*columns] = input_vect[columns*xdof+ydof];
+                weight_output_vect[xdof+ydof*columns] = weight_vect[columns*xdof+ydof];
+            }
+        }
+    }
+}
+
+template <int dim, int n_faces>  
 void SumFactorizedOperators<dim,n_faces>::matrix_vector_mult(
     const std::vector<double> &input_vect,
     std::vector<double> &output_vect,
@@ -317,6 +358,7 @@ void SumFactorizedOperators<dim,n_faces>::matrix_vector_mult_1D(
 
 template <int dim, int n_faces>  
 void SumFactorizedOperators<dim,n_faces>::matrix_vector_mult_surface_1D(
+    const bool face_orientation,
     const unsigned int face_number,
     const std::vector<double> &input_vect,
     std::vector<double> &output_vect,
@@ -337,11 +379,14 @@ void SumFactorizedOperators<dim,n_faces>::matrix_vector_mult_surface_1D(
         this->matrix_vector_mult(input_vect, output_vect, basis_vol, basis_vol, basis_surf[0], adding, factor);
     if(face_number == 5)
         this->matrix_vector_mult(input_vect, output_vect, basis_vol, basis_vol, basis_surf[1], adding, factor);
+
+    this->face_orientation_tensor_product(face_orientation, face_number, output_vect, basis_surf[0]);
 }
 
 
 template <int dim, int n_faces>  
 void SumFactorizedOperators<dim,n_faces>::inner_product_surface_1D(
+    const bool face_orientation,
     const unsigned int face_number,
     const std::vector<double> &input_vect,
     const std::vector<double> &weight_vect,
@@ -351,18 +396,24 @@ void SumFactorizedOperators<dim,n_faces>::inner_product_surface_1D(
     const bool adding,
     const double factor)
 {
+    
+
+    std::vector<double> input_vect_corrected;
+    std::vector<double> weight_vect_corrected;
+    
+    this->face_orientation_inner_product(face_orientation, face_number, input_vect, weight_vect, input_vect_corrected, weight_vect_corrected, basis_surf[0]);
     if(face_number == 0)
-        this->inner_product(input_vect, weight_vect, output_vect, basis_surf[0], basis_vol, basis_vol, adding, factor);
+        this->inner_product(input_vect_corrected, weight_vect_corrected, output_vect, basis_surf[0], basis_vol, basis_vol, adding, factor);
     if(face_number == 1)
-        this->inner_product(input_vect, weight_vect, output_vect, basis_surf[1], basis_vol, basis_vol, adding, factor);
+        this->inner_product(input_vect_corrected, weight_vect_corrected, output_vect, basis_surf[1], basis_vol, basis_vol, adding, factor);
     if(face_number == 2)
-        this->inner_product(input_vect, weight_vect, output_vect, basis_vol, basis_surf[0], basis_vol, adding, factor);
+        this->inner_product(input_vect_corrected, weight_vect_corrected, output_vect, basis_vol, basis_surf[0], basis_vol, adding, factor);
     if(face_number == 3)
-        this->inner_product(input_vect, weight_vect, output_vect, basis_vol, basis_surf[1], basis_vol, adding, factor);
+        this->inner_product(input_vect_corrected, weight_vect_corrected, output_vect, basis_vol, basis_surf[1], basis_vol, adding, factor);
     if(face_number == 4)
-        this->inner_product(input_vect, weight_vect, output_vect, basis_vol, basis_vol, basis_surf[0], adding, factor);
+        this->inner_product(input_vect_corrected, weight_vect_corrected, output_vect, basis_vol, basis_vol, basis_surf[0], adding, factor);
     if(face_number == 5)
-        this->inner_product(input_vect, weight_vect, output_vect, basis_vol, basis_vol, basis_surf[1], adding, factor);
+        this->inner_product(input_vect_corrected, weight_vect_corrected, output_vect, basis_vol, basis_vol, basis_surf[1], adding, factor);
 }
 
 template <int dim, int n_faces>  
@@ -2502,8 +2553,8 @@ void metric_operators<real,dim,n_faces>::build_facet_metric_operators(
         (iface == 2) ? mapping_basis.mapping_shape_functions_flux_nodes.oneD_surf_grad_operator[0] : 
             ((iface == 3) ? mapping_basis.mapping_shape_functions_flux_nodes.oneD_surf_grad_operator[1] : 
                 mapping_basis.mapping_shape_functions_flux_nodes.oneD_grad_operator),
-        (iface == 4) ? mapping_basis.mapping_shape_functions_flux_nodes.oneD_surf_grad_operator[0] : 
-            ((iface == 5) ? mapping_basis.mapping_shape_functions_flux_nodes.oneD_surf_grad_operator[1] : 
+        (iface == 4) ? mapping_basis.mapping_shape_functions_flux_nodes.oneD_surf_grad_operator[1] : 
+            ((iface == 5) ? mapping_basis.mapping_shape_functions_flux_nodes.oneD_surf_grad_operator[0] : 
                 mapping_basis.mapping_shape_functions_flux_nodes.oneD_grad_operator),
         metric_cofactor_surf,
         use_invariant_curl_form);
@@ -2743,17 +2794,17 @@ void metric_operators<real,dim,n_faces>::compute_local_3D_cofactor(
         x_dz_dxi[grid_node]   = mapping_support_points[0][grid_node] * grad_Xm[grid_node][2][0];
         if(use_invariant_curl_form){
             x_dz_dxi[grid_node] = 0.5 * x_dz_dxi[grid_node]  
-                                - 0.5 * mapping_support_points[2][grid_node] * grad_Xm[grid_node][1][0];
+                                - 0.5 * mapping_support_points[2][grid_node] * grad_Xm[grid_node][0][0];
         }
         x_dz_deta[grid_node]  = mapping_support_points[0][grid_node] * grad_Xm[grid_node][2][1];
         if(use_invariant_curl_form){
             x_dz_deta[grid_node] = 0.5 * x_dz_deta[grid_node]  
-                                 - 0.5 * mapping_support_points[2][grid_node] * grad_Xm[grid_node][1][1];
+                                 - 0.5 * mapping_support_points[2][grid_node] * grad_Xm[grid_node][0][1];
         }
         x_dz_dzeta[grid_node] = mapping_support_points[0][grid_node] * grad_Xm[grid_node][2][2];
         if(use_invariant_curl_form){
             x_dz_dzeta[grid_node] = 0.5 * x_dz_dzeta[grid_node]  
-                                  - 0.5 * mapping_support_points[2][grid_node] * grad_Xm[grid_node][1][2];
+                                  - 0.5 * mapping_support_points[2][grid_node] * grad_Xm[grid_node][0][2];
         }
                                                                                          
         y_dx_dxi[grid_node]   = mapping_support_points[1][grid_node] * grad_Xm[grid_node][0][0];

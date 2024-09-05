@@ -297,6 +297,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_and_build_operators(
         std::vector<dealii::Tensor<1,dim,double>> neighbor_cell_rhs_aux (n_dofs_neigh_cell ); // defaults to 0.0 initialization
         assemble_face_term_auxiliary_equation (
 	    cell,
+        neighbor_cell,
             face_int, face_ext, 
             current_cell_index, neighbor_cell_index,
             poly_degree_int, poly_degree_ext,
@@ -753,6 +754,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_boundary_term_auxiliary_equati
 template <int dim, int nstate, typename real, typename MeshType>
 void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_auxiliary_equation(
     typename dealii::DoFHandler<dim>::active_cell_iterator cell,
+    typename dealii::DoFHandler<dim>::active_cell_iterator neighbor_cell,
     const unsigned int iface, const unsigned int neighbor_iface,
     const dealii::types::global_dof_index current_cell_index,
     const dealii::types::global_dof_index neighbor_cell_index,
@@ -3730,6 +3732,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_volume_term_derivatives(
 template <int dim, int nstate, typename real, typename MeshType>
 void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_derivatives(
     typename dealii::DoFHandler<dim>::active_cell_iterator    /*cell*/,
+    typename dealii::DoFHandler<dim>::active_cell_iterator    /*neighbor_cell*/,
     const dealii::types::global_dof_index                     /*current_cell_index*/,
     const dealii::types::global_dof_index                     /*neighbor_cell_index*/,
     const std::pair<unsigned int, int>                        /*face_subface_int*/,

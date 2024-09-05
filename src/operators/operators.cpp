@@ -2553,8 +2553,8 @@ void metric_operators<real,dim,n_faces>::build_facet_metric_operators(
         (iface == 2) ? mapping_basis.mapping_shape_functions_flux_nodes.oneD_surf_grad_operator[0] : 
             ((iface == 3) ? mapping_basis.mapping_shape_functions_flux_nodes.oneD_surf_grad_operator[1] : 
                 mapping_basis.mapping_shape_functions_flux_nodes.oneD_grad_operator),
-        (iface == 4) ? mapping_basis.mapping_shape_functions_flux_nodes.oneD_surf_grad_operator[1] : 
-            ((iface == 5) ? mapping_basis.mapping_shape_functions_flux_nodes.oneD_surf_grad_operator[0] : 
+        (iface == 4) ? mapping_basis.mapping_shape_functions_flux_nodes.oneD_surf_grad_operator[0] : 
+            ((iface == 5) ? mapping_basis.mapping_shape_functions_flux_nodes.oneD_surf_grad_operator[1] : 
                 mapping_basis.mapping_shape_functions_flux_nodes.oneD_grad_operator),
         metric_cofactor_surf,
         use_invariant_curl_form);

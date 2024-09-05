@@ -1682,28 +1682,10 @@ read_gmsh(std::string filename,
 
                 const unsigned int base_index = i_vertex;
                 const unsigned int lexicographic_index = deal_h2l[base_index];
-                // unsigned int lexicographic_index_corrected;
-
-                // if(lexicographic_index==2){
-                //     lexicographic_index_corrected = 1;
-                // }
-                // else if(lexicographic_index==1){
-                //     lexicographic_index_corrected = 2;
-                // }
-                // // else if(lexicographic_index==5){
-                // //     lexicographic_index_corrected = 6;
-                // // }
-                // // else if(lexicographic_index==6){
-                // //     lexicographic_index_corrected = 5;
-                // // }
-                // else{
-                //     lexicographic_index_corrected = lexicographic_index;
-                // }
 
                 const unsigned int vertex_id = high_order_vertices_id_rotated[lexicographic_index];
                 const dealii::Point<dim,double> vertex = all_vertices[vertex_id];
-                
-    
+
 
                 for (int d = 0; d < dim; ++d) {
                     const unsigned int comp = d;
@@ -1839,13 +1821,13 @@ read_gmsh(std::string filename, const bool do_renumber_dofs, int requested_grid_
   // default parameters
   const bool periodic_x = false;
   const bool periodic_y = false;
-  const bool periodic_z = 0; //true;
+  const bool periodic_z = true;
   const int x_periodic_1 = 0; 
   const int x_periodic_2 = 0;
   const int y_periodic_1 = 0; 
   const int y_periodic_2 = 0;
-  const int z_periodic_1 = 0; //2005; 
-  const int z_periodic_2 = 0; //2006;
+  const int z_periodic_1 = 2005; 
+  const int z_periodic_2 = 2006;
   const bool mesh_reader_verbose_output = true;
 
   return read_gmsh<dim,spacedim>(filename, 

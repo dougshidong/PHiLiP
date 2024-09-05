@@ -430,16 +430,16 @@ void svsw_grid(
             if (cell->face(face)->at_boundary()) {
                 unsigned int current_id = cell->face(face)->boundary_id();
                 if (current_id == 0) {
-                    cell->face(face)->set_boundary_id(1007); // y_bottom, Symmetry/Wall
+                    cell->face(face)->set_boundary_id(1007); // x_left, custom inflow
                 }
                 else if (current_id == 1) {
-                    cell->face(face)->set_boundary_id(1009); // x_right, Symmetry/Wall
+                    cell->face(face)->set_boundary_id(1009); // x_right, do nothing outflow
                 }
                 else if (current_id == 2) {
-                    cell->face(face)->set_boundary_id(1001); // y_bottom, Symmetry/Wall
+                    cell->face(face)->set_boundary_id(1001); // y_top, Symmetry/Wall
                 }
                 else if (current_id == 3) {
-                    cell->face(face)->set_boundary_id(1001);
+                    cell->face(face)->set_boundary_id(1001); // y_bottom, Symmetry/Wall
                 }
             }
         }

@@ -417,7 +417,7 @@ private:
     /** Compute the right-hand side only. */
     void assemble_face_residual(
         typename dealii::DoFHandler<dim>::active_cell_iterator cell,
-        typename dealii::DoFHandler<dim>::active_cell_iterator neighbot_cell,
+        typename dealii::DoFHandler<dim>::active_cell_iterator neighbor_cell,
         const dealii::types::global_dof_index current_cell_index,
         const dealii::types::global_dof_index neighbor_cell_index,
         const std::pair<unsigned int, int> face_subface_int,

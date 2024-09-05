@@ -2041,6 +2041,7 @@ template <int dim, int nstate, typename real, typename MeshType>
 template <typename real2>
 void DGWeak<dim,nstate,real,MeshType>::assemble_face_term(
     typename dealii::DoFHandler<dim>::active_cell_iterator cell,
+    typename dealii::DoFHandler<dim>::active_cell_iterator /*neighbor_cell*/,
     const dealii::types::global_dof_index current_cell_index,
     const dealii::types::global_dof_index neighbor_cell_index,
     const std::vector< real2 > &soln_coeff_int,
@@ -2957,6 +2958,7 @@ template <int dim, int nstate, typename real, typename MeshType>
 template <typename adtype>
 void DGWeak<dim,nstate,real,MeshType>::assemble_face_codi_taped_derivatives(
     typename dealii::DoFHandler<dim>::active_cell_iterator cell,
+    typename dealii::DoFHandler<dim>::active_cell_iterator neighbor_cell,
     const dealii::types::global_dof_index current_cell_index,
     const dealii::types::global_dof_index neighbor_cell_index,
     const std::pair<unsigned int, int> face_subface_int,
@@ -3066,6 +3068,7 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_face_codi_taped_derivatives(
 
     assemble_face_term(
         cell,
+        neighbor_cell,
         current_cell_index,
         neighbor_cell_index,
         soln_coeff_int,
@@ -3347,6 +3350,7 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_face_codi_taped_derivatives(
 template <int dim, int nstate, typename real, typename MeshType>
 void DGWeak<dim,nstate,real,MeshType>::assemble_face_residual(
     typename dealii::DoFHandler<dim>::active_cell_iterator cell,
+    typename dealii::DoFHandler<dim>::active_cell_iterator neighbor_cell,
     const dealii::types::global_dof_index current_cell_index,
     const dealii::types::global_dof_index neighbor_cell_index,
     const std::pair<unsigned int, int> face_subface_int,
@@ -3421,6 +3425,7 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_face_residual(
 
     assemble_face_term(
         cell,
+        neighbor_cell,
         current_cell_index,
         neighbor_cell_index,
         soln_coeff_int,
@@ -4220,6 +4225,7 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_volume_term_derivatives(
 template <int dim, int nstate, typename real, typename MeshType>
 void DGWeak<dim,nstate,real,MeshType>::assemble_face_term_derivatives(
     typename dealii::DoFHandler<dim>::active_cell_iterator cell,
+    typename dealii::DoFHandler<dim>::active_cell_iterator neighbor_cell,
     const dealii::types::global_dof_index current_cell_index,
     const dealii::types::global_dof_index neighbor_cell_index,
     const std::pair<unsigned int, int> face_subface_int,
@@ -4245,6 +4251,7 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_face_term_derivatives(
     if (compute_d2R) {
         assemble_face_codi_taped_derivatives<codi_HessianComputationType>(
         cell,
+        neighbor_cell,
             current_cell_index,
             neighbor_cell_index,
             face_subface_int,
@@ -4270,6 +4277,7 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_face_term_derivatives(
     } else if (compute_dRdW || compute_dRdX) {
         assemble_face_codi_taped_derivatives<codi_JacobianComputationType>(
         cell,
+        neighbor_cell,
             current_cell_index,
             neighbor_cell_index,
             face_subface_int,
@@ -4295,6 +4303,7 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_face_term_derivatives(
     } else {
         assemble_face_residual(
         cell,
+        neighbor_cell,
             current_cell_index,
             neighbor_cell_index,
             face_subface_int,
@@ -4492,6 +4501,7 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_face_term_and_build_operators(
 
     assemble_face_term_derivatives (
         cell,
+        neighbor_cell,
         current_cell_index,
         neighbor_cell_index,
         face_subface_int, face_subface_ext,
@@ -4586,6 +4596,7 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_subface_term_and_build_operators
 
     assemble_face_term_derivatives (
         cell,
+        neighbor_cell,
         current_cell_index,
         neighbor_cell_index,
         face_subface_int, face_subface_ext,

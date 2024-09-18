@@ -10,6 +10,7 @@
 #include "mesh/mesh_adaptation/mesh_adaptation.h"
 #include <deal.II/grid/grid_in.h>
 #include <deal.II/base/convergence_table.h>
+#include <deal.II/base/timer.h>
 
 namespace PHiLiP {
 namespace Tests {
@@ -152,8 +153,8 @@ void AnisotropicMeshAdaptationCases<dim,nstate>::increase_grid_degree_and_interp
     const unsigned int grid_degree_updated = 2;
     dg->high_order_grid->set_q_degree(grid_degree_updated, true);
 
-    const unsigned int poly_degree_updated = dg->all_parameters->flow_solver_param.max_poly_degree_for_adaptation - 1;
-    dg->set_p_degree_and_interpolate_solution(poly_degree_updated);
+    //const unsigned int poly_degree_updated = dg->all_parameters->flow_solver_param.max_poly_degree_for_adaptation - 1;
+    //dg->set_p_degree_and_interpolate_solution(poly_degree_updated);
     project_surface_nodes_on_cylinder(dg);
 }
 
@@ -306,7 +307,7 @@ if constexpr (nstate==dim+2)
             auto current_face = cell->face(iface);
             if(current_face->at_boundary()){continue;}
             const auto neighbor_cell = cell->neighbor_or_periodic_neighbor(iface);
-            if(!dg->current_cell_should_do_the_work(cell, neighbor_cell)){continue;}
+            //if(!dg->current_cell_should_do_the_work(cell, neighbor_cell)){continue;} UNCOMMENT LATER
             fe_face_values_gll.reinit(cell,iface);
             const bool face_is_on_shock = is_face_between_control_nodes(
                     fe_face_values_gll.quadrature_point(0), 
@@ -748,252 +749,206 @@ int AnisotropicMeshAdaptationCases<dim, nstate> :: run_test () const
     return 0;
 */
 
+    dealii::Timer timer(this->mpi_communicator, true);
     int output_val = 0;
     const Parameters::AllParameters param = *(TestsBase::all_parameters);
-    const bool run_mesh_optimizer = param.optimization_param.max_design_cycles > 0;
     const bool run_fixedfraction_mesh_adaptation = param.mesh_adaptation_param.total_mesh_adaptation_cycles > 0;
-    const bool read_from_file = (param.flow_solver_param.max_poly_degree_for_adaptation > 2);
+    const bool run_mesh_optimizer = !run_fixedfraction_mesh_adaptation;
     
     std::unique_ptr<FlowSolver::FlowSolver<dim,nstate>> flow_solver = FlowSolver::FlowSolverFactory<dim,nstate>::select_flow_case(&param, parameter_handler);
 
     flow_solver->run();
-    flow_solver->dg->freeze_artificial_dissipation=true;
     flow_solver->use_polynomial_ramping = false;
+    flow_solver->dg->freeze_artificial_dissipation=true;
     output_vtk_files(flow_solver->dg, output_val++);
-    //return 0;
 
-    std::vector<double> functional_error_vector;
-    std::vector<double> enthalpy_error_vector;
-    std::vector<unsigned int> n_cycle_vector;
-    std::vector<unsigned int> n_dofs_vector;
-
-    const double functional_error_initial = evaluate_functional_error(flow_solver->dg);
-    //pcout<<"Functional error initial = "<<std::setprecision(16)<<functional_error_initial<<std::endl; // can be deleted later.
     const double enthalpy_error_initial = evaluate_enthalpy_error(flow_solver->dg);
-    functional_error_vector.push_back(functional_error_initial);
-    enthalpy_error_vector.push_back(enthalpy_error_initial);
-    n_dofs_vector.push_back(flow_solver->dg->n_dofs());
-    unsigned int current_cycle = 0;
-    n_cycle_vector.push_back(current_cycle++);
-    dealii::ConvergenceTable convergence_table_functional;
-    dealii::ConvergenceTable convergence_table_enthalpy;
+    const unsigned int n_dofs_initial = flow_solver->dg->n_dofs();
+    timer.stop();
+    const double walltime_baserun = timer.wall_time();
+    timer.reset();
+
+    pcout<<"Initial dofs = "<<n_dofs_initial<<"  Initial enthalpy error = "<<enthalpy_error_initial<<"  Initial baserun walltime = "<<walltime_baserun<<std::endl;
+
     if(run_mesh_optimizer)
     {
-        const bool use_oneD_parameteriation = true;
-        flow_solver->dg->freeze_artificial_dissipation=true;
-
-        // q1 initial run
+        for(unsigned int p=1; p<=2; ++p)
         {
-            flow_solver->dg->set_p_degree_and_interpolate_solution(1);
+            std::vector<double> enthalpy_error_vector;
+            std::vector<double> walltimes_vector;
+            std::vector<unsigned int> n_dofs_vector;
 
-            if(!read_from_file)
+            std::unique_ptr<FlowSolver::FlowSolver<dim,nstate>> flow_solver = FlowSolver::FlowSolverFactory<dim,nstate>::select_flow_case(&param, parameter_handler);
+            if(p==1) {flow_solver->run();}
+            flow_solver->dg->set_p_degree_and_interpolate_solution(p);
+            const bool use_oneD_parameteriation = true;
+            flow_solver->dg->freeze_artificial_dissipation=true;
+            flow_solver->use_polynomial_ramping = false;
+            const bool read_from_file = (p==2);
+
+            // q1 initial run
             {
-
-                dealii::TrilinosWrappers::SparseMatrix regularization_matrix_poisson_q1;
-                evaluate_regularization_matrix(regularization_matrix_poisson_q1, flow_solver->dg);
-                Parameters::AllParameters param_q1 = param;
-                if(flow_solver->dg->all_parameters->flow_solver_param.max_poly_degree_for_adaptation==2)
+                if(!read_from_file)
                 {
+                    dealii::TrilinosWrappers::SparseMatrix regularization_matrix_poisson_q1;
+                    evaluate_regularization_matrix(regularization_matrix_poisson_q1, flow_solver->dg);
+                    Parameters::AllParameters param_q1 = param;
                     param_q1.optimization_param.max_design_cycles = 4;
+                    param_q1.optimization_param.regularization_parameter_sim = 1.0;
+                    param_q1.optimization_param.regularization_parameter_control = 1.0;
+                    std::unique_ptr<MeshOptimizer<dim,nstate>> mesh_optimizer_q1 = 
+                                    std::make_unique<MeshOptimizer<dim,nstate>> (flow_solver->dg, &param_q1, true);
+                    const bool output_refined_nodes = false;
+                    mesh_optimizer_q1->run_full_space_optimizer(regularization_matrix_poisson_q1, use_oneD_parameteriation, output_refined_nodes, output_val-1);
+                    output_vtk_files(flow_solver->dg, output_val-1);
                 }
-                else
+            }
+
+            // q2 run
+            {
+                increase_grid_degree_and_interpolate_solution(flow_solver->dg);
+            }
+
+            const unsigned int n_meshes = (p==1)?4:3;
+            
+            for(unsigned int imesh = 0; imesh < n_meshes; ++imesh)
+            {
+                if(imesh>0)
                 {
-                    param_q1.optimization_param.max_design_cycles = 4;
+                    refine_mesh_and_interpolate_solution(flow_solver->dg);
                 }
-                param_q1.optimization_param.regularization_parameter_sim = 1.0;
-                param_q1.optimization_param.regularization_parameter_control = 1.0;
-                std::unique_ptr<MeshOptimizer<dim,nstate>> mesh_optimizer_q1 = 
-                                std::make_unique<MeshOptimizer<dim,nstate>> (flow_solver->dg, &param_q1, true);
-                const bool output_refined_nodes = false;
-                mesh_optimizer_q1->run_full_space_optimizer(regularization_matrix_poisson_q1, use_oneD_parameteriation, output_refined_nodes, output_val-1);
-                output_vtk_files(flow_solver->dg, output_val-1);
-            }
-            /*
-            flow_solver->run();
-            if(flow_solver->dg->get_residual_l2norm() > 1.0e-10)
-            {
-                std::cout<<"Residual from q1 optimization has not converged. Aborting..."<<std::endl;
-                std::abort();
-            }
-            */
-        }
+                if(read_from_file)
+                {
+                    const unsigned int poly_degree_current = flow_solver->dg->get_min_fe_degree();
+                    const unsigned int poly_degree_coarse = poly_degree_current-1;
+                    flow_solver->dg->set_p_degree_and_interpolate_solution(poly_degree_coarse);
+                    read_solution_volume_nodes_from_file(flow_solver->dg);
+                    update_q2_controlnodes_file(flow_solver->dg);
+                    flow_solver->dg->set_p_degree_and_interpolate_solution(poly_degree_current);
+                }
+                dealii::TrilinosWrappers::SparseMatrix regularization_matrix_poisson_q2;
+                evaluate_regularization_matrix(regularization_matrix_poisson_q2, flow_solver->dg);
+                flow_solver->dg->freeze_artificial_dissipation=true;
+                flow_solver->dg->set_upwinding_flux(true);
+                std::unique_ptr<MeshOptimizer<dim,nstate>> mesh_optimizer_q2 = std::make_unique<MeshOptimizer<dim,nstate>> (flow_solver->dg,&param, true);
+                const bool output_refined_nodes = true;
+                timer.start();
+                mesh_optimizer_q2->run_full_space_optimizer(regularization_matrix_poisson_q2, use_oneD_parameteriation, output_refined_nodes, output_val);
+                timer.stop();
+                output_vtk_files(flow_solver->dg, output_val++);
+                write_solution_volume_nodes_to_file(flow_solver->dg);
 
-        // q2 initial run
-        {
-            increase_grid_degree_and_interpolate_solution(flow_solver->dg);
-    /*
-            Parameters::AllParameters param_q2 = param;
-            param_q2.optimization_param.max_design_cycles = 20;
-            param_q2.optimization_param.regularization_parameter_sim = 1.0;
-            dealii::TrilinosWrappers::SparseMatrix regularization_matrix_poisson_q2;
-            evaluate_regularization_matrix(regularization_matrix_poisson_q2, flow_solver->dg);
-            flow_solver->dg->freeze_artificial_dissipation=true;
-            std::unique_ptr<MeshOptimizer<dim,nstate>> mesh_optimizer_q2 = std::make_unique<MeshOptimizer<dim,nstate>> (flow_solver->dg,&param_q2, true);
-            const bool output_refined_nodes = false;
-            mesh_optimizer_q2->run_full_space_optimizer(regularization_matrix_poisson_q2, use_oneD_parameteriation, output_refined_nodes);
-            output_vtk_files(flow_solver->dg, output_val++);
-        */
-        }
+                const double enthalpy_error = evaluate_enthalpy_error(flow_solver->dg);
+                enthalpy_error_vector.push_back(enthalpy_error);
+                n_dofs_vector.push_back(flow_solver->dg->n_dofs());
+                walltimes_vector.push_back(timer.wall_time());
+                timer.reset();
+            } //imesh loop
 
-        const unsigned int n_meshes = 4;
-        /*
-        for(unsigned int imesh = 0; imesh < n_meshes; ++imesh)
-        {
-            if(imesh>0)
+            // output all vectors
+            const std::string dofsname = "n_dofs_optimization_p" + std::to_string(p);
+            const std::string errorname = "enthalpy_error_p" + std::to_string(p);
+            const std::string walltimename = "wall_time_p" + std::to_string(p);
+            pcout<<dofsname<<" = [";
+            for(long unsigned int i=0; i<n_dofs_vector.size(); ++i)
             {
-                refine_mesh_and_interpolate_solution(flow_solver->dg);
+                pcout<<n_dofs_vector[i];
+                if(i!=(n_dofs_vector.size()-1)) {pcout<<", ";}
             }
-            if(read_from_file)
+            pcout<<"];"<<std::endl;
+            pcout<<errorname<<" = [";
+            for(long unsigned int i=0; i<enthalpy_error_vector.size(); ++i)
             {
-                const unsigned int poly_degree_current = flow_solver->dg->get_min_fe_degree();
-                const unsigned int poly_degree_coarse = poly_degree_current-1;
-                flow_solver->dg->set_p_degree_and_interpolate_solution(poly_degree_coarse);
-                read_solution_volume_nodes_from_file(flow_solver->dg);
-                update_q2_controlnodes_file(flow_solver->dg);
-                flow_solver->dg->set_p_degree_and_interpolate_solution(poly_degree_current);
+                pcout<<enthalpy_error_vector[i];
+                if(i!=(enthalpy_error_vector.size()-1)) {pcout<<", ";}
             }
-            dealii::TrilinosWrappers::SparseMatrix regularization_matrix_poisson_q2;
-            evaluate_regularization_matrix(regularization_matrix_poisson_q2, flow_solver->dg);
-            flow_solver->dg->freeze_artificial_dissipation=true;
-            flow_solver->dg->set_upwinding_flux(true);
-            std::unique_ptr<MeshOptimizer<dim,nstate>> mesh_optimizer_q2 = std::make_unique<MeshOptimizer<dim,nstate>> (flow_solver->dg,&param, true);
-            const bool output_refined_nodes = true;
-            mesh_optimizer_q2->run_full_space_optimizer(regularization_matrix_poisson_q2, use_oneD_parameteriation, output_refined_nodes, output_val);
-            output_vtk_files(flow_solver->dg, output_val++);
-            write_solution_volume_nodes_to_file(flow_solver->dg);
-
-            const double functional_error = evaluate_functional_error(flow_solver->dg);
-            const double enthalpy_error = evaluate_enthalpy_error(flow_solver->dg);
-            functional_error_vector.push_back(functional_error);
-            enthalpy_error_vector.push_back(enthalpy_error);
-            n_dofs_vector.push_back(flow_solver->dg->n_dofs());
-            n_cycle_vector.push_back(current_cycle++);
-
-            convergence_table_functional.add_value("cells", flow_solver->dg->triangulation->n_global_active_cells());
-            convergence_table_functional.add_value("functional_error",functional_error);
-            convergence_table_enthalpy.add_value("cells", flow_solver->dg->triangulation->n_global_active_cells());
-            convergence_table_enthalpy.add_value("enthalpy_error",enthalpy_error);
-        } //imesh loop
-        */
-        
-        for(unsigned int imesh = 0; imesh < n_meshes; ++imesh)
-        {
-            if( imesh!= (n_meshes-1) )
+            pcout<<"];"<<std::endl;
+            pcout<<walltimename<<" = [";
+            for(long unsigned int i=0; i<walltimes_vector.size(); ++i)
             {
-                refine_mesh_and_interpolate_solution(flow_solver->dg); 
-                continue;
+                pcout<<walltimes_vector[i];
+                if(i!=(walltimes_vector.size()-1)) {pcout<<", ";}
             }
-            if(read_from_file)
-            {
-                const unsigned int poly_degree_current = flow_solver->dg->get_min_fe_degree();
-                const unsigned int poly_degree_coarse = poly_degree_current-1;
-                flow_solver->dg->set_p_degree_and_interpolate_solution(poly_degree_coarse);
-                read_solution_volume_nodes_from_file(flow_solver->dg);
-                update_q2_controlnodes_file(flow_solver->dg);
-                flow_solver->dg->set_p_degree_and_interpolate_solution(poly_degree_current);
-            }
-            pcout<<"Ncells = "<<flow_solver->dg->triangulation->n_global_active_cells()<<std::endl;
-            dealii::TrilinosWrappers::SparseMatrix regularization_matrix_poisson_q2;
-            evaluate_regularization_matrix(regularization_matrix_poisson_q2, flow_solver->dg);
-            flow_solver->dg->freeze_artificial_dissipation=true;
-            flow_solver->dg->set_upwinding_flux(true);
-            std::unique_ptr<MeshOptimizer<dim,nstate>> mesh_optimizer_q2 = std::make_unique<MeshOptimizer<dim,nstate>> (flow_solver->dg,&param, true);
-            const bool output_refined_nodes = true;
-            mesh_optimizer_q2->run_full_space_optimizer(regularization_matrix_poisson_q2, use_oneD_parameteriation, output_refined_nodes, output_val);
-            const double functional_error = evaluate_functional_error(flow_solver->dg);
-            const double enthalpy_error = evaluate_enthalpy_error(flow_solver->dg);
-            functional_error_vector.push_back(functional_error);
-            enthalpy_error_vector.push_back(enthalpy_error);
-            n_dofs_vector.push_back(flow_solver->dg->n_dofs());
-            n_cycle_vector.push_back(current_cycle++);
-
-            convergence_table_functional.add_value("cells", flow_solver->dg->triangulation->n_global_active_cells());
-            convergence_table_functional.add_value("functional_error",functional_error);
-            convergence_table_enthalpy.add_value("cells", flow_solver->dg->triangulation->n_global_active_cells());
-            convergence_table_enthalpy.add_value("enthalpy_error",enthalpy_error);
-            output_vtk_files(flow_solver->dg, output_val++);            
-        }
-    }
+            pcout<<"];"<<std::endl;
+            
+        } // p loop ends
+    } // if run_mesh_optimizer
 
     if(run_fixedfraction_mesh_adaptation)
     {
-        const unsigned int n_adaptation_cycles = param.mesh_adaptation_param.total_mesh_adaptation_cycles;
-
-        std::unique_ptr<MeshAdaptation<dim,double>> meshadaptation =
-        std::make_unique<MeshAdaptation<dim,double>>(flow_solver->dg, &(param.mesh_adaptation_param));
-
-        for(unsigned int icycle = 0; icycle < n_adaptation_cycles; ++icycle)
+        for(unsigned int p=1; p<=2; ++p)
         {
-            meshadaptation->adapt_mesh();
+            Parameters::AllParameters param = *(TestsBase::all_parameters);
+            param.flow_solver_param.poly_degree=p;
+            std::vector<double> enthalpy_error_vector;
+            std::vector<double> walltimes_vector;
+            std::vector<unsigned int> n_dofs_vector;
+
+            std::unique_ptr<FlowSolver::FlowSolver<dim,nstate>> flow_solver = FlowSolver::FlowSolverFactory<dim,nstate>::select_flow_case(&param, parameter_handler);
+            flow_solver->dg->set_p_degree_and_interpolate_solution(p);
             flow_solver->run();
+            flow_solver->use_polynomial_ramping = false;
+            flow_solver->dg->freeze_artificial_dissipation = false;
+            const unsigned int n_adaptation_cycles = param.mesh_adaptation_param.total_mesh_adaptation_cycles;
+            const unsigned int refine_percentage = (param.mesh_adaptation_param.refine_fraction*100.0);
 
-            const double functional_error = evaluate_functional_error(flow_solver->dg);
-            const double enthalpy_error = evaluate_enthalpy_error(flow_solver->dg);
-            functional_error_vector.push_back(functional_error);
-            enthalpy_error_vector.push_back(enthalpy_error);
-            n_dofs_vector.push_back(flow_solver->dg->n_dofs());
-            n_cycle_vector.push_back(current_cycle++);
+            std::unique_ptr<MeshAdaptation<dim,double>> meshadaptation =
+            std::make_unique<MeshAdaptation<dim,double>>(flow_solver->dg, &(param.mesh_adaptation_param));
 
-            convergence_table_functional.add_value("cells", flow_solver->dg->triangulation->n_global_active_cells());
-            convergence_table_functional.add_value("functional_error",functional_error);
-            convergence_table_enthalpy.add_value("cells", flow_solver->dg->triangulation->n_global_active_cells());
-            convergence_table_enthalpy.add_value("enthalpy_error",enthalpy_error);
-        }
-    }
+            for(unsigned int icycle = 0; icycle < n_adaptation_cycles; ++icycle)
+            {
+                timer.start();
+                meshadaptation->adapt_mesh();
+                flow_solver->run();
+                timer.stop();
+
+                const double enthalpy_error = evaluate_enthalpy_error(flow_solver->dg);
+                enthalpy_error_vector.push_back(enthalpy_error);
+                n_dofs_vector.push_back(flow_solver->dg->n_dofs());
+                walltimes_vector.push_back(timer.wall_time());
+                timer.reset();
+            }
+            // output all vectors
+            std::string dofsname;
+            std::string errorname;
+            std::string walltimename;
+            if(refine_percentage == 100)
+            {
+                dofsname = "n_dofs_uniformref_p" + std::to_string(p);
+                errorname = "enthalpy_error_uniformref_p" + std::to_string(p);
+                walltimename = "wall_time_unfiromref_p" + std::to_string(p);
+            }
+            else
+            {
+                dofsname = "n_dofs_fixedfraction_p" + std::to_string(p);
+                errorname = "enthalpy_error_fixedfraction_p" + std::to_string(p);
+                walltimename = "wall_time_fixedfraction_p" + std::to_string(p);
+            }
+            pcout<<dofsname<<" = [";
+            for(long unsigned int i=0; i<n_dofs_vector.size(); ++i)
+            {
+                pcout<<n_dofs_vector[i];
+                if(i!=(n_dofs_vector.size()-1)) {pcout<<", ";}
+            }
+            pcout<<"];"<<std::endl;
+            pcout<<errorname<<" = [";
+            for(long unsigned int i=0; i<enthalpy_error_vector.size(); ++i)
+            {
+                pcout<<enthalpy_error_vector[i];
+                if(i!=(enthalpy_error_vector.size()-1)) {pcout<<", ";}
+            }
+            pcout<<"];"<<std::endl;
+            pcout<<walltimename<<" = [";
+            for(long unsigned int i=0; i<walltimes_vector.size(); ++i)
+            {
+                pcout<<walltimes_vector[i];
+                if(i!=(walltimes_vector.size()-1)) {pcout<<", ";}
+            }
+            pcout<<"];"<<std::endl;
+        } // p loop ends
+    } // if fixed fraction
 
     output_vtk_files(flow_solver->dg, output_val++);
-
-    // output error vals
-    pcout<<"\n cycles = [";
-    for(long unsigned int i=0; i<n_cycle_vector.size(); ++i)
-    {
-        if(i!=0) {pcout<<", ";}
-        pcout<<n_cycle_vector[i];
-    }
-    pcout<<"];"<<std::endl;
-
-    pcout<<"\n n_dofs = [";
-    for(long unsigned int i=0; i<n_dofs_vector.size(); ++i)
-    {
-        if(i!=0) {pcout<<", ";}
-        pcout<<n_dofs_vector[i];
-    }
-    pcout<<"];"<<std::endl;
-
-    std::string functional_type = "functional_error";
-    pcout<<"\n "<<functional_type<<" = ["<<std::setprecision(16);
-    for(long unsigned int i=0; i<functional_error_vector.size(); ++i)
-    {
-        if(i!=0) {pcout<<", ";}
-        pcout<<functional_error_vector[i];
-    }
-    pcout<<"];"<<std::endl;
-    
-    std::string errortype = "enthalpy_error";
-    pcout<<"\n "<<errortype<<" = ["<<std::setprecision(16);
-    for(long unsigned int i=0; i<enthalpy_error_vector.size(); ++i)
-    {
-        if(i!=0) {pcout<<", ";}
-        pcout<<enthalpy_error_vector[i];
-    }
-    pcout<<"];"<<std::endl;
-
-    convergence_table_functional.evaluate_convergence_rates("functional_error", "cells", dealii::ConvergenceTable::reduction_rate_log2, dim);
-    convergence_table_functional.set_scientific("functional_error", true);
-    convergence_table_enthalpy.evaluate_convergence_rates("enthalpy_error", "cells", dealii::ConvergenceTable::reduction_rate_log2, dim);
-    convergence_table_enthalpy.set_scientific("enthalpy_error", true);
-
-    pcout << std::endl << std::endl << std::endl << std::endl;
-    pcout << " ********************************************" << std::endl;
-    pcout << " Convergence summary for functional error" << std::endl;
-    pcout << " ********************************************" << std::endl;
-    if(pcout.is_active()) {convergence_table_functional.write_text(pcout.get_stream());}
-    
-    pcout << std::endl << std::endl << std::endl << std::endl;
-    pcout << " ********************************************" << std::endl;
-    pcout << " Convergence summary for enthalpy error" << std::endl;
-    pcout << " ********************************************" << std::endl;
-    if(pcout.is_active()) {convergence_table_enthalpy.write_text(pcout.get_stream());}
 
 return 0;
 

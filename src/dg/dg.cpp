@@ -3235,10 +3235,6 @@ real2 DGBase<dim,real,MeshType>::discontinuity_sensor(
     const unsigned int degree = fe_high.tensor_degree();
 
     if (degree == 0 || freeze_artificial_dissipation) {return 0;}
-    else {
-    std::cout<<"Should not use artificial viscosity for this test case. Aborting.."<<std::endl;
-    std::abort();
-    return all_parameters->artificial_dissipation_param.mu_artificial_dissipation;}
 
     const unsigned int nstate = fe_high.components;
     const unsigned int n_dofs_high = fe_high.dofs_per_cell;

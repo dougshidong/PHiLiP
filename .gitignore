@@ -24,3 +24,5 @@ src/.vscode/settings.json
 src/dummy/*
 tests/integration_tests_control_files/decaying_homogeneous_isotropic_turbulence/setup_files/1proc/*.dat
 tests/integration_tests_control_files/decaying_homogeneous_isotropic_turbulence/setup_files/4proc/*.dat
+tests/unit_tests/grid/gmsh_reader/*.msh
+tests/meshes/*.msh

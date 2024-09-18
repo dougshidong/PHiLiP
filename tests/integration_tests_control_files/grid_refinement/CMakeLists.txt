@@ -187,10 +187,34 @@ add_test(
 )
 
 # Anisotropic mesh adaptation tests
-configure_file(anisotropic_mesh_adaptation_euler.prm anisotropic_mesh_adaptation_euler.prm  COPYONLY)
+configure_file(fullspace_goaloriented_meshadaptation.prm fullspace_goaloriented_meshadaptation.prm  COPYONLY)
 add_test(
-  NAME ANISOTROPIC_MESH_ADAPTATION_EULER
-  COMMAND mpirun -n ${MPIMAX} ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_2D -i ${CMAKE_CURRENT_BINARY_DIR}/anisotropic_mesh_adaptation_euler.prm
+  NAME FULLSPACE_MESH_ADAPTATION
+  COMMAND mpirun -n ${MPIMAX} ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_2D -i ${CMAKE_CURRENT_BINARY_DIR}/fullspace_goaloriented_meshadaptation.prm
+  WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
+)
+configure_file(fixedfraction_10_adaptation.prm fixedfraction_10_adaptation.prm  COPYONLY)
+add_test(
+  NAME FIXEDFRACTION_10_MESH_ADAPTATION
+  COMMAND mpirun -n ${MPIMAX} ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_2D -i ${CMAKE_CURRENT_BINARY_DIR}/fixedfraction_10_adaptation.prm
+  WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
+)
+configure_file(fixedfraction_20_adaptation.prm fixedfraction_20_adaptation.prm  COPYONLY)
+add_test(
+  NAME FIXEDFRACTION_20_MESH_ADAPTATION
+  COMMAND mpirun -n ${MPIMAX} ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_2D -i ${CMAKE_CURRENT_BINARY_DIR}/fixedfraction_20_adaptation.prm
+  WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
+)
+configure_file(fixedfraction_30_adaptation.prm fixedfraction_30_adaptation.prm  COPYONLY)
+add_test(
+  NAME FIXEDFRACTION_30_MESH_ADAPTATION
+  COMMAND mpirun -n ${MPIMAX} ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_2D -i ${CMAKE_CURRENT_BINARY_DIR}/fixedfraction_30_adaptation.prm
+  WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
+)
+configure_file(uniformrefinement.prm uniformrefinement.prm  COPYONLY)
+add_test(
+  NAME UNIFORMREFINEMENT_MESH_ADAPTATION
+  COMMAND mpirun -n ${MPIMAX} ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_2D -i ${CMAKE_CURRENT_BINARY_DIR}/uniformrefinement.prm
   WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
 )
 

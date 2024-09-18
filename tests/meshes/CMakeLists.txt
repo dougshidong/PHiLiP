@@ -6,7 +6,7 @@ configure_file(naca0012_hopw_ref3.msh naca0012_hopw_ref3.msh COPYONLY)
 configure_file(naca0012_hopw_ref4.msh naca0012_hopw_ref4.msh COPYONLY)
 configure_file(naca0012_hopw_ref5.msh naca0012_hopw_ref5.msh COPYONLY)
 #configure_file(mesh_naca0012.msh mesh_naca0012.msh COPYONLY)
-configure_file(cylindermesh.msh cylindermesh.msh COPYONLY)
+configure_file(cylindermesh_q1.msh cylindermesh_q1.msh COPYONLY)
 configure_file(cylindermesh_q2.msh cylindermesh_q2.msh COPYONLY)
 
 set (filename "naca0012_hopw_ref0.msh")

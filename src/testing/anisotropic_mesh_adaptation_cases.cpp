@@ -22,6 +22,26 @@ AnisotropicMeshAdaptationCases<dim, nstate> :: AnisotropicMeshAdaptationCases(
     : TestsBase::TestsBase(parameters_input)
     , parameter_handler(parameter_handler_input)
 {}
+ 
+template<int dim, int nstate>
+void AnisotropicMeshAdaptationCases<dim,nstate>::save_triangulation(std::shared_ptr<DGBase<dim,double>> dg, const unsigned int i_refinement) const
+{
+    const std::string filename = "triangulation_" + std::to_string(dg->all_parameters->mesh_adaptation_param.refine_fraction)
+                                    + "_" + std::to_string(i_refinement);
+
+    dg->triangulation->save(filename);
+}
+
+template<int dim, int nstate>
+void AnisotropicMeshAdaptationCases<dim,nstate>::load_triangulation(std::shared_ptr<DGBase<dim,double>> dg, const unsigned int i_refinement) const
+{
+    const std::string filename = "triangulation_" + std::to_string(dg->all_parameters->mesh_adaptation_param.refine_fraction)
+                                    + "_" + std::to_string(i_refinement);
+
+    dg->triangulation->load(filename);
+    dg->set_high_order_grid(dg->high_order_grid);
+}
+    
 
 template<int dim, int nstate>
 void AnisotropicMeshAdaptationCases<dim,nstate>::write_solution_volume_nodes_to_file(std::shared_ptr<DGBase<dim,double>> dg) const
@@ -777,7 +797,6 @@ int AnisotropicMeshAdaptationCases<dim, nstate> :: run_test () const
             std::vector<double> enthalpy_error_vector;
             std::vector<double> walltimes_vector;
             std::vector<unsigned int> n_dofs_vector;
-
             std::unique_ptr<FlowSolver::FlowSolver<dim,nstate>> flow_solver = FlowSolver::FlowSolverFactory<dim,nstate>::select_flow_case(&param, parameter_handler);
             if(p==1) {flow_solver->run();}
             flow_solver->dg->set_p_degree_and_interpolate_solution(p);
@@ -785,6 +804,7 @@ int AnisotropicMeshAdaptationCases<dim, nstate> :: run_test () const
             flow_solver->dg->freeze_artificial_dissipation=true;
             flow_solver->use_polynomial_ramping = false;
             const bool read_from_file = (p==2);
+            timer.start();
 
             // q1 initial run
             {
@@ -809,7 +829,8 @@ int AnisotropicMeshAdaptationCases<dim, nstate> :: run_test () const
                 increase_grid_degree_and_interpolate_solution(flow_solver->dg);
             }
 
-            const unsigned int n_meshes = (p==1)?4:3;
+            //const unsigned int n_meshes = (p==1)?4:3;
+            const unsigned int n_meshes = 1;
             
             for(unsigned int imesh = 0; imesh < n_meshes; ++imesh)
             {
@@ -832,7 +853,6 @@ int AnisotropicMeshAdaptationCases<dim, nstate> :: run_test () const
                 flow_solver->dg->set_upwinding_flux(true);
                 std::unique_ptr<MeshOptimizer<dim,nstate>> mesh_optimizer_q2 = std::make_unique<MeshOptimizer<dim,nstate>> (flow_solver->dg,&param, true);
                 const bool output_refined_nodes = true;
-                timer.start();
                 mesh_optimizer_q2->run_full_space_optimizer(regularization_matrix_poisson_q2, use_oneD_parameteriation, output_refined_nodes, output_val);
                 timer.stop();
                 output_vtk_files(flow_solver->dg, output_val++);
@@ -876,7 +896,7 @@ int AnisotropicMeshAdaptationCases<dim, nstate> :: run_test () const
 
     if(run_fixedfraction_mesh_adaptation)
     {
-        for(unsigned int p=1; p<=2; ++p)
+        for(unsigned int p=2; p<=2; ++p)
         {
             Parameters::AllParameters param = *(TestsBase::all_parameters);
             param.flow_solver_param.poly_degree=p;
@@ -885,6 +905,7 @@ int AnisotropicMeshAdaptationCases<dim, nstate> :: run_test () const
             std::vector<unsigned int> n_dofs_vector;
 
             std::unique_ptr<FlowSolver::FlowSolver<dim,nstate>> flow_solver = FlowSolver::FlowSolverFactory<dim,nstate>::select_flow_case(&param, parameter_handler);
+            
             flow_solver->dg->set_p_degree_and_interpolate_solution(p);
             flow_solver->run();
             flow_solver->use_polynomial_ramping = false;
@@ -906,6 +927,7 @@ int AnisotropicMeshAdaptationCases<dim, nstate> :: run_test () const
                 enthalpy_error_vector.push_back(enthalpy_error);
                 n_dofs_vector.push_back(flow_solver->dg->n_dofs());
                 walltimes_vector.push_back(timer.wall_time());
+                std::cout<<"wall_time_refinement ="<<timer.wall_time()<<" n_dofs = "<<flow_solver->dg->n_dofs()<<std::endl;
                 timer.reset();
             }
             // output all vectors
@@ -920,9 +942,9 @@ int AnisotropicMeshAdaptationCases<dim, nstate> :: run_test () const
             }
             else
             {
-                dofsname = "n_dofs_fixedfraction_p" + std::to_string(p);
-                errorname = "enthalpy_error_fixedfraction_p" + std::to_string(p);
-                walltimename = "wall_time_fixedfraction_p" + std::to_string(p);
+                dofsname = "n_dofs_fixedfraction_"+ std::to_string(refine_percentage) +"_p" + std::to_string(p);
+                errorname = "enthalpy_error_fixedfraction_" + std::to_string(refine_percentage) +"_p" + std::to_string(p);
+                walltimename = "wall_time_fixedfraction_" + std::to_string(refine_percentage) + "_p" + std::to_string(p);
             }
             pcout<<dofsname<<" = [";
             for(long unsigned int i=0; i<n_dofs_vector.size(); ++i)

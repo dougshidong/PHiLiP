@@ -60,6 +60,10 @@ public:
     void read_solution_volume_nodes_from_file(std::shared_ptr<DGBase<dim,double>> dg) const;
     void update_q2_controlnodes_file(std::shared_ptr<DGBase<dim,double>> dg) const;
 
+    void save_triangulation(std::shared_ptr<DGBase<dim,double>> dg, const unsigned int i_refinement) const;
+    
+    void load_triangulation(std::shared_ptr<DGBase<dim,double>> dg, const unsigned int i_refinement) const;
+
 }; 
 
 } // Tests namespace

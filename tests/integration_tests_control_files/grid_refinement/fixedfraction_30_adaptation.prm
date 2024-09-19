@@ -25,7 +25,7 @@ end
 subsection artificial dissipation
   set add_artificial_dissipation = true
   set artificial_dissipation_type = laplacian
-  set mu_artificial_dissipation = 5.0
+  set mu_artificial_dissipation = 10.0
   set kappa_artificial_dissipation = 5.0
 end
 
@@ -58,7 +58,7 @@ subsection linear solver
 end
 
 subsection mesh adaptation
-   set total_mesh_adaptation_cycles = 10
+   set total_mesh_adaptation_cycles = 5
    set use_goal_oriented_mesh_adaptation = true
    set mesh_adaptation_type = h_adaptation
    subsection fixed-fraction
@@ -91,7 +91,7 @@ end
 
 subsection ODE solver
   #set output_solution_every_x_steps = 1
-  set nonlinear_max_iterations            = 300
+  set nonlinear_max_iterations            = 50
   set nonlinear_steady_residual_tolerance = 1e-11
   set ode_solver_type  = implicit
   set initial_time_step = 1

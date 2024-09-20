@@ -1330,7 +1330,7 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_boundary_term(
     }
 
     // Assuming cylindrical wall boundary centered at (0,0).
-    /*
+   /* 
     const unsigned int boundary_id_slipwall = 1001;
     if(boundary_id == boundary_id_slipwall)
     {
@@ -1493,20 +1493,24 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_boundary_term(
     }
 */
     real2 artificial_diss_coeff_bc = 0.0;
-    /*
+    
     if (this->all_parameters->artificial_dissipation_param.add_artificial_dissipation)
     {
         const unsigned int poly_degree = fe_soln.tensor_degree();
         const dealii::Quadrature<dim> &volume_quadrature = this->volume_quadrature_collection[poly_degree];
 
         const std::vector<dealii::Point<dim,real>> &unit_quad_pts_volume = volume_quadrature.get_points();
-       // std::vector<dealii::Tensor<2,dim,real2>> metric_jacobian_volume = evaluate_metric_jacobian (unit_quad_pts_volume, coords_coeff, fe_metric);
+        std::vector<dealii::Tensor<2,dim,real2>> metric_jacobian_volume = evaluate_metric_jacobian (unit_quad_pts_volume, coords_coeff, fe_metric);
         std::vector<real2> jac_det_volume(unit_quad_pts_volume.size());
-        std::vector<dealii::Tensor<2,dim,real2>> jac_inv_tran_dummy(unit_quad_pts_volume.size());
-        evaluate_covariant_metric_jacobian<dim,real2> (volume_quadrature, coords_coeff, fe_metric, jac_inv_tran_dummy, jac_det_volume);
+        for(unsigned int iquad=0; iquad<unit_quad_pts_volume.size(); ++iquad)
+        {
+            jac_det_volume[iquad] = dealii::determinant(metric_jacobian_volume[iquad]);  
+        }
+        //std::vector<dealii::Tensor<2,dim,real2>> jac_inv_tran_dummy(unit_quad_pts_volume.size());
+        //evaluate_covariant_metric_jacobian<dim,real2> (volume_quadrature, coords_coeff, fe_metric, jac_inv_tran_dummy, jac_det_volume);
         artificial_diss_coeff_bc = this->discontinuity_sensor(volume_quadrature, soln_coeff, fe_soln, jac_det_volume);
     }
-    */
+    
 
     for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
 
@@ -2222,35 +2226,43 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_face_term(
     }
 */
     real2 artificial_diss_coeff_int = 0.0;
-    /*
+    
     if (this->all_parameters->artificial_dissipation_param.add_artificial_dissipation)
     {
         const unsigned int poly_degree_int = fe_int.tensor_degree();
         const dealii::Quadrature<dim> &volume_quadrature_int = this->volume_quadrature_collection[poly_degree_int];
 
         const std::vector<dealii::Point<dim,real>> &unit_quad_pts_volume_int = volume_quadrature_int.get_points();
-       // std::vector<dealii::Tensor<2,dim,real2>> metric_jacobian_volume = evaluate_metric_jacobian (unit_quad_pts_volume, coords_coeff, fe_metric);
+        std::vector<dealii::Tensor<2,dim,real2>> metric_jacobian_volume_int = evaluate_metric_jacobian (unit_quad_pts_volume_int, coords_coeff_int, fe_metric);
         std::vector<real2> jac_det_volume_int(unit_quad_pts_volume_int.size());
-        std::vector<dealii::Tensor<2,dim,real2>> jac_inv_tran_dummy(unit_quad_pts_volume_int.size());
-        evaluate_covariant_metric_jacobian<dim,real2> (volume_quadrature_int, coords_coeff_int, fe_metric, jac_inv_tran_dummy, jac_det_volume_int);
+        for(unsigned int iquad=0; iquad<unit_quad_pts_volume_int.size(); ++iquad)
+        {
+            jac_det_volume_int[iquad] = dealii::determinant(metric_jacobian_volume_int[iquad]);
+        }
+        //std::vector<dealii::Tensor<2,dim,real2>> jac_inv_tran_dummy(unit_quad_pts_volume_int.size());
+        //evaluate_covariant_metric_jacobian<dim,real2> (volume_quadrature_int, coords_coeff_int, fe_metric, jac_inv_tran_dummy, jac_det_volume_int);
         artificial_diss_coeff_int = this->discontinuity_sensor(volume_quadrature_int, soln_coeff_int, fe_int, jac_det_volume_int);
     }
-*/
+
     real2 artificial_diss_coeff_ext = 0.0;
-/*
+
     if (this->all_parameters->artificial_dissipation_param.add_artificial_dissipation)
     {
         const unsigned int poly_degree_ext = fe_ext.tensor_degree();
         const dealii::Quadrature<dim> &volume_quadrature_ext = this->volume_quadrature_collection[poly_degree_ext];
 
         const std::vector<dealii::Point<dim,real>> &unit_quad_pts_volume_ext = volume_quadrature_ext.get_points();
-       // std::vector<dealii::Tensor<2,dim,real2>> metric_jacobian_volume = evaluate_metric_jacobian (unit_quad_pts_volume, coords_coeff, fe_metric);
+        std::vector<dealii::Tensor<2,dim,real2>> metric_jacobian_volume_ext = evaluate_metric_jacobian (unit_quad_pts_volume_ext, coords_coeff_ext, fe_metric);
         std::vector<real2> jac_det_volume_ext(unit_quad_pts_volume_ext.size());
-        std::vector<dealii::Tensor<2,dim,real2>> jac_inv_tran_dummy(unit_quad_pts_volume_ext.size());
-        evaluate_covariant_metric_jacobian<dim,real2> (volume_quadrature_ext, coords_coeff_ext, fe_metric, jac_inv_tran_dummy, jac_det_volume_ext);
+        for(unsigned int iquad=0; iquad<unit_quad_pts_volume_ext.size(); ++iquad)
+        {
+            jac_det_volume_ext[iquad] = dealii::determinant(metric_jacobian_volume_ext[iquad]);
+        }
+        //std::vector<dealii::Tensor<2,dim,real2>> jac_inv_tran_dummy(unit_quad_pts_volume_ext.size());
+        //evaluate_covariant_metric_jacobian<dim,real2> (volume_quadrature_ext, coords_coeff_ext, fe_metric, jac_inv_tran_dummy, jac_det_volume_ext);
         artificial_diss_coeff_ext = this->discontinuity_sensor(volume_quadrature_ext, soln_coeff_ext, fe_ext, jac_det_volume_ext);
     }
-*/
+
     
 
     std::vector<real2> jacobian_determinant_int(n_face_quad_pts);
@@ -3706,6 +3718,7 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_volume_term(
     real2 arti_diss = this->discontinuity_sensor(quadrature, soln_coeff, fe_soln, jac_det);
     for(unsigned int iquad = 0; iquad < n_quad_pts; ++iquad)
     {
+    /*
         dealii::Point<dim, real> point = unit_quad_pts[iquad];
         // Rescale over [-1,1]
         for(int d=0; d<dim; ++d)
@@ -3718,7 +3731,8 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_volume_term(
         {
             gegenbauer *= pow((1.0 - point[d]*point[d]),gegenbauer_factor); 
         }
-        artificial_diss_coeff_at_q[iquad] = arti_diss*gegenbauer;
+        */
+        artificial_diss_coeff_at_q[iquad] = arti_diss;
     }
 
     std::vector< Array > soln_at_q(n_quad_pts);

@@ -3228,31 +3228,54 @@ template <int dim, typename real,typename MeshType>
 template <typename real2>
 real2 DGBase<dim,real,MeshType>::discontinuity_sensor(
     const dealii::Quadrature<dim> &volume_quadrature,
-    const std::vector< real2 > &soln_coeff_high,
-    const dealii::FiniteElement<dim,dim> &fe_high,
+    const std::vector< real2 > &soln_coeff_high2,
+    const dealii::FiniteElement<dim,dim> &fe_high2,
     const std::vector<real2> &jac_det)
 {
-    const unsigned int degree = fe_high.tensor_degree();
+    const int degree = fe_high2.tensor_degree();
 
     if (degree == 0 || freeze_artificial_dissipation) {return 0;}
 
-    const unsigned int nstate = fe_high.components;
+    const unsigned int nstate = fe_high2.components;
+
+    // Project to legendre basis
+    const dealii::FE_DGQLegendre<dim,dim> fe_dgq_legendre(degree);
+    const dealii::FESystem<dim,dim> fe_high(fe_dgq_legendre, nstate);
+    const dealii::QGauss<dim> projection_quadrature(degree+5);
+    const std::vector< real2 > soln_coeff_high = project_function<dim,real2>(soln_coeff_high2, fe_high2, fe_high, projection_quadrature);
     const unsigned int n_dofs_high = fe_high.dofs_per_cell;
 
-    // Lower degree basis.
-    const unsigned int lower_degree = degree-1;
-    const dealii::FE_DGQ<dim> fe_dgq_lower(lower_degree);
-    const dealii::FESystem<dim,dim> fe_lower(fe_dgq_lower, nstate);
+    std::vector<real2> soln_coeff_lower = soln_coeff_high;
+    dealii::Point<dim> p1,p2;
+    p1[0] = 2.0;
+    p1[1] = 1.0;
+    p2[0] = 1.0;
+    p2[1] = 2.0;
+    for(unsigned int idof = 0; idof<n_dofs_high; ++idof)
+    {
+        const int base_dof = fe_high.system_to_base_index(idof).second;
+        /*
+        for(int i=0; i<=degree; ++i)
+        {
+            if( (((i+1)*degree + i) == base_dof) || base_dof>=(degree*(degree+1))) 
+            {
+                soln_coeff_lower[idof]=0.0;
+                break;
+            } 
+        }
+        */
+        const unsigned int istate = fe_high.system_to_component_index(idof).first;
+        std::cout<<"base dof = "<<base_dof<<std::endl;
+        std::cout<<"Initial point = "<<p1<<" Transformed point = "<<fe_high.shape_value_component(idof,p1,istate)<<std::endl;
+        std::cout<<"Initial point = "<<p2<<" Transformed point = "<<fe_high.shape_value_component(idof,p2,istate)<<std::endl<<std::endl;
 
-    // Projection quadrature.
-    const dealii::QGauss<dim> projection_quadrature(degree+5);
-    std::vector< real2 > soln_coeff_lower = project_function<dim,real2>( soln_coeff_high, fe_high, fe_lower, projection_quadrature);
+    }
+    std::abort();
 
     // Quadrature used for solution difference.
     const std::vector<dealii::Point<dim,double>> &unit_quad_pts = volume_quadrature.get_points();
 
     const unsigned int n_quad_pts = volume_quadrature.size();
-    const unsigned int n_dofs_lower = fe_lower.dofs_per_cell;
 
     real2 element_volume = 0.0;
     real2 error = 0.0;
@@ -3270,28 +3293,30 @@ real2 DGBase<dim,real,MeshType>::discontinuity_sensor(
               soln_high[istate] += soln_coeff_high[idof] * fe_high.shape_value_component(idof,unit_quad_pts[iquad],istate);
         }
         // Interpolate low order solution
-        for (unsigned int idof=0; idof<n_dofs_lower; ++idof) {
-              const unsigned int istate = fe_lower.system_to_component_index(idof).first;
-              soln_lower[istate] += soln_coeff_lower[idof] * fe_lower.shape_value_component(idof,unit_quad_pts[iquad],istate);
+        for (unsigned int idof=0; idof<n_dofs_high; ++idof) {
+              const unsigned int istate = fe_high.system_to_component_index(idof).first;
+              soln_lower[istate] += soln_coeff_lower[idof] * fe_high.shape_value_component(idof,unit_quad_pts[iquad],istate);
         }
         // Quadrature
         const real2 JxW = jac_det[iquad] * volume_quadrature.weight(iquad);
         element_volume += JxW;
         // Only integrate over the first state variable.
         // Persson and Peraire only did density.
-        /*
+        
         for (unsigned int s=0; s<1; ++s) 
         {
             error += (soln_high[s] - soln_lower[s]) * (soln_high[s] - soln_lower[s]) * JxW;
             soln_norm += soln_high[s] * soln_high[s] * JxW;
         }
-        */
+        
+        /*
         const real2 pressure_high = 0.4*( soln_high[3] - 0.5 * (pow(soln_high[1],2) + pow(soln_high[2],2))/(soln_high[0]));
         const real2 entropy_high = pressure_high*pow(soln_high[0],-1.4);
         const real2 pressure_lower = 0.4*( soln_lower[3] - 0.5 * (pow(soln_lower[1],2) + pow(soln_lower[2],2))/(soln_lower[0]));
         const real2 entropy_lower = pressure_lower*pow(soln_lower[0],-1.4);
         error += (entropy_high - entropy_lower) * (entropy_high - entropy_lower) * JxW;
         soln_norm += entropy_high*entropy_high * JxW;
+        */
     }
 
     if (soln_norm < 1e-15) return 0;

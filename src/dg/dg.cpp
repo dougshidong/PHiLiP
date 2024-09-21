@@ -3246,15 +3246,10 @@ real2 DGBase<dim,real,MeshType>::discontinuity_sensor(
     const unsigned int n_dofs_high = fe_high.dofs_per_cell;
 
     std::vector<real2> soln_coeff_lower = soln_coeff_high;
-    dealii::Point<dim> p1,p2;
-    p1[0] = 2.0;
-    p1[1] = 1.0;
-    p2[0] = 1.0;
-    p2[1] = 2.0;
     for(unsigned int idof = 0; idof<n_dofs_high; ++idof)
     {
         const int base_dof = fe_high.system_to_base_index(idof).second;
-        /*
+        
         for(int i=0; i<=degree; ++i)
         {
             if( (((i+1)*degree + i) == base_dof) || base_dof>=(degree*(degree+1))) 
@@ -3263,14 +3258,7 @@ real2 DGBase<dim,real,MeshType>::discontinuity_sensor(
                 break;
             } 
         }
-        */
-        const unsigned int istate = fe_high.system_to_component_index(idof).first;
-        std::cout<<"base dof = "<<base_dof<<std::endl;
-        std::cout<<"Initial point = "<<p1<<" Transformed point = "<<fe_high.shape_value_component(idof,p1,istate)<<std::endl;
-        std::cout<<"Initial point = "<<p2<<" Transformed point = "<<fe_high.shape_value_component(idof,p2,istate)<<std::endl<<std::endl;
-
     }
-    std::abort();
 
     // Quadrature used for solution difference.
     const std::vector<dealii::Point<dim,double>> &unit_quad_pts = volume_quadrature.get_points();

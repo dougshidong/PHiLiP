@@ -30,6 +30,9 @@ void ReducedOrderModelParam::declare_parameters (dealii::ParameterHandler &prm)
         prm.declare_entry("parameter_max_values", "0.7, 4",
                           dealii::Patterns::List(dealii::Patterns::Double(), 0, 10, ","),
                           "Maximum values for parameters");
+        prm.declare_entry("number_modes", "0",
+                          dealii::Patterns::Integer(0, dealii::Patterns::Integer::max_int_value),
+                          "Number of modes used in the POD Basis");
     }
     prm.leave_subsection();
 }
@@ -42,6 +45,7 @@ void ReducedOrderModelParam::parse_parameters (dealii::ParameterHandler &prm)
         reduced_residual_tolerance = prm.get_double("reduced_residual_tolerance");
         num_halton = prm.get_integer("num_halton");
         recomputation_coefficient = prm.get_integer("recomputation_coefficient");
+        number_modes = prm.get_integer("number_modes");
         path_to_search = prm.get("path_to_search");
 
         std::string parameter_names_string = prm.get("parameter_names");

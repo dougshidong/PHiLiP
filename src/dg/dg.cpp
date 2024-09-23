@@ -3293,18 +3293,10 @@ real2 DGBase<dim,real,MeshType>::discontinuity_sensor(
         
         for (unsigned int s=0; s<1; ++s) 
         {
-            error += (soln_high[s] - soln_lower[s]) * (soln_high[s] - soln_lower[s]) * JxW;
-            soln_norm += soln_high[s] * soln_high[s] * JxW;
+            error += (soln_high[s] - soln_lower[s]) * (soln_high[s] - soln_lower[s]) * volume_quadrature.weight(iquad);
+            soln_norm += soln_high[s] * soln_high[s] * volume_quadrature.weight(iquad);
         }
         
-        /*
-        const real2 pressure_high = 0.4*( soln_high[3] - 0.5 * (pow(soln_high[1],2) + pow(soln_high[2],2))/(soln_high[0]));
-        const real2 entropy_high = pressure_high*pow(soln_high[0],-1.4);
-        const real2 pressure_lower = 0.4*( soln_lower[3] - 0.5 * (pow(soln_lower[1],2) + pow(soln_lower[2],2))/(soln_lower[0]));
-        const real2 entropy_lower = pressure_lower*pow(soln_lower[0],-1.4);
-        error += (entropy_high - entropy_lower) * (entropy_high - entropy_lower) * JxW;
-        soln_norm += entropy_high*entropy_high * JxW;
-        */
     }
 
     if (soln_norm < 1e-15) return 0;

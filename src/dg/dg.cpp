@@ -3249,14 +3249,11 @@ real2 DGBase<dim,real,MeshType>::discontinuity_sensor(
     for(unsigned int idof = 0; idof<n_dofs_high; ++idof)
     {
         const int base_dof = fe_high.system_to_base_index(idof).second;
-        
-        for(int i=0; i<=degree; ++i)
+        const int jval = base_dof/(degree+1);
+        const int ival = base_dof - (degree+1)*jval;
+        if(ival==degree || jval==degree)
         {
-            if( (((i+1)*degree + i) == base_dof) || base_dof>=(degree*(degree+1))) 
-            {
-                soln_coeff_lower[idof]=0.0;
-                break;
-            } 
+            soln_coeff_lower[idof]=0.0;
         }
     }
 

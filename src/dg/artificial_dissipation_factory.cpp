@@ -17,6 +17,7 @@ ArtificialDissipationFactory<dim,nstate> ::create_artificial_dissipation(const P
     {
         case artificial_dissipation_enum::laplacian:
         {
+            std::cout<<"Laplacian Artifical Dissipation pointer created"<<std::endl;
             return std::make_shared<LaplacianArtificialDissipation<dim,nstate>>();
             break;
         }

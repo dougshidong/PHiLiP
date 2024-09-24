@@ -1,6 +1,7 @@
 #ifndef __RUNGE_KUTTA_BASE__
 #define __RUNGE_KUTTA_BASE__
 
+#include "JFNK_solver/JFNK_solver.h"
 #include "dg/dg_base.hpp"
 #include "ode_solver_base.h"
 #include "runge_kutta_methods/rk_tableau_base.h"
@@ -38,16 +39,26 @@ public:
     virtual void obtain_stage (int i, real dt) = 0;                
 
     /// Function to sum stages and add to dg->solution
-    virtual void sum_stages (const bool pseudotime) = 0;                  
+    virtual void sum_stages (real dt, const bool pseudotime) = 0;                  
 
     /// Function to apply limiter
     virtual void apply_limiter () = 0;               
 
     /// Function to adjust time step size
-    virtual void adjust_time_step() = 0;             
+    virtual void adjust_time_step(real dt) = 0;             
 protected:
     /// Stores Butcher tableau a and b, which specify the RK method
     std::shared_ptr<RKTableauBase<dim,real,MeshType>> butcher_tableau;
+
+    /// Stores functions related to relaxation Runge-Kutta (RRK).
+    /// Functions are empty by default.
+    std::shared_ptr<EmptyRRKBase<dim,real,MeshType>> relaxation_runge_kutta;
+
+    /// Implicit solver for diagonally-implicit RK methods, using Jacobian-free Newton-Krylov 
+    /** This is initialized for any RK method, but solution-sized vectors are 
+     *  only initialized if there is an implicit solve
+     */
+    JFNKSolver<dim,real,MeshType> solver;
 
     /// Storage for the derivative at each Runge-Kutta stage
     std::vector<dealii::LinearAlgebra::distributed::Vector<double>> rk_stage;

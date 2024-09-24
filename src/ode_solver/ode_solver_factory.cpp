@@ -48,7 +48,7 @@ std::shared_ptr<ODESolverBase<dim,real,MeshType>> ODESolverFactory<dim,real,Mesh
         return std::make_shared<PODGalerkinODESolver<dim,real,MeshType>>(dg_input, pod);
     if(ode_solver_type == ODEEnum::pod_petrov_galerkin_solver) 
         return std::make_shared<PODPetrovGalerkinODESolver<dim,real,MeshType>>(dg_input, pod);
-    if(ode_solver_type == ODEEnum::pod_galerkin_runge_kutta)
+    if(ode_solver_type == ODEEnum::pod_galerkin_runge_kutta_solver)
         return create_RungeKuttaODESolver(dg_input, pod);
     else {
         display_error_ode_solver_factory(ode_solver_type, true);
@@ -97,7 +97,7 @@ std::shared_ptr<ODESolverBase<dim,real,MeshType>> ODESolverFactory<dim,real,Mesh
         return std::make_shared<PODGalerkinODESolver<dim,real,MeshType>>(dg_input, pod);
     if(ode_solver_type == ODEEnum::pod_petrov_galerkin_solver) 
         return std::make_shared<PODPetrovGalerkinODESolver<dim,real,MeshType>>(dg_input, pod);
-    if(ode_solver_type == ODEEnum::pod_galerkin_runge_kutta)
+    if(ode_solver_type == ODEEnum::pod_galerkin_runge_kutta_solver)
         return create_RungeKuttaODESolver(dg_input, pod);
     else {
         display_error_ode_solver_factory(ode_solver_type, true);
@@ -135,7 +135,8 @@ void ODESolverFactory<dim,real,MeshType>::display_error_ode_solver_factory(Param
                                                                         solver_string = "hyper_reduced_petrov_galerkin";
     else if (ode_solver_type == ODEEnum::low_storage_runge_kutta_solver)    
                                                                         solver_string = "low_storage_runge_kutta_solver";
-    else if (ode_solver_type == ODEEnum::pod_galerkin_runge_kutta)      solver_string = "pod_galerkin_runge_kutta";
+    else if (ode_solver_type == ODEEnum::pod_galerkin_runge_kutta_solver)
+                                                                        solver_string = "pod_galerkin_runge_kutta";
     else solver_string = "undefined";
     
 
@@ -241,21 +242,21 @@ std::shared_ptr<ODESolverBase<dim,real,MeshType>> ODESolverFactory<dim,real,Mesh
     const int n_rk_stages = dg_input->all_parameters->ode_solver_param.n_rk_stages;
     using ODEEnum = Parameters::ODESolverParam::ODESolverEnum;
     const ODEEnum ode_solver_type = dg_input->all_parameters->ode_solver_param.ode_solver_type;
-    if (ode_solver_type == ODEEnum::pod_galerkin_rk_solver) {
+    if (ode_solver_type == ODEEnum::pod_galerkin_runge_kutta_solver) {
         // Hard-coded templating of n_rk_stages because it is not known at compile time
         pcout << "Creating Galerkin Runge Kutta ODE Solver with " 
               << n_rk_stages << " stage(s)..." << std::endl;
         if (n_rk_stages == 1){
-            return std::make_shared<PODGalerkinRKODESolver<dim,real,1,MeshType>>(dg_input,rk_tableau,pod);
+            return std::make_shared<PODGalerkingRungeKuttaODESolver<dim,real,1,MeshType>>(dg_input,rk_tableau,pod);
         }
         else if (n_rk_stages == 2){
-            return std::make_shared<PODGalerkinRKODESolver<dim,real,2,MeshType>>(dg_input,rk_tableau,pod);
+            return std::make_shared<PODGalerkingRungeKuttaODESolver<dim,real,2,MeshType>>(dg_input,rk_tableau,pod);
         }
         else if (n_rk_stages == 3){
-            return std::make_shared<PODGalerkinRKODESolver<dim,real,3,MeshType>>(dg_input,rk_tableau,pod);
+            return std::make_shared<PODGalerkingRungeKuttaODESolver<dim,real,3,MeshType>>(dg_input,rk_tableau,pod);
         }
         else if (n_rk_stages == 4){
-            return std::make_shared<PODGalerkinRKODESolver<dim,real,4,MeshType>>(dg_input,rk_tableau,pod);
+            return std::make_shared<PODGalerkingRungeKuttaODESolver<dim,real,4,MeshType>>(dg_input,rk_tableau,pod);
         }
         else{
             pcout << "Error: invalid number of stages. Aborting..." << std::endl;

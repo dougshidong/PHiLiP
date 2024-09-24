@@ -11,7 +11,7 @@ RungeKuttaODESolver<dim,real,n_rk_stages, MeshType>::RungeKuttaODESolver(std::sh
 {}
 
 template<int dim, typename real, int n_rk_stages, typename MeshType>
-void RungeKuttaODESolver<dim,real,n_rk_stages,MeshType>::calculate_stages (int i, real dt, const bool pseudotime) override
+void RungeKuttaODESolver<dim,real,n_rk_stages,MeshType>::calculate_stages (int i, real dt, const bool pseudotime)
 {
     this->rk_stage[i]=0.0; //resets all entries to zero
     
@@ -24,7 +24,7 @@ void RungeKuttaODESolver<dim,real,n_rk_stages,MeshType>::calculate_stages (int i
     
     if(pseudotime) {
         const double CFL = dt;
-        this->dg->time_scale_solution_update(rk_stage[i], CFL);
+        this->dg->time_scale_solution_update(this->rk_stage[i], CFL);
     }else {
         this->rk_stage[i]*=dt; 
     }//dt * sum(a_ij * k_j)
@@ -53,21 +53,21 @@ void RungeKuttaODESolver<dim,real,n_rk_stages,MeshType>::calculate_stages (int i
         */
 
         //JFNK version
-        solver.solve(dt*this->butcher_tableau->get_a(i,i), this->rk_stage[i]);
-        this->rk_stage[i] = solver.current_solution_estimate;
+        this->solver.solve(dt*this->butcher_tableau->get_a(i,i), this->rk_stage[i]);
+        this->rk_stage[i] = this->solver.current_solution_estimate;
 
     } // u_n + dt * sum(a_ij * k_j) <explicit> + dt * a_ii * u^(i) <implicit>
     
     // If using the entropy formulation of RRK, solutions must be stored.
     // Call store_stage_solutions before overwriting rk_stage with the derivative.
-    relaxation_runge_kutta->store_stage_solutions(i, rk_stage[i]);
+    this->relaxation_runge_kutta->store_stage_solutions(i, this->rk_stage[i]);
 
     this->dg->solution = this->rk_stage[i];
 
 }
 
 template<int dim, typename real, int n_rk_stages, typename MeshType>
-void RungeKuttaODESolver<dim,real,n_rk_stages,MeshType>::obtain_stage (int i, real dt) override
+void RungeKuttaODESolver<dim,real,n_rk_stages,MeshType>::obtain_stage (int i, real dt)
 {
      //set the DG current time for unsteady source terms
     this->dg->set_current_time(this->current_time + this->butcher_tableau->get_c(i)*dt);
@@ -83,7 +83,7 @@ void RungeKuttaODESolver<dim,real,n_rk_stages,MeshType>::obtain_stage (int i, re
 }
 
 template<int dim, typename real, int n_rk_stages, typename MeshType>
-void RungeKuttaODESolver<dim,real,n_rk_stages,MeshType>::sum_stages (const bool pseudotime) override
+void RungeKuttaODESolver<dim,real,n_rk_stages,MeshType>::sum_stages (real dt, const bool pseudotime)
 {
     //assemble solution from stages
     for (int i = 0; i < n_rk_stages; ++i){
@@ -99,7 +99,7 @@ void RungeKuttaODESolver<dim,real,n_rk_stages,MeshType>::sum_stages (const bool 
 
 
 template<int dim, typename real, int n_rk_stages, typename MeshType>
-void RungeKuttaODESolver<dim,real,n_rk_stages,MeshType>::apply_limiter () override
+void RungeKuttaODESolver<dim,real,n_rk_stages,MeshType>::apply_limiter ()
 {
     // Apply limiter at every RK stage
     if (this->limiter) {
@@ -115,11 +115,11 @@ void RungeKuttaODESolver<dim,real,n_rk_stages,MeshType>::apply_limiter () overri
 }
 
 template<int dim, typename real, int n_rk_stages, typename MeshType>
-void RungeKuttaODESolver<dim,real,n_rk_stages,MeshType>::adjust_time_step () override
+void RungeKuttaODESolver<dim,real,n_rk_stages,MeshType>::adjust_time_step (real dt)
 {
     // Calculates relaxation parameter and modify the time step size as dt*=relaxation_parameter.
     // if not using RRK, the relaxation parameter will be set to 1, such that dt is not modified.
-    this->relaxation_parameter_RRK_solver = relaxation_runge_kutta->update_relaxation_parameter(dt, this->dg, this->rk_stage, this->solution_update);
+    this->relaxation_parameter_RRK_solver = this->relaxation_runge_kutta->update_relaxation_parameter(dt, this->dg, this->rk_stage, this->solution_update);
     dt *= this->relaxation_parameter_RRK_solver;
     this->modified_time_step = dt;
 }

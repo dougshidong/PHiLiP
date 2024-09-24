@@ -15,17 +15,17 @@ RungeKuttaBase<dim, real, n_rk_stages, MeshType>::RungeKuttaBase(std::shared_ptr
 
 
 template<int dim, typename real, int n_rk_stages, typename MeshType>
-RungeKuttaBase<dim, real, n_rk_stages, MeshType>::step_in_time(real dt, const bool pseudotime)
+void RungeKuttaBase<dim, real, n_rk_stages, MeshType>::step_in_time(real dt, const bool pseudotime)
 {
     this->original_time_step = dt;
     this->solution_update = this->dg->solution; //storing u_n
     for (int i = 0; i < n_rk_stages; ++i){
-        this->calculate_stages(i); // u_n + dt * sum(a_ij * k_j) <explicit> + dt * a_ii * u^(i) <implicit>
+        this->calculate_stages(i, dt, pseudotime); // u_n + dt * sum(a_ij * k_j) <explicit> + dt * a_ii * u^(i) <implicit>
         this->apply_limiter(); // Might need to change for LSRK
-        this->obtain_stage(i); //rk_stage[i] = IMM*RHS = F(u_n + dt*sum(a_ij*k_j))
+        this->obtain_stage(i, dt); //rk_stage[i] = IMM*RHS = F(u_n + dt*sum(a_ij*k_j))
     }
-    this->modified_time_step();
-    this->sum_stages(pseudotime); // u_np1 = u_n + dt* sum(k_i * b_i)
+    this->adjust_time_step(dt);
+    this->sum_stages(dt, pseudotime); // u_np1 = u_n + dt* sum(k_i * b_i)
     this->dg->solution = this->solution_update; 
      // Calculate numerical entropy with FR correction. Does nothing if use has not selected param.
     this->FR_entropy_contribution_RRK_solver = relaxation_runge_kutta->compute_FR_entropy_contribution(dt, this->dg, this->rk_stage, true);
@@ -35,7 +35,7 @@ RungeKuttaBase<dim, real, n_rk_stages, MeshType>::step_in_time(real dt, const bo
 }
 
 template<int dim, typename real, int n_rk_stages, typename MeshType>
-RungeKuttaBase<dim, real, n_rk_stages, MeshType>::allocate_ode_system()
+void RungeKuttaBase<dim, real, n_rk_stages, MeshType>::allocate_ode_system()
 {
     this->pcout << "Allocating ODE system..." << std::flush;
     this->solution_update.reinit(this->dg->right_hand_side);

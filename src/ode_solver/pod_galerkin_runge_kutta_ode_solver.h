@@ -7,6 +7,7 @@
 #include "runge_kutta_methods/rk_tableau_base.h"
 #include "relaxation_runge_kutta/empty_RRK_base.h"
 
+
 namespace PHiLiP {
 namespace ODE {
 
@@ -23,17 +24,20 @@ public:
             std::shared_ptr<RKTableauBase<dim,real,MeshType>> rk_tableau_input,
             std::shared_ptr<ProperOrthogonalDecomposition::PODBase<dim>> pod); ///< Constructor.
 
+    /// Destructor
+    virtual ~PODGalerkingRungeKuttaODESolver() {};
+
     void allocate_runge_kutta_system () override;
 
     void calculate_stages (int i, real dt, const bool pseudotime) override;
 
     void obtain_stage (int i, real dt) override;
 
-    void sum_stages (const bool pseudotime) override;
+    void sum_stages (real dt, const bool pseudotime) override;
 
     void apply_limiter () override;
 
-    void adjust_time_step () override;
+    void adjust_time_step (real dt) override;
 
     /// Generate test basis
     std::shared_ptr<Epetra_CrsMatrix> generate_test_basis(const Epetra_CrsMatrix &epetra_system_matrix, const Epetra_CrsMatrix &pod_basis);
@@ -51,6 +55,19 @@ protected:
 
     /// System Matrix (Unsure if needed, do some testing)
     Epetra_CrsMatrix epetra_system_matrix; 
+
+    /// Pointer to Epetra Matrix for Test Basis
+    std::shared_ptr<Epetra_CrsMatrix> epetra_test_basis;
+
+    /// Pointer to Epetra Matrix for LHS
+    std::shared_ptr<Epetra_CrsMatrix> epetra_reduced_lhs;
+
+    /// dealII indexset for FO solution
+    dealii::IndexSet solution_index;
+
+    /// dealII indexset for RO solution
+    dealii::IndexSet reduced_index;
+
 private:
     /// Function to multiply a dealii vector by an Epetra Matrix
     int multiply(Epetra_CrsMatrix &epetra_matrix, dealii::LinearAlgebra::distributed::Vector<double> &input_dealii_vector,

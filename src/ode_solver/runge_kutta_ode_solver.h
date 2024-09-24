@@ -29,23 +29,13 @@ public:
 
     void obtain_stage (int i, real dt) override;
 
-    void sum_stages (const bool pseudotime) override;
+    void sum_stages (real dt, const bool pseudotime) override;
 
     void apply_limiter () override;
 
-    void adjust_time_step () override;
+    void adjust_time_step (real dt) override;
 
 protected:
-
-    /// Stores functions related to relaxation Runge-Kutta (RRK).
-    /// Functions are empty by default.
-    std::shared_ptr<EmptyRRKBase<dim,real,MeshType>> relaxation_runge_kutta;
-
-    /// Implicit solver for diagonally-implicit RK methods, using Jacobian-free Newton-Krylov 
-    /** This is initialized for any RK method, but solution-sized vectors are 
-     *  only initialized if there is an implicit solve
-     */
-    JFNKSolver<dim,real,MeshType> solver;
     
 };
 

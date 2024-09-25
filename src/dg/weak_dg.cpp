@@ -139,6 +139,26 @@ real1 norm(const dealii::Tensor<1,dim,real1> x)
      return sqrt(val);
 }
 
+template<int dim, typename real>
+real smooth_artificial_viscosity(const real &viscosity_in, const unsigned int poly_degree, const unsigned int n_cells) 
+{
+    if(viscosity_in == 0) return 0;
+
+    const real max_eig = 7.0;
+    const real area = 22.0;
+    const real resolution = pow(area/n_cells,1.0/dim)/poly_degree;
+    const real theta_L = 0.01*max_eig*resolution;
+    const real theta_H = max_eig*resolution;
+
+    if(viscosity_in > theta_H) return theta_H;
+
+    if(viscosity_in < theta_L) return theta_L;
+    
+    const double PI = 4*atan(1);
+    const real viscosity_out = 0.5 * theta_H * (sin(PI*( (viscosity_in - theta_L)/(theta_H-theta_L) - 0.5)) + 1.0);
+    return viscosity_out;
+}
+
 namespace PHiLiP {
 
 template <int dim, int nstate, typename real, typename MeshType>
@@ -1491,7 +1511,7 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_boundary_term(
         artificial_diss_coeff_at_q[iquad] = 0.0;
     }
 */
-    real2 artificial_diss_coeff_bc = 0.0;
+    real2 artificial_diss_coeff_switch_bc = 0.0;
     
     if (this->all_parameters->artificial_dissipation_param.add_artificial_dissipation)
     {
@@ -1507,9 +1527,8 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_boundary_term(
         }
         //std::vector<dealii::Tensor<2,dim,real2>> jac_inv_tran_dummy(unit_quad_pts_volume.size());
         //evaluate_covariant_metric_jacobian<dim,real2> (volume_quadrature, coords_coeff, fe_metric, jac_inv_tran_dummy, jac_det_volume);
-        artificial_diss_coeff_bc = this->discontinuity_sensor(volume_quadrature, soln_coeff, fe_soln, jac_det_volume);
+        artificial_diss_coeff_switch_bc = this->discontinuity_sensor(volume_quadrature, soln_coeff, fe_soln, jac_det_volume);
     }
-    
 
     for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
 
@@ -1530,7 +1549,7 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_boundary_term(
         conv_num_flux_dot_n[iquad] = conv_num_flux.evaluate_flux(soln_ext[iquad], soln_ext[iquad], normal_int);
         // Notice that the flux uses the solution given by the Dirichlet or Neumann boundary condition
         diss_soln_num_flux[iquad] = diss_num_flux.evaluate_solution_flux(soln_ext[iquad], soln_ext[iquad], normal_int);
-
+        
         ADArrayTensor1 diss_soln_jump_int;
         for (int s=0; s<nstate; s++) {
             for (int d=0; d<dim; d++) {
@@ -1538,9 +1557,11 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_boundary_term(
             }
         }
         diss_flux_jump_int[iquad] = physics.dissipative_flux (soln_int[iquad], diss_soln_jump_int, current_cell_index);
-
+        real2 artificial_diss_coeff_bc2 = 0.0;
         if (this->all_parameters->artificial_dissipation_param.add_artificial_dissipation) {
-            const ADArrayTensor1 artificial_diss_flux_jump_int = DGBaseState<dim,nstate,real,MeshType>::artificial_dissip->calc_artificial_dissipation_flux(soln_int[iquad], diss_soln_jump_int,artificial_diss_coeff_bc);
+            artificial_diss_coeff_bc2 = artificial_diss_coeff_switch_bc * physics.max_convective_eigenvalue(soln_ext[iquad]);
+            artificial_diss_coeff_bc2 = smooth_artificial_viscosity<dim,real2>(artificial_diss_coeff_bc2, fe_soln.tensor_degree(), this->triangulation->n_global_active_cells());
+            const ADArrayTensor1 artificial_diss_flux_jump_int = DGBaseState<dim,nstate,real,MeshType>::artificial_dissip->calc_artificial_dissipation_flux(soln_int[iquad], diss_soln_jump_int,artificial_diss_coeff_bc2);
             for (int s=0; s<nstate; s++) {
                 diss_flux_jump_int[iquad][s] += artificial_diss_flux_jump_int[s];
             }
@@ -1551,8 +1572,8 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_boundary_term(
             //artificial_diss_coeff,
             current_cell_index,
             current_cell_index,
-            artificial_diss_coeff_bc,
-            artificial_diss_coeff_bc,
+            artificial_diss_coeff_bc2,
+            artificial_diss_coeff_bc2,
             soln_int[iquad], soln_ext[iquad],
             soln_grad_int[iquad], soln_grad_ext[iquad],
             normal_int, penalty, true);
@@ -2224,7 +2245,7 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_face_term(
         artificial_diss_coeff_at_q[iquad] = 0.0;
     }
 */
-    real2 artificial_diss_coeff_int = 0.0;
+    real2 artificial_diss_coeff_switch_int = 0.0;
     
     if (this->all_parameters->artificial_dissipation_param.add_artificial_dissipation)
     {
@@ -2240,10 +2261,10 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_face_term(
         }
         //std::vector<dealii::Tensor<2,dim,real2>> jac_inv_tran_dummy(unit_quad_pts_volume_int.size());
         //evaluate_covariant_metric_jacobian<dim,real2> (volume_quadrature_int, coords_coeff_int, fe_metric, jac_inv_tran_dummy, jac_det_volume_int);
-        artificial_diss_coeff_int = this->discontinuity_sensor(volume_quadrature_int, soln_coeff_int, fe_int, jac_det_volume_int);
+        artificial_diss_coeff_switch_int = this->discontinuity_sensor(volume_quadrature_int, soln_coeff_int, fe_int, jac_det_volume_int);
     }
 
-    real2 artificial_diss_coeff_ext = 0.0;
+    real2 artificial_diss_coeff_switch_ext = 0.0;
 
     if (this->all_parameters->artificial_dissipation_param.add_artificial_dissipation)
     {
@@ -2259,9 +2280,8 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_face_term(
         }
         //std::vector<dealii::Tensor<2,dim,real2>> jac_inv_tran_dummy(unit_quad_pts_volume_ext.size());
         //evaluate_covariant_metric_jacobian<dim,real2> (volume_quadrature_ext, coords_coeff_ext, fe_metric, jac_inv_tran_dummy, jac_det_volume_ext);
-        artificial_diss_coeff_ext = this->discontinuity_sensor(volume_quadrature_ext, soln_coeff_ext, fe_ext, jac_det_volume_ext);
+        artificial_diss_coeff_switch_ext = this->discontinuity_sensor(volume_quadrature_ext, soln_coeff_ext, fe_ext, jac_det_volume_ext);
     }
-
     
 
     std::vector<real2> jacobian_determinant_int(n_face_quad_pts);
@@ -2594,6 +2614,7 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_face_term(
 
     ADArrayTensor1 diss_flux_jump_int; // u*-u_int
     ADArrayTensor1 diss_flux_jump_ext; // u*-u_ext
+    
 
     for (unsigned int iquad=0; iquad<n_face_quad_pts; ++iquad) {
 
@@ -2610,8 +2631,14 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_face_term(
         }
         diss_flux_jump_int = physics.dissipative_flux (soln_int[iquad], diss_soln_jump_int, current_cell_index);
         diss_flux_jump_ext = physics.dissipative_flux (soln_ext[iquad], diss_soln_jump_ext, neighbor_cell_index);
-
+        
+        real2 artificial_diss_coeff_int = 0.0;
+        real2 artificial_diss_coeff_ext = 0.0;
         if (this->all_parameters->artificial_dissipation_param.add_artificial_dissipation) {
+            artificial_diss_coeff_int = artificial_diss_coeff_switch_int * physics.max_convective_eigenvalue(soln_int[iquad]);
+            artificial_diss_coeff_ext = artificial_diss_coeff_switch_ext * physics.max_convective_eigenvalue(soln_ext[iquad]);
+            artificial_diss_coeff_int = smooth_artificial_viscosity<dim,real2>(artificial_diss_coeff_int, fe_int.tensor_degree(), this->triangulation->n_global_active_cells());
+            artificial_diss_coeff_ext = smooth_artificial_viscosity<dim,real2>(artificial_diss_coeff_ext, fe_ext.tensor_degree(), this->triangulation->n_global_active_cells());
             //const ADArrayTensor1 artificial_diss_flux_jump_int = physics.artificial_dissipative_flux (artificial_diss_coeff_int, soln_int[iquad], diss_soln_jump_int);
             //const ADArrayTensor1 artificial_diss_flux_jump_ext = physics.artificial_dissipative_flux (artificial_diss_coeff_ext, soln_ext[iquad], diss_soln_jump_ext);
             const ADArrayTensor1 artificial_diss_flux_jump_int =  DGBaseState<dim,nstate,real,MeshType>::artificial_dissip->calc_artificial_dissipation_flux(soln_int[iquad], diss_soln_jump_int,artificial_diss_coeff_int);
@@ -3714,9 +3741,9 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_volume_term(
 
 */
     std::vector<real2> artificial_diss_coeff_at_q(n_quad_pts);
-    real2 arti_diss = this->discontinuity_sensor(quadrature, soln_coeff, fe_soln, jac_det);
-    for(unsigned int iquad = 0; iquad < n_quad_pts; ++iquad)
-    {
+    const real2 artificial_diss_switch = this->discontinuity_sensor(quadrature, soln_coeff, fe_soln, jac_det);
+//    for(unsigned int iquad = 0; iquad < n_quad_pts; ++iquad)
+//    {
     /*
         dealii::Point<dim, real> point = unit_quad_pts[iquad];
         // Rescale over [-1,1]
@@ -3731,8 +3758,8 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_volume_term(
             gegenbauer *= pow((1.0 - point[d]*point[d]),gegenbauer_factor); 
         }
         */
-        artificial_diss_coeff_at_q[iquad] = arti_diss;
-    }
+//        artificial_diss_coeff_at_q[iquad] = arti_diss;
+//    }
 
     std::vector< Array > soln_at_q(n_quad_pts);
     std::vector< ArrayTensor > soln_grad_at_q(n_quad_pts); // Tensor initialize with zeros
@@ -3754,6 +3781,8 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_volume_term(
                 soln_grad_at_q[iquad][istate][d] += soln_coeff[idof] * gradient_operator[d][idof][iquad];
             }
         }
+        artificial_diss_coeff_at_q[iquad] = artificial_diss_switch * physics.max_convective_eigenvalue(soln_at_q[iquad]);
+        artificial_diss_coeff_at_q[iquad] = smooth_artificial_viscosity<dim,real2>(artificial_diss_coeff_at_q[iquad], fe_soln.tensor_degree(), this->triangulation->n_global_active_cells());
         conv_phys_flux_at_q[iquad] = physics.convective_flux (soln_at_q[iquad]);
         diss_phys_flux_at_q[iquad] = physics.dissipative_flux (soln_at_q[iquad], soln_grad_at_q[iquad], current_cell_index);
 

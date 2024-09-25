@@ -1330,7 +1330,7 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_boundary_term(
     }
 
     // Assuming cylindrical wall boundary centered at (0,0).
-   /* 
+    
     const unsigned int boundary_id_slipwall = 1001;
     if(boundary_id == boundary_id_slipwall)
     {
@@ -1370,7 +1370,7 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_boundary_term(
             faceJxW[iquad] = surface_jac_det[iquad] * face_quadrature.weight(iquad);
         }
     }
-*/
+
 
     std::vector<std::array<real2,nstate>> soln_int(n_quad_pts), soln_ext(n_quad_pts);
     std::vector<std::array< dealii::Tensor<1,dim,real2>, nstate >> soln_grad_int(n_quad_pts), soln_grad_ext(n_quad_pts);
@@ -1394,7 +1394,7 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_boundary_term(
         const dealii::Tensor<1,dim,real2> normal_int = phys_unit_normal[iquad];
         physics.boundary_face_values (boundary_id, real_quad_pts[iquad], normal_int, soln_int[iquad], soln_grad_int[iquad], soln_ext[iquad], soln_grad_ext[iquad]);
     }
-/*
+
     // Assemble BR2 gradient correction right-hand side
     const dealii::FiniteElement<dim> &base_fe_int = fe_soln.get_sub_fe(0,1);
     const unsigned int n_base_dofs_int = base_fe_int.n_dofs_per_cell();
@@ -1405,12 +1405,12 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_boundary_term(
 
         // Obtain solution jump
         std::vector<std::array<dealii::Tensor<1,dim,real2>, nstate>> soln_jump_int(n_quad_pts);
-        std::vector<std::array<dealii::Tensor<1,dim,real2>, nstate>> soln_jump_ext(n_quad_pts);
+        //std::vector<std::array<dealii::Tensor<1,dim,real2>, nstate>> soln_jump_ext(n_quad_pts);
         for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
             for (int s=0; s<nstate; s++) {
                 for (int d=0; d<dim; d++) {
                     soln_jump_int[iquad][s][d] = (soln_int[iquad][s] - soln_ext[iquad][s]) * (phys_unit_normal[iquad][d]);
-                    soln_jump_ext[iquad][s][d] = (soln_ext[iquad][s] - soln_int[iquad][s]) * (-phys_unit_normal[iquad][d]);
+                    //soln_jump_ext[iquad][s][d] = (soln_ext[iquad][s] - soln_int[iquad][s]) * (-phys_unit_normal[iquad][d]);
                 }
             }
         }
@@ -1452,11 +1452,10 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_boundary_term(
                     soln_grad_ext[iquad][istate][d] = soln_grad_int[iquad][istate][d];
                 }
             }
-            physics.boundary_face_values (boundary_id, real_quad_pts[iquad], phys_unit_normal[iquad], soln_int[iquad], soln_grad_int[iquad], soln_ext[iquad], soln_grad_ext[iquad]);
+            //physics.boundary_face_values (boundary_id, real_quad_pts[iquad], phys_unit_normal[iquad], soln_int[iquad], soln_grad_int[iquad], soln_ext[iquad], soln_grad_ext[iquad]);
         }
 
     } 
-*/
 
     std::vector<ADArray> conv_num_flux_dot_n(n_quad_pts);
     std::vector<ADArray> diss_soln_num_flux(n_quad_pts); // u*
@@ -1527,8 +1526,8 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_boundary_term(
         // Changing it back to the standdard F* = F*(Uin, Ubc)
         // This is known not be adjoint consistent as per the paper above. Page 85, second to last paragraph.
         // Losing 2p+1 OOA on functionals for all PDEs.
-        conv_num_flux_dot_n[iquad] = conv_num_flux.evaluate_flux(soln_int[iquad], soln_ext[iquad], normal_int);
-        //conv_num_flux_dot_n[iquad] = conv_num_flux.evaluate_flux(soln_ext[iquad], soln_ext[iquad], normal_int);
+        //conv_num_flux_dot_n[iquad] = conv_num_flux.evaluate_flux(soln_int[iquad], soln_ext[iquad], normal_int);
+        conv_num_flux_dot_n[iquad] = conv_num_flux.evaluate_flux(soln_ext[iquad], soln_ext[iquad], normal_int);
         // Notice that the flux uses the solution given by the Dirichlet or Neumann boundary condition
         diss_soln_num_flux[iquad] = diss_num_flux.evaluate_solution_flux(soln_ext[iquad], soln_ext[iquad], normal_int);
 
@@ -2515,7 +2514,7 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_face_term(
             }
         }
     }
-/*
+
     // Assemble BR2 gradient correction right-hand side
 
     using DissFlux = Parameters::AllParameters::DissipativeNumericalFlux;
@@ -2586,7 +2585,7 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_face_term(
         correct_the_gradient<dim,nstate,real2>( soln_grad_corr_ext, fe_ext, soln_jump_ext, interpolation_operator_ext, gradient_operator_ext, soln_grad_ext);
 
     }
-*/
+
 
 
     ADArray conv_num_flux_dot_n;

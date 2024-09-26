@@ -12,6 +12,25 @@ NNLS_solver::NNLS_solver(
     parameters_input,
     parameter_handler_input,
     A,
+    false,
+    Comm,
+    b,
+    false,
+    false,
+    1000,
+    10E-8) {}
+
+NNLS_solver::NNLS_solver(
+  const Parameters::AllParameters *const parameters_input,
+  const dealii::ParameterHandler &parameter_handler_input,
+  const Epetra_CrsMatrix &A,
+  bool trans_A, 
+  Epetra_MpiComm &Comm, 
+  Epetra_Vector &b): NNLS_solver(
+    parameters_input,
+    parameter_handler_input,
+    A,
+    trans_A,
     Comm,
     b,
     false,
@@ -29,6 +48,26 @@ NNLS_solver::NNLS_solver(
     parameters_input,
     parameter_handler_input,
     A,
+    false,
+    Comm,
+    b,
+    grad_exit_crit,
+    false,
+    1000,
+    10E-8) {}
+
+NNLS_solver::NNLS_solver(
+  const Parameters::AllParameters *const parameters_input,
+  const dealii::ParameterHandler &parameter_handler_input,
+  const Epetra_CrsMatrix &A,
+  bool trans_A, 
+  Epetra_MpiComm &Comm, 
+  Epetra_Vector &b,
+  bool grad_exit_crit): NNLS_solver(
+    parameters_input,
+    parameter_handler_input,
+    A,
+    trans_A,
     Comm,
     b,
     grad_exit_crit,
@@ -48,6 +87,7 @@ NNLS_solver::NNLS_solver(
     parameters_input,
     parameter_handler_input,
     A,
+    false,
     Comm,
     b,
     false,
@@ -58,7 +98,29 @@ NNLS_solver::NNLS_solver(
 NNLS_solver::NNLS_solver(
   const Parameters::AllParameters *const parameters_input,
   const dealii::ParameterHandler &parameter_handler_input,
-  const Epetra_CrsMatrix &A, 
+  const Epetra_CrsMatrix &A,
+  bool trans_A, 
+  Epetra_MpiComm &Comm, 
+  Epetra_Vector &b, 
+  bool iter_solver, 
+  int LS_iter, 
+  double LS_tol): NNLS_solver(
+    parameters_input,
+    parameter_handler_input,
+    A,
+    trans_A,
+    Comm,
+    b,
+    false,
+    iter_solver,
+    LS_iter,
+    LS_tol) {}
+
+NNLS_solver::NNLS_solver(
+  const Parameters::AllParameters *const parameters_input,
+  const dealii::ParameterHandler &parameter_handler_input,
+  const Epetra_CrsMatrix &A,
+  bool trans_A, 
   Epetra_MpiComm &Comm, 
   Epetra_Vector &b, 
   bool grad_exit_crit, 
@@ -68,19 +130,21 @@ NNLS_solver::NNLS_solver(
     all_parameters(parameters_input),
     parameter_handler(parameter_handler_input),
     Comm_(Comm), 
-    A_(allocateMatrixToSingleCore(A)), 
+    A_(allocateMatrixToSingleCore(A, trans_A)),
     b_(allocateVectorToSingleCore(b)), 
     x_(A_.ColMap()), 
-    multi_x_(A.DomainMap()),
+    multi_x_((trans_A) ? A.RowMap(): A.ColMap()),
     LS_iter_(LS_iter), 
     LS_tol_(LS_tol),
     Z(A_.NumGlobalCols()), 
     P(A_.NumGlobalCols()), 
     iter_solver_(iter_solver), 
-    grad_exit_crit_(grad_exit_crit) 
+    grad_exit_crit_(grad_exit_crit),
+    trans_A_(trans_A)
     {
       index_set = Eigen::VectorXd::LinSpaced(A_.NumGlobalCols(), 0, A_.NumGlobalCols() -1); // Indices proceeding and including numInactive are in the P set (Inactive/Positive)
       Z.flip(); // All columns begin in the Z set (Active)
+      //EpetraExt::RowMatrixToMatlabFile("C_multicore_consol", A_);
     }
 
 void NNLS_solver::Epetra_PermutationMatrix(Epetra_CrsMatrix &P_mat){
@@ -355,7 +419,7 @@ bool NNLS_solver::solve(){
   }
 }
 
-Epetra_CrsMatrix NNLS_solver::allocateMatrixToSingleCore(const Epetra_CrsMatrix &A){
+Epetra_CrsMatrix NNLS_solver::allocateMatrixToSingleCore(const Epetra_CrsMatrix &A, bool trans_A = false){
   // Gather Matrix Information
   const int A_rows = A.NumGlobalRows();
   const int A_cols = A.NumGlobalCols();
@@ -372,8 +436,25 @@ Epetra_CrsMatrix NNLS_solver::allocateMatrixToSingleCore(const Epetra_CrsMatrix 
   // Load the data from matrix A (Multi core) into A_temp (Single core)
   A_temp.Import(A, A_importer, Epetra_CombineMode::Insert);
   A_temp.FillComplete(single_core_col_A,single_core_row_A);
-  return A_temp;
-};
+
+  std::shared_ptr<Epetra_CrsMatrix> A_ptr;
+  if (trans_A) {
+    Epetra_CrsMatrix A_trans(Epetra_DataAccess::Copy, single_core_col_A, A_rows);
+    for (int i = 0; i < A_rows; i++){
+      double *row = A_temp[i];
+      for (int n = 0; n < A_cols; n++) {
+          A_trans.InsertGlobalValues(n, 1, &row[n], &i);
+      }
+    }
+    A_trans.FillComplete(single_core_row_A, single_core_col_A);
+    A_ptr = std::make_shared<Epetra_CrsMatrix>(A_trans);
+  }
+  else{
+    A_ptr = std::make_shared<Epetra_CrsMatrix>(A_temp);
+  }
+
+  return *A_ptr;
+}
 
 Epetra_Vector NNLS_solver::allocateVectorToSingleCore(const Epetra_Vector &b){
   // Gather Vector Information
@@ -389,7 +470,7 @@ Epetra_Vector NNLS_solver::allocateVectorToSingleCore(const Epetra_Vector &b){
   // Load the data from vector b (Multi core) into b_temp (Single core)
   b_temp.Import(b, b_importer, Epetra_CombineMode::Insert);
   return b_temp;
-};
+}
 
 Epetra_Vector NNLS_solver::allocateVectorToMultipleCores(const Epetra_Vector &c)
 {
@@ -404,5 +485,5 @@ Epetra_Vector NNLS_solver::allocateVectorToMultipleCores(const Epetra_Vector &c)
   c_temp.Import(c, c_importer, Epetra_CombineMode::Insert);
   return c_temp;
 
-};
+}
 } // PHiLiP namespace

@@ -180,21 +180,23 @@ void RealGas<dim,nstate,real>
    std::array<real,nstate> &/*soln_bc*/,
    std::array<dealii::Tensor<1,dim,real>,nstate> &/*soln_grad_bc*/) const
 {
-    // TO DO: Update this you are using any kind of BC that is not periodic
+    // TO DO: Update this if you are using any kind of BC that is not periodic
 }
 
+// Details of the following algorithms are presented in Liki's Master's thesis.
 /* MAIN FUNCTIONS */
-/// f_M1: mixture density
+// Algorithm 1 (f_M1): Compute mixture density
 template <int dim, int nstate, typename real>
 template<typename real2>
 inline real2 RealGas<dim,nstate,real>
 :: compute_mixture_density ( const std::array<real2,nstate> &conservative_soln ) const
 {
     const real2 mixture_density = conservative_soln[0];
+
     return mixture_density;
 }
 
-/// f_M2: velocities
+// Algorithm 2 (f_M2): Compute velocities
 template <int dim, int nstate, typename real>
 inline dealii::Tensor<1,dim,real> RealGas<dim,nstate,real>
 ::compute_velocities ( const std::array<real,nstate> &conservative_soln ) const
@@ -202,10 +204,11 @@ inline dealii::Tensor<1,dim,real> RealGas<dim,nstate,real>
     const real mixture_density = compute_mixture_density(conservative_soln);
     dealii::Tensor<1,dim,real> vel;
     for (int d=0; d<dim; ++d) { vel[d] = conservative_soln[1+d]/mixture_density; }
+
     return vel;
 }
 
-/// f_M3: squared velocities
+// Algorithm 3 (f_M3): Compute squared velocities
 template <int dim, int nstate, typename real>
 inline real RealGas<dim,nstate,real>
 ::compute_velocity_squared ( const std::array<real,nstate> &conservative_soln ) const
@@ -215,49 +218,51 @@ inline real RealGas<dim,nstate,real>
     for (int d=0; d<dim; d++) { 
         vel2 = vel2 + vel[d]*vel[d]; 
     }  
+
     return vel2;
 }
 
-/// f_M4: specific kinetic energy
+// Algorithm 4 (f_M4): Compute specific kinetic energy
 template <int dim, int nstate, typename real>
 inline real RealGas<dim,nstate,real>
 ::compute_specific_kinetic_energy ( const std::array<real,nstate> &conservative_soln ) const
 {
     const real vel2 = compute_velocity_squared(conservative_soln);
     const real k = 0.5*vel2;
+
     return k;
 }
 
-/// f_M5: mixture specific total energy
+// Algorithm 5 (f_M5): Compute mixture specific total energy
 template <int dim, int nstate, typename real>
 inline real RealGas<dim,nstate,real>
 ::compute_mixture_specific_total_energy ( const std::array<real,nstate> &conservative_soln ) const
 {
     const real mixture_density = compute_mixture_density(conservative_soln);
     const real mixture_specific_total_energy = conservative_soln[dim+2-1]/mixture_density;
+
     return mixture_specific_total_energy;
 }
 
-/// f_M6: species densities
+// Algorithm 6 (f_M6): Compute species densities
 template <int dim, int nstate, typename real>
 inline std::array<real,nstate-dim-1> RealGas<dim,nstate,real>
 ::compute_species_densities ( const std::array<real,nstate> &conservative_soln ) const
 {
     const real mixture_density = compute_mixture_density(conservative_soln);
-    // std::cout<<mixture_density<<std::endl;
     std::array<real,nstate-dim-1> species_densities;
     real sum = 0.0;
     for (int s=0; s<(nstate-dim-1)-1; ++s) 
         { 
             species_densities[s] = conservative_soln[dim+2+s]; 
-            // std::cout<<species_densities[s]<<std::endl;
             sum += species_densities[s];
         }
     species_densities[(nstate-dim-1)-1] = mixture_density - sum;
+
     return species_densities;
 }
 
-/// f_M7: mass fractions
+// Algorithm 7 (f_M7): Compute mass fractions
 template <int dim, int nstate, typename real>
 inline std::array<real,nstate-dim-1> RealGas<dim,nstate,real>
 ::compute_mass_fractions ( const std::array<real,nstate> &conservative_soln ) const
@@ -269,10 +274,11 @@ inline std::array<real,nstate-dim-1> RealGas<dim,nstate,real>
         { 
             mass_fractions[s] = species_densities[s]/mixture_density; 
         }
+
     return mass_fractions;
 }
 
-/// f_M8: mixture_from_species
+// Algorithm 8 (f_M8): Compute mixture from species
 template <int dim, int nstate, typename real>
 inline real RealGas<dim,nstate,real>
 ::compute_mixture_from_species ( const std::array<real,nstate-dim-1> &mass_fractions, const std::array<real,nstate-dim-1> &species) const
@@ -282,19 +288,21 @@ inline real RealGas<dim,nstate,real>
         { 
             mixture += mass_fractions[s]*species[s]; 
         }   
+
     return mixture;
 }
 
-/// f_M9: dimensional temperature
+// Algorithm 9 (f_M9): Compute dimensional temperature
 template <int dim, int nstate, typename real>
 inline real RealGas<dim,nstate,real>
 ::compute_dimensional_temperature ( const real temperature ) const
 {
     const real dimensional_temperature = temperature*this->temperature_ref;
+
     return dimensional_temperature;
 }
 
-/// f_M9.5: species gas constants
+// Algorithm 10 (f_M10): Compute species gas constants
 template <int dim, int nstate, typename real>
 std::array<real,nstate-dim-1> RealGas<dim,nstate,real>
 ::compute_Rs ( const real Ru ) const
@@ -304,10 +312,11 @@ std::array<real,nstate-dim-1> RealGas<dim,nstate,real>
     {
         Rs[s] = Ru/real_gas_cap->Sp_W[s]/this->R_ref;
     }
+
     return Rs;
 }
 
-/// f_M10: species specific heat at constant pressure
+// Algorithm 11 (f_M11): Compute species specific heat at constant pressure
 template <int dim, int nstate, typename real>
 std::array<real,nstate-dim-1> RealGas<dim,nstate,real>
 ::compute_species_specific_Cp ( const real temperature ) const
@@ -316,10 +325,10 @@ std::array<real,nstate-dim-1> RealGas<dim,nstate,real>
     std::array<real,nstate-dim-1> Cp;
     const std::array<real,nstate-dim-1> Rs = compute_Rs(this->Ru);
     int temperature_zone;
-    /// species loop
+    // species loop
     for (int s=0; s<(nstate-dim-1); ++s) 
         { 
-            /// temperature limits if-else
+            // temperature limits if-else
             if(real_gas_cap->NASACAPTemperatureLimits[s][0]<=dimensional_temperature && dimensional_temperature<=real_gas_cap->NASACAPTemperatureLimits[s][1])
             {
                 temperature_zone = 0;
@@ -337,7 +346,7 @@ std::array<real,nstate-dim-1> RealGas<dim,nstate,real>
                 std::cout<<"Out of NASA CAP temperature limits."<<std::endl;
                 std::abort();
             }
-            /// main computation
+            // main computation
             Cp[s] = 0.0;
             for (int i=0; i<7; i++)
             {
@@ -345,10 +354,11 @@ std::array<real,nstate-dim-1> RealGas<dim,nstate,real>
             }
             Cp[s] *= Rs[s];
         }
+
     return Cp;
 }
 
-/// f_M11: species specific heat at constant volume
+// Algorithm 12 (f_M12): Compute species specific heat at constant volume
 template <int dim, int nstate, typename real>
 std::array<real,nstate-dim-1> RealGas<dim,nstate,real>
 ::compute_species_specific_Cv ( const real temperature ) const
@@ -360,10 +370,11 @@ std::array<real,nstate-dim-1> RealGas<dim,nstate,real>
     {
         Cv[s] = Cp[s] - Rs[s];
     }
+
     return Cv;
 }
 
-/// f_M12: species specific enthalpy
+// Algorithm 13 (f_M13): Compute species specific enthalpy
 template <int dim, int nstate, typename real>
 std::array<real,nstate-dim-1> RealGas<dim,nstate,real>
 ::compute_species_specific_enthalpy ( const real temperature ) const
@@ -393,23 +404,22 @@ std::array<real,nstate-dim-1> RealGas<dim,nstate,real>
                 std::cout<<"Out of NASA CAP temperature limits."<<std::endl;
                 std::abort();
             }
-            /// main computation
+            // main computation
             h[s] = -real_gas_cap->NASACAPCoeffs[s][0][temperature_zone]*pow(dimensional_temperature,-2)
                    +real_gas_cap->NASACAPCoeffs[s][1][temperature_zone]*pow(dimensional_temperature,-1)*log(dimensional_temperature) 
-                   +real_gas_cap->NASACAPCoeffs[s][7][temperature_zone]*pow(dimensional_temperature,-1); // The first 2 terms and the last term
+                   +real_gas_cap->NASACAPCoeffs[s][7][temperature_zone]*pow(dimensional_temperature,-1); // The first 2 terms and the last term are added
             for (int i=0+2; i<7; i++)
             {
-                h[s] += real_gas_cap->NASACAPCoeffs[s][i][temperature_zone]*pow(dimensional_temperature,i-2)/((double)(i-1));
+                h[s] += real_gas_cap->NASACAPCoeffs[s][i][temperature_zone]*pow(dimensional_temperature,i-2)/((double)(i-1)); // The other terms are added
             }
-            /// dimensional value
-            h[s] *= (Rs[s]*this->R_ref)*dimensional_temperature;
-            /// non-dimensionalize
-            h[s] /= this->u_ref_sqr;
+            h[s] *= (Rs[s]*this->R_ref)*dimensional_temperature; // dimensional value
+            h[s] /= this->u_ref_sqr; // non-dimensional value
         }
+
     return h;
 }
 
-/// f_M13: species specific internal energy
+// Algorithm 14 (f_M14): Compute species specific internal energy
 template <int dim, int nstate, typename real>
 std::array<real,nstate-dim-1> RealGas<dim,nstate,real>
 ::compute_species_specific_internal_energy( const real temperature ) const
@@ -421,10 +431,11 @@ std::array<real,nstate-dim-1> RealGas<dim,nstate,real>
     {
         e[s] = h[s] - (this->R_ref*this->temperature_ref/this->u_ref_sqr)* Rs[s]*temperature;
     }
+
     return e;
 }
 
-/// f_M14: compute_temperature
+// Algorithm 15 (f_M15): Compute temperature
 template <int dim, int nstate, typename real>
 inline real RealGas<dim,nstate,real>
 ::compute_temperature ( const std::array<real,nstate> &conservative_soln ) const
@@ -447,53 +458,43 @@ inline real RealGas<dim,nstate,real>
     real err = 999.9;
     int itr = 0;
 
-    /* compute temperature using Newton-Raphson method */
-    real T_n = 2.0*this->temperature_ref; // 2.0 can be initial temperature, but it fails if initilal temperature is close to the (lower) limit.
-    // real T_n = 5.0*this->temperature_ref; // TO DO: use this if you run high-temperature vortex advection test
+    /* compute temperature using the Newton-Raphson method */
+    real T_n = 2.0*this->temperature_ref; // the initial guess
     do
     {
         /// 1) f(T_n)
         // mixture specific internal energy: e = E - k
-        mixture_specific_internal_energy = (mixture_specific_total_energy - specific_kinetic_energy)*this->u_ref_sqr; // dim
+        mixture_specific_internal_energy = (mixture_specific_total_energy - specific_kinetic_energy)*this->u_ref_sqr; // dimensional value
         // species specific enthalpy at T_n
-        species_specific_enthalpy = compute_species_specific_enthalpy(T_n/this->temperature_ref); // non-dim
+        species_specific_enthalpy = compute_species_specific_enthalpy(T_n/this->temperature_ref); // non-dimensional value
         // mixture specific enthalpy at T_n
-        mixture_specific_enthalpy = compute_mixture_from_species(mass_fractions,species_specific_enthalpy)*this->u_ref_sqr; // dim
+        mixture_specific_enthalpy = compute_mixture_from_species(mass_fractions,species_specific_enthalpy)*this->u_ref_sqr; // dimensional value
         // Newton-Raphson function
-        f = (mixture_specific_enthalpy - mixture_gas_constant*this->R_ref* T_n) - mixture_specific_internal_energy; // dim
+        f = (mixture_specific_enthalpy - mixture_gas_constant*this->R_ref* T_n) - mixture_specific_internal_energy; // dimensional value
 
         /// 2) f'(T_n)
         // Cv at T_n
-        Cv = compute_species_specific_Cv(T_n/this->temperature_ref); // non-dim
+        Cv = compute_species_specific_Cv(T_n/this->temperature_ref); // non-dimensional value
         // mixture Cv
-        mixture_Cv = compute_mixture_from_species(mass_fractions,Cv)*this->R_ref; // dim
+        mixture_Cv = compute_mixture_from_species(mass_fractions,Cv)*this->R_ref; // dimensional value
         // Newton-Raphson derivertive function
         f_d = mixture_Cv;
 
         /// 3) main part
-        T_npo = T_n - f/f_d; // dim
+        T_npo = T_n - f/f_d; // dimensional value
         err = abs((T_npo-T_n)/this->temperature_ref);
-
         itr += 1;
 
         // update T
         T_n = T_npo;
     }
     while (err>this->tol);
-    // std::cout << std::setprecision(20)
-    //               << "  itr:"     << itr   << 
-    //                  ", T_n:"     << T_n   << 
-    //                  ", T_(n+1):" << T_npo <<
-    //                  ", err:"     << err   <<
-    //                  std::endl;
-
-    T_n /= temperature_ref; // non-dim
-    // abort();
+    T_n /= temperature_ref; // non-dimensional value
 
     return T_n;
 }
 
-/// f_M15: compute_mixture_gas_constant
+// Algorithm 16 (f_M16): Compute mixture gas constant
 template <int dim, int nstate, typename real>
 inline real RealGas<dim,nstate,real>
 ::compute_mixture_gas_constant ( const std::array<real,nstate> &conservative_soln ) const
@@ -504,7 +505,7 @@ inline real RealGas<dim,nstate,real>
     return mixture_gas_constant;
 }
 
-/// f_M16: compute_mixture_pressure
+// Algorithm 17 (f_M17): Compute mixture pressure
 template <int dim, int nstate, typename real>
 inline real RealGas<dim,nstate,real>
 ::compute_mixture_pressure ( const std::array<real,nstate> &conservative_soln ) const
@@ -517,7 +518,7 @@ inline real RealGas<dim,nstate,real>
     return mixture_pressure;
 }
 
-/// f_M17: compute_mixture_specific_total_enthalpy
+// Algorithm 18 (f_M18): Compute mixture specific total enthalpy
 template <int dim, int nstate, typename real>
 inline real RealGas<dim,nstate,real>
 ::compute_mixture_specific_total_enthalpy ( const std::array<real,nstate> &conservative_soln ) const
@@ -530,7 +531,7 @@ inline real RealGas<dim,nstate,real>
     return mixture_specific_total_enthalpy;
 }
 
-/// f_M18: convective flux
+// Algorithm 19 (f_M19): Compute convective flux
 template <int dim, int nstate, typename real>
 std::array<dealii::Tensor<1,dim,real>,nstate> RealGas<dim,nstate,real>
 ::convective_flux (const std::array<real,nstate> &conservative_soln) const  
@@ -566,16 +567,12 @@ std::array<dealii::Tensor<1,dim,real>,nstate> RealGas<dim,nstate,real>
         }
     }
 
-    // for (int i=0; i<nstate; i++)
-    // {
-    //     conv_flux[i] = conservative_soln[i]*0.0;
-    // }
     return conv_flux;
 }
 
 
 /* Supporting FUNCTIONS */
-/// f_S19: primitive to conservative
+// Algorithm 20 (f_S20): Convert primitive to conservative
 template <int dim, int nstate, typename real>
 inline std::array<real,nstate> RealGas<dim,nstate,real>
 ::convert_primitive_to_conservative ( const std::array<real,nstate> &primitive_soln ) const 
@@ -647,7 +644,7 @@ inline std::array<real,nstate> RealGas<dim,nstate,real>
     return conservative_soln;
 }
 
-/// f_M20: species specific heat ratio
+// Algorithm 21 (f_S21): Compute species specific heat ratio
 template <int dim, int nstate, typename real>
 inline std::array<real,nstate-dim-1> RealGas<dim,nstate,real>
 ::compute_species_specific_heat_ratio ( const std::array<real,nstate> &conservative_soln ) const
@@ -661,10 +658,11 @@ inline std::array<real,nstate-dim-1> RealGas<dim,nstate,real>
     {
         gamma[s] = Cp[s]/Cv[s];
     }
+
     return gamma;
 }
 
-/// f_M21: species speed of sound
+// Algorithm 22 (f_S22): Compute species speed of sound
 template <int dim, int nstate, typename real>
 inline std::array<real,nstate-dim-1> RealGas<dim,nstate,real>
 ::compute_species_speed_of_sound ( const std::array<real,nstate> &conservative_soln ) const
@@ -677,10 +675,9 @@ inline std::array<real,nstate-dim-1> RealGas<dim,nstate,real>
         { 
             speed_of_sound[s] = sqrt(gamma[s]*Rs[s]*temperature/(this->gam_ref*this->mach_ref_sqr)); 
         }
+
     return speed_of_sound;
 }
-
-//// up
 
 template <int dim, int nstate, typename real>
 inline real RealGas<dim,nstate,real>

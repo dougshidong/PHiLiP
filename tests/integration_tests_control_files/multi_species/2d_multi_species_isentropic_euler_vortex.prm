@@ -6,8 +6,8 @@ set dimension = 2
 set number_of_species = 2
 set run_type = flow_simulation
 set pde_type = real_gas
-set chemistry_input_file = ReactionFiles/H2_O2_N2.kinetics
-set initial_mixture_fractions_input_file = InitialMixtureFiles/InitialMixtureFractions_H2_O2_N2.txt
+set chemistry_input_file = ReactionFiles/N2_O2.kinetics
+set initial_mixture_fractions_input_file = InitialMixtureFiles/InitialMixtureFractions_N2_O2.txt
 
 
 # DG formulation
@@ -27,9 +27,9 @@ set do_renumber_dofs = false
 set conv_num_flux = lax_friedrichs
 set diss_num_flux = symm_internal_penalty
 
-# ODE solver
+# ODE solver, 200 vtk files, 20min/file, 2.7days
 subsection ODE solver
-  set output_solution_every_x_steps = 10
+  set output_solution_every_x_steps = 40
   set ode_output = quiet
   set ode_solver_type = runge_kutta
   set runge_kutta_method = ssprk3_ex
@@ -45,13 +45,13 @@ end
 
 subsection flow_solver
   set flow_case_type = multi_species_isentropic_euler_vortex
-  set poly_degree = 4
+  set poly_degree = 2
   set final_time = 20.0
   set adaptive_time_step = false
-  set constant_time_step = 0.01
+  set constant_time_step = 0.005
   subsection grid
     set grid_left_bound = -10.0
     set grid_right_bound = 10.0
-    set number_of_grid_elements_per_dimension = 16
+    set number_of_grid_elements_per_dimension = 128
   end
 end

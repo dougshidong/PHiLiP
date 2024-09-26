@@ -1780,6 +1780,8 @@ void DGBase<dim,real,MeshType>::output_results_vtk (const unsigned int cycle, co
 
     data_out.add_data_vector(max_dt_cell, "max_dt_cell", dealii::DataOut_DoFData<dealii::DoFHandler<dim>,dim>::DataVectorType::type_cell_data);
 
+    data_out.add_data_vector(reduced_mesh_weights, "reduced_mesh_weights", dealii::DataOut_DoFData<dealii::DoFHandler<dim>,dim>::DataVectorType::type_cell_data);
+
     data_out.add_data_vector(cell_volume, "cell_volume", dealii::DataOut_DoFData<dealii::DoFHandler<dim>,dim>::DataVectorType::type_cell_data);
 
 

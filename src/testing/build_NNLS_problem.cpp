@@ -42,6 +42,7 @@ std::shared_ptr<Epetra_CrsMatrix> local_generate_test_basis(Parameters::ODESolve
 template <int dim, int nstate>
 int BuildNNLSProblem<dim, nstate>::run_test() const
 {
+    Epetra_MpiComm Comm( MPI_COMM_WORLD );
     // Create flow solver and adaptive sampling class instances
     std::unique_ptr<FlowSolver::FlowSolver<dim,nstate>> flow_solver_petrov_galerkin = FlowSolver::FlowSolverFactory<dim,nstate>::select_flow_case(all_parameters, parameter_handler);
     auto ode_solver_type = Parameters::ODESolverParam::ODESolverEnum::pod_petrov_galerkin_solver;
@@ -55,7 +56,7 @@ int BuildNNLSProblem<dim, nstate>::run_test() const
 
     // Create instance of NNLS Problem assembler
     std::cout << "Construct instance of Assembler..."<< std::endl;
-    HyperReduction::AssembleECSWRes<dim,nstate> constructer_NNLS_problem(all_parameters, parameter_handler, flow_solver_petrov_galerkin->dg, parameter_sampling->current_pod, snapshot_parameters, ode_solver_type);
+    HyperReduction::AssembleECSWRes<dim,nstate> constructer_NNLS_problem(all_parameters, parameter_handler, flow_solver_petrov_galerkin->dg, parameter_sampling->current_pod, snapshot_parameters, ode_solver_type, Comm);
     std::cout << "Build Problem..."<< std::endl;
     constructer_NNLS_problem.build_problem();
 
@@ -127,11 +128,13 @@ int BuildNNLSProblem<dim, nstate>::run_test() const
     Eigen::MatrixXd d_MAT = load_csv<MatrixXd>("d.csv");
     Eigen::MatrixXd x_MAT = load_csv<MatrixXd>("x.csv");
 
-    Epetra_MpiComm Comm( MPI_COMM_WORLD );
-    Epetra_Map bMap = (constructer_NNLS_problem.A->trilinos_matrix()).RowMap();
-    Epetra_Vector b_Epetra (bMap);
+    const int rank = Comm.MyPID();
+    int rows = (constructer_NNLS_problem.A->trilinos_matrix()).NumGlobalCols();
+    Epetra_Map bMap(rows, (rank == 0) ? rows: 0, 0, Comm);
+    Epetra_Vector b_Epetra(bMap);
     auto b = constructer_NNLS_problem.b;
-    for(unsigned int i = 0 ; i < b.size() ; i++){
+    unsigned int local_length = bMap.NumMyElements();
+    for(unsigned int i = 0 ; i < local_length ; i++){
         b_Epetra[i] = b(i);
     }
 
@@ -140,7 +143,7 @@ int BuildNNLSProblem<dim, nstate>::run_test() const
     std::cout << "Create NNLS problem..."<< std::endl;
     std::cout << all_parameters->hyper_reduction_param.NNLS_tol << std::endl;
     std::cout << all_parameters->hyper_reduction_param.NNLS_max_iter << std::endl;
-    NNLS_solver NNLS_prob(all_parameters, parameter_handler, constructer_NNLS_problem.A->trilinos_matrix(), Comm, b_Epetra);
+    NNLS_solver NNLS_prob(all_parameters, parameter_handler, constructer_NNLS_problem.A->trilinos_matrix(), true, Comm, b_Epetra);
     std::cout << "Solve NNLS problem..."<< std::endl;
     // Solve NNLS problem (should return 1 if solver achieves the accuracy tau before the max number of iterations)
     bool exit_con = NNLS_prob.solve();

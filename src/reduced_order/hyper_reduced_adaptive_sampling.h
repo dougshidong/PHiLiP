@@ -48,6 +48,9 @@ public:
     /// Solve reduced-order solution
     std::unique_ptr<ProperOrthogonalDecomposition::ROMSolution<dim,nstate>> solveSnapshotROM(const RowVectorXd& parameter, Epetra_Vector weights) const;
 
+    /// Copy all elements in matrix A to all cores
+    Epetra_Vector allocateVectorToSingleCore(const Epetra_Vector &b) const;
+
     /// Ptr vector of ECSW Weights
     mutable std::shared_ptr<Epetra_Vector> ptr_weights;
 };

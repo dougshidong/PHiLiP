@@ -194,6 +194,7 @@ void AdaptiveSamplingBase<dim, nstate>::placeInitialSnapshots() const{
         dealii::LinearAlgebra::distributed::Vector<double> fom_solution = solveSnapshotFOM(snap_param);
         nearest_neighbors->updateSnapshots(snapshot_parameters, fom_solution);
         current_pod->addSnapshot(fom_solution);
+        this->fom_locations.emplace_back(fom_solution);
     }
 }
 

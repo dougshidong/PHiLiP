@@ -3,9 +3,13 @@
 
 #include <eigen/Eigen/Dense>
 #include <Epetra_CrsMatrix.h>
+#include <Epetra_MpiComm.h>
+#include <Epetra_SerialComm.h>
+#include <Epetra_Comm.h>
 #include <Epetra_Map.h>
 #include <Epetra_Vector.h>
 #include <EpetraExt_MatrixMatrix.h>
+#include <EpetraExt_RowMatrixOut.h>
 #include "dg/dg_base.hpp"
 #include "pod_basis_base.h"
 #include "parameters/all_parameters.h"
@@ -47,7 +51,8 @@ public:
         std::shared_ptr<DGBase<dim,double>> &dg_input, 
         std::shared_ptr<ProperOrthogonalDecomposition::PODBase<dim>> pod,
         MatrixXd snapshot_parameters_input,
-        Parameters::ODESolverParam::ODESolverEnum ode_solver_type);
+        Parameters::ODESolverParam::ODESolverEnum ode_solver_type,
+        Epetra_MpiComm &Comm);
 
     /// Destructor
     ~AssembleECSWJac () {};

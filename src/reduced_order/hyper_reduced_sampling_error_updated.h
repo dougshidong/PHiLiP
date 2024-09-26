@@ -49,6 +49,9 @@ public:
     /// Vector of parameter-ROMTestLocation pairs
     mutable std::vector<std::unique_ptr<ProperOrthogonalDecomposition::HROMTestLocation<dim,nstate>>> rom_locations;
 
+    /// Vector of parameter-ROMTestLocation pairs
+    mutable std::vector<dealii::LinearAlgebra::distributed::Vector<double>> fom_locations;
+
     /// Maximum error
     mutable double max_error;
 

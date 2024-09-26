@@ -143,6 +143,7 @@ int HyperReductionPostSampling<dim, nstate>::run_test() const
 {
     pcout << "Starting hyperreduction test..." << std::endl;
 
+    Epetra_MpiComm Comm( MPI_COMM_WORLD );
     // Create POD Petrov-Galerkin ROM with Hyperreduction
     std::unique_ptr<FlowSolver::FlowSolver<dim,nstate>> flow_solver_hyper_reduced_petrov_galerkin = FlowSolver::FlowSolverFactory<dim,nstate>::select_flow_case(all_parameters, parameter_handler);
     auto ode_solver_type = Parameters::ODESolverParam::ODESolverEnum::hyper_reduced_petrov_galerkin_solver;
@@ -174,25 +175,27 @@ int HyperReductionPostSampling<dim, nstate>::run_test() const
     std::cout << "Construct instance of Assembler..."<< std::endl;
     std::shared_ptr<HyperReduction::AssembleECSWBase<dim,nstate>> constructer_NNLS_problem;
     if (this->all_parameters->hyper_reduction_param.training_data == "residual")         
-        constructer_NNLS_problem = std::make_shared<HyperReduction::AssembleECSWRes<dim,nstate>>(all_parameters, parameter_handler, flow_solver_hyper_reduced_petrov_galerkin->dg, parameter_sampling->current_pod, parameter_sampling->snapshot_parameters, ode_solver_type);
+        constructer_NNLS_problem = std::make_shared<HyperReduction::AssembleECSWRes<dim,nstate>>(all_parameters, parameter_handler, flow_solver_hyper_reduced_petrov_galerkin->dg, parameter_sampling->current_pod, parameter_sampling->snapshot_parameters, ode_solver_type, Comm);
     else {
-        constructer_NNLS_problem = std::make_shared<HyperReduction::AssembleECSWJac<dim,nstate>>(all_parameters, parameter_handler, flow_solver_hyper_reduced_petrov_galerkin->dg, parameter_sampling->current_pod, parameter_sampling->snapshot_parameters, ode_solver_type);
+        constructer_NNLS_problem = std::make_shared<HyperReduction::AssembleECSWJac<dim,nstate>>(all_parameters, parameter_handler, flow_solver_hyper_reduced_petrov_galerkin->dg, parameter_sampling->current_pod, parameter_sampling->snapshot_parameters, ode_solver_type, Comm);
     }
     std::cout << "Build Problem..."<< std::endl;
     constructer_NNLS_problem->build_problem();
 
     // Transfer b vector (RHS of NNLS problem) to Epetra structure
-    Epetra_MpiComm Comm( MPI_COMM_WORLD );
-    Epetra_Map bMap = (constructer_NNLS_problem->A->trilinos_matrix()).RowMap();
-    Epetra_Vector b_Epetra (bMap);
+    const int rank = Comm.MyPID();
+    int rows = (constructer_NNLS_problem->A->trilinos_matrix()).NumGlobalCols();
+    Epetra_Map bMap(rows, (rank == 0) ? rows: 0, 0, Comm);
+    Epetra_Vector b_Epetra(bMap);
     auto b = constructer_NNLS_problem->b;
-    for(unsigned int i = 0 ; i < b.size() ; i++){
+    unsigned int local_length = bMap.NumMyElements();
+    for(unsigned int i = 0 ; i < local_length ; i++){
         b_Epetra[i] = b(i);
     }
 
     // Solve NNLS Problem for ECSW weights
     std::cout << "Create NNLS problem..."<< std::endl;
-    NNLS_solver NNLS_prob(all_parameters, parameter_handler, constructer_NNLS_problem->A->trilinos_matrix(), Comm, b_Epetra);
+    NNLS_solver NNLS_prob(all_parameters, parameter_handler, constructer_NNLS_problem->A->trilinos_matrix(), true, Comm, b_Epetra);
     std::cout << "Solve NNLS problem..."<< std::endl;
     bool exit_con = NNLS_prob.solve();
     std::cout << exit_con << std::endl;

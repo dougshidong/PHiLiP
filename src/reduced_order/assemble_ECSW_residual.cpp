@@ -15,8 +15,9 @@ AssembleECSWRes<dim,nstate>::AssembleECSWRes(
     std::shared_ptr<DGBase<dim,double>> &dg_input, 
     std::shared_ptr<ProperOrthogonalDecomposition::PODBase<dim>> pod, 
     MatrixXd snapshot_parameters_input,
-    Parameters::ODESolverParam::ODESolverEnum ode_solver_type)
-        : AssembleECSWBase<dim, nstate>(parameters_input, parameter_handler_input, dg_input, pod, snapshot_parameters_input, ode_solver_type)
+    Parameters::ODESolverParam::ODESolverEnum ode_solver_type,
+    Epetra_MpiComm &Comm)
+        : AssembleECSWBase<dim, nstate>(parameters_input, parameter_handler_input, dg_input, pod, snapshot_parameters_input, ode_solver_type, Comm)
 {
 }
 

@@ -15,15 +15,20 @@ AssembleECSWBase<dim,nstate>::AssembleECSWBase(
     std::shared_ptr<DGBase<dim,double>> &dg_input, 
     std::shared_ptr<ProperOrthogonalDecomposition::PODBase<dim>> pod, 
     MatrixXd snapshot_parameters_input,
-    Parameters::ODESolverParam::ODESolverEnum ode_solver_type)
+    Parameters::ODESolverParam::ODESolverEnum ode_solver_type,
+    Epetra_MpiComm &Comm)
         : all_parameters(parameters_input)
         , parameter_handler(parameter_handler_input)
         , dg(dg_input)
         , pod(pod)
         , snapshot_parameters(snapshot_parameters_input)
         , mpi_communicator(MPI_COMM_WORLD)
+        , mpi_rank(dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD))
+        , pcout(std::cout, mpi_rank==0)
         , ode_solver_type(ode_solver_type)
+        , Comm_(Comm)
         , A(std::make_shared<dealii::TrilinosWrappers::SparseMatrix>())
+        , fom_locations()
 {
 }
 
@@ -93,6 +98,35 @@ Parameters::AllParameters AssembleECSWBase<dim, nstate>::reinitParams(const RowV
         std::abort();
     }
     return parameters;
+}
+
+template <int dim, int nstate>
+Epetra_CrsMatrix AssembleECSWBase<dim,nstate>::copyMatrixToAllCores(const Epetra_CrsMatrix &A){
+    // Gather Matrix Information
+    const int A_rows = A.NumGlobalRows();
+    const int A_cols = A.NumGlobalCols();
+
+    // Create new maps for one core and gather old maps
+    const Epetra_SerialComm sComm;
+    Epetra_Map single_core_row_A (A_rows, A_rows, 0 , sComm);
+    Epetra_Map single_core_col_A (A_cols, A_cols, 0 , sComm);
+    Epetra_Map old_row_map_A = A.RowMap();
+    Epetra_Map old_col_map_A = A.DomainMap();
+
+    // Create Epetra_importer object
+    Epetra_Import A_importer(single_core_row_A,old_row_map_A);
+
+    // Create new A matrix
+    Epetra_CrsMatrix A_temp (Epetra_DataAccess::Copy, single_core_row_A, A_cols);
+    // Load the data from matrix A (Multi core) into A_temp (Single core)
+    A_temp.Import(A, A_importer, Epetra_CombineMode::Insert);
+    A_temp.FillComplete(single_core_col_A,single_core_row_A);
+    return A_temp;
+}
+
+template <int dim, int nstate>
+void AssembleECSWBase<dim, nstate>::updateSnapshots(dealii::LinearAlgebra::distributed::Vector<double> fom_solution){
+    fom_locations.emplace_back(fom_solution);
 }
 
 template <int dim, int nstate>

@@ -1535,8 +1535,8 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_boundary_term(
             
             if (this->all_parameters->artificial_dissipation_param.add_artificial_dissipation)
             {
-                real2 artificial_diss_coeff_int = artificial_diss_coeff_switch_bc * physics.max_convective_eigenvalue(soln_int[iquad]);
-                artificial_diss_coeff_int = smooth_artificial_viscosity<dim,real2>(artificial_diss_coeff_int, fe_soln.tensor_degree(), this->triangulation->n_global_active_cells());
+                real2 artificial_diss_coeff_int = artificial_diss_coeff_switch_bc;// * physics.max_convective_eigenvalue(soln_int[iquad]);
+                //artificial_diss_coeff_int = smooth_artificial_viscosity<dim,real2>(artificial_diss_coeff_int, fe_soln.tensor_degree(), this->triangulation->n_global_active_cells());
                 Av_jump_bc[iquad] = DGBaseState<dim,nstate,real,MeshType>::artificial_dissip->calc_artificial_dissipation_flux(soln_int[iquad], jump_int,artificial_diss_coeff_int); 
 
             }
@@ -1634,10 +1634,10 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_boundary_term(
         real2 artificial_diss_coeff_bc_int = 0.0;
         real2 artificial_diss_coeff_bc_ext = 0.0;
         if (this->all_parameters->artificial_dissipation_param.add_artificial_dissipation) {
-            artificial_diss_coeff_bc_int = artificial_diss_coeff_switch_bc * physics.max_convective_eigenvalue(soln_int[iquad]);
-            artificial_diss_coeff_bc_int = smooth_artificial_viscosity<dim,real2>(artificial_diss_coeff_bc_int, fe_soln.tensor_degree(), this->triangulation->n_global_active_cells());
-            artificial_diss_coeff_bc_ext = artificial_diss_coeff_switch_bc * physics.max_convective_eigenvalue(soln_ext[iquad]);
-            artificial_diss_coeff_bc_ext = smooth_artificial_viscosity<dim,real2>(artificial_diss_coeff_bc_ext, fe_soln.tensor_degree(), this->triangulation->n_global_active_cells());
+            artificial_diss_coeff_bc_int = artificial_diss_coeff_switch_bc;// * physics.max_convective_eigenvalue(soln_int[iquad]);
+            //artificial_diss_coeff_bc_int = smooth_artificial_viscosity<dim,real2>(artificial_diss_coeff_bc_int, fe_soln.tensor_degree(), this->triangulation->n_global_active_cells());
+            artificial_diss_coeff_bc_ext = artificial_diss_coeff_switch_bc;// * physics.max_convective_eigenvalue(soln_ext[iquad]);
+            //artificial_diss_coeff_bc_ext = smooth_artificial_viscosity<dim,real2>(artificial_diss_coeff_bc_ext, fe_soln.tensor_degree(), this->triangulation->n_global_active_cells());
             const ADArrayTensor1 artificial_diss_flux_jump_int = DGBaseState<dim,nstate,real,MeshType>::artificial_dissip->calc_artificial_dissipation_flux(soln_int[iquad], diss_soln_jump_int,artificial_diss_coeff_bc_int);
             for (int s=0; s<nstate; s++) {
                 diss_flux_jump_int[iquad][s] += artificial_diss_flux_jump_int[s];
@@ -2651,10 +2651,10 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_face_term(
 
             if (this->all_parameters->artificial_dissipation_param.add_artificial_dissipation)
             {
-                real2 artificial_diss_coeff_int = artificial_diss_coeff_switch_int * physics.max_convective_eigenvalue(soln_int[iquad]);
-                real2 artificial_diss_coeff_ext = artificial_diss_coeff_switch_ext * physics.max_convective_eigenvalue(soln_ext[iquad]);
-                artificial_diss_coeff_int = smooth_artificial_viscosity<dim,real2>(artificial_diss_coeff_int, fe_int.tensor_degree(), this->triangulation->n_global_active_cells());
-                artificial_diss_coeff_ext = smooth_artificial_viscosity<dim,real2>(artificial_diss_coeff_ext, fe_ext.tensor_degree(), this->triangulation->n_global_active_cells());
+                real2 artificial_diss_coeff_int = artificial_diss_coeff_switch_int;// * physics.max_convective_eigenvalue(soln_int[iquad]);
+                real2 artificial_diss_coeff_ext = artificial_diss_coeff_switch_ext;// * physics.max_convective_eigenvalue(soln_ext[iquad]);
+                //artificial_diss_coeff_int = smooth_artificial_viscosity<dim,real2>(artificial_diss_coeff_int, fe_int.tensor_degree(), this->triangulation->n_global_active_cells());
+                //artificial_diss_coeff_ext = smooth_artificial_viscosity<dim,real2>(artificial_diss_coeff_ext, fe_ext.tensor_degree(), this->triangulation->n_global_active_cells());
                 Av_jump_int[iquad] = DGBaseState<dim,nstate,real,MeshType>::artificial_dissip->calc_artificial_dissipation_flux(soln_int[iquad], jump_int,artificial_diss_coeff_int); 
                 Av_jump_ext[iquad] = DGBaseState<dim,nstate,real,MeshType>::artificial_dissip->calc_artificial_dissipation_flux(soln_ext[iquad], jump_ext,artificial_diss_coeff_ext);
             }
@@ -2726,10 +2726,10 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_face_term(
         real2 artificial_diss_coeff_int = 0.0;
         real2 artificial_diss_coeff_ext = 0.0;
         if (this->all_parameters->artificial_dissipation_param.add_artificial_dissipation) {
-            artificial_diss_coeff_int = artificial_diss_coeff_switch_int * physics.max_convective_eigenvalue(soln_int[iquad]);
-            artificial_diss_coeff_ext = artificial_diss_coeff_switch_ext * physics.max_convective_eigenvalue(soln_ext[iquad]);
-            artificial_diss_coeff_int = smooth_artificial_viscosity<dim,real2>(artificial_diss_coeff_int, fe_int.tensor_degree(), this->triangulation->n_global_active_cells());
-            artificial_diss_coeff_ext = smooth_artificial_viscosity<dim,real2>(artificial_diss_coeff_ext, fe_ext.tensor_degree(), this->triangulation->n_global_active_cells());
+            artificial_diss_coeff_int = artificial_diss_coeff_switch_int;// * physics.max_convective_eigenvalue(soln_int[iquad]);
+            artificial_diss_coeff_ext = artificial_diss_coeff_switch_ext;// * physics.max_convective_eigenvalue(soln_ext[iquad]);
+            //artificial_diss_coeff_int = smooth_artificial_viscosity<dim,real2>(artificial_diss_coeff_int, fe_int.tensor_degree(), this->triangulation->n_global_active_cells());
+            //artificial_diss_coeff_ext = smooth_artificial_viscosity<dim,real2>(artificial_diss_coeff_ext, fe_ext.tensor_degree(), this->triangulation->n_global_active_cells());
             //const ADArrayTensor1 artificial_diss_flux_jump_int = physics.artificial_dissipative_flux (artificial_diss_coeff_int, soln_int[iquad], diss_soln_jump_int);
             //const ADArrayTensor1 artificial_diss_flux_jump_ext = physics.artificial_dissipative_flux (artificial_diss_coeff_ext, soln_ext[iquad], diss_soln_jump_ext);
             const ADArrayTensor1 artificial_diss_flux_jump_int =  DGBaseState<dim,nstate,real,MeshType>::artificial_dissip->calc_artificial_dissipation_flux(soln_int[iquad], diss_soln_jump_int,artificial_diss_coeff_int);
@@ -3878,8 +3878,8 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_volume_term(
                 soln_grad_at_q[iquad][istate][d] += soln_coeff[idof] * gradient_operator[d][idof][iquad];
             }
         }
-        artificial_diss_coeff_at_q[iquad] = artificial_diss_switch * physics.max_convective_eigenvalue(soln_at_q[iquad]);
-        artificial_diss_coeff_at_q[iquad] = smooth_artificial_viscosity<dim,real2>(artificial_diss_coeff_at_q[iquad], fe_soln.tensor_degree(), this->triangulation->n_global_active_cells());
+        artificial_diss_coeff_at_q[iquad] = artificial_diss_switch;// * physics.max_convective_eigenvalue(soln_at_q[iquad]);
+        //artificial_diss_coeff_at_q[iquad] = smooth_artificial_viscosity<dim,real2>(artificial_diss_coeff_at_q[iquad], fe_soln.tensor_degree(), this->triangulation->n_global_active_cells());
         conv_phys_flux_at_q[iquad] = physics.convective_flux (soln_at_q[iquad]);
         diss_phys_flux_at_q[iquad] = physics.dissipative_flux (soln_at_q[iquad], soln_grad_at_q[iquad], current_cell_index);
 

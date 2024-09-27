@@ -1069,7 +1069,7 @@ void compute_br2_correction_delta_dot_n(
     const dealii::FullMatrix<double>    &interpolation_operator,
     std::vector<std::array<real2,nstate>> & delta_dot_n)
 {
-    const double br2_factor = 1.0;
+    const double br2_factor = 10.0;
     // Form mass matrix inverse.
     // Get the base finite element
     // Assumption is that the vector-valued finite element uses the same basis for every state equation.

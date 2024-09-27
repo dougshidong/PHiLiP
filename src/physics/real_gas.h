@@ -114,83 +114,84 @@ public: /// used for initial condition (initial_condition_function.cpp)
     /// returns conservative variables [density, [momentum], total energy].
     ///
 
-    /// f_S19: Convert primitive solutions to conservative solutions 
+    // Algorithm 20 (f_S20): Convert primitive to conservative 
     virtual std::array<real,nstate> convert_primitive_to_conservative ( const std::array<real,nstate> &primitive_soln ) const; 
 
+// Details of the following algorithms are presented in Liki's Master's thesis.
 /* MAIN FUNCTIONS */
 protected:
-    /// f_M1: Compute mixture density from conservative_soln 
+    // Algorithm 1 (f_M1): Compute mixture density from conservative_soln
     template<typename real2>
     real2 compute_mixture_density ( const std::array<real2,nstate> &conservative_soln ) const;
 
-    /// f_M2: Compute velocities from conservative_soln 
+    // Algorithm 2 (f_M2): Compute velocities from conservative_soln 
     dealii::Tensor<1,dim,real> compute_velocities ( const std::array<real,nstate> &conservative_soln ) const;
 
-    /// f_M3: Compute squared velocities from conservative_soln
+    // Algorithm 3 (f_M3): Compute squared velocities from conservative_soln
     real compute_velocity_squared ( const std::array<real,nstate> &conservative_soln ) const;
 
-    /// f_M4: Compute specific kinetic energy from conservative_soln
+    // Algorithm 4 (f_M4): Compute specific kinetic energy from conservative_soln
     real compute_specific_kinetic_energy ( const std::array<real,nstate> &conservative_soln ) const;
 
-    /// f_M5: Compute mixture specific total energy from conservative_soln
+    // Algorithm 5 (f_M5): Compute mixture specific total energy from conservative_soln
     real compute_mixture_specific_total_energy ( const std::array<real,nstate> &conservative_soln ) const;
 
-    /// f_M6: Compute species densities from conservative_soln 
+    // Algorithm 6 (f_M6): Compute species densities from conservative_soln 
     std::array<real,nstate-dim-1> compute_species_densities ( const std::array<real,nstate> &conservative_soln ) const;
 
 public:
-    /// f_M7: Compute mass fractions from conservative_soln 
+    // Algorithm 7 (f_M7): Compute mass fractions from conservative_soln 
     std::array<real,nstate-dim-1> compute_mass_fractions ( const std::array<real,nstate> &conservative_soln ) const;
 
 protected:
-    /// f_M8: Compute mixture from mass fractions and species
+    // Algorithm 8 (f_M8): Compute mixture property from mass fractions and species properties
     real compute_mixture_from_species( const std::array<real,nstate-dim-1> &mass_fractions, const std::array<real,nstate-dim-1> &species ) const;
 
-    /// f_M9: Compute dimensional temperature from (non-dimensional) temperature
+    // Algorithm 9 (f_M9): Compute dimensional temperature from (non-dimensional) temperature
     real compute_dimensional_temperature ( const real temperature ) const;
 
 public:
-    /// f_M9.5: Compute Rs from Ru
+    // Algorithm 10 (f_M10): Compute species gas constants from Ru (universal gas constant)
     std::array<real,nstate-dim-1> compute_Rs ( const real Ru ) const;
 
 protected:
-    /// f_M10: Compute species specific Cp from temperature 
+    // Algorithm 11 (f_M11): Compute species specific heat at constant pressure from temperature
     std::array<real,nstate-dim-1> compute_species_specific_Cp ( const real temperature ) const;
 
-    /// f_M11: Compute species specific Cv from temperature 
+    // Algorithm 12 (f_M12): Compute species specific heat at constant volume from temperature
     std::array<real,nstate-dim-1>compute_species_specific_Cv ( const real temperature ) const;
 
-    /// f_M12: Compute species specific enthalpy from temperature 
+    // Algorithm 13 (f_M13): Compute species specific enthalpy from temperature
     std::array<real,nstate-dim-1> compute_species_specific_enthalpy ( const real temperature ) const;   
 
-    /// f_M13: Compute species specificinternal energy from temperature 
+    // Algorithm 14 (f_M14): Compute species specific internal energy from temperature
     std::array<real,nstate-dim-1> compute_species_specific_internal_energy ( const real temperature ) const;
 
 public:
-    /// f_M14: Compute temperature from conservative_soln
+    // Algorithm 15 (f_M15): Compute temperature from conservative_soln
     virtual real compute_temperature ( const std::array<real,nstate> &conservative_soln ) const;
 
 protected:
-    /// f_M15: Compute mixture gas constant from conservative_soln
+    // Algorithm 16 (f_M16): Compute mixture gas constant from conservative_soln
     real compute_mixture_gas_constant ( const std::array<real,nstate> &conservative_soln ) const;
 
 public:
-    /// f_M16: Compute mixture pressure from conservative_soln
+    // Algorithm 17 (f_M17): Compute mixture pressure from conservative_soln
     virtual real compute_mixture_pressure ( const std::array<real,nstate> &conservative_soln ) const;
 
 protected:
-    /// f_M17: Compute mixture_specific_total_energy from conservative_soln
+    // Algorithm 18 (f_M18): Compute mixture specific total enthalpy from conservative_soln
     real compute_mixture_specific_total_enthalpy ( const std::array<real,nstate> &conservative_soln ) const;
 
-    /// f_M18: Compute convective flux from conservative_soln
+    // Algorithm 19 (f_M19): Compute convective flux from conservative_soln
     std::array<dealii::Tensor<1,dim,real>,nstate> convective_flux ( 
         const std::array<real,nstate> &conservative_soln) const;
 
 protected:
-    /// f_S20: Compute species specific heat ratio from conservative_soln
+    // Algorithm 21 (f_S21): Compute species specific heat ratio from conservative_soln
     virtual std::array<real,nstate-dim-1> compute_species_specific_heat_ratio ( const std::array<real,nstate> &conservative_soln ) const;
 
-    /// f_M21: Compute species speed of soound from conservative_soln 
+    // Algorithm 22 (f_S22): Compute species speed of sound from conservative_soln 
     std::array<real,nstate-dim-1> compute_species_speed_of_sound ( const std::array<real,nstate> &conservative_soln ) const;
 
 

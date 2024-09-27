@@ -704,15 +704,10 @@ dealii::Vector<double> RealGas<dim,nstate,real>::post_compute_derived_quantities
         for (unsigned int s=0; s<nstate; ++s) {
             conservative_soln[s] = uh(s);
         }
-        /*const std::array<double, nstate> primitive_soln = convert_conservative_to_primitive<real>(conservative_soln);*/
-        // if (primitive_soln[0] < 0) this->pcout << evaluation_points << std::endl;
-
         // Mixture density
-          /*computed_quantities(++current_data_index) = primitive_soln[0];*/
-            computed_quantities(++current_data_index) = compute_mixture_density(conservative_soln);
+        computed_quantities(++current_data_index) = compute_mixture_density(conservative_soln);
         // Velocities
         for (unsigned int d=0; d<dim; ++d) {
-            /*computed_quantities(++current_data_index) = primitive_soln[1+d];*/
             computed_quantities(++current_data_index) = compute_velocities(conservative_soln)[d];
         }
         // Mixture momentum
@@ -721,71 +716,38 @@ dealii::Vector<double> RealGas<dim,nstate,real>::post_compute_derived_quantities
         }
         // Mixture energy
         computed_quantities(++current_data_index) = compute_mixture_specific_total_energy(conservative_soln);
-        // Pressure
-        /*computed_quantities(++current_data_index) = primitive_soln[nstate-1];*/
+        // Mixture ressure
         computed_quantities(++current_data_index) = compute_mixture_pressure(conservative_soln);
         // Pressure coefficient
         /*computed_quantities(++current_data_index) = (primitive_soln[nstate-1] - pressure_inf) / dynamic_pressure_inf;*/
-        computed_quantities(++current_data_index) = 999;
-        // Temperature
+        computed_quantities(++current_data_index) = 999; // It is not defined
+        // Non-dimensional temperature
         /*computed_quantities(++current_data_index) = compute_temperature<real>(primitive_soln);*/
-        computed_quantities(++current_data_index) = compute_temperature(conservative_soln);
+        computed_quantities(++current_data_index) = compute_temperature(conservative_soln); 
         // Entropy generation
         /*computed_quantities(++current_data_index) = compute_entropy_measure(conservative_soln) - entropy_inf;*/
-        computed_quantities(++current_data_index) = 999;
+        computed_quantities(++current_data_index) = 999; // It is not defined
         // Mach Number
         /*computed_quantities(++current_data_index) = compute_mach_number(conservative_soln);*/
-        computed_quantities(++current_data_index) = 999;
+        computed_quantities(++current_data_index) = 999; // It is not defined
         // NASA_CAP
-        computed_quantities(++current_data_index) = 999;
-        // speed of sound
-        computed_quantities(++current_data_index) = 999;
         // temperature dim
         computed_quantities(++current_data_index) = compute_temperature(conservative_soln)*this->temperature_ref;
-        // species densities
-        // for (unsigned int s=0; s<nstate-dim-1; ++s) 
-        // {
-        //     computed_quantities(++current_data_index) = compute_species_densities(conservative_soln)[s];
-        // }
-        // mixture specific total enthalpy
+        computed_quantities(++current_data_index) = 999; // It is not defined
+        // Speed of sound
+        computed_quantities(++current_data_index) = 999; // It is not defined
+        // Mixture specific total enthalpy
         computed_quantities(++current_data_index) = compute_mixture_specific_total_enthalpy(conservative_soln);  
-        // species specific heat ratio
-        // for (unsigned int s=0; s<nstate-dim-1; ++s) 
-        // {
-        //     computed_quantities(++current_data_index) = compute_species_specific_heat_ratio(conservative_soln)[s];
-        // }
-        // species speed of sound
-        // for (unsigned int s=0; s<nstate-dim-1; ++s) 
-        // {
-        //     computed_quantities(++current_data_index) = compute_species_speed_of_sound(conservative_soln)[s];
-        // }
+        // Mass fractions
         for (unsigned int s=0; s<nstate-dim-1; ++s) 
         {
             computed_quantities(++current_data_index) = compute_mass_fractions(conservative_soln)[s];
         }
-        // species densities
+        // Species densities
         for (unsigned int s=0; s<nstate-dim-1; ++s) 
         {
             computed_quantities(++current_data_index) = compute_species_densities(conservative_soln)[s];
         }        
-
-        // const real temp = 600.0/298.15;
-        // const real cpa = compute_dimensional_temperature(temp);
-        // std::cout<<cpa<<std::endl;
-        // const real cpb = compute_species_specific_Cp(temp)[1];
-        // std::cout<<cpb<<std::endl;
-        // const real Rss = compute_Rs(this->Ru)[0];
-        // std::cout<<Rss*this->R_ref<<std::endl;
-        // const real cvv = compute_species_specific_Cv(temp)[1];
-        // std::cout<<cvv*this->R_ref<<std::endl;
-        // const real hh = compute_species_specific_enthalpy(temp)[0];
-        // std::cout<<hh*this->u_ref_sqr<<std::endl;
-        // for (int i=0; i<nstate; i++)
-        // {
-        //     std::cout<<i<<std::endl;
-        //     std::cout<<convert_primitive_to_conservative_new(conservative_soln)[i]<<std::endl;
-        // }
-
     }
     if (computed_quantities.size()-1 != current_data_index) {
         this->pcout << " Did not assign a value to all the data. Missing " << computed_quantities.size() - current_data_index << " variables."
@@ -812,22 +774,13 @@ std::vector<dealii::DataComponentInterpretation::DataComponentInterpretation> Re
     interpretation.push_back (DCI::component_is_scalar); // Mixture energy
     interpretation.push_back (DCI::component_is_scalar); // Mixture pressure
     interpretation.push_back (DCI::component_is_scalar); // Pressure coefficient
-    interpretation.push_back (DCI::component_is_scalar); // Temperature
+    interpretation.push_back (DCI::component_is_scalar); // Non-dimensional temperature
     interpretation.push_back (DCI::component_is_scalar); // Entropy generation
     interpretation.push_back (DCI::component_is_scalar); // Mach number
-    interpretation.push_back (DCI::component_is_scalar); // e_comparison
-    interpretation.push_back (DCI::component_is_scalar); // Sound 
-    interpretation.push_back (DCI::component_is_scalar); // Temperature (Dim)
-    // for (unsigned int s=0; s<nstate-dim-1; ++s) {
-    //     interpretation.push_back (DCI::component_is_part_of_vector); // Species densities
-    // }
+    interpretation.push_back (DCI::component_is_scalar); // NASA_CAP
+    interpretation.push_back (DCI::component_is_scalar); // Speed of sound
+    interpretation.push_back (DCI::component_is_scalar); // Dimensional temperature
     interpretation.push_back (DCI::component_is_scalar); // Mixture specific total enthalpy
-    // for (unsigned int s=0; s<nstate-dim-1; ++s) {
-    //     interpretation.push_back (DCI::component_is_part_of_vector); // Species specific heat ratio
-    // }
-    // for (unsigned int s=0; s<nstate-dim-1; ++s) {
-    //     interpretation.push_back (DCI::component_is_part_of_vector); // Species speed of sound
-    // }
     for (unsigned int s=0; s<nstate-dim-1; ++s) {
          interpretation.push_back (DCI::component_is_scalar); // Mass fractions
     }
@@ -861,18 +814,10 @@ std::vector<std::string> RealGas<dim,nstate,real>
 
     names.push_back ("entropy_generation");
     names.push_back ("mach_number");
-    names.push_back ("e_comparison");
+    names.push_back ("NASA_CAP");
     names.push_back ("speed_of_sound");
     names.push_back ("dimensional_temperature");
-    // for (unsigned int s=0; s<nstate-dim-1; ++s) 
-    // {
-    //   names.push_back ("species_densities");
-    // }
     names.push_back ("mixture_specific_total_enthalpy");
-    // for (unsigned int s=0; s<nstate-dim-1; ++s) 
-    // {
-    //   names.push_back ("species_specific_heat_ratio");
-    // }
     for (unsigned int s=0; s<nstate-dim-1; ++s) 
     {
       std::string string_mass_fraction = "mass_fraction";
@@ -898,9 +843,6 @@ dealii::UpdateFlags RealGas<dim,nstate,real>
            | dealii::update_quadrature_points
            ;
 }
-
-
-
 
 // Instantiate explicitly
 // TO DO: Modify this when you change number of species

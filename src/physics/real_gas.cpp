@@ -731,11 +731,11 @@ dealii::Vector<double> RealGas<dim,nstate,real>::post_compute_derived_quantities
         /*computed_quantities(++current_data_index) = compute_mach_number(conservative_soln);*/
         computed_quantities(++current_data_index) = 999; // It is not defined
         // NASA_CAP
-        // temperature dim
-        computed_quantities(++current_data_index) = compute_temperature(conservative_soln)*this->temperature_ref;
         computed_quantities(++current_data_index) = 999; // It is not defined
         // Speed of sound
         computed_quantities(++current_data_index) = 999; // It is not defined
+        // Dimensional temperature
+        computed_quantities(++current_data_index) = compute_dimensional_temperature(compute_temperature(conservative_soln));
         // Mixture specific total enthalpy
         computed_quantities(++current_data_index) = compute_mixture_specific_total_enthalpy(conservative_soln);  
         // Mass fractions

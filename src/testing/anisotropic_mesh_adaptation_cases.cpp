@@ -663,10 +663,6 @@ double AnisotropicMeshAdaptationCases<dim,nstate> :: evaluate_functional_error(s
                             (euler_physics_double->velocities_inf*normal) *
                             fe_face_values_bc.JxW(iquad);
                     }
-                    else if(boundary_id == 1008) // supersonic outflow
-                    {
-                        functional_exact += 0.5*euler_physics_double->enthalpy_inf*fe_face_values_bc.JxW(iquad);
-                    }
 
                 } //quad loop
             } // face loop
@@ -789,7 +785,7 @@ int AnisotropicMeshAdaptationCases<dim, nstate> :: run_test () const
     timer.reset();
 
     pcout<<"Initial dofs = "<<n_dofs_initial<<"  Initial enthalpy error = "<<enthalpy_error_initial<<"  Initial baserun walltime = "<<walltime_baserun<<std::endl;
-    return 0;
+
     if(run_mesh_optimizer)
     {
         for(unsigned int p=1; p<=2; ++p)
@@ -923,7 +919,7 @@ int AnisotropicMeshAdaptationCases<dim, nstate> :: run_test () const
                 flow_solver->run();
                 timer.stop();
 
-                const double enthalpy_error = evaluate_enthalpy_error(flow_solver->dg);
+                const double enthalpy_error = evaluate_functional_error(flow_solver->dg);
                 enthalpy_error_vector.push_back(enthalpy_error);
                 n_dofs_vector.push_back(flow_solver->dg->n_dofs());
                 walltimes_vector.push_back(timer.wall_time());

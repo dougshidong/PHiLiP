@@ -1069,7 +1069,7 @@ void compute_br2_correction_delta_dot_n(
     const dealii::FullMatrix<double>    &interpolation_operator,
     std::vector<std::array<real2,nstate>> & delta_dot_n)
 {
-    const double br2_factor = 10.0;
+    const double br2_factor = 5.0;
     // Form mass matrix inverse.
     // Get the base finite element
     // Assumption is that the vector-valued finite element uses the same basis for every state equation.
@@ -1490,7 +1490,6 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_boundary_term(
         artificial_diss_coeff_switch_bc = this->discontinuity_sensor(volume_quadrature, soln_coeff, fe_soln, jac_det_volume);
     }
 
-
     std::vector<std::array<real2,nstate>> soln_int(n_quad_pts), soln_ext(n_quad_pts);
     std::vector<std::array< dealii::Tensor<1,dim,real2>, nstate >> soln_grad_int(n_quad_pts), soln_grad_ext(n_quad_pts);
 
@@ -1637,6 +1636,7 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_boundary_term(
             artificial_diss_coeff_bc_int = artificial_diss_coeff_switch_bc;// * physics.max_convective_eigenvalue(soln_int[iquad]);
             //artificial_diss_coeff_bc_int = smooth_artificial_viscosity<dim,real2>(artificial_diss_coeff_bc_int, fe_soln.tensor_degree(), this->triangulation->n_global_active_cells());
             artificial_diss_coeff_bc_ext = artificial_diss_coeff_switch_bc;// * physics.max_convective_eigenvalue(soln_ext[iquad]);
+            if(boundary_id==1001) {artificial_diss_coeff_bc_ext = 0.0;}
             //artificial_diss_coeff_bc_ext = smooth_artificial_viscosity<dim,real2>(artificial_diss_coeff_bc_ext, fe_soln.tensor_degree(), this->triangulation->n_global_active_cells());
             const ADArrayTensor1 artificial_diss_flux_jump_int = DGBaseState<dim,nstate,real,MeshType>::artificial_dissip->calc_artificial_dissipation_flux(soln_int[iquad], diss_soln_jump_int,artificial_diss_coeff_bc_int);
             for (int s=0; s<nstate; s++) {

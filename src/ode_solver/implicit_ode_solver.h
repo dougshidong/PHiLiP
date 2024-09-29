@@ -48,7 +48,13 @@ public:
 
     /// Line search algorithm
     double linesearch ();
+    
+    int n_linesearches_with_iline0 = 0;
 
+    double linesearch_pressure_based(
+        const dealii::LinearAlgebra::distributed::Vector<double> &solution, 
+        const dealii::LinearAlgebra::distributed::Vector<double> &solution_update,
+        const double threshold_pressure_update_fraction);
 };
 
 } // ODE namespace

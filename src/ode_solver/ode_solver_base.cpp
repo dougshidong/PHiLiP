@@ -125,8 +125,8 @@ int ODESolverBase<dim,real,MeshType>::steady_state ()
     }
 
     // Initial Courant-Friedrichs-Lax number
-    const double initial_CFL = all_parameters->ode_solver_param.initial_time_step;
-    CFL_factor = 1.0;
+    const double initial_CFL = 1.0; 
+    CFL_factor = all_parameters->ode_solver_param.initial_time_step;
 
     auto initial_solution = dg->solution;
 
@@ -140,7 +140,7 @@ int ODESolverBase<dim,real,MeshType>::steady_state ()
                //&& update_norm             > ode_param.nonlinear_steady_residual_tolerance
                && this->current_iteration < ode_param.nonlinear_max_iterations
                && this->residual_norm     < 1e5
-               && CFL_factor > 1e-2)
+               && CFL_factor > 1e-6)
     {
         if ((ode_param.ode_output) == Parameters::OutputEnum::verbose
             && (this->current_iteration%ode_param.print_iteration_modulo) == 0
@@ -167,11 +167,11 @@ int ODESolverBase<dim,real,MeshType>::steady_state ()
             pcout << " Evaluating right-hand side and setting system_matrix to Jacobian... " << std::endl;
         }
 
-        double ramped_CFL = initial_CFL * CFL_factor;
-        if (this->residual_norm_decrease < 1.0) {
-            ramped_CFL *= pow((1.0-std::log10(this->residual_norm_decrease)*ode_param.time_step_factor_residual), ode_param.time_step_factor_residual_exp);
-        }
-        ramped_CFL = std::max(ramped_CFL,initial_CFL*CFL_factor);
+        const double ramped_CFL = initial_CFL * CFL_factor;
+        //if (this->residual_norm_decrease < 1.0) {
+            //ramped_CFL *= pow((1.0-std::log10(this->residual_norm_decrease)*ode_param.time_step_factor_residual), ode_param.time_step_factor_residual_exp);
+        //}
+        //ramped_CFL = std::max(ramped_CFL,initial_CFL*CFL_factor);
         pcout << "Initial CFL = " << initial_CFL << ". Current CFL = " << ramped_CFL << std::endl;
 
         const bool pseudotime = true;

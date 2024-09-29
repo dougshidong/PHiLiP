@@ -39,10 +39,63 @@ void ImplicitODESolver<dim,real,MeshType>::step_in_time (real dt, const bool pse
             this->solution_update,
             this->ODESolverBase<dim,real,MeshType>::all_parameters->linear_solver_param);
 
-    linesearch();
+    const double threshold_pressure_update_fraction = 0.1;
+    const double step_length_min = 0.001;
 
+    const double step_length = linesearch_pressure_based(this->dg->solution, this->solution_update, threshold_pressure_update_fraction);
+
+    if(step_length > step_length_min)
+    {
+        this->dg->solution.add(step_length, this->solution_update);
+    }
+    else
+    {
+        this->dg->update_solution_with_min_steplength_elsewhere(this->dg->solution, this->solution_update, step_length, step_length_min, threshold_pressure_update_fraction);
+    }
+    this->dg->solution.update_ghost_values();
     this->update_norm = this->solution_update.l2_norm();
     ++(this->current_iteration);
+}
+
+template <int dim, typename real, typename MeshType>
+double ImplicitODESolver<dim,real,MeshType>::linesearch_pressure_based(
+    const dealii::LinearAlgebra::distributed::Vector<double> &solution, 
+    const dealii::LinearAlgebra::distributed::Vector<double> &solution_update,
+    const double threshold_pressure_update_fraction)
+{
+    double step_length = 0.5;
+    const double step_update_factor = 2.0;
+    const double time_step_update_factor = 2.0;
+
+    const int max_linesearches = 10;
+    int isearch = 0;
+    for(isearch = 0; isearch < max_linesearches; ++isearch)
+    {
+        dealii::LinearAlgebra::distributed::Vector<double> solution_new = solution;
+        solution_new.add(step_length, solution_update);
+        const bool pressure_update_is_below_threshold = 
+                this->dg->is_pressure_update_below_threshold(solution, solution_new, threshold_pressure_update_fraction);
+        
+        this->pcout<<" Step length "<<step_length<<" . Pressure update is below threshold = "<<pressure_update_is_below_threshold<<std::endl;
+
+        if(pressure_update_is_below_threshold) {break;}
+        step_length /=step_update_factor; 
+    }
+
+    if(isearch == 0) {++n_linesearches_with_iline0;}
+    if(n_linesearches_with_iline0 == 10)
+    {
+        n_linesearches_with_iline0 = 0;
+        this->CFL_factor*=time_step_update_factor; 
+    }
+
+    if(isearch == max_linesearches)
+    {
+        this->CFL_factor /= time_step_update_factor;
+        this->pcout << " Line search failed. Updated dt to "<<this->CFL_factor << std::endl;
+    }
+
+    return step_length;
 }
 
 template <int dim, typename real, typename MeshType>

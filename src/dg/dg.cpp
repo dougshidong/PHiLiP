@@ -1221,7 +1221,7 @@ void DGBase<dim,real,MeshType>::update_artificial_dissipation_discontinuity_sens
 
         const double mu_scale = all_parameters->artificial_dissipation_param.mu_artificial_dissipation; //1.0
         //const double s_0 = - 4.25*log10(degree);
-        const double s_0 = -0.00 - 4.00*log10(degree);
+        const double s_0 = -4.00 - 4.25*log10(degree);
         const double kappa = all_parameters->artificial_dissipation_param.kappa_artificial_dissipation; //1.0
         const double low = s_0 - kappa;
         const double upp = s_0 + kappa;
@@ -2538,6 +2538,8 @@ void DGBase<dim,real,MeshType>::evaluate_mass_matrices (bool do_inverse_mass_mat
             global_mass_matrix_auxiliary.compress(dealii::VectorOperation::insert);
         }
     }
+
+    std::cout<<"Evaluated global mass matrix."<<std::endl;
 }
 
 template<int dim, typename real, typename MeshType>
@@ -3310,7 +3312,7 @@ real2 DGBase<dim,real,MeshType>::discontinuity_sensor(
     const real2 s_e = log10(S_e);
 
     const double mu_scale = all_parameters->artificial_dissipation_param.mu_artificial_dissipation;
-    const double s_0 =  -(0.0 + 4.0*log10(degree));
+    const double s_0 =  -(4.0 + 4.25*log10(degree));
     const double kappa = all_parameters->artificial_dissipation_param.kappa_artificial_dissipation;
     const double low = s_0 - kappa;
     const double upp = s_0 + kappa;
@@ -3331,6 +3333,141 @@ real2 DGBase<dim,real,MeshType>::discontinuity_sensor(
     real2 eps = 1.0 + sin(PI * (s_e - s_0) * 0.5 / kappa);
     eps *= eps_0 * 0.5;
     return eps;
+}
+
+template <int dim, typename real, typename MeshType>
+bool DGBase<dim,real,MeshType>::is_pressure_update_below_threshold(
+    const dealii::LinearAlgebra::distributed::Vector<double> & solution_current,
+    const dealii::LinearAlgebra::distributed::Vector<double> & solution_new,
+    const double threshold_fraction)
+{
+    int violation_flag = 0;
+    const double gamm1 = 0.4;
+    std::vector<dealii::types::global_dof_index> dofs_indices;
+    const dealii::QGauss<dim> volume_quadrature(15);
+    const std::vector<dealii::Point<dim>> &unit_quad_pts = volume_quadrature.get_points();
+    const unsigned int n_quads = volume_quadrature.size();
+
+    for (const auto& cell : dof_handler.active_cell_iterators()) 
+    {
+        if (!cell->is_locally_owned()) continue;
+
+        const int i_fele = cell->active_fe_index();
+
+        const dealii::FESystem<dim,dim> &fe_ref = fe_collection[i_fele];
+        const unsigned int n_dofs = fe_ref.n_dofs_per_cell();
+        dofs_indices.resize(n_dofs);
+        cell->get_dof_indices(dofs_indices);
+
+        const unsigned int nstate = dim+2;
+        std::array<double, nstate> soln_at_q, soln_new_at_q;
+        for(unsigned int iquad = 0; iquad<n_quads; ++iquad)
+        {
+            for(unsigned int s=0; s<nstate; ++s)
+            {
+                soln_at_q[s] = 0.0;
+                soln_new_at_q[s] = 0.0;
+            }
+
+            for(unsigned int idof = 0; idof<n_dofs; ++idof)
+            {
+                const unsigned int istate = fe_ref.system_to_component_index(idof).first;
+                soln_at_q[istate] += solution_current(dofs_indices[idof])*fe_ref.shape_value_component(idof,unit_quad_pts[iquad],istate);
+                soln_new_at_q[istate] += solution_new(dofs_indices[idof])*fe_ref.shape_value_component(idof,unit_quad_pts[iquad],istate);
+            }
+            
+            // compute pressures
+            double pressure_at_q = gamm1*(soln_at_q[nstate-1] - 0.5*(pow(soln_at_q[1],2) + pow(soln_at_q[2],2))/soln_at_q[0]);
+            double pressure_new_at_q = gamm1*(soln_new_at_q[nstate-1] - 0.5*(pow(soln_new_at_q[1],2) + pow(soln_new_at_q[2],2))/soln_new_at_q[0]);
+            //if(pressure_at_q < 0.0) {pressure_at_q = 1.0e20;}
+            if(pressure_new_at_q < 0.0) {pressure_new_at_q = 1.0e20;}
+            const double pressure_diff = abs(pressure_new_at_q - pressure_at_q);
+            double density_at_q = soln_at_q[0];
+            double density_new_at_q = soln_new_at_q[0];
+            //if(density_at_q < 0.0) {density_at_q = 1.0e20;}
+            if(density_new_at_q < 0.0) {density_new_at_q = 1.0e20;}
+            const double density_diff = abs(density_new_at_q - density_at_q);
+            if( (pressure_diff > threshold_fraction*pressure_at_q) || (density_diff > threshold_fraction*density_at_q)) ++violation_flag;
+        }
+    } // cell loop
+
+    const int violation_global = dealii::Utilities::MPI::sum(violation_flag, mpi_communicator);
+    
+    if(violation_global > 0) return false;
+
+    return true;
+}
+
+template <int dim, typename real, typename MeshType>
+void DGBase<dim,real,MeshType>::update_solution_with_min_steplength_elsewhere(
+    dealii::LinearAlgebra::distributed::Vector<double> & solution,
+    const dealii::LinearAlgebra::distributed::Vector<double> & solution_update,
+    const double step_length_on_troubled_cells,
+    const double step_length_min_elsewhere,
+    const double threshold_fraction)
+{ 
+    const double gamm1 = 0.4;
+    std::vector<dealii::types::global_dof_index> dofs_indices;
+    const dealii::QGauss<dim> volume_quadrature(15);
+    const std::vector<dealii::Point<dim>> &unit_quad_pts = volume_quadrature.get_points();
+    const unsigned int n_quads = volume_quadrature.size();
+
+    for (const auto& cell : dof_handler.active_cell_iterators()) 
+    {
+        if (!cell->is_locally_owned()) continue;
+        
+        int cell_violation_flag = 0;
+
+        const int i_fele = cell->active_fe_index();
+
+        const dealii::FESystem<dim,dim> &fe_ref = fe_collection[i_fele];
+        const unsigned int n_dofs = fe_ref.n_dofs_per_cell();
+        dofs_indices.resize(n_dofs);
+        cell->get_dof_indices(dofs_indices);
+
+        const unsigned int nstate = dim+2;
+        std::array<double, nstate> soln_at_q, soln_new_at_q;
+        for(unsigned int iquad = 0; iquad<n_quads; ++iquad)
+        {
+            for(unsigned int s=0; s<nstate; ++s)
+            {
+                soln_at_q[s] = 0.0;
+                soln_new_at_q[s] = 0.0;
+            }
+
+            for(unsigned int idof = 0; idof<n_dofs; ++idof)
+            {
+                const unsigned int istate = fe_ref.system_to_component_index(idof).first;
+                soln_at_q[istate] += solution(dofs_indices[idof])*fe_ref.shape_value_component(idof,unit_quad_pts[iquad],istate);
+                soln_new_at_q[istate] += (solution(dofs_indices[idof]) + step_length_min_elsewhere*solution_update(dofs_indices[idof]))*fe_ref.shape_value_component(idof,unit_quad_pts[iquad],istate);
+            }
+            
+            // compute pressures
+            double pressure_at_q = gamm1*(soln_at_q[nstate-1] - 0.5*(pow(soln_at_q[1],2) + pow(soln_at_q[2],2))/soln_at_q[0]);
+            double pressure_new_at_q = gamm1*(soln_new_at_q[nstate-1] - 0.5*(pow(soln_new_at_q[1],2) + pow(soln_new_at_q[2],2))/soln_new_at_q[0]);
+            //if(pressure_at_q < 0.0) {pressure_at_q = 1.0e20;}
+            if(pressure_new_at_q < 0.0) {pressure_new_at_q = 1.0e20;}
+            const double pressure_diff = abs(pressure_new_at_q - pressure_at_q);
+            double density_at_q = soln_at_q[0];
+            double density_new_at_q = soln_new_at_q[0];
+            //if(density_at_q < 0.0) {density_at_q = 1.0e20;}
+            if(density_new_at_q < 0.0) {density_new_at_q = 1.0e20;}
+            const double density_diff = abs(density_new_at_q - density_at_q);
+            if( (pressure_diff > threshold_fraction*pressure_at_q) || (density_diff > threshold_fraction*density_at_q)) ++cell_violation_flag;
+        } // quad loop
+
+        double step_length_used=0;
+        if(cell_violation_flag==0) {step_length_used = step_length_min_elsewhere;}
+        else {step_length_used = step_length_on_troubled_cells;}
+
+        for(unsigned int idof = 0; idof<n_dofs; ++idof)
+        {
+            solution(dofs_indices[idof]) += step_length_used*solution_update(dofs_indices[idof]);
+        }
+
+    } // cell loop
+
+    solution.update_ghost_values();
 }
 
 template <int dim, typename real, typename MeshType>

@@ -936,6 +936,19 @@ public:
     bool use_auxiliary_eq;
     /// Set use_auxiliary_eq flag
     virtual void set_use_auxiliary_eq() = 0;
+
+    bool is_pressure_update_below_threshold(
+        const dealii::LinearAlgebra::distributed::Vector<double> & solution_current,
+        const dealii::LinearAlgebra::distributed::Vector<double> & solution_new,
+        const double threshold_fraction);
+
+    void update_solution_with_min_steplength_elsewhere(
+        dealii::LinearAlgebra::distributed::Vector<double> & solution,
+        const dealii::LinearAlgebra::distributed::Vector<double> & solution_update,
+        const double step_length_on_troubled_cells,
+        const double step_length_min_elsewhere,
+        const double threshold_fraction);
+
 }; // end of DGBase class
 
 /// Abstract class templated on the number of state variables

@@ -3344,7 +3344,7 @@ bool DGBase<dim,real,MeshType>::is_pressure_update_below_threshold(
     int violation_flag = 0;
     const double gamm1 = 0.4;
     std::vector<dealii::types::global_dof_index> dofs_indices;
-    const dealii::QGauss<dim> volume_quadrature(15);
+    const dealii::QGaussLobatto<dim> volume_quadrature(20);
     const std::vector<dealii::Point<dim>> &unit_quad_pts = volume_quadrature.get_points();
     const unsigned int n_quads = volume_quadrature.size();
 
@@ -3408,7 +3408,7 @@ void DGBase<dim,real,MeshType>::update_solution_with_min_steplength_elsewhere(
 { 
     const double gamm1 = 0.4;
     std::vector<dealii::types::global_dof_index> dofs_indices;
-    const dealii::QGauss<dim> volume_quadrature(15);
+    const dealii::QGaussLobatto<dim> volume_quadrature(20);
     const std::vector<dealii::Point<dim>> &unit_quad_pts = volume_quadrature.get_points();
     const unsigned int n_quads = volume_quadrature.size();
 

@@ -1636,7 +1636,6 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_boundary_term(
             artificial_diss_coeff_bc_int = artificial_diss_coeff_switch_bc;// * physics.max_convective_eigenvalue(soln_int[iquad]);
             //artificial_diss_coeff_bc_int = smooth_artificial_viscosity<dim,real2>(artificial_diss_coeff_bc_int, fe_soln.tensor_degree(), this->triangulation->n_global_active_cells());
             artificial_diss_coeff_bc_ext = artificial_diss_coeff_switch_bc;// * physics.max_convective_eigenvalue(soln_ext[iquad]);
-            if(boundary_id==1001) {artificial_diss_coeff_bc_ext = 0.0;}
             //artificial_diss_coeff_bc_ext = smooth_artificial_viscosity<dim,real2>(artificial_diss_coeff_bc_ext, fe_soln.tensor_degree(), this->triangulation->n_global_active_cells());
             const ADArrayTensor1 artificial_diss_flux_jump_int = DGBaseState<dim,nstate,real,MeshType>::artificial_dissip->calc_artificial_dissipation_flux(soln_int[iquad], diss_soln_jump_int,artificial_diss_coeff_bc_int);
             for (int s=0; s<nstate; s++) {

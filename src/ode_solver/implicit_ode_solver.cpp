@@ -86,13 +86,15 @@ double ImplicitODESolver<dim,real,MeshType>::linesearch_pressure_based(
     if(n_linesearches_with_iline0 == 10)
     {
         n_linesearches_with_iline0 = 0;
-        this->CFL_factor*=time_step_update_factor; 
+        this->CFL_factor*=time_step_update_factor;
+        this->CFL_factor = std::min(this->CFL_factor, 1.0e10); 
     }
 
     if(isearch == max_linesearches)
+    //if(isearch!=0)
     {
         this->CFL_factor /= time_step_update_factor;
-        this->pcout << " Line search failed. Updated dt to "<<this->CFL_factor << std::endl;
+        this->pcout << " Updated dt to "<<this->CFL_factor << std::endl;
     }
 
     return step_length;

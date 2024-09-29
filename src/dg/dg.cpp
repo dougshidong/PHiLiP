@@ -1221,7 +1221,7 @@ void DGBase<dim,real,MeshType>::update_artificial_dissipation_discontinuity_sens
 
         const double mu_scale = all_parameters->artificial_dissipation_param.mu_artificial_dissipation; //1.0
         //const double s_0 = - 4.25*log10(degree);
-        const double s_0 = -4.00 - 4.25*log10(degree);
+        const double s_0 = -(0.00 + 4.00*log10(degree));
         const double kappa = all_parameters->artificial_dissipation_param.kappa_artificial_dissipation; //1.0
         const double low = s_0 - kappa;
         const double upp = s_0 + kappa;
@@ -3312,7 +3312,7 @@ real2 DGBase<dim,real,MeshType>::discontinuity_sensor(
     const real2 s_e = log10(S_e);
 
     const double mu_scale = all_parameters->artificial_dissipation_param.mu_artificial_dissipation;
-    const double s_0 =  -(4.0 + 4.25*log10(degree));
+    const double s_0 =  -(0.0 + 4.00*log10(degree));
     const double kappa = all_parameters->artificial_dissipation_param.kappa_artificial_dissipation;
     const double low = s_0 - kappa;
     const double upp = s_0 + kappa;

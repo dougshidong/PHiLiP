@@ -29,32 +29,13 @@ RealGas<dim,nstate,real>::RealGas (
     , u_ref_sqr(u_ref*u_ref) /// [m/s]^2
     , tol(1.0e-14) /// []
     , density_ref(1.225) /// [kg/m^3]
-    // TO DO: nstate-dim-1 = nspecies
+    // Note: nstate-dim-1 = nspecies
 {
     this->real_gas_cap = std::dynamic_pointer_cast<PHiLiP::RealGasConstants::AllRealGasConstants>(
                 std::make_shared<PHiLiP::RealGasConstants::AllRealGasConstants>(parameters_input));
-    // (void)real_gas_cap; // to ignore unused variable errors
-    // real_gas_cap.Sp_W[real_gas_cap.i_N2]
-
-    // for(int ispecies=0; ispecies<real_gas_cap->N_species; ispecies++) 
-    // {
-    //     std::cout<< real_gas_cap->Sp_name[ispecies] << ",   Molecular weight: " << real_gas_cap->Sp_WSp_W[ispecies] <<std::endl;    
-    // }
-
-/// out put test of ral_gas-cap
-    // for(int ispecies=0; ispecies<2; ispecies++) 
-    // {
-    //     // for (int i=0; i<9; i++)
-    //     // {
-    //         // std::cout<< i << std::endl;
-    //         std::cout<< real_gas_cap->Sp_name[ispecies] << ", value: " << real_gas_cap->NASACAPCoeffs[ispecies][0][0]<<std::endl;   
-    //     // } 
-    // }
-/// out put test of ral_gas-cap
     
-    // std::cout<<"In constructor of real gas."<<std::endl<<std::flush;
-    // TO DO: modify this when you change number of species
-    static_assert(nstate==dim+2+2-1, "Physics::RealGas() should be created with nstate=(PHILIP_DIM+2)+(N_SPECIES-1)"); // TO DO: UPDATE THIS with nspecies
+    // Note: modify this when you change number of species. nstate == dim+2+(nspecies)-1
+    static_assert(nstate==dim+2+2-1, "Physics::RealGas() should be created with nstate=(PHILIP_DIM+2)+(N_SPECIES-1)"); // Note: update this with nspecies in the future
 }
 
 template <int dim, int nstate, typename real>
@@ -83,7 +64,7 @@ std::array<real,nstate> RealGas<dim,nstate,real>
     const std::array<real,nstate> &/*conservative_soln*/,
     const dealii::Tensor<1,dim,real> &/*normal*/) const
 {
-    // TO DO: define this
+    // Note: define this when convective eigenvalues for multi-species are required in the future
     std::array<real,nstate> eig;
     eig.fill(0.0);
     return eig;
@@ -93,7 +74,7 @@ template <int dim, int nstate, typename real>
 real RealGas<dim,nstate,real>
 ::max_convective_eigenvalue (const std::array<real,nstate> &/*conservative_soln*/) const
 {
-    // TO DO: define this
+    // Note: define this when max_convective_eigenvalue for multi-species are required in the future
     const real max_eig = 0.0;
     return max_eig;
 }
@@ -131,7 +112,7 @@ std::array<dealii::Tensor<1,dim,real>,nstate> RealGas<dim,nstate,real>
     const dealii::types::global_dof_index /*cell_index*/) const
 {
      std::array<dealii::Tensor<1,dim,real>,nstate> diss_flux;
-    // No dissipative flux (i.e. viscous terms) for RealGas
+    // No dissipative flux (i.e. viscous terms) for this physics class
     for (int i=0; i<nstate; i++) {
         diss_flux[i] = 0;
     }
@@ -146,28 +127,10 @@ std::array<real,nstate> RealGas<dim,nstate,real>
     const real /*current_time*/,
     const dealii::types::global_dof_index /*cell_index*/) const
 {
-    // nothing to add here
     std::array<real,nstate> source_term;
     source_term.fill(0.0);
     return source_term;
 }
-
-// TO DO: Provide required definition for this
-// template <int dim, int nstate, typename real>
-// template<typename real2>
-// bool RealGas<dim,nstate,real>::check_positive_quantity(real2 &qty, const std::string qty_name) const {
-//     bool qty_is_positive;
-//     if (qty < 0.0) {
-//         // Refer to base class for non-physical results handling
-//         qty = this->template handle_non_physical_result<real2>(qty_name + " is negative.");
-//         qty_is_positive = false;
-//     } else {
-//         qty_is_positive = true;
-//     }
-
-//     return qty_is_positive;
-// }
-
 
 template <int dim, int nstate, typename real>
 void RealGas<dim,nstate,real>
@@ -180,7 +143,7 @@ void RealGas<dim,nstate,real>
    std::array<real,nstate> &/*soln_bc*/,
    std::array<dealii::Tensor<1,dim,real>,nstate> &/*soln_grad_bc*/) const
 {
-    // TO DO: Update this if you are using any kind of BC that is not periodic
+    // Note: update this if you are using any kind of BC that is not periodic for multi-species gas 
 }
 
 // Details of the following algorithms are presented in Liki's Master's thesis.

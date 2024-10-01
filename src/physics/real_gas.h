@@ -93,12 +93,6 @@ public:
         const dealii::types::global_dof_index cell_index) const;
 
 protected:
-    // /// Check positive quantity and modify it according to handle_non_physical_result()
-    // /** in PhysicsBase class
-    //  */
-    // template<typename real2>
-    // bool check_positive_quantity(real2 &quantity, const std::string qty_name) const;
-
     /// Boundary condition handler
     void boundary_face_values (
         const int /*boundary_type*/,
@@ -109,11 +103,7 @@ protected:
         std::array<real,nstate> &/*soln_bc*/,
         std::array<dealii::Tensor<1,dim,real>,nstate> &/*soln_grad_bc*/) const;
 
-public: /// used for initial condition (initial_condition_function.cpp)
-    /// Given primitive variables [density, [velocities], pressure],
-    /// returns conservative variables [density, [momentum], total energy].
-    ///
-
+public:
     // Algorithm 20 (f_S20): Convert primitive to conservative 
     virtual std::array<real,nstate> convert_primitive_to_conservative ( const std::array<real,nstate> &primitive_soln ) const; 
 

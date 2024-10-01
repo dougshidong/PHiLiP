@@ -49,7 +49,7 @@ public:
     const double u_ref_sqr; ///< reference velocity squared[m/s]^2
     const double tol; ///< tolerance for NRM (Newton-raphson Method) [m/s] 
     const double density_ref; ///< reference mixture density: [kg/m^3]
-    /// Pointer to all real gas constants object for accessing the coefficients and properties (CAP)
+    /// Pointer to all real gas constants object for accessing the NASA coefficients and properties (CAP)
     std::shared_ptr< PHiLiP::RealGasConstants::AllRealGasConstants > real_gas_cap;
 
 public:

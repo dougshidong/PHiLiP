@@ -1065,12 +1065,12 @@ void compute_r_e_and_l_e_coeffs(
     const unsigned int n_face_quad_pts,
     const dealii::FullMatrix<double> &interpolation_operator_at_face,
     const std::vector<dealii::Tensor<1,dim,real2>> &normal_at_face,
-    const std::vector<double> &JxW_face,
+    const std::vector<real2> &JxW_face,
     const dealii::FESystem<dim,dim> &fe_soln,
     const std::vector< real2 > &coords_coeff,
     const dealii::FESystem<dim,dim> &fe_metric,
-    std::vector<std::array<dealii::Tensor<1,dim,real2>,nstate> & r_e_coeffs,
-    std::vector<std::array<dealii::Tensor<1,dim,real2>,nstate> & l_e_coeffs)
+    std::vector<std::array<dealii::Tensor<1,dim,real2>,nstate>> & r_e_coeffs,
+    std::vector<std::array<dealii::Tensor<1,dim,real2>,nstate>> & l_e_coeffs)
 {
     // Form mass matrix inverse.
     // Get the base finite element
@@ -1099,7 +1099,7 @@ void compute_r_e_and_l_e_coeffs(
     // Evaluate Vandermonde operator
     dealii::FullMatrix<double> vandermonde(n_base_dofs, n_vol_quad);
     dealii::FullMatrix<double> vandermonde_inverse(n_base_dofs, n_vol_quad);
-    dealii::FullMatrix<double> mass_inverse(n_base_dofs, n_base_dofs);
+    std::vector<real2> mass_inverse(n_base_dofs*n_base_dofs);
     
     for (unsigned int idof_base=0; idof_base<n_base_dofs; ++idof_base) {
         for (unsigned int iquad=0; iquad<n_vol_quad; ++iquad) {
@@ -1113,10 +1113,10 @@ void compute_r_e_and_l_e_coeffs(
     {
         for(unsigned int j=0; j<n_base_dofs; ++j)
         {
-            mass_inverse[i][j] = 0.0;
+            mass_inverse[i*n_base_dofs+j] = 0.0;
             for(unsigned int k=0; k<n_vol_quad; ++k)
             {
-                mass_inverse[i][j] += vandermonde_inverse[k][i]*vandermonde_inverse[k][j]/JxW_volume[k]; 
+                mass_inverse[i*n_base_dofs+j] += vandermonde_inverse[k][i]*vandermonde_inverse[k][j]/JxW_volume[k]; 
             }
         }
     }
@@ -1131,10 +1131,10 @@ void compute_r_e_and_l_e_coeffs(
             const unsigned int idof_with_nstate = fe_soln.component_to_system_index(s,idof);
             for(unsigned int d = 0; d<dim; ++d)
             {
-                rhes_r_e[idof][s][d] = 0.0;
+                rhs_r_e[idof][s][d] = 0.0;
                 for(unsigned int iquad = 0; iquad<n_face_quad_pts; ++iquad)
                 {
-                    rhs_r_e[idof][s][d] -= phi_at_face[iqaud][s][d]*interpolation_operator_at_face[idof_with_nstate][iquad]/2.0 * JxW_face[iquad]; 
+                    rhs_r_e[idof][s][d] -= phi_at_face[iquad][s][d]*interpolation_operator_at_face[idof_with_nstate][iquad]/2.0 * JxW_face[iquad]; 
                 }
             }
         }
@@ -1149,7 +1149,7 @@ void compute_r_e_and_l_e_coeffs(
                 r_e_coeffs[idof][s][d] = 0.0;
                 for(unsigned int kdof = 0; kdof<n_base_dofs; ++kdof)
                 {
-                    r_e_coeffs[idof][s][d] += mass_inverse[idof][kdof]*rhs_r_e[kdof][s][d];
+                    r_e_coeffs[idof][s][d] += mass_inverse[idof*n_base_dofs+kdof]*rhs_r_e[kdof][s][d];
                 }
             }
         }
@@ -1184,7 +1184,7 @@ void compute_r_e_and_l_e_coeffs(
                 l_e_coeffs[idof][s][d] = 0.0;
                 for(unsigned int kdof = 0; kdof<n_base_dofs; ++kdof)
                 {
-                    l_e_coeffs[idof][s][d] += mass_inverse[idof][kdof]*rhs_l_e[kdof][s][d];
+                    l_e_coeffs[idof][s][d] += mass_inverse[idof*n_base_dofs+kdof]*rhs_l_e[kdof][s][d];
                 }
             }
         }
@@ -1196,11 +1196,11 @@ void compute_r_eD_coeffs(
     const unsigned int n_face_quad_pts,
     const dealii::FullMatrix<double> &interpolation_operator_at_face,
     const std::vector<dealii::Tensor<1,dim,real2>> &normal_at_face,
-    const std::vector<double> &JxW_face,
+    const std::vector<real2> &JxW_face,
     const dealii::FESystem<dim,dim> &fe_soln,
     const std::vector< real2 > &coords_coeff,
     const dealii::FESystem<dim,dim> &fe_metric,
-    std::vector<std::array<dealii::Tensor<1,dim,real2>,nstate> & r_eD_coeffs)
+    std::vector<std::array<dealii::Tensor<1,dim,real2>,nstate>> & r_eD_coeffs)
 {
     // Form mass matrix inverse.
     // Get the base finite element
@@ -1229,7 +1229,7 @@ void compute_r_eD_coeffs(
     // Evaluate Vandermonde operator
     dealii::FullMatrix<double> vandermonde(n_base_dofs, n_vol_quad);
     dealii::FullMatrix<double> vandermonde_inverse(n_base_dofs, n_vol_quad);
-    dealii::FullMatrix<double> mass_inverse(n_base_dofs, n_base_dofs);
+    std::vector<real2> mass_inverse(n_base_dofs*n_base_dofs);
     
     for (unsigned int idof_base=0; idof_base<n_base_dofs; ++idof_base) {
         for (unsigned int iquad=0; iquad<n_vol_quad; ++iquad) {
@@ -1243,10 +1243,10 @@ void compute_r_eD_coeffs(
     {
         for(unsigned int j=0; j<n_base_dofs; ++j)
         {
-            mass_inverse[i][j] = 0.0;
+            mass_inverse[i*n_base_dofs+j] = 0.0;
             for(unsigned int k=0; k<n_vol_quad; ++k)
             {
-                mass_inverse[i][j] += vandermonde_inverse[k][i]*vandermonde_inverse[k][j]/JxW_volume[k]; 
+                mass_inverse[i*n_base_dofs+j] += vandermonde_inverse[k][i]*vandermonde_inverse[k][j]/JxW_volume[k]; 
             }
         }
     }
@@ -1280,7 +1280,7 @@ void compute_r_eD_coeffs(
                 r_eD_coeffs[idof][s][d] = 0.0;
                 for(unsigned int kdof = 0; kdof<n_base_dofs; ++kdof)
                 {
-                    r_eD_coeffs[idof][s][d] += mass_inverse[idof][kdof]*rhs_r_eD[kdof][s][d];
+                    r_eD_coeffs[idof][s][d] += mass_inverse[idof*n_base_dofs+kdof]*rhs_r_eD[kdof][s][d];
                 }
             }
         }
@@ -1742,13 +1742,14 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_boundary_term(
         const dealii::Tensor<1,dim,real2> normal_int = phys_unit_normal[iquad];
         physics.boundary_face_values (boundary_id, real_quad_pts[iquad], normal_int, soln_int[iquad], soln_grad_int[iquad], soln_ext[iquad], soln_grad_ext[iquad]);
     }
-
+    
+    using DissFlux = Parameters::AllParameters::DissipativeNumericalFlux;
+/*
     // Assemble BR2 gradient correction right-hand side
     const dealii::FiniteElement<dim> &base_fe_int = fe_soln.get_sub_fe(0,1);
     const unsigned int n_base_dofs_int = base_fe_int.n_dofs_per_cell();
 
     std::vector<std::array<real2,nstate>> delta_dot_n_bc(n_quad_pts);
-    using DissFlux = Parameters::AllParameters::DissipativeNumericalFlux;
     if (this->all_parameters->diss_num_flux_type == DissFlux::bassi_rebay_2) {
 
         // Obtain solution jump
@@ -1797,7 +1798,94 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_boundary_term(
             }
         }
     } 
+*/
+    const unsigned int n_face_quad_pts = n_quad_pts;
+    std::vector<std::array<real2,nstate>> correction_diss_auxi_num_flux_dot_n(n_face_quad_pts);
+    for(unsigned int iquad = 0; iquad<n_face_quad_pts; ++iquad)
+    {
+        for(unsigned int s=0; s<nstate; ++s)
+        {
+            correction_diss_auxi_num_flux_dot_n[iquad][s] = 0.0;
+        }
+    }
+    // Compute lift coeffs of CDG dissipation flux (modified LDG)
+    if (this->all_parameters->diss_num_flux_type == DissFlux::bassi_rebay_2) 
+    {
+        const double C11 = 10.0/this->h_min;
+        // form r_eD coeffs 
+        const dealii::FiniteElement<dim> &base_fe = fe_soln.get_sub_fe(0,1);
+        const unsigned int n_base_dofs = base_fe.n_dofs_per_cell();
 
+        std::vector<std::array<real2,nstate>> soln_diff(n_face_quad_pts);
+        for(unsigned int iquad = 0; iquad<n_face_quad_pts; ++iquad)
+        {
+            for(unsigned int s=0; s<nstate; ++s)
+            {
+                soln_diff[iquad][s] = soln_int[iquad][s] - soln_ext[iquad][s];
+            }
+        }
+
+        std::vector<std::array<dealii::Tensor<1,dim,real2>,nstate>> r_eD_coeffs(n_base_dofs);
+        compute_r_eD_coeffs<dim,nstate,real2>(
+            soln_diff,
+            n_face_quad_pts,
+            interpolation_operator,
+            phys_unit_normal,
+            faceJxW,
+            fe_soln,
+            coords_coeff,
+            fe_metric,
+            r_eD_coeffs);
+            
+        const real2 artificial_diss_coeff_bc_int = artificial_diss_coeff_switch_bc;// * physics.max_convective_eigenvalue(soln_int[iquad]);
+
+        std::vector<std::array<dealii::Tensor<1,dim,real2>,nstate>> A_r_eD(n_face_quad_pts);
+        std::vector<std::array<real2,nstate>> A_r_eD_dot_n(n_face_quad_pts);
+        for(unsigned int iquad = 0; iquad<n_face_quad_pts; ++iquad)
+        {
+            for(unsigned int s=0; s<nstate; ++s)
+            {
+                for(unsigned int d=0; d<dim; ++d)
+                {
+                    A_r_eD[iquad][s][d] = 0.0;
+                    for(unsigned int idof = 0; idof < n_base_dofs; ++idof)
+                    {
+                        const unsigned int idof_with_nstate = fe_soln.component_to_system_index(s,idof);
+                        A_r_eD[iquad][s][d] += r_eD_coeffs[idof][s][d]*interpolation_operator[idof_with_nstate][iquad];
+                    }
+                }
+            }
+            A_r_eD[iquad] = DGBaseState<dim,nstate,real,MeshType>::artificial_dissip->calc_artificial_dissipation_flux(soln_int[iquad], A_r_eD[iquad],artificial_diss_coeff_bc_int);
+
+            for(unsigned int s=0; s<nstate; ++s)
+            {
+                A_r_eD_dot_n[iquad][s] = 0.0;
+                for(unsigned int d=0; d<dim; ++d)
+                {
+                    A_r_eD_dot_n[iquad][s] += A_r_eD[iquad][s][d]*phys_unit_normal[iquad][d];
+                }
+            }
+        }
+
+        for(unsigned int iquad = 0; iquad<n_face_quad_pts; ++iquad)
+        {
+            for(unsigned int s=0; s<nstate; ++s)
+            {
+                correction_diss_auxi_num_flux_dot_n[iquad][s] = A_r_eD_dot_n[iquad][s] - C11*soln_diff[iquad][s]; 
+            }
+        }
+
+    } // if br2
+    
+
+    for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
+        for (unsigned int s=0; s<nstate; ++s) {
+            for (int d=0;d<dim;++d) {
+                soln_grad_ext[iquad][s][d] = soln_grad_int[iquad][s][d];
+            }
+        }
+    }
+    
     std::vector<ADArray> conv_num_flux_dot_n(n_quad_pts);
     std::vector<ADArray> diss_soln_num_flux(n_quad_pts); // u*
     std::vector<ADArrayTensor1> diss_flux_jump_int(n_quad_pts); // u*-u_int
@@ -1883,11 +1971,18 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_boundary_term(
             soln_int[iquad], soln_ext[iquad],
             soln_grad_int[iquad], soln_grad_ext[iquad],
             normal_int, penalty, true);
-    
+  /*  
         if (this->all_parameters->diss_num_flux_type == DissFlux::bassi_rebay_2) {
             for(unsigned int s=0; s<nstate; ++s)
             {
                 diss_auxi_num_flux_dot_n[iquad][s] += delta_dot_n_bc[iquad][s];
+            }
+        }
+    */
+        if (this->all_parameters->diss_num_flux_type == DissFlux::bassi_rebay_2) {
+            for(unsigned int s=0; s<nstate; ++s)
+            {
+                diss_auxi_num_flux_dot_n[iquad][s] += correction_diss_auxi_num_flux_dot_n[iquad][s];
             }
         }
     }
@@ -2845,10 +2940,11 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_face_term(
             }
         }
     }
+    
+    using DissFlux = Parameters::AllParameters::DissipativeNumericalFlux;
 /*
     // Assemble BR2 gradient correction right-hand side
 
-    using DissFlux = Parameters::AllParameters::DissipativeNumericalFlux;
     std::vector<ADArray> delta_dot_n_int(n_face_quad_pts), delta_dot_n_ext(n_face_quad_pts);
     for(unsigned int iquad = 0; iquad<n_face_quad_pts; ++iquad)
     {
@@ -2927,6 +3023,18 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_face_term(
     }
 */
 
+    std::vector<std::array<dealii::Tensor<1,dim,real2>,nstate>> correction_diss_flux_jump_int(n_face_quad_pts); 
+    std::vector<std::array<dealii::Tensor<1,dim,real2>,nstate>> correction_diss_flux_jump_ext(n_face_quad_pts);
+    std::vector<std::array<real2,nstate>> correction_diss_auxi_num_flux_dot_n(n_face_quad_pts);
+    for(unsigned int iquad=0; iquad<n_face_quad_pts; ++iquad)
+    {
+        for(unsigned int s=0; s<nstate; ++s)
+        {
+            correction_diss_flux_jump_int[iquad][s] = 0.0;
+            correction_diss_flux_jump_ext[iquad][s] = 0.0;
+            correction_diss_auxi_num_flux_dot_n[iquad][s] = 0.0;
+        }
+    }
     // Compute lift coeffs of CDG dissipation flux (modified LDG)
     if (this->all_parameters->diss_num_flux_type == DissFlux::bassi_rebay_2) 
     {
@@ -2938,7 +3046,7 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_face_term(
         {
             for(unsigned int d=0; d<dim; ++d)
             {
-                C12[iquad][d] = 0.5*(switch_int*phys_unit_normal_int[iquad][d] + switch_ext*(-phys_unit_normal_int[iquad][d]));
+                C12[iquad][d] = 0.5*(switch_int*phys_unit_normal_int[iquad][d] + switch_ext*phys_unit_normal_ext[iquad][d]);
             }
         }
         // form [u]
@@ -2949,7 +3057,7 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_face_term(
             {
                 for(unsigned int d=0; d<dim; ++d)
                 {
-                    soln_jump_at_face[iqaud][s][d] = soln_int[iquad][s]*phys_unit_normal_int[iquad][d] + soln_ext[iquad][s]*(-phys_unit_normal_int[iquad][d]);
+                    soln_jump_at_face[iquad][s][d] = soln_int[iquad][s]*phys_unit_normal_int[iquad][d] + soln_ext[iquad][s]*phys_unit_normal_ext[iquad][d];
                 }
             }
         }
@@ -2977,6 +3085,136 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_face_term(
         std::vector<std::array<dealii::Tensor<1,dim,real2>,nstate>> re_solnjump_coeffs_ext(n_base_dofs_ext);
         std::vector<std::array<dealii::Tensor<1,dim,real2>,nstate>> le_C12solnjump_coeffs_int(n_base_dofs_int);
         std::vector<std::array<dealii::Tensor<1,dim,real2>,nstate>> le_C12solnjump_coeffs_ext(n_base_dofs_ext);
+
+        compute_r_e_and_l_e_coeffs<dim,nstate,real2>(
+            soln_jump_at_face,
+            C12_soln_jump_at_face,
+            n_face_quad_pts,
+            interpolation_operator_int,
+            phys_unit_normal_int,
+            faceJxW,
+            fe_int,
+            coords_coeff_int,
+            fe_metric,
+            re_solnjump_coeffs_int,
+            le_C12solnjump_coeffs_int);
+        
+        compute_r_e_and_l_e_coeffs<dim,nstate,real2>(
+            soln_jump_at_face,
+            C12_soln_jump_at_face,
+            n_face_quad_pts,
+            interpolation_operator_ext,
+            phys_unit_normal_ext,
+            faceJxW,
+            fe_ext,
+            coords_coeff_ext,
+            fe_metric,
+            re_solnjump_coeffs_ext,
+            le_C12solnjump_coeffs_ext);
+
+            std::vector<std::array<dealii::Tensor<1,dim,real2>,nstate>> sigma_e_int(n_face_quad_pts);
+            std::vector<std::array<dealii::Tensor<1,dim,real2>,nstate>> sigma_e_ext(n_face_quad_pts);
+            const real2 artificial_diss_coeff_int = artificial_diss_coeff_switch_int;// * physics.max_convective_eigenvalue(soln_int[iquad]);
+            const real2 artificial_diss_coeff_ext = artificial_diss_coeff_switch_ext;// * physics.max_convective_eigenvalue(soln_ext[iquad]);
+            for(unsigned int iquad=0; iquad<n_face_quad_pts; ++iquad)
+            {
+                for(unsigned int s=0; s<nstate; ++s)
+                {
+                    for(unsigned int d=0; d<dim; ++d)
+                    {
+                        sigma_e_int[iquad][s][d] = 0.0;
+                        sigma_e_ext[iquad][s][d] = 0.0;
+                        
+                        for(unsigned int idof = 0; idof<n_base_dofs_int; ++idof)
+                        {
+                            const unsigned int idof_with_nstate = fe_int.component_to_system_index(s,idof);
+                            sigma_e_int[iquad][s][d] += (re_solnjump_coeffs_int[idof][s][d] + le_C12solnjump_coeffs_int[idof][s][d])
+                                                        * interpolation_operator_int[idof_with_nstate][iquad];
+                        }
+
+
+                        for(unsigned int idof = 0; idof<n_base_dofs_ext; ++idof)
+                        {
+                            const unsigned int idof_with_nstate = fe_ext.component_to_system_index(s,idof);
+                            sigma_e_ext[iquad][s][d] += (re_solnjump_coeffs_ext[idof][s][d] + le_C12solnjump_coeffs_ext[idof][s][d])
+                                                        * interpolation_operator_ext[idof_with_nstate][iquad];
+                        }
+
+                    }
+                }                
+                        sigma_e_int[iquad] = DGBaseState<dim,nstate,real,MeshType>::artificial_dissip->calc_artificial_dissipation_flux(soln_int[iquad], sigma_e_int[iquad],artificial_diss_coeff_int); 
+                        sigma_e_ext[iquad] = DGBaseState<dim,nstate,real,MeshType>::artificial_dissip->calc_artificial_dissipation_flux(soln_ext[iquad], sigma_e_ext[iquad],artificial_diss_coeff_ext); 
+            } // quad loop ends
+            
+            std::vector<std::array<real2,nstate>> avg_sigma_e_dot_n_int(n_face_quad_pts);
+            std::vector<std::array<real2,nstate>> jump_sigma_e(n_face_quad_pts);
+
+            for(unsigned int iquad = 0; iquad<n_face_quad_pts; ++iquad)
+            {
+                for(unsigned int s=0; s<nstate; ++s)
+                {
+                    avg_sigma_e_dot_n_int[iquad][s] = 0.0;
+                    jump_sigma_e[iquad][s] = 0.0;
+
+                    for(unsigned int d=0; d<dim; ++d)
+                    {
+                        jump_sigma_e[iquad][s] += sigma_e_int[iquad][s][d]*phys_unit_normal_int[iquad][d] + sigma_e_ext[iquad][s][d]*phys_unit_normal_ext[iquad][d];
+                        avg_sigma_e_dot_n_int[iquad][s] += 0.5*(sigma_e_int[iquad][s][d] + sigma_e_ext[iquad][s][d])*phys_unit_normal_int[iquad][d];
+                    }
+                }
+            }
+            
+            std::vector<real2> C12_dot_n_int(n_face_quad_pts);
+            for(unsigned int iquad=0; iquad<n_face_quad_pts; ++iquad)
+            {
+                C12_dot_n_int[iquad] = 0.0;
+                for(unsigned int d=0; d<dim; ++d)
+                {
+                    C12_dot_n_int[iquad] += C12[iquad][d]*phys_unit_normal_int[iquad][d];
+                }
+            }
+
+            std::vector<std::array<real2,nstate>> jump_A_grad_u(n_face_quad_pts); 
+            for(unsigned int iquad = 0; iquad<n_face_quad_pts; ++iquad)
+            {
+                const std::array<dealii::Tensor<1,dim,real2>,nstate> A_solngrad_int = DGBaseState<dim,nstate,real,MeshType>::artificial_dissip->calc_artificial_dissipation_flux(soln_int[iquad], soln_grad_int[iquad],artificial_diss_coeff_int);
+                const std::array<dealii::Tensor<1,dim,real2>,nstate> A_solngrad_ext = DGBaseState<dim,nstate,real,MeshType>::artificial_dissip->calc_artificial_dissipation_flux(soln_ext[iquad], soln_grad_ext[iquad],artificial_diss_coeff_ext);
+
+                for(unsigned int s=0; s<nstate; ++s)
+                {
+                    jump_A_grad_u[iquad][s] = 0.0;
+
+                    for(unsigned int d=0; d<dim; ++d)
+                    {
+                        jump_A_grad_u[iquad][s] += A_solngrad_int[s][d]*phys_unit_normal_int[iquad][d] + A_solngrad_ext[s][d]*phys_unit_normal_ext[iquad][d]; 
+                    }
+                }
+            }
+
+            // Correct diss_auxi_num_flux_dot_n
+            for(unsigned int iquad = 0; iquad<n_face_quad_pts; ++iquad)
+            {
+                for(unsigned int s=0; s<nstate; ++s)
+                {
+                    correction_diss_auxi_num_flux_dot_n[iquad][s] = C12_dot_n_int[iquad]*jump_A_grad_u[iquad][s] + C11*(soln_ext[iquad][s] - soln_int[iquad][s]) + avg_sigma_e_dot_n_int[iquad][s] + C12_dot_n_int[iquad]*jump_sigma_e[iquad][s];
+                }
+            }
+
+            // Correct diss_flux_jump
+            for(unsigned int iquad=0; iquad<n_face_quad_pts; ++iquad)
+            {
+                for(unsigned int s=0; s<nstate; ++s)
+                {
+                    for(unsigned int d=0; d<dim; ++d)
+                    {
+                        correction_diss_flux_jump_int[iquad][s][d] = -C12_soln_jump_at_face[iquad][s]*phys_unit_normal_int[iquad][d];
+                        correction_diss_flux_jump_ext[iquad][s][d] = -C12_soln_jump_at_face[iquad][s]*phys_unit_normal_ext[iquad][d];
+                    }
+                }
+
+                correction_diss_flux_jump_int[iquad] = DGBaseState<dim,nstate,real,MeshType>::artificial_dissip->calc_artificial_dissipation_flux(soln_int[iquad], correction_diss_flux_jump_int[iquad], artificial_diss_coeff_int);
+                correction_diss_flux_jump_ext[iquad] = DGBaseState<dim,nstate,real,MeshType>::artificial_dissip->calc_artificial_dissipation_flux(soln_ext[iquad], correction_diss_flux_jump_ext[iquad], artificial_diss_coeff_ext);
+            }
 
     } // if br2 ends
     
@@ -3035,14 +3273,27 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_face_term(
             soln_int[iquad], soln_ext[iquad],
             soln_grad_int[iquad], soln_grad_ext[iquad],
             phys_unit_normal_int[iquad], penalty);
-    
+/*    
         if (this->all_parameters->diss_num_flux_type == DissFlux::bassi_rebay_2) {
             for(unsigned int s=0; s<nstate; ++s)
             {
                 diss_auxi_num_flux_dot_n[s] += 0.5*(delta_dot_n_int[iquad][s] - delta_dot_n_ext[iquad][s]);
             }
         }
+*/
+        if (this->all_parameters->diss_num_flux_type == DissFlux::bassi_rebay_2) 
+        {
+            for(unsigned int s=0; s<nstate; ++s)
+            {
+                diss_auxi_num_flux_dot_n[s] += correction_diss_auxi_num_flux_dot_n[iquad][s];
 
+                for(unsigned int d=0; d<dim; ++d)
+                {
+                    diss_flux_jump_int[s][d] += correction_diss_flux_jump_int[iquad][s][d];
+                    diss_flux_jump_ext[s][d] += correction_diss_flux_jump_ext[iquad][s][d];
+                }
+            }
+        }
         // From test functions associated with interior cell point of view
         for (unsigned int itest_int=0; itest_int<n_soln_dofs_int; ++itest_int) {
             real2 rhs = 0.0;

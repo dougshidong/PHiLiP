@@ -172,7 +172,7 @@ public:
     /// Gets the minimum value of currently active FE degree
     unsigned int get_min_fe_degree();
 
-    double get_min_diameter()
+    double get_min_diameter();
     
     /// Returns the coordinates of the most refined cell.
     dealii::Point<dim> coordinates_of_highest_refined_cell(bool check_for_p_refined_cell = false);

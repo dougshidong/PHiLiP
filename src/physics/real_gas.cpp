@@ -291,7 +291,7 @@ std::array<real,nstate-dim-1> RealGas<dim,nstate,real>
     // species loop
     for (int s=0; s<(nstate-dim-1); ++s) 
         { 
-            // temperature limits if-else
+            // There are three temperature limits in NASA CAP database
             if(real_gas_cap->NASACAPTemperatureLimits[s][0]<=dimensional_temperature && dimensional_temperature<=real_gas_cap->NASACAPTemperatureLimits[s][1])
             {
                 temperature_zone = 0;
@@ -349,7 +349,7 @@ std::array<real,nstate-dim-1> RealGas<dim,nstate,real>
     /// species loop
     for (int s=0; s<(nstate-dim-1); ++s) 
         { 
-            /// temperature limits if-else
+            // There are three temperature limits in NASA CAP database
             if(real_gas_cap->NASACAPTemperatureLimits[s][0]<=dimensional_temperature && dimensional_temperature<=real_gas_cap->NASACAPTemperatureLimits[s][1])
             {
                 temperature_zone = 0;
@@ -542,10 +542,8 @@ inline std::array<real,nstate> RealGas<dim,nstate,real>
 {
     /* definitions */
     std::array<real, nstate> conservative_soln;
-    // for (int i=0; i<nstate; i++) {conservative_soln[i] = 0.0;}
     const real mixture_density = compute_mixture_density(primitive_soln);
     std::array<real, dim> vel;
-    // for (int d=0; d<dim; ++d) { vel[d] = primitive_soln[1+d]; }
 
     real vel2 = 0.0;
     real sum = 0.0;
@@ -774,7 +772,6 @@ std::vector<std::string> RealGas<dim,nstate,real>
     names.push_back ("mixture_pressure");
     names.push_back ("pressure_coeffcient");
     names.push_back ("temperature");
-
     names.push_back ("entropy_generation");
     names.push_back ("mach_number");
     names.push_back ("NASA_CAP");

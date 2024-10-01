@@ -538,6 +538,18 @@ unsigned int DGBase<dim,real,MeshType>::get_min_fe_degree()
 }
 
 template <int dim, typename real, typename MeshType>
+double DGBase<dim,real,MeshType>::get_min_diameter()
+{
+    double min_diameter = 1.0e10;
+
+    for(auto cell = triangulation->begin_active(); cell != triangulation->end(); ++cell)
+        if(cell->is_locally_owned() && cell->diameter() < min_diameter)
+            min_diameter = cell->diameter();
+
+    return dealii::Utilities::MPI::min(min_diameter, MPI_COMM_WORLD);
+}
+
+template <int dim, typename real, typename MeshType>
 dealii::Point<dim> DGBase<dim,real,MeshType>::coordinates_of_highest_refined_cell(bool check_for_p_refined_cell)
 {
     const int iproc = dealii::Utilities::MPI::this_mpi_process(mpi_communicator);
@@ -2179,6 +2191,7 @@ void DGBase<dim,real,MeshType>::allocate_system (
     
     max_dt_cell.reinit(triangulation->n_active_cells());
     cell_volume.reinit(triangulation->n_active_cells());
+    h_min = get_min_diameter();
 
     // allocates model variables only if there is a model
     if(all_parameters->pde_type == Parameters::AllParameters::PartialDifferentialEquation::physics_model) allocate_model_variables();

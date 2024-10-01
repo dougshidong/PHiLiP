@@ -105,6 +105,8 @@ public:
      *  DGBase cannot use nstate as a compile-time known.  */
     const unsigned int max_grid_degree;
 
+    double h_min = 0.0;
+
     /// Principal constructor that will call delegated constructor.
     /** Will initialize mapping, fe_dg, all_parameters, volume_quadrature, and face_quadrature
      *  from DGBase. The it will new some FEValues that will be used to retrieve the
@@ -169,6 +171,8 @@ public:
 
     /// Gets the minimum value of currently active FE degree
     unsigned int get_min_fe_degree();
+
+    double get_min_diameter()
     
     /// Returns the coordinates of the most refined cell.
     dealii::Point<dim> coordinates_of_highest_refined_cell(bool check_for_p_refined_cell = false);

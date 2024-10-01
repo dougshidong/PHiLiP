@@ -1058,6 +1058,236 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_face_term_explicit(
     }
 }
 
+template <int dim, int nstate, typename real2>
+void compute_r_e_and_l_e_coeffs(
+    const std::vector<std::array<dealii::Tensor<1,dim,real2>,nstate>> &phi_at_face,
+    const std::vector<std::array<real2,nstate>> &q_at_face,
+    const unsigned int n_face_quad_pts,
+    const dealii::FullMatrix<double> &interpolation_operator_at_face,
+    const std::vector<dealii::Tensor<1,dim,real2>> &normal_at_face,
+    const std::vector<double> &JxW_face,
+    const dealii::FESystem<dim,dim> &fe_soln,
+    const std::vector< real2 > &coords_coeff,
+    const dealii::FESystem<dim,dim> &fe_metric,
+    std::vector<std::array<dealii::Tensor<1,dim,real2>,nstate> & r_e_coeffs,
+    std::vector<std::array<dealii::Tensor<1,dim,real2>,nstate> & l_e_coeffs)
+{
+    // Form mass matrix inverse.
+    // Get the base finite element
+    // Assumption is that the vector-valued finite element uses the same basis for every state equation.
+    const dealii::FiniteElement<dim> &base_fe = fe_soln.get_sub_fe(0,1);
+    const unsigned int n_base_dofs = base_fe.n_dofs_per_cell();
+    
+    // Build lifting term of BR2
+    // For this purposes of BR2, do NOT overintegrate to have a square invertible differentiation matrix
+    const int degree = base_fe.tensor_degree();
+    dealii::QGauss<dim> vol_quad(degree+1);
+    const unsigned int n_vol_quad = vol_quad.size();
+
+    if (n_base_dofs != n_vol_quad) std::abort();
+
+    // Obtain metric Jacobians at volume quadratures.
+    const std::vector<dealii::Point<dim,double>> &vol_unit_quad_pts = vol_quad.get_points();
+    using Tensor2D = dealii::Tensor<2,dim,real2>;
+    std::vector<Tensor2D> volume_metric_jac = evaluate_metric_jacobian (vol_unit_quad_pts, coords_coeff, fe_metric);
+    std::vector<real2> JxW_volume(n_vol_quad);
+    for(unsigned int iquad=0; iquad<n_vol_quad; ++iquad)
+    {
+        JxW_volume[iquad] = dealii::determinant(volume_metric_jac[iquad]) * vol_quad.weight(iquad); 
+    }
+    
+    // Evaluate Vandermonde operator
+    dealii::FullMatrix<double> vandermonde(n_base_dofs, n_vol_quad);
+    dealii::FullMatrix<double> vandermonde_inverse(n_base_dofs, n_vol_quad);
+    dealii::FullMatrix<double> mass_inverse(n_base_dofs, n_base_dofs);
+    
+    for (unsigned int idof_base=0; idof_base<n_base_dofs; ++idof_base) {
+        for (unsigned int iquad=0; iquad<n_vol_quad; ++iquad) {
+            vandermonde[idof_base][iquad] = base_fe.shape_value(idof_base, vol_quad.point(iquad));
+        }
+    }
+
+    vandermonde_inverse.invert(vandermonde);
+
+    for(unsigned int i = 0; i<n_base_dofs; ++i)
+    {
+        for(unsigned int j=0; j<n_base_dofs; ++j)
+        {
+            mass_inverse[i][j] = 0.0;
+            for(unsigned int k=0; k<n_vol_quad; ++k)
+            {
+                mass_inverse[i][j] += vandermonde_inverse[k][i]*vandermonde_inverse[k][j]/JxW_volume[k]; 
+            }
+        }
+    }
+
+    // Form RHS of r_e
+    std::vector<std::array<dealii::Tensor<1,dim,real2>,nstate>> rhs_r_e(n_base_dofs);
+
+    for(unsigned int idof = 0; idof<n_base_dofs; ++idof)
+    {
+        for(unsigned int s=0; s<nstate; ++s)
+        {
+            const unsigned int idof_with_nstate = fe_soln.component_to_system_index(s,idof);
+            for(unsigned int d = 0; d<dim; ++d)
+            {
+                rhes_r_e[idof][s][d] = 0.0;
+                for(unsigned int iquad = 0; iquad<n_face_quad_pts; ++iquad)
+                {
+                    rhs_r_e[idof][s][d] -= phi_at_face[iqaud][s][d]*interpolation_operator_at_face[idof_with_nstate][iquad]/2.0 * JxW_face[iquad]; 
+                }
+            }
+        }
+    }
+    // Get coeffs of r_e
+    for(unsigned int idof =0; idof<n_base_dofs; ++idof)
+    {
+        for(unsigned int s=0; s<nstate; ++s)
+        {
+            for(unsigned int d=0; d<dim; ++d)
+            {
+                r_e_coeffs[idof][s][d] = 0.0;
+                for(unsigned int kdof = 0; kdof<n_base_dofs; ++kdof)
+                {
+                    r_e_coeffs[idof][s][d] += mass_inverse[idof][kdof]*rhs_r_e[kdof][s][d];
+                }
+            }
+        }
+    }
+
+    // Form RHS of le
+    std::vector<std::array<dealii::Tensor<1,dim,real2>,nstate>> rhs_l_e(n_base_dofs);
+
+    for(unsigned int idof = 0; idof<n_base_dofs; ++idof)
+    {
+        for(unsigned int s =0; s<nstate; ++s)
+        {
+            const unsigned int idof_with_nstate = fe_soln.component_to_system_index(s,idof);
+            for(unsigned int d=0; d<dim; ++d)
+            {
+                rhs_l_e[idof][s][d] = 0.0;
+                for(unsigned int iquad=0; iquad<n_face_quad_pts; ++iquad)
+                {
+                    rhs_l_e[idof][s][d] -= q_at_face[iquad][s] * interpolation_operator_at_face[idof_with_nstate][iquad] * normal_at_face[iquad][d] * JxW_face[iquad]; 
+                }
+            }
+        }
+    }
+
+    // Get coeffs of le
+    for(unsigned int idof=0; idof<n_base_dofs; ++idof)
+    {
+        for(unsigned int s=0; s<nstate; ++s)
+        {
+            for(unsigned int d=0; d<dim; ++d)
+            {
+                l_e_coeffs[idof][s][d] = 0.0;
+                for(unsigned int kdof = 0; kdof<n_base_dofs; ++kdof)
+                {
+                    l_e_coeffs[idof][s][d] += mass_inverse[idof][kdof]*rhs_l_e[kdof][s][d];
+                }
+            }
+        }
+    }    
+}
+template <int dim, int nstate, typename real2>
+void compute_r_eD_coeffs(
+    const std::vector<std::array<real2,nstate>> &q_at_face,
+    const unsigned int n_face_quad_pts,
+    const dealii::FullMatrix<double> &interpolation_operator_at_face,
+    const std::vector<dealii::Tensor<1,dim,real2>> &normal_at_face,
+    const std::vector<double> &JxW_face,
+    const dealii::FESystem<dim,dim> &fe_soln,
+    const std::vector< real2 > &coords_coeff,
+    const dealii::FESystem<dim,dim> &fe_metric,
+    std::vector<std::array<dealii::Tensor<1,dim,real2>,nstate> & r_eD_coeffs)
+{
+    // Form mass matrix inverse.
+    // Get the base finite element
+    // Assumption is that the vector-valued finite element uses the same basis for every state equation.
+    const dealii::FiniteElement<dim> &base_fe = fe_soln.get_sub_fe(0,1);
+    const unsigned int n_base_dofs = base_fe.n_dofs_per_cell();
+    
+    // Build lifting term of BR2
+    // For this purposes of BR2, do NOT overintegrate to have a square invertible differentiation matrix
+    const int degree = base_fe.tensor_degree();
+    dealii::QGauss<dim> vol_quad(degree+1);
+    const unsigned int n_vol_quad = vol_quad.size();
+
+    if (n_base_dofs != n_vol_quad) std::abort();
+
+    // Obtain metric Jacobians at volume quadratures.
+    const std::vector<dealii::Point<dim,double>> &vol_unit_quad_pts = vol_quad.get_points();
+    using Tensor2D = dealii::Tensor<2,dim,real2>;
+    std::vector<Tensor2D> volume_metric_jac = evaluate_metric_jacobian (vol_unit_quad_pts, coords_coeff, fe_metric);
+    std::vector<real2> JxW_volume(n_vol_quad);
+    for(unsigned int iquad=0; iquad<n_vol_quad; ++iquad)
+    {
+        JxW_volume[iquad] = dealii::determinant(volume_metric_jac[iquad]) * vol_quad.weight(iquad); 
+    }
+    
+    // Evaluate Vandermonde operator
+    dealii::FullMatrix<double> vandermonde(n_base_dofs, n_vol_quad);
+    dealii::FullMatrix<double> vandermonde_inverse(n_base_dofs, n_vol_quad);
+    dealii::FullMatrix<double> mass_inverse(n_base_dofs, n_base_dofs);
+    
+    for (unsigned int idof_base=0; idof_base<n_base_dofs; ++idof_base) {
+        for (unsigned int iquad=0; iquad<n_vol_quad; ++iquad) {
+            vandermonde[idof_base][iquad] = base_fe.shape_value(idof_base, vol_quad.point(iquad));
+        }
+    }
+
+    vandermonde_inverse.invert(vandermonde);
+
+    for(unsigned int i = 0; i<n_base_dofs; ++i)
+    {
+        for(unsigned int j=0; j<n_base_dofs; ++j)
+        {
+            mass_inverse[i][j] = 0.0;
+            for(unsigned int k=0; k<n_vol_quad; ++k)
+            {
+                mass_inverse[i][j] += vandermonde_inverse[k][i]*vandermonde_inverse[k][j]/JxW_volume[k]; 
+            }
+        }
+    }
+    
+    // Form RHS of r_eD
+    std::vector<std::array<dealii::Tensor<1,dim,real2>,nstate>> rhs_r_eD(n_base_dofs);
+
+    for(unsigned int idof = 0; idof<n_base_dofs; ++idof)
+    {
+        for(unsigned int s =0; s<nstate; ++s)
+        {
+            const unsigned int idof_with_nstate = fe_soln.component_to_system_index(s,idof);
+            for(unsigned int d=0; d<dim; ++d)
+            {
+                rhs_r_eD[idof][s][d] = 0.0;
+                for(unsigned int iquad=0; iquad<n_face_quad_pts; ++iquad)
+                {
+                    rhs_r_eD[idof][s][d] -= q_at_face[iquad][s] * interpolation_operator_at_face[idof_with_nstate][iquad] * normal_at_face[iquad][d] * JxW_face[iquad]; 
+                }
+            }
+        }
+    }
+
+    // Get coeffs of r_eD
+    for(unsigned int idof=0; idof<n_base_dofs; ++idof)
+    {
+        for(unsigned int s=0; s<nstate; ++s)
+        {
+            for(unsigned int d=0; d<dim; ++d)
+            {
+                r_eD_coeffs[idof][s][d] = 0.0;
+                for(unsigned int kdof = 0; kdof<n_base_dofs; ++kdof)
+                {
+                    r_eD_coeffs[idof][s][d] += mass_inverse[idof][kdof]*rhs_r_eD[kdof][s][d];
+                }
+            }
+        }
+    }    
+}
+
+
 
 template <int dim, int nstate, typename real2>
 void compute_br2_correction_delta_dot_n(
@@ -2615,7 +2845,7 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_face_term(
             }
         }
     }
-
+/*
     // Assemble BR2 gradient correction right-hand side
 
     using DissFlux = Parameters::AllParameters::DissipativeNumericalFlux;
@@ -2695,7 +2925,61 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_face_term(
         compute_br2_correction_delta_dot_n<dim,nstate,real2>(fe_int, coords_coeff_int, fe_metric, lifting_op_R_rhs_int, n_face_quad_pts, interpolation_operator_int, delta_dot_n_int);
         compute_br2_correction_delta_dot_n<dim,nstate,real2>(fe_ext, coords_coeff_ext, fe_metric, lifting_op_R_rhs_ext, n_face_quad_pts, interpolation_operator_ext, delta_dot_n_ext);
     }
+*/
 
+    // Compute lift coeffs of CDG dissipation flux (modified LDG)
+    if (this->all_parameters->diss_num_flux_type == DissFlux::bassi_rebay_2) 
+    {
+        const double C11 = 10.0/this->h_min;
+        std::vector<dealii::Tensor<1,dim,real2>> C12(n_face_quad_pts);
+        const double switch_int = 1.0;
+        const double switch_ext = 0.0;
+        for(unsigned int iquad = 0; iquad < n_face_quad_pts; ++iquad)
+        {
+            for(unsigned int d=0; d<dim; ++d)
+            {
+                C12[iquad][d] = 0.5*(switch_int*phys_unit_normal_int[iquad][d] + switch_ext*(-phys_unit_normal_int[iquad][d]));
+            }
+        }
+        // form [u]
+        std::vector<std::array<dealii::Tensor<1,dim,real2>,nstate>> soln_jump_at_face(n_face_quad_pts);
+        for(unsigned int iquad = 0; iquad<n_face_quad_pts; ++iquad)
+        {
+            for(unsigned int s=0; s<nstate; ++s)
+            {
+                for(unsigned int d=0; d<dim; ++d)
+                {
+                    soln_jump_at_face[iqaud][s][d] = soln_int[iquad][s]*phys_unit_normal_int[iquad][d] + soln_ext[iquad][s]*(-phys_unit_normal_int[iquad][d]);
+                }
+            }
+        }
+        // form C12.[u]
+        std::vector<std::array<real2,nstate>> C12_soln_jump_at_face(n_face_quad_pts);
+        for(unsigned int iquad=0; iquad<n_face_quad_pts; ++iquad)
+        {
+            for(unsigned int s=0; s<nstate; ++s)
+            {
+                C12_soln_jump_at_face[iquad][s] = 0.0;
+                for(unsigned int d=0; d<dim; ++d)
+                {
+                    C12_soln_jump_at_face[iquad][s] += C12[iquad][d] * soln_jump_at_face[iquad][s][d];
+                }
+            }
+        }
+
+        // form re_int and re_ext coeffs
+        const dealii::FiniteElement<dim> &base_fe_int = fe_int.get_sub_fe(0,1);
+        const unsigned int n_base_dofs_int = base_fe_int.n_dofs_per_cell();
+        const dealii::FiniteElement<dim> &base_fe_ext = fe_ext.get_sub_fe(0,1);
+        const unsigned int n_base_dofs_ext = base_fe_ext.n_dofs_per_cell();
+
+        std::vector<std::array<dealii::Tensor<1,dim,real2>,nstate>> re_solnjump_coeffs_int(n_base_dofs_int);
+        std::vector<std::array<dealii::Tensor<1,dim,real2>,nstate>> re_solnjump_coeffs_ext(n_base_dofs_ext);
+        std::vector<std::array<dealii::Tensor<1,dim,real2>,nstate>> le_C12solnjump_coeffs_int(n_base_dofs_int);
+        std::vector<std::array<dealii::Tensor<1,dim,real2>,nstate>> le_C12solnjump_coeffs_ext(n_base_dofs_ext);
+
+    } // if br2 ends
+    
 
 
     ADArray conv_num_flux_dot_n;

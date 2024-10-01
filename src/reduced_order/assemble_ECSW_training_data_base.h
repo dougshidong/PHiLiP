@@ -77,7 +77,7 @@ public:
     Epetra_MpiComm Comm_;
 
     /// Matrix for the NNLS Problem
-    std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> A;
+    std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> A_T;
 
     /// RHS Vector for the NNLS Problem
     dealii::LinearAlgebra::ReadWriteVector<double> b;
@@ -93,6 +93,9 @@ public:
 
     /// Copy all elements in matrix A to all cores
     Epetra_CrsMatrix copyMatrixToAllCores(const Epetra_CrsMatrix &A);
+
+    /// Copy all elements in vector b to all cores
+    Epetra_Vector copyVectorToAllCores(const Epetra_Vector &b);
 
     /// Update POD and Snapshot Parameters
     void updateSnapshots(dealii::LinearAlgebra::distributed::Vector<double> fom_solution);

@@ -3,9 +3,6 @@
 
 #include <eigen/Eigen/Dense>
 #include <Epetra_CrsMatrix.h>
-#include <Epetra_MpiComm.h>
-#include <Epetra_SerialComm.h>
-#include <Epetra_Comm.h>
 #include <Epetra_Map.h>
 #include <Epetra_Vector.h>
 #include <EpetraExt_MatrixMatrix.h>

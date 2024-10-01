@@ -27,7 +27,7 @@ AssembleECSWBase<dim,nstate>::AssembleECSWBase(
         , pcout(std::cout, mpi_rank==0)
         , ode_solver_type(ode_solver_type)
         , Comm_(Comm)
-        , A(std::make_shared<dealii::TrilinosWrappers::SparseMatrix>())
+        , A_T(std::make_shared<dealii::TrilinosWrappers::SparseMatrix>())
         , fom_locations()
 {
 }
@@ -122,6 +122,23 @@ Epetra_CrsMatrix AssembleECSWBase<dim,nstate>::copyMatrixToAllCores(const Epetra
     A_temp.Import(A, A_importer, Epetra_CombineMode::Insert);
     A_temp.FillComplete(single_core_col_A,single_core_row_A);
     return A_temp;
+}
+
+template <int dim, int nstate>
+Epetra_Vector AssembleECSWBase<dim,nstate>::copyVectorToAllCores(const Epetra_Vector &b){
+    // Gather Vector Information
+    const Epetra_SerialComm sComm;
+    const int b_size = b.GlobalLength();
+    // Create new map for one core and gather old map
+    Epetra_Map single_core_b (b_size, b_size, 0, sComm);
+    Epetra_BlockMap old_map_b = b.Map();
+    // Create Epetra_importer object
+    Epetra_Import b_importer(single_core_b, old_map_b);
+    // Create new b vector
+    Epetra_Vector b_temp (single_core_b); 
+    // Load the data from vector b (Multi core) into b_temp (Single core)
+    b_temp.Import(b, b_importer, Epetra_CombineMode::Insert);
+    return b_temp;
 }
 
 template <int dim, int nstate>

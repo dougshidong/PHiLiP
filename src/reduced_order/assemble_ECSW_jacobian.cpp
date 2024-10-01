@@ -62,7 +62,7 @@ void AssembleECSWJac<dim,nstate>::build_problem(){
     Epetra_Map ColMap(num_elements_N_e, length, local_elements, 0, this->Comm_);
     Epetra_Map dMap((n_reduced_dim_POD*n_reduced_dim_POD*training_snaps), (rank == 0) ?  (n_reduced_dim_POD*n_reduced_dim_POD*training_snaps) : 0,  0, this->Comm_);
 
-    Epetra_CrsMatrix C(Epetra_DataAccess::Copy , ColMap, RowMap, num_elements_N_e);
+    Epetra_CrsMatrix C_T(Epetra_DataAccess::Copy , ColMap, RowMap, num_elements_N_e);
     Epetra_Vector d(dMap);
 
     // Loop through the given number of training snapshots to find Jacobian values
@@ -201,7 +201,7 @@ void AssembleECSWJac<dim,nstate>::build_problem(){
                 // Sub into entries of C and d
                 for (int k = 0; k < (n_reduced_dim_POD*n_reduced_dim_POD); ++k){
                     int place = row_num+k;
-                    C.InsertGlobalValues(cell_num, 1, &c_se_array[k], &place);
+                    C_T.InsertGlobalValues(cell_num, 1, &c_se_array[k], &place);
                 } 
             }     
         }
@@ -217,10 +217,9 @@ void AssembleECSWJac<dim,nstate>::build_problem(){
         }
     }
 
-    C.FillComplete(RowMap, ColMap);
+    C_T.FillComplete(RowMap, ColMap);
 
-    Epetra_CrsMatrix C_single = this->copyMatrixToAllCores(C);
-    this->b.reinit(d.GlobalLength());
+    Epetra_CrsMatrix C_single = this->copyMatrixToAllCores(C_T);
     for (int p = 0; p < num_elements_N_e; p++){
         double *row = new double[C_single.NumGlobalCols()];
         int *global_cols = new int[C_single.NumGlobalCols()];
@@ -233,7 +232,7 @@ void AssembleECSWJac<dim,nstate>::build_problem(){
     }
 
     // Sub temp C and d into class A and b
-    this->A->reinit(C);
+    this->A_T->reinit(C_T);
     this->b.reinit(dMap.NumMyElements());
     for(int z = 0 ; z <  dMap.NumMyElements() ; z++){
         this->b(z) = d[z];

@@ -129,7 +129,7 @@ int BuildNNLSProblem<dim, nstate>::run_test() const
     Eigen::MatrixXd x_MAT = load_csv<MatrixXd>("x.csv");
 
     const int rank = Comm.MyPID();
-    int rows = (constructer_NNLS_problem.A->trilinos_matrix()).NumGlobalCols();
+    int rows = (constructer_NNLS_problem.A_T->trilinos_matrix()).NumGlobalCols();
     Epetra_Map bMap(rows, (rank == 0) ? rows: 0, 0, Comm);
     Epetra_Vector b_Epetra(bMap);
     auto b = constructer_NNLS_problem.b;
@@ -143,7 +143,7 @@ int BuildNNLSProblem<dim, nstate>::run_test() const
     std::cout << "Create NNLS problem..."<< std::endl;
     std::cout << all_parameters->hyper_reduction_param.NNLS_tol << std::endl;
     std::cout << all_parameters->hyper_reduction_param.NNLS_max_iter << std::endl;
-    NNLS_solver NNLS_prob(all_parameters, parameter_handler, constructer_NNLS_problem.A->trilinos_matrix(), true, Comm, b_Epetra);
+    NNLS_solver NNLS_prob(all_parameters, parameter_handler, constructer_NNLS_problem.A_T->trilinos_matrix(), true, Comm, b_Epetra);
     std::cout << "Solve NNLS problem..."<< std::endl;
     // Solve NNLS problem (should return 1 if solver achieves the accuracy tau before the max number of iterations)
     bool exit_con = NNLS_prob.solve();

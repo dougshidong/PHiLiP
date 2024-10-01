@@ -70,7 +70,7 @@ public:
     void placeInitialSnapshots() const;
 
     /// Compute RBF and find max error
-    RowVectorXd getMaxErrorROM() const;
+    virtual RowVectorXd getMaxErrorROM() const;
 
     /// Solve full-order snapshot
     dealii::LinearAlgebra::distributed::Vector<double> solveSnapshotFOM(const RowVectorXd& parameter) const;
@@ -82,7 +82,7 @@ public:
     void configureInitialParameterSpace() const;
 
     /// Output for each iteration
-    void outputIterationData(std::string iteration) const;
+    virtual void outputIterationData(std::string iteration) const;
 };
 
 }

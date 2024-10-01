@@ -61,7 +61,7 @@ int HyperreducedAdaptiveSampling<dim, nstate>::run_sampling() const
 
     // Transfer b vector (RHS of NNLS problem) to Epetra structure
     const int rank = Comm.MyPID();
-    int rows = (constructer_NNLS_problem->A->trilinos_matrix()).NumGlobalCols();
+    int rows = (constructer_NNLS_problem->A_T->trilinos_matrix()).NumGlobalCols();
     Epetra_Map bMap(rows, (rank == 0) ? rows: 0, 0, Comm);
     Epetra_Vector b_Epetra(bMap);
     auto b = constructer_NNLS_problem->b;
@@ -72,7 +72,7 @@ int HyperreducedAdaptiveSampling<dim, nstate>::run_sampling() const
 
     // Solve NNLS Problem for ECSW weights
     this->pcout << "Create NNLS problem..."<< std::endl;
-    NNLS_solver NNLS_prob(this->all_parameters, this->parameter_handler, constructer_NNLS_problem->A->trilinos_matrix(), true,  Comm, b_Epetra);
+    NNLS_solver NNLS_prob(this->all_parameters, this->parameter_handler, constructer_NNLS_problem->A_T->trilinos_matrix(), true,  Comm, b_Epetra);
     this->pcout << "Solve NNLS problem..."<< std::endl;
     bool exit_con = NNLS_prob.solve();
     this->pcout << exit_con << std::endl;
@@ -128,7 +128,7 @@ int HyperreducedAdaptiveSampling<dim, nstate>::run_sampling() const
         constructer_NNLS_problem->build_problem();
 
         // Transfer b vector (RHS of NNLS problem) to Epetra structure
-        int rows = (constructer_NNLS_problem->A->trilinos_matrix()).NumGlobalCols();
+        int rows = (constructer_NNLS_problem->A_T->trilinos_matrix()).NumGlobalCols();
         Epetra_Map bMap(rows, (rank == 0) ? rows: 0, 0, Comm);
         Epetra_Vector b_Epetra(bMap);
         auto b = constructer_NNLS_problem->b;
@@ -139,7 +139,7 @@ int HyperreducedAdaptiveSampling<dim, nstate>::run_sampling() const
 
         // Solve NNLS Problem for ECSW weights
         this->pcout << "Create NNLS problem..."<< std::endl;
-        NNLS_solver NNLS_prob(this->all_parameters, this->parameter_handler, constructer_NNLS_problem->A->trilinos_matrix(), true,  Comm, b_Epetra);
+        NNLS_solver NNLS_prob(this->all_parameters, this->parameter_handler, constructer_NNLS_problem->A_T->trilinos_matrix(), true,  Comm, b_Epetra);
         this->pcout << "Solve NNLS problem..."<< std::endl;
         bool exit_con = NNLS_prob.solve();
         this->pcout << exit_con << std::endl;

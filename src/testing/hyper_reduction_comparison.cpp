@@ -88,7 +88,7 @@ int HyperReductionComparison<dim, nstate>::run_test() const
 
     // Transfer b vector (RHS of NNLS problem) to Epetra structure
     const int rank = Comm.MyPID();
-    int rows = (constructer_NNLS_problem->A->trilinos_matrix()).NumGlobalCols();
+    int rows = (constructer_NNLS_problem->A_T->trilinos_matrix()).NumGlobalCols();
     Epetra_Map bMap(rows, (rank == 0) ? rows: 0, 0, Comm);
     Epetra_Vector b_Epetra(bMap);
     auto b = constructer_NNLS_problem->b;
@@ -99,7 +99,7 @@ int HyperReductionComparison<dim, nstate>::run_test() const
 
     // Solve NNLS Problem for ECSW weights
     std::cout << "Create NNLS problem..."<< std::endl;
-    NNLS_solver NNLS_prob(all_parameters, parameter_handler, constructer_NNLS_problem->A->trilinos_matrix(), true, Comm, b_Epetra);
+    NNLS_solver NNLS_prob(all_parameters, parameter_handler, constructer_NNLS_problem->A_T->trilinos_matrix(), true, Comm, b_Epetra);
     std::cout << "Solve NNLS problem..."<< std::endl;
     bool exit_con = NNLS_prob.solve();
     std::cout << exit_con << std::endl;

@@ -5,10 +5,8 @@ namespace ODE {
 
 template<int dim, typename real, int n_rk_stages, typename MeshType>
 RungeKuttaBase<dim, real, n_rk_stages, MeshType>::RungeKuttaBase(std::shared_ptr< DGBase<dim, real, MeshType> > dg_input,
-            std::shared_ptr<RKTableauBase<dim,real,MeshType>> rk_tableau_input,
             std::shared_ptr<EmptyRRKBase<dim,real,MeshType>> RRK_object_input)
             : ODESolverBase<dim,real,MeshType>(dg_input)
-            , butcher_tableau(rk_tableau_input)
             , relaxation_runge_kutta(RRK_object_input)
             , solver(dg_input)
 {}            
@@ -47,34 +45,34 @@ void RungeKuttaBase<dim, real, n_rk_stages, MeshType>::allocate_ode_system()
         this->rk_stage[i].reinit(this->dg->solution);
     }
 
-    this->butcher_tableau->set_tableau();
-    
-    this->butcher_tableau_aii_is_zero.resize(n_rk_stages);
-    std::fill(this->butcher_tableau_aii_is_zero.begin(),
-              this->butcher_tableau_aii_is_zero.end(),
-              false); 
-    for (int i=0; i<n_rk_stages; ++i) {
-        if (this->butcher_tableau->get_a(i,i)==0.0)     this->butcher_tableau_aii_is_zero[i] = true;
-    
-    }
-
     this->allocate_runge_kutta_system();
 }
 
-
+/*
+Templates with n_rk_stages > 4 are for the LSRK method
+*/
 template class RungeKuttaBase<PHILIP_DIM, double,1, dealii::Triangulation<PHILIP_DIM> >;
 template class RungeKuttaBase<PHILIP_DIM, double,2, dealii::Triangulation<PHILIP_DIM> >;
 template class RungeKuttaBase<PHILIP_DIM, double,3, dealii::Triangulation<PHILIP_DIM> >;
 template class RungeKuttaBase<PHILIP_DIM, double,4, dealii::Triangulation<PHILIP_DIM> >;
+template class RungeKuttaBase<PHILIP_DIM, double,5, dealii::Triangulation<PHILIP_DIM> >; 
+template class RungeKuttaBase<PHILIP_DIM, double,9, dealii::Triangulation<PHILIP_DIM> >; 
+template class RungeKuttaBase<PHILIP_DIM, double,10, dealii::Triangulation<PHILIP_DIM> >; 
 template class RungeKuttaBase<PHILIP_DIM, double,1, dealii::parallel::shared::Triangulation<PHILIP_DIM> >;
 template class RungeKuttaBase<PHILIP_DIM, double,2, dealii::parallel::shared::Triangulation<PHILIP_DIM> >;
 template class RungeKuttaBase<PHILIP_DIM, double,3, dealii::parallel::shared::Triangulation<PHILIP_DIM> >;
 template class RungeKuttaBase<PHILIP_DIM, double,4, dealii::parallel::shared::Triangulation<PHILIP_DIM> >;
+template class RungeKuttaBase<PHILIP_DIM, double,5, dealii::parallel::shared::Triangulation<PHILIP_DIM> >;
+template class RungeKuttaBase<PHILIP_DIM, double,9, dealii::parallel::shared::Triangulation<PHILIP_DIM> >;
+template class RungeKuttaBase<PHILIP_DIM, double,10, dealii::parallel::shared::Triangulation<PHILIP_DIM> >;
 #if PHILIP_DIM != 1
     template class RungeKuttaBase<PHILIP_DIM, double,1, dealii::parallel::distributed::Triangulation<PHILIP_DIM> >;
     template class RungeKuttaBase<PHILIP_DIM, double,2, dealii::parallel::distributed::Triangulation<PHILIP_DIM> >;
     template class RungeKuttaBase<PHILIP_DIM, double,3, dealii::parallel::distributed::Triangulation<PHILIP_DIM> >;
     template class RungeKuttaBase<PHILIP_DIM, double,4, dealii::parallel::distributed::Triangulation<PHILIP_DIM> >;
+    template class RungeKuttaBase<PHILIP_DIM, double,5, dealii::parallel::distributed::Triangulation<PHILIP_DIM> >;
+    template class RungeKuttaBase<PHILIP_DIM, double,9, dealii::parallel::distributed::Triangulation<PHILIP_DIM> >;
+    template class RungeKuttaBase<PHILIP_DIM, double,10, dealii::parallel::distributed::Triangulation<PHILIP_DIM> >;
 #endif
 } // ODE namespace
 } // PHiLiP namespace

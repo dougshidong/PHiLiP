@@ -36,7 +36,8 @@ public:
     void adjust_time_step (real dt) override;
 
 protected:
-    
+    /// Stores Butcher tableau a and b, which specify the RK method
+    std::shared_ptr<RKTableauBase<dim,real,MeshType>> butcher_tableau;
 };
 
 } // ODE namespace

@@ -46,7 +46,9 @@ public:
     std::shared_ptr<Epetra_CrsMatrix> generate_reduced_lhs(const Epetra_CrsMatrix &epetra_system_matrix, const Epetra_CrsMatrix &test_basis);
 
 protected:
-
+    /// Stores Butcher tableau a and b, which specify the RK method
+    std::shared_ptr<RKTableauBase<dim,real,MeshType>> butcher_tableau;
+    
     /// Reduced Space sized Runge Kutta Stages
     std::vector<dealii::LinearAlgebra::distributed::Vector<double>> reduced_rk_stage;
 

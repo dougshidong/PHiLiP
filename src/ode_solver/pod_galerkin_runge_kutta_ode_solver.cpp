@@ -12,7 +12,8 @@ template <int dim, typename real, int n_rk_stages, typename MeshType>
 PODGalerkingRungeKuttaODESolver<dim,real,n_rk_stages,MeshType>::PODGalerkingRungeKuttaODESolver(std::shared_ptr< DGBase<dim, real, MeshType> > dg_input,
             std::shared_ptr<RKTableauBase<dim,real,MeshType>> rk_tableau_input,
             std::shared_ptr<ProperOrthogonalDecomposition::PODBase<dim>> pod) 
-            : RungeKuttaBase<dim,real,n_rk_stages,MeshType>(dg_input, rk_tableau_input, nullptr)
+            : RungeKuttaBase<dim,real,n_rk_stages,MeshType>(dg_input, nullptr)
+            , butcher_tableau(rk_tableau_input)
             , epetra_pod_basis(pod->getPODBasis()->trilinos_matrix())
             , epetra_system_matrix(Epetra_DataAccess::View, epetra_pod_basis.RowMap(), epetra_pod_basis.NumGlobalRows())
             , epetra_test_basis(nullptr)
@@ -100,6 +101,17 @@ void PODGalerkingRungeKuttaODESolver<dim,real,n_rk_stages,MeshType>::adjust_time
 template <int dim, typename real, int n_rk_stages, typename MeshType>
 void PODGalerkingRungeKuttaODESolver<dim,real,n_rk_stages,MeshType>::allocate_runge_kutta_system()
 {
+
+    this->butcher_tableau->set_tableau();
+    
+    this->butcher_tableau_aii_is_zero.resize(n_rk_stages);
+    std::fill(this->butcher_tableau_aii_is_zero.begin(),
+              this->butcher_tableau_aii_is_zero.end(),
+              false); 
+    for (int i=0; i<n_rk_stages; ++i) {
+        if (this->butcher_tableau->get_a(i,i)==0.0)     this->butcher_tableau_aii_is_zero[i] = true;
+    
+    }
     // Convert dg->solution Map to an Epetra_Map Unsure if this is needed
     std::vector<int> global_indicies;
     for(auto idx : this->dg->solution.locally_owned_elements()){

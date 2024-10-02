@@ -7,7 +7,8 @@ template <int dim, typename real, int n_rk_stages, typename MeshType>
 RungeKuttaODESolver<dim,real,n_rk_stages, MeshType>::RungeKuttaODESolver(std::shared_ptr< DGBase<dim, real, MeshType> > dg_input,
         std::shared_ptr<RKTableauBase<dim,real,MeshType>> rk_tableau_input,
         std::shared_ptr<EmptyRRKBase<dim,real,MeshType>> RRK_object_input)
-        : RungeKuttaBase<dim,real,n_rk_stages,MeshType>(dg_input, rk_tableau_input, RRK_object_input)
+        : RungeKuttaBase<dim,real,n_rk_stages,MeshType>(dg_input, RRK_object_input)
+        , butcher_tableau(rk_tableau_input)
 {}
 
 template<int dim, typename real, int n_rk_stages, typename MeshType>
@@ -127,6 +128,17 @@ void RungeKuttaODESolver<dim,real,n_rk_stages,MeshType>::adjust_time_step (real 
 template <int dim, typename real, int n_rk_stages, typename MeshType> 
 void RungeKuttaODESolver<dim,real,n_rk_stages,MeshType>::allocate_runge_kutta_system ()
 {
+
+    this->butcher_tableau->set_tableau();
+    
+    this->butcher_tableau_aii_is_zero.resize(n_rk_stages);
+    std::fill(this->butcher_tableau_aii_is_zero.begin(),
+              this->butcher_tableau_aii_is_zero.end(),
+              false); 
+    for (int i=0; i<n_rk_stages; ++i) {
+        if (this->butcher_tableau->get_a(i,i)==0.0)     this->butcher_tableau_aii_is_zero[i] = true;
+    
+    }
     if(this->all_parameters->use_inverse_mass_on_the_fly == false) {
         this->pcout << " evaluating inverse mass matrix..." << std::flush;
         this->dg->evaluate_mass_matrices(true); // creates and stores global inverse mass matrix

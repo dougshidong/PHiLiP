@@ -15,6 +15,7 @@
 //#include "flow_solver_cases/wall_cube.h"
 //#include "flow_solver_cases/flat_plate_2D.h"
 #include "flow_solver_cases/airfoil_2D.h"
+#include "flow_solver_cases/naca0012_turbulence.h"
 
 namespace PHiLiP {
 
@@ -103,6 +104,14 @@ FlowSolverFactory<dim,nstate>
         } else if constexpr (dim==3 && nstate==dim+2){
             std::shared_ptr<FlowSolverCaseBase<dim, nstate>> flow_solver_case = std::make_shared<Airfoil2D<dim, nstate>>(parameters_input);
             return std::make_unique<FlowSolver<dim, nstate>>(parameters_input, flow_solver_case, parameter_handler_input);
+        }
+    } else if (flow_type == FlowCaseEnum::naca0012_turbulence){
+        if constexpr (dim==2 && nstate==dim+2){
+            std::shared_ptr<FlowSolverCaseBase<dim, nstate>> flow_solver_case = std::make_shared<NACA0012_LES<dim,nstate>>(parameters_input);
+            return std::make_unique<FlowSolver<dim,nstate>>(parameters_input, flow_solver_case, parameter_handler_input);
+        } else if constexpr (dim==3 && nstate==dim+2){
+            std::shared_ptr<FlowSolverCaseBase<dim, nstate>> flow_solver_case = std::make_shared<NACA0012_LES<dim,nstate>>(parameters_input);
+            return std::make_unique<FlowSolver<dim,nstate>>(parameters_input, flow_solver_case, parameter_handler_input);
         }
     } else {
         std::cout << "Invalid flow case in a single parameters inputs. You probably forgot to add it to the list of flow cases in flow_solver.cpp" << std::endl;

@@ -246,7 +246,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_and_build_operators(
 
     //build the surface metric operators for interior
     metric_oper_int.build_facet_metric_operators(
-        face_int,
+        iface,
         this->face_quadrature_collection[poly_degree_int].size(),
         n_grid_nodes,
         mapping_support_points,
@@ -1525,6 +1525,10 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_boundary_term_strong(
 
     AssertDimension (n_dofs, dof_indices.size());
 
+    if(!cell->face_orientation(iface)){
+        std::cout<<"iface: "<<iface<<" DOES NOT have standard orientation."<<"\n";
+        std::cout<<"current cell index: "<<current_cell_index<<"\n";
+    }
     // Fetch the modal soln coefficients and the modal auxiliary soln coefficients
     // We immediately separate them by state as to be able to use sum-factorization
     // in the interpolation operator. If we left it by n_dofs_cell, then the matrix-vector
@@ -2985,12 +2989,16 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_strong(
     std::array<std::vector<real>,nstate> projected_entropy_var_vol_ext;
     std::array<std::vector<real>,nstate> projected_entropy_var_surf_int;
     std::array<std::vector<real>,nstate> projected_entropy_var_surf_ext;
+    std::array<std::vector<real>,nstate> projected_entropy_var_surf_int_corrected; //To be corrected for face orientation. Needed for numerical flux when using split form
+    std::array<std::vector<real>,nstate> projected_entropy_var_surf_ext_corrected; //To be corrected for face orientation. Needed for numerical flux when using split form
     for(int istate=0; istate<nstate; istate++){
         // allocate
         projected_entropy_var_vol_int[istate].resize(n_quad_pts_vol_int);
         projected_entropy_var_vol_ext[istate].resize(n_quad_pts_vol_ext);
         projected_entropy_var_surf_int[istate].resize(n_face_quad_pts);
         projected_entropy_var_surf_ext[istate].resize(n_face_quad_pts);
+        projected_entropy_var_surf_int_corrected[istate].resize(n_face_quad_pts);
+        projected_entropy_var_surf_ext_corrected[istate].resize(n_face_quad_pts);
 
         //interior
         std::vector<real> entropy_var_coeff_int(n_shape_fns_int);
@@ -3000,12 +3008,19 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_strong(
         soln_basis_int.matrix_vector_mult_1D(entropy_var_coeff_int,
                                              projected_entropy_var_vol_int[istate],
                                              soln_basis_int.oneD_vol_operator);
-        soln_basis_int.matrix_vector_mult_surface_1D(cell->face_orientation(iface), 
+        soln_basis_int.matrix_vector_mult_surface_1D(/*cell->face_orientation(iface)*/true, 
                                                      iface,
                                                      entropy_var_coeff_int, 
                                                      projected_entropy_var_surf_int[istate],
                                                      soln_basis_int.oneD_surf_operator,
                                                      soln_basis_int.oneD_vol_operator);
+
+        soln_basis_int.matrix_vector_mult_surface_1D(cell->face_orientation(iface), 
+                                                    iface,
+                                                    entropy_var_coeff_int, 
+                                                    projected_entropy_var_surf_int_corrected[istate],
+                                                    soln_basis_int.oneD_surf_operator,
+                                                    soln_basis_int.oneD_vol_operator);
 
         //exterior
         std::vector<real> entropy_var_coeff_ext(n_shape_fns_ext);
@@ -3016,12 +3031,18 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_strong(
         soln_basis_ext.matrix_vector_mult_1D(entropy_var_coeff_ext,
                                              projected_entropy_var_vol_ext[istate],
                                              soln_basis_ext.oneD_vol_operator);
-        soln_basis_ext.matrix_vector_mult_surface_1D(neighbor_cell->face_orientation(neighbor_iface), 
+        soln_basis_ext.matrix_vector_mult_surface_1D(/*neighbor_cell->face_orientation(neighbor_iface)*/true, 
                                                      neighbor_iface,
                                                      entropy_var_coeff_ext, 
                                                      projected_entropy_var_surf_ext[istate],
                                                      soln_basis_ext.oneD_surf_operator,
                                                      soln_basis_ext.oneD_vol_operator);
+        soln_basis_ext.matrix_vector_mult_surface_1D(neighbor_cell->face_orientation(neighbor_iface), 
+                                                    neighbor_iface,
+                                                    entropy_var_coeff_ext, 
+                                                    projected_entropy_var_surf_ext_corrected[istate],
+                                                    soln_basis_ext.oneD_surf_operator,
+                                                    soln_basis_ext.oneD_vol_operator);
     }
 
     //get the surface-volume sparsity pattern for a "sum-factorized" Hadamard product only computing terms needed for the operation.
@@ -3219,7 +3240,20 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_strong(
         }
     }//end of if split form or curvilinear split form
 
-
+    // std::cout<<"\nCurrent cell index: "<<current_cell_index<<"\n";
+    // if(!cell->face_orientation(iface)){
+    //     std::cout<<"iface: "<<iface<<" DOES NOT have standard orientation"<<"\n";
+    // }else{
+    //     std::cout<<"iface: "<<iface<<" has standard orientation"<<"\n";
+    // }
+    // std::cout<<"unit_ref_normal_int: "<<unit_ref_normal_int<<"\n";
+    // std::cout<<"Neighbor cell index: "<<neighbor_cell_index<<"\n";
+    // if(!neighbor_cell->face_orientation(neighbor_iface)){
+    //     std::cout<<"neighbor_iface: "<<neighbor_iface<<" DOES NOT have standard orientation"<<"\n";
+    // }else{
+    //     std::cout<<"neighbor_iface: "<<neighbor_iface<<" has standard orientation"<<"\n";
+    // }
+    // std::cout<<"unit_ref_normal_ext: "<<unit_ref_normal_ext<<"\n";
 
     // Evaluate reference numerical fluxes.
     
@@ -3237,6 +3271,14 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_strong(
                 metric_cofactor_surf[idim][jdim] = metric_oper_int.metric_cofactor_surf[idim][jdim][iquad];
             }
         }
+        // dealii::Point<dim,real> surf_flux_node_int;
+        // for(int idim=0; idim<dim; idim++){
+        //     surf_flux_node_int[idim] = metric_oper_int.flux_nodes_surf[iface][idim][iquad];
+        // }
+        // dealii::Point<dim,real> surf_flux_node_ext;
+        // for(int idim=0; idim<dim; idim++){
+        //     surf_flux_node_ext[idim] = metric_oper_ext.flux_nodes_surf[neighbor_iface][idim][iquad];
+        // }
 
         std::array<real,nstate> entropy_var_face_int;
         std::array<real,nstate> entropy_var_face_ext;
@@ -3253,8 +3295,8 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_strong(
             soln_interp_to_face_ext[istate] = soln_at_surf_q_ext[istate][iquad];
             if(this->do_compute_filtered_solution) filtered_soln_interp_to_face_int[istate] = legendre_soln_at_surf_q_int[istate][iquad];
             if(this->do_compute_filtered_solution) filtered_soln_interp_to_face_ext[istate] = legendre_soln_at_surf_q_ext[istate][iquad];
-            entropy_var_face_int[istate] = projected_entropy_var_surf_int[istate][iquad];
-            entropy_var_face_ext[istate] = projected_entropy_var_surf_ext[istate][iquad];
+            entropy_var_face_int[istate] = projected_entropy_var_surf_int_corrected[istate][iquad];
+            entropy_var_face_ext[istate] = projected_entropy_var_surf_ext_corrected[istate][iquad];
             for(int idim=0; idim<dim; idim++){
                 aux_soln_state_int[istate][idim] = aux_soln_at_surf_q_int[istate][idim][iquad];
                 aux_soln_state_ext[istate][idim] = aux_soln_at_surf_q_ext[istate][idim][iquad];
@@ -3275,7 +3317,9 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_strong(
                 soln_state_ext[istate] = soln_at_surf_q_ext[istate][iquad];
             }
         }
-
+        // std::cout<<"\niquad: "<<iquad<<"\n";
+        // std::cout<<"surf_flux_node_int["<<iquad<<"]: "<<surf_flux_node_int<<"\n";
+        // std::cout<<"surf_flux_node_ext["<<iquad<<"]: "<<surf_flux_node_ext<<"\n";
         // numerical fluxes
         dealii::Tensor<1,dim,real> unit_phys_normal_int;
         metric_oper_int.transform_reference_to_physical(unit_ref_normal_int,
@@ -3285,7 +3329,10 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_strong(
         unit_phys_normal_int /= face_Jac_norm_scaled;//normalize it. 
         // Note that the facet determinant of metric jacobian is the above norm multiplied by the determinant of the metric Jacobian evaluated on the facet.
         // Since the determinant of the metric Jacobian evaluated on the face cancels off, we can just scale the numerical flux by the norm.
-
+        // std::cout<<"unit_phys_normal_int["<<iquad<<"]: "<<unit_phys_normal_int<<"\n";
+        // std::cout<<"face_Jac_norm_scaled["<<iquad<<"]: "<<face_Jac_norm_scaled<<"\n";
+        // const std::vector<double> &surf_quad_weights = this->face_quadrature_collection[poly_degree_int].get_weights();
+        // std::cout<<"surf_quad_weights["<<iquad<<"]: "<<surf_quad_weights[iquad]<<"\n";
         std::array<real,nstate> conv_num_flux_dot_n_at_q;
         std::array<real,nstate> diss_auxi_num_flux_dot_n_at_q;
         // Convective numerical flux. 
@@ -3327,7 +3374,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_strong(
         // convective flux
         if(this->all_parameters->use_split_form || this->all_parameters->use_curvilinear_split_form){
             std::vector<real> ones_surf(n_face_quad_pts, 1.0);
-            soln_basis_int.inner_product_surface_1D(cell->face_orientation(iface), 
+            soln_basis_int.inner_product_surface_1D(/*cell->face_orientation(iface)*/true, 
                                                     iface, 
                                                     surf_vol_ref_2pt_flux_interp_surf_int[istate], 
                                                     ones_surf, rhs_int, 
@@ -3384,7 +3431,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_strong(
         // convective flux
         if(this->all_parameters->use_split_form || this->all_parameters->use_curvilinear_split_form){
             std::vector<real> ones_surf(n_face_quad_pts, 1.0);
-            soln_basis_ext.inner_product_surface_1D(neighbor_cell->face_orientation(neighbor_iface), 
+            soln_basis_ext.inner_product_surface_1D(/*neighbor_cell->face_orientation(neighbor_iface)*/true, 
                                                     neighbor_iface,
                                                     surf_vol_ref_2pt_flux_interp_surf_ext[istate], 
                                                     ones_surf, rhs_ext, 

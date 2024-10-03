@@ -33,7 +33,8 @@ public:
         sshock,
         wall_distance_evaluation,
         flat_plate_2D,
-        airfoil_2D
+        airfoil_2D,
+        naca0012_turbulence
         };
     FlowCaseType flow_case_type; ///< Selected FlowCaseType from the input file
 

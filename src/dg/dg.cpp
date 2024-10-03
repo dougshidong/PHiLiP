@@ -857,6 +857,8 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
                 const real penalty2 = evaluate_penalty_scaling (neighbor_cell, neighbor_iface, fe_collection);
                 const real penalty = 0.5 * (penalty1 + penalty2);
 
+                const std::vector<dealii::types::global_dof_index> neighbor_metric_dofs_indices_const = neighbor_metric_dofs_indices;
+
                 const dealii::types::global_dof_index neighbor_cell_index = neighbor_cell->active_cell_index();
                 const auto metric_neighbor_cell = current_metric_cell->periodic_neighbor(iface);
                 metric_neighbor_cell->get_dof_indices(neighbor_metric_dofs_indices);
@@ -879,7 +881,7 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
                     current_dofs_indices,
                     neighbor_dofs_indices,
                     current_metric_dofs_indices,
-                    neighbor_metric_dofs_indices,
+                    neighbor_metric_dofs_indices_const,
                     poly_degree,
                     poly_degree_ext,
                     grid_degree,

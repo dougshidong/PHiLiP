@@ -255,8 +255,8 @@ void rotate_indices(std::vector<unsigned int> &numbers, const unsigned int n_ind
                   for (unsigned int iy = 0; iy < n; ++iy)
                       for (unsigned int ix = 0; ix < n; ++ix)
                       {
-                          //unsigned int k = (ix * n * n) + (n - 1) + (iy * n) - (iz);
-                          unsigned int k = ((1-ix) * n * n) + (n - 1) + (iy * n) - (1-iz);
+                          unsigned int k = (ix * n * n) + (n - 1) + (iy * n) - (iz);
+                          //unsigned int k = ((1-ix) * n * n) + (n - 1) + (iy * n) - (1-iz);
                           numbers[k] = l++;
                           if(mesh_reader_verbose_output) pcout << "3D rotation matrix, physical node mapping, Y-axis : " << k << std::endl;
                       }
@@ -267,8 +267,8 @@ void rotate_indices(std::vector<unsigned int> &numbers, const unsigned int n_ind
                   for (unsigned int iy = 0; iy < n; ++iy)
                       for (unsigned int ix = 0; ix < n; ++ix)
                       {
-                          //unsigned int k = (n * (n - 1)) + ix - (iy * n) + (n * n * iz);
-                          unsigned int k = (1-ix) * n + n - (iy + 1) + (n * n * (1-iz));
+                          unsigned int k = (n * (n - 1)) + ix - (iy * n) + (n * n * iz);
+                          //unsigned int k = (1-ix) * n + n - (iy + 1) + (n * n * (1-iz));
                           numbers[k] = l++;
                           if(mesh_reader_verbose_output) pcout << "3D rotation matrix, physical node mapping, Flip-axis : " << k << std::endl;
                       }

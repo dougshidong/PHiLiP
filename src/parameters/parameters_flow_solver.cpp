@@ -52,7 +52,8 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
                           " sshock | "
                           " wall_distance_evaluation | "
                           " flat_plate_2D | "
-                          " airfoil_2D>. ");
+                          " airfoil_2D | "
+                          " naca0012_turbulence>. ");
 
         prm.declare_entry("poly_degree", "1",
                           dealii::Patterns::Integer(0, dealii::Patterns::Integer::max_int_value),
@@ -489,6 +490,7 @@ void FlowSolverParam::parse_parameters(dealii::ParameterHandler &prm)
         else if (flow_case_type_string == "wall_distance_evaluation")   {flow_case_type = wall_distance_evaluation;}
         else if (flow_case_type_string == "flat_plate_2D")              {flow_case_type = flat_plate_2D;}
         else if (flow_case_type_string == "airfoil_2D")                 {flow_case_type = airfoil_2D;}
+        else if (flow_case_type_string == "naca0012_turbulence")                   {flow_case_type = naca0012_turbulence;}
 
         poly_degree = prm.get_integer("poly_degree");
         

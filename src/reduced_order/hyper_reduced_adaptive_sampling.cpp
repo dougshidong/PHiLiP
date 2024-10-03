@@ -78,12 +78,8 @@ int HyperreducedAdaptiveSampling<dim, nstate>::run_sampling() const
     this->pcout << exit_con << std::endl;
 
     ptr_weights = std::make_shared<Epetra_Vector>(NNLS_prob.getSolution());
-    Epetra_Vector local_weights = allocateVectorToSingleCore(*ptr_weights);
-    std::string d_file = "ptr_weights_multicore_" + std::to_string(rank);
-    std::ofstream d_output (d_file.c_str());
 
     dealii::Vector<double> weights_dealii(ptr_weights->MyLength());
-    ptr_weights->Print(d_output);
     for(int j = 0 ; j < ptr_weights->MyLength() ; j++){
         weights_dealii[j] = (*ptr_weights)[j];
     } 
@@ -97,7 +93,7 @@ int HyperreducedAdaptiveSampling<dim, nstate>::run_sampling() const
     int iteration = 0;
 
     while(this->max_error > this->all_parameters->reduced_order_param.adaptation_tolerance){
-
+        Epetra_Vector local_weights = allocateVectorToSingleCore(*ptr_weights);
         this->outputIterationData(std::to_string(iteration));
         std::unique_ptr<dealii::TableHandler> weights_table = std::make_unique<dealii::TableHandler>();
         for(int i = 0 ; i < local_weights.MyLength() ; i++){
@@ -145,7 +141,7 @@ int HyperreducedAdaptiveSampling<dim, nstate>::run_sampling() const
         this->pcout << exit_con << std::endl;
         
         ptr_weights = std::make_shared<Epetra_Vector>(NNLS_prob.getSolution());
-        Epetra_Vector local_weights = allocateVectorToSingleCore(*ptr_weights);
+        std::cout << local_weights << std::endl;
 
         dealii::Vector<double> weights_dealii(ptr_weights->MyLength());
         for(int j = 0 ; j < ptr_weights->MyLength() ; j++){
@@ -172,10 +168,11 @@ int HyperreducedAdaptiveSampling<dim, nstate>::run_sampling() const
         iteration++;
     }
 
+    Epetra_Vector local_weights = allocateVectorToSingleCore(*ptr_weights);
     this->outputIterationData("final");
     std::unique_ptr<dealii::TableHandler> weights_table = std::make_unique<dealii::TableHandler>();
-    for(int i = 0 ; i < ptr_weights->GlobalLength() ; i++){
-        weights_table->add_value("ECSW Weights", (*ptr_weights)[i]);
+    for(int i = 0 ; i < local_weights.MyLength() ; i++){
+        weights_table->add_value("ECSW Weights", local_weights[i]);
         weights_table->set_precision("ECSW Weights", 16);
     }
 

@@ -72,7 +72,7 @@ void AcousticAdjoint<dim, nstate, real, MeshType>::compute_dIdXv()
 
     this->dIdXv = this->functional->dIdX;
 
-    this->dg->dRdXv.Tvmult(this->dIdXv,this->adjoint);
+    this->dg->dRdXv.Tvmult_add(this->dIdXv,this->adjoint);
 
     this->dIdXv.compress(dealii::VectorOperation::add);
     this->dIdXv.update_ghost_values();

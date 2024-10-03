@@ -106,6 +106,7 @@ namespace MeshMover
         // /** Sparse matrix containing the dXvdXs sensititivies.
         //  */
         // dealii::TrilinosWrappers::SparseMatrix<double> dXvdXs_matrix;
+        dealii::TrilinosWrappers::SparseMatrix dXvdXs_matrix;
 
       private:
         /// Allocation and boundary condition setup.

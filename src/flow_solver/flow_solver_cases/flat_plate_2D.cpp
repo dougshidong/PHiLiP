@@ -9,6 +9,7 @@
 #include "functional/extraction_functional.hpp"
 #include "functional/amiet_model.hpp"
 #include "functional/acoustic_adjoint.hpp"
+#include "mesh/meshmover_linear_elasticity.hpp"
 
 namespace PHiLiP {
 
@@ -112,6 +113,13 @@ void FlatPlate2D<dim,nstate>::steady_state_postprocessing(std::shared_ptr<DGBase
         this->pcout << "Computing functional derivative wrt volume nodes..." << std::endl;
         amiet_adjoint.compute_dIdXv();
         this->pcout << "Computation is done..." << std::endl;
+
+        using VectorType = dealii::LinearAlgebra::distributed::Vector<double>;
+        std::shared_ptr<HighOrderGrid<dim,double>> high_order_grid = dg->high_order_grid;
+        VectorType dIdXs = high_order_grid->surface_nodes;
+        MeshMover::LinearElasticity<dim, double> meshmover(*high_order_grid, dIdXs);
+        meshmover.evaluate_dXvdXs();
+        meshmover.dXvdXs_matrix.Tvmult(dIdXs,amiet_adjoint.dIdXv);
 
         this->pcout << "Writting adjoint solutions..." << std::endl;
         amiet_adjoint.output_results_vtk(666);

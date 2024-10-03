@@ -215,19 +215,19 @@ void SumFactorizedOperators<dim,n_faces>::face_orientation_inner_product(
     const bool face_orientation,
     const unsigned int /*face_number*/,
     const std::vector<double> &input_vect,
-    const std::vector<double> &weight_vect,
+    const std::vector<double> &/*weight_vect*/,
     std::vector<double> &output_vect,
-    std::vector<double> &weight_output_vect,
+    std::vector<double> &/*weight_output_vect*/,
     const dealii::FullMatrix<double> &basis)
 {
     output_vect = input_vect;
-    weight_output_vect = weight_vect;
+    //weight_output_vect = weight_vect;
     const unsigned int columns = basis.n();
     if(!face_orientation){
         for(unsigned int ydof=0; ydof<columns; ydof++){ 
             for(unsigned int xdof=0; xdof<columns; xdof++){//x runs fastest
                 output_vect[xdof+ydof*columns] = input_vect[columns*xdof+ydof];
-                weight_output_vect[xdof+ydof*columns] = weight_vect[columns*xdof+ydof];
+                //weight_output_vect[xdof+ydof*columns] = weight_vect[columns*xdof+ydof];
             }
         }
     }
@@ -403,17 +403,17 @@ void SumFactorizedOperators<dim,n_faces>::inner_product_surface_1D(
     
     this->face_orientation_inner_product(face_orientation, face_number, input_vect, weight_vect, input_vect_corrected, weight_vect_corrected, basis_surf[0]);
     if(face_number == 0)
-        this->inner_product(input_vect_corrected, weight_vect_corrected, output_vect, basis_surf[0], basis_vol, basis_vol, adding, factor);
+        this->inner_product(input_vect_corrected, weight_vect, output_vect, basis_surf[0], basis_vol, basis_vol, adding, factor);
     if(face_number == 1)
-        this->inner_product(input_vect_corrected, weight_vect_corrected, output_vect, basis_surf[1], basis_vol, basis_vol, adding, factor);
+        this->inner_product(input_vect_corrected, weight_vect, output_vect, basis_surf[1], basis_vol, basis_vol, adding, factor);
     if(face_number == 2)
-        this->inner_product(input_vect_corrected, weight_vect_corrected, output_vect, basis_vol, basis_surf[0], basis_vol, adding, factor);
+        this->inner_product(input_vect_corrected, weight_vect, output_vect, basis_vol, basis_surf[0], basis_vol, adding, factor);
     if(face_number == 3)
-        this->inner_product(input_vect_corrected, weight_vect_corrected, output_vect, basis_vol, basis_surf[1], basis_vol, adding, factor);
+        this->inner_product(input_vect_corrected, weight_vect, output_vect, basis_vol, basis_surf[1], basis_vol, adding, factor);
     if(face_number == 4)
-        this->inner_product(input_vect_corrected, weight_vect_corrected, output_vect, basis_vol, basis_vol, basis_surf[0], adding, factor);
+        this->inner_product(input_vect_corrected, weight_vect, output_vect, basis_vol, basis_vol, basis_surf[0], adding, factor);
     if(face_number == 5)
-        this->inner_product(input_vect_corrected, weight_vect_corrected, output_vect, basis_vol, basis_vol, basis_surf[1], adding, factor);
+        this->inner_product(input_vect_corrected, weight_vect, output_vect, basis_vol, basis_vol, basis_surf[1], adding, factor);
 }
 
 template <int dim, int n_faces>  

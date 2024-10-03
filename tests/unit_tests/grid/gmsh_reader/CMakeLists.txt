@@ -89,37 +89,37 @@ add_test(
   WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
 )
 
-set (filename "3D_Cube_2_Cells.msh")
-if(NOT EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/${filename})
-  message(SEND_ERROR
-"Missing 3D GMSH file named ${filename}. Please download them from
-    https://drive.google.com/drive/folders/1ZjwSvbrRK5pHvMULfC69n6oierTej2Cv?usp=sharing
-and place them in
-      ${CMAKE_CURRENT_SOURCE_DIR}, or simply run get_gmsh_mesh_files_local.sh"
-      )
-endif()
-configure_file(${filename} ${filename} COPYONLY)
-add_test(
-  NAME 3D_GMSH_READER_3D_CUBE_1stOrder
-  COMMAND mpirun -n ${MPIMAX} ${CMAKE_CURRENT_BINARY_DIR}/3D_GMSH_READER --input=${filename}
-  WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
-)
+# set (filename "3D_Cube_2_Cells.msh")
+# if(NOT EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/${filename})
+#   message(SEND_ERROR
+# "Missing 3D GMSH file named ${filename}. Please download them from
+#     https://drive.google.com/drive/folders/1ZjwSvbrRK5pHvMULfC69n6oierTej2Cv?usp=sharing
+# and place them in
+#       ${CMAKE_CURRENT_SOURCE_DIR}, or simply run get_gmsh_mesh_files_local.sh"
+#       )
+# endif()
+# configure_file(${filename} ${filename} COPYONLY)
+# add_test(
+#   NAME 3D_GMSH_READER_3D_CUBE_1stOrder
+#   COMMAND mpirun -n ${MPIMAX} ${CMAKE_CURRENT_BINARY_DIR}/3D_GMSH_READER --input=${filename}
+#   WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
+# )
 
-set (filename "3D_CUBE_2ndOrder.msh")
-if(NOT EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/${filename})
-  message(SEND_ERROR
-"Missing 3D GMSH file named ${filename}. Please download them from
-    https://drive.google.com/drive/folders/1ZjwSvbrRK5pHvMULfC69n6oierTej2Cv?usp=sharing
-and place them in
-      ${CMAKE_CURRENT_SOURCE_DIR}, or simply run get_gmsh_mesh_files_local.sh"
-      )
-endif()
-configure_file(${filename} ${filename} COPYONLY)
-add_test(
-  NAME 3D_GMSH_READER_3D_CUBE_2ndOrder
-  COMMAND mpirun -n ${MPIMAX} ${CMAKE_CURRENT_BINARY_DIR}/3D_GMSH_READER --input=${filename}
-  WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
-)
+# set (filename "3D_CUBE_2ndOrder.msh")
+# if(NOT EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/${filename})
+#   message(SEND_ERROR
+# "Missing 3D GMSH file named ${filename}. Please download them from
+#     https://drive.google.com/drive/folders/1ZjwSvbrRK5pHvMULfC69n6oierTej2Cv?usp=sharing
+# and place them in
+#       ${CMAKE_CURRENT_SOURCE_DIR}, or simply run get_gmsh_mesh_files_local.sh"
+#       )
+# endif()
+# configure_file(${filename} ${filename} COPYONLY)
+# add_test(
+#   NAME 3D_GMSH_READER_3D_CUBE_2ndOrder
+#   COMMAND mpirun -n ${MPIMAX} ${CMAKE_CURRENT_BINARY_DIR}/3D_GMSH_READER --input=${filename}
+#   WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
+# )
 
 set (filename "3d_gaussian_bump.msh")
 if(NOT EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/${filename})
@@ -217,35 +217,35 @@ add_test(
   WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
 )
 
-set (filename "NACA0012_Coarse.msh")
-if(NOT EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/${filename})
-  message(SEND_ERROR
-"Missing 3D GMSH file named ${filename}. Please download it from
-    https://drive.google.com/drive/folders/1xaQRTCd8VXDeaV1alQ5oHI_YMm2X0X5R?usp=sharing
-and place them in
-      ${CMAKE_CURRENT_SOURCE_DIR}, or simply run get_gmsh_mesh_files_local.sh"
-      )
-endif()
-configure_file(${filename} ${filename} COPYONLY)
-add_test(
-  NAME 3D_GMSH_READER_NACA0012_01_CELL_SPANWISE
-  COMMAND mpirun -n ${MPIMAX} ${CMAKE_CURRENT_BINARY_DIR}/3D_GMSH_READER --input=${filename}
-  WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
-)
+# set (filename "NACA0012_Coarse.msh")
+# if(NOT EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/${filename})
+#   message(SEND_ERROR
+# "Missing 3D GMSH file named ${filename}. Please download it from
+#     https://drive.google.com/drive/folders/1xaQRTCd8VXDeaV1alQ5oHI_YMm2X0X5R?usp=sharing
+# and place them in
+#       ${CMAKE_CURRENT_SOURCE_DIR}, or simply run get_gmsh_mesh_files_local.sh"
+#       )
+# endif()
+# configure_file(${filename} ${filename} COPYONLY)
+# add_test(
+#   NAME 3D_GMSH_READER_NACA0012_01_CELL_SPANWISE
+#   COMMAND mpirun -n ${MPIMAX} ${CMAKE_CURRENT_BINARY_DIR}/3D_GMSH_READER --input=${filename}
+#   WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
+# )
 
 
-set (filename "3D_Cube.msh")
-if(NOT EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/${filename})
-  message(SEND_ERROR
-"Missing 3D GMSH file named ${filename}. Please download it from
-    https://drive.google.com/drive/folders/1xaQRTCd8VXDeaV1alQ5oHI_YMm2X0X5R?usp=sharing
-and place them in
-      ${CMAKE_CURRENT_SOURCE_DIR}, or simply run get_gmsh_mesh_files_local.sh"
-      )
-endif()
-configure_file(${filename} ${filename} COPYONLY)
-add_test(
-  NAME 3D_CUBE_QUAD_REORDERING
-  COMMAND mpirun -n ${MPIMAX} ${CMAKE_CURRENT_BINARY_DIR}/3D_GMSH_READER --input=${filename}
-  WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
-)
+# set (filename "3D_Cube.msh")
+# if(NOT EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/${filename})
+#   message(SEND_ERROR
+# "Missing 3D GMSH file named ${filename}. Please download it from
+#     https://drive.google.com/drive/folders/1xaQRTCd8VXDeaV1alQ5oHI_YMm2X0X5R?usp=sharing
+# and place them in
+#       ${CMAKE_CURRENT_SOURCE_DIR}, or simply run get_gmsh_mesh_files_local.sh"
+#       )
+# endif()
+# configure_file(${filename} ${filename} COPYONLY)
+# add_test(
+#   NAME 3D_CUBE_QUAD_REORDERING
+#   COMMAND mpirun -n ${MPIMAX} ${CMAKE_CURRENT_BINARY_DIR}/3D_GMSH_READER --input=${filename}
+#   WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
+# )

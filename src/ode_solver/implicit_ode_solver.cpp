@@ -38,7 +38,7 @@ void ImplicitODESolver<dim,real,MeshType>::step_in_time (real dt, const bool pse
             this->dg->right_hand_side,
             this->solution_update,
             this->ODESolverBase<dim,real,MeshType>::all_parameters->linear_solver_param);
-
+/*
     const double threshold_pressure_update_fraction = 0.1;
     const double step_length_min = 0.001;
 
@@ -53,6 +53,8 @@ void ImplicitODESolver<dim,real,MeshType>::step_in_time (real dt, const bool pse
         this->dg->update_solution_with_min_steplength_elsewhere(this->dg->solution, this->solution_update, step_length, step_length_min, threshold_pressure_update_fraction);
     }
     this->dg->solution.update_ghost_values();
+*/
+    linesearch();
     this->update_norm = this->solution_update.l2_norm();
     ++(this->current_iteration);
 }

@@ -681,8 +681,8 @@ template <int dim, int nstate>
 double AnisotropicMeshAdaptationCases<dim,nstate> :: evaluate_abs_dwr_error(std::shared_ptr<DGBase<dim,double>> dg) const
 {
     std::unique_ptr<DualWeightedResidualError<dim, nstate , double>> dwr_error_val = std::make_unique<DualWeightedResidualError<dim, nstate , double>>(dg);
-    dwr_error_val->total_dual_weighted_residual_error();
-    return abs(dwr_error_val->net_functional_error);
+    return(dwr_error_val->total_dual_weighted_residual_error());
+    //return abs(dwr_error_val->net_functional_error);
 }
 
 template <int dim, int nstate>
@@ -780,12 +780,13 @@ int AnisotropicMeshAdaptationCases<dim, nstate> :: run_test () const
 
     const double enthalpy_error_initial = evaluate_enthalpy_error(flow_solver2->dg);
     const double functional_error_initial = evaluate_functional_error(flow_solver2->dg);
+    const double abs_dwr_error_initial = evaluate_abs_dwr_error(flow_solver2->dg);
     const unsigned int n_dofs_initial = flow_solver2->dg->n_dofs();
     timer.stop();
     const double walltime_baserun = timer.wall_time();
     timer.reset();
 
-    pcout<<"Initial dofs = "<<n_dofs_initial<<"  Initial enthalpy error = "<<enthalpy_error_initial<<" Initial functional error = "<<functional_error_initial<<"  Initial baserun walltime = "<<walltime_baserun<<std::endl;
+    pcout<<"Initial dofs = "<<n_dofs_initial<<"  Initial enthalpy error = "<<enthalpy_error_initial<<" Initial functional error = "<<functional_error_initial<<"  Initial dwr error = "<<abs_dwr_error_initial<<"  Initial baserun walltime = "<<walltime_baserun<<std::endl;
 
     if(run_mesh_optimizer)
     {
@@ -793,6 +794,7 @@ int AnisotropicMeshAdaptationCases<dim, nstate> :: run_test () const
         {
             std::vector<double> enthalpy_error_vector;
             std::vector<double> functional_error_vector;
+            std::vector<double> dwr_error_vector;
             std::vector<double> walltimes_vector;
             std::vector<unsigned int> n_dofs_vector;
             std::unique_ptr<FlowSolver::FlowSolver<dim,nstate>> flow_solver = FlowSolver::FlowSolverFactory<dim,nstate>::select_flow_case(&param, parameter_handler);
@@ -859,7 +861,9 @@ int AnisotropicMeshAdaptationCases<dim, nstate> :: run_test () const
                 const double enthalpy_error = evaluate_enthalpy_error(flow_solver->dg);
                 enthalpy_error_vector.push_back(enthalpy_error);
                 const double functional_error = evaluate_functional_error(flow_solver->dg);
+                const double abs_dwr_error = evaluate_abs_dwr_error(flow_solver->dg);
                 functional_error_vector.push_back(functional_error);
+                dwr_error_vector.push_back(abs_dwr_error);
                 n_dofs_vector.push_back(flow_solver->dg->n_dofs());
                 walltimes_vector.push_back(timer.wall_time());
                 timer.reset();
@@ -869,6 +873,7 @@ int AnisotropicMeshAdaptationCases<dim, nstate> :: run_test () const
             const std::string dofsname = "n_dofs_optimization_p" + std::to_string(p);
             const std::string enthalpy_errorname = "enthalpy_error_p" + std::to_string(p);
             const std::string functional_errorname = "functional_error_p" + std::to_string(p);
+            const std::string dwr_errorname = "abs_dwr_error_p" + std::to_string(p);
             const std::string walltimename = "wall_time_p" + std::to_string(p);
             pcout<<dofsname<<" = [";
             for(long unsigned int i=0; i<n_dofs_vector.size(); ++i)
@@ -891,6 +896,13 @@ int AnisotropicMeshAdaptationCases<dim, nstate> :: run_test () const
                 if(i!=(functional_error_vector.size()-1)) {pcout<<", ";}
             }
             pcout<<"];"<<std::endl;
+            pcout<<dwr_errorname<<" = [";
+            for(long unsigned int i=0; i<dwr_error_vector.size(); ++i)
+            {
+                pcout<<dwr_error_vector[i];
+                if(i!=(dwr_error_vector.size()-1)) {pcout<<", ";}
+            }
+            pcout<<"];"<<std::endl;
             pcout<<walltimename<<" = [";
             for(long unsigned int i=0; i<walltimes_vector.size(); ++i)
             {
@@ -910,6 +922,7 @@ int AnisotropicMeshAdaptationCases<dim, nstate> :: run_test () const
             param.flow_solver_param.poly_degree=p;
             std::vector<double> enthalpy_error_vector;
             std::vector<double> functional_error_vector;
+            std::vector<double> dwr_error_vector;
             std::vector<double> walltimes_vector;
             std::vector<unsigned int> n_dofs_vector;
 
@@ -935,7 +948,9 @@ int AnisotropicMeshAdaptationCases<dim, nstate> :: run_test () const
                 const double enthalpy_error = evaluate_enthalpy_error(flow_solver->dg);
                 enthalpy_error_vector.push_back(enthalpy_error);
                 const double functional_error = evaluate_functional_error(flow_solver->dg);
+                const double abs_dwr_error = evaluate_abs_dwr_error(flow_solver->dg);
                 functional_error_vector.push_back(functional_error);
+                dwr_error_vector.push_back(abs_dwr_error);
                 n_dofs_vector.push_back(flow_solver->dg->n_dofs());
                 walltimes_vector.push_back(timer.wall_time());
                 std::cout<<"wall_time_refinement ="<<timer.wall_time()<<" n_dofs = "<<flow_solver->dg->n_dofs()<<std::endl;
@@ -945,12 +960,14 @@ int AnisotropicMeshAdaptationCases<dim, nstate> :: run_test () const
             std::string dofsname;
             std::string enthalpy_errorname;
             std::string functional_errorname;
+            std::string dwr_errorname;
             std::string walltimename;
             if(refine_percentage == 100)
             {
                 dofsname = "n_dofs_uniformref_p" + std::to_string(p);
                 enthalpy_errorname = "enthalpy_error_uniformref_p" + std::to_string(p);
                 functional_errorname = "functional_error_uniformref_p" + std::to_string(p);
+                dwr_errorname = "abs_dwr_error_uniformref_p" + std::to_string(p);
                 walltimename = "wall_time_unfiromref_p" + std::to_string(p);
             }
             else
@@ -958,6 +975,7 @@ int AnisotropicMeshAdaptationCases<dim, nstate> :: run_test () const
                 dofsname = "n_dofs_fixedfraction_"+ std::to_string(refine_percentage) +"_p" + std::to_string(p);
                 enthalpy_errorname = "enthalpy_error_fixedfraction_" + std::to_string(refine_percentage) +"_p" + std::to_string(p);
                 functional_errorname = "functional_error_fixedfraction_" + std::to_string(refine_percentage) +"_p" + std::to_string(p);
+                dwr_errorname = "abs_dwr_error_fixedfraction_" + std::to_string(refine_percentage) +"_p" + std::to_string(p);
                 walltimename = "wall_time_fixedfraction_" + std::to_string(refine_percentage) + "_p" + std::to_string(p);
             }
             pcout<<dofsname<<" = [";
@@ -979,6 +997,13 @@ int AnisotropicMeshAdaptationCases<dim, nstate> :: run_test () const
             {
                 pcout<<functional_error_vector[i];
                 if(i!=(functional_error_vector.size()-1)) {pcout<<", ";}
+            }
+            pcout<<"];"<<std::endl;
+            pcout<<dwr_errorname<<" = [";
+            for(long unsigned int i=0; i<dwr_error_vector.size(); ++i)
+            {
+                pcout<<dwr_error_vector[i];
+                if(i!=(dwr_error_vector.size()-1)) {pcout<<", ";}
             }
             pcout<<"];"<<std::endl;
             pcout<<walltimename<<" = [";

@@ -10,7 +10,8 @@ set test_type = anisotropic_mesh_adaptation
 
 set conv_num_flux = roe
 
-set diss_num_flux = bassi_rebay_2
+#set diss_num_flux = bassi_rebay_2
+set diss_num_flux = symm_internal_penalty
 
 set overintegration = 2
 #set output_face_results_vtk = true
@@ -25,8 +26,8 @@ end
 subsection artificial dissipation
   set add_artificial_dissipation = true
   set artificial_dissipation_type = laplacian
-  set mu_artificial_dissipation = 5.0
-  set kappa_artificial_dissipation = 2.0
+  set mu_artificial_dissipation = 10.0
+  set kappa_artificial_dissipation = 5.0
 end
 
 subsection functional
@@ -91,7 +92,7 @@ end
 
 subsection ODE solver
   #set output_solution_every_x_steps = 1
-  set nonlinear_max_iterations            = 500
+  set nonlinear_max_iterations            = 50
   set nonlinear_steady_residual_tolerance = 1e-11
   set ode_solver_type  = implicit
   set initial_time_step = 1

@@ -13,22 +13,21 @@ set conv_num_flux = roe
 #set diss_num_flux = symm_internal_penalty
 set diss_num_flux = bassi_rebay_2
 
-#set flux_nodes_type=GLL
-set overintegration = 2
 #set output_face_results_vtk = true
 #set sipg_penalty_factor = 20.0
+set overintegration = 2
 
 subsection euler
   set reference_length = 1.0
-  set mach_infinity = 3.0 
+  set mach_infinity = 1.5
   set angle_of_attack = 0
 end
 
 subsection artificial dissipation
   set add_artificial_dissipation = true
   set artificial_dissipation_type = laplacian
-  set mu_artificial_dissipation = 30.0
-  set kappa_artificial_dissipation = 0.025
+  set mu_artificial_dissipation = 10.0
+  set kappa_artificial_dissipation = 5.0
 end
 
 subsection functional
@@ -51,7 +50,7 @@ subsection linear solver
     # structure
     set ilut_fill                 = 20
     # Linear residual tolerance for convergence of the linear system
-    set linear_residual_tolerance = 1e-5
+    set linear_residual_tolerance = 1e-13
     # Maximum number of iterations for linear solver
     set max_iterations            = 2000
     # Number of iterations before restarting GMRES
@@ -93,7 +92,7 @@ end
 
 subsection ODE solver
   #set output_solution_every_x_steps = 1
-  set nonlinear_max_iterations            = 500
+  set nonlinear_max_iterations            = 50
   set nonlinear_steady_residual_tolerance = 1e-11
   set ode_solver_type  = implicit
   set initial_time_step = 1
@@ -104,7 +103,7 @@ end
 
 subsection flow_solver
   set flow_case_type = naca0012
-  set poly_degree = 0
+  set poly_degree = 2
   set max_poly_degree_for_adaptation = 3
   set steady_state = true
   set steady_state_polynomial_ramping = true

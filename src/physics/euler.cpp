@@ -1105,6 +1105,60 @@ void Euler<dim,nstate,real>
     soln_bc = convert_primitive_to_conservative(primitive_bc);
 */
 }
+    
+template <int dim, int nstate, typename real>
+void Euler<dim,nstate,real>
+::boundary_characteristic (
+   const dealii::Tensor<1,dim,real> &normal_int,
+   const std::array<real,nstate> &soln_int,
+   const std::array<dealii::Tensor<1,dim,real>,nstate> &/*soln_grad_int*/,
+   std::array<real,nstate> &soln_bc,
+   std::array<dealii::Tensor<1,dim,real>,nstate> &/*soln_grad_bc*/) const
+{
+    // compute eigenvalues.
+    const dealii::Tensor<1,dim,real> velocities_int = compute_velocities<real>(soln_int);
+
+    const real sound_int = compute_sound(soln_int);
+    
+    real velocity_dot_n  = 0;
+    for(unsigned int d=0; d<dim; ++d)
+    {
+        velocity_dot_n += velocities_int[d]*normal_int[d];
+    }
+
+    const real eig1 = velocity_dot_n - sound_int;
+    const real eig2 = velocity_dot_n;
+    const real eig3 = velocity_dot_n + sound_int;
+
+    if( (eig1>0) && (eig2>0) && (eig3>0) ) // supersonic outflow
+    {
+        boundary_supersonic_outflow (soln_int, soln_bc);        
+    }
+    else if( (eig1<0) && (eig2<0) && (eig3<0)) // supersonic inflow
+    {
+        boundary_supersonic_inflow(soln_bc);
+    }
+    else if( (eig1<0) && (eig2>0) && (eig3>0) ) // subsonic outflow
+    {
+        soln_bc[0] = soln_int[0];
+        soln_bc[1] = soln_int[1];
+        soln_bc[2] = soln_int[2];
+        soln_bc[3] = pressure_inf/gamm1 + 0.5*(pow(soln_int[1],2) + pow(soln_int[2],2))/soln_int[0];
+    }
+    else if( (eig1<0) && (eig2<0) && (eig3>0) ) // subsonic inflow
+    {
+       const real pressure_int = compute_pressure<real>(soln_int); 
+       soln_bc[0] = density_inf;
+       soln_bc[1] = density_inf*velocities_inf[0];
+       soln_bc[2] = density_inf*velocities_inf[1];
+       soln_bc[3] = pressure_int/gamm1 + 0.5*density_inf*(pow(velocities_inf[0],2) + pow(velocities_inf[1],2)); 
+    }
+    else
+    {
+        std::cout<<"Shouldn't have reached here in characteristic BC. Aborting.."<<std::endl;
+        std::abort();
+    }
+}
 
 template <int dim, int nstate, typename real>
 void Euler<dim,nstate,real>
@@ -1445,10 +1499,12 @@ void Euler<dim,nstate,real>
     else if (boundary_type == 1007) {
         // Supersonic inflow boundary condition
         boundary_supersonic_inflow (soln_bc);
+        //boundary_characteristic (normal_int, soln_int, soln_grad_int, soln_bc, soln_grad_bc);
     } 
     else if (boundary_type == 1008) {
         // Supersonic outflow boundary condition
         boundary_supersonic_outflow (soln_int, soln_bc);
+        //boundary_characteristic (normal_int, soln_int, soln_grad_int, soln_bc, soln_grad_bc);
     } 
     else {
         this->pcout << "Invalid boundary_type: " << boundary_type << std::endl;

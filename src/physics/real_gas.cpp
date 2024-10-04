@@ -34,7 +34,7 @@ RealGas<dim,nstate,real>::RealGas (
     this->real_gas_cap = std::dynamic_pointer_cast<PHiLiP::RealGasConstants::AllRealGasConstants>(
                 std::make_shared<PHiLiP::RealGasConstants::AllRealGasConstants>(parameters_input));
     
-    // Note: modify this when you change number of species. nstate == dim+2+(nspecies)-1
+    // Note: modify this when you change the number of species. nstate == dim+2+(nspecies)-1
     static_assert(nstate==dim+2+2-1, "Physics::RealGas() should be created with nstate=(PHILIP_DIM+2)+(N_SPECIES-1)"); // Note: update this with nspecies in the future
 }
 

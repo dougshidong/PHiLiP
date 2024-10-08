@@ -1388,6 +1388,8 @@ dealii::Vector<double> NavierStokes<dim,nstate,real>::post_compute_derived_quant
                 computed_quantities(++current_data_index) = viscous_stress_tensor[2][d];
             }
         }
+        //Viscosity coefficient
+        computed_quantities(++current_data_index) = compute_viscosity_coefficient<real>(primitive_soln);
 
     }
     if (computed_quantities.size()-1 != current_data_index) {
@@ -1426,25 +1428,25 @@ std::vector<dealii::DataComponentInterpretation::DataComponentInterpretation> Na
     interpretation.push_back (DCI::component_is_scalar); // Vorticity magnitude
     interpretation.push_back (DCI::component_is_scalar); // Enstrophy
     if constexpr(dim==2) {
-        for (unsigned int d=0; d<2; ++d) {
+        for (unsigned int d=0; d<dim; ++d) {
             interpretation.push_back (DCI::component_is_part_of_vector); // First line of viscous Stress Tensor
         }
-        for (unsigned int d=0; d<2; ++d) {
+        for (unsigned int d=0; d<dim; ++d) {
             interpretation.push_back (DCI::component_is_part_of_vector); // Second line of viscous Stress Tensor
         }
     }
     else if constexpr(dim==3) {
-        for (unsigned int d=0; d<3; ++d) {
+        for (unsigned int d=0; d<dim; ++d) {
             interpretation.push_back (DCI::component_is_part_of_vector); // First line of viscous Stress Tensor
         }
-        for (unsigned int d=0; d<3; ++d) {
+        for (unsigned int d=0; d<dim; ++d) {
             interpretation.push_back (DCI::component_is_part_of_vector); // Second line of viscous Stress Tensor
         }
-        for (unsigned int d=0; d<3; ++d) {
+        for (unsigned int d=0; d<dim; ++d) {
             interpretation.push_back (DCI::component_is_part_of_vector); // Third line of viscous Stress Tensor
         }
     }
-
+    interpretation.push_back (DCI::component_is_scalar); // Viscosity
 
     std::vector<std::string> names = post_get_names();
     if (names.size() != interpretation.size()) {
@@ -1482,28 +1484,29 @@ std::vector<std::string> NavierStokes<dim,nstate,real>
     names.push_back ("enstrophy");
     if constexpr(dim==2) {
         // First line of viscous Stress Tensor
-        for (unsigned int d=0; d<2; ++d) {
+        for (unsigned int d=0; d<dim; ++d) {
             names.push_back ("du_viscous_stress_tensor");
         }
         // Second line of viscous Stress Tensor
-        for (unsigned int d=0; d<2; ++d) {
+        for (unsigned int d=0; d<dim; ++d) {
             names.push_back ("dv_viscous_stress_tensor");
         }
     }
     else if constexpr(dim==3) {
         // First line of viscous Stress Tensor
-        for (unsigned int d=0; d<3; ++d) {
+        for (unsigned int d=0; d<dim; ++d) {
             names.push_back ("du_viscous_stress_tensor");
         }
         // Second line of viscous Stress Tensor
-        for (unsigned int d=0; d<3; ++d) {
+        for (unsigned int d=0; d<dim; ++d) {
             names.push_back ("dv_viscous_stress_tensor");
         }
         // Third line of viscous Stress Tensor
-        for (unsigned int d=0; d<3; ++d) {
+        for (unsigned int d=0; d<dim; ++d) {
             names.push_back ("dz_viscous_stress_tensor");
         }
     }
+    names.push_back ("viscosity_coefficient");
     return names;
 }
 

@@ -2212,6 +2212,9 @@ void DGBase<dim,real,MeshType>::allocate_system (
     //right_hand_side.reinit(locally_owned_dofs, mpi_communicator);
     right_hand_side.reinit(locally_owned_dofs, ghost_dofs, mpi_communicator);
     right_hand_side.add(1.0); // Avoid 0 initial residual for output and logarithmic visualization.
+    //time averaged solution
+    time_averaged_solution.reinit(locally_owned_dofs, ghost_dofs, mpi_communicator);
+    time_averaged_solution *= 0.0;
 
     allocate_dual_vector();
 

@@ -184,6 +184,10 @@ public:
     std::string output_velocity_field_times_string; ///< String of velocity field output times
     unsigned int number_of_times_to_output_velocity_field; ///< Number of fixed times to output the velocity field
     bool output_vorticity_magnitude_field_in_addition_to_velocity; ///< Flag for outputting vorticity magnitude field in addition to velocity field
+    bool output_density_field_in_addition_to_velocity; ///< Flag for outputting density field in addition to velocity field
+    bool output_viscosity_field_in_addition_to_velocity; ///< Flag for outputting viscosity field in addition to velocity field 
+    bool compute_time_averaged_solution; ///< Flag for outputting density field in addition to velocity field
+    double time_to_start_averaging; ///< Flag for outputting viscosity field in addition to velocity field   
     std::string output_flow_field_files_directory_name; ///< Name of directory for writing flow field files
 
     bool end_exactly_at_final_time; ///< Flag to adjust the last timestep such that the simulation ends exactly at final_time

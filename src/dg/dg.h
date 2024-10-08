@@ -398,6 +398,8 @@ public:
      */
     dealii::LinearAlgebra::distributed::Vector<double> solution;
 
+    dealii::LinearAlgebra::distributed::Vector<double> time_averaged_solution;
+
     ///The auxiliary equations' right hand sides.
     std::array<dealii::LinearAlgebra::distributed::Vector<double>,dim> auxiliary_right_hand_side;
 

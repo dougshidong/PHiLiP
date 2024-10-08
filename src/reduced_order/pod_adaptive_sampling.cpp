@@ -16,6 +16,7 @@
 #include "ROL_Bounds.hpp"
 #include "halton.h"
 #include "min_max_scaler.h"
+#include <deal.II/base/timer.h>
 
 namespace PHiLiP {
 
@@ -29,7 +30,10 @@ template <int dim, int nstate>
 int AdaptiveSampling<dim, nstate>::run_sampling() const
 {
     this->pcout << "Starting adaptive sampling process" << std::endl;
-
+    auto stream = this->pcout;
+    dealii::TimerOutput timer(stream,dealii::TimerOutput::summary,dealii::TimerOutput::wall_times);
+    int iteration = 0;
+    timer.enter_subsection ("Iteration " + std::to_string(iteration));
     this->placeInitialSnapshots();
     this->current_pod->computeBasis();
 
@@ -39,11 +43,13 @@ int AdaptiveSampling<dim, nstate>::run_sampling() const
     placeROMLocations(rom_points);
 
     RowVectorXd max_error_params = this->getMaxErrorROM();
-    int iteration = 0;
+    
 
     while(this->max_error > this->all_parameters->reduced_order_param.adaptation_tolerance){
 
         this->outputIterationData(std::to_string(iteration));
+        timer.leave_subsection();
+        timer.enter_subsection ("Iteration " + std::to_string(iteration+1));
 
         this->pcout << "Sampling snapshot at " << max_error_params << std::endl;
         dealii::LinearAlgebra::distributed::Vector<double> fom_solution = this->solveSnapshotFOM(max_error_params);
@@ -74,6 +80,8 @@ int AdaptiveSampling<dim, nstate>::run_sampling() const
     }
 
     this->outputIterationData("final");
+
+    timer.leave_subsection();
 
     return 0;
 }

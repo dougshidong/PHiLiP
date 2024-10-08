@@ -22,7 +22,7 @@ void RungeKuttaBase<dim, real, n_rk_stages, MeshType>::step_in_time(real dt, con
         this->apply_limiter(); // Might need to change for LSRK
         this->obtain_stage(i, dt); //rk_stage[i] = IMM*RHS = F(u_n + dt*sum(a_ij*k_j))
     }
-    this->adjust_time_step(dt);
+    dt = this->adjust_time_step(dt);
     this->sum_stages(dt, pseudotime); // u_np1 = u_n + dt* sum(k_i * b_i)
     this->dg->solution = this->solution_update; 
      // Calculate numerical entropy with FR correction. Does nothing if use has not selected param.

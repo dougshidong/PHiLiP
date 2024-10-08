@@ -44,7 +44,7 @@ public:
     virtual void apply_limiter () = 0;               
 
     /// Function to adjust time step size
-    virtual void adjust_time_step(real dt) = 0;             
+    virtual real adjust_time_step(real dt) = 0;             
 protected:
 
     /// Stores functions related to relaxation Runge-Kutta (RRK).

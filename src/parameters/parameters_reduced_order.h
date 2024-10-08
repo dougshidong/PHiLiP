@@ -37,6 +37,9 @@ public:
     /// Number of modes to include in the POD Basis
     int number_modes;
 
+    /// Singular Value Threshold in the POD Basis
+    double singular_value_threshold;
+    
     /// Declares the possible variables and sets the defaults.
     static void declare_parameters (dealii::ParameterHandler &prm);
     /// Parses input file and sets the variables.

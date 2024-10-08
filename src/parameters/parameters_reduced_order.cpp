@@ -33,6 +33,9 @@ void ReducedOrderModelParam::declare_parameters (dealii::ParameterHandler &prm)
         prm.declare_entry("number_modes", "0",
                           dealii::Patterns::Integer(0, dealii::Patterns::Integer::max_int_value),
                           "Number of modes used in the POD Basis");
+        prm.declare_entry("singular_value_threshold", "1",
+                          dealii::Patterns::Double(0, dealii::Patterns::Double::max_double_value),
+                          "Threshold for the Singular Value cutoff");
     }
     prm.leave_subsection();
 }
@@ -43,6 +46,7 @@ void ReducedOrderModelParam::parse_parameters (dealii::ParameterHandler &prm)
     {
         adaptation_tolerance = prm.get_double("adaptation_tolerance");
         reduced_residual_tolerance = prm.get_double("reduced_residual_tolerance");
+        singular_value_threshold = prm.get_double("singular_value_threshold");
         num_halton = prm.get_integer("num_halton");
         recomputation_coefficient = prm.get_integer("recomputation_coefficient");
         number_modes = prm.get_integer("number_modes");

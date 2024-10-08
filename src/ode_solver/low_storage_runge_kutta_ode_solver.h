@@ -59,7 +59,7 @@ public:
     void apply_limiter () override;
 
     /// Function to adjust time step size
-    void adjust_time_step(real dt) override;
+    real adjust_time_step(real dt) override;
 
     /// Function to prepare the LSRK for a step in time
     void prep_for_step_in_time();

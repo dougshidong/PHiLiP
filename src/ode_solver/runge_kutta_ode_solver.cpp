@@ -116,13 +116,14 @@ void RungeKuttaODESolver<dim,real,n_rk_stages,MeshType>::apply_limiter ()
 }
 
 template<int dim, typename real, int n_rk_stages, typename MeshType>
-void RungeKuttaODESolver<dim,real,n_rk_stages,MeshType>::adjust_time_step (real dt)
+real RungeKuttaODESolver<dim,real,n_rk_stages,MeshType>::adjust_time_step (real dt)
 {
     // Calculates relaxation parameter and modify the time step size as dt*=relaxation_parameter.
     // if not using RRK, the relaxation parameter will be set to 1, such that dt is not modified.
     this->relaxation_parameter_RRK_solver = this->relaxation_runge_kutta->update_relaxation_parameter(dt, this->dg, this->rk_stage, this->solution_update);
     dt *= this->relaxation_parameter_RRK_solver;
     this->modified_time_step = dt;
+    return dt;
 }
 
 template <int dim, typename real, int n_rk_stages, typename MeshType> 

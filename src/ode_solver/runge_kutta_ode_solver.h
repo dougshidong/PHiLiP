@@ -33,7 +33,7 @@ public:
 
     void apply_limiter () override;
 
-    void adjust_time_step (real dt) override;
+    real adjust_time_step (real dt) override;
 
 protected:
     /// Stores Butcher tableau a and b, which specify the RK method

@@ -94,9 +94,10 @@ void PODGalerkingRungeKuttaODESolver<dim,real,n_rk_stages,MeshType>::apply_limit
     // Empty Function
 }
 template <int dim, typename real, int n_rk_stages, typename MeshType>
-void PODGalerkingRungeKuttaODESolver<dim,real,n_rk_stages,MeshType>::adjust_time_step(real dt)
+real PODGalerkingRungeKuttaODESolver<dim,real,n_rk_stages,MeshType>::adjust_time_step(real dt)
 {
     this->modified_time_step = dt;
+    return dt;
 }
 template <int dim, typename real, int n_rk_stages, typename MeshType>
 void PODGalerkingRungeKuttaODESolver<dim,real,n_rk_stages,MeshType>::allocate_runge_kutta_system()

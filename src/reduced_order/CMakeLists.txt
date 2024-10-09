@@ -5,6 +5,7 @@ set(SOURCE
     rom_test_location.cpp
     pod_basis_offline.cpp
     halton.cpp
+    halton_sampling.cpp
     nearest_neighbors.cpp
     min_max_scaler.cpp
     assemble_ECSW_residual.cpp

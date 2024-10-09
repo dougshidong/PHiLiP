@@ -322,6 +322,8 @@ void AdaptiveSamplingBase<dim, nstate>::configureInitialParameterSpace() const
                                 parameter1_range[1], 0.5*(parameter2_range[1] - parameter2_range[0])+parameter2_range[0],
                                 0.5*(parameter1_range[1] - parameter1_range[0])+parameter1_range[0], 0.5*(parameter2_range[1] - parameter2_range[0])+parameter2_range[0];
 
+        snapshot_parameters.conservativeResize(snapshot_parameters.rows() + n_halton, snapshot_parameters.cols());
+
         double *seq = nullptr;
         for (int i = 0; i < n_halton; i++)
         {
@@ -329,10 +331,10 @@ void AdaptiveSamplingBase<dim, nstate>::configureInitialParameterSpace() const
             for (int j = 0; j < 2; j++)
             {
                 if(j == 0){
-                    snapshot_parameters(i+5, j) = seq[j]*(parameter1_range[1] - parameter1_range[0])+parameter1_range[0];
+                    snapshot_parameters(i+9, j) = seq[j]*(parameter1_range[1] - parameter1_range[0])+parameter1_range[0];
                 }
                 else if(j == 1){
-                    snapshot_parameters(i+5, j) = seq[j]*(parameter2_range[1] - parameter2_range[0])+parameter2_range[0];
+                    snapshot_parameters(i+9, j) = seq[j]*(parameter2_range[1] - parameter2_range[0])+parameter2_range[0];
                 }
             }
         }

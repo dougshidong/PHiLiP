@@ -56,7 +56,6 @@ void LowStorageRungeKuttaODESolver<dim,real,n_rk_stages, MeshType>::sum_stages (
         for (int i = 0; i < num_delta; i++){ 
             sum_delta += this->butcher_tableau->get_delta(i);
         }
-        std::cout << sum_delta << std::endl;
         storage_register_2.add(this->butcher_tableau->get_delta(n_rk_stages), storage_register_1);
         storage_register_2.add(this->butcher_tableau->get_delta(n_rk_stages+1), storage_register_3);
         storage_register_2 /= sum_delta;
@@ -125,7 +124,6 @@ double LowStorageRungeKuttaODESolver<dim,real,n_rk_stages, MeshType>::get_automa
     }
 
     // sum over all elements
-    std::cout << w << std::endl;
     w = dealii::Utilities::MPI::sum(w, this->mpi_communicator);
     w = pow(w / global_size, 0.5);
     epsilon[2] = epsilon[1];

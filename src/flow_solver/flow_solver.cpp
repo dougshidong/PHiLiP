@@ -50,7 +50,9 @@ FlowSolver<dim, nstate>::FlowSolver(
         dg->allocate_system(false,false,false);
     }
 
-    if(ode_param.ode_solver_type == Parameters::ODESolverParam::pod_galerkin_solver || ode_param.ode_solver_type == Parameters::ODESolverParam::pod_petrov_galerkin_solver){
+    if(ode_param.ode_solver_type == Parameters::ODESolverParam::pod_galerkin_solver || 
+       ode_param.ode_solver_type == Parameters::ODESolverParam::pod_petrov_galerkin_solver ||
+       ode_param.ode_solver_type == Parameters::ODESolverParam::pod_galerkin_runge_kutta_solver){
         std::shared_ptr<ProperOrthogonalDecomposition::OfflinePOD<dim>> pod = std::make_shared<ProperOrthogonalDecomposition::OfflinePOD<dim>>(dg);
         ode_solver = ODE::ODESolverFactory<dim, double>::create_ODESolver(dg, pod);
     }
@@ -58,6 +60,9 @@ FlowSolver<dim, nstate>::FlowSolver(
         ode_solver = ODE::ODESolverFactory<dim, double>::create_ODESolver(dg);
     }
 
+
+
+    }
     flow_solver_case->display_flow_solver_setup(dg);
 
     if(flow_solver_param.restart_computation_from_file == true) {
@@ -94,6 +99,12 @@ FlowSolver<dim, nstate>::FlowSolver(
     
     // Allocate ODE solver after initializing DG
     ode_solver->allocate_ode_system();
+
+    // Storing a time_dependent POD
+    if(all_param.reduced_order_param.number_modes != 0){
+        time_pod = std::make_shared<ProperOrthogonalDecomposition::OnlinePOD<dim>>(dg);
+        time_pod->addSnapshot(dg->solution);
+    }
 
     // output a copy of the input parameters file
     if(flow_solver_param.output_restart_files == true) {
@@ -585,7 +596,21 @@ int FlowSolver<dim,nstate>::run() const
                     }
                 }
             }
+            // Add snapshots to snapshot matrix
+            if(all_param.reduced_order_param.output_snapshot_every_x_timesteps > 0){
+                const bool is_snapshot_iteration = (ode_solver->current_iteration % all_param.reduced_order_param.output_snapshot_every_x_timesteps == 0);
+                if(is_snapshot_iteration) time_pod->addSnapshot(dg->solution);
+            }
         } // close while
+
+        // Print POD Snapshots to file
+        if(all_param.reduced_order_param.output_snapshot_every_x_timesteps > 0){
+            std::ofstream snapshot_file("solution_snapshots_iteration_" + std::to_string(ode_solver->current_iteration) + ".txt");
+            unsigned int precision = 16;
+            time_pod->dealiiSnapshotMatrix.print_formatted(snapshot_file, precision, true, 0, "0"); 
+            snapshot_file.close();
+        }
+
         timer.stop();
         pcout << "Timer stopped. " << std::endl;
         const double max_wall_time = dealii::Utilities::MPI::max(timer.wall_time(), this->mpi_communicator);

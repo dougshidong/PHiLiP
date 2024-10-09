@@ -112,6 +112,8 @@ public:
     /// Pointer to ode solver so it can be accessed externally.
     std::shared_ptr<ODE::ODESolverBase<dim, double>> ode_solver;
 
+    std::shared_ptr<ProperOrthogonalDecomposition::OnlinePOD<dim>> time_pod;
+
 private:
     /** Returns the column names of a dealii::TableHandler object
      *  given the first line of the file */

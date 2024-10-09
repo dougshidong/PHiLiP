@@ -36,7 +36,10 @@ void ReducedOrderModelParam::declare_parameters (dealii::ParameterHandler &prm)
         prm.declare_entry("singular_value_threshold", "1",
                           dealii::Patterns::Double(0, dealii::Patterns::Double::max_double_value),
                           "Threshold for the Singular Value cutoff");
-    }
+        prm.declare_entry("output_snapshot_every_x_timesteps","0",
+                          dealii::Patterns::Integer(0,dealii::Patterns::Integer::max_int_value),
+                          "Number of Timesteps before snapshot is added");
+        }
     prm.leave_subsection();
 }
 
@@ -50,6 +53,7 @@ void ReducedOrderModelParam::parse_parameters (dealii::ParameterHandler &prm)
         num_halton = prm.get_integer("num_halton");
         recomputation_coefficient = prm.get_integer("recomputation_coefficient");
         number_modes = prm.get_integer("number_modes");
+        output_snapshot_every_x_timesteps = prm.get_integer("output_snapshot_every_x_timesteps");
         path_to_search = prm.get("path_to_search");
 
         std::string parameter_names_string = prm.get("parameter_names");

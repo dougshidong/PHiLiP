@@ -102,17 +102,11 @@ void getROMPoints(Eigen::MatrixXd& rom_points, const Parameters::AllParameters *
     double step_1 = (parameter1_range[1] - parameter1_range[0]) / (20 - 1);
     double step_2 = (parameter2_range[1] - parameter2_range[0]) / (20 - 1);
 
-    std::cout << step_1 << std::endl;
-    std::cout << step_2 << std::endl;
-
     int row = 0;
     for (int i = 0; i < 20; i++){
         for(int j = 0; j < 20; j++){
             rom_points(row, 0) =  parameter1_range[0] + (step_1 * i);
             rom_points(row, 1) =  parameter2_range[0] + (step_2 * j);
-
-            std::cout << rom_points(row, 0)  << std::endl;
-            std::cout << rom_points(row, 1)  << std::endl;
             row ++;
         }
     }

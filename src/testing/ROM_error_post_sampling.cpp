@@ -47,22 +47,23 @@ int ROMErrorPostSampling<dim, nstate>::run_test() const
     std::shared_ptr<AdaptiveSampling<dim,nstate>> parameter_sampling = std::make_unique<AdaptiveSampling<dim,nstate>>(all_parameters, parameter_handler);
     parameter_sampling->current_pod->basis = pod_petrov_galerkin->basis;
     parameter_sampling->current_pod->referenceState = pod_petrov_galerkin->referenceState;
-    // parameter_sampling->current_pod->snapshotMatrix = pod_petrov_galerkin->snapshotMatrix;
+    parameter_sampling->current_pod->snapshotMatrix = pod_petrov_galerkin->snapshotMatrix;
     snapshot_parameters(0,0);
+    parameter_sampling->snapshot_parameters = snapshot_parameters;
     std::string path = all_parameters->reduced_order_param.path_to_search; //Search specified directory for files containing "solutions_table"
     bool snap_found = getSnapshotParamsFromFile(snapshot_parameters, path);
     if (snap_found){
-        parameter_sampling->snapshot_parameters = snapshot_parameters;
-        std::cout << "snapshot_parameters" << std::endl;
-        std::cout << snapshot_parameters << std::endl;
+        // parameter_sampling->snapshot_parameters = snapshot_parameters;
+        pcout << "snapshot_parameters" << std::endl;
+        pcout << snapshot_parameters << std::endl;
     }
     else{
-        std::cout << "File with snapshots not found in folder" << std::endl;
+        pcout << "File with snapshots not found in folder" << std::endl;
         return -1;
     }
     getROMPoints(rom_points, all_parameters);
-    std::cout << "ROM Locations" << std::endl;
-    std::cout << rom_points << std::endl; 
+    pcout << "ROM Locations" << std::endl;
+    pcout << rom_points << std::endl; 
     parameter_sampling->placeROMLocations(rom_points);
 
     // Output Error Table like an iteration in the adaptive sampling procedure

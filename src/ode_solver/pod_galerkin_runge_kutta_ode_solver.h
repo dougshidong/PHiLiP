@@ -22,6 +22,7 @@ class PODGalerkingRungeKuttaODESolver: public RungeKuttaBase <dim, real, n_rk_st
 public:
     PODGalerkingRungeKuttaODESolver(std::shared_ptr< DGBase<dim, real, MeshType> > dg_input,
             std::shared_ptr<RKTableauBase<dim,real,MeshType>> rk_tableau_input,
+            std::shared_ptr<EmptyRRKBase<dim,real,MeshType>> RRK_object_input,
             std::shared_ptr<ProperOrthogonalDecomposition::PODBase<dim>> pod); ///< Constructor.
 
     /// Destructor

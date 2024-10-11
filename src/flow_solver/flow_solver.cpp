@@ -6,6 +6,7 @@
 #include <vector>
 #include <sstream>
 #include "reduced_order/pod_basis_offline.h"
+#include "reduced_order/pod_basis_online.h"
 #include "physics/initial_conditions/set_initial_condition.h"
 #include "mesh/mesh_adaptation/mesh_adaptation.h"
 #include <deal.II/base/timer.h>
@@ -50,19 +51,7 @@ FlowSolver<dim, nstate>::FlowSolver(
         dg->allocate_system(false,false,false);
     }
 
-    if(ode_param.ode_solver_type == Parameters::ODESolverParam::pod_galerkin_solver || 
-       ode_param.ode_solver_type == Parameters::ODESolverParam::pod_petrov_galerkin_solver ||
-       ode_param.ode_solver_type == Parameters::ODESolverParam::pod_galerkin_runge_kutta_solver){
-        std::shared_ptr<ProperOrthogonalDecomposition::OfflinePOD<dim>> pod = std::make_shared<ProperOrthogonalDecomposition::OfflinePOD<dim>>(dg);
-        ode_solver = ODE::ODESolverFactory<dim, double>::create_ODESolver(dg, pod);
-    }
-    else{
-        ode_solver = ODE::ODESolverFactory<dim, double>::create_ODESolver(dg);
-    }
 
-
-
-    }
     flow_solver_case->display_flow_solver_setup(dg);
 
     if(flow_solver_param.restart_computation_from_file == true) {
@@ -96,13 +85,29 @@ FlowSolver<dim, nstate>::FlowSolver(
         SetInitialCondition<dim,nstate,double>::set_initial_condition(flow_solver_case->initial_condition_function, dg, &all_param);
     }
     dg->solution.update_ghost_values();
-    
+
+    if(ode_param.ode_solver_type == Parameters::ODESolverParam::pod_galerkin_solver || 
+       ode_param.ode_solver_type == Parameters::ODESolverParam::pod_petrov_galerkin_solver ||
+       ode_param.ode_solver_type == Parameters::ODESolverParam::pod_galerkin_runge_kutta_solver){
+        std::shared_ptr<ProperOrthogonalDecomposition::OfflinePOD<dim>> pod = std::make_shared<ProperOrthogonalDecomposition::OfflinePOD<dim>>(dg);
+        ode_solver = ODE::ODESolverFactory<dim, double>::create_ODESolver(dg, pod);
+    } else {
+        ode_solver = ODE::ODESolverFactory<dim, double>::create_ODESolver(dg);
+    }
+
     // Allocate ODE solver after initializing DG
     ode_solver->allocate_ode_system();
 
     // Storing a time_dependent POD
-    if(all_param.reduced_order_param.number_modes != 0){
-        time_pod = std::make_shared<ProperOrthogonalDecomposition::OnlinePOD<dim>>(dg);
+    const bool unsteady_FOM_POD_bool = all_param.reduced_order_param.output_snapshot_every_x_timesteps != 0 && !(ode_param.ode_solver_type == Parameters::ODESolverParam::pod_galerkin_solver || 
+       ode_param.ode_solver_type == Parameters::ODESolverParam::pod_petrov_galerkin_solver ||
+       ode_param.ode_solver_type == Parameters::ODESolverParam::pod_galerkin_runge_kutta_solver);
+    if(unsteady_FOM_POD_bool){
+        std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> system_matrix = std::make_shared<dealii::TrilinosWrappers::SparseMatrix>();
+        system_matrix->copy_from(dg->system_matrix);
+        // I do not like what I did above. I just copied the system matrix, stored it in a shared pointer, then pass it below.
+        // This will double the memory requirement of the system_matrix...
+        time_pod = std::make_shared<ProperOrthogonalDecomposition::OnlinePOD<dim>>(system_matrix); 
         time_pod->addSnapshot(dg->solution);
     }
 
@@ -420,6 +425,10 @@ int FlowSolver<dim,nstate>::run() const
             dg->output_results_vtk(ode_solver->current_iteration);
         }
     }
+    // Boolean to store solutions in POD object
+    const bool unsteady_FOM_POD_bool = all_param.reduced_order_param.output_snapshot_every_x_timesteps != 0 && !(ode_param.ode_solver_type == Parameters::ODESolverParam::pod_galerkin_solver || 
+       ode_param.ode_solver_type == Parameters::ODESolverParam::pod_petrov_galerkin_solver ||
+       ode_param.ode_solver_type == Parameters::ODESolverParam::pod_galerkin_runge_kutta_solver);
 
     // Index of current desired fixed time to output solution
     unsigned int index_of_current_desired_fixed_time_to_output_solution = 0;
@@ -597,15 +606,15 @@ int FlowSolver<dim,nstate>::run() const
                 }
             }
             // Add snapshots to snapshot matrix
-            if(all_param.reduced_order_param.output_snapshot_every_x_timesteps > 0){
+            if(unsteady_FOM_POD_bool){
                 const bool is_snapshot_iteration = (ode_solver->current_iteration % all_param.reduced_order_param.output_snapshot_every_x_timesteps == 0);
                 if(is_snapshot_iteration) time_pod->addSnapshot(dg->solution);
             }
         } // close while
 
         // Print POD Snapshots to file
-        if(all_param.reduced_order_param.output_snapshot_every_x_timesteps > 0){
-            std::ofstream snapshot_file("solution_snapshots_iteration_" + std::to_string(ode_solver->current_iteration) + ".txt");
+        if(unsteady_FOM_POD_bool){
+            std::ofstream snapshot_file("solution_snapshots_iteration_" + std::to_string(ode_solver->current_iteration) + ".txt"); // Change ode_solver->current_iteration to size of matrix
             unsigned int precision = 16;
             time_pod->dealiiSnapshotMatrix.print_formatted(snapshot_file, precision, true, 0, "0"); 
             snapshot_file.close();

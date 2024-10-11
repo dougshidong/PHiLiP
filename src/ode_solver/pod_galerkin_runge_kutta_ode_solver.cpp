@@ -11,8 +11,9 @@ namespace ODE {
 template <int dim, typename real, int n_rk_stages, typename MeshType>
 PODGalerkingRungeKuttaODESolver<dim,real,n_rk_stages,MeshType>::PODGalerkingRungeKuttaODESolver(std::shared_ptr< DGBase<dim, real, MeshType> > dg_input,
             std::shared_ptr<RKTableauBase<dim,real,MeshType>> rk_tableau_input,
+            std::shared_ptr<EmptyRRKBase<dim,real,MeshType>> RRK_object_input,
             std::shared_ptr<ProperOrthogonalDecomposition::PODBase<dim>> pod) 
-            : RungeKuttaBase<dim,real,n_rk_stages,MeshType>(dg_input, nullptr)
+            : RungeKuttaBase<dim,real,n_rk_stages,MeshType>(dg_input, RRK_object_input)
             , butcher_tableau(rk_tableau_input)
             , epetra_pod_basis(pod->getPODBasis()->trilinos_matrix())
             , epetra_system_matrix(Epetra_DataAccess::View, epetra_pod_basis.RowMap(), epetra_pod_basis.NumGlobalRows())

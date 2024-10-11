@@ -238,6 +238,7 @@ std::shared_ptr<ODESolverBase<dim,real,MeshType>> ODESolverFactory<dim,real,Mesh
     dealii::ConditionalOStream pcout(std::cout, dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD)==0);
 
     std::shared_ptr<RKTableauBase<dim,real,MeshType>> rk_tableau = create_RKTableau(dg_input);
+    std::shared_ptr<EmptyRRKBase<dim,real,MeshType>> RRK_object = create_RRKObject(dg_input, rk_tableau);
 
     const int n_rk_stages = dg_input->all_parameters->ode_solver_param.n_rk_stages;
     using ODEEnum = Parameters::ODESolverParam::ODESolverEnum;
@@ -247,16 +248,16 @@ std::shared_ptr<ODESolverBase<dim,real,MeshType>> ODESolverFactory<dim,real,Mesh
         pcout << "Creating Galerkin Runge Kutta ODE Solver with " 
               << n_rk_stages << " stage(s)..." << std::endl;
         if (n_rk_stages == 1){
-            return std::make_shared<PODGalerkingRungeKuttaODESolver<dim,real,1,MeshType>>(dg_input,rk_tableau,pod);
+            return std::make_shared<PODGalerkingRungeKuttaODESolver<dim,real,1,MeshType>>(dg_input,rk_tableau,RRK_object,pod);
         }
         else if (n_rk_stages == 2){
-            return std::make_shared<PODGalerkingRungeKuttaODESolver<dim,real,2,MeshType>>(dg_input,rk_tableau,pod);
+            return std::make_shared<PODGalerkingRungeKuttaODESolver<dim,real,2,MeshType>>(dg_input,rk_tableau,RRK_object,pod);
         }
         else if (n_rk_stages == 3){
-            return std::make_shared<PODGalerkingRungeKuttaODESolver<dim,real,3,MeshType>>(dg_input,rk_tableau,pod);
+            return std::make_shared<PODGalerkingRungeKuttaODESolver<dim,real,3,MeshType>>(dg_input,rk_tableau,RRK_object,pod);
         }
         else if (n_rk_stages == 4){
-            return std::make_shared<PODGalerkingRungeKuttaODESolver<dim,real,4,MeshType>>(dg_input,rk_tableau,pod);
+            return std::make_shared<PODGalerkingRungeKuttaODESolver<dim,real,4,MeshType>>(dg_input,rk_tableau,RRK_object,pod);
         }
         else{
             pcout << "Error: invalid number of stages. Aborting..." << std::endl;

@@ -14,7 +14,12 @@
 
 #include "functional.h"
 #include "dg/dg_base.hpp"
+#include "mesh/meshmover_linear_elasticity.hpp"
 #include "physics/physics.h"
+
+#include <deal.II/lac/trilinos_sparse_matrix.h>
+
+#include "optimization/design_parameterization/ffd_parameterization.hpp"
 
 namespace PHiLiP {
 
@@ -54,6 +59,15 @@ public:
 
     /// Function to evaluate objective gradient wrt volume nodes.
     void compute_dIdXv();
+    
+    /// Function to evaluate volume nodes gradient wrt surface nodes.
+    void compute_dXvdXs(std::shared_ptr<HighOrderGrid<dim,real>> _high_order_grid);
+
+    /// Function to evaluate surface nodes gradient wrt ffd nodes.
+    void compute_dXsdXd(std::shared_ptr<HighOrderGrid<dim,real>> _high_order_grid);
+
+    /// Function to evaluate objective function gradient wrt ffd nodes.
+    void compute_dIdXd(std::shared_ptr<HighOrderGrid<dim,real>> _high_order_grid);
 
     /// Outputs the adjoint solutions.
     /** Similar to DGBase::output_results_vtk() but generates separate file only includes the adjoint solutions and dIdw.
@@ -71,6 +85,14 @@ public:
     dealii::LinearAlgebra::distributed::Vector<real> dIdw;
     /// functional derivative wrt volume nodes
     dealii::LinearAlgebra::distributed::Vector<real> dIdXv;
+    /// functional derivative wrt surface nodes
+    dealii::LinearAlgebra::distributed::Vector<real> dIdXs;
+    /// functional derivative wrt FFD nodes
+    dealii::LinearAlgebra::distributed::Vector<real> dIdXd;
+    /// volume nodes derivative wrt surface nodes
+    dealii::TrilinosWrappers::SparseMatrix dXvdXs;
+    /// surface nodes derivative wrt FFD nodes
+    dealii::TrilinosWrappers::SparseMatrix dXsdXd;
     /// adjoint (\f$\psi_h\f$)
     dealii::LinearAlgebra::distributed::Vector<real> adjoint;
 

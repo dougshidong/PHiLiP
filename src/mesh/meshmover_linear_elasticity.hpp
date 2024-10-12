@@ -54,7 +54,7 @@ namespace MeshMover
         /** Evaluates the analytical derivatives of volume displacements with respect
          *  to surface displacements.
          */
-  void evaluate_dXvdXs();
+    void evaluate_dXvdXs();
 
         /** Apply the analytical derivatives of volume displacements with respect
          *  to surface displacements onto a set of various right-hand sides.
@@ -74,7 +74,7 @@ namespace MeshMover
          *  volume_nodes (which include the prescribed surface nodes).
          */
         void
-        apply_dXvdXvs(const dealii::LinearAlgebra::distributed::Vector<double> &input_vector, dealii::LinearAlgebra::distributed::Vector<double> &output_vector);
+        apply_dXvdXvs_vector(const dealii::LinearAlgebra::distributed::Vector<double> &input_vector, dealii::LinearAlgebra::distributed::Vector<double> &output_vector);
 
         /** Apply the transposed analytical derivatives of volume displacements with respect
          *  to surface displacements onto a right-hand sides.
@@ -105,7 +105,7 @@ namespace MeshMover
 
         // /** Sparse matrix containing the dXvdXs sensititivies.
         //  */
-        // dealii::TrilinosWrappers::SparseMatrix<double> dXvdXs_matrix;
+        dealii::TrilinosWrappers::SparseMatrix dXvdXs_matrix;
 
       private:
         /// Allocation and boundary condition setup.

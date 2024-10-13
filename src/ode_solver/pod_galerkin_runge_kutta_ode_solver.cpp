@@ -53,7 +53,7 @@ void PODGalerkingRungeKuttaODESolver<dim,real,n_rk_stages,MeshType>::obtain_stag
     this->dg->assemble_residual(); //RHS : du/dt = RHS = F(u_n + dt* sum(a_ij*V*k_j) + dt * a_ii * u^(i)))
 
     if(this->all_parameters->use_inverse_mass_on_the_fly){
-        assert(1 == 0 && "Not Implemented: use_inverse_mass_on_the_fly=true && ode_solver_type=pod_galerkin_rk_solver");
+        assert(1 == 0 && "Not Implemented: use_inverse_mass_on_the_fly=true && ode_solver_type=pod_galerkin_rk_solver\n Please set use_inverse_mass_on_the_fly=false and try again");
     } else{
         // Creating Reduced RHS
         dealii::LinearAlgebra::distributed::Vector<double> dealii_reduced_stage_i;
@@ -180,9 +180,6 @@ std::shared_ptr<Epetra_CrsMatrix> PODGalerkingRungeKuttaODESolver<dim,real,n_rk_
 template <int dim, typename real, int n_rk_stages, typename MeshType>
 std::shared_ptr<Epetra_CrsMatrix> PODGalerkingRungeKuttaODESolver<dim,real,n_rk_stages,MeshType>::generate_reduced_lhs(const Epetra_CrsMatrix &system_matrix, const Epetra_CrsMatrix &test_basis)
 {   
-    //std::ofstream system_file("system.txt");
-    //epetra_reduced_lhs_tmp.Print(std::cout);
-    //system_matrix.Print(system_file);
     if (test_basis.RowMap().SameAs(system_matrix.RowMap()) && test_basis.NumGlobalRows() == system_matrix.NumGlobalRows()){
         Epetra_CrsMatrix epetra_reduced_lhs(Epetra_DataAccess::Copy, test_basis.DomainMap(), test_basis.NumGlobalCols()); // Consider Changing to copy
         Epetra_CrsMatrix epetra_reduced_lhs_tmp(Epetra_DataAccess::Copy, system_matrix.RowMap(), test_basis.NumGlobalCols());
@@ -190,15 +187,12 @@ std::shared_ptr<Epetra_CrsMatrix> PODGalerkingRungeKuttaODESolver<dim,real,n_rk_
         if (EpetraExt::MatrixMatrix::Multiply(system_matrix, false, test_basis, false, epetra_reduced_lhs_tmp) != 0){
             std::cerr << "Error in first Matrix Multiplication" << std::endl;
             return nullptr;
-        }; // Memory leak
-        
-        //epetra_reduced_lhs_tmp.Print(std::cout);
+        }; // Memory leak, maybe
         std::cout << "Second Matrix Multiply" << std::endl;
         if (EpetraExt::MatrixMatrix::Multiply(test_basis, true, epetra_reduced_lhs_tmp, false, epetra_reduced_lhs) != 0){
             std::cerr << "Error in second Matrix Multiplication" << std::endl;
             return nullptr;
-        }; // Memory leak
-        //epetra_reduced_lhs.Print(system_file);
+        }; // Memory leak, maybe
         std::cout << "Returning" << std::endl;
         return std::make_shared<Epetra_CrsMatrix>(epetra_reduced_lhs);
     } else {
@@ -243,12 +237,11 @@ void PODGalerkingRungeKuttaODESolver<dim,real,n_rk_stages,MeshType>::epetra_to_d
                                                                              dealii::IndexSet index_set)
 {
     const Epetra_BlockMap &epetra_map = epetra_vector.Map();
-    dealii_vector.reinit(index_set,this->mpi_communicator); // Need one for different size (reduced), one approach is to take in an IndexSet
+    dealii_vector.reinit(index_set,this->mpi_communicator);
     for(int i = 0; i < epetra_map.NumMyElements();++i){
-        int epetra_global_idx = epetra_map.GID(i);
-        int dealii_global_idx = epetra_global_idx;
-        if(dealii_vector.in_local_range(dealii_global_idx)){
-            dealii_vector[dealii_global_idx] = epetra_vector[epetra_global_idx];
+        int global_idx = epetra_map.GID(i);
+        if(dealii_vector.in_local_range(global_idx)){
+            dealii_vector[global_idx] = epetra_vector[i];
         }
     }
     dealii_vector.compress(dealii::VectorOperation::insert);

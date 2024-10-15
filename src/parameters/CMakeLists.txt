@@ -16,6 +16,7 @@ set(SOURCE
     parameters_mesh_adaptation.cpp
     parameters_burgers.cpp
     parameters_time_refinement_study.cpp
+	parameters_boundary_layer_extraction.cpp
     all_parameters.cpp)
 
 # Output library

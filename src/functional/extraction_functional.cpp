@@ -25,7 +25,7 @@ ExtractionFunctional<dim,nstate,real,MeshType>
     , navier_stokes_real(dynamic_cast< Physics::NavierStokes<dim,dim+2,real> &>(*(PHiLiP::Physics::PhysicsFactory<dim,dim+2,real>::create_Physics(this->dg->all_parameters, Parameters::AllParameters::PartialDifferentialEquation::navier_stokes))))
 {
     if (nstate==dim+3){
-        rans_sa_neg_real = std::dynamic_pointer_cast< Physics::ReynoldsAveragedNavierStokes_SAneg<dim,dim+3,real> >(PHiLiP::Physics::ModelFactory<dim,dim+3,real>::create_Model(this->dg->all_parameters)); 
+        //rans_sa_neg_real = std::dynamic_pointer_cast< Physics::ReynoldsAveragedNavierStokes_SAneg<dim,dim+3,real> >(PHiLiP::Physics::ModelFactory<dim,dim+3,real>::create_Model(this->dg->all_parameters)); 
     }
 
     const auto extraction_cell = dealii::GridTools::find_active_cell_around_point(*(this->dg->triangulation),start_point);
@@ -188,7 +188,7 @@ real ExtractionFunctional<dim,nstate,real,MeshType>
     if constexpr(nstate==dim+2){
         ns_soln_at_q = soln_at_q;
     } else if constexpr(nstate==dim+3){
-        ns_soln_at_q = rans_sa_neg_real->extract_rans_conservative_solution(soln_at_q);
+        //ns_soln_at_q = rans_sa_neg_real->extract_rans_conservative_solution(soln_at_q);
     } else {
         std::cout << "ERROR: Extraction functional only support nstate == dim+2 or dim+3..." << std::endl;
         std::abort();
@@ -212,7 +212,7 @@ real ExtractionFunctional<dim,nstate,real,MeshType>
     if constexpr(nstate==dim+2){
         ns_soln_at_q = soln_at_q;
     } else if constexpr(nstate==dim+3){
-        ns_soln_at_q = rans_sa_neg_real->extract_rans_conservative_solution(soln_at_q);
+        //ns_soln_at_q = rans_sa_neg_real->extract_rans_conservative_solution(soln_at_q);
     } else {
         std::cout << "ERROR: Extraction functional only support nstate == dim+2 or dim+3..." << std::endl;
         std::abort();
@@ -256,7 +256,7 @@ real ExtractionFunctional<dim,nstate,real,MeshType>
         if constexpr(nstate==dim+2){
             ns_soln_of_sampling = soln_of_sampling[i];
         } else if constexpr(nstate==dim+3){
-            ns_soln_of_sampling = rans_sa_neg_real->extract_rans_conservative_solution(soln_of_sampling[i]);
+            //ns_soln_of_sampling = rans_sa_neg_real->extract_rans_conservative_solution(soln_of_sampling[i]);
         } else {
             std::cout << "ERROR: Extraction functional only support nstate == dim+2 or dim+3..." << std::endl;
             std::abort();
@@ -281,8 +281,8 @@ real ExtractionFunctional<dim,nstate,real,MeshType>
         ns_soln_at_start_point = this->soln_at_start_point;
         ns_soln_grad_at_start_point = this->soln_grad_at_start_point;
     } else if constexpr(nstate==dim+3){
-        ns_soln_at_start_point = rans_sa_neg_real->extract_rans_conservative_solution(this->soln_at_start_point);
-        ns_soln_grad_at_start_point = rans_sa_neg_real->extract_rans_solution_gradient(this->soln_grad_at_start_point);
+        //ns_soln_at_start_point = rans_sa_neg_real->extract_rans_conservative_solution(this->soln_at_start_point);
+        //ns_soln_grad_at_start_point = rans_sa_neg_real->extract_rans_solution_gradient(this->soln_grad_at_start_point);
     } else {
         std::cout << "ERROR: Extraction functional only support nstate == dim+2 or dim+3..." << std::endl;
         std::abort();
@@ -313,8 +313,8 @@ real ExtractionFunctional<dim,nstate,real,MeshType>
             ns_soln_of_sampling = this->soln_of_sampling[i];
             ns_soln_grad_of_sampling = this->soln_grad_of_sampling[i];
         } else if constexpr(nstate==dim+3){
-            ns_soln_of_sampling = rans_sa_neg_real->extract_rans_conservative_solution(this->soln_of_sampling[i]);
-            ns_soln_grad_of_sampling = rans_sa_neg_real->extract_rans_solution_gradient(this->soln_grad_of_sampling[i]);
+            //ns_soln_of_sampling = rans_sa_neg_real->extract_rans_conservative_solution(this->soln_of_sampling[i]);
+            //ns_soln_grad_of_sampling = rans_sa_neg_real->extract_rans_solution_gradient(this->soln_grad_of_sampling[i]);
         } else {
             std::cout << "ERROR: Extraction functional only support nstate == dim+2 or dim+3..." << std::endl;
             std::abort();
@@ -353,7 +353,7 @@ real ExtractionFunctional<dim,nstate,real,MeshType>
     if constexpr(nstate==dim+2){
         ns_soln_of_sampling = soln_of_sampling[0];
     } else if constexpr(nstate==dim+3){
-        ns_soln_of_sampling = rans_sa_neg_real->extract_rans_conservative_solution(soln_of_sampling[0]);
+        //ns_soln_of_sampling = rans_sa_neg_real->extract_rans_conservative_solution(soln_of_sampling[0]);
     } else {
         std::cout << "ERROR: Extraction functional only support nstate == dim+2 or dim+3..." << std::endl;
         std::abort();
@@ -363,7 +363,7 @@ real ExtractionFunctional<dim,nstate,real,MeshType>
         if constexpr(nstate==dim+2){
             ns_soln_of_sampling = soln_of_sampling[i];
         } else if constexpr(nstate==dim+3){
-            ns_soln_of_sampling = rans_sa_neg_real->extract_rans_conservative_solution(soln_of_sampling[i]);
+            //ns_soln_of_sampling = rans_sa_neg_real->extract_rans_conservative_solution(soln_of_sampling[i]);
         } else {
             std::cout << "ERROR: Extraction functional only support nstate == dim+2 or dim+3..." << std::endl;
             std::abort();
@@ -391,8 +391,8 @@ real ExtractionFunctional<dim,nstate,real,MeshType>
         ns_soln_of_sampling = soln_of_sampling[1];
         ns_soln_grad_of_sampling = soln_grad_of_sampling[1];
     } else if constexpr(nstate==dim+3){
-        ns_soln_of_sampling = rans_sa_neg_real->extract_rans_conservative_solution(soln_of_sampling[1]);
-        ns_soln_grad_of_sampling = rans_sa_neg_real->extract_rans_solution_gradient(soln_grad_of_sampling[1]);
+        //ns_soln_of_sampling = rans_sa_neg_real->extract_rans_conservative_solution(soln_of_sampling[1]);
+        //ns_soln_grad_of_sampling = rans_sa_neg_real->extract_rans_solution_gradient(soln_grad_of_sampling[1]);
     } else {
         std::cout << "ERROR: Extraction functional only support nstate == dim+2 or dim+3..." << std::endl;
         std::abort();
@@ -415,7 +415,7 @@ void ExtractionFunctional<dim,nstate,real,MeshType>
     if constexpr(nstate==dim+2){
         ns_soln_of_sampling = soln_of_sampling[0];
     } else if constexpr(nstate==dim+3){
-        ns_soln_of_sampling = rans_sa_neg_real->extract_rans_conservative_solution(soln_of_sampling[0]);
+        //ns_soln_of_sampling = rans_sa_neg_real->extract_rans_conservative_solution(soln_of_sampling[0]);
     } else {
         std::cout << "ERROR: Extraction functional only support nstate == dim+2 or dim+3..." << std::endl;
         std::abort();
@@ -426,7 +426,7 @@ void ExtractionFunctional<dim,nstate,real,MeshType>
         if constexpr(nstate==dim+2){
             ns_soln_of_sampling = soln_of_sampling[i];
         } else if constexpr(nstate==dim+3){
-            ns_soln_of_sampling = rans_sa_neg_real->extract_rans_conservative_solution(soln_of_sampling[i]);
+            //ns_soln_of_sampling = rans_sa_neg_real->extract_rans_conservative_solution(soln_of_sampling[i]);
         } else {
             std::cout << "ERROR: Extraction functional only support nstate == dim+2 or dim+3..." << std::endl;
             std::abort();
@@ -451,7 +451,7 @@ void ExtractionFunctional<dim,nstate,real,MeshType>
 // -- ExtractionFunctional
 #if PHILIP_DIM!=1
 template class ExtractionFunctional <PHILIP_DIM, PHILIP_DIM+2, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
-template class ExtractionFunctional <PHILIP_DIM, PHILIP_DIM+3, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+//template class ExtractionFunctional <PHILIP_DIM, PHILIP_DIM+3, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
 #endif
 
 } // PHiLiP namespace

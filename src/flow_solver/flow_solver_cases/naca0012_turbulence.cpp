@@ -15,6 +15,8 @@
 #include "mesh/grids/naca_airfoil_grid.hpp"
 #include "mesh/gmsh_reader.hpp"
 #include "functional/lift_drag.hpp"
+#include "functional/extraction_functional.hpp"
+#include "functional/amiet_model.hpp"
 
 namespace PHiLiP {
 namespace FlowSolver {
@@ -476,6 +478,65 @@ void NACA0012_LES<dim, nstate>::compute_unsteady_data_and_write_to_table(
             if(this->index_of_current_desired_time_to_output_velocity_field 
                 < (this->number_of_times_to_output_velocity_field-1)) {
                 this->index_of_current_desired_time_to_output_velocity_field += 1;
+            }
+        }
+    }
+
+    bool output_velocity_field_at_fixed_location = true;
+    // Output velocity field at fixed location along airfoil surface
+    if(output_velocity_field_at_fixed_location) {
+        if constexpr(nstate!=1){
+            dealii::Point<dim,double> extraction_point;
+            if constexpr(dim==2){
+                extraction_point[0] = this->all_param.boundary_layer_extraction_param.extraction_point_x;
+                extraction_point[1] = this->all_param.boundary_layer_extraction_param.extraction_point_y;
+            } else if constexpr(dim==3){
+                extraction_point[0] = this->all_param.boundary_layer_extraction_param.extraction_point_x;
+                extraction_point[1] = this->all_param.boundary_layer_extraction_param.extraction_point_y;
+                extraction_point[2] = this->all_param.boundary_layer_extraction_param.extraction_point_z;
+            }
+            int number_of_sampling = this->all_param.boundary_layer_extraction_param.number_of_sampling;
+
+            ExtractionFunctional<dim,nstate,double,Triangulation> boundary_layer_extraction(dg, extraction_point, number_of_sampling);
+
+            const double time_step = this->get_time_step();
+            const double next_time = current_time + time_step;
+            const double desired_time = this->output_velocity_field_times[this->index_of_current_desired_time_to_output_velocity_field];
+            // Check if current time is an output time
+            bool is_output_time = false; // default initialization
+            if(this->output_solution_at_exact_fixed_times) {
+                is_output_time = current_time == desired_time;
+            } else {
+                is_output_time = ((current_time<=desired_time) && (next_time>desired_time));
+            }
+            if(is_output_time) {
+                const double displacement_thickness = boundary_layer_extraction.evaluate_displacement_thickness();
+
+                const double momentum_thickness = boundary_layer_extraction.evaluate_momentum_thickness();
+
+                const double edge_velocity = boundary_layer_extraction.evaluate_edge_velocity();
+
+                const double wall_shear_stress = boundary_layer_extraction.evaluate_wall_shear_stress();
+
+                const double maximum_shear_stress = boundary_layer_extraction.evaluate_maximum_shear_stress();
+
+                const double friction_velocity = boundary_layer_extraction.evaluate_friction_velocity();
+
+                const double boundary_layer_thickness = boundary_layer_extraction.evaluate_boundary_layer_thickness();
+
+                this->pcout << " Extracted displacement_thickness : "   << displacement_thickness   << std::endl;
+                this->pcout << " Extracted momentum_thickness : "       << momentum_thickness       << std::endl;
+                this->pcout << " Extracted edge_velocity : "            << edge_velocity            << std::endl;
+                this->pcout << " Extracted wall_shear_stress : "        << wall_shear_stress        << std::endl;
+                this->pcout << " Extracted maximum_shear_stress : "     << maximum_shear_stress     << std::endl;
+                this->pcout << " Extracted friction_velocity : "        << friction_velocity        << std::endl;
+                this->pcout << " Extracted boundary_layer_thickness : " << boundary_layer_thickness << std::endl;
+                
+                // Update index s.t. it never goes out of bounds
+                if(this->index_of_current_desired_time_to_output_velocity_field 
+                    < (this->number_of_times_to_output_velocity_field-1)) {
+                    this->index_of_current_desired_time_to_output_velocity_field += 1;
+                }
             }
         }
     }

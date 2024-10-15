@@ -336,6 +336,7 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
     Parameters::FlowSolverParam::declare_parameters (prm);
     Parameters::FunctionalParam::declare_parameters (prm);
     Parameters::TimeRefinementStudyParam::declare_parameters (prm);
+    Parameters::BoundaryLayerExtractionParam::declare_parameters (prm);
 
     pcout << "Done declaring inputs." << std::endl;
 }
@@ -576,6 +577,9 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
     
     pcout << "Parsing time refinement study subsection..." << std::endl;
     time_refinement_study_param.parse_parameters (prm);
+
+    pcout << "Parsing boundary layer extraction subsection..." << std::endl;
+    boundary_layer_extraction_param.parse_parameters (prm);
 
     pcout << "Done parsing." << std::endl;
 

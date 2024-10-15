@@ -694,7 +694,7 @@ template <int dim, int nstate, typename real, typename MeshType>
 void Functional<dim,nstate,real,MeshType>::need_compute(bool &compute_value, bool &compute_dIdW, bool &compute_dIdX, bool &compute_d2I)
 {
     if (compute_value) {
-        pcout << " with value...";
+        //pcout << " with value...";
 
         if (dg->solution.size() == solution_value.size() 
             && dg->high_order_grid->volume_nodes.size() == volume_nodes_value.size()) {
@@ -809,9 +809,9 @@ real Functional<dim, nstate, real, MeshType>::evaluate_functional(
     bool actually_compute_dIdX = compute_dIdX;
     bool actually_compute_d2I  = compute_d2I;
 
-    pcout << "Evaluating functional... ";
+    //pcout << "Evaluating functional... ";
     need_compute(actually_compute_value, actually_compute_dIdW, actually_compute_dIdX, actually_compute_d2I);
-    pcout << std::endl;
+    //pcout << std::endl;
 
     if (!actually_compute_value && !actually_compute_dIdW && !actually_compute_dIdX && !actually_compute_d2I) {
         return current_functional_value;

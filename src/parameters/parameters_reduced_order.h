@@ -22,6 +22,9 @@ public:
     /// Number of Halton sequence points to add to initial snapshot set
     int num_halton;
 
+    /// Path to search for lhs snapshots (should contain snapshot_table)
+    std::string lhs_snap_path;
+
     /// Recomputation parameter for adaptive sampling algorithm
     int recomputation_coefficient;
 

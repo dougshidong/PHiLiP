@@ -54,17 +54,17 @@ void ROMTestLocation<dim, nstate>::compute_FOM_to_initial_ROM_error(){
 
     Parameters::LinearSolverParam linear_solver_param;
 
-    // linear_solver_param.max_iterations = 1000;
-    // linear_solver_param.restart_number = 200;
-    // linear_solver_param.linear_residual = 1e-17;
-    // linear_solver_param.ilut_fill = 50;
-    // linear_solver_param.ilut_drop = 1e-8;
-    // linear_solver_param.ilut_atol = 1e-5;
-    // linear_solver_param.ilut_rtol = 1.0+1e-2;
+    linear_solver_param.max_iterations = 1000;
+    linear_solver_param.restart_number = 200;
+    linear_solver_param.linear_residual = 1e-17;
+    linear_solver_param.ilut_fill = 50;
+    linear_solver_param.ilut_drop = 1e-8;
+    linear_solver_param.ilut_atol = 1e-5;
+    linear_solver_param.ilut_rtol = 1.0+1e-2;
     // linear_solver_param.linear_solver_output = Parameters::OutputEnum::verbose;
-    // linear_solver_param.linear_solver_type = Parameters::LinearSolverParam::LinearSolverEnum::gmres;
+    linear_solver_param.linear_solver_type = Parameters::LinearSolverParam::LinearSolverEnum::gmres;
 
-    linear_solver_param.linear_solver_type = Parameters::LinearSolverParam::direct;
+    // linear_solver_param.linear_solver_type = Parameters::LinearSolverParam::direct;
     solve_linear(system_matrix_transpose, gradient*=-1.0, adjoint, linear_solver_param);
 
     //Compute dual weighted residual

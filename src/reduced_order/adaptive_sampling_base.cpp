@@ -7,6 +7,7 @@
 #include "reduced_order_solution.h"
 #include "flow_solver/flow_solver.h"
 #include "flow_solver/flow_solver_factory.h"
+#include "testing/rom_import_helper_functions.h"
 #include <cmath>
 #include "rbf_interpolation.h"
 #include "ROL_Algorithm.hpp"
@@ -339,6 +340,14 @@ void AdaptiveSamplingBase<dim, nstate>::configureInitialParameterSpace() const
             }
         }
         delete [] seq;
+
+        std::string path = all_parameters->reduced_order_param.lhs_snap_path;
+        this->pcout << path << std::endl;
+        if(!path.empty()){
+            this->pcout << "LHS Points " << std::endl;
+            std::string path = all_parameters->reduced_order_param.lhs_snap_path;
+            Tests::getSnapshotParamsFromFile(snapshot_parameters, path);
+        }
 
         this->pcout << snapshot_parameters << std::endl;
     }

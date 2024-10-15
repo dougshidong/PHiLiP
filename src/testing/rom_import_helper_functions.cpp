@@ -52,9 +52,17 @@ bool getSnapshotParamsFromFile(Eigen::MatrixXd& snapshot_parameters, std::string
                 
             }
 
-            snapshot_parameters.conservativeResize(rows, snapshot_parameters.cols()+cols);
-
-            int row = 0;
+            int row;
+            if (snapshot_parameters.rows() == 0){
+                row = 0;
+               snapshot_parameters.conservativeResize(rows, snapshot_parameters.cols()+cols);
+                
+            }
+            else{
+                row = snapshot_parameters.rows(); 
+                snapshot_parameters.conservativeResize(snapshot_parameters.rows() + rows, snapshot_parameters.cols());
+            }
+            
             myfile.clear();
             myfile.seekg(0); //Bring back to beginning of file
             //Second loop set to build solutions matrix

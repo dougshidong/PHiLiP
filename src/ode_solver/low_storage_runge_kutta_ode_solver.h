@@ -47,10 +47,10 @@ public:
     void allocate_runge_kutta_system () override;
 
     /// Function to calculate stage
-    void calculate_stages (int i, real dt, const bool pseudotime) override;
+    void calculate_stage_solution (int istage, real dt, const bool pseudotime) override;
 
     /// Function to obtain stage
-    void obtain_stage (int i, real dt) override;
+    void calculate_stage_derivative (int istage, real dt) override;
 
     /// Function to sum stages and add to dg->solution
     void sum_stages (real dt, const bool pseudotime) override;

@@ -17,10 +17,10 @@ void RungeKuttaBase<dim, real, n_rk_stages, MeshType>::step_in_time(real dt, con
 {
     this->original_time_step = dt;
     this->solution_update = this->dg->solution; //storing u_n
-    for (int i = 0; i < n_rk_stages; ++i){
-        this->calculate_stages(i, dt, pseudotime); // u_n + dt * sum(a_ij * k_j) <explicit> + dt * a_ii * u^(i) <implicit>
-        this->apply_limiter(); // Might need to change for LSRK
-        this->obtain_stage(i, dt); //rk_stage[i] = IMM*RHS = F(u_n + dt*sum(a_ij*k_j))
+    for (int istage = 0; istage < n_rk_stages; ++istage){
+        this->calculate_stage_solution(istage, dt, pseudotime); // u_n + dt * sum(a_ij * k_j) <explicit> + dt * a_ii * u^(istage) <implicit>
+        this->apply_limiter();
+        this->calculate_stage_derivative(istage, dt); //rk_stage[istage] = IMM*RHS = F(u_n + dt*sum(a_ij*k_j))
     }
     dt = this->adjust_time_step(dt);
     this->sum_stages(dt, pseudotime); // u_np1 = u_n + dt* sum(k_i * b_i)
@@ -41,8 +41,8 @@ void RungeKuttaBase<dim, real, n_rk_stages, MeshType>::allocate_ode_system()
     this->pcout << std::endl;
     
     this->rk_stage.resize(n_rk_stages);
-    for (int i=0; i<n_rk_stages; ++i) {
-        this->rk_stage[i].reinit(this->dg->solution);
+    for (int istage=0; istage<n_rk_stages; ++istage) {
+        this->rk_stage[istage].reinit(this->dg->solution);
     }
 
     this->allocate_runge_kutta_system();

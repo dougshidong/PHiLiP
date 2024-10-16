@@ -17,22 +17,22 @@ template <int dim, typename real, int n_rk_stages, typename MeshType = dealii::T
 #else
 template <int dim, typename real, int n_rk_stages, typename MeshType = dealii::parallel::distributed::Triangulation<dim>>
 #endif
-class PODGalerkingRungeKuttaODESolver: public RungeKuttaBase <dim, real, n_rk_stages, MeshType>
+class PODGalerkinRungeKuttaODESolver: public RungeKuttaBase <dim, real, n_rk_stages, MeshType>
 {
 public:
-    PODGalerkingRungeKuttaODESolver(std::shared_ptr< DGBase<dim, real, MeshType> > dg_input,
+    PODGalerkinRungeKuttaODESolver(std::shared_ptr< DGBase<dim, real, MeshType> > dg_input,
             std::shared_ptr<RKTableauBase<dim,real,MeshType>> rk_tableau_input,
             std::shared_ptr<EmptyRRKBase<dim,real,MeshType>> RRK_object_input,
             std::shared_ptr<ProperOrthogonalDecomposition::PODBase<dim>> pod); ///< Constructor.
 
     /// Destructor
-    virtual ~PODGalerkingRungeKuttaODESolver() {};
+    virtual ~PODGalerkinRungeKuttaODESolver() override {};
 
     void allocate_runge_kutta_system () override;
 
-    void calculate_stages (int i, real dt, const bool pseudotime) override;
+    void calculate_stage_solution (int istage, real dt, const bool pseudotime) override;
 
-    void obtain_stage (int i, real dt) override;
+    void calculate_stage_derivative (int istage, real dt) override;
 
     void sum_stages (real dt, const bool pseudotime) override;
 
@@ -73,11 +73,16 @@ protected:
 
 private:
     /// Function to multiply a dealii vector by an Epetra Matrix
-    int multiply(Epetra_CrsMatrix &epetra_matrix, dealii::LinearAlgebra::distributed::Vector<double> &input_dealii_vector,
-                 dealii::LinearAlgebra::distributed::Vector<double> &output_dealii_vector, dealii::IndexSet index_set, bool transpose);
+    int multiply(Epetra_CrsMatrix &epetra_matrix,
+                 dealii::LinearAlgebra::distributed::Vector<double> &input_dealii_vector,
+                 dealii::LinearAlgebra::distributed::Vector<double> &output_dealii_vector,
+                 const dealii::IndexSet &index_set,
+                 const bool transpose);
 
     /// Function to convert a epetra_vector to dealii
-    void epetra_to_dealii(Epetra_Vector &epetra_vector, dealii::LinearAlgebra::distributed::Vector<double> &dealii_vector, dealii::IndexSet index_set);
+    void epetra_to_dealii(Epetra_Vector &epetra_vector,
+                          dealii::LinearAlgebra::distributed::Vector<double> &dealii_vector,
+                          const dealii::IndexSet &index_set);
 };
 
 } // ODE namespace

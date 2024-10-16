@@ -23,19 +23,19 @@ public:
             std::shared_ptr<EmptyRRKBase<dim,real,MeshType>> RRK_object_input); ///< Constructor.
 
     /// Function to evaluate solution update
-    void step_in_time(real dt, const bool pseudotime);
+    void step_in_time(real dt, const bool pseudotime) override;
 
-    /// Function to allocate the ODE system
-    void allocate_ode_system ();
+    /// Function to allocate storage for the RK stages and previous solution storage.
+    void allocate_ode_system () override;
 
     /// Function for Specific RK allocation
     virtual void allocate_runge_kutta_system () = 0; 
 
     /// Function to calculate stage
-    virtual void calculate_stages (int i, real dt, const bool pseudotime) = 0;            
+    virtual void calculate_stage_solution (int istage, real dt, const bool pseudotime) = 0;
 
     /// Function to obtain stage
-    virtual void obtain_stage (int i, real dt) = 0;                
+    virtual void calculate_stage_derivative (int istage, real dt) = 0;
 
     /// Function to sum stages and add to dg->solution
     virtual void sum_stages (real dt, const bool pseudotime) = 0;                  

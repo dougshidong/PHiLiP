@@ -134,10 +134,16 @@ add_test(
 # =======================================
 # Unsteady Galerkin POD Runge-Kutta
 # =======================================
-# Estimated run time: 300s
+# Estimated run time: 125s
 configure_file(unsteady_reduced_order_testing.prm unsteady_reduced_order_testing.prm COPYONLY)
 add_test(
         NAME 2D_UNSTEADY_GALERKIN_RK
-        COMMAND mpirun -np 1 ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_2D -i ${CMAKE_CURRENT_BINARY_DIR}/unsteady_reduced_order_testing.prm
+        COMMAND 
+        bash -c
+        "
+        rm *.txt;
+        mpirun -np 8 ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_2D -i ${CMAKE_CURRENT_BINARY_DIR}/unsteady_reduced_order_testing.prm
+        "
         WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
+        
 )

@@ -248,16 +248,16 @@ std::shared_ptr<ODESolverBase<dim,real,MeshType>> ODESolverFactory<dim,real,Mesh
         pcout << "Creating Galerkin Runge Kutta ODE Solver with " 
               << n_rk_stages << " stage(s)..." << std::endl;
         if (n_rk_stages == 1){
-            return std::make_shared<PODGalerkingRungeKuttaODESolver<dim,real,1,MeshType>>(dg_input,rk_tableau,RRK_object,pod);
+            return std::make_shared<PODGalerkinRungeKuttaODESolver<dim,real,1,MeshType>>(dg_input,rk_tableau,RRK_object,pod);
         }
         else if (n_rk_stages == 2){
-            return std::make_shared<PODGalerkingRungeKuttaODESolver<dim,real,2,MeshType>>(dg_input,rk_tableau,RRK_object,pod);
+            return std::make_shared<PODGalerkinRungeKuttaODESolver<dim,real,2,MeshType>>(dg_input,rk_tableau,RRK_object,pod);
         }
         else if (n_rk_stages == 3){
-            return std::make_shared<PODGalerkingRungeKuttaODESolver<dim,real,3,MeshType>>(dg_input,rk_tableau,RRK_object,pod);
+            return std::make_shared<PODGalerkinRungeKuttaODESolver<dim,real,3,MeshType>>(dg_input,rk_tableau,RRK_object,pod);
         }
         else if (n_rk_stages == 4){
-            return std::make_shared<PODGalerkingRungeKuttaODESolver<dim,real,4,MeshType>>(dg_input,rk_tableau,RRK_object,pod);
+            return std::make_shared<PODGalerkinRungeKuttaODESolver<dim,real,4,MeshType>>(dg_input,rk_tableau,RRK_object,pod);
         }
         else{
             pcout << "Error: invalid number of stages. Aborting..." << std::endl;

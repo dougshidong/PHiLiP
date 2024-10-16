@@ -25,9 +25,9 @@ public:
 
     void allocate_runge_kutta_system () override;
 
-    void calculate_stages (int i, real dt, const bool pseudotime) override;
+    void calculate_stage_solution (int i, real dt, const bool pseudotime) override;
 
-    void obtain_stage (int i, real dt) override;
+    void calculate_stage_derivative (int i, real dt) override;
 
     void sum_stages (real dt, const bool pseudotime) override;
 

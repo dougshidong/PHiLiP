@@ -749,8 +749,8 @@ InitialConditionFunction_MultiSpecies_VortexAdvection<dim,nstate,real>
     // Note that Euler primitive/conservative vars are the same as NS
     PHiLiP::Parameters::AllParameters parameters_euler = *param;
     parameters_euler.pde_type = Parameters::AllParameters::PartialDifferentialEquation::real_gas;
-    this->real_gas_physics = std::dynamic_pointer_cast<Physics::RealGas<dim,dim+2+2-1,double>>( // TO DO: N_SPECIES, dim+2+3-1
-                Physics::PhysicsFactory<dim,dim+2+2-1,double>::create_Physics(&parameters_euler)); // TO DO: N_SPECIES, dim+2+3-1
+    this->real_gas_physics = std::dynamic_pointer_cast<Physics::RealGas<dim,dim+2+2-1,double>>( // Note: modify this when you change the number of species. nstate == dim+2+(nspecies)-1
+                Physics::PhysicsFactory<dim,dim+2+2-1,double>::create_Physics(&parameters_euler)); // Note: modify this when you change the number of species. nstate == dim+2+(nspecies)-1
 }
 template <int dim, int nstate, typename real>
 real InitialConditionFunction_MultiSpecies_VortexAdvection<dim,nstate,real>

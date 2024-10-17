@@ -811,10 +811,12 @@ real InitialConditionFunction_MultiSpecies_VortexAdvection<dim,nstate,real>
             // other species density (N2)
             value = y_H2;
         }
-        // if(istate==4){
-        //     // other species density (O2)
-        //     value = y_O2;
-        // }
+        if constexpr(nstate==dim+2+3-1) {
+            if(istate==4){
+            // other species density (O2)
+            value = y_O2;
+            }
+        }
     }
     return value;
 }

@@ -1402,17 +1402,9 @@ real InitialConditionFunction_MultiSpecies_TwoDimnsional_VortexAdvection<dim,nst
             y_O2 = 1.0 - y_H2;
             R_mixture = (y_H2*Rs[0] + y_O2*Rs[1])*this->real_gas_physics->R_ref;
         }
-        // For a 3 species test
-        if constexpr(nstate==dim+2+3-1) {
-            const real y_O2_0 = 0.101;
-            const real a_2 = 0.03;
-            y_O2 = (y_O2_0 - a_2*coeff*exp);
-            const real y_N2 = 1.0 - y_H2 - y_O2;
-            R_mixture = (y_H2*Rs[0] + y_O2*Rs[1] + y_N2*Rs[2])*this->real_gas_physics->R_ref;
-        }
         const real density = pressure/(R_mixture*temperature);
 
-        // dimnsionalized above, non-dimensionalized below
+        // dimnsionalized values above, non-dimensionalized values below
         if(istate==0) {
             // mixture density
             value = density / this->real_gas_physics->density_ref;
@@ -1719,7 +1711,7 @@ InitialConditionFactory<dim,nstate, real>::create_InitialConditionFunction(
             return std::make_shared<InitialConditionFunction_MultiSpecies_IsentropicEulerVortex<dim,nstate,real> >(param);
         }
     } else if (flow_type == FlowCaseEnum::multi_species_two_dimensional_vortex_advection) {
-        if constexpr (dim==2 && nstate==dim+2+2-1){ // TO DO: N_SPECIES
+        if constexpr (dim==2 && nstate==dim+2+2-1){ // Note: modify this when you change the number of species. nstate == dim+2+(nspecies)-1
             return std::make_shared<InitialConditionFunction_MultiSpecies_TwoDimnsional_VortexAdvection<dim,nstate,real> >(param);
         }
     } else if (flow_type == FlowCaseEnum::multi_species_fuel_drop_advection) {

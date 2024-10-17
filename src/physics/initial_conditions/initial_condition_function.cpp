@@ -658,8 +658,8 @@ InitialConditionFunction_AcousticWave_MultiSpecies<dim,nstate,real>
     // Note that Euler primitive/conservative vars are the same as NS
     PHiLiP::Parameters::AllParameters parameters_euler = *param;
     parameters_euler.pde_type = Parameters::AllParameters::PartialDifferentialEquation::real_gas;
-    this->real_gas_physics = std::dynamic_pointer_cast<Physics::RealGas<dim,dim+2+2-1,double>>( // TO DO: N_SPECIES
-                Physics::PhysicsFactory<dim,dim+2+2-1,double>::create_Physics(&parameters_euler)); // TO DO: N_SPECIES
+    this->real_gas_physics = std::dynamic_pointer_cast<Physics::RealGas<dim,dim+2+2-1,double>>( // Note: modify this when you change the number of species. nstate == dim+2+(nspecies)-1
+                Physics::PhysicsFactory<dim,dim+2+2-1,double>::create_Physics(&parameters_euler)); // Note: modify this when you change the number of species. nstate == dim+2+(nspecies)-1
 }
 template <int dim, int nstate, typename real>
 real InitialConditionFunction_AcousticWave_MultiSpecies<dim,nstate,real>
@@ -671,33 +671,25 @@ real InitialConditionFunction_AcousticWave_MultiSpecies<dim,nstate,real>
         const real x = point[0], y = point[1];
 
         if(istate==0) {
-            // mixture density
             value = 1.00;
         }
         if(istate==1) {
-            // x-velocity
-            // value = sin(x)*cos(y);
             value = 0.0;
         }
         if(istate==2) {
-            // y-velocity
-            // value = -cos(x)*sin(y);
             value = 0.0;
         }
         if(istate==3) {
-            // pressure
-            // value = 1.0/(this->gamma_gas*this->mach_inf_sqr) + (1.0/16.0)*(cos(2.0*x)+cos(2.0*y))*(2.0);
-            // value = 1.0 + (x-x+y-y);
             double const sigma = 0.5;
             double const pi = 6.28318530717958623200 / 2; // pi
             double const mu = 6.28318530717958623200 / 2 ; //max of x
             double fx = (1.0/sqrt(2.0*pi*sigma*sigma))*exp(-((x-mu)*(x-mu))/(2.0*(sigma*sigma)));
             double fy = (1.0/sqrt(2.0*pi*sigma*sigma))*exp(-((y-mu)*(y-mu))/(2.0*(sigma*sigma)));
             value = 1.0/(this->gamma_gas*this->mach_inf_sqr) + fx*fy;
-            value = value*3.0/3.0; // chnege this if you want to vary initial temperature 
+            value = value*3.0/3.0; // chaege this if you want to vary initial temperature 
         }
         if(istate==4){
-            // other species density (N2)
+            // species density (N2)
             value = 0.79;
         }
     }
@@ -1683,7 +1675,7 @@ InitialConditionFactory<dim,nstate, real>::create_InitialConditionFunction(
             return std::make_shared<InitialConditionFunction_AcousticWave_Species<dim,nstate,real> >(param);
         }
     } else if (flow_type == FlowCaseEnum::multi_species_acoustic_wave) {
-        if constexpr (dim==2 && nstate==dim+2+2-1){ // TO DO: N_SPECIES
+        if constexpr (dim==2 && nstate==dim+2+2-1){ // Note: modify this when you change the number of species. nstate == dim+2+(nspecies)-1
             return std::make_shared<InitialConditionFunction_AcousticWave_MultiSpecies<dim,nstate,real> >(param);
         }
     } else if (flow_type == FlowCaseEnum::multi_species_vortex_advection) {

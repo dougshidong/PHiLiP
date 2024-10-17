@@ -990,7 +990,7 @@ real InitialConditionFunction_Euler_VortexAdvection<dim,nstate,real>
         const real temperature = T_0 - (gamma_0-1.0)*big_gamma*big_gamma/(8.0*gamma_0*pi)*exp;
         const real density = pressure/(this->euler_physics->R_Air_Dim*temperature);
 
-        // dimnsionalized above, non-dimensionalized below
+        // dimnsionalized value above, non-dimensionalized value below
         if(istate==0) {
             // mixture density
             value = density / this->euler_physics->density_ref;

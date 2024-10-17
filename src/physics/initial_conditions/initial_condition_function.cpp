@@ -1240,8 +1240,8 @@ InitialConditionFunction_MultiSpecies_IsentropicEulerVortex<dim,nstate,real>
     // Note that Euler primitive/conservative vars are the same as NS
     PHiLiP::Parameters::AllParameters parameters_euler = *param;
     parameters_euler.pde_type = Parameters::AllParameters::PartialDifferentialEquation::real_gas;
-    this->real_gas_physics = std::dynamic_pointer_cast<Physics::RealGas<dim,dim+2+2-1,double>>( // TO DO: N_SPECIES
-                Physics::PhysicsFactory<dim,dim+2+2-1,double>::create_Physics(&parameters_euler)); // TO DO: N_SPECIES
+    this->real_gas_physics = std::dynamic_pointer_cast<Physics::RealGas<dim,dim+2+2-1,double>>( // Note: modify this when you change the number of species. nstate == dim+2+(nspecies)-1
+                Physics::PhysicsFactory<dim,dim+2+2-1,double>::create_Physics(&parameters_euler)); // Note: modify this when you change the number of species. nstate == dim+2+(nspecies)-1
 }
 template <int dim, int nstate, typename real>
 real InitialConditionFunction_MultiSpecies_IsentropicEulerVortex<dim,nstate,real>
@@ -1265,18 +1265,9 @@ real InitialConditionFunction_MultiSpecies_IsentropicEulerVortex<dim,nstate,real
         const real L = 10.0;
         const real alpha_N2 = 0.50*sin(pi/L*(x-x_0))+0.50;
         const real alpha_O2 = 1.0 - alpha_N2;
-
-        // const std::array Cp_s = this->real_gas_physics->compute_species_specific_Cp(this->real_gas_physics->temperature_ref);
-        // const std::array Cv_s = this->real_gas_physics->compute_species_specific_Cv(this->real_gas_physics->temperature_ref);
-        // const real gamma_N2 = Cp_s[0]/Cv_s[0];
-        // const real gamma_O2 = Cp_s[1]/Cv_s[1];
-
-        // TO DO MIXTURE GAMMA
         const real mixture_gamma = 1.4;
 
         const real f = (1.0 - (x-x_0)*(x-x_0) - (y-y_0)*(y-y_0)) / (2.0*radius*radius);
-        // const real density_N2 = pow( (1.0 - ((gamma_N2-1.0)*beta*beta*M*M/(8.0*pi*pi))*exp(2.0*f)), 1.0/(gamma_N2) );
-        // const real density_O2 = pow( (1.0 - ((gamma_O2-1.0)*beta*beta*M*M/(8.0*pi*pi))*exp(2.0*f)), 1.0/(gamma_O2) );
         const real density_N2 = alpha_N2*pow( (1.0 - ((mixture_gamma-1.0)*beta*beta*M*M/(8.0*pi*pi))*exp(2.0*f)), 1.0/(mixture_gamma-1.0) );
         const real density_O2 = alpha_O2*pow( (1.0 - ((mixture_gamma-1.0)*beta*beta*M*M/(8.0*pi*pi))*exp(2.0*f)), 1.0/(mixture_gamma-1.0) );
         const real mixture_density = density_N2 + density_O2;
@@ -1286,22 +1277,22 @@ real InitialConditionFunction_MultiSpecies_IsentropicEulerVortex<dim,nstate,real
         const real temperature_modification = 2.0;
         const real mixture_pressure = 1.0/(mixture_gamma*M*M)*pow(mixture_density,mixture_gamma) * temperature_modification;
 
-        // dimnsionalized above, non-dimensionalized below
+        // non-dimnsionalized values above, non-dimensionalized values below
         if(istate==0) {
             // mixture density
-            value = mixture_density;     // / this->real_gas_physics->density_ref;
+            value = mixture_density;
         }
         if(istate==1) {
             // x-velocity
-            value = u;    // / this->real_gas_physics->u_ref;
+            value = u;
         }
         if(istate==2) {
             // y-velocity
-            value = v;   // / this->real_gas_physics->u_ref;
+            value = v;
         }
         if(istate==3) {
             // pressure
-            value = mixture_pressure;    // / (this->real_gas_physics->density_ref*this->real_gas_physics->u_ref_sqr);
+            value = mixture_pressure;
         }
         if(istate==4){
             // other species density (N2)
@@ -1656,7 +1647,7 @@ InitialConditionFactory<dim,nstate, real>::create_InitialConditionFunction(
             return std::make_shared<InitialConditionFunction_Euler_BubbleAdvection<dim,nstate,real> >(param);
         }
     } else if (flow_type == FlowCaseEnum::multi_species_isentropic_euler_vortex) {
-        if constexpr (dim==2 && nstate==dim+2+2-1){ // TO DO: N_SPECIES
+        if constexpr (dim==2 && nstate==dim+2+2-1){ // Note: modify this when you change the number of species. nstate == dim+2+(nspecies)-1
             return std::make_shared<InitialConditionFunction_MultiSpecies_IsentropicEulerVortex<dim,nstate,real> >(param);
         }
     } else if (flow_type == FlowCaseEnum::multi_species_two_dimensional_vortex_advection) {

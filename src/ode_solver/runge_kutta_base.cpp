@@ -5,13 +5,18 @@ namespace ODE {
 
 template<int dim, typename real, int n_rk_stages, typename MeshType>
 RungeKuttaBase<dim, real, n_rk_stages, MeshType>::RungeKuttaBase(std::shared_ptr< DGBase<dim, real, MeshType> > dg_input,
-            std::shared_ptr<EmptyRRKBase<dim,real,MeshType>> RRK_object_input)
-            : ODESolverBase<dim,real,MeshType>(dg_input)
+            std::shared_ptr<EmptyRRKBase<dim,real,MeshType>> RRK_object_input,
+            std::shared_ptr<ProperOrthogonalDecomposition::PODBase<dim>> pod)
+            : ODESolverBase<dim,real,MeshType>(dg_input, pod)
             , relaxation_runge_kutta(RRK_object_input)
             , solver(dg_input)
 {}            
 
-
+template<int dim, typename real, int n_rk_stages, typename MeshType>
+RungeKuttaBase<dim, real, n_rk_stages, MeshType>::RungeKuttaBase(std::shared_ptr< DGBase<dim, real, MeshType> > dg_input,
+            std::shared_ptr<EmptyRRKBase<dim,real,MeshType>> RRK_object_input)
+            : RungeKuttaBase(dg_input, RRK_object_input, nullptr)
+{}
 template<int dim, typename real, int n_rk_stages, typename MeshType>
 void RungeKuttaBase<dim, real, n_rk_stages, MeshType>::step_in_time(real dt, const bool pseudotime)
 {

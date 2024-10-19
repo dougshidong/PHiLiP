@@ -20,7 +20,11 @@ class RungeKuttaBase: public ODESolverBase <dim, real, MeshType>
 {
 public:
     RungeKuttaBase(std::shared_ptr< DGBase<dim, real, MeshType> > dg_input,
-            std::shared_ptr<EmptyRRKBase<dim,real,MeshType>> RRK_object_input); ///< Constructor.
+            std::shared_ptr<EmptyRRKBase<dim,real,MeshType>> RRK_object_input,
+            std::shared_ptr<ProperOrthogonalDecomposition::PODBase<dim>> pod); ///< Default Constructor.
+
+    RungeKuttaBase(std::shared_ptr< DGBase<dim, real, MeshType> > dg_input,
+            std::shared_ptr<EmptyRRKBase<dim,real,MeshType>> RRK_object_input); ///< Constructor /wo POD
 
     /// Function to evaluate solution update
     void step_in_time(real dt, const bool pseudotime) override;

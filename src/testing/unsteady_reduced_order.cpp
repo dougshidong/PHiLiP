@@ -18,7 +18,7 @@ int UnsteadyReducedOrder<dim,nstate>::run_test() const
 {
     pcout << "Starting unsteady reduced-order test..." << std::endl;
     int testfail = 0;
-    
+
     // Creating FOM and Solve
     std::unique_ptr<FlowSolver::FlowSolver<dim,nstate>> flow_solver_full_order = FlowSolver::FlowSolverFactory<dim,nstate>::select_flow_case(all_parameters, parameter_handler);
     flow_solver_full_order->run();
@@ -31,17 +31,19 @@ int UnsteadyReducedOrder<dim,nstate>::run_test() const
 
     // Create ROM and Solve
     std::unique_ptr<FlowSolver::FlowSolver<dim,nstate>> flow_solver_galerkin = FlowSolver::FlowSolverFactory<dim,nstate>::select_flow_case(&ROM_param_const, parameter_handler);
+    const int modes = flow_solver_galerkin->ode_solver->pod->getPODBasis()->n();
     flow_solver_galerkin->run();
     
     dealii::LinearAlgebra::distributed::Vector<double> full_order_solution(flow_solver_full_order->dg->solution);
     dealii::LinearAlgebra::distributed::Vector<double> galerkin_solution(flow_solver_galerkin->dg->solution);
 
-    double galerkin_solution_error = ((galerkin_solution-=full_order_solution).l2_norm()/full_order_solution.l2_norm());
+    const double galerkin_solution_error = ((galerkin_solution-=full_order_solution).l2_norm()/full_order_solution.l2_norm());
     
     pcout << "Galerkin solution error: " << galerkin_solution_error << std::endl;
-    // Add test condition on size of POD Basis, should always be the same. As of this commit it is 30.
-    // More testing should be done on threshold to make sure it is working. Seems strange its always the size of the whole
     if (std::abs(galerkin_solution_error) > 2.5E-5) testfail = 1;
+
+    // Hard coding expected_modes based on past test results
+    if (constexpr int expected_modes = 30; modes != expected_modes) testfail = 1;
     return testfail;
 }
 

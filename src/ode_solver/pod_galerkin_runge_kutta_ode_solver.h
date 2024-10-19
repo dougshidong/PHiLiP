@@ -11,7 +11,17 @@
 namespace PHiLiP {
 namespace ODE {
 
-/// Runge-Kutta ODE solver (explicit or implicit) derived from ODESolver.
+/*  Reference for Galerkin Runge-Kutta see equations 3.9 through 3.11 in
+ *  Carlberg, K., Barone, M., & Antil, H. (2017). Galerkin v. least-squares Petrov–Galerkin projection in nonlinear model
+ *  reduction. Journal of Computational Physics, 330, 693–734. https://doi.org/10.1016/j.jcp.2016.10.033
+ *
+ *  This class preforms the Runge Kutta Method for a Galerkin POD Reduced order model.
+ *  This assumes that the test basis, W, is equal to the trail basis, i.e. W=V.
+ *  This then preforms the following:  V^T*M*V*du/dt = V^T*R
+ *
+ *  In this class, we are solving for the solution in the reduced order space and then project it back into the
+ *  Full order space
+ */
 #if PHILIP_DIM==1
 template <int dim, typename real, int n_rk_stages, typename MeshType = dealii::Triangulation<dim>>
 #else

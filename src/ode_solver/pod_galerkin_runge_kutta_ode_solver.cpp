@@ -12,7 +12,7 @@ PODGalerkinRungeKuttaODESolver<dim,real,n_rk_stages,MeshType>::PODGalerkinRungeK
             std::shared_ptr<RKTableauBase<dim,real,MeshType>> rk_tableau_input,
             std::shared_ptr<EmptyRRKBase<dim,real,MeshType>> RRK_object_input,
             std::shared_ptr<ProperOrthogonalDecomposition::PODBase<dim>> pod) 
-            : RungeKuttaBase<dim,real,n_rk_stages,MeshType>(dg_input, RRK_object_input)
+            : RungeKuttaBase<dim,real,n_rk_stages,MeshType>(dg_input, RRK_object_input, pod)
             , butcher_tableau(rk_tableau_input)
             , epetra_pod_basis(pod->getPODBasis()->trilinos_matrix())
             , epetra_system_matrix(Epetra_DataAccess::View, epetra_pod_basis.RowMap(), epetra_pod_basis.NumGlobalRows())
@@ -36,8 +36,7 @@ void PODGalerkinRungeKuttaODESolver<dim,real,n_rk_stages,MeshType>::calculate_st
     //dt * sum(a_ij * k_j)
     this->rk_stage[istage].add(1.0,this->solution_update);
     if (!this->butcher_tableau_aii_is_zero[istage]){
-        // Implicit, not sure on JFNK works for reduced order or not, assuming it does for now
-        std::cout << "Implicit, abort" << std::endl;
+        // Implicit, looks fine on testing
         this->solver.solve(dt*this->butcher_tableau->get_a(istage,istage), this->rk_stage[istage]);
         this->rk_stage[istage] = this->solver.current_solution_estimate;
     }
@@ -158,7 +157,7 @@ void PODGalerkinRungeKuttaODESolver<dim,real,n_rk_stages,MeshType>::allocate_run
         this->dg->evaluate_mass_matrices(true); // creates and stores global inverse mass matrix
     }
 
-     // parallelizing reduced RK Stage
+    // parallelizing reduced RK Stage
     reduced_index = dealii::IndexSet(reduced_map);
     solution_index = this->dg->solution.locally_owned_elements();
     this->reduced_rk_stage.resize(n_rk_stages);
@@ -180,17 +179,14 @@ std::shared_ptr<Epetra_CrsMatrix> PODGalerkinRungeKuttaODESolver<dim,real,n_rk_s
     if (test_basis.RowMap().SameAs(system_matrix.RowMap()) && test_basis.NumGlobalRows() == system_matrix.NumGlobalRows()){
         Epetra_CrsMatrix epetra_reduced_lhs(Epetra_DataAccess::Copy, test_basis.DomainMap(), test_basis.NumGlobalCols()); // Consider Changing to copy
         Epetra_CrsMatrix epetra_reduced_lhs_tmp(Epetra_DataAccess::Copy, system_matrix.RowMap(), test_basis.NumGlobalCols());
-        std::cout << "First Matrix Multiply" << std::endl;
         if (EpetraExt::MatrixMatrix::Multiply(system_matrix, false, test_basis, false, epetra_reduced_lhs_tmp) != 0){
             std::cerr << "Error in first Matrix Multiplication" << std::endl;
             return nullptr;
         }; // Memory leak, maybe
-        std::cout << "Second Matrix Multiply" << std::endl;
         if (EpetraExt::MatrixMatrix::Multiply(test_basis, true, epetra_reduced_lhs_tmp, false, epetra_reduced_lhs) != 0){
             std::cerr << "Error in second Matrix Multiplication" << std::endl;
             return nullptr;
         }; // Memory leak, maybe
-        std::cout << "Returning" << std::endl;
         return std::make_shared<Epetra_CrsMatrix>(epetra_reduced_lhs);
     } else {
         if(!(test_basis.RowMap().SameAs(system_matrix.RowMap()))){

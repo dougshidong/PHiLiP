@@ -141,8 +141,8 @@ add_test(
         COMMAND 
         bash -c
         "
-        rm *.txt;
-        mpirun -np 8 ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_2D -i ${CMAKE_CURRENT_BINARY_DIR}/unsteady_reduced_order_testing.prm
+        rm -f *.txt;
+        mpirun -np ${MPIMAX} ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_2D -i ${CMAKE_CURRENT_BINARY_DIR}/unsteady_reduced_order_testing.prm
         "
         WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
         

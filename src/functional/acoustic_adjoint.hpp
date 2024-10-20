@@ -87,6 +87,8 @@ public:
     dealii::LinearAlgebra::distributed::Vector<real> dIdXv;
     /// functional derivative wrt surface nodes
     dealii::LinearAlgebra::distributed::Vector<real> dIdXs;
+    /// vector containing values of dI_dXs for surface nodes and 0 for volume nodes.
+    dealii::LinearAlgebra::distributed::Vector<real> dI_dXs_total;
     /// functional derivative wrt FFD nodes
     dealii::LinearAlgebra::distributed::Vector<real> dIdXd;
     /// volume nodes derivative wrt surface nodes

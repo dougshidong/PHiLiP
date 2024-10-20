@@ -904,7 +904,7 @@ namespace MeshMover {
             unit_rhs_vector.push_back(unit_rhs);
             // unit_rhs_vector = unit_rhs;
         }
-        dealii::TrilinosWrappers::SparseMatrix dXvdXs_matrix;
+        //dealii::TrilinosWrappers::SparseMatrix dXvdXs_matrix;
         // dealii::LinearAlgebra::distributed::Vector<double> dXvdXs_matrix;
         apply_dXvdXvs(unit_rhs_vector, dXvdXs_matrix);
         // return dXvdXs_matrix;

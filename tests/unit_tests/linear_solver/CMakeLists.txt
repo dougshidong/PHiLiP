@@ -57,7 +57,9 @@ COMMAND ${MPIGO} $<TARGET_FILE:Tests.exe> maxIter)
 
 ADD_TEST(NAME NNLS_multi_core
 COMMAND mpirun -n ${MPIMAX} $<TARGET_FILE:Tests.exe> multiCore)
-
+SET_TESTS_PROPERTIES(NNLS_multi_core PROPERTIES LABELS NNLS
+        LABELS QUICK
+        LABELS UNIT_TEST)
 #set(TEST_SRC
 #	NNLS_tests.cpp)
 #

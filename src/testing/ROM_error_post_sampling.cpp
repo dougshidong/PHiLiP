@@ -49,11 +49,10 @@ int ROMErrorPostSampling<dim, nstate>::run_test() const
     parameter_sampling->current_pod->referenceState = pod_petrov_galerkin->referenceState;
     parameter_sampling->current_pod->snapshotMatrix = pod_petrov_galerkin->snapshotMatrix;
     snapshot_parameters(0,0);
-    parameter_sampling->snapshot_parameters = snapshot_parameters;
     std::string path = all_parameters->reduced_order_param.path_to_search; //Search specified directory for files containing "solutions_table"
     bool snap_found = getSnapshotParamsFromFile(snapshot_parameters, path);
     if (snap_found){
-        // parameter_sampling->snapshot_parameters = snapshot_parameters;
+        parameter_sampling->snapshot_parameters = snapshot_parameters;
         pcout << "snapshot_parameters" << std::endl;
         pcout << snapshot_parameters << std::endl;
     }
@@ -64,10 +63,8 @@ int ROMErrorPostSampling<dim, nstate>::run_test() const
     getROMPoints(rom_points, all_parameters);
     pcout << "ROM Locations" << std::endl;
     pcout << rom_points << std::endl; 
-    parameter_sampling->placeROMLocations(rom_points);
+    parameter_sampling->trueErrorROM(rom_points);
 
-    // Output Error Table like an iteration in the adaptive sampling procedure
-    parameter_sampling->outputIterationData("ROM_post_sampling");
     return 0;
 }
 

@@ -38,15 +38,18 @@ public:
 
     /// Run test
     int run_sampling () const override;
-    
+
     /// Compute RBF and find max error
     RowVectorXd getMaxErrorROM() const override;
 
-    /// Output for each iteration
-    void outputIterationData(std::string iteration) const override;
-
     /// Placement of ROMs
     bool placeROMLocations(const MatrixXd& rom_points, Epetra_Vector weights) const;
+
+    /// Compute true/actual error at all ROM points (error in functional between FOM and ROM solution)
+    void trueErrorROM(const MatrixXd& rom_points, Epetra_Vector weights) const;
+
+    /// Solve FOM and ROM, return error in functional between the models
+    double solveSnapshotROMandFOM(const RowVectorXd& parameter, Epetra_Vector weights) const;
 
     /// Updates nearest ROM points to snapshot if error discrepancy is above tolerance
     void updateNearestExistingROMs(const RowVectorXd& parameter, Epetra_Vector weights) const;
@@ -56,6 +59,9 @@ public:
 
     /// Copy all elements in matrix A to all cores
     Epetra_Vector allocateVectorToSingleCore(const Epetra_Vector &b) const;
+
+    /// Output for each iteration
+    void outputIterationData(std::string iteration) const override;
 
     /// Vector of parameter-HROMTestLocation pairs
     mutable std::vector<std::unique_ptr<ProperOrthogonalDecomposition::HROMTestLocation<dim,nstate>>> hrom_locations;

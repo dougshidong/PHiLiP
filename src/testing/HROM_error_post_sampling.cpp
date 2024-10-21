@@ -157,9 +157,8 @@ int HROMErrorPostSampling<dim, nstate>::run_test() const
         return -1;
     }
 
-    hyper_reduced_ROM_solver->placeROMLocations(rom_points, *ptr_weights);
+    hyper_reduced_ROM_solver->trueErrorROM(rom_points, *ptr_weights);
 
-    hyper_reduced_ROM_solver->outputIterationData("HROM_post_sampling");
     return 0;
 }
 

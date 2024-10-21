@@ -117,6 +117,62 @@ bool AdaptiveSampling<dim, nstate>::placeROMLocations(const MatrixXd& rom_points
 }
 
 template <int dim, int nstate>
+void AdaptiveSampling<dim, nstate>::trueErrorROM(const MatrixXd& rom_points) const{
+
+    std::unique_ptr<dealii::TableHandler> rom_table = std::make_unique<dealii::TableHandler>();
+
+    for(auto rom : rom_points.rowwise()){
+        for(int i = 0 ; i < rom_points.cols() ; i++){
+            rom_table->add_value(this->all_parameters->reduced_order_param.parameter_names[i], rom(i));
+            rom_table->set_precision(this->all_parameters->reduced_order_param.parameter_names[i], 16);
+        }
+        double error = solveSnapshotROMandFOM(rom);
+        this->pcout << "Error in the functional: " << error << std::endl;
+        rom_table->add_value("ROM_errors", error);
+        rom_table->set_precision("ROM_errors", 16);
+    }
+
+    std::ofstream rom_table_file("rom_table_iteration_ROM_post_sampling.txt");
+    rom_table->write_text(rom_table_file, dealii::TableHandler::TextOutputFormat::org_mode_table);
+    rom_table_file.close();
+}
+
+template <int dim, int nstate>
+double AdaptiveSampling<dim, nstate>::solveSnapshotROMandFOM(const RowVectorXd& parameter) const{
+    this->pcout << "Solving ROM at " << parameter << std::endl;
+    Parameters::AllParameters params = this->reinitParams(parameter);
+
+    std::unique_ptr<FlowSolver::FlowSolver<dim,nstate>> flow_solver_ROM = FlowSolver::FlowSolverFactory<dim,nstate>::select_flow_case(&params, this->parameter_handler);
+
+    // Solve implicit solution
+    auto ode_solver_type_ROM = Parameters::ODESolverParam::ODESolverEnum::pod_petrov_galerkin_solver;
+    flow_solver_ROM->ode_solver =  PHiLiP::ODE::ODESolverFactory<dim, double>::create_ODESolver_manual(ode_solver_type_ROM, flow_solver_ROM->dg, this->current_pod);
+    flow_solver_ROM->ode_solver->allocate_ode_system();
+    flow_solver_ROM->ode_solver->steady_state();
+
+    this->pcout << "Done solving ROM." << std::endl;
+
+    // Create functional
+    std::shared_ptr<Functional<dim,nstate,double>> functional_ROM = FunctionalFactory<dim,nstate,double>::create_Functional(params.functional_param, flow_solver_ROM->dg);
+
+    this->pcout << "Solving FOM at " << parameter << std::endl;
+
+    std::unique_ptr<FlowSolver::FlowSolver<dim,nstate>> flow_solver_FOM = FlowSolver::FlowSolverFactory<dim,nstate>::select_flow_case(&params, this->parameter_handler);
+
+    // Solve implicit solution
+    auto ode_solver_type = Parameters::ODESolverParam::ODESolverEnum::implicit_solver;
+    flow_solver_FOM->ode_solver =  PHiLiP::ODE::ODESolverFactory<dim, double>::create_ODESolver_manual(ode_solver_type, flow_solver_FOM->dg);
+    flow_solver_FOM->ode_solver->allocate_ode_system();
+    flow_solver_FOM->run();
+
+    // Create functional
+    std::shared_ptr<Functional<dim,nstate,double>> functional_FOM = FunctionalFactory<dim,nstate,double>::create_Functional(params.functional_param, flow_solver_FOM->dg);
+
+    this->pcout << "Done solving FOM." << std::endl;
+    return functional_ROM->evaluate_functional(false, false) - functional_FOM->evaluate_functional(false, false);
+}
+
+template <int dim, int nstate>
 void AdaptiveSampling<dim, nstate>::updateNearestExistingROMs(const RowVectorXd& /*parameter*/) const{
 
     this->pcout << "Verifying ROM points for recomputation." << std::endl;

@@ -42,6 +42,12 @@ public:
     /// Placement of ROMs
     bool placeROMLocations(const MatrixXd& rom_points, Epetra_Vector weights) const;
 
+    /// Compute true/actual error at all ROM points (error in functional between FOM and ROM solution)
+    void trueErrorROM(const MatrixXd& rom_points, Epetra_Vector weights) const;
+
+    /// Solve FOM and ROM, return error in functional between the models
+    double solveSnapshotROMandFOM(const RowVectorXd& parameter, Epetra_Vector weights) const;
+
     /// Updates nearest ROM points to snapshot if error discrepancy is above tolerance
     void updateNearestExistingROMs(const RowVectorXd& parameter, Epetra_Vector weights) const;
 

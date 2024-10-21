@@ -765,7 +765,7 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
         std::abort();
     }
 
-
+    //std::cout<<"Current cell_index: "<<current_cell_index<<"\n";
     assemble_volume_term_and_build_operators(
         current_cell,
         current_cell_index,
@@ -950,6 +950,8 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
             const real penalty2 = evaluate_penalty_scaling (neighbor_cell, neighbor_iface, fe_collection);
             const real penalty = 0.5 * (penalty1 + penalty2);
 
+            const std::vector<dealii::types::global_dof_index> neighbor_metric_dofs_indices_const = neighbor_metric_dofs_indices;
+
             const dealii::types::global_dof_index neighbor_cell_index = neighbor_cell->active_cell_index();
             const auto metric_neighbor_cell = current_metric_cell->neighbor(iface);
             metric_neighbor_cell->get_dof_indices(neighbor_metric_dofs_indices);
@@ -973,7 +975,7 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
                 current_dofs_indices,
                 neighbor_dofs_indices,
                 current_metric_dofs_indices,
-                neighbor_metric_dofs_indices,
+                neighbor_metric_dofs_indices_const,
                 poly_degree,
                 poly_degree_ext,
                 grid_degree,
@@ -1027,6 +1029,8 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
             const real penalty2 = evaluate_penalty_scaling (neighbor_cell, neighbor_iface, fe_collection);
             const real penalty = 0.5 * (penalty1 + penalty2);
 
+            const std::vector<dealii::types::global_dof_index> neighbor_metric_dofs_indices_const = neighbor_metric_dofs_indices;
+
             const dealii::types::global_dof_index neighbor_cell_index = neighbor_cell->active_cell_index();
             const auto metric_neighbor_cell = current_metric_cell->neighbor_or_periodic_neighbor(iface);
             metric_neighbor_cell->get_dof_indices(neighbor_metric_dofs_indices);
@@ -1051,7 +1055,7 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
                 current_dofs_indices,
                 neighbor_dofs_indices,
                 current_metric_dofs_indices,
-                neighbor_metric_dofs_indices,
+                neighbor_metric_dofs_indices_const,
                 poly_degree,
                 poly_degree_ext,
                 grid_degree,
@@ -1943,9 +1947,16 @@ void DGBase<dim,real,MeshType>::output_face_results_vtk (const unsigned int cycl
     // Let the physics post-processor determine what to output.
     const std::unique_ptr< dealii::DataPostprocessor<dim> > post_processor = Postprocess::PostprocessorFactory<dim>::create_Postprocessor(all_parameters);
     data_out.add_data_vector (solution, *post_processor);
+    // std::cout<<"computed post-processor for standard surface solution. \n";
+    // if (all_parameters->flow_solver_param.compute_time_averaged_solution && current_time > all_parameters->flow_solver_param.time_to_start_averaging) {
+    //     const std::unique_ptr< dealii::DataPostprocessor<dim> > post_processor_time_averaged = Postprocess::PostprocessorFactory<dim>::create_Postprocessor(all_parameters);
+    //     data_out.add_data_vector (time_averaged_solution, *post_processor_time_averaged);
+    //     std::cout<<"computed post-processor for time-averaged surface solution. \n";
+    // }
 
     NormalPostprocessor<dim> normals_post_processor;
     data_out.add_data_vector (solution, normals_post_processor);
+    //std::cout<<"computed post-processor for surface normals. \n";
 
     // Output the polynomial degree in each cell
     std::vector<unsigned int> active_fe_indices;
@@ -1954,6 +1965,9 @@ void DGBase<dim,real,MeshType>::output_face_results_vtk (const unsigned int cycl
     dealii::Vector<double> cell_poly_degree = active_fe_indices_dealiivector;
 
     data_out.add_data_vector (active_fe_indices_dealiivector, "PolynomialDegree", dealii::DataOut_DoFData<dealii::DoFHandler<dim>,dim-1,dim>::DataVectorType::type_cell_data);
+
+
+    // std::cout<<"computed post-processor for surface PolynomialDegree. \n";
 
     // Output absolute value of the residual so that we can visualize it on a logscale.
     std::vector<std::string> residual_names;
@@ -1990,6 +2004,7 @@ void DGBase<dim,real,MeshType>::output_face_results_vtk (const unsigned int cycl
     //const int n_subdivisions = max_degree+1;//+30; // if write_higher_order_cells, n_subdivisions represents the order of the cell
     //const int n_subdivisions = 1;//+30; // if write_higher_order_cells, n_subdivisions represents the order of the cell
     const int n_subdivisions = grid_degree;
+    //std::cout << "n_subdivisions surface: "<< n_subdivisions <<std::endl;
     data_out.build_patches(mapping, n_subdivisions);
     //const bool write_higher_order_cells = (dim>1 && max_degree > 1) ? true : false;
     const bool write_higher_order_cells = false;//(dim>1 && grid_degree > 1) ? true : false;
@@ -2019,6 +2034,7 @@ void DGBase<dim,real,MeshType>::output_face_results_vtk (const unsigned int cycl
         std::ofstream master_output(master_fn);
         data_out.write_pvtu_record(master_output, filenames);
     }
+    //std::cout << "Completed writing out file." << std::endl;
 
 }
 #endif
@@ -2064,7 +2080,12 @@ void DGBase<dim,real,MeshType>::output_results_vtk (const unsigned int cycle, co
     // Let the physics post-processor determine what to output.
     const std::unique_ptr< dealii::DataPostprocessor<dim> > post_processor = Postprocess::PostprocessorFactory<dim>::create_Postprocessor(all_parameters);
     data_out.add_data_vector (solution, *post_processor);
-
+    // std::cout<<"computed post-processor for standard solution. \n";
+    // if (all_parameters->flow_solver_param.compute_time_averaged_solution && current_time >= all_parameters->flow_solver_param.time_to_start_averaging) {
+    //     const std::unique_ptr< dealii::DataPostprocessor<dim> > post_processor_time_averaged = Postprocess::PostprocessorFactory<dim>::create_Postprocessor(all_parameters);
+    //     data_out.add_data_vector (time_averaged_solution, *post_processor_time_averaged);
+    //     std::cout<<"computed post-processor for time-averaged solution. \n";
+    // }
     // Output the polynomial degree in each cell
     std::vector<unsigned int> active_fe_indices;
     dof_handler.get_active_fe_indices(active_fe_indices);
@@ -2107,10 +2128,14 @@ void DGBase<dim,real,MeshType>::output_results_vtk (const unsigned int cycle, co
     const unsigned int grid_degree = high_order_grid->max_degree;
     // If higher-order vtk output is not enabled, passing 0 will be interpreted as DataOutInterface::default_subdivisions
     const int n_subdivisions = (enable_higher_order_vtk_output) ? std::max(grid_degree,get_max_fe_degree()) : 0;
+    //std::cout << "n_subdivisions: "<< n_subdivisions <<std::endl;
     data_out.build_patches(mapping, n_subdivisions, curved);
+    //std::cout << "build patches added to vector. "<< std::endl;
     const bool write_higher_order_cells = (n_subdivisions>1 && dim>1) ? true : false;
     dealii::DataOutBase::VtkFlags vtkflags(current_time,cycle,true,dealii::DataOutBase::VtkFlags::ZlibCompressionLevel::best_compression,write_higher_order_cells);
     data_out.set_flags(vtkflags);
+
+    // std::cout << "Added vtk flags. "<< std::endl;
 
     const int iproc = dealii::Utilities::MPI::this_mpi_process(mpi_communicator);
     std::string filename = this->all_parameters->solution_vtk_files_directory_name + "/" + "solution-" + dealii::Utilities::int_to_string(dim, 1) +"D_maxpoly"+dealii::Utilities::int_to_string(max_degree, 2)+"-";
@@ -2135,6 +2160,8 @@ void DGBase<dim,real,MeshType>::output_results_vtk (const unsigned int cycle, co
         std::ofstream master_output(master_fn);
         data_out.write_pvtu_record(master_output, filenames);
     }
+
+    //std::cout << "Completed writing out file." << std::endl;
 
 }
 

@@ -950,7 +950,7 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
             const real penalty2 = evaluate_penalty_scaling (neighbor_cell, neighbor_iface, fe_collection);
             const real penalty = 0.5 * (penalty1 + penalty2);
 
-            const std::vector<dealii::types::global_dof_index> neighbor_metric_dofs_indices_const = neighbor_metric_dofs_indices;
+            //const std::vector<dealii::types::global_dof_index> neighbor_metric_dofs_indices_const = neighbor_metric_dofs_indices;
 
             const dealii::types::global_dof_index neighbor_cell_index = neighbor_cell->active_cell_index();
             const auto metric_neighbor_cell = current_metric_cell->neighbor(iface);
@@ -975,7 +975,7 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
                 current_dofs_indices,
                 neighbor_dofs_indices,
                 current_metric_dofs_indices,
-                neighbor_metric_dofs_indices_const,
+                neighbor_metric_dofs_indices,
                 poly_degree,
                 poly_degree_ext,
                 grid_degree,
@@ -1029,7 +1029,7 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
             const real penalty2 = evaluate_penalty_scaling (neighbor_cell, neighbor_iface, fe_collection);
             const real penalty = 0.5 * (penalty1 + penalty2);
 
-            const std::vector<dealii::types::global_dof_index> neighbor_metric_dofs_indices_const = neighbor_metric_dofs_indices;
+            //const std::vector<dealii::types::global_dof_index> neighbor_metric_dofs_indices_const = neighbor_metric_dofs_indices;
 
             const dealii::types::global_dof_index neighbor_cell_index = neighbor_cell->active_cell_index();
             const auto metric_neighbor_cell = current_metric_cell->neighbor_or_periodic_neighbor(iface);
@@ -1055,7 +1055,7 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
                 current_dofs_indices,
                 neighbor_dofs_indices,
                 current_metric_dofs_indices,
-                neighbor_metric_dofs_indices_const,
+                neighbor_metric_dofs_indices,
                 poly_degree,
                 poly_degree_ext,
                 grid_degree,
@@ -1910,7 +1910,8 @@ public:
 
 
 template <int dim, typename real, typename MeshType>
-void DGBase<dim,real,MeshType>::output_face_results_vtk (const unsigned int cycle, const double current_time)// const
+void DGBase<dim,real,MeshType>::output_face_results_vtk (const unsigned int cycle, const double current_time, 
+                                                    const bool output_time_averaged_solution)// const
 {
 
     DataOutEulerFaces<dim, dealii::DoFHandler<dim>> data_out;
@@ -1946,13 +1947,13 @@ void DGBase<dim,real,MeshType>::output_face_results_vtk (const unsigned int cycl
 
     // Let the physics post-processor determine what to output.
     const std::unique_ptr< dealii::DataPostprocessor<dim> > post_processor = Postprocess::PostprocessorFactory<dim>::create_Postprocessor(all_parameters);
-    data_out.add_data_vector (solution, *post_processor);
-    // std::cout<<"computed post-processor for standard surface solution. \n";
-    // if (all_parameters->flow_solver_param.compute_time_averaged_solution && current_time > all_parameters->flow_solver_param.time_to_start_averaging) {
-    //     const std::unique_ptr< dealii::DataPostprocessor<dim> > post_processor_time_averaged = Postprocess::PostprocessorFactory<dim>::create_Postprocessor(all_parameters);
-    //     data_out.add_data_vector (time_averaged_solution, *post_processor_time_averaged);
-    //     std::cout<<"computed post-processor for time-averaged surface solution. \n";
-    // }
+    if(output_time_averaged_solution){
+        data_out.add_data_vector (time_averaged_solution, *post_processor);
+    } else {
+        data_out.add_data_vector (solution, *post_processor);
+    }
+    
+
 
     NormalPostprocessor<dim> normals_post_processor;
     data_out.add_data_vector (solution, normals_post_processor);
@@ -2012,7 +2013,9 @@ void DGBase<dim,real,MeshType>::output_face_results_vtk (const unsigned int cycl
     data_out.set_flags(vtkflags);
 
     const int iproc = dealii::Utilities::MPI::this_mpi_process(mpi_communicator);
-    std::string filename = this->all_parameters->solution_vtk_files_directory_name + "/" + "surface_solution-" + dealii::Utilities::int_to_string(dim, 1) +"D_maxpoly"+dealii::Utilities::int_to_string(max_degree, 2)+"-";
+    std::string filename_prefix = "surface_solution"; // default
+    if(output_time_averaged_solution) filename_prefix = "time_averaged_surface_solution";
+    std::string filename = this->all_parameters->solution_vtk_files_directory_name + "/" + filename_prefix + "-" + dealii::Utilities::int_to_string(dim, 1) +"D_maxpoly"+dealii::Utilities::int_to_string(max_degree, 2)+"-";
     filename += dealii::Utilities::int_to_string(cycle, 4) + ".";
     filename += dealii::Utilities::int_to_string(iproc, 4);
     filename += ".vtu";
@@ -2022,25 +2025,33 @@ void DGBase<dim,real,MeshType>::output_face_results_vtk (const unsigned int cycl
 
     if (iproc == 0) {
         std::vector<std::string> filenames;
-        for (unsigned int iproc = 0; iproc < dealii::Utilities::MPI::n_mpi_processes(mpi_communicator); ++iproc) {
-            std::string fn = "surface_solution-" + dealii::Utilities::int_to_string(dim, 1) +"D_maxpoly"+dealii::Utilities::int_to_string(max_degree, 2)+"-";
+        std::string filename_prefix = "surface_solution"; // default
+        if(output_time_averaged_solution) filename_prefix = "time_averaged_surface_solution";
+        for (unsigned int iproc = 0; iproc < dealii::Utilities::MPI::n_mpi_processes(mpi_communicator); ++iproc) {;
+            std::string fn = filename_prefix + "-" + dealii::Utilities::int_to_string(dim, 1) +"D_maxpoly"+dealii::Utilities::int_to_string(max_degree, 2)+"-";
             fn += dealii::Utilities::int_to_string(cycle, 4) + ".";
             fn += dealii::Utilities::int_to_string(iproc, 4);
             fn += ".vtu";
             filenames.push_back(fn);
         }
-        std::string master_fn = this->all_parameters->solution_vtk_files_directory_name + "/" + "surface_solution-" + dealii::Utilities::int_to_string(dim, 1) +"D_maxpoly"+dealii::Utilities::int_to_string(max_degree, 2)+"-";
+        std::string master_fn = this->all_parameters->solution_vtk_files_directory_name + "/" + filename_prefix + "-" + dealii::Utilities::int_to_string(dim, 1) +"D_maxpoly"+dealii::Utilities::int_to_string(max_degree, 2)+"-";
         master_fn += dealii::Utilities::int_to_string(cycle, 4) + ".pvtu";
         std::ofstream master_output(master_fn);
         data_out.write_pvtu_record(master_output, filenames);
     }
     //std::cout << "Completed writing out file." << std::endl;
+    if (all_parameters->flow_solver_param.compute_time_averaged_solution && 
+        (current_time >= all_parameters->flow_solver_param.time_to_start_averaging) && 
+        (output_time_averaged_solution == false)) {
+        output_face_results_vtk (cycle, current_time, true);
+    }
 
 }
 #endif
 
 template <int dim, typename real, typename MeshType>
-void DGBase<dim,real,MeshType>::output_results_vtk (const unsigned int cycle, const double current_time)// const
+void DGBase<dim,real,MeshType>::output_results_vtk (const unsigned int cycle, const double current_time, 
+                                                    const bool output_time_averaged_solution)// const
 {
 #if PHILIP_DIM>1
     if(this->all_parameters->output_face_results_vtk) output_face_results_vtk (cycle, current_time);
@@ -2079,13 +2090,12 @@ void DGBase<dim,real,MeshType>::output_results_vtk (const unsigned int cycle, co
 
     // Let the physics post-processor determine what to output.
     const std::unique_ptr< dealii::DataPostprocessor<dim> > post_processor = Postprocess::PostprocessorFactory<dim>::create_Postprocessor(all_parameters);
-    data_out.add_data_vector (solution, *post_processor);
-    // std::cout<<"computed post-processor for standard solution. \n";
-    // if (all_parameters->flow_solver_param.compute_time_averaged_solution && current_time >= all_parameters->flow_solver_param.time_to_start_averaging) {
-    //     const std::unique_ptr< dealii::DataPostprocessor<dim> > post_processor_time_averaged = Postprocess::PostprocessorFactory<dim>::create_Postprocessor(all_parameters);
-    //     data_out.add_data_vector (time_averaged_solution, *post_processor_time_averaged);
-    //     std::cout<<"computed post-processor for time-averaged solution. \n";
-    // }
+    if(output_time_averaged_solution){
+        data_out.add_data_vector (time_averaged_solution, *post_processor);
+    } else {
+        data_out.add_data_vector (solution, *post_processor);
+    }
+    
     // Output the polynomial degree in each cell
     std::vector<unsigned int> active_fe_indices;
     dof_handler.get_active_fe_indices(active_fe_indices);
@@ -2138,7 +2148,9 @@ void DGBase<dim,real,MeshType>::output_results_vtk (const unsigned int cycle, co
     // std::cout << "Added vtk flags. "<< std::endl;
 
     const int iproc = dealii::Utilities::MPI::this_mpi_process(mpi_communicator);
-    std::string filename = this->all_parameters->solution_vtk_files_directory_name + "/" + "solution-" + dealii::Utilities::int_to_string(dim, 1) +"D_maxpoly"+dealii::Utilities::int_to_string(max_degree, 2)+"-";
+    std::string filename_prefix = "solution"; // default
+    if(output_time_averaged_solution) filename_prefix = "time_averaged_solution";
+    std::string filename = this->all_parameters->solution_vtk_files_directory_name + "/" + filename_prefix + "-" + dealii::Utilities::int_to_string(dim, 1) +"D_maxpoly"+dealii::Utilities::int_to_string(max_degree, 2)+"-";
     filename += dealii::Utilities::int_to_string(cycle, 4) + ".";
     filename += dealii::Utilities::int_to_string(iproc, 4);
     filename += ".vtu";
@@ -2149,16 +2161,22 @@ void DGBase<dim,real,MeshType>::output_results_vtk (const unsigned int cycle, co
     if (iproc == 0) {
         std::vector<std::string> filenames;
         for (unsigned int iproc = 0; iproc < dealii::Utilities::MPI::n_mpi_processes(mpi_communicator); ++iproc) {
-            std::string fn = "solution-" + dealii::Utilities::int_to_string(dim, 1) +"D_maxpoly"+dealii::Utilities::int_to_string(max_degree, 2)+"-";
+            std::string fn = filename_prefix + "-" + dealii::Utilities::int_to_string(dim, 1) +"D_maxpoly"+dealii::Utilities::int_to_string(max_degree, 2)+"-";
             fn += dealii::Utilities::int_to_string(cycle, 4) + ".";
             fn += dealii::Utilities::int_to_string(iproc, 4);
             fn += ".vtu";
             filenames.push_back(fn);
         }
-        std::string master_fn = this->all_parameters->solution_vtk_files_directory_name + "/" + "solution-" + dealii::Utilities::int_to_string(dim, 1) +"D_maxpoly"+dealii::Utilities::int_to_string(max_degree, 2)+"-";
+        std::string master_fn = this->all_parameters->solution_vtk_files_directory_name + "/" + filename_prefix + "-" + dealii::Utilities::int_to_string(dim, 1) +"D_maxpoly"+dealii::Utilities::int_to_string(max_degree, 2)+"-";
         master_fn += dealii::Utilities::int_to_string(cycle, 4) + ".pvtu";
         std::ofstream master_output(master_fn);
         data_out.write_pvtu_record(master_output, filenames);
+    }
+
+    if (all_parameters->flow_solver_param.compute_time_averaged_solution && 
+        (current_time >= all_parameters->flow_solver_param.time_to_start_averaging) && 
+        (output_time_averaged_solution == false)) {
+        output_results_vtk (cycle, current_time, true);
     }
 
     //std::cout << "Completed writing out file." << std::endl;

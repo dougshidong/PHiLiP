@@ -2175,7 +2175,7 @@ void DGBase<dim,real,MeshType>::output_results_vtk (const unsigned int cycle, co
 
     if (all_parameters->flow_solver_param.compute_time_averaged_solution && 
         (current_time >= all_parameters->flow_solver_param.time_to_start_averaging) && 
-        (output_time_averaged_solution == false)) {
+        (output_time_averaged_solution == false))/*Only when false, such that it's not endlessly recursive*/ {
         output_results_vtk (cycle, current_time, true);
     }
 

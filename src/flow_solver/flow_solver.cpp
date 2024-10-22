@@ -521,9 +521,24 @@ int FlowSolver<dim,nstate>::run() const
 
             // advance solution
             ode_solver->step_in_time(time_step,false); // pseudotime==false
-            
-            if(flow_solver_param.compute_time_averaged_solution && ode_solver->current_time >= flow_solver_param.time_to_start_averaging) {
+            if(flow_solver_param.compute_time_averaged_solution && (ode_solver->current_time == flow_solver_param.time_to_start_averaging)) {
                 dg->time_averaged_solution +=  dg->solution;
+            }
+            else if(flow_solver_param.compute_time_averaged_solution && (ode_solver->current_time > flow_solver_param.time_to_start_averaging)) {
+                //dg->time_averaged_solution +=  dg->solution;
+                const unsigned int max_dofs_per_cell = dg->dof_handler.get_fe_collection().max_dofs_per_cell();
+                std::vector<dealii::types::global_dof_index> current_dofs_indices(max_dofs_per_cell);
+                auto metric_cell = dg->high_order_grid->dof_handler_grid.begin_active();
+                for (auto current_cell = dg->dof_handler.begin_active(); current_cell!=dg->dof_handler.end(); ++current_cell, ++metric_cell) {
+                    if (!current_cell->is_locally_owned()) continue;
+
+                    const unsigned int n_dofs_cell = dg->fe_collection[poly_degree].dofs_per_cell;                  
+                    current_dofs_indices.resize(n_dofs_cell);
+                    current_cell->get_dof_indices (current_dofs_indices);
+                    for(unsigned int idof=0; idof<n_dofs_cell; idof++){
+                        dg->time_averaged_solution(current_dofs_indices[idof]) = dg->time_averaged_solution(current_dofs_indices[idof]) + (dg->solution(current_dofs_indices[idof]) - dg->time_averaged_solution(current_dofs_indices[idof]))/((ode_solver->current_time - flow_solver_param.time_to_start_averaging + time_step) / time_step); //Incremental average
+                    }
+                }
             }
 
             // Compute the unsteady quantities, write to the dealii table, and output to file

@@ -20,6 +20,7 @@ add_test(
   COMMAND mpirun -n ${NMPI} ${EXECUTABLE_OUTPUT_PATH}/${TEST_TARGET}
   WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
 )
+set_tests_labels(${TEST_TARGET}_nmpi=${NMPI} OPTIMIZATION SERIAL QUICK UNIT_TEST)
 
 if(NOT NMPI EQUAL ${MPIMAX})
   set(NMPI ${MPIMAX})
@@ -28,6 +29,7 @@ if(NOT NMPI EQUAL ${MPIMAX})
     COMMAND mpirun -n ${NMPI} ${EXECUTABLE_OUTPUT_PATH}/${TEST_TARGET}
     WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
   )
+  set_tests_labels(${TEST_TARGET}_nmpi=${NMPI} OPTIMIZATION PARALLEL QUICK UNIT_TEST)
 endif()
 
 unset(TEST_TARGET)
@@ -67,6 +69,7 @@ add_test(
   COMMAND mpirun -n ${NMPI} ${EXECUTABLE_OUTPUT_PATH}/${TEST_TARGET}
   WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
 )
+set_tests_labels(${TEST_TARGET}_nmpi=${NMPI} ${dim}D OPTIMIZATION PARALLEL QUICK UNIT_TEST)
 unset(TEST_TARGET)
 
 set(TEST_SRC
@@ -105,6 +108,7 @@ add_test(
   COMMAND mpirun -n ${NMPI} ${EXECUTABLE_OUTPUT_PATH}/${TEST_TARGET}
   WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
 )
+set_tests_labels(${TEST_TARGET}_nmpi=${NMPI} ${dim}D OPTIMIZATION PARALLEL QUICK UNIT_TEST)
 unset(TEST_TARGET)
 
 ##################################################################################################################################
@@ -140,6 +144,7 @@ add_test(
   COMMAND mpirun -n ${NMPI} ${EXECUTABLE_OUTPUT_PATH}/${TEST_TARGET}
   WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
 )
+set_tests_labels(${TEST_TARGET}_nmpi=${NMPI} ${dim}D OPTIMIZATION PARALLEL QUICK UNIT_TEST)
 unset(TEST_TARGET)
 ##################################################################################################################################
 
@@ -177,6 +182,7 @@ add_test(
   COMMAND mpirun -n ${NMPI} ${EXECUTABLE_OUTPUT_PATH}/${TEST_TARGET}
   WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
 )
+set_tests_labels(${TEST_TARGET}_nmpi=${NMPI} ${dim}D OPTIMIZATION PARALLEL QUICK UNIT_TEST)
 unset(TEST_TARGET)
 ##################################################################################################################################
 
@@ -213,5 +219,6 @@ add_test(
   COMMAND mpirun -n ${NMPI} ${EXECUTABLE_OUTPUT_PATH}/${TEST_TARGET}
   WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
 )
+set_tests_labels(${TEST_TARGET}_nmpi=${NMPI} ${dim}D OPTIMIZATION PARALLEL QUICK UNIT_TEST)
 unset(TEST_TARGET)
 ##################################################################################################################################

@@ -32,7 +32,7 @@ foreach(dim RANGE 1 3)
       COMMAND mpirun -n 1 ${EXECUTABLE_OUTPUT_PATH}/${TEST_TARGET}
       WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
     )
-
+    set_tests_labels(${TEST_TARGET} ${dim}D REGRESSION SERIAL QUICK UNIT_TEST)
     unset(TEST_TARGET)
     unset(PhysicsLib)
     unset(NumericalFluxLib)

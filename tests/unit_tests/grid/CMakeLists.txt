@@ -37,7 +37,7 @@ foreach(dim RANGE 2 3)
       COMMAND mpirun -n ${MPIMAX} ${EXECUTABLE_OUTPUT_PATH}/${TEST_TARGET}
       WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
     )
-
+    set_tests_labels(${TEST_TARGET} ${dim}D GRID QUICK PARALLEL UNIT_TEST)
     unset(TEST_TARGET)
 
 endforeach()
@@ -72,7 +72,7 @@ foreach(dim RANGE 2 3)
       COMMAND mpirun -n ${MPIMAX} ${EXECUTABLE_OUTPUT_PATH}/${TEST_TARGET}
       WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
     )
-
+    set_tests_labels(${TEST_TARGET} ${dim}D GRID QUICK PARALLEL UNIT_TEST)
     unset(TEST_TARGET)
     unset(HighOrderGridLib)
 
@@ -111,6 +111,7 @@ add_test(
   COMMAND mpirun -n ${NMPI} ${EXECUTABLE_OUTPUT_PATH}/${TEST_TARGET}
   WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
 )
+set_tests_labels(${TEST_TARGET}_${LENGTH} ${dim}D GRID QUICK PARALLEL UNIT_TEST)
 unset(TEST_TARGET)
 unset(HighOrderGridLib)
 
@@ -147,6 +148,7 @@ add_test(
   COMMAND mpirun -n ${NMPI} ${EXECUTABLE_OUTPUT_PATH}/${TEST_TARGET}
   WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
 )
+set_tests_labels(${TEST_TARGET}_${LENGTH} ${dim}D GRID QUICK PARALLEL UNIT_TEST)
 unset(TEST_TARGET)
 unset(HighOrderGridLib)
 
@@ -183,6 +185,7 @@ add_test(
   COMMAND mpirun -n ${NMPI} ${EXECUTABLE_OUTPUT_PATH}/${TEST_TARGET}
   WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
 )
+set_tests_labels(${TEST_TARGET}_${LENGTH} ${dim}D GRID QUICK PARALLEL UNIT_TEST)
 unset(TEST_TARGET)
 unset(HighOrderGridLib)
 
@@ -230,7 +233,11 @@ foreach(dim RANGE 1 3)
       COMMAND mpirun -n ${NMPI} ${EXECUTABLE_OUTPUT_PATH}/${TEST_TARGET}
       WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
     )
-
+    if (dim EQUAL 1)
+        set_tests_labels(${TEST_TARGET}_${LENGTH} ${dim}D GRID SERIAL QUICK UNIT_TEST)
+    else ()
+        set_tests_labels(${TEST_TARGET}_${LENGTH} ${dim}D GRID PARALLEL QUICK UNIT_TEST)
+    endif()
     unset(TEST_TARGET)
     unset(HighOrderGridLib)
 
@@ -265,7 +272,7 @@ add_test(
   COMMAND mpirun -n ${MPIMAX} ${EXECUTABLE_OUTPUT_PATH}/${TEST_TARGET}
   WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
 )
-
+set_tests_labels(${TEST_TARGET} ${dim}D GRID PARALLEL QUICK UNIT_TEST)
 unset(TEST_TARGET)
 unset(HighOrderGridLib)
 

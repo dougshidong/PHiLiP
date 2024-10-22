@@ -43,6 +43,11 @@ foreach(dim RANGE 1 2)
       COMMAND mpirun -n ${NMPI} ${EXECUTABLE_OUTPUT_PATH}/${TEST_TARGET}
       WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
     )
+    if (dim EQUAL 1)
+        set_tests_labels(${TEST_TARGET} ${dim}D SENSITIVITIES SERIAL QUICK UNIT_TEST)
+    else ()
+        set_tests_labels(${TEST_TARGET} ${dim}D SENSITIVITIES PARALLEL QUICK UNIT_TEST)
+    endif()
 
     unset(TEST_TARGET)
     unset(ParametersLib)
@@ -87,7 +92,11 @@ foreach(dim RANGE 1 2)
       COMMAND mpirun -n ${NMPI} ${EXECUTABLE_OUTPUT_PATH}/${TEST_TARGET}
       WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
     )
-
+    if (dim EQUAL 1)
+        set_tests_labels(${TEST_TARGET} ${dim}D SENSITIVITIES SERIAL QUICK UNIT_TEST)
+    else ()
+        set_tests_labels(${TEST_TARGET} ${dim}D SENSITIVITIES PARALLEL QUICK UNIT_TEST)
+    endif()
     unset(TEST_TARGET)
     unset(ParametersLib)
 
@@ -138,7 +147,11 @@ foreach(dim RANGE 1 2)
       COMMAND mpirun -n ${NMPI} ${EXECUTABLE_OUTPUT_PATH}/${TEST_TARGET}
       WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
     )
-
+    if (dim EQUAL 1)
+        set_tests_labels(${TEST_TARGET} ${dim}D SENSITIVITIES SERIAL QUICK UNIT_TEST)
+    else ()
+        set_tests_labels(${TEST_TARGET} ${dim}D SENSITIVITIES PARALLEL QUICK UNIT_TEST)
+    endif()
     unset(TEST_TARGET)
     unset(ParametersLib)
     unset(DiscontinuousGalerkinLib)
@@ -191,7 +204,11 @@ foreach(dim RANGE 1 2)
       COMMAND mpirun -n ${NMPI} ${EXECUTABLE_OUTPUT_PATH}/${TEST_TARGET}
       WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
     )
-
+    if (dim EQUAL 1)
+        set_tests_labels(${TEST_TARGET} ${dim}D SENSITIVITIES SERIAL QUICK UNIT_TEST)
+    else ()
+        set_tests_labels(${TEST_TARGET} ${dim}D SENSITIVITIES PARALLEL QUICK UNIT_TEST)
+    endif()
     unset(TEST_TARGET)
     unset(ParametersLib)
     unset(DiscontinuousGalerkinLib)
@@ -244,7 +261,11 @@ foreach(dim RANGE 1 2)
       COMMAND mpirun -n ${NMPI} ${EXECUTABLE_OUTPUT_PATH}/${TEST_TARGET}
       WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
     )
-
+    if (dim EQUAL 1)
+        set_tests_labels(${TEST_TARGET} ${dim}D SENSITIVITIES SERIAL QUICK UNIT_TEST)
+    else ()
+        set_tests_labels(${TEST_TARGET} ${dim}D SENSITIVITIES PARALLEL QUICK UNIT_TEST)
+    endif()
     unset(TEST_TARGET)
     unset(ParametersLib)
 
@@ -287,7 +308,11 @@ foreach(dim RANGE 1 2)
       COMMAND mpirun -n ${NMPI} ${EXECUTABLE_OUTPUT_PATH}/${TEST_TARGET}
       WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
     )
-
+    if (dim EQUAL 1)
+        set_tests_labels(${TEST_TARGET} ${dim}D SENSITIVITIES SERIAL QUICK UNIT_TEST)
+    else ()
+        set_tests_labels(${TEST_TARGET} ${dim}D SENSITIVITIES PARALLEL QUICK UNIT_TEST)
+    endif()
     unset(TEST_TARGET)
     unset(ParametersLib)
 
@@ -333,7 +358,11 @@ foreach(dim RANGE 1 2)
       COMMAND mpirun -n ${NMPI} ${EXECUTABLE_OUTPUT_PATH}/${TEST_TARGET}
       WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
     )
-
+    if (dim EQUAL 1)
+        set_tests_labels(${TEST_TARGET} ${dim}D SENSITIVITIES SERIAL QUICK UNIT_TEST)
+    else ()
+        set_tests_labels(${TEST_TARGET} ${dim}D SENSITIVITIES PARALLEL QUICK UNIT_TEST)
+    endif()
     unset(TEST_TARGET)
     unset(ParametersLib)
     unset(GridsLib)
@@ -378,7 +407,11 @@ foreach(dim RANGE 1 2)
       COMMAND mpirun -n ${NMPI} ${EXECUTABLE_OUTPUT_PATH}/${TEST_TARGET}
       WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
     )
-
+    if (dim EQUAL 1)
+        set_tests_labels(${TEST_TARGET} ${dim}D SENSITIVITIES SERIAL QUICK UNIT_TEST)
+    else ()
+        set_tests_labels(${TEST_TARGET} ${dim}D SENSITIVITIES PARALLEL QUICK UNIT_TEST)
+    endif()
     unset(TEST_TARGET)
     unset(ParametersLib)
 
@@ -424,7 +457,11 @@ foreach(dim RANGE 1 3)
       COMMAND mpirun -n ${NMPI} ${EXECUTABLE_OUTPUT_PATH}/${TEST_TARGET}
       WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
     )
-
+    if (dim EQUAL 1)
+        set_tests_labels(${TEST_TARGET} ${dim}D SENSITIVITIES SERIAL QUICK UNIT_TEST)
+    else ()
+        set_tests_labels(${TEST_TARGET} ${dim}D SENSITIVITIES PARALLEL QUICK UNIT_TEST)
+    endif()
     unset(TEST_TARGET)
     unset(ParametersLib)
 
@@ -470,7 +507,11 @@ foreach(dim RANGE 1 2)
       COMMAND mpirun -n ${NMPI} ${EXECUTABLE_OUTPUT_PATH}/${TEST_TARGET}
       WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
     )
-
+    if (dim EQUAL 1)
+        set_tests_labels(${TEST_TARGET} ${dim}D SENSITIVITIES SERIAL QUICK UNIT_TEST)
+    else ()
+        set_tests_labels(${TEST_TARGET} ${dim}D SENSITIVITIES PARALLEL QUICK UNIT_TEST)
+    endif()
     unset(TEST_TARGET)
     unset(ParametersLib)
 
@@ -513,7 +554,11 @@ foreach(dim RANGE 1 2)
       COMMAND mpirun -n ${NMPI} ${EXECUTABLE_OUTPUT_PATH}/${TEST_TARGET}
       WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
     )
-
+    if (dim EQUAL 1)
+        set_tests_labels(${TEST_TARGET} ${dim}D SENSITIVITIES SERIAL QUICK UNIT_TEST)
+    else ()
+        set_tests_labels(${TEST_TARGET} ${dim}D SENSITIVITIES PARALLEL QUICK UNIT_TEST)
+    endif()
     unset(TEST_TARGET)
     unset(ParametersLib)
     unset(HighOrderGridLib)
@@ -534,7 +579,7 @@ foreach(dim RANGE 2 2)
       COMMAND mpirun -n ${NMPI} ${EXECUTABLE_OUTPUT_PATH}/${TEST_TARGET}
       WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
     )
-
+    set_tests_labels(${TEST_TARGET} ${dim}D SENSITIVITIES SERIAL QUICK UNIT_TEST)
     unset(TEST_TARGET)
 
 endforeach()
@@ -579,7 +624,11 @@ foreach(dim RANGE 1 2)
       COMMAND mpirun -n ${NMPI} ${EXECUTABLE_OUTPUT_PATH}/${TEST_TARGET}
       WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
     )
-
+    if (dim EQUAL 1)
+        set_tests_labels(${TEST_TARGET} ${dim}D SENSITIVITIES SERIAL QUICK UNIT_TEST)
+    else ()
+        set_tests_labels(${TEST_TARGET} ${dim}D SENSITIVITIES PARALLEL QUICK UNIT_TEST)
+    endif()
     unset(TEST_TARGET)
     unset(ParametersLib)
 

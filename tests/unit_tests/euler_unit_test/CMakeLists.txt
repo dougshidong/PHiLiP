@@ -28,6 +28,7 @@ foreach(dim RANGE 1 3)
       COMMAND mpirun -n 1 ${EXECUTABLE_OUTPUT_PATH}/${TEST_TARGET}
       WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
     )
+    set_tests_labels(${TEST_TARGET} ${dim}D EULER_UNIT_TEST QUICK SERIAL UNIT_TEST)
 
     unset(TEST_TARGET)
     unset(PhysicsLib)
@@ -64,6 +65,7 @@ foreach(dim RANGE 1 3)
       COMMAND mpirun -n 1 ${EXECUTABLE_OUTPUT_PATH}/${TEST_TARGET}
       WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
     )
+    set_tests_labels(${TEST_TARGET} EULER_UNIT_TEST ${dim}D MANUFACTURED_SOURCE SERIAL QUICK UNIT_TEST)
 
     unset(TEST_TARGET)
     unset(PhysicsLib)
@@ -100,7 +102,7 @@ foreach(dim RANGE 1 3)
       COMMAND mpirun -n 1 ${EXECUTABLE_OUTPUT_PATH}/${TEST_TARGET}
       WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
     )
-
+    set_tests_labels(${TEST_TARGET} EULER_UNIT_TEST ${dim}D CONVECTIVE_JACOBIAN QUICK SERIAL UNIT_TEST)
     unset(TEST_TARGET)
     unset(PhysicsLib)
 
@@ -140,6 +142,7 @@ foreach(dim RANGE 2 3)
       COMMAND mpirun -n 1 ${EXECUTABLE_OUTPUT_PATH}/${TEST_TARGET}
       WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
     )
+    set_tests_labels(${TEST_TARGET} EULER_UNIT_TEST ${dim}D QUICK SERIAL UNIT_TEST)
 
     unset(TEST_TARGET)
 

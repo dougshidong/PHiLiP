@@ -35,6 +35,7 @@ foreach(dim RANGE 1 3)
       COMMAND mpirun -n 1 ${EXECUTABLE_OUTPUT_PATH}/${TEST_TARGET}
       WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
     )
+    set_tests_labels(${TEST_TARGET} NUMERICAL_FLUX SERIAL QUICK UNIT_TEST)
 
     unset(dim)
     unset(TEST_TARGET)

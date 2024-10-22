@@ -33,7 +33,11 @@ foreach(dim RANGE 1 3)
       NAME ${TEST_TARGET}
       COMMAND mpirun -n ${NMPI} ${EXECUTABLE_OUTPUT_PATH}/${TEST_TARGET}
       WORKING_DIRECTORY ${TEST_OUTPUT_DIR})
-
+    if (dim EQUAL 1)
+        set_tests_labels(${TEST_TARGET} ${dim}D FLOW_VARIABLE SERIAL QUICK UNIT_TESTS)
+    else()
+        set_tests_labels(${TEST_TARGET} ${dim}D FLOW_VARIABLE PARALLEL QUICK UNIT_TESTS)
+    endif()
     unset(TEST_TARGET)
     unset(OperatorsLib)
 
@@ -74,7 +78,11 @@ foreach(dim RANGE 1 3)
       NAME ${TEST_TARGET}
       COMMAND mpirun -n ${NMPI} ${EXECUTABLE_OUTPUT_PATH}/${TEST_TARGET}
       WORKING_DIRECTORY ${TEST_OUTPUT_DIR})
-
+    if (dim EQUAL 1)
+        set_tests_labels(${TEST_TARGET} ${dim}D FLOW_VARIABLE SERIAL QUICK UNIT_TESTS)
+    else()
+        set_tests_labels(${TEST_TARGET} ${dim}D FLOW_VARIABLE PARALLEL QUICK UNIT_TESTS)
+    endif()
     unset(TEST_TARGET)
     unset(OperatorsLib)
 

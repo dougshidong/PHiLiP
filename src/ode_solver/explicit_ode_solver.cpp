@@ -15,6 +15,7 @@ RungeKuttaODESolver<dim,real,n_rk_stages, MeshType>::RungeKuttaODESolver(std::sh
 template <int dim, typename real, int n_rk_stages, typename MeshType> 
 void RungeKuttaODESolver<dim,real,n_rk_stages,MeshType>::step_in_time (real dt, const bool pseudotime)
 {  
+    this->pcout << "In ode_solver->step_in_time." << std::endl;
     this->original_time_step = dt;
     this->solution_update = this->dg->solution; //storing u_n
 
@@ -70,7 +71,7 @@ void RungeKuttaODESolver<dim,real,n_rk_stages,MeshType>::step_in_time (real dt, 
 
         //set the DG current time for unsteady source terms
         this->dg->set_current_time(this->current_time + this->butcher_tableau->get_c(i)*dt);
-        
+        this->pcout << "Assembling Residual." << std::endl;
         //solve the system's right hande side
         this->dg->assemble_residual(); //RHS : du/dt = RHS = F(u_n + dt* sum(a_ij*k_j) + dt * a_ii * u^(i)))
 
@@ -83,7 +84,7 @@ void RungeKuttaODESolver<dim,real,n_rk_stages,MeshType>::step_in_time (real dt, 
 
     modify_time_step(dt);
     this->modified_time_step = dt;
-
+    this->pcout << "Assembling Solution from stages." << std::endl;
     //assemble solution from stages
     for (int i = 0; i < n_rk_stages; ++i){
         if (pseudotime){
@@ -96,6 +97,7 @@ void RungeKuttaODESolver<dim,real,n_rk_stages,MeshType>::step_in_time (real dt, 
     }
     this->dg->solution = this->solution_update; // u_np1 = u_n + dt* sum(k_i * b_i)
 
+    this->pcout << "Updating current time." << std::endl;
     ++(this->current_iteration);
     this->current_time += dt;
 }

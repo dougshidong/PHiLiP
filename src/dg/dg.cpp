@@ -103,7 +103,7 @@ DGBase<dim,real,MeshType>::DGBase(
     , fe_q_artificial_dissipation(1)
     , dof_handler_artificial_dissipation(*triangulation, false)
     , mpi_communicator(MPI_COMM_WORLD)
-    , pcout(std::cout, dealii::Utilities::MPI::this_mpi_process(mpi_communicator)==0)
+    , pcout(std::cout, dealii::Utilities::MPI::this_mpi_process(mpi_communicator)==54)
     , freeze_artificial_dissipation(false)
     , max_artificial_dissipation_coeff(0.0)
 {
@@ -712,6 +712,7 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
     dealii::LinearAlgebra::distributed::Vector<double> &rhs,
     std::array<dealii::LinearAlgebra::distributed::Vector<double>,dim> &rhs_aux)
 {
+    pcout << "In dg->assemble_cell_residual()." << std::endl;
     std::vector<dealii::types::global_dof_index> current_dofs_indices;
     std::vector<dealii::types::global_dof_index> neighbor_dofs_indices;
 
@@ -764,7 +765,8 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
         pcout<<"ERROR: Implicit does not currently work for strong form. Aborting..."<<std::endl;
         std::abort();
     }
-
+    pcout << "Current cell index:"<< current_cell_index << std::endl;
+    pcout << "Assembling volume term." << std::endl;
     //std::cout<<"Current cell_index: "<<current_cell_index<<"\n";
     assemble_volume_term_and_build_operators(
         current_cell,
@@ -792,6 +794,7 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
     (void) fe_values_collection_face_int;
     (void) fe_values_collection_face_ext;
     (void) fe_values_collection_subface;
+    pcout << "Looping over all faces, " << std::endl;
     for (unsigned int iface=0; iface < dealii::GeometryInfo<dim>::faces_per_cell; ++iface) {
 
         auto current_face = current_cell->face(iface);
@@ -799,10 +802,11 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
         // CASE 1: FACE AT BOUNDARY
         if ((current_face->at_boundary() && !current_cell->has_periodic_neighbor(iface)))
         {
+            pcout << "Case 1." << std::endl;
             const real penalty = evaluate_penalty_scaling (current_cell, iface, fe_collection);
 
             const unsigned int boundary_id = current_face->boundary_id();
-
+             pcout << "Assembling boundary term." << std::endl;
             assemble_boundary_term_and_build_operators(
                 current_cell,
                 current_cell_index,
@@ -833,7 +837,7 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
         // NOTE: Periodicity is not adapted for hp adaptivity yet. this needs to be figured out in the future
         else if (current_face->at_boundary() && current_cell->has_periodic_neighbor(iface))
         {
-
+            pcout << "Case 2." << std::endl;
             const auto neighbor_cell = current_cell->periodic_neighbor(iface);
 
             if (!current_cell->periodic_neighbor_is_coarser(iface) && current_cell_should_do_the_work(current_cell, neighbor_cell)) 
@@ -869,7 +873,7 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
                 OPERATOR::metric_operators<real,dim,2*dim> metric_oper_ext(nstate, poly_degree_ext, grid_degree_ext,
                                                                            store_vol_flux_nodes,
                                                                            store_surf_flux_nodes);
-
+                 pcout << "Assembling face term." << std::endl;
                 assemble_face_term_and_build_operators(
                     current_cell,
                     neighbor_cell,
@@ -919,6 +923,7 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
         // Assemble face residual.
         else if (current_cell->neighbor(iface)->face(current_cell->neighbor_face_no(iface))->has_children()) 
         {
+            pcout << "Case 4." << std::endl;
             Assert (current_cell->neighbor(iface).state() == dealii::IteratorState::valid, dealii::ExcInternalError());
             Assert (!(current_cell->neighbor(iface)->has_children()), dealii::ExcInternalError());
 
@@ -962,7 +967,7 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
             OPERATOR::metric_operators<real,dim,2*dim> metric_oper_ext(nstate, poly_degree_ext, grid_degree_ext,
                                                                store_vol_flux_nodes,
                                                                store_surf_flux_nodes);
-
+            pcout << "Assembling subface term." << std::endl;
             assemble_subface_term_and_build_operators(
                 current_cell,
                 neighbor_cell,
@@ -1005,6 +1010,7 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
         // Therefore, we need to choose one of them to do the work
         else if (current_cell_should_do_the_work(current_cell, current_cell->neighbor(iface))) 
         {
+            pcout << "Case 5." << std::endl;
             Assert (current_cell->neighbor(iface).state() == dealii::IteratorState::valid, dealii::ExcInternalError());
 
             const auto neighbor_cell = current_cell->neighbor_or_periodic_neighbor(iface);
@@ -1043,7 +1049,7 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
             OPERATOR::metric_operators<real,dim,2*dim> metric_oper_ext(nstate, poly_degree_ext, grid_degree_ext,
                                                                store_vol_flux_nodes,
                                                                store_surf_flux_nodes);
-
+            pcout << "Assembling face term." << std::endl;
             assemble_face_term_and_build_operators(
                 current_cell,
                 neighbor_cell,
@@ -1342,6 +1348,7 @@ void DGBase<dim,real,MeshType>::reinit_operators_for_cell_residual_loop(
 template <int dim, typename real, typename MeshType>
 void DGBase<dim,real,MeshType>::assemble_residual (const bool compute_dRdW, const bool compute_dRdX, const bool compute_d2R, const double CFL_mass)
 {
+    pcout << "In dg->assemble_residual()." << std::endl;
     dealii::deal_II_exceptions::disable_abort_on_exception(); // Allows us to catch negative Jacobians.
     Assert( !(compute_dRdW && compute_dRdX)
         &&  !(compute_dRdW && compute_d2R)

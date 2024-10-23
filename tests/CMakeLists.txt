@@ -1,25 +1,33 @@
 ## Function to set test labels
 ## Test labels should be added for the following categories (USE ALL CAPS)
-## - Type of Test
-#	- UNIT_TEST, INTEGRATION_TEST
-#- Speed of Test
-#	- QUICK, SLOW
 #- Test Group
-#	- NNLS, REDUCED ORDER, ETC
-#- Usage (if needed)
-#	- MEMORY_INTENSIVE
+#	- NNLS, TGV_SCALING, ETC
 #- Dimension
 #   - 1D, 2D, 3D
-#- PDE Type
-#   - EULER, NAVIER-STOKES
-#- Quadrature Type
-#   - COLOCATED, UNCOLOCATED
-#- DG Type
-#   - STRONG, WEAK
-#- ODE Solver Type
-#   - RUNGE-KUTTA, IMPLICIT, ETC
 #- Parallel vs Serial
 #   - PARALLEL, SERIAL
+#- PDE Type
+#   - EULER, NAVIER-STOKES, etc
+#- ODE Solver Type
+#   - RUNGE-KUTTA, IMPLICIT, etc
+#- DG Type
+#   - STRONG, STRONG-SPLIT, WEAK
+#- Quadrature Type
+#   - COLLOCATED, UNCOLLOCATED
+#- OTHER (if needed)
+#	- MEMORY_INTENSIVE, MANUFACTURED_SOLUTION, EXPECTED_FAILURE etc
+#- Speed of Test
+#	- QUICK (<~10s), MODERATE(<~180s), LONG(>~180s)
+#- Type of Test
+#	- UNIT_TEST, INTEGRATION_TEST, FLOW_SIMULATION, CONVERGENCE (Add to other)?
+
+
+
+
+
+
+
+
 function(set_tests_labels test_name)
     set(labels ${ARGN})
     set_tests_properties(${test_name} PROPERTIES LABELS "${labels}")

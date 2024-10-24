@@ -244,7 +244,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_and_build_operators(
     const unsigned int face_int = soln_basis_int.reference_face_number(iface, cell->face_orientation(iface), cell->face_flip(iface), cell->face_rotation(iface));
     const unsigned int face_ext = soln_basis_ext.reference_face_number(neighbor_iface, neighbor_cell->face_orientation(neighbor_iface), neighbor_cell->face_flip(neighbor_iface), neighbor_cell->face_rotation(neighbor_iface));
 
-
+    pcout << "Build surface metric operators for interior." << std::endl;
     //build the surface metric operators for interior
     metric_oper_int.build_facet_metric_operators(
         iface,
@@ -267,6 +267,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_and_build_operators(
                                                       mapping_basis);
     }
 
+    pcout << "Build neighbor support points for primary equations." << std::endl;
     if(!compute_auxiliary_right_hand_side){//only for primary equations
         //get neighbor metric operator
         //rewrite the high_order_grid->volume_nodes in a way we can use sum-factorization on.
@@ -284,6 +285,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_and_build_operators(
             mapping_support_points_neigh[istate][igrid_node] = val; 
         }
         //build the metric operators for strong form
+        pcout << "Build volume metric operators for exterior." << std::endl;
         metric_oper_ext.build_volume_metric_operators(
             this->volume_quadrature_collection[poly_degree_ext].size(), n_grid_nodes,
             mapping_support_points_neigh,
@@ -296,6 +298,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_and_build_operators(
     if(compute_auxiliary_right_hand_side){
         const unsigned int n_dofs_neigh_cell = this->fe_collection[neighbor_cell->active_fe_index()].n_dofs_per_cell();
         std::vector<dealii::Tensor<1,dim,double>> neighbor_cell_rhs_aux (n_dofs_neigh_cell ); // defaults to 0.0 initialization
+        pcout << "Assemble face term auxiliary equation." << std::endl;
         assemble_face_term_auxiliary_equation (
 	    cell,
         neighbor_cell,
@@ -314,6 +317,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_and_build_operators(
         }
     }
     else{
+        pcout << "Assemble face term strong." << std::endl;
         assemble_face_term_strong (
 	    cell,
 	    neighbor_cell,

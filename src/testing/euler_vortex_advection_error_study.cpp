@@ -94,9 +94,8 @@ double EulerVortexAdvectionErrorStudy<dim,nstate>
     // 2D Multi-Species Calorically-Imperfect Euler Vortex
     else if (flow_type == FlowCaseEnum::multi_species_two_dimensional_vortex_advection) 
     {
-        if constexpr (dim==2 && nstate==dim+2+2-1) // TO DO: N_SPECIES, dim = 1, nstate = dim+2+3-1
+        if constexpr (dim==2 && nstate==dim+2+2-1) // Note: modify this when you change the number of species. nstate == dim+2+(nspecies)-1
         {
-            // std::cout << "multi-species_calorically-imperfect_vortex_advection! \n \n " << std::endl;
             Physics::RealGas<dim,nstate,double> realgas_physics_double
             = Physics::RealGas<dim, nstate, double>(
                 &param);
@@ -166,9 +165,8 @@ double EulerVortexAdvectionErrorStudy<dim,nstate>
     // 2D Multi-Species Calorically-Imperfect Euler
     else if (flow_type == FlowCaseEnum::multi_species_two_dimensional_vortex_advection) 
     {
-        if constexpr (dim==2 && nstate==dim+2+2-1) // TO DO: N_SPECIES, dim = 1, nstate = dim+2+3-1
+        if constexpr (dim==2 && nstate==dim+2+2-1) // Note: modify this when you change the number of species. nstate == dim+2+(nspecies)-1
         {
-            // std::cout << "multi-species_calorically-imperfect_vortex_advection! \n \n " << std::endl;
             Physics::RealGas<dim,nstate,double> realgas_physics_double
             = Physics::RealGas<dim, nstate, double>(
                 &param);
@@ -235,9 +233,8 @@ double EulerVortexAdvectionErrorStudy<dim,nstate>
     // 2D Multi-Species Calorically-Imperfect Multi-Species
     else if (flow_type == FlowCaseEnum::multi_species_two_dimensional_vortex_advection) 
     {
-        if constexpr (dim==2 && nstate==dim+2+2-1) // TO DO: N_SPECIES, dim = 1, nstate = dim+2+3-1
+        if constexpr (dim==2 && nstate==dim+2+2-1) // Note: modify this when you change the number of species. nstate == dim+2+(nspecies)-1
         {
-            // std::cout << "multi-species_calorically-imperfect_vortex_advection! \n \n " << std::endl;
             Physics::RealGas<dim,nstate,double> realgas_physics_double
             = Physics::RealGas<dim, nstate, double>(
                 &param);
@@ -538,9 +535,8 @@ double EulerVortexAdvectionErrorStudy<dim,nstate>
     // 2D Multi-Species Euler (Calorically Imperfect) Vortex
     else if (flow_type == FlowCaseEnum::multi_species_two_dimensional_vortex_advection)
     {
-        if constexpr (dim==2 && nstate==dim+2+2-1) // TO DO: N_SPECIES, dim = 1, nstate = dim+2+3-1
+        if constexpr (dim==2 && nstate==dim+2+2-1) // Note: modify this when you change the number of species. nstate == dim+2+(nspecies)-1
         {
-            // std::cout << "multi-species_calorically-imperfect_vortex_advection! \n \n " << std::endl;
             Physics::RealGas<dim,nstate,double> realgas_physics_double
             = Physics::RealGas<dim, nstate, double>(
                 &param);
@@ -551,33 +547,28 @@ double EulerVortexAdvectionErrorStudy<dim,nstate>
             const double cycle = t_end/t_cycle;
             const double moved = speed*cycle;
 
-        const double x = point[0] - moved;
-        const double y = point[1] - moved;
-        const double x_0 = 5.0;
-        const double y_0 = 5.0;
-        const double r = sqrt((x-x_0)*(x-x_0) + (y-y_0)*(y-y_0));
-        // const double r = sqrt((x-x_0)*(x-x_0) + (x-x_0)*(x-x_0));
-        const double T_0 = 300.0; // [K]
-        const double big_gamma = 50.0;
-        const double gamma_0 = 1.4;
-        const double y_H2_0 = 0.01277;
-        // const double y_O2_0 = 0.101;
-        const double a_1 = 0.005;
-        // const double a_2 = 0.03;
-        const double pi = 6.28318530717958623200 / 2; // pi
-        const double pressure = 101325; // [N/m^2]
-        const double velocity = 100.0; // [m/s]
-        const double exp = std::exp(0.50*(1-r*r));
-        const double coeff = 2*pi/(gamma_0*big_gamma);
-        const double temperature = T_0 - (gamma_0-1.0)*big_gamma*big_gamma/(8.0*gamma_0*pi)*exp;
-        const double y_H2 = (y_H2_0 - a_1*coeff*exp);
-        const double y_O2 = 1.0 - y_H2;
-        // const double y_O2 = (y_O2_0 - a_2*coeff*exp);
-        // const double y_N2 = 1.0 - y_H2 - y_O2;
+            const double x = point[0] - moved;
+            const double y = point[1] - moved;
+            const double x_0 = 5.0;
+            const double y_0 = 5.0;
+            const double r = sqrt((x-x_0)*(x-x_0) + (y-y_0)*(y-y_0));
+            const double T_0 = 300.0; // [K]
+            const double big_gamma = 50.0;
+            const double gamma_0 = 1.4;
+            const double y_H2_0 = 0.01277;
+            const double a_1 = 0.005;
+            const double pi = 6.28318530717958623200 / 2; // pi
+            const double pressure = 101325; // [N/m^2]
+            const double velocity = 100.0; // [m/s]
+            const double exp = std::exp(0.50*(1-r*r));
+            const double coeff = 2*pi/(gamma_0*big_gamma);
+            const double temperature = T_0 - (gamma_0-1.0)*big_gamma*big_gamma/(8.0*gamma_0*pi)*exp;
+            const double y_H2 = (y_H2_0 - a_1*coeff*exp);
+            const double y_O2 = 1.0 - y_H2;
 
-        const std::array Rs = realgas_physics_double.compute_Rs(realgas_physics_double.Ru);
-        const double R_mixture = (y_H2*Rs[0] + y_O2*Rs[1])*realgas_physics_double.R_ref;
-        const double density = pressure/(R_mixture*temperature);
+            const std::array Rs = realgas_physics_double.compute_Rs(realgas_physics_double.Ru);
+            const double R_mixture = (y_H2*Rs[0] + y_O2*Rs[1])*realgas_physics_double.R_ref;
+            const double density = pressure/(R_mixture*temperature);
 
             std::array<double,nstate> soln_primitive;
 
@@ -588,28 +579,7 @@ double EulerVortexAdvectionErrorStudy<dim,nstate>
             soln_primitive[4] = y_H2;
 
             const std::array<double,nstate> soln_conservative = realgas_physics_double.convert_primitive_to_conservative(soln_primitive);
-            value = soln_conservative[istate];
-            // if(istate==0) {
-            // // mixture density
-            // value = soln_conservative[istate];
-            // }
-            // if(istate==1) {
-            // // x-velocity
-            // value = soln_conservative[istate];
-            // }
-            // if(istate==2) {
-            // // y-velocity
-            // value = soln_conservative[istate];
-            // }
-            // if(istate==3) {
-            // // pressure
-            // value = soln_conservative[istate];
-            // }
-            // if(istate==4) {
-            // // Y_H2
-            // value = soln_conservative[istate];
-            // }
-        
+            value = soln_conservative[istate];        
         }
     }   
     
@@ -806,7 +776,7 @@ double EulerVortexAdvectionErrorStudy<dim,nstate>
                     for (unsigned int istate=0; istate<nstate; ++istate)
                     {
                         // Note: This is in non-dimensional form (free-stream values as reference)
-                        if constexpr(dim == 1 || dim == 2)
+                        if constexpr(dim == 1)
                         {
                             // TO DO: get x here ... DONE
                             const dealii::Point<dim> qpoint = (fe_values_extra.quadrature_point(iquad));
@@ -817,18 +787,18 @@ double EulerVortexAdvectionErrorStudy<dim,nstate>
                         }
                     }
 
-                    // // THIS IS FOR 1/10 cycle
-                    // for (unsigned int istate=0; istate<nstate; ++istate)
-                    // {
-                    //     // Note: This is in non-dimensional form (free-stream values as reference)
-                    //     if constexpr(dim == 1 || dim == 2)
-                    //     {
-                    //         const dealii::Point<dim> qpoint = (fe_values_extra.quadrature_point(iquad));
-                    //         exact_at_q[istate] = compute_exact_at_q(qpoint,istate);
-                    //     } else {
-                    //         exact_at_q[istate] = 0.0;
-                    //     }
-                    // }
+                    // THIS IS FOR 1/10 cycle
+                    for (unsigned int istate=0; istate<nstate; ++istate)
+                    {
+                        // Note: This is in non-dimensional form (free-stream values as reference)
+                        if constexpr(dim == 2)
+                        {
+                            const dealii::Point<dim> qpoint = (fe_values_extra.quadrature_point(iquad));
+                            exact_at_q[istate] = compute_exact_at_q(qpoint,istate);
+                        } else {
+                            exact_at_q[istate] = 0.0;
+                        }
+                    }
 
                     double density_numerical, density_exact;
                     double pressure_numerical, pressure_exact;

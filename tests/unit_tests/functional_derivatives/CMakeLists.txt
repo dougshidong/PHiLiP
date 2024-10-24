@@ -37,7 +37,11 @@ foreach(dim RANGE 2 3)
       COMMAND mpirun -n ${MPIMAX} ${EXECUTABLE_OUTPUT_PATH}/${TEST_TARGET}
       WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
     )
-
+    set_tests_labels(${TEST_TARGET} FUNCTIONAL_DERIVATIVES
+                                    ${dim}D
+                                    PARALLEL
+                                    QUICK
+                                    UNIT_TEST)
     unset(dim)
     unset(TEST_TARGET)
     unset(PhysicsLib)
@@ -87,7 +91,11 @@ foreach(dim RANGE 2 3)
       COMMAND mpirun -n ${MPIMAX} ${EXECUTABLE_OUTPUT_PATH}/${TEST_TARGET}
       WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
     )
-
+    set_tests_labels(${TEST_TARGET} FUNCTIONAL_DERIVATIVES
+                                    ${dim}D
+                                    PARALLEL
+                                    QUICK
+                                    UNIT_TEST)
     unset(dim)
     unset(TEST_TARGET)
     unset(PhysicsLib)

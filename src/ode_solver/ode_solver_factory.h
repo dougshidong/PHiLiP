@@ -46,6 +46,9 @@ public:
     /// Creates an ODESolver object based on the specified RK method, including derived classes
     static std::shared_ptr<ODESolverBase<dim,real,MeshType>> create_RungeKuttaODESolver(std::shared_ptr< DGBase<dim, real, MeshType> > dg_input);
 
+    /// Creates an ODESolver object based on the specified RK method, with a POD Reduced Order Basis
+    static std::shared_ptr<ODESolverBase<dim,real,MeshType>> create_RungeKuttaODESolver(std::shared_ptr< DGBase<dim, real, MeshType> > dg_input, std::shared_ptr<ProperOrthogonalDecomposition::PODBase<dim>> pod);
+    
     /// Creates an RKTableau object based on the specified RK method
     static std::shared_ptr<RKTableauBase<dim,real,MeshType>> create_RKTableau(std::shared_ptr< DGBase<dim,real,MeshType> > dg_input);
     

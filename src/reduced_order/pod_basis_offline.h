@@ -38,6 +38,8 @@ public:
     /// Read snapshots to build POD basis
     bool getPODBasisFromSnapshots();
 
+    /// Compute POD Basis
+    void computeBasis();
     /// POD basis
     std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> basis;
 

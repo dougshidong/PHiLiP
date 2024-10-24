@@ -185,6 +185,7 @@ public:
         shock_1d,
         euler_naca0012,
         reduced_order,
+        unsteady_reduced_order,
         convection_diffusion_periodicity,
         POD_adaptation,
         POD_adaptive_sampling_run,

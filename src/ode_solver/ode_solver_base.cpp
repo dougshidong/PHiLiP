@@ -5,8 +5,10 @@ namespace PHiLiP {
 namespace ODE{
 
 template <int dim, typename real, typename MeshType>
-ODESolverBase<dim,real,MeshType>::ODESolverBase(std::shared_ptr< DGBase<dim, real, MeshType> > dg_input)
+ODESolverBase<dim,real,MeshType>::ODESolverBase(std::shared_ptr< DGBase<dim, real, MeshType> > dg_input
+        , std::shared_ptr< ProperOrthogonalDecomposition::PODBase<dim>> pod)
         : dg(dg_input)
+        , pod(pod)
         , limiter(BoundPreservingLimiterFactory<dim, 6, real>::create_limiter(dg->all_parameters))
         , all_parameters(dg->all_parameters)
         , ode_param(all_parameters->ode_solver_param)
@@ -20,6 +22,10 @@ ODESolverBase<dim,real,MeshType>::ODESolverBase(std::shared_ptr< DGBase<dim, rea
         , pcout(std::cout, mpi_rank==0)
 {}
 
+template <int dim, typename real, typename MeshType>
+ODESolverBase<dim,real,MeshType>::ODESolverBase(std::shared_ptr< DGBase<dim, real, MeshType> > dg_input)
+        : ODESolverBase(dg_input, nullptr)
+{}
 
 template <int dim, typename real, typename MeshType> 
 double ODESolverBase<dim,real,MeshType>::get_automatic_error_adaptive_step_size (real dt, const bool pseudotime)

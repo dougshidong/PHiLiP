@@ -87,6 +87,7 @@ subsection flow_solver
   set output_restart_files = false
   set restart_files_directory_name = restart_files
   set output_restart_files_every_dt_time_intervals = 1.0
+  set end_exactly_at_final_time = false
   subsection grid
     set grid_degree = 1
     set grid_left_bound = -3.141592653589793238

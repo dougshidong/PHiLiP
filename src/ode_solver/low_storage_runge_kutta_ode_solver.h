@@ -3,7 +3,7 @@
 
 #include "JFNK_solver/JFNK_solver.h"
 #include "dg/dg_base.hpp"
-#include "ode_solver_base.h"
+#include "runge_kutta_base.h"
 #include "runge_kutta_methods/low_storage_rk_tableau_base.h"
 #include "relaxation_runge_kutta/empty_RRK_base.h"
 
@@ -30,7 +30,7 @@ template <int dim, typename real, int n_rk_stages, typename MeshType = dealii::T
 #else
 template <int dim, typename real, int n_rk_stages, typename MeshType = dealii::parallel::distributed::Triangulation<dim>>
 #endif
-class LowStorageRungeKuttaODESolver: public ODESolverBase <dim, real, MeshType>
+class LowStorageRungeKuttaODESolver: public RungeKuttaBase <dim, real, n_rk_stages, MeshType>
 {
 public:
     LowStorageRungeKuttaODESolver(std::shared_ptr< DGBase<dim, real, MeshType> > dg_input,
@@ -43,19 +43,29 @@ public:
     /// Function to evaluate automatic initial adaptive time step
     double get_automatic_initial_step_size(real dt, const bool /*pseudotime*/);
 
-    /// Function to advance time step
-    void step_in_time(real dt, const bool /*pseudotime*/);
+    /// Function to allocate the 
+    void allocate_runge_kutta_system () override;
 
-    /// Function to allocate the ODE system
-    void allocate_ode_system ();
+    /// Function to calculate stage
+    void calculate_stage_solution (int istage, real dt, const bool pseudotime) override;
 
+    /// Function to obtain stage
+    void calculate_stage_derivative (int istage, real dt) override;
+
+    /// Function to sum stages and add to dg->solution
+    void sum_stages (real dt, const bool pseudotime) override;
+
+    /// Function to apply limiter
+    void apply_limiter () override;
+
+    /// Function to adjust time step size
+    real adjust_time_step(real dt) override;
+
+    /// Function to prepare the LSRK for a step in time
+    void prep_for_step_in_time();
 protected:
     /// Stores Butcher tableau a and b, which specify the RK method
     std::shared_ptr<LowStorageRKTableauBase<dim,real,MeshType>> butcher_tableau;
-
-    /// Stores functions related to relaxation Runge-Kutta (RRK).
-    /// Functions are empty by default.
-    std::shared_ptr<EmptyRRKBase<dim,real,MeshType>> relaxation_runge_kutta;
 
     /// Storage for the derivative at each Runge-Kutta stage
     std::vector<dealii::LinearAlgebra::distributed::Vector<double>> rk_stage;

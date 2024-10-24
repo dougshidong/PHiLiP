@@ -130,3 +130,20 @@ add_test(
         COMMAND mpirun -np 1 ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_1D -i ${CMAKE_CURRENT_BINARY_DIR}/1d_burgers_rewienski_manufactured.prm
         WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
 )
+
+# =======================================
+# Unsteady Galerkin POD Runge-Kutta
+# =======================================
+# Estimated run time: 125s
+configure_file(unsteady_reduced_order_testing.prm unsteady_reduced_order_testing.prm COPYONLY)
+add_test(
+        NAME 2D_UNSTEADY_GALERKIN_RK
+        COMMAND 
+        bash -c
+        "
+        rm -f *.txt;
+        mpirun -np ${MPIMAX} ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_2D -i ${CMAKE_CURRENT_BINARY_DIR}/unsteady_reduced_order_testing.prm
+        "
+        WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
+        
+)

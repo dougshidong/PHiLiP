@@ -37,7 +37,7 @@ OfflinePOD<dim>::OfflinePOD(std::shared_ptr<DGBase<dim,double>> &dg_input)
 template <int dim>
 bool OfflinePOD<dim>::getPODBasisFromSnapshots() {
     bool file_found = false;
-    snapshotMatrix(0,0);
+    snapshotMatrix.resize(0,0);
     std::string path = dg->all_parameters->reduced_order_param.path_to_search; //Search specified directory for files containing "solutions_table"
 
     std::vector<std::filesystem::path> files_in_directory;
@@ -99,6 +99,13 @@ bool OfflinePOD<dim>::getPODBasisFromSnapshots() {
     pcout << "Snapshot matrix generated." << std::endl;
 
 
+    computeBasis();
+
+    return file_found;
+}
+
+template <int dim>
+void OfflinePOD<dim>::computeBasis() {
     /* Reference for simple POD basis computation: Refer to Algorithm 1 in the following reference:
     "Efficient non-linear model reduction via a least-squares Petrov–Galerkin projection and compressive tensor approximations"
     Kevin Carlberg, Charbel Bou-Mosleh, Charbel Farhat
@@ -118,6 +125,29 @@ bool OfflinePOD<dim>::getPODBasisFromSnapshots() {
 
     Eigen::BDCSVD<MatrixXd, Eigen::DecompositionOptions::ComputeThinU> svd(snapshotMatrixCentered);
     MatrixXd pod_basis = svd.matrixU();
+
+    // Reduce POD Size using either number of modes or a singular value threshold
+    if(dg->all_parameters->reduced_order_param.number_modes > 0){
+        const int num_modes = dg->all_parameters->reduced_order_param.number_modes;
+        Assert(num_modes < pod_basis.cols(),
+        dealii::ExcMessage("The number of modes selected must be less than the number of snapshots"));
+        Eigen::MatrixXd pod_basis_n_modes = pod_basis(Eigen::placeholders::all, Eigen::seqN(0,num_modes));
+        pod_basis = pod_basis_n_modes;
+    }
+    else if (dg->all_parameters->reduced_order_param.singular_value_threshold < 1){
+        const double threshold = dg->all_parameters->reduced_order_param.singular_value_threshold;
+        Eigen::VectorXd singular_values = svd.singularValues();
+        double l1_norm = singular_values.sum();
+        double singular_value_cumm_sum = 0;
+        int iter = 0;
+        while(singular_value_cumm_sum/l1_norm < threshold){
+            singular_value_cumm_sum += singular_values(iter);
+            iter++;
+        }
+        Eigen::MatrixXd pod_basis_n_modes = pod_basis(Eigen::placeholders::all, Eigen::seqN(0,iter));
+        pod_basis = pod_basis_n_modes;
+        pcout << "Final size of POD: " << iter << std::endl;
+    }
 
     fullBasis.reinit(pod_basis.rows(), pod_basis.cols());
 
@@ -150,8 +180,6 @@ bool OfflinePOD<dim>::getPODBasisFromSnapshots() {
     epetra_basis.FillComplete(domain_map, system_matrix_map);
 
     basis->reinit(epetra_basis);
-
-    return file_found;
 }
 
 template <int dim>

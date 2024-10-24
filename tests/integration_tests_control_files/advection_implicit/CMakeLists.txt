@@ -12,7 +12,7 @@ set_tests_labels(1D_ADVECTION_IMPLICIT_MANUFACTURED_SOLUTION    ADVECTION_IMPLIC
                                                                 ADVECTION
                                                                 IMPLICIT
                                                                 WEAK
-                                                                COLLOCATED
+                                                                UNCOLLOCATED
                                                                 MANUFACTURED_SOLUTION
                                                                 QUICK
                                                                 INTEGRATION_TEST)
@@ -29,7 +29,7 @@ set_tests_labels(2D_ADVECTION_IMPLICIT_MANUFACTURED_SOLUTION    ADVECTION_IMPLIC
                                                                 ADVECTION
                                                                 IMPLICIT
                                                                 WEAK
-                                                                COLLOCATED
+                                                                UNCOLLOCATED
                                                                 MANUFACTURED_SOLUTION
                                                                 MODERATE
                                                                 INTEGRATION_TEST)
@@ -46,7 +46,7 @@ set_tests_labels(MPI_2D_ADVECTION_EXPLICIT_MANUFACTURED_SOLUTION_LONG   ADVECTIO
                                                                         ADVECTION
                                                                         RUNGE-KUTTA
                                                                         WEAK
-                                                                        COLLOCATED
+                                                                        UNCOLLOCATED
                                                                         MANUFACTURED_SOLUTION
                                                                         LONG
                                                                         INTEGRATION_TEST)
@@ -63,7 +63,7 @@ set_tests_labels(MPI_2D_ADVECTION_IMPLICIT_MANUFACTURED_SOLUTION    ADVECTION_IM
                                                                     ADVECTION
                                                                     IMPLICIT
                                                                     WEAK
-                                                                    COLLOCATED
+                                                                    UNCOLLOCATED
                                                                     MANUFACTURED_SOLUTION
                                                                     QUICK
                                                                     INTEGRATION_TEST)
@@ -80,7 +80,7 @@ set_tests_labels(MPI_3D_ADVECTION_IMPLICIT_MANUFACTURED_SOLUTION    ADVECTION_IM
                                                                     ADVECTION
                                                                     IMPLICIT
                                                                     WEAK
-                                                                    COLLOCATED
+                                                                    UNCOLLOCATED
                                                                     MANUFACTURED_SOLUTION
                                                                     MODERATE
                                                                     INTEGRATION_TEST)
@@ -98,7 +98,7 @@ set_tests_labels(1D_ADVECTION_IMPLICIT_MANUFACTURED_SOLUTION_STRONG ADVECTION_IM
                                                                     ADVECTION
                                                                     IMPLICIT
                                                                     STRONG
-                                                                    COLLOCATED
+                                                                    UNCOLLOCATED
                                                                     MANUFACTURED_SOLUTION
                                                                     QUICK
                                                                     INTEGRATION_TEST)
@@ -115,7 +115,7 @@ set_tests_labels(2D_ADVECTION_IMPLICIT_MANUFACTURED_SOLUTION_STRONG ADVECTION_IM
                                                                     ADVECTION
                                                                     IMPLICIT
                                                                     STRONG
-                                                                    COLLOCATED
+                                                                    UNCOLLOCATED
                                                                     MANUFACTURED_SOLUTION
                                                                     QUICK
                                                                     INTEGRATION_TEST)
@@ -132,7 +132,7 @@ set_tests_labels(MPI_3D_ADVECTION_IMPLICIT_MANUFACTURED_SOLUTION_STRONG_MEDIUM  
                                                                                 ADVECTION
                                                                                 IMPLICIT
                                                                                 STRONG
-                                                                                COLLOCATED
+                                                                                UNCOLLOCATED
                                                                                 MANUFACTURED_SOLUTION
                                                                                 QUICK
                                                                                 INTEGRATION_TEST)
@@ -165,7 +165,7 @@ set_tests_labels(1D_ADVECTION_EXPLICIT_MANUFACTURED_SOLUTION_LONG_STRONG    ADVE
                                                                             ADVECTION
                                                                             RUNGE-KUTTA
                                                                             STRONG
-                                                                            COLLOCATED
+                                                                            UNCOLLOCATED
                                                                             MANUFACTURED_SOLUTION
                                                                             MODERATE
                                                                             INTEGRATION_TEST)
@@ -182,7 +182,7 @@ set_tests_labels(MPI_2D_ADVECTION_EXPLICIT_MANUFACTURED_SOLUTION_STRONG_LONG    
                                                                                 ADVECTION
                                                                                 RUNGE-KUTTA
                                                                                 STRONG
-                                                                                COLLOCATED
+                                                                                UNCOLLOCATED
                                                                                 MANUFACTURED_SOLUTION
                                                                                 MODERATE
                                                                                 INTEGRATION_TEST)
@@ -199,7 +199,7 @@ set_tests_labels(MPI_3D_ADVECTION_EXPLICIT_MANUFACTURED_SOLUTION_STRONG ADVECTIO
                                                                         ADVECTION
                                                                         RUNGE-KUTTA
                                                                         STRONG
-                                                                        COLLOCATED
+                                                                        UNCOLLOCATED
                                                                         MANUFACTURED_SOLUTION
                                                                         LONG
                                                                         INTEGRATION_TEST)

@@ -28,7 +28,11 @@ foreach(dim RANGE 1 3)
       COMMAND mpirun -n 1 ${EXECUTABLE_OUTPUT_PATH}/${TEST_TARGET}
       WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
     )
-    set_tests_labels(${TEST_TARGET} ${dim}D NAVIER_STOKES_UNIT_TEST QUICK SERIAL UNIT_TEST)
+    set_tests_labels(${TEST_TARGET} NAVIER_STOKES_UNIT_TEST
+                                    ${dim}D
+                                    SERIAL
+                                    QUICK
+                                    UNIT_TEST)
 
     unset(TEST_TARGET)
     unset(PhysicsLib)
@@ -65,7 +69,12 @@ foreach(dim RANGE 1 3)
       COMMAND mpirun -n 1 ${EXECUTABLE_OUTPUT_PATH}/${TEST_TARGET}
       WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
     )
-    set_tests_labels(${TEST_TARGET} ${dim}D MANUFACTURED_SOURCE NAVIER_STOKES_UNIT_TEST QUICK SERIAL UNIT_TEST)
+    set_tests_labels(${TEST_TARGET} NAVIER_STOKES_UNIT_TEST
+                                    ${dim}D
+                                    SERIAL
+                                    MANUFACTURED_SOURCE
+                                    QUICK
+                                    UNIT_TEST)
     unset(TEST_TARGET)
     unset(PhysicsLib)
 
@@ -101,7 +110,12 @@ foreach(dim RANGE 1 3)
       COMMAND mpirun -n 1 ${EXECUTABLE_OUTPUT_PATH}/${TEST_TARGET}
       WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
     )
-    set_tests_labels(${TEST_TARGET} NAVIER_STOKES_UNIT_TEST ${dim}D CONVECTIVE_JACOBIAN QUICK SERIAL UNIT_TEST)
+    set_tests_labels(${TEST_TARGET} NAVIER_STOKES_UNIT_TEST
+                                    ${dim}D
+                                    SERIAL
+                                    CONVECTIVE_JACOBIAN
+                                    QUICK
+                                    UNIT_TEST)
     unset(TEST_TARGET)
     unset(PhysicsLib)
 
@@ -137,7 +151,12 @@ foreach(dim RANGE 1 3)
       COMMAND mpirun -n 1 ${EXECUTABLE_OUTPUT_PATH}/${TEST_TARGET}
       WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
     )
-    set_tests_labels(${TEST_TARGET} NAVIER_STOKES_UNIT_TEST ${dim}D CONVECTIVE_JACOBIAN QUICK SERIAL UNIT_TEST)
+    set_tests_labels(${TEST_TARGET} NAVIER_STOKES_UNIT_TEST
+                                    ${dim}D
+                                    SERIAL
+                                    CONVECTIVE_JACOBIAN
+                                    QUICK
+                                    UNIT_TEST)
     unset(TEST_TARGET)
     unset(PhysicsLib)
 
@@ -173,7 +192,12 @@ foreach(dim RANGE 1 3)
       COMMAND mpirun -n 1 ${EXECUTABLE_OUTPUT_PATH}/${TEST_TARGET}
       WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
     )
-    set_tests_labels(${TEST_TARGET} NAVIER_STOKES_UNIT_TEST ${dim}D VISCOSITY QUICK SERIAL UNIT_TEST)
+    set_tests_labels(${TEST_TARGET} NAVIER_STOKES_UNIT_TEST
+                                    ${dim}D
+                                    SERIAL
+                                    VISCOSITY
+                                    QUICK
+                                    UNIT_TEST)
     unset(TEST_TARGET)
     unset(PhysicsLib)
 
@@ -209,7 +233,13 @@ foreach(dim RANGE 1 3)
       COMMAND mpirun -n 1 ${EXECUTABLE_OUTPUT_PATH}/${TEST_TARGET}
       WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
     )
-    set_tests_labels(${TEST_TARGET} NAVIER_STOKES_UNIT_TEST ${dim}D RANS MANUFACTURED_SOURCE QUICK SERIAL UNIT_TEST)
+    set_tests_labels(${TEST_TARGET} NAVIER_STOKES_UNIT_TEST
+                                    ${dim}D
+                                    SERIAL
+                                    RANS
+                                    MANUFACTURED_SOURCE
+                                    QUICK
+                                    UNIT_TEST)
     unset(TEST_TARGET)
     unset(PhysicsLib)
 

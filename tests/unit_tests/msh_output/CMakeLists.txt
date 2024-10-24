@@ -25,7 +25,11 @@ foreach(dim RANGE 1 3)
       COMMAND mpirun -n ${MPIMAX} ${EXECUTABLE_OUTPUT_PATH}/${TEST_TARGET}
       WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
     )
-    set_tests_labels(${TEST_TARGET} ${dim}D MESH_OUT PARALLEL UNIT_TESTS)
+    set_tests_labels(${TEST_TARGET} MESH_OUTPUT
+                                    ${dim}D
+                                    PARALLEL
+                                    QUICK
+                                    UNIT_TESTS)
     unset(TEST_TARGET)
     unset(GridRefinementLib)
 endforeach()

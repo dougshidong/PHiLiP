@@ -10,7 +10,7 @@ set_tests_labels(1D_Advection_Limiter_Test  ADVECTION_LIMITER
                                             SERIAL
                                             ADVECTION
                                             RUNGE-KUTTA
-                                            STRONG
+                                            STRONG-SPLIT
                                             COLLOCATED
                                             LIMITER
                                             QUICK

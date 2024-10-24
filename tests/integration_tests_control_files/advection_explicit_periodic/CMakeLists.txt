@@ -11,7 +11,7 @@ set_tests_labels(MPI_2D_ADVECTION_EXPLICIT_PERIODIC_ENERGY_LONG ADVECTION_EXPLIC
                                                                 ADVECTION
                                                                 RUNGE-KUTTA
                                                                 STRONG
-                                                                COLLOCATED
+                                                                UNCOLLOCATED
                                                                 MODERATE
                                                                 INTEGRATION_TEST)
 
@@ -28,7 +28,7 @@ set_tests_labels(MPI_2D_ADVECTION_EXPLICIT_PERIODIC_OOA_LONG    ADVECTION_EXPLIC
                                                                 ADVECTION
                                                                 RUNGE-KUTTA
                                                                 STRONG
-                                                                COLLOCATED
+                                                                UNCOLLOCATED
                                                                 MODERATE
                                                                 INTEGRATION_TEST)
 set(TEST_OUTPUT_DIR ${CMAKE_CURRENT_BINARY_DIR})
@@ -44,7 +44,7 @@ set_tests_labels(MPI_2D_ADVECTION_EXPLICIT_PERIODIC_ENERGY_WEIGHT_ADJUSTED_LONG 
                                                                                 ADVECTION
                                                                                 RUNGE-KUTTA
                                                                                 STRONG
-                                                                                COLLOCATED
+                                                                                UNCOLLOCATED
                                                                                 MODERATE
                                                                                 INTEGRATION_TEST)
 set(TEST_OUTPUT_DIR ${CMAKE_CURRENT_BINARY_DIR})
@@ -60,7 +60,7 @@ set_tests_labels(MPI_2D_ADVECTION_EXPLICIT_PERIODIC_ENERGY_WEIGHT_ADJUSTED_ON_TH
                                                                                             ADVECTION
                                                                                             RUNGE-KUTTA
                                                                                             STRONG
-                                                                                            COLLOCATED
+                                                                                            UNCOLLOCATED
                                                                                             MODERATE
                                                                                             INTEGRATION_TEST)
 set(TEST_OUTPUT_DIR ${CMAKE_CURRENT_BINARY_DIR})
@@ -76,6 +76,6 @@ set_tests_labels(MPI_3D_ADVECTION_EXPLICIT_PERIODIC_ENERGY_WEIGHT_ADJUSTED_LONG 
                                                                                     ADVECTION
                                                                                     RUNGE-KUTTA
                                                                                     STRONG
-                                                                                    COLLOCATED
+                                                                                    UNCOLLOCATED
                                                                                     LONG
                                                                                     INTEGRATION_TEST)

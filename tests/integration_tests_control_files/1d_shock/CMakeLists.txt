@@ -12,7 +12,7 @@ set_tests_labels(1D_SHOCKED_MANUFACTURED_SOLUTION   1D_SHOCK
                                                     BURGERS_INVISCID
                                                     RUNGE-KUTTA
                                                     WEAK
-                                                    COLLOCATED
+                                                    UNCOLLOCATED
                                                     MANUFACTURED_SOLUTION
                                                     MODERATE
                                                     INTEGRATION_TEST)

@@ -28,7 +28,11 @@ foreach(dim RANGE 1 3)
       NAME ${TEST_TARGET}
       COMMAND mpirun -n ${MPIMAX} ${EXECUTABLE_OUTPUT_PATH}/${TEST_TARGET}
       WORKING_DIRECTORY ${TEST_OUTPUT_DIR})
-    set_tests_labels(${TEST_TARGET} ${dim}D OPERATOR PARALLEL QUICK UNIT_TEST)
+    set_tests_labels(${TEST_TARGET} OPERATOR
+                                    ${dim}D
+                                    PARALLEL
+                                    QUICK
+                                    UNIT_TEST)
     unset(TEST_TARGET)
     unset(OperatorsLib)
 endforeach()
@@ -63,7 +67,11 @@ foreach(dim RANGE 1 3)
       NAME ${TEST_TARGET}
       COMMAND mpirun -n ${MPIMAX} ${EXECUTABLE_OUTPUT_PATH}/${TEST_TARGET}
       WORKING_DIRECTORY ${TEST_OUTPUT_DIR})
-    set_tests_labels(${TEST_TARGET} ${dim}D OPERATOR PARALLEL QUICK UNIT_TEST)
+    set_tests_labels(${TEST_TARGET} OPERATOR
+                                    ${dim}D
+                                    PARALLEL
+                                    QUICK
+                                    UNIT_TEST)
     unset(TEST_TARGET)
     unset(OperatorsLib)
 endforeach()
@@ -97,7 +105,11 @@ foreach(dim RANGE 2 3)
       NAME ${TEST_TARGET}
       COMMAND mpirun -n ${MPIMAX} ${EXECUTABLE_OUTPUT_PATH}/${TEST_TARGET}
       WORKING_DIRECTORY ${TEST_OUTPUT_DIR})
-    set_tests_labels(${TEST_TARGET} ${dim}D OPERATOR PARALLEL QUICK UNIT_TEST)
+    set_tests_labels(${TEST_TARGET} OPERATOR
+                                    ${dim}D
+                                    PARALLEL
+                                    QUICK
+                                    UNIT_TEST)
     unset(TEST_TARGET)
     unset(OperatorsLib)
 endforeach()
@@ -131,7 +143,11 @@ foreach(dim RANGE 2 3)
       NAME ${TEST_TARGET}
       COMMAND mpirun -n ${MPIMAX} ${EXECUTABLE_OUTPUT_PATH}/${TEST_TARGET}
       WORKING_DIRECTORY ${TEST_OUTPUT_DIR})
-    set_tests_labels(${TEST_TARGET} ${dim}D OPERATOR PARALLEL QUICK UNIT_TEST)
+    set_tests_labels(${TEST_TARGET} OPERATOR
+                                    ${dim}D
+                                    PARALLEL
+                                    QUICK
+                                    UNIT_TEST)
     unset(TEST_TARGET)
     unset(OperatorsLib)
 endforeach()
@@ -166,7 +182,11 @@ foreach(dim RANGE 2 3)
       NAME ${TEST_TARGET}
       COMMAND mpirun -n ${MPIMAX} ${EXECUTABLE_OUTPUT_PATH}/${TEST_TARGET}
       WORKING_DIRECTORY ${TEST_OUTPUT_DIR})
-    set_tests_labels(${TEST_TARGET} ${dim}D OPERATOR PARALLEL QUICK UNIT_TEST)
+    set_tests_labels(${TEST_TARGET} OPERATOR
+                                    ${dim}D
+                                    PARALLEL
+                                    QUICK
+                                    UNIT_TEST)
     unset(TEST_TARGET)
     unset(OperatorsLib)
 endforeach()
@@ -201,7 +221,11 @@ foreach(dim RANGE 1 3)
       NAME ${TEST_TARGET}
       COMMAND mpirun -n ${MPIMAX} ${EXECUTABLE_OUTPUT_PATH}/${TEST_TARGET}
       WORKING_DIRECTORY ${TEST_OUTPUT_DIR})
-    set_tests_labels(${TEST_TARGET} ${dim}D OPERATOR PARALLEL QUICK UNIT_TEST)
+    set_tests_labels(${TEST_TARGET} OPERATOR
+                                    ${dim}D
+                                    PARALLEL
+                                    QUICK
+                                    UNIT_TEST)
     unset(TEST_TARGET)
     unset(OperatorsLib)
 endforeach()
@@ -237,7 +261,11 @@ foreach(dim RANGE 2 3)
       NAME ${TEST_TARGET}
       COMMAND mpirun -n ${MPIMAX} ${EXECUTABLE_OUTPUT_PATH}/${TEST_TARGET}
       WORKING_DIRECTORY ${TEST_OUTPUT_DIR})
-    set_tests_labels(${TEST_TARGET} ${dim}D OPERATOR PARALLEL QUICK UNIT_TEST)
+    set_tests_labels(${TEST_TARGET} OPERATOR
+                                    ${dim}D
+                                    PARALLEL
+                                    QUICK
+                                    UNIT_TEST)
     unset(TEST_TARGET)
     unset(OperatorsLib)
 endforeach()
@@ -272,7 +300,20 @@ foreach(dim RANGE 2 3)
       NAME ${TEST_TARGET}
       COMMAND mpirun -n ${MPIMAX} ${EXECUTABLE_OUTPUT_PATH}/${TEST_TARGET}
       WORKING_DIRECTORY ${TEST_OUTPUT_DIR})
-    set_tests_labels(${TEST_TARGET} ${dim}D OPERATOR PARALLEL QUICK UNIT_TEST)
+    if (dim EQUAL 2)
+        set_tests_labels(${TEST_TARGET} OPERATOR
+                                        ${dim}D
+                                        PARALLEL
+                                        QUICK
+                                        UNIT_TEST)
+    else ()
+        set_tests_labels(${TEST_TARGET} OPERATOR
+                                        ${dim}D
+                                        PARALLEL
+                                        MODERATE
+                                        UNIT_TEST)
+    endif()
+
     unset(TEST_TARGET)
     unset(OperatorsLib)
 endforeach()
@@ -307,7 +348,11 @@ foreach(dim RANGE 2 3)
       NAME ${TEST_TARGET}
       COMMAND mpirun -n ${MPIMAX} ${EXECUTABLE_OUTPUT_PATH}/${TEST_TARGET}
       WORKING_DIRECTORY ${TEST_OUTPUT_DIR})
-    set_tests_labels(${TEST_TARGET} ${dim}D OPERATOR PARALLEL QUICK UNIT_TEST)
+    set_tests_labels(${TEST_TARGET} OPERATOR
+                                    ${dim}D
+                                    PARALLEL
+                                    QUICK
+                                    UNIT_TEST)
     unset(TEST_TARGET)
     unset(OperatorsLib)
 endforeach()
@@ -341,7 +386,11 @@ foreach(dim RANGE 1 3)
       NAME ${TEST_TARGET}
       COMMAND mpirun -n ${MPIMAX} ${EXECUTABLE_OUTPUT_PATH}/${TEST_TARGET}
       WORKING_DIRECTORY ${TEST_OUTPUT_DIR})
-    set_tests_labels(${TEST_TARGET} ${dim}D OPERATOR PARALLEL QUICK UNIT_TEST)
+    set_tests_labels(${TEST_TARGET} OPERATOR
+                                    ${dim}D
+                                    PARALLEL
+                                    QUICK
+                                    UNIT_TEST)
     unset(TEST_TARGET)
     unset(OperatorsLib)
 endforeach()
@@ -495,7 +544,11 @@ foreach(dim RANGE 2 3)
       NAME ${TEST_TARGET}
       COMMAND mpirun -n ${MPIMAX} ${EXECUTABLE_OUTPUT_PATH}/${TEST_TARGET}
       WORKING_DIRECTORY ${TEST_OUTPUT_DIR})
-    set_tests_labels(${TEST_TARGET} ${dim}D OPERATOR PARALLEL QUICK UNIT_TEST)
+    set_tests_labels(${TEST_TARGET} OPERATOR
+                                    ${dim}D
+                                    PARALLEL
+                                    QUICK
+                                    UNIT_TEST)
     unset(TEST_TARGET)
     unset(OperatorsLib)
 endforeach()
@@ -571,7 +624,11 @@ foreach(dim RANGE 2 3)
       NAME ${TEST_TARGET}
       COMMAND mpirun -n 1 ${EXECUTABLE_OUTPUT_PATH}/${TEST_TARGET}
       WORKING_DIRECTORY ${TEST_OUTPUT_DIR})
-    set_tests_labels(${TEST_TARGET} ${dim}D OPERATOR SERIAL QUICK UNIT_TEST)
+    set_tests_labels(${TEST_TARGET} OPERATOR
+                                    ${dim}D
+                                    SERIAL
+                                    QUICK
+                                    UNIT_TEST)
     unset(TEST_TARGET)
     # unset(ParametersLib)
     unset(OperatorsLib)
@@ -609,7 +666,11 @@ foreach(dim RANGE 2 3)
       NAME ${TEST_TARGET}
       COMMAND mpirun -n 1 ${EXECUTABLE_OUTPUT_PATH}/${TEST_TARGET}
       WORKING_DIRECTORY ${TEST_OUTPUT_DIR})
-    set_tests_labels(${TEST_TARGET} ${dim}D OPERATOR SERIAL QUICK UNIT_TEST)
+    set_tests_labels(${TEST_TARGET} OPERATOR
+                                    ${dim}D
+                                    SERIAL
+                                    QUICK
+                                    UNIT_TEST)
     unset(TEST_TARGET)
     # unset(ParametersLib)
     unset(OperatorsLib)
@@ -647,7 +708,11 @@ foreach(dim RANGE 1 3)
       NAME ${TEST_TARGET}
       COMMAND mpirun -n 1 ${EXECUTABLE_OUTPUT_PATH}/${TEST_TARGET}
       WORKING_DIRECTORY ${TEST_OUTPUT_DIR})
-    set_tests_labels(${TEST_TARGET} ${dim}D OPERATOR SERIAL QUICK UNIT_TEST)
+    set_tests_labels(${TEST_TARGET} OPERATOR
+                                    ${dim}D
+                                    SERIAL
+                                    QUICK
+                                    UNIT_TEST)
     unset(TEST_TARGET)
     # unset(ParametersLib)
     unset(OperatorsLib)
@@ -684,7 +749,11 @@ foreach(dim RANGE 1 3)
       NAME ${TEST_TARGET}
       COMMAND mpirun -n 1 ${EXECUTABLE_OUTPUT_PATH}/${TEST_TARGET}
       WORKING_DIRECTORY ${TEST_OUTPUT_DIR})
-    set_tests_labels(${TEST_TARGET} ${dim}D OPERATOR SERIAL QUICK UNIT_TEST)
+    set_tests_labels(${TEST_TARGET} OPERATOR
+                                    ${dim}D
+                                    SERIAL
+                                    QUICK
+                                    UNIT_TEST)
     unset(TEST_TARGET)
     # unset(ParametersLib)
     unset(OperatorsLib)
@@ -722,7 +791,11 @@ foreach(dim RANGE 1 3)
       NAME ${TEST_TARGET}
       COMMAND mpirun -n 1 ${EXECUTABLE_OUTPUT_PATH}/${TEST_TARGET}
       WORKING_DIRECTORY ${TEST_OUTPUT_DIR})
-    set_tests_labels(${TEST_TARGET} ${dim}D OPERATOR SERIAL QUICK UNIT_TEST)
+    set_tests_labels(${TEST_TARGET} OPERATOR
+                                    ${dim}D
+                                    SERIAL
+                                    QUICK
+                                    UNIT_TEST)
     unset(TEST_TARGET)
     # unset(ParametersLib)
     unset(OperatorsLib)
@@ -760,7 +833,11 @@ foreach(dim RANGE 1 3)
       NAME ${TEST_TARGET}
       COMMAND mpirun -n 1 ${EXECUTABLE_OUTPUT_PATH}/${TEST_TARGET}
       WORKING_DIRECTORY ${TEST_OUTPUT_DIR})
-    set_tests_labels(${TEST_TARGET} ${dim}D OPERATOR SERIAL QUICK UNIT_TEST)
+    set_tests_labels(${TEST_TARGET} OPERATOR
+                                    ${dim}D
+                                    SERIAL
+                                    QUICK
+                                    UNIT_TEST)
     unset(TEST_TARGET)
     # unset(ParametersLib)
     unset(OperatorsLib)
@@ -797,7 +874,11 @@ foreach(dim RANGE 2 3)
       NAME ${TEST_TARGET}
       COMMAND mpirun -n ${MPIMAX} ${EXECUTABLE_OUTPUT_PATH}/${TEST_TARGET}
       WORKING_DIRECTORY ${TEST_OUTPUT_DIR})
-    set_tests_labels(${TEST_TARGET} ${dim}D OPERATOR PARALLEL QUICK UNIT_TEST)
+    set_tests_labels(${TEST_TARGET} OPERATOR
+                                    ${dim}D
+                                    PARALLEL
+                                    QUICK
+                                    UNIT_TEST)
     unset(TEST_TARGET)
     unset(OperatorsLib)
     unset(GridsLib)
@@ -834,7 +915,11 @@ foreach(dim RANGE 2 3)
       NAME ${TEST_TARGET}
       COMMAND mpirun -n ${MPIMAX} ${EXECUTABLE_OUTPUT_PATH}/${TEST_TARGET}
       WORKING_DIRECTORY ${TEST_OUTPUT_DIR})
-    set_tests_labels(${TEST_TARGET} ${dim}D OPERATOR PARALLEL QUICK UNIT_TEST)
+    set_tests_labels(${TEST_TARGET} OPERATOR
+                                    ${dim}D
+                                    PARALLEL
+                                    QUICK
+                                    UNIT_TEST)
     unset(TEST_TARGET)
     unset(OperatorsLib)
     unset(GridsLib)

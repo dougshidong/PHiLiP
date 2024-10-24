@@ -24,51 +24,87 @@ endif()
 
 ADD_TEST(NAME NNLS_known_tests
 COMMAND ${MPIGO} $<TARGET_FILE:Tests.exe> known)
-set_tests_labels(NNLS_known_tests NNLS QUICK SERIAL UNIT_TEST)
+set_tests_labels(NNLS_known_tests   NNLS
+                                    SERIAL
+                                    QUICK
+                                    UNIT_TEST)
 
 ADD_TEST(NAME NNLS_matlab_test
 COMMAND ${MPIGO} $<TARGET_FILE:Tests.exe> matlab)
-set_tests_labels(NNLS_matlab_test NNLS QUICK SERIAL UNIT_TEST)
+set_tests_labels(NNLS_matlab_test   NNLS
+                                    SERIAL
+                                    QUICK
+                                    UNIT_TEST)
 
 ADD_TEST(NAME NNLS_no_cols_matrix
 COMMAND ${MPIGO} $<TARGET_FILE:Tests.exe> noCols)
-set_tests_labels(NNLS_no_cols_matrix NNLS QUICK SERIAL UNIT_TEST)
+set_tests_labels(NNLS_no_cols_matrix    NNLS
+                                        SERIAL
+                                        QUICK
+                                        UNIT_TEST)
 
 ADD_TEST(NAME NNLS_empty_matrix
 COMMAND ${MPIGO} $<TARGET_FILE:Tests.exe> empty)
-set_tests_labels(NNLS_empty_matrix NNLS QUICK SERIAL UNIT_TEST)
+set_tests_labels(NNLS_empty_matrix  NNLS
+                                    SERIAL
+                                    QUICK
+                                    UNIT_TEST)
 
 ADD_TEST(NAME NNLS_random_problem
 COMMAND ${MPIGO} $<TARGET_FILE:Tests.exe> random)
-set_tests_labels(NNLS_random_problem NNLS QUICK SERIAL UNIT_TEST)
+set_tests_labels(NNLS_random_problem    NNLS
+                                        SERIAL
+                                        QUICK
+                                        UNIT_TEST)
 
 ADD_TEST(NAME NNLS_zero_RHS
 COMMAND ${MPIGO} $<TARGET_FILE:Tests.exe> zeroRHS)
-set_tests_labels(NNLS_zero_RHS NNLS QUICK SERIAL UNIT_TEST)
+set_tests_labels(NNLS_zero_RHS  NNLS
+                                SERIAL
+                                QUICK
+                                UNIT_TEST)
 
 ADD_TEST(NAME NNLS_dependent_columns
 COMMAND ${MPIGO} $<TARGET_FILE:Tests.exe> depCols)
-set_tests_labels(NNLS_dependent_columns NNLS QUICK SERIAL UNIT_TEST)
+set_tests_labels(NNLS_dependent_columns NNLS
+                                        SERIAL
+                                        QUICK
+                                        UNIT_TEST)
 
 ADD_TEST(NAME NNLS_wide_matrix
 COMMAND ${MPIGO} $<TARGET_FILE:Tests.exe> wide)
-set_tests_labels(NNLS_wide_matrix NNLS QUICK SERIAL UNIT_TEST)
+set_tests_labels(NNLS_wide_matrix   NNLS
+                                    SERIAL
+                                    QUICK
+                                    UNIT_TEST)
 
 ADD_TEST(NAME NNLS_zero_iter_w_sol
 COMMAND ${MPIGO} $<TARGET_FILE:Tests.exe> zeroIter)
-set_tests_labels(NNLS_zero_iter_w_sol NNLS QUICK SERIAL UNIT_TEST)
+set_tests_labels(NNLS_zero_iter_w_sol   NNLS
+                                        SERIAL
+                                        QUICK
+                                        UNIT_TEST)
 
 ADD_TEST(NAME NNLS_n_iter
 COMMAND ${MPIGO} $<TARGET_FILE:Tests.exe> nIter)
-set_tests_labels(NNLS_n_iter NNLS QUICK SERIAL UNIT_TEST)
+set_tests_labels(NNLS_n_iter    NNLS
+                                SERIAL
+                                QUICK
+                                UNIT_TEST)
 
 ADD_TEST(NAME NNLS_max_iter
 COMMAND ${MPIGO} $<TARGET_FILE:Tests.exe> maxIter)
-set_tests_labels(NNLS_max_iter NNLS QUICK SERIAL UNIT_TEST)
+set_tests_labels(NNLS_max_iter  NNLS
+                                SERIAL
+                                QUICK
+                                UNIT_TEST)
 
 ADD_TEST(NAME NNLS_multi_core
 COMMAND mpirun -n ${MPIMAX} $<TARGET_FILE:Tests.exe> multiCore)
-set_tests_labels(NNLS_multi_core NNLS QUICK PARALLEL UNIT_TEST)
+set_tests_labels(NNLS_multi_core    NNLS
+                                    PARALLEL
+                                    QUICK
+                                    UNIT_TEST)
 
 #set(TEST_SRC
 #	NNLS_tests.cpp)

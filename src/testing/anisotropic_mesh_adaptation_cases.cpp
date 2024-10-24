@@ -74,6 +74,14 @@ void AnisotropicMeshAdaptationCases<dim,nstate> :: verify_fe_values_shape_hessia
 }
 
 template <int dim, int nstate>
+double AnisotropicMeshAdaptationCases<dim,nstate> :: evaluate_functional(std::shared_ptr<DGBase<dim,double>> dg) const
+{
+    std::shared_ptr< Functional<dim, nstate, double> > functional
+                                = FunctionalFactory<dim,nstate,double>::create_Functional(dg->all_parameters->functional_param, dg);
+    return (functional->evaluate_functional());
+}
+
+template <int dim, int nstate>
 int AnisotropicMeshAdaptationCases<dim, nstate> :: run_test () const
 {
     const Parameters::AllParameters param = *(TestsBase::all_parameters);
@@ -85,8 +93,9 @@ int AnisotropicMeshAdaptationCases<dim, nstate> :: run_test () const
 
     std::unique_ptr<AnisotropicMeshAdaptation<dim, nstate, double>> anisotropic_mesh_adaptation =
                         std::make_unique<AnisotropicMeshAdaptation<dim, nstate, double>> (flow_solver->dg, normLp, complexity, use_goal_oriented_approach);
-
+    
     flow_solver->run();
+    const double functional_initial = evaluate_functional(flow_solver->dg);
     const unsigned int n_adaptation_cycles = param.mesh_adaptation_param.total_mesh_adaptation_cycles;
     
     for(unsigned int cycle = 0; cycle < n_adaptation_cycles; ++cycle)
@@ -94,6 +103,7 @@ int AnisotropicMeshAdaptationCases<dim, nstate> :: run_test () const
         anisotropic_mesh_adaptation->adapt_mesh();
         flow_solver->run();
     }
+    const double functional_final = evaluate_functional(flow_solver->dg);
 
     verify_fe_values_shape_hessian(*(flow_solver->dg));
 
@@ -109,7 +119,21 @@ int AnisotropicMeshAdaptationCases<dim, nstate> :: run_test () const
     pcout<<"Distance to the expected coordinates of the highest refined cell = "<<distance_val<<std::endl;
 
     int test_val = 0;
-    if(distance_val > 0.1) {++test_val;}// should lie in a ball of radius 0.1
+    if(distance_val < 0.1) {return test_val;}// within a ball of radius 0.1
+    else
+    { // Check if functional error has decreased.
+        const double functional_exact = 0.5625;
+        const double error_initial = abs(functional_initial-functional_exact);
+        const double error_final = abs(functional_final-functional_exact);
+
+        if( !(error_final < error_initial) ) {
+            pcout<<"Functional error has not decreased after adaptation. Test failed."<<std::endl;
+            pcout<<"error_initial = "<<error_initial<<std::endl;
+            pcout<<"error_final = "<<error_final<<std::endl;
+            test_val++;
+        }
+    }
+
     return test_val;
 }
 

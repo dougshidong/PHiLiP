@@ -29,7 +29,6 @@ int EulerVortexAdvectionErrorStudy<dim,nstate>
 ::run_test () const
 {
     int convergence_order_achieved = 0;
-    std::cout << "DO YOU SEE THIS? \n \n " << std::endl;
 
     double run_test_output = run_error_study(); // run_error_study() can return either enthalpy or the convergence order
     if (abs(run_test_output) > 1e-15) // If run_error_study() returns non zero
@@ -68,13 +67,12 @@ double EulerVortexAdvectionErrorStudy<dim,nstate>
             pressure =  euler_physics_double.compute_pressure(conservative_soln);
         }
     }
-    // Multi-Species Calorically-Imperfect Euler Vortex
+    // 1D Multi-Species Calorically-Imperfect Euler Vortex
     else if (flow_type == FlowCaseEnum::multi_species_vortex_advection || 
              flow_type == FlowCaseEnum::multi_species_high_temperature_vortex_advection) 
     {
-        if constexpr (dim==1 && nstate==dim+2+2-1) // TO DO: N_SPECIES, dim = 1, nstate = dim+2+3-1
+        if constexpr (dim==1 && nstate==dim+2+2-1) // Note: modify this when you change the number of species. nstate == dim+2+(nspecies)-1
         {
-            // std::cout << "multi-species_calorically-imperfect_vortex_advection! \n \n " << std::endl;
             Physics::RealGas<dim,nstate,double> realgas_physics_double
             = Physics::RealGas<dim, nstate, double>(
                 &param);
@@ -141,13 +139,12 @@ double EulerVortexAdvectionErrorStudy<dim,nstate>
             temperature = euler_physics_double.compute_temperature_from_density_pressure(density,pressure);
         }
     }
-    // Multi-Species Calorically-Imperfect Euler
+    // 1D Multi-Species Calorically-Imperfect Euler
     else if (flow_type == FlowCaseEnum::multi_species_vortex_advection ||
              flow_type == FlowCaseEnum::multi_species_high_temperature_vortex_advection) 
     {
-        if constexpr (dim==1 && nstate==dim+2+2-1) // TO DO: N_SPECIES, dim = 1, nstate = dim+2+3-1
+        if constexpr (dim==1 && nstate==dim+2+2-1) // Note: modify this when you change the number of species. nstate == dim+2+(nspecies)-1
         {
-            // std::cout << "multi-species_calorically-imperfect_vortex_advection! \n \n " << std::endl;
             Physics::RealGas<dim,nstate,double> realgas_physics_double
             = Physics::RealGas<dim, nstate, double>(
                 &param);
@@ -211,13 +208,12 @@ double EulerVortexAdvectionErrorStudy<dim,nstate>
             mass_fraction = conservative_soln[0]; // TO DO: it is dummy 
         }
     }
-    // Multi-Species Calorically-Imperfect Multi-Species
+    // 1D Multi-Species Calorically-Imperfect Multi-Species
     else if (flow_type == FlowCaseEnum::multi_species_vortex_advection ||
              flow_type == FlowCaseEnum::multi_species_high_temperature_vortex_advection) 
     {
-        if constexpr (dim==1 && nstate==dim+2+2-1) // TO DO: N_SPECIES, dim = 1, nstate = dim+2+3-1
+        if constexpr (dim==1 && nstate==dim+2+2-1) // Note: modify this when you change the number of species. nstate == dim+2+(nspecies)-1
         {
-            // std::cout << "multi-species_calorically-imperfect_vortex_advection! \n \n " << std::endl;
             Physics::RealGas<dim,nstate,double> realgas_physics_double
             = Physics::RealGas<dim, nstate, double>(
                 &param);
@@ -388,12 +384,11 @@ double EulerVortexAdvectionErrorStudy<dim,nstate>
         }
     }    
 
-    // Multi-Species Euler (Calorically Imperfect) Vortex
+    // 1D Multi-Species Euler (Calorically Imperfect) Vortex
     else if (flow_type == FlowCaseEnum::multi_species_vortex_advection)
     {
-        if constexpr (dim==1 && nstate==dim+2+2-1) // TO DO: N_SPECIES, dim = 1, nstate = dim+2+3-1
+        if constexpr (dim==1 && nstate==dim+2+2-1) // Note: modify this when you change the number of species. nstate == dim+2+(nspecies)-1
         {
-            // std::cout << "multi-species_calorically-imperfect_vortex_advection! \n \n " << std::endl;
             Physics::RealGas<dim,nstate,double> realgas_physics_double
             = Physics::RealGas<dim, nstate, double>(
                 &param);
@@ -404,31 +399,40 @@ double EulerVortexAdvectionErrorStudy<dim,nstate>
             const double cycle = t_end/t_cycle;
             const double moved = speed*cycle;
 
-        const double x = point[0] - moved;
-        const double x_0 = 5.0;
-        const double r = sqrt((x-x_0)*(x-x_0));
-        const double T_0 = 300.0; // [K]
-        const double big_gamma = 50.0;
-        const double gamma_0 = 1.4;
-        const double y_H2_0 = 0.01277;
-        // const double y_O2_0 = 0.101;
-        const double a_1 = 0.005;
-        // const double a_2 = 0.03;
-        const double pi = 6.28318530717958623200 / 2; // pi
+            const double x = point[0] - moved;
+            const double x_0 = 5.0;
+            const double r = sqrt((x-x_0)*(x-x_0));
+            const double T_0 = 300.0; // [K]
+            const double big_gamma = 50.0;
+            const double gamma_0 = 1.4;
+            const double y_H2_0 = 0.01277;
+            const double a_1 = 0.005;
+            const double pi = 6.28318530717958623200 / 2; // pi
 
-        const double pressure = 101325; // [N/m^2]
-        const double velocity = 100.0; // [m/s]
-        const double exp = std::exp(0.50*(1-r*r));
-        const double coeff = 2*pi/(gamma_0*big_gamma);
-        const double temperature = T_0 - (gamma_0-1.0)*big_gamma*big_gamma/(8.0*gamma_0*pi)*exp;
-        const double y_H2 = (y_H2_0 - a_1*coeff*exp);
-        const double y_O2 = 1.0 - y_H2;
-        // const double y_O2 = (y_O2_0 - a_2*coeff*exp);
-        // const double y_N2 = 1.0 - y_H2 - y_O2;
+            const double pressure = 101325; // [N/m^2]
+            const double velocity = 100.0; // [m/s]
+            const double exp = std::exp(0.50*(1-r*r));
+            const double coeff = 2*pi/(gamma_0*big_gamma);
+            const double temperature = T_0 - (gamma_0-1.0)*big_gamma*big_gamma/(8.0*gamma_0*pi)*exp;
+            const double y_H2 = (y_H2_0 - a_1*coeff*exp);
 
-        const std::array Rs = realgas_physics_double.compute_Rs(realgas_physics_double.Ru);
-        const double R_mixture = (y_H2*Rs[0] + y_O2*Rs[1])*realgas_physics_double.R_ref;
-        const double density = pressure/(R_mixture*temperature);
+            const std::array Rs = realgas_physics_double.compute_Rs(realgas_physics_double.Ru);
+            double y_O2;
+            double R_mixture;
+            // For a 2 species test
+            if constexpr(nstate==dim+2+2-1) {
+                y_O2 = 1.0 - y_H2;
+                R_mixture = (y_H2*Rs[0] + y_O2*Rs[1])*realgas_physics_double.R_ref;
+            }
+            // For a 3 species test
+            if constexpr(nstate==dim+2+3-1) {
+                const double y_O2_0 = 0.101;
+                const double a_2 = 0.03;
+                y_O2 = (y_O2_0 - a_2*coeff*exp);
+                const double y_N2 = 1.0 - y_H2 - y_O2;
+                R_mixture = (y_H2*Rs[0] + y_O2*Rs[1] + y_N2*Rs[2])*realgas_physics_double.R_ref;
+            }
+            const double density = pressure/(R_mixture*temperature);
 
             std::array<double,nstate> soln_primitive;
 

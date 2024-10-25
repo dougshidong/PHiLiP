@@ -15,18 +15,11 @@
 #- Quadrature Type
 #   - COLLOCATED, UNCOLLOCATED
 #- OTHER (if needed)
-#	- MEMORY_INTENSIVE, MANUFACTURED_SOLUTION, EXPECTED_FAILURE etc
+#	- MEMORY_INTENSIVE, MANUFACTURED_SOLUTION, EXPECTED_FAILURE, CONVERGENCE etc
 #- Speed of Test
 #	- QUICK (<~10s), MODERATE(<~180s), LONG(>~180s)
 #- Type of Test
-#	- UNIT_TEST, INTEGRATION_TEST, FLOW_SIMULATION, CONVERGENCE (Add to other)?
-
-
-
-
-
-
-
+#	- UNIT_TEST, INTEGRATION_TEST
 
 function(set_tests_labels test_name)
     set(labels ${ARGN})

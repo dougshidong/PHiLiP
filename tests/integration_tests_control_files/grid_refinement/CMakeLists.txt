@@ -7,6 +7,18 @@ add_test(
   COMMAND mpirun -n 1 ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_2D -i ${CMAKE_CURRENT_BINARY_DIR}/2d_anisotropic_ff_h.prm
   WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
 )
+set_tests_labels(2D_ANISOTROPIC_FF_H  GRID_REFINEMENT
+                                      2D
+                                      SERIAL
+                                      ADVECTION
+                                      IMPLICIT
+                                      WEAK
+                                      UNCOLLOCATED
+                                      TRIANGULATION
+                                      MANUFACTURED_SOLUTION
+                                      CONVERGENCE
+                                      MODERATE
+                                      INTEGRATION_TEST)
 
 # sizefield write tests
 configure_file(2d_msh_quadratic_field.prm 2d_msh_quadratic_field.prm COPYONLY)

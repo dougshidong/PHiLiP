@@ -875,24 +875,34 @@ real InitialConditionFunction_MultiSpecies_HighTemperature_VortexAdvection<dim,n
         const real big_gamma = 50.0;
         const real gamma_0 = 1.4;
         const real y_H2_0 = 0.01277;
-        // const real y_O2_0 = 0.101;
         const real a_1 = 0.005;
-        // const real a_2 = 0.03;
         const real pi = 6.28318530717958623200 / 2; // pi
 
-        const real pressure = 101325*5.0; // [N/m^2]
+        real pressure = 101325; // [N/m^2]
+        pressure *= 5.0;
         const real velocity = 100.0; // [m/s]
         const real exp = std::exp(0.50*(1-r*r));
         const real coeff = 2*pi/(gamma_0*big_gamma);
         real temperature = T_0 - (gamma_0-1.0)*big_gamma*big_gamma/(8.0*gamma_0*pi)*exp;
         temperature *= 5.0;
         const real y_H2 = (y_H2_0 - a_1*coeff*exp);
-        const real y_O2 = 1.0 - y_H2;
-        // const real y_O2 = (y_O2_0 - a_2*coeff*exp);
-        // const real y_N2 = 1.0 - y_H2 - y_O2;
 
         const std::array Rs = this->real_gas_physics->compute_Rs(this->real_gas_physics->Ru);
-        const real R_mixture = (y_H2*Rs[0] + y_O2*Rs[1])*this->real_gas_physics->R_ref;
+        real y_O2;
+        real R_mixture;
+        // For a 2 species test
+        if constexpr(nstate==dim+2+2-1) {
+            y_O2 = 1.0 - y_H2;
+            R_mixture = (y_H2*Rs[0] + y_O2*Rs[1])*this->real_gas_physics->R_ref;
+        }
+        // For a 3 species test
+        if constexpr(nstate==dim+2+3-1) {
+            const real y_O2_0 = 0.101;
+            const real a_2 = 0.03;
+            y_O2 = (y_O2_0 - a_2*coeff*exp);
+            const real y_N2 = 1.0 - y_H2 - y_O2;
+            R_mixture = (y_H2*Rs[0] + y_O2*Rs[1] + y_N2*Rs[2])*this->real_gas_physics->R_ref;
+        }
         const real density = pressure/(R_mixture*temperature);
 
         // dimnsionalized above, non-dimensionalized below
@@ -912,10 +922,12 @@ real InitialConditionFunction_MultiSpecies_HighTemperature_VortexAdvection<dim,n
             // other species density (N2)
             value = y_H2;
         }
-        // if(istate==4){
-        //     // other species density (O2)
-        //     value = y_O2;
-        // }
+        if constexpr(nstate==dim+2+3-1) {
+            if(istate==4){
+            // other species density (O2)
+            value = y_O2;
+            }
+        }
     }
     return value;
 }

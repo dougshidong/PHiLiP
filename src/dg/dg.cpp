@@ -863,6 +863,13 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
 
                 const std::vector<dealii::types::global_dof_index> neighbor_metric_dofs_indices_const = neighbor_metric_dofs_indices;
 
+                
+                for(unsigned int idof = 0; idof< n_metric_dofs_cell; ++idof){
+                    pcout << "neighbor_metric_dofs_indices["<<idof<<"]: "<<neighbor_metric_dofs_indices[idof] << std::endl;
+                    pcout << "neighbor_metric_dofs_indices_const["<<idof<<"]: "<<neighbor_metric_dofs_indices_const[idof] << std::endl;
+                }
+
+
                 const dealii::types::global_dof_index neighbor_cell_index = neighbor_cell->active_cell_index();
                 const auto metric_neighbor_cell = current_metric_cell->periodic_neighbor(iface);
                 metric_neighbor_cell->get_dof_indices(neighbor_metric_dofs_indices);
@@ -873,7 +880,7 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
                 OPERATOR::metric_operators<real,dim,2*dim> metric_oper_ext(nstate, poly_degree_ext, grid_degree_ext,
                                                                            store_vol_flux_nodes,
                                                                            store_surf_flux_nodes);
-                 pcout << "Assembling face term." << std::endl;
+                pcout << "Assembling face term." << std::endl;
                 assemble_face_term_and_build_operators(
                     current_cell,
                     neighbor_cell,

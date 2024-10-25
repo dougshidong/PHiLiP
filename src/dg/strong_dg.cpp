@@ -280,7 +280,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_and_build_operators(
         pcout << "Loop over all dofs." << std::endl;
         for (unsigned int idof = 0; idof< n_metric_dofs; ++idof) {
             pcout << "idof: "<< idof << std::endl;
-            pcout << "neighbor_metric_dofs_indices["<<idof<<"]"<< neighbor_metric_dofs_indices[idof] << std::endl;
+            pcout << "neighbor_metric_dofs_indices["<<idof<<"]: "<< neighbor_metric_dofs_indices[idof] << std::endl;
             const real val = (this->high_order_grid->volume_nodes[neighbor_metric_dofs_indices[idof]]);
             const unsigned int istate = fe_metric.system_to_component_index(idof).first; 
             const unsigned int ishape = fe_metric.system_to_component_index(idof).second; 

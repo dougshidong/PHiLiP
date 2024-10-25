@@ -757,28 +757,15 @@ double EulerVortexAdvectionErrorStudy<dim,nstate>
                     // TO DO: get exact_at_q here using x or qpoint ... DONE
                     for (unsigned int istate=0; istate<nstate; ++istate)
                     {
+                        const dealii::Point<dim> qpoint = (fe_values_extra.quadrature_point(iquad));
                         // Note: This is in non-dimensional form (free-stream values as reference)
                         if constexpr(dim == 1)
                         {
-                            // TO DO: get x here ... DONE
-                            const dealii::Point<dim> qpoint = (fe_values_extra.quadrature_point(iquad));
-                            
+                            /// THIS IS FOR 1 cycle
                             exact_at_q[istate] = flow_solver->flow_solver_case->initial_condition_function->value(qpoint,istate);
                         } else {
-                            exact_at_q[istate] = 0.0;
-                        }
-                    }
-
-                    // THIS IS FOR 1/10 cycle
-                    for (unsigned int istate=0; istate<nstate; ++istate)
-                    {
-                        // Note: This is in non-dimensional form (free-stream values as reference)
-                        if constexpr(dim == 2)
-                        {
-                            const dealii::Point<dim> qpoint = (fe_values_extra.quadrature_point(iquad));
+                            // THIS IS FOR 1/10 cycle
                             exact_at_q[istate] = compute_exact_at_q(qpoint,istate);
-                        } else {
-                            exact_at_q[istate] = 0.0;
                         }
                     }
 

@@ -437,25 +437,12 @@ double EulerVortexAdvectionErrorStudy<dim,nstate>
             soln_primitive[1] = velocity / realgas_physics_double.u_ref;
             soln_primitive[2] = pressure / (realgas_physics_double.density_ref*realgas_physics_double.u_ref_sqr);
             soln_primitive[3] = y_H2;
+            if constexpr(nstate==dim+2+3-1){
+                soln_primitive[4] = y_O2;
+            }
 
             const std::array<double,nstate> soln_conservative = realgas_physics_double.convert_primitive_to_conservative(soln_primitive);
-            if(istate==0) {
-            // mixture density
             value = soln_conservative[istate];
-            }
-            if(istate==1) {
-            // x-velocity
-            value = soln_conservative[istate];
-            }
-            if(istate==2) {
-            // pressure
-            value = soln_conservative[istate];
-            }
-            if(istate==3) {
-            // Y_H2
-            value = soln_conservative[istate];
-            }
-        
         }
     }    
 

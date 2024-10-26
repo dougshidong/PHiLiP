@@ -173,17 +173,17 @@ add_test(
   COMMAND mpirun -np ${MPIMAX} ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_2D -i ${CMAKE_CURRENT_BINARY_DIR}/2d_euler_roe_manufactured_navah.prm
   WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
 )
-set_tests_labels(MPI_2D_EULER_ROE_MANUFACTURED_SOLUTION_MEDIUM  EULER_INTEGRATION
-                                                                2D
-                                                                PARALLEL
-                                                                EULER
-                                                                IMPLICIT
-                                                                WEAK
-                                                                UNCOLLOCATED
-                                                                MANUFACTURED_SOLUTION
-                                                                CONVERGENCE
-                                                                MODERATE
-                                                                INTEGRATION_TEST)
+set_tests_labels(MPI_2D_EULER_ROE_MANUFACTURED_SOLUTION_NAVAH_MEDIUM    EULER_INTEGRATION
+                                                                        2D
+                                                                        PARALLEL
+                                                                        EULER
+                                                                        IMPLICIT
+                                                                        WEAK
+                                                                        UNCOLLOCATED
+                                                                        MANUFACTURED_SOLUTION
+                                                                        CONVERGENCE
+                                                                        MODERATE
+                                                                        INTEGRATION_TEST)
 
 configure_file(2d_euler_l2roe_manufactured.prm 2d_euler_l2roe_manufactured.prm COPYONLY)
 add_test(
@@ -191,17 +191,17 @@ add_test(
   COMMAND mpirun -np ${MPIMAX} ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_2D -i ${CMAKE_CURRENT_BINARY_DIR}/2d_euler_l2roe_manufactured.prm
   WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
 )
-set_tests_labels(MPI_2D_EULER_ROE_MANUFACTURED_SOLUTION_MEDIUM  EULER_INTEGRATION
-                                                                2D
-                                                                PARALLEL
-                                                                EULER
-                                                                IMPLICIT
-                                                                WEAK
-                                                                UNCOLLOCATED
-                                                                MANUFACTURED_SOLUTION
-                                                                CONVERGENCE
-                                                                MODERATE
-                                                                INTEGRATION_TEST)
+set_tests_labels(MPI_2D_EULER_L2ROE_MANUFACTURED_SOLUTION_MEDIUM    EULER_INTEGRATION
+                                                                    2D
+                                                                    PARALLEL
+                                                                    EULER
+                                                                    IMPLICIT
+                                                                    WEAK
+                                                                    UNCOLLOCATED
+                                                                    MANUFACTURED_SOLUTION
+                                                                    CONVERGENCE
+                                                                    MODERATE
+                                                                    INTEGRATION_TEST)
 
 configure_file(2d_euler_l2roe_manufactured_navah.prm 2d_euler_l2roe_manufactured_navah.prm COPYONLY)
 add_test(
@@ -209,17 +209,17 @@ add_test(
   COMMAND mpirun -np ${MPIMAX} ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_2D -i ${CMAKE_CURRENT_BINARY_DIR}/2d_euler_l2roe_manufactured_navah.prm
   WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
 )
-set_tests_labels(MPI_2D_EULER_ROE_MANUFACTURED_SOLUTION_MEDIUM  EULER_INTEGRATION
-                                                                2D
-                                                                PARALLEL
-                                                                EULER
-                                                                IMPLICIT
-                                                                WEAK
-                                                                UNCOLLOCATED
-                                                                MANUFACTURED_SOLUTION
-                                                                CONVERGENCE
-                                                                MODERATE
-                                                                INTEGRATION_TEST)
+set_tests_labels(MPI_2D_EULER_L2ROE_MANUFACTURED_SOLUTION_NAVAH_MEDIUM  EULER_INTEGRATION
+                                                                        2D
+                                                                        PARALLEL
+                                                                        EULER
+                                                                        IMPLICIT
+                                                                        WEAK
+                                                                        UNCOLLOCATED
+                                                                        MANUFACTURED_SOLUTION
+                                                                        CONVERGENCE
+                                                                        MODERATE
+                                                                        INTEGRATION_TEST)
 
 # Exact solutions
 

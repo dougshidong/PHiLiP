@@ -59,7 +59,7 @@ if(${ENABLE_GMSH})
                                             MANUFACTURED_SOLUTION
                                             CONVERGENCE
                                             GMSH
-                                            ???
+                                            MODERATE
                                             INTEGRATION_TEST)
 
   configure_file(2d_gmsh_aniso_sshock_p2.prm 2d_gmsh_aniso_sshock_p2.prm COPYONLY)
@@ -78,7 +78,7 @@ if(${ENABLE_GMSH})
                                             MANUFACTURED_SOLUTION
                                             CONVERGENCE
                                             GMSH
-                                            ???
+                                            LONG
                                             INTEGRATION_TEST)
   # Boundary Layer (p=2, p=3)
   configure_file(2d_gmsh_aniso_boundarylayer_p2.prm 2d_gmsh_aniso_boundarylayer_p2.prm COPYONLY)
@@ -97,7 +97,7 @@ if(${ENABLE_GMSH})
                                                   MANUFACTURED_SOLUTION
                                                   CONVERGENCE
                                                   GMSH
-                                                  ???
+                                                  LONG
                                                   INTEGRATION_TEST)
   configure_file(2d_gmsh_aniso_boundarylayer_p3.prm 2d_gmsh_aniso_boundarylayer_p3.prm COPYONLY)
   add_test(
@@ -115,7 +115,7 @@ if(${ENABLE_GMSH})
                                                   MANUFACTURED_SOLUTION
                                                   CONVERGENCE
                                                   GMSH
-                                                  ???
+                                                  LONG
                                                   INTEGRATION_TEST)
 endif(${ENABLE_GMSH})
 
@@ -139,7 +139,8 @@ if(${ENABLE_GMSH})
                                               MANUFACTURED_SOLUTION
                                               CONVERGENCE
                                               GMSH
-                                              ???
+                                              ADJOINT
+                                              MODERATE
                                               INTEGRATION_TEST)
   configure_file(2d_gmsh_adjoint_sshock_p2.prm 2d_gmsh_adjoint_sshock_p2.prm COPYONLY)
   add_test(
@@ -157,7 +158,8 @@ if(${ENABLE_GMSH})
                                               MANUFACTURED_SOLUTION
                                               CONVERGENCE
                                               GMSH
-                                              ???
+                                              ADJOINT
+                                              LONG
                                               INTEGRATION_TEST)
   # Boundary Layer (p=2, p=3)
   configure_file(2d_gmsh_adjoint_boundarylayer_p2.prm 2d_gmsh_adjoint_boundarylayer_p2.prm COPYONLY)
@@ -176,7 +178,8 @@ if(${ENABLE_GMSH})
                                                       MANUFACTURED_SOLUTION
                                                       CONVERGENCE
                                                       GMSH
-                                                      ???
+                                                      ADJOINT
+                                                      MODERATE
                                                       INTEGRATION_TEST)
   configure_file(2d_gmsh_adjoint_boundarylayer_p3.prm 2d_gmsh_adjoint_boundarylayer_p3.prm COPYONLY)
   add_test(
@@ -194,7 +197,8 @@ if(${ENABLE_GMSH})
                                                       MANUFACTURED_SOLUTION
                                                       CONVERGENCE
                                                       GMSH
-                                                      ???
+                                                      ADJOINT
+                                                      LONG
                                                       INTEGRATION_TEST)
 endif(${ENABLE_GMSH})
 

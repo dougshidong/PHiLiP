@@ -72,7 +72,7 @@ foreach(dim RANGE 1 3)
     set_tests_labels(${TEST_TARGET} EULER_UNIT_TEST
                                     ${dim}D
                                     SERIAL
-                                    MANUFACTURED_SOURCE
+                                    MANUFACTURED_SOLUTION
                                     QUICK
                                     UNIT_TEST)
 

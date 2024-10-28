@@ -213,6 +213,7 @@ set_tests_labels(3D_GMSH_READER_SD7003_04_CELL_SPANWISE GRID
                                                         3D
                                                         PARALLEL
                                                         GMSH
+                                                        EXPECTED_FAILURE
                                                         QUICK
                                                         UNIT_TEST)
 
@@ -235,6 +236,7 @@ set_tests_labels(3D_GMSH_READER_SD7003_12_CELL_SPANWISE GRID
                                                         3D
                                                         PARALLEL
                                                         GMSH
+                                                        EXPECTED_FAILURE
                                                         QUICK
                                                         UNIT_TEST)
 

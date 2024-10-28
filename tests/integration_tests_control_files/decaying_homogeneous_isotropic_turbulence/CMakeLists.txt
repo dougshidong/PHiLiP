@@ -15,7 +15,7 @@ add_test(NAME SERIAL_DHIT_INIT_CHECK
 set_tests_labels(SERIAL_DHIT_INIT_CHECK DECAYING_HOMOGENEOUS_ISOTROPIC_TURBULENCE
                                         3D
                                         SERIAL
-                                        NAVIER-STOKES
+                                        NAVIER_STOKES
                                         RUNGE-KUTTA
                                         STRONG
                                         COLLOCATED
@@ -30,7 +30,7 @@ add_test(NAME MPI_DHIT_INIT_CHECK
 set_tests_labels(MPI_DHIT_INIT_CHECK    DECAYING_HOMOGENEOUS_ISOTROPIC_TURBULENCE
                                         3D
                                         PARALLEL
-                                        NAVIER-STOKES
+                                        NAVIER_STOKES
                                         RUNGE-KUTTA
                                         STRONG
                                         COLLOCATED

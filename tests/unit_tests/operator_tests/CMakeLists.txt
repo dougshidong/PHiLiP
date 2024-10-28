@@ -833,11 +833,20 @@ foreach(dim RANGE 1 3)
       NAME ${TEST_TARGET}
       COMMAND mpirun -n 1 ${EXECUTABLE_OUTPUT_PATH}/${TEST_TARGET}
       WORKING_DIRECTORY ${TEST_OUTPUT_DIR})
-    set_tests_labels(${TEST_TARGET} OPERATOR
+    if (${dim} EQUAL 3)
+        set_tests_labels(${TEST_TARGET} OPERATOR
                                     ${dim}D
                                     SERIAL
+                                    EXPECTED_FAILURE
                                     QUICK
                                     UNIT_TEST)
+    else()
+        set_tests_labels(${TEST_TARGET} OPERATOR
+                ${dim}D
+                SERIAL
+                QUICK
+                UNIT_TEST)
+    endif()
     unset(TEST_TARGET)
     # unset(ParametersLib)
     unset(OperatorsLib)

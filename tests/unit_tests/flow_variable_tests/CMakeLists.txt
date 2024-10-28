@@ -38,13 +38,13 @@ foreach(dim RANGE 1 3)
                                         ${dim}D
                                         SERIAL
                                         QUICK
-                                        UNIT_TESTS)
+                                        UNIT_TEST)
     else()
         set_tests_labels(${TEST_TARGET} FLOW_VARIABLE
                                         ${dim}D
                                         PARALLEL
                                         QUICK
-                                        UNIT_TESTS)
+                                        UNIT_TEST)
     endif()
     unset(TEST_TARGET)
     unset(OperatorsLib)
@@ -91,13 +91,13 @@ foreach(dim RANGE 1 3)
                                         ${dim}D
                                         SERIAL
                                         QUICK
-                                        UNIT_TESTS)
+                                        UNIT_TEST)
     else()
         set_tests_labels(${TEST_TARGET} FLOW_VARIABLE
                                         ${dim}D
                                         PARALLEL
                                         QUICK
-                                        UNIT_TESTS)
+                                        UNIT_TEST)
     endif()
     unset(TEST_TARGET)
     unset(OperatorsLib)

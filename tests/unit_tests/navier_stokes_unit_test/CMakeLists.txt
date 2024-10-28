@@ -72,7 +72,7 @@ foreach(dim RANGE 1 3)
     set_tests_labels(${TEST_TARGET} NAVIER_STOKES_UNIT_TEST
                                     ${dim}D
                                     SERIAL
-                                    MANUFACTURED_SOURCE
+                                    MANUFACTURED_SOLUTION
                                     QUICK
                                     UNIT_TEST)
     unset(TEST_TARGET)
@@ -237,7 +237,7 @@ foreach(dim RANGE 1 3)
                                     ${dim}D
                                     SERIAL
                                     RANS
-                                    MANUFACTURED_SOURCE
+                                    MANUFACTURED_SOLUTION
                                     QUICK
                                     UNIT_TEST)
     unset(TEST_TARGET)

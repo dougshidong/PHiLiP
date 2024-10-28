@@ -29,7 +29,7 @@ foreach(dim RANGE 1 3)
                                     ${dim}D
                                     PARALLEL
                                     QUICK
-                                    UNIT_TESTS)
+                                    UNIT_TEST)
     unset(TEST_TARGET)
     unset(GridRefinementLib)
 endforeach()

@@ -100,6 +100,7 @@ set_tests_labels(1D_ADVECTION_IMPLICIT_MANUFACTURED_SOLUTION_STRONG ADVECTION_IM
                                                                     STRONG
                                                                     UNCOLLOCATED
                                                                     MANUFACTURED_SOLUTION
+                                                                    EXPECTED_FAILURE
                                                                     QUICK
                                                                     INTEGRATION_TEST)
 
@@ -117,6 +118,7 @@ set_tests_labels(2D_ADVECTION_IMPLICIT_MANUFACTURED_SOLUTION_STRONG ADVECTION_IM
                                                                     STRONG
                                                                     UNCOLLOCATED
                                                                     MANUFACTURED_SOLUTION
+                                                                    EXPECTED_FAILURE
                                                                     QUICK
                                                                     INTEGRATION_TEST)
 
@@ -134,6 +136,7 @@ set_tests_labels(MPI_3D_ADVECTION_IMPLICIT_MANUFACTURED_SOLUTION_STRONG_MEDIUM  
                                                                                 STRONG
                                                                                 UNCOLLOCATED
                                                                                 MANUFACTURED_SOLUTION
+                                                                                EXPECTED_FAILURE
                                                                                 QUICK
                                                                                 INTEGRATION_TEST)
 

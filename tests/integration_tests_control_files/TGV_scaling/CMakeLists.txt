@@ -13,6 +13,7 @@ set_tests_labels(MPI_3D_TAYLOR_GREEN_SCALING_SPLIT_FORM TGV_SCALING
                                                         RUNGE-KUTTA
                                                         STRONG-SPLIT
                                                         UNCOLLOCATED
+                                                        MEMORY_INTENSIVE
                                                         LONG
                                                         INTEGRATION_TEST)
 
@@ -30,6 +31,7 @@ set_tests_labels(MPI_3D_TAYLOR_GREEN_SCALING_OVERINTEGRATION    TGV_SCALING
                                                                 RUNGE-KUTTA
                                                                 STRONG
                                                                 UNCOLLOCATED
+                                                                MEMORY_INTENSIVE
                                                                 LONG
                                                                 INTEGRATION_TEST)
 
@@ -47,6 +49,7 @@ set_tests_labels(MPI_3D_TAYLOR_GREEN_SCALING_CONSERVATIVE   TGV_SCALING
                                                             RUNGE-KUTTA
                                                             STRONG
                                                             UNCOLLOCATED
+                                                            MEMORY_INTENSIVE
                                                             MODERATE
                                                             INTEGRATION_TEST)
 
@@ -65,6 +68,7 @@ set_tests_labels(MPI_3D_TAYLOR_GREEN_SCALING_SPLIT_FORM_CHU TGV_SCALING
                                                             RUNGE-KUTTA
                                                             STRONG-SPLIT
                                                             UNCOLLOCATED
+                                                            MEMORY_INTENSIVE
                                                             LONG
                                                             INTEGRATION_TEST)
 set(TEST_OUTPUT_DIR ${CMAKE_CURRENT_BINARY_DIR})                                                                     
@@ -81,6 +85,7 @@ set_tests_labels(MPI_3D_TAYLOR_GREEN_SCALING_OVERINTEGRATION_CHU    TGV_SCALING
                                                                     RUNGE-KUTTA
                                                                     STRONG
                                                                     UNCOLLOCATED
+                                                                    MEMORY_INTENSIVE
                                                                     LONG
                                                                     INTEGRATION_TEST)
 
@@ -98,6 +103,7 @@ set_tests_labels(MPI_3D_TAYLOR_GREEN_SCALING_CONSERVATIVE_CHU   TGV_SCALING
                                                                 RUNGE-KUTTA
                                                                 STRONG
                                                                 UNCOLLOCATED
+                                                                MEMORY_INTENSIVE
                                                                 MODERATE
                                                                 INTEGRATION_TEST)
 
@@ -118,7 +124,8 @@ set_tests_labels(MPI_3D_TAYLOR_GREEN_SCALING_SPLIT_FORM_CURV    TGV_SCALING
                                                                 STRONG-SPLIT
                                                                 UNCOLLOCATED
                                                                 CURVILINEAR
-                                                                ???
+                                                                MEMORY_INTENSIVE
+                                                                LONG
                                                                 INTEGRATION_TEST)
 
 set(TEST_OUTPUT_DIR ${CMAKE_CURRENT_BINARY_DIR})
@@ -136,7 +143,8 @@ set_tests_labels(MPI_3D_TAYLOR_GREEN_SCALING_OVERINTEGRATION_CURV   TGV_SCALING
                                                                     STRONG
                                                                     UNCOLLOCATED
                                                                     CURVILINEAR
-                                                                    ???
+                                                                    MEMORY_INTENSIVE
+                                                                    LONG
                                                                     INTEGRATION_TEST)
 
 set(TEST_OUTPUT_DIR ${CMAKE_CURRENT_BINARY_DIR})                                                                     
@@ -154,6 +162,7 @@ set_tests_labels(MPI_3D_TAYLOR_GREEN_SCALING_CONSERVATIVE_CURV  TGV_SCALING
                                                                 STRONG
                                                                 UNCOLLOCATED
                                                                 CURVILINEAR
+                                                                MEMORY_INTENSIVE
                                                                 MODERATE
                                                                 INTEGRATION_TEST)
 
@@ -173,6 +182,7 @@ set_tests_labels(MPI_3D_TAYLOR_GREEN_SCALING_SPLIT_FORM_CHU_CURV    TGV_SCALING
                                                                     STRONG-SPLIT
                                                                     UNCOLLOCATED
                                                                     CURVILINEAR
+                                                                    MEMORY_INTENSIVE
                                                                     LONG
                                                                     INTEGRATION_TEST)
 
@@ -192,7 +202,8 @@ set_tests_labels(MPI_3D_TAYLOR_GREEN_SCALING_OVERINTEGRATION_CHU_CURV   TGV_SCAL
                                                                         STRONG
                                                                         UNCOLLOCATED
                                                                         CURVILINEAR
-                                                                        ???
+                                                                        MEMORY_INTENSIVE
+                                                                        LONG
                                                                         INTEGRATION_TEST)
 
 
@@ -211,5 +222,6 @@ set_tests_labels(MPI_3D_TAYLOR_GREEN_SCALING_CONSERVATIVE_CHU_CURV  TGV_SCALING
                                                                     STRONG
                                                                     UNCOLLOCATED
                                                                     CURVILINEAR
+                                                                    MEMORY_INTENSIVE
                                                                     MODERATE
                                                                     INTEGRATION_TEST)

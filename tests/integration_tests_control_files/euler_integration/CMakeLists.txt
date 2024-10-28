@@ -56,6 +56,7 @@ set_tests_labels(2D_EULER_LAXFRIEDRICHS_MANUFACTURED_SOLUTION_LONG  EULER_INTEGR
                                                                     UNCOLLOCATED
                                                                     MANUFACTURED_SOLUTION
                                                                     CONVERGENCE
+                                                                    EXPECTED_FAILURE
                                                                     MODERATE
                                                                     INTEGRATION_TEST)
 

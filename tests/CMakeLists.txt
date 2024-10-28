@@ -1,13 +1,13 @@
 ## Function to set test labels
 ## Test labels should be added for the following categories (USE ALL CAPS)
-#- Test Group
-#	- NNLS, TGV_SCALING, ETC
+#- DIRECTORY NAME
+#   - NNLS, TGV_SCALING, ETC
 #- Dimension
 #   - 1D, 2D, 3D
 #- Parallel vs Serial
 #   - PARALLEL, SERIAL
 #- PDE Type
-#   - EULER, NAVIER-STOKES, etc
+#   - EULER, NAVIER_STOKES, etc
 #- ODE Solver Type
 #   - RUNGE-KUTTA, IMPLICIT, etc
 #- DG Type
@@ -15,11 +15,13 @@
 #- Quadrature Type
 #   - COLLOCATED, UNCOLLOCATED
 #- OTHER (if needed)
-#	- MEMORY_INTENSIVE, MANUFACTURED_SOLUTION, EXPECTED_FAILURE, CONVERGENCE etc
+#	- MEMORY_INTENSIVE, MANUFACTURED_SOLUTION, EXPECTED_FAILURE, CONVERGENCE, CURVILINEAR, LIMITER,
+#     ADJOINT, GMSH, ARTIFICIAL_VISCOSITY, MESH_ADAPTCATION, RELAXATION, RESTART, LES,
+#     CONVECTIVE JACOBIAN
 #- Speed of Test
-#	- QUICK (<~10s), MODERATE(<~180s), LONG(>~180s)
+#   - QUICK (<~10s), MODERATE(<~180s), LONG(>~180s)
 #- Type of Test
-#	- UNIT_TEST, INTEGRATION_TEST
+#   - UNIT_TEST, INTEGRATION_TEST
 
 function(set_tests_labels test_name)
     set(labels ${ARGN})

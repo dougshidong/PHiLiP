@@ -737,6 +737,9 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
     const unsigned int n_metric_dofs_cell = high_order_grid->fe_system.dofs_per_cell;
     std::vector<dealii::types::global_dof_index> current_metric_dofs_indices(n_metric_dofs_cell);
     std::vector<dealii::types::global_dof_index> neighbor_metric_dofs_indices(n_metric_dofs_cell);
+    for(unsigned int idof = 0; idof< n_metric_dofs_cell; ++idof){
+        pcout << "neighbor_metric_dofs_indices["<<idof<<"]: "<<neighbor_metric_dofs_indices[idof] << std::endl;
+    }
     current_metric_cell->get_dof_indices (current_metric_dofs_indices);
 
     //if (all_parameters->add_artificial_dissipation) {
@@ -863,14 +866,14 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
 
                 const std::vector<dealii::types::global_dof_index> neighbor_metric_dofs_indices_const = neighbor_metric_dofs_indices;
 
-                
+                const dealii::types::global_dof_index neighbor_cell_index = neighbor_cell->active_cell_index();
+                pcout << "neighbor cell idex: "<<neighbor_cell_index<<std::endl;         
                 for(unsigned int idof = 0; idof< n_metric_dofs_cell; ++idof){
                     pcout << "neighbor_metric_dofs_indices["<<idof<<"]: "<<neighbor_metric_dofs_indices[idof] << std::endl;
                     pcout << "neighbor_metric_dofs_indices_const["<<idof<<"]: "<<neighbor_metric_dofs_indices_const[idof] << std::endl;
                 }
 
 
-                const dealii::types::global_dof_index neighbor_cell_index = neighbor_cell->active_cell_index();
                 const auto metric_neighbor_cell = current_metric_cell->periodic_neighbor(iface);
                 metric_neighbor_cell->get_dof_indices(neighbor_metric_dofs_indices);
 

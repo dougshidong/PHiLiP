@@ -14,4 +14,5 @@ set_tests_labels(2D_EULER_BUMP_OPTIMIZATION EULER_BUMP_OPTIMIZATION
                                             WEAK
                                             UNCOLLOCATED
                                             LONG
+                                            OPTIMIZATION
                                             INTEGRATION_TEST)

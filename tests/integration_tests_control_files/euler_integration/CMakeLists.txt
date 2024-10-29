@@ -292,7 +292,6 @@ set_tests_labels(MPI_2D_EULER_INTEGRATION_GAUSSIAN_BUMP_WITH_ARTIFICIAL_VISCOSIT
                                                                                                                     UNCOLLOCATED
                                                                                                                     ARTIFICIAL_VISCOSITY
                                                                                                                     MANUFACTURED_SOLUTION
-                                                                                                                    CONVERGENCE
                                                                                                                     QUICK
                                                                                                                     INTEGRATION_TEST)
 configure_file(2d_euler_gaussian_bump_with_artificial_dissipation_enthalpy_laplacian_residual_convergence_test.prm 2d_euler_gaussian_bump_with_artificial_dissipation_enthalpy_laplacian_residual_convergence_test.prm COPYONLY)
@@ -310,7 +309,6 @@ set_tests_labels(MPI_2D_EULER_INTEGRATION_GAUSSIAN_BUMP_WITH_ARTIFICIAL_VISCOSIT
                                                                                                                             UNCOLLOCATED
                                                                                                                             ARTIFICIAL_VISCOSITY
                                                                                                                             MANUFACTURED_SOLUTION
-                                                                                                                            CONVERGENCE
                                                                                                                             QUICK
                                                                                                                             INTEGRATION_TEST)
 configure_file(2d_euler_gaussian_bump_with_artificial_dissipation_physical_residual_convergence_test.prm 2d_euler_gaussian_bump_with_artificial_dissipation_physical_residual_convergence_test.prm COPYONLY)
@@ -328,7 +326,6 @@ set_tests_labels(MPI_2D_EULER_INTEGRATION_GAUSSIAN_BUMP_WITH_ARTIFICIAL_VISCOSIT
                                                                                                                 UNCOLLOCATED
                                                                                                                 ARTIFICIAL_VISCOSITY
                                                                                                                 MANUFACTURED_SOLUTION
-                                                                                                                CONVERGENCE
                                                                                                                 QUICK
                                                                                                                 INTEGRATION_TEST)
 configure_file(2d_euler_gaussian_bump_with_artificial_dissipation_laplacian_discontinuity_sensor_test.prm 2d_euler_gaussian_bump_with_artificial_dissipation_laplacian_discontinuity_sensor_test.prm COPYONLY)
@@ -346,7 +343,6 @@ set_tests_labels(MPI_2D_EULER_INTEGRATION_GAUSSIAN_BUMP_WITH_ARTIFICIAL_VISCOSIT
                                                                                                                     UNCOLLOCATED
                                                                                                                     ARTIFICIAL_VISCOSITY
                                                                                                                     MANUFACTURED_SOLUTION
-                                                                                                                    CONVERGENCE
                                                                                                                     QUICK
                                                                                                                     INTEGRATION_TEST)
 configure_file(2d_euler_gaussian_bump_with_artificial_dissipation_enthalpy_laplacian_discontinuity_sensor_test.prm 2d_euler_gaussian_bump_with_artificial_dissipation_enthalpy_laplacian_discontinuity_sensor_test.prm COPYONLY)
@@ -364,7 +360,6 @@ set_tests_labels(MPI_2D_EULER_INTEGRATION_GAUSSIAN_BUMP_WITH_ARTIFICIAL_VISCOSIT
                                                                                                                             UNCOLLOCATED
                                                                                                                             ARTIFICIAL_VISCOSITY
                                                                                                                             MANUFACTURED_SOLUTION
-                                                                                                                            CONVERGENCE
                                                                                                                             QUICK
                                                                                                                             INTEGRATION_TEST)
 configure_file(2d_euler_gaussian_bump_with_artificial_dissipation_physical_discontinuity_sensor_test.prm 2d_euler_gaussian_bump_with_artificial_dissipation_physical_discontinuity_sensor_test.prm COPYONLY)
@@ -382,7 +377,6 @@ set_tests_labels(MPI_2D_EULER_INTEGRATION_GAUSSIAN_BUMP_WITH_ARTIFICIAL_VISCOSIT
                                                                                                                 UNCOLLOCATED
                                                                                                                 ARTIFICIAL_VISCOSITY
                                                                                                                 MANUFACTURED_SOLUTION
-                                                                                                                CONVERGENCE
                                                                                                                 QUICK
                                                                                                                 INTEGRATION_TEST)
 configure_file(2d_euler_gaussian_bump_enthalpy_test.prm 2d_euler_gaussian_bump_enthalpy_test.prm COPYONLY)
@@ -400,7 +394,6 @@ set_tests_labels(MPI_2D_EULER_INTEGRATION_GAUSSIAN_BUMP_ENTHALPY_TEST   EULER_IN
                                                                         UNCOLLOCATED
                                                                         ARTIFICIAL_VISCOSITY
                                                                         MANUFACTURED_SOLUTION
-                                                                        CONVERGENCE
                                                                         QUICK
                                                                         INTEGRATION_TEST)
 # Mesh Adaptation test cases
@@ -419,7 +412,6 @@ set_tests_labels(MPI_2D_EULER_INTEGRATION_GAUSSIAN_BUMP_RESIDUAL_MESH_ADAPTATION
                                                                                     UNCOLLOCATED
                                                                                     ARTIFICIAL_VISCOSITY
                                                                                     MANUFACTURED_SOLUTION
-                                                                                    CONVERGENCE
                                                                                     QUICK
                                                                                     INTEGRATION_TEST)
 # Adjoint test cases
@@ -447,7 +439,6 @@ set_tests_labels(MPI_2D_EULER_INTEGRATION_CYLINDER_ADJOINT_LONG EULER_INTEGRATIO
                                                                 WEAK
                                                                 UNCOLLOCATED
                                                                 MANUFACTURED_SOLUTION
-                                                                CONVERGENCE
                                                                 MODERATE
                                                                 INTEGRATION_TEST)
 

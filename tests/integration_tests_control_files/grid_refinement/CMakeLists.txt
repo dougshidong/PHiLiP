@@ -397,6 +397,7 @@ set_tests_labels(MPI_2D_DUAL_WEIGHTED_RESIDUAL_SSHOCK_H_ADAPTATION  GRID_REFINEM
                                                                     UNCOLLOCATED
                                                                     MANUFACTURED_SOLUTION
                                                                     CONVERGENCE
+                                                                    ADJOINT
                                                                     QUICK
                                                                     INTEGRATION_TEST)
 
@@ -415,6 +416,7 @@ set_tests_labels(MPI_2D_DUAL_WEIGHTED_RESIDUAL_SSHOCK_P_ADAPTATION  GRID_REFINEM
                                                                     UNCOLLOCATED
                                                                     MANUFACTURED_SOLUTION
                                                                     CONVERGENCE
+                                                                    ADJOINT
                                                                     QUICK
                                                                     INTEGRATION_TEST)
 # Anisotropic mesh adaptation tests
@@ -434,4 +436,5 @@ set_tests_labels(ANISOTROPIC_MESH_ADAPTATION_SSHOCK GRID_REFINEMENT
                                                     MANUFACTURED_SOLUTION
                                                     CONVERGENCE
                                                     QUICK
+                                                    ADJOINT
                                                     INTEGRATION_TEST)

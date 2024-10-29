@@ -21,6 +21,7 @@ set_tests_labels(1D_ADVECTION_LSRK  LOW_STORAGE_RUNGE-KUTTA_CHECK
                                     LOW_STORAGE_RUNGE-KUTTA
                                     WEAK
                                     UNCOLLOCATED
+                                    CONVERGENCE
                                     QUICK
                                     INTEGRATION_TEST)
 # ----------------------------------------

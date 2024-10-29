@@ -28,5 +28,6 @@ set_tests_labels(1D_BURGERS_STABILITY_ORDERS_OF_ACCURACY_LONG   BURGERS_SPLIT_ST
                                                                 RUNGE-KUTTA
                                                                 STRONG-SPLIT
                                                                 UNCOLLOCATED
+                                                                CONVERGENCE
                                                                 QUICK
                                                                 INTEGRATION_TEST)

@@ -29,6 +29,7 @@ set_tests_labels(MPI_2D_ADVECTION_EXPLICIT_PERIODIC_OOA_LONG    ADVECTION_EXPLIC
                                                                 RUNGE-KUTTA
                                                                 STRONG
                                                                 UNCOLLOCATED
+                                                                CONVERGENCE
                                                                 MODERATE
                                                                 INTEGRATION_TEST)
 set(TEST_OUTPUT_DIR ${CMAKE_CURRENT_BINARY_DIR})

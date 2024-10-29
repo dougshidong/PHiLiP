@@ -48,6 +48,7 @@ set_tests_labels(MPI_2D_H_REFINEMENT_INVISCID_ISENTROPIC_VORTEX ISENTROPIC_VORTE
                                                                 RUNGE-KUTTA
                                                                 STRONG-SPLIT
                                                                 COLLOCATED
+                                                                CONVERGENCE
                                                                 MODERATE
                                                                 INTEGRATION_TEST)
 # ----------------------------------------

@@ -78,6 +78,7 @@ set_tests_labels(1D_TIME_REFINEMENT_STUDY_BURGERS_EXPLICIT  TIME_REFINEMENT_STUD
                                                             RUNGE-KUTTA
                                                             STRONG-SPLIT
                                                             COLLOCATED
+                                                            CONVERGENCE
                                                             MODERATE
                                                             INTEGRATION_TEST)
 
@@ -104,5 +105,6 @@ set_tests_labels(1D_TIME_REFINEMENT_STUDY_BURGERS_IMPLICIT  TIME_REFINEMENT_STUD
                                                             RUNGE-KUTTA
                                                             STRONG-SPLIT
                                                             COLLOCATED
+                                                            CONVERGENCE
                                                             MODERATE
                                                             INTEGRATION_TEST)

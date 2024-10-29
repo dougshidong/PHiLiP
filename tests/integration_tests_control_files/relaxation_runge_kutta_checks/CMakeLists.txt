@@ -45,6 +45,7 @@ set_tests_labels(1D_BURGERS_RRK_TEMPORAL_OOA_CDG    RELAXATION_RUNGE_KUTTA_CHECK
                                                     RUNGE-KUTTA
                                                     STRONG-SPLIT
                                                     COLLOCATED
+                                                    CONVERGENCE
                                                     RELAXATION
                                                     QUICK
                                                     INTEGRATION_TEST)
@@ -122,6 +123,7 @@ set_tests_labels(1D_BURGERS_RRK_TEMPORAL_OOA_CPLUS  RELAXATION_RUNGE_KUTTA_CHECK
                                                     RUNGE-KUTTA
                                                     STRONG-SPLIT
                                                     COLLOCATED
+                                                    CONVERGENCE
                                                     RELAXATION
                                                     MODERATE
                                                     INTEGRATION_TEST)
@@ -199,6 +201,7 @@ set_tests_labels(MPI_2D_H_REFINEMENT_RRK_INVISCID_ISENTROPIC_VORTEX     RELAXATI
                                                                         RUNGE-KUTTA
                                                                         STRONG-SPLIT
                                                                         COLLOCATED
+                                                                        CONVERGENCE
                                                                         RELAXATION
                                                                         QUICK
                                                                         INTEGRATION_TEST)

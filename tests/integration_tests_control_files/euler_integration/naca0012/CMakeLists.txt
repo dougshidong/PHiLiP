@@ -68,6 +68,7 @@ set_tests_labels(INVISCID_TRANSONIC_STEADY_STATE_NACA0012_DRAG_BASED_GRID_ADAPTA
                                                                                         WEAK
                                                                                         UNCOLLOCATED
                                                                                         MESH_ADAPTATION
+                                                                                        ADJOINT
                                                                                         MODERATE
                                                                                         INTEGRATION_TEST)
 
@@ -86,6 +87,7 @@ set_tests_labels(INVISCID_SUBSONIC_NACA0012_LIFT_BASED_HP_ADAPTATION    EULER_IN
                                                                         WEAK
                                                                         UNCOLLOCATED
                                                                         MESH_ADAPTATION
+                                                                        ADJOINT
                                                                         MODERATE
                                                                         INTEGRATION_TEST)
 

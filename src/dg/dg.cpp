@@ -659,12 +659,22 @@ bool DGBase<dim,real,MeshType>::current_cell_should_do_the_work (
     const DoFCellAccessorType1 &current_cell, 
     const DoFCellAccessorType2 &neighbor_cell) const
 {
+    //const dealii::types::global_dof_index current_cell_index = current_cell->active_cell_index();
+
     if (neighbor_cell->has_children()) {
     // Only happens in 1D where neither faces have children, but neighbor has some children
     // Can't do the computation now since we need to query the children's DoF
         AssertDimension(dim,1);
         return false;
     } else if (neighbor_cell->is_ghost()) {
+        if(current_cell->active_cell_index() == 7359){
+            pcout<<"Neighbor cell is ghost cell? : "<<neighbor_cell->is_ghost()<<std::endl;
+            pcout<<"Current cell index: "<<current_cell->index()<<std::endl;
+            pcout<<"Neighbor cell index: "<<neighbor_cell->index()<<std::endl;
+            pcout<<"Current cell subdomain id: "<<current_cell->subdomain_id()<<std::endl;
+            pcout<<"Neighbor cell subdomain id: "<<neighbor_cell->subdomain_id()<<std::endl;
+
+        }
     // In the case the neighbor is a ghost cell, we let the processor with the lower rank do the work on that face
     // We cannot use the cell->index() because the index is relative to the distributed triangulation
     // Therefore, the cell index of a ghost cell might be different to the physical cell index even if they refer to the same cell
@@ -673,6 +683,15 @@ bool DGBase<dim,real,MeshType>::current_cell_should_do_the_work (
     } else {
     // Locally owned neighbor cell
         Assert(neighbor_cell->is_locally_owned(), dealii::ExcMessage("If not ghost, neighbor should be locally owned."));
+        
+        if(current_cell->active_cell_index() == 7359){
+            pcout<<"Current cell index lower than neighbor cell index? : "<<(current_cell->index() < neighbor_cell->index())<<std::endl;
+            pcout<<"Current cell index: "<<current_cell->index()<<std::endl;
+            pcout<<"Neighbor cell index: "<<neighbor_cell->index()<<std::endl;
+            pcout<<"Current cell subdomain id lower than neighbor cell? : "<<(current_cell->subdomain_id() < neighbor_cell->subdomain_id())<<std::endl;
+            pcout<<"Current subdomain id: "<<current_cell->subdomain_id()<<std::endl;
+            pcout<<"Neighbor subdomain id: "<<neighbor_cell->subdomain_id()<<std::endl;      
+        }
 
         if (current_cell->index() < neighbor_cell->index()) {
         // Cell with lower index does work
@@ -682,8 +701,12 @@ bool DGBase<dim,real,MeshType>::current_cell_should_do_the_work (
         // See https://www.dealii.org/developer/doxygen/deal.II/classTriaAccessorBase.html#a695efcbe84fefef3e4c93ee7bdb446ad
         // then cell at the lower level does the work
             return (current_cell->level() < neighbor_cell->level());
+        } else{
+            if(current_cell->active_cell_index() == 7359){
+                pcout<<"Current cell index higher than neighbor cell index, therefore neighbor cell will do the work. "<<std::endl;
+            }
+            return false;
         }
-        return false;
     }
     Assert(0==1, dealii::ExcMessage("Should not have reached here. Somehow another possible case has not been considered when two cells have the same coarseness."));
     return false;
@@ -712,7 +735,7 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
     dealii::LinearAlgebra::distributed::Vector<double> &rhs,
     std::array<dealii::LinearAlgebra::distributed::Vector<double>,dim> &rhs_aux)
 {
-    pcout << "In dg->assemble_cell_residual()." << std::endl;
+    //pcout << "In dg->assemble_cell_residual()." << std::endl;
     std::vector<dealii::types::global_dof_index> current_dofs_indices;
     std::vector<dealii::types::global_dof_index> neighbor_dofs_indices;
 
@@ -737,6 +760,9 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
     const unsigned int n_metric_dofs_cell = high_order_grid->fe_system.dofs_per_cell;
     std::vector<dealii::types::global_dof_index> current_metric_dofs_indices(n_metric_dofs_cell);
     std::vector<dealii::types::global_dof_index> neighbor_metric_dofs_indices(n_metric_dofs_cell);
+    // for(unsigned int idof = 0; idof< n_metric_dofs_cell; ++idof){
+    //     pcout << "neighbor_metric_dofs_indices["<<idof<<"]: "<<neighbor_metric_dofs_indices[idof] << std::endl;
+    // }
     current_metric_cell->get_dof_indices (current_metric_dofs_indices);
 
     //if (all_parameters->add_artificial_dissipation) {
@@ -765,8 +791,12 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
         pcout<<"ERROR: Implicit does not currently work for strong form. Aborting..."<<std::endl;
         std::abort();
     }
-    pcout << "Current cell index:"<< current_cell_index << std::endl;
-    pcout << "Assembling volume term." << std::endl;
+    if(current_cell_index == 7359){
+        const int iproc = dealii::Utilities::MPI::this_mpi_process(mpi_communicator);
+        std::cout<<iproc<<std::endl;
+        pcout << "Current cell index:"<< current_cell_index << std::endl;
+        pcout << "Assembling volume term." << std::endl;
+    }
     //std::cout<<"Current cell_index: "<<current_cell_index<<"\n";
     assemble_volume_term_and_build_operators(
         current_cell,
@@ -794,7 +824,9 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
     (void) fe_values_collection_face_int;
     (void) fe_values_collection_face_ext;
     (void) fe_values_collection_subface;
-    pcout << "Looping over all faces, " << std::endl;
+    if(current_cell_index == 7359){
+        pcout << "Looping over all faces, " << std::endl;
+    }
     for (unsigned int iface=0; iface < dealii::GeometryInfo<dim>::faces_per_cell; ++iface) {
 
         auto current_face = current_cell->face(iface);
@@ -802,11 +834,15 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
         // CASE 1: FACE AT BOUNDARY
         if ((current_face->at_boundary() && !current_cell->has_periodic_neighbor(iface)))
         {
-            pcout << "Case 1." << std::endl;
+            if(current_cell_index == 7359){
+                pcout << "Case 1." << std::endl;
+            }
             const real penalty = evaluate_penalty_scaling (current_cell, iface, fe_collection);
 
             const unsigned int boundary_id = current_face->boundary_id();
+            if(current_cell_index == 7359){
              pcout << "Assembling boundary term." << std::endl;
+            }
             assemble_boundary_term_and_build_operators(
                 current_cell,
                 current_cell_index,
@@ -837,8 +873,13 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
         // NOTE: Periodicity is not adapted for hp adaptivity yet. this needs to be figured out in the future
         else if (current_face->at_boundary() && current_cell->has_periodic_neighbor(iface))
         {
-            pcout << "Case 2." << std::endl;
             const auto neighbor_cell = current_cell->periodic_neighbor(iface);
+
+            if(current_cell_index == 7359){
+                pcout << "Case 2." << std::endl;
+                pcout << "Periodic neighbor is coarser? : " << current_cell->periodic_neighbor_is_coarser(iface)<< std::endl;
+                pcout << "Current cell should do the work? : " << current_cell_should_do_the_work(current_cell, neighbor_cell) << std::endl;
+            }
 
             if (!current_cell->periodic_neighbor_is_coarser(iface) && current_cell_should_do_the_work(current_cell, neighbor_cell)) 
             {
@@ -864,7 +905,21 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
                 const std::vector<dealii::types::global_dof_index> neighbor_metric_dofs_indices_const = neighbor_metric_dofs_indices;
 
                 const dealii::types::global_dof_index neighbor_cell_index = neighbor_cell->active_cell_index();
+                if(current_cell_index == 7359){
+                    pcout << "neighbor cell idex: "<<neighbor_cell_index<<std::endl;         
+                    for(unsigned int idof = 0; idof< n_metric_dofs_cell; ++idof){
+                        pcout << "neighbor_metric_dofs_indices["<<idof<<"]: "<<neighbor_metric_dofs_indices[idof] << std::endl;
+                        pcout << "neighbor_metric_dofs_indices_const["<<idof<<"]: "<<neighbor_metric_dofs_indices_const[idof] << std::endl;
+                    }
+                }
+
                 const auto metric_neighbor_cell = current_metric_cell->periodic_neighbor(iface);
+                if(current_cell_index == 7359){
+                    pcout << "=neighbor cell is ghost cell ? : "<<neighbor_cell->is_ghost()<<std::endl;
+                    pcout << "metric neighbor cell is ghost cell ? : "<<metric_neighbor_cell->is_ghost()<<std::endl;
+                    pcout << "neighbor cell is artifical ? : "<<neighbor_cell->is_artificial()<<std::endl;   
+                    pcout << "metric neighbor cell is artifical ? : "<<metric_neighbor_cell->is_artificial()<<std::endl;        
+                }
                 metric_neighbor_cell->get_dof_indices(neighbor_metric_dofs_indices);
 
                 const unsigned int poly_degree_ext = i_fele_n;
@@ -873,7 +928,9 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
                 OPERATOR::metric_operators<real,dim,2*dim> metric_oper_ext(nstate, poly_degree_ext, grid_degree_ext,
                                                                            store_vol_flux_nodes,
                                                                            store_surf_flux_nodes);
-                 pcout << "Assembling face term." << std::endl;
+                if(current_cell_index == 7359){
+                    pcout << "Assembling face term." << std::endl;
+                }
                 assemble_face_term_and_build_operators(
                     current_cell,
                     neighbor_cell,
@@ -910,6 +967,10 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
                     rhs_aux,
                     compute_auxiliary_right_hand_side,
                     compute_dRdW, compute_dRdX, compute_d2R);
+            } else{
+                if(current_cell_index == 7359){
+                    pcout << "Current cell should not do the work!" << std::endl;
+                }
             }
         }
         // CASE 3: NEIGHBOUR IS FINER
@@ -923,7 +984,9 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
         // Assemble face residual.
         else if (current_cell->neighbor(iface)->face(current_cell->neighbor_face_no(iface))->has_children()) 
         {
-            pcout << "Case 4." << std::endl;
+            if(current_cell_index == 7359){
+                pcout << "Case 4." << std::endl;
+            }
             Assert (current_cell->neighbor(iface).state() == dealii::IteratorState::valid, dealii::ExcInternalError());
             Assert (!(current_cell->neighbor(iface)->has_children()), dealii::ExcInternalError());
 
@@ -967,7 +1030,9 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
             OPERATOR::metric_operators<real,dim,2*dim> metric_oper_ext(nstate, poly_degree_ext, grid_degree_ext,
                                                                store_vol_flux_nodes,
                                                                store_surf_flux_nodes);
-            pcout << "Assembling subface term." << std::endl;
+            if(current_cell_index == 7359){
+                pcout << "Assembling subface term." << std::endl;
+            }
             assemble_subface_term_and_build_operators(
                 current_cell,
                 neighbor_cell,
@@ -1010,7 +1075,9 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
         // Therefore, we need to choose one of them to do the work
         else if (current_cell_should_do_the_work(current_cell, current_cell->neighbor(iface))) 
         {
-            pcout << "Case 5." << std::endl;
+            if(current_cell_index == 7359){
+                pcout << "Case 5." << std::endl;
+            }
             Assert (current_cell->neighbor(iface).state() == dealii::IteratorState::valid, dealii::ExcInternalError());
 
             const auto neighbor_cell = current_cell->neighbor_or_periodic_neighbor(iface);
@@ -1049,7 +1116,9 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
             OPERATOR::metric_operators<real,dim,2*dim> metric_oper_ext(nstate, poly_degree_ext, grid_degree_ext,
                                                                store_vol_flux_nodes,
                                                                store_surf_flux_nodes);
-            pcout << "Assembling face term." << std::endl;
+            if(current_cell_index == 7359){
+                pcout << "Assembling face term." << std::endl;
+            }
             assemble_face_term_and_build_operators(
                 current_cell,
                 neighbor_cell,

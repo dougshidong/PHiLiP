@@ -91,6 +91,8 @@ int HyperreducedSamplingErrorUpdated<dim, nstate>::run_sampling() const
 
     RowVectorXd max_error_params = this->getMaxErrorROM();
 
+    delete NNLS_prob;
+
     while(this->max_error > this->all_parameters->reduced_order_param.adaptation_tolerance){
         Epetra_Vector local_weights = allocateVectorToSingleCore(*ptr_weights);
         this->outputIterationData(std::to_string(iteration));
@@ -168,6 +170,8 @@ int HyperreducedSamplingErrorUpdated<dim, nstate>::run_sampling() const
 
         this->pcout << "Max error is: " << this->max_error << std::endl;
         iteration++;
+
+        delete NNLS_prob;
     }
 
     Epetra_Vector local_weights = allocateVectorToSingleCore(*ptr_weights);

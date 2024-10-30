@@ -76,12 +76,12 @@ int HyperreducedAdaptiveSampling<dim, nstate>::run_sampling() const
 
     // Solve NNLS Problem for ECSW weights
     this->pcout << "Create NNLS problem..."<< std::endl;
-    NNLS_solver NNLS_prob(this->all_parameters, this->parameter_handler, constructer_NNLS_problem->A_T->trilinos_matrix(), true,  Comm, b_Epetra);
+    NNLS_solver* NNLS_prob = new NNLS_solver(this->all_parameters, this->parameter_handler, constructer_NNLS_problem->A_T->trilinos_matrix(), true,  Comm, b_Epetra);
     this->pcout << "Solve NNLS problem..."<< std::endl;
-    bool exit_con = NNLS_prob.solve();
+    bool exit_con = NNLS_prob->solve();
     this->pcout << exit_con << std::endl;
 
-    ptr_weights = std::make_shared<Epetra_Vector>(NNLS_prob.getSolution());
+    ptr_weights = std::make_shared<Epetra_Vector>(NNLS_prob->getSolution());
 
     MatrixXd rom_points = this->nearest_neighbors->kPairwiseNearestNeighborsMidpoint();
     this->pcout << "ROM Points"<< std::endl;
@@ -91,6 +91,8 @@ int HyperreducedAdaptiveSampling<dim, nstate>::run_sampling() const
 
     RowVectorXd max_error_params = this->getMaxErrorROM();
 
+    delete NNLS_prob;
+    
     while(this->max_error > this->all_parameters->reduced_order_param.adaptation_tolerance){
         Epetra_Vector local_weights = allocateVectorToSingleCore(*ptr_weights);
         this->outputIterationData(std::to_string(iteration));
@@ -142,12 +144,12 @@ int HyperreducedAdaptiveSampling<dim, nstate>::run_sampling() const
 
         // Solve NNLS Problem for ECSW weights
         this->pcout << "Create NNLS problem..."<< std::endl;
-        NNLS_solver NNLS_prob(this->all_parameters, this->parameter_handler, constructer_NNLS_problem->A_T->trilinos_matrix(), true,  Comm, b_Epetra);
+        NNLS_solver* NNLS_prob = new NNLS_solver(this->all_parameters, this->parameter_handler, constructer_NNLS_problem->A_T->trilinos_matrix(), true,  Comm, b_Epetra);
         this->pcout << "Solve NNLS problem..."<< std::endl;
-        bool exit_con = NNLS_prob.solve();
+        bool exit_con = NNLS_prob->solve();
         this->pcout << exit_con << std::endl;
         
-        ptr_weights = std::make_shared<Epetra_Vector>(NNLS_prob.getSolution());
+        ptr_weights = std::make_shared<Epetra_Vector>(NNLS_prob->getSolution());
 
         // Update previous ROM errors with updated current_pod
         for(auto it = this->rom_locations.begin(); it != this->rom_locations.end(); ++it){
@@ -167,6 +169,8 @@ int HyperreducedAdaptiveSampling<dim, nstate>::run_sampling() const
 
         this->pcout << "Max error is: " << this->max_error << std::endl;
         iteration++;
+
+        delete NNLS_prob;
     }
 
     Epetra_Vector local_weights = allocateVectorToSingleCore(*ptr_weights);

@@ -141,7 +141,7 @@ public:
         double LS_tol);
  
     /// Destructor
-    virtual ~NNLS_solver() {};
+    ~NNLS_solver() {};
 
     /// Call to solve NNLS problem
     bool solve();

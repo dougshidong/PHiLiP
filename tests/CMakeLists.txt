@@ -1,4 +1,21 @@
 ## Function to set test labels
+## How to add labels
+# To add labels use the custom ctest function, defined in ./tests/CMakeLists.txt,  `set_tests_labels`.
+# This function takes one input and as many arguments as needed.
+# The one input is the test name and the arguments are the labels wanted. See below for an example use.
+# ADD_TEST(NAME NNLS_multi_core
+# COMMAND mpirun -n ${MPIMAX} $<TARGET_FILE:Tests.exe> multiCore)
+# set_tests_labels(NNLS_multi_core    LINEAR_SOLVER
+#                                     PARALLEL
+#                                     QUICK
+#                                     UNIT_TEST)
+
+## How to use labels
+# To use a label to run a specific set of tests use the -L flag with ctest. Multiple -L flags are counted as an
+# `AND` statement. One may also use -LE to exclude certain tests from running.
+# ctest -L UNIT_TEST -L QUICK will run all quick unit tests.
+# These `-L` flags can also use regex.
+
 ## Test labels should be added for the following categories (USE ALL CAPS)
 #- DIRECTORY NAME
 #   - NNLS, TGV_SCALING, ETC

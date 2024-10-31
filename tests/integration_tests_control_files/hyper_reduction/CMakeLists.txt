@@ -16,8 +16,6 @@ set_tests_labels(1D_BURGERS_NNLS_PROBLEM_ASSEMBLY   HYPER_REDUCTION
                                                     IMPLICIT
                                                     WEAK
                                                     UNCOLLOCATED
-                                                    MANUFACTURED_SOLUTION
-                                                    CONVERGENCE
                                                     MODERATE
                                                     INTEGRATION_TEST)
 
@@ -44,8 +42,6 @@ set_tests_labels(1D_BURGERS_HYPER_REDUCTION_TEST    HYPER_REDUCTION
                                                     IMPLICIT
                                                     WEAK
                                                     UNCOLLOCATED
-                                                    MANUFACTURED_SOLUTION
-                                                    CONVERGENCE
                                                     MODERATE
                                                     INTEGRATION_TEST)
 
@@ -68,8 +64,6 @@ set_tests_labels(1D_BURGERS_HYPER_ADAPTIVE_SAMPLING_TEST    HYPER_REDUCTION
                                                             IMPLICIT
                                                             WEAK
                                                             UNCOLLOCATED
-                                                            MANUFACTURED_SOLUTION
-                                                            CONVERGENCE
                                                             MODERATE
                                                             INTEGRATION_TEST)
 
@@ -96,8 +90,6 @@ set_tests_labels(1D_BURGERS_HYPER_POST_SAMPLING HYPER_REDUCTION
                                                 IMPLICIT
                                                 WEAK
                                                 UNCOLLOCATED
-                                                MANUFACTURED_SOLUTION
-                                                CONVERGENCE
                                                 MODERATE
                                                 INTEGRATION_TEST)
 
@@ -192,7 +184,5 @@ set_tests_labels(1D_BURGERS_HYPER_SAMPLING_NEW_ERROR    HYPER_REDUCTION
                                                         IMPLICIT
                                                         WEAK
                                                         UNCOLLOCATED
-                                                        MANUFACTURED_SOLUTION
-                                                        CONVERGENCE
                                                         MODERATE
                                                         INTEGRATION_TEST)

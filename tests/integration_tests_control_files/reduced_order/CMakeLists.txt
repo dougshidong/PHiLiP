@@ -180,7 +180,6 @@ set_tests_labels(1D_BURGERS_REWIENSKI_MANUFACTURED_SOLUTION REDUCED_ORDER
                                                             IMPLICIT
                                                             WEAK
                                                             UNCOLLOCATED
-                                                            MANUFACTURED_SOLUTION
                                                             CONVERGENCE
                                                             MODERATE
                                                             INTEGRATION_TEST)

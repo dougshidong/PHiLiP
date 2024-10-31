@@ -936,6 +936,7 @@ double EulerVortexAdvectionErrorStudy<dim,nstate>
             }
 
         }
+    }
 
 
 //****************Test for artificial dissipation begins *******************************************************

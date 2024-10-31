@@ -54,7 +54,6 @@ double EulerVortexAdvectionErrorStudy<dim,nstate>
     {
         if constexpr (dim==1 && nstate==dim+2)
         {
-            // std::cout << "euler_vortex_advection! \n \n " << std::endl;
             Physics::Euler<dim,nstate,double> euler_physics_double
             = Physics::Euler<dim, nstate, double>(
                 &param,
@@ -103,7 +102,6 @@ double EulerVortexAdvectionErrorStudy<dim,nstate>
         }
     }
     
-
     return pressure;
 }
 
@@ -123,7 +121,6 @@ double EulerVortexAdvectionErrorStudy<dim,nstate>
     {
         if constexpr (dim==1 && nstate==dim+2)
         {
-            // std::cout << "euler_vortex_advection! \n \n " << std::endl;
             Physics::Euler<dim,nstate,double> euler_physics_double
             = Physics::Euler<dim, nstate, double>(
                 &param,
@@ -193,7 +190,6 @@ double EulerVortexAdvectionErrorStudy<dim,nstate>
     {
         if constexpr (dim==1 && nstate==dim+2)
         {
-            // std::cout << "euler_vortex_advection! \n \n " << std::endl;
             Physics::Euler<dim,nstate,double> euler_physics_double
             = Physics::Euler<dim, nstate, double>(
                 &param,
@@ -261,7 +257,6 @@ double EulerVortexAdvectionErrorStudy<dim,nstate>
     {
         if constexpr (dim==1 && nstate==dim+2)
         {
-            // std::cout << "euler_vortex_advection! \n \n " << std::endl;
             Physics::Euler<dim,nstate,double> euler_physics_double
             = Physics::Euler<dim, nstate, double>(
                 &param,
@@ -293,19 +288,7 @@ double EulerVortexAdvectionErrorStudy<dim,nstate>
             soln_primitive[2] = pressure / (euler_physics_double.density_ref*euler_physics_double.u_ref_sqr);
 
             const std::array<double,nstate> soln_conservative = euler_physics_double.convert_primitive_to_conservative(soln_primitive);
-            if(istate==0) {
-            // mixture density
             value = soln_conservative[istate];
-            }
-            if(istate==1) {
-            // x-velocity
-            value = soln_conservative[istate];
-            }
-            if(istate==2) {
-            // pressure
-            value = soln_conservative[istate];
-            }
-        
         }
     }
 

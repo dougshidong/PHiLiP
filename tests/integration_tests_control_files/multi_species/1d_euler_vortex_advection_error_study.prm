@@ -28,7 +28,7 @@ set diss_num_flux = symm_internal_penalty
 
 # ODE solver
 subsection ODE solver
-  set output_solution_every_x_steps = 100
+  set output_solution_every_x_steps = 10000
   set ode_output = quiet
   set ode_solver_type = runge_kutta
   set runge_kutta_method = ssprk3_ex
@@ -44,14 +44,12 @@ end
 
 subsection flow_solver
   set flow_case_type = euler_vortex_advection
-  #####set poly_degree = 1
-  set final_time = 34.614724700315755e-1
+  set final_time = 34.614724700315755e-1 # It is 0.1 second or 1 cycle
   set adaptive_time_step = false
-  set constant_time_step = 34.614724700315755e-6
+  set constant_time_step = 34.614724700315755e-6 # It is 1*10^(-6) second in phsysical time
   subsection grid
     set grid_left_bound = 0.0
     set grid_right_bound = 10.0
-    #####set number_of_grid_elements_per_dimension = 16
   end
 end 
 
@@ -67,8 +65,8 @@ subsection manufactured solution convergence study
   set grid_progression_add  = 0
 
   # Initial grid of size (initial_grid_size)^dim
-  set initial_grid_size = 16
+  set initial_grid_size = 2
 
   # Number of grids in grid study
-  set number_of_grids   = 5
+  set number_of_grids   = 6
 end

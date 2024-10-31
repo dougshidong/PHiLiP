@@ -34,7 +34,6 @@ public:
         multi_species_high_temperature_vortex_advection,
         euler_vortex_advection,
         multi_species_calorically_perfect_euler_vortex_advection,
-        euler_bubble_advection,
         multi_species_isentropic_euler_vortex,
         multi_species_two_dimensional_vortex_advection,   
         multi_species_fuel_drop_advection,     

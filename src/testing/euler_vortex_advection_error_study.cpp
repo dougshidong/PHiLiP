@@ -50,7 +50,7 @@ double EulerVortexAdvectionErrorStudy<dim,nstate>
     using FlowCaseEnum = Parameters::FlowSolverParam::FlowCaseType;
     const FlowCaseEnum flow_type = param.flow_solver_param.flow_case_type;
     // Euler
-    if (flow_type == FlowCaseEnum::euler_vortex_advection || flow_type == FlowCaseEnum::euler_bubble_advection)
+    if (flow_type == FlowCaseEnum::euler_vortex_advection)
     {
         if constexpr (dim==1 && nstate==dim+2)
         {
@@ -117,7 +117,7 @@ double EulerVortexAdvectionErrorStudy<dim,nstate>
     using FlowCaseEnum = Parameters::FlowSolverParam::FlowCaseType;
     const FlowCaseEnum flow_type = param.flow_solver_param.flow_case_type;
     // Euler
-    if (flow_type == FlowCaseEnum::euler_vortex_advection || flow_type == FlowCaseEnum::euler_bubble_advection)
+    if (flow_type == FlowCaseEnum::euler_vortex_advection)
     {
         if constexpr (dim==1 && nstate==dim+2)
         {
@@ -186,7 +186,7 @@ double EulerVortexAdvectionErrorStudy<dim,nstate>
     using FlowCaseEnum = Parameters::FlowSolverParam::FlowCaseType;
     const FlowCaseEnum flow_type = param.flow_solver_param.flow_case_type;
     // Euler
-    if (flow_type == FlowCaseEnum::euler_vortex_advection || flow_type == FlowCaseEnum::euler_bubble_advection)
+    if (flow_type == FlowCaseEnum::euler_vortex_advection)
     {
         if constexpr (dim==1 && nstate==dim+2)
         {
@@ -252,48 +252,8 @@ double EulerVortexAdvectionErrorStudy<dim,nstate>
 
     using FlowCaseEnum = Parameters::FlowSolverParam::FlowCaseType;
     const FlowCaseEnum flow_type = param.flow_solver_param.flow_case_type;
-    // Euler
-    if (flow_type == FlowCaseEnum::euler_bubble_advection)
-    {
-        if constexpr (dim==1 && nstate==dim+2)
-        {
-            Physics::Euler<dim,nstate,double> euler_physics_double
-            = Physics::Euler<dim, nstate, double>(
-                &param,
-                param.euler_param.ref_length,
-                param.euler_param.gamma_gas,
-                param.euler_param.mach_inf,
-                param.euler_param.angle_of_attack,
-                param.euler_param.side_slip_angle);
-
-            const double speed = 25.0;
-            const double cycle = 1.0/100000.0;
-            const double moved = speed*cycle;
-
-            const double relax = 0.75;
-            const double x = point[0] - moved;
-            const double xi = 10.0/2.0;
-            const double T_0 = 300.0; // [K]
-            const double theta = 2.0;
-
-            const double pressure = 100000; // [N/m^2] -> [bar]
-            const double velocity = 50.0/2.0; // [m/s]
-            const double temperature = 0.5*((1.0+theta) +(1.0-theta)*tanh(relax*(abs(x)-xi)))*T_0; // [K]
-            const double density = pressure/(euler_physics_double.R_Air_Dim*temperature);
-
-            std::array<double,nstate> soln_primitive;
-
-            soln_primitive[0] = density / euler_physics_double.density_ref;
-            soln_primitive[1] = velocity / euler_physics_double.u_ref;
-            soln_primitive[2] = pressure / (euler_physics_double.density_ref*euler_physics_double.u_ref_sqr);
-
-            const std::array<double,nstate> soln_conservative = euler_physics_double.convert_primitive_to_conservative(soln_primitive);
-            value = soln_conservative[istate];
-        }
-    }
-
     // Multi-Species Calorically-Perfect Euler Vortex
-    else if (flow_type == FlowCaseEnum::multi_species_calorically_perfect_euler_vortex_advection)
+    if (flow_type == FlowCaseEnum::multi_species_calorically_perfect_euler_vortex_advection)
     {
         if constexpr (dim==1 && nstate==dim+2+2-1) // TO DO: N_SPECIES, dim = 1, nstate = dim+2+3-1
         {

@@ -39,7 +39,6 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
                           " multi_species_high_temperature_vortex_advection| "
                           " euler_vortex_advection| "
                           " multi_species_calorically_perfect_euler_vortex_advection| "                  
-                          " euler_bubble_advection| "
                           " multi_species_isentropic_euler_vortex| "
                           " multi_species_two_dimensional_vortex_advection|"
                           " multi_species_fuel_drop_advection|"                  
@@ -64,8 +63,7 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
                           " multi_species_vortex_advection| "
                           " multi_species_high_temperature_vortex_advection| "
                           " euler_vortex_advection| "
-                          " multi_species_calorically_perfect_euler_vortex_advection| "                         
-                          " euler_bubble_advection| "    
+                          " multi_species_calorically_perfect_euler_vortex_advection| "                            
                           " multi_species_isentropic_euler_vortex| "
                           " multi_species_two_dimensional_vortex_advection|"
                           " multi_species_fuel_drop_advection|"                                       
@@ -348,7 +346,6 @@ void FlowSolverParam::parse_parameters(dealii::ParameterHandler &prm)
         else if (flow_case_type_string == "multi_species_high_temperature_vortex_advection"){flow_case_type = multi_species_high_temperature_vortex_advection;}
         else if (flow_case_type_string == "euler_vortex_advection"){flow_case_type = euler_vortex_advection;}
         else if (flow_case_type_string == "multi_species_calorically_perfect_euler_vortex_advection"){flow_case_type = multi_species_calorically_perfect_euler_vortex_advection;}
-        else if (flow_case_type_string == "euler_bubble_advection"){flow_case_type = euler_bubble_advection;}     
         else if (flow_case_type_string == "multi_species_isentropic_euler_vortex"){flow_case_type = multi_species_isentropic_euler_vortex;}     
         else if (flow_case_type_string == "multi_species_two_dimensional_vortex_advection"){flow_case_type = multi_species_two_dimensional_vortex_advection;}
         else if (flow_case_type_string == "multi_species_fuel_drop_advection"){flow_case_type = multi_species_fuel_drop_advection;}

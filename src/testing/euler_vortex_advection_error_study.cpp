@@ -1,13 +1,11 @@
 #include <stdlib.h>     /* srand, rand */
 #include <iostream>
 
-// #include <deal.II/base/convergence_table.h>
 #include <deal.II/fe/fe_values.h>
 
 #include "euler_vortex_advection_error_study.h"
 
 #include "physics/initial_conditions/initial_condition_function.h" 
-// #include "physics/euler.h"
 
 #include "flow_solver/flow_solver_factory.h"
 
@@ -199,7 +197,7 @@ double EulerVortexAdvectionErrorStudy<dim,nstate>
                 param.euler_param.angle_of_attack,
                 param.euler_param.side_slip_angle);
 
-            mass_fraction = conservative_soln[0]; // TO DO: it is dummy 
+            mass_fraction = conservative_soln[0]; // Note: Not mass fraction but density
         }
     }
     // 1D Multi-Species Calorically-Imperfect Multi-Species
@@ -392,9 +390,8 @@ double EulerVortexAdvectionErrorStudy<dim,nstate>
     // Multi-Species Euler (Calorically Imperfect, High_temperature) Vortex
     else if (flow_type == FlowCaseEnum::multi_species_high_temperature_vortex_advection)
     {
-        if constexpr (dim==1 && nstate==dim+2+2-1) // TO DO: N_SPECIES, dim = 1, nstate = dim+2+3-1
+        if constexpr (dim==1 && nstate==dim+2+2-1) // Note: modify this when you change the number of species. nstate == dim+2+(nspecies)-1
         {
-            // std::cout << "multi-species_calorically-imperfect_vortex_advection! \n \n " << std::endl;
             Physics::RealGas<dim,nstate,double> realgas_physics_double
             = Physics::RealGas<dim, nstate, double>(
                 &param);
@@ -546,47 +543,14 @@ double EulerVortexAdvectionErrorStudy<dim,nstate>
     std::ofstream outdata_slope_mass_fractions_1st;
     outdata_slope_mass_fractions_1st.open("slope_mass_fractions_1st_error.txt"); 
 
-
-    // // flowtype
-    // using FlowCaseEnum = Parameters::FlowSolverParam::FlowCaseType;
-    // const FlowCaseEnum flow_type = param.flow_solver_param.flow_case_type;
-    // if (flow_type == FlowCaseEnum::euler_vortex_advection)
-    // {
-    //     std::cout << "euler_vortex_advection! \n \n " << std::endl;    
-    // } 
-    // else if (flow_type == FlowCaseEnum::multi_species_vortex_advection)
-    // {
-    //     std::cout << "multi-species_vortex_advection! \n \n " << std::endl; 
-    // }
-    // else if (flow_type == FlowCaseEnum::multi_species_calorically_perfect_euler_vortex_advection)
-    // {
-    //     std::cout << "multi-species_calorically_perfect_vortex_advection! \n \n " << std::endl; 
-    // }
-    // else if (flow_type == FlowCaseEnum::euler_bubble_advection)
-    // {
-    //     std::cout << "euler_bubble_advection! \n \n " << std::endl; 
-    // }
-
     Assert(dim == param.dimension, dealii::ExcDimensionMismatch(dim, param.dimension));
-    // Assert(dim == 2, dealii::ExcDimensionMismatch(dim, param.dimension)); // NOTE: this was originally on for bump case
-    //Assert(param.pde_type != param.PartialDifferentialEquation::euler, dealii::ExcNotImplemented());
-    //if (param.pde_type == param.PartialDifferentialEquation::euler) return 1;
 
     ManParam manu_grid_conv_param = param.manufactured_convergence_study_param;
 
     const unsigned int p_start             = manu_grid_conv_param.degree_start;
     const unsigned int p_end               = manu_grid_conv_param.degree_end;
-
     const unsigned int n_grids             = manu_grid_conv_param.number_of_grids;
 
-    // Physics::Euler<dim,nstate,double> euler_physics_double
-    //     = Physics::Euler<dim, nstate, double>(
-    //             &param,
-    //             param.euler_param.ref_length,
-    //             param.euler_param.gamma_gas,
-    //             param.euler_param.mach_inf,
-    //             param.euler_param.angle_of_attack,
-    //             param.euler_param.side_slip_angle);
 
     std::string error_string;
     bool has_residual_converged = true;
@@ -594,14 +558,12 @@ double EulerVortexAdvectionErrorStudy<dim,nstate>
     double last_error=10;
     std::vector<int> fail_conv_poly;
     std::vector<double> fail_conv_slop;
-    // std::vector<dealii::ConvergenceTable> convergence_table_vector;
 
     // Create initial condition function
     std::shared_ptr< InitialConditionFunction<dim,nstate,double> > initial_condition_function = 
     InitialConditionFactory<dim,nstate,double>::create_InitialConditionFunction(&param);
 
     for (unsigned int poly_degree = p_start; poly_degree <= p_end; ++poly_degree) {
-        // p0 tends to require a finer grid to reach asymptotic region
 
         std::vector<double> grid_size(n_grids);
         //  density
@@ -621,11 +583,7 @@ double EulerVortexAdvectionErrorStudy<dim,nstate>
         std::vector<double> error_L1_mass_fractions_1st(n_grids);
         std::vector<double> error_Linf_mass_fractions_1st(n_grids);              
 
-        // dealii::ConvergenceTable convergence_table;
-
         const std::vector<int> n_1d_cells = get_number_1d_cells(n_grids);
-        // param.flow_solver_param.number_of_subdivisions_in_x_direction = n_1d_cells[0] * 4;
-        // param.flow_solver_param.number_of_subdivisions_in_y_direction = n_1d_cells[0];
 
         for (unsigned int igrid=0; igrid<n_grids; ++igrid) {
 
@@ -656,7 +614,6 @@ double EulerVortexAdvectionErrorStudy<dim,nstate>
                     dealii::update_values | dealii::update_JxW_values | dealii::update_quadrature_points);
             const unsigned int n_quad_pts = fe_values_extra.n_quadrature_points;
             std::array<double,nstate> soln_at_q;
-            // TO DO: define exact_at_q ... DONE
             std::array<double,nstate> exact_at_q;
 
             // density
@@ -716,20 +673,7 @@ double EulerVortexAdvectionErrorStudy<dim,nstate>
                     double pressure_numerical, pressure_exact;
                     double temperature_numerical, temperature_exact;          
                     double mass_fractions_1st_numerical, mass_fractions_1st_exact;                              
-                    // if(param.artificial_dissipation_param.use_enthalpy_error)
-                    // {
-                    //     error_string = "L2_enthalpy_error";
-                    //     const double pressure = euler_physics_double.compute_pressure(soln_at_q);
-                    //     unumerical = euler_physics_double.compute_specific_enthalpy(soln_at_q,pressure);
-                    //     uexact = euler_physics_double.gam*euler_physics_double.pressure_inf/euler_physics_double.density_inf*(1.0/euler_physics_double.gamm1+0.5*euler_physics_double.mach_inf_sqr);
-                    // } 
-                    // else
-                    // {
-                    //     error_string = "L2_entropy_error";
-                    //     const double entropy_inf = euler_physics_double.entropy_inf;
-                    //     unumerical = euler_physics_double.compute_entropy_measure(soln_at_q);
-                    //     uexact = entropy_inf;
-                    // }
+
                     error_string = "L2_density_error";
 
                     // Physics properties
@@ -789,7 +733,6 @@ double EulerVortexAdvectionErrorStudy<dim,nstate>
             last_error = l2error_density_mpi_sum;
 
             const unsigned int n_dofs = flow_solver->dg->dof_handler.n_dofs();
-            // const unsigned int n_global_active_cells = flow_solver->dg->triangulation->n_global_active_cells();
 
             // Convergence table
             double dx = 1.0/pow(n_dofs,(1.0/dim));
@@ -810,24 +753,6 @@ double EulerVortexAdvectionErrorStudy<dim,nstate>
             error_L2_mass_fractions_1st[igrid] = l2error_mass_fractions_1st_mpi_sum;
             error_L1_mass_fractions_1st[igrid] = l1error_mass_fractions_1st_mpi_sum;
             error_Linf_mass_fractions_1st[igrid] = linferror_mass_fractions_1st_mpi_max;             
-
-            // convergence_table.add_value("p", poly_degree);
-            // convergence_table.add_value("cells", n_global_active_cells);
-            // convergence_table.add_value("DoFs", n_dofs);
-            // convergence_table.add_value("dx", dx);
-            // convergence_table.add_value("L1_error(density)", l1error_density_mpi_sum);
-            // convergence_table.add_value("L2_error(density)", l2error_density_mpi_sum);
-            // convergence_table.add_value("Linf_error(density)", linferror_density_mpi_max);
-            // convergence_table.add_value("L1_error(pressure)", l1error_pressure_mpi_sum);
-            // convergence_table.add_value("L2_error(pressure)", l2error_pressure_mpi_sum);
-            // convergence_table.add_value("Linf_error(pressure)", linferror_pressure_mpi_max);
-            // convergence_table.add_value("L1_error(temperature)", l1error_temperature_mpi_sum);
-            // convergence_table.add_value("L2_error(temperature)", l2error_temperature_mpi_sum);
-            // convergence_table.add_value("Linf_error(temperature)", linferror_temperature_mpi_max);   
-            // convergence_table.add_value("L1_error(species #1)", l1error_mass_fractions_1st_mpi_sum);
-            // convergence_table.add_value("L2_error(species #1)", l2error_mass_fractions_1st_mpi_sum);
-            // convergence_table.add_value("Linf_error(species #1)", linferror_mass_fractions_1st_mpi_max);                     
-            // convergence_table.add_value("Residual",flow_solver->ode_solver->residual_norm);
             
             if(flow_solver->ode_solver->residual_norm > 1e-10)
             {
@@ -1011,71 +936,8 @@ double EulerVortexAdvectionErrorStudy<dim,nstate>
                     << std::endl;                                                                             
             }
 
-            // //output_results (igrid);
-            // if (igrid == n_grids-1)
-            // {
-            //     if (param.mesh_adaptation_param.total_mesh_adaptation_cycles > 0)
-            //     {
-            //         dealii::Point<dim> smallest_cell_coord = flow_solver->dg->coordinates_of_highest_refined_cell();
-            //         pcout<<" x = "<<smallest_cell_coord[0]<<" y = "<<smallest_cell_coord[1]<<std::endl;
-            //         // Check if the mesh is refined near the shock i.e x \in (0.1,0.5) and y \in (0.0, 0.5).
-            //         if ((smallest_cell_coord[0] > 0.1) && (smallest_cell_coord[0] < 0.5) && (smallest_cell_coord[1] > 0.0) && (smallest_cell_coord[1] < 0.5)) 
-            //         {
-            //             pcout<<"Mesh is refined near the shock. Test passed"<<std::endl;
-            //             return 0; // Mesh adaptation test passed.
-            //         }
-            //         return 1; // Mesh adaptation failed.
-            //     }
-            // }
         }
-        // pcout << " ********************************************" << std::endl
-        //      << " Convergence rates for p = " << poly_degree << std::endl
-        //      << " ********************************************" << std::endl;
-        // convergence_table.evaluate_convergence_rates(error_string, "cells", dealii::ConvergenceTable::reduction_rate_log2, dim);
-        // convergence_table.set_scientific("dx", true);
-        // convergence_table.set_scientific(error_string, true);
-        // convergence_table.set_scientific("Residual",true);
-        // //convergence_table.set_scientific("L2_error", true);
-        // if (pcout.is_active()) convergence_table.write_text(pcout.get_stream());
 
-        // convergence_table_vector.push_back(convergence_table);
-
-        // const double expected_slope = poly_degree+1;
-    
-        // double last_slope = 0.0;
-
-        // if(n_grids>=2)
-        // {
-        //     last_slope = log(error_L2_density[n_grids-1]/error_L2_density[n_grids-2]) / log(grid_size[n_grids-1]/grid_size[n_grids-2]);
-        // }
-
-        // const double slope_avg = last_slope;
-        // const double slope_diff = slope_avg-expected_slope;
-
-        // double slope_deficit_tolerance = -std::abs(manu_grid_conv_param.slope_deficit_tolerance);
-        // if(poly_degree == 0) slope_deficit_tolerance *= 2; // Otherwise, grid sizes need to be much bigger for p=0
-
-        // if( (slope_diff < slope_deficit_tolerance) || (n_grids==1) ) {
-        //     pcout << std::endl
-        //          << "Convergence order not achieved. Average last 2 slopes of "
-        //          << slope_avg << " instead of expected "
-        //          << expected_slope << " within a tolerance of "
-        //          << slope_deficit_tolerance
-        //          << std::endl;
-        //     // p=0 just requires too many meshes to get into the asymptotic region.
-        //     if(poly_degree!=0) fail_conv_poly.push_back(poly_degree);
-        //     if(poly_degree!=0) fail_conv_slop.push_back(slope_avg);
-        // }
-
-    }
-    // pcout << std::endl << std::endl << std::endl << std::endl;
-    // pcout << " ********************************************" << std::endl;
-    // pcout << " Convergence summary" << std::endl;
-    // pcout << " ********************************************" << std::endl;
-    // for (auto conv = convergence_table_vector.begin(); conv!=convergence_table_vector.end(); conv++) {
-    //     if (pcout.is_active()) conv->write_text(pcout.get_stream());
-    //     pcout << " ********************************************" << std::endl;
-    // }
 
 //****************Test for artificial dissipation begins *******************************************************
     using artificial_dissipation_test_enum = Parameters::ArtificialDissipationParam::ArtificialDissipationTestType;
@@ -1128,13 +990,6 @@ double EulerVortexAdvectionErrorStudy<dim,nstate>
     }
 }
 
-
-// #if PHILIP_DIM==2
-//     template class EulerVortexAdvectionErrorStudy <PHILIP_DIM,PHILIP_DIM+2>;
-// #endif
-
-// #if PHILIP_DIM==1
-// template class EulerVortexAdvectionErrorStudy <PHILIP_DIM,PHILIP_DIM>;
 template class EulerVortexAdvectionErrorStudy <PHILIP_DIM,PHILIP_DIM+2>; // euler (1-species)_
 #if PHILIP_DIM==1
 template class EulerVortexAdvectionErrorStudy <PHILIP_DIM,PHILIP_DIM+2+2-1>; // TO DO: N_SPECIES
@@ -1142,10 +997,6 @@ template class EulerVortexAdvectionErrorStudy <PHILIP_DIM,PHILIP_DIM+2+2-1>; // 
 #if PHILIP_DIM==2
 template class EulerVortexAdvectionErrorStudy <PHILIP_DIM,PHILIP_DIM+2+2-1>; // TO DO: N_SPECIES
 #endif
-// #else
-// template class EulerVortexAdvectionErrorStudy <PHILIP_DIM,PHILIP_DIM+2>;
-// template class EulerVortexAdvectionErrorStudy <PHILIP_DIM,PHILIP_DIM+2+2-1>; // TO DO: N_SPECIES
-// #endif
 
 } // Tests namespace
 } // PHiLiP namespace

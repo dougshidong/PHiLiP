@@ -1755,8 +1755,6 @@ read_gmsh(std::string filename,
     high_order_grid->update_mapping_fe_field();
     high_order_grid->reset_initial_nodes();
     
-    //Check for periodic boundary conditions and apply
-    std::vector<dealii::GridTools::PeriodicFacePair<typename dealii::Triangulation<dim>::cell_iterator> > matched_pairs;
 
     if (requested_grid_order > 0) {
         auto grid = std::make_shared<HighOrderGrid<dim, double>>(requested_grid_order, triangulation,true,false);

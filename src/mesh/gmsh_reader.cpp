@@ -1259,7 +1259,6 @@ read_gmsh(std::string filename,
 
     const int mpi_rank = dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD);
     dealii::ConditionalOStream pcout(std::cout, mpi_rank==0);
-    pcout<<"In GMSH_READER->read_gmsh\n"<<std::endl;
 //    Assert(dim==2, dealii::ExcInternalError());
     std::ifstream infile;
 

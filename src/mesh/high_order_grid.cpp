@@ -135,7 +135,6 @@ void HighOrderGrid<dim,real,MeshType,VectorType,DoFHandlerType>::initialize_with
 
 template <int dim, typename real, typename MeshType, typename VectorType, typename DoFHandlerType>
 void HighOrderGrid<dim,real,MeshType,VectorType,DoFHandlerType>::reinit(){
-    //pcout<<"In HIGH_ORDER_GRID->reinit\n"<<std::endl;
     allocate();
     const dealii::ComponentMask mask(dim, true);
     get_position_vector(dof_handler_grid, volume_nodes, mask);
@@ -194,7 +193,6 @@ template <int dim, typename real, typename MeshType, typename VectorType, typena
 void 
 HighOrderGrid<dim,real,MeshType,VectorType,DoFHandlerType>::allocate() 
 {
-    //pcout<<"In HIGH_ORDER_GRID->allocate\n"<<std::endl;
     dof_handler_grid.initialize(*triangulation, fe_system);
     dof_handler_grid.distribute_dofs(fe_system);
     //if cuthill mckee renumbering
@@ -208,15 +206,6 @@ HighOrderGrid<dim,real,MeshType,VectorType,DoFHandlerType>::allocate()
     ghost_dofs_grid = locally_relevant_dofs_grid;
     ghost_dofs_grid.subtract_set(locally_owned_dofs_grid);
 
-    
-    // pcout<<"N dofs, dof_handler_grid: "<<dof_handler_grid.n_dofs()<<std::endl;
-    // pcout<<"N locally owned dofs, dof_handler_grid: "<<dof_handler_grid.n_locally_owned_dofs()<<std::endl;
-    // pcout<<"ghost_dofs_grid size: "<<ghost_dofs_grid.size()<<std::endl;
-    // pcout<<"ghost_dofs_grid, N elements: "<<ghost_dofs_grid.n_elements()<<std::endl;
-    // pcout<<"locally_relevant_dofs_grid, N elements: "<<locally_relevant_dofs_grid.n_elements()<<std::endl;
-    // pcout<<"volume_nodes size: "<< volume_nodes.size()<<std::endl;
-    // pcout<<"Update function call."<<std::endl;
-    
     // reinit nodes depending on the MeshType::VectorType
     MeshTypeHelper<MeshType>::reinit_vector(
         volume_nodes, 
@@ -224,16 +213,6 @@ HighOrderGrid<dim,real,MeshType,VectorType,DoFHandlerType>::allocate()
         locally_owned_dofs_grid,
         ghost_dofs_grid,
         mpi_communicator);
-
-    // pcout<<"volume_nodes size: "<< volume_nodes.size()<<std::endl;
-    // pcout<<"N dofs, dof_handler_grid: "<<dof_handler_grid.n_dofs()<<std::endl;
-    // pcout<<"N locally owned dofs, dof_handler_grid: "<<dof_handler_grid.n_locally_owned_dofs()<<std::endl;
-    // for (auto index = ghost_dofs_grid.begin(); index != ghost_dofs_grid.end(); index++) {
-    //     pcout<< "ghost volume node[" <<*index<< "]: "<<volume_nodes[*index]<<std::endl;
-    // }
-    // for (auto index = locally_owned_dofs_grid.begin(); index != locally_owned_dofs_grid.end(); index++) {
-    //     pcout<< "locally owned volume node[" <<*index<< "]: "<<volume_nodes[*index]<<std::endl;
-    // }
 }
 
 //template <int dim, typename real, typename MeshType, typename VectorType, typename DoFHandlerType>
@@ -1273,7 +1252,6 @@ void HighOrderGrid<dim,real,MeshType,VectorType,DoFHandlerType>::reset_initial_n
 
 template <int dim, typename real, typename MeshType, typename VectorType, typename DoFHandlerType>
 void HighOrderGrid<dim,real,MeshType,VectorType,DoFHandlerType>::update_surface_indices() {
-    //pcout<<"In HIGH_ORDER_GRID->update_surface_indices\n"<<std::endl;
     locally_owned_surface_nodes_indices.clear();
     locally_owned_surface_nodes.clear();
     locally_relevant_surface_nodes_indices.clear();
@@ -1292,29 +1270,13 @@ void HighOrderGrid<dim,real,MeshType,VectorType,DoFHandlerType>::update_surface_
     // Overall algorithm average will be O(n), worst case O(n^2)
     std::unordered_set<dealii::types::global_dof_index> locally_relevant_surface_dof_indices_set;
     std::unordered_set<dealii::types::global_dof_index> locally_owned_surface_dof_indices_set;
-    
     for (auto cell = dof_handler_grid.begin_active(); cell!=dof_handler_grid.end(); ++cell) {
-    //     if(cell->is_locally_owned()){
-    //         pcout<<"Locally owned cell! index: "<<cell->active_cell_index()<<std::endl;
-    //     }
-    //     else if(cell->is_ghost()){
-    //         pcout<<"Ghost cell! index: "<<cell->active_cell_index()<<std::endl;
-    //     } else{
-    //         pcout<<"Cell index cannot be accessed by current processor: "<<cell->active_cell_index()<<std::endl;
-    //         pcout << "cell is active? : "<<cell->is_active()<<std::endl;
-    //         pcout << "cell is artifical? : "<<cell->is_artificial()<<std::endl;
-    //     }
-
 
         if (!cell->is_locally_owned() && !cell->is_ghost()) continue;
         if (!cell->at_boundary()) continue;
 
         cell->get_dof_indices(dof_indices);
-        // if(cell->is_ghost()){
-        //     for(unsigned int idof = 0; idof< dofs_per_cell; ++idof){
-        //         pcout<<"Ghost cell dof_indices["<<idof<<"]: "<<dof_indices[idof]<<std::endl;
-        //     }
-        // }
+
         // Each time a new shape_within_base is found, add it to the list of points.
         std::unordered_set<dealii::types::global_dof_index> shape_within_base_found;
         std::map<unsigned int, unsigned int> shape_function_within_base_to_point_index;

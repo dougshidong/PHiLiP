@@ -1259,7 +1259,7 @@ read_gmsh(std::string filename,
 
     const int mpi_rank = dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD);
     dealii::ConditionalOStream pcout(std::cout, mpi_rank==0);
-
+    pcout<<"In GMSH_READER->read_gmsh\n"<<std::endl;
 //    Assert(dim==2, dealii::ExcInternalError());
     std::ifstream infile;
 
@@ -1575,6 +1575,26 @@ read_gmsh(std::string filename,
         assign_1d_boundary_ids(boundary_ids_1d, *triangulation);
     }
 
+    //Check for periodic boundary conditions and apply
+    std::vector<dealii::GridTools::PeriodicFacePair<typename dealii::Triangulation<dim>::cell_iterator> > matched_pairs;
+
+    if (periodic_x) {
+        dealii::GridTools::collect_periodic_faces(*high_order_grid->triangulation, x_periodic_1, x_periodic_2, 0, matched_pairs);
+    }
+
+    if (periodic_y) {
+        dealii::GridTools::collect_periodic_faces(*high_order_grid->triangulation, y_periodic_1, y_periodic_2, 1, matched_pairs);
+    }
+
+    if (periodic_z) {
+        dealii::GridTools::collect_periodic_faces(*high_order_grid->triangulation, z_periodic_1, z_periodic_2, 2, matched_pairs);
+    }
+
+    if (periodic_x || periodic_y || periodic_z) {
+        high_order_grid->triangulation->add_periodicity(matched_pairs);
+    }
+
+
     high_order_grid->initialize_with_triangulation_manifold();
 
     std::vector<unsigned int> deal_h2l = dealii::FETools::hierarchic_to_lexicographic_numbering<dim>(grid_order);
@@ -1728,6 +1748,7 @@ read_gmsh(std::string filename,
         equidistant_nodes.update_ghost_values();
         high_order_grid->volume_nodes.update_ghost_values();
         dealii::FETools::interpolate(dof_handler_equidistant, equidistant_nodes, high_order_grid->dof_handler_grid, high_order_grid->volume_nodes);
+        equidistant_nodes.update_ghost_values();
         high_order_grid->volume_nodes.update_ghost_values();
         high_order_grid->ensure_conforming_mesh();
     }
@@ -1739,17 +1760,6 @@ read_gmsh(std::string filename,
     //Check for periodic boundary conditions and apply
     std::vector<dealii::GridTools::PeriodicFacePair<typename dealii::Triangulation<dim>::cell_iterator> > matched_pairs;
 
-    if (periodic_x) {
-        dealii::GridTools::collect_periodic_faces(*high_order_grid->triangulation, x_periodic_1, x_periodic_2, 0, matched_pairs);
-    }
-
-    if (periodic_y) {
-        dealii::GridTools::collect_periodic_faces(*high_order_grid->triangulation, y_periodic_1, y_periodic_2, 1, matched_pairs);
-    }
-
-    if (periodic_z) {
-        dealii::GridTools::collect_periodic_faces(*high_order_grid->triangulation, z_periodic_1, z_periodic_2, 2, matched_pairs);
-    }
 
     if (periodic_x || periodic_y || periodic_z) {
         high_order_grid->triangulation->add_periodicity(matched_pairs);
@@ -1781,6 +1791,7 @@ read_gmsh(std::string filename,
             equidistant_nodes.update_ghost_values();
             grid->volume_nodes.update_ghost_values();
             dealii::FETools::interpolate(dof_handler_equidistant, equidistant_nodes, grid->dof_handler_grid, grid->volume_nodes);
+            equidistant_nodes.update_ghost_values();
             grid->volume_nodes.update_ghost_values();
             grid->ensure_conforming_mesh();
         }

@@ -103,7 +103,7 @@ DGBase<dim,real,MeshType>::DGBase(
     , fe_q_artificial_dissipation(1)
     , dof_handler_artificial_dissipation(*triangulation, false)
     , mpi_communicator(MPI_COMM_WORLD)
-    , pcout(std::cout, dealii::Utilities::MPI::this_mpi_process(mpi_communicator)==1)
+    , pcout(std::cout, dealii::Utilities::MPI::this_mpi_process(mpi_communicator)==0)
     , freeze_artificial_dissipation(false)
     , max_artificial_dissipation_coeff(0.0)
 {
@@ -1612,10 +1612,24 @@ void DGBase<dim,real,MeshType>::assemble_residual (const bool compute_dRdW, cons
         if(all_parameters->store_residual_cpu_time){
             timer.start();
         }
-
+        
+        // for (auto metric_test_cell = high_order_grid->dof_handler_grid.begin_active(); metric_test_cell!=high_order_grid->dof_handler_grid.end(); ++metric_test_cell) {
+        //     if(metric_test_cell->is_locally_owned()){
+        //         pcout<<"Locally owned cell! index: "<<metric_test_cell->active_cell_index()<<std::endl;
+        //     }
+        //     else if(metric_test_cell->is_ghost()){
+        //         pcout<<"Ghost cell! index: "<<metric_test_cell->active_cell_index()<<std::endl;
+        //     } else{
+        //         pcout<<"Cell index cannot be accessed by current processor: "<<metric_test_cell->active_cell_index()<<std::endl;
+        //         pcout << "cell is active? : "<<metric_test_cell->is_active()<<std::endl;
+        //         pcout << "cell is artifical? : "<<metric_test_cell->is_artificial()<<std::endl;
+        //     }
+        // }
         auto metric_cell = high_order_grid->dof_handler_grid.begin_active();
         for (auto soln_cell = dof_handler.begin_active(); soln_cell != dof_handler.end(); ++soln_cell, ++metric_cell) {
         //for (auto cell = triangulation->begin_active(); cell != triangulation->end(); ++cell) {
+            // pcout<<"Locally owned soln_cell ? "<<soln_cell->is_locally_owned()<<". index: "<<soln_cell->active_cell_index()<<std::endl;
+            // pcout<<"Locally owned metric_cell ? "<<metric_cell->is_locally_owned()<<". index: "<<metric_cell->active_cell_index()<<std::endl;
             if (!soln_cell->is_locally_owned()) continue;
 
             //const int tria_level = cell->level();

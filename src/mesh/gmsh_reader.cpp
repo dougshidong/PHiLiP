@@ -1594,7 +1594,6 @@ read_gmsh(std::string filename,
         high_order_grid->triangulation->add_periodicity(matched_pairs);
     }
 
-
     high_order_grid->initialize_with_triangulation_manifold();
 
     std::vector<unsigned int> deal_h2l = dealii::FETools::hierarchic_to_lexicographic_numbering<dim>(grid_order);
@@ -1759,12 +1758,6 @@ read_gmsh(std::string filename,
     
     //Check for periodic boundary conditions and apply
     std::vector<dealii::GridTools::PeriodicFacePair<typename dealii::Triangulation<dim>::cell_iterator> > matched_pairs;
-
-
-    if (periodic_x || periodic_y || periodic_z) {
-        high_order_grid->triangulation->add_periodicity(matched_pairs);
-    }
-
 
     if (requested_grid_order > 0) {
         auto grid = std::make_shared<HighOrderGrid<dim, double>>(requested_grid_order, triangulation,true,false);

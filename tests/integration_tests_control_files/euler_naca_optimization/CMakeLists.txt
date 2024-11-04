@@ -7,3 +7,16 @@ add_test(
   COMMAND mpirun -np ${MPIMAX} ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_2D -i ${CMAKE_CURRENT_BINARY_DIR}/2d_euler_naca_optimization.prm
   WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
 )
+set_tests_labels(2D_EULER_NACA0012_OPTIMIZATION EULER_NACA_OPTIMIZATION
+                                                2D
+                                                PARALLEL
+                                                EULER
+                                                IMPLICIT
+                                                WEAK
+                                                UNCOLLOCATED
+                                                MANUFACTURED_SOLUTION
+                                                CONVERGENCE
+                                                LONG
+                                                OPTIMIZATION
+                                                INTEGRATION_TEST)
+

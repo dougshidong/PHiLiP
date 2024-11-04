@@ -14,6 +14,15 @@ add_test(
   COMMAND mpirun -np ${MPIMAX} ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_3D -i ${CMAKE_CURRENT_BINARY_DIR}/euler_entropy_conserving_split_forms_check.prm
   WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
 )
+set_tests_labels(MPI_3D_EULER_ENTROPY_CONSERVING_SPLIT_FORMS_CHECK  EULER_ENTROPY_CONSERVATION
+                                                                    3D
+                                                                    PARALLEL
+                                                                    EULER
+                                                                    RUNGE-KUTTA
+                                                                    STRONG-SPLIT
+                                                                    COLLOCATED
+                                                                    LONG
+                                                                    INTEGRATION_TEST)
 # ----------------------------------------
 
 # =======================================

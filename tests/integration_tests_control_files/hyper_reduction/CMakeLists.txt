@@ -9,6 +9,15 @@ add_test(
         COMMAND mpirun -np 1 ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_1D -i ${CMAKE_CURRENT_BINARY_DIR}/1d_burgers_rewienski_build_NNLS_problem.prm 
         WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
 )
+set_tests_labels(1D_BURGERS_NNLS_PROBLEM_ASSEMBLY   HYPER_REDUCTION
+                                                    1D
+                                                    SERIAL
+                                                    BURGERS_REWIENSKI
+                                                    IMPLICIT
+                                                    WEAK
+                                                    UNCOLLOCATED
+                                                    MODERATE
+                                                    INTEGRATION_TEST)
 
 configure_file(1d_burgers_rewienski_hyper_reduction_test.prm 1d_burgers_rewienski_hyper_reduction_test.prm COPYONLY)
 add_test(
@@ -26,6 +35,15 @@ add_test(
         fi"  
         WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
 )
+set_tests_labels(1D_BURGERS_HYPER_REDUCTION_TEST    HYPER_REDUCTION
+                                                    1D
+                                                    SERIAL
+                                                    BURGERS_REWIENSKI
+                                                    IMPLICIT
+                                                    WEAK
+                                                    UNCOLLOCATED
+                                                    MODERATE
+                                                    INTEGRATION_TEST)
 
 configure_file(1d_burgers_rewienski_hyper_adaptive_sampling.prm 1d_burgers_rewienski_hyper_adaptive_sampling.prm COPYONLY)
 add_test(
@@ -39,6 +57,15 @@ add_test(
         mv weights_table_iteration_final.txt ./1d_burgers_hyper_adapt_results ; "
         WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
 )
+set_tests_labels(1D_BURGERS_HYPER_ADAPTIVE_SAMPLING_TEST    HYPER_REDUCTION
+                                                            1D
+                                                            SERIAL
+                                                            BURGERS_REWIENSKI
+                                                            IMPLICIT
+                                                            WEAK
+                                                            UNCOLLOCATED
+                                                            MODERATE
+                                                            INTEGRATION_TEST)
 
 configure_file(1d_burgers_rewienski_hyper_post_sampling.prm 1d_burgers_rewienski_hyper_post_sampling.prm COPYONLY)
 add_test(
@@ -56,6 +83,15 @@ add_test(
         fi"
         WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
 )
+set_tests_labels(1D_BURGERS_HYPER_POST_SAMPLING HYPER_REDUCTION
+                                                1D
+                                                SERIAL
+                                                BURGERS_REWIENSKI
+                                                IMPLICIT
+                                                WEAK
+                                                UNCOLLOCATED
+                                                MODERATE
+                                                INTEGRATION_TEST)
 
 configure_file(inviscid_naca0012_hyper_post_sampling.prm inviscid_naca0012_hyper_post_sampling.prm COPYONLY)
 add_test(
@@ -73,6 +109,15 @@ add_test(
         fi"
         WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
 )
+set_tests_labels(INVISCID_NACA0012_HYPER_POST_SAMPLING HYPER_REDUCTION
+                                                2D
+                                                SERIAL
+                                                EULER
+                                                IMPLICIT
+                                                WEAK
+                                                UNCOLLOCATED
+                                                LONG
+                                                INTEGRATION_TEST)
 
 # The following test can only be run on Narval currently with a 2009G node as they require a large amount of memory
 # configure_file(inviscid_naca0012_hyper_adaptive_sampling.prm inviscid_naca0012_hyper_adaptive_sampling.prm COPYONLY)
@@ -132,3 +177,12 @@ add_test(
         mv weights_table_iteration_final.txt ./1d_burgers_hyper_new_error_results ; "
         WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
 )
+set_tests_labels(1D_BURGERS_HYPER_SAMPLING_NEW_ERROR    HYPER_REDUCTION
+                                                        1D
+                                                        SERIAL
+                                                        BURGERS_REWIENSKI
+                                                        IMPLICIT
+                                                        WEAK
+                                                        UNCOLLOCATED
+                                                        MODERATE
+                                                        INTEGRATION_TEST)

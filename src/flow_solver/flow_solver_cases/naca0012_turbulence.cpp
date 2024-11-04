@@ -296,7 +296,7 @@ void NACA0012_LES<dim, nstate>::output_velocity_field(
                 time_averaged_soln_coeff[istate].resize(n_shape_fns);
             }
             soln_coeff[istate][ishape] = dg->solution(current_dofs_indices[idof]);
-            time_averaged_soln_coeff[istate][ishape] = dg->time_averaged_solution(current_dofs_indices[idof])/((current_time-time_to_start_averaging+this->all_param.flow_solver_param.constant_time_step)/this->all_param.flow_solver_param.constant_time_step); //Divide by number of time steps to get average
+            time_averaged_soln_coeff[istate][ishape] = dg->time_averaged_solution(current_dofs_indices[idof]);
         }
 
         std::array<std::vector<double>,nstate> soln_at_q;
@@ -341,9 +341,12 @@ void NACA0012_LES<dim, nstate>::output_velocity_field(
         std::vector<double> vorticity_magnitude_at_q(n_quad_pts);
         std::vector<double> density_at_q(n_quad_pts);
         std::vector<double> viscosity_at_q(n_quad_pts);
+        std::vector<double> kinetic_energy_at_q(n_quad_pts);
+        std::vector<double> enstrophy_at_q(n_quad_pts);
+        std::vector<double> pressure_dilatation_at_q(n_quad_pts);      
         for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
             std::array<double,nstate> soln_state;
-             std::array<double,nstate> time_averaged_soln_state;
+            std::array<double,nstate> time_averaged_soln_state;
             std::array<dealii::Tensor<1,dim,double>,nstate> soln_grad_state;
             for(int istate=0; istate<nstate; istate++){
                 soln_state[istate] = soln_at_q[istate][iquad];
@@ -363,7 +366,7 @@ void NACA0012_LES<dim, nstate>::output_velocity_field(
                 velocity_at_q[idim][iquad] = velocity[idim];
                 time_averaged_velocity_at_q[idim][iquad] = time_averaged_velocity[idim];
                 velocity_fluctuations_at_q[idim][iquad] = velocity_at_q[idim][iquad] - time_averaged_velocity_at_q[idim][iquad];
-            }
+            } 
             // write vorticity magnitude field if desired
             if(output_vorticity_magnitude_field_in_addition_to_velocity) {
                 vorticity_magnitude_at_q[iquad] = this->navier_stokes_physics->compute_vorticity_magnitude(soln_state, soln_grad_state);
@@ -377,6 +380,9 @@ void NACA0012_LES<dim, nstate>::output_velocity_field(
                 const std::array<double,nstate> primitive_soln = this->navier_stokes_physics->convert_conservative_to_primitive(soln_state);
                 viscosity_at_q[iquad] = this->navier_stokes_physics->compute_viscosity_coefficient(primitive_soln);
             }
+            kinetic_energy_at_q[iquad] = this->navier_stokes_physics->compute_kinetic_energy_from_conservative_solution(soln_state);
+            enstrophy_at_q[iquad] = this->navier_stokes_physics->compute_enstrophy(soln_state,soln_grad_state);
+            pressure_dilatation_at_q[iquad] = this->navier_stokes_physics->compute_pressure_dilatation(soln_state,soln_grad_state);
         }
         // write out all values at equidistant nodes
         for(unsigned int ishape=0; ishape<n_quad_pts; ishape++){

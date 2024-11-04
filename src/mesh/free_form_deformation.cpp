@@ -575,14 +575,17 @@ FreeFormDeformation<dim>
             full_dsp.add(i_row, i_col);
         }
     }
-    dealii::IndexSet locally_relevant_dofs;
-    dealii::DoFTools::extract_locally_relevant_dofs(high_order_grid.dof_handler_grid, locally_relevant_dofs);
-    dealii::SparsityTools::distribute_sparsity_pattern(full_dsp, row_part, MPI_COMM_WORLD, locally_relevant_dofs);
+    dealii::IndexSet locally_relevant_surf = high_order_grid.locally_owned_surface_nodes_indexset;
+    // locally_relevant_surf.set_size(high_order_grid.locally_owned_surface_nodes_indexset);
+    locally_relevant_surf.add_indices(high_order_grid.ghost_surface_nodes_indexset);
+    // dealii::DoFTools::extract_locally_relevant_dofs(high_order_grid.dof_handler_grid, locally_relevant_dofs);
+    dealii::SparsityTools::distribute_sparsity_pattern(full_dsp, row_part, MPI_COMM_WORLD, locally_relevant_surf);
 
     dealii::SparsityPattern full_sp;
     full_sp.copy_from(full_dsp);
 
     // dXsdXd = dealii::TrilinosWrappers::SparseMatrix(n_rows, n_cols, n_cols);
+    dXsdXd.reinit(row_part, col_part, full_sp, MPI_COMM_WORLD);
     this->pcout << "dXs_dXd init" << std::endl;
     this->pcout << dXsdXd.n() << std::endl;
      this->pcout << dXsdXd.m() << std::endl;
@@ -613,13 +616,14 @@ FreeFormDeformation<dim>
     outfile_dXvsdXp_values.open("dXvsdXp_values.dat"); 
     std::ofstream outfile_vol_dXvsdXp;
     outfile_vol_dXvsdXp.open("vol_index_dXvsdXp.dat"); 
-
+    
     const dealii::IndexSet &nodes_locally_owned = high_order_grid.volume_nodes.get_partitioner()->locally_owned_range();
     for (unsigned int i_col = 0; i_col < ffd_design_variables_indices_dim.size(); ++i_col) {
 
         const auto ffd_pair = ffd_design_variables_indices_dim[i_col];
         const unsigned int ctl_index = ffd_pair.first;
         const unsigned int ctl_axis  = ffd_pair.second;
+        unsigned int j_row = 0;
 
         unsigned int ipoint = 0;
         for (auto const& surface_point: high_order_grid.initial_locally_relevant_surface_points) {
@@ -629,8 +633,10 @@ FreeFormDeformation<dim>
             for (int d=0; d<dim; ++d) { 
                 const dealii::types::global_dof_index vol_index = high_order_grid.point_and_axis_to_global_index.at(std::make_pair(ipoint,(unsigned int)d));
                 if (nodes_locally_owned.is_element(vol_index)) {
-                    dXvsdXp.set(vol_index,i_col, dxsdxp[d]);
-                    outfile_dXvsdXp_values << dXvsdXp.el(vol_index,i_col) << "\n"; 
+                    // dXvsdXp.set(vol_index,i_col, dxsdxp[d]);
+                    dXsdXd.set(j_row,i_col, dxsdxp[d]);
+                    j_row++;
+                    outfile_dXvsdXp_values << dXsdXd.el(vol_index,i_col) << "\n"; 
                     outfile_vol_dXvsdXp << vol_index << "\n";
                 }
                 if ((unsigned int)d!=ctl_axis) {
@@ -644,45 +650,45 @@ FreeFormDeformation<dim>
     outfile_dXvsdXp_values.close();
     outfile_vol_dXvsdXp.close();
 
-    dealii::LinearAlgebra::distributed::Vector<int> is_a_surface_node;
-    is_a_surface_node.reinit(high_order_grid.volume_nodes); // Copies parallel layout, without values. Initializes to 0 by default.
+    // dealii::LinearAlgebra::distributed::Vector<int> is_a_surface_node;
+    // is_a_surface_node.reinit(high_order_grid.volume_nodes); // Copies parallel layout, without values. Initializes to 0 by default.
 
-    [[maybe_unused]] const dealii::IndexSet &volume_range = high_order_grid.volume_nodes.get_partitioner()->locally_owned_range();
-    const dealii::IndexSet &surface_range = high_order_grid.surface_nodes.get_partitioner()->locally_owned_range();
+    // [[maybe_unused]] const dealii::IndexSet &volume_range = high_order_grid.volume_nodes.get_partitioner()->locally_owned_range();
+    // const dealii::IndexSet &surface_range = high_order_grid.surface_nodes.get_partitioner()->locally_owned_range();
 
-    std::ofstream outfile_dXsdXd_values;
-    outfile_dXsdXd_values.open("dXsdXd_values.dat"); 
-    std::ofstream outfile_vol_dXsdXd;
-    outfile_vol_dXsdXd.open("vol_index_dXsdXd.dat"); 
+    // std::ofstream outfile_dXsdXd_values;
+    // outfile_dXsdXd_values.open("dXsdXd_values.dat"); 
+    // std::ofstream outfile_vol_dXsdXd;
+    // outfile_vol_dXsdXd.open("vol_index_dXsdXd.dat"); 
 
-    unsigned int j_row = 0;
-    for(unsigned int i_surf = 0; i_surf<n_surf_nodes; ++i_surf) 
-    {
-        if(!(surface_range.is_element(i_surf))) continue;
+    // unsigned int j_row = 0;
+    // for(unsigned int i_surf = 0; i_surf<n_surf_nodes; ++i_surf) 
+    // {
+    //     if(!(surface_range.is_element(i_surf))) continue;
 
-        const unsigned int vol_index0 = high_order_grid.surface_to_volume_indices(i_surf);
-        Assert(volume_range.is_element(vol_index0), 
-                dealii::ExcMessage("Surface index is in range, so vol index is expected to be in the range of this processor."));
-        is_a_surface_node(vol_index0) = 1;
-        // Assembling dXsdXs_surf
-        for(unsigned int j_col = 0; j_col < dXsdXd.n(); ++j_col)
-        {
-            dXsdXd.set(j_row, j_col, dXvsdXp.el(vol_index0,j_col));
-            outfile_dXsdXd_values << dXsdXd.el(vol_index0,j_col) << "\n";
-            outfile_vol_dXsdXd << vol_index0 << "\n";
-        }
-        ++j_row;
-    }
+    //     const unsigned int vol_index0 = high_order_grid.surface_to_volume_indices(i_surf);
+    //     Assert(volume_range.is_element(vol_index0), 
+    //             dealii::ExcMessage("Surface index is in range, so vol index is expected to be in the range of this processor."));
+    //     is_a_surface_node(vol_index0) = 1;
+    //     // Assembling dXsdXs_surf
+    //     for(unsigned int j_col = 0; j_col < dXsdXd.n(); ++j_col)
+    //     {
+    //         dXsdXd.set(j_row, j_col, dXvsdXp.el(vol_index0,j_col));
+    //         outfile_dXsdXd_values << dXsdXd.el(vol_index0,j_col) << "\n";
+    //         outfile_vol_dXsdXd << vol_index0 << "\n";
+    //     }
+    //     ++j_row;
+    // }
 
-    is_a_surface_node.update_ghost_values();
-    outfile_dXsdXd_values.close();
-    outfile_vol_dXsdXd.close();
+    // is_a_surface_node.update_ghost_values();
+    // outfile_dXsdXd_values.close();
+    // outfile_vol_dXsdXd.close();
 
-    // Writing dXs_dXd to file
-    std::ofstream outfile_dXsdXd;
-    outfile_dXsdXd.open("dXs_dXd_from_ffd.dat");  
-    dXsdXd.print(outfile_dXsdXd);
-    outfile_dXsdXd.close();
+    // // Writing dXs_dXd to file
+    // std::ofstream outfile_dXsdXd;
+    // outfile_dXsdXd.open("dXs_dXd_from_ffd.dat");  
+    // dXsdXd.print(outfile_dXsdXd);
+    // outfile_dXsdXd.close();
 
     dXvsdXp.compress(dealii::VectorOperation::insert);
     dXsdXd.compress(dealii::VectorOperation::insert);

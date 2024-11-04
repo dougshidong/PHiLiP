@@ -91,8 +91,6 @@ int HyperreducedSamplingErrorUpdated<dim, nstate>::run_sampling() const
 
     RowVectorXd max_error_params = this->getMaxErrorROM();
 
-    delete NNLS_prob;
-
     while(this->max_error > this->all_parameters->reduced_order_param.adaptation_tolerance){
         Epetra_Vector local_weights = allocateVectorToSingleCore(*ptr_weights);
         this->outputIterationData(std::to_string(iteration));
@@ -170,8 +168,6 @@ int HyperreducedSamplingErrorUpdated<dim, nstate>::run_sampling() const
 
         this->pcout << "Max error is: " << this->max_error << std::endl;
         iteration++;
-
-        delete NNLS_prob;
     }
 
     Epetra_Vector local_weights = allocateVectorToSingleCore(*ptr_weights);
@@ -360,7 +356,7 @@ void HyperreducedSamplingErrorUpdated<dim, nstate>::trueErrorROM(const MatrixXd&
         rom_table->set_precision("ROM_errors", 16);
     }
 
-    std::ofstream rom_table_file("rom_table_iteration_ROM_post_sampling.txt");
+    std::ofstream rom_table_file("true_error_table_iteration_HROM_post_sampling.txt");
     rom_table->write_text(rom_table_file, dealii::TableHandler::TextOutputFormat::org_mode_table);
     rom_table_file.close();
 }

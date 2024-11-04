@@ -57,6 +57,17 @@ public:
 
     /** For the given list of FFD indices and direction, return the analytical
      *  derivatives of the HighOrderGrid's initial surface points with respect to the FFD.
+     *  The result is written into the given dXvsdXp SparseMatrix.
+     */
+    void get_dXsdXd (
+        const HighOrderGrid<dim,double> &high_order_grid,
+        const std::vector< std::pair< unsigned int, unsigned int > > &ffd_design_variables_indices_dim,
+        dealii::TrilinosWrappers::SparseMatrix &dXvsdXp,
+        dealii::TrilinosWrappers::SparseMatrix &dXsdXd
+        ) const;
+
+    /** For the given list of FFD indices and direction, return the analytical
+     *  derivatives of the HighOrderGrid's initial surface points with respect to the FFD.
      *  Note that the result is returned as a vector of vector because it will likely be used with a MeshMover's apply_dXvdXvs() function.
      */
     std::vector<dealii::LinearAlgebra::distributed::Vector<double>>

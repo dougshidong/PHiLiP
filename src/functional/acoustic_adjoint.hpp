@@ -93,8 +93,10 @@ public:
     dealii::LinearAlgebra::distributed::Vector<real> dIdXd;
     /// volume nodes derivative wrt surface nodes
     dealii::TrilinosWrappers::SparseMatrix dXvdXs;
-    /// surface nodes derivative wrt FFD nodes
+    /// surface and volume nodes derivative wrt FFD nodes
     dealii::TrilinosWrappers::SparseMatrix dXsdXd;
+    /// surface nodes only derivative wrt FFD nodes
+    dealii::TrilinosWrappers::SparseMatrix dXsdXd_surf;
     /// adjoint (\f$\psi_h\f$)
     dealii::LinearAlgebra::distributed::Vector<real> adjoint;
 

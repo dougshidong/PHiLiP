@@ -198,15 +198,15 @@ add_test(
         "
         WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
 )
-set_tests_labels(1D_BURGERS_REWIENSKI_MANUFACTURED_SOLUTION REDUCED_ORDER
-                                                            2D
-                                                            PARALLEL
-                                                            EULER
-                                                            RUNGE-KUTTA
-                                                            STRONG-SPLIT
-                                                            COLLOCATED
-                                                            MODERATE
-                                                            INTEGRATION_TEST)
+set_tests_labels(2D_UNSTEADY_GALERKIN_RK        REDUCED_ORDER
+                                                2D
+                                                PARALLEL
+                                                EULER
+                                                RUNGE-KUTTA
+                                                STRONG-SPLIT
+                                                COLLOCATED
+                                                MODERATE
+                                                INTEGRATION_TEST)
                                           
 
 

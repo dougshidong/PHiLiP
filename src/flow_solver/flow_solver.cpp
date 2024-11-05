@@ -518,7 +518,6 @@ int FlowSolver<dim,nstate>::run() const
             // update time step in flow_solver_case
             flow_solver_case->set_time_step(time_step);
             dg->set_unsteady_model_time_step(time_step);
-            pcout << "Advance in time. " << std::endl;
             // advance solution
             ode_solver->step_in_time(time_step,false); // pseudotime==false
             if(flow_solver_param.compute_time_averaged_solution && (ode_solver->current_time == flow_solver_param.time_to_start_averaging)) {
@@ -540,7 +539,6 @@ int FlowSolver<dim,nstate>::run() const
                     }
                 }
             }
-            pcout << "Computing the unsteady quantities, write to the dealii table, and output to file. " << std::endl;
             // Compute the unsteady quantities, write to the dealii table, and output to file
             if(do_compute_unsteady_data_and_write_to_table){
                 flow_solver_case->compute_unsteady_data_and_write_to_table(ode_solver->current_iteration, ode_solver->current_time, dg, unsteady_data_table);

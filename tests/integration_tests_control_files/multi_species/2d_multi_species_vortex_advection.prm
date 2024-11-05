@@ -1,22 +1,25 @@
 # Listing of Parameters
 # ---------------------
-# Number of dimensions
 
+# Reference:
+# Jian-Hang Wang, Shucheng Pan, Xiangyu Y Hu, and Nikolaus A Adams. Partial characteristic decomposition for multi-species euler equations. Computers & Fluids, 181:364–382, 2019.
+
+# Number of dimensions
 set dimension = 2
+
+# Chemical species
 set number_of_species = 2
 set run_type = flow_simulation
 set pde_type = real_gas
 set chemistry_input_file = ReactionFiles/H2_O2_N2.kinetics
 set initial_mixture_fractions_input_file = InitialMixtureFiles/InitialMixtureFractions_H2_O2_N2.txt
 
-
 # DG formulation
 set use_weak_form = true
-# set flux_nodes_type = GLL
 set non_physical_behavior = abort_run
 
 # set directry to write output data
-#set solution_vtk_files_directory_name = realgas
+#set solution_vtk_files_directory_name = multi_species
 
 # Note: this was added to turn off check_same_coords() -- has no other function when dim!=1
 set use_periodic_bc = true
@@ -35,9 +38,6 @@ subsection ODE solver
   set ode_solver_type = runge_kutta
   set runge_kutta_method = ssprk3_ex
 end
-
-# Reference for freestream values specified below:
-# Diosady, L., and S. Murman. "Case 3.3: Taylor green vortex evolution." Case Summary for 3rd International Workshop on Higher-Order CFD Methods. 2015.
 
 # freestream Mach number
 subsection euler

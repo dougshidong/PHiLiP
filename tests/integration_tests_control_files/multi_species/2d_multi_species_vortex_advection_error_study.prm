@@ -1,8 +1,13 @@
 # Listing of Parameters
 # ---------------------
 
+# Reference:
+# Jian-Hang Wang, Shucheng Pan, Xiangyu Y Hu, and Nikolaus A Adams. Partial characteristic decomposition for multi-species euler equations. Computers & Fluids, 181:364–382, 2019.
+
+# test 
 set test_type = multi_species_two_dimensional_vortex_advection_error_study
 
+# Chemical species
 set dimension = 2
 set number_of_species = 2
 set pde_type = real_gas
@@ -12,13 +17,10 @@ set initial_mixture_fractions_input_file = InitialMixtureFiles/InitialMixtureFra
 
 # DG formulation
 set use_weak_form = true
-#set use_inverse_mass_on_the_fly = true
-#set overintegration = 2
-# set flux_nodes_type = GLL
 set non_physical_behavior = abort_run
 
 # set directry to write output data
-#set solution_vtk_files_directory_name = realgas
+#set solution_vtk_files_directory_name = multi_species
 
 # Note: this was added to turn off check_same_coords() -- has no other function when dim!=1
 set use_periodic_bc = true
@@ -38,9 +40,6 @@ subsection ODE solver
   set runge_kutta_method = ssprk3_ex
 end
 
-# Reference for freestream values specified below:
-# Diosady, L., and S. Murman. "Case 3.3: Taylor green vortex evolution." Case Summary for 3rd International Workshop on Higher-Order CFD Methods. 2015.
-
 # freestream Mach number
 subsection euler
   set mach_infinity = 0.1
@@ -54,7 +53,6 @@ subsection flow_solver
   subsection grid
     set grid_left_bound = 0.0
     set grid_right_bound = 10.0
-    #####set number_of_grid_elements_per_dimension = 16
   end
 end 
 

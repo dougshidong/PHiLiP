@@ -55,7 +55,7 @@ void PODGalerkinRungeKuttaODESolver<dim,real,n_rk_stages,MeshType>::calculate_st
     } else{
         // Creating Reduced RHS
         dealii::LinearAlgebra::distributed::Vector<double> dealii_reduced_stage_i;
-        Epetra_Vector epetra_rhs(Epetra_DataAccess::View, epetra_test_basis->RowMap(), this->dg->right_hand_side.begin()); // Flip to range map?
+        Epetra_Vector epetra_rhs(Epetra_DataAccess::Copy, epetra_test_basis->RowMap(), this->dg->right_hand_side.begin()); // Flip to range map?
         Epetra_Vector epetra_reduced_rhs(epetra_test_basis->DomainMap());
         epetra_test_basis->Multiply(true,epetra_rhs,epetra_reduced_rhs);
         // Creating Linear Problem to find stage
@@ -177,16 +177,16 @@ template <int dim, typename real, int n_rk_stages, typename MeshType>
 std::shared_ptr<Epetra_CrsMatrix> PODGalerkinRungeKuttaODESolver<dim,real,n_rk_stages,MeshType>::generate_reduced_lhs(const Epetra_CrsMatrix &system_matrix, const Epetra_CrsMatrix &test_basis)
 {   
     if (test_basis.RowMap().SameAs(system_matrix.RowMap()) && test_basis.NumGlobalRows() == system_matrix.NumGlobalRows()){
-        Epetra_CrsMatrix epetra_reduced_lhs(Epetra_DataAccess::Copy, test_basis.DomainMap(), test_basis.NumGlobalCols()); // Consider Changing to copy
+        Epetra_CrsMatrix epetra_reduced_lhs(Epetra_DataAccess::Copy, test_basis.DomainMap(), test_basis.NumGlobalCols());
         Epetra_CrsMatrix epetra_reduced_lhs_tmp(Epetra_DataAccess::Copy, system_matrix.RowMap(), test_basis.NumGlobalCols());
         if (EpetraExt::MatrixMatrix::Multiply(system_matrix, false, test_basis, false, epetra_reduced_lhs_tmp) != 0){
             std::cerr << "Error in first Matrix Multiplication" << std::endl;
             return nullptr;
-        }; // Memory leak, maybe
+        };
         if (EpetraExt::MatrixMatrix::Multiply(test_basis, true, epetra_reduced_lhs_tmp, false, epetra_reduced_lhs) != 0){
             std::cerr << "Error in second Matrix Multiplication" << std::endl;
             return nullptr;
-        }; // Memory leak, maybe
+        };
         return std::make_shared<Epetra_CrsMatrix>(epetra_reduced_lhs);
     } else {
         if(!(test_basis.RowMap().SameAs(system_matrix.RowMap()))){
@@ -205,7 +205,7 @@ int PODGalerkinRungeKuttaODESolver<dim,real,n_rk_stages,MeshType>::multiply(Epet
                                                                     dealii::LinearAlgebra::distributed::Vector<double> &input_dealii_vector,
                                                                     dealii::LinearAlgebra::distributed::Vector<double> &output_dealii_vector,
                                                                     const dealii::IndexSet &index_set,
-                                                                    const bool transpose//Careful with transpose as correct maps are not set up
+                                                                    const bool transpose //Transpose needs to used with care of maps
                                                                     )
 {
     Epetra_Vector epetra_input(Epetra_DataAccess::View, epetra_matrix.DomainMap(), input_dealii_vector.begin());

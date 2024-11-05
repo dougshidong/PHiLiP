@@ -1259,6 +1259,7 @@ read_gmsh(std::string filename,
 
     const int mpi_rank = dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD);
     dealii::ConditionalOStream pcout(std::cout, mpi_rank==0);
+
 //    Assert(dim==2, dealii::ExcInternalError());
     std::ifstream infile;
 
@@ -1746,7 +1747,6 @@ read_gmsh(std::string filename,
         equidistant_nodes.update_ghost_values();
         high_order_grid->volume_nodes.update_ghost_values();
         dealii::FETools::interpolate(dof_handler_equidistant, equidistant_nodes, high_order_grid->dof_handler_grid, high_order_grid->volume_nodes);
-        equidistant_nodes.update_ghost_values();
         high_order_grid->volume_nodes.update_ghost_values();
         high_order_grid->ensure_conforming_mesh();
     }
@@ -1781,7 +1781,6 @@ read_gmsh(std::string filename,
             equidistant_nodes.update_ghost_values();
             grid->volume_nodes.update_ghost_values();
             dealii::FETools::interpolate(dof_handler_equidistant, equidistant_nodes, grid->dof_handler_grid, grid->volume_nodes);
-            equidistant_nodes.update_ghost_values();
             grid->volume_nodes.update_ghost_values();
             grid->ensure_conforming_mesh();
         }

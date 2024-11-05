@@ -28,7 +28,7 @@ FlowSolver<dim, nstate>::FlowSolver(
 , mpi_communicator(MPI_COMM_WORLD)
 , mpi_rank(dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD))
 , n_mpi(dealii::Utilities::MPI::n_mpi_processes(MPI_COMM_WORLD))
-, pcout(std::cout, mpi_rank==54)
+, pcout(std::cout, mpi_rank==0)
 , all_param(*parameters_input)
 , flow_solver_param(all_param.flow_solver_param)
 , ode_param(all_param.ode_solver_param)

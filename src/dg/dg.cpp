@@ -765,7 +765,6 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
         std::abort();
     }
 
-    //std::cout<<"Current cell_index: "<<current_cell_index<<"\n";
     assemble_volume_term_and_build_operators(
         current_cell,
         current_cell_index,

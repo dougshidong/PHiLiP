@@ -65,7 +65,7 @@ void ReducedOrderModelParam::parse_parameters (dealii::ParameterHandler &prm)
         parameter_max_values = dealii::Patterns::Tools::Convert<decltype(parameter_max_values)>::to_value(parameter_max_string, ListPatternMax);
 
 
-        const std::string solver_string = prm.get("linear_solver_type");
+        const std::string solver_string = prm.get("FOM_error_linear_solver_type");
         if (solver_string == "direct") FOM_error_linear_solver_type = LinearSolverEnum::direct;
 
         if (solver_string == "gmres")

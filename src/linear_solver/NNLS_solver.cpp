@@ -185,6 +185,7 @@ void NNLS_solver::PositiveSetMatrix(Epetra_CrsMatrix &P_mat){
         
       }
     }
+    delete[] row;
   }
 }
 

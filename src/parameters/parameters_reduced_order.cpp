@@ -33,6 +33,10 @@ void ReducedOrderModelParam::declare_parameters (dealii::ParameterHandler &prm)
         prm.declare_entry("parameter_max_values", "0.7, 4",
                           dealii::Patterns::List(dealii::Patterns::Double(), 0, 10, ","),
                           "Maximum values for parameters");
+        prm.declare_entry("FOM_error_linear_solver_type", "direct",
+                          dealii::Patterns::Selection("direct|gmres"),
+                          "Enum of linear solver"
+                          "Choices are <direct|gmres>.");
     }
     prm.leave_subsection();
 }
@@ -59,6 +63,15 @@ void ReducedOrderModelParam::parse_parameters (dealii::ParameterHandler &prm)
         std::string parameter_max_string = prm.get("parameter_max_values");
         std::unique_ptr<dealii::Patterns::PatternBase> ListPatternMax(new dealii::Patterns::List(dealii::Patterns::Double(), 0, 10, ",")); //Note, in a future version of dealii, this may change from a unique_ptr to simply the object. Will need to use std::move(ListPattern) in next line.
         parameter_max_values = dealii::Patterns::Tools::Convert<decltype(parameter_max_values)>::to_value(parameter_max_string, ListPatternMax);
+
+
+        const std::string solver_string = prm.get("linear_solver_type");
+        if (solver_string == "direct") FOM_error_linear_solver_type = LinearSolverEnum::direct;
+
+        if (solver_string == "gmres")
+        {
+            FOM_error_linear_solver_type = LinearSolverEnum::gmres;
+        }
     }
     prm.leave_subsection();
 }

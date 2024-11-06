@@ -10,6 +10,12 @@ class ReducedOrderModelParam
 {
 public:
 
+    /// Types of linear solvers available.
+    enum LinearSolverEnum {
+        direct, /// LU.
+        gmres   /// GMRES.
+    };
+
     /// Tolerance for POD adaptation
     double adaptation_tolerance;
 
@@ -36,6 +42,8 @@ public:
 
     /// Maximum value of parameters
     std::vector<double> parameter_max_values;
+
+    LinearSolverEnum FOM_error_linear_solver_type; ///< direct or gmres.
 
     /// Declares the possible variables and sets the defaults.
     static void declare_parameters (dealii::ParameterHandler &prm);

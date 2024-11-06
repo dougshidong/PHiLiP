@@ -319,6 +319,10 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       "CuthillMckee"),
                       "Renumber the dof handler type. Currently the only choice is Cuthill-Mckee.");
 
+    prm.declare_entry("wall_model_input_from_second_element", "false",// TO DO: change to true for final PR
+                      dealii::Patterns::Bool(),
+                      "Flag for using second element as wall model input. If false, uses buffer (i.e. wall-adjacent) element.");
+
     Parameters::LinearSolverParam::declare_parameters (prm);
     Parameters::ManufacturedConvergenceStudyParam::declare_parameters (prm);
     Parameters::ODESolverParam::declare_parameters (prm);
@@ -537,6 +541,8 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
 
     const std::string renumber_dofs_type_string = prm.get("renumber_dofs_type");
     if (renumber_dofs_type_string == "CuthillMckee") { renumber_dofs_type = RenumberDofsType::CuthillMckee; }
+
+    wall_model_input_from_second_element = prm.get_bool("wall_model_input_from_second_element");
 
     output_high_order_grid = prm.get_bool("output_high_order_grid");
 

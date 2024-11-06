@@ -31,6 +31,7 @@ DGStrong<dim,nstate,real,MeshType>::DGStrong(
     , apply_modal_high_pass_filter_on_filtered_solution(this->all_parameters->physics_model_param.apply_modal_high_pass_filter_on_filtered_solution)
     , poly_degree_max_large_scales(this->all_parameters->physics_model_param.poly_degree_max_large_scales)
     , using_wall_model(this->all_parameters->using_wall_model)
+    , wall_model_input_from_second_element(this->all_parameters->wall_model_input_from_second_element)
 { }
 
 // Destructor
@@ -134,7 +135,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_volume_term_and_build_operator
 }
 template <int dim, int nstate, typename real, typename MeshType>
 void DGStrong<dim,nstate,real,MeshType>::assemble_boundary_term_and_build_operators(
-    typename dealii::DoFHandler<dim>::active_cell_iterator /*cell*/,
+    typename dealii::DoFHandler<dim>::active_cell_iterator cell,
     const dealii::types::global_dof_index                  current_cell_index,
     const unsigned int                                     iface,
     const unsigned int                                     boundary_id,
@@ -180,6 +181,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_boundary_term_and_build_operat
     }
     else{
         assemble_boundary_term_strong (
+            cell,
             iface,
             current_cell_index,
             boundary_id, poly_degree, penalty, 
@@ -900,8 +902,6 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_volume_term_strong(
     OPERATOR::metric_operators<real,dim,2*dim>             &metric_oper,
     dealii::Vector<real>                                   &local_rhs_int_cell)
 {
-    (void) current_cell_index;
-
     const unsigned int n_quad_pts  = this->volume_quadrature_collection[poly_degree].size();
     const unsigned int n_dofs_cell = this->fe_collection[poly_degree].dofs_per_cell;
     const unsigned int n_shape_fns = n_dofs_cell / nstate; 
@@ -1471,6 +1471,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_volume_term_strong(
 
 template <int dim, int nstate, typename real, typename MeshType>
 void DGStrong<dim,nstate,real,MeshType>::assemble_boundary_term_strong(
+    typename dealii::DoFHandler<dim>::active_cell_iterator current_cell,
     const unsigned int iface, 
     const dealii::types::global_dof_index current_cell_index,
     const unsigned int boundary_id,
@@ -1483,7 +1484,28 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_boundary_term_strong(
     OPERATOR::metric_operators<real,dim,2*dim> &metric_oper,
     dealii::Vector<real> &local_rhs_cell)
 {
-    (void) current_cell_index;
+    // Get opposite face index
+    const int opposite_iface = (iface == 0) ? 1 : (
+                                (iface == 1) ? 0 : (
+                                    (iface == 2) ? 3 : (
+                                        (iface == 3) ? 2 : ( 
+                                            (iface == 4) ? 5 : (
+                                                (iface == 5) ? 4 : -1)))));
+    if(opposite_iface == -1) {
+        pcout << "ERROR: Invalid iface, opposite_iface is -1. Aborting..."<<std::endl;
+        std::abort();
+    }
+
+    const auto neighbor_cell = current_cell->neighbor(opposite_iface);
+    const unsigned int neighbor_iface = current_cell->neighbor_face_no(opposite_iface);
+    const int i_fele_n = neighbor_cell->active_fe_index();//, i_quad_n = i_fele_n, i_mapp_n = 0;
+    const unsigned int n_dofs_neigh_cell = this->fe_collection[i_fele_n].n_dofs_per_cell();
+    // Obtain the mapping from local dof indices to global dof indices for neighbor cell
+    std::vector<dealii::types::global_dof_index> neighbor_dofs_indices;
+    neighbor_dofs_indices.resize(n_dofs_neigh_cell);
+    neighbor_cell->get_dof_indices (neighbor_dofs_indices);
+
+    AssertDimension (n_dofs_neigh_cell, neighbor_dofs_indices.size());
 
     const unsigned int n_face_quad_pts  = this->face_quadrature_collection[poly_degree].size();
     const unsigned int n_quad_pts_vol   = this->volume_quadrature_collection[poly_degree].size();
@@ -1500,6 +1522,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_boundary_term_strong(
     // mult would sum the states at the quadrature point.
     std::array<std::vector<real>,nstate> soln_coeff;
     std::array<dealii::Tensor<1,dim,std::vector<real>>,nstate> aux_soln_coeff;
+    std::array<std::vector<real>,nstate> neighbor_soln_coeff;
     const unsigned int p_min_filtered = this->poly_degree_max_large_scales + 1;
     for (unsigned int idof = 0; idof < n_dofs; ++idof) {
         const unsigned int istate = this->fe_collection[poly_degree].system_to_component_index(idof).first;
@@ -1507,9 +1530,11 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_boundary_term_strong(
         // allocate
         if(ishape == 0){
             soln_coeff[istate].resize(n_shape_fns);
+            neighbor_soln_coeff[istate].resize(n_shape_fns);
         }
         // solve
         soln_coeff[istate][ishape] = this->solution(dof_indices[idof]);
+        neighbor_soln_coeff[istate][ishape] = this->solution(neighbor_dofs_indices[idof]);
         for(int idim=0; idim<dim; idim++){
             //allocate
             if(ishape == 0){
@@ -1533,18 +1558,6 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_boundary_term_strong(
     // Opposite surface solution for wall model
     std::array<std::vector<real>,nstate> soln_at_opposite_surf_q;
 
-    // Get opposite face index
-    const int opposite_iface = (iface == 0) ? 1 : (
-                                (iface == 1) ? 0 : (
-                                    (iface == 2) ? 3 : (
-                                        (iface == 3) ? 2 : ( 
-                                            (iface == 4) ? 5 : (
-                                                (iface == 5) ? 4 : -1)))));
-    if(opposite_iface == -1) {
-        pcout << "ERROR: Invalid iface, opposite_iface is -1. Aborting..."<<std::endl;
-        std::abort();
-    }
-
     for(int istate=0; istate<nstate; ++istate){
         //allocate
         soln_at_vol_q[istate].resize(n_quad_pts_vol);
@@ -1563,10 +1576,17 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_boundary_term_strong(
             //allocate
             soln_at_opposite_surf_q[istate].resize(n_face_quad_pts);
             //solve soln at facet cubature nodes
-            soln_basis.matrix_vector_mult_surface_1D(opposite_iface,
+            if(this->wall_model_input_from_second_element) {
+                soln_basis.matrix_vector_mult_surface_1D(neighbor_iface,
+                                                     neighbor_soln_coeff[istate], soln_at_opposite_surf_q[istate],
+                                                     soln_basis.oneD_surf_operator,
+                                                     soln_basis.oneD_vol_operator);
+            } else {
+                soln_basis.matrix_vector_mult_surface_1D(opposite_iface,
                                                      soln_coeff[istate], soln_at_opposite_surf_q[istate],
                                                      soln_basis.oneD_surf_operator,
                                                      soln_basis.oneD_vol_operator);
+            }
         }
 
         for(int idim=0; idim<dim; idim++){
@@ -2227,8 +2247,6 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_strong(
     dealii::Vector<real>                               &local_rhs_int_cell,
     dealii::Vector<real>                               &local_rhs_ext_cell)
 {
-    (void) current_cell_index;
-    (void) neighbor_cell_index;
 
     const unsigned int n_face_quad_pts = this->face_quadrature_collection[poly_degree_int].size();//assume interior cell does the work
 

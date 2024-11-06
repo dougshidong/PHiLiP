@@ -290,6 +290,9 @@ public:
 
     /// Flag for using wall model (initialized as false)
     bool using_wall_model = false;
+
+    /// Flag for using second element as wall model input; if false, uses buffer (i.e. wall-adjacent) element
+    bool wall_model_input_from_second_element;
     
     /// Declare parameters that can be set as inputs and set up the default options
     /** This subroutine should call the sub-parameter classes static declare_parameters()

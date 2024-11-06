@@ -57,6 +57,7 @@ int AdaptiveSampling<dim, nstate>::run_sampling() const
         this->snapshot_parameters.row(this->snapshot_parameters.rows()-1) = max_error_params;
         this->nearest_neighbors->updateSnapshots(this->snapshot_parameters, fom_solution);
         this->current_pod->addSnapshot(fom_solution);
+        this->fom_locations.emplace_back(fom_solution);
         this->current_pod->computeBasis();
 
         // Update previous ROM errors with updated this->current_pod
@@ -132,7 +133,7 @@ void AdaptiveSampling<dim, nstate>::trueErrorROM(const MatrixXd& rom_points) con
         rom_table->set_precision("ROM_errors", 16);
     }
 
-    std::ofstream rom_table_file("rom_table_iteration_ROM_post_sampling.txt");
+    std::ofstream rom_table_file("true_error_table_iteration_ROM_post_sampling.txt");
     rom_table->write_text(rom_table_file, dealii::TableHandler::TextOutputFormat::org_mode_table);
     rom_table_file.close();
 }

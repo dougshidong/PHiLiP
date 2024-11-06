@@ -1295,9 +1295,17 @@ void NavierStokes<dim,nstate,real>
     for (int istate=0; istate<nstate; ++istate) {
         soln_grad_bc[istate] = soln_grad_int[istate];
     }
-    // If adiabatic wall, set gradient to zero
-    if(thermal_boundary_condition_type == thermal_boundary_condition_enum::adiabatic){
-        soln_grad_bc[nstate] = 0.0;
+    // If isothermal wall, set temperature at exterior such that the average is the isothermal wall temperature
+    if(thermal_boundary_condition_type == thermal_boundary_condition_enum::isothermal){
+        // Step 1: Primitive solutions
+        const std::array<real,nstate> primitive_soln_int = this->template convert_conservative_to_primitive_templated<real>(soln_int); // from Euler
+        std::array<real,nstate> primitive_soln_ext = this->template convert_conservative_to_primitive_templated<real>(soln_bc); // from Euler
+        const real temperature_int = this->template compute_temperature<real>(primitive_soln_int);
+        const real temperature_ext = 2.0*this->isothermal_wall_temperature - temperature_int;
+        // override the pressure based on the temperature
+        primitive_soln_ext[nstate-1] = this->compute_pressure_from_density_temperature(primitive_soln_ext[0],temperature_ext);
+        // set the equivalent total energy
+        soln_bc[nstate-1] = this->compute_total_energy(primitive_soln_ext);
     }
 }
 

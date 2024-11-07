@@ -79,9 +79,8 @@ double EulerVortexAdvectionErrorStudy<dim,nstate>
     // Multi-Species Calorically-Perfect Euler
     else if (flow_type == FlowCaseEnum::multi_species_calorically_perfect_euler_vortex_advection) 
     {
-        if constexpr (dim==1 && nstate==dim+2+2-1) // TO DO: N_SPECIES, dim = 1, nstate = dim+2+3-1
+        if constexpr (dim==1 && nstate==dim+2+2-1) // Note: modify this when you change the number of species. nstate == dim+2+(nspecies)-1
         {
-            // std::cout << "multi-species_calorically_perfect_vortex_advection! \n \n " << std::endl;
             Physics::MultiSpeciesCaloricallyPerfect<dim,nstate,double> multispecies_calorically_perfect_physics_double
             = Physics::MultiSpeciesCaloricallyPerfect<dim, nstate, double>(
                 &param);
@@ -148,9 +147,8 @@ double EulerVortexAdvectionErrorStudy<dim,nstate>
     // Multi-Species Calorically-Perfect Euler
     else if (flow_type == FlowCaseEnum::multi_species_calorically_perfect_euler_vortex_advection) 
     {
-        if constexpr (dim==1 && nstate==dim+2+2-1) // TO DO: N_SPECIES, dim = 1, nstate = dim+2+3-1
+        if constexpr (dim==1 && nstate==dim+2+2-1) // Note: modify this when you change the number of species. nstate == dim+2+(nspecies)-1
         {
-            // std::cout << "multi-species_calorically_perfect_vortex_advection! \n \n " << std::endl;
             Physics::MultiSpeciesCaloricallyPerfect<dim,nstate,double> multispecies_calorically_perfect_physics_double
             = Physics::MultiSpeciesCaloricallyPerfect<dim, nstate, double>(
                 &param);
@@ -215,9 +213,8 @@ double EulerVortexAdvectionErrorStudy<dim,nstate>
     // Multi-Species Calorically-Perfect Euler
     else if (flow_type == FlowCaseEnum::multi_species_calorically_perfect_euler_vortex_advection) 
     {
-        if constexpr (dim==1 && nstate==dim+2+2-1) // TO DO: N_SPECIES, dim = 1, nstate = dim+2+3-1
+        if constexpr (dim==1 && nstate==dim+2+2-1) // Note: modify this when you change the number of species. nstate == dim+2+(nspecies)-1
         {
-            // std::cout << "multi-species_calorically_perfect_vortex_advection! \n \n " << std::endl;
             Physics::MultiSpeciesCaloricallyPerfect<dim,nstate,double> multispecies_calorically_perfect_physics_double
             = Physics::MultiSpeciesCaloricallyPerfect<dim, nstate, double>(
                 &param);
@@ -253,52 +250,61 @@ double EulerVortexAdvectionErrorStudy<dim,nstate>
     // Multi-Species Calorically-Perfect Euler Vortex
     if (flow_type == FlowCaseEnum::multi_species_calorically_perfect_euler_vortex_advection)
     {
-        if constexpr (dim==1 && nstate==dim+2+2-1) // TO DO: N_SPECIES, dim = 1, nstate = dim+2+3-1
+        if constexpr (dim==1 && nstate==dim+2+2-1) // Note: modify this when you change the number of species. nstate == dim+2+(nspecies)-1
         {
-            // std::cout << "multi-species_calorically_perfect_vortex_advection! \n \n " << std::endl;
             Physics::MultiSpeciesCaloricallyPerfect<dim,nstate,double> multispecies_calorically_perfect_physics_double
             = Physics::MultiSpeciesCaloricallyPerfect<dim, nstate, double>(
                 &param);
  
-        if constexpr(dim == 1) {
             const double speed = 10.0;
-            const double t_end = 8.65e-1;
+            const double t_end = 34.614724700315755e-2;
             const double t_cycle = multispecies_calorically_perfect_physics_double.u_ref*0.10;
             const double cycle = t_end/t_cycle;
             const double moved = speed*cycle;
 
-        const double x = point[0] - moved;
-        const double x_0 = 5.0;
-        const double r = sqrt((x-x_0)*(x-x_0));
-        const double T_0 = 300.0; // [K]
-        const double big_gamma = 50.0;
-        const double gamma_0 = 1.4;
-        const double y_H2_0 = 0.01277;
-        // const double y_O2_0 = 0.101;
-        const double a_1 = 0.005;
-        // const double a_2 = 0.03;
-        const double pi = 6.28318530717958623200 / 2; // pi
+            const double x = point[0] - moved;
+            const double x_0 = 5.0;
+            const double r = sqrt((x-x_0)*(x-x_0));
+            const double T_0 = 300.0; // [K]
+            const double big_gamma = 50.0;
+            const double gamma_0 = 1.4;
+            const double y_H2_0 = 0.01277;
+            const double a_1 = 0.005;
+            const double pi = 6.28318530717958623200 / 2; // pi
 
-        const double pressure = 101325; // [N/m^2]
-        const double velocity = 100.0; // [m/s]
-        const double exp = std::exp(0.50*(1-r*r));
-        const double coeff = 2*pi/(gamma_0*big_gamma);
-        const double temperature = T_0 - (gamma_0-1.0)*big_gamma*big_gamma/(8.0*gamma_0*pi)*exp;
-        const double y_H2 = (y_H2_0 - a_1*coeff*exp);
-        const double y_O2 = 1.0 - y_H2;
-        // const double y_O2 = (y_O2_0 - a_2*coeff*exp);
-        // const double y_N2 = 1.0 - y_H2 - y_O2;
+            const double pressure = 101325; // [N/m^2]
+            const double velocity = 100.0; // [m/s]
+            const double exp = std::exp(0.50*(1-r*r));
+            const double coeff = 2*pi/(gamma_0*big_gamma);
+            const double temperature = T_0 - (gamma_0-1.0)*big_gamma*big_gamma/(8.0*gamma_0*pi)*exp;
+            const double y_H2 = (y_H2_0 - a_1*coeff*exp);
 
-        const std::array Rs = multispecies_calorically_perfect_physics_double.compute_Rs(multispecies_calorically_perfect_physics_double.Ru);
-        const double R_mixture = (y_H2*Rs[0] + y_O2*Rs[1])*multispecies_calorically_perfect_physics_double.R_ref;
-        const double density = pressure/(R_mixture*temperature);
-
+            const std::array Rs = multispecies_calorically_perfect_physics_double.compute_Rs(multispecies_calorically_perfect_physics_double.Ru);
+            double y_O2;
+            double R_mixture;
+            // For a 2 species test
+            if constexpr(nstate==dim+2+2-1) {
+                y_O2 = 1.0 - y_H2;
+                R_mixture = (y_H2*Rs[0] + y_O2*Rs[1])*multispecies_calorically_perfect_physics_double.R_ref;
+            }
+            // For a 3 species test
+            if constexpr(nstate==dim+2+3-1) {
+                const double y_O2_0 = 0.101;
+                const double a_2 = 0.03;
+                y_O2 = (y_O2_0 - a_2*coeff*exp);
+                const double y_N2 = 1.0 - y_H2 - y_O2;
+                R_mixture = (y_H2*Rs[0] + y_O2*Rs[1] + y_N2*Rs[2])*multispecies_calorically_perfect_physics_double.R_ref;
+            }
+            const double density = pressure/(R_mixture*temperature);
             std::array<double,nstate> soln_primitive;
 
             soln_primitive[0] = density / multispecies_calorically_perfect_physics_double.density_ref;
             soln_primitive[1] = velocity / multispecies_calorically_perfect_physics_double.u_ref;
             soln_primitive[2] = pressure / (multispecies_calorically_perfect_physics_double.density_ref*multispecies_calorically_perfect_physics_double.u_ref_sqr);
             soln_primitive[3] = y_H2;
+            if constexpr(nstate==dim+2+3-1){
+                soln_primitive[4] = y_O2;
+            }
 
             const std::array<double,nstate> soln_conservative = multispecies_calorically_perfect_physics_double.convert_primitive_to_conservative(soln_primitive);
             if(istate==0) {
@@ -317,8 +323,6 @@ double EulerVortexAdvectionErrorStudy<dim,nstate>
             // Y_H2
             value = soln_conservative[istate];
             }
-    }
-        
         }
     }    
 

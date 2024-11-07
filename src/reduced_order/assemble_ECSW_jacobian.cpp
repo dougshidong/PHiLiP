@@ -62,7 +62,9 @@ void AssembleECSWJac<dim,nstate>::build_problem(){
     Epetra_Map ColMap(num_elements_N_e, length, local_elements, 0, this->Comm_);
     Epetra_Map dMap((n_reduced_dim_POD*n_reduced_dim_POD*training_snaps), (rank == 0) ?  (n_reduced_dim_POD*n_reduced_dim_POD*training_snaps) : 0,  0, this->Comm_);
 
-    Epetra_CrsMatrix C_T(Epetra_DataAccess::Copy , ColMap, RowMap, num_elements_N_e);
+    delete[] local_elements;
+
+    Epetra_CrsMatrix C_T(Epetra_DataAccess::Copy, ColMap, RowMap, num_elements_N_e);
     Epetra_Vector d(dMap);
 
     // Loop through the given number of training snapshots to find Jacobian values
@@ -120,6 +122,9 @@ void AssembleECSWJac<dim,nstate>::build_problem(){
                     neighbour_dofs_indices[neighbour_dofs_curr_cell-1] = global_indices[i];
                 }
 
+                delete[] row;
+                delete[] global_indices;
+
                 const Epetra_SerialComm sComm;
                 Epetra_Map LeRowMap(n_dofs_curr_cell, 0, sComm);
                 Epetra_Map LeTRowMap(N_FOM_dim, 0, sComm);
@@ -171,6 +176,8 @@ void AssembleECSWJac<dim,nstate>::build_problem(){
                         int col = global_cols[j];
                         W_T.InsertGlobalValues(col, 1, &row[j], &i);
                     }
+                    delete[] row;
+                    delete[] global_cols;
                 }
                 W_T.FillComplete(local_test_basis.RowMap(), local_test_basis.ColMap());
 
@@ -192,6 +199,8 @@ void AssembleECSWJac<dim,nstate>::build_problem(){
                         int idx = col*n_reduced_dim_POD + i; 
                         c_se[idx] = row[j];
                     }
+                    delete[] row;
+                    delete[] global_cols;
                 }
 
                 double *c_se_array = new double[n_reduced_dim_POD*n_reduced_dim_POD];
@@ -202,7 +211,8 @@ void AssembleECSWJac<dim,nstate>::build_problem(){
                 for (int k = 0; k < (n_reduced_dim_POD*n_reduced_dim_POD); ++k){
                     int place = row_num+k;
                     C_T.InsertGlobalValues(cell_num, 1, &c_se_array[k], &place);
-                } 
+                }
+                delete[] c_se_array; 
             }     
         }
         row_num+=(n_reduced_dim_POD*n_reduced_dim_POD);
@@ -229,6 +239,8 @@ void AssembleECSWJac<dim,nstate>::build_problem(){
             int col = dMap.GID(o);
             d.SumIntoMyValues(1, &row[col], &o);
         }
+        delete[] row;
+        delete[] global_cols;
     }
 
     // Sub temp C and d into class A and b

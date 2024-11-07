@@ -679,22 +679,9 @@ dealii::Vector<double> RealGas<dim,nstate,real>::post_compute_derived_quantities
         computed_quantities(++current_data_index) = compute_mixture_specific_total_energy(conservative_soln);
         // Mixture ressure
         computed_quantities(++current_data_index) = compute_mixture_pressure(conservative_soln);
-        // Pressure coefficient
-        /*computed_quantities(++current_data_index) = (primitive_soln[nstate-1] - pressure_inf) / dynamic_pressure_inf;*/
-        computed_quantities(++current_data_index) = 999; // It is not defined
         // Non-dimensional temperature
         /*computed_quantities(++current_data_index) = compute_temperature<real>(primitive_soln);*/
         computed_quantities(++current_data_index) = compute_temperature(conservative_soln); 
-        // Entropy generation
-        /*computed_quantities(++current_data_index) = compute_entropy_measure(conservative_soln) - entropy_inf;*/
-        computed_quantities(++current_data_index) = 999; // It is not defined
-        // Mach Number
-        /*computed_quantities(++current_data_index) = compute_mach_number(conservative_soln);*/
-        computed_quantities(++current_data_index) = 999; // It is not defined
-        // NASA_CAP
-        computed_quantities(++current_data_index) = 999; // It is not defined
-        // Speed of sound
-        computed_quantities(++current_data_index) = 999; // It is not defined
         // Dimensional temperature
         computed_quantities(++current_data_index) = compute_dimensional_temperature(compute_temperature(conservative_soln));
         // Mixture specific total enthalpy
@@ -734,12 +721,7 @@ std::vector<dealii::DataComponentInterpretation::DataComponentInterpretation> Re
     }
     interpretation.push_back (DCI::component_is_scalar); // Mixture energy
     interpretation.push_back (DCI::component_is_scalar); // Mixture pressure
-    interpretation.push_back (DCI::component_is_scalar); // Pressure coefficient
     interpretation.push_back (DCI::component_is_scalar); // Non-dimensional temperature
-    interpretation.push_back (DCI::component_is_scalar); // Entropy generation
-    interpretation.push_back (DCI::component_is_scalar); // Mach number
-    interpretation.push_back (DCI::component_is_scalar); // NASA_CAP
-    interpretation.push_back (DCI::component_is_scalar); // Speed of sound
     interpretation.push_back (DCI::component_is_scalar); // Dimensional temperature
     interpretation.push_back (DCI::component_is_scalar); // Mixture specific total enthalpy
     for (unsigned int s=0; s<nstate-dim-1; ++s) {
@@ -770,12 +752,7 @@ std::vector<std::string> RealGas<dim,nstate,real>
     }
     names.push_back ("mixture_energy");
     names.push_back ("mixture_pressure");
-    names.push_back ("pressure_coeffcient");
     names.push_back ("temperature");
-    names.push_back ("entropy_generation");
-    names.push_back ("mach_number");
-    names.push_back ("NASA_CAP");
-    names.push_back ("speed_of_sound");
     names.push_back ("dimensional_temperature");
     names.push_back ("mixture_specific_total_enthalpy");
     for (unsigned int s=0; s<nstate-dim-1; ++s) 

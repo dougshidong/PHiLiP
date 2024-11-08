@@ -56,7 +56,8 @@ void ChannelFlow<dim, nstate>::compute_unsteady_data_and_write_to_table(
         const unsigned int current_iteration,
         const double current_time,
         const std::shared_ptr <DGBase<dim, double>> dg,
-        const std::shared_ptr <dealii::TableHandler> unsteady_data_table)
+        const std::shared_ptr <dealii::TableHandler> unsteady_data_table,
+        const bool do_write_unsteady_data_table_file)
 {
     // Update maximum local wave speed for adaptive time_step
     if(this->all_param.flow_solver_param.adaptive_time_step) this->update_maximum_local_wave_speed(*dg);
@@ -77,7 +78,7 @@ void ChannelFlow<dim, nstate>::compute_unsteady_data_and_write_to_table(
         this->add_value_to_data_table(bulk_velocity,"bulk_velocity",unsteady_data_table);
         // Write to file
         std::ofstream unsteady_data_table_file(this->unsteady_data_table_filename_with_extension);
-        unsteady_data_table->write_text(unsteady_data_table_file);
+        if(do_write_unsteady_data_table_file) unsteady_data_table->write_text(unsteady_data_table_file);
     }
 
     // Print to console

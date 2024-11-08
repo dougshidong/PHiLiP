@@ -103,7 +103,8 @@ public:
             const unsigned int current_iteration,
             const double current_time,
             const std::shared_ptr <DGBase<dim, double>> dg,
-            const std::shared_ptr<dealii::TableHandler> unsteady_data_table) override;
+            const std::shared_ptr<dealii::TableHandler> unsteady_data_table,
+            const bool do_write_unsteady_data_table_file) override;
 
     /// Get the number of degrees of freedom per state from a given poly degree
     unsigned int get_number_of_degrees_of_freedom_per_state_from_poly_degree(const unsigned int poly_degree_input) const override;

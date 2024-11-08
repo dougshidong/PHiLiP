@@ -229,7 +229,8 @@ void PeriodicEntropyTests<dim, nstate>::compute_unsteady_data_and_write_to_table
        const unsigned int current_iteration,
         const double current_time,
         const std::shared_ptr <DGBase<dim, double>> dg ,
-        const std::shared_ptr <dealii::TableHandler> unsteady_data_table )
+        const std::shared_ptr <dealii::TableHandler> unsteady_data_table,
+        const bool do_write_unsteady_data_table_file)
 {
     const double dt = this->get_constant_time_step(dg);
     
@@ -294,7 +295,7 @@ void PeriodicEntropyTests<dim, nstate>::compute_unsteady_data_and_write_to_table
         unsteady_data_table->set_scientific("gamma", false);
     }
     std::ofstream unsteady_data_table_file(this->unsteady_data_table_filename_with_extension);
-    unsteady_data_table->write_text(unsteady_data_table_file);
+    if(do_write_unsteady_data_table_file) unsteady_data_table->write_text(unsteady_data_table_file);
 
     //for next iteration
     previous_time = current_time;

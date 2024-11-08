@@ -905,7 +905,8 @@ void PeriodicTurbulence<dim, nstate>::compute_unsteady_data_and_write_to_table(
         const unsigned int current_iteration,
         const double current_time,
         const std::shared_ptr <DGBase<dim, double>> dg,
-        const std::shared_ptr <dealii::TableHandler> unsteady_data_table)
+        const std::shared_ptr <dealii::TableHandler> unsteady_data_table,
+        const bool do_write_unsteady_data_table_file)
 {
     // Compute and update integrated quantities
     this->compute_and_update_integrated_quantities(*dg);
@@ -941,7 +942,7 @@ void PeriodicTurbulence<dim, nstate>::compute_unsteady_data_and_write_to_table(
         if(this->do_compute_angular_momentum) this->add_value_to_data_table(integrated_angular_momentum,"angular_momentum",unsteady_data_table);
         // Write to file
         std::ofstream unsteady_data_table_file(this->unsteady_data_table_filename_with_extension);
-        unsteady_data_table->write_text(unsteady_data_table_file);
+        if(do_write_unsteady_data_table_file) unsteady_data_table->write_text(unsteady_data_table_file);
     }
     // Print to console
     this->pcout << "    Iter: " << current_iteration

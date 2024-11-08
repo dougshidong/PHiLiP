@@ -634,7 +634,7 @@ inline std::array<real,nstate-dim-1> RealGas<dim,nstate,real>
     std::array<real,nstate-dim-1> speed_of_sound;
     for (int s=0; s<nstate-dim-1; ++s) 
         { 
-            speed_of_sound[s] = sqrt(gamma[s]*Rs[s]*temperature/(this->gam_ref*this->mach_ref_sqr)); 
+            speed_of_sound[s] = sqrt(gamma[s]*Rs[s]*temperature/(this->mach_ref_sqr)); 
         }
 
     return speed_of_sound;

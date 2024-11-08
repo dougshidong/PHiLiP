@@ -35,8 +35,11 @@ void ReducedOrderModelParam::declare_parameters (dealii::ParameterHandler &prm)
                           "Maximum values for parameters");
         prm.declare_entry("FOM_error_linear_solver_type", "direct",
                           dealii::Patterns::Selection("direct|gmres"),
-                          "Enum of linear solver"
+                          "Type of linear solver used for first adjoint problem (DWR between FOM and ROM)"
                           "Choices are <direct|gmres>.");
+        prm.declare_entry("residual_error_bool", "false",
+                          dealii::Patterns::Bool(),
+                          "Use residual/reduced residual for error indicator instead of DWR. False by default.");
     }
     prm.leave_subsection();
 }
@@ -72,6 +75,7 @@ void ReducedOrderModelParam::parse_parameters (dealii::ParameterHandler &prm)
         {
             FOM_error_linear_solver_type = LinearSolverEnum::gmres;
         }
+        residual_error_bool = prm.get_bool("residual_error_bool");
     }
     prm.leave_subsection();
 }

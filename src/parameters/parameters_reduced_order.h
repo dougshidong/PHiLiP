@@ -43,7 +43,11 @@ public:
     /// Maximum value of parameters
     std::vector<double> parameter_max_values;
 
-    LinearSolverEnum FOM_error_linear_solver_type; ///< direct or gmres.
+    /// Type of linear solver used for first adjoint problem (DWR between FOM and ROM) (direct or gmres)
+    LinearSolverEnum FOM_error_linear_solver_type; 
+
+    /// Use residual/reduced residual for error indicator instead of DWR. False by default.
+    bool residual_error_bool; 
 
     /// Declares the possible variables and sets the defaults.
     static void declare_parameters (dealii::ParameterHandler &prm);

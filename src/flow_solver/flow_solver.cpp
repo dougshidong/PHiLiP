@@ -448,6 +448,15 @@ int FlowSolver<dim,nstate>::run() const
             current_restart_file_number = flow_solver_param.restart_file_index + 1;
         }
 #endif
+        //--------------------------------------------------------------------
+        // Initialize the time at which we write the unsteady data table
+        //--------------------------------------------------------------------
+        double current_desired_time_for_write_unsteady_data_table_file_every_dt_time_intervals = ode_solver->current_time;
+        if(flow_solver_param.write_unsteady_data_table_file_every_dt_time_intervals > 0.0) {
+            while(current_desired_time_for_write_unsteady_data_table_file_every_dt_time_intervals <= ode_solver->current_time) {
+                current_desired_time_for_write_unsteady_data_table_file_every_dt_time_intervals += flow_solver_param.write_unsteady_data_table_file_every_dt_time_intervals;
+            }
+        }
         //----------------------------------------------------
         // Initialize time step
         //----------------------------------------------------
@@ -486,7 +495,7 @@ int FlowSolver<dim,nstate>::run() const
             // no restart:
             if(do_compute_unsteady_data_and_write_to_table){
                 pcout << "Writing unsteady data computed at initial time... " << std::endl;
-                flow_solver_case->compute_unsteady_data_and_write_to_table(ode_solver->current_iteration, ode_solver->current_time, dg, unsteady_data_table);
+                flow_solver_case->compute_unsteady_data_and_write_to_table(ode_solver->current_iteration, ode_solver->current_time, dg, unsteady_data_table, true);
                 pcout << "done." << std::endl;
             }
         }
@@ -540,10 +549,22 @@ int FlowSolver<dim,nstate>::run() const
                     }
                 }
             }
+            bool do_write_unsteady_data_table_file = false;
+            if(flow_solver_param.write_unsteady_data_table_file_every_dt_time_intervals > 0.0) {
+                const bool is_write_time = ((ode_solver->current_time <= current_desired_time_for_write_unsteady_data_table_file_every_dt_time_intervals) && 
+                                             ((ode_solver->current_time + time_step) > current_desired_time_for_write_unsteady_data_table_file_every_dt_time_intervals)) 
+                                            || (ode_solver->current_time > current_desired_time_for_write_unsteady_data_table_file_every_dt_time_intervals);
+                if (is_write_time) {
+                    do_write_unsteady_data_table_file = true;
+                    current_desired_time_for_write_unsteady_data_table_file_every_dt_time_intervals += flow_solver_param.write_unsteady_data_table_file_every_dt_time_intervals;
+                }
+            } else {
+                do_write_unsteady_data_table_file = true;
+            }
+
             // Compute the unsteady quantities, write to the dealii table, and output to file
-            if(do_compute_unsteady_data_and_write_to_table && (ode_solver->current_iteration == output_iteration)){
-                flow_solver_case->compute_unsteady_data_and_write_to_table(ode_solver->current_iteration, ode_solver->current_time, dg, unsteady_data_table);
-                output_iteration += 50;
+            if(do_compute_unsteady_data_and_write_to_table){
+                flow_solver_case->compute_unsteady_data_and_write_to_table(ode_solver->current_iteration, ode_solver->current_time, dg, unsteady_data_table, do_write_unsteady_data_table_file);
             }
             // update next time step
             if(flow_solver_param.adaptive_time_step == true) {

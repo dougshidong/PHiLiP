@@ -678,5 +678,6 @@ template class GridStudy <PHILIP_DIM,2>;
 template class GridStudy <PHILIP_DIM,3>;
 template class GridStudy <PHILIP_DIM,4>;
 template class GridStudy <PHILIP_DIM,5>;
+template class GridStudy <PHILIP_DIM,6>;
 } // Tests namespace
 } // PHiLiP namespace

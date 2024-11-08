@@ -1088,6 +1088,7 @@ template class OptimizationInverseManufactured <PHILIP_DIM,2>;
 template class OptimizationInverseManufactured <PHILIP_DIM,3>;
 template class OptimizationInverseManufactured <PHILIP_DIM,4>;
 template class OptimizationInverseManufactured <PHILIP_DIM,5>;
+template class OptimizationInverseManufactured <PHILIP_DIM,6>;
 
 } // Tests namespace
 } // PHiLiP namespace

@@ -92,6 +92,7 @@ template class GridRefinement_Uniform<PHILIP_DIM, 2, double, dealii::Triangulati
 template class GridRefinement_Uniform<PHILIP_DIM, 3, double, dealii::Triangulation<PHILIP_DIM>>;
 template class GridRefinement_Uniform<PHILIP_DIM, 4, double, dealii::Triangulation<PHILIP_DIM>>;
 template class GridRefinement_Uniform<PHILIP_DIM, 5, double, dealii::Triangulation<PHILIP_DIM>>;
+template class GridRefinement_Uniform<PHILIP_DIM, 6, double, dealii::Triangulation<PHILIP_DIM>>;
 
 // dealii::parallel::shared::Triangulation<PHILIP_DIM>
 template class GridRefinement_Uniform<PHILIP_DIM, 1, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
@@ -99,6 +100,7 @@ template class GridRefinement_Uniform<PHILIP_DIM, 2, double, dealii::parallel::s
 template class GridRefinement_Uniform<PHILIP_DIM, 3, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
 template class GridRefinement_Uniform<PHILIP_DIM, 4, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
 template class GridRefinement_Uniform<PHILIP_DIM, 5, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+template class GridRefinement_Uniform<PHILIP_DIM, 6, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
 
 #if PHILIP_DIM != 1
 // dealii::parallel::distributed::Triangulation<PHILIP_DIM>
@@ -107,6 +109,7 @@ template class GridRefinement_Uniform<PHILIP_DIM, 2, double, dealii::parallel::d
 template class GridRefinement_Uniform<PHILIP_DIM, 3, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
 template class GridRefinement_Uniform<PHILIP_DIM, 4, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
 template class GridRefinement_Uniform<PHILIP_DIM, 5, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+template class GridRefinement_Uniform<PHILIP_DIM, 6, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
 #endif
 
 } // namespace GridRefinement

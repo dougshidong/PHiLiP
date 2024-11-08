@@ -522,12 +522,14 @@ template class GridRefinementBase<PHILIP_DIM, 2, double, dealii::Triangulation<P
 template class GridRefinementBase<PHILIP_DIM, 3, double, dealii::Triangulation<PHILIP_DIM>>;
 template class GridRefinementBase<PHILIP_DIM, 4, double, dealii::Triangulation<PHILIP_DIM>>;
 template class GridRefinementBase<PHILIP_DIM, 5, double, dealii::Triangulation<PHILIP_DIM>>;
+template class GridRefinementBase<PHILIP_DIM, 6, double, dealii::Triangulation<PHILIP_DIM>>;
 
 template class GridRefinementFactory<PHILIP_DIM, 1, double, dealii::Triangulation<PHILIP_DIM>>;
 template class GridRefinementFactory<PHILIP_DIM, 2, double, dealii::Triangulation<PHILIP_DIM>>;
 template class GridRefinementFactory<PHILIP_DIM, 3, double, dealii::Triangulation<PHILIP_DIM>>;
 template class GridRefinementFactory<PHILIP_DIM, 4, double, dealii::Triangulation<PHILIP_DIM>>;
 template class GridRefinementFactory<PHILIP_DIM, 5, double, dealii::Triangulation<PHILIP_DIM>>;
+template class GridRefinementFactory<PHILIP_DIM, 6, double, dealii::Triangulation<PHILIP_DIM>>;
 
 // dealii::parallel::shared::Triangulation<PHILIP_DIM>
 template class GridRefinementBase<PHILIP_DIM, 1, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
@@ -535,12 +537,14 @@ template class GridRefinementBase<PHILIP_DIM, 2, double, dealii::parallel::share
 template class GridRefinementBase<PHILIP_DIM, 3, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
 template class GridRefinementBase<PHILIP_DIM, 4, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
 template class GridRefinementBase<PHILIP_DIM, 5, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+template class GridRefinementBase<PHILIP_DIM, 6, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
 
 template class GridRefinementFactory<PHILIP_DIM, 1, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
 template class GridRefinementFactory<PHILIP_DIM, 2, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
 template class GridRefinementFactory<PHILIP_DIM, 3, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
 template class GridRefinementFactory<PHILIP_DIM, 4, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
 template class GridRefinementFactory<PHILIP_DIM, 5, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+template class GridRefinementFactory<PHILIP_DIM, 6, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
 
 #if PHILIP_DIM != 1
 // dealii::parallel::distributed::Triangulation<PHILIP_DIM>
@@ -549,12 +553,14 @@ template class GridRefinementBase<PHILIP_DIM, 2, double, dealii::parallel::distr
 template class GridRefinementBase<PHILIP_DIM, 3, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
 template class GridRefinementBase<PHILIP_DIM, 4, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
 template class GridRefinementBase<PHILIP_DIM, 5, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+template class GridRefinementBase<PHILIP_DIM, 6, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
 
 template class GridRefinementFactory<PHILIP_DIM, 1, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
 template class GridRefinementFactory<PHILIP_DIM, 2, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
 template class GridRefinementFactory<PHILIP_DIM, 3, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
 template class GridRefinementFactory<PHILIP_DIM, 4, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
 template class GridRefinementFactory<PHILIP_DIM, 5, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+template class GridRefinementFactory<PHILIP_DIM, 6, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
 #endif
 
 } // namespace GridRefinement

@@ -578,12 +578,14 @@ template class GridRefinementStudy <PHILIP_DIM,2,dealii::Triangulation<PHILIP_DI
 template class GridRefinementStudy <PHILIP_DIM,3,dealii::Triangulation<PHILIP_DIM>>;
 template class GridRefinementStudy <PHILIP_DIM,4,dealii::Triangulation<PHILIP_DIM>>;
 template class GridRefinementStudy <PHILIP_DIM,5,dealii::Triangulation<PHILIP_DIM>>;
+template class GridRefinementStudy <PHILIP_DIM,6,dealii::Triangulation<PHILIP_DIM>>;
 
 template class GridRefinementStudy <PHILIP_DIM,1,dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
 template class GridRefinementStudy <PHILIP_DIM,2,dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
 template class GridRefinementStudy <PHILIP_DIM,3,dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
 template class GridRefinementStudy <PHILIP_DIM,4,dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
 template class GridRefinementStudy <PHILIP_DIM,5,dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+template class GridRefinementStudy <PHILIP_DIM,6,dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
 
 #if PHILIP_DIM!=1
 template class GridRefinementStudy <PHILIP_DIM,1,dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
@@ -591,6 +593,7 @@ template class GridRefinementStudy <PHILIP_DIM,2,dealii::parallel::distributed::
 template class GridRefinementStudy <PHILIP_DIM,3,dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
 template class GridRefinementStudy <PHILIP_DIM,4,dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
 template class GridRefinementStudy <PHILIP_DIM,5,dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+template class GridRefinementStudy <PHILIP_DIM,6,dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
 #endif
 
 } // namespace Tests

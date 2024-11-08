@@ -364,8 +364,9 @@ std::unique_ptr< TestsBase > TestsFactory<dim,nstate,MeshType>
 //template class TestsFactory <PHILIP_DIM,3>;
 //template class TestsFactory <PHILIP_DIM,4>;
 //template class TestsFactory <PHILIP_DIM,5>;
+// Note: might need to change the last two instantiation from 5 to 6, but it works fine at this point.
 
-template class TestsFactory <PHILIP_DIM,5,dealii::Triangulation<PHILIP_DIM>>;
+template class TestsFactory <PHILIP_DIM,6,dealii::Triangulation<PHILIP_DIM>>;
 template class TestsFactory <PHILIP_DIM,5,dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
 #if PHILIP_DIM!=1
 template class TestsFactory <PHILIP_DIM,5,dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;

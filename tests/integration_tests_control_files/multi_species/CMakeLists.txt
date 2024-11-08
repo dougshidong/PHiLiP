@@ -134,3 +134,16 @@ add_test(
   COMMAND mpirun -np ${MPIMAX} ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_2D -i ${CMAKE_CURRENT_BINARY_DIR}/2d_multi_species_fuel_drop_advection.prm
   WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
 )
+
+# =======================================
+# Vortex advection 3D
+# =======================================
+# ----------------------------------------
+# Vortex advectiion 3D (Multi-Species)
+# ----------------------------------------
+configure_file(3d_multi_species_vortex_advection.prm 3d_multi_species_vortex_advection.prm COPYONLY)
+add_test(
+  NAME MPI_3D_MULTI_SPECIES_VORTEX_ADVECTION
+  COMMAND mpirun -np ${MPIMAX} ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_3D -i ${CMAKE_CURRENT_BINARY_DIR}/3d_multi_species_vortex_advection.prm
+  WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
+)

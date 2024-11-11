@@ -499,6 +499,7 @@ int FlowSolver<dim,nstate>::run() const
         pcout << "Timer starting. " << std::endl;
         dealii::Timer timer(this->mpi_communicator,false);
         timer.start();
+        unsigned int output_iteration = 50;
         while(ode_solver->current_time < final_time)
         {
             time_step = next_time_step; // update time step
@@ -540,8 +541,9 @@ int FlowSolver<dim,nstate>::run() const
                 }
             }
             // Compute the unsteady quantities, write to the dealii table, and output to file
-            if(do_compute_unsteady_data_and_write_to_table){
+            if(do_compute_unsteady_data_and_write_to_table && (ode_solver->current_iteration == output_iteration)){
                 flow_solver_case->compute_unsteady_data_and_write_to_table(ode_solver->current_iteration, ode_solver->current_time, dg, unsteady_data_table);
+                output_iteration += 50;
             }
             // update next time step
             if(flow_solver_param.adaptive_time_step == true) {

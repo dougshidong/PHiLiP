@@ -294,8 +294,10 @@ void PeriodicEntropyTests<dim, nstate>::compute_unsteady_data_and_write_to_table
         this->add_value_to_data_table(relaxation_parameter,"gamma",unsteady_data_table); 
         unsteady_data_table->set_scientific("gamma", false);
     }
-    std::ofstream unsteady_data_table_file(this->unsteady_data_table_filename_with_extension);
-    if(do_write_unsteady_data_table_file) unsteady_data_table->write_text(unsteady_data_table_file);
+    if(do_write_unsteady_data_table_file) {
+        std::ofstream unsteady_data_table_file(this->unsteady_data_table_filename_with_extension);
+        unsteady_data_table->write_text(unsteady_data_table_file);
+    }
 
     //for next iteration
     previous_time = current_time;

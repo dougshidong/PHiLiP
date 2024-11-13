@@ -43,8 +43,27 @@ int AdaptiveSampling<dim, nstate>::run_sampling() const
     placeROMLocations(rom_points);
 
     RowVectorXd max_error_params = this->getMaxErrorROM();
-    
 
+    RowVectorXd functional_ROM = readROMFunctionalPoint();
+
+    this->pcout << "Solving FOM at " << functional_ROM << std::endl;
+
+    Parameters::AllParameters params = this->reinitParams(functional_ROM);
+    std::unique_ptr<FlowSolver::FlowSolver<dim,nstate>> flow_solver_FOM = FlowSolver::FlowSolverFactory<dim,nstate>::select_flow_case(&params, this->parameter_handler);
+
+    // Solve implicit solution
+    auto ode_solver_type = Parameters::ODESolverParam::ODESolverEnum::implicit_solver;
+    flow_solver_FOM->ode_solver =  PHiLiP::ODE::ODESolverFactory<dim, double>::create_ODESolver_manual(ode_solver_type, flow_solver_FOM->dg);
+    flow_solver_FOM->ode_solver->allocate_ode_system();
+    flow_solver_FOM->run();
+
+    // Create functional
+    std::shared_ptr<Functional<dim,nstate,double>> functional_FOM = FunctionalFactory<dim,nstate,double>::create_Functional(params.functional_param, flow_solver_FOM->dg);
+    this->pcout << "FUNCTIONAL FROM FOM" << std::endl;
+    this->pcout << functional_FOM->evaluate_functional(false, false) << std::endl;
+
+    solveFunctionalROM(functional_ROM);
+    
     while(this->max_error > this->all_parameters->reduced_order_param.adaptation_tolerance){
 
         this->outputIterationData(std::to_string(iteration));
@@ -77,12 +96,21 @@ int AdaptiveSampling<dim, nstate>::run_sampling() const
         max_error_params = this->getMaxErrorROM();
 
         this->pcout << "Max error is: " << this->max_error << std::endl;
+
+        solveFunctionalROM(functional_ROM);
+
         iteration++;
     }
 
     this->outputIterationData("final");
 
     timer.leave_subsection();
+
+    this->pcout << "FUNCTIONAL FROM ROMs" << std::endl;
+    std::ofstream output_file("rom_functional.txt");
+
+    std::ostream_iterator<double> output_iterator(output_file, "\n");
+    std::copy(std::begin(rom_functional), std::end(rom_functional), output_iterator);
 
     return 0;
 }
@@ -171,6 +199,78 @@ double AdaptiveSampling<dim, nstate>::solveSnapshotROMandFOM(const RowVectorXd& 
 
     this->pcout << "Done solving FOM." << std::endl;
     return functional_ROM->evaluate_functional(false, false) - functional_FOM->evaluate_functional(false, false);
+}
+
+template <int dim, int nstate>
+RowVectorXd AdaptiveSampling<dim, nstate>::readROMFunctionalPoint() const{
+    RowVectorXd params(1);
+
+    using FlowCaseEnum = Parameters::FlowSolverParam::FlowCaseType;
+    const FlowCaseEnum flow_type = this->all_parameters->flow_solver_param.flow_case_type;
+
+    if (flow_type == FlowCaseEnum::burgers_rewienski_snapshot){
+        if(this->all_parameters->reduced_order_param.parameter_names.size() == 1){
+            if(this->all_parameters->reduced_order_param.parameter_names[0] == "rewienski_a"){
+                params(0) = this->all_parameters->burgers_param.rewienski_a;
+            }
+            else if(this->all_parameters->reduced_order_param.parameter_names[0] == "rewienski_b"){
+                params(0) = this->all_parameters->burgers_param.rewienski_b;
+            }
+        }
+        else{
+            params.resize(2);
+            params(0) = this->all_parameters->burgers_param.rewienski_a;
+            params(1) = this->all_parameters->burgers_param.rewienski_b;
+        }
+    }
+    else if (flow_type == FlowCaseEnum::naca0012){
+        if(this->all_parameters->reduced_order_param.parameter_names.size() == 1){
+            if(this->all_parameters->reduced_order_param.parameter_names[0] == "mach"){
+                params(0) = this->all_parameters->euler_param.mach_inf;
+            }
+            else if(this->all_parameters->reduced_order_param.parameter_names[0] == "alpha"){
+                params(0) = this->all_parameters->euler_param.angle_of_attack;
+            }
+        }
+        else{
+            params.resize(2);
+            params(0) = this->all_parameters->euler_param.mach_inf;
+            params(1) = this->all_parameters->euler_param.angle_of_attack; //radians!
+        }
+    }
+    else if (flow_type == FlowCaseEnum::gaussian_bump){
+        if(this->all_parameters->reduced_order_param.parameter_names.size() == 1){
+            if(this->all_parameters->reduced_order_param.parameter_names[0] == "mach"){
+                params(0) = this->all_parameters->euler_param.mach_inf;
+            }
+        }
+    }
+    else{
+        this->pcout << "Invalid flow case. You probably forgot to specify a flow case in the prm file." << std::endl;
+        std::abort();
+    }
+    return params;
+}
+
+template <int dim, int nstate>
+void AdaptiveSampling<dim, nstate>::solveFunctionalROM(const RowVectorXd& parameter) const{
+    this->pcout << "Solving ROM at " << parameter << std::endl;
+    Parameters::AllParameters params = this->reinitParams(parameter);
+
+    std::unique_ptr<FlowSolver::FlowSolver<dim,nstate>> flow_solver_ROM = FlowSolver::FlowSolverFactory<dim,nstate>::select_flow_case(&params, this->parameter_handler);
+
+    // Solve implicit solution
+    auto ode_solver_type_ROM = Parameters::ODESolverParam::ODESolverEnum::pod_petrov_galerkin_solver;
+    flow_solver_ROM->ode_solver =  PHiLiP::ODE::ODESolverFactory<dim, double>::create_ODESolver_manual(ode_solver_type_ROM, flow_solver_ROM->dg, this->current_pod);
+    flow_solver_ROM->ode_solver->allocate_ode_system();
+    flow_solver_ROM->ode_solver->steady_state();
+
+    this->pcout << "Done solving ROM." << std::endl;
+
+    // Create functional
+    std::shared_ptr<Functional<dim,nstate,double>> functional_ROM = FunctionalFactory<dim,nstate,double>::create_Functional(params.functional_param, flow_solver_ROM->dg);
+
+    rom_functional.emplace_back(functional_ROM->evaluate_functional(false, false));
 }
 
 template <int dim, int nstate>

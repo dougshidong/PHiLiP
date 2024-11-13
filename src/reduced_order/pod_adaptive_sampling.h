@@ -32,6 +32,8 @@ public:
     /// Destructor
     ~AdaptiveSampling() {};
 
+    mutable std::vector<double> rom_functional;
+
     /// Run Sampling Procedure
     int run_sampling () const override;
 
@@ -43,6 +45,12 @@ public:
 
     /// Solve FOM and ROM, return error in functional between the models
     double solveSnapshotROMandFOM(const RowVectorXd& parameter) const;
+
+    /// Find point to solve for functional from param file
+    RowVectorXd readROMFunctionalPoint() const;
+
+    /// Solve ROM and track functional
+    void solveFunctionalROM(const RowVectorXd& parameter) const;
 
     /// Updates nearest ROM points to snapshot if error discrepancy is above tolerance
     void updateNearestExistingROMs(const RowVectorXd& parameter) const;

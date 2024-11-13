@@ -1,0 +1,194 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "1D - Offline Shock",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build_debug/bin/PHiLiP_1D",
+            "args": ["-i","${workspaceFolder}/tests/integration_tests_control_files/reduced_order/1d_shock_entropy_stable_offline.prm"],
+            "stopAtEntry": false,
+            "cwd": "${fileDirname}",
+            "environment": [],
+            "externalConsole": false,
+            "MIMode": "gdb",
+            "setupCommands": [
+                {
+                    "description": "Enable pretty-printing for gdb",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                },
+                {
+                    "description": "Set Disassembly Flavor to Intel",
+                    "text": "-gdb-set disassembly-flavor intel",
+                    "ignoreFailures": true
+                }
+            ]
+        },
+        {
+            "name": "1D - Online Shock",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build_debug/bin/PHiLiP_1D",
+            "args": ["-i","${workspaceFolder}/tests/integration_tests_control_files/reduced_order/1d_shock_entropy_stable_online.prm"],
+            "stopAtEntry": false,
+            "cwd": "${fileDirname}",
+            "environment": [],
+            "externalConsole": false,
+            "MIMode": "gdb",
+            "setupCommands": [
+                {
+                    "description": "Enable pretty-printing for gdb",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                },
+                {
+                    "description": "Set Disassembly Flavor to Intel",
+                    "text": "-gdb-set disassembly-flavor intel",
+                    "ignoreFailures": true
+                }
+            ]
+        },
+        {
+            "name": "3D - TGV - ON",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "/usr/bin/mpirun",
+            "args": ["-np","20","${workspaceFolder}/build_debug/bin/PHiLiP_3D","-i","${workspaceFolder}/tests/integration_tests_control_files/reduced_order/3D_TGV_online.prm"],
+            "stopAtEntry": true,
+            "cwd": "${fileDirname}",
+            "environment": [],
+            "externalConsole": false,
+            "MIMode": "gdb",
+            "setupCommands": [
+                {
+                    "description": "Enable pretty-printing for gdb",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                },
+                {
+                    "description": "Set Disassembly Flavor to Intel",
+                    "text": "-gdb-set disassembly-flavor intel",
+                    "ignoreFailures": true
+                }
+            ]
+        },{
+            "name": "3D - TGV - Off", // Name of test
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build_debug/bin/PHiLiP_3D", // Location of PHiLiP that you are debugging
+            "args": ["-i",
+            // Change this Param file
+            "${workspaceFolder}/tests/integration_tests_control_files/reduced_order/3D_TGV_offline.prm"],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}/Output", // Change this to where you want PHiLiP to Output
+            "environment": [{
+                "name": "MPIMAX",
+                "value": "20"        // Set MPIMAX Value
+            }],
+            "mpi": {
+                "enabled": true,
+                "program": "mpirun",
+                "args":[
+                    "-np",
+                    "${env:MPIMAX}",
+                    "${workspaceFolder}/build_debug/bin/PHiLiP_3D", // Location of PHiLiP that you are debugging
+                    "i",
+                    // Change this Param file
+                    "${workspaceFolder}/tests/integration_tests_control_files/reduced_order/3D_TGV_offline.prm"
+
+                ]
+            },
+            "externalConsole": false,
+            "MIMode": "gdb",
+            "setupCommands": [
+                {
+                    "description": "Enable pretty-printing for gdb",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                },
+                {
+                    "description": "Set Disassembly Flavor to Intel",
+                    "text": "-gdb-set disassembly-flavor intel",
+                    "ignoreFailures": true
+                }
+            ]
+        },{
+            "name": "Testing MPI", // Name of test
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "/usr/bin/mpirun", // Location of PHiLiP that you are debugging
+            "args": [
+                "-np","4",
+                "-hold", "-e","gdb","-ex",
+                "'break MPI_Abort'", "-ex", "run", "--args",
+                "${workspaceFolder}/build_debug/bin/PHiLiP_2D", "-i",
+            // Change this Param file
+            "${workspaceFolder}/tests/integration_tests_control_files/reduced_order/isentropic_vortex_offline.prm"],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}/Output", // Change this to where you want PHiLiP to Output
+            "environment": [{
+                "name": "MPIMAX",
+                "value": "20"        // Set MPIMAX Value
+            }],
+            "mpi": {
+                "enabled": true,
+                "program": "mpirun",
+                "args":[
+                    "-np",
+                    "${env:MPIMAX}",
+                    "${workspaceFolder}/build_debug/bin/PHiLiP_2D", // Location of PHiLiP that you are debugging
+                    "i",
+                    // Change this Param file
+                    "${workspaceFolder}/tests/integration_tests_control_files/reduced_order/isentropic_vortex_offline.prm"
+
+                ]
+            },
+            "externalConsole": false,
+            "MIMode": "gdb",
+            "setupCommands": [
+                {
+                    "description": "Enable pretty-printing for gdb",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                },
+                {
+                    "description": "Set Disassembly Flavor to Intel",
+                    "text": "-gdb-set disassembly-flavor intel",
+                    "ignoreFailures": true
+                }
+            ],
+            "miDebuggerPath": "/usr/bin/gdb",
+            "logging": {
+                "engineLogging": true,
+                "trace": true,
+                "traceResponse": true
+            }
+        },{
+            "name": "2D - Off IV", // Name of test
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build_debug/bin/PHiLiP_2D", // Location of PHiLiP that you are debugging
+            "args": ["-i",
+            // Change this Param file
+            "${workspaceFolder}/tests/integration_tests_control_files/reduced_order/isentropic_vortex_offline.prm"],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}/Output", // Change this to where you want PHiLiP to Output
+            "environment": [],
+            "externalConsole": false,
+            "MIMode": "gdb",
+            "setupCommands": [
+                {
+                    "description": "Enable pretty-printing for gdb",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                },
+                {
+                    "description": "Set Disassembly Flavor to Intel",
+                    "text": "-gdb-set disassembly-flavor intel",
+                    "ignoreFailures": true
+                }
+            ],
+        }
+    ]
+

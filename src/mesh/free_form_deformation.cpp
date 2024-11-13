@@ -555,7 +555,6 @@ FreeFormDeformation<dim>
 ::get_dXsdXd (
     const HighOrderGrid<dim,double> &high_order_grid,
     const std::vector< std::pair< unsigned int, unsigned int > > &ffd_design_variables_indices_dim,
-    dealii::TrilinosWrappers::SparseMatrix &dXvsdXp,
     dealii::TrilinosWrappers::SparseMatrix &dXsdXd
     ) const
 {

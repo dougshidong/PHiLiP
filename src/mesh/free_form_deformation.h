@@ -57,12 +57,11 @@ public:
 
     /** For the given list of FFD indices and direction, return the analytical
      *  derivatives of the HighOrderGrid's initial surface points with respect to the FFD.
-     *  The result is written into the given dXvsdXp SparseMatrix.
+     *  The result is written into the given dXsdXp SparseMatrix.
      */
     void get_dXsdXd (
         const HighOrderGrid<dim,double> &high_order_grid,
         const std::vector< std::pair< unsigned int, unsigned int > > &ffd_design_variables_indices_dim,
-        dealii::TrilinosWrappers::SparseMatrix &dXvsdXp,
         dealii::TrilinosWrappers::SparseMatrix &dXsdXd
         ) const;
 

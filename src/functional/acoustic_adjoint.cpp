@@ -153,7 +153,7 @@ void AcousticAdjoint<dim, nstate, real, MeshType>::compute_dXsdXd(std::shared_pt
 
     // this->pcout << "AFTER: dim ffd_design_variables_indices_dim" << ffd_design_variables_indices_dim.size() << std::endl;
  
-    ffd.get_dXsdXd(*high_order_grid, ffd_design_variables_indices_dim, this->dXsdXd, this->dXsdXd_surf);
+    ffd.get_dXsdXd(*high_order_grid, ffd_design_variables_indices_dim, this->dXsdXd);
 
     //initializing dIdXd
     this->dIdXd.reinit(ffd_design_variables);
@@ -278,7 +278,7 @@ void AcousticAdjoint<dim, nstate, real, MeshType>::compute_dIdXd(std::shared_ptr
     outfile_coordinates.close();
 
     // assembling dI_dXd
-    this->dXsdXd_surf.Tvmult(this->dIdXd,this->dIdXs);
+    this->dXsdXd.Tvmult(this->dIdXd,this->dIdXs);
     this->pcout << "dIdXd computed" << std::endl;
 
     std::ofstream outfile_dI_dXd;

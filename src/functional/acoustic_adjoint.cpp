@@ -27,6 +27,13 @@
 #include "physics/physics.h"
 #include "linear_solver/linear_solver.h"
 #include "post_processor/physics_post_processor.h"
+#include "mesh/meshmover_linear_elasticity.hpp"
+
+#include <deal.II/lac/trilinos_sparse_matrix.h>
+#include <deal.II/lac/dynamic_sparsity_pattern.h>
+#include <deal.II/lac/sparsity_tools.h>
+
+#include "optimization/design_parameterization/ffd_parameterization.hpp"
 
 namespace PHiLiP {
 
@@ -35,7 +42,7 @@ namespace PHiLiP {
 //================================================================
 template <int dim, int nstate, typename real, typename MeshType>
 AcousticAdjoint<dim, nstate, real, MeshType>::AcousticAdjoint(
-    std::shared_ptr< DGBase<dim,real,MeshType> > dg_input, 
+    std::shared_ptr< DGBase<dim,real,MeshType> > dg_input,
     std::shared_ptr< Functional<dim, nstate, real, MeshType>> functional_input):
     dg(dg_input),
     functional(functional_input),
@@ -78,6 +85,214 @@ void AcousticAdjoint<dim, nstate, real, MeshType>::compute_dIdXv()
     this->dIdXv.update_ghost_values();
 }
 //----------------------------------------------------------------
+// template <int dim, int nstate, typename real, typename MeshType>
+// void AcousticAdjoint<dim, nstate, real, MeshType>::compute_dXvdXs(std::shared_ptr<HighOrderGrid<dim,real>> high_order_grid)
+// {
+//     using VectorType = dealii::LinearAlgebra::distributed::Vector<double>;
+//     dealii::LinearAlgebra::distributed::Vector<double> surface_node_displacements(high_order_grid->surface_nodes);
+//     // MeshMover::LinearElasticity<dim, double> 
+//     //MeshMover::LinearElasticity<dim, double, dealii::LinearAlgebra::distributed::Vector<double>, dealii::DoFHandler<dim>> 
+//         // meshmover( 
+//         //   *(high_order_grid->triangulation),
+//         //   high_order_grid->initial_mapping_fe_field,
+//         //   high_order_grid->dof_handler_grid,
+//         //   high_order_grid->surface_to_volume_indices,
+//         //   surface_node_displacements);
+//     this->dIdXs.reinit(high_order_grid->surface_nodes);
+//     MeshMover::LinearElasticity<dim, double> meshmover(*high_order_grid, this->dIdXs);
+
+//     // dealii::TrilinosWrappers::SparseMatrix dXvdXs_matrix;     
+//     // dealii::LinearAlgebra::distributed::Vector<double> dXvdXs_matrix;
+//     meshmover.evaluate_dXvdXs();      
+//     // this->dXvdXs = this->meshmover->dXvdXs;
+//     //evaluate_dXvdXs will store derivative in dXvdXs_matrix
+//     //this->dXvdXs = meshmover.dXvdXs_matrix;
+// }
+//---------------------------------------------------------------------
+template <int dim, int nstate, typename real, typename MeshType>
+void AcousticAdjoint<dim, nstate, real, MeshType>::compute_dXsdXd(std::shared_ptr<HighOrderGrid<dim,real>> high_order_grid){
+
+
+//create ffd box
+    const dealii::Point<dim> ffd_origin(-0.1,-0.1);
+    const std::array<double,dim> ffd_rectangle_lengths = {{0.6,0.2}};
+    const std::array<unsigned int,dim> ffd_ndim_control_pts = {{50,3}};
+    FreeFormDeformation<dim> ffd(ffd_origin, ffd_rectangle_lengths, ffd_ndim_control_pts);
+
+    unsigned int n_design_variables = 0;
+    // Vector of ijk indices and dimension.
+    // Each entry in the vector points to a design variable's ijk ctl point and its acting dimension.
+    std::vector< std::pair< unsigned int, unsigned int > > ffd_design_variables_indices_dim;
+    // this->pcout << "n_control_pts" << ffd.n_control_pts << std::endl;
+    for (unsigned int i_ctl = 0; i_ctl < ffd.n_control_pts; ++i_ctl) {
+
+        const std::array<unsigned int,dim> ijk = ffd.global_to_grid ( i_ctl );
+        for (unsigned int d_ffd = 0; d_ffd < dim; ++d_ffd) {
+
+            if (   ijk[0] == 0 // Constrain first column of FFD points.
+                || ijk[0] == ffd_ndim_control_pts[0] - 1  // Constrain last column of FFD points.
+                || ijk[1] == 1 // Constrain middle row of FFD points.
+                || d_ffd == 0 // Constrain x-direction of FFD points.
+               ) {
+                continue;
+            }
+            ++n_design_variables;
+            ffd_design_variables_indices_dim.push_back(std::make_pair(i_ctl, d_ffd));
+        }
+    }
+    
+    // this->pcout << "BEFORE: dim ffd_design_variables_indices_dim" << ffd_design_variables_indices_dim.size() << std::endl;
+
+    const dealii::IndexSet row_part = dealii::Utilities::MPI::create_evenly_distributed_partitioning(MPI_COMM_WORLD,n_design_variables);
+    dealii::IndexSet ghost_row_part(n_design_variables);
+    ghost_row_part.add_range(0,n_design_variables);
+    dealii::LinearAlgebra::distributed::Vector<double> ffd_design_variables(row_part,ghost_row_part,MPI_COMM_WORLD);
+
+    ffd.get_design_variables( ffd_design_variables_indices_dim, ffd_design_variables);
+    ffd.set_design_variables( ffd_design_variables_indices_dim, ffd_design_variables);
+
+    // this->pcout << "AFTER: dim ffd_design_variables_indices_dim" << ffd_design_variables_indices_dim.size() << std::endl;
+ 
+    ffd.get_dXsdXd(*high_order_grid, ffd_design_variables_indices_dim, this->dXsdXd, this->dXsdXd_surf);
+
+    //initializing dIdXd
+    this->dIdXd.reinit(ffd_design_variables);
+
+    std::ofstream outfile_FFD;
+    outfile_FFD.open("FFD_coordinates.dat"); 
+
+    for (long unsigned int i = 0; i < ffd.control_pts.size(); i++){
+    outfile_FFD << ffd.control_pts[i] << "\n"; 
+    }
+    outfile_FFD.close();
+
+    // // initializing dXs_dXd_surf
+    // unsigned int n_surf_nodes = high_order_grid->surface_nodes.size();
+    // const unsigned int n_rows0 = n_surf_nodes;
+    // const unsigned int n_cols0 = ffd_design_variables_indices_dim.size();
+    // const dealii::IndexSet &row_part0 = high_order_grid->dof_handler_grid.locally_owned_dofs();
+    // const dealii::IndexSet col_part0 = dealii::Utilities::MPI::create_evenly_distributed_partitioning(MPI_COMM_WORLD,n_cols0);
+    // // this->pcout << "Here 1" << std::endl;
+    // dealii::DynamicSparsityPattern full_dsp(n_rows0, n_cols0, row_part0);
+    // for (const auto &i_row: row_part0) {
+    //     for (unsigned int i_col = 0; i_col < n_cols0; ++i_col) {
+    //         full_dsp.add(i_row, i_col);
+    //     }
+    // }
+    // dealii::IndexSet locally_relevant_dofs;
+    // dealii::DoFTools::extract_locally_relevant_dofs(high_order_grid->dof_handler_grid, locally_relevant_dofs);
+    // dealii::SparsityTools::distribute_sparsity_pattern(full_dsp, row_part0, MPI_COMM_WORLD, locally_relevant_dofs);
+    // // this->pcout << "Here 2" << std::endl;
+    // dealii::SparsityPattern full_sp;
+    // full_sp.copy_from(full_dsp);
+    // // this->pcout << "Here 3" << std::endl;
+    // dXsdXd_surf.reinit(row_part0, col_part0, full_sp, MPI_COMM_WORLD);
+    // this->pcout << "Here 4" << std::endl;
+
+}
+//--------------------------------------------------------------------
+template <int dim, int nstate, typename real, typename MeshType>
+void AcousticAdjoint<dim, nstate, real, MeshType>::compute_dIdXd(std::shared_ptr<HighOrderGrid<dim,real>> high_order_grid){
+    
+    using VectorType = dealii::LinearAlgebra::distributed::Vector<double>;
+    // computing dXv_dXs
+    VectorType surface_node_displacements = high_order_grid->surface_nodes;
+    this->dIdXs.reinit(high_order_grid->surface_nodes);
+    MeshMover::LinearElasticity<dim, double> meshmover(*high_order_grid, surface_node_displacements);
+    meshmover.evaluate_dXvdXs();    
+    this->pcout << "dXvdXs computed" << std::endl;
+    // Writing dXv_dXs to file
+    std::ofstream outfile_dXv_dXs;
+    outfile_dXv_dXs.open("dXv_dXs.dat");  
+    meshmover.dXvdXs_matrix.print(outfile_dXv_dXs);
+    outfile_dXv_dXs.close();
+
+    // Writing dI_dXv to file
+    std::ofstream outfile_dI_dXv;
+    outfile_dI_dXv.open("dI_dXv.dat");  
+    this->dIdXv.print(outfile_dI_dXv);
+    outfile_dI_dXv.close();
+
+    // assembling dI_dXs
+    meshmover.dXvdXs_matrix.Tvmult(this->dIdXs,this->dIdXv);
+    this->pcout << "dIdXs computed" << std::endl;
+    // Writing dI_dXs to file
+    std::ofstream outfile_dI_dXs_whole;
+    outfile_dI_dXs_whole.open("dI_dXs_whole.dat");  
+    this->dIdXs.print(outfile_dI_dXs_whole);
+    outfile_dI_dXs_whole.close();
+
+    // computing dXs_dXd
+    compute_dXsdXd(high_order_grid);
+    this->pcout << "dXsdXd computed" << std::endl;
+
+    // writing dI_dXs and nodes coords to file
+    // unsigned int n_vol_nodes = high_order_grid->volume_nodes.size();
+    unsigned int n_surf_nodes = high_order_grid->surface_nodes.size();
+    // unsigned int n_inner_nodes = n_vol_nodes - n_surf_nodes;
+
+    dI_dXs_total.reinit(high_order_grid->volume_nodes);
+
+    dealii::LinearAlgebra::distributed::Vector<int> is_a_surface_node;
+    is_a_surface_node.reinit(high_order_grid->volume_nodes); // Copies parallel layout, without values. Initializes to 0 by default.
+
+    // Get locally owned volume and surface ranges of indices held by current processor.
+    [[maybe_unused]] const dealii::IndexSet &volume_range = high_order_grid->volume_nodes.get_partitioner()->locally_owned_range();
+    const dealii::IndexSet &surface_range = high_order_grid->surface_nodes.get_partitioner()->locally_owned_range();
+
+    // Creating file to write dI_dXs in it 
+    std::ofstream outfile_coordinates;
+    outfile_coordinates.open("coordinates.dat"); 
+    std::ofstream outfile_surf_index;
+    outfile_surf_index.open("surf_index.dat"); 
+    std::ofstream outfile_dXs_dXd;
+    outfile_dXs_dXd.open("dXs_dXd.dat");
+
+    // Set is_a_surface_node. Makes it easier to iterate over inner nodes later.
+    // Using surface_range.begin() and surface_range.end() might make it quicker to iterate over local ranges. To be checked later.
+    // unsigned int j_row = 0;
+    // const std::vector<double> row_matrix(dXsdXd_surf.n(),0);
+    for(unsigned int i_surf = 0; i_surf<n_surf_nodes; ++i_surf) 
+    {
+        if(!(surface_range.is_element(i_surf))) continue;
+
+        const unsigned int vol_index = high_order_grid->surface_to_volume_indices(i_surf);
+        Assert(volume_range.is_element(vol_index), 
+                dealii::ExcMessage("Surface index is in range, so vol index is expected to be in the range of this processor."));
+        is_a_surface_node(vol_index) = 1;
+        dI_dXs_total(vol_index) = this->dIdXs(i_surf);
+        // // Assembling dXsdXs_surf
+        // for(unsigned int j_col = 0; j_col < dXsdXd_surf.n(); ++j_col)
+        // {
+        //     dXsdXd_surf.set(j_row, j_col, dXsdXd.el(vol_index,j_col));
+        // }
+        // ++j_row;
+        // Writing dI_dXs to file
+        outfile_coordinates << high_order_grid->volume_nodes(vol_index) << "\n"; 
+        outfile_surf_index << vol_index << "\n"; 
+    }
+    is_a_surface_node.update_ghost_values();
+
+    dXsdXd_surf.print(outfile_dXs_dXd);
+    outfile_dXs_dXd.close();
+    outfile_coordinates.close();
+
+    // assembling dI_dXd
+    this->dXsdXd_surf.Tvmult(this->dIdXd,this->dIdXs);
+    this->pcout << "dIdXd computed" << std::endl;
+
+    std::ofstream outfile_dI_dXd;
+    outfile_dI_dXd.open("dI_dXd.dat");  
+    dIdXd.print(outfile_dI_dXd);
+    outfile_dI_dXd.close();
+
+    this->dIdXs.compress(dealii::VectorOperation::add);
+    this->dIdXs.update_ghost_values();
+
+    this->dIdXd.compress(dealii::VectorOperation::add);
+    this->dIdXd.update_ghost_values();
+}
+//---------------------------------------------------------------------
 template <int dim, int nstate, typename real, typename MeshType>
 void AcousticAdjoint<dim, nstate, real, MeshType>::output_results_vtk(const unsigned int cycle)
 {
@@ -124,6 +339,10 @@ void AcousticAdjoint<dim, nstate, real, MeshType>::output_results_vtk(const unsi
 
     data_out.add_data_vector(dIdw, dIdw_names, dealii::DataOut_DoFData<dealii::DoFHandler<dim>,dim>::DataVectorType::type_dof_data);
     data_out.add_data_vector(dIdXv, "dIdXv", dealii::DataOut_DoFData<dealii::DoFHandler<dim>,dim>::DataVectorType::type_cell_data);
+    // data_out.<add_data_vector>(dIdXs, "dIdXs", dealii::DataOut_DoFData<dealii::DoFHandler<dim>,dim>::DataVectorType::type_cell_data);
+    //  this->pcout << "dIdXs outputted" << std::endl;
+    // data_out.add_data_vector(dIdXd, "dIdXd", dealii::DataOut_DoFData<dealii::DoFHandler<dim>,dim>::DataVectorType::type_cell_data);
+    //  this->pcout << "dIdXd outputted" << std::endl;
     data_out.add_data_vector(adjoint, adjoint_names, dealii::DataOut_DoFData<dealii::DoFHandler<dim>,dim>::DataVectorType::type_dof_data);
 
     const int iproc = dealii::Utilities::MPI::this_mpi_process(mpi_communicator);
@@ -149,6 +368,13 @@ void AcousticAdjoint<dim, nstate, real, MeshType>::output_results_vtk(const unsi
         std::ofstream master_output(master_fn);
         data_out.write_pvtu_record(master_output, filenames);
     }
+
+// // Writing dI_dXs to file
+//     std::ofstream outfile_dI_dXs_whole;
+//     outfile_dI_dXs_whole.open("dI_dXs_whole.dat");  
+//     dIdXs.print(outfile_dI_dXs_whole);
+//     outfile_dI_dXs_whole.close();
+
 }
 //----------------------------------------------------------------
 //----------------------------------------------------------------

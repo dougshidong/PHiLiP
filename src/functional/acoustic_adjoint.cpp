@@ -116,14 +116,21 @@ void AcousticAdjoint<dim, nstate, real, MeshType>::compute_dXsdXd(std::shared_pt
 //create ffd box
     const dealii::Point<dim> ffd_origin(-0.1,-0.1);
     const std::array<double,dim> ffd_rectangle_lengths = {{0.6,0.2}};
+<<<<<<< HEAD
     const std::array<unsigned int,dim> ffd_ndim_control_pts = {{50,3}};
+=======
+    const std::array<unsigned int,dim> ffd_ndim_control_pts = {{5,3}};
+>>>>>>> 622ac0dd439c2ae9d132962f521ba582fb8eb1c1
     FreeFormDeformation<dim> ffd(ffd_origin, ffd_rectangle_lengths, ffd_ndim_control_pts);
 
     unsigned int n_design_variables = 0;
     // Vector of ijk indices and dimension.
     // Each entry in the vector points to a design variable's ijk ctl point and its acting dimension.
     std::vector< std::pair< unsigned int, unsigned int > > ffd_design_variables_indices_dim;
+<<<<<<< HEAD
     // this->pcout << "n_control_pts" << ffd.n_control_pts << std::endl;
+=======
+>>>>>>> 622ac0dd439c2ae9d132962f521ba582fb8eb1c1
     for (unsigned int i_ctl = 0; i_ctl < ffd.n_control_pts; ++i_ctl) {
 
         const std::array<unsigned int,dim> ijk = ffd.global_to_grid ( i_ctl );
@@ -140,8 +147,11 @@ void AcousticAdjoint<dim, nstate, real, MeshType>::compute_dXsdXd(std::shared_pt
             ffd_design_variables_indices_dim.push_back(std::make_pair(i_ctl, d_ffd));
         }
     }
+<<<<<<< HEAD
     
     // this->pcout << "BEFORE: dim ffd_design_variables_indices_dim" << ffd_design_variables_indices_dim.size() << std::endl;
+=======
+>>>>>>> 622ac0dd439c2ae9d132962f521ba582fb8eb1c1
 
     const dealii::IndexSet row_part = dealii::Utilities::MPI::create_evenly_distributed_partitioning(MPI_COMM_WORLD,n_design_variables);
     dealii::IndexSet ghost_row_part(n_design_variables);
@@ -150,14 +160,18 @@ void AcousticAdjoint<dim, nstate, real, MeshType>::compute_dXsdXd(std::shared_pt
 
     ffd.get_design_variables( ffd_design_variables_indices_dim, ffd_design_variables);
     ffd.set_design_variables( ffd_design_variables_indices_dim, ffd_design_variables);
+<<<<<<< HEAD
 
     // this->pcout << "AFTER: dim ffd_design_variables_indices_dim" << ffd_design_variables_indices_dim.size() << std::endl;
+=======
+>>>>>>> 622ac0dd439c2ae9d132962f521ba582fb8eb1c1
  
     ffd.get_dXsdXd(*high_order_grid, ffd_design_variables_indices_dim, this->dXsdXd, this->dXsdXd_surf);
 
     //initializing dIdXd
     this->dIdXd.reinit(ffd_design_variables);
 
+<<<<<<< HEAD
     std::ofstream outfile_FFD;
     outfile_FFD.open("FFD_coordinates.dat"); 
 
@@ -166,6 +180,8 @@ void AcousticAdjoint<dim, nstate, real, MeshType>::compute_dXsdXd(std::shared_pt
     }
     outfile_FFD.close();
 
+=======
+>>>>>>> 622ac0dd439c2ae9d132962f521ba582fb8eb1c1
     // // initializing dXs_dXd_surf
     // unsigned int n_surf_nodes = high_order_grid->surface_nodes.size();
     // const unsigned int n_rows0 = n_surf_nodes;

@@ -160,10 +160,22 @@ void Airfoil2D<dim,nstate>::steady_state_postprocessing(std::shared_ptr<DGBase<d
         this->pcout << "Computing functional derivative wrt volume nodes..." << std::endl;
         amiet_adjoint.compute_dIdXv();
         this->pcout << "Computation is done..." << std::endl;
+        
+        // this->pcout << "Computing volume nodes derivative wrt surface nodes..." << std::endl;
+        // amiet_adjoint.compute_dXvdXs(dg->high_order_grid);
+        // this->pcout << "Computation is done..." << std::endl;
+
+        // this->pcout << "Computing surface nodes derivative wrt FFD nodes..." << std::endl;
+        // amiet_adjoint.compute_dXsdXd(dg->high_order_grid);
+        // this->pcout << "Computation is done..." << std::endl;
+
+        this->pcout << "Computing function derivative wrt FFD nodes..." << std::endl;
+        amiet_adjoint.compute_dIdXd(dg->high_order_grid);
+        this->pcout << "Computation is done..." << std::endl;
 
         this->pcout << "Writting adjoint solutions..." << std::endl;
-       amiet_adjoint.output_results_vtk(666);
-       this->pcout << "Writting adjoint solutions is done..." << std::endl;
+        amiet_adjoint.output_results_vtk(666);
+        this->pcout << "Writting adjoint solutions is done..." << std::endl;
     }
 }
 

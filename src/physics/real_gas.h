@@ -5,6 +5,7 @@
 #include "physics.h"
 #include "parameters/all_parameters.h"
 #include "parameters/parameters_manufactured_solution.h"
+#include "navier_stokes.h"
 #include "real_gas_file_reader_and_variables/all_real_gas_constants.h"
 
 namespace PHiLiP {
@@ -49,6 +50,8 @@ public:
     const double u_ref_sqr; ///< reference velocity squared[m/s]^2
     const double tol; ///< tolerance for NRM (Newton-raphson Method) [m/s] 
     const double density_ref; ///< reference mixture density: [kg/m^3]
+    /// Pointer to Navier-Stokes physics object
+    std::unique_ptr< NavierStokes<dim,dim+2,real> > navier_stokes_physics;
     /// Pointer to all real gas constants object for accessing the NASA coefficients and properties (CAP)
     std::shared_ptr< PHiLiP::RealGasConstants::AllRealGasConstants > real_gas_cap;
 
@@ -102,6 +105,13 @@ protected:
         const std::array<dealii::Tensor<1,dim,real>,nstate> &/*soln_grad_int*/,
         std::array<real,nstate> &/*soln_bc*/,
         std::array<dealii::Tensor<1,dim,real>,nstate> &/*soln_grad_bc*/) const;
+
+protected:
+    /// returns the solution vector without the species conservation states (only mixture)
+    std::array<real,dim+2> get_mixture_solution_vector ( const std::array<real,nstate> &full_soln ) const;
+    /// returns the solution gradient vector without the species conservation states (only mixture)
+    std::array<dealii::Tensor<1,dim,real>,dim+2> get_mixture_solution_gradient (
+            const std::array<dealii::Tensor<1,dim,real>,nstate> &conservative_soln_gradient) const;
 
 public:
     // Algorithm 20 (f_S20): Convert primitive to conservative 

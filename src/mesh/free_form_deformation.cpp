@@ -588,33 +588,6 @@ FreeFormDeformation<dim>
     this->pcout << "dXs_dXd init" << std::endl;
     this->pcout << dXsdXd.n() << std::endl;
      this->pcout << dXsdXd.m() << std::endl;
-
-    const unsigned int n_rows0 = high_order_grid.dof_handler_grid.n_dofs();
-    const unsigned int n_cols0 = ffd_design_variables_indices_dim.size();
-    const dealii::IndexSet &row_part0 = high_order_grid.dof_handler_grid.locally_owned_dofs();
-    const dealii::IndexSet col_part0 = dealii::Utilities::MPI::create_evenly_distributed_partitioning(MPI_COMM_WORLD,n_cols0);
-    // this->pcout << "Here 1" << std::endl;
-    dealii::DynamicSparsityPattern full_dsp0(n_rows0, n_cols0, row_part0);
-    for (const auto &i_row0: row_part0) {
-        for (unsigned int i_col0 = 0; i_col0 < n_cols0; ++i_col0) {
-            full_dsp0.add(i_row0, i_col0);
-        }
-    }
-    dealii::IndexSet locally_relevant_dofs0;
-    dealii::DoFTools::extract_locally_relevant_dofs(high_order_grid.dof_handler_grid, locally_relevant_dofs0);
-    dealii::SparsityTools::distribute_sparsity_pattern(full_dsp0, row_part0, MPI_COMM_WORLD, locally_relevant_dofs0);
-    // this->pcout << "Here 2" << std::endl;
-    dealii::SparsityPattern full_sp0;
-    full_sp0.copy_from(full_dsp0);
-    // this->pcout << "Here 3" << std::endl;
-
-    dXvsdXp.reinit(row_part0, col_part0, full_sp0, MPI_COMM_WORLD);
-    // this->pcout << "Here 4" << std::endl;
-
-    std::ofstream outfile_dXvsdXp_values;
-    outfile_dXvsdXp_values.open("dXvsdXp_values.dat"); 
-    std::ofstream outfile_vol_dXvsdXp;
-    outfile_vol_dXvsdXp.open("vol_index_dXvsdXp.dat"); 
     
     const dealii::IndexSet &nodes_locally_owned = high_order_grid.volume_nodes.get_partitioner()->locally_owned_range();
     for (unsigned int i_col = 0; i_col < ffd_design_variables_indices_dim.size(); ++i_col) {
@@ -635,8 +608,6 @@ FreeFormDeformation<dim>
                     // dXvsdXp.set(vol_index,i_col, dxsdxp[d]);
                     dXsdXd.set(j_row,i_col, dxsdxp[d]);
                     j_row++;
-                    outfile_dXvsdXp_values << dXsdXd.el(vol_index,i_col) << "\n"; 
-                    outfile_vol_dXvsdXp << vol_index << "\n";
                 }
                 if ((unsigned int)d!=ctl_axis) {
                     assert(dxsdxp[d] == 0.0);
@@ -646,8 +617,6 @@ FreeFormDeformation<dim>
             ipoint++;
         }
     }
-    outfile_dXvsdXp_values.close();
-    outfile_vol_dXvsdXp.close();
 
     // dealii::LinearAlgebra::distributed::Vector<int> is_a_surface_node;
     // is_a_surface_node.reinit(high_order_grid.volume_nodes); // Copies parallel layout, without values. Initializes to 0 by default.
@@ -689,7 +658,6 @@ FreeFormDeformation<dim>
     // dXsdXd.print(outfile_dXsdXd);
     // outfile_dXsdXd.close();
 
-    dXvsdXp.compress(dealii::VectorOperation::insert);
     dXsdXd.compress(dealii::VectorOperation::insert);
 }
 

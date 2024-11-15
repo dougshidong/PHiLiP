@@ -116,7 +116,7 @@ void AcousticAdjoint<dim, nstate, real, MeshType>::compute_dXsdXd(std::shared_pt
 //create ffd box
     const dealii::Point<dim> ffd_origin(-0.1,-0.1);
     const std::array<double,dim> ffd_rectangle_lengths = {{0.6,0.2}};
-    const std::array<unsigned int,dim> ffd_ndim_control_pts = {{50,3}};
+    const std::array<unsigned int,dim> ffd_ndim_control_pts = {{15,3}};
     FreeFormDeformation<dim> ffd(ffd_origin, ffd_rectangle_lengths, ffd_ndim_control_pts);
 
     unsigned int n_design_variables = 0;
@@ -151,20 +151,20 @@ void AcousticAdjoint<dim, nstate, real, MeshType>::compute_dXsdXd(std::shared_pt
     ffd.get_design_variables( ffd_design_variables_indices_dim, ffd_design_variables);
     ffd.set_design_variables( ffd_design_variables_indices_dim, ffd_design_variables);
 
-    // this->pcout << "AFTER: dim ffd_design_variables_indices_dim" << ffd_design_variables_indices_dim.size() << std::endl;
+// this->pcout << "AFTER: dim ffd_design_variables_indices_dim" << ffd_design_variables_indices_dim.size() << std::endl;
  
-    ffd.get_dXsdXd(*high_order_grid, ffd_design_variables_indices_dim, this->dXsdXd);
+ffd.get_dXsdXd(*high_order_grid, ffd_design_variables_indices_dim, this->dXsdXd);
 
-    //initializing dIdXd
-    this->dIdXd.reinit(ffd_design_variables);
+//initializing dIdXd
+this->dIdXd.reinit(ffd_design_variables);
 
-    std::ofstream outfile_FFD;
-    outfile_FFD.open("FFD_coordinates.dat"); 
+std::ofstream outfile_FFD;
+outfile_FFD.open("FFD_coordinates.dat"); 
 
-    for (long unsigned int i = 0; i < ffd.control_pts.size(); i++){
-    outfile_FFD << ffd.control_pts[i] << "\n"; 
-    }
-    outfile_FFD.close();
+for (long unsigned int i = 0; i < ffd.control_pts.size(); i++){
+outfile_FFD << ffd.control_pts[i] << "\n"; 
+}
+outfile_FFD.close();
 
     // // initializing dXs_dXd_surf
     // unsigned int n_surf_nodes = high_order_grid->surface_nodes.size();
@@ -273,7 +273,7 @@ void AcousticAdjoint<dim, nstate, real, MeshType>::compute_dIdXd(std::shared_ptr
     }
     is_a_surface_node.update_ghost_values();
 
-    dXsdXd_surf.print(outfile_dXs_dXd);
+    dXsdXd.print(outfile_dXs_dXd);
     outfile_dXs_dXd.close();
     outfile_coordinates.close();
 
@@ -292,6 +292,66 @@ void AcousticAdjoint<dim, nstate, real, MeshType>::compute_dIdXd(std::shared_ptr
     this->dIdXd.compress(dealii::VectorOperation::add);
     this->dIdXd.update_ghost_values();
 }
+//---------------------------------------------------------------------
+template <int dim, int nstate, typename real, typename MeshType>
+void AcousticAdjoint<dim, nstate, real, MeshType>::compute_dIdXd_FD(std::shared_ptr<HighOrderGrid<dim,real>> high_order_grid, const double eps){
+
+//create ffd box
+    const dealii::Point<dim> ffd_origin(-0.1,-0.1);
+    const std::array<double,dim> ffd_rectangle_lengths = {{0.6,0.2}};
+    const std::array<unsigned int,dim> ffd_ndim_control_pts = {{15,3}};
+    FreeFormDeformation<dim> ffd(ffd_origin, ffd_rectangle_lengths, ffd_ndim_control_pts);
+
+    unsigned int n_design_variables = 0;
+    // Vector of ijk indices and dimension.
+    // Each entry in the vector points to a design variable's ijk ctl point and its acting dimension.
+    std::vector< std::pair< unsigned int, unsigned int > > ffd_design_variables_indices_dim;
+    // this->pcout << "n_control_pts" << ffd.n_control_pts << std::endl;
+    for (unsigned int i_ctl = 0; i_ctl < ffd.n_control_pts; ++i_ctl) {
+
+        const std::array<unsigned int,dim> ijk = ffd.global_to_grid ( i_ctl );
+        for (unsigned int d_ffd = 0; d_ffd < dim; ++d_ffd) {
+
+            if (   ijk[0] == 0 // Constrain first column of FFD points.
+                || ijk[0] == ffd_ndim_control_pts[0] - 1  // Constrain last column of FFD points.
+                || ijk[1] == 1 // Constrain middle row of FFD points.
+                || d_ffd == 0 // Constrain x-direction of FFD points.
+               ) {
+                continue;
+            }
+            ++n_design_variables;
+            ffd_design_variables_indices_dim.push_back(std::make_pair(i_ctl, d_ffd));
+        }
+    }
+
+    const dealii::IndexSet row_part = dealii::Utilities::MPI::create_evenly_distributed_partitioning(MPI_COMM_WORLD,n_design_variables);
+    dealii::IndexSet ghost_row_part(n_design_variables);
+    ghost_row_part.add_range(0,n_design_variables);
+    dealii::LinearAlgebra::distributed::Vector<double> ffd_design_variables(row_part,ghost_row_part,MPI_COMM_WORLD);
+
+    ffd.get_design_variables( ffd_design_variables_indices_dim, ffd_design_variables);
+    ffd.set_design_variables( ffd_design_variables_indices_dim, ffd_design_variables);
+
+ auto old_volume_nodes = high_order_grid->volume_nodes;
+ // We're choosing to compute dI_dXd of FFD control point 4.
+ unsigned int i_design = 4;
+ const unsigned int ictl = ffd_design_variables_indices_dim[i_design].first;
+ const unsigned int d_ffd = ffd_design_variables_indices_dim[i_design].second;
+
+ // Save
+    const dealii::Point<dim> old_ffd_point = ffd.control_pts[ictl];
+
+ // Perturb
+    {
+        dealii::Point<dim> new_ffd_point = old_ffd_point;
+        new_ffd_point[d_ffd] += eps;
+        ffd.move_ctl_dx ( ictl, new_ffd_point - old_ffd_point);
+        ffd.deform_mesh(*high_order_grid);
+    }
+
+}
+
+
 //---------------------------------------------------------------------
 template <int dim, int nstate, typename real, typename MeshType>
 void AcousticAdjoint<dim, nstate, real, MeshType>::output_results_vtk(const unsigned int cycle)

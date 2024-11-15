@@ -151,6 +151,12 @@ void Airfoil2D<dim,nstate>::steady_state_postprocessing(std::shared_ptr<DGBase<d
 
         this->pcout << "The Overall-Averaged Sound Pressure Level for the 2-D airfoil is: " << OASPL_airfoil_2D << std::endl;
 
+        // writing OASPL value to file
+        std::ofstream outfile_OASPL;
+        outfile_OASPL.open("OASPL.dat"); 
+        outfile_OASPL << OASPL_airfoil_2D << "\n";
+        outfile_OASPL.close();
+
         AcousticAdjoint <dim,nstate,double,Triangulation> amiet_adjoint(dg,amiet_acoustic_response);
 
         this->pcout << "Solving adjoint linear system..." << std::endl;
@@ -176,6 +182,10 @@ void Airfoil2D<dim,nstate>::steady_state_postprocessing(std::shared_ptr<DGBase<d
         this->pcout << "Writting adjoint solutions..." << std::endl;
         amiet_adjoint.output_results_vtk(666);
         this->pcout << "Writting adjoint solutions is done..." << std::endl;
+        
+        const double eps = 0.01;
+        this->pcout << "Computing dI_dXd using FD for FFD point 4" << std::endl;
+        amiet_adjoint.compute_dIdXd_FD(dg->high_order_grid, eps);
     }
 }
 

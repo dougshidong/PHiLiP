@@ -87,6 +87,10 @@ int main (int argc, char *argv[])
             std::unique_ptr<PHiLiP::FlowSolver::FlowSolverBase> flow_solver = PHiLiP::FlowSolver::FlowSolverFactory<max_dim,max_nstate,max_sub_nstate>::create_flow_solver(all_parameters_pointer,parameter_handler);
             run_error = flow_solver->run();
             pcout << "Flow simulation complete with run error code: " << run_error << std::endl;
+            //running a second time with deformed mesh
+            pcout << "Running second time with deformed mesh" << std::endl;
+            run_error = flow_solver->run();
+            pcout << "Flow simulation complete with run error code: " << run_error << std::endl;
         }
         else if(all_parameters[0].run_type == PHiLiP::Parameters::AllParameters::RunType::integration_test) {
             std::unique_ptr<PHiLiP::Tests::TestsBase> test = PHiLiP::Tests::TestsFactory<max_dim,max_nstate>::create_test(&all_parameters[0],parameter_handler[0]);

@@ -69,6 +69,9 @@ public:
     /// Function to evaluate objective function gradient wrt ffd nodes.
     void compute_dIdXd(std::shared_ptr<HighOrderGrid<dim,real>> _high_order_grid);
 
+    /// Function to evaluate objective function gradient wrt ffd nodes using FD.
+    void compute_dIdXd_FD(std::shared_ptr<HighOrderGrid<dim,real>> _high_order_grid, const double eps);
+
     /// Outputs the adjoint solutions.
     /** Similar to DGBase::output_results_vtk() but generates separate file only includes the adjoint solutions and dIdw.
      */

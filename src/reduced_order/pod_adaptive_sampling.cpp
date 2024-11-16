@@ -99,6 +99,12 @@ int AdaptiveSampling<dim, nstate>::run_sampling() const
 
         solveFunctionalROM(functional_ROM);
 
+        this->pcout << "FUNCTIONAL FROM ROMs" << std::endl;
+        std::ofstream output_file("rom_functional" + std::to_string(iteration+1) +".txt");
+
+        std::ostream_iterator<double> output_iterator(output_file, "\n");
+        std::copy(std::begin(rom_functional), std::end(rom_functional), output_iterator);
+
         iteration++;
     }
 

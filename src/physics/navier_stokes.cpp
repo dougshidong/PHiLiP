@@ -30,7 +30,8 @@ NavierStokes<dim, nstate, real>::NavierStokes(
     std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function,
     const two_point_num_flux_enum                             two_point_num_flux_type,
     const bool                                                has_nonzero_physical_source)
-    : Euler<dim,nstate,real>(ref_length, 
+    : Euler<dim,nstate,real>(parameters_input,
+                             ref_length, 
                              gamma_gas, 
                              mach_inf, 
                              angle_of_attack, 
@@ -1567,6 +1568,7 @@ dealii::UpdateFlags NavierStokes<dim,nstate,real>
 
 template <int dim, int nstate, typename real>
 NavierStokes_ChannelFlowConstantSourceTerm<dim, nstate, real>::NavierStokes_ChannelFlowConstantSourceTerm( 
+    const Parameters::AllParameters *const                    parameters_input,
     const double                                              ref_length,
     const double                                              gamma_gas,
     const double                                              mach_inf,
@@ -1584,6 +1586,7 @@ NavierStokes_ChannelFlowConstantSourceTerm<dim, nstate, real>::NavierStokes_Chan
     std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function,
     const two_point_num_flux_enum                             two_point_num_flux_type)
     : NavierStokes<dim,nstate,real>(
+                             parameters_input,
                              ref_length, 
                              gamma_gas, 
                              mach_inf, 
@@ -1626,6 +1629,7 @@ std::array<real,nstate> NavierStokes_ChannelFlowConstantSourceTerm<dim,nstate,re
 
 template <int dim, int nstate, typename real>
 NavierStokes_ChannelFlowConstantSourceTerm_WallModel<dim, nstate, real>::NavierStokes_ChannelFlowConstantSourceTerm_WallModel( 
+    const Parameters::AllParameters *const                    parameters_input,
     const double                                              ref_length,
     const double                                              gamma_gas,
     const double                                              mach_inf,
@@ -1644,6 +1648,7 @@ NavierStokes_ChannelFlowConstantSourceTerm_WallModel<dim, nstate, real>::NavierS
     std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function,
     const two_point_num_flux_enum                             two_point_num_flux_type)
     : NavierStokes_ChannelFlowConstantSourceTerm<dim,nstate,real>(
+                             parameters_input,
                              ref_length, 
                              gamma_gas, 
                              mach_inf, 

@@ -279,8 +279,14 @@ public:
     /// Given primitive variables, returns kinetic energy
     real compute_kinetic_energy_from_primitive_solution ( const std::array<real,nstate> &primitive_soln ) const;
 
+    /// Given primitive variables, returns incompressible kinetic energy
+    real compute_incompressible_kinetic_energy_from_primitive_solution ( const std::array<real,nstate> &primitive_soln ) const;
+
     /// Given conservative variables, returns kinetic energy
     real compute_kinetic_energy_from_conservative_solution ( const std::array<real,nstate> &conservative_soln ) const;
+
+    /// Given conservative variables, returns incompressible kinetic energy
+    real compute_incompressible_kinetic_energy_from_conservative_solution ( const std::array<real,nstate> &conservative_soln ) const;
 
     /// Evaluate entropy from conservative variables
     /** Note that it is not the actual entropy since it's missing some constants.
@@ -406,7 +412,7 @@ protected:
         std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_bc) const;
 
     /// Wall boundary condition
-    virtual void boundary_wall (
+    void boundary_wall (
         const dealii::Tensor<1,dim,real> &normal_int,
         const std::array<real,nstate> &soln_int,
         const std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_int,

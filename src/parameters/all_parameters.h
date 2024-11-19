@@ -200,7 +200,8 @@ public:
         khi_robustness,
         naca0012_unsteady_check_quick,
         homogeneous_isotropic_turbulence_initialization_check,
-        low_density
+        low_density,
+        turbulent_channel_flow_skin_friction_check,
     };
     /// Store selected TestType from the input file.
     TestType test_type;
@@ -217,6 +218,8 @@ public:
         euler,
         mhd,
         navier_stokes,
+        navier_stokes_channel_flow_constant_source_term,
+        navier_stokes_channel_flow_constant_source_term_wall_model,
         physics_model,
         physics_model_filtered,
     };
@@ -303,6 +306,15 @@ public:
      *  Note: Currently only used in weak dg. */
     double matching_surface_jac_det_tolerance;
 
+    /// Flag for using wall model (initialized as false)
+    bool using_wall_model = false;
+
+    /// Flag for using second element as wall model input; if false, uses buffer (i.e. wall-adjacent) element
+    bool wall_model_input_from_second_element;
+
+    /// Flag for using projected entropy variables for NSFR boundary term
+    bool use_projected_entropy_variables_for_nsfr_boundary_term;
+    
     /// Declare parameters that can be set as inputs and set up the default options
     /** This subroutine should call the sub-parameter classes static declare_parameters()
       * such that each sub-parameter class is responsible to declare their own parameters.

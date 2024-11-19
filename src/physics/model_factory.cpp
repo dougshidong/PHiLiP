@@ -264,6 +264,7 @@ ModelFactory<dim,nstate,real>
                     parameters_input->navier_stokes_param.use_constant_viscosity,
                     parameters_input->navier_stokes_param.nondimensionalized_constant_viscosity,
                     parameters_input->navier_stokes_param.temperature_inf,
+                    parameters_input->flow_solver_param.relaxation_coefficient_for_turbulent_channel_flow_source_term,
                     parameters_input->navier_stokes_param.nondimensionalized_isothermal_wall_temperature,
                     parameters_input->navier_stokes_param.thermal_boundary_condition_type,
                     manufactured_solution_function,

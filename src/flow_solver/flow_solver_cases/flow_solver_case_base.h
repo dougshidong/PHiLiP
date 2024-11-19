@@ -45,7 +45,8 @@ public:
     virtual void compute_unsteady_data_and_write_to_table(
             const std::shared_ptr <ODE::ODESolverBase<dim, double>> ode_solver, 
             const std::shared_ptr <DGBase<dim, double>> dg,
-            const std::shared_ptr <dealii::TableHandler> unsteady_data_table);
+            const std::shared_ptr<dealii::TableHandler> unsteady_data_table,
+            const bool do_write_unsteady_data_table_file);
 
     /// Virtual function to compute the constant time step
     virtual double get_constant_time_step(std::shared_ptr <DGBase<dim, double>> dg) const;
@@ -58,12 +59,6 @@ public:
 
     /// Virtual function for postprocessing when solving for steady state
     virtual void steady_state_postprocessing(std::shared_ptr <DGBase<dim, double>> dg) const;
-
-    /// Virtual function for initialize model variables
-    virtual void initialize_model_variables(std::shared_ptr<DGBase<dim, double>> dg) const;
-
-    /// Virtual function for update model variables
-    virtual void update_model_variables(std::shared_ptr<DGBase<dim, double>> dg) const;
 
     /// Setter for time step
     void set_time_step(const double time_step_input);

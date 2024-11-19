@@ -43,12 +43,11 @@ inline real InitialConditionFunction_TurbulentChannelFlow<dim, nstate, real>
 {
     // Get closest wall normal distance
     real y = point[1]; // y-coordinate of position
-    real dist_from_wall = 0.0; // represents distance normal to top/bottom wall (which ever is closer); y-domain bounds are [-half_channel_height, half_channel_height]
+    real dist_from_wall = half_channel_height; // represents distance normal to top/bottom wall (which ever is closer); y-domain bounds are [-half_channel_height, half_channel_height]
     if(y > 0.0){
-        // top wall
-        dist_from_wall = half_channel_height - y; // distance from top wall
+        dist_from_wall -= y; // distance from top wall
     } else if(y < 0.0) {
-        dist_from_wall = y - half_channel_height; // distance from bottom wall
+        dist_from_wall += y; // distance from bottom wall
     }
     return dist_from_wall;
 }
@@ -175,10 +174,84 @@ inline real InitialConditionFunction_TurbulentChannelFlow_Turbulent<dim, nstate,
     */
     const real kappa = 0.38; // von Karman's constant
     const real C = 4.1;
-    const real y_plus = density*friction_velocity*dist_from_wall/viscosity_coefficient;
+    const real y_plus = this->navier_stokes_physics.reynolds_number_inf*density*friction_velocity*dist_from_wall/viscosity_coefficient;
     const real u_plus = (1.0/kappa)*log(1.0+kappa*y_plus) + (C - (1.0/kappa)*log(kappa))*(1.0 - exp(-y_plus/11.0) - (y_plus/11.0)*exp(-y_plus/3.0));
     const real x_velocity = u_plus*friction_velocity;
     return x_velocity;
+}
+
+// ========================================================
+// Turbulent Channel Flow -- Initial Condition (Manufactured x-velocity)
+// ========================================================
+template <int dim, int nstate, typename real>
+InitialConditionFunction_TurbulentChannelFlow_Manufactured<dim,nstate,real>
+::InitialConditionFunction_TurbulentChannelFlow_Manufactured (
+    const Physics::NavierStokes<dim,nstate,double> navier_stokes_physics_,
+    const double channel_friction_velocity_reynolds_number_,
+    const double domain_length_x_,
+    const double domain_length_y_,
+    const double domain_length_z_)
+    : InitialConditionFunction_TurbulentChannelFlow_Turbulent<dim,nstate,real>(
+        navier_stokes_physics_,
+        channel_friction_velocity_reynolds_number_,
+        domain_length_x_,
+        domain_length_y_,
+        domain_length_z_)
+{}
+
+template <int dim, int nstate, typename real>
+inline real InitialConditionFunction_TurbulentChannelFlow_Manufactured<dim, nstate, real>
+::y_velocity(const dealii::Point<dim,real> &/*point*/) const
+{
+    // Manufactured velocity profile so that it is purely based on the x-velocity
+    const real y_velocity = 0.0;
+    return y_velocity;
+}
+
+// ========================================================
+// NavierStokesBase -- Initial Condition
+// ========================================================
+template <int dim, int nstate, typename real>
+InitialConditionFunction_NavierStokesBase<dim,nstate,real>
+::InitialConditionFunction_NavierStokesBase (
+        Parameters::AllParameters const *const param)
+    : InitialConditionFunction<dim,nstate,real>()
+    , gamma_gas(param->euler_param.gamma_gas)
+    , mach_inf(param->euler_param.mach_inf)
+    , mach_inf_sqr(mach_inf*mach_inf)
+{
+    // Euler object; create using dynamic_pointer_cast and the create_Physics factory
+    // Note that Euler primitive/conservative vars are the same as NS
+    PHiLiP::Parameters::AllParameters parameters_euler = *param;
+    parameters_euler.pde_type = Parameters::AllParameters::PartialDifferentialEquation::euler;
+    this->euler_physics = std::dynamic_pointer_cast<Physics::Euler<dim,dim+2,double>>(
+                Physics::PhysicsFactory<dim,dim+2,double>::create_Physics(&parameters_euler));
+}
+
+template <int dim, int nstate, typename real>
+real InitialConditionFunction_NavierStokesBase<dim,nstate,real>
+::convert_primitive_to_conversative_value(
+    const dealii::Point<dim,real> &point, const unsigned int istate) const
+{
+    real value = 0.0;
+    
+    std::array<real,nstate> soln_primitive;
+    for (int i=0; i<nstate; ++i){
+        soln_primitive[i] = primitive_value(point,i);
+    }
+    const std::array<real,nstate> soln_conservative = this->euler_physics->convert_primitive_to_conservative(soln_primitive);
+    value = soln_conservative[istate];
+
+    return value;
+}
+
+template <int dim, int nstate, typename real>
+inline real InitialConditionFunction_NavierStokesBase<dim, nstate, real>
+::value(const dealii::Point<dim,real> &point, const unsigned int istate) const
+{
+    real value = 0.0;
+    value = convert_primitive_to_conversative_value(point,istate);
+    return value;
 }
 
 // ========================================================
@@ -188,11 +261,9 @@ template <int dim, int nstate, typename real>
 InitialConditionFunction_TaylorGreenVortex<dim,nstate,real>
 ::InitialConditionFunction_TaylorGreenVortex (
         Parameters::AllParameters const *const param)
-    : InitialConditionFunction_EulerBase<dim, nstate, real>(param)
-    , gamma_gas(param->euler_param.gamma_gas)
-    , mach_inf(param->euler_param.mach_inf)
-    , mach_inf_sqr(mach_inf*mach_inf)
+    : InitialConditionFunction_NavierStokesBase<dim,nstate,real>(param)
 {}
+
 template <int dim, int nstate, typename real>
 real InitialConditionFunction_TaylorGreenVortex<dim,nstate,real>
 ::primitive_value(const dealii::Point<dim,real> &point, const unsigned int istate) const
@@ -258,6 +329,88 @@ real InitialConditionFunction_TaylorGreenVortex_Isothermal<dim,nstate,real>
     value *= this->gamma_gas*this->mach_inf_sqr;
     return value;
 }
+
+// ========================================================
+// Dipole Wall Collision -- Initial Condition
+// ========================================================
+template <int dim, int nstate, typename real>
+InitialConditionFunction_DipoleWallCollision<dim,nstate,real>
+::InitialConditionFunction_DipoleWallCollision (
+        Parameters::AllParameters const *const param,
+        const real extremum_vorticity_value_,
+        const real dipole_radius,
+        const real dipole_axis_angle_wrt_x_axis_in_degrees)
+    : InitialConditionFunction_NavierStokesBase<dim,nstate,real>(param)
+    , extremum_vorticity_value(extremum_vorticity_value_)
+    , r0(dipole_radius)
+    , x1(dipole_radius*cos(dipole_axis_angle_wrt_x_axis_in_degrees*(3.141592653589793238/180.0)))
+    , y1(dipole_radius*sin(dipole_axis_angle_wrt_x_axis_in_degrees*(3.141592653589793238/180.0)))
+    , x2(-dipole_radius*cos(dipole_axis_angle_wrt_x_axis_in_degrees*(3.141592653589793238/180.0)))
+    , y2(-dipole_radius*sin(dipole_axis_angle_wrt_x_axis_in_degrees*(3.141592653589793238/180.0)))
+{ }
+
+template <int dim, int nstate, typename real>
+real InitialConditionFunction_DipoleWallCollision<dim,nstate,real>
+::primitive_value(const dealii::Point<dim,real> &point, const unsigned int istate) const
+{
+    // Note: This is in non-dimensional form (free-stream values as reference)
+    real value = 0.;
+    if constexpr(dim == 2) {
+        const real x = point[0], y = point[1];
+        // corresponding radii (non-dimensional)
+        const real r1 = sqrt((x-this->x1)*(x-this->x1) + (y-this->y1)*(y-this->y1));
+        const real r2 = sqrt((x-this->x2)*(x-this->x2) + (y-this->y2)*(y-this->y2));
+
+        if(istate==0) {
+            // density
+            value = 1.0;
+        }
+        if(istate==1) {
+            // x-velocity
+            value = -0.5*abs(extremum_vorticity_value)*(y-this->y1)*exp(-(r1/this->r0)*(r1/this->r0))
+                    +0.5*abs(extremum_vorticity_value)*(y-this->y2)*exp(-(r2/this->r0)*(r2/this->r0));
+        }
+        if(istate==2) {
+            // y-velocity
+            value = 0.5*abs(extremum_vorticity_value)*(x-this->x1)*exp(-(r1/this->r0)*(r1/this->r0))
+                    -0.5*abs(extremum_vorticity_value)*(x-this->x2)*exp(-(r2/this->r0)*(r2/this->r0));
+        }
+        if(istate==3) {
+            // pressure
+            value = 1.0/(this->gamma_gas*this->mach_inf_sqr)
+                    - (1.0/16.0)*pow(this->extremum_vorticity_value*this->r0,2.0)*(exp(-2.0*(r1/this->r0)*(r1/this->r0))+exp(-2.0*(r2/this->r0)*(r2/this->r0)));
+        }
+    }
+    return value;
+}
+
+// ========================================================
+// Dipole Wall Collision Normal -- Initial Condition
+// ========================================================
+template <int dim, int nstate, typename real>
+InitialConditionFunction_DipoleWallCollision_Normal<dim,nstate,real>
+::InitialConditionFunction_DipoleWallCollision_Normal (
+        Parameters::AllParameters const *const param)
+    : InitialConditionFunction_DipoleWallCollision<dim,nstate,real>(
+        param,
+        299.528385375226, // reference: Keetels et al. 2007
+        0.1, // dipole radius
+        90.0) // dipole axis angle wrt to x-axis
+{}
+
+// ========================================================
+// Dipole Wall Collision Oblique -- Initial Condition
+// ========================================================
+template <int dim, int nstate, typename real>
+InitialConditionFunction_DipoleWallCollision_Oblique<dim,nstate,real>
+::InitialConditionFunction_DipoleWallCollision_Oblique (
+        Parameters::AllParameters const *const param)
+    : InitialConditionFunction_DipoleWallCollision<dim,nstate,real>(
+        param,
+        299.528385375226, // reference: Keetels et al. 2007
+        0.1, // dipole radius
+        30.0) // dipole axis angle wrt to x-axis
+{}
 
 // ========================================================
 // 1D BURGERS REWIENSKI -- Initial Condition
@@ -578,55 +731,6 @@ inline real InitialConditionFunction_KHI<dim,nstate,real>
 }
 
 // ========================================================
-// Initial Condition - Euler Base
-// ========================================================
-template <int dim, int nstate, typename real>
-InitialConditionFunction_EulerBase<dim, nstate, real>
-::InitialConditionFunction_EulerBase(
-    Parameters::AllParameters const* const param)
-    : InitialConditionFunction<dim, nstate, real>()
-{
-    // Euler object; create using dynamic_pointer_cast and the create_Physics factory
-    // Note that Euler primitive/conservative vars are the same as NS
-    PHiLiP::Parameters::AllParameters parameters_euler = *param;
-    parameters_euler.pde_type = Parameters::AllParameters::PartialDifferentialEquation::euler;
-    this->euler_physics = std::dynamic_pointer_cast<Physics::Euler<dim,dim+2,double>>(
-                Physics::PhysicsFactory<dim,dim+2,double>::create_Physics(&parameters_euler));
-}
-
-template <int dim, int nstate, typename real>
-real InitialConditionFunction_EulerBase<dim, nstate, real>
-::convert_primitive_to_conversative_value(
-    const dealii::Point<dim, real>& point, const unsigned int istate) const
-{
-    real value = 0.0;
-    std::array<real, nstate> soln_primitive;
-
-    soln_primitive[0] = primitive_value(point, 0);
-    soln_primitive[1] = primitive_value(point, 1);
-    soln_primitive[2] = primitive_value(point, 2);
-    
-    if constexpr (dim > 1)
-        soln_primitive[3] = primitive_value(point, 3);
-    if constexpr (dim > 2)
-        soln_primitive[4] = primitive_value(point, 4);
-
-    const std::array<real, nstate> soln_conservative = this->euler_physics->convert_primitive_to_conservative(soln_primitive);
-    value = soln_conservative[istate];
-
-    return value;
-}
-
-template <int dim, int nstate, typename real>
-inline real InitialConditionFunction_EulerBase<dim, nstate, real>
-::value(const dealii::Point<dim, real>& point, const unsigned int istate) const
-{
-    real value = 0.0;
-    value = convert_primitive_to_conversative_value(point, istate);
-    return value;
-}
-
-// ========================================================
 // 1D Sod Shock tube -- Initial Condition
 // See Chen & Shu, Entropy stable high order..., 2017, Pg. 25
 // ========================================================
@@ -634,7 +738,7 @@ template <int dim, int nstate, typename real>
 InitialConditionFunction_SodShockTube<dim,nstate,real>
 ::InitialConditionFunction_SodShockTube (
         Parameters::AllParameters const* const param)
-        : InitialConditionFunction_EulerBase<dim,nstate,real>(param)
+        : InitialConditionFunction_NavierStokesBase<dim,nstate,real>(param)
 {}
 
 template <int dim, int nstate, typename real>
@@ -683,7 +787,7 @@ template <int dim, int nstate, typename real>
 InitialConditionFunction_LowDensity2D<dim,nstate,real>
 ::InitialConditionFunction_LowDensity2D(
     Parameters::AllParameters const* const param)
-    : InitialConditionFunction_EulerBase<dim, nstate, real>(param)
+    : InitialConditionFunction_NavierStokesBase<dim,nstate,real>(param)
 {}
 
 template <int dim, int nstate, typename real>
@@ -722,7 +826,7 @@ template <int dim, int nstate, typename real>
 InitialConditionFunction_LeblancShockTube<dim,nstate,real>
 ::InitialConditionFunction_LeblancShockTube(
     Parameters::AllParameters const* const param)
-    : InitialConditionFunction_EulerBase<dim, nstate, real>(param)
+    : InitialConditionFunction_NavierStokesBase<dim,nstate,real>(param)
 {}
 
 template <int dim, int nstate, typename real>
@@ -772,7 +876,7 @@ template <int dim, int nstate, typename real>
 InitialConditionFunction_ShuOsherProblem<dim, nstate, real>
 ::InitialConditionFunction_ShuOsherProblem(
     Parameters::AllParameters const* const param)
-    : InitialConditionFunction_EulerBase<dim, nstate, real>(param)
+    : InitialConditionFunction_NavierStokesBase<dim,nstate,real>(param)
 {}
 
 template <int dim, int nstate, typename real>
@@ -854,6 +958,16 @@ InitialConditionFactory<dim,nstate, real>::create_InitialConditionFunction(
                         param);
             }
         }
+    } else if (flow_type == FlowCaseEnum::dipole_wall_collision_normal) {
+        if constexpr (dim==2 && nstate==dim+2){ 
+            return std::make_shared<InitialConditionFunction_DipoleWallCollision_Normal<dim,nstate,real> >(
+                        param);
+        }
+    } else if (flow_type == FlowCaseEnum::dipole_wall_collision_oblique) {
+        if constexpr (dim==2 && nstate==dim+2){ 
+            return std::make_shared<InitialConditionFunction_DipoleWallCollision_Oblique<dim,nstate,real> >(
+                        param);
+        }
     } else if (flow_type == FlowCaseEnum::decaying_homogeneous_isotropic_turbulence) {
         if constexpr (dim==3 && nstate==dim+2) return nullptr; // nullptr since DHIT case initializes values from file
     } else if (flow_type == FlowCaseEnum::burgers_rewienski_snapshot) {
@@ -925,6 +1039,13 @@ InitialConditionFactory<dim,nstate, real>::create_InitialConditionFunction(
                     param->flow_solver_param.turbulent_channel_domain_length_x_direction,
                     param->flow_solver_param.turbulent_channel_domain_length_y_direction,
                     param->flow_solver_param.turbulent_channel_domain_length_z_direction);
+            } else if(xvelocity_initial_condition_type == XVelocityInitialConditionEnum::manufactured) {
+                return std::make_shared<InitialConditionFunction_TurbulentChannelFlow_Manufactured<dim,nstate,real>>(
+                    navier_stokes_physics_double,
+                    param->flow_solver_param.turbulent_channel_friction_velocity_reynolds_number,
+                    param->flow_solver_param.turbulent_channel_domain_length_x_direction,
+                    param->flow_solver_param.turbulent_channel_domain_length_y_direction,
+                    param->flow_solver_param.turbulent_channel_domain_length_z_direction);
             }
         }
     } else if (flow_type == FlowCaseEnum::sod_shock_tube) {
@@ -958,11 +1079,11 @@ template class InitialConditionFactory <PHILIP_DIM, 3, double>;
 template class InitialConditionFactory <PHILIP_DIM, 4, double>;
 template class InitialConditionFactory <PHILIP_DIM, 5, double>;
 template class InitialConditionFactory <PHILIP_DIM, 6, double>;
+template class InitialConditionFunction_NavierStokesBase <PHILIP_DIM, PHILIP_DIM+2, double>;
 #if PHILIP_DIM==1
 template class InitialConditionFunction_BurgersViscous <PHILIP_DIM, 1, double>;
 template class InitialConditionFunction_BurgersRewienski <PHILIP_DIM, 1, double>;
 template class InitialConditionFunction_BurgersInviscidEnergy <PHILIP_DIM, 1, double>;
-template class InitialConditionFunction_EulerBase <PHILIP_DIM,PHILIP_DIM+2,double>;
 template class InitialConditionFunction_SodShockTube <PHILIP_DIM,PHILIP_DIM+2,double>;
 template class InitialConditionFunction_LeblancShockTube <PHILIP_DIM,PHILIP_DIM+2,double>;
 template class InitialConditionFunction_ShuOsherProblem <PHILIP_DIM, PHILIP_DIM + 2, double>;
@@ -972,14 +1093,17 @@ template class InitialConditionFunction_TaylorGreenVortex <PHILIP_DIM, PHILIP_DI
 template class InitialConditionFunction_TaylorGreenVortex_Isothermal <PHILIP_DIM, PHILIP_DIM+2, double>;
 template class InitialConditionFunction_TurbulentChannelFlow <PHILIP_DIM, PHILIP_DIM+2, double>;
 template class InitialConditionFunction_TurbulentChannelFlow_Turbulent <PHILIP_DIM, PHILIP_DIM+2, double>;
+template class InitialConditionFunction_TurbulentChannelFlow_Manufactured <PHILIP_DIM, PHILIP_DIM+2, double>;
 #endif
 #if PHILIP_DIM>1
 template class InitialConditionFunction_IsentropicVortex <PHILIP_DIM, PHILIP_DIM+2, double>;
 #endif
 #if PHILIP_DIM==2
 template class InitialConditionFunction_KHI <PHILIP_DIM, PHILIP_DIM+2, double>;
-template class InitialConditionFunction_EulerBase <PHILIP_DIM, PHILIP_DIM + 2, double>;
 template class InitialConditionFunction_LowDensity2D <PHILIP_DIM, PHILIP_DIM+2, double>;
+template class InitialConditionFunction_DipoleWallCollision <PHILIP_DIM, PHILIP_DIM+2, double>;
+template class InitialConditionFunction_DipoleWallCollision_Normal <PHILIP_DIM, PHILIP_DIM+2, double>;
+template class InitialConditionFunction_DipoleWallCollision_Oblique <PHILIP_DIM, PHILIP_DIM+2, double>;
 #endif
 // functions instantiated for all dim
 template class InitialConditionFunction_Zero <PHILIP_DIM,1, double>;

@@ -31,6 +31,9 @@ public:
     const bool do_compute_filtered_solution; ///< Flag to compute the filtered solution
     const bool apply_modal_high_pass_filter_on_filtered_solution; ///< Flag to apply modal high pass filter on the filtered solution
     const unsigned int poly_degree_max_large_scales; ///< For filtered solution; lower bound of high pass filter
+    const bool using_wall_model; ///< Flag for using wall model
+    const bool wall_model_input_from_second_element; /// Flag for using the second element as the wall model input
+    const bool use_projected_entropy_variables_for_nsfr_boundary_term; /// Flag for using projected entropy variables for NSFR boundary term
 
     /// Assembles the auxiliary equations' residuals and solves for the auxiliary variables.
     /** For information regarding auxiliary vs. primary quations, see 
@@ -261,6 +264,7 @@ protected:
 
     /// Strong form primary equation's boundary right-hand-side.
     void assemble_boundary_term_strong(
+        typename dealii::DoFHandler<dim>::active_cell_iterator current_cell,
         const unsigned int                                 iface, 
         const dealii::types::global_dof_index              current_cell_index,
         const unsigned int                                 boundary_id,

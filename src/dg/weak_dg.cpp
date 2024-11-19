@@ -788,10 +788,9 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_boundary_term(
         }
     }
 
-
     std::vector<State> soln_int = local_solution.evaluate_values(unit_quad_pts);
-    std::vector<State> soln_ext(n_quad_pts);
-    std::vector<DirectionalState> soln_grad_int(n_quad_pts), soln_grad_ext(n_quad_pts);
+    std::vector<State> soln_ext(n_quad_pts), soln_ext_viscous_flux(n_quad_pts);
+    std::vector<DirectionalState> soln_grad_int(n_quad_pts), soln_grad_ext(n_quad_pts), soln_grad_ext_viscous_flux(n_quad_pts);
 
     for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
 
@@ -809,6 +808,7 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_boundary_term(
     for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
         const dealii::Tensor<1,dim,real2> normal_int = phys_unit_normal[iquad];
         physics.boundary_face_values (boundary_id, real_quad_pts[iquad], normal_int, soln_int[iquad], soln_grad_int[iquad], soln_ext[iquad], soln_grad_ext[iquad]);
+        physics.boundary_face_values_viscous_flux (boundary_id, real_quad_pts[iquad], normal_int, soln_int[iquad], soln_grad_int[iquad], soln_int[iquad], soln_grad_int[iquad], soln_ext_viscous_flux[iquad], soln_grad_ext_viscous_flux[iquad]);
     }
 
     // Assemble BR2 gradient correction right-hand side
@@ -925,7 +925,7 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_boundary_term(
         //conv_num_flux_dot_n[iquad] = conv_num_flux.evaluate_flux(soln_int[iquad], soln_ext[iquad], normal_int);
         conv_num_flux_dot_n[iquad] = conv_num_flux.evaluate_flux(soln_int[iquad], soln_ext[iquad], normal_int);
         // Notice that the flux uses the solution given by the Dirichlet or Neumann boundary condition
-        diss_soln_num_flux[iquad] = diss_num_flux.evaluate_solution_flux(soln_ext[iquad], soln_ext[iquad], normal_int);
+        diss_soln_num_flux[iquad] = diss_num_flux.evaluate_solution_flux(soln_ext_viscous_flux[iquad], soln_ext_viscous_flux[iquad], normal_int);
 
         DirectionalState diss_soln_jump_int;
         for (int s=0; s<nstate; s++) {
@@ -947,10 +947,10 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_boundary_term(
             current_cell_index,
             artificial_diss_coeff_at_q[iquad],
             artificial_diss_coeff_at_q[iquad],
-            soln_int[iquad], soln_ext[iquad],
-            soln_grad_int[iquad], soln_grad_ext[iquad],
-            soln_int[iquad], soln_ext[iquad],
-            soln_grad_int[iquad], soln_grad_ext[iquad],
+            soln_int[iquad], soln_ext_viscous_flux[iquad],
+            soln_grad_int[iquad], soln_grad_ext_viscous_flux[iquad],
+            soln_int[iquad], soln_ext_viscous_flux[iquad],
+            soln_grad_int[iquad], soln_grad_ext_viscous_flux[iquad],
             normal_int, penalty, true, boundary_id);
     }
 

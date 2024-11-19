@@ -91,7 +91,11 @@ std::string FlowSolverCaseBase<dim, nstate>::get_flow_case_string() const
     if (flow_case_type == FlowCaseEnum::periodic_1D_unsteady)       {flow_case_string = "periodic_1D_unsteady";}
     if (flow_case_type == FlowCaseEnum::gaussian_bump)              {flow_case_string = "gaussian_bump";}
     if (flow_case_type == FlowCaseEnum::advection_limiter)          {flow_case_string = "advection_limiter";}
-
+    if (flow_case_type == FlowCaseEnum::dipole_wall_collision_normal)
+                                                                    {flow_case_string = "dipole_wall_collision_normal";}
+    if (flow_case_type == FlowCaseEnum::dipole_wall_collision_oblique)
+                                                                    {flow_case_string = "dipole_wall_collision_oblique";}
+    
     return flow_case_string;
 }
 
@@ -196,22 +200,11 @@ void FlowSolverCaseBase<dim, nstate>::steady_state_postprocessing(std::shared_pt
 }
 
 template <int dim, int nstate>
-void FlowSolverCaseBase<dim,nstate>::initialize_model_variables(std::shared_ptr<DGBase<dim, double>> /*dg*/) const
-{
-    // do nothing by default
-}
-
-template <int dim, int nstate>
-void FlowSolverCaseBase<dim,nstate>::update_model_variables(std::shared_ptr<DGBase<dim, double>> /*dg*/) const
-{
-    // do nothing by default
-}
-
-template <int dim, int nstate>
 void FlowSolverCaseBase<dim, nstate>::compute_unsteady_data_and_write_to_table(
         const std::shared_ptr <ODE::ODESolverBase<dim, double>> /*ode_solver*/,
         const std::shared_ptr <DGBase<dim, double>> /*dg*/,
-        const std::shared_ptr <dealii::TableHandler> /*unsteady_data_table*/)
+        const std::shared_ptr <dealii::TableHandler> /*unsteady_data_table*/,
+        const bool /*do_write_unsteady_data_table_file*/)
 {
     // do nothing by default
 }

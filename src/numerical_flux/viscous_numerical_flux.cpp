@@ -183,9 +183,9 @@ std::array<real, nstate> SymmetricInternalPenalty<dim,nstate,real>
         // Details given on page 93
         artificial_diss_coeff_ext = artificial_diss_coeff_int;
         neighbor_cell_index = current_cell_index;
-        soln_grad_ext = soln_grad_int;
-        //soln_grad_ext = soln_grad_ext_;
-        filtered_soln_grad_ext = filtered_soln_grad_int;
+        // soln_grad_ext = soln_grad_int;
+        soln_grad_ext = soln_grad_ext_;
+        // filtered_soln_grad_ext = filtered_soln_grad_int;
     } else {
         artificial_diss_coeff_ext = artificial_diss_coeff_ext_;
         neighbor_cell_index = neighbor_cell_index_;

@@ -28,6 +28,8 @@ public:
         channel_flow,
         isentropic_vortex,
         kelvin_helmholtz_instability,
+        dipole_wall_collision_normal,
+        dipole_wall_collision_oblique,
         non_periodic_cube_flow,
         sod_shock_tube,
         low_density_2d,
@@ -90,6 +92,7 @@ public:
     unsigned int restart_file_index; ///< Index of desired restart file for restarting the computation from
     int output_restart_files_every_x_steps; ///< Outputs the restart files every x steps
     double output_restart_files_every_dt_time_intervals; ///< Outputs the restart files at time intervals of dt
+    double write_unsteady_data_table_file_every_dt_time_intervals; ///< Writes the unsteady data table file at time intervals of dt
 
     /// Parameters related to mesh generation
     unsigned int grid_degree; ///< Polynomial degree of the grid
@@ -131,11 +134,13 @@ public:
     double turbulent_channel_domain_length_x_direction; ///< For channel flow, domain length in x-direction
     double turbulent_channel_domain_length_y_direction; ///< For channel flow, domain length in y-direction
     double turbulent_channel_domain_length_z_direction; ///< For channel flow, domain length in z-direction
-    
+    double relaxation_coefficient_for_turbulent_channel_flow_source_term;///< For channel flow, relaxation coefficient for the source term
+
     /// For turbulent channel flow, selects the type of x-velocity initialization
     enum XVelocityInitialConditionType{
         laminar,
         turbulent,
+        manufactured,
         };
     /// Selected XVelocityInitialConditionType from the input file
     XVelocityInitialConditionType xvelocity_initial_condition_type;
@@ -145,10 +150,17 @@ public:
         gullbrand,
         hopw,
         carton_de_wiart_et_al,
+        uniform_mesh_no_stretching,
         };
     /// Selected DensityInitialConditionType from the input file
     TurbulentChannelMeshStretchingFunctionType turbulent_channel_mesh_stretching_function_type;
 
+    /// For dipole wall collision, flag to use stretched mesh
+    bool do_use_stretched_mesh;
+
+    /// For dipole wall collision, flag to compute angular momentum
+    bool do_compute_angular_momentum;
+    
     /// For KHI, the atwood number
     double atwood_number;
 
@@ -170,7 +182,10 @@ public:
     std::string output_velocity_field_times_string; ///< String of velocity field output times
     unsigned int number_of_times_to_output_velocity_field; ///< Number of fixed times to output the velocity field
     bool output_vorticity_magnitude_field_in_addition_to_velocity; ///< Flag for outputting vorticity magnitude field in addition to velocity field
+    bool output_density_field_in_addition_to_velocity; ///< Flag for outputting density field in addition to velocity field
+    bool output_viscosity_field_in_addition_to_velocity; ///< Flag for outputting viscosity field in addition to velocity field
     std::string output_flow_field_files_directory_name; ///< Name of directory for writing flow field files
+    unsigned int output_velocity_number_of_subvisions; ///< Number of subdivisions to apply when writting the velocity field at equidistant nodes
 
     bool end_exactly_at_final_time; ///< Flag to adjust the last timestep such that the simulation ends exactly at final_time
     bool do_compute_unsteady_data_and_write_to_table;///< Flag for computing unsteady data and writting to table

@@ -9,6 +9,7 @@
 #include <deal.II/grid/grid_generator.h>
 #include <deal.II/grid/grid_tools.h>
 // #include "mesh/gmsh_reader.hpp" // uncomment this to use the gmsh reader
+#include "physics/physics_factory.h"
 
 namespace PHiLiP {
 
@@ -40,36 +41,59 @@ ChannelFlow<dim, nstate>::ChannelFlow(const PHiLiP::Parameters::AllParameters *c
             zero_tensor[d1][d2] = 0.0;
         }
     }
+
+    // NavierStokes_ChannelFlowConstantSourceTerm_WallModel object; create using dynamic_pointer_cast and the create_Physics factory
+    using PDE_enum = Parameters::AllParameters::PartialDifferentialEquation;
+    PHiLiP::Parameters::AllParameters parameters_navier_stokes_channel_flow_constant_source_term_wall_model = this->all_param;
+    parameters_navier_stokes_channel_flow_constant_source_term_wall_model.pde_type = PDE_enum::navier_stokes_channel_flow_constant_source_term_wall_model;
+    this->navier_stokes_channel_flow_constant_source_term_wall_model_physics = 
+        std::dynamic_pointer_cast<Physics::NavierStokes_ChannelFlowConstantSourceTerm_WallModel<dim,dim+2,double>>(
+                Physics::PhysicsFactory<dim,dim+2,double>::create_Physics(&parameters_navier_stokes_channel_flow_constant_source_term_wall_model));
 }
 
 template <int dim, int nstate>
 void ChannelFlow<dim, nstate>::compute_unsteady_data_and_write_to_table(
         const std::shared_ptr <ODE::ODESolverBase<dim, double>> ode_solver,
         const std::shared_ptr <DGBase<dim, double>> dg,
-        const std::shared_ptr <dealii::TableHandler> unsteady_data_table)
+        const std::shared_ptr <dealii::TableHandler> unsteady_data_table,
+        const bool do_write_unsteady_data_table_file)
 {
     // unpack current iteration and current time from ode solver
     const unsigned int current_iteration = ode_solver->current_iteration;
     const double current_time = ode_solver->current_time;
     // Update maximum local wave speed for adaptive time_step
-    this->update_maximum_local_wave_speed(*dg);
+    if(this->all_param.flow_solver_param.adaptive_time_step) this->update_maximum_local_wave_speed(*dg);
     // get averaged wall shear stress
-    const double average_wall_shear_stress = get_average_wall_shear_stress(*dg);
+    double average_wall_shear_stress = 0.0;
+    if(this->all_param.using_wall_model) average_wall_shear_stress = get_average_wall_shear_stress_from_wall_model(*dg);
+    else average_wall_shear_stress = get_average_wall_shear_stress(*dg);
+
+    set_bulk_flow_quantities(*dg);
+    const double skin_friction_coefficient = get_skin_friction_coefficient_from_average_wall_shear_stress(average_wall_shear_stress);
 
     if(this->mpi_rank==0) {
         // Add values to data table
         this->add_value_to_data_table(current_time,"time",unsteady_data_table);
         this->add_value_to_data_table(average_wall_shear_stress,"tau_w",unsteady_data_table);
+        this->add_value_to_data_table(skin_friction_coefficient,"skin_friction_coefficient",unsteady_data_table);
+        this->add_value_to_data_table(bulk_density,"bulk_density",unsteady_data_table);
+        this->add_value_to_data_table(bulk_velocity,"bulk_velocity",unsteady_data_table);
         // Write to file
-        std::ofstream unsteady_data_table_file(this->unsteady_data_table_filename_with_extension);
-        unsteady_data_table->write_text(unsteady_data_table_file);
+        if(do_write_unsteady_data_table_file) {
+            std::ofstream unsteady_data_table_file(this->unsteady_data_table_filename_with_extension);
+            unsteady_data_table->write_text(unsteady_data_table_file);
+        }
     }
 
     // Print to console
     this->pcout << "    Iter: " << current_iteration
                 << "    Time: " << current_time
-                << "    tau_w: " << average_wall_shear_stress
+                << "    Cf: " << skin_friction_coefficient
+                << "    Ub: " << this->bulk_velocity
+                << "    BulkMassFlow: " << this->bulk_mass_flow_rate
                 << std::endl;
+
+    // TO DO: print t/2pi and Re_b calculated to track the convergence of the flow; add these to the table
 
     // Abort if average_wall_shear_stress is nan
     if(std::isnan(average_wall_shear_stress)) {
@@ -77,12 +101,18 @@ void ChannelFlow<dim, nstate>::compute_unsteady_data_and_write_to_table(
         this->pcout << "        Consider decreasing the time step / CFL number." << std::endl;
         std::abort();
     }
+
+    // Output velocity field if current time is output file
+    this->output_velocity_field_if_current_time_is_output_time(current_time, dg);
 }
 
 template <int dim, int nstate>
 void ChannelFlow<dim,nstate>::display_additional_flow_case_specific_parameters() const
 {
-    this->pcout << "- - Courant-Friedrichs-Lewy number: " << this->all_param.flow_solver_param.courant_friedrichs_lewy_number << std::endl;
+    if(this->all_param.flow_solver_param.adaptive_time_step)
+        this->pcout << "- - Courant-Friedrichs-Lewy number: " << this->all_param.flow_solver_param.courant_friedrichs_lewy_number << std::endl;
+    else
+        this->pcout << "- - Constant time step: " << this->all_param.flow_solver_param.constant_time_step << std::endl;
     this->pcout << "- - Freestream Mach number: " << this->all_param.euler_param.mach_inf << std::endl;
     this->pcout << "- - Freestream Reynolds number: " << this->all_param.navier_stokes_param.reynolds_number_inf << std::endl;
     this->pcout << "- - Reynolds number based on wall friction velocity: " << this->channel_friction_velocity_reynolds_number << std::endl;
@@ -106,6 +136,19 @@ void ChannelFlow<dim,nstate>::display_grid_parameters() const
     this->pcout << "- - Number of cells in x-direction: " << this->number_of_cells_x_direction << std::endl;
     this->pcout << "- - Number of cells in y-direction: " << this->number_of_cells_y_direction << std::endl;
     this->pcout << "- - Number of cells in z-direction: " << this->number_of_cells_z_direction << std::endl;
+    using turbulent_channel_mesh_stretching_function_enum = Parameters::FlowSolverParam::TurbulentChannelMeshStretchingFunctionType;
+    const turbulent_channel_mesh_stretching_function_enum turbulent_channel_mesh_stretching_function_type = this->all_param.flow_solver_param.turbulent_channel_mesh_stretching_function_type;
+    std::string turbulent_channel_mesh_stretching_function_type_string;
+    if(turbulent_channel_mesh_stretching_function_type == turbulent_channel_mesh_stretching_function_enum::gullbrand){
+        turbulent_channel_mesh_stretching_function_type_string = "Gullbrand";
+    } else if(turbulent_channel_mesh_stretching_function_type == turbulent_channel_mesh_stretching_function_enum::hopw){
+        turbulent_channel_mesh_stretching_function_type_string = "HOPW";
+    } else if(turbulent_channel_mesh_stretching_function_type == turbulent_channel_mesh_stretching_function_enum::carton_de_wiart_et_al){
+        turbulent_channel_mesh_stretching_function_type_string = "carton_de_wiart_et_al";
+    } else if(turbulent_channel_mesh_stretching_function_type == turbulent_channel_mesh_stretching_function_enum::uniform_mesh_no_stretching){
+        turbulent_channel_mesh_stretching_function_type_string = "uniform_mesh_no_stretching";
+    }
+    this->pcout << "- - Mesh stretching function: " << turbulent_channel_mesh_stretching_function_type_string << std::endl;
 }
 
 template <int dim, int nstate>
@@ -142,6 +185,12 @@ std::vector<double> ChannelFlow<dim,nstate>::get_mesh_step_size_y_direction() co
         step_size_y_direction = get_mesh_step_size_y_direction_HOPW();
     } else if(turbulent_channel_mesh_stretching_function_type == turbulent_channel_mesh_stretching_function_enum::carton_de_wiart_et_al){
         step_size_y_direction = get_mesh_step_size_y_direction_carton_de_wiart_et_al();
+    } else if(turbulent_channel_mesh_stretching_function_type == turbulent_channel_mesh_stretching_function_enum::uniform_mesh_no_stretching){
+        // for wall model use uniform grid (i.e. no stretching)
+        const double uniform_spacing_y = this->domain_length_y/double(this->number_of_cells_y_direction);
+        for (int j=0; j<this->number_of_cells_y_direction; j++) {
+            step_size_y_direction.push_back(uniform_spacing_y);
+        }
     } else {
         this->pcout << "ERROR: Invalid turbulent_channel_mesh_stretching_function_type. Aborting..." << std::endl;
         std::abort();
@@ -294,6 +343,7 @@ std::shared_ptr<Triangulation> ChannelFlow<dim,nstate>::generate_grid() const
                 unsigned int current_id = cell->face(face)->boundary_id();
                 if (current_id == 2 || current_id == 3) cell->face(face)->set_boundary_id (1001); // Bottom and top wall
                 // could simply introduce different boundary id if using a wall model
+                // -- could be problematic since need same boundary ID for Euler boundary_face_values
             }
         }
     }
@@ -315,21 +365,13 @@ void ChannelFlow<dim,nstate>::set_higher_order_grid(std::shared_ptr<DGBase<dim, 
 }
 
 template <int dim, int nstate>
-void ChannelFlow<dim,nstate>::initialize_model_variables(std::shared_ptr<DGBase<dim, double>> dg) const
+unsigned int ChannelFlow<dim,nstate>::get_number_of_degrees_of_freedom_per_state_from_poly_degree(const unsigned int poly_degree_input) const
 {
-    dg->set_constant_model_variables(
-        this->channel_height,
-        this->half_channel_height,
-        this->channel_friction_velocity_reynolds_number,
-        this->channel_bulk_velocity_reynolds_number);
-}
-
-template <int dim, int nstate>
-void ChannelFlow<dim,nstate>::update_model_variables(std::shared_ptr<DGBase<dim, double>> dg) const
-{
-    dg->set_unsteady_model_variables(
-        0.0,
-        this->get_time_step());
+    // expression for the channel flow grid (i.e. different number of cells in each direction)
+    const unsigned int number_of_degrees_of_freedom_per_state = this->number_of_cells_x_direction*(poly_degree_input+1)*
+                                                                 this->number_of_cells_y_direction*(poly_degree_input+1)*
+                                                                  this->number_of_cells_z_direction*(poly_degree_input+1);
+    return number_of_degrees_of_freedom_per_state;
 }
 
 template<int dim, int nstate>
@@ -377,8 +419,8 @@ double ChannelFlow<dim, nstate>::get_average_wall_shear_stress(DGBase<dim, doubl
                             soln_grad_at_q[istate] += dg.solution[dofs_indices[idof]] * fe_face_values_extra.shape_grad_component(idof,iquad,istate);
                         }
                         // const dealii::Point<dim> qpoint = (fe_face_values_extra.quadrature_point(iquad));
-                        const dealii::Tensor<1,dim,double> normal_vector = fe_face_values_extra.normal_vector(iquad);
-                        double integrand_value = this->navier_stokes_physics->compute_wall_shear_stress(soln_at_q,soln_grad_at_q,normal_vector);
+                        const dealii::Tensor<1,dim,double> normal_vector = -fe_face_values_extra.normal_vector(iquad); // minus for wall normal from face normal
+                        const double integrand_value = this->navier_stokes_physics->compute_wall_shear_stress(soln_at_q,soln_grad_at_q,normal_vector);
                         integral_value += integrand_value * fe_face_values_extra.JxW(iquad);
                         integral_area_value += fe_face_values_extra.JxW(iquad);
                     }
@@ -390,6 +432,191 @@ double ChannelFlow<dim, nstate>::get_average_wall_shear_stress(DGBase<dim, doubl
     const double mpi_sum_integral_area_value = dealii::Utilities::MPI::sum(integral_area_value, this->mpi_communicator);
     const double averaged_value = mpi_sum_integral_value/mpi_sum_integral_area_value;
     return averaged_value;
+}
+
+template<int dim, int nstate>
+double ChannelFlow<dim, nstate>::get_average_wall_shear_stress_from_wall_model(DGBase<dim, double> &dg) const
+{
+    /// Update flags needed at face points.
+    const dealii::UpdateFlags face_update_flags = dealii::update_values /*| dealii::update_gradients*/ | dealii::update_quadrature_points | dealii::update_JxW_values | dealii::update_normal_vectors;
+    double integral_value = 0.0;
+    double integral_area_value = 0.0;
+
+    // Overintegrate the error to make sure there is not integration error in the error estimate
+    int overintegrate = 10;
+    dealii::QGauss<dim-1> quad_extra(dg.max_degree+1+overintegrate);
+    dealii::FEFaceValues<dim,dim> fe_face_values_extra(*(dg.high_order_grid->mapping_fe_field), dg.fe_collection[dg.max_degree], quad_extra, 
+                                                  face_update_flags);
+
+    
+    std::array<double,nstate> soln_at_q;
+    // std::array<dealii::Tensor<1,dim,double>,nstate> soln_grad_at_q;
+
+    std::vector<dealii::types::global_dof_index> dofs_indices (fe_face_values_extra.dofs_per_cell);
+    for (auto cell : dg.dof_handler.active_cell_iterators()) {
+        if (!cell->is_locally_owned()) continue;
+        
+        cell->get_dof_indices (dofs_indices);
+
+        for(unsigned int iface = 0; iface < dealii::GeometryInfo<dim>::faces_per_cell; ++iface){
+            auto face = cell->face(iface);
+            
+            if(face->at_boundary()){
+                const unsigned int boundary_id = face->boundary_id();
+                if(boundary_id==1001){
+                    // Opposite surface solution for wall model
+                    // Get opposite face index
+                    const int opposite_iface = (iface == 0) ? 1 : (
+                                                (iface == 1) ? 0 : (
+                                                    (iface == 2) ? 3 : (
+                                                        (iface == 3) ? 2 : ( 
+                                                            (iface == 4) ? 5 : (
+                                                                (iface == 5) ? 4 : -1)))));
+                    if(opposite_iface == -1) {
+                        this->pcout << "ERROR: Invalid iface, opposite_iface is -1. Aborting..."<<std::endl;
+                        std::abort();
+                    }
+
+                    fe_face_values_extra.reinit (cell,opposite_iface);
+                    const unsigned int n_quad_pts = fe_face_values_extra.n_quadrature_points;
+                    for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
+                        std::fill(soln_at_q.begin(), soln_at_q.end(), 0.0);
+                        // for (int s=0; s<nstate; ++s) {
+                        //     for (int d=0; d<dim; ++d) {
+                        //         soln_grad_at_q[s][d] = 0.0;
+                        //     }
+                        // }
+                        for (unsigned int idof=0; idof<fe_face_values_extra.dofs_per_cell; ++idof) {
+                            const unsigned int istate = fe_face_values_extra.get_fe().system_to_component_index(idof).first;
+                            soln_at_q[istate] += dg.solution[dofs_indices[idof]] * fe_face_values_extra.shape_value_component(idof, iquad, istate);
+                            // soln_grad_at_q[istate] += dg.solution[dofs_indices[idof]] * fe_face_values_extra.shape_grad_component(idof,iquad,istate);
+                        }
+                        // const dealii::Point<dim> qpoint = (fe_face_values_extra.quadrature_point(iquad));
+                        // const dealii::Tensor<1,dim,double> normal_vector = -fe_face_values_extra.normal_vector(iquad); // minus for wall normal from face normal
+                        // double integrand_value = this->navier_stokes_physics->compute_wall_shear_stress(soln_at_q,soln_grad_at_q,normal_vector);
+                        // Get wall shear stress magnitude from wall model
+                        const double density = soln_at_q[0];
+                        const double velocity_parallel_to_wall = soln_at_q[1]/soln_at_q[0]; // TO DO -- FURTHER TEST THIS WITH THE NORMAL VECTOR / FUNCTION THAT COMPUTES IT
+                        const double viscosity_coefficient = this->navier_stokes_channel_flow_constant_source_term_wall_model_physics->constant_viscosity; // non-dimensional
+                        const double reynolds_number_inf = this->navier_stokes_channel_flow_constant_source_term_wall_model_physics->reynolds_number_inf;
+                        const double wall_shear_stress_magnitude =
+                                this->navier_stokes_channel_flow_constant_source_term_wall_model_physics->wall_model_look_up_table->get_wall_shear_stress_magnitude(
+                                        velocity_parallel_to_wall,
+                                        this->navier_stokes_channel_flow_constant_source_term_wall_model_physics->distance_from_wall_for_wall_model_input_velocity,
+                                        viscosity_coefficient,
+                                        density,
+                                        reynolds_number_inf);
+
+                        const double integrand_value = wall_shear_stress_magnitude;
+                        integral_value += integrand_value * fe_face_values_extra.JxW(iquad);
+                        integral_area_value += fe_face_values_extra.JxW(iquad);
+                    }
+                }
+            }
+        }
+    }
+    const double mpi_sum_integral_value = dealii::Utilities::MPI::sum(integral_value, this->mpi_communicator);
+    const double mpi_sum_integral_area_value = dealii::Utilities::MPI::sum(integral_area_value, this->mpi_communicator);
+    const double averaged_value = mpi_sum_integral_value/mpi_sum_integral_area_value;
+    return averaged_value;
+}
+
+template <int dim, int nstate>
+double ChannelFlow<dim, nstate>::get_skin_friction_coefficient_from_average_wall_shear_stress(const double avg_wall_shear_stress) const
+{
+    // Reference: Equation 34 of Lodato G, Castonguay P, Jameson A. Discrete filter operators for large-eddy simulation using high-order spectral difference methods. International Journal for Numerical Methods in Fluids2013;72(2):231–258. 
+    const double skin_friction_coefficient = 2.0*avg_wall_shear_stress/(this->bulk_density*this->bulk_velocity*this->bulk_velocity);
+    return skin_friction_coefficient;
+}
+
+template <int dim, int nstate>
+double ChannelFlow<dim, nstate>::get_bulk_density() const
+{
+    return this->bulk_density;
+}
+
+template <int dim, int nstate>
+double ChannelFlow<dim, nstate>::get_bulk_mass_flow_rate() const
+{
+    return this->bulk_mass_flow_rate;
+}
+
+template <int dim, int nstate>
+double ChannelFlow<dim, nstate>::get_bulk_velocity() const
+{
+    return this->bulk_velocity;
+}
+
+template <int dim, int nstate>
+void ChannelFlow<dim, nstate>::set_bulk_flow_quantities(DGBase<dim, double> &dg)
+{
+    const int NUMBER_OF_INTEGRATED_QUANTITIES = 2;
+    std::array<double,NUMBER_OF_INTEGRATED_QUANTITIES> integrated_quantities;
+    /// List of possible integrated quantities over the domain
+    enum IntegratedQuantitiesEnum {
+        bulk_density,
+        bulk_mass_flow_rate
+    };
+    std::array<double,NUMBER_OF_INTEGRATED_QUANTITIES> integral_values;
+    std::fill(integral_values.begin(), integral_values.end(), 0.0);
+
+    // Overintegrate the error to make sure there is not integration error in the error estimate
+    int overintegrate = 10; // TO DO: could reduce this to reduce computational cost
+    dealii::QGauss<dim> quad_extra(dg.max_degree+1+overintegrate);
+    dealii::FEValues<dim,dim> fe_values_extra(*(dg.high_order_grid->mapping_fe_field), dg.fe_collection[dg.max_degree], quad_extra,
+                                              dealii::update_values /*| dealii::update_gradients*/ | dealii::update_JxW_values | dealii::update_quadrature_points);
+
+    const unsigned int n_quad_pts = fe_values_extra.n_quadrature_points;
+    std::array<double,nstate> soln_at_q;
+    // std::array<dealii::Tensor<1,dim,double>,nstate> soln_grad_at_q;
+
+    std::vector<dealii::types::global_dof_index> dofs_indices (fe_values_extra.dofs_per_cell);
+    for (auto cell : dg.dof_handler.active_cell_iterators()) {
+        if (!cell->is_locally_owned()) continue;
+        fe_values_extra.reinit (cell);
+        cell->get_dof_indices (dofs_indices);
+
+        // double cellwise_integrand_value = 0.0;
+        for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
+
+            std::fill(soln_at_q.begin(), soln_at_q.end(), 0.0);
+            // for (int s=0; s<nstate; ++s) {
+            //     for (int d=0; d<dim; ++d) {
+            //         soln_grad_at_q[s][d] = 0.0;
+            //     }
+            // }
+            for (unsigned int idof=0; idof<fe_values_extra.dofs_per_cell; ++idof) {
+                const unsigned int istate = fe_values_extra.get_fe().system_to_component_index(idof).first;
+                soln_at_q[istate] += dg.solution[dofs_indices[idof]] * fe_values_extra.shape_value_component(idof, iquad, istate);
+                // soln_grad_at_q[istate] += dg.solution[dofs_indices[idof]] * fe_values_extra.shape_grad_component(idof,iquad,istate);
+            }
+            // const dealii::Point<dim> qpoint = (fe_values_extra.quadrature_point(iquad));
+
+            std::array<double,NUMBER_OF_INTEGRATED_QUANTITIES> integrand_values;
+            std::fill(integrand_values.begin(), integrand_values.end(), 0.0);
+            integrand_values[IntegratedQuantitiesEnum::bulk_density] = soln_at_q[0]; // density
+            integrand_values[IntegratedQuantitiesEnum::bulk_mass_flow_rate] = soln_at_q[1]; // x-momentum
+
+            // cellwise_integrand_value += integrand_value * fe_values_extra.JxW(iquad);
+
+            for(int i_quantity=0; i_quantity<NUMBER_OF_INTEGRATED_QUANTITIES; ++i_quantity) {
+                integral_values[i_quantity] += integrand_values[i_quantity] * fe_values_extra.JxW(iquad);
+            }
+        }
+        // // get cell index
+        // const dealii::types::global_dof_index cell_index = cell->active_cell_index();
+        // const double cellwise_average = cellwise_integrand_value/dg.pde_model_double->cellwise_volume[cell_index];
+        // integral_value += cellwise_average;
+    }
+    // update integrated quantities
+    for(int i_quantity=0; i_quantity<NUMBER_OF_INTEGRATED_QUANTITIES; ++i_quantity) {
+        integrated_quantities[i_quantity] = dealii::Utilities::MPI::sum(integral_values[i_quantity], this->mpi_communicator);
+        integrated_quantities[i_quantity] /= this->domain_volume; // divide by total domain volume
+    }
+    // set the bulk density, mass flow rate, and velocity for the source term used to force the mass flow rate
+    this->bulk_density = integrated_quantities[IntegratedQuantitiesEnum::bulk_density];
+    this->bulk_mass_flow_rate = integrated_quantities[IntegratedQuantitiesEnum::bulk_mass_flow_rate];
+    this->bulk_velocity = this->bulk_mass_flow_rate/this->bulk_density;
 }
 
 #if PHILIP_DIM==3

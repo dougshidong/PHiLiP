@@ -41,6 +41,8 @@ DGFactory<dim,real,MeshType>
             return std::make_shared< DGWeak<dim,dim+2,real,MeshType> >(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input);
         } else if (pde_type == PDE_enum::navier_stokes) {
             return std::make_shared< DGWeak<dim,dim+2,real,MeshType> >(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input);
+        } else if (pde_type == PDE_enum::navier_stokes_channel_flow_constant_source_term) {
+            return std::make_shared< DGWeak<dim,dim+2,real,MeshType> >(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input);
         } else if ((pde_type == PDE_enum::physics_model) && (model_type == Model_enum::reynolds_averaged_navier_stokes) && (rans_model_type == RANSModel_enum::SA_negative)) {
             return std::make_shared< DGWeak<dim,dim+3,real,MeshType> >(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input);
         }
@@ -68,14 +70,18 @@ DGFactory<dim,real,MeshType>
             return std::make_shared< DGStrong<dim,dim+2,real,MeshType> >(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input);
         } else if (pde_type == PDE_enum::navier_stokes) {
             return std::make_shared< DGStrong<dim,dim+2,real,MeshType> >(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input);
+        } else if (pde_type == PDE_enum::navier_stokes_channel_flow_constant_source_term) {
+            return std::make_shared< DGStrong<dim,dim+2,real,MeshType> >(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input);
+        } else if (pde_type == PDE_enum::navier_stokes_channel_flow_constant_source_term_wall_model) {
+            return std::make_shared< DGStrong<dim,dim+2,real,MeshType> >(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input);
         } else if ((pde_type == PDE_enum::physics_model) && (model_type == Model_enum::reynolds_averaged_navier_stokes) && (rans_model_type == RANSModel_enum::SA_negative)) {
             return std::make_shared< DGStrong<dim,dim+3,real,MeshType> >(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input);
         }
 #if PHILIP_DIM==3
         else if ((pde_type == PDE_enum::physics_model || pde_type == PDE_enum::physics_model_filtered) && (model_type == Model_enum::large_eddy_simulation || model_type == Model_enum::navier_stokes_model)) {
-            // using Model_enum = Parameters::AllParameters::ModelType;
-            // const Model_enum model_type = this->all_param.model_type;
-            // if(model_type == Model_enum::large_eddy_simulation) {
+            using FlowCaseType_enum = Parameters::FlowSolverParam::FlowCaseType;
+            const FlowCaseType_enum flow_case_type = parameters_input->flow_solver_param.flow_case_type;
+            if(model_type == Model_enum::large_eddy_simulation) {
                 using SGS_enum = Parameters::PhysicsModelParam::SubGridScaleModel;
                 const SGS_enum SGS_model_type = parameters_input->physics_model_param.SGS_model_type;
                 if(SGS_model_type == SGS_enum::shear_improved_smagorinsky) {
@@ -87,14 +93,12 @@ DGFactory<dim,real,MeshType>
                     return std::make_shared< DGStrongLES_ShearImproved<dim,dim+2,real,MeshType> >(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input);
                 } else if(SGS_model_type == SGS_enum::dynamic_smagorinsky) {
                     return std::make_shared< DGStrongLES_DynamicSmagorinsky<dim,dim+2,real,MeshType> >(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input);
-
-                // } else {
-                    // return std::make_shared< DGStrong<dim,dim+2,real,MeshType> >(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input);
-                // }
-                // return std::make_shared< DGStrong<dim,dim+2,real,MeshType> >(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input);
-            } else {
-                // make one for the channel flow
-                return std::make_shared< DGStrongLES<dim,dim+2,real,MeshType> >(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input);    
+                } else {
+                    return std::make_shared< DGStrongLES<dim,dim+2,real,MeshType> >(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input);
+                }
+            } else if (model_type == Model_enum::navier_stokes_model && flow_case_type == FlowCaseType_enum::channel_flow) {
+                // TO DO: Update this so that LES works for the channel flow
+                return std::make_shared< DGStrong_ChannelFlow<dim,dim+2,real,MeshType> >(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input);    
             }
         }
 #endif

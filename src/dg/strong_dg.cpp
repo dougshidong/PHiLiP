@@ -30,6 +30,9 @@ DGStrong<dim,nstate,real,MeshType>::DGStrong(
     , do_compute_filtered_solution(this->all_parameters->physics_model_param.do_compute_filtered_solution)
     , apply_modal_high_pass_filter_on_filtered_solution(this->all_parameters->physics_model_param.apply_modal_high_pass_filter_on_filtered_solution)
     , poly_degree_max_large_scales(this->all_parameters->physics_model_param.poly_degree_max_large_scales)
+    , using_wall_model(this->all_parameters->using_wall_model)
+    , wall_model_input_from_second_element(this->all_parameters->wall_model_input_from_second_element)
+    , use_projected_entropy_variables_for_nsfr_boundary_term(this->all_parameters->use_projected_entropy_variables_for_nsfr_boundary_term)
 { }
 
 /***********************************************************
@@ -126,7 +129,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_volume_term_and_build_operator
 }
 template <int dim, int nstate, typename real, typename MeshType>
 void DGStrong<dim,nstate,real,MeshType>::assemble_boundary_term_and_build_operators(
-    typename dealii::DoFHandler<dim>::active_cell_iterator /*cell*/,
+    typename dealii::DoFHandler<dim>::active_cell_iterator cell,
     const dealii::types::global_dof_index                  current_cell_index,
     const unsigned int                                     iface,
     const unsigned int                                     boundary_id,
@@ -172,6 +175,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_boundary_term_and_build_operat
     }
     else{
         assemble_boundary_term_strong (
+            cell,
             iface,
             current_cell_index,
             boundary_id, poly_degree, penalty, 
@@ -684,7 +688,8 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_boundary_term_auxiliary_equati
         for(int idim=0; idim<dim; idim++){
             surf_flux_node[idim] = metric_oper.flux_nodes_surf[iface][idim][iquad];
         }
-        this->pde_physics_double->boundary_face_values (boundary_id, surf_flux_node, unit_phys_normal_int, soln_state, phys_grad_soln_state, soln_boundary, grad_soln_boundary);
+        // this->pde_physics_double->boundary_face_values (boundary_id, surf_flux_node, unit_phys_normal_int, soln_state, phys_grad_soln_state, soln_boundary, grad_soln_boundary);
+        this->pde_physics_double->boundary_face_values_viscous_flux (boundary_id, surf_flux_node, unit_phys_normal_int, soln_state, phys_grad_soln_state, soln_state, phys_grad_soln_state, soln_boundary, grad_soln_boundary);
 
         std::array<real,nstate> diss_soln_num_flux;
         diss_soln_num_flux = this->diss_num_flux_double->evaluate_solution_flux(soln_state, soln_boundary, unit_phys_normal_int);
@@ -891,8 +896,6 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_volume_term_strong(
     OPERATOR::metric_operators<real,dim,2*dim>             &metric_oper,
     dealii::Vector<real>                                   &local_rhs_int_cell)
 {
-    (void) current_cell_index;
-
     const unsigned int n_quad_pts  = this->volume_quadrature_collection[poly_degree].size();
     const unsigned int n_dofs_cell = this->fe_collection[poly_degree].dofs_per_cell;
     const unsigned int n_shape_fns = n_dofs_cell / nstate; 
@@ -1462,6 +1465,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_volume_term_strong(
 
 template <int dim, int nstate, typename real, typename MeshType>
 void DGStrong<dim,nstate,real,MeshType>::assemble_boundary_term_strong(
+    typename dealii::DoFHandler<dim>::active_cell_iterator current_cell,
     const unsigned int iface, 
     const dealii::types::global_dof_index current_cell_index,
     const unsigned int boundary_id,
@@ -1474,7 +1478,28 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_boundary_term_strong(
     OPERATOR::metric_operators<real,dim,2*dim> &metric_oper,
     dealii::Vector<real> &local_rhs_cell)
 {
-    (void) current_cell_index;
+    // Get opposite face index
+    const int opposite_iface = (iface == 0) ? 1 : (
+                                (iface == 1) ? 0 : (
+                                    (iface == 2) ? 3 : (
+                                        (iface == 3) ? 2 : ( 
+                                            (iface == 4) ? 5 : (
+                                                (iface == 5) ? 4 : -1)))));
+    if(opposite_iface == -1) {
+        pcout << "ERROR: Invalid iface, opposite_iface is -1. Aborting..."<<std::endl;
+        std::abort();
+    }
+
+    const auto neighbor_cell = current_cell->neighbor(opposite_iface);
+    const unsigned int neighbor_iface = current_cell->neighbor_face_no(opposite_iface);
+    const int i_fele_n = neighbor_cell->active_fe_index();//, i_quad_n = i_fele_n, i_mapp_n = 0;
+    const unsigned int n_dofs_neigh_cell = this->fe_collection[i_fele_n].n_dofs_per_cell();
+    // Obtain the mapping from local dof indices to global dof indices for neighbor cell
+    std::vector<dealii::types::global_dof_index> neighbor_dofs_indices;
+    neighbor_dofs_indices.resize(n_dofs_neigh_cell);
+    neighbor_cell->get_dof_indices (neighbor_dofs_indices);
+
+    AssertDimension (n_dofs_neigh_cell, neighbor_dofs_indices.size());
 
     const unsigned int n_face_quad_pts  = this->face_quadrature_collection[poly_degree].size();
     const unsigned int n_quad_pts_vol   = this->volume_quadrature_collection[poly_degree].size();
@@ -1491,6 +1516,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_boundary_term_strong(
     // mult would sum the states at the quadrature point.
     std::array<std::vector<real>,nstate> soln_coeff;
     std::array<dealii::Tensor<1,dim,std::vector<real>>,nstate> aux_soln_coeff;
+    std::array<std::vector<real>,nstate> neighbor_soln_coeff;
     const unsigned int p_min_filtered = this->poly_degree_max_large_scales + 1;
     for (unsigned int idof = 0; idof < n_dofs; ++idof) {
         const unsigned int istate = this->fe_collection[poly_degree].system_to_component_index(idof).first;
@@ -1498,9 +1524,11 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_boundary_term_strong(
         // allocate
         if(ishape == 0){
             soln_coeff[istate].resize(n_shape_fns);
+            neighbor_soln_coeff[istate].resize(n_shape_fns);
         }
         // solve
         soln_coeff[istate][ishape] = this->solution(dof_indices[idof]);
+        neighbor_soln_coeff[istate][ishape] = this->solution(neighbor_dofs_indices[idof]);
         for(int idim=0; idim<dim; idim++){
             //allocate
             if(ishape == 0){
@@ -1521,6 +1549,9 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_boundary_term_strong(
     // Interpolate modal soln coefficients to the facet.
     std::array<std::vector<real>,nstate> soln_at_surf_q;
     std::array<dealii::Tensor<1,dim,std::vector<real>>,nstate> aux_soln_at_surf_q;
+    // Opposite surface solution for wall model
+    std::array<std::vector<real>,nstate> soln_at_opposite_surf_q;
+
     for(int istate=0; istate<nstate; ++istate){
         //allocate
         soln_at_vol_q[istate].resize(n_quad_pts_vol);
@@ -1535,6 +1566,22 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_boundary_term_strong(
                                                  soln_coeff[istate], soln_at_surf_q[istate],
                                                  soln_basis.oneD_surf_operator,
                                                  soln_basis.oneD_vol_operator);
+        if(this->using_wall_model && ((boundary_id == 1001) || (boundary_id == 1006))) {
+            //allocate
+            soln_at_opposite_surf_q[istate].resize(n_face_quad_pts);
+            //solve soln at facet cubature nodes
+            if(this->wall_model_input_from_second_element) {
+                soln_basis.matrix_vector_mult_surface_1D(neighbor_iface,
+                                                     neighbor_soln_coeff[istate], soln_at_opposite_surf_q[istate],
+                                                     soln_basis.oneD_surf_operator,
+                                                     soln_basis.oneD_vol_operator);
+            } else {
+                soln_basis.matrix_vector_mult_surface_1D(opposite_iface,
+                                                     soln_coeff[istate], soln_at_opposite_surf_q[istate],
+                                                     soln_basis.oneD_surf_operator,
+                                                     soln_basis.oneD_vol_operator);
+            }
+        }
 
         for(int idim=0; idim<dim; idim++){
             //alocate
@@ -2067,29 +2114,28 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_boundary_term_strong(
 
         //get the projected entropy variables, soln, and 
         //auxiliary solution on the surface point.
-        std::array<real,nstate> entropy_var_face_int;
-        std::array<dealii::Tensor<1,dim,real>,nstate> aux_soln_state_int;
-        std::array<real,nstate> soln_interp_to_face_int;
+        std::array<real,nstate> entropy_var_face;
+        std::array<dealii::Tensor<1,dim,real>,nstate> aux_soln_state;
+        std::array<real,nstate> soln_interp_to_face;
+        std::array<real,nstate> soln_state;
+        std::array<real,nstate> opposite_surf_soln_state;
         std::array<real,nstate> filtered_soln_state;
         std::array<dealii::Tensor<1,dim,real>,nstate> filtered_aux_soln_state;
         for(int istate=0; istate<nstate; istate++){
-            soln_interp_to_face_int[istate] = soln_at_surf_q[istate][iquad];
-            entropy_var_face_int[istate] = projected_entropy_var_surf[istate][iquad];
+            soln_interp_to_face[istate] = soln_at_surf_q[istate][iquad];
+            soln_state[istate] = soln_interp_to_face[istate]; // initialize as solution interpolated to face
+            entropy_var_face[istate] = projected_entropy_var_surf[istate][iquad];
+            if(this->using_wall_model && ((boundary_id == 1001) || (boundary_id == 1006))) opposite_surf_soln_state[istate] = soln_at_opposite_surf_q[istate][iquad];
             if(this->do_compute_filtered_solution) filtered_soln_state[istate] = legendre_soln_at_surf_q[istate][iquad];
             for(int idim=0; idim<dim; idim++){
-                aux_soln_state_int[istate][idim] = aux_soln_at_surf_q[istate][idim][iquad];
+                aux_soln_state[istate][idim] = aux_soln_at_surf_q[istate][idim][iquad];
                 if(this->do_compute_filtered_solution) filtered_aux_soln_state[istate][idim] = legendre_aux_soln_at_surf_q[istate][idim][iquad];
             }
         }
 
-        //extract solution on surface from projected entropy variables
-        std::array<real,nstate> soln_state_int;
-        soln_state_int = this->pde_physics_double->compute_conservative_variables_from_entropy_variables (entropy_var_face_int);
-
-        if(!this->all_parameters->use_split_form && !this->all_parameters->use_curvilinear_split_form){
-            for(int istate=0; istate<nstate; istate++){
-                soln_state_int[istate] = soln_at_surf_q[istate][iquad];
-            }
+        //extract solution on surface from projected entropy variables if NSFR; conservative DG uses solution interpolated to face (i.e. the initialization)
+        if((this->all_parameters->use_split_form || this->all_parameters->use_curvilinear_split_form) && this->use_projected_entropy_variables_for_nsfr_boundary_term) {
+            soln_state = this->pde_physics_double->compute_conservative_variables_from_entropy_variables (entropy_var_face);    
         }
 
         std::array<real,nstate> soln_boundary;
@@ -2102,22 +2148,33 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_boundary_term_strong(
         //or solution from the projected entropy variables.
         //Now, it uses projected entropy variables for NSFR, and solution
         //interpolated to face for conservative DG.
-        this->pde_physics_double->boundary_face_values (boundary_id, surf_flux_node, unit_phys_normal_int, soln_state_int, aux_soln_state_int, filtered_soln_state, filtered_aux_soln_state, soln_boundary, grad_soln_boundary);
+        this->pde_physics_double->boundary_face_values (boundary_id, surf_flux_node, unit_phys_normal_int, soln_state, aux_soln_state, filtered_soln_state, filtered_aux_soln_state, soln_boundary, grad_soln_boundary);
         
         // Convective numerical flux.
         std::array<real,nstate> conv_num_flux_dot_n_at_q;
-        conv_num_flux_dot_n_at_q = this->conv_num_flux_double->evaluate_flux(soln_state_int, soln_boundary, unit_phys_normal_int);
+        conv_num_flux_dot_n_at_q = this->conv_num_flux_double->evaluate_flux(soln_state, soln_boundary, unit_phys_normal_int);
         
         // Dissipative numerical flux
+        this->pde_physics_double->boundary_face_values_viscous_flux (boundary_id, surf_flux_node, unit_phys_normal_int, soln_state, aux_soln_state, filtered_soln_state, filtered_aux_soln_state, soln_boundary, grad_soln_boundary);
         std::array<real,nstate> diss_auxi_num_flux_dot_n_at_q;
-        diss_auxi_num_flux_dot_n_at_q = this->diss_num_flux_double->evaluate_auxiliary_flux(
-            current_cell_index, current_cell_index,
-            0.0, 0.0,
-            soln_interp_to_face_int, soln_boundary,
-            aux_soln_state_int, grad_soln_boundary,
-            filtered_soln_state, soln_boundary,
-            filtered_aux_soln_state, grad_soln_boundary,
-            unit_phys_normal_int, penalty, true, boundary_id);
+        if(this->using_wall_model && ((boundary_id == 1001) || (boundary_id == 1006))) {
+            diss_auxi_num_flux_dot_n_at_q = this->pde_physics_double->dissipative_flux_dot_normal(
+                opposite_surf_soln_state, aux_soln_state, 
+                filtered_soln_state, filtered_aux_soln_state,
+                true, // on_boundary == true
+                current_cell_index, 
+                unit_phys_normal_int,
+                boundary_id);
+        } else {
+            diss_auxi_num_flux_dot_n_at_q = this->diss_num_flux_double->evaluate_auxiliary_flux(
+                current_cell_index, current_cell_index,
+                0.0, 0.0,
+                soln_interp_to_face, soln_boundary,
+                aux_soln_state, grad_soln_boundary,
+                filtered_soln_state, soln_boundary,
+                filtered_aux_soln_state, grad_soln_boundary,
+                unit_phys_normal_int, penalty, true, boundary_id);
+        }
 
         for(int istate=0; istate<nstate; istate++){
             // allocate
@@ -2198,8 +2255,6 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_strong(
     dealii::Vector<real>                               &local_rhs_int_cell,
     dealii::Vector<real>                               &local_rhs_ext_cell)
 {
-    (void) current_cell_index;
-    (void) neighbor_cell_index;
 
     const unsigned int n_face_quad_pts = this->face_quadrature_collection[poly_degree_int].size();//assume interior cell does the work
 

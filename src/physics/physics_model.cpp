@@ -414,6 +414,55 @@ real PhysicsModel<dim,nstate,real,nstate_baseline_physics>
 
 template <int dim, int nstate, typename real, int nstate_baseline_physics>
 void PhysicsModel<dim,nstate,real,nstate_baseline_physics>
+::boundary_face_values_viscous_flux (
+   const int boundary_type,
+   const dealii::Point<dim, real> &pos,
+   const dealii::Tensor<1,dim,real> &normal_int,
+   const std::array<real,nstate> &soln_int,
+   const std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_int,
+   const std::array<real,nstate> &filtered_soln_int,
+   const std::array<dealii::Tensor<1,dim,real>,nstate> &filtered_soln_grad_int,
+   std::array<real,nstate> &soln_bc,
+   std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_bc) const
+{
+    if constexpr(nstate==nstate_baseline_physics) {
+        physics_baseline->boundary_face_values_viscous_flux(
+                boundary_type, pos, normal_int, soln_int, soln_grad_int, filtered_soln_int, filtered_soln_grad_int,
+                soln_bc, soln_grad_bc);
+    } else {
+        std::array<real,nstate_baseline_physics> baseline_soln_int;
+        std::array<dealii::Tensor<1,dim,real>,nstate_baseline_physics> baseline_soln_grad_int;
+        for(int s=0; s<nstate_baseline_physics; ++s){
+            baseline_soln_int[s] = soln_int[s];
+            baseline_soln_grad_int[s] = soln_grad_int[s];
+        }
+
+        std::array<real,nstate_baseline_physics> baseline_soln_bc;
+        std::array<dealii::Tensor<1,dim,real>,nstate_baseline_physics> baseline_soln_grad_bc;
+
+        for (int istate=0; istate<nstate_baseline_physics; istate++) {
+            baseline_soln_bc[istate]      = 0;
+            baseline_soln_grad_bc[istate] = 0;
+        }
+
+        physics_baseline->boundary_face_values(
+                boundary_type, pos, normal_int, baseline_soln_int, baseline_soln_grad_int, 
+                baseline_soln_bc, baseline_soln_grad_bc);
+        /*TO DO NOT IMPLEMENTED YET
+        model->boundary_face_values(
+                boundary_type, pos, normal_int, soln_int, soln_grad_int, 
+                soln_bc, soln_grad_bc);*/
+
+        for(int s=0; s<nstate_baseline_physics; ++s){
+            soln_bc[s] += baseline_soln_bc[s];
+            soln_grad_bc[s] += baseline_soln_grad_bc[s];
+        }
+        std::abort(); // <-- TO DO NOT IMPLEMENTED YET
+    }
+}
+
+template <int dim, int nstate, typename real, int nstate_baseline_physics>
+void PhysicsModel<dim,nstate,real,nstate_baseline_physics>
 ::boundary_face_values (
    const int boundary_type,
    const dealii::Point<dim, real> &pos,

@@ -117,11 +117,12 @@ public:
     // Quantities needed to be updated by DG for the model -- accomplished by DGBase update_model_variables()
     dealii::LinearAlgebra::distributed::Vector<int> cellwise_poly_degree; ///< Cellwise polynomial degree
     dealii::LinearAlgebra::distributed::Vector<double> cellwise_volume; ////< Cellwise element volume
-    double bulk_density; ///< bulk density
-    double channel_height; ///< Channel height
-    double half_channel_height; ///< Half channel height
-    double channel_friction_velocity_reynolds_number; ///< Channel Reynolds number based on the wall friction velocity
-    double channel_bulk_velocity_reynolds_number; ///< Channel Reynolds number based on the bulk velocity
+    double bulk_density; ///< Bulk density, needed for channel flow case
+    double bulk_mass_flow_rate; ///< Bulk mass flow rate, needed for channel flow case
+    double bulk_velocity; ///< Bulk velocity, needed for channel flow case
+    double domain_volume; ///< Domain volume, needed for channel flow case
+    double half_channel_height; ///< Half channel height, needed for channel flow case
+    double resultant_wall_shear_force; ///< Resultant wall shear force, needed for channel flow case
     double time_step; ///< Current time step
     /** Cellwise mean strain rate tensor magnitude;
      *  used for shear-improved eddy viscosity model */ 

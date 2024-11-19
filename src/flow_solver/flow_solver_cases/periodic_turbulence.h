@@ -16,11 +16,17 @@ class PeriodicTurbulence : public PeriodicCubeFlow<dim,nstate>
     /** Number of different computed quantities
      *  Corresponds to the number of items in IntegratedQuantitiesEnum
      * */
-    static const int NUMBER_OF_INTEGRATED_QUANTITIES = 5;
+    static const int NUMBER_OF_INTEGRATED_QUANTITIES = 9;
+
 public:
     /// Constructor.
     explicit PeriodicTurbulence(const Parameters::AllParameters *const parameters_input);
 
+    /// Outputs the velocity field if the current time is an output time for the velocity field
+    void output_velocity_field_if_current_time_is_output_time(
+        const double current_time,
+        const std::shared_ptr <DGBase<dim, double>> dg);
+    
     /** Computes the integrated quantities over the domain simultaneously and updates the array storing them
      *  Note: For efficiency, this also simultaneously updates the local maximum wave speed
      * */
@@ -39,6 +45,18 @@ public:
      *                Computers & Fluids 221 (2021): 104922.
      * */
     double get_integrated_enstrophy() const;
+
+    /// Gets the nondimensional integrated incompressible kinetic energy given a DG object from dg->solution
+    double get_integrated_incompressible_kinetic_energy() const;
+
+    /// Gets the nondimensional integrated incompressible enstrophy given a DG object from dg->solution
+    double get_integrated_incompressible_enstrophy() const;
+
+    /// Gets the nondimensional integrated incompressible palinstrophy given a DG object from dg->solution
+    double get_integrated_incompressible_palinstrophy() const;
+
+    /// Gets the nondimensional integrated angular momentum given a DG object from dg->solution
+    double get_integrated_angular_momentum() const;
 
     /** Gets non-dimensional theoretical vorticity tensor based dissipation rate 
      *  Note: For incompressible flows or when dilatation effects are negligible 
@@ -68,6 +86,9 @@ public:
      *                to Turbulence for Compact Nodal Schemes." 
      * */
     double get_strain_rate_tensor_based_dissipation_rate() const;
+
+    /// Get the number of degrees of freedom per state from a given poly degree
+    virtual unsigned int get_number_of_degrees_of_freedom_per_state_from_poly_degree(const unsigned int poly_degree_input) const;
 
     /// Output the velocity field to file
     void output_velocity_field(
@@ -101,10 +122,21 @@ protected:
     /// Flag for outputting vorticity magnitude field in addition to velocity field at fixed times
     const bool output_vorticity_magnitude_field_in_addition_to_velocity;
 
+    /// Flag for outputting density field in addition to velocity field at fixed times
+    const bool output_density_field_in_addition_to_velocity;
+
+    /// Flag for outputting viscosity field in addition to velocity field at fixed times
+    const bool output_viscosity_field_in_addition_to_velocity;
+
     /// Directory for writting flow field files
     const std::string output_flow_field_files_directory_name;
 
     const bool output_solution_at_exact_fixed_times;///< Flag for outputting the solution at exact fixed times by decreasing the time step on the fly
+
+    const unsigned int output_velocity_number_of_subvisions; ///< Number of subdivisions to apply when writting the velocity field at equidistant nodes
+
+    /// Flag to compute angular momentum
+    const bool do_compute_angular_momentum;
 
     /// Pointer to Navier-Stokes physics object for computing things on the fly
     std::shared_ptr< Physics::NavierStokes<dim,dim+2,double> > navier_stokes_physics;
@@ -129,12 +161,16 @@ protected:
     /// Updates the maximum local wave speed
     void update_maximum_local_wave_speed(DGBase<dim, double> &dg) override;
 
+    /// Function to compute the angular momentum
+    double compute_angular_momentum(const dealii::Point<dim> position, const dealii::Tensor<1,3,double> vorticity) const;
+
 public:
     /// Compute the desired unsteady data and write it to a table
     virtual void compute_unsteady_data_and_write_to_table(
             const std::shared_ptr<ODE::ODESolverBase<dim, double>> ode_solver, 
             const std::shared_ptr <DGBase<dim, double>> dg,
-            const std::shared_ptr<dealii::TableHandler> unsteady_data_table) override;
+            const std::shared_ptr<dealii::TableHandler> unsteady_data_table,
+            const bool do_write_unsteady_data_table_file) override;
 
 protected:
     /// List of possible integrated quantities over the domain
@@ -143,7 +179,11 @@ protected:
         enstrophy,
         pressure_dilatation,
         viscosity_times_deviatoric_strain_rate_tensor_magnitude_sqr,
-        viscosity_times_strain_rate_tensor_magnitude_sqr
+        viscosity_times_strain_rate_tensor_magnitude_sqr,
+        incompressible_kinetic_energy,
+        incompressible_enstrophy,
+        incompressible_palinstrophy,
+        angular_momentum
     };
     /// Array for storing the integrated quantities; done for computational efficiency
     std::array<double,NUMBER_OF_INTEGRATED_QUANTITIES> integrated_quantities;

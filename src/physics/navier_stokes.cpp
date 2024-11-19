@@ -1,6 +1,7 @@
 #include <cmath>
 #include <vector>
 #include <complex> // for the jacobian
+#include <deal.II/lac/identity_matrix.h>
 
 #include "ADTypes.hpp"
 
@@ -27,9 +28,9 @@ NavierStokes<dim, nstate, real>::NavierStokes(
     const double                                              isothermal_wall_temperature,
     const thermal_boundary_condition_enum                     thermal_boundary_condition_type,
     std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function,
-    const two_point_num_flux_enum                             two_point_num_flux_type)
-    : Euler<dim,nstate,real>(parameters_input,
-                             ref_length, 
+    const two_point_num_flux_enum                             two_point_num_flux_type,
+    const bool                                                has_nonzero_physical_source)
+    : Euler<dim,nstate,real>(ref_length, 
                              gamma_gas, 
                              mach_inf, 
                              angle_of_attack, 
@@ -37,7 +38,7 @@ NavierStokes<dim, nstate, real>::NavierStokes(
                              manufactured_solution_function,
                              two_point_num_flux_type,
                              true,  //has_nonzero_diffusion = true
-                             false) //has_nonzero_physical_source = false
+                             has_nonzero_physical_source) //has_nonzero_physical_source = false
     , viscosity_coefficient_inf(1.0) // Nondimensional - Free stream values
     , use_constant_viscosity(use_constant_viscosity)
     , constant_viscosity(constant_viscosity) // Nondimensional - Free stream values
@@ -72,6 +73,62 @@ dealii::Tensor<1,dim,real2> NavierStokes<dim,nstate,real>
 
 template <int dim, int nstate, typename real>
 template<typename real2>
+dealii::Tensor<1,dim,real2> NavierStokes<dim,nstate,real>
+::compute_velocities_parallel_to_wall(
+    const std::array<real2,nstate> &conservative_soln,
+    const dealii::Tensor<1,dim,real2> &normal_vector) const
+{
+    // extract velocities
+    const dealii::Tensor<1,dim,real2> velocities = this->template compute_velocities<real2>(conservative_soln);// from Euler
+    // compute normal velocity
+    real2 normal_velocity = 0.0;
+    for(int d=0;d<dim;++d){
+        normal_velocity += velocities[d]*normal_vector[d];
+    }
+    // compute wall parallel velocities
+    dealii::Tensor<1,dim,real2> velocities_parallel_to_wall;
+    for(int d=0;d<dim;++d){
+        velocities_parallel_to_wall[d] = velocities[d] - normal_velocity*normal_vector[d];
+    }
+    return velocities_parallel_to_wall;
+}
+
+template <int dim, int nstate, typename real>
+template<typename real2>
+dealii::Tensor<1,dim,real2> NavierStokes<dim,nstate,real>
+::compute_wall_tangent_vector(
+    const std::array<real2,nstate> &conservative_soln,
+    const dealii::Tensor<1,dim,real2> &normal_vector) const
+{
+    // compute wall parallel velocities
+    const dealii::Tensor<1,dim,real2> velocities_parallel_to_wall = compute_velocities_parallel_to_wall(conservative_soln,normal_vector);
+    // compute tangent vector
+    const dealii::Tensor<1,dim,real2> tangent_vector = compute_wall_tangent_vector_from_velocities_parallel_to_wall(velocities_parallel_to_wall);
+    return tangent_vector;
+}
+
+template <int dim, int nstate, typename real>
+template<typename real2>
+dealii::Tensor<1,dim,real2> NavierStokes<dim,nstate,real>
+::compute_wall_tangent_vector_from_velocities_parallel_to_wall(
+    const dealii::Tensor<1,dim,real2> &velocities_parallel_to_wall) const
+{
+    // get magnitude
+    real2 magnitude = 0.0;
+    for(int d=0;d<dim;++d){
+        magnitude += velocities_parallel_to_wall[d]*velocities_parallel_to_wall[d];
+    }
+    magnitude = pow(magnitude,0.5);
+    // compute tangent vector
+    dealii::Tensor<1,dim,real2> tangent_vector;
+    for(int d=0;d<dim;++d){
+        tangent_vector[d] = velocities_parallel_to_wall[d]/magnitude;
+    }
+    return tangent_vector;
+}
+
+template <int dim, int nstate, typename real>
+template<typename real2>
 real2 NavierStokes<dim,nstate,real>
 ::compute_wall_shear_stress (
     const std::array<real2,nstate> &conservative_soln,
@@ -79,34 +136,95 @@ real2 NavierStokes<dim,nstate,real>
     const dealii::Tensor<1,dim,real2> &normal_vector) const
 {
     // Computes the non-dimensional wall shear stress
-    // NOTE: Currently this is only implemented for channel flow
-
-    // get primitive solution
+    // - get primitive solution, gradient, and velocities gradient 
     const std::array<real2,nstate> primitive_soln = this->template convert_conservative_to_primitive_templated<real2>(conservative_soln); // from Euler
-    // extract from primitive solution
-    // const dealii::Tensor<1,dim,real2> velocities = this->template extract_velocities_from_primitive<real2>(primitive_soln); // from Euler
     const std::array<dealii::Tensor<1,dim,real2>,nstate> primitive_soln_gradient
                  = this->template convert_conservative_gradient_to_primitive_gradient_templated<real2>(conservative_soln,conservative_soln_gradient);
-    const dealii::Tensor<2,dim,real2> velocities_gradient = extract_velocities_gradient_from_primitive_solution_gradient<real2>(primitive_soln_gradient);
-
-    // // compute normal velocity
-    // real2 wall_parallel_velocity = 0.0;
-    // for(int d=0;d<dim;++d){
-    //     normal_velocity += velocities[d]*normal_vector[d];
-    // }
-    // // compute wall parallel velocity
-    // dealii::Tensor<1,dim,real2> velocities_parallel_to_wall;
-    // for(int d=0;d<dim;++d){
-    //     velocities_parallel_to_wall[d] = velocities[d] - normal_velocity*normal_vector[d];
-    // }
-
-    const real2 scaled_viscosity_coefficient = compute_scaled_viscosity_coefficient<real2>(primitive_soln);
+    
+    // const dealii::Tensor<2,dim,real2> velocities_gradient = extract_velocities_gradient_from_primitive_solution_gradient<real2>(primitive_soln_gradient);
+    /*
+    // - compute normal velocity gradient
+    dealii::Tensor<1,dim,real2> velocity_normal_to_wall_gradient;
+    for(int dspace=0;dspace<dim;++dspace){
+        velocity_normal_to_wall_gradient[dspace] = 0.0;
+        for(int dvel=0;dvel<dim;++dvel){
+            velocity_normal_to_wall_gradient[dspace] += velocities_gradient[dvel][dspace]*normal_vector[dvel];
+        }
+    }
+    // - compute wall parallel velocities gradient
+    dealii::Tensor<2,dim,real2> velocities_parallel_to_wall_gradient;
+    for(int dspace=0;dspace<dim;++dspace){
+        for(int dvel=0;dvel<dim;++dvel){
+            velocities_parallel_to_wall_gradient[dvel][dspace] = velocities_gradient[dvel][dspace] - velocity_normal_to_wall_gradient[dspace]*normal_vector[dvel];
+        }
+    }
+    // - compute wall parallel velocity gradient
+    dealii::Tensor<1,dim,real2> velocity_parallel_to_wall_gradient;
+    for(int dspace=0;dspace<dim;++dspace){
+        real2 magnitude = 0.0;
+        for(int dvel=0;dvel<dim;++dvel){
+            magnitude += velocities_parallel_to_wall_gradient[dvel][dspace]*velocities_parallel_to_wall_gradient[dvel][dspace];
+        }
+        velocity_parallel_to_wall_gradient[dspace] = pow(magnitude,0.5);
+    }
+    */
+    /*
+    // - compute wall parallel velocity gradient in the direction normal to the wall
     real2 velocity_gradient_of_parallel_velocity_in_the_direction_normal_to_wall = 0.0;
     for(int d=0;d<dim;++d){
-        velocity_gradient_of_parallel_velocity_in_the_direction_normal_to_wall += velocities_gradient[0][d]*normal_vector[d];
+        velocity_gradient_of_parallel_velocity_in_the_direction_normal_to_wall += velocities_gradient[0][d]*normal_vector[d]; // for channel flow (simplest case, x-velocity is the wall parallel velocity)
+        // velocity_gradient_of_parallel_velocity_in_the_direction_normal_to_wall += velocity_parallel_to_wall_gradient[d]*normal_vector[d];
     }
     // Reference: https://www.cfd-online.com/Wiki/Wall_shear_stress
+    const real2 scaled_viscosity_coefficient = compute_scaled_viscosity_coefficient<real2>(primitive_soln);
     const real2 wall_shear_stress = scaled_viscosity_coefficient*velocity_gradient_of_parallel_velocity_in_the_direction_normal_to_wall;
+    */
+    // For 3D flow over curved walls, reference: https://www.cfd-online.com/Forums/main/11103-calculate-y-u-how-get-wall-shear-stress.html
+    // const dealii::Tensor<1,dim,real2> tangent_vector = compute_wall_tangent_vector<real2>(conservative_soln,normal_vector);
+    const dealii::Tensor<2,dim,real2> viscous_stress_tensor = compute_viscous_stress_tensor<real2>(primitive_soln,primitive_soln_gradient);
+    // real2 wall_shear_stress = 0.0;
+    // for(int i=0;i<dim;++i){
+    //     real2 val = 0.0;
+    //     for(int j=0;j<dim;++j){
+    //         val += viscous_stress_tensor[i][j]*tangent_vector[j];
+    //     }
+    //     wall_shear_stress += val*val;
+    // }
+    // wall_shear_stress = pow(wall_shear_stress,0.5);
+
+    /*// build tangential operator (can be used to get the surface tangential component of some vector)
+    dealii::Tensor<2,dim,real2> tangential_operator;
+    for(int i=0;i<dim;++i){
+        for(int j=0;j<dim;++j){
+            tangential_operator[i][j] = 0.0; // initialize
+            if(j==i) tangential_operator[i][j] = 1.0;
+            tangential_operator[i][j] -= normal_vector[j]*normal_vector[i];
+        }
+    }*/
+    // viscous stress tensor times normal vector (contains all components on the surface associated with the normal vector)
+    dealii::Tensor<1,dim,real2> viscous_stress_tensor_times_normal_vector;
+    for(int i=0;i<dim;++i){
+        viscous_stress_tensor_times_normal_vector[i] = 0.0;
+        for(int j=0;j<dim;++j){
+            viscous_stress_tensor_times_normal_vector[i] += viscous_stress_tensor[i][j]*normal_vector[j];
+        }
+    }
+    /*// components tangent to the surface
+    dealii::Tensor<1,dim,real2> viscous_stress_tensor_times_tangent_vector;
+    for(int i=0;i<dim;++i){
+        viscous_stress_tensor_times_tangent_vector[i] = 0.0;
+        for(int j=0;j<dim;++j){
+            viscous_stress_tensor_times_tangent_vector[i] += tangential_operator[i][j]*viscous_stress_tensor_times_normal_vector[j];
+        }
+    }*/
+    // compute magnitude
+    real2 wall_shear_stress = 0.0;
+    for(int i=0;i<dim;++i){
+        // wall_shear_stress += viscous_stress_tensor_times_tangent_vector[i]*viscous_stress_tensor_times_tangent_vector[i];
+        wall_shear_stress += viscous_stress_tensor_times_normal_vector[i]*viscous_stress_tensor_times_normal_vector[i];
+    }
+    wall_shear_stress = pow(wall_shear_stress,0.5);
+
 
     return wall_shear_stress;
 }
@@ -155,6 +273,7 @@ inline real2 NavierStokes<dim,nstate,real>
      * * Reference: Sutherland, W. (1893), "The viscosity of gases and molecular force", Philosophical Magazine, S. 5, 36, pp. 507-531 (1893)
      * * Values: https://www.cfd-online.com/Wiki/Sutherland%27s_law
      */
+     
     const real2 temperature = this->template compute_temperature<real2>(primitive_soln); // from Euler
 
     const real2 viscosity_coefficient = compute_viscosity_coefficient_sutherlands_law_from_temperature<real2>(temperature);
@@ -362,6 +481,35 @@ real NavierStokes<dim,nstate,real>
     const real density = conservative_soln[0];
     real enstrophy = 0.5*density*compute_vorticity_magnitude_sqr(conservative_soln, conservative_soln_gradient);
     return enstrophy;
+}
+
+template <int dim, int nstate, typename real>
+real NavierStokes<dim,nstate,real>
+::compute_incompressible_enstrophy (
+    const std::array<real,nstate> &conservative_soln,
+    const std::array<dealii::Tensor<1,dim,real>,nstate> &conservative_soln_gradient) const
+{
+    // Compute incompressible enstrophy
+    real enstrophy = 0.5*compute_vorticity_magnitude_sqr(conservative_soln, conservative_soln_gradient);
+    return enstrophy;
+}
+
+template <int dim, int nstate, typename real>
+real NavierStokes<dim,nstate,real>
+::compute_incompressible_palinstrophy (
+    const std::array<real,nstate> &/*conservative_soln*/,
+    const std::array<dealii::Tensor<1,dim,real>,3> &vorticity_gradient) const
+{
+    // Compute vorticity gradient magnitude squared
+    real vorticity_gradient_magnitude_sqr = 0.0;
+    for(int istate=0; istate<3; ++istate) {
+        for(int d=0; d<dim; ++d) {
+            vorticity_gradient_magnitude_sqr += vorticity_gradient[istate][d]*vorticity_gradient[istate][d];
+        }
+    }
+    // Compute incompressible palinstrophy
+    const real palinstrophy = 0.5*vorticity_gradient_magnitude_sqr;
+    return palinstrophy;
 }
 
 template <int dim, int nstate, typename real>
@@ -1042,16 +1190,14 @@ std::array<real,nstate> NavierStokes<dim,nstate,real>
 ::dissipative_flux_dot_normal (
         const std::array<real,nstate> &solution,
         const std::array<dealii::Tensor<1,dim,real>,nstate> &solution_gradient,
-        const std::array<real,nstate> &/*filtered_solution*/,
-        const std::array<dealii::Tensor<1,dim,real>,nstate> &/*filtered_solution_gradient*/,
+        const std::array<real,nstate> &filtered_solution,
+        const std::array<dealii::Tensor<1,dim,real>,nstate> &filtered_solution_gradient,
         const bool on_boundary,
-        const dealii::types::global_dof_index /*cell_index*/,
+        const dealii::types::global_dof_index cell_index,
         const dealii::Tensor<1,dim,real> &normal,
         const int boundary_type)
 {
-    std::array<dealii::Tensor<1,dim,real>,nstate> dissipative_flux;
     std::array<real,nstate> dissipative_flux_dot_normal;
-    dissipative_flux_dot_normal.fill(0.0); // initialize
     // Associated thermal boundary condition
     if((on_boundary && (thermal_boundary_condition_type == thermal_boundary_condition_enum::adiabatic))
         && ((boundary_type == 1001) || (boundary_type == 1006))) { 
@@ -1059,38 +1205,74 @@ std::array<real,nstate> NavierStokes<dim,nstate,real>
         /** If adiabatic on either slip (1001) or no-slip (1006) wall BCs */
         // adiabatic boundary
         // --> Modify viscous flux such that normal_vector dot gradient of temperature must be zero
-
-        // REFERENCES:
-        /* (1) Masatsuka 2018 "I do like CFD", p.148, eq.(4.12.1-4.12.4)
-         * (2) For the boundary condition case, refer to the equation above equation 458 of the following paper:
-         *  Hartmann, Ralf. "Numerical analysis of higher order discontinuous Galerkin finite element methods." (2008): 1-107.
-         */
-
-        // Step 1: Primitive solution
-        const std::array<real,nstate> primitive_soln = this->template convert_conservative_to_primitive_templated<real>(solution); // from Euler
-        
-        // Step 2: Gradient of primitive solution
-        const std::array<dealii::Tensor<1,dim,real>,nstate> primitive_soln_gradient = this->template convert_conservative_gradient_to_primitive_gradient_templated<real>(solution, solution_gradient);
-        
-        // Step 3: Viscous stress tensor, Velocities, Heat flux
-        const dealii::Tensor<2,dim,real> viscous_stress_tensor = compute_viscous_stress_tensor<real>(primitive_soln, primitive_soln_gradient);
-        const dealii::Tensor<1,dim,real> vel = this->template extract_velocities_from_primitive<real>(primitive_soln); // from Euler
-        /* ---> Impose adiabatic boundary condition by modifying the heat flux. */
-        dealii::Tensor<1,dim,real> heat_flux;
-        for (int flux_dim=0; flux_dim<dim; ++flux_dim) {
-            // set the heat flux to zero since we want the normal dot gradient of temperature to be zero for an adiabatic boundary
-            heat_flux[flux_dim] = 0.0;
-        }
-
-        // Step 4: Construct viscous flux; Note: sign corresponds to LHS
-        dissipative_flux = dissipative_flux_given_velocities_viscous_stress_tensor_and_heat_flux<real>(vel,viscous_stress_tensor,heat_flux);
+        dissipative_flux_dot_normal = this->dissipative_flux_dot_normal_on_adiabatic_boundary (
+                                                           solution,
+                                                           solution_gradient,
+                                                           filtered_solution,
+                                                           filtered_solution_gradient,
+                                                           cell_index,
+                                                           normal);
     } else {
         // if not on boundary and for all other types of boundary conditions (including isothermal) --> no change to dissipative flux
         // no change to dissipative flux for BCs that do not impose a condition on the gradient at the boundary
+        std::array<dealii::Tensor<1,dim,real>,nstate> dissipative_flux;
         dissipative_flux = dissipative_flux_templated<real>(solution,solution_gradient);
+        // compute the dot product with the normal vector
+        dissipative_flux_dot_normal.fill(0.0); // initialize
+        for (int s=0; s<nstate; s++) {
+            for (int d=0; d<dim; ++d) {
+                dissipative_flux_dot_normal[s] += dissipative_flux[s][d] * normal[d];//compute dot product
+            }
+        }
     }
 
+    return dissipative_flux_dot_normal;
+}
+
+template <int dim, int nstate, typename real>
+std::array<real,nstate> NavierStokes<dim,nstate,real>
+::dissipative_flux_dot_normal_on_adiabatic_boundary (
+        const std::array<real,nstate> &solution,
+        const std::array<dealii::Tensor<1,dim,real>,nstate> &solution_gradient,
+        const std::array<real,nstate> &/*filtered_solution*/,
+        const std::array<dealii::Tensor<1,dim,real>,nstate> &/*filtered_solution_gradient*/,
+        const dealii::types::global_dof_index /*cell_index*/,
+        const dealii::Tensor<1,dim,real> &normal)
+{
+    std::array<real,nstate> dissipative_flux_dot_normal;
+    
+    /** If adiabatic on either slip (1001) or no-slip (1006) wall BCs */
+    // adiabatic boundary
+    // --> Modify viscous flux such that normal_vector dot gradient of temperature must be zero
+
+    // REFERENCES:
+    /* (1) Masatsuka 2018 "I do like CFD", p.148, eq.(4.12.1-4.12.4)
+     * (2) For the boundary condition case, refer to the equation above equation 458 of the following paper:
+     *  Hartmann, Ralf. "Numerical analysis of higher order discontinuous Galerkin finite element methods." (2008): 1-107.
+     */
+
+    // Step 1: Primitive solution
+    const std::array<real,nstate> primitive_soln = this->template convert_conservative_to_primitive_templated<real>(solution); // from Euler
+    
+    // Step 2: Gradient of primitive solution
+    const std::array<dealii::Tensor<1,dim,real>,nstate> primitive_soln_gradient = this->template convert_conservative_gradient_to_primitive_gradient_templated<real>(solution, solution_gradient);
+    
+    // Step 3: Viscous stress tensor, Velocities, Heat flux
+    const dealii::Tensor<2,dim,real> viscous_stress_tensor = compute_viscous_stress_tensor<real>(primitive_soln, primitive_soln_gradient);
+    const dealii::Tensor<1,dim,real> vel = this->template extract_velocities_from_primitive<real>(primitive_soln); // from Euler
+    /* ---> Impose adiabatic boundary condition by modifying the heat flux. */
+    dealii::Tensor<1,dim,real> heat_flux;
+    for (int flux_dim=0; flux_dim<dim; ++flux_dim) {
+        // set the heat flux to zero since we want the normal dot gradient of temperature to be zero for an adiabatic boundary
+        heat_flux[flux_dim] = 0.0;
+    }
+
+    // Step 4: Construct viscous flux; Note: sign corresponds to LHS
+    std::array<dealii::Tensor<1,dim,real>,nstate> dissipative_flux;
+    dissipative_flux = dissipative_flux_given_velocities_viscous_stress_tensor_and_heat_flux<real>(vel,viscous_stress_tensor,heat_flux);
+
     // compute the dot product with the normal vector
+    dissipative_flux_dot_normal.fill(0.0); // initialize
     for (int s=0; s<nstate; s++) {
         for (int d=0; d<dim; ++d) {
             dissipative_flux_dot_normal[s] += dissipative_flux[s][d] * normal[d];//compute dot product
@@ -1135,7 +1317,34 @@ std::array<dealii::Tensor<1,dim,real2>,nstate> NavierStokes<dim,nstate,real>
 
 template <int dim, int nstate, typename real>
 void NavierStokes<dim,nstate,real>
-::boundary_wall (
+::boundary_face_values_viscous_flux (
+        const int boundary_type,
+        const dealii::Point<dim, real> &pos,
+        const dealii::Tensor<1,dim,real> &normal_int,
+        const std::array<real,nstate> &soln_int,
+        const std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_int,
+        const std::array<real,nstate> &/*filtered_soln_int*/,
+        const std::array<dealii::Tensor<1,dim,real>,nstate> &/*filtered_soln_grad_int*/,
+        std::array<real,nstate> &soln_bc,
+        std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_bc) const
+{
+    if (boundary_type == 1000) {
+        // Manufactured solution boundary condition
+        boundary_manufactured_solution (pos, normal_int, soln_int, soln_grad_int, soln_bc, soln_grad_bc);
+    } 
+    else if (boundary_type == 1001 || boundary_type == 1006) {
+        // Wall boundary condition
+        boundary_wall_viscous_flux (normal_int, soln_int, soln_grad_int, soln_bc, soln_grad_bc);
+    }
+    // (1006)
+    // {
+    //     this->boundary_slip_wall (normal_int, soln_int, soln_grad_int, soln_bc, soln_grad_bc);
+    // }
+}
+
+template <int dim, int nstate, typename real>
+void NavierStokes<dim,nstate,real>
+::boundary_wall_viscous_flux (
    const dealii::Tensor<1,dim,real> &/*normal_int*/,
    const std::array<real,nstate> &soln_int,
    const std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_int,
@@ -1145,41 +1354,29 @@ void NavierStokes<dim,nstate,real>
     using thermal_boundary_condition_enum = Parameters::NavierStokesParam::ThermalBoundaryCondition;
 
     // No-slip wall boundary conditions
-    // Given by equations 460-461 of the following paper
-    // Hartmann, Ralf. "Numerical analysis of higher order discontinuous Galerkin finite element methods." (2008): 1-107.
-    const std::array<real,nstate> primitive_interior_values = this->template convert_conservative_to_primitive_templated<real>(soln_int);
-
-    // Copy density
-    std::array<real,nstate> primitive_boundary_values;
-    primitive_boundary_values[0] = primitive_interior_values[0];
-
-    // Associated thermal boundary condition
-    if(thermal_boundary_condition_type == thermal_boundary_condition_enum::isothermal) { 
-        // isothermal boundary
-        primitive_boundary_values[nstate-1] = this->compute_pressure_from_density_temperature(primitive_boundary_values[0], isothermal_wall_temperature);
-    } else if(thermal_boundary_condition_type == thermal_boundary_condition_enum::adiabatic) {
-        // adiabatic boundary
-        primitive_boundary_values[nstate-1] = primitive_interior_values[nstate-1];
-    }
-    
-    // No-slip boundary condition on velocity
-    dealii::Tensor<1,dim,real> velocities_bc;
-    for (int d=0; d<dim; d++) {
-        velocities_bc[d] = 0.0;
-    }
-    for (int d=0; d<dim; ++d) {
-        primitive_boundary_values[1+d] = velocities_bc[d];
-    }
 
     // Apply boundary conditions:
     // -- solution at boundary
-    const std::array<real,nstate> modified_conservative_boundary_values = this->convert_primitive_to_conservative(primitive_boundary_values);
-    for (int istate=0; istate<nstate; ++istate) {
-        soln_bc[istate] = modified_conservative_boundary_values[istate];
+    soln_bc[0] = soln_int[0];
+    soln_bc[nstate-1] = soln_int[nstate-1];
+    for (int d=0; d<dim; ++d) {
+        soln_bc[1+d] = -soln_int[1+d];
     }
     // -- gradient of solution at boundary
     for (int istate=0; istate<nstate; ++istate) {
         soln_grad_bc[istate] = soln_grad_int[istate];
+    }
+    // If isothermal wall, set temperature at exterior such that the average is the isothermal wall temperature
+    if(thermal_boundary_condition_type == thermal_boundary_condition_enum::isothermal){
+        // Step 1: Primitive solutions
+        const std::array<real,nstate> primitive_soln_int = this->template convert_conservative_to_primitive_templated<real>(soln_int); // from Euler
+        std::array<real,nstate> primitive_soln_ext = this->template convert_conservative_to_primitive_templated<real>(soln_bc); // from Euler
+        const real temperature_int = this->template compute_temperature<real>(primitive_soln_int);
+        const real temperature_ext = 2.0*this->isothermal_wall_temperature - temperature_int;
+        // override the pressure based on the temperature
+        primitive_soln_ext[nstate-1] = this->compute_pressure_from_density_temperature(primitive_soln_ext[0],temperature_ext);
+        // set the equivalent total energy
+        soln_bc[nstate-1] = this->compute_total_energy(primitive_soln_ext);
     }
 }
 
@@ -1368,13 +1565,226 @@ dealii::UpdateFlags NavierStokes<dim,nstate,real>
            ;
 }
 
+template <int dim, int nstate, typename real>
+NavierStokes_ChannelFlowConstantSourceTerm<dim, nstate, real>::NavierStokes_ChannelFlowConstantSourceTerm( 
+    const double                                              ref_length,
+    const double                                              gamma_gas,
+    const double                                              mach_inf,
+    const double                                              angle_of_attack,
+    const double                                              side_slip_angle,
+    const double                                              prandtl_number,
+    const double                                              reynolds_number_inf,
+    const bool                                                use_constant_viscosity,
+    const double                                              constant_viscosity,
+    const double                                              reynolds_number_based_on_friction_velocity,
+    const double                                              half_channel_height,
+    const double                                              temperature_inf,
+    const double                                              isothermal_wall_temperature,
+    const thermal_boundary_condition_enum                     thermal_boundary_condition_type,
+    std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function,
+    const two_point_num_flux_enum                             two_point_num_flux_type)
+    : NavierStokes<dim,nstate,real>(
+                             ref_length, 
+                             gamma_gas, 
+                             mach_inf, 
+                             angle_of_attack, 
+                             side_slip_angle, 
+                             prandtl_number, 
+                             reynolds_number_inf, 
+                             use_constant_viscosity, 
+                             constant_viscosity, 
+                             temperature_inf, 
+                             isothermal_wall_temperature, 
+                             thermal_boundary_condition_type, 
+                             manufactured_solution_function,
+                             two_point_num_flux_type,
+                             true) //has_nonzero_physical_source = true
+    , x_momentum_constant_source_term(pow((1.0/half_channel_height),3.0)*pow((reynolds_number_based_on_friction_velocity/this->reynolds_number_inf),2.0))
+{
+    static_assert(nstate==dim+2, "Physics::NavierStokes_ChannelFlowConstantSourceTerm() should be created with nstate=dim+2");
+    // Nothing to do here so far
+}
+
+template <int dim, int nstate, typename real>
+std::array<real,nstate> NavierStokes_ChannelFlowConstantSourceTerm<dim,nstate,real>
+::physical_source_term (
+    const dealii::Point<dim,real> &/*pos*/,
+    const std::array<real,nstate> &solution,
+    const std::array<dealii::Tensor<1,dim,real>,nstate> &/*solution_gradient*/,
+    const dealii::types::global_dof_index /*cell_index*/) const
+{
+    std::array<real,nstate> physical_source;
+    for (int i=0; i<nstate; i++) {
+        physical_source[i] = 0;
+    }
+    physical_source[1] = this->x_momentum_constant_source_term; // x-momentum
+    const dealii::Tensor<1,dim,real> vel = this->template compute_velocities<real>(solution);
+    physical_source[nstate-1] = vel[0]*physical_source[1];
+    
+    return physical_source;
+}
+
+template <int dim, int nstate, typename real>
+NavierStokes_ChannelFlowConstantSourceTerm_WallModel<dim, nstate, real>::NavierStokes_ChannelFlowConstantSourceTerm_WallModel( 
+    const double                                              ref_length,
+    const double                                              gamma_gas,
+    const double                                              mach_inf,
+    const double                                              angle_of_attack,
+    const double                                              side_slip_angle,
+    const double                                              prandtl_number,
+    const double                                              reynolds_number_inf,
+    const bool                                                use_constant_viscosity,
+    const double                                              constant_viscosity,
+    const double                                              reynolds_number_based_on_friction_velocity,
+    const double                                              half_channel_height,
+    const double                                              distance_from_wall_for_wall_model_input_velocity,
+    const double                                              temperature_inf,
+    const double                                              isothermal_wall_temperature,
+    const thermal_boundary_condition_enum                     thermal_boundary_condition_type,
+    std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function,
+    const two_point_num_flux_enum                             two_point_num_flux_type)
+    : NavierStokes_ChannelFlowConstantSourceTerm<dim,nstate,real>(
+                             ref_length, 
+                             gamma_gas, 
+                             mach_inf, 
+                             angle_of_attack, 
+                             side_slip_angle, 
+                             prandtl_number, 
+                             reynolds_number_inf, 
+                             use_constant_viscosity, 
+                             constant_viscosity,
+                             reynolds_number_based_on_friction_velocity,
+                             half_channel_height,
+                             temperature_inf, 
+                             isothermal_wall_temperature, 
+                             thermal_boundary_condition_type, 
+                             manufactured_solution_function,
+                             two_point_num_flux_type)
+    , distance_from_wall_for_wall_model_input_velocity(distance_from_wall_for_wall_model_input_velocity)
+    , wall_model_look_up_table(std::unique_ptr<WallModelLookUpTable<real>>())
+{
+    static_assert(nstate==dim+2, "Physics::NavierStokes_ChannelFlowConstantSourceTerm_WallModel() should be created with nstate=dim+2");
+    // Nothing to do here so far
+}
+
+
+
+template <int dim, int nstate, typename real>
+std::array<real,nstate> NavierStokes_ChannelFlowConstantSourceTerm_WallModel<dim,nstate,real>
+::dissipative_flux_dot_normal_on_adiabatic_boundary (
+        const std::array<real,nstate> &solution,
+        const std::array<dealii::Tensor<1,dim,real>,nstate> &/*solution_gradient*/,
+        const std::array<real,nstate> &/*filtered_solution*/,
+        const std::array<dealii::Tensor<1,dim,real>,nstate> &/*filtered_solution_gradient*/,
+        const dealii::types::global_dof_index /*cell_index*/,
+        const dealii::Tensor<1,dim,real> &normal)
+{
+    /* Input variable 'solution' is actually solution at the wall element opposing face.
+       This means that for a channel flow with a uniform grid, this is solution is 
+       at a distance dy = domain_length_y/(number_of_elements_y_direction) from the wall.
+    */
+
+    // Get the wall parallel velocities; equivalent Frere thesis eq.(2.40)
+    const dealii::Tensor<1,dim,real> velocities_parallel_to_wall = this->template compute_velocities_parallel_to_wall<real>(solution,normal);
+
+    // Get wall tangent vector; equivalent Frere thesis eq.(2.40)
+    const dealii::Tensor<1,dim,real> wall_tangent_vector = this->template compute_wall_tangent_vector_from_velocities_parallel_to_wall<real>(velocities_parallel_to_wall);
+
+    // Get wall parallel velocity component; Frere thesis eq.(2.41)
+    real velocity_parallel_to_wall = 0.0;
+    for (int d=0; d<dim; ++d) {
+        velocity_parallel_to_wall += velocities_parallel_to_wall[d]*wall_tangent_vector[d];
+    }
+
+    // Get wall shear stress magnitude from wall model
+    const std::array<real, nstate> primitive_soln = this->template convert_conservative_to_primitive_templated<real>(solution);
+    const real viscosity_coefficient = this->template compute_viscosity_coefficient<real>(primitive_soln);
+    const real density = solution[0];
+    const real wall_shear_stress_magnitude =
+            this->wall_model_look_up_table->get_wall_shear_stress_magnitude(
+                    velocity_parallel_to_wall,
+                    this->distance_from_wall_for_wall_model_input_velocity,
+                    viscosity_coefficient,
+                    density,
+                    this->reynolds_number_inf);
+
+    // Compute the dissipative flux dot normal vector; Frere thesis eq.(2.39)
+    std::array<real,nstate> dissipative_flux_dot_normal;    
+    dissipative_flux_dot_normal.fill(0.0); // initialize
+    for (int d=0; d<dim; ++d) {
+        dissipative_flux_dot_normal[1+d] += wall_shear_stress_magnitude * wall_tangent_vector[d]; // Frere thesis eq.(2.39)
+    }
+    return dissipative_flux_dot_normal;
+}
+
+template <typename real>
+WallModelLookUpTable<real>::WallModelLookUpTable()
+{ 
+    // Do nothing
+}
+
+template <typename real>
+real WallModelLookUpTable<real>::
+get_wall_shear_stress_magnitude(
+    const real wall_parallel_velocity, 
+    const real distance, 
+    const real viscosity_coefficient,
+    const real density,
+    const double reynolds_number_inf) const
+{
+    const real u_parallel_plus_y_plus = reynolds_number_inf*density*distance*wall_parallel_velocity/viscosity_coefficient;
+    const real y_plus = this->interpolate(u_parallel_plus_y_plus,true);
+    const real wall_friction_velocity = y_plus*viscosity_coefficient/(density*distance*reynolds_number_inf);
+    const real wall_shear_stress = density*wall_friction_velocity*wall_friction_velocity;
+    return wall_shear_stress;
+}
+
+template <typename real>
+real WallModelLookUpTable<real>::
+interpolate(const real x, const bool extrapolate) const
+{
+   int i = 0; // find left end of interval for interpolation
+   if ( x >= xData[NUMBER_OF_SAMPLE_POINTS - 2] ) // special case: beyond right end
+   {
+      i = NUMBER_OF_SAMPLE_POINTS - 2;
+   }
+   else
+   {
+      while ( x > xData[i+1] ) i++;
+   }
+   real xL = xData[i], yL = yData[i], xR = xData[i+1], yR = yData[i+1]; // points on either side (unless beyond ends)
+   if ( !extrapolate ) // if beyond ends of array and not extrapolating
+   {
+      if ( x < xL ) yR = yL;
+      if ( x > xR ) yL = yR;
+   }
+
+   real dydx = ( yR - yL ) / ( xR - xL ); // gradient
+
+   return yL + dydx * ( x - xL ); // linear interpolation
+}
+
 // Instantiate explicitly
 template class NavierStokes < PHILIP_DIM, PHILIP_DIM+2, double >;
 template class NavierStokes < PHILIP_DIM, PHILIP_DIM+2, FadType  >;
 template class NavierStokes < PHILIP_DIM, PHILIP_DIM+2, RadType  >;
 template class NavierStokes < PHILIP_DIM, PHILIP_DIM+2, FadFadType >;
 template class NavierStokes < PHILIP_DIM, PHILIP_DIM+2, RadFadType >;
-
+template class NavierStokes_ChannelFlowConstantSourceTerm < PHILIP_DIM, PHILIP_DIM+2, double >;
+template class NavierStokes_ChannelFlowConstantSourceTerm < PHILIP_DIM, PHILIP_DIM+2, FadType  >;
+template class NavierStokes_ChannelFlowConstantSourceTerm < PHILIP_DIM, PHILIP_DIM+2, RadType  >;
+template class NavierStokes_ChannelFlowConstantSourceTerm < PHILIP_DIM, PHILIP_DIM+2, FadFadType >;
+template class NavierStokes_ChannelFlowConstantSourceTerm < PHILIP_DIM, PHILIP_DIM+2, RadFadType >;
+template class NavierStokes_ChannelFlowConstantSourceTerm_WallModel < PHILIP_DIM, PHILIP_DIM+2, double >;
+template class NavierStokes_ChannelFlowConstantSourceTerm_WallModel < PHILIP_DIM, PHILIP_DIM+2, FadType  >;
+template class NavierStokes_ChannelFlowConstantSourceTerm_WallModel < PHILIP_DIM, PHILIP_DIM+2, RadType  >;
+template class NavierStokes_ChannelFlowConstantSourceTerm_WallModel < PHILIP_DIM, PHILIP_DIM+2, FadFadType >;
+template class NavierStokes_ChannelFlowConstantSourceTerm_WallModel < PHILIP_DIM, PHILIP_DIM+2, RadFadType >;
+template class WallModelLookUpTable<double>;
+template class WallModelLookUpTable<FadType>;
+template class WallModelLookUpTable<RadType>;
+template class WallModelLookUpTable<FadFadType>;
+template class WallModelLookUpTable<RadFadType>;
 //==============================================================================
 // -> Templated member functions:
 //------------------------------------------------------------------------------
@@ -1400,6 +1810,12 @@ template FadType    NavierStokes<PHILIP_DIM,PHILIP_DIM+2,FadType   >::compute_wa
 template RadType    NavierStokes<PHILIP_DIM,PHILIP_DIM+2,RadType   >::compute_wall_shear_stress<RadType   >(const std::array<RadType   ,PHILIP_DIM+2> &conservative_soln, const std::array<dealii::Tensor<1,PHILIP_DIM,RadType   >,PHILIP_DIM+2> &conservative_soln_gradient, const dealii::Tensor<1,PHILIP_DIM,RadType   > &normal_vector) const;
 template FadFadType NavierStokes<PHILIP_DIM,PHILIP_DIM+2,FadFadType>::compute_wall_shear_stress<FadFadType>(const std::array<FadFadType,PHILIP_DIM+2> &conservative_soln, const std::array<dealii::Tensor<1,PHILIP_DIM,FadFadType>,PHILIP_DIM+2> &conservative_soln_gradient, const dealii::Tensor<1,PHILIP_DIM,FadFadType> &normal_vector) const;
 template RadFadType NavierStokes<PHILIP_DIM,PHILIP_DIM+2,RadFadType>::compute_wall_shear_stress<RadFadType>(const std::array<RadFadType,PHILIP_DIM+2> &conservative_soln, const std::array<dealii::Tensor<1,PHILIP_DIM,RadFadType>,PHILIP_DIM+2> &conservative_soln_gradient, const dealii::Tensor<1,PHILIP_DIM,RadFadType> &normal_vector) const;
+// -- scale_viscosity_coefficient()
+template double     NavierStokes<PHILIP_DIM,PHILIP_DIM+2,double    >::scale_viscosity_coefficient<double    > (const double     viscosity_coefficient) const;
+template FadType    NavierStokes<PHILIP_DIM,PHILIP_DIM+2,FadType   >::scale_viscosity_coefficient<FadType   > (const FadType    viscosity_coefficient) const;
+template RadType    NavierStokes<PHILIP_DIM,PHILIP_DIM+2,RadType   >::scale_viscosity_coefficient<RadType   > (const RadType    viscosity_coefficient) const;
+template FadFadType NavierStokes<PHILIP_DIM,PHILIP_DIM+2,FadFadType>::scale_viscosity_coefficient<FadFadType> (const FadFadType viscosity_coefficient) const;
+template RadFadType NavierStokes<PHILIP_DIM,PHILIP_DIM+2,RadFadType>::scale_viscosity_coefficient<RadFadType> (const RadFadType viscosity_coefficient) const;
 // -- extract_velocities_gradient_from_primitive_solution_gradient()
 template dealii::Tensor<2,PHILIP_DIM,double    > NavierStokes<PHILIP_DIM,PHILIP_DIM+2,double    >::extract_velocities_gradient_from_primitive_solution_gradient<double    > (const std::array<dealii::Tensor<1,PHILIP_DIM,double    >,PHILIP_DIM+2> &primitive_soln_gradient) const;
 template dealii::Tensor<2,PHILIP_DIM,FadType   > NavierStokes<PHILIP_DIM,PHILIP_DIM+2,FadType   >::extract_velocities_gradient_from_primitive_solution_gradient<FadType   > (const std::array<dealii::Tensor<1,PHILIP_DIM,FadType   >,PHILIP_DIM+2> &primitive_soln_gradient) const;

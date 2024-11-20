@@ -43,7 +43,8 @@ public:
     void compute_unsteady_data_and_write_to_table(
         const std::shared_ptr <ODE::ODESolverBase<dim, double>> ode_solver,
         const std::shared_ptr <DGBase<dim, double>> dg,
-        const std::shared_ptr <dealii::TableHandler> unsteady_data_table) override;
+        const std::shared_ptr <dealii::TableHandler> unsteady_data_table,
+        const bool do_write_unsteady_data_table_file) override;
 
 protected:
     /// Display additional more specific flow case parameters

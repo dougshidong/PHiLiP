@@ -116,7 +116,8 @@ template <int dim, int nstate>
 void NACA0012<dim, nstate>::compute_unsteady_data_and_write_to_table(
         const std::shared_ptr <ODE::ODESolverBase<dim, double>> ode_solver,
         const std::shared_ptr <DGBase<dim, double>> dg,
-        const std::shared_ptr <dealii::TableHandler> unsteady_data_table)
+        const std::shared_ptr <dealii::TableHandler> unsteady_data_table,
+        const bool do_write_unsteady_data_table_file)
 {
     // unpack current iteration and current time from ode solver
     const unsigned int current_iteration = ode_solver->current_iteration;

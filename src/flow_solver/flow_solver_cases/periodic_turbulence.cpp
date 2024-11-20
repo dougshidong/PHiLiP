@@ -464,7 +464,7 @@ void PeriodicTurbulence<dim, nstate>::compute_and_update_integrated_quantities(D
     mapping_basis.build_1D_shape_functions_at_grid_nodes(dg.high_order_grid->oneD_fe_system, dg.high_order_grid->oneD_grid_nodes);
     mapping_basis.build_1D_shape_functions_at_flux_nodes(dg.high_order_grid->oneD_fe_system, quad_extra_1D, dg.oneD_face_quadrature);
     // Construct and build projection operator
-    OPERATOR::vol_projection_operator<dim,2*dim> soln_basis_projection_oper(1, poly_degree, grid_degree);
+    OPERATOR::vol_projection_operator<dim,2*dim,double> soln_basis_projection_oper(1, poly_degree, grid_degree);
     soln_basis_projection_oper.build_1D_volume_operator(dg.oneD_fe_collection_1state[poly_degree], quad_extra_1D);
     const std::vector<double> &quad_weights = quad_extra.get_weights();
     // If in the future we need the physical quadrature node location, turn these flags to true and the constructor will

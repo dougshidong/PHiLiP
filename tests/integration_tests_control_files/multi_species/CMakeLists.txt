@@ -152,7 +152,7 @@ add_test(
 # Taylor Green Vortex 3D
 # =======================================
 # ----------------------------------------
-# Taylor Green Vortex 3D (Multi-Species)
+# Taylor Green Vortex 3D (Multi-Species, Uniform mass fractions)
 # ----------------------------------------
 configure_file(3d_multi_species_taylor_green_vortex.prm 3d_multi_species_taylor_green_vortex.prm COPYONLY)
 add_test(

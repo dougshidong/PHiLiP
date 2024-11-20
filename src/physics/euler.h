@@ -380,7 +380,7 @@ public:
         std::array<real,nstate> &/*soln_bc*/,
         std::array<dealii::Tensor<1,dim,real>,nstate> &/*soln_grad_bc*/) const;
 
-    /// For post processing purposes (update comment later)
+    /// For post processing purposes, computes all the quantities we write to the VTK files
     virtual dealii::Vector<double> post_compute_derived_quantities_vector (
         const dealii::Vector<double>              &uh,
         const std::vector<dealii::Tensor<1,dim> > &duh,
@@ -394,7 +394,7 @@ public:
     /// For post processing purposes, sets the interpretation of each computed quantity as either scalar or vector
     virtual std::vector<dealii::DataComponentInterpretation::DataComponentInterpretation> post_get_data_component_interpretation () const override;
     
-    /// For post processing purposes (update comment later)
+    /// For post processing purposes, updates the required flags for dealii
     virtual dealii::UpdateFlags post_get_needed_update_flags () const override;
 
 protected:

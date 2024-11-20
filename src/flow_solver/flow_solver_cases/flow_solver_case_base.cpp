@@ -33,6 +33,11 @@ std::string FlowSolverCaseBase<dim, nstate>::get_pde_string() const
     if (pde_type == PDE_enum::mhd)                  {pde_string = "mhd";}
     if (pde_type == PDE_enum::euler)                {pde_string = "euler";}
     if (pde_type == PDE_enum::navier_stokes)        {pde_string = "navier_stokes";}
+    if (pde_type == PDE_enum::navier_stokes_channel_flow_constant_source_term) 
+                                                    {pde_string = "navier_stokes_channel_flow_constant_source_term";}
+    if (pde_type == PDE_enum::navier_stokes_channel_flow_constant_source_term_wall_model)
+                                                    {pde_string = "navier_stokes_channel_flow_constant_source_term_wall_model";}
+    
     if (pde_type == PDE_enum::physics_model || pde_type == PDE_enum::physics_model_filtered) {
         if(pde_type == PDE_enum::physics_model) pde_string = "physics_model";
         else if(pde_type == PDE_enum::physics_model_filtered) pde_string = "physics_model_filtered";
@@ -95,6 +100,8 @@ std::string FlowSolverCaseBase<dim, nstate>::get_flow_case_string() const
                                                                     {flow_case_string = "dipole_wall_collision_normal";}
     if (flow_case_type == FlowCaseEnum::dipole_wall_collision_oblique)
                                                                     {flow_case_string = "dipole_wall_collision_oblique";}
+    if (flow_case_type == FlowCaseEnum::channel_flow)               {flow_case_string = "channel_flow";}
+                                                                
     
     return flow_case_string;
 }

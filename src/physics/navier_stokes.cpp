@@ -1425,7 +1425,6 @@ dealii::Vector<double> NavierStokes<dim,nstate,real>::post_compute_derived_quant
             conservative_soln[s] = uh(s);
         }
         const std::array<double, nstate> primitive_soln = this->template convert_conservative_to_primitive_templated<real>(conservative_soln);
-        // if (primitive_soln[0] < 0) this->pcout << evaluation_points << std::endl;
 
         std::array<dealii::Tensor<1,dim,double>,nstate> conservative_soln_gradient;
         for (unsigned int s=0; s<nstate; ++s) {
@@ -1559,7 +1558,6 @@ template <int dim, int nstate, typename real>
 dealii::UpdateFlags NavierStokes<dim,nstate,real>
 ::post_get_needed_update_flags () const
 {
-    //return update_values | update_gradients;
     return dealii::update_values
            | dealii::update_quadrature_points
            | dealii::update_gradients

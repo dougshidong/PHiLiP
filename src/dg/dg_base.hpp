@@ -932,7 +932,7 @@ public:
     virtual void allocate_model_variables() = 0;
     /// Update the necessary variables declared in src/physics/model.h
     virtual void update_model_variables() = 0;
-    /// Set the necessary unsteady variables declared in src/physics/model.h
+    /// Set the unsteady time step variable declared in src/physics/model.h
     virtual void set_unsteady_model_time_step(const double time_step) = 0;
     /// Flag for using the auxiliary equation
     bool use_auxiliary_eq;

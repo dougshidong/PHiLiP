@@ -1614,7 +1614,7 @@ inline real InitialConditionFunction_MultiSpecies_ThreeDimnsional_VortexAdvectio
 }
 
 // ========================================================
-// 3D TaylorGreenVortex  (Multi Species) -- Initial Condition 
+// 3D TaylorGreenVortex  (Multi Species, Uniform mass fractions) -- Initial Condition 
 // ========================================================
 template <int dim, int nstate, typename real>
 InitialConditionFunction_MultiSpecies_TaylorGreenVortex<dim,nstate,real>
@@ -1694,6 +1694,105 @@ real InitialConditionFunction_MultiSpecies_TaylorGreenVortex<dim,nstate,real>
 
 template <int dim, int nstate, typename real>
 inline real InitialConditionFunction_MultiSpecies_TaylorGreenVortex<dim, nstate, real>
+::value(const dealii::Point<dim,real> &point, const unsigned int istate) const
+{
+    real value = 0.0;
+    value = convert_primitive_to_conversative_value(point,istate);
+    return value;
+}
+
+// ========================================================
+// 3D TaylorGreenVortex  (Multi Species, Mixture mass fractions) -- Initial Condition 
+// ========================================================
+template <int dim, int nstate, typename real>
+InitialConditionFunction_MultiSpecies_Mixture_TaylorGreenVortex<dim,nstate,real>
+::InitialConditionFunction_MultiSpecies_Mixture_TaylorGreenVortex(
+        Parameters::AllParameters const *const param)
+    : InitialConditionFunction<dim,nstate,real>()
+    , gamma_gas(param->euler_param.gamma_gas)
+    , mach_inf(param->euler_param.mach_inf)
+    , mach_inf_sqr(mach_inf*mach_inf)
+{
+    // Euler object; create using dynamic_pointer_cast and the create_Physics factory
+    // Note: Euler primitive/conservative vars are the same as NS
+    PHiLiP::Parameters::AllParameters parameters_euler = *param;
+    parameters_euler.pde_type = Parameters::AllParameters::PartialDifferentialEquation::real_gas;
+    this->real_gas_physics = std::dynamic_pointer_cast<Physics::RealGas<dim,dim+2+2-1,double>>(    // Note: modify this when you change the number of species. nstate == dim+2+(nspecies)-1
+                Physics::PhysicsFactory<dim,dim+2+2-1,double>::create_Physics(&parameters_euler)); // Note: modify this when you change the number of species. nstate == dim+2+(nspecies)-1
+}
+template <int dim, int nstate, typename real>
+real InitialConditionFunction_MultiSpecies_Mixture_TaylorGreenVortex<dim,nstate,real>
+::primitive_value(const dealii::Point<dim,real> &point, const unsigned int istate) const
+{
+    // Note: This is in non-dimensional form (free-stream values as reference)
+    real value = 0.;
+    if constexpr(dim == 3) {
+        const real x = point[0];
+        const real y = point[1];
+        const real z = point[2];
+        const double pi = 6.28318530717958623200/2.0;
+        double mass_fraction_N2;
+        if (x > pi && y > pi || x < pi && y < pi) {
+            mass_fraction_N2 = 1.00;
+        }
+        else {
+            mass_fraction_N2 = 0.00;
+        }
+        // else if (x <= pi && y <= pi){
+        //     mass_fraction_N2 = 1.00;
+        // }
+
+        // dimnsionalized values above, non-dimensionalized values below
+        if(istate==0) {
+            // mixture density
+            value = 1.0;
+        }
+        if(istate==1) {
+            // x-velocity
+            value = sin(x)*cos(y)*cos(z);
+        }
+        if(istate==2) {
+            // y-velocity
+            value = -cos(x)*sin(y)*cos(z);
+        }
+        if(istate==3) {
+            // z-velocity
+            value = 0.0;
+        }
+        if(istate==4) {
+            // pressure
+            value = 1.0/(this->gamma_gas*this->mach_inf_sqr) + (1.0/16.0)*(cos(2.0*x)+cos(2.0*y))*(cos(2.0*z)+2.0);
+        }
+        if(istate==5){
+            // mass fraction (N2)
+            value = mass_fraction_N2;
+        }
+    }
+    return value;
+}
+
+template <int dim, int nstate, typename real>
+real InitialConditionFunction_MultiSpecies_Mixture_TaylorGreenVortex<dim,nstate,real>
+::convert_primitive_to_conversative_value(
+    const dealii::Point<dim,real> &point, const unsigned int istate) const
+{
+    real value = 0.0;
+    if constexpr(dim == 3) {
+        std::array<real,nstate> soln_primitive;
+
+        for (int i=0; i<nstate; i++)
+        {
+            soln_primitive[i] = primitive_value(point,i);
+        }
+
+        const std::array<real,nstate> soln_conservative = this->real_gas_physics->convert_primitive_to_conservative(soln_primitive);
+        value = soln_conservative[istate];
+    }
+    return value;
+}
+
+template <int dim, int nstate, typename real>
+inline real InitialConditionFunction_MultiSpecies_Mixture_TaylorGreenVortex<dim, nstate, real>
 ::value(const dealii::Point<dim,real> &point, const unsigned int istate) const
 {
     real value = 0.0;
@@ -1808,6 +1907,10 @@ InitialConditionFactory<dim,nstate, real>::create_InitialConditionFunction(
         if constexpr (dim==3 && nstate==dim+2+2-1){ // Note: modify this when you change the number of species. nstate == dim+2+(nspecies)-1
             return std::make_shared<InitialConditionFunction_MultiSpecies_TaylorGreenVortex<dim,nstate,real> >(param);
         }     
+    } else if (flow_type == FlowCaseEnum::multi_species_mixture_taylor_green_vortex) {
+        if constexpr (dim==3 && nstate==dim+2+2-1){ // Note: modify this when you change the number of species. nstate == dim+2+(nspecies)-1
+            return std::make_shared<InitialConditionFunction_MultiSpecies_Mixture_TaylorGreenVortex<dim,nstate,real> >(param);
+        } 
     } else {
         std::cout << "Invalid Flow Case Type. You probably forgot to add it to the list of flow cases in initial_condition_function.cpp" << std::endl;
         std::abort();
@@ -1841,6 +1944,7 @@ template class InitialConditionFunction_TaylorGreenVortex <PHILIP_DIM, PHILIP_DI
 template class InitialConditionFunction_TaylorGreenVortex_Isothermal <PHILIP_DIM, PHILIP_DIM+2, double>;
 template class InitialConditionFunction_MultiSpecies_ThreeDimnsional_VortexAdvection <PHILIP_DIM, PHILIP_DIM+3, double>;
 template class InitialConditionFunction_MultiSpecies_TaylorGreenVortex <PHILIP_DIM, PHILIP_DIM+3, double>;
+template class InitialConditionFunction_MultiSpecies_Mixture_TaylorGreenVortex <PHILIP_DIM, PHILIP_DIM+3, double>;
 #endif
 
 #if PHILIP_DIM>1

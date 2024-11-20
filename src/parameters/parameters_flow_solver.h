@@ -39,6 +39,7 @@ public:
         multi_species_fuel_drop_advection,     
         multi_species_three_dimensional_vortex_advection,   
         multi_species_taylor_green_vortex,
+        multi_species_mixture_taylor_green_vortex,
         non_periodic_cube_flow
         };
     FlowCaseType flow_case_type; ///< Selected FlowCaseType from the input file

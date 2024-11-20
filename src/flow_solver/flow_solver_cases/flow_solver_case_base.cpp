@@ -90,6 +90,8 @@ std::string FlowSolverCaseBase<dim, nstate>::get_flow_case_string() const
     
     std::string flow_case_string;
     if (flow_case_type == FlowCaseEnum::taylor_green_vortex)        {flow_case_string = "taylor_green_vortex";}
+    if (flow_type == FlowCaseEnum::decaying_homogeneous_isotropic_turbulence)
+                                                                    {flow_case_string = "decaying_homogeneous_isotropic_turbulence";}
     if (flow_case_type == FlowCaseEnum::burgers_viscous_snapshot)   {flow_case_string = "burgers_viscous_snapshot";}
     if (flow_case_type == FlowCaseEnum::burgers_rewienski_snapshot) {flow_case_string = "burgers_rewienski_snapshot";}
     if (flow_case_type == FlowCaseEnum::naca0012)                   {flow_case_string = "naca0012";}

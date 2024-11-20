@@ -393,7 +393,7 @@ InitialConditionFunction_DipoleWallCollision_Normal<dim,nstate,real>
         Parameters::AllParameters const *const param)
     : InitialConditionFunction_DipoleWallCollision<dim,nstate,real>(
         param,
-        299.528385375226, // reference: Keetels et al. 2007
+        299.528385375226, // reference: Keetels G, D’Ortona U, Kramer W, Clercx H, Schneider K, Van Heijst G. Fourier spectral and wavelet solvers for the incompressible Navier–Stokes equations with volume-penalization: Convergence of a dipole-wall collision. J Comput Phys 2007;227(2):919–45.
         0.1, // dipole radius
         90.0) // dipole axis angle wrt to x-axis
 {}
@@ -407,7 +407,7 @@ InitialConditionFunction_DipoleWallCollision_Oblique<dim,nstate,real>
         Parameters::AllParameters const *const param)
     : InitialConditionFunction_DipoleWallCollision<dim,nstate,real>(
         param,
-        299.528385375226, // reference: Keetels et al. 2007
+        299.528385375226, // reference: Keetels G, D’Ortona U, Kramer W, Clercx H, Schneider K, Van Heijst G. Fourier spectral and wavelet solvers for the incompressible Navier–Stokes equations with volume-penalization: Convergence of a dipole-wall collision. J Comput Phys 2007;227(2):919–45.
         0.1, // dipole radius
         30.0) // dipole axis angle wrt to x-axis
 {}

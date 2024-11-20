@@ -222,8 +222,11 @@ public:
     /** Calls the Function(const unsigned int n_components) constructor in deal.II
      *  This sets the public attribute n_components = nstate, which can then be accessed
      *  by all the other functions
-     *  Reference: 
+     *  References: 
      *  These initial conditions are given in nondimensional form (free-stream as reference)
+     *  (1) Chapelier, J-B., et al. "Evaluation of a high-order discontinuous Galerkin method for the DNS of turbulent flows." Computers & Fluids 95 (2014): 210-226.
+     *  (2) Keetels G, D’Ortona U, Kramer W, Clercx H, Schneider K, Van Heijst G. Fourier spectral and wavelet solvers for the incompressible Navier–Stokes equations with volume-penalization: Convergence of a dipole-wall collision. J Comput Phys 2007;227(2):919–45.
+     *  (3) Clercx H, Bruneau C. The normal and oblique collision of a dipole with a no-slip boundary. Comput Fluids 2006;35(3):245–79.
      */
     InitialConditionFunction_DipoleWallCollision (
             Parameters::AllParameters const *const param,
@@ -252,8 +255,11 @@ public:
     /** Calls the Function(const unsigned int n_components) constructor in deal.II
      *  This sets the public attribute n_components = nstate, which can then be accessed
      *  by all the other functions
-     *  Reference: 
+     *  References: 
      *  These initial conditions are given in nondimensional form (free-stream as reference)
+     *  (1) Chapelier, J-B., et al. "Evaluation of a high-order discontinuous Galerkin method for the DNS of turbulent flows." Computers & Fluids 95 (2014): 210-226.
+     *  (2) Keetels G, D’Ortona U, Kramer W, Clercx H, Schneider K, Van Heijst G. Fourier spectral and wavelet solvers for the incompressible Navier–Stokes equations with volume-penalization: Convergence of a dipole-wall collision. J Comput Phys 2007;227(2):919–45.
+     *  (3) Clercx H, Bruneau C. The normal and oblique collision of a dipole with a no-slip boundary. Comput Fluids 2006;35(3):245–79.
      */
     InitialConditionFunction_DipoleWallCollision_Normal (
             Parameters::AllParameters const *const param);
@@ -268,8 +274,11 @@ public:
     /** Calls the Function(const unsigned int n_components) constructor in deal.II
      *  This sets the public attribute n_components = nstate, which can then be accessed
      *  by all the other functions
-     *  Reference: 
+     *  References: 
      *  These initial conditions are given in nondimensional form (free-stream as reference)
+     *  (1) Chapelier, J-B., et al. "Evaluation of a high-order discontinuous Galerkin method for the DNS of turbulent flows." Computers & Fluids 95 (2014): 210-226.
+     *  (2) Keetels G, D’Ortona U, Kramer W, Clercx H, Schneider K, Van Heijst G. Fourier spectral and wavelet solvers for the incompressible Navier–Stokes equations with volume-penalization: Convergence of a dipole-wall collision. J Comput Phys 2007;227(2):919–45.
+     *  (3) Clercx H, Bruneau C. The normal and oblique collision of a dipole with a no-slip boundary. Comput Fluids 2006;35(3):245–79.
      */
     InitialConditionFunction_DipoleWallCollision_Oblique (
             Parameters::AllParameters const *const param);

@@ -8,7 +8,7 @@
 namespace PHiLiP {
 namespace Physics {
 
-/// Large Eddy Simulation equations. Derived from Navier-Stokes for modifying the stress tensor and heat flux, which is derived from PhysicsBase. 
+/// Navier Stokes equations with model source term. 
 template <int dim, int nstate, typename real>
 class NavierStokesWithModelSourceTerms : public ModelBase <dim, nstate, real>
 {

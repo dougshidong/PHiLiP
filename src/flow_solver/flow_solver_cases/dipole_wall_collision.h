@@ -2,7 +2,7 @@
 #define __DIPOLE_WALL_COLLISION_H__
 
 #include "periodic_turbulence.h"
-#include "dg/dg.h"
+#include "dg/dg_base.hpp"
 
 namespace PHiLiP {
 namespace FlowSolver {

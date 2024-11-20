@@ -726,8 +726,9 @@ dealii::Vector<double> RealGas<dim,nstate,real>::post_compute_derived_quantities
         // Mixture density
         computed_quantities(++current_data_index) = compute_mixture_density(conservative_soln);
         // Velocities
+        const dealii::Tensor<1,dim,real> vel = compute_velocities(conservative_soln);
         for (unsigned int d=0; d<dim; ++d) {
-            computed_quantities(++current_data_index) = compute_velocities(conservative_soln)[d];
+            computed_quantities(++current_data_index) = vel[d];
         }
         // Mixture momentum
         for (unsigned int d=0; d<dim; ++d) {
@@ -738,21 +739,22 @@ dealii::Vector<double> RealGas<dim,nstate,real>::post_compute_derived_quantities
         // Mixture pressure
         computed_quantities(++current_data_index) = compute_mixture_pressure(conservative_soln);
         // Non-dimensional temperature
-        /*computed_quantities(++current_data_index) = compute_temperature<real>(primitive_soln);*/
         computed_quantities(++current_data_index) = compute_temperature(conservative_soln); 
         // Dimensional temperature
         computed_quantities(++current_data_index) = compute_dimensional_temperature(compute_temperature(conservative_soln));
         // Mixture specific total enthalpy
         computed_quantities(++current_data_index) = compute_mixture_specific_total_enthalpy(conservative_soln);  
         // Mass fractions
+        const std::array<real,nstate-dim-1> mass_fractions = compute_mass_fractions(conservative_soln);
         for (unsigned int s=0; s<nstate-dim-1; ++s) 
         {
-            computed_quantities(++current_data_index) = compute_mass_fractions(conservative_soln)[s];
+            computed_quantities(++current_data_index) = mass_fractions[s];
         }
         // Species densities
+        const std::array<real,nstate-dim-1> species_densities = compute_species_densities(conservative_soln);
         for (unsigned int s=0; s<nstate-dim-1; ++s) 
         {
-            computed_quantities(++current_data_index) = compute_species_densities(conservative_soln)[s];
+            computed_quantities(++current_data_index) = species_densities[s];
         }
         // Vorticity
         dealii::Tensor<1,3,double> vorticity = this->navier_stokes_physics->compute_vorticity(mixture_soln,mixture_soln_gradient);

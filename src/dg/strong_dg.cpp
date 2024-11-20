@@ -1566,7 +1566,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_boundary_term_strong(
                                                  soln_coeff[istate], soln_at_surf_q[istate],
                                                  soln_basis.oneD_surf_operator,
                                                  soln_basis.oneD_vol_operator);
-        if(this->using_wall_model && ((boundary_id == 1001) || (boundary_id == 1006))) {
+        if(this->using_wall_model && (boundary_type == 1001)) {
             //allocate
             soln_at_opposite_surf_q[istate].resize(n_face_quad_pts);
             //solve soln at facet cubature nodes
@@ -2125,7 +2125,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_boundary_term_strong(
             soln_interp_to_face[istate] = soln_at_surf_q[istate][iquad];
             soln_state[istate] = soln_interp_to_face[istate]; // initialize as solution interpolated to face
             entropy_var_face[istate] = projected_entropy_var_surf[istate][iquad];
-            if(this->using_wall_model && ((boundary_id == 1001) || (boundary_id == 1006))) opposite_surf_soln_state[istate] = soln_at_opposite_surf_q[istate][iquad];
+            if(this->using_wall_model && (boundary_type == 1001)) opposite_surf_soln_state[istate] = soln_at_opposite_surf_q[istate][iquad];
             if(this->do_compute_filtered_solution) filtered_soln_state[istate] = legendre_soln_at_surf_q[istate][iquad];
             for(int idim=0; idim<dim; idim++){
                 aux_soln_state[istate][idim] = aux_soln_at_surf_q[istate][idim][iquad];
@@ -2157,7 +2157,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_boundary_term_strong(
         // Dissipative numerical flux
         this->pde_physics_double->boundary_face_values_viscous_flux (boundary_id, surf_flux_node, unit_phys_normal_int, soln_state, aux_soln_state, filtered_soln_state, filtered_aux_soln_state, soln_boundary, grad_soln_boundary);
         std::array<real,nstate> diss_auxi_num_flux_dot_n_at_q;
-        if(this->using_wall_model && ((boundary_id == 1001) || (boundary_id == 1006))) {
+        if(this->using_wall_model && (boundary_type == 1001)) {
             diss_auxi_num_flux_dot_n_at_q = this->pde_physics_double->dissipative_flux_dot_normal(
                 opposite_surf_soln_state, aux_soln_state, 
                 filtered_soln_state, filtered_aux_soln_state,

@@ -159,9 +159,9 @@ std::array<real,nstate> LargeEddySimulationBase<dim,nstate,real>
     dissipative_flux_dot_normal.fill(0.0); // initialize
     // Associated thermal boundary condition
     if((on_boundary && (navier_stokes_physics->thermal_boundary_condition_type == thermal_boundary_condition_enum::adiabatic))
-        && ((boundary_type == 1001) || (boundary_type == 1006))) { 
+        && (boundary_type == 1001)) { 
 
-        /** If adiabatic on either slip (1001) or no-slip (1006) wall BCs */
+        /** If adiabatic on no-slip (1001) wall BCs */
         // adiabatic boundary
         // --> Modify viscous flux such that normal_vector dot gradient of temperature must be zero
 

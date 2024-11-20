@@ -74,7 +74,7 @@ double TimeRefinementStudy<dim,nstate>::calculate_Lp_error_at_final_time_wrt_fun
 template <int dim, int nstate>
 int TimeRefinementStudy<dim, nstate>::run_test() const
 {
-
+    
     const double final_time = this->all_parameters->flow_solver_param.final_time;
     const double initial_time_step = this->all_parameters->ode_solver_param.initial_time_step;
     const int n_steps = floor(final_time/initial_time_step);
@@ -116,6 +116,18 @@ int TimeRefinementStudy<dim, nstate>::run_test() const
         const double dt =  params.ode_solver_param.initial_time_step;
         const int n_timesteps= flow_solver->ode_solver->current_iteration;
         pcout << " at dt = " << dt << std::endl;
+
+
+        if (this->all_parameters->ode_solver_param.runge_kutta_method == PHiLiP::Parameters::ODESolverParam::RK3_2_5F_3SStarPlus 
+            && this->all_parameters->ode_solver_param.atol == 1e-4 && this->all_parameters->ode_solver_param.rtol == 1e-4 
+            && this->all_parameters->time_refinement_study_param.number_of_times_to_solve == 1){
+            double L2_error_expected = 2.14808703658e-5; 
+            pcout << " Expected L2 error is: " << L2_error_expected << std::endl;
+            if (L2_error > L2_error_expected + 1e-14 || L2_error < L2_error_expected - 1e-14){
+                testfail = 1;
+                pcout << "Expected L2 error for RK3(2)5F[3S*+] using an atol = rtol = 1e-4 was not reached " << refinement <<std::endl;
+            }
+        }
         
         convergence_table.add_value("refinement", refinement);
         convergence_table.add_value("dt", dt );
@@ -140,7 +152,7 @@ int TimeRefinementStudy<dim, nstate>::run_test() const
             convergence_table.set_scientific("gamma_aggregate_m1", true);
             convergence_table.evaluate_convergence_rates("gamma_aggregate_m1", "dt", dealii::ConvergenceTable::reduction_rate_log2, 1);
         }
-
+ 
         //Checking convergence order
         const double expected_order = params.ode_solver_param.rk_order;
         const double order_tolerance = 0.1;

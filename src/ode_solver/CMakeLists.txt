@@ -2,8 +2,11 @@ set(ODE_SOURCE
     ode_solver_factory.cpp
     ode_solver_base.cpp
     runge_kutta_ode_solver.cpp
+    low_storage_runge_kutta_ode_solver.cpp
     runge_kutta_methods/runge_kutta_methods.cpp
     runge_kutta_methods/rk_tableau_base.cpp
+    runge_kutta_methods/low_storage_rk_tableau_base.cpp
+    runge_kutta_methods/low_storage_runge_kutta_methods.cpp
     relaxation_runge_kutta/empty_RRK_base.cpp
     relaxation_runge_kutta/runge_kutta_store_entropy.cpp
     relaxation_runge_kutta/rrk_ode_solver_base.cpp
@@ -14,7 +17,8 @@ set(ODE_SOURCE
     pod_petrov_galerkin_ode_solver.cpp
     reduced_order_ode_solver.cpp
     JFNK_solver/jacobian_vector_product.cpp
-    JFNK_solver/JFNK_solver.cpp)
+    JFNK_solver/JFNK_solver.cpp
+    hyper_reduced_petrov_galerkin_ode_solver.cpp)
 
 foreach(dim RANGE 1 3)
     # Output library

@@ -30,7 +30,7 @@ set diss_num_flux = symm_internal_penalty
 #set diss_num_flux = bassi_rebay_2
  
 # additional parameters
-set solution_vtk_files_directory_name = solution_files
+set solution_vtk_files_directory_name = .
 set output_high_order_grid = false
 set enable_higher_order_vtk_output = true
 set do_renumber_dofs = false

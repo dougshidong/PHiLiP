@@ -111,10 +111,6 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       dealii::Patterns::Bool(),
                       "Use straight grid by default. Curvilinear is true. Only used in taylor_green_scaling test.");
 
-    prm.declare_entry("use_curvilinear_grid", "false",
-                      dealii::Patterns::Bool(),
-                      "Use straight grid by default. Curvilinear is true. Only used in taylor_green_scaling test.");
-
     prm.declare_entry("use_energy", "false",
                       dealii::Patterns::Bool(),
                       "Not calculate energy by default. Otherwise, get energy per iteration.");

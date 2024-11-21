@@ -1587,7 +1587,7 @@ template <int dim, int nstate, typename real>
 real NavierStokes_ChannelFlowConstantSourceTerm_WallModel<dim,nstate,real>
 ::get_velocity_component_parallel_to_wall_from_solution_and_normal_vector (
         const std::array<real,nstate> &conservative_soln,
-        const dealii::Tensor<1,dim,real> &normal_vector)
+        const dealii::Tensor<1,dim,real> &normal_vector) const
 {
     // Get the wall parallel velocities; equivalent Frere thesis eq.(2.40)
     const dealii::Tensor<1,dim,real> velocities_parallel_to_wall = this->template compute_velocities_parallel_to_wall<real>(conservative_soln,normal_vector);

@@ -635,7 +635,7 @@ public:
     /// Returns the velocoty component parallel to the wall from the solution and normal vector
     real get_velocity_component_parallel_to_wall_from_solution_and_normal_vector (
         const std::array<real,nstate> &conservative_soln,
-        const dealii::Tensor<1,dim,real> &normal_vector);
+        const dealii::Tensor<1,dim,real> &normal_vector) const;
 };
 
 } // Physics namespace

@@ -688,7 +688,6 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_boundary_term_auxiliary_equati
         for(int idim=0; idim<dim; idim++){
             surf_flux_node[idim] = metric_oper.flux_nodes_surf[iface][idim][iquad];
         }
-        // this->pde_physics_double->boundary_face_values (boundary_id, surf_flux_node, unit_phys_normal_int, soln_state, phys_grad_soln_state, soln_boundary, grad_soln_boundary);
         this->pde_physics_double->boundary_face_values_viscous_flux (boundary_id, surf_flux_node, unit_phys_normal_int, soln_state, phys_grad_soln_state, soln_state, phys_grad_soln_state, soln_boundary, grad_soln_boundary);
 
         std::array<real,nstate> diss_soln_num_flux;

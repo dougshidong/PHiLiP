@@ -157,7 +157,6 @@ public:
     ~DGStrong_ChannelFlow();
 
 protected:
-    // TO DO: reduce these
     const double channel_height; ///< Channel height
     const double half_channel_height; ///< Half channel height
     const double channel_friction_velocity_reynolds_number; ///< Channel Reynolds number based on wall friction velocity

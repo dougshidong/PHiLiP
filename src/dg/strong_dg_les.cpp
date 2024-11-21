@@ -1,21 +1,12 @@
 #include <deal.II/base/tensor.h>
-
 #include <deal.II/fe/fe_values.h>
-
 #include <deal.II/dofs/dof_handler.h>
 #include <deal.II/dofs/dof_tools.h>
-
 #include <deal.II/dofs/dof_renumbering.h>
-
 #include <deal.II/dofs/dof_accessor.h>
-
 #include <deal.II/lac/vector.h>
-
 #include "ADTypes.hpp"
-
 #include <deal.II/fe/fe_dgq.h> // Used for flux interpolation
-
-// TO DO: review the above includes
 
 #include "strong_dg_les.hpp"
 
@@ -29,35 +20,10 @@ DGStrongLES<dim,nstate,real,MeshType>::DGStrongLES(
     const unsigned int grid_degree_input,
     const std::shared_ptr<Triangulation> triangulation_input)
     : DGStrong<dim,nstate,real,MeshType>::DGStrong(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input)
-    // , do_compute_filtered_solution(this->all_parameters->physics_model_param.do_compute_filtered_solution)
-    // , apply_modal_high_pass_filter_on_filtered_solution(this->all_parameters->physics_model_param.apply_modal_high_pass_filter_on_filtered_solution)
-    // , poly_degree_max_large_scales(this->all_parameters->physics_model_param.poly_degree_max_large_scales)
 { 
-#if PHILIP_DIM==3
-    // // TO DO: move this if statement logic to the DGFactory
-    // if(((pde_type==PDE_enum::physics_model || pde_type==PDE_enum::physics_model_filtered) && 
-    //     (model_type==Model_enum::large_eddy_simulation || model_type==Model_enum::navier_stokes_model))) 
-    // {
-        if constexpr (dim+2==nstate) {
-            this->pde_model_les_double = std::dynamic_pointer_cast<Physics::LargeEddySimulationBase<dim,dim+2,real>>(this->pde_model_double);
-        }
-    // }
-    // else if((pde_type==PDE_enum::physics_model  || pde_type==PDE_enum::physics_model_filtered) && 
-    //          (model_type!=Model_enum::large_eddy_simulation && model_type!=Model_enum::navier_stokes_model)) 
-    // {
-    //     std::cout << "Invalid convective numerical flux for physics_model and/or corresponding baseline_physics_type" << std::endl;
-    //     if(nstate!=(dim+2)) std::cout << "Error: Cannot create_euler_based_convective_numerical_flux() for nstate_baseline_physics != nstate." << std::endl;
-    //     std::abort();
-    // }
-#endif
-
-    // // TO DO: move this to the factory
-    // // Determine if the mean strain rate tensor must be computed
-    // using PDE_enum = Parameters::AllParameters::PartialDifferentialEquation;
-    // const PDE_enum pde_type = this->all_param.pde_type;
-    // if(pde_type == PDE_enum::physics_model  || pde_type == PDE_enum::physics_model_filtered) {
-        
-    // }
+    if constexpr (dim+2==nstate) {
+        this->pde_model_les_double = std::dynamic_pointer_cast<Physics::LargeEddySimulationBase<dim,dim+2,real>>(this->pde_model_double);
+    }
 }
 
 // Destructor
@@ -145,7 +111,6 @@ void DGStrongLES<dim,nstate,real,MeshType>::update_cellwise_mean_quantities()
     // do nothing
 }
 
-
 template <int dim, int nstate, typename real, typename MeshType>
 DGStrongLES_ShearImproved<dim,nstate,real,MeshType>::DGStrongLES_ShearImproved(
     const Parameters::AllParameters *const parameters_input,
@@ -154,9 +119,6 @@ DGStrongLES_ShearImproved<dim,nstate,real,MeshType>::DGStrongLES_ShearImproved(
     const unsigned int grid_degree_input,
     const std::shared_ptr<Triangulation> triangulation_input)
     : DGStrongLES<dim,nstate,real,MeshType>::DGStrongLES(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input)
-    // , do_compute_filtered_solution(this->all_parameters->physics_model_param.do_compute_filtered_solution)
-    // , apply_modal_high_pass_filter_on_filtered_solution(this->all_parameters->physics_model_param.apply_modal_high_pass_filter_on_filtered_solution)
-    // , poly_degree_max_large_scales(this->all_parameters->physics_model_param.poly_degree_max_large_scales)
 { 
     // do nothing
 }
@@ -924,9 +886,6 @@ DGStrong_ChannelFlow<dim,nstate,real,MeshType>::DGStrong_ChannelFlow(
     const unsigned int grid_degree_input,
     const std::shared_ptr<Triangulation> triangulation_input)
     : DGStrong<dim,nstate,real,MeshType>::DGStrong(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input)
-    // , do_compute_filtered_solution(this->all_parameters->physics_model_param.do_compute_filtered_solution)
-    // , apply_modal_high_pass_filter_on_filtered_solution(this->all_parameters->physics_model_param.apply_modal_high_pass_filter_on_filtered_solution)
-    // , poly_degree_max_large_scales(this->all_parameters->physics_model_param.poly_degree_max_large_scales)
     , channel_height(parameters_input->flow_solver_param.turbulent_channel_domain_length_y_direction)
     , half_channel_height(channel_height/2.0)
     , channel_friction_velocity_reynolds_number(parameters_input->flow_solver_param.turbulent_channel_friction_velocity_reynolds_number)
@@ -942,31 +901,9 @@ DGStrong_ChannelFlow<dim,nstate,real,MeshType>::DGStrong_ChannelFlow(
     , channel_centerline_velocity_reynolds_number(1.28*pow(2.0, -0.0116)*pow(channel_bulk_velocity_reynolds_number,1.0-0.0116))
     , total_wall_area(2.0*domain_length_x*domain_length_z) // times two because 2 walls
 { 
-#if PHILIP_DIM==3
-    // // TO DO: move this if statement logic to the DGFactory
-    // if(((pde_type==PDE_enum::physics_model || pde_type==PDE_enum::physics_model_filtered) && 
-    //     (model_type==Model_enum::large_eddy_simulation || model_type==Model_enum::navier_stokes_model))) 
-    // {
-        if constexpr (dim+2==nstate) {
-            this->pde_model_navier_stokes_double = std::dynamic_pointer_cast<Physics::NavierStokesWithModelSourceTerms<dim,dim+2,real>>(this->pde_model_double);
-        }
-    // }
-    // else if((pde_type==PDE_enum::physics_model  || pde_type==PDE_enum::physics_model_filtered) && 
-    //          (model_type!=Model_enum::large_eddy_simulation && model_type!=Model_enum::navier_stokes_model)) 
-    // {
-    //     std::cout << "Invalid convective numerical flux for physics_model and/or corresponding baseline_physics_type" << std::endl;
-    //     if(nstate!=(dim+2)) std::cout << "Error: Cannot create_euler_based_convective_numerical_flux() for nstate_baseline_physics != nstate." << std::endl;
-    //     std::abort();
-    // }
-#endif
-
-    // // TO DO: move this to the factory
-    // // Determine if the mean strain rate tensor must be computed
-    // using PDE_enum = Parameters::AllParameters::PartialDifferentialEquation;
-    // const PDE_enum pde_type = this->all_param.pde_type;
-    // if(pde_type == PDE_enum::physics_model  || pde_type == PDE_enum::physics_model_filtered) {
-        
-    // }
+    if constexpr (dim+2==nstate) {
+        this->pde_model_navier_stokes_double = std::dynamic_pointer_cast<Physics::NavierStokesWithModelSourceTerms<dim,dim+2,real>>(this->pde_model_double);
+    }
 }
 
 template <int dim, int nstate, typename real, typename MeshType>

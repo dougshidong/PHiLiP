@@ -85,11 +85,6 @@ DGFactory<dim,real,MeshType>
                 using SGS_enum = Parameters::PhysicsModelParam::SubGridScaleModel;
                 const SGS_enum SGS_model_type = parameters_input->physics_model_param.SGS_model_type;
                 if(SGS_model_type == SGS_enum::shear_improved_smagorinsky) {
-                    // this->do_compute_mean_strain_rate_tensor = true;
-                    // return std::make_shared< DGStrongLES_ShearImproved<dim,dim+2,real,MeshType> >(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input);
-                    // TO DO: Create DGStrongLES_Base
-                    // TO DO: Create DGStrongLES_ConstantModelCoefficient
-                    // TO DO: Create DGStrongLES_ShearImproved
                     return std::make_shared< DGStrongLES_ShearImproved<dim,dim+2,real,MeshType> >(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input);
                 } else if(SGS_model_type == SGS_enum::dynamic_smagorinsky) {
                     return std::make_shared< DGStrongLES_DynamicSmagorinsky<dim,dim+2,real,MeshType> >(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input);

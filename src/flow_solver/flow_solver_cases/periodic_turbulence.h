@@ -145,7 +145,6 @@ protected:
     bool is_decaying_homogeneous_isotropic_turbulence = false; ///< Identified if DHIT case; initialized as false.
     bool is_viscous_flow = true; ///< Identifies if viscous flow; initialized as true.
     bool do_calculate_numerical_entropy = false; ///< Identifies if numerical entropy should be calculated; initialized as false.
-    bool do_compute_mean_strain_rate_tensor = false; ///< Identifies if the mean strain rate tensor must be calculated
 
     /// Display additional more specific flow case parameters
     virtual void display_additional_flow_case_specific_parameters() const override;

@@ -1,9 +1,6 @@
 #include "channel_flow.h"
 #include <deal.II/dofs/dof_tools.h>
-// #include <deal.II/grid/grid_tools.h>
-// #include <deal.II/numerics/vector_tools.h>
 #include <deal.II/fe/fe_values.h>
-// #include <deal.II/base/tensor.h>
 #include "math.h"
 #include <deal.II/base/quadrature_lib.h>
 #include <deal.II/grid/grid_generator.h>
@@ -342,8 +339,6 @@ std::shared_ptr<Triangulation> ChannelFlow<dim,nstate>::generate_grid() const
             if (cell->face(face)->at_boundary()) {
                 unsigned int current_id = cell->face(face)->boundary_id();
                 if (current_id == 2 || current_id == 3) cell->face(face)->set_boundary_id (1001); // Bottom and top wall
-                // could simply introduce different boundary id if using a wall model
-                // -- could be problematic since need same boundary ID for Euler boundary_face_values
             }
         }
     }

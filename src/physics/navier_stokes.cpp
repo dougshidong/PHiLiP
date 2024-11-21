@@ -1583,7 +1583,25 @@ NavierStokes_ChannelFlowConstantSourceTerm_WallModel<dim, nstate, real>::NavierS
     // Nothing to do here so far
 }
 
+template <int dim, int nstate, typename real>
+real NavierStokes_ChannelFlowConstantSourceTerm_WallModel<dim,nstate,real>
+::get_velocity_component_parallel_to_wall_from_solution_and_normal_vector (
+        const std::array<real,nstate> &conservative_soln,
+        const dealii::Tensor<1,dim,real> &normal_vector)
+{
+    // Get the wall parallel velocities; equivalent Frere thesis eq.(2.40)
+    const dealii::Tensor<1,dim,real> velocities_parallel_to_wall = this->template compute_velocities_parallel_to_wall<real>(conservative_soln,normal_vector);
 
+    // Get wall tangent vector; equivalent Frere thesis eq.(2.40)
+    const dealii::Tensor<1,dim,real> wall_tangent_vector = this->template compute_wall_tangent_vector_from_velocities_parallel_to_wall<real>(velocities_parallel_to_wall);
+
+    // Get wall parallel velocity component; Frere thesis eq.(2.41)
+    real velocity_parallel_to_wall = 0.0;
+    for (int d=0; d<dim; ++d) {
+        velocity_parallel_to_wall += velocities_parallel_to_wall[d]*wall_tangent_vector[d];
+    }
+    return velocity_parallel_to_wall;
+}
 
 template <int dim, int nstate, typename real>
 std::array<real,nstate> NavierStokes_ChannelFlowConstantSourceTerm_WallModel<dim,nstate,real>
@@ -1854,6 +1872,12 @@ template dealii::Tensor<1,3,FadType> NavierStokes < PHILIP_DIM, PHILIP_DIM+2, do
 template dealii::Tensor<1,3,FadType> NavierStokes < PHILIP_DIM, PHILIP_DIM+2, RadType   >::compute_vorticity< FadType >(const std::array<FadType,PHILIP_DIM+2> &conservative_soln, const std::array<dealii::Tensor<1,PHILIP_DIM,FadType>,PHILIP_DIM+2> &conservative_soln_gradient) const;
 template dealii::Tensor<1,3,FadType> NavierStokes < PHILIP_DIM, PHILIP_DIM+2, FadFadType>::compute_vorticity< FadType >(const std::array<FadType,PHILIP_DIM+2> &conservative_soln, const std::array<dealii::Tensor<1,PHILIP_DIM,FadType>,PHILIP_DIM+2> &conservative_soln_gradient) const;
 template dealii::Tensor<1,3,FadType> NavierStokes < PHILIP_DIM, PHILIP_DIM+2, RadFadType>::compute_vorticity< FadType >(const std::array<FadType,PHILIP_DIM+2> &conservative_soln, const std::array<dealii::Tensor<1,PHILIP_DIM,FadType>,PHILIP_DIM+2> &conservative_soln_gradient) const;
+// -- get_velocity_component_parallel_to_wall_from_solution_and_normal_vector
+template double     NavierStokes_ChannelFlowConstantSourceTerm_WallModel < PHILIP_DIM, PHILIP_DIM+2, double    >::get_velocity_component_parallel_to_wall_from_solution_and_normal_vector< double     >(const std::array<double    ,PHILIP_DIM+2> &conservative_soln, const dealii::Tensor<1,PHILIP_DIM,double    > &normal_vector) const;
+template FadType    NavierStokes_ChannelFlowConstantSourceTerm_WallModel < PHILIP_DIM, PHILIP_DIM+2, FadType   >::get_velocity_component_parallel_to_wall_from_solution_and_normal_vector< FadType    >(const std::array<FadType   ,PHILIP_DIM+2> &conservative_soln, const dealii::Tensor<1,PHILIP_DIM,FadType   > &normal_vector) const;
+template RadType    NavierStokes_ChannelFlowConstantSourceTerm_WallModel < PHILIP_DIM, PHILIP_DIM+2, RadType   >::get_velocity_component_parallel_to_wall_from_solution_and_normal_vector< RadType    >(const std::array<RadType   ,PHILIP_DIM+2> &conservative_soln, const dealii::Tensor<1,PHILIP_DIM,RadType   > &normal_vector) const;
+template FadFadType NavierStokes_ChannelFlowConstantSourceTerm_WallModel < PHILIP_DIM, PHILIP_DIM+2, FadFadType>::get_velocity_component_parallel_to_wall_from_solution_and_normal_vector< FadFadType >(const std::array<FadFadType,PHILIP_DIM+2> &conservative_soln, const dealii::Tensor<1,PHILIP_DIM,FadFadType> &normal_vector) const;
+template RadFadType NavierStokes_ChannelFlowConstantSourceTerm_WallModel < PHILIP_DIM, PHILIP_DIM+2, RadFadType>::get_velocity_component_parallel_to_wall_from_solution_and_normal_vector< RadFadType >(const std::array<RadFadType,PHILIP_DIM+2> &conservative_soln, const dealii::Tensor<1,PHILIP_DIM,RadFadType> &normal_vector) const;
 
 
 } // Physics namespace

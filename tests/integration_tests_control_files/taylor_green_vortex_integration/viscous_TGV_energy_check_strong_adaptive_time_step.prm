@@ -52,6 +52,7 @@ subsection flow_solver
   set adaptive_time_step = true
   set unsteady_data_table_filename = tgv_strong_adaptive_time_step
   set output_restart_files = true
+  set write_unsteady_data_table_file_every_dt_time_intervals = 0.0
   subsection grid
     set grid_left_bound = 0.0
     set grid_right_bound = 6.28318530717958623200

@@ -137,7 +137,7 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
                           dealii::Patterns::Double(0,dealii::Patterns::Double::max_double_value),
                           "Outputs the restart files at time intervals of dt.");
         
-        prm.declare_entry("write_unsteady_data_table_file_every_dt_time_intervals", "0.0",
+        prm.declare_entry("write_unsteady_data_table_file_every_dt_time_intervals", "0.1",
                           dealii::Patterns::Double(0,dealii::Patterns::Double::max_double_value),
                           "Writes the unsteady data table file at time intervals of dt. "
                           "If set to zero, it outputs at every time step.");
@@ -270,7 +270,7 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
                               dealii::Patterns::Bool(),
                               "Flag to calculate numerical entropy and write to file. By default, do not calculate.");
 
-            prm.declare_entry("check_nonphysical_flow_case_behavior", "false",
+            prm.declare_entry("check_nonphysical_flow_case_behavior", "true",
                               dealii::Patterns::Bool(),
                               "Flag to check if non-physical case dependant behaviour is encounted. By default, false.");
         }

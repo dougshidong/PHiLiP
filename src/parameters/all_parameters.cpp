@@ -691,10 +691,15 @@ void AllParameters::modify_parameters () {
       
       pcout << "done." << std::endl;
     } 
-    else if((pde_type == PartialDifferentialEquation::navier_stokes || 
-             (pde_type == PartialDifferentialEquation::physics_model || pde_type == PartialDifferentialEquation::physics_model_filtered)) && 
+    if((pde_type == PartialDifferentialEquation::navier_stokes || (pde_type == PartialDifferentialEquation::navier_stokes_channel_flow_constant_source_term || 
+                (pde_type == PartialDifferentialEquation::navier_stokes_channel_flow_constant_source_term_wall_model ||
+                 (pde_type == PartialDifferentialEquation::physics_model || pde_type == PartialDifferentialEquation::physics_model_filtered)))) && 
               (flow_solver_param.flow_case_type == flow_solver_param.FlowCaseType::taylor_green_vortex || 
-                flow_solver_param.flow_case_type == flow_solver_param.FlowCaseType::decaying_homogeneous_isotropic_turbulence)) {
+                (flow_solver_param.flow_case_type == flow_solver_param.FlowCaseType::channel_flow || 
+                  (flow_solver_param.flow_case_type == flow_solver_param.FlowCaseType::dipole_wall_collision_normal || 
+                    (flow_solver_param.flow_case_type == flow_solver_param.FlowCaseType::dipole_wall_collision_oblique ||
+                  flow_solver_param.flow_case_type == flow_solver_param.FlowCaseType::decaying_homogeneous_isotropic_turbulence))))) 
+    {
       pcout << "Setting non_physical_behavior_type = NonPhysicalBehaviorEnum::abort_run... " << std::flush;
       non_physical_behavior_type = NonPhysicalBehaviorEnum::abort_run;
       pcout << "done." << std::endl;

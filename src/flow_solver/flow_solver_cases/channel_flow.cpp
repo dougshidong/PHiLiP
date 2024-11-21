@@ -496,9 +496,21 @@ double ChannelFlow<dim, nstate>::get_average_wall_shear_stress_from_wall_model(D
                         // double integrand_value = this->navier_stokes_physics->compute_wall_shear_stress(soln_at_q,soln_grad_at_q,normal_vector);
                         // Get wall shear stress magnitude from wall model
                         const double density = soln_at_q[0];
-                        const double velocity_parallel_to_wall = soln_at_q[1]/soln_at_q[0]; // TO DO -- FURTHER TEST THIS WITH THE NORMAL VECTOR / FUNCTION THAT COMPUTES IT
+                        
+                        
+                        // constant viscosity coefficient for this case
                         const double viscosity_coefficient = this->navier_stokes_channel_flow_constant_source_term_wall_model_physics->constant_viscosity; // non-dimensional
+                        
                         const double reynolds_number_inf = this->navier_stokes_channel_flow_constant_source_term_wall_model_physics->reynolds_number_inf;
+
+                        // Get normal vector
+                        const dealii::Tensor<1,dim,double> normal = -fe_face_values_extra.normal_vector(iquad); // minus for wall normal from face normal
+
+                        // Get wall parallel velocity component; Frere thesis eq.(2.41)
+                        // const double velocity_parallel_to_wall = soln_at_q[1]/soln_at_q[0];
+                        const double velocity_parallel_to_wall = 
+                            this->navier_stokes_channel_flow_constant_source_term_wall_model_physics->get_velocity_component_parallel_to_wall_from_solution_and_normal_vector(soln_at_q,normal);
+
                         const double wall_shear_stress_magnitude =
                                 this->navier_stokes_channel_flow_constant_source_term_wall_model_physics->wall_model_look_up_table->get_wall_shear_stress_magnitude(
                                         velocity_parallel_to_wall,

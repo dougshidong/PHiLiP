@@ -652,6 +652,11 @@ public:
         const std::array<dealii::Tensor<1,dim,real>,nstate> &filtered_solution_gradient,
         const dealii::types::global_dof_index cell_index,
         const dealii::Tensor<1,dim,real> &normal) override;
+
+    /// Returns the velocoty component parallel to the wall from the solution and normal vector
+    real get_velocity_component_parallel_to_wall_from_solution_and_normal_vector (
+        const std::array<real,nstate> &conservative_soln,
+        const dealii::Tensor<1,dim,real> &normal_vector) const;
 };
 
 } // Physics namespace

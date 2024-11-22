@@ -140,7 +140,7 @@ set_tests_labels(INVISCID_NACA0012_ADAPTIVE_SAMPLING    REDUCED_ORDER
                                                         IMPLICIT
                                                         WEAK
                                                         UNCOLLOCATED
-                                                        LONG
+                                                        EXTRA-LONG
                                                         INTEGRATION_TEST)
 
 # =======================================

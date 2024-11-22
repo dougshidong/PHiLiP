@@ -16,7 +16,7 @@ set_tests_labels(2D_EULER_NACA0012_OPTIMIZATION EULER_NACA_OPTIMIZATION
                                                 UNCOLLOCATED
                                                 MANUFACTURED_SOLUTION
                                                 CONVERGENCE
-                                                LONG
+                                                EXTRA-LONG
                                                 OPTIMIZATION
                                                 INTEGRATION_TEST)
 

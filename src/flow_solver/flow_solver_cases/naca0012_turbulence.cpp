@@ -240,6 +240,9 @@ void NACA0012_LES<dim, nstate>::output_velocity_field(
     mapping_basis_at_equidistant.build_1D_shape_functions_at_grid_nodes(dg->high_order_grid->oneD_fe_system, dg->high_order_grid->oneD_grid_nodes);
     mapping_basis_at_equidistant.build_1D_shape_functions_at_flux_nodes(dg->high_order_grid->oneD_fe_system, vol_quad_equidistant_1D, dg->oneD_face_quadrature);
 
+    double kinetic_energy_sum_P1 = 0;
+    double kinetic_energy_index_P1 = 0;
+
     // Loop over all cells
     const unsigned int max_dofs_per_cell = dg->dof_handler.get_fe_collection().max_dofs_per_cell();
     std::vector<dealii::types::global_dof_index> current_dofs_indices(max_dofs_per_cell);
@@ -392,33 +395,317 @@ void NACA0012_LES<dim, nstate>::output_velocity_field(
                 vol_equid_node[idim] = metric_oper_equid.flux_nodes_vol[idim][ishape];
                 FILE << std::setprecision(17) << vol_equid_node[idim] << std::string(" ");
             }
-            // write velocity field
-            for (int d=0; d<dim; ++d) {
-                FILE << std::setprecision(17) << velocity_at_q[d][ishape] << std::string(" ");
-            }
-            // write velocity fluctuations field
-            if(compute_time_averaged_solution && current_time >= time_to_start_averaging) {
-                for (int d=0; d<dim; ++d) {
-                    FILE << std::setprecision(17) << velocity_fluctuations_at_q[d][ishape] << std::string(" ");
+            const double precision = 2E-3;
+            // if( ((0.5-precision)<vol_equid_node[0] && vol_equid_node[0]<(0.5+precision)) && ((0.11-precision)<vol_equid_node[1] && vol_equid_node[1]<(0.11+precision)) ){
+            //     for(int idim=0; idim<dim; idim++) {
+            //         std::cout << "vol_equid_node["<<idim<<"]: " << vol_equid_node[idim] << std::endl;
+            //     }
+            // } 
+            if( ((0.5-precision)<vol_equid_node[0] && vol_equid_node[0]<(0.5+precision)) && ((0.05-precision)<vol_equid_node[1] && vol_equid_node[1]<(0.05+precision)) ){
+                for(int idim=0; idim<dim; idim++) {
+                    std::cout << "vol_equid_node["<<idim<<"]: " << vol_equid_node[idim] << std::endl;
                 }
+                std::cout << "kinetic energy at q: " << kinetic_energy_at_q[ishape] << std::endl;
+                kinetic_energy_sum_P1 +=  kinetic_energy_at_q[ishape];
+                kinetic_energy_index_P1 += 1;
             }
-            // write vorticity magnitude field if desired
-            if(output_vorticity_magnitude_field_in_addition_to_velocity) {
-                FILE << std::setprecision(17) << vorticity_magnitude_at_q[ishape] << std::string(" ");
-            }
-            // write density field if desired
-            if(output_density_field_in_addition_to_velocity) {
-                FILE << std::setprecision(17) << density_at_q[ishape] << std::string(" ");
-            }
-            // write viscosity field if desired
-            if(output_viscosity_field_in_addition_to_velocity) {
-                FILE << std::setprecision(17) << viscosity_at_q[ishape] << std::string(" ");
-            }
+            // // write velocity field
+            // for (int d=0; d<dim; ++d) {
+            //     FILE << std::setprecision(17) << velocity_at_q[d][ishape] << std::string(" ");
+            // }
+            // // write velocity fluctuations field
+            // if(compute_time_averaged_solution && current_time >= time_to_start_averaging) {
+            //     for (int d=0; d<dim; ++d) {
+            //         FILE << std::setprecision(17) << velocity_fluctuations_at_q[d][ishape] << std::string(" ");
+            //     }
+            // }
+            // // write vorticity magnitude field if desired
+            // if(output_vorticity_magnitude_field_in_addition_to_velocity) {
+            //     FILE << std::setprecision(17) << vorticity_magnitude_at_q[ishape] << std::string(" ");
+            // }
+            // // write density field if desired
+            // if(output_density_field_in_addition_to_velocity) {
+            //     FILE << std::setprecision(17) << density_at_q[ishape] << std::string(" ");
+            // }
+            // // write viscosity field if desired
+            // if(output_viscosity_field_in_addition_to_velocity) {
+            //     FILE << std::setprecision(17) << viscosity_at_q[ishape] << std::string(" ");
+            // }
             FILE << std::string("\n"); // next line
         }
     }//End of cell loop
+    // write vkinetic energy average at point
+    double kinetic_energy_mpi_sum_P1 = dealii::Utilities::MPI::sum(kinetic_energy_sum_P1, this->mpi_communicator);
+    double kinetic_energy_mpi_index_P1 = dealii::Utilities::MPI::sum(kinetic_energy_index_P1, this->mpi_communicator);
+    FILE << std::setprecision(17) << kinetic_energy_mpi_sum_P1/kinetic_energy_mpi_index_P1 << std::string(" ");
     FILE.close();
     this->pcout << "done." << std::endl;
+}
+
+template<int dim, int nstate>
+void NACA0012_LES<dim, nstate>::output_kinetic_energy_at_points(
+    std::shared_ptr<DGBase<dim,double>> dg,
+    const double current_time,
+    const dealii::Point<dim,double> P1,
+    const dealii::Point<dim,double> P2,
+    const dealii::Point<dim,double> P3,
+    const std::shared_ptr <dealii::TableHandler> unsteady_data_table) const
+{
+    const unsigned int higher_poly_degree = /*this->output_velocity_number_of_subvisions*/2*(dg->max_degree+1)-1; // Note: -1 so that n_quad_pts in 1D is n_subdiv*(P+1)
+       // build a basis oneD on equidistant nodes in 1D
+    dealii::Quadrature<1> vol_quad_equidistant_1D = dealii::QIterated<1>(dealii::QTrapez<1>(),higher_poly_degree);
+    const unsigned int n_quad_pts = pow(vol_quad_equidistant_1D.size(),dim);
+
+    const unsigned int init_grid_degree = dg->high_order_grid->fe_system.tensor_degree();
+    OPERATOR::basis_functions<dim,2*dim> soln_basis(1, dg->max_degree, init_grid_degree); 
+    soln_basis.build_1D_volume_operator(dg->oneD_fe_collection_1state[dg->max_degree], vol_quad_equidistant_1D);
+    soln_basis.build_1D_gradient_operator(dg->oneD_fe_collection_1state[dg->max_degree], vol_quad_equidistant_1D);
+
+    // mapping basis for the equidistant node set because we output the physical coordinates
+    OPERATOR::mapping_shape_functions<dim,2*dim> mapping_basis_at_equidistant(1, dg->max_degree, init_grid_degree);
+    mapping_basis_at_equidistant.build_1D_shape_functions_at_grid_nodes(dg->high_order_grid->oneD_fe_system, dg->high_order_grid->oneD_grid_nodes);
+    mapping_basis_at_equidistant.build_1D_shape_functions_at_flux_nodes(dg->high_order_grid->oneD_fe_system, vol_quad_equidistant_1D, dg->oneD_face_quadrature);
+
+    //Instantaneous kinetic energy at three points
+    double kinetic_energy_sum_P1 = 0;
+    double kinetic_energy_index_P1 = 0;
+    double kinetic_energy_sum_P2 = 0;
+    double kinetic_energy_index_P2 = 0;
+    double kinetic_energy_sum_P3 = 0;
+    double kinetic_energy_index_P3 = 0;
+
+    //Time-averaged kinetic energy and velocity magnitude at Point 1
+    double time_averaged_kinetic_energy_sum_P1 = 0;
+    double time_averaged_kinetic_energy_index_P1 = 0;
+    double time_averaged_velocity_magnitude_sum_P1 = 0;
+    double time_averaged_velocity_magnitude_index_P1 = 0;
+
+    //Time-averaged kinetic energy and velocity magnitude at Point 2
+    double time_averaged_kinetic_energy_sum_P2 = 0;
+    double time_averaged_kinetic_energy_index_P2 = 0;
+    double time_averaged_velocity_magnitude_sum_P2 = 0;
+    double time_averaged_velocity_magnitude_index_P2 = 0;
+
+    //Time-averaged kinetic energy and velocity magnitude at Point 3
+    double time_averaged_kinetic_energy_sum_P3 = 0;
+    double time_averaged_kinetic_energy_index_P3 = 0;
+    double time_averaged_velocity_magnitude_sum_P3 = 0;
+    double time_averaged_velocity_magnitude_index_P3 = 0;
+    // Loop over all cells
+    const unsigned int max_dofs_per_cell = dg->dof_handler.get_fe_collection().max_dofs_per_cell();
+    std::vector<dealii::types::global_dof_index> current_dofs_indices(max_dofs_per_cell);
+    auto metric_cell = dg->high_order_grid->dof_handler_grid.begin_active();
+    for (auto current_cell = dg->dof_handler.begin_active(); current_cell!=dg->dof_handler.end(); ++current_cell, ++metric_cell) {
+        if (!current_cell->is_locally_owned()) continue;
+
+        const int i_fele = current_cell->active_fe_index();
+        const unsigned int poly_degree = i_fele;
+        const unsigned int n_dofs_cell = dg->fe_collection[poly_degree].dofs_per_cell;
+        const unsigned int n_shape_fns = n_dofs_cell / nstate;
+
+        // We first need to extract the mapping support points (grid nodes) from high_order_grid.
+        const dealii::FESystem<dim> &fe_metric = dg->high_order_grid->fe_system;
+        const unsigned int n_metric_dofs = fe_metric.dofs_per_cell;
+        const unsigned int n_grid_nodes  = n_metric_dofs / dim;
+        std::vector<dealii::types::global_dof_index> metric_dof_indices(n_metric_dofs);
+        metric_cell->get_dof_indices (metric_dof_indices);
+        std::array<std::vector<double>,dim> mapping_support_points;
+        for(int idim=0; idim<dim; idim++){
+            mapping_support_points[idim].resize(n_grid_nodes);
+        }
+        // Get the mapping support points (physical grid nodes) from high_order_grid.
+        // Store it in such a way we can use sum-factorization on it with the mapping basis functions.
+        const std::vector<unsigned int > &index_renumbering = dealii::FETools::hierarchic_to_lexicographic_numbering<dim>(init_grid_degree);
+        for (unsigned int idof = 0; idof< n_metric_dofs; ++idof) {
+            const double val = (dg->high_order_grid->volume_nodes[metric_dof_indices[idof]]);
+            const unsigned int istate = fe_metric.system_to_component_index(idof).first;
+            const unsigned int ishape = fe_metric.system_to_component_index(idof).second;
+            const unsigned int igrid_node = index_renumbering[ishape];
+            mapping_support_points[istate][igrid_node] = val;
+        }
+        // Construct the metric operators
+        OPERATOR::metric_operators<double, dim, 2*dim> metric_oper_equid(nstate, poly_degree, init_grid_degree, true, false);
+        // Build the metric terms to compute the gradient and volume node positions.
+        // This functions will compute the determinant of the metric Jacobian and metric cofactor matrix.
+        // If flags store_vol_flux_nodes and store_surf_flux_nodes set as true it will also compute the physical quadrature positions.
+        metric_oper_equid.build_volume_metric_operators(
+            n_quad_pts, n_grid_nodes,
+            mapping_support_points,
+            mapping_basis_at_equidistant,
+            dg->all_parameters->use_invariant_curl_form);
+
+        current_dofs_indices.resize(n_dofs_cell);
+        current_cell->get_dof_indices (current_dofs_indices);
+
+        std::array<std::vector<double>,nstate> soln_coeff;
+        std::array<std::vector<double>,nstate> time_averaged_soln_coeff;
+        for(unsigned int idof=0; idof<n_dofs_cell; idof++){
+            const unsigned int istate = dg->fe_collection[poly_degree].system_to_component_index(idof).first;
+            const unsigned int ishape = dg->fe_collection[poly_degree].system_to_component_index(idof).second;
+            if(ishape == 0) {
+                soln_coeff[istate].resize(n_shape_fns);
+                time_averaged_soln_coeff[istate].resize(n_shape_fns);
+            }
+            soln_coeff[istate][ishape] = dg->solution(current_dofs_indices[idof]);
+            time_averaged_soln_coeff[istate][ishape] = dg->time_averaged_solution(current_dofs_indices[idof]);
+        }
+
+        std::array<std::vector<double>,nstate> soln_at_q;
+        std::array<std::vector<double>,nstate> time_averaged_soln_at_q;
+        std::array<dealii::Tensor<1,dim,std::vector<double>>,nstate> soln_grad_at_q;
+        for(int istate=0; istate<nstate; istate++){
+            soln_at_q[istate].resize(n_quad_pts);
+            time_averaged_soln_at_q[istate].resize(n_quad_pts);
+            // Interpolate soln coeff to volume cubature nodes.
+            soln_basis.matrix_vector_mult_1D(soln_coeff[istate], soln_at_q[istate],
+                                             soln_basis.oneD_vol_operator);
+            // Interpolate soln coeff to volume cubature nodes.
+            soln_basis.matrix_vector_mult_1D(time_averaged_soln_coeff[istate], time_averaged_soln_at_q[istate],
+                                             soln_basis.oneD_vol_operator);
+            // apply gradient of reference basis functions on the solution at volume cubature nodes
+            dealii::Tensor<1,dim,std::vector<double>> ref_gradient_basis_fns_times_soln;
+            for(int idim=0; idim<dim; idim++){
+                ref_gradient_basis_fns_times_soln[idim].resize(n_quad_pts);
+            }
+            soln_basis.gradient_matrix_vector_mult_1D(soln_coeff[istate], ref_gradient_basis_fns_times_soln,
+                                                      soln_basis.oneD_vol_operator,
+                                                      soln_basis.oneD_grad_operator);
+            // transform the gradient into a physical gradient operator scaled by determinant of metric Jacobian
+            // then apply the inner product in each direction
+            for(int idim=0; idim<dim; idim++){
+                soln_grad_at_q[istate][idim].resize(n_quad_pts);
+                for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){
+                    for(int jdim=0; jdim<dim; jdim++){
+                        //transform into the physical gradient
+                        soln_grad_at_q[istate][idim][iquad] += metric_oper_equid.metric_cofactor_vol[idim][jdim][iquad]
+                                                            * ref_gradient_basis_fns_times_soln[jdim][iquad]
+                                                            / metric_oper_equid.det_Jac_vol[iquad];
+                    }
+                }
+            }
+        }
+        //dealii::Tensor<1,dim,std::vector<double>> velocity_fluctuations_at_q;
+        std::vector<double> kinetic_energy_at_q(n_quad_pts);
+        std::vector<double> time_averaged_kinetic_energy_at_q(n_quad_pts);
+        std::vector<double> velocity_magnitude_at_q(n_quad_pts); 
+        for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
+            std::array<double,nstate> soln_state;
+            std::array<double,nstate> time_averaged_soln_state;
+            std::array<dealii::Tensor<1,dim,double>,nstate> soln_grad_state;
+            for(int istate=0; istate<nstate; istate++){
+                soln_state[istate] = soln_at_q[istate][iquad];
+                time_averaged_soln_state[istate] = time_averaged_soln_at_q[istate][iquad];
+                for(int idim=0; idim<dim; idim++){
+                    soln_grad_state[istate][idim] = soln_grad_at_q[istate][idim][iquad];
+                }
+            }
+            kinetic_energy_at_q[iquad] = this->navier_stokes_physics->compute_kinetic_energy_from_conservative_solution(soln_state);
+            time_averaged_kinetic_energy_at_q[iquad] = this->navier_stokes_physics->compute_kinetic_energy_from_conservative_solution(time_averaged_soln_state);
+            const dealii::Tensor<1,dim,double> velocity = this->navier_stokes_physics->compute_velocities(time_averaged_soln_state);
+            
+            velocity_magnitude_at_q[iquad] = sqrt(this->navier_stokes_physics->compute_velocity_squared(velocity));
+        }
+        // write out all values at equidistant nodes
+        for(unsigned int ishape=0; ishape<n_quad_pts; ishape++){
+            dealii::Point<dim,double> vol_equid_node;
+            // write coordinates
+            for(int idim=0; idim<dim; idim++) {
+                vol_equid_node[idim] = metric_oper_equid.flux_nodes_vol[idim][ishape];
+            }
+            const double x_precision_P1 = 1E-4;
+            const double y_precision_P1 = 2E-3;
+            if( ((P1[0]-x_precision_P1)<vol_equid_node[0] && vol_equid_node[0]<(P1[0]+x_precision_P1)) && ((P1[1]-y_precision_P1)<vol_equid_node[1] && vol_equid_node[1]<(P1[1]+y_precision_P1)) ){
+                // for(int idim=0; idim<dim; idim++) {
+                //     std::cout << "P1 vol_equid_node["<<idim<<"]: " << vol_equid_node[idim] << std::endl;
+                // }
+                // std::cout << "kinetic energy at q: " << kinetic_energy_at_q[ishape] << std::endl;
+                kinetic_energy_sum_P1 +=  kinetic_energy_at_q[ishape];
+                kinetic_energy_index_P1 += 1;
+                time_averaged_kinetic_energy_sum_P1 +=  time_averaged_kinetic_energy_at_q[ishape];
+                time_averaged_kinetic_energy_index_P1 += 1;
+                time_averaged_velocity_magnitude_sum_P1 += velocity_magnitude_at_q[ishape];
+                time_averaged_velocity_magnitude_index_P1 += 1;
+            }
+            const double x_precision_P2 = 2.5E-4;
+            const double y_precision_P2 = 1E-3;
+            if( ((P2[0]-x_precision_P2)<vol_equid_node[0] && vol_equid_node[0]<(P2[0]+x_precision_P2)) && ((P2[1]-y_precision_P2)<vol_equid_node[1] && vol_equid_node[1]<(P2[1]+y_precision_P2)) ){
+                // for(int idim=0; idim<dim; idim++) {
+                //     std::cout << "P2 vol_equid_node["<<idim<<"]: " << vol_equid_node[idim] << std::endl;
+                // }
+                // std::cout << "kinetic energy at q: " << kinetic_energy_at_q[ishape] << std::endl;
+                kinetic_energy_sum_P2 +=  kinetic_energy_at_q[ishape];
+                kinetic_energy_index_P2 += 1;
+                time_averaged_kinetic_energy_sum_P2 +=  time_averaged_kinetic_energy_at_q[ishape];
+                time_averaged_kinetic_energy_index_P2 += 1;
+                time_averaged_velocity_magnitude_sum_P2 += velocity_magnitude_at_q[ishape];
+                time_averaged_velocity_magnitude_index_P2 += 1;
+            }
+            const double x_precision_P3 = 3E-3;
+            const double y_precision_P3 = 1E-12;
+            if( ((P3[0]-x_precision_P3)<vol_equid_node[0] && vol_equid_node[0]<(P3[0]+x_precision_P3)) && ((P3[1]-y_precision_P3)<vol_equid_node[1] && vol_equid_node[1]<(P3[1]+y_precision_P3)) ){
+                // for(int idim=0; idim<dim; idim++) {
+                //     std::cout << "P3 vol_equid_node["<<idim<<"]: " << vol_equid_node[idim] << std::endl;
+                // }
+                // std::cout << "kinetic energy at q: " << kinetic_energy_at_q[ishape] << std::endl;
+                kinetic_energy_sum_P3 +=  kinetic_energy_at_q[ishape];
+                kinetic_energy_index_P3 += 1;
+                time_averaged_kinetic_energy_sum_P3 +=  time_averaged_kinetic_energy_at_q[ishape];
+                time_averaged_kinetic_energy_index_P3 += 1;
+                time_averaged_velocity_magnitude_sum_P3 += velocity_magnitude_at_q[ishape];
+                time_averaged_velocity_magnitude_index_P3 += 1;
+            }
+        }
+    }//End of cell loop
+    // write vkinetic energy average at point 1
+    double kinetic_energy_mpi_sum_P1 = dealii::Utilities::MPI::sum(kinetic_energy_sum_P1, this->mpi_communicator);
+    double kinetic_energy_mpi_index_P1 = dealii::Utilities::MPI::sum(kinetic_energy_index_P1, this->mpi_communicator);
+    double spanwise_average_kinetic_energy_P1 = kinetic_energy_mpi_sum_P1/kinetic_energy_mpi_index_P1;
+    this->add_value_to_data_table(spanwise_average_kinetic_energy_P1,"k, P1",unsteady_data_table);
+    // write vkinetic energy average at point 2
+    double kinetic_energy_mpi_sum_P2 = dealii::Utilities::MPI::sum(kinetic_energy_sum_P2, this->mpi_communicator);
+    double kinetic_energy_mpi_index_P2 = dealii::Utilities::MPI::sum(kinetic_energy_index_P2, this->mpi_communicator);
+    double spanwise_average_kinetic_energy_P2 = kinetic_energy_mpi_sum_P2/kinetic_energy_mpi_index_P2;
+    this->add_value_to_data_table(spanwise_average_kinetic_energy_P2,"k, P2",unsteady_data_table);
+    // write vkinetic energy average at point 3
+    double kinetic_energy_mpi_sum_P3 = dealii::Utilities::MPI::sum(kinetic_energy_sum_P3, this->mpi_communicator);
+    double kinetic_energy_mpi_index_P3 = dealii::Utilities::MPI::sum(kinetic_energy_index_P3, this->mpi_communicator);
+    double spanwise_average_kinetic_energy_P3 = kinetic_energy_mpi_sum_P3/kinetic_energy_mpi_index_P3;
+    this->add_value_to_data_table(spanwise_average_kinetic_energy_P3,"k, P3",unsteady_data_table);
+    if(this->all_param.flow_solver_param.compute_time_averaged_solution && (current_time >= this->all_param.flow_solver_param.time_to_start_averaging)) {
+        double time_averaged_kinetic_energy_mpi_sum_P1 = dealii::Utilities::MPI::sum(time_averaged_kinetic_energy_sum_P1, this->mpi_communicator);
+        double time_averaged_kinetic_energy_mpi_index_P1 = dealii::Utilities::MPI::sum(time_averaged_kinetic_energy_index_P1, this->mpi_communicator);
+        double time_averaged_spanwise_average_kinetic_energy_P1 = time_averaged_kinetic_energy_mpi_sum_P1/time_averaged_kinetic_energy_mpi_index_P1;
+        this->add_value_to_data_table(time_averaged_spanwise_average_kinetic_energy_P1,"time_averaged_k, P1",unsteady_data_table);
+        // write vkinetic energy average at point 2
+        double time_averaged_kinetic_energy_mpi_sum_P2 = dealii::Utilities::MPI::sum(time_averaged_kinetic_energy_sum_P2, this->mpi_communicator);
+        double time_averaged_kinetic_energy_mpi_index_P2 = dealii::Utilities::MPI::sum(time_averaged_kinetic_energy_index_P2, this->mpi_communicator);
+        double time_averaged_spanwise_average_kinetic_energy_P2 = time_averaged_kinetic_energy_mpi_sum_P2/time_averaged_kinetic_energy_mpi_index_P2;
+        this->add_value_to_data_table(time_averaged_spanwise_average_kinetic_energy_P2,"time_averaged_k, P2",unsteady_data_table);
+        // write vkinetic energy average at point 3
+        double time_averaged_kinetic_energy_mpi_sum_P3 = dealii::Utilities::MPI::sum(time_averaged_kinetic_energy_sum_P3, this->mpi_communicator);
+        double time_averaged_kinetic_energy_mpi_index_P3 = dealii::Utilities::MPI::sum(time_averaged_kinetic_energy_index_P3, this->mpi_communicator);
+        double time_averaged_spanwise_average_kinetic_energy_P3 = time_averaged_kinetic_energy_mpi_sum_P3/time_averaged_kinetic_energy_mpi_index_P3;
+        this->add_value_to_data_table(time_averaged_spanwise_average_kinetic_energy_P3,"time_averaged_k, P3",unsteady_data_table);
+    } else{
+        this->add_value_to_data_table(0,"time_averaged_k, P1",unsteady_data_table);
+        this->add_value_to_data_table(0,"time_averaged_k, P2",unsteady_data_table);
+        this->add_value_to_data_table(0,"time_averaged_k, P3",unsteady_data_table);
+    }
+    // write velocity magnitude at point 1
+    double velocity_magnitude_mpi_sum_P1 = dealii::Utilities::MPI::sum(time_averaged_velocity_magnitude_sum_P1, this->mpi_communicator);
+    double velocity_magnitude_mpi_index_P1 = dealii::Utilities::MPI::sum(time_averaged_velocity_magnitude_index_P1, this->mpi_communicator);
+    double spanwise_average_velocity_magnitude_P1 = velocity_magnitude_mpi_sum_P1/velocity_magnitude_mpi_index_P1;
+    this->add_value_to_data_table(spanwise_average_velocity_magnitude_P1,"t_ave_vel_mag, P1",unsteady_data_table);
+    // write velocity magnitude at point 2
+    double velocity_magnitude_mpi_sum_P2 = dealii::Utilities::MPI::sum(time_averaged_velocity_magnitude_sum_P2, this->mpi_communicator);
+    double velocity_magnitude_mpi_index_P2 = dealii::Utilities::MPI::sum(time_averaged_velocity_magnitude_index_P2, this->mpi_communicator);
+    double spanwise_average_velocity_magnitude_P2 = velocity_magnitude_mpi_sum_P2/velocity_magnitude_mpi_index_P2;
+    this->add_value_to_data_table(spanwise_average_velocity_magnitude_P2,"t_ave_vel_mag, P2",unsteady_data_table);
+    // write velocity magnitude at point 3
+    double velocity_magnitude_mpi_sum_P3 = dealii::Utilities::MPI::sum(time_averaged_velocity_magnitude_sum_P3, this->mpi_communicator);
+    double velocity_magnitude_mpi_index_P3 = dealii::Utilities::MPI::sum(time_averaged_velocity_magnitude_index_P3, this->mpi_communicator);
+    double spanwise_average_velocity_magnitude_P3 = velocity_magnitude_mpi_sum_P3/velocity_magnitude_mpi_index_P3;
+    this->add_value_to_data_table(spanwise_average_velocity_magnitude_P3,"t_ave_vel_mag, P3",unsteady_data_table);
 }
 
 template <int dim, int nstate>
@@ -436,34 +723,86 @@ void NACA0012_LES<dim, nstate>::compute_unsteady_data_and_write_to_table(
         const unsigned int current_iteration,
         const double current_time,
         const std::shared_ptr <DGBase<dim, double>> dg,
-        const std::shared_ptr <dealii::TableHandler> unsteady_data_table)
+            const std::shared_ptr<dealii::TableHandler> unsteady_data_table,
+            const bool do_write_unsteady_data_table_file)
 {
     // Compute aerodynamic values
     const double lift = this->compute_lift(dg);
     const double drag = this->compute_drag(dg);
+    
+    if(output_counter == 4){
+        if(this->all_param.flow_solver_param.compute_time_averaged_solution && (current_time >= this->all_param.flow_solver_param.time_to_start_averaging)){
+            if(this->mpi_rank==0) {
+                // Add values to data table
+                this->add_value_to_data_table(current_time,"time",unsteady_data_table);
+                // this->add_value_to_data_table(lift,"lift",unsteady_data_table);
+                // this->add_value_to_data_table(drag,"drag",unsteady_data_table);
+            }
+            dealii::Point<dim,double> P1;
+            dealii::Point<dim,double> P2;
+            dealii::Point<dim,double> P3;
+            if(dim == 2){
+                P1[0] = 0.5;
+                P1[1] = 0.11;
+                P2[0] = 0.5;
+                P2[1] = 0.05;
+                P3[0] = 1.3;
+                P3[1] = 0;
+            }
+            if(dim == 3){
+                P1[0] = 0.5;
+                P1[1] = 0.11;
+                P1[2] = 0;
+                P2[0] = 0.5;
+                P2[1] = 0.05;
+                P2[2] = 0;
+                P3[0] = 1.3;
+                P3[1] = 0;
+                P3[2] = 0;
+            }
+            this->output_kinetic_energy_at_points(dg, current_time, P1, P2, P3, unsteady_data_table);
+        }
+        // // Print to console
+        // this->pcout << "    Iter: " << current_iteration
+        //             << "    Time: " << current_time
+        //             << "    Lift: " << lift
+        //             << "    Drag: " << drag;
+        // this->pcout << std::endl;
+        // Reset counter
+        output_counter = 0;
+    }else{
+        // Add to counter
+        output_counter += 1;
+    }
+    
+    if(terminal_counter == 1000){
+        // Print to console
+        this->pcout << "    Iter: " << current_iteration
+                    << "    Time: " << current_time
+                    << "    Lift: " << lift
+                    << "    Drag: " << drag;
+        this->pcout << std::endl;
+        
+        terminal_counter = 0;
+    }else{
+        // Add to counter
+        terminal_counter += 1;
+    }
+
 
     if(this->mpi_rank==0) {
-        // Add values to data table
-        this->add_value_to_data_table(current_time,"time",unsteady_data_table);
-        this->add_value_to_data_table(lift,"lift",unsteady_data_table);
-        this->add_value_to_data_table(drag,"drag",unsteady_data_table);
         // Write to file
-        std::ofstream unsteady_data_table_file(this->unsteady_data_table_filename_with_extension);
-        unsteady_data_table->write_text(unsteady_data_table_file);
+        if(do_write_unsteady_data_table_file) {
+            std::ofstream unsteady_data_table_file(this->unsteady_data_table_filename_with_extension);
+            unsteady_data_table->write_text(unsteady_data_table_file);
+        }
     }
-    // Print to console
-    this->pcout << "    Iter: " << current_iteration
-                << "    Time: " << current_time
-                << "    Lift: " << lift
-                << "    Drag: " << drag;
-    this->pcout << std::endl;
-
     // Abort if energy is nan
-    if(std::isnan(lift) || std::isnan(drag)) {
-        this->pcout << " ERROR: Lift or drag at time " << current_time << " is nan." << std::endl;
-        this->pcout << "        Consider decreasing the time step / CFL number." << std::endl;
-        std::abort();
-    }
+    // if(std::isnan(lift) || std::isnan(drag)) {
+    //     this->pcout << " ERROR: Lift or drag at time " << current_time << " is nan." << std::endl;
+    //     this->pcout << "        Consider decreasing the time step / CFL number." << std::endl;
+    //     std::abort();
+    // }
         // Output velocity field for spectra obtaining kinetic energy spectra
     if(output_velocity_field_at_fixed_times) {
         const double time_step = this->get_time_step();
@@ -488,7 +827,7 @@ void NACA0012_LES<dim, nstate>::compute_unsteady_data_and_write_to_table(
         }
     }
 
-    bool output_velocity_field_at_fixed_location = true;
+    bool output_velocity_field_at_fixed_location = false;
     // Output velocity field at fixed location along airfoil surface
     if(output_velocity_field_at_fixed_location) {
         if constexpr(nstate!=1){

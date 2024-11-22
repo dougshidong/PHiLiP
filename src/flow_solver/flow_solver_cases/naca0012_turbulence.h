@@ -46,6 +46,15 @@ public:
             const unsigned int output_file_index,
             const double current_time) const;
 
+    /// Output the velocity field to file
+    void output_kinetic_energy_at_points(
+            std::shared_ptr<DGBase<dim,double>> dg,
+            const double current_time,
+            const dealii::Point<dim,double>,
+            const dealii::Point<dim,double>,
+            const dealii::Point<dim,double>,
+            const std::shared_ptr <dealii::TableHandler> unsteady_data_table) const;
+
 protected:
     /// Filename (with extension) for the unsteady data table
     const std::string unsteady_data_table_filename_with_extension;
@@ -86,7 +95,8 @@ public:
             const unsigned int current_iteration,
             const double current_time,
             const std::shared_ptr <DGBase<dim, double>> dg,
-            const std::shared_ptr<dealii::TableHandler> unsteady_data_table) override;
+            const std::shared_ptr<dealii::TableHandler> unsteady_data_table,
+            const bool do_write_unsteady_data_table_file) override;
 
 protected:
         /// List of possible integrated quantities over the domain
@@ -111,6 +121,12 @@ protected:
 
     /// Index of current desired time to output velocity field
     unsigned int index_of_current_desired_time_to_output_velocity_field;
+
+    /// Index of current desired time to output velocity field
+    unsigned int output_counter = -1;
+
+    /// Index of current desired time to output to terminal
+    unsigned int terminal_counter = -1;
 
     /// Flow field quantity filename prefix
     std::string flow_field_quantity_filename_prefix;

@@ -508,7 +508,6 @@ int FlowSolver<dim,nstate>::run() const
         pcout << "Timer starting. " << std::endl;
         dealii::Timer timer(this->mpi_communicator,false);
         timer.start();
-        unsigned int output_iteration = 50;
         while(ode_solver->current_time < final_time)
         {
             time_step = next_time_step; // update time step
@@ -530,8 +529,8 @@ int FlowSolver<dim,nstate>::run() const
             dg->set_unsteady_model_time_step(time_step);
             // advance solution
             ode_solver->step_in_time(time_step,false); // pseudotime==false
-            if(flow_solver_param.compute_time_averaged_solution && (ode_solver->current_time == flow_solver_param.time_to_start_averaging)) {
-                dg->time_averaged_solution +=  dg->solution;
+            if(flow_solver_param.compute_time_averaged_solution && ( (ode_solver->current_time <= flow_solver_param.time_to_start_averaging) && (ode_solver->current_time+time_step > flow_solver_param.time_to_start_averaging) )) {
+                dg->time_averaged_solution =  dg->solution;
             }
             else if(flow_solver_param.compute_time_averaged_solution && (ode_solver->current_time > flow_solver_param.time_to_start_averaging)) {
                 //dg->time_averaged_solution +=  dg->solution;

@@ -65,38 +65,43 @@ std::shared_ptr<Triangulation> Airfoil2D<dim,nstate>::generate_grid() const
     this->mpi_communicator
 #endif
     );
-    dealii::GridGenerator::Airfoil::AdditionalData airfoil_data;
-    airfoil_data.airfoil_type = "NACA";
-    airfoil_data.naca_id      = "0012";
-    airfoil_data.airfoil_length = airfoil_length;
-    airfoil_data.height         = height;
-    airfoil_data.length_b2      = length_b2;
-    airfoil_data.incline_factor = incline_factor;
-    airfoil_data.bias_factor    = bias_factor; 
-    airfoil_data.refinements    = refinements;
+    // dealii::GridGenerator::Airfoil::AdditionalData airfoil_data;
+    // airfoil_data.airfoil_type = "NACA";
+    // airfoil_data.naca_id      = "0012";
+    // airfoil_data.airfoil_length = airfoil_length;
+    // airfoil_data.height         = height;
+    // airfoil_data.length_b2      = length_b2;
+    // airfoil_data.incline_factor = incline_factor;
+    // airfoil_data.bias_factor    = bias_factor; 
+    // airfoil_data.refinements    = refinements;
 
-    airfoil_data.n_subdivision_x_0 = n_subdivision_x_0;
-    airfoil_data.n_subdivision_x_1 = n_subdivision_x_1;
-    airfoil_data.n_subdivision_x_2 = n_subdivision_x_2;
-    airfoil_data.n_subdivision_y = n_subdivision_y;
-    airfoil_data.airfoil_sampling_factor = airfoil_sampling_factor; 
+    // airfoil_data.n_subdivision_x_0 = n_subdivision_x_0;
+    // airfoil_data.n_subdivision_x_1 = n_subdivision_x_1;
+    // airfoil_data.n_subdivision_x_2 = n_subdivision_x_2;
+    // airfoil_data.n_subdivision_y = n_subdivision_y;
+    // airfoil_data.airfoil_sampling_factor = airfoil_sampling_factor; 
 
-    dealii::GridGenerator::Airfoil::create_triangulation(*grid, airfoil_data);
+    // dealii::GridGenerator::Airfoil::create_triangulation(*grid, airfoil_data);
 
     // Set boundary type and design type
-    for (typename dealii::parallel::distributed::Triangulation<2>::active_cell_iterator cell = grid->begin_active(); cell != grid->end(); ++cell) {
-        for (unsigned int face=0; face<dealii::GeometryInfo<2>::faces_per_cell; ++face) {
-            if (cell->face(face)->at_boundary()) {
-                unsigned int current_id = cell->face(face)->boundary_id();
-                if (current_id == 0 || current_id == 1 || current_id == 4 || current_id == 5) {
-                    cell->face(face)->set_boundary_id (1004); // farfield
-                } else {
-                    cell->face(face)->set_boundary_id (1001); // wall
-                }
-            }
-        }
-    }
-
+    // for (typename dealii::parallel::distributed::Triangulation<2>::active_cell_iterator cell = grid->begin_active(); cell != grid->end(); ++cell) {
+    //     for (unsigned int face=0; face<dealii::GeometryInfo<2>::faces_per_cell; ++face) {
+    //         if (cell->face(face)->at_boundary()) {
+    //             unsigned int current_id = cell->face(face)->boundary_id();
+    //             if (current_id == 0 || current_id == 1 || current_id == 4 || current_id == 5) {
+    //                 cell->face(face)->set_boundary_id (1004); // farfield
+    //             } else {
+    //                 cell->face(face)->set_boundary_id (1001); // wall
+    //             }
+    //         }
+    //     }
+    // }
+// #if PHILIP_DIM==3
+//     const std::string mesh_filename = this->all_param.flow_solver_param.input_mesh_filename+std::string(".msh");
+//     const bool use_mesh_smoothing = false;
+//     std::shared_ptr<HighOrderGrid<dim-1,double>> naca0012_mesh = read_gmsh<dim-1, dim-1> (mesh_filename, this->all_param.do_renumber_dofs, 0, use_mesh_smoothing);
+//     //std::shared_ptr<dealii::parallel::distributed::Triangulation<2> > grid = naca0012_mesh->triangulation;
+// #endif    
 #if PHILIP_DIM==1
     std::shared_ptr<Triangulation> grid_1D;
     return grid_1D;  
@@ -203,7 +208,8 @@ void Airfoil2D<dim, nstate>::compute_unsteady_data_and_write_to_table(
         const unsigned int current_iteration,
         const double current_time,
         const std::shared_ptr <DGBase<dim, double>> dg,
-        const std::shared_ptr <dealii::TableHandler> unsteady_data_table)
+        const std::shared_ptr<dealii::TableHandler> unsteady_data_table,
+        const bool do_write_unsteady_data_table_file)
 {
     // Compute aerodynamic values
     const double lift = this->compute_lift(dg);
@@ -215,15 +221,17 @@ void Airfoil2D<dim, nstate>::compute_unsteady_data_and_write_to_table(
         this->add_value_to_data_table(lift,"lift",unsteady_data_table);
         this->add_value_to_data_table(drag,"drag",unsteady_data_table);
         // Write to file
-        std::ofstream unsteady_data_table_file(this->unsteady_data_table_filename_with_extension);
-        unsteady_data_table->write_text(unsteady_data_table_file);
+        if(do_write_unsteady_data_table_file) {
+            std::ofstream unsteady_data_table_file(this->unsteady_data_table_filename_with_extension);
+            unsteady_data_table->write_text(unsteady_data_table_file);
+            // Print to console
+            this->pcout << "    Iter: " << current_iteration
+                        << "    Time: " << current_time
+                        << "    Lift: " << lift
+                        << "    Drag: " << drag;
+            this->pcout << std::endl;
+        }
     }
-    // Print to console
-    this->pcout << "    Iter: " << current_iteration
-                << "    Time: " << current_time
-                << "    Lift: " << lift
-                << "    Drag: " << drag;
-    this->pcout << std::endl;
 
     // Abort if energy is nan
     if(std::isnan(lift) || std::isnan(drag)) {

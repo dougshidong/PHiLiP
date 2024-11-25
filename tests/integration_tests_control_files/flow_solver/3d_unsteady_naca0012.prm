@@ -9,23 +9,22 @@ set run_type = flow_simulation
 set overintegration = 0
 set use_weak_form = false
 set flux_nodes_type = GLL
-# set use_split_form = true
-# set use_curvilinear_split_form = false
-# set use_weight_adjusted_mass = true
-# set all_boundaries_are_periodic = false
-# set check_same_coords_in_weak_dg = false
-# set flux_reconstruction = cDG
-# set flux_reconstruction_aux = kDG
-# set use_inverse_mass_on_the_fly = true
-set use_invariant_curl_form = true
+set use_split_form = true
+set use_curvilinear_split_form = false
+set use_weight_adjusted_mass = true
+set all_boundaries_are_periodic = false
+set check_same_coords_in_weak_dg = false
+set flux_reconstruction = cPlus
+set flux_reconstruction_aux = kDG
+set use_inverse_mass_on_the_fly = true
 set do_renumber_dofs = false 
 # PDE
-set pde_type = euler
+set pde_type = navier_stokes
 # set model_type = large_eddy_simulation
  
 # numerical fluxes
-# set two_point_num_flux_type = Ra
-set conv_num_flux = roe # two_point_flux_with_roe_dissipation
+set two_point_num_flux_type = Ra
+set conv_num_flux = two_point_flux_with_roe_dissipation
 set diss_num_flux = symm_internal_penalty
  
 # additional parameters
@@ -38,7 +37,7 @@ set output_face_results_vtk = true
 subsection ODE solver
   set ode_output = quiet
   set ode_solver_type = runge_kutta
-  set output_solution_every_dt_time_intervals = 5E-2
+  set output_solution_every_dt_time_intervals = 1E-2
   set output_solution_at_fixed_times = false
   set output_solution_fixed_times_string = 2.5 4.0 5.0 8.0 9.0 10.0 12.0 15.0 16.0 20.0 
   set output_solution_at_exact_fixed_times = true
@@ -48,15 +47,15 @@ end
 # Euler; freestream Mach number
 subsection euler
   set reference_length = 1.0
-  set mach_infinity = 0.5
+  set mach_infinity = 0.2
   set gamma_gas = 1.4
-  set angle_of_attack = 0.0
+  set angle_of_attack = 8.0
 end
  
 # Navier-Stokes; freestream Reynolds number and Prandtl number
 subsection navier_stokes
   set prandtl_number = 0.72
-  set reynolds_number_inf = 5000
+  set reynolds_number_inf = 60000
   set temperature_inf = 273.15
   set nondimensionalized_isothermal_wall_temperature = 1.0
   set thermal_boundary_condition_type = adiabatic
@@ -80,19 +79,26 @@ end
  
 # Flow Solver
 subsection flow_solver
-  set flow_case_type = naca0012
-  set poly_degree = 1
-  set final_time = 5.001
+  set flow_case_type = naca0012_turbulence
+  set poly_degree = 0
+  set final_time = 3E-4
   set courant_friedrichs_lewy_number = 0.01
-  set unsteady_data_table_filename = 3D_GMSH_NACA0012
+  set unsteady_data_table_filename = SD7003_turbulent_quantities
   set steady_state = false
   set adaptive_time_step = false
-  set constant_time_step = 5E-4
-  set output_restart_files = false
+  set constant_time_step = 3E-5
+  set output_restart_files = true
   set restart_files_directory_name = restart
-  set output_restart_files_every_dt_time_intervals = 0.5
+  set output_restart_files_every_dt_time_intervals = 0.1
+  set write_unsteady_data_table_file_every_dt_time_intervals = 1.1E-5
+   subsection output_velocity_field
+    set output_velocity_field_at_fixed_times = false
+    set compute_time_averaged_solution = true
+    set time_to_start_averaging = 1.1E-5
+   end
   subsection grid
-   set input_mesh_filename = /home/nyaki/Codes_2/PHiLiP/tests/meshes/NACA0012_Coarse_Slip_Wall_2
+   set use_gmsh_mesh = true
+   set input_mesh_filename = /home/nyaki/Codes_2/PHiLiP/tests/meshes/SD7003_4_cell_spanwise_Coarser
     subsection airfoil_2D
       set airfoil_length = 1.0
       set height = 20.0

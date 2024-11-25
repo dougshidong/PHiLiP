@@ -46,9 +46,16 @@ function(set_tests_labels test_name)
     set_tests_properties(${test_name} PROPERTIES LABELS "${labels}")
 endfunction()
 
-add_custom_target(run_viscous_tests
-COMMAND ${CMAKE_CTEST_COMMAND} -L "NAVIER\\|LES\\|RANS" #| is a special character, \\ is the escape character
-COMMENT "Running tests labeled as Navier-Stokes, LES, or RANS"
+## CUSTOM CMAKE FUNCTION TO RUN VISCOUS TESTS
+add_custom_target(VISCOUS_TESTS
+COMMAND ${CMAKE_CTEST_COMMAND} -L "NAVIER\\|LES\\|RANS" -LE UNIT_TEST #| is a special character, \\ is the escape character
+COMMENT "Running tests labeled as NAVIER_STOKES, LES, or RANS"
+)
+
+## CUSTOM CMAKE FUNCTION TO RUN INVISCID TESTS
+add_custom_target(INVISCID_TESTS
+        COMMAND ${CMAKE_CTEST_COMMAND} -L "EULER" -LE UNIT_TEST #| is a special character, \\ is the escape character
+        COMMENT "Running tests labeled as EULER"
 )
 
 add_subdirectory(unit_tests)

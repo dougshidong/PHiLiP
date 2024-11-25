@@ -188,7 +188,7 @@ if you want to run all `EULER` dg tests use the following.
 ~~~~
 ctest -L EULER
 ~~~~
-For a complete list of available labels see the following [CMakeList.txt file](./tests/CMakeLists.txt), located in `./tests/` for documentation.
+For a complete list of available labels see the following [markdown file](./tests/CTEST_LABELS.md) located in `./tests/` for documentation.
 
 If you have any questions, feel free to contact me.
 

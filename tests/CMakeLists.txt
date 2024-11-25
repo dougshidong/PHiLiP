@@ -48,13 +48,13 @@ endfunction()
 
 ## CUSTOM CMAKE FUNCTION TO RUN VISCOUS TESTS
 add_custom_target(VISCOUS_TESTS
-COMMAND ${CMAKE_CTEST_COMMAND} -L "NAVIER\\|LES\\|RANS" -LE UNIT_TEST #| is a special character, \\ is the escape character
+COMMAND ${CMAKE_CTEST_COMMAND} -L "NAVIER\\|LES\\|RANS" #| is a special character, \\ is the escape character
 COMMENT "Running tests labeled as NAVIER_STOKES, LES, or RANS"
 )
 
 ## CUSTOM CMAKE FUNCTION TO RUN INVISCID TESTS
 add_custom_target(INVISCID_TESTS
-        COMMAND ${CMAKE_CTEST_COMMAND} -L "EULER" -LE UNIT_TEST #| is a special character, \\ is the escape character
+        COMMAND ${CMAKE_CTEST_COMMAND} -L "EULER" #| is a special character, \\ is the escape character
         COMMENT "Running tests labeled as EULER"
 )
 

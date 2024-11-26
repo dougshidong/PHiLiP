@@ -14,6 +14,16 @@ add_test(
     COMMAND mpirun -n 1 ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_1D -i ${CMAKE_CURRENT_BINARY_DIR}/1D_burgers_energy_conservation_rrk_cDG.prm
     WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
 )
+set_tests_labels(1D_BURGERS_ENERGY_CONSERVATION_RRK_CDG RELAXATION_RUNGE_KUTTA_CHECKS
+                                                        1D
+                                                        SERIAL
+                                                        BURGERS_INVISCID
+                                                        RUNGE-KUTTA
+                                                        STRONG-SPLIT
+                                                        COLLOCATED
+                                                        RELAXATION
+                                                        QUICK
+                                                        INTEGRATION_TEST)
 
 # =======================================
 # OOA for inviscid Burgers
@@ -28,7 +38,17 @@ add_test(
     COMMAND mpirun -n 1 ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_1D -i ${CMAKE_CURRENT_BINARY_DIR}/1D_burgers_rrk_temporal_OOA_cDG.prm
     WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
 )
-
+set_tests_labels(1D_BURGERS_RRK_TEMPORAL_OOA_CDG    RELAXATION_RUNGE_KUTTA_CHECKS
+                                                    1D
+                                                    SERIAL
+                                                    BURGERS_INVISCID
+                                                    RUNGE-KUTTA
+                                                    STRONG-SPLIT
+                                                    COLLOCATED
+                                                    CONVERGENCE
+                                                    RELAXATION
+                                                    QUICK
+                                                    INTEGRATION_TEST)
 # =======================================
 # Numerical entropy conservation test for Euler
 # =======================================
@@ -45,6 +65,16 @@ add_test(
     COMMAND mpirun -n ${MPIMAX} ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_3D -i ${CMAKE_CURRENT_BINARY_DIR}/3D_euler_numerical_entropy_conservation_rrk_cDG.prm
     WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
 )
+set_tests_labels(MPI_3D_EULER_NUMERICAL_ENTROPY_CONSERVATION_RRK_CDG    RELAXATION_RUNGE_KUTTA_CHECKS
+                                                                        3D
+                                                                        PARALLEL
+                                                                        EULER
+                                                                        RUNGE-KUTTA
+                                                                        STRONG-SPLIT
+                                                                        COLLOCATED
+                                                                        RELAXATION
+                                                                        MODERATE
+                                                                        INTEGRATION_TEST)
 
 # =======================================
 # Energy conservation test for inviscid Burgers 
@@ -62,6 +92,16 @@ add_test(
     COMMAND mpirun -n 1 ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_1D -i ${CMAKE_CURRENT_BINARY_DIR}/1D_burgers_energy_conservation_rrk_cPlus.prm
     WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
 )
+set_tests_labels(1D_BURGERS_ENERGY_CONSERVATION_RRK_CPLUS   RELAXATION_RUNGE_KUTTA_CHECKS
+                                                            1D
+                                                            SERIAL
+                                                            BURGERS_INVISCID
+                                                            RUNGE-KUTTA
+                                                            STRONG-SPLIT
+                                                            COLLOCATED
+                                                            RELAXATION
+                                                            QUICK
+                                                            INTEGRATION_TEST)
 
 # =======================================
 # OOA for inviscid Burgers
@@ -76,6 +116,17 @@ add_test(
     COMMAND mpirun -n 1 ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_1D -i ${CMAKE_CURRENT_BINARY_DIR}/1D_burgers_rrk_temporal_OOA_cPlus.prm
     WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
 )
+set_tests_labels(1D_BURGERS_RRK_TEMPORAL_OOA_CPLUS  RELAXATION_RUNGE_KUTTA_CHECKS
+                                                    1D
+                                                    SERIAL
+                                                    BURGERS_INVISCID
+                                                    RUNGE-KUTTA
+                                                    STRONG-SPLIT
+                                                    COLLOCATED
+                                                    CONVERGENCE
+                                                    RELAXATION
+                                                    MODERATE
+                                                    INTEGRATION_TEST)
 
 # =======================================
 # Numerical entropy conservation test for Euler
@@ -93,6 +144,16 @@ add_test(
     COMMAND mpirun -n ${MPIMAX} ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_3D -i ${CMAKE_CURRENT_BINARY_DIR}/3D_euler_numerical_entropy_conservation_rrk_cPlus.prm
     WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
 )
+set_tests_labels(MPI_3D_EULER_NUMERICAL_ENTROPY_CONSERVATION_RRK_CPLUS  RELAXATION_RUNGE_KUTTA_CHECKS
+                                                                        3D
+                                                                        PARALLEL
+                                                                        EULER
+                                                                        RUNGE-KUTTA
+                                                                        STRONG-SPLIT
+                                                                        COLLOCATED
+                                                                        RELAXATION
+                                                                        MODERATE
+                                                                        INTEGRATION_TEST)
 
 # =======================================
 # Check that NS does not abort for cPlus RRK
@@ -108,6 +169,17 @@ add_test(
     COMMAND mpirun -n ${MPIMAX} ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_3D -i ${CMAKE_CURRENT_BINARY_DIR}/3D_navier_stokes_RRK_check.prm
     WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
 )
+set_tests_labels(MPI_3D_VISCOUS_TGV_RRK_CHECK_QUICK RELAXATION_RUNGE_KUTTA_CHECKS
+                                                    3D
+                                                    PARALLEL
+                                                    NAVIER_STOKES
+                                                    RUNGE-KUTTA
+                                                    STRONG-SPLIT
+                                                    UNCOLLOCATED
+                                                    RELAXATION
+                                                    QUICK
+                                                    INTEGRATION_TEST)
+
 # =======================================                                                                                                                                                                          
 # Inviscid Isentropic Vortex -- 2D -- h refinement
 # =======================================
@@ -122,4 +194,15 @@ add_test(
   COMMAND mpirun -np ${MPIMAX} ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_2D -i ${CMAKE_CURRENT_BINARY_DIR}/2D_inviscid_isentropic_vortex_h_refinement.prm
   WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
 )
+set_tests_labels(MPI_2D_H_REFINEMENT_RRK_INVISCID_ISENTROPIC_VORTEX     RELAXATION_RUNGE_KUTTA_CHECKS
+                                                                        2D
+                                                                        PARALLEL
+                                                                        EULER
+                                                                        RUNGE-KUTTA
+                                                                        STRONG-SPLIT
+                                                                        COLLOCATED
+                                                                        CONVERGENCE
+                                                                        RELAXATION
+                                                                        QUICK
+                                                                        INTEGRATION_TEST)
 

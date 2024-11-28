@@ -775,7 +775,7 @@ void NACA0012_LES<dim, nstate>::compute_unsteady_data_and_write_to_table(
         output_counter += 1;
     }
     
-    if(terminal_counter == 1000){
+    if(terminal_counter == 9999){
         // Print to console
         this->pcout << "    Iter: " << current_iteration
                     << "    Time: " << current_time

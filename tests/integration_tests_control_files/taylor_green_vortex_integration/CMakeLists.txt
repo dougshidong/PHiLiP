@@ -13,6 +13,16 @@ add_test(
   COMMAND mpirun -np ${MPIMAX} ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_3D -i ${CMAKE_CURRENT_BINARY_DIR}/viscous_taylor_green_vortex_energy_check_weak_quick.prm
   WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
 )
+set_tests_labels(MPI_VISCOUS_TAYLOR_GREEN_VORTEX_ENERGY_CHECK_WEAK_DG_QUICK TAYLOR_GREEN_VORTEX_INTEGRATION
+                                                                            3D
+                                                                            PARALLEL
+                                                                            NAVIER_STOKES
+                                                                            RUNGE-KUTTA
+                                                                            WEAK
+                                                                            UNCOLLOCATED
+                                                                            QUICK
+                                                                            INTEGRATION_TEST)
+
 # ----------------------------------------
 configure_file(viscous_taylor_green_vortex_energy_check_quick_GMSH.prm viscous_taylor_green_vortex_energy_check_quick_GMSH.prm COPYONLY)
 add_test(
@@ -20,6 +30,16 @@ add_test(
         COMMAND mpirun -np ${MPIMAX} ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_3D -i ${CMAKE_CURRENT_BINARY_DIR}/viscous_taylor_green_vortex_energy_check_quick_GMSH.prm
         WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
 )
+set_tests_labels(MPI_VISCOUS_TAYLOR_GREEN_VORTEX_ENERGY_CHECK_QUICK_GMSH    TAYLOR_GREEN_VORTEX_INTEGRATION
+                                                                            3D
+                                                                            PARALLEL
+                                                                            NAVIER_STOKES
+                                                                            RUNGE-KUTTA
+                                                                            WEAK
+                                                                            UNCOLLOCATED
+                                                                            GMSH
+                                                                            QUICK
+                                                                            INTEGRATION_TEST)
 # ----------------------------------------
 configure_file(viscous_taylor_green_vortex_energy_check_strong_quick.prm viscous_taylor_green_vortex_energy_check_strong_quick.prm COPYONLY)
 add_test(
@@ -27,13 +47,32 @@ add_test(
   COMMAND mpirun -np ${MPIMAX} ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_3D -i ${CMAKE_CURRENT_BINARY_DIR}/viscous_taylor_green_vortex_energy_check_strong_quick.prm
   WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
 )
-# ----------------------------------------
+set_tests_labels(MPI_VISCOUS_TAYLOR_GREEN_VORTEX_ENERGY_CHECK_STRONG_DG_QUICK   TAYLOR_GREEN_VORTEX_INTEGRATION
+                                                                                3D
+                                                                                PARALLEL
+                                                                                NAVIER_STOKES
+                                                                                RUNGE-KUTTA
+                                                                                STRONG
+                                                                                UNCOLLOCATED
+                                                                                QUICK
+                                                                                INTEGRATION_TEST)
+
+        # ----------------------------------------
 configure_file(viscous_taylor_green_vortex_energy_check_weak_long.prm viscous_taylor_green_vortex_energy_check_weak_long.prm COPYONLY)
 add_test(
   NAME MPI_VISCOUS_TAYLOR_GREEN_VORTEX_ENERGY_CHECK_WEAK_DG_LONG
   COMMAND mpirun -np ${MPIMAX} ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_3D -i ${CMAKE_CURRENT_BINARY_DIR}/viscous_taylor_green_vortex_energy_check_weak_long.prm
   WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
 )
+set_tests_labels(MPI_VISCOUS_TAYLOR_GREEN_VORTEX_ENERGY_CHECK_WEAK_DG_LONG  TAYLOR_GREEN_VORTEX_INTEGRATION
+                                                                            3D
+                                                                            PARALLEL
+                                                                            NAVIER_STOKES
+                                                                            RUNGE-KUTTA
+                                                                            WEAK
+                                                                            UNCOLLOCATED
+                                                                            LONG
+                                                                            INTEGRATION_TEST)
 # ----------------------------------------
 configure_file(remove_restart_files.sh remove_restart_files.sh COPYONLY)
 # ----------------------------------------
@@ -54,6 +93,16 @@ add_test(
   if [ $return_val -ne 0 ]; then exit 1; else exit 0; fi"
   WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
 )
+set_tests_labels(MPI_VISCOUS_TAYLOR_GREEN_VORTEX_RESTART_CHECK  TAYLOR_GREEN_VORTEX_INTEGRATION
+                                                                3D
+                                                                PARALLEL
+                                                                NAVIER_STOKES
+                                                                RUNGE-KUTTA
+                                                                WEAK
+                                                                UNCOLLOCATED
+                                                                RESTART
+                                                                QUICK
+                                                                INTEGRATION_TEST)
 # ----------------------------------------
 configure_file(viscous_taylor_green_vortex_restart_from_parameter_file_check.sh
 viscous_taylor_green_vortex_restart_from_parameter_file_check.sh COPYONLY)
@@ -74,6 +123,16 @@ add_test(
   if [ $return_val1 -ne 0 ] || [ $return_val2 -ne 0 ]; then exit 1; else exit 0; fi"
   WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
 )
+set_tests_labels(MPI_VISCOUS_TAYLOR_GREEN_VORTEX_RESTART_FROM_PARAMETER_FILE_CHECK  TAYLOR_GREEN_VORTEX_INTEGRATION
+                                                                                    3D
+                                                                                    PARALLEL
+                                                                                    NAVIER_STOKES
+                                                                                    RUNGE-KUTTA
+                                                                                    WEAK
+                                                                                    UNCOLLOCATED
+                                                                                    RESTART
+                                                                                    QUICK
+                                                                                    INTEGRATION_TEST)
 # ----------------------------------------
 configure_file(viscous_TGV_LES_smagorinsky_model_energy_check_quick.prm viscous_TGV_LES_smagorinsky_model_energy_check_quick.prm COPYONLY)
 add_test(
@@ -81,6 +140,16 @@ add_test(
   COMMAND mpirun -np ${MPIMAX} ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_3D -i ${CMAKE_CURRENT_BINARY_DIR}/viscous_TGV_LES_smagorinsky_model_energy_check_quick.prm
   WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
 )
+set_tests_labels(MPI_VISCOUS_TGV_LES_SMAGORINSKY_MODEL_ENERGY_CHECK_QUICK   TAYLOR_GREEN_VORTEX_INTEGRATION
+                                                                            3D
+                                                                            PARALLEL
+                                                                            NAVIER_STOKES
+                                                                            RUNGE-KUTTA
+                                                                            WEAK
+                                                                            UNCOLLOCATED
+                                                                            LES
+                                                                            QUICK
+                                                                            INTEGRATION_TEST)
 # ----------------------------------------
 configure_file(viscous_TGV_LES_WALE_model_energy_check_quick.prm viscous_TGV_LES_WALE_model_energy_check_quick.prm COPYONLY)
 add_test(
@@ -88,6 +157,16 @@ add_test(
   COMMAND mpirun -np ${MPIMAX} ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_3D -i ${CMAKE_CURRENT_BINARY_DIR}/viscous_TGV_LES_WALE_model_energy_check_quick.prm
   WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
 )
+set_tests_labels(MPI_VISCOUS_TGV_LES_WALE_MODEL_ENERGY_CHECK_QUICK  TAYLOR_GREEN_VORTEX_INTEGRATION
+                                                                    3D
+                                                                    PARALLEL
+                                                                    NAVIER_STOKES
+                                                                    RUNGE-KUTTA
+                                                                    WEAK
+                                                                    UNCOLLOCATED
+                                                                    LES
+                                                                    QUICK
+                                                                    INTEGRATION_TEST)
 # ----------------------------------------
 configure_file(viscous_TGV_LES_vreman_model_energy_check_quick.prm viscous_TGV_LES_vreman_model_energy_check_quick.prm COPYONLY)
 add_test(
@@ -95,6 +174,16 @@ add_test(
   COMMAND mpirun -np ${MPIMAX} ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_3D -i ${CMAKE_CURRENT_BINARY_DIR}/viscous_TGV_LES_vreman_model_energy_check_quick.prm
   WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
 )
+set_tests_labels(MPI_VISCOUS_TGV_LES_VREMAN_MODEL_ENERGY_CHECK_QUICK    TAYLOR_GREEN_VORTEX_INTEGRATION
+                                                                        3D
+                                                                        PARALLEL
+                                                                        NAVIER_STOKES
+                                                                        RUNGE-KUTTA
+                                                                        WEAK
+                                                                        UNCOLLOCATED
+                                                                        LES
+                                                                        QUICK
+                                                                        INTEGRATION_TEST)
 # ----------------------------------------
 configure_file(viscous_taylor_green_vortex_energy_check_nsfr_gll_flux_nodes_quick.prm viscous_taylor_green_vortex_energy_check_nsfr_gll_flux_nodes_quick.prm COPYONLY)
 add_test(
@@ -102,6 +191,15 @@ add_test(
   COMMAND mpirun -np ${MPIMAX} ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_3D -i ${CMAKE_CURRENT_BINARY_DIR}/viscous_taylor_green_vortex_energy_check_nsfr_gll_flux_nodes_quick.prm
   WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
 )
+set_tests_labels(MPI_VISCOUS_TGV_iLES_cDG_NSFR_GLL_FLUX_NODES_ENERGY_CHECK_QUICK    TAYLOR_GREEN_VORTEX_INTEGRATION
+                                                                                    3D
+                                                                                    PARALLEL
+                                                                                    NAVIER_STOKES
+                                                                                    RUNGE-KUTTA
+                                                                                    STRONG-SPLIT
+                                                                                    COLLOCATED
+                                                                                    QUICK
+                                                                                    INTEGRATION_TEST)
 # ----------------------------------------
 configure_file(viscous_taylor_green_vortex_energy_check_nsfr_gl_flux_nodes_quick.prm viscous_taylor_green_vortex_energy_check_nsfr_gl_flux_nodes_quick.prm COPYONLY)
 add_test(
@@ -109,6 +207,16 @@ add_test(
   COMMAND mpirun -np ${MPIMAX} ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_3D -i ${CMAKE_CURRENT_BINARY_DIR}/viscous_taylor_green_vortex_energy_check_nsfr_gl_flux_nodes_quick.prm
   WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
 )
+set_tests_labels(MPI_VISCOUS_TGV_iLES_cDG_NSFR_GL_FLUX_NODES_ENERGY_CHECK_QUICK TAYLOR_GREEN_VORTEX_INTEGRATION
+                                                                                3D
+                                                                                PARALLEL
+                                                                                NAVIER_STOKES
+                                                                                RUNGE-KUTTA
+                                                                                STRONG-SPLIT
+                                                                                UNCOLLOCATED
+                                                                                QUICK
+                                                                                INTEGRATION_TEST)
+
 # ----------------------------------------
 configure_file(viscous_TGV_energy_check_strong_adaptive_time_step.prm viscous_TGV_energy_check_strong_adaptive_time_step.prm COPYONLY)
 add_test(
@@ -127,6 +235,15 @@ add_test(
   if [ $return_val -ne 0 ]; then exit 1; else exit 0; fi"
   WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
 )
+set_tests_labels(MPI_VISCOUS_TGV_STRONG_DG_ADAPTIVE_TIME_STEP   TAYLOR_GREEN_VORTEX_INTEGRATION
+                                                                3D
+                                                                PARALLEL
+                                                                NAVIER_STOKES
+                                                                RUNGE-KUTTA
+                                                                STRONG
+                                                                UNCOLLOCATED
+                                                                QUICK
+                                                                INTEGRATION_TEST)
 # ----------------------------------------
 configure_file(viscous_tgv_strong_dg_adaptive_time_step_from_restart.sh
 viscous_tgv_strong_dg_adaptive_time_step_from_restart.sh COPYONLY)
@@ -147,6 +264,16 @@ add_test(
   if [ $return_val2 -ne 0 ]; then exit 1; else exit 0; fi"
   WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
 )
+set_tests_labels(MPI_VISCOUS_TGV_STRONG_DG_ADAPTIVE_TIME_STEP_FROM_RESTART  TAYLOR_GREEN_VORTEX_INTEGRATION
+                                                                            3D
+                                                                            PARALLEL
+                                                                            NAVIER_STOKES
+                                                                            RUNGE-KUTTA
+                                                                            STRONG
+                                                                            UNCOLLOCATED
+                                                                            RESTART
+                                                                            QUICK
+                                                                            INTEGRATION_TEST)
 # ----------------------------------------
 configure_file(viscous_TGV_energy_check_strong_adaptive_time_step_output_restart_files_at_fixed_dt.prm viscous_TGV_energy_check_strong_adaptive_time_step_output_restart_files_at_fixed_dt.prm COPYONLY)
 add_test(
@@ -165,6 +292,16 @@ add_test(
   if [ $return_val -ne 0 ]; then exit 1; else exit 0; fi"
   WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
 )
+set_tests_labels(MPI_VISCOUS_TGV_STRONG_DG_ADAPTIVE_TIME_STEP_OUTPUT_RESTART_FILES_AT_FIXED_DT  TAYLOR_GREEN_VORTEX_INTEGRATION
+                                                                                                3D
+                                                                                                PARALLEL
+                                                                                                NAVIER_STOKES
+                                                                                                RUNGE-KUTTA
+                                                                                                STRONG
+                                                                                                UNCOLLOCATED
+                                                                                                RESTART
+                                                                                                QUICK
+                                                                                                INTEGRATION_TEST)
 # ----------------------------------------
 configure_file(viscous_tgv_strong_dg_adaptive_time_step_from_restart_outputted_at_fixed_dt.sh
 viscous_tgv_strong_dg_adaptive_time_step_from_restart_outputted_at_fixed_dt.sh COPYONLY)
@@ -185,6 +322,16 @@ add_test(
   if [ $return_val2 -ne 0 ]; then exit 1; else exit 0; fi"
   WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
 )
+set_tests_labels(MPI_VISCOUS_TGV_STRONG_DG_ADAPTIVE_TIME_STEP_FROM_RESTART_OUTPUTTED_AT_FIXED_DT  TAYLOR_GREEN_VORTEX_INTEGRATION
+                                                                                                  3D
+                                                                                                  PARALLEL
+                                                                                                  NAVIER_STOKES
+                                                                                                  RUNGE-KUTTA
+                                                                                                  STRONG
+                                                                                                  UNCOLLOCATED
+                                                                                                  RESTART
+                                                                                                  QUICK
+                                                                                                  INTEGRATION_TEST)
 # ----------------------------------------
 configure_file(viscous_TGV_LES_smagorinsky_model_energy_check_nsfr_quick.prm viscous_TGV_LES_smagorinsky_model_energy_check_nsfr_quick.prm COPYONLY)
 add_test(
@@ -192,6 +339,16 @@ add_test(
   COMMAND mpirun -np ${MPIMAX} ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_3D -i ${CMAKE_CURRENT_BINARY_DIR}/viscous_TGV_LES_smagorinsky_model_energy_check_nsfr_quick.prm
   WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
 )
+set_tests_labels(MPI_VISCOUS_TGV_LES_SMAGORINSKY_MODEL_ENERGY_CHECK_NSFR_QUICK  TAYLOR_GREEN_VORTEX_INTEGRATION
+                                                                                3D
+                                                                                PARALLEL
+                                                                                NAVIER_STOKES
+                                                                                RUNGE-KUTTA
+                                                                                STRONG-SPLIT
+                                                                                UNCOLLOCATED
+                                                                                LES
+                                                                                QUICK
+                                                                                INTEGRATION_TEST)
 # ----------------------------------------
 configure_file(viscous_TGV_LES_shear_improved_smagorinsky_model_energy_check_nsfr_quick.prm viscous_TGV_LES_shear_improved_smagorinsky_model_energy_check_nsfr_quick.prm COPYONLY)
 add_test(
@@ -199,11 +356,31 @@ add_test(
   COMMAND mpirun -np ${MPIMAX} ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_3D -i ${CMAKE_CURRENT_BINARY_DIR}/viscous_TGV_LES_shear_improved_smagorinsky_model_energy_check_nsfr_quick.prm
   WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
 )
+set_tests_labels(MPI_VISCOUS_TGV_LES_SHEAR_IMPROVED_SMAGORINSKY_MODEL_ENERGY_CHECK_NSFR_QUICK  TAYLOR_GREEN_VORTEX_INTEGRATION
+                                                                                              3D
+                                                                                              PARALLEL
+                                                                                              NAVIER_STOKES
+                                                                                              RUNGE-KUTTA
+                                                                                              STRONG-SPLIT
+                                                                                              UNCOLLOCATED
+                                                                                              LES
+                                                                                              QUICK
+                                                                                              INTEGRATION_TEST)
 add_test(
   NAME SERIAL_VISCOUS_TGV_LES_SHEAR_IMPROVED_SMAGORINSKY_MODEL_ENERGY_CHECK_NSFR_QUICK
   COMMAND mpirun -np 1 ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_3D -i ${CMAKE_CURRENT_BINARY_DIR}/viscous_TGV_LES_shear_improved_smagorinsky_model_energy_check_nsfr_quick.prm
   WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
 )
+set_tests_labels(SERIAL_VISCOUS_TGV_LES_SHEAR_IMPROVED_SMAGORINSKY_MODEL_ENERGY_CHECK_NSFR_QUICK  TAYLOR_GREEN_VORTEX_INTEGRATION
+                                                                                                  3D
+                                                                                                  SERIAL
+                                                                                                  NAVIER_STOKES
+                                                                                                  RUNGE-KUTTA
+                                                                                                  STRONG-SPLIT
+                                                                                                  UNCOLLOCATED
+                                                                                                  LES
+                                                                                                  QUICK
+                                                                                                  INTEGRATION_TEST)
 # ----------------------------------------
 configure_file(viscous_TGV_LES_smagorinsky_model_energy_check_nsfr_legendre_proj_quick.prm viscous_TGV_LES_smagorinsky_model_energy_check_nsfr_legendre_proj_quick.prm COPYONLY)
 add_test(
@@ -211,6 +388,16 @@ add_test(
   COMMAND mpirun -np ${MPIMAX} ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_3D -i ${CMAKE_CURRENT_BINARY_DIR}/viscous_TGV_LES_smagorinsky_model_energy_check_nsfr_legendre_proj_quick.prm
   WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
 )
+set_tests_labels(SERIAL_VISCOUS_TGV_LES_SHEAR_IMPROVED_SMAGORINSKY_MODEL_ENERGY_CHECK_NSFR_QUICK  TAYLOR_GREEN_VORTEX_INTEGRATION
+                                                                                                  3D
+                                                                                                  PARALLEL
+                                                                                                  NAVIER_STOKES
+                                                                                                  RUNGE-KUTTA
+                                                                                                  STRONG-SPLIT
+                                                                                                  UNCOLLOCATED
+                                                                                                  LES
+                                                                                                  QUICK
+                                                                                                  INTEGRATION_TEST)
 # ----------------------------------------
 configure_file(viscous_TGV_LES_hpf_smagorinsky_model_energy_check_nsfr_quick.prm viscous_TGV_LES_hpf_smagorinsky_model_energy_check_nsfr_quick.prm COPYONLY)
 add_test(
@@ -218,6 +405,16 @@ add_test(
   COMMAND mpirun -np ${MPIMAX} ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_3D -i ${CMAKE_CURRENT_BINARY_DIR}/viscous_TGV_LES_hpf_smagorinsky_model_energy_check_nsfr_quick.prm
   WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
 )
+set_tests_labels(MPI_VISCOUS_TGV_LES_HPF_SMAGORINSKY_MODEL_ENERGY_CHECK_NSFR_QUICK  TAYLOR_GREEN_VORTEX_INTEGRATION
+                                                                                    3D
+                                                                                    PARALLEL
+                                                                                    NAVIER_STOKES
+                                                                                    RUNGE-KUTTA
+                                                                                    STRONG-SPLIT
+                                                                                    UNCOLLOCATED
+                                                                                    LES
+                                                                                    QUICK
+                                                                                    INTEGRATION_TEST)
 # ----------------------------------------
 configure_file(viscous_TGV_LES_shear_improved_smagorinsky_model_energy_check_nsfr_legendre_proj_quick.prm viscous_TGV_LES_shear_improved_smagorinsky_model_energy_check_nsfr_legendre_proj_quick.prm COPYONLY)
 add_test(
@@ -225,6 +422,16 @@ add_test(
   COMMAND mpirun -np ${MPIMAX} ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_3D -i ${CMAKE_CURRENT_BINARY_DIR}/viscous_TGV_LES_shear_improved_smagorinsky_model_energy_check_nsfr_legendre_proj_quick.prm
   WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
 )
+set_tests_labels(MPI_VISCOUS_TGV_LES_SHEAR_IMPROVED_SMAGORINSKY_MODEL_ENERGY_CHECK_NSFR_LEGENDRE_PROJ_QUICK  TAYLOR_GREEN_VORTEX_INTEGRATION
+                                                                                                            3D
+                                                                                                            PARALLEL
+                                                                                                            NAVIER_STOKES
+                                                                                                            RUNGE-KUTTA
+                                                                                                            STRONG-SPLIT
+                                                                                                            UNCOLLOCATED
+                                                                                                            LES
+                                                                                                            QUICK
+                                                                                                            INTEGRATION_TEST)
 # ----------------------------------------
 configure_file(viscous_TGV_LES_hpf_shear_improved_smagorinsky_model_energy_check_nsfr_quick.prm viscous_TGV_LES_hpf_shear_improved_smagorinsky_model_energy_check_nsfr_quick.prm COPYONLY)
 add_test(
@@ -232,6 +439,16 @@ add_test(
   COMMAND mpirun -np ${MPIMAX} ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_3D -i ${CMAKE_CURRENT_BINARY_DIR}/viscous_TGV_LES_hpf_shear_improved_smagorinsky_model_energy_check_nsfr_quick.prm
   WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
 )
+set_tests_labels(MPI_VISCOUS_TGV_LES_HPF_SHEAR_IMPROVED_SMAGORINSKY_MODEL_ENERGY_CHECK_NSFR_QUICK  TAYLOR_GREEN_VORTEX_INTEGRATION
+                                                                                                  3D
+                                                                                                  PARALLEL
+                                                                                                  NAVIER_STOKES
+                                                                                                  RUNGE-KUTTA
+                                                                                                  STRONG-SPLIT
+                                                                                                  UNCOLLOCATED
+                                                                                                  LES
+                                                                                                  QUICK
+                                                                                                  INTEGRATION_TEST)
 # ----------------------------------------
 configure_file(viscous_TGV_LES_dynamic_smagorinsky_model_energy_check_nsfr_quick.prm viscous_TGV_LES_dynamic_smagorinsky_model_energy_check_nsfr_quick.prm COPYONLY)
 add_test(
@@ -239,6 +456,16 @@ add_test(
   COMMAND mpirun -np ${MPIMAX} ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_3D -i ${CMAKE_CURRENT_BINARY_DIR}/viscous_TGV_LES_dynamic_smagorinsky_model_energy_check_nsfr_quick.prm
   WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
 )
+set_tests_labels(MPI_VISCOUS_TGV_LES_DYNAMIC_SMAGORINSKY_MODEL_ENERGY_CHECK_NSFR_QUICK  TAYLOR_GREEN_VORTEX_INTEGRATION
+                                                                                        3D
+                                                                                        PARALLEL
+                                                                                        NAVIER_STOKES
+                                                                                        RUNGE-KUTTA
+                                                                                        STRONG-SPLIT
+                                                                                        UNCOLLOCATED
+                                                                                        LES
+                                                                                        QUICK
+                                                                                        INTEGRATION_TEST)
 # ----------------------------------------
 configure_file(viscous_TGV_LES_hpf_dynamic_smagorinsky_model_energy_check_nsfr_quick.prm viscous_TGV_LES_hpf_dynamic_smagorinsky_model_energy_check_nsfr_quick.prm COPYONLY)
 add_test(
@@ -246,6 +473,16 @@ add_test(
   COMMAND mpirun -np ${MPIMAX} ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_3D -i ${CMAKE_CURRENT_BINARY_DIR}/viscous_TGV_LES_hpf_dynamic_smagorinsky_model_energy_check_nsfr_quick.prm
   WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
 )
+set_tests_labels(MPI_VISCOUS_TGV_LES_HPF_DYNAMIC_SMAGORINSKY_MODEL_ENERGY_CHECK_NSFR_QUICK  TAYLOR_GREEN_VORTEX_INTEGRATION
+                                                                                            3D
+                                                                                            PARALLEL
+                                                                                            NAVIER_STOKES
+                                                                                            RUNGE-KUTTA
+                                                                                            STRONG-SPLIT
+                                                                                            UNCOLLOCATED
+                                                                                            LES
+                                                                                            QUICK
+                                                                                            INTEGRATION_TEST)
 # ----------------------------------------
 configure_file(viscous_TGV_LES_hpf_dynamic_smagorinsky_model_low_Re_correction_energy_check_nsfr_quick.prm viscous_TGV_LES_hpf_dynamic_smagorinsky_model_low_Re_correction_energy_check_nsfr_quick.prm COPYONLY)
 add_test(
@@ -253,3 +490,14 @@ add_test(
   COMMAND mpirun -np ${MPIMAX} ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_3D -i ${CMAKE_CURRENT_BINARY_DIR}/viscous_TGV_LES_hpf_dynamic_smagorinsky_model_low_Re_correction_energy_check_nsfr_quick.prm
   WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
 )
+set_tests_labels(MPI_VISCOUS_TGV_LES_HPF_DYNAMIC_SMAGORINSKY_MODEL_LOW_RE_CORRECTION_ENERGY_CHECK_NSFR_QUICK  TAYLOR_GREEN_VORTEX_INTEGRATION
+                                                                                                              3D
+                                                                                                              PARALLEL
+                                                                                                              NAVIER_STOKES
+                                                                                                              RUNGE-KUTTA
+                                                                                                              STRONG-SPLIT
+                                                                                                              UNCOLLOCATED
+                                                                                                              LES
+                                                                                                              QUICK
+                                                                                                              INTEGRATION_TEST)
+# ----------------------------------------

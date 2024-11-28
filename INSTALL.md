@@ -177,17 +177,18 @@ will launch
 ~~~~
 However, you can manually launch this program through the command line and changing the "8" to whatever number you want.
 
-Running ctest might take a while so, you may want to [request a computational node](https://docs.computecanada.ca/wiki/Running_jobs) before running
-~~~~
-ctest
-~~~~
+Running ctest might take a while so, you may want to [request a computational node](https://docs.computecanada.ca/wiki/Running_jobs) before running.
 Note that you want to request at least as many processes as MPIMAX.
-
-Unless you absolutely want to run a steady explicit case, I would suggest disabling the MPI_2D_ADVECTION_EXPLICIT_MANUFACTURED_SOLUTION test through
 ~~~~
-ctest -E MPI_2D_ADVECTION_EXPLICIT_MANUFACTURED_SOLUTION
+ctest -LE EXTRA-LONG -LE EXPECTED_FAILURE
 ~~~~
-since it takes a very long time.
+The  `-LE EXTRA-LONG` flag will disable all tests that will take over an hour and should only be removed when wanting to
+run tests that will take over an hour. The `-LE` flag will disable all tests that are expected to fail. All tests also have labels and can be used with the `-L` flag. For example,
+if you want to run all `EULER` dg tests use the following.
+~~~~
+ctest -L EULER
+~~~~
+For a complete list of available labels see the following [markdown file](./tests/CTEST_LABELS.md) located in `./tests/` for documentation.
 
 If you have any questions, feel free to contact me.
 

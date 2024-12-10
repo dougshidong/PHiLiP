@@ -1733,14 +1733,11 @@ real InitialConditionFunction_MultiSpecies_Mixture_TaylorGreenVortex<dim,nstate,
         const double pi = 6.28318530717958623200/2.0;
         double mass_fraction_N2;
         if (x > pi && y > pi || x < pi && y < pi) {
-            mass_fraction_N2 = 1.00;
+            mass_fraction_N2 = 0.90;
         }
         else {
-            mass_fraction_N2 = 0.00;
+            mass_fraction_N2 = 0.10;
         }
-        // else if (x <= pi && y <= pi){
-        //     mass_fraction_N2 = 1.00;
-        // }
 
         // dimnsionalized values above, non-dimensionalized values below
         if(istate==0) {

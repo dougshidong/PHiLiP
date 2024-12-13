@@ -15,7 +15,7 @@
 #include "stability_fr_parameter_range.h"
 #include "parameters/all_parameters.h"
 #include "parameters/parameters.h"
-#include "dg/dg.h"
+#include "dg/dg_base.hpp"
 #include "dg/dg_factory.hpp"
 #include "ode_solver/ode_solver_base.h"
 #include <fstream>

@@ -2,7 +2,7 @@
 #define __STABILITY_FR_PARAMETERS_RANGE_H__
 
 #include "tests.h"
-#include "dg/dg.h"
+#include "dg/dg_base.hpp"
 #include "parameters/all_parameters.h"
 
 namespace PHiLiP {

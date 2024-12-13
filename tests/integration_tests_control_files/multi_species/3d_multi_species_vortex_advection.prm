@@ -33,7 +33,8 @@ set diss_num_flux = symm_internal_penalty
 
 # ODE solver
 subsection ODE solver
-  set output_solution_every_x_steps = 1000
+  set output_solution_every_x_steps = 1 # This value is used to reduce the test time. For the full test, use the value below.
+  #set output_solution_every_x_steps = 1000
   set ode_output = quiet
   set ode_solver_type = runge_kutta
   set runge_kutta_method = ssprk3_ex
@@ -47,7 +48,8 @@ end
 subsection flow_solver
   set flow_case_type = multi_species_three_dimensional_vortex_advection
   set poly_degree = 2
-  set final_time = 34.614724700315755e-2 # It is 0.01 second or 0.1 cycle
+  set final_time = 34.614724700315755e-5 # This value is used to reduce the test time. For the full test, use the value below.
+  #set final_time = 34.614724700315755e-2 # It is 0.01 second or 0.1 cycle
   set adaptive_time_step = false
   set constant_time_step = 34.614724700315755e-6 # It is 1*10^(-6) second in phsysical time
   subsection grid

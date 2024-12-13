@@ -545,7 +545,7 @@ public:
         const unsigned int max_degree_input,
         const unsigned int grid_degree_input,
         const Parameters::AllParameters::Flux_Reconstruction FR_param_input,
-        const double FR_user_specified_correction_parameter_value_input);
+        const double FR_user_specified_correction_parameter_value_input=0.0);
 
     ///Flux reconstruction parameter type.
     const Parameters::AllParameters::Flux_Reconstruction FR_param_type;
@@ -730,7 +730,7 @@ public:
         const unsigned int max_degree_input,
         const unsigned int grid_degree_input,
         const Parameters::AllParameters::Flux_Reconstruction FR_param_input,
-        const double FR_user_specified_correction_parameter_value_input,
+        const double FR_user_specified_correction_parameter_value_input=0.0,
         const bool store_transpose_input = false);
 
     ///Flag is store transpose operator.
@@ -796,7 +796,7 @@ public:
         const unsigned int max_degree_input,
         const unsigned int grid_degree_input,
         const Parameters::AllParameters::Flux_Reconstruction FR_param_input,
-        const double FR_user_specified_correction_parameter_value_input);
+        const double FR_user_specified_correction_parameter_value_input=0.0);
 
     ///Stores the degree of the current poly degree.
     unsigned int current_degree;
@@ -846,7 +846,7 @@ public:
         const unsigned int max_degree_input,
         const unsigned int grid_degree_input,
         const Parameters::AllParameters::Flux_Reconstruction FR_param_input,
-        const double FR_user_specified_correction_parameter_value_input);
+        const double FR_user_specified_correction_parameter_value_input=0.0);
 
     ///Stores the degree of the current poly degree.
     unsigned int current_degree;
@@ -1004,7 +1004,7 @@ public:
         const unsigned int max_degree_input,
         const unsigned int grid_degree_input,
         const Parameters::AllParameters::Flux_Reconstruction FR_param_input,
-        const double FR_user_specified_correction_parameter_value_input);
+        const double FR_user_specified_correction_parameter_value_input=0.0);
 
     ///Stores the degree of the current poly degree.
     unsigned int current_degree;

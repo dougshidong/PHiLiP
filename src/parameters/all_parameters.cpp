@@ -126,7 +126,10 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
 
     prm.declare_entry("FR_user_specified_correction_parameter_value", "0.0",
                       dealii::Patterns::Double(-dealii::Patterns::Double::max_double_value, dealii::Patterns::Double::max_double_value),
-                      "User specified flux recontruction correction parameter value. Default value is 0.0. ");
+                      "User specified flux recontruction correction parameter value. "
+                      "Enter a 1D correction parameter. "
+                      "Internally, the input c value is divided by 2 to account for the basis and adjusted for the deal.ii reference element. "
+                      "Default value is 0.0. ");
 
     prm.declare_entry("flux_reconstruction_aux", "kDG",
                       dealii::Patterns::Selection(

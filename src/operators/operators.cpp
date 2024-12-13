@@ -1523,7 +1523,6 @@ void local_Flux_Reconstruction_operator<dim,n_faces,real>::get_FR_correction_par
         c/=2.0;//since orthonormal
         c/=pow(pow(2.0,curr_cell_degree),2);//since ref elem [0,1]
     }
-    // std::cout << "c " << c <<  std::endl;
 }
 template <int dim, int n_faces, typename real>  
 void local_Flux_Reconstruction_operator<dim,n_faces,real>::build_local_Flux_Reconstruction_operator(

@@ -2,8 +2,7 @@
 # ---------------------
 
 # Reference:
-# Will Trojak and Tarik Dzanic. Positivity-preserving discontinuous spectral element
-methods for compressible multi-species flows. Computers & Fluids, page 106343, 2024.
+# Will Trojak and Tarik Dzanic. Positivity-preserving discontinuous spectral element methods for compressible multi-species flows. Computers & Fluids, page 106343, 2024.
 
 # Number of dimensions
 set dimension = 2

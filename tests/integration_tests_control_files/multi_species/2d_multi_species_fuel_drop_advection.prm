@@ -2,8 +2,7 @@
 # ---------------------
 
 # Reference:
-# Peter C Ma, Yu Lv, and Matthias Ihme. An entropy-stable hybrid scheme for simulations
-of transcritical real-fluid flows. Journal of Computational Physics, 340:330–357, 2017.
+# Peter C Ma, Yu Lv, and Matthias Ihme. An entropy-stable hybrid scheme for simulations of transcritical real-fluid flows. Journal of Computational Physics, 340:330–357, 2017.
 
 # Number of dimensions
 set dimension = 2

@@ -41,7 +41,7 @@ public:
     /// Constructor.
     /** Simply calls the TestsBase constructor to set its parameters = parameters_input
      * */
-    EulerTaylorGreen(const Parameters::AllParameters *const parameters_input);
+    explicit EulerTaylorGreen(const Parameters::AllParameters *const parameters_input);
 
     /// Ensure that the kinetic energy is bounded.
     /** If the kinetic energy increases about its initial value, then the test should fail.

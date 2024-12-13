@@ -14,6 +14,18 @@ add_test(
   COMMAND mpirun -np 1 ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_1D -i ${CMAKE_CURRENT_BINARY_DIR}/time_refinement_study_advection_explicit.prm
     WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
 )
+set_tests_labels(1D_TIME_REFINEMENT_STUDY_ADVECTION_EXPLICIT    TIME_REFINEMENT_STUDY
+                                                                1D
+                                                                SERIAL
+                                                                ADVECTION
+                                                                RUNGE-KUTTA
+                                                                WEAK
+                                                                UNCOLLOCATED
+                                                                MANUFACTURED_SOLUTION
+                                                                CONVERGENCE
+                                                                MODERATE
+                                                                INTEGRATION_TEST)
+
 # ----------------------------------------
 
 # =======================================
@@ -30,6 +42,17 @@ add_test(
     COMMAND mpirun -np 1 ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_1D -i ${CMAKE_CURRENT_BINARY_DIR}/time_refinement_study_advection_implicit.prm
     WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
 )
+set_tests_labels(1D_TIME_REFINEMENT_STUDY_ADVECTION_IMPLICIT    TIME_REFINEMENT_STUDY
+                                                                1D
+                                                                SERIAL
+                                                                ADVECTION
+                                                                RUNGE-KUTTA
+                                                                WEAK
+                                                                UNCOLLOCATED
+                                                                MANUFACTURED_SOLUTION
+                                                                CONVERGENCE
+                                                                MODERATE
+                                                                INTEGRATION_TEST)
 # ----------------------------------------
 
 # =======================================
@@ -48,6 +71,16 @@ add_test(
     COMMAND mpirun -np 1 ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_1D -i ${CMAKE_CURRENT_BINARY_DIR}/time_refinement_study_burgers_explicit.prm
     WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
 )
+set_tests_labels(1D_TIME_REFINEMENT_STUDY_BURGERS_EXPLICIT  TIME_REFINEMENT_STUDY
+                                                            1D
+                                                            SERIAL
+                                                            BURGERS_INVISCID
+                                                            RUNGE-KUTTA
+                                                            STRONG-SPLIT
+                                                            COLLOCATED
+                                                            CONVERGENCE
+                                                            MODERATE
+                                                            INTEGRATION_TEST)
 
 # =======================================
 # Time Study (Inviscid Burgers Implicit RK)
@@ -65,3 +98,13 @@ add_test(
     COMMAND mpirun -np 1 ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_1D -i ${CMAKE_CURRENT_BINARY_DIR}/time_refinement_study_burgers_implicit.prm
     WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
 )
+set_tests_labels(1D_TIME_REFINEMENT_STUDY_BURGERS_IMPLICIT  TIME_REFINEMENT_STUDY
+                                                            1D
+                                                            SERIAL
+                                                            BURGERS_INVISCID
+                                                            RUNGE-KUTTA
+                                                            STRONG-SPLIT
+                                                            COLLOCATED
+                                                            CONVERGENCE
+                                                            MODERATE
+                                                            INTEGRATION_TEST)

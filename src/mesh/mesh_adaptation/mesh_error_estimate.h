@@ -37,10 +37,10 @@ public:
     virtual dealii::Vector<real> compute_cellwise_errors () = 0;
 
     /// Constructor
-    MeshErrorEstimateBase(std::shared_ptr< DGBase<dim, real, MeshType> > dg_input);
+    explicit MeshErrorEstimateBase(std::shared_ptr< DGBase<dim, real, MeshType> > dg_input);
 
     /// Virtual Destructor
-    virtual ~MeshErrorEstimateBase() = 0;
+    virtual ~MeshErrorEstimateBase() = default;
 
     /// Pointer to DGBase
     std::shared_ptr<DGBase<dim,real,MeshType>> dg;
@@ -61,10 +61,7 @@ public:
     dealii::Vector<real> compute_cellwise_errors () override;
 
     /// Constructor
-    ResidualErrorEstimate(std::shared_ptr<DGBase<dim,real,MeshType>> dg_input);
-
-    /// Destructor
-    ~ResidualErrorEstimate() {};
+    explicit ResidualErrorEstimate(std::shared_ptr<DGBase<dim,real,MeshType>> dg_input);
 
 };
 
@@ -104,12 +101,9 @@ public:
      *  Also stores the current solution and distribution of polynomial orders
      *  for the mesh for converting back to coarse state after refinement.
      */
-    DualWeightedResidualError(std::shared_ptr< DGBase<dim, real, MeshType> > dg_input);
+    explicit DualWeightedResidualError(std::shared_ptr< DGBase<dim, real, MeshType> > dg_input);
 
-    ///Destructor
-    ~DualWeightedResidualError() {};
-
-    /// Reinitializes member variables of DualWeightedResidualError. 
+    /// Reinitializes member variables of DualWeightedResidualError.
     /** Sets solution_refinement_state to SolutionRefinementStateEnum::coarse and stores the current
      *  solution and polynomial order distribution
      */

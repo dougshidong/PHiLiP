@@ -26,10 +26,10 @@ public:
     /// Constructor.
     /** @param[in] parameters_input Input parameters.
      */
-    TestsBase(const Parameters::AllParameters *const parameters_input);
+    explicit TestsBase(const Parameters::AllParameters *const parameters_input);
 
     /// Destructor.
-    virtual ~TestsBase() {};
+    virtual ~TestsBase() = default;
 
     /// Basically the main and only function of this class.
     /** This will get overloaded by the derived test classes.

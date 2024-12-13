@@ -15,6 +15,8 @@ set flux_nodes_type = GLL
 set use_split_form = true
 set conv_num_flux = two_point_flux
 
+set use_inverse_mass_on_the_fly = true
+
 # ODE solver
 subsection ODE solver
   set ode_solver_type = runge_kutta # change to rrk_explicit to use relaxation runge-kutta method

@@ -25,7 +25,7 @@ public:
     std::shared_ptr<ProperOrthogonalDecomposition::PODBase<dim>> pod;
 
     /// Destructor
-    virtual ~ReducedOrderODESolver() {};
+    virtual ~ReducedOrderODESolver() = default;
 
     /// Evaluate steady state solution.
     int steady_state () override;

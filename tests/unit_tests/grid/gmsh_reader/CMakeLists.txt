@@ -55,6 +55,12 @@ foreach(dim RANGE 2 3)
       COMMAND mpirun -n ${MPIMAX} ${CMAKE_CURRENT_BINARY_DIR}/${dim}D_GMSH_READER --input=${dim}D_square.msh
       WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
     )
+    set_tests_labels(${dim}D_GMSH_READER_SQUARE GRID
+                                                ${dim}D
+                                                PARALLEL
+                                                GMSH
+                                                QUICK
+                                                UNIT_TEST)
 endforeach()
 
 set (filename "airfoil.msh")
@@ -72,6 +78,12 @@ add_test(
   COMMAND mpirun -n ${MPIMAX} ${CMAKE_CURRENT_BINARY_DIR}/2D_GMSH_READER --input=${filename}
   WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
 )
+set_tests_labels(2D_GMSH_READER_NACA0012    GRID
+                                            2D
+                                            PARALLEL
+                                            GMSH
+                                            QUICK
+                                            UNIT_TEST)
 
 set (filename "naca0012_hopw_ref2.msh")
 if(NOT EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/${filename})
@@ -88,6 +100,12 @@ add_test(
   COMMAND mpirun -n ${MPIMAX} ${CMAKE_CURRENT_BINARY_DIR}/2D_GMSH_READER --input=${filename}
   WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
 )
+set_tests_labels(2D_GMSH_READER_NACA0012_HOPW   GRID
+                                                2D
+                                                PARALLEL
+                                                GMSH
+                                                QUICK
+                                                UNIT_TEST)
 
 set (filename "3D_CUBE_2ndOrder.msh")
 if(NOT EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/${filename})
@@ -104,6 +122,12 @@ add_test(
   COMMAND mpirun -n ${MPIMAX} ${CMAKE_CURRENT_BINARY_DIR}/3D_GMSH_READER --input=${filename}
   WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
 )
+set_tests_labels(3D_GMSH_READER_3D_CUBE_2ndOrder   GRID
+                                                3D
+                                                PARALLEL
+                                                GMSH
+                                                QUICK
+                                                UNIT_TEST)
 
 set (filename "3d_gaussian_bump.msh")
 if(NOT EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/${filename})
@@ -120,7 +144,12 @@ add_test(
   COMMAND mpirun -n ${MPIMAX} ${CMAKE_CURRENT_BINARY_DIR}/3D_GMSH_READER --input=${filename}
   WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
 )
-
+set_tests_labels(3D_GMSH_READER_3D_GAUSSIAN_BUMP    GRID
+                                                    3D
+                                                    PARALLEL
+                                                    GMSH
+                                                    QUICK
+                                                    UNIT_TEST)
 set (filename "3d_cube_periodic.msh")
 if(NOT EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/${filename})
   message(SEND_ERROR
@@ -136,6 +165,12 @@ add_test(
   COMMAND mpirun -n ${MPIMAX} ${CMAKE_CURRENT_BINARY_DIR}/3D_GMSH_READER --input=${filename}
   WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
 )
+set_tests_labels(3D_GMSH_READER_3D_CUBE_PERIODIC    GRID
+                                                    3D
+                                                    PARALLEL
+                                                    GMSH
+                                                    QUICK
+                                                    UNIT_TEST)
 
 set (filename "SD7003_1_cell_spanwise.msh")
 if(NOT EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/${filename})
@@ -152,6 +187,12 @@ add_test(
   COMMAND mpirun -n ${MPIMAX} ${CMAKE_CURRENT_BINARY_DIR}/3D_GMSH_READER --input=${filename}
   WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
 )
+set_tests_labels(3D_GMSH_READER_SD7003_01_CELL_SPANWISE GRID
+                                                        3D
+                                                        PARALLEL
+                                                        GMSH
+                                                        QUICK
+                                                        UNIT_TEST)
 
 set (filename "SD7003_4_cell_spanwise.msh")
 if(NOT EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/${filename})
@@ -168,6 +209,13 @@ add_test(
   COMMAND mpirun -n ${MPIMAX} ${CMAKE_CURRENT_BINARY_DIR}/3D_GMSH_READER --input=${filename}
   WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
 )
+set_tests_labels(3D_GMSH_READER_SD7003_04_CELL_SPANWISE GRID
+                                                        3D
+                                                        PARALLEL
+                                                        GMSH
+                                                        EXPECTED_FAILURE
+                                                        QUICK
+                                                        UNIT_TEST)
 
 set (filename "SD7003_12_cell_spanwise.msh")
 if(NOT EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/${filename})
@@ -184,6 +232,13 @@ add_test(
   COMMAND mpirun -n ${MPIMAX} ${CMAKE_CURRENT_BINARY_DIR}/3D_GMSH_READER --input=${filename}
   WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
 )
+set_tests_labels(3D_GMSH_READER_SD7003_12_CELL_SPANWISE GRID
+                                                        3D
+                                                        PARALLEL
+                                                        GMSH
+                                                        EXPECTED_FAILURE
+                                                        QUICK
+                                                        UNIT_TEST)
 
 set (filename "channel_structured.msh")
 if(NOT EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/${filename})
@@ -200,3 +255,9 @@ add_test(
   COMMAND mpirun -n ${MPIMAX} ${CMAKE_CURRENT_BINARY_DIR}/3D_GMSH_READER --input=${filename}
   WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
 )
+set_tests_labels(3D_GMSH_READER_CHANNEL_STRUCTURED  GRID
+                                                    3D
+                                                    PARALLEL
+                                                    GMSH
+                                                    QUICK
+                                                    UNIT_TEST)

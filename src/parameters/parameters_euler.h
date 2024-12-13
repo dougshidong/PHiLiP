@@ -17,8 +17,6 @@ public:
     /// Input file provides in degrees, but the value stored here is in radians
     double side_slip_angle;
 
-    EulerParam (); ///< Constructor
-
     /// Declares the possible variables and sets the defaults.
     static void declare_parameters (dealii::ParameterHandler &prm);
     /// Parses input file and sets the variables.

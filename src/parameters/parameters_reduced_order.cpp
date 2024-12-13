@@ -2,9 +2,6 @@
 namespace PHiLiP {
 namespace Parameters {
 
-// Reduced Order Model inputs
-ReducedOrderModelParam::ReducedOrderModelParam () {}
-
 void ReducedOrderModelParam::declare_parameters (dealii::ParameterHandler &prm)
 {
     prm.enter_subsection("reduced order");

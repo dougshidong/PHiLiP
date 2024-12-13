@@ -146,9 +146,6 @@ public:
         const bool uses_solution_values = true,
         const bool uses_solution_gradient = true);
 
-    /// Destructor
-    ~TargetFunctional(){}
-
 public:
     /// Evaluates the functional derivative with respect to the solution variable
     /** Loops over the discretized domain and determines the sensitivity of the functional value to each 

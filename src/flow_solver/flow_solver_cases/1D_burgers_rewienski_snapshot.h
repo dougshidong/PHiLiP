@@ -26,10 +26,7 @@ class BurgersRewienskiSnapshot: public FlowSolverCaseBase<dim, nstate>
 {
 public:
     /// Constructor.
-    BurgersRewienskiSnapshot(const Parameters::AllParameters *const parameters_input);
-
-    /// Destructor
-    ~BurgersRewienskiSnapshot() {};
+    explicit BurgersRewienskiSnapshot(const Parameters::AllParameters *const parameters_input);
 
     /// Function to generate the grid
     std::shared_ptr<Triangulation> generate_grid() const override;

@@ -25,10 +25,7 @@ class NACA0012 : public FlowSolverCaseBase<dim,nstate>
 #endif
 public:
     /// Constructor.
-    NACA0012(const Parameters::AllParameters *const parameters_input);
-
-    /// Destructor
-    ~NACA0012() {};
+    explicit NACA0012(const Parameters::AllParameters *const parameters_input);
 
     /// Function to generate the grid
     std::shared_ptr<Triangulation> generate_grid() const override;
@@ -46,6 +43,7 @@ protected:
     /// Filename (with extension) for the unsteady data table
     const std::string unsteady_data_table_filename_with_extension;
 
+    using FlowSolverCaseBase<dim,nstate>::compute_unsteady_data_and_write_to_table;
     /// Compute the desired unsteady data and write it to a table
     void compute_unsteady_data_and_write_to_table(
             const unsigned int current_iteration,
@@ -53,7 +51,7 @@ protected:
             const std::shared_ptr <DGBase<dim, double>> dg,
             const std::shared_ptr<dealii::TableHandler> unsteady_data_table) override;
 
-private:
+public:
     /// Compute lift
     double compute_lift(std::shared_ptr<DGBase<dim, double>> dg) const;
 

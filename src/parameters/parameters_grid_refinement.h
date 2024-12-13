@@ -111,8 +111,6 @@ public:
     /// Flag to exit after call to refinement
     bool exit_after_refine;
 
-    GridRefinementParam(); ///< Constructor
-
     /// Declares the possible variables and sets the defaults.
     static void declare_parameters(dealii::ParameterHandler &prm);
     /// Parses input file and sets the variables.

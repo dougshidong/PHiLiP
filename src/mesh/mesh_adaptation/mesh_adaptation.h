@@ -32,7 +32,7 @@ public:
     MeshAdaptation(std::shared_ptr< DGBase<dim, real, MeshType> > dg_input, const Parameters::MeshAdaptationParam *const mesh_adaptation_param_input);
 
     /// Destructor
-    ~MeshAdaptation(){};
+    ~MeshAdaptation() = default;
 
     /// Pointer to the error estimator class.
     std::unique_ptr<MeshErrorEstimateBase<dim, real, MeshType>> mesh_error;

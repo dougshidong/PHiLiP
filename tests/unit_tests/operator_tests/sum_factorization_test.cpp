@@ -111,8 +111,8 @@ int main (int argc, char * argv[])
     std::array<clock_t,poly_max> time_diff_mass;
     std::array<clock_t,poly_max> time_diff_mass_sum;
     for(unsigned int poly_degree=poly_min; poly_degree<poly_max; poly_degree++){
-        PHiLiP::OPERATOR::local_mass<dim,2*dim> mass_matrix(nstate, poly_degree, 1);
-        PHiLiP::OPERATOR::basis_functions<dim,2*dim> basis(nstate, poly_degree, 1);
+        PHiLiP::OPERATOR::local_mass<dim,2*dim,real> mass_matrix(nstate, poly_degree, 1);
+        PHiLiP::OPERATOR::basis_functions<dim,2*dim,real> basis(nstate, poly_degree, 1);
         dealii::QGauss<1> quad1D (poly_degree+1);
         const dealii::FE_DGQ<1> fe_dg(poly_degree);
         const dealii::FESystem<1,1> fe_system(fe_dg, nstate);

@@ -1,0 +1,65 @@
+# -------------------
+set test_type = advection_limiter
+
+# Number of dimensions
+set dimension = 2
+
+set use_weak_form = false
+set flux_nodes_type = GLL
+
+# Strong DG - LaxF
+set use_split_form = false
+set conv_num_flux = lax_friedrichs
+
+# NSFR - Ra
+#set use_split_form = true
+#set two_point_num_flux_type = Ra
+#set conv_num_flux = two_point_flux_with_lax_friedrichs_dissipation
+
+# The PDE we want to solve
+set pde_type = advection
+
+subsection limiter
+  set bound_preserving_limiter = maximum_principle
+  set use_OOA = true
+end
+
+set do_renumber_dofs = false
+
+subsection ODE solver
+
+  set ode_output = verbose
+  
+  set nonlinear_max_iterations = 500000
+
+  set print_iteration_modulo = 100
+
+  set ode_solver_type = runge_kutta
+
+  set initial_time_step = 0.0001
+
+  set runge_kutta_method = ssprk3_ex
+
+  set output_solution_every_x_steps = 0
+
+end
+
+subsection flow_solver
+  set flow_case_type = advection_limiter
+  set poly_degree = 2
+  set final_time = 0.1
+  set courant_friedrichs_lewy_number = 0.25
+  set adaptive_time_step = true
+  set unsteady_data_table_filename = advection_shock_energy
+  subsection grid
+    set grid_left_bound = -1.0
+    set grid_right_bound = 1.0
+    set number_of_mesh_refinements = 0
+  end
+end
+
+
+subsection manufactured solution convergence study
+  set use_manufactured_source_term = false
+  set number_of_grids = 8
+end

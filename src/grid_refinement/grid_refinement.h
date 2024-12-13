@@ -42,8 +42,8 @@ template <int dim, int nstate, typename real, typename MeshType = dealii::parall
 class GridRefinementBase
 {
 public:
-    /// Deleted default constructor
-    GridRefinementBase() = delete;
+     /// Destructor
+    virtual ~GridRefinementBase() = default;
 
     /// Constructor. Stores the adjoint object, physics and parameters
     GridRefinementBase(

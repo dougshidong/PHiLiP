@@ -6,10 +6,6 @@
 namespace PHiLiP {
 
 namespace Parameters {
-
-// Manufactured Solution inputs
-ManufacturedSolutionParam::ManufacturedSolutionParam() {}
-
 void ManufacturedSolutionParam::declare_parameters(dealii::ParameterHandler &prm)
 {
     prm.declare_entry("use_manufactured_source_term", "false",

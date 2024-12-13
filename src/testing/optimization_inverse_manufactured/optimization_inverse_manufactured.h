@@ -17,9 +17,7 @@ public:
     /// Constructor.
     /** Simply calls the TestsBase constructor to set its parameters = parameters_input
      */
-    OptimizationInverseManufactured(const Parameters::AllParameters *const parameters_input);
-
-    ~OptimizationInverseManufactured() {}; ///< Destructor.
+    explicit OptimizationInverseManufactured(const Parameters::AllParameters *const parameters_input);
 
     /// Grid convergence on Euler Gaussian Bump
     /** Will run the a grid convergence test for various p

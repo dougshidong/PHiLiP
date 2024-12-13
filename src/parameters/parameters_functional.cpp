@@ -9,7 +9,6 @@ namespace PHiLiP {
 
 namespace Parameters {
 
-FunctionalParam::FunctionalParam(){}
 
 void FunctionalParam::declare_parameters(dealii::ParameterHandler &prm)
 {

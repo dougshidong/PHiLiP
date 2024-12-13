@@ -18,12 +18,6 @@ public:
     /// Constructor
     RBFInterpolation(const MatrixXd& data_coordinates, const VectorXd& data_values, std::string kernel);
 
-    /// Constructor
-    RBFInterpolation() = default;
-
-    /// Destructor
-    ~RBFInterpolation () {};
-
     /// Compute RBF interpolation weights
     void computeWeights();
 

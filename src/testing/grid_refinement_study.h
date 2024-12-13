@@ -26,10 +26,8 @@ public:
     /// Constructor.
     /** Simply calls the TestsBase constructor to set its parameters = parameters_input
      */
-    GridRefinementStudy(
+    explicit GridRefinementStudy(
         const Parameters::AllParameters *const parameters_input);
-
-    ~GridRefinementStudy() {}; ///< Destructor.
 
     int run_test() const;
 

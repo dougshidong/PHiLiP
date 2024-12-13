@@ -14,11 +14,8 @@ class ConvectionDiffusionPeriodic: public TestsBase
 {
 public:
     /// Constructor
-    ConvectionDiffusionPeriodic(const Parameters::AllParameters *const parameters_input);
+    explicit ConvectionDiffusionPeriodic(const Parameters::AllParameters *const parameters_input);
     
-    /// Destructor
-    ~ConvectionDiffusionPeriodic() {};
-
     /// Run test
     int run_test () const override;
 private:

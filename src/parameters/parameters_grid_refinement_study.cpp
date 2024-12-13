@@ -8,10 +8,6 @@ namespace PHiLiP {
 
 namespace Parameters {
 
-GridRefinementStudyParam::GridRefinementStudyParam() : 
-    functional_param(FunctionalParam()),
-    manufactured_solution_param(ManufacturedSolutionParam()) {}
-
 void GridRefinementStudyParam::declare_parameters(dealii::ParameterHandler &prm)
 {
     prm.enter_subsection("grid refinement study");

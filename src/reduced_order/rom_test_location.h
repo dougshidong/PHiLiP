@@ -18,9 +18,6 @@ public:
     /// Constructor
     ROMTestLocation(const RowVectorXd& parameter, std::unique_ptr<ROMSolution < dim, nstate>> rom_solution);
 
-    /// Destructor
-    ~ROMTestLocation() {};
-
     /// Compute adjoint error estimate between FOM and initial ROM
     void compute_FOM_to_initial_ROM_error();
 

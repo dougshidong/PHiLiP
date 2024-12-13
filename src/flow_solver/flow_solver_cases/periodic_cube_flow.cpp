@@ -13,7 +13,7 @@ namespace FlowSolver {
 //=========================================================
 template <int dim, int nstate>
 PeriodicCubeFlow<dim, nstate>::PeriodicCubeFlow(const PHiLiP::Parameters::AllParameters *const parameters_input)
-        : FlowSolverCaseBase<dim, nstate>(parameters_input)
+        : CubeFlow_UniformGrid<dim, nstate>(parameters_input)
         , number_of_cells_per_direction(this->all_param.flow_solver_param.number_of_grid_elements_per_dimension)
         , domain_left(this->all_param.flow_solver_param.grid_left_bound)
         , domain_right(this->all_param.flow_solver_param.grid_right_bound)

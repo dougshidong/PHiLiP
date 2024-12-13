@@ -116,9 +116,6 @@ EntropyConservingWithL2RoeDissipation<dim, nstate, real>::EntropyConservingWithL
 {}
 
 template <int dim, int nstate, typename real>
-BaselineNumericalFluxConvective<dim,nstate,real>::~BaselineNumericalFluxConvective() {}
-
-template <int dim, int nstate, typename real>
 std::array<real, nstate> CentralBaselineNumericalFluxConvective<dim,nstate,real>::evaluate_flux(
  const std::array<real, nstate> &soln_int,
     const std::array<real, nstate> &soln_ext,
@@ -172,9 +169,6 @@ std::array<real, nstate> EntropyConservingBaselineNumericalFluxConvective<dim,ns
     }
     return numerical_flux_dot_n;
 }
-
-template <int dim, int nstate, typename real>
-RiemannSolverDissipation<dim,nstate,real>::~RiemannSolverDissipation() {}
 
 template<int dim, int nstate, typename real>
 std::array<real, nstate> ZeroRiemannSolverDissipation<dim,nstate,real>

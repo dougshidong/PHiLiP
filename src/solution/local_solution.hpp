@@ -2,6 +2,8 @@
 #define PHILIP_LOCAL_SOLUTION_HPP
 
 #include <deal.II/fe/fe_system.h>
+#include <deal.II/base/types.h>
+
 
 namespace PHiLiP {
 
@@ -25,7 +27,7 @@ class LocalSolution {
     const unsigned int n_dofs;
 
     /// Constructor
-    LocalSolution(const dealii::FESystem<dim, dim> &finite_element);
+    explicit LocalSolution(const dealii::FESystem<dim, dim> &finite_element);
 
     /// Obtain values at unit points.
     std::vector<std::array<real, n_components>> evaluate_values(const std::vector<dealii::Point<dim>> &unit_points) const;

@@ -108,6 +108,9 @@ public:
      *  DGBase cannot use nstate as a compile-time known.  */
     const unsigned int max_grid_degree;
 
+    /// Destructor
+    virtual ~DGBase() = default;
+
     /// Principal constructor that will call delegated constructor.
     /** Will initialize mapping, fe_dg, all_parameters, volume_quadrature, and face_quadrature
      *  from DGBase. The it will new some FEValues that will be used to retrieve the
@@ -214,65 +217,72 @@ public:
 
     /// Builds needed operators for cell residual loop.
     void reinit_operators_for_cell_residual_loop(
-        const unsigned int poly_degree_int, 
-        const unsigned int poly_degree_ext, 
-        const unsigned int grid_degree,
-        OPERATOR::basis_functions<dim,2*dim> &soln_basis_int,
-        OPERATOR::basis_functions<dim,2*dim> &soln_basis_ext,
-        OPERATOR::basis_functions<dim,2*dim> &flux_basis_int,
-        OPERATOR::basis_functions<dim,2*dim> &flux_basis_ext,
-        OPERATOR::local_basis_stiffness<dim,2*dim> &flux_basis_stiffness,
-        OPERATOR::vol_projection_operator<dim,2*dim> &soln_basis_projection_oper_int,
-        OPERATOR::vol_projection_operator<dim,2*dim> &soln_basis_projection_oper_ext,
-        OPERATOR::mapping_shape_functions<dim,2*dim> &mapping_basis);
+        const unsigned int                                poly_degree_int, 
+        const unsigned int                                poly_degree_ext, 
+        const unsigned int                                grid_degree,
+        OPERATOR::basis_functions<dim,2*dim,real>         &soln_basis_int,
+        OPERATOR::basis_functions<dim,2*dim,real>         &soln_basis_ext,
+        OPERATOR::basis_functions<dim,2*dim,real>         &flux_basis_int,
+        OPERATOR::basis_functions<dim,2*dim,real>         &flux_basis_ext,
+        OPERATOR::local_basis_stiffness<dim,2*dim,real>   &flux_basis_stiffness,
+        OPERATOR::vol_projection_operator<dim,2*dim,real> &soln_basis_projection_oper_int,
+        OPERATOR::vol_projection_operator<dim,2*dim,real> &soln_basis_projection_oper_ext,
+        OPERATOR::mapping_shape_functions<dim,2*dim,real> &mapping_basis);
 
     /// Builds needed operators to compute mass matrices/inverses efficiently.
     void reinit_operators_for_mass_matrix(
-        const bool Cartesian_element,
-        const unsigned int poly_degree, const unsigned int grid_degree,
-        OPERATOR::mapping_shape_functions<dim,2*dim> &mapping_basis,
-        OPERATOR::basis_functions<dim,2*dim> &basis,
-        OPERATOR::local_mass<dim,2*dim> &reference_mass_matrix,
-        OPERATOR::local_Flux_Reconstruction_operator<dim,2*dim> &reference_FR,
-        OPERATOR::local_Flux_Reconstruction_operator_aux<dim,2*dim> &reference_FR_aux,
-        OPERATOR::derivative_p<dim,2*dim> &deriv_p);
+        const bool                                                       Cartesian_element,
+        const unsigned int                                               poly_degree, 
+        const unsigned int                                               grid_degree,
+        OPERATOR::mapping_shape_functions<dim,2*dim,real>                &mapping_basis,
+        OPERATOR::basis_functions<dim,2*dim,real>                        &basis,
+        OPERATOR::local_mass<dim,2*dim,real>                             &reference_mass_matrix,
+        OPERATOR::local_Flux_Reconstruction_operator<dim,2*dim,real>     &reference_FR,
+        OPERATOR::local_Flux_Reconstruction_operator_aux<dim,2*dim,real> &reference_FR_aux,
+        OPERATOR::derivative_p<dim,2*dim,real>                           &deriv_p);
 
     /// Allocates and evaluates the mass matrices for the entire grid
     void evaluate_mass_matrices (bool do_inverse_mass_matrix = false);
 
     /// Evaluates the metric dependent local mass matrices and inverses, then sets them in the global matrices.
     void evaluate_local_metric_dependent_mass_matrix_and_set_in_global_mass_matrix(
-        const bool Cartesian_element,//Flag if cell is Cartesian
-        const bool do_inverse_mass_matrix, 
-        const unsigned int poly_degree, 
-        const unsigned int curr_grid_degree, 
-        const unsigned int n_quad_pts, 
-        const unsigned int n_dofs_cell, 
-        const std::vector<dealii::types::global_dof_index> dofs_indices, 
-        OPERATOR::metric_operators<real,dim,2*dim>                  &metric_oper,
-        OPERATOR::basis_functions<dim,2*dim>                        &basis,
-        OPERATOR::local_mass<dim,2*dim>                             &reference_mass_matrix,
-        OPERATOR::local_Flux_Reconstruction_operator<dim,2*dim>     &reference_FR,
-        OPERATOR::local_Flux_Reconstruction_operator_aux<dim,2*dim> &reference_FR_aux,
-        OPERATOR::derivative_p<dim,2*dim>                           &deriv_p);
+        const bool                                                       Cartesian_element,//Flag if cell is Cartesian
+        const bool                                                       do_inverse_mass_matrix, 
+        const unsigned int                                               poly_degree, 
+        const unsigned int                                               curr_grid_degree, 
+        const unsigned int                                               n_quad_pts, 
+        const unsigned int                                               n_dofs_cell, 
+        const std::vector<dealii::types::global_dof_index>               dofs_indices, 
+        OPERATOR::metric_operators<real,dim,2*dim>                       &metric_oper,
+        OPERATOR::basis_functions<dim,2*dim,real>                        &basis,
+        OPERATOR::local_mass<dim,2*dim,real>                             &reference_mass_matrix,
+        OPERATOR::local_Flux_Reconstruction_operator<dim,2*dim,real>     &reference_FR,
+        OPERATOR::local_Flux_Reconstruction_operator_aux<dim,2*dim,real> &reference_FR_aux,
+        OPERATOR::derivative_p<dim,2*dim,real>                           &deriv_p);
 
     /// Applies the inverse of the local metric dependent mass matrices when the global is not stored.
     /** We use matrix-free methods to apply the inverse of the local mass matrix on-the-fly 
     *   in each cell using sum-factorization techniques.
     */
     void apply_inverse_global_mass_matrix(
-        dealii::LinearAlgebra::distributed::Vector<double> &input_vector,
+        const dealii::LinearAlgebra::distributed::Vector<double> &input_vector,
         dealii::LinearAlgebra::distributed::Vector<double> &output_vector,
         const bool use_auxiliary_eq = false);
 
     /// Applies the local metric dependent mass matrices when the global is not stored.
     /** We use matrix-free methods to apply the local mass matrix on-the-fly 
     *   in each cell using sum-factorization techniques.
+    *   use_unmodified_mass_matrix flag allows the unmodified mass matrix to be used 
+    *   for FR, i.e., use M rather than M+K.
+    *   For example, if this function is used for an inner product <a,b>,
+    *       setting `use_unmodified_mass_matrix = true` will result in an M norm (L2) inner product,
+    *       whereas setting `use_unmodified_mass_matrix = false` will result in an M+K norm (broken Sobolev) inner product.
     */
     void apply_global_mass_matrix(
-        dealii::LinearAlgebra::distributed::Vector<double> &input_vector,
+        const dealii::LinearAlgebra::distributed::Vector<double> &input_vector,
         dealii::LinearAlgebra::distributed::Vector<double> &output_vector,
-        const bool use_auxiliary_eq = false);
+        const bool use_auxiliary_eq = false,
+        const bool use_unmodified_mass_matrix = false);
 
     /// Evaluates the maximum stable time step
     /** If exact_time_stepping = true, use the same time step for the entire solution
@@ -563,21 +573,21 @@ public:
         const DoFCellAccessorType1 &current_cell,
         const DoFCellAccessorType2 &current_metric_cell,
         const bool compute_dRdW, const bool compute_dRdX, const bool compute_d2R,
-        dealii::hp::FEValues<dim,dim>        &fe_values_collection_volume,
-        dealii::hp::FEFaceValues<dim,dim>    &fe_values_collection_face_int,
-        dealii::hp::FEFaceValues<dim,dim>    &fe_values_collection_face_ext,
-        dealii::hp::FESubfaceValues<dim,dim> &fe_values_collection_subface,
-        dealii::hp::FEValues<dim,dim>        &fe_values_collection_volume_lagrange,
-        OPERATOR::basis_functions<dim,2*dim> &soln_basis_int,
-        OPERATOR::basis_functions<dim,2*dim> &soln_basis_ext,
-        OPERATOR::basis_functions<dim,2*dim> &flux_basis_int,
-        OPERATOR::basis_functions<dim,2*dim> &flux_basis_ext,
-        OPERATOR::local_basis_stiffness<dim,2*dim> &flux_basis_stiffness,
-        OPERATOR::vol_projection_operator<dim,2*dim> &soln_basis_projection_oper_int,
-        OPERATOR::vol_projection_operator<dim,2*dim> &soln_basis_projection_oper_ext,
-        OPERATOR::mapping_shape_functions<dim,2*dim> &mapping_basis,
-        const bool compute_auxiliary_right_hand_side,//flag on whether computing the Auxiliary variable's equations' residuals
-        dealii::LinearAlgebra::distributed::Vector<double> &rhs,
+        dealii::hp::FEValues<dim,dim>                                      &fe_values_collection_volume,
+        dealii::hp::FEFaceValues<dim,dim>                                  &fe_values_collection_face_int,
+        dealii::hp::FEFaceValues<dim,dim>                                  &fe_values_collection_face_ext,
+        dealii::hp::FESubfaceValues<dim,dim>                               &fe_values_collection_subface,
+        dealii::hp::FEValues<dim,dim>                                      &fe_values_collection_volume_lagrange,
+        OPERATOR::basis_functions<dim,2*dim,real>                          &soln_basis_int,
+        OPERATOR::basis_functions<dim,2*dim,real>                          &soln_basis_ext,
+        OPERATOR::basis_functions<dim,2*dim,real>                          &flux_basis_int,
+        OPERATOR::basis_functions<dim,2*dim,real>                          &flux_basis_ext,
+        OPERATOR::local_basis_stiffness<dim,2*dim,real>                    &flux_basis_stiffness,
+        OPERATOR::vol_projection_operator<dim,2*dim,real>                  &soln_basis_projection_oper_int,
+        OPERATOR::vol_projection_operator<dim,2*dim,real>                  &soln_basis_projection_oper_ext,
+        OPERATOR::mapping_shape_functions<dim,2*dim,real>                  &mapping_basis,
+        const bool                                                         compute_auxiliary_right_hand_side,//flag on whether computing the Auxiliary variable's equations' residuals
+        dealii::LinearAlgebra::distributed::Vector<double>                 &rhs,
         std::array<dealii::LinearAlgebra::distributed::Vector<double>,dim> &rhs_aux);
 
     /// Finite Element Collection for p-finite-element to represent the solution
@@ -668,13 +678,13 @@ protected:
         const std::vector<dealii::types::global_dof_index>     &metric_dof_indices,
         const unsigned int                                     poly_degree,
         const unsigned int                                     grid_degree,
-        OPERATOR::basis_functions<dim,2*dim>                   &soln_basis,
-        OPERATOR::basis_functions<dim,2*dim>                   &flux_basis,
-        OPERATOR::local_basis_stiffness<dim,2*dim>             &flux_basis_stiffness,
-        OPERATOR::vol_projection_operator<dim,2*dim>           &soln_basis_projection_oper_int,
-        OPERATOR::vol_projection_operator<dim,2*dim>           &soln_basis_projection_oper_ext,
+        OPERATOR::basis_functions<dim,2*dim,real>              &soln_basis,
+        OPERATOR::basis_functions<dim,2*dim,real>              &flux_basis,
+        OPERATOR::local_basis_stiffness<dim,2*dim,real>        &flux_basis_stiffness,
+        OPERATOR::vol_projection_operator<dim,2*dim,real>      &soln_basis_projection_oper_int,
+        OPERATOR::vol_projection_operator<dim,2*dim,real>      &soln_basis_projection_oper_ext,
         OPERATOR::metric_operators<real,dim,2*dim>             &metric_oper,
-        OPERATOR::mapping_shape_functions<dim,2*dim>           &mapping_basis,
+        OPERATOR::mapping_shape_functions<dim,2*dim,real>      &mapping_basis,
         std::array<std::vector<real>,dim>                      &mapping_support_points,
         dealii::hp::FEValues<dim,dim>                          &fe_values_collection_volume,
         dealii::hp::FEValues<dim,dim>                          &fe_values_collection_volume_lagrange,
@@ -695,13 +705,13 @@ protected:
         const std::vector<dealii::types::global_dof_index>     &metric_dof_indices,
         const unsigned int                                     poly_degree,
         const unsigned int                                     grid_degree,
-        OPERATOR::basis_functions<dim,2*dim>                   &soln_basis,
-        OPERATOR::basis_functions<dim,2*dim>                   &flux_basis,
-        OPERATOR::local_basis_stiffness<dim,2*dim>             &flux_basis_stiffness,
-        OPERATOR::vol_projection_operator<dim,2*dim>           &soln_basis_projection_oper_int,
-        OPERATOR::vol_projection_operator<dim,2*dim>           &soln_basis_projection_oper_ext,
+        OPERATOR::basis_functions<dim,2*dim,real>              &soln_basis,
+        OPERATOR::basis_functions<dim,2*dim,real>              &flux_basis,
+        OPERATOR::local_basis_stiffness<dim,2*dim,real>        &flux_basis_stiffness,
+        OPERATOR::vol_projection_operator<dim,2*dim,real>      &soln_basis_projection_oper_int,
+        OPERATOR::vol_projection_operator<dim,2*dim,real>      &soln_basis_projection_oper_ext,
         OPERATOR::metric_operators<real,dim,2*dim>             &metric_oper,
-        OPERATOR::mapping_shape_functions<dim,2*dim>           &mapping_basis,
+        OPERATOR::mapping_shape_functions<dim,2*dim,real>      &mapping_basis,
         std::array<std::vector<real>,dim>                      &mapping_support_points,
         dealii::hp::FEFaceValues<dim,dim>                      &fe_values_collection_face_int,
         const dealii::FESystem<dim,dim>                        &current_fe_ref,
@@ -727,16 +737,16 @@ protected:
         const unsigned int                                     poly_degree_ext,
         const unsigned int                                     grid_degree_int,
         const unsigned int                                     grid_degree_ext,
-        OPERATOR::basis_functions<dim,2*dim>                   &soln_basis_int,
-        OPERATOR::basis_functions<dim,2*dim>                   &soln_basis_ext,
-        OPERATOR::basis_functions<dim,2*dim>                   &flux_basis_int,
-        OPERATOR::basis_functions<dim,2*dim>                   &flux_basis_ext,
-        OPERATOR::local_basis_stiffness<dim,2*dim>             &flux_basis_stiffness,
-        OPERATOR::vol_projection_operator<dim,2*dim>           &soln_basis_projection_oper_int,
-        OPERATOR::vol_projection_operator<dim,2*dim>           &soln_basis_projection_oper_ext,
+        OPERATOR::basis_functions<dim,2*dim,real>              &soln_basis_int,
+        OPERATOR::basis_functions<dim,2*dim,real>              &soln_basis_ext,
+        OPERATOR::basis_functions<dim,2*dim,real>              &flux_basis_int,
+        OPERATOR::basis_functions<dim,2*dim,real>              &flux_basis_ext,
+        OPERATOR::local_basis_stiffness<dim,2*dim,real>        &flux_basis_stiffness,
+        OPERATOR::vol_projection_operator<dim,2*dim,real>      &soln_basis_projection_oper_int,
+        OPERATOR::vol_projection_operator<dim,2*dim,real>      &soln_basis_projection_oper_ext,
         OPERATOR::metric_operators<real,dim,2*dim>             &metric_oper_int,
         OPERATOR::metric_operators<real,dim,2*dim>             &metric_oper_ext,
-        OPERATOR::mapping_shape_functions<dim,2*dim>           &mapping_basis,
+        OPERATOR::mapping_shape_functions<dim,2*dim,real>      &mapping_basis,
         std::array<std::vector<real>,dim>                      &mapping_support_points,
         dealii::hp::FEFaceValues<dim,dim>                      &fe_values_collection_face_int,
         dealii::hp::FEFaceValues<dim,dim>                      &fe_values_collection_face_ext,
@@ -766,16 +776,16 @@ protected:
         const unsigned int                                     poly_degree_ext,
         const unsigned int                                     grid_degree_int,
         const unsigned int                                     grid_degree_ext,
-        OPERATOR::basis_functions<dim,2*dim>                   &soln_basis_int,
-        OPERATOR::basis_functions<dim,2*dim>                   &soln_basis_ext,
-        OPERATOR::basis_functions<dim,2*dim>                   &flux_basis_int,
-        OPERATOR::basis_functions<dim,2*dim>                   &flux_basis_ext,
-        OPERATOR::local_basis_stiffness<dim,2*dim>             &flux_basis_stiffness,
-        OPERATOR::vol_projection_operator<dim,2*dim>           &soln_basis_projection_oper_int,
-        OPERATOR::vol_projection_operator<dim,2*dim>           &soln_basis_projection_oper_ext,
+        OPERATOR::basis_functions<dim,2*dim,real>              &soln_basis_int,
+        OPERATOR::basis_functions<dim,2*dim,real>              &soln_basis_ext,
+        OPERATOR::basis_functions<dim,2*dim,real>              &flux_basis_int,
+        OPERATOR::basis_functions<dim,2*dim,real>              &flux_basis_ext,
+        OPERATOR::local_basis_stiffness<dim,2*dim,real>        &flux_basis_stiffness,
+        OPERATOR::vol_projection_operator<dim,2*dim,real>      &soln_basis_projection_oper_int,
+        OPERATOR::vol_projection_operator<dim,2*dim,real>      &soln_basis_projection_oper_ext,
         OPERATOR::metric_operators<real,dim,2*dim>             &metric_oper_int,
         OPERATOR::metric_operators<real,dim,2*dim>             &metric_oper_ext,
-        OPERATOR::mapping_shape_functions<dim,2*dim>           &mapping_basis,
+        OPERATOR::mapping_shape_functions<dim,2*dim,real>      &mapping_basis,
         std::array<std::vector<real>,dim>                      &mapping_support_points,
         dealii::hp::FEFaceValues<dim,dim>                      &fe_values_collection_face_int,
         dealii::hp::FESubfaceValues<dim,dim>                   &fe_values_collection_subface,
@@ -926,8 +936,8 @@ public:
     bool use_auxiliary_eq;
     /// Set use_auxiliary_eq flag
     virtual void set_use_auxiliary_eq() = 0;
-}; // end of DGBase class
 
+}; // end of DGBase class
 
 } // PHiLiP namespace
 

@@ -13,7 +13,6 @@ namespace Parameters {
 class LinearSolverParam
 {
 public:
-    LinearSolverParam (); ///< Constructor.
     /// Types of linear solvers available.
     enum LinearSolverEnum {
         direct, /// LU.

@@ -3,12 +3,11 @@
 namespace PHiLiP {
 namespace Parameters {
 
-ODESolverParam::ODESolverParam () {}
-
 void ODESolverParam::declare_parameters (dealii::ParameterHandler &prm)
 {
     prm.enter_subsection("ODE solver");
     {
+
         prm.declare_entry("ode_output", "verbose",
                           dealii::Patterns::Selection("quiet|verbose"),
                           "State whether output from ODE solver should be printed. "
@@ -39,17 +38,21 @@ void ODESolverParam::declare_parameters (dealii::ParameterHandler &prm)
         prm.declare_entry("ode_solver_type", "implicit",
                           dealii::Patterns::Selection(
                           " runge_kutta | "
+                          " low_storage_runge_kutta | "
                           " implicit | "
                           " rrk_explicit | "
                           " pod_galerkin | "
-                          " pod_petrov_galerkin"),
+                          " pod_petrov_galerkin | "
+                          " hyper_reduced_petrov_galerkin"),
                           "Type of ODE solver to use."
                           "Choices are "
                           " <runge_kutta | "
+                          " low_storage_runge_kutta | "
                           " implicit | "
                           " rrk_explicit | "
                           " pod_galerkin | "
-                          " pod_petrov_galerkin>.");
+                          " pod_petrov_galerkin | "
+                          " hyper_reduced_petrov_galerkin>.");
 
         prm.declare_entry("nonlinear_max_iterations", "500000",
                           dealii::Patterns::Integer(0,dealii::Patterns::Integer::max_int_value),
@@ -100,17 +103,65 @@ void ODESolverParam::declare_parameters (dealii::ParameterHandler &prm)
                           dealii::Patterns::Selection(
                           " rk4_ex | "
                           " ssprk3_ex | "
+                          " heun2_ex | "
                           " euler_ex | "
                           " euler_im | "
-                          " dirk_2_im"),
-                          "Runge-kutta method to use. Methods with _ex are explicit, and with _im are implicit."
+                          " dirk_2_im | "
+                          " dirk_3_im | "
+                          " RK3_2_5F_3SStarPlus | "
+                          " RK4_3_5_3SStar | "
+                          " RK4_3_9F_3SStarPlus |"
+                          " RK5_4_10F_3SStarPlus "),
+                          "Runge-kutta method to use. Methods with _ex are explicit, and with _im are implicit. [3S*] and [3S*+] methods are low-storage RK methods"
                           "Choices are "
                           " <rk4_ex | "
                           " ssprk3_ex | "
+                          " heun2_ex | "
                           " euler_ex | "
                           " euler_im | "
-                          " dirk_2_im>.");
+                          " dirk_2_im | "
+                          " dirk_3_im | "
+                          " RK4_3_5_3SStar | "
+                          " RK3_2_5F_3SStarPlus | "
+                          " RK5_4_10F_3SStarPlus |"
+                          " RK4_3_9F_3SStarPlus >.");
+        prm.enter_subsection("rrk root solver");
+        {
+            prm.declare_entry("rrk_root_solver_output", "quiet",
+                              dealii::Patterns::Selection("quiet|verbose"),
+                              "State whether output from rrk root solver should be printed. "
+                              "Choices are <quiet|verbose>.");
 
+            prm.declare_entry("relaxation_runge_kutta_root_tolerance", "5e-10",
+                              dealii::Patterns::Double(),
+                              "Tolerance for root-finding problem in entropy RRK ode solver."
+                              "Defult 5E-10 is suitable in most cases.");
+        }
+        prm.leave_subsection();
+
+        prm.enter_subsection("low-storage rk solver");
+        {
+            prm.declare_entry("atol", "0.001",
+                          dealii::Patterns::Double(),
+                          "Absolute Tolerance for automatic step size controller");
+
+            prm.declare_entry("rtol", "0.001",
+                          dealii::Patterns::Double(),
+                          "Relative Tolerance for automatic step size controller");
+
+            prm.declare_entry("beta1", "0.70",
+                          dealii::Patterns::Double(),
+                          "Beta Controller 1 for automatic step size controller");
+
+            prm.declare_entry("beta2", "-0.23",
+                          dealii::Patterns::Double(),
+                          "Beta controller 2 for automatic step size controller");
+        
+            prm.declare_entry("beta3", "0.0",
+                           dealii::Patterns::Double(),
+                          "Beta controller 3 for automatic step size controller");
+        }
+        prm.leave_subsection();
     }
     prm.leave_subsection();
 }
@@ -134,6 +185,8 @@ void ODESolverParam::parse_parameters (dealii::ParameterHandler &prm)
         const std::string solver_string = prm.get("ode_solver_type");
         if (solver_string == "runge_kutta")              { ode_solver_type = ODESolverEnum::runge_kutta_solver;
                                                            allocate_matrix_dRdW = false; }
+        else if (solver_string == "low_storage_runge_kutta")  { ode_solver_type = ODESolverEnum::low_storage_runge_kutta_solver;
+                                                           allocate_matrix_dRdW = false; }
         else if (solver_string == "implicit")            { ode_solver_type = ODESolverEnum::implicit_solver;
                                                            allocate_matrix_dRdW = true; }
         else if (solver_string == "rrk_explicit")        { ode_solver_type = ODESolverEnum::rrk_explicit_solver;
@@ -141,6 +194,8 @@ void ODESolverParam::parse_parameters (dealii::ParameterHandler &prm)
         else if (solver_string == "pod_galerkin")        { ode_solver_type = ODESolverEnum::pod_galerkin_solver;
                                                            allocate_matrix_dRdW = true; }
         else if (solver_string == "pod_petrov_galerkin") { ode_solver_type = ODESolverEnum::pod_petrov_galerkin_solver;
+                                                           allocate_matrix_dRdW = true; }
+        else if (solver_string == "hyper_reduced_petrov_galerkin") { ode_solver_type = ODESolverEnum::hyper_reduced_petrov_galerkin_solver;
                                                            allocate_matrix_dRdW = true; }
 
         nonlinear_steady_residual_tolerance  = prm.get_double("nonlinear_steady_residual_tolerance");
@@ -169,6 +224,11 @@ void ODESolverParam::parse_parameters (dealii::ParameterHandler &prm)
             n_rk_stages  = 3;
             rk_order = 3;
         }
+        else if (rk_method_string == "heun2_ex"){
+            runge_kutta_method = RKMethodEnum::heun2_ex;
+            n_rk_stages  = 2;
+            rk_order = 2;
+        }
         else if (rk_method_string == "euler_ex"){
             runge_kutta_method = RKMethodEnum::euler_ex;
             n_rk_stages  = 1;
@@ -184,6 +244,59 @@ void ODESolverParam::parse_parameters (dealii::ParameterHandler &prm)
             n_rk_stages  = 2;
             rk_order = 2;
         }
+        else if (rk_method_string == "dirk_3_im"){
+            runge_kutta_method = RKMethodEnum::dirk_3_im;
+            n_rk_stages  = 3;
+            rk_order = 3;
+        }
+        else if (rk_method_string == "RK3_2_5F_3SStarPlus"){
+            runge_kutta_method = RKMethodEnum::RK3_2_5F_3SStarPlus;
+            n_rk_stages = 5;
+            num_delta = 5;
+            rk_order = 3;
+            is_3Sstarplus = true;
+        }
+        else if (rk_method_string == "RK4_3_5_3SStar"){
+            runge_kutta_method = RKMethodEnum::RK4_3_5_3SStar;
+            n_rk_stages = 5;
+            num_delta = 7;
+            rk_order = 4;
+            is_3Sstarplus = false;
+        }
+        else if (rk_method_string == "RK4_3_9F_3SStarPlus"){
+            runge_kutta_method = RKMethodEnum::RK4_3_9F_3SStarPlus;
+            n_rk_stages = 9;
+            num_delta = 9;
+            rk_order = 4;
+            is_3Sstarplus = true;
+        }
+        else if (rk_method_string == "RK5_4_10F_3SStarPlus"){
+            runge_kutta_method = RKMethodEnum::RK5_4_10F_3SStarPlus;
+            n_rk_stages = 10;
+            num_delta = 10;
+            rk_order = 5;
+            is_3Sstarplus = true;
+        }
+
+        prm.enter_subsection("rrk root solver");
+        {
+            const std::string output_string_rrk = prm.get("rrk_root_solver_output");
+            if (output_string_rrk == "verbose") rrk_root_solver_output = verbose;
+            else if (output_string_rrk == "quiet")   rrk_root_solver_output = quiet;
+
+            relaxation_runge_kutta_root_tolerance = prm.get_double("relaxation_runge_kutta_root_tolerance");
+        }
+        prm.leave_subsection();
+
+        prm.enter_subsection("low-storage rk solver");
+        {
+            atol = prm.get_double("atol");
+            rtol = prm.get_double("rtol");
+            beta1 = prm.get_double("beta1");
+            beta2 = prm.get_double("beta2");
+            beta3 = prm.get_double("beta3");
+        }
+        prm.leave_subsection();
 
     }
     prm.leave_subsection();

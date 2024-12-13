@@ -16,9 +16,6 @@ public:
         const Parameters::AllParameters *const parameters_input,
         const dealii::ParameterHandler &parameter_handler_input);
 
-    /// Destructor
-    ~TaylorGreenVortexEnergyCheck() {};
-
     /// Parameter handler for storing the .prm file being ran
     const dealii::ParameterHandler &parameter_handler;
     

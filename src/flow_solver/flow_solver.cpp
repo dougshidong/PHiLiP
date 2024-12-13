@@ -440,9 +440,16 @@ int FlowSolver<dim,nstate>::run() const
         // Initialize time step
         //----------------------------------------------------
         double time_step = 0.0;
-        if(flow_solver_param.adaptive_time_step == true) {
+        if(flow_solver_param.adaptive_time_step == true && flow_solver_param.error_adaptive_time_step == true){
+            pcout << "WARNING: CFL-adaptation and error-adaptation cannot be used at the same time. Aborting!" << std::endl;
+            std::abort();
+        }
+        else if(flow_solver_param.adaptive_time_step == true) {
             pcout << "Setting initial adaptive time step... " << std::flush;
             time_step = flow_solver_case->get_adaptive_time_step_initial(dg);
+        } else if(flow_solver_param.error_adaptive_time_step == true) {
+            pcout << "Setting initial error adaptive time step... " << std::flush;
+            time_step = ode_solver->get_automatic_initial_step_size(time_step,false);
         } else {
             pcout << "Setting constant time step... " << std::flush;
             time_step = flow_solver_case->get_constant_time_step(dg);
@@ -472,7 +479,7 @@ int FlowSolver<dim,nstate>::run() const
         } else {
             // no restart:
             pcout << "Writing unsteady data computed at initial time... " << std::endl;
-            flow_solver_case->compute_unsteady_data_and_write_to_table(ode_solver->current_iteration, ode_solver->current_time, dg, unsteady_data_table);
+            flow_solver_case->compute_unsteady_data_and_write_to_table(ode_solver, dg, unsteady_data_table);
             pcout << "done." << std::endl;
         }
         //----------------------------------------------------
@@ -502,17 +509,21 @@ int FlowSolver<dim,nstate>::run() const
             // update time step in flow_solver_case
             flow_solver_case->set_time_step(time_step);
 
-            // advance solution
-            ode_solver->step_in_time(time_step,false); // pseudotime==false
+            ode_solver->step_in_time(time_step,false);
 
             // Compute the unsteady quantities, write to the dealii table, and output to file
-            flow_solver_case->compute_unsteady_data_and_write_to_table(ode_solver->current_iteration, ode_solver->current_time, dg, unsteady_data_table);
+            flow_solver_case->compute_unsteady_data_and_write_to_table(ode_solver, dg, unsteady_data_table);
             // update next time step
+                       
             if(flow_solver_param.adaptive_time_step == true) {
                 next_time_step = flow_solver_case->get_adaptive_time_step(dg);
+            } else if (flow_solver_param.error_adaptive_time_step == true) {
+                next_time_step = ode_solver->get_automatic_error_adaptive_step_size(time_step,false); 
             } else {
                 next_time_step = flow_solver_case->get_constant_time_step(dg);
             }
+                      
+            
 
 #if PHILIP_DIM>1
             if(flow_solver_param.output_restart_files == true) {
@@ -521,7 +532,7 @@ int FlowSolver<dim,nstate>::run() const
                     const bool is_output_time = ((ode_solver->current_time <= current_desired_time_for_output_restart_files_every_dt_time_intervals) && 
                                                  ((ode_solver->current_time + next_time_step) > current_desired_time_for_output_restart_files_every_dt_time_intervals));
                     if (is_output_time) {
-                        const unsigned int file_number = current_desired_time_for_output_restart_files_every_dt_time_intervals / flow_solver_param.output_restart_files_every_dt_time_intervals;
+                        const unsigned int file_number = int(round(current_desired_time_for_output_restart_files_every_dt_time_intervals / flow_solver_param.output_restart_files_every_dt_time_intervals));
                         output_restart_files(file_number, next_time_step, unsteady_data_table);
                         current_desired_time_for_output_restart_files_every_dt_time_intervals += flow_solver_param.output_restart_files_every_dt_time_intervals;
                     }
@@ -540,7 +551,7 @@ int FlowSolver<dim,nstate>::run() const
                 const bool is_output_iteration = (ode_solver->current_iteration % ode_param.output_solution_every_x_steps == 0);
                 if (is_output_iteration) {
                     pcout << "  ... Writing vtk solution file ..." << std::endl;
-                    const int file_number = ode_solver->current_iteration / ode_param.output_solution_every_x_steps;
+                    const unsigned int file_number = ode_solver->current_iteration / ode_param.output_solution_every_x_steps;
                     dg->output_results_vtk(file_number,ode_solver->current_time);
                 }
             } else if(ode_param.output_solution_every_dt_time_intervals > 0.0) {
@@ -548,7 +559,7 @@ int FlowSolver<dim,nstate>::run() const
                                              ((ode_solver->current_time + next_time_step) > ode_solver->current_desired_time_for_output_solution_every_dt_time_intervals));
                 if (is_output_time) {
                     pcout << "  ... Writing vtk solution file ..." << std::endl;
-                    const int file_number = ode_solver->current_desired_time_for_output_solution_every_dt_time_intervals / ode_param.output_solution_every_dt_time_intervals;
+                    const unsigned int file_number = int(round(ode_solver->current_desired_time_for_output_solution_every_dt_time_intervals / ode_param.output_solution_every_dt_time_intervals));
                     dg->output_results_vtk(file_number,ode_solver->current_time);
                     ode_solver->current_desired_time_for_output_solution_every_dt_time_intervals += ode_param.output_solution_every_dt_time_intervals;
                 }
@@ -585,7 +596,7 @@ int FlowSolver<dim,nstate>::run() const
         // Steady-state solution
         //----------------------------------------------------
         using ODEEnum = Parameters::ODESolverParam::ODESolverEnum;
-        if(flow_solver_param.steady_state_polynomial_ramping && (ode_param.ode_solver_type != ODEEnum::pod_galerkin_solver && ode_param.ode_solver_type != ODEEnum::pod_petrov_galerkin_solver)) {
+        if(flow_solver_param.steady_state_polynomial_ramping && (ode_param.ode_solver_type != ODEEnum::pod_galerkin_solver && ode_param.ode_solver_type != ODEEnum::pod_petrov_galerkin_solver && ode_param.ode_solver_type != ODEEnum::hyper_reduced_petrov_galerkin_solver)) {
             ode_solver->initialize_steady_polynomial_ramping(poly_degree);
         }
 
@@ -606,6 +617,7 @@ int FlowSolver<dim,nstate>::run() const
 
 #if PHILIP_DIM==1
 template class FlowSolver <PHILIP_DIM,PHILIP_DIM>;
+template class FlowSolver <PHILIP_DIM,PHILIP_DIM+2>;
 #endif
 
 #if PHILIP_DIM!=1

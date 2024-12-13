@@ -9,8 +9,6 @@ namespace Parameters {
 class PhysicsModelParam
 {
 public:
-    /// Constructor
-    PhysicsModelParam ();
 
     /** Set as false by default. 
       * If true, sets the baseline physics to the Euler equations for Large Eddy Simulation.

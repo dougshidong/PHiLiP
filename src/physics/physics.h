@@ -53,7 +53,7 @@ public:
         std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function_input = nullptr);
 
     /// Virtual destructor required for abstract classes.
-    virtual ~PhysicsBase() {};
+    virtual ~PhysicsBase() = default;
 
     /// Flag to signal that diffusion term is non-zero
     const bool has_nonzero_diffusion;

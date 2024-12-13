@@ -24,16 +24,16 @@ class OfflinePOD: public PODBase<dim>
 {
 public:
     /// Constructor
-    OfflinePOD(std::shared_ptr<DGBase<dim,double>> &dg_input);
-
-    /// Destructor
-    ~OfflinePOD () {};
+    explicit OfflinePOD(std::shared_ptr<DGBase<dim,double>> &dg_input);
 
     ///Function to get POD basis for all derived classes
     std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> getPODBasis() override;
 
     ///Function to get POD reference state
     dealii::LinearAlgebra::ReadWriteVector<double> getReferenceState() override;
+
+    /// Function to get snapshot matrix used to build POD basis
+    MatrixXd getSnapshotMatrix() override;
 
     /// Read snapshots to build POD basis
     bool getPODBasisFromSnapshots();
@@ -49,6 +49,9 @@ public:
 
     /// LAPACKFullMatrix for nice printing
     dealii::LAPACKFullMatrix<double> fullBasis;
+
+    /// Matrix containing snapshots
+    MatrixXd snapshotMatrix;
 
     const MPI_Comm mpi_communicator; ///< MPI communicator.
     const int mpi_rank; ///< MPI rank.

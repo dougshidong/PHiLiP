@@ -19,9 +19,7 @@ public:
     /// Constructor.
     /** Simply calls the TestsBase constructor to set its parameters = parameters_input
      */
-    EulerCylinderAdjoint(const Parameters::AllParameters *const parameters_input);
-
-    ~EulerCylinderAdjoint() {}; ///< Destructor.
+    explicit EulerCylinderAdjoint(const Parameters::AllParameters *const parameters_input);
 
     /// Grid convergence on Euler Gaussian Bump
     /** Will run the a grid convergence test for various p

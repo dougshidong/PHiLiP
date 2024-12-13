@@ -68,8 +68,8 @@ int main (int argc, char * argv[])
     const unsigned int poly_min = 2;
     for(unsigned int poly_degree=poly_min; poly_degree<poly_max; poly_degree++){
 
-        PHiLiP::OPERATOR::local_basis_stiffness<dim,2*dim> stiffness(1, poly_degree, 1);
-        PHiLiP::OPERATOR::local_mass<dim,2*dim> mass(1, poly_degree, 1);
+        PHiLiP::OPERATOR::local_basis_stiffness<dim,2*dim,real> stiffness(1, poly_degree, 1);
+        PHiLiP::OPERATOR::local_mass<dim,2*dim,real> mass(1, poly_degree, 1);
         dealii::QGauss<1> quad1D (poly_degree+1);
         const dealii::FE_DGQArbitraryNodes<1> fe_dg(quad1D);
         const dealii::FESystem<1,1> fe_system(fe_dg, 1);

@@ -25,16 +25,16 @@ class OnlinePOD: public PODBase<dim>
 {
 public:
     /// Constructor
-    OnlinePOD(std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> _system_matrix);
-
-    /// Destructor
-    ~OnlinePOD () {};
+    explicit OnlinePOD(std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> _system_matrix);
 
     ///Function to get POD basis for all derived classes
     std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> getPODBasis() override;
 
     ///Function to get POD reference state
     dealii::LinearAlgebra::ReadWriteVector<double> getReferenceState() override;
+
+    /// Function to get snapshot matrix used to build POD basis
+    MatrixXd getSnapshotMatrix() override;
 
     /// Add snapshot
     void addSnapshot(dealii::LinearAlgebra::distributed::Vector<double> snapshot);

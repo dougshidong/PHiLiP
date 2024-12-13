@@ -50,13 +50,10 @@ public:
      *  This sets the public attribute n_components = nstate, which can then be accessed
      *  by all the other functions
      */
-    Shocked1D1State (const unsigned int nstate = 1)
+    explicit Shocked1D1State (const unsigned int nstate = 1)
     : ManufacturedSolutionFunction<dim,real> (nstate)
     { };
 
-    /// Destructor
-    ~Shocked1D1State() {};
-  
     /// Manufactured solution exact value
     /** 
      *  \f$ u = x \f$ when \f$ x < 0.5 \f$

@@ -3,10 +3,6 @@
 namespace PHiLiP {
 namespace Parameters {
 
-// Manufactured Solution inputs
-ManufacturedConvergenceStudyParam::ManufacturedConvergenceStudyParam () :
-    manufactured_solution_param(ManufacturedSolutionParam()) {}
-
 void ManufacturedConvergenceStudyParam::declare_parameters (dealii::ParameterHandler &prm)
 {
     prm.enter_subsection("manufactured solution convergence study");

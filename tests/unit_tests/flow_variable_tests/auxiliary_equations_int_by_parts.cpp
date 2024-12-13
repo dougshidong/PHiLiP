@@ -28,12 +28,12 @@ const double TOLERANCE = 1E-6;
 using namespace std;
 //namespace PHiLiP {
 
-template <int dim, int nstate>
+template <int dim, int nstate,typename real>
 void assemble_weak_auxiliary_volume(
     std::shared_ptr < PHiLiP::DGStrong<dim,nstate,double> > &dg,
     const std::vector<dealii::types::global_dof_index> &current_dofs_indices,
     const unsigned int poly_degree,
-    PHiLiP::OPERATOR::basis_functions<dim,2*dim> &soln_basis,
+    PHiLiP::OPERATOR::basis_functions<dim,2*dim,real> &soln_basis,
     PHiLiP::OPERATOR::metric_operators<double,dim,2*dim> &metric_oper,
     std::vector<dealii::Tensor<1,dim,double>> &local_auxiliary_RHS)
 {
@@ -87,7 +87,7 @@ void assemble_weak_auxiliary_volume(
         }
     }
 }
-template <int dim, int nstate>
+template <int dim, int nstate,typename real>
 void assemble_face_term_auxiliary_weak(
     std::shared_ptr < PHiLiP::DGStrong<dim,nstate,double> > &dg,
     const unsigned int iface, const unsigned int neighbor_iface,
@@ -100,8 +100,8 @@ void assemble_face_term_auxiliary_weak(
     const unsigned int n_face_quad_pts,
     const std::vector<dealii::types::global_dof_index> &dof_indices_int,
     const std::vector<dealii::types::global_dof_index> &dof_indices_ext,
-    PHiLiP::OPERATOR::basis_functions<dim,2*dim> &soln_basis_int,
-    PHiLiP::OPERATOR::basis_functions<dim,2*dim> &soln_basis_ext,
+    PHiLiP::OPERATOR::basis_functions<dim,2*dim,real> &soln_basis_int,
+    PHiLiP::OPERATOR::basis_functions<dim,2*dim,real> &soln_basis_ext,
     PHiLiP::OPERATOR::metric_operators<double,dim,2*dim> &metric_oper_int,
     std::vector<dealii::Tensor<1,dim,double>> &local_auxiliary_RHS_int,
     std::vector<dealii::Tensor<1,dim,double>> &local_auxiliary_RHS_ext)
@@ -327,16 +327,16 @@ int main (int argc, char * argv[])
             auto metric_cell = dg->high_order_grid->dof_handler_grid.begin_active();
              
             //build 1D reference operators
-            PHiLiP::OPERATOR::mapping_shape_functions<dim,2*dim> mapping_basis(dg->nstate, poly_degree, 1);
+            PHiLiP::OPERATOR::mapping_shape_functions<dim,2*dim,real> mapping_basis(dg->nstate, poly_degree, 1);
             mapping_basis.build_1D_shape_functions_at_grid_nodes(dg->high_order_grid->oneD_fe_system, dg->high_order_grid->oneD_grid_nodes);
             mapping_basis.build_1D_shape_functions_at_flux_nodes(dg->high_order_grid->oneD_fe_system, dg->oneD_quadrature_collection[poly_degree], dg->oneD_face_quadrature);
              
-            PHiLiP::OPERATOR::basis_functions<dim,2*dim> basis(dg->nstate, dg->max_degree, dg->max_grid_degree);
+            PHiLiP::OPERATOR::basis_functions<dim,2*dim,real> basis(dg->nstate, dg->max_degree, dg->max_grid_degree);
             basis.build_1D_volume_operator(dg->oneD_fe_collection_1state[dg->max_degree], dg->oneD_quadrature_collection[dg->max_degree]);
             basis.build_1D_gradient_operator(dg->oneD_fe_collection_1state[dg->max_degree], dg->oneD_quadrature_collection[dg->max_degree]);
             basis.build_1D_surface_operator(dg->oneD_fe_collection_1state[dg->max_degree], dg->oneD_face_quadrature);
 
-            PHiLiP::OPERATOR::basis_functions<dim,2*dim> flux_basis(dg->nstate, dg->max_degree, dg->max_grid_degree);
+            PHiLiP::OPERATOR::basis_functions<dim,2*dim,real> flux_basis(dg->nstate, dg->max_degree, dg->max_grid_degree);
             flux_basis.build_1D_volume_operator(dg->oneD_fe_collection_flux[dg->max_degree], dg->oneD_quadrature_collection[dg->max_degree]);
             flux_basis.build_1D_gradient_operator(dg->oneD_fe_collection_flux[dg->max_degree], dg->oneD_quadrature_collection[dg->max_degree]);
             flux_basis.build_1D_surface_operator(dg->oneD_fe_collection_flux[dg->max_degree], dg->oneD_face_quadrature);

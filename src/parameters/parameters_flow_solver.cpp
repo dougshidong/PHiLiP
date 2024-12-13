@@ -1,13 +1,18 @@
+#include <deal.II/base/mpi.h>
+#include <deal.II/base/utilities.h>
+#include <deal.II/base/conditional_ostream.h>
+
 #include "parameters_flow_solver.h"
 
 #include <string>
 
+//for checking output directories
+#include <sys/types.h>
+#include <sys/stat.h>
+
 namespace PHiLiP {
 
 namespace Parameters {
-
-// Flow Solver inputs
-FlowSolverParam::FlowSolverParam() {}
 
 void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
 {
@@ -27,7 +32,13 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
                           " gaussian_bump | "
                           " isentropic_vortex | "
                           " kelvin_helmholtz_instability | "
-                          " non_periodic_cube_flow "),
+                          " non_periodic_cube_flow | "
+                          " sod_shock_tube | "
+                          " low_density_2d | "
+                          " leblanc_shock_tube | "
+                          " shu_osher_problem | "
+                          " advection_limiter | "
+                          " burgers_limiter "),
                           "The type of flow we want to simulate. "
                           "Choices are "
                           " <taylor_green_vortex | "
@@ -42,7 +53,13 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
                           " gaussian_bump | "
                           " isentropic_vortex | "
                           " kelvin_helmholtz_instability | "
-                          " non_periodic_cube_flow>. ");
+                          " non_periodic_cube_flow | "
+                          " sod_shock_tube | "
+                          " low_density_2d | "
+                          " leblanc_shock_tube | "
+                          " shu_osher_problem | "
+                          " advection_limiter | "
+                          " burgers_limiter >. ");
 
         prm.declare_entry("poly_degree", "1",
                           dealii::Patterns::Integer(0, dealii::Patterns::Integer::max_int_value),
@@ -74,9 +91,13 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
                           dealii::Patterns::Bool(),
                           "Solve steady-state solution. False by default (i.e. unsteady by default).");
 
+        prm.declare_entry("error_adaptive_time_step", "false",
+                          dealii::Patterns::Bool(),
+                          "Adapt the time step on the fly for unsteady flow simulations according to an estimate of temporal error. False by default (i.e. constant time step by default).");
+
         prm.declare_entry("adaptive_time_step", "false",
                           dealii::Patterns::Bool(),
-                          "Adapt the time step on the fly for unsteady flow simulations. False by default (i.e. constant time step by default).");
+                          "Adapt the time step on the fly for unsteady flow simulations according to a CFL condition. False by default (i.e. constant time step by default).");
 
         prm.declare_entry("steady_state_polynomial_ramping", "false",
                           dealii::Patterns::Bool(),
@@ -233,9 +254,11 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
                               "Choices are "
                               " <uniform | "
                               " isothermal>.");
+            
             prm.declare_entry("do_calculate_numerical_entropy", "false",
                               dealii::Patterns::Bool(),
                               "Flag to calculate numerical entropy and write to file. By default, do not calculate.");
+            
         }
         prm.leave_subsection();
 
@@ -297,6 +320,8 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
 
 void FlowSolverParam::parse_parameters(dealii::ParameterHandler &prm)
 {   
+    const int mpi_rank = dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD);
+    dealii::ConditionalOStream pcout(std::cout, mpi_rank==0);
     prm.enter_subsection("flow_solver");
     {
         const std::string flow_case_type_string = prm.get("flow_case_type");
@@ -315,25 +340,38 @@ void FlowSolverParam::parse_parameters(dealii::ParameterHandler &prm)
         else if (flow_case_type_string == "kelvin_helmholtz_instability")   
                                                                         {flow_case_type = kelvin_helmholtz_instability;}
         else if (flow_case_type_string == "non_periodic_cube_flow")     {flow_case_type = non_periodic_cube_flow;}
-
+        else if (flow_case_type_string == "sod_shock_tube")             {flow_case_type = sod_shock_tube;}
+        else if (flow_case_type_string == "low_density_2d")             {flow_case_type = low_density_2d;}
+        else if (flow_case_type_string == "leblanc_shock_tube")         {flow_case_type = leblanc_shock_tube;}
+        else if (flow_case_type_string == "shu_osher_problem")          {flow_case_type = shu_osher_problem;}
+        else if (flow_case_type_string == "advection_limiter")          {flow_case_type = advection_limiter;}
+        else if (flow_case_type_string == "burgers_limiter")            {flow_case_type = burgers_limiter;}
+        
         poly_degree = prm.get_integer("poly_degree");
         
         // get max poly degree for adaptation
         max_poly_degree_for_adaptation = prm.get_integer("max_poly_degree_for_adaptation");
         // -- set value to poly_degree if it is the default value
         if(max_poly_degree_for_adaptation == 0) max_poly_degree_for_adaptation = poly_degree;
-        
         final_time = prm.get_double("final_time");
         constant_time_step = prm.get_double("constant_time_step");
         courant_friedrichs_lewy_number = prm.get_double("courant_friedrichs_lewy_number");
         unsteady_data_table_filename = prm.get("unsteady_data_table_filename");
         steady_state = prm.get_bool("steady_state");
         steady_state_polynomial_ramping = prm.get_bool("steady_state_polynomial_ramping");
+        error_adaptive_time_step = prm.get_bool("error_adaptive_time_step");
         adaptive_time_step = prm.get_bool("adaptive_time_step");
         sensitivity_table_filename = prm.get("sensitivity_table_filename");
         restart_computation_from_file = prm.get_bool("restart_computation_from_file");
         output_restart_files = prm.get_bool("output_restart_files");
         restart_files_directory_name = prm.get("restart_files_directory_name");
+        // Check if directory exists - see https://stackoverflow.com/a/18101042
+        struct stat info_restart;
+        if( stat( restart_files_directory_name.c_str(), &info_restart ) != 0 ){
+            pcout << "Error: No restart files directory named " << restart_files_directory_name << " exists." << std::endl
+                      << "Please create the directory and restart. Aborting..." << std::endl;
+            std::abort();
+        }
         restart_file_index = prm.get_integer("restart_file_index");
         output_restart_files_every_x_steps = prm.get_integer("output_restart_files_every_x_steps");
         output_restart_files_every_dt_time_intervals = prm.get_double("output_restart_files_every_dt_time_intervals");
@@ -408,6 +446,13 @@ void FlowSolverParam::parse_parameters(dealii::ParameterHandler &prm)
           number_of_times_to_output_velocity_field = get_number_of_values_in_string(output_velocity_field_times_string);
           output_vorticity_magnitude_field_in_addition_to_velocity = prm.get_bool("output_vorticity_magnitude_field_in_addition_to_velocity");
           output_flow_field_files_directory_name = prm.get("output_flow_field_files_directory_name");
+            // Check if directory exists - see https://stackoverflow.com/a/18101042
+            struct stat info_flow;
+            if( stat( output_flow_field_files_directory_name.c_str(), &info_flow ) != 0 ){
+                pcout << "Error: No flow field files directory named " << output_flow_field_files_directory_name << " exists." << std::endl
+                          << "Please create the directory and restart. Aborting..." << std::endl;
+                std::abort();
+            }
         }
         prm.leave_subsection();
 

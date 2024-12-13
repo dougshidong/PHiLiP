@@ -20,9 +20,6 @@ public:
         const FreeFormDeformation<dim> &_ffd,
         std::vector< std::pair< unsigned int, unsigned int > > &_ffd_design_variables_indices_dim);
     
-    /// Destructor
-    ~FreeFormDeformationParameterization() {}; 
-    
     /// Initializes FFD design variables and set locally owned and ghost indices. Overrides the virtual function in base class.
     void initialize_design_variables(VectorType &ffd_des_var) override;
     

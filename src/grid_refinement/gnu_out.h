@@ -25,8 +25,7 @@ public:
     /// Constructor with name specified
     /** Sets name and default formatting for gnuplot figure.
       */ 
-    GnuFig(
-        const std::string &name_input);
+    explicit GnuFig(const std::string &name_input);
 
     /// Sets the file output name (without extension)
     void set_name(

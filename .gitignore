@@ -26,3 +26,4 @@ tests/integration_tests_control_files/decaying_homogeneous_isotropic_turbulence/
 tests/integration_tests_control_files/decaying_homogeneous_isotropic_turbulence/setup_files/4proc/*.dat
 tests/unit_tests/grid/gmsh_reader/*.msh
 tests/meshes/*.msh
+*.vscode

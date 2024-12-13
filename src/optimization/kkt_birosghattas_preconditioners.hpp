@@ -76,7 +76,7 @@ public:
             (void) error_precond2;
         }
     }
-    ~BirosGhattasPreconditioner()
+    virtual ~BirosGhattasPreconditioner()
     {
         if (use_approximate_preconditioner_) {
             equal_constraints_->destroy_JacobianPreconditioner_1();

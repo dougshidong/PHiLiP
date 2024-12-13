@@ -53,9 +53,6 @@ class ReconstructPoly
 {
 
 public:
-    /// Deleted default constructor
-    ReconstructPoly() = delete;
-
     /// Constructor. Stores required information about the mesh and quadrature rules.
     ReconstructPoly(
         const dealii::DoFHandler<dim>&            dof_handler,           ///< dof_handler

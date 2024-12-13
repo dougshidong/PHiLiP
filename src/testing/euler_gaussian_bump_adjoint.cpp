@@ -30,7 +30,7 @@
 
 #include "physics/euler.h"
 #include "physics/manufactured_solution.h"
-#include "dg/dg.h"
+#include "dg/dg_base.hpp"
 #include "ode_solver/ode_solver_factory.h"
 
 #include "functional/functional.h"
@@ -217,9 +217,6 @@ public:
         farfield_conservative = euler_physics.convert_primitive_to_conservative(primitive_boundary_values);
     }
 
-    /// Destructor
-    ~FreeStreamInitialConditions() {};
-  
     /// Corresponds to dealii::Function::value
     double value (const dealii::Point<dim> &/*point*/, const unsigned int istate) const override
     {

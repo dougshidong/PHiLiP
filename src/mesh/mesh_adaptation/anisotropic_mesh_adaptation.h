@@ -31,9 +31,6 @@ public:
         const real _complexity,
         const bool _use_goal_oriented_approach = false);
 
-    /// Destructor
-    ~AnisotropicMeshAdaptation(){};
-
     /// Function which adapts mesh and loads in new mesh.
     void adapt_mesh();
 

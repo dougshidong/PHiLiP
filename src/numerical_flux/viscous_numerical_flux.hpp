@@ -19,6 +19,9 @@ NumericalFluxDissipative(std::shared_ptr<Physics::PhysicsBase<dim, nstate, real>
 : pde_physics(physics_input), artificial_dissip(artificial_dissipation_input)
 {};
 
+/// Abstract class must have a virtual destructor and an implementation.
+virtual ~NumericalFluxDissipative() = default;
+
 /// Solution flux at the interface.
 virtual std::array<real, nstate> evaluate_solution_flux (
     const std::array<real, nstate> &soln_int,

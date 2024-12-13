@@ -3,9 +3,6 @@
 namespace PHiLiP {
 namespace Parameters {
 
-// Reduced Order Model inputs
-BurgersParam::BurgersParam () {}
-
 void BurgersParam::declare_parameters (dealii::ParameterHandler &prm)
 {
     prm.enter_subsection("burgers");

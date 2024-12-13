@@ -455,14 +455,6 @@ DGWeak<dim,nstate,real,MeshType>::DGWeak(
     const std::shared_ptr<Triangulation> triangulation_input)
     : DGBaseState<dim,nstate,real,MeshType>::DGBaseState(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input)
 { }
-// Destructor
-template <int dim, int nstate, typename real,typename MeshType>
-DGWeak<dim,nstate,real,MeshType>::~DGWeak ()
-{
-    pcout << "Destructing DGWeak..." << std::endl;
-}
-
-
 
 template <int dim, int nstate, typename real, typename MeshType>
 void DGWeak<dim,nstate,real,MeshType>::assemble_volume_term_explicit(
@@ -1485,7 +1477,7 @@ dealii::Quadrature<dim> project_face_quadrature(
                                                  dealii::ReferenceCell::get_hypercube(dim), face_quadrature_lower_dim)
                                            : dealii::QProjector<dim>::project_to_all_subfaces(
                                                  dealii::ReferenceCell::get_hypercube(dim), face_quadrature_lower_dim);
-        const unsigned int n_face_quad_pts = face_quadrature.size();
+        const unsigned int n_face_quad_pts = face_quadrature_lower_dim.size();
         std::vector<dealii::Point<dim>> points(n_face_quad_pts);
         std::vector<double> weights(n_face_quad_pts);
         for (unsigned int iquad = 0; iquad < n_face_quad_pts; ++iquad) {
@@ -3643,13 +3635,13 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_volume_term_and_build_operators(
     const std::vector<dealii::types::global_dof_index>     &metric_dof_indices,
     const unsigned int                                     poly_degree,
     const unsigned int                                     grid_degree,
-    OPERATOR::basis_functions<dim,2*dim>                   &/*soln_basis*/,
-    OPERATOR::basis_functions<dim,2*dim>                   &/*flux_basis*/,
-    OPERATOR::local_basis_stiffness<dim,2*dim>             &/*flux_basis_stiffness*/,
-    OPERATOR::vol_projection_operator<dim,2*dim>           &/*soln_basis_projection_oper_int*/,
-    OPERATOR::vol_projection_operator<dim,2*dim>           &/*soln_basis_projection_oper_ext*/,
+    OPERATOR::basis_functions<dim,2*dim,real>                   &/*soln_basis*/,
+    OPERATOR::basis_functions<dim,2*dim,real>                   &/*flux_basis*/,
+    OPERATOR::local_basis_stiffness<dim,2*dim,real>             &/*flux_basis_stiffness*/,
+    OPERATOR::vol_projection_operator<dim,2*dim,real>           &/*soln_basis_projection_oper_int*/,
+    OPERATOR::vol_projection_operator<dim,2*dim,real>           &/*soln_basis_projection_oper_ext*/,
     OPERATOR::metric_operators<real,dim,2*dim>             &/*metric_oper*/,
-    OPERATOR::mapping_shape_functions<dim,2*dim>           &/*mapping_basis*/,
+    OPERATOR::mapping_shape_functions<dim,2*dim,real>           &/*mapping_basis*/,
     std::array<std::vector<real>,dim>                      &/*mapping_support_points*/,
     dealii::hp::FEValues<dim,dim>                          &fe_values_collection_volume,
     dealii::hp::FEValues<dim,dim>                          &fe_values_collection_volume_lagrange,
@@ -3702,13 +3694,13 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_boundary_term_and_build_operator
     const std::vector<dealii::types::global_dof_index>     &metric_dof_indices,
     const unsigned int                                     /*poly_degree*/,
     const unsigned int                                     /*grid_degree*/,
-    OPERATOR::basis_functions<dim,2*dim>                   &/*soln_basis*/,
-    OPERATOR::basis_functions<dim,2*dim>                   &/*flux_basis*/,
-    OPERATOR::local_basis_stiffness<dim,2*dim>             &/*flux_basis_stiffness*/,
-    OPERATOR::vol_projection_operator<dim,2*dim>           &/*soln_basis_projection_oper_int*/,
-    OPERATOR::vol_projection_operator<dim,2*dim>           &/*soln_basis_projection_oper_ext*/,
+    OPERATOR::basis_functions<dim,2*dim,real>                   &/*soln_basis*/,
+    OPERATOR::basis_functions<dim,2*dim,real>                   &/*flux_basis*/,
+    OPERATOR::local_basis_stiffness<dim,2*dim,real>             &/*flux_basis_stiffness*/,
+    OPERATOR::vol_projection_operator<dim,2*dim,real>           &/*soln_basis_projection_oper_int*/,
+    OPERATOR::vol_projection_operator<dim,2*dim,real>           &/*soln_basis_projection_oper_ext*/,
     OPERATOR::metric_operators<real,dim,2*dim>             &/*metric_oper*/,
-    OPERATOR::mapping_shape_functions<dim,2*dim>           &/*mapping_basis*/,
+    OPERATOR::mapping_shape_functions<dim,2*dim,real>           &/*mapping_basis*/,
     std::array<std::vector<real>,dim>                      &/*mapping_support_points*/,
     dealii::hp::FEFaceValues<dim,dim>                      &fe_values_collection_face_int,
     const dealii::FESystem<dim,dim>                        &current_fe_ref,
@@ -3751,16 +3743,16 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_face_term_and_build_operators(
     const unsigned int                                     /*poly_degree_ext*/,
     const unsigned int                                     /*grid_degree_int*/,
     const unsigned int                                     /*grid_degree_ext*/,
-    OPERATOR::basis_functions<dim,2*dim>                   &/*soln_basis_int*/,
-    OPERATOR::basis_functions<dim,2*dim>                   &/*soln_basis_ext*/,
-    OPERATOR::basis_functions<dim,2*dim>                   &/*flux_basis_int*/,
-    OPERATOR::basis_functions<dim,2*dim>                   &/*flux_basis_ext*/,
-    OPERATOR::local_basis_stiffness<dim,2*dim>             &/*flux_basis_stiffness*/,
-    OPERATOR::vol_projection_operator<dim,2*dim>           &/*soln_basis_projection_oper_int*/,
-    OPERATOR::vol_projection_operator<dim,2*dim>           &/*soln_basis_projection_oper_ext*/,
+    OPERATOR::basis_functions<dim,2*dim,real>                   &/*soln_basis_int*/,
+    OPERATOR::basis_functions<dim,2*dim,real>                   &/*soln_basis_ext*/,
+    OPERATOR::basis_functions<dim,2*dim,real>                   &/*flux_basis_int*/,
+    OPERATOR::basis_functions<dim,2*dim,real>                   &/*flux_basis_ext*/,
+    OPERATOR::local_basis_stiffness<dim,2*dim,real>             &/*flux_basis_stiffness*/,
+    OPERATOR::vol_projection_operator<dim,2*dim,real>           &/*soln_basis_projection_oper_int*/,
+    OPERATOR::vol_projection_operator<dim,2*dim,real>           &/*soln_basis_projection_oper_ext*/,
     OPERATOR::metric_operators<real,dim,2*dim>             &/*metric_oper_int*/,
     OPERATOR::metric_operators<real,dim,2*dim>             &/*metric_oper_ext*/,
-    OPERATOR::mapping_shape_functions<dim,2*dim>           &/*mapping_basis*/,
+    OPERATOR::mapping_shape_functions<dim,2*dim,real>           &/*mapping_basis*/,
     std::array<std::vector<real>,dim>                      &/*mapping_support_points*/,
     dealii::hp::FEFaceValues<dim,dim>                      &fe_values_collection_face_int,
     dealii::hp::FEFaceValues<dim,dim>                      &fe_values_collection_face_ext,
@@ -3844,16 +3836,16 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_subface_term_and_build_operators
     const unsigned int                                     /*poly_degree_ext*/,
     const unsigned int                                     /*grid_degree_int*/,
     const unsigned int                                     /*grid_degree_ext*/,
-    OPERATOR::basis_functions<dim,2*dim>                   &/*soln_basis_int*/,
-    OPERATOR::basis_functions<dim,2*dim>                   &/*soln_basis_ext*/,
-    OPERATOR::basis_functions<dim,2*dim>                   &/*flux_basis_int*/,
-    OPERATOR::basis_functions<dim,2*dim>                   &/*flux_basis_ext*/,
-    OPERATOR::local_basis_stiffness<dim,2*dim>             &/*flux_basis_stiffness*/,
-    OPERATOR::vol_projection_operator<dim,2*dim>           &/*soln_basis_projection_oper_int*/,
-    OPERATOR::vol_projection_operator<dim,2*dim>           &/*soln_basis_projection_oper_ext*/,
+    OPERATOR::basis_functions<dim,2*dim,real>                   &/*soln_basis_int*/,
+    OPERATOR::basis_functions<dim,2*dim,real>                   &/*soln_basis_ext*/,
+    OPERATOR::basis_functions<dim,2*dim,real>                   &/*flux_basis_int*/,
+    OPERATOR::basis_functions<dim,2*dim,real>                   &/*flux_basis_ext*/,
+    OPERATOR::local_basis_stiffness<dim,2*dim,real>             &/*flux_basis_stiffness*/,
+    OPERATOR::vol_projection_operator<dim,2*dim,real>           &/*soln_basis_projection_oper_int*/,
+    OPERATOR::vol_projection_operator<dim,2*dim,real>           &/*soln_basis_projection_oper_ext*/,
     OPERATOR::metric_operators<real,dim,2*dim>             &/*metric_oper_int*/,
     OPERATOR::metric_operators<real,dim,2*dim>             &/*metric_oper_ext*/,
-    OPERATOR::mapping_shape_functions<dim,2*dim>           &/*mapping_basis*/,
+    OPERATOR::mapping_shape_functions<dim,2*dim,real>           &/*mapping_basis*/,
     std::array<std::vector<real>,dim>                      &/*mapping_support_points*/,
     dealii::hp::FEFaceValues<dim,dim>                      &fe_values_collection_face_int,
     dealii::hp::FESubfaceValues<dim,dim>                   &fe_values_collection_subface,

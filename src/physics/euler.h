@@ -101,10 +101,6 @@ public:
         const bool                                                has_nonzero_diffusion = false,
         const bool                                                has_nonzero_physical_source = false);
 
-    /// Destructor
-    // virtual ~Euler() =0;
-    ~Euler() {};
-
     const double ref_length; ///< Reference length.
     const double gam; ///< Constant heat capacity ratio of fluid.
     const double gamm1; ///< Constant heat capacity ratio (Gamma-1.0) used often.

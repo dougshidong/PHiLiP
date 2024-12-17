@@ -44,7 +44,7 @@ int AdaptiveSampling<dim, nstate>::run_sampling() const
 
     RowVectorXd max_error_params = this->getMaxErrorROM();
 
-    RowVectorXd functional_ROM = readROMFunctionalPoint();
+    RowVectorXd functional_ROM = this->readROMFunctionalPoint();
 
     this->pcout << "Solving FOM at " << functional_ROM << std::endl;
 
@@ -205,57 +205,6 @@ double AdaptiveSampling<dim, nstate>::solveSnapshotROMandFOM(const RowVectorXd& 
 
     this->pcout << "Done solving FOM." << std::endl;
     return functional_ROM->evaluate_functional(false, false) - functional_FOM->evaluate_functional(false, false);
-}
-
-template <int dim, int nstate>
-RowVectorXd AdaptiveSampling<dim, nstate>::readROMFunctionalPoint() const{
-    RowVectorXd params(1);
-
-    using FlowCaseEnum = Parameters::FlowSolverParam::FlowCaseType;
-    const FlowCaseEnum flow_type = this->all_parameters->flow_solver_param.flow_case_type;
-
-    if (flow_type == FlowCaseEnum::burgers_rewienski_snapshot){
-        if(this->all_parameters->reduced_order_param.parameter_names.size() == 1){
-            if(this->all_parameters->reduced_order_param.parameter_names[0] == "rewienski_a"){
-                params(0) = this->all_parameters->burgers_param.rewienski_a;
-            }
-            else if(this->all_parameters->reduced_order_param.parameter_names[0] == "rewienski_b"){
-                params(0) = this->all_parameters->burgers_param.rewienski_b;
-            }
-        }
-        else{
-            params.resize(2);
-            params(0) = this->all_parameters->burgers_param.rewienski_a;
-            params(1) = this->all_parameters->burgers_param.rewienski_b;
-        }
-    }
-    else if (flow_type == FlowCaseEnum::naca0012){
-        if(this->all_parameters->reduced_order_param.parameter_names.size() == 1){
-            if(this->all_parameters->reduced_order_param.parameter_names[0] == "mach"){
-                params(0) = this->all_parameters->euler_param.mach_inf;
-            }
-            else if(this->all_parameters->reduced_order_param.parameter_names[0] == "alpha"){
-                params(0) = this->all_parameters->euler_param.angle_of_attack;
-            }
-        }
-        else{
-            params.resize(2);
-            params(0) = this->all_parameters->euler_param.mach_inf;
-            params(1) = this->all_parameters->euler_param.angle_of_attack; //radians!
-        }
-    }
-    else if (flow_type == FlowCaseEnum::gaussian_bump){
-        if(this->all_parameters->reduced_order_param.parameter_names.size() == 1){
-            if(this->all_parameters->reduced_order_param.parameter_names[0] == "mach"){
-                params(0) = this->all_parameters->euler_param.mach_inf;
-            }
-        }
-    }
-    else{
-        this->pcout << "Invalid flow case. You probably forgot to specify a flow case in the prm file." << std::endl;
-        std::abort();
-    }
-    return params;
 }
 
 template <int dim, int nstate>

@@ -46,9 +46,6 @@ public:
     /// Solve FOM and ROM, return error in functional between the models
     double solveSnapshotROMandFOM(const RowVectorXd& parameter) const;
 
-    /// Find point to solve for functional from param file
-    RowVectorXd readROMFunctionalPoint() const;
-
     /// Solve ROM and track functional
     void solveFunctionalROM(const RowVectorXd& parameter) const;
 

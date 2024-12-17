@@ -70,7 +70,13 @@ void HROMTestLocation<dim, nstate>::compute_FOM_to_initial_ROM_error(){
     else{
         linear_solver_param.linear_solver_type = Parameters::LinearSolverParam::direct;
     }
-    solve_linear(system_matrix_transpose, gradient*=-1.0, adjoint, linear_solver_param);
+    if (rom_solution->params.reduced_order_param.residual_error_bool == true){
+        adjoint*=0;
+        adjoint.add(1);
+    }
+    else{
+        solve_linear(system_matrix_transpose, gradient*=-1.0, adjoint, linear_solver_param);
+    }
 
     // Compute dual weighted residual
     fom_to_initial_rom_error = 0;
@@ -109,15 +115,20 @@ void HROMTestLocation<dim, nstate>::compute_initial_rom_to_final_rom_error(std::
 
     Epetra_Vector epetra_reduced_adjoint(epetra_reduced_jacobian_transpose.DomainMap());
     epetra_reduced_gradient.Scale(-1);
-    Epetra_LinearProblem linearProblem(&epetra_reduced_jacobian_transpose, &epetra_reduced_adjoint, &epetra_reduced_gradient);
+    if (rom_solution->params.reduced_order_param.residual_error_bool == true){
+        epetra_reduced_adjoint.PutScalar(0);
+    }
+    else{
+        Epetra_LinearProblem linearProblem(&epetra_reduced_jacobian_transpose, &epetra_reduced_adjoint, &epetra_reduced_gradient);
 
-    Amesos_Lapack Solver(linearProblem);
+        Amesos_Lapack Solver(linearProblem);
 
-    Teuchos::ParameterList List;
-    Solver.SetParameters(List);
-    Solver.SymbolicFactorization();
-    Solver.NumericFactorization();
-    Solver.Solve();
+        Teuchos::ParameterList List;
+        Solver.SetParameters(List);
+        Solver.SymbolicFactorization();
+        Solver.NumericFactorization();
+        Solver.Solve();
+    }
 
     Epetra_Vector epetra_reduced_residual(epetra_petrov_galerkin_basis.DomainMap());
     Epetra_Vector epetra_residual(Epetra_DataAccess::Copy, epetra_petrov_galerkin_basis.RangeMap(), const_cast<double *>(flow_solver->dg->right_hand_side.begin()));

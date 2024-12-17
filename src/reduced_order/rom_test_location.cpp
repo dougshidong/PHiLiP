@@ -110,7 +110,7 @@ void ROMTestLocation<dim, nstate>::compute_initial_rom_to_final_rom_error(std::s
     Epetra_Vector epetra_reduced_adjoint(epetra_reduced_jacobian_transpose.DomainMap());
     epetra_reduced_gradient.Scale(-1);
     if (rom_solution->params.reduced_order_param.residual_error_bool == true){
-        epetra_reduced_adjoint.PutScalar(1);
+        epetra_reduced_adjoint.PutScalar(0);
     }
     else{
         Epetra_LinearProblem linearProblem(&epetra_reduced_jacobian_transpose, &epetra_reduced_adjoint, &epetra_reduced_gradient);
@@ -133,9 +133,6 @@ void ROMTestLocation<dim, nstate>::compute_initial_rom_to_final_rom_error(std::s
     epetra_reduced_adjoint.Dot(epetra_reduced_residual, &initial_rom_to_final_rom_error);
     initial_rom_to_final_rom_error *= -1;
 
-    double adj_mean[1];
-    adj_mean[0] = 0;
-    epetra_reduced_residual.MeanValue(adj_mean);
     pcout << "Parameter: " << parameter << ". Error estimate between initial ROM and updated ROM: " << initial_rom_to_final_rom_error << std::endl;
 }
 

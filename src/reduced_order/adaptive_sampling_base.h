@@ -63,6 +63,12 @@ public:
      */
     dealii::ConditionalOStream pcout;
 
+    /// Output for each iteration
+    virtual void outputIterationData(std::string iteration) const;
+    
+    /// Find point to solve for functional from param file
+    RowVectorXd readROMFunctionalPoint() const;
+
     /// Run Sampling Procedure
     virtual int run_sampling () const = 0;
 
@@ -81,8 +87,6 @@ public:
     /// Set up parameter space depending on test case
     void configureInitialParameterSpace() const;
 
-    /// Output for each iteration
-    virtual void outputIterationData(std::string iteration) const;
 };
 
 }

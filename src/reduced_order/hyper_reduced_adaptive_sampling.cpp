@@ -90,6 +90,26 @@ int HyperreducedAdaptiveSampling<dim, nstate>::run_sampling() const
     this->placeROMLocations(rom_points, *ptr_weights);
 
     RowVectorXd max_error_params = this->getMaxErrorROM();
+
+    RowVectorXd functional_ROM = this->readROMFunctionalPoint();
+
+    this->pcout << "Solving FOM at " << functional_ROM << std::endl;
+
+    Parameters::AllParameters params = this->reinitParams(functional_ROM);
+    std::unique_ptr<FlowSolver::FlowSolver<dim,nstate>> flow_solver_FOM = FlowSolver::FlowSolverFactory<dim,nstate>::select_flow_case(&params, this->parameter_handler);
+
+    // Solve implicit solution
+    auto ode_solver_type = Parameters::ODESolverParam::ODESolverEnum::implicit_solver;
+    flow_solver_FOM->ode_solver =  PHiLiP::ODE::ODESolverFactory<dim, double>::create_ODESolver_manual(ode_solver_type, flow_solver_FOM->dg);
+    flow_solver_FOM->ode_solver->allocate_ode_system();
+    flow_solver_FOM->run();
+
+    // Create functional
+    std::shared_ptr<Functional<dim,nstate,double>> functional_FOM = FunctionalFactory<dim,nstate,double>::create_Functional(params.functional_param, flow_solver_FOM->dg);
+    this->pcout << "FUNCTIONAL FROM FOM" << std::endl;
+    this->pcout << functional_FOM->evaluate_functional(false, false) << std::endl;
+
+    solveFunctionalHROM(functional_ROM, *ptr_weights);
     
     delete NNLS_prob;
     
@@ -168,6 +188,15 @@ int HyperreducedAdaptiveSampling<dim, nstate>::run_sampling() const
         max_error_params = this->getMaxErrorROM();
 
         this->pcout << "Max error is: " << this->max_error << std::endl;
+        
+        solveFunctionalHROM(functional_ROM, *ptr_weights);
+
+        this->pcout << "FUNCTIONAL FROM ROMs" << std::endl;
+        std::ofstream output_file("rom_functional" + std::to_string(iteration+1) +".txt");
+
+        std::ostream_iterator<double> output_iterator(output_file, "\n");
+        std::copy(std::begin(rom_functional), std::end(rom_functional), output_iterator);
+
         iteration++;
 
         delete NNLS_prob;
@@ -193,6 +222,12 @@ int HyperreducedAdaptiveSampling<dim, nstate>::run_sampling() const
     flow_solver->dg->output_results_vtk(iteration);
 
     timer.leave_subsection();
+
+    this->pcout << "FUNCTIONAL FROM ROMs" << std::endl;
+    std::ofstream output_file("rom_functional.txt");
+
+    std::ostream_iterator<double> output_iterator(output_file, "\n");
+    std::copy(std::begin(rom_functional), std::end(rom_functional), output_iterator);
 
     return 0;
 }

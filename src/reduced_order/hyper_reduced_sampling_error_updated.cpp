@@ -192,6 +192,12 @@ int HyperreducedSamplingErrorUpdated<dim, nstate>::run_sampling() const
 
         solveFunctionalHROM(functional_ROM, *ptr_weights);
 
+        this->pcout << "FUNCTIONAL FROM ROMs" << std::endl;
+        std::ofstream output_file("rom_functional" + std::to_string(iteration+1) +".txt");
+
+        std::ostream_iterator<double> output_iterator(output_file, "\n");
+        std::copy(std::begin(rom_functional), std::end(rom_functional), output_iterator);
+
         iteration++;
 
         delete NNLS_prob;

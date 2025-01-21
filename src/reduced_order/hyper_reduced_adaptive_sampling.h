@@ -48,6 +48,9 @@ public:
     /// Solve FOM and ROM, return error in functional between the models
     double solveSnapshotROMandFOM(const RowVectorXd& parameter, Epetra_Vector weights) const;
 
+    /// Solve ROM and track functional
+    void solveFunctionalHROM(const RowVectorXd& parameter, Epetra_Vector weights) const;
+
     /// Updates nearest ROM points to snapshot if error discrepancy is above tolerance
     void updateNearestExistingROMs(const RowVectorXd& parameter, Epetra_Vector weights) const;
 
@@ -59,6 +62,8 @@ public:
 
     /// Ptr vector of ECSW Weights
     mutable std::shared_ptr<Epetra_Vector> ptr_weights;
+
+    mutable std::vector<double> rom_functional;
 };
 
 }

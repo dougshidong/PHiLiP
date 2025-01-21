@@ -57,6 +57,10 @@ int BuildNNLSProblem<dim, nstate>::run_test() const
     // Create instance of NNLS Problem assembler
     std::cout << "Construct instance of Assembler..."<< std::endl;
     HyperReduction::AssembleECSWRes<dim,nstate> constructer_NNLS_problem(all_parameters, parameter_handler, flow_solver_petrov_galerkin->dg, parameter_sampling->current_pod, snapshot_parameters, ode_solver_type, Comm);
+    
+    // Add in FOM snapshots from sampling
+    constructer_NNLS_problem.fom_locations = parameter_sampling->fom_locations;
+    
     std::cout << "Build Problem..."<< std::endl;
     constructer_NNLS_problem.build_problem();
 

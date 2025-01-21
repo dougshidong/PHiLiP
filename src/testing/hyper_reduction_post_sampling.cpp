@@ -125,7 +125,7 @@ int HyperReductionPostSampling<dim, nstate>::run_test() const
     hyper_reduced_ROM_solver->placeROMLocations(rom_points, *ptr_weights);
     hyper_reduced_ROM_solver->outputIterationData("HROM_post_sampling");
     
-    // True Error for ROM and HROM at 20 points
+    // True Error for ROM and HROM at 20 or 400 evenly distributed points in a 1-param and 2-param design space, respectively
     MatrixXd rom_true_error_points(0,0);
     getROMPoints(rom_true_error_points, all_parameters);
     parameter_sampling->trueErrorROM(rom_true_error_points);

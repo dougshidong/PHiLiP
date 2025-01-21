@@ -94,7 +94,7 @@ Parameters::AllParameters AssembleECSWBase<dim, nstate>::reinitParams(const RowV
         }
     }
     else{
-        std::cout << "Invalid flow case. You probably forgot to specify a flow case in the prm file." << std::endl;
+        pcout << "Invalid flow case. You probably forgot to specify a flow case in the prm file." << std::endl;
         std::abort();
     }
     return parameters;

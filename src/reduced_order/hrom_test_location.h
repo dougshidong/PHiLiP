@@ -43,6 +43,9 @@ public:
     /// Generate test basis
     std::shared_ptr<Epetra_CrsMatrix> generate_test_basis(Epetra_CrsMatrix &epetra_system_matrix, const Epetra_CrsMatrix &pod_basis);
 
+    /// Copy all elements in matrix A to all cores
+    Epetra_CrsMatrix copyMatrixToAllCores(const Epetra_CrsMatrix &A);
+
     /// Parameter
     RowVectorXd parameter;
 

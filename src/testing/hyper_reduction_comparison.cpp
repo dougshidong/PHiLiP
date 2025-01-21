@@ -34,6 +34,99 @@ Parameters::AllParameters HyperReductionComparison<dim, nstate>::reinitParams(co
 }
 
 template <int dim, int nstate>
+bool HyperReductionComparison<dim, nstate>::getWeightsFromFile(std::shared_ptr<DGBase<dim,double>> &dg) const{
+    bool file_found = false;
+    Epetra_MpiComm epetra_comm(MPI_COMM_WORLD);
+    VectorXd weights_eig;
+    int rows = 0;
+    std::string path = all_parameters->reduced_order_param.path_to_search; 
+
+    std::vector<std::filesystem::path> files_in_directory;
+    std::copy(std::filesystem::directory_iterator(path), std::filesystem::directory_iterator(), std::back_inserter(files_in_directory));
+    std::sort(files_in_directory.begin(), files_in_directory.end()); //Sort files so that the order is the same as for the sensitivity basis
+
+    for (const auto & entry : files_in_directory){
+        if(std::string(entry.filename()).std::string::find("weights") != std::string::npos){
+            pcout << "Processing " << entry << std::endl;
+            file_found = true;
+            std::ifstream myfile(entry);
+            if(!myfile)
+            {
+                pcout << "Error opening file." << std::endl;
+                std::abort();
+            }
+            std::string line;
+
+            while(std::getline(myfile, line)){ //for each line
+                std::istringstream stream(line);
+                std::string field;
+                while (getline(stream, field,' ')) { //parse data values on each line
+                    if (field.empty()) {
+                        continue;
+                    }
+                    else {
+                        try{
+                            std::stod(field);
+                            rows++;
+                        } catch (...){
+                            continue;
+                        }
+                    }
+                }
+            }
+
+            weights_eig.resize(rows);
+            int row = 0;
+            myfile.clear();
+            myfile.seekg(0); //Bring back to beginning of file
+            //Second loop set to build solutions matrix
+            while(std::getline(myfile, line)){ //for each line
+                std::istringstream stream(line);
+                std::string field;
+                while (getline(stream, field,' ')) { //parse data values on each line
+                    if (field.empty()) {
+                        continue;
+                    }
+                    else {
+                        try{
+                            double num_string = std::stod(field);
+                            weights_eig(row) = num_string;
+                            row++;
+                        } catch (...){
+                            continue;
+                        }
+                    }
+                }
+            }
+            myfile.close();
+        }
+    }
+
+    Epetra_CrsMatrix epetra_system_matrix = dg->system_matrix.trilinos_matrix();
+    int length = epetra_system_matrix.NumMyRows()/nstate;
+    int *local_elements = new int[length];
+    int ctr = 0;
+    for (const auto &cell : dg->dof_handler.active_cell_iterators())
+    {
+        if (cell->is_locally_owned()){
+            local_elements[ctr] = cell->active_cell_index();
+            ctr +=1;
+        }
+    }
+
+    Epetra_Map ColMap(rows, length, local_elements, 0, epetra_comm);
+    ColMap.Print(std::cout);
+    Epetra_Vector weights(ColMap);
+    for(int i = 0; i < length; i++){
+        int global_ind = local_elements[i];
+        weights[i] = weights_eig(global_ind);
+    }
+
+    ptr_weights = std::make_shared<Epetra_Vector>(weights);
+    return file_found;
+}
+
+template <int dim, int nstate>
 int HyperReductionComparison<dim, nstate>::run_test() const
 {
     pcout << "Starting error evaluation for ROM and HROM at one parameter location..." << std::endl;
@@ -48,16 +141,51 @@ int HyperReductionComparison<dim, nstate>::run_test() const
     std::unique_ptr<FlowSolver::FlowSolver<dim,nstate>> flow_solver_petrov_galerkin = FlowSolver::FlowSolverFactory<dim,nstate>::select_flow_case(all_parameters, parameter_handler);
     
     // Create POD Petrov-Galerkin ROM with Hyper-reduction
-    Parameters::AllParameters new_parameters = reinitParams(5000);
+    Parameters::AllParameters new_parameters = reinitParams(100);
     std::unique_ptr<FlowSolver::FlowSolver<dim,nstate>> flow_solver_hyper_reduced_petrov_galerkin = FlowSolver::FlowSolverFactory<dim,nstate>::select_flow_case(&new_parameters, parameter_handler);
     auto ode_solver_type = Parameters::ODESolverParam::ODESolverEnum::hyper_reduced_petrov_galerkin_solver;
 
     // Run Adaptive Sampling to choose snapshot locations or load from file
     std::shared_ptr<AdaptiveSampling<dim,nstate>> parameter_sampling = std::make_unique<AdaptiveSampling<dim,nstate>>(all_parameters, parameter_handler);
+    bool exit_con;
     if (this->all_parameters->hyper_reduction_param.adapt_sampling_bool) {
         parameter_sampling->run_sampling();
+        
+        // Find C and d for NNLS Problem
+        pcout << "Construct instance of Assembler..."<< std::endl;
+        std::shared_ptr<HyperReduction::AssembleECSWBase<dim,nstate>> constructer_NNLS_problem;
+        if (this->all_parameters->hyper_reduction_param.training_data == "residual")         
+            constructer_NNLS_problem = std::make_shared<HyperReduction::AssembleECSWRes<dim,nstate>>(all_parameters, parameter_handler, flow_solver_hyper_reduced_petrov_galerkin->dg, parameter_sampling->current_pod,  parameter_sampling->snapshot_parameters, ode_solver_type, Comm);
+        else {
+            constructer_NNLS_problem = std::make_shared<HyperReduction::AssembleECSWJac<dim,nstate>>(all_parameters, parameter_handler, flow_solver_hyper_reduced_petrov_galerkin->dg, parameter_sampling->current_pod,  parameter_sampling->snapshot_parameters, ode_solver_type, Comm);
+        }
+        pcout << "Build Problem..."<< std::endl;
+        constructer_NNLS_problem->build_problem();
+
+        // Transfer b vector (RHS of NNLS problem) to Epetra structure
+        const int rank = Comm.MyPID();
+        int rows = (constructer_NNLS_problem->A_T->trilinos_matrix()).NumGlobalCols();
+        Epetra_Map bMap(rows, (rank == 0) ? rows: 0, 0, Comm);
+        Epetra_Vector b_Epetra(bMap);
+        auto b = constructer_NNLS_problem->b;
+        unsigned int local_length = bMap.NumMyElements();
+        for(unsigned int i = 0 ; i < local_length ; i++){
+            b_Epetra[i] = b(i);
+        }
+
+        // Solve NNLS Problem for ECSW weights
+        pcout << "Create NNLS problem..."<< std::endl;
+        NNLS_solver NNLS_prob(all_parameters, parameter_handler, constructer_NNLS_problem->A_T->trilinos_matrix(), true, Comm, b_Epetra);
+        pcout << "Solve NNLS problem..."<< std::endl;
+        exit_con = NNLS_prob.solve();
+        pcout << exit_con << std::endl;
+
+        *ptr_weights = NNLS_prob.getSolution();
+        pcout << "ECSW Weights"<< std::endl;
+        pcout << *ptr_weights << std::endl;
     }
     else{
+        exit_con = true;
         snapshot_parameters(0,0);
         std::string path = all_parameters->reduced_order_param.path_to_search; //Search specified directory for files containing "solutions_table"
         bool snap_found = getSnapshotParamsFromFile(snapshot_parameters, path);
@@ -65,48 +193,25 @@ int HyperReductionComparison<dim, nstate>::run_test() const
             parameter_sampling->snapshot_parameters = snapshot_parameters;
         }
         else{
-            std::cout << "File with snapshots not found in folder" << std::endl;
+            pcout << "File with snapshots not found in folder" << std::endl;
             return -1;
         }
         std::shared_ptr<ProperOrthogonalDecomposition::OfflinePOD<dim>> pod_petrov_galerkin = std::make_shared<ProperOrthogonalDecomposition::OfflinePOD<dim>>(flow_solver_petrov_galerkin->dg);
         parameter_sampling->current_pod->basis = pod_petrov_galerkin->basis;
         parameter_sampling->current_pod->referenceState = pod_petrov_galerkin->referenceState;
         parameter_sampling->current_pod->snapshotMatrix = pod_petrov_galerkin->snapshotMatrix;
+
+        bool weights_found = getWeightsFromFile(flow_solver_hyper_reduced_petrov_galerkin->dg);
+        if (weights_found){
+            pcout << "ECSW Weights" << std::endl;
+            pcout << *ptr_weights << std::endl;
+        }
+        else{
+            pcout << "File with weights not found in folder" << std::endl;
+            return -1;
+        }
     }
     MatrixXd snapshot_parameters = parameter_sampling->snapshot_parameters;
-
-    // Find C and d for NNLS Problem
-    std::cout << "Construct instance of Assembler..."<< std::endl;
-    std::shared_ptr<HyperReduction::AssembleECSWBase<dim,nstate>> constructer_NNLS_problem;
-    if (this->all_parameters->hyper_reduction_param.training_data == "residual")         
-        constructer_NNLS_problem = std::make_shared<HyperReduction::AssembleECSWRes<dim,nstate>>(all_parameters, parameter_handler, flow_solver_hyper_reduced_petrov_galerkin->dg, parameter_sampling->current_pod,  parameter_sampling->snapshot_parameters, ode_solver_type, Comm);
-    else {
-        constructer_NNLS_problem = std::make_shared<HyperReduction::AssembleECSWJac<dim,nstate>>(all_parameters, parameter_handler, flow_solver_hyper_reduced_petrov_galerkin->dg, parameter_sampling->current_pod,  parameter_sampling->snapshot_parameters, ode_solver_type, Comm);
-    }
-    std::cout << "Build Problem..."<< std::endl;
-    constructer_NNLS_problem->build_problem();
-
-    // Transfer b vector (RHS of NNLS problem) to Epetra structure
-    const int rank = Comm.MyPID();
-    int rows = (constructer_NNLS_problem->A_T->trilinos_matrix()).NumGlobalCols();
-    Epetra_Map bMap(rows, (rank == 0) ? rows: 0, 0, Comm);
-    Epetra_Vector b_Epetra(bMap);
-    auto b = constructer_NNLS_problem->b;
-    unsigned int local_length = bMap.NumMyElements();
-    for(unsigned int i = 0 ; i < local_length ; i++){
-        b_Epetra[i] = b(i);
-    }
-
-    // Solve NNLS Problem for ECSW weights
-    std::cout << "Create NNLS problem..."<< std::endl;
-    NNLS_solver NNLS_prob(all_parameters, parameter_handler, constructer_NNLS_problem->A_T->trilinos_matrix(), true, Comm, b_Epetra);
-    std::cout << "Solve NNLS problem..."<< std::endl;
-    bool exit_con = NNLS_prob.solve();
-    std::cout << exit_con << std::endl;
-
-    Epetra_Vector weights = NNLS_prob.getSolution();
-    std::cout << "ECSW Weights"<< std::endl;
-    std::cout << weights << std::endl;
 
     // Build ODE for POD Petrov-Galerkin
     ode_solver_type = Parameters::ODESolverParam::ODESolverEnum::pod_petrov_galerkin_solver;
@@ -116,15 +221,15 @@ int HyperReductionComparison<dim, nstate>::run_test() const
 
     // Build ODE for Hyper-Reduced POD Petrov-Galerkin
     ode_solver_type = Parameters::ODESolverParam::ODESolverEnum::hyper_reduced_petrov_galerkin_solver;
-    flow_solver_hyper_reduced_petrov_galerkin->ode_solver =  PHiLiP::ODE::ODESolverFactory<dim, double>::create_ODESolver_manual(ode_solver_type, flow_solver_hyper_reduced_petrov_galerkin->dg,  parameter_sampling->current_pod, weights);
+    flow_solver_hyper_reduced_petrov_galerkin->ode_solver =  PHiLiP::ODE::ODESolverFactory<dim, double>::create_ODESolver_manual(ode_solver_type, flow_solver_hyper_reduced_petrov_galerkin->dg,  parameter_sampling->current_pod, *ptr_weights);
     flow_solver_hyper_reduced_petrov_galerkin->ode_solver->allocate_ode_system();
     auto functional_hyper_reduced_petrov_galerkin = FunctionalFactory<dim,nstate,double>::create_Functional(all_parameters->functional_param, flow_solver_hyper_reduced_petrov_galerkin->dg);
     
-    std::cout << "Implicit Solve Results"<< std::endl;
+    pcout << "Implicit Solve Results"<< std::endl;
     flow_solver_implicit->run();
-    std::cout << "PG Solve Results"<< std::endl;
+    pcout << "PG Solve Results"<< std::endl;
     flow_solver_petrov_galerkin->ode_solver->steady_state();
-    std::cout << "Hyper Reduced PG Solve Results"<< std::endl;
+    pcout << "Hyper Reduced PG Solve Results"<< std::endl;
     flow_solver_hyper_reduced_petrov_galerkin->ode_solver->steady_state();
     
     // Extract Solutions

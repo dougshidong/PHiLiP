@@ -358,6 +358,8 @@ std::shared_ptr<Epetra_CrsMatrix> HyperReducedODESolver<dim,real,MeshType>::gene
                     neighbour_dofs_indices[neighbour_dofs_curr_cell-1] = global_indices[i];
                 }
 
+                delete[] row;
+                delete[] global_indices;
 
                 // Create L_e matrix and transposed L_e matrix for current cell
                 const Epetra_SerialComm sComm;
@@ -418,6 +420,7 @@ std::shared_ptr<Epetra_Vector> HyperReducedODESolver<dim,real,MeshType>::generat
         global_ind[i] = i;
     }
     Epetra_Map POD_dim (-1,test_basis.NumGlobalCols(), global_ind, 0, epetra_comm);
+    delete[] global_ind;
     Epetra_Vector hyper_reduced_residual(POD_dim);
     int N = test_basis.NumGlobalRows();
     Epetra_BlockMap element_map = ECSW_weights.Map();
@@ -472,6 +475,7 @@ std::shared_ptr<Epetra_Vector> HyperReducedODESolver<dim,real,MeshType>::generat
                 for (int k = 0; k < reduced_rhs_e.MyLength(); ++k){
                     hyper_reduced_residual.SumIntoMyValues(1, &reduced_rhs_array[k], &k);
                 }
+                delete[] reduced_rhs_array;
             }
         }
     }

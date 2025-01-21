@@ -53,20 +53,18 @@ int ROMErrorPostSampling<dim, nstate>::run_test() const
     bool snap_found = getSnapshotParamsFromFile(snapshot_parameters, path);
     if (snap_found){
         parameter_sampling->snapshot_parameters = snapshot_parameters;
-        std::cout << "snapshot_parameters" << std::endl;
-        std::cout << snapshot_parameters << std::endl;
+        pcout << "snapshot_parameters" << std::endl;
+        pcout << snapshot_parameters << std::endl;
     }
     else{
-        std::cout << "File with snapshots not found in folder" << std::endl;
+        pcout << "File with snapshots not found in folder" << std::endl;
         return -1;
     }
     getROMPoints(rom_points, all_parameters);
-    std::cout << "ROM Locations" << std::endl;
-    std::cout << rom_points << std::endl; 
-    parameter_sampling->placeROMLocations(rom_points);
+    pcout << "ROM Locations" << std::endl;
+    pcout << rom_points << std::endl; 
+    parameter_sampling->trueErrorROM(rom_points);
 
-    // Output Error Table like an iteration in the adaptive sampling procedure
-    parameter_sampling->outputIterationData("ROM_post_sampling");
     return 0;
 }
 

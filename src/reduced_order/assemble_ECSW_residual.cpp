@@ -59,6 +59,8 @@ void AssembleECSWRes<dim,nstate>::build_problem(){
     Epetra_Map ColMap(num_elements_N_e, length, local_elements, 0, this->Comm_);
     Epetra_Map dMap((n_reduced_dim_POD*training_snaps), (rank == 0) ?  (n_reduced_dim_POD*training_snaps) : 0,  0, this->Comm_);
 
+    delete[] local_elements;
+
     Epetra_CrsMatrix C_T(Epetra_DataAccess::Copy, ColMap, RowMap, num_elements_N_e);
     Epetra_Vector d(dMap);
 
@@ -133,6 +135,7 @@ void AssembleECSWRes<dim,nstate>::build_problem(){
                     int place = row_num+k;
                     C_T.InsertGlobalValues(cell_num, 1, &c_se_array[k], &place);
                 }
+                delete[] c_se_array;
             }
         }
         row_num+=n_reduced_dim_POD;
@@ -159,6 +162,8 @@ void AssembleECSWRes<dim,nstate>::build_problem(){
             int col = dMap.GID(o);
             d.SumIntoMyValues(1, &row[col], &o);
         }
+        delete[] row;
+        delete[] global_cols;
     }
 
     // Sub temp C and d into class A and b

@@ -185,6 +185,7 @@ void NNLS_solver::PositiveSetMatrix(Epetra_CrsMatrix &P_mat){
         
       }
     }
+    delete[] row;
   }
 }
 
@@ -247,7 +248,7 @@ bool NNLS_solver::solve(){
   iter_ = 0;
   numInactive_ = 0;
   // Pre-mult by A^T
-  Epetra_CrsMatrix AtA(Epetra_DataAccess::View, A_.ColMap(), A_.NumMyCols());
+  Epetra_CrsMatrix AtA(Epetra_DataAccess::Copy, A_.ColMap(), A_.NumMyCols());
   EpetraExt::MatrixMatrix::Multiply(A_, true, A_, false, AtA);
 
   Epetra_Vector Atb (A_.ColMap());
@@ -345,7 +346,7 @@ bool NNLS_solver::solve(){
       Epetra_Vector temp(P_mat.ColMap());
 
       // Set up normal equations
-      Epetra_CrsMatrix PtP(Epetra_DataAccess::View, P_mat.ColMap(), P_mat.NumMyCols());
+      Epetra_CrsMatrix PtP(Epetra_DataAccess::Copy, P_mat.ColMap(), P_mat.NumMyCols());
       EpetraExt::MatrixMatrix::Multiply(P_mat, true, P_mat, false, PtP);
 
       Epetra_Vector Ptb (P_mat.ColMap());

@@ -34,22 +34,26 @@ template <int dim, int nstate>
 int HyperreducedAdaptiveSampling<dim, nstate>::run_sampling() const
 {
     this->pcout << "Starting adaptive sampling process" << std::endl;
-
+    auto stream = this->pcout;
+    dealii::TimerOutput timer(stream,dealii::TimerOutput::summary,dealii::TimerOutput::wall_times);
+    int iteration = 0;
+    timer.enter_subsection ("Iteration " + std::to_string(iteration));
+    
     std::unique_ptr<FlowSolver::FlowSolver<dim,nstate>> flow_solver = FlowSolver::FlowSolverFactory<dim,nstate>::select_flow_case(this->all_parameters, this->parameter_handler);
 
     this->placeInitialSnapshots();
     this->current_pod->computeBasis();
 
-    auto ode_solver_type = Parameters::ODESolverParam::ODESolverEnum::hyper_reduced_petrov_galerkin_solver;
+    auto ode_solver_type_HROM = Parameters::ODESolverParam::ODESolverEnum::hyper_reduced_petrov_galerkin_solver;
     
     // Find C and d for NNLS Problem
     Epetra_MpiComm Comm( MPI_COMM_WORLD );
     this->pcout << "Construct instance of Assembler..."<< std::endl;  
-    std::shared_ptr<HyperReduction::AssembleECSWBase<dim,nstate>> constructer_NNLS_problem;
+    std::unique_ptr<HyperReduction::AssembleECSWBase<dim,nstate>> constructer_NNLS_problem;
     if (this->all_parameters->hyper_reduction_param.training_data == "residual")         
-        constructer_NNLS_problem = std::make_shared<HyperReduction::AssembleECSWRes<dim,nstate>>(this->all_parameters, this->parameter_handler, flow_solver->dg, this->current_pod, this->snapshot_parameters, ode_solver_type, Comm);
+        constructer_NNLS_problem = std::make_unique<HyperReduction::AssembleECSWRes<dim,nstate>>(this->all_parameters, this->parameter_handler, flow_solver->dg, this->current_pod, this->snapshot_parameters, ode_solver_type_HROM, Comm);
     else {
-        constructer_NNLS_problem = std::make_shared<HyperReduction::AssembleECSWJac<dim,nstate>>(this->all_parameters, this->parameter_handler, flow_solver->dg, this->current_pod, this->snapshot_parameters, ode_solver_type, Comm);
+        constructer_NNLS_problem = std::make_unique<HyperReduction::AssembleECSWJac<dim,nstate>>(this->all_parameters, this->parameter_handler, flow_solver->dg, this->current_pod, this->snapshot_parameters, ode_solver_type_HROM, Comm);
     }
 
     for (int k = 0; k < this->snapshot_parameters.rows(); k++){
@@ -72,17 +76,13 @@ int HyperreducedAdaptiveSampling<dim, nstate>::run_sampling() const
 
     // Solve NNLS Problem for ECSW weights
     this->pcout << "Create NNLS problem..."<< std::endl;
-    NNLS_solver NNLS_prob(this->all_parameters, this->parameter_handler, constructer_NNLS_problem->A_T->trilinos_matrix(), true,  Comm, b_Epetra);
+    NNLS_solver* NNLS_prob = new NNLS_solver(this->all_parameters, this->parameter_handler, constructer_NNLS_problem->A_T->trilinos_matrix(), true,  Comm, b_Epetra);
     this->pcout << "Solve NNLS problem..."<< std::endl;
-    bool exit_con = NNLS_prob.solve();
+    bool exit_con = NNLS_prob->solve();
     this->pcout << exit_con << std::endl;
 
-    ptr_weights = std::make_shared<Epetra_Vector>(NNLS_prob.getSolution());
+    ptr_weights = std::make_shared<Epetra_Vector>(NNLS_prob->getSolution());
 
-    dealii::Vector<double> weights_dealii(ptr_weights->MyLength());
-    for(int j = 0 ; j < ptr_weights->MyLength() ; j++){
-        weights_dealii[j] = (*ptr_weights)[j];
-    } 
     MatrixXd rom_points = this->nearest_neighbors->kPairwiseNearestNeighborsMidpoint();
     this->pcout << "ROM Points"<< std::endl;
     this->pcout << rom_points << std::endl;
@@ -90,8 +90,29 @@ int HyperreducedAdaptiveSampling<dim, nstate>::run_sampling() const
     this->placeROMLocations(rom_points, *ptr_weights);
 
     RowVectorXd max_error_params = this->getMaxErrorROM();
-    int iteration = 0;
 
+    RowVectorXd functional_ROM = this->readROMFunctionalPoint();
+
+    this->pcout << "Solving FOM at " << functional_ROM << std::endl;
+
+    Parameters::AllParameters params = this->reinitParams(functional_ROM);
+    std::unique_ptr<FlowSolver::FlowSolver<dim,nstate>> flow_solver_FOM = FlowSolver::FlowSolverFactory<dim,nstate>::select_flow_case(&params, this->parameter_handler);
+
+    // Solve implicit solution
+    auto ode_solver_type = Parameters::ODESolverParam::ODESolverEnum::implicit_solver;
+    flow_solver_FOM->ode_solver =  PHiLiP::ODE::ODESolverFactory<dim, double>::create_ODESolver_manual(ode_solver_type, flow_solver_FOM->dg);
+    flow_solver_FOM->ode_solver->allocate_ode_system();
+    flow_solver_FOM->run();
+
+    // Create functional
+    std::shared_ptr<Functional<dim,nstate,double>> functional_FOM = FunctionalFactory<dim,nstate,double>::create_Functional(params.functional_param, flow_solver_FOM->dg);
+    this->pcout << "FUNCTIONAL FROM FOM" << std::endl;
+    this->pcout << functional_FOM->evaluate_functional(false, false) << std::endl;
+
+    solveFunctionalHROM(functional_ROM, *ptr_weights);
+    
+    delete NNLS_prob;
+    
     while(this->max_error > this->all_parameters->reduced_order_param.adaptation_tolerance){
         Epetra_Vector local_weights = allocateVectorToSingleCore(*ptr_weights);
         this->outputIterationData(std::to_string(iteration));
@@ -104,8 +125,16 @@ int HyperreducedAdaptiveSampling<dim, nstate>::run_sampling() const
         std::ofstream weights_table_file("weights_table_iteration_" + std::to_string(iteration) + ".txt");
         weights_table->write_text(weights_table_file, dealii::TableHandler::TextOutputFormat::org_mode_table);
         weights_table_file.close();
+
+        dealii::Vector<double> weights_dealii(local_weights.MyLength());
+        for(int j = 0 ; j < local_weights.MyLength() ; j++){
+            weights_dealii[j] = local_weights[j];
+        } 
         flow_solver->dg->reduced_mesh_weights = weights_dealii;
         flow_solver->dg->output_results_vtk(iteration);
+
+        timer.leave_subsection();
+        timer.enter_subsection ("Iteration " + std::to_string(iteration+1));
 
         this->pcout << "Sampling snapshot at " << max_error_params << std::endl;
         dealii::LinearAlgebra::distributed::Vector<double> fom_solution = this->solveSnapshotFOM(max_error_params);
@@ -135,18 +164,12 @@ int HyperreducedAdaptiveSampling<dim, nstate>::run_sampling() const
 
         // Solve NNLS Problem for ECSW weights
         this->pcout << "Create NNLS problem..."<< std::endl;
-        NNLS_solver NNLS_prob(this->all_parameters, this->parameter_handler, constructer_NNLS_problem->A_T->trilinos_matrix(), true,  Comm, b_Epetra);
+        NNLS_solver* NNLS_prob = new NNLS_solver(this->all_parameters, this->parameter_handler, constructer_NNLS_problem->A_T->trilinos_matrix(), true,  Comm, b_Epetra);
         this->pcout << "Solve NNLS problem..."<< std::endl;
-        bool exit_con = NNLS_prob.solve();
+        bool exit_con = NNLS_prob->solve();
         this->pcout << exit_con << std::endl;
         
-        ptr_weights = std::make_shared<Epetra_Vector>(NNLS_prob.getSolution());
-        std::cout << local_weights << std::endl;
-
-        dealii::Vector<double> weights_dealii(ptr_weights->MyLength());
-        for(int j = 0 ; j < ptr_weights->MyLength() ; j++){
-            weights_dealii[j] = (*ptr_weights)[j];
-        } 
+        ptr_weights = std::make_shared<Epetra_Vector>(NNLS_prob->getSolution());
 
         // Update previous ROM errors with updated current_pod
         for(auto it = this->rom_locations.begin(); it != this->rom_locations.end(); ++it){
@@ -165,7 +188,18 @@ int HyperreducedAdaptiveSampling<dim, nstate>::run_sampling() const
         max_error_params = this->getMaxErrorROM();
 
         this->pcout << "Max error is: " << this->max_error << std::endl;
+
+        solveFunctionalHROM(functional_ROM, *ptr_weights);
+
+        this->pcout << "FUNCTIONAL FROM ROMs" << std::endl;
+        std::ofstream output_file("rom_functional" + std::to_string(iteration+1) +".txt");
+
+        std::ostream_iterator<double> output_iterator(output_file, "\n");
+        std::copy(std::begin(rom_functional), std::end(rom_functional), output_iterator);
+
         iteration++;
+
+        delete NNLS_prob;
     }
 
     Epetra_Vector local_weights = allocateVectorToSingleCore(*ptr_weights);
@@ -176,12 +210,24 @@ int HyperreducedAdaptiveSampling<dim, nstate>::run_sampling() const
         weights_table->set_precision("ECSW Weights", 16);
     }
 
+    dealii::Vector<double> weights_dealii(local_weights.MyLength());
+    for(int j = 0 ; j < local_weights.MyLength() ; j++){
+        weights_dealii[j] = local_weights[j];
+    } 
     std::ofstream weights_table_file("weights_table_iteration_final.txt");
     weights_table->write_text(weights_table_file, dealii::TableHandler::TextOutputFormat::org_mode_table);
     weights_table_file.close();
 
     flow_solver->dg->reduced_mesh_weights = weights_dealii;
     flow_solver->dg->output_results_vtk(iteration);
+
+    timer.leave_subsection();
+
+    this->pcout << "FUNCTIONAL FROM ROMs" << std::endl;
+    std::ofstream output_file("rom_functional.txt");
+
+    std::ostream_iterator<double> output_iterator(output_file, "\n");
+    std::copy(std::begin(rom_functional), std::end(rom_functional), output_iterator);
 
     return 0;
 }
@@ -214,6 +260,83 @@ bool HyperreducedAdaptiveSampling<dim, nstate>::placeROMLocations(const MatrixXd
         }
     }
     return error_greater_than_tolerance;
+}
+
+template <int dim, int nstate>
+void HyperreducedAdaptiveSampling<dim, nstate>::trueErrorROM(const MatrixXd& rom_points, Epetra_Vector weights) const{
+
+    std::unique_ptr<dealii::TableHandler> rom_table = std::make_unique<dealii::TableHandler>();
+
+    for(auto rom : rom_points.rowwise()){
+        for(int i = 0 ; i < rom_points.cols() ; i++){
+            rom_table->add_value(this->all_parameters->reduced_order_param.parameter_names[i], rom(i));
+            rom_table->set_precision(this->all_parameters->reduced_order_param.parameter_names[i], 16);
+        }
+        double error = solveSnapshotROMandFOM(rom, weights);
+        this->pcout << "Error in the functional: " << error << std::endl;
+        rom_table->add_value("ROM_errors", error);
+        rom_table->set_precision("ROM_errors", 16);
+    }
+
+    std::ofstream rom_table_file("true_error_table_iteration_HROM_post_sampling.txt");
+    rom_table->write_text(rom_table_file, dealii::TableHandler::TextOutputFormat::org_mode_table);
+    rom_table_file.close();
+}
+
+template <int dim, int nstate>
+double HyperreducedAdaptiveSampling<dim, nstate>::solveSnapshotROMandFOM(const RowVectorXd& parameter, Epetra_Vector weights) const{
+    this->pcout << "Solving HROM at " << parameter << std::endl;
+    Parameters::AllParameters params = this->reinitParams(parameter);
+
+    std::unique_ptr<FlowSolver::FlowSolver<dim,nstate>> flow_solver_ROM = FlowSolver::FlowSolverFactory<dim,nstate>::select_flow_case(&params, this->parameter_handler);
+
+    // Solve implicit solution
+    auto ode_solver_type_ROM = Parameters::ODESolverParam::ODESolverEnum::hyper_reduced_petrov_galerkin_solver;
+    flow_solver_ROM->ode_solver =  PHiLiP::ODE::ODESolverFactory<dim, double>::create_ODESolver_manual(ode_solver_type_ROM, flow_solver_ROM->dg, this->current_pod, weights);
+    flow_solver_ROM->ode_solver->allocate_ode_system();
+    flow_solver_ROM->ode_solver->steady_state();
+
+    this->pcout << "Done solving HROM." << std::endl;
+
+    // Create functional
+    std::shared_ptr<Functional<dim,nstate,double>> functional_ROM = FunctionalFactory<dim,nstate,double>::create_Functional(params.functional_param, flow_solver_ROM->dg);
+
+    this->pcout << "Solving FOM at " << parameter << std::endl;
+
+    std::unique_ptr<FlowSolver::FlowSolver<dim,nstate>> flow_solver_FOM = FlowSolver::FlowSolverFactory<dim,nstate>::select_flow_case(&params, this->parameter_handler);
+
+    // Solve implicit solution
+    auto ode_solver_type = Parameters::ODESolverParam::ODESolverEnum::implicit_solver;
+    flow_solver_FOM->ode_solver =  PHiLiP::ODE::ODESolverFactory<dim, double>::create_ODESolver_manual(ode_solver_type, flow_solver_FOM->dg);
+    flow_solver_FOM->ode_solver->allocate_ode_system();
+    flow_solver_FOM->run();
+
+    // Create functional
+    std::shared_ptr<Functional<dim,nstate,double>> functional_FOM = FunctionalFactory<dim,nstate,double>::create_Functional(params.functional_param, flow_solver_FOM->dg);
+
+    this->pcout << "Done solving FOM." << std::endl;
+    return functional_ROM->evaluate_functional(false, false) - functional_FOM->evaluate_functional(false, false);
+}
+
+template <int dim, int nstate>
+void HyperreducedAdaptiveSampling<dim, nstate>::solveFunctionalHROM(const RowVectorXd& parameter, Epetra_Vector weights) const{
+    this->pcout << "Solving HROM at " << parameter << std::endl;
+    Parameters::AllParameters params = this->reinitParams(parameter);
+
+    std::unique_ptr<FlowSolver::FlowSolver<dim,nstate>> flow_solver_ROM = FlowSolver::FlowSolverFactory<dim,nstate>::select_flow_case(&params, this->parameter_handler);
+
+    // Solve 
+    auto ode_solver_type_ROM = Parameters::ODESolverParam::ODESolverEnum::hyper_reduced_petrov_galerkin_solver;
+    flow_solver_ROM->ode_solver =  PHiLiP::ODE::ODESolverFactory<dim, double>::create_ODESolver_manual(ode_solver_type_ROM, flow_solver_ROM->dg, this->current_pod, weights);
+    flow_solver_ROM->ode_solver->allocate_ode_system();
+    flow_solver_ROM->ode_solver->steady_state();
+
+    this->pcout << "Done solving HROM." << std::endl;
+
+    // Create functional
+    std::shared_ptr<Functional<dim,nstate,double>> functional_ROM = FunctionalFactory<dim,nstate,double>::create_Functional(params.functional_param, flow_solver_ROM->dg);
+
+    rom_functional.emplace_back(functional_ROM->evaluate_functional(false, false));
 }
 
 template <int dim, int nstate>
@@ -266,8 +389,8 @@ std::unique_ptr<ProperOrthogonalDecomposition::ROMSolution<dim,nstate>> Hyperred
     std::unique_ptr<FlowSolver::FlowSolver<dim,nstate>> flow_solver = FlowSolver::FlowSolverFactory<dim,nstate>::select_flow_case(&params, this->parameter_handler);
 
     // Solve implicit solution
-    auto ode_solver_type = Parameters::ODESolverParam::ODESolverEnum::hyper_reduced_petrov_galerkin_solver;
-    flow_solver->ode_solver =  PHiLiP::ODE::ODESolverFactory<dim, double>::create_ODESolver_manual(ode_solver_type, flow_solver->dg, this->current_pod, weights);
+    auto ode_solver_type_HROM = Parameters::ODESolverParam::ODESolverEnum::hyper_reduced_petrov_galerkin_solver;
+    flow_solver->ode_solver =  PHiLiP::ODE::ODESolverFactory<dim, double>::create_ODESolver_manual(ode_solver_type_HROM, flow_solver->dg, this->current_pod, weights);
     flow_solver->ode_solver->allocate_ode_system();
     flow_solver->ode_solver->steady_state();
 

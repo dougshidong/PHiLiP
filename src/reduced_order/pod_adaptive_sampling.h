@@ -32,11 +32,22 @@ public:
     /// Destructor
     ~AdaptiveSampling() {};
 
+    mutable std::vector<double> rom_functional;
+
     /// Run Sampling Procedure
     int run_sampling () const override;
 
     /// Placement of ROMs
     bool placeROMLocations(const MatrixXd& rom_points) const;
+
+    /// Compute true/actual error at all ROM points (error in functional between FOM and ROM solution)
+    void trueErrorROM(const MatrixXd& rom_points) const;
+
+    /// Solve FOM and ROM, return error in functional between the models
+    double solveSnapshotROMandFOM(const RowVectorXd& parameter) const;
+
+    /// Solve ROM and track functional
+    void solveFunctionalROM(const RowVectorXd& parameter) const;
 
     /// Updates nearest ROM points to snapshot if error discrepancy is above tolerance
     void updateNearestExistingROMs(const RowVectorXd& parameter) const;

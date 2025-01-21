@@ -42,6 +42,7 @@ public:
     /// Evaluate steady state solution.
     virtual int steady_state ();
 
+
     /// Ramps up the solution from p0 all the way up to the given global_final_poly_degree.
     /** This first interpolates the current solution to the P0 space as an initial solution.
      *  The P0 is then solved, interpolated to P1, and the process is repeated until the
@@ -62,6 +63,12 @@ public:
 
     /// Virtual function to evaluate solution update
     virtual void step_in_time(real dt, const bool pseudotime) = 0;
+
+    /// Virtual function to evaluate automatic error adaptive time step
+    virtual double get_automatic_error_adaptive_step_size (real dt, const bool pseudotime);
+
+    /// Virtual function to evaluate initial automatic error adaptive time step
+    virtual double get_automatic_initial_step_size (real dt, const bool pseudotime);
 
     /// Virtual function to allocate the ODE system
     virtual void allocate_ode_system () = 0;

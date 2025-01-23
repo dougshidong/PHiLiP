@@ -1898,6 +1898,8 @@ void DGBase<dim,real,MeshType>::allocate_system (
     max_dt_cell.reinit(triangulation->n_active_cells());
     cell_volume.reinit(triangulation->n_active_cells());
 
+    reduced_mesh_weights.reinit(triangulation->n_active_cells());
+
     // allocates model variables only if there is a model
     if(all_parameters->pde_type == Parameters::AllParameters::PartialDifferentialEquation::physics_model) allocate_model_variables();
 

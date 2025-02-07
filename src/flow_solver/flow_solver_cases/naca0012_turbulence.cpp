@@ -732,8 +732,8 @@ void NACA0012_LES<dim, nstate>::compute_unsteady_data_and_write_to_table(
             const bool do_write_unsteady_data_table_file)
 {
     // Compute aerodynamic values
-    // const double lift = this->compute_lift(dg);
-    // const double drag = this->compute_drag(dg);
+    const double lift = this->compute_lift(dg);
+    const double drag = this->compute_drag(dg);
     
     if(output_counter == 4){
         if(this->all_param.flow_solver_param.compute_time_averaged_solution && (current_time >= this->all_param.flow_solver_param.time_to_start_averaging)){

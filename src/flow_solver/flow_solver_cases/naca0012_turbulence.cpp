@@ -612,8 +612,8 @@ void NACA0012_LES<dim, nstate>::output_kinetic_energy_at_points(
             for(int idim=0; idim<dim; idim++) {
                 vol_equid_node[idim] = metric_oper_equid.flux_nodes_vol[idim][ishape];
             }
-            const double x_precision_P1 = 1E-4;
-            const double y_precision_P1 = 2E-3;
+            const double x_precision_P1 = 6E-4;
+            const double y_precision_P1 = 6E-4;
             if( ((P1[0]-x_precision_P1)<vol_equid_node[0] && vol_equid_node[0]<(P1[0]+x_precision_P1)) && ((P1[1]-y_precision_P1)<vol_equid_node[1] && vol_equid_node[1]<(P1[1]+y_precision_P1)) ){
                 // for(int idim=0; idim<dim; idim++) {
                 //     std::cout << "P1 vol_equid_node["<<idim<<"]: " << vol_equid_node[idim] << std::endl;
@@ -626,8 +626,8 @@ void NACA0012_LES<dim, nstate>::output_kinetic_energy_at_points(
                 time_averaged_velocity_magnitude_sum_P1 += velocity_magnitude_at_q[ishape];
                 time_averaged_velocity_magnitude_index_P1 += 1;
             }
-            const double x_precision_P2 = 2.5E-4;
-            const double y_precision_P2 = 1E-3;
+            const double x_precision_P2 = 1E-5;
+            const double y_precision_P2 = 1E-5;
             if( ((P2[0]-x_precision_P2)<vol_equid_node[0] && vol_equid_node[0]<(P2[0]+x_precision_P2)) && ((P2[1]-y_precision_P2)<vol_equid_node[1] && vol_equid_node[1]<(P2[1]+y_precision_P2)) ){
                 // for(int idim=0; idim<dim; idim++) {
                 //     std::cout << "P2 vol_equid_node["<<idim<<"]: " << vol_equid_node[idim] << std::endl;
@@ -640,8 +640,8 @@ void NACA0012_LES<dim, nstate>::output_kinetic_energy_at_points(
                 time_averaged_velocity_magnitude_sum_P2 += velocity_magnitude_at_q[ishape];
                 time_averaged_velocity_magnitude_index_P2 += 1;
             }
-            const double x_precision_P3 = 3E-3;
-            const double y_precision_P3 = 1E-12;
+            const double x_precision_P3 = 1E-7;
+            const double y_precision_P3 = 1E-7;
             if( ((P3[0]-x_precision_P3)<vol_equid_node[0] && vol_equid_node[0]<(P3[0]+x_precision_P3)) && ((P3[1]-y_precision_P3)<vol_equid_node[1] && vol_equid_node[1]<(P3[1]+y_precision_P3)) ){
                 // for(int idim=0; idim<dim; idim++) {
                 //     std::cout << "P3 vol_equid_node["<<idim<<"]: " << vol_equid_node[idim] << std::endl;
@@ -706,6 +706,11 @@ void NACA0012_LES<dim, nstate>::output_kinetic_energy_at_points(
     double velocity_magnitude_mpi_index_P3 = dealii::Utilities::MPI::sum(time_averaged_velocity_magnitude_index_P3, this->mpi_communicator);
     double spanwise_average_velocity_magnitude_P3 = velocity_magnitude_mpi_sum_P3/velocity_magnitude_mpi_index_P3;
     this->add_value_to_data_table(spanwise_average_velocity_magnitude_P3,"t_ave_vel_mag, P3",unsteady_data_table);
+    // Add lift to data table
+    const double lift = this->compute_lift(dg);
+    const double drag = this->compute_drag(dg);
+    this->add_value_to_data_table(lift,"lift",unsteady_data_table);
+    this->add_value_to_data_table(drag,"drag",unsteady_data_table);
 }
 
 template <int dim, int nstate>
@@ -727,8 +732,8 @@ void NACA0012_LES<dim, nstate>::compute_unsteady_data_and_write_to_table(
             const bool do_write_unsteady_data_table_file)
 {
     // Compute aerodynamic values
-    const double lift = this->compute_lift(dg);
-    const double drag = this->compute_drag(dg);
+    // const double lift = this->compute_lift(dg);
+    // const double drag = this->compute_drag(dg);
     
     if(output_counter == 4){
         if(this->all_param.flow_solver_param.compute_time_averaged_solution && (current_time >= this->all_param.flow_solver_param.time_to_start_averaging)){
@@ -753,21 +758,16 @@ void NACA0012_LES<dim, nstate>::compute_unsteady_data_and_write_to_table(
                 P1[0] = 0.5;
                 P1[1] = 0.11;
                 P1[2] = 0;
-                P2[0] = 0.5;
-                P2[1] = 0.05;
+                P2[0] = 0.499696;
+                P2[1] = 0.0501122;
                 P2[2] = 0;
-                P3[0] = 1.3;
-                P3[1] = 0;
+                P3[0] = 1.2997177;
+                P3[1] = 0.00014232968;
                 P3[2] = 0;
             }
             this->output_kinetic_energy_at_points(dg, current_time, P1, P2, P3, unsteady_data_table);
         }
-        // // Print to console
-        // this->pcout << "    Iter: " << current_iteration
-        //             << "    Time: " << current_time
-        //             << "    Lift: " << lift
-        //             << "    Drag: " << drag;
-        // this->pcout << std::endl;
+
         // Reset counter
         output_counter = 0;
     }else{
@@ -775,7 +775,7 @@ void NACA0012_LES<dim, nstate>::compute_unsteady_data_and_write_to_table(
         output_counter += 1;
     }
     
-    if(terminal_counter == 9999){
+    if(terminal_counter == 19999){
         // Print to console
         this->pcout << "    Iter: " << current_iteration
                     << "    Time: " << current_time

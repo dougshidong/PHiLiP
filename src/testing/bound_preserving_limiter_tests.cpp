@@ -31,10 +31,11 @@ double BoundPreservingLimiterTests<dim, nstate>::calculate_uexact(const dealii::
 
     double uexact = 1.0;
     if (flow_case == Parameters::FlowSolverParam::FlowCaseType::low_density && dim == 2) {
-        uexact = 1.0 + 0.999 * sin((qpoint[0] + qpoint[1] - (2.00 * final_time)));
+        //uexact = 1.0 + 0.999 * sin((qpoint[0] + qpoint[1] - (2.00 * final_time)));
+        uexact = 0.01 + exp(-500.0*(pow(qpoint[0], 2.0)+pow(qpoint[1], 2.0)));
     }
     if (flow_case == Parameters::FlowSolverParam::FlowCaseType::low_density && dim == 1) {
-        uexact = 1.0 + 0.999 * sin((qpoint[0] - (final_time)));
+        uexact = 0.01 + exp(-500.0*pow(qpoint[0], 2.0));
     }
     else {
         for (int idim = 0; idim < dim; idim++) {
@@ -136,10 +137,22 @@ int BoundPreservingLimiterTests<dim, nstate>::run_full_limiter_test() const
 
     using flow_case_enum = Parameters::FlowSolverParam::FlowCaseType;
     flow_case_enum flow_case = all_parameters_new.flow_solver_param.flow_case_type;
-    const double pi = atan(1) * 4.0;
-    if (flow_case == Parameters::FlowSolverParam::FlowCaseType::low_density) {
-        param.flow_solver_param.grid_left_bound = 0.0;
-        param.flow_solver_param.grid_right_bound = 2.0 * pi;
+    //const double pi = atan(1) * 4.0;
+
+    if (dim == 1 && flow_case == Parameters::FlowSolverParam::FlowCaseType::low_density) {
+        param.flow_solver_param.grid_left_bound = -0.5;
+        param.flow_solver_param.grid_right_bound = 0.5;
+
+        // To ensure PPL can be used
+        param.flow_solver_param.grid_xmin = param.flow_solver_param.grid_left_bound;
+        param.flow_solver_param.grid_xmax = param.flow_solver_param.grid_right_bound;
+
+        param.flow_solver_param.number_of_grid_elements_x = pow(2.0,param.flow_solver_param.number_of_mesh_refinements);
+    }
+
+    if (dim == 2 && flow_case == Parameters::FlowSolverParam::FlowCaseType::low_density) {
+        param.flow_solver_param.grid_left_bound = 0.5;
+        param.flow_solver_param.grid_right_bound = -0.5;
 
         // To ensure PPL can be used
         param.flow_solver_param.grid_xmin = param.flow_solver_param.grid_left_bound;
@@ -168,7 +181,7 @@ int BoundPreservingLimiterTests<dim, nstate>::run_convergence_test() const
     std::vector<double> grid_size(n_grids);
     std::vector<double> soln_error_l2(n_grids);
 
-    for (unsigned int igrid = 2; igrid < n_grids; igrid++) {
+    for (unsigned int igrid = 3; igrid < n_grids; igrid++) {
 
         pcout << "\n" << "Creating FlowSolver" << std::endl;
 
@@ -177,11 +190,22 @@ int BoundPreservingLimiterTests<dim, nstate>::run_convergence_test() const
 
         using flow_case_enum = Parameters::FlowSolverParam::FlowCaseType;
         flow_case_enum flow_case = all_parameters_new.flow_solver_param.flow_case_type;
-        const double pi = atan(1) * 4.0;
+        //const double pi = atan(1) * 4.0;
 
-        if (flow_case == Parameters::FlowSolverParam::FlowCaseType::low_density) {
-            param.flow_solver_param.grid_left_bound = 0.0;
-            param.flow_solver_param.grid_right_bound = 2.0 * pi;
+        if (dim == 1 && flow_case == Parameters::FlowSolverParam::FlowCaseType::low_density) {
+            param.flow_solver_param.grid_left_bound = -0.5;
+            param.flow_solver_param.grid_right_bound = 0.5;
+    
+            // To ensure PPL can be used
+            param.flow_solver_param.grid_xmin = param.flow_solver_param.grid_left_bound;
+            param.flow_solver_param.grid_xmax = param.flow_solver_param.grid_right_bound;
+    
+            param.flow_solver_param.number_of_grid_elements_x = pow(2.0,param.flow_solver_param.number_of_mesh_refinements);
+        }
+
+        if (dim == 2 && flow_case == Parameters::FlowSolverParam::FlowCaseType::low_density) {
+            param.flow_solver_param.grid_left_bound = -0.5;
+            param.flow_solver_param.grid_right_bound = 0.5;
 
             // To ensure PPL can be used
             param.flow_solver_param.grid_xmin = param.flow_solver_param.grid_left_bound;

@@ -796,10 +796,11 @@ real InitialConditionFunction_ShuOsherProblem<dim, nstate, real>
     return value;
 }
 
-// ========================================================
-// 2D Low Density Euler -- Initial Condition
-// See Zhang & Shu, On positivity-preserving..., 2010 Pg. 10
-// ========================================================
+// =====================================================================
+// Low Density Euler -- Initial Condition
+// FOR 1D: See Dzanic & Martinelli, High-order limiting..., 2025, Pg. 15
+// FOR 2D: See Zhang & Shu, On positivity-preserving..., 2010 Pg. 10
+// =====================================================================
 template <int dim, int nstate, typename real>
 InitialConditionFunction_LowDensity<dim,nstate,real>
 ::InitialConditionFunction_LowDensity(
@@ -812,26 +813,27 @@ real InitialConditionFunction_LowDensity<dim, nstate, real>
 ::primitive_value(const dealii::Point<dim, real>& point, const unsigned int istate) const
 {
     real value = 0.0;
-    if constexpr (dim < 3 && nstate == (dim + 2)) {
+    if constexpr (dim == 1 && nstate == (dim + 2)) {
         const real x = point[0];
-        real y = 0.0;
-        if(dim == 2)
-            y = point[1];
+        if (istate == 0) {
+            // density
+            value = 0.01 + exp(-500.0*pow(x,2.0));
+        }
+        else {
+            value = 1.0;
+        }
+    }
+
+    if constexpr (dim == 2 && nstate == (dim + 2)) {
+        const real x = point[0];
+        const real y = point[1];
 
         if (istate == 0) {
             // density
-            value = 1.0 + 0.999 * sin((x + y));
+            value = 0.01 + exp(-500.0*(pow(x, 2.0)+pow(y, 2.0)));
         }
-        if (istate == 1) {
+        else {
             // x-velocity
-            value = 1.0;
-        }
-        if (istate == 2) {
-            // y-velocity
-            value = 1.0;
-        }
-        if (istate == 3) {
-            // pressure
             value = 1.0;
         }
     }

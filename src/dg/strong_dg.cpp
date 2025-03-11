@@ -614,6 +614,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_boundary_term_auxiliary_equati
 
     const unsigned int n_face_quad_pts = this->face_quadrature_collection[poly_degree].size();
     const unsigned int n_quad_pts_vol  = this->volume_quadrature_collection[poly_degree].size();
+    const unsigned int n_quad_pts_1D  = this->oneD_quadrature_collection[poly_degree].size();
     const unsigned int n_dofs          = this->fe_collection[poly_degree].dofs_per_cell;
     const unsigned int n_shape_fns     = n_dofs / nstate;
     AssertDimension (n_dofs, dofs_indices.size());
@@ -640,7 +641,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_boundary_term_auxiliary_equati
         soln_at_surf_q[istate].resize(n_face_quad_pts);
         //solve soln at facet cubature nodes
         soln_basis.matrix_vector_mult_surface_1D(face_orientation, 
-                                                 iface, soln_coeff[istate], soln_at_surf_q[istate],
+                                                 iface, n_quad_pts_1D, soln_coeff[istate], soln_at_surf_q[istate],
                                                  soln_basis.oneD_surf_operator,
                                                  soln_basis.oneD_vol_operator);
         //solve reference gradient of soln at facet cubature nodes
@@ -669,7 +670,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_boundary_term_auxiliary_equati
             phys_grad_soln_at_surf_q[istate][idim].resize(n_face_quad_pts);
             //interpolate physical volume gradient of the solution to the surface
             soln_basis.matrix_vector_mult_surface_1D(face_orientation, 
-                                                     iface, phys_gradient_u, phys_grad_soln_at_surf_q[istate][idim],
+                                                     iface, n_quad_pts_1D, phys_gradient_u, phys_grad_soln_at_surf_q[istate][idim],
                                                      soln_basis.oneD_surf_operator,
                                                      soln_basis.oneD_vol_operator);
         }
@@ -740,7 +741,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_boundary_term_auxiliary_equati
             std::vector<real> rhs(n_shape_fns);
 
             soln_basis.inner_product_surface_1D(face_orientation, 
-                                                iface, 
+                                                iface, n_quad_pts_1D,
                                                 surf_num_flux_minus_surf_soln_dot_normal[istate][idim],
                                                 surf_quad_weights, rhs,
                                                 soln_basis.oneD_surf_operator,
@@ -774,6 +775,8 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_auxiliary_equation(
     (void) neighbor_cell_index;
 
     const unsigned int n_face_quad_pts = this->face_quadrature_collection[poly_degree_int].size();//assume interior cell does the work
+    const unsigned int n_quad_pts_1D_int  = this->oneD_quadrature_collection[poly_degree_int].size();
+    const unsigned int n_quad_pts_1D_ext  = this->oneD_quadrature_collection[poly_degree_ext].size();
 
     const unsigned int n_dofs_int = this->fe_collection[poly_degree_int].dofs_per_cell;
     const unsigned int n_dofs_ext = this->fe_collection[poly_degree_ext].dofs_per_cell;
@@ -820,12 +823,12 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_auxiliary_equation(
         soln_at_surf_q_ext[istate].resize(n_face_quad_pts);
         //solve soln at facet cubature nodes
         soln_basis_int.matrix_vector_mult_surface_1D(face_orientation_int, 
-                                                     iface,
+                                                     iface, n_quad_pts_1D_int,
                                                      soln_coeff_int[istate], soln_at_surf_q_int[istate],
                                                      soln_basis_int.oneD_surf_operator,
                                                      soln_basis_int.oneD_vol_operator);
         soln_basis_ext.matrix_vector_mult_surface_1D(face_orientation_ext, 
-                                                     neighbor_iface,
+                                                     neighbor_iface, n_quad_pts_1D_ext,
                                                      soln_coeff_ext[istate], soln_at_surf_q_ext[istate],
                                                      soln_basis_ext.oneD_surf_operator,
                                                      soln_basis_ext.oneD_vol_operator);
@@ -890,7 +893,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_auxiliary_equation(
             std::vector<real> rhs_int(n_shape_fns_int);
 
             soln_basis_int.inner_product_surface_1D(face_orientation_int, 
-                                                    iface, 
+                                                    iface, n_quad_pts_1D_int,
                                                     surf_num_flux_minus_surf_soln_int_dot_normal[istate][idim],
                                                     surf_quad_weights, rhs_int,
                                                     soln_basis_int.oneD_surf_operator,
@@ -903,7 +906,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_auxiliary_equation(
             std::vector<real> rhs_ext(n_shape_fns_ext);
 
             soln_basis_ext.inner_product_surface_1D(face_orientation_ext, 
-                                                    neighbor_iface, 
+                                                    neighbor_iface, n_quad_pts_1D_ext,
                                                     surf_num_flux_minus_surf_soln_ext_dot_normal[istate][idim],
                                                     surf_quad_weights, rhs_ext,
                                                     soln_basis_ext.oneD_surf_operator,
@@ -1583,7 +1586,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_boundary_term_strong(
         soln_at_surf_q[istate].resize(n_face_quad_pts);
         //solve soln at facet cubature nodes
         soln_basis.matrix_vector_mult_surface_1D(face_orientation, 
-                                                 iface,
+                                                 iface, n_quad_pts_1D,
                                                  soln_coeff[istate], soln_at_surf_q[istate],
                                                  soln_basis.oneD_surf_operator,
                                                  soln_basis.oneD_vol_operator);
@@ -1599,7 +1602,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_boundary_term_strong(
             aux_soln_at_surf_q[istate][idim].resize(n_face_quad_pts);
             //solve auxiliary soln at facet cubature nodes
             soln_basis.matrix_vector_mult_surface_1D(face_orientation, 
-                                                     iface,
+                                                     iface, n_quad_pts_1D,
                                                      aux_soln_coeff[istate][idim], aux_soln_at_surf_q[istate][idim],
                                                      soln_basis.oneD_surf_operator,
                                                      soln_basis.oneD_vol_operator);
@@ -1717,7 +1720,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_boundary_term_strong(
                                                       legendre_soln_basis.oneD_vol_operator);
             primitive_legendre_soln_at_surf_q[istate].resize(n_face_quad_pts);
             legendre_soln_basis.matrix_vector_mult_surface_1D(face_orientation, 
-                                                              iface,
+                                                              iface, n_quad_pts_1D, 
                                                               legendre_soln_coeff, primitive_legendre_soln_at_surf_q[istate],
                                                               legendre_soln_basis.oneD_surf_operator,
                                                               legendre_soln_basis.oneD_vol_operator);
@@ -1753,7 +1756,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_boundary_term_strong(
                                                           legendre_soln_basis.oneD_vol_operator);
                 primitive_legendre_aux_soln_at_surf_q[istate][idim].resize(n_face_quad_pts);
                 legendre_soln_basis.matrix_vector_mult_surface_1D(face_orientation, 
-                                                                  iface,
+                                                                  iface, n_quad_pts_1D,
                                                                   legendre_aux_soln_coeff[idim], primitive_legendre_aux_soln_at_surf_q[istate][idim],
                                                                   legendre_soln_basis.oneD_surf_operator,
                                                                   legendre_soln_basis.oneD_vol_operator);
@@ -1917,7 +1920,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_boundary_term_strong(
         //interpolate reference volume convective flux to the facet, and apply unit reference normal as scaled by 1.0 or -1.0
         if(!this->all_parameters->use_split_form && !this->all_parameters->use_curvilinear_split_form){
             flux_basis.matrix_vector_mult_surface_1D(face_orientation, 
-                                                     iface, 
+                                                     iface, n_quad_pts_1D,
                                                      conv_ref_flux_at_vol_q[istate][dim_not_zero],
                                                      conv_int_vol_ref_flux_interp_to_face_dot_ref_normal[istate],
                                                      flux_basis.oneD_surf_operator,//the flux basis interpolates from the flux nodes
@@ -1927,7 +1930,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_boundary_term_strong(
 
         //interpolate reference volume dissipative flux to the facet, and apply unit reference normal as scaled by 1.0 or -1.0
         flux_basis.matrix_vector_mult_surface_1D(face_orientation, 
-                                                 iface,
+                                                 iface, n_quad_pts_1D,
                                                  diffusive_ref_flux_at_vol_q[istate][dim_not_zero],
                                                  diffusive_int_vol_ref_flux_interp_to_face_dot_ref_normal[istate],
                                                  flux_basis.oneD_surf_operator,
@@ -1976,7 +1979,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_boundary_term_strong(
                                          projected_entropy_var_vol[istate],
                                          soln_basis.oneD_vol_operator);
         soln_basis.matrix_vector_mult_surface_1D(face_orientation, 
-                                                 iface,
+                                                 iface, n_quad_pts_1D,
                                                  entropy_var_coeff, 
                                                  projected_entropy_var_surf[istate],
                                                  soln_basis.oneD_surf_operator,
@@ -2183,7 +2186,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_boundary_term_strong(
         if(this->all_parameters->use_split_form || this->all_parameters->use_curvilinear_split_form){
             std::vector<real> ones_surf(n_face_quad_pts, 1.0);
             soln_basis.inner_product_surface_1D(face_orientation, 
-                                                iface, 
+                                                iface, n_quad_pts_1D,
                                                 surf_vol_ref_2pt_flux_interp_surf[istate], 
                                                 ones_surf, rhs, 
                                                 soln_basis.oneD_surf_operator, 
@@ -2197,7 +2200,8 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_boundary_term_strong(
         }
         else{
             soln_basis.inner_product_surface_1D(face_orientation, 
-                                                iface,  conv_int_vol_ref_flux_interp_to_face_dot_ref_normal[istate], 
+                                                iface, n_quad_pts_1D,
+                                                conv_int_vol_ref_flux_interp_to_face_dot_ref_normal[istate], 
                                                 face_quad_weights, rhs, 
                                                 soln_basis.oneD_surf_operator, 
                                                 soln_basis.oneD_vol_operator,
@@ -2205,14 +2209,16 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_boundary_term_strong(
         }
         //Convective surface nnumerical flux.
         soln_basis.inner_product_surface_1D(face_orientation, 
-                                            iface,  conv_flux_dot_normal[istate], 
+                                            iface, n_quad_pts_1D,
+                                            conv_flux_dot_normal[istate], 
                                             face_quad_weights, rhs, 
                                             soln_basis.oneD_surf_operator, 
                                             soln_basis.oneD_vol_operator,
                                             true, -1.0);//adding=true, scaled by factor=-1.0 bc subtract it
         //Dissipative surface numerical flux.
         soln_basis.inner_product_surface_1D(face_orientation, 
-                                            iface,  diss_flux_dot_normal_diff[istate], 
+                                            iface, n_quad_pts_1D,
+                                            diss_flux_dot_normal_diff[istate], 
                                             face_quad_weights, rhs, 
                                             soln_basis.oneD_surf_operator, 
                                             soln_basis.oneD_vol_operator,
@@ -2342,12 +2348,12 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_strong(
         soln_at_surf_q_ext[istate].resize(n_face_quad_pts);
         // solve soln at facet cubature nodes
         soln_basis_int.matrix_vector_mult_surface_1D(face_orientation_int, 
-                                                     iface,
+                                                     iface, n_quad_pts_1D_int,
                                                      soln_coeff_int[istate], soln_at_surf_q_int[istate],
                                                      soln_basis_int.oneD_surf_operator,
                                                      soln_basis_int.oneD_vol_operator);
         soln_basis_ext.matrix_vector_mult_surface_1D(face_orientation_ext, 
-                                                     neighbor_iface,
+                                                     neighbor_iface, n_quad_pts_1D_ext,
                                                      soln_coeff_ext[istate], soln_at_surf_q_ext[istate],
                                                      soln_basis_ext.oneD_surf_operator,
                                                      soln_basis_ext.oneD_vol_operator);
@@ -2367,12 +2373,12 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_strong(
             aux_soln_at_surf_q_ext[istate][idim].resize(n_face_quad_pts);
             // solve auxiliary soln at facet cubature nodes
             soln_basis_int.matrix_vector_mult_surface_1D(face_orientation_int, 
-                                                         iface,
+                                                         iface, n_quad_pts_1D_int,
                                                          aux_soln_coeff_int[istate][idim], aux_soln_at_surf_q_int[istate][idim],
                                                          soln_basis_int.oneD_surf_operator,
                                                          soln_basis_int.oneD_vol_operator);
             soln_basis_ext.matrix_vector_mult_surface_1D(face_orientation_ext, 
-                                                         neighbor_iface,
+                                                         neighbor_iface, n_quad_pts_1D_ext,
                                                          aux_soln_coeff_ext[istate][idim], aux_soln_at_surf_q_ext[istate][idim],
                                                          soln_basis_ext.oneD_surf_operator,
                                                          soln_basis_ext.oneD_vol_operator);
@@ -2564,7 +2570,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_strong(
                                                           legendre_soln_basis_int.oneD_vol_operator);
             primitive_legendre_soln_at_surf_q_int[istate].resize(n_face_quad_pts);
             legendre_soln_basis_int.matrix_vector_mult_surface_1D(face_orientation_int, 
-                                                                  iface,
+                                                                  iface, n_quad_pts_1D_int,
                                                                   legendre_soln_coeff_int, primitive_legendre_soln_at_surf_q_int[istate],
                                                                   legendre_soln_basis_int.oneD_surf_operator,
                                                                   legendre_soln_basis_int.oneD_vol_operator);
@@ -2573,7 +2579,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_strong(
                                                           legendre_soln_basis_ext.oneD_vol_operator);
             primitive_legendre_soln_at_surf_q_ext[istate].resize(n_face_quad_pts);
             legendre_soln_basis_ext.matrix_vector_mult_surface_1D(face_orientation_ext, 
-                                                                  neighbor_iface,
+                                                                  neighbor_iface, n_quad_pts_1D_ext,
                                                                   legendre_soln_coeff_ext, primitive_legendre_soln_at_surf_q_ext[istate],
                                                                   legendre_soln_basis_ext.oneD_surf_operator,
                                                                   legendre_soln_basis_ext.oneD_vol_operator);
@@ -2621,7 +2627,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_strong(
                                                               legendre_soln_basis_int.oneD_vol_operator);
                 primitive_legendre_aux_soln_at_surf_q_int[istate][idim].resize(n_face_quad_pts);
                 legendre_soln_basis_int.matrix_vector_mult_surface_1D(face_orientation_int, 
-                                                                      iface,
+                                                                      iface, n_quad_pts_1D_int,
                                                                       legendre_aux_soln_coeff_int[idim], primitive_legendre_aux_soln_at_surf_q_int[istate][idim],
                                                                       legendre_soln_basis_int.oneD_surf_operator,
                                                                       legendre_soln_basis_int.oneD_vol_operator);
@@ -2630,7 +2636,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_strong(
                                                               legendre_soln_basis_ext.oneD_vol_operator);
                 primitive_legendre_aux_soln_at_surf_q_ext[istate][idim].resize(n_face_quad_pts);
                 legendre_soln_basis_ext.matrix_vector_mult_surface_1D(face_orientation_ext, 
-                                                                      neighbor_iface,
+                                                                      neighbor_iface, n_quad_pts_1D_ext,
                                                                       legendre_aux_soln_coeff_ext[idim], primitive_legendre_aux_soln_at_surf_q_ext[istate][idim],
                                                                       legendre_soln_basis_ext.oneD_surf_operator,
                                                                       legendre_soln_basis_ext.oneD_vol_operator);
@@ -2923,14 +2929,14 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_strong(
         // interpolate reference volume convective flux to the facet, and apply unit reference normal as scaled by 1.0 or -1.0
         if(!this->all_parameters->use_split_form && !this->all_parameters->use_curvilinear_split_form){
             flux_basis_int.matrix_vector_mult_surface_1D(face_orientation_int, 
-                                                         iface, 
+                                                         iface, n_quad_pts_1D_int,
                                                          conv_ref_flux_at_vol_q_int[istate][dim_not_zero_int],
                                                          conv_int_vol_ref_flux_interp_to_face_dot_ref_normal[istate],
                                                          flux_basis_int.oneD_surf_operator,//the flux basis interpolates from the flux nodes
                                                          flux_basis_int.oneD_vol_operator,
                                                          false, unit_ref_normal_int[dim_not_zero_int]);//don't add to previous value, scale by unit_normal int
             flux_basis_ext.matrix_vector_mult_surface_1D(face_orientation_ext, 
-                                                         neighbor_iface, 
+                                                         neighbor_iface, n_quad_pts_1D_ext,
                                                          conv_ref_flux_at_vol_q_ext[istate][dim_not_zero_ext],
                                                          conv_ext_vol_ref_flux_interp_to_face_dot_ref_normal[istate],
                                                          flux_basis_ext.oneD_surf_operator,
@@ -2940,14 +2946,14 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_strong(
 
         // interpolate reference volume dissipative flux to the facet, and apply unit reference normal as scaled by 1.0 or -1.0
         flux_basis_int.matrix_vector_mult_surface_1D(face_orientation_int, 
-                                                     iface, 
+                                                     iface, n_quad_pts_1D_int,
                                                      diffusive_ref_flux_at_vol_q_int[istate][dim_not_zero_int],
                                                      diffusive_int_vol_ref_flux_interp_to_face_dot_ref_normal[istate],
                                                      flux_basis_int.oneD_surf_operator,
                                                      flux_basis_int.oneD_vol_operator,
                                                      false, unit_ref_normal_int[dim_not_zero_int]);
         flux_basis_ext.matrix_vector_mult_surface_1D(face_orientation_ext, 
-                                                     neighbor_iface,
+                                                     neighbor_iface, n_quad_pts_1D_ext,
                                                      diffusive_ref_flux_at_vol_q_ext[istate][dim_not_zero_ext],
                                                      diffusive_ext_vol_ref_flux_interp_to_face_dot_ref_normal[istate],
                                                      flux_basis_ext.oneD_surf_operator,
@@ -3018,15 +3024,15 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_strong(
         soln_basis_int.matrix_vector_mult_1D(entropy_var_coeff_int,
                                              projected_entropy_var_vol_int[istate],
                                              soln_basis_int.oneD_vol_operator);
-        soln_basis_int.matrix_vector_mult_surface_1D(/*face_orientation_int*/true, 
-                                                     iface,
+        soln_basis_int.matrix_vector_mult_surface_1D(/*face_orientation_int*/{true,false,false}, 
+                                                     iface, n_quad_pts_1D_int,
                                                      entropy_var_coeff_int, 
                                                      projected_entropy_var_surf_int[istate],
                                                      soln_basis_int.oneD_surf_operator,
                                                      soln_basis_int.oneD_vol_operator);
 
         soln_basis_int.matrix_vector_mult_surface_1D(face_orientation_int, 
-                                                    iface,
+                                                    iface, n_quad_pts_1D_int,
                                                     entropy_var_coeff_int, 
                                                     projected_entropy_var_surf_int_corrected[istate],
                                                     soln_basis_int.oneD_surf_operator,
@@ -3041,14 +3047,14 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_strong(
         soln_basis_ext.matrix_vector_mult_1D(entropy_var_coeff_ext,
                                              projected_entropy_var_vol_ext[istate],
                                              soln_basis_ext.oneD_vol_operator);
-        soln_basis_ext.matrix_vector_mult_surface_1D(/*neighbor_cell->face_orientation(neighbor_iface)*/true, 
-                                                     neighbor_iface,
+        soln_basis_ext.matrix_vector_mult_surface_1D(/*neighbor_cell->face_orientation(neighbor_iface)*/{true,false,false}, 
+                                                     neighbor_iface, n_quad_pts_1D_ext,
                                                      entropy_var_coeff_ext, 
                                                      projected_entropy_var_surf_ext[istate],
                                                      soln_basis_ext.oneD_surf_operator,
                                                      soln_basis_ext.oneD_vol_operator);
-        soln_basis_ext.matrix_vector_mult_surface_1D(neighbor_cell->face_orientation(neighbor_iface), 
-                                                    neighbor_iface,
+        soln_basis_ext.matrix_vector_mult_surface_1D(face_orientation_ext, 
+                                                    neighbor_iface, n_quad_pts_1D_ext,
                                                     entropy_var_coeff_ext, 
                                                     projected_entropy_var_surf_ext_corrected[istate],
                                                     soln_basis_ext.oneD_surf_operator,
@@ -3384,8 +3390,8 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_strong(
         // convective flux
         if(this->all_parameters->use_split_form || this->all_parameters->use_curvilinear_split_form){
             std::vector<real> ones_surf(n_face_quad_pts, 1.0);
-            soln_basis_int.inner_product_surface_1D(/*face_orientation_int*/true, 
-                                                    iface, 
+            soln_basis_int.inner_product_surface_1D(/*face_orientation_int*/{true,false,false}, 
+                                                    iface, n_quad_pts_1D_int,
                                                     surf_vol_ref_2pt_flux_interp_surf_int[istate], 
                                                     ones_surf, rhs_int, 
                                                     soln_basis_int.oneD_surf_operator, 
@@ -3400,7 +3406,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_strong(
         else 
         {
             soln_basis_int.inner_product_surface_1D(face_orientation_int, 
-                                                    iface, 
+                                                    iface, n_quad_pts_1D_int,
                                                     conv_int_vol_ref_flux_interp_to_face_dot_ref_normal[istate], 
                                                     surf_quad_weights, rhs_int, 
                                                     soln_basis_int.oneD_surf_operator, 
@@ -3409,7 +3415,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_strong(
         }
         // dissipative flux
         soln_basis_int.inner_product_surface_1D(face_orientation_int, 
-                                                iface, 
+                                                iface, n_quad_pts_1D_int,
                                                 diffusive_int_vol_ref_flux_interp_to_face_dot_ref_normal[istate], 
                                                 surf_quad_weights, rhs_int, 
                                                 soln_basis_int.oneD_surf_operator, 
@@ -3417,14 +3423,16 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_strong(
                                                 true, 1.0);//adding=true, subtract the negative so add it
         // convective numerical flux
         soln_basis_int.inner_product_surface_1D(face_orientation_int, 
-                                                iface,  conv_num_flux_dot_n[istate], 
+                                                iface, n_quad_pts_1D_int,
+                                                conv_num_flux_dot_n[istate], 
                                                 surf_quad_weights, rhs_int, 
                                                 soln_basis_int.oneD_surf_operator, 
                                                 soln_basis_int.oneD_vol_operator,
                                                 true, -1.0);//adding=true, scaled by factor=-1.0 bc subtract it
         // dissipative numerical flux
         soln_basis_int.inner_product_surface_1D(face_orientation_int, 
-                                                iface, diss_auxi_num_flux_dot_n[istate], 
+                                                iface, n_quad_pts_1D_int,
+                                                diss_auxi_num_flux_dot_n[istate], 
                                                 surf_quad_weights, rhs_int, 
                                                 soln_basis_int.oneD_surf_operator, 
                                                 soln_basis_int.oneD_vol_operator,
@@ -3441,8 +3449,8 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_strong(
         // convective flux
         if(this->all_parameters->use_split_form || this->all_parameters->use_curvilinear_split_form){
             std::vector<real> ones_surf(n_face_quad_pts, 1.0);
-            soln_basis_ext.inner_product_surface_1D(/*face_orientation_ext*/true, 
-                                                    neighbor_iface,
+            soln_basis_ext.inner_product_surface_1D(/*face_orientation_ext*/{true,false,false}, 
+                                                    neighbor_iface, n_quad_pts_1D_ext,
                                                     surf_vol_ref_2pt_flux_interp_surf_ext[istate], 
                                                     ones_surf, rhs_ext, 
                                                     soln_basis_ext.oneD_surf_operator, 
@@ -3458,7 +3466,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_strong(
         else 
         {
             soln_basis_ext.inner_product_surface_1D(face_orientation_ext, 
-                                                    neighbor_iface,
+                                                    neighbor_iface, n_quad_pts_1D_ext,
                                                     conv_ext_vol_ref_flux_interp_to_face_dot_ref_normal[istate], 
                                                     surf_quad_weights, rhs_ext, 
                                                     soln_basis_ext.oneD_surf_operator, 
@@ -3467,7 +3475,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_strong(
         }
         // dissipative flux
         soln_basis_ext.inner_product_surface_1D(face_orientation_ext, 
-                                                neighbor_iface,
+                                                neighbor_iface, n_quad_pts_1D_ext,
                                                 diffusive_ext_vol_ref_flux_interp_to_face_dot_ref_normal[istate], 
                                                 surf_quad_weights, rhs_ext, 
                                                 soln_basis_ext.oneD_surf_operator, 
@@ -3475,14 +3483,16 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_strong(
                                                 true, 1.0);//adding=true
         // convective numerical flux
         soln_basis_ext.inner_product_surface_1D(face_orientation_ext, 
-                                                neighbor_iface, conv_num_flux_dot_n[istate], 
+                                                neighbor_iface, n_quad_pts_1D_ext,
+                                                conv_num_flux_dot_n[istate], 
                                                 surf_quad_weights, rhs_ext, 
                                                 soln_basis_ext.oneD_surf_operator, 
                                                 soln_basis_ext.oneD_vol_operator,
                                                 true, 1.0);//adding=true, scaled by factor=1.0 because negative numerical flux and subtract it
         // dissipative numerical flux
         soln_basis_ext.inner_product_surface_1D(face_orientation_ext, 
-                                                neighbor_iface, diss_auxi_num_flux_dot_n[istate], 
+                                                neighbor_iface, n_quad_pts_1D_ext,
+                                                diss_auxi_num_flux_dot_n[istate], 
                                                 surf_quad_weights, rhs_ext, 
                                                 soln_basis_ext.oneD_surf_operator, 
                                                 soln_basis_ext.oneD_vol_operator,

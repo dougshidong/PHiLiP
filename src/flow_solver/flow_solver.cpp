@@ -85,6 +85,14 @@ FlowSolver<dim, nstate>::FlowSolver(
         dealii::parallel::distributed::SolutionTransfer<dim, dealii::LinearAlgebra::distributed::Vector<double>, dealii::DoFHandler<dim>> solution_transfer(dg->dof_handler);
         solution_transfer.deserialize(solution_no_ghost);
         dg->solution = solution_no_ghost; //< assignment
+        if(flow_solver_param.compute_time_averaged_solution && (ode_solver->current_time > flow_solver_param.time_to_start_averaging)) {
+            dg->triangulation->load(flow_solver_param.restart_files_directory_name + std::string("/") + restart_filename_without_extension + std::string("_time_averaged"));
+            dealii::LinearAlgebra::distributed::Vector<double> time_averaged_solution_no_ghost;
+            time_averaged_solution_no_ghost.reinit(dg->locally_owned_dofs, this->mpi_communicator);
+            dealii::parallel::distributed::SolutionTransfer<dim, dealii::LinearAlgebra::distributed::Vector<double>, dealii::DoFHandler<dim>> time_averaged_solution_transfer(dg->dof_handler);
+            time_averaged_solution_transfer.deserialize(time_averaged_solution_no_ghost);
+            dg->time_averaged_solution = time_averaged_solution_no_ghost; //< assignment
+        }
 #endif
         pcout << "done." << std::endl;
     } else {
@@ -352,7 +360,13 @@ void FlowSolver<dim,nstate>::output_restart_files(
     // ----- Ref: https://www.dealii.org/current/doxygen/deal.II/classparallel_1_1distributed_1_1SolutionTransfer.html
     solution_transfer.prepare_for_serialization(dg->solution);
     dg->triangulation->save(flow_solver_param.restart_files_directory_name + std::string("/") + restart_filename_without_extension);
-    
+
+    if(flow_solver_param.compute_time_averaged_solution && (ode_solver->current_time > flow_solver_param.time_to_start_averaging)) {
+        // time-averaged solution files
+        dealii::parallel::distributed::SolutionTransfer<dim, dealii::LinearAlgebra::distributed::Vector<double>, dealii::DoFHandler<dim>> time_averaged_solution_transfer(dg->dof_handler);
+        time_averaged_solution_transfer.prepare_for_serialization(dg->time_averaged_solution);
+        dg->triangulation->save(flow_solver_param.restart_files_directory_name + std::string("/") + restart_filename_without_extension +  std::string("_time_averaged"));
+    }
     // unsteady data table
     if(mpi_rank==0) {
         std::string restart_unsteady_data_table_filename = flow_solver_param.unsteady_data_table_filename+std::string("-")+restart_filename_without_extension+std::string(".txt");

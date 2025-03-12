@@ -203,7 +203,7 @@ void SumFactorizedOperators<dim,n_faces>::face_orientation_tensor_product(
     std::vector<double> output_vect_temp = output_vect;
     //const unsigned int columns = basis.n();
     const unsigned int columns = n_quad_pts_1D;
-    if(!face_orientation[0]){
+    if(!face_orientation){
         for(unsigned int ydof=0; ydof<columns; ydof++){ 
             for(unsigned int xdof=0; xdof<columns; xdof++){//x runs fastest
                 output_vect[xdof+ydof*columns] = output_vect_temp[columns*xdof+ydof];
@@ -227,7 +227,7 @@ void SumFactorizedOperators<dim,n_faces>::face_orientation_inner_product(
     //weight_output_vect = weight_vect;
     //const unsigned int columns = basis.n();
     const unsigned int columns = n_quad_pts_1D;
-    if(!face_orientation[0]){
+    if(!face_orientation){
         for(unsigned int ydof=0; ydof<columns; ydof++){ 
             for(unsigned int xdof=0; xdof<columns; xdof++){//x runs fastest
                 output_vect[xdof+ydof*columns] = input_vect[columns*xdof+ydof];

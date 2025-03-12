@@ -3024,7 +3024,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_strong(
         soln_basis_int.matrix_vector_mult_1D(entropy_var_coeff_int,
                                              projected_entropy_var_vol_int[istate],
                                              soln_basis_int.oneD_vol_operator);
-        soln_basis_int.matrix_vector_mult_surface_1D(/*face_orientation_int*/{true,false,false}, 
+        soln_basis_int.matrix_vector_mult_surface_1D(true, 
                                                      iface, n_quad_pts_1D_int,
                                                      entropy_var_coeff_int, 
                                                      projected_entropy_var_surf_int[istate],
@@ -3047,7 +3047,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_strong(
         soln_basis_ext.matrix_vector_mult_1D(entropy_var_coeff_ext,
                                              projected_entropy_var_vol_ext[istate],
                                              soln_basis_ext.oneD_vol_operator);
-        soln_basis_ext.matrix_vector_mult_surface_1D(/*neighbor_cell->face_orientation(neighbor_iface)*/{true,false,false}, 
+        soln_basis_ext.matrix_vector_mult_surface_1D(true, 
                                                      neighbor_iface, n_quad_pts_1D_ext,
                                                      entropy_var_coeff_ext, 
                                                      projected_entropy_var_surf_ext[istate],
@@ -3390,7 +3390,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_strong(
         // convective flux
         if(this->all_parameters->use_split_form || this->all_parameters->use_curvilinear_split_form){
             std::vector<real> ones_surf(n_face_quad_pts, 1.0);
-            soln_basis_int.inner_product_surface_1D(/*face_orientation_int*/{true,false,false}, 
+            soln_basis_int.inner_product_surface_1D(true, 
                                                     iface, n_quad_pts_1D_int,
                                                     surf_vol_ref_2pt_flux_interp_surf_int[istate], 
                                                     ones_surf, rhs_int, 
@@ -3449,7 +3449,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_strong(
         // convective flux
         if(this->all_parameters->use_split_form || this->all_parameters->use_curvilinear_split_form){
             std::vector<real> ones_surf(n_face_quad_pts, 1.0);
-            soln_basis_ext.inner_product_surface_1D(/*face_orientation_ext*/{true,false,false}, 
+            soln_basis_ext.inner_product_surface_1D(true, 
                                                     neighbor_iface, n_quad_pts_1D_ext,
                                                     surf_vol_ref_2pt_flux_interp_surf_ext[istate], 
                                                     ones_surf, rhs_ext, 

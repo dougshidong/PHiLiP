@@ -322,21 +322,6 @@ public:
     * Explicitly, this passes basis_surf in the direction by face_number, and basis_vol
     * in all other directions.
     */
-    void face_orientation_tensor_product(
-            const bool face_orientation,
-            const unsigned int face_number,
-            std::vector<double> &output_vect,
-            const dealii::FullMatrix<double> &basis);
-
-    void face_orientation_inner_product(
-            const bool face_orientation,
-            const unsigned int face_number,
-            const std::vector<double> &input_vect,
-            const std::vector<double> &weight_vect,
-            std::vector<double> &output_vect,
-            std::vector<double> &weight_output_vect,
-            const dealii::FullMatrix<double> &basis);
-
 
     void matrix_vector_mult_surface_1D(
             const bool face_orientation,
@@ -371,14 +356,14 @@ public:
     */
     
     void face_orientation_tensor_product(
-            const std::vector<bool> face_orientation,
+            const bool face_orientation,
             const unsigned int face_number,
             const unsigned int n_quad_pts_1D,
             std::vector<double> &output_vect,
             const dealii::FullMatrix<double> &basis);
 
     void face_orientation_inner_product(
-            const std::vector<bool> face_orientation,
+            const bool face_orientation,
             const unsigned int face_number,
             const unsigned int n_quad_pts_1D,
             const std::vector<double> &input_vect,

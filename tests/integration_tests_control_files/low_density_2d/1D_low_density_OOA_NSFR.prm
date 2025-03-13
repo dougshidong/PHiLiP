@@ -49,10 +49,10 @@ end
 
 subsection flow_solver
   set flow_case_type = low_density
-  set poly_degree = 5
+  set poly_degree = 2
   set final_time = 1.0
   set adaptive_time_step = true
-  set courant_friedrichs_lewy_number = 0.7
+  set courant_friedrichs_lewy_number = 0.9
   set unsteady_data_table_filename = low_density_shock_energy
   subsection grid
     set number_of_mesh_refinements = 3

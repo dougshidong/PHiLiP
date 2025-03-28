@@ -14,6 +14,10 @@ template <int dim, int nstate, typename real>
 PositivityPreservingLimiter<dim, nstate, real>::PositivityPreservingLimiter(
     const Parameters::AllParameters* const parameters_input)
     : BoundPreservingLimiterState<dim,nstate,real>::BoundPreservingLimiterState(parameters_input)
+    , flow_solver_param(parameters_input->flow_solver_param)
+    , dx((flow_solver_param.grid_xmax-flow_solver_param.grid_xmin)/flow_solver_param.number_of_grid_elements_x)
+    , dy((flow_solver_param.grid_ymax-flow_solver_param.grid_ymin)/flow_solver_param.number_of_grid_elements_y)
+    , dz((flow_solver_param.grid_zmax-flow_solver_param.grid_zmin)/flow_solver_param.number_of_grid_elements_z)
 {
     // Create pointer to Euler Physics to compute pressure if pde_type==euler
     using PDE_enum = Parameters::AllParameters::PartialDifferentialEquation;
@@ -49,22 +53,15 @@ PositivityPreservingLimiter<dim, nstate, real>::PositivityPreservingLimiter(
         }
     }
 
-    if(dim >= 2 && (parameters_input->flow_solver_param.number_of_grid_elements_x == 1 || parameters_input->flow_solver_param.number_of_grid_elements_y == 1)) {
+    if(dim >= 2 && (flow_solver_param.number_of_grid_elements_x == 1 || flow_solver_param.number_of_grid_elements_y == 1)) {
         std::cout << "Error: number_of_grid_elements must be passed for all directions to use PPL Limiter." << std::endl;
         std::abort();
     }
 
-    if(dim == 3 && parameters_input->flow_solver_param.number_of_grid_elements_z == 1) {
+    if(dim == 3 && flow_solver_param.number_of_grid_elements_z == 1) {
         std::cout << "Error: number_of_grid_elements must be passed for all directions to use PPL Limiter." << std::endl;
         std::abort();
     }
-
-    this->dx = (parameters_input->flow_solver_param.grid_xmax-parameters_input->flow_solver_param.grid_xmin)
-                /parameters_input->flow_solver_param.number_of_grid_elements_x;
-    this->dy = (parameters_input->flow_solver_param.grid_ymax-parameters_input->flow_solver_param.grid_ymin)
-                /parameters_input->flow_solver_param.number_of_grid_elements_y;
-    this->dz = (parameters_input->flow_solver_param.grid_zmax-parameters_input->flow_solver_param.grid_zmin)
-                /parameters_input->flow_solver_param.number_of_grid_elements_z;
 }
 
 template <int dim, int nstate, typename real>
@@ -331,18 +328,7 @@ std::array<real, nstate> PositivityPreservingLimiter<dim, nstate, real>::get_sol
                 soln_cell_avg[istate] += avg_weight_3*soln_cell_avg_dim[2][istate];
 
             if (isnan(soln_cell_avg[istate])) {
-                std::cout << "Error: Solution Cell Avg is NaN - Aborting... " << std::endl 
-                          << "istate:  " << istate << std::endl 
-                          << "dx:   " << this->dx << std::endl 
-                          << "dy:   " << this->dy << std::endl 
-                          << "dz:   " << this->dz << std::endl 
-                          << "mu:   " << mu << std::endl 
-                          << "max_local_wave_speed_1:   " << max_local_wave_speed_1 << std::endl
-                          << "max_local_wave_speed_2:   " << max_local_wave_speed_2 << std::endl
-                          << "max_local_wave_speed_3:   " << max_local_wave_speed_3 << std::endl 
-                          << "lambda_1:   " << lambda_1 << std::endl
-                          << "lambda_2:   " << lambda_2 << std::endl
-                          << "lambda_3:   " << lambda_3 << std::endl << std::flush;
+                std::cout << "Error: Solution Cell Avg is NaN - Aborting... " << std::endl << std::flush;
                 std::abort();
             }
         }
@@ -473,12 +459,6 @@ void PositivityPreservingLimiter<dim, nstate, real>::limit(
         // Obtain solution cell average
         soln_cell_avg = get_soln_cell_avg_PPL(soln_at_q, n_quad_pts, oneD_quad_GLL.get_weights(), oneD_quad_GL.get_weights(), dt);
 
-        // for (unsigned int istate = 0; istate < nstate; ++istate) {
-        //     std::cout << soln_cell_avg[istate] << "   ";
-        // }
-        // std::cout << std::endl;
-
-
         real lower_bound = this->all_parameters->limiter_param.min_density;
         real p_avg = 1e-13;
 
@@ -595,9 +575,6 @@ void PositivityPreservingLimiter<dim, nstate, real>::limit(
             std::abort();
         }
 
-        if(theta < 1.0 || theta2 < 1.0) {
-            std::cout << "Limiter Turned On" << std::endl;
-        }
         // Write limited solution back and verify that positivity of density is satisfied
         write_limited_solution(solution, soln_coeff, n_shape_fns, current_dofs_indices);
     }

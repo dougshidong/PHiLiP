@@ -8,17 +8,17 @@ namespace PHiLiP::Grids {
 template<int dim, typename TriangulationType>
 void shock_tube_1D_grid(
     TriangulationType&  grid,
-    const Parameters::AllParameters *const parameters_input)
+    const Parameters::FlowSolverParam *const flow_solver_param)
 {
-    double xmax = parameters_input->flow_solver_param.grid_xmax;
-    double xmin = parameters_input->flow_solver_param.grid_xmin;
-    unsigned int n_subdivisions_x = parameters_input->flow_solver_param.number_of_grid_elements_x;
+    double xmax = flow_solver_param->grid_xmax;
+    double xmin = flow_solver_param->grid_xmin;
+    unsigned int n_subdivisions_x = flow_solver_param->number_of_grid_elements_x;
 
     dealii::GridGenerator::subdivided_hyper_cube(grid, n_subdivisions_x, xmin, xmax, true);
 
     int left_boundary_id = 9999;
     using flow_case_enum = Parameters::FlowSolverParam::FlowCaseType;
-    flow_case_enum flow_case_type = parameters_input->flow_solver_param.flow_case_type;
+    flow_case_enum flow_case_type = flow_solver_param->flow_case_type;
 
     if (flow_case_type == flow_case_enum::sod_shock_tube
         || flow_case_type == flow_case_enum::leblanc_shock_tube) {
@@ -38,115 +38,23 @@ void shock_tube_1D_grid(
 }
 
 template<int dim, typename TriangulationType>
-void nonsmooth_case_grid(
-    TriangulationType&  grid,
-    const Parameters::AllParameters *const parameters_input)
-{
-    double xmax = parameters_input->flow_solver_param.grid_xmax;
-    double xmin = parameters_input->flow_solver_param.grid_xmin;
-    unsigned int n_subdivisions_x = parameters_input->flow_solver_param.number_of_grid_elements_x;
-
-    dealii::GridGenerator::subdivided_hyper_cube(grid, n_subdivisions_x, xmin, xmax, true);
-
-    for (typename dealii::parallel::distributed::Triangulation<dim>::active_cell_iterator cell = grid.begin_active(); cell != grid.end(); ++cell) {
-        for (unsigned int face = 0; face < dealii::GeometryInfo<PHILIP_DIM>::faces_per_cell; ++face) {
-            if (cell->face(face)->at_boundary()) {
-                cell->face(face)->set_boundary_id(1000);
-            }
-        }
-    }
-}
-
-template<int dim, typename TriangulationType>
-void explosion_problem_grid(
-    TriangulationType& grid,
-    const Parameters::AllParameters* const parameters_input)
-{
-    double xmax = parameters_input->flow_solver_param.grid_xmax;
-    double xmin = parameters_input->flow_solver_param.grid_xmin;
-    double ymax = parameters_input->flow_solver_param.grid_ymax;
-    double ymin = parameters_input->flow_solver_param.grid_ymin;
-    double zmax = parameters_input->flow_solver_param.grid_zmax;
-    double zmin = parameters_input->flow_solver_param.grid_zmin;
-
-    unsigned int n_subdivisions_x = parameters_input->flow_solver_param.number_of_grid_elements_x;
-    unsigned int n_subdivisions_y = parameters_input->flow_solver_param.number_of_grid_elements_y;
-    unsigned int n_subdivisions_z = parameters_input->flow_solver_param.number_of_grid_elements_z;
-    
-    dealii::Point<dim> p1;
-    dealii::Point<dim> p2;
-    p1[0] = xmin; p1[1] = ymin;
-    p2[0] = xmax; p2[1] = ymax;
-
-    if(dim == 3) {
-        p1[2] = zmin;
-        p2[2] = zmax;
-    }
-    
-    std::vector<unsigned int> n_subdivisions(dim);
-
-    n_subdivisions[0] = n_subdivisions_x;
-    n_subdivisions[1] = n_subdivisions_y;
-
-    if(dim == 3)
-        n_subdivisions[2] = n_subdivisions_z;
-
-
-    dealii::GridGenerator::subdivided_hyper_rectangle(grid, n_subdivisions, p1, p2, true);
-    // Set boundary type and design type
-    for (typename dealii::parallel::distributed::Triangulation<dim>::active_cell_iterator cell = grid.begin_active(); cell != grid.end(); ++cell) {
-        for (unsigned int face = 0; face < dealii::GeometryInfo<PHILIP_DIM>::faces_per_cell; ++face) {
-            if (cell->face(face)->at_boundary()) {
-                cell->face(face)->set_boundary_id(1001);
-            }
-        }
-    }
-}
-
-template<int dim, typename TriangulationType>
 void double_mach_reflection_grid(
     TriangulationType&  grid,
-    const Parameters::AllParameters *const parameters_input) 
+    const Parameters::FlowSolverParam *const flow_solver_param) 
 {
-    double xmax = parameters_input->flow_solver_param.grid_xmax;
-    double xmin = parameters_input->flow_solver_param.grid_xmin;
-    double ymax = parameters_input->flow_solver_param.grid_ymax;
-    double ymin = parameters_input->flow_solver_param.grid_ymin;
-
-    unsigned int n_subdivisions_x = parameters_input->flow_solver_param.number_of_grid_elements_x;
-    unsigned int n_subdivisions_y = parameters_input->flow_solver_param.number_of_grid_elements_y;
-    
     dealii::Point<dim> p1;
     dealii::Point<dim> p2;
-    p1[0] = xmin; p1[1] = ymin;
-    p2[0] = xmax; p2[1] = ymax;
+    p1[0] = flow_solver_param->grid_xmin; p1[1] = flow_solver_param->grid_xmax;
+    p2[0] = flow_solver_param->grid_ymin; p2[1] = flow_solver_param->grid_ymax;
     
     std::vector<unsigned int> n_subdivisions(2);
 
-    // n_subdivisions[0] = n_subdivisions_x;//log2(128);
-    // n_subdivisions[1] = n_subdivisions_y;//log2(64);
+    n_subdivisions[0] = flow_solver_param->number_of_grid_elements_x;//log2(128);
+    n_subdivisions[1] = flow_solver_param->number_of_grid_elements_y;//log2(64);
 
-    const double uniform_spacing_x = (xmax-xmin)/n_subdivisions_x;
-    std::vector<std::vector<double> > step_sizes(dim);
-    // x-direction
-    for (unsigned int i=0; i<n_subdivisions_x; i++) {
-        step_sizes[0].push_back(uniform_spacing_x);
-    }
-    // y-direction
-    double y_spacing = uniform_spacing_x;
-    for (unsigned int j=0; j<n_subdivisions_y; j++) {
-        if(j < n_subdivisions_x/2.0)
-            step_sizes[1].push_back(uniform_spacing_x);
-        else{
-            y_spacing *= 2.0;
-            step_sizes[1].push_back(y_spacing);
-        }
-    }
-
-    dealii::GridGenerator::subdivided_hyper_rectangle(grid, step_sizes, p1, p2, true);
+    dealii::GridGenerator::subdivided_hyper_rectangle(grid, n_subdivisions, p1, p2, true);
 
     double bottom_x = 0.0;
-    double right_y = 0.0;
 
     // Set boundary type and design type
     for (typename dealii::parallel::distributed::Triangulation<dim>::active_cell_iterator cell = grid.begin_active(); cell != grid.end(); ++cell) {
@@ -154,13 +62,7 @@ void double_mach_reflection_grid(
             if (cell->face(face)->at_boundary()) {
                 unsigned int current_id = cell->face(face)->boundary_id();
                 if (current_id == 0) {
-                    if(right_y<=2.0){
-                        right_y += cell->extent_in_direction(1);
-                        cell->face(face)->set_boundary_id(1007); // x_left, post-shock
-                    }
-                    else {
-                        cell->face(face)->set_boundary_id(1001);
-                    }
+                    cell->face(face)->set_boundary_id(1007); // x_left, post-shock
                 }
                 else if (current_id == 1) {
                     cell->face(face)->set_boundary_id(1004); // x_right, riemann
@@ -176,7 +78,7 @@ void double_mach_reflection_grid(
                     }
                 }
                 else if (current_id == 3) {
-                    cell->face(face)->set_boundary_id(1004);
+                    cell->face(face)->set_boundary_id(1001);
                 }
             }
         }
@@ -186,15 +88,15 @@ void double_mach_reflection_grid(
 template<int dim, typename TriangulationType>
 void sedov_blast_wave_grid(
     TriangulationType&  grid,
-    const Parameters::AllParameters *const parameters_input) 
+    const Parameters::FlowSolverParam *const flow_solver_param) 
 {
-    double xmax = parameters_input->flow_solver_param.grid_xmax;
-    double xmin = parameters_input->flow_solver_param.grid_xmin;
-    double ymax = parameters_input->flow_solver_param.grid_ymax;
-    double ymin = parameters_input->flow_solver_param.grid_ymin;
+    double xmax = flow_solver_param->grid_xmax;
+    double xmin = flow_solver_param->grid_xmin;
+    double ymax = flow_solver_param->grid_ymax;
+    double ymin = flow_solver_param->grid_ymin;
 
-    unsigned int n_subdivisions_x = parameters_input->flow_solver_param.number_of_grid_elements_x;
-    unsigned int n_subdivisions_y = parameters_input->flow_solver_param.number_of_grid_elements_y;
+    unsigned int n_subdivisions_x = flow_solver_param->number_of_grid_elements_x;
+    unsigned int n_subdivisions_y = flow_solver_param->number_of_grid_elements_y;
     
     dealii::Point<dim> p1;
     dealii::Point<dim> p2;
@@ -224,70 +126,17 @@ void sedov_blast_wave_grid(
 }
 
 template<int dim, typename TriangulationType>
-void mach_3_wind_tunnel_grid(
-    TriangulationType&  grid,
-    const Parameters::AllParameters *const parameters_input) 
-{
-    double xmax = parameters_input->flow_solver_param.grid_xmax;
-    double xmin = parameters_input->flow_solver_param.grid_xmin;
-    double ymax = parameters_input->flow_solver_param.grid_ymax;
-    double ymin = parameters_input->flow_solver_param.grid_ymin;
-
-    unsigned int n_subdivisions_x = parameters_input->flow_solver_param.number_of_grid_elements_x;
-    unsigned int n_subdivisions_y = parameters_input->flow_solver_param.number_of_grid_elements_y;
-    
-    dealii::Point<dim> p1;
-    dealii::Point<dim> p2;
-    p1[0] = xmin; p1[1] = ymin;
-    p2[0] = xmax; p2[1] = ymax;
-    
-    std::vector<unsigned int> n_subdivisions(2);
-    n_subdivisions[0] = n_subdivisions_x;//log2(128);
-    n_subdivisions[1] = n_subdivisions_y;//log2(64);
-
-    std::vector<int> n_cells_remove(2);
-    n_cells_remove[0] = (-2.4/3.0)*n_subdivisions[0] - 1;
-    n_cells_remove[1] = (0.2/1.0)*n_subdivisions[1];
-
-    dealii::GridGenerator::subdivided_hyper_L(grid, n_subdivisions, p1, p2, n_cells_remove);
-    // double cell_length_y = ymax/n_subdivisions_y;
-    // Set boundary type and design type
-    double right_y = 0.0;
-    for (typename dealii::parallel::distributed::Triangulation<dim>::active_cell_iterator cell = grid.begin_active(); cell != grid.end(); ++cell) {
-        for (unsigned int face = 0; face < dealii::GeometryInfo<2>::faces_per_cell; ++face) {
-            if (cell->face(face)->at_boundary()) {
-                if (face == 0) {
-                    cell->face(face)->set_boundary_id(1007); // x_left, Inflow
-                }
-                else if (face == 1) {
-                    if (right_y < 0.2) {
-                        right_y += cell->extent_in_direction(1);
-                        cell->face(face)->set_boundary_id(1001); // x_right, Symmetry/Wall 
-                    }
-                    else {
-                        cell->face(face)->set_boundary_id(1009); // x_right, Outflow
-                    }
-                }
-                else if (face == 2 || face == 3) {
-                        cell->face(face)->set_boundary_id(1001); // y_top, y_bottom, Symmetry/Wall
-                }
-            }
-        }
-    }
-}
-
-template<int dim, typename TriangulationType>
 void shock_diffraction_grid(
     TriangulationType&  grid,
-    const Parameters::AllParameters *const parameters_input) 
+    const Parameters::FlowSolverParam *const flow_solver_param) 
 {
-    double xmax = parameters_input->flow_solver_param.grid_xmax;
-    double xmin = parameters_input->flow_solver_param.grid_xmin;
-    double ymax = parameters_input->flow_solver_param.grid_ymax;
-    double ymin = parameters_input->flow_solver_param.grid_ymin;
+    double xmax = flow_solver_param->grid_xmax;
+    double xmin = flow_solver_param->grid_xmin;
+    double ymax = flow_solver_param->grid_ymax;
+    double ymin = flow_solver_param->grid_ymin;
 
-    unsigned int n_subdivisions_x = parameters_input->flow_solver_param.number_of_grid_elements_x;
-    unsigned int n_subdivisions_y = parameters_input->flow_solver_param.number_of_grid_elements_y;
+    unsigned int n_subdivisions_x = flow_solver_param->number_of_grid_elements_x;
+    unsigned int n_subdivisions_y = flow_solver_param->number_of_grid_elements_y;
     
     dealii::Point<dim> p1;
     dealii::Point<dim> p2;
@@ -344,15 +193,15 @@ void shock_diffraction_grid(
 template<int dim, typename TriangulationType>
 void astrophysical_jet_grid(
     TriangulationType&  grid,
-    const Parameters::AllParameters *const parameters_input) 
+    const Parameters::FlowSolverParam *const flow_solver_param) 
 {
-    double xmax = parameters_input->flow_solver_param.grid_xmax;
-    double xmin = parameters_input->flow_solver_param.grid_xmin;
-    double ymax = parameters_input->flow_solver_param.grid_ymax;
-    double ymin = parameters_input->flow_solver_param.grid_ymin;
+    double xmax = flow_solver_param->grid_xmax;
+    double xmin = flow_solver_param->grid_xmin;
+    double ymax = flow_solver_param->grid_ymax;
+    double ymin = flow_solver_param->grid_ymin;
 
-    unsigned int n_subdivisions_x = parameters_input->flow_solver_param.number_of_grid_elements_x;
-    unsigned int n_subdivisions_y = parameters_input->flow_solver_param.number_of_grid_elements_y;
+    unsigned int n_subdivisions_x = flow_solver_param->number_of_grid_elements_x;
+    unsigned int n_subdivisions_y = flow_solver_param->number_of_grid_elements_y;
     
     dealii::Point<dim> p1;
     dealii::Point<dim> p2;
@@ -402,15 +251,15 @@ void astrophysical_jet_grid(
 template<int dim, typename TriangulationType>
 void svsw_grid(
     TriangulationType&  grid,
-    const Parameters::AllParameters *const parameters_input) 
+    const Parameters::FlowSolverParam *const flow_solver_param) 
 {
-    double xmax = parameters_input->flow_solver_param.grid_xmax;
-    double xmin = parameters_input->flow_solver_param.grid_xmin;
-    double ymax = parameters_input->flow_solver_param.grid_ymax;
-    double ymin = parameters_input->flow_solver_param.grid_ymin;
+    double xmax = flow_solver_param->grid_xmax;
+    double xmin = flow_solver_param->grid_xmin;
+    double ymax = flow_solver_param->grid_ymax;
+    double ymin = flow_solver_param->grid_ymin;
 
-    unsigned int n_subdivisions_x = parameters_input->flow_solver_param.number_of_grid_elements_x;
-    unsigned int n_subdivisions_y = parameters_input->flow_solver_param.number_of_grid_elements_y;
+    unsigned int n_subdivisions_x = flow_solver_param->number_of_grid_elements_x;
+    unsigned int n_subdivisions_y = flow_solver_param->number_of_grid_elements_y;
     
     dealii::Point<dim> p1;
     dealii::Point<dim> p2;
@@ -449,31 +298,22 @@ void svsw_grid(
 #if PHILIP_DIM==1
 template void shock_tube_1D_grid<1, dealii::Triangulation<1>>(
     dealii::Triangulation<1>&   grid,
-    const Parameters::AllParameters *const parameters_input);
+    const Parameters::FlowSolverParam *const flow_solver_param);
 #else
-template void explosion_problem_grid<PHILIP_DIM, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>(
-    dealii::parallel::distributed::Triangulation<PHILIP_DIM>& grid,
-    const Parameters::AllParameters* const parameters_input);
-template void nonsmooth_case_grid<2, dealii::parallel::distributed::Triangulation<2>>(
-    dealii::parallel::distributed::Triangulation<2>& grid,
-    const Parameters::AllParameters* const parameters_input);
 template void double_mach_reflection_grid<2, dealii::parallel::distributed::Triangulation<2>>(
     dealii::parallel::distributed::Triangulation<2>&    grid,
-    const Parameters::AllParameters *const parameters_input);
+    const Parameters::FlowSolverParam *const flow_solver_param);
 template void sedov_blast_wave_grid<2, dealii::parallel::distributed::Triangulation<2>>(
     dealii::parallel::distributed::Triangulation<2>&    grid,
-    const Parameters::AllParameters *const parameters_input);
-template void mach_3_wind_tunnel_grid<2, dealii::parallel::distributed::Triangulation<2>>(
-    dealii::parallel::distributed::Triangulation<2>&    grid,
-    const Parameters::AllParameters *const parameters_input);
+    const Parameters::FlowSolverParam *const flow_solver_param);
 template void shock_diffraction_grid<2, dealii::parallel::distributed::Triangulation<2>>(
     dealii::parallel::distributed::Triangulation<2>&    grid,
-    const Parameters::AllParameters *const parameters_input);
+    const Parameters::FlowSolverParam *const flow_solver_param);
 template void astrophysical_jet_grid<2, dealii::parallel::distributed::Triangulation<2>>(
     dealii::parallel::distributed::Triangulation<2>&    grid,
-    const Parameters::AllParameters *const parameters_input);
+    const Parameters::FlowSolverParam *const flow_solver_param);
 template void svsw_grid<2, dealii::parallel::distributed::Triangulation<2>>(
     dealii::parallel::distributed::Triangulation<2>&    grid,
-    const Parameters::AllParameters *const parameters_input);
+    const Parameters::FlowSolverParam *const flow_solver_param);
 #endif
 } // namespace PHiLiP::Grids

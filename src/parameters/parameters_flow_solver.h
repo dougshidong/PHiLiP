@@ -36,11 +36,8 @@ public:
         burgers_limiter,
         double_mach_reflection,
         sedov_blast_wave,
-        mach_3_wind_tunnel,
         shock_diffraction,
-        explosion_problem,
         astrophysical_jet,
-        nonsmooth_case,
         svsw
         };
     FlowCaseType flow_case_type; ///< Selected FlowCaseType from the input file

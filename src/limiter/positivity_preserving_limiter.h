@@ -27,6 +27,9 @@ public:
     /// Destructor
     ~PositivityPreservingLimiter() = default;
 
+    /// Flow solver parameters
+    const Parameters::FlowSolverParam flow_solver_param; 
+
     /// Pointer to TVB limiter class (TVB limiter can be applied in conjunction with this limiter)
     std::shared_ptr<BoundPreservingLimiterState<dim, nstate, real>> tvbLimiter;
 

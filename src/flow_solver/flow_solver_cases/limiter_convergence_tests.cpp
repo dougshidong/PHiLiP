@@ -42,18 +42,8 @@ std::shared_ptr<Triangulation> LimiterConvergenceTests<dim,nstate>::generate_gri
             dealii::Triangulation<dim>::smoothing_on_coarsening));
 #endif
 
-    using flow_case_enum = Parameters::FlowSolverParam::FlowCaseType;
-    flow_case_enum flow_case = this->all_param.flow_solver_param.flow_case_type;
-
-    double left = 0.0; double right = 0.0;
-
-    if (flow_case == flow_case_enum::nonsmooth_case) {
-        left = this->all_param.flow_solver_param.grid_xmin;
-        right = this->all_param.flow_solver_param.grid_xmax;
-    } else {
-        left = this->all_param.flow_solver_param.grid_left_bound;
-        right = this->all_param.flow_solver_param.grid_right_bound;
-    }
+    double left = this->all_param.flow_solver_param.grid_left_bound;
+    double right = this->all_param.flow_solver_param.grid_right_bound;
 
     const unsigned int number_of_refinements = this->all_param.flow_solver_param.number_of_mesh_refinements;
 
@@ -98,9 +88,6 @@ double LimiterConvergenceTests<dim, nstate>::get_adaptive_time_step(std::shared_
         const double cfl_number = this->all_param.flow_solver_param.courant_friedrichs_lewy_number;
         time_step = cfl_number * approximate_grid_spacing / this->maximum_local_wave_speed;
     }
-
-    if (flow_case == flow_case_enum::nonsmooth_case)
-        time_step =  0.00001;
 
     return time_step;
 }
@@ -168,7 +155,7 @@ void LimiterConvergenceTests<dim, nstate>::check_limiter_principle(DGBase<dim, d
     using flow_case_enum = Parameters::FlowSolverParam::FlowCaseType;
     flow_case_enum flow_case = this->all_param.flow_solver_param.flow_case_type;
 
-        //create 1D solution polynomial basis functions and corresponding projection operator
+    //create 1D solution polynomial basis functions and corresponding projection operator
     //to interpolate the solution to the quadrature nodes, and to project it back to the
     //modal coefficients.
     const unsigned int init_grid_degree = dg.max_grid_degree;
@@ -222,7 +209,7 @@ void LimiterConvergenceTests<dim, nstate>::check_limiter_principle(DGBase<dim, d
             soln_at_q[istate].resize(n_quad_pts);
             soln_basis.matrix_vector_mult_1D(soln_coeff[istate], soln_at_q[istate], soln_basis.oneD_vol_operator);
         }
-        if(flow_case == flow_case_enum::advection_limiter || flow_case == flow_case_enum::burgers_limiter || flow_case == flow_case_enum::nonsmooth_case){
+        if(flow_case == flow_case_enum::advection_limiter || flow_case == flow_case_enum::burgers_limiter){
             for (unsigned int istate = 0; istate < nstate; ++istate) {
                 for (unsigned int iquad = 0; iquad < n_quad_pts; ++iquad) {
                     // Verify that strict maximum principle is satisfied

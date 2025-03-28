@@ -45,7 +45,16 @@ subsection flow_solver
   set courant_friedrichs_lewy_number = 0.15
   set unsteady_data_table_filename = low_density_shock_energy
   subsection grid
+    set grid_left_bound = -0.5
+    set grid_right_bound = 0.5
     set number_of_mesh_refinements = 0
+
+    subsection positivity_preserving_tests
+      set grid_xmin = -0.5
+      set grid_xmax = 0.5
+      set grid_ymin = -0.5
+      set grid_ymax = 0.5
+    end
   end
 end
 

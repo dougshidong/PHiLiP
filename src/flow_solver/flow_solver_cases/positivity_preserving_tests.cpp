@@ -51,34 +51,22 @@ std::shared_ptr<Triangulation> PositivityPreservingTests<dim,nstate>::generate_g
     if (dim==1 && (flow_case_type == flow_case_enum::sod_shock_tube
         || flow_case_type == flow_case_enum::leblanc_shock_tube
         || flow_case_type == flow_case_enum::shu_osher_problem)) {
-        Grids::shock_tube_1D_grid<dim>(*grid, &this->all_param);
-    }
-    else if (flow_case_type == flow_case_enum::sod_shock_tube) {
-        Grids::explosion_problem_grid<dim>(*grid, &this->all_param);
-    }
-    else if ((dim == 2 || dim == 3) && flow_case_type == flow_case_enum::explosion_problem) {
-        Grids::explosion_problem_grid<dim>(*grid, &this->all_param);
-    }
-    else if (dim == 2 && flow_case_type == flow_case_enum::leblanc_shock_tube) {
-        Grids::explosion_problem_grid<dim>(*grid, &this->all_param);
+        Grids::shock_tube_1D_grid<dim>(*grid, &this->all_param.flow_solver_param);
     }
     else if (dim==2 && flow_case_type == flow_case_enum::sedov_blast_wave) {
-        Grids::sedov_blast_wave_grid<dim>(*grid, &this->all_param);
-    }
-    else if (dim==2 && flow_case_type == flow_case_enum::mach_3_wind_tunnel) {
-        Grids::mach_3_wind_tunnel_grid<dim>(*grid, &this->all_param);
+        Grids::sedov_blast_wave_grid<dim>(*grid, &this->all_param.flow_solver_param);
     }
     else if (dim==2 && flow_case_type == flow_case_enum::shock_diffraction) {
-        Grids::shock_diffraction_grid<dim>(*grid, &this->all_param);
+        Grids::shock_diffraction_grid<dim>(*grid, &this->all_param.flow_solver_param);
     }
     else if (dim==2 && flow_case_type == flow_case_enum::astrophysical_jet) {
-        Grids::astrophysical_jet_grid<dim>(*grid, &this->all_param);
+        Grids::astrophysical_jet_grid<dim>(*grid, &this->all_param.flow_solver_param);
     }
     else if (dim==2 && flow_case_type == flow_case_enum::double_mach_reflection) {
-            Grids::double_mach_reflection_grid<dim>(*grid, &this->all_param);
+            Grids::double_mach_reflection_grid<dim>(*grid, &this->all_param.flow_solver_param);
     }
     else if (dim==2 && flow_case_type == flow_case_enum::svsw) {
-            Grids::svsw_grid<dim>(*grid, &this->all_param);
+            Grids::svsw_grid<dim>(*grid, &this->all_param.flow_solver_param);
     }
     return grid;
 }

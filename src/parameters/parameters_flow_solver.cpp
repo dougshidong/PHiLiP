@@ -41,11 +41,8 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
                           " burgers_limiter | "
                           " double_mach_reflection | "
                           " sedov_blast_wave | "
-                          " mach_3_wind_tunnel | "
                           " shock_diffraction | "
-                          " explosion_problem | "
                           " astrophysical_jet | "
-                          " nonsmooth_case | "
                           " svsw |"),
                           "The type of flow we want to simulate. "
                           "Choices are "
@@ -70,11 +67,8 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
                           " burgers_limiter | "
                           " double_mach_reflection | "
                           " sedov_blast_wave | "
-                          " mach_3_wind_tunnel | "
                           " shock_diffraction | "
-                          " explosion_problem | "
-                          " astrophysical_jet | " 
-                          " nonsmooth_case  | "
+                          " astrophysical_jet | "
                           " svsw >. ");
 
         prm.declare_entry("poly_degree", "1",
@@ -395,19 +389,16 @@ void FlowSolverParam::parse_parameters(dealii::ParameterHandler &prm)
         else if (flow_case_type_string == "non_periodic_cube_flow")     {flow_case_type = non_periodic_cube_flow;}
         // Positivity Preserving Tests
         else if (flow_case_type_string == "sod_shock_tube")             {flow_case_type = sod_shock_tube;}
-        else if (flow_case_type_string == "low_density")             {flow_case_type = low_density;}
+        else if (flow_case_type_string == "low_density")                {flow_case_type = low_density;}
         else if (flow_case_type_string == "leblanc_shock_tube")         {flow_case_type = leblanc_shock_tube;}
         else if (flow_case_type_string == "shu_osher_problem")          {flow_case_type = shu_osher_problem;}
         else if (flow_case_type_string == "advection_limiter")          {flow_case_type = advection_limiter;}
         else if (flow_case_type_string == "burgers_limiter")            {flow_case_type = burgers_limiter;}
         else if (flow_case_type_string == "double_mach_reflection")     {flow_case_type = double_mach_reflection;}
         else if (flow_case_type_string == "sedov_blast_wave")           {flow_case_type = sedov_blast_wave;}
-        else if (flow_case_type_string == "mach_3_wind_tunnel")         {flow_case_type = mach_3_wind_tunnel;}
         else if (flow_case_type_string == "shock_diffraction")          {flow_case_type = shock_diffraction;}
-        else if (flow_case_type_string == "explosion_problem")          {flow_case_type = explosion_problem;}
         else if (flow_case_type_string == "astrophysical_jet")          {flow_case_type = astrophysical_jet;}
         else if (flow_case_type_string == "svsw")                       {flow_case_type = svsw;}
-        else if (flow_case_type_string == "nonsmooth_case")             {flow_case_type = nonsmooth_case;}
         
         poly_degree = prm.get_integer("poly_degree");
         

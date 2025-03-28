@@ -748,59 +748,6 @@ real InitialConditionFunction_DoubleMachReflection<dim, nstate, real>
 }
 
 // ========================================================
-// Sedov Blast Wave (2D) -- Initial Condition
-// INCLUDE REFERENCE LATER
-// ========================================================
-template <int dim, int nstate, typename real>
-InitialConditionFunction_SedovBlastWave<dim, nstate, real>
-::InitialConditionFunction_SedovBlastWave(
-    Parameters::AllParameters const* const param)
-    : InitialConditionFunction_EulerBase<dim, nstate, real>(param)
-    , gamma_gas(param->euler_param.gamma_gas)
-    , n_subdivisions(param->flow_solver_param.number_of_grid_elements_x)
-    , xmax(param->flow_solver_param.grid_xmax)
-    , xmin(param->flow_solver_param.grid_xmin)
-{
-    this->h = (xmax-xmin)/double(n_subdivisions);
-}
-
-
-template <int dim, int nstate, typename real>
-real InitialConditionFunction_SedovBlastWave<dim, nstate, real>
-::primitive_value(const dealii::Point<dim, real>& point, const unsigned int istate) const
-{
-    real value = 0.0;
-    if constexpr (dim == 2 && nstate == (dim + 2)) {
-        const real x = point[0];
-        const real y = point[1];
-        real r = sqrt(pow(x,2)+pow(y,2));
-        real r_0 = 4*this->h;
-
-        if (istate == 0) {
-            // density
-            value = 1.0;
-        }
-        else if (istate == 1) {
-            // x-velocity
-            value = 0.0;
-        }
-        else if (istate == 2) {
-            // y-velocity
-            value = 0.0;
-        }
-        else if (istate == 3) {
-            // pressure
-            if(r < r_0)
-                value = (this->gamma_gas - 1.0)/(dealii::numbers::PI*pow(r_0,2));
-            else
-                value = 1e-5;
-        }
-
-    }
-    return value;
-}
-
-// ========================================================
 // Shock Diffraction (backwards facing step) (2D) -- Initial Condition
 // INCLUDE REFERENCE LATER
 // ========================================================
@@ -1121,8 +1068,6 @@ InitialConditionFactory<dim,nstate, real>::create_InitialConditionFunction(
         if constexpr (dim == 1 && nstate == dim + 2)  return std::make_shared<InitialConditionFunction_ShuOsherProblem<dim, nstate, real> >(param);
     } else if (flow_type == FlowCaseEnum::double_mach_reflection) {
         if constexpr (dim == 2 && nstate == dim + 2)  return std::make_shared<InitialConditionFunction_DoubleMachReflection<dim, nstate, real> >(param);
-    } else if (flow_type == FlowCaseEnum::sedov_blast_wave) {
-        if constexpr (dim == 2 && nstate == dim + 2)  return std::make_shared<InitialConditionFunction_SedovBlastWave<dim, nstate, real> >(param);
     } else if (flow_type == FlowCaseEnum::shock_diffraction) {
         if constexpr (dim == 2 && nstate == dim + 2)  return std::make_shared<InitialConditionFunction_ShockDiffraction<dim, nstate, real> >(param);
     } else if (flow_type == FlowCaseEnum::astrophysical_jet) {
@@ -1172,7 +1117,6 @@ template class InitialConditionFunction_IsentropicVortex <PHILIP_DIM, PHILIP_DIM
 #if PHILIP_DIM==2
 template class InitialConditionFunction_KHI <PHILIP_DIM, PHILIP_DIM+2, double>;
 template class InitialConditionFunction_DoubleMachReflection <PHILIP_DIM, PHILIP_DIM+2, double>;
-template class InitialConditionFunction_SedovBlastWave <PHILIP_DIM, PHILIP_DIM+2, double>;
 template class InitialConditionFunction_ShockDiffraction <PHILIP_DIM, PHILIP_DIM+2, double>;
 template class InitialConditionFunction_AstrophysicalJet <PHILIP_DIM, PHILIP_DIM+2, double>;
 template class InitialConditionFunction_SVSW <PHILIP_DIM, PHILIP_DIM+2, double>;

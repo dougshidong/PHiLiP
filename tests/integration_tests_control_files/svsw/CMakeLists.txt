@@ -1,7 +1,7 @@
 set(TEST_OUTPUT_DIR ${CMAKE_CURRENT_BINARY_DIR})
 
 # =======================================
-# 1D Sod Shock Tube test
+# 2D Strong Vortex Shock Wave Case
 # =======================================
 configure_file(2D_svsw.prm 2D_svsw.prm COPYONLY)
 add_test(

@@ -40,7 +40,6 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
                           " advection_limiter | "
                           " burgers_limiter | "
                           " double_mach_reflection | "
-                          " sedov_blast_wave | "
                           " shock_diffraction | "
                           " astrophysical_jet | "
                           " svsw |"),
@@ -66,7 +65,6 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
                           " advection_limiter | "
                           " burgers_limiter | "
                           " double_mach_reflection | "
-                          " sedov_blast_wave | "
                           " shock_diffraction | "
                           " astrophysical_jet | "
                           " svsw >. ");
@@ -395,7 +393,6 @@ void FlowSolverParam::parse_parameters(dealii::ParameterHandler &prm)
         else if (flow_case_type_string == "advection_limiter")          {flow_case_type = advection_limiter;}
         else if (flow_case_type_string == "burgers_limiter")            {flow_case_type = burgers_limiter;}
         else if (flow_case_type_string == "double_mach_reflection")     {flow_case_type = double_mach_reflection;}
-        else if (flow_case_type_string == "sedov_blast_wave")           {flow_case_type = sedov_blast_wave;}
         else if (flow_case_type_string == "shock_diffraction")          {flow_case_type = shock_diffraction;}
         else if (flow_case_type_string == "astrophysical_jet")          {flow_case_type = astrophysical_jet;}
         else if (flow_case_type_string == "svsw")                       {flow_case_type = svsw;}

@@ -53,9 +53,6 @@ std::shared_ptr<Triangulation> PositivityPreservingTests<dim,nstate>::generate_g
         || flow_case_type == flow_case_enum::shu_osher_problem)) {
         Grids::shock_tube_1D_grid<dim>(*grid, &this->all_param.flow_solver_param);
     }
-    else if (dim==2 && flow_case_type == flow_case_enum::sedov_blast_wave) {
-        Grids::sedov_blast_wave_grid<dim>(*grid, &this->all_param.flow_solver_param);
-    }
     else if (dim==2 && flow_case_type == flow_case_enum::shock_diffraction) {
         Grids::shock_diffraction_grid<dim>(*grid, &this->all_param.flow_solver_param);
     }

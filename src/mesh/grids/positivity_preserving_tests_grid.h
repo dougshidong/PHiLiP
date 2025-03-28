@@ -21,11 +21,6 @@ void double_mach_reflection_grid(
     const Parameters::FlowSolverParam *const flow_solver_param);
 
 template<int dim, typename TriangulationType>
-void sedov_blast_wave_grid(
-    TriangulationType&  grid,
-    const Parameters::FlowSolverParam *const flow_solver_param);
-
-template<int dim, typename TriangulationType>
 void shock_diffraction_grid(
     TriangulationType&  grid,
     const Parameters::FlowSolverParam *const flow_solver_param);

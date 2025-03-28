@@ -35,7 +35,6 @@ public:
         advection_limiter,
         burgers_limiter,
         double_mach_reflection,
-        sedov_blast_wave,
         shock_diffraction,
         astrophysical_jet,
         svsw

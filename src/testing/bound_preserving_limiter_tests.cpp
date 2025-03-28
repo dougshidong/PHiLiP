@@ -246,7 +246,8 @@ int BoundPreservingLimiterTests<dim, nstate>::run_convergence_test() const
         convergence_table.set_scientific("soln_L2_error", true);
         convergence_table.set_scientific("soln_Linf_error", true);
         if (this->pcout.is_active()) convergence_table.write_text(this->pcout.get_stream());
-        sleep(5);
+        std::ofstream table_file("convergence_rates.txt");
+        convergence_table.write_text(table_file);
     }//end of grid loop
     return 0;
 }

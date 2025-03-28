@@ -1323,6 +1323,19 @@ void Euler<dim,nstate,real>
    }
 }
 
+template <int dim, int nstate, typename real>
+void Euler<dim, nstate, real>
+::boundary_do_nothing(
+    const std::array<real, nstate>& soln_int,
+    std::array<real, nstate>& soln_bc,
+    std::array<dealii::Tensor<1, dim, real>, nstate>& soln_grad_bc) const
+{
+    for (int istate = 0; istate < nstate; ++istate) {
+            soln_bc[istate] = soln_int[istate];
+            soln_grad_bc[istate] = 0;
+    }
+    
+}
 
 template <int dim, int nstate, typename real>
 void Euler<dim, nstate, real>
@@ -1363,21 +1376,6 @@ void Euler<dim, nstate, real>
     for (int istate = 0; istate < nstate; ++istate) {
         soln_bc[istate] = conservative_bc[istate];
     }
-}
-
-template <int dim, int nstate, typename real>
-void Euler<dim, nstate, real>
-::boundary_do_nothing(
-    const std::array<real, nstate>& soln_int,
-    const std::array<dealii::Tensor<1, dim, real>, nstate>& /*soln_grad_int*/,
-    std::array<real, nstate>& soln_bc,
-    std::array<dealii::Tensor<1, dim, real>, nstate>& soln_grad_bc) const
-{
-    for (int istate = 0; istate < nstate; ++istate) {
-            soln_bc[istate] = soln_int[istate];
-            soln_grad_bc[istate] = 0;//soln_grad_int[istate];
-    }
-    
 }
 
 template <int dim, int nstate, typename real>
@@ -1425,16 +1423,16 @@ void Euler<dim,nstate,real>
         boundary_slip_wall (normal_int, soln_int, soln_grad_int, soln_bc, soln_grad_bc);
     }
     else if (boundary_type == 1007) {
-        // Custom boundary condition
-        boundary_custom (soln_bc);
+        // Do nothing bc, p0 interpolation
+        boundary_do_nothing (soln_int, soln_bc, soln_grad_bc);
     }
     else if (boundary_type == 1008) {
-        // Custom boundary condition
-        boundary_astrophysical_inflow (soln_bc);
+        // Custom boundary condition, user defined in parameters
+        boundary_custom (soln_bc);
     }
     else if (boundary_type == 1009) {
-        // Custom boundary condition
-        boundary_do_nothing (soln_int, soln_grad_int, soln_bc, soln_grad_bc);
+        // Boundary specific to the the astrophysical jet case
+        boundary_astrophysical_inflow (soln_bc);
     }
     else {
         this->pcout << "Invalid boundary_type: " << boundary_type << std::endl;

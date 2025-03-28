@@ -18,7 +18,7 @@ set flux_nodes_type = GLL
 set use_split_form = true
 set two_point_num_flux_type = Ra
 set conv_num_flux = two_point_flux_with_roe_dissipation
-set flux_reconstruction = cPlus
+set flux_reconstruction = cDG
 set use_inverse_mass_on_the_fly = true
 
 subsection limiter
@@ -34,7 +34,7 @@ subsection ODE solver
   #set output_solution_every_x_steps = 5
   set runge_kutta_method = ssprk3_ex
   set print_iteration_modulo = 1
-  set output_solution_every_dt_time_intervals = 0.01
+  set output_solution_every_dt_time_intervals = 0.1
 end
 
 # freestream Mach number
@@ -49,7 +49,7 @@ subsection flow_solver
   set poly_degree = 3
   set final_time = 0.7
   #set constant_time_step = 0.0005
-  set courant_friedrichs_lewy_number = 0.58
+  set courant_friedrichs_lewy_number = 0.5
   set adaptive_time_step = true
   set unsteady_data_table_filename = svsw_energy
   subsection grid
@@ -59,8 +59,8 @@ subsection flow_solver
       set grid_ymin = 0.0
       set grid_ymax = 1.0
 
-      set number_of_grid_elements_x = 300
-      set number_of_grid_elements_y = 150
+      set number_of_grid_elements_x = 50
+      set number_of_grid_elements_y = 25
     end
   end
 end

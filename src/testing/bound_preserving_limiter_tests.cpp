@@ -159,8 +159,10 @@ int BoundPreservingLimiterTests<dim, nstate>::run_convergence_test() const
     dealii::ConvergenceTable convergence_table;
     std::vector<double> grid_size(n_grids);
     std::vector<double> soln_error_l2(n_grids);
+    int refinement = 0;
+    double average_order = 0.0;
 
-    for (unsigned int igrid = 3; igrid < n_grids; igrid++) {
+    for (unsigned int igrid = 3; igrid < n_grids; igrid++, refinement++) {
 
         pcout << "\n" << "Creating FlowSolver" << std::endl;
 
@@ -221,6 +223,8 @@ int BoundPreservingLimiterTests<dim, nstate>::run_convergence_test() const
         if (igrid > 0) {
             const double slope_soln_err = log(soln_error_l2[igrid] / soln_error_l2[igrid - 1])
                 / log(grid_size[igrid] / grid_size[igrid - 1]);
+
+            average_order += slope_soln_err;
             this->pcout << "From grid " << igrid - 1
                 << "  to grid " << igrid
                 << "  dimension: " << dim
@@ -246,9 +250,14 @@ int BoundPreservingLimiterTests<dim, nstate>::run_convergence_test() const
         convergence_table.set_scientific("soln_L2_error", true);
         convergence_table.set_scientific("soln_Linf_error", true);
         if (this->pcout.is_active()) convergence_table.write_text(this->pcout.get_stream());
+
         std::ofstream table_file("convergence_rates.txt");
         convergence_table.write_text(table_file);
+
+        
     }//end of grid loop
+    average_order /= double(refinement);
+    std::cout << "The average order across all refinements is: " << average_order << std::endl;
     return 0;
 }
 

@@ -153,7 +153,7 @@ void RungeKuttaODESolver<dim,real,n_rk_stages,MeshType>::allocate_ode_system ()
         }
     }
     this->pcout << std::endl;
-
+    
     this->rk_stage.resize(n_rk_stages);
     for (int i=0; i<n_rk_stages; ++i) {
         this->rk_stage[i].reinit(this->dg->solution);
@@ -167,6 +167,7 @@ void RungeKuttaODESolver<dim,real,n_rk_stages,MeshType>::allocate_ode_system ()
               false); 
     for (int i=0; i<n_rk_stages; ++i) {
         if (this->butcher_tableau->get_a(i,i)==0.0)     this->butcher_tableau_aii_is_zero[i] = true;
+    
     }
 }
 

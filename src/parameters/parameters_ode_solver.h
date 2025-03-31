@@ -14,15 +14,22 @@ public:
     /// Types of ODE solver
     enum ODESolverEnum {
         runge_kutta_solver, /// Runge-Kutta (RK), explicit or diagonally implicit 
+        low_storage_runge_kutta_solver, /// Low Storage Runge-Kutta
         implicit_solver,  /// Backward-Euler
         rrk_explicit_solver, /// Explicit RK using the relaxation Runge-Kutta method (Ketcheson, 2019)
         pod_galerkin_solver, ///Proper Orthogonal Decomposition with Galerkin projection
-        pod_petrov_galerkin_solver ///Proper Orthogonal Decomposition with Petrov-Galerkin projection (LSPG)
+        pod_petrov_galerkin_solver, ///Proper Orthogonal Decomposition with Petrov-Galerkin projection (LSPG)
+        hyper_reduced_petrov_galerkin_solver ///Proper Orthogonal Decomposition with Petrov-Galerkin projection (LSPG) and ECSW Hyper-reduction
     };
 
     OutputEnum ode_output; ///< verbose or quiet.
     ODESolverEnum ode_solver_type; ///< ODE solver type.
 
+    double atol; ///< Absolute tolerance
+    double rtol; ///< Relative tolerance
+    double beta1; ///< First value for beta controller;
+    double beta2; ///< Second value for beta controller;
+    double beta3; ///< Third value for beta controller;
     int output_solution_every_x_steps; ///< Outputs the solution every x steps to .vtk file
     double output_solution_every_dt_time_intervals; ///< Outputs the solution every dt time intervals to .vtk file
     bool output_solution_at_fixed_times; ///< Flag for outputting solution at fixed times
@@ -61,12 +68,18 @@ public:
         euler_ex, ///Forward Euler
         euler_im, ///Implicit Euler
         dirk_2_im, ///Second-order diagonally-implicit RK
-        dirk_3_im ///Third-order diagonally-implicit RK
+        dirk_3_im, ///Third-order diagonally-implicit RK
+        RK4_3_5_3SStar, ///Fourth-order, three register low-storage Runge-Kutta method
+        RK3_2_5F_3SStarPlus, ///Third-order, FSAL, three register low-storage Runge-Kutta method with a fourth register for an error estimate
+        RK4_3_9F_3SStarPlus, ///Fourth-order, FSAL, three register low-storage Runge-Kutta method with a fourth register for an error estimate
+        RK5_4_10F_3SStarPlus ///Fifth-order, FSAL, three register low-storage Runge-Kutta method with a fourth register for an error estimate
     };
 
     RKMethodEnum runge_kutta_method; ///< Runge-kutta method.
     int n_rk_stages; ///< Number of stages for an RK method; assigned based on runge_kutta_method
     int rk_order; ///< Order of the RK method; assigned based on runge_kutta_method
+    int num_delta; ///< Number of delta values in low-storage RK methods
+    bool is_3Sstarplus; ///< True or false depending on what low-storage RK method is used
 
     /// Flag to signal that automatic differentiation (AD) matrix dRdW must be allocated
     bool allocate_matrix_dRdW;

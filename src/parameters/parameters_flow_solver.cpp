@@ -99,9 +99,13 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
                           dealii::Patterns::Bool(),
                           "Solve steady-state solution. False by default (i.e. unsteady by default).");
 
+        prm.declare_entry("error_adaptive_time_step", "false",
+                          dealii::Patterns::Bool(),
+                          "Adapt the time step on the fly for unsteady flow simulations according to an estimate of temporal error. False by default (i.e. constant time step by default).");
+
         prm.declare_entry("adaptive_time_step", "false",
                           dealii::Patterns::Bool(),
-                          "Adapt the time step on the fly for unsteady flow simulations. False by default (i.e. constant time step by default).");
+                          "Adapt the time step on the fly for unsteady flow simulations according to a CFL condition. False by default (i.e. constant time step by default).");
 
         prm.declare_entry("steady_state_polynomial_ramping", "false",
                           dealii::Patterns::Bool(),
@@ -403,13 +407,13 @@ void FlowSolverParam::parse_parameters(dealii::ParameterHandler &prm)
         max_poly_degree_for_adaptation = prm.get_integer("max_poly_degree_for_adaptation");
         // -- set value to poly_degree if it is the default value
         if(max_poly_degree_for_adaptation == 0) max_poly_degree_for_adaptation = poly_degree;
-        
         final_time = prm.get_double("final_time");
         constant_time_step = prm.get_double("constant_time_step");
         courant_friedrichs_lewy_number = prm.get_double("courant_friedrichs_lewy_number");
         unsteady_data_table_filename = prm.get("unsteady_data_table_filename");
         steady_state = prm.get_bool("steady_state");
         steady_state_polynomial_ramping = prm.get_bool("steady_state_polynomial_ramping");
+        error_adaptive_time_step = prm.get_bool("error_adaptive_time_step");
         adaptive_time_step = prm.get_bool("adaptive_time_step");
         sensitivity_table_filename = prm.get("sensitivity_table_filename");
         restart_computation_from_file = prm.get_bool("restart_computation_from_file");

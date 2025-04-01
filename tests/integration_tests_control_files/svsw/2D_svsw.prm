@@ -45,7 +45,7 @@ subsection euler
 end
 
 subsection flow_solver
-  set flow_case_type = svsw
+  set flow_case_type = strong_vortex_shock_wave
   set poly_degree = 3
   set final_time = 0.7
   #set constant_time_step = 0.0005

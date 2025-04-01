@@ -12,17 +12,20 @@ template <int dim, int nstate>
 class PositivityPreservingTests : public CubeFlow_UniformGrid<dim, nstate>
 {
 #if PHILIP_DIM==1
-     using Triangulation = dealii::Triangulation<PHILIP_DIM>;
+    using Triangulation = dealii::Triangulation<PHILIP_DIM>;
  #else
-     using Triangulation = dealii::parallel::distributed::Triangulation<PHILIP_DIM>;
+    using Triangulation = dealii::parallel::distributed::Triangulation<PHILIP_DIM>;
  #endif
 
  public:
-     explicit PositivityPreservingTests(const Parameters::AllParameters *const parameters_input);
+    /// Constructor.
+    explicit PositivityPreservingTests(const Parameters::AllParameters *const parameters_input);
      
-     std::shared_ptr<Triangulation> generate_grid() const override;
+    /// Function to generate the grid
+    std::shared_ptr<Triangulation> generate_grid() const override;
 
-     void display_additional_flow_case_specific_parameters() const override;
+    /// Display additional more specific flow case parameters
+    void display_additional_flow_case_specific_parameters() const override;
 
  protected:
     /// Function to compute the adaptive time step

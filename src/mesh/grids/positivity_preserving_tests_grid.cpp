@@ -10,9 +10,9 @@ void shock_tube_1D_grid(
     TriangulationType&  grid,
     const Parameters::FlowSolverParam *const flow_solver_param)
 {
-    double xmax = flow_solver_param->grid_xmax;
-    double xmin = flow_solver_param->grid_xmin;
-    unsigned int n_subdivisions_x = flow_solver_param->number_of_grid_elements_x;
+    const double xmax = flow_solver_param->grid_xmax;
+    const double xmin = flow_solver_param->grid_xmin;
+    const unsigned int n_subdivisions_x = flow_solver_param->number_of_grid_elements_x;
 
     dealii::GridGenerator::subdivided_hyper_cube(grid, n_subdivisions_x, xmin, xmax, true);
 
@@ -166,7 +166,7 @@ void astrophysical_jet_grid(
     dealii::GridGenerator::subdivided_hyper_rectangle(grid, n_subdivisions, p1, p2, true);
 
     double left_y = 0.0;
-    double dy = (p2[1]-p2[0])/n_subdivisions[1];
+    const double dy = (p2[1]-p2[0])/n_subdivisions[1];
 
     // Set boundary type and design type
     for (typename dealii::parallel::distributed::Triangulation<dim>::active_cell_iterator cell = grid.begin_active(); cell != grid.end(); ++cell) {

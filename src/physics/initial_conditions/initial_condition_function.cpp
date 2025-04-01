@@ -546,7 +546,7 @@ real InitialConditionFunction_SodShockTube<dim, nstate, real>
 
 // ========================================================
 // 1D Leblanc Shock tube -- Initial Condition
-// See Zhang & Shu, On positivity-preserving..., 2010 Pg. 14 for 1D
+// See Zhang & Shu, On positivity-preserving..., 2010 Pg. 14
 // ========================================================
 template <int dim, int nstate, typename real>
 InitialConditionFunction_LeblancShockTube<dim,nstate,real>
@@ -560,7 +560,7 @@ real InitialConditionFunction_LeblancShockTube<dim, nstate, real>
 ::primitive_value(const dealii::Point<dim, real>& point, const unsigned int istate) const
 {
     real value = 0.0;
-    if (dim == 1 && nstate == (dim + 2)) {
+    if constexpr (dim == 1 && nstate == (dim + 2)) {
         const real x = point[0];
         if (x < 0) {
             if (istate == 0) {
@@ -646,8 +646,7 @@ real InitialConditionFunction_ShuOsherProblem<dim, nstate, real>
 
 // =====================================================================
 // Low Density Euler -- Initial Condition
-// FOR 1D: See Dzanic & Martinelli, High-order limiting..., 2025, Pg. 15
-// FOR 2D: See Zhang & Shu, On positivity-preserving..., 2010 Pg. 10
+// See Dzanic & Martinelli, High-order limiting..., 2025, Pg. 15
 // =====================================================================
 template <int dim, int nstate, typename real>
 InitialConditionFunction_LowDensity<dim,nstate,real>
@@ -688,10 +687,10 @@ real InitialConditionFunction_LowDensity<dim, nstate, real>
     return value;
 }
 
-// ========================================================
+// ==================================================================
 // Double Mach Reflection Problem (2D) -- Initial Condition
-// INCLUDE REFERENCE LATER
-// ========================================================
+// See Lin, Chan, and Tomas. "A positivity preserving ...", 2023, p20
+// ==================================================================
 template <int dim, int nstate, typename real>
 InitialConditionFunction_DoubleMachReflection<dim, nstate, real>
 ::InitialConditionFunction_DoubleMachReflection(
@@ -749,7 +748,7 @@ real InitialConditionFunction_DoubleMachReflection<dim, nstate, real>
 
 // ========================================================
 // Shock Diffraction (backwards facing step) (2D) -- Initial Condition
-// INCLUDE REFERENCE LATER
+// See Zhang & Shu, On positivity-preserving..., 2010 Pg. 15
 // ========================================================
 template <int dim, int nstate, typename real>
 InitialConditionFunction_ShockDiffraction<dim, nstate, real>
@@ -763,7 +762,7 @@ real InitialConditionFunction_ShockDiffraction<dim, nstate, real>
 ::primitive_value(const dealii::Point<dim, real>& point, const unsigned int istate) const
 {
     real value = 0.0;
-    real x = point[0];
+    const real x = point[0];
     //real y = point[1];
     if constexpr (dim == 2 && nstate == (dim + 2)) {
         if (x <= 0.5) {
@@ -809,7 +808,7 @@ real InitialConditionFunction_ShockDiffraction<dim, nstate, real>
 
 // ========================================================
 // Astrophysical Mach Jet (2D) -- Initial Condition
-// INCLUDE REFERENCE LATER
+// See Zhang & Shu, On positivity-preserving..., 2010 Pg. 14
 // ========================================================
 template <int dim, int nstate, typename real>
 InitialConditionFunction_AstrophysicalJet<dim, nstate, real>
@@ -848,7 +847,8 @@ real InitialConditionFunction_AstrophysicalJet<dim, nstate, real>
 
 // ========================================================
 // Strong Vortex Shock Wave Interaction (2D) -- Initial Condition
-// INCLUDE REFERENCE LATER
+// See High Fidelity CFD Workshop 2022
+// Unsteady Supersonic/Hypersonic Test Suite
 // ========================================================
 template <int dim, int nstate, typename real>
 InitialConditionFunction_SVSW<dim, nstate, real>
@@ -862,31 +862,31 @@ real InitialConditionFunction_SVSW<dim, nstate, real>
 ::primitive_value(const dealii::Point<dim, real>& point, const unsigned int istate) const
 {
     real value = 0.0;
-    real x = point[0];
-    real y = point[1];
+    const real x = point[0];
+    const real y = point[1];
 
     if constexpr (dim == 2 && nstate == (dim + 2)) {
         // Ideal gas
-        real gamma = 1.4;
-        real R = 1.0;
+        const real gamma = 1.4;
+        const real R = 1.0;
 
         // Upstream conditions
-        real rho_u = 1.0;
-        real u_u = 1.5*sqrt(1.4);
-        real v_u = 0.0;
-        real p_u = 1.0;
-        real t_u = p_u/(rho_u*R);
+        const real rho_u = 1.0;
+        const real u_u = 1.5*sqrt(1.4);
+        const real v_u = 0.0;
+        const real p_u = 1.0;
+        const real t_u = p_u/(rho_u*R);
 
 
 
         // Shock condition
-        real M_s = 1.5;
+        const real M_s = 1.5;
 
         // Downstream conditions
-        real rho_d = (rho_u * (gamma + 1.0) * M_s * M_s) / (2.0 + (gamma - 1.0) * M_s * M_s);
-        real u_d = (u_u * (2.0 + ((gamma - 1.0) * M_s * M_s)))/((gamma + 1.0) * M_s * M_s);
-        real v_d = 0.0;
-        real p_d = p_u * (1.0 + (2.0 * gamma / (gamma + 1.0)) * (M_s * M_s - 1.0));
+        const real rho_d = (rho_u * (gamma + 1.0) * M_s * M_s) / (2.0 + (gamma - 1.0) * M_s * M_s);
+        const real u_d = (u_u * (2.0 + ((gamma - 1.0) * M_s * M_s)))/((gamma + 1.0) * M_s * M_s);
+        const real v_d = 0.0;
+        const real p_d = p_u * (1.0 + (2.0 * gamma / (gamma + 1.0)) * (M_s * M_s - 1.0));
 
         if (x <= 0.5){
             if (istate == 0) {
@@ -926,48 +926,48 @@ real InitialConditionFunction_SVSW<dim, nstate, real>
 
         if(x <= 0.5) {
             // Vortex location
-            real x_c = 0.25; real y_c = 0.5;
+            const real x_c = 0.25; const real y_c = 0.5;
 
             // Vortex sizes
-            real a = 0.075; real b = 0.175;
+            const real a = 0.075; const real b = 0.175;
 
             // Vortex strength
-            real M_v = 0.9; real v_m = M_v * sqrt(gamma);
+            const real M_v = 0.9; const real v_m = M_v * sqrt(gamma);
 
             // Distance from vortex
-            real dx = x - x_c;
-            real dy = y - y_c;
-            real r = sqrt((dx*dx) + (dy*dy));
+            const real dx = x - x_c;
+            const real dy = y - y_c;
+            const real r = sqrt((dx*dx) + (dy*dy));
 
-            real temperature = 0.0;
+            const real temperature = 0.0;
 
             // Superimpose vortex
             if (r<=b) {
-                double sin_theta = dy/r;
-                double cos_theta = dx/r;
+                const double sin_theta = dy/r;
+                const double cos_theta = dx/r;
 
                 if (r<=a) {
-                    real mag = v_m * r / a;
+                    const real mag = v_m * r / a;
                     if(istate == 1)
                         value = u_u - mag*sin_theta;
                     else if(istate == 2)
                         value = v_u + mag*cos_theta;
                     else {
                         // Temperature at a, integrated from ODE
-                        real radial_term = -2.0 * b * b * log(b) - (0.5 * a * a) + (2.0 * b * b * log(a)) + (0.5 * b * b * b * b / (a * a));
-                        real t_a = t_u - (gamma - 1.0) * pow(v_m * a / (a * a - b * b), 2.0) * radial_term / (R * gamma);
-                        radial_term = 0.5 * (1.0 - r * r / (a * a));
-                        temperature = t_a - (gamma - 1.0) * v_m * v_m * radial_term / (R * gamma);
+                        const real radial_term = -2.0 * b * b * log(b) - (0.5 * a * a) + (2.0 * b * b * log(a)) + (0.5 * b * b * b * b / (a * a));
+                        const real t_a = t_u - (gamma - 1.0) * pow(v_m * a / (a * a - b * b), 2.0) * radial_term / (R * gamma);
+                        const radial_term = 0.5 * (1.0 - r * r / (a * a));
+                        const temperature = t_a - (gamma - 1.0) * v_m * v_m * radial_term / (R * gamma);
                     } 
                 } else {
-                    real mag = v_m * a * (r - b * b / r)/(a * a - b * b);
+                    const real mag = v_m * a * (r - b * b / r)/(a * a - b * b);
                     if(istate == 1)
                         value = u_u - mag * sin_theta;
                     else if (istate == 2)
                         value = v_u + mag * cos_theta;
                     else {
-                        real radial_term = -2.0 * b * b * log(b) - (0.5 * r * r) + (2.0 * b * b * log(r)) + (0.5 * b * b * b * b / (r * r));
-                        temperature = t_u - (gamma - 1.0) * pow(v_m * a/(a * a - b * b), 2.0) * radial_term / (R * gamma);
+                        const real radial_term = -2.0 * b * b * log(b) - (0.5 * r * r) + (2.0 * b * b * log(r)) + (0.5 * b * b * b * b / (r * r));
+                        const temperature = t_u - (gamma - 1.0) * pow(v_m * a/(a * a - b * b), 2.0) * radial_term / (R * gamma);
                     }
                 }
 
@@ -1072,7 +1072,7 @@ InitialConditionFactory<dim,nstate, real>::create_InitialConditionFunction(
         if constexpr (dim == 2 && nstate == dim + 2)  return std::make_shared<InitialConditionFunction_ShockDiffraction<dim, nstate, real> >(param);
     } else if (flow_type == FlowCaseEnum::astrophysical_jet) {
         if constexpr (dim == 2 && nstate == dim + 2)  return std::make_shared<InitialConditionFunction_AstrophysicalJet<dim, nstate, real> >(param);
-    } else if (flow_type == FlowCaseEnum::svsw) {
+    } else if (flow_type == FlowCaseEnum::strong_vortex_shock_wave) {
         if constexpr (dim == 2 && nstate == dim + 2)  return std::make_shared<InitialConditionFunction_SVSW<dim, nstate, real> >(param);
     } else if (flow_type == FlowCaseEnum::advection_limiter) {
         if constexpr (dim < 3 && nstate == 1)  return std::make_shared<InitialConditionFunction_Advection<dim, nstate, real> >();

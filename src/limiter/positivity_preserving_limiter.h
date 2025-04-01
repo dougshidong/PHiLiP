@@ -98,9 +98,9 @@ protected:
         const std::vector<dealii::types::global_dof_index>&     current_dofs_indices);
 
     // Values required to compute solution cell average in 2D/3D
-    real dx;
-    real dy;
-    real dz;
+    real dx; ///< Value required to compute solution cell average in 2D/3D, calculated using xmax and xmin parameters
+    real dy; ///< Value required to compute solution cell average in 2D/3D, calculated using ymax and ymin parameters
+    real dz; ///< Value required to compute solution cell average in 2D/3D, calculated using zmax and zmin parameters
 }; // End of PositivityPreservingLimiter Class
 } // PHiLiP namespace
 

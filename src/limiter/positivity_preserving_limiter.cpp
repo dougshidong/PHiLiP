@@ -223,7 +223,8 @@ std::array<real, nstate> PositivityPreservingLimiter<dim, nstate, real>::get_sol
             }
         }
 
-        if (dim == 2) {
+        if constexpr (dim == 2) {
+            // Calculating average in x-dir - GLL used for x direction to include surface nodes, GL for rest
             for(unsigned int istate = 0; istate < nstate; ++istate) {
                 unsigned int quad_pt = 0;
                 for(unsigned int iquad=0; iquad<quad_weights_GLL.size(); ++iquad) {
@@ -234,6 +235,7 @@ std::array<real, nstate> PositivityPreservingLimiter<dim, nstate, real>::get_sol
                 }
             }
 
+            // Calculating average in y-dir - GLL used for y direction to include surface nodes, GL for rest
             for(unsigned int istate = 0; istate < nstate; ++istate) {
                 unsigned int quad_pt = 0;
                 for(unsigned int iquad=0; iquad<quad_weights_GL.size(); ++iquad) {
@@ -245,7 +247,8 @@ std::array<real, nstate> PositivityPreservingLimiter<dim, nstate, real>::get_sol
             }
         }
 
-        if (dim == 3) {
+        if constexpr (dim == 3) {
+            // Calculating average in x-dir - GLL used for x direction to include surface nodes, GL for rest
             for(unsigned int istate = 0; istate < nstate; ++istate) {
                 unsigned int quad_pt = 0;
                 for(unsigned int iquad=0; iquad<quad_weights_GLL.size(); ++iquad) {
@@ -257,6 +260,7 @@ std::array<real, nstate> PositivityPreservingLimiter<dim, nstate, real>::get_sol
                 }
             }
 
+            // Calculating average in y-dir - GLL used for y direction to include surface nodes, GL for rest
             for(unsigned int istate = 0; istate < nstate; ++istate) {
                 unsigned int quad_pt = 0;
                 for(unsigned int iquad=0; iquad<quad_weights_GL.size(); ++iquad) {
@@ -268,6 +272,7 @@ std::array<real, nstate> PositivityPreservingLimiter<dim, nstate, real>::get_sol
                 }
             }
 
+            // Calculating average in z-dir - GLL used for z direction to include surface nodes, GL for rest
             for(unsigned int istate = 0; istate < nstate; ++istate) {
                 unsigned int quad_pt = 0;
                 for(unsigned int iquad=0; iquad<quad_weights_GL.size(); ++iquad) {
@@ -284,8 +289,9 @@ std::array<real, nstate> PositivityPreservingLimiter<dim, nstate, real>::get_sol
             soln_cell_avg[istate] = 0;
         }
 
-        real lambda_1 = dt/this->dx; real lambda_2 = dt/this->dy; real lambda_3 = 0.0;
-        if(dim == 3)
+        // Values required to weight the averages of each set of mixed nodes (refer to Eqn3.8 in Zhang,Shu paper)
+        const real lambda_1 = dt/this->dx; const real lambda_2 = dt/this->dy; real lambda_3 = 0.0;
+        if constexpr(dim == 3)
             lambda_3 = dt/this->dz;
 
         real max_local_wave_speed_1 = 0.0;

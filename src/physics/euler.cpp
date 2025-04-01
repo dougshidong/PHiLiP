@@ -299,10 +299,6 @@ inline real Euler<dim,nstate,real>
     //Copy such that we don't modify the original density that is passed
     real density_check = density;
     const bool density_is_positive = check_positive_quantity<real>(density_check, "density");
-
-    // if (density < 0.1){
-    //     std::cout << "density:   " << density << "   pressure:   " << pressure << "   gam:   " << gam << "   entropy_gen:   " << pressure*pow(density,-gam) << std::endl << std::endl;
-    // }
     if (density_is_positive)     return pressure*pow(density,-gam);
     else                         return (real)this->BIG_NUMBER;
 }

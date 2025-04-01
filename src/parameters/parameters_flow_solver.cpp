@@ -245,8 +245,8 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
           prm.enter_subsection("positivity_preserving_tests");
           {
               prm.declare_entry("grid_xmin", "0.0",
-                            dealii::Patterns::Double(-dealii::Patterns::Double::max_double_value, dealii::Patterns::Double::max_double_value),
-                            "Left bound of domain for hyper_cube mesh based cases.");
+                                dealii::Patterns::Double(-dealii::Patterns::Double::max_double_value, dealii::Patterns::Double::max_double_value),
+                                "Left bound of domain for hyper_cube mesh based cases.");
 
               prm.declare_entry("grid_xmax", "0.0",
                                 dealii::Patterns::Double(-dealii::Patterns::Double::max_double_value, dealii::Patterns::Double::max_double_value),

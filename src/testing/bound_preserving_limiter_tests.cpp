@@ -159,9 +159,10 @@ int BoundPreservingLimiterTests<dim, nstate>::run_convergence_test() const
     dealii::ConvergenceTable convergence_table;
     std::vector<double> grid_size(n_grids);
     std::vector<double> soln_error_l2(n_grids);
-    int refinement = 0;
+    double final_order = 0.0;
+    const double expected_order = all_parameters_new.flow_solver_param.expected_order_at_final_time;
 
-    for (unsigned int igrid = 3; igrid < n_grids; igrid++, refinement++) {
+    for (unsigned int igrid = 3; igrid < n_grids; igrid++) {
 
         pcout << "\n" << "Creating FlowSolver" << std::endl;
 
@@ -223,6 +224,9 @@ int BoundPreservingLimiterTests<dim, nstate>::run_convergence_test() const
             const double slope_soln_err = log(soln_error_l2[igrid] / soln_error_l2[igrid - 1])
                 / log(grid_size[igrid] / grid_size[igrid - 1]);
 
+            if (igrid == n_grids - 1)
+                final_order = slope_soln_err;
+
             this->pcout << "From grid " << igrid - 1
                 << "  to grid " << igrid
                 << "  dimension: " << dim
@@ -255,7 +259,10 @@ int BoundPreservingLimiterTests<dim, nstate>::run_convergence_test() const
         
     }//end of grid loop
 
-    return 0;
+    if(final_order < expected_order + 1e-12 && final_order > expected_order - 1e-12)
+        return 0;
+    else
+        return 1;
 }
 
 #if PHILIP_DIM==1

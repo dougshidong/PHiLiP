@@ -939,7 +939,7 @@ real InitialConditionFunction_SVSW<dim, nstate, real>
             const real dy = y - y_c;
             const real r = sqrt((dx*dx) + (dy*dy));
 
-            const real temperature = 0.0;
+            real temperature = 0.0;
 
             // Superimpose vortex
             if (r<=b) {
@@ -954,10 +954,10 @@ real InitialConditionFunction_SVSW<dim, nstate, real>
                         value = v_u + mag*cos_theta;
                     else {
                         // Temperature at a, integrated from ODE
-                        const real radial_term = -2.0 * b * b * log(b) - (0.5 * a * a) + (2.0 * b * b * log(a)) + (0.5 * b * b * b * b / (a * a));
+                        real radial_term = -2.0 * b * b * log(b) - (0.5 * a * a) + (2.0 * b * b * log(a)) + (0.5 * b * b * b * b / (a * a));
                         const real t_a = t_u - (gamma - 1.0) * pow(v_m * a / (a * a - b * b), 2.0) * radial_term / (R * gamma);
-                        const radial_term = 0.5 * (1.0 - r * r / (a * a));
-                        const temperature = t_a - (gamma - 1.0) * v_m * v_m * radial_term / (R * gamma);
+                        radial_term = 0.5 * (1.0 - r * r / (a * a));
+                        temperature = t_a - (gamma - 1.0) * v_m * v_m * radial_term / (R * gamma);
                     } 
                 } else {
                     const real mag = v_m * a * (r - b * b / r)/(a * a - b * b);
@@ -967,7 +967,7 @@ real InitialConditionFunction_SVSW<dim, nstate, real>
                         value = v_u + mag * cos_theta;
                     else {
                         const real radial_term = -2.0 * b * b * log(b) - (0.5 * r * r) + (2.0 * b * b * log(r)) + (0.5 * b * b * b * b / (r * r));
-                        const temperature = t_u - (gamma - 1.0) * pow(v_m * a/(a * a - b * b), 2.0) * radial_term / (R * gamma);
+                        temperature = t_u - (gamma - 1.0) * pow(v_m * a/(a * a - b * b), 2.0) * radial_term / (R * gamma);
                     }
                 }
 

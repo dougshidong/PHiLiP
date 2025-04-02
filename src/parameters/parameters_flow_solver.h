@@ -120,6 +120,8 @@ public:
     unsigned int number_of_grid_elements_y; ///< Number of subdivisions in y direction for positivity_preserving_tests
     unsigned int number_of_grid_elements_z; ///< Number of subdivisions in z direction for positivity_preserving_tests
 
+    double expected_order_at_final_time; ///< For limiter convergence tests, specify expected order at final time
+
     /** For taylor green vortex integration tests, expected kinetic energy at final time. */
     double expected_kinetic_energy_at_final_time;
 

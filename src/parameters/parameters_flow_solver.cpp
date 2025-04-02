@@ -284,6 +284,14 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
 
         }
         prm.leave_subsection();
+        
+        prm.enter_subsection("limiter_convergence_tests");
+        {
+            prm.declare_entry("expected_order_at_final_time", "0.0",
+                              dealii::Patterns::Double(0.0, 10.0),
+                              "For convergence tests related to limiters, expected order of accuracy for final run.");
+        }
+        prm.leave_subsection();
 
         prm.enter_subsection("taylor_green_vortex");
         {
@@ -481,6 +489,12 @@ void FlowSolverParam::parse_parameters(dealii::ParameterHandler &prm)
             }
             prm.leave_subsection();
         }       
+        prm.leave_subsection();
+
+        prm.enter_subsection("limiter_convergence_tests");
+        {
+            expected_order_at_final_time = prm.get_double("expected_order_at_final_time");
+        }
         prm.leave_subsection();
 
         prm.enter_subsection("taylor_green_vortex");

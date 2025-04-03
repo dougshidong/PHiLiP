@@ -139,6 +139,10 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
                           dealii::Patterns::Double(0,dealii::Patterns::Double::max_double_value),
                           "Outputs the restart files at time intervals of dt.");
 
+        prm.declare_entry("expected_order_at_final_time", "0.0",
+                  dealii::Patterns::Double(0.0, 10.0),
+                  "For convergence tests related to limiters, expected order of accuracy for final run.");
+
         prm.enter_subsection("grid");
         {
             prm.declare_entry("input_mesh_filename", "",
@@ -282,14 +286,6 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
           }
           prm.leave_subsection();
 
-        }
-        prm.leave_subsection();
-        
-        prm.enter_subsection("limiter_convergence_tests");
-        {
-            prm.declare_entry("expected_order_at_final_time", "0.0",
-                              dealii::Patterns::Double(0.0, 10.0),
-                              "For convergence tests related to limiters, expected order of accuracy for final run.");
         }
         prm.leave_subsection();
 
@@ -437,6 +433,7 @@ void FlowSolverParam::parse_parameters(dealii::ParameterHandler &prm)
         restart_file_index = prm.get_integer("restart_file_index");
         output_restart_files_every_x_steps = prm.get_integer("output_restart_files_every_x_steps");
         output_restart_files_every_dt_time_intervals = prm.get_double("output_restart_files_every_dt_time_intervals");
+        expected_order_at_final_time = prm.get_double("expected_order_at_final_time");
 
         prm.enter_subsection("grid");
         {
@@ -491,11 +488,6 @@ void FlowSolverParam::parse_parameters(dealii::ParameterHandler &prm)
         }       
         prm.leave_subsection();
 
-        prm.enter_subsection("limiter_convergence_tests");
-        {
-            expected_order_at_final_time = prm.get_double("expected_order_at_final_time");
-        }
-        prm.leave_subsection();
 
         prm.enter_subsection("taylor_green_vortex");
         {

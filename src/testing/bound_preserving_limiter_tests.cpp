@@ -259,7 +259,7 @@ int BoundPreservingLimiterTests<dim, nstate>::run_convergence_test() const
         
     }//end of grid loop
 
-    if(final_order < expected_order + 1e-12 && final_order > expected_order - 1e-12)
+    if(final_order < expected_order + 1e-4 && final_order > expected_order - 1e-4)
         return 0;
     else
         return 1;

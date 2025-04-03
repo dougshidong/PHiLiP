@@ -45,13 +45,11 @@ subsection flow_solver
   set final_time = 0.05
   set adaptive_time_step = true
   set unsteady_data_table_filename = burgers_energy
+  set expected_order_at_final_time = 3.2286392453097
   subsection grid
     set grid_left_bound = 0.0
     set grid_right_bound = 2.0
     set number_of_mesh_refinements = 0
-  end
-  subsection limiter_convergence_tests
-    set expected_order_at_final_time = 3.2286392453097
   end
 end
 

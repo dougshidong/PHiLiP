@@ -496,7 +496,8 @@ void HyperreducedSamplingErrorUpdated<dim, nstate>::updateNearestExistingROMs(co
             std::unique_ptr<ProperOrthogonalDecomposition::HROMTestLocation<dim, nstate>> rom_location = std::make_unique<ProperOrthogonalDecomposition::HROMTestLocation<dim, nstate>>(hrom_locations[index[0]]->parameter, std::move(rom_solution), flow_solver->dg, weights);
             hrom_locations[index[0]] = std::move(rom_location);
         }
-    }}
+    }
+}
 
 template <int dim, int nstate>
 std::unique_ptr<ProperOrthogonalDecomposition::ROMSolution<dim,nstate>> HyperreducedSamplingErrorUpdated<dim, nstate>::solveSnapshotROM(const RowVectorXd& parameter, Epetra_Vector weights) const{

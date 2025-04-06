@@ -14,10 +14,7 @@ class StabilityFRParametersRange: public TestsBase
 {
 public:
     /// Constructor
-    StabilityFRParametersRange(const Parameters::AllParameters *const parameters_input);
-
-    /// Destructor
-    ~StabilityFRParametersRange() {};
+    explicit StabilityFRParametersRange(const Parameters::AllParameters *const parameters_input);
 
     /// Run test
     int run_test () const override;

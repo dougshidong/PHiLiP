@@ -24,10 +24,6 @@ set use_energy = false
 set flux_reconstruction = user_specified_value
 set FR_user_specified_correction_parameter_value = 0.186
 
-set number_ESFR_parameter_values = 10
-set ESFR_parameter_values_start = 1.0e-4
-set ESFR_parameter_values_end = 1.0e4
-
 set use_inverse_mass_on_the_fly = true
 
 set use_classical_FR = false
@@ -77,5 +73,10 @@ subsection flow_solver
   subsection grid
     set grid_left_bound = -1.0
     set grid_right_bound = 1.0
+  end
+  subsection ESFR_parameter_tests
+    set number_ESFR_parameter_values = 10
+    set ESFR_parameter_values_start = 1.0e-4
+    set ESFR_parameter_values_end = 1.0e4
   end
 end

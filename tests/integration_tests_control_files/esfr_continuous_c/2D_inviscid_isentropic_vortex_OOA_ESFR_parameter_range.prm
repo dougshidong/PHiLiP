@@ -17,10 +17,6 @@ set flux_reconstruction = user_specified_value
 set FR_user_specified_correction_parameter_value = 3.67e-3 #0.186; 3.67e-3; 4.79e-5; 4.24e-7
 set use_inverse_mass_on_the_fly = true
 
-set number_ESFR_parameter_values = 3
-set ESFR_parameter_values_start = 1.0e-7
-set ESFR_parameter_values_end = 1.0e5
-
 # Note: this was added to turn off check_same_coords() -- has no other function when dim!=1
 set use_periodic_bc = true
 
@@ -64,5 +60,10 @@ subsection flow_solver
     set grid_left_bound = -10.0
     set grid_right_bound = 10.0
     set number_of_grid_elements_per_dimension = 32
+  end
+  subsection ESFR_parameter_tests
+    set number_ESFR_parameter_values = 3
+    set ESFR_parameter_values_start = 1.0e-7
+    set ESFR_parameter_values_end = 1.0e5
   end
 end

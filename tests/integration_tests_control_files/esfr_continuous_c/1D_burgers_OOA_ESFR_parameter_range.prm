@@ -22,10 +22,6 @@ set use_periodic_bc = true
 set flux_reconstruction = user_specified_value
 set FR_user_specified_correction_parameter_value = 0.186 #0.186; 3.67e-3; 4.79e-5; 4.24e-7
 
-set number_ESFR_parameter_values = 2
-set ESFR_parameter_values_start = 1.0e-5
-set ESFR_parameter_values_end = 1.0e6
-
 set use_inverse_mass_on_the_fly = true
 
 #set use_skew_sym_deriv = false
@@ -69,12 +65,17 @@ end
 
 
 subsection flow_solver
-    set flow_case_type = burgers_inviscid
-    set final_time = 0.01
-    set poly_degree = 2
-    #set apply_initial_fondition_method = project_initial_condition_function
-      subsection grid
+  set flow_case_type = burgers_inviscid
+  set final_time = 0.01
+  set poly_degree = 2
+  #set apply_initial_fondition_method = project_initial_condition_function
+  subsection grid
     set grid_left_bound =  0.0
     set grid_right_bound = 2.0
+  end
+  subsection ESFR_parameter_tests
+    set number_ESFR_parameter_values = 2
+    set ESFR_parameter_values_start = 1.0e-5
+    set ESFR_parameter_values_end = 1.0e6
   end
 end

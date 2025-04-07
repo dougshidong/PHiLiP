@@ -306,11 +306,6 @@ int StabilityFRParametersRange<dim, nstate>::run_test() const
                     << "  solution_error2_inf " << soln_error_inf[igrid]
                     << "  slope " << slope_soln_err_inf
                     << std::endl;
-                //if(igrid == n_grids-1){
-                //    if(std::abs(slope_soln_err-(poly_degree+1))>0.05){
-                //        return 1;
-                //    }
-                //}
             }
         
             pcout << " ********************************************"

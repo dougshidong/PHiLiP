@@ -9,11 +9,11 @@
 set(TEST_OUTPUT_DIR ${CMAKE_CURRENT_BINARY_DIR})
 configure_file(1D_advection_explicit_periodic_OOA_continuous_c_NSFR.prm 1D_advection_explicit_periodic_OOA_continuous_c_NSFR.prm COPYONLY)
 add_test(
- NAME MPI_1D_ADVECTION_EXPLICIT_PERIODIC_OOA_CONTINUOUS_C_NSFR_LONG
+ NAME 1D_ADVECTION_EXPLICIT_PERIODIC_OOA_CONTINUOUS_C_NSFR_LONG
 COMMAND mpirun -n 1 ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_1D -i ${CMAKE_CURRENT_BINARY_DIR}/1D_advection_explicit_periodic_OOA_continuous_c_NSFR.prm
   WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
 )
-set_tests_labels(MPI_1D_ADVECTION_EXPLICIT_PERIODIC_OOA_CONTINUOUS_C_NSFR_LONG  	    ESFR_CONTINUOUS_C
+set_tests_labels(1D_ADVECTION_EXPLICIT_PERIODIC_OOA_CONTINUOUS_C_NSFR_LONG  	    ESFR_CONTINUOUS_C
                                                                                             1D
                                                                                             SERIAL
                                                                                             ADVECTION

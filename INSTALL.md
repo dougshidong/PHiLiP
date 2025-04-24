@@ -180,7 +180,7 @@ However, you can manually launch this program through the command line and chang
 Running ctest might take a while so, you may want to [request a computational node](https://docs.computecanada.ca/wiki/Running_jobs) before running.
 Note that you want to request at least as many processes as MPIMAX.
 ~~~~
-ctest -LE EXTRA-LONG -LE EXPECTED_FAILURE
+ctest -LE EXTRA-LONG
 ~~~~
 The  `-LE EXTRA-LONG` flag will disable all tests that will take over an hour and should only be removed when wanting to
 run tests that will take over an hour. The `-LE` flag will disable all tests that are expected to fail. All tests also have labels and can be used with the `-L` flag. For example,

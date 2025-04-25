@@ -30,8 +30,11 @@ double BoundPreservingLimiterTests<dim, nstate>::calculate_uexact(const dealii::
     const double pi = atan(1) * 4.0;
 
     double uexact = 1.0;
-    if (flow_case == Parameters::FlowSolverParam::FlowCaseType::low_density_2d && dim == 2) {
-        uexact = 1.00 + 0.99 * sin(qpoint[0] + qpoint[1] - (2.00 * final_time));
+    if (flow_case == Parameters::FlowSolverParam::FlowCaseType::low_density && dim == 2) {
+        uexact = 0.01 + exp(-500.0*(pow(qpoint[0], 2.0)+pow(qpoint[1], 2.0)));
+    }
+    if (flow_case == Parameters::FlowSolverParam::FlowCaseType::low_density && dim == 1) {
+        uexact = 0.01 + exp(-500.0*pow(qpoint[0], 2.0));
     }
     else {
         for (int idim = 0; idim < dim; idim++) {
@@ -46,7 +49,7 @@ double BoundPreservingLimiterTests<dim, nstate>::calculate_uexact(const dealii::
 }
 
 template <int dim, int nstate>
-double BoundPreservingLimiterTests<dim, nstate>::calculate_l2error(
+std::array<double,3> BoundPreservingLimiterTests<dim, nstate>::calculate_l_n_error(
     std::shared_ptr<DGBase<dim, double>> dg,
     const int poly_degree,
     const double final_time) const
@@ -59,7 +62,9 @@ double BoundPreservingLimiterTests<dim, nstate>::calculate_l2error(
     const unsigned int n_quad_pts = fe_values_extra.n_quadrature_points;
     std::array<double, nstate> soln_at_q;
 
+    double l1error = 0.0;
     double l2error = 0.0;
+    double linferror = 0.0;
 
     // Integrate every cell and compute L2
     std::vector<dealii::types::global_dof_index> dofs_indices(fe_values_extra.dofs_per_cell);
@@ -79,12 +84,28 @@ double BoundPreservingLimiterTests<dim, nstate>::calculate_l2error(
             }
 
             const dealii::Point<dim> qpoint = (fe_values_extra.quadrature_point(iquad));
-            double uexact = calculate_uexact(qpoint, adv_speeds, final_time);
-            l2error += pow(soln_at_q[0] - uexact, 2) * fe_values_extra.JxW(iquad);
+            double uexact = calculate_uexact(qpoint, adv_speeds, final_time);   
+
+            //std::cout << "u:   " << soln_at_q[0] << "   uexact:   " << uexact << std::endl;       
+            l1error += pow(abs(soln_at_q[0] - uexact), 1.0) * fe_values_extra.JxW(iquad);
+            l2error += pow(abs(soln_at_q[0] - uexact), 2.0) * fe_values_extra.JxW(iquad);
+            //L-infinity norm
+            linferror = std::max(abs(soln_at_q[0]-uexact), linferror);
         }
     }
-    const double l2error_mpi_sum = std::sqrt(dealii::Utilities::MPI::sum(l2error, this->mpi_communicator));
-    return l2error_mpi_sum;
+    //MPI sum
+    double l1error_mpi = dealii::Utilities::MPI::sum(l1error, this->mpi_communicator);
+
+    double l2error_mpi = dealii::Utilities::MPI::sum(l2error, this->mpi_communicator);
+    l2error_mpi = pow(l2error_mpi, 1.0/2.0);
+
+    double linferror_mpi = dealii::Utilities::MPI::max(linferror, this->mpi_communicator);
+
+    std::array<double,3> lerror_mpi;
+    lerror_mpi[0] = l1error_mpi;
+    lerror_mpi[1] = l2error_mpi;
+    lerror_mpi[2] = linferror_mpi;
+    return lerror_mpi;
 }
 
 template <int dim, int nstate>
@@ -115,10 +136,11 @@ int BoundPreservingLimiterTests<dim, nstate>::run_full_limiter_test() const
 
     using flow_case_enum = Parameters::FlowSolverParam::FlowCaseType;
     flow_case_enum flow_case = all_parameters_new.flow_solver_param.flow_case_type;
-    const double pi = atan(1) * 4.0;
-    if (flow_case == Parameters::FlowSolverParam::FlowCaseType::low_density_2d) {
-        param.flow_solver_param.grid_left_bound = 0.0;
-        param.flow_solver_param.grid_right_bound = 2.0 * pi;
+
+    if (flow_case == Parameters::FlowSolverParam::FlowCaseType::low_density) {
+        param.flow_solver_param.number_of_grid_elements_x = pow(2.0,param.flow_solver_param.number_of_mesh_refinements);
+        if(dim == 2)
+            param.flow_solver_param.number_of_grid_elements_y = pow(2.0,param.flow_solver_param.number_of_mesh_refinements);
     }
 
     std::unique_ptr<FlowSolver::FlowSolver<dim, nstate>> flow_solver = FlowSolver::FlowSolverFactory<dim, nstate>::select_flow_case(&param, parameter_handler);
@@ -136,9 +158,11 @@ int BoundPreservingLimiterTests<dim, nstate>::run_convergence_test() const
     const unsigned int n_grids = manu_grid_conv_param.number_of_grids;
     dealii::ConvergenceTable convergence_table;
     std::vector<double> grid_size(n_grids);
-    std::vector<double> soln_error(n_grids);
+    std::vector<double> soln_error_l2(n_grids);
+    double final_order = 0.0;
+    const double expected_order = all_parameters_new.flow_solver_param.expected_order_at_final_time;
 
-    for (unsigned int igrid = 0; igrid < n_grids; igrid++) {
+    for (unsigned int igrid = 3; igrid < n_grids; igrid++) {
 
         pcout << "\n" << "Creating FlowSolver" << std::endl;
 
@@ -147,19 +171,22 @@ int BoundPreservingLimiterTests<dim, nstate>::run_convergence_test() const
 
         using flow_case_enum = Parameters::FlowSolverParam::FlowCaseType;
         flow_case_enum flow_case = all_parameters_new.flow_solver_param.flow_case_type;
-        const double pi = atan(1) * 4.0;
+        //const double pi = atan(1) * 4.0;
 
-        if (flow_case == Parameters::FlowSolverParam::FlowCaseType::low_density_2d) {
-            param.flow_solver_param.grid_left_bound = 0.0;
-            param.flow_solver_param.grid_right_bound = 2.0 * pi;
+        if (flow_case == Parameters::FlowSolverParam::FlowCaseType::low_density) {    
+            param.flow_solver_param.number_of_grid_elements_x = pow(2.0,param.flow_solver_param.number_of_mesh_refinements);
+            
+            if (dim == 2) {
+                param.flow_solver_param.number_of_grid_elements_y = pow(2.0,param.flow_solver_param.number_of_mesh_refinements);
+            }
         }
 
         std::unique_ptr<FlowSolver::FlowSolver<dim, nstate>> flow_solver = FlowSolver::FlowSolverFactory<dim, nstate>::select_flow_case(&param, parameter_handler);
         const unsigned int n_global_active_cells = flow_solver->dg->triangulation->n_global_active_cells();
         const int poly_degree = all_parameters_new.flow_solver_param.poly_degree;
-        const double final_time = all_parameters_new.flow_solver_param.final_time;
 
         flow_solver->run();
+        const double final_time_actual = flow_solver->ode_solver->current_time;
 
         // output results
         const unsigned int n_dofs = flow_solver->dg->dof_handler.n_dofs();
@@ -171,34 +198,42 @@ int BoundPreservingLimiterTests<dim, nstate>::run_convergence_test() const
         << ". Number of degrees of freedom: " << n_dofs
         << std::endl;
 
-        const double l2error_mpi_sum = calculate_l2error(flow_solver->dg, poly_degree, final_time);
+        const std::array<double,3> lerror_mpi_sum = calculate_l_n_error(flow_solver->dg, poly_degree, final_time_actual);
 
         // Convergence table
         const double dx = 1.0 / pow(n_dofs, (1.0 / dim));
         grid_size[igrid] = dx;
-        soln_error[igrid] = l2error_mpi_sum;
+        soln_error_l2[igrid] = lerror_mpi_sum[1];
 
         convergence_table.add_value("p", poly_degree);
         convergence_table.add_value("cells", n_global_active_cells);
         convergence_table.add_value("DoFs", n_dofs);
         convergence_table.add_value("dx", dx);
-        convergence_table.add_value("soln_L2_error", l2error_mpi_sum);
+        convergence_table.add_value("soln_L1_error", lerror_mpi_sum[0]);
+        convergence_table.add_value("soln_L2_error", lerror_mpi_sum[1]);
+        convergence_table.add_value("soln_Linf_error", lerror_mpi_sum[2]);
 
         this->pcout << " Grid size h: " << dx
-            << " L2-soln_error: " << l2error_mpi_sum
+            << " L1-soln_error: " << lerror_mpi_sum[0]
+            << " L2-soln_error: " << lerror_mpi_sum[1]
+            << " Linf-soln_error: " << lerror_mpi_sum[2]
             << " Residual: " << flow_solver->ode_solver->residual_norm
             << std::endl;
 
         if (igrid > 0) {
-            const double slope_soln_err = log(soln_error[igrid] / soln_error[igrid - 1])
+            const double slope_soln_err = log(soln_error_l2[igrid] / soln_error_l2[igrid - 1])
                 / log(grid_size[igrid] / grid_size[igrid - 1]);
+
+            if (igrid == n_grids - 1)
+                final_order = slope_soln_err;
+
             this->pcout << "From grid " << igrid - 1
                 << "  to grid " << igrid
                 << "  dimension: " << dim
                 << "  polynomial degree p: " << poly_degree
                 << std::endl
-                << "  solution_error1 " << soln_error[igrid - 1]
-                << "  solution_error2 " << soln_error[igrid]
+                << "  solution_error1 " << soln_error_l2[igrid - 1]
+                << "  solution_error2 " << soln_error_l2[igrid]
                 << "  slope " << slope_soln_err
                 << std::endl;
         }
@@ -209,16 +244,30 @@ int BoundPreservingLimiterTests<dim, nstate>::run_convergence_test() const
             << std::endl
             << " ********************************************"
             << std::endl;
+        convergence_table.evaluate_convergence_rates("soln_L1_error", "cells", dealii::ConvergenceTable::reduction_rate_log2, dim);
         convergence_table.evaluate_convergence_rates("soln_L2_error", "cells", dealii::ConvergenceTable::reduction_rate_log2, dim);
+        convergence_table.evaluate_convergence_rates("soln_Linf_error", "cells", dealii::ConvergenceTable::reduction_rate_log2, dim);
         convergence_table.set_scientific("dx", true);
+        convergence_table.set_scientific("soln_L1_error", true);
         convergence_table.set_scientific("soln_L2_error", true);
+        convergence_table.set_scientific("soln_Linf_error", true);
         if (this->pcout.is_active()) convergence_table.write_text(this->pcout.get_stream());
+
+        std::ofstream table_file("convergence_rates.txt");
+        convergence_table.write_text(table_file);
+
+        
     }//end of grid loop
-    return 0;
+
+    if(abs(final_order - expected_order) < 1e-4)
+        return 0;
+    else
+        return 1;
 }
 
 #if PHILIP_DIM==1
 template class BoundPreservingLimiterTests<PHILIP_DIM, PHILIP_DIM>;
+template class BoundPreservingLimiterTests<PHILIP_DIM, PHILIP_DIM + 2>;
 #elif PHILIP_DIM==2
 template class BoundPreservingLimiterTests<PHILIP_DIM, PHILIP_DIM>;
 template class BoundPreservingLimiterTests<PHILIP_DIM, PHILIP_DIM + 2>;

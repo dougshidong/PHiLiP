@@ -34,6 +34,15 @@ public:
     /// Maximum value of parameters
     std::vector<double> parameter_max_values;
 
+    /// Number of modes to include in the POD Basis
+    int number_modes;
+
+    /// Singular Value Threshold in the POD Basis
+    double singular_value_threshold;
+
+    /// Number of timesteps before putting solution in snapshot matrix
+    int output_snapshot_every_x_timesteps;
+
     /// Declares the possible variables and sets the defaults.
     static void declare_parameters (dealii::ParameterHandler &prm);
     /// Parses input file and sets the variables.

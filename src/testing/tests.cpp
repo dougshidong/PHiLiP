@@ -29,6 +29,7 @@
 #include "shock_1d.h"
 #include "euler_naca0012.hpp"
 #include "reduced_order.h"
+#include "unsteady_reduced_order.h"
 #include "convection_diffusion_explicit_periodic.h"
 #include "dual_weighted_residual_mesh_adaptation.h"
 #include "anisotropic_mesh_adaptation_cases.h"
@@ -282,6 +283,8 @@ std::unique_ptr< TestsBase > TestsFactory<dim,nstate,MeshType>
         if constexpr (dim==1 && nstate==1) return std::make_unique<Shock1D<dim,nstate>>(parameters_input);
     } else if(test_type == Test_enum::reduced_order) {
         if constexpr ((dim==2 && nstate==dim+2) || (dim==1 && nstate==1)) return std::make_unique<ReducedOrder<dim,nstate>>(parameters_input, parameter_handler_input);
+    } else if(test_type == Test_enum::unsteady_reduced_order) {
+        if constexpr (dim==2 && nstate==dim+2) return std::make_unique<UnsteadyReducedOrder<dim,nstate>>(parameters_input, parameter_handler_input);
     } else if(test_type == Test_enum::POD_adaptive_sampling_run) {
         if constexpr ((dim==2 && nstate==dim+2) || (dim==1 && nstate==1)) return std::make_unique<AdaptiveSamplingRun<dim,nstate>>(parameters_input,parameter_handler_input);
     } else if(test_type == Test_enum::adaptive_sampling_testing) {

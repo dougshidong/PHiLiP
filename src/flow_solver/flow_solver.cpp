@@ -39,6 +39,7 @@ FlowSolver<dim, nstate>::FlowSolver(
 , do_output_solution_at_fixed_times(ode_param.output_solution_at_fixed_times)
 , number_of_fixed_times_to_output_solution(ode_param.number_of_fixed_times_to_output_solution)
 , output_solution_at_exact_fixed_times(ode_param.output_solution_at_exact_fixed_times)
+, do_compute_unsteady_data_and_write_to_table(flow_solver_param.do_compute_unsteady_data_and_write_to_table)
 , dg(DGFactory<dim,double>::create_discontinuous_galerkin(&all_param, poly_degree, flow_solver_param.max_poly_degree_for_adaptation, grid_degree, flow_solver_case->generate_grid()))
 {
     flow_solver_case->set_higher_order_grid(dg);
@@ -403,7 +404,7 @@ int FlowSolver<dim,nstate>::run() const
         } else if (ode_param.output_solution_every_dt_time_intervals > 0.0) {
             pcout << "  ... Writing vtk solution file at initial time ..." << std::endl;
             dg->output_results_vtk(ode_solver->current_iteration);
-            ode_solver->current_desired_time_for_output_solution_every_dt_time_intervals += ode_param.output_solution_every_dt_time_intervals;
+            ode_solver->current_desired_time_for_output_solution_every_dt_time_intervals += ode_param.output_solution_start_time + ode_param.output_solution_every_dt_time_intervals;
         } else if (this->do_output_solution_at_fixed_times && (this->number_of_fixed_times_to_output_solution > 0)) {
             pcout << "  ... Writing vtk solution file at initial time ..." << std::endl;
             dg->output_results_vtk(ode_solver->current_iteration);
@@ -434,8 +435,28 @@ int FlowSolver<dim,nstate>::run() const
         // Initializing restart related variables
         //----------------------------------------------------
 #if PHILIP_DIM>1
-        double current_desired_time_for_output_restart_files_every_dt_time_intervals = ode_solver->current_time; // when used, same as the initial time
+        double current_desired_time_for_output_restart_files_every_dt_time_intervals = ode_solver->current_time;
+        unsigned int current_restart_file_number = 1;
+        if(flow_solver_param.output_restart_files == true) {
+            if(flow_solver_param.output_restart_files_every_dt_time_intervals > 0.0) {
+                while(current_desired_time_for_output_restart_files_every_dt_time_intervals <= ode_solver->current_time) {
+                    current_desired_time_for_output_restart_files_every_dt_time_intervals += flow_solver_param.output_restart_files_every_dt_time_intervals;
+                }
+            }
+        }
+        if(flow_solver_param.restart_computation_from_file == true) {
+            current_restart_file_number = flow_solver_param.restart_file_index + 1;
+        }
 #endif
+        //--------------------------------------------------------------------
+        // Initialize the time at which we write the unsteady data table
+        //--------------------------------------------------------------------
+        double current_desired_time_for_write_unsteady_data_table_file_every_dt_time_intervals = ode_solver->current_time;
+        if(flow_solver_param.write_unsteady_data_table_file_every_dt_time_intervals > 0.0) {
+            while(current_desired_time_for_write_unsteady_data_table_file_every_dt_time_intervals <= ode_solver->current_time) {
+                current_desired_time_for_write_unsteady_data_table_file_every_dt_time_intervals += flow_solver_param.write_unsteady_data_table_file_every_dt_time_intervals;
+            }
+        }
         //----------------------------------------------------
         // Initialize time step
         //----------------------------------------------------
@@ -465,6 +486,7 @@ int FlowSolver<dim,nstate>::run() const
             }
         }
         flow_solver_case->set_time_step(time_step);
+        dg->set_unsteady_model_time_step(time_step);
         pcout << "done." << std::endl;
         //----------------------------------------------------
         // dealii::TableHandler and data at initial time
@@ -478,14 +500,17 @@ int FlowSolver<dim,nstate>::run() const
             pcout << "done." << std::endl;
         } else {
             // no restart:
-            pcout << "Writing unsteady data computed at initial time... " << std::endl;
-            flow_solver_case->compute_unsteady_data_and_write_to_table(ode_solver, dg, unsteady_data_table);
-            pcout << "done." << std::endl;
+            if(do_compute_unsteady_data_and_write_to_table){
+                pcout << "Writing unsteady data computed at initial time... " << std::endl;
+                flow_solver_case->compute_unsteady_data_and_write_to_table(ode_solver, dg, unsteady_data_table, true);
+                pcout << "done." << std::endl;
+            }
         }
         //----------------------------------------------------
         // Time advancement loop with on-the-fly post-processing
         //----------------------------------------------------
         double next_time_step = time_step;
+        std::shared_ptr<dealii::TableHandler> timer_values_table = std::make_shared<dealii::TableHandler>();
         pcout << "Advancing solution in time... " << std::endl;
         pcout << "Timer starting. " << std::endl;
         dealii::Timer timer(this->mpi_communicator,false);
@@ -508,11 +533,27 @@ int FlowSolver<dim,nstate>::run() const
 
             // update time step in flow_solver_case
             flow_solver_case->set_time_step(time_step);
+            dg->set_unsteady_model_time_step(time_step);
 
             ode_solver->step_in_time(time_step,false);
 
+            bool do_write_unsteady_data_table_file = false;
+            if(flow_solver_param.write_unsteady_data_table_file_every_dt_time_intervals > 0.0) {
+                const bool is_write_time = ((ode_solver->current_time <= current_desired_time_for_write_unsteady_data_table_file_every_dt_time_intervals) && 
+                                             ((ode_solver->current_time + time_step) > current_desired_time_for_write_unsteady_data_table_file_every_dt_time_intervals)) 
+                                            || (ode_solver->current_time > current_desired_time_for_write_unsteady_data_table_file_every_dt_time_intervals);
+                if (is_write_time) {
+                    do_write_unsteady_data_table_file = true;
+                    current_desired_time_for_write_unsteady_data_table_file_every_dt_time_intervals += flow_solver_param.write_unsteady_data_table_file_every_dt_time_intervals;
+                }
+            } else {
+                do_write_unsteady_data_table_file = true;
+            }
+
             // Compute the unsteady quantities, write to the dealii table, and output to file
-            flow_solver_case->compute_unsteady_data_and_write_to_table(ode_solver, dg, unsteady_data_table);
+            if(do_compute_unsteady_data_and_write_to_table){
+                flow_solver_case->compute_unsteady_data_and_write_to_table(ode_solver, dg, unsteady_data_table, do_write_unsteady_data_table_file);
+            }
             // update next time step
                        
             if(flow_solver_param.adaptive_time_step == true) {
@@ -530,11 +571,12 @@ int FlowSolver<dim,nstate>::run() const
                 // Output restart files
                 if(flow_solver_param.output_restart_files_every_dt_time_intervals > 0.0) {
                     const bool is_output_time = ((ode_solver->current_time <= current_desired_time_for_output_restart_files_every_dt_time_intervals) && 
-                                                 ((ode_solver->current_time + next_time_step) > current_desired_time_for_output_restart_files_every_dt_time_intervals));
+                                                 ((ode_solver->current_time + next_time_step) > current_desired_time_for_output_restart_files_every_dt_time_intervals)) 
+                                                || (ode_solver->current_time > current_desired_time_for_output_restart_files_every_dt_time_intervals);
                     if (is_output_time) {
-                        const unsigned int file_number = int(round(current_desired_time_for_output_restart_files_every_dt_time_intervals / flow_solver_param.output_restart_files_every_dt_time_intervals));
-                        output_restart_files(file_number, next_time_step, unsteady_data_table);
+                        output_restart_files(current_restart_file_number, next_time_step, unsteady_data_table);
                         current_desired_time_for_output_restart_files_every_dt_time_intervals += flow_solver_param.output_restart_files_every_dt_time_intervals;
+                        current_restart_file_number += 1;
                     }
                 } else /*if (flow_solver_param.output_restart_files_every_x_steps > 0)*/ {
                     const bool is_output_iteration = (ode_solver->current_iteration % flow_solver_param.output_restart_files_every_x_steps == 0);
@@ -556,7 +598,8 @@ int FlowSolver<dim,nstate>::run() const
                 }
             } else if(ode_param.output_solution_every_dt_time_intervals > 0.0) {
                 const bool is_output_time = ((ode_solver->current_time <= ode_solver->current_desired_time_for_output_solution_every_dt_time_intervals) && 
-                                             ((ode_solver->current_time + next_time_step) > ode_solver->current_desired_time_for_output_solution_every_dt_time_intervals));
+                                             ((ode_solver->current_time + next_time_step) > ode_solver->current_desired_time_for_output_solution_every_dt_time_intervals))
+                                            || (ode_solver->current_time > ode_solver->current_desired_time_for_output_solution_every_dt_time_intervals);
                 if (is_output_time) {
                     pcout << "  ... Writing vtk solution file ..." << std::endl;
                     const unsigned int file_number = int(round(ode_solver->current_desired_time_for_output_solution_every_dt_time_intervals / ode_param.output_solution_every_dt_time_intervals));
@@ -588,9 +631,26 @@ int FlowSolver<dim,nstate>::run() const
         } // close while
         timer.stop();
         pcout << "Timer stopped. " << std::endl;
-        const double max_wall_time = dealii::Utilities::MPI::max(timer.wall_time(), this->mpi_communicator);
-        pcout << "Elapsed wall time (mpi max): " << max_wall_time << " seconds." << std::endl;
-        pcout << "Elapsed CPU time: " << timer.cpu_time() << " seconds." << std::endl;
+        const double cpu_time = timer.cpu_time();
+        const double total_wall_time = dealii::Utilities::MPI::sum(timer.wall_time(), this->mpi_communicator);
+        const double number_of_time_steps = (double)ode_solver->current_iteration;
+        const double avg_cpu_time_per_time_step = cpu_time/number_of_time_steps;
+        const double avg_total_wall_time_per_time_step = total_wall_time/number_of_time_steps;
+        pcout << "Elapsed CPU time: " << cpu_time << " seconds." << std::endl;
+        pcout << "Elapsed total wall time (mpi max): " << total_wall_time << " seconds." << std::endl;
+        pcout << "Average CPU time per time step: " << avg_cpu_time_per_time_step << " seconds." << std::endl;
+        pcout << "Average total wall time per time step: " << avg_total_wall_time_per_time_step << " seconds." << std::endl;
+        // writing timing to file
+        if(mpi_rank==0) {
+            // add values to table
+            flow_solver_case->add_value_to_data_table(cpu_time,"total_cpu_time",timer_values_table);
+            flow_solver_case->add_value_to_data_table(total_wall_time,"total_wall_time",timer_values_table);
+            flow_solver_case->add_value_to_data_table(avg_cpu_time_per_time_step,"avg_cpu_time",timer_values_table);
+            flow_solver_case->add_value_to_data_table(avg_total_wall_time_per_time_step,"avg_wall_time",timer_values_table);
+            std::string timing_table_filename = std::string("timer_values.txt");
+            std::ofstream timer_values_table_file(timing_table_filename);
+            timer_values_table->write_text(timer_values_table_file);
+        }
     } else {
         //----------------------------------------------------
         // Steady-state solution

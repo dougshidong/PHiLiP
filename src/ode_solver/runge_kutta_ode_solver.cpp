@@ -154,7 +154,7 @@ void RungeKuttaODESolver<dim,real,n_rk_stages,MeshType>::allocate_ode_system ()
     
     this->rk_stage.resize(n_rk_stages);
     for (int i=0; i<n_rk_stages; ++i) {
-        this->rk_stage[i].reinit(this->dg->solution);
+        this->rk_stage[i].reinit(this->dg->locally_owned_dofs, this->dg->ghost_dofs, this->mpi_communicator);
     }
 
     this->butcher_tableau->set_tableau();

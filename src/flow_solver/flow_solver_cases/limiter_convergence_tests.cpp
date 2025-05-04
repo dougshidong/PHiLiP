@@ -181,11 +181,14 @@ void LimiterConvergenceTests<dim, nstate>::check_limiter_principle(DGBase<dim, d
 
 template <int dim, int nstate>
 void LimiterConvergenceTests<dim, nstate>::compute_unsteady_data_and_write_to_table(
-    const unsigned int current_iteration,
-    const double current_time,
+    const std::shared_ptr <ODE::ODESolverBase<dim, double>> ode_solver,
     const std::shared_ptr <DGBase<dim, double>> dg,
-    const std::shared_ptr <dealii::TableHandler> unsteady_data_table)
+    const std::shared_ptr <dealii::TableHandler> unsteady_data_table,
+    const bool do_write_unsteady_data_table_file)
 {
+    // unpack current iteration and current time from ode solver
+    const unsigned int current_iteration = ode_solver->current_iteration;
+    const double current_time = ode_solver->current_time;
     this->check_limiter_principle(*dg);
     if (this->mpi_rank == 0) {
 
@@ -193,10 +196,11 @@ void LimiterConvergenceTests<dim, nstate>::compute_unsteady_data_and_write_to_ta
         // Add values to data table
         this->add_value_to_data_table(current_time, "time", unsteady_data_table);
 
-
         // Write to file
-        std::ofstream unsteady_data_table_file(this->unsteady_data_table_filename_with_extension);
-        unsteady_data_table->write_text(unsteady_data_table_file);
+        if(do_write_unsteady_data_table_file){
+            std::ofstream unsteady_data_table_file(this->unsteady_data_table_filename_with_extension);
+            unsteady_data_table->write_text(unsteady_data_table_file);
+        }
     }
 
     if (current_iteration % this->all_param.ode_solver_param.print_iteration_modulo == 0) {

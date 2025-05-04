@@ -31,16 +31,21 @@ virtual std::array<real, nstate> evaluate_solution_flux (
 /// Auxiliary flux at the interface.
 virtual std::array<real, nstate> evaluate_auxiliary_flux (
     const dealii::types::global_dof_index current_cell_index,
-    const dealii::types::global_dof_index neighbor_cell_index,
+    const dealii::types::global_dof_index neighbor_cell_index_,
     const real artificial_diss_coeff_int,
-    const real artificial_diss_coeff_ext,
+    const real artificial_diss_coeff_ext_,
     const std::array<real, nstate> &soln_int,
     const std::array<real, nstate> &soln_ext,
     const std::array<dealii::Tensor<1,dim,real>, nstate> &soln_grad_int,
-    const std::array<dealii::Tensor<1,dim,real>, nstate> &soln_grad_ext,
+    const std::array<dealii::Tensor<1,dim,real>, nstate> &soln_grad_ext_,
+    const std::array<real, nstate> &filtered_soln_int,
+    const std::array<real, nstate> &filtered_soln_ext,
+    const std::array<dealii::Tensor<1,dim,real>, nstate> &filtered_soln_grad_int,
+    const std::array<dealii::Tensor<1,dim,real>, nstate> &filtered_soln_grad_ext_,
     const dealii::Tensor<1,dim,real> &normal_int,
     const real &penalty,
-    const bool on_boundary = false) const = 0;
+    const bool on_boundary,
+    const int boundary_type=0) const = 0;
 
 protected:
 const std::shared_ptr < Physics::PhysicsBase<dim, nstate, real> > pde_physics; ///< Associated physics.
@@ -76,16 +81,21 @@ std::array<real, nstate> evaluate_solution_flux (
  */
 std::array<real, nstate> evaluate_auxiliary_flux (
     const dealii::types::global_dof_index current_cell_index,
-    const dealii::types::global_dof_index neighbor_cell_index,
+    const dealii::types::global_dof_index neighbor_cell_index_,
     const real artificial_diss_coeff_int,
-    const real artificial_diss_coeff_ext,
+    const real artificial_diss_coeff_ext_,
     const std::array<real, nstate> &soln_int,
     const std::array<real, nstate> &soln_ext,
     const std::array<dealii::Tensor<1,dim,real>, nstate> &soln_grad_int,
-    const std::array<dealii::Tensor<1,dim,real>, nstate> &soln_grad_ext,
+    const std::array<dealii::Tensor<1,dim,real>, nstate> &soln_grad_ext_,
+    const std::array<real, nstate> &filtered_soln_int,
+    const std::array<real, nstate> &filtered_soln_ext,
+    const std::array<dealii::Tensor<1,dim,real>, nstate> &filtered_soln_grad_int,
+    const std::array<dealii::Tensor<1,dim,real>, nstate> &filtered_soln_grad_ext_,
     const dealii::Tensor<1,dim,real> &normal_int,
     const real &penalty,
-    const bool on_boundary = false) const override;
+    const bool on_boundary,
+    const int boundary_type=0) const override;
     
 };
 
@@ -118,16 +128,21 @@ std::array<real, nstate> evaluate_solution_flux (
  */
 std::array<real, nstate> evaluate_auxiliary_flux (
     const dealii::types::global_dof_index current_cell_index,
-    const dealii::types::global_dof_index neighbor_cell_index,
+    const dealii::types::global_dof_index neighbor_cell_index_,
     const real artificial_diss_coeff_int,
-    const real artificial_diss_coeff_ext,
+    const real artificial_diss_coeff_ext_,
     const std::array<real, nstate> &soln_int,
     const std::array<real, nstate> &soln_ext,
     const std::array<dealii::Tensor<1,dim,real>, nstate> &soln_grad_int,
-    const std::array<dealii::Tensor<1,dim,real>, nstate> &soln_grad_ext,
+    const std::array<dealii::Tensor<1,dim,real>, nstate> &soln_grad_ext_,
+    const std::array<real, nstate> &filtered_soln_int,
+    const std::array<real, nstate> &filtered_soln_ext,
+    const std::array<dealii::Tensor<1,dim,real>, nstate> &filtered_soln_grad_int,
+    const std::array<dealii::Tensor<1,dim,real>, nstate> &filtered_soln_grad_ext_,
     const dealii::Tensor<1,dim,real> &normal_int,
     const real &penalty,
-    const bool on_boundary = false) const override;
+    const bool on_boundary,
+    const int boundary_type=0) const override;
     
 };
 
@@ -159,16 +174,21 @@ std::array<real, nstate> evaluate_solution_flux (
  */
 std::array<real, nstate> evaluate_auxiliary_flux (
     const dealii::types::global_dof_index current_cell_index,
-    const dealii::types::global_dof_index neighbor_cell_index,
+    const dealii::types::global_dof_index neighbor_cell_index_,
     const real artificial_diss_coeff_int,
-    const real artificial_diss_coeff_ext,
+    const real artificial_diss_coeff_ext_,
     const std::array<real, nstate> &soln_int,
     const std::array<real, nstate> &soln_ext,
     const std::array<dealii::Tensor<1,dim,real>, nstate> &soln_grad_int,
-    const std::array<dealii::Tensor<1,dim,real>, nstate> &soln_grad_ext,
+    const std::array<dealii::Tensor<1,dim,real>, nstate> &soln_grad_ext_,
+    const std::array<real, nstate> &filtered_soln_int,
+    const std::array<real, nstate> &filtered_soln_ext,
+    const std::array<dealii::Tensor<1,dim,real>, nstate> &filtered_soln_grad_int,
+    const std::array<dealii::Tensor<1,dim,real>, nstate> &filtered_soln_grad_ext_,
     const dealii::Tensor<1,dim,real> &normal_int,
     const real &penalty,
-    const bool on_boundary = false) const override;
+    const bool on_boundary,
+    const int boundary_type=0) const override;
 
 };
 

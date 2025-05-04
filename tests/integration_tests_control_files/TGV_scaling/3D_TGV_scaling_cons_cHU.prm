@@ -37,7 +37,7 @@ set use_weight_adjusted_mass = true
 
 set store_residual_cpu_time = true
 
-set use_periodic_bc = true
+set all_boundaries_are_periodic = true
 
 set use_classical_FR = false
 

@@ -17,11 +17,11 @@ template <int dim, int nstate, typename real, typename MeshType = dealii::parall
 #endif
 class DGBaseState : public DGBase<dim, real, MeshType>
 {
-   protected:
+protected:
     /// Alias to base class Triangulation.
     using Triangulation = typename DGBase<dim,real,MeshType>::Triangulation;
 
-   public:
+public:
     using DGBase<dim,real,MeshType>::all_parameters; ///< Input parameters.
 
     /// Constructor.
@@ -90,15 +90,24 @@ class DGBaseState : public DGBase<dim, real, MeshType>
         std::shared_ptr< Physics::PhysicsBase<dim, nstate, RadFadType > > pde_physics_rad_fad_input);
 
     /// Allocate the necessary variables declared in src/physics/model.h
-    void allocate_model_variables();
+    virtual void allocate_model_variables();
 
     /// Update the necessary variables declared in src/physics/model.h
-    void update_model_variables();
+    virtual void update_model_variables();
+
+    /// Set the necessary unsteady variables declared in src/physics/model.h
+    void set_unsteady_model_time_step(const double time_step);
 
     /// Set use_auxiliary_eq flag
     void set_use_auxiliary_eq();
 
-   protected:
+    /// Set store_vol_flux_nodes flag
+    void set_store_vol_flux_nodes();
+
+    /// Set store_surf_flux_nodes flag
+    void set_store_surf_flux_nodes();
+
+protected:
     /// Evaluate the time it takes for the maximum wavespeed to cross the cell domain.
     /** Currently only uses the convective eigenvalues. Future changes would take in account
      *  the maximum diffusivity and take the minimum time between dx/conv_eig and dx*dx/max_visc

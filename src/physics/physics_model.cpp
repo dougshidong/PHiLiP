@@ -34,6 +34,70 @@ PhysicsModel<dim,nstate,real,nstate_baseline_physics>::PhysicsModel(
 { }
 
 template <int dim, int nstate, typename real, int nstate_baseline_physics>
+std::array<real,nstate> PhysicsModel<dim,nstate,real,nstate_baseline_physics>
+::convert_conservative_to_primitive ( const std::array<real,nstate> &conservative_soln ) const
+{
+    std::array<real,nstate> primitive_soln;
+    if constexpr(nstate==nstate_baseline_physics) {
+        primitive_soln = physics_baseline->convert_conservative_to_primitive(conservative_soln);
+    } else {
+        pcout << "Error: convert_conservative_to_primitive() not implemented for nstate!=nstate_baseline_physics." << std::endl;
+        pcout << "Aborting..." << std::endl;
+        std::abort();
+    }    
+    return primitive_soln;
+}
+
+template <int dim, int nstate, typename real, int nstate_baseline_physics>
+std::array<real,nstate> PhysicsModel<dim,nstate,real,nstate_baseline_physics>
+::convert_primitive_to_conservative ( const std::array<real,nstate> &primitive_soln ) const
+{
+    std::array<real,nstate> conservative_soln;
+    if constexpr(nstate==nstate_baseline_physics) {
+        conservative_soln = physics_baseline->convert_primitive_to_conservative(primitive_soln);
+    } else {
+        pcout << "Error: convert_primitive_to_conservative() not implemented for nstate!=nstate_baseline_physics." << std::endl;
+        pcout << "Aborting..." << std::endl;
+        std::abort();
+    }    
+    return conservative_soln;
+}
+
+template <int dim, int nstate, typename real, int nstate_baseline_physics>
+std::array<dealii::Tensor<1,dim,real>,nstate> PhysicsModel<dim,nstate,real,nstate_baseline_physics>
+::convert_primitive_gradient_to_conservative_gradient (
+    const std::array<real,nstate> &primitive_soln,
+    const std::array<dealii::Tensor<1,dim,real>,nstate> &primitive_soln_gradient) const
+{
+    std::array<dealii::Tensor<1,dim,real>,nstate> conservative_soln_gradient;
+    if constexpr(nstate==nstate_baseline_physics) {
+        conservative_soln_gradient = physics_baseline->convert_primitive_gradient_to_conservative_gradient(primitive_soln,primitive_soln_gradient);
+    } else {
+        pcout << "Error: convert_primitive_gradient_to_conservative_gradient() not implemented for nstate!=nstate_baseline_physics." << std::endl;
+        pcout << "Aborting..." << std::endl;
+        std::abort();
+    }    
+    return conservative_soln_gradient;
+}
+
+template <int dim, int nstate, typename real, int nstate_baseline_physics>
+std::array<dealii::Tensor<1,dim,real>,nstate> PhysicsModel<dim,nstate,real,nstate_baseline_physics>
+::convert_conservative_gradient_to_primitive_gradient (
+    const std::array<real,nstate> &conservative_soln,
+    const std::array<dealii::Tensor<1,dim,real>,nstate> &conservative_soln_gradient) const
+{
+    std::array<dealii::Tensor<1,dim,real>,nstate> primitive_soln_gradient;
+    if constexpr(nstate==nstate_baseline_physics) {
+        primitive_soln_gradient = physics_baseline->convert_conservative_gradient_to_primitive_gradient(conservative_soln,conservative_soln_gradient);
+    } else {
+        pcout << "Error: convert_conservative_gradient_to_primitive_gradient() not implemented for nstate!=nstate_baseline_physics." << std::endl;
+        pcout << "Aborting..." << std::endl;
+        std::abort();
+    }    
+    return primitive_soln_gradient;
+}
+
+template <int dim, int nstate, typename real, int nstate_baseline_physics>
 std::array<dealii::Tensor<1,dim,real>,nstate> PhysicsModel<dim,nstate,real,nstate_baseline_physics>
 ::convective_flux (const std::array<real,nstate> &conservative_soln) const
 {
@@ -57,6 +121,63 @@ std::array<dealii::Tensor<1,dim,real>,nstate> PhysicsModel<dim,nstate,real,nstat
         }
     }
     return conv_flux;
+}
+
+template <int dim, int nstate, typename real, int nstate_baseline_physics>
+std::array<real,nstate> PhysicsModel<dim,nstate,real,nstate_baseline_physics>
+::dissipative_flux_dot_normal (
+        const std::array<real,nstate> &solution,
+        const std::array<dealii::Tensor<1,dim,real>,nstate> &solution_gradient,
+        const std::array<real,nstate> &filtered_solution,
+        const std::array<dealii::Tensor<1,dim,real>,nstate> &filtered_solution_gradient,
+        const bool on_boundary,
+        const dealii::types::global_dof_index cell_index,
+        const dealii::Tensor<1,dim,real> &normal,
+        const int boundary_type)
+{
+    this->model->set_unfiltered_conservative_solution(solution);
+
+    // Get baseline conservative solution with nstate_baseline_physics
+    std::array<real,nstate_baseline_physics> baseline_conservative_soln;
+    for(int s=0; s<nstate_baseline_physics; ++s){
+        baseline_conservative_soln[s] = solution[s];
+    }
+
+    // Get baseline conservative solution gradient with nstate_baseline_physics
+    std::array<dealii::Tensor<1,dim,real>,nstate_baseline_physics> baseline_solution_gradient;
+    for(int s=0; s<nstate_baseline_physics; ++s){
+        for (int d=0; d<dim; ++d) {
+            baseline_solution_gradient[s][d] = solution_gradient[s][d];
+        }
+    }
+
+    // Get baseline dissipative flux dot normal
+    /* Note: Even though the physics baseline dissipative flux does not depend on cell_index, we pass it 
+             anyways to accomodate the pure virtual member function defined in the PhysicsBase class */
+    std::array<real,nstate_baseline_physics> baseline_diss_flux_dot_n
+        = physics_baseline->dissipative_flux_dot_normal(baseline_conservative_soln, baseline_solution_gradient, baseline_conservative_soln, baseline_solution_gradient, on_boundary, cell_index, normal, boundary_type);
+
+    // Initialize diss_flux_dot_n as the model dissipative flux dot normal
+    std::array<real,nstate> diss_flux_dot_n = model->dissipative_flux_dot_normal(solution, solution_gradient, filtered_solution, filtered_solution_gradient, on_boundary, cell_index, normal, boundary_type);
+
+    // Add the baseline_diss_flux_dot_n terms to diss_flux_dot_n
+    for(int s=0; s<nstate_baseline_physics; ++s){
+        diss_flux_dot_n[s] += baseline_diss_flux_dot_n[s];
+    }
+    return diss_flux_dot_n;
+}
+
+template <int dim, int nstate, typename real, int nstate_baseline_physics>
+std::array<dealii::Tensor<1,dim,real>,nstate> PhysicsModel<dim,nstate,real,nstate_baseline_physics>
+::dissipative_flux (
+    const std::array<real,nstate> &solution,
+    const std::array<dealii::Tensor<1,dim,real>,nstate> &solution_gradient,
+    const std::array<real,nstate> &/*filtered_solution*/,
+    const std::array<dealii::Tensor<1,dim,real>,nstate> &/*filtered_solution_gradient*/,
+    const dealii::types::global_dof_index cell_index)
+{
+    this->model->set_unfiltered_conservative_solution(solution);
+    return this->dissipative_flux(solution,solution_gradient,cell_index);
 }
 
 template <int dim, int nstate, typename real, int nstate_baseline_physics>
@@ -293,6 +414,55 @@ real PhysicsModel<dim,nstate,real,nstate_baseline_physics>
 
 template <int dim, int nstate, typename real, int nstate_baseline_physics>
 void PhysicsModel<dim,nstate,real,nstate_baseline_physics>
+::boundary_face_values_viscous_flux (
+   const int boundary_type,
+   const dealii::Point<dim, real> &pos,
+   const dealii::Tensor<1,dim,real> &normal_int,
+   const std::array<real,nstate> &soln_int,
+   const std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_int,
+   const std::array<real,nstate> &filtered_soln_int,
+   const std::array<dealii::Tensor<1,dim,real>,nstate> &filtered_soln_grad_int,
+   std::array<real,nstate> &soln_bc,
+   std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_bc) const
+{
+    if constexpr(nstate==nstate_baseline_physics) {
+        physics_baseline->boundary_face_values_viscous_flux(
+                boundary_type, pos, normal_int, soln_int, soln_grad_int, filtered_soln_int, filtered_soln_grad_int,
+                soln_bc, soln_grad_bc);
+    } else {
+        std::array<real,nstate_baseline_physics> baseline_soln_int;
+        std::array<dealii::Tensor<1,dim,real>,nstate_baseline_physics> baseline_soln_grad_int;
+        for(int s=0; s<nstate_baseline_physics; ++s){
+            baseline_soln_int[s] = soln_int[s];
+            baseline_soln_grad_int[s] = soln_grad_int[s];
+        }
+
+        std::array<real,nstate_baseline_physics> baseline_soln_bc;
+        std::array<dealii::Tensor<1,dim,real>,nstate_baseline_physics> baseline_soln_grad_bc;
+
+        for (int istate=0; istate<nstate_baseline_physics; istate++) {
+            baseline_soln_bc[istate]      = 0;
+            baseline_soln_grad_bc[istate] = 0;
+        }
+
+        physics_baseline->boundary_face_values(
+                boundary_type, pos, normal_int, baseline_soln_int, baseline_soln_grad_int, 
+                baseline_soln_bc, baseline_soln_grad_bc);
+        /*TO DO NOT IMPLEMENTED YET
+        model->boundary_face_values(
+                boundary_type, pos, normal_int, soln_int, soln_grad_int, 
+                soln_bc, soln_grad_bc);*/
+
+        for(int s=0; s<nstate_baseline_physics; ++s){
+            soln_bc[s] += baseline_soln_bc[s];
+            soln_grad_bc[s] += baseline_soln_grad_bc[s];
+        }
+        std::abort(); // <-- TO DO NOT IMPLEMENTED YET
+    }
+}
+
+template <int dim, int nstate, typename real, int nstate_baseline_physics>
+void PhysicsModel<dim,nstate,real,nstate_baseline_physics>
 ::boundary_face_values (
    const int boundary_type,
    const dealii::Point<dim, real> &pos,
@@ -406,12 +576,118 @@ template <int dim, int nstate, typename real, int nstate_baseline_physics>
 dealii::UpdateFlags PhysicsModel<dim,nstate,real,nstate_baseline_physics>
 ::post_get_needed_update_flags () const
 {
-    // Note: This is the exact same function as in the class PhysicsBase::Euler
-    //return update_values | update_gradients;
-    return dealii::update_values
-           | dealii::update_quadrature_points
-           ;
+    if constexpr(nstate==nstate_baseline_physics) {
+        return physics_baseline->post_get_needed_update_flags();
+    } else {
+        return dealii::update_values | dealii::update_quadrature_points | dealii::update_gradients;
+    }
 }
+
+//===========================================================================================
+// Physics Model Filtered
+//===========================================================================================
+template <int dim, int nstate, typename real, int nstate_baseline_physics>
+PhysicsModelFiltered<dim,nstate,real,nstate_baseline_physics>::PhysicsModelFiltered( 
+    const Parameters::AllParameters                              *const parameters_input,
+    Parameters::AllParameters::PartialDifferentialEquation       baseline_physics_type,
+    std::shared_ptr< ModelBase<dim,nstate,real> >                model_input,
+    std::shared_ptr< ManufacturedSolutionFunction<dim,real> >    manufactured_solution_function,
+    const bool                                                   has_nonzero_diffusion,
+    const bool                                                   has_nonzero_physical_source)
+    : PhysicsModel<dim,nstate,real,nstate_baseline_physics>(parameters_input,
+                                                            baseline_physics_type,
+                                                            model_input,
+                                                            manufactured_solution_function,
+                                                            has_nonzero_diffusion,
+                                                            has_nonzero_physical_source)
+{ }
+
+template <int dim, int nstate, typename real, int nstate_baseline_physics>
+std::array<dealii::Tensor<1,dim,real>,nstate> PhysicsModelFiltered<dim,nstate,real,nstate_baseline_physics>
+::dissipative_flux (
+    const std::array<real,nstate> &solution,
+    const std::array<dealii::Tensor<1,dim,real>,nstate> &solution_gradient,
+    const std::array<real,nstate> &filtered_solution,
+    const std::array<dealii::Tensor<1,dim,real>,nstate> &filtered_solution_gradient,
+    const dealii::types::global_dof_index cell_index)
+{
+    this->model->set_unfiltered_conservative_solution(solution);
+
+    // Get baseline conservative solution with nstate_baseline_physics
+    std::array<real,nstate_baseline_physics> baseline_conservative_soln;
+    for(int s=0; s<nstate_baseline_physics; ++s){
+        baseline_conservative_soln[s] = solution[s];
+    }
+
+    // Get baseline conservative solution gradient with nstate_baseline_physics
+    std::array<dealii::Tensor<1,dim,real>,nstate_baseline_physics> baseline_solution_gradient;
+    for(int s=0; s<nstate_baseline_physics; ++s){
+        for (int d=0; d<dim; ++d) {
+            baseline_solution_gradient[s][d] = solution_gradient[s][d];
+        }
+    }
+
+    // Get baseline dissipative flux
+    /* Note: Even though the physics baseline dissipative flux does not depend on cell_index, we pass it 
+             anyways to accomodate the pure virtual member function defined in the PhysicsBase class */
+    std::array<dealii::Tensor<1,dim,real>,nstate_baseline_physics> baseline_diss_flux
+        = this->physics_baseline->dissipative_flux(baseline_conservative_soln, baseline_solution_gradient, cell_index);
+
+    // Initialize diss_flux as the model dissipative flux; NOTE: passing the filtered solution
+    std::array<dealii::Tensor<1,dim,real>,nstate> diss_flux = this->model->dissipative_flux(filtered_solution, filtered_solution_gradient, cell_index);
+
+    // Add the baseline_diss_flux terms to diss_flux
+    for(int s=0; s<nstate_baseline_physics; ++s){
+        for (int d=0; d<dim; ++d) {
+            diss_flux[s][d] += baseline_diss_flux[s][d];
+        }
+    }
+    return diss_flux;
+}
+
+template <int dim, int nstate, typename real, int nstate_baseline_physics>
+std::array<real,nstate> PhysicsModelFiltered<dim,nstate,real,nstate_baseline_physics>
+::dissipative_flux_dot_normal (
+        const std::array<real,nstate> &solution,
+        const std::array<dealii::Tensor<1,dim,real>,nstate> &solution_gradient,
+        const std::array<real,nstate> &filtered_solution,
+        const std::array<dealii::Tensor<1,dim,real>,nstate> &filtered_solution_gradient,
+        const bool on_boundary,
+        const dealii::types::global_dof_index cell_index,
+        const dealii::Tensor<1,dim,real> &normal,
+        const int boundary_type)
+{
+    this->model->set_unfiltered_conservative_solution(solution);
+    // Get baseline conservative solution with nstate_baseline_physics
+    std::array<real,nstate_baseline_physics> baseline_conservative_soln;
+    for(int s=0; s<nstate_baseline_physics; ++s){
+        baseline_conservative_soln[s] = solution[s];
+    }
+
+    // Get baseline conservative solution gradient with nstate_baseline_physics
+    std::array<dealii::Tensor<1,dim,real>,nstate_baseline_physics> baseline_solution_gradient;
+    for(int s=0; s<nstate_baseline_physics; ++s){
+        for (int d=0; d<dim; ++d) {
+            baseline_solution_gradient[s][d] = solution_gradient[s][d];
+        }
+    }
+
+    // Get baseline dissipative flux dot normal
+    /* Note: Even though the physics baseline dissipative flux does not depend on cell_index, we pass it 
+             anyways to accomodate the pure virtual member function defined in the PhysicsBase class */
+    std::array<real,nstate_baseline_physics> baseline_diss_flux_dot_n
+        = this->physics_baseline->dissipative_flux_dot_normal(baseline_conservative_soln, baseline_solution_gradient, baseline_conservative_soln, baseline_solution_gradient, on_boundary, cell_index, normal, boundary_type);
+
+    // Initialize diss_flux_dot_n as the model dissipative flux dot normal; NOTE: passing the filtered solution
+    std::array<real,nstate> diss_flux_dot_n = this->model->dissipative_flux_dot_normal(filtered_solution, filtered_solution_gradient, filtered_solution, filtered_solution_gradient, on_boundary, cell_index, normal, boundary_type);
+
+    // Add the baseline_diss_flux_dot_n terms to diss_flux_dot_n
+    for(int s=0; s<nstate_baseline_physics; ++s){
+        diss_flux_dot_n[s] += baseline_diss_flux_dot_n[s];
+    }
+    return diss_flux_dot_n;
+}
+
 
 // Instantiate explicitly
 template class PhysicsModel < PHILIP_DIM, PHILIP_DIM+2, double    , PHILIP_DIM+2 >;
@@ -425,6 +701,18 @@ template class PhysicsModel < PHILIP_DIM, PHILIP_DIM+3, FadType   , PHILIP_DIM+2
 template class PhysicsModel < PHILIP_DIM, PHILIP_DIM+3, RadType   , PHILIP_DIM+2 >;
 template class PhysicsModel < PHILIP_DIM, PHILIP_DIM+3, FadFadType, PHILIP_DIM+2 >;
 template class PhysicsModel < PHILIP_DIM, PHILIP_DIM+3, RadFadType, PHILIP_DIM+2 >;
+
+template class PhysicsModelFiltered < PHILIP_DIM, PHILIP_DIM+2, double    , PHILIP_DIM+2 >;
+template class PhysicsModelFiltered < PHILIP_DIM, PHILIP_DIM+2, FadType   , PHILIP_DIM+2 >;
+template class PhysicsModelFiltered < PHILIP_DIM, PHILIP_DIM+2, RadType   , PHILIP_DIM+2 >;
+template class PhysicsModelFiltered < PHILIP_DIM, PHILIP_DIM+2, FadFadType, PHILIP_DIM+2 >;
+template class PhysicsModelFiltered < PHILIP_DIM, PHILIP_DIM+2, RadFadType, PHILIP_DIM+2 >;
+
+template class PhysicsModelFiltered < PHILIP_DIM, PHILIP_DIM+3, double    , PHILIP_DIM+2 >;
+template class PhysicsModelFiltered < PHILIP_DIM, PHILIP_DIM+3, FadType   , PHILIP_DIM+2 >;
+template class PhysicsModelFiltered < PHILIP_DIM, PHILIP_DIM+3, RadType   , PHILIP_DIM+2 >;
+template class PhysicsModelFiltered < PHILIP_DIM, PHILIP_DIM+3, FadFadType, PHILIP_DIM+2 >;
+template class PhysicsModelFiltered < PHILIP_DIM, PHILIP_DIM+3, RadFadType, PHILIP_DIM+2 >;
 
 } // Physics namespace
 } // PHiLiP namespace

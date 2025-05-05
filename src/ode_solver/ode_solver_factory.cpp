@@ -354,7 +354,7 @@ std::shared_ptr<EmptyRRKBase<dim,real,MeshType>> ODESolverFactory<dim,real,MeshT
         // If calculating numerical entropy, select the class which has that functionality
             return std::make_shared<RKNumEntropy<dim,real,MeshType>>(rk_tableau);
     }
-    else if (ode_solver_type == ODEEnum::rrk_explicit_solver){
+    else if (dg_input->all_parameters->ode_solver_param.use_relaxation_runge_kutta){ //ode_solver_type == ODEEnum::rrk_explicit_solver){
 
         using PDEEnum = Parameters::AllParameters::PartialDifferentialEquation;
         const PDEEnum pde_type = dg_input->all_parameters->pde_type;

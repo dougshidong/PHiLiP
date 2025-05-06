@@ -9,7 +9,7 @@
 namespace PHiLiP::ODE {
 template <int dim, typename real, int n_rk_stages, typename MeshType>
 PODGalerkinRungeKuttaODESolver<dim,real,n_rk_stages,MeshType>::PODGalerkinRungeKuttaODESolver(std::shared_ptr< DGBase<dim, real, MeshType> > dg_input,
-            std::shared_ptr<RKTableauBase<dim,real,MeshType>> rk_tableau_input,
+            std::shared_ptr<RKTableauButcherBase<dim,real,MeshType>> rk_tableau_input,
             std::shared_ptr<EmptyRRKBase<dim,real,MeshType>> RRK_object_input,
             std::shared_ptr<ProperOrthogonalDecomposition::PODBase<dim>> pod) 
             : RungeKuttaBase<dim,real,n_rk_stages,MeshType>(dg_input, RRK_object_input, pod)

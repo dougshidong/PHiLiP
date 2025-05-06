@@ -4,7 +4,7 @@
 #include "JFNK_solver/JFNK_solver.h"
 #include "dg/dg_base.hpp"
 #include "runge_kutta_base.h"
-#include "runge_kutta_methods/rk_tableau_base.h"
+#include "runge_kutta_methods/rk_tableau_butcher_base.h"
 #include "relaxation_runge_kutta/empty_RRK_base.h"
 
 namespace PHiLiP {
@@ -20,7 +20,7 @@ class RungeKuttaODESolver: public RungeKuttaBase <dim, real, n_rk_stages, MeshTy
 {
 public:
     RungeKuttaODESolver(std::shared_ptr< DGBase<dim, real, MeshType> > dg_input,
-            std::shared_ptr<RKTableauBase<dim,real,MeshType>> rk_tableau_input,
+            std::shared_ptr<RKTableauButcherBase<dim,real,MeshType>> rk_tableau_input,
             std::shared_ptr<EmptyRRKBase<dim,real,MeshType>> RRK_object_input); ///< Constructor.
 
     void allocate_runge_kutta_system () override;
@@ -37,7 +37,7 @@ public:
 
 protected:
     /// Stores Butcher tableau a and b, which specify the RK method
-    std::shared_ptr<RKTableauBase<dim,real,MeshType>> butcher_tableau;
+    std::shared_ptr<RKTableauButcherBase<dim,real,MeshType>> butcher_tableau;
 };
 
 } // ODE namespace

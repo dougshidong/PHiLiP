@@ -196,7 +196,7 @@ int PODGalerkinRungeKuttaODESolver<dim,real,n_rk_stages,MeshType>::multiply(Epet
                                                                     dealii::LinearAlgebra::distributed::Vector<double> &input_dealii_vector,
                                                                     dealii::LinearAlgebra::distributed::Vector<double> &output_dealii_vector,
                                                                     const dealii::IndexSet &index_set,
-                                                                    const bool transpose // Transpose needs to be used with care of maps
+                                                                    const bool transpose //Transpose needs to used with care of maps
                                                                     )
 {
     Epetra_Vector epetra_input(Epetra_DataAccess::View, epetra_matrix.DomainMap(), input_dealii_vector.begin());

@@ -140,7 +140,7 @@ set_tests_labels(INVISCID_NACA0012_ADAPTIVE_SAMPLING    REDUCED_ORDER
                                                         IMPLICIT
                                                         WEAK
                                                         UNCOLLOCATED
-                                                        LONG
+                                                        EXTRA-LONG
                                                         INTEGRATION_TEST)
 
 # =======================================
@@ -190,7 +190,7 @@ set_tests_labels(1D_BURGERS_REWIENSKI_MANUFACTURED_SOLUTION REDUCED_ORDER
 configure_file(unsteady_reduced_order_testing.prm unsteady_reduced_order_testing.prm COPYONLY)
 add_test(
         NAME 2D_UNSTEADY_GALERKIN_RK
-        COMMAND 
+        COMMAND
         bash -c
         "
         rm -f *.txt;
@@ -207,7 +207,3 @@ set_tests_labels(2D_UNSTEADY_GALERKIN_RK        REDUCED_ORDER
                                                 COLLOCATED
                                                 MODERATE
                                                 INTEGRATION_TEST)
-                                          
-
-
-

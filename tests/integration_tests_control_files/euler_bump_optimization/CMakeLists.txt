@@ -13,6 +13,6 @@ set_tests_labels(2D_EULER_BUMP_OPTIMIZATION EULER_BUMP_OPTIMIZATION
                                             IMPLICIT
                                             WEAK
                                             UNCOLLOCATED
-                                            LONG
+                                            EXTRA-LONG
                                             OPTIMIZATION
                                             INTEGRATION_TEST)

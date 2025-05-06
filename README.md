@@ -112,8 +112,12 @@ ROOT$ ctest -N (List the tests that would be run but not actually run them)
 ROOT$ ctest -R <regex> (Run tests matching regular expression)
 ROOT$ ctest -E <regex> (Exclude tests matching regular expression)
 ROOT$ ctest -V (Enable verbose output from tests)
+ROOT$ ctest -L <label> (Run tests matching label)
+ROOT$ ctest -LE <label> (Exclude tests matching label)
 ```
 Note that running `ctest` in `Debug` will take forever since some integration tests fully solve nonlinear problems with multiple orders and multiple meshes. It is suggested to perform `ctest` in `Release` mode, and only use `Debug` mode for debugging purposes.
+
+More detail about running tests using labels can be found [here](tests/CTEST_LABELS.md).
 
 ## Debugging
 

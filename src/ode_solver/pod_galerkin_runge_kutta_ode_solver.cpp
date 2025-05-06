@@ -117,16 +117,7 @@ void PODGalerkinRungeKuttaODESolver<dim,real,n_rk_stages,MeshType>::allocate_run
     for(auto idx : this->dg->solution.locally_owned_elements()){
         global_indicies.push_back(static_cast<int>(idx));
     }
-    // Creating block here for now to auto delete this large matrix
-    {
-        int solution_size = this->dg->solution.size();
-        Epetra_MpiComm epetra_comm(this->mpi_communicator);
-        Epetra_Map solution_map(solution_size,global_indicies.size(),global_indicies.data(),0,epetra_comm);
-        Epetra_CrsMatrix old_pod_basis = epetra_pod_basis;
-        Epetra_Import basis_importer(solution_map, old_pod_basis.RowMap());
-        epetra_pod_basis = Epetra_CrsMatrix(old_pod_basis, basis_importer);
-        epetra_pod_basis.FillComplete();
-    }
+
     Epetra_Map reduced_map = epetra_pod_basis.DomainMap();
     // Setting up Mass and Test Matrix
     Epetra_CrsMatrix old_epetra_system_matrix = this->dg->global_mass_matrix.trilinos_matrix();

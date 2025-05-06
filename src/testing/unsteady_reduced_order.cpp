@@ -40,10 +40,10 @@ int UnsteadyReducedOrder<dim,nstate>::run_test() const
     const double galerkin_solution_error = ((galerkin_solution-=full_order_solution).l2_norm()/full_order_solution.l2_norm());
     
     pcout << "Galerkin solution error: " << galerkin_solution_error << std::endl;
-    if (std::abs(galerkin_solution_error) > 2.5E-5) testfail = 1;
+    if (std::abs(galerkin_solution_error) > 6E-9) testfail = 1;
 
     // Hard coding expected_modes based on past test results
-    if (constexpr int expected_modes = 30; modes != expected_modes) testfail = 1;
+    if (constexpr int expected_modes = 7; modes != expected_modes) testfail = 1;
     return testfail;
 }
 

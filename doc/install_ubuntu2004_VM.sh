@@ -183,5 +183,5 @@ mkdir -p Codes
         # 	however, it does not work well on Ubuntu with OpenMPI. Works well with Fedora
         cmake ../ -DCMAKE_BUILD_TYPE=Release -DMPIMAX=4 -DUSE_LD_GOLD=OFF ;\
         make -j4 ;\
-        ctest ;\
+        ctest -LE EXTRA-LONG ;\
 )

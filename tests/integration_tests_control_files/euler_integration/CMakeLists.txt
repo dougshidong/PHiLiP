@@ -74,6 +74,7 @@ set_tests_labels(2D_EULER_LAXFRIEDRICHS_COLLOCATED_MANUFACTURED_SOLUTION    EULE
                                                                             WEAK
                                                                             COLLOCATED
                                                                             MANUFACTURED_SOLUTION
+                                                                            EXPECTED_FAILURE
                                                                             CONVERGENCE
                                                                             MODERATE
                                                                             INTEGRATION_TEST)

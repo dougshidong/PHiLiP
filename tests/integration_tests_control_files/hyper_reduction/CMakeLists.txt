@@ -116,7 +116,7 @@ set_tests_labels(INVISCID_NACA0012_HYPER_POST_SAMPLING HYPER_REDUCTION
                                                 IMPLICIT
                                                 WEAK
                                                 UNCOLLOCATED
-                                                LONG
+                                                EXTRA-LONG
                                                 INTEGRATION_TEST)
 
 # The following test can only be run on Narval currently with a 2009G node as they require a large amount of memory

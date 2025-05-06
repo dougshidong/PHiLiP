@@ -39,7 +39,6 @@ MatrixXd NearestNeighbors::kPairwiseNearestNeighborsMidpoint(){
         for (int i = 1 ; i < snapshot.cols() + 2 ; i++) { //Ignore zeroth index as this would be the same point
             midpoints.conservativeResize(midpoints.rows()+1, midpoints.cols());
             midpoints.row(midpoints.rows()-1) = (snapshot_params.row(index[i])+scaler.inverse_transform(snapshot))/2;
-            std::cout << (snapshot_params.row(index[i])+scaler.inverse_transform(snapshot))/2 << std::endl;
         }
     }
     return midpoints;

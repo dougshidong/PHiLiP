@@ -73,6 +73,13 @@ public:
 
     /// Generate reduced LHS
     std::shared_ptr<Epetra_CrsMatrix> generate_reduced_lhs(Epetra_CrsMatrix &test_basis);
+
+    /// Copy all elements in matrix A to all cores
+    Epetra_CrsMatrix copyMatrixToAllCores(const Epetra_CrsMatrix &A);
+
+    /// Copy all elements in matrix A to all cores
+    Epetra_Vector allocateVectorToSingleCore(const Epetra_Vector &b);
+
 };
 
 } // ODE namespace

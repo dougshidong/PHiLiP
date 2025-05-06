@@ -2,6 +2,9 @@
 #define __ASSEMBLE_ECSW_BASE__
 
 #include <eigen/Eigen/Dense>
+#include <Epetra_MpiComm.h>
+#include <Epetra_SerialComm.h>
+#include <Epetra_Comm.h>
 #include <Epetra_CrsMatrix.h>
 #include <Epetra_Map.h>
 #include <Epetra_Vector.h>
@@ -39,7 +42,8 @@ public:
         std::shared_ptr<DGBase<dim,double>> &dg_input, 
         std::shared_ptr<ProperOrthogonalDecomposition::PODBase<dim>> pod,
         MatrixXd snapshot_parameters_input,
-        Parameters::ODESolverParam::ODESolverEnum ode_solver_type);
+        Parameters::ODESolverParam::ODESolverEnum ode_solver_type,
+        Epetra_MpiComm &Comm);
 
     /// Destructor
     virtual ~AssembleECSWBase () {};
@@ -59,21 +63,42 @@ public:
     mutable MatrixXd snapshot_parameters;
 
     const MPI_Comm mpi_communicator; ///< MPI communicator.
+    const int mpi_rank; ///< MPI rank.
+
+    /// ConditionalOStream.
+    /** Used as std::cout, but only prints if mpi_rank == 0
+     */
+    dealii::ConditionalOStream pcout;
 
     /// ODE Solve Type/ Projection Type (galerkin or petrov-galerkin)
     Parameters::ODESolverParam::ODESolverEnum ode_solver_type;
 
+    /// Epetra Communicator Object with MPI
+    Epetra_MpiComm Comm_;
+
     /// Matrix for the NNLS Problem
-    std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> A;
+    std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> A_T;
 
     /// RHS Vector for the NNLS Problem
     dealii::LinearAlgebra::ReadWriteVector<double> b;
+
+    /// Vector of parameter-ROMTestLocation pairs
+    mutable std::vector<dealii::LinearAlgebra::distributed::Vector<double>> fom_locations;
 
     /// Generate Test Basis from the pod and snapshot info depending on the ode_solve_type (copied from the ODE solvers)
     std::shared_ptr<Epetra_CrsMatrix> local_generate_test_basis(Epetra_CrsMatrix &system_matrix, const Epetra_CrsMatrix &pod_basis);
     
     /// Reinitialize parameters
     Parameters::AllParameters reinitParams(const RowVectorXd& parameter) const;
+
+    /// Copy all elements in matrix A to all cores
+    Epetra_CrsMatrix copyMatrixToAllCores(const Epetra_CrsMatrix &A);
+
+    /// Copy all elements in vector b to all cores
+    Epetra_Vector copyVectorToAllCores(const Epetra_Vector &b);
+
+    /// Update POD and Snapshot Parameters
+    void updateSnapshots(dealii::LinearAlgebra::distributed::Vector<double> fom_solution);
 
     /// Update POD and Snapshot Parameters
     void updatePODSnaps(std::shared_ptr<ProperOrthogonalDecomposition::PODBase<dim>> pod_update, MatrixXd snapshot_parameters_update);

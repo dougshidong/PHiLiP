@@ -36,106 +36,20 @@ Parameters::AllParameters HyperReductionPostSampling<dim, nstate>::reinitParams(
 }
 
 template <int dim, int nstate>
-bool HyperReductionPostSampling<dim, nstate>::getROMParamsFromFile() const{
-    bool file_found = false;
-    rom_points(0,0);
-    std::string path = all_parameters->reduced_order_param.path_to_search; //Search specified directory for files containing "solutions_table"
-
-    std::vector<std::filesystem::path> files_in_directory;
-    std::copy(std::filesystem::directory_iterator(path), std::filesystem::directory_iterator(), std::back_inserter(files_in_directory));
-    std::sort(files_in_directory.begin(), files_in_directory.end()); //Sort files so that the order is the same as for the sensitivity basis
-
-    for (const auto & entry : files_in_directory){
-        if(std::string(entry.filename()).std::string::find("rom_table") != std::string::npos){
-            pcout << "Processing " << entry << std::endl;
-            file_found = true;
-            std::ifstream myfile(entry);
-            if(!myfile)
-            {
-                pcout << "Error opening file." << std::endl;
-                std::abort();
-            }
-            std::string line;
-            unsigned int rows = 0;
-            unsigned int cols = 0;
-            //First loop set to count rows and columns
-            while(std::getline(myfile, line)){ //for each line
-                std::istringstream stream(line);
-                std::string field;
-                cols = 0;
-                bool any_entry = false;
-                bool boundary_tol = false;
-                while (getline(stream, field,' ')){ //parse data values on each line
-                    if (field.empty()){ //due to whitespace
-                        continue;
-                    } try{
-                        std::stod(field);
-                        cols++;
-                        if (cols > (all_parameters->reduced_order_param.parameter_names.size())){
-                            if(abs(std::stod(field)) > all_parameters->hyper_reduction_param.ROM_error_tol){
-                                boundary_tol = true;
-                                std::cout << field << std::endl;
-                            }
-                        }
-                        any_entry = true;
-                    } catch (...){
-                        continue;
-                    } 
-                }
-                if (any_entry && boundary_tol){
-                    rows++;
-                }
-                
-            }
-            cols = cols -1;
-            rom_points.conservativeResize(rows, rom_points.cols()+cols);
-
-            unsigned int row = 0;
-            myfile.clear();
-            myfile.seekg(0); //Bring back to beginning of file
-            //Second loop set to build solutions matrix
-            while(std::getline(myfile, line)){ //for each line
-                std::istringstream stream(line);
-                std::string field;
-                unsigned int col = 0;
-                bool any_entry = false;
-                bool boundary_tol = false;
-                while (getline(stream, field,' ')) { //parse data values on each line
-                    if (field.empty()) {
-                        continue;
-                    }
-                    else if (col > (all_parameters->reduced_order_param.parameter_names.size()-1)){
-                        try{
-                            if(abs(std::stod(field)) > all_parameters->hyper_reduction_param.ROM_error_tol){
-                                boundary_tol = true; 
-                            }
-                        } catch (...){
-                        continue;
-                        }
-                    }
-                    else {
-                        try{
-                            double num_string = std::stod(field);
-                            // std::cout << field << std::endl;
-                            rom_points(row, col) = num_string;
-                            col++;
-                            any_entry = true;
-                        } catch (...){
-                            continue;
-                        }
-                    }
-                }
-                if (any_entry && boundary_tol){
-                    row++;
-                }
-                if (row == rows){
-                    break;
-                }
-            }
-            myfile.close();
-        }
-    }
-    return file_found;
+Epetra_Vector HyperReductionPostSampling<dim,nstate>::allocateVectorToSingleCore(const Epetra_Vector &b) const{
+    // Gather Vector Information
+    const Epetra_SerialComm sComm;
+    const int b_size = b.GlobalLength();
+    // Create new map for one core and gather old map
+    Epetra_Map single_core_b (b_size, b_size, 0, sComm);
+    Epetra_BlockMap old_map_b = b.Map();
+    // Create Epetra_importer object
+    Epetra_Import b_importer(single_core_b, old_map_b);
+    // Create new b vector
+    Epetra_Vector b_temp (single_core_b); 
+    // Load the data from vector b (Multi core) into b_temp (Single core)
+    b_temp.Import(b, b_importer, Epetra_CombineMode::Insert);
+    return b_temp;
 }
 
 template <int dim, int nstate>
@@ -143,71 +57,80 @@ int HyperReductionPostSampling<dim, nstate>::run_test() const
 {
     pcout << "Starting hyperreduction test..." << std::endl;
 
+    Epetra_MpiComm Comm( MPI_COMM_WORLD );
     // Create POD Petrov-Galerkin ROM with Hyperreduction
     std::unique_ptr<FlowSolver::FlowSolver<dim,nstate>> flow_solver_hyper_reduced_petrov_galerkin = FlowSolver::FlowSolverFactory<dim,nstate>::select_flow_case(all_parameters, parameter_handler);
     auto ode_solver_type = Parameters::ODESolverParam::ODESolverEnum::hyper_reduced_petrov_galerkin_solver;
 
     // Run Adaptive Sampling to choose snapshot locations and create POD basis
     std::shared_ptr<AdaptiveSampling<dim,nstate>> parameter_sampling = std::make_unique<AdaptiveSampling<dim,nstate>>(all_parameters, parameter_handler);
-    
-    std::shared_ptr<ProperOrthogonalDecomposition::OfflinePOD<dim>> pod_petrov_galerkin = std::make_shared<ProperOrthogonalDecomposition::OfflinePOD<dim>>(flow_solver_hyper_reduced_petrov_galerkin->dg);
-    parameter_sampling->current_pod->basis = pod_petrov_galerkin->basis;
-    parameter_sampling->current_pod->referenceState = pod_petrov_galerkin->referenceState;
-    parameter_sampling->current_pod->snapshotMatrix = pod_petrov_galerkin->snapshotMatrix;
-    snapshot_parameters(0,0);
-    std::string path = all_parameters->reduced_order_param.path_to_search; //Search specified directory for files containing "solutions_table"
-    bool snap_found = getSnapshotParamsFromFile(snapshot_parameters, path);
-    if (snap_found){
-        parameter_sampling->snapshot_parameters = snapshot_parameters;
-        std::cout << "snapshot_parameters" << std::endl;
-        std::cout << snapshot_parameters << std::endl;
-    }
-    else{
-        std::cout << "File with snapshots not found in folder" << std::endl;
-        return -1;
-    }
-    getROMParamsFromFile();
-    std::cout << "ROM Locations" << std::endl;
-    std::cout << rom_points << std::endl; 
+    parameter_sampling->run_sampling();
 
     // Find C and d for NNLS Problem
     std::cout << "Construct instance of Assembler..."<< std::endl;
     std::shared_ptr<HyperReduction::AssembleECSWBase<dim,nstate>> constructer_NNLS_problem;
     if (this->all_parameters->hyper_reduction_param.training_data == "residual")         
-        constructer_NNLS_problem = std::make_shared<HyperReduction::AssembleECSWRes<dim,nstate>>(all_parameters, parameter_handler, flow_solver_hyper_reduced_petrov_galerkin->dg, parameter_sampling->current_pod, parameter_sampling->snapshot_parameters, ode_solver_type);
+        constructer_NNLS_problem = std::make_shared<HyperReduction::AssembleECSWRes<dim,nstate>>(all_parameters, parameter_handler, flow_solver_hyper_reduced_petrov_galerkin->dg, parameter_sampling->current_pod, parameter_sampling->snapshot_parameters, ode_solver_type, Comm);
     else {
-        constructer_NNLS_problem = std::make_shared<HyperReduction::AssembleECSWJac<dim,nstate>>(all_parameters, parameter_handler, flow_solver_hyper_reduced_petrov_galerkin->dg, parameter_sampling->current_pod, parameter_sampling->snapshot_parameters, ode_solver_type);
+        constructer_NNLS_problem = std::make_shared<HyperReduction::AssembleECSWJac<dim,nstate>>(all_parameters, parameter_handler, flow_solver_hyper_reduced_petrov_galerkin->dg, parameter_sampling->current_pod, parameter_sampling->snapshot_parameters, ode_solver_type, Comm);
+    }
+    for (unsigned int j = 0 ; j < parameter_sampling->fom_locations.size() ; j++ ){
+        constructer_NNLS_problem->updateSnapshots(parameter_sampling->fom_locations[j]);
     }
     std::cout << "Build Problem..."<< std::endl;
     constructer_NNLS_problem->build_problem();
 
     // Transfer b vector (RHS of NNLS problem) to Epetra structure
-    Epetra_MpiComm Comm( MPI_COMM_WORLD );
-    Epetra_Map bMap = (constructer_NNLS_problem->A->trilinos_matrix()).RowMap();
-    Epetra_Vector b_Epetra (bMap);
+    const int rank = Comm.MyPID();
+    int rows = (constructer_NNLS_problem->A_T->trilinos_matrix()).NumGlobalCols();
+    Epetra_Map bMap(rows, (rank == 0) ? rows: 0, 0, Comm);
+    Epetra_Vector b_Epetra(bMap);
     auto b = constructer_NNLS_problem->b;
-    for(unsigned int i = 0 ; i < b.size() ; i++){
+    unsigned int local_length = bMap.NumMyElements();
+    for(unsigned int i = 0 ; i < local_length ; i++){
         b_Epetra[i] = b(i);
     }
 
     // Solve NNLS Problem for ECSW weights
     std::cout << "Create NNLS problem..."<< std::endl;
-    NNLS_solver NNLS_prob(all_parameters, parameter_handler, constructer_NNLS_problem->A->trilinos_matrix(), Comm, b_Epetra);
+    NNLS_solver NNLS_prob(all_parameters, parameter_handler, constructer_NNLS_problem->A_T->trilinos_matrix(), true, Comm, b_Epetra);
     std::cout << "Solve NNLS problem..."<< std::endl;
     bool exit_con = NNLS_prob.solve();
     std::cout << exit_con << std::endl;
 
-    Epetra_Vector weights = NNLS_prob.getSolution();
+    std::shared_ptr<Epetra_Vector> ptr_weights = std::make_shared<Epetra_Vector>(NNLS_prob.getSolution());
     std::cout << "ECSW Weights"<< std::endl;
-    std::cout << weights << std::endl;
+    std::cout << *ptr_weights << std::endl;
 
-    // SOLVE FOR ERROR AT ROM POINTS WITH HYPER-REDUCED WEIGHTS
+    Epetra_Vector local_weights = allocateVectorToSingleCore(*ptr_weights);
+    std::unique_ptr<dealii::TableHandler> weights_table = std::make_unique<dealii::TableHandler>();
+    for(int i = 0 ; i < local_weights.MyLength() ; i++){
+        weights_table->add_value("ECSW Weights", local_weights[i]);
+        weights_table->set_precision("ECSW Weights", 16);
+    }
+    std::ofstream weights_table_file("weights_table_iteration_HROM_post_sampling.txt");
+    weights_table->write_text(weights_table_file, dealii::TableHandler::TextOutputFormat::org_mode_table);
+    weights_table_file.close();
+
+    // Solve for the DWR Error at the ROM points with the hyperreduced weights
     std::shared_ptr<HyperreducedAdaptiveSampling<dim,nstate>> hyper_reduced_ROM_solver = std::make_unique<HyperreducedAdaptiveSampling<dim,nstate>>(all_parameters, parameter_handler);
     hyper_reduced_ROM_solver->current_pod = parameter_sampling->current_pod;
     hyper_reduced_ROM_solver->snapshot_parameters = parameter_sampling->snapshot_parameters;
-    hyper_reduced_ROM_solver->placeROMLocations(rom_points, weights);
+    MatrixXd rom_points(0, hyper_reduced_ROM_solver->snapshot_parameters.cols());
+    for(auto it = parameter_sampling->rom_locations.begin(); it != parameter_sampling->rom_locations.end(); ++it){
+        rom_points.conservativeResize(rom_points.rows()+1, rom_points.cols());
+        Eigen::RowVectorXd rom = it->get()->parameter;
+        rom_points.row(rom_points.rows()-1) = rom;
+    }
+    hyper_reduced_ROM_solver->placeROMLocations(rom_points, *ptr_weights);
     hyper_reduced_ROM_solver->outputIterationData("HROM_post_sampling");
     
+    // True Error for ROM and HROM at 20 or 400 evenly distributed points in a 1-param and 2-param design space, respectively
+    MatrixXd rom_true_error_points(0,0);
+    getROMPoints(rom_true_error_points, all_parameters);
+    parameter_sampling->trueErrorROM(rom_true_error_points);
+    hyper_reduced_ROM_solver->trueErrorROM(rom_true_error_points, *ptr_weights);
+
     return 0;
 }
 

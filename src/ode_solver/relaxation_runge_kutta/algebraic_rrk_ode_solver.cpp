@@ -5,7 +5,7 @@ namespace ODE {
 
 template <int dim, typename real, typename MeshType>
 AlgebraicRRKODESolver<dim,real,MeshType>::AlgebraicRRKODESolver(
-            std::shared_ptr<RKTableauButcherBase<dim,real,MeshType>> rk_tableau_input)
+            std::shared_ptr<RKTableauBase<dim,real,MeshType>> rk_tableau_input)
         : RRKODESolverBase<dim,real,MeshType>(rk_tableau_input)
 {
     // Do nothing

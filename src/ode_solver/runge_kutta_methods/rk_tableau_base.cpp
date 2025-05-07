@@ -19,6 +19,12 @@ double RKTableauBase<dim,real, MeshType> :: get_b (const int i) const
     return butcher_tableau_b[i];
 }
 
+template <int dim, typename real, typename MeshType> 
+double RKTableauBase<dim,real, MeshType> :: get_a (const int /*i*/, const int /*j*/) const
+{
+    this->pcout << "WARNING: a coeffs are not set for this RK tableau type!" << std::endl;
+    return 0;
+}
 
 template class RKTableauBase<PHILIP_DIM, double, dealii::Triangulation<PHILIP_DIM>>;
 template class RKTableauBase<PHILIP_DIM, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;

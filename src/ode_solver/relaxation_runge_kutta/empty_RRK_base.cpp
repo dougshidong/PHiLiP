@@ -5,7 +5,7 @@ namespace PHiLiP {
 namespace ODE {
 
 template <int dim, typename real, typename MeshType> 
-EmptyRRKBase<dim,real, MeshType>::EmptyRRKBase(std::shared_ptr<RKTableauButcherBase<dim,real,MeshType>> /*rk_tableau*/)
+EmptyRRKBase<dim,real, MeshType>::EmptyRRKBase(std::shared_ptr<RKTableauBase<dim,real,MeshType>> /*rk_tableau*/)
 {}
 
 template class EmptyRRKBase<PHILIP_DIM, double, dealii::Triangulation<PHILIP_DIM>>;

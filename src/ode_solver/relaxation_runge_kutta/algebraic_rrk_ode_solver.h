@@ -22,7 +22,7 @@ class AlgebraicRRKODESolver: public RRKODESolverBase<dim, real, MeshType>
 public:
     /// Default constructor that will set the constants.
     explicit AlgebraicRRKODESolver(
-            std::shared_ptr<RKTableauButcherBase<dim,real,MeshType>> rk_tableau_input);
+            std::shared_ptr<RKTableauBase<dim,real,MeshType>> rk_tableau_input);
 
 protected:
 

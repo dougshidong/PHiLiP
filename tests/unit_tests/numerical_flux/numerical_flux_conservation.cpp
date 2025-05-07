@@ -346,7 +346,7 @@ int main (int argc, char * argv[])
     PHiLiP::Parameters::AllParameters::declare_parameters (parameter_handler);
     PHiLiP::Parameters::AllParameters all_parameters;
     all_parameters.parse_parameters (parameter_handler);
-
+    all_parameters.use_weak_form = false; // Changed for error checking in ConvNumFactory
     for (auto pde = pde_type.begin(); pde != pde_type.end() && success == 0; pde++) {
 
         all_parameters.pde_type = *pde;

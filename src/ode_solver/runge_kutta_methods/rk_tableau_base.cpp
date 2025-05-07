@@ -13,6 +13,13 @@ RKTableauBase<dim,real, MeshType> :: RKTableauBase (const int n_rk_stages_input,
 {
 }
 
+template <int dim, typename real, typename MeshType> 
+double RKTableauBase<dim,real, MeshType> :: get_b (const int i) const
+{
+    return butcher_tableau_b[i];
+}
+
+
 template class RKTableauBase<PHILIP_DIM, double, dealii::Triangulation<PHILIP_DIM>>;
 template class RKTableauBase<PHILIP_DIM, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
 #if PHILIP_DIM != 1

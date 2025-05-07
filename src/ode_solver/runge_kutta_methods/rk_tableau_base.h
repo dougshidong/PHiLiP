@@ -28,12 +28,26 @@ public:
     /// Store number of stages
     const int n_rk_stages;
     
+    /// Returns Butcher tableau "b" coefficient at position [i]
+    /** This is in the base class because RRK must access it for both LSRK and 
+     *  standard Butcher RK
+     **/
+    double get_b(const int i) const;
+
+    
 protected:
 
     dealii::ConditionalOStream pcout; ///< Parallel std::cout that only outputs on mpi_rank==0
     
     /// String identifying the RK method
     const std::string rk_method_string;
+    
+    /// Butcher tableau "b"
+    /** This is in the base class because RRK must access it for both LSRK and 
+     *  standard Butcher RK
+     **/
+    dealii::Table<1,double> butcher_tableau_b;
+    
 
 };
 

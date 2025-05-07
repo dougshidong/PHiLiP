@@ -4,6 +4,7 @@
 namespace PHiLiP {
 namespace ODE {
     
+    //NOTE TO SELF: Remove these functions before PR!
 void print_table(const dealii::Table<2,double> tab, const int nrow, const int ncol) {
     
     dealii::ConditionalOStream pcout(std::cout, dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD)==0);
@@ -62,15 +63,7 @@ void LowStorageRKTableauBase<dim,real, MeshType> :: set_b ()
     dealii::FullMatrix<double> alpha(this->n_rk_stages+1,this->n_rk_stages);
     alpha.reinit(this->n_rk_stages+1, this->n_rk_stages);
    
-    this->pcout << "gamma" << std::endl;
-    print_table(butcher_tableau_gamma,this->n_rk_stages+1,3);
-    this->pcout << "beta" << std::endl;
-    print_table(butcher_tableau_beta,this->n_rk_stages+1);
-    this->pcout << "delta" << std::endl;
-    print_table(butcher_tableau_delta,this->num_delta);
-
     for (int i = 1; i < this->n_rk_stages+1; ++i){
-        // Double check the indices here !!!
         // "beta" as defined in the Ranocha papers coincides with beta(i,i-1) in Ketcheson paper
         beta[i][i-1] = butcher_tableau_beta[i];
         
@@ -86,15 +79,6 @@ void LowStorageRKTableauBase<dim,real, MeshType> :: set_b ()
     
     }
     
-    this->pcout << "alpha" << std::endl;
-    print_table(alpha,this->n_rk_stages+1,this->n_rk_stages);
-    this->pcout << "beta" << std::endl;
-    print_table(beta,this->n_rk_stages+1,this->n_rk_stages);
-
-    // Next: eq 9.
-    //  need to separate alpha_0, beta_0.
-    //  then do a good ole c++ matrix multiplication .
-
     // eq 9 a
     dealii::FullMatrix<double> identity_m_alpha0(this->n_rk_stages,this->n_rk_stages);
     for (int irow = 0; irow < this->n_rk_stages;++irow){
@@ -104,13 +88,8 @@ void LowStorageRKTableauBase<dim,real, MeshType> :: set_b ()
         }
     }
     
-    this->pcout << "identity_m_alpha0" << std::endl;
-    print_table(identity_m_alpha0,this->n_rk_stages,this->n_rk_stages);
-
     /// invert identity_m_alpha0
     identity_m_alpha0.gauss_jordan();
-    this->pcout << "inv(identity_m_alpha0)" << std::endl;
-    print_table(identity_m_alpha0,this->n_rk_stages,this->n_rk_stages);
 
     // assign beta_0
     dealii::FullMatrix<double> beta_0(this->n_rk_stages,this->n_rk_stages);
@@ -144,9 +123,17 @@ void LowStorageRKTableauBase<dim,real, MeshType> :: set_b ()
     // fill the appropriate table with b
     // butcher_tableau_b
     this->butcher_tableau_b.reinit(this->n_rk_stages);
+    double sum_b=0.0;
     for (int i = 0; i < this->n_rk_stages; ++i){
         this->butcher_tableau_b[i] = b_vec[i];
+        sum_b+=b_vec[i];
     }
+
+    // Check that sum(b) = 1
+    if (abs(sum_b-1.0) > 1E-8){
+        this->pcout << "WARNING: Butcher b vector does not sum to 1 !" << std::endl;
+    }
+    
 
     print_table(this->butcher_tableau_b,this->n_rk_stages);
 

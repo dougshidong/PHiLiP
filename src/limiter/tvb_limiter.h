@@ -38,7 +38,7 @@ private:
         const dealii::LinearAlgebra::distributed::Vector<double>&       solution,
         const dealii::hp::FECollection<dim>&                            fe_collection,
         const dealii::hp::QCollection<dim>&                             volume_quadrature_collection,
-        OPERATOR::basis_functions<dim, 2 * dim, real>                         soln_basis,
+        OPERATOR::basis_functions<dim, 2 * dim>                         soln_basis,
         const int                                                       poly_degree,
         const std::vector<dealii::types::global_dof_index>&             neigh_dofs_indices,
         const unsigned int                                              n_dofs_neigh_cell);

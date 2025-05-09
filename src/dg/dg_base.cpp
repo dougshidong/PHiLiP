@@ -1088,7 +1088,7 @@ void DGBase<dim,real,MeshType>::reinit_operators_for_cell_residual_loop(
 }
 
 template <int dim, typename real, typename MeshType>
-void DGBase<dim,real,MeshType>::assemble_residual (const bool compute_dRdW, const bool compute_dRdX, const bool compute_d2R, const double CFL_mass)
+void DGBase<dim,real,MeshType>::assemble_residual (const bool compute_dRdW, const bool compute_dRdX, const bool compute_d2R, const double CFL_mass, const int cell_group_ID)
 {
     dealii::deal_II_exceptions::disable_abort_on_exception(); // Allows us to catch negative Jacobians.
     Assert( !(compute_dRdW && compute_dRdX)
@@ -1244,7 +1244,7 @@ void DGBase<dim,real,MeshType>::assemble_residual (const bool compute_dRdW, cons
         if(all_parameters->pde_type == Parameters::AllParameters::PartialDifferentialEquation::physics_model) update_model_variables();
 
         // assembles and solves for auxiliary variable if necessary.
-        assemble_auxiliary_residual();
+        assemble_auxiliary_residual(cell_group_ID);
 
         dealii::Timer timer;
         if(all_parameters->store_residual_cpu_time){
@@ -1253,7 +1253,7 @@ void DGBase<dim,real,MeshType>::assemble_residual (const bool compute_dRdW, cons
 
         auto metric_cell = high_order_grid->dof_handler_grid.begin_active();
         for (auto soln_cell = dof_handler.begin_active(); soln_cell != dof_handler.end(); ++soln_cell, ++metric_cell) {
-            if (!soln_cell->is_locally_owned()) continue;
+            if (!soln_cell->is_locally_owned() && !this->do_assemble_in_this_cell(soln_cell->active_fe_index(), cell_group_ID)) continue;
 
             // Add right-hand side contributions this cell can compute
             assemble_cell_residual (
@@ -1347,6 +1347,17 @@ void DGBase<dim,real,MeshType>::assemble_residual (const bool compute_dRdW, cons
     //system_matrix.print(std::cout);
 
 } // end of assemble_system_explicit ()
+
+
+template <int dim, typename real, typename MeshType>
+bool DGBase<dim,real,MeshType>::do_assemble_in_this_cell(const unsigned int cell_index, const int cell_group_ID) const {
+    if (this->list_of_cell_group_IDs[cell_index] == cell_group_ID){
+        // do assemble residual
+        return true;
+    }else {
+        return false;
+    }
+}
 
 template <int dim, typename real, typename MeshType>
 double DGBase<dim,real,MeshType>::get_residual_linfnorm () const
@@ -1895,6 +1906,8 @@ void DGBase<dim,real,MeshType>::allocate_system (
     
     max_dt_cell.reinit(triangulation->n_active_cells());
     cell_volume.reinit(triangulation->n_active_cells());
+
+    list_of_cell_group_IDs.reinit(triangulation->n_active_cells());
 
     // allocates model variables only if there is a model
     if(all_parameters->pde_type == Parameters::AllParameters::PartialDifferentialEquation::physics_model) allocate_model_variables();

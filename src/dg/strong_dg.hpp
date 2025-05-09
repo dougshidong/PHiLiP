@@ -32,8 +32,9 @@ public:
     /** For information regarding auxiliary vs. primary quations, see 
      *  Quaegebeur, Nadarajah, Navah and Zwanenburg 2019: Stability of Energy Stable Flux 
      *                Reconstruction for the Diffusion Problem Using Compact Numerical Fluxes
+     *  The aux residual is only assembled for the indicated cell_group_ID.
      */
-    void assemble_auxiliary_residual ();
+    void assemble_auxiliary_residual (const unsigned int cell_group_ID=0);
 
     /// Allocate the dual vector for optimization.
     void allocate_dual_vector ();

@@ -1,9 +1,3 @@
-/* Non-Negagive Least Squares Solver for Epetra Structures
- * Based on the NNLS in Eigen unsupported and in MATLAB:
- * https://gitlab.com/libeigen/eigen/-/blob/master/unsupported/Eigen/NNLS
- * https://www.mathworks.com/help/matlab/ref/lsqnonneg.html
- */
-
 /** From Eigen NNLS:
  * Non-Negagive Least Squares Algorithm for Eigen.
  *
@@ -57,6 +51,7 @@
 #include <Epetra_CrsMatrix.h>
 #include <Epetra_Vector.h>
 #include <Epetra_MultiVector.h>
+#include <Epetra_Import.h>
 #include <Epetra_LinearProblem.h>
 #include <EpetraExt_MatrixMatrix.h>
 #include <AztecOO.h>
@@ -67,6 +62,12 @@
 
 using Eigen::Matrix;
 namespace PHiLiP {
+/**  Non-Negagive Least Squares Solver for Epetra Structures
+ *   Based on the NNLS in Eigen unsupported and in MATLAB:
+ *   https://gitlab.com/libeigen/eigen/-/blob/master/unsupported/Eigen/NNLS
+ *   https://www.mathworks.com/help/matlab/ref/lsqnonneg.html
+ */
+
 class NNLS_solver
 {
 public:
@@ -98,7 +99,7 @@ public:
         int LS_iter, 
         double LS_tol);
 
-    /// Constructor w/ Gradient Exit Condition & Iterative Linear Solver
+    /// Common Constructor w/ Gradient Exit Condition & Iterative Linear Solver
     NNLS_solver(
         const Parameters::AllParameters *const parameters_input,
         const dealii::ParameterHandler &parameter_handler_input,
@@ -117,12 +118,13 @@ public:
     bool solve();
 
     /// Returns protected approximate solution
-    Epetra_Vector & getSolution() {return x_;}
+    Epetra_Vector & getSolution() {return multi_x_;}
 
-    // Initiliazes the solution vector, must be used before .solve is called
+    /// Initiliazes the solution vector, must be used before .solve is called
     void startingSolution(Epetra_Vector &start) {
+        Epetra_Vector start_single_core = allocateVectorToSingleCore(start);
         P.flip();
-        SubIntoX(start);
+        SubIntoX(start_single_core);
         P.flip();}
   
     const Parameters::AllParameters *const all_parameters; ///< Pointer to all parameters
@@ -131,22 +133,37 @@ public:
     const dealii::ParameterHandler &parameter_handler;
 
 protected:
-    const Epetra_CrsMatrix A_;
+    /// Epetra Commuicator Object with MPI
     Epetra_MpiComm Comm_;
+    /// Epetra Matrix A allocated to a single core
+    const Epetra_CrsMatrix A_;
+    /// Epetra Vector b allocated to a single core
     Epetra_Vector b_;
+    /// Epetra Vector x, to be solved. Allocated to a single core
     Epetra_Vector x_;
-    int LS_iter_; // needed if the an iterative solver is used
-    double LS_tol_; // needed if the an iterative solver is used
+    /// Epetra_Vector x, to be solved. Allocated to multiple cores
+    Epetra_Vector multi_x_;
+    /// Needed if the an iterative solver is used
+    int LS_iter_;
+    /// Needed if the an iterative solver is used
+    double LS_tol_; 
+    /// Number of inactive points
     int numInactive_;
+    /// Vector of booleans representing the columns in the active set
     std::vector<bool> Z;
+    /// Vector of boolean representing the columns in the inactive set
     std::vector<bool> P;
 
 public:
+    /// Boolean used for iterative solvers
     bool iter_solver_;
+    /// Boolean to use an exit Condition depending on maximum gradent
     bool grad_exit_crit_;
+    /// Number of iterations in the NNLS solver
     int iter_;
 
 protected:
+    /// Eigen Vector of the index_set
     Eigen::VectorXd index_set;
 
 private:
@@ -167,6 +184,24 @@ private:
 
     /// Moves the column at idx into the inactive set (updating the index_set, Z, P, and numInactive_)
     void moveToInactiveSet(int idx);
+
+    /** @brief Re-allocates solution to multiple cores
+    *   @param c Epetra_vector to reallocate on multiple cores
+    *   @return An Epetra_vector with the data of c distributed on multiple cores
+    */
+    Epetra_Vector allocateVectorToMultipleCores(const Epetra_Vector &c);
+
+    /** @brief Allocates the incoming A Matrix to a single core
+    *   @param A Epetra_CrsMatrix to reallocate on a single core
+    *   @return An Epetra_CrsMatrix with the data of A distributed on a single core
+    */
+    Epetra_CrsMatrix allocateMatrixToSingleCore(const Epetra_CrsMatrix &A);
+    
+    /** @brief Allocates the incoming b vector to a single core
+    *   @param b Epetra_Vector to reallocate on a single core
+    *   @return An Epetra_Vector with the data of b distributed on a single core
+    */
+    Epetra_Vector allocateVectorToSingleCore(const Epetra_Vector &b);
 };
 } // PHiLiP namespace
 #endif  // NNLS_H

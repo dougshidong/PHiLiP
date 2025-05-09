@@ -32,6 +32,13 @@ void epetra_to_eig_vec(int col, Epetra_Vector &x, Eigen::MatrixXd &x_eig);
 /// @return Full Epetra_CrsMatrixss
 Epetra_CrsMatrix eig_to_epetra_matrix(Eigen::MatrixXd &A_eig, int col, int row, Epetra_MpiComm &Comm);
 
+/// @brief Returns an Epetra_Vector with entries from an Eigen::Vector structure
+/// @param a_eigen Eigen Vector to copy
+/// @param size size of vector
+/// @param MpiComm for Epetra Maps
+/// @return Epetra_Vector
+Epetra_Vector eig_to_epetra_vector(Eigen::VectorXd &a_eigen, int size, Epetra_MpiComm &Comm);
+
 /// @brief Load data from CSV file into an Eigen Matrix of type M
 /// @tparam M type of Eigen matrix
 /// @param path filepath to csv
@@ -59,5 +66,7 @@ M load_csv (const std::string & path) {
 }
 
 MatrixXd epetra_to_eig_matrix(Epetra_CrsMatrix A_epetra);
+
+
 
 #endif

@@ -468,7 +468,7 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual_and_ad_derivatives (
     OPERATOR::vol_projection_operator<dim,2*dim>                       &soln_basis_projection_oper_int,
     OPERATOR::vol_projection_operator<dim,2*dim>                       &soln_basis_projection_oper_ext,
     OPERATOR::mapping_shape_functions<dim,2*dim>                       &mapping_basis,
-    const bool                                                         compute_auxiliary_right_hand_side,//flag on whether computing the Auxiliary variable's equations' residuals
+    const bool                                                         compute_auxiliary_right_hand_side,//flag on whether computing the auxiliary variable's equations' residuals
     dealii::LinearAlgebra::distributed::Vector<double>                 &rhs,
     std::array<dealii::LinearAlgebra::distributed::Vector<double>,dim> &rhs_aux)
 {

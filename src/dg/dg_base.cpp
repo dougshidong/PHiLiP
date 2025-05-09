@@ -1359,6 +1359,24 @@ bool DGBase<dim,real,MeshType>::do_assemble_in_this_cell(const unsigned int cell
     }
 }
 
+
+template <int dim, typename real, typename MeshType>
+void DGBase<dim,real,MeshType>::set_list_of_cell_group_IDs(const dealii::LinearAlgebra::distributed::Vector<int> locations, const int group_ID) {
+
+    // check sizes - not sure if necessary.
+    // bool is_compatible = locations.partitioners_are_compatible(this->list_of_cell_group_IDs);
+
+    // Using only deal.ii vector operations herein to take advantage of their optimizations
+    // Set the cell_group_ID at the given location to zero without changing existing values
+    dealii::LinearAlgebra::distributed::Vector<int> locations_copy((locations));
+    locations_copy.add(-1);
+    locations_copy*=-1;
+    this->list_of_cell_group_IDs.scale(locations_copy);
+    // Set the cell_group_ID at the given location to the group_ID
+    this->list_of_cell_group_IDs.add(group_ID,locations);
+
+}
+
 template <int dim, typename real, typename MeshType>
 double DGBase<dim,real,MeshType>::get_residual_linfnorm () const
 {

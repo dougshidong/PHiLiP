@@ -606,6 +606,14 @@ protected:
      *  or partitioned Runge-Kutta.
      */
     dealii::LinearAlgebra::distributed::Vector<int> list_of_cell_group_IDs;
+public:
+
+    ///Setter for list_of_cell_group_IDs
+    /** Useage: pass a vector of the same size as the list_of_cell_group_IDs
+     *  where 1 indicates that that cell should be assigned the indicated
+     *  group_ID
+     */
+    void set_list_of_cell_group_IDs(const dealii::LinearAlgebra::distributed::Vector<int> locations, const int group_ID);
 
 public:
 

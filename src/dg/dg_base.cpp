@@ -1376,19 +1376,26 @@ bool DGBase<dim,real,MeshType>::do_assemble_in_this_cell(const unsigned int cell
 
 
 template <int dim, typename real, typename MeshType>
-void DGBase<dim,real,MeshType>::set_list_of_cell_group_IDs(const dealii::LinearAlgebra::distributed::Vector<int> locations, const int group_ID) {
+void DGBase<dim,real,MeshType>::set_list_of_cell_group_IDs(const dealii::LinearAlgebra::distributed::Vector<int> locations_to_be_changed, const int group_ID_to_set) {
+    // Pass bool-like vector locations_to_be_changed : 1 where we want to apply the new group ID and 0 where we want to keep the old one
 
     // check sizes - not sure if necessary.
     // bool is_compatible = locations.partitioners_are_compatible(this->list_of_cell_group_IDs);
 
     // Using only deal.ii vector operations herein to take advantage of their optimizations
     // Set the cell_group_ID at the given location to zero without changing existing values
-    dealii::LinearAlgebra::distributed::Vector<int> locations_copy((locations));
-    locations_copy.add(-1);
-    locations_copy*=-1;
-    this->list_of_cell_group_IDs.scale(locations_copy);
-    // Set the cell_group_ID at the given location to the group_ID
-    this->list_of_cell_group_IDs.add(group_ID,locations);
+    
+    // The next lines find !(locations_to_be_changed)
+    dealii::LinearAlgebra::distributed::Vector<int> locations_NOT_to_be_changed((locations));
+    locations_NOT_to_be_changed.add(-1);
+    locations_NOT_to_be_changed*=-1;
+
+    // Next line will set the group_ID value at locations_to_be_changed to zero
+    this->list_of_cell_group_IDs.scale(locations_NOT_to_be_changed);
+
+    // Set the cell_group_ID at the given location to the group_ID by adding
+    // group_ID_to_set * locations_to_be_changed
+    this->list_of_cell_group_IDs.add(group_ID_to_set,locations_to_be_changed);
 
 }
 

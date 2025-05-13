@@ -443,7 +443,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_auxiliary_residual(const unsig
         //loop over cells solving for auxiliary rhs
         auto metric_cell = this->high_order_grid->dof_handler_grid.begin_active();
         for (auto soln_cell = this->dof_handler.begin_active(); soln_cell != this->dof_handler.end(); ++soln_cell, ++metric_cell) {
-            if (!soln_cell->is_locally_owned() && !this->do_assemble_in_this_cell(soln_cell->active_fe_index(), cell_group_ID)) continue;
+            if (!soln_cell->is_locally_owned() || !this->do_assemble_in_this_cell(soln_cell->active_cell_index(), cell_group_ID)) continue;
 
             this->assemble_cell_residual (
                 soln_cell,

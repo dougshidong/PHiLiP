@@ -1251,9 +1251,21 @@ void DGBase<dim,real,MeshType>::assemble_residual (const bool compute_dRdW, cons
             timer.start();
         }
 
+        this->pcout << "About to enter cell loop." << std::endl << std::flush;
         auto metric_cell = high_order_grid->dof_handler_grid.begin_active();
         for (auto soln_cell = dof_handler.begin_active(); soln_cell != dof_handler.end(); ++soln_cell, ++metric_cell) {
-            if (!soln_cell->is_locally_owned() && !this->do_assemble_in_this_cell(soln_cell->active_fe_index(), cell_group_ID)) continue;
+
+            int mpi_rank;
+            MPI_Comm_rank(MPI_COMM_WORLD, &mpi_rank);
+            //std::cout << "mpi rank" <<  mpi_rank << std::endl;
+            //std::cout << "Attempting to assemble cell " << soln_cell->active_cell_index() << std::endl;
+
+            //std::cout << "Is locally owned? " << soln_cell->is_locally_owned() << " Is in cell_group_ID? " << this->do_assemble_in_this_cell(soln_cell->active_fe_index(), cell_group_ID) << std::endl;
+            if (!soln_cell->is_locally_owned() || !this->do_assemble_in_this_cell(soln_cell->active_cell_index(), cell_group_ID)) {
+                //std::cout << "Not assembling cell residual on this cell." << std::endl;
+                continue;
+            }
+            //std::cout << "Beginning assemble_cell_residual..." << std::endl;
 
             // Add right-hand side contributions this cell can compute
             assemble_cell_residual (
@@ -1353,8 +1365,11 @@ template <int dim, typename real, typename MeshType>
 bool DGBase<dim,real,MeshType>::do_assemble_in_this_cell(const unsigned int cell_index, const int cell_group_ID) const {
     if (this->list_of_cell_group_IDs[cell_index] == cell_group_ID){
         // do assemble residual
+        //
+        //std::cout << "Assembling residual cell index " << cell_index << std::endl;
         return true;
     }else {
+        //std::cout << "NOT assembling residual cell index " << cell_index << std::endl;
         return false;
     }
 }
@@ -1925,7 +1940,8 @@ void DGBase<dim,real,MeshType>::allocate_system (
     max_dt_cell.reinit(triangulation->n_active_cells());
     cell_volume.reinit(triangulation->n_active_cells());
 
-    list_of_cell_group_IDs.reinit(triangulation->n_active_cells());
+    // Unsure whether this should be n_active_cells() or n_global_active_cells()
+    list_of_cell_group_IDs.reinit(triangulation->n_global_active_cells());
 
     // allocates model variables only if there is a model
     if(all_parameters->pde_type == Parameters::AllParameters::PartialDifferentialEquation::physics_model) allocate_model_variables();

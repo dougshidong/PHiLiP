@@ -1386,7 +1386,7 @@ void DGBase<dim,real,MeshType>::set_list_of_cell_group_IDs(const dealii::LinearA
     // Set the cell_group_ID at the given location to zero without changing existing values
     
     // The next lines find !(locations_to_be_changed)
-    dealii::LinearAlgebra::distributed::Vector<int> locations_NOT_to_be_changed((locations));
+    dealii::LinearAlgebra::distributed::Vector<int> locations_NOT_to_be_changed((locations_to_be_changed));
     locations_NOT_to_be_changed.add(-1);
     locations_NOT_to_be_changed*=-1;
 

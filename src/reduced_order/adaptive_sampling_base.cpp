@@ -7,6 +7,7 @@
 #include "reduced_order_solution.h"
 #include "flow_solver/flow_solver.h"
 #include "flow_solver/flow_solver_factory.h"
+#include "testing/rom_import_helper_functions.h"
 #include <cmath>
 #include "rbf_interpolation.h"
 #include "ROL_Algorithm.hpp"
@@ -72,6 +73,58 @@ void AdaptiveSamplingBase<dim, nstate>::outputIterationData(std::string iteratio
     std::ofstream rom_table_file("rom_table_iteration_" + iteration + ".txt");
     rom_table->write_text(rom_table_file, dealii::TableHandler::TextOutputFormat::org_mode_table);
     rom_table_file.close();
+}
+
+
+template <int dim, int nstate>
+RowVectorXd AdaptiveSamplingBase<dim, nstate>::readROMFunctionalPoint() const{
+    RowVectorXd params(1);
+
+    using FlowCaseEnum = Parameters::FlowSolverParam::FlowCaseType;
+    const FlowCaseEnum flow_type = this->all_parameters->flow_solver_param.flow_case_type;
+
+    if (flow_type == FlowCaseEnum::burgers_rewienski_snapshot){
+        if(this->all_parameters->reduced_order_param.parameter_names.size() == 1){
+            if(this->all_parameters->reduced_order_param.parameter_names[0] == "rewienski_a"){
+                params(0) = this->all_parameters->burgers_param.rewienski_a;
+            }
+            else if(this->all_parameters->reduced_order_param.parameter_names[0] == "rewienski_b"){
+                params(0) = this->all_parameters->burgers_param.rewienski_b;
+            }
+        }
+        else{
+            params.resize(2);
+            params(0) = this->all_parameters->burgers_param.rewienski_a;
+            params(1) = this->all_parameters->burgers_param.rewienski_b;
+        }
+    }
+    else if (flow_type == FlowCaseEnum::naca0012){
+        if(this->all_parameters->reduced_order_param.parameter_names.size() == 1){
+            if(this->all_parameters->reduced_order_param.parameter_names[0] == "mach"){
+                params(0) = this->all_parameters->euler_param.mach_inf;
+            }
+            else if(this->all_parameters->reduced_order_param.parameter_names[0] == "alpha"){
+                params(0) = this->all_parameters->euler_param.angle_of_attack;
+            }
+        }
+        else{
+            params.resize(2);
+            params(0) = this->all_parameters->euler_param.mach_inf;
+            params(1) = this->all_parameters->euler_param.angle_of_attack; //radians!
+        }
+    }
+    else if (flow_type == FlowCaseEnum::gaussian_bump){
+        if(this->all_parameters->reduced_order_param.parameter_names.size() == 1){
+            if(this->all_parameters->reduced_order_param.parameter_names[0] == "mach"){
+                params(0) = this->all_parameters->euler_param.mach_inf;
+            }
+        }
+    }
+    else{
+        this->pcout << "Invalid flow case. You probably forgot to specify a flow case in the prm file." << std::endl;
+        std::abort();
+    }
+    return params;
 }
 
 template <int dim, int nstate>
@@ -192,15 +245,16 @@ void AdaptiveSamplingBase<dim, nstate>::placeInitialSnapshots() const{
     for(auto snap_param : snapshot_parameters.rowwise()){
         this->pcout << "Sampling initial snapshot at " << snap_param << std::endl;
         dealii::LinearAlgebra::distributed::Vector<double> fom_solution = solveSnapshotFOM(snap_param);
-        nearest_neighbors->updateSnapshots(snapshot_parameters, fom_solution);
+        nearest_neighbors->update_snapshots(snapshot_parameters, fom_solution);
         current_pod->addSnapshot(fom_solution);
+        this->fom_locations.emplace_back(fom_solution);
     }
 }
 
 template <int dim, int nstate>
 dealii::LinearAlgebra::distributed::Vector<double> AdaptiveSamplingBase<dim, nstate>::solveSnapshotFOM(const RowVectorXd& parameter) const{
     this->pcout << "Solving FOM at " << parameter << std::endl;
-    Parameters::AllParameters params = reinitParams(parameter);
+    Parameters::AllParameters params = reinit_params(parameter);
 
     std::unique_ptr<FlowSolver::FlowSolver<dim,nstate>> flow_solver = FlowSolver::FlowSolverFactory<dim,nstate>::select_flow_case(&params, parameter_handler);
 
@@ -215,7 +269,7 @@ dealii::LinearAlgebra::distributed::Vector<double> AdaptiveSamplingBase<dim, nst
 }
 
 template <int dim, int nstate>
-Parameters::AllParameters AdaptiveSamplingBase<dim, nstate>::reinitParams(const RowVectorXd& parameter) const{
+Parameters::AllParameters AdaptiveSamplingBase<dim, nstate>::reinit_params(const RowVectorXd& parameter) const{
     // Copy all parameters
     PHiLiP::Parameters::AllParameters parameters = *(this->all_parameters);
 
@@ -321,6 +375,8 @@ void AdaptiveSamplingBase<dim, nstate>::configureInitialParameterSpace() const
                                 parameter1_range[1], 0.5*(parameter2_range[1] - parameter2_range[0])+parameter2_range[0],
                                 0.5*(parameter1_range[1] - parameter1_range[0])+parameter1_range[0], 0.5*(parameter2_range[1] - parameter2_range[0])+parameter2_range[0];
 
+        snapshot_parameters.conservativeResize(snapshot_parameters.rows() + n_halton, snapshot_parameters.cols());
+
         double *seq = nullptr;
         for (int i = 0; i < n_halton; i++)
         {
@@ -328,14 +384,22 @@ void AdaptiveSamplingBase<dim, nstate>::configureInitialParameterSpace() const
             for (int j = 0; j < 2; j++)
             {
                 if(j == 0){
-                    snapshot_parameters(i+5, j) = seq[j]*(parameter1_range[1] - parameter1_range[0])+parameter1_range[0];
+                    snapshot_parameters(i+9, j) = seq[j]*(parameter1_range[1] - parameter1_range[0])+parameter1_range[0];
                 }
                 else if(j == 1){
-                    snapshot_parameters(i+5, j) = seq[j]*(parameter2_range[1] - parameter2_range[0])+parameter2_range[0];
+                    snapshot_parameters(i+9, j) = seq[j]*(parameter2_range[1] - parameter2_range[0])+parameter2_range[0];
                 }
             }
         }
         delete [] seq;
+
+        std::string path = all_parameters->reduced_order_param.file_path_for_snapshot_locations;
+        this->pcout << path << std::endl;
+        if(!path.empty()){
+            this->pcout << "LHS Points " << std::endl;
+            std::string path = all_parameters->reduced_order_param.file_path_for_snapshot_locations;
+            Tests::getSnapshotParamsFromFile(snapshot_parameters, path);
+        }
 
         this->pcout << snapshot_parameters << std::endl;
     }

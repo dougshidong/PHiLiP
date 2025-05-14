@@ -126,7 +126,7 @@ add_test(
         NAME INVISCID_NACA0012_ADAPTIVE_SAMPLING
         COMMAND bash -c
         " 
-        mpirun -np 1 ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_2D -i ${CMAKE_CURRENT_BINARY_DIR}/inviscid_naca0012_adaptive_sampling.prm;
+        mpirun -np ${MPIMAX} ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_2D -i ${CMAKE_CURRENT_BINARY_DIR}/inviscid_naca0012_adaptive_sampling.prm;
         mkdir -p NACA_rom_adapt_results;
         mv rom_table_iteration_final.txt ./NACA_rom_adapt_results ;
         mv snapshot_table_iteration_final.txt ./NACA_rom_adapt_results ;

@@ -334,7 +334,7 @@ std::shared_ptr<Epetra_CrsMatrix> HyperReducedODESolver<dim,real,MeshType>::gene
     // Loop through elements 
     for (const auto &cell : this->dg->dof_handler.active_cell_iterators())
     {
-        // Add the contributilons of an element if the weight from the NNLS is non-zero
+        // Add the contributions of an element if the weight from the NNLS is non-zero
         if (cell->is_locally_owned()){
             int global = cell->active_cell_index();
             const int local_element = element_map.LID(global);

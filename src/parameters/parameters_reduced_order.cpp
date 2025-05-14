@@ -70,11 +70,7 @@ void ReducedOrderModelParam::parse_parameters (dealii::ParameterHandler &prm)
 
         const std::string solver_string = prm.get("FOM_error_linear_solver_type");
         if (solver_string == "direct") FOM_error_linear_solver_type = LinearSolverEnum::direct;
-
-        if (solver_string == "gmres")
-        {
-            FOM_error_linear_solver_type = LinearSolverEnum::gmres;
-        }
+        if (solver_string == "gmres") FOM_error_linear_solver_type = LinearSolverEnum::gmres;
         residual_error_bool = prm.get_bool("residual_error_bool");
     }
     prm.leave_subsection();

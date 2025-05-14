@@ -20,6 +20,11 @@ using Eigen::VectorXd;
 /*
 Based on the work in Donovan Blais' thesis:
 Goal-Oriented Adaptive Sampling for Projection-Based Reduced-Order Models, 2022
+
+This is a sampling procedure similar to the adaptive sampling, which instead uses a halton sequence to select the snapshot parameter locations.
+From Wikipedia (https://en.wikipedia.org/wiki/Halton_sequence):
+In statistics, Halton sequences are sequences used to generate points in space for numerical methods such as Monte Carlo simulations.
+The Halton sequence is constructed according to a deterministic method that uses coprime numbers as its bases.
 */
 template <int dim, int nstate>
 class HaltonSampling: public AdaptiveSamplingBase<dim,nstate>

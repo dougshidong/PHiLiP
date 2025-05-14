@@ -32,8 +32,6 @@ public:
     /// Destructor
     ~AdaptiveSampling() {};
 
-    mutable std::vector<double> rom_functional;
-
     /// Run Sampling Procedure
     int run_sampling () const override;
 
@@ -54,6 +52,10 @@ public:
 
     /// Solve reduced-order solution
     std::unique_ptr<ProperOrthogonalDecomposition::ROMSolution<dim,nstate>> solveSnapshotROM(const RowVectorXd& parameter) const;
+
+    /// Functional value predicted by the rom at each sammpling iteration at parameter location specified in the inputs
+    mutable std::vector<double> rom_functional;
+
 };
 
 }

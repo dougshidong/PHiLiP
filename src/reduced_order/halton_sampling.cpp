@@ -29,7 +29,7 @@ HaltonSampling<dim, nstate>::HaltonSampling(const PHiLiP::Parameters::AllParamet
 template <int dim, int nstate>
 int HaltonSampling<dim, nstate>::run_sampling() const
 {
-    this->pcout << "Starting sampling process" << std::endl;
+    this->pcout << "Starting Halton sampling process" << std::endl;
     auto stream = this->pcout;
     dealii::TimerOutput timer(stream,dealii::TimerOutput::summary,dealii::TimerOutput::wall_times);
     timer.enter_subsection ("Solve FOMs and Assemble POD");

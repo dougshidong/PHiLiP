@@ -48,7 +48,7 @@ int AdaptiveSampling<dim, nstate>::run_sampling() const
 
     this->pcout << "Solving FOM at " << functional_ROM << std::endl;
 
-    Parameters::AllParameters params = this->reinitParams(functional_ROM);
+    Parameters::AllParameters params = this->reinit_params(functional_ROM);
     std::unique_ptr<FlowSolver::FlowSolver<dim,nstate>> flow_solver_FOM = FlowSolver::FlowSolverFactory<dim,nstate>::select_flow_case(&params, this->parameter_handler);
 
     // Solve implicit solution
@@ -74,7 +74,7 @@ int AdaptiveSampling<dim, nstate>::run_sampling() const
         dealii::LinearAlgebra::distributed::Vector<double> fom_solution = this->solveSnapshotFOM(max_error_params);
         this->snapshot_parameters.conservativeResize(this->snapshot_parameters.rows()+1, this->snapshot_parameters.cols());
         this->snapshot_parameters.row(this->snapshot_parameters.rows()-1) = max_error_params;
-        this->nearest_neighbors->updateSnapshots(this->snapshot_parameters, fom_solution);
+        this->nearest_neighbors->update_snapshots(this->snapshot_parameters, fom_solution);
         this->current_pod->addSnapshot(fom_solution);
         this->fom_locations.emplace_back(fom_solution);
         this->current_pod->computeBasis();
@@ -175,7 +175,7 @@ void AdaptiveSampling<dim, nstate>::trueErrorROM(const MatrixXd& rom_points) con
 template <int dim, int nstate>
 double AdaptiveSampling<dim, nstate>::solveSnapshotROMandFOM(const RowVectorXd& parameter) const{
     this->pcout << "Solving ROM at " << parameter << std::endl;
-    Parameters::AllParameters params = this->reinitParams(parameter);
+    Parameters::AllParameters params = this->reinit_params(parameter);
 
     std::unique_ptr<FlowSolver::FlowSolver<dim,nstate>> flow_solver_ROM = FlowSolver::FlowSolverFactory<dim,nstate>::select_flow_case(&params, this->parameter_handler);
 
@@ -210,7 +210,7 @@ double AdaptiveSampling<dim, nstate>::solveSnapshotROMandFOM(const RowVectorXd& 
 template <int dim, int nstate>
 void AdaptiveSampling<dim, nstate>::solveFunctionalROM(const RowVectorXd& parameter) const{
     this->pcout << "Solving ROM at " << parameter << std::endl;
-    Parameters::AllParameters params = this->reinitParams(parameter);
+    Parameters::AllParameters params = this->reinit_params(parameter);
 
     std::unique_ptr<FlowSolver::FlowSolver<dim,nstate>> flow_solver_ROM = FlowSolver::FlowSolverFactory<dim,nstate>::select_flow_case(&params, this->parameter_handler);
 
@@ -273,7 +273,7 @@ void AdaptiveSampling<dim, nstate>::updateNearestExistingROMs(const RowVectorXd&
 template <int dim, int nstate>
 std::unique_ptr<ProperOrthogonalDecomposition::ROMSolution<dim,nstate>> AdaptiveSampling<dim, nstate>::solveSnapshotROM(const RowVectorXd& parameter) const{
     this->pcout << "Solving ROM at " << parameter << std::endl;
-    Parameters::AllParameters params = this->reinitParams(parameter);
+    Parameters::AllParameters params = this->reinit_params(parameter);
 
     std::unique_ptr<FlowSolver::FlowSolver<dim,nstate>> flow_solver = FlowSolver::FlowSolverFactory<dim,nstate>::select_flow_case(&params, this->parameter_handler);
 

@@ -18,7 +18,7 @@ void ReducedOrderModelParam::declare_parameters (dealii::ParameterHandler &prm)
         prm.declare_entry("num_halton", "0",
                           dealii::Patterns::Integer(0, dealii::Patterns::Integer::max_int_value),
                           "Number of Halton sequence points to add to initial snapshot set");
-        prm.declare_entry("lhs_snap_path", "",
+        prm.declare_entry("file_path_for_snapshot_locations", "",
                           dealii::Patterns::FileName(dealii::Patterns::FileName::FileType::input),
                           "Path to search for lhs snapshots (should contain snapshot_table)");
         prm.declare_entry("recomputation_coefficient", "5",
@@ -51,7 +51,7 @@ void ReducedOrderModelParam::parse_parameters (dealii::ParameterHandler &prm)
         adaptation_tolerance = prm.get_double("adaptation_tolerance");
         reduced_residual_tolerance = prm.get_double("reduced_residual_tolerance");
         num_halton = prm.get_integer("num_halton");
-        lhs_snap_path = prm.get("lhs_snap_path");
+        file_path_for_snapshot_locations = prm.get("file_path_for_snapshot_locations");
         recomputation_coefficient = prm.get_integer("recomputation_coefficient");
         path_to_search = prm.get("path_to_search");
 

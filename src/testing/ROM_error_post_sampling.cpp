@@ -26,7 +26,7 @@ ROMErrorPostSampling<dim, nstate>::ROMErrorPostSampling(const Parameters::AllPar
 {}
 
 template <int dim, int nstate>
-Parameters::AllParameters ROMErrorPostSampling<dim, nstate>::reinitParams(std::string path) const{
+Parameters::AllParameters ROMErrorPostSampling<dim, nstate>::reinit_params(std::string path) const{
     // Copy all parameters
     PHiLiP::Parameters::AllParameters parameters = *(this->all_parameters);
 

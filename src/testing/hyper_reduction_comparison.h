@@ -23,7 +23,7 @@ public:
                  const dealii::ParameterHandler &parameter_handler_input);
     
     /// Reinitialize parameters
-    Parameters::AllParameters reinitParams(const int max_iter) const;
+    Parameters::AllParameters reinit_params(const int max_iter) const;
 
     /// Read ECSW weights from the text file 
     bool getWeightsFromFile(std::shared_ptr<DGBase<dim,double>> &dg) const;

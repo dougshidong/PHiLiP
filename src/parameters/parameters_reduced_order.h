@@ -28,8 +28,8 @@ public:
     /// Number of Halton sequence points to add to initial snapshot set
     int num_halton;
 
-    /// Path to search for lhs snapshots (should contain snapshot_table)
-    std::string lhs_snap_path;
+    /// Path to search for file with pre-determined snapshot locations used to build POD (actual FOM snapshots not calculated in advance) (should contain snapshot_table)
+    std::string file_path_for_snapshot_locations;
 
     /// Recomputation parameter for adaptive sampling algorithm
     int recomputation_coefficient;

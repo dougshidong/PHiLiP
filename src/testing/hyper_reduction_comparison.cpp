@@ -25,7 +25,7 @@ HyperReductionComparison<dim, nstate>::HyperReductionComparison(const Parameters
 {}
 
 template <int dim, int nstate>
-Parameters::AllParameters HyperReductionComparison<dim, nstate>::reinitParams(const int max_iter) const{
+Parameters::AllParameters HyperReductionComparison<dim, nstate>::reinit_params(const int max_iter) const{
     // Copy all parameters
     PHiLiP::Parameters::AllParameters parameters = *(this->all_parameters);
 
@@ -103,7 +103,8 @@ bool HyperReductionComparison<dim, nstate>::getWeightsFromFile(std::shared_ptr<D
     }
 
     Epetra_CrsMatrix epetra_system_matrix = dg->system_matrix.trilinos_matrix();
-    int length = epetra_system_matrix.NumMyRows()/nstate;
+    const int n_quad_pts = dg->volume_quadrature_collection[dg->all_parameters->flow_solver_param.poly_degree].size();
+    const int length = epetra_system_matrix.NumMyRows()/(nstate*n_quad_pts);
     int *local_elements = new int[length];
     int ctr = 0;
     for (const auto &cell : dg->dof_handler.active_cell_iterators())
@@ -141,7 +142,7 @@ int HyperReductionComparison<dim, nstate>::run_test() const
     std::unique_ptr<FlowSolver::FlowSolver<dim,nstate>> flow_solver_petrov_galerkin = FlowSolver::FlowSolverFactory<dim,nstate>::select_flow_case(all_parameters, parameter_handler);
     
     // Create POD Petrov-Galerkin ROM with Hyper-reduction
-    Parameters::AllParameters new_parameters = reinitParams(100);
+    Parameters::AllParameters new_parameters = reinit_params(100);
     std::unique_ptr<FlowSolver::FlowSolver<dim,nstate>> flow_solver_hyper_reduced_petrov_galerkin = FlowSolver::FlowSolverFactory<dim,nstate>::select_flow_case(&new_parameters, parameter_handler);
     auto ode_solver_type = Parameters::ODESolverParam::ODESolverEnum::hyper_reduced_petrov_galerkin_solver;
 
@@ -153,21 +154,22 @@ int HyperReductionComparison<dim, nstate>::run_test() const
         
         // Find C and d for NNLS Problem
         pcout << "Construct instance of Assembler..."<< std::endl;
-        std::shared_ptr<HyperReduction::AssembleECSWBase<dim,nstate>> constructer_NNLS_problem;
+        std::shared_ptr<HyperReduction::AssembleECSWBase<dim,nstate>> constructor_NNLS_problem;
         if (this->all_parameters->hyper_reduction_param.training_data == "residual")         
-            constructer_NNLS_problem = std::make_shared<HyperReduction::AssembleECSWRes<dim,nstate>>(all_parameters, parameter_handler, flow_solver_hyper_reduced_petrov_galerkin->dg, parameter_sampling->current_pod,  parameter_sampling->snapshot_parameters, ode_solver_type, Comm);
+            constructor_NNLS_problem = std::make_shared<HyperReduction::AssembleECSWRes<dim,nstate>>(all_parameters, parameter_handler, flow_solver_hyper_reduced_petrov_galerkin->dg, parameter_sampling->current_pod,  parameter_sampling->snapshot_parameters, ode_solver_type, Comm);
         else {
-            constructer_NNLS_problem = std::make_shared<HyperReduction::AssembleECSWJac<dim,nstate>>(all_parameters, parameter_handler, flow_solver_hyper_reduced_petrov_galerkin->dg, parameter_sampling->current_pod,  parameter_sampling->snapshot_parameters, ode_solver_type, Comm);
+            constructor_NNLS_problem = std::make_shared<HyperReduction::AssembleECSWJac<dim,nstate>>(all_parameters, parameter_handler, flow_solver_hyper_reduced_petrov_galerkin->dg, parameter_sampling->current_pod,  parameter_sampling->snapshot_parameters, ode_solver_type, Comm);
         }
         pcout << "Build Problem..."<< std::endl;
-        constructer_NNLS_problem->build_problem();
+        constructor_NNLS_problem->build_problem();
 
         // Transfer b vector (RHS of NNLS problem) to Epetra structure
+        // bMap is the same map of b from the constructer_NNLS_problem, when the vector is allocated onto on core
         const int rank = Comm.MyPID();
-        int rows = (constructer_NNLS_problem->A_T->trilinos_matrix()).NumGlobalCols();
+        int rows = (constructor_NNLS_problem->A_T->trilinos_matrix()).NumGlobalCols();
         Epetra_Map bMap(rows, (rank == 0) ? rows: 0, 0, Comm);
         Epetra_Vector b_Epetra(bMap);
-        auto b = constructer_NNLS_problem->b;
+        auto b = constructor_NNLS_problem->b;
         unsigned int local_length = bMap.NumMyElements();
         for(unsigned int i = 0 ; i < local_length ; i++){
             b_Epetra[i] = b(i);
@@ -175,12 +177,12 @@ int HyperReductionComparison<dim, nstate>::run_test() const
 
         // Solve NNLS Problem for ECSW weights
         pcout << "Create NNLS problem..."<< std::endl;
-        NNLS_solver NNLS_prob(all_parameters, parameter_handler, constructer_NNLS_problem->A_T->trilinos_matrix(), true, Comm, b_Epetra);
+        NNLSSolver NNLS_prob(all_parameters, parameter_handler, constructor_NNLS_problem->A_T->trilinos_matrix(), true, Comm, b_Epetra);
         pcout << "Solve NNLS problem..."<< std::endl;
         exit_con = NNLS_prob.solve();
         pcout << exit_con << std::endl;
 
-        *ptr_weights = NNLS_prob.getSolution();
+        *ptr_weights = NNLS_prob.get_solution();
         pcout << "ECSW Weights"<< std::endl;
         pcout << *ptr_weights << std::endl;
     }

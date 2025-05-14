@@ -4,7 +4,6 @@
 #include <eigen/Eigen/Dense>
 #include <Epetra_MpiComm.h>
 #include <Epetra_SerialComm.h>
-#include <Epetra_Comm.h>
 #include <Epetra_CrsMatrix.h>
 #include <Epetra_Map.h>
 #include <Epetra_Vector.h>
@@ -12,6 +11,7 @@
 #include "dg/dg_base.hpp"
 #include "pod_basis_base.h"
 #include "parameters/all_parameters.h"
+#include "multi_core_helper_functions.h"
 
 namespace PHiLiP {
 namespace HyperReduction {
@@ -89,19 +89,13 @@ public:
     std::shared_ptr<Epetra_CrsMatrix> local_generate_test_basis(Epetra_CrsMatrix &system_matrix, const Epetra_CrsMatrix &pod_basis);
     
     /// Reinitialize parameters
-    Parameters::AllParameters reinitParams(const RowVectorXd& parameter) const;
-
-    /// Copy all elements in matrix A to all cores
-    Epetra_CrsMatrix copyMatrixToAllCores(const Epetra_CrsMatrix &A);
-
-    /// Copy all elements in vector b to all cores
-    Epetra_Vector copyVectorToAllCores(const Epetra_Vector &b);
+    Parameters::AllParameters reinit_params(const RowVectorXd& parameter) const;
 
     /// Update POD and Snapshot Parameters
-    void updateSnapshots(dealii::LinearAlgebra::distributed::Vector<double> fom_solution);
+    void update_snapshots(dealii::LinearAlgebra::distributed::Vector<double> fom_solution);
 
     /// Update POD and Snapshot Parameters
-    void updatePODSnaps(std::shared_ptr<ProperOrthogonalDecomposition::PODBase<dim>> pod_update, MatrixXd snapshot_parameters_update);
+    void update_POD_snaps(std::shared_ptr<ProperOrthogonalDecomposition::PODBase<dim>> pod_update, MatrixXd snapshot_parameters_update);
 
     /// Fill entries of A and b
     virtual void build_problem() = 0;

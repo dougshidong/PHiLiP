@@ -51,7 +51,7 @@ std::shared_ptr<Epetra_CrsMatrix> AssembleECSWBase<dim,nstate>::local_generate_t
 }
 
 template <int dim, int nstate>
-Parameters::AllParameters AssembleECSWBase<dim, nstate>::reinitParams(const RowVectorXd& parameter) const{
+Parameters::AllParameters AssembleECSWBase<dim, nstate>::reinit_params(const RowVectorXd& parameter) const{
     // Copy all parameters
     PHiLiP::Parameters::AllParameters parameters = *(this->all_parameters);
 
@@ -101,53 +101,12 @@ Parameters::AllParameters AssembleECSWBase<dim, nstate>::reinitParams(const RowV
 }
 
 template <int dim, int nstate>
-Epetra_CrsMatrix AssembleECSWBase<dim,nstate>::copyMatrixToAllCores(const Epetra_CrsMatrix &A){
-    // Gather Matrix Information
-    const int A_rows = A.NumGlobalRows();
-    const int A_cols = A.NumGlobalCols();
-
-    // Create new maps for one core and gather old maps
-    const Epetra_SerialComm sComm;
-    Epetra_Map single_core_row_A (A_rows, A_rows, 0 , sComm);
-    Epetra_Map single_core_col_A (A_cols, A_cols, 0 , sComm);
-    Epetra_Map old_row_map_A = A.RowMap();
-    Epetra_Map old_col_map_A = A.DomainMap();
-
-    // Create Epetra_importer object
-    Epetra_Import A_importer(single_core_row_A,old_row_map_A);
-
-    // Create new A matrix
-    Epetra_CrsMatrix A_temp (Epetra_DataAccess::Copy, single_core_row_A, A_cols);
-    // Load the data from matrix A (Multi core) into A_temp (Single core)
-    A_temp.Import(A, A_importer, Epetra_CombineMode::Insert);
-    A_temp.FillComplete(single_core_col_A,single_core_row_A);
-    return A_temp;
-}
-
-template <int dim, int nstate>
-Epetra_Vector AssembleECSWBase<dim,nstate>::copyVectorToAllCores(const Epetra_Vector &b){
-    // Gather Vector Information
-    const Epetra_SerialComm sComm;
-    const int b_size = b.GlobalLength();
-    // Create new map for one core and gather old map
-    Epetra_Map single_core_b (b_size, b_size, 0, sComm);
-    Epetra_BlockMap old_map_b = b.Map();
-    // Create Epetra_importer object
-    Epetra_Import b_importer(single_core_b, old_map_b);
-    // Create new b vector
-    Epetra_Vector b_temp (single_core_b); 
-    // Load the data from vector b (Multi core) into b_temp (Single core)
-    b_temp.Import(b, b_importer, Epetra_CombineMode::Insert);
-    return b_temp;
-}
-
-template <int dim, int nstate>
-void AssembleECSWBase<dim, nstate>::updateSnapshots(dealii::LinearAlgebra::distributed::Vector<double> fom_solution){
+void AssembleECSWBase<dim, nstate>::update_snapshots(dealii::LinearAlgebra::distributed::Vector<double> fom_solution){
     fom_locations.emplace_back(fom_solution);
 }
 
 template <int dim, int nstate>
-void AssembleECSWBase<dim, nstate>::updatePODSnaps(std::shared_ptr<ProperOrthogonalDecomposition::PODBase<dim>> pod_update,    
+void AssembleECSWBase<dim, nstate>::update_POD_snaps(std::shared_ptr<ProperOrthogonalDecomposition::PODBase<dim>> pod_update,    
                                                     MatrixXd snapshot_parameters_update) {
     this->pod = pod_update;
     this->snapshot_parameters = snapshot_parameters_update;

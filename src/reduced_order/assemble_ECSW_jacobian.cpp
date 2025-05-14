@@ -28,7 +28,7 @@ void AssembleECSWJac<dim,nstate>::build_problem(){
     const Epetra_CrsMatrix epetra_pod_basis = this->pod->getPODBasis()->trilinos_matrix();
     Epetra_CrsMatrix epetra_system_matrix = this->dg->system_matrix.trilinos_matrix();
     Epetra_Map system_matrix_rowmap = epetra_system_matrix.RowMap();
-    Epetra_CrsMatrix local_system_matrix = this->copyMatrixToAllCores(epetra_system_matrix);
+    Epetra_CrsMatrix local_system_matrix = copy_matrix_to_all_cores(epetra_system_matrix);
 
     // Get dimensions of the problem
     int num_snaps_POD = snapshotMatrix.cols(); // Number of snapshots used to build the POD basis
@@ -47,7 +47,8 @@ void AssembleECSWJac<dim,nstate>::build_problem(){
         training_snaps = num_snaps_POD;
     }
     const int rank = this->Comm_.MyPID();
-    int length = epetra_system_matrix.NumMyRows()/nstate;
+    const int n_quad_pts = this->dg->volume_quadrature_collection[this->all_parameters->flow_solver_param.poly_degree].size();
+    const int length = epetra_system_matrix.NumMyRows()/(nstate*n_quad_pts);
     int *local_elements = new int[length];
     int ctr = 0;
     for (const auto &cell : this->dg->dof_handler.active_cell_iterators())
@@ -78,7 +79,7 @@ void AssembleECSWJac<dim,nstate>::build_problem(){
         this->pcout << snap_param << std::endl;
 
         // Modifiy parameters for snapshot location and create new flow solver
-        Parameters::AllParameters params = this->reinitParams(snap_param);
+        Parameters::AllParameters params = this->reinit_params(snap_param);
         std::unique_ptr<FlowSolver::FlowSolver<dim,nstate>> flow_solver = FlowSolver::FlowSolverFactory<dim,nstate>::select_flow_case(&params, this->parameter_handler);
         this->dg = flow_solver->dg;
 
@@ -91,9 +92,9 @@ void AssembleECSWJac<dim,nstate>::build_problem(){
         epetra_system_matrix = this->dg->system_matrix.trilinos_matrix(); // Jacobian at snapshot location
         system_matrix_rowmap = epetra_system_matrix.RowMap();
         std::shared_ptr<Epetra_CrsMatrix> epetra_test_basis = this->local_generate_test_basis(epetra_system_matrix, epetra_pod_basis);
-        Epetra_CrsMatrix local_system_matrix = this->copyMatrixToAllCores(epetra_system_matrix);
-        Epetra_CrsMatrix local_pod_basis = this->copyMatrixToAllCores(epetra_pod_basis);
-        Epetra_CrsMatrix local_test_basis = this->copyMatrixToAllCores(*epetra_test_basis);
+        Epetra_CrsMatrix local_system_matrix = copy_matrix_to_all_cores(epetra_system_matrix);
+        Epetra_CrsMatrix local_pod_basis = copy_matrix_to_all_cores(epetra_pod_basis);
+        Epetra_CrsMatrix local_test_basis = copy_matrix_to_all_cores(*epetra_test_basis);
 
         // Loop through elements
         for (const auto &cell : this->dg->dof_handler.active_cell_iterators())
@@ -229,7 +230,7 @@ void AssembleECSWJac<dim,nstate>::build_problem(){
 
     C_T.FillComplete(RowMap, ColMap);
 
-    Epetra_CrsMatrix C_single = this->copyMatrixToAllCores(C_T);
+    Epetra_CrsMatrix C_single = copy_matrix_to_all_cores(C_T);
     for (int p = 0; p < num_elements_N_e; p++){
         double *row = new double[C_single.NumGlobalCols()];
         int *global_cols = new int[C_single.NumGlobalCols()];

@@ -12,7 +12,7 @@ NearestNeighbors::NearestNeighbors()
         , snapshots()
 {}
 
-void NearestNeighbors::updateSnapshots(const MatrixXd &snapshot_parameters, dealii::LinearAlgebra::distributed::Vector<double> snapshot){
+void NearestNeighbors::update_snapshots(const MatrixXd &snapshot_parameters, dealii::LinearAlgebra::distributed::Vector<double> snapshot){
     snapshot_params = snapshot_parameters;
     snapshots.emplace_back(snapshot);
     if(snapshots.size() > 1){

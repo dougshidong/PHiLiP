@@ -72,6 +72,7 @@ public:
     /// Ptr vector of ECSW Weights
     mutable std::shared_ptr<Epetra_Vector> ptr_weights;
 
+    /// Functional value predicted by the rom at each sammpling iteration at parameter location specified in the inputs
     mutable std::vector<double> rom_functional;
 
 };

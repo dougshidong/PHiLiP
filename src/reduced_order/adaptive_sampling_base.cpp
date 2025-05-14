@@ -245,7 +245,7 @@ void AdaptiveSamplingBase<dim, nstate>::placeInitialSnapshots() const{
     for(auto snap_param : snapshot_parameters.rowwise()){
         this->pcout << "Sampling initial snapshot at " << snap_param << std::endl;
         dealii::LinearAlgebra::distributed::Vector<double> fom_solution = solveSnapshotFOM(snap_param);
-        nearest_neighbors->updateSnapshots(snapshot_parameters, fom_solution);
+        nearest_neighbors->update_snapshots(snapshot_parameters, fom_solution);
         current_pod->addSnapshot(fom_solution);
         this->fom_locations.emplace_back(fom_solution);
     }
@@ -254,7 +254,7 @@ void AdaptiveSamplingBase<dim, nstate>::placeInitialSnapshots() const{
 template <int dim, int nstate>
 dealii::LinearAlgebra::distributed::Vector<double> AdaptiveSamplingBase<dim, nstate>::solveSnapshotFOM(const RowVectorXd& parameter) const{
     this->pcout << "Solving FOM at " << parameter << std::endl;
-    Parameters::AllParameters params = reinitParams(parameter);
+    Parameters::AllParameters params = reinit_params(parameter);
 
     std::unique_ptr<FlowSolver::FlowSolver<dim,nstate>> flow_solver = FlowSolver::FlowSolverFactory<dim,nstate>::select_flow_case(&params, parameter_handler);
 
@@ -269,7 +269,7 @@ dealii::LinearAlgebra::distributed::Vector<double> AdaptiveSamplingBase<dim, nst
 }
 
 template <int dim, int nstate>
-Parameters::AllParameters AdaptiveSamplingBase<dim, nstate>::reinitParams(const RowVectorXd& parameter) const{
+Parameters::AllParameters AdaptiveSamplingBase<dim, nstate>::reinit_params(const RowVectorXd& parameter) const{
     // Copy all parameters
     PHiLiP::Parameters::AllParameters parameters = *(this->all_parameters);
 
@@ -393,11 +393,11 @@ void AdaptiveSamplingBase<dim, nstate>::configureInitialParameterSpace() const
         }
         delete [] seq;
 
-        std::string path = all_parameters->reduced_order_param.lhs_snap_path;
+        std::string path = all_parameters->reduced_order_param.file_path_for_snapshot_locations;
         this->pcout << path << std::endl;
         if(!path.empty()){
             this->pcout << "LHS Points " << std::endl;
-            std::string path = all_parameters->reduced_order_param.lhs_snap_path;
+            std::string path = all_parameters->reduced_order_param.file_path_for_snapshot_locations;
             Tests::getSnapshotParamsFromFile(snapshot_parameters, path);
         }
 

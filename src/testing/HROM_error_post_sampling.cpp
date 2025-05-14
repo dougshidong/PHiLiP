@@ -30,7 +30,7 @@ HROMErrorPostSampling<dim, nstate>::HROMErrorPostSampling(const Parameters::AllP
 {}
 
 template <int dim, int nstate>
-Parameters::AllParameters HROMErrorPostSampling<dim, nstate>::reinitParams(std::string path) const{
+Parameters::AllParameters HROMErrorPostSampling<dim, nstate>::reinit_params(std::string path) const{
     // Copy all parameters
     PHiLiP::Parameters::AllParameters parameters = *(this->all_parameters);
 
@@ -108,7 +108,8 @@ bool HROMErrorPostSampling<dim, nstate>::getWeightsFromFile(std::shared_ptr<DGBa
     }
 
     Epetra_CrsMatrix epetra_system_matrix = dg->system_matrix.trilinos_matrix();
-    int length = epetra_system_matrix.NumMyRows()/nstate;
+    const int n_quad_pts = dg->volume_quadrature_collection[dg->all_parameters->flow_solver_param.poly_degree].size();
+    const int length = epetra_system_matrix.NumMyRows()/(nstate*n_quad_pts);
     int *local_elements = new int[length];
     int ctr = 0;
     for (const auto &cell : dg->dof_handler.active_cell_iterators())

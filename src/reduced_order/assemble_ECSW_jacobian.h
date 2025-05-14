@@ -6,7 +6,6 @@
 #include <Epetra_Map.h>
 #include <Epetra_Vector.h>
 #include <EpetraExt_MatrixMatrix.h>
-#include <EpetraExt_RowMatrixOut.h>
 #include "dg/dg_base.hpp"
 #include "pod_basis_base.h"
 #include "parameters/all_parameters.h"

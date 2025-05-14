@@ -23,7 +23,7 @@ HaltonSamplingRun<dim, nstate>::HaltonSamplingRun(const Parameters::AllParameter
 template <int dim, int nstate>
 int HaltonSamplingRun<dim, nstate>::run_test() const
 {
-    pcout << "Starting adaptive sampling procedure..." << std::endl;
+    pcout << "Starting halton sampling procedure..." << std::endl;
 
     HaltonSampling<dim, nstate> sampling_imp(this->all_parameters, parameter_handler);
     int exit = sampling_imp.run_sampling();

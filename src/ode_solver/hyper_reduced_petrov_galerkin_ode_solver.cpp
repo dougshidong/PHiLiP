@@ -1,5 +1,6 @@
 #include "hyper_reduced_petrov_galerkin_ode_solver.h"
 #include "linear_solver/linear_solver.h"
+#include "reduced_order/multi_core_helper_functions.h"
 #include <deal.II/lac/trilinos_sparsity_pattern.h>
 #include <Epetra_Vector.h>
 #include <deal.II/lac/la_parallel_vector.h>
@@ -322,9 +323,9 @@ std::shared_ptr<Epetra_CrsMatrix> HyperReducedODESolver<dim,real,MeshType>::gene
     Create empty Hyper-reduced Jacobian Epetra structure */
     Epetra_MpiComm epetra_comm(MPI_COMM_WORLD);
     Epetra_Map system_matrix_rowmap = system_matrix.RowMap();
-    Epetra_CrsMatrix local_system_matrix = copyMatrixToAllCores(system_matrix);
+    Epetra_CrsMatrix local_system_matrix = copy_matrix_to_all_cores(system_matrix);
     Epetra_CrsMatrix reduced_jacobian(Epetra_DataAccess::Copy, system_matrix_rowmap, system_matrix.NumGlobalCols());
-    int N = system_matrix.NumGlobalRows();
+    const int N = system_matrix.NumGlobalRows();
     Epetra_BlockMap element_map = ECSW_weights.Map();
     const unsigned int max_dofs_per_cell = this->dg->dof_handler.get_fe_collection().max_dofs_per_cell();
     std::vector<dealii::types::global_dof_index> current_dofs_indices(max_dofs_per_cell);
@@ -422,19 +423,19 @@ std::shared_ptr<Epetra_Vector> HyperReducedODESolver<dim,real,MeshType>::generat
     Epetra_Map POD_dim (-1,test_basis.NumGlobalCols(), global_ind, 0, epetra_comm);
     delete[] global_ind;
     Epetra_Vector hyper_reduced_residual(POD_dim);
-    int N = test_basis.NumGlobalRows();
+    const int N = test_basis.NumGlobalRows();
     Epetra_BlockMap element_map = ECSW_weights.Map();
     const unsigned int max_dofs_per_cell = this->dg->dof_handler.get_fe_collection().max_dofs_per_cell();
     std::vector<dealii::types::global_dof_index> current_dofs_indices(max_dofs_per_cell);
     Epetra_Vector local_rhs = allocateVectorToSingleCore(epetra_right_hand_side);
-    Epetra_CrsMatrix local_test_basis = copyMatrixToAllCores(test_basis);
+    Epetra_CrsMatrix local_test_basis = copy_matrix_to_all_cores(test_basis);
 
     // Loop through elements
     for (const auto &cell : this->dg->dof_handler.active_cell_iterators())
     {
         if (cell->is_locally_owned()){
             // Add the contributions of an element if the weight from the NNLS is non-zero
-            int global = cell->active_cell_index();
+            const int global = cell->active_cell_index();
             const int local_element = element_map.LID(global);
             if (ECSW_weights[local_element] != 0){
                 const int fe_index_curr_cell = cell->active_fe_index();
@@ -493,30 +494,6 @@ std::shared_ptr<Epetra_CrsMatrix> HyperReducedODESolver<dim,real,MeshType>::gene
     EpetraExt::MatrixMatrix::Multiply(test_basis, true, test_basis, false, epetra_reduced_lhs);
 
     return std::make_shared<Epetra_CrsMatrix>(epetra_reduced_lhs);
-}
-
-template <int dim, typename real, typename MeshType>
-Epetra_CrsMatrix HyperReducedODESolver<dim,real,MeshType>::copyMatrixToAllCores(const Epetra_CrsMatrix &A){
-    // Gather Matrix Information
-    const int A_rows = A.NumGlobalRows();
-    const int A_cols = A.NumGlobalCols();
-
-    // Create new maps for one core and gather old maps
-    const Epetra_SerialComm sComm;
-    Epetra_Map single_core_row_A (A_rows, A_rows, 0 , sComm);
-    Epetra_Map single_core_col_A (A_cols, A_cols, 0 , sComm);
-    Epetra_Map old_row_map_A = A.RowMap();
-    Epetra_Map old_col_map_A = A.DomainMap();
-
-    // Create Epetra_importer object
-    Epetra_Import A_importer(single_core_row_A,old_row_map_A);
-
-    // Create new A matrix
-    Epetra_CrsMatrix A_temp (Epetra_DataAccess::Copy, single_core_row_A, A_cols);
-    // Load the data from matrix A (Multi core) into A_temp (Single core)
-    A_temp.Import(A, A_importer, Epetra_CombineMode::Insert);
-    A_temp.FillComplete(single_core_col_A,single_core_row_A);
-    return A_temp;
 }
 
 template <int dim, typename real, typename MeshType>

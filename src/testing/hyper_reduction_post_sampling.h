@@ -24,10 +24,7 @@ public:
                  const dealii::ParameterHandler &parameter_handler_input);
     
     /// Reinitialize parameters
-    Parameters::AllParameters reinitParams(const int max_iter) const;
-
-    /// Copy all elements in matrix A to all cores
-    Epetra_Vector allocateVectorToSingleCore(const Epetra_Vector &b) const;
+    Parameters::AllParameters reinit_params(const int max_iter) const;
 
     /// Conduct hyperreduction and evaluate HROM at ROM points
     int run_test () const override;

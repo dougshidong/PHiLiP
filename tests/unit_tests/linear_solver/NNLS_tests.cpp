@@ -19,7 +19,7 @@ using namespace PHiLiP;
 // The CSV files C.csv and d.csv are pulled from the MATLAB implementation of the ECSW approach for the Burgers' 1D problem.
 // x_pow_4.csv is pulled from the modified Eigen NNLS solver solution for the C.csv and d.csv files, when the tolerance used is 1E-4.
 
-Parameters::AllParameters reinitParams(Parameters::AllParameters all_parameters, const double tol, const int max_iter){
+Parameters::AllParameters reinit_params(Parameters::AllParameters all_parameters, const double tol, const int max_iter){
     // Copy all parameters
     PHiLiP::Parameters::AllParameters parameters = all_parameters;
 
@@ -185,10 +185,10 @@ bool test_nnls_known_CLASS(const PHiLiP::Parameters::AllParameters *const all_pa
   b.Print(std::cout);
 
   // Create instance of NNLS solver, and call .solve to find the solution and exit condition
-  NNLS_solver NNLS_prob(all_parameters, parameter_handler, A, Comm, b);
+  NNLSSolver NNLS_prob(all_parameters, parameter_handler, A, Comm, b);
   bool exit_con = NNLS_prob.solve();
   pcout << " Solution x "<< std::endl;
-  Epetra_Vector x = NNLS_prob.getSolution();
+  Epetra_Vector x = NNLS_prob.get_solution();
   x.Print(std::cout);
   
   // If the maximum iterations were reached, output message to signal possible failure of the solver
@@ -205,7 +205,6 @@ bool test_nnls_known_CLASS(const PHiLiP::Parameters::AllParameters *const all_pa
   bool opt = verify_nnls_optimality(A_eig, b_eig, x_nnls_eig, all_parameters->hyper_reduction_param.NNLS_tol);
   // Compare to the exact solutions
   opt&= x_nnls_eig.isApprox(x_eig, all_parameters->hyper_reduction_param.NNLS_tol);
-  opt = 1;
   return opt;
 }
 
@@ -229,7 +228,7 @@ bool test_nnls_handles_Mx0_matrix(const PHiLiP::Parameters::AllParameters *const
   Epetra_Vector b(eig_to_epetra_vector(b_vec,row,Comm));
 
   // Create instance of NNLS solver, and call .solve to find the solution and exit conditions
-  NNLS_solver NNLS_prob(all_parameters, parameter_handler, A, Comm, b);
+  NNLSSolver NNLS_prob(all_parameters, parameter_handler, A, Comm, b);
   bool exit_con = NNLS_prob.solve();
 
   // Check if solver exited by reaching the maximum number of iterationss
@@ -241,7 +240,7 @@ bool test_nnls_handles_Mx0_matrix(const PHiLiP::Parameters::AllParameters *const
   // Check the number of iterations completed and size of the solution vector (both expected to be zeros)
   bool opt = true;
   opt &= (NNLS_prob.iter_ == 0);
-  Epetra_Vector x = NNLS_prob.getSolution();
+  Epetra_Vector x = NNLS_prob.get_solution();
   opt &= (x.GlobalLength()== 0);
   return opt;
 }
@@ -264,7 +263,7 @@ bool test_nnls_handles_0x0_matrix(const PHiLiP::Parameters::AllParameters *const
   Epetra_Vector b(eig_to_epetra_vector(b_vec,0,Comm));
 
   // Create instance of NNLS solver, and call .solve to find the solution and exit conditions
-  NNLS_solver NNLS_prob(all_parameters, parameter_handler, A, Comm, b);
+  NNLSSolver NNLS_prob(all_parameters, parameter_handler, A, Comm, b);
   bool exit_con = NNLS_prob.solve();
 
   // Check if solver exited by reaching the maximum number of iterationss
@@ -276,7 +275,7 @@ bool test_nnls_handles_0x0_matrix(const PHiLiP::Parameters::AllParameters *const
   // Check the number of iterations completed and size of the solution vector (both expected to be zeros)
   bool opt = true;
   opt &= (NNLS_prob.iter_ == 0);
-  Epetra_Vector x(NNLS_prob.getSolution());
+  Epetra_Vector x(NNLS_prob.get_solution());
   opt &= (x.GlobalLength()== 0);
   return opt;
 }
@@ -330,8 +329,8 @@ bool test_nnls_random_problem(PHiLiP::Parameters::AllParameters *all_parameters,
   b.Print(std::cout);
 
   // Create instance of NNLS solver, and call .solve to find the solution and exit conditions
-  Parameters::AllParameters const new_parameters = reinitParams(*all_parameters, tolerance, max_iter);
-  NNLS_solver NNLS_prob(&new_parameters, parameter_handler, A, Comm, b);
+  Parameters::AllParameters const new_parameters = reinit_params(*all_parameters, tolerance, max_iter);
+  NNLSSolver NNLS_prob(&new_parameters, parameter_handler, A, Comm, b);
   bool exit_con = NNLS_prob.solve();
 
   // Check if solver exited by reaching the maximum number of iterations
@@ -342,7 +341,7 @@ bool test_nnls_random_problem(PHiLiP::Parameters::AllParameters *all_parameters,
 
   // Confirm the optimality of the solution wrt tolerance and positivity
   pcout << " Solution x "<< std::endl;
-  Epetra_Vector x(NNLS_prob.getSolution());
+  Epetra_Vector x(NNLS_prob.get_solution());
   x.Print(std::cout);
   Eigen::MatrixXd x_nnls_eig(x.GlobalLength(),1);
   epetra_to_eig_vec(x.GlobalLength(), x , x_nnls_eig);
@@ -378,7 +377,7 @@ bool test_nnls_handles_zero_rhs(const PHiLiP::Parameters::AllParameters *const a
   b.Print(std::cout);
 
   // Create instance of NNLS solver, and call .solve to find the solution and exit conditions
-  NNLS_solver NNLS_prob(all_parameters, parameter_handler, A, Comm, b);
+  NNLSSolver NNLS_prob(all_parameters, parameter_handler, A, Comm, b);
   bool exit_con = NNLS_prob.solve();
 
   bool opt = true;
@@ -390,7 +389,7 @@ bool test_nnls_handles_zero_rhs(const PHiLiP::Parameters::AllParameters *const a
 
   // Check the number of iterations completed (expected to be 0 or 1) and that all the entries in the solution are zero
   pcout << " Solution x "<< std::endl;
-  Epetra_Vector x(NNLS_prob.getSolution());
+  Epetra_Vector x(NNLS_prob.get_solution());
   x.Print(std::cout);
   Eigen::MatrixXd x_nnls_eig(x.GlobalLength(),1);
   epetra_to_eig_vec(x.GlobalLength(), x , x_nnls_eig);
@@ -427,7 +426,7 @@ bool test_nnls_handles_dependent_columns(const PHiLiP::Parameters::AllParameters
   b.Print(std::cout);
 
   // Create instance of NNLS solver, and call .solve to find the solution and exit conditions
-  NNLS_solver NNLS_prob(all_parameters, parameter_handler, A, Comm, b);
+  NNLSSolver NNLS_prob(all_parameters, parameter_handler, A, Comm, b);
   bool exit_con = NNLS_prob.solve();
 
   // From Eigen : 
@@ -436,7 +435,7 @@ bool test_nnls_handles_dependent_columns(const PHiLiP::Parameters::AllParameters
      Either outcome is fine. If Success is indicated,
      then 'x' must actually be a solution vector. */
   bool opt = true;
-  Epetra_Vector x(NNLS_prob.getSolution());
+  Epetra_Vector x(NNLS_prob.get_solution());
   Eigen::MatrixXd x_nnls_eig(x.GlobalLength(),1);
   epetra_to_eig_vec(x.GlobalLength(), x , x_nnls_eig);
   if (!exit_con){
@@ -479,7 +478,7 @@ bool test_nnls_handles_wide_matrix(const PHiLiP::Parameters::AllParameters *cons
   b.Print(std::cout);
 
   // Create instance of NNLS solver, and call .solve to find the solution and exit conditions
-  NNLS_solver NNLS_prob(all_parameters, parameter_handler, A, Comm, b);
+  NNLSSolver NNLS_prob(all_parameters, parameter_handler, A, Comm, b);
   bool exit_con = NNLS_prob.solve();
 
   // From Eigen:
@@ -492,7 +491,7 @@ bool test_nnls_handles_wide_matrix(const PHiLiP::Parameters::AllParameters *cons
      then 'x' must actually be a solution vector. */
 
   bool opt = true;
-  Epetra_Vector x(NNLS_prob.getSolution());
+  Epetra_Vector x(NNLS_prob.get_solution());
   Eigen::MatrixXd x_nnls_eig(x.GlobalLength(),1);
   epetra_to_eig_vec(x.GlobalLength(), x , x_nnls_eig);
   // Check if solver exited by reaching the maximum number of iterations
@@ -538,8 +537,8 @@ bool test_nnls_special_case_solves_in_zero_iterations(const PHiLiP::Parameters::
   b.Print(std::cout);
 
   // Create instance of NNLS solver, and call .solve to find the solution and exit conditions
-  NNLS_solver NNLS_prob(all_parameters, parameter_handler, A, Comm, b);
-  NNLS_prob.startingSolution(x_start); // SET SOLUTION TO EXACT SOLUTION
+  NNLSSolver NNLS_prob(all_parameters, parameter_handler, A, Comm, b);
+  NNLS_prob.starting_solution(x_start); // SET SOLUTION TO EXACT SOLUTION
   bool exit_con = NNLS_prob.solve();
 
   // Check if solver exited by reaching the maximum number of iterations
@@ -549,7 +548,7 @@ bool test_nnls_special_case_solves_in_zero_iterations(const PHiLiP::Parameters::
     opt &= false;
   }
   pcout << " Solution x "<< std::endl;
-  Epetra_Vector x(NNLS_prob.getSolution());
+  Epetra_Vector x(NNLS_prob.get_solution());
   x.Print(std::cout);
   Eigen::MatrixXd x_nnls_eig(x.GlobalLength(),1);
   epetra_to_eig_vec(x.GlobalLength(), x , x_nnls_eig);
@@ -588,7 +587,7 @@ bool test_nnls_special_case_solves_in_n_iterations(const PHiLiP::Parameters::All
   b.Print(std::cout);
 
   // Create instance of NNLS solver, and call .solve to find the solution and exit conditions
-  NNLS_solver NNLS_prob(all_parameters, parameter_handler, A, Comm, b);
+  NNLSSolver NNLS_prob(all_parameters, parameter_handler, A, Comm, b);
   bool exit_con = NNLS_prob.solve();
 
   //
@@ -602,7 +601,7 @@ bool test_nnls_special_case_solves_in_n_iterations(const PHiLiP::Parameters::All
     opt &= false;
   }
   pcout << " Solution x "<< std::endl;
-  Epetra_Vector x(NNLS_prob.getSolution());
+  Epetra_Vector x(NNLS_prob.get_solution());
   x.Print(std::cout);
   Eigen::MatrixXd x_nnls_eig(x.GlobalLength(),1);
   epetra_to_eig_vec(x.GlobalLength(), x , x_nnls_eig);
@@ -645,9 +644,9 @@ bool test_nnls_returns_NoConvergence_when_maxIterations_is_too_low(PHiLiP::Param
 
   // Set max_iters too low to cause solver to fail/return false on purpose
   const Index max_iters = n - 1;
-  Parameters::AllParameters const new_parameters = reinitParams(*all_parameters, 1E-8, max_iters);
+  Parameters::AllParameters const new_parameters = reinit_params(*all_parameters, 1E-8, max_iters);
   // Create instance of NNLS solver, and call .solve to find the solution and exit conditions
-  NNLS_solver NNLS_prob(&new_parameters, parameter_handler, A, Comm, b);
+  NNLSSolver NNLS_prob(&new_parameters, parameter_handler, A, Comm, b);
   bool exit_con = NNLS_prob.solve();
 
   // Check if solver exited by reaching the maximum number of iterations, return true in this case
@@ -657,7 +656,7 @@ bool test_nnls_returns_NoConvergence_when_maxIterations_is_too_low(PHiLiP::Param
     opt = true;
   }
   pcout << " Solution x "<< std::endl;
-  Epetra_Vector x(NNLS_prob.getSolution());
+  Epetra_Vector x(NNLS_prob.get_solution());
   x.Print(std::cout);
   // Check the number of iterations is in fact equal to the maximum number of iterations
   opt &= (NNLS_prob.iter_ == max_iters);
@@ -790,7 +789,7 @@ bool test_nnls_multiCore(const PHiLiP::Parameters::AllParameters *const all_para
     pcout << "Case Max Iter too low" << std::endl;
     ok &= test_nnls_returns_NoConvergence_when_maxIterations_is_too_low(&non_const_all_param, parameter_handler, Comm, pcout);
     pcout << "Case MATLAB" << std::endl;
-    Parameters::AllParameters new_parameters = reinitParams(non_const_all_param, 1E-4, 10000);
+    Parameters::AllParameters new_parameters = reinit_params(non_const_all_param, 1E-4, 10000);
     ok &= case_MATLAB(&new_parameters, parameter_handler, Comm, pcout);
     return ok;
 
@@ -819,7 +818,7 @@ int main(int argc, char *argv[]){
   Parameters::AllParameters all_parameters;
   all_parameters.parse_parameters (parameter_handler);
 
-  Parameters::AllParameters new_parameters = reinitParams(all_parameters, 1E-8, 10000);
+  Parameters::AllParameters new_parameters = reinit_params(all_parameters, 1E-8, 10000);
 
   // Possible Test Cases
   std::string s_1 = "known";
@@ -840,11 +839,11 @@ int main(int argc, char *argv[]){
     ok &= case_2(&new_parameters, parameter_handler, Comm, pcout);
     ok &= case_3(&new_parameters, parameter_handler, Comm, pcout);
     ok &= case_4(&new_parameters, parameter_handler, Comm, pcout);
-    Parameters::AllParameters new_new_parameters = reinitParams(all_parameters, 1E-3, 10000);
+    Parameters::AllParameters new_new_parameters = reinit_params(all_parameters, 1E-3, 10000);
     ok &= case_5(&new_new_parameters, parameter_handler, Comm, pcout); // had to relax the tolerance for this case ( tol = 1E-3)
   }
   else if (argv[1] == s_2){
-    Parameters::AllParameters new_parameters = reinitParams(all_parameters, 1E-4, 10000);
+    Parameters::AllParameters new_parameters = reinit_params(all_parameters, 1E-4, 10000);
     ok &= case_MATLAB(&new_parameters, parameter_handler, Comm, pcout);
   }
   else if (argv[1] == s_3){

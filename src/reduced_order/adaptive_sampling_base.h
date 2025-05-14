@@ -82,7 +82,7 @@ public:
     dealii::LinearAlgebra::distributed::Vector<double> solveSnapshotFOM(const RowVectorXd& parameter) const;
 
     /// Reinitialize parameters
-    Parameters::AllParameters reinitParams(const RowVectorXd& parameter) const;
+    Parameters::AllParameters reinit_params(const RowVectorXd& parameter) const;
 
     /// Set up parameter space depending on test case
     void configureInitialParameterSpace() const;

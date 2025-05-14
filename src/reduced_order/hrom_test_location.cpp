@@ -5,6 +5,7 @@
 #include <deal.II/lac/trilinos_sparse_matrix.h>
 #include "parameters/all_parameters.h"
 #include "pod_basis_base.h"
+#include "multi_core_helper_functions.h"
 #include "reduced_order_solution.h"
 #include "linear_solver/linear_solver.h"
 #include <Epetra_Vector.h>
@@ -22,77 +23,20 @@ namespace ProperOrthogonalDecomposition {
 
 template <int dim, int nstate>
 HROMTestLocation<dim, nstate>::HROMTestLocation(const RowVectorXd& parameter, std::unique_ptr<ROMSolution<dim, nstate>> rom_solution, std::shared_ptr< DGBase<dim, double> > dg_input, Epetra_Vector weights)
-        : parameter(parameter)
-        , rom_solution(std::move(rom_solution))
-        , mpi_communicator(MPI_COMM_WORLD)
-        , mpi_rank(dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD))
-        , pcout(std::cout, mpi_rank==0)
+        : TestLocationBase<dim, nstate>(parameter, std::move(rom_solution))
         , dg(dg_input)
         , ECSW_weights(weights)
 {
-    pcout << "Creating ROM test location..." << std::endl;
-    compute_FOM_to_initial_ROM_error();
-    initial_rom_to_final_rom_error = 0;
-    total_error = fom_to_initial_rom_error;
-
-    pcout << "ROM test location created. Error estimate updated." << std::endl;
-}
-
-template <int dim, int nstate>
-void HROMTestLocation<dim, nstate>::compute_FOM_to_initial_ROM_error(){
-    pcout << "Computing adjoint-based error estimate between ROM and FOM..." << std::endl;
-
-    dealii::ParameterHandler dummy_handler;
-    std::unique_ptr<FlowSolver::FlowSolver<dim,nstate>> flow_solver = FlowSolver::FlowSolverFactory<dim,nstate>::select_flow_case(&rom_solution->params, dummy_handler);
-    flow_solver->dg->solution = rom_solution->solution;
-    const bool compute_dRdW = true;
-    flow_solver->dg->assemble_residual(compute_dRdW);
-    dealii::TrilinosWrappers::SparseMatrix system_matrix_transpose = dealii::TrilinosWrappers::SparseMatrix();
-    system_matrix_transpose.copy_from(flow_solver->dg->system_matrix_transpose);
-
-    // Initialize with same parallel layout as dg->right_hand_side
-    dealii::LinearAlgebra::distributed::Vector<double> adjoint(flow_solver->dg->right_hand_side);
-
-    dealii::LinearAlgebra::distributed::Vector<double> gradient(rom_solution->gradient);
-
-    Parameters::LinearSolverParam linear_solver_param;
-
-    if (rom_solution->params.reduced_order_param.FOM_error_linear_solver_type == Parameters::ReducedOrderModelParam::LinearSolverEnum::gmres){
-        linear_solver_param.max_iterations = 1000;
-        linear_solver_param.restart_number = 200;
-        linear_solver_param.linear_residual = 1e-17;
-        linear_solver_param.ilut_fill = 50;
-        linear_solver_param.ilut_drop = 1e-8;
-        linear_solver_param.ilut_atol = 1e-5;
-        linear_solver_param.ilut_rtol = 1.0+1e-2;
-        linear_solver_param.linear_solver_type = Parameters::LinearSolverParam::LinearSolverEnum::gmres;
-    }
-    else{
-        linear_solver_param.linear_solver_type = Parameters::LinearSolverParam::direct;
-    }
-    if (rom_solution->params.reduced_order_param.residual_error_bool == true){
-        adjoint*=0;
-        adjoint.add(1);
-    }
-    else{
-        solve_linear(system_matrix_transpose, gradient*=-1.0, adjoint, linear_solver_param);
-    }
-
-    // Compute dual weighted residual
-    fom_to_initial_rom_error = 0;
-    fom_to_initial_rom_error = -(adjoint * flow_solver->dg->right_hand_side);
-
-    pcout << "Parameter: " << parameter << ". Error estimate between ROM and FOM: " << fom_to_initial_rom_error << std::endl;
 }
 
 template <int dim, int nstate>
 void HROMTestLocation<dim, nstate>::compute_initial_rom_to_final_rom_error(std::shared_ptr<ProperOrthogonalDecomposition::PODBase<dim>> pod_updated){
 
-    pcout << "Computing adjoint-based error estimate between initial ROM and updated ROM..." << std::endl;
+    this->pcout << "Computing adjoint-based error estimate between initial ROM and updated ROM..." << std::endl;
 
     dealii::ParameterHandler dummy_handler;
-    std::unique_ptr<FlowSolver::FlowSolver<dim,nstate>> flow_solver = FlowSolver::FlowSolverFactory<dim,nstate>::select_flow_case(&rom_solution->params, dummy_handler);
-    flow_solver->dg->solution = rom_solution->solution;
+    std::unique_ptr<FlowSolver::FlowSolver<dim,nstate>> flow_solver = FlowSolver::FlowSolverFactory<dim,nstate>::select_flow_case(&this->rom_solution->params, dummy_handler);
+    flow_solver->dg->solution = this->rom_solution->solution;
     const bool compute_dRdW = true;
     flow_solver->dg->assemble_residual(compute_dRdW);
 
@@ -105,7 +49,7 @@ void HROMTestLocation<dim, nstate>::compute_initial_rom_to_final_rom_error(std::
     std::shared_ptr<Epetra_CrsMatrix> epetra_petrov_galerkin_basis_ptr = generate_test_basis(*reduced_system_matrix, epetra_pod_basis);
     Epetra_CrsMatrix epetra_petrov_galerkin_basis = *epetra_petrov_galerkin_basis_ptr;
 
-    Epetra_Vector epetra_gradient(Epetra_DataAccess::Copy, epetra_pod_basis.RowMap(), const_cast<double *>(rom_solution->gradient.begin()));
+    Epetra_Vector epetra_gradient(Epetra_DataAccess::Copy, epetra_pod_basis.RowMap(), const_cast<double *>(this->rom_solution->gradient.begin()));
     Epetra_Vector epetra_reduced_gradient(epetra_pod_basis.DomainMap());
 
     epetra_pod_basis.Multiply(true, epetra_gradient, epetra_reduced_gradient);
@@ -115,7 +59,7 @@ void HROMTestLocation<dim, nstate>::compute_initial_rom_to_final_rom_error(std::
 
     Epetra_Vector epetra_reduced_adjoint(epetra_reduced_jacobian_transpose.DomainMap());
     epetra_reduced_gradient.Scale(-1);
-    if (rom_solution->params.reduced_order_param.residual_error_bool == true){
+    if (this->rom_solution->params.reduced_order_param.residual_error_bool == true){
         epetra_reduced_adjoint.PutScalar(0);
     }
     else{
@@ -135,18 +79,11 @@ void HROMTestLocation<dim, nstate>::compute_initial_rom_to_final_rom_error(std::
     epetra_petrov_galerkin_basis.Multiply(true, epetra_residual, epetra_reduced_residual);
 
     // Compute dual weighted residual
-    initial_rom_to_final_rom_error = 0;
-    epetra_reduced_adjoint.Dot(epetra_reduced_residual, &initial_rom_to_final_rom_error);
-    initial_rom_to_final_rom_error *= -1;
+    this->initial_rom_to_final_rom_error = 0;
+    epetra_reduced_adjoint.Dot(epetra_reduced_residual, &this->initial_rom_to_final_rom_error);
+    this->initial_rom_to_final_rom_error *= -1;
 
-    pcout << "Parameter: " << parameter << ". Error estimate between initial ROM and updated ROM: " << initial_rom_to_final_rom_error << std::endl;
-}
-
-template <int dim, int nstate>
-void HROMTestLocation<dim, nstate>::compute_total_error(){
-    pcout << "Computing total error estimate between FOM and updated ROM..." << std::endl;
-    total_error = fom_to_initial_rom_error - initial_rom_to_final_rom_error;
-    pcout << "Parameter: " << parameter <<  ". Total error estimate between FOM and updated ROM: " << total_error << std::endl;
+    this->pcout << "Parameter: " << this->parameter << ". Error estimate between initial ROM and updated ROM: " << this->initial_rom_to_final_rom_error << std::endl;
 }
 
 template <int dim, int nstate>
@@ -157,7 +94,7 @@ std::shared_ptr<Epetra_CrsMatrix> HROMTestLocation<dim, nstate>::generate_hyper_
     Create empty Hyper-reduced Jacobian Epetra structure */
     Epetra_MpiComm epetra_comm(MPI_COMM_WORLD);
     Epetra_Map system_matrix_rowmap = system_matrix.RowMap();
-    Epetra_CrsMatrix local_system_matrix = copyMatrixToAllCores(system_matrix);
+    Epetra_CrsMatrix local_system_matrix = copy_matrix_to_all_cores(system_matrix);
     Epetra_CrsMatrix reduced_jacobian(Epetra_DataAccess::Copy, system_matrix_rowmap, system_matrix.NumGlobalCols());
     int N = system_matrix.NumGlobalRows();
     Epetra_BlockMap element_map = ECSW_weights.Map();
@@ -250,30 +187,6 @@ std::shared_ptr<Epetra_CrsMatrix> HROMTestLocation<dim, nstate>::generate_test_b
     EpetraExt::MatrixMatrix::Multiply(system_matrix, false, pod_basis, false, petrov_galerkin_basis, true);
 
     return std::make_shared<Epetra_CrsMatrix>(petrov_galerkin_basis);
-}
-
-template <int dim, int nstate>
-Epetra_CrsMatrix HROMTestLocation<dim, nstate>::copyMatrixToAllCores(const Epetra_CrsMatrix &A){
-    // Gather Matrix Information
-    const int A_rows = A.NumGlobalRows();
-    const int A_cols = A.NumGlobalCols();
-
-    // Create new maps for one core and gather old maps
-    const Epetra_SerialComm sComm;
-    Epetra_Map single_core_row_A (A_rows, A_rows, 0 , sComm);
-    Epetra_Map single_core_col_A (A_cols, A_cols, 0 , sComm);
-    Epetra_Map old_row_map_A = A.RowMap();
-    Epetra_Map old_col_map_A = A.DomainMap();
-
-    // Create Epetra_importer object
-    Epetra_Import A_importer(single_core_row_A,old_row_map_A);
-
-    // Create new A matrix
-    Epetra_CrsMatrix A_temp (Epetra_DataAccess::Copy, single_core_row_A, A_cols);
-    // Load the data from matrix A (Multi core) into A_temp (Single core)
-    A_temp.Import(A, A_importer, Epetra_CombineMode::Insert);
-    A_temp.FillComplete(single_core_col_A,single_core_row_A);
-    return A_temp;
 }
 
 #if PHILIP_DIM==1

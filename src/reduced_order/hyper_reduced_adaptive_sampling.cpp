@@ -49,26 +49,26 @@ int HyperreducedAdaptiveSampling<dim, nstate>::run_sampling() const
     // Find C and d for NNLS Problem
     Epetra_MpiComm Comm( MPI_COMM_WORLD );
     this->pcout << "Construct instance of Assembler..."<< std::endl;  
-    std::unique_ptr<HyperReduction::AssembleECSWBase<dim,nstate>> constructer_NNLS_problem;
+    std::unique_ptr<HyperReduction::AssembleECSWBase<dim,nstate>> constructor_NNLS_problem;
     if (this->all_parameters->hyper_reduction_param.training_data == "residual")         
-        constructer_NNLS_problem = std::make_unique<HyperReduction::AssembleECSWRes<dim,nstate>>(this->all_parameters, this->parameter_handler, flow_solver->dg, this->current_pod, this->snapshot_parameters, ode_solver_type_HROM, Comm);
+        constructor_NNLS_problem = std::make_unique<HyperReduction::AssembleECSWRes<dim,nstate>>(this->all_parameters, this->parameter_handler, flow_solver->dg, this->current_pod, this->snapshot_parameters, ode_solver_type_HROM, Comm);
     else {
-        constructer_NNLS_problem = std::make_unique<HyperReduction::AssembleECSWJac<dim,nstate>>(this->all_parameters, this->parameter_handler, flow_solver->dg, this->current_pod, this->snapshot_parameters, ode_solver_type_HROM, Comm);
+        constructor_NNLS_problem = std::make_unique<HyperReduction::AssembleECSWJac<dim,nstate>>(this->all_parameters, this->parameter_handler, flow_solver->dg, this->current_pod, this->snapshot_parameters, ode_solver_type_HROM, Comm);
     }
 
     for (int k = 0; k < this->snapshot_parameters.rows(); k++){
-        constructer_NNLS_problem->updateSnapshots(std::move(this->fom_locations[k]));
+        constructor_NNLS_problem->update_snapshots(std::move(this->fom_locations[k]));
     }    
 
     this->pcout << "Build Problem..."<< std::endl;
-    constructer_NNLS_problem->build_problem();
+    constructor_NNLS_problem->build_problem();
 
     // Transfer b vector (RHS of NNLS problem) to Epetra structure
     const int rank = Comm.MyPID();
-    int rows = (constructer_NNLS_problem->A_T->trilinos_matrix()).NumGlobalCols();
+    int rows = (constructor_NNLS_problem->A_T->trilinos_matrix()).NumGlobalCols();
     Epetra_Map bMap(rows, (rank == 0) ? rows: 0, 0, Comm);
     Epetra_Vector b_Epetra(bMap);
-    auto b = constructer_NNLS_problem->b;
+    auto b = constructor_NNLS_problem->b;
     unsigned int local_length = bMap.NumMyElements();
     for(unsigned int i = 0 ; i < local_length ; i++){
         b_Epetra[i] = b(i);
@@ -76,12 +76,12 @@ int HyperreducedAdaptiveSampling<dim, nstate>::run_sampling() const
 
     // Solve NNLS Problem for ECSW weights
     this->pcout << "Create NNLS problem..."<< std::endl;
-    NNLS_solver* NNLS_prob = new NNLS_solver(this->all_parameters, this->parameter_handler, constructer_NNLS_problem->A_T->trilinos_matrix(), true,  Comm, b_Epetra);
+    NNLSSolver NNLS_prob(this->all_parameters, this->parameter_handler, constructor_NNLS_problem->A_T->trilinos_matrix(), true,  Comm, b_Epetra);
     this->pcout << "Solve NNLS problem..."<< std::endl;
-    bool exit_con = NNLS_prob->solve();
+    bool exit_con = NNLS_prob.solve();
     this->pcout << exit_con << std::endl;
 
-    ptr_weights = std::make_shared<Epetra_Vector>(NNLS_prob->getSolution());
+    ptr_weights = std::make_shared<Epetra_Vector>(NNLS_prob.get_solution());
 
     MatrixXd rom_points = this->nearest_neighbors->kPairwiseNearestNeighborsMidpoint();
     this->pcout << "ROM Points"<< std::endl;
@@ -95,7 +95,7 @@ int HyperreducedAdaptiveSampling<dim, nstate>::run_sampling() const
 
     this->pcout << "Solving FOM at " << functional_ROM << std::endl;
 
-    Parameters::AllParameters params = this->reinitParams(functional_ROM);
+    Parameters::AllParameters params = this->reinit_params(functional_ROM);
     std::unique_ptr<FlowSolver::FlowSolver<dim,nstate>> flow_solver_FOM = FlowSolver::FlowSolverFactory<dim,nstate>::select_flow_case(&params, this->parameter_handler);
 
     // Solve implicit solution
@@ -110,8 +110,6 @@ int HyperreducedAdaptiveSampling<dim, nstate>::run_sampling() const
     this->pcout << functional_FOM->evaluate_functional(false, false) << std::endl;
 
     solveFunctionalHROM(functional_ROM, *ptr_weights);
-    
-    delete NNLS_prob;
     
     while(this->max_error > this->all_parameters->reduced_order_param.adaptation_tolerance){
         Epetra_Vector local_weights = allocateVectorToSingleCore(*ptr_weights);
@@ -140,23 +138,23 @@ int HyperreducedAdaptiveSampling<dim, nstate>::run_sampling() const
         dealii::LinearAlgebra::distributed::Vector<double> fom_solution = this->solveSnapshotFOM(max_error_params);
         this->snapshot_parameters.conservativeResize(this->snapshot_parameters.rows()+1, this->snapshot_parameters.cols());
         this->snapshot_parameters.row(this->snapshot_parameters.rows()-1) = max_error_params;
-        this->nearest_neighbors->updateSnapshots(this->snapshot_parameters, fom_solution);
+        this->nearest_neighbors->update_snapshots(this->snapshot_parameters, fom_solution);
         this->current_pod->addSnapshot(fom_solution);
         this->fom_locations.emplace_back(fom_solution);
         this->current_pod->computeBasis();
 
         // Find C and d for NNLS Problem
         this->pcout << "Update Assembler..."<< std::endl;
-        constructer_NNLS_problem->updatePODSnaps(this->current_pod, this->snapshot_parameters);
-        constructer_NNLS_problem->updateSnapshots(fom_solution);
+        constructor_NNLS_problem->update_POD_snaps(this->current_pod, this->snapshot_parameters);
+        constructor_NNLS_problem->update_snapshots(fom_solution);
         this->pcout << "Build Problem..."<< std::endl;
-        constructer_NNLS_problem->build_problem();
+        constructor_NNLS_problem->build_problem();
 
         // Transfer b vector (RHS of NNLS problem) to Epetra structure
-        int rows = (constructer_NNLS_problem->A_T->trilinos_matrix()).NumGlobalCols();
+        int rows = (constructor_NNLS_problem->A_T->trilinos_matrix()).NumGlobalCols();
         Epetra_Map bMap(rows, (rank == 0) ? rows: 0, 0, Comm);
         Epetra_Vector b_Epetra(bMap);
-        auto b = constructer_NNLS_problem->b;
+        auto b = constructor_NNLS_problem->b;
         unsigned int local_length = bMap.NumMyElements();
         for(unsigned int i = 0 ; i < local_length ; i++){
             b_Epetra[i] = b(i);
@@ -164,12 +162,12 @@ int HyperreducedAdaptiveSampling<dim, nstate>::run_sampling() const
 
         // Solve NNLS Problem for ECSW weights
         this->pcout << "Create NNLS problem..."<< std::endl;
-        NNLS_solver* NNLS_prob = new NNLS_solver(this->all_parameters, this->parameter_handler, constructer_NNLS_problem->A_T->trilinos_matrix(), true,  Comm, b_Epetra);
+        NNLSSolver NNLS_prob (this->all_parameters, this->parameter_handler, constructor_NNLS_problem->A_T->trilinos_matrix(), true,  Comm, b_Epetra);
         this->pcout << "Solve NNLS problem..."<< std::endl;
-        bool exit_con = NNLS_prob->solve();
+        bool exit_con = NNLS_prob.solve();
         this->pcout << exit_con << std::endl;
         
-        ptr_weights = std::make_shared<Epetra_Vector>(NNLS_prob->getSolution());
+        ptr_weights = std::make_shared<Epetra_Vector>(NNLS_prob.get_solution());
 
         // Update previous ROM errors with updated current_pod
         for(auto it = this->rom_locations.begin(); it != this->rom_locations.end(); ++it){
@@ -199,7 +197,10 @@ int HyperreducedAdaptiveSampling<dim, nstate>::run_sampling() const
 
         iteration++;
 
-        delete NNLS_prob;
+        // Exit statement for loop if the total number of iterations is greater than the FOM dimension N (i.e. the reduced-order basis dimension n is equal to N)
+        if (iteration > local_weights.MyLength()){
+            break;
+        }
     }
 
     Epetra_Vector local_weights = allocateVectorToSingleCore(*ptr_weights);
@@ -286,7 +287,7 @@ void HyperreducedAdaptiveSampling<dim, nstate>::trueErrorROM(const MatrixXd& rom
 template <int dim, int nstate>
 double HyperreducedAdaptiveSampling<dim, nstate>::solveSnapshotROMandFOM(const RowVectorXd& parameter, Epetra_Vector weights) const{
     this->pcout << "Solving HROM at " << parameter << std::endl;
-    Parameters::AllParameters params = this->reinitParams(parameter);
+    Parameters::AllParameters params = this->reinit_params(parameter);
 
     std::unique_ptr<FlowSolver::FlowSolver<dim,nstate>> flow_solver_ROM = FlowSolver::FlowSolverFactory<dim,nstate>::select_flow_case(&params, this->parameter_handler);
 
@@ -321,7 +322,7 @@ double HyperreducedAdaptiveSampling<dim, nstate>::solveSnapshotROMandFOM(const R
 template <int dim, int nstate>
 void HyperreducedAdaptiveSampling<dim, nstate>::solveFunctionalHROM(const RowVectorXd& parameter, Epetra_Vector weights) const{
     this->pcout << "Solving HROM at " << parameter << std::endl;
-    Parameters::AllParameters params = this->reinitParams(parameter);
+    Parameters::AllParameters params = this->reinit_params(parameter);
 
     std::unique_ptr<FlowSolver::FlowSolver<dim,nstate>> flow_solver_ROM = FlowSolver::FlowSolverFactory<dim,nstate>::select_flow_case(&params, this->parameter_handler);
 
@@ -384,7 +385,7 @@ void HyperreducedAdaptiveSampling<dim, nstate>::updateNearestExistingROMs(const 
 template <int dim, int nstate>
 std::unique_ptr<ProperOrthogonalDecomposition::ROMSolution<dim,nstate>> HyperreducedAdaptiveSampling<dim, nstate>::solveSnapshotROM(const RowVectorXd& parameter, Epetra_Vector weights) const{
     this->pcout << "Solving ROM at " << parameter << std::endl;
-    Parameters::AllParameters params = this->reinitParams(parameter);
+    Parameters::AllParameters params = this->reinit_params(parameter);
 
     std::unique_ptr<FlowSolver::FlowSolver<dim,nstate>> flow_solver = FlowSolver::FlowSolverFactory<dim,nstate>::select_flow_case(&params, this->parameter_handler);
 

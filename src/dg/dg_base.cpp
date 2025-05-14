@@ -1380,22 +1380,30 @@ void DGBase<dim,real,MeshType>::set_list_of_cell_group_IDs(const dealii::LinearA
     // Pass bool-like vector locations_to_be_changed : 1 where we want to apply the new group ID and 0 where we want to keep the old one
 
     // check sizes - not sure if necessary.
-    // bool is_compatible = locations.partitioners_are_compatible(this->list_of_cell_group_IDs);
+    bool is_compatible = locations_to_be_changed.partitioners_are_compatible(*(this->list_of_cell_group_IDs.get_partitioner()));
+    this->pcout << "Compatible? " << is_compatible << std::endl;
 
     // Using only deal.ii vector operations herein to take advantage of their optimizations
     // Set the cell_group_ID at the given location to zero without changing existing values
     
     // The next lines find !(locations_to_be_changed)
+    //
+    this->pcout << "CHKPT1" << std::endl;
     dealii::LinearAlgebra::distributed::Vector<int> locations_NOT_to_be_changed((locations_to_be_changed));
     locations_NOT_to_be_changed.add(-1);
     locations_NOT_to_be_changed*=-1;
 
+    this->pcout << "CHKPT2" << std::endl;
+    
+
     // Next line will set the group_ID value at locations_to_be_changed to zero
     this->list_of_cell_group_IDs.scale(locations_NOT_to_be_changed);
+    this->pcout << "CHKPT3" << std::endl;
 
     // Set the cell_group_ID at the given location to the group_ID by adding
     // group_ID_to_set * locations_to_be_changed
     this->list_of_cell_group_IDs.add(group_ID_to_set,locations_to_be_changed);
+    this->pcout << "CHKPT4" << std::endl;
 
 }
 

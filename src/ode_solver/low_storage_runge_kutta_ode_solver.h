@@ -55,9 +55,6 @@ public:
     /// Function to sum stages and add to dg->solution
     void sum_stages (real dt, const bool pseudotime) override;
 
-    /// Function to apply limiter
-    void apply_limiter () override;
-
     /// Function to adjust time step size
     real adjust_time_step(real dt) override;
 

@@ -15,15 +15,20 @@ AssembleECSWBase<dim,nstate>::AssembleECSWBase(
     std::shared_ptr<DGBase<dim,double>> &dg_input, 
     std::shared_ptr<ProperOrthogonalDecomposition::PODBase<dim>> pod, 
     MatrixXd snapshot_parameters_input,
-    Parameters::ODESolverParam::ODESolverEnum ode_solver_type)
+    Parameters::ODESolverParam::ODESolverEnum ode_solver_type,
+    Epetra_MpiComm &Comm)
         : all_parameters(parameters_input)
         , parameter_handler(parameter_handler_input)
         , dg(dg_input)
         , pod(pod)
         , snapshot_parameters(snapshot_parameters_input)
         , mpi_communicator(MPI_COMM_WORLD)
+        , mpi_rank(dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD))
+        , pcout(std::cout, mpi_rank==0)
         , ode_solver_type(ode_solver_type)
-        , A(std::make_shared<dealii::TrilinosWrappers::SparseMatrix>())
+        , Comm_(Comm)
+        , A_T(std::make_shared<dealii::TrilinosWrappers::SparseMatrix>())
+        , fom_locations()
 {
 }
 
@@ -46,7 +51,7 @@ std::shared_ptr<Epetra_CrsMatrix> AssembleECSWBase<dim,nstate>::local_generate_t
 }
 
 template <int dim, int nstate>
-Parameters::AllParameters AssembleECSWBase<dim, nstate>::reinitParams(const RowVectorXd& parameter) const{
+Parameters::AllParameters AssembleECSWBase<dim, nstate>::reinit_params(const RowVectorXd& parameter) const{
     // Copy all parameters
     PHiLiP::Parameters::AllParameters parameters = *(this->all_parameters);
 
@@ -89,14 +94,19 @@ Parameters::AllParameters AssembleECSWBase<dim, nstate>::reinitParams(const RowV
         }
     }
     else{
-        std::cout << "Invalid flow case. You probably forgot to specify a flow case in the prm file." << std::endl;
+        pcout << "Invalid flow case. You probably forgot to specify a flow case in the prm file." << std::endl;
         std::abort();
     }
     return parameters;
 }
 
 template <int dim, int nstate>
-void AssembleECSWBase<dim, nstate>::updatePODSnaps(std::shared_ptr<ProperOrthogonalDecomposition::PODBase<dim>> pod_update,    
+void AssembleECSWBase<dim, nstate>::update_snapshots(dealii::LinearAlgebra::distributed::Vector<double> fom_solution){
+    fom_locations.emplace_back(fom_solution);
+}
+
+template <int dim, int nstate>
+void AssembleECSWBase<dim, nstate>::update_POD_snaps(std::shared_ptr<ProperOrthogonalDecomposition::PODBase<dim>> pod_update,    
                                                     MatrixXd snapshot_parameters_update) {
     this->pod = pod_update;
     this->snapshot_parameters = snapshot_parameters_update;

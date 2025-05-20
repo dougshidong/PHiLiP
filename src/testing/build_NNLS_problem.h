@@ -3,6 +3,7 @@
 
 #include "tests.h"
 #include "parameters/all_parameters.h"
+#include "linear_solver/helper_functions.h"
 
 namespace PHiLiP {
 namespace Tests {

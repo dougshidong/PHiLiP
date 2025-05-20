@@ -38,11 +38,24 @@ public:
     /// Placement of ROMs
     bool placeROMLocations(const MatrixXd& rom_points) const;
 
+    /// Compute true/actual error at all ROM points (error in functional between FOM and ROM solution)
+    void trueErrorROM(const MatrixXd& rom_points) const;
+
+    /// Solve FOM and ROM, return error in functional between the models
+    double solveSnapshotROMandFOM(const RowVectorXd& parameter) const;
+
+    /// Solve ROM and track functional
+    void solveFunctionalROM(const RowVectorXd& parameter) const;
+
     /// Updates nearest ROM points to snapshot if error discrepancy is above tolerance
     void updateNearestExistingROMs(const RowVectorXd& parameter) const;
 
     /// Solve reduced-order solution
     std::unique_ptr<ProperOrthogonalDecomposition::ROMSolution<dim,nstate>> solveSnapshotROM(const RowVectorXd& parameter) const;
+
+    /// Functional value predicted by the rom at each sammpling iteration at parameter location specified in the inputs
+    mutable std::vector<double> rom_functional;
+
 };
 
 }

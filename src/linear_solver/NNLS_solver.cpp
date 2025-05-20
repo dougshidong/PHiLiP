@@ -1,17 +1,19 @@
 
 #include "NNLS_solver.h"
+#include "helper_functions.h"
 
 namespace PHiLiP {
 
-NNLS_solver::NNLS_solver(
+NNLSSolver::NNLSSolver(
   const Parameters::AllParameters *const parameters_input,
   const dealii::ParameterHandler &parameter_handler_input,
   const Epetra_CrsMatrix &A, 
   Epetra_MpiComm &Comm, 
-  Epetra_Vector &b): NNLS_solver(
+  Epetra_Vector &b): NNLSSolver(
     parameters_input,
     parameter_handler_input,
     A,
+    false,
     Comm,
     b,
     false,
@@ -19,16 +21,35 @@ NNLS_solver::NNLS_solver(
     1000,
     10E-8) {}
 
-NNLS_solver::NNLS_solver(
+NNLSSolver::NNLSSolver(
+  const Parameters::AllParameters *const parameters_input,
+  const dealii::ParameterHandler &parameter_handler_input,
+  const Epetra_CrsMatrix &A,
+  const bool is_input_A_matrix_transposed, 
+  Epetra_MpiComm &Comm, 
+  Epetra_Vector &b): NNLSSolver(
+    parameters_input,
+    parameter_handler_input,
+    A,
+    is_input_A_matrix_transposed,
+    Comm,
+    b,
+    false,
+    false,
+    1000,
+    10E-8) {}
+
+NNLSSolver::NNLSSolver(
   const Parameters::AllParameters *const parameters_input,
   const dealii::ParameterHandler &parameter_handler_input,
   const Epetra_CrsMatrix &A, 
   Epetra_MpiComm &Comm, 
   Epetra_Vector &b,
-  bool grad_exit_crit): NNLS_solver(
+  bool grad_exit_crit): NNLSSolver(
     parameters_input,
     parameter_handler_input,
     A,
+    false,
     Comm,
     b,
     grad_exit_crit,
@@ -36,7 +57,26 @@ NNLS_solver::NNLS_solver(
     1000,
     10E-8) {}
 
-NNLS_solver::NNLS_solver(
+NNLSSolver::NNLSSolver(
+  const Parameters::AllParameters *const parameters_input,
+  const dealii::ParameterHandler &parameter_handler_input,
+  const Epetra_CrsMatrix &A,
+  const bool is_input_A_matrix_transposed, 
+  Epetra_MpiComm &Comm, 
+  Epetra_Vector &b,
+  bool grad_exit_crit): NNLSSolver(
+    parameters_input,
+    parameter_handler_input,
+    A,
+    is_input_A_matrix_transposed,
+    Comm,
+    b,
+    grad_exit_crit,
+    false,
+    1000,
+    10E-8) {}
+
+NNLSSolver::NNLSSolver(
   const Parameters::AllParameters *const parameters_input,
   const dealii::ParameterHandler &parameter_handler_input,
   const Epetra_CrsMatrix &A, 
@@ -44,10 +84,11 @@ NNLS_solver::NNLS_solver(
   Epetra_Vector &b, 
   bool iter_solver, 
   int LS_iter, 
-  double LS_tol): NNLS_solver(
+  double LS_tol): NNLSSolver(
     parameters_input,
     parameter_handler_input,
     A,
+    false,
     Comm,
     b,
     false,
@@ -55,10 +96,32 @@ NNLS_solver::NNLS_solver(
     LS_iter,
     LS_tol) {}
 
-NNLS_solver::NNLS_solver(
+NNLSSolver::NNLSSolver(
   const Parameters::AllParameters *const parameters_input,
   const dealii::ParameterHandler &parameter_handler_input,
-  const Epetra_CrsMatrix &A, 
+  const Epetra_CrsMatrix &A,
+  const bool is_input_A_matrix_transposed, 
+  Epetra_MpiComm &Comm, 
+  Epetra_Vector &b, 
+  bool iter_solver, 
+  int LS_iter, 
+  double LS_tol): NNLSSolver(
+    parameters_input,
+    parameter_handler_input,
+    A,
+    is_input_A_matrix_transposed,
+    Comm,
+    b,
+    false,
+    iter_solver,
+    LS_iter,
+    LS_tol) {}
+
+NNLSSolver::NNLSSolver(
+  const Parameters::AllParameters *const parameters_input,
+  const dealii::ParameterHandler &parameter_handler_input,
+  const Epetra_CrsMatrix &A,
+  const bool is_input_A_matrix_transposed, 
   Epetra_MpiComm &Comm, 
   Epetra_Vector &b, 
   bool grad_exit_crit, 
@@ -68,22 +131,24 @@ NNLS_solver::NNLS_solver(
     all_parameters(parameters_input),
     parameter_handler(parameter_handler_input),
     Comm_(Comm), 
-    A_(allocateMatrixToSingleCore(A)), 
-    b_(allocateVectorToSingleCore(b)), 
+    A_((Comm.NumProc() == 1) ?  transpose_matrix_on_single_core(A, is_input_A_matrix_transposed) : allocate_matrix_to_single_core(A, is_input_A_matrix_transposed)),
+    b_((Comm.NumProc() == 1) ?  b : allocate_vector_to_single_core(b)), 
     x_(A_.ColMap()), 
-    multi_x_(A.DomainMap()),
+    multi_x_((is_input_A_matrix_transposed) ? A.RowMap(): A.ColMap()),
     LS_iter_(LS_iter), 
     LS_tol_(LS_tol),
     Z(A_.NumGlobalCols()), 
     P(A_.NumGlobalCols()), 
     iter_solver_(iter_solver), 
-    grad_exit_crit_(grad_exit_crit) 
+    grad_exit_crit_(grad_exit_crit),
+    is_input_A_matrix_transposed_(is_input_A_matrix_transposed)
     {
       index_set = Eigen::VectorXd::LinSpaced(A_.NumGlobalCols(), 0, A_.NumGlobalCols() -1); // Indices proceeding and including numInactive are in the P set (Inactive/Positive)
       Z.flip(); // All columns begin in the Z set (Active)
+      //EpetraExt::RowMatrixToMatlabFile("C_multicore_consol", A_);
     }
 
-void NNLS_solver::Epetra_PermutationMatrix(Epetra_CrsMatrix &P_mat){
+void NNLSSolver::epetra_permutation_matrix(Epetra_CrsMatrix &P_mat){
   // Fill diagonal matrix with ones in the positive set
   // No longer in use
   double posOne = 1.0;
@@ -95,7 +160,7 @@ void NNLS_solver::Epetra_PermutationMatrix(Epetra_CrsMatrix &P_mat){
   }
 }
 
-void NNLS_solver::PositiveSetMatrix(Epetra_CrsMatrix &P_mat){
+void NNLSSolver::positive_set_matrix(Epetra_CrsMatrix &P_mat){
   // Create matrix P_mat which contains the positive set of columns in A
 
   // Create map between index_set and the columns to be added to P_mat
@@ -121,10 +186,11 @@ void NNLS_solver::PositiveSetMatrix(Epetra_CrsMatrix &P_mat){
         
       }
     }
+    delete[] row;
   }
 }
 
-void NNLS_solver::SubIntoX(Epetra_Vector &temp){
+void NNLSSolver::sub_into_x(Epetra_Vector &temp){
   // Substitute new values into the solution vector
   std::vector<int> colMap(A_.NumGlobalCols());
   int numCol = 0;
@@ -142,7 +208,7 @@ void NNLS_solver::SubIntoX(Epetra_Vector &temp){
   }
 }
 
-void NNLS_solver::AddIntoX(Epetra_Vector &temp, double alpha){
+void NNLSSolver::add_into_x(Epetra_Vector &temp, double alpha){
   // Add vector temp time scalar alpha into the vector x
   std::vector<int> colMap(A_.NumGlobalCols());
   int numCol = 0;
@@ -160,7 +226,7 @@ void NNLS_solver::AddIntoX(Epetra_Vector &temp, double alpha){
   }
 }
 
-void NNLS_solver::moveToActiveSet(int idx){
+void NNLSSolver::move_to_active_set(int idx){
   // Move index at idx into the Active Set (Z set)
   P[index_set(idx)] = 0;
   Z[index_set(idx)] = 1; 
@@ -169,7 +235,7 @@ void NNLS_solver::moveToActiveSet(int idx){
   numInactive_--;
 }
 
-void NNLS_solver::moveToInactiveSet(int idx){
+void NNLSSolver::move_to_inactive_set(int idx){
   // Move index at idx into the Inactive Set (P set)
   P[index_set(idx)] = 1;
   Z[index_set(idx)] = 0;
@@ -178,12 +244,12 @@ void NNLS_solver::moveToInactiveSet(int idx){
   numInactive_++;
 }
 
-bool NNLS_solver::solve(){
+bool NNLSSolver::solve(){
   const int rank = this->Comm_.MyPID();
   iter_ = 0;
   numInactive_ = 0;
   // Pre-mult by A^T
-  Epetra_CrsMatrix AtA(Epetra_DataAccess::View, A_.ColMap(), A_.NumMyCols());
+  Epetra_CrsMatrix AtA(Epetra_DataAccess::Copy, A_.ColMap(), A_.NumMyCols());
   EpetraExt::MatrixMatrix::Multiply(A_, true, A_, false, AtA);
 
   Epetra_Vector Atb (A_.ColMap());
@@ -200,7 +266,7 @@ bool NNLS_solver::solve(){
   while(true){
     // Early exit if all variables are inactive, which breaks 'maxCoeff' below. 
     if (A_.NumGlobalCols() == numInactive_){
-      multi_x_ = allocateVectorToMultipleCores(this->x_);
+      multi_x_ = allocate_vector_to_multiple_cores(this->x_, this->multi_x_);
       return true;
     }
     AtA.Multiply(false, x_, AtAx);
@@ -241,7 +307,7 @@ bool NNLS_solver::solve(){
         std::cout << normb[0] << std::endl;
         std::cout << "Norm-2 of the residual (b-A*x)" << std::endl;
         std::cout << normRes[0] << std::endl;
-        multi_x_ = allocateVectorToMultipleCores(this->x_);
+        multi_x_ = allocate_vector_to_multiple_cores(this->x_, this->multi_x_);
         return true;
       }
     }
@@ -256,32 +322,32 @@ bool NNLS_solver::solve(){
         std::cout << normb[0] << std::endl;
         std::cout << "Norm-2 of the residual (b-A*x)" << std::endl;
         std::cout << normRes[0] << std::endl;
-        multi_x_ = allocateVectorToMultipleCores(this->x_);
+        multi_x_ = allocate_vector_to_multiple_cores(this->x_, this->multi_x_);
         return true;
       }
     }
     
-    moveToInactiveSet(argmaxGradient);
+    move_to_inactive_set(argmaxGradient);
 
     // INNER LOOP 
     bool no_feasible_soln = true;
     while(no_feasible_soln){
       // Check if max. number of iterations is reached
       if (iter_ >= all_parameters->hyper_reduction_param.NNLS_max_iter){
-        multi_x_ = allocateVectorToMultipleCores(this->x_);
+        multi_x_ = allocate_vector_to_multiple_cores(this->x_, this->multi_x_);
         return false;
       } 
       // Create matrix P_mat with columns from set P
       Epetra_Map Map(A_.NumGlobalRows(),(rank == 0) ?  A_.NumGlobalRows() : 0, 0, Comm_);
       Epetra_Map ColMap(numInactive_,(rank == 0) ?  numInactive_ : 0, 0, Comm_);
       Epetra_CrsMatrix P_mat(Epetra_DataAccess::Copy, Map, numInactive_);
-      PositiveSetMatrix(P_mat);
+      positive_set_matrix(P_mat);
       P_mat.FillComplete(ColMap, Map);
       // Create temporary solution vector temp which is only the length of numInactive
       Epetra_Vector temp(P_mat.ColMap());
 
       // Set up normal equations
-      Epetra_CrsMatrix PtP(Epetra_DataAccess::View, P_mat.ColMap(), P_mat.NumMyCols());
+      Epetra_CrsMatrix PtP(Epetra_DataAccess::Copy, P_mat.ColMap(), P_mat.NumMyCols());
       EpetraExt::MatrixMatrix::Multiply(P_mat, true, P_mat, false, PtP);
 
       Epetra_Vector Ptb (P_mat.ColMap());
@@ -341,70 +407,18 @@ bool NNLS_solver::solve(){
 
       // If solution is feasible, exit to outer loop
       if (feasible){
-        SubIntoX(temp);
+        sub_into_x(temp);
         no_feasible_soln = false;
       }
       else{
         // Infeasible solution -> interpolate to feasible one
-        AddIntoX(temp, alpha);
+        add_into_x(temp, alpha);
 
         // Remove the infeasibleIdx column from the inactive set
-        moveToActiveSet(infeasibleIdx);
+        move_to_active_set(infeasibleIdx);
       }
     }
   }
 }
 
-Epetra_CrsMatrix NNLS_solver::allocateMatrixToSingleCore(const Epetra_CrsMatrix &A)
-{
-  // Gather Matrix Information
-  const int A_rows = A.NumGlobalRows();
-  const int A_cols = A.NumGlobalCols();
-  const int rank = Comm_.MyPID(); 
-  // Create new maps for one core and gather old maps
-  Epetra_Map single_core_row_A (A_rows, (rank == 0) ?  A_rows : 0, 0 , Comm_);
-  Epetra_Map single_core_col_A (A_cols, (rank == 0) ?  A_cols : 0, 0 , Comm_);
-  Epetra_Map old_row_map_A = A.RowMap();
-  Epetra_Map old_domain_map_A = A.DomainMap();
-  // Create Epetra_importer object
-  Epetra_Import A_importer(single_core_row_A,old_row_map_A);
-  // Create new A matrix
-  Epetra_CrsMatrix A_temp (Epetra_DataAccess::Copy, single_core_row_A, A_cols);
-  // Load the data from matrix A (Multi core) into A_temp (Single core)
-  A_temp.Import(A, A_importer, Epetra_CombineMode::Insert);
-  A_temp.FillComplete(single_core_col_A,single_core_row_A);
-  return A_temp;
-}
-
-Epetra_Vector NNLS_solver::allocateVectorToSingleCore(const Epetra_Vector &b)
-{
-  // Gather Vector Information
-  const int rank = Comm_.MyPID();
-  const int b_size = b.GlobalLength();
-  // Create new map for one core and gather old map
-  Epetra_Map single_core_b (b_size, (rank == 0) ? b_size : 0, 0, Comm_);
-  Epetra_BlockMap old_map_b = b.Map();
-  // Create Epetra_importer object
-  Epetra_Import b_importer(single_core_b, old_map_b);
-  // Create new b vector
-  Epetra_Vector b_temp (single_core_b); 
-  // Load the data from vector b (Multi core) into b_temp (Single core)
-  b_temp.Import(b, b_importer, Epetra_CombineMode::Insert);
-  return b_temp;
-}
-
-Epetra_Vector NNLS_solver::allocateVectorToMultipleCores(const Epetra_Vector &c)
-{
-  // Create new multi core map and gather old single core map
-  Epetra_BlockMap old_map_c = c.Map();
-  Epetra_BlockMap multi_core_c = this->multi_x_.Map();
-  // Create Epetra_importer object
-  Epetra_Import c_importer (multi_core_c, old_map_c);
-  // Create new c vector
-  Epetra_Vector c_temp (multi_core_c);
-  // Load the data from vector c (Single core) into c_temp (Multicore)
-  c_temp.Import(c, c_importer, Epetra_CombineMode::Insert);
-  return c_temp;
-
-}
 } // PHiLiP namespace

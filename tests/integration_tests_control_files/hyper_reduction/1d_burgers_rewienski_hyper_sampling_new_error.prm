@@ -32,7 +32,7 @@ subsection reduced order
   set parameter_names = rewienski_b
   set parameter_min_values = 0.01
   set parameter_max_values = 0.1
-  set num_halton = 1
+  set num_halton = 0
   set recomputation_coefficient = 5
 end
 

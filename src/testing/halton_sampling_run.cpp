@@ -33,7 +33,7 @@ int HaltonSamplingRun<dim, nstate>::run_test() const
         return 0;
     }else{
         pcout << "Failed!";
-        return -1;
+        return 1;
     }
 }
 

@@ -1956,7 +1956,7 @@ void DGBase<dim,real,MeshType>::allocate_system (
     cell_volume.reinit(triangulation->n_active_cells());
 
     // Unsure whether this should be n_active_cells() or n_global_active_cells()
-    list_of_cell_group_IDs.reinit(triangulation->n_global_active_cells());
+    list_of_cell_group_IDs.reinit(triangulation->n_active_cells());
 
     // allocates model variables only if there is a model
     if(all_parameters->pde_type == Parameters::AllParameters::PartialDifferentialEquation::physics_model) allocate_model_variables();

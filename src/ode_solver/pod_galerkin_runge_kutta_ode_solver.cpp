@@ -86,12 +86,6 @@ void PODGalerkinRungeKuttaODESolver<dim,real,n_rk_stages,MeshType>::sum_stages(r
     this->solution_update.add(1.0,dealii_update);
 }
 
-
-template <int dim, typename real, int n_rk_stages, typename MeshType>
-void PODGalerkinRungeKuttaODESolver<dim,real,n_rk_stages,MeshType>::apply_limiter()
-{
-    // Empty Function
-}
 template <int dim, typename real, int n_rk_stages, typename MeshType>
 real PODGalerkinRungeKuttaODESolver<dim,real,n_rk_stages,MeshType>::adjust_time_step(real dt)
 {

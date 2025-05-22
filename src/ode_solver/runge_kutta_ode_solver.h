@@ -31,8 +31,6 @@ public:
 
     void sum_stages (real dt, const bool pseudotime) override;
 
-    void apply_limiter () override;
-
     real adjust_time_step (real dt) override;
 
 protected:

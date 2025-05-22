@@ -46,9 +46,7 @@ public:
 
     void sum_stages (real dt, const bool pseudotime) override;
 
-    void apply_limiter () override;
-
-    real adjust_time_step (real dt) override;
+     real adjust_time_step (real dt) override;
 
     /// Generate test basis
     std::shared_ptr<Epetra_CrsMatrix> generate_test_basis(const Epetra_CrsMatrix &epetra_system_matrix, const Epetra_CrsMatrix &pod_basis);

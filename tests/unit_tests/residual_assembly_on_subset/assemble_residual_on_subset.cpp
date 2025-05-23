@@ -64,10 +64,10 @@ int test (
     pcout << "Poly degree " << poly_degree << " ncells " << grid->n_active_cells() << " ndofs: " << dg->dof_handler.n_dofs() << std::endl << std::flush;
     dg->allocate_system ();
 
-    // ############################# hereafter code differs from compare_rhs.cpp
+    // ############################# hereafter code differs from ../sensitivities/compare_rhs.cpp
     // Choose locations on which to evaluate the residual
     dealii::LinearAlgebra::distributed::Vector<int> locations_to_evaluate_rhs;
-    locations_to_evaluate_rhs.reinit(dg->solution);
+    locations_to_evaluate_rhs.reinit(dg->triangulation->n_active_cells());
     const int evaluate_until_this_index = locations_to_evaluate_rhs.size() / 2 ;
     pcout << evaluate_until_this_index << " " << locations_to_evaluate_rhs.size() << std::endl;
     for (int i = 0; i < evaluate_until_this_index; ++i){
@@ -96,6 +96,8 @@ int test (
     dealii::LinearAlgebra::distributed::Vector<double> rhs_only(dg->right_hand_side);
     // pcout << "*******************************************************************************" << std::endl;
 
+
+    /// TO DO: Update return condition to verify that the RHS is updated only on cell group 10. 
     return 0;
 }
 

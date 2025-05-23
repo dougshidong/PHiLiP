@@ -613,7 +613,7 @@ public:
      *  where 1 indicates that that cell should be assigned the indicated
      *  group_ID
      */
-    void set_list_of_cell_group_IDs(const dealii::LinearAlgebra::distributed::Vector<int> locations, const int group_ID);
+    void set_list_of_cell_group_IDs(const dealii::LinearAlgebra::distributed::Vector<int> &locations, const int group_ID);
 
 public:
 

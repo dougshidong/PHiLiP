@@ -1376,7 +1376,7 @@ bool DGBase<dim,real,MeshType>::do_assemble_in_this_cell(const unsigned int cell
 
 
 template <int dim, typename real, typename MeshType>
-void DGBase<dim,real,MeshType>::set_list_of_cell_group_IDs(const dealii::LinearAlgebra::distributed::Vector<int> locations_to_be_changed, const int group_ID_to_set) {
+void DGBase<dim,real,MeshType>::set_list_of_cell_group_IDs(const dealii::LinearAlgebra::distributed::Vector<int> &locations_to_be_changed, const int group_ID_to_set) {
     // Pass bool-like vector locations_to_be_changed : 1 where we want to apply the new group ID and 0 where we want to keep the old one
 
     // The following lines are left commented as they may be useful for debugging
@@ -1951,6 +1951,11 @@ void DGBase<dim,real,MeshType>::allocate_system (
     cell_volume.reinit(triangulation->n_active_cells());
 
     // Unsure whether this should be n_active_cells() or n_global_active_cells()
+    if (list_of_cell_group_IDs.size() > 0 && list_of_cell_group_IDs.l2_norm()){
+        // Enter this loop if DG is reinitialized during mesh adaptation
+        this->pcout << "ERROR: Cell group IDs are not currently compatible with mesh adaptation. Aborting..." << std::endl;
+        std::abort();
+    }
     list_of_cell_group_IDs.reinit(triangulation->n_active_cells());
 
     // allocates model variables only if there is a model

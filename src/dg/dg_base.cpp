@@ -1951,7 +1951,7 @@ void DGBase<dim,real,MeshType>::allocate_system (
     cell_volume.reinit(triangulation->n_active_cells());
 
     // Unsure whether this should be n_active_cells() or n_global_active_cells()
-    if (list_of_cell_group_IDs.size() > 0 && list_of_cell_group_IDs.l2_norm()){
+    if (list_of_cell_group_IDs.size() > 0 && list_of_cell_group_IDs.l2_norm()>0){
         // Enter this loop if DG is reinitialized during mesh adaptation
         this->pcout << "ERROR: Cell group IDs are not currently compatible with mesh adaptation. Aborting..." << std::endl;
         std::abort();

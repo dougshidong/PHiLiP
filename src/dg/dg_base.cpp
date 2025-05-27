@@ -1251,7 +1251,6 @@ void DGBase<dim,real,MeshType>::assemble_residual (const bool compute_dRdW, cons
             timer.start();
         }
 
-        this->pcout << "About to enter cell loop." << std::endl << std::flush;
         auto metric_cell = high_order_grid->dof_handler_grid.begin_active();
         for (auto soln_cell = dof_handler.begin_active(); soln_cell != dof_handler.end(); ++soln_cell, ++metric_cell) {
 

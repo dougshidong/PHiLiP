@@ -197,6 +197,7 @@ public:
         taylor_green_vortex_restart_check,
         time_refinement_study,
         time_refinement_study_reference,
+        assemble_residual_on_subset_time_refinement_study,
         rrk_numerical_entropy_conservation_check,
         euler_entropy_conserving_split_forms_check,
         h_refinement_study_isentropic_vortex,

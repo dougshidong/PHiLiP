@@ -86,7 +86,28 @@ void AssembleResidualSubsetOOA<dim,nstate>::advance_to_end_time(std::shared_ptr<
     int iter=0;
     u_n = flow_solver->dg->solution;
     while (flow_solver->ode_solver->current_time < end_time) {
-        flow_solver->dg->assemble_residual(false,false,false,0); // assemble on group ID 0
+
+        u_tilde = u_n;
+        //Assemble on first half of domain
+        flow_solver->dg->right_hand_side*=0;
+        flow_solver->dg->assemble_residual(false,false,false,0.0,0); // assemble on group ID 0
+
+        if(this->all_parameters->use_inverse_mass_on_the_fly){
+            flow_solver->dg->apply_inverse_global_mass_matrix(flow_solver->dg->right_hand_side, f_u_n);
+        } else{
+            flow_solver->dg->global_inverse_mass_matrix.vmult(f_u_n, flow_solver->dg->right_hand_side);
+        }
+        //flow_solver->dg->update_ghost_values(); // This may be needed for MPI.
+
+        //Add first part of the RHS
+        u_tilde.add(dt,f_u_n);
+
+        // f_u_n changes in the next residual so we need to update u_n now
+        u_n.add(dt/2.0,f_u_n);
+
+        //Assemble on second half of domain
+        flow_solver->dg->right_hand_side*=0;
+        flow_solver->dg->assemble_residual(false,false,false,0.0,10); // assemble on group ID 10
 
         if(this->all_parameters->use_inverse_mass_on_the_fly){
             flow_solver->dg->apply_inverse_global_mass_matrix(flow_solver->dg->right_hand_side, f_u_n);
@@ -94,27 +115,46 @@ void AssembleResidualSubsetOOA<dim,nstate>::advance_to_end_time(std::shared_ptr<
             flow_solver->dg->global_inverse_mass_matrix.vmult(f_u_n, flow_solver->dg->right_hand_side);
         }
 
-        u_tilde = u_n;
+        //Add second part of the RHS
         u_tilde.add(dt,f_u_n);
+        //Update u_n
+        u_n.add(dt/2.0,f_u_n);
 
+
+
+        // Store u_tilde in preparation for second stage of the RK method
         flow_solver->dg->solution = u_tilde;
-        flow_solver->dg->assemble_residual(false,false,false,0); // assemble on group ID 0
+
+        //Assemble residual on group ID 0
+        flow_solver->dg->right_hand_side*=0;
+        flow_solver->dg->assemble_residual(false,false,false,0.0,0); // assemble on group ID 0
 
         if(this->all_parameters->use_inverse_mass_on_the_fly){
             flow_solver->dg->apply_inverse_global_mass_matrix(flow_solver->dg->right_hand_side, f_u_tilde);
         } else{
             flow_solver->dg->global_inverse_mass_matrix.vmult(f_u_tilde, flow_solver->dg->right_hand_side);
         }
+        //Update solution with the partially-assembled residual
+        u_n.add(dt/2.0,f_u_tilde);
 
-        u_n.add(dt/2.0,f_u_n);
+        // Assemble residual on group ID 10
+        flow_solver->dg->right_hand_side*=0;
+        flow_solver->dg->assemble_residual(false,false,false,0.0,10); // assemble on group ID 10
+
+        if(this->all_parameters->use_inverse_mass_on_the_fly){
+            flow_solver->dg->apply_inverse_global_mass_matrix(flow_solver->dg->right_hand_side, f_u_tilde);
+        } else{
+            flow_solver->dg->global_inverse_mass_matrix.vmult(f_u_tilde, flow_solver->dg->right_hand_side);
+        }
+        //Update solution with other half of the residual
         u_n.add(dt/2.0,f_u_tilde);
 
         flow_solver->dg->solution=u_n; 
 
         flow_solver->ode_solver->current_time+=dt;
-        this->pcout << "Done timestep";
         iter++;
-        flow_solver->dg->output_results_vtk(iter,flow_solver->ode_solver->current_time);
+        // Uncomment to output files
+        // flow_solver->dg->output_results_vtk(iter,flow_solver->ode_solver->current_time);
 
     }
 
@@ -169,7 +209,7 @@ int AssembleResidualSubsetOOA<dim, nstate>::run_test() const
         flow_solver->dg->set_list_of_cell_group_IDs(locations_to_evaluate_rhs, 10); 
         pcout << "Assigned group ID of half of the domain." << std::endl;
 
-
+        //Start time loop of hard-coded partitioned domain
         advance_to_end_time(flow_solver, this->all_parameters->flow_solver_param.final_time);
 
         const double final_time_actual = flow_solver->ode_solver->current_time;

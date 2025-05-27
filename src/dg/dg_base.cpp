@@ -1365,7 +1365,7 @@ bool DGBase<dim,real,MeshType>::do_assemble_in_this_cell(const unsigned int cell
     if (this->list_of_cell_group_IDs[cell_index] == cell_group_ID){
         // do assemble residual
         //
-        //std::cout << "Assembling residual cell index " << cell_index << std::endl;
+        //std::cout << "Assembling residual cell index " << cell_index << "With group ID " << cell_group_ID << std::endl;
         return true;
     }else {
         //std::cout << "NOT assembling residual cell index " << cell_index << std::endl;

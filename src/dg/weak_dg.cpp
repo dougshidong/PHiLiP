@@ -3914,7 +3914,7 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_subface_term_and_build_operators
 }
 
 template <int dim, int nstate, typename real, typename MeshType>
-void DGWeak<dim,nstate,real,MeshType>::assemble_auxiliary_residual ()
+void DGWeak<dim,nstate,real,MeshType>::assemble_auxiliary_residual (const unsigned int /*cell_group_ID*/)
 {
     //Do Nothing.
 }

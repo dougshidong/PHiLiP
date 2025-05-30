@@ -43,7 +43,7 @@ public:
     /// Function to evaluate automatic initial adaptive time step
     double get_automatic_initial_step_size(real dt, const bool /*pseudotime*/);
 
-    /// Function to allocate the 
+    /// Function to allocate the Specific RK allocation
     void allocate_runge_kutta_system () override;
 
     /// Function to calculate stage

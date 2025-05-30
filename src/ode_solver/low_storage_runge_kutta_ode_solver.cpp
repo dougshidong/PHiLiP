@@ -219,7 +219,6 @@ void LowStorageRungeKuttaODESolver<dim,real,n_rk_stages, MeshType>::prep_for_ste
     storage_register_1.reinit(this->solution_update);
     storage_register_2.reinit(this->solution_update);
     storage_register_1 = this->solution_update;
-    storage_register_2 *= 0; // Unsure if this does anything as 2 should be zeroed from reinit function
     storage_register_3 = storage_register_1;
     rhs = storage_register_1;
     if (is_3Sstarplus == true){

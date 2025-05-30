@@ -27,9 +27,12 @@ Parameters::AllParameters TimeRefinementStudyReference<dim,nstate>::reinit_param
     
     parameters.flow_solver_param.final_time = final_time;
 
+    parameters.flow_solver_param.end_exactly_at_final_time = true;
+
     //Change to RK because at small dt RRK is more costly but doesn't impact solution much
-    using ODESolverEnum = Parameters::ODESolverParam::ODESolverEnum;
-    parameters.ode_solver_param.ode_solver_type = ODESolverEnum::runge_kutta_solver;
+    //using ODESolverEnum = Parameters::ODESolverParam::ODESolverEnum;
+    //parameters.ode_solver_param.ode_solver_type = ODESolverEnum::runge_kutta_solver;
+    parameters.ode_solver_param.use_relaxation_runge_kutta=false;
 
     pcout << "Using timestep size dt = " << dt << " for reference solution." << std::endl;
 
@@ -47,7 +50,8 @@ Parameters::AllParameters TimeRefinementStudyReference<dim,nstate>::reinit_param
 
     //For RRK, do not end at exact time because of how relaxation parameter convergence is calculatd
     using ODESolverEnum = Parameters::ODESolverParam::ODESolverEnum;
-    if (parameters.ode_solver_param.ode_solver_type == ODESolverEnum::rrk_explicit_solver){
+    if (parameters.ode_solver_param.ode_solver_type == ODESolverEnum::rrk_explicit_solver
+            || parameters.ode_solver_param.use_relaxation_runge_kutta==true){
         parameters.flow_solver_param.end_exactly_at_final_time = false;
     }
 

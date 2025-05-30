@@ -142,7 +142,7 @@ real RKNumEntropy<dim,real,MeshType>::compute_FR_entropy_contribution(const real
         // transform solution into entropy variables based on PDE type
         using PDEEnum = Parameters::AllParameters::PartialDifferentialEquation;
         dealii::LinearAlgebra::distributed::Vector<double> entropy_var_hat_global=0;
-        if (dg->all_parameters->pde_type == PDEEnum::burgers_inviscid){
+        if (dg->all_parameters->pde_type == PDEEnum::burgers_inviscid || dg->all_parameters->pde_type == PDEEnum::advection){
             entropy_var_hat_global = this->rk_stage_solution[istage];
         } else if (dg->all_parameters->pde_type == PDEEnum::euler || dg->all_parameters->pde_type == PDEEnum::navier_stokes) {
             entropy_var_hat_global = this->compute_entropy_vars(this->rk_stage_solution[istage], dg);

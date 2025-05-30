@@ -3,8 +3,7 @@
 # Number of dimensions
 
 set dimension = 3
-set run_type = integration_test
-set test_type = rrk_numerical_entropy_conservation_check 
+set run_type = flow_simulation
 set pde_type = euler
 
 # DG formulation
@@ -25,13 +24,26 @@ set two_point_num_flux_type = Ra
 # ODE solver
 subsection ODE solver
   set ode_output = quiet
+  #set ode_solver_type = runge_kutta
+  #set ode_solver_type = rrk_explicit
+  #set runge_kutta_method = ssprk3_ex
   set ode_solver_type = low_storage_runge_kutta
-  set runge_kutta_method = RK3_2_5F_3SStarPlus
+  set runge_kutta_method = RK4_3_5_3SStar
+  subsection low-storage rk solver
+    set atol = 1e-3
+    set rtol = 1e-3
+    set beta1 = 0.70
+    set beta2 = -0.23
+    set beta3 = 0.0
+  end
   subsection rrk root solver
-    set rrk_root_solver_output = verbose
+    set use_relaxation_runge_kutta = false
   end
 end
 
+subsection linear solver
+  set linear_solver_output = verbose
+end
 
 # freestream Mach number
 subsection euler
@@ -40,10 +52,13 @@ end
 
 subsection flow_solver
   set flow_case_type = taylor_green_vortex
-  set poly_degree = 3 
-  set final_time = 0.1
-  set courant_friedrichs_lewy_number = 0.08
-  set unsteady_data_table_filename = tgv_kinetic_energy_vs_time_table
+  set poly_degree = 3
+  set final_time = 14
+  set courant_friedrichs_lewy_number = 0.48
+  set unsteady_data_table_filename = tgv_CFL048_cDG
+  set adaptive_time_step = true
+  #set error_adaptive_time_step = true
+  set end_exactly_at_final_time = false
   subsection grid
     set grid_left_bound = 0.0
     set grid_right_bound = 6.28318530717958623200

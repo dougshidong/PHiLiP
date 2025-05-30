@@ -20,10 +20,14 @@ set use_inverse_mass_on_the_fly = true
 
 # ODE solver
 subsection ODE solver
-  set ode_solver_type = rrk_explicit
+  set ode_output = verbose
+  set ode_solver_type = low_storage_runge_kutta
+  set runge_kutta_method = RK3_2_5F_3SStarPlus
   set output_solution_every_dt_time_intervals = 0.01
   set initial_time_step = 2.5E-3 
-  set runge_kutta_method = rk4_ex
+  subsection rrk root solver
+    set use_relaxation_runge_kutta = true
+  end
 end
   
 subsection time_refinement_study
@@ -37,6 +41,7 @@ subsection flow_solver
   set final_time = 0.05
   set poly_degree = 5
   set unsteady_data_table_filename = burgers_unsteady_data
+  set end_exactly_at_final_time = false
   subsection grid
     set grid_left_bound = 0.0
     set grid_right_bound = 2.0

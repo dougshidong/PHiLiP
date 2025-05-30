@@ -64,9 +64,6 @@ protected:
     /// Stores Butcher tableau a and b, which specify the RK method
     std::shared_ptr<LowStorageRKTableauBase<dim,real,MeshType>> butcher_tableau;
 
-    /// Storage for the derivative at each Runge-Kutta stage
-    std::vector<dealii::LinearAlgebra::distributed::Vector<double>> rk_stage;
-
     /// Storage of the solution for the first storage register
     dealii::LinearAlgebra::distributed::Vector<double> storage_register_1;
 

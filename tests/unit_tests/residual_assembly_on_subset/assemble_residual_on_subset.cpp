@@ -68,9 +68,9 @@ int test (
     // Choose locations on which to evaluate the residual
     dealii::LinearAlgebra::distributed::Vector<int> locations_to_evaluate_rhs;
     locations_to_evaluate_rhs.reinit(dg->triangulation->n_active_cells());
-    const int evaluate_until_this_index = locations_to_evaluate_rhs.size() / 2 ;
+    const unsigned int evaluate_until_this_index = locations_to_evaluate_rhs.size() / 2 ;
     pcout << evaluate_until_this_index << " " << locations_to_evaluate_rhs.size() << std::endl;
-    for (int i = 0; i < evaluate_until_this_index; ++i){
+    for (unsigned int i = 0; i < evaluate_until_this_index; ++i){
         // Assign only on locally owned indices.
         if (locations_to_evaluate_rhs.in_local_range(i))      locations_to_evaluate_rhs(i) = 1;
     }

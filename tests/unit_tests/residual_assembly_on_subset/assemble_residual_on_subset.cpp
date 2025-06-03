@@ -101,8 +101,8 @@ int test (
 
     int testfail = 0; // assume pass
     // Check that rhs_only is zero where the residual was not assembled.
-    for (int i = 0; i < rhs_only.size(); ++i){
-        if rhs_only.in_local_range(i){
+    for (unsigned int i = 0; i < rhs_only.size(); ++i){
+        if (rhs_only.in_local_range(i)){
             std::cout << rhs_only(i) << std::endl;
             if (i > evaluate_until_this_index && abs(rhs_only[i]) > 1E-14) testfail = 1;
         }

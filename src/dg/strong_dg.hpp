@@ -32,7 +32,10 @@ public:
     /** For information regarding auxiliary vs. primary quations, see 
      *  Quaegebeur, Nadarajah, Navah and Zwanenburg 2019: Stability of Energy Stable Flux 
      *                Reconstruction for the Diffusion Problem Using Compact Numerical Fluxes
-     *  The aux residual is only assembled for the indicated cell_group_ID.
+     *
+     * The residual is only assembled for the indicated cell_group_ID.
+     * If nothing is passed for cell_group_ID, AND no group_IDs have been set,
+     * the default behaviour is to assemble the residual everywhere.
      */
     void assemble_auxiliary_residual (const unsigned int cell_group_ID=0);
 

@@ -560,6 +560,8 @@ public:
      * Do nothing since this cell will be taken care of by scenario 2.
      *
      * The residual is only assembled for the indicated cell_group_ID.
+     * If nothing is passed for cell_group_ID, AND no group_IDs have been set,
+     * the default behaviour is to assemble the residual everywhere.
      *
      */
     //void assemble_residual_dRdW ();
@@ -596,7 +598,7 @@ public:
     /** Returns true if the current cell belongs to cell_group_ID
      *  If the cell is not in that group, return false.
      */
-    bool do_assemble_in_this_cell(const unsigned int cell_index, const int cell_group_ID) const;
+    bool cell_is_in_active_cell_group(const unsigned int cell_index, const int cell_group_ID) const;
 
 protected:
     /// List of the group ID of each cell.
@@ -611,7 +613,7 @@ public:
     ///Setter for list_of_cell_group_IDs
     /** Useage: pass a vector of the same size as the list_of_cell_group_IDs
      *  where 1 indicates that that cell should be assigned the indicated
-     *  group_ID
+     *  group_ID and 0 everywhere else
      */
     void set_list_of_cell_group_IDs(const dealii::LinearAlgebra::distributed::Vector<int> &locations, const int group_ID);
 

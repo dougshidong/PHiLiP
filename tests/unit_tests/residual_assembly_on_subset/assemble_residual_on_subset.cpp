@@ -91,14 +91,25 @@ int test (
 
     pcout << "Evaluating RHS only on group ID = 10..." << std::endl;
     compute_dRdW = false; compute_dRdX = false, compute_d2R = false;
+    const double CFL = 0.0; 
     // pass group ID of 10
-    dg->assemble_residual(compute_dRdW, compute_dRdX, compute_d2R, 10);
+    dg->assemble_residual(compute_dRdW, compute_dRdX, compute_d2R, CFL, 10);
     dealii::LinearAlgebra::distributed::Vector<double> rhs_only(dg->right_hand_side);
     // pcout << "*******************************************************************************" << std::endl;
 
 
-    /// TO DO: Update return condition to verify that the RHS is updated only on cell group 10. 
-    return 0;
+
+    int testfail = 0; // assume pass
+    // Check that rhs_only is zero where the residual was not assembled.
+    for (int i = 0; i < rhs_only.size(); ++i){
+        if rhs_only.in_local_range(i){
+            std::cout << rhs_only(i) << std::endl;
+            if (i > evaluate_until_this_index && abs(rhs_only[i]) > 1E-14) testfail = 1;
+        }
+    }
+
+
+    return testfail ;
 }
 
 int main (int argc, char * argv[])

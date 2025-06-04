@@ -245,6 +245,13 @@ std::shared_ptr<ODESolverBase<dim,real,MeshType>> ODESolverFactory<dim,real,Mesh
     const ODEEnum ode_solver_type = dg_input->all_parameters->ode_solver_param.ode_solver_type;
     if (ode_solver_type == ODEEnum::pod_galerkin_runge_kutta_solver) {
         // Hard-coded templating of n_rk_stages because it is not known at compile time
+        if(dg_input->all_parameters->use_inverse_mass_on_the_fly){
+            pcout   << "Not Implemented: use_inverse_mass_on_the_fly=true && ode_solver_type=pod_galerkin_rk_solver"
+                    << '\n' 
+                    << "Please set use_inverse_mass_on_the_fly=false and try again"
+                    << std::endl;
+            std::abort();
+        }
         pcout << "Creating Galerkin Runge Kutta ODE Solver with " 
               << n_rk_stages << " stage(s)..." << std::endl;
         if (n_rk_stages == 1){

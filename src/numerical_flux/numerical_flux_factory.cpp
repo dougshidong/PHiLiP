@@ -29,7 +29,7 @@ NumericalFluxFactory<dim, nstate, real>
                                     (conv_num_flux_type == AllParam::ConvectiveNumericalFlux::two_point_flux_with_roe_dissipation) || 
                                     (conv_num_flux_type == AllParam::ConvectiveNumericalFlux::two_point_flux_with_l2roe_dissipation));
     if(is_two_point_conv && physics_input->all_parameters->use_split_form == false ) {
-        std::cout << "two point flux and not using split form are not compatable, please use another Convective Numerical Flux" << std::endl;
+        std::cout << "two point flux and not using split form are not compatible, please use another Convective Numerical Flux" << std::endl;
         std::abort();
     }
 

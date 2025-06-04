@@ -49,31 +49,23 @@ void PODGalerkinRungeKuttaODESolver<dim,real,n_rk_stages,MeshType>::calculate_st
 {
     this->dg->set_current_time(this->current_time + this->butcher_tableau->get_c(istage)*dt);
     this->dg->assemble_residual(); //RHS : du/dt = RHS = F(u_n + dt* sum(a_ij*V*k_j) + dt * a_ii * u^(istage)))
-
-    if(this->all_parameters->use_inverse_mass_on_the_fly){
-        this->pcout << "Not Implemented: use_inverse_mass_on_the_fly=true && ode_solver_type=pod_galerkin_rk_solver"
-                    << '\n' 
-                    << "Please set use_inverse_mass_on_the_fly=false and try again"
-                    << std::endl;
-        std::abort();
-    } else{
-        // Creating Reduced RHS
-        dealii::LinearAlgebra::distributed::Vector<double> dealii_reduced_stage_i;
-        Epetra_Vector epetra_rhs(Epetra_DataAccess::Copy, epetra_test_basis->RowMap(), this->dg->right_hand_side.begin()); // Flip to range map?
-        Epetra_Vector epetra_reduced_rhs(epetra_test_basis->DomainMap());
-        epetra_test_basis->Multiply(true,epetra_rhs,epetra_reduced_rhs);
-        // Creating Linear Problem to find stage
-        Epetra_Vector epetra_rk_stage_i(epetra_reduced_lhs->DomainMap()); // Ensure this is correct as well, since LHS is not transpose might need to be rangeMap
-        Epetra_LinearProblem linearProblem(epetra_reduced_lhs.get(), &epetra_rk_stage_i, &epetra_reduced_rhs);
-        Amesos_Lapack Solver(linearProblem);
-        Teuchos::ParameterList List;
-        Solver.SetParameters(List); //Deprecated in future update, change?
-        Solver.SymbolicFactorization();
-        Solver.NumericFactorization();
-        Solver.Solve();
-        epetra_to_dealii(epetra_rk_stage_i,dealii_reduced_stage_i, reduced_index);
-        this->reduced_rk_stage[istage] = dealii_reduced_stage_i;
-    }
+    // Creating Reduced RHS
+    dealii::LinearAlgebra::distributed::Vector<double> dealii_reduced_stage_i;
+    Epetra_Vector epetra_rhs(Epetra_DataAccess::Copy, epetra_test_basis->RowMap(), this->dg->right_hand_side.begin()); // Flip to range map?
+    Epetra_Vector epetra_reduced_rhs(epetra_test_basis->DomainMap());
+    epetra_test_basis->Multiply(true,epetra_rhs,epetra_reduced_rhs);
+    // Creating Linear Problem to find stage
+    Epetra_Vector epetra_rk_stage_i(epetra_reduced_lhs->DomainMap()); // Ensure this is correct as well, since LHS is not transpose might need to be rangeMap
+    Epetra_LinearProblem linearProblem(epetra_reduced_lhs.get(), &epetra_rk_stage_i, &epetra_reduced_rhs);
+    Amesos_Lapack Solver(linearProblem);
+    Teuchos::ParameterList List;
+    Solver.SetParameters(List); //Deprecated in future update
+    Solver.SymbolicFactorization();
+    Solver.NumericFactorization();
+    Solver.Solve();
+    epetra_to_dealii(epetra_rk_stage_i,dealii_reduced_stage_i, reduced_index);
+    this->reduced_rk_stage[istage] = dealii_reduced_stage_i;
+    
 }
 
 template <int dim, typename real, int n_rk_stages, typename MeshType>

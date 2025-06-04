@@ -376,7 +376,11 @@ int main (int argc, char * argv[])
                 (*conv == ConvType::two_point_flux_with_l2roe_dissipation))
                && ((*pde!=PDEType::euler) && (*pde!=PDEType::navier_stokes) && (*pde!=PDEType::physics_model))) continue;
             all_parameters.conv_num_flux_type = *conv;
-
+            const bool is_two_point_conv = (( all_parameters.conv_num_flux_type == ConvType::two_point_flux) ||
+                                  (  all_parameters.conv_num_flux_type == ConvType::two_point_flux_with_lax_friedrichs_dissipation) ||
+                                  (  all_parameters.conv_num_flux_type == ConvType::two_point_flux_with_roe_dissipation) ||
+                                  (  all_parameters.conv_num_flux_type == ConvType::two_point_flux_with_l2roe_dissipation));
+            all_parameters.use_split_form = (is_two_point_conv) ? true : false; // Changed for error checking in ConvNumFactory
             std::string conv_string;
             if(*conv==ConvType::lax_friedrichs)    conv_string = "lax_friedrichs";
             if(*conv==ConvType::roe)               conv_string = "roe";

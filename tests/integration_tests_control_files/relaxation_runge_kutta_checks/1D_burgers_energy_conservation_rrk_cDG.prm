@@ -31,6 +31,7 @@ subsection flow_solver
   set poly_degree = 3 
   set final_time = 0.05 #very small total time, but enough to test energy conservation
   set unsteady_data_table_filename = burgers_unsteady_data
+  set end_exactly_at_final_time = false
   subsection grid
     set grid_left_bound = 0.0
     set grid_right_bound = 2.0

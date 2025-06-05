@@ -14,6 +14,7 @@
 #include "parameters/parameters.h"
 #include "physics/physics_factory.h"
 #include "numerical_flux/convective_numerical_flux.hpp"
+#include "parameters/parameters_ode_solver.h"
 
 using PDEType   = PHiLiP::Parameters::AllParameters::PartialDifferentialEquation;
 using ConvType  = PHiLiP::Parameters::AllParameters::ConvectiveNumericalFlux;
@@ -93,21 +94,40 @@ int test (
     compute_dRdW = false; compute_dRdX = false, compute_d2R = false;
     const double CFL = 0.0; 
     // pass group ID of 10
-    dg->assemble_residual(compute_dRdW, compute_dRdX, compute_d2R, CFL, 10);
+    dg->right_hand_side=0.0;
+    dg->assemble_residual(compute_dRdW, compute_dRdX, compute_d2R, CFL, 0);
     dealii::LinearAlgebra::distributed::Vector<double> rhs_only(dg->right_hand_side);
+    rhs_only = dg->right_hand_side;
     // pcout << "*******************************************************************************" << std::endl;
 
 
 
     int testfail = 0; // assume pass
     // Check that rhs_only is zero where the residual was not assembled.
-    for (unsigned int i = 0; i < rhs_only.size(); ++i){
-        if (rhs_only.in_local_range(i)){
-            std::cout << rhs_only(i) << std::endl;
-            if (i > evaluate_until_this_index && abs(rhs_only[i]) > 1E-14) testfail = 1;
+    const unsigned int n_dof_per_cell = dg->dof_handler.n_dofs() /  grid->n_active_cells(); // Not sure whether i need nstate here...
+    pcout << "n_dof_per_cell" << n_dof_per_cell << std::endl;
+    pcout << rhs_only.size() << std::endl << std::flush;
+    for (unsigned int i = 0; i < locations_to_evaluate_rhs.size(); ++i){
+        std::cout << i << " " <<  locations_to_evaluate_rhs(i) << " ";
+        for (unsigned int inode = 0; inode < n_dof_per_cell; ++inode){ 
+            int curr_index = inode + i * n_dof_per_cell;
+            if (locations_to_evaluate_rhs.in_local_range(i)){
+                std::cout << rhs_only(curr_index) << " ";
+                if (locations_to_evaluate_rhs(i)==0 && rhs_only(curr_index) != 0)           testfail = 1;
+            }
         }
+        std::cout<< testfail << std::endl;
+       
     }
 
+    /*
+    pcout << "Has nonzero diffusion? " << physics_double->has_nonzero_diffusion << std::endl;
+
+    if (testfail==1 && physics_double->has_nonzero_diffusion) {
+        pcout << "WARNING: Test is known to fail for diffusive PDEs. This test is hard-coded " << std::endl
+              << "to pass in diffusive cases, but the behaviour should be changed in the future." << std::endl;
+        testfail=0;
+    }*/
 
     return testfail ;
 }
@@ -161,6 +181,10 @@ int main (int argc, char * argv[])
             for (unsigned int igrid=2; igrid<4 && error == 0; ++igrid) {
                 pcout << "Using " << pde_name[ipde] << std::endl;
                 all_parameters.pde_type = *pde;
+                all_parameters.use_weak_form = false;
+
+                using ODEEnum = Parameters::ODESolverParam::ODESolverEnum;
+                all_parameters.ode_solver_param.ode_solver_type = ODEEnum::runge_kutta_solver; // Set as runge_kutta to supress an abort.
                 // Generate grids
 #if PHILIP_DIM==1
                 std::shared_ptr<Triangulation> grid = std::make_shared<Triangulation>(

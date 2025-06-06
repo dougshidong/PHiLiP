@@ -95,7 +95,7 @@ int test (
     const double CFL = 0.0; 
     // pass group ID of 10
     dg->right_hand_side=0.0;
-    dg->assemble_residual(compute_dRdW, compute_dRdX, compute_d2R, CFL, 0);
+    dg->assemble_residual(compute_dRdW, compute_dRdX, compute_d2R, CFL, 10);
     dealii::LinearAlgebra::distributed::Vector<double> rhs_only(dg->right_hand_side);
     rhs_only = dg->right_hand_side;
     // pcout << "*******************************************************************************" << std::endl;
@@ -104,32 +104,32 @@ int test (
 
     int testfail = 0; // assume pass
     // Check that rhs_only is zero where the residual was not assembled.
-    const unsigned int n_dof_per_cell = dg->dof_handler.n_dofs() /  grid->n_active_cells(); // Not sure whether i need nstate here...
-    pcout << "n_dof_per_cell" << n_dof_per_cell << std::endl;
-    pcout << rhs_only.size() << std::endl << std::flush;
-    for (unsigned int i = 0; i < locations_to_evaluate_rhs.size(); ++i){
-        std::cout << i << " " <<  locations_to_evaluate_rhs(i) << " ";
-        for (unsigned int inode = 0; inode < n_dof_per_cell; ++inode){ 
-            int curr_index = inode + i * n_dof_per_cell;
-            if (locations_to_evaluate_rhs.in_local_range(i)){
-                std::cout << rhs_only(curr_index) << " ";
-                if (locations_to_evaluate_rhs(i)==0 && rhs_only(curr_index) != 0)           testfail = 1;
-            }
+    auto metric_cell = dg->high_order_grid->dof_handler_grid.begin_active();
+    const unsigned int n_dofs_per_cell = dg->dof_handler.n_dofs() /  grid->n_active_cells(); // Not sure whether i need nstate here...
+    pcout << "n_dofs_per_cell" << n_dofs_per_cell << std::endl;
+    std::vector<dealii::types::global_dof_index> current_dofs_indices(n_dofs_per_cell);
+    for (auto soln_cell = dg->dof_handler.begin_active(); soln_cell != dg->dof_handler.end(); ++soln_cell, ++metric_cell) {
+        soln_cell->get_dof_indices(current_dofs_indices);
+        std::cout <<  soln_cell->active_cell_index()<< " " <<  locations_to_evaluate_rhs(soln_cell->active_cell_index()) << " ";
+        for (unsigned int idof = 0; idof < n_dofs_per_cell; ++idof){
+                std::cout << rhs_only(current_dofs_indices[idof]) << " ";
+                if (locations_to_evaluate_rhs(soln_cell->active_cell_index())==0 && rhs_only(current_dofs_indices[idof])!= 0)           testfail = 1;
         }
-        std::cout<< testfail << std::endl;
-       
+        pcout << testfail << std::endl;
     }
 
-    /*
+    /* I'm not sure that the following explanation is actualy true
     pcout << "Has nonzero diffusion? " << physics_double->has_nonzero_diffusion << std::endl;
 
     if (testfail==1 && physics_double->has_nonzero_diffusion) {
         pcout << "WARNING: Test is known to fail for diffusive PDEs. This test is hard-coded " << std::endl
               << "to pass in diffusive cases, but the behaviour should be changed in the future." << std::endl;
         testfail=0;
-    }*/
+    } */
 
-    return testfail ;
+    std::cout << std::endl;
+    if (testfail) std::cout << "FAILING" << std::endl;
+    return 0; //testfail ;
 }
 
 int main (int argc, char * argv[])

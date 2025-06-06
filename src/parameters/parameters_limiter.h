@@ -9,7 +9,7 @@ namespace Parameters {
 class LimiterParam
 {
 public:
-    /// Flag to perform convergence analysis for Limiter Tests (ie. burgers_limiter, advection_limiter, low_density_2d)
+    /// Flag to perform convergence analysis for Limiter Tests (ie. burgers_limiter, advection_limiter, low_density)
     bool use_OOA;
 
     /// Limiter type to be applied on the solution.

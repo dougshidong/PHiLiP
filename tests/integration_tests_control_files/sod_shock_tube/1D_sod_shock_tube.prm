@@ -11,8 +11,8 @@ set use_weak_form = false
 set flux_nodes_type = GLL
 
 # Strong DG - LaxF
-#set use_split_form = false
-#set conv_num_flux = lax_friedrichs
+set use_split_form = false
+set conv_num_flux = roe
 
 # NSFR
 set use_split_form = true
@@ -25,6 +25,9 @@ set use_inverse_mass_on_the_fly = true
 subsection limiter
   set bound_preserving_limiter = positivity_preservingWang2012
   set min_density = 1e-13
+  #set use_tvb_limiter = true
+  #set max_delta_x = 0.0
+  #set tuning_parameter_for_each_state = 0,0,0,0
 end
 
 # ODE solver
@@ -44,14 +47,16 @@ end
 
 subsection flow_solver
   set flow_case_type = sod_shock_tube
-  set poly_degree = 2
-  set final_time = 0.13
-  set courant_friedrichs_lewy_number = 0.6
+  set poly_degree = 3
+  set final_time = 0.2
+  set courant_friedrichs_lewy_number = 0.5
   set adaptive_time_step = true
   set unsteady_data_table_filename = sod_shock_energy
   subsection grid
-    set grid_left_bound = -0.5
-    set grid_right_bound = 0.5
-    set number_of_grid_elements_per_dimension = 128
+    subsection positivity_preserving_tests
+      set grid_xmin = -0.5
+      set grid_xmax = 0.5
+      set number_of_grid_elements_x = 300
+    end
   end
 end

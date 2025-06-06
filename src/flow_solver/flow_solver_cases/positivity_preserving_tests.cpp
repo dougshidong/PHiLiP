@@ -175,9 +175,8 @@ double PositivityPreservingTests<dim, nstate>::compute_integrated_entropy(DGBase
     // Construct the basis functions and mapping shape functions.
     OPERATOR::basis_functions<dim,2*dim,double> soln_basis(1, poly_degree, grid_degree); 
     OPERATOR::mapping_shape_functions<dim,2*dim,double> mapping_basis(1, poly_degree, grid_degree);
-    // Build basis function volume operator and gradient operator from 1D finite element for 1 state.
+    // Build basis function volume operator from 1D finite element for 1 state.
     soln_basis.build_1D_volume_operator(dg.oneD_fe_collection_1state[poly_degree], quad_1D);
-    soln_basis.build_1D_gradient_operator(dg.oneD_fe_collection_1state[poly_degree], quad_1D);
     // Build mapping shape functions operators using the oneD high_ordeR_grid finite element
     mapping_basis.build_1D_shape_functions_at_grid_nodes(dg.high_order_grid->oneD_fe_system, dg.high_order_grid->oneD_grid_nodes);
     mapping_basis.build_1D_shape_functions_at_flux_nodes(dg.high_order_grid->oneD_fe_system, quad_1D, dg.oneD_face_quadrature);
@@ -244,46 +243,20 @@ double PositivityPreservingTests<dim, nstate>::compute_integrated_entropy(DGBase
         // Interpolate each state to the quadrature points using sum-factorization
         // with the basis functions in each reference direction.
         std::array<std::vector<double>,nstate> soln_at_q_vect;
-        std::array<dealii::Tensor<1,dim,std::vector<double>>,nstate> soln_grad_at_q_vect;
         for(int istate=0; istate<nstate; istate++){
             soln_at_q_vect[istate].resize(n_quad_pts);
             // Interpolate soln coeff to volume cubature nodes.
             soln_basis.matrix_vector_mult_1D(soln_coeff[istate], soln_at_q_vect[istate],
                                              soln_basis.oneD_vol_operator);
-            // We need to first compute the reference gradient of the solution, then transform that to a physical gradient.
-            dealii::Tensor<1,dim,std::vector<double>> ref_gradient_basis_fns_times_soln;
-            for(int idim=0; idim<dim; idim++){
-                ref_gradient_basis_fns_times_soln[idim].resize(n_quad_pts);
-                soln_grad_at_q_vect[istate][idim].resize(n_quad_pts);
-            }
-            // Apply gradient of reference basis functions on the solution at volume cubature nodes.
-            soln_basis.gradient_matrix_vector_mult_1D(soln_coeff[istate], ref_gradient_basis_fns_times_soln,
-                                                      soln_basis.oneD_vol_operator,
-                                                      soln_basis.oneD_grad_operator);
-            // Transform the reference gradient into a physical gradient operator.
-            for(int idim=0; idim<dim; idim++){
-                for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){
-                    for(int jdim=0; jdim<dim; jdim++){
-                        //transform into the physical gradient
-                        soln_grad_at_q_vect[istate][idim][iquad] += metric_oper.metric_cofactor_vol[idim][jdim][iquad]
-                                                                  * ref_gradient_basis_fns_times_soln[jdim][iquad]
-                                                                  / metric_oper.det_Jac_vol[iquad];
-                    }
-                }
-            }
         }
 
         // Loop over quadrature nodes, compute quantities to be integrated, and integrate them.
         for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
 
             std::array<double,nstate> soln_at_q;
-            std::array<dealii::Tensor<1,dim,double>,nstate> soln_grad_at_q;
-            // Extract solution and gradient in a way that the physics ca n use them.
+            // Extract solution in a way that the physics ca n use them.
             for(int istate=0; istate<nstate; istate++){
                 soln_at_q[istate] = soln_at_q_vect[istate][iquad];
-                for(int idim=0; idim<dim; idim++){
-                    soln_grad_at_q[istate][idim] = soln_grad_at_q_vect[istate][idim][iquad];
-                }
             }
             
             //#####################################################################
@@ -357,6 +330,9 @@ void PositivityPreservingTests<dim, nstate>::compute_unsteady_data_and_write_to_
 
         this->pcout << std::endl;
     }
+
+    // Update local maximum wave speed before calculating next time step
+    update_maximum_local_wave_speed(*dg);
 }
 
 template class PositivityPreservingTests<PHILIP_DIM, PHILIP_DIM+2>;

@@ -54,7 +54,7 @@ subsection flow_solver
   set adaptive_time_step = true
   set courant_friedrichs_lewy_number = 0.5
   set unsteady_data_table_filename = low_density_shock_energy
-  set expected_order_at_final_time = 5.018319635436
+  set expected_order_at_final_time = 4.20078
   subsection grid
     set grid_left_bound = -0.5
     set grid_right_bound = 0.5

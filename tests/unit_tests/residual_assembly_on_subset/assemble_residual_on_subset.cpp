@@ -91,11 +91,12 @@ int test (
     bool compute_dRdW, compute_dRdX, compute_d2R;
 
     pcout << "Evaluating RHS only on group ID = 10..." << std::endl;
+    const int active_group_ID = 10;
     compute_dRdW = false; compute_dRdX = false, compute_d2R = false;
     const double CFL = 0.0; 
     // pass group ID of 10
     dg->right_hand_side=0.0;
-    dg->assemble_residual(compute_dRdW, compute_dRdX, compute_d2R, CFL, 10);
+    dg->assemble_residual(compute_dRdW, compute_dRdX, compute_d2R, CFL, active_group_ID);
     dealii::LinearAlgebra::distributed::Vector<double> rhs_only(dg->right_hand_side);
     rhs_only = dg->right_hand_side;
     // pcout << "*******************************************************************************" << std::endl;
@@ -113,7 +114,7 @@ int test (
         std::cout <<  soln_cell->active_cell_index()<< " " <<  locations_to_evaluate_rhs(soln_cell->active_cell_index()) << " ";
         for (unsigned int idof = 0; idof < n_dofs_per_cell; ++idof){
                 std::cout << rhs_only(current_dofs_indices[idof]) << " ";
-                if (locations_to_evaluate_rhs(soln_cell->active_cell_index())==0 && rhs_only(current_dofs_indices[idof])!= 0)           testfail = 1;
+                if (locations_to_evaluate_rhs(soln_cell->active_cell_index())==0 && abs(rhs_only(current_dofs_indices[idof])) > 1E-14)           testfail = 1;
         }
         pcout << testfail << std::endl;
     }
@@ -129,7 +130,7 @@ int test (
 
     std::cout << std::endl;
     if (testfail) std::cout << "FAILING" << std::endl;
-    return 0; //testfail ;
+    return testfail ;
 }
 
 int main (int argc, char * argv[])

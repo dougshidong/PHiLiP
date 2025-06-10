@@ -559,13 +559,13 @@ public:
      * 4. Neighbor is coarser. Therefore, the current cell is the finer one.
      * Do nothing since this cell will be taken care of by scenario 2.
      *
-     * The residual is only assembled for the indicated cell_group_ID.
-     * If nothing is passed for cell_group_ID, AND no group_IDs have been set,
+     * The residual is only assembled for the indicated active_cell_group_ID.
+     * If nothing is passed for active_cell_group_ID, AND no group_IDs have been set,
      * the default behaviour is to assemble the residual everywhere.
      *
      */
     //void assemble_residual_dRdW ();
-    void assemble_residual (const bool compute_dRdW=false, const bool compute_dRdX=false, const bool compute_d2R=false, const double CFL_mass = 0.0, const int cell_group_ID = 0);
+    void assemble_residual (const bool compute_dRdW=false, const bool compute_dRdX=false, const bool compute_d2R=false, const double CFL_mass = 0.0, const int active_cell_group_ID = 0);
 
     /// Used in assemble_residual().
     /** IMPORTANT: This does not fully compute the cell residual since it might not
@@ -592,13 +592,14 @@ public:
         OPERATOR::mapping_shape_functions<dim,2*dim,real>                  &mapping_basis,
         const bool                                                         compute_auxiliary_right_hand_side,//flag on whether computing the Auxiliary variable's equations' residuals
         dealii::LinearAlgebra::distributed::Vector<double>                 &rhs,
-        std::array<dealii::LinearAlgebra::distributed::Vector<double>,dim> &rhs_aux);
+        std::array<dealii::LinearAlgebra::distributed::Vector<double>,dim> &rhs_aux,
+        const int active_cell_group_ID=0);
 
     /// Function to determine whether the residual should be assembled in a given cell
-    /** Returns true if the current cell belongs to cell_group_ID
+    /** Returns true if the current cell belongs to active_cell_group_ID
      *  If the cell is not in that group, return false.
      */
-    bool cell_is_in_active_cell_group(const unsigned int cell_index, const int cell_group_ID) const;
+    bool cell_is_in_active_cell_group(const unsigned int cell_index, const int active_cell_group_ID) const;
 
 protected:
     /// List of the group ID of each cell.
@@ -608,6 +609,10 @@ protected:
      *  or partitioned Runge-Kutta.
      */
     dealii::LinearAlgebra::distributed::Vector<int> list_of_cell_group_IDs;
+
+    /// L1 norm of list_of_cell_group_IDs
+    /** If the norm is zero, then we can skip some logic. */
+    int norm_list_of_cell_group_IDs=0;
 public:
 
     ///Setter for list_of_cell_group_IDs
@@ -782,6 +787,7 @@ protected:
         dealii::Vector<real>                                   &current_cell_rhs,
         dealii::Vector<real>                                   &neighbor_cell_rhs,
         std::vector<dealii::Tensor<1,dim,real>>                &current_cell_rhs_aux,
+        std::vector<dealii::Tensor<1,dim,real>>                &neighbor_cell_rhs_aux,
         dealii::LinearAlgebra::distributed::Vector<double>     &rhs,
         std::array<dealii::LinearAlgebra::distributed::Vector<double>,dim> &rhs_aux,
         const bool                                             compute_auxiliary_right_hand_side,
@@ -821,6 +827,7 @@ protected:
         dealii::Vector<real>                                   &current_cell_rhs,
         dealii::Vector<real>                                   &neighbor_cell_rhs,
         std::vector<dealii::Tensor<1,dim,real>>                &current_cell_rhs_aux,
+        std::vector<dealii::Tensor<1,dim,real>>                &neighbor_cell_rhs_aux,
         dealii::LinearAlgebra::distributed::Vector<double>     &rhs,
         std::array<dealii::LinearAlgebra::distributed::Vector<double>,dim> &rhs_aux,
         const bool                                             compute_auxiliary_right_hand_side,
@@ -909,7 +916,7 @@ public:
     void allocate_auxiliary_equation ();
 
     /// Asembles the auxiliary equations' residuals and solves.
-    virtual void assemble_auxiliary_residual (const unsigned int cell_group_ID=0) = 0;
+    virtual void assemble_auxiliary_residual (const int active_cell_group_ID=0) = 0;
 
     /// Allocate the dual vector for optimization.
     /** Currently only used in weak form.

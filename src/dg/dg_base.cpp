@@ -470,8 +470,12 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
     OPERATOR::mapping_shape_functions<dim,2*dim,real> &mapping_basis,
     const bool compute_auxiliary_right_hand_side,
     dealii::LinearAlgebra::distributed::Vector<double> &rhs,
-    std::array<dealii::LinearAlgebra::distributed::Vector<double>,dim> &rhs_aux)
+    std::array<dealii::LinearAlgebra::distributed::Vector<double>,dim> &rhs_aux,
+    const int active_cell_group_ID)
 {
+    int chkptid = 0;
+    this->pcout << "Checkpoint enter assemble_cell_residual" << chkptid << std::endl << std::flush; 
+    chkptid++;
     std::vector<dealii::types::global_dof_index> current_dofs_indices;
     std::vector<dealii::types::global_dof_index> neighbor_dofs_indices;
 
@@ -520,82 +524,106 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
     }
 
 
-    assemble_volume_term_and_build_operators(
-        current_cell,
-        current_cell_index,
-        current_dofs_indices,
-        current_metric_dofs_indices,
-        poly_degree,
-        grid_degree,
-        soln_basis_int,
-        flux_basis_int,
-        flux_basis_stiffness,
-        soln_basis_projection_oper_int,
-        soln_basis_projection_oper_ext,
-        metric_oper_int,
-        mapping_basis,
-        mapping_support_points,
-        fe_values_collection_volume,
-        fe_values_collection_volume_lagrange,
-        current_fe_ref,
-        current_cell_rhs,
-        current_cell_rhs_aux,
-        compute_auxiliary_right_hand_side,
-        compute_dRdW, compute_dRdX, compute_d2R);
+    const bool current_cell_is_in_active_cell_group = cell_is_in_active_cell_group(current_cell_index,active_cell_group_ID);
+
+    if (current_cell_is_in_active_cell_group) {
+    this->pcout << "Checkpoint about to assemble vol residual" << chkptid << std::endl << std::flush;
+    chkptid++;
+        // Assemble the volume term if the current cell is active.
+        assemble_volume_term_and_build_operators(
+            current_cell,
+            current_cell_index,
+            current_dofs_indices,
+            current_metric_dofs_indices,
+            poly_degree,
+            grid_degree,
+            soln_basis_int,
+            flux_basis_int,
+            flux_basis_stiffness,
+            soln_basis_projection_oper_int,
+            soln_basis_projection_oper_ext,
+            metric_oper_int,
+            mapping_basis,
+            mapping_support_points,
+            fe_values_collection_volume,
+            fe_values_collection_volume_lagrange,
+            current_fe_ref,
+            current_cell_rhs,
+            current_cell_rhs_aux,
+            compute_auxiliary_right_hand_side,
+            compute_dRdW, compute_dRdX, compute_d2R);
+    }
 
     (void) fe_values_collection_face_int;
     (void) fe_values_collection_face_ext;
     (void) fe_values_collection_subface;
     for (unsigned int iface=0; iface < dealii::GeometryInfo<dim>::faces_per_cell; ++iface) {
+    this->pcout << "Checkpoint faces" << chkptid << std::endl;
+    chkptid++;
 
         auto current_face = current_cell->face(iface);
 
         // CASE 1: FACE AT BOUNDARY
+        // Assemble if cell is in the active group
+        this->pcout << "Check for case 1: " << (current_face->at_boundary() && !current_cell->has_periodic_neighbor(iface)) << std::endl;
         if ((current_face->at_boundary() && !current_cell->has_periodic_neighbor(iface)))
         {
+    this->pcout << "Checkpoint case 1" << chkptid << std::endl;
+    chkptid++;
             const real penalty = evaluate_penalty_scaling (current_cell, iface, fe_collection);
 
             const unsigned int boundary_id = current_face->boundary_id();
 
-            assemble_boundary_term_and_build_operators(
-                current_cell,
-                current_cell_index,
-                iface,
-                boundary_id,
-                penalty,
-                current_dofs_indices,
-                current_metric_dofs_indices,
-                poly_degree,
-                grid_degree,
-                soln_basis_int,
-                flux_basis_int,
-                flux_basis_stiffness,
-                soln_basis_projection_oper_int,
-                soln_basis_projection_oper_ext,
-                metric_oper_int,
-                mapping_basis,
-                mapping_support_points,
-                fe_values_collection_face_int,
-                current_fe_ref,
-                current_cell_rhs,
-                current_cell_rhs_aux,
-                compute_auxiliary_right_hand_side,
-                compute_dRdW, compute_dRdX, compute_d2R);
+            if (current_cell_is_in_active_cell_group) {
+                assemble_boundary_term_and_build_operators(
+                    current_cell,
+                    current_cell_index,
+                    iface,
+                    boundary_id,
+                    penalty,
+                    current_dofs_indices,
+                    current_metric_dofs_indices,
+                    poly_degree,
+                    grid_degree,
+                    soln_basis_int,
+                    flux_basis_int,
+                    flux_basis_stiffness,
+                    soln_basis_projection_oper_int,
+                    soln_basis_projection_oper_ext,
+                    metric_oper_int,
+                    mapping_basis,
+                    mapping_support_points,
+                    fe_values_collection_face_int,
+                    current_fe_ref,
+                    current_cell_rhs,
+                    current_cell_rhs_aux,
+                    compute_auxiliary_right_hand_side,
+                    compute_dRdW, compute_dRdX, compute_d2R);
+            }
 
         }
         // CASE 2: PERIODIC BOUNDARY CONDITIONS
         // NOTE: Periodicity is not adapted for hp adaptivity yet. this needs to be figured out in the future
+        // The face term is assembled if one or both cells are in the active group.
         else if (current_face->at_boundary() && current_cell->has_periodic_neighbor(iface))
         {
+    this->pcout << "Checkpoint case 2" << chkptid << std::endl;
+    chkptid++;
 
             const auto neighbor_cell = current_cell->periodic_neighbor(iface);
+            const dealii::types::global_dof_index neighbor_cell_index = neighbor_cell->active_cell_index();
 
-            if (!current_cell->periodic_neighbor_is_coarser(iface) && current_cell_should_do_the_work(current_cell, neighbor_cell)) 
+            const bool neighbor_cell_is_in_active_cell_group = cell_is_in_active_cell_group(neighbor_cell_index, active_cell_group_ID);
+
+            if (!current_cell->periodic_neighbor_is_coarser(iface) && current_cell_should_do_the_work(current_cell, neighbor_cell)
+                    &&(current_cell_is_in_active_cell_group || neighbor_cell_is_in_active_cell_group) )
             {
+                
                 Assert (current_cell->periodic_neighbor(iface).state() == dealii::IteratorState::valid, dealii::ExcInternalError());
 
                 const unsigned int n_dofs_neigh_cell = fe_collection[neighbor_cell->active_fe_index()].n_dofs_per_cell();
                 dealii::Vector<real> neighbor_cell_rhs (n_dofs_neigh_cell); // Defaults to 0.0 initialization
+                std::vector<dealii::Tensor<1,dim,double>> neighbor_cell_rhs_aux (n_dofs_neigh_cell ); // defaults to 0.0 initialization
 
                 // Obtain the mapping from local dof indices to global dof indices for neighbor cell
                 neighbor_dofs_indices.resize(n_dofs_neigh_cell);
@@ -611,7 +639,6 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
                 const real penalty2 = evaluate_penalty_scaling (neighbor_cell, neighbor_iface, fe_collection);
                 const real penalty = 0.5 * (penalty1 + penalty2);
 
-                const dealii::types::global_dof_index neighbor_cell_index = neighbor_cell->active_cell_index();
                 const auto metric_neighbor_cell = current_metric_cell->periodic_neighbor(iface);
                 metric_neighbor_cell->get_dof_indices(neighbor_metric_dofs_indices);
 
@@ -622,6 +649,234 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
                                                                            store_vol_flux_nodes,
                                                                            store_surf_flux_nodes);
 
+                if ( (current_cell_is_in_active_cell_group || neighbor_cell_is_in_active_cell_group) ) {
+                    assemble_face_term_and_build_operators(
+                        current_cell,
+                        neighbor_cell,
+                        current_cell_index,
+                        neighbor_cell_index,
+                        iface,
+                        neighbor_iface,
+                        penalty,
+                        current_dofs_indices,
+                        neighbor_dofs_indices,
+                        current_metric_dofs_indices,
+                        neighbor_metric_dofs_indices,
+                        poly_degree,
+                        poly_degree_ext,
+                        grid_degree,
+                        grid_degree_ext,
+                        soln_basis_int,
+                        soln_basis_ext,
+                        flux_basis_int,
+                        flux_basis_ext,
+                        flux_basis_stiffness,
+                        soln_basis_projection_oper_int,
+                        soln_basis_projection_oper_ext,
+                        metric_oper_int,
+                        metric_oper_ext,
+                        mapping_basis,
+                        mapping_support_points,
+                        fe_values_collection_face_int,
+                        fe_values_collection_face_ext,
+                        current_cell_rhs,
+                        neighbor_cell_rhs,
+                        current_cell_rhs_aux,
+                        neighbor_cell_rhs_aux,
+                        rhs,
+                        rhs_aux,
+                        compute_auxiliary_right_hand_side,
+                        compute_dRdW, compute_dRdX, compute_d2R);
+                }
+
+                if (neighbor_cell_is_in_active_cell_group) {
+                    // add local contribution from neighbor cell to global vector
+                    // if the neighbor cell is active.
+
+                    if (compute_auxiliary_right_hand_side){
+                        for (unsigned int i=0; i<n_dofs_neigh_cell; ++i) {
+                            for(int idim=0; idim<dim; idim++){
+                                rhs_aux[idim][neighbor_dofs_indices[i]] += neighbor_cell_rhs_aux[i][idim];
+                            }
+                        }
+                    }
+                    else{
+                        const unsigned int n_dofs_neigh_cell = this->fe_collection[neighbor_cell->active_fe_index()].n_dofs_per_cell();
+                        for (unsigned int i=0; i<n_dofs_neigh_cell; ++i) {
+                            rhs[neighbor_dofs_indices[i]] += neighbor_cell_rhs[i];
+                        }
+                    }
+                }
+            }
+        }
+        // CASE 3: NEIGHBOUR IS FINER
+        // Occurs if the face has children
+        else if (current_cell->face(iface)->has_children()) 
+        {
+    this->pcout << "Checkpoint case 3" << chkptid << std::endl;
+    chkptid++;
+            // Do nothing.
+            // The face contribution from the current cell will appear then the finer neighbor cell is assembled.
+        }
+        // CASE 4: NEIGHBOR IS COARSER
+        // Assemble face residual.
+        // The face term is assembled if one or both cells are in the active group.
+        else if (current_cell->neighbor(iface)->face(current_cell->neighbor_face_no(iface))->has_children()) 
+        {
+    this->pcout << "Checkpoint case 4" << chkptid << std::endl;
+    chkptid++;
+            Assert (current_cell->neighbor(iface).state() == dealii::IteratorState::valid, dealii::ExcInternalError());
+            Assert (!(current_cell->neighbor(iface)->has_children()), dealii::ExcInternalError());
+
+            // Obtain cell neighbour
+            const auto neighbor_cell = current_cell->neighbor(iface);
+            const dealii::types::global_dof_index neighbor_cell_index = neighbor_cell->active_cell_index();
+            const unsigned int neighbor_iface = current_cell->neighbor_face_no(iface);
+            const bool neighbor_cell_is_in_active_cell_group = cell_is_in_active_cell_group(neighbor_cell_index, active_cell_group_ID);
+
+
+            // Find corresponding subface
+            unsigned int neighbor_i_subface = 0;
+            unsigned int n_subface = dealii::GeometryInfo<dim>::n_subfaces(neighbor_cell->subface_case(neighbor_iface));
+
+            for (; neighbor_i_subface < n_subface; ++neighbor_i_subface) {
+                if (neighbor_cell->neighbor_child_on_subface (neighbor_iface, neighbor_i_subface) == current_cell) {
+                    break;
+                }
+            }
+            Assert(neighbor_i_subface != n_subface, dealii::ExcInternalError());
+
+            const int i_fele_n = neighbor_cell->active_fe_index();//, i_quad_n = i_fele_n, i_mapp_n = 0;
+
+            const unsigned int n_dofs_neigh_cell = fe_collection[i_fele_n].n_dofs_per_cell();
+            dealii::Vector<real> neighbor_cell_rhs (n_dofs_neigh_cell); // Defaults to 0.0 initialization
+            std::vector<dealii::Tensor<1,dim,double>> neighbor_cell_rhs_aux (n_dofs_neigh_cell ); // defaults to 0.0 initialization
+
+            // Obtain the mapping from local dof indices to global dof indices for neighbor cell
+            neighbor_dofs_indices.resize(n_dofs_neigh_cell);
+            neighbor_cell->get_dof_indices (neighbor_dofs_indices);
+
+            const real penalty1 = evaluate_penalty_scaling (current_cell, iface, fe_collection);
+            const real penalty2 = evaluate_penalty_scaling (neighbor_cell, neighbor_iface, fe_collection);
+            const real penalty = 0.5 * (penalty1 + penalty2);
+
+            const auto metric_neighbor_cell = current_metric_cell->neighbor(iface);
+            metric_neighbor_cell->get_dof_indices(neighbor_metric_dofs_indices);
+
+            const unsigned int poly_degree_ext = i_fele_n;
+            const unsigned int grid_degree_ext = this->high_order_grid->fe_system.tensor_degree();
+            //Check if the poly degree or mapping changed order, in which case, then we re-compute the corresponding basis
+            OPERATOR::metric_operators<real,dim,2*dim> metric_oper_ext(nstate, poly_degree_ext, grid_degree_ext,
+                                                               store_vol_flux_nodes,
+                                                               store_surf_flux_nodes);
+
+            if ( (current_cell_is_in_active_cell_group || neighbor_cell_is_in_active_cell_group) ) {
+                assemble_subface_term_and_build_operators(
+                    current_cell,
+                    neighbor_cell,
+                    current_cell_index,
+                    neighbor_cell_index,
+                    iface,
+                    neighbor_iface,
+                    neighbor_i_subface,
+                    penalty,
+                    current_dofs_indices,
+                    neighbor_dofs_indices,
+                    current_metric_dofs_indices,
+                    neighbor_metric_dofs_indices,
+                    poly_degree,
+                    poly_degree_ext,
+                    grid_degree,
+                    grid_degree_ext,
+                    soln_basis_int,
+                    soln_basis_ext,
+                    flux_basis_int,
+                    flux_basis_ext,
+                    flux_basis_stiffness,
+                    soln_basis_projection_oper_int,
+                    soln_basis_projection_oper_ext,
+                    metric_oper_int,
+                    metric_oper_ext,
+                    mapping_basis,
+                    mapping_support_points,
+                    fe_values_collection_face_int,
+                    fe_values_collection_subface,
+                    current_cell_rhs,
+                    neighbor_cell_rhs,
+                    current_cell_rhs_aux,
+                    neighbor_cell_rhs_aux,
+                    rhs,
+                    rhs_aux,
+                    compute_auxiliary_right_hand_side,
+                    compute_dRdW, compute_dRdX, compute_d2R);
+                if (neighbor_cell_is_in_active_cell_group) {
+                    // add local contribution from neighbor cell to global vector
+                    // if the neighbor cell is active.
+
+                    if (compute_auxiliary_right_hand_side){
+                        for (unsigned int i=0; i<n_dofs_neigh_cell; ++i) {
+                            for(int idim=0; idim<dim; idim++){
+                                rhs_aux[idim][neighbor_dofs_indices[i]] += neighbor_cell_rhs_aux[i][idim];
+                            }
+                        }
+                    }
+                    else{
+                        const unsigned int n_dofs_neigh_cell = this->fe_collection[neighbor_cell->active_fe_index()].n_dofs_per_cell();
+                        for (unsigned int i=0; i<n_dofs_neigh_cell; ++i) {
+                            rhs[neighbor_dofs_indices[i]] += neighbor_cell_rhs[i];
+                        }
+                    }
+                }
+            }
+        }
+        // CASE 5: NEIGHBOR CELL HAS SAME COARSENESS
+        // Therefore, we need to choose one of them to do the work
+        // The face term is assembled if one or both cells are in the active group.
+        else if (current_cell_should_do_the_work(current_cell, current_cell->neighbor(iface))) 
+        {
+    this->pcout << "Checkpoint CASE 5" << std::endl;
+    chkptid++;
+            Assert (current_cell->neighbor(iface).state() == dealii::IteratorState::valid, dealii::ExcInternalError());
+
+            const auto neighbor_cell = current_cell->neighbor_or_periodic_neighbor(iface);
+            // Corresponding face of the neighbor.
+            // e.g. The 4th face of the current cell might correspond to the 3rd face of the neighbor
+            const dealii::types::global_dof_index neighbor_cell_index = neighbor_cell->active_cell_index();
+            const unsigned int neighbor_iface = current_cell->neighbor_of_neighbor(iface);
+            const bool neighbor_cell_is_in_active_cell_group = cell_is_in_active_cell_group(neighbor_cell_index, active_cell_group_ID);
+
+            // Get information about neighbor cell
+            const unsigned int n_dofs_neigh_cell = fe_collection[neighbor_cell->active_fe_index()].n_dofs_per_cell();
+
+            // Local rhs contribution from neighbor
+            dealii::Vector<real> neighbor_cell_rhs (n_dofs_neigh_cell); // Defaults to 0.0 initialization
+            std::vector<dealii::Tensor<1,dim,double>> neighbor_cell_rhs_aux (n_dofs_neigh_cell ); // defaults to 0.0 initialization
+
+            // Obtain the mapping from local dof indices to global dof indices for neighbor cell
+            neighbor_dofs_indices.resize(n_dofs_neigh_cell);
+            neighbor_cell->get_dof_indices (neighbor_dofs_indices);
+
+            const int i_fele_n = neighbor_cell->active_fe_index();
+
+            // Compute penalty.
+            const real penalty1 = evaluate_penalty_scaling (current_cell, iface, fe_collection);
+            const real penalty2 = evaluate_penalty_scaling (neighbor_cell, neighbor_iface, fe_collection);
+            const real penalty = 0.5 * (penalty1 + penalty2);
+
+            const auto metric_neighbor_cell = current_metric_cell->neighbor_or_periodic_neighbor(iface);
+            metric_neighbor_cell->get_dof_indices(neighbor_metric_dofs_indices);
+
+            const unsigned int poly_degree_ext = i_fele_n;
+            // In future high_order_grids dof object/metric_cell should store the cell's fe degree.
+            // For now high_order_grid only handles all cells of same grid degree.
+            const unsigned int grid_degree_ext = this->high_order_grid->fe_system.tensor_degree();
+            //Check if the poly degree or mapping changed order, in which case, then we re-compute the corresponding basis
+            OPERATOR::metric_operators<real,dim,2*dim> metric_oper_ext(nstate, poly_degree_ext, grid_degree_ext,
+                                                               store_vol_flux_nodes,
+                                                               store_surf_flux_nodes);
+
+
+            if ( (current_cell_is_in_active_cell_group || neighbor_cell_is_in_active_cell_group) ) {
                 assemble_face_term_and_build_operators(
                     current_cell,
                     neighbor_cell,
@@ -654,180 +909,30 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
                     current_cell_rhs,
                     neighbor_cell_rhs,
                     current_cell_rhs_aux,
+                    neighbor_cell_rhs_aux,
                     rhs,
                     rhs_aux,
                     compute_auxiliary_right_hand_side,
                     compute_dRdW, compute_dRdX, compute_d2R);
-            }
-        }
-        // CASE 3: NEIGHBOUR IS FINER
-        // Occurs if the face has children
-        else if (current_cell->face(iface)->has_children()) 
-        {
-            // Do nothing.
-            // The face contribution from the current cell will appear then the finer neighbor cell is assembled.
-        }
-        // CASE 4: NEIGHBOR IS COARSER
-        // Assemble face residual.
-        else if (current_cell->neighbor(iface)->face(current_cell->neighbor_face_no(iface))->has_children()) 
-        {
-            Assert (current_cell->neighbor(iface).state() == dealii::IteratorState::valid, dealii::ExcInternalError());
-            Assert (!(current_cell->neighbor(iface)->has_children()), dealii::ExcInternalError());
+                if (neighbor_cell_is_in_active_cell_group) {
+                    // add local contribution from neighbor cell to global vector
+                    // if the neighbor cell is active.
 
-            // Obtain cell neighbour
-            const auto neighbor_cell = current_cell->neighbor(iface);
-            const unsigned int neighbor_iface = current_cell->neighbor_face_no(iface);
-
-            // Find corresponding subface
-            unsigned int neighbor_i_subface = 0;
-            unsigned int n_subface = dealii::GeometryInfo<dim>::n_subfaces(neighbor_cell->subface_case(neighbor_iface));
-
-            for (; neighbor_i_subface < n_subface; ++neighbor_i_subface) {
-                if (neighbor_cell->neighbor_child_on_subface (neighbor_iface, neighbor_i_subface) == current_cell) {
-                    break;
+                    if (compute_auxiliary_right_hand_side){
+                        for (unsigned int i=0; i<n_dofs_neigh_cell; ++i) {
+                            for(int idim=0; idim<dim; idim++){
+                                rhs_aux[idim][neighbor_dofs_indices[i]] += neighbor_cell_rhs_aux[i][idim];
+                            }
+                        }
+                    }
+                    else{
+                        const unsigned int n_dofs_neigh_cell = this->fe_collection[neighbor_cell->active_fe_index()].n_dofs_per_cell();
+                        for (unsigned int i=0; i<n_dofs_neigh_cell; ++i) {
+                            rhs[neighbor_dofs_indices[i]] += neighbor_cell_rhs[i];
+                        }
+                    }
                 }
             }
-            Assert(neighbor_i_subface != n_subface, dealii::ExcInternalError());
-
-            const int i_fele_n = neighbor_cell->active_fe_index();//, i_quad_n = i_fele_n, i_mapp_n = 0;
-
-            const unsigned int n_dofs_neigh_cell = fe_collection[i_fele_n].n_dofs_per_cell();
-            dealii::Vector<real> neighbor_cell_rhs (n_dofs_neigh_cell); // Defaults to 0.0 initialization
-
-            // Obtain the mapping from local dof indices to global dof indices for neighbor cell
-            neighbor_dofs_indices.resize(n_dofs_neigh_cell);
-            neighbor_cell->get_dof_indices (neighbor_dofs_indices);
-
-            const real penalty1 = evaluate_penalty_scaling (current_cell, iface, fe_collection);
-            const real penalty2 = evaluate_penalty_scaling (neighbor_cell, neighbor_iface, fe_collection);
-            const real penalty = 0.5 * (penalty1 + penalty2);
-
-            const dealii::types::global_dof_index neighbor_cell_index = neighbor_cell->active_cell_index();
-            const auto metric_neighbor_cell = current_metric_cell->neighbor(iface);
-            metric_neighbor_cell->get_dof_indices(neighbor_metric_dofs_indices);
-
-            const unsigned int poly_degree_ext = i_fele_n;
-            const unsigned int grid_degree_ext = this->high_order_grid->fe_system.tensor_degree();
-            //Check if the poly degree or mapping changed order, in which case, then we re-compute the corresponding basis
-            OPERATOR::metric_operators<real,dim,2*dim> metric_oper_ext(nstate, poly_degree_ext, grid_degree_ext,
-                                                               store_vol_flux_nodes,
-                                                               store_surf_flux_nodes);
-
-            assemble_subface_term_and_build_operators(
-                current_cell,
-                neighbor_cell,
-                current_cell_index,
-                neighbor_cell_index,
-                iface,
-                neighbor_iface,
-                neighbor_i_subface,
-                penalty,
-                current_dofs_indices,
-                neighbor_dofs_indices,
-                current_metric_dofs_indices,
-                neighbor_metric_dofs_indices,
-                poly_degree,
-                poly_degree_ext,
-                grid_degree,
-                grid_degree_ext,
-                soln_basis_int,
-                soln_basis_ext,
-                flux_basis_int,
-                flux_basis_ext,
-                flux_basis_stiffness,
-                soln_basis_projection_oper_int,
-                soln_basis_projection_oper_ext,
-                metric_oper_int,
-                metric_oper_ext,
-                mapping_basis,
-                mapping_support_points,
-                fe_values_collection_face_int,
-                fe_values_collection_subface,
-                current_cell_rhs,
-                neighbor_cell_rhs,
-                current_cell_rhs_aux,
-                rhs,
-                rhs_aux,
-                compute_auxiliary_right_hand_side,
-                compute_dRdW, compute_dRdX, compute_d2R);
-        }
-        // CASE 5: NEIGHBOR CELL HAS SAME COARSENESS
-        // Therefore, we need to choose one of them to do the work
-        else if (current_cell_should_do_the_work(current_cell, current_cell->neighbor(iface))) 
-        {
-            Assert (current_cell->neighbor(iface).state() == dealii::IteratorState::valid, dealii::ExcInternalError());
-
-            const auto neighbor_cell = current_cell->neighbor_or_periodic_neighbor(iface);
-            // Corresponding face of the neighbor.
-            // e.g. The 4th face of the current cell might correspond to the 3rd face of the neighbor
-            const unsigned int neighbor_iface = current_cell->neighbor_of_neighbor(iface);
-
-            // Get information about neighbor cell
-            const unsigned int n_dofs_neigh_cell = fe_collection[neighbor_cell->active_fe_index()].n_dofs_per_cell();
-
-            // Local rhs contribution from neighbor
-            dealii::Vector<real> neighbor_cell_rhs (n_dofs_neigh_cell); // Defaults to 0.0 initialization
-
-            // Obtain the mapping from local dof indices to global dof indices for neighbor cell
-            neighbor_dofs_indices.resize(n_dofs_neigh_cell);
-            neighbor_cell->get_dof_indices (neighbor_dofs_indices);
-
-            const int i_fele_n = neighbor_cell->active_fe_index();
-
-            // Compute penalty.
-            const real penalty1 = evaluate_penalty_scaling (current_cell, iface, fe_collection);
-            const real penalty2 = evaluate_penalty_scaling (neighbor_cell, neighbor_iface, fe_collection);
-            const real penalty = 0.5 * (penalty1 + penalty2);
-
-            const dealii::types::global_dof_index neighbor_cell_index = neighbor_cell->active_cell_index();
-            const auto metric_neighbor_cell = current_metric_cell->neighbor_or_periodic_neighbor(iface);
-            metric_neighbor_cell->get_dof_indices(neighbor_metric_dofs_indices);
-
-            const unsigned int poly_degree_ext = i_fele_n;
-            // In future high_order_grids dof object/metric_cell should store the cell's fe degree.
-            // For now high_order_grid only handles all cells of same grid degree.
-            const unsigned int grid_degree_ext = this->high_order_grid->fe_system.tensor_degree();
-            //Check if the poly degree or mapping changed order, in which case, then we re-compute the corresponding basis
-            OPERATOR::metric_operators<real,dim,2*dim> metric_oper_ext(nstate, poly_degree_ext, grid_degree_ext,
-                                                               store_vol_flux_nodes,
-                                                               store_surf_flux_nodes);
-
-            assemble_face_term_and_build_operators(
-                current_cell,
-                neighbor_cell,
-                current_cell_index,
-                neighbor_cell_index,
-                iface,
-                neighbor_iface,
-                penalty,
-                current_dofs_indices,
-                neighbor_dofs_indices,
-                current_metric_dofs_indices,
-                neighbor_metric_dofs_indices,
-                poly_degree,
-                poly_degree_ext,
-                grid_degree,
-                grid_degree_ext,
-                soln_basis_int,
-                soln_basis_ext,
-                flux_basis_int,
-                flux_basis_ext,
-                flux_basis_stiffness,
-                soln_basis_projection_oper_int,
-                soln_basis_projection_oper_ext,
-                metric_oper_int,
-                metric_oper_ext,
-                mapping_basis,
-                mapping_support_points,
-                fe_values_collection_face_int,
-                fe_values_collection_face_ext,
-                current_cell_rhs,
-                neighbor_cell_rhs,
-                current_cell_rhs_aux,
-                rhs,
-                rhs_aux,
-                compute_auxiliary_right_hand_side,
-                compute_dRdW, compute_dRdX, compute_d2R);
         } 
         else {
             // Should be faces where the neighbor cell has the same coarseness
@@ -835,6 +940,8 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
         }
     } // end of face loop
 
+    this->pcout << "Checkpoint end " << std::endl;
+    chkptid++;
     if(compute_auxiliary_right_hand_side) {
         // Add local contribution from current cell to global vector
         for (unsigned int i=0; i<n_dofs_curr_cell; ++i) {
@@ -844,6 +951,8 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
         }
     }
     else {
+    this->pcout << "Checkpoint add to RHS " << std::endl;
+    chkptid++;
         // Add local contribution from current cell to global vector
         for (unsigned int i=0; i<n_dofs_curr_cell; ++i) {
             rhs[current_dofs_indices[i]] += current_cell_rhs[i];
@@ -1088,8 +1197,10 @@ void DGBase<dim,real,MeshType>::reinit_operators_for_cell_residual_loop(
 }
 
 template <int dim, typename real, typename MeshType>
-void DGBase<dim,real,MeshType>::assemble_residual (const bool compute_dRdW, const bool compute_dRdX, const bool compute_d2R, const double CFL_mass, const int cell_group_ID)
+void DGBase<dim,real,MeshType>::assemble_residual (const bool compute_dRdW, const bool compute_dRdX, const bool compute_d2R, const double CFL_mass, const int active_cell_group_ID)
 {
+    this->pcout << "Other arguments: " << compute_dRdW << " " << compute_dRdX << " " << compute_d2R << " "<< CFL_mass << std::endl;
+    this->pcout <<"cell group ID: " << active_cell_group_ID << std::endl;
     dealii::deal_II_exceptions::disable_abort_on_exception(); // Allows us to catch negative Jacobians.
     Assert( !(compute_dRdW && compute_dRdX)
         &&  !(compute_dRdW && compute_d2R)
@@ -1244,22 +1355,34 @@ void DGBase<dim,real,MeshType>::assemble_residual (const bool compute_dRdW, cons
         if(all_parameters->pde_type == Parameters::AllParameters::PartialDifferentialEquation::physics_model) update_model_variables();
 
         // assembles and solves for auxiliary variable if necessary.
-        assemble_auxiliary_residual(cell_group_ID);
+        assemble_auxiliary_residual(active_cell_group_ID);
+
 
         dealii::Timer timer;
         if(all_parameters->store_residual_cpu_time){
             timer.start();
         }
 
+        this->pcout << "About to enter cell loop." << std::endl;
+
         auto metric_cell = high_order_grid->dof_handler_grid.begin_active();
         for (auto soln_cell = dof_handler.begin_active(); soln_cell != dof_handler.end(); ++soln_cell, ++metric_cell) {
-
-            int mpi_rank;
-            MPI_Comm_rank(MPI_COMM_WORLD, &mpi_rank);
-            if (!soln_cell->is_locally_owned() || !this->cell_is_in_active_cell_group(soln_cell->active_cell_index(), cell_group_ID)) {
+            this->pcout << "In cell loop." << std::endl;
+            //int n_dofs_in_cell = dof_handler.get_fe().n_dofs_per_cell();
+            if (!soln_cell->is_locally_owned()){
+/*
+                std::vector<dealii::types::global_dof_index> current_dofs_indices(n_dofs_in_cell);
+                for (auto soln_cell_print = this->dof_handler.begin_active(); soln_cell != this->dof_handler.end(); ++soln_cell, ++metric_cell) {
+                soln_cell_print->get_dof_indices(current_dofs_indices);
+                std::cout <<  soln_cell_print->active_cell_index()<< " " ;
+                for (int idof = 0; idof < n_dofs_in_cell; ++idof){
+                    std::cout << right_hand_side(current_dofs_indices[idof]) << " ";
+                }
+                } */
                 continue;
             }
 
+            this->pcout << "About to assemble cell residual." << std::endl << std::flush;
             assemble_cell_residual (
                 soln_cell,
                 metric_cell,
@@ -1279,7 +1402,18 @@ void DGBase<dim,real,MeshType>::assemble_residual (const bool compute_dRdW, cons
                 mapping_basis,
                 false,
                 right_hand_side,
-                auxiliary_right_hand_side);
+                auxiliary_right_hand_side,
+                active_cell_group_ID);
+            /*
+                std::vector<dealii::types::global_dof_index> current_dofs_indices(n_dofs_in_cell);
+                for (auto soln_cell_print = this->dof_handler.begin_active(); soln_cell != this->dof_handler.end(); ++soln_cell, ++metric_cell) {
+                soln_cell_print->get_dof_indices(current_dofs_indices);
+                std::cout <<  soln_cell_print->active_cell_index()<< " " ;
+                for (int idof = 0; idof < n_dofs_in_cell; ++idof){
+                    std::cout << right_hand_side(current_dofs_indices[idof]) << " ";
+                }
+                }
+*/
         } // end of cell loop
 
         if(all_parameters->store_residual_cpu_time){
@@ -1354,15 +1488,28 @@ void DGBase<dim,real,MeshType>::assemble_residual (const bool compute_dRdW, cons
 
 
 template <int dim, typename real, typename MeshType>
-bool DGBase<dim,real,MeshType>::cell_is_in_active_cell_group(const unsigned int cell_index, const int cell_group_ID) const {
+bool DGBase<dim,real,MeshType>::cell_is_in_active_cell_group(const unsigned int cell_index, const int active_cell_group_ID) const {
     // Performance note: This could possibly be made more efficient using indexset,
     // https://www.dealii.org/current/doxygen/deal.II/classIndexSet.html
     // However, performance testing on Narval did not suggest any significant slowdowns.
-    if (this->list_of_cell_group_IDs[cell_index] == cell_group_ID){
-        // do assemble residual
+    this->pcout << cell_index  << " " << this->list_of_cell_group_IDs[cell_index] << " "<<active_cell_group_ID << std::endl;
+
+    if (norm_list_of_cell_group_IDs){
+        // Nonzero norm means that some cells have an assigned group, so
+        // proceed to check whether the cell at cell_index is in the active group.
+        if (this->list_of_cell_group_IDs[cell_index] == active_cell_group_ID){
+            // do assemble residual
+            this->pcout << "RETURN TRUE here" << std::endl;
+            return true;
+        }else {
+            this->pcout << "RETURN FALSE" << std::endl;
+            return false;
+        }
+    }
+    else{
+        // Zero norm indicates that all cells are in the zero (default) group, so no check is needed.
+            this->pcout << "RETURN TRUE" << std::endl;
         return true;
-    }else {
-        return false;
     }
 }
 
@@ -1374,6 +1521,11 @@ void DGBase<dim,real,MeshType>::set_list_of_cell_group_IDs(const dealii::LinearA
     bool is_compatible = locations_to_be_changed.partitioners_are_compatible(*(this->list_of_cell_group_IDs.get_partitioner()));
     if (!(is_compatible)) {
         pcout << "ERROR: Size of locations_to_be_changed is not consistent. Aborting..." << std::endl;
+        std::abort();
+    }
+
+    if (this->all_parameters->use_weak_form) {
+        pcout << "ERROR: The cell group partitioning has not been verified for weak DG!! Aborting..." << std::endl;
         std::abort();
     }
 
@@ -1391,6 +1543,12 @@ void DGBase<dim,real,MeshType>::set_list_of_cell_group_IDs(const dealii::LinearA
     // Set the cell_group_ID at the given location to the group_ID by adding
     // group_ID_to_set * locations_to_be_changed
     this->list_of_cell_group_IDs.add(group_ID_to_set,locations_to_be_changed);
+
+    for (unsigned int i = 0; i < list_of_cell_group_IDs.size(); ++i){
+        this->pcout << this->list_of_cell_group_IDs[i] << std::endl;
+    }
+
+    this->norm_list_of_cell_group_IDs = list_of_cell_group_IDs.l1_norm();
 
 }
 
@@ -1942,7 +2100,7 @@ void DGBase<dim,real,MeshType>::allocate_system (
     max_dt_cell.reinit(triangulation->n_active_cells());
     cell_volume.reinit(triangulation->n_active_cells());
 
-    if (list_of_cell_group_IDs.size() > 0 && list_of_cell_group_IDs.l2_norm()>0){
+    if (list_of_cell_group_IDs.size() > 0 && norm_list_of_cell_group_IDs>0){
         // Enter this loop if DG is reinitialized during mesh adaptation
         this->pcout << "ERROR: Cell group IDs are not currently compatible with mesh adaptation. Aborting..." << std::endl;
         std::abort();
@@ -3119,7 +3277,8 @@ DGBase<PHILIP_DIM,double,dealii::Triangulation<PHILIP_DIM>>::assemble_cell_resid
     OPERATOR::mapping_shape_functions<PHILIP_DIM,2*PHILIP_DIM,double> &mapping_basis,
     const bool compute_auxiliary_right_hand_side,
     dealii::LinearAlgebra::distributed::Vector<double> &rhs,
-    std::array<dealii::LinearAlgebra::distributed::Vector<double>,PHILIP_DIM> &rhs_aux);
+    std::array<dealii::LinearAlgebra::distributed::Vector<double>,PHILIP_DIM> &rhs_aux,
+    const int active_cell_group_ID);
 
 template void
 DGBase<PHILIP_DIM,double,dealii::parallel::distributed::Triangulation<PHILIP_DIM>>::assemble_cell_residual<dealii::TriaActiveIterator<dealii::DoFCellAccessor<PHILIP_DIM, PHILIP_DIM, false>>,dealii::TriaActiveIterator<dealii::DoFCellAccessor<PHILIP_DIM, PHILIP_DIM, false>>>(
@@ -3141,7 +3300,8 @@ DGBase<PHILIP_DIM,double,dealii::parallel::distributed::Triangulation<PHILIP_DIM
     OPERATOR::mapping_shape_functions<PHILIP_DIM,2*PHILIP_DIM,double> &mapping_basis,
     const bool compute_auxiliary_right_hand_side,
     dealii::LinearAlgebra::distributed::Vector<double> &rhs,
-    std::array<dealii::LinearAlgebra::distributed::Vector<double>,PHILIP_DIM> &rhs_aux);
+    std::array<dealii::LinearAlgebra::distributed::Vector<double>,PHILIP_DIM> &rhs_aux,
+    const int active_cell_group_ID);
 
 template void
 DGBase<PHILIP_DIM,double,dealii::parallel::shared::Triangulation<PHILIP_DIM>>::assemble_cell_residual<dealii::TriaActiveIterator<dealii::DoFCellAccessor<PHILIP_DIM, PHILIP_DIM, false>>,dealii::TriaActiveIterator<dealii::DoFCellAccessor<PHILIP_DIM, PHILIP_DIM, false>>>(
@@ -3163,5 +3323,6 @@ DGBase<PHILIP_DIM,double,dealii::parallel::shared::Triangulation<PHILIP_DIM>>::a
     OPERATOR::mapping_shape_functions<PHILIP_DIM,2*PHILIP_DIM,double> &mapping_basis,
     const bool compute_auxiliary_right_hand_side,
     dealii::LinearAlgebra::distributed::Vector<double> &rhs,
-    std::array<dealii::LinearAlgebra::distributed::Vector<double>,PHILIP_DIM> &rhs_aux);
+    std::array<dealii::LinearAlgebra::distributed::Vector<double>,PHILIP_DIM> &rhs_aux,
+    const int active_cell_group_ID);
 } // PHiLiP namespace

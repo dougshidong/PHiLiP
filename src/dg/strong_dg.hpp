@@ -33,11 +33,11 @@ public:
      *  Quaegebeur, Nadarajah, Navah and Zwanenburg 2019: Stability of Energy Stable Flux 
      *                Reconstruction for the Diffusion Problem Using Compact Numerical Fluxes
      *
-     * The residual is only assembled for the indicated cell_group_ID.
-     * If nothing is passed for cell_group_ID, AND no group_IDs have been set,
+     * The residual is only assembled for the indicated active_cell_group_ID.
+     * If nothing is passed for active_cell_group_ID, AND no group_IDs have been set,
      * the default behaviour is to assemble the residual everywhere.
      */
-    void assemble_auxiliary_residual (const unsigned int cell_group_ID=0);
+    void assemble_auxiliary_residual (const int active_cell_group_ID=0);
 
     /// Allocate the dual vector for optimization.
     void allocate_dual_vector ();
@@ -134,6 +134,7 @@ protected:
         dealii::Vector<real>                                   &current_cell_rhs,
         dealii::Vector<real>                                   &neighbor_cell_rhs,
         std::vector<dealii::Tensor<1,dim,real>>                &current_cell_rhs_aux,
+        std::vector<dealii::Tensor<1,dim,real>>                &neighbor_cell_rhs_aux,
         dealii::LinearAlgebra::distributed::Vector<double>     &rhs,
         std::array<dealii::LinearAlgebra::distributed::Vector<double>,dim> &rhs_aux,
         const bool                                             compute_auxiliary_right_hand_side,
@@ -175,6 +176,7 @@ protected:
         dealii::Vector<real>                                   &current_cell_rhs,
         dealii::Vector<real>                                   &neighbor_cell_rhs,
         std::vector<dealii::Tensor<1,dim,real>>                &current_cell_rhs_aux,
+        std::vector<dealii::Tensor<1,dim,real>>                &neighbor_cell_rhs_aux,
         dealii::LinearAlgebra::distributed::Vector<double>     &rhs,
         std::array<dealii::LinearAlgebra::distributed::Vector<double>,dim> &rhs_aux,
         const bool                                             compute_auxiliary_right_hand_side,

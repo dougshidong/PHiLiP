@@ -113,6 +113,7 @@ private:
         dealii::Vector<real>                                   &current_cell_rhs,
         dealii::Vector<real>                                   &neighbor_cell_rhs,
         std::vector<dealii::Tensor<1,dim,real>>                &/*current_cell_rhs_aux*/,
+        std::vector<dealii::Tensor<1,dim,real>>                &/*neighbor_cell_rhs_aux*/,
         dealii::LinearAlgebra::distributed::Vector<double>     &rhs,
         std::array<dealii::LinearAlgebra::distributed::Vector<double>,dim> &/*rhs_aux*/,
         const bool                                             /*compute_auxiliary_right_hand_side*/,
@@ -152,13 +153,14 @@ private:
         dealii::Vector<real>                                   &current_cell_rhs,
         dealii::Vector<real>                                   &neighbor_cell_rhs,
         std::vector<dealii::Tensor<1,dim,real>>                &/*current_cell_rhs_aux*/,
+        std::vector<dealii::Tensor<1,dim,real>>                &/*neighbor_cell_rhs_aux*/,
         dealii::LinearAlgebra::distributed::Vector<double>     &rhs,
         std::array<dealii::LinearAlgebra::distributed::Vector<double>,dim> &/*rhs_aux*/,
         const bool                                             /*compute_auxiliary_right_hand_side*/,
         const bool compute_dRdW, const bool compute_dRdX, const bool compute_d2R);
 
     /// Assembles the auxiliary equations' residuals and solves for the auxiliary variables.
-    void assemble_auxiliary_residual (const unsigned int cell_group_ID=0);
+    void assemble_auxiliary_residual (const int cell_group_ID=0);
 
     /// Allocate the dual vector for optimization.
     void allocate_dual_vector ();

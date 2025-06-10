@@ -185,7 +185,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_boundary_term_and_build_operat
 template <int dim, int nstate, typename real, typename MeshType>
 void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_and_build_operators(
     typename dealii::DoFHandler<dim>::active_cell_iterator /*cell*/,
-    typename dealii::DoFHandler<dim>::active_cell_iterator neighbor_cell,
+    typename dealii::DoFHandler<dim>::active_cell_iterator /*neighbor_cell*/,
     const dealii::types::global_dof_index                  current_cell_index,
     const dealii::types::global_dof_index                  neighbor_cell_index,
     const unsigned int                                     iface,
@@ -215,8 +215,9 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_and_build_operators(
     dealii::Vector<real>                                   &current_cell_rhs,
     dealii::Vector<real>                                   &neighbor_cell_rhs,
     std::vector<dealii::Tensor<1,dim,real>>                &current_cell_rhs_aux,
-    dealii::LinearAlgebra::distributed::Vector<double>     &rhs,
-    std::array<dealii::LinearAlgebra::distributed::Vector<double>,dim> &rhs_aux,
+    std::vector<dealii::Tensor<1,dim,real>>                &neighbor_cell_rhs_aux,
+    dealii::LinearAlgebra::distributed::Vector<double>     &/*rhs*/,
+    std::array<dealii::LinearAlgebra::distributed::Vector<double>,dim> &/*rhs_aux*/,
     const bool                                             compute_auxiliary_right_hand_side,
     const bool /*compute_dRdW*/, const bool /*compute_dRdX*/, const bool /*compute_d2R*/)
 {
@@ -270,8 +271,8 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_and_build_operators(
     }
 
     if(compute_auxiliary_right_hand_side){
-        const unsigned int n_dofs_neigh_cell = this->fe_collection[neighbor_cell->active_fe_index()].n_dofs_per_cell();
-        std::vector<dealii::Tensor<1,dim,double>> neighbor_cell_rhs_aux (n_dofs_neigh_cell ); // defaults to 0.0 initialization
+        //const unsigned int n_dofs_neigh_cell = this->fe_collection[neighbor_cell->active_fe_index()].n_dofs_per_cell();
+        //std::vector<dealii::Tensor<1,dim,double>> neighbor_cell_rhs_aux (n_dofs_neigh_cell ); // defaults to 0.0 initialization
         assemble_face_term_auxiliary_equation (
             iface, neighbor_iface, 
             current_cell_index, neighbor_cell_index,
@@ -280,12 +281,14 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_and_build_operators(
             soln_basis_int, soln_basis_ext,
             metric_oper_int,
             current_cell_rhs_aux, neighbor_cell_rhs_aux);
+        /*
         // add local contribution from neighbor cell to global vector
         for (unsigned int i=0; i<n_dofs_neigh_cell; ++i) {
             for(int idim=0; idim<dim; idim++){
                 rhs_aux[idim][neighbor_dofs_indices[i]] += neighbor_cell_rhs_aux[i][idim];
             }
         }
+        */
     }
     else{
         assemble_face_term_strong (
@@ -300,11 +303,14 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_and_build_operators(
             soln_basis_projection_oper_int, soln_basis_projection_oper_ext,
             metric_oper_int, metric_oper_ext,
             current_cell_rhs, neighbor_cell_rhs);
+        /*
         // add local contribution from neighbor cell to global vector
         const unsigned int n_dofs_neigh_cell = this->fe_collection[neighbor_cell->active_fe_index()].n_dofs_per_cell();
         for (unsigned int i=0; i<n_dofs_neigh_cell; ++i) {
             rhs[neighbor_dofs_indices[i]] += neighbor_cell_rhs[i];
         }
+        */
+
     }
 
 }
@@ -343,6 +349,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_subface_term_and_build_operato
     dealii::Vector<real>                                   &current_cell_rhs,
     dealii::Vector<real>                                   &neighbor_cell_rhs,
     std::vector<dealii::Tensor<1,dim,real>>                &current_cell_rhs_aux,
+    std::vector<dealii::Tensor<1,dim,real>>                &neighbor_cell_rhs_aux,
     dealii::LinearAlgebra::distributed::Vector<double>     &rhs,
     std::array<dealii::LinearAlgebra::distributed::Vector<double>,dim> &rhs_aux,
     const bool                                             compute_auxiliary_right_hand_side,
@@ -380,6 +387,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_subface_term_and_build_operato
         current_cell_rhs,
         neighbor_cell_rhs,
         current_cell_rhs_aux,
+        neighbor_cell_rhs_aux,
         rhs,
         rhs_aux,
         compute_auxiliary_right_hand_side,
@@ -395,7 +403,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_subface_term_and_build_operato
  *******************************************************************/
 
 template <int dim, int nstate, typename real, typename MeshType>
-void DGStrong<dim,nstate,real,MeshType>::assemble_auxiliary_residual(const unsigned int cell_group_ID)
+void DGStrong<dim,nstate,real,MeshType>::assemble_auxiliary_residual(const int active_cell_group_ID)
 {
     using PDE_enum = Parameters::AllParameters::PartialDifferentialEquation;
     using ODE_enum = Parameters::ODESolverParam::ODESolverEnum;
@@ -443,7 +451,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_auxiliary_residual(const unsig
         //loop over cells solving for auxiliary rhs
         auto metric_cell = this->high_order_grid->dof_handler_grid.begin_active();
         for (auto soln_cell = this->dof_handler.begin_active(); soln_cell != this->dof_handler.end(); ++soln_cell, ++metric_cell) {
-            if (!soln_cell->is_locally_owned() || !this->cell_is_in_active_cell_group(soln_cell->active_cell_index(), cell_group_ID)) continue;
+            if (!soln_cell->is_locally_owned()) continue;
 
             this->assemble_cell_residual (
                 soln_cell,
@@ -464,7 +472,8 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_auxiliary_residual(const unsig
                 mapping_basis,
                 true,
                 this->right_hand_side,
-                this->auxiliary_right_hand_side);
+                this->auxiliary_right_hand_side,
+                active_cell_group_ID);
         } // end of cell loop
 
         for(int idim=0; idim<dim; idim++){

@@ -26,7 +26,7 @@ public:
     int run_test () const override;
 
     /// Reinitialize parameters
-    Parameters::AllParameters reinitParams(RowVector2d parameter) const;
+    Parameters::AllParameters reinit_params(RowVector2d parameter) const;
 
     /// Parameter handler for storing the .prm file being ran
     const dealii::ParameterHandler &parameter_handler;

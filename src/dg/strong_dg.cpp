@@ -271,8 +271,6 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_and_build_operators(
     }
 
     if(compute_auxiliary_right_hand_side){
-        //const unsigned int n_dofs_neigh_cell = this->fe_collection[neighbor_cell->active_fe_index()].n_dofs_per_cell();
-        //std::vector<dealii::Tensor<1,dim,double>> neighbor_cell_rhs_aux (n_dofs_neigh_cell ); // defaults to 0.0 initialization
         assemble_face_term_auxiliary_equation (
             iface, neighbor_iface, 
             current_cell_index, neighbor_cell_index,
@@ -281,14 +279,6 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_and_build_operators(
             soln_basis_int, soln_basis_ext,
             metric_oper_int,
             current_cell_rhs_aux, neighbor_cell_rhs_aux);
-        /*
-        // add local contribution from neighbor cell to global vector
-        for (unsigned int i=0; i<n_dofs_neigh_cell; ++i) {
-            for(int idim=0; idim<dim; idim++){
-                rhs_aux[idim][neighbor_dofs_indices[i]] += neighbor_cell_rhs_aux[i][idim];
-            }
-        }
-        */
     }
     else{
         assemble_face_term_strong (
@@ -303,13 +293,6 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_and_build_operators(
             soln_basis_projection_oper_int, soln_basis_projection_oper_ext,
             metric_oper_int, metric_oper_ext,
             current_cell_rhs, neighbor_cell_rhs);
-        /*
-        // add local contribution from neighbor cell to global vector
-        const unsigned int n_dofs_neigh_cell = this->fe_collection[neighbor_cell->active_fe_index()].n_dofs_per_cell();
-        for (unsigned int i=0; i<n_dofs_neigh_cell; ++i) {
-            rhs[neighbor_dofs_indices[i]] += neighbor_cell_rhs[i];
-        }
-        */
 
     }
 
@@ -355,9 +338,6 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_subface_term_and_build_operato
     const bool                                             compute_auxiliary_right_hand_side,
     const bool compute_dRdW, const bool compute_dRdX, const bool compute_d2R)
 {
-    this->pcout << neighbor_cell_rhs(0) << std::endl;
-    this->pcout << neighbor_cell_rhs_aux[0][0] << std::endl;
-
     assemble_face_term_and_build_operators(
         cell,
         neighbor_cell,

@@ -3906,13 +3906,6 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_subface_term_and_build_operators
         current_dofs_indices, neighbor_dofs_indices,
         current_cell_rhs, neighbor_cell_rhs,
         compute_dRdW, compute_dRdX, compute_d2R);
-/*
-    // Add local contribution from neighbor cell to global vector
-    const unsigned int n_dofs_neigh_cell = this->fe_collection[neighbor_cell->active_fe_index()].n_dofs_per_cell();
-    for (unsigned int i=0; i<n_dofs_neigh_cell; ++i) {
-        rhs[neighbor_dofs_indices[i]] += neighbor_cell_rhs[i];
-    }
-*/
 }
 
 template <int dim, int nstate, typename real, typename MeshType>

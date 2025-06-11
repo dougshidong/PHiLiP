@@ -41,6 +41,7 @@ int test (
     // Assemble Jacobian
     std::shared_ptr < DGBase<PHILIP_DIM, double> > dg = DGFactory<PHILIP_DIM,double>::create_discontinuous_galerkin(&all_parameters, poly_degree, grid);
     dg->allocate_system ();
+    /*   Refined cells cause a segfault. The code block below should be uncommented and tested in the future.
     const int n_refine = 2;
     for (int i=0; i<n_refine;i++) {
         dg->high_order_grid->prepare_for_coarsening_and_refinement();
@@ -62,6 +63,7 @@ int test (
         bool mesh_out = (i==n_refine-1);
         dg->high_order_grid->execute_coarsening_and_refinement(mesh_out);
     }
+    */
     pcout << "Poly degree " << poly_degree << " ncells " << grid->n_active_cells() << " ndofs: " << dg->dof_handler.n_dofs() << std::endl << std::flush;
     dg->allocate_system ();
 

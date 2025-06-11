@@ -559,9 +559,11 @@ public:
      * 4. Neighbor is coarser. Therefore, the current cell is the finer one.
      * Do nothing since this cell will be taken care of by scenario 2.
      *
+     * The residual is only assembled for the indicated cell_group_ID.
+     *
      */
     //void assemble_residual_dRdW ();
-    void assemble_residual (const bool compute_dRdW=false, const bool compute_dRdX=false, const bool compute_d2R=false, const double CFL_mass = 0.0);
+    void assemble_residual (const bool compute_dRdW=false, const bool compute_dRdX=false, const bool compute_d2R=false, const double CFL_mass = 0.0, const int cell_group_ID = 0);
 
     /// Used in assemble_residual().
     /** IMPORTANT: This does not fully compute the cell residual since it might not
@@ -589,6 +591,31 @@ public:
         const bool                                                         compute_auxiliary_right_hand_side,//flag on whether computing the Auxiliary variable's equations' residuals
         dealii::LinearAlgebra::distributed::Vector<double>                 &rhs,
         std::array<dealii::LinearAlgebra::distributed::Vector<double>,dim> &rhs_aux);
+
+    /// Function to determine whether the residual should be assembled in a given cell
+    /** Returns true if the current cell belongs to cell_group_ID
+     *  If the cell is not in that group, return false.
+     */
+    bool do_assemble_in_this_cell(const unsigned int cell_index, const int cell_group_ID) const;
+
+protected:
+    /// List of the group ID of each cell.
+    /** This is used to determine whether the residual will be evaluated.
+     *  By default, this is a list of zeroes, indicating that all cells are evaluated together.
+     *  The group IDs are intended to be used with hyperreduced order models
+     *  or partitioned Runge-Kutta.
+     */
+    dealii::LinearAlgebra::distributed::Vector<int> list_of_cell_group_IDs;
+public:
+
+    ///Setter for list_of_cell_group_IDs
+    /** Useage: pass a vector of the same size as the list_of_cell_group_IDs
+     *  where 1 indicates that that cell should be assigned the indicated
+     *  group_ID
+     */
+    void set_list_of_cell_group_IDs(const dealii::LinearAlgebra::distributed::Vector<int> &locations, const int group_ID);
+
+public:
 
     /// Finite Element Collection for p-finite-element to represent the solution
     /** This is a collection of FESystems */
@@ -880,7 +907,7 @@ public:
     void allocate_auxiliary_equation ();
 
     /// Asembles the auxiliary equations' residuals and solves.
-    virtual void assemble_auxiliary_residual () = 0;
+    virtual void assemble_auxiliary_residual (const unsigned int cell_group_ID=0) = 0;
 
     /// Allocate the dual vector for optimization.
     /** Currently only used in weak form.

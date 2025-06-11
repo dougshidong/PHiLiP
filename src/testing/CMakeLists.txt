@@ -31,6 +31,7 @@ set(TESTS_SOURCE
     rom_import_helper_functions.cpp
     time_refinement_study.cpp
     time_refinement_study_reference.cpp
+    assemble_residual_on_subset_temporal_OOA.cpp
     h_refinement_study_isentropic_vortex.cpp
     rrk_numerical_entropy_conservation_check.cpp
     euler_entropy_conserving_split_forms_check.cpp

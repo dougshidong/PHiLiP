@@ -1088,7 +1088,7 @@ void DGBase<dim,real,MeshType>::reinit_operators_for_cell_residual_loop(
 }
 
 template <int dim, typename real, typename MeshType>
-void DGBase<dim,real,MeshType>::assemble_residual (const bool compute_dRdW, const bool compute_dRdX, const bool compute_d2R, const double CFL_mass)
+void DGBase<dim,real,MeshType>::assemble_residual (const bool compute_dRdW, const bool compute_dRdX, const bool compute_d2R, const double CFL_mass, const int cell_group_ID)
 {
     dealii::deal_II_exceptions::disable_abort_on_exception(); // Allows us to catch negative Jacobians.
     Assert( !(compute_dRdW && compute_dRdX)
@@ -1244,7 +1244,7 @@ void DGBase<dim,real,MeshType>::assemble_residual (const bool compute_dRdW, cons
         if(all_parameters->pde_type == Parameters::AllParameters::PartialDifferentialEquation::physics_model) update_model_variables();
 
         // assembles and solves for auxiliary variable if necessary.
-        assemble_auxiliary_residual();
+        assemble_auxiliary_residual(cell_group_ID);
 
         dealii::Timer timer;
         if(all_parameters->store_residual_cpu_time){
@@ -1253,7 +1253,18 @@ void DGBase<dim,real,MeshType>::assemble_residual (const bool compute_dRdW, cons
 
         auto metric_cell = high_order_grid->dof_handler_grid.begin_active();
         for (auto soln_cell = dof_handler.begin_active(); soln_cell != dof_handler.end(); ++soln_cell, ++metric_cell) {
-            if (!soln_cell->is_locally_owned()) continue;
+
+            int mpi_rank;
+            MPI_Comm_rank(MPI_COMM_WORLD, &mpi_rank);
+            //std::cout << "mpi rank" <<  mpi_rank << std::endl;
+            //std::cout << "Attempting to assemble cell " << soln_cell->active_cell_index() << std::endl;
+
+            //std::cout << "Is locally owned? " << soln_cell->is_locally_owned() << " Is in cell_group_ID? " << this->do_assemble_in_this_cell(soln_cell->active_fe_index(), cell_group_ID) << std::endl;
+            if (!soln_cell->is_locally_owned() || !this->do_assemble_in_this_cell(soln_cell->active_cell_index(), cell_group_ID)) {
+                //std::cout << "Not assembling cell residual on this cell." << std::endl;
+                continue;
+            }
+            //std::cout << "Beginning assemble_cell_residual..." << std::endl;
 
             // Add right-hand side contributions this cell can compute
             assemble_cell_residual (
@@ -1347,6 +1358,48 @@ void DGBase<dim,real,MeshType>::assemble_residual (const bool compute_dRdW, cons
     //system_matrix.print(std::cout);
 
 } // end of assemble_system_explicit ()
+
+
+template <int dim, typename real, typename MeshType>
+bool DGBase<dim,real,MeshType>::do_assemble_in_this_cell(const unsigned int cell_index, const int cell_group_ID) const {
+    if (this->list_of_cell_group_IDs[cell_index] == cell_group_ID){
+        // do assemble residual
+        //
+        //std::cout << "Assembling residual cell index " << cell_index << "With group ID " << cell_group_ID << std::endl;
+        return true;
+    }else {
+        //std::cout << "NOT assembling residual cell index " << cell_index << std::endl;
+        return false;
+    }
+}
+
+
+template <int dim, typename real, typename MeshType>
+void DGBase<dim,real,MeshType>::set_list_of_cell_group_IDs(const dealii::LinearAlgebra::distributed::Vector<int> &locations_to_be_changed, const int group_ID_to_set) {
+    // Pass bool-like vector locations_to_be_changed : 1 where we want to apply the new group ID and 0 where we want to keep the old one
+
+    // The following lines are left commented as they may be useful for debugging
+    // bool is_compatible = locations_to_be_changed.partitioners_are_compatible(*(this->list_of_cell_group_IDs.get_partitioner()));
+    // this->pcout << "Compatible? " << is_compatible << std::endl;
+
+
+    // Using only deal.ii vector operations herein to take advantage of their optimizations
+    // Set the cell_group_ID at the given location to zero without changing existing values
+    
+    // The next lines find !(locations_to_be_changed)
+    //
+    dealii::LinearAlgebra::distributed::Vector<int> locations_NOT_to_be_changed((locations_to_be_changed));
+    locations_NOT_to_be_changed.add(-1);
+    locations_NOT_to_be_changed*=-1;
+
+    // Next line will set the group_ID value at locations_to_be_changed to zero
+    this->list_of_cell_group_IDs.scale(locations_NOT_to_be_changed);
+
+    // Set the cell_group_ID at the given location to the group_ID by adding
+    // group_ID_to_set * locations_to_be_changed
+    this->list_of_cell_group_IDs.add(group_ID_to_set,locations_to_be_changed);
+
+}
 
 template <int dim, typename real, typename MeshType>
 double DGBase<dim,real,MeshType>::get_residual_linfnorm () const
@@ -1895,6 +1948,14 @@ void DGBase<dim,real,MeshType>::allocate_system (
     
     max_dt_cell.reinit(triangulation->n_active_cells());
     cell_volume.reinit(triangulation->n_active_cells());
+
+    // Unsure whether this should be n_active_cells() or n_global_active_cells()
+    if (list_of_cell_group_IDs.size() > 0 && list_of_cell_group_IDs.l2_norm()>0){
+        // Enter this loop if DG is reinitialized during mesh adaptation
+        this->pcout << "ERROR: Cell group IDs are not currently compatible with mesh adaptation. Aborting..." << std::endl;
+        std::abort();
+    }
+    list_of_cell_group_IDs.reinit(triangulation->n_active_cells());
 
     // allocates model variables only if there is a model
     if(all_parameters->pde_type == Parameters::AllParameters::PartialDifferentialEquation::physics_model) allocate_model_variables();

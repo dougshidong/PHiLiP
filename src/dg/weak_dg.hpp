@@ -158,7 +158,7 @@ private:
         const bool compute_dRdW, const bool compute_dRdX, const bool compute_d2R);
 
     /// Assembles the auxiliary equations' residuals and solves for the auxiliary variables.
-    void assemble_auxiliary_residual ();
+    void assemble_auxiliary_residual (const unsigned int cell_group_ID=0);
 
     /// Allocate the dual vector for optimization.
     void allocate_dual_vector ();

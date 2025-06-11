@@ -42,7 +42,13 @@ void ROMTestLocation<dim, nstate>::compute_initial_rom_to_final_rom_error(std::s
     Epetra_CrsMatrix epetra_petrov_galerkin_basis(Epetra_DataAccess::Copy, epetra_system_matrix_transpose.DomainMap(), pod_updated->getPODBasis()->n());
     EpetraExt::MatrixMatrix::Multiply(epetra_system_matrix_transpose, true, epetra_pod_basis, false, epetra_petrov_galerkin_basis, true);
 
-    Epetra_Vector epetra_gradient(Epetra_DataAccess::Copy, epetra_pod_basis.RowMap(), const_cast<double *>(this->rom_solution->gradient.begin()));
+    Epetra_Vector epetra_gradient(epetra_pod_basis.RowMap());
+
+    // Iterate over local indices and copy manually
+    for (unsigned int i = 0; i < this->rom_solution->gradient.local_size(); ++i){
+        epetra_gradient.ReplaceMyValue(static_cast<int>(i), 0, this->rom_solution->gradient.local_element(i));
+    }
+    
     Epetra_Vector epetra_reduced_gradient(epetra_pod_basis.DomainMap());
 
     epetra_pod_basis.Multiply(true, epetra_gradient, epetra_reduced_gradient);

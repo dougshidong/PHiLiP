@@ -92,16 +92,18 @@ Epetra_CrsMatrix transpose_matrix_on_single_core(const Epetra_CrsMatrix &A, cons
   const Epetra_Map& colMap = A.ColMap();
   const int numMyRows = A.NumMyRows();
   
+  const int max_num_elements_in_rows = A.Graph().GlobalMaxNumIndices();
+  std::vector<double> values(max_num_elements_in_rows);
+  std::vector<int> indices(max_num_elements_in_rows);
+  
   std::shared_ptr<Epetra_CrsMatrix> A_ptr;
   if (is_input_A_matrix_transposed) {
     // Transpose mmatrix
     Epetra_CrsMatrix A_trans(Epetra_DataAccess::Copy, A.ColMap(), A.NumGlobalRows());
     for (int i = 0; i < numMyRows; ++i) {
       int numEntries;
-      double* values;
-      int* indices;
 
-      A.ExtractMyRowView(i, numEntries, values, indices);
+      A.ExtractMyRowCopy(i, max_num_elements_in_rows, numEntries, values.data(), indices.data());
 
       int globalRow = rowMap.GID(i);
       for (int j = 0; j < numEntries; ++j) {

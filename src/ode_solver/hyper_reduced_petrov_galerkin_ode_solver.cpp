@@ -427,7 +427,7 @@ std::shared_ptr<Epetra_Vector> HyperReducedODESolver<dim,real,MeshType>::generat
     Epetra_BlockMap element_map = ECSW_weights.Map();
     const unsigned int max_dofs_per_cell = this->dg->dof_handler.get_fe_collection().max_dofs_per_cell();
     std::vector<dealii::types::global_dof_index> current_dofs_indices(max_dofs_per_cell);
-    Epetra_Vector local_rhs = allocateVectorToSingleCore(epetra_right_hand_side);
+    Epetra_Vector local_rhs = copy_vector_to_all_cores(epetra_right_hand_side);
     Epetra_CrsMatrix local_test_basis = copy_matrix_to_all_cores(test_basis);
 
     // Loop through elements
@@ -494,23 +494,6 @@ std::shared_ptr<Epetra_CrsMatrix> HyperReducedODESolver<dim,real,MeshType>::gene
     EpetraExt::MatrixMatrix::Multiply(test_basis, true, test_basis, false, epetra_reduced_lhs);
 
     return std::make_shared<Epetra_CrsMatrix>(epetra_reduced_lhs);
-}
-
-template <int dim, typename real, typename MeshType>
-Epetra_Vector HyperReducedODESolver<dim,real,MeshType>::allocateVectorToSingleCore(const Epetra_Vector &b){
-    // Gather Vector Information
-    const Epetra_SerialComm sComm;
-    const int b_size = b.GlobalLength();
-    // Create new map for one core and gather old map
-    Epetra_Map single_core_b (b_size, b_size, 0, sComm);
-    Epetra_BlockMap old_map_b = b.Map();
-    // Create Epetra_importer object
-    Epetra_Import b_importer(single_core_b, old_map_b);
-    // Create new b vector
-    Epetra_Vector b_temp (single_core_b); 
-    // Load the data from vector b (Multi core) into b_temp (Single core)
-    b_temp.Import(b, b_importer, Epetra_CombineMode::Insert);
-    return b_temp;
 }
 
 template class HyperReducedODESolver<PHILIP_DIM, double, dealii::Triangulation<PHILIP_DIM>>;

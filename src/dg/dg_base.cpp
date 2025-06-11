@@ -523,10 +523,7 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
 
     const bool current_cell_is_in_active_cell_group = cell_is_in_active_cell_group(current_cell_index,active_cell_group_ID);
 
-    int chkptid = 0;
-    this->pcout << "Checkpoint enter assemble_cell_residual at index " << current_cell_index << std::endl << std::flush; 
     if (current_cell_is_in_active_cell_group) {
-    this->pcout << "Checkpoint about to assemble vol residual" << std::endl << std::flush;
         // Assemble the volume term if the current cell is active.
         assemble_volume_term_and_build_operators(
             current_cell,
@@ -556,8 +553,6 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
     (void) fe_values_collection_face_ext;
     (void) fe_values_collection_subface;
     for (unsigned int iface=0; iface < dealii::GeometryInfo<dim>::faces_per_cell; ++iface) {
-    this->pcout << "Checkpoint face " << iface << std::endl;
-    chkptid++;
 
         auto current_face = current_cell->face(iface);
 
@@ -565,7 +560,6 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
         // Assemble if cell is in the active group
         if ((current_face->at_boundary() && !current_cell->has_periodic_neighbor(iface)))
         {
-    this->pcout << "Checkpoint case 1" << std::endl;
             const real penalty = evaluate_penalty_scaling (current_cell, iface, fe_collection);
 
             const unsigned int boundary_id = current_face->boundary_id();
@@ -603,8 +597,6 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
         // The face term is assembled if one or both cells are in the active group.
         else if (current_face->at_boundary() && current_cell->has_periodic_neighbor(iface))
         {
-    this->pcout << "Checkpoint case 2" << chkptid << std::endl;
-    chkptid++;
 
             const auto neighbor_cell = current_cell->periodic_neighbor(iface);
             const dealii::types::global_dof_index neighbor_cell_index = neighbor_cell->active_cell_index();
@@ -709,8 +701,6 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
         // Occurs if the face has children
         else if (current_cell->face(iface)->has_children()) 
         {
-    this->pcout << "Checkpoint case 3" << chkptid << std::endl;
-    chkptid++;
             // Do nothing.
             // The face contribution from the current cell will appear then the finer neighbor cell is assembled.
         }
@@ -719,8 +709,12 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
         // The face term is assembled if one or both cells are in the active group.
         else if (current_cell->neighbor(iface)->face(current_cell->neighbor_face_no(iface))->has_children()) 
         {
-    this->pcout << "Checkpoint case 4" << chkptid << std::endl;
-    chkptid++;
+            if (norm_list_of_cell_group_IDs) {
+                this->pcout << "ERROR: Using cell group IDs on grids with hanging nodes " << std::endl
+                            << "is known to cause segmentation faults. Further development" << std::endl
+                            << "is needed to handle this case. Aborting..." << std::endl;
+                std::abort();
+            }
             Assert (current_cell->neighbor(iface).state() == dealii::IteratorState::valid, dealii::ExcInternalError());
             Assert (!(current_cell->neighbor(iface)->has_children()), dealii::ExcInternalError());
 
@@ -767,8 +761,6 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
                                                                store_surf_flux_nodes);
 
             if ( (current_cell_is_in_active_cell_group || neighbor_cell_is_in_active_cell_group) ) {
-                this->pcout << "Assembling subface in Case 4" << std::endl;
-                this->pcout << "Aux equations? "  << compute_auxiliary_right_hand_side << std::endl;
                 assemble_subface_term_and_build_operators(
                     current_cell,
                     neighbor_cell,
@@ -807,7 +799,6 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
                     rhs_aux,
                     compute_auxiliary_right_hand_side,
                     compute_dRdW, compute_dRdX, compute_d2R);
-                this->pcout << "Done assembling subface in Case 4" << std::endl;
                 if (neighbor_cell_is_in_active_cell_group) {
                     // add local contribution from neighbor cell to global vector
                     // if the neighbor cell is active.
@@ -820,7 +811,6 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
                         }
                     }
                     else{
-                        this->pcout << "Adding to global RHS"<<std::endl;
                         const unsigned int n_dofs_neigh_cell = this->fe_collection[neighbor_cell->active_fe_index()].n_dofs_per_cell();
                         for (unsigned int i=0; i<n_dofs_neigh_cell; ++i) {
                             rhs[neighbor_dofs_indices[i]] += neighbor_cell_rhs[i];
@@ -834,8 +824,6 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
         // The face term is assembled if one or both cells are in the active group.
         else if (current_cell_should_do_the_work(current_cell, current_cell->neighbor(iface))) 
         {
-    this->pcout << "Checkpoint CASE 5" << std::endl;
-    chkptid++;
             Assert (current_cell->neighbor(iface).state() == dealii::IteratorState::valid, dealii::ExcInternalError());
 
             const auto neighbor_cell = current_cell->neighbor_or_periodic_neighbor(iface);
@@ -940,8 +928,6 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
         }
     } // end of face loop
 
-    this->pcout << "Checkpoint end " << std::endl;
-    chkptid++;
     if(compute_auxiliary_right_hand_side) {
         // Add local contribution from current cell to global vector
         for (unsigned int i=0; i<n_dofs_curr_cell; ++i) {
@@ -951,8 +937,6 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
         }
     }
     else {
-    this->pcout << "Checkpoint add to RHS " << std::endl;
-    chkptid++;
         // Add local contribution from current cell to global vector
         for (unsigned int i=0; i<n_dofs_curr_cell; ++i) {
             rhs[current_dofs_indices[i]] += current_cell_rhs[i];
@@ -1199,8 +1183,6 @@ void DGBase<dim,real,MeshType>::reinit_operators_for_cell_residual_loop(
 template <int dim, typename real, typename MeshType>
 void DGBase<dim,real,MeshType>::assemble_residual (const bool compute_dRdW, const bool compute_dRdX, const bool compute_d2R, const double CFL_mass, const int active_cell_group_ID)
 {
-    this->pcout << "Other arguments: " << compute_dRdW << " " << compute_dRdX << " " << compute_d2R << " "<< CFL_mass << std::endl;
-    this->pcout <<"cell group ID: " << active_cell_group_ID << std::endl;
     dealii::deal_II_exceptions::disable_abort_on_exception(); // Allows us to catch negative Jacobians.
     Assert( !(compute_dRdW && compute_dRdX)
         &&  !(compute_dRdW && compute_d2R)
@@ -1208,7 +1190,6 @@ void DGBase<dim,real,MeshType>::assemble_residual (const bool compute_dRdW, cons
             , dealii::ExcMessage("Can only do one at a time compute_dRdW or compute_dRdX or compute_d2R"));
 
     max_artificial_dissipation_coeff = 0.0;
-    //pcout << "Assembling DG residual...";
     if (compute_dRdW) {
         pcout << " with dRdW...";
 
@@ -1363,26 +1344,12 @@ void DGBase<dim,real,MeshType>::assemble_residual (const bool compute_dRdW, cons
             timer.start();
         }
 
-        this->pcout << "About to enter cell loop." << std::endl;
-
         auto metric_cell = high_order_grid->dof_handler_grid.begin_active();
         for (auto soln_cell = dof_handler.begin_active(); soln_cell != dof_handler.end(); ++soln_cell, ++metric_cell) {
-            this->pcout << "In cell loop." << std::endl;
-            //int n_dofs_in_cell = dof_handler.get_fe().n_dofs_per_cell();
             if (!soln_cell->is_locally_owned()){
-/*
-                std::vector<dealii::types::global_dof_index> current_dofs_indices(n_dofs_in_cell);
-                for (auto soln_cell_print = this->dof_handler.begin_active(); soln_cell != this->dof_handler.end(); ++soln_cell, ++metric_cell) {
-                soln_cell_print->get_dof_indices(current_dofs_indices);
-                std::cout <<  soln_cell_print->active_cell_index()<< " " ;
-                for (int idof = 0; idof < n_dofs_in_cell; ++idof){
-                    std::cout << right_hand_side(current_dofs_indices[idof]) << " ";
-                }
-                } */
                 continue;
             }
 
-            this->pcout << "About to assemble cell residual." << std::endl << std::flush;
             assemble_cell_residual (
                 soln_cell,
                 metric_cell,
@@ -1404,16 +1371,6 @@ void DGBase<dim,real,MeshType>::assemble_residual (const bool compute_dRdW, cons
                 right_hand_side,
                 auxiliary_right_hand_side,
                 active_cell_group_ID);
-            /*
-                std::vector<dealii::types::global_dof_index> current_dofs_indices(n_dofs_in_cell);
-                for (auto soln_cell_print = this->dof_handler.begin_active(); soln_cell != this->dof_handler.end(); ++soln_cell, ++metric_cell) {
-                soln_cell_print->get_dof_indices(current_dofs_indices);
-                std::cout <<  soln_cell_print->active_cell_index()<< " " ;
-                for (int idof = 0; idof < n_dofs_in_cell; ++idof){
-                    std::cout << right_hand_side(current_dofs_indices[idof]) << " ";
-                }
-                }
-*/
         } // end of cell loop
 
         if(all_parameters->store_residual_cpu_time){
@@ -1492,23 +1449,19 @@ bool DGBase<dim,real,MeshType>::cell_is_in_active_cell_group(const unsigned int 
     // Performance note: This could possibly be made more efficient using indexset,
     // https://www.dealii.org/current/doxygen/deal.II/classIndexSet.html
     // However, performance testing on Narval did not suggest any significant slowdowns.
-    this->pcout << cell_index  << " " << this->list_of_cell_group_IDs[cell_index] << " "<<active_cell_group_ID << std::endl;
 
     if (norm_list_of_cell_group_IDs){
         // Nonzero norm means that some cells have an assigned group, so
         // proceed to check whether the cell at cell_index is in the active group.
         if (this->list_of_cell_group_IDs[cell_index] == active_cell_group_ID){
             // do assemble residual
-            this->pcout << "RETURN TRUE here" << std::endl;
             return true;
         }else {
-            this->pcout << "RETURN FALSE" << std::endl;
             return false;
         }
     }
     else{
         // Zero norm indicates that all cells are in the zero (default) group, so no check is needed.
-            this->pcout << "RETURN TRUE" << std::endl;
         return true;
     }
 }
@@ -1543,10 +1496,6 @@ void DGBase<dim,real,MeshType>::set_list_of_cell_group_IDs(const dealii::LinearA
     // Set the cell_group_ID at the given location to the group_ID by adding
     // group_ID_to_set * locations_to_be_changed
     this->list_of_cell_group_IDs.add(group_ID_to_set,locations_to_be_changed);
-
-    for (unsigned int i = 0; i < list_of_cell_group_IDs.size(); ++i){
-        this->pcout << this->list_of_cell_group_IDs[i] << std::endl;
-    }
 
     this->norm_list_of_cell_group_IDs = list_of_cell_group_IDs.l1_norm();
 

@@ -473,9 +473,6 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
     std::array<dealii::LinearAlgebra::distributed::Vector<double>,dim> &rhs_aux,
     const int active_cell_group_ID)
 {
-    int chkptid = 0;
-    this->pcout << "Checkpoint enter assemble_cell_residual" << chkptid << std::endl << std::flush; 
-    chkptid++;
     std::vector<dealii::types::global_dof_index> current_dofs_indices;
     std::vector<dealii::types::global_dof_index> neighbor_dofs_indices;
 
@@ -526,9 +523,10 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
 
     const bool current_cell_is_in_active_cell_group = cell_is_in_active_cell_group(current_cell_index,active_cell_group_ID);
 
+    int chkptid = 0;
+    this->pcout << "Checkpoint enter assemble_cell_residual at index " << current_cell_index << std::endl << std::flush; 
     if (current_cell_is_in_active_cell_group) {
-    this->pcout << "Checkpoint about to assemble vol residual" << chkptid << std::endl << std::flush;
-    chkptid++;
+    this->pcout << "Checkpoint about to assemble vol residual" << std::endl << std::flush;
         // Assemble the volume term if the current cell is active.
         assemble_volume_term_and_build_operators(
             current_cell,
@@ -558,18 +556,16 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
     (void) fe_values_collection_face_ext;
     (void) fe_values_collection_subface;
     for (unsigned int iface=0; iface < dealii::GeometryInfo<dim>::faces_per_cell; ++iface) {
-    this->pcout << "Checkpoint faces" << chkptid << std::endl;
+    this->pcout << "Checkpoint face " << iface << std::endl;
     chkptid++;
 
         auto current_face = current_cell->face(iface);
 
         // CASE 1: FACE AT BOUNDARY
         // Assemble if cell is in the active group
-        this->pcout << "Check for case 1: " << (current_face->at_boundary() && !current_cell->has_periodic_neighbor(iface)) << std::endl;
         if ((current_face->at_boundary() && !current_cell->has_periodic_neighbor(iface)))
         {
-    this->pcout << "Checkpoint case 1" << chkptid << std::endl;
-    chkptid++;
+    this->pcout << "Checkpoint case 1" << std::endl;
             const real penalty = evaluate_penalty_scaling (current_cell, iface, fe_collection);
 
             const unsigned int boundary_id = current_face->boundary_id();
@@ -771,6 +767,8 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
                                                                store_surf_flux_nodes);
 
             if ( (current_cell_is_in_active_cell_group || neighbor_cell_is_in_active_cell_group) ) {
+                this->pcout << "Assembling subface in Case 4" << std::endl;
+                this->pcout << "Aux equations? "  << compute_auxiliary_right_hand_side << std::endl;
                 assemble_subface_term_and_build_operators(
                     current_cell,
                     neighbor_cell,
@@ -809,6 +807,7 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
                     rhs_aux,
                     compute_auxiliary_right_hand_side,
                     compute_dRdW, compute_dRdX, compute_d2R);
+                this->pcout << "Done assembling subface in Case 4" << std::endl;
                 if (neighbor_cell_is_in_active_cell_group) {
                     // add local contribution from neighbor cell to global vector
                     // if the neighbor cell is active.
@@ -821,6 +820,7 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
                         }
                     }
                     else{
+                        this->pcout << "Adding to global RHS"<<std::endl;
                         const unsigned int n_dofs_neigh_cell = this->fe_collection[neighbor_cell->active_fe_index()].n_dofs_per_cell();
                         for (unsigned int i=0; i<n_dofs_neigh_cell; ++i) {
                             rhs[neighbor_dofs_indices[i]] += neighbor_cell_rhs[i];
@@ -1355,7 +1355,7 @@ void DGBase<dim,real,MeshType>::assemble_residual (const bool compute_dRdW, cons
         if(all_parameters->pde_type == Parameters::AllParameters::PartialDifferentialEquation::physics_model) update_model_variables();
 
         // assembles and solves for auxiliary variable if necessary.
-        assemble_auxiliary_residual(active_cell_group_ID);
+        //assemble_auxiliary_residual(active_cell_group_ID);
 
 
         dealii::Timer timer;
@@ -1975,6 +1975,13 @@ void DGBase<dim,real,MeshType>::output_results_vtk (const unsigned int cycle, co
         subdomain(i) = triangulation->locally_owned_subdomain();
     }
     data_out.add_data_vector(subdomain, "subdomain", dealii::DataOut_DoFData<dealii::DoFHandler<dim>,dim>::DataVectorType::type_cell_data);
+
+    dealii::Vector<float> list_of_cell_group_IDs_float(triangulation->n_active_cells());
+    dealii::Vector<float> cell_ID(triangulation->n_active_cells());
+    for (unsigned int i = 0; i < list_of_cell_group_IDs_float.size(); ++i) {
+        list_of_cell_group_IDs_float(i) = list_of_cell_group_IDs(i);
+    }
+    data_out.add_data_vector(list_of_cell_group_IDs_float, "cell_group_ID", dealii::DataOut_DoFData<dealii::DoFHandler<dim>,dim>::DataVectorType::type_cell_data);
 
     if (all_parameters->artificial_dissipation_param.add_artificial_dissipation) {
         data_out.add_data_vector(artificial_dissipation_coeffs, "artificial_dissipation_coeffs", dealii::DataOut_DoFData<dealii::DoFHandler<dim>,dim>::DataVectorType::type_cell_data);

@@ -355,6 +355,9 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_subface_term_and_build_operato
     const bool                                             compute_auxiliary_right_hand_side,
     const bool compute_dRdW, const bool compute_dRdX, const bool compute_d2R)
 {
+    this->pcout << neighbor_cell_rhs(0) << std::endl;
+    this->pcout << neighbor_cell_rhs_aux[0][0] << std::endl;
+
     assemble_face_term_and_build_operators(
         cell,
         neighbor_cell,

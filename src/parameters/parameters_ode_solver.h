@@ -20,7 +20,8 @@ public:
         pod_galerkin_solver, /// Proper Orthogonal Decomposition with Galerkin projection
         pod_petrov_galerkin_solver, /// Proper Orthogonal Decomposition with Petrov-Galerkin projection (LSPG)
         hyper_reduced_petrov_galerkin_solver, /// Proper Orthogonal Decomposition with Petrov-Galerkin projection (LSPG) and ECSW Hyper-reduction
-        pod_galerkin_runge_kutta_solver /// Proper Orthogonal Decomposition with Galerkin projection Runge Kutta (RK) explicit
+        pod_galerkin_runge_kutta_solver, /// Proper Orthogonal Decomposition with Galerkin projection Runge Kutta (RK) explicit
+        PERK_solver
     };
 
     OutputEnum ode_output; ///< verbose or quiet.
@@ -73,7 +74,8 @@ public:
         RK4_3_5_3SStar, ///Fourth-order, three register low-storage Runge-Kutta method
         RK3_2_5F_3SStarPlus, ///Third-order, FSAL, three register low-storage Runge-Kutta method with a fourth register for an error estimate
         RK4_3_9F_3SStarPlus, ///Fourth-order, FSAL, three register low-storage Runge-Kutta method with a fourth register for an error estimate
-        RK5_4_10F_3SStarPlus ///Fifth-order, FSAL, three register low-storage Runge-Kutta method with a fourth register for an error estimate
+        RK5_4_10F_3SStarPlus, ///Fifth-order, FSAL, three register low-storage Runge-Kutta method with a fourth register for an error estimate
+        PERK_10_2
     };
 
     RKMethodEnum runge_kutta_method; ///< Runge-kutta method.

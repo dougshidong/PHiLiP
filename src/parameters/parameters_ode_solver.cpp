@@ -39,6 +39,7 @@ void ODESolverParam::declare_parameters (dealii::ParameterHandler &prm)
                           dealii::Patterns::Selection(
                           " runge_kutta | "
                           " low_storage_runge_kutta | "
+                          " PERK |"
                           " implicit | "
                           " rrk_explicit | "
                           " pod_galerkin | "
@@ -49,6 +50,7 @@ void ODESolverParam::declare_parameters (dealii::ParameterHandler &prm)
                           "Choices are "
                           " <runge_kutta | "
                           " low_storage_runge_kutta | "
+                          " PERK |"
                           " implicit | "
                           " rrk_explicit | "
                           " pod_galerkin | "
@@ -110,6 +112,7 @@ void ODESolverParam::declare_parameters (dealii::ParameterHandler &prm)
                           " euler_im | "
                           " dirk_2_im | "
                           " dirk_3_im | "
+                          " PERK_10_2 |"
                           " RK3_2_5F_3SStarPlus | "
                           " RK4_3_5_3SStar | "
                           " RK4_3_9F_3SStarPlus |"
@@ -123,6 +126,7 @@ void ODESolverParam::declare_parameters (dealii::ParameterHandler &prm)
                           " euler_im | "
                           " dirk_2_im | "
                           " dirk_3_im | "
+                          " PERK_10_2 |"
                           " RK4_3_5_3SStar | "
                           " RK3_2_5F_3SStarPlus | "
                           " RK5_4_10F_3SStarPlus |"
@@ -194,6 +198,8 @@ void ODESolverParam::parse_parameters (dealii::ParameterHandler &prm)
         if (solver_string == "runge_kutta")              { ode_solver_type = ODESolverEnum::runge_kutta_solver;
                                                            allocate_matrix_dRdW = false; }
         else if (solver_string == "low_storage_runge_kutta")  { ode_solver_type = ODESolverEnum::low_storage_runge_kutta_solver;
+                                                           allocate_matrix_dRdW = false; }
+        else if (solver_string == "PERK")  { ode_solver_type = ODESolverEnum::PERK_solver;
                                                            allocate_matrix_dRdW = false; }
         else if (solver_string == "implicit")            { ode_solver_type = ODESolverEnum::implicit_solver;
                                                            allocate_matrix_dRdW = true; }
@@ -286,6 +292,11 @@ void ODESolverParam::parse_parameters (dealii::ParameterHandler &prm)
             num_delta = 10;
             rk_order = 5;
             is_3Sstarplus = true;
+        }
+        else if (rk_method_string == "PERK_10_2"){
+            runge_kutta_method = RKMethodEnum::PERK_10_2;
+            n_rk_stages = 10;
+            rk_order = 2;
         }
 
         prm.enter_subsection("rrk root solver");

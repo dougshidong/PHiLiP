@@ -3,6 +3,7 @@
 #include "ode_solver_base.h"
 #include "runge_kutta_ode_solver.h"
 #include "low_storage_runge_kutta_ode_solver.h"
+#include "PERK_ode_solver.h"
 #include "implicit_ode_solver.h"
 #include "relaxation_runge_kutta/algebraic_rrk_ode_solver.h"
 #include "relaxation_runge_kutta/root_finding_rrk_ode_solver.h"
@@ -13,6 +14,7 @@
 #include <deal.II/distributed/solution_transfer.h>
 #include "runge_kutta_methods/runge_kutta_methods.h"
 #include "runge_kutta_methods/low_storage_runge_kutta_methods.h"
+#include "runge_kutta_methods/PERK_methods.h"
 #include "relaxation_runge_kutta/empty_RRK_base.h"
 
 namespace PHiLiP {
@@ -25,7 +27,7 @@ std::shared_ptr<ODESolverBase<dim,real,MeshType>> ODESolverFactory<dim,real,Mesh
     pcout << "Creating ODE Solver..." << std::endl;
     using ODEEnum = Parameters::ODESolverParam::ODESolverEnum;
     const ODEEnum ode_solver_type = dg_input->all_parameters->ode_solver_param.ode_solver_type;
-    if((ode_solver_type == ODEEnum::runge_kutta_solver)||(ode_solver_type == ODEEnum::rrk_explicit_solver || ode_solver_type == ODEEnum::low_storage_runge_kutta_solver))     
+    if((ode_solver_type == ODEEnum::runge_kutta_solver)||(ode_solver_type == ODEEnum::rrk_explicit_solver || ode_solver_type == ODEEnum::low_storage_runge_kutta_solver || ode_solver_type == ODEEnum::PERK_solver))     
         return create_RungeKuttaODESolver(dg_input); 
     if(ode_solver_type == ODEEnum::implicit_solver)         
         return std::make_shared<ImplicitODESolver<dim,real,MeshType>>(dg_input);
@@ -135,6 +137,7 @@ void ODESolverFactory<dim,real,MeshType>::display_error_ode_solver_factory(Param
                                                                         solver_string = "low_storage_runge_kutta_solver";
     else if (ode_solver_type == ODEEnum::pod_galerkin_runge_kutta_solver)
                                                                         solver_string = "pod_galerkin_runge_kutta";
+    else if (ode_solver_type == ODEEnum::PERK_solver)                   solver_string = "PERK_solver";
     else solver_string = "undefined";
     
 
@@ -226,6 +229,20 @@ std::shared_ptr<ODESolverBase<dim,real,MeshType>> ODESolverFactory<dim,real,Mesh
             std::abort();
             return nullptr;
         }
+    } else if (ode_solver_type == ODEEnum::PERK_solver) {
+        std::shared_ptr<PERKTableauBase<dim,real,MeshType>> perk_tableau = create_PERKTableau(dg_input);;
+
+        // Hard-coded templating of n_rk_stages because it is not known at compile time
+        pcout << "Creating PERK ODE Solver with " 
+              << n_rk_stages << " stage(s)..." << std::endl;
+        if (n_rk_stages == 10){
+            return std::make_shared<PERKODESolver<dim,real,10, MeshType>>(dg_input,perk_tableau,RRK_object);
+        }
+        else{
+            pcout << "Error: invalid number of stages. Aborting..." << std::endl;
+            std::abort();
+            return nullptr;
+        }
     } else {
         display_error_ode_solver_factory(ode_solver_type, false);
         return nullptr;
@@ -269,6 +286,22 @@ std::shared_ptr<ODESolverBase<dim,real,MeshType>> ODESolverFactory<dim,real,Mesh
     }
     else {
         display_error_ode_solver_factory(ode_solver_type, false);
+        return nullptr;
+    }
+}
+
+
+template <int dim, typename real, typename MeshType>
+std::shared_ptr<PERKTableauBase<dim,real,MeshType>> ODESolverFactory<dim,real,MeshType>::create_PERKTableau(std::shared_ptr< DGBase<dim,real,MeshType>> dg_input)
+{
+    dealii::ConditionalOStream pcout(std::cout, dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD)==0);
+    using RKMethodEnum = Parameters::ODESolverParam::RKMethodEnum;
+    const RKMethodEnum rk_method = dg_input->all_parameters->ode_solver_param.runge_kutta_method;
+    const int n_rk_stages = dg_input->all_parameters->ode_solver_param.n_rk_stages;
+    if (rk_method == RKMethodEnum::PERK_10_2)   return std::make_shared<PERK_10_2<dim, real, MeshType>> (n_rk_stages, "PERK_10_2");
+    else {
+        pcout << "Error: invalid PERK method. Aborting..." << std::endl;
+        std::abort();
         return nullptr;
     }
 }
@@ -337,7 +370,11 @@ std::shared_ptr<RKTableauBase<dim,real,MeshType>> ODESolverFactory<dim,real,Mesh
         if (rk_method == RKMethodEnum::RK5_4_10F_3SStarPlus) {
             pcout << "WARNING: returning dummy RK method!" << std::endl;
             return std::make_shared<SSPRK3Explicit<dim, real, MeshType>> (n_rk_stages, "3rd order SSP (explicit)");
-        }            
+        }  
+        if (rk_method == RKMethodEnum::PERK_10_2) {
+            pcout << "WARNING: returning dummy RK method!" << std::endl;
+            return std::make_shared<SSPRK3Explicit<dim, real, MeshType>> (n_rk_stages, "3rd order SSP (explicit)");
+        }           
         pcout << "Error: invalid RK method. Aborting..." << std::endl;
         std::abort();
         return nullptr;

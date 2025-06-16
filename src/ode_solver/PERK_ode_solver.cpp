@@ -1,5 +1,6 @@
 #include "PERK_ode_solver.h"
 
+
 namespace PHiLiP {
 namespace ODE {
 
@@ -18,7 +19,7 @@ void PERKODESolver<dim,real,n_rk_stages, MeshType>::calculate_stage_solution (in
 
     for (size_t k = 0; k < group_ID.size(); ++k){
         for (int j = 0; j < istage; ++j){
-            if (this->butcher_tableau->get_a(istage,j, k+1) != 0){
+            if (this->butcher_tableau->get_a(istage,j, 1) != 0){
                 this->rk_stage[istage].add(this->butcher_tableau->get_a(istage,j, group_ID[0]), this->rk_stage[j]);
             }
         } //sum(a_ij *k_j), explicit part
@@ -56,34 +57,37 @@ void PERKODESolver<dim,real,n_rk_stages, MeshType>::calculate_stage_solution (in
             */
 
             //JFNK version
-            this->solver.solve(dt*this->butcher_tableau->get_a(istage,istage,k+1), this->rk_stage[istage]);
+            this->solver.solve(dt*this->butcher_tableau->get_a(istage,istage,1), this->rk_stage[istage]);
             this->rk_stage[istage] = this->solver.current_solution_estimate;
+
         }    
     
 
- // u_n + dt * sum(a_ij * k_j) <explicit> + dt * a_ii * u^(istage) <implicit>
+    // u_n + dt * sum(a_ij * k_j) <explicit> + dt * a_ii * u^(istage) <implicit>
 
-    // If using the entropy formulation of RRK, solutions must be stored.
-    // Call store_stage_solutions before overwriting rk_stage with the derivative.
-    this->relaxation_runge_kutta->store_stage_solutions(istage, this->rk_stage[istage]);
+        // If using the entropy formulation of RRK, solutions must be stored.
+        // Call store_stage_solutions before overwriting rk_stage with the derivative.
+        this->relaxation_runge_kutta->store_stage_solutions(istage, this->rk_stage[istage]);
 
-    this->dg->solution = this->rk_stage[istage];
-    //u_1 = this->rk_stage[istage];
-    //u_1.print(std::cout);
-    //u_2 = this->rk_stage[istage];
-    if (k==0){
-        this->u_1[istage].reinit(this->rk_stage[istage]);
-        //this->dg->solution = this->u_1[istage];
+        this->dg->solution = this->rk_stage[istage];
+        //u_1 = this->rk_stage[istage];
+        //u_1.print(std::cout);
+        //u_2 = this->rk_stage[istage];
+        if (k==0){
+            this->u_1[istage].reinit(this->rk_stage[istage]);
+            this->u_1[istage]=this->rk_stage[istage];
+            //this->u_1[istage].print(std::cout);
+            //this->dg->solution = this->u_1[istage];
+        }
+        
+        if (k==1){
+            this->u_2[istage].reinit(this->rk_stage[istage]);
+            this->u_2[istage]=this->rk_stage[istage];
+            //this->dg->solution = this->u_2[istage];
+        } 
+        //this->u_1[istage].reinit(this->rk_stage[istage]);
+        //this->u_2[istage].reinit(this->rk_stage[istage]);
     }
-    
-    if (k==1){
-        this->u_2[istage].reinit(this->rk_stage[istage]);
-        //this->dg->solution = this->u_2[istage];
-    }
-    //this->u_1[istage].reinit(this->rk_stage[istage]);
-    //this->u_2[istage].reinit(this->rk_stage[istage]);
-    }
-    
 }
 
 template<int dim, typename real, int n_rk_stages, typename MeshType>
@@ -93,8 +97,8 @@ void PERKODESolver<dim,real,n_rk_stages,MeshType>::calculate_stage_derivative (i
     this->dg->set_current_time(this->current_time + this->butcher_tableau->get_c(istage)*dt);
 
     //solve the system's right hand side
-    this->dg->right_hand_side *= 0; 
-    this->dg->assemble_residual(false, false, false, 0.0, group_ID[1]); //RHS : du/dt = RHS = F(u_n + dt* sum(a_ij*k_j) + dt * a_ii * u^(istage)))
+  //  this->dg->right_hand_side *= 0; 
+    this->dg->assemble_residual(false, false, false, 0.0, group_ID[0]); //RHS : du/dt = RHS = F(u_n + dt* sum(a_ij*k_j) + dt * a_ii * u^(istage)))
     if(this->all_parameters->use_inverse_mass_on_the_fly){
         this->dg->apply_inverse_global_mass_matrix(this->dg->right_hand_side, this->u_1[istage]); //rk_stage[istage] = IMM*RHS = F(u_n + dt*sum(a_ij*k_j))
     } else{
@@ -102,13 +106,12 @@ void PERKODESolver<dim,real,n_rk_stages,MeshType>::calculate_stage_derivative (i
     }
 
     this->dg->right_hand_side *= 0; 
-    this->dg->assemble_residual(false, false, false, 0.0, group_ID[0]);
+    this->dg->assemble_residual(false, false, false, 0.0, group_ID[1]);
     if(this->all_parameters->use_inverse_mass_on_the_fly){
         this->dg->apply_inverse_global_mass_matrix(this->dg->right_hand_side, this->u_2[istage]); //rk_stage[istage] = IMM*RHS = F(u_n + dt*sum(a_ij*k_j))
     } else{
         this->dg->global_inverse_mass_matrix.vmult(this->u_2[istage], this->dg->right_hand_side); //rk_stage[istage] = IMM*RHS = F(u_n + dt*sum(a_ij*k_j))
     } 
-   // this->solution_update.add(1.0, u_2);
 }
 
 template<int dim, typename real, int n_rk_stages, typename MeshType>
@@ -120,14 +123,16 @@ void PERKODESolver<dim,real,n_rk_stages,MeshType>::sum_stages (real dt, const bo
             const double CFL = this->butcher_tableau->get_b(istage) * dt;
             this->dg->time_scale_solution_update(this->rk_stage[istage], CFL);
             this->solution_update.add(1.0, this->rk_stage[istage]);
-            //this->solution_update.add(1.0, u_1);
-            //this->solution_update.add(1.0, u_2);
         } else {
-            //this->solution_update.add(dt* this->butcher_tableau->get_b(istage),this->rk_stage[istage]);
+          //  this->solution_update.add(dt* this->butcher_tableau->get_b(istage),this->rk_stage[istage]);
             this->solution_update.add(dt* this->butcher_tableau->get_b(istage),this->u_1[istage]);
             this->solution_update.add(dt* this->butcher_tableau->get_b(istage),this->u_2[istage]);
         }
     }
+    //std::cout << std::setprecision(10);
+    //this->solution_update.print(std::cout);
+    this->solution_update.print(std::cout, /*precision=*/10, /*scientific=*/true, /*across=*/1);
+
 }
 
 

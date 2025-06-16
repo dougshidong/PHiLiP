@@ -49,10 +49,6 @@ protected:
     const int mpi_rank; ///< MPI rank.
     dealii::ConditionalOStream pcout; ///< Parallel std::cout that only outputs on mpi_rank==0
 
-    /// Storage for the solution at each Runge-Kutta stage
-    /** Note that rk_stage is the time-derivative of the solution */
-    std::vector<dealii::LinearAlgebra::distributed::Vector<double>> rk_stage_solution;
-
     /// Update stored quantities at the current stage
     /** Stores solution at stage, rk_stage_solution */
     void store_stage_solutions(const int istage,

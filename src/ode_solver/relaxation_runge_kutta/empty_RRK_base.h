@@ -2,7 +2,7 @@
 #define __EMPTY_RRK_BASE_H__
 
 #include "dg/dg_base.hpp"
-#include "ode_solver/runge_kutta_methods/rk_tableau_base.h"
+#include "ode_solver/runge_kutta_methods/rk_tableau_butcher_base.h"
 
 namespace PHiLiP {
 namespace ODE {
@@ -48,7 +48,21 @@ public:
         // Return 1 such that the time step isn't modified
         return 1.0;
     };
+
+    /// Overloaded version which does not take in rk_stages
+//    virtual real update_relaxation_parameter(const real /*dt*/, 
+//            std::shared_ptr<DGBase<dim,real,MeshType>> /*dg*/,
+//            const dealii::LinearAlgebra::distributed::Vector<double> &/*solution_update*/
+//            ) {
+        // Return 1 such that the time step isn't modified
+ //       return 1.0;
+//    };
     
+
+    /// Storage for the solution at each Runge-Kutta stage
+    /** Note that rk_stage is the time-derivative of the solution
+     * This is not initialized in the empty class*/
+    std::vector<dealii::LinearAlgebra::distributed::Vector<double>> rk_stage_solution;
 
 };
 

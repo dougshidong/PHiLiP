@@ -10,6 +10,9 @@ set use_inverse_mass_on_the_fly = true
 # Note: this was added to turn off check_same_coords() -- has no other function when dim!=1
 set use_periodic_bc = true
 
+# dummy to avoid errors
+set two_point_num_flux_type = CH
+
 # ODE solver
 subsection ODE solver
   set ode_output = verbose
@@ -24,6 +27,9 @@ subsection ODE solver
     set beta2 = -0.23
     set beta3 = 0.0
   end
+  subsection rrk root solver
+    #set use_relaxation_runge_kutta = true
+  end
 end
 
 subsection manufactured solution convergence study 
@@ -34,7 +40,7 @@ end
 
 
 subsection time_refinement_study
-  set number_of_times_to_solve = 1
+  set number_of_times_to_solve = 3
   #set refinement_ratio = 0.5
 end
 
@@ -42,7 +48,7 @@ subsection flow_solver
   set flow_case_type = periodic_1D_unsteady
   set final_time = 1.0
   set poly_degree = 5
-  set error_adaptive_time_step = true
+  #set error_adaptive_time_step = true
   subsection grid
     set grid_left_bound = 0.0
     set grid_right_bound = 2.0

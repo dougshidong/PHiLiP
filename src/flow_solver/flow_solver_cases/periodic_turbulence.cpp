@@ -697,7 +697,8 @@ void PeriodicTurbulence<dim, nstate>::compute_unsteady_data_and_write_to_table(
     const double strain_rate_tensor_based_dissipation_rate = this->get_strain_rate_tensor_based_dissipation_rate();
     
     using ODEEnum = Parameters::ODESolverParam::ODESolverEnum;
-    const bool is_rrk = (this->all_param.ode_solver_param.ode_solver_type == ODEEnum::rrk_explicit_solver);
+    const bool is_rrk = (this->all_param.ode_solver_param.ode_solver_type == ODEEnum::rrk_explicit_solver 
+            || this->all_param.ode_solver_param.use_relaxation_runge_kutta);
     const double relaxation_parameter = ode_solver->relaxation_parameter_RRK_solver;
 
     if (do_calculate_numerical_entropy){

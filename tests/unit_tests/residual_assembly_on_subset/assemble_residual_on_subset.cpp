@@ -135,8 +135,8 @@ int test (
 
     std::cout << std::endl;
     if (testfail) std::cout << "FAILING" << std::endl;
-    //return testfail ;
-    return 0; //testfail ;
+    return testfail ;
+    //return 0; //testfail ;
 }
 
 int main (int argc, char * argv[])

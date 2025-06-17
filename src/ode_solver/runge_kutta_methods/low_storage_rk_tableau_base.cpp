@@ -4,30 +4,6 @@
 namespace PHiLiP {
 namespace ODE {
     
-    //NOTE TO SELF: Remove these functions before PR!
-void print_table(const dealii::Table<2,double> tab, const int nrow, const int ncol) {
-    
-    dealii::ConditionalOStream pcout(std::cout, dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD)==0);
-    for (int irow = 0; irow < nrow; ++irow){
-        for (int icol = 0; icol < ncol; ++icol){
-            pcout << tab[irow][icol] << " ";
-        }
-        pcout << std::endl;
-    }
-    pcout<<std::endl;
-
-}
-void print_table(const dealii::Table<1,double> tab, const int nrow) {
-    
-    dealii::ConditionalOStream pcout(std::cout, dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD)==0);
-    for (int irow = 0; irow < nrow; ++irow){
-        pcout << tab[irow] << " ";
-        pcout << std::endl;
-    }
-    pcout<<std::endl;
-
-}
-
 template <int dim, typename real, typename MeshType> 
 LowStorageRKTableauBase<dim,real, MeshType> :: LowStorageRKTableauBase (const int n_rk_stages_input, const int num_delta_input,
         const std::string rk_method_string_input)
@@ -103,9 +79,6 @@ void LowStorageRKTableauBase<dim,real, MeshType> :: set_b ()
     // eq 9a:A = inv(I-alpha_0) * (beta_0)
     identity_m_alpha0.mmult(A,beta_0);
 
-    this->pcout<< "A" << std::endl;
-    print_table(A,this->n_rk_stages,this->n_rk_stages);
-
     // 9 b
     dealii::Vector<double> beta_1(this->n_rk_stages);
     dealii::Vector<double> alpha_1(this->n_rk_stages);
@@ -133,9 +106,6 @@ void LowStorageRKTableauBase<dim,real, MeshType> :: set_b ()
     if (abs(sum_b-1.0) > 1E-8){
         this->pcout << "WARNING: Butcher b vector does not sum to 1 !" << std::endl;
     }
-    
-
-    print_table(this->butcher_tableau_b,this->n_rk_stages);
 
 }
 

@@ -138,7 +138,60 @@ PhysicsFactory<dim,nstate,real>
                 manufactured_solution_function,
                 parameters_input->two_point_num_flux_type);
         }
-    } else if (pde_type == PDE_enum::physics_model) {
+    } else if (pde_type == PDE_enum::navier_stokes_channel_flow_constant_source_term) {
+        if constexpr (nstate==dim+2) {
+            const double domain_length_y_direction = parameters_input->flow_solver_param.turbulent_channel_domain_length_y_direction;
+            const double half_channel_height = domain_length_y_direction/2.0;
+            return std::make_shared < NavierStokes_ChannelFlowConstantSourceTerm<dim,nstate,real> > (
+                parameters_input,
+                parameters_input->euler_param.ref_length,
+                parameters_input->euler_param.gamma_gas,
+                parameters_input->euler_param.mach_inf,
+                parameters_input->euler_param.angle_of_attack,
+                parameters_input->euler_param.side_slip_angle,
+                parameters_input->navier_stokes_param.prandtl_number,
+                parameters_input->navier_stokes_param.reynolds_number_inf,
+                parameters_input->navier_stokes_param.use_constant_viscosity,
+                parameters_input->navier_stokes_param.nondimensionalized_constant_viscosity,
+                parameters_input->flow_solver_param.turbulent_channel_friction_velocity_reynolds_number,
+                half_channel_height,
+                parameters_input->navier_stokes_param.temperature_inf,
+                parameters_input->navier_stokes_param.nondimensionalized_isothermal_wall_temperature,
+                parameters_input->navier_stokes_param.thermal_boundary_condition_type,
+                manufactured_solution_function,
+                parameters_input->two_point_num_flux_type);
+        }
+    } else if (pde_type == PDE_enum::navier_stokes_channel_flow_constant_source_term_wall_model) {
+        if constexpr (nstate==dim+2) {
+            if(parameters_input->flow_solver_param.flow_case_type != Parameters::FlowSolverParam::FlowCaseType::channel_flow) {
+                std::cout << "Invalid flow case, can only create NavierStokes_ChannelFlowConstantSourceTerm_WallModel for ChannelFlow." << std::endl;
+                return nullptr;
+            }
+            const double domain_length_y_direction = parameters_input->flow_solver_param.turbulent_channel_domain_length_y_direction;
+            const double half_channel_height = domain_length_y_direction/2.0;
+            const int number_of_cells_y_direction = parameters_input->flow_solver_param.turbulent_channel_number_of_cells_y_direction;
+            const double uniform_spacing_y_direction = domain_length_y_direction/double(number_of_cells_y_direction);
+            return std::make_shared < NavierStokes_ChannelFlowConstantSourceTerm_WallModel<dim,nstate,real> > (
+                parameters_input,
+                parameters_input->euler_param.ref_length,
+                parameters_input->euler_param.gamma_gas,
+                parameters_input->euler_param.mach_inf,
+                parameters_input->euler_param.angle_of_attack,
+                parameters_input->euler_param.side_slip_angle,
+                parameters_input->navier_stokes_param.prandtl_number,
+                parameters_input->navier_stokes_param.reynolds_number_inf,
+                parameters_input->navier_stokes_param.use_constant_viscosity,
+                parameters_input->navier_stokes_param.nondimensionalized_constant_viscosity,
+                parameters_input->flow_solver_param.turbulent_channel_friction_velocity_reynolds_number,
+                half_channel_height,
+                uniform_spacing_y_direction,
+                parameters_input->navier_stokes_param.temperature_inf,
+                parameters_input->navier_stokes_param.nondimensionalized_isothermal_wall_temperature,
+                parameters_input->navier_stokes_param.thermal_boundary_condition_type,
+                manufactured_solution_function,
+                parameters_input->two_point_num_flux_type);
+        }
+    } else if (pde_type == PDE_enum::physics_model || pde_type == PDE_enum::physics_model_filtered) {
         if constexpr (nstate>=dim+2) {
             return create_Physics_Model(parameters_input,
                                         manufactured_solution_function,
@@ -163,12 +216,16 @@ PhysicsFactory<dim,nstate,real>
                        std::shared_ptr< ModelBase<dim,nstate,real> >             model_input)
 {
     using PDE_enum = Parameters::AllParameters::PartialDifferentialEquation;
+    const PDE_enum pde_type = parameters_input->pde_type;
 
     using Model_enum = Parameters::AllParameters::ModelType;
-    Model_enum model_type = parameters_input->model_type;
+    const Model_enum model_type = parameters_input->model_type;
 
     using RANSModel_enum = Parameters::PhysicsModelParam::ReynoldsAveragedNavierStokesModel;
-    RANSModel_enum rans_model_type = parameters_input->physics_model_param.RANS_model_type;
+    const RANSModel_enum rans_model_type = parameters_input->physics_model_param.RANS_model_type;
+
+    using FlowCase_enum = Parameters::FlowSolverParam::FlowCaseType;
+    const FlowCase_enum flow_case_type = parameters_input->flow_solver_param.flow_case_type;
 
     // ===============================================================================
     // Physics Model
@@ -186,9 +243,12 @@ PhysicsFactory<dim,nstate,real>
     // -------------------------------------------------------------------------------
     // Large Eddy Simulation (LES)
     // -------------------------------------------------------------------------------
-    if (model_type == Model_enum::large_eddy_simulation) {
-        has_nonzero_diffusion = true; // because of SGS model term
-        has_nonzero_physical_source = false; // LES has no physical source terms
+    if (model_type==Model_enum::large_eddy_simulation || model_type==Model_enum::navier_stokes_model) {
+        has_nonzero_diffusion = true; // because of SGS model term (initialized as true)
+        has_nonzero_physical_source = false; // no physical source terms by default
+        if(flow_case_type==FlowCase_enum::channel_flow) {
+            has_nonzero_physical_source = true; // forcing function
+        }
         if constexpr ((nstate==dim+2) && (dim==3)) {
             // Assign baseline physics type (and corresponding nstates) based on the physics model type
             // -- Assign nstates for the baseline physics (constexpr because template parameter)
@@ -196,19 +256,30 @@ PhysicsFactory<dim,nstate,real>
             // -- Assign baseline physics type
             if(parameters_input->physics_model_param.euler_turbulence) {
                 baseline_physics_type = PDE_enum::euler;
+                if(model_type==Model_enum::navier_stokes_model) has_nonzero_diffusion = false; // no additional diffusion terms
             }
             else {
                 baseline_physics_type = PDE_enum::navier_stokes;
             }
 
             // Create the physics model object in physics
-            return std::make_shared < PhysicsModel<dim,nstate,real,nstate_baseline_physics> > (
+            if (pde_type == PDE_enum::physics_model) {
+                return std::make_shared < PhysicsModel<dim,nstate,real,nstate_baseline_physics> > (
                     parameters_input,
                     baseline_physics_type,
                     model_input,
                     manufactured_solution_function,
                     has_nonzero_diffusion,
                     has_nonzero_physical_source);
+            } else if(pde_type == PDE_enum::physics_model_filtered) {
+                return std::make_shared < PhysicsModelFiltered<dim,nstate,real,nstate_baseline_physics> > (
+                    parameters_input,
+                    baseline_physics_type,
+                    model_input,
+                    manufactured_solution_function,
+                    has_nonzero_diffusion,
+                    has_nonzero_physical_source);
+            }
         }
         else {
             // LES does not exist for nstate!=(dim+2) || dim!=3

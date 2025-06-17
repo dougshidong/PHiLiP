@@ -33,8 +33,14 @@ std::string FlowSolverCaseBase<dim, nstate>::get_pde_string() const
     if (pde_type == PDE_enum::mhd)                  {pde_string = "mhd";}
     if (pde_type == PDE_enum::euler)                {pde_string = "euler";}
     if (pde_type == PDE_enum::navier_stokes)        {pde_string = "navier_stokes";}
-    if (pde_type == PDE_enum::physics_model) {
-        pde_string = "physics_model";
+    if (pde_type == PDE_enum::navier_stokes_channel_flow_constant_source_term) 
+                                                    {pde_string = "navier_stokes_channel_flow_constant_source_term";}
+    if (pde_type == PDE_enum::navier_stokes_channel_flow_constant_source_term_wall_model)
+                                                    {pde_string = "navier_stokes_channel_flow_constant_source_term_wall_model";}
+    
+    if (pde_type == PDE_enum::physics_model || pde_type == PDE_enum::physics_model_filtered) {
+        if(pde_type == PDE_enum::physics_model) pde_string = "physics_model";
+        else if(pde_type == PDE_enum::physics_model_filtered) pde_string = "physics_model_filtered";
         // add the model name + sub model name (if applicable)
         const Model_enum model = this->all_param.model_type;
         std::string model_string = "WARNING: invalid model";
@@ -48,7 +54,15 @@ std::string FlowSolverCaseBase<dim, nstate>::get_pde_string() const
             if     (sgs_model==SGSModel_enum::smagorinsky) sgs_model_string = "smagorinsky";
             else if(sgs_model==SGSModel_enum::wall_adaptive_local_eddy_viscosity) sgs_model_string = "wall_adaptive_local_eddy_viscosity";
             else if(sgs_model==SGSModel_enum::vreman) sgs_model_string = "vreman";
+            else if(sgs_model==SGSModel_enum::shear_improved_smagorinsky) sgs_model_string = "shear_improved_smagorinsky";
+            else if(sgs_model==SGSModel_enum::small_small_variational_multiscale) sgs_model_string = "small_small_variational_multiscale";
+            else if(sgs_model==SGSModel_enum::all_all_variational_multiscale) sgs_model_string = "all_all_variational_multiscale";
+            if(pde_string == "physics_model_filtered"){
+                pde_string += std::string(" (pL=") + std::to_string(this->all_param.physics_model_param.poly_degree_max_large_scales) + std::string(")");
+            }
             pde_string += std::string(" (Model: ") + model_string + std::string(", SGS Model: ") + sgs_model_string + std::string(")");
+        } else if(model == Model_enum::navier_stokes_model) {
+            model_string = "navier_stokes_model";
         }
         else if(model == Model_enum::reynolds_averaged_navier_stokes) {
             // assign model string
@@ -61,6 +75,7 @@ std::string FlowSolverCaseBase<dim, nstate>::get_pde_string() const
             pde_string += std::string(" (Model: ") + model_string + std::string(", RANS Model: ") + rans_model_string + std::string(")");
         }
         if(pde_string == "physics_model") pde_string += std::string(" (Model: ") + model_string + std::string(")");
+        else if(pde_string == "physics_model_filtered") pde_string += std::string(" (pL=") + std::to_string(this->all_param.physics_model_param.poly_degree_max_large_scales) + std::string(") (Model: ") + model_string + std::string(")");
     }
     
     return pde_string;
@@ -75,13 +90,21 @@ std::string FlowSolverCaseBase<dim, nstate>::get_flow_case_string() const
     
     std::string flow_case_string;
     if (flow_case_type == FlowCaseEnum::taylor_green_vortex)        {flow_case_string = "taylor_green_vortex";}
+    if (flow_case_type == FlowCaseEnum::decaying_homogeneous_isotropic_turbulence)
+                                                                    {flow_case_string = "decaying_homogeneous_isotropic_turbulence";}
     if (flow_case_type == FlowCaseEnum::burgers_viscous_snapshot)   {flow_case_string = "burgers_viscous_snapshot";}
     if (flow_case_type == FlowCaseEnum::burgers_rewienski_snapshot) {flow_case_string = "burgers_rewienski_snapshot";}
     if (flow_case_type == FlowCaseEnum::naca0012)                   {flow_case_string = "naca0012";}
     if (flow_case_type == FlowCaseEnum::periodic_1D_unsteady)       {flow_case_string = "periodic_1D_unsteady";}
     if (flow_case_type == FlowCaseEnum::gaussian_bump)              {flow_case_string = "gaussian_bump";}
     if (flow_case_type == FlowCaseEnum::advection_limiter)          {flow_case_string = "advection_limiter";}
-
+    if (flow_case_type == FlowCaseEnum::dipole_wall_collision_normal)
+                                                                    {flow_case_string = "dipole_wall_collision_normal";}
+    if (flow_case_type == FlowCaseEnum::dipole_wall_collision_oblique)
+                                                                    {flow_case_string = "dipole_wall_collision_oblique";}
+    if (flow_case_type == FlowCaseEnum::channel_flow)               {flow_case_string = "channel_flow";}
+                                                                
+    
     return flow_case_string;
 }
 
@@ -187,19 +210,10 @@ void FlowSolverCaseBase<dim, nstate>::steady_state_postprocessing(std::shared_pt
 
 template <int dim, int nstate>
 void FlowSolverCaseBase<dim, nstate>::compute_unsteady_data_and_write_to_table(
-        const std::shared_ptr<ODE::ODESolverBase<dim, double>> ode_solver, 
-        const std::shared_ptr <DGBase<dim, double>> dg,
-        const std::shared_ptr <dealii::TableHandler> unsteady_data_table)
-{
-    this->compute_unsteady_data_and_write_to_table(ode_solver->current_iteration, ode_solver->current_time, dg, unsteady_data_table);
-}
-
-template <int dim, int nstate>
-void FlowSolverCaseBase<dim, nstate>::compute_unsteady_data_and_write_to_table(
-        const unsigned int /*current_iteration*/,
-        const double /*current_time*/,
+        const std::shared_ptr <ODE::ODESolverBase<dim, double>> /*ode_solver*/,
         const std::shared_ptr <DGBase<dim, double>> /*dg*/,
-        const std::shared_ptr <dealii::TableHandler> /*unsteady_data_table*/)
+        const std::shared_ptr <dealii::TableHandler> /*unsteady_data_table*/,
+        const bool /*do_write_unsteady_data_table_file*/)
 {
     // do nothing by default
 }

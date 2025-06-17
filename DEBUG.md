@@ -4,7 +4,7 @@
 Here is a quickstart guide to debugging. It is highly suggested to use gdb and/or valgrind when the program crashes unexpectedly.
 The first step is to compile the program in `DEBUG` mode through `CMAKE_BUILD_TYPE=Debug`.
 
-If ctest fails, using `ctest -V -R failing_test_name` will show the command being run.
+If ctest fails, using `ctest -V -R failing_test_name -N` will show the command being run.
 
 For a serial run, you may simply use gdb as intended:
 ```sh

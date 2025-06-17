@@ -140,8 +140,8 @@ std::array<dealii::Tensor<1,dim,real2>,nstate> ReynoldsAveragedNavierStokesBase<
     const std::array<dealii::Tensor<1,dim,real2>,nstate_navier_stokes> solution_gradient_rans = extract_rans_solution_gradient(solution_gradient);
 
     // Step 1,2: Primitive solution and Gradient of primitive solution
-    const std::array<real2,nstate_navier_stokes> primitive_soln_rans = this->navier_stokes_physics->convert_conservative_to_primitive(conservative_soln_rans); // from Euler
-    const std::array<dealii::Tensor<1,dim,real2>,nstate_navier_stokes> primitive_soln_gradient_rans = this->navier_stokes_physics->convert_conservative_gradient_to_primitive_gradient(conservative_soln_rans, solution_gradient_rans);
+    const std::array<real2,nstate_navier_stokes> primitive_soln_rans = this->navier_stokes_physics->convert_conservative_to_primitive_templated(conservative_soln_rans); // from Euler
+    const std::array<dealii::Tensor<1,dim,real2>,nstate_navier_stokes> primitive_soln_gradient_rans = this->navier_stokes_physics->convert_conservative_gradient_to_primitive_gradient_templated(conservative_soln_rans, solution_gradient_rans);
     const std::array<real2,nstate_turbulence_model> primitive_soln_turbulence_model = this->convert_conservative_to_primitive_turbulence_model(conservative_soln); 
     const std::array<dealii::Tensor<1,dim,real2>,nstate_turbulence_model> primitive_soln_gradient_turbulence_model = this->convert_conservative_gradient_to_primitive_gradient_turbulence_model(conservative_soln, solution_gradient);
 
@@ -181,6 +181,32 @@ std::array<dealii::Tensor<1,dim,real2>,nstate> ReynoldsAveragedNavierStokesBase<
     }
     
     return viscous_flux;
+}
+//----------------------------------------------------------------
+template <int dim, int nstate, typename real>
+std::array<real,nstate> ReynoldsAveragedNavierStokesBase<dim,nstate,real>
+::dissipative_flux_dot_normal (
+        const std::array<real,nstate> &solution,
+        const std::array<dealii::Tensor<1,dim,real>,nstate> &solution_gradient,
+        const std::array<real,nstate> &/*filtered_solution*/,
+        const std::array<dealii::Tensor<1,dim,real>,nstate> &/*filtered_solution_gradient*/,
+        const bool /*on_boundary*/,
+        const dealii::types::global_dof_index cell_index,
+        const dealii::Tensor<1,dim,real> &normal,
+        const int /*boundary_type*/) const
+{
+    const std::array<dealii::Tensor<1,dim,real>,nstate> dissipative_flux = dissipative_flux_templated<real>(solution,solution_gradient,cell_index);
+
+    std::array<real,nstate> dissipative_flux_dot_normal;
+    dissipative_flux_dot_normal.fill(0.0); // initialize
+    // compute the dot product with the normal vector
+    for (int s=0; s<nstate; s++) {
+        for (int d=0; d<dim; ++d) {
+            dissipative_flux_dot_normal[s] += dissipative_flux[s][d] * normal[d];//compute dot product
+        }
+    }
+
+    return dissipative_flux_dot_normal;
 }
 //----------------------------------------------------------------
 template <int dim, int nstate, typename real>

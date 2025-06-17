@@ -7,7 +7,7 @@ set test_type = rrk_numerical_entropy_conservation_check
 set pde_type = burgers_inviscid
 
 # Note: this is required to correctly calculate energy
-set use_periodic_bc = true
+set all_boundaries_are_periodic = true
 
 # for split form & energy-stable flux
 set use_weak_form = false

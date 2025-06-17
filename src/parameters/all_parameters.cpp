@@ -97,9 +97,15 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       dealii::Patterns::Bool(),
                       "Use original form by defualt. Otherwise, use the weight adjusted low storage mass matrix for curvilinear.");
 
-    prm.declare_entry("use_periodic_bc", "false",
+    prm.declare_entry("all_boundaries_are_periodic", "false",
                       dealii::Patterns::Bool(),
-                      "Use other boundary conditions by default. Otherwise use periodic (for 1d burgers only");
+                      "Flag to signal that all boundaries are periodic; if true surface flux nodes will not be stored for efficiency. "
+                      "Default is false; hence surface flux nodes are indeed stored by default.");
+
+    prm.declare_entry("check_same_coords_in_weak_dg", "true",
+                      dealii::Patterns::Bool(),
+                      "Flag to check if the coordinates of two points are same where expected in weak DG."
+                      "Default is true; set to false if you have periodic boundaries in your domain since it currently does not consider that case and will print large warning messages.");
 
     prm.declare_entry("use_curvilinear_grid", "false",
                       dealii::Patterns::Bool(),
@@ -112,10 +118,6 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
     prm.declare_entry("use_L2_norm", "false",
                       dealii::Patterns::Bool(),
                       "Not calculate L2 norm by default (M+K). Otherwise, get L2 norm per iteration.");
-
-    prm.declare_entry("use_classical_FR", "false",
-                      dealii::Patterns::Bool(),
-                      "Not use Classical Flux Reconstruction by default. Otherwise, use Classical Flux Reconstruction.");
 
     prm.declare_entry("flux_reconstruction", "cDG",
                       dealii::Patterns::Selection(
@@ -184,6 +186,7 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       " taylor_green_vortex_energy_check | "
                       " taylor_green_vortex_restart_check | "
                       " homogeneous_isotropic_turbulence_initialization_check | "
+                      " turbulent_channel_flow_skin_friction_check | "
                       " time_refinement_study | "
                       " time_refinement_study_reference | "
                       " rrk_numerical_entropy_conservation_check | "
@@ -217,7 +220,7 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       "  euler_vortex | "
                       "  euler_entropy_waves | "
                       "  euler_split_taylor_green |"
-                      " taylor_green_scaling | "
+                      "  taylor_green_scaling | "
                       "  euler_bump_optimization | "
                       "  euler_naca_optimization | "
                       "  shock_1d | "
@@ -234,6 +237,7 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       "  taylor_green_vortex_energy_check | "
                       "  taylor_green_vortex_restart_check | "
                       "  homogeneous_isotropic_turbulence_initialization_check | "
+                      "  turbulent_channel_flow_skin_friction_check | "
                       "  time_refinement_study | "
                       "  time_refinement_study_reference | "
                       "  rrk_numerical_entropy_conservation_check | "
@@ -263,6 +267,9 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       " euler |"
                       " mhd |"
                       " navier_stokes |"
+                      " navier_stokes_channel_flow_constant_source_term | "
+                      " navier_stokes_channel_flow_constant_source_term_wall_model | "
+                      " physics_model_filtered |"
                       " physics_model"),
                       "The PDE we want to solve. "
                       "Choices are " 
@@ -276,15 +283,20 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       "  euler | "
                       "  mhd |"
                       "  navier_stokes |"
+                      "  navier_stokes_channel_flow_constant_source_term | "
+                      "  navier_stokes_channel_flow_constant_source_term_wall_model | "
+                      "  physics_model_filtered |"
                       "  physics_model>.");
 
     prm.declare_entry("model_type", "large_eddy_simulation",
                       dealii::Patterns::Selection(
-                      "large_eddy_simulation | reynolds_averaged_navier_stokes"),
+                      " large_eddy_simulation |"
+                      " reynolds_averaged_navier_stokes |"
+                      " navier_stokes_model"),
                       "Enum of physics models "
                       "(i.e. model equations and/or terms additional to Navier-Stokes or a chosen underlying baseline physics)."
                       "Choices are "
-                      " <large_eddy_simulation | reynolds_averaged_navier_stokes>.");
+                      " <large_eddy_simulation | reynolds_averaged_navier_stokes | navier_stokes_model>.");
 
     prm.declare_entry("conv_num_flux", "lax_friedrichs",
                       dealii::Patterns::Selection(
@@ -351,6 +363,15 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       dealii::Patterns::Double(0, dealii::Patterns::Double::max_double_value),
                       "Tolerance for checking that the determinant of surface jacobians at element faces matches. "
                       "Note: Currently only used in weak dg.");
+
+    prm.declare_entry("wall_model_input_from_second_element", "false",// TO DO: change to true for final PR
+                      dealii::Patterns::Bool(),
+                      "Flag for using second element as wall model input. If false, uses buffer (i.e. wall-adjacent) element.");
+
+    prm.declare_entry("use_projected_entropy_variables_for_nsfr_boundary_term", "false",
+                      dealii::Patterns::Bool(),
+                      "Flag for using projected entropy variables for NSFR boundary term. "
+                      "Default is false since boundary condition was verified using conservative solution.");
 
     Parameters::LinearSolverParam::declare_parameters (prm);
     Parameters::ManufacturedConvergenceStudyParam::declare_parameters (prm);
@@ -422,6 +443,8 @@ const std::string test_string = prm.get("test_type");
     else if (test_string == "taylor_green_vortex_restart_check")        { test_type = taylor_green_vortex_restart_check; }
     else if (test_string == "homogeneous_isotropic_turbulence_initialization_check")
                                                                         { test_type = homogeneous_isotropic_turbulence_initialization_check; }
+    else if (test_string == "turbulent_channel_flow_skin_friction_check")
+                                                                        { test_type = turbulent_channel_flow_skin_friction_check; }
     else if (test_string == "time_refinement_study")                    { test_type = time_refinement_study; }
     else if (test_string == "time_refinement_study_reference")          { test_type = time_refinement_study_reference; }
     else if (test_string == "h_refinement_study_isentropic_vortex")     { test_type = h_refinement_study_isentropic_vortex; }
@@ -440,6 +463,67 @@ const std::string test_string = prm.get("test_type");
     else if (test_string == "halton_sampling_run")                      { test_type = halton_sampling_run; }
     else if (test_string == "low_density")                              { test_type = low_density; }
     else if (test_string == "naca0012_unsteady_check_quick")            { test_type = naca0012_unsteady_check_quick; }
+    
+    // WARNING: Must assign model_type before pde_type
+    const std::string model_string = prm.get("model_type");
+    if (model_string == "large_eddy_simulation") { model_type = large_eddy_simulation; }
+    else if (model_string == "navier_stokes_model") { model_type = navier_stokes_model; }
+    else if (model_string == "reynolds_averaged_navier_stokes") { model_type = reynolds_averaged_navier_stokes; }
+
+    const std::string pde_string = prm.get("pde_type");
+    if (pde_string == "advection") {
+        pde_type = advection;
+        nstate = 1;
+    } else if (pde_string == "advection_vector") {
+        pde_type = advection_vector;
+        nstate = 2;
+    } else if (pde_string == "diffusion") {
+        pde_type = diffusion;
+        nstate = 1;
+    } else if (pde_string == "convection_diffusion") {
+        pde_type = convection_diffusion;
+        nstate = 1;
+    } else if (pde_string == "burgers_inviscid") {
+        pde_type = burgers_inviscid;
+        nstate = dimension;
+    } else if (pde_string == "burgers_viscous") {
+        pde_type = burgers_viscous;
+        nstate = dimension;
+    } else if (pde_string == "burgers_rewienski") {
+        pde_type = burgers_rewienski;
+        nstate = dimension;
+    } else if (pde_string == "euler") {
+        pde_type = euler;
+        nstate = dimension+2;
+    }
+    else if (pde_string == "navier_stokes") {
+        pde_type = navier_stokes;
+        nstate = dimension+2;
+    }
+    else if (pde_string == "navier_stokes_channel_flow_constant_source_term") {
+        pde_type = navier_stokes_channel_flow_constant_source_term;
+        nstate = dimension+2; 
+    }
+    else if (pde_string == "navier_stokes_channel_flow_constant_source_term_wall_model") {
+        pde_type = navier_stokes_channel_flow_constant_source_term_wall_model;
+        nstate = dimension+2; 
+        using_wall_model = true;
+    }
+    else if (pde_string == "physics_model") {
+        pde_type = physics_model;
+        if (model_type == large_eddy_simulation || model_type == navier_stokes_model) {
+            nstate = dimension+2;
+        } else if (model_type == reynolds_averaged_navier_stokes) {
+            if(physics_model_param.RANS_model_type == Parameters::PhysicsModelParam::ReynoldsAveragedNavierStokesModel::SA_negative) {
+              nstate = dimension+3;
+            }
+        }
+    } else if (pde_string == "physics_model_filtered") {
+        pde_type = physics_model_filtered;
+        if (model_type == large_eddy_simulation || model_type == navier_stokes_model) {
+            nstate = dimension+2;
+        }
+    }
     
     overintegration = prm.get_integer("overintegration");
 
@@ -463,10 +547,10 @@ const std::string test_string = prm.get("test_type");
     use_curvilinear_grid = prm.get_bool("use_curvilinear_grid");
     store_residual_cpu_time = prm.get_bool("store_residual_cpu_time");
     use_weight_adjusted_mass = prm.get_bool("use_weight_adjusted_mass");
-    use_periodic_bc = prm.get_bool("use_periodic_bc");
+    all_boundaries_are_periodic = prm.get_bool("all_boundaries_are_periodic");
+    check_same_coords_in_weak_dg = prm.get_bool("check_same_coords_in_weak_dg");
     use_energy = prm.get_bool("use_energy");
     use_L2_norm = prm.get_bool("use_L2_norm");
-    use_classical_FR = prm.get_bool("use_classical_FR");
     sipg_penalty_factor = prm.get_double("sipg_penalty_factor");
     use_invariant_curl_form = prm.get_bool("use_invariant_curl_form");
     use_inverse_mass_on_the_fly = prm.get_bool("use_inverse_mass_on_the_fly");
@@ -478,10 +562,10 @@ const std::string test_string = prm.get("test_type");
     energy_file = prm.get("energy_file");
 
     const std::string conv_num_flux_string = prm.get("conv_num_flux");
-    if (conv_num_flux_string == "lax_friedrichs")                                          { conv_num_flux_type = ConvectiveNumericalFlux::lax_friedrichs; }
-    if (conv_num_flux_string == "roe")                                                     { conv_num_flux_type = ConvectiveNumericalFlux::roe; }
-    if (conv_num_flux_string == "l2roe")                                                   { conv_num_flux_type = ConvectiveNumericalFlux::l2roe; }
-    if (conv_num_flux_string == "central_flux")                                            { conv_num_flux_type = ConvectiveNumericalFlux::central_flux; }
+    if (conv_num_flux_string == "lax_friedrichs")                                 { conv_num_flux_type = ConvectiveNumericalFlux::lax_friedrichs; }
+    if (conv_num_flux_string == "roe")                                            { conv_num_flux_type = ConvectiveNumericalFlux::roe; }
+    if (conv_num_flux_string == "l2roe")                                          { conv_num_flux_type = ConvectiveNumericalFlux::l2roe; }
+    if (conv_num_flux_string == "central_flux")                                   { conv_num_flux_type = ConvectiveNumericalFlux::central_flux; }
     if (conv_num_flux_string == "two_point_flux")                                 { conv_num_flux_type = ConvectiveNumericalFlux::two_point_flux; }
     if (conv_num_flux_string == "two_point_flux_with_lax_friedrichs_dissipation") { conv_num_flux_type = ConvectiveNumericalFlux::two_point_flux_with_lax_friedrichs_dissipation; }
     if (conv_num_flux_string == "two_point_flux_with_roe_dissipation")            { conv_num_flux_type = ConvectiveNumericalFlux::two_point_flux_with_roe_dissipation; }
@@ -536,6 +620,8 @@ const std::string test_string = prm.get("test_type");
     if (renumber_dofs_type_string == "CuthillMckee") { renumber_dofs_type = RenumberDofsType::CuthillMckee; }
 
     matching_surface_jac_det_tolerance = prm.get_double("matching_surface_jac_det_tolerance");
+    wall_model_input_from_second_element = prm.get_bool("wall_model_input_from_second_element");
+    use_projected_entropy_variables_for_nsfr_boundary_term = prm.get_bool("use_projected_entropy_variables_for_nsfr_boundary_term");
 
     pcout << "Parsing linear solver subsection..." << std::endl;
     linear_solver_param.parse_parameters (prm);
@@ -581,59 +667,46 @@ const std::string test_string = prm.get("test_type");
     
     pcout << "Parsing functional subsection..." << std::endl;
     functional_param.parse_parameters (prm);
-
-    // WARNING: Must assign model_type before pde_type
-    const std::string model_string = prm.get("model_type");
-    if (model_string == "large_eddy_simulation") { model_type = large_eddy_simulation; }
-    else if (model_string == "reynolds_averaged_navier_stokes") { model_type = reynolds_averaged_navier_stokes; }
-
-    const std::string pde_string = prm.get("pde_type");
-    if (pde_string == "advection") {
-        pde_type = advection;
-        nstate = 1;
-    } else if (pde_string == "advection_vector") {
-        pde_type = advection_vector;
-        nstate = 2;
-    } else if (pde_string == "diffusion") {
-        pde_type = diffusion;
-        nstate = 1;
-    } else if (pde_string == "convection_diffusion") {
-        pde_type = convection_diffusion;
-        nstate = 1;
-    } else if (pde_string == "burgers_inviscid") {
-        pde_type = burgers_inviscid;
-        nstate = dimension;
-    } else if (pde_string == "burgers_viscous") {
-        pde_type = burgers_viscous;
-        nstate = dimension;
-    } else if (pde_string == "burgers_rewienski") {
-        pde_type = burgers_rewienski;
-        nstate = dimension;
-    } else if (pde_string == "euler") {
-        pde_type = euler;
-        nstate = dimension+2;
-    }
-    else if (pde_string == "navier_stokes") {
-        pde_type = navier_stokes;
-        nstate = dimension+2;
-    }
-    else if (pde_string == "physics_model") {
-        pde_type = physics_model;
-        if (model_type == large_eddy_simulation)
-        {
-            nstate = dimension+2;
-        }
-        else if (model_type == reynolds_averaged_navier_stokes)
-        {
-            if(physics_model_param.RANS_model_type == Parameters::PhysicsModelParam::ReynoldsAveragedNavierStokesModel::SA_negative)
-              nstate = dimension+3;
-        }
-    }
     
     pcout << "Parsing time refinement study subsection..." << std::endl;
     time_refinement_study_param.parse_parameters (prm);
-    
+
     pcout << "Done parsing." << std::endl;
+
+    modify_parameters();
+}
+
+void AllParameters::modify_parameters () {
+    if(flow_solver_param.flow_case_type == flow_solver_param.FlowCaseType::channel_flow) {
+      /** 
+       * Bulk velocity Reynolds number computed from friction velocity based Reynolds numbers (Empirical relation)
+       * Reference:
+       *  - R. B. Dean, "Reynolds Number Dependence of Skin Friction and Other Bulk
+       *    Flow Variables in Two-Dimensional Rectangular Duct Flow", 
+       *    Journal of Fluids Engineering, 1978 
+       * */
+      pcout << "Setting freestream parameters for channel flow case to be based on bulk velocity Reynolds number... " << std::flush;
+      const double channel_bulk_velocity_reynolds_number = pow(0.073, -4.0/7.0)*pow(2.0, 5.0/7.0)*pow(flow_solver_param.turbulent_channel_friction_velocity_reynolds_number, 8.0/7.0);
+      // - Freestream Reynolds number
+      navier_stokes_param.reynolds_number_inf = channel_bulk_velocity_reynolds_number;
+      // - Reference length
+      euler_param.ref_length = flow_solver_param.turbulent_channel_domain_length_y_direction/2.0; // corresponds to half channel height
+      
+      pcout << "done." << std::endl;
+    } 
+    if((pde_type == PartialDifferentialEquation::navier_stokes || (pde_type == PartialDifferentialEquation::navier_stokes_channel_flow_constant_source_term || 
+                (pde_type == PartialDifferentialEquation::navier_stokes_channel_flow_constant_source_term_wall_model ||
+                 (pde_type == PartialDifferentialEquation::physics_model || pde_type == PartialDifferentialEquation::physics_model_filtered)))) && 
+              (flow_solver_param.flow_case_type == flow_solver_param.FlowCaseType::taylor_green_vortex || 
+                (flow_solver_param.flow_case_type == flow_solver_param.FlowCaseType::channel_flow || 
+                  (flow_solver_param.flow_case_type == flow_solver_param.FlowCaseType::dipole_wall_collision_normal || 
+                    (flow_solver_param.flow_case_type == flow_solver_param.FlowCaseType::dipole_wall_collision_oblique ||
+                  flow_solver_param.flow_case_type == flow_solver_param.FlowCaseType::decaying_homogeneous_isotropic_turbulence))))) 
+    {
+      pcout << "Setting non_physical_behavior_type = NonPhysicalBehaviorEnum::abort_run... " << std::flush;
+      non_physical_behavior_type = NonPhysicalBehaviorEnum::abort_run;
+      pcout << "done." << std::endl;
+    }
 }
 
 } // Parameters namespace

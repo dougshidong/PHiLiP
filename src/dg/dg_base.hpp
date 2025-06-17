@@ -934,11 +934,20 @@ public:
     virtual void allocate_model_variables() = 0;
     /// Update the necessary variables declared in src/physics/model.h
     virtual void update_model_variables() = 0;
+    /// Set the unsteady time step variable declared in src/physics/model.h
+    virtual void set_unsteady_model_time_step(const double time_step) = 0;
     /// Flag for using the auxiliary equation
     bool use_auxiliary_eq;
     /// Set use_auxiliary_eq flag
     virtual void set_use_auxiliary_eq() = 0;
-
+    /// Flag for storing volume flux nodes
+    bool store_vol_flux_nodes;
+    /// Set store_vol_flux_nodes flag
+    virtual void set_store_vol_flux_nodes() = 0;
+    /// Flag for storing surface flux nodes
+    bool store_surf_flux_nodes;
+    /// Set store_surf_flux_nodes flag
+    virtual void set_store_surf_flux_nodes() = 0;
 }; // end of DGBase class
 
 } // PHiLiP namespace

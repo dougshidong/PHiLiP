@@ -10,8 +10,8 @@ set pde_type = navier_stokes
 set use_weak_form = false
 # set flux_nodes_type = GLL
 
-# Note: this was added to turn off check_same_coords() -- has no other function when dim!=1
-set use_periodic_bc = true
+set all_boundaries_are_periodic = true
+set check_same_coords_in_weak_dg = false
 
 # degree of freedom renumbering not necessary for explicit time advancement cases
 set do_renumber_dofs = false
@@ -52,6 +52,7 @@ subsection flow_solver
   set adaptive_time_step = true
   set unsteady_data_table_filename = tgv_strong_adaptive_time_step
   set output_restart_files = true
+  set write_unsteady_data_table_file_every_dt_time_intervals = 0.0
   subsection grid
     set grid_left_bound = 0.0
     set grid_right_bound = 6.28318530717958623200

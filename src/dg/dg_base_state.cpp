@@ -116,8 +116,10 @@ void DGBaseState<dim, nstate, real, MeshType>::update_model_variables() {
     const auto mapping = (*(this->high_order_grid->mapping_fe_field));
     dealii::hp::MappingCollection<dim> mapping_collection(mapping);
     const dealii::UpdateFlags update_flags = dealii::update_values | dealii::update_JxW_values;
-    dealii::hp::FEValues<dim, dim> fe_values_collection_volume(mapping_collection, this->fe_collection,
-                                                               this->volume_quadrature_collection, update_flags);
+    dealii::hp::FEValues<dim,dim> fe_values_collection_volume (mapping_collection, 
+                                                               this->fe_collection, 
+                                                               this->volume_quadrature_collection, 
+                                                               update_flags);
 
     // loop through all cells
     for (auto cell : this->dof_handler.active_cell_iterators()) {
@@ -128,10 +130,10 @@ void DGBaseState<dim, nstate, real, MeshType>::update_model_variables() {
         const int i_quad = i_fele;
         const int i_mapp = 0;
         fe_values_collection_volume.reinit(cell, i_quad, i_mapp, i_fele);
-        const dealii::FEValues<dim, dim> &fe_values_volume = fe_values_collection_volume.get_present_fe_values();
+        const dealii::FEValues<dim,dim> &fe_values_volume = fe_values_collection_volume.get_present_fe_values();
 
         // get cell polynomial degree
-        const dealii::FESystem<dim, dim> &fe_high = this->fe_collection[i_fele];
+        const dealii::FESystem<dim,dim> &fe_high = this->fe_collection[i_fele];
         const unsigned int cell_poly_degree = fe_high.tensor_degree();
 
         // get cell volume
@@ -139,15 +141,14 @@ void DGBaseState<dim, nstate, real, MeshType>::update_model_variables() {
         const unsigned int n_quad_pts = quadrature.size();
         const std::vector<real> &JxW = fe_values_volume.get_JxW_values();
         real cell_volume_estimate = 0.0;
-        for (unsigned int iquad = 0; iquad < n_quad_pts; ++iquad) {
+        for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
             cell_volume_estimate = cell_volume_estimate + JxW[iquad];
         }
         const real cell_volume = cell_volume_estimate;
 
         // get cell index for assignment
         const dealii::types::global_dof_index cell_index = cell->active_cell_index();
-        // const dealii::types::global_dof_index cell_index = cell->global_active_cell_index(); //
-        // https://www.dealii.org/current/doxygen/deal.II/classCellAccessor.html
+        // const dealii::types::global_dof_index cell_index = cell->global_active_cell_index(); // https://www.dealii.org/current/doxygen/deal.II/classCellAccessor.html
 
         // assign values
         // -- double
@@ -179,8 +180,37 @@ void DGBaseState<dim, nstate, real, MeshType>::update_model_variables() {
 }
 
 template <int dim, int nstate, typename real, typename MeshType>
+void DGBaseState<dim,nstate,real,MeshType>::set_unsteady_model_time_step(
+        const double time_step)
+{
+    // time_step
+    if(pde_model_double)  pde_model_double->time_step  = time_step;
+    if(pde_model_fad)     pde_model_fad->time_step     = time_step;
+    if(pde_model_rad)     pde_model_rad->time_step     = time_step;
+    if(pde_model_fad_fad) pde_model_fad_fad->time_step = time_step;
+    if(pde_model_rad_fad) pde_model_rad_fad->time_step = time_step;
+}
+
+template <int dim, int nstate, typename real, typename MeshType>
 void DGBaseState<dim, nstate, real, MeshType>::set_use_auxiliary_eq() {
     this->use_auxiliary_eq = pde_physics_double->has_nonzero_diffusion;
+}
+
+template <int dim, int nstate, typename real, typename MeshType>
+void DGBaseState<dim,nstate,real,MeshType>::set_store_vol_flux_nodes()
+{
+    //if have source term need to store vol flux nodes.
+    this->store_vol_flux_nodes = (this->all_parameters->manufactured_convergence_study_param.manufactured_solution_param.use_manufactured_source_term
+                                     || pde_physics_double->has_nonzero_physical_source);
+}
+
+template <int dim, int nstate, typename real, typename MeshType>
+void DGBaseState<dim,nstate,real,MeshType>::set_store_surf_flux_nodes()
+{
+    //if all boundaries are periodic, we do not need to store surf flux nodes.
+    //for boundary conditions not periodic we need surface flux nodes
+    //should change this flag to something like if have face on boundary not periodic in the future
+    this->store_surf_flux_nodes = (this->all_parameters->all_boundaries_are_periodic) ? false : true;
 }
 
 template <int dim, int nstate, typename real, typename MeshType>

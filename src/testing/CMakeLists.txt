@@ -45,6 +45,7 @@ set(TESTS_SOURCE
     halton_sampling_run.cpp
     bound_preserving_limiter_tests.cpp
     naca0012_unsteady_check_quick.cpp
+    turbulent_channel_flow_skin_friction_check.cpp
     )
 
 foreach(dim RANGE 1 3)

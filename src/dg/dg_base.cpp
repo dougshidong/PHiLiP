@@ -260,7 +260,6 @@ DGBase<dim,real,MeshType>::create_collection_tuple(
     return std::make_tuple(fe_coll, volume_quad_coll, face_quad_coll, fe_coll_lagr, fe_coll_1D, fe_coll_1D_1state, fe_coll_lagr_1D, oneD_quad_coll);
 }
 
-
 template <int dim, typename real, typename MeshType>
 void DGBase<dim,real,MeshType>::time_scale_solution_update ( dealii::LinearAlgebra::distributed::Vector<double> &solution_update, const real CFL ) const
 {
@@ -501,11 +500,6 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
     const dealii::types::global_dof_index current_cell_index = current_cell->active_cell_index();
 
     std::array<std::vector<real>,dim> mapping_support_points;
-    //if have source term need to store vol flux nodes.
-    const bool store_vol_flux_nodes = all_parameters->manufactured_convergence_study_param.manufactured_solution_param.use_manufactured_source_term;
-    //for boundary conditions not periodic we need surface flux nodes
-    //should change this flag to something like if have face on boundary not periodic in the future
-    const bool store_surf_flux_nodes = (all_parameters->use_periodic_bc) ? false : true;
     OPERATOR::metric_operators<real,dim,2*dim> metric_oper_int(nstate, poly_degree, grid_degree,
                                                                store_vol_flux_nodes,
                                                                store_surf_flux_nodes);
@@ -1080,7 +1074,7 @@ void DGBase<dim,real,MeshType>::reinit_operators_for_cell_residual_loop(
 
     //basis functions projection operator
     soln_basis_projection_oper_int.build_1D_volume_operator(oneD_fe_collection_1state[poly_degree_int], oneD_quadrature_collection[poly_degree_int]);
-    soln_basis_projection_oper_ext.build_1D_volume_operator(oneD_fe_collection_1state[poly_degree_int], oneD_quadrature_collection[poly_degree_int]);
+    soln_basis_projection_oper_ext.build_1D_volume_operator(oneD_fe_collection_1state[poly_degree_ext], oneD_quadrature_collection[poly_degree_ext]);
 
     //We only need to compute the most recent mapping basis since we compute interior before looping faces
     mapping_basis.build_1D_shape_functions_at_grid_nodes(high_order_grid->oneD_fe_system, high_order_grid->oneD_grid_nodes);
@@ -1235,13 +1229,14 @@ void DGBase<dim,real,MeshType>::assemble_residual (const bool compute_dRdW, cons
 
 
     int assembly_error = 0;
-    try {
+    // try {
 
         // update artificial dissipation discontinuity sensor only if using artificial dissipation
         if(all_parameters->artificial_dissipation_param.add_artificial_dissipation) update_artificial_dissipation_discontinuity_sensor();
         
         // updates model variables only if there is a model
-        if(all_parameters->pde_type == Parameters::AllParameters::PartialDifferentialEquation::physics_model) update_model_variables();
+        if(all_parameters->pde_type == Parameters::AllParameters::PartialDifferentialEquation::physics_model ||
+           all_parameters->pde_type == Parameters::AllParameters::PartialDifferentialEquation::physics_model_filtered) update_model_variables();
 
         // assembles and solves for auxiliary variable if necessary.
         assemble_auxiliary_residual();
@@ -1282,11 +1277,10 @@ void DGBase<dim,real,MeshType>::assemble_residual (const bool compute_dRdW, cons
             timer.stop();
             assemble_residual_time += timer.cpu_time();
         }
-    } catch(...) {
-        assembly_error = 1;
-    }
+    // } catch(...) {
+    //     assembly_error = 1;
+    // }
     const int mpi_assembly_error = dealii::Utilities::MPI::sum(assembly_error, mpi_communicator);
-
 
     if (mpi_assembly_error != 0) {
         std::cout << "Invalid residual assembly encountered..."
@@ -1901,7 +1895,8 @@ void DGBase<dim,real,MeshType>::allocate_system (
     reduced_mesh_weights.reinit(triangulation->n_active_cells());
 
     // allocates model variables only if there is a model
-    if(all_parameters->pde_type == Parameters::AllParameters::PartialDifferentialEquation::physics_model) allocate_model_variables();
+    if(all_parameters->pde_type == Parameters::AllParameters::PartialDifferentialEquation::physics_model ||
+       all_parameters->pde_type == Parameters::AllParameters::PartialDifferentialEquation::physics_model_filtered) allocate_model_variables();
 
     solution.reinit(locally_owned_dofs, ghost_dofs, mpi_communicator);
     solution *= 0.0;
@@ -1914,6 +1909,12 @@ void DGBase<dim,real,MeshType>::allocate_system (
 
     // Set use_auxiliary_eq flag
     set_use_auxiliary_eq();
+
+    // Set store_vol_flux_nodes flag
+    set_store_vol_flux_nodes();
+
+    // Set store_surf_flux_nodes flag
+    set_store_surf_flux_nodes();
 
     // Allocate for auxiliary equation only.
     if(use_auxiliary_eq) allocate_auxiliary_equation ();

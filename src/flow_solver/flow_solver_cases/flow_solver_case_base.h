@@ -42,18 +42,11 @@ public:
     virtual void set_higher_order_grid(std::shared_ptr <DGBase<dim, double>> dg) const;
 
     /// Virtual function to write unsteady snapshot data to table
-    /// Defaults to passing only ode_solver->current_iteration and ode_solver->current_time to the second definition
     virtual void compute_unsteady_data_and_write_to_table(
-            const std::shared_ptr<ODE::ODESolverBase<dim, double>> ode_solver, 
+            const std::shared_ptr <ODE::ODESolverBase<dim, double>> ode_solver, 
             const std::shared_ptr <DGBase<dim, double>> dg,
-            const std::shared_ptr<dealii::TableHandler> unsteady_data_table);
-
-    /// Virtual function to write unsteady snapshot data to table
-    virtual void compute_unsteady_data_and_write_to_table(
-            const unsigned int current_iteration,
-            const double current_time,
-            const std::shared_ptr <DGBase<dim, double>> dg,
-            const std::shared_ptr<dealii::TableHandler> unsteady_data_table);
+            const std::shared_ptr<dealii::TableHandler> unsteady_data_table,
+            const bool do_write_unsteady_data_table_file);
 
     /// Virtual function to compute the constant time step
     virtual double get_constant_time_step(std::shared_ptr <DGBase<dim, double>> dg) const;
@@ -81,12 +74,14 @@ protected:
      */
     dealii::ConditionalOStream pcout;
 
+public:
     /// Add a value to a given data table with scientific format
     void add_value_to_data_table(
             const double value,
             const std::string value_string,
             const std::shared_ptr <dealii::TableHandler> data_table) const;
 
+protected:
     /// Display additional more specific flow case parameters
     virtual void display_additional_flow_case_specific_parameters() const = 0;
 

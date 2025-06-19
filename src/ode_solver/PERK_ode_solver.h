@@ -39,18 +39,8 @@ protected:
     /// Stores Butcher tableau a and b, which specify the RK method
     std::shared_ptr<PERKTableauBase<dim,real,MeshType>> butcher_tableau;
 
-    //std::vector<std::vector<bool>> calc_stage;
-
-        
     dealii::LinearAlgebra::distributed::Vector<int> locations_to_evaluate_rhs;
     int evaluate_until_this_index;
-    int second_half;
-    std::vector<int> group_ID = {1, 2};
-
-    //dealii::LinearAlgebra::distributed::Vector<double> u_1;
-    //dealii::LinearAlgebra::distributed::Vector<double> u_2;
-    //std::vector<dealii::LinearAlgebra::distributed::Vector<double>> u_1;
-    //std::vector<dealii::LinearAlgebra::distributed::Vector<double>> u_2;
 
 };
 

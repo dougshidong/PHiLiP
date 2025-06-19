@@ -65,17 +65,14 @@ protected:
     std::vector<dealii::LinearAlgebra::distributed::Vector<double>> rk_stage;
 
     std::vector<std::vector<dealii::LinearAlgebra::distributed::Vector<double>>> rk_stage_k;
-
-        /// Storage for the derivative at each Runge-Kutta stage
-  //  std::vector<dealii::LinearAlgebra::distributed::Vector<double>> u_1;
-
-        /// Storage for the derivative at each Runge-Kutta stage
- //   std::vector<dealii::LinearAlgebra::distributed::Vector<double>> u_2;
     
     /// Indicator for zero diagonal elements; used to toggle implicit solve.
     std::vector<bool> butcher_tableau_aii_is_zero;
 
     std::vector<std::vector<bool>> calc_stage;
+ //   std::vector<std::vector<std::vector<bool>>> calc_stage;
+    std::vector<int> group_ID = {1, 2};
+
 };
 } // ODE namespace
 } // PHiLiP namespace

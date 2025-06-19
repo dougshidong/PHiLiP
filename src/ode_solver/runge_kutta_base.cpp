@@ -23,11 +23,9 @@ void RungeKuttaBase<dim, real, n_rk_stages, MeshType>::step_in_time(real dt, con
     this->original_time_step = dt;
     this->solution_update = this->dg->solution; //storing u_n
     for (int istage = 0; istage < n_rk_stages; ++istage){
-        if (this->calc_stage[1][istage]==true){
-            this->calculate_stage_solution(istage, dt, pseudotime); // u_n + dt * sum(a_ij * k_j) <explicit> + dt * a_ii * u^(istage) <implicit>
-            this->apply_limiter();
-            this->calculate_stage_derivative(istage, dt); //rk_stage[istage] = IMM*RHS = F(u_n + dt*sum(a_ij*k_j))
-        }
+        this->calculate_stage_solution(istage, dt, pseudotime); // u_n + dt * sum(a_ij * k_j) <explicit> + dt * a_ii * u^(istage) <implicit>
+        this->apply_limiter();
+        this->calculate_stage_derivative(istage, dt); //rk_stage[istage] = IMM*RHS = F(u_n + dt*sum(a_ij*k_j))
     }
     dt = this->adjust_time_step(dt);
     this->sum_stages(dt, pseudotime); // u_np1 = u_n + dt* sum(k_i * b_i)
@@ -52,17 +50,19 @@ void RungeKuttaBase<dim, real, n_rk_stages, MeshType>::allocate_ode_system()
         this->rk_stage[istage].reinit(this->dg->solution);
     }
 
-
-    this->rk_stage_k.resize(2);
-    for (int i = 0; i < 2; ++i)
-    {
-        this->rk_stage_k[i].resize(n_rk_stages);
-        for (int j = 0; j < n_rk_stages; ++j)
-        {
-            this->rk_stage_k[i][j].reinit(this->dg->solution);
+    // allocation for PERK schemes
+    PHiLiP::Parameters::AllParameters parameters = *(this->all_parameters);
+    using ODESolverEnum = Parameters::ODESolverParam::ODESolverEnum;
+    if (parameters.ode_solver_param.ode_solver_type == ODESolverEnum::PERK_solver){
+        this->rk_stage_k.resize(group_ID.size());
+        for (size_t i = 0; i < group_ID.size(); ++i){
+            this->rk_stage_k[i].resize(n_rk_stages);
+            for (int j = 0; j < n_rk_stages; ++j){
+                this->rk_stage_k[i][j].reinit(this->dg->solution);
+            }
         }
     }
-
+    
     this->allocate_runge_kutta_system();
 }
 

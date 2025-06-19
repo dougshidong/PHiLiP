@@ -15,64 +15,61 @@ PERKODESolver<dim,real,n_rk_stages, MeshType>::PERKODESolver(std::shared_ptr< DG
 template<int dim, typename real, int n_rk_stages, typename MeshType>
 void PERKODESolver<dim,real,n_rk_stages, MeshType>::calculate_stage_solution (int istage, real dt, const bool pseudotime)
 {
-//    this->rk_stage[istage]=0.0; //resets all entries to zero
 
-    for (size_t k = 0; k < group_ID.size(); ++k){
-        this->rk_stage_k[k][istage]=0.0;
-        for (int j = 0; j < istage; ++j){
-            if (this->butcher_tableau->get_a(istage,j, k+1) != 0){
-                this->rk_stage_k[k][istage].add(this->butcher_tableau->get_a(istage,j, k+1), this->rk_stage_k[k][j]);
-            }
-        } //sum(a_ij *k_j), explicit part
+    for (size_t k = 0; k < this->group_ID.size(); ++k){ // calculate stage solutions corresponding to tableaus
+        if (this->calc_stage[k][istage]==true){
+            this->rk_stage_k[k][istage]=0.0; //resets all entries to zero
+            for (int j = 0; j < istage; ++j){
+                if (this->butcher_tableau->get_a(istage,j, k+1) != 0){
+                    this->rk_stage_k[k][istage].add(this->butcher_tableau->get_a(istage,j, k+1), this->rk_stage_k[k][j]);
+                }
+            } //sum(a_ij *k_j), explicit part
 
-        
-        if(pseudotime) {
-            const double CFL = dt;
-            this->dg->time_scale_solution_update(this->rk_stage_k[k][istage], CFL);
-        }else {
-            this->rk_stage_k[k][istage]*=dt;
-        }//dt * sum(a_ij * k_j)
-        
-        this->rk_stage_k[k][istage].add(1.0,this->solution_update); //u_n + dt * sum(a_ij * k_j)
-        //this->rk_stage[istage].print(std::cout);
+            
+            if(pseudotime) {
+                const double CFL = dt;
+                this->dg->time_scale_solution_update(this->rk_stage_k[k][istage], CFL);
+            }else {
+                this->rk_stage_k[k][istage]*=dt;
+            }//dt * sum(a_ij * k_j)
+            
+            this->rk_stage_k[k][istage].add(1.0,this->solution_update); //u_n + dt * sum(a_ij * k_j)
 
-        //implicit solve if there is a nonzero diagonal element
-        if (!this->butcher_tableau_aii_is_zero[istage]){
-            /* // AD version - keeping in comments as it may be useful for future testing
-            // Solve (M/dt - dRdW) / a_ii * dw = R
-            // w = w + dw
-            // Note - need to have assembled residual using this->dg->assemble_residual(true);
-            //        and have mass matrix assembled, and include linear_solver
-            dealii::LinearAlgebra::distributed::Vector<double> temp_u(this->dg->solution.size());
+            //implicit solve if there is a nonzero diagonal element
+            if (!this->butcher_tableau_aii_is_zero[istage]){
+                /* // AD version - keeping in comments as it may be useful for future testing
+                // Solve (M/dt - dRdW) / a_ii * dw = R
+                // w = w + dw
+                // Note - need to have assembled residual using this->dg->assemble_residual(true);
+                //        and have mass matrix assembled, and include linear_solver
+                dealii::LinearAlgebra::distributed::Vector<double> temp_u(this->dg->solution.size());
 
-            this->dg->system_matrix *= -1.0/butcher_tableau_a[istage][istage]; //system_matrix = -1/a_ii*dRdW
-            this->dg->add_mass_matrices(1.0/butcher_tableau_a[istage][istage]/dt); //system_matrix = -1/a_ii*dRdW + M/dt/a_ii = A
+                this->dg->system_matrix *= -1.0/butcher_tableau_a[istage][istage]; //system_matrix = -1/a_ii*dRdW
+                this->dg->add_mass_matrices(1.0/butcher_tableau_a[istage][istage]/dt); //system_matrix = -1/a_ii*dRdW + M/dt/a_ii = A
 
-            solve_linear ( //Solve Ax=b using Aztec00 gmres
-                        this->dg->system_matrix, //A = -1/a_ii*dRdW + M/dt/a_ii
-                        this->dg->right_hand_side, //b = R
-                        temp_u, // result,  x = dw
-                        this->ODESolverBase<dim,real,MeshType>::all_parameters->linear_solver_param);
+                solve_linear ( //Solve Ax=b using Aztec00 gmres
+                            this->dg->system_matrix, //A = -1/a_ii*dRdW + M/dt/a_ii
+                            this->dg->right_hand_side, //b = R
+                            temp_u, // result,  x = dw
+                            this->ODESolverBase<dim,real,MeshType>::all_parameters->linear_solver_param);
 
-            this->rk_stage[istage].add(1.0, temp_u);
-            */
+                this->rk_stage[istage].add(1.0, temp_u);
+                */
 
-            //JFNK version
-            this->solver.solve(dt*this->butcher_tableau->get_a(istage,istage,k+1), this->rk_stage_k[k][istage]);
-            this->rk_stage_k[k][istage] = this->solver.current_solution_estimate;
+                //JFNK version
+                this->solver.solve(dt*this->butcher_tableau->get_a(istage,istage,k+1), this->rk_stage_k[k][istage]);
+                this->rk_stage_k[k][istage] = this->solver.current_solution_estimate;
 
-        }    
+            }    
 
+            // u_n + dt * sum(a_ij * k_j) <explicit> + dt * a_ii * u^(istage) <implicit>
 
-    // u_n + dt * sum(a_ij * k_j) <explicit> + dt * a_ii * u^(istage) <implicit>
+            // If using the entropy formulation of RRK, solutions must be stored.
+            // Call store_stage_solutions before overwriting rk_stage with the derivative.
+            this->relaxation_runge_kutta->store_stage_solutions(istage, this->rk_stage_k[k][istage]);
 
-        // If using the entropy formulation of RRK, solutions must be stored.
-        // Call store_stage_solutions before overwriting rk_stage with the derivative.
-        this->relaxation_runge_kutta->store_stage_solutions(istage, this->rk_stage_k[k][istage]);
-
-        //this->dg->solution = this->rk_stage_k[0][istage];
-        //this->rk_stage_k[k][istage].print(std::cout);
         }
+    }    
 }
 
 template<int dim, typename real, int n_rk_stages, typename MeshType>
@@ -81,20 +78,17 @@ void PERKODESolver<dim,real,n_rk_stages,MeshType>::calculate_stage_derivative (i
      //set the DG current time for unsteady source terms
     this->dg->set_current_time(this->current_time + this->butcher_tableau->get_c(istage)*dt);
 
-    //solve the system's right hand side
-  //  this->dg->right_hand_side *= 0; 
-    for (size_t k = 0; k < group_ID.size(); ++k){
-        this->dg->solution = this->rk_stage_k[k][istage];// update to stage solution
-        this->dg->right_hand_side *= 0; 
-        this->dg->assemble_residual(false, false, false, 0.0, group_ID[k]); //RHS : du/dt = RHS = F(u_n + dt* sum(a_ij*k_j) + dt * a_ii * u^(istage)))
-//        this->dg->assemble_residual();
-        if(this->all_parameters->use_inverse_mass_on_the_fly){
-            this->dg->apply_inverse_global_mass_matrix(this->dg->right_hand_side, this->rk_stage_k[k][istage]); //rk_stage[istage] = IMM*RHS = F(u_n + dt*sum(a_ij*k_j))
-        } else{
-            this->dg->global_inverse_mass_matrix.vmult(this->rk_stage_k[k][istage], this->dg->right_hand_side); //rk_stage[istage] = IMM*RHS = F(u_n + dt*sum(a_ij*k_j))
+    for (size_t k = 0; k < this->group_ID.size(); ++k){
+        if (this->calc_stage[k][istage]==true){
+            this->dg->solution = this->rk_stage_k[k][istage];// update to stage solution
+            this->dg->right_hand_side *= 0; 
+            this->dg->assemble_residual(false, false, false, 0.0, this->group_ID[k]); //RHS : du/dt = RHS = F(u_n + dt* sum(a_ij*k_j) + dt * a_ii * u^(istage)))
+            if(this->all_parameters->use_inverse_mass_on_the_fly){
+                this->dg->apply_inverse_global_mass_matrix(this->dg->right_hand_side, this->rk_stage_k[k][istage]); //rk_stage[istage] = IMM*RHS = F(u_n + dt*sum(a_ij*k_j))
+            } else{
+                this->dg->global_inverse_mass_matrix.vmult(this->rk_stage_k[k][istage], this->dg->right_hand_side); //rk_stage[istage] = IMM*RHS = F(u_n + dt*sum(a_ij*k_j))
+            }
         }
-    //this->solution_update.add(dt* this->butcher_tableau->get_b(istage),this->rk_stage_k[k][istage]);
-    //this->rk_stage_k[k][istage].print(std::cout);
    }
 }
 
@@ -108,14 +102,13 @@ void PERKODESolver<dim,real,n_rk_stages,MeshType>::sum_stages (real dt, const bo
             this->dg->time_scale_solution_update(this->rk_stage[istage], CFL);
             this->solution_update.add(1.0, this->rk_stage[istage]);
         } else {
-            for (size_t k = 0; k<group_ID.size(); ++k){
-                this->solution_update.add(dt* this->butcher_tableau->get_b(istage),this->rk_stage_k[k][istage]);
+            for (size_t k = 0; k < this->group_ID.size(); ++k){
+                if (this->calc_stage[k][istage]==true){
+                    this->solution_update.add(dt* this->butcher_tableau->get_b(istage),this->rk_stage_k[k][istage]);
+                }
             }
         }
     }
-    //std::cout << std::setprecision(10);
-    //this->solution_update.print(std::cout);
-    //this->solution_update.print(std::cout, /*precision=*/10, /*scientific=*/true, /*across=*/1);
 }
 
 
@@ -170,45 +163,44 @@ void PERKODESolver<dim,real,n_rk_stages,MeshType>::allocate_runge_kutta_system (
             this->dg->evaluate_mass_matrices(false); // creates and stores global mass matrix
         }
     }
-    this->calc_stage.resize(2); // a1 (index 1) and a2 (index 2)
 
-    for (int stage = 1; stage <= 2; ++stage) {
-        this->calc_stage[stage-1].resize(n_rk_stages);
+    // store whether or not to calcualte stage
+    this->calc_stage.resize(this->group_ID.size());
+    for (size_t k = 0; k < this->group_ID.size(); ++k) {
+        this->calc_stage[k].resize(n_rk_stages);
         for (int j = 0; j < n_rk_stages; ++j) {
-            bool rowHasTrue = false;
+            bool calcStage = false;
             for (int i = 0; i < n_rk_stages; ++i) {
-                if (this->butcher_tableau->get_a(i, j, stage) != 0 || this->butcher_tableau->get_b(j) != 0) {
-                    rowHasTrue = true;
+                if (this->butcher_tableau->get_a(i, j, k+1) != 0 || this->butcher_tableau->get_b(j) != 0) {
+                    calcStage = true;
                     break;
                 }
             }
-            this->calc_stage[stage-1][j] = rowHasTrue;
+            this->calc_stage[k][j] = calcStage;
         }
     }
 
     locations_to_evaluate_rhs.reinit(this->dg->triangulation->n_active_cells());
     evaluate_until_this_index = locations_to_evaluate_rhs.size() / 2; 
-    second_half = locations_to_evaluate_rhs.size();
 
     for (int i = 0; i < evaluate_until_this_index; ++i){
         if (locations_to_evaluate_rhs.in_local_range(i))
             locations_to_evaluate_rhs(i) = 1;
     }
     locations_to_evaluate_rhs.update_ghost_values();
-    this->dg->set_list_of_cell_group_IDs(locations_to_evaluate_rhs, group_ID[0]);
+    this->dg->set_list_of_cell_group_IDs(locations_to_evaluate_rhs, this->group_ID[0]);
 
 
     locations_to_evaluate_rhs = 0;
     locations_to_evaluate_rhs.update_ghost_values();
 
-    for (int i = evaluate_until_this_index; i < second_half; ++i){
+    for (size_t i = evaluate_until_this_index; i < locations_to_evaluate_rhs.size(); ++i){
         if (locations_to_evaluate_rhs.in_local_range(i))
             locations_to_evaluate_rhs(i) = 1;
     }
     locations_to_evaluate_rhs.update_ghost_values();
-    this->dg->set_list_of_cell_group_IDs(locations_to_evaluate_rhs, group_ID[1]);
+    this->dg->set_list_of_cell_group_IDs(locations_to_evaluate_rhs, this->group_ID[1]);
 
-   // this->dg->right_hand_side *= 0; 
 
 }
 

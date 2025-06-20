@@ -191,7 +191,7 @@ void PERKODESolver<dim,real,n_rk_stages,MeshType>::allocate_runge_kutta_system (
     this->dg->set_list_of_cell_group_IDs(locations_to_evaluate_rhs, this->group_ID[0]);
 
 
-    locations_to_evaluate_rhs = 0;
+    locations_to_evaluate_rhs *= 0;
     locations_to_evaluate_rhs.update_ghost_values();
 
     for (size_t i = evaluate_until_this_index; i < locations_to_evaluate_rhs.size(); ++i){
@@ -200,7 +200,6 @@ void PERKODESolver<dim,real,n_rk_stages,MeshType>::allocate_runge_kutta_system (
     }
     locations_to_evaluate_rhs.update_ghost_values();
     this->dg->set_list_of_cell_group_IDs(locations_to_evaluate_rhs, this->group_ID[1]);
-
 
 }
 

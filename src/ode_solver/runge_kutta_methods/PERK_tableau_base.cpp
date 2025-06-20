@@ -32,7 +32,8 @@ double PERKTableauBase<dim,real, MeshType> :: get_a (const int i, const int j, c
 {
     if (a == 1){
         return butcher_tableau_a1[i][j];
-    } else {
+    }
+    else{
         return butcher_tableau_a2[i][j];
     }
 }

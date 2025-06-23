@@ -400,6 +400,8 @@ public:
 
     dealii::LinearAlgebra::distributed::Vector<double> time_averaged_solution;
 
+    dealii::LinearAlgebra::distributed::Vector<double> fluctuating_quantities;
+
     ///The auxiliary equations' right hand sides.
     std::array<dealii::LinearAlgebra::distributed::Vector<double>,dim> auxiliary_right_hand_side;
 
@@ -517,8 +519,8 @@ public:
 
     void initialize_manufactured_solution (); ///< Virtual function defined in DG
 
-    void output_results_vtk (const unsigned int cycle, const double current_time=0.0, const bool output_time_averaged_solution=false); ///< Output solution
-    void output_face_results_vtk (const unsigned int cycle, const double current_time=0.0, const bool output_time_averaged_solution=false); ///< Output Euler face solution
+    void output_results_vtk (const unsigned int cycle, const double current_time=0.0, const bool output_time_averaged_solution=false, const bool output_fluctuating_quantities=false); ///< Output solution
+    void output_face_results_vtk (const unsigned int cycle, const double current_time=0.0, const bool output_time_averaged_solution=false, const bool output_fluctuating_quantities=false); ///< Output Euler face solution
 
     bool update_artificial_diss;
     /// Main loop of the DG class.

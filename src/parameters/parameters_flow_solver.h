@@ -187,8 +187,10 @@ public:
     bool output_vorticity_magnitude_field_in_addition_to_velocity; ///< Flag for outputting vorticity magnitude field in addition to velocity field
     bool output_density_field_in_addition_to_velocity; ///< Flag for outputting density field in addition to velocity field
     bool output_viscosity_field_in_addition_to_velocity; ///< Flag for outputting viscosity field in addition to velocity field 
-    bool compute_time_averaged_solution; ///< Flag for outputting density field in addition to velocity field
-    double time_to_start_averaging; ///< Flag for outputting viscosity field in addition to velocity field   
+    bool compute_time_averaged_solution; ///< Flag for computing time-averaged solution
+    double time_to_start_averaging; ///< Flag for starting time-averaged solution
+    bool compute_Reynolds_stress; ///< Flag for computing time-averaged Reynolds stresses
+    double time_to_start_computing_Reynolds_Stress; ///< Flag for starting to compute Reynolds stresses. This needs to be after the time-averaging has started.      
     std::string output_flow_field_files_directory_name; ///< Name of directory for writing flow field files
 
     bool end_exactly_at_final_time; ///< Flag to adjust the last timestep such that the simulation ends exactly at final_time

@@ -1906,7 +1906,8 @@ public:
 
 template <int dim, typename real, typename MeshType>
 void DGBase<dim,real,MeshType>::output_face_results_vtk (const unsigned int cycle, const double current_time, 
-                                                    const bool output_time_averaged_solution)// const
+                                                    const bool output_time_averaged_solution,
+                                                    const bool output_fluctuating_quantities)// const
 {
 
     DataOutEulerFaces<dim, dealii::DoFHandler<dim>> data_out;
@@ -1942,8 +1943,11 @@ void DGBase<dim,real,MeshType>::output_face_results_vtk (const unsigned int cycl
 
     // Let the physics post-processor determine what to output.
     const std::unique_ptr< dealii::DataPostprocessor<dim> > post_processor = Postprocess::PostprocessorFactory<dim>::create_Postprocessor(all_parameters);
-    if(output_time_averaged_solution){
+    if(output_time_averaged_solution && !output_fluctuating_quantities){
         data_out.add_data_vector (time_averaged_solution, *post_processor);
+    }  else if(output_fluctuating_quantities && !output_time_averaged_solution){
+        std::vector<std::string> fluctuating_quantities_names = {"u'v'","u'u'", "v'v'", "w'w'", "u'w'"};
+        data_out.add_data_vector (fluctuating_quantities, fluctuating_quantities_names, dealii::DataOut_DoFData<dealii::DoFHandler<dim>,dim-1,dim>::DataVectorType::type_dof_data);
     } else {
         data_out.add_data_vector (solution, *post_processor);
     }
@@ -2009,7 +2013,8 @@ void DGBase<dim,real,MeshType>::output_face_results_vtk (const unsigned int cycl
 
     const int iproc = dealii::Utilities::MPI::this_mpi_process(mpi_communicator);
     std::string filename_prefix = "surface_solution"; // default
-    if(output_time_averaged_solution) filename_prefix = "time_averaged_surface_solution";
+    if(output_time_averaged_solution && !output_fluctuating_quantities) filename_prefix = "time_averaged_surface_solution";
+    else if(output_fluctuating_quantities && !output_time_averaged_solution) filename_prefix = "fluctuating_surface_quantities";
     std::string filename = this->all_parameters->solution_vtk_files_directory_name + "/" + filename_prefix + "-" + dealii::Utilities::int_to_string(dim, 1) +"D_maxpoly"+dealii::Utilities::int_to_string(max_degree, 2)+"-";
     filename += dealii::Utilities::int_to_string(cycle, 4) + ".";
     filename += dealii::Utilities::int_to_string(iproc, 4);
@@ -2021,7 +2026,8 @@ void DGBase<dim,real,MeshType>::output_face_results_vtk (const unsigned int cycl
     if (iproc == 0) {
         std::vector<std::string> filenames;
         std::string filename_prefix = "surface_solution"; // default
-        if(output_time_averaged_solution) filename_prefix = "time_averaged_surface_solution";
+        if(output_time_averaged_solution && !output_fluctuating_quantities) filename_prefix = "time_averaged_surface_solution";
+        else if(output_fluctuating_quantities && !output_time_averaged_solution) filename_prefix = "fluctuating_surface_quantities";
         for (unsigned int iproc = 0; iproc < dealii::Utilities::MPI::n_mpi_processes(mpi_communicator); ++iproc) {;
             std::string fn = filename_prefix + "-" + dealii::Utilities::int_to_string(dim, 1) +"D_maxpoly"+dealii::Utilities::int_to_string(max_degree, 2)+"-";
             fn += dealii::Utilities::int_to_string(cycle, 4) + ".";
@@ -2037,8 +2043,13 @@ void DGBase<dim,real,MeshType>::output_face_results_vtk (const unsigned int cycl
     //std::cout << "Completed writing out file." << std::endl;
     if (all_parameters->flow_solver_param.compute_time_averaged_solution && 
         (current_time >= all_parameters->flow_solver_param.time_to_start_averaging) && 
-        (output_time_averaged_solution == false)) {
-        output_face_results_vtk (cycle, current_time, true);
+        (output_time_averaged_solution == false) && (output_fluctuating_quantities == false)) {
+        //output_face_results_vtk (cycle, current_time);
+        output_face_results_vtk (cycle, current_time, false, true);
+        if (all_parameters->flow_solver_param.compute_Reynolds_stress && 
+        (current_time >= all_parameters->flow_solver_param.time_to_start_computing_Reynolds_Stress)){
+            output_face_results_vtk (cycle, current_time, true, false);
+        }
     }
 
 }
@@ -2046,7 +2057,8 @@ void DGBase<dim,real,MeshType>::output_face_results_vtk (const unsigned int cycl
 
 template <int dim, typename real, typename MeshType>
 void DGBase<dim,real,MeshType>::output_results_vtk (const unsigned int cycle, const double current_time, 
-                                                    const bool output_time_averaged_solution)// const
+                                                    const bool output_time_averaged_solution,
+                                                    const bool output_fluctuating_quantities)// const
 {
 #if PHILIP_DIM>1
     if(this->all_parameters->output_face_results_vtk) output_face_results_vtk (cycle, current_time);
@@ -2085,8 +2097,11 @@ void DGBase<dim,real,MeshType>::output_results_vtk (const unsigned int cycle, co
 
     // Let the physics post-processor determine what to output.
     const std::unique_ptr< dealii::DataPostprocessor<dim> > post_processor = Postprocess::PostprocessorFactory<dim>::create_Postprocessor(all_parameters);
-    if(output_time_averaged_solution){
+    if(output_time_averaged_solution && !output_fluctuating_quantities){
         data_out.add_data_vector (time_averaged_solution, *post_processor);
+    } else if(output_fluctuating_quantities && !output_time_averaged_solution){
+        std::vector<std::string> fluctuating_quantities_names = {"u'v'","u'u'", "v'v'", "w'w'", "u'w'"};
+        data_out.add_data_vector (fluctuating_quantities, fluctuating_quantities_names, dealii::DataOut_DoFData<dealii::DoFHandler<dim>,dim>::DataVectorType::type_dof_data);
     } else {
         data_out.add_data_vector (solution, *post_processor);
     }
@@ -2144,7 +2159,8 @@ void DGBase<dim,real,MeshType>::output_results_vtk (const unsigned int cycle, co
 
     const int iproc = dealii::Utilities::MPI::this_mpi_process(mpi_communicator);
     std::string filename_prefix = "solution"; // default
-    if(output_time_averaged_solution) filename_prefix = "time_averaged_solution";
+    if(output_time_averaged_solution && !output_fluctuating_quantities) filename_prefix = "time_averaged_solution";
+    else if(output_fluctuating_quantities && !output_time_averaged_solution) filename_prefix = "fluctuating_quantities";
     std::string filename = this->all_parameters->solution_vtk_files_directory_name + "/" + filename_prefix + "-" + dealii::Utilities::int_to_string(dim, 1) +"D_maxpoly"+dealii::Utilities::int_to_string(max_degree, 2)+"-";
     filename += dealii::Utilities::int_to_string(cycle, 4) + ".";
     filename += dealii::Utilities::int_to_string(iproc, 4);
@@ -2170,8 +2186,12 @@ void DGBase<dim,real,MeshType>::output_results_vtk (const unsigned int cycle, co
 
     if (all_parameters->flow_solver_param.compute_time_averaged_solution && 
         (current_time >= all_parameters->flow_solver_param.time_to_start_averaging) && 
-        (output_time_averaged_solution == false))/*Only when false, such that it's not endlessly recursive*/ {
-        output_results_vtk (cycle, current_time, true);
+        (output_time_averaged_solution == false) && (output_fluctuating_quantities == false))/*Only when false, such that it's not endlessly recursive*/ {
+        output_results_vtk (cycle, current_time, true, false); //time-averaged quantites
+        if (all_parameters->flow_solver_param.compute_Reynolds_stress && 
+        (current_time >= all_parameters->flow_solver_param.time_to_start_computing_Reynolds_Stress)){
+            output_results_vtk (cycle, current_time, false, true); //fluctuating quantitites
+        }
     }
 
     //std::cout << "Completed writing out file." << std::endl;
@@ -2253,8 +2273,17 @@ void DGBase<dim,real,MeshType>::allocate_system (
     right_hand_side.reinit(locally_owned_dofs, ghost_dofs, mpi_communicator);
     right_hand_side.add(1.0); // Avoid 0 initial residual for output and logarithmic visualization.
     //time averaged solution
-    time_averaged_solution.reinit(locally_owned_dofs, ghost_dofs, mpi_communicator);
-    time_averaged_solution *= 0.0;
+    if(all_parameters->flow_solver_param.compute_time_averaged_solution){
+        time_averaged_solution.reinit(locally_owned_dofs, ghost_dofs, mpi_communicator);
+        time_averaged_solution *= 0.0;
+        time_averaged_solution.add(std::numeric_limits<real>::lowest());
+    }
+    //fluctuating quantities (i.e, reynodsl stresses)
+    if(all_parameters->flow_solver_param.compute_time_averaged_solution && all_parameters->flow_solver_param.compute_Reynolds_stress){
+        fluctuating_quantities.reinit(locally_owned_dofs, ghost_dofs, mpi_communicator);
+        fluctuating_quantities *= 0.0;
+        fluctuating_quantities.add(std::numeric_limits<real>::lowest());
+    }
 
     allocate_dual_vector();
 

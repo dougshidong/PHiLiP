@@ -543,22 +543,214 @@ int FlowSolver<dim,nstate>::run() const
             dg->set_unsteady_model_time_step(time_step);
             // advance solution
             ode_solver->step_in_time(time_step,false); // pseudotime==false
-            if(flow_solver_param.compute_time_averaged_solution && ( (ode_solver->current_time <= flow_solver_param.time_to_start_averaging) && (ode_solver->current_time+time_step > flow_solver_param.time_to_start_averaging) )) {
-                dg->time_averaged_solution =  dg->solution;
-            }
-            else if(flow_solver_param.compute_time_averaged_solution && (ode_solver->current_time > flow_solver_param.time_to_start_averaging)) {
-                //dg->time_averaged_solution +=  dg->solution;
-                const unsigned int max_dofs_per_cell = dg->dof_handler.get_fe_collection().max_dofs_per_cell();
-                std::vector<dealii::types::global_dof_index> current_dofs_indices(max_dofs_per_cell);
-                auto metric_cell = dg->high_order_grid->dof_handler_grid.begin_active();
-                for (auto current_cell = dg->dof_handler.begin_active(); current_cell!=dg->dof_handler.end(); ++current_cell, ++metric_cell) {
-                    if (!current_cell->is_locally_owned()) continue;
+            if constexpr (nstate==dim+2){
+                if(flow_solver_param.compute_time_averaged_solution && ( (ode_solver->current_time <= flow_solver_param.time_to_start_averaging) && (ode_solver->current_time+time_step > flow_solver_param.time_to_start_averaging) )) {
+                    dg->time_averaged_solution =  dg->solution;
+                }
+                else if(flow_solver_param.compute_time_averaged_solution && (ode_solver->current_time > flow_solver_param.time_to_start_averaging)) {
+                    //dg->time_averaged_solution +=  dg->solution;
+                    const unsigned int max_dofs_per_cell = dg->dof_handler.get_fe_collection().max_dofs_per_cell();
+                    std::vector<dealii::types::global_dof_index> current_dofs_indices(max_dofs_per_cell);
+                    auto metric_cell = dg->high_order_grid->dof_handler_grid.begin_active();
+                    for (auto current_cell = dg->dof_handler.begin_active(); current_cell!=dg->dof_handler.end(); ++current_cell, ++metric_cell) {
+                        if (!current_cell->is_locally_owned()) continue;
 
-                    const unsigned int n_dofs_cell = dg->fe_collection[poly_degree].dofs_per_cell;                  
-                    current_dofs_indices.resize(n_dofs_cell);
-                    current_cell->get_dof_indices (current_dofs_indices);
-                    for(unsigned int idof=0; idof<n_dofs_cell; idof++){
-                        dg->time_averaged_solution(current_dofs_indices[idof]) = dg->time_averaged_solution(current_dofs_indices[idof]) + (dg->solution(current_dofs_indices[idof]) - dg->time_averaged_solution(current_dofs_indices[idof]))/((ode_solver->current_time - flow_solver_param.time_to_start_averaging + time_step) / time_step); //Incremental average
+                        const unsigned int n_dofs_cell = dg->fe_collection[poly_degree].dofs_per_cell;                  
+                        current_dofs_indices.resize(n_dofs_cell);
+                        current_cell->get_dof_indices (current_dofs_indices);             
+                        for(unsigned int idof=0; idof<n_dofs_cell; idof++){
+                            dg->time_averaged_solution(current_dofs_indices[idof]) = dg->time_averaged_solution(current_dofs_indices[idof]) + (dg->solution(current_dofs_indices[idof]) - dg->time_averaged_solution(current_dofs_indices[idof]))/((ode_solver->current_time - flow_solver_param.time_to_start_averaging + time_step) / time_step); //Incremental average
+                        }
+                    }
+                }
+                if(flow_solver_param.compute_Reynolds_stress && ( (ode_solver->current_time <= flow_solver_param.time_to_start_computing_Reynolds_Stress) && (ode_solver->current_time+time_step > flow_solver_param.time_to_start_computing_Reynolds_Stress) )) {
+                    const unsigned int max_dofs_per_cell = dg->dof_handler.get_fe_collection().max_dofs_per_cell();
+                    std::vector<dealii::types::global_dof_index> current_dofs_indices(max_dofs_per_cell);
+                    auto metric_cell = dg->high_order_grid->dof_handler_grid.begin_active();
+                    for (auto current_cell = dg->dof_handler.begin_active(); current_cell!=dg->dof_handler.end(); ++current_cell, ++metric_cell) {
+                        if (!current_cell->is_locally_owned()) continue;
+                        const unsigned int n_dofs_cell = dg->fe_collection[poly_degree].dofs_per_cell;                  
+                        current_dofs_indices.resize(n_dofs_cell);
+                        current_cell->get_dof_indices (current_dofs_indices);
+                        const unsigned int n_shape_fns = n_dofs_cell / nstate;
+                        dealii::Quadrature<1> vol_quad_equidistant_1D = dealii::QIterated<1>(dealii::QTrapez<1>(),poly_degree);
+                        const unsigned int n_quad_pts = pow(vol_quad_equidistant_1D.size(),dim);
+                        const unsigned int init_grid_degree = dg->high_order_grid->fe_system.tensor_degree();
+                        OPERATOR::basis_functions<dim,2*dim> soln_basis(1, dg->max_degree, init_grid_degree); 
+                        soln_basis.build_1D_volume_operator(dg->oneD_fe_collection_1state[dg->max_degree], vol_quad_equidistant_1D);
+                        soln_basis.build_1D_gradient_operator(dg->oneD_fe_collection_1state[dg->max_degree], vol_quad_equidistant_1D);                
+                        // Store solution coeffs for time-averaged flutuating quantitites
+                        std::array<std::vector<double>,nstate> soln_coeff;
+                        std::array<std::vector<double>,nstate> time_averaged_soln_coeff;
+                        for(unsigned int idof=0; idof<n_dofs_cell; idof++){
+                            const unsigned int istate = dg->fe_collection[poly_degree].system_to_component_index(idof).first;
+                            const unsigned int ishape = dg->fe_collection[poly_degree].system_to_component_index(idof).second;
+                            if(ishape == 0) {
+                                soln_coeff[istate].resize(n_shape_fns);
+                                time_averaged_soln_coeff[istate].resize(n_shape_fns);
+                            }
+                            soln_coeff[istate][ishape] = dg->solution(current_dofs_indices[idof]);
+                            time_averaged_soln_coeff[istate][ishape] = dg->time_averaged_solution(current_dofs_indices[idof]);
+                        }
+
+                        //Project solutin
+                        std::array<std::vector<double>,nstate> soln_at_q;
+                        std::array<std::vector<double>,nstate> time_averaged_soln_at_q;
+                        for(int istate=0; istate<nstate; istate++){
+                            soln_at_q[istate].resize(n_quad_pts);
+                            time_averaged_soln_at_q[istate].resize(n_quad_pts);
+                            // Interpolate soln coeff to volume cubature nodes.
+                            soln_basis.matrix_vector_mult_1D(soln_coeff[istate], soln_at_q[istate],
+                                                            soln_basis.oneD_vol_operator);
+                            // Interpolate soln coeff to volume cubature nodes.
+                            soln_basis.matrix_vector_mult_1D(time_averaged_soln_coeff[istate], time_averaged_soln_at_q[istate],
+                                                            soln_basis.oneD_vol_operator);
+                        }
+                        // compute quantities at quad nodes (equisdistant)
+                        dealii::Tensor<1,dim,std::vector<double>> velocity_at_q;
+                        dealii::Tensor<1,dim,std::vector<double>> time_averaged_velocity_at_q;
+                        dealii::Tensor<1,dim,std::vector<double>> velocity_fluctuations_at_q;
+                        for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
+                            std::array<double,nstate> soln_state;
+                            std::array<double,nstate> time_averaged_soln_state;
+                            for(int istate=0; istate<nstate; istate++){
+                                soln_state[istate] = soln_at_q[istate][iquad];
+                                time_averaged_soln_state[istate] = time_averaged_soln_at_q[istate][iquad];
+                            }
+                            dealii::Tensor<1,dim,double> vel;// = this->navier_stokes_physics->compute_velocities(soln_state);
+                            dealii::Tensor<1,dim,double> time_averaged_vel;// = this->navier_stokes_physics->compute_velocities(time_averaged_soln_state);
+                            const double density = soln_state[0];
+                            const double time_averaged_density = time_averaged_soln_state[0];
+                            for (unsigned int d=0; d<dim; ++d) {
+                                vel[d] = soln_state[1+d]/density;
+                                time_averaged_vel[d] = time_averaged_soln_state[1+d]/time_averaged_density;
+                            }
+                            const dealii::Tensor<1,dim,double> velocity = vel;
+                            const dealii::Tensor<1,dim,double> time_averaged_velocity = time_averaged_vel;
+                            for(int idim=0; idim<dim; idim++){
+                                if(iquad==0){
+                                    velocity_at_q[idim].resize(n_quad_pts);
+                                    time_averaged_velocity_at_q[idim].resize(n_quad_pts);
+                                    velocity_fluctuations_at_q[idim].resize(n_quad_pts);
+                                }
+                                velocity_at_q[idim][iquad] = velocity[idim];
+                                time_averaged_velocity_at_q[idim][iquad] = time_averaged_velocity[idim];
+                                velocity_fluctuations_at_q[idim][iquad] = velocity_at_q[idim][iquad] - time_averaged_velocity_at_q[idim][iquad];
+                            } 
+                        }
+                        for(unsigned int idof=0; idof<n_dofs_cell; idof++){
+                            const unsigned int istate = dg->fe_collection[poly_degree].system_to_component_index(idof).first;
+                            const unsigned int ishape = dg->fe_collection[poly_degree].system_to_component_index(idof).second;
+                            if(istate == 0){//u^{\prime}v^{\prime}
+                                dg->fluctuating_quantities(current_dofs_indices[idof]) = velocity_fluctuations_at_q[0][ishape]*velocity_fluctuations_at_q[1][ishape];
+                            }else if(istate == 1){//u^{\prime 2}
+                                dg->fluctuating_quantities(current_dofs_indices[idof]) = velocity_fluctuations_at_q[0][ishape]*velocity_fluctuations_at_q[0][ishape];
+                            }else if(istate == 2){//v^{\prime 2}
+                                dg->fluctuating_quantities(current_dofs_indices[idof]) = velocity_fluctuations_at_q[1][ishape]*velocity_fluctuations_at_q[1][ishape];
+                            }else if(istate == 3){//z^{\prime 2}
+                                dg->fluctuating_quantities(current_dofs_indices[idof]) = velocity_fluctuations_at_q[2][ishape]*velocity_fluctuations_at_q[2][ishape];
+                            }else if(istate == 4){//u^{\prime}w^{\prime}
+                                dg->fluctuating_quantities(current_dofs_indices[idof]) = velocity_fluctuations_at_q[0][ishape]*velocity_fluctuations_at_q[2][ishape];
+                            }
+                        }
+                    }
+                }
+                else if(flow_solver_param.compute_Reynolds_stress && (ode_solver->current_time > flow_solver_param.time_to_start_computing_Reynolds_Stress)) {
+                    const unsigned int max_dofs_per_cell = dg->dof_handler.get_fe_collection().max_dofs_per_cell();
+                    std::vector<dealii::types::global_dof_index> current_dofs_indices(max_dofs_per_cell);
+                    auto metric_cell = dg->high_order_grid->dof_handler_grid.begin_active();
+                    for (auto current_cell = dg->dof_handler.begin_active(); current_cell!=dg->dof_handler.end(); ++current_cell, ++metric_cell) {
+                        if (!current_cell->is_locally_owned()) continue;
+
+                        const unsigned int n_dofs_cell = dg->fe_collection[poly_degree].dofs_per_cell;                  
+                        current_dofs_indices.resize(n_dofs_cell);
+                        current_cell->get_dof_indices (current_dofs_indices);
+                        const unsigned int n_shape_fns = n_dofs_cell / nstate;
+                        dealii::Quadrature<1> vol_quad_equidistant_1D = dealii::QIterated<1>(dealii::QTrapez<1>(),poly_degree);
+                        const unsigned int n_quad_pts = pow(vol_quad_equidistant_1D.size(),dim);
+                        const unsigned int init_grid_degree = dg->high_order_grid->fe_system.tensor_degree();
+                        OPERATOR::basis_functions<dim,2*dim> soln_basis(1, dg->max_degree, init_grid_degree); 
+                        soln_basis.build_1D_volume_operator(dg->oneD_fe_collection_1state[dg->max_degree], vol_quad_equidistant_1D);
+                        soln_basis.build_1D_gradient_operator(dg->oneD_fe_collection_1state[dg->max_degree], vol_quad_equidistant_1D);                
+                        // Store solution coeffs for time-averaged flutuating quantitites
+                        std::array<std::vector<double>,nstate> soln_coeff;
+                        std::array<std::vector<double>,nstate> time_averaged_soln_coeff;
+                        for(unsigned int idof=0; idof<n_dofs_cell; idof++){
+                            const unsigned int istate = dg->fe_collection[poly_degree].system_to_component_index(idof).first;
+                            const unsigned int ishape = dg->fe_collection[poly_degree].system_to_component_index(idof).second;
+                            if(ishape == 0) {
+                                soln_coeff[istate].resize(n_shape_fns);
+                                time_averaged_soln_coeff[istate].resize(n_shape_fns);
+                            }
+                            soln_coeff[istate][ishape] = dg->solution(current_dofs_indices[idof]);
+                            time_averaged_soln_coeff[istate][ishape] = dg->time_averaged_solution(current_dofs_indices[idof]);
+                        }
+
+                        //Project solutin
+                        std::array<std::vector<double>,nstate> soln_at_q;
+                        std::array<std::vector<double>,nstate> time_averaged_soln_at_q;
+                        for(int istate=0; istate<nstate; istate++){
+                            soln_at_q[istate].resize(n_quad_pts);
+                            time_averaged_soln_at_q[istate].resize(n_quad_pts);
+                            // Interpolate soln coeff to volume cubature nodes.
+                            soln_basis.matrix_vector_mult_1D(soln_coeff[istate], soln_at_q[istate],
+                                                            soln_basis.oneD_vol_operator);
+                            // Interpolate soln coeff to volume cubature nodes.
+                            soln_basis.matrix_vector_mult_1D(time_averaged_soln_coeff[istate], time_averaged_soln_at_q[istate],
+                                                            soln_basis.oneD_vol_operator);
+                        }
+                        // compute quantities at quad nodes (equisdistant)
+                        dealii::Tensor<1,dim,std::vector<double>> velocity_at_q;
+                        dealii::Tensor<1,dim,std::vector<double>> time_averaged_velocity_at_q;
+                        dealii::Tensor<1,dim,std::vector<double>> velocity_fluctuations_at_q;
+                        for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
+                            std::array<double,nstate> soln_state;
+                            std::array<double,nstate> time_averaged_soln_state;
+                            for(int istate=0; istate<nstate; istate++){
+                                soln_state[istate] = soln_at_q[istate][iquad];
+                                time_averaged_soln_state[istate] = time_averaged_soln_at_q[istate][iquad];
+                            }
+                            dealii::Tensor<1,dim,double> vel;// = this->navier_stokes_physics->compute_velocities(soln_state);
+                            dealii::Tensor<1,dim,double> time_averaged_vel;// = this->navier_stokes_physics->compute_velocities(time_averaged_soln_state);
+                            const double density = soln_state[0];
+                            const double time_averaged_density = time_averaged_soln_state[0];
+                            for (unsigned int d=0; d<dim; ++d) {
+                                vel[d] = soln_state[1+d]/density;
+                                time_averaged_vel[d] = time_averaged_soln_state[1+d]/time_averaged_density;
+                            }
+                            const dealii::Tensor<1,dim,double> velocity = vel;
+                            const dealii::Tensor<1,dim,double> time_averaged_velocity = time_averaged_vel;
+                            for(int idim=0; idim<dim; idim++){
+                                if(iquad==0){
+                                    velocity_at_q[idim].resize(n_quad_pts);
+                                    time_averaged_velocity_at_q[idim].resize(n_quad_pts);
+                                    velocity_fluctuations_at_q[idim].resize(n_quad_pts);
+                                }
+                                velocity_at_q[idim][iquad] = velocity[idim];
+                                time_averaged_velocity_at_q[idim][iquad] = time_averaged_velocity[idim];
+                                velocity_fluctuations_at_q[idim][iquad] = velocity_at_q[idim][iquad] - time_averaged_velocity_at_q[idim][iquad];
+                            } 
+                        }
+                        for(unsigned int idof=0; idof<n_dofs_cell; idof++){
+                            const unsigned int istate = dg->fe_collection[poly_degree].system_to_component_index(idof).first;
+                            const unsigned int ishape = dg->fe_collection[poly_degree].system_to_component_index(idof).second;
+                            if(istate == 0){//u^{\prime}v^{\prime}
+                                //dg->fluctuating_quantities(current_dofs_indices[idof]) = velocity_fluctuations_at_q[0][ishape]*velocity_fluctuations_at_q[1][ishape];
+                                dg->fluctuating_quantities(current_dofs_indices[idof])= dg->fluctuating_quantities(current_dofs_indices[idof]) + (velocity_fluctuations_at_q[0][ishape]*velocity_fluctuations_at_q[1][ishape] - dg->fluctuating_quantities(current_dofs_indices[idof]))/((ode_solver->current_time - flow_solver_param.time_to_start_computing_Reynolds_Stress + time_step) / time_step); //Incremental average
+                            }else if(istate == 1){//u^{\prime 2}
+                                //dg->fluctuating_quantities(current_dofs_indices[idof]) = velocity_fluctuations_at_q[0][ishape]*velocity_fluctuations_at_q[0][ishape];
+                                dg->fluctuating_quantities(current_dofs_indices[idof])= dg->fluctuating_quantities(current_dofs_indices[idof]) + (velocity_fluctuations_at_q[0][ishape]*velocity_fluctuations_at_q[0][ishape] - dg->fluctuating_quantities(current_dofs_indices[idof]))/((ode_solver->current_time - flow_solver_param.time_to_start_computing_Reynolds_Stress + time_step) / time_step); //Incremental average
+                            }else if(istate == 2){//v^{\prime 2}
+                                //dg->fluctuating_quantities(current_dofs_indices[idof]) = velocity_fluctuations_at_q[1][ishape]*velocity_fluctuations_at_q[1][ishape];
+                                dg->fluctuating_quantities(current_dofs_indices[idof])= dg->fluctuating_quantities(current_dofs_indices[idof]) + (velocity_fluctuations_at_q[1][ishape]*velocity_fluctuations_at_q[1][ishape] - dg->fluctuating_quantities(current_dofs_indices[idof]))/((ode_solver->current_time - flow_solver_param.time_to_start_computing_Reynolds_Stress + time_step) / time_step); //Incremental average
+                            }else if(istate == 3){//z^{\prime 2}
+                                //dg->fluctuating_quantities(current_dofs_indices[idof]) = velocity_fluctuations_at_q[2][ishape]*velocity_fluctuations_at_q[2][ishape];
+                                dg->fluctuating_quantities(current_dofs_indices[idof])= dg->fluctuating_quantities(current_dofs_indices[idof]) + (velocity_fluctuations_at_q[2][ishape]*velocity_fluctuations_at_q[2][ishape] - dg->fluctuating_quantities(current_dofs_indices[idof]))/((ode_solver->current_time - flow_solver_param.time_to_start_computing_Reynolds_Stress + time_step) / time_step); //Incremental average
+                            }else if(istate == 4){//u^{\prime}w^{\prime}
+                                //dg->fluctuating_quantities(current_dofs_indices[idof]) = velocity_fluctuations_at_q[0][ishape]*velocity_fluctuations_at_q[2][ishape];
+                                dg->fluctuating_quantities(current_dofs_indices[idof])= dg->fluctuating_quantities(current_dofs_indices[idof]) + (velocity_fluctuations_at_q[0][ishape]*velocity_fluctuations_at_q[2][ishape] - dg->fluctuating_quantities(current_dofs_indices[idof]))/((ode_solver->current_time - flow_solver_param.time_to_start_computing_Reynolds_Stress + time_step) / time_step); //Incremental average
+                            }
+                        }
                     }
                 }
             }

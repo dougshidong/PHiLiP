@@ -466,7 +466,12 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
             prm.declare_entry("time_to_start_averaging", "0.0",
                               dealii::Patterns::Double(0, dealii::Patterns::Double::max_double_value),
                               "Time after which the time avering of the solution starts. 0.0 default.");
-            
+            prm.declare_entry("compute_Reynolds_stress", "false",
+                              dealii::Patterns::Bool(),
+                              "Compute time averaged solution on the fly (for example, to get velocity fluctuations). False by default.");
+            prm.declare_entry("time_to_start_computing_Reynolds_Stress", "0.0",
+                              dealii::Patterns::Double(0, dealii::Patterns::Double::max_double_value),
+                              "Time after which the time avering of the solution starts. 0.0 default.");            
             prm.declare_entry("output_flow_field_files_directory_name", ".",
                               dealii::Patterns::FileName(dealii::Patterns::FileName::FileType::input),
                               "Name of directory for writing flow field files. Current directory by default.");
@@ -662,6 +667,8 @@ void FlowSolverParam::parse_parameters(dealii::ParameterHandler &prm)
           output_viscosity_field_in_addition_to_velocity = prm.get_bool("output_viscosity_field_in_addition_to_velocity");
           compute_time_averaged_solution = prm.get_bool("compute_time_averaged_solution");
           time_to_start_averaging = prm.get_double("time_to_start_averaging");
+          compute_Reynolds_stress = prm.get_bool("compute_Reynolds_stress");
+          time_to_start_computing_Reynolds_Stress = prm.get_double("time_to_start_computing_Reynolds_Stress");
           output_flow_field_files_directory_name = prm.get("output_flow_field_files_directory_name");
         }
         prm.leave_subsection();

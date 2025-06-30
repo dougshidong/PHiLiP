@@ -30,7 +30,7 @@ HROMErrorPostSampling<dim, nstate>::HROMErrorPostSampling(const Parameters::AllP
 {}
 
 template <int dim, int nstate>
-Parameters::AllParameters HROMErrorPostSampling<dim, nstate>::reinitParams(std::string path) const{
+Parameters::AllParameters HROMErrorPostSampling<dim, nstate>::reinit_params(std::string path) const{
     // Copy all parameters
     PHiLiP::Parameters::AllParameters parameters = *(this->all_parameters);
 
@@ -39,7 +39,7 @@ Parameters::AllParameters HROMErrorPostSampling<dim, nstate>::reinitParams(std::
 }
 
 template <int dim, int nstate>
-bool HROMErrorPostSampling<dim, nstate>::getWeightsFromFile() const{
+bool HROMErrorPostSampling<dim, nstate>::getWeightsFromFile(std::shared_ptr<DGBase<dim,double>> &dg) const{
     bool file_found = false;
     Epetra_MpiComm epetra_comm(MPI_COMM_WORLD);
     VectorXd weights_eig;
@@ -95,7 +95,6 @@ bool HROMErrorPostSampling<dim, nstate>::getWeightsFromFile() const{
                     else {
                         try{
                             double num_string = std::stod(field);
-                            std::cout << field << std::endl;
                             weights_eig(row) = num_string;
                             row++;
                         } catch (...){
@@ -108,10 +107,25 @@ bool HROMErrorPostSampling<dim, nstate>::getWeightsFromFile() const{
         }
     }
 
-    Epetra_Map RowMap(rows, 0, epetra_comm);
-    Epetra_Vector weights(RowMap);
-    for(int i = 0; i < rows; i++){
-        weights[i] = weights_eig(i);
+    Epetra_CrsMatrix epetra_system_matrix = dg->system_matrix.trilinos_matrix();
+    const int n_quad_pts = dg->volume_quadrature_collection[dg->all_parameters->flow_solver_param.poly_degree].size();
+    const int length = epetra_system_matrix.NumMyRows()/(nstate*n_quad_pts);
+    int *local_elements = new int[length];
+    int ctr = 0;
+    for (const auto &cell : dg->dof_handler.active_cell_iterators())
+    {
+        if (cell->is_locally_owned()){
+            local_elements[ctr] = cell->active_cell_index();
+            ctr +=1;
+        }
+    }
+
+    Epetra_Map ColMap(rows, length, local_elements, 0, epetra_comm);
+    ColMap.Print(std::cout);
+    Epetra_Vector weights(ColMap);
+    for(int i = 0; i < length; i++){
+        int global_ind = local_elements[i];
+        weights[i] = weights_eig(global_ind);
     }
 
     ptr_weights = std::make_shared<Epetra_Vector>(weights);
@@ -147,7 +161,7 @@ int HROMErrorPostSampling<dim, nstate>::run_test() const
     std::cout << "ROM Locations" << std::endl;
     std::cout << rom_points << std::endl; 
 
-    bool weights_found = getWeightsFromFile();
+    bool weights_found = getWeightsFromFile(flow_solver_hyper_reduced_petrov_galerkin->dg);
     if (weights_found){
         std::cout << "ECSW Weights" << std::endl;
         std::cout << *ptr_weights << std::endl;
@@ -157,9 +171,8 @@ int HROMErrorPostSampling<dim, nstate>::run_test() const
         return -1;
     }
 
-    hyper_reduced_ROM_solver->placeROMLocations(rom_points, *ptr_weights);
+    hyper_reduced_ROM_solver->trueErrorROM(rom_points, *ptr_weights);
 
-    hyper_reduced_ROM_solver->outputIterationData("HROM_post_sampling");
     return 0;
 }
 

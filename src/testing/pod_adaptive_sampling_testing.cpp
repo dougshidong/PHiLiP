@@ -47,7 +47,7 @@ int AdaptiveSamplingTesting<dim, nstate>::run_test() const
         std::cout << "Parameter 2: " << params_2(i) << std::endl;
 
         RowVector2d parameter = {params_1(i), params_2(i)};
-        Parameters::AllParameters params = reinitParams(parameter);
+        Parameters::AllParameters params = reinit_params(parameter);
 
         std::unique_ptr<FlowSolver::FlowSolver<dim,nstate>> flow_solver_implicit = FlowSolver::FlowSolverFactory<dim,nstate>::select_flow_case(&params, parameter_handler);
 
@@ -94,7 +94,7 @@ int AdaptiveSamplingTesting<dim, nstate>::run_test() const
 }
 
 template <int dim, int nstate>
-Parameters::AllParameters AdaptiveSamplingTesting<dim, nstate>::reinitParams(RowVector2d parameter) const{
+Parameters::AllParameters AdaptiveSamplingTesting<dim, nstate>::reinit_params(RowVector2d parameter) const{
     // Copy all parameters
     PHiLiP::Parameters::AllParameters parameters = *(this->all_parameters);
 

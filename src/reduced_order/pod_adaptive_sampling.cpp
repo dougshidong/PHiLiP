@@ -16,6 +16,7 @@
 #include "ROL_Bounds.hpp"
 #include "halton.h"
 #include "min_max_scaler.h"
+#include <deal.II/base/timer.h>
 
 namespace PHiLiP {
 
@@ -29,7 +30,10 @@ template <int dim, int nstate>
 int AdaptiveSampling<dim, nstate>::run_sampling() const
 {
     this->pcout << "Starting adaptive sampling process" << std::endl;
-
+    auto stream = this->pcout;
+    dealii::TimerOutput timer(stream,dealii::TimerOutput::summary,dealii::TimerOutput::wall_times);
+    int iteration = 0;
+    timer.enter_subsection ("Iteration " + std::to_string(iteration));
     this->placeInitialSnapshots();
     this->current_pod->computeBasis();
 
@@ -39,18 +43,40 @@ int AdaptiveSampling<dim, nstate>::run_sampling() const
     placeROMLocations(rom_points);
 
     RowVectorXd max_error_params = this->getMaxErrorROM();
-    int iteration = 0;
 
+    RowVectorXd functional_ROM = this->readROMFunctionalPoint();
+
+    this->pcout << "Solving FOM at " << functional_ROM << std::endl;
+
+    Parameters::AllParameters params = this->reinit_params(functional_ROM);
+    std::unique_ptr<FlowSolver::FlowSolver<dim,nstate>> flow_solver_FOM = FlowSolver::FlowSolverFactory<dim,nstate>::select_flow_case(&params, this->parameter_handler);
+
+    // Solve implicit solution
+    auto ode_solver_type = Parameters::ODESolverParam::ODESolverEnum::implicit_solver;
+    flow_solver_FOM->ode_solver =  PHiLiP::ODE::ODESolverFactory<dim, double>::create_ODESolver_manual(ode_solver_type, flow_solver_FOM->dg);
+    flow_solver_FOM->ode_solver->allocate_ode_system();
+    flow_solver_FOM->run();
+
+    // Create functional
+    std::shared_ptr<Functional<dim,nstate,double>> functional_FOM = FunctionalFactory<dim,nstate,double>::create_Functional(params.functional_param, flow_solver_FOM->dg);
+    this->pcout << "FUNCTIONAL FROM FOM" << std::endl;
+    this->pcout << functional_FOM->evaluate_functional(false, false) << std::endl;
+
+    solveFunctionalROM(functional_ROM);
+    
     while(this->max_error > this->all_parameters->reduced_order_param.adaptation_tolerance){
 
         this->outputIterationData(std::to_string(iteration));
+        timer.leave_subsection();
+        timer.enter_subsection ("Iteration " + std::to_string(iteration+1));
 
         this->pcout << "Sampling snapshot at " << max_error_params << std::endl;
         dealii::LinearAlgebra::distributed::Vector<double> fom_solution = this->solveSnapshotFOM(max_error_params);
         this->snapshot_parameters.conservativeResize(this->snapshot_parameters.rows()+1, this->snapshot_parameters.cols());
         this->snapshot_parameters.row(this->snapshot_parameters.rows()-1) = max_error_params;
-        this->nearest_neighbors->updateSnapshots(this->snapshot_parameters, fom_solution);
+        this->nearest_neighbors->update_snapshots(this->snapshot_parameters, fom_solution);
         this->current_pod->addSnapshot(fom_solution);
+        this->fom_locations.emplace_back(fom_solution);
         this->current_pod->computeBasis();
 
         // Update previous ROM errors with updated this->current_pod
@@ -70,10 +96,27 @@ int AdaptiveSampling<dim, nstate>::run_sampling() const
         max_error_params = this->getMaxErrorROM();
 
         this->pcout << "Max error is: " << this->max_error << std::endl;
+
+        solveFunctionalROM(functional_ROM);
+
+        this->pcout << "FUNCTIONAL FROM ROMs" << std::endl;
+        std::ofstream output_file("rom_functional" + std::to_string(iteration+1) +".txt");
+
+        std::ostream_iterator<double> output_iterator(output_file, "\n");
+        std::copy(std::begin(rom_functional), std::end(rom_functional), output_iterator);
+
         iteration++;
     }
 
     this->outputIterationData("final");
+
+    timer.leave_subsection();
+
+    this->pcout << "FUNCTIONAL FROM ROMs" << std::endl;
+    std::ofstream output_file("rom_functional.txt");
+
+    std::ostream_iterator<double> output_iterator(output_file, "\n");
+    std::copy(std::begin(rom_functional), std::end(rom_functional), output_iterator);
 
     return 0;
 }
@@ -106,6 +149,83 @@ bool AdaptiveSampling<dim, nstate>::placeROMLocations(const MatrixXd& rom_points
         }
     }
     return error_greater_than_tolerance;
+}
+
+template <int dim, int nstate>
+void AdaptiveSampling<dim, nstate>::trueErrorROM(const MatrixXd& rom_points) const{
+
+    std::unique_ptr<dealii::TableHandler> rom_table = std::make_unique<dealii::TableHandler>();
+
+    for(auto rom : rom_points.rowwise()){
+        for(int i = 0 ; i < rom_points.cols() ; i++){
+            rom_table->add_value(this->all_parameters->reduced_order_param.parameter_names[i], rom(i));
+            rom_table->set_precision(this->all_parameters->reduced_order_param.parameter_names[i], 16);
+        }
+        double error = solveSnapshotROMandFOM(rom);
+        this->pcout << "Error in the functional: " << error << std::endl;
+        rom_table->add_value("ROM_errors", error);
+        rom_table->set_precision("ROM_errors", 16);
+    }
+
+    std::ofstream rom_table_file("true_error_table_iteration_ROM_post_sampling.txt");
+    rom_table->write_text(rom_table_file, dealii::TableHandler::TextOutputFormat::org_mode_table);
+    rom_table_file.close();
+}
+
+template <int dim, int nstate>
+double AdaptiveSampling<dim, nstate>::solveSnapshotROMandFOM(const RowVectorXd& parameter) const{
+    this->pcout << "Solving ROM at " << parameter << std::endl;
+    Parameters::AllParameters params = this->reinit_params(parameter);
+
+    std::unique_ptr<FlowSolver::FlowSolver<dim,nstate>> flow_solver_ROM = FlowSolver::FlowSolverFactory<dim,nstate>::select_flow_case(&params, this->parameter_handler);
+
+    // Solve implicit solution
+    auto ode_solver_type_ROM = Parameters::ODESolverParam::ODESolverEnum::pod_petrov_galerkin_solver;
+    flow_solver_ROM->ode_solver =  PHiLiP::ODE::ODESolverFactory<dim, double>::create_ODESolver_manual(ode_solver_type_ROM, flow_solver_ROM->dg, this->current_pod);
+    flow_solver_ROM->ode_solver->allocate_ode_system();
+    flow_solver_ROM->ode_solver->steady_state();
+
+    this->pcout << "Done solving ROM." << std::endl;
+
+    // Create functional
+    std::shared_ptr<Functional<dim,nstate,double>> functional_ROM = FunctionalFactory<dim,nstate,double>::create_Functional(params.functional_param, flow_solver_ROM->dg);
+
+    this->pcout << "Solving FOM at " << parameter << std::endl;
+
+    std::unique_ptr<FlowSolver::FlowSolver<dim,nstate>> flow_solver_FOM = FlowSolver::FlowSolverFactory<dim,nstate>::select_flow_case(&params, this->parameter_handler);
+
+    // Solve implicit solution
+    auto ode_solver_type = Parameters::ODESolverParam::ODESolverEnum::implicit_solver;
+    flow_solver_FOM->ode_solver =  PHiLiP::ODE::ODESolverFactory<dim, double>::create_ODESolver_manual(ode_solver_type, flow_solver_FOM->dg);
+    flow_solver_FOM->ode_solver->allocate_ode_system();
+    flow_solver_FOM->run();
+
+    // Create functional
+    std::shared_ptr<Functional<dim,nstate,double>> functional_FOM = FunctionalFactory<dim,nstate,double>::create_Functional(params.functional_param, flow_solver_FOM->dg);
+
+    this->pcout << "Done solving FOM." << std::endl;
+    return functional_ROM->evaluate_functional(false, false) - functional_FOM->evaluate_functional(false, false);
+}
+
+template <int dim, int nstate>
+void AdaptiveSampling<dim, nstate>::solveFunctionalROM(const RowVectorXd& parameter) const{
+    this->pcout << "Solving ROM at " << parameter << std::endl;
+    Parameters::AllParameters params = this->reinit_params(parameter);
+
+    std::unique_ptr<FlowSolver::FlowSolver<dim,nstate>> flow_solver_ROM = FlowSolver::FlowSolverFactory<dim,nstate>::select_flow_case(&params, this->parameter_handler);
+
+    // Solve implicit solution
+    auto ode_solver_type_ROM = Parameters::ODESolverParam::ODESolverEnum::pod_petrov_galerkin_solver;
+    flow_solver_ROM->ode_solver =  PHiLiP::ODE::ODESolverFactory<dim, double>::create_ODESolver_manual(ode_solver_type_ROM, flow_solver_ROM->dg, this->current_pod);
+    flow_solver_ROM->ode_solver->allocate_ode_system();
+    flow_solver_ROM->ode_solver->steady_state();
+
+    this->pcout << "Done solving ROM." << std::endl;
+
+    // Create functional
+    std::shared_ptr<Functional<dim,nstate,double>> functional_ROM = FunctionalFactory<dim,nstate,double>::create_Functional(params.functional_param, flow_solver_ROM->dg);
+
+    rom_functional.emplace_back(functional_ROM->evaluate_functional(false, false));
 }
 
 template <int dim, int nstate>
@@ -153,7 +273,7 @@ void AdaptiveSampling<dim, nstate>::updateNearestExistingROMs(const RowVectorXd&
 template <int dim, int nstate>
 std::unique_ptr<ProperOrthogonalDecomposition::ROMSolution<dim,nstate>> AdaptiveSampling<dim, nstate>::solveSnapshotROM(const RowVectorXd& parameter) const{
     this->pcout << "Solving ROM at " << parameter << std::endl;
-    Parameters::AllParameters params = this->reinitParams(parameter);
+    Parameters::AllParameters params = this->reinit_params(parameter);
 
     std::unique_ptr<FlowSolver::FlowSolver<dim,nstate>> flow_solver = FlowSolver::FlowSolverFactory<dim,nstate>::select_flow_case(&params, this->parameter_handler);
 

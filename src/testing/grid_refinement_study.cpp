@@ -34,7 +34,6 @@
 #include "physics/physics_factory.h"
 #include "tests.h"
 
-
 namespace PHiLiP {
     
 namespace Tests {

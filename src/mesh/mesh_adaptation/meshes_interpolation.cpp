@@ -9,8 +9,26 @@
 #include <deal.II/lac/la_parallel_vector.h>
 #include <deal.II/grid/grid_in.h>
 
-namespace PHiLiP {
+/**
+ * NOTE - Current limitations
+ * ---------------------------
+ * Parallelism: implementation is single-process only (no MPI support yet). However,
+ *   the source mesh type can be
+ *   dealii::Triangulation,
+ *   dealii::parallel::shared::Triangulation,
+ *   dealii::parallel::distributed::Triangulation
+ *   The output dg object would have the same mesh type as the source dg
+ * Out-of-domain DoFs: nodes that fall outside the source mesh are assigned zero.
+ * Dimensionality: code has been tested in 2-D; 3-D grids are still untested.
+ *
+ * TODO
+ * ----
+ * Add parallel support.
+ * Implement a smarter method for out-of-domain evaluations
+ * Extend and validate the algorithm for 3-D meshes.
+ */
 
+namespace PHiLiP {
     template <int dim, int nstate, typename MeshType>
     MeshInterpolation<dim, nstate, MeshType>::MeshInterpolation(std::ostream& out_stream)
         : out(out_stream)
@@ -34,8 +52,6 @@ namespace PHiLiP {
 
         // Create a new triangulation of the correct MeshType
         std::shared_ptr<MeshType> target_triangulation;
-
-        // Use the same MPI communicator as the source
         if constexpr (std::is_same_v<MeshType, dealii::Triangulation<dim>>) {
             target_triangulation = std::make_shared<MeshType>();
         }
@@ -48,7 +64,7 @@ namespace PHiLiP {
                 source_dg->triangulation->get_communicator());
         }
 
-        // Read the mesh file directly into this triangulation
+        // Read the mesh file into triangulation
         out << "Reading target mesh from: " << target_mesh_file << "\n";
         dealii::GridIn<dim> grid_in;
         grid_in.attach_triangulation(*target_triangulation);
@@ -82,9 +98,9 @@ namespace PHiLiP {
             source_function(source_dg->dof_handler, source_dg->solution);
 
         const unsigned int map_degree = (poly_degree_interpolation == 0 ? 1 : poly_degree_interpolation);
-        dealii::MappingQGeneric<dim> mapping(map_degree);
+        dealii::MappingQGeneric<dim> mapping(map_degree);// Mapping between physical and reference coordinations
 
-        // Perform node by node interpolation
+        // Loop over cells and nodes and perform interpolation
         out << "Performing interpolation...\n";
         for (const auto& cell : target_dg->dof_handler.active_cell_iterators()) {
             if (!cell->is_locally_owned()) continue;
@@ -92,11 +108,12 @@ namespace PHiLiP {
             const auto& fe = cell->get_fe();
             const unsigned int dofs_per_cell = fe.dofs_per_cell;
             std::vector<dealii::types::global_dof_index> local_dof_indices(dofs_per_cell);
-            cell->get_dof_indices(local_dof_indices);
-            const auto& unit_support_points = fe.get_unit_support_points();
+            cell->get_dof_indices(local_dof_indices); // List of global indices for cell local dofs
+            const auto& unit_support_points = fe.get_unit_support_points(); // Coordinates for support points
 
             // For each DoF on this cell
             for (unsigned int i = 0; i < dofs_per_cell; ++i) {
+                // Determine the coordinate for the current dof
                 dealii::Point<dim> unit_point;
                 if (i < unit_support_points.size()) {
                     unit_point = unit_support_points[i];
@@ -108,12 +125,14 @@ namespace PHiLiP {
                 // Map unit support points to real coordinates
                 const dealii::Point<dim> real_point = mapping.transform_unit_to_real_cell(cell, unit_point);
 
+
                 try {
                     unsigned int component = 0;
                     if (fe.n_components() > 1) {
-                        auto comp_idx = fe.system_to_component_index(i);
+                        auto comp_idx = fe.system_to_component_index(i); //comp_idx => (component, local index)
                         component = comp_idx.first;
                     }
+                    // Find the value for the current location and component
                     double value = source_function.value(real_point, component);
                     target_dg->solution(local_dof_indices[i]) = value;
                 }

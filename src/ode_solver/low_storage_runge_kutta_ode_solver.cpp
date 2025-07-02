@@ -56,8 +56,10 @@ void LowStorageRungeKuttaODESolver<dim,real,n_rk_stages, MeshType>::step_in_time
                 this->dg->high_order_grid->fe_system.tensor_degree(),
                 this->dg->max_degree,
                 this->dg->oneD_fe_collection_1state,
-                this->dg->oneD_quadrature_collection);
+                this->dg->oneD_quadrature_collection,
+                dt);
         }
+
         this->dg->assemble_residual();
         this->dg->apply_inverse_global_mass_matrix(this->dg->right_hand_side, rhs);
         storage_register_1 *= this->butcher_tableau->get_gamma(i, 0);
@@ -90,7 +92,8 @@ void LowStorageRungeKuttaODESolver<dim,real,n_rk_stages, MeshType>::step_in_time
                 this->dg->high_order_grid->fe_system.tensor_degree(),
                 this->dg->max_degree,
                 this->dg->oneD_fe_collection_1state,
-                this->dg->oneD_quadrature_collection);
+                this->dg->oneD_quadrature_collection,
+                dt);
         }
         this->dg->assemble_residual();
         this->dg->apply_inverse_global_mass_matrix(this->dg->right_hand_side, rhs);
@@ -99,7 +102,7 @@ void LowStorageRungeKuttaODESolver<dim,real,n_rk_stages, MeshType>::step_in_time
     }
     this->dg->solution = storage_register_1;
 
-    // Apply limiter after final RK stage
+    // Apply limiter at every RK stage
     if (this->limiter) {
         this->limiter->limit(this->dg->solution,
             this->dg->dof_handler,
@@ -108,8 +111,9 @@ void LowStorageRungeKuttaODESolver<dim,real,n_rk_stages, MeshType>::step_in_time
             this->dg->high_order_grid->fe_system.tensor_degree(),
             this->dg->max_degree,
             this->dg->oneD_fe_collection_1state,
-            this->dg->oneD_quadrature_collection);
-        }
+            this->dg->oneD_quadrature_collection,
+            dt);
+    }
  
     this->pcout << std::endl;
     ++(this->current_iteration);

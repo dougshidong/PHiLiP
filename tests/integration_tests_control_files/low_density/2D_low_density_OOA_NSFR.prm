@@ -15,17 +15,18 @@ set flux_nodes_type = GLL
 
 # Strong DG - LaxF
 #set use_split_form = false
-#set conv_num_flux = lax_friedrichs
+#set conv_num_flux = roe
 
 # NSFR - Ra
 set use_split_form = true
 set two_point_num_flux_type = Ra
-set conv_num_flux = two_point_flux_with_lax_friedrichs_dissipation
-
+set conv_num_flux = two_point_flux_with_roe_dissipation
+set flux_reconstruction = cDG
+set use_inverse_mass_on_the_fly = true
 
 subsection limiter
   set bound_preserving_limiter = positivity_preservingWang2012
-  set min_density = 0.0099
+  set min_density = 1e-13
 
   set use_OOA = true
 end
@@ -34,9 +35,10 @@ end
 subsection ODE solver
   set ode_output = verbose
   set ode_solver_type = runge_kutta
-  set print_iteration_modulo = 10
+  set print_iteration_modulo = 1000
   set initial_time_step = 0.001
-  set output_solution_every_x_steps = 0
+  #set output_solution_every_x_steps = 5
+  #set output_solution_every_dt_time_intervals = 0.01
   set runge_kutta_method = ssprk3_ex
 end
 
@@ -46,18 +48,28 @@ subsection euler
 end
 
 subsection flow_solver
-  set flow_case_type = low_density_2d
-  set poly_degree = 2
-  set final_time = 0.1
+  set flow_case_type = low_density
+  set poly_degree = 3
+  set final_time = 1.0
   set adaptive_time_step = true
-  set courant_friedrichs_lewy_number = 0.15
+  set courant_friedrichs_lewy_number = 0.5
   set unsteady_data_table_filename = low_density_shock_energy
+  set expected_order_at_final_time = 4.20078
   subsection grid
+    set grid_left_bound = -0.5
+    set grid_right_bound = 0.5
     set number_of_mesh_refinements = 0
+
+    subsection positivity_preserving_tests
+      set grid_xmin = -0.5
+      set grid_xmax = 0.5
+      set grid_ymin = -0.5
+      set grid_ymax = 0.5
+    end
   end
 end
 
 subsection manufactured solution convergence study
   set use_manufactured_source_term = false
-  set number_of_grids = 8
+  set number_of_grids = 6
 end

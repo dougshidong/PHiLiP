@@ -23,6 +23,7 @@
 #include "dg/dg_base.hpp"
 #include "dg/dg_factory.hpp"
 #include "physics/physics_factory.h"
+#include "ode_solver/runge_kutta_base.h"
 //#include "ode_solver/runge_kutta_ode_solver.h"
 #include "ode_solver/runge_kutta_ode_solver.h"
 #include "ode_solver/ode_solver_factory.h"
@@ -88,6 +89,8 @@ public:
     std::string get_restart_filename_without_extension(const unsigned int restart_index_input) const;
 
 protected:
+    mutable dealii::LinearAlgebra::distributed::Vector<int> locations_to_evaluate_rhs;
+    mutable int evaluate_until_this_index;
     const MPI_Comm mpi_communicator; ///< MPI communicator.
     const int mpi_rank; ///< MPI rank.
     const int n_mpi; ///< Number of MPI processes.

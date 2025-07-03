@@ -117,6 +117,8 @@ public:
     /** This variable will change when step_in_time() is called. */
     double current_time;
 
+    std::vector<int> group_ID = {1, 2};
+
     /// Current iteration.
     /** This variable will change when step_in_time() is called. */
     unsigned int current_iteration;

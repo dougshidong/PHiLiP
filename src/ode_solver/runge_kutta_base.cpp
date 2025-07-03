@@ -57,8 +57,8 @@ void RungeKuttaBase<dim, real, n_rk_stages, MeshType>::allocate_ode_system()
 
     // allocation for PERK schemes
     if (parameters.ode_solver_param.ode_solver_type == ODESolverEnum::PERK_solver){
-        this->rk_stage_k.resize(group_ID.size());
-        for (size_t i = 0; i < group_ID.size(); ++i){
+        this->rk_stage_k.resize(this->group_ID.size());
+        for (size_t i = 0; i < this->group_ID.size(); ++i){
             this->rk_stage_k[i].resize(n_rk_stages);
             for (int j = 0; j < n_rk_stages; ++j){
                 this->rk_stage_k[i][j].reinit(this->dg->solution);

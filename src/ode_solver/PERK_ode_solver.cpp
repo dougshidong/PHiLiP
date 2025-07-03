@@ -164,7 +164,7 @@ void PERKODESolver<dim,real,n_rk_stages,MeshType>::allocate_runge_kutta_system (
         }
     }
 
-    // store whether or not to calcualte stage
+    // store whether or not to calculate stage
     this->calc_stage.resize(this->group_ID.size());
     for (size_t k = 0; k < this->group_ID.size(); ++k) {
         this->calc_stage[k].resize(n_rk_stages);
@@ -179,28 +179,6 @@ void PERKODESolver<dim,real,n_rk_stages,MeshType>::allocate_runge_kutta_system (
             this->calc_stage[k][j] = calcStage;
         }
     }
-
-    locations_to_evaluate_rhs.reinit(this->dg->triangulation->n_active_cells());
-    evaluate_until_this_index = locations_to_evaluate_rhs.size() / 2; 
-
-    for (int i = 0; i < evaluate_until_this_index; ++i){
-        if (locations_to_evaluate_rhs.in_local_range(i))
-            locations_to_evaluate_rhs(i) = 1;
-    }
-    locations_to_evaluate_rhs.update_ghost_values();
-    this->dg->set_list_of_cell_group_IDs(locations_to_evaluate_rhs, this->group_ID[0]);
-
-
-    locations_to_evaluate_rhs *= 0;
-    locations_to_evaluate_rhs.update_ghost_values();
-
-    for (size_t i = evaluate_until_this_index; i < locations_to_evaluate_rhs.size(); ++i){
-        if (locations_to_evaluate_rhs.in_local_range(i))
-            locations_to_evaluate_rhs(i) = 1;
-    }
-    locations_to_evaluate_rhs.update_ghost_values();
-    this->dg->set_list_of_cell_group_IDs(locations_to_evaluate_rhs, this->group_ID[1]);
-
 }
 
 template class PERKODESolver<PHILIP_DIM, double,10, dealii::Triangulation<PHILIP_DIM> >;

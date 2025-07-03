@@ -48,7 +48,9 @@ public:
     virtual void apply_limiter () = 0;               
 
     /// Function to adjust time step size
-    virtual real adjust_time_step(real dt) = 0;             
+    virtual real adjust_time_step(real dt) = 0;
+    
+ //   std::vector<int> group_ID = {1, 2};
 protected:
 
     /// Stores functions related to relaxation Runge-Kutta (RRK).
@@ -71,7 +73,7 @@ protected:
 
     std::vector<std::vector<bool>> calc_stage;
  //   std::vector<std::vector<std::vector<bool>>> calc_stage;
-    std::vector<int> group_ID = {1, 2};
+ //   std::vector<int> group_ID = {1, 2};
 
 };
 } // ODE namespace

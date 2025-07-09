@@ -314,5 +314,54 @@ set_tests_labels(${TEST_TARGET} GRID
 unset(TEST_TARGET)
 unset(HighOrderGridLib)
 
+set(TEST_SRC
+    mesh_interpolation_test.cpp
+    )
+set(dim 2)
+string(CONCAT TEST_TARGET ${dim}D_mesh_interpolation)
+message("Adding executable " ${TEST_TARGET} " with files " ${TEST_SRC} "\n")
+add_executable(${TEST_TARGET} ${TEST_SRC})
+
+target_compile_definitions(${TEST_TARGET} PRIVATE PHILIP_DIM=${dim})
+
+add_dependencies(unit_tests ${TEST_TARGET})
+add_dependencies(${dim}D ${TEST_TARGET})
+
+# Library dependencies
+string(CONCAT HighOrderGridLib HighOrderGrid_${dim}D)
+target_link_libraries(${TEST_TARGET} ${HighOrderGridLib})
+
+string(CONCAT DiscontinuousGalerkinLib DiscontinuousGalerkin_${dim}D)
+target_link_libraries(${TEST_TARGET} ${DiscontinuousGalerkinLib})
+
+string(CONCAT PhysicsLib Physics_${dim}D)
+target_link_libraries(${TEST_TARGET} ${PhysicsLib})
+
+string(CONCAT MeshAdaptationLib MeshAdaptation_${dim}D)
+target_link_libraries(${TEST_TARGET} ${MeshAdaptationLib})
+
+# Setup target with deal.II
+if (NOT DOC_ONLY)
+    DEAL_II_SETUP_TARGET(${TEST_TARGET})
+endif()
+
+add_test(
+    NAME ${TEST_TARGET}
+    COMMAND mpirun -n ${MPIMAX} ${EXECUTABLE_OUTPUT_PATH}/${TEST_TARGET}
+    WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
+)
+
+set_tests_labels(${TEST_TARGET} GRID
+                                MESH_ADAPTATION
+                                ${dim}D
+                                PARALLEL
+                                QUICK
+                                UNIT_TEST)
+                                
+unset(TEST_TARGET)
+unset(HighOrderGridLib)
+unset(DiscontinuousGalerkinLib)
+unset(PhysicsLib)
+unset(MeshAdaptationLib)
 
 unset(ParametersLib)

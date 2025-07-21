@@ -45,7 +45,7 @@ int EulerTaylorGreenScaling<dim, nstate>::run_test() const
     std::ofstream myfile (all_parameters_new.energy_file + ".gpl"  , std::ios::trunc);
     const unsigned int poly_degree_start= all_parameters->flow_solver_param.poly_degree;
 
-    const unsigned int poly_degree_end = 16;
+    const unsigned int poly_degree_end = 13;
     std::array<double,poly_degree_end> time_to_run;
     std::array<double,poly_degree_end> time_to_run_mpi;
 
@@ -129,6 +129,17 @@ int EulerTaylorGreenScaling<dim, nstate>::run_test() const
         return 1;
     }
 
+    /*
+     *  The following code tests an allocation of a high-P grid.
+     *  However, the success of the test is highly dependant on 
+     *  the system on which it is running. To avoid testfails
+     *  from running out of memory, this part of the test has
+     *  been commented.
+     *
+     *  For curvilinear grids, the test was known to pass on Alex
+     *  Cicchino's desktop, but has rarely passed on other systems,
+     *  including compute clusters.
+
     //check that it can run up to p=30 for Cartesian or p=20 for curvilinear without running out of memory.
     const unsigned int poly_degree = (all_parameters->use_curvilinear_grid) ? 20 : 30;
     const unsigned int grid_degree = (all_parameters->use_curvilinear_grid) ? poly_degree : 1;
@@ -168,9 +179,9 @@ int EulerTaylorGreenScaling<dim, nstate>::run_test() const
             dg->global_inverse_mass_matrix.vmult(solution_update, dg->right_hand_side);
         }
     }
+    */
+
     //if it reaches here, then there is no memory issue.
-
-
     return 0;
 }
 

@@ -731,7 +731,6 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
         // The face term is assembled if one or both cells are in the active group.
         else if (current_cell->neighbor(iface)->face(current_cell->neighbor_face_no(iface))->has_children()) 
         {
-            this->pcout << "Neighbor is coarser." << std::endl;
             Assert (current_cell->neighbor(iface).state() == dealii::IteratorState::valid, dealii::ExcInternalError());
             Assert (!(current_cell->neighbor(iface)->has_children()), dealii::ExcInternalError());
 
@@ -777,8 +776,6 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
                                                                store_vol_flux_nodes,
                                                                store_surf_flux_nodes);
 
-            this->pcout << "Curr cell active? " << current_cell_is_in_active_cell_group << 
-                " Neighbor active? " << neighbor_cell_is_in_active_cell_group << std::endl;
             if (!current_cell_is_in_active_cell_group && neighbor_cell_is_in_active_cell_group) {
                 // If the current cell is NOT active and the neighbor cell IS active, we must
                 // build some missing volume operators.

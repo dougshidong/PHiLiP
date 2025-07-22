@@ -35,28 +35,24 @@ DGStrong<dim,nstate,real,MeshType>::DGStrong(
 *
 ***********************************************************/
 template <int dim, int nstate, typename real, typename MeshType>
-void DGStrong<dim,nstate,real,MeshType>::assemble_volume_term_and_build_operators(
-    typename dealii::DoFHandler<dim>::active_cell_iterator cell,
-    const dealii::types::global_dof_index                  current_cell_index,
-    const std::vector<dealii::types::global_dof_index>     &cell_dofs_indices,
+void DGStrong<dim,nstate,real,MeshType>::build_volume_operators(
+    typename dealii::DoFHandler<dim>::active_cell_iterator /*cell*/,
+    const dealii::types::global_dof_index                  /*current_cell_index*/,
+    const std::vector<dealii::types::global_dof_index>     &/*cell_dofs_indices*/,
     const std::vector<dealii::types::global_dof_index>     &metric_dof_indices,
     const unsigned int                                     poly_degree,
     const unsigned int                                     grid_degree,
-    OPERATOR::basis_functions<dim,2*dim,real>                   &soln_basis,
-    OPERATOR::basis_functions<dim,2*dim,real>                   &flux_basis,
-    OPERATOR::local_basis_stiffness<dim,2*dim,real>             &flux_basis_stiffness,
-    OPERATOR::vol_projection_operator<dim,2*dim,real>           &soln_basis_projection_oper_int,
-    OPERATOR::vol_projection_operator<dim,2*dim,real>           &soln_basis_projection_oper_ext,
+    OPERATOR::basis_functions<dim,2*dim,real>              &soln_basis,
+    OPERATOR::basis_functions<dim,2*dim,real>              &flux_basis,
+    OPERATOR::local_basis_stiffness<dim,2*dim,real>        &flux_basis_stiffness,
+    OPERATOR::vol_projection_operator<dim,2*dim,real>      &soln_basis_projection_oper_int,
+    OPERATOR::vol_projection_operator<dim,2*dim,real>      &soln_basis_projection_oper_ext,
     OPERATOR::metric_operators<real,dim,2*dim>             &metric_oper,
-    OPERATOR::mapping_shape_functions<dim,2*dim,real>           &mapping_basis,
+    OPERATOR::mapping_shape_functions<dim,2*dim,real>      &mapping_basis,
     std::array<std::vector<real>,dim>                      &mapping_support_points,
     dealii::hp::FEValues<dim,dim>                          &/*fe_values_collection_volume*/,
     dealii::hp::FEValues<dim,dim>                          &/*fe_values_collection_volume_lagrange*/,
-    const dealii::FESystem<dim,dim>                        &/*current_fe_ref*/,
-    dealii::Vector<real>                                   &local_rhs_int_cell,
-    std::vector<dealii::Tensor<1,dim,real>>                &local_auxiliary_RHS,
-    const bool                                             compute_auxiliary_right_hand_side,
-    const bool /*compute_dRdW*/, const bool /*compute_dRdX*/, const bool /*compute_d2R*/)
+    const dealii::FESystem<dim,dim>                        &/*current_fe_ref*/)
 {
     // Check if the current cell's poly degree etc is different then previous cell's.
     // If the current cell's poly degree is different, then we recompute the 1D 
@@ -98,6 +94,52 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_volume_term_and_build_operator
         mapping_basis,
         this->all_parameters->use_invariant_curl_form);
 
+}
+
+
+template <int dim, int nstate, typename real, typename MeshType>
+void DGStrong<dim,nstate,real,MeshType>::assemble_volume_term_and_build_operators(
+    typename dealii::DoFHandler<dim>::active_cell_iterator cell,
+    const dealii::types::global_dof_index                  current_cell_index,
+    const std::vector<dealii::types::global_dof_index>     &cell_dofs_indices,
+    const std::vector<dealii::types::global_dof_index>     &metric_dof_indices,
+    const unsigned int                                     poly_degree,
+    const unsigned int                                     grid_degree,
+    OPERATOR::basis_functions<dim,2*dim,real>              &soln_basis,
+    OPERATOR::basis_functions<dim,2*dim,real>              &flux_basis,
+    OPERATOR::local_basis_stiffness<dim,2*dim,real>        &flux_basis_stiffness,
+    OPERATOR::vol_projection_operator<dim,2*dim,real>      &soln_basis_projection_oper_int,
+    OPERATOR::vol_projection_operator<dim,2*dim,real>      &soln_basis_projection_oper_ext,
+    OPERATOR::metric_operators<real,dim,2*dim>             &metric_oper,
+    OPERATOR::mapping_shape_functions<dim,2*dim,real>      &mapping_basis,
+    std::array<std::vector<real>,dim>                      &mapping_support_points,
+    dealii::hp::FEValues<dim,dim>                          &fe_values_collection_volume,
+    dealii::hp::FEValues<dim,dim>                          &fe_values_collection_volume_lagrange,
+    const dealii::FESystem<dim,dim>                        &current_fe_ref,
+    dealii::Vector<real>                                   &local_rhs_int_cell,
+    std::vector<dealii::Tensor<1,dim,real>>                &local_auxiliary_RHS,
+    const bool                                             compute_auxiliary_right_hand_side,
+    const bool /*compute_dRdW*/, const bool /*compute_dRdX*/, const bool /*compute_d2R*/)
+{
+    build_volume_operators(
+        cell,
+        current_cell_index,
+        cell_dofs_indices,
+        metric_dof_indices,
+        poly_degree,
+        grid_degree,
+        soln_basis,
+        flux_basis,
+        flux_basis_stiffness,
+        soln_basis_projection_oper_int,
+        soln_basis_projection_oper_ext,
+        metric_oper,
+        mapping_basis,
+        mapping_support_points,
+        fe_values_collection_volume,
+        fe_values_collection_volume_lagrange, 
+        current_fe_ref);
+
     if(compute_auxiliary_right_hand_side){
         assemble_volume_term_auxiliary_equation (
             cell_dofs_indices,
@@ -132,13 +174,13 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_boundary_term_and_build_operat
     const std::vector<dealii::types::global_dof_index>     &/*metric_dof_indices*/,
     const unsigned int                                     poly_degree,
     const unsigned int                                     /*grid_degree*/,
-    OPERATOR::basis_functions<dim,2*dim,real>                   &soln_basis,
-    OPERATOR::basis_functions<dim,2*dim,real>                   &flux_basis,
-    OPERATOR::local_basis_stiffness<dim,2*dim,real>             &/*flux_basis_stiffness*/,
-    OPERATOR::vol_projection_operator<dim,2*dim,real>           &soln_basis_projection_oper_int,
-    OPERATOR::vol_projection_operator<dim,2*dim,real>           &/*soln_basis_projection_oper_ext*/,
+    OPERATOR::basis_functions<dim,2*dim,real>              &soln_basis,
+    OPERATOR::basis_functions<dim,2*dim,real>              &flux_basis,
+    OPERATOR::local_basis_stiffness<dim,2*dim,real>        &/*flux_basis_stiffness*/,
+    OPERATOR::vol_projection_operator<dim,2*dim,real>      &soln_basis_projection_oper_int,
+    OPERATOR::vol_projection_operator<dim,2*dim,real>      &/*soln_basis_projection_oper_ext*/,
     OPERATOR::metric_operators<real,dim,2*dim>             &metric_oper,
-    OPERATOR::mapping_shape_functions<dim,2*dim,real>           &mapping_basis,
+    OPERATOR::mapping_shape_functions<dim,2*dim,real>      &mapping_basis,
     std::array<std::vector<real>,dim>                      &mapping_support_points,
     dealii::hp::FEFaceValues<dim,dim>                      &/*fe_values_collection_face_int*/,
     const dealii::FESystem<dim,dim>                        &/*current_fe_ref*/,
@@ -152,6 +194,9 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_boundary_term_and_build_operat
     const unsigned int n_metric_dofs = fe_metric.dofs_per_cell;
     const unsigned int n_grid_nodes  = n_metric_dofs / dim;
     //build the surface metric operators for interior
+    //
+    //Here the problem: mapping support points (and maybe also mapping_basis) not
+    //initialized.
     metric_oper.build_facet_metric_operators(
         iface,
         this->face_quadrature_collection[poly_degree].size(),
@@ -1817,6 +1862,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_strong(
     dealii::Vector<real>                               &local_rhs_int_cell,
     dealii::Vector<real>                               &local_rhs_ext_cell)
 {
+
     (void) current_cell_index;
     (void) neighbor_cell_index;
 

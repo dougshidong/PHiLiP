@@ -728,6 +728,26 @@ protected:
         const bool                                             compute_auxiliary_right_hand_side,
         const bool compute_dRdW, const bool compute_dRdX, const bool compute_d2R) = 0;
 
+    /// Only builds the operators/fe values required for the volume residual.
+    virtual void build_volume_operators(
+        typename dealii::DoFHandler<dim>::active_cell_iterator cell,
+        const dealii::types::global_dof_index                  current_cell_index,
+        const std::vector<dealii::types::global_dof_index>     &cell_dofs_indices,
+        const std::vector<dealii::types::global_dof_index>     &metric_dof_indices,
+        const unsigned int                                     poly_degree,
+        const unsigned int                                     grid_degree,
+        OPERATOR::basis_functions<dim,2*dim,real>              &soln_basis,
+        OPERATOR::basis_functions<dim,2*dim,real>              &flux_basis,
+        OPERATOR::local_basis_stiffness<dim,2*dim,real>        &flux_basis_stiffness,
+        OPERATOR::vol_projection_operator<dim,2*dim,real>      &soln_basis_projection_oper_int,
+        OPERATOR::vol_projection_operator<dim,2*dim,real>      &soln_basis_projection_oper_ext,
+        OPERATOR::metric_operators<real,dim,2*dim>             &metric_oper,
+        OPERATOR::mapping_shape_functions<dim,2*dim,real>      &mapping_basis,
+        std::array<std::vector<real>,dim>                      &mapping_support_points,
+        dealii::hp::FEValues<dim,dim>                          &fe_values_collection_volume,
+        dealii::hp::FEValues<dim,dim>                          &fe_values_collection_volume_lagrange,
+        const dealii::FESystem<dim,dim>                        &current_fe_ref)=0;
+
     /// Builds the necessary operators/fe values and assembles boundary residual.
     virtual void assemble_boundary_term_and_build_operators(
         typename dealii::DoFHandler<dim>::active_cell_iterator cell,

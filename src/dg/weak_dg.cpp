@@ -3626,6 +3626,33 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_face_term_derivatives(
 }
 #endif
 
+template <int dim, int nstate, typename real, typename MeshType>
+void DGWeak<dim,nstate,real,MeshType>::build_volume_operators(
+    typename dealii::DoFHandler<dim>::active_cell_iterator /*cell*/,
+    const dealii::types::global_dof_index                  /*current_cell_index*/,
+    const std::vector<dealii::types::global_dof_index>     &/*cell_dofs_indices*/,
+    const std::vector<dealii::types::global_dof_index>     &/*metric_dof_indices*/,
+    const unsigned int                                     /*poly_degree*/,
+    const unsigned int                                     /*grid_degree*/,
+    OPERATOR::basis_functions<dim,2*dim,real>              &/*soln_basis*/,
+    OPERATOR::basis_functions<dim,2*dim,real>              &/*flux_basis*/,
+    OPERATOR::local_basis_stiffness<dim,2*dim,real>        &/*flux_basis_stiffness*/,
+    OPERATOR::vol_projection_operator<dim,2*dim,real>      &/*soln_basis_projection_oper_int*/,
+    OPERATOR::vol_projection_operator<dim,2*dim,real>      &/*soln_basis_projection_oper_ext*/,
+    OPERATOR::metric_operators<real,dim,2*dim>             &/*metric_oper*/,
+    OPERATOR::mapping_shape_functions<dim,2*dim,real>      &/*mapping_basis*/,
+    std::array<std::vector<real>,dim>                      &/*mapping_support_points*/,
+    dealii::hp::FEValues<dim,dim>                          &/*fe_values_collection_volume*/,
+    dealii::hp::FEValues<dim,dim>                          &/*fe_values_collection_volume_lagrange*/,
+    const dealii::FESystem<dim,dim>                        &/*current_fe_ref*/)
+{
+
+    // Currently for weak DG, do nothing.
+    // This function is needed in strong DG when the current cell is not in an active group
+    // but the neighbor is in an active group. 
+    // Partitioned groups is not currently implemented for weak DG, therefore 
+    // this function does not do anything.
+}
 
 template <int dim, int nstate, typename real, typename MeshType>
 void DGWeak<dim,nstate,real,MeshType>::assemble_volume_term_and_build_operators(
@@ -3635,13 +3662,13 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_volume_term_and_build_operators(
     const std::vector<dealii::types::global_dof_index>     &metric_dof_indices,
     const unsigned int                                     poly_degree,
     const unsigned int                                     grid_degree,
-    OPERATOR::basis_functions<dim,2*dim,real>                   &/*soln_basis*/,
-    OPERATOR::basis_functions<dim,2*dim,real>                   &/*flux_basis*/,
-    OPERATOR::local_basis_stiffness<dim,2*dim,real>             &/*flux_basis_stiffness*/,
-    OPERATOR::vol_projection_operator<dim,2*dim,real>           &/*soln_basis_projection_oper_int*/,
-    OPERATOR::vol_projection_operator<dim,2*dim,real>           &/*soln_basis_projection_oper_ext*/,
+    OPERATOR::basis_functions<dim,2*dim,real>              &/*soln_basis*/,
+    OPERATOR::basis_functions<dim,2*dim,real>              &/*flux_basis*/,
+    OPERATOR::local_basis_stiffness<dim,2*dim,real>        &/*flux_basis_stiffness*/,
+    OPERATOR::vol_projection_operator<dim,2*dim,real>      &/*soln_basis_projection_oper_int*/,
+    OPERATOR::vol_projection_operator<dim,2*dim,real>      &/*soln_basis_projection_oper_ext*/,
     OPERATOR::metric_operators<real,dim,2*dim>             &/*metric_oper*/,
-    OPERATOR::mapping_shape_functions<dim,2*dim,real>           &/*mapping_basis*/,
+    OPERATOR::mapping_shape_functions<dim,2*dim,real>      &/*mapping_basis*/,
     std::array<std::vector<real>,dim>                      &/*mapping_support_points*/,
     dealii::hp::FEValues<dim,dim>                          &fe_values_collection_volume,
     dealii::hp::FEValues<dim,dim>                          &fe_values_collection_volume_lagrange,
@@ -3651,6 +3678,7 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_volume_term_and_build_operators(
     const bool                                             /*compute_auxiliary_right_hand_side*/,
     const bool compute_dRdW, const bool compute_dRdX, const bool compute_d2R)
 {
+
     // Current reference element related to this physical cell
     const int i_fele = cell->active_fe_index();
     const int i_quad = i_fele;
@@ -3658,6 +3686,7 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_volume_term_and_build_operators(
     fe_values_collection_volume.reinit (cell, i_quad, i_mapp, i_fele);
     dealii::TriaIterator<dealii::CellAccessor<dim,dim>> cell_iterator = static_cast<dealii::TriaIterator<dealii::CellAccessor<dim,dim>> > (cell);
     fe_values_collection_volume_lagrange.reinit (cell_iterator, i_quad, i_mapp, i_fele);
+
 
     const dealii::FEValues<dim,dim> &fe_values_volume = fe_values_collection_volume.get_present_fe_values();
     const dealii::FEValues<dim,dim> &fe_values_lagrange = fe_values_collection_volume_lagrange.get_present_fe_values();

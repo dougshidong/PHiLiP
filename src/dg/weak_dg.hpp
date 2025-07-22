@@ -29,6 +29,30 @@ public:
         const std::shared_ptr<Triangulation> triangulation_input);
 
 private:
+    /// Build the volume operators
+    /* This was added to enable assembling the residual only on one active group
+     * ( see strong DG)
+     * The subset residual evaluation feature is not currently tested on weak DG
+     * therefore this is empty.
+     */
+    void build_volume_operators(
+        typename dealii::DoFHandler<dim>::active_cell_iterator /*cell*/,
+        const dealii::types::global_dof_index                  /*current_cell_index*/,
+        const std::vector<dealii::types::global_dof_index>     &/*cell_dofs_indices*/,
+        const std::vector<dealii::types::global_dof_index>     &/*metric_dof_indices*/,
+        const unsigned int                                     /*poly_degree*/,
+        const unsigned int                                     /*grid_degree*/,
+        OPERATOR::basis_functions<dim,2*dim,real>              &/*soln_basis*/,
+        OPERATOR::basis_functions<dim,2*dim,real>              &/*flux_basis*/,
+        OPERATOR::local_basis_stiffness<dim,2*dim,real>        &/*flux_basis_stiffness*/,
+        OPERATOR::vol_projection_operator<dim,2*dim,real>      &/*soln_basis_projection_oper_int*/,
+        OPERATOR::vol_projection_operator<dim,2*dim,real>      &/*soln_basis_projection_oper_ext*/,
+        OPERATOR::metric_operators<real,dim,2*dim>             &/*metric_oper*/,
+        OPERATOR::mapping_shape_functions<dim,2*dim,real>      &/*mapping_basis*/,
+        std::array<std::vector<real>,dim>                      &/*mapping_support_points*/,
+        dealii::hp::FEValues<dim,dim>                          &/*fe_values_collection_volume*/,
+        dealii::hp::FEValues<dim,dim>                          &/*fe_values_collection_volume_lagrange*/,
+        const dealii::FESystem<dim,dim>                        &/*current_fe_ref*/);
 
     /// Builds the necessary fe values and assembles volume residual.
     void assemble_volume_term_and_build_operators(

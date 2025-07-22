@@ -597,14 +597,9 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
         // The face term is assembled if one or both cells are in the active group.
         else if (current_face->at_boundary() && current_cell->has_periodic_neighbor(iface))
         {
-
             const auto neighbor_cell = current_cell->periodic_neighbor(iface);
-            const dealii::types::global_dof_index neighbor_cell_index = neighbor_cell->active_cell_index();
 
-            const bool neighbor_cell_is_in_active_cell_group = cell_is_in_active_cell_group(neighbor_cell_index, active_cell_group_ID);
-
-            if (!current_cell->periodic_neighbor_is_coarser(iface) && current_cell_should_do_the_work(current_cell, neighbor_cell)
-                    &&(current_cell_is_in_active_cell_group || neighbor_cell_is_in_active_cell_group) )
+            if (!current_cell->periodic_neighbor_is_coarser(iface) && current_cell_should_do_the_work(current_cell, neighbor_cell))
             {
                 
                 Assert (current_cell->periodic_neighbor(iface).state() == dealii::IteratorState::valid, dealii::ExcInternalError());
@@ -627,6 +622,10 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
                 const real penalty2 = evaluate_penalty_scaling (neighbor_cell, neighbor_iface, fe_collection);
                 const real penalty = 0.5 * (penalty1 + penalty2);
 
+                const dealii::types::global_dof_index neighbor_cell_index = neighbor_cell->active_cell_index();
+            
+                const bool neighbor_cell_is_in_active_cell_group = cell_is_in_active_cell_group(neighbor_cell_index, active_cell_group_ID);
+
                 const auto metric_neighbor_cell = current_metric_cell->periodic_neighbor(iface);
                 metric_neighbor_cell->get_dof_indices(neighbor_metric_dofs_indices);
 
@@ -637,6 +636,28 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
                                                                            store_vol_flux_nodes,
                                                                            store_surf_flux_nodes);
 
+                if (!current_cell_is_in_active_cell_group && neighbor_cell_is_in_active_cell_group) {
+                    // If the current cell is NOT active and the neighbor cell IS active, we must
+                    // build some missing volume operators.
+                    build_volume_operators(
+                        current_cell,
+                        current_cell_index,
+                        current_dofs_indices,
+                        current_metric_dofs_indices,
+                        poly_degree,
+                        grid_degree,
+                        soln_basis_int,
+                        flux_basis_int,
+                        flux_basis_stiffness,
+                        soln_basis_projection_oper_int,
+                        soln_basis_projection_oper_ext,
+                        metric_oper_int,
+                        mapping_basis,
+                        mapping_support_points,
+                        fe_values_collection_volume,
+                        fe_values_collection_volume_lagrange,
+                        current_fe_ref);
+                }
                 if ( (current_cell_is_in_active_cell_group || neighbor_cell_is_in_active_cell_group) ) {
                     assemble_face_term_and_build_operators(
                         current_cell,
@@ -680,6 +701,7 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
                 if (neighbor_cell_is_in_active_cell_group) {
                     // add local contribution from neighbor cell to global vector
                     // if the neighbor cell is active.
+                    
 
                     if (compute_auxiliary_right_hand_side){
                         for (unsigned int i=0; i<n_dofs_neigh_cell; ++i) {
@@ -760,6 +782,28 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
                                                                store_vol_flux_nodes,
                                                                store_surf_flux_nodes);
 
+            if (!current_cell_is_in_active_cell_group && neighbor_cell_is_in_active_cell_group) {
+                // If the current cell is NOT active and the neighbor cell IS active, we must
+                // build some missing volume operators.
+                build_volume_operators(
+                    current_cell,
+                    current_cell_index,
+                    current_dofs_indices,
+                    current_metric_dofs_indices,
+                    poly_degree,
+                    grid_degree,
+                    soln_basis_int,
+                    flux_basis_int,
+                    flux_basis_stiffness,
+                    soln_basis_projection_oper_int,
+                    soln_basis_projection_oper_ext,
+                    metric_oper_int,
+                    mapping_basis,
+                    mapping_support_points,
+                    fe_values_collection_volume,
+                    fe_values_collection_volume_lagrange,
+                    current_fe_ref);
+            }
             if ( (current_cell_is_in_active_cell_group || neighbor_cell_is_in_active_cell_group) ) {
                 assemble_subface_term_and_build_operators(
                     current_cell,
@@ -864,6 +908,28 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
                                                                store_surf_flux_nodes);
 
 
+            if (!current_cell_is_in_active_cell_group && neighbor_cell_is_in_active_cell_group) {
+                // If the current cell is NOT active and the neighbor cell IS active, we must
+                // build some missing volume operators.
+                build_volume_operators(
+                    current_cell,
+                    current_cell_index,
+                    current_dofs_indices,
+                    current_metric_dofs_indices,
+                    poly_degree,
+                    grid_degree,
+                    soln_basis_int,
+                    flux_basis_int,
+                    flux_basis_stiffness,
+                    soln_basis_projection_oper_int,
+                    soln_basis_projection_oper_ext,
+                    metric_oper_int,
+                    mapping_basis,
+                    mapping_support_points,
+                    fe_values_collection_volume,
+                    fe_values_collection_volume_lagrange,
+                    current_fe_ref);
+            }
             if ( (current_cell_is_in_active_cell_group || neighbor_cell_is_in_active_cell_group) ) {
                 assemble_face_term_and_build_operators(
                     current_cell,

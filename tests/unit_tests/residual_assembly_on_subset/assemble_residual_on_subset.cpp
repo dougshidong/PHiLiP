@@ -115,6 +115,9 @@ int test (
     pcout << "n_dofs_per_cell" << n_dofs_per_cell << std::endl;
     std::vector<dealii::types::global_dof_index> current_dofs_indices(n_dofs_per_cell);
     for (auto soln_cell = dg->dof_handler.begin_active(); soln_cell != dg->dof_handler.end(); ++soln_cell, ++metric_cell) {
+        if (!soln_cell->is_locally_owned()){                                                                                                                                                           
+            continue;
+        }    
         soln_cell->get_dof_indices(current_dofs_indices);
         std::cout <<  soln_cell->active_cell_index()<< " " <<  locations_to_evaluate_rhs(soln_cell->active_cell_index()) << " ";
         for (unsigned int idof = 0; idof < n_dofs_per_cell; ++idof){

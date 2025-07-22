@@ -168,7 +168,7 @@ void AssembleECSWJac<dim,nstate>::build_problem(){
                 // Assemble the transpose of the test basis
                 Epetra_CrsMatrix W_T(Epetra_DataAccess::Copy, local_test_basis.ColMap(), N_FOM_dim);
                 for(int i =0; i < local_test_basis.NumGlobalRows(); i++){
-                    double *row = new double[local_test_basis.NumGlobalCols()];
+                    double row = new double[local_test_basis.NumGlobalCols()];
                     int *global_cols = new int[local_test_basis.NumGlobalCols()];
                     int numE;
                     const int globalRow = local_test_basis.GRID(i);

@@ -125,10 +125,10 @@ std::shared_ptr<Epetra_CrsMatrix> HROMTestLocation<dim, nstate>::generate_hyper_
 
                 int numE;
                 int row_i = current_dofs_indices[0];
-                double *row = new double[local_system_matrix.NumGlobalCols()];
-                int *global_indices = new int[local_system_matrix.NumGlobalCols()];
+                std::unique_ptr<double[]> row(new double[local_system_matrix.NumGlobalCols()]);
+                std::unique_ptr<int[]> global_indices(new int[local_system_matrix.NumGlobalCols()]);
                 // Use the Jacobian to determine the stencil around the current element
-                local_system_matrix.ExtractGlobalRowCopy(row_i, local_system_matrix.NumGlobalCols(), numE, row, global_indices);
+                local_system_matrix.ExtractGlobalRowCopy(row_i, local_system_matrix.NumGlobalCols(), numE, row.get(), global_indices.get());
                 int neighbour_dofs_curr_cell = 0;
                 for (int i = 0; i < numE; i++){
                     neighbour_dofs_curr_cell +=1;
@@ -136,8 +136,6 @@ std::shared_ptr<Epetra_CrsMatrix> HROMTestLocation<dim, nstate>::generate_hyper_
                     neighbour_dofs_indices[neighbour_dofs_curr_cell-1] = global_indices[i];
                 }
 
-                delete[] row;
-                delete[] global_indices;
 
                 // Create L_e matrix and transposed L_e matrix for current cell
                 const Epetra_SerialComm sComm;

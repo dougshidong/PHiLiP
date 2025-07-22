@@ -731,12 +731,7 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
         // The face term is assembled if one or both cells are in the active group.
         else if (current_cell->neighbor(iface)->face(current_cell->neighbor_face_no(iface))->has_children()) 
         {
-            if (norm_list_of_cell_group_IDs) {
-                this->pcout << "ERROR: Using cell group IDs on grids with hanging nodes " << std::endl
-                            << "is known to cause segmentation faults. Further development" << std::endl
-                            << "is needed to handle this case. Aborting..." << std::endl;
-                std::abort();
-            }
+            this->pcout << "Neighbor is coarser." << std::endl;
             Assert (current_cell->neighbor(iface).state() == dealii::IteratorState::valid, dealii::ExcInternalError());
             Assert (!(current_cell->neighbor(iface)->has_children()), dealii::ExcInternalError());
 
@@ -782,6 +777,8 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
                                                                store_vol_flux_nodes,
                                                                store_surf_flux_nodes);
 
+            this->pcout << "Curr cell active? " << current_cell_is_in_active_cell_group << 
+                " Neighbor active? " << neighbor_cell_is_in_active_cell_group << std::endl;
             if (!current_cell_is_in_active_cell_group && neighbor_cell_is_in_active_cell_group) {
                 // If the current cell is NOT active and the neighbor cell IS active, we must
                 // build some missing volume operators.
@@ -994,7 +991,7 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
         }
     } // end of face loop
 
-    if(compute_auxiliary_right_hand_side) {
+    if(compute_auxiliary_right_hand_side && current_cell_is_in_active_cell_group) {
         // Add local contribution from current cell to global vector
         for (unsigned int i=0; i<n_dofs_curr_cell; ++i) {
             for(int idim=0; idim<dim; idim++){
@@ -1002,12 +999,12 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
             }
         }
     }
-    else {
+    else if (current_cell_is_in_active_cell_group) {
         // Add local contribution from current cell to global vector
         for (unsigned int i=0; i<n_dofs_curr_cell; ++i) {
             rhs[current_dofs_indices[i]] += current_cell_rhs[i];
         }
-    }
+    } // If !current_cell_is_in_active_cell_group , do not update the RHS.
 }
 
 template <int dim, typename real, typename MeshType>

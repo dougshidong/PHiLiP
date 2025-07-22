@@ -41,7 +41,6 @@ int test (
     // Assemble Jacobian
     std::shared_ptr < DGBase<PHILIP_DIM, double> > dg = DGFactory<PHILIP_DIM,double>::create_discontinuous_galerkin(&all_parameters, poly_degree, grid);
     dg->allocate_system ();
-    /*   Refined cells cause a segfault. The code block below should be uncommented and tested in the future.
     const int n_refine = 2;
     for (int i=0; i<n_refine;i++) {
         dg->high_order_grid->prepare_for_coarsening_and_refinement();
@@ -63,7 +62,6 @@ int test (
         bool mesh_out = (i==n_refine-1);
         dg->high_order_grid->execute_coarsening_and_refinement(mesh_out);
     }
-    */
     pcout << "Poly degree " << poly_degree << " ncells " << grid->n_active_cells() << " ndofs: " << dg->dof_handler.n_dofs() << std::endl << std::flush;
     dg->allocate_system ();
 
@@ -111,13 +109,13 @@ int test (
     int testfail = 0; // assume pass
     // Check that rhs_only is zero where the residual was not assembled.
     auto metric_cell = dg->high_order_grid->dof_handler_grid.begin_active();
-    const unsigned int n_dofs_per_cell = dg->dof_handler.n_dofs() /  grid->n_active_cells(); // Not sure whether i need nstate here...
-    pcout << "n_dofs_per_cell" << n_dofs_per_cell << std::endl;
-    std::vector<dealii::types::global_dof_index> current_dofs_indices(n_dofs_per_cell);
     for (auto soln_cell = dg->dof_handler.begin_active(); soln_cell != dg->dof_handler.end(); ++soln_cell, ++metric_cell) {
         if (!soln_cell->is_locally_owned()){                                                                                                                                                           
             continue;
         }    
+        const unsigned int n_dofs_per_cell = soln_cell->get_fe().n_dofs_per_cell();
+        std::vector<dealii::types::global_dof_index> current_dofs_indices(n_dofs_per_cell);
+        //const unsigned int n_dofs_per_cell = soln_cell->n_active//dg->dof_handler.n_dofs() /  grid->n_active_cells(); // Not sure whether i need nstate here...
         soln_cell->get_dof_indices(current_dofs_indices);
         std::cout <<  soln_cell->active_cell_index()<< " " <<  locations_to_evaluate_rhs(soln_cell->active_cell_index()) << " ";
         for (unsigned int idof = 0; idof < n_dofs_per_cell; ++idof){
@@ -138,6 +136,7 @@ int test (
 
     std::cout << std::endl;
     if (testfail) std::cout << "FAILING" << std::endl;
+    dg->output_results_vtk(1, 0.0);
     return testfail ;
     //return 0; //testfail ;
 }

@@ -98,9 +98,13 @@ void PERKODESolver<dim,real,n_rk_stages,MeshType>::sum_stages (real dt, const bo
     //assemble solution from stages
     for (int istage = 0; istage < n_rk_stages; ++istage){
         if (pseudotime){
+            /*
             const double CFL = this->butcher_tableau->get_b(istage) * dt;
             this->dg->time_scale_solution_update(this->rk_stage[istage], CFL);
             this->solution_update.add(1.0, this->rk_stage[istage]);
+            */
+            std::cout << "not implemented for pseudotime" << std::endl;
+            std::abort();
         } else {
             for (size_t k = 0; k < this->group_ID.size(); ++k){
                 if (this->calc_stage[k][istage]==true){

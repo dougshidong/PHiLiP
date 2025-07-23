@@ -12,8 +12,6 @@
 #include "hyper_reduced_petrov_galerkin_ode_solver.h"
 #include <deal.II/distributed/solution_transfer.h>
 #include "runge_kutta_methods/runge_kutta_methods.h"
-#include "runge_kutta_methods/rk_tableau_base.h"
-#include "runge_kutta_methods/low_storage_rk_tableau_base.h"
 #include "runge_kutta_methods/low_storage_runge_kutta_methods.h"
 #include "relaxation_runge_kutta/empty_RRK_base.h"
 
@@ -174,20 +172,22 @@ std::shared_ptr<ODESolverBase<dim,real,MeshType>> ODESolverFactory<dim,real,Mesh
     const ODEEnum ode_solver_type = dg_input->all_parameters->ode_solver_param.ode_solver_type;
     if (ode_solver_type == ODEEnum::runge_kutta_solver || ode_solver_type == ODEEnum::rrk_explicit_solver) {
 
+        // Type-cast to the appropriate RKTableau type
+        std::shared_ptr<RKTableauButcherBase<dim,real,MeshType>> rk_tableau_butcher = std::dynamic_pointer_cast<RKTableauButcherBase<dim,real,MeshType>>(rk_tableau); 
         // Hard-coded templating of n_rk_stages because it is not known at compile time
         pcout << "Creating Runge Kutta ODE Solver with " 
               << n_rk_stages << " stage(s)..." << std::endl;
         if (n_rk_stages == 1){
-            return std::make_shared<RungeKuttaODESolver<dim,real,1,MeshType>>(dg_input,rk_tableau,RRK_object);
+            return std::make_shared<RungeKuttaODESolver<dim,real,1,MeshType>>(dg_input,rk_tableau_butcher,RRK_object);
         }
         else if (n_rk_stages == 2){
-            return std::make_shared<RungeKuttaODESolver<dim,real,2,MeshType>>(dg_input,rk_tableau,RRK_object);
+            return std::make_shared<RungeKuttaODESolver<dim,real,2,MeshType>>(dg_input,rk_tableau_butcher,RRK_object);
         }
         else if (n_rk_stages == 3){
-            return std::make_shared<RungeKuttaODESolver<dim,real,3,MeshType>>(dg_input,rk_tableau,RRK_object);
+            return std::make_shared<RungeKuttaODESolver<dim,real,3,MeshType>>(dg_input,rk_tableau_butcher,RRK_object);
         }
         else if (n_rk_stages == 4){
-            return std::make_shared<RungeKuttaODESolver<dim,real,4,MeshType>>(dg_input,rk_tableau,RRK_object);
+            return std::make_shared<RungeKuttaODESolver<dim,real,4,MeshType>>(dg_input,rk_tableau_butcher,RRK_object);
         }
         else{
             pcout << "Error: invalid number of stages. Aborting..." << std::endl;
@@ -244,6 +244,8 @@ std::shared_ptr<ODESolverBase<dim,real,MeshType>> ODESolverFactory<dim,real,Mesh
     using ODEEnum = Parameters::ODESolverParam::ODESolverEnum;
     const ODEEnum ode_solver_type = dg_input->all_parameters->ode_solver_param.ode_solver_type;
     if (ode_solver_type == ODEEnum::pod_galerkin_runge_kutta_solver) {
+        // Type-cast to the appropriate RKTableau type
+        std::shared_ptr<RKTableauButcherBase<dim,real,MeshType>> rk_tableau_butcher = std::dynamic_pointer_cast<RKTableauButcherBase<dim,real,MeshType>>(rk_tableau); 
         // Hard-coded templating of n_rk_stages because it is not known at compile time
         if(dg_input->all_parameters->use_inverse_mass_on_the_fly){
             pcout   << "Not Implemented: use_inverse_mass_on_the_fly=true && ode_solver_type=pod_galerkin_rk_solver"
@@ -255,16 +257,16 @@ std::shared_ptr<ODESolverBase<dim,real,MeshType>> ODESolverFactory<dim,real,Mesh
         pcout << "Creating Galerkin Runge Kutta ODE Solver with " 
               << n_rk_stages << " stage(s)..." << std::endl;
         if (n_rk_stages == 1){
-            return std::make_shared<PODGalerkinRungeKuttaODESolver<dim,real,1,MeshType>>(dg_input,rk_tableau,RRK_object,pod);
+            return std::make_shared<PODGalerkinRungeKuttaODESolver<dim,real,1,MeshType>>(dg_input,rk_tableau_butcher,RRK_object,pod);
         }
         else if (n_rk_stages == 2){
-            return std::make_shared<PODGalerkinRungeKuttaODESolver<dim,real,2,MeshType>>(dg_input,rk_tableau,RRK_object,pod);
+            return std::make_shared<PODGalerkinRungeKuttaODESolver<dim,real,2,MeshType>>(dg_input,rk_tableau_butcher,RRK_object,pod);
         }
         else if (n_rk_stages == 3){
-            return std::make_shared<PODGalerkinRungeKuttaODESolver<dim,real,3,MeshType>>(dg_input,rk_tableau,RRK_object,pod);
+            return std::make_shared<PODGalerkinRungeKuttaODESolver<dim,real,3,MeshType>>(dg_input,rk_tableau_butcher,RRK_object,pod);
         }
         else if (n_rk_stages == 4){
-            return std::make_shared<PODGalerkinRungeKuttaODESolver<dim,real,4,MeshType>>(dg_input,rk_tableau,RRK_object,pod);
+            return std::make_shared<PODGalerkinRungeKuttaODESolver<dim,real,4,MeshType>>(dg_input,rk_tableau_butcher,RRK_object,pod);
         }
         else{
             pcout << "Error: invalid number of stages. Aborting..." << std::endl;
@@ -356,12 +358,13 @@ std::shared_ptr<EmptyRRKBase<dim,real,MeshType>> ODESolverFactory<dim,real,MeshT
     dealii::ConditionalOStream pcout(std::cout, dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD)==0);
     using ODEEnum = Parameters::ODESolverParam::ODESolverEnum;
     const ODEEnum ode_solver_type = dg_input->all_parameters->ode_solver_param.ode_solver_type;
+    // Type-cast to the appropriate RKTableau type
+    std::shared_ptr<RKTableauButcherBase<dim,real,MeshType>> rk_tableau_butcher = std::dynamic_pointer_cast<RKTableauButcherBase<dim,real,MeshType>>(rk_tableau); 
 
     if (ode_solver_type == ODEEnum::runge_kutta_solver && dg_input->all_parameters->flow_solver_param.do_calculate_numerical_entropy) {
-        // If calculating numerical entropy, select the class which has that functionality
-            return std::make_shared<RKNumEntropy<dim,real,MeshType>>(rk_tableau);
+            return std::make_shared<RKNumEntropy<dim,real,MeshType>>(rk_tableau_butcher);
     }
-    else if (ode_solver_type == ODEEnum::rrk_explicit_solver){
+    else if (dg_input->all_parameters->ode_solver_param.use_relaxation_runge_kutta){
 
         using PDEEnum = Parameters::AllParameters::PartialDifferentialEquation;
         const PDEEnum pde_type = dg_input->all_parameters->pde_type;
@@ -385,12 +388,12 @@ std::shared_ptr<EmptyRRKBase<dim,real,MeshType>> ODESolverFactory<dim,real,MeshT
 
         pcout << "Adding " << rrk_type_string << " Relaxation Runge Kutta to the ODE solver..." << std::endl;
         if (numerical_entropy_type==NumEntropyEnum::energy)
-            return std::make_shared<AlgebraicRRKODESolver<dim,real,MeshType>>(rk_tableau);
+            return std::make_shared<AlgebraicRRKODESolver<dim,real,MeshType>>(rk_tableau_butcher);
         else if (numerical_entropy_type==NumEntropyEnum::nonlinear)
-            return std::make_shared<RootFindingRRKODESolver<dim,real,MeshType>>(rk_tableau);
+            return std::make_shared<RootFindingRRKODESolver<dim,real,MeshType>>(rk_tableau_butcher);
         else return nullptr; // no need for message as numerical_entropy_type has already been checked
     } else {
-        return std::make_shared<EmptyRRKBase<dim,real,MeshType>> (rk_tableau);
+        return std::make_shared<EmptyRRKBase<dim,real,MeshType>> (rk_tableau_butcher);
     }
 }
 

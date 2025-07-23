@@ -7,7 +7,7 @@ namespace ODE {
 
 template <int dim, typename real, typename MeshType>
 RKNumEntropy<dim,real,MeshType>::RKNumEntropy(
-            std::shared_ptr<RKTableauBase<dim,real,MeshType>> rk_tableau_input)
+            std::shared_ptr<RKTableauButcherBase<dim,real,MeshType>> rk_tableau_input)
         : EmptyRRKBase<dim,real,MeshType>(rk_tableau_input)
         , butcher_tableau(rk_tableau_input)
         , n_rk_stages(butcher_tableau->n_rk_stages)

@@ -183,6 +183,7 @@ set_tests_labels(1D_BURGERS_REWIENSKI_MANUFACTURED_SOLUTION REDUCED_ORDER
                                                             CONVERGENCE
                                                             MODERATE
                                                             INTEGRATION_TEST)
+
 # =======================================
 # Unsteady Galerkin POD Runge-Kutta
 # =======================================

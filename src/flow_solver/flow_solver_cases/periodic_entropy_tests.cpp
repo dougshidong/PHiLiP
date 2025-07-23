@@ -250,7 +250,7 @@ void PeriodicEntropyTests<dim, nstate>::compute_unsteady_data_and_write_to_table
     const double dt = this->get_constant_time_step(dg);
     
     using ODEEnum = Parameters::ODESolverParam::ODESolverEnum;
-    const bool is_rrk = (this->all_param.ode_solver_param.ode_solver_type == ODEEnum::rrk_explicit_solver);
+    const bool is_rrk = (this->all_param.ode_solver_param.use_relaxation_runge_kutta);
 
     // All discrete proofs use solution nodes, therefore it is best to report 
     // entropy on the solution nodes rather than by overintegrating.

@@ -203,6 +203,7 @@ int AssembleResidualSubsetOOA<dim, nstate>::run_test() const
             // Assign only on locally owned indices.
             if (locations_to_evaluate_rhs.in_local_range(i))      locations_to_evaluate_rhs(i) = 1;
         }
+        //locations_to_evaluate_rhs(locations_to_evaluate_rhs.size()-1) = 1; //also set last one
         locations_to_evaluate_rhs.update_ghost_values();
 
         // set the group ID to 10 (arbitrary choice of int)

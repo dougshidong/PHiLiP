@@ -14,6 +14,7 @@
 #include "parameters/parameters.h"
 #include "physics/physics_factory.h"
 #include "numerical_flux/convective_numerical_flux.hpp"
+#include "parameters/parameters_ode_solver.h"
 
 using PDEType   = PHiLiP::Parameters::AllParameters::PartialDifferentialEquation;
 using ConvType  = PHiLiP::Parameters::AllParameters::ConvectiveNumericalFlux;
@@ -68,9 +69,9 @@ int test (
     // Choose locations on which to evaluate the residual
     dealii::LinearAlgebra::distributed::Vector<int> locations_to_evaluate_rhs;
     locations_to_evaluate_rhs.reinit(dg->triangulation->n_active_cells());
-    const int evaluate_until_this_index = locations_to_evaluate_rhs.size() / 2 ;
+    const unsigned int evaluate_until_this_index = locations_to_evaluate_rhs.size() / 2 ;
     pcout << evaluate_until_this_index << " " << locations_to_evaluate_rhs.size() << std::endl;
-    for (int i = 0; i < evaluate_until_this_index; ++i){
+    for (unsigned int i = 0; i < evaluate_until_this_index; ++i){
         // Assign only on locally owned indices.
         if (locations_to_evaluate_rhs.in_local_range(i))      locations_to_evaluate_rhs(i) = 1;
     }
@@ -80,6 +81,7 @@ int test (
     dg->set_list_of_cell_group_IDs(locations_to_evaluate_rhs, 10); 
     pcout << "Assigned group ID." << std::endl;
 
+
     // Initialize solution with something
     std::shared_ptr <Physics::PhysicsBase<dim,nstate,double>> physics_double = Physics::PhysicsFactory<dim, nstate, double>::create_Physics(&all_parameters);
     dealii::LinearAlgebra::distributed::Vector<double> solution_no_ghost;
@@ -87,18 +89,56 @@ int test (
     dealii::VectorTools::interpolate(*(dg->high_order_grid->mapping_fe_field), dg->dof_handler, *(physics_double->manufactured_solution_function), solution_no_ghost);
     dg->solution = solution_no_ghost;
 
+    dg->output_results_vtk(0,0);
+
     bool compute_dRdW, compute_dRdX, compute_d2R;
 
     pcout << "Evaluating RHS only on group ID = 10..." << std::endl;
+    const int active_group_ID = 10;
     compute_dRdW = false; compute_dRdX = false, compute_d2R = false;
+    const double CFL = 0.0; 
     // pass group ID of 10
-    dg->assemble_residual(compute_dRdW, compute_dRdX, compute_d2R, 10);
+    dg->right_hand_side=0.0;
+    dg->assemble_residual(compute_dRdW, compute_dRdX, compute_d2R, CFL, active_group_ID);
     dealii::LinearAlgebra::distributed::Vector<double> rhs_only(dg->right_hand_side);
+    rhs_only = dg->right_hand_side;
     // pcout << "*******************************************************************************" << std::endl;
 
 
-    /// TO DO: Update return condition to verify that the RHS is updated only on cell group 10. 
-    return 0;
+
+    int testfail = 0; // assume pass
+    // Check that rhs_only is zero where the residual was not assembled.
+    auto metric_cell = dg->high_order_grid->dof_handler_grid.begin_active();
+    for (auto soln_cell = dg->dof_handler.begin_active(); soln_cell != dg->dof_handler.end(); ++soln_cell, ++metric_cell) {
+        if (!soln_cell->is_locally_owned()){                                                                                                                                                           
+            continue;
+        }    
+        const unsigned int n_dofs_per_cell = soln_cell->get_fe().n_dofs_per_cell();
+        std::vector<dealii::types::global_dof_index> current_dofs_indices(n_dofs_per_cell);
+        //const unsigned int n_dofs_per_cell = soln_cell->n_active//dg->dof_handler.n_dofs() /  grid->n_active_cells(); // Not sure whether i need nstate here...
+        soln_cell->get_dof_indices(current_dofs_indices);
+        std::cout <<  soln_cell->active_cell_index()<< " " <<  locations_to_evaluate_rhs(soln_cell->active_cell_index()) << " ";
+        for (unsigned int idof = 0; idof < n_dofs_per_cell; ++idof){
+                std::cout << rhs_only(current_dofs_indices[idof]) << " ";
+                if (locations_to_evaluate_rhs(soln_cell->active_cell_index())==0 && abs(rhs_only(current_dofs_indices[idof])) > 1E-14)           testfail = 1;
+        }
+        pcout << testfail << std::endl;
+    }
+
+    /* I'm not sure that the following explanation is actualy true
+    pcout << "Has nonzero diffusion? " << physics_double->has_nonzero_diffusion << std::endl;
+
+    if (testfail==1 && physics_double->has_nonzero_diffusion) {
+        pcout << "WARNING: Test is known to fail for diffusive PDEs. This test is hard-coded " << std::endl
+              << "to pass in diffusive cases, but the behaviour should be changed in the future." << std::endl;
+        testfail=0;
+    } */
+
+    std::cout << std::endl;
+    if (testfail) std::cout << "FAILING" << std::endl;
+    dg->output_results_vtk(1, 0.0);
+    return testfail ;
+    //return 0; //testfail ;
 }
 
 int main (int argc, char * argv[])
@@ -150,6 +190,10 @@ int main (int argc, char * argv[])
             for (unsigned int igrid=2; igrid<4 && error == 0; ++igrid) {
                 pcout << "Using " << pde_name[ipde] << std::endl;
                 all_parameters.pde_type = *pde;
+                all_parameters.use_weak_form = false;
+
+                using ODEEnum = Parameters::ODESolverParam::ODESolverEnum;
+                all_parameters.ode_solver_param.ode_solver_type = ODEEnum::runge_kutta_solver; // Set as runge_kutta to supress an abort.
                 // Generate grids
 #if PHILIP_DIM==1
                 std::shared_ptr<Triangulation> grid = std::make_shared<Triangulation>(

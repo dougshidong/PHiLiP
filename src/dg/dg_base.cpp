@@ -1542,6 +1542,11 @@ void DGBase<dim,real,MeshType>::set_list_of_cell_group_IDs(const dealii::LinearA
         std::abort();
     }
 
+    if (locations_to_be_changed.linfty_norm() > 1) {
+        pcout << "ERROR: The vector &locations_to_be_changed must be bool-like,having only 1 and 0 entries." << std::endl;
+        std::abort();
+    }
+
     // Using only deal.ii vector operations herein to take advantage of their optimizations
     // Set the cell_group_ID at the given location to zero without changing existing values
     

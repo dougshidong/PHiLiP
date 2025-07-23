@@ -3789,7 +3789,7 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_face_term_and_build_operators(
     dealii::Vector<real>                                   &neighbor_cell_rhs,
     std::vector<dealii::Tensor<1,dim,real>>                &/*current_cell_rhs_aux*/,
     std::vector<dealii::Tensor<1,dim,real>>                &/*neighbor_cell_rhs_aux*/,
-    dealii::LinearAlgebra::distributed::Vector<double>     &rhs,
+    dealii::LinearAlgebra::distributed::Vector<double>     &/*rhs*/,
     std::array<dealii::LinearAlgebra::distributed::Vector<double>,dim> &/*rhs_aux*/,
     const bool                                             /*compute_auxiliary_right_hand_side*/,
     const bool compute_dRdW, const bool compute_dRdX, const bool compute_d2R)
@@ -3840,12 +3840,6 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_face_term_and_build_operators(
         current_dofs_indices, neighbor_dofs_indices,
         current_cell_rhs, neighbor_cell_rhs,
         compute_dRdW, compute_dRdX, compute_d2R);
-
-    // Add local contribution from neighbor cell to global vector
-    const unsigned int n_dofs_neigh_cell = this->fe_collection[neighbor_cell->active_fe_index()].n_dofs_per_cell();
-    for (unsigned int i=0; i<n_dofs_neigh_cell; ++i) {
-        rhs[neighbor_dofs_indices[i]] += neighbor_cell_rhs[i];
-    }
 }
 
 template <int dim, int nstate, typename real, typename MeshType>

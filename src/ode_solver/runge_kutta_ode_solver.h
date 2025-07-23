@@ -23,16 +23,18 @@ public:
             std::shared_ptr<RKTableauButcherBase<dim,real,MeshType>> rk_tableau_input,
             std::shared_ptr<EmptyRRKBase<dim,real,MeshType>> RRK_object_input); ///< Constructor.
 
+    /// Function to allocate the Specific RK allocation
     void allocate_runge_kutta_system () override;
-
+    /// Function to calculate stage
     void calculate_stage_solution (int i, real dt, const bool pseudotime) override;
 
+    /// Function to obtain stage
     void calculate_stage_derivative (int i, real dt) override;
 
+    /// Function to sum stages and add to dg->solution
     void sum_stages (real dt, const bool pseudotime) override;
 
-    void apply_limiter () override;
-
+    /// Function to adjust time step size
     real adjust_time_step (real dt) override;
 
 protected:

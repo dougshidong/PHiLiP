@@ -18,6 +18,9 @@ void ReducedOrderModelParam::declare_parameters (dealii::ParameterHandler &prm)
         prm.declare_entry("num_halton", "0",
                           dealii::Patterns::Integer(0, dealii::Patterns::Integer::max_int_value),
                           "Number of Halton sequence points to add to initial snapshot set");
+        prm.declare_entry("file_path_for_snapshot_locations", "",
+                          dealii::Patterns::FileName(dealii::Patterns::FileName::FileType::input),
+                          "Path to search for lhs snapshots (should contain snapshot_table)");
         prm.declare_entry("recomputation_coefficient", "5",
                           dealii::Patterns::Integer(0, dealii::Patterns::Integer::max_int_value),
                           "Number of Halton sequence points to add to initial snapshot set");
@@ -39,7 +42,14 @@ void ReducedOrderModelParam::declare_parameters (dealii::ParameterHandler &prm)
         prm.declare_entry("output_snapshot_every_x_timesteps","0",
                           dealii::Patterns::Integer(0,dealii::Patterns::Integer::max_int_value),
                           "Number of Timesteps before snapshot is added");
-        }
+        prm.declare_entry("FOM_error_linear_solver_type", "direct",
+                          dealii::Patterns::Selection("direct|gmres"),
+                          "Type of linear solver used for first adjoint problem (DWR between FOM and ROM)"
+                          "Choices are <direct|gmres>.");
+        prm.declare_entry("residual_error_bool", "false",
+                          dealii::Patterns::Bool(),
+                          "Use residual/reduced residual for error indicator instead of DWR. False by default.");
+    }
     prm.leave_subsection();
 }
 
@@ -51,6 +61,7 @@ void ReducedOrderModelParam::parse_parameters (dealii::ParameterHandler &prm)
         reduced_residual_tolerance = prm.get_double("reduced_residual_tolerance");
         singular_value_threshold = prm.get_double("singular_value_threshold");
         num_halton = prm.get_integer("num_halton");
+        file_path_for_snapshot_locations = prm.get("file_path_for_snapshot_locations");
         recomputation_coefficient = prm.get_integer("recomputation_coefficient");
         number_modes = prm.get_integer("number_modes");
         output_snapshot_every_x_timesteps = prm.get_integer("output_snapshot_every_x_timesteps");
@@ -67,6 +78,12 @@ void ReducedOrderModelParam::parse_parameters (dealii::ParameterHandler &prm)
         std::string parameter_max_string = prm.get("parameter_max_values");
         std::unique_ptr<dealii::Patterns::PatternBase> ListPatternMax(new dealii::Patterns::List(dealii::Patterns::Double(), 0, 10, ",")); //Note, in a future version of dealii, this may change from a unique_ptr to simply the object. Will need to use std::move(ListPattern) in next line.
         parameter_max_values = dealii::Patterns::Tools::Convert<decltype(parameter_max_values)>::to_value(parameter_max_string, ListPatternMax);
+
+
+        const std::string solver_string = prm.get("FOM_error_linear_solver_type");
+        if (solver_string == "direct") FOM_error_linear_solver_type = LinearSolverEnum::direct;
+        if (solver_string == "gmres") FOM_error_linear_solver_type = LinearSolverEnum::gmres;
+        residual_error_bool = prm.get_bool("residual_error_bool");
     }
     prm.leave_subsection();
 }

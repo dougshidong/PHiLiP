@@ -98,23 +98,6 @@ void RungeKuttaODESolver<dim,real,n_rk_stages,MeshType>::sum_stages (real dt, co
     }
 }
 
-
-template<int dim, typename real, int n_rk_stages, typename MeshType>
-void RungeKuttaODESolver<dim,real,n_rk_stages,MeshType>::apply_limiter ()
-{
-    // Apply limiter at every RK stage
-    if (this->limiter) {
-        this->limiter->limit(this->dg->solution,
-            this->dg->dof_handler,
-            this->dg->fe_collection,
-            this->dg->volume_quadrature_collection,
-            this->dg->high_order_grid->fe_system.tensor_degree(),
-            this->dg->max_degree,
-            this->dg->oneD_fe_collection_1state,
-            this->dg->oneD_quadrature_collection);
-    }
-}
-
 template<int dim, typename real, int n_rk_stages, typename MeshType>
 real RungeKuttaODESolver<dim,real,n_rk_stages,MeshType>::adjust_time_step (real dt)
 {
@@ -144,7 +127,7 @@ void RungeKuttaODESolver<dim,real,n_rk_stages,MeshType>::allocate_runge_kutta_sy
         this->pcout << " evaluating inverse mass matrix..." << std::flush;
         this->dg->evaluate_mass_matrices(true); // creates and stores global inverse mass matrix
         //RRK needs both mass matrix and inverse mass matrix
-        if (this->ode_solver_param.use_relaxation_runge_kutta) {
+        if (this->ode_param.use_relaxation_runge_kutta) {
             this->dg->evaluate_mass_matrices(false); // creates and stores global mass matrix
         }
     }

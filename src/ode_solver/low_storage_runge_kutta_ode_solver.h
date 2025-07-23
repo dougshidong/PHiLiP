@@ -43,7 +43,7 @@ public:
     /// Function to evaluate automatic initial adaptive time step
     double get_automatic_initial_step_size(real dt, const bool /*pseudotime*/);
 
-    /// Function to allocate the 
+    /// Function to allocate the Specific RK allocation
     void allocate_runge_kutta_system () override;
 
     /// Function to calculate stage
@@ -55,9 +55,6 @@ public:
     /// Function to sum stages and add to dg->solution
     void sum_stages (real dt, const bool pseudotime) override;
 
-    /// Function to apply limiter
-    void apply_limiter () override;
-
     /// Function to adjust time step size
     real adjust_time_step(real dt) override;
 
@@ -66,9 +63,6 @@ public:
 protected:
     /// Stores Butcher tableau a and b, which specify the RK method
     std::shared_ptr<LowStorageRKTableauBase<dim,real,MeshType>> butcher_tableau;
-
-    /// Storage for the derivative at each Runge-Kutta stage
-    std::vector<dealii::LinearAlgebra::distributed::Vector<double>> rk_stage;
 
     /// Storage of the solution for the first storage register
     dealii::LinearAlgebra::distributed::Vector<double> storage_register_1;

@@ -7,6 +7,7 @@
 #include "hrom_test_location.h"
 #include <eigen/Eigen/Dense>
 #include "nearest_neighbors.h"
+#include "adaptive_sampling_base.h"
 
 namespace PHiLiP {
 using DealiiVector = dealii::LinearAlgebra::distributed::Vector<double>;
@@ -28,76 +29,52 @@ Derivation of the new error indicator will likely be detailed in Calista Biondic
 */
 
 template <int dim, int nstate>
-class HyperreducedSamplingErrorUpdated
+class HyperreducedSamplingErrorUpdated: public AdaptiveSamplingBase<dim,nstate>
 {
 public:
     /// Constructor
     HyperreducedSamplingErrorUpdated(const PHiLiP::Parameters::AllParameters *const parameters_input,
                      const dealii::ParameterHandler &parameter_handler_input);
 
-    /// Destructor
-    ~HyperreducedSamplingErrorUpdated() {};
-
-    const Parameters::AllParameters *const all_parameters; ///< Pointer to all parameters
-
-    /// Parameter handler for storing the .prm file being ran
-    const dealii::ParameterHandler &parameter_handler;
-
-    /// Matrix of snapshot parameters
-    mutable MatrixXd snapshot_parameters;
-
-    /// Vector of parameter-ROMTestLocation pairs
-    mutable std::vector<std::unique_ptr<ProperOrthogonalDecomposition::HROMTestLocation<dim,nstate>>> rom_locations;
-
-    /// Maximum error
-    mutable double max_error;
-
-    /// Most up to date POD basis
-    std::shared_ptr<ProperOrthogonalDecomposition::OnlinePOD<dim>> current_pod;
-
-    /// Nearest neighbors of snapshots
-    std::shared_ptr<ProperOrthogonalDecomposition::NearestNeighbors> nearest_neighbors;
-
-    /// Ptr vector of ECSW Weights
-    mutable std::shared_ptr<Epetra_Vector> ptr_weights;
-
-    const MPI_Comm mpi_communicator; ///< MPI communicator.
-    const int mpi_rank; ///< MPI rank.
-
-    /// ConditionalOStream.
-    /** Used as std::cout, but only prints if mpi_rank == 0
-     */
-    dealii::ConditionalOStream pcout;
-
     /// Run test
-    int run_sampling () const;
+    int run_sampling () const override;
 
-    /// Placement of initial snapshots
-    void placeInitialSnapshots() const;
+    /// Compute RBF and find max error
+    RowVectorXd getMaxErrorROM() const override;
 
     /// Placement of ROMs
     bool placeROMLocations(const MatrixXd& rom_points, Epetra_Vector weights) const;
 
+    /// Compute true/actual error at all ROM points (error in functional between FOM and ROM solution)
+    void trueErrorROM(const MatrixXd& rom_points, Epetra_Vector weights) const;
+
+    /// Solve FOM and ROM, return error in functional between the models
+    double solveSnapshotROMandFOM(const RowVectorXd& parameter, Epetra_Vector weights) const;
+
+    /// Solve HROM and track functional
+    void solveFunctionalHROM(const RowVectorXd& parameter, Epetra_Vector weights) const;
+
     /// Updates nearest ROM points to snapshot if error discrepancy is above tolerance
     void updateNearestExistingROMs(const RowVectorXd& parameter, Epetra_Vector weights) const;
-
-    /// Compute RBF and find max error
-    RowVectorXd getMaxErrorROM() const;
-
-    /// Solve full-order snapshot
-    dealii::LinearAlgebra::distributed::Vector<double> solveSnapshotFOM(const RowVectorXd& parameter) const;
 
     /// Solve reduced-order solution
     std::unique_ptr<ProperOrthogonalDecomposition::ROMSolution<dim,nstate>> solveSnapshotROM(const RowVectorXd& parameter, Epetra_Vector weights) const;
 
-    /// Reinitialize parameters
-    Parameters::AllParameters reinitParams(const RowVectorXd& parameter) const;
-
-    /// Set up parameter space depending on test case
-    void configureInitialParameterSpace() const;
+    /// Copy all elements in matrix A to all cores
+    Epetra_Vector allocateVectorToSingleCore(const Epetra_Vector &b) const;
 
     /// Output for each iteration
-    void outputIterationData(std::string iteration) const;
+    void outputIterationData(std::string iteration) const override;
+
+    /// Vector of parameter-HROMTestLocation pairs
+    mutable std::vector<std::unique_ptr<ProperOrthogonalDecomposition::HROMTestLocation<dim,nstate>>> hrom_locations;
+
+    /// Ptr vector of ECSW Weights
+    mutable std::shared_ptr<Epetra_Vector> ptr_weights;
+
+    /// Functional value predicted by the rom at each sammpling iteration at parameter location specified in the inputs
+    mutable std::vector<double> rom_functional;
+
 };
 
 }

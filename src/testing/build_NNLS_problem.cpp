@@ -42,6 +42,7 @@ std::shared_ptr<Epetra_CrsMatrix> local_generate_test_basis(Parameters::ODESolve
 template <int dim, int nstate>
 int BuildNNLSProblem<dim, nstate>::run_test() const
 {
+    Epetra_MpiComm Comm( MPI_COMM_WORLD );
     // Create flow solver and adaptive sampling class instances
     std::unique_ptr<FlowSolver::FlowSolver<dim,nstate>> flow_solver_petrov_galerkin = FlowSolver::FlowSolverFactory<dim,nstate>::select_flow_case(all_parameters, parameter_handler);
     auto ode_solver_type = Parameters::ODESolverParam::ODESolverEnum::pod_petrov_galerkin_solver;
@@ -55,9 +56,13 @@ int BuildNNLSProblem<dim, nstate>::run_test() const
 
     // Create instance of NNLS Problem assembler
     std::cout << "Construct instance of Assembler..."<< std::endl;
-    HyperReduction::AssembleECSWRes<dim,nstate> constructer_NNLS_problem(all_parameters, parameter_handler, flow_solver_petrov_galerkin->dg, parameter_sampling->current_pod, snapshot_parameters, ode_solver_type);
+    HyperReduction::AssembleECSWRes<dim,nstate> constructor_NNLS_problem(all_parameters, parameter_handler, flow_solver_petrov_galerkin->dg, parameter_sampling->current_pod, snapshot_parameters, ode_solver_type, Comm);
+    
+    // Add in FOM snapshots from sampling
+    constructor_NNLS_problem.fom_locations = parameter_sampling->fom_locations;
+    
     std::cout << "Build Problem..."<< std::endl;
-    constructer_NNLS_problem.build_problem();
+    constructor_NNLS_problem.build_problem();
 
     /* UNCOMMENT TO SAVE THE RESIDUAL AND TEST BASIS FOR EACH OF THE SNAPSHOTS, used to feed MATLAB and build C/d
     std::shared_ptr<DGBase<dim,double>> dg = flow_solver_petrov_galerkin->dg;
@@ -77,7 +82,7 @@ int BuildNNLSProblem<dim, nstate>::run_test() const
         dealii::LinearAlgebra::distributed::Vector<double> reference_solution(dg->solution);
         reference_solution.import(snapshot_s, dealii::VectorOperation::values::insert);
         
-        Parameters::AllParameters params = parameter_sampling->reinitParams(snap_param);
+        Parameters::AllParameters params = parameter_sampling->reinit_params(snap_param);
         
         std::unique_ptr<FlowSolver::FlowSolver<dim,nstate>> flow_solver = FlowSolver::FlowSolverFactory<dim,nstate>::select_flow_case(&params, parameter_handler);
         dg = flow_solver->dg;
@@ -127,11 +132,13 @@ int BuildNNLSProblem<dim, nstate>::run_test() const
     Eigen::MatrixXd d_MAT = load_csv<MatrixXd>("d.csv");
     Eigen::MatrixXd x_MAT = load_csv<MatrixXd>("x.csv");
 
-    Epetra_MpiComm Comm( MPI_COMM_WORLD );
-    Epetra_Map bMap = (constructer_NNLS_problem.A->trilinos_matrix()).RowMap();
-    Epetra_Vector b_Epetra (bMap);
-    auto b = constructer_NNLS_problem.b;
-    for(unsigned int i = 0 ; i < b.size() ; i++){
+    const int rank = Comm.MyPID();
+    int rows = (constructor_NNLS_problem.A_T->trilinos_matrix()).NumGlobalCols();
+    Epetra_Map bMap(rows, (rank == 0) ? rows: 0, 0, Comm);
+    Epetra_Vector b_Epetra(bMap);
+    auto b = constructor_NNLS_problem.b;
+    unsigned int local_length = bMap.NumMyElements();
+    for(unsigned int i = 0 ; i < local_length ; i++){
         b_Epetra[i] = b(i);
     }
 
@@ -140,13 +147,13 @@ int BuildNNLSProblem<dim, nstate>::run_test() const
     std::cout << "Create NNLS problem..."<< std::endl;
     std::cout << all_parameters->hyper_reduction_param.NNLS_tol << std::endl;
     std::cout << all_parameters->hyper_reduction_param.NNLS_max_iter << std::endl;
-    NNLS_solver NNLS_prob(all_parameters, parameter_handler, constructer_NNLS_problem.A->trilinos_matrix(), Comm, b_Epetra);
+    NNLSSolver NNLS_prob(all_parameters, parameter_handler, constructor_NNLS_problem.A_T->trilinos_matrix(), true, Comm, b_Epetra);
     std::cout << "Solve NNLS problem..."<< std::endl;
     // Solve NNLS problem (should return 1 if solver achieves the accuracy tau before the max number of iterations)
     bool exit_con = NNLS_prob.solve();
     
     // Extract the weights
-    Epetra_Vector weights = NNLS_prob.getSolution();
+    Epetra_Vector weights = NNLS_prob.get_solution();
     Eigen::MatrixXd weights_eig(weights.GlobalLength(),1);
     epetra_to_eig_vec(weights.GlobalLength(), weights , weights_eig);
 

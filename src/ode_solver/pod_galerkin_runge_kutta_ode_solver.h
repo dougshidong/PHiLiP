@@ -11,7 +11,7 @@
 namespace PHiLiP {
 namespace ODE {
 
-/*  Reference for Galerkin Runge-Kutta see equations 3.9 through 3.11 in
+/**  Reference for Galerkin Runge-Kutta see equations 3.9 through 3.11 in
  *  Carlberg, K., Barone, M., & Antil, H. (2017). Galerkin v. least-squares Petrov–Galerkin projection in nonlinear model
  *  reduction. Journal of Computational Physics, 330, 693–734. https://doi.org/10.1016/j.jcp.2016.10.033
  *
@@ -38,16 +38,18 @@ public:
     /// Destructor
     virtual ~PODGalerkinRungeKuttaODESolver() override {};
 
+    /// Function to allocate the Specific RK allocation
     void allocate_runge_kutta_system () override;
-
+    /// Function to calculate stage
     void calculate_stage_solution (int istage, real dt, const bool pseudotime) override;
 
+    /// Function to obtain stage
     void calculate_stage_derivative (int istage, real dt) override;
 
+    /// Function to sum stages and add to dg->solution
     void sum_stages (real dt, const bool pseudotime) override;
 
-    void apply_limiter () override;
-
+    /// Function to adjust time step size
     real adjust_time_step (real dt) override;
 
     /// Generate test basis

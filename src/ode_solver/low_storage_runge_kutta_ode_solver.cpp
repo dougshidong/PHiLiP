@@ -79,23 +79,6 @@ void LowStorageRungeKuttaODESolver<dim,real,n_rk_stages, MeshType>::sum_stages (
 }
 
 template <int dim, typename real, int n_rk_stages, typename MeshType> 
-void LowStorageRungeKuttaODESolver<dim,real,n_rk_stages, MeshType>::apply_limiter ()
-{
-    // Apply limiter at every RK stage
-    if (this->limiter) {
-        this->limiter->limit(this->dg->solution,
-            this->dg->dof_handler,
-            this->dg->fe_collection,
-            this->dg->volume_quadrature_collection,
-            this->dg->high_order_grid->fe_system.tensor_degree(),
-            this->dg->max_degree,
-            this->dg->oneD_fe_collection_1state,
-            this->dg->oneD_quadrature_collection);
-    }
-}
-
-
-template <int dim, typename real, int n_rk_stages, typename MeshType> 
 real LowStorageRungeKuttaODESolver<dim,real,n_rk_stages, MeshType>::adjust_time_step (real dt)
 {  
     /*Empty function for now*/ 
@@ -231,7 +214,6 @@ void LowStorageRungeKuttaODESolver<dim,real,n_rk_stages, MeshType>::prep_for_ste
     storage_register_1.reinit(this->solution_update);
     storage_register_2.reinit(this->solution_update);
     storage_register_1 = this->solution_update;
-    storage_register_2 *= 0; // Unsure if this does anything as 2 should be zeroed from reinit function
     storage_register_3 = storage_register_1;
     rhs = storage_register_1;
     if (is_3Sstarplus == true){

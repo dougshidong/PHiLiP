@@ -134,7 +134,7 @@ void OfflinePOD<dim>::computeBasis() {
         Eigen::MatrixXd pod_basis_n_modes = pod_basis(Eigen::placeholders::all, Eigen::seqN(0,num_modes));
         pod_basis = pod_basis_n_modes;
     }
-    else if (dg->all_parameters->reduced_order_param.singular_value_threshold < 1){
+    else if (dg->all_parameters->reduced_order_param.singular_value_threshold < 1.0){
         const double threshold = dg->all_parameters->reduced_order_param.singular_value_threshold;
         Eigen::VectorXd singular_values = svd.singularValues();
         double l1_norm = singular_values.sum();
@@ -159,7 +159,8 @@ void OfflinePOD<dim>::computeBasis() {
 
     std::ofstream out_file("POD_basis.txt");
     unsigned int precision = 16;
-    fullBasis.print_formatted(out_file, precision);
+    char zero = 48;
+    fullBasis.print_formatted(out_file, precision, true, 0,&zero);
 
     const Epetra_CrsMatrix epetra_system_matrix  = this->dg->system_matrix.trilinos_matrix();
     Epetra_Map system_matrix_map = epetra_system_matrix.RowMap();

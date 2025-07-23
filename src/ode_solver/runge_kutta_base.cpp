@@ -37,6 +37,22 @@ void RungeKuttaBase<dim, real, n_rk_stages, MeshType>::step_in_time(real dt, con
     this->current_time += dt;
 }
 
+template <int dim, typename real, int n_rk_stages, typename MeshType>
+void RungeKuttaBase<dim, real, n_rk_stages, MeshType>::apply_limiter ()
+{
+    // Apply limiter at every RK stage
+    if (this->limiter) {
+        this->limiter->limit(this->dg->solution,
+            this->dg->dof_handler,
+            this->dg->fe_collection,
+            this->dg->volume_quadrature_collection,
+            this->dg->high_order_grid->fe_system.tensor_degree(),
+            this->dg->max_degree,
+            this->dg->oneD_fe_collection_1state,
+            this->dg->oneD_quadrature_collection);
+    }
+}
+
 template<int dim, typename real, int n_rk_stages, typename MeshType>
 void RungeKuttaBase<dim, real, n_rk_stages, MeshType>::allocate_ode_system()
 {

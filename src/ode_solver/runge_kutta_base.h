@@ -45,7 +45,7 @@ public:
     virtual void sum_stages (real dt, const bool pseudotime) = 0;                  
 
     /// Function to apply limiter
-    virtual void apply_limiter () = 0;               
+    void apply_limiter ();
 
     /// Function to adjust time step size
     virtual real adjust_time_step(real dt) = 0;             

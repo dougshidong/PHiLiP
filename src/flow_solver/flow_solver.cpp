@@ -103,10 +103,10 @@ FlowSolver<dim, nstate>::FlowSolver(
        ode_param.ode_solver_type == Parameters::ODESolverParam::pod_petrov_galerkin_solver ||
        ode_param.ode_solver_type == Parameters::ODESolverParam::pod_galerkin_runge_kutta_solver);
     if(unsteady_FOM_POD_bool){
-        std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> system_matrix = std::make_shared<dealii::TrilinosWrappers::SparseMatrix>();
-        system_matrix->copy_from(dg->system_matrix);
-        // I do not like what I did above. I just copied the system matrix, stored it in a shared pointer, then pass it below.
-        // This will double the memory requirement of the system_matrix...
+        std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> system_matrix(
+            dg,
+            &dg->system_matrix
+        );
         time_pod = std::make_shared<ProperOrthogonalDecomposition::OnlinePOD<dim>>(system_matrix); 
         time_pod->addSnapshot(dg->solution);
     }

@@ -18,8 +18,8 @@ std::shared_ptr<Epetra_CrsMatrix> PODGalerkinODESolver<dim,real,MeshType>::gener
 template <int dim, typename real, typename MeshType>
 std::shared_ptr<Epetra_CrsMatrix> PODGalerkinODESolver<dim,real,MeshType>::generate_reduced_lhs(const Epetra_CrsMatrix &system_matrix, Epetra_CrsMatrix &test_basis)
 {
-    Epetra_CrsMatrix epetra_reduced_lhs(Epetra_DataAccess::View, test_basis.DomainMap(), test_basis.NumGlobalCols());
-    Epetra_CrsMatrix epetra_reduced_lhs_tmp(Epetra_DataAccess::View, test_basis.RowMap(), test_basis.NumGlobalCols());
+    Epetra_CrsMatrix epetra_reduced_lhs(Epetra_DataAccess::Copy, test_basis.DomainMap(), test_basis.NumGlobalCols());
+    Epetra_CrsMatrix epetra_reduced_lhs_tmp(Epetra_DataAccess::Copy, test_basis.RowMap(), test_basis.NumGlobalCols());
     EpetraExt::MatrixMatrix::Multiply(system_matrix, false, test_basis, false, epetra_reduced_lhs_tmp, true);
     EpetraExt::MatrixMatrix::Multiply(test_basis, true, epetra_reduced_lhs_tmp, false, epetra_reduced_lhs);
 

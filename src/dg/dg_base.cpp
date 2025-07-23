@@ -2005,6 +2005,8 @@ void DGBase<dim,real,MeshType>::output_results_vtk (const unsigned int cycle, co
 
     data_out.add_data_vector(max_dt_cell, "max_dt_cell", dealii::DataOut_DoFData<dealii::DoFHandler<dim>,dim>::DataVectorType::type_cell_data);
 
+    data_out.add_data_vector(reduced_mesh_weights, "reduced_mesh_weights", dealii::DataOut_DoFData<dealii::DoFHandler<dim>,dim>::DataVectorType::type_cell_data);
+
     data_out.add_data_vector(cell_volume, "cell_volume", dealii::DataOut_DoFData<dealii::DoFHandler<dim>,dim>::DataVectorType::type_cell_data);
 
 
@@ -2127,6 +2129,7 @@ void DGBase<dim,real,MeshType>::allocate_system (
         std::abort();
     }
     list_of_cell_group_IDs.reinit(triangulation->n_active_cells());
+    reduced_mesh_weights.reinit(triangulation->n_active_cells());
 
     // allocates model variables only if there is a model
     if(all_parameters->pde_type == Parameters::AllParameters::PartialDifferentialEquation::physics_model) allocate_model_variables();

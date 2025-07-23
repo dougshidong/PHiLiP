@@ -197,6 +197,7 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       " ROM_error_post_sampling |"
                       " HROM_error_post_sampling | "
                       " hyper_adaptive_sampling_new_error |"
+                      " halton_sampling_run |"
                       " naca0012_unsteady_check_quick | "
                       " khi_robustness | "
                       " low_density "),
@@ -247,6 +248,7 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       "  ROM_error_post_sampling |"
                       "  HROM_error_post_sampling | "
                       "  hyper_adaptive_sampling_new_error |"
+                      "  halton_sampling_run |"
                       "  naca0012_unsteady_check_quick | "
                       "  khi_robustness | "
                       "  low_density>.");
@@ -439,6 +441,7 @@ const std::string test_string = prm.get("test_type");
     else if (test_string == "ROM_error_post_sampling")                  { test_type = ROM_error_post_sampling; }
     else if (test_string == "HROM_error_post_sampling")                 { test_type = HROM_error_post_sampling; }
     else if (test_string == "hyper_adaptive_sampling_new_error")        { test_type = hyper_adaptive_sampling_new_error; }
+    else if (test_string == "halton_sampling_run")                      { test_type = halton_sampling_run; }
     else if (test_string == "low_density")                              { test_type = low_density; }
     else if (test_string == "naca0012_unsteady_check_quick")            { test_type = naca0012_unsteady_check_quick; }
     

@@ -543,41 +543,6 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_volume_term_explicit(
     //const real cell_diameter = cell_volume;
     const real cell_radius = 0.5 * cell_diameter;
     this->cell_volume[cell_index] = cell_volume;
-
-/*
-    //std::cout<<cell_index<<std::endl;
-    //std::cout<<this->cell_volume<<std::endl;
-    dealii::LinearAlgebra::distributed::Vector<int> locations_to_evaluate_rhs;
-    locations_to_evaluate_rhs.reinit(this->triangulation->n_active_cells());
-    PHiLiP::Parameters::AllParameters parameters = *(this->all_parameters);
-    using ODESolverEnum = Parameters::ODESolverParam::ODESolverEnum;
-    if (parameters.ode_solver_param.ode_solver_type == ODESolverEnum::PERK_solver){
-        double max_cell_volume = this->cell_volume.linfty_norm();
-        //std::cout<<this->cell_volume.size()<<std::endl;
-        //std::cout<<max_cell_volume<<std::endl;
-        //std::cout<<this->cell_volume<<std::endl;
-        //for (size_t i = 0; i < this->cell_volume.size(); ++i){
-        if (this->cell_volume[cell_index] == max_cell_volume) {
-            //std::cout<<this->cell_volume[i]<<std::endl;
-            //std::cout<<cell_index<<std::endl;
-            cell->set_subdomain_id(1);
-            //std::cout<<cell->subdomain_id()<<std::endl;
-        }
-
-        if (cell->subdomain_id()==1){
-            locations_to_evaluate_rhs(cell_index) = 3;
-        }
-    
-        locations_to_evaluate_rhs.update_ghost_values();
-        locations_to_evaluate_rhs.print(std::cout);
-        //std::abort();
-        //locations_to_evaluate_rhs.update_ghost_values();
-        this->set_list_of_cell_group_IDs(locations_to_evaluate_rhs, 1);
-        //}
-        //this->set_list_of_cell_group_IDs(cell->id(), cell->subdomain_id()); 
-    }
-        */
-     
     this->max_dt_cell[cell_index] = DGBaseState<dim,nstate,real,MeshType>::evaluate_CFL ( soln_at_q, max_artificial_diss, cell_radius, cell_degree);
 }
 

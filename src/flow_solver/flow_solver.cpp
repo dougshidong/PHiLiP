@@ -451,23 +451,23 @@ int FlowSolver<dim,nstate>::run() const
     using ODESolverEnum = Parameters::ODESolverParam::ODESolverEnum;
     typename dealii::DoFHandler<dim>::active_cell_iterator cell;
     if (parameters.ode_solver_param.ode_solver_type == ODESolverEnum::PERK_solver){
+        double max_cell_volume = dg->cell_volume.linfty_norm();
+        std::cout<< "max cell volume "<< max_cell_volume<<std::endl;
+        std::cout<< "cell volumes ";
+        dg->cell_volume.print(std::cout);
         for (typename dealii::DoFHandler<dim>::active_cell_iterator cell = dg->dof_handler.begin_active(); cell != dg->dof_handler.end(); ++cell){
-            double max_cell_volume = dg->cell_volume.linfty_norm();
-            std::cout<< "max cell volume "<< max_cell_volume<<std::endl;
-            std::cout<< "cell volumes ";
-            dg->cell_volume.print(std::cout);
             for (size_t i = 0; i < dg->cell_volume.size(); ++i){
                 if (dg->cell_volume[i] == max_cell_volume) {
-                    cell->set_subdomain_id(1);
+                    cell->set_subdomain_id(this->ode_solver->group_ID[0]);
                 }
-                if (cell->subdomain_id()==1){
+                if (static_cast<int>(cell->subdomain_id()) == this->ode_solver->group_ID[0]){
                     locations_to_evaluate_rhs(i) = 1;
                 }
             }
         }
         locations_to_evaluate_rhs.update_ghost_values();
         locations_to_evaluate_rhs.print(std::cout);
-        dg->set_list_of_cell_group_IDs(locations_to_evaluate_rhs, 1);
+        dg->set_list_of_cell_group_IDs(locations_to_evaluate_rhs, this->ode_solver->group_ID[0]);
     }
 
     // Partitioning

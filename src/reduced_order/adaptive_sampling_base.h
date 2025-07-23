@@ -43,6 +43,9 @@ public:
     /// Vector of parameter-ROMTestLocation pairs
     mutable std::vector<std::unique_ptr<ProperOrthogonalDecomposition::ROMTestLocation<dim,nstate>>> rom_locations;
 
+    /// Vector of parameter-ROMTestLocation pairs
+    mutable std::vector<dealii::LinearAlgebra::distributed::Vector<double>> fom_locations;
+
     /// Maximum error
     mutable double max_error;
 
@@ -60,6 +63,12 @@ public:
      */
     dealii::ConditionalOStream pcout;
 
+    /// Output for each iteration
+    virtual void outputIterationData(std::string iteration) const;
+    
+    /// Find point to solve for functional from param file
+    RowVectorXd readROMFunctionalPoint() const;
+
     /// Run Sampling Procedure
     virtual int run_sampling () const = 0;
 
@@ -67,19 +76,17 @@ public:
     void placeInitialSnapshots() const;
 
     /// Compute RBF and find max error
-    RowVectorXd getMaxErrorROM() const;
+    virtual RowVectorXd getMaxErrorROM() const;
 
     /// Solve full-order snapshot
     dealii::LinearAlgebra::distributed::Vector<double> solveSnapshotFOM(const RowVectorXd& parameter) const;
 
     /// Reinitialize parameters
-    Parameters::AllParameters reinitParams(const RowVectorXd& parameter) const;
+    Parameters::AllParameters reinit_params(const RowVectorXd& parameter) const;
 
     /// Set up parameter space depending on test case
     void configureInitialParameterSpace() const;
 
-    /// Output for each iteration
-    void outputIterationData(std::string iteration) const;
 };
 
 }

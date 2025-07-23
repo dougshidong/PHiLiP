@@ -3,6 +3,7 @@
 
 #include "tests.h"
 #include "parameters/all_parameters.h"
+#include "dg/dg_base.hpp"
 #include <eigen/Eigen/Dense>
 #include <Epetra_CrsMatrix.h>
 #include <Epetra_Map.h>
@@ -29,10 +30,10 @@ public:
                  const dealii::ParameterHandler &parameter_handler_input);
     
     /// Reinitialize parameters
-    Parameters::AllParameters reinitParams(std::string path) const;
+    Parameters::AllParameters reinit_params(std::string path) const;
 
     /// Read ECSW weights from the text file 
-    bool getWeightsFromFile() const;
+    bool getWeightsFromFile(std::shared_ptr<DGBase<dim,double>> &dg) const;
 
     /// Evaluate and output the "true" error at ROM Points
     int run_test () const override;

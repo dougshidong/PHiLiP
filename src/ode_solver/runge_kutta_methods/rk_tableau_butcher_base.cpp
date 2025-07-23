@@ -30,6 +30,13 @@ double RKTableauButcherBase<dim,real, MeshType> :: get_a (const int i, const int
 }
 
 template <int dim, typename real, typename MeshType> 
+double RKTableauButcherBase<dim,real, MeshType> :: get_b (const int i) const
+{
+    return butcher_tableau_b[i];
+}
+
+
+template <int dim, typename real, typename MeshType> 
 double RKTableauButcherBase<dim,real, MeshType> :: get_c (const int i) const
 {
     return butcher_tableau_c[i];

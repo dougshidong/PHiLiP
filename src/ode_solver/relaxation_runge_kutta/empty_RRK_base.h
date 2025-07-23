@@ -18,7 +18,7 @@ class EmptyRRKBase
 {
 public:
     /// Default constructor that will set the constants.
-    explicit EmptyRRKBase(std::shared_ptr<RKTableauBase<dim,real,MeshType>> /*rk_tableau_input*/);
+    explicit EmptyRRKBase(std::shared_ptr<RKTableauButcherBase<dim,real,MeshType>> /*rk_tableau_input*/);
 
     /// Calculate FR entropy adjustment
     /** Empty here

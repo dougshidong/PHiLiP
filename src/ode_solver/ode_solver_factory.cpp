@@ -358,9 +358,11 @@ std::shared_ptr<EmptyRRKBase<dim,real,MeshType>> ODESolverFactory<dim,real,MeshT
     dealii::ConditionalOStream pcout(std::cout, dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD)==0);
     using ODEEnum = Parameters::ODESolverParam::ODESolverEnum;
     const ODEEnum ode_solver_type = dg_input->all_parameters->ode_solver_param.ode_solver_type;
+    // Type-cast to the appropriate RKTableau type
+    std::shared_ptr<RKTableauButcherBase<dim,real,MeshType>> rk_tableau_butcher = std::dynamic_pointer_cast<RKTableauButcherBase<dim,real,MeshType>>(rk_tableau); 
 
     if (ode_solver_type == ODEEnum::runge_kutta_solver && dg_input->all_parameters->flow_solver_param.do_calculate_numerical_entropy) {
-            return std::make_shared<RKNumEntropy<dim,real,MeshType>>(rk_tableau);
+            return std::make_shared<RKNumEntropy<dim,real,MeshType>>(rk_tableau_butcher);
     }
     else if (dg_input->all_parameters->ode_solver_param.use_relaxation_runge_kutta){
 
@@ -386,12 +388,12 @@ std::shared_ptr<EmptyRRKBase<dim,real,MeshType>> ODESolverFactory<dim,real,MeshT
 
         pcout << "Adding " << rrk_type_string << " Relaxation Runge Kutta to the ODE solver..." << std::endl;
         if (numerical_entropy_type==NumEntropyEnum::energy)
-            return std::make_shared<AlgebraicRRKODESolver<dim,real,MeshType>>(rk_tableau);
+            return std::make_shared<AlgebraicRRKODESolver<dim,real,MeshType>>(rk_tableau_butcher);
         else if (numerical_entropy_type==NumEntropyEnum::nonlinear)
-            return std::make_shared<RootFindingRRKODESolver<dim,real,MeshType>>(rk_tableau);
+            return std::make_shared<RootFindingRRKODESolver<dim,real,MeshType>>(rk_tableau_butcher);
         else return nullptr; // no need for message as numerical_entropy_type has already been checked
     } else {
-        return std::make_shared<EmptyRRKBase<dim,real,MeshType>> (rk_tableau);
+        return std::make_shared<EmptyRRKBase<dim,real,MeshType>> (rk_tableau_butcher);
     }
 }
 

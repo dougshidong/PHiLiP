@@ -28,22 +28,6 @@ public:
     /// Store number of stages
     const int n_rk_stages;
     
-    /// Returns Butcher tableau "b" coefficient at position [i]
-    /** This is in the base class because RRK must access it for both LSRK and 
-     *  standard Butcher RK
-     **/
-    double get_b(const int i) const;
-
-    /// Returns Butcher tableau "a" coefficient at position [i][j]
-    /** This returns zero as a default constructor.
-     *  It is included in the base class because the algebraic version of RRK
-     *  needs to access a coeffs.
-     *  Currently, the base implementation just warns the user that 
-     *  there is no a matrix stored.
-     *  The A part can be found from the low storage coeffs, but has not been implemented.
-     **/
-    virtual double get_a(const int i, const int j) const;
-    
 protected:
 
     dealii::ConditionalOStream pcout; ///< Parallel std::cout that only outputs on mpi_rank==0
@@ -51,13 +35,6 @@ protected:
     /// String identifying the RK method
     const std::string rk_method_string;
     
-    /// Butcher tableau "b"
-    /** This is in the base class because RRK must access it for both LSRK and 
-     *  standard Butcher RK
-     **/
-    dealii::Table<1,double> butcher_tableau_b;
-    
-
 };
 
 } // ODE namespace

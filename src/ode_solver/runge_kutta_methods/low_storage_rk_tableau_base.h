@@ -45,10 +45,6 @@ public:
     /// Calls setters for butcher tableau
     void set_tableau() override;
 
-
-    /// Returns Butcher tableau "b" coefficient at position [i]
-    double get_b(const int i) const;
-    
 protected:
     
     /// Size of "delta"
@@ -77,14 +73,6 @@ protected:
 
     /// Setter for b hat
     virtual void set_b_hat() = 0;
-
-    /// Set "b" from a standard Butcher tableau.
-    /** The b coefficients are needed for relaxation Runge-Kutta.
-     *  Must be called AFTER setting other coeffs.
-     *  For the conversion, see Section 4.3 of 
-     *  Ketcheson 2010 "Runge-Kutta methods with minimum storage implementations"
-     *  **/
-    void set_b();
 
 };
 

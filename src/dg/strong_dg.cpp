@@ -194,9 +194,6 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_boundary_term_and_build_operat
     const unsigned int n_metric_dofs = fe_metric.dofs_per_cell;
     const unsigned int n_grid_nodes  = n_metric_dofs / dim;
     //build the surface metric operators for interior
-    //
-    //Here the problem: mapping support points (and maybe also mapping_basis) not
-    //initialized.
     metric_oper.build_facet_metric_operators(
         iface,
         this->face_quadrature_collection[poly_degree].size(),
@@ -244,16 +241,16 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_and_build_operators(
     const unsigned int                                     poly_degree_ext,
     const unsigned int                                     /*grid_degree_int*/,
     const unsigned int                                     grid_degree_ext,
-    OPERATOR::basis_functions<dim,2*dim,real>                   &soln_basis_int,
-    OPERATOR::basis_functions<dim,2*dim,real>                   &soln_basis_ext,
-    OPERATOR::basis_functions<dim,2*dim,real>                   &flux_basis_int,
-    OPERATOR::basis_functions<dim,2*dim,real>                   &flux_basis_ext,
-    OPERATOR::local_basis_stiffness<dim,2*dim,real>             &flux_basis_stiffness,
-    OPERATOR::vol_projection_operator<dim,2*dim,real>           &soln_basis_projection_oper_int,
-    OPERATOR::vol_projection_operator<dim,2*dim,real>           &soln_basis_projection_oper_ext,
+    OPERATOR::basis_functions<dim,2*dim,real>              &soln_basis_int,
+    OPERATOR::basis_functions<dim,2*dim,real>              &soln_basis_ext,
+    OPERATOR::basis_functions<dim,2*dim,real>              &flux_basis_int,
+    OPERATOR::basis_functions<dim,2*dim,real>              &flux_basis_ext,
+    OPERATOR::local_basis_stiffness<dim,2*dim,real>        &flux_basis_stiffness,
+    OPERATOR::vol_projection_operator<dim,2*dim,real>      &soln_basis_projection_oper_int,
+    OPERATOR::vol_projection_operator<dim,2*dim,real>      &soln_basis_projection_oper_ext,
     OPERATOR::metric_operators<real,dim,2*dim>             &metric_oper_int,
     OPERATOR::metric_operators<real,dim,2*dim>             &metric_oper_ext,
-    OPERATOR::mapping_shape_functions<dim,2*dim,real>           &mapping_basis,
+    OPERATOR::mapping_shape_functions<dim,2*dim,real>      &mapping_basis,
     std::array<std::vector<real>,dim>                      &mapping_support_points,
     dealii::hp::FEFaceValues<dim,dim>                      &/*fe_values_collection_face_int*/,
     dealii::hp::FEFaceValues<dim,dim>                      &/*fe_values_collection_face_ext*/,
@@ -1862,7 +1859,6 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_strong(
     dealii::Vector<real>                               &local_rhs_int_cell,
     dealii::Vector<real>                               &local_rhs_ext_cell)
 {
-
     (void) current_cell_index;
     (void) neighbor_cell_index;
 

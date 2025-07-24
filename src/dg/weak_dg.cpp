@@ -3650,7 +3650,7 @@ void DGWeak<dim,nstate,real,MeshType>::build_volume_operators(
     // Currently for weak DG, do nothing.
     // This function is needed in strong DG when the current cell is not in an active group
     // but the neighbor is in an active group. 
-    // Partitioned groups is not currently implemented for weak DG, therefore 
+    // Partitioned groups are not currently implemented for weak DG, therefore 
     // this function does not do anything.
 }
 

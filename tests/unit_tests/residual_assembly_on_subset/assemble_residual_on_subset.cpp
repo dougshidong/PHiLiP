@@ -115,7 +115,6 @@ int test (
         }    
         const unsigned int n_dofs_per_cell = soln_cell->get_fe().n_dofs_per_cell();
         std::vector<dealii::types::global_dof_index> current_dofs_indices(n_dofs_per_cell);
-        //const unsigned int n_dofs_per_cell = soln_cell->n_active//dg->dof_handler.n_dofs() /  grid->n_active_cells(); // Not sure whether i need nstate here...
         soln_cell->get_dof_indices(current_dofs_indices);
         std::cout <<  soln_cell->active_cell_index()<< " " <<  locations_to_evaluate_rhs(soln_cell->active_cell_index()) << " ";
         for (unsigned int idof = 0; idof < n_dofs_per_cell; ++idof){
@@ -125,20 +124,11 @@ int test (
         pcout << testfail << std::endl;
     }
 
-    /* I'm not sure that the following explanation is actualy true
-    pcout << "Has nonzero diffusion? " << physics_double->has_nonzero_diffusion << std::endl;
-
-    if (testfail==1 && physics_double->has_nonzero_diffusion) {
-        pcout << "WARNING: Test is known to fail for diffusive PDEs. This test is hard-coded " << std::endl
-              << "to pass in diffusive cases, but the behaviour should be changed in the future." << std::endl;
-        testfail=0;
-    } */
-
     std::cout << std::endl;
     if (testfail) std::cout << "FAILING" << std::endl;
-    dg->output_results_vtk(1, 0.0);
+    // Uncomment to output vtk
+    //dg->output_results_vtk(1, 0.0);
     return testfail ;
-    //return 0; //testfail ;
 }
 
 int main (int argc, char * argv[])

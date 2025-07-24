@@ -11,6 +11,9 @@ namespace PHiLiP {
 namespace Tests {
 
 /// Advection time refinement study 
+/** This test hard-codes Heun's method, where the residual is assembled on the
+ *  two halves of the domain independantly.
+ */
 template <int dim, int nstate>
 class AssembleResidualSubsetOOA: public TestsBase
 {

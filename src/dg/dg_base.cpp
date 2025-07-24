@@ -1396,7 +1396,7 @@ void DGBase<dim,real,MeshType>::assemble_residual (const bool compute_dRdW, cons
         if(all_parameters->pde_type == Parameters::AllParameters::PartialDifferentialEquation::physics_model) update_model_variables();
 
         // assembles and solves for auxiliary variable if necessary.
-        //assemble_auxiliary_residual(active_cell_group_ID);
+        assemble_auxiliary_residual(active_cell_group_ID);
 
 
         dealii::Timer timer;

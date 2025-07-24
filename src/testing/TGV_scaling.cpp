@@ -152,8 +152,6 @@ int EulerTaylorGreenScaling<dim, nstate>::run_test() const
     // For curvilinear cases, check allocation in high order grid.
     // Create DG
     std::shared_ptr < PHiLiP::DGBase<dim, double> > dg = PHiLiP::DGFactory<dim,double>::create_discontinuous_galerkin(&all_parameters_new, poly_degree, poly_degree, grid_degree, grid);
-    // Allocate small amount of memory that can be deleted to avoid crashing other programs or getting OOM errors
-    char* _emergencyMemory = new char[16384];
     try{
         dg->allocate_system (false,false,false);
          
@@ -180,7 +178,6 @@ int EulerTaylorGreenScaling<dim, nstate>::run_test() const
         }
     }
     catch(std::bad_alloc &e){
-        delete[] _emergencyMemory;
         std::cout << "ending with bad_alloc (ran out of memory)" << std::endl;   
         std::cout << "If the test fails here, then there is unnecessary memory being allocated." << std::endl;
         return 1;

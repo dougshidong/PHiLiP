@@ -9,7 +9,8 @@ namespace PHiLiP {
 namespace ProperOrthogonalDecomposition {
 
 using namespace std;
-
+//  Source of halton.cpp/.h:
+//  https://people.math.sc.edu/Burkardt/cpp_src/halton/halton.html
 //****************************************************************************80
 
 double *halton(int i, int m)
@@ -49,6 +50,7 @@ double *halton(int i, int m)
 //
 //    Output, double HALTON[M], the element of the sequence with index I.
 //
+
 {
     int d;
     int j;

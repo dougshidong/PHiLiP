@@ -48,7 +48,7 @@ double *halton(int i, int m)
 //
 //    Input, int M, the spatial dimension.
 //
-//    Output, double HALTON[M], the element of the sequence with index
+//    Output, double HALTON[M], the element of the sequence with index I.
 //
 
 {

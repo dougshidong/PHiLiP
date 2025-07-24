@@ -443,7 +443,7 @@ int FlowSolver<dim,nstate>::run() const
             }
         }
     }
-
+/*
     this->dg->assemble_residual();
     locations_to_evaluate_rhs.reinit(dg->triangulation->n_active_cells());
     std::cout<<"numer of cells " << dg->cell_volume.size()<<std::endl;
@@ -469,10 +469,10 @@ int FlowSolver<dim,nstate>::run() const
         locations_to_evaluate_rhs.print(std::cout);
         dg->set_list_of_cell_group_IDs(locations_to_evaluate_rhs, this->ode_solver->group_ID[0]);
     }
-
+*/
     // Partitioning
 
-    /*
+
     locations_to_evaluate_rhs.reinit(dg->triangulation->n_active_cells());
     evaluate_until_this_index = locations_to_evaluate_rhs.size() / 2; 
 
@@ -493,7 +493,7 @@ int FlowSolver<dim,nstate>::run() const
     }
     locations_to_evaluate_rhs.update_ghost_values();
     dg->set_list_of_cell_group_IDs(locations_to_evaluate_rhs, this->ode_solver->group_ID[1]); 
-*/
+
 
     //----------------------------------------------------
     // Select unsteady or steady-state

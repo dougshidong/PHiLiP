@@ -54,8 +54,8 @@ void PERKODESolver<dim,real,n_rk_stages, MeshType>::calculate_stage_solution (in
                             this->ODESolverBase<dim,real,MeshType>::all_parameters->linear_solver_param);
 
                 this->rk_stage[istage].add(1.0, temp_u);
+                
                 */
-
                 //JFNK version
                 this->solver.solve(dt*this->butcher_tableau->get_a(istage,istage,k+1), this->rk_stage_k[k][istage]);
                 this->rk_stage_k[k][istage] = this->solver.current_solution_estimate;
@@ -67,9 +67,10 @@ void PERKODESolver<dim,real,n_rk_stages, MeshType>::calculate_stage_solution (in
             // If using the entropy formulation of RRK, solutions must be stored.
             // Call store_stage_solutions before overwriting rk_stage with the derivative.
             this->relaxation_runge_kutta->store_stage_solutions(istage, this->rk_stage_k[k][istage]);
-
+            //this->dg->solution = this->rk_stage_k[0][istage];
         }
-    }    
+    }   
+
 }
 
 template<int dim, typename real, int n_rk_stages, typename MeshType>
@@ -78,18 +79,46 @@ void PERKODESolver<dim,real,n_rk_stages,MeshType>::calculate_stage_derivative (i
      //set the DG current time for unsteady source terms
     this->dg->set_current_time(this->current_time + this->butcher_tableau->get_c(istage)*dt);
 
-    for (size_t k = 0; k < this->group_ID.size(); ++k){
-        if (this->calc_stage[k][istage]==true){
-            this->dg->solution = this->rk_stage_k[k][istage];// update to stage solution
-            this->dg->right_hand_side *= 0; 
-            this->dg->assemble_residual(false, false, false, 0.0, this->group_ID[k]); //RHS : du/dt = RHS = F(u_n + dt* sum(a_ij*k_j) + dt * a_ii * u^(istage)))
+//    for (size_t k = 0; k < this->group_ID.size(); ++k){
+      // this->dg->right_hand_side *= 0; 
+//       if (this->calc_stage[k][istage]==true){
+            this->dg->solution = this->rk_stage_k[0][istage];// update to stage solution
+            //this->dg->right_hand_side *= 0; 
+            //this->dg->assemble_residual();
+            this->dg->assemble_residual(false, false, false, 0.0, this->group_ID[0]); //RHS : du/dt = RHS = F(u_n + dt* sum(a_ij*k_j) + dt * a_ii * u^(istage)))
             if(this->all_parameters->use_inverse_mass_on_the_fly){
-                this->dg->apply_inverse_global_mass_matrix(this->dg->right_hand_side, this->rk_stage_k[k][istage]); //rk_stage[istage] = IMM*RHS = F(u_n + dt*sum(a_ij*k_j))
+                this->dg->apply_inverse_global_mass_matrix(this->dg->right_hand_side, this->rk_stage_k[0][istage]); //rk_stage[istage] = IMM*RHS = F(u_n + dt*sum(a_ij*k_j))
             } else{
-                this->dg->global_inverse_mass_matrix.vmult(this->rk_stage_k[k][istage], this->dg->right_hand_side); //rk_stage[istage] = IMM*RHS = F(u_n + dt*sum(a_ij*k_j))
+                this->dg->global_inverse_mass_matrix.vmult(this->rk_stage_k[0][istage], this->dg->right_hand_side); //rk_stage[istage] = IMM*RHS = F(u_n + dt*sum(a_ij*k_j))
             }
-        }
-   }
+
+           
+            this->pcout << this->dg->right_hand_side.size() << std::endl;
+            for (unsigned int i = 0 ; i < this->dg->right_hand_side.size(); ++i){
+                this->pcout << this->dg->right_hand_side(i) << " " ;
+            }
+            this->pcout << std::endl; 
+
+            this->dg->solution = this->rk_stage_k[1][istage];
+            this->dg->assemble_residual(false, false, false, 0.0, this->group_ID[1]); //RHS : du/dt = RHS = F(u_n + dt* sum(a_ij*k_j) + dt * a_ii * u^(istage)))
+
+            if(this->all_parameters->use_inverse_mass_on_the_fly){
+                this->dg->apply_inverse_global_mass_matrix(this->dg->right_hand_side, this->rk_stage_k[1][istage]); //rk_stage[istage] = IMM*RHS = F(u_n + dt*sum(a_ij*k_j))
+            } else{
+                this->dg->global_inverse_mass_matrix.vmult(this->rk_stage_k[1][istage], this->dg->right_hand_side); //rk_stage[istage] = IMM*RHS = F(u_n + dt*sum(a_ij*k_j))
+            }
+
+            this->pcout << this->dg->right_hand_side.size() << std::endl;
+            for (unsigned int i = 0 ; i < this->dg->right_hand_side.size(); ++i){
+                this->pcout << this->dg->right_hand_side(i) << " " ;
+            }
+            this->pcout << std::endl;
+            std::abort(); 
+
+           
+//        }
+//   }
+
 }
 
 template<int dim, typename real, int n_rk_stages, typename MeshType>
@@ -182,7 +211,7 @@ void PERKODESolver<dim,real,n_rk_stages,MeshType>::allocate_runge_kutta_system (
             }
             this->calc_stage[k][j] = calcStage;
         }
-    }
+   }
 }
 
 template class PERKODESolver<PHILIP_DIM, double,10, dealii::Triangulation<PHILIP_DIM> >;

@@ -443,6 +443,9 @@ int FlowSolver<dim,nstate>::run() const
             }
         }
     }
+
+    PHiLiP::Parameters::AllParameters parameters = *(dg->all_parameters);
+    using ODESolverEnum = Parameters::ODESolverParam::ODESolverEnum;
 /*
     this->dg->assemble_residual();
     locations_to_evaluate_rhs.reinit(dg->triangulation->n_active_cells());
@@ -472,29 +475,30 @@ int FlowSolver<dim,nstate>::run() const
 */
     // Partitioning
 
+    if (parameters.ode_solver_param.ode_solver_type == ODESolverEnum::PERK_solver){
 
-    locations_to_evaluate_rhs.reinit(dg->triangulation->n_active_cells());
-    evaluate_until_this_index = locations_to_evaluate_rhs.size() / 2; 
+        locations_to_evaluate_rhs.reinit(dg->triangulation->n_active_cells());
+        evaluate_until_this_index = locations_to_evaluate_rhs.size() / 2; 
 
-    for (int i = 0; i < evaluate_until_this_index; ++i){
-        if (locations_to_evaluate_rhs.in_local_range(i))
-            locations_to_evaluate_rhs(i) = 1;
-    }
-    locations_to_evaluate_rhs.update_ghost_values();
-    dg->set_list_of_cell_group_IDs(locations_to_evaluate_rhs, this->ode_solver->group_ID[0]);
-
-
-    locations_to_evaluate_rhs *= 0;
-    locations_to_evaluate_rhs.update_ghost_values();
-
-    for (size_t i = evaluate_until_this_index; i < locations_to_evaluate_rhs.size(); ++i){
-        if (locations_to_evaluate_rhs.in_local_range(i))
-            locations_to_evaluate_rhs(i) = 1;
-    }
-    locations_to_evaluate_rhs.update_ghost_values();
-    dg->set_list_of_cell_group_IDs(locations_to_evaluate_rhs, this->ode_solver->group_ID[1]); 
+        for (int i = 0; i < evaluate_until_this_index; ++i){
+            if (locations_to_evaluate_rhs.in_local_range(i))
+                locations_to_evaluate_rhs(i) = 1;
+        }
+        locations_to_evaluate_rhs.update_ghost_values();
+        dg->set_list_of_cell_group_IDs(locations_to_evaluate_rhs, this->ode_solver->group_ID[0]);
 
 
+        locations_to_evaluate_rhs *= 0;
+        locations_to_evaluate_rhs.update_ghost_values();
+
+        for (size_t i = evaluate_until_this_index; i < locations_to_evaluate_rhs.size(); ++i){
+            if (locations_to_evaluate_rhs.in_local_range(i))
+                locations_to_evaluate_rhs(i) = 1;
+        }
+        locations_to_evaluate_rhs.update_ghost_values();
+        dg->set_list_of_cell_group_IDs(locations_to_evaluate_rhs, this->ode_solver->group_ID[1]); 
+
+    } 
     //----------------------------------------------------
     // Select unsteady or steady-state
     //----------------------------------------------------

@@ -43,11 +43,20 @@ public:
     /// Maximum value of parameters
     std::vector<double> parameter_max_values;
 
+    /// Number of modes to include in the POD Basis
+    int number_modes;
+
+    /// Singular Value Threshold in the POD Basis
+    double singular_value_threshold;
+
+    /// Number of timesteps before putting solution in snapshot matrix
+    int output_snapshot_every_x_timesteps;
+
     /// Type of linear solver used for first adjoint problem (DWR between FOM and ROM) (direct or gmres)
-    LinearSolverEnum FOM_error_linear_solver_type; 
+    LinearSolverEnum FOM_error_linear_solver_type;
 
     /// Use residual/reduced residual for error indicator instead of DWR. False by default.
-    bool residual_error_bool; 
+    bool residual_error_bool;
 
     /// Declares the possible variables and sets the defaults.
     static void declare_parameters (dealii::ParameterHandler &prm);

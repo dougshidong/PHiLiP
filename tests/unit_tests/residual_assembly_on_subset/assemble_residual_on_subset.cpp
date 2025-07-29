@@ -35,7 +35,7 @@ int test (
     std::shared_ptr<Triangulation> grid,
     const PHiLiP::Parameters::AllParameters &all_parameters)
 {
-    int mpi_rank = dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD);
+    const int mpi_rank = dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD);
     dealii::ConditionalOStream pcout(std::cout, mpi_rank==0);
     using namespace PHiLiP;
     // Assemble Jacobian

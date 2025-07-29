@@ -23,6 +23,15 @@ NumericalFluxFactory<dim, nstate, real>
                                  (conv_num_flux_type == AllParam::ConvectiveNumericalFlux::l2roe) || 
                                  (conv_num_flux_type == AllParam::ConvectiveNumericalFlux::two_point_flux_with_roe_dissipation) || 
                                  (conv_num_flux_type == AllParam::ConvectiveNumericalFlux::two_point_flux_with_l2roe_dissipation));
+    // checks if weak dg is being run with two point flux                          
+    const bool is_two_point_conv = ((conv_num_flux_type == AllParam::ConvectiveNumericalFlux::two_point_flux) ||
+                                    (conv_num_flux_type == AllParam::ConvectiveNumericalFlux::two_point_flux_with_lax_friedrichs_dissipation) || 
+                                    (conv_num_flux_type == AllParam::ConvectiveNumericalFlux::two_point_flux_with_roe_dissipation) || 
+                                    (conv_num_flux_type == AllParam::ConvectiveNumericalFlux::two_point_flux_with_l2roe_dissipation));
+    if(is_two_point_conv && physics_input->all_parameters->use_split_form == false ) {
+        std::cout << "two point flux and not using split form are not compatible, please use another Convective Numerical Flux" << std::endl;
+        std::abort();
+    }
 
     if (conv_num_flux_type == AllParam::ConvectiveNumericalFlux::central_flux) {
         if constexpr (nstate<=5) {

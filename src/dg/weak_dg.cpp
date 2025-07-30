@@ -3652,6 +3652,7 @@ void DGWeak<dim,nstate,real,MeshType>::build_volume_operators(
     // but the neighbor is in an active group. 
     // Partitioned groups are not currently implemented for weak DG, therefore 
     // this function does not do anything.
+    this->pcout << "ERROR: The function build_volume_operators is not implemented for weak DG. Aborting..." << std::endl;
 }
 
 template <int dim, int nstate, typename real, typename MeshType>

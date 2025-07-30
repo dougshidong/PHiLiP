@@ -34,6 +34,7 @@ private:
      * ( see strong DG)
      * The subset residual evaluation feature is not currently tested on weak DG
      * therefore this is empty.
+     * Current behaviour is to abort, though this function should never be called.
      */
     void build_volume_operators(
         typename dealii::DoFHandler<dim>::active_cell_iterator /*cell*/,

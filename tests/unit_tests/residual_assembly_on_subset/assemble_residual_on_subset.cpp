@@ -100,14 +100,22 @@ int test (
     // pass group ID of 10
     dg->right_hand_side=0.0;
     dg->assemble_residual(compute_dRdW, compute_dRdX, compute_d2R, CFL, active_group_ID);
-    dealii::LinearAlgebra::distributed::Vector<double> rhs_only(dg->right_hand_side);
-    rhs_only = dg->right_hand_side;
-    // pcout << "*******************************************************************************" << std::endl;
+    dealii::LinearAlgebra::distributed::Vector<double> rhs_partitioned(dg->right_hand_side);
+    rhs_partitioned = dg->right_hand_side;
 
-
+    pcout << "Evauating RHS on entire mesh for comparison..." << std::endl;
+    //Reset all cells to group 0
+    dg->set_list_of_cell_group_IDs(locations_to_evaluate_rhs,0);
+    dg->right_hand_side=0.0;
+    // Assemble without passing a group, which defaults to group 0
+    dg->assemble_residual(compute_dRdW, compute_dRdX, compute_d2R, CFL);
+    dealii::LinearAlgebra::distributed::Vector<double> rhs_NOT_partitioned(dg->right_hand_side);
+    rhs_NOT_partitioned = dg->right_hand_side;
 
     int testfail = 0; // assume pass
-    // Check that rhs_only is zero where the residual was not assembled.
+    int nonzero_errors = 0;
+    int diff_errors=0;
+    // Check that rhs_partitioned is zero where the residual was not assembled.
     auto metric_cell = dg->high_order_grid->dof_handler_grid.begin_active();
     for (auto soln_cell = dg->dof_handler.begin_active(); soln_cell != dg->dof_handler.end(); ++soln_cell, ++metric_cell) {
         if (!soln_cell->is_locally_owned()){                                                                                                                                                           
@@ -116,16 +124,32 @@ int test (
         const unsigned int n_dofs_per_cell = soln_cell->get_fe().n_dofs_per_cell();
         std::vector<dealii::types::global_dof_index> current_dofs_indices(n_dofs_per_cell);
         soln_cell->get_dof_indices(current_dofs_indices);
-        std::cout <<  soln_cell->active_cell_index()<< " " <<  locations_to_evaluate_rhs(soln_cell->active_cell_index()) << " ";
+        std::cout <<  "cell: " << soln_cell->active_cell_index()<< " eval?  " <<  locations_to_evaluate_rhs(soln_cell->active_cell_index()) << " MPI: " << mpi_rank << " ";
         for (unsigned int idof = 0; idof < n_dofs_per_cell; ++idof){
-                std::cout << rhs_only(current_dofs_indices[idof]) << " ";
-                if (locations_to_evaluate_rhs(soln_cell->active_cell_index())==0 && abs(rhs_only(current_dofs_indices[idof])) > 1E-14)           testfail = 1;
+                std::cout << rhs_partitioned(current_dofs_indices[idof]) << " ";
+                // Check if there are nonzero values on non-active cells
+                if (locations_to_evaluate_rhs(soln_cell->active_cell_index())==0 && abs(rhs_partitioned(current_dofs_indices[idof])) > 1E-14) {
+                    testfail = 1;
+                    std::cout << "Nonzero here! ";
+                    nonzero_errors++;
+                }
+                // Check if values match an unpartitioned assembly on active cells
+                if (locations_to_evaluate_rhs(soln_cell->active_cell_index())==1 // cell is in the active group
+                        && abs(rhs_partitioned(current_dofs_indices[idof])-rhs_NOT_partitioned(current_dofs_indices[idof])) > 1E-13) // there is a difference between partitioned and unpartitioned RHS
+                {
+                    testfail = 1;
+                    std::cout << "Diff here! correct:" << rhs_NOT_partitioned(current_dofs_indices[idof]) << "... ";
+                    diff_errors++;
+                }
         }
-        pcout << testfail << std::endl;
+        std::cout << "Testfail: " <<  testfail << std::endl;
     }
 
     std::cout << std::endl;
-    if (testfail) std::cout << "FAILING" << std::endl;
+    testfail = dealii::Utilities::MPI::sum(testfail, MPI_COMM_WORLD);
+    nonzero_errors = dealii::Utilities::MPI::sum(nonzero_errors, MPI_COMM_WORLD);
+    diff_errors = dealii::Utilities::MPI::sum(diff_errors, MPI_COMM_WORLD);
+    if (testfail) pcout << "FAILING with " << nonzero_errors << " incorrect nonzeros and " << diff_errors << " differences with ref soln." << std::endl;
     // Uncomment to output vtk
     //dg->output_results_vtk(1, 0.0);
     return testfail ;

@@ -122,12 +122,16 @@ void PERKODESolver<dim,real,n_rk_stages,MeshType>::calculate_stage_derivative (i
 {
      //set the DG current time for unsteady source terms
     this->dg->set_current_time(this->current_time + this->butcher_tableau->get_c(istage)*dt);
-    unsigned int istage_group1 = istage + n_rk_stages; 
+    //unsigned int istage_group1 = istage + n_rk_stages; 
 
 
-    this->dg->solution = this->rk_stage[istage];
-    this->dg->right_hand_side *= 0; 
-
+     this->dg->solution = this->rk_stage[istage];
+     this->dg->right_hand_side *= 0; 
+    //     this->pcout << this->rk_stage[istage].size() << std::endl;
+    //     for (unsigned int i = 0 ; i < this->rk_stage[istage].size(); ++i){
+    //         this->pcout << this->rk_stage[istage](i) << " " ;
+    //     }
+    //     this->pcout << std::endl;
 
     this->dg->assemble_residual(false, false, false, 0.0, this->group_ID[0]); //RHS : du/dt = RHS = F(u_n + dt* sum(a_ij*k_j) + dt * a_ii * u^(istage)))
     //std::cout<<"hello"<<std::endl;
@@ -137,34 +141,10 @@ void PERKODESolver<dim,real,n_rk_stages,MeshType>::calculate_stage_derivative (i
         this->dg->global_inverse_mass_matrix.vmult(this->rk_stage[istage], this->dg->right_hand_side); //rk_stage[istage] = IMM*RHS = F(u_n + dt*sum(a_ij*k_j))
     }
 
-
-        // this->pcout << this->dg->right_hand_side.size() << std::endl;
-        // for (unsigned int i = 0 ; i < this->dg->right_hand_side.size(); ++i){
-        //     this->pcout << this->dg->right_hand_side(i) << " " ;
-        // }
-        // this->pcout << std::endl;
-
-
-
-    //     std::cout << "rk_stage[" << istage_group1 << "] has "
-    //   << this->rk_stage[istage_group1].locally_owned_elements().n_elements()
-    //   << " owned and "
-    //   << this->rk_stage[istage_group1].size()
-    //   << " total entries." << std::endl;
-
-        this->dg->solution.reinit(this->rk_stage[istage]);
-        this->dg->solution = this->rk_stage[istage_group1];
-
-
-        // this->pcout << this->dg->solution.size() << std::endl;
-        // for (unsigned int i = 0 ; i < this->dg->solution.size(); ++i){
-        //     this->pcout << this->dg->solution(i) << " " ;
-        // }
-        // this->pcout << std::endl;
-
-
-        this->dg->right_hand_side *= 0; 
-        this->dg->solution.update_ghost_values();
+    //this->dg->solution.reinit(this->rk_stage[istage]);
+    //this->dg->solution = this->rk_stage[istage_group1];
+    this->dg->solution = this->rk_stage[istage+n_rk_stages];
+    this->dg->right_hand_side *= 0; 
 
         // this->pcout << this->rk_stage[istage_group1].size() << std::endl;
         // for (unsigned int i = 0 ; i < this->rk_stage[istage_group1].size(); ++i){
@@ -174,12 +154,21 @@ void PERKODESolver<dim,real,n_rk_stages,MeshType>::calculate_stage_derivative (i
 
 
 
-        this->dg->assemble_residual(false, false, false, 0.0, this->group_ID[1]); //RHS : du/dt = RHS = F(u_n + dt* sum(a_ij*k_j) + dt * a_ii * u^(istage)))
-        if(this->all_parameters->use_inverse_mass_on_the_fly){
-            this->dg->apply_inverse_global_mass_matrix(this->dg->right_hand_side, this->rk_stage[istage_group1]); //rk_stage[istage] = IMM*RHS = F(u_n + dt*sum(a_ij*k_j))
-        } else{
-            this->dg->global_inverse_mass_matrix.vmult(this->rk_stage[istage_group1], this->dg->right_hand_side); //rk_stage[istage] = IMM*RHS = F(u_n + dt*sum(a_ij*k_j))
+    this->dg->solution.update_ghost_values();
+
+    this->dg->assemble_residual(false, false, false, 0.0, this->group_ID[1]); //RHS : du/dt = RHS = F(u_n + dt* sum(a_ij*k_j) + dt * a_ii * u^(istage)))
+    if(this->all_parameters->use_inverse_mass_on_the_fly){
+        this->dg->apply_inverse_global_mass_matrix(this->dg->right_hand_side, this->rk_stage_k[1][istage]); //rk_stage[istage] = IMM*RHS = F(u_n + dt*sum(a_ij*k_j))
+    } else{
+        this->dg->global_inverse_mass_matrix.vmult(this->rk_stage_k[1][istage], this->dg->right_hand_side); //rk_stage[istage] = IMM*RHS = F(u_n + dt*sum(a_ij*k_j))
+    }
+
+    for (unsigned int y = 0; y < this->rk_stage.size(); ++y){
+        if (y >= this->rk_stage.size()/2){
+            this->rk_stage[istage+n_rk_stages].local_element(y) = this->rk_stage_k[1][istage](y);
         }
+
+    }
 
 
         // this->pcout << this->dg->right_hand_side.size() << std::endl;

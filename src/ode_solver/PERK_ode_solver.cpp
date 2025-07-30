@@ -162,11 +162,6 @@ void PERKODESolver<dim,real,n_rk_stages,MeshType>::calculate_stage_derivative (i
         // }
         // this->pcout << std::endl;
 
-    //const auto &vec = this->rk_stage[istage_group1];
-
-    // std::cout << "rk_stage[" << istage_group1 << "] (locally owned values):\n";
-    // for (auto i : vec.locally_owned_elements())
-    //     std::cout << "  [" << i << "] = " << vec[i] << std::endl;
 
         this->dg->right_hand_side *= 0; 
         this->dg->solution.update_ghost_values();

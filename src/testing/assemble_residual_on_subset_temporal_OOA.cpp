@@ -196,12 +196,34 @@ int AssembleResidualSubsetOOA<dim, nstate>::run_test() const
         // Choose locations on which to evaluate the residual
         dealii::LinearAlgebra::distributed::Vector<int> locations_to_evaluate_rhs;
         locations_to_evaluate_rhs.reinit(flow_solver->dg->triangulation->n_active_cells());
-        const int evaluate_until_this_index = locations_to_evaluate_rhs.size() / 2 ;
-        for (int i = 0; i < evaluate_until_this_index; ++i){
-            // Assign only on locally owned indices.
-            if (locations_to_evaluate_rhs.in_local_range(i))      locations_to_evaluate_rhs(i) = 1;
+        const auto mapping = (*(flow_solver->dg->high_order_grid->mapping_fe_field));
+        dealii::hp::MappingCollection<dim> mapping_collection(mapping);
+        dealii::hp::FEValues<dim,dim> fe_values_collection(mapping_collection, flow_solver->dg->fe_collection, flow_solver->dg->volume_quadrature_collection,
+                                    dealii::update_quadrature_points);
+
+        // Cell loop for assigning the locations to evaluate RHS.
+        for (auto soln_cell = flow_solver->dg->dof_handler.begin_active(); soln_cell != flow_solver->dg->dof_handler.end(); ++soln_cell) {
+            // First, check whether the cell is known to the current processor, either local or ghost.
+            if (soln_cell->is_locally_owned() || soln_cell->is_ghost()) {
+                // Get FEValues for the current cell
+                const int i_fele = soln_cell->active_fe_index();
+                const int i_quad = i_fele;
+                const int i_mapp = 0;
+                fe_values_collection.reinit (soln_cell, i_quad, i_mapp, i_fele);
+                const dealii::FEValues<dim,dim> &fe_values = fe_values_collection.get_present_fe_values();
+
+            
+                // Next, check a condition which identifies cells belonging to a group.
+                //////////////////////////////////////////////////////////////////////
+                // This test is aiming to test on an arbitrary partition.
+                // Thus, somewhat arbitrarily partitioning based on (x<0.5) for the first point of the cell.
+                const double point_x = fe_values.quadrature_point(0)[0];
+                if (point_x < 0.5){
+                    locations_to_evaluate_rhs(soln_cell->active_cell_index())=1;
+                }
+                /////////////////////////////////////////////////////////////////////
+            }
         }
-        locations_to_evaluate_rhs.update_ghost_values();
 
         // set the group ID to 10 (arbitrary choice of int)
         flow_solver->dg->set_list_of_cell_group_IDs(locations_to_evaluate_rhs, 10); 

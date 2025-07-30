@@ -1562,7 +1562,7 @@ void DGBase<dim,real,MeshType>::set_list_of_cell_group_IDs(const dealii::LinearA
     // group_ID_to_set * locations_to_be_changed
     this->list_of_cell_group_IDs.add(group_ID_to_set,locations_to_be_changed);
 
-    this->norm_list_of_cell_group_IDs = list_of_cell_group_IDs.l1_norm();
+    this->norm_list_of_cell_group_IDs = dealii::Utilities::MPI::sum(list_of_cell_group_IDs.l1_norm(), mpi_communicator);
 
 }
 

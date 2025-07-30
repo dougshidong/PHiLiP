@@ -621,6 +621,9 @@ public:
     /** Useage: pass a vector of the same size as the list_of_cell_group_IDs
      *  where 1 indicates that that cell should be assigned the indicated
      *  group_ID and 0 everywhere else
+     *  Note: when using MPI, it is important that ghost cells are updated in
+     *  addition to the locally owned cells.
+     *  For an example of setting the locations vector, see PHiLiP/tests/unit_tests/residual_assembly_on_subset/assemble_residual_on_subset.cpp
      */
     void set_list_of_cell_group_IDs(const dealii::LinearAlgebra::distributed::Vector<int> &locations, const int group_ID);
 

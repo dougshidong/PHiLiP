@@ -69,17 +69,45 @@ int test (
     // Choose locations on which to evaluate the residual
     dealii::LinearAlgebra::distributed::Vector<int> locations_to_evaluate_rhs;
     locations_to_evaluate_rhs.reinit(dg->triangulation->n_active_cells());
-    const unsigned int evaluate_until_this_index = locations_to_evaluate_rhs.size() / 2 ;
-    pcout << evaluate_until_this_index << " " << locations_to_evaluate_rhs.size() << std::endl;
-    for (unsigned int i = 0; i < evaluate_until_this_index; ++i){
-        // Assign only on locally owned indices.
-        if (locations_to_evaluate_rhs.in_local_range(i))      locations_to_evaluate_rhs(i) = 1;
+    const auto mapping = (*(dg->high_order_grid->mapping_fe_field));
+    dealii::hp::MappingCollection<dim> mapping_collection(mapping);
+    dealii::hp::FEValues<dim,dim> fe_values_collection(mapping_collection, dg->fe_collection, dg->volume_quadrature_collection,
+                                dealii::update_quadrature_points);
+
+    // Cell loop for assigning the locations to evaluate RHS.
+    for (auto soln_cell = dg->dof_handler.begin_active(); soln_cell != dg->dof_handler.end(); ++soln_cell) {
+        // First, check whether the cell is known to the current processor, either local or ghost.
+        if (soln_cell->is_locally_owned() || soln_cell->is_ghost()) {
+            // Get FEValues for the current cell
+            const int i_fele = soln_cell->active_fe_index();
+            const int i_quad = i_fele;
+            const int i_mapp = 0;
+            fe_values_collection.reinit (soln_cell, i_quad, i_mapp, i_fele);
+            const dealii::FEValues<dim,dim> &fe_values = fe_values_collection.get_present_fe_values();
+
+        
+            // Next, check a condition which identifies cells belonging to a group.
+            //////////////////////////////////////////////////////////////////////
+            // This test is aiming to test on an arbitrary partition.
+            // Thus, somewhat arbitrarily partitioning based on (x+y<0.5) for the first point of the cell.
+            const double point_x = fe_values.quadrature_point(0)[0];
+#if PHILIP_DIM==2
+            const double point_y = fe_values.quadrature_point(0)[1];
+#endif
+            if (point_x
+#if PHILIP_DIM==2
+                    +point_y
+#endif
+                    < 0.5){
+                locations_to_evaluate_rhs(soln_cell->active_cell_index())=1;
+            }
+            /////////////////////////////////////////////////////////////////////
+        }
     }
-    locations_to_evaluate_rhs.update_ghost_values();
 
     // set the group ID to 10 (arbitrary choice of int)
     dg->set_list_of_cell_group_IDs(locations_to_evaluate_rhs, 10); 
-    pcout << "Assigned group ID." << std::endl;
+    pcout << std::endl << "Assigned group ID." << std::endl;
 
 
     // Initialize solution with something
@@ -116,15 +144,14 @@ int test (
     int nonzero_errors = 0;
     int diff_errors=0;
     // Check that rhs_partitioned is zero where the residual was not assembled.
-    auto metric_cell = dg->high_order_grid->dof_handler_grid.begin_active();
-    for (auto soln_cell = dg->dof_handler.begin_active(); soln_cell != dg->dof_handler.end(); ++soln_cell, ++metric_cell) {
+    for (auto soln_cell = dg->dof_handler.begin_active(); soln_cell != dg->dof_handler.end(); ++soln_cell) {
         if (!soln_cell->is_locally_owned()){                                                                                                                                                           
             continue;
         }    
         const unsigned int n_dofs_per_cell = soln_cell->get_fe().n_dofs_per_cell();
         std::vector<dealii::types::global_dof_index> current_dofs_indices(n_dofs_per_cell);
         soln_cell->get_dof_indices(current_dofs_indices);
-        std::cout <<  "cell: " << soln_cell->active_cell_index()<< " eval?  " <<  locations_to_evaluate_rhs(soln_cell->active_cell_index()) << " MPI: " << mpi_rank << " ";
+        std::cout <<  "cell active index: " << soln_cell->active_cell_index()<< " eval?  " <<  locations_to_evaluate_rhs(soln_cell->active_cell_index()) << " MPI: " << mpi_rank << " ";
         for (unsigned int idof = 0; idof < n_dofs_per_cell; ++idof){
                 std::cout << rhs_partitioned(current_dofs_indices[idof]) << " ";
                 // Check if there are nonzero values on non-active cells

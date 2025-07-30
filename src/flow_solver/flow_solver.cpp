@@ -473,7 +473,7 @@ int FlowSolver<dim,nstate>::run() const
         dg->set_list_of_cell_group_IDs(locations_to_evaluate_rhs, this->ode_solver->group_ID[0]);
     }
 */
-    // Partitioning
+//    Partitioning
 
     if (parameters.ode_solver_param.ode_solver_type == ODESolverEnum::PERK_solver){
 

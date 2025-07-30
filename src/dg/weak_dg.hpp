@@ -53,7 +53,7 @@ private:
         std::array<std::vector<real>,dim>                      &/*mapping_support_points*/,
         dealii::hp::FEValues<dim,dim>                          &/*fe_values_collection_volume*/,
         dealii::hp::FEValues<dim,dim>                          &/*fe_values_collection_volume_lagrange*/,
-        const dealii::FESystem<dim,dim>                        &/*current_fe_ref*/);
+        const dealii::FESystem<dim,dim>                        &/*current_fe_ref*/) override;
 
     /// Builds the necessary fe values and assembles volume residual.
     void assemble_volume_term_and_build_operators(

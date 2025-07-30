@@ -71,7 +71,7 @@ protected:
         dealii::hp::FEValues<dim,dim>                          &/*fe_values_collection_volume*/,
         dealii::hp::FEValues<dim,dim>                          &/*fe_values_collection_volume_lagrange*/,
         const dealii::FESystem<dim,dim>                        &/*current_fe_ref*/
-            ); 
+            ) override; 
     /// Builds the necessary operators and assembles volume residual for either primary or auxiliary.
     void assemble_volume_term_and_build_operators(
         typename dealii::DoFHandler<dim>::active_cell_iterator cell,

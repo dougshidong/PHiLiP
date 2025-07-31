@@ -485,7 +485,7 @@ int FlowSolver<dim,nstate>::run() const
                 locations_to_evaluate_rhs(i) = 1;
         }
         locations_to_evaluate_rhs.update_ghost_values();
-        dg->set_list_of_cell_group_IDs(locations_to_evaluate_rhs, this->ode_solver->group_ID[0]);
+        dg->set_list_of_cell_group_IDs(locations_to_evaluate_rhs, this->ode_solver->group_ID[1]);
 
 
         locations_to_evaluate_rhs *= 0;
@@ -496,7 +496,7 @@ int FlowSolver<dim,nstate>::run() const
                 locations_to_evaluate_rhs(i) = 1;
         }
         locations_to_evaluate_rhs.update_ghost_values();
-        dg->set_list_of_cell_group_IDs(locations_to_evaluate_rhs, this->ode_solver->group_ID[1]); 
+        dg->set_list_of_cell_group_IDs(locations_to_evaluate_rhs, this->ode_solver->group_ID[0]); 
 
     } 
     //----------------------------------------------------

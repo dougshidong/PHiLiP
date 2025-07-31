@@ -66,12 +66,6 @@ void RungeKuttaBase<dim, real, n_rk_stages, MeshType>::allocate_ode_system()
         }
     }
 
-    if (parameters.ode_solver_param.ode_solver_type == ODESolverEnum::PERK_solver){
-        this->rk_stage.resize(n_rk_stages*2);
-        for (int istage=0; istage<n_rk_stages; ++istage) {
-            this->rk_stage[istage].reinit(this->dg->solution.size()*2);
-        }
-    }
     
     this->allocate_runge_kutta_system();
 }

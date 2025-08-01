@@ -133,20 +133,7 @@ int EulerTaylorGreenScaling<dim, nstate>::run_test() const
         return 1;
     }
 
-<<<<<<< HEAD
-    /*
-     *  The following code tests an allocation of a high-P grid.
-     *  However, the success of the test is highly dependant on 
-     *  the system on which it is running. To avoid testfails
-     *  from running out of memory, this part of the test has
-     *  been commented.
-     *
-     *  For curvilinear grids, the test was known to pass on Alex
-     *  Cicchino's desktop, but has rarely passed on other systems,
-     *  including compute clusters.
-=======
 
->>>>>>> master
 
     //check that it can run up to p=30 for Cartesian or p=20 for curvilinear without running out of memory.
     const unsigned int poly_degree = (all_parameters->use_curvilinear_grid) ? 20 : 30;
@@ -190,16 +177,13 @@ int EulerTaylorGreenScaling<dim, nstate>::run_test() const
             }
         }
     }
-<<<<<<< HEAD
-    */
 
-=======
     catch(std::bad_alloc &e){
         std::cout << "ending with bad_alloc (ran out of memory)" << std::endl;   
         std::cout << "If the test fails here, then there is unnecessary memory being allocated." << std::endl;
         return 1;
     }
->>>>>>> master
+
     //if it reaches here, then there is no memory issue.
     return 0;
 }

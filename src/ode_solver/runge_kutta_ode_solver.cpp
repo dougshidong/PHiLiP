@@ -94,11 +94,6 @@ void RungeKuttaODESolver<dim,real,n_rk_stages,MeshType>::sum_stages (real dt, co
             this->solution_update.add(1.0, this->rk_stage[istage]);
         } else {
             this->solution_update.add(dt* this->butcher_tableau->get_b(istage),this->rk_stage[istage]);
-            this->pcout << this->solution_update.size() << std::endl;
-            for (unsigned int i = 0 ; i < this->solution_update.size(); ++i){
-                this->pcout << this->solution_update(i) << " " ;
-            }
-            this->pcout << std::endl;
         }
     }
 }

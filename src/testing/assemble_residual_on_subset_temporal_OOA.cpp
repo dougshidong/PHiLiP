@@ -91,13 +91,26 @@ void AssembleResidualSubsetOOA<dim,nstate>::advance_to_end_time(std::shared_ptr<
         //Assemble on first half of domain
         flow_solver->dg->right_hand_side*=0;
         flow_solver->dg->assemble_residual(false,false,false,0.0,0); // assemble on group ID 0
-
+            this->pcout << "RHS k" << 0 << " stage " << 0 << std::endl;
+            this->pcout << flow_solver->dg->right_hand_side.size() << std::endl;
+            for (unsigned int i = 0 ; i < flow_solver->dg->right_hand_side.size(); ++i){
+                this->pcout << flow_solver->dg->right_hand_side(i) << " " ;
+            }
         if(this->all_parameters->use_inverse_mass_on_the_fly){
             flow_solver->dg->apply_inverse_global_mass_matrix(flow_solver->dg->right_hand_side, f_u_n);
         } else{
             flow_solver->dg->global_inverse_mass_matrix.vmult(f_u_n, flow_solver->dg->right_hand_side);
         }
         //flow_solver->dg->update_ghost_values(); // This may be needed for MPI.
+
+        // Print: f_u_n for rk_stage[1][0]
+        this->pcout << "rk_stage[1][0]" << std::endl;
+
+        this->pcout << f_u_n.size() << std::endl;
+        for (unsigned int i = 0 ; i < f_u_n.size(); ++i){
+            this->pcout << f_u_n(i) << " " ;
+        }
+        this->pcout << std::endl;
 
         //Add first part of the RHS
         u_tilde.add(dt,f_u_n);
@@ -108,15 +121,41 @@ void AssembleResidualSubsetOOA<dim,nstate>::advance_to_end_time(std::shared_ptr<
         //Assemble on second half of domain
         flow_solver->dg->right_hand_side*=0;
         flow_solver->dg->assemble_residual(false,false,false,0.0,10); // assemble on group ID 10
-
+            this->pcout << "RHS k" << 1 << " stage " << 0 << std::endl;
+            this->pcout << flow_solver->dg->right_hand_side.size() << std::endl;
+            for (unsigned int i = 0 ; i < flow_solver->dg->right_hand_side.size(); ++i){
+                this->pcout << flow_solver->dg->right_hand_side(i) << " " ;
+            }
         if(this->all_parameters->use_inverse_mass_on_the_fly){
             flow_solver->dg->apply_inverse_global_mass_matrix(flow_solver->dg->right_hand_side, f_u_n);
         } else{
             flow_solver->dg->global_inverse_mass_matrix.vmult(f_u_n, flow_solver->dg->right_hand_side);
         }
 
+        // Print: f_u_n for rk_stage[2][0]
+        this->pcout << "rk_stage[2][0]" << std::endl;
+
+        this->pcout << f_u_n.size() << std::endl;
+        for (unsigned int i = 0 ; i < f_u_n.size(); ++i){
+            this->pcout << f_u_n(i) << " " ;
+        }
+        this->pcout << std::endl;
+
+
         //Add second part of the RHS
         u_tilde.add(dt,f_u_n);
+
+
+        this->pcout << "printing stage" << std::endl;
+
+        this->pcout << u_tilde.size() << std::endl;
+        for (unsigned int i = 0 ; i < u_tilde.size(); ++i){
+            this->pcout << u_tilde(i) << " " ;
+        }
+        this->pcout << std::endl;
+
+
+    
         //Update u_n
         u_n.add(dt/2.0,f_u_n);
 
@@ -128,24 +167,50 @@ void AssembleResidualSubsetOOA<dim,nstate>::advance_to_end_time(std::shared_ptr<
         //Assemble residual on group ID 0
         flow_solver->dg->right_hand_side*=0;
         flow_solver->dg->assemble_residual(false,false,false,0.0,0); // assemble on group ID 0
-
+            this->pcout << "RHS k" << 0 << " stage " << 1 << std::endl;
+            this->pcout << flow_solver->dg->right_hand_side.size() << std::endl;
+            for (unsigned int i = 0 ; i < flow_solver->dg->right_hand_side.size(); ++i){
+                this->pcout << flow_solver->dg->right_hand_side(i) << " " ;
+            }
         if(this->all_parameters->use_inverse_mass_on_the_fly){
             flow_solver->dg->apply_inverse_global_mass_matrix(flow_solver->dg->right_hand_side, f_u_tilde);
         } else{
             flow_solver->dg->global_inverse_mass_matrix.vmult(f_u_tilde, flow_solver->dg->right_hand_side);
         }
+
+        // Print: f_u_tilde for rk_stage[2][0]
+        this->pcout << "rk_stsage[2][0]" << std::endl;
+
+        this->pcout << f_u_tilde.size() << std::endl;
+        for (unsigned int i = 0 ; i < f_u_tilde.size(); ++i){
+            this->pcout << f_u_tilde(i) << " " ;
+        }
+        this->pcout << std::endl;
         //Update solution with the partially-assembled residual
         u_n.add(dt/2.0,f_u_tilde);
 
         // Assemble residual on group ID 10
         flow_solver->dg->right_hand_side*=0;
         flow_solver->dg->assemble_residual(false,false,false,0.0,10); // assemble on group ID 10
-
+            this->pcout << "RHS k" << 1 << " stage " << 1 << std::endl;
+            this->pcout << flow_solver->dg->right_hand_side.size() << std::endl;
+            for (unsigned int i = 0 ; i < flow_solver->dg->right_hand_side.size(); ++i){
+                this->pcout << flow_solver->dg->right_hand_side(i) << " " ;
+            }
         if(this->all_parameters->use_inverse_mass_on_the_fly){
             flow_solver->dg->apply_inverse_global_mass_matrix(flow_solver->dg->right_hand_side, f_u_tilde);
         } else{
             flow_solver->dg->global_inverse_mass_matrix.vmult(f_u_tilde, flow_solver->dg->right_hand_side);
         }
+    // Print: f_u_tilde for rk_stage[2][1]
+
+            this->pcout << "rk_stsage[2][1]" << std::endl;
+
+        this->pcout << f_u_tilde.size() << std::endl;
+        for (unsigned int i = 0 ; i < f_u_tilde.size(); ++i){
+            this->pcout << f_u_tilde(i) << " " ;
+        }
+        this->pcout << std::endl;
         //Update solution with other half of the residual
         u_n.add(dt/2.0,f_u_tilde);
 
@@ -189,7 +254,7 @@ int AssembleResidualSubsetOOA<dim, nstate>::run_test() const
         const Parameters::AllParameters params = reinit_params_and_refine_timestep(refinement);
         std::shared_ptr<FlowSolver::FlowSolver<dim,nstate>> flow_solver = 
                 std::move(FlowSolver::FlowSolverFactory<dim,nstate>::select_flow_case(&params, parameter_handler));
-        static_cast<void>(flow_solver->run());
+        //static_cast<void>(flow_solver->run());
         
         pcout << "Finished first step with flowsolver " << std::endl;
 

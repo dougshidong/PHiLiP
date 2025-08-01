@@ -235,8 +235,8 @@ std::shared_ptr<ODESolverBase<dim,real,MeshType>> ODESolverFactory<dim,real,Mesh
         // Hard-coded templating of n_rk_stages because it is not known at compile time
         pcout << "Creating PERK ODE Solver with " 
               << n_rk_stages << " stage(s)..." << std::endl;
-        if (n_rk_stages == 10){
-            return std::make_shared<PERKODESolver<dim,real,10, MeshType>>(dg_input,perk_tableau,RRK_object);
+        if (n_rk_stages == 2){
+            return std::make_shared<PERKODESolver<dim,real,2, MeshType>>(dg_input,perk_tableau,RRK_object);
         }
         else{
             pcout << "Error: invalid number of stages. Aborting..." << std::endl;

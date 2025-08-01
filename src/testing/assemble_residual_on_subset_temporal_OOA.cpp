@@ -152,11 +152,7 @@ void AssembleResidualSubsetOOA<dim,nstate>::advance_to_end_time(std::shared_ptr<
         //Assemble residual on group ID 0
         flow_solver->dg->right_hand_side*=0;
         flow_solver->dg->assemble_residual(false,false,false,0.0,0); // assemble on group ID 0
-            // this->pcout << "RHS k" << 0 << " stage " << 1 << std::endl;
-            // this->pcout << flow_solver->dg->right_hand_side.size() << std::endl;
-            // for (unsigned int i = 0 ; i < flow_solver->dg->right_hand_side.size(); ++i){
-            //     this->pcout << flow_solver->dg->right_hand_side(i) << " " ;
-            // }
+
         if(this->all_parameters->use_inverse_mass_on_the_fly){
             flow_solver->dg->apply_inverse_global_mass_matrix(flow_solver->dg->right_hand_side, f_u_tilde);
         } else{
@@ -175,6 +171,11 @@ void AssembleResidualSubsetOOA<dim,nstate>::advance_to_end_time(std::shared_ptr<
         } else{
             flow_solver->dg->global_inverse_mass_matrix.vmult(f_u_tilde_1, flow_solver->dg->right_hand_side);
         }
+            //         this->pcout << "RHS k" << 1 << " stage " << 1 << std::endl;
+            // this->pcout << flow_solver->dg->right_hand_side.size() << std::endl;
+            // for (unsigned int i = 0 ; i < flow_solver->dg->right_hand_side.size(); ++i){
+            //     this->pcout << flow_solver->dg->right_hand_side(i) << " " ;
+            // }
 
         // Print: f_u_tilde for rk_stage[2][0]
         // this->pcout << "rk_stsage[2][0]" << std::endl;

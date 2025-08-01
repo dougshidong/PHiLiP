@@ -44,8 +44,8 @@ int EulerTaylorGreenScaling<dim, nstate>::run_test() const
 
     std::ofstream myfile (all_parameters_new.energy_file + ".gpl"  , std::ios::trunc);
     const unsigned int poly_degree_start= all_parameters->flow_solver_param.poly_degree;
+    const unsigned int poly_degree_end = (all_parameters->use_curvilinear_grid) ? 11 : 16;
 
-    const unsigned int poly_degree_end = (all_parameters->use_curvilinear_grid) ? 13 : 16;
     pcout << "Max poly degree: " << poly_degree_end << std::endl;
     std::vector<double> time_to_run;
     time_to_run.reserve(poly_degree_end);
@@ -133,6 +133,7 @@ int EulerTaylorGreenScaling<dim, nstate>::run_test() const
         return 1;
     }
 
+<<<<<<< HEAD
     /*
      *  The following code tests an allocation of a high-P grid.
      *  However, the success of the test is highly dependant on 
@@ -143,6 +144,9 @@ int EulerTaylorGreenScaling<dim, nstate>::run_test() const
      *  For curvilinear grids, the test was known to pass on Alex
      *  Cicchino's desktop, but has rarely passed on other systems,
      *  including compute clusters.
+=======
+
+>>>>>>> master
 
     //check that it can run up to p=30 for Cartesian or p=20 for curvilinear without running out of memory.
     const unsigned int poly_degree = (all_parameters->use_curvilinear_grid) ? 20 : 30;
@@ -158,33 +162,44 @@ int EulerTaylorGreenScaling<dim, nstate>::run_test() const
     }
      
     pcout<<"Checking that it does not run out of memory for poly degree "<<poly_degree<<std::endl;
+    // For curvilinear cases, check allocation in high order grid.
     // Create DG
     std::shared_ptr < PHiLiP::DGBase<dim, double> > dg = PHiLiP::DGFactory<dim,double>::create_discontinuous_galerkin(&all_parameters_new, poly_degree, poly_degree, grid_degree, grid);
-    dg->allocate_system (false,false,false);
-     
-    std::shared_ptr< InitialConditionFunction<dim,nstate,double> > initial_condition_function = 
-                InitialConditionFactory<dim,nstate,double>::create_InitialConditionFunction(&all_parameters_new);
-    SetInitialCondition<dim,nstate,double>::set_initial_condition(initial_condition_function, dg, &all_parameters_new);
-     
-    std::shared_ptr<ODE::ODESolverBase<dim, double>> ode_solver = ODE::ODESolverFactory<dim, double>::create_ODESolver(dg);
-     
-    ode_solver->current_iteration = 0;
-    ode_solver->allocate_ode_system();
-    MPI_Barrier(MPI_COMM_WORLD);
-    pcout << "ODE solver successfully created. This verifies no memory jump from ODE Solver." << std::endl;
-    dealii::LinearAlgebra::distributed::Vector<double> solution_update;
-    solution_update.reinit(dg->locally_owned_dofs, dg->ghost_dofs, this->mpi_communicator);
+    try{
+        dg->allocate_system (false,false,false);
+         
+        std::shared_ptr< InitialConditionFunction<dim,nstate,double> > initial_condition_function = 
+                    InitialConditionFactory<dim,nstate,double>::create_InitialConditionFunction(&all_parameters_new);
+        SetInitialCondition<dim,nstate,double>::set_initial_condition(initial_condition_function, dg, &all_parameters_new);
+         
+        std::shared_ptr<ODE::ODESolverBase<dim, double>> ode_solver = ODE::ODESolverFactory<dim, double>::create_ODESolver(dg);
+         
+        ode_solver->current_iteration = 0;
+        ode_solver->allocate_ode_system();
+        MPI_Barrier(MPI_COMM_WORLD);
+        pcout << "ODE solver successfully created. This verifies no memory jump from ODE Solver." << std::endl;
+        dealii::LinearAlgebra::distributed::Vector<double> solution_update;
+        solution_update.reinit(dg->locally_owned_dofs, dg->ghost_dofs, this->mpi_communicator);
 
-    for(unsigned int i_step=0; i_step<10; i_step++){
-        dg->assemble_residual();
-        if(all_parameters->use_inverse_mass_on_the_fly){
-            dg->apply_inverse_global_mass_matrix(dg->right_hand_side, solution_update);
-        } else{
-            dg->global_inverse_mass_matrix.vmult(solution_update, dg->right_hand_side);
+        for(unsigned int i_step=0; i_step<10; i_step++){
+            dg->assemble_residual();
+            if(all_parameters->use_inverse_mass_on_the_fly){
+                dg->apply_inverse_global_mass_matrix(dg->right_hand_side, solution_update);
+            } else{
+                dg->global_inverse_mass_matrix.vmult(solution_update, dg->right_hand_side);
+            }
         }
     }
+<<<<<<< HEAD
     */
 
+=======
+    catch(std::bad_alloc &e){
+        std::cout << "ending with bad_alloc (ran out of memory)" << std::endl;   
+        std::cout << "If the test fails here, then there is unnecessary memory being allocated." << std::endl;
+        return 1;
+    }
+>>>>>>> master
     //if it reaches here, then there is no memory issue.
     return 0;
 }

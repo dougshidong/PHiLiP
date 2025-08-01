@@ -2,7 +2,7 @@
 # ---------------------
 # Number of dimensions
 
-set dimension = 1
+set dimension = 2
 set run_type = flow_simulation
 set pde_type = euler
 
@@ -14,53 +14,53 @@ set flux_nodes_type = GLL
 #set use_split_form = false
 #set conv_num_flux = lax_friedrichs
 
-# NSFR
+# NSFR - Ra
 set use_split_form = true
 set two_point_num_flux_type = Ra
 set conv_num_flux = two_point_flux_with_roe_dissipation
 set flux_reconstruction = cPlus
 set use_inverse_mass_on_the_fly = true
 
-
 subsection limiter
   set bound_preserving_limiter = positivity_preservingWang2012
   set min_density = 1e-13
-
-  #set use_tvb_limiter = true
-  #set max_delta_x = 0.0390625
-  #set tuning_parameter_for_each_state = 0.1,100,100,0
 end
-
 
 # ODE solver
 subsection ODE solver
   set ode_output = verbose
   set ode_solver_type = runge_kutta
   set initial_time_step = 0.00000001
-  #set output_solution_every_x_steps = 1
-  set output_solution_every_dt_time_intervals = 0.000001
+  #set output_solution_every_x_steps = 5
   set runge_kutta_method = ssprk3_ex
-  #set print_iteration_modulo = 100
+  set print_iteration_modulo = 1
+  set output_solution_every_dt_time_intervals = 1e-5
 end
 
 # freestream Mach number
 subsection euler
-  set mach_infinity = 0.1
+  set mach_infinity = 2156.91
+  set gamma_gas = 1.667
+  set custom_boundary_for_each_state = 5,800,0.0,0.4127,0.0
 end
 
 subsection flow_solver
-  set flow_case_type = leblanc_shock_tube
+  set flow_case_type = astrophysical_jet
   set poly_degree = 3
-  set final_time = 0.0001
-  #set constant_time_step = 0.0024
-  set courant_friedrichs_lewy_number = 0.9
+  set final_time = 1e-3
+  #set constant_time_step = 0.0005
+  set courant_friedrichs_lewy_number = 0.0005
   set adaptive_time_step = true
-  set unsteady_data_table_filename = leblanc_shock_energy
+  set unsteady_data_table_filename = astrophysical_jet_energy
   subsection grid
     subsection positivity_preserving_tests
-      set grid_xmin = -10.0
-      set grid_xmax = 10.0
-      set number_of_grid_elements_x = 512
+      set grid_xmin = -0.5
+      set grid_xmax = 0.5
+      set grid_ymin = -0.5
+      set grid_ymax = 0.5
+
+      set number_of_grid_elements_x = 200
+      set number_of_grid_elements_y = 200
     end
   end
 end

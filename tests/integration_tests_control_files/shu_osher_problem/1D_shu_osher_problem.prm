@@ -8,7 +8,6 @@ set pde_type = euler
 
 # DG formulation
 set use_weak_form = false
-
 set flux_nodes_type = GLL
 
 # Strong DG - LaxF
@@ -41,19 +40,22 @@ end
 # freestream Mach number
 subsection euler
   set mach_infinity = 3.0
+  set custom_boundary_for_each_state = 3.857143,2.629369,10.33333,0,0
 end
 
 subsection flow_solver
   set flow_case_type = shu_osher_problem
-  set poly_degree = 2
+  set poly_degree = 3
   set final_time = 1.8
   #set constant_time_step = 0.0024
-  set courant_friedrichs_lewy_number = 0.9
+  set courant_friedrichs_lewy_number = 0.5
   set adaptive_time_step = true
   set unsteady_data_table_filename = shu_osher_shock_energy
   subsection grid
-    set grid_left_bound = -5.0
-    set grid_right_bound = 5.0
-    set number_of_grid_elements_per_dimension = 256
+    subsection positivity_preserving_tests
+      set grid_xmin = -5.0
+      set grid_xmax = 5.0
+      set number_of_grid_elements_x = 100
+	end
   end
 end

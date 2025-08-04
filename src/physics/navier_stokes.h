@@ -636,6 +636,7 @@ public:
     /// Distance from wall for wall model input velocity
     const double distance_from_wall_for_wall_model_input_velocity;
 
+    /// Pointer to wall model look-up table object
     std::unique_ptr < WallModelLookUpTable<real> > wall_model_look_up_table;
 
     /** Nondimensionalized viscous flux (i.e. dissipative flux) dot normal vector that accounts for gradient boundary conditions

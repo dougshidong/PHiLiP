@@ -295,7 +295,7 @@ void ODESolverParam::parse_parameters (dealii::ParameterHandler &prm)
         }
         else if (rk_method_string == "PERK_10_2"){
             runge_kutta_method = RKMethodEnum::PERK_10_2;
-            n_rk_stages = 2;
+            n_rk_stages = 10;
             rk_order = 2;
         }
 

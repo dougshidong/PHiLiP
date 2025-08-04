@@ -77,6 +77,8 @@ public:
     /// Parameter handler for storing the .prm file being ran
     const dealii::ParameterHandler &parameter_handler;
 
+    void perk_partitioning() const;
+
     /// Simply runs the flow solver and returns 0 upon completion
     int run () const override;
 

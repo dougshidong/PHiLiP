@@ -408,44 +408,10 @@ void FlowSolver<dim,nstate>::perform_steady_state_mesh_adaptation() const
     pcout<<"Finished running mesh adaptation cycles."<<std::endl; 
 }
 
+
 template <int dim, int nstate>
-int FlowSolver<dim,nstate>::run() const
+void FlowSolver<dim,nstate>::perk_partitioning() const
 {
-    pcout << "Running Flow Solver..." << std::endl;
-    if(flow_solver_param.restart_computation_from_file == false) {
-        if (ode_param.output_solution_every_x_steps > 0) {
-            pcout << "  ... Writing vtk solution file at initial time ..." << std::endl;
-            dg->output_results_vtk(ode_solver->current_iteration);
-        } else if (ode_param.output_solution_every_dt_time_intervals > 0.0) {
-            pcout << "  ... Writing vtk solution file at initial time ..." << std::endl;
-            dg->output_results_vtk(ode_solver->current_iteration);
-            ode_solver->current_desired_time_for_output_solution_every_dt_time_intervals += ode_param.output_solution_every_dt_time_intervals;
-        } else if (this->do_output_solution_at_fixed_times && (this->number_of_fixed_times_to_output_solution > 0)) {
-            pcout << "  ... Writing vtk solution file at initial time ..." << std::endl;
-            dg->output_results_vtk(ode_solver->current_iteration);
-        }
-    }
-    // Boolean to store solutions in POD object
-    const bool unsteady_FOM_POD_bool = all_param.reduced_order_param.output_snapshot_every_x_timesteps != 0 && !(ode_param.ode_solver_type == Parameters::ODESolverParam::pod_galerkin_solver || 
-       ode_param.ode_solver_type == Parameters::ODESolverParam::pod_petrov_galerkin_solver ||
-       ode_param.ode_solver_type == Parameters::ODESolverParam::pod_galerkin_runge_kutta_solver);
-
-    // Index of current desired fixed time to output solution
-    unsigned int index_of_current_desired_fixed_time_to_output_solution = 0;
-    
-    // determine index_of_current_desired_fixed_time_to_output_solution if restarting solution
-    if(flow_solver_param.restart_computation_from_file == true) {
-        // use current_time to determine if restarting the computation from a non-zero initial time
-        for(unsigned int i=0; i<this->number_of_fixed_times_to_output_solution; ++i) {
-            if(this->ode_solver->current_time < this->output_solution_fixed_times[i]) {
-                index_of_current_desired_fixed_time_to_output_solution = i;
-                break;
-            }
-        }
-    }
-
-    PHiLiP::Parameters::AllParameters parameters = *(dg->all_parameters);
-    using ODESolverEnum = Parameters::ODESolverParam::ODESolverEnum;
 /*
     this->dg->assemble_residual();
     locations_to_evaluate_rhs.reinit(dg->triangulation->n_active_cells());
@@ -475,8 +441,6 @@ int FlowSolver<dim,nstate>::run() const
 */
 //    Partitioning
 
-    if (parameters.ode_solver_param.ode_solver_type == ODESolverEnum::PERK_solver){
-
         locations_to_evaluate_rhs.reinit(dg->triangulation->n_active_cells());
         evaluate_until_this_index = locations_to_evaluate_rhs.size() / 2; 
 
@@ -498,7 +462,52 @@ int FlowSolver<dim,nstate>::run() const
         locations_to_evaluate_rhs.update_ghost_values();
         dg->set_list_of_cell_group_IDs(locations_to_evaluate_rhs, this->ode_solver->group_ID[0]); 
 
-    } 
+
+}
+
+template <int dim, int nstate>
+int FlowSolver<dim,nstate>::run() const
+{
+    pcout << "Running Flow Solver..." << std::endl;
+    if(flow_solver_param.restart_computation_from_file == false) {
+        if (ode_param.output_solution_every_x_steps > 0) {
+            pcout << "  ... Writing vtk solution file at initial time ..." << std::endl;
+            dg->output_results_vtk(ode_solver->current_iteration);
+        } else if (ode_param.output_solution_every_dt_time_intervals > 0.0) {
+            pcout << "  ... Writing vtk solution file at initial time ..." << std::endl;
+            dg->output_results_vtk(ode_solver->current_iteration);
+            ode_solver->current_desired_time_for_output_solution_every_dt_time_intervals += ode_param.output_solution_every_dt_time_intervals;
+        } else if (this->do_output_solution_at_fixed_times && (this->number_of_fixed_times_to_output_solution > 0)) {
+            pcout << "  ... Writing vtk solution file at initial time ..." << std::endl;
+            dg->output_results_vtk(ode_solver->current_iteration);
+        }
+    }
+    PHiLiP::Parameters::AllParameters parameters = *(dg->all_parameters);
+    using ODESolverEnum = Parameters::ODESolverParam::ODESolverEnum;
+    if (parameters.ode_solver_param.ode_solver_type == ODESolverEnum::PERK_solver){
+        perk_partitioning();
+    }
+
+
+    // Boolean to store solutions in POD object
+    const bool unsteady_FOM_POD_bool = all_param.reduced_order_param.output_snapshot_every_x_timesteps != 0 && !(ode_param.ode_solver_type == Parameters::ODESolverParam::pod_galerkin_solver || 
+       ode_param.ode_solver_type == Parameters::ODESolverParam::pod_petrov_galerkin_solver ||
+       ode_param.ode_solver_type == Parameters::ODESolverParam::pod_galerkin_runge_kutta_solver);
+
+    // Index of current desired fixed time to output solution
+    unsigned int index_of_current_desired_fixed_time_to_output_solution = 0;
+    
+    // determine index_of_current_desired_fixed_time_to_output_solution if restarting solution
+    if(flow_solver_param.restart_computation_from_file == true) {
+        // use current_time to determine if restarting the computation from a non-zero initial time
+        for(unsigned int i=0; i<this->number_of_fixed_times_to_output_solution; ++i) {
+            if(this->ode_solver->current_time < this->output_solution_fixed_times[i]) {
+                index_of_current_desired_fixed_time_to_output_solution = i;
+                break;
+            }
+        }
+    }
+
     //----------------------------------------------------
     // Select unsteady or steady-state
     //----------------------------------------------------

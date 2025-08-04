@@ -816,7 +816,7 @@ dealii::Tensor<2,dim,real> NavierStokes<dim,nstate,real>
 
 template <int dim, int nstate, typename real>
 dealii::Tensor<2,dim,real> NavierStokes<dim,nstate,real>
-::compute_germano_idendity_matrix_M_component (
+::compute_germano_identity_matrix_M_component (
     const std::array<real,nstate> &conservative_soln,
     const std::array<dealii::Tensor<1,dim,real>,nstate> &conservative_soln_gradient) const
 {
@@ -1546,7 +1546,7 @@ std::vector<std::string> NavierStokes<dim,nstate,real>
     }
     names.push_back ("total_energy");
     names.push_back ("pressure");
-    names.push_back ("pressure_coeffcient");
+    names.push_back ("pressure_coefficient");
     names.push_back ("temperature");
 
     names.push_back ("entropy_generation");

@@ -39,7 +39,7 @@ set use_weight_adjusted_mass = true
 
 set all_boundaries_are_periodic = true
 
-set use_classical_FR = false
+
 
 set enable_higher_order_vtk_output = true
 

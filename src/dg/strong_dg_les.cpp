@@ -653,7 +653,7 @@ void DGStrongLES_DynamicSmagorinsky<dim,nstate,real,MeshType>::update_cellwise_m
                     }
                 }
                 // -- matrix M
-                const dealii::Tensor<2,dim,real> matrix_M_component_state = this->pde_model_les_double->navier_stokes_physics->compute_germano_idendity_matrix_M_component(soln_state,aux_soln_state);
+                const dealii::Tensor<2,dim,real> matrix_M_component_state = this->pde_model_les_double->navier_stokes_physics->compute_germano_identity_matrix_M_component(soln_state,aux_soln_state);
                 // store the DMS matrix M
                 for(int jdim=0; jdim<dim; jdim++){
                     for(int idim=0; idim<dim; idim++){
@@ -833,7 +833,7 @@ void DGStrongLES_DynamicSmagorinsky<dim,nstate,real,MeshType>::update_cellwise_m
 
             // Get strain rate tensor
             const dealii::Tensor<2,dim,real> matrix_L_component_state_from_filtered_soln = this->pde_model_les_double->navier_stokes_physics->compute_germano_idendity_matrix_L_component(filtered_soln_at_q);
-            const dealii::Tensor<2,dim,real> matrix_M_component_state_from_filtered_soln = this->pde_model_les_double->navier_stokes_physics->compute_germano_idendity_matrix_M_component(filtered_soln_at_q,filtered_soln_grad_at_q);
+            const dealii::Tensor<2,dim,real> matrix_M_component_state_from_filtered_soln = this->pde_model_les_double->navier_stokes_physics->compute_germano_identity_matrix_M_component(filtered_soln_at_q,filtered_soln_grad_at_q);
             
             dealii::Tensor<2,dim,real> filtered_matrix_L_component_state;
             dealii::Tensor<2,dim,real> filtered_matrix_M_component_state;

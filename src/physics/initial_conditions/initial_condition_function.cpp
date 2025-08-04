@@ -85,7 +85,7 @@ inline real InitialConditionFunction_TurbulentChannelFlow<dim, nstate, real>
     // return perturbed vertical velocity component
     // Reference: Eq.(2.30) -- P. Andersson, L. Brandt, A. Bottaro and D. S. Henningson, "On the breakdown of boundary layer streaks"
     // Reference for z_scale term: G. LODATO, P. CASTONGUAY AND A. JAMESON, "Discrete filter operators for large-eddy simulation using high-order spectral difference methods", Int. J. Numer. Meth. Fluids (2012)
-    /*const */real F = C*exp(-pow((x-x_loc)/x_scale,2.0))*exp(-pow((y-y_loc)/y_scale,2.0))*cos(beta*(z+half_domain_length_z)/z_scale); // we do (z+half_domain_length_z) because reference has z\in[0,domain_length_z], whereas we center about the z-axis
+    const real F = C*exp(-pow((x-x_loc)/x_scale,2.0))*exp(-pow((y-y_loc)/y_scale,2.0))*cos(beta*(z+half_domain_length_z)/z_scale); // we do (z+half_domain_length_z) because reference has z\in[0,domain_length_z], whereas we center about the z-axis
     return F;
 }
 

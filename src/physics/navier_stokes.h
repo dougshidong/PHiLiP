@@ -347,7 +347,7 @@ public:
     /** Nondimensionalized Germano identity tensor, M*, from conservative solution and solution gradient
      *  Reference: Flad and Gassner 2017
      */
-    dealii::Tensor<2,dim,real> compute_germano_idendity_matrix_M_component (
+    dealii::Tensor<2,dim,real> compute_germano_identity_matrix_M_component (
         const std::array<real,nstate> &conservative_soln,
         const std::array<dealii::Tensor<1,dim,real>,nstate> &conservative_soln_gradient) const;
 

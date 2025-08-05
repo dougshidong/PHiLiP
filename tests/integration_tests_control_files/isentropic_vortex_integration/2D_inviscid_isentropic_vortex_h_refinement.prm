@@ -25,8 +25,9 @@ set two_point_num_flux_type = IR
 # ODE solver
 subsection ODE solver
   set ode_output = quiet 
-  set ode_solver_type = runge_kutta 
-  set runge_kutta_method = euler_ex
+  set ode_solver_type = PERK 
+  set runge_kutta_method = PERK_10_2
+  set output_solution_every_dt_time_intervals = 0.01
 end
 
 subsection linear solver
@@ -39,20 +40,22 @@ subsection euler
 end
 
 subsection time_refinement_study
-  set number_of_times_to_solve = 2
+  set number_of_times_to_solve = 1
   set refinement_ratio = 0.5
 end
 
 subsection flow_solver
   set flow_case_type = isentropic_vortex
   set poly_degree = 3
-  #set final_time = 23.66431913239 #=20 * sqrt(1.4), time for vortex to advect around the domain
-  set final_time = 0.2 #1/4 cycle to make ctest faster. Full cycle is recommended for better results.
+  set final_time = 23.66431913239 #=20 * sqrt(1.4), time for vortex to advect around the domain
+  #set final_time = 0.2 #1/4 cycle to make ctest faster. Full cycle is recommended for better results.
   set courant_friedrichs_lewy_number = 0.1
   set unsteady_data_table_filename = isentropic_vortex_time_table
   subsection grid
-    set grid_left_bound = -10.0
-    set grid_right_bound = 10.0
-    set number_of_grid_elements_per_dimension = 8
+    #set grid_left_bound = -10.0
+    #set grid_right_bound = 10.0
+    #set number_of_grid_elements_per_dimension = 8
+    set use_gmsh_mesh = true
+    set input_mesh_filename = /home/jocelyn/Codes/PHiLiP/tests/meshes/vortex_test
   end
 end

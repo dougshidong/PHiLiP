@@ -1749,7 +1749,7 @@ read_gmsh(std::string filename,
         dealii::GridTools::collect_periodic_faces(*high_order_grid->triangulation, z_periodic_1, z_periodic_2, 2, matched_pairs);
     }
 
-    if (periodic_x || periodic_y || periodic_z) {
+    if (periodic_x || periodic_y) {
         high_order_grid->triangulation->add_periodicity(matched_pairs);
     }
 
@@ -1801,7 +1801,7 @@ read_gmsh(std::string filename,
             dealii::GridTools::collect_periodic_faces(*grid->triangulation, z_periodic_1, z_periodic_2, 2, matched_pairs);
         }
 
-        if (periodic_x || periodic_y || periodic_z) {
+        if (periodic_x || periodic_y /*|| periodic_z*/) {
             grid->triangulation->add_periodicity(matched_pairs);
         }
 
@@ -1817,13 +1817,13 @@ std::shared_ptr< HighOrderGrid<dim, double> >
 read_gmsh(std::string filename, const bool do_renumber_dofs, int requested_grid_order, const bool use_mesh_smoothing)
 {
   // default parameters
-  const bool periodic_x = false;
-  const bool periodic_y = false;
+  const bool periodic_x = true;
+  const bool periodic_y = true;
   const bool periodic_z = false;
-  const int x_periodic_1 = 0; 
-  const int x_periodic_2 = 0;
-  const int y_periodic_1 = 0; 
-  const int y_periodic_2 = 0;
+  const int x_periodic_1 = 2001; 
+  const int x_periodic_2 = 2002;
+  const int y_periodic_1 = 2003; 
+  const int y_periodic_2 = 2004;
   const int z_periodic_1 = 0; 
   const int z_periodic_2 = 0;
   const bool mesh_reader_verbose_output = true;
@@ -1837,10 +1837,12 @@ read_gmsh(std::string filename, const bool do_renumber_dofs, int requested_grid_
     do_renumber_dofs,
     requested_grid_order,
     use_mesh_smoothing);
+
 }
 
 #if PHILIP_DIM!=1 
 template std::shared_ptr< HighOrderGrid<PHILIP_DIM, double> > read_gmsh<PHILIP_DIM,PHILIP_DIM>(std::string filename, const bool periodic_x, const bool periodic_y, const bool periodic_z, const int x_periodic_1, const int x_periodic_2, const int y_periodic_1, const int y_periodic_2, const int z_periodic_1, const int z_periodic_2, const bool mesh_reader_verbose_output, const bool do_renumber_dofs, int requested_grid_order, const bool use_mesh_smoothing);
+
 template std::shared_ptr< HighOrderGrid<PHILIP_DIM, double> > read_gmsh<PHILIP_DIM,PHILIP_DIM>(std::string filename, const bool do_renumber_dofs, int requested_grid_order, const bool use_mesh_smoothing);
 #endif
 

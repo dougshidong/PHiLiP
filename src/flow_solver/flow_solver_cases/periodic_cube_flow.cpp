@@ -24,26 +24,33 @@ template <int dim, int nstate>
 std::shared_ptr<Triangulation> PeriodicCubeFlow<dim,nstate>::generate_grid() const
 {
     if(this->all_param.flow_solver_param.use_gmsh_mesh) {
-        if constexpr(dim == 3) {
+        // if constexpr(dim == 3) {
+        //     const std::string mesh_filename = this->all_param.flow_solver_param.input_mesh_filename + std::string(".msh");
+        //     this->pcout << "- Generating grid using input mesh: " << mesh_filename << std::endl;
+            
+        //     std::shared_ptr <HighOrderGrid<dim, double>> cube_mesh = read_gmsh<dim, dim>(
+        //         mesh_filename, 
+        //         this->all_param.flow_solver_param.use_periodic_BC_in_x, 
+        //         this->all_param.flow_solver_param.use_periodic_BC_in_y, 
+        //         this->all_param.flow_solver_param.use_periodic_BC_in_z, 
+        //         this->all_param.flow_solver_param.x_periodic_id_face_1, 
+        //         this->all_param.flow_solver_param.x_periodic_id_face_2, 
+        //         this->all_param.flow_solver_param.y_periodic_id_face_1, 
+        //         this->all_param.flow_solver_param.y_periodic_id_face_2, 
+        //         this->all_param.flow_solver_param.z_periodic_id_face_1, 
+        //         this->all_param.flow_solver_param.z_periodic_id_face_2,
+        //         this->all_param.flow_solver_param.mesh_reader_verbose_output,
+        //         this->all_param.do_renumber_dofs);
+
+        //     return cube_mesh->triangulation;
+         if constexpr(dim ==2) {
             const std::string mesh_filename = this->all_param.flow_solver_param.input_mesh_filename + std::string(".msh");
             this->pcout << "- Generating grid using input mesh: " << mesh_filename << std::endl;
-            
-            std::shared_ptr <HighOrderGrid<dim, double>> cube_mesh = read_gmsh<dim, dim>(
-                mesh_filename, 
-                this->all_param.flow_solver_param.use_periodic_BC_in_x, 
-                this->all_param.flow_solver_param.use_periodic_BC_in_y, 
-                this->all_param.flow_solver_param.use_periodic_BC_in_z, 
-                this->all_param.flow_solver_param.x_periodic_id_face_1, 
-                this->all_param.flow_solver_param.x_periodic_id_face_2, 
-                this->all_param.flow_solver_param.y_periodic_id_face_1, 
-                this->all_param.flow_solver_param.y_periodic_id_face_2, 
-                this->all_param.flow_solver_param.z_periodic_id_face_1, 
-                this->all_param.flow_solver_param.z_periodic_id_face_2,
-                this->all_param.flow_solver_param.mesh_reader_verbose_output,
-                this->all_param.do_renumber_dofs);
+                    const bool use_mesh_smoothing = false;
 
+            std::shared_ptr <HighOrderGrid<dim, double>> cube_mesh =  read_gmsh<dim, dim> (mesh_filename, this->all_param.do_renumber_dofs, 0, use_mesh_smoothing);
             return cube_mesh->triangulation;
-        } 
+        }
         else {
             this->pcout << "ERROR: read_gmsh() has not been tested with periodic_cube_flow() for 1D and 2D. Aborting..." << std::endl;
             std::abort();

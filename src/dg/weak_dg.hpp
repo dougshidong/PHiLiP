@@ -233,6 +233,7 @@ private:
     template <typename real2>
     void assemble_face_term(
         typename dealii::DoFHandler<dim>::active_cell_iterator cell,
+        typename dealii::DoFHandler<dim>::active_cell_iterator neighbor_cell,
         const dealii::types::global_dof_index current_cell_index,
         const dealii::types::global_dof_index neighbor_cell_index,
         const LocalSolution<real2, dim, nstate> &soln_int,
@@ -308,6 +309,7 @@ private:
     template <typename adtype>
     void assemble_face_codi_taped_derivatives(
         typename dealii::DoFHandler<dim>::active_cell_iterator cell,
+        typename dealii::DoFHandler<dim>::active_cell_iterator neighbor_cell,
         const dealii::types::global_dof_index current_cell_index,
         const dealii::types::global_dof_index neighbor_cell_index,
         const std::pair<unsigned int, int> face_subface_int,
@@ -372,6 +374,7 @@ private:
      *  computes 4 block contributions to dRdX blocks. */
     void assemble_face_term_derivatives(
         typename dealii::DoFHandler<dim>::active_cell_iterator cell,
+        typename dealii::DoFHandler<dim>::active_cell_iterator neighbor_cell,
         const dealii::types::global_dof_index current_cell_index,
         const dealii::types::global_dof_index neighbor_cell_index,
         const std::pair<unsigned int, int> face_subface_int,
@@ -431,6 +434,7 @@ private:
     /** Compute the right-hand side only. */
     void assemble_face_residual(
         typename dealii::DoFHandler<dim>::active_cell_iterator cell,
+        typename dealii::DoFHandler<dim>::active_cell_iterator neighbor_cell,
         const dealii::types::global_dof_index current_cell_index,
         const dealii::types::global_dof_index neighbor_cell_index,
         const std::pair<unsigned int, int> face_subface_int,

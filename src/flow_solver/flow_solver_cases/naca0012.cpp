@@ -67,7 +67,19 @@ std::shared_ptr<Triangulation> NACA0012<dim,nstate>::generate_grid() const
     else if constexpr(dim==3) {
         const std::string mesh_filename = this->all_param.flow_solver_param.input_mesh_filename+std::string(".msh");
         const bool use_mesh_smoothing = false;
-        std::shared_ptr<HighOrderGrid<dim,double>> naca0012_mesh = read_gmsh<dim, dim> (mesh_filename, this->all_param.do_renumber_dofs, 0, use_mesh_smoothing);
+        std::shared_ptr<HighOrderGrid<dim,double>> naca0012_mesh = read_gmsh<dim, dim> (mesh_filename, 
+                this->all_param.flow_solver_param.use_periodic_BC_in_x, 
+                this->all_param.flow_solver_param.use_periodic_BC_in_y, 
+                this->all_param.flow_solver_param.use_periodic_BC_in_z, 
+                this->all_param.flow_solver_param.x_periodic_id_face_1, 
+                this->all_param.flow_solver_param.x_periodic_id_face_2, 
+                this->all_param.flow_solver_param.y_periodic_id_face_1, 
+                this->all_param.flow_solver_param.y_periodic_id_face_2, 
+                this->all_param.flow_solver_param.z_periodic_id_face_1, 
+                this->all_param.flow_solver_param.z_periodic_id_face_2,
+                this->all_param.flow_solver_param.mesh_reader_verbose_output, 
+                this->all_param.do_renumber_dofs, 0, use_mesh_smoothing);
+        
         return naca0012_mesh->triangulation;
     }
     
@@ -117,11 +129,14 @@ void NACA0012<dim, nstate>::compute_unsteady_data_and_write_to_table(
         const unsigned int current_iteration,
         const double current_time,
         const std::shared_ptr <DGBase<dim, double>> dg,
-        const std::shared_ptr <dealii::TableHandler> unsteady_data_table)
+        const std::shared_ptr<dealii::TableHandler> unsteady_data_table,
+        const bool do_write_unsteady_data_table_file)
 {
     // Compute aerodynamic values
     const double lift = this->compute_lift(dg);
     const double drag = this->compute_drag(dg);
+
+
 
     if(this->mpi_rank==0) {
         // Add values to data table
@@ -129,15 +144,17 @@ void NACA0012<dim, nstate>::compute_unsteady_data_and_write_to_table(
         this->add_value_to_data_table(lift,"lift",unsteady_data_table);
         this->add_value_to_data_table(drag,"drag",unsteady_data_table);
         // Write to file
-        std::ofstream unsteady_data_table_file(this->unsteady_data_table_filename_with_extension);
-        unsteady_data_table->write_text(unsteady_data_table_file);
+        if(do_write_unsteady_data_table_file) {
+            std::ofstream unsteady_data_table_file(this->unsteady_data_table_filename_with_extension);
+            unsteady_data_table->write_text(unsteady_data_table_file);
+            // Print to console
+            this->pcout << "    Iter: " << current_iteration
+                        << "    Time: " << current_time
+                        << "    Lift: " << lift
+                        << "    Drag: " << drag;
+            this->pcout << std::endl;
+        }
     }
-    // Print to console
-    this->pcout << "    Iter: " << current_iteration
-                << "    Time: " << current_time
-                << "    Lift: " << lift
-                << "    Drag: " << drag;
-    this->pcout << std::endl;
 
     // Abort if energy is nan
     if(std::isnan(lift) || std::isnan(drag)) {

@@ -238,10 +238,11 @@ double PeriodicEntropyTests<dim, nstate>::compute_entropy(
 }
 
 template <int dim, int nstate>
-void PeriodicEntropyTests<dim, nstate>::compute_unsteady_data_and_write_to_table(
-        const std::shared_ptr<ODE::ODESolverBase<dim, double>> ode_solver, 
-        const std::shared_ptr <DGBase<dim, double>> dg,
-        const std::shared_ptr<dealii::TableHandler> unsteady_data_table)
+void PeriodicEntropyTests<dim, nstate>::compute_unsteady_data_from_solver_and_write_to_table(
+        const std::shared_ptr<ODE::ODESolverBase<dim, double>> ode_solver,
+        const std::shared_ptr <DGBase<dim, double>> dg ,
+        const std::shared_ptr <dealii::TableHandler> unsteady_data_table,
+        const bool do_write_unsteady_data_table_file)
 {
     //unpack current iteration and current time from ode solver
     const unsigned int current_iteration = ode_solver->current_iteration;
@@ -312,7 +313,7 @@ void PeriodicEntropyTests<dim, nstate>::compute_unsteady_data_and_write_to_table
         unsteady_data_table->set_scientific("gamma", false);
     }
     std::ofstream unsteady_data_table_file(this->unsteady_data_table_filename_with_extension);
-    unsteady_data_table->write_text(unsteady_data_table_file);
+    if(do_write_unsteady_data_table_file) unsteady_data_table->write_text(unsteady_data_table_file);
 
     //for next iteration
     previous_time = current_time;

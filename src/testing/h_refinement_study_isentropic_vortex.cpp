@@ -141,9 +141,12 @@ int HRefinementStudyIsentropicVortex<dim, nstate>::run_test() const
         pcout << "---------------------------------------------" << std::endl;
 
         const Parameters::AllParameters params = reinit_params_and_refine(refinement);
+        pcout << "Making flow solver, selecting case." << std::endl;
         std::unique_ptr<FlowSolver::FlowSolver<dim,nstate>> flow_solver = FlowSolver::FlowSolverFactory<dim,nstate>::select_flow_case(&params, parameter_handler);
+        pcout << "Making flow solver case." << std::endl;
         std::unique_ptr<FlowSolver::PeriodicEntropyTests<dim, nstate>> flow_solver_case = std::make_unique<FlowSolver::PeriodicEntropyTests<dim,nstate>>(&params);
-    
+        
+        pcout << "flow_solver->run... " << std::endl;
         static_cast<void>(flow_solver->run());
         pcout << "Finished flowsolver " << std::endl;
 

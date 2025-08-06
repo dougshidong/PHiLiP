@@ -25,6 +25,7 @@
 #include "parameters/parameters_mesh_adaptation.h"
 #include "parameters/parameters_functional.h"
 #include "parameters/parameters_time_refinement_study.h"
+#include "parameters/parameters_boundary_layer_extraction.h"
 
 namespace PHiLiP {
 namespace Parameters {
@@ -68,6 +69,8 @@ public:
     FunctionalParam functional_param;
     /// Contains the parameters for time refinement study
     TimeRefinementStudyParam time_refinement_study_param;
+    /// Contains parameters for boundary layer extraction
+    BoundaryLayerExtractionParam boundary_layer_extraction_param;
 
     /// Number of dimensions. Note that it has to match the executable PHiLiP_xD
     unsigned int dimension;
@@ -116,16 +119,24 @@ public:
     /// Flag to use curvilinear metric split form.
     bool use_curvilinear_split_form;
 
-    /// Flag to use weight-adjusted Mass Matrix for curvilinear elements.
-    bool use_weight_adjusted_mass;
-
     /// Flag to store the residual local processor cput time.
     bool store_residual_cpu_time;
+
+    /// Flag to use weight-adjusted Mass Matrix for curvilinear elements.
+    bool use_weight_adjusted_mass;
 
     /// Flag to use periodic BC.
     /** Not fully tested.
      */
     bool use_periodic_bc;
+    /// Flag to signal that all boundaries are periodic; if true surface flux nodes will not be stored for efficiency.
+    bool all_boundaries_are_periodic;
+
+    /** Flag to check if the coordinates of two points are same where expected in weak DG.
+        Default is true; set to false if you have periodic boundaries in your domain since 
+        it currently does not consider that case and will print large warning messages.
+     **/
+    bool check_same_coords_in_weak_dg;
 
     /// Flag to use curvilinear grid.
     bool use_curvilinear_grid;
@@ -135,10 +146,6 @@ public:
 
     ///Flag to use an L2 energy monotonicity test (for FR)
     bool use_L2_norm;
-
-    ///Flag to use a Classical ESFR scheme where only the surface is reconstructed
-    //The default ESFR scheme is the Nonlinearly Stable FR where the volume is also reconstructed
-    bool use_classical_FR;
 
     ///Flag to store global mass matrix
     bool store_global_mass_matrix;
@@ -184,6 +191,7 @@ public:
         euler_naca_optimization,
         shock_1d,
         euler_naca0012,
+        navier_stokes_naca0012,
         reduced_order,
         unsteady_reduced_order,
         convection_diffusion_periodicity,
@@ -212,7 +220,8 @@ public:
         ROM_error_post_sampling,
         HROM_error_post_sampling,
         hyper_adaptive_sampling_new_error,
-        low_density
+        low_density,
+        turbulent_channel_flow_skin_friction_check
     };
     /// Store selected TestType from the input file.
     TestType test_type;
@@ -230,6 +239,7 @@ public:
         mhd,
         navier_stokes,
         physics_model,
+        physics_model_filtered
     };
     /// Store the PDE type to be solved
     PartialDifferentialEquation pde_type;
@@ -238,6 +248,7 @@ public:
     enum ModelType {
         large_eddy_simulation,
         reynolds_averaged_navier_stokes,
+        navier_stokes_model
     };
     /// Store the model type
     ModelType model_type;
@@ -246,13 +257,13 @@ public:
     enum BoundaryType {
         manufactured_dirichlet,
         manufactured_neumann,
-        manufactured_inout_flow,
+        manufactured_inout_flow
     };
 
     /// Possible source terms, NOT IMPLEMENTED YET
     enum SourceTerm {
         zero,
-        manufactured,
+        manufactured
     };
 
     /// Possible convective numerical flux types
@@ -312,7 +323,6 @@ public:
     /** Tolerance for checking that the determinant of surface jacobians at element faces matches.
      *  Note: Currently only used in weak dg. */
     double matching_surface_jac_det_tolerance;
-
     /// Declare parameters that can be set as inputs and set up the default options
     /** This subroutine should call the sub-parameter classes static declare_parameters()
       * such that each sub-parameter class is responsible to declare their own parameters.
@@ -324,6 +334,9 @@ public:
       * such that each sub-parameter class is responsible to parse their own parameters.
       */
     void parse_parameters (dealii::ParameterHandler &prm);
+
+    /// Modify parameters after parsing for certain cases
+    void modify_parameters ();
 
     //FunctionParser<dim> initial_conditions;
     //BoundaryConditions  boundary_conditions[max_n_boundaries];

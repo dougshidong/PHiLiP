@@ -8,10 +8,14 @@ set dimension = 2
 
 # The PDE we want to solve. Choices are
 # <advection|diffusion|convection_diffusion>.
-set pde_type  = euler
+set pde_type  = navier_stokes
+
+# DG formulation
+set use_weak_form = true 
 
 #set conv_num_flux = lax_friedrichs #roe
 set conv_num_flux = roe
+set diss_num_flux = bassi_rebay_2
 
 #set use_split_form = false
 
@@ -19,18 +23,29 @@ set conv_num_flux = roe
 #set add_artificial_dissipation = false
 set overintegration = 0
 
+
 #set sipg_penalty_factor = 20
 set output_face_results_vtk = true
 
 subsection euler
   set reference_length = 1.0
   set mach_infinity = 0.50
-  set angle_of_attack = 2.0
+  set angle_of_attack = 0.0
 end
+
+# freestream values in NavierStokes
+subsection navier_stokes
+	set prandtl_number = 0.71
+	set reynolds_number_inf = 5000.0
+	set thermal_boundary_condition_type = adiabatic
+end
+
+
+
 
 subsection linear solver
 #set linear_solver_type = direct
-  #set linear_solver_output = verbose
+#set linear_solver_output = verbose
   subsection gmres options
     # Factor by which the diagonal of the matrix will be scaled, which
     # sometimes can help to get better preconditioners
@@ -43,19 +58,18 @@ subsection linear solver
     # relative size of elements which should be dropped when forming an
     # incomplete lu decomposition with threshold
     set ilut_drop                 = 0.0
-
     # Amount of additional fill-in elements besides the sparse matrix
     # structure
-    set ilut_fill                 = 10
+    set ilut_fill                 = 50
 
     # Linear residual tolerance for convergence of the linear system
-    set linear_residual_tolerance = 1e-13
+    set linear_residual_tolerance = 1e-10
 
     # Maximum number of iterations for linear solver
     set max_iterations            = 2000
 
     # Number of iterations before restarting GMRES
-    set restart_number            = 200
+    set restart_number            = 300
 
   end 
 end
@@ -66,12 +80,14 @@ subsection ODE solver
   set nonlinear_max_iterations            = 2000
 
   # Nonlinear solver residual tolerance
-  set nonlinear_steady_residual_tolerance = 1e-14
+  set nonlinear_steady_residual_tolerance = 1e-10
 
   # Explicit or implicit solverChoices are <explicit|implicit>.
-  set ode_solver_type  = implicit
+  set ode_solver_type  = implicit #runge_kutta
+  #set runge_kutta_method = rk4_ex
+
   set initial_time_step = 1e3
-  set time_step_factor_residual = 15.0
+  set time_step_factor_residual = 1.0
   set time_step_factor_residual_exp = 2
 
   # set ode_solver_type  = runge_kutta
@@ -80,16 +96,16 @@ subsection ODE solver
   # set time_step_factor_residual_exp = 1.0
 
   # Print every print_iteration_modulo iterations of the nonlinear solver
-  set print_iteration_modulo              = 1
+  # set print_iteration_modulo              = 1
 
 end
 
 subsection manufactured solution convergence study
   # Last degree used for convergence study
-  set degree_end        = 3
+  set degree_end        = 0 
 
   # Starting degree for convergence study
-  set degree_start      = 3
+  set degree_start      = 0 
 
   set grid_progression  = 1
 
@@ -104,10 +120,12 @@ end
 
 subsection flow_solver
   set flow_case_type = naca0012
+  set constant_time_step = 1E-3
+  set poly_degree = 1
   set steady_state = true
   set steady_state_polynomial_ramping = true
   subsection grid
-    set input_mesh_filename = ../../../meshes/naca0012_hopw_ref2
+    set input_mesh_filename = ../../../meshes/naca0012_hopw_ref0
   end
 end
 

@@ -7,6 +7,7 @@ set(TESTS_SOURCE
     euler_gaussian_bump.cpp
     euler_gaussian_bump_enthalpy_check.cpp
     euler_naca0012.cpp
+    navier_stokes_naca0012.cpp
     euler_bump_optimization.cpp
     euler_naca0012_optimization.cpp
     shock_1d.cpp
@@ -46,6 +47,7 @@ set(TESTS_SOURCE
     hyper_adaptive_sampling_new_error.cpp
     bound_preserving_limiter_tests.cpp
     naca0012_unsteady_check_quick.cpp
+    turbulent_channel_flow_skin_friction_check.cpp
     )
 
 foreach(dim RANGE 1 3)

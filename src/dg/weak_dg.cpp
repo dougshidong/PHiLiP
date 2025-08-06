@@ -495,7 +495,7 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_volume_term_explicit(
 
     std::vector< real > soln_coeff(n_soln_dofs_int);
     for (unsigned int idof = 0; idof < n_soln_dofs_int; ++idof) {
-        soln_coeff[idof] = DGBase<dim,real,MeshType>::solution(soln_dof_indices_int[idof]);
+        soln_coeff[idof] = this->solution(soln_dof_indices_int[idof]);
     }
 
     typename dealii::DoFHandler<dim>::active_cell_iterator artificial_dissipation_cell(
@@ -725,7 +725,6 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_boundary_term(
             surface_jac_det[iquad] = fe_values_boundary.JxW(iquad) / face_quadrature.weight(iquad);
             phys_unit_normal[iquad] = fe_values_boundary.normal_vector(iquad);
         }
-
     }
 #ifdef KOPRIVA_METRICS_BOUNDARY
     auto old_jac_det = jac_det;
@@ -809,6 +808,12 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_boundary_term(
     for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
         const dealii::Tensor<1,dim,real2> normal_int = phys_unit_normal[iquad];
         physics.boundary_face_values (boundary_id, real_quad_pts[iquad], normal_int, soln_int[iquad], soln_grad_int[iquad], soln_ext[iquad], soln_grad_ext[iquad]);
+        if (boundary_id == 1001) {
+            physics.boundary_face_values_viscous_flux (boundary_id, real_quad_pts[iquad], normal_int, soln_int[iquad], soln_grad_int[iquad], soln_int[iquad], soln_grad_int[iquad], soln_ext[iquad], soln_grad_ext[iquad]);
+        }
+        else{
+            physics.boundary_face_values (boundary_id, real_quad_pts[iquad], normal_int, soln_int[iquad], soln_grad_int[iquad], soln_ext[iquad], soln_grad_ext[iquad]);
+        }
     }
 
     // Assemble BR2 gradient correction right-hand side
@@ -951,7 +956,9 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_boundary_term(
             artificial_diss_coeff_at_q[iquad],
             soln_int[iquad], soln_ext[iquad],
             soln_grad_int[iquad], soln_grad_ext[iquad],
-            normal_int, penalty, true);
+            soln_int[iquad], soln_ext[iquad],
+            soln_grad_int[iquad], soln_grad_ext[iquad],
+            normal_int, penalty, true, boundary_id);
     }
 
     // Applying convection boundary condition
@@ -1045,9 +1052,9 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_boundary_term_derivatives(
         local_dual[itest] = this->dual[soln_dof_indices[itest]];
     }
 
-    const auto &physics = *(DGBaseState<dim,nstate,real,MeshType>::pde_physics_fad_fad);
-    const auto &conv_num_flux = *(DGBaseState<dim,nstate,real,MeshType>::conv_num_flux_fad_fad);
-    const auto &diss_num_flux = *(DGBaseState<dim,nstate,real,MeshType>::diss_num_flux_fad_fad);
+    const auto &physics = *(this->pde_physics_fad_fad);
+    const auto &conv_num_flux = *(this->conv_num_flux_fad_fad);
+    const auto &diss_num_flux = *(this->diss_num_flux_fad_fad);
 
     std::vector<adtype> rhs(n_soln_dofs);
     adtype dual_dot_residual;
@@ -1420,9 +1427,9 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_boundary_term_derivatives(
             quadrature,
             metric_dof_indices,
             soln_dof_indices,
-            *(DGBaseState<dim,nstate,real,MeshType>::pde_physics_rad_fad),
-            *(DGBaseState<dim,nstate,real,MeshType>::conv_num_flux_rad_fad),
-            *(DGBaseState<dim,nstate,real,MeshType>::diss_num_flux_rad_fad),
+            *(this->pde_physics_rad_fad),
+            *(this->conv_num_flux_rad_fad),
+            *(this->diss_num_flux_rad_fad),
             local_rhs_cell,
             compute_dRdW, compute_dRdX, compute_d2R);
     } else if (compute_dRdW || compute_dRdX) {
@@ -1437,9 +1444,9 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_boundary_term_derivatives(
             quadrature,
             metric_dof_indices,
             soln_dof_indices,
-            *(DGBaseState<dim,nstate,real,MeshType>::pde_physics_rad),
-            *(DGBaseState<dim,nstate,real,MeshType>::conv_num_flux_rad),
-            *(DGBaseState<dim,nstate,real,MeshType>::diss_num_flux_rad),
+            *(this->pde_physics_rad),
+            *(this->conv_num_flux_rad),
+            *(this->diss_num_flux_rad),
             local_rhs_cell,
             compute_dRdW, compute_dRdX, compute_d2R);
     } else {
@@ -1454,9 +1461,9 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_boundary_term_derivatives(
             quadrature,
             metric_dof_indices,
             soln_dof_indices,
-            *(DGBaseState<dim,nstate,real,MeshType>::pde_physics_double),
-            *(DGBaseState<dim,nstate,real,MeshType>::conv_num_flux_double),
-            *(DGBaseState<dim,nstate,real,MeshType>::diss_num_flux_double),
+            *(this->pde_physics_double),
+            *(this->conv_num_flux_double),
+            *(this->diss_num_flux_double),
             local_rhs_cell,
             compute_dRdW, compute_dRdX, compute_d2R);
     }
@@ -1504,6 +1511,7 @@ template <int dim, int nstate, typename real, typename MeshType>
 template <typename real2>
 void DGWeak<dim,nstate,real,MeshType>::assemble_face_term(
     typename dealii::DoFHandler<dim>::active_cell_iterator cell,
+    typename dealii::DoFHandler<dim>::active_cell_iterator /*neighbor_cell*/,
     const dealii::types::global_dof_index current_cell_index,
     const dealii::types::global_dof_index neighbor_cell_index,
     const LocalSolution<real2, dim, nstate> &soln_int,
@@ -1563,6 +1571,8 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_face_term(
 
     const dealii::Tensor<1,dim,real> unit_normal_int = dealii::GeometryInfo<dim>::unit_normal_vector[face_subface_int.first];
     const dealii::Tensor<1,dim,real> unit_normal_ext = dealii::GeometryInfo<dim>::unit_normal_vector[face_subface_ext.first];
+
+
 
     // Use quadrature points of neighbor cell
     // Might want to use the maximum n_quad_pts1 and n_quad_pts2
@@ -1771,6 +1781,7 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_face_term(
 
             phys_unit_normal_int[iquad] = fe_values_int.normal_vector(iquad);
             phys_unit_normal_ext[iquad] = -phys_unit_normal_int[iquad]; // Must use opposite normal to be consistent with explicit
+
         }
         // When the cells do not have the same coarseness, their surface Jacobians will not be the same.
         // Therefore, we must use the Jacobians coming from the smaller face since it accurately represents
@@ -1792,7 +1803,6 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_face_term(
 
         faceJxW[iquad] = surface_jac_det[iquad] * face_quadrature_int.weight(iquad);
     }
-
 
     // Interpolate solution
     std::vector<State> soln_int_at_q = soln_int.evaluate_values(unit_quad_pts_int);
@@ -1933,7 +1943,9 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_face_term(
             artificial_diss_coeff_at_q[iquad],
             soln_int_at_q[iquad], soln_ext_at_q[iquad],
             soln_grad_int[iquad], soln_grad_ext[iquad],
-            phys_unit_normal_int[iquad], penalty);
+            soln_int_at_q[iquad], soln_ext_at_q[iquad],
+            soln_grad_int[iquad], soln_grad_ext[iquad],
+            phys_unit_normal_int[iquad], penalty, false);
 
         // From test functions associated with interior cell point of view
         for (unsigned int itest_int=0; itest_int<n_soln_dofs_int; ++itest_int) {
@@ -2083,9 +2095,9 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_face_term_derivatives(
     std::vector<adtype> rhs_ext(n_soln_dofs_ext);
     adtype dual_dot_residual;
 
-    const auto &physics = *(DGBaseState<dim,nstate,real,MeshType>::pde_physics_fad_fad);
-    const auto &conv_num_flux = *(DGBaseState<dim,nstate,real,MeshType>::conv_num_flux_fad_fad);
-    const auto &diss_num_flux = *(DGBaseState<dim,nstate,real,MeshType>::diss_num_flux_fad_fad);
+    const auto &physics = *(this->pde_physics_fad_fad);
+    const auto &conv_num_flux = *(this->conv_num_flux_fad_fad);
+    const auto &diss_num_flux = *(this->diss_num_flux_fad_fad);
     assemble_face_term(
         cell,
         current_cell_index,
@@ -2322,6 +2334,7 @@ template <int dim, int nstate, typename real, typename MeshType>
 template <typename adtype>
 void DGWeak<dim,nstate,real,MeshType>::assemble_face_codi_taped_derivatives(
     typename dealii::DoFHandler<dim>::active_cell_iterator cell,
+    typename dealii::DoFHandler<dim>::active_cell_iterator neighbor_cell,
     const dealii::types::global_dof_index current_cell_index,
     const dealii::types::global_dof_index neighbor_cell_index,
     const std::pair<unsigned int, int> face_subface_int,
@@ -2428,6 +2441,7 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_face_codi_taped_derivatives(
 
     assemble_face_term(
         cell,
+        neighbor_cell,
         current_cell_index,
         neighbor_cell_index,
         soln_int, soln_ext, metric_int, metric_ext,
@@ -2703,6 +2717,7 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_face_codi_taped_derivatives(
 template <int dim, int nstate, typename real, typename MeshType>
 void DGWeak<dim,nstate,real,MeshType>::assemble_face_residual(
     typename dealii::DoFHandler<dim>::active_cell_iterator cell,
+    typename dealii::DoFHandler<dim>::active_cell_iterator neighbor_cell,
     const dealii::types::global_dof_index current_cell_index,
     const dealii::types::global_dof_index neighbor_cell_index,
     const std::pair<unsigned int, int> face_subface_int,
@@ -2774,6 +2789,7 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_face_residual(
 
     assemble_face_term(
         cell,
+        neighbor_cell,
         current_cell_index,
         neighbor_cell_index,
         soln_int, soln_ext, metric_int, metric_ext,
@@ -3144,7 +3160,7 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_volume_term_derivatives(
         current_cell_index,
         soln_coeff, coords_coeff, local_dual,
         fe_soln, fe_metric, quadrature,
-        *(DGBaseState<dim,nstate,real,MeshType>::pde_physics_fad_fad),
+        *(this->pde_physics_fad_fad),
         rhs, dual_dot_residual,
         compute_metric_derivatives, fe_values_vol);
 
@@ -3495,7 +3511,7 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_volume_term_derivatives(
             metric_dof_indices, soln_dof_indices,
             local_rhs_cell,
             fe_values_lagrange,
-            *(DGBaseState<dim,nstate,real,MeshType>::pde_physics_rad_fad),
+            *(this->pde_physics_rad_fad),
             compute_dRdW, compute_dRdX, compute_d2R);
     } else if (compute_dRdW || compute_dRdX) {
         assemble_volume_codi_taped_derivatives<codi_JacobianComputationType>(
@@ -3506,7 +3522,7 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_volume_term_derivatives(
             metric_dof_indices, soln_dof_indices,
             local_rhs_cell,
             fe_values_lagrange,
-            *(DGBaseState<dim,nstate,real,MeshType>::pde_physics_rad),
+            *(this->pde_physics_rad),
             compute_dRdW, compute_dRdX, compute_d2R);
     } else {
         assemble_volume_residual(
@@ -3517,7 +3533,7 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_volume_term_derivatives(
             metric_dof_indices, soln_dof_indices,
             local_rhs_cell,
             fe_values_lagrange,
-            *(DGBaseState<dim,nstate,real,MeshType>::pde_physics_double),
+            *(this->pde_physics_double),
             compute_dRdW, compute_dRdX, compute_d2R);
     }
 }
@@ -3525,6 +3541,7 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_volume_term_derivatives(
 template <int dim, int nstate, typename real, typename MeshType>
 void DGWeak<dim,nstate,real,MeshType>::assemble_face_term_derivatives(
     typename dealii::DoFHandler<dim>::active_cell_iterator cell,
+    typename dealii::DoFHandler<dim>::active_cell_iterator neighbor_cell,
     const dealii::types::global_dof_index current_cell_index,
     const dealii::types::global_dof_index neighbor_cell_index,
     const std::pair<unsigned int, int> face_subface_int,
@@ -3550,6 +3567,7 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_face_term_derivatives(
     if (compute_d2R) {
         assemble_face_codi_taped_derivatives<codi_HessianComputationType>(
         cell,
+        neighbor_cell,
             current_cell_index,
             neighbor_cell_index,
             face_subface_int,
@@ -3566,15 +3584,16 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_face_term_derivatives(
             metric_dof_indices_ext,
             soln_dof_indices_int,
             soln_dof_indices_ext,
-            *(DGBaseState<dim,nstate,real,MeshType>::pde_physics_rad_fad),
-            *(DGBaseState<dim,nstate,real,MeshType>::conv_num_flux_rad_fad),
-            *(DGBaseState<dim,nstate,real,MeshType>::diss_num_flux_rad_fad),
+            *(this->pde_physics_rad_fad),
+            *(this->conv_num_flux_rad_fad),
+            *(this->diss_num_flux_rad_fad),
             local_rhs_int_cell,
             local_rhs_ext_cell,
             compute_dRdW, compute_dRdX, compute_d2R);
     } else if (compute_dRdW || compute_dRdX) {
         assemble_face_codi_taped_derivatives<codi_JacobianComputationType>(
         cell,
+        neighbor_cell,
             current_cell_index,
             neighbor_cell_index,
             face_subface_int,
@@ -3591,15 +3610,16 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_face_term_derivatives(
             metric_dof_indices_ext,
             soln_dof_indices_int,
             soln_dof_indices_ext,
-            *(DGBaseState<dim,nstate,real,MeshType>::pde_physics_rad),
-            *(DGBaseState<dim,nstate,real,MeshType>::conv_num_flux_rad),
-            *(DGBaseState<dim,nstate,real,MeshType>::diss_num_flux_rad),
+            *(this->pde_physics_rad),
+            *(this->conv_num_flux_rad),
+            *(this->diss_num_flux_rad),
             local_rhs_int_cell,
             local_rhs_ext_cell,
             compute_dRdW, compute_dRdX, compute_d2R);
     } else {
         assemble_face_residual(
         cell,
+        neighbor_cell,
             current_cell_index,
             neighbor_cell_index,
             face_subface_int,
@@ -3616,9 +3636,9 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_face_term_derivatives(
             metric_dof_indices_ext,
             soln_dof_indices_int,
             soln_dof_indices_ext,
-            *(DGBaseState<dim,nstate,real,MeshType>::pde_physics_double),
-            *(DGBaseState<dim,nstate,real,MeshType>::conv_num_flux_double),
-            *(DGBaseState<dim,nstate,real,MeshType>::diss_num_flux_double),
+            *(this->pde_physics_double),
+            *(this->conv_num_flux_double),
+            *(this->diss_num_flux_double),
             local_rhs_int_cell,
             local_rhs_ext_cell,
             compute_dRdW, compute_dRdX, compute_d2R);
@@ -3827,6 +3847,7 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_face_term_and_build_operators(
 
     assemble_face_term_derivatives (
         cell,
+        neighbor_cell,
         current_cell_index,
         neighbor_cell_index,
         face_subface_int, face_subface_ext,
@@ -3916,6 +3937,7 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_subface_term_and_build_operators
 
     assemble_face_term_derivatives (
         cell,
+        neighbor_cell,
         current_cell_index,
         neighbor_cell_index,
         face_subface_int, face_subface_ext,

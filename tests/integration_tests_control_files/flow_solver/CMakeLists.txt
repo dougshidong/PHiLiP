@@ -57,10 +57,25 @@ set(TEST_OUTPUT_DIR ${CMAKE_CURRENT_BINARY_DIR})
 # - (1) Uranga et al. 
 # - (2) Garmann et al.
 # ----------------------------------------
-# configure_file(unsteady_sd7003.prm unsteady_sd7003.prm COPYONLY)
-# add_test(
-#  NAME MPI_3D_SD7003_UNSTEADY_FLOW
-#  COMMAND mpirun -np ${MPI_MAX} ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_3D -i ${CMAKE_CURRENT_BINARY_DIR}/unsteady_sd7003.prm
-#  WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
-# )
+configure_file(unsteady_sd7003.prm unsteady_sd7003.prm COPYONLY)
+add_test(
+ NAME MPI_3D_SD7003_UNSTEADY_FLOW
+ COMMAND mpirun -np ${MPIMAX} ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_3D -i ${CMAKE_CURRENT_BINARY_DIR}/unsteady_sd7003.prm
+ WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
+)
 # ----------------------------------------
+
+# =======================================
+# NACA0012 Airfoil
+# =======================================
+# ----------------------------------------
+# - References:
+# - (1) Uranga et al. 
+# - (2) Garmann et al.
+# ----------------------------------------
+configure_file(3d_unsteady_naca0012.prm 3d_unsteady_naca0012.prm COPYONLY)
+add_test(
+ NAME MPI_3D_NACA0012_UNSTEADY_FLOW
+ COMMAND mpirun -np ${MPIMAX} ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_3D -i ${CMAKE_CURRENT_BINARY_DIR}/3d_unsteady_naca0012.prm
+ WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
+)

@@ -28,6 +28,7 @@
 #include "euler_naca0012_optimization.hpp"
 #include "shock_1d.h"
 #include "euler_naca0012.hpp"
+#include "navier_stokes_naca0012.h"
 #include "reduced_order.h"
 #include "unsteady_reduced_order.h"
 #include "convection_diffusion_explicit_periodic.h"
@@ -54,6 +55,7 @@
 #include "ROM_error_post_sampling.h"
 #include "HROM_error_post_sampling.h"
 #include "hyper_adaptive_sampling_new_error.h"
+#include "turbulent_channel_flow_skin_friction_check.h"
 
 namespace PHiLiP {
 namespace Tests {
@@ -113,6 +115,8 @@ std::string TestsBase::get_pde_string(const Parameters::AllParameters *const par
             else if(sgs_model==SGSModel_enum::wall_adaptive_local_eddy_viscosity) sgs_model_string = "wall_adaptive_local_eddy_viscosity";
             else if(sgs_model==SGSModel_enum::vreman) sgs_model_string = "vreman";
             pde_string += std::string(" (Model: ") + model_string + std::string(", SGS Model: ") + sgs_model_string + std::string(")");
+        } else if(model == Model_enum::navier_stokes_model) {
+            model_string = "navier_stokes_model";
         }
         else if(model == Model_enum::reynolds_averaged_navier_stokes) {
             // assign model string
@@ -292,6 +296,8 @@ std::unique_ptr< TestsBase > TestsFactory<dim,nstate,MeshType>
         if constexpr ((dim==2 && nstate==dim+2) || (dim==1 && nstate==1)) return std::make_unique<AdaptiveSamplingTesting<dim,nstate>>(parameters_input,parameter_handler_input);
     } else if(test_type == Test_enum::euler_naca0012) {
         if constexpr (dim==2 && nstate==dim+2) return std::make_unique<EulerNACA0012<dim,nstate>>(parameters_input,parameter_handler_input);
+    } else if(test_type == Test_enum::navier_stokes_naca0012) {
+        if constexpr (dim!=1 && nstate==dim+2) return std::make_unique<NavierStokesNACA0012<dim,nstate>>(parameters_input,parameter_handler_input);
     } else if(test_type == Test_enum::dual_weighted_residual_mesh_adaptation) {
         if constexpr (dim==2 && nstate==1)  return std::make_unique<DualWeightedResidualMeshAdaptation<dim, nstate>>(parameters_input,parameter_handler_input);
     } else if(test_type == Test_enum::anisotropic_mesh_adaptation) {
@@ -302,6 +308,8 @@ std::unique_ptr< TestsBase > TestsFactory<dim,nstate,MeshType>
         if constexpr (dim==3 && nstate==dim+2) return std::make_unique<TaylorGreenVortexRestartCheck<dim,nstate>>(parameters_input,parameter_handler_input);
     } else if(test_type == Test_enum::homogeneous_isotropic_turbulence_initialization_check){
         if constexpr (dim==3 && nstate==dim+2) return std::make_unique<HomogeneousIsotropicTurbulenceInitializationCheck<dim,nstate>>(parameters_input,parameter_handler_input);
+    } else if(test_type == Test_enum::turbulent_channel_flow_skin_friction_check){
+        if constexpr (dim==3 && nstate==dim+2) return std::make_unique<TurbulentChannelFlowSkinFrictionCheck<dim,nstate>>(parameters_input,parameter_handler_input);
     } else if(test_type == Test_enum::time_refinement_study) {
         if constexpr (dim==1 && nstate==1)  return std::make_unique<TimeRefinementStudy<dim, nstate>>(parameters_input, parameter_handler_input);
     } else if(test_type == Test_enum::assemble_residual_on_subset_time_refinement_study) {

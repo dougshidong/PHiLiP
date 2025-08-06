@@ -18,6 +18,7 @@ set(SOURCE
     parameters_burgers.cpp
     parameters_time_refinement_study.cpp
     parameters_hyper_reduction.cpp
+	parameters_boundary_layer_extraction.cpp
     all_parameters.cpp)
 
 # Output library

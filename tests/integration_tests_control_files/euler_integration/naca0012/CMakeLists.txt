@@ -1,7 +1,7 @@
 configure_file(2d_euler_naca0012_subsonic_05_200.prm 2d_euler_naca0012_subsonic_05_200.prm COPYONLY)
 add_test(
   NAME 2D_EULER_INTEGRATION_NACA0012_SUBSONIC_LONG
-  COMMAND mpirun -np ${MPIMAX} ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_2D -i ${CMAKE_CURRENT_BINARY_DIR}/2d_euler_naca0012_subsonic_05_200.prm
+  COMMAND mpirun --oversubscribe -np ${MPIMAX} ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_2D -i ${CMAKE_CURRENT_BINARY_DIR}/2d_euler_naca0012_subsonic_05_200.prm
   WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
 )
 set_tests_labels(2D_EULER_INTEGRATION_NACA0012_SUBSONIC_LONG    EULER_INTEGRATION
@@ -108,12 +108,12 @@ set_tests_labels(2D_EULER_INTEGRATION_UNSTEADY_NACA0012_SUBSONIC_STRONGvWEAK    
                                                                                 MODERATE
                                                                                 INTEGRATION_TEST)
 
-#configure_file(2d_navier_stokes_naca0012_subsonic_05_200.prm 2d_navier_stokes_naca0012_subsonic_05_200.prm COPYONLY)
-#add_test(
-#  NAME 2D_NAVIER_STOKES_INTEGRATION_NACA0012_SUBSONIC_LONG
-#  COMMAND mpirun -np ${MPIMAX} ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_2D -i #${CMAKE_CURRENT_BINARY_DIR}/2d_navier_stokes_naca0012_subsonic_05_200.prm
-#  WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
-#)
+configure_file(2d_navier_stokes_naca0012_subsonic_05_200.prm 2d_navier_stokes_naca0012_subsonic_05_200.prm COPYONLY)
+add_test(
+  NAME 2D_NAVIER_STOKES_INTEGRATION_NACA0012_SUBSONIC_LONG
+  COMMAND mpirun --oversubscribe -np ${MPIMAX} ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_2D -i ${CMAKE_CURRENT_BINARY_DIR}/2d_navier_stokes_naca0012_subsonic_05_200.prm
+  WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
+)
 
 #configure_file(naca0012.geo naca0012.geo COPYONLY)
 #configure_file(naca0012_noTE.geo naca0012_noTE.geo COPYONLY)

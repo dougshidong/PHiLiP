@@ -98,6 +98,42 @@ std::array<dealii::Tensor<1,dim,real>,nstate> PhysicsBase<dim,nstate,real>
     return diss_flux;
 }
 */
+
+template <int dim, int nstate, typename real>
+std::array<real,nstate> PhysicsBase<dim,nstate,real>
+::dissipative_flux_dot_normal (
+        const std::array<real,nstate> &solution,
+        const std::array<dealii::Tensor<1,dim,real>,nstate> &solution_gradient,
+        const std::array<real,nstate> &filtered_solution,
+        const std::array<dealii::Tensor<1,dim,real>,nstate> &filtered_solution_gradient,
+        const bool /*on_boundary*/,
+        const dealii::types::global_dof_index cell_index,
+        const dealii::Tensor<1,dim,real> &normal,
+        const int /*boundary_type*/)
+{
+    std::array<dealii::Tensor<1,dim,real>,nstate> dissipative_flux = this->dissipative_flux(solution,solution_gradient,filtered_solution,filtered_solution_gradient,cell_index);
+    std::array<real,nstate> dissipative_flux_dot_normal;
+    dissipative_flux_dot_normal.fill(0.0); // initialize
+    for (int s=0; s<nstate; s++) {
+        for (int d=0; d<dim; ++d) {
+            dissipative_flux_dot_normal[s] += dissipative_flux[s][d] * normal[d];//compute dot product
+        }
+    }
+    return dissipative_flux_dot_normal;
+}
+
+template <int dim, int nstate, typename real>
+std::array<dealii::Tensor<1,dim,real>,nstate> PhysicsBase<dim,nstate,real>
+::dissipative_flux (
+        const std::array<real,nstate> &solution,
+        const std::array<dealii::Tensor<1,dim,real>,nstate> &solution_gradient,
+        const std::array<real,nstate> &/*filtered_solution*/,
+        const std::array<dealii::Tensor<1,dim,real>,nstate> &/*filtered_solution_gradient*/,
+        const dealii::types::global_dof_index cell_index)
+{
+    return this->dissipative_flux(solution,solution_gradient,cell_index);
+}
+
 template <int dim, int nstate, typename real>
 std::array<real,nstate> PhysicsBase<dim,nstate,real>
 ::artificial_source_term (
@@ -124,6 +160,50 @@ std::array<real,nstate> PhysicsBase<dim,nstate,real>
         source[istate] *= -viscosity_coefficient;
     }
     return source;
+}
+
+template <int dim, int nstate, typename real>
+void PhysicsBase<dim,nstate,real>
+::boundary_face_values (
+        const int boundary_type,
+        const dealii::Point<dim, real> &pos,
+        const dealii::Tensor<1,dim,real> &normal,
+        const std::array<real,nstate> &soln_int,
+        const std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_int,
+        const std::array<real,nstate> &/*filtered_soln_int*/,
+        const std::array<dealii::Tensor<1,dim,real>,nstate> &/*filtered_soln_grad_int*/,
+        std::array<real,nstate> &soln_bc,
+        std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_bc) const
+{
+    this->boundary_face_values(boundary_type,
+                               pos,
+                               normal,
+                               soln_int,
+                               soln_grad_int,
+                               soln_bc,
+                               soln_grad_bc);
+}
+
+template <int dim, int nstate, typename real>
+void PhysicsBase<dim,nstate,real>
+::boundary_face_values_viscous_flux (
+        const int boundary_type,
+        const dealii::Point<dim, real> &pos,
+        const dealii::Tensor<1,dim,real> &normal,
+        const std::array<real,nstate> &soln_int,
+        const std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_int,
+        const std::array<real,nstate> &/*filtered_soln_int*/,
+        const std::array<dealii::Tensor<1,dim,real>,nstate> &/*filtered_soln_grad_int*/,
+        std::array<real,nstate> &soln_bc,
+        std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_bc) const
+{
+    this->boundary_face_values(boundary_type,
+                               pos,
+                               normal,
+                               soln_int,
+                               soln_grad_int,
+                               soln_bc,
+                               soln_grad_bc);
 }
 
 template <int dim, int nstate, typename real>

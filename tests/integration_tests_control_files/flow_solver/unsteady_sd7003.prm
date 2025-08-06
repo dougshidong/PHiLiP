@@ -52,10 +52,23 @@ subsection flow_solver
   set steady_state = false
   set poly_degree = 1
   set final_time = 10.0
-  # set courant_friedrichs_lewy_number = 0.01
+  set constant_time_step = 1E-6
+  set courant_friedrichs_lewy_number = 1E-6
   set unsteady_data_table_filename = sd7003_unsteady_data_table
   subsection grid
-    set input_mesh_filename = ../../meshes/SD7003_4_cell_spanwise
+    set input_mesh_filename = /home/nyaki/Codes_2/PHiLiP/tests/meshes/SD7003_1_cell_spanwise
     # set grid_degree = 0
+    set use_gmsh_mesh = true
+    subsection gmsh_boundary_IDs
+      set use_periodic_BC_in_x = false
+      set use_periodic_BC_in_y = false
+      set use_periodic_BC_in_z = true
+      # set x_periodic_id_face_1 = 2001
+      # set x_periodic_id_face_2 = 2002
+      # set y_periodic_id_face_1 = 2003
+      # set y_periodic_id_face_2 = 2004
+      set z_periodic_id_face_1 = 2005
+      set z_periodic_id_face_2 = 2006
+    end
   end
 end

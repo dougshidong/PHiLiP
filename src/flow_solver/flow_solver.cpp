@@ -40,8 +40,10 @@ FlowSolver<dim, nstate>::FlowSolver(
 , do_output_solution_at_fixed_times(ode_param.output_solution_at_fixed_times)
 , number_of_fixed_times_to_output_solution(ode_param.number_of_fixed_times_to_output_solution)
 , output_solution_at_exact_fixed_times(ode_param.output_solution_at_exact_fixed_times)
+, do_compute_unsteady_data_and_write_to_table(flow_solver_param.do_compute_unsteady_data_and_write_to_table)
 , dg(DGFactory<dim,double>::create_discontinuous_galerkin(&all_param, poly_degree, flow_solver_param.max_poly_degree_for_adaptation, grid_degree, flow_solver_case->generate_grid()))
 {
+    pcout << "IN FLOW_SOLVER." << std::endl;
     flow_solver_case->set_higher_order_grid(dg);
     if (ode_param.allocate_matrix_dRdW) {
         pcout << "Note: Allocating DG with AD matrix dRdW only." << std::endl;
@@ -78,6 +80,14 @@ FlowSolver<dim, nstate>::FlowSolver(
         dealii::parallel::distributed::SolutionTransfer<dim, dealii::LinearAlgebra::distributed::Vector<double>, dealii::DoFHandler<dim>> solution_transfer(dg->dof_handler);
         solution_transfer.deserialize(solution_no_ghost);
         dg->solution = solution_no_ghost; //< assignment
+        if(flow_solver_param.compute_time_averaged_solution && (ode_solver->current_time > flow_solver_param.time_to_start_averaging)) {
+            dg->triangulation->load(flow_solver_param.restart_files_directory_name + std::string("/") + restart_filename_without_extension + std::string("_time_averaged"));
+            dealii::LinearAlgebra::distributed::Vector<double> time_averaged_solution_no_ghost;
+            time_averaged_solution_no_ghost.reinit(dg->locally_owned_dofs, this->mpi_communicator);
+            dealii::parallel::distributed::SolutionTransfer<dim, dealii::LinearAlgebra::distributed::Vector<double>, dealii::DoFHandler<dim>> time_averaged_solution_transfer(dg->dof_handler);
+            time_averaged_solution_transfer.deserialize(time_averaged_solution_no_ghost);
+            dg->time_averaged_solution = time_averaged_solution_no_ghost; //< assignment
+        }
 #endif
         pcout << "done." << std::endl;
     } else {
@@ -367,7 +377,13 @@ void FlowSolver<dim,nstate>::output_restart_files(
     // ----- Ref: https://www.dealii.org/current/doxygen/deal.II/classparallel_1_1distributed_1_1SolutionTransfer.html
     solution_transfer.prepare_for_serialization(dg->solution);
     dg->triangulation->save(flow_solver_param.restart_files_directory_name + std::string("/") + restart_filename_without_extension);
-    
+
+    if(flow_solver_param.compute_time_averaged_solution && (ode_solver->current_time > flow_solver_param.time_to_start_averaging)) {
+        // time-averaged solution files
+        dealii::parallel::distributed::SolutionTransfer<dim, dealii::LinearAlgebra::distributed::Vector<double>, dealii::DoFHandler<dim>> time_averaged_solution_transfer(dg->dof_handler);
+        time_averaged_solution_transfer.prepare_for_serialization(dg->time_averaged_solution);
+        dg->triangulation->save(flow_solver_param.restart_files_directory_name + std::string("/") + restart_filename_without_extension +  std::string("_time_averaged"));
+    }
     // unsteady data table
     if(mpi_rank==0) {
         std::string restart_unsteady_data_table_filename = flow_solver_param.unsteady_data_table_filename+std::string("-")+restart_filename_without_extension+std::string(".txt");
@@ -476,7 +492,7 @@ int FlowSolver<dim,nstate>::run() const
         } else if (ode_param.output_solution_every_dt_time_intervals > 0.0) {
             pcout << "  ... Writing vtk solution file at initial time ..." << std::endl;
             dg->output_results_vtk(ode_solver->current_iteration);
-            ode_solver->current_desired_time_for_output_solution_every_dt_time_intervals += ode_param.output_solution_every_dt_time_intervals;
+            ode_solver->current_desired_time_for_output_solution_every_dt_time_intervals += ode_param.output_solution_start_time + ode_param.output_solution_every_dt_time_intervals;
         } else if (this->do_output_solution_at_fixed_times && (this->number_of_fixed_times_to_output_solution > 0)) {
             pcout << "  ... Writing vtk solution file at initial time ..." << std::endl;
             dg->output_results_vtk(ode_solver->current_iteration);
@@ -518,8 +534,28 @@ int FlowSolver<dim,nstate>::run() const
         // Initializing restart related variables
         //----------------------------------------------------
 #if PHILIP_DIM>1
-        double current_desired_time_for_output_restart_files_every_dt_time_intervals = ode_solver->current_time; // when used, same as the initial time
+        double current_desired_time_for_output_restart_files_every_dt_time_intervals = ode_solver->current_time;
+        unsigned int current_restart_file_number = 1;
+        if(flow_solver_param.output_restart_files == true) {
+            if(flow_solver_param.output_restart_files_every_dt_time_intervals > 0.0) {
+                while(current_desired_time_for_output_restart_files_every_dt_time_intervals <= ode_solver->current_time) {
+                    current_desired_time_for_output_restart_files_every_dt_time_intervals += flow_solver_param.output_restart_files_every_dt_time_intervals;
+                }
+            }
+        }
+        if(flow_solver_param.restart_computation_from_file == true) {
+            current_restart_file_number = flow_solver_param.restart_file_index + 1;
+        }
 #endif
+        //--------------------------------------------------------------------
+        // Initialize the time at which we write the unsteady data table
+        //--------------------------------------------------------------------
+        double current_desired_time_for_write_unsteady_data_table_file_every_dt_time_intervals = ode_solver->current_time;
+        if(flow_solver_param.write_unsteady_data_table_file_every_dt_time_intervals > 0.0) {
+            while(current_desired_time_for_write_unsteady_data_table_file_every_dt_time_intervals <= ode_solver->current_time) {
+                current_desired_time_for_write_unsteady_data_table_file_every_dt_time_intervals += flow_solver_param.write_unsteady_data_table_file_every_dt_time_intervals;
+            }
+        }
         //----------------------------------------------------
         // Initialize time step
         //----------------------------------------------------
@@ -549,6 +585,7 @@ int FlowSolver<dim,nstate>::run() const
             }
         }
         flow_solver_case->set_time_step(time_step);
+        //dg->set_unsteady_model_time_step(time_step);
         pcout << "done." << std::endl;
         //----------------------------------------------------
         // dealii::TableHandler and data at initial time
@@ -562,14 +599,17 @@ int FlowSolver<dim,nstate>::run() const
             pcout << "done." << std::endl;
         } else {
             // no restart:
-            pcout << "Writing unsteady data computed at initial time... " << std::endl;
-            flow_solver_case->compute_unsteady_data_and_write_to_table(ode_solver, dg, unsteady_data_table);
-            pcout << "done." << std::endl;
+            if(do_compute_unsteady_data_and_write_to_table){
+                pcout << "Writing unsteady data computed at initial time... " << std::endl;
+                flow_solver_case->compute_unsteady_data_and_write_to_table(ode_solver->current_iteration, ode_solver->current_time, dg, unsteady_data_table, true);
+                pcout << "done." << std::endl;
+            }
         }
         //----------------------------------------------------
         // Time advancement loop with on-the-fly post-processing
         //----------------------------------------------------
         double next_time_step = time_step;
+        std::shared_ptr<dealii::TableHandler> timer_values_table = std::make_shared<dealii::TableHandler>();
         pcout << "Advancing solution in time... " << std::endl;
         pcout << "Timer starting. " << std::endl;
         dealii::Timer timer(this->mpi_communicator,false);
@@ -592,11 +632,237 @@ int FlowSolver<dim,nstate>::run() const
 
             // update time step in flow_solver_case
             flow_solver_case->set_time_step(time_step);
+            //dg->set_unsteady_model_time_step(time_step);
+            // advance solution
+            ode_solver->step_in_time(time_step,false); // pseudotime==false
+            if constexpr (nstate==dim+2){
+                if(flow_solver_param.compute_time_averaged_solution && ( (ode_solver->current_time <= flow_solver_param.time_to_start_averaging) && (ode_solver->current_time+time_step > flow_solver_param.time_to_start_averaging) )) {
+                    dg->time_averaged_solution =  dg->solution;
+                }
+                else if(flow_solver_param.compute_time_averaged_solution && (ode_solver->current_time > flow_solver_param.time_to_start_averaging)) {
+                    //dg->time_averaged_solution +=  dg->solution;
+                    const unsigned int max_dofs_per_cell = dg->dof_handler.get_fe_collection().max_dofs_per_cell();
+                    std::vector<dealii::types::global_dof_index> current_dofs_indices(max_dofs_per_cell);
+                    auto metric_cell = dg->high_order_grid->dof_handler_grid.begin_active();
+                    for (auto current_cell = dg->dof_handler.begin_active(); current_cell!=dg->dof_handler.end(); ++current_cell, ++metric_cell) {
+                        if (!current_cell->is_locally_owned()) continue;
 
-            ode_solver->step_in_time(time_step,false);
+                        const unsigned int n_dofs_cell = dg->fe_collection[poly_degree].dofs_per_cell;                  
+                        current_dofs_indices.resize(n_dofs_cell);
+                        current_cell->get_dof_indices (current_dofs_indices);             
+                        for(unsigned int idof=0; idof<n_dofs_cell; idof++){
+                            dg->time_averaged_solution(current_dofs_indices[idof]) = dg->time_averaged_solution(current_dofs_indices[idof]) + (dg->solution(current_dofs_indices[idof]) - dg->time_averaged_solution(current_dofs_indices[idof]))/((ode_solver->current_time - flow_solver_param.time_to_start_averaging + time_step) / time_step); //Incremental average
+                        }
+                    }
+                }
+                if(flow_solver_param.compute_Reynolds_stress && ( (ode_solver->current_time <= flow_solver_param.time_to_start_computing_Reynolds_Stress) && (ode_solver->current_time+time_step > flow_solver_param.time_to_start_computing_Reynolds_Stress) )) {
+                    const unsigned int max_dofs_per_cell = dg->dof_handler.get_fe_collection().max_dofs_per_cell();
+                    std::vector<dealii::types::global_dof_index> current_dofs_indices(max_dofs_per_cell);
+                    auto metric_cell = dg->high_order_grid->dof_handler_grid.begin_active();
+                    for (auto current_cell = dg->dof_handler.begin_active(); current_cell!=dg->dof_handler.end(); ++current_cell, ++metric_cell) {
+                        if (!current_cell->is_locally_owned()) continue;
+                        const unsigned int n_dofs_cell = dg->fe_collection[poly_degree].dofs_per_cell;                  
+                        current_dofs_indices.resize(n_dofs_cell);
+                        current_cell->get_dof_indices (current_dofs_indices);
+                        const unsigned int n_shape_fns = n_dofs_cell / nstate;
+                        dealii::Quadrature<1> vol_quad_equidistant_1D = dealii::QIterated<1>(dealii::QTrapez<1>(),poly_degree);
+                        const unsigned int n_quad_pts = pow(vol_quad_equidistant_1D.size(),dim);
+                        const unsigned int init_grid_degree = dg->high_order_grid->fe_system.tensor_degree();
+                        OPERATOR::basis_functions<dim,2*dim,double> soln_basis(1, dg->max_degree, init_grid_degree); 
+                        soln_basis.build_1D_volume_operator(dg->oneD_fe_collection_1state[dg->max_degree], vol_quad_equidistant_1D);
+                        soln_basis.build_1D_gradient_operator(dg->oneD_fe_collection_1state[dg->max_degree], vol_quad_equidistant_1D);                
+                        // Store solution coeffs for time-averaged flutuating quantitites
+                        std::array<std::vector<double>,nstate> soln_coeff;
+                        std::array<std::vector<double>,nstate> time_averaged_soln_coeff;
+                        for(unsigned int idof=0; idof<n_dofs_cell; idof++){
+                            const unsigned int istate = dg->fe_collection[poly_degree].system_to_component_index(idof).first;
+                            const unsigned int ishape = dg->fe_collection[poly_degree].system_to_component_index(idof).second;
+                            if(ishape == 0) {
+                                soln_coeff[istate].resize(n_shape_fns);
+                                time_averaged_soln_coeff[istate].resize(n_shape_fns);
+                            }
+                            soln_coeff[istate][ishape] = dg->solution(current_dofs_indices[idof]);
+                            time_averaged_soln_coeff[istate][ishape] = dg->time_averaged_solution(current_dofs_indices[idof]);
+                        }
+
+                        //Project solutin
+                        std::array<std::vector<double>,nstate> soln_at_q;
+                        std::array<std::vector<double>,nstate> time_averaged_soln_at_q;
+                        for(int istate=0; istate<nstate; istate++){
+                            soln_at_q[istate].resize(n_quad_pts);
+                            time_averaged_soln_at_q[istate].resize(n_quad_pts);
+                            // Interpolate soln coeff to volume cubature nodes.
+                            soln_basis.matrix_vector_mult_1D(soln_coeff[istate], soln_at_q[istate],
+                                                            soln_basis.oneD_vol_operator);
+                            // Interpolate soln coeff to volume cubature nodes.
+                            soln_basis.matrix_vector_mult_1D(time_averaged_soln_coeff[istate], time_averaged_soln_at_q[istate],
+                                                            soln_basis.oneD_vol_operator);
+                        }
+                        // compute quantities at quad nodes (equisdistant)
+                        dealii::Tensor<1,dim,std::vector<double>> velocity_at_q;
+                        dealii::Tensor<1,dim,std::vector<double>> time_averaged_velocity_at_q;
+                        dealii::Tensor<1,dim,std::vector<double>> velocity_fluctuations_at_q;
+                        for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
+                            std::array<double,nstate> soln_state;
+                            std::array<double,nstate> time_averaged_soln_state;
+                            for(int istate=0; istate<nstate; istate++){
+                                soln_state[istate] = soln_at_q[istate][iquad];
+                                time_averaged_soln_state[istate] = time_averaged_soln_at_q[istate][iquad];
+                            }
+                            dealii::Tensor<1,dim,double> vel;// = this->navier_stokes_physics->compute_velocities(soln_state);
+                            dealii::Tensor<1,dim,double> time_averaged_vel;// = this->navier_stokes_physics->compute_velocities(time_averaged_soln_state);
+                            const double density = soln_state[0];
+                            const double time_averaged_density = time_averaged_soln_state[0];
+                            for (unsigned int d=0; d<dim; ++d) {
+                                vel[d] = soln_state[1+d]/density;
+                                time_averaged_vel[d] = time_averaged_soln_state[1+d]/time_averaged_density;
+                            }
+                            const dealii::Tensor<1,dim,double> velocity = vel;
+                            const dealii::Tensor<1,dim,double> time_averaged_velocity = time_averaged_vel;
+                            for(int idim=0; idim<dim; idim++){
+                                if(iquad==0){
+                                    velocity_at_q[idim].resize(n_quad_pts);
+                                    time_averaged_velocity_at_q[idim].resize(n_quad_pts);
+                                    velocity_fluctuations_at_q[idim].resize(n_quad_pts);
+                                }
+                                velocity_at_q[idim][iquad] = velocity[idim];
+                                time_averaged_velocity_at_q[idim][iquad] = time_averaged_velocity[idim];
+                                velocity_fluctuations_at_q[idim][iquad] = velocity_at_q[idim][iquad] - time_averaged_velocity_at_q[idim][iquad];
+                            } 
+                        }
+                        for(unsigned int idof=0; idof<n_dofs_cell; idof++){
+                            const unsigned int istate = dg->fe_collection[poly_degree].system_to_component_index(idof).first;
+                            const unsigned int ishape = dg->fe_collection[poly_degree].system_to_component_index(idof).second;
+                            if(istate == 0){//u^{\prime}v^{\prime}
+                                dg->fluctuating_quantities(current_dofs_indices[idof]) = velocity_fluctuations_at_q[0][ishape]*velocity_fluctuations_at_q[1][ishape];
+                            }else if(istate == 1){//u^{\prime 2}
+                                dg->fluctuating_quantities(current_dofs_indices[idof]) = velocity_fluctuations_at_q[0][ishape]*velocity_fluctuations_at_q[0][ishape];
+                            }else if(istate == 2){//v^{\prime 2}
+                                dg->fluctuating_quantities(current_dofs_indices[idof]) = velocity_fluctuations_at_q[1][ishape]*velocity_fluctuations_at_q[1][ishape];
+                            }else if(istate == 3){//z^{\prime 2}
+                                dg->fluctuating_quantities(current_dofs_indices[idof]) = velocity_fluctuations_at_q[2][ishape]*velocity_fluctuations_at_q[2][ishape];
+                            }else if(istate == 4){//u^{\prime}w^{\prime}
+                                dg->fluctuating_quantities(current_dofs_indices[idof]) = velocity_fluctuations_at_q[0][ishape]*velocity_fluctuations_at_q[2][ishape];
+                            }
+                        }
+                    }
+                }
+                else if(flow_solver_param.compute_Reynolds_stress && (ode_solver->current_time > flow_solver_param.time_to_start_computing_Reynolds_Stress)) {
+                    const unsigned int max_dofs_per_cell = dg->dof_handler.get_fe_collection().max_dofs_per_cell();
+                    std::vector<dealii::types::global_dof_index> current_dofs_indices(max_dofs_per_cell);
+                    auto metric_cell = dg->high_order_grid->dof_handler_grid.begin_active();
+                    for (auto current_cell = dg->dof_handler.begin_active(); current_cell!=dg->dof_handler.end(); ++current_cell, ++metric_cell) {
+                        if (!current_cell->is_locally_owned()) continue;
+
+                        const unsigned int n_dofs_cell = dg->fe_collection[poly_degree].dofs_per_cell;                  
+                        current_dofs_indices.resize(n_dofs_cell);
+                        current_cell->get_dof_indices (current_dofs_indices);
+                        const unsigned int n_shape_fns = n_dofs_cell / nstate;
+                        dealii::Quadrature<1> vol_quad_equidistant_1D = dealii::QIterated<1>(dealii::QTrapez<1>(),poly_degree);
+                        const unsigned int n_quad_pts = pow(vol_quad_equidistant_1D.size(),dim);
+                        const unsigned int init_grid_degree = dg->high_order_grid->fe_system.tensor_degree();
+                        OPERATOR::basis_functions<dim,2*dim,double> soln_basis(1, dg->max_degree, init_grid_degree); 
+                        soln_basis.build_1D_volume_operator(dg->oneD_fe_collection_1state[dg->max_degree], vol_quad_equidistant_1D);
+                        soln_basis.build_1D_gradient_operator(dg->oneD_fe_collection_1state[dg->max_degree], vol_quad_equidistant_1D);                
+                        // Store solution coeffs for time-averaged flutuating quantitites
+                        std::array<std::vector<double>,nstate> soln_coeff;
+                        std::array<std::vector<double>,nstate> time_averaged_soln_coeff;
+                        for(unsigned int idof=0; idof<n_dofs_cell; idof++){
+                            const unsigned int istate = dg->fe_collection[poly_degree].system_to_component_index(idof).first;
+                            const unsigned int ishape = dg->fe_collection[poly_degree].system_to_component_index(idof).second;
+                            if(ishape == 0) {
+                                soln_coeff[istate].resize(n_shape_fns);
+                                time_averaged_soln_coeff[istate].resize(n_shape_fns);
+                            }
+                            soln_coeff[istate][ishape] = dg->solution(current_dofs_indices[idof]);
+                            time_averaged_soln_coeff[istate][ishape] = dg->time_averaged_solution(current_dofs_indices[idof]);
+                        }
+
+                        //Project solutin
+                        std::array<std::vector<double>,nstate> soln_at_q;
+                        std::array<std::vector<double>,nstate> time_averaged_soln_at_q;
+                        for(int istate=0; istate<nstate; istate++){
+                            soln_at_q[istate].resize(n_quad_pts);
+                            time_averaged_soln_at_q[istate].resize(n_quad_pts);
+                            // Interpolate soln coeff to volume cubature nodes.
+                            soln_basis.matrix_vector_mult_1D(soln_coeff[istate], soln_at_q[istate],
+                                                            soln_basis.oneD_vol_operator);
+                            // Interpolate soln coeff to volume cubature nodes.
+                            soln_basis.matrix_vector_mult_1D(time_averaged_soln_coeff[istate], time_averaged_soln_at_q[istate],
+                                                            soln_basis.oneD_vol_operator);
+                        }
+                        // compute quantities at quad nodes (equisdistant)
+                        dealii::Tensor<1,dim,std::vector<double>> velocity_at_q;
+                        dealii::Tensor<1,dim,std::vector<double>> time_averaged_velocity_at_q;
+                        dealii::Tensor<1,dim,std::vector<double>> velocity_fluctuations_at_q;
+                        for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
+                            std::array<double,nstate> soln_state;
+                            std::array<double,nstate> time_averaged_soln_state;
+                            for(int istate=0; istate<nstate; istate++){
+                                soln_state[istate] = soln_at_q[istate][iquad];
+                                time_averaged_soln_state[istate] = time_averaged_soln_at_q[istate][iquad];
+                            }
+                            dealii::Tensor<1,dim,double> vel;// = this->navier_stokes_physics->compute_velocities(soln_state);
+                            dealii::Tensor<1,dim,double> time_averaged_vel;// = this->navier_stokes_physics->compute_velocities(time_averaged_soln_state);
+                            const double density = soln_state[0];
+                            const double time_averaged_density = time_averaged_soln_state[0];
+                            for (unsigned int d=0; d<dim; ++d) {
+                                vel[d] = soln_state[1+d]/density;
+                                time_averaged_vel[d] = time_averaged_soln_state[1+d]/time_averaged_density;
+                            }
+                            const dealii::Tensor<1,dim,double> velocity = vel;
+                            const dealii::Tensor<1,dim,double> time_averaged_velocity = time_averaged_vel;
+                            for(int idim=0; idim<dim; idim++){
+                                if(iquad==0){
+                                    velocity_at_q[idim].resize(n_quad_pts);
+                                    time_averaged_velocity_at_q[idim].resize(n_quad_pts);
+                                    velocity_fluctuations_at_q[idim].resize(n_quad_pts);
+                                }
+                                velocity_at_q[idim][iquad] = velocity[idim];
+                                time_averaged_velocity_at_q[idim][iquad] = time_averaged_velocity[idim];
+                                velocity_fluctuations_at_q[idim][iquad] = velocity_at_q[idim][iquad] - time_averaged_velocity_at_q[idim][iquad];
+                            } 
+                        }
+                        for(unsigned int idof=0; idof<n_dofs_cell; idof++){
+                            const unsigned int istate = dg->fe_collection[poly_degree].system_to_component_index(idof).first;
+                            const unsigned int ishape = dg->fe_collection[poly_degree].system_to_component_index(idof).second;
+                            if(istate == 0){//u^{\prime}v^{\prime}
+                                //dg->fluctuating_quantities(current_dofs_indices[idof]) = velocity_fluctuations_at_q[0][ishape]*velocity_fluctuations_at_q[1][ishape];
+                                dg->fluctuating_quantities(current_dofs_indices[idof])= dg->fluctuating_quantities(current_dofs_indices[idof]) + (velocity_fluctuations_at_q[0][ishape]*velocity_fluctuations_at_q[1][ishape] - dg->fluctuating_quantities(current_dofs_indices[idof]))/((ode_solver->current_time - flow_solver_param.time_to_start_computing_Reynolds_Stress + time_step) / time_step); //Incremental average
+                            }else if(istate == 1){//u^{\prime 2}
+                                //dg->fluctuating_quantities(current_dofs_indices[idof]) = velocity_fluctuations_at_q[0][ishape]*velocity_fluctuations_at_q[0][ishape];
+                                dg->fluctuating_quantities(current_dofs_indices[idof])= dg->fluctuating_quantities(current_dofs_indices[idof]) + (velocity_fluctuations_at_q[0][ishape]*velocity_fluctuations_at_q[0][ishape] - dg->fluctuating_quantities(current_dofs_indices[idof]))/((ode_solver->current_time - flow_solver_param.time_to_start_computing_Reynolds_Stress + time_step) / time_step); //Incremental average
+                            }else if(istate == 2){//v^{\prime 2}
+                                //dg->fluctuating_quantities(current_dofs_indices[idof]) = velocity_fluctuations_at_q[1][ishape]*velocity_fluctuations_at_q[1][ishape];
+                                dg->fluctuating_quantities(current_dofs_indices[idof])= dg->fluctuating_quantities(current_dofs_indices[idof]) + (velocity_fluctuations_at_q[1][ishape]*velocity_fluctuations_at_q[1][ishape] - dg->fluctuating_quantities(current_dofs_indices[idof]))/((ode_solver->current_time - flow_solver_param.time_to_start_computing_Reynolds_Stress + time_step) / time_step); //Incremental average
+                            }else if(istate == 3){//z^{\prime 2}
+                                //dg->fluctuating_quantities(current_dofs_indices[idof]) = velocity_fluctuations_at_q[2][ishape]*velocity_fluctuations_at_q[2][ishape];
+                                dg->fluctuating_quantities(current_dofs_indices[idof])= dg->fluctuating_quantities(current_dofs_indices[idof]) + (velocity_fluctuations_at_q[2][ishape]*velocity_fluctuations_at_q[2][ishape] - dg->fluctuating_quantities(current_dofs_indices[idof]))/((ode_solver->current_time - flow_solver_param.time_to_start_computing_Reynolds_Stress + time_step) / time_step); //Incremental average
+                            }else if(istate == 4){//u^{\prime}w^{\prime}
+                                //dg->fluctuating_quantities(current_dofs_indices[idof]) = velocity_fluctuations_at_q[0][ishape]*velocity_fluctuations_at_q[2][ishape];
+                                dg->fluctuating_quantities(current_dofs_indices[idof])= dg->fluctuating_quantities(current_dofs_indices[idof]) + (velocity_fluctuations_at_q[0][ishape]*velocity_fluctuations_at_q[2][ishape] - dg->fluctuating_quantities(current_dofs_indices[idof]))/((ode_solver->current_time - flow_solver_param.time_to_start_computing_Reynolds_Stress + time_step) / time_step); //Incremental average
+                            }
+                        }
+                    }
+                }
+            }
+            bool do_write_unsteady_data_table_file = false;
+            if(flow_solver_param.write_unsteady_data_table_file_every_dt_time_intervals > 0.0) {
+                const bool is_write_time = ((ode_solver->current_time <= current_desired_time_for_write_unsteady_data_table_file_every_dt_time_intervals) && 
+                                             ((ode_solver->current_time + time_step) > current_desired_time_for_write_unsteady_data_table_file_every_dt_time_intervals)) 
+                                            || (ode_solver->current_time > current_desired_time_for_write_unsteady_data_table_file_every_dt_time_intervals);
+                if (is_write_time) {
+                    do_write_unsteady_data_table_file = true;
+                    current_desired_time_for_write_unsteady_data_table_file_every_dt_time_intervals += flow_solver_param.write_unsteady_data_table_file_every_dt_time_intervals;
+                }
+            } else {
+                do_write_unsteady_data_table_file = true;
+            }
 
             // Compute the unsteady quantities, write to the dealii table, and output to file
-            flow_solver_case->compute_unsteady_data_and_write_to_table(ode_solver, dg, unsteady_data_table);
+            if(do_compute_unsteady_data_and_write_to_table){
+                flow_solver_case->compute_unsteady_data_and_write_to_table(ode_solver->current_iteration, ode_solver->current_time, dg, unsteady_data_table, do_write_unsteady_data_table_file);
+            }
             // update next time step
                        
             if(flow_solver_param.adaptive_time_step == true) {
@@ -614,11 +880,12 @@ int FlowSolver<dim,nstate>::run() const
                 // Output restart files
                 if(flow_solver_param.output_restart_files_every_dt_time_intervals > 0.0) {
                     const bool is_output_time = ((ode_solver->current_time <= current_desired_time_for_output_restart_files_every_dt_time_intervals) && 
-                                                 ((ode_solver->current_time + next_time_step) > current_desired_time_for_output_restart_files_every_dt_time_intervals));
+                                                 ((ode_solver->current_time + next_time_step) > current_desired_time_for_output_restart_files_every_dt_time_intervals)) 
+                                                || (ode_solver->current_time > current_desired_time_for_output_restart_files_every_dt_time_intervals);
                     if (is_output_time) {
-                        const unsigned int file_number = int(round(current_desired_time_for_output_restart_files_every_dt_time_intervals / flow_solver_param.output_restart_files_every_dt_time_intervals));
-                        output_restart_files(file_number, next_time_step, unsteady_data_table);
+                        output_restart_files(current_restart_file_number, next_time_step, unsteady_data_table);
                         current_desired_time_for_output_restart_files_every_dt_time_intervals += flow_solver_param.output_restart_files_every_dt_time_intervals;
+                        current_restart_file_number += 1;
                     }
                 } else /*if (flow_solver_param.output_restart_files_every_x_steps > 0)*/ {
                     const bool is_output_iteration = (ode_solver->current_iteration % flow_solver_param.output_restart_files_every_x_steps == 0);
@@ -640,7 +907,8 @@ int FlowSolver<dim,nstate>::run() const
                 }
             } else if(ode_param.output_solution_every_dt_time_intervals > 0.0) {
                 const bool is_output_time = ((ode_solver->current_time <= ode_solver->current_desired_time_for_output_solution_every_dt_time_intervals) && 
-                                             ((ode_solver->current_time + next_time_step) > ode_solver->current_desired_time_for_output_solution_every_dt_time_intervals));
+                                             ((ode_solver->current_time + next_time_step) > ode_solver->current_desired_time_for_output_solution_every_dt_time_intervals))
+                                            || (ode_solver->current_time > ode_solver->current_desired_time_for_output_solution_every_dt_time_intervals);
                 if (is_output_time) {
                     pcout << "  ... Writing vtk solution file ..." << std::endl;
                     const unsigned int file_number = int(round(ode_solver->current_desired_time_for_output_solution_every_dt_time_intervals / ode_param.output_solution_every_dt_time_intervals));
@@ -686,9 +954,26 @@ int FlowSolver<dim,nstate>::run() const
 
         timer.stop();
         pcout << "Timer stopped. " << std::endl;
-        const double max_wall_time = dealii::Utilities::MPI::max(timer.wall_time(), this->mpi_communicator);
-        pcout << "Elapsed wall time (mpi max): " << max_wall_time << " seconds." << std::endl;
-        pcout << "Elapsed CPU time: " << timer.cpu_time() << " seconds." << std::endl;
+        const double cpu_time = timer.cpu_time();
+        const double total_wall_time = dealii::Utilities::MPI::sum(timer.wall_time(), this->mpi_communicator);
+        const double number_of_time_steps = (double)ode_solver->current_iteration;
+        const double avg_cpu_time_per_time_step = cpu_time/number_of_time_steps;
+        const double avg_total_wall_time_per_time_step = total_wall_time/number_of_time_steps;
+        pcout << "Elapsed CPU time: " << cpu_time << " seconds." << std::endl;
+        pcout << "Elapsed total wall time (mpi max): " << total_wall_time << " seconds." << std::endl;
+        pcout << "Average CPU time per time step: " << avg_cpu_time_per_time_step << " seconds." << std::endl;
+        pcout << "Average total wall time per time step: " << avg_total_wall_time_per_time_step << " seconds." << std::endl;
+        // writing timing to file
+        if(mpi_rank==0) {
+            // add values to table
+            flow_solver_case->add_value_to_data_table(cpu_time,"total_cpu_time",timer_values_table);
+            flow_solver_case->add_value_to_data_table(total_wall_time,"total_wall_time",timer_values_table);
+            flow_solver_case->add_value_to_data_table(avg_cpu_time_per_time_step,"avg_cpu_time",timer_values_table);
+            flow_solver_case->add_value_to_data_table(avg_total_wall_time_per_time_step,"avg_wall_time",timer_values_table);
+            std::string timing_table_filename = std::string("timer_values.txt");
+            std::ofstream timer_values_table_file(timing_table_filename);
+            timer_values_table->write_text(timer_values_table_file);
+        }
     } else {
         //----------------------------------------------------
         // Steady-state solution

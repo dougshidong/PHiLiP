@@ -113,29 +113,34 @@ protected:
     bool is_decaying_homogeneous_isotropic_turbulence = false; ///< Identified if DHIT case; initialized as false.
     bool is_viscous_flow = true; ///< Identifies if viscous flow; initialized as true.
     bool do_calculate_numerical_entropy = false; ///< Identifies if numerical entropy should be calculated; initialized as false.
+    bool do_compute_mean_strain_rate_tensor = false; ///< Identifies if the mean strain rate tensor must be calculated
 
     /// Display additional more specific flow case parameters
-    void display_additional_flow_case_specific_parameters() const override;
+    virtual void display_additional_flow_case_specific_parameters() const override;
 
+public:
     /// Function to compute the constant time step
     double get_constant_time_step(std::shared_ptr<DGBase<dim,double>> dg) const override;
 
     /// Function to compute the adaptive time step
-    using CubeFlow_UniformGrid<dim, nstate>::get_adaptive_time_step;
+    virtual double get_adaptive_time_step(std::shared_ptr<DGBase<dim,double>> dg) const override;
 
     /// Function to compute the initial adaptive time step
-    using CubeFlow_UniformGrid<dim, nstate>::get_adaptive_time_step_initial;
+    virtual double get_adaptive_time_step_initial(std::shared_ptr<DGBase<dim,double>> dg) override;
 
+protected:
     /// Updates the maximum local wave speed
     using CubeFlow_UniformGrid<dim, nstate>::update_maximum_local_wave_speed;
 
-    using FlowSolverCaseBase<dim,nstate>::compute_unsteady_data_and_write_to_table;
+public:
     /// Compute the desired unsteady data and write it to a table
-    void compute_unsteady_data_and_write_to_table(
-            const std::shared_ptr<ODE::ODESolverBase<dim, double>> ode_solver, 
+    virtual void compute_unsteady_data_and_write_to_table(
+            const std::shared_ptr<ODE::ODESolverBase<dim, double>> ode_solver,
             const std::shared_ptr <DGBase<dim, double>> dg,
-            const std::shared_ptr<dealii::TableHandler> unsteady_data_table) override;
+            const std::shared_ptr<dealii::TableHandler> unsteady_data_table,
+            const bool do_write_unsteady_data_table_file);
 
+protected:
     /// List of possible integrated quantities over the domain
     enum IntegratedQuantitiesEnum {
         kinetic_energy,
@@ -146,6 +151,9 @@ protected:
     };
     /// Array for storing the integrated quantities; done for computational efficiency
     std::array<double,NUMBER_OF_INTEGRATED_QUANTITIES> integrated_quantities;
+
+    /// Integrated kinetic energy over the domain at previous time step; used for ensuring a physically consistent simulation
+    double integrated_kinetic_energy_at_previous_time_step;
 
     /// Maximum local wave speed (i.e. convective eigenvalue)
     double maximum_local_wave_speed;

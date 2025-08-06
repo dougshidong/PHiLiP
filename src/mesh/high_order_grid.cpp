@@ -1396,7 +1396,6 @@ void HighOrderGrid<dim,real,MeshType,VectorType,DoFHandlerType>::output_results_
     }
     std::vector<dealii::DataComponentInterpretation::DataComponentInterpretation> data_component_interpretation(dim, dealii::DataComponentInterpretation::component_is_scalar);
     data_out.add_data_vector (volume_nodes, solution_names, dealii::DataOut<dim>::type_dof_data, data_component_interpretation);
-
     dealii::Vector<float> subdomain(triangulation->n_active_cells());
     for (unsigned int i = 0; i < subdomain.size(); ++i) {
         subdomain[i] = triangulation->locally_owned_subdomain();
@@ -1457,7 +1456,7 @@ void HighOrderGrid<dim,real,MeshType,VectorType,DoFHandlerType>::output_results_
         std::ofstream master_output(master_fn);
         data_out.write_pvtu_record(master_output, filenames);
     }
-
+    pcout << "Done Outputting grid." << std::endl;
 }
 
 template <int dim>

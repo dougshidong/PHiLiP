@@ -408,6 +408,10 @@ public:
      */
     dealii::LinearAlgebra::distributed::Vector<double> solution;
 
+    dealii::LinearAlgebra::distributed::Vector<double> time_averaged_solution;
+
+    dealii::LinearAlgebra::distributed::Vector<double> fluctuating_quantities;
+
     ///The auxiliary equations' right hand sides.
     std::array<dealii::LinearAlgebra::distributed::Vector<double>,dim> auxiliary_right_hand_side;
 
@@ -525,8 +529,8 @@ public:
 
     void initialize_manufactured_solution (); ///< Virtual function defined in DG
 
-    void output_results_vtk (const unsigned int cycle, const double current_time=0.0); ///< Output solution
-    void output_face_results_vtk (const unsigned int cycle, const double current_time=0.0); ///< Output Euler face solution
+    void output_results_vtk (const unsigned int cycle, const double current_time=0.0, const bool output_time_averaged_solution=false, const bool output_fluctuating_quantities=false); ///< Output solution
+    void output_face_results_vtk (const unsigned int cycle, const double current_time=0.0, const bool output_time_averaged_solution=false, const bool output_fluctuating_quantities=false); ///< Output Euler face solution
 
     bool update_artificial_diss;
     /// Main loop of the DG class.
@@ -888,6 +892,7 @@ protected:
      *  computes 4 block contributions to dRdX blocks. */
     virtual void assemble_face_term_derivatives(
         typename dealii::DoFHandler<dim>::active_cell_iterator cell,
+        typename dealii::DoFHandler<dim>::active_cell_iterator neighbor_cell,
         const dealii::types::global_dof_index current_cell_index,
         const dealii::types::global_dof_index neighbor_cell_index,
         const std::pair<unsigned int, int> face_subface_int,
@@ -992,7 +997,6 @@ public:
     bool use_auxiliary_eq;
     /// Set use_auxiliary_eq flag
     virtual void set_use_auxiliary_eq() = 0;
-
 }; // end of DGBase class
 
 } // PHiLiP namespace

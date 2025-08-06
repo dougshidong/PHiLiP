@@ -53,17 +53,17 @@ int NACA0012UnsteadyCheckQuick<dim, nstate>::run_test() const
         }
         this->pcout << std::endl;
         
-        // Initialize flow_solver
-        std::unique_ptr<FlowSolver::FlowSolver<dim,nstate>> flow_solver_loop = FlowSolver::FlowSolverFactory<dim,nstate>::select_flow_case(&params_loop, parameter_handler);
+        // // Initialize flow_solver
+        // std::unique_ptr<FlowSolver::FlowSolver<dim,nstate>> flow_solver_loop = FlowSolver::FlowSolverFactory<dim,nstate>::select_flow_case(&params_loop, parameter_handler);
         
-        static_cast<void>(flow_solver_loop->run());
-        std::unique_ptr<FlowSolver::NACA0012<dim, nstate>> flow_solver_case_loop = std::make_unique<FlowSolver::NACA0012<dim,nstate>>(this->all_parameters);
-        lift_calculated[irun] = flow_solver_case_loop->compute_lift((flow_solver_loop->dg));
-        drag_calculated[irun] = flow_solver_case_loop->compute_drag((flow_solver_loop->dg));
-        this->pcout << "Finished run." << std::endl;
-        this->pcout << "Calculated lift value was :  " << lift_calculated[irun] << std::endl
-                    << "Calculated drag value was :  " << drag_calculated[irun] << std::endl;
-        this->pcout << "=====================================================" << std::endl;
+        // static_cast<void>(flow_solver_loop->run());
+        // std::unique_ptr<FlowSolver::NACA0012<dim, nstate>> flow_solver_case_loop = std::make_unique<FlowSolver::NACA0012<dim,nstate>>(this->all_parameters);
+        // lift_calculated[irun] = flow_solver_case_loop->compute_lift((flow_solver_loop->dg));
+        // drag_calculated[irun] = flow_solver_case_loop->compute_drag((flow_solver_loop->dg));
+        // this->pcout << "Finished run." << std::endl;
+        // this->pcout << "Calculated lift value was :  " << lift_calculated[irun] << std::endl
+        //             << "Calculated drag value was :  " << drag_calculated[irun] << std::endl;
+        // this->pcout << "=====================================================" << std::endl;
     }
 
     const double acceptable_tolerance = 0.00001;

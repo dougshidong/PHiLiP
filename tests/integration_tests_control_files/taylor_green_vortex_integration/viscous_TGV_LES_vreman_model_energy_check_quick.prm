@@ -12,8 +12,11 @@ set use_weak_form = true
 # set flux_nodes_type = GLL
 set non_physical_behavior = abort_run
 
-# Note: this was added to turn off check_same_coords() -- has no other function when dim!=1
-set use_periodic_bc = true
+set all_boundaries_are_periodic = true
+set check_same_coords_in_weak_dg = false
+
+# memory allocation
+set do_renumber_dofs = false
 
 # degree of freedom renumbering not necessary for explicit time advancement cases
 set do_renumber_dofs = false
@@ -44,8 +47,8 @@ subsection navier_stokes
 end
 
 subsection physics_model
+  set euler_turbulence = false
   subsection large_eddy_simulation
-    set euler_turbulence = false
     set SGS_model_type = vreman
     set turbulent_prandtl_number = 0.6
     set smagorinsky_model_constant = 0.18

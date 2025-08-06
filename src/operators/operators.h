@@ -319,8 +319,11 @@ public:
     * Explicitly, this passes basis_surf in the direction by face_number, and basis_vol
     * in all other directions.
     */
+
     void matrix_vector_mult_surface_1D(
+            const bool face_orientation,
             const unsigned int face_number,
+            const unsigned int n_quad_pts_1D,
             const std::vector<real> &input_vect,
             std::vector<real> &output_vect,
             const std::array<dealii::FullMatrix<double>,2> &basis_surf,//only 2 faces in 1D
@@ -330,7 +333,9 @@ public:
 
     /// Apply sum-factorization inner product on a surface.
     void inner_product_surface_1D(
+            const bool face_orientation,
             const unsigned int face_number,
+            const unsigned int n_quad_pts_1D,
             const std::vector<real> &input_vect,
             const std::vector<real> &weight_vect,
             std::vector<real> &output_vect,
@@ -339,6 +344,30 @@ public:
             const bool adding = false,
             const double factor = 1.0);
 
+    /// These function correct the face orientation of a face, in case deal.ii changes it.
+    /** When we have to interpolate to a surface, the reference quadrature points that we interpolate to
+    * may have changed orientation. The functions below account for this and change the ordering of the
+    * quadrature points. After we compute the fluxes (i.e., when the points need to match between the
+    * int and ext cells), we need to account for this again when we intergrate (since strong DG assuumes
+    * a certain ordering, we must make sure we map the r.h.s back to the correct DOFs.).
+    */
+    
+    void face_orientation_tensor_product(
+            const bool face_orientation,
+            const unsigned int face_number,
+            const unsigned int n_quad_pts_1D,
+            std::vector<real> &output_vect,
+            const dealii::FullMatrix<double> &basis);
+
+    void face_orientation_inner_product(
+            const bool face_orientation,
+            const unsigned int face_number,
+            const unsigned int n_quad_pts_1D,
+            const std::vector<real> &input_vect,
+            const std::vector<real> &weight_vect,
+            std::vector<real> &output_vect,
+            std::vector<real> &weight_output_vect,
+            const dealii::FullMatrix<double> &basis);
 
     ///Computes a single Hadamard product. 
     /** For input mat1 \f$ A \f$ and input mat2 \f$ B \f$, this computes
@@ -348,6 +377,15 @@ public:
         const dealii::FullMatrix<real> &input_mat1,
         const dealii::FullMatrix<real> &input_mat2,
         dealii::FullMatrix<real> &output_mat);
+
+    /// Returns the reference cell's face number in standard orientation.
+    unsigned int reference_face_number(
+        const unsigned int iface,
+        const bool face_orientation,
+        const bool face_flip,
+        const bool face_rotation);
+
+
 
 //protected:
 public:

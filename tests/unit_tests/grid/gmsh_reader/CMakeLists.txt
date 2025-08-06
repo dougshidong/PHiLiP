@@ -1,5 +1,5 @@
 set(TEST_SRC
-    gmsh_reader.cpp
+    gmsh_quad_reordering.cpp
     )
 
 set(EXECUTABLE_OUTPUT_PATH ${CMAKE_CURRENT_BINARY_DIR})

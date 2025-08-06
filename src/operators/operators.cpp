@@ -193,6 +193,51 @@ SumFactorizedOperators<dim,n_faces,real>::SumFactorizedOperators(
 {}
 
 template <int dim, int n_faces, typename real>  
+void SumFactorizedOperators<dim,n_faces,real>::face_orientation_tensor_product(
+    const bool face_orientation,
+    const unsigned int /*face_number*/,
+    const unsigned int n_quad_pts_1D,
+    std::vector<real> &output_vect,
+    const dealii::FullMatrix<double> &/*basis*/) 
+{
+    std::vector<double> output_vect_temp = output_vect;
+    //const unsigned int columns = basis.n();
+    const unsigned int columns = n_quad_pts_1D;
+    if(!face_orientation){
+        for(unsigned int ydof=0; ydof<columns; ydof++){ 
+            for(unsigned int xdof=0; xdof<columns; xdof++){//x runs fastest
+                output_vect[xdof+ydof*columns] = output_vect_temp[columns*xdof+ydof];
+            }
+        }
+    }
+}
+
+template <int dim, int n_faces, typename real>  
+void SumFactorizedOperators<dim,n_faces,real>::face_orientation_inner_product(
+    const bool face_orientation,
+    const unsigned int /*face_number*/,
+    const unsigned int n_quad_pts_1D,
+    const std::vector<real> &input_vect,
+    const std::vector<real> &/*weight_vect*/,
+    std::vector<real> &output_vect,
+    std::vector<real> &/*weight_output_vect*/,
+    const dealii::FullMatrix<double> &/*basis*/)
+{
+    output_vect = input_vect;
+    //weight_output_vect = weight_vect;
+    //const unsigned int columns = basis.n();
+    const unsigned int columns = n_quad_pts_1D;
+    if(!face_orientation){
+        for(unsigned int ydof=0; ydof<columns; ydof++){ 
+            for(unsigned int xdof=0; xdof<columns; xdof++){//x runs fastest
+                output_vect[xdof+ydof*columns] = input_vect[columns*xdof+ydof];
+                //weight_output_vect[xdof+ydof*columns] = weight_vect[columns*xdof+ydof];
+            }
+        }
+    }
+}
+
+template <int dim, int n_faces, typename real>  
 void SumFactorizedOperators<dim,n_faces,real>::matrix_vector_mult(
     const std::vector<real> &input_vect,
     std::vector<real> &output_vect,
@@ -317,7 +362,9 @@ void SumFactorizedOperators<dim,n_faces,real>::matrix_vector_mult_1D(
 
 template <int dim, int n_faces, typename real>  
 void SumFactorizedOperators<dim,n_faces,real>::matrix_vector_mult_surface_1D(
+    const bool face_orientation,
     const unsigned int face_number,
+    const unsigned int n_quad_pts_1D,
     const std::vector<real> &input_vect,
     std::vector<real> &output_vect,
     const std::array<dealii::FullMatrix<double>,2> &basis_surf,
@@ -337,12 +384,16 @@ void SumFactorizedOperators<dim,n_faces,real>::matrix_vector_mult_surface_1D(
         this->matrix_vector_mult(input_vect, output_vect, basis_vol, basis_vol, basis_surf[0], adding, factor);
     if(face_number == 5)
         this->matrix_vector_mult(input_vect, output_vect, basis_vol, basis_vol, basis_surf[1], adding, factor);
+
+    this->face_orientation_tensor_product(face_orientation, face_number, n_quad_pts_1D, output_vect, basis_surf[0]);
 }
 
 
 template <int dim, int n_faces, typename real>  
 void SumFactorizedOperators<dim,n_faces,real>::inner_product_surface_1D(
+    const bool face_orientation,
     const unsigned int face_number,
+    const unsigned int n_quad_pts_1D,
     const std::vector<real> &input_vect,
     const std::vector<real> &weight_vect,
     std::vector<real> &output_vect,
@@ -351,18 +402,24 @@ void SumFactorizedOperators<dim,n_faces,real>::inner_product_surface_1D(
     const bool adding,
     const double factor)
 {
+    
+
+    std::vector<double> input_vect_corrected;
+    std::vector<double> weight_vect_corrected;
+    
+    this->face_orientation_inner_product(face_orientation, face_number, n_quad_pts_1D, input_vect, weight_vect, input_vect_corrected, weight_vect_corrected, basis_surf[0]);
     if(face_number == 0)
-        this->inner_product(input_vect, weight_vect, output_vect, basis_surf[0], basis_vol, basis_vol, adding, factor);
+        this->inner_product(input_vect_corrected, weight_vect, output_vect, basis_surf[0], basis_vol, basis_vol, adding, factor);
     if(face_number == 1)
-        this->inner_product(input_vect, weight_vect, output_vect, basis_surf[1], basis_vol, basis_vol, adding, factor);
+        this->inner_product(input_vect_corrected, weight_vect, output_vect, basis_surf[1], basis_vol, basis_vol, adding, factor);
     if(face_number == 2)
-        this->inner_product(input_vect, weight_vect, output_vect, basis_vol, basis_surf[0], basis_vol, adding, factor);
+        this->inner_product(input_vect_corrected, weight_vect, output_vect, basis_vol, basis_surf[0], basis_vol, adding, factor);
     if(face_number == 3)
-        this->inner_product(input_vect, weight_vect, output_vect, basis_vol, basis_surf[1], basis_vol, adding, factor);
+        this->inner_product(input_vect_corrected, weight_vect, output_vect, basis_vol, basis_surf[1], basis_vol, adding, factor);
     if(face_number == 4)
-        this->inner_product(input_vect, weight_vect, output_vect, basis_vol, basis_vol, basis_surf[0], adding, factor);
+        this->inner_product(input_vect_corrected, weight_vect, output_vect, basis_vol, basis_vol, basis_surf[0], adding, factor);
     if(face_number == 5)
-        this->inner_product(input_vect, weight_vect, output_vect, basis_vol, basis_vol, basis_surf[1], adding, factor);
+        this->inner_product(input_vect_corrected, weight_vect, output_vect, basis_vol, basis_vol, basis_surf[1], adding, factor);
 }
 
 template <int dim, int n_faces, typename real>  
@@ -1058,6 +1115,103 @@ void SumFactorizedOperators<dim,n_faces,real>::sum_factorized_Hadamard_surface_b
             }
         }
     }
+}
+
+template <int dim, int n_faces, typename real>  
+unsigned int SumFactorizedOperators<dim,n_faces,real>::reference_face_number(
+    const unsigned int iface,
+    const bool /*face_orientation*/,
+    const bool face_flip,
+    const bool face_rotation)
+{
+    unsigned int face_number = 100;
+    // if(!face_flip && !face_rotation /*&& !face_orientation*/){
+    //     if(iface==0){
+    //         face_number = 5;
+    //     }
+    //     else if(iface==1){
+    //         face_number = 4;
+    //     }
+    //     else if(iface==4){
+    //         face_number = 1;
+    //     }
+    //     else if(iface==5){
+    //         face_number = 0;
+    //     }
+    // }
+    if(!face_flip && face_rotation){//90 degree rotation
+        //Not fully verified yet
+        std::cout<<"Cannot handle reference cell face rotations!. Aborting..."<<std::endl;
+        std::abort();
+    }
+    else if(face_flip && !face_rotation){//180 degree rotation
+        //Not fully verified yet
+    std::cout<<"FACE FLIP!. Aborting..."<<std::endl;
+	if(iface%2==0)
+            face_number = iface + 1;
+        if(iface%2==1)
+            face_number = iface - 1;
+       std::cout<<"Cannot handle reference cell face rotations!. Aborting..."<<std::endl;
+       std::abort();
+    }
+    else if(face_flip && face_rotation){//270 degree rotation
+        //Not fully verified yet
+        std::cout<<"Cannot handle reference cell face rotations!. Aborting..."<<std::endl;
+        std::abort();
+    }
+    else if(!face_flip && !face_rotation /*&& !face_orientation*/){//270 degree rotation
+        face_number = iface;
+    }
+    if(face_number == 100){
+        std::cout<<"face rotated condition not yet considered."<<std::endl;
+        std::abort();
+    }
+
+//    if(face_orientation){
+//        face_number = iface;
+//       // std::cout<<"Correct face orientation. Face id is:"<<iface<<std::endl;
+//    }
+//    else{
+////	std::cout<<"face_orientation:"<<face_orientation<<std::endl;
+//      //  std::cout<<"Cell face was rotated by Deal.ii! Face id is:"<<iface<<std::endl;	
+////	std::cout<<"face orientation"<<face_orientation<<std::endl;
+////	std::cout<<"face flip"<<face_flip<<std::endl;
+////	std::cout<<"face rotation"<<face_rotation<<std::endl;
+//     //   if(!face_flip && !face_rotation){
+////         //   std::cout<<"Cannot handle reference cell face flip!"<<std::endl;   
+////	    if(iface%2==0)
+////                face_number = iface + 1;
+////            if(iface%2==1)
+////                face_number = iface - 1;
+////	   // std::abort();
+//           face_number = iface;
+//        }
+//        if(!face_flip && face_rotation){
+//        std::cout<<"Cell face was rotated by Deal.ii! Face id is:"<<iface<<std::endl;	
+//        std::cout<<"face orientation"<<face_orientation<<std::endl;
+//        std::cout<<"face flip"<<face_flip<<std::endl;
+//        std::cout<<"face rotation"<<face_rotation<<std::endl;
+//            std::cout<<"Cannot handle reference cell face rotations!. Aborting..."<<std::endl;
+//            std::abort();
+//        }
+//        if(face_flip && face_rotation){
+//            std::cout<<"Cannot handle reference cell face flip and rotations!. Aborting..."<<std::endl;
+//        std::cout<<"Cell face was rotated by Deal.ii! Face id is:"<<iface<<std::endl;	
+//        std::cout<<"face orientation"<<face_orientation<<std::endl;
+//        std::cout<<"face flip"<<face_flip<<std::endl;
+//        std::cout<<"face rotation"<<face_rotation<<std::endl;
+//            std::abort();
+//        }
+//    }
+//    if(face_number == 100){
+//            std::cout<<"Cannot handle reference cell no face orientation and no rotations!. Aborting..."<<std::endl;
+//            //std::cout<<"face_flip:"<<face_flip<<std::endl;
+//            //std::cout<<"face_rotation:"<<face_rotation<<std::endl;
+//            //std::abort();
+//    }
+//
+    return face_number;
+
 }
 
 /*******************************************
@@ -2652,17 +2806,17 @@ void metric_operators<real,dim,n_faces>::compute_local_3D_cofactor(
         x_dz_dxi[grid_node]   = mapping_support_points[0][grid_node] * grad_Xm[grid_node][2][0];
         if(use_invariant_curl_form){
             x_dz_dxi[grid_node] = 0.5 * x_dz_dxi[grid_node]  
-                                - 0.5 * mapping_support_points[2][grid_node] * grad_Xm[grid_node][1][0];
+                                - 0.5 * mapping_support_points[2][grid_node] * grad_Xm[grid_node][0][0];
         }
         x_dz_deta[grid_node]  = mapping_support_points[0][grid_node] * grad_Xm[grid_node][2][1];
         if(use_invariant_curl_form){
             x_dz_deta[grid_node] = 0.5 * x_dz_deta[grid_node]  
-                                 - 0.5 * mapping_support_points[2][grid_node] * grad_Xm[grid_node][1][1];
+                                 - 0.5 * mapping_support_points[2][grid_node] * grad_Xm[grid_node][0][1];
         }
         x_dz_dzeta[grid_node] = mapping_support_points[0][grid_node] * grad_Xm[grid_node][2][2];
         if(use_invariant_curl_form){
             x_dz_dzeta[grid_node] = 0.5 * x_dz_dzeta[grid_node]  
-                                  - 0.5 * mapping_support_points[2][grid_node] * grad_Xm[grid_node][1][2];
+                                  - 0.5 * mapping_support_points[2][grid_node] * grad_Xm[grid_node][0][2];
         }
                                                                                          
         y_dx_dxi[grid_node]   = mapping_support_points[1][grid_node] * grad_Xm[grid_node][0][0];

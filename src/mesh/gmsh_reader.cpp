@@ -256,6 +256,7 @@ void rotate_indices(std::vector<unsigned int> &numbers, const unsigned int n_ind
                       for (unsigned int ix = 0; ix < n; ++ix)
                       {
                           unsigned int k = (ix * n * n) + (n - 1) + (iy * n) - (iz);
+                          //unsigned int k = ((1-ix) * n * n) + (n - 1) + (iy * n) - (1-iz);
                           numbers[k] = l++;
                           if(mesh_reader_verbose_output) pcout << "3D rotation matrix, physical node mapping, Y-axis : " << k << std::endl;
                       }
@@ -267,6 +268,7 @@ void rotate_indices(std::vector<unsigned int> &numbers, const unsigned int n_ind
                       for (unsigned int ix = 0; ix < n; ++ix)
                       {
                           unsigned int k = (n * (n - 1)) + ix - (iy * n) + (n * n * iz);
+                          //unsigned int k = (1-ix) * n + n - (iy + 1) + (n * n * (1-iz));
                           numbers[k] = l++;
                           if(mesh_reader_verbose_output) pcout << "3D rotation matrix, physical node mapping, Flip-axis : " << k << std::endl;
                       }
@@ -1368,7 +1370,7 @@ read_gmsh(std::string filename,
         triangulation = std::make_shared<Triangulation>(MPI_COMM_WORLD); // Dealii's default mesh smoothing flag is none. 
     }
 
-    auto high_order_grid = std::make_shared<HighOrderGrid<dim, double>>(grid_order, triangulation);
+    auto high_order_grid = std::make_shared<HighOrderGrid<dim, double>>(grid_order, triangulation,true,false);
   
     unsigned int n_entity_blocks, n_cells;
     int min_ele_tag, max_ele_tag;
@@ -1573,6 +1575,25 @@ read_gmsh(std::string filename,
         assign_1d_boundary_ids(boundary_ids_1d, *triangulation);
     }
 
+    //Check for periodic boundary conditions and apply
+    std::vector<dealii::GridTools::PeriodicFacePair<typename dealii::Triangulation<dim>::cell_iterator> > matched_pairs;
+
+    if (periodic_x) {
+        dealii::GridTools::collect_periodic_faces(*high_order_grid->triangulation, x_periodic_1, x_periodic_2, 0, matched_pairs);
+    }
+
+    if (periodic_y) {
+        dealii::GridTools::collect_periodic_faces(*high_order_grid->triangulation, y_periodic_1, y_periodic_2, 1, matched_pairs);
+    }
+
+    if (periodic_z) {
+        dealii::GridTools::collect_periodic_faces(*high_order_grid->triangulation, z_periodic_1, z_periodic_2, 2, matched_pairs);
+    }
+
+    if (periodic_x || periodic_y || periodic_z) {
+        high_order_grid->triangulation->add_periodicity(matched_pairs);
+    }
+
     high_order_grid->initialize_with_triangulation_manifold();
 
     std::vector<unsigned int> deal_h2l = dealii::FETools::hierarchic_to_lexicographic_numbering<dim>(grid_order);
@@ -1734,28 +1755,9 @@ read_gmsh(std::string filename,
     high_order_grid->update_mapping_fe_field();
     high_order_grid->reset_initial_nodes();
     
-    //Check for periodic boundary conditions and apply
-    std::vector<dealii::GridTools::PeriodicFacePair<typename dealii::Triangulation<dim>::cell_iterator> > matched_pairs;
-
-    if (periodic_x) {
-        dealii::GridTools::collect_periodic_faces(*high_order_grid->triangulation, x_periodic_1, x_periodic_2, 0, matched_pairs);
-    }
-
-    if (periodic_y) {
-        dealii::GridTools::collect_periodic_faces(*high_order_grid->triangulation, y_periodic_1, y_periodic_2, 1, matched_pairs);
-    }
-
-    if (periodic_z) {
-        dealii::GridTools::collect_periodic_faces(*high_order_grid->triangulation, z_periodic_1, z_periodic_2, 2, matched_pairs);
-    }
-
-    if (periodic_x || periodic_y || periodic_z) {
-        high_order_grid->triangulation->add_periodicity(matched_pairs);
-    }
-
 
     if (requested_grid_order > 0) {
-        auto grid = std::make_shared<HighOrderGrid<dim, double>>(requested_grid_order, triangulation);
+        auto grid = std::make_shared<HighOrderGrid<dim, double>>(requested_grid_order, triangulation,true,false);
         grid->initialize_with_triangulation_manifold();
         
         /// Convert the mesh by interpolating from one order to another.
@@ -1786,24 +1788,6 @@ read_gmsh(std::string filename,
         grid->update_mapping_fe_field();
         grid->reset_initial_nodes();
 
-        //Check for periodic boundary conditions and apply
-        std::vector<dealii::GridTools::PeriodicFacePair<typename dealii::Triangulation<dim>::cell_iterator> > matched_pairs;
-        
-        if (periodic_x) {
-            dealii::GridTools::collect_periodic_faces(*grid->triangulation, x_periodic_1, x_periodic_2, 0, matched_pairs);
-        }
-
-        if (periodic_y) {
-            dealii::GridTools::collect_periodic_faces(*grid->triangulation, y_periodic_1, y_periodic_2, 1, matched_pairs);
-        }
-
-        if (periodic_z) {
-            dealii::GridTools::collect_periodic_faces(*grid->triangulation, z_periodic_1, z_periodic_2, 2, matched_pairs);
-        }
-
-        if (periodic_x || periodic_y || periodic_z) {
-            grid->triangulation->add_periodicity(matched_pairs);
-        }
 
         return grid;
 
@@ -1817,13 +1801,13 @@ std::shared_ptr< HighOrderGrid<dim, double> >
 read_gmsh(std::string filename, const bool do_renumber_dofs, int requested_grid_order, const bool use_mesh_smoothing)
 {
   // default parameters
-  const bool periodic_x = false;
-  const bool periodic_y = false;
+  const bool periodic_x = true;
+  const bool periodic_y = true;
   const bool periodic_z = false;
-  const int x_periodic_1 = 0; 
-  const int x_periodic_2 = 0;
-  const int y_periodic_1 = 0; 
-  const int y_periodic_2 = 0;
+  const int x_periodic_1 = 2001; 
+  const int x_periodic_2 = 2002;
+  const int y_periodic_1 = 2003; 
+  const int y_periodic_2 = 2004;
   const int z_periodic_1 = 0; 
   const int z_periodic_2 = 0;
   const bool mesh_reader_verbose_output = true;

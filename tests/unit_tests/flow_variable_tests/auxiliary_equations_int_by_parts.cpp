@@ -109,6 +109,8 @@ void assemble_face_term_auxiliary_weak(
 
     const unsigned int n_shape_fns_int = n_dofs_int / nstate;
     const unsigned int n_shape_fns_ext = n_dofs_ext / nstate;
+    const unsigned int n_quad_pts_1D_int  = dg->oneD_quadrature_collection[poly_degree_int].size();
+    const unsigned int n_quad_pts_1D_ext  = dg->oneD_quadrature_collection[poly_degree_int].size();
     //Extract interior modal coefficients of solution
     std::array<std::vector<double>,nstate> soln_coeff_int;
     std::array<std::vector<double>,nstate> soln_coeff_ext;
@@ -136,11 +138,13 @@ void assemble_face_term_auxiliary_weak(
         soln_at_surf_q_int[istate].resize(n_face_quad_pts);
         soln_at_surf_q_ext[istate].resize(n_face_quad_pts);
         //solve soln at facet cubature nodes
-        soln_basis_int.matrix_vector_mult_surface_1D(iface,
+        soln_basis_int.matrix_vector_mult_surface_1D(/*cell->face_orientation(iface)*/true,iface,
+                                                     n_quad_pts_1D_int,
                                                      soln_coeff_int[istate], soln_at_surf_q_int[istate],
                                                      soln_basis_int.oneD_surf_operator,
                                                      soln_basis_int.oneD_vol_operator);
-        soln_basis_ext.matrix_vector_mult_surface_1D(neighbor_iface,
+        soln_basis_ext.matrix_vector_mult_surface_1D(/*neighbor_cell->face_orientation(neighbor_iface)*/true, neighbor_iface,
+                                                     n_quad_pts_1D_ext,
                                                      soln_coeff_ext[istate], soln_at_surf_q_ext[istate],
                                                      soln_basis_ext.oneD_surf_operator,
                                                      soln_basis_ext.oneD_vol_operator);
@@ -204,7 +208,8 @@ void assemble_face_term_auxiliary_weak(
         for(int idim=0; idim<dim; idim++){
             std::vector<double> rhs_int(n_shape_fns_int);
 
-            soln_basis_int.inner_product_surface_1D(iface, 
+            soln_basis_int.inner_product_surface_1D(true, iface, 
+                                                n_quad_pts_1D_int,
                                                 surf_num_flux_int_dot_normal[istate][idim],
                                                 surf_quad_weights, rhs_int,
                                                 soln_basis_int.oneD_surf_operator,
@@ -216,7 +221,8 @@ void assemble_face_term_auxiliary_weak(
             }
             std::vector<double> rhs_ext(n_shape_fns_ext);
 
-            soln_basis_ext.inner_product_surface_1D(neighbor_iface, 
+            soln_basis_ext.inner_product_surface_1D(true, neighbor_iface, 
+                                                n_quad_pts_1D_ext,
                                                 surf_num_flux_ext_dot_normal[istate][idim],
                                                 surf_quad_weights, rhs_ext,
                                                 soln_basis_ext.oneD_surf_operator,
@@ -297,7 +303,7 @@ int main (int argc, char * argv[])
             //choose NS equations
             all_parameters_new.pde_type = PDE_enum::navier_stokes;
             all_parameters_new.use_weak_form = false;
-            all_parameters_new.use_periodic_bc = true;
+            all_parameters_new.all_boundaries_are_periodic = true;
             all_parameters_new.ode_solver_param.ode_solver_type = ODE_enum::runge_kutta_solver;//auxiliary only works explicit for now
             all_parameters_new.use_inverse_mass_on_the_fly = true;
             std::shared_ptr < PHiLiP::DGStrong<dim,dim+2,double> > dg = std::make_shared< PHiLiP::DGStrong<dim,dim+2,real,Triangulation> >(&all_parameters_new, poly_degree, poly_degree, grid_degree, grid);
@@ -344,7 +350,6 @@ int main (int argc, char * argv[])
             //loop over cells and compare rhs strong versus rhs weak
             for (auto current_cell = dg->dof_handler.begin_active(); current_cell!=dg->dof_handler.end(); ++current_cell, ++metric_cell) {
                 if (!current_cell->is_locally_owned()) continue;
-            
                 //get mapping support points
                 std::vector<dealii::types::global_dof_index> current_metric_dofs_indices(n_metric_dofs);
                 metric_cell->get_dof_indices (current_metric_dofs_indices);
@@ -415,6 +420,8 @@ int main (int argc, char * argv[])
                      
                     //evaluate facet auxiliary RHS
                     dg->assemble_face_term_auxiliary_equation (
+                       current_cell,
+                       neighbor_cell,
                         iface, neighbor_iface, 
                         current_cell_index, neighbor_cell_index,
                         poly_degree, poly_degree,

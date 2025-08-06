@@ -128,6 +128,11 @@ public:
      *  if ODE parameter "output_solution_every_dt_time_intervals" > 0. */
     double current_desired_time_for_output_solution_every_dt_time_intervals;
 
+    /// Current desired time for output txt file at dt time intervals
+    /** This variable will change when advance_solution_time() is called
+     *  if ODE parameter "output_solution_every_dt_time_intervals" > 0. */
+    double current_desired_time_for_output_velocity_every_dt_time_intervals;
+
     /// Getter for original_time_step
     double get_original_time_step() const;
 

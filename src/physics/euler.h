@@ -86,6 +86,7 @@ protected:
      *  we need to add the following: */
     using PhysicsBase<dim,nstate,real>::dissipative_flux;
     using PhysicsBase<dim,nstate,real>::source_term;
+    using PhysicsBase<dim,nstate,real>::boundary_face_values;
 public:
     using two_point_num_flux_enum = Parameters::AllParameters::TwoPointNumericalFlux;
     /// Constructor
@@ -210,13 +211,34 @@ public:
     ///
     /// Opposite of convert_primitive_to_conservative
     template<typename real2>
-    std::array<real2,nstate> convert_conservative_to_primitive ( const std::array<real2,nstate> &conservative_soln ) const;
+    std::array<real2,nstate> convert_conservative_to_primitive_templated ( const std::array<real2,nstate> &conservative_soln ) const;
+
+    /// Convert conservative to primitive (real2==real); required by base class
+    std::array<real,nstate> convert_conservative_to_primitive ( const std::array<real,nstate> &conservative_soln ) const;
 
     /// Given primitive variables [density, [velocities], pressure],
     /// returns conservative variables [density, [momentum], total energy].
     ///
     /// Opposite of convert_primitive_to_conservative
     std::array<real,nstate> convert_primitive_to_conservative ( const std::array<real,nstate> &primitive_soln ) const;
+    /** Obtain gradient of primitive variables from gradient of conservative variables */
+    template<typename real2>
+    std::array<dealii::Tensor<1,dim,real2>,nstate> 
+    convert_conservative_gradient_to_primitive_gradient_templated (
+        const std::array<real2,nstate> &conservative_soln,
+        const std::array<dealii::Tensor<1,dim,real2>,nstate> &conservative_soln_gradient) const;
+
+    /** Obtain gradient of primitive variables from gradient of conservative variables */
+    std::array<dealii::Tensor<1,dim,real>,nstate> 
+    convert_conservative_gradient_to_primitive_gradient (
+        const std::array<real,nstate> &conservative_soln,
+        const std::array<dealii::Tensor<1,dim,real>,nstate> &conservative_soln_gradient) const;
+
+    /** Obtain gradient of conservative variables from gradient of primitive variables */
+    std::array<dealii::Tensor<1,dim,real>,nstate> 
+    convert_primitive_gradient_to_conservative_gradient (
+        const std::array<real,nstate> &primitive_soln,
+        const std::array<dealii::Tensor<1,dim,real>,nstate> &primitive_soln_gradient) const;
 
     /// Evaluate pressure from conservative variables
     template<typename real2>
@@ -357,16 +379,16 @@ public:
         const std::vector<dealii::Tensor<1,dim> > &duh,
         const std::vector<dealii::Tensor<2,dim> > &dduh,
         const dealii::Tensor<1,dim>               &normals,
-        const dealii::Point<dim>                  &evaluation_points) const;
+        const dealii::Point<dim>                  &evaluation_points) const override;
     
     /// For post processing purposes, sets the base names (with no prefix or suffix) of the computed quantities
-    virtual std::vector<std::string> post_get_names () const;
+    virtual std::vector<std::string> post_get_names () const override;
     
     /// For post processing purposes, sets the interpretation of each computed quantity as either scalar or vector
-    virtual std::vector<dealii::DataComponentInterpretation::DataComponentInterpretation> post_get_data_component_interpretation () const;
+    virtual std::vector<dealii::DataComponentInterpretation::DataComponentInterpretation> post_get_data_component_interpretation () const override;
     
     /// For post processing purposes (update comment later)
-    virtual dealii::UpdateFlags post_get_needed_update_flags () const;
+    virtual dealii::UpdateFlags post_get_needed_update_flags () const override;
 
 protected:
     /** Slip wall boundary conditions (No penetration)

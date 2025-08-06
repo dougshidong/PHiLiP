@@ -175,7 +175,7 @@ bool Euler<dim,nstate,real>::check_positive_quantity(real2 &qty, const std::stri
 template <int dim, int nstate, typename real>
 template<typename real2>
 inline std::array<real2,nstate> Euler<dim,nstate,real>
-::convert_conservative_to_primitive ( const std::array<real2,nstate> &conservative_soln ) const
+::convert_conservative_to_primitive_templated ( const std::array<real2,nstate> &conservative_soln ) const
 {
     std::array<real2, nstate> primitive_soln;
 
@@ -195,6 +195,13 @@ inline std::array<real2,nstate> Euler<dim,nstate,real>
 }
 
 template <int dim, int nstate, typename real>
+std::array<real,nstate> Euler<dim,nstate,real>
+::convert_conservative_to_primitive ( const std::array<real,nstate> &conservative_soln ) const
+{
+    return convert_conservative_to_primitive_templated<real>(conservative_soln);
+}
+
+template <int dim, int nstate, typename real>
 inline std::array<real,nstate> Euler<dim,nstate,real>
 ::convert_primitive_to_conservative ( const std::array<real,nstate> &primitive_soln ) const
 {
@@ -210,6 +217,98 @@ inline std::array<real,nstate> Euler<dim,nstate,real>
     conservative_soln[nstate-1] = compute_total_energy(primitive_soln);
 
     return conservative_soln;
+}
+
+template <int dim, int nstate, typename real>
+std::array<dealii::Tensor<1,dim,real>,nstate> Euler<dim,nstate,real>
+::convert_primitive_gradient_to_conservative_gradient (
+    const std::array<real,nstate> &primitive_soln,
+    const std::array<dealii::Tensor<1,dim,real>,nstate> &primitive_soln_gradient) const
+{
+    std::array<dealii::Tensor<1,dim,real>,nstate> conservative_soln_gradient;
+
+    // get conservative solution
+    const std::array<real,nstate> conservative_soln = convert_primitive_to_conservative(primitive_soln);
+    // extract from primitive solution
+    const real density = primitive_soln[0];
+    const dealii::Tensor<1,dim,real> vel = extract_velocities_from_primitive<real>(primitive_soln);
+
+    // density gradient
+    for (int d=0; d<dim; d++) {
+        conservative_soln_gradient[0][d] = primitive_soln_gradient[0][d];
+    }
+    // momentum components gradient
+    for (int d1=0; d1<dim; d1++) {
+        for (int d2=0; d2<dim; d2++) {
+            conservative_soln_gradient[1+d1][d2] = density*primitive_soln_gradient[1+d1][d2] + vel[d1]*conservative_soln_gradient[0][d2];
+        }        
+    }
+    // total energy gradient
+    for (int d1=0; d1<dim; d1++) {
+        conservative_soln_gradient[nstate-1][d1] = primitive_soln_gradient[nstate-1][d1];
+        conservative_soln_gradient[nstate-1][d1] /= this->gamm1;
+        for (int d2=0; d2<dim; d2++) {
+            conservative_soln_gradient[nstate-1][d1] += 0.5*(primitive_soln[1+d2]*conservative_soln_gradient[1+d2][d1]  
+                                                           + conservative_soln[1+d2]*primitive_soln_gradient[1+d2][d1]);
+        }
+    }
+    return conservative_soln_gradient;
+}
+
+template <int dim, int nstate, typename real>
+template<typename real2>
+std::array<dealii::Tensor<1,dim,real2>,nstate> Euler<dim,nstate,real>
+::convert_conservative_gradient_to_primitive_gradient_templated (
+    const std::array<real2,nstate> &conservative_soln,
+    const std::array<dealii::Tensor<1,dim,real2>,nstate> &conservative_soln_gradient) const
+{
+    std::array<dealii::Tensor<1,dim,real2>,nstate> primitive_soln_gradient;
+
+    // get primitive solution
+    const std::array<real2,nstate> primitive_soln = convert_conservative_to_primitive_templated<real2>(conservative_soln);
+    // extract from primitive solution
+    const real2 density = primitive_soln[0];
+    const dealii::Tensor<1,dim,real2> vel = extract_velocities_from_primitive<real2>(primitive_soln);
+
+    // density gradient
+    for (int d=0; d<dim; d++) {
+        primitive_soln_gradient[0][d] = conservative_soln_gradient[0][d];
+    }
+    // velocities gradient
+    for (int d1=0; d1<dim; d1++) {
+        for (int d2=0; d2<dim; d2++) {
+            primitive_soln_gradient[1+d1][d2] = (conservative_soln_gradient[1+d1][d2] - vel[d1]*conservative_soln_gradient[0][d2])/density;
+        }        
+    }
+    // pressure gradient
+    // -- formulation 1:
+    // const real2 vel2 = this->template compute_velocity_squared<real2>(vel); // from Euler
+    // for (int d1=0; d1<dim; d1++) {
+    //     primitive_soln_gradient[nstate-1][d1] = conservative_soln_gradient[nstate-1][d1] - 0.5*vel2*conservative_soln_gradient[0][d1];
+    //     for (int d2=0; d2<dim; d2++) {
+    //         primitive_soln_gradient[nstate-1][d1] -= conservative_soln[1+d2]*primitive_soln_gradient[1+d2][d1];
+    //     }
+    //     primitive_soln_gradient[nstate-1][d1] *= this->gamm1;
+    // }
+    // -- formulation 2 (equivalent to formulation 1):
+    for (int d1=0; d1<dim; d1++) {
+        primitive_soln_gradient[nstate-1][d1] = conservative_soln_gradient[nstate-1][d1];
+        for (int d2=0; d2<dim; d2++) {
+            primitive_soln_gradient[nstate-1][d1] -= 0.5*(primitive_soln[1+d2]*conservative_soln_gradient[1+d2][d1]  
+                                                           + conservative_soln[1+d2]*primitive_soln_gradient[1+d2][d1]);
+        }
+        primitive_soln_gradient[nstate-1][d1] *= this->gamm1;
+    }
+    return primitive_soln_gradient;
+}
+
+template <int dim, int nstate, typename real>
+std::array<dealii::Tensor<1,dim,real>,nstate> Euler<dim,nstate,real>
+::convert_conservative_gradient_to_primitive_gradient (
+    const std::array<real,nstate> &conservative_soln,
+    const std::array<dealii::Tensor<1,dim,real>,nstate> &conservative_soln_gradient) const
+{
+    return convert_conservative_gradient_to_primitive_gradient_templated<real>(conservative_soln,conservative_soln_gradient);
 }
 
 //template <int dim, int nstate, typename real>
@@ -278,7 +377,7 @@ template <int dim, int nstate, typename real>
 inline real Euler<dim,nstate,real>
 ::compute_kinetic_energy_from_conservative_solution ( const std::array<real,nstate> &conservative_soln ) const
 {
-    const std::array<real,nstate> primitive_soln = convert_conservative_to_primitive<real>(conservative_soln);
+    const std::array<real,nstate> primitive_soln = convert_conservative_to_primitive_templated<real>(conservative_soln);
     const real kinetic_energy = compute_kinetic_energy_from_primitive_solution(primitive_soln);
     return kinetic_energy;
 }
@@ -524,9 +623,9 @@ std::array<dealii::Tensor<1,dim,real>,nstate> Euler<dim, nstate, real>
 {
     // Get Ismail Roe parameter vectors
     const std::array<real,nstate> parameter_vector1 = compute_ismail_roe_parameter_vector_from_primitive(
-                                                        convert_conservative_to_primitive<real>(conservative_soln1));
+                                                        convert_conservative_to_primitive_templated<real>(conservative_soln1));
     const std::array<real,nstate> parameter_vector2 = compute_ismail_roe_parameter_vector_from_primitive(
-                                                        convert_conservative_to_primitive<real>(conservative_soln2));
+                                                        convert_conservative_to_primitive_templated<real>(conservative_soln2));
 
     // Compute mean (average) parameter vector
     std::array<real,nstate> avg_parameter_vector;
@@ -970,7 +1069,7 @@ void Euler<dim,nstate,real>
    const std::array<real,nstate> &soln_int,
    std::array<real,nstate> &soln_bc) const
 {
-    std::array<real,nstate> primitive_int = convert_conservative_to_primitive<real>(soln_int);
+    std::array<real,nstate> primitive_int = convert_conservative_to_primitive_templated<real>(soln_int);
     std::array<real,nstate> primitive_ext;
     primitive_ext[0] = density_inf;
     for (int d=0;d<dim;d++) { primitive_ext[1+d] = velocities_inf[d]; }
@@ -1051,7 +1150,7 @@ void Euler<dim,nstate,real>
     // Krivodonova, L., and Berger, M.,
     // “High-order accurate implementation of solid wall boundary conditions in curved geometries,”
     // Journal of Computational Physics, vol. 211, 2006, pp. 492–512.
-    const std::array<real,nstate> primitive_interior_values = convert_conservative_to_primitive<real>(soln_int);
+    const std::array<real,nstate> primitive_interior_values = convert_conservative_to_primitive_templated<real>(soln_int);
 
     // Copy density and pressure
     std::array<real,nstate> primitive_boundary_values;
@@ -1115,7 +1214,7 @@ void Euler<dim,nstate,real>
         conservative_boundary_values[s] = this->manufactured_solution_function->value (pos, s);
         boundary_gradients[s] = this->manufactured_solution_function->gradient (pos, s);
     }
-    std::array<real,nstate> primitive_boundary_values = convert_conservative_to_primitive<real>(conservative_boundary_values);
+    std::array<real,nstate> primitive_boundary_values = convert_conservative_to_primitive_templated<real>(conservative_boundary_values);
     for (int istate=0; istate<nstate; ++istate) {
 
         std::array<real,nstate> characteristic_dot_n = convective_eigenvalues(conservative_boundary_values, normal_int);
@@ -1174,7 +1273,7 @@ void Euler<dim,nstate,real>
         }
     } 
     else {
-        const std::array<real,nstate> primitive_interior_values = convert_conservative_to_primitive<real>(soln_int);
+        const std::array<real,nstate> primitive_interior_values = convert_conservative_to_primitive_templated<real>(soln_int);
         const real pressure_int = primitive_interior_values[nstate-1];
 
         const real radicant = 1.0+0.5*gamm1*mach_inf_sqr;
@@ -1207,7 +1306,7 @@ void Euler<dim,nstate,real>
    // Inflow boundary conditions (both subsonic and supersonic)
    // Carlson 2011, sec. 2.2 & sec 2.9
 
-   const std::array<real,nstate> primitive_interior_values = convert_conservative_to_primitive<real>(soln_int);
+   const std::array<real,nstate> primitive_interior_values = convert_conservative_to_primitive_templated<real>(soln_int);
 
    const dealii::Tensor<1,dim,real> normal = -normal_int;
 
@@ -1339,7 +1438,7 @@ void Euler<dim,nstate,real>
         boundary_manufactured_solution (pos, normal_int, soln_int, soln_grad_int, soln_bc, soln_grad_bc);
     } 
     else if (boundary_type == 1001) {
-        // Wall boundary condition (slip for Euler, no-slip for Navier-Stokes; done through polymorphism)
+        // Wall boundary condition (solid wall)
         boundary_wall (normal_int, soln_int, soln_grad_int, soln_bc, soln_grad_bc);
     } 
     else if (boundary_type == 1002) {
@@ -1387,7 +1486,7 @@ dealii::Vector<double> Euler<dim,nstate,real>::post_compute_derived_quantities_v
         for (unsigned int s=0; s<nstate; ++s) {
             conservative_soln[s] = uh(s);
         }
-        const std::array<double, nstate> primitive_soln = convert_conservative_to_primitive<real>(conservative_soln);
+        const std::array<double, nstate> primitive_soln = convert_conservative_to_primitive_templated<real>(conservative_soln);
         // if (primitive_soln[0] < 0) this->pcout << evaluation_points << std::endl;
 
         // Density
@@ -1494,6 +1593,18 @@ template class Euler < PHILIP_DIM, PHILIP_DIM+2, RadFadType >;
 // -> Templated member functions: // could be automated later on using Boost MPL
 //------------------------------------------------------------------------------
 // -- check_positive_quantity
+// -- convert_conservative_gradient_to_primitive_gradient_templated()
+template std::array<dealii::Tensor<1,PHILIP_DIM,double    >,PHILIP_DIM+2> Euler<PHILIP_DIM,PHILIP_DIM+2,double    >::convert_conservative_gradient_to_primitive_gradient_templated<double    >(const std::array<double    ,PHILIP_DIM+2> &conservative_soln, const std::array<dealii::Tensor<1,PHILIP_DIM,double    >,PHILIP_DIM+2> &conservative_soln_gradient) const;
+template std::array<dealii::Tensor<1,PHILIP_DIM,FadType   >,PHILIP_DIM+2> Euler<PHILIP_DIM,PHILIP_DIM+2,FadType   >::convert_conservative_gradient_to_primitive_gradient_templated<FadType   >(const std::array<FadType   ,PHILIP_DIM+2> &conservative_soln, const std::array<dealii::Tensor<1,PHILIP_DIM,FadType   >,PHILIP_DIM+2> &conservative_soln_gradient) const;
+template std::array<dealii::Tensor<1,PHILIP_DIM,RadType   >,PHILIP_DIM+2> Euler<PHILIP_DIM,PHILIP_DIM+2,RadType   >::convert_conservative_gradient_to_primitive_gradient_templated<RadType   >(const std::array<RadType   ,PHILIP_DIM+2> &conservative_soln, const std::array<dealii::Tensor<1,PHILIP_DIM,RadType   >,PHILIP_DIM+2> &conservative_soln_gradient) const;
+template std::array<dealii::Tensor<1,PHILIP_DIM,FadFadType>,PHILIP_DIM+2> Euler<PHILIP_DIM,PHILIP_DIM+2,FadFadType>::convert_conservative_gradient_to_primitive_gradient_templated<FadFadType>(const std::array<FadFadType,PHILIP_DIM+2> &conservative_soln, const std::array<dealii::Tensor<1,PHILIP_DIM,FadFadType>,PHILIP_DIM+2> &conservative_soln_gradient) const;
+template std::array<dealii::Tensor<1,PHILIP_DIM,RadFadType>,PHILIP_DIM+2> Euler<PHILIP_DIM,PHILIP_DIM+2,RadFadType>::convert_conservative_gradient_to_primitive_gradient_templated<RadFadType>(const std::array<RadFadType,PHILIP_DIM+2> &conservative_soln, const std::array<dealii::Tensor<1,PHILIP_DIM,RadFadType>,PHILIP_DIM+2> &conservative_soln_gradient) const;
+// -- -- instantiate all the real types with real2 = FadType for automatic differentiation in classes derived from LargeEddySimulationBase
+template std::array<dealii::Tensor<1,PHILIP_DIM,FadType   >,PHILIP_DIM+2> Euler<PHILIP_DIM,PHILIP_DIM+2,double    >::convert_conservative_gradient_to_primitive_gradient_templated<FadType   >(const std::array<FadType   ,PHILIP_DIM+2> &conservative_soln, const std::array<dealii::Tensor<1,PHILIP_DIM,FadType   >,PHILIP_DIM+2> &conservative_soln_gradient) const;
+template std::array<dealii::Tensor<1,PHILIP_DIM,FadType   >,PHILIP_DIM+2> Euler<PHILIP_DIM,PHILIP_DIM+2,RadType   >::convert_conservative_gradient_to_primitive_gradient_templated<FadType   >(const std::array<FadType   ,PHILIP_DIM+2> &conservative_soln, const std::array<dealii::Tensor<1,PHILIP_DIM,FadType   >,PHILIP_DIM+2> &conservative_soln_gradient) const;
+template std::array<dealii::Tensor<1,PHILIP_DIM,FadType   >,PHILIP_DIM+2> Euler<PHILIP_DIM,PHILIP_DIM+2,FadFadType>::convert_conservative_gradient_to_primitive_gradient_templated<FadType   >(const std::array<FadType   ,PHILIP_DIM+2> &conservative_soln, const std::array<dealii::Tensor<1,PHILIP_DIM,FadType   >,PHILIP_DIM+2> &conservative_soln_gradient) const;
+template std::array<dealii::Tensor<1,PHILIP_DIM,FadType   >,PHILIP_DIM+2> Euler<PHILIP_DIM,PHILIP_DIM+2,RadFadType>::convert_conservative_gradient_to_primitive_gradient_templated<FadType   >(const std::array<FadType   ,PHILIP_DIM+2> &conservative_soln, const std::array<dealii::Tensor<1,PHILIP_DIM,FadType   >,PHILIP_DIM+2> &conservative_soln_gradient) const;
+
 template bool Euler < PHILIP_DIM, PHILIP_DIM+2, double     >::check_positive_quantity< double     >(double     &qty, const std::string qty_name) const;
 template bool Euler < PHILIP_DIM, PHILIP_DIM+2, FadType    >::check_positive_quantity< FadType    >(FadType    &qty, const std::string qty_name) const;
 template bool Euler < PHILIP_DIM, PHILIP_DIM+2, RadType    >::check_positive_quantity< RadType    >(RadType    &qty, const std::string qty_name) const;
@@ -1537,17 +1648,17 @@ template FadType    Euler < PHILIP_DIM, PHILIP_DIM+2, double     >::compute_velo
 template FadType    Euler < PHILIP_DIM, PHILIP_DIM+2, RadType    >::compute_velocity_squared< FadType    >(const dealii::Tensor<1,PHILIP_DIM,FadType   > &velocities) const;
 template FadType    Euler < PHILIP_DIM, PHILIP_DIM+2, FadFadType >::compute_velocity_squared< FadType    >(const dealii::Tensor<1,PHILIP_DIM,FadType   > &velocities) const;
 template FadType    Euler < PHILIP_DIM, PHILIP_DIM+2, RadFadType >::compute_velocity_squared< FadType    >(const dealii::Tensor<1,PHILIP_DIM,FadType   > &velocities) const;
-// -- convert_conservative_to_primitive()
-template std::array<double,    PHILIP_DIM+2> Euler < PHILIP_DIM, PHILIP_DIM+2, double     >::convert_conservative_to_primitive< double     >(const std::array<double,    PHILIP_DIM+2> &conservative_soln) const;
-template std::array<FadType,   PHILIP_DIM+2> Euler < PHILIP_DIM, PHILIP_DIM+2, FadType    >::convert_conservative_to_primitive< FadType    >(const std::array<FadType,   PHILIP_DIM+2> &conservative_soln) const;
-template std::array<RadType,   PHILIP_DIM+2> Euler < PHILIP_DIM, PHILIP_DIM+2, RadType    >::convert_conservative_to_primitive< RadType    >(const std::array<RadType,   PHILIP_DIM+2> &conservative_soln) const;
-template std::array<FadFadType,PHILIP_DIM+2> Euler < PHILIP_DIM, PHILIP_DIM+2, FadFadType >::convert_conservative_to_primitive< FadFadType >(const std::array<FadFadType,PHILIP_DIM+2> &conservative_soln) const;
-template std::array<RadFadType,PHILIP_DIM+2> Euler < PHILIP_DIM, PHILIP_DIM+2, RadFadType >::convert_conservative_to_primitive< RadFadType >(const std::array<RadFadType,PHILIP_DIM+2> &conservative_soln) const;
+// -- convert_conservative_to_primitive_templated()
+template std::array<double,    PHILIP_DIM+2> Euler < PHILIP_DIM, PHILIP_DIM+2, double     >::convert_conservative_to_primitive_templated< double     >(const std::array<double,    PHILIP_DIM+2> &conservative_soln) const;
+template std::array<FadType,   PHILIP_DIM+2> Euler < PHILIP_DIM, PHILIP_DIM+2, FadType    >::convert_conservative_to_primitive_templated< FadType    >(const std::array<FadType,   PHILIP_DIM+2> &conservative_soln) const;
+template std::array<RadType,   PHILIP_DIM+2> Euler < PHILIP_DIM, PHILIP_DIM+2, RadType    >::convert_conservative_to_primitive_templated< RadType    >(const std::array<RadType,   PHILIP_DIM+2> &conservative_soln) const;
+template std::array<FadFadType,PHILIP_DIM+2> Euler < PHILIP_DIM, PHILIP_DIM+2, FadFadType >::convert_conservative_to_primitive_templated< FadFadType >(const std::array<FadFadType,PHILIP_DIM+2> &conservative_soln) const;
+template std::array<RadFadType,PHILIP_DIM+2> Euler < PHILIP_DIM, PHILIP_DIM+2, RadFadType >::convert_conservative_to_primitive_templated< RadFadType >(const std::array<RadFadType,PHILIP_DIM+2> &conservative_soln) const;
 // -- -- instantiate all the real types with real2 = FadType for automatic differentiation in NavierStokes::dissipative_flux_directional_jacobian()
-template std::array<FadType,   PHILIP_DIM+2> Euler < PHILIP_DIM, PHILIP_DIM+2, double     >::convert_conservative_to_primitive< FadType    >(const std::array<FadType,   PHILIP_DIM+2> &conservative_soln) const;
-template std::array<FadType,   PHILIP_DIM+2> Euler < PHILIP_DIM, PHILIP_DIM+2, RadType    >::convert_conservative_to_primitive< FadType    >(const std::array<FadType,   PHILIP_DIM+2> &conservative_soln) const;
-template std::array<FadType,   PHILIP_DIM+2> Euler < PHILIP_DIM, PHILIP_DIM+2, FadFadType >::convert_conservative_to_primitive< FadType    >(const std::array<FadType,   PHILIP_DIM+2> &conservative_soln) const;
-template std::array<FadType,   PHILIP_DIM+2> Euler < PHILIP_DIM, PHILIP_DIM+2, RadFadType >::convert_conservative_to_primitive< FadType    >(const std::array<FadType,   PHILIP_DIM+2> &conservative_soln) const;
+template std::array<FadType,   PHILIP_DIM+2> Euler < PHILIP_DIM, PHILIP_DIM+2, double     >::convert_conservative_to_primitive_templated< FadType    >(const std::array<FadType,   PHILIP_DIM+2> &conservative_soln) const;
+template std::array<FadType,   PHILIP_DIM+2> Euler < PHILIP_DIM, PHILIP_DIM+2, RadType    >::convert_conservative_to_primitive_templated< FadType    >(const std::array<FadType,   PHILIP_DIM+2> &conservative_soln) const;
+template std::array<FadType,   PHILIP_DIM+2> Euler < PHILIP_DIM, PHILIP_DIM+2, FadFadType >::convert_conservative_to_primitive_templated< FadType    >(const std::array<FadType,   PHILIP_DIM+2> &conservative_soln) const;
+template std::array<FadType,   PHILIP_DIM+2> Euler < PHILIP_DIM, PHILIP_DIM+2, RadFadType >::convert_conservative_to_primitive_templated< FadType    >(const std::array<FadType,   PHILIP_DIM+2> &conservative_soln) const;
 // -- extract_velocities_from_primitive()
 template dealii::Tensor<1,PHILIP_DIM,double    > Euler < PHILIP_DIM, PHILIP_DIM+2, double     >::extract_velocities_from_primitive< double     >(const std::array<double,    PHILIP_DIM+2> &primitive_soln) const;
 template dealii::Tensor<1,PHILIP_DIM,FadType   > Euler < PHILIP_DIM, PHILIP_DIM+2, FadType    >::extract_velocities_from_primitive< FadType    >(const std::array<FadType,   PHILIP_DIM+2> &primitive_soln) const;

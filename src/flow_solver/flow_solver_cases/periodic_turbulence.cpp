@@ -40,10 +40,11 @@ PeriodicTurbulence<dim, nstate>::PeriodicTurbulence(const PHiLiP::Parameters::Al
     this->is_decaying_homogeneous_isotropic_turbulence = (flow_type == FlowCaseEnum::decaying_homogeneous_isotropic_turbulence);
     this->is_viscous_flow = (this->all_param.pde_type != Parameters::AllParameters::PartialDifferentialEquation::euler);
     this->do_calculate_numerical_entropy= this->all_param.flow_solver_param.do_calculate_numerical_entropy;
-
+    
     // Navier-Stokes object; create using dynamic_pointer_cast and the create_Physics factory
+    using PDE_enum = Parameters::AllParameters::PartialDifferentialEquation;
     PHiLiP::Parameters::AllParameters parameters_navier_stokes = this->all_param;
-    parameters_navier_stokes.pde_type = Parameters::AllParameters::PartialDifferentialEquation::navier_stokes;
+    parameters_navier_stokes.pde_type = PDE_enum::navier_stokes;
     this->navier_stokes_physics = std::dynamic_pointer_cast<Physics::NavierStokes<dim,dim+2,double>>(
                 Physics::PhysicsFactory<dim,dim+2,double>::create_Physics(&parameters_navier_stokes));
 
@@ -52,6 +53,9 @@ PeriodicTurbulence<dim, nstate>::PeriodicTurbulence(const PHiLiP::Parameters::Al
        before a member function of kind get_integrated_quantity() is called
      */
     std::fill(this->integrated_quantities.begin(), this->integrated_quantities.end(), NAN);
+
+    // Initialize the integrated kinetic energy as NAN
+    this->integrated_kinetic_energy_at_previous_time_step = NAN;
 
     /// For outputting velocity field
     if(output_velocity_field_at_fixed_times && (number_of_times_to_output_velocity_field > 0)) {
@@ -91,7 +95,10 @@ PeriodicTurbulence<dim, nstate>::PeriodicTurbulence(const PHiLiP::Parameters::Al
 template <int dim, int nstate>
 void PeriodicTurbulence<dim,nstate>::display_additional_flow_case_specific_parameters() const
 {
-    this->pcout << "- - Courant-Friedrichs-Lewy number: " << this->all_param.flow_solver_param.courant_friedrichs_lewy_number << std::endl;
+    if(this->all_param.flow_solver_param.adaptive_time_step)
+        this->pcout << "- - Courant-Friedrichs-Lewy number: " << this->all_param.flow_solver_param.courant_friedrichs_lewy_number << std::endl;
+    else
+        this->pcout << "- - Constant time step: " << this->all_param.flow_solver_param.constant_time_step << std::endl;
     std::string flow_type_string;
     if(this->is_taylor_green_vortex || this->is_decaying_homogeneous_isotropic_turbulence) {
         this->pcout << "- - Freestream Reynolds number: " << this->all_param.navier_stokes_param.reynolds_number_inf << std::endl;
@@ -105,7 +112,6 @@ double PeriodicTurbulence<dim,nstate>::get_constant_time_step(std::shared_ptr<DG
 {
     if(this->all_param.flow_solver_param.constant_time_step > 0.0) {
         const double constant_time_step = this->all_param.flow_solver_param.constant_time_step;
-        this->pcout << "- - Using constant time step in FlowSolver parameters: " << constant_time_step << std::endl;
         return constant_time_step;
     } else {
         const unsigned int number_of_degrees_of_freedom_per_state = dg->dof_handler.n_dofs()/nstate;
@@ -229,7 +235,6 @@ void PeriodicTurbulence<dim, nstate>::output_velocity_field(
             mapping_support_points,
             mapping_basis_at_equidistant,
             dg->all_parameters->use_invariant_curl_form);
-
         
         current_dofs_indices.resize(n_dofs_cell);
         current_cell->get_dof_indices (current_dofs_indices);
@@ -424,7 +429,7 @@ void PeriodicTurbulence<dim, nstate>::compute_and_update_integrated_quantities(D
                 ref_gradient_basis_fns_times_soln[idim].resize(n_quad_pts);
                 soln_grad_at_q_vect[istate][idim].resize(n_quad_pts);
             }
-            // Apply gradient of reference basis functions on the solution at volume cubature nodes.}
+            // Apply gradient of reference basis functions on the solution at volume cubature nodes.
             soln_basis.gradient_matrix_vector_mult_1D(soln_coeff[istate], ref_gradient_basis_fns_times_soln,
                                                       soln_basis.oneD_vol_operator,
                                                       soln_basis.oneD_grad_operator);
@@ -446,7 +451,7 @@ void PeriodicTurbulence<dim, nstate>::compute_and_update_integrated_quantities(D
 
             std::array<double,nstate> soln_at_q;
             std::array<dealii::Tensor<1,dim,double>,nstate> soln_grad_at_q;
-            // Extract solution and gradient in a way that the physics ca n use them.
+            // Extract solution and gradient in a way that the physics can use them.
             for(int istate=0; istate<nstate; istate++){
                 soln_at_q[istate] = soln_at_q_vect[istate][iquad];
                 for(int idim=0; idim<dim; idim++){
@@ -473,8 +478,9 @@ void PeriodicTurbulence<dim, nstate>::compute_and_update_integrated_quantities(D
             }
         }
     }
-    this->maximum_local_wave_speed = dealii::Utilities::MPI::max(this->maximum_local_wave_speed, this->mpi_communicator);
-
+    if(this->all_param.flow_solver_param.adaptive_time_step == true) {
+        this->maximum_local_wave_speed = dealii::Utilities::MPI::max(this->maximum_local_wave_speed, this->mpi_communicator);
+    }
     // update integrated quantities
     for(int i_quantity=0; i_quantity<NUMBER_OF_INTEGRATED_QUANTITIES; ++i_quantity) {
         this->integrated_quantities[i_quantity] = dealii::Utilities::MPI::sum(integral_values[i_quantity], this->mpi_communicator);
@@ -681,7 +687,8 @@ template <int dim, int nstate>
 void PeriodicTurbulence<dim, nstate>::compute_unsteady_data_and_write_to_table(
         const std::shared_ptr<ODE::ODESolverBase<dim, double>> ode_solver, 
         const std::shared_ptr <DGBase<dim, double>> dg,
-        const std::shared_ptr <dealii::TableHandler> unsteady_data_table)
+        const std::shared_ptr <dealii::TableHandler> unsteady_data_table,
+        const bool do_write_unsteady_data_table_file)
 {
     //unpack current iteration and current time from ode solver
     const unsigned int current_iteration = ode_solver->current_iteration;
@@ -717,7 +724,7 @@ void PeriodicTurbulence<dim, nstate>::compute_unsteady_data_and_write_to_table(
         if(is_viscous_flow) this->add_value_to_data_table(deviatoric_strain_rate_tensor_based_dissipation_rate,"eps_dev_strain",unsteady_data_table);
         // Write to file
         std::ofstream unsteady_data_table_file(this->unsteady_data_table_filename_with_extension);
-        unsteady_data_table->write_text(unsteady_data_table_file);
+        if(do_write_unsteady_data_table_file) unsteady_data_table->write_text(unsteady_data_table_file);
     }
     // Print to console
     this->pcout << "    Iter: " << current_iteration
@@ -739,8 +746,20 @@ void PeriodicTurbulence<dim, nstate>::compute_unsteady_data_and_write_to_table(
     // Abort if energy is nan
     if(std::isnan(integrated_kinetic_energy)) {
         this->pcout << " ERROR: Kinetic energy at time " << current_time << " is nan." << std::endl;
-        this->pcout << "        Consider decreasing the time step / CFL number." << std::endl;
-        std::abort();
+        this->pcout << "        Consider decreasing the time step / CFL number. Aborting..." << std::endl;
+        if(this->mpi_rank==0) std::abort();
+    }
+
+    // check for case dependant non-physical behavior
+    if(this->all_param.flow_solver_param.check_nonphysical_flow_case_behavior == true) {
+        if(this->get_integrated_kinetic_energy() > this->integrated_kinetic_energy_at_previous_time_step) {
+            this->pcout << " ERROR: Non-physical behaviour encountered in PeriodicTurbulence." << std::endl;
+            this->pcout << "        --> Integrated kinetic energy has increased from the last time step in a closed system without any external sources." << std::endl;
+            this->pcout << "        ==> Consider decreasing the time step / CFL number. Aborting..." << std::endl;
+            if(this->mpi_rank==0) std::abort();
+        } else {
+            this->integrated_kinetic_energy_at_previous_time_step = this->get_integrated_kinetic_energy();
+        }
     }
 
     // Output velocity field for spectra obtaining kinetic energy spectra

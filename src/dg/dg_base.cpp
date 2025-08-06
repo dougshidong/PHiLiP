@@ -501,12 +501,11 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
 
     const dealii::types::global_dof_index current_cell_index = current_cell->active_cell_index();
 
-    std::array<std::vector<real>,dim> mapping_support_points;
-    //if have source term need to store vol flux nodes.
     const bool store_vol_flux_nodes = all_parameters->manufactured_convergence_study_param.manufactured_solution_param.use_manufactured_source_term;
-    //for boundary conditions not periodic we need surface flux nodes
-    //should change this flag to something like if have face on boundary not periodic in the future
-    const bool store_surf_flux_nodes = (all_parameters->use_periodic_bc) ? false : true;
+
+    const bool store_surf_flux_nodes = (all_parameters->use_periodic_bc) ? true : true;
+
+    std::array<std::vector<real>,dim> mapping_support_points;
     OPERATOR::metric_operators<real,dim,2*dim> metric_oper_int(nstate, poly_degree, grid_degree,
                                                                store_vol_flux_nodes,
                                                                store_surf_flux_nodes);
@@ -766,6 +765,7 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
             const real penalty2 = evaluate_penalty_scaling (neighbor_cell, neighbor_iface, fe_collection);
             const real penalty = 0.5 * (penalty1 + penalty2);
 
+
             const auto metric_neighbor_cell = current_metric_cell->neighbor(iface);
             metric_neighbor_cell->get_dof_indices(neighbor_metric_dofs_indices);
 
@@ -888,6 +888,7 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
             const real penalty1 = evaluate_penalty_scaling (current_cell, iface, fe_collection);
             const real penalty2 = evaluate_penalty_scaling (neighbor_cell, neighbor_iface, fe_collection);
             const real penalty = 0.5 * (penalty1 + penalty2);
+
 
             const auto metric_neighbor_cell = current_metric_cell->neighbor_or_periodic_neighbor(iface);
             metric_neighbor_cell->get_dof_indices(neighbor_metric_dofs_indices);
@@ -1387,13 +1388,14 @@ void DGBase<dim,real,MeshType>::assemble_residual (const bool compute_dRdW, cons
 
 
     int assembly_error = 0;
-    try {
+    // try {
 
         // update artificial dissipation discontinuity sensor only if using artificial dissipation
         if(all_parameters->artificial_dissipation_param.add_artificial_dissipation) update_artificial_dissipation_discontinuity_sensor();
         
         // updates model variables only if there is a model
-        if(all_parameters->pde_type == Parameters::AllParameters::PartialDifferentialEquation::physics_model) update_model_variables();
+        if(all_parameters->pde_type == Parameters::AllParameters::PartialDifferentialEquation::physics_model ||
+           all_parameters->pde_type == Parameters::AllParameters::PartialDifferentialEquation::physics_model_filtered) update_model_variables();
 
         // assembles and solves for auxiliary variable if necessary.
         //assemble_auxiliary_residual(active_cell_group_ID);
@@ -1437,9 +1439,9 @@ void DGBase<dim,real,MeshType>::assemble_residual (const bool compute_dRdW, cons
             timer.stop();
             assemble_residual_time += timer.cpu_time();
         }
-    } catch(...) {
-        assembly_error = 1;
-    }
+    // } catch(...) {
+    //     assembly_error = 1;
+    // }
     const int mpi_assembly_error = dealii::Utilities::MPI::sum(assembly_error, mpi_communicator);
 
 
@@ -1619,7 +1621,7 @@ double DGBase<dim,real,MeshType>::get_residual_l2norm () const
 {
 
     //return get_residual_linfnorm ();
-    //return right_hand_side.l2_norm();
+    return right_hand_side.l2_norm();
     //return right_hand_side.l2_norm() / right_hand_side.size();
     //auto scaled_residual = right_hand_side;
     //global_mass_matrix.vmult(scaled_residual, right_hand_side);
@@ -1846,7 +1848,9 @@ public:
 
 
 template <int dim, typename real, typename MeshType>
-void DGBase<dim,real,MeshType>::output_face_results_vtk (const unsigned int cycle, const double current_time)// const
+void DGBase<dim,real,MeshType>::output_face_results_vtk (const unsigned int cycle, const double current_time, 
+                                                    const bool output_time_averaged_solution,
+                                                    const bool output_fluctuating_quantities)// const
 {
 
     DataOutEulerFaces<dim, dealii::DoFHandler<dim>> data_out;
@@ -1882,10 +1886,20 @@ void DGBase<dim,real,MeshType>::output_face_results_vtk (const unsigned int cycl
 
     // Let the physics post-processor determine what to output.
     const std::unique_ptr< dealii::DataPostprocessor<dim> > post_processor = Postprocess::PostprocessorFactory<dim>::create_Postprocessor(all_parameters);
-    data_out.add_data_vector (solution, *post_processor);
+    if(output_time_averaged_solution && !output_fluctuating_quantities){
+        data_out.add_data_vector (time_averaged_solution, *post_processor);
+    }  else if(output_fluctuating_quantities && !output_time_averaged_solution){
+        std::vector<std::string> fluctuating_quantities_names = {"u'v'","u'u'", "v'v'", "w'w'", "u'w'"};
+        data_out.add_data_vector (fluctuating_quantities, fluctuating_quantities_names, dealii::DataOut_DoFData<dealii::DoFHandler<dim>,dim-1,dim>::DataVectorType::type_dof_data);
+    } else {
+        data_out.add_data_vector (solution, *post_processor);
+    }
+    
+
 
     NormalPostprocessor<dim> normals_post_processor;
     data_out.add_data_vector (solution, normals_post_processor);
+    //std::cout<<"computed post-processor for surface normals. \n";
 
     // Output the polynomial degree in each cell
     std::vector<unsigned int> active_fe_indices;
@@ -1894,6 +1908,9 @@ void DGBase<dim,real,MeshType>::output_face_results_vtk (const unsigned int cycl
     dealii::Vector<double> cell_poly_degree = active_fe_indices_dealiivector;
 
     data_out.add_data_vector (active_fe_indices_dealiivector, "PolynomialDegree", dealii::DataOut_DoFData<dealii::DoFHandler<dim>,dim-1,dim>::DataVectorType::type_cell_data);
+
+
+    // std::cout<<"computed post-processor for surface PolynomialDegree. \n";
 
     // Output absolute value of the residual so that we can visualize it on a logscale.
     std::vector<std::string> residual_names;
@@ -1930,6 +1947,7 @@ void DGBase<dim,real,MeshType>::output_face_results_vtk (const unsigned int cycl
     //const int n_subdivisions = max_degree+1;//+30; // if write_higher_order_cells, n_subdivisions represents the order of the cell
     //const int n_subdivisions = 1;//+30; // if write_higher_order_cells, n_subdivisions represents the order of the cell
     const int n_subdivisions = grid_degree;
+    //std::cout << "n_subdivisions surface: "<< n_subdivisions <<std::endl;
     data_out.build_patches(mapping, n_subdivisions);
     //const bool write_higher_order_cells = (dim>1 && max_degree > 1) ? true : false;
     const bool write_higher_order_cells = false;//(dim>1 && grid_degree > 1) ? true : false;
@@ -1937,7 +1955,10 @@ void DGBase<dim,real,MeshType>::output_face_results_vtk (const unsigned int cycl
     data_out.set_flags(vtkflags);
 
     const int iproc = dealii::Utilities::MPI::this_mpi_process(mpi_communicator);
-    std::string filename = this->all_parameters->solution_vtk_files_directory_name + "/" + "surface_solution-" + dealii::Utilities::int_to_string(dim, 1) +"D_maxpoly"+dealii::Utilities::int_to_string(max_degree, 2)+"-";
+    std::string filename_prefix = "surface_solution"; // default
+    if(output_time_averaged_solution && !output_fluctuating_quantities) filename_prefix = "time_averaged_surface_solution";
+    else if(output_fluctuating_quantities && !output_time_averaged_solution) filename_prefix = "fluctuating_surface_quantities";
+    std::string filename = this->all_parameters->solution_vtk_files_directory_name + "/" + filename_prefix + "-" + dealii::Utilities::int_to_string(dim, 1) +"D_maxpoly"+dealii::Utilities::int_to_string(max_degree, 2)+"-";
     filename += dealii::Utilities::int_to_string(cycle, 4) + ".";
     filename += dealii::Utilities::int_to_string(iproc, 4);
     filename += ".vtu";
@@ -1947,24 +1968,40 @@ void DGBase<dim,real,MeshType>::output_face_results_vtk (const unsigned int cycl
 
     if (iproc == 0) {
         std::vector<std::string> filenames;
-        for (unsigned int iproc = 0; iproc < dealii::Utilities::MPI::n_mpi_processes(mpi_communicator); ++iproc) {
-            std::string fn = "surface_solution-" + dealii::Utilities::int_to_string(dim, 1) +"D_maxpoly"+dealii::Utilities::int_to_string(max_degree, 2)+"-";
+        std::string filename_prefix = "surface_solution"; // default
+        if(output_time_averaged_solution && !output_fluctuating_quantities) filename_prefix = "time_averaged_surface_solution";
+        else if(output_fluctuating_quantities && !output_time_averaged_solution) filename_prefix = "fluctuating_surface_quantities";
+        for (unsigned int iproc = 0; iproc < dealii::Utilities::MPI::n_mpi_processes(mpi_communicator); ++iproc) {;
+            std::string fn = filename_prefix + "-" + dealii::Utilities::int_to_string(dim, 1) +"D_maxpoly"+dealii::Utilities::int_to_string(max_degree, 2)+"-";
             fn += dealii::Utilities::int_to_string(cycle, 4) + ".";
             fn += dealii::Utilities::int_to_string(iproc, 4);
             fn += ".vtu";
             filenames.push_back(fn);
         }
-        std::string master_fn = this->all_parameters->solution_vtk_files_directory_name + "/" + "surface_solution-" + dealii::Utilities::int_to_string(dim, 1) +"D_maxpoly"+dealii::Utilities::int_to_string(max_degree, 2)+"-";
+        std::string master_fn = this->all_parameters->solution_vtk_files_directory_name + "/" + filename_prefix + "-" + dealii::Utilities::int_to_string(dim, 1) +"D_maxpoly"+dealii::Utilities::int_to_string(max_degree, 2)+"-";
         master_fn += dealii::Utilities::int_to_string(cycle, 4) + ".pvtu";
         std::ofstream master_output(master_fn);
         data_out.write_pvtu_record(master_output, filenames);
+    }
+    //std::cout << "Completed writing out file." << std::endl;
+    if (all_parameters->flow_solver_param.compute_time_averaged_solution && 
+        (current_time >= all_parameters->flow_solver_param.time_to_start_averaging) && 
+        (output_time_averaged_solution == false) && (output_fluctuating_quantities == false)) {
+        //output_face_results_vtk (cycle, current_time);
+        output_face_results_vtk (cycle, current_time, false, true);
+        if (all_parameters->flow_solver_param.compute_Reynolds_stress && 
+        (current_time >= all_parameters->flow_solver_param.time_to_start_computing_Reynolds_Stress)){
+            output_face_results_vtk (cycle, current_time, true, false);
+        }
     }
 
 }
 #endif
 
 template <int dim, typename real, typename MeshType>
-void DGBase<dim,real,MeshType>::output_results_vtk (const unsigned int cycle, const double current_time)// const
+void DGBase<dim,real,MeshType>::output_results_vtk (const unsigned int cycle, const double current_time, 
+                                                    const bool output_time_averaged_solution,
+                                                    const bool output_fluctuating_quantities)// const
 {
 #if PHILIP_DIM>1
     if(this->all_parameters->output_face_results_vtk) output_face_results_vtk (cycle, current_time);
@@ -2010,8 +2047,15 @@ void DGBase<dim,real,MeshType>::output_results_vtk (const unsigned int cycle, co
 
     // Let the physics post-processor determine what to output.
     const std::unique_ptr< dealii::DataPostprocessor<dim> > post_processor = Postprocess::PostprocessorFactory<dim>::create_Postprocessor(all_parameters);
-    data_out.add_data_vector (solution, *post_processor);
-
+    if(output_time_averaged_solution && !output_fluctuating_quantities){
+        data_out.add_data_vector (time_averaged_solution, *post_processor);
+    } else if(output_fluctuating_quantities && !output_time_averaged_solution){
+        std::vector<std::string> fluctuating_quantities_names = {"u'v'","u'u'", "v'v'", "w'w'", "u'w'"};
+        data_out.add_data_vector (fluctuating_quantities, fluctuating_quantities_names, dealii::DataOut_DoFData<dealii::DoFHandler<dim>,dim>::DataVectorType::type_dof_data);
+    } else {
+        data_out.add_data_vector (solution, *post_processor);
+    }
+    
     // Output the polynomial degree in each cell
     std::vector<unsigned int> active_fe_indices;
     dof_handler.get_active_fe_indices(active_fe_indices);
@@ -2042,13 +2086,20 @@ void DGBase<dim,real,MeshType>::output_results_vtk (const unsigned int cycle, co
     const unsigned int grid_degree = high_order_grid->max_degree;
     // If higher-order vtk output is not enabled, passing 0 will be interpreted as DataOutInterface::default_subdivisions
     const int n_subdivisions = (enable_higher_order_vtk_output) ? std::max(grid_degree,get_max_fe_degree()) : 0;
+    //std::cout << "n_subdivisions: "<< n_subdivisions <<std::endl;
     data_out.build_patches(mapping, n_subdivisions, curved);
+    //std::cout << "build patches added to vector. "<< std::endl;
     const bool write_higher_order_cells = (n_subdivisions>1 && dim>1) ? true : false;
     dealii::DataOutBase::VtkFlags vtkflags(current_time,cycle,true,dealii::DataOutBase::VtkFlags::ZlibCompressionLevel::best_compression,write_higher_order_cells);
     data_out.set_flags(vtkflags);
 
+    // std::cout << "Added vtk flags. "<< std::endl;
+
     const int iproc = dealii::Utilities::MPI::this_mpi_process(mpi_communicator);
-    std::string filename = this->all_parameters->solution_vtk_files_directory_name + "/" + "solution-" + dealii::Utilities::int_to_string(dim, 1) +"D_maxpoly"+dealii::Utilities::int_to_string(max_degree, 2)+"-";
+    std::string filename_prefix = "solution"; // default
+    if(output_time_averaged_solution && !output_fluctuating_quantities) filename_prefix = "time_averaged_solution";
+    else if(output_fluctuating_quantities && !output_time_averaged_solution) filename_prefix = "fluctuating_quantities";
+    std::string filename = this->all_parameters->solution_vtk_files_directory_name + "/" + filename_prefix + "-" + dealii::Utilities::int_to_string(dim, 1) +"D_maxpoly"+dealii::Utilities::int_to_string(max_degree, 2)+"-";
     filename += dealii::Utilities::int_to_string(cycle, 4) + ".";
     filename += dealii::Utilities::int_to_string(iproc, 4);
     filename += ".vtu";
@@ -2059,17 +2110,29 @@ void DGBase<dim,real,MeshType>::output_results_vtk (const unsigned int cycle, co
     if (iproc == 0) {
         std::vector<std::string> filenames;
         for (unsigned int iproc = 0; iproc < dealii::Utilities::MPI::n_mpi_processes(mpi_communicator); ++iproc) {
-            std::string fn = "solution-" + dealii::Utilities::int_to_string(dim, 1) +"D_maxpoly"+dealii::Utilities::int_to_string(max_degree, 2)+"-";
+            std::string fn = filename_prefix + "-" + dealii::Utilities::int_to_string(dim, 1) +"D_maxpoly"+dealii::Utilities::int_to_string(max_degree, 2)+"-";
             fn += dealii::Utilities::int_to_string(cycle, 4) + ".";
             fn += dealii::Utilities::int_to_string(iproc, 4);
             fn += ".vtu";
             filenames.push_back(fn);
         }
-        std::string master_fn = this->all_parameters->solution_vtk_files_directory_name + "/" + "solution-" + dealii::Utilities::int_to_string(dim, 1) +"D_maxpoly"+dealii::Utilities::int_to_string(max_degree, 2)+"-";
+        std::string master_fn = this->all_parameters->solution_vtk_files_directory_name + "/" + filename_prefix + "-" + dealii::Utilities::int_to_string(dim, 1) +"D_maxpoly"+dealii::Utilities::int_to_string(max_degree, 2)+"-";
         master_fn += dealii::Utilities::int_to_string(cycle, 4) + ".pvtu";
         std::ofstream master_output(master_fn);
         data_out.write_pvtu_record(master_output, filenames);
     }
+
+    if (all_parameters->flow_solver_param.compute_time_averaged_solution && 
+        (current_time >= all_parameters->flow_solver_param.time_to_start_averaging) && 
+        (output_time_averaged_solution == false) && (output_fluctuating_quantities == false))/*Only when false, such that it's not endlessly recursive*/ {
+        output_results_vtk (cycle, current_time, true, false); //time-averaged quantites
+        if (all_parameters->flow_solver_param.compute_Reynolds_stress && 
+        (current_time >= all_parameters->flow_solver_param.time_to_start_computing_Reynolds_Stress)){
+            output_results_vtk (cycle, current_time, false, true); //fluctuating quantitites
+        }
+    }
+
+    //std::cout << "Completed writing out file." << std::endl;
 
 }
 
@@ -2129,7 +2192,8 @@ void DGBase<dim,real,MeshType>::allocate_system (
     list_of_cell_group_IDs.reinit(triangulation->n_active_cells());
 
     // allocates model variables only if there is a model
-    if(all_parameters->pde_type == Parameters::AllParameters::PartialDifferentialEquation::physics_model) allocate_model_variables();
+    if(all_parameters->pde_type == Parameters::AllParameters::PartialDifferentialEquation::physics_model ||
+       all_parameters->pde_type == Parameters::AllParameters::PartialDifferentialEquation::physics_model_filtered) allocate_model_variables();
 
     solution.reinit(locally_owned_dofs, ghost_dofs, mpi_communicator);
     solution *= 0.0;
@@ -2137,6 +2201,18 @@ void DGBase<dim,real,MeshType>::allocate_system (
     //right_hand_side.reinit(locally_owned_dofs, mpi_communicator);
     right_hand_side.reinit(locally_owned_dofs, ghost_dofs, mpi_communicator);
     right_hand_side.add(1.0); // Avoid 0 initial residual for output and logarithmic visualization.
+    //time averaged solution
+    if(all_parameters->flow_solver_param.compute_time_averaged_solution){
+        time_averaged_solution.reinit(locally_owned_dofs, ghost_dofs, mpi_communicator);
+        time_averaged_solution *= 0.0;
+        time_averaged_solution.add(std::numeric_limits<real>::lowest());
+    }
+    //fluctuating quantities (i.e, reynodsl stresses)
+    if(all_parameters->flow_solver_param.compute_time_averaged_solution && all_parameters->flow_solver_param.compute_Reynolds_stress){
+        fluctuating_quantities.reinit(locally_owned_dofs, ghost_dofs, mpi_communicator);
+        fluctuating_quantities *= 0.0;
+        fluctuating_quantities.add(std::numeric_limits<real>::lowest());
+    }
 
     allocate_dual_vector();
 

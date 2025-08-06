@@ -17,6 +17,198 @@ InitialConditionFunction<dim,nstate,real>
 }
 
 // ========================================================
+// Turbulent Channel Flow -- Initial Condition (Laminar x-velocity)
+// ========================================================
+template <int dim, int nstate, typename real>
+InitialConditionFunction_TurbulentChannelFlow<dim,nstate,real>
+::InitialConditionFunction_TurbulentChannelFlow (
+    const Physics::NavierStokes<dim,nstate,double> navier_stokes_physics_,
+    const double channel_friction_velocity_reynolds_number_,
+    const double domain_length_x_,
+    const double domain_length_y_,
+    const double domain_length_z_)
+    : InitialConditionFunction<dim,nstate,real>()
+    , navier_stokes_physics(navier_stokes_physics_)
+    , channel_friction_velocity_reynolds_number(channel_friction_velocity_reynolds_number_)
+    , domain_length_x(domain_length_x_)
+    , domain_length_y(domain_length_y_)
+    , domain_length_z(domain_length_z_)
+    , channel_height(domain_length_y)
+    , half_channel_height(0.5*channel_height)
+{}
+
+template <int dim, int nstate, typename real>
+inline real InitialConditionFunction_TurbulentChannelFlow<dim, nstate, real>
+::get_distance_from_wall(const dealii::Point<dim,real> &point) const
+{
+    // Get closest wall normal distance
+    real y = point[1]; // y-coordinate of position
+    real dist_from_wall = half_channel_height; // represents distance normal to top/bottom wall (which ever is closer); y-domain bounds are [-half_channel_height, half_channel_height]
+    if(y > 0.0){
+        dist_from_wall -= y; // distance from top wall
+    } else if(y < 0.0) {
+        dist_from_wall += y; // distance from bottom wall
+    }
+    return dist_from_wall;
+}
+
+template <int dim, int nstate, typename real>
+inline real InitialConditionFunction_TurbulentChannelFlow<dim, nstate, real>
+::x_velocity(const dealii::Point<dim,real> &point, const real /*density*/, const real /*temperature*/) const
+{
+    // Laminar velocity profile
+    // Reference: G. LODATO, P. CASTONGUAY AND A. JAMESON, "Discrete filter operators for large-eddy simulation using high-order spectral difference methods", Int. J. Numer. Meth. Fluids (2012)
+    const real x_velocity = (15.0/8.0)*pow(1.0-pow(point[1]/half_channel_height,2.0),2.0);
+    return x_velocity;
+}
+
+template <int dim, int nstate, typename real>
+inline real InitialConditionFunction_TurbulentChannelFlow<dim, nstate, real>
+::y_velocity(const dealii::Point<dim,real> &point) const
+{
+    // Setup perturbed velocity
+    const real C = 0.1; // Reference: G. LODATO, P. CASTONGUAY AND A. JAMESON, "Discrete filter operators for large-eddy simulation using high-order spectral difference methods", Int. J. Numer. Meth. Fluids (2012)
+    const real x_loc = 0.0; // x-point at which to center the disturbance <-- Reference: R. Rossi / Journal of Computational Physics 228 (2009) 1639–1657
+    const real y_loc = 0.0; // y-point at which to center the disturbance <-- Reference: R. Rossi / Journal of Computational Physics 228 (2009) 1639–1657
+    const real pi_val = 3.141592653589793238;
+    const real beta = 4.0*pi_val; // Reference: G. LODATO, P. CASTONGUAY AND A. JAMESON, "Discrete filter operators for large-eddy simulation using high-order spectral difference methods", Int. J. Numer. Meth. Fluids (2012)
+    const real x_scale = domain_length_x;
+    const real y_scale = domain_length_y;
+    const real z_scale = domain_length_z;
+    const real half_domain_length_z = 0.5*domain_length_z;
+
+    // extract coordinates
+    const real x = point[0];
+    const real y = point[1];
+    const real z = point[2];
+
+    // return perturbed vertical velocity component
+    // Reference: Eq.(2.30) -- P. Andersson, L. Brandt, A. Bottaro and D. S. Henningson, "On the breakdown of boundary layer streaks"
+    // Reference for z_scale term: G. LODATO, P. CASTONGUAY AND A. JAMESON, "Discrete filter operators for large-eddy simulation using high-order spectral difference methods", Int. J. Numer. Meth. Fluids (2012)
+    /*const */real F = C*exp(-pow((x-x_loc)/x_scale,2.0))*exp(-pow((y-y_loc)/y_scale,2.0))*cos(beta*(z+half_domain_length_z)/z_scale); // we do (z+half_domain_length_z) because reference has z\in[0,domain_length_z], whereas we center about the z-axis
+    return F;
+}
+
+template <int dim, int nstate, typename real>
+inline real InitialConditionFunction_TurbulentChannelFlow<dim, nstate, real>
+::value(const dealii::Point<dim,real> &point, const unsigned int istate) const
+{
+    std::array<real,nstate> primitive_soln;
+
+    //------------------------------------------------------
+    // density
+    //------------------------------------------------------
+    // Reference: L. Wei, A. Pollard / Computers & Fluids 47 (2011) 85–100
+    const real density = 1.0; // freestream non-dimensionalized
+    primitive_soln[0] = density;
+    
+    //------------------------------------------------------
+    // x-velocity
+    //------------------------------------------------------
+    // Reference: L. Wei, A. Pollard / Computers & Fluids 47 (2011) 85–100
+    const real temperature = navier_stokes_physics.isothermal_wall_temperature;
+    primitive_soln[1] = this->x_velocity(point,density,temperature);
+
+    //------------------------------------------------------
+    // y-velocity
+    //------------------------------------------------------
+    primitive_soln[2] = y_velocity(point);
+
+    //------------------------------------------------------
+    // z-velocity
+    //------------------------------------------------------
+    // Reference: R. Rossi / Journal of Computational Physics 228 (2009) 1639–1657
+    primitive_soln[3] = 0.0;
+
+    //------------------------------------------------------
+    // pressure
+    //------------------------------------------------------
+    primitive_soln[4] = navier_stokes_physics.compute_pressure_from_density_temperature(density, temperature);
+
+    //------------------------------------------------------
+    // --> Get conservative solution
+    //------------------------------------------------------
+    std::array<real,nstate> conservative_soln = navier_stokes_physics.convert_primitive_to_conservative(primitive_soln);
+
+    return conservative_soln[istate];
+}
+
+// ========================================================
+// Turbulent Channel Flow -- Initial Condition (Turbulent x-velocity)
+// ========================================================
+template <int dim, int nstate, typename real>
+InitialConditionFunction_TurbulentChannelFlow_Turbulent<dim,nstate,real>
+::InitialConditionFunction_TurbulentChannelFlow_Turbulent (
+    const Physics::NavierStokes<dim,nstate,double> navier_stokes_physics_,
+    const double channel_friction_velocity_reynolds_number_,
+    const double domain_length_x_,
+    const double domain_length_y_,
+    const double domain_length_z_)
+    : InitialConditionFunction_TurbulentChannelFlow<dim,nstate,real>(
+        navier_stokes_physics_,
+        channel_friction_velocity_reynolds_number_,
+        domain_length_x_,
+        domain_length_y_,
+        domain_length_z_)
+{}
+
+template <int dim, int nstate, typename real>
+inline real InitialConditionFunction_TurbulentChannelFlow_Turbulent<dim, nstate, real>
+::x_velocity(const dealii::Point<dim,real> &point, const real density, const real temperature) const
+{
+    // Turbulent velocity profile using Reichart's law of the wall
+    // -- apply initial condition symmetrically w.r.t. the top/bottom walls of the channel
+    const real dist_from_wall = this->get_distance_from_wall(point);
+
+    // Get the nondimensional (w.r.t. freestream) friction velocity
+    const real viscosity_coefficient = this->navier_stokes_physics.compute_viscosity_coefficient_from_temperature(temperature);
+    const real friction_velocity = viscosity_coefficient*this->channel_friction_velocity_reynolds_number/(density*this->half_channel_height*this->navier_stokes_physics.reynolds_number_inf);
+
+    // Reichardt law of the wall (provides a smoothing between the linear and the log regions)
+    // References: 
+    /*  Frere, Carton de Wiart, Hillewaert, Chatelain, and Winckelmans 
+        "Application of wall-models to discontinuous Galerkin LES", Phys. Fluids 29, 2017
+
+        (Original paper) J. M.  Osterlund, A. V. Johansson, H. M. Nagib, and M. H. Hites, “A note
+        on the overlap region in turbulent boundary layers,” Phys. Fluids 12, 1–4, (2000).
+    */
+    const real kappa = 0.38; // von Karman's constant
+    const real C = 4.1;
+    const real y_plus = density*friction_velocity*dist_from_wall/viscosity_coefficient;
+    const real u_plus = (1.0/kappa)*log(1.0+kappa*y_plus) + (C - (1.0/kappa)*log(kappa))*(1.0 - exp(-y_plus/11.0) - (y_plus/11.0)*exp(-y_plus/3.0));
+    const real x_velocity = u_plus*friction_velocity;
+    return x_velocity;
+}
+
+// ========================================================
+// Turbulent Channel Flow -- Initial Condition (Manufactured x-velocity)
+// ========================================================
+template <int dim, int nstate, typename real>
+InitialConditionFunction_TurbulentChannelFlow_Manufactured<dim,nstate,real>
+::InitialConditionFunction_TurbulentChannelFlow_Manufactured (
+    const Physics::NavierStokes<dim,nstate,double> navier_stokes_physics_,
+    const double channel_friction_velocity_reynolds_number_,
+    const double domain_length_x_,
+    const double domain_length_y_,
+    const double domain_length_z_)
+    : InitialConditionFunction_TurbulentChannelFlow<dim,nstate,real>(
+        navier_stokes_physics_,
+        channel_friction_velocity_reynolds_number_,
+        domain_length_x_,
+        domain_length_y_,
+        domain_length_z_)
+{}
+
+template <int dim, int nstate, typename real>
+inline real InitialConditionFunction_TurbulentChannelFlow_Manufactured<dim, nstate, real>
+::x_velocity(const dealii::Point<dim,real> &point, const real /*density*/, const real /*temperature*/) const
+{
+    // Manufactured velocity profile
+    const real x_velocity = (15.0/8.0)*pow(point[1]/this->half_channel_height,4.0);
+    return x_velocity;
+}
+
+// ========================================================
 // TAYLOR GREEN VORTEX -- Initial Condition (Uniform density)
 // ========================================================
 template <int dim, int nstate, typename real>
@@ -695,7 +887,7 @@ InitialConditionFactory<dim,nstate, real>::create_InitialConditionFunction(
         if constexpr (dim==1 && nstate==1) return std::make_shared<InitialConditionFunction_BurgersRewienski<dim,nstate,real> > ();
     } else if (flow_type == FlowCaseEnum::burgers_viscous_snapshot) {
         if constexpr (dim==1 && nstate==1) return std::make_shared<InitialConditionFunction_BurgersViscous<dim,nstate,real> > ();
-    } else if (flow_type == FlowCaseEnum::naca0012 || flow_type == FlowCaseEnum::gaussian_bump) {
+    } else if (flow_type == FlowCaseEnum::naca0012  || flow_type == FlowCaseEnum::gaussian_bump || flow_type == FlowCaseEnum::airfoil_2D || flow_type == FlowCaseEnum::naca0012_turbulence) {
         if constexpr ((dim==2 || dim==3) && nstate==dim+2) {
             Physics::Euler<dim,nstate,double> euler_physics_double = Physics::Euler<dim, nstate, double>(
                     param,
@@ -738,7 +930,49 @@ InitialConditionFactory<dim,nstate, real>::create_InitialConditionFunction(
         if constexpr (dim < 3 && nstate == 1)  return std::make_shared<InitialConditionFunction_Advection<dim, nstate, real> >();
     } else if (flow_type == FlowCaseEnum::burgers_limiter) {
         if constexpr (nstate==dim && dim<3) return std::make_shared<InitialConditionFunction_BurgersInviscid<dim, nstate, real> >();
-    }else {
+    } else if (flow_type == FlowCaseEnum::channel_flow) {
+        if constexpr (dim==3 && nstate==dim+2) {
+            Physics::NavierStokes<dim,nstate,double> navier_stokes_physics_double = Physics::NavierStokes<dim, nstate, double>(
+                    param->euler_param.ref_length,
+                    param->euler_param.gamma_gas,
+                    param->euler_param.mach_inf,
+                    param->euler_param.angle_of_attack,
+                    param->euler_param.side_slip_angle,
+                    param->navier_stokes_param.prandtl_number,
+                    param->navier_stokes_param.reynolds_number_inf,
+                    param->navier_stokes_param.use_constant_viscosity,
+                    param->navier_stokes_param.nondimensionalized_constant_viscosity,
+                    param->navier_stokes_param.temperature_inf,
+                    param->navier_stokes_param.nondimensionalized_isothermal_wall_temperature,
+                    param->navier_stokes_param.thermal_boundary_condition_type,
+                    nullptr,
+                    param->two_point_num_flux_type);
+            // Get the x-velocity initial condition type
+            const XVelocityInitialConditionEnum xvelocity_initial_condition_type = param->flow_solver_param.xvelocity_initial_condition_type;
+            if(xvelocity_initial_condition_type == XVelocityInitialConditionEnum::laminar) {
+                return std::make_shared<InitialConditionFunction_TurbulentChannelFlow<dim,nstate,real>>(
+                    navier_stokes_physics_double,
+                    param->flow_solver_param.turbulent_channel_friction_velocity_reynolds_number,
+                    param->flow_solver_param.turbulent_channel_domain_length_x_direction,
+                    param->flow_solver_param.turbulent_channel_domain_length_y_direction,
+                    param->flow_solver_param.turbulent_channel_domain_length_z_direction);
+            } else if(xvelocity_initial_condition_type == XVelocityInitialConditionEnum::turbulent) {
+                return std::make_shared<InitialConditionFunction_TurbulentChannelFlow_Turbulent<dim,nstate,real>>(
+                    navier_stokes_physics_double,
+                    param->flow_solver_param.turbulent_channel_friction_velocity_reynolds_number,
+                    param->flow_solver_param.turbulent_channel_domain_length_x_direction,
+                    param->flow_solver_param.turbulent_channel_domain_length_y_direction,
+                    param->flow_solver_param.turbulent_channel_domain_length_z_direction);
+            } else if(xvelocity_initial_condition_type == XVelocityInitialConditionEnum::manufactured) {
+                return std::make_shared<InitialConditionFunction_TurbulentChannelFlow_Manufactured<dim,nstate,real>>(
+                    navier_stokes_physics_double,
+                    param->flow_solver_param.turbulent_channel_friction_velocity_reynolds_number,
+                    param->flow_solver_param.turbulent_channel_domain_length_x_direction,
+                    param->flow_solver_param.turbulent_channel_domain_length_y_direction,
+                    param->flow_solver_param.turbulent_channel_domain_length_z_direction);
+            }
+        }
+    } else {
         std::cout << "Invalid Flow Case Type. You probably forgot to add it to the list of flow cases in initial_condition_function.cpp" << std::endl;
         std::abort();
     }
@@ -769,6 +1003,9 @@ template class InitialConditionFunction_ShuOsherProblem <PHILIP_DIM, PHILIP_DIM 
 #if PHILIP_DIM==3
 template class InitialConditionFunction_TaylorGreenVortex <PHILIP_DIM, PHILIP_DIM+2, double>;
 template class InitialConditionFunction_TaylorGreenVortex_Isothermal <PHILIP_DIM, PHILIP_DIM+2, double>;
+template class InitialConditionFunction_TurbulentChannelFlow <PHILIP_DIM, PHILIP_DIM+2, double>;
+template class InitialConditionFunction_TurbulentChannelFlow_Turbulent <PHILIP_DIM, PHILIP_DIM+2, double>;
+template class InitialConditionFunction_TurbulentChannelFlow_Manufactured <PHILIP_DIM, PHILIP_DIM+2, double>;
 #endif
 #if PHILIP_DIM>1
 template class InitialConditionFunction_IsentropicVortex <PHILIP_DIM, PHILIP_DIM+2, double>;

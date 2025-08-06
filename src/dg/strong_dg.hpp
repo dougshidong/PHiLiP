@@ -28,6 +28,10 @@ public:
         const unsigned int grid_degree_input,
         const std::shared_ptr<Triangulation> triangulation_input);
 
+        const bool do_compute_filtered_solution;
+        const bool apply_modal_high_pass_filter_on_filtered_solution;
+        const unsigned int poly_degree_max_large_scales;
+
     /// Assembles the auxiliary equations' residuals and solves for the auxiliary variables.
     /** For information regarding auxiliary vs. primary quations, see 
      *  Quaegebeur, Nadarajah, Navah and Zwanenburg 2019: Stability of Energy Stable Flux 
@@ -98,7 +102,7 @@ protected:
 
     /// Builds the necessary operators and assembles boundary residual for either primary or auxiliary.
     void assemble_boundary_term_and_build_operators(
-        typename dealii::DoFHandler<dim>::active_cell_iterator /*cell*/,
+        typename dealii::DoFHandler<dim>::active_cell_iterator cell,
         const dealii::types::global_dof_index                  current_cell_index,
         const unsigned int                                     iface,
         const unsigned int                                     boundary_id,
@@ -124,8 +128,8 @@ protected:
 
     /// Builds the necessary operators and assembles face residual.
     void assemble_face_term_and_build_operators(
-        typename dealii::DoFHandler<dim>::active_cell_iterator /*cell*/,
-        typename dealii::DoFHandler<dim>::active_cell_iterator /*neighbor_cell*/,
+        typename dealii::DoFHandler<dim>::active_cell_iterator cell,
+        typename dealii::DoFHandler<dim>::active_cell_iterator neighbor_cell,
         const dealii::types::global_dof_index                  current_cell_index,
         const dealii::types::global_dof_index                  neighbor_cell_index,
         const unsigned int                                     iface,
@@ -220,6 +224,7 @@ public:
 protected:
     /// Evaluate the boundary RHS for the auxiliary equation.
     void assemble_boundary_term_auxiliary_equation(
+        typename dealii::DoFHandler<dim>::active_cell_iterator cell,
         const unsigned int                                 iface,
         const dealii::types::global_dof_index              current_cell_index,
         const unsigned int                                 poly_degree,
@@ -237,6 +242,8 @@ public:
     * \f]
     */
     void assemble_face_term_auxiliary_equation(
+        typename dealii::DoFHandler<dim>::active_cell_iterator cell,
+        typename dealii::DoFHandler<dim>::active_cell_iterator neighbor_cell,
         const unsigned int                                 iface, 
         const unsigned int                                 neighbor_iface,
         const dealii::types::global_dof_index              current_cell_index,
@@ -284,6 +291,7 @@ protected:
 
     /// Strong form primary equation's boundary right-hand-side.
     void assemble_boundary_term_strong(
+        typename dealii::DoFHandler<dim>::active_cell_iterator cell,
         const unsigned int                                 iface, 
         const dealii::types::global_dof_index              current_cell_index,
         const unsigned int                                 boundary_id,
@@ -306,6 +314,8 @@ protected:
     * \f]
     */
     void assemble_face_term_strong(
+        typename dealii::DoFHandler<dim>::active_cell_iterator cell,
+        typename dealii::DoFHandler<dim>::active_cell_iterator neighbor_cell,
         const unsigned int                                 iface, 
         const unsigned int                                 neighbor_iface, 
         const dealii::types::global_dof_index              current_cell_index,
@@ -362,6 +372,7 @@ protected:
      *  computes 4 block contributions to dRdX blocks. */
     void assemble_face_term_derivatives(
         typename dealii::DoFHandler<dim>::active_cell_iterator cell,
+        typename dealii::DoFHandler<dim>::active_cell_iterator neighbor_cell,
         const dealii::types::global_dof_index current_cell_index,
         const dealii::types::global_dof_index neighbor_cell_index,
         const std::pair<unsigned int, int> face_subface_int,

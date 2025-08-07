@@ -118,6 +118,7 @@ public:
     double current_time;
 
     std::vector<int> group_ID = {1, 2};
+    //std::vector<int> group_ID = {1};
 
     /// Current iteration.
     /** This variable will change when step_in_time() is called. */

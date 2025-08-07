@@ -54,8 +54,8 @@ template<int dim, int nstate>
 double PeriodicEntropyTests<dim, nstate>::compute_integrated_quantities(DGBase<dim, double> &dg, IntegratedQuantityEnum quantity, const int overintegrate) const
 {
     // Check that poly_degree is uniform everywhere
-        std::cout<<"max " << " "<<dg.get_max_fe_degree()<<std::endl;
-        std::cout<<"min " << " "<<dg.get_min_fe_degree()<<std::endl;
+        // std::cout<<"max " << " "<<dg.get_max_fe_degree()<<std::endl;
+        // std::cout<<"min " << " "<<dg.get_min_fe_degree()<<std::endl;
     if (dg.get_max_fe_degree() != dg.get_min_fe_degree()) {
         // Note: This function may have issues with nonuniform p. Should test in debug mode if developing in the future.
         this->pcout << "ERROR: compute_integrated_quantities() is untested for nonuniform p. Aborting..." << std::endl;

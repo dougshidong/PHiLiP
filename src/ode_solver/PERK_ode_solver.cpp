@@ -33,6 +33,7 @@ void PERKODESolver<dim,real,n_rk_stages, MeshType>::calculate_stage_solution (in
     stage_solution.add(1.0, this->solution_update);
 
     this->dg->solution = stage_solution; 
+    //std::cout << "stage soln" <<std::endl;
 }
 
 template<int dim, typename real, int n_rk_stages, typename MeshType>
@@ -43,8 +44,12 @@ void PERKODESolver<dim,real,n_rk_stages,MeshType>::calculate_stage_derivative (i
 
     for (size_t k = 0; k < this->group_ID.size(); ++k){
         if (this->calc_stage[k][istage]==true){
-            this->dg->right_hand_side*=0;           
+            this->dg->right_hand_side*=0;  
+            //this->dg->assemble_residual();         
             this->dg->assemble_residual(false, false, false, 0.0, this->group_ID[k]); //RHS : du/dt = RHS = F(u_n + dt* sum(a_ij*k_j) + dt * a_ii * u^(istage)))
+        //     int rank = dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD);
+        //     std::ofstream file ("right_hand_side_"+std::to_string(rank)+std::to_string(istage)+".txt");
+        //    this->dg->right_hand_side.print(file);
             if(this->all_parameters->use_inverse_mass_on_the_fly){
                 this->dg->apply_inverse_global_mass_matrix(this->dg->right_hand_side, this->rk_stage_k[k][istage]); //rk_stage[istage] = IMM*RHS = F(u_n + dt*sum(a_ij*k_j))
             } else{
@@ -52,6 +57,11 @@ void PERKODESolver<dim,real,n_rk_stages,MeshType>::calculate_stage_derivative (i
             }
          }
     }
+
+    // this->pcout << this->rk_stage_k[0][istage].size() << std::endl;
+    // for (unsigned int i = 0 ; i < this->rk_stage_k[0][istage].size(); ++i){
+    //     this->pcout << this->rk_stage_k[0][istage](i) << " " ;
+    // }
 }
 
 

@@ -38,7 +38,7 @@ set(TEST_OUTPUT_DIR ${CMAKE_CURRENT_BINARY_DIR})
 configure_file(2D_inviscid_isentropic_vortex_h_refinement.prm 2D_inviscid_isentropic_vortex_h_refinement.prm COPYONLY)
 add_test(
   NAME MPI_2D_H_REFINEMENT_INVISCID_ISENTROPIC_VORTEX
-  COMMAND mpirun -np ${MPIMAX} ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_2D -i ${CMAKE_CURRENT_BINARY_DIR}/2D_inviscid_isentropic_vortex_h_refinement.prm
+  COMMAND mpirun -np 2 ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_2D -i ${CMAKE_CURRENT_BINARY_DIR}/2D_inviscid_isentropic_vortex_h_refinement.prm
   WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
 )
 set_tests_labels(MPI_2D_H_REFINEMENT_INVISCID_ISENTROPIC_VORTEX ISENTROPIC_VORTEX_INTEGRATION

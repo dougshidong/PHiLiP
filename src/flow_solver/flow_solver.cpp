@@ -11,6 +11,8 @@
 #include "mesh/mesh_adaptation/mesh_adaptation.h"
 #include <deal.II/base/timer.h>
 
+#include <boost/mpi/collectives.hpp>
+
 namespace PHiLiP {
 
 namespace FlowSolver {
@@ -412,76 +414,85 @@ void FlowSolver<dim,nstate>::perform_steady_state_mesh_adaptation() const
 template <int dim, int nstate>
 void FlowSolver<dim,nstate>::perk_partitioning() const
 {
-
     this->dg->assemble_residual();
-    locations_to_evaluate_rhs *= 0;
-    locations_to_evaluate_rhs_2 *= 0;
     locations_to_evaluate_rhs.reinit(dg->triangulation->n_active_cells());
     locations_to_evaluate_rhs_2.reinit(dg->triangulation->n_active_cells());
-   // std::vector<unsigned int> cell_weights(dg->triangulation->n_active_cells());
-   // const unsigned int n_partitions = dealii::Utilities::MPI::n_mpi_processes(MPI_COMM_WORLD);
-    const auto mapping = (*(dg->high_order_grid->mapping_fe_field));
-    dealii::hp::MappingCollection<dim> mapping_collection(mapping);
-    dealii::hp::FEValues<dim,dim> fe_values_collection(mapping_collection, dg->fe_collection, dg->volume_quadrature_collection,
-    dealii::update_quadrature_points);
+    locations_to_evaluate_rhs = 0;
+    locations_to_evaluate_rhs_2 = 0;
 
 
+   dg->cell_volume.print(std::cout);
+    std::cout<<"number of cells " << dg->cell_volume.size()<<std::endl;
 
+    double local_max = dg->cell_volume.linfty_norm();
+    double max_cell_volume = dealii::Utilities::MPI::max(local_max, this->mpi_communicator);
+    std::cout<<"max cell volume " <<  max_cell_volume <<dg->cell_volume.size()<<std::endl;
+    //std::vector<dealii::types::global_dof_index> current_dofs_indices;
 
-    //std::cout<<"numer of cells " << dg->cell_volume.size()<<std::endl;
+    int rank = dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD);
 
-        double max_cell_volume = dg->cell_volume.linfty_norm();
-        max_cell_volume = dealii::Utilities::MPI::max(max_cell_volume, this->mpi_communicator);
+    for (typename dealii::DoFHandler<dim>::active_cell_iterator cell = dg->dof_handler.begin_active(); cell != dg->dof_handler.end(); ++cell){
+        if (!cell->is_locally_owned())
+            continue;
+        double vol = dg->cell_volume[cell->active_cell_index()];
+    
+        if (vol >= 0.5 * max_cell_volume){
+            locations_to_evaluate_rhs(cell->active_cell_index()) = 1;
+        } else {
+            locations_to_evaluate_rhs_2(cell->active_cell_index()) = 1;
+        }    
+    }
+    // for (auto cell = dg->dof_handler_artificial_dissipation.begin_active(); cell != dg->dof_handler_artificial_dissipation.end(); ++cell){
+    //     if (!cell->is_locally_owned())
+    //         continue;
+    //     current_dofs_indices.resize(1);
+    //     cell->get_dof_indices (current_dofs_indices);
+    //     double vol = dg->cell_volume[current_dofs_indices[0]];
+    //     if (vol >= 0.5 * max_cell_volume){
+    //         locations_to_evaluate_rhs[current_dofs_indices[0]] = 1;
+    //     } else {
+    //         locations_to_evaluate_rhs_2[current_dofs_indices[0]] = 1;
+    //     }
+    // }
+    // std::cout<<"rhs 1 "<< rank <<std::endl;
+    // locations_to_evaluate_rhs.print(std::cout);
+    // std::cout<<"rhs 2 " << rank<< std::endl;
+    // locations_to_evaluate_rhs_2.print(std::cout);
+    std::vector<int> locations_rhs(dg->triangulation->n_active_cells());
+    std::vector<int> locations_rhs_2(dg->triangulation->n_active_cells());
+    std::vector<unsigned int> indices(dg->triangulation->n_active_cells());
+    std::iota(indices.begin(),indices.end(),0);
+    for ( std::size_t t = 0; t < locations_to_evaluate_rhs.size(); t++){
+        locations_rhs[t] = locations_to_evaluate_rhs[t];
+        locations_rhs_2[t] = locations_to_evaluate_rhs_2[t];
+    }
+    std::vector<std::vector<int>> all_locations_rhs = dealii::Utilities::MPI::all_gather(MPI_COMM_WORLD,locations_rhs);
+    std::vector<std::vector<int>> all_locations_rhs_2 = dealii::Utilities::MPI::all_gather(MPI_COMM_WORLD,locations_rhs_2);
 
-        //std::cout<< "max cell volume "<< max_cell_volume<<std::endl;
-        //std::cout<< "cell volumes ";
-        dg->cell_volume.print(std::cout);
-        // std::cout<<"max "<< mpi_rank << " "<<dg->get_max_fe_degree()<<std::endl;
-        // std::cout<<"min " << mpi_rank << " "<<dg->get_min_fe_degree()<<std::endl;
-        for (typename dealii::DoFHandler<dim>::active_cell_iterator cell = dg->dof_handler.begin_active(); cell != dg->dof_handler.end(); ++cell){
-            if (cell->is_locally_owned() || cell->is_ghost()) {
-                const int i_fele = cell->active_fe_index();
-                const int i_quad = i_fele;
-                const int i_mapp = 0;
-                fe_values_collection.reinit (cell, i_quad, i_mapp, i_fele);
-                //const dealii::FEValues<dim,dim> &fe_values = fe_values_collection.get_present_fe_values();
-                //for (size_t i = 0; i < dg->cell_volume.size(); ++i){
-                if (dg->cell_volume[cell->active_cell_index()] >= 0.5 * max_cell_volume) {
-                    cell->set_subdomain_id(this->ode_solver->group_ID[0]);
-                }
-                if (dg->cell_volume[cell->active_cell_index()] < 0.5 * max_cell_volume) {
-                    cell->set_subdomain_id(this->ode_solver->group_ID[1]);
-                }
-                if (static_cast<int>(cell->subdomain_id()) == this->ode_solver->group_ID[0]){
-                    locations_to_evaluate_rhs(cell->active_cell_index()) = 1;
-                }
-                if (static_cast<int>(cell->subdomain_id()) == this->ode_solver->group_ID[1]){
-                    locations_to_evaluate_rhs_2(cell->active_cell_index()) = 1;
-                }
-                //}
-                //cell_weights[cell->active_cell_index()] = static_cast<unsigned int>(std::ceil(dg->cell_volume[cell->active_cell_index()] / max_cell_volume * 100));
+        // std::cout << all_locations_rhs.size() << '\n';
+        // std::cout << all_locations_rhs_2.size() << '\n';
+        for (std::size_t idx = 0; idx < all_locations_rhs.size(); idx++){
+            std::cout << this->mpi_rank << " " << idx << '\n';
+            if (idx != (std::size_t)this->mpi_rank){
+                locations_to_evaluate_rhs.add(indices,all_locations_rhs[idx]);
+                locations_to_evaluate_rhs_2.add(indices,all_locations_rhs_2[idx]);
             }
         }
-        // std::cout<<"max "<< mpi_rank << " "<<dg->get_max_fe_degree()<<std::endl;
-        // std::cout<<"min " << mpi_rank << " "<<dg->get_min_fe_degree()<<std::endl;
-        locations_to_evaluate_rhs.update_ghost_values();
-        std::cout<<"1 "<<std::endl;
-        locations_to_evaluate_rhs.print(std::cout);
-        locations_to_evaluate_rhs_2.update_ghost_values();
-        std::cout<<"2 "<<std::endl;
-        locations_to_evaluate_rhs_2.print(std::cout);
-        dg->set_list_of_cell_group_IDs(locations_to_evaluate_rhs, this->ode_solver->group_ID[0]);
-        dg->set_list_of_cell_group_IDs(locations_to_evaluate_rhs_2, this->ode_solver->group_ID[1]);
+    locations_to_evaluate_rhs.compress(dealii::VectorOperation::insert);
+    locations_to_evaluate_rhs_2.compress(dealii::VectorOperation::insert);
+    std::cout<<"rhs 1 "<< rank <<std::endl;
+    locations_to_evaluate_rhs.print(std::cout);
 
-        // dealii::GridTools::partition_triangulation(
-        //     n_partitions,          
-        //     cell_weights,         
-        //     *dg->triangulation,      
-        //     dealii::SparsityTools::Partitioner::metis);
+    std::cout<<"rhs 2 " << rank<< std::endl;
+    locations_to_evaluate_rhs_2.print(std::cout);
 
-            std::cout<<"max "<< mpi_rank << " "<<dg->get_max_fe_degree()<<std::endl;
-        std::cout<<"min " << mpi_rank << " "<<dg->get_min_fe_degree()<<std::endl;
+    locations_to_evaluate_rhs.update_ghost_values();
+    locations_to_evaluate_rhs_2.update_ghost_values();
 
+    dg->set_list_of_cell_group_IDs(locations_to_evaluate_rhs, this->ode_solver->group_ID[0]);
+    dg->set_list_of_cell_group_IDs(locations_to_evaluate_rhs_2, this->ode_solver->group_ID[1]);
+
+    
     
 
 //    Partitioning
@@ -494,6 +505,8 @@ void FlowSolver<dim,nstate>::perk_partitioning() const
         //         locations_to_evaluate_rhs(i) = 1;
         // }
         // locations_to_evaluate_rhs.update_ghost_values();
+        // locations_to_evaluate_rhs.print(std::cout);
+
         // dg->set_list_of_cell_group_IDs(locations_to_evaluate_rhs, this->ode_solver->group_ID[1]);
 
 
@@ -505,6 +518,7 @@ void FlowSolver<dim,nstate>::perk_partitioning() const
         //         locations_to_evaluate_rhs(i) = 1;
         // }
         // locations_to_evaluate_rhs.update_ghost_values();
+        // locations_to_evaluate_rhs.print(std::cout);
         // dg->set_list_of_cell_group_IDs(locations_to_evaluate_rhs, this->ode_solver->group_ID[0]); 
 
 

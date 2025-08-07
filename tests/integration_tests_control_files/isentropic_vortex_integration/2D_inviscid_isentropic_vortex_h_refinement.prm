@@ -27,7 +27,7 @@ subsection ODE solver
   set ode_output = quiet 
   set ode_solver_type = PERK 
   set runge_kutta_method = PERK_10_2
-  set output_solution_every_dt_time_intervals = 0.01
+  set output_solution_every_dt_time_intervals = 1
 end
 
 subsection linear solver

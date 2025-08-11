@@ -46,12 +46,22 @@ protected:
     
     /// String identifying the RK method
     const std::string rk_method_string;
-
     /// Butcher tableau "a1"
     dealii::Table<2,double> butcher_tableau_a1;
+        /// Butcher tableau "a1"
+    dealii::Table<2,double> butcher_tableau_a2;
+
+    /// Butcher tableau "a1"
+    dealii::Table<2,double> butcher_tableau_a3;
 
     /// Butcher tableau "a2"
-    dealii::Table<2,double> butcher_tableau_a2;
+    dealii::Table<2,double> butcher_tableau_a4;
+
+        /// Butcher tableau "a2"
+    dealii::Table<2,double> butcher_tableau_a5;
+
+        /// Butcher tableau "a2"
+    dealii::Table<2,double> butcher_tableau_a6;
 
     /// Butcher tableau "b"
     dealii::Table<1,double> butcher_tableau_b;
@@ -64,6 +74,14 @@ protected:
 
      /// Setter for butcher_tableau_a2
     virtual void set_a2() = 0;
+         /// Setter for butcher_tableau_a2
+    virtual void set_a3() = 0;
+         /// Setter for butcher_tableau_a2
+    virtual void set_a4() = 0;
+             /// Setter for butcher_tableau_a2
+    virtual void set_a5() = 0;
+             /// Setter for butcher_tableau_a2
+    virtual void set_a6() = 0;
 
     /// Setter for butcher_tableau_b
     virtual void set_b() = 0;

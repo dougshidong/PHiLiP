@@ -13,6 +13,10 @@ PERKTableauBase<dim,real, MeshType> :: PERKTableauBase (const int n_rk_stages_in
 {
     this->butcher_tableau_a1.reinit(n_rk_stages,n_rk_stages);
     this->butcher_tableau_a2.reinit(n_rk_stages,n_rk_stages);
+    this->butcher_tableau_a3.reinit(n_rk_stages,n_rk_stages);
+    this->butcher_tableau_a4.reinit(n_rk_stages,n_rk_stages);
+    this->butcher_tableau_a5.reinit(n_rk_stages,n_rk_stages);
+    this->butcher_tableau_a6.reinit(n_rk_stages,n_rk_stages);
     this->butcher_tableau_b.reinit(n_rk_stages);
     this->butcher_tableau_c.reinit(n_rk_stages);
 }
@@ -22,6 +26,11 @@ void PERKTableauBase<dim,real, MeshType> :: set_tableau ()
 {
     set_a1();
     set_a2();
+    set_a3();
+    set_a4();
+    set_a5();
+    set_a6();
+    //set_a10();
     set_b();
     set_c();
     pcout << "Assigned RK method: " << rk_method_string << std::endl;
@@ -35,7 +44,22 @@ double PERKTableauBase<dim,real, MeshType> :: get_a (const int i, const int j, c
     }
     else if (a ==2) {
         return butcher_tableau_a2[i][j];
-    }
+    } 
+    else if (a ==3) {
+        return butcher_tableau_a3[i][j];
+    } 
+    else if (a ==4) {
+        return butcher_tableau_a4[i][j];
+    } 
+    else if (a ==6) {
+        return butcher_tableau_a4[i][j];
+    } 
+    else if (a ==5) {
+        return butcher_tableau_a4[i][j];
+    } 
+    // else if (a ==10) {
+    //     return butcher_tableau_a10[i][j];
+    // }
     else {
         pcout << "Butcher tableau 'a' value not implemented " << std::endl;
         std::abort();

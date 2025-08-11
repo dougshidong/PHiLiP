@@ -157,9 +157,13 @@ void PERKODESolver<dim,real,n_rk_stages,MeshType>::allocate_runge_kutta_system (
 
 template class PERKODESolver<PHILIP_DIM, double,10, dealii::Triangulation<PHILIP_DIM> >;
 template class PERKODESolver<PHILIP_DIM, double,10, dealii::parallel::shared::Triangulation<PHILIP_DIM> >;
+template class PERKODESolver<PHILIP_DIM, double,16, dealii::Triangulation<PHILIP_DIM> >;
+template class PERKODESolver<PHILIP_DIM, double,16, dealii::parallel::shared::Triangulation<PHILIP_DIM> >;
 #if PHILIP_DIM != 1
     template class PERKODESolver<PHILIP_DIM, double,10, dealii::parallel::distributed::Triangulation<PHILIP_DIM> >;
+    template class PERKODESolver<PHILIP_DIM, double,16, dealii::parallel::distributed::Triangulation<PHILIP_DIM> >;
 #endif
+
 
 } // ODESolver namespace
 } // PHiLiP namespace

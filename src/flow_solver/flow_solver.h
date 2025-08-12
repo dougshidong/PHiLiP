@@ -13,7 +13,10 @@
 #include <deal.II/dofs/dof_tools.h>
 #include <deal.II/grid/grid_tools.h>
 #include <deal.II/grid/tria.h>
-#include <deal.II/numerics/vector_tools.h>
+#include <deal.II/numerics/vector_tools.h>  
+#include <deal.II/grid/grid_tools.h>
+#include <deal.II/lac/sparsity_tools.h>
+#include <deal.II/base/utilities.h>
 
 #include <stdlib.h>
 #include <iostream>
@@ -92,7 +95,13 @@ public:
 
 protected:
     mutable dealii::LinearAlgebra::distributed::Vector<int> locations_to_evaluate_rhs;
+    mutable dealii::LinearAlgebra::distributed::Vector<int> locations_to_evaluate_rhs_2;
+    mutable std::vector<dealii::LinearAlgebra::distributed::Vector<int>> locations_to_evaluate_rhs_1;
+    mutable std::vector<std::vector<int>> locations_rhs_1;
+    mutable std::vector<std::vector<std::vector<int>>> all_locations_rhs_1;
+    //std::vector<unsigned int> cell_weights;
     mutable int evaluate_until_this_index;
+    
     const MPI_Comm mpi_communicator; ///< MPI communicator.
     const int mpi_rank; ///< MPI rank.
     const int n_mpi; ///< Number of MPI processes.

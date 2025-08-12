@@ -299,6 +299,7 @@ std::shared_ptr<PERKTableauBase<dim,real,MeshType>> ODESolverFactory<dim,real,Me
     const RKMethodEnum rk_method = dg_input->all_parameters->ode_solver_param.runge_kutta_method;
     const int n_rk_stages = dg_input->all_parameters->ode_solver_param.n_rk_stages;
     if (rk_method == RKMethodEnum::PERK_10_2)   return std::make_shared<PERK_10_2<dim, real, MeshType>> (n_rk_stages, "PERK_10_2");
+    if (rk_method == RKMethodEnum::PERK_3_16_3)   return std::make_shared<PERK_3_16_3<dim, real, MeshType>> (n_rk_stages, "PERK_3_16_3");
     else {
         pcout << "Error: invalid PERK method. Aborting..." << std::endl;
         std::abort();
@@ -374,7 +375,11 @@ std::shared_ptr<RKTableauBase<dim,real,MeshType>> ODESolverFactory<dim,real,Mesh
         if (rk_method == RKMethodEnum::PERK_10_2) {
             pcout << "WARNING: returning dummy RK method!" << std::endl;
             return std::make_shared<SSPRK3Explicit<dim, real, MeshType>> (n_rk_stages, "3rd order SSP (explicit)");
-        }           
+        } 
+        if (rk_method == RKMethodEnum::PERK_3_16_3) {
+            pcout << "WARNING: returning dummy RK method!" << std::endl;
+            return std::make_shared<SSPRK3Explicit<dim, real, MeshType>> (n_rk_stages, "3rd order SSP (explicit)");
+        }          
         pcout << "Error: invalid RK method. Aborting..." << std::endl;
         std::abort();
         return nullptr;

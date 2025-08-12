@@ -1,5 +1,6 @@
 #include "parameters/parameters_ode_solver.h"
 
+
 namespace PHiLiP {
 namespace Parameters {
 
@@ -117,6 +118,7 @@ void ODESolverParam::declare_parameters (dealii::ParameterHandler &prm)
                           " dirk_2_im | "
                           " dirk_3_im | "
                           " PERK_10_2 |"
+                          " PERK_3_16_3 |"
                           " RK3_2_5F_3SStarPlus | "
                           " RK4_3_5_3SStar | "
                           " RK4_3_9F_3SStarPlus |"
@@ -131,6 +133,7 @@ void ODESolverParam::declare_parameters (dealii::ParameterHandler &prm)
                           " dirk_2_im | "
                           " dirk_3_im | "
                           " PERK_10_2 |"
+                          " PERK_3_16_3 |"
                           " RK4_3_5_3SStar | "
                           " RK3_2_5F_3SStarPlus | "
                           " RK5_4_10F_3SStarPlus |"
@@ -301,6 +304,11 @@ void ODESolverParam::parse_parameters (dealii::ParameterHandler &prm)
         else if (rk_method_string == "PERK_10_2"){
             runge_kutta_method = RKMethodEnum::PERK_10_2;
             n_rk_stages = 10;
+            rk_order = 2;
+        }
+        else if (rk_method_string == "PERK_3_16_3"){
+            runge_kutta_method = RKMethodEnum::PERK_3_16_3;
+            n_rk_stages = 16;
             rk_order = 2;
         }
 

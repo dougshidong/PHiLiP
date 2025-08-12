@@ -76,9 +76,10 @@ public:
         RK3_2_5F_3SStarPlus, ///Third-order, FSAL, three register low-storage Runge-Kutta method with a fourth register for an error estimate
         RK4_3_9F_3SStarPlus, ///Fourth-order, FSAL, three register low-storage Runge-Kutta method with a fourth register for an error estimate
         RK5_4_10F_3SStarPlus, ///Fifth-order, FSAL, three register low-storage Runge-Kutta method with a fourth register for an error estimate
-        PERK_10_2
+        PERK_10_2,
+        PERK_3_16_3
     };
-
+    
     RKMethodEnum runge_kutta_method; ///< Runge-kutta method.
     int n_rk_stages; ///< Number of stages for an RK method; assigned based on runge_kutta_method
     int rk_order; ///< Order of the RK method; assigned based on runge_kutta_method

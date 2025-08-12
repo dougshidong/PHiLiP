@@ -685,7 +685,14 @@ public:
      *  Must be defined after fe_dg since it is a subscriptor of fe_dg.
      *  Destructor are called in reverse order in which they appear in class definition.
      */
+
+     
     dealii::DoFHandler<dim> dof_handler;
+        /// Continuous distribution of artificial dissipation.
+    const dealii::FE_DGQ<dim> fe_q_artificial_dissipation;
+
+    /// Degrees of freedom handler for C0 artificial dissipation.
+    dealii::DoFHandler<dim> dof_handler_artificial_dissipation;
 
     /// High order grid that will provide the MappingFEField
     std::shared_ptr<HighOrderGrid<dim,real,MeshType>> high_order_grid;
@@ -699,11 +706,8 @@ public:
 protected:
     /// The current time set in set_current_time()
     real current_time;
-    /// Continuous distribution of artificial dissipation.
-    const dealii::FE_Q<dim> fe_q_artificial_dissipation;
 
-    /// Degrees of freedom handler for C0 artificial dissipation.
-    dealii::DoFHandler<dim> dof_handler_artificial_dissipation;
+
 
     /// Artificial dissipation coefficients
     dealii::LinearAlgebra::distributed::Vector<double> artificial_dissipation_c0;

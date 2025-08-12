@@ -1801,15 +1801,15 @@ std::shared_ptr< HighOrderGrid<dim, double> >
 read_gmsh(std::string filename, const bool do_renumber_dofs, int requested_grid_order, const bool use_mesh_smoothing)
 {
   // default parameters
-  const bool periodic_x = true;
-  const bool periodic_y = true;
-  const bool periodic_z = false;
+  const bool periodic_x = false;
+  const bool periodic_y = false;
+  const bool periodic_z = true;
   const int x_periodic_1 = 2001; 
   const int x_periodic_2 = 2002;
   const int y_periodic_1 = 2003; 
   const int y_periodic_2 = 2004;
-  const int z_periodic_1 = 0; 
-  const int z_periodic_2 = 0;
+  const int z_periodic_1 = 2005; 
+  const int z_periodic_2 = 2006;
   const bool mesh_reader_verbose_output = true;
 
   return read_gmsh<dim,spacedim>(filename, 

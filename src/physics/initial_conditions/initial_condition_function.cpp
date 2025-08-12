@@ -933,6 +933,7 @@ InitialConditionFactory<dim,nstate, real>::create_InitialConditionFunction(
     } else if (flow_type == FlowCaseEnum::channel_flow) {
         if constexpr (dim==3 && nstate==dim+2) {
             Physics::NavierStokes<dim,nstate,double> navier_stokes_physics_double = Physics::NavierStokes<dim, nstate, double>(
+                    param,
                     param->euler_param.ref_length,
                     param->euler_param.gamma_gas,
                     param->euler_param.mach_inf,

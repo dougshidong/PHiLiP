@@ -122,23 +122,23 @@ public:
     /// Function to compute the constant time step
     double get_constant_time_step(std::shared_ptr<DGBase<dim,double>> dg) const override;
 
-    /// Function to compute the adaptive time step
-    virtual double get_adaptive_time_step(std::shared_ptr<DGBase<dim,double>> dg) const override;
+    // /// Function to compute the adaptive time step
+    // virtual double get_adaptive_time_step(std::shared_ptr<DGBase<dim,double>> dg) const override;
 
-    /// Function to compute the initial adaptive time step
-    virtual double get_adaptive_time_step_initial(std::shared_ptr<DGBase<dim,double>> dg) override;
+    // /// Function to compute the initial adaptive time step
+    // virtual double get_adaptive_time_step_initial(std::shared_ptr<DGBase<dim,double>> dg) override;
 
 protected:
     /// Updates the maximum local wave speed
     using CubeFlow_UniformGrid<dim, nstate>::update_maximum_local_wave_speed;
 
 public:
-    /// Compute the desired unsteady data and write it to a table
-    virtual void compute_unsteady_data_and_write_to_table(
-            const std::shared_ptr<ODE::ODESolverBase<dim, double>> ode_solver,
+    void compute_unsteady_data_and_write_to_table(
+            const unsigned int current_iteration,
+            const double current_time,
             const std::shared_ptr <DGBase<dim, double>> dg,
             const std::shared_ptr<dealii::TableHandler> unsteady_data_table,
-            const bool do_write_unsteady_data_table_file);
+            const bool do_write_unsteady_data_table_file) override;
 
 protected:
     /// List of possible integrated quantities over the domain

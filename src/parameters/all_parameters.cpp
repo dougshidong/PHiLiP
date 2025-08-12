@@ -192,7 +192,7 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       " taylor_green_vortex_energy_check | "
                       " taylor_green_vortex_restart_check | "
                       " homogeneous_isotropic_turbulence_initialization_check | "
-                      " turbulent_channel_flow_skin_friction_check | "
+                      // " turbulent_channel_flow_skin_friction_check | "
                       " time_refinement_study | "
                       " assemble_residual_on_subset_time_refinement_study | "
                       " time_refinement_study_reference | "
@@ -245,7 +245,7 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       "  taylor_green_vortex_energy_check | "
                       "  taylor_green_vortex_restart_check | "
                       "  homogeneous_isotropic_turbulence_initialization_check | "
-                      "  turbulent_channel_flow_skin_friction_check | "
+                      //"  turbulent_channel_flow_skin_friction_check | "
                       "  time_refinement_study | "
                       "  time_refinement_study_reference | "
                       "  assemble_residual_on_subset_time_refinement_study | "
@@ -441,8 +441,8 @@ const std::string test_string = prm.get("test_type");
     else if (test_string == "taylor_green_vortex_restart_check")        { test_type = taylor_green_vortex_restart_check; }
     else if (test_string == "homogeneous_isotropic_turbulence_initialization_check")
                                                                         { test_type = homogeneous_isotropic_turbulence_initialization_check; }
-    else if (test_string == "turbulent_channel_flow_skin_friction_check")
-                                                                        { test_type = turbulent_channel_flow_skin_friction_check; }
+    // else if (test_string == "turbulent_channel_flow_skin_friction_check")
+    //                                                                     { test_type = turbulent_channel_flow_skin_friction_check; }
     else if (test_string == "time_refinement_study")                    { test_type = time_refinement_study; }
     else if (test_string == "time_refinement_study_reference")          { test_type = time_refinement_study_reference; }
     else if (test_string == "assemble_residual_on_subset_time_refinement_study")

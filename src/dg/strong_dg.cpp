@@ -160,11 +160,10 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_boundary_term_and_build_operat
     
     const dealii::FESystem<dim> &fe_metric = this->high_order_grid->fe_system;
     const unsigned int n_metric_dofs = fe_metric.dofs_per_cell;
-    const unsigned int face_int = soln_basis.reference_face_number(iface, cell->face_orientation(iface), cell->face_flip(iface), cell->face_rotation(iface));
     const unsigned int n_grid_nodes  = n_metric_dofs / dim;
     //build the surface metric operators for interior
     metric_oper.build_facet_metric_operators(
-        face_int,
+        iface,
         this->face_quadrature_collection[poly_degree].size(),
         n_grid_nodes,
         mapping_support_points,
@@ -175,7 +174,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_boundary_term_and_build_operat
     if(compute_auxiliary_right_hand_side){
         assemble_boundary_term_auxiliary_equation (
 	    cell,
-            face_int, current_cell_index, poly_degree,
+            iface, current_cell_index, poly_degree,
             boundary_id, cell_dofs_indices, 
             soln_basis, metric_oper,
             local_auxiliary_RHS);
@@ -183,7 +182,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_boundary_term_and_build_operat
     else{
         assemble_boundary_term_strong (
 	    cell,
-            face_int,
+            iface,
             current_cell_index,
             boundary_id, poly_degree, penalty, 
             cell_dofs_indices, 
@@ -239,11 +238,6 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_and_build_operators(
     const unsigned int n_metric_dofs = fe_metric.dofs_per_cell;
     const unsigned int n_grid_nodes  = n_metric_dofs / dim;
 
-    //check if the reference face changes orientation for unstructured 3D
-    const unsigned int face_int = soln_basis_int.reference_face_number(iface, cell->face_orientation(iface), cell->face_flip(iface), cell->face_rotation(iface));
-    const unsigned int face_ext = soln_basis_ext.reference_face_number(neighbor_iface, neighbor_cell->face_orientation(neighbor_iface), neighbor_cell->face_flip(neighbor_iface), neighbor_cell->face_rotation(neighbor_iface));
-
-
     //build the surface metric operators for interior
     metric_oper_int.build_facet_metric_operators(
         iface,
@@ -298,7 +292,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_and_build_operators(
         assemble_face_term_auxiliary_equation (
 	    cell,
         neighbor_cell,
-            face_int, face_ext, 
+            iface, neighbor_iface, 
             current_cell_index, neighbor_cell_index,
             poly_degree_int, poly_degree_ext,
             current_dofs_indices, neighbor_dofs_indices,
@@ -316,7 +310,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_and_build_operators(
         assemble_face_term_strong (
 	    cell,
 	    neighbor_cell,
-            face_int, face_ext, 
+            iface, neighbor_iface, 
             current_cell_index,
             neighbor_cell_index,
             poly_degree_int, poly_degree_ext,
@@ -619,8 +613,13 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_boundary_term_auxiliary_equati
     const unsigned int n_shape_fns     = n_dofs / nstate;
     AssertDimension (n_dofs, dofs_indices.size());
 
-    const bool face_orientation = this->all_parameters->flow_solver_param.use_gmsh_mesh ? cell->face_orientation(iface) : true;
-
+    //const bool face_orientation = this->all_parameters->flow_solver_param.use_gmsh_mesh ? cell->face_orientation(iface) : true;
+    std::vector<bool> face_orientation = {true, false, false};
+    if(this->all_parameters->flow_solver_param.use_gmsh_mesh){
+        face_orientation[0] = cell->face_orientation(iface);
+        face_orientation[1] = cell->face_rotation(iface);
+        face_orientation[2] = cell->face_flip(iface);
+    }
     //Extract interior modal coefficients of solution
     std::array<std::vector<real>,nstate> soln_coeff;
     for (unsigned int idof = 0; idof < n_dofs; ++idof) {
@@ -678,8 +677,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_boundary_term_auxiliary_equati
 
     //evaluate physical facet fluxes dot product with physical unit normal scaled by determinant of metric facet Jacobian
     //the outward reference normal dircetion.
-   // const dealii::Tensor<1,dim,double> unit_ref_normal_int = dealii::GeometryInfo<dim>::unit_normal_vector[iface];
-    const dealii::Tensor<1,dim,double> unit_ref_normal_int = (cell->face_orientation(iface)) ? dealii::GeometryInfo<dim>::unit_normal_vector[iface] :  dealii::GeometryInfo<dim>::unit_normal_vector[iface];
+    const dealii::Tensor<1,dim,double> unit_ref_normal_int = dealii::GeometryInfo<dim>::unit_normal_vector[iface];
 
     std::array<dealii::Tensor<1,dim,std::vector<real>>,nstate> surf_num_flux_minus_surf_soln_dot_normal;
     for(unsigned int iquad=0; iquad<n_face_quad_pts; iquad++){
@@ -787,8 +785,18 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_auxiliary_equation(
     AssertDimension (n_dofs_int, dof_indices_int.size());
     AssertDimension (n_dofs_ext, dof_indices_ext.size());
 
-    const bool face_orientation_int = this->all_parameters->flow_solver_param.use_gmsh_mesh ? cell->face_orientation(iface) : true;
-    const bool face_orientation_ext = this->all_parameters->flow_solver_param.use_gmsh_mesh ? neighbor_cell->face_orientation(neighbor_iface) : true;
+    std::vector<bool> face_orientation_int = {true, false, false};
+    if(this->all_parameters->flow_solver_param.use_gmsh_mesh){
+        face_orientation_int[0] = cell->face_orientation(iface);
+        face_orientation_int[1] = cell->face_rotation(iface);
+        face_orientation_int[2] = cell->face_flip(iface);
+    }
+    std::vector<bool> face_orientation_ext = {true, false, false};
+    if(this->all_parameters->flow_solver_param.use_gmsh_mesh){
+        face_orientation_ext[0] = neighbor_cell->face_orientation(neighbor_iface);
+        face_orientation_ext[1] = neighbor_cell->face_rotation(neighbor_iface);
+        face_orientation_ext[2] = neighbor_cell->face_flip(neighbor_iface);
+    }
 
     //Extract interior modal coefficients of solution
     std::array<std::vector<real>,nstate> soln_coeff_int;
@@ -836,8 +844,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_auxiliary_equation(
 
     //evaluate physical facet fluxes dot product with physical unit normal scaled by determinant of metric facet Jacobian
     //the outward reference normal dircetion.
-   // const dealii::Tensor<1,dim,double> unit_ref_normal_int = dealii::GeometryInfo<dim>::unit_normal_vector[iface];
-    const dealii::Tensor<1,dim,double> unit_ref_normal_int = (cell->face_orientation(iface)) ? dealii::GeometryInfo<dim>::unit_normal_vector[iface] : dealii::GeometryInfo<dim>::unit_normal_vector[iface];
+    const dealii::Tensor<1,dim,double> unit_ref_normal_int = dealii::GeometryInfo<dim>::unit_normal_vector[iface];
 
     std::array<dealii::Tensor<1,dim,std::vector<real>>,nstate> surf_num_flux_minus_surf_soln_int_dot_normal;
     std::array<dealii::Tensor<1,dim,std::vector<real>>,nstate> surf_num_flux_minus_surf_soln_ext_dot_normal;
@@ -1533,11 +1540,11 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_boundary_term_strong(
 
     AssertDimension (n_dofs, dof_indices.size());
 
-    const bool face_orientation = this->all_parameters->flow_solver_param.use_gmsh_mesh ? cell->face_orientation(iface) : true;
-
-    if(!cell->face_orientation(iface)){
-        std::cout<<"iface: "<<iface<<" DOES NOT have standard orientation."<<"\n";
-        std::cout<<"current cell index: "<<current_cell_index<<"\n";
+    std::vector<bool> face_orientation = {true, false, false};;
+    if(this->all_parameters->flow_solver_param.use_gmsh_mesh){
+        face_orientation[0] = cell->face_orientation(iface);
+        face_orientation[1] = cell->face_rotation(iface);
+        face_orientation[2] = cell->face_flip(iface);
     }
     // Fetch the modal soln coefficients and the modal auxiliary soln coefficients
     // We immediately separate them by state as to be able to use sum-factorization
@@ -1902,8 +1909,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_boundary_term_strong(
     // Since we are computing a dot product with the unit reference normal,
     // we exploit the fact that the unit reference normal has a value of 0 in all reference directions except
     // the outward reference normal dircetion.
-    //const dealii::Tensor<1,dim,double> unit_ref_normal_int = dealii::GeometryInfo<dim>::unit_normal_vector[iface];
-    const dealii::Tensor<1,dim,double> unit_ref_normal_int =(face_orientation) ?  dealii::GeometryInfo<dim>::unit_normal_vector[iface] : dealii::GeometryInfo<dim>::unit_normal_vector[iface];
+    const dealii::Tensor<1,dim,double> unit_ref_normal_int = dealii::GeometryInfo<dim>::unit_normal_vector[iface];
 
     const int dim_not_zero = iface / 2;//reference direction of face integer division
 
@@ -2273,8 +2279,18 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_strong(
     AssertDimension (n_dofs_int, dof_indices_int.size());
     AssertDimension (n_dofs_ext, dof_indices_ext.size());
 
-    const bool face_orientation_int = this->all_parameters->flow_solver_param.use_gmsh_mesh ? cell->face_orientation(iface) : true;
-    const bool face_orientation_ext = this->all_parameters->flow_solver_param.use_gmsh_mesh ? neighbor_cell->face_orientation(neighbor_iface) : true;
+    std::vector<bool> face_orientation_int = {true, false, false};
+    if(this->all_parameters->flow_solver_param.use_gmsh_mesh){
+        face_orientation_int[0] = cell->face_orientation(iface);
+        face_orientation_int[1] = cell->face_rotation(iface);
+        face_orientation_int[2] = cell->face_flip(iface);
+    }
+    std::vector<bool> face_orientation_ext = {true, false, false};
+    if(this->all_parameters->flow_solver_param.use_gmsh_mesh){
+        face_orientation_ext[0] = neighbor_cell->face_orientation(neighbor_iface);
+        face_orientation_ext[1] = neighbor_cell->face_rotation(neighbor_iface);
+        face_orientation_ext[2] = neighbor_cell->face_flip(neighbor_iface);
+    }
 
     // Extract interior modal coefficients of solution
     std::array<std::vector<real>,nstate> soln_coeff_int;
@@ -3024,7 +3040,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_strong(
         soln_basis_int.matrix_vector_mult_1D(entropy_var_coeff_int,
                                              projected_entropy_var_vol_int[istate],
                                              soln_basis_int.oneD_vol_operator);
-        soln_basis_int.matrix_vector_mult_surface_1D(true, 
+        soln_basis_int.matrix_vector_mult_surface_1D(/*face_orientation_int*/{true,false,false}, 
                                                      iface, n_quad_pts_1D_int,
                                                      entropy_var_coeff_int, 
                                                      projected_entropy_var_surf_int[istate],
@@ -3047,7 +3063,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_strong(
         soln_basis_ext.matrix_vector_mult_1D(entropy_var_coeff_ext,
                                              projected_entropy_var_vol_ext[istate],
                                              soln_basis_ext.oneD_vol_operator);
-        soln_basis_ext.matrix_vector_mult_surface_1D(true, 
+        soln_basis_ext.matrix_vector_mult_surface_1D(/*neighbor_cell->face_orientation(neighbor_iface)*/{true,false,false}, 
                                                      neighbor_iface, n_quad_pts_1D_ext,
                                                      entropy_var_coeff_ext, 
                                                      projected_entropy_var_surf_ext[istate],
@@ -3256,21 +3272,6 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_strong(
         }
     }//end of if split form or curvilinear split form
 
-    // std::cout<<"\nCurrent cell index: "<<current_cell_index<<"\n";
-    // if(!cell->face_orientation(iface)){
-    //     std::cout<<"iface: "<<iface<<" DOES NOT have standard orientation"<<"\n";
-    // }else{
-    //     std::cout<<"iface: "<<iface<<" has standard orientation"<<"\n";
-    // }
-    // std::cout<<"unit_ref_normal_int: "<<unit_ref_normal_int<<"\n";
-    // std::cout<<"Neighbor cell index: "<<neighbor_cell_index<<"\n";
-    // if(!neighbor_cell->face_orientation(neighbor_iface)){
-    //     std::cout<<"neighbor_iface: "<<neighbor_iface<<" DOES NOT have standard orientation"<<"\n";
-    // }else{
-    //     std::cout<<"neighbor_iface: "<<neighbor_iface<<" has standard orientation"<<"\n";
-    // }
-    // std::cout<<"unit_ref_normal_ext: "<<unit_ref_normal_ext<<"\n";
-
     // Evaluate reference numerical fluxes.
     
     std::array<std::vector<real>,nstate> conv_num_flux_dot_n;
@@ -3287,14 +3288,6 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_strong(
                 metric_cofactor_surf[idim][jdim] = metric_oper_int.metric_cofactor_surf[idim][jdim][iquad];
             }
         }
-        // dealii::Point<dim,real> surf_flux_node_int;
-        // for(int idim=0; idim<dim; idim++){
-        //     surf_flux_node_int[idim] = metric_oper_int.flux_nodes_surf[iface][idim][iquad];
-        // }
-        // dealii::Point<dim,real> surf_flux_node_ext;
-        // for(int idim=0; idim<dim; idim++){
-        //     surf_flux_node_ext[idim] = metric_oper_ext.flux_nodes_surf[neighbor_iface][idim][iquad];
-        // }
 
         std::array<real,nstate> entropy_var_face_int;
         std::array<real,nstate> entropy_var_face_ext;
@@ -3333,9 +3326,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_strong(
                 soln_state_ext[istate] = soln_at_surf_q_ext[istate][iquad];
             }
         }
-        // std::cout<<"\niquad: "<<iquad<<"\n";
-        // std::cout<<"surf_flux_node_int["<<iquad<<"]: "<<surf_flux_node_int<<"\n";
-        // std::cout<<"surf_flux_node_ext["<<iquad<<"]: "<<surf_flux_node_ext<<"\n";
+
         // numerical fluxes
         dealii::Tensor<1,dim,real> unit_phys_normal_int;
         metric_oper_int.transform_reference_to_physical(unit_ref_normal_int,
@@ -3345,10 +3336,6 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_strong(
         unit_phys_normal_int /= face_Jac_norm_scaled;//normalize it. 
         // Note that the facet determinant of metric jacobian is the above norm multiplied by the determinant of the metric Jacobian evaluated on the facet.
         // Since the determinant of the metric Jacobian evaluated on the face cancels off, we can just scale the numerical flux by the norm.
-        // std::cout<<"unit_phys_normal_int["<<iquad<<"]: "<<unit_phys_normal_int<<"\n";
-        // std::cout<<"face_Jac_norm_scaled["<<iquad<<"]: "<<face_Jac_norm_scaled<<"\n";
-        // const std::vector<double> &surf_quad_weights = this->face_quadrature_collection[poly_degree_int].get_weights();
-        // std::cout<<"surf_quad_weights["<<iquad<<"]: "<<surf_quad_weights[iquad]<<"\n";
         std::array<real,nstate> conv_num_flux_dot_n_at_q;
         std::array<real,nstate> diss_auxi_num_flux_dot_n_at_q;
         // Convective numerical flux. 
@@ -3390,7 +3377,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_strong(
         // convective flux
         if(this->all_parameters->use_split_form || this->all_parameters->use_curvilinear_split_form){
             std::vector<real> ones_surf(n_face_quad_pts, 1.0);
-            soln_basis_int.inner_product_surface_1D(true, 
+            soln_basis_int.inner_product_surface_1D({true,false,false}, 
                                                     iface, n_quad_pts_1D_int,
                                                     surf_vol_ref_2pt_flux_interp_surf_int[istate], 
                                                     ones_surf, rhs_int, 
@@ -3449,7 +3436,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_strong(
         // convective flux
         if(this->all_parameters->use_split_form || this->all_parameters->use_curvilinear_split_form){
             std::vector<real> ones_surf(n_face_quad_pts, 1.0);
-            soln_basis_ext.inner_product_surface_1D(true, 
+            soln_basis_ext.inner_product_surface_1D({true,false,false}, 
                                                     neighbor_iface, n_quad_pts_1D_ext,
                                                     surf_vol_ref_2pt_flux_interp_surf_ext[istate], 
                                                     ones_surf, rhs_ext, 

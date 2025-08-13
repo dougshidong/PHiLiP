@@ -138,12 +138,12 @@ void assemble_face_term_auxiliary_weak(
         soln_at_surf_q_int[istate].resize(n_face_quad_pts);
         soln_at_surf_q_ext[istate].resize(n_face_quad_pts);
         //solve soln at facet cubature nodes
-        soln_basis_int.matrix_vector_mult_surface_1D(/*cell->face_orientation(iface)*/true,iface,
+        soln_basis_int.matrix_vector_mult_surface_1D({true, false, false},iface,
                                                      n_quad_pts_1D_int,
                                                      soln_coeff_int[istate], soln_at_surf_q_int[istate],
                                                      soln_basis_int.oneD_surf_operator,
                                                      soln_basis_int.oneD_vol_operator);
-        soln_basis_ext.matrix_vector_mult_surface_1D(/*neighbor_cell->face_orientation(neighbor_iface)*/true, neighbor_iface,
+        soln_basis_ext.matrix_vector_mult_surface_1D({true, false, false}, neighbor_iface,
                                                      n_quad_pts_1D_ext,
                                                      soln_coeff_ext[istate], soln_at_surf_q_ext[istate],
                                                      soln_basis_ext.oneD_surf_operator,
@@ -208,7 +208,7 @@ void assemble_face_term_auxiliary_weak(
         for(int idim=0; idim<dim; idim++){
             std::vector<double> rhs_int(n_shape_fns_int);
 
-            soln_basis_int.inner_product_surface_1D(true, iface, 
+            soln_basis_int.inner_product_surface_1D({true, false, false}, iface, 
                                                 n_quad_pts_1D_int,
                                                 surf_num_flux_int_dot_normal[istate][idim],
                                                 surf_quad_weights, rhs_int,
@@ -221,7 +221,7 @@ void assemble_face_term_auxiliary_weak(
             }
             std::vector<double> rhs_ext(n_shape_fns_ext);
 
-            soln_basis_ext.inner_product_surface_1D(true, neighbor_iface, 
+            soln_basis_ext.inner_product_surface_1D({true, false, false}, neighbor_iface, 
                                                 n_quad_pts_1D_ext,
                                                 surf_num_flux_ext_dot_normal[istate][idim],
                                                 surf_quad_weights, rhs_ext,

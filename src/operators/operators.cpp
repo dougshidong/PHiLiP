@@ -194,46 +194,94 @@ SumFactorizedOperators<dim,n_faces>::SumFactorizedOperators(
 
 template <int dim, int n_faces>  
 void SumFactorizedOperators<dim,n_faces>::face_orientation_tensor_product(
-    const bool face_orientation,
+    const std::vector<bool> face_orientation,
     const unsigned int /*face_number*/,
     const unsigned int n_quad_pts_1D,
     std::vector<double> &output_vect,
     const dealii::FullMatrix<double> &/*basis*/) 
 {
+    //Initialize temp vector as input vector.
     std::vector<double> output_vect_temp = output_vect;
-    //const unsigned int columns = basis.n();
     const unsigned int columns = n_quad_pts_1D;
-    if(!face_orientation){
+    if(!face_orientation[0]){
         for(unsigned int ydof=0; ydof<columns; ydof++){ 
             for(unsigned int xdof=0; xdof<columns; xdof++){//x runs fastest
                 output_vect[xdof+ydof*columns] = output_vect_temp[columns*xdof+ydof];
             }
         }
     }
+    if(face_orientation[1]){
+        std::vector<double> output_vect_temp_rotation = output_vect;
+        for(unsigned int ydof=0; ydof<columns; ydof++){ 
+            for(unsigned int xdof=0; xdof<columns; xdof++){//x runs fastest
+                output_vect[xdof+ydof*columns] = output_vect_temp_rotation[((columns-1)-ydof)+xdof*columns];
+            }
+        }
+        std::cout << "\nIt appears deal.ii has rotated a face.\n";
+        std::cout << "This scenario was considered and a fix has been implemented. However, this scenario was never encountered before and thus could not be verified.\n";
+        std::cout << "You may remove the abort statement and verify that the solution is as expected.\n";
+        std::cout << "For more information, please see: https://www.dealii.org/current/doxygen/deal.II/DEALGlossary.html#GlossFaceOrientation \n"<<std::endl;
+        std::abort();
+    }
+    if(face_orientation[2]){
+        std::vector<double> output_vect_temp_flip = output_vect;
+        for(unsigned int ydof=0; ydof<columns; ydof++){ 
+            for(unsigned int xdof=0; xdof<columns; xdof++){//x runs fastest
+                output_vect[xdof+ydof*columns] = output_vect_temp_flip[(columns*columns-1)-xdof-ydof*columns];
+            }
+        }
+        std::cout << "\nIt appears deal.ii has fliped a face.\n";
+        std::cout << "This scenario was considered and a fix has been implemented. However, this scenario was never encountered before and thus could not be verified.\n";
+        std::cout << "You may remove the abort statement and verify that the solution is as expected.\n";
+        std::cout << "For more information, please see: https://www.dealii.org/current/doxygen/deal.II/DEALGlossary.html#GlossFaceOrientation \n"<<std::endl;
+        std::abort();
+    }
 }
 
 template <int dim, int n_faces>  
 void SumFactorizedOperators<dim,n_faces>::face_orientation_inner_product(
-    const bool face_orientation,
+    const std::vector<bool> face_orientation,
     const unsigned int /*face_number*/,
     const unsigned int n_quad_pts_1D,
     const std::vector<double> &input_vect,
-    const std::vector<double> &/*weight_vect*/,
     std::vector<double> &output_vect,
-    std::vector<double> &/*weight_output_vect*/,
     const dealii::FullMatrix<double> &/*basis*/)
-{
+{ 
+    //Initialize output vector as input vector.
     output_vect = input_vect;
-    //weight_output_vect = weight_vect;
-    //const unsigned int columns = basis.n();
     const unsigned int columns = n_quad_pts_1D;
-    if(!face_orientation){
+    if(!face_orientation[0]){
         for(unsigned int ydof=0; ydof<columns; ydof++){ 
             for(unsigned int xdof=0; xdof<columns; xdof++){//x runs fastest
                 output_vect[xdof+ydof*columns] = input_vect[columns*xdof+ydof];
-                //weight_output_vect[xdof+ydof*columns] = weight_vect[columns*xdof+ydof];
             }
         }
+    }
+    if(face_orientation[1]){
+        std::vector<double> output_vect_temp_rotation = output_vect;
+        for(unsigned int ydof=0; ydof<columns; ydof++){ 
+            for(unsigned int xdof=0; xdof<columns; xdof++){//x runs fastest
+                output_vect[xdof+ydof*columns] = output_vect_temp_rotation[((columns-1)-ydof)+xdof*columns];
+            }
+        }
+        std::cout << "\nIt appears deal.ii has rotated a face.\n";
+        std::cout << "This scenario was considered and a fix has been implemented. However, this scenario was never encountered before and thus could not be verified.\n";
+        std::cout << "You may remove the abort statement and verify that the solution is as expected.\n";
+        std::cout << "For more information, please see: https://www.dealii.org/current/doxygen/deal.II/DEALGlossary.html#GlossFaceOrientation \n"<<std::endl;
+        std::abort();
+    }
+    if(face_orientation[2]){
+        std::vector<double> output_vect_temp_flip = output_vect;
+        for(unsigned int ydof=0; ydof<columns; ydof++){ 
+            for(unsigned int xdof=0; xdof<columns; xdof++){//x runs fastest
+                output_vect[xdof+ydof*columns] = output_vect_temp_flip[(columns*columns-1)-xdof-ydof*columns];
+            }
+        }
+        std::cout << "\nIt appears deal.ii has fliped a face.\n";
+        std::cout << "This scenario was considered and a fix has been implemented. However, this scenario was never encountered before and thus could not be verified.\n";
+        std::cout << "You may remove the abort statement and verify that the solution is as expected.\n";
+        std::cout << "For more information, please see: https://www.dealii.org/current/doxygen/deal.II/DEALGlossary.html#GlossFaceOrientation \n"<<std::endl;
+        std::abort();
     }
 }
 
@@ -362,7 +410,7 @@ void SumFactorizedOperators<dim,n_faces>::matrix_vector_mult_1D(
 
 template <int dim, int n_faces>  
 void SumFactorizedOperators<dim,n_faces>::matrix_vector_mult_surface_1D(
-    const bool face_orientation,
+    const std::vector<bool> face_orientation,
     const unsigned int face_number,
     const unsigned int n_quad_pts_1D,
     const std::vector<double> &input_vect,
@@ -385,13 +433,15 @@ void SumFactorizedOperators<dim,n_faces>::matrix_vector_mult_surface_1D(
     if(face_number == 5)
         this->matrix_vector_mult(input_vect, output_vect, basis_vol, basis_vol, basis_surf[1], adding, factor);
 
-    this->face_orientation_tensor_product(face_orientation, face_number, n_quad_pts_1D, output_vect, basis_surf[0]);
+    if(!face_orientation[0] || face_orientation[1] || face_orientation[2]){
+        this->face_orientation_tensor_product(face_orientation, face_number, n_quad_pts_1D, output_vect, basis_surf[0]);
+    }
 }
 
 
 template <int dim, int n_faces>  
 void SumFactorizedOperators<dim,n_faces>::inner_product_surface_1D(
-    const bool face_orientation,
+    const std::vector<bool> face_orientation,
     const unsigned int face_number,
     const unsigned int n_quad_pts_1D,
     const std::vector<double> &input_vect,
@@ -405,9 +455,12 @@ void SumFactorizedOperators<dim,n_faces>::inner_product_surface_1D(
     
 
     std::vector<double> input_vect_corrected;
-    std::vector<double> weight_vect_corrected;
-    
-    this->face_orientation_inner_product(face_orientation, face_number, n_quad_pts_1D, input_vect, weight_vect, input_vect_corrected, weight_vect_corrected, basis_surf[0]);
+    if(!face_orientation[0] || face_orientation[1] || face_orientation[2]){
+        this->face_orientation_inner_product(face_orientation, face_number, n_quad_pts_1D, input_vect, input_vect_corrected, basis_surf[0]);
+    }else{
+        input_vect_corrected = input_vect;
+    }
+
     if(face_number == 0)
         this->inner_product(input_vect_corrected, weight_vect, output_vect, basis_surf[0], basis_vol, basis_vol, adding, factor);
     if(face_number == 1)
@@ -1117,103 +1170,6 @@ void SumFactorizedOperators<dim,n_faces>::sum_factorized_Hadamard_surface_basis_
     }
 }
 
-template <int dim, int n_faces>  
-unsigned int SumFactorizedOperators<dim,n_faces>::reference_face_number(
-    const unsigned int iface,
-    const bool /*face_orientation*/,
-    const bool face_flip,
-    const bool face_rotation)
-{
-    unsigned int face_number = 100;
-    // if(!face_flip && !face_rotation /*&& !face_orientation*/){
-    //     if(iface==0){
-    //         face_number = 5;
-    //     }
-    //     else if(iface==1){
-    //         face_number = 4;
-    //     }
-    //     else if(iface==4){
-    //         face_number = 1;
-    //     }
-    //     else if(iface==5){
-    //         face_number = 0;
-    //     }
-    // }
-    if(!face_flip && face_rotation){//90 degree rotation
-        //Not fully verified yet
-        std::cout<<"Cannot handle reference cell face rotations!. Aborting..."<<std::endl;
-        std::abort();
-    }
-    else if(face_flip && !face_rotation){//180 degree rotation
-        //Not fully verified yet
-    std::cout<<"FACE FLIP!. Aborting..."<<std::endl;
-	if(iface%2==0)
-            face_number = iface + 1;
-        if(iface%2==1)
-            face_number = iface - 1;
-       std::cout<<"Cannot handle reference cell face rotations!. Aborting..."<<std::endl;
-       std::abort();
-    }
-    else if(face_flip && face_rotation){//270 degree rotation
-        //Not fully verified yet
-        std::cout<<"Cannot handle reference cell face rotations!. Aborting..."<<std::endl;
-        std::abort();
-    }
-    else if(!face_flip && !face_rotation /*&& !face_orientation*/){//270 degree rotation
-        face_number = iface;
-    }
-    if(face_number == 100){
-        std::cout<<"face rotated condition not yet considered."<<std::endl;
-        std::abort();
-    }
-
-//    if(face_orientation){
-//        face_number = iface;
-//       // std::cout<<"Correct face orientation. Face id is:"<<iface<<std::endl;
-//    }
-//    else{
-////	std::cout<<"face_orientation:"<<face_orientation<<std::endl;
-//      //  std::cout<<"Cell face was rotated by Deal.ii! Face id is:"<<iface<<std::endl;	
-////	std::cout<<"face orientation"<<face_orientation<<std::endl;
-////	std::cout<<"face flip"<<face_flip<<std::endl;
-////	std::cout<<"face rotation"<<face_rotation<<std::endl;
-//     //   if(!face_flip && !face_rotation){
-////         //   std::cout<<"Cannot handle reference cell face flip!"<<std::endl;   
-////	    if(iface%2==0)
-////                face_number = iface + 1;
-////            if(iface%2==1)
-////                face_number = iface - 1;
-////	   // std::abort();
-//           face_number = iface;
-//        }
-//        if(!face_flip && face_rotation){
-//        std::cout<<"Cell face was rotated by Deal.ii! Face id is:"<<iface<<std::endl;	
-//        std::cout<<"face orientation"<<face_orientation<<std::endl;
-//        std::cout<<"face flip"<<face_flip<<std::endl;
-//        std::cout<<"face rotation"<<face_rotation<<std::endl;
-//            std::cout<<"Cannot handle reference cell face rotations!. Aborting..."<<std::endl;
-//            std::abort();
-//        }
-//        if(face_flip && face_rotation){
-//            std::cout<<"Cannot handle reference cell face flip and rotations!. Aborting..."<<std::endl;
-//        std::cout<<"Cell face was rotated by Deal.ii! Face id is:"<<iface<<std::endl;	
-//        std::cout<<"face orientation"<<face_orientation<<std::endl;
-//        std::cout<<"face flip"<<face_flip<<std::endl;
-//        std::cout<<"face rotation"<<face_rotation<<std::endl;
-//            std::abort();
-//        }
-//    }
-//    if(face_number == 100){
-//            std::cout<<"Cannot handle reference cell no face orientation and no rotations!. Aborting..."<<std::endl;
-//            //std::cout<<"face_flip:"<<face_flip<<std::endl;
-//            //std::cout<<"face_rotation:"<<face_rotation<<std::endl;
-//            //std::abort();
-//    }
-//
-    return face_number;
-
-}
-
 /*******************************************
  *
  *      VOLUME OPERATORS FUNCTIONS
@@ -1623,14 +1579,20 @@ void local_Flux_Reconstruction_operator<dim,n_faces>::get_c_plus_parameter (
         c = 0.186;
 //        c = 0.173;//RK33
     }
-    if(curr_cell_degree == 3)
+    else if(curr_cell_degree == 3){
         c = 3.67e-3;
-    if(curr_cell_degree == 4){
+    }
+    else if(curr_cell_degree == 4){
         c = 4.79e-5;
 //       c = 4.92e-5;//RK33
     }
-    if(curr_cell_degree == 5)
+    else if(curr_cell_degree == 5){
        c = 4.24e-7;
+    }
+    else{
+        this->pcout << "ERROR: cPlus values are only defined for p=2 through p=5. Aborting..." << std::endl;
+        std::abort();
+    }
 
     c/=2.0;//since orthonormal
     c/=pow(pow(2.0,curr_cell_degree),2);//since ref elem [0,1]

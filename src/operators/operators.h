@@ -324,7 +324,7 @@ public:
     */
 
     void matrix_vector_mult_surface_1D(
-            const bool face_orientation,
+            const std::vector<bool> face_orientation,
             const unsigned int face_number,
             const unsigned int n_quad_pts_1D,
             const std::vector<double> &input_vect,
@@ -336,7 +336,7 @@ public:
 
     /// Apply sum-factorization inner product on a surface.
     void inner_product_surface_1D(
-            const bool face_orientation,
+            const std::vector<bool> face_orientation,
             const unsigned int face_number,
             const unsigned int n_quad_pts_1D,
             const std::vector<double> &input_vect,
@@ -356,20 +356,18 @@ public:
     */
     
     void face_orientation_tensor_product(
-            const bool face_orientation,
+            const std::vector<bool> face_orientation,
             const unsigned int face_number,
             const unsigned int n_quad_pts_1D,
             std::vector<double> &output_vect,
             const dealii::FullMatrix<double> &basis);
 
     void face_orientation_inner_product(
-            const bool face_orientation,
+            const std::vector<bool> face_orientation,
             const unsigned int face_number,
             const unsigned int n_quad_pts_1D,
             const std::vector<double> &input_vect,
-            const std::vector<double> &weight_vect,
             std::vector<double> &output_vect,
-            std::vector<double> &weight_output_vect,
             const dealii::FullMatrix<double> &basis);
 
     ///Computes a single Hadamard product. 
@@ -380,13 +378,6 @@ public:
         const dealii::FullMatrix<double> &input_mat1,
         const dealii::FullMatrix<double> &input_mat2,
         dealii::FullMatrix<double> &output_mat);
-
-    /// Returns the reference cell's face number in standard orientation.
-    unsigned int reference_face_number(
-        const unsigned int iface,
-        const bool face_orientation,
-        const bool face_flip,
-        const bool face_rotation);
 
 
 

@@ -17,11 +17,11 @@ Galerkin projection, pod_basis = V, system matrix J
 V^T*J*V*p = -V^T*R
  */
 #if PHILIP_DIM==1
-template <int dim, typename real, typename MeshType = dealii::Triangulation<dim>>
+template <int dim, int nspecies, typename real, typename MeshType = dealii::Triangulation<dim>>
 #else
-template <int dim, typename real, typename MeshType = dealii::parallel::distributed::Triangulation<dim>>
+template <int dim, int nspecies, typename real, typename MeshType = dealii::parallel::distributed::Triangulation<dim>>
 #endif
-class PODGalerkinODESolver: public ReducedOrderODESolver<dim, real, MeshType>
+class PODGalerkinODESolver: public ReducedOrderODESolver<dim, nspecies, real, MeshType>
 {
 public:
     /// Default constructor that will set the constants.

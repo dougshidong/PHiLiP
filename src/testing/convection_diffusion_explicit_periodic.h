@@ -9,7 +9,7 @@ namespace PHiLiP {
 namespace Tests {
 
 /// Convection Diffusion periodic unsteady test (currently only diffusion)
-template <int dim, int nstate>
+template <int dim, int nspecies, int nstate>
 class ConvectionDiffusionPeriodic: public TestsBase
 {
 public:

@@ -15,7 +15,7 @@ using Eigen::MatrixXd;
 /// NOTE: The folder the test reads from should only contain the outputted files from the last iteration of
 /// the adaptive sampling procedure. It should include one text file beginning with "snapshot_table" and one
 /// beginning with "solution_snapshots".
-template <int dim, int nstate>
+template <int dim, int nspecies, int nstate>
 class ROMErrorPostSampling: public TestsBase
 {
 public:

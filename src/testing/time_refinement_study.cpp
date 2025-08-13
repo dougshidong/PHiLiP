@@ -9,8 +9,8 @@
 namespace PHiLiP {
 namespace Tests {
 
-template <int dim, int nstate>
-TimeRefinementStudy<dim, nstate>::TimeRefinementStudy(
+template <int dim, int nspecies, int nstate>
+TimeRefinementStudy<dim, nspecies, nstate>::TimeRefinementStudy(
         const PHiLiP::Parameters::AllParameters *const parameters_input,
         const dealii::ParameterHandler &parameter_handler_input)  
         : TestsBase::TestsBase(parameters_input),
@@ -21,8 +21,8 @@ TimeRefinementStudy<dim, nstate>::TimeRefinementStudy(
 
 
 
-template <int dim, int nstate>
-Parameters::AllParameters TimeRefinementStudy<dim,nstate>::reinit_params_and_refine_timestep(int refinement) const
+template <int dim, int nspecies, int nstate>
+Parameters::AllParameters TimeRefinementStudy<dim,nspecies,nstate>::reinit_params_and_refine_timestep(int refinement) const
 {
     PHiLiP::Parameters::AllParameters parameters = *(this->all_parameters);
 
@@ -37,8 +37,8 @@ Parameters::AllParameters TimeRefinementStudy<dim,nstate>::reinit_params_and_ref
     return parameters;
 }
 
-template <int dim, int nstate>
-double TimeRefinementStudy<dim,nstate>::calculate_Lp_error_at_final_time_wrt_function(std::shared_ptr<DGBase<dim,double>> dg, const Parameters::AllParameters parameters, double final_time, int norm_p) const
+template <int dim, int nspecies, int nstate>
+double TimeRefinementStudy<dim,nspecies,nstate>::calculate_Lp_error_at_final_time_wrt_function(std::shared_ptr<DGBase<dim,double>> dg, const Parameters::AllParameters parameters, double final_time, int norm_p) const
 {
     //generate exact solution at final time
     std::shared_ptr<ExactSolutionFunction<dim,nstate,double>> exact_solution_function;
@@ -71,8 +71,8 @@ double TimeRefinementStudy<dim,nstate>::calculate_Lp_error_at_final_time_wrt_fun
     return Lp_error;    
 }
 
-template <int dim, int nstate>
-int TimeRefinementStudy<dim, nstate>::run_test() const
+template <int dim, int nspecies, int nstate>
+int TimeRefinementStudy<dim, nspecies, nstate>::run_test() const
 {
     
     const double final_time = this->all_parameters->flow_solver_param.final_time;
@@ -97,7 +97,7 @@ int TimeRefinementStudy<dim, nstate>::run_test() const
         pcout << "---------------------------------------------" << std::endl;
 
         const Parameters::AllParameters params = reinit_params_and_refine_timestep(refinement);
-        std::unique_ptr<FlowSolver::FlowSolver<dim,nstate>> flow_solver = FlowSolver::FlowSolverFactory<dim,nstate>::select_flow_case(&params, parameter_handler);
+        std::unique_ptr<FlowSolver::FlowSolver<dim,nspecies,nstate>> flow_solver = FlowSolver::FlowSolverFactory<dim,nspecies,nstate>::select_flow_case(&params, parameter_handler);
         static_cast<void>(flow_solver->run());
         
         pcout << "Finished flowsolver " << std::endl;
@@ -183,8 +183,8 @@ int TimeRefinementStudy<dim, nstate>::run_test() const
     return testfail;
 }
 
-#if PHILIP_DIM==1
-    template class TimeRefinementStudy<PHILIP_DIM,PHILIP_DIM>;
+#if PHILIP_DIM==1 && PHILIP_SPECIES==1
+    template class TimeRefinementStudy<PHILIP_DIM,PHILIP_SPECIES,PHILIP_DIM>;
 #endif
 } // Tests namespace
 } // PHiLiP namespace

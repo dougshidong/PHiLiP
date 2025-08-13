@@ -18,10 +18,10 @@ namespace FlowSolver {
 //=========================================================
 // FLOW SOLVER CLASS
 //=========================================================
-template <int dim, int nstate>
-FlowSolver<dim, nstate>::FlowSolver(
+template <int dim, int nspecies, int nstate>
+FlowSolver<dim, nspecies, nstate>::FlowSolver(
     const PHiLiP::Parameters::AllParameters *const parameters_input, 
-    std::shared_ptr<FlowSolverCaseBase<dim, nstate>> flow_solver_case_input,
+    std::shared_ptr<FlowSolverCaseBase<dim, nspecies, nstate>> flow_solver_case_input,
     const dealii::ParameterHandler &parameter_handler_input)
 : FlowSolverBase()
 , flow_solver_case(flow_solver_case_input)
@@ -82,7 +82,7 @@ FlowSolver<dim, nstate>::FlowSolver(
         pcout << "done." << std::endl;
     } else {
         // Initialize solution
-        SetInitialCondition<dim,nstate,double>::set_initial_condition(flow_solver_case->initial_condition_function, dg, &all_param);
+        SetInitialCondition<dim,nspecies,nstate,double>::set_initial_condition(flow_solver_case->initial_condition_function, dg, &all_param);
     }
     dg->solution.update_ghost_values();
 
@@ -137,8 +137,8 @@ FlowSolver<dim, nstate>::FlowSolver(
     }
 }
 
-template <int dim, int nstate>
-std::vector<std::string> FlowSolver<dim,nstate>::get_data_table_column_names(const std::string string_input) const
+template <int dim, int nspecies, int nstate>
+std::vector<std::string> FlowSolver<dim, nspecies, nstate>::get_data_table_column_names(const std::string string_input) const
 {
     /* returns the column names of a dealii::TableHandler object
        given the first line of the file */
@@ -155,8 +155,8 @@ std::vector<std::string> FlowSolver<dim,nstate>::get_data_table_column_names(con
     return names;
 }
 
-template <int dim, int nstate>
-std::string FlowSolver<dim,nstate>::get_restart_filename_without_extension(const unsigned int restart_index_input) const {
+template <int dim, int nspecies, int nstate>
+std::string FlowSolver<dim, nspecies, nstate>::get_restart_filename_without_extension(const unsigned int restart_index_input) const {
     // returns the restart file index as a string with appropriate padding
     std::string restart_index_string = std::to_string(restart_index_input);
     const unsigned int length_of_index_with_padding = 5;
@@ -169,8 +169,8 @@ std::string FlowSolver<dim,nstate>::get_restart_filename_without_extension(const
     return restart_filename_without_extension;
 }
 
-template <int dim, int nstate>
-void FlowSolver<dim,nstate>::initialize_data_table_from_file(
+template <int dim, int nspecies, int nstate>
+void FlowSolver<dim, nspecies, nstate>::initialize_data_table_from_file(
     std::string data_table_filename,
     const std::shared_ptr <dealii::TableHandler> data_table) const
 {
@@ -220,8 +220,8 @@ void FlowSolver<dim,nstate>::initialize_data_table_from_file(
     }
 }
 
-template <int dim, int nstate>
-std::string FlowSolver<dim,nstate>::double_to_string(const double value_input) const {
+template <int dim, int nspecies, int nstate>
+std::string FlowSolver<dim, nspecies, nstate>::double_to_string(const double value_input) const {
     // converts a double to a string with full precision
     std::stringstream ss;
     ss << std::scientific << std::setprecision(16) << value_input;
@@ -229,8 +229,8 @@ std::string FlowSolver<dim,nstate>::double_to_string(const double value_input) c
     return double_to_string;
 }
 
-template <int dim, int nstate>
-void FlowSolver<dim,nstate>::write_restart_parameter_file(
+template <int dim, int nspecies, int nstate>
+void FlowSolver<dim, nspecies, nstate>::write_restart_parameter_file(
     const unsigned int restart_index_input,
     const double time_step_input) const {
     // write the restart parameter file
@@ -352,8 +352,8 @@ void FlowSolver<dim,nstate>::write_restart_parameter_file(
 }
 
 #if PHILIP_DIM>1
-template <int dim, int nstate>
-void FlowSolver<dim,nstate>::output_restart_files(
+template <int dim, int nspecies, int nstate>
+void FlowSolver<dim, nspecies, nstate>::output_restart_files(
     const unsigned int current_restart_index,
     const double time_step_input,
     const std::shared_ptr <dealii::TableHandler> unsteady_data_table) const
@@ -380,8 +380,8 @@ void FlowSolver<dim,nstate>::output_restart_files(
 }
 #endif
 
-template <int dim, int nstate>
-void FlowSolver<dim,nstate>::perform_steady_state_mesh_adaptation() const
+template <int dim, int nspecies, int nstate>
+void FlowSolver<dim, nspecies, nstate>::perform_steady_state_mesh_adaptation() const
 {
     std::unique_ptr<MeshAdaptation<dim,double>> meshadaptation = std::make_unique<MeshAdaptation<dim,double>>(this->dg, &(this->all_param.mesh_adaptation_param));
     const int total_adaptation_cycles = this->all_param.mesh_adaptation_param.total_mesh_adaptation_cycles;
@@ -408,8 +408,8 @@ void FlowSolver<dim,nstate>::perform_steady_state_mesh_adaptation() const
     pcout<<"Finished running mesh adaptation cycles."<<std::endl; 
 }
 
-template <int dim, int nstate>
-int FlowSolver<dim,nstate>::run() const
+template <int dim, int nspecies, int nstate>
+int FlowSolver<dim, nspecies, nstate>::run() const
 {
     pcout << "Running Flow Solver..." << std::endl;
     if(flow_solver_param.restart_computation_from_file == false) {
@@ -649,20 +649,23 @@ int FlowSolver<dim,nstate>::run() const
     return 0;
 }
 
-#if PHILIP_DIM==1
-template class FlowSolver <PHILIP_DIM,PHILIP_DIM>;
-template class FlowSolver <PHILIP_DIM,PHILIP_DIM+2>;
+#if PHILIP_DIM==1 && PHILIP_SPECIES==1
+template class FlowSolver <PHILIP_DIM,PHILIP_SPECIES,PHILIP_DIM>;
+template class FlowSolver <PHILIP_DIM,PHILIP_SPECIES,PHILIP_DIM+2>;
 #endif
 
-#if PHILIP_DIM!=1
-template class FlowSolver <PHILIP_DIM,1>;
-template class FlowSolver <PHILIP_DIM,2>;
-template class FlowSolver <PHILIP_DIM,3>;
-template class FlowSolver <PHILIP_DIM,4>;
-template class FlowSolver <PHILIP_DIM,5>;
-template class FlowSolver <PHILIP_DIM,6>;
+#if PHILIP_DIM!=1 && PHILIP_SPECIES==1
+template class FlowSolver <PHILIP_DIM,PHILIP_SPECIES,1>;
+template class FlowSolver <PHILIP_DIM,PHILIP_SPECIES,2>;
+template class FlowSolver <PHILIP_DIM,PHILIP_SPECIES,3>;
+template class FlowSolver <PHILIP_DIM,PHILIP_SPECIES,4>;
+template class FlowSolver <PHILIP_DIM,PHILIP_SPECIES,5>;
+template class FlowSolver <PHILIP_DIM,PHILIP_SPECIES,6>;
 #endif
 
+#if PHILIP_SPECIES!=1
+template class FlowSolver <PHILIP_DIM,PHILIP_SPECIES,PHILIP_DIM+2+PHILIP_SPECIES-1>;
+#endif
 } // FlowSolver namespace
 } // PHiLiP namespace
 

@@ -4,13 +4,13 @@
 namespace PHiLiP {
 namespace ODE {
 
-template <int dim, typename real, typename MeshType>
-ImplicitODESolver<dim,real,MeshType>::ImplicitODESolver(std::shared_ptr< DGBase<dim, real, MeshType> > dg_input)
-        : ODESolverBase<dim,real,MeshType>(dg_input)
+template <int dim, int nspecies, typename real, typename MeshType>
+ImplicitODESolver<dim,nspecies,real,MeshType>::ImplicitODESolver(std::shared_ptr< DGBase<dim, real, MeshType> > dg_input)
+        : ODESolverBase<dim,nspecies,real,MeshType>(dg_input)
         {}
 
-template <int dim, typename real, typename MeshType>
-void ImplicitODESolver<dim,real,MeshType>::step_in_time (real dt, const bool pseudotime)
+template <int dim, int nspecies, typename real, typename MeshType>
+void ImplicitODESolver<dim,nspecies,real,MeshType>::step_in_time (real dt, const bool pseudotime)
 {
     const bool compute_dRdW = true;
     this->dg->assemble_residual(compute_dRdW);
@@ -37,7 +37,7 @@ void ImplicitODESolver<dim,real,MeshType>::step_in_time (real dt, const bool pse
             this->dg->system_matrix,
             this->dg->right_hand_side,
             this->solution_update,
-            this->ODESolverBase<dim,real,MeshType>::all_parameters->linear_solver_param);
+            this->ODESolverBase<dim,nspecies,real,MeshType>::all_parameters->linear_solver_param);
 
     linesearch();
 
@@ -45,8 +45,8 @@ void ImplicitODESolver<dim,real,MeshType>::step_in_time (real dt, const bool pse
     ++(this->current_iteration);
 }
 
-template <int dim, typename real, typename MeshType>
-double ImplicitODESolver<dim,real,MeshType>::linesearch ()
+template <int dim, int nspecies, typename real, typename MeshType>
+double ImplicitODESolver<dim,nspecies,real,MeshType>::linesearch ()
 {
     const auto old_solution = this->dg->solution;
     double step_length = 1.0;
@@ -141,8 +141,8 @@ double ImplicitODESolver<dim,real,MeshType>::linesearch ()
     return step_length;
 }
 
-template <int dim, typename real, typename MeshType>
-void ImplicitODESolver<dim,real,MeshType>::allocate_ode_system ()
+template <int dim, int nspecies, typename real, typename MeshType>
+void ImplicitODESolver<dim,nspecies,real,MeshType>::allocate_ode_system ()
 {
     this->pcout << "Allocating ODE system and evaluating mass matrix..." << std::endl;
     const bool do_inverse_mass_matrix = false;
@@ -151,10 +151,10 @@ void ImplicitODESolver<dim,real,MeshType>::allocate_ode_system ()
     this->solution_update.reinit(this->dg->right_hand_side);
 }
 
-template class ImplicitODESolver<PHILIP_DIM, double, dealii::Triangulation<PHILIP_DIM>>;
-template class ImplicitODESolver<PHILIP_DIM, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+template class ImplicitODESolver<PHILIP_DIM, PHILIP_SPECIES, double, dealii::Triangulation<PHILIP_DIM>>;
+template class ImplicitODESolver<PHILIP_DIM, PHILIP_SPECIES, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
 #if PHILIP_DIM != 1
-template class ImplicitODESolver<PHILIP_DIM, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+template class ImplicitODESolver<PHILIP_DIM, PHILIP_SPECIES, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
 #endif
 
 } // ODE namespace

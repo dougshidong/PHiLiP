@@ -22,7 +22,6 @@ foreach(dim RANGE 2 3)
 endforeach()
 
 foreach(dim RANGE 2 3)
-
     # Output executable
     string(CONCAT TEST_TARGET ${dim}D_GMSH_READER)
     message("Adding executable " ${TEST_TARGET} " with files " ${TEST_SRC} "\n")
@@ -30,6 +29,9 @@ foreach(dim RANGE 2 3)
 
     # Replace occurences of PHILIP_DIM with 1, 2, or 3 in the code
     target_compile_definitions(${TEST_TARGET} PRIVATE PHILIP_DIM=${dim})
+
+    # Replace occurences of PHILIP_SPECIES with 1 in the code
+    target_compile_definitions(${TEST_TARGET} PRIVATE PHILIP_SPECIES=1)
 
     # Compile this executable when 'make unit_tests'
     add_dependencies(unit_tests ${TEST_TARGET})
@@ -46,7 +48,6 @@ foreach(dim RANGE 2 3)
     endif()
 
     unset(TEST_TARGET)
-
 endforeach()
 
 foreach(dim RANGE 2 3)

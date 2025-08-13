@@ -6,8 +6,8 @@
 namespace PHiLiP {
 namespace FlowSolver {
 
-template <int dim, int nstate>
-class NonPeriodicCubeFlow : public FlowSolverCaseBase<dim, nstate>
+template <int dim, int nspecies, int nstate>
+class NonPeriodicCubeFlow : public CubeFlow_UniformGrid<dim, nspecies, nstate>
 {
 #if PHILIP_DIM==1
      using Triangulation = dealii::Triangulation<PHILIP_DIM>;

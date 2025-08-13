@@ -6,7 +6,9 @@
 
 #include "parameters/all_parameters.h"
 #include "operators/operators.h"
+#include "physics/physics_factory.h"
 #include "physics/euler.h"
+#include "physics/real_gas.h"
 
 namespace PHiLiP {
 
@@ -19,7 +21,7 @@ namespace PHiLiP {
 * (2) Positivity-Preserving Limiter
 * (3) TVB/TVD Limiter
 */
-template<int dim, typename real>
+template<int dim, int nspecies, typename real>
 class BoundPreservingLimiter
 {
 public:
@@ -51,12 +53,12 @@ public:
 }; // End of BoundPreservingLimiter Class
 
 /// Base Class for bound preserving limiters templated on state
-template<int dim, int nstate, typename real>
-class BoundPreservingLimiterState : public BoundPreservingLimiter <dim, real>
+template<int dim, int nspecies, int nstate, typename real>
+class BoundPreservingLimiterState : public BoundPreservingLimiter <dim, nspecies, real>
 {
 public:
     /// Pointer to parameters object
-    using BoundPreservingLimiter<dim, real>::all_parameters;
+    using BoundPreservingLimiter<dim, nspecies, real>::all_parameters;
 
     /// Constructor
     explicit BoundPreservingLimiterState(

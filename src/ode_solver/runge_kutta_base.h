@@ -12,11 +12,11 @@ namespace ODE {
 
 /// Runge-Kutta Base (explicit or implicit) derived from ODESolver.
 #if PHILIP_DIM==1
-template <int dim, typename real, int n_rk_stages, typename MeshType = dealii::Triangulation<dim>>
+template <int dim, int nspecies, typename real, int n_rk_stages, typename MeshType = dealii::Triangulation<dim>>
 #else
-template <int dim, typename real, int n_rk_stages, typename MeshType = dealii::parallel::distributed::Triangulation<dim>>
+template <int dim, int nspecies, typename real, int n_rk_stages, typename MeshType = dealii::parallel::distributed::Triangulation<dim>>
 #endif
-class RungeKuttaBase: public ODESolverBase <dim, real, MeshType>
+class RungeKuttaBase: public ODESolverBase <dim, nspecies, real, MeshType>
 {
 public:
     RungeKuttaBase(std::shared_ptr< DGBase<dim, real, MeshType> > dg_input,

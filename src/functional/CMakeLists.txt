@@ -8,16 +8,24 @@ SET(SOURCE
     )
 
 foreach(dim RANGE 1 3)
+foreach(species RANGE 1 3)
+    # String to append for library names
+    if(species MATCHES 1)
+        string(CONCAT lib_spec _${dim}D)
+    else()
+        string(CONCAT lib_spec _${dim}D_${species}species)
+    endif()
+
     # Output library
-    string(CONCAT FunctionalLib Functional_${dim}D)
+    string(CONCAT FunctionalLib Functional ${lib_spec})
     add_library(${FunctionalLib} STATIC ${SOURCE})
-    target_compile_definitions(${FunctionalLib} PRIVATE PHILIP_DIM=${dim})
+    target_compile_definitions(${FunctionalLib} PRIVATE PHILIP_DIM=${dim} PHILIP_SPECIES=${species})
 
     # Library dependency
-    string(CONCAT PhysicsLib Physics_${dim}D)
-    string(CONCAT DiscontinuousGalerkinLib DiscontinuousGalerkin_${dim}D)
+    string(CONCAT PhysicsLib Physics ${lib_spec})
+    string(CONCAT DiscontinuousGalerkinLib DiscontinuousGalerkin ${lib_spec})
     string(CONCAT LinearSolverLib LinearSolver)
-    string(CONCAT PostprocessingLib Postprocessing_${dim}D)
+    string(CONCAT PostprocessingLib Postprocessing ${lib_spec})
     target_link_libraries(${FunctionalLib} ${PhysicsLib})
     target_link_libraries(${FunctionalLib} ${LinearSolverLib})
     target_link_libraries(${FunctionalLib} ${DiscontinuousGalerkinLib})
@@ -35,4 +43,5 @@ foreach(dim RANGE 1 3)
     unset(LinearSolverLib)
     unset(PostprocessingLib)
 
+endforeach()
 endforeach()

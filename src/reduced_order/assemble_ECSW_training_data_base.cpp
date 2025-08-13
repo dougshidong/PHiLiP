@@ -8,8 +8,8 @@ namespace PHiLiP {
 namespace HyperReduction {
 using Eigen::MatrixXd;
 
-template <int dim, int nstate>
-AssembleECSWBase<dim,nstate>::AssembleECSWBase(
+template <int dim, int nspecies, int nstate>
+AssembleECSWBase<dim, nspecies, nstate>::AssembleECSWBase(
     const PHiLiP::Parameters::AllParameters *const parameters_input,
     const dealii::ParameterHandler &parameter_handler_input,
     std::shared_ptr<DGBase<dim,double>> &dg_input, 
@@ -32,8 +32,8 @@ AssembleECSWBase<dim,nstate>::AssembleECSWBase(
 {
 }
 
-template <int dim, int nstate>
-std::shared_ptr<Epetra_CrsMatrix> AssembleECSWBase<dim,nstate>::local_generate_test_basis(Epetra_CrsMatrix &system_matrix, const Epetra_CrsMatrix &pod_basis){
+template <int dim, int nspecies, int nstate>
+std::shared_ptr<Epetra_CrsMatrix> AssembleECSWBase<dim, nspecies, nstate>::local_generate_test_basis(Epetra_CrsMatrix &system_matrix, const Epetra_CrsMatrix &pod_basis){
     using ODEEnum = Parameters::ODESolverParam::ODESolverEnum;
     if(ode_solver_type == ODEEnum::pod_galerkin_solver){ 
         return std::make_shared<Epetra_CrsMatrix>(pod_basis);
@@ -50,8 +50,8 @@ std::shared_ptr<Epetra_CrsMatrix> AssembleECSWBase<dim,nstate>::local_generate_t
     }
 }
 
-template <int dim, int nstate>
-Parameters::AllParameters AssembleECSWBase<dim, nstate>::reinit_params(const RowVectorXd& parameter) const{
+template <int dim, int nspecies, int nstate>
+Parameters::AllParameters AssembleECSWBase<dim, nspecies, nstate>::reinit_params(const RowVectorXd& parameter) const{
     // Copy all parameters
     PHiLiP::Parameters::AllParameters parameters = *(this->all_parameters);
 
@@ -100,24 +100,24 @@ Parameters::AllParameters AssembleECSWBase<dim, nstate>::reinit_params(const Row
     return parameters;
 }
 
-template <int dim, int nstate>
-void AssembleECSWBase<dim, nstate>::update_snapshots(dealii::LinearAlgebra::distributed::Vector<double> fom_solution){
+template <int dim, int nspecies, int nstate>
+void AssembleECSWBase<dim, nspecies, nstate>::update_snapshots(dealii::LinearAlgebra::distributed::Vector<double> fom_solution){
     fom_locations.emplace_back(fom_solution);
 }
 
-template <int dim, int nstate>
-void AssembleECSWBase<dim, nstate>::update_POD_snaps(std::shared_ptr<ProperOrthogonalDecomposition::PODBase<dim>> pod_update,    
+template <int dim, int nspecies, int nstate>
+void AssembleECSWBase<dim, nspecies, nstate>::update_POD_snaps(std::shared_ptr<ProperOrthogonalDecomposition::PODBase<dim>> pod_update,    
                                                     MatrixXd snapshot_parameters_update) {
     this->pod = pod_update;
     this->snapshot_parameters = snapshot_parameters_update;
 }
 
-#if PHILIP_DIM==1
-        template class AssembleECSWBase<PHILIP_DIM, PHILIP_DIM>;
+#if PHILIP_DIM==1 && PHILIP_SPECIES==1
+        template class AssembleECSWBase<PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM>;
 #endif
 
-#if PHILIP_DIM!=1
-        template class AssembleECSWBase<PHILIP_DIM, PHILIP_DIM+2>;
+#if PHILIP_DIM!=1 && PHILIP_SPECIES==1
+        template class AssembleECSWBase<PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2>;
 #endif
 
 } // HyperReduction namespace

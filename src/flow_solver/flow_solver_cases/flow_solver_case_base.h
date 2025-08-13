@@ -20,14 +20,14 @@ using Triangulation = dealii::Triangulation<PHILIP_DIM>;
 using Triangulation = dealii::parallel::distributed::Triangulation<PHILIP_DIM>;
 #endif
 
-template <int dim, int nstate>
+template <int dim, int nspecies, int nstate>
 class FlowSolverCaseBase
 {
 public:
     ///Constructor
     explicit FlowSolverCaseBase(const Parameters::AllParameters *const parameters_input);
 
-    std::shared_ptr<InitialConditionFunction<dim,nstate,double>> initial_condition_function; ///< Initial condition function
+    std::shared_ptr<InitialConditionFunction<dim,nspecies,nstate,double>> initial_condition_function; ///< Initial condition function
 
     /// Destructor
     virtual ~FlowSolverCaseBase() = default;
@@ -44,7 +44,7 @@ public:
     /// Virtual function to write unsteady snapshot data to table
     /// Defaults to passing only ode_solver->current_iteration and ode_solver->current_time to the second definition
     virtual void compute_unsteady_data_and_write_to_table(
-            const std::shared_ptr<ODE::ODESolverBase<dim, double>> ode_solver, 
+            const std::shared_ptr<ODE::ODESolverBase<dim, nspecies, double>> ode_solver, 
             const std::shared_ptr <DGBase<dim, double>> dg,
             const std::shared_ptr<dealii::TableHandler> unsteady_data_table);
 

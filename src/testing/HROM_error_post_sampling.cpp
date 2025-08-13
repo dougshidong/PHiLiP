@@ -22,15 +22,15 @@ namespace PHiLiP {
 namespace Tests {
 
 
-template <int dim, int nstate>
-HROMErrorPostSampling<dim, nstate>::HROMErrorPostSampling(const Parameters::AllParameters *const parameters_input,
+template <int dim, int nspecies, int nstate>
+HROMErrorPostSampling<dim, nspecies, nstate>::HROMErrorPostSampling(const Parameters::AllParameters *const parameters_input,
                                         const dealii::ParameterHandler &parameter_handler_input)
         : TestsBase::TestsBase(parameters_input)
         , parameter_handler(parameter_handler_input)
 {}
 
-template <int dim, int nstate>
-Parameters::AllParameters HROMErrorPostSampling<dim, nstate>::reinit_params(std::string path) const{
+template <int dim, int nspecies, int nstate>
+Parameters::AllParameters HROMErrorPostSampling<dim, nspecies, nstate>::reinit_params(std::string path) const{
     // Copy all parameters
     PHiLiP::Parameters::AllParameters parameters = *(this->all_parameters);
 
@@ -38,8 +38,8 @@ Parameters::AllParameters HROMErrorPostSampling<dim, nstate>::reinit_params(std:
     return parameters;
 }
 
-template <int dim, int nstate>
-bool HROMErrorPostSampling<dim, nstate>::getWeightsFromFile(std::shared_ptr<DGBase<dim,double>> &dg) const{
+template <int dim, int nspecies, int nstate>
+bool HROMErrorPostSampling<dim, nspecies, nstate>::getWeightsFromFile(std::shared_ptr<DGBase<dim,double>> &dg) const{
     bool file_found = false;
     Epetra_MpiComm epetra_comm(MPI_COMM_WORLD);
     VectorXd weights_eig;
@@ -132,16 +132,16 @@ bool HROMErrorPostSampling<dim, nstate>::getWeightsFromFile(std::shared_ptr<DGBa
     return file_found;
 }
 
-template <int dim, int nstate>
-int HROMErrorPostSampling<dim, nstate>::run_test() const
+template <int dim, int nspecies, int nstate>
+int HROMErrorPostSampling<dim, nspecies, nstate>::run_test() const
 {
     pcout << "Starting error analysis for HROM..." << std::endl;
 
     // Create POD Petrov-Galerkin ROM with Hyper-reduction
-    std::unique_ptr<FlowSolver::FlowSolver<dim,nstate>> flow_solver_hyper_reduced_petrov_galerkin = FlowSolver::FlowSolverFactory<dim,nstate>::select_flow_case(all_parameters, parameter_handler);
+    std::unique_ptr<FlowSolver::FlowSolver<dim,nspecies,nstate>> flow_solver_hyper_reduced_petrov_galerkin = FlowSolver::FlowSolverFactory<dim,nspecies,nstate>::select_flow_case(all_parameters, parameter_handler);
 
     std::shared_ptr<ProperOrthogonalDecomposition::OfflinePOD<dim>> pod_petrov_galerkin = std::make_shared<ProperOrthogonalDecomposition::OfflinePOD<dim>>(flow_solver_hyper_reduced_petrov_galerkin->dg);
-    std::shared_ptr<HyperreducedAdaptiveSampling<dim,nstate>> hyper_reduced_ROM_solver = std::make_unique<HyperreducedAdaptiveSampling<dim,nstate>>(all_parameters, parameter_handler);
+    std::shared_ptr<HyperreducedAdaptiveSampling<dim,nspecies,nstate>> hyper_reduced_ROM_solver = std::make_unique<HyperreducedAdaptiveSampling<dim,nspecies,nstate>>(all_parameters, parameter_handler);
     hyper_reduced_ROM_solver->current_pod->basis = pod_petrov_galerkin->basis;
     hyper_reduced_ROM_solver->current_pod->referenceState = pod_petrov_galerkin->referenceState;
     hyper_reduced_ROM_solver->current_pod->snapshotMatrix = pod_petrov_galerkin->snapshotMatrix;
@@ -176,12 +176,12 @@ int HROMErrorPostSampling<dim, nstate>::run_test() const
     return 0;
 }
 
-#if PHILIP_DIM==1
-        template class HROMErrorPostSampling<PHILIP_DIM, PHILIP_DIM>;
+#if PHILIP_DIM==1 && PHILIP_SPECIES==1
+        template class HROMErrorPostSampling<PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM>;
 #endif
 
-#if PHILIP_DIM!=1
-        template class HROMErrorPostSampling<PHILIP_DIM, PHILIP_DIM+2>;
+#if PHILIP_DIM!=1 && PHILIP_SPECIES==1
+        template class HROMErrorPostSampling<PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2>;
 #endif
 } // Tests namespace
 } // PHiLiP namespace

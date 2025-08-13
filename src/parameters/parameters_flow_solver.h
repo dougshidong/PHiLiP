@@ -37,7 +37,20 @@ public:
         double_mach_reflection,
         shock_diffraction,
         astrophysical_jet,
-        strong_vortex_shock_wave
+        strong_vortex_shock_wave,
+        acoustic_wave_air,
+        acoustic_wave_species,
+        multi_species_acoustic_wave,
+        multi_species_vortex_advection,
+        multi_species_high_temperature_vortex_advection,
+        euler_vortex_advection,
+        multi_species_calorically_perfect_euler_vortex_advection,
+        multi_species_isentropic_euler_vortex,
+        multi_species_two_dimensional_vortex_advection,   
+        multi_species_fuel_drop_advection,     
+        multi_species_three_dimensional_vortex_advection,   
+        multi_species_taylor_green_vortex,
+        multi_species_mixture_taylor_green_vortex
         };
     FlowCaseType flow_case_type; ///< Selected FlowCaseType from the input file
 

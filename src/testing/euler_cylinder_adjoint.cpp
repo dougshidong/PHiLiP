@@ -154,14 +154,14 @@ void half_cylinder_adjoint(dealii::parallel::distributed::Triangulation<2> & tri
     }
 }
 
-template <int dim, int nstate>
-EulerCylinderAdjoint<dim,nstate>::EulerCylinderAdjoint(const Parameters::AllParameters *const parameters_input)
+template <int dim, int nspecies, int nstate>
+EulerCylinderAdjoint<dim,nspecies,nstate>::EulerCylinderAdjoint(const Parameters::AllParameters *const parameters_input)
     :
     TestsBase::TestsBase(parameters_input)
 {}
 
-template<int dim, int nstate>
-int EulerCylinderAdjoint<dim,nstate>
+template<int dim, int nspecies, int nstate>
+int EulerCylinderAdjoint<dim,nspecies,nstate>
 ::run_test () const
 {
     pcout << " Running Euler cylinder adjoint entropy convergence. " << std::endl;
@@ -206,7 +206,7 @@ int EulerCylinderAdjoint<dim,nstate>
     //         param.euler_param.angle_of_attack,
     //         param.euler_param.side_slip_angle);
 
-    FreeStreamInitialConditions<dim,nstate,double> initial_conditions(*euler_physics_double);
+    FreeStreamInitialConditions<dim,nspecies,nstate,double> initial_conditions(*euler_physics_double);
 
     std::vector<int> fail_conv_poly;
     std::vector<double> fail_conv_slop;
@@ -474,8 +474,8 @@ int EulerCylinderAdjoint<dim,nstate>
     return n_fail_poly;
 }
 
-#if PHILIP_DIM==2
-    template class EulerCylinderAdjoint <PHILIP_DIM,PHILIP_DIM+2>;
+#if PHILIP_DIM==2 && PHILIP_SPECIES==1
+    template class EulerCylinderAdjoint <PHILIP_DIM,PHILIP_SPECIES,PHILIP_DIM+2>;
 #endif
 
 } // Tests namespace

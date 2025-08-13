@@ -6,21 +6,21 @@
 namespace PHiLiP {
 namespace Tests {
 
-template<int dim, int nstate>
-UnsteadyReducedOrder<dim,nstate>::UnsteadyReducedOrder(const Parameters::AllParameters *const parameters_input,
+template<int dim, int nspecies, int nstate>
+UnsteadyReducedOrder<dim,nspecies,nstate>::UnsteadyReducedOrder(const Parameters::AllParameters *const parameters_input,
                                                        const dealii::ParameterHandler &parameter_handler_input)
         : TestsBase::TestsBase(parameters_input)
         , parameter_handler(parameter_handler_input)
 {}
 
-template<int dim, int nstate>
-int UnsteadyReducedOrder<dim,nstate>::run_test() const 
+template<int dim, int nspecies, int nstate>
+int UnsteadyReducedOrder<dim,nspecies,nstate>::run_test() const 
 {
     pcout << "Starting unsteady reduced-order test..." << std::endl;
     int testfail = 0;
 
     // Creating FOM and Solve
-    std::unique_ptr<FlowSolver::FlowSolver<dim,nstate>> flow_solver_full_order = FlowSolver::FlowSolverFactory<dim,nstate>::select_flow_case(all_parameters, parameter_handler);
+    std::unique_ptr<FlowSolver::FlowSolver<dim,nspecies,nstate>> flow_solver_full_order = FlowSolver::FlowSolverFactory<dim,nspecies,nstate>::select_flow_case(all_parameters, parameter_handler);
     flow_solver_full_order->run();
 
     // Change Parameters to ROM
@@ -30,7 +30,7 @@ int UnsteadyReducedOrder<dim,nstate>::run_test() const
     const Parameters::AllParameters ROM_param_const = ROM_param;
 
     // Create ROM and Solve
-    std::unique_ptr<FlowSolver::FlowSolver<dim,nstate>> flow_solver_galerkin = FlowSolver::FlowSolverFactory<dim,nstate>::select_flow_case(&ROM_param_const, parameter_handler);
+    std::unique_ptr<FlowSolver::FlowSolver<dim,nspecies,nstate>> flow_solver_galerkin = FlowSolver::FlowSolverFactory<dim,nspecies,nstate>::select_flow_case(&ROM_param_const, parameter_handler);
     const int modes = flow_solver_galerkin->ode_solver->pod->getPODBasis()->n();
     flow_solver_galerkin->run();
     
@@ -47,8 +47,9 @@ int UnsteadyReducedOrder<dim,nstate>::run_test() const
     return testfail;
 }
 
-template class UnsteadyReducedOrder<PHILIP_DIM, PHILIP_DIM+2>;
-
+#if PHILIP_SPECIES==1
+template class UnsteadyReducedOrder<PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2>;
+#endif
 
 } // Tests namespace
 } // PHiLiP namespace

@@ -34,7 +34,7 @@ namespace Tests {
 /** Ensure that the kinetic energy is bounded.
  *  Ref: Gassner 2016.
  */
-template <int dim, int nstate>
+template <int dim, int nspecies, int nstate>
 class EulerTaylorGreen : public TestsBase
 {
 public:

@@ -10,8 +10,8 @@
 namespace PHiLiP {
 namespace FlowSolver {
 
-template <int dim, int nstate>
-class PeriodicTurbulence : public PeriodicCubeFlow<dim,nstate>
+template <int dim, int nspecies, int nstate>
+class PeriodicTurbulence : public PeriodicCubeFlow<dim, nspecies, nstate>
 {
     /** Number of different computed quantities
      *  Corresponds to the number of items in IntegratedQuantitiesEnum
@@ -121,15 +121,15 @@ protected:
     double get_constant_time_step(std::shared_ptr<DGBase<dim,double>> dg) const override;
 
     /// Function to compute the adaptive time step
-    using CubeFlow_UniformGrid<dim, nstate>::get_adaptive_time_step;
+    using CubeFlow_UniformGrid<dim, nspecies, nstate>::get_adaptive_time_step;
 
     /// Function to compute the initial adaptive time step
-    using CubeFlow_UniformGrid<dim, nstate>::get_adaptive_time_step_initial;
+    using CubeFlow_UniformGrid<dim, nspecies, nstate>::get_adaptive_time_step_initial;
 
     /// Updates the maximum local wave speed
-    using CubeFlow_UniformGrid<dim, nstate>::update_maximum_local_wave_speed;
+    using CubeFlow_UniformGrid<dim, nspecies, nstate>::update_maximum_local_wave_speed;
 
-    using FlowSolverCaseBase<dim,nstate>::compute_unsteady_data_and_write_to_table;
+    using FlowSolverCaseBase<dim, nspecies, nstate>::compute_unsteady_data_and_write_to_table;
     /// Compute the desired unsteady data and write it to a table
     void compute_unsteady_data_and_write_to_table(
             const std::shared_ptr<ODE::ODESolverBase<dim, double>> ode_solver, 

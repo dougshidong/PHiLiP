@@ -19,9 +19,9 @@ namespace ODE {
 /// Base class ODE solver.
 
 #if PHILIP_DIM==1
-template <int dim, typename real, typename MeshType = dealii::Triangulation<dim>>
+template <int dim, int nspecies, typename real, typename MeshType = dealii::Triangulation<dim>>
 #else
-template <int dim, typename real, typename MeshType = dealii::parallel::distributed::Triangulation<dim>>
+template <int dim, int nspecies, typename real, typename MeshType = dealii::parallel::distributed::Triangulation<dim>>
 #endif
 class ODESolverBase
 {
@@ -103,7 +103,7 @@ public:
     std::shared_ptr<ProperOrthogonalDecomposition::PODBase<dim>> pod;
 
     /// Pointer to BoundPreservingLimiter
-    std::unique_ptr<BoundPreservingLimiter<dim,real>> limiter;
+    std::unique_ptr<BoundPreservingLimiter<dim,nspecies,real>> limiter;
 
 protected:
     /// Input parameters.

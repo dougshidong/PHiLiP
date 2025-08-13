@@ -3,16 +3,16 @@
 namespace PHiLiP {
 namespace ODE {
 
-template <int dim, typename real, int n_rk_stages, typename MeshType> 
-RungeKuttaODESolver<dim,real,n_rk_stages, MeshType>::RungeKuttaODESolver(std::shared_ptr< DGBase<dim, real, MeshType> > dg_input,
+template <int dim, int nspecies, typename real, int n_rk_stages, typename MeshType> 
+RungeKuttaODESolver<dim,nspecies,real,n_rk_stages, MeshType>::RungeKuttaODESolver(std::shared_ptr< DGBase<dim, real, MeshType> > dg_input,
         std::shared_ptr<RKTableauBase<dim,real,MeshType>> rk_tableau_input,
         std::shared_ptr<EmptyRRKBase<dim,real,MeshType>> RRK_object_input)
-        : RungeKuttaBase<dim,real,n_rk_stages,MeshType>(dg_input, RRK_object_input)
+        : RungeKuttaBase<dim,nspecies,real,n_rk_stages,MeshType>(dg_input, RRK_object_input)
         , butcher_tableau(rk_tableau_input)
 {}
 
-template<int dim, typename real, int n_rk_stages, typename MeshType>
-void RungeKuttaODESolver<dim,real,n_rk_stages,MeshType>::calculate_stage_solution (int istage, real dt, const bool pseudotime)
+template<int dim, int nspecies, typename real, int n_rk_stages, typename MeshType>
+void RungeKuttaODESolver<dim,nspecies,real,n_rk_stages,MeshType>::calculate_stage_solution (int istage, real dt, const bool pseudotime)
 {
     this->rk_stage[istage]=0.0; //resets all entries to zero
     
@@ -67,8 +67,8 @@ void RungeKuttaODESolver<dim,real,n_rk_stages,MeshType>::calculate_stage_solutio
 
 }
 
-template<int dim, typename real, int n_rk_stages, typename MeshType>
-void RungeKuttaODESolver<dim,real,n_rk_stages,MeshType>::calculate_stage_derivative (int istage, real dt)
+template<int dim, int nspecies, typename real, int n_rk_stages, typename MeshType>
+void RungeKuttaODESolver<dim,nspecies,real,n_rk_stages,MeshType>::calculate_stage_derivative (int istage, real dt)
 {
      //set the DG current time for unsteady source terms
     this->dg->set_current_time(this->current_time + this->butcher_tableau->get_c(istage)*dt);
@@ -83,8 +83,8 @@ void RungeKuttaODESolver<dim,real,n_rk_stages,MeshType>::calculate_stage_derivat
     }
 }
 
-template<int dim, typename real, int n_rk_stages, typename MeshType>
-void RungeKuttaODESolver<dim,real,n_rk_stages,MeshType>::sum_stages (real dt, const bool pseudotime)
+template<int dim, int nspecies, typename real, int n_rk_stages, typename MeshType>
+void RungeKuttaODESolver<dim,nspecies,real,n_rk_stages,MeshType>::sum_stages (real dt, const bool pseudotime)
 {
     //assemble solution from stages
     for (int istage = 0; istage < n_rk_stages; ++istage){
@@ -98,8 +98,8 @@ void RungeKuttaODESolver<dim,real,n_rk_stages,MeshType>::sum_stages (real dt, co
     }
 }
 
-template<int dim, typename real, int n_rk_stages, typename MeshType>
-real RungeKuttaODESolver<dim,real,n_rk_stages,MeshType>::adjust_time_step (real dt)
+template<int dim, int nspecies, typename real, int n_rk_stages, typename MeshType>
+real RungeKuttaODESolver<dim,nspecies,real,n_rk_stages,MeshType>::adjust_time_step (real dt)
 {
     // Calculates relaxation parameter and modify the time step size as dt*=relaxation_parameter.
     // if not using RRK, the relaxation parameter will be set to 1, such that dt is not modified.
@@ -109,8 +109,8 @@ real RungeKuttaODESolver<dim,real,n_rk_stages,MeshType>::adjust_time_step (real 
     return dt;
 }
 
-template <int dim, typename real, int n_rk_stages, typename MeshType> 
-void RungeKuttaODESolver<dim,real,n_rk_stages,MeshType>::allocate_runge_kutta_system ()
+template <int dim, int nspecies, typename real, int n_rk_stages, typename MeshType> 
+void RungeKuttaODESolver<dim,nspecies,real,n_rk_stages,MeshType>::allocate_runge_kutta_system ()
 {
 
     this->butcher_tableau->set_tableau();
@@ -134,21 +134,24 @@ void RungeKuttaODESolver<dim,real,n_rk_stages,MeshType>::allocate_runge_kutta_sy
         }
     }
 }
+// Define a sequence of indices representing the range [1, 5]
+#define POSSIBLE_NRKSTAGES (1)(2)(3)(4)(5)
 
-template class RungeKuttaODESolver<PHILIP_DIM, double,1, dealii::Triangulation<PHILIP_DIM> >;
-template class RungeKuttaODESolver<PHILIP_DIM, double,2, dealii::Triangulation<PHILIP_DIM> >;
-template class RungeKuttaODESolver<PHILIP_DIM, double,3, dealii::Triangulation<PHILIP_DIM> >;
-template class RungeKuttaODESolver<PHILIP_DIM, double,4, dealii::Triangulation<PHILIP_DIM> >;
-template class RungeKuttaODESolver<PHILIP_DIM, double,1, dealii::parallel::shared::Triangulation<PHILIP_DIM> >;
-template class RungeKuttaODESolver<PHILIP_DIM, double,2, dealii::parallel::shared::Triangulation<PHILIP_DIM> >;
-template class RungeKuttaODESolver<PHILIP_DIM, double,3, dealii::parallel::shared::Triangulation<PHILIP_DIM> >;
-template class RungeKuttaODESolver<PHILIP_DIM, double,4, dealii::parallel::shared::Triangulation<PHILIP_DIM> >;
-#if PHILIP_DIM != 1
-    template class RungeKuttaODESolver<PHILIP_DIM, double,1, dealii::parallel::distributed::Triangulation<PHILIP_DIM> >;
-    template class RungeKuttaODESolver<PHILIP_DIM, double,2, dealii::parallel::distributed::Triangulation<PHILIP_DIM> >;
-    template class RungeKuttaODESolver<PHILIP_DIM, double,3, dealii::parallel::distributed::Triangulation<PHILIP_DIM> >;
-    template class RungeKuttaODESolver<PHILIP_DIM, double,4, dealii::parallel::distributed::Triangulation<PHILIP_DIM> >;
+// Define a macro to instantiate MyTemplate for a specific index
+#define INSTANTIATE_DISTRIBUTED(r, data, index) \
+    template class RungeKuttaODESolver<PHILIP_DIM, PHILIP_SPECIES, double, index, dealii::parallel::distributed::Triangulation<PHILIP_DIM> >;
+
+#if PHILIP_DIM!=1
+BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_DISTRIBUTED, _, POSSIBLE_NRKSTAGES)
 #endif
+
+#define INSTANTIATE_SHARED(r, data, index) \
+    template class RungeKuttaODESolver<PHILIP_DIM, PHILIP_SPECIES, double, index, dealii::parallel::shared::Triangulation<PHILIP_DIM> >;
+BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_SHARED, _, POSSIBLE_NRKSTAGES)
+
+#define INSTANTIATE_TRIA(r, data, index) \
+    template class RungeKuttaODESolver<PHILIP_DIM, PHILIP_SPECIES, double, index, dealii::Triangulation<PHILIP_DIM> >;
+BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_TRIA, _, POSSIBLE_NRKSTAGES)
 
 } // ODESolver namespace
 } // PHiLiP namespace

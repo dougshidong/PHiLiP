@@ -11,7 +11,7 @@ namespace ProperOrthogonalDecomposition {
 using Eigen::RowVectorXd;
 
 /// Base class for a ROM/HROM point, differences would be in the second DWR error indicator
-template <int dim, int nstate>
+template <int dim, int nspecies, int nstate>
 class TestLocationBase
 {
 public:

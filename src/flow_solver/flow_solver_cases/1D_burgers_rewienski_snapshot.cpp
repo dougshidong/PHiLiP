@@ -20,17 +20,17 @@ namespace PHiLiP {
 
 namespace FlowSolver {
 
-template <int dim, int nstate>
-BurgersRewienskiSnapshot<dim, nstate>::BurgersRewienskiSnapshot(const PHiLiP::Parameters::AllParameters *const parameters_input)
-        : FlowSolverCaseBase<dim, nstate>(parameters_input)
+template <int dim, int nspecies, int nstate>
+BurgersRewienskiSnapshot<dim, nspecies, nstate>::BurgersRewienskiSnapshot(const PHiLiP::Parameters::AllParameters *const parameters_input)
+        : FlowSolverCaseBase<dim, nspecies, nstate>(parameters_input)
         , number_of_refinements(this->all_param.grid_refinement_study_param.num_refinements)
         , domain_left(this->all_param.flow_solver_param.grid_left_bound)
         , domain_right(this->all_param.flow_solver_param.grid_right_bound)
 {
 }
 
-template <int dim, int nstate>
-std::shared_ptr<Triangulation> BurgersRewienskiSnapshot<dim,nstate>::generate_grid() const
+template <int dim, int nspecies, int nstate>
+std::shared_ptr<Triangulation> BurgersRewienskiSnapshot<dim, nspecies, nstate>::generate_grid() const
 {
     std::shared_ptr<Triangulation> grid = std::make_shared<Triangulation> (
 #if PHILIP_DIM!=1
@@ -44,8 +44,8 @@ std::shared_ptr<Triangulation> BurgersRewienskiSnapshot<dim,nstate>::generate_gr
     return grid;
 }
 
-template <int dim, int nstate>
-void BurgersRewienskiSnapshot<dim,nstate>::display_additional_flow_case_specific_parameters() const
+template <int dim, int nspecies, int nstate>
+void BurgersRewienskiSnapshot<dim, nspecies, nstate>::display_additional_flow_case_specific_parameters() const
 {
     // Display the information about the grid
     this->pcout << "\n- GRID INFORMATION:" << std::endl;
@@ -55,8 +55,8 @@ void BurgersRewienskiSnapshot<dim,nstate>::display_additional_flow_case_specific
     this->pcout << "- - Number of refinements:  " << number_of_refinements << std::endl;
 }
 
-template <int dim, int nstate>
-void BurgersRewienskiSnapshot<dim, nstate>::steady_state_postprocessing(std::shared_ptr <DGBase<dim, double>> dg) const
+template <int dim, int nspecies, int nstate>
+void BurgersRewienskiSnapshot<dim, nspecies, nstate>::steady_state_postprocessing(std::shared_ptr <DGBase<dim, double>> dg) const
 {
     this->pcout << "Computing sensitivity to parameter" << std::endl;
     int overintegrate = 0;
@@ -108,8 +108,8 @@ void BurgersRewienskiSnapshot<dim, nstate>::steady_state_postprocessing(std::sha
     solutions_table.write_text(out_file);
 }
 
-#if PHILIP_DIM==1
-template class BurgersRewienskiSnapshot<PHILIP_DIM,PHILIP_DIM>;
+#if PHILIP_DIM==1 && PHILIP_SPECIES==1
+template class BurgersRewienskiSnapshot<PHILIP_DIM,PHILIP_SPECIES,PHILIP_DIM>;
 #endif
 
 } // FlowSolver namespace

@@ -26,11 +26,11 @@ namespace ODE {
 
 /// Low-Storage Runge-Kutta ODE solver derived from ODESolver.
 #if PHILIP_DIM==1
-template <int dim, typename real, int n_rk_stages, typename MeshType = dealii::Triangulation<dim>>
+template <int dim, int nspecies, typename real, int n_rk_stages, typename MeshType = dealii::Triangulation<dim>>
 #else
-template <int dim, typename real, int n_rk_stages, typename MeshType = dealii::parallel::distributed::Triangulation<dim>>
+template <int dim, int nspecies, typename real, int n_rk_stages, typename MeshType = dealii::parallel::distributed::Triangulation<dim>>
 #endif
-class LowStorageRungeKuttaODESolver: public RungeKuttaBase <dim, real, n_rk_stages, MeshType>
+class LowStorageRungeKuttaODESolver: public RungeKuttaBase <dim, nspecies, real, n_rk_stages, MeshType>
 {
 public:
     LowStorageRungeKuttaODESolver(std::shared_ptr< DGBase<dim, real, MeshType> > dg_input,

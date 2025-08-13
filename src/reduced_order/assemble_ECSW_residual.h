@@ -30,8 +30,8 @@ https://onlinelibrary.wiley.com/doi/10.1002/nme.6603
 NOTE: The above presents the approach for training with the residual data
 */
 
-template <int dim, int nstate>
-class AssembleECSWRes: public AssembleECSWBase<dim,nstate>
+template <int dim, int nspecies, int nstate>
+class AssembleECSWRes: public AssembleECSWBase<dim, nspecies, nstate>
 {
 public:
     /// Constructor

@@ -61,3 +61,4 @@ add_custom_target(INVISCID_TESTS
 add_subdirectory(unit_tests)
 add_subdirectory(integration_tests_control_files)
 add_subdirectory(meshes)
+add_subdirectory(chemistry)

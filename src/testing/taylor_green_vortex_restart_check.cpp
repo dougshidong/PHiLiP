@@ -10,8 +10,8 @@
 namespace PHiLiP {
 namespace Tests {
 
-template <int dim, int nstate>
-TaylorGreenVortexRestartCheck<dim, nstate>::TaylorGreenVortexRestartCheck(
+template <int dim, int nspecies, int nstate>
+TaylorGreenVortexRestartCheck<dim, nspecies, nstate>::TaylorGreenVortexRestartCheck(
     const PHiLiP::Parameters::AllParameters *const parameters_input,
     const dealii::ParameterHandler &parameter_handler_input)
         : TestsBase::TestsBase(parameters_input)
@@ -19,8 +19,8 @@ TaylorGreenVortexRestartCheck<dim, nstate>::TaylorGreenVortexRestartCheck(
         , kinetic_energy_expected(parameters_input->flow_solver_param.expected_kinetic_energy_at_final_time)
 {}
 
-template <int dim, int nstate>
-Parameters::AllParameters TaylorGreenVortexRestartCheck<dim, nstate>::reinit_params(
+template <int dim, int nspecies, int nstate>
+Parameters::AllParameters TaylorGreenVortexRestartCheck<dim, nspecies, nstate>::reinit_params(
     const bool output_restart_files_input,
     const bool restart_computation_from_file_input,
     const double final_time_input,
@@ -74,8 +74,8 @@ bool compare_files(const std::string& filename1, const std::string& filename2)
     return range_equal(begin1, end, begin2, end);
 }
 
-template <int dim, int nstate>
-int TaylorGreenVortexRestartCheck<dim, nstate>::run_test() const
+template <int dim, int nspecies, int nstate>
+int TaylorGreenVortexRestartCheck<dim, nspecies, nstate>::run_test() const
 {
     const double time_at_which_we_stop_the_run = 6.2831853072000017e-03;// chosen from running test MPI_VISCOUS_TAYLOR_GREEN_VORTEX_ENERGY_CHECK_QUICK
     const int restart_file_index = 4;
@@ -84,7 +84,7 @@ int TaylorGreenVortexRestartCheck<dim, nstate>::run_test() const
     Parameters::AllParameters params_incomplete_run = reinit_params(true,false,time_at_which_we_stop_the_run);
 
     // Integrate to time at which we stop the run
-    std::unique_ptr<FlowSolver::FlowSolver<dim,nstate>> flow_solver_incomplete_run = FlowSolver::FlowSolverFactory<dim,nstate>::select_flow_case(&params_incomplete_run, parameter_handler);
+    std::unique_ptr<FlowSolver::FlowSolver<dim,nspecies,nstate>> flow_solver_incomplete_run = FlowSolver::FlowSolverFactory<dim,nspecies,nstate>::select_flow_case(&params_incomplete_run, parameter_handler);
     static_cast<void>(flow_solver_incomplete_run->run());
 
     const double time_step_at_stop_time = flow_solver_incomplete_run->flow_solver_case->get_constant_time_step(flow_solver_incomplete_run->dg);
@@ -117,11 +117,11 @@ int TaylorGreenVortexRestartCheck<dim, nstate>::run_test() const
     } // END
 
     // Integrate to final time by restarting from where we stopped
-    std::unique_ptr<FlowSolver::FlowSolver<dim,nstate>> flow_solver_restart_to_complete_run = FlowSolver::FlowSolverFactory<dim,nstate>::select_flow_case(&params_restart_to_complete_run, parameter_handler);
+    std::unique_ptr<FlowSolver::FlowSolver<dim,nspecies,nstate>> flow_solver_restart_to_complete_run = FlowSolver::FlowSolverFactory<dim,nspecies,nstate>::select_flow_case(&params_restart_to_complete_run, parameter_handler);
     static_cast<void>(flow_solver_restart_to_complete_run->run());
 
     // Compute kinetic energy at final time achieved by restarting the computation
-    std::unique_ptr<FlowSolver::PeriodicTurbulence<dim, nstate>> flow_solver_case = std::make_unique<FlowSolver::PeriodicTurbulence<dim,nstate>>(this->all_parameters);
+    std::unique_ptr<FlowSolver::PeriodicTurbulence<dim, nspecies, nstate>> flow_solver_case = std::make_unique<FlowSolver::PeriodicTurbulence<dim,nspecies,nstate>>(this->all_parameters);
     flow_solver_case->compute_and_update_integrated_quantities(*(flow_solver_restart_to_complete_run->dg));
     const double kinetic_energy_computed = flow_solver_case->get_integrated_kinetic_energy();
 
@@ -134,8 +134,8 @@ int TaylorGreenVortexRestartCheck<dim, nstate>::run_test() const
     return 0;
 }
 
-#if PHILIP_DIM==3
-    template class TaylorGreenVortexRestartCheck<PHILIP_DIM,PHILIP_DIM+2>;
+#if PHILIP_DIM==3 && PHILIP_SPECIES==1
+    template class TaylorGreenVortexRestartCheck<PHILIP_DIM,PHILIP_SPECIES,PHILIP_DIM+2>;
 #endif
 } // Tests namespace
 } // PHiLiP namespace

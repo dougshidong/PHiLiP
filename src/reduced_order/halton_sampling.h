@@ -26,8 +26,8 @@ From Wikipedia (https://en.wikipedia.org/wiki/Halton_sequence):
 In statistics, Halton sequences are sequences used to generate points in space for numerical methods such as Monte Carlo simulations.
 The Halton sequence is constructed according to a deterministic method that uses coprime numbers as its bases.
 */
-template <int dim, int nstate>
-class HaltonSampling: public AdaptiveSamplingBase<dim,nstate>
+template <int dim, int nspecies, int nstate>
+class HaltonSampling: public AdaptiveSamplingBase<dim, nspecies, nstate>
 {
 public:
     /// Constructor

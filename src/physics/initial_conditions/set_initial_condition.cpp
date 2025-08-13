@@ -10,9 +10,9 @@
 
 namespace PHiLiP{
 
-template<int dim, int nstate, typename real>
-void SetInitialCondition<dim,nstate,real>::set_initial_condition(
-        std::shared_ptr< InitialConditionFunction<dim,nstate,double> > initial_condition_function_input,
+template<int dim, int nspecies, int nstate, typename real>
+void SetInitialCondition<dim,nspecies,nstate,real>::set_initial_condition(
+        std::shared_ptr< InitialConditionFunction<dim,nspecies,nstate,double> > initial_condition_function_input,
         std::shared_ptr< PHiLiP::DGBase<dim, real> > dg_input,
         const Parameters::AllParameters *const parameters_input)
 {
@@ -26,22 +26,22 @@ void SetInitialCondition<dim,nstate,real>::set_initial_condition(
     if(apply_initial_condition_method == ApplyInitialConditionMethodEnum::interpolate_initial_condition_function) {
         pcout << "interpolating the initial condition function... " << std::flush;
         // for non-curvilinear
-        SetInitialCondition<dim,nstate,real>::interpolate_initial_condition(initial_condition_function_input, dg_input);
+        SetInitialCondition<dim,nspecies,nstate,real>::interpolate_initial_condition(initial_condition_function_input, dg_input);
     } else if(apply_initial_condition_method == ApplyInitialConditionMethodEnum::project_initial_condition_function) {
         pcout << "projecting the initial condition function... " << std::flush;
         // for curvilinear
-        SetInitialCondition<dim,nstate,real>::project_initial_condition(initial_condition_function_input, dg_input);
+        SetInitialCondition<dim,nspecies,nstate,real>::project_initial_condition(initial_condition_function_input, dg_input);
     } else if(apply_initial_condition_method == ApplyInitialConditionMethodEnum::read_values_from_file_and_project) {
         const std::string input_filename_prefix = parameters_input->flow_solver_param.input_flow_setup_filename_prefix;
         pcout << "reading values from file prefix  " << input_filename_prefix << " and projecting... " << std::flush;
-        SetInitialCondition<dim,nstate,real>::read_values_from_file_and_project(dg_input,input_filename_prefix);
+        SetInitialCondition<dim,nspecies,nstate,real>::read_values_from_file_and_project(dg_input,input_filename_prefix);
     }
     pcout << "done." << std::endl;
 }
 
-template<int dim, int nstate, typename real>
-void SetInitialCondition<dim,nstate,real>::interpolate_initial_condition(
-        std::shared_ptr< InitialConditionFunction<dim,nstate,double> > &initial_condition_function,
+template<int dim, int nspecies, int nstate, typename real>
+void SetInitialCondition<dim,nspecies,nstate,real>::interpolate_initial_condition(
+        std::shared_ptr< InitialConditionFunction<dim,nspecies,nstate,double> > &initial_condition_function,
         std::shared_ptr < PHiLiP::DGBase<dim,real> > &dg) 
 {
     dealii::LinearAlgebra::distributed::Vector<double> solution_no_ghost;
@@ -50,9 +50,9 @@ void SetInitialCondition<dim,nstate,real>::interpolate_initial_condition(
     dg->solution = solution_no_ghost;
 }
 
-template<int dim, int nstate, typename real>
-void SetInitialCondition<dim,nstate,real>::project_initial_condition(
-        std::shared_ptr< InitialConditionFunction<dim,nstate,double> > &initial_condition_function,
+template<int dim, int nspecies, int nstate, typename real>
+void SetInitialCondition<dim,nspecies,nstate,real>::project_initial_condition(
+        std::shared_ptr< InitialConditionFunction<dim,nspecies,nstate,double> > &initial_condition_function,
         std::shared_ptr < PHiLiP::DGBase<dim,real> > &dg) 
 {
     // Commented since this has not yet been tested
@@ -111,8 +111,8 @@ std::string get_padded_mpi_rank_string(const int mpi_rank_input) {
     return mpi_rank_string;
 }
 
-template<int dim, int nstate, typename real>
-void SetInitialCondition<dim,nstate,real>::read_values_from_file_and_project(
+template<int dim, int nspecies, int nstate, typename real>
+void SetInitialCondition<dim,nspecies,nstate,real>::read_values_from_file_and_project(
         std::shared_ptr < PHiLiP::DGBase<dim,real> > &dg,
         const std::string input_filename_prefix) 
 {
@@ -239,11 +239,12 @@ void SetInitialCondition<dim,nstate,real>::read_values_from_file_and_project(
     }
 }
 
-template class SetInitialCondition<PHILIP_DIM, 1, double>;
-template class SetInitialCondition<PHILIP_DIM, 2, double>;
-template class SetInitialCondition<PHILIP_DIM, 3, double>;
-template class SetInitialCondition<PHILIP_DIM, 4, double>;
-template class SetInitialCondition<PHILIP_DIM, 5, double>;
-template class SetInitialCondition<PHILIP_DIM, 6, double>;
+template class SetInitialCondition<PHILIP_DIM, PHILIP_SPECIES, 1, double>;
+template class SetInitialCondition<PHILIP_DIM, PHILIP_SPECIES, 2, double>;
+template class SetInitialCondition<PHILIP_DIM, PHILIP_SPECIES, 3, double>;
+template class SetInitialCondition<PHILIP_DIM, PHILIP_SPECIES, 4, double>;
+template class SetInitialCondition<PHILIP_DIM, PHILIP_SPECIES, 5, double>;
+template class SetInitialCondition<PHILIP_DIM, PHILIP_SPECIES, 6, double>;
+template class SetInitialCondition<PHILIP_DIM, PHILIP_SPECIES, 7, double>;
 
 }//end of namespace PHILIP

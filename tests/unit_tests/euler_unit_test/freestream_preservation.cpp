@@ -20,6 +20,7 @@
 
 using namespace PHiLiP;
 
+const int nspecies = 1;
 const bool NONCONFORMING = false;//true;
 enum GridType { eccentric_hyper_shell, abe2015_wavy, naca0012 };
 const GridType GRID_TYPE = eccentric_hyper_shell;
@@ -252,7 +253,7 @@ int test()
                         param.euler_param.mach_inf,
                         param.euler_param.angle_of_attack,
                         param.euler_param.side_slip_angle);
-            FreeStreamInitialConditions<dim,dim+2,double> initial_conditions(euler_physics_double);
+            FreeStreamInitialConditions<dim,nspecies,dim+2,double> initial_conditions(euler_physics_double);
             dealii::VectorTools::interpolate(dg->dof_handler, initial_conditions, dg->solution);
 
             dg->assemble_residual();

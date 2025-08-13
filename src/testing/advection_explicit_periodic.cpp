@@ -32,13 +32,13 @@
 
 namespace PHiLiP {
 namespace Tests {
-template <int dim, int nstate>
-AdvectionPeriodic<dim, nstate>::AdvectionPeriodic(const PHiLiP::Parameters::AllParameters *const parameters_input)
+template <int dim, int nspecies, int nstate>
+AdvectionPeriodic<dim, nspecies, nstate>::AdvectionPeriodic(const PHiLiP::Parameters::AllParameters *const parameters_input)
     : TestsBase::TestsBase(parameters_input)
 {}
 
-template<int dim, int nstate>
-double AdvectionPeriodic<dim, nstate>::compute_energy(std::shared_ptr < PHiLiP::DGBase<dim, double> > &dg) const
+template<int dim, int nspecies, int nstate>
+double AdvectionPeriodic<dim, nspecies, nstate>::compute_energy(std::shared_ptr < PHiLiP::DGBase<dim, double> > &dg) const
 {
 	double energy = 0.0;
         dealii::LinearAlgebra::distributed::Vector<double> mass_matrix_times_solution(dg->right_hand_side);
@@ -53,8 +53,8 @@ double AdvectionPeriodic<dim, nstate>::compute_energy(std::shared_ptr < PHiLiP::
     return energy;
 }
 
-template<int dim, int nstate>
-double AdvectionPeriodic<dim, nstate>::compute_conservation(std::shared_ptr < PHiLiP::DGBase<dim, double> > &dg, const double poly_degree) const
+template<int dim, int nspecies, int nstate>
+double AdvectionPeriodic<dim, nspecies, nstate>::compute_conservation(std::shared_ptr < PHiLiP::DGBase<dim, double> > &dg, const double poly_degree) const
 {
         //Conservation \f$ =  \int 1 * u d\Omega_m \f$
         double conservation = 0.0;
@@ -94,8 +94,8 @@ double AdvectionPeriodic<dim, nstate>::compute_conservation(std::shared_ptr < PH
     return conservation;
 }
 
-template <int dim, int nstate>
-int AdvectionPeriodic<dim, nstate>::run_test() const
+template <int dim, int nspecies, int nstate>
+int AdvectionPeriodic<dim, nspecies, nstate>::run_test() const
 {
 
     printf("starting test\n");
@@ -152,9 +152,9 @@ int AdvectionPeriodic<dim, nstate>::run_test() const
 
         std::cout << "Implement initial conditions" << std::endl;
         // Create initial condition function
-        std::shared_ptr< InitialConditionFunction<dim,nstate,double> > initial_condition_function = 
-                InitialConditionFactory<dim,nstate,double>::create_InitialConditionFunction(&all_parameters_new); 
-        SetInitialCondition<dim,nstate,double>::set_initial_condition(initial_condition_function, dg, &all_parameters_new);
+        std::shared_ptr< InitialConditionFunction<dim,nspecies,nstate,double> > initial_condition_function = 
+                InitialConditionFactory<dim,nspecies,nstate,double>::create_InitialConditionFunction(&all_parameters_new); 
+        SetInitialCondition<dim,nspecies,nstate,double>::set_initial_condition(initial_condition_function, dg, &all_parameters_new);
 
         // Create ODE solver using the factory and providing the DG object
         std::shared_ptr<PHiLiP::ODE::ODESolverBase<dim, double>> ode_solver = PHiLiP::ODE::ODESolverFactory<dim, double>::create_ODESolver(dg);
@@ -365,7 +365,9 @@ int AdvectionPeriodic<dim, nstate>::run_test() const
     return 0;//if reaches here mean passed test 
 }
 
-template class AdvectionPeriodic <PHILIP_DIM,1>;
+#if PHILIP_SPECIES == 1
+template class AdvectionPeriodic <PHILIP_DIM,PHILIP_SPECIES,1>;
+#endif
 
 } //Tests namespace
 } //PHiLiP namespace

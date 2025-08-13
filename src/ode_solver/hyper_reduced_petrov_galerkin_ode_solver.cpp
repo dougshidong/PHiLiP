@@ -15,15 +15,15 @@
 namespace PHiLiP {
 namespace ODE {
 
-template <int dim, typename real, typename MeshType>
-HyperReducedODESolver<dim,real,MeshType>::HyperReducedODESolver(std::shared_ptr< DGBase<dim, real, MeshType> > dg_input, std::shared_ptr<ProperOrthogonalDecomposition::PODBase<dim>> pod, Epetra_Vector weights)
-        : ODESolverBase<dim,real,MeshType>(dg_input)
+template <int dim, int nspecies, typename real, typename MeshType>
+HyperReducedODESolver<dim,nspecies,real,MeshType>::HyperReducedODESolver(std::shared_ptr< DGBase<dim, real, MeshType> > dg_input, std::shared_ptr<ProperOrthogonalDecomposition::PODBase<dim>> pod, Epetra_Vector weights)
+        : ODESolverBase<dim,nspecies,real,MeshType>(dg_input)
         , pod(pod)
         , ECSW_weights(weights)
 {}
 
-template <int dim, typename real, typename MeshType>
-int HyperReducedODESolver<dim,real,MeshType>::steady_state ()
+template <int dim, int nspecies, typename real, typename MeshType>
+int HyperReducedODESolver<dim,nspecies,real,MeshType>::steady_state ()
 {
     this->pcout << " Performing steady state analysis... " << std::endl;
 
@@ -111,8 +111,8 @@ int HyperReducedODESolver<dim,real,MeshType>::steady_state ()
     return 0;
 }
 
-template <int dim, typename real, typename MeshType>
-void HyperReducedODESolver<dim,real,MeshType>::step_in_time (real /*dt*/, const bool /*pseudotime*/)
+template <int dim, int nspecies, typename real, typename MeshType>
+void HyperReducedODESolver<dim,nspecies,real,MeshType>::step_in_time (real /*dt*/, const bool /*pseudotime*/)
 {
     const bool compute_dRdW = true;
     this->dg->assemble_residual(compute_dRdW);
@@ -275,8 +275,8 @@ void HyperReducedODESolver<dim,real,MeshType>::step_in_time (real /*dt*/, const 
     ++(this->current_iteration);
 }
 
-template <int dim, typename real, typename MeshType>
-void HyperReducedODESolver<dim,real,MeshType>::allocate_ode_system ()
+template <int dim, int nspecies, typename real, typename MeshType>
+void HyperReducedODESolver<dim,nspecies,real,MeshType>::allocate_ode_system ()
 {
     /*Projection of initial conditions on reduced-order subspace, refer to Equation 19 in:
     Washabaugh, K. M., Zahr, M. J., & Farhat, C. (2016).
@@ -305,8 +305,8 @@ void HyperReducedODESolver<dim,real,MeshType>::allocate_ode_system ()
     this->dg->solution += reference_solution;
 }
 
-template <int dim, typename real, typename MeshType>
-std::shared_ptr<Epetra_CrsMatrix> HyperReducedODESolver<dim,real,MeshType>::generate_test_basis(Epetra_CrsMatrix &system_matrix, const Epetra_CrsMatrix &pod_basis)
+template <int dim, int nspecies, typename real, typename MeshType>
+std::shared_ptr<Epetra_CrsMatrix> HyperReducedODESolver<dim,nspecies,real,MeshType>::generate_test_basis(Epetra_CrsMatrix &system_matrix, const Epetra_CrsMatrix &pod_basis)
 {
     Epetra_Map system_matrix_rowmap = system_matrix.RowMap();
     Epetra_CrsMatrix petrov_galerkin_basis(Epetra_DataAccess::Copy, system_matrix_rowmap, pod_basis.NumGlobalCols());
@@ -315,8 +315,8 @@ std::shared_ptr<Epetra_CrsMatrix> HyperReducedODESolver<dim,real,MeshType>::gene
     return std::make_shared<Epetra_CrsMatrix>(petrov_galerkin_basis);
 }
 
-template <int dim, typename real, typename MeshType>
-std::shared_ptr<Epetra_CrsMatrix> HyperReducedODESolver<dim,real,MeshType>::generate_hyper_reduced_jacobian(const Epetra_CrsMatrix &system_matrix)
+template <int dim, int nspecies, typename real, typename MeshType>
+std::shared_ptr<Epetra_CrsMatrix> HyperReducedODESolver<dim,nspecies,real,MeshType>::generate_hyper_reduced_jacobian(const Epetra_CrsMatrix &system_matrix)
 {
     /* Refer to Equation (12) in:
     https://onlinelibrary.wiley.com/doi/10.1002/nme.6603 (includes definitions of matrices used below such as L_e and L_e_PLUS)
@@ -408,8 +408,8 @@ std::shared_ptr<Epetra_CrsMatrix> HyperReducedODESolver<dim,real,MeshType>::gene
     return std::make_shared<Epetra_CrsMatrix>(reduced_jacobian);
 }
 
-template <int dim, typename real, typename MeshType>
-std::shared_ptr<Epetra_Vector> HyperReducedODESolver<dim,real,MeshType>::generate_hyper_reduced_residual(Epetra_Vector epetra_right_hand_side, Epetra_CrsMatrix &test_basis)
+template <int dim, int nspecies, typename real, typename MeshType>
+std::shared_ptr<Epetra_Vector> HyperReducedODESolver<dim,nspecies,real,MeshType>::generate_hyper_reduced_residual(Epetra_Vector epetra_right_hand_side, Epetra_CrsMatrix &test_basis)
 {
     /* Refer to Equation (10) in:
     https://onlinelibrary.wiley.com/doi/10.1002/nme.6603 (includes definitions of matrices used below such as L_e and L_e_PLUS)   
@@ -487,8 +487,8 @@ std::shared_ptr<Epetra_Vector> HyperReducedODESolver<dim,real,MeshType>::generat
     return std::make_shared<Epetra_Vector>(dist_hyper_res);
 }
 
-template <int dim, typename real, typename MeshType>
-std::shared_ptr<Epetra_CrsMatrix> HyperReducedODESolver<dim,real,MeshType>::generate_reduced_lhs(Epetra_CrsMatrix &test_basis)
+template <int dim, int nspecies, typename real, typename MeshType>
+std::shared_ptr<Epetra_CrsMatrix> HyperReducedODESolver<dim,nspecies,real,MeshType>::generate_reduced_lhs(Epetra_CrsMatrix &test_basis)
 {
     Epetra_CrsMatrix epetra_reduced_lhs(Epetra_DataAccess::Copy, test_basis.DomainMap(), test_basis.NumGlobalCols());
     EpetraExt::MatrixMatrix::Multiply(test_basis, true, test_basis, false, epetra_reduced_lhs);
@@ -496,10 +496,10 @@ std::shared_ptr<Epetra_CrsMatrix> HyperReducedODESolver<dim,real,MeshType>::gene
     return std::make_shared<Epetra_CrsMatrix>(epetra_reduced_lhs);
 }
 
-template class HyperReducedODESolver<PHILIP_DIM, double, dealii::Triangulation<PHILIP_DIM>>;
-template class HyperReducedODESolver<PHILIP_DIM, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+template class HyperReducedODESolver<PHILIP_DIM, PHILIP_SPECIES, double, dealii::Triangulation<PHILIP_DIM>>;
+template class HyperReducedODESolver<PHILIP_DIM, PHILIP_SPECIES, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
 #if PHILIP_DIM != 1
-    template class HyperReducedODESolver<PHILIP_DIM, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+    template class HyperReducedODESolver<PHILIP_DIM, PHILIP_SPECIES, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
 #endif
 
 } // ODE namespace

@@ -14,9 +14,9 @@
 namespace PHiLiP{
 namespace FlowSolver{
 
-template <int dim, int nstate>
-LimiterConvergenceTests<dim, nstate>::LimiterConvergenceTests(const PHiLiP::Parameters::AllParameters *const parameters_input)
-    : FlowSolverCaseBase<dim, nstate>(parameters_input)
+template <int dim, int nspecies, int nstate>
+LimiterConvergenceTests<dim, nspecies, nstate>::LimiterConvergenceTests(const PHiLiP::Parameters::AllParameters *const parameters_input)
+    : FlowSolverCaseBase<dim, nspecies, nstate>(parameters_input)
     , unsteady_data_table_filename_with_extension(this->all_param.flow_solver_param.unsteady_data_table_filename+".txt")
 {
     //create the Physics object
@@ -24,8 +24,8 @@ LimiterConvergenceTests<dim, nstate>::LimiterConvergenceTests(const PHiLiP::Para
                 Physics::PhysicsFactory<dim,nstate,double>::create_Physics(parameters_input));
 }
 
-template <int dim, int nstate>
-std::shared_ptr<Triangulation> LimiterConvergenceTests<dim,nstate>::generate_grid() const
+template <int dim, int nspecies, int nstate>
+std::shared_ptr<Triangulation> LimiterConvergenceTests<dim, nspecies, nstate>::generate_grid() const
 {
 #if PHILIP_DIM==1 // dealii::parallel::distributed::Triangulation<dim> does not work for 1D
     using Triangulation = dealii::Triangulation<dim>;
@@ -54,8 +54,8 @@ std::shared_ptr<Triangulation> LimiterConvergenceTests<dim,nstate>::generate_gri
     return grid;
 }
 
-template <int dim, int nstate>
-double LimiterConvergenceTests<dim, nstate>::get_adaptive_time_step(std::shared_ptr<DGBase<dim, double>> dg) const
+template <int dim, int nspecies, int nstate>
+double LimiterConvergenceTests<dim, nspecies, nstate>::get_adaptive_time_step(std::shared_ptr<DGBase<dim, double>> dg) const
 {
     using flow_case_enum = Parameters::FlowSolverParam::FlowCaseType;
     flow_case_enum flow_case = this->all_param.flow_solver_param.flow_case_type;
@@ -92,8 +92,8 @@ double LimiterConvergenceTests<dim, nstate>::get_adaptive_time_step(std::shared_
     return time_step;
 }
 
-template <int dim, int nstate>
-double LimiterConvergenceTests<dim, nstate>::get_adaptive_time_step_initial(std::shared_ptr<DGBase<dim, double>> dg)
+template <int dim, int nspecies, int nstate>
+double LimiterConvergenceTests<dim, nspecies, nstate>::get_adaptive_time_step_initial(std::shared_ptr<DGBase<dim, double>> dg)
 {
     if(nstate == dim + 2){
         // initialize the maximum local wave speed
@@ -105,6 +105,7 @@ double LimiterConvergenceTests<dim, nstate>::get_adaptive_time_step_initial(std:
     return time_step;
 }
 
+<<<<<<< HEAD
 template<int dim, int nstate>
 void LimiterConvergenceTests<dim, nstate>::update_maximum_local_wave_speed(DGBase<dim, double> &dg)
 {    
@@ -145,12 +146,16 @@ void LimiterConvergenceTests<dim, nstate>::update_maximum_local_wave_speed(DGBas
 
 template <int dim, int nstate>
 void LimiterConvergenceTests<dim, nstate>::display_additional_flow_case_specific_parameters() const
+=======
+template <int dim, int nspecies, int nstate>
+void LimiterConvergenceTests<dim, nspecies, nstate>::display_additional_flow_case_specific_parameters() const
+>>>>>>> liki-multi-species
 {
     this->pcout << "- - Courant-Friedrichs-Lewy number: " << this->all_param.flow_solver_param.courant_friedrichs_lewy_number << std::endl;
 }
 
-template<int dim, int nstate>
-void LimiterConvergenceTests<dim, nstate>::check_limiter_principle(DGBase<dim, double>& dg)
+template<int dim, int nspecies, int nstate>
+void LimiterConvergenceTests<dim, nspecies, nstate>::check_limiter_principle(DGBase<dim, double>& dg)
 {
     using flow_case_enum = Parameters::FlowSolverParam::FlowCaseType;
     flow_case_enum flow_case = this->all_param.flow_solver_param.flow_case_type;
@@ -231,8 +236,8 @@ void LimiterConvergenceTests<dim, nstate>::check_limiter_principle(DGBase<dim, d
     }
 }
 
-template <int dim, int nstate>
-void LimiterConvergenceTests<dim, nstate>::compute_unsteady_data_and_write_to_table(
+template <int dim, int nspecies, int nstate>
+void LimiterConvergenceTests<dim, nspecies, nstate>::compute_unsteady_data_and_write_to_table(
     const unsigned int current_iteration,
     const double current_time,
     const std::shared_ptr <DGBase<dim, double>> dg,
@@ -261,12 +266,16 @@ void LimiterConvergenceTests<dim, nstate>::compute_unsteady_data_and_write_to_ta
 }
 
 #if PHILIP_DIM==1
+<<<<<<< HEAD
     template class LimiterConvergenceTests<PHILIP_DIM, PHILIP_DIM>;
     template class LimiterConvergenceTests<PHILIP_DIM, PHILIP_DIM+2>;
+=======
+    template class LimiterConvergenceTests<PHILIP_DIM, 1, PHILIP_DIM>;
+>>>>>>> liki-multi-species
 #elif PHILIP_DIM==2
-    template class LimiterConvergenceTests<PHILIP_DIM, PHILIP_DIM>;
-    template class LimiterConvergenceTests<PHILIP_DIM, PHILIP_DIM+2>;
-    template class LimiterConvergenceTests<PHILIP_DIM, 1>;
+    template class LimiterConvergenceTests<PHILIP_DIM, 1, 1>;
+    template class LimiterConvergenceTests<PHILIP_DIM, 1, PHILIP_DIM>;
+    template class LimiterConvergenceTests<PHILIP_DIM, 1, PHILIP_DIM+2>;
 #endif
 
 }

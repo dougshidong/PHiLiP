@@ -10,7 +10,7 @@ namespace PHiLiP {
 namespace Tests {
 
 /// Test to check the goal-oriented mesh adaptation locations for various manufactured solutions.
-template <int dim, int nstate>
+template <int dim, int nspecies, int nstate>
 class DualWeightedResidualMeshAdaptation : public TestsBase
 {
 public:

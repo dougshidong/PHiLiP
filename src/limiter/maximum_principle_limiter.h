@@ -10,8 +10,8 @@ namespace PHiLiP {
 * "On maximum-principle-satisfying high order schemes for scalar conservation laws." 
 * Journal of Computational Physics 229.9 (2010): 3091-3120.
 **********************************/
-template<int dim, int nstate, typename real>
-class MaximumPrincipleLimiter : public BoundPreservingLimiterState <dim, nstate, real>
+template<int dim, int nspecies, int nstate, typename real>
+class MaximumPrincipleLimiter : public BoundPreservingLimiterState <dim, nspecies, nstate, real>
 {
 public:
     /// Constructor
@@ -27,7 +27,7 @@ public:
     std::vector<real> global_min;
 
     /// Pointer to TVB limiter class (TVB limiter can be applied in conjunction with this limiter)
-    std::shared_ptr<BoundPreservingLimiter<dim, real>> tvbLimiter;
+    std::shared_ptr<BoundPreservingLimiterState<dim, nspecies, nstate, real>> tvbLimiter;
 
 private:
     /// Function to obtain the maximum and minimum of the initial solution for each state
@@ -37,7 +37,7 @@ private:
         const dealii::hp::FECollection<dim>&                            fe_collection);
 
     /// Function to obtain the solution cell average
-    using BoundPreservingLimiterState<dim, nstate, real>::get_soln_cell_avg;
+    using BoundPreservingLimiterState<dim, nspecies, nstate, real>::get_soln_cell_avg;
     
     /// Function to verify the limited solution satisfies the strict maximum principle
     /// and write back limited solution

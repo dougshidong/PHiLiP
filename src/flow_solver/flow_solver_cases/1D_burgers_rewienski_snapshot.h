@@ -21,8 +21,8 @@ namespace FlowSolver {
     using Triangulation = dealii::parallel::distributed::Triangulation<PHILIP_DIM>;
 #endif
 
-template <int dim, int nstate>
-class BurgersRewienskiSnapshot: public FlowSolverCaseBase<dim, nstate>
+template <int dim, int nspecies, int nstate>
+class BurgersRewienskiSnapshot: public FlowSolverCaseBase<dim, nspecies, nstate>
 {
 public:
     /// Constructor.

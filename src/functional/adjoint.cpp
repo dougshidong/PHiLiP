@@ -1,5 +1,6 @@
 #include "adjoint.h"
 
+#include <boost/preprocessor/seq/for_each.hpp>
 #include <Epetra_RowMatrixTransposer.h>
 #include <deal.II/distributed/shared_tria.h>
 #include <deal.II/distributed/solution_transfer.h>
@@ -339,24 +340,22 @@ void Adjoint<dim, nstate, real, MeshType>::output_results_vtk(const unsigned int
     }
 }
 
-template class Adjoint <PHILIP_DIM, 1, double, dealii::Triangulation<PHILIP_DIM>>;
-template class Adjoint <PHILIP_DIM, 2, double, dealii::Triangulation<PHILIP_DIM>>;
-template class Adjoint <PHILIP_DIM, 3, double, dealii::Triangulation<PHILIP_DIM>>;
-template class Adjoint <PHILIP_DIM, 4, double, dealii::Triangulation<PHILIP_DIM>>;
-template class Adjoint <PHILIP_DIM, 5, double, dealii::Triangulation<PHILIP_DIM>>;
+// Define a sequence of indices representing the range [1, 7] - max is 7 because nstate=dim+2+(species-1)=7 when dim=species=3
+#define POSSIBLE_NSTATE (1)(2)(3)(4)(5)(6)(7)
 
-template class Adjoint <PHILIP_DIM, 1, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
-template class Adjoint <PHILIP_DIM, 2, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
-template class Adjoint <PHILIP_DIM, 3, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
-template class Adjoint <PHILIP_DIM, 4, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
-template class Adjoint <PHILIP_DIM, 5, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+// Define a macro to instantiate Adjoint for a specific index
+#define INSTANTIATE_DISTRIBUTED(r, data, index) \
+    template class Adjoint <PHILIP_DIM, index, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
 
 #if PHILIP_DIM!=1
-template class Adjoint <PHILIP_DIM, 1, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
-template class Adjoint <PHILIP_DIM, 2, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
-template class Adjoint <PHILIP_DIM, 3, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
-template class Adjoint <PHILIP_DIM, 4, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
-template class Adjoint <PHILIP_DIM, 5, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_DISTRIBUTED, _, POSSIBLE_NSTATE)
 #endif
 
+#define INSTANTIATE_SHARED(r, data, index) \
+    template class Adjoint <PHILIP_DIM, index, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_SHARED, _, POSSIBLE_NSTATE)
+
+#define INSTANTIATE_TRIA(r, data, index) \
+    template class Adjoint <PHILIP_DIM, index, double, dealii::Triangulation<PHILIP_DIM>>;
+BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_TRIA, _, POSSIBLE_NSTATE)
 } // PHiLiP namespace

@@ -7,8 +7,8 @@
 namespace PHiLiP {
 namespace FlowSolver {
 
-template <int dim, int nstate>
-class CubeFlow_UniformGrid : public FlowSolverCaseBase<dim, nstate>
+template <int dim, int nspecies, int nstate>
+class CubeFlow_UniformGrid : public FlowSolverCaseBase<dim, nspecies, nstate>
 {
  public:
      explicit CubeFlow_UniformGrid(const Parameters::AllParameters *const parameters_input);

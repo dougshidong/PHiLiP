@@ -22,8 +22,8 @@ Details on the ROM points/errors can be found in sections 5 and 6
 
 Derivation of the new error indicator will likely be detailed in Calista Biondic's thesis
 */
-template <int dim, int nstate>
-class HROMTestLocation: public TestLocationBase<dim,nstate>
+template <int dim, int nspecies, int nstate>
+class HROMTestLocation: public TestLocationBase<dim, nspecies, nstate>
 {
 public:
     /// Constructor

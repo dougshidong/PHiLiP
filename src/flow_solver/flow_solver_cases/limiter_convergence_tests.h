@@ -9,8 +9,8 @@ namespace FlowSolver{
 //===============================================================
 /// Limiter Convergence Tests (Advection, Burgers, 2D Low Density)
 //===============================================================
-template <int dim, int nstate>
-class LimiterConvergenceTests : public FlowSolverCaseBase<dim, nstate>
+template <int dim, int nspecies, int nstate>
+class LimiterConvergenceTests : public FlowSolverCaseBase<dim, nspecies, nstate>
 {
 #if PHILIP_DIM==1
     using Triangulation = dealii::Triangulation<PHILIP_DIM>;
@@ -42,7 +42,7 @@ public:
     /// Filename (with extension) for the unsteady data table
     const std::string unsteady_data_table_filename_with_extension;
 
-    using FlowSolverCaseBase<dim,nstate>::compute_unsteady_data_and_write_to_table;
+    using FlowSolverCaseBase<dim,nspecies,nstate>::compute_unsteady_data_and_write_to_table;
 
     /// Compute the desired unsteady data and write it to a table
     void compute_unsteady_data_and_write_to_table(

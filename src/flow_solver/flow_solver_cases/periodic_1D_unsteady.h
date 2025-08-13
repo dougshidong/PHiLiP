@@ -6,8 +6,8 @@
 namespace PHiLiP {
 namespace FlowSolver {
 
-template <int dim, int nstate>
-class Periodic1DUnsteady : public PeriodicCubeFlow<dim,nstate>
+template <int dim, int nspecies, int nstate>
+class Periodic1DUnsteady : public PeriodicCubeFlow<dim, nspecies, nstate>
 {
 public:
 
@@ -22,7 +22,7 @@ public:
     double get_numerical_entropy(const std::shared_ptr <DGBase<dim, double>> dg) const;
 protected:
 
-    using FlowSolverCaseBase<dim,nstate>::compute_unsteady_data_and_write_to_table;
+    using FlowSolverCaseBase<dim, nspecies, nstate>::compute_unsteady_data_and_write_to_table;
     /// Compute the desired unsteady data and write it to a table
     void compute_unsteady_data_and_write_to_table(
             const unsigned int current_iteration,

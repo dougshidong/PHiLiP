@@ -8,16 +8,16 @@
 namespace PHiLiP {
 namespace Tests {
 
-template <int dim, int nstate>
-RRKNumericalEntropyConservationCheck<dim, nstate>::RRKNumericalEntropyConservationCheck(
+template <int dim, int nspecies, int nstate>
+RRKNumericalEntropyConservationCheck<dim, nspecies, nstate>::RRKNumericalEntropyConservationCheck(
         const PHiLiP::Parameters::AllParameters *const parameters_input,
         const dealii::ParameterHandler &parameter_handler_input)  
         : TestsBase::TestsBase(parameters_input),
          parameter_handler(parameter_handler_input)
 {}
 
-template <int dim, int nstate>
-Parameters::AllParameters RRKNumericalEntropyConservationCheck<dim,nstate>::reinit_params(bool use_rrk, double time_step_size_factor) const
+template <int dim, int nspecies, int nstate>
+Parameters::AllParameters RRKNumericalEntropyConservationCheck<dim, nspecies, nstate>::reinit_params(bool use_rrk, double time_step_size_factor) const
 {
     PHiLiP::Parameters::AllParameters parameters = *(this->all_parameters);
     
@@ -31,9 +31,9 @@ Parameters::AllParameters RRKNumericalEntropyConservationCheck<dim,nstate>::rein
     return parameters;
 }
 
-template <int dim, int nstate>
-int RRKNumericalEntropyConservationCheck<dim, nstate>::compare_numerical_entropy_to_initial(
-        const std::unique_ptr<FlowSolver::FlowSolver<dim,nstate>> &flow_solver,
+template <int dim, int nspecies, int nstate>
+int RRKNumericalEntropyConservationCheck<dim, nspecies, nstate>::compare_numerical_entropy_to_initial(
+        const std::unique_ptr<FlowSolver::FlowSolver<dim,nspecies,nstate>> &flow_solver,
         const double initial_numerical_entropy,
         const double final_time_actual,
         bool expect_conservation
@@ -44,9 +44,9 @@ int RRKNumericalEntropyConservationCheck<dim, nstate>::compare_numerical_entropy
     // which case we want to use Periodic1DUnsteady, or Euler, in which case we
     // want to use PeriodicTurbulence
 #if PHILIP_DIM==1
-    std::shared_ptr<FlowSolver::Periodic1DUnsteady<dim, nstate>> flow_solver_case = std::dynamic_pointer_cast<FlowSolver::Periodic1DUnsteady<dim, nstate>>(flow_solver->flow_solver_case);
+    std::shared_ptr<FlowSolver::Periodic1DUnsteady<dim, nspecies, nstate>> flow_solver_case = std::dynamic_pointer_cast<FlowSolver::Periodic1DUnsteady<dim, nspecies, nstate>>(flow_solver->flow_solver_case);
 #else
-    std::shared_ptr<FlowSolver::PeriodicTurbulence<dim, nstate>> flow_solver_case = std::dynamic_pointer_cast<FlowSolver::PeriodicTurbulence<dim, nstate>>(flow_solver->flow_solver_case);
+    std::shared_ptr<FlowSolver::PeriodicTurbulence<dim, nspecies, nstate>> flow_solver_case = std::dynamic_pointer_cast<FlowSolver::PeriodicTurbulence<dim, nspecies, nstate>>(flow_solver->flow_solver_case);
 #endif
 
     const double final_numerical_entropy = flow_solver_case->get_numerical_entropy(flow_solver->dg);
@@ -69,22 +69,22 @@ int RRKNumericalEntropyConservationCheck<dim, nstate>::compare_numerical_entropy
     }
 }
 
-template <int dim, int nstate>
-int RRKNumericalEntropyConservationCheck<dim,nstate>::get_numerical_entropy_and_compare_to_initial(
+template <int dim, int nspecies, int nstate>
+int RRKNumericalEntropyConservationCheck<dim, nspecies, nstate>::get_numerical_entropy_and_compare_to_initial(
         const Parameters::AllParameters params,
         const double numerical_entropy_initial,
         bool expect_conservation
         ) const
 {
-    std::unique_ptr<FlowSolver::FlowSolver<dim,nstate>> flow_solver = FlowSolver::FlowSolverFactory<dim,nstate>::select_flow_case(&params, parameter_handler);
+    std::unique_ptr<FlowSolver::FlowSolver<dim,nspecies,nstate>> flow_solver = FlowSolver::FlowSolverFactory<dim,nspecies,nstate>::select_flow_case(&params, parameter_handler);
     static_cast<void>(flow_solver->run());
     const double final_time_actual = flow_solver->ode_solver->current_time;
     int failed_this_calculation = compare_numerical_entropy_to_initial(flow_solver, numerical_entropy_initial, final_time_actual, expect_conservation);
     return failed_this_calculation;
 }
 
-template <int dim, int nstate>
-int RRKNumericalEntropyConservationCheck<dim, nstate>::run_test() const
+template <int dim, int nspecies, int nstate>
+int RRKNumericalEntropyConservationCheck<dim, nspecies, nstate>::run_test() const
 {
 
     double final_time = this->all_parameters->flow_solver_param.final_time;
@@ -104,15 +104,15 @@ int RRKNumericalEntropyConservationCheck<dim, nstate>::run_test() const
     pcout << "\n\n-------------------------------------------------------------" << std::endl;
     pcout << "  Calculating initial numerical entropy..." << std::endl;
     pcout << "-------------------------------------------------------------" << std::endl;
-    std::unique_ptr<FlowSolver::FlowSolver<dim,nstate>> flow_solver = FlowSolver::FlowSolverFactory<dim,nstate>::select_flow_case((this->all_parameters), parameter_handler);
+    std::unique_ptr<FlowSolver::FlowSolver<dim,nspecies,nstate>> flow_solver = FlowSolver::FlowSolverFactory<dim,nspecies,nstate>::select_flow_case((this->all_parameters), parameter_handler);
 
     // Using PHILIP_DIM as an indicator for whether the test is using Burgers, in
     // which case we want to use Periodic1DUnsteady, or Euler, in which case we
     // want to use PeriodicTurbulence
 #if PHILIP_DIM==1
-    std::shared_ptr<FlowSolver::Periodic1DUnsteady<dim, nstate>> flow_solver_case = std::dynamic_pointer_cast<FlowSolver::Periodic1DUnsteady<dim, nstate>>(flow_solver->flow_solver_case);
+    std::shared_ptr<FlowSolver::Periodic1DUnsteady<dim, nspecies, nstate>> flow_solver_case = std::dynamic_pointer_cast<FlowSolver::Periodic1DUnsteady<dim, nspecies, nstate>>(flow_solver->flow_solver_case);
 #else
-    std::shared_ptr<FlowSolver::PeriodicTurbulence<dim, nstate>> flow_solver_case = std::dynamic_pointer_cast<FlowSolver::PeriodicTurbulence<dim, nstate>>(flow_solver->flow_solver_case);
+    std::shared_ptr<FlowSolver::PeriodicTurbulence<dim, nspecies, nstate>> flow_solver_case = std::dynamic_pointer_cast<FlowSolver::PeriodicTurbulence<dim, nspecies, nstate>>(flow_solver->flow_solver_case);
 #endif
     
     const double numerical_entropy_initial = flow_solver_case->get_numerical_entropy(flow_solver->dg); //no need to run as ode_solver is allocated during construction
@@ -161,10 +161,10 @@ int RRKNumericalEntropyConservationCheck<dim, nstate>::run_test() const
 
     return testfail;
 }
-#if PHILIP_DIM == 1
-    template class RRKNumericalEntropyConservationCheck<PHILIP_DIM,PHILIP_DIM>;
-#elif PHILIP_DIM == 3
-    template class RRKNumericalEntropyConservationCheck<PHILIP_DIM,PHILIP_DIM+2>;
+#if PHILIP_DIM == 1 && PHILIP_SPECIES==1
+    template class RRKNumericalEntropyConservationCheck<PHILIP_DIM,PHILIP_SPECIES,PHILIP_DIM>;
+#elif PHILIP_DIM == 3 && PHILIP_SPECIES==1
+    template class RRKNumericalEntropyConservationCheck<PHILIP_DIM,PHILIP_SPECIES,PHILIP_DIM+2>;
 #endif
 } // Tests namespace
 } // PHiLiP namespace

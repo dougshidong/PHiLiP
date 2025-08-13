@@ -17,15 +17,15 @@
 namespace PHiLiP {
 namespace Tests {
 
-template <int dim, int nstate>
-HyperReductionComparison<dim, nstate>::HyperReductionComparison(const Parameters::AllParameters *const parameters_input,
+template <int dim, int nspecies, int nstate>
+HyperReductionComparison<dim, nspecies, nstate>::HyperReductionComparison(const Parameters::AllParameters *const parameters_input,
                                         const dealii::ParameterHandler &parameter_handler_input)
         : TestsBase::TestsBase(parameters_input)
         , parameter_handler(parameter_handler_input)
 {}
 
-template <int dim, int nstate>
-Parameters::AllParameters HyperReductionComparison<dim, nstate>::reinit_params(const int max_iter) const{
+template <int dim, int nspecies, int nstate>
+Parameters::AllParameters HyperReductionComparison<dim, nspecies, nstate>::reinit_params(const int max_iter) const{
     // Copy all parameters
     PHiLiP::Parameters::AllParameters parameters = *(this->all_parameters);
 
@@ -33,8 +33,8 @@ Parameters::AllParameters HyperReductionComparison<dim, nstate>::reinit_params(c
     return parameters;
 }
 
-template <int dim, int nstate>
-bool HyperReductionComparison<dim, nstate>::getWeightsFromFile(std::shared_ptr<DGBase<dim,double>> &dg) const{
+template <int dim, int nspecies, int nstate>
+bool HyperReductionComparison<dim, nspecies, nstate>::getWeightsFromFile(std::shared_ptr<DGBase<dim,double>> &dg) const{
     bool file_found = false;
     Epetra_MpiComm epetra_comm(MPI_COMM_WORLD);
     VectorXd weights_eig;
@@ -127,38 +127,38 @@ bool HyperReductionComparison<dim, nstate>::getWeightsFromFile(std::shared_ptr<D
     return file_found;
 }
 
-template <int dim, int nstate>
-int HyperReductionComparison<dim, nstate>::run_test() const
+template <int dim, int nspecies, int nstate>
+int HyperReductionComparison<dim, nspecies, nstate>::run_test() const
 {
     pcout << "Starting error evaluation for ROM and HROM at one parameter location..." << std::endl;
 
     Epetra_MpiComm Comm( MPI_COMM_WORLD );
 
     // Create implicit solver for comparison
-    std::unique_ptr<FlowSolver::FlowSolver<dim,nstate>> flow_solver_implicit = FlowSolver::FlowSolverFactory<dim,nstate>::select_flow_case(all_parameters, parameter_handler);
+    std::unique_ptr<FlowSolver::FlowSolver<dim,nspecies,nstate>> flow_solver_implicit = FlowSolver::FlowSolverFactory<dim,nspecies,nstate>::select_flow_case(all_parameters, parameter_handler);
     auto functional_implicit = FunctionalFactory<dim,nstate,double>::create_Functional(all_parameters->functional_param, flow_solver_implicit->dg);
 
     // Create POD Petrov-Galerkin ROM without Hyper-reduction
-    std::unique_ptr<FlowSolver::FlowSolver<dim,nstate>> flow_solver_petrov_galerkin = FlowSolver::FlowSolverFactory<dim,nstate>::select_flow_case(all_parameters, parameter_handler);
+    std::unique_ptr<FlowSolver::FlowSolver<dim,nspecies,nstate>> flow_solver_petrov_galerkin = FlowSolver::FlowSolverFactory<dim,nspecies,nstate>::select_flow_case(all_parameters, parameter_handler);
     
     // Create POD Petrov-Galerkin ROM with Hyper-reduction
     Parameters::AllParameters new_parameters = reinit_params(100);
-    std::unique_ptr<FlowSolver::FlowSolver<dim,nstate>> flow_solver_hyper_reduced_petrov_galerkin = FlowSolver::FlowSolverFactory<dim,nstate>::select_flow_case(&new_parameters, parameter_handler);
+    std::unique_ptr<FlowSolver::FlowSolver<dim,nspecies,nstate>> flow_solver_hyper_reduced_petrov_galerkin = FlowSolver::FlowSolverFactory<dim,nspecies,nstate>::select_flow_case(&new_parameters, parameter_handler);
     auto ode_solver_type = Parameters::ODESolverParam::ODESolverEnum::hyper_reduced_petrov_galerkin_solver;
 
     // Run Adaptive Sampling to choose snapshot locations or load from file
-    std::shared_ptr<AdaptiveSampling<dim,nstate>> parameter_sampling = std::make_unique<AdaptiveSampling<dim,nstate>>(all_parameters, parameter_handler);
+    std::shared_ptr<AdaptiveSampling<dim,nspecies,nstate>> parameter_sampling = std::make_unique<AdaptiveSampling<dim,nspecies,nstate>>(all_parameters, parameter_handler);
     bool exit_con;
     if (this->all_parameters->hyper_reduction_param.adapt_sampling_bool) {
         parameter_sampling->run_sampling();
         
         // Find C and d for NNLS Problem
         pcout << "Construct instance of Assembler..."<< std::endl;
-        std::shared_ptr<HyperReduction::AssembleECSWBase<dim,nstate>> constructor_NNLS_problem;
+        std::shared_ptr<HyperReduction::AssembleECSWBase<dim,nspecies,nstate>> constructor_NNLS_problem;
         if (this->all_parameters->hyper_reduction_param.training_data == "residual")         
-            constructor_NNLS_problem = std::make_shared<HyperReduction::AssembleECSWRes<dim,nstate>>(all_parameters, parameter_handler, flow_solver_hyper_reduced_petrov_galerkin->dg, parameter_sampling->current_pod,  parameter_sampling->snapshot_parameters, ode_solver_type, Comm);
+            constructor_NNLS_problem = std::make_shared<HyperReduction::AssembleECSWRes<dim,nspecies,nstate>>(all_parameters, parameter_handler, flow_solver_hyper_reduced_petrov_galerkin->dg, parameter_sampling->current_pod,  parameter_sampling->snapshot_parameters, ode_solver_type, Comm);
         else {
-            constructor_NNLS_problem = std::make_shared<HyperReduction::AssembleECSWJac<dim,nstate>>(all_parameters, parameter_handler, flow_solver_hyper_reduced_petrov_galerkin->dg, parameter_sampling->current_pod,  parameter_sampling->snapshot_parameters, ode_solver_type, Comm);
+            constructor_NNLS_problem = std::make_shared<HyperReduction::AssembleECSWJac<dim,nspecies,nstate>>(all_parameters, parameter_handler, flow_solver_hyper_reduced_petrov_galerkin->dg, parameter_sampling->current_pod,  parameter_sampling->snapshot_parameters, ode_solver_type, Comm);
         }
         pcout << "Build Problem..."<< std::endl;
         constructor_NNLS_problem->build_problem();
@@ -286,12 +286,12 @@ int HyperReductionComparison<dim, nstate>::run_test() const
     }
 }
 
-#if PHILIP_DIM==1
-        template class HyperReductionComparison<PHILIP_DIM, PHILIP_DIM>;
+#if PHILIP_DIM==1 && PHILIP_SPECIES==1
+        template class HyperReductionComparison<PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM>;
 #endif
 
-#if PHILIP_DIM!=1
-        template class HyperReductionComparison<PHILIP_DIM, PHILIP_DIM+2>;
+#if PHILIP_DIM!=1 && PHILIP_SPECIES==1
+        template class HyperReductionComparison<PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2>;
 #endif
 } // Tests namespace
 } // PHiLiP namespace

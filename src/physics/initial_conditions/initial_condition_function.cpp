@@ -8,8 +8,8 @@ namespace PHiLiP {
 // =========================================================
 // Initial Condition Base Class
 // =========================================================
-template <int dim, int nstate, typename real>
-InitialConditionFunction<dim,nstate,real>
+template <int dim, int nspecies, int nstate, typename real>
+InitialConditionFunction<dim,nspecies,nstate,real>
 ::InitialConditionFunction ()
     : dealii::Function<dim,real>(nstate)//,0.0) // 0.0 denotes initial time (t=0)
 {
@@ -19,17 +19,17 @@ InitialConditionFunction<dim,nstate,real>
 // ========================================================
 // TAYLOR GREEN VORTEX -- Initial Condition (Uniform density)
 // ========================================================
-template <int dim, int nstate, typename real>
-InitialConditionFunction_TaylorGreenVortex<dim,nstate,real>
+template <int dim, int nspecies, int nstate, typename real>
+InitialConditionFunction_TaylorGreenVortex<dim,nspecies,nstate,real>
 ::InitialConditionFunction_TaylorGreenVortex (
         Parameters::AllParameters const *const param)
-    : InitialConditionFunction_EulerBase<dim, nstate, real>(param)
+    : InitialConditionFunction_EulerBase<dim, nspecies, nstate, real>(param)
     , gamma_gas(param->euler_param.gamma_gas)
     , mach_inf(param->euler_param.mach_inf)
     , mach_inf_sqr(mach_inf*mach_inf)
 {}
-template <int dim, int nstate, typename real>
-real InitialConditionFunction_TaylorGreenVortex<dim,nstate,real>
+template <int dim, int nspecies, int nstate, typename real>
+real InitialConditionFunction_TaylorGreenVortex<dim,nspecies,nstate,real>
 ::primitive_value(const dealii::Point<dim,real> &point, const unsigned int istate) const
 {
     // Note: This is in non-dimensional form (free-stream values as reference)
@@ -61,8 +61,8 @@ real InitialConditionFunction_TaylorGreenVortex<dim,nstate,real>
     return value;
 }
 
-template <int dim, int nstate, typename real>
-real InitialConditionFunction_TaylorGreenVortex<dim,nstate,real>
+template <int dim, int nspecies, int nstate, typename real>
+real InitialConditionFunction_TaylorGreenVortex<dim,nspecies,nstate,real>
 ::density(const dealii::Point<dim,real> &/*point*/) const
 {
     // Note: This is in non-dimensional form (free-stream values as reference)
@@ -75,15 +75,15 @@ real InitialConditionFunction_TaylorGreenVortex<dim,nstate,real>
 // ========================================================
 // TAYLOR GREEN VORTEX -- Initial Condition (Isothermal density)
 // ========================================================
-template <int dim, int nstate, typename real>
-InitialConditionFunction_TaylorGreenVortex_Isothermal<dim,nstate,real>
+template <int dim, int nspecies, int nstate, typename real>
+InitialConditionFunction_TaylorGreenVortex_Isothermal<dim,nspecies,nstate,real>
 ::InitialConditionFunction_TaylorGreenVortex_Isothermal (
         Parameters::AllParameters const *const param)
-    : InitialConditionFunction_TaylorGreenVortex<dim,nstate,real>(param)
+    : InitialConditionFunction_TaylorGreenVortex<dim,nspecies,nstate,real>(param)
 {}
 
-template <int dim, int nstate, typename real>
-real InitialConditionFunction_TaylorGreenVortex_Isothermal<dim,nstate,real>
+template <int dim, int nspecies, int nstate, typename real>
+real InitialConditionFunction_TaylorGreenVortex_Isothermal<dim,nspecies,nstate,real>
 ::density(const dealii::Point<dim,real> &point) const
 {
     // Note: This is in non-dimensional form (free-stream values as reference)
@@ -97,16 +97,16 @@ real InitialConditionFunction_TaylorGreenVortex_Isothermal<dim,nstate,real>
 // ========================================================
 // 1D BURGERS REWIENSKI -- Initial Condition
 // ========================================================
-template <int dim, int nstate, typename real>
-InitialConditionFunction_BurgersRewienski<dim, nstate, real>
+template <int dim, int nspecies, int nstate, typename real>
+InitialConditionFunction_BurgersRewienski<dim, nspecies, nstate, real>
 ::InitialConditionFunction_BurgersRewienski ()
-        : InitialConditionFunction<dim,nstate,real>()
+        : InitialConditionFunction<dim,nspecies,nstate,real>()
 {
     // Nothing to do here yet
 }
 
-template <int dim, int nstate, typename real>
-inline real InitialConditionFunction_BurgersRewienski<dim,nstate,real>
+template <int dim, int nspecies, int nstate, typename real>
+inline real InitialConditionFunction_BurgersRewienski<dim,nspecies,nstate,real>
 ::value(const dealii::Point<dim,real> &/*point*/, const unsigned int /*istate*/) const
 {
     real value = 1.0;
@@ -116,16 +116,16 @@ inline real InitialConditionFunction_BurgersRewienski<dim,nstate,real>
 // ========================================================
 // 1D BURGERS VISCOUS -- Initial Condition
 // ========================================================
-template <int dim, int nstate, typename real>
-InitialConditionFunction_BurgersViscous<dim,nstate,real>
+template <int dim, int nspecies, int nstate, typename real>
+InitialConditionFunction_BurgersViscous<dim,nspecies,nstate,real>
 ::InitialConditionFunction_BurgersViscous ()
-        : InitialConditionFunction<dim,nstate,real>()
+        : InitialConditionFunction<dim,nspecies,nstate,real>()
 {
     // Nothing to do here yet
 }
 
-template <int dim, int nstate, typename real>
-inline real InitialConditionFunction_BurgersViscous<dim,nstate,real>
+template <int dim, int nspecies, int nstate, typename real>
+inline real InitialConditionFunction_BurgersViscous<dim,nspecies,nstate,real>
 ::value(const dealii::Point<dim,real> &point, const unsigned int /*istate*/) const
 {
     real value = 0;
@@ -139,16 +139,16 @@ inline real InitialConditionFunction_BurgersViscous<dim,nstate,real>
 // ========================================================
 // 1D BURGERS Inviscid -- Initial Condition
 // ========================================================
-template <int dim, int nstate, typename real>
-InitialConditionFunction_BurgersInviscid<dim,nstate,real>
+template <int dim, int nspecies, int nstate, typename real>
+InitialConditionFunction_BurgersInviscid<dim,nspecies,nstate,real>
 ::InitialConditionFunction_BurgersInviscid ()
-        : InitialConditionFunction<dim,nstate,real>()
+        : InitialConditionFunction<dim,nspecies,nstate,real>()
 {
     // Nothing to do here yet
 }
 
-template <int dim, int nstate, typename real>
-inline real InitialConditionFunction_BurgersInviscid<dim,nstate,real>
+template <int dim, int nspecies, int nstate, typename real>
+inline real InitialConditionFunction_BurgersInviscid<dim,nspecies,nstate,real>
 ::value(const dealii::Point<dim,real> &point, const unsigned int /*istate*/) const
 {
     real value = 1.0;
@@ -165,16 +165,16 @@ inline real InitialConditionFunction_BurgersInviscid<dim,nstate,real>
 // ========================================================
 // 1D BURGERS Inviscid Energy-- Initial Condition
 // ========================================================
-template <int dim, int nstate, typename real>
-InitialConditionFunction_BurgersInviscidEnergy<dim,nstate,real>
+template <int dim, int nspecies, int nstate, typename real>
+InitialConditionFunction_BurgersInviscidEnergy<dim,nspecies,nstate,real>
 ::InitialConditionFunction_BurgersInviscidEnergy ()
-        : InitialConditionFunction<dim,nstate,real>()
+        : InitialConditionFunction<dim,nspecies,nstate,real>()
 {
     // Nothing to do here yet
 }
 
-template <int dim, int nstate, typename real>
-inline real InitialConditionFunction_BurgersInviscidEnergy<dim,nstate,real>
+template <int dim, int nspecies, int nstate, typename real>
+inline real InitialConditionFunction_BurgersInviscidEnergy<dim,nspecies,nstate,real>
 ::value(const dealii::Point<dim,real> &point, const unsigned int /*istate*/) const
 {
     real value = 1.0;
@@ -192,16 +192,16 @@ inline real InitialConditionFunction_BurgersInviscidEnergy<dim,nstate,real>
 // ========================================================
 // Advection -- Initial Condition
 // ========================================================
-template <int dim, int nstate, typename real>
-InitialConditionFunction_AdvectionEnergy<dim,nstate,real>
+template <int dim, int nspecies, int nstate, typename real>
+InitialConditionFunction_AdvectionEnergy<dim,nspecies,nstate,real>
 ::InitialConditionFunction_AdvectionEnergy ()
-        : InitialConditionFunction<dim,nstate,real>()
+        : InitialConditionFunction<dim,nspecies,nstate,real>()
 {
     // Nothing to do here yet
 }
 
-template <int dim, int nstate, typename real>
-inline real InitialConditionFunction_AdvectionEnergy<dim,nstate,real>
+template <int dim, int nspecies, int nstate, typename real>
+inline real InitialConditionFunction_AdvectionEnergy<dim,nspecies,nstate,real>
 ::value(const dealii::Point<dim,real> &point, const unsigned int /*istate*/) const
 {
     real value = 1.0;
@@ -218,16 +218,16 @@ inline real InitialConditionFunction_AdvectionEnergy<dim,nstate,real>
 // ========================================================
 // Advection OOA -- Initial Condition
 // ========================================================
-template <int dim, int nstate, typename real>
-InitialConditionFunction_Advection<dim,nstate,real>
+template <int dim, int nspecies, int nstate, typename real>
+InitialConditionFunction_Advection<dim,nspecies,nstate,real>
 ::InitialConditionFunction_Advection()
-        : InitialConditionFunction<dim,nstate,real>()
+        : InitialConditionFunction<dim,nspecies,nstate,real>()
 {
     // Nothing to do here yet
 }
 
-template <int dim, int nstate, typename real>
-inline real InitialConditionFunction_Advection<dim,nstate,real>
+template <int dim, int nspecies, int nstate, typename real>
+inline real InitialConditionFunction_Advection<dim,nspecies,nstate,real>
 ::value(const dealii::Point<dim,real> &point, const unsigned int /*istate*/) const
 {
     real value = 1.0;
@@ -243,57 +243,18 @@ inline real InitialConditionFunction_Advection<dim,nstate,real>
 
 
 // ========================================================
-// 2D Nonsmooth Case - 
-// ========================================================
-template <int dim, int nstate, typename real>
-InitialConditionFunction_NonSmooth<dim,nstate,real>
-::InitialConditionFunction_NonSmooth()
-        : InitialConditionFunction<dim,nstate,real>()
-{
-    // Nothing to do here yet
-}
-
-template <int dim, int nstate, typename real>
-inline real InitialConditionFunction_NonSmooth<dim,nstate,real>
-::value(const dealii::Point<dim,real> &point, const unsigned int /*istate*/) const
-{
-    real value = 1.0;
-    if constexpr(dim == 1)
-        std::abort();
-    if constexpr(dim == 2){
-        real x = abs(point[0]);
-        real y = point[1];
-
-        real r = sqrt(pow(x,2)+pow(y,2));
-        real theta = atan(y/x);
-
-        real bound = (1.0/8.0)*(3.0+pow(3.0,sin(5.0*theta)));
-
-        if(r <= bound)
-            value = 1.0;
-        else
-            value = 0.0;
-    }
-    if constexpr(dim == 3)
-        std::abort();
-
-    return value;
-}
-
-
-// ========================================================
 // Convection_diffusion -- Initial Condition
 // ========================================================
-template <int dim, int nstate, typename real>
-InitialConditionFunction_ConvDiff<dim,nstate,real>
+template <int dim, int nspecies, int nstate, typename real>
+InitialConditionFunction_ConvDiff<dim,nspecies,nstate,real>
 ::InitialConditionFunction_ConvDiff ()
-        : InitialConditionFunction<dim,nstate,real>()
+        : InitialConditionFunction<dim,nspecies,nstate,real>()
 {
     // Nothing to do here yet
 }
 
-template <int dim, int nstate, typename real>
-inline real InitialConditionFunction_ConvDiff<dim,nstate,real>
+template <int dim, int nspecies, int nstate, typename real>
+inline real InitialConditionFunction_ConvDiff<dim,nspecies,nstate,real>
 ::value(const dealii::Point<dim,real> &point, const unsigned int /*istate*/) const
 {
     real value = 1.0;
@@ -310,16 +271,16 @@ inline real InitialConditionFunction_ConvDiff<dim,nstate,real>
 // ========================================================
 // Convection_diffusion Energy -- Initial Condition
 // ========================================================
-template <int dim, int nstate, typename real>
-InitialConditionFunction_ConvDiffEnergy<dim,nstate,real>
+template <int dim, int nspecies, int nstate, typename real>
+InitialConditionFunction_ConvDiffEnergy<dim,nspecies,nstate,real>
 ::InitialConditionFunction_ConvDiffEnergy ()
-        : InitialConditionFunction<dim,nstate,real>()
+        : InitialConditionFunction<dim,nspecies,nstate,real>()
 {
     // Nothing to do here yet
 }
 
-template <int dim, int nstate, typename real>
-inline real InitialConditionFunction_ConvDiffEnergy<dim,nstate,real>
+template <int dim, int nspecies, int nstate, typename real>
+inline real InitialConditionFunction_ConvDiffEnergy<dim,nspecies,nstate,real>
 ::value(const dealii::Point<dim,real> &point, const unsigned int /*istate*/) const
 {
     real value = 1.0;
@@ -338,16 +299,16 @@ inline real InitialConditionFunction_ConvDiffEnergy<dim,nstate,real>
 // ========================================================
 // 1D SINE -- Initial Condition for advection_explicit_time_study
 // ========================================================
-template <int dim, int nstate, typename real>
-InitialConditionFunction_1DSine<dim,nstate,real>
+template <int dim, int nspecies, int nstate, typename real>
+InitialConditionFunction_1DSine<dim,nspecies,nstate,real>
 ::InitialConditionFunction_1DSine ()
-        : InitialConditionFunction<dim,nstate,real>()
+        : InitialConditionFunction<dim,nspecies,nstate,real>()
 {
     // Nothing to do here yet
 }
 
-template <int dim, int nstate, typename real>
-inline real InitialConditionFunction_1DSine<dim,nstate,real>
+template <int dim, int nspecies, int nstate, typename real>
+inline real InitialConditionFunction_1DSine<dim,nspecies,nstate,real>
 ::value(const dealii::Point<dim,real> &point, const unsigned int /*istate*/) const
 {
     real value = 0;
@@ -361,11 +322,11 @@ inline real InitialConditionFunction_1DSine<dim,nstate,real>
 // ========================================================
 // Inviscid Isentropic Vortex
 // ========================================================
-template <int dim, int nstate, typename real>
-InitialConditionFunction_IsentropicVortex<dim,nstate,real>
+template <int dim, int nspecies, int nstate, typename real>
+InitialConditionFunction_IsentropicVortex<dim,nspecies,nstate,real>
 ::InitialConditionFunction_IsentropicVortex(
         Parameters::AllParameters const *const param)
-        : InitialConditionFunction<dim,nstate,real>()
+        : InitialConditionFunction<dim,nspecies,nstate,real>()
 {
     // Euler object; create using dynamic_pointer_cast and the create_Physics factory
     // This test should only be used for Euler
@@ -373,8 +334,8 @@ InitialConditionFunction_IsentropicVortex<dim,nstate,real>
                 Physics::PhysicsFactory<dim,dim+2,double>::create_Physics(param));
 }
 
-template <int dim, int nstate, typename real>
-inline real InitialConditionFunction_IsentropicVortex<dim,nstate,real>
+template <int dim, int nspecies, int nstate, typename real>
+inline real InitialConditionFunction_IsentropicVortex<dim,nspecies,nstate,real>
 ::value(const dealii::Point<dim,real> &point, const unsigned int istate) const
 {
     // Setting constants
@@ -418,11 +379,11 @@ inline real InitialConditionFunction_IsentropicVortex<dim,nstate,real>
 //     See github.com/trixi-framework/paper-2022-robustness-entropy-projection
 //     for initial condition which is implemented herein
 // ========================================================
-template <int dim, int nstate, typename real>
-InitialConditionFunction_KHI<dim,nstate,real>
+template <int dim, int nspecies, int nstate, typename real>
+InitialConditionFunction_KHI<dim,nspecies,nstate,real>
 ::InitialConditionFunction_KHI (
         Parameters::AllParameters const *const param)
-    : InitialConditionFunction<dim,nstate,real>()
+    : InitialConditionFunction<dim,nspecies,nstate,real>()
     , atwood_number(param->flow_solver_param.atwood_number)
 {
     // Euler object; create using dynamic_pointer_cast and the create_Physics factory
@@ -431,8 +392,8 @@ InitialConditionFunction_KHI<dim,nstate,real>
                 Physics::PhysicsFactory<dim,dim+2,double>::create_Physics(param));
 }
 
-template <int dim, int nstate, typename real>
-inline real InitialConditionFunction_KHI<dim,nstate,real>
+template <int dim, int nspecies, int nstate, typename real>
+inline real InitialConditionFunction_KHI<dim,nspecies,nstate,real>
 ::value(const dealii::Point<dim,real> &point, const unsigned int istate) const
 {
     const double pi = dealii::numbers::PI;
@@ -455,11 +416,11 @@ inline real InitialConditionFunction_KHI<dim,nstate,real>
 // ========================================================
 // Initial Condition - Euler Base
 // ========================================================
-template <int dim, int nstate, typename real>
-InitialConditionFunction_EulerBase<dim, nstate, real>
+template <int dim, int nspecies, int nstate, typename real>
+InitialConditionFunction_EulerBase<dim, nspecies, nstate, real>
 ::InitialConditionFunction_EulerBase(
     Parameters::AllParameters const* const param)
-    : InitialConditionFunction<dim, nstate, real>()
+    : InitialConditionFunction<dim, nspecies, nstate, real>()
 {
     // Euler object; create using dynamic_pointer_cast and the create_Physics factory
     // Note that Euler primitive/conservative vars are the same as NS
@@ -469,8 +430,8 @@ InitialConditionFunction_EulerBase<dim, nstate, real>
                 Physics::PhysicsFactory<dim,dim+2,double>::create_Physics(&parameters_euler));
 }
 
-template <int dim, int nstate, typename real>
-real InitialConditionFunction_EulerBase<dim, nstate, real>
+template <int dim, int nspecies, int nstate, typename real>
+real InitialConditionFunction_EulerBase<dim, nspecies, nstate, real>
 ::convert_primitive_to_conversative_value(
     const dealii::Point<dim, real>& point, const unsigned int istate) const
 {
@@ -492,8 +453,8 @@ real InitialConditionFunction_EulerBase<dim, nstate, real>
     return value;
 }
 
-template <int dim, int nstate, typename real>
-inline real InitialConditionFunction_EulerBase<dim, nstate, real>
+template <int dim, int nspecies, int nstate, typename real>
+inline real InitialConditionFunction_EulerBase<dim, nspecies, nstate, real>
 ::value(const dealii::Point<dim, real>& point, const unsigned int istate) const
 {
     real value = 0.0;
@@ -506,15 +467,15 @@ inline real InitialConditionFunction_EulerBase<dim, nstate, real>
 // See Chen & Shu, Entropy stable high order..., 2017, Pg. 25
 // 2D and 3D can be run by extruding grid in those directions
 // ========================================================
-template <int dim, int nstate, typename real>
-InitialConditionFunction_SodShockTube<dim,nstate,real>
+template <int dim, int nspecies, int nstate, typename real>
+InitialConditionFunction_SodShockTube<dim,nspecies,nstate,real>
 ::InitialConditionFunction_SodShockTube (
         Parameters::AllParameters const* const param)
-        : InitialConditionFunction_EulerBase<dim,nstate,real>(param)
+        : InitialConditionFunction_EulerBase<dim,nspecies,nstate,real>(param)
 {}
 
-template <int dim, int nstate, typename real>
-real InitialConditionFunction_SodShockTube<dim, nstate, real>
+template <int dim, int nspecies, int nstate, typename real>
+real InitialConditionFunction_SodShockTube<dim, nspecies, nstate, real>
 ::primitive_value(const dealii::Point<dim, real>& point, const unsigned int istate) const
 {
     real value = 0.0;
@@ -548,15 +509,15 @@ real InitialConditionFunction_SodShockTube<dim, nstate, real>
 // 1D Leblanc Shock tube -- Initial Condition
 // See Zhang & Shu, On positivity-preserving..., 2010 Pg. 14
 // ========================================================
-template <int dim, int nstate, typename real>
-InitialConditionFunction_LeblancShockTube<dim,nstate,real>
+template <int dim, int nspecies, int nstate, typename real>
+InitialConditionFunction_LeblancShockTube<dim,nspecies,nstate,real>
 ::InitialConditionFunction_LeblancShockTube(
     Parameters::AllParameters const* const param)
-    : InitialConditionFunction_EulerBase<dim, nstate, real>(param)
+    : InitialConditionFunction_EulerBase<dim, nspecies, nstate, real>(param)
 {}
 
-template <int dim, int nstate, typename real>
-real InitialConditionFunction_LeblancShockTube<dim, nstate, real>
+template <int dim, int nspecies, int nstate, typename real>
+real InitialConditionFunction_LeblancShockTube<dim, nspecies, nstate, real>
 ::primitive_value(const dealii::Point<dim, real>& point, const unsigned int istate) const
 {
     real value = 0.0;
@@ -598,15 +559,15 @@ real InitialConditionFunction_LeblancShockTube<dim, nstate, real>
 // 1D Shu-Osher Problem -- Initial Condition
 // See Johnsen et al., Assessment of high-resolution..., 2010 Pg. 7
 // ========================================================
-template <int dim, int nstate, typename real>
-InitialConditionFunction_ShuOsherProblem<dim, nstate, real>
+template <int dim, int nspecies, int nstate, typename real>
+InitialConditionFunction_ShuOsherProblem<dim, nspecies, nstate, real>
 ::InitialConditionFunction_ShuOsherProblem(
     Parameters::AllParameters const* const param)
-    : InitialConditionFunction_EulerBase<dim, nstate, real>(param)
+    : InitialConditionFunction_EulerBase<dim, nspecies, nstate, real>(param)
 {}
 
-template <int dim, int nstate, typename real>
-real InitialConditionFunction_ShuOsherProblem<dim, nstate, real>
+template <int dim, int nspecies, int nstate, typename real>
+real InitialConditionFunction_ShuOsherProblem<dim, nspecies, nstate, real>
 ::primitive_value(const dealii::Point<dim, real>& point, const unsigned int istate) const
 {
     real value = 0.0;
@@ -648,15 +609,15 @@ real InitialConditionFunction_ShuOsherProblem<dim, nstate, real>
 // Low Density Euler -- Initial Condition
 // See Dzanic & Martinelli, High-order limiting..., 2025, Pg. 15
 // =====================================================================
-template <int dim, int nstate, typename real>
-InitialConditionFunction_LowDensity<dim,nstate,real>
+template <int dim, int nspecies, int nstate, typename real>
+InitialConditionFunction_LowDensity<dim,nspecies,nstate,real>
 ::InitialConditionFunction_LowDensity(
     Parameters::AllParameters const* const param)
-    : InitialConditionFunction_EulerBase<dim, nstate, real>(param)
+    : InitialConditionFunction_EulerBase<dim, nspecies, nstate, real>(param)
 {}
 
-template <int dim, int nstate, typename real>
-real InitialConditionFunction_LowDensity<dim, nstate, real>
+template <int dim, int nspecies, int nstate, typename real>
+real InitialConditionFunction_LowDensity<dim, nspecies, nstate, real>
 ::primitive_value(const dealii::Point<dim, real>& point, const unsigned int istate) const
 {
     real value = 0.0;
@@ -691,15 +652,15 @@ real InitialConditionFunction_LowDensity<dim, nstate, real>
 // Double Mach Reflection Problem (2D) -- Initial Condition
 // See Lin, Chan, and Tomas. "A positivity preserving ...", 2023, p20
 // ==================================================================
-template <int dim, int nstate, typename real>
-InitialConditionFunction_DoubleMachReflection<dim, nstate, real>
+template <int dim, int nspecies, int nstate, typename real>
+InitialConditionFunction_DoubleMachReflection<dim, nspecies, nstate, real>
 ::InitialConditionFunction_DoubleMachReflection(
     Parameters::AllParameters const* const param)
-    : InitialConditionFunction_EulerBase<dim, nstate, real>(param)
+    : InitialConditionFunction_EulerBase<dim, nspecies, nstate, real>(param)
 {}
 
-template <int dim, int nstate, typename real>
-real InitialConditionFunction_DoubleMachReflection<dim, nstate, real>
+template <int dim, int nspecies, int nstate, typename real>
+real InitialConditionFunction_DoubleMachReflection<dim, nspecies, nstate, real>
 ::primitive_value(const dealii::Point<dim, real>& point, const unsigned int istate) const
 {
     real value = 0.0;
@@ -750,15 +711,15 @@ real InitialConditionFunction_DoubleMachReflection<dim, nstate, real>
 // Shock Diffraction (backwards facing step) (2D) -- Initial Condition
 // See Zhang & Shu, On positivity-preserving..., 2010 Pg. 15
 // ========================================================
-template <int dim, int nstate, typename real>
-InitialConditionFunction_ShockDiffraction<dim, nstate, real>
+template <int dim, int nspecies, int nstate, typename real>
+InitialConditionFunction_ShockDiffraction<dim, nspecies, nstate, real>
 ::InitialConditionFunction_ShockDiffraction(
     Parameters::AllParameters const* const param)
-    : InitialConditionFunction_EulerBase<dim, nstate, real>(param)
+    : InitialConditionFunction_EulerBase<dim, nspecies, nstate, real>(param)
 {}
 
-template <int dim, int nstate, typename real>
-real InitialConditionFunction_ShockDiffraction<dim, nstate, real>
+template <int dim, int nspecies, int nstate, typename real>
+real InitialConditionFunction_ShockDiffraction<dim, nspecies, nstate, real>
 ::primitive_value(const dealii::Point<dim, real>& point, const unsigned int istate) const
 {
     real value = 0.0;
@@ -810,15 +771,15 @@ real InitialConditionFunction_ShockDiffraction<dim, nstate, real>
 // Astrophysical Mach Jet (2D) -- Initial Condition
 // See Zhang & Shu, On positivity-preserving..., 2010 Pg. 14
 // ========================================================
-template <int dim, int nstate, typename real>
-InitialConditionFunction_AstrophysicalJet<dim, nstate, real>
+template <int dim, int nspecies, int nstate, typename real>
+InitialConditionFunction_AstrophysicalJet<dim, nspecies, nstate, real>
 ::InitialConditionFunction_AstrophysicalJet(
     Parameters::AllParameters const* const param)
-    : InitialConditionFunction_EulerBase<dim, nstate, real>(param)
+    : InitialConditionFunction_EulerBase<dim, nspecies, nstate, real>(param)
 {}
 
-template <int dim, int nstate, typename real>
-real InitialConditionFunction_AstrophysicalJet<dim, nstate, real>
+template <int dim, int nspecies, int nstate, typename real>
+real InitialConditionFunction_AstrophysicalJet<dim, nspecies, nstate, real>
 ::primitive_value(const dealii::Point<dim, real>& /*point*/, const unsigned int istate) const
 {
     real value = 0.0;
@@ -850,15 +811,15 @@ real InitialConditionFunction_AstrophysicalJet<dim, nstate, real>
 // See High Fidelity CFD Workshop 2022
 // Unsteady Supersonic/Hypersonic Test Suite
 // ========================================================
-template <int dim, int nstate, typename real>
-InitialConditionFunction_SVSW<dim, nstate, real>
+template <int dim, int nspecies, int nstate, typename real>
+InitialConditionFunction_SVSW<dim, nspecies, nstate, real>
 ::InitialConditionFunction_SVSW(
     Parameters::AllParameters const* const param)
-    : InitialConditionFunction_EulerBase<dim, nstate, real>(param)
+    : InitialConditionFunction_EulerBase<dim, nspecies, nstate, real>(param)
 {}
 
-template <int dim, int nstate, typename real>
-real InitialConditionFunction_SVSW<dim, nstate, real>
+template <int dim, int nspecies, int nstate, typename real>
+real InitialConditionFunction_SVSW<dim, nspecies, nstate, real>
 ::primitive_value(const dealii::Point<dim, real>& point, const unsigned int istate) const
 {
     real value = 0.0;
@@ -984,27 +945,1368 @@ real InitialConditionFunction_SVSW<dim, nstate, real>
 // ========================================================
 // ZERO INITIAL CONDITION
 // ========================================================
-template <int dim, int nstate, typename real>
-InitialConditionFunction_Zero<dim,nstate,real>
+template <int dim, int nspecies, int nstate, typename real>
+InitialConditionFunction_Zero<dim,nspecies,nstate,real>
 ::InitialConditionFunction_Zero()
-    : InitialConditionFunction<dim,nstate,real>()
+    : InitialConditionFunction<dim,nspecies,nstate,real>()
 {
     // Nothing to do here yet
 }
 
-template <int dim, int nstate, typename real>
-real InitialConditionFunction_Zero<dim, nstate, real>
+template <int dim, int nspecies, int nstate, typename real>
+real InitialConditionFunction_Zero<dim, nspecies, nstate, real>
 ::value(const dealii::Point<dim,real> &/*point*/, const unsigned int /*istate*/) const
 {
     return 0.0;
 }
 
+// ========================================================
+// Acoustic Wave (Air) -- Initial Condition (Uniform density)
+// ========================================================
+template <int dim, int nspecies, int nstate, typename real>
+InitialConditionFunction_AcousticWave_Air<dim,nspecies,nstate,real>
+::InitialConditionFunction_AcousticWave_Air (
+        Parameters::AllParameters const *const param)
+    : InitialConditionFunction<dim,nspecies,nstate,real>()
+    , gamma_gas(param->euler_param.gamma_gas)
+    , mach_inf(param->euler_param.mach_inf)
+    , mach_inf_sqr(mach_inf*mach_inf)
+{
+    // Euler object; create using dynamic_pointer_cast and the create_Physics factory
+    // Note that Euler primitive/conservative vars are the same as NS
+    PHiLiP::Parameters::AllParameters parameters_euler = *param;
+    parameters_euler.pde_type = Parameters::AllParameters::PartialDifferentialEquation::euler;
+    this->euler_physics = std::dynamic_pointer_cast<Physics::Euler<dim,dim+2,double>>(
+                Physics::PhysicsFactory<dim,dim+2,double>::create_Physics(&parameters_euler));
+}
+
+template <int dim, int nspecies, int nstate, typename real>
+real InitialConditionFunction_AcousticWave_Air<dim,nspecies,nstate,real>
+::primitive_value(const dealii::Point<dim,real> &point, const unsigned int istate) const
+{
+    // Note: This is in non-dimensional form (free-stream values as reference)
+    real value = 0.;
+    if constexpr(dim == 2) {
+        const real x = point[0], y = point[1];
+
+        if(istate==0) {
+            // density
+            value = 1.0;
+        }
+        if(istate==1) {
+            // x-velocity
+            // value = sin(x)*cos(y);
+            value = 0.0;
+        }
+        if(istate==2) {
+            // y-velocity
+            // value = -cos(x)*sin(y);
+            value = 0.0;
+        }
+        if(istate==3) {
+            // pressure
+            // value = 1.0/(this->gamma_gas*this->mach_inf_sqr) + (1.0/16.0)*(cos(2.0*x)+cos(2.0*y))*(2.0);
+            // value = 1.0 + (x-x+y-y);
+            double const sigma = 0.5;
+            double const pi = 6.28318530717958623200 / 2; // pi
+            double const mu = 6.28318530717958623200 / 2 ; //max of x
+            double fx = (1.0/sqrt(2.0*pi*sigma*sigma))*exp(-((x-mu)*(x-mu))/(2.0*(sigma*sigma)));
+            double fy = (1.0/sqrt(2.0*pi*sigma*sigma))*exp(-((y-mu)*(y-mu))/(2.0*(sigma*sigma)));
+            value = 1.0/(this->gamma_gas*this->mach_inf_sqr) + fx*fy;
+            value = value*3.0/3.0; // chnege this if you want to vary initial temperature 
+        }
+    }
+    return value;
+}
+
+template <int dim, int nspecies, int nstate, typename real>
+real InitialConditionFunction_AcousticWave_Air<dim,nspecies,nstate,real>
+::convert_primitive_to_conversative_value(
+    const dealii::Point<dim,real> &point, const unsigned int istate) const
+{
+    real value = 0.0;
+    if constexpr(dim == 2) {
+        std::array<real,nstate> soln_primitive;
+
+        soln_primitive[0] = primitive_value(point,0);
+        soln_primitive[1] = primitive_value(point,1);
+        soln_primitive[2] = primitive_value(point,2);
+        soln_primitive[3] = primitive_value(point,3);
+
+        const std::array<real,nstate> soln_conservative = this->euler_physics->convert_primitive_to_conservative(soln_primitive);
+        value = soln_conservative[istate];
+    }
+    return value;
+}
+
+template <int dim, int nspecies, int nstate, typename real>
+inline real InitialConditionFunction_AcousticWave_Air<dim, nspecies, nstate, real>
+::value(const dealii::Point<dim,real> &point, const unsigned int istate) const
+{
+    real value = 0.0;
+    value = convert_primitive_to_conversative_value(point,istate);
+    return value;
+}
+
+// ========================================================
+// Acoustic Wave (Species) -- Initial Condition (Uniform density)
+// ========================================================
+template <int dim, int nspecies, int nstate, typename real>
+InitialConditionFunction_AcousticWave_Species<dim,nspecies,nstate,real>
+::InitialConditionFunction_AcousticWave_Species (
+        Parameters::AllParameters const *const param)
+    : InitialConditionFunction<dim,nspecies,nstate,real>()
+    , gamma_gas(param->euler_param.gamma_gas)
+    , mach_inf(param->euler_param.mach_inf)
+    , mach_inf_sqr(mach_inf*mach_inf)
+{
+    // Euler object; create using dynamic_pointer_cast and the create_Physics factory
+    // Note that Euler primitive/conservative vars are the same as NS
+    PHiLiP::Parameters::AllParameters parameters_euler = *param;
+    parameters_euler.pde_type = Parameters::AllParameters::PartialDifferentialEquation::inviscid_real_gas;
+    this->inviscid_real_gas_physics = std::dynamic_pointer_cast<Physics::InviscidRealGas<dim,dim+2,double>>(
+                Physics::PhysicsFactory<dim,dim+2,double>::create_Physics(&parameters_euler));
+}
+
+template <int dim, int nspecies, int nstate, typename real>
+real InitialConditionFunction_AcousticWave_Species<dim,nspecies,nstate,real>
+::primitive_value(const dealii::Point<dim,real> &point, const unsigned int istate) const
+{
+    // Note: This is in non-dimensional form (free-stream values as reference)
+    real value = 0.;
+    if constexpr(dim == 2) {
+        const real x = point[0], y = point[1];
+
+        if(istate==0) {
+            // density
+            value = 1.0;
+        }
+        if(istate==1) {
+            // x-velocity
+            // value = sin(x)*cos(y);
+            value = 0.0;
+        }
+        if(istate==2) {
+            // y-velocity
+            // value = -cos(x)*sin(y);
+            value = 0.0;
+        }
+        if(istate==3) {
+            // pressure
+            // value = 1.0/(this->gamma_gas*this->mach_inf_sqr) + (1.0/16.0)*(cos(2.0*x)+cos(2.0*y))*(2.0);
+            // value = 1.0 + (x-x+y-y);
+            double const sigma = 0.5;
+            double const pi = 6.28318530717958623200 / 2; // pi
+            double const mu = 6.28318530717958623200 / 2 ; //max of x
+            double fx = (1.0/sqrt(2.0*pi*sigma*sigma))*exp(-((x-mu)*(x-mu))/(2.0*(sigma*sigma)));
+            double fy = (1.0/sqrt(2.0*pi*sigma*sigma))*exp(-((y-mu)*(y-mu))/(2.0*(sigma*sigma)));
+            value = 1.0/(this->gamma_gas*this->mach_inf_sqr) + fx*fy;
+            value = value*3.0/3.0; // chnege this if you want to vary initial temperature 
+        }
+    }
+    return value;
+}
+
+template <int dim, int nspecies, int nstate, typename real>
+real InitialConditionFunction_AcousticWave_Species<dim,nspecies,nstate,real>
+::convert_primitive_to_conversative_value(
+    const dealii::Point<dim,real> &point, const unsigned int istate) const
+{
+    real value = 0.0;
+    if constexpr(dim == 2) {
+        std::array<real,nstate> soln_primitive;
+
+        soln_primitive[0] = primitive_value(point,0);
+        soln_primitive[1] = primitive_value(point,1);
+        soln_primitive[2] = primitive_value(point,2);
+        soln_primitive[3] = primitive_value(point,3);
+
+        const std::array<real,nstate> soln_conservative = this->inviscid_real_gas_physics->convert_primitive_to_conservative(soln_primitive);
+        value = soln_conservative[istate];
+    }
+    return value;
+}
+
+template <int dim, int nspecies, int nstate, typename real>
+inline real InitialConditionFunction_AcousticWave_Species<dim, nspecies, nstate, real>
+::value(const dealii::Point<dim,real> &point, const unsigned int istate) const
+{
+    real value = 0.0;
+    value = convert_primitive_to_conversative_value(point,istate);
+    return value;
+}
+
+// ========================================================
+// Acoustic Wave (Multi Species) -- Initial Condition (Uniform density)
+// ========================================================
+template <int dim, int nspecies, int nstate, typename real>
+InitialConditionFunction_AcousticWave_MultiSpecies<dim,nspecies,nstate,real>
+::InitialConditionFunction_AcousticWave_MultiSpecies (
+        Parameters::AllParameters const *const param)
+    : InitialConditionFunction<dim,nspecies,nstate,real>()
+    , gamma_gas(param->euler_param.gamma_gas)
+    , mach_inf(param->euler_param.mach_inf)
+    , mach_inf_sqr(mach_inf*mach_inf)
+{
+    // Euler object; create using dynamic_pointer_cast and the create_Physics factory
+    // Note that Euler primitive/conservative vars are the same as NS
+    PHiLiP::Parameters::AllParameters parameters_euler = *param;
+    parameters_euler.pde_type = Parameters::AllParameters::PartialDifferentialEquation::real_gas;
+    this->real_gas_physics = std::dynamic_pointer_cast<Physics::RealGas<dim,dim+2+nspecies-1,double>>(
+                Physics::PhysicsFactory<dim,dim+2+nspecies-1,double>::create_Physics(&parameters_euler));
+}
+
+template <int dim, int nspecies, int nstate, typename real>
+real InitialConditionFunction_AcousticWave_MultiSpecies<dim,nspecies,nstate,real>
+::primitive_value(const dealii::Point<dim,real> &point, const unsigned int istate) const
+{
+    // Note: This is in non-dimensional form (free-stream values as reference)
+    real value = 0.;
+    if constexpr(dim == 2) {
+        const real x = point[0], y = point[1];
+
+        if(istate==0) {
+            value = 1.00;
+        }
+        if(istate==1) {
+            value = 0.0;
+        }
+        if(istate==2) {
+            value = 0.0;
+        }
+        if(istate==3) {
+            double const sigma = 0.5;
+            double const pi = 6.28318530717958623200 / 2; // pi
+            double const mu = 6.28318530717958623200 / 2 ; //max of x
+            double fx = (1.0/sqrt(2.0*pi*sigma*sigma))*exp(-((x-mu)*(x-mu))/(2.0*(sigma*sigma)));
+            double fy = (1.0/sqrt(2.0*pi*sigma*sigma))*exp(-((y-mu)*(y-mu))/(2.0*(sigma*sigma)));
+            value = 1.0/(this->gamma_gas*this->mach_inf_sqr) + fx*fy;
+            value = value*3.0/3.0; // chaege this if you want to vary initial temperature 
+        }
+        if(istate==4){
+            // species density (N2)
+            value = 0.79;
+        }
+    }
+    return value;
+}
+
+template <int dim, int nspecies, int nstate, typename real>
+real InitialConditionFunction_AcousticWave_MultiSpecies<dim,nspecies,nstate,real>
+::convert_primitive_to_conversative_value(
+    const dealii::Point<dim,real> &point, const unsigned int istate) const
+{
+    real value = 0.0;
+    if constexpr(dim == 2) {
+        std::array<real,nstate> soln_primitive;
+
+        for (int i=0; i<nstate; i++)
+        {
+            soln_primitive[i] = primitive_value(point,i);
+        }
+
+        const std::array<real,nstate> soln_conservative = this->real_gas_physics->convert_primitive_to_conservative(soln_primitive);
+        value = soln_conservative[istate];
+    }
+    return value;
+}
+
+template <int dim, int nspecies, int nstate, typename real>
+inline real InitialConditionFunction_AcousticWave_MultiSpecies<dim, nspecies, nstate, real>
+::value(const dealii::Point<dim,real> &point, const unsigned int istate) const
+{
+    real value = 0.0;
+    value = convert_primitive_to_conversative_value(point,istate);
+    return value;
+}
+
+// ========================================================
+// 1D Vortex advection  (Multi Species) -- Initial Condition 
+// ========================================================
+template <int dim, int nspecies, int nstate, typename real>
+InitialConditionFunction_MultiSpecies_VortexAdvection<dim,nspecies,nstate,real>
+::InitialConditionFunction_MultiSpecies_VortexAdvection(
+        Parameters::AllParameters const *const param)
+    : InitialConditionFunction<dim,nspecies,nstate,real>()
+    , gamma_gas(param->euler_param.gamma_gas)
+    , mach_inf(param->euler_param.mach_inf)
+    , mach_inf_sqr(mach_inf*mach_inf)
+{
+    // Euler object; create using dynamic_pointer_cast and the create_Physics factory
+    // Note that Euler primitive/conservative vars are the same as NS
+    PHiLiP::Parameters::AllParameters parameters_euler = *param;
+    parameters_euler.pde_type = Parameters::AllParameters::PartialDifferentialEquation::real_gas;
+    this->real_gas_physics = std::dynamic_pointer_cast<Physics::RealGas<dim,dim+2+nspecies-1,double>>( 
+                Physics::PhysicsFactory<dim,dim+2+nspecies-1,double>::create_Physics(&parameters_euler)); 
+}
+
+template <int dim, int nspecies, int nstate, typename real>
+real InitialConditionFunction_MultiSpecies_VortexAdvection<dim,nspecies,nstate,real>
+::primitive_value(const dealii::Point<dim,real> &point, const unsigned int istate) const
+{
+    // Note: This is in non-dimensional form (free-stream values as reference)
+    real value = 0.;
+    if constexpr(dim == 1) {
+        const real x = point[0];
+        const real x_0 = 5.0;
+        const real r = sqrt((x-x_0)*(x-x_0));
+        const real T_0 = 300.0; // [K]
+        const real big_gamma = 50.0;
+        const real gamma_0 = 1.4;
+        const real y_H2_0 = 0.01277;
+        const real a_1 = 0.005;
+        const real pi = 6.28318530717958623200 / 2; // pi
+
+        const real pressure = 101325; // [N/m^2]
+        const real velocity = 100.0; // [m/s]
+        const real exp = std::exp(0.50*(1-r*r));
+        const real coeff = 2*pi/(gamma_0*big_gamma);
+        const real temperature = T_0 - (gamma_0-1.0)*big_gamma*big_gamma/(8.0*gamma_0*pi)*exp;
+        const real y_H2 = (y_H2_0 - a_1*coeff*exp);
+
+        const std::array Rs = this->real_gas_physics->compute_Rs(this->real_gas_physics->Ru);
+        real y_O2;
+        real R_mixture;
+        // For a 2 species test
+        if constexpr(nspecies==2 && nstate==dim+2+nspecies-1) {
+            y_O2 = 1.0 - y_H2;
+            R_mixture = (y_H2*Rs[0] + y_O2*Rs[1])*this->real_gas_physics->R_ref;
+        }
+        // For a 3 species test
+        if constexpr(nspecies==3 && nstate==dim+2+nspecies-1) {
+            const real y_O2_0 = 0.101;
+            const real a_2 = 0.03;
+            y_O2 = (y_O2_0 - a_2*coeff*exp);
+            const real y_N2 = 1.0 - y_H2 - y_O2;
+            R_mixture = (y_H2*Rs[0] + y_O2*Rs[1] + y_N2*Rs[2])*this->real_gas_physics->R_ref;
+        }
+        const real density = pressure/(R_mixture*temperature);
+
+        // dimensionalized above, non-dimensionalized below
+        if(istate==0) {
+            // mixture density
+            value = density / this->real_gas_physics->density_ref;
+        }
+        if(istate==1) {
+            // x-velocity
+            value = velocity / this->real_gas_physics->u_ref;
+        }
+        if(istate==2) {
+            // pressure
+            value = pressure / (this->real_gas_physics->density_ref*this->real_gas_physics->u_ref_sqr);
+        }
+        if(istate==3){
+            // other species density (N2)
+            value = y_H2;
+        }
+        if(istate==4){
+            // other species density (O2)
+            std::cout << "THE VALUE OF O2 IS:   " << y_O2 << std::endl;
+            value = y_O2;
+        }
+    }
+    return value;
+}
+
+template <int dim, int nspecies, int nstate, typename real>
+real InitialConditionFunction_MultiSpecies_VortexAdvection<dim,nspecies,nstate,real>
+::convert_primitive_to_conversative_value(
+    const dealii::Point<dim,real> &point, const unsigned int istate) const
+{
+    real value = 0.0;
+    if constexpr(dim == 1) {
+        std::array<real,nstate> soln_primitive;
+
+        for (int i=0; i<nstate; i++)
+        {
+            soln_primitive[i] = primitive_value(point,i);
+        }
+
+        const std::array<real,nstate> soln_conservative = this->real_gas_physics->convert_primitive_to_conservative(soln_primitive);
+        value = soln_conservative[istate];
+    }
+    return value;
+}
+
+template <int dim, int nspecies, int nstate, typename real>
+inline real InitialConditionFunction_MultiSpecies_VortexAdvection<dim, nspecies, nstate, real>
+::value(const dealii::Point<dim,real> &point, const unsigned int istate) const
+{
+    real value = 0.0;
+    value = convert_primitive_to_conversative_value(point,istate);
+    return value;
+}
+
+// ========================================================
+// 1D Vortex advection  (Multi Species, High-Temperature) -- Initial Condition 
+// ========================================================
+template <int dim, int nspecies, int nstate, typename real>
+InitialConditionFunction_MultiSpecies_HighTemperature_VortexAdvection<dim,nspecies,nstate,real>
+::InitialConditionFunction_MultiSpecies_HighTemperature_VortexAdvection(
+        Parameters::AllParameters const *const param)
+    : InitialConditionFunction<dim,nspecies,nstate,real>()
+    , gamma_gas(param->euler_param.gamma_gas)
+    , mach_inf(param->euler_param.mach_inf)
+    , mach_inf_sqr(mach_inf*mach_inf)
+{
+    // Euler object; create using dynamic_pointer_cast and the create_Physics factory
+    // Note that Euler primitive/conservative vars are the same as NS
+    PHiLiP::Parameters::AllParameters parameters_euler = *param;
+    parameters_euler.pde_type = Parameters::AllParameters::PartialDifferentialEquation::real_gas;
+    this->real_gas_physics = std::dynamic_pointer_cast<Physics::RealGas<dim,dim+2+nspecies-1,double>>(
+                Physics::PhysicsFactory<dim,dim+2+nspecies-1,double>::create_Physics(&parameters_euler)); 
+}
+
+template <int dim, int nspecies, int nstate, typename real>
+real InitialConditionFunction_MultiSpecies_HighTemperature_VortexAdvection<dim,nspecies,nstate,real>
+::primitive_value(const dealii::Point<dim,real> &point, const unsigned int istate) const
+{
+    // Note: This is in non-dimensional form (free-stream values as reference)
+    real value = 0.;
+    if constexpr(dim == 1) {
+        const real x = point[0];
+        const real x_0 = 5.0;
+        const real r = sqrt((x-x_0)*(x-x_0));
+        const real T_0 = 300.0; // [K]
+        const real big_gamma = 50.0;
+        const real gamma_0 = 1.4;
+        const real y_H2_0 = 0.01277;
+        const real a_1 = 0.005;
+        const real pi = 6.28318530717958623200 / 2; // pi
+
+        real pressure = 101325; // [N/m^2]
+        pressure *= 5.0;
+        const real velocity = 100.0; // [m/s]
+        const real exp = std::exp(0.50*(1-r*r));
+        const real coeff = 2*pi/(gamma_0*big_gamma);
+        real temperature = T_0 - (gamma_0-1.0)*big_gamma*big_gamma/(8.0*gamma_0*pi)*exp;
+        temperature *= 5.0;
+        const real y_H2 = (y_H2_0 - a_1*coeff*exp);
+
+        const std::array Rs = this->real_gas_physics->compute_Rs(this->real_gas_physics->Ru);
+        real y_O2;
+        real R_mixture;
+        // For a 2 species test
+        if constexpr(nspecies==2 && nstate==dim+2+nspecies-1) {
+            y_O2 = 1.0 - y_H2;
+            R_mixture = (y_H2*Rs[0] + y_O2*Rs[1])*this->real_gas_physics->R_ref;
+        }
+        // For a 3 species test
+        if constexpr(nspecies==3 && nstate==dim+2+nspecies-1) {
+            const real y_O2_0 = 0.101;
+            const real a_2 = 0.03;
+            y_O2 = (y_O2_0 - a_2*coeff*exp);
+            const real y_N2 = 1.0 - y_H2 - y_O2;
+            R_mixture = (y_H2*Rs[0] + y_O2*Rs[1] + y_N2*Rs[2])*this->real_gas_physics->R_ref;
+        }
+        const real density = pressure/(R_mixture*temperature);
+
+        // dimensionalized above, non-dimensionalized below
+        if(istate==0) {
+            // mixture density
+            value = density / this->real_gas_physics->density_ref;
+        }
+        if(istate==1) {
+            // x-velocity
+            value = velocity / this->real_gas_physics->u_ref;
+        }
+        if(istate==2) {
+            // pressure
+            value = pressure / (this->real_gas_physics->density_ref*this->real_gas_physics->u_ref_sqr);
+        }
+        if(istate==3){
+            // other species density (N2)
+            value = y_H2;
+        }
+        if constexpr(nstate==dim+2+3-1) {
+            if(istate==4){
+            // other species density (O2)
+            value = y_O2;
+            }
+        }
+    }
+    return value;
+}
+
+template <int dim, int nspecies, int nstate, typename real>
+real InitialConditionFunction_MultiSpecies_HighTemperature_VortexAdvection<dim,nspecies,nstate,real>
+::convert_primitive_to_conversative_value(
+    const dealii::Point<dim,real> &point, const unsigned int istate) const
+{
+    real value = 0.0;
+    if constexpr(dim == 1) {
+        std::array<real,nstate> soln_primitive;
+
+        for (int i=0; i<nstate; i++)
+        {
+            soln_primitive[i] = primitive_value(point,i);
+        }
+
+        const std::array<real,nstate> soln_conservative = this->real_gas_physics->convert_primitive_to_conservative(soln_primitive);
+        value = soln_conservative[istate];
+    }
+    return value;
+}
+
+template <int dim, int nspecies, int nstate, typename real>
+inline real InitialConditionFunction_MultiSpecies_HighTemperature_VortexAdvection<dim, nspecies, nstate, real>
+::value(const dealii::Point<dim,real> &point, const unsigned int istate) const
+{
+    real value = 0.0;
+    value = convert_primitive_to_conversative_value(point,istate);
+    return value;
+}
+
+
+// ========================================================
+// 1D Vortex advection  (Euler) -- Initial Condition 
+// ========================================================
+template <int dim, int nspecies, int nstate, typename real>
+InitialConditionFunction_Euler_VortexAdvection<dim,nspecies,nstate,real>
+::InitialConditionFunction_Euler_VortexAdvection (
+        Parameters::AllParameters const *const param)
+    : InitialConditionFunction<dim,nspecies,nstate,real>()
+    , gamma_gas(param->euler_param.gamma_gas)
+    , mach_inf(param->euler_param.mach_inf)
+    , mach_inf_sqr(mach_inf*mach_inf)
+{
+    // Euler object; create using dynamic_pointer_cast and the create_Physics factory
+    // Note that Euler primitive/conservative vars are the same as NS
+    PHiLiP::Parameters::AllParameters parameters_euler = *param;
+    parameters_euler.pde_type = Parameters::AllParameters::PartialDifferentialEquation::euler;
+    this->euler_physics = std::dynamic_pointer_cast<Physics::Euler<dim,dim+2,double>>(
+                Physics::PhysicsFactory<dim,dim+2,double>::create_Physics(&parameters_euler));
+}
+
+template <int dim, int nspecies, int nstate, typename real>
+real InitialConditionFunction_Euler_VortexAdvection<dim,nspecies,nstate,real>
+::primitive_value(const dealii::Point<dim,real> &point, const unsigned int istate) const
+{
+    // Note: This is in non-dimensional form (free-stream values as reference)
+    real value = 0.;
+    if constexpr(dim == 1) {
+        const real x = point[0];
+        const real x_0 = 5.0;
+        const real r = sqrt((x-x_0)*(x-x_0));
+        const real T_0 = 300.0; // [K]
+        const real big_gamma = 50.0;
+        const real gamma_0 = 1.4;
+        const real pi = 6.28318530717958623200 / 2; // pi
+
+        const real pressure = 101325; // [N/m^2]
+        const real velocity = 100.0; // [m/s]
+        const real exp = std::exp(0.50*(1-r*r));
+        const real temperature = T_0 - (gamma_0-1.0)*big_gamma*big_gamma/(8.0*gamma_0*pi)*exp;
+        const real density = pressure/(this->euler_physics->R_Air_Dim*temperature);
+
+        // dimensionalized value above, non-dimensionalized value below
+        if(istate==0) {
+            // mixture density
+            value = density / this->euler_physics->density_ref;
+        }
+        if(istate==1) {
+            // x-velocity
+            value = velocity / this->euler_physics->u_ref;
+        }
+        if(istate==2) {
+            // pressure
+            value = pressure / (this->euler_physics->density_ref*this->euler_physics->u_ref_sqr);
+        }
+    }
+    return value;
+}
+
+template <int dim, int nspecies, int nstate, typename real>
+real InitialConditionFunction_Euler_VortexAdvection<dim,nspecies,nstate,real>
+::convert_primitive_to_conversative_value(
+    const dealii::Point<dim,real> &point, const unsigned int istate) const
+{
+    real value = 0.0;
+    if constexpr(dim == 1) {
+        std::array<real,nstate> soln_primitive;
+
+        soln_primitive[0] = primitive_value(point,0);
+        soln_primitive[1] = primitive_value(point,1);
+        soln_primitive[2] = primitive_value(point,2);
+
+        const std::array<real,nstate> soln_conservative = this->euler_physics->convert_primitive_to_conservative(soln_primitive);
+        value = soln_conservative[istate];
+    }
+    return value;
+}
+
+template <int dim, int nspecies, int nstate, typename real>
+inline real InitialConditionFunction_Euler_VortexAdvection<dim, nspecies, nstate, real>
+::value(const dealii::Point<dim,real> &point, const unsigned int istate) const
+{
+    real value = 0.0;
+    value = convert_primitive_to_conversative_value(point,istate);
+    return value;
+}
+
+// ========================================================
+// 1D Vortex advection (MS-CP Euler) -- Initial Condition 
+// ========================================================
+template <int dim, int nspecies, int nstate, typename real>
+InitialConditionFunction_MultiSpecies_CaloricallyPerfect_Euler_VortexAdvection<dim,nspecies,nstate,real>
+::InitialConditionFunction_MultiSpecies_CaloricallyPerfect_Euler_VortexAdvection(
+        Parameters::AllParameters const *const param)
+    : InitialConditionFunction<dim,nspecies,nstate,real>()
+    , gamma_gas(param->euler_param.gamma_gas)
+    , mach_inf(param->euler_param.mach_inf)
+    , mach_inf_sqr(mach_inf*mach_inf)
+{
+    // Euler object; create using dynamic_pointer_cast and the create_Physics factory
+    // Note that Euler primitive/conservative vars are the same as NS
+    PHiLiP::Parameters::AllParameters parameters_euler = *param;
+    parameters_euler.pde_type = Parameters::AllParameters::PartialDifferentialEquation::multi_species_calorically_perfect_euler;
+    this->multi_species_calorically_perfect_euler_physics = std::dynamic_pointer_cast<Physics::MultiSpeciesCaloricallyPerfect<dim,dim+2+nspecies-1,double>>(
+                Physics::PhysicsFactory<dim,dim+2+nspecies-1,double>::create_Physics(&parameters_euler)); 
+}
+
+template <int dim, int nspecies, int nstate, typename real>
+real InitialConditionFunction_MultiSpecies_CaloricallyPerfect_Euler_VortexAdvection<dim,nspecies,nstate,real>
+::primitive_value(const dealii::Point<dim,real> &point, const unsigned int istate) const
+{
+    // Note: This is in non-dimensional form (free-stream values as reference)
+    real value = 0.;
+    if constexpr(dim == 1) {
+        const real x = point[0];
+        const real x_0 = 5.0;
+        const real r = sqrt((x-x_0)*(x-x_0));
+        const real T_0 = 300.0; // [K]
+        const real big_gamma = 50.0;
+        const real gamma_0 = 1.4;
+        const real y_H2_0 = 0.01277;
+        const real a_1 = 0.005;
+        const real pi = 6.28318530717958623200 / 2; // pi
+
+        const real pressure = 101325; // [N/m^2]
+        const real velocity = 100.0; // [m/s]
+        const real exp = std::exp(0.50*(1-r*r));
+        const real coeff = 2*pi/(gamma_0*big_gamma);
+        const real temperature = T_0 - (gamma_0-1.0)*big_gamma*big_gamma/(8.0*gamma_0*pi)*exp;
+        const real y_H2 = (y_H2_0 - a_1*coeff*exp);
+
+        const std::array Rs = this->multi_species_calorically_perfect_euler_physics->compute_Rs(this->multi_species_calorically_perfect_euler_physics->Ru);
+        real y_O2;
+        real R_mixture;
+        // For a 2 species test
+        if constexpr(nspecies==2 && nstate==dim+2+nspecies-1) {
+            y_O2 = 1.0 - y_H2;
+            R_mixture = (y_H2*Rs[0] + y_O2*Rs[1])*this->multi_species_calorically_perfect_euler_physics->R_ref;
+        }
+        // For a 3 species test
+        if constexpr(nspecies==3 && nstate==dim+2+nspecies-1) {
+            const real y_O2_0 = 0.101;
+            const real a_2 = 0.03;
+            y_O2 = (y_O2_0 - a_2*coeff*exp);
+            const real y_N2 = 1.0 - y_H2 - y_O2;
+            R_mixture = (y_H2*Rs[0] + y_O2*Rs[1] + y_N2*Rs[2])*this->multi_species_calorically_perfect_euler_physics->R_ref;
+        }
+        const real density = pressure/(R_mixture*temperature);
+
+        // dimensionalized above, non-dimensionalized below
+        if(istate==0) {
+            // mixture density
+            value = density / this->multi_species_calorically_perfect_euler_physics->density_ref;
+        }
+        if(istate==1) {
+            // x-velocity
+            value = velocity / this->multi_species_calorically_perfect_euler_physics->u_ref;
+        }
+        if(istate==2) {
+            // pressure
+            value = pressure / (this->multi_species_calorically_perfect_euler_physics->density_ref*this->multi_species_calorically_perfect_euler_physics->u_ref_sqr);
+        }
+        if(istate==3){
+            // other species density (N2)
+            value = y_H2;
+        }
+        if constexpr(nspecies==3 && nstate==dim+2+nspecies-1) {
+            if(istate==4){
+            // other species density (O2)
+            value = y_O2;
+            }
+        }
+    }
+    return value;
+}
+
+template <int dim, int nspecies, int nstate, typename real>
+real InitialConditionFunction_MultiSpecies_CaloricallyPerfect_Euler_VortexAdvection<dim,nspecies,nstate,real>
+::convert_primitive_to_conversative_value(
+    const dealii::Point<dim,real> &point, const unsigned int istate) const
+{
+    real value = 0.0;
+    if constexpr(dim == 1) {
+        std::array<real,nstate> soln_primitive;
+
+        for (int i=0; i<nstate; i++)
+        {
+            soln_primitive[i] = primitive_value(point,i);
+        }
+
+        const std::array<real,nstate> soln_conservative = this->multi_species_calorically_perfect_euler_physics->convert_primitive_to_conservative(soln_primitive);
+        value = soln_conservative[istate];
+    }
+    return value;
+}
+
+template <int dim, int nspecies, int nstate, typename real>
+inline real InitialConditionFunction_MultiSpecies_CaloricallyPerfect_Euler_VortexAdvection<dim, nspecies, nstate, real>
+::value(const dealii::Point<dim,real> &point, const unsigned int istate) const
+{
+    real value = 0.0;
+    value = convert_primitive_to_conversative_value(point,istate);
+    return value;
+}
+
+// =============================================================
+// Isentropic Euler Vortex (Multi Species) -- Initial Condition 
+// =============================================================
+template <int dim, int nspecies, int nstate, typename real>
+InitialConditionFunction_MultiSpecies_IsentropicEulerVortex<dim,nspecies,nstate,real>
+::InitialConditionFunction_MultiSpecies_IsentropicEulerVortex (
+        Parameters::AllParameters const *const param)
+    : InitialConditionFunction<dim,nspecies,nstate,real>()
+    , gamma_gas(param->euler_param.gamma_gas)
+    , mach_inf(param->euler_param.mach_inf)
+    , mach_inf_sqr(mach_inf*mach_inf)
+{
+    // Euler object; create using dynamic_pointer_cast and the create_Physics factory
+    // Note that Euler primitive/conservative vars are the same as NS
+    PHiLiP::Parameters::AllParameters parameters_euler = *param;
+    parameters_euler.pde_type = Parameters::AllParameters::PartialDifferentialEquation::real_gas;
+    this->real_gas_physics = std::dynamic_pointer_cast<Physics::RealGas<dim,dim+2+nspecies-1,double>>(
+                Physics::PhysicsFactory<dim,dim+2+nspecies-1,double>::create_Physics(&parameters_euler));
+}
+
+template <int dim, int nspecies, int nstate, typename real>
+real InitialConditionFunction_MultiSpecies_IsentropicEulerVortex<dim,nspecies,nstate,real>
+::primitive_value(const dealii::Point<dim,real> &point, const unsigned int istate) const
+{
+    // Note: This is in non-dimensional form (free-stream values as reference)
+    real value = 0.;
+    if constexpr(dim == 2) {
+        const real x = point[0];
+        const real y = point[1];
+
+        // constant value
+        const real x_0 = 0.0;
+        const real y_0 = 0.0;
+        const real beta = 13.5;
+        const real radius = 1.5;
+        const real U_0 = 0.0;
+        const real V_0 = 1.0;
+        const real M = 0.40;
+        const real pi = 6.28318530717958623200 / 2; // pi
+        const real L = 10.0;
+        const real alpha_N2 = 0.50*sin(pi/L*(x-x_0))+0.50;
+        const real alpha_O2 = 1.0 - alpha_N2;
+        const real mixture_gamma = 1.4;
+
+        const real f = (1.0 - (x-x_0)*(x-x_0) - (y-y_0)*(y-y_0)) / (2.0*radius*radius);
+        const real density_N2 = alpha_N2*pow( (1.0 - ((mixture_gamma-1.0)*beta*beta*M*M/(8.0*pi*pi))*exp(2.0*f)), 1.0/(mixture_gamma-1.0) );
+        const real density_O2 = alpha_O2*pow( (1.0 - ((mixture_gamma-1.0)*beta*beta*M*M/(8.0*pi*pi))*exp(2.0*f)), 1.0/(mixture_gamma-1.0) );
+        const real mixture_density = density_N2 + density_O2;
+        const real u = U_0 + beta*y/(2.0*pi*radius)*exp(f);
+        const real v = V_0 - beta*x/(2.0*pi*radius)*exp(f);
+
+        const real temperature_modification = 2.0;
+        const real mixture_pressure = 1.0/(mixture_gamma*M*M)*pow(mixture_density,mixture_gamma) * temperature_modification;
+
+        // non-dimensionalized values above, non-dimensionalized values below
+        if(istate==0) {
+            // mixture density
+            value = mixture_density;
+        }
+        if(istate==1) {
+            // x-velocity
+            value = u;
+        }
+        if(istate==2) {
+            // y-velocity
+            value = v;
+        }
+        if(istate==3) {
+            // pressure
+            value = mixture_pressure;
+        }
+        if(istate==4){
+            // other species density (N2)
+            value = density_N2/mixture_density;
+        }
+    }
+    return value;
+}
+
+template <int dim, int nspecies, int nstate, typename real>
+real InitialConditionFunction_MultiSpecies_IsentropicEulerVortex<dim,nspecies,nstate,real>
+::convert_primitive_to_conversative_value(
+    const dealii::Point<dim,real> &point, const unsigned int istate) const
+{
+    real value = 0.0;
+    if constexpr(dim == 2) {
+        std::array<real,nstate> soln_primitive;
+
+        for (int i=0; i<nstate; i++)
+        {
+            soln_primitive[i] = primitive_value(point,i);
+        }
+
+        const std::array<real,nstate> soln_conservative = this->real_gas_physics->convert_primitive_to_conservative(soln_primitive);
+        value = soln_conservative[istate];
+    }
+    return value;
+}
+
+template <int dim, int nspecies, int nstate, typename real>
+inline real InitialConditionFunction_MultiSpecies_IsentropicEulerVortex<dim, nspecies, nstate, real>
+::value(const dealii::Point<dim,real> &point, const unsigned int istate) const
+{
+    real value = 0.0;
+    value = convert_primitive_to_conversative_value(point,istate);
+    return value;
+}
+
+// ========================================================
+// 2D Vortex advection  (Multi Species) -- Initial Condition 
+// ========================================================
+template <int dim, int nspecies, int nstate, typename real>
+InitialConditionFunction_MultiSpecies_TwoDimensional_VortexAdvection<dim,nspecies,nstate,real>
+::InitialConditionFunction_MultiSpecies_TwoDimensional_VortexAdvection(
+        Parameters::AllParameters const *const param)
+    : InitialConditionFunction<dim,nspecies,nstate,real>()
+    , gamma_gas(param->euler_param.gamma_gas)
+    , mach_inf(param->euler_param.mach_inf)
+    , mach_inf_sqr(mach_inf*mach_inf)
+{
+    // Euler object; create using dynamic_pointer_cast and the create_Physics factory
+    // Note: Euler primitive/conservative vars are the same as NS
+    PHiLiP::Parameters::AllParameters parameters_euler = *param;
+    parameters_euler.pde_type = Parameters::AllParameters::PartialDifferentialEquation::real_gas;
+    this->real_gas_physics = std::dynamic_pointer_cast<Physics::RealGas<dim,dim+2+nspecies-1,double>>(    // Note: modify this when you change the number of species. nstate == dim+2+(nspecies)-1
+                Physics::PhysicsFactory<dim,dim+2+nspecies-1,double>::create_Physics(&parameters_euler)); // Note: modify this when you change the number of species. nstate == dim+2+(nspecies)-1
+}
+
+template <int dim, int nspecies, int nstate, typename real>
+real InitialConditionFunction_MultiSpecies_TwoDimensional_VortexAdvection<dim,nspecies,nstate,real>
+::primitive_value(const dealii::Point<dim,real> &point, const unsigned int istate) const
+{
+    // Note: This is in non-dimensional form (free-stream values as reference)
+    real value = 0.;
+    if constexpr(dim == 2) {
+        const real x = point[0];
+        const real y = point[1];
+
+        const real x_0 = 5.0;
+        const real y_0 = 5.0;
+        const real r = sqrt((x-x_0)*(x-x_0) + (y-y_0)*(y-y_0));
+        const real T_0 = 300.0; // [K]
+        const real big_gamma = 50.0;
+        const real gamma_0 = 1.4;
+        const real y_H2_0 = 0.01277;
+        const real a_1 = 0.005; 
+        const real pi = 6.28318530717958623200 / 2; // pi
+
+        const real pressure = 101325; // [N/m^2]
+        const real velocity = 100.0; // [m/s]
+        const real exp = std::exp(0.50*(1-r*r));
+        const real coeff = 2*pi/(gamma_0*big_gamma);
+        const real temperature = T_0 - (gamma_0-1.0)*big_gamma*big_gamma/(8.0*gamma_0*pi)*exp;
+        const real y_H2 = (y_H2_0 - a_1*coeff*exp);
+
+        const std::array Rs = this->real_gas_physics->compute_Rs(this->real_gas_physics->Ru);
+        real y_O2;
+        real R_mixture;
+        // For a 2 species test
+        if constexpr(nspecies==2 && nstate==dim+2+nspecies-1) {
+            y_O2 = 1.0 - y_H2;
+            R_mixture = (y_H2*Rs[0] + y_O2*Rs[1])*this->real_gas_physics->R_ref;
+        }
+        const real density = pressure/(R_mixture*temperature);
+
+        // dimensionalized values above, non-dimensionalized values below
+        if(istate==0) {
+            // mixture density
+            value = density / this->real_gas_physics->density_ref;
+        }
+        if(istate==1) {
+            // x-velocity
+            value = velocity / this->real_gas_physics->u_ref;
+        }
+        if(istate==2) {
+            // y-velocity
+            value = velocity / this->real_gas_physics->u_ref;
+        }
+        if(istate==3) {
+            // pressure
+            value = pressure / (this->real_gas_physics->density_ref*this->real_gas_physics->u_ref_sqr);
+        }
+        if(istate==4){
+            // other species density (N2)
+            value = y_H2;
+        }
+        if(istate==5){
+            // other species density (O2)
+            value = y_O2;
+        }
+    }
+    return value;
+}
+
+template <int dim, int nspecies, int nstate, typename real>
+real InitialConditionFunction_MultiSpecies_TwoDimensional_VortexAdvection<dim,nspecies,nstate,real>
+::convert_primitive_to_conversative_value(
+    const dealii::Point<dim,real> &point, const unsigned int istate) const
+{
+    real value = 0.0;
+    if constexpr(dim == 2) {
+        std::array<real,nstate> soln_primitive;
+
+        for (int i=0; i<nstate; i++)
+        {
+            soln_primitive[i] = primitive_value(point,i);
+        }
+
+        const std::array<real,nstate> soln_conservative = this->real_gas_physics->convert_primitive_to_conservative(soln_primitive);
+        value = soln_conservative[istate];
+    }
+    return value;
+}
+
+template <int dim, int nspecies, int nstate, typename real>
+inline real InitialConditionFunction_MultiSpecies_TwoDimensional_VortexAdvection<dim, nspecies, nstate, real>
+::value(const dealii::Point<dim,real> &point, const unsigned int istate) const
+{
+    real value = 0.0;
+    value = convert_primitive_to_conversative_value(point,istate);
+    return value;
+}
+
+// ========================================================
+// 2D fuel drop advection  (Multi Species) -- Initial Condition 
+// ========================================================
+template <int dim, int nspecies, int nstate, typename real>
+InitialConditionFunction_MultiSpecies_FuelDropAdvection<dim,nspecies,nstate,real>
+::InitialConditionFunction_MultiSpecies_FuelDropAdvection(
+        Parameters::AllParameters const *const param)
+    : InitialConditionFunction<dim,nspecies,nstate,real>()
+    , gamma_gas(param->euler_param.gamma_gas)
+    , mach_inf(param->euler_param.mach_inf)
+    , mach_inf_sqr(mach_inf*mach_inf)
+{
+    // Euler object; create using dynamic_pointer_cast and the create_Physics factory
+    // Note that Euler primitive/conservative vars are the same as NS
+    PHiLiP::Parameters::AllParameters parameters_euler = *param;
+    parameters_euler.pde_type = Parameters::AllParameters::PartialDifferentialEquation::real_gas;
+    this->real_gas_physics = std::dynamic_pointer_cast<Physics::RealGas<dim,dim+2+nspecies-1,double>>( // Note: modify this when you change the number of species. nstate == dim+2+(nspecies)-1
+                Physics::PhysicsFactory<dim,dim+2+nspecies-1,double>::create_Physics(&parameters_euler)); // Note: modify this when you change the number of species. nstate == dim+2+(nspecies)-1
+}
+
+template <int dim, int nspecies, int nstate, typename real>
+real InitialConditionFunction_MultiSpecies_FuelDropAdvection<dim,nspecies,nstate,real>
+::primitive_value(const dealii::Point<dim,real> &point, const unsigned int istate) const
+{
+    // Note: This is in non-dimensional form (free-stream values as reference)
+    real value = 0.;
+    if constexpr(dim == 2) {
+        const real x = point[0];
+        const real y = point[1];
+
+        const real x_0 = 0.50;
+        const real y_0 = 0.50;
+
+        const real r = sqrt((x-x_0)*(x-x_0) + (y-y_0)*(y-y_0));
+        real mass_fraction_fuel;
+        real mass_fraction_N2;
+        const std::array Rs = this->real_gas_physics->compute_Rs(this->real_gas_physics->Ru);
+        const real velocity = 50.0;
+
+        const real r_0 = 1.0/3.141592653589793;
+        real steep;
+        if (r<r_0)
+        {
+            steep = 23.0;
+            mass_fraction_fuel = 1.0 - 0.5*(1 + tanh( steep*(r-r_0) ));
+        }
+        else
+        {
+            steep = 60.0;
+            mass_fraction_fuel = 1.0 - 0.5*(1 + tanh( steep*(r-r_0) ));          
+        }
+        mass_fraction_N2 = 1.0 - mass_fraction_fuel;
+        const real R_mixture = (mass_fraction_N2*Rs[0] + mass_fraction_fuel*Rs[1])*this->real_gas_physics->R_ref;
+        const real temperature = 573.0;
+        const real pressure = 600*100*100;
+        const real density = pressure/(R_mixture*temperature);
+
+        // dimensionalized values above, non-dimensionalized values below
+        if(istate==0) {
+            // mixture density
+            value = density / this->real_gas_physics->density_ref;
+        }
+        if(istate==1) {
+            // x-velocity
+            value = velocity / this->real_gas_physics->u_ref;
+        }
+        if(istate==2) {
+            // y-velocity
+            value = 0.0 / this->real_gas_physics->u_ref;
+        }
+        if(istate==3) {
+            // pressure
+            value = pressure / (this->real_gas_physics->density_ref*this->real_gas_physics->u_ref_sqr);
+        }
+        if(istate==4){
+            // species mass fraction density (N2)
+            value = mass_fraction_N2;
+        }
+    }
+    return value;
+}
+
+template <int dim, int nspecies, int nstate, typename real>
+real InitialConditionFunction_MultiSpecies_FuelDropAdvection<dim,nspecies,nstate,real>
+::convert_primitive_to_conversative_value(
+    const dealii::Point<dim,real> &point, const unsigned int istate) const
+{
+    real value = 0.0;
+    if constexpr(dim == 2) {
+        std::array<real,nstate> soln_primitive;
+
+        for (int i=0; i<nstate; i++)
+        {
+            soln_primitive[i] = primitive_value(point,i);
+        }
+
+        const std::array<real,nstate> soln_conservative = this->real_gas_physics->convert_primitive_to_conservative(soln_primitive);
+        value = soln_conservative[istate];
+    }
+    return value;
+}
+
+template <int dim, int nspecies, int nstate, typename real>
+inline real InitialConditionFunction_MultiSpecies_FuelDropAdvection<dim, nspecies, nstate, real>
+::value(const dealii::Point<dim,real> &point, const unsigned int istate) const
+{
+    real value = 0.0;
+    value = convert_primitive_to_conversative_value(point,istate);
+    return value;
+}
+
+// ========================================================
+// 3D Vortex advection  (Multi Species) -- Initial Condition 
+// ========================================================
+template <int dim, int nspecies, int nstate, typename real>
+InitialConditionFunction_MultiSpecies_ThreeDimensional_VortexAdvection<dim,nspecies,nstate,real>
+::InitialConditionFunction_MultiSpecies_ThreeDimensional_VortexAdvection(
+        Parameters::AllParameters const *const param)
+    : InitialConditionFunction<dim,nspecies,nstate,real>()
+    , gamma_gas(param->euler_param.gamma_gas)
+    , mach_inf(param->euler_param.mach_inf)
+    , mach_inf_sqr(mach_inf*mach_inf)
+{
+    // Euler object; create using dynamic_pointer_cast and the create_Physics factory
+    // Note: Euler primitive/conservative vars are the same as NS
+    PHiLiP::Parameters::AllParameters parameters_euler = *param;
+    parameters_euler.pde_type = Parameters::AllParameters::PartialDifferentialEquation::real_gas;
+    this->real_gas_physics = std::dynamic_pointer_cast<Physics::RealGas<dim,dim+2+nspecies-1,double>>(    // Note: modify this when you change the number of species. nstate == dim+2+(nspecies)-1
+                Physics::PhysicsFactory<dim,dim+2+nspecies-1,double>::create_Physics(&parameters_euler)); // Note: modify this when you change the number of species. nstate == dim+2+(nspecies)-1
+}
+
+template <int dim, int nspecies, int nstate, typename real>
+real InitialConditionFunction_MultiSpecies_ThreeDimensional_VortexAdvection<dim,nspecies,nstate,real>
+::primitive_value(const dealii::Point<dim,real> &point, const unsigned int istate) const
+{
+    // Note: This is in non-dimensional form (free-stream values as reference)
+    real value = 0.;
+    if constexpr(dim == 3) {
+        const real x = point[0];
+        const real y = point[1];
+
+        const real x_0 = 5.0;
+        const real y_0 = 5.0;
+        const real r = sqrt((x-x_0)*(x-x_0) + (y-y_0)*(y-y_0));
+        const real T_0 = 300.0; // [K]
+        const real big_gamma = 50.0;
+        const real gamma_0 = 1.4;
+        const real y_H2_0 = 0.01277;
+        const real a_1 = 0.005; 
+        const real pi = 6.28318530717958623200 / 2; // pi
+
+        const real pressure = 101325; // [N/m^2]
+        const real velocity = 100.0; // [m/s]
+        const real exp = std::exp(0.50*(1-r*r));
+        const real coeff = 2*pi/(gamma_0*big_gamma);
+        const real temperature = T_0 - (gamma_0-1.0)*big_gamma*big_gamma/(8.0*gamma_0*pi)*exp;
+        const real y_H2 = (y_H2_0 - a_1*coeff*exp);
+
+        const std::array Rs = this->real_gas_physics->compute_Rs(this->real_gas_physics->Ru);
+        real y_O2;
+        real R_mixture;
+        // For a 2 species test
+        if constexpr(nspecies==2 && nstate==dim+2+nspecies-1) {
+            y_O2 = 1.0 - y_H2;
+            R_mixture = (y_H2*Rs[0] + y_O2*Rs[1])*this->real_gas_physics->R_ref;
+        }
+        const real density = pressure/(R_mixture*temperature);
+
+        // dimensionalized values above, non-dimensionalized values below
+        if(istate==0) {
+            // mixture density
+            value = density / this->real_gas_physics->density_ref;
+        }
+        if(istate==1) {
+            // x-velocity
+            value = velocity / this->real_gas_physics->u_ref;
+        }
+        if(istate==2) {
+            // y-velocity
+            value = velocity / this->real_gas_physics->u_ref;
+        }
+        if(istate==3) {
+            // z-velocity
+            value = velocity / this->real_gas_physics->u_ref;
+        }
+        if(istate==4) {
+            // pressure
+            value = pressure / (this->real_gas_physics->density_ref*this->real_gas_physics->u_ref_sqr);
+        }
+        if(istate==5){
+            // other species density (N2)
+            value = y_H2;
+        }
+        if(istate==6){
+            // other species density (O2)
+            value = y_O2;
+        }
+    }
+    return value;
+}
+
+template <int dim, int nspecies, int nstate, typename real>
+real InitialConditionFunction_MultiSpecies_ThreeDimensional_VortexAdvection<dim,nspecies,nstate,real>
+::convert_primitive_to_conversative_value(
+    const dealii::Point<dim,real> &point, const unsigned int istate) const
+{
+    real value = 0.0;
+    if constexpr(dim == 3) {
+        std::array<real,nstate> soln_primitive;
+
+        for (int i=0; i<nstate; i++)
+        {
+            soln_primitive[i] = primitive_value(point,i);
+        }
+
+        const std::array<real,nstate> soln_conservative = this->real_gas_physics->convert_primitive_to_conservative(soln_primitive);
+        value = soln_conservative[istate];
+    }
+    return value;
+}
+
+template <int dim, int nspecies, int nstate, typename real>
+inline real InitialConditionFunction_MultiSpecies_ThreeDimensional_VortexAdvection<dim, nspecies, nstate, real>
+::value(const dealii::Point<dim,real> &point, const unsigned int istate) const
+{
+    real value = 0.0;
+    value = convert_primitive_to_conversative_value(point,istate);
+    return value;
+}
+
+// ========================================================
+// 3D TaylorGreenVortex  (Multi Species, Uniform mass fractions) -- Initial Condition 
+// ========================================================
+template <int dim, int nspecies, int nstate, typename real>
+InitialConditionFunction_MultiSpecies_TaylorGreenVortex<dim,nspecies,nstate,real>
+::InitialConditionFunction_MultiSpecies_TaylorGreenVortex(
+        Parameters::AllParameters const *const param)
+    : InitialConditionFunction<dim,nspecies,nstate,real>()
+    , gamma_gas(param->euler_param.gamma_gas)
+    , mach_inf(param->euler_param.mach_inf)
+    , mach_inf_sqr(mach_inf*mach_inf)
+{
+    // Euler object; create using dynamic_pointer_cast and the create_Physics factory
+    // Note: Euler primitive/conservative vars are the same as NS
+    PHiLiP::Parameters::AllParameters parameters_euler = *param;
+    parameters_euler.pde_type = Parameters::AllParameters::PartialDifferentialEquation::real_gas;
+    this->real_gas_physics = std::dynamic_pointer_cast<Physics::RealGas<dim,dim+2+nspecies-1,double>>(    // Note: modify this when you change the number of species. nstate == dim+2+(nspecies)-1
+                Physics::PhysicsFactory<dim,dim+2+nspecies-1,double>::create_Physics(&parameters_euler)); // Note: modify this when you change the number of species. nstate == dim+2+(nspecies)-1
+}
+
+template <int dim, int nspecies, int nstate, typename real>
+real InitialConditionFunction_MultiSpecies_TaylorGreenVortex<dim,nspecies,nstate,real>
+::primitive_value(const dealii::Point<dim,real> &point, const unsigned int istate) const
+{
+    // Note: This is in non-dimensional form (free-stream values as reference)
+    real value = 0.;
+    if constexpr(dim == 3) {
+        const real x = point[0];
+        const real y = point[1];
+        const real z = point[2];
+
+        // dimensionalized values above, non-dimensionalized values below
+        if(istate==0) {
+            // mixture density
+            value = 1.0;
+        }
+        if(istate==1) {
+            // x-velocity
+            value = sin(x)*cos(y)*cos(z);
+        }
+        if(istate==2) {
+            // y-velocity
+            value = -cos(x)*sin(y)*cos(z);
+        }
+        if(istate==3) {
+            // z-velocity
+            value = 0.0;
+        }
+        if(istate==4) {
+            // pressure
+            value = 1.0/(this->gamma_gas*this->mach_inf_sqr) + (1.0/16.0)*(cos(2.0*x)+cos(2.0*y))*(cos(2.0*z)+2.0);
+        }
+        if(istate==5){
+            // mass fraction (N2)
+            value = 0.79;
+        }
+    }
+    return value;
+}
+
+template <int dim, int nspecies, int nstate, typename real>
+real InitialConditionFunction_MultiSpecies_TaylorGreenVortex<dim,nspecies,nstate,real>
+::convert_primitive_to_conversative_value(
+    const dealii::Point<dim,real> &point, const unsigned int istate) const
+{
+    real value = 0.0;
+    if constexpr(dim == 3) {
+        std::array<real,nstate> soln_primitive;
+
+        for (int i=0; i<nstate; i++)
+        {
+            soln_primitive[i] = primitive_value(point,i);
+        }
+
+        const std::array<real,nstate> soln_conservative = this->real_gas_physics->convert_primitive_to_conservative(soln_primitive);
+        value = soln_conservative[istate];
+    }
+    return value;
+}
+
+template <int dim, int nspecies, int nstate, typename real>
+inline real InitialConditionFunction_MultiSpecies_TaylorGreenVortex<dim, nspecies, nstate, real>
+::value(const dealii::Point<dim,real> &point, const unsigned int istate) const
+{
+    real value = 0.0;
+    value = convert_primitive_to_conversative_value(point,istate);
+    return value;
+}
+
+// ========================================================
+// 3D TaylorGreenVortex  (Multi Species, Mixture mass fractions) -- Initial Condition 
+// ========================================================
+template <int dim, int nspecies, int nstate, typename real>
+InitialConditionFunction_MultiSpecies_Mixture_TaylorGreenVortex<dim,nspecies,nstate,real>
+::InitialConditionFunction_MultiSpecies_Mixture_TaylorGreenVortex(
+        Parameters::AllParameters const *const param)
+    : InitialConditionFunction<dim,nspecies,nstate,real>()
+    , gamma_gas(param->euler_param.gamma_gas)
+    , mach_inf(param->euler_param.mach_inf)
+    , mach_inf_sqr(mach_inf*mach_inf)
+{
+    // Euler object; create using dynamic_pointer_cast and the create_Physics factory
+    // Note: Euler primitive/conservative vars are the same as NS
+    PHiLiP::Parameters::AllParameters parameters_euler = *param;
+    parameters_euler.pde_type = Parameters::AllParameters::PartialDifferentialEquation::real_gas;
+    this->real_gas_physics = std::dynamic_pointer_cast<Physics::RealGas<dim,dim+2+nspecies-1,double>>(    // Note: modify this when you change the number of species. nstate == dim+2+(nspecies)-1
+                Physics::PhysicsFactory<dim,dim+2+nspecies-1,double>::create_Physics(&parameters_euler)); // Note: modify this when you change the number of species. nstate == dim+2+(nspecies)-1
+}
+
+template <int dim, int nspecies, int nstate, typename real>
+real InitialConditionFunction_MultiSpecies_Mixture_TaylorGreenVortex<dim,nspecies,nstate,real>
+::primitive_value(const dealii::Point<dim,real> &point, const unsigned int istate) const
+{
+    // Note: This is in non-dimensional form (free-stream values as reference)
+    real value = 0.;
+    if constexpr(dim == 3) {
+        const real x = point[0];
+        const real y = point[1];
+        const real z = point[2];
+        const double pi = 6.28318530717958623200/2.0;
+        double mass_fraction_N2;
+        if (x > pi && y > pi || x < pi && y < pi) {
+            mass_fraction_N2 = 0.90;
+        }
+        else {
+            mass_fraction_N2 = 0.10;
+        }
+
+        // dimensionalized values above, non-dimensionalized values below
+        if(istate==0) {
+            // mixture density
+            value = 1.0;
+        }
+        if(istate==1) {
+            // x-velocity
+            value = sin(x)*cos(y)*cos(z);
+        }
+        if(istate==2) {
+            // y-velocity
+            value = -cos(x)*sin(y)*cos(z);
+        }
+        if(istate==3) {
+            // z-velocity
+            value = 0.0;
+        }
+        if(istate==4) {
+            // pressure
+            value = 1.0/(this->gamma_gas*this->mach_inf_sqr) + (1.0/16.0)*(cos(2.0*x)+cos(2.0*y))*(cos(2.0*z)+2.0);
+        }
+        if(istate==5){
+            // mass fraction (N2)
+            value = mass_fraction_N2;
+        }
+    }
+    return value;
+}
+
+template <int dim, int nspecies, int nstate, typename real>
+real InitialConditionFunction_MultiSpecies_Mixture_TaylorGreenVortex<dim,nspecies,nstate,real>
+::convert_primitive_to_conversative_value(
+    const dealii::Point<dim,real> &point, const unsigned int istate) const
+{
+    real value = 0.0;
+    if constexpr(dim == 3) {
+        std::array<real,nstate> soln_primitive;
+
+        for (int i=0; i<nstate; i++)
+        {
+            soln_primitive[i] = primitive_value(point,i);
+        }
+
+        const std::array<real,nstate> soln_conservative = this->real_gas_physics->convert_primitive_to_conservative(soln_primitive);
+        value = soln_conservative[istate];
+    }
+    return value;
+}
+
+template <int dim, int nspecies, int nstate, typename real>
+inline real InitialConditionFunction_MultiSpecies_Mixture_TaylorGreenVortex<dim, nspecies, nstate, real>
+::value(const dealii::Point<dim,real> &point, const unsigned int istate) const
+{
+    real value = 0.0;
+    value = convert_primitive_to_conversative_value(point,istate);
+    return value;
+}
+
 // =========================================================
 // Initial Condition Factory
 // =========================================================
-template <int dim, int nstate, typename real>
-std::shared_ptr<InitialConditionFunction<dim, nstate, real>>
-InitialConditionFactory<dim,nstate, real>::create_InitialConditionFunction(
+template <int dim, int nspecies, int nstate, typename real>
+std::shared_ptr<InitialConditionFunction<dim, nspecies, nstate, real>>
+InitialConditionFactory<dim,nspecies,nstate, real>::create_InitialConditionFunction(
     Parameters::AllParameters const *const param)
 {
     // Get the flow case type
@@ -1014,19 +2316,19 @@ InitialConditionFactory<dim,nstate, real>::create_InitialConditionFunction(
             // Get the density initial condition type
             const DensityInitialConditionEnum density_initial_condition_type = param->flow_solver_param.density_initial_condition_type;
             if(density_initial_condition_type == DensityInitialConditionEnum::uniform) {
-                return std::make_shared<InitialConditionFunction_TaylorGreenVortex<dim,nstate,real> >(
+                return std::make_shared<InitialConditionFunction_TaylorGreenVortex<dim,nspecies,nstate,real> >(
                         param);
             } else if (density_initial_condition_type == DensityInitialConditionEnum::isothermal) {
-                return std::make_shared<InitialConditionFunction_TaylorGreenVortex_Isothermal<dim,nstate,real> >(
+                return std::make_shared<InitialConditionFunction_TaylorGreenVortex_Isothermal<dim,nspecies,nstate,real> >(
                         param);
             }
         }
     } else if (flow_type == FlowCaseEnum::decaying_homogeneous_isotropic_turbulence) {
         if constexpr (dim==3 && nstate==dim+2) return nullptr; // nullptr since DHIT case initializes values from file
     } else if (flow_type == FlowCaseEnum::burgers_rewienski_snapshot) {
-        if constexpr (dim==1 && nstate==1) return std::make_shared<InitialConditionFunction_BurgersRewienski<dim,nstate,real> > ();
+        if constexpr (dim==1 && nstate==1) return std::make_shared<InitialConditionFunction_BurgersRewienski<dim,nspecies,nstate,real> > ();
     } else if (flow_type == FlowCaseEnum::burgers_viscous_snapshot) {
-        if constexpr (dim==1 && nstate==1) return std::make_shared<InitialConditionFunction_BurgersViscous<dim,nstate,real> > ();
+        if constexpr (dim==1 && nstate==1) return std::make_shared<InitialConditionFunction_BurgersViscous<dim,nspecies,nstate,real> > ();
     } else if (flow_type == FlowCaseEnum::naca0012 || flow_type == FlowCaseEnum::gaussian_bump) {
         if constexpr ((dim==2 || dim==3) && nstate==dim+2) {
             Physics::Euler<dim,nstate,double> euler_physics_double = Physics::Euler<dim, nstate, double>(
@@ -1036,108 +2338,166 @@ InitialConditionFactory<dim,nstate, real>::create_InitialConditionFunction(
                     param->euler_param.mach_inf,
                     param->euler_param.angle_of_attack,
                     param->euler_param.side_slip_angle);
-            return std::make_shared<FreeStreamInitialConditions<dim,nstate,real>>(euler_physics_double);
+            return std::make_shared<FreeStreamInitialConditions<dim,nspecies,nstate,real>>(euler_physics_double);
         }
     } else if (flow_type == FlowCaseEnum::burgers_inviscid && param->use_energy==false) {
-        if constexpr (nstate==dim && dim<3) return std::make_shared<InitialConditionFunction_BurgersInviscid<dim, nstate, real> >();
+        if constexpr (nstate==dim && dim<3) return std::make_shared<InitialConditionFunction_BurgersInviscid<dim,nspecies,nstate,real> >();
     } else if (flow_type == FlowCaseEnum::burgers_inviscid && param->use_energy==true) {
-        if constexpr (dim==1 && nstate==1) return std::make_shared<InitialConditionFunction_BurgersInviscidEnergy<dim,nstate,real> > ();
+        if constexpr (dim==1 && nstate==1) return std::make_shared<InitialConditionFunction_BurgersInviscidEnergy<dim,nspecies,nstate,real> > ();
     } else if (flow_type == FlowCaseEnum::advection && param->use_energy==true) {
-        if constexpr (nstate==1) return std::make_shared<InitialConditionFunction_AdvectionEnergy<dim,nstate,real> > ();
+        if constexpr (nstate==1) return std::make_shared<InitialConditionFunction_AdvectionEnergy<dim,nspecies,nstate,real> > ();
     } else if (flow_type == FlowCaseEnum::advection && param->use_energy==false) {
-        if constexpr (nstate==1) return std::make_shared<InitialConditionFunction_Advection<dim,nstate,real> > ();
+        if constexpr (nstate==1) return std::make_shared<InitialConditionFunction_Advection<dim,nspecies,nstate,real> > ();
     } else if (flow_type == FlowCaseEnum::convection_diffusion && !param->use_energy) {
-        if constexpr (nstate==1) return std::make_shared<InitialConditionFunction_ConvDiff<dim,nstate,real> > ();
+        if constexpr (nstate==1) return std::make_shared<InitialConditionFunction_ConvDiff<dim,nspecies,nstate,real> > ();
     } else if (flow_type == FlowCaseEnum::convection_diffusion && param->use_energy) {
-        return std::make_shared<InitialConditionFunction_ConvDiffEnergy<dim,nstate,real> > ();
+        return std::make_shared<InitialConditionFunction_ConvDiffEnergy<dim,nspecies,nstate,real> > ();
     } else if (flow_type == FlowCaseEnum::periodic_1D_unsteady) {
-        if constexpr (dim==1 && nstate==1) return std::make_shared<InitialConditionFunction_1DSine<dim,nstate,real> > ();
+        if constexpr (dim==1 && nstate==1) return std::make_shared<InitialConditionFunction_1DSine<dim,nspecies,nstate,real> > ();
     } else if (flow_type == FlowCaseEnum::isentropic_vortex) {
-        if constexpr (dim>1 && nstate==dim+2) return std::make_shared<InitialConditionFunction_IsentropicVortex<dim,nstate,real> > (param);
+        if constexpr (dim>1 && nstate==dim+2) return std::make_shared<InitialConditionFunction_IsentropicVortex<dim,nspecies,nstate,real> > (param);
     } else if (flow_type == FlowCaseEnum::kelvin_helmholtz_instability) {
-        if constexpr (dim>1 && nstate==dim+2) return std::make_shared<InitialConditionFunction_KHI<dim,nstate,real> > (param);
+        if constexpr (dim>1 && nstate==dim+2) return std::make_shared<InitialConditionFunction_KHI<dim,nspecies,nstate,real> > (param);
     } else if (flow_type == FlowCaseEnum::non_periodic_cube_flow) {
-        if constexpr (dim==2 && nstate==1)  return std::make_shared<InitialConditionFunction_Zero<dim,nstate,real> > ();
+        if constexpr (dim==2 && nstate==1)  return std::make_shared<InitialConditionFunction_Zero<dim,nspecies,nstate,real> > ();
     } else if (flow_type == FlowCaseEnum::sod_shock_tube) {
-        if constexpr (dim == 1 && nstate == dim+2)  return std::make_shared<InitialConditionFunction_SodShockTube<dim,nstate,real> > (param);
+        if constexpr (dim == 1 && nstate == dim+2)  return std::make_shared<InitialConditionFunction_SodShockTube<dim,nspecies,nstate,real> > (param);
     } else if (flow_type == FlowCaseEnum::low_density) {
-        if constexpr (dim < 3 && nstate == dim+2)  return std::make_shared<InitialConditionFunction_LowDensity<dim,nstate,real> > (param);
+        if constexpr (dim < 3 && nstate == dim+2)  return std::make_shared<InitialConditionFunction_LowDensity<dim,nspecies,nstate,real> > (param);
     } else if (flow_type == FlowCaseEnum::leblanc_shock_tube) {
-        if constexpr (dim == 1 && nstate == dim+2)  return std::make_shared<InitialConditionFunction_LeblancShockTube<dim,nstate,real> > (param);
+        if constexpr (dim == 1 && nstate == dim+2)  return std::make_shared<InitialConditionFunction_LeblancShockTube<dim,nspecies,nstate,real> > (param);
     } else if (flow_type == FlowCaseEnum::shu_osher_problem) {
-        if constexpr (dim == 1 && nstate == dim + 2)  return std::make_shared<InitialConditionFunction_ShuOsherProblem<dim, nstate, real> >(param);
+        if constexpr (dim == 1 && nstate == dim + 2)  return std::make_shared<InitialConditionFunction_ShuOsherProblem<dim,nspecies,nstate,real> >(param);
     } else if (flow_type == FlowCaseEnum::double_mach_reflection) {
-        if constexpr (dim == 2 && nstate == dim + 2)  return std::make_shared<InitialConditionFunction_DoubleMachReflection<dim, nstate, real> >(param);
+        if constexpr (dim == 2 && nstate == dim + 2)  return std::make_shared<InitialConditionFunction_DoubleMachReflection<dim,nspecies,nstate,real> >(param);
     } else if (flow_type == FlowCaseEnum::shock_diffraction) {
-        if constexpr (dim == 2 && nstate == dim + 2)  return std::make_shared<InitialConditionFunction_ShockDiffraction<dim, nstate, real> >(param);
+        if constexpr (dim == 2 && nstate == dim + 2)  return std::make_shared<InitialConditionFunction_ShockDiffraction<dim,nspecies,nstate,real> >(param);
     } else if (flow_type == FlowCaseEnum::astrophysical_jet) {
-        if constexpr (dim == 2 && nstate == dim + 2)  return std::make_shared<InitialConditionFunction_AstrophysicalJet<dim, nstate, real> >(param);
+        if constexpr (dim == 2 && nstate == dim + 2)  return std::make_shared<InitialConditionFunction_AstrophysicalJet<dim,nspecies,nstate,real> >(param);
     } else if (flow_type == FlowCaseEnum::strong_vortex_shock_wave) {
-        if constexpr (dim == 2 && nstate == dim + 2)  return std::make_shared<InitialConditionFunction_SVSW<dim, nstate, real> >(param);
+        if constexpr (dim == 2 && nstate == dim + 2)  return std::make_shared<InitialConditionFunction_SVSW<dim,nspecies,nstate,real> >(param);
     } else if (flow_type == FlowCaseEnum::advection_limiter) {
-        if constexpr (dim < 3 && nstate == 1)  return std::make_shared<InitialConditionFunction_Advection<dim, nstate, real> >();
+        if constexpr (dim < 3 && nstate == 1)  return std::make_shared<InitialConditionFunction_Advection<dim,nspecies,nstate,real> >();
     } else if (flow_type == FlowCaseEnum::burgers_limiter) {
-        if constexpr (nstate==dim && dim<3) return std::make_shared<InitialConditionFunction_BurgersInviscid<dim, nstate, real> >();
-    }else {
+        if constexpr (nstate==dim && dim<3) return std::make_shared<InitialConditionFunction_BurgersInviscid<dim,nspecies,nstate,real> >();
+    } else if (flow_type == FlowCaseEnum::acoustic_wave_air) {
+        if constexpr (dim==2 && nstate==dim+2) return std::make_shared<InitialConditionFunction_AcousticWave_Air<dim,nspecies,nstate,real> >(param);
+    } else if (flow_type == FlowCaseEnum::acoustic_wave_species) {
+        if constexpr (dim==2 && nstate==dim+2) return std::make_shared<InitialConditionFunction_AcousticWave_Species<dim,nspecies,nstate,real> >(param);
+    } else if (flow_type == FlowCaseEnum::multi_species_acoustic_wave) {
+        if constexpr (dim==2 && nspecies==1 && nstate==dim+2+nspecies-1) return std::make_shared<InitialConditionFunction_AcousticWave_MultiSpecies<dim,nspecies,nstate,real> >(param);
+    } else if (flow_type == FlowCaseEnum::multi_species_vortex_advection) {
+        if constexpr (dim==1 && (nspecies==2||nspecies==3) && nstate==dim+2+nspecies-1) return std::make_shared<InitialConditionFunction_MultiSpecies_VortexAdvection<dim,nspecies,nstate,real> >(param);
+    } else if (flow_type == FlowCaseEnum::multi_species_high_temperature_vortex_advection) {
+        if constexpr (dim==1 && (nspecies==2||nspecies==3) && nstate==dim+2+nspecies-1) return std::make_shared<InitialConditionFunction_MultiSpecies_HighTemperature_VortexAdvection<dim,nspecies,nstate,real> >(param);
+    } else if (flow_type == FlowCaseEnum::euler_vortex_advection) {
+        if constexpr (dim==1 && nstate==dim+2) return std::make_shared<InitialConditionFunction_Euler_VortexAdvection<dim,nspecies,nstate,real> >(param);
+    } else if (flow_type == FlowCaseEnum::multi_species_calorically_perfect_euler_vortex_advection) {
+        if constexpr (dim==1 && (nspecies==2||nspecies==3) && nstate==dim+2+nspecies-1) return std::make_shared<InitialConditionFunction_MultiSpecies_CaloricallyPerfect_Euler_VortexAdvection<dim,nspecies,nstate,real> >(param);
+    } else if (flow_type == FlowCaseEnum::multi_species_isentropic_euler_vortex) {
+        if constexpr (dim==2 && nstate==dim+2+nspecies-1) return std::make_shared<InitialConditionFunction_MultiSpecies_IsentropicEulerVortex<dim,nspecies,nstate,real> >(param);
+    } else if (flow_type == FlowCaseEnum::multi_species_two_dimensional_vortex_advection) {
+        if constexpr (dim==2 && nspecies==2 && nstate==dim+2+nspecies-1) return std::make_shared<InitialConditionFunction_MultiSpecies_TwoDimensional_VortexAdvection<dim,nspecies,nstate,real> >(param);
+    } else if (flow_type == FlowCaseEnum::multi_species_fuel_drop_advection) {
+        if constexpr (dim==2 && nstate==dim+2+nspecies-1) return std::make_shared<InitialConditionFunction_MultiSpecies_FuelDropAdvection<dim,nspecies,nstate,real> >(param);
+    } else if (flow_type == FlowCaseEnum::multi_species_three_dimensional_vortex_advection) {
+        if constexpr (dim==3 && nspecies==2 && nstate==dim+2+nspecies-1) return std::make_shared<InitialConditionFunction_MultiSpecies_ThreeDimensional_VortexAdvection<dim,nspecies,nstate,real> >(param);
+    } else if (flow_type == FlowCaseEnum::multi_species_taylor_green_vortex) {
+        if constexpr (dim==3 && nstate==dim+2+nspecies-1) return std::make_shared<InitialConditionFunction_MultiSpecies_TaylorGreenVortex<dim,nspecies,nstate,real> >(param);
+    } else if (flow_type == FlowCaseEnum::multi_species_mixture_taylor_green_vortex) {
+        if constexpr (dim==3 && nstate==dim+2+nspecies-1) return std::make_shared<InitialConditionFunction_MultiSpecies_Mixture_TaylorGreenVortex<dim,nspecies,nstate,real> >(param);
+    } else {
         std::cout << "Invalid Flow Case Type. You probably forgot to add it to the list of flow cases in initial_condition_function.cpp" << std::endl;
         std::abort();
     }
     return nullptr;
 }
 
-template class InitialConditionFunction <PHILIP_DIM, 1, double>;
-template class InitialConditionFunction <PHILIP_DIM, 2, double>;
-template class InitialConditionFunction <PHILIP_DIM, 3, double>;
-template class InitialConditionFunction <PHILIP_DIM, 4, double>;
-template class InitialConditionFunction <PHILIP_DIM, 5, double>;
-template class InitialConditionFunction <PHILIP_DIM, 6, double>;
-template class InitialConditionFactory <PHILIP_DIM, 1, double>;
-template class InitialConditionFactory <PHILIP_DIM, 2, double>;
-template class InitialConditionFactory <PHILIP_DIM, 3, double>;
-template class InitialConditionFactory <PHILIP_DIM, 4, double>;
-template class InitialConditionFactory <PHILIP_DIM, 5, double>;
-template class InitialConditionFactory <PHILIP_DIM, 6, double>;
+template class InitialConditionFunction <PHILIP_DIM, PHILIP_SPECIES, 1, double>;
+template class InitialConditionFunction <PHILIP_DIM, PHILIP_SPECIES, 2, double>;
+template class InitialConditionFunction <PHILIP_DIM, PHILIP_SPECIES, 3, double>;
+template class InitialConditionFunction <PHILIP_DIM, PHILIP_SPECIES, 4, double>;
+template class InitialConditionFunction <PHILIP_DIM, PHILIP_SPECIES, 5, double>;
+template class InitialConditionFunction <PHILIP_DIM, PHILIP_SPECIES, 6, double>;
+template class InitialConditionFunction <PHILIP_DIM, PHILIP_SPECIES, 7, double>;
 
-#if PHILIP_DIM==1
-template class InitialConditionFunction_BurgersViscous <PHILIP_DIM, 1, double>;
-template class InitialConditionFunction_BurgersRewienski <PHILIP_DIM, 1, double>;
-template class InitialConditionFunction_BurgersInviscidEnergy <PHILIP_DIM, 1, double>;
-template class InitialConditionFunction_ShuOsherProblem <PHILIP_DIM, PHILIP_DIM + 2, double>;
+template class InitialConditionFactory <PHILIP_DIM, PHILIP_SPECIES, 1, double>;
+template class InitialConditionFactory <PHILIP_DIM, PHILIP_SPECIES, 2, double>;
+template class InitialConditionFactory <PHILIP_DIM, PHILIP_SPECIES, 3, double>;
+template class InitialConditionFactory <PHILIP_DIM, PHILIP_SPECIES, 4, double>;
+template class InitialConditionFactory <PHILIP_DIM, PHILIP_SPECIES, 5, double>;
+template class InitialConditionFactory <PHILIP_DIM, PHILIP_SPECIES, 6, double>;
+template class InitialConditionFactory <PHILIP_DIM, PHILIP_SPECIES, 7, double>;
+ 
+#if PHILIP_DIM==1 && PHILIP_SPECIES==1
+template class InitialConditionFunction_BurgersViscous <PHILIP_DIM, PHILIP_SPECIES, 1, double>;
+template class InitialConditionFunction_BurgersRewienski <PHILIP_DIM, PHILIP_SPECIES, 1, double>;
+template class InitialConditionFunction_BurgersInviscidEnergy <PHILIP_DIM, PHILIP_SPECIES, 1, double>;
+template class InitialConditionFunction_EulerBase <PHILIP_DIM,PHILIP_SPECIES, PHILIP_DIM+2, double>;
+template class InitialConditionFunction_SodShockTube <PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, double>;
+template class InitialConditionFunction_LeblancShockTube <PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, double>;
+template class InitialConditionFunction_ShuOsherProblem <PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM + 2, double>;
 #endif
 
-#if PHILIP_DIM==3
-template class InitialConditionFunction_TaylorGreenVortex <PHILIP_DIM, PHILIP_DIM+2, double>;
-template class InitialConditionFunction_TaylorGreenVortex_Isothermal <PHILIP_DIM, PHILIP_DIM+2, double>;
+#if PHILIP_DIM==3 && PHILIP_SPECIES==1
+template class InitialConditionFunction_TaylorGreenVortex <PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, double>;
+template class InitialConditionFunction_TaylorGreenVortex_Isothermal <PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, double>;
 #endif
 
-#if PHILIP_DIM>1
-template class InitialConditionFunction_IsentropicVortex <PHILIP_DIM, PHILIP_DIM+2, double>;
+#if PHILIP_DIM>1 && PHILIP_SPECIES==1
+template class InitialConditionFunction_IsentropicVortex <PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, double>;
 #endif
 
-#if PHILIP_DIM==2
-template class InitialConditionFunction_KHI <PHILIP_DIM, PHILIP_DIM+2, double>;
-template class InitialConditionFunction_DoubleMachReflection <PHILIP_DIM, PHILIP_DIM+2, double>;
-template class InitialConditionFunction_ShockDiffraction <PHILIP_DIM, PHILIP_DIM+2, double>;
-template class InitialConditionFunction_AstrophysicalJet <PHILIP_DIM, PHILIP_DIM+2, double>;
-template class InitialConditionFunction_SVSW <PHILIP_DIM, PHILIP_DIM+2, double>;
+#if PHILIP_DIM==2 && PHILIP_SPECIES==1
+template class InitialConditionFunction_KHI <PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, double>;
+template class InitialConditionFunction_EulerBase <PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM + 2, double>;
+template class InitialConditionFunction_AcousticWave_Air <PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, double>;
+template class InitialConditionFunction_AcousticWave_Species <PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, double>;
+template class InitialConditionFunction_DoubleMachReflection <PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, double>;
+template class InitialConditionFunction_ShockDiffraction <PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, double>;
+template class InitialConditionFunction_AstrophysicalJet <PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, double>;
+template class InitialConditionFunction_SVSW <PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, double>;
 #endif
 
-#if PHILIP_DIM < 3
-template class InitialConditionFunction_LowDensity <PHILIP_DIM, PHILIP_DIM+2, double>;
+#if PHILIP_DIM < 3 && PHILIP_SPECIES==1
+template class InitialConditionFunction_LowDensity <PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, double>;
+#endif
+
+#if PHILIP_DIM==3 && PHILIP_SPECIES==2
+template class InitialConditionFunction_MultiSpecies_ThreeDimensional_VortexAdvection <PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2+PHILIP_SPECIES-1, double>;
+template class InitialConditionFunction_MultiSpecies_TaylorGreenVortex <PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2+PHILIP_SPECIES-1, double>;
+template class InitialConditionFunction_MultiSpecies_Mixture_TaylorGreenVortex <PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2+PHILIP_SPECIES-1, double>;
+#endif
+
+#if PHILIP_DIM==2 && PHILIP_SPECIES==2
+template class InitialConditionFunction_MultiSpecies_IsentropicEulerVortex <PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2+PHILIP_SPECIES-1, double>;
+template class InitialConditionFunction_MultiSpecies_TwoDimensional_VortexAdvection <PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2+PHILIP_SPECIES-1, double>;
+template class InitialConditionFunction_MultiSpecies_FuelDropAdvection <PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2+PHILIP_SPECIES-1, double>;
+#endif
+
+#if PHILIP_DIM==1 && PHILIP_SPECIES==2
+template class InitialConditionFunction_MultiSpecies_HighTemperature_VortexAdvection <PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2+PHILIP_SPECIES-1, double>;
+template class InitialConditionFunction_MultiSpecies_VortexAdvection <PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2+PHILIP_SPECIES-1, double>;
+template class InitialConditionFunction_MultiSpecies_CaloricallyPerfect_Euler_VortexAdvection <PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2+PHILIP_SPECIES-1, double>;
+#endif
+
+#if PHILIP_DIM==1 && PHILIP_SPECIES==3
+template class InitialConditionFunction_MultiSpecies_HighTemperature_VortexAdvection <PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2+PHILIP_SPECIES-1, double>;
+template class InitialConditionFunction_MultiSpecies_VortexAdvection <PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2+PHILIP_SPECIES-1, double>;
+template class InitialConditionFunction_MultiSpecies_CaloricallyPerfect_Euler_VortexAdvection <PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2+PHILIP_SPECIES-1, double>;
 #endif
 
 // functions instantiated for all dim
-template class InitialConditionFunction_Zero <PHILIP_DIM,1, double>;
-template class InitialConditionFunction_Zero <PHILIP_DIM,2, double>;
-template class InitialConditionFunction_Zero <PHILIP_DIM,3, double>;
-template class InitialConditionFunction_Zero <PHILIP_DIM,4, double>;
-template class InitialConditionFunction_Zero <PHILIP_DIM,5, double>;
-template class InitialConditionFunction_Zero <PHILIP_DIM,6, double>;
-template class InitialConditionFunction_Advection <PHILIP_DIM, 1, double>;
-template class InitialConditionFunction_BurgersInviscid <PHILIP_DIM, PHILIP_DIM, double>;
-template class InitialConditionFunction_AdvectionEnergy <PHILIP_DIM, 1, double>;
-template class InitialConditionFunction_ConvDiff <PHILIP_DIM, 1, double>;
-template class InitialConditionFunction_ConvDiffEnergy <PHILIP_DIM,1,double>;
-template class InitialConditionFunction_EulerBase <PHILIP_DIM,PHILIP_DIM+2,double>;
+template class InitialConditionFunction_Zero <PHILIP_DIM, PHILIP_SPECIES, 1, double>;
+template class InitialConditionFunction_Zero <PHILIP_DIM, PHILIP_SPECIES, 2, double>;
+template class InitialConditionFunction_Zero <PHILIP_DIM, PHILIP_SPECIES, 3, double>;
+template class InitialConditionFunction_Zero <PHILIP_DIM, PHILIP_SPECIES, 4, double>;
+template class InitialConditionFunction_Zero <PHILIP_DIM, PHILIP_SPECIES, 5, double>;
+template class InitialConditionFunction_Zero <PHILIP_DIM, PHILIP_SPECIES, 6, double>;
+template class InitialConditionFunction_Advection <PHILIP_DIM, 1, 1, double>;
+template class InitialConditionFunction_BurgersInviscid <PHILIP_DIM, 1, PHILIP_DIM, double>;
+template class InitialConditionFunction_AdvectionEnergy <PHILIP_DIM, 1, 1, double>;
+template class InitialConditionFunction_ConvDiff <PHILIP_DIM, 1, 1, double>;
+template class InitialConditionFunction_ConvDiffEnergy <PHILIP_DIM, 1, 1,double>;
 
 } // PHiLiP namespace

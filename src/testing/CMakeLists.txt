@@ -46,30 +46,43 @@ set(TESTS_SOURCE
     halton_sampling_run.cpp
     bound_preserving_limiter_tests.cpp
     naca0012_unsteady_check_quick.cpp
+    real_gas_vs_euler_primitive_to_conservative_check.cpp
+    euler_vortex_advection_error_study.cpp
     )
 
 foreach(dim RANGE 1 3)
+foreach(species RANGE 1 3)
+    # String to append for library names
+    if(species MATCHES 1)
+        string(CONCAT lib_spec _${dim}D)
+    else()
+        string(CONCAT lib_spec _${dim}D_${species}species)
+    endif()
+
     # Output library
-    string(CONCAT TestsLib Tests_${dim}D)
+    string(CONCAT TestsLib Tests ${lib_spec})
+
     add_library(${TestsLib} STATIC ${TESTS_SOURCE})
     # Replace occurences of PHILIP_DIM with 1, 2, or 3 in the code
     target_compile_definitions(${TestsLib} PRIVATE PHILIP_DIM=${dim})
+    # Replace occurences of PHILIP_SPECIES with 1, 2, or 3 in the code
+    target_compile_definitions(${TestsLib} PRIVATE PHILIP_SPECIES=${species})
 
     # Library dependency
-    string(CONCAT GridsLib Grids_${dim}D)
-    string(CONCAT NumericalFluxLib NumericalFlux_${dim}D)
-    string(CONCAT PhysicsLib Physics_${dim}D)
-    string(CONCAT DiscontinuousGalerkinLib DiscontinuousGalerkin_${dim}D)
-    string(CONCAT FunctionalLib Functional_${dim}D)
-    string(CONCAT ODESolverLib ODESolver_${dim}D)
-    string(CONCAT OptimizationLib Optimization_${dim}D)
+    string(CONCAT GridsLib Grids ${lib_spec})
+    string(CONCAT NumericalFluxLib NumericalFlux ${lib_spec})
+    string(CONCAT PhysicsLib Physics ${lib_spec})
+    string(CONCAT DiscontinuousGalerkinLib DiscontinuousGalerkin ${lib_spec})
+    string(CONCAT FunctionalLib Functional ${lib_spec})
+    string(CONCAT ODESolverLib ODESolver ${lib_spec})
+    string(CONCAT OptimizationLib Optimization ${lib_spec})
     string(CONCAT LinearSolverLib LinearSolver)
-    string(CONCAT GridRefinementLib GridRefinement_${dim}D)
-    string(CONCAT PODLib POD_${dim}D)
-    string(CONCAT InitialConditionsLib InitialConditions_${dim}D)
-    string(CONCAT FlowSolverLib FlowSolver_${dim}D)
-    string(CONCAT ExactSolutionsLib ExactSolutions_${dim}D)
-    string(CONCAT MeshAdaptationLib MeshAdaptation_${dim}D)
+    string(CONCAT GridRefinementLib GridRefinement ${lib_spec})
+    string(CONCAT PODLib POD ${lib_spec})
+    string(CONCAT InitialConditionsLib InitialConditions ${lib_spec})
+    string(CONCAT FlowSolverLib FlowSolver ${lib_spec})
+    string(CONCAT ExactSolutionsLib ExactSolutions ${lib_spec})
+    string(CONCAT MeshAdaptationLib MeshAdaptation ${lib_spec})
     target_link_libraries(${TestsLib} ${GridsLib})
     target_link_libraries(${TestsLib} ${NumericalFluxLib})
     target_link_libraries(${TestsLib} ${PhysicsLib})
@@ -104,4 +117,5 @@ foreach(dim RANGE 1 3)
     unset(FlowSolverLib)
     unset(ExactSolutionsLib)
     unset(MeshAdaptationLib)
+endforeach()
 endforeach()

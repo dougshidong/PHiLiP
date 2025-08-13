@@ -10,11 +10,11 @@ namespace ODE {
 
 /// POD-Petrov-Galerkin ODE solver derived from ODESolver.
 #if PHILIP_DIM==1
-template <int dim, typename real, typename MeshType = dealii::Triangulation<dim>>
+template <int dim, int nspecies, typename real, typename MeshType = dealii::Triangulation<dim>>
 #else
-template <int dim, typename real, typename MeshType = dealii::parallel::distributed::Triangulation<dim>>
+template <int dim, int nspecies, typename real, typename MeshType = dealii::parallel::distributed::Triangulation<dim>>
 #endif
-class ReducedOrderODESolver: public ODESolverBase<dim, real, MeshType>
+class ReducedOrderODESolver: public ODESolverBase<dim, nspecies, real, MeshType>
 {
 protected:
     /// Default constructor that will set the constants.

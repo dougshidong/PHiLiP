@@ -241,46 +241,6 @@ inline real InitialConditionFunction_Advection<dim,nstate,real>
     return value;
 }
 
-
-// ========================================================
-// 2D Nonsmooth Case - 
-// ========================================================
-template <int dim, int nstate, typename real>
-InitialConditionFunction_NonSmooth<dim,nstate,real>
-::InitialConditionFunction_NonSmooth()
-        : InitialConditionFunction<dim,nstate,real>()
-{
-    // Nothing to do here yet
-}
-
-template <int dim, int nstate, typename real>
-inline real InitialConditionFunction_NonSmooth<dim,nstate,real>
-::value(const dealii::Point<dim,real> &point, const unsigned int /*istate*/) const
-{
-    real value = 1.0;
-    if constexpr(dim == 1)
-        std::abort();
-    if constexpr(dim == 2){
-        real x = abs(point[0]);
-        real y = point[1];
-
-        real r = sqrt(pow(x,2)+pow(y,2));
-        real theta = atan(y/x);
-
-        real bound = (1.0/8.0)*(3.0+pow(3.0,sin(5.0*theta)));
-
-        if(r <= bound)
-            value = 1.0;
-        else
-            value = 0.0;
-    }
-    if constexpr(dim == 3)
-        std::abort();
-
-    return value;
-}
-
-
 // ========================================================
 // Convection_diffusion -- Initial Condition
 // ========================================================

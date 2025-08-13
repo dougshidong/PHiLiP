@@ -36,8 +36,8 @@ Computer Methods in Applied Mechanics and Engineering
 https://www.sciencedirect.com/science/article/pii/S0045782522004558?via%3Dihub
 */
 
-template <int dim, int nstate>
-class AssembleECSWJac: public AssembleECSWBase<dim,nstate>
+template <int dim, int nspecies, int nstate>
+class AssembleECSWJac: public AssembleECSWBase<dim, nspecies, nstate>
 {
 public:
     /// Constructor

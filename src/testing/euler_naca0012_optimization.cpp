@@ -93,14 +93,14 @@ const std::string line_search_method =
     // "Iteration Scaling";
     "Backtracking";
 
-template <int dim, int nstate>
-EulerNACAOptimization<dim,nstate>::EulerNACAOptimization(const Parameters::AllParameters *const parameters_input)
+template <int dim, int nspecies, int nstate>
+EulerNACAOptimization<dim,nspecies,nstate>::EulerNACAOptimization(const Parameters::AllParameters *const parameters_input)
     :
     TestsBase::TestsBase(parameters_input)
 {}
 
-template<int dim, int nstate>
-int EulerNACAOptimization<dim,nstate>
+template<int dim, int nspecies, int nstate>
+int EulerNACAOptimization<dim,nspecies,nstate>
 ::run_test () const
 {
     int test_error = 0;
@@ -121,7 +121,7 @@ int EulerNACAOptimization<dim,nstate>
     return test_error;
 }
 
-template<int dim, int nstate>
+template<int dim, int nspecies, int nstate>
 int check_flow_constraints(
     const unsigned int nx_ffd,
     ROL::Ptr<FlowConstraints<dim>> flow_constraints,
@@ -136,7 +136,7 @@ int check_flow_constraints(
                 0.8,
                 1.25,
                 0.0);
-    FreeStreamInitialConditions<dim,nstate,double> initial_conditions(euler_physics_double);
+    FreeStreamInitialConditions<dim,nspecies,nstate,double> initial_conditions(euler_physics_double);
 
     int test_error = 0;
     // Temporary vectors
@@ -258,7 +258,7 @@ int check_flow_constraints(
     return test_error;
 }
 
-template<int dim, int nstate>
+template<int dim, int nspecies, int nstate>
 int check_objective(
     const unsigned int nx_ffd,
     std::shared_ptr < DGBase<dim, double> > dg,
@@ -284,7 +284,7 @@ int check_objective(
                 0.8,
                 1.25,
                 0.0);
-    FreeStreamInitialConditions<dim,nstate,double> initial_conditions(euler_physics_double);
+    FreeStreamInitialConditions<dim,nspecies,nstate,double> initial_conditions(euler_physics_double);
 
     auto des_var_p = ROL::makePtr<ROL::Vector_SimOpt<double>>(des_var_sim_rol_p, des_var_ctl_rol_p);
 
@@ -351,8 +351,8 @@ int check_objective(
     return test_error;
 }
 
-template<int dim, int nstate>
-int EulerNACAOptimization<dim,nstate>
+template<int dim, int nspecies, int nstate>
+int EulerNACAOptimization<dim,nspecies,nstate>
 ::optimize (const unsigned int nx_ffd, const unsigned int poly_degree) const
 {
     int test_error = 0;
@@ -447,7 +447,7 @@ int EulerNACAOptimization<dim,nstate>
                 param.euler_param.mach_inf,
                 param.euler_param.angle_of_attack,
                 param.euler_param.side_slip_angle);
-    FreeStreamInitialConditions<dim,nstate,double> initial_conditions(euler_physics_double);
+    FreeStreamInitialConditions<dim,nspecies,nstate,double> initial_conditions(euler_physics_double);
 
     using Triangulation = dealii::parallel::distributed::Triangulation<dim>;
     std::shared_ptr <Triangulation> grid = std::make_shared<Triangulation> (
@@ -766,8 +766,8 @@ int EulerNACAOptimization<dim,nstate>
 }
 
 
-#if PHILIP_DIM==2
-    template class EulerNACAOptimization <PHILIP_DIM,PHILIP_DIM+2>;
+#if PHILIP_DIM==2 && PHILIP_SPECIES==1
+    template class EulerNACAOptimization <PHILIP_DIM,PHILIP_SPECIES,PHILIP_DIM+2>;
 #endif
 
 } // Tests namespace

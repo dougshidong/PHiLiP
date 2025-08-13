@@ -9,16 +9,16 @@
 namespace PHiLiP {
 namespace Tests {
 
-template <int dim, int nstate>
-AnisotropicMeshAdaptationCases<dim, nstate> :: AnisotropicMeshAdaptationCases(
+template <int dim, int nspecies, int nstate>
+AnisotropicMeshAdaptationCases<dim, nspecies, nstate> :: AnisotropicMeshAdaptationCases(
     const Parameters::AllParameters *const parameters_input,
     const dealii::ParameterHandler &parameter_handler_input)
     : TestsBase::TestsBase(parameters_input)
     , parameter_handler(parameter_handler_input)
 {}
 
-template <int dim, int nstate>
-void AnisotropicMeshAdaptationCases<dim,nstate> :: verify_fe_values_shape_hessian(const DGBase<dim, double> &dg) const
+template <int dim, int nspecies, int nstate>
+void AnisotropicMeshAdaptationCases<dim, nspecies, nstate> :: verify_fe_values_shape_hessian(const DGBase<dim, double> &dg) const
 {
     const auto mapping = (*(dg.high_order_grid->mapping_fe_field));
     dealii::hp::MappingCollection<dim> mapping_collection(mapping);
@@ -73,20 +73,20 @@ void AnisotropicMeshAdaptationCases<dim,nstate> :: verify_fe_values_shape_hessia
     pcout<<"PHiLiP's physical shape hessian matches that computed by dealii."<<std::endl;
 }
 
-template <int dim, int nstate>
-double AnisotropicMeshAdaptationCases<dim,nstate> :: evaluate_functional(std::shared_ptr<DGBase<dim,double>> dg) const
+template <int dim, int nspecies, int nstate>
+double AnisotropicMeshAdaptationCases<dim, nspecies, nstate> :: evaluate_functional(std::shared_ptr<DGBase<dim,double>> dg) const
 {
     std::shared_ptr< Functional<dim, nstate, double> > functional
                                 = FunctionalFactory<dim,nstate,double>::create_Functional(dg->all_parameters->functional_param, dg);
     return (functional->evaluate_functional());
 }
 
-template <int dim, int nstate>
-int AnisotropicMeshAdaptationCases<dim, nstate> :: run_test () const
+template <int dim, int nspecies, int nstate>
+int AnisotropicMeshAdaptationCases<dim, nspecies, nstate> :: run_test () const
 {
     const Parameters::AllParameters param = *(TestsBase::all_parameters);
     
-    std::unique_ptr<FlowSolver::FlowSolver<dim,nstate>> flow_solver = FlowSolver::FlowSolverFactory<dim,nstate>::select_flow_case(&param, parameter_handler);
+    std::unique_ptr<FlowSolver::FlowSolver<dim,1,nstate>> flow_solver = FlowSolver::FlowSolverFactory<dim,1,nstate>::select_flow_case(&param, parameter_handler);
     const bool use_goal_oriented_approach = param.mesh_adaptation_param.use_goal_oriented_mesh_adaptation;
     const double complexity = param.mesh_adaptation_param.mesh_complexity_anisotropic_adaptation;
     const double normLp = param.mesh_adaptation_param.norm_Lp_anisotropic_adaptation;
@@ -141,9 +141,9 @@ int AnisotropicMeshAdaptationCases<dim, nstate> :: run_test () const
 //template class AnisotropicMeshAdaptationCases <PHILIP_DIM,PHILIP_DIM>;
 //#endif
 
-#if PHILIP_DIM==2
-template class AnisotropicMeshAdaptationCases <PHILIP_DIM, 1>;
-template class AnisotropicMeshAdaptationCases <PHILIP_DIM, PHILIP_DIM + 2>;
+#if PHILIP_DIM==2 && PHILIP_SPECIES==1
+template class AnisotropicMeshAdaptationCases <PHILIP_DIM, PHILIP_SPECIES, 1>;
+template class AnisotropicMeshAdaptationCases <PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM + 2>;
 #endif
 } // namespace Tests
 } // namespace PHiLiP 

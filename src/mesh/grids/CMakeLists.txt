@@ -14,14 +14,22 @@ set(GRIDS_SOURCE
     )
 
 foreach(dim RANGE 1 3)
+foreach(species RANGE 1 3)
+    # String to append for library names
+    if(species MATCHES 1)
+        string(CONCAT lib_spec _${dim}D)
+    else()
+        string(CONCAT lib_spec _${dim}D_${species}species)
+    endif()
+
     # Output library
-    string(CONCAT GridsLib Grids_${dim}D)
+    string(CONCAT GridsLib Grids ${lib_spec})
     add_library(${GridsLib} STATIC ${GRIDS_SOURCE})
     # Link with HighOrderGridLib
-    string(CONCAT HighOrderGridLib HighOrderGrid_${dim}D)
+    string(CONCAT HighOrderGridLib HighOrderGrid ${lib_spec})
     target_link_libraries(${GridsLib} ${HighOrderGridLib})
 
-    target_compile_definitions(${GridsLib} PRIVATE PHILIP_DIM=${dim})
+    target_compile_definitions(${GridsLib} PRIVATE PHILIP_DIM=${dim} PHILIP_SPECIES=${species})
     unset(HighOrderGridLib)
 
     # Setup target with deal.II
@@ -31,4 +39,5 @@ foreach(dim RANGE 1 3)
 
 
     unset(GridsLib)
+endforeach()
 endforeach()

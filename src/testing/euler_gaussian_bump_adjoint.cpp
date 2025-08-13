@@ -225,8 +225,8 @@ public:
 };
 template class FreeStreamInitialConditionsAdjoint <PHILIP_DIM, PHILIP_DIM+2>;
 
-template <int dim, int nstate>
-EulerGaussianBumpAdjoint<dim,nstate>::EulerGaussianBumpAdjoint(const Parameters::AllParameters *const parameters_input)
+template <int dim, int nspecies, int nstate>
+EulerGaussianBumpAdjoint<dim,nspecies,nstate>::EulerGaussianBumpAdjoint(const Parameters::AllParameters *const parameters_input)
     :
     TestsBase::TestsBase(parameters_input)
 {}
@@ -235,8 +235,8 @@ const double y_height = 0.8;
 const double bump_height = 0.0625; // High-Order Prediction Workshop
 const double coeff_expx = -25; // High-Order Prediction Workshop
 const double coeff_expy = -30;
-template <int dim, int nstate>
-dealii::Point<dim> EulerGaussianBumpAdjoint<dim,nstate>
+template <int dim, int nspecies, int nstate>
+dealii::Point<dim> EulerGaussianBumpAdjoint<dim,nspecies,nstate>
 ::warp (const dealii::Point<dim> &p)
 {
     const double x_ref = p[0];
@@ -305,8 +305,8 @@ std::unique_ptr<dealii::Manifold<2,2> > BumpManifoldAdjoint::clone() const
 }
 
 
-template<int dim, int nstate>
-int EulerGaussianBumpAdjoint<dim,nstate>
+template<int dim, int nspecies, int nstate>
+int EulerGaussianBumpAdjoint<dim,nspecies,nstate>
 ::run_test () const
 {
     using ManParam = Parameters::ManufacturedConvergenceStudyParam;
@@ -614,8 +614,8 @@ int EulerGaussianBumpAdjoint<dim,nstate>
 }
 
 
-#if PHILIP_DIM==2
-    template class EulerGaussianBumpAdjoint <PHILIP_DIM,PHILIP_DIM+2>;
+#if PHILIP_DIM==2 && PHILIP_SPECIES==1
+    template class EulerGaussianBumpAdjoint <PHILIP_DIM,PHILIP_SPECIES,PHILIP_DIM+2>;
 #endif
 
 } // Tests namespace

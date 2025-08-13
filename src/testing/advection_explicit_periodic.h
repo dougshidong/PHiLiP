@@ -9,7 +9,7 @@ namespace PHiLiP {
 namespace Tests {
 
 /// Advection periodic unsteady test
-template <int dim, int nstate>
+template <int dim, int nspecies, int nstate>
 class AdvectionPeriodic: public TestsBase
 {
 public:

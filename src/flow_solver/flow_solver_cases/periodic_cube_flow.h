@@ -13,8 +13,8 @@ using Triangulation = dealii::Triangulation<PHILIP_DIM>;
 using Triangulation = dealii::parallel::distributed::Triangulation<PHILIP_DIM>;
 #endif
 
-template <int dim, int nstate>
-class PeriodicCubeFlow : public CubeFlow_UniformGrid<dim,nstate>
+template <int dim, int nspecies, int nstate>
+class PeriodicCubeFlow : public CubeFlow_UniformGrid<dim, nspecies, nstate>
 {
 public:
     /// Constructor.

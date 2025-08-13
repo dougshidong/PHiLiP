@@ -8,17 +8,17 @@ namespace FlowSolver {
 // PERIODIC 1D DOMAIN FOR UNSTEADY CALCULATIONS
 //=========================================================
 
-template <int dim, int nstate>
-Periodic1DUnsteady<dim, nstate>::Periodic1DUnsteady(const PHiLiP::Parameters::AllParameters *const parameters_input)
-        : PeriodicCubeFlow<dim, nstate>(parameters_input)
+template <int dim, int nspecies, int nstate>
+Periodic1DUnsteady<dim, nspecies, nstate>::Periodic1DUnsteady(const PHiLiP::Parameters::AllParameters *const parameters_input)
+        : PeriodicCubeFlow<dim, nspecies, nstate>(parameters_input)
         , unsteady_data_table_filename_with_extension(this->all_param.flow_solver_param.unsteady_data_table_filename+".txt")
 {
 
 }
 
 
-template <int dim, int nstate>
-double Periodic1DUnsteady<dim, nstate>::compute_energy(
+template <int dim, int nspecies, int nstate>
+double Periodic1DUnsteady<dim, nspecies, nstate>::compute_energy(
         const std::shared_ptr <DGBase<dim, double>> dg
         ) const
 {
@@ -33,16 +33,16 @@ double Periodic1DUnsteady<dim, nstate>::compute_energy(
     return temp * dg->solution;
 }
 
-template <int dim, int nstate>
-double Periodic1DUnsteady<dim, nstate>::get_numerical_entropy(
+template <int dim, int nspecies, int nstate>
+double Periodic1DUnsteady<dim, nspecies, nstate>::get_numerical_entropy(
         const std::shared_ptr <DGBase<dim, double>> dg
         ) const
 {
     return compute_energy(dg);
 }
 
-template <int dim, int nstate>
-void Periodic1DUnsteady<dim, nstate>::compute_unsteady_data_and_write_to_table(
+template <int dim, int nspecies, int nstate>
+void Periodic1DUnsteady<dim, nspecies, nstate>::compute_unsteady_data_and_write_to_table(
        const unsigned int current_iteration,
         const double current_time,
         const std::shared_ptr <DGBase<dim, double>> dg ,
@@ -92,8 +92,8 @@ void Periodic1DUnsteady<dim, nstate>::compute_unsteady_data_and_write_to_table(
 
 }
 
-#if PHILIP_DIM==1
-template class Periodic1DUnsteady <PHILIP_DIM,PHILIP_DIM>;
+#if PHILIP_DIM==1 && PHILIP_SPECIES==1
+template class Periodic1DUnsteady <PHILIP_DIM,PHILIP_SPECIES,PHILIP_DIM>;
 #endif
 
 } // FlowSolver namespace

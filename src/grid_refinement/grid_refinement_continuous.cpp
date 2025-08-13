@@ -838,28 +838,24 @@ std::vector< std::pair<dealii::Vector<real>, std::string> > GridRefinement_Conti
 
 }
 
-// dealii::Triangulation<PHILIP_DIM>
-template class GridRefinement_Continuous<PHILIP_DIM, 1, double, dealii::Triangulation<PHILIP_DIM>>;
-template class GridRefinement_Continuous<PHILIP_DIM, 2, double, dealii::Triangulation<PHILIP_DIM>>;
-template class GridRefinement_Continuous<PHILIP_DIM, 3, double, dealii::Triangulation<PHILIP_DIM>>;
-template class GridRefinement_Continuous<PHILIP_DIM, 4, double, dealii::Triangulation<PHILIP_DIM>>;
-template class GridRefinement_Continuous<PHILIP_DIM, 5, double, dealii::Triangulation<PHILIP_DIM>>;
+// Define a sequence of indices representing the range [1, 7] - max is 7 because nstate=dim+2+(species-1)=7 when dim=species=3
+#define POSSIBLE_NSTATE (1)(2)(3)(4)(5)(6)(7)
 
-// dealii::parallel::shared::Triangulation<PHILIP_DIM>
-template class GridRefinement_Continuous<PHILIP_DIM, 1, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
-template class GridRefinement_Continuous<PHILIP_DIM, 2, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
-template class GridRefinement_Continuous<PHILIP_DIM, 3, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
-template class GridRefinement_Continuous<PHILIP_DIM, 4, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
-template class GridRefinement_Continuous<PHILIP_DIM, 5, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+// Define a macro to instantiate GridRefinement_Continuous for a specific index
+#define INSTANTIATE_DISTRIBUTED(r, data, index) \
+    template class GridRefinement_Continuous <PHILIP_DIM, index, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
 
-#if PHILIP_DIM != 1
-// dealii::parallel::distributed::Triangulation<PHILIP_DIM>
-template class GridRefinement_Continuous<PHILIP_DIM, 1, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
-template class GridRefinement_Continuous<PHILIP_DIM, 2, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
-template class GridRefinement_Continuous<PHILIP_DIM, 3, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
-template class GridRefinement_Continuous<PHILIP_DIM, 4, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
-template class GridRefinement_Continuous<PHILIP_DIM, 5, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+#if PHILIP_DIM!=1
+BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_DISTRIBUTED, _, POSSIBLE_NSTATE)
 #endif
+
+#define INSTANTIATE_SHARED(r, data, index) \
+    template class GridRefinement_Continuous <PHILIP_DIM, index, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_SHARED, _, POSSIBLE_NSTATE)
+
+#define INSTANTIATE_TRIA(r, data, index) \
+    template class GridRefinement_Continuous <PHILIP_DIM, index, double, dealii::Triangulation<PHILIP_DIM>>;
+BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_TRIA, _, POSSIBLE_NSTATE)
 
 } // namespace GridRefinement
 

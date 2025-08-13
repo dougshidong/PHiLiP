@@ -3950,5 +3950,4 @@ template class DGWeak <PHILIP_DIM, 4, double, dealii::parallel::distributed::Tri
 template class DGWeak <PHILIP_DIM, 5, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
 template class DGWeak <PHILIP_DIM, 6, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
 #endif
-
 } // PHiLiP namespace

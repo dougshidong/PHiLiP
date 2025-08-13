@@ -1,3 +1,4 @@
+#include <boost/preprocessor/seq/for_each.hpp>
 #include <Epetra_RowMatrixTransposer.h>
 
 #include <stdlib.h>
@@ -1082,11 +1083,14 @@ int OptimizationInverseManufactured<dim,nstate>
     return fail_bool;
 }
 
-template class OptimizationInverseManufactured <PHILIP_DIM,1>;
-template class OptimizationInverseManufactured <PHILIP_DIM,2>;
-template class OptimizationInverseManufactured <PHILIP_DIM,3>;
-template class OptimizationInverseManufactured <PHILIP_DIM,4>;
-template class OptimizationInverseManufactured <PHILIP_DIM,5>;
+// Define a sequence of indices representing the range [1, 7] - max is 7 because nstate=dim+2+(species-1)=7 when dim=species=3
+#define POSSIBLE_NSTATE (1)(2)(3)(4)(5)(6)(7)
+
+// Define a macro to instantiate MyTemplate for a specific index
+#define INSTANTIATE_TEMPLATE(r, data, index) \
+   template class OptimizationInverseManufactured <PHILIP_DIM,index>;
+BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_TEMPLATE, _, POSSIBLE_NSTATE)
+
 
 } // Tests namespace
 } // PHiLiP namespace

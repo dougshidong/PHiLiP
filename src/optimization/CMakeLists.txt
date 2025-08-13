@@ -9,18 +9,26 @@ set(TESTS_SOURCE
 add_subdirectory(design_parameterization)
 
 foreach(dim RANGE 1 3)
+foreach(species RANGE 1 3)
+    # String to append for library names
+    if(species MATCHES 1)
+        string(CONCAT lib_spec _${dim}D)
+    else()
+        string(CONCAT lib_spec _${dim}D_${species}species)
+    endif()
+
     # Output library
-    string(CONCAT OptimizationLib Optimization_${dim}D)
+    string(CONCAT OptimizationLib Optimization ${lib_spec})
     add_library(${OptimizationLib} STATIC ${TESTS_SOURCE})
     # Replace occurences of PHILIP_DIM with 1, 2, or 3 in the code
     target_compile_definitions(${OptimizationLib} PRIVATE PHILIP_DIM=${dim})
 
     # Library dependency
-    string(CONCAT GridsLib Grids_${dim}D)
-    string(CONCAT DiscontinuousGalerkinLib DiscontinuousGalerkin_${dim}D)
-    string(CONCAT ODESolverLib ODESolver_${dim}D)
+    string(CONCAT GridsLib Grids ${lib_spec})
+    string(CONCAT DiscontinuousGalerkinLib DiscontinuousGalerkin ${lib_spec})
+    string(CONCAT ODESolverLib ODESolver ${lib_spec})
     string(CONCAT LinearSolverLib LinearSolver)
-    string(CONCAT DesignParameterizationLib DesignParameterization_${dim}D)
+    string(CONCAT DesignParameterizationLib DesignParameterization ${lib_spec})
     target_link_libraries(${OptimizationLib} ${GridsLib})
     target_link_libraries(${OptimizationLib} ${DiscontinuousGalerkinLib})
     target_link_libraries(${OptimizationLib} ${ODESolverLib})
@@ -37,6 +45,6 @@ foreach(dim RANGE 1 3)
     unset(ODESolverLib)
     unset(LinearSolverLib)
     unset(DesignParameterizationLib)
-
+endforeach()
 endforeach()
 

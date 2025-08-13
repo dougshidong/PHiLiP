@@ -10,8 +10,8 @@
 namespace PHiLiP {
 namespace Tests {
 
-template <int dim, int nstate>
-HRefinementStudyIsentropicVortex<dim, nstate>::HRefinementStudyIsentropicVortex(
+template <int dim, int nspecies, int nstate>
+HRefinementStudyIsentropicVortex<dim,nspecies,nstate>::HRefinementStudyIsentropicVortex(
         const PHiLiP::Parameters::AllParameters *const parameters_input,
         const dealii::ParameterHandler &parameter_handler_input)  
         : TestsBase::TestsBase(parameters_input),
@@ -22,8 +22,8 @@ HRefinementStudyIsentropicVortex<dim, nstate>::HRefinementStudyIsentropicVortex(
 
 
 
-template <int dim, int nstate>
-Parameters::AllParameters HRefinementStudyIsentropicVortex<dim,nstate>::reinit_params_and_refine(int refinement) const
+template <int dim, int nspecies, int nstate>
+Parameters::AllParameters HRefinementStudyIsentropicVortex<dim,nspecies,nstate>::reinit_params_and_refine(int refinement) const
 {
      PHiLiP::Parameters::AllParameters parameters = *(this->all_parameters);
      
@@ -32,8 +32,8 @@ Parameters::AllParameters HRefinementStudyIsentropicVortex<dim,nstate>::reinit_p
      return parameters;
 }
 
-template <int dim, int nstate>
-void HRefinementStudyIsentropicVortex<dim,nstate>::calculate_Lp_error_at_final_time_wrt_function(double &Lp_error_density, 
+template <int dim, int nspecies, int nstate>
+void HRefinementStudyIsentropicVortex<dim,nspecies,nstate>::calculate_Lp_error_at_final_time_wrt_function(double &Lp_error_density, 
         double &Lp_error_pressure,
         std::shared_ptr<DGBase<dim,double>> dg,
         const Parameters::AllParameters parameters,
@@ -113,8 +113,8 @@ void HRefinementStudyIsentropicVortex<dim,nstate>::calculate_Lp_error_at_final_t
     
 }
 
-template <int dim, int nstate>
-int HRefinementStudyIsentropicVortex<dim, nstate>::run_test() const
+template <int dim, int nspecies, int nstate>
+int HRefinementStudyIsentropicVortex<dim,nspecies,nstate>::run_test() const
 {
 
     const double final_time = this->all_parameters->flow_solver_param.final_time;
@@ -141,8 +141,8 @@ int HRefinementStudyIsentropicVortex<dim, nstate>::run_test() const
         pcout << "---------------------------------------------" << std::endl;
 
         const Parameters::AllParameters params = reinit_params_and_refine(refinement);
-        std::unique_ptr<FlowSolver::FlowSolver<dim,nstate>> flow_solver = FlowSolver::FlowSolverFactory<dim,nstate>::select_flow_case(&params, parameter_handler);
-        std::unique_ptr<FlowSolver::PeriodicEntropyTests<dim, nstate>> flow_solver_case = std::make_unique<FlowSolver::PeriodicEntropyTests<dim,nstate>>(&params);
+        std::unique_ptr<FlowSolver::FlowSolver<dim,nspecies,nstate>> flow_solver = FlowSolver::FlowSolverFactory<dim,nspecies,nstate>::select_flow_case(&params, parameter_handler);
+        std::unique_ptr<FlowSolver::PeriodicEntropyTests<dim,nspecies,nstate>> flow_solver_case = std::make_unique<FlowSolver::PeriodicEntropyTests<dim,nspecies,nstate>>(&params);
     
         static_cast<void>(flow_solver->run());
         pcout << "Finished flowsolver " << std::endl;
@@ -242,8 +242,8 @@ int HRefinementStudyIsentropicVortex<dim, nstate>::run_test() const
 
     return testfail;
 }
-#if PHILIP_DIM!=1
-    template class HRefinementStudyIsentropicVortex<PHILIP_DIM,PHILIP_DIM+2>;
+#if PHILIP_DIM!=1 && PHILIP_SPECIES==1
+    template class HRefinementStudyIsentropicVortex<PHILIP_DIM,PHILIP_SPECIES,PHILIP_DIM+2>;
 #endif
 } // Tests namespace
 } // PHiLiP namespace

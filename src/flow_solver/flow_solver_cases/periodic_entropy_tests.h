@@ -7,8 +7,8 @@
 namespace PHiLiP {
 namespace FlowSolver {
 
-template <int dim, int nstate>
-class PeriodicEntropyTests : public PeriodicCubeFlow<dim,nstate>
+template <int dim, int nspecies, int nstate>
+class PeriodicEntropyTests : public PeriodicCubeFlow<dim, nspecies, nstate>
 {
 public:
 
@@ -40,7 +40,7 @@ protected:
             const int overintegrate=10 // Overintegrate for KE, don't for num. entropy
             ) const;
 
-    using FlowSolverCaseBase<dim,nstate>::compute_unsteady_data_and_write_to_table;
+    using FlowSolverCaseBase<dim, nspecies, nstate>::compute_unsteady_data_and_write_to_table;
     /// Compute the desired unsteady data and write it to a table
     void compute_unsteady_data_and_write_to_table(
             const std::shared_ptr<ODE::ODESolverBase<dim, double>> ode_solver, 

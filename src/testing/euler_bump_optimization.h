@@ -22,7 +22,7 @@ public:
 };
 
 /// Performs grid convergence for various polynomial degrees.
-template <int dim, int nstate>
+template <int dim, int nspecies, int nstate>
 class EulerBumpOptimization: public TestsBase
 {
 public:

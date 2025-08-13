@@ -11,13 +11,13 @@
 namespace PHiLiP {
 namespace Tests {
 
-template <int dim, int nstate>
-EulerTaylorGreenScaling<dim, nstate>::EulerTaylorGreenScaling(const Parameters::AllParameters *const parameters_input)
+template <int dim, int nspecies, int nstate>
+EulerTaylorGreenScaling<dim, nspecies, nstate>::EulerTaylorGreenScaling(const Parameters::AllParameters *const parameters_input)
     : TestsBase::TestsBase(parameters_input)
 {}
 
-template <int dim, int nstate>
-int EulerTaylorGreenScaling<dim, nstate>::run_test() const
+template <int dim, int nspecies, int nstate>
+int EulerTaylorGreenScaling<dim, nspecies, nstate>::run_test() const
 {
     using Triangulation = dealii::parallel::distributed::Triangulation<dim>;
     std::shared_ptr<Triangulation> grid = std::make_shared<Triangulation>(
@@ -73,9 +73,9 @@ int EulerTaylorGreenScaling<dim, nstate>::run_test() const
         dg->allocate_system (false,false,false);
          
         //Apply initial condition for TGV
-        std::shared_ptr< InitialConditionFunction<dim,nstate,double> > initial_condition_function = 
-                    InitialConditionFactory<dim,nstate,double>::create_InitialConditionFunction(&all_parameters_new);
-        SetInitialCondition<dim,nstate,double>::set_initial_condition(initial_condition_function, dg, &all_parameters_new);
+        std::shared_ptr< InitialConditionFunction<dim,nspecies,nstate,double> > initial_condition_function = 
+                    InitialConditionFactory<dim,nspecies,nstate,double>::create_InitialConditionFunction(&all_parameters_new);
+        SetInitialCondition<dim,nspecies,nstate,double>::set_initial_condition(initial_condition_function, dg, &all_parameters_new);
         //Create ODE system. 
         std::shared_ptr<ODE::ODESolverBase<dim, double>> ode_solver = ODE::ODESolverFactory<dim, double>::create_ODESolver(dg);
          
@@ -155,9 +155,9 @@ int EulerTaylorGreenScaling<dim, nstate>::run_test() const
     try{
         dg->allocate_system (false,false,false);
          
-        std::shared_ptr< InitialConditionFunction<dim,nstate,double> > initial_condition_function = 
-                    InitialConditionFactory<dim,nstate,double>::create_InitialConditionFunction(&all_parameters_new);
-        SetInitialCondition<dim,nstate,double>::set_initial_condition(initial_condition_function, dg, &all_parameters_new);
+        std::shared_ptr< InitialConditionFunction<dim,nspecies,nstate,double> > initial_condition_function = 
+                    InitialConditionFactory<dim,nspecies,nstate,double>::create_InitialConditionFunction(&all_parameters_new);
+        SetInitialCondition<dim,nspecies,nstate,double>::set_initial_condition(initial_condition_function, dg, &all_parameters_new);
          
         std::shared_ptr<ODE::ODESolverBase<dim, double>> ode_solver = ODE::ODESolverFactory<dim, double>::create_ODESolver(dg);
          
@@ -186,8 +186,8 @@ int EulerTaylorGreenScaling<dim, nstate>::run_test() const
     return 0;
 }
 
-#if PHILIP_DIM==3
-    template class EulerTaylorGreenScaling <PHILIP_DIM,PHILIP_DIM+2>;
+#if PHILIP_DIM==3 && PHILIP_SPECIES==1
+    template class EulerTaylorGreenScaling <PHILIP_DIM,PHILIP_SPECIES,PHILIP_DIM+2>;
 #endif
 
 } // Tests namespace

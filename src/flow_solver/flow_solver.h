@@ -60,18 +60,18 @@ public:
 
 
 /// Selects which flow case to simulate.
-template <int dim, int nstate>
+template <int dim, int nspecies, int nstate>
 class FlowSolver : public FlowSolverBase
 {
 public:
     /// Constructor.
     FlowSolver(
         const Parameters::AllParameters *const parameters_input, 
-        std::shared_ptr<FlowSolverCaseBase<dim, nstate>> flow_solver_case_input,
+        std::shared_ptr<FlowSolverCaseBase<dim, nspecies, nstate>> flow_solver_case_input,
         const dealii::ParameterHandler &parameter_handler_input);
     
     /// Pointer to Flow Solver Case
-    std::shared_ptr<FlowSolverCaseBase<dim, nstate>> flow_solver_case;
+    std::shared_ptr<FlowSolverCaseBase<dim, nspecies, nstate>> flow_solver_case;
 
     /// Parameter handler for storing the .prm file being ran
     const dealii::ParameterHandler &parameter_handler;

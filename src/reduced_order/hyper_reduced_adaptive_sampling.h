@@ -28,8 +28,8 @@ Sebastian Grimberg, Charbel Farhat, Radek Tezaur, Charbel Bou-Mosleh
 International Journal for Numerical Methods in Engineering, 2020
 https://onlinelibrary.wiley.com/doi/10.1002/nme.6603
 */
-template <int dim, int nstate>
-class HyperreducedAdaptiveSampling: public AdaptiveSamplingBase<dim,nstate>
+template <int dim, int nspecies, int nstate>
+class HyperreducedAdaptiveSampling: public AdaptiveSamplingBase<dim, nspecies, nstate>
 {
 public:
     /// Constructor

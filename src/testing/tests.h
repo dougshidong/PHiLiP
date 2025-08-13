@@ -67,7 +67,7 @@ protected:
 };
 
 /// Test factory, that will create the correct test with the right template parameters.
-template<int dim, int nstate, typename MeshType = dealii::Triangulation<dim>>
+template<int dim, int nspecies, int nstate, typename MeshType = dealii::Triangulation<dim>>
 class TestsFactory
 {
 public:

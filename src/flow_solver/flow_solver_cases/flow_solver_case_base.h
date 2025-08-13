@@ -20,14 +20,14 @@ using Triangulation = dealii::Triangulation<PHILIP_DIM>;
 using Triangulation = dealii::parallel::distributed::Triangulation<PHILIP_DIM>;
 #endif
 
-template <int dim, int nstate>
+template <int dim, int nspecies, int nstate>
 class FlowSolverCaseBase
 {
 public:
     ///Constructor
     explicit FlowSolverCaseBase(const Parameters::AllParameters *const parameters_input);
 
-    std::shared_ptr<InitialConditionFunction<dim,nstate,double>> initial_condition_function; ///< Initial condition function
+    std::shared_ptr<InitialConditionFunction<dim,nspecies,nstate,double>> initial_condition_function; ///< Initial condition function
 
     /// Destructor
     virtual ~FlowSolverCaseBase() = default;

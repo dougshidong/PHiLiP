@@ -26,7 +26,7 @@ public:
 };
 
 /// Performs grid convergence for various polynomial degrees.
-template <int dim, int nstate>
+template <int dim, int nspecies, int nstate>
 class EulerGaussianBumpAdjoint: public TestsBase
 {
 public:

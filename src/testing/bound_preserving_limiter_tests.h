@@ -12,7 +12,7 @@ namespace Tests {
 * Cases include: Linear Advection (1D & 2D), Burgers' 
 * Equation (1D & 2D) and Low Density Accuracy Test (2D Euler)
 *************************************************************/
-template <int dim, int nstate>
+template <int dim, int nspecies, int nstate>
 class BoundPreservingLimiterTests : public TestsBase
 {
 public:

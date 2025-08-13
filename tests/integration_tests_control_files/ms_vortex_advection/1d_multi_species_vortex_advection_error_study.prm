@@ -1,0 +1,77 @@
+# Listing of Parameters
+# ---------------------
+
+# Reference:
+# Jian-Hang Wang, Shucheng Pan, Xiangyu Y Hu, and Nikolaus A Adams. Partial characteristic decomposition for multi-species euler equations. Computers & Fluids, 181:364–382, 2019.
+
+# test 
+set test_type = multi_species_vortex_advection_error_study
+
+# Number of dimensions
+set dimension = 1
+
+# Chemical species
+set number_of_species = 2 # this would be changed to 3 when testing a three species case
+set pde_type = real_gas
+set chemistry_input_file = ../../chemistry/ReactionFiles/H2_O2_N2.kinetics
+set initial_mixture_fractions_input_file = ../../chemistry/InitialMixtureFiles/InitialMixtureFractions_H2_O2_N2.txt
+
+
+# DG formulation
+set use_weak_form = true
+set non_physical_behavior = abort_run
+
+# set directry to write output data
+#set solution_vtk_files_directory_name = multi_species
+
+# Note: this was added to turn off check_same_coords() -- has no other function when dim!=1
+set use_periodic_bc = true
+
+# degree of freedom renumbering not necessary for explicit time advancement cases
+set do_renumber_dofs = false
+
+# numerical fluxes
+set conv_num_flux = lax_friedrichs
+set diss_num_flux = symm_internal_penalty
+
+# ODE solver
+subsection ODE solver
+  set output_solution_every_x_steps = 10000
+  set ode_output = quiet
+  set ode_solver_type = runge_kutta
+  set runge_kutta_method = ssprk3_ex
+end
+
+# freestream Mach number
+subsection euler
+  set mach_infinity = 0.1
+end
+
+subsection flow_solver
+  set flow_case_type = multi_species_vortex_advection
+  set final_time = 34.614724700315755e-1 # It is 0.1 second or 1 cycle
+  set adaptive_time_step = false
+  set constant_time_step = 34.614724700315755e-6 # It is 1*10^(-6) second in phsysical time
+  subsection grid
+    set grid_left_bound = 0.0
+    set grid_right_bound = 10.0
+  end
+end 
+
+subsection manufactured solution convergence study
+  # Last degree used for convergence study
+  set degree_end        = 1
+
+  # Starting degree for convergence study
+  set degree_start      = 1
+
+  set grid_progression  = 2
+
+  set grid_progression_add  = 0
+
+  # Initial grid of size (initial_grid_size)^dim
+  set initial_grid_size = 2
+
+  # Number of grids in grid study
+  set number_of_grids   = 6
+end

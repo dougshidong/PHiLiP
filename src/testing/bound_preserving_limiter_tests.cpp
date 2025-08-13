@@ -12,8 +12,8 @@
 namespace PHiLiP {
 namespace Tests {
 
-template <int dim, int nstate>
-BoundPreservingLimiterTests<dim, nstate>::BoundPreservingLimiterTests(
+template <int dim, int nspecies, int nstate>
+BoundPreservingLimiterTests<dim, nspecies, nstate>::BoundPreservingLimiterTests(
     const PHiLiP::Parameters::AllParameters* const parameters_input,
     const dealii::ParameterHandler& parameter_handler_input)
     :
@@ -21,8 +21,8 @@ BoundPreservingLimiterTests<dim, nstate>::BoundPreservingLimiterTests(
     , parameter_handler(parameter_handler_input)
 {}
 
-template <int dim, int nstate>
-double BoundPreservingLimiterTests<dim, nstate>::calculate_uexact(const dealii::Point<dim> qpoint, const dealii::Tensor<1, 3, double> adv_speeds, double final_time) const
+template <int dim, int nspecies, int nstate>
+double BoundPreservingLimiterTests<dim, nspecies, nstate>::calculate_uexact(const dealii::Point<dim> qpoint, const dealii::Tensor<1, 3, double> adv_speeds, double final_time) const
 {
     PHiLiP::Parameters::AllParameters all_parameters_new = *all_parameters;
     using flow_case_enum = Parameters::FlowSolverParam::FlowCaseType;
@@ -45,8 +45,8 @@ double BoundPreservingLimiterTests<dim, nstate>::calculate_uexact(const dealii::
     return uexact;
 }
 
-template <int dim, int nstate>
-double BoundPreservingLimiterTests<dim, nstate>::calculate_l2error(
+template <int dim, int nspecies, int nstate>
+double BoundPreservingLimiterTests<dim, nspecies, nstate>::calculate_l2error(
     std::shared_ptr<DGBase<dim, double>> dg,
     const int poly_degree,
     const double final_time) const
@@ -87,8 +87,8 @@ double BoundPreservingLimiterTests<dim, nstate>::calculate_l2error(
     return l2error_mpi_sum;
 }
 
-template <int dim, int nstate>
-int BoundPreservingLimiterTests<dim, nstate>::run_test() const
+template <int dim, int nspecies, int nstate>
+int BoundPreservingLimiterTests<dim, nspecies, nstate>::run_test() const
 {
     pcout << " Running Bound Preserving Limiter test. " << std::endl;
     pcout << dim << "    " << nstate << std::endl;
@@ -105,8 +105,8 @@ int BoundPreservingLimiterTests<dim, nstate>::run_test() const
     return test_result; //if got to here means passed the test, otherwise would've failed earlier
 }
 
-template <int dim, int nstate>
-int BoundPreservingLimiterTests<dim, nstate>::run_full_limiter_test() const
+template <int dim, int nspecies, int nstate>
+int BoundPreservingLimiterTests<dim, nspecies, nstate>::run_full_limiter_test() const
 {
     pcout << "\n" << "Creating FlowSolver" << std::endl;
 
@@ -121,14 +121,14 @@ int BoundPreservingLimiterTests<dim, nstate>::run_full_limiter_test() const
         param.flow_solver_param.grid_right_bound = 2.0 * pi;
     }
 
-    std::unique_ptr<FlowSolver::FlowSolver<dim, nstate>> flow_solver = FlowSolver::FlowSolverFactory<dim, nstate>::select_flow_case(&param, parameter_handler);
+    std::unique_ptr<FlowSolver::FlowSolver<dim, nspecies, nstate>> flow_solver = FlowSolver::FlowSolverFactory<dim, nspecies, nstate>::select_flow_case(&param, parameter_handler);
     flow_solver->run();
 
     return 0;
 }
 
-template <int dim, int nstate>
-int BoundPreservingLimiterTests<dim, nstate>::run_convergence_test() const
+template <int dim, int nspecies, int nstate>
+int BoundPreservingLimiterTests<dim, nspecies, nstate>::run_convergence_test() const
 {
     PHiLiP::Parameters::AllParameters all_parameters_new = *all_parameters;
     PHiLiP::Parameters::ManufacturedConvergenceStudyParam manu_grid_conv_param = all_parameters_new.manufactured_convergence_study_param;
@@ -154,7 +154,7 @@ int BoundPreservingLimiterTests<dim, nstate>::run_convergence_test() const
             param.flow_solver_param.grid_right_bound = 2.0 * pi;
         }
 
-        std::unique_ptr<FlowSolver::FlowSolver<dim, nstate>> flow_solver = FlowSolver::FlowSolverFactory<dim, nstate>::select_flow_case(&param, parameter_handler);
+        std::unique_ptr<FlowSolver::FlowSolver<dim, nspecies, nstate>> flow_solver = FlowSolver::FlowSolverFactory<dim, nspecies, nstate>::select_flow_case(&param, parameter_handler);
         const unsigned int n_global_active_cells = flow_solver->dg->triangulation->n_global_active_cells();
         const int poly_degree = all_parameters_new.flow_solver_param.poly_degree;
         const double final_time = all_parameters_new.flow_solver_param.final_time;
@@ -217,13 +217,15 @@ int BoundPreservingLimiterTests<dim, nstate>::run_convergence_test() const
     return 0;
 }
 
-#if PHILIP_DIM==1
-template class BoundPreservingLimiterTests<PHILIP_DIM, PHILIP_DIM>;
-#elif PHILIP_DIM==2
-template class BoundPreservingLimiterTests<PHILIP_DIM, PHILIP_DIM>;
-template class BoundPreservingLimiterTests<PHILIP_DIM, PHILIP_DIM + 2>;
-template class BoundPreservingLimiterTests<PHILIP_DIM, 1>;
+#if PHILIP_DIM==1 && PHILIP_SPECIES==1
+template class BoundPreservingLimiterTests<PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM>;
+template class BoundPreservingLimiterTests<PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM + 2>;
+#elif PHILIP_DIM==2 && PHILIP_SPECIES==1
+template class BoundPreservingLimiterTests<PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM>;
+template class BoundPreservingLimiterTests<PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM + 2>;
+template class BoundPreservingLimiterTests<PHILIP_DIM, PHILIP_SPECIES, 1>;
+#elif PHILIP_SPECIES!=1
+template class BoundPreservingLimiterTests<PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM + 2 + (PHILIP_SPECIES-1)>;
 #endif
-
 } // Tests namespace
 } // PHiLiP namespace

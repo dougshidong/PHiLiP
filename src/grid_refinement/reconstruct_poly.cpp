@@ -812,11 +812,13 @@ dealii::Vector<real> ReconstructPoly<dim,nstate,real>::get_derivative_value_vect
     return vec;
 }
 
-template class ReconstructPoly<PHILIP_DIM, 1, double>;
-template class ReconstructPoly<PHILIP_DIM, 2, double>;
-template class ReconstructPoly<PHILIP_DIM, 3, double>;
-template class ReconstructPoly<PHILIP_DIM, 4, double>;
-template class ReconstructPoly<PHILIP_DIM, 5, double>;
+// Define a sequence of indices representing the range [1, 7] - max is 7 because nstate=dim+2+(species-1)=7 when dim=species=3
+#define POSSIBLE_NSTATE (1)(2)(3)(4)(5)(6)(7)
+
+// Define a macro to instantiate MyTemplate for a specific index
+#define INSTANTIATE_TEMPLATE(r, data, index) \
+   template class ReconstructPoly <PHILIP_DIM,index,double>;
+BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_TEMPLATE, _, POSSIBLE_NSTATE)
 
 } // namespace GridRefinement
 

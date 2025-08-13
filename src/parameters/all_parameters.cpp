@@ -40,6 +40,10 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       dealii::Patterns::Integer(),
                       "Number of dimensions");
 
+    prm.declare_entry("number_of_species", "1",
+                      dealii::Patterns::Integer(),
+                      "Number of species");
+
     prm.declare_entry("run_type", "integration_test",
                       dealii::Patterns::Selection(
                       " integration_test | "
@@ -200,7 +204,14 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       " halton_sampling_run |"
                       " naca0012_unsteady_check_quick | "
                       " khi_robustness | "
-                      " low_density "),
+                      " low_density | "
+                      " real_gas_vs_euler_primitive_to_conservative_check | "
+                      " euler_vortex_advection_error_study | "
+                      " multi_species_vortex_advection_error_study | "
+                      " multi_species_high_temperature_vortex_advection_error_study | "
+                      " multi_species_calorically_perfect_euler_vortex_advection_error_study | "           
+                      " multi_species_two_dimensional_vortex_advection_error_study |"   
+                      " khi_robustness"),
                       "The type of test we want to solve. "
                       "Choices are " 
                       " <run_control | " 
@@ -251,7 +262,14 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       "  halton_sampling_run |"
                       "  naca0012_unsteady_check_quick | "
                       "  khi_robustness | "
-                      "  low_density>.");
+                      "  low_density | "
+                      "  real_gas_vs_euler_primitive_to_conservative_check | "
+                      "  euler_vortex_advection_error_study | "
+                      "  multi_species_vortex_advection_error_study | "
+                      "  multi_species_high_temperature_vortex_advection_error_study | "
+                      "  multi_species_calorically_perfect_euler_vortex_advection_error_study | "                       
+                      "  multi_species_two_dimensional_vortex_advection_error_study |"
+                      "  khi_robustness>.");
 
     prm.declare_entry("pde_type", "advection",
                       dealii::Patterns::Selection(
@@ -265,6 +283,9 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       " euler |"
                       " mhd |"
                       " navier_stokes |"
+                      " inviscid_real_gas | "
+                      " real_gas | "
+                      " multi_species_calorically_perfect_euler | "                      
                       " physics_model"),
                       "The PDE we want to solve. "
                       "Choices are " 
@@ -278,6 +299,9 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       "  euler | "
                       "  mhd |"
                       "  navier_stokes |"
+                      "  inviscid_real_gas | "
+                      "  real_gas | "
+                      "  multi_species_calorically_perfect_euler | "
                       "  physics_model>.");
 
     prm.declare_entry("model_type", "large_eddy_simulation",
@@ -354,6 +378,22 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       "Tolerance for checking that the determinant of surface jacobians at element faces matches. "
                       "Note: Currently only used in weak dg.");
 
+    prm.declare_entry("chemistry_input_file", "H2_O2_N2.kinetics",
+                      dealii::Patterns::FileName(dealii::Patterns::FileName::FileType::input),
+                      "Filename of the unsteady data table output file: unsteady_data_table_filename.txt.");
+
+    prm.declare_entry("chemistry_input_file", "N2_O2.kinetics",
+                      dealii::Patterns::FileName(dealii::Patterns::FileName::FileType::input),
+                      "Filename of the unsteady data table output file: unsteady_data_table_filename.txt.");
+
+    prm.declare_entry("initial_mixture_fractions_input_file", "InitialMixtureFractions_H2_O2_N2.txt",
+                      dealii::Patterns::FileName(dealii::Patterns::FileName::FileType::input),
+                      "Filename of the unsteady data table output file: unsteady_data_table_filename.txt.");
+
+    prm.declare_entry("initial_mixture_fractions_input_file", "InitialMixtureFractions_N2_O2.txt",
+                      dealii::Patterns::FileName(dealii::Patterns::FileName::FileType::input),
+                      "Filename of the unsteady data table output file: unsteady_data_table_filename.txt.");
+
     Parameters::LinearSolverParam::declare_parameters (prm);
     Parameters::ManufacturedConvergenceStudyParam::declare_parameters (prm);
     Parameters::ODESolverParam::declare_parameters (prm);
@@ -379,6 +419,7 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
     pcout << "Parsing main input..." << std::endl;
 
     dimension = prm.get_integer("dimension");
+    number_of_species = prm.get_integer("number_of_species");
 
     const std::string run_type_string = prm.get("run_type");
     if      (run_type_string == "integration_test") { run_type = integration_test; }
@@ -432,6 +473,13 @@ const std::string test_string = prm.get("test_type");
     else if (test_string == "euler_entropy_conserving_split_forms_check") 
                                                                         { test_type = euler_entropy_conserving_split_forms_check; }
     else if (test_string == "h_refinement_study_isentropic_vortex")     { test_type = h_refinement_study_isentropic_vortex; }
+    else if (test_string == "real_gas_vs_euler_primitive_to_conservative_check")
+                                                                        { test_type = real_gas_vs_euler_primitive_to_conservative_check;}
+    else if (test_string == "euler_vortex_advection_error_study")       { test_type = euler_vortex_advection_error_study; }
+    else if (test_string == "multi_species_vortex_advection_error_study"){ test_type = multi_species_vortex_advection_error_study; }
+    else if (test_string == "multi_species_high_temperature_vortex_advection_error_study"){ test_type = multi_species_high_temperature_vortex_advection_error_study; }    
+    else if (test_string == "multi_species_calorically_perfect_euler_vortex_advection_error_study"){ test_type = multi_species_calorically_perfect_euler_vortex_advection_error_study; }
+    else if (test_string == "multi_species_two_dimensional_vortex_advection_error_study"){ test_type = multi_species_two_dimensional_vortex_advection_error_study; }
     else if (test_string == "khi_robustness")                           { test_type = khi_robustness; }
     else if (test_string == "build_NNLS_problem")                       { test_type = build_NNLS_problem; }
     else if (test_string == "hyper_reduction_comparison")               { test_type = hyper_reduction_comparison; }
@@ -540,6 +588,9 @@ const std::string test_string = prm.get("test_type");
 
     matching_surface_jac_det_tolerance = prm.get_double("matching_surface_jac_det_tolerance");
 
+    chemistry_input_file = prm.get("chemistry_input_file");
+    initial_mixture_fractions_input_file = prm.get("initial_mixture_fractions_input_file");
+
     pcout << "Parsing linear solver subsection..." << std::endl;
     linear_solver_param.parse_parameters (prm);
 
@@ -620,6 +671,18 @@ const std::string test_string = prm.get("test_type");
         pde_type = navier_stokes;
         nstate = dimension+2;
     }
+    else if(pde_string == "inviscid_real_gas") {
+        pde_type = inviscid_real_gas;
+        nstate = dimension+2;
+    }
+    else if(pde_string == "real_gas") {
+        pde_type = real_gas;
+        nstate = dimension+2+(number_of_species-1);
+    }
+    else if(pde_string == "multi_species_calorically_perfect_euler") {
+        pde_type = multi_species_calorically_perfect_euler;
+        nstate = dimension+2+(number_of_species-1);
+    }  
     else if (pde_string == "physics_model") {
         pde_type = physics_model;
         if (model_type == large_eddy_simulation)

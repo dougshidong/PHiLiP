@@ -9,8 +9,8 @@ namespace FlowSolver{
 //=========================================================
 // Gaussian Bump
 //=========================================================
-template <int dim, int nstate>
-class GaussianBump : public FlowSolverCaseBase<dim, nstate>
+template <int dim, int nspecies, int nstate>
+class GaussianBump : public FlowSolverCaseBase<dim, nspecies, nstate>
 {
 #if PHILIP_DIM==1
     using Triangulation = dealii::Triangulation<PHILIP_DIM>;

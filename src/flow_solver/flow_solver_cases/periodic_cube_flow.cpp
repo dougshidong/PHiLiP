@@ -11,17 +11,17 @@ namespace FlowSolver {
 //=========================================================
 // FLOW IN PERIODIC CUBE DOMAIN
 //=========================================================
-template <int dim, int nstate>
-PeriodicCubeFlow<dim, nstate>::PeriodicCubeFlow(const PHiLiP::Parameters::AllParameters *const parameters_input)
-        : CubeFlow_UniformGrid<dim, nstate>(parameters_input)
+template <int dim, int nspecies, int nstate>
+PeriodicCubeFlow<dim, nspecies, nstate>::PeriodicCubeFlow(const PHiLiP::Parameters::AllParameters *const parameters_input)
+        : CubeFlow_UniformGrid<dim, nspecies, nstate>(parameters_input)
         , number_of_cells_per_direction(this->all_param.flow_solver_param.number_of_grid_elements_per_dimension)
         , domain_left(this->all_param.flow_solver_param.grid_left_bound)
         , domain_right(this->all_param.flow_solver_param.grid_right_bound)
         , domain_size(pow(this->domain_right - this->domain_left, dim))
 { }
 
-template <int dim, int nstate>
-std::shared_ptr<Triangulation> PeriodicCubeFlow<dim,nstate>::generate_grid() const
+template <int dim, int nspecies, int nstate>
+std::shared_ptr<Triangulation> PeriodicCubeFlow<dim, nspecies, nstate>::generate_grid() const
 {
     if(this->all_param.flow_solver_param.use_gmsh_mesh) {
         if constexpr(dim == 3) {
@@ -63,8 +63,8 @@ std::shared_ptr<Triangulation> PeriodicCubeFlow<dim,nstate>::generate_grid() con
     }
 }
 
-template <int dim, int nstate>
-void PeriodicCubeFlow<dim,nstate>::display_grid_parameters() const
+template <int dim, int nspecies, int nstate>
+void PeriodicCubeFlow<dim, nspecies, nstate>::display_grid_parameters() const
 {
     const std::string grid_type_string = "straight_periodic_cube";
     // Display the information about the grid
@@ -79,16 +79,17 @@ void PeriodicCubeFlow<dim,nstate>::display_grid_parameters() const
     if constexpr(dim==3) this->pcout << "- - Domain volume: " << this->domain_size << std::endl;
 }
 
-template <int dim, int nstate>
-void PeriodicCubeFlow<dim,nstate>::display_additional_flow_case_specific_parameters() const
+template <int dim, int nspecies, int nstate>
+void PeriodicCubeFlow<dim, nspecies, nstate>::display_additional_flow_case_specific_parameters() const
 {
     this->display_grid_parameters();
 }
 
-#if PHILIP_DIM==1
-template class PeriodicCubeFlow <PHILIP_DIM,PHILIP_DIM>;
+#if PHILIP_DIM==1 && PHILIP_SPECIES==1
+template class PeriodicCubeFlow <PHILIP_DIM,1,PHILIP_DIM>;
+template class PeriodicCubeFlow <PHILIP_DIM,1,PHILIP_DIM+2>;
 #else
-template class PeriodicCubeFlow <PHILIP_DIM,PHILIP_DIM+2>;
+template class PeriodicCubeFlow <PHILIP_DIM,PHILIP_SPECIES,PHILIP_DIM+2+PHILIP_SPECIES-1>;
 #endif
 
 } // FlowSolver namespace

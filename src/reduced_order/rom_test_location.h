@@ -12,8 +12,8 @@ namespace ProperOrthogonalDecomposition {
 using Eigen::RowVectorXd;
 
 /// Class to compute and store adjoint-based error estimates
-template <int dim, int nstate>
-class ROMTestLocation: public TestLocationBase<dim,nstate>
+template <int dim, int nspecies, int nstate>
+class ROMTestLocation: public TestLocationBase<dim,nspecies,nstate>
 {
 public:
     /// Constructor

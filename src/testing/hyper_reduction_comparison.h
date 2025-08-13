@@ -14,7 +14,7 @@ using Eigen::MatrixXd;
 
 /// Compare FOM, ROM, and HROM (when hyperreduction is conducted after the adaptive sampling procedure)
 /// Check accuracy in the solution and the functional at one parameter location
-template <int dim, int nstate>
+template <int dim, int nspecies, int nstate>
 class HyperReductionComparison: public TestsBase
 {
 public:

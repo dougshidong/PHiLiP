@@ -10,7 +10,7 @@ namespace PHiLiP {
 namespace Tests {
 
 /// h refinement test for the isentropic vortex advection test case. 
-template <int dim, int nstate>
+template <int dim, int nspecies, int nstate>
 class HRefinementStudyIsentropicVortex: public TestsBase
 {
 public:

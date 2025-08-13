@@ -10,7 +10,7 @@ namespace PHiLiP {
 namespace Tests {
 
 /// Test to check anisotropic mesh adaptation.
-template <int dim, int nstate>
+template <int dim, int nspecies, int nstate>
 class AnisotropicMeshAdaptationCases : public TestsBase
 {
 public:

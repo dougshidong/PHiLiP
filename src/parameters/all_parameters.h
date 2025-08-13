@@ -72,6 +72,9 @@ public:
     /// Number of dimensions. Note that it has to match the executable PHiLiP_xD
     unsigned int dimension;
 
+    /// Number of species. Note that it has to match the executable PHiLiP_xD_y-SPECIES
+    unsigned int number_of_species;
+
     /// Run type
     enum RunType {
         integration_test,
@@ -212,7 +215,13 @@ public:
         HROM_error_post_sampling,
         hyper_adaptive_sampling_new_error,
         halton_sampling_run,
-        low_density
+        low_density,
+        real_gas_vs_euler_primitive_to_conservative_check,
+        euler_vortex_advection_error_study,
+        multi_species_vortex_advection_error_study,
+        multi_species_high_temperature_vortex_advection_error_study,
+        multi_species_calorically_perfect_euler_vortex_advection_error_study,    
+        multi_species_two_dimensional_vortex_advection_error_study,   
     };
     /// Store selected TestType from the input file.
     TestType test_type;
@@ -229,6 +238,9 @@ public:
         euler,
         mhd,
         navier_stokes,
+        inviscid_real_gas,
+        real_gas,
+        multi_species_calorically_perfect_euler,
         physics_model,
     };
     /// Store the PDE type to be solved
@@ -313,6 +325,9 @@ public:
      *  Note: Currently only used in weak dg. */
     double matching_surface_jac_det_tolerance;
 
+    std::string chemistry_input_file; ///< Name of directory for writing flow field files
+    std::string initial_mixture_fractions_input_file; ///< Name of directory for writing flow field files
+    
     /// Declare parameters that can be set as inputs and set up the default options
     /** This subroutine should call the sub-parameter classes static declare_parameters()
       * such that each sub-parameter class is responsible to declare their own parameters.

@@ -47,7 +47,6 @@ ArtificialDissipationFactory<dim,nstate> ::create_artificial_dissipation(const P
     return nullptr;
 }
 
-
 template class ArtificialDissipationFactory<PHILIP_DIM,1>; 
 template class ArtificialDissipationFactory<PHILIP_DIM,2>; 
 template class ArtificialDissipationFactory<PHILIP_DIM,3>; 

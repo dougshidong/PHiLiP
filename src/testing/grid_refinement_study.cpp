@@ -572,25 +572,24 @@ MeshFactory<dealii::parallel::distributed::Triangulation<PHILIP_DIM>>::create_Me
 }
 #endif
 
-template class GridRefinementStudy <PHILIP_DIM,1,dealii::Triangulation<PHILIP_DIM>>;
-template class GridRefinementStudy <PHILIP_DIM,2,dealii::Triangulation<PHILIP_DIM>>;
-template class GridRefinementStudy <PHILIP_DIM,3,dealii::Triangulation<PHILIP_DIM>>;
-template class GridRefinementStudy <PHILIP_DIM,4,dealii::Triangulation<PHILIP_DIM>>;
-template class GridRefinementStudy <PHILIP_DIM,5,dealii::Triangulation<PHILIP_DIM>>;
+// Define a sequence of indices representing the range [1, 7] - max is 7 because nstate=dim+2+(species-1)=7 when dim=species=3
+#define POSSIBLE_NSTATE (1)(2)(3)(4)(5)(6)(7)
 
-template class GridRefinementStudy <PHILIP_DIM,1,dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
-template class GridRefinementStudy <PHILIP_DIM,2,dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
-template class GridRefinementStudy <PHILIP_DIM,3,dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
-template class GridRefinementStudy <PHILIP_DIM,4,dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
-template class GridRefinementStudy <PHILIP_DIM,5,dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+// Define a macro to instantiate MyTemplate for a specific index
+#define INSTANTIATE_DISTRIBUTED(r, data, index) \
+    template class GridRefinementStudy <PHILIP_DIM, index, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
 
 #if PHILIP_DIM!=1
-template class GridRefinementStudy <PHILIP_DIM,1,dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
-template class GridRefinementStudy <PHILIP_DIM,2,dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
-template class GridRefinementStudy <PHILIP_DIM,3,dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
-template class GridRefinementStudy <PHILIP_DIM,4,dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
-template class GridRefinementStudy <PHILIP_DIM,5,dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_DISTRIBUTED, _, POSSIBLE_NSTATE)
 #endif
+
+#define INSTANTIATE_SHARED(r, data, index) \
+    template class GridRefinementStudy <PHILIP_DIM, index, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_SHARED, _, POSSIBLE_NSTATE)
+
+#define INSTANTIATE_TRIA(r, data, index) \
+    template class GridRefinementStudy <PHILIP_DIM, index, dealii::Triangulation<PHILIP_DIM>>;
+BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_TRIA, _, POSSIBLE_NSTATE)
 
 } // namespace Tests
 

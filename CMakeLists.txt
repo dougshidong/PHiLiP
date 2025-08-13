@@ -45,7 +45,7 @@ if(NOT GMSH_LIB)
   message(FATAL_ERROR "Could not find gmsh")
 endif()
 
-#set(CMAKE_CXX_FLAGS_DEBUG  "${CMAKE_CXX_FLAGS_DEBUG} -Og -g")
+set(CMAKE_CXX_FLAGS_DEBUG  "${CMAKE_CXX_FLAGS_DEBUG} -Og -g")
 
 set(EXECUTABLE_OUTPUT_PATH ${PROJECT_BINARY_DIR}/bin)
 set(CLEAN_UP_FILES ./bin/* ./CMakeCache.txt)
@@ -93,16 +93,34 @@ if(NOT DOC_ONLY)
 endif() # DOC_ONLY
     
 add_custom_target(1D COMMAND ${CMAKE_COMMAND} -E echo "Makes all 1D executables, including tests. Allows ctest -R 1D")
+add_custom_target(1D_2species COMMAND ${CMAKE_COMMAND} -E echo "Makes all 1D executables, including tests for 2 species. Allows ctest -R 1D")
+add_custom_target(1D_3species COMMAND ${CMAKE_COMMAND} -E echo "Makes all 1D executables, including tests for 3 species. Allows ctest -R 1D")
 add_custom_target(2D COMMAND ${CMAKE_COMMAND} -E echo "Makes all 2D executables, including tests. Allows ctest -R 2D")
+add_custom_target(2D_2species COMMAND ${CMAKE_COMMAND} -E echo "Makes all 2D executables, including tests for 2 species. Allows ctest -R 2D")
+add_custom_target(2D_3species COMMAND ${CMAKE_COMMAND} -E echo "Makes all 2D executables, including tests for 3 species. Allows ctest -R 2D")
 add_custom_target(3D COMMAND ${CMAKE_COMMAND} -E echo "Makes all 3D executables, including tests. Allows ctest -R 3D")
+add_custom_target(3D_2species COMMAND ${CMAKE_COMMAND} -E echo "Makes all 3D executables, including tests for 2 species. Allows ctest -R 3D")
+add_custom_target(3D_3species COMMAND ${CMAKE_COMMAND} -E echo "Makes all 3D executables, including tests for 3 species. Allows ctest -R 3D")
 SET(_dimension_targets "#
 #      make 1D             - to build all 1D executables, including tests, allow 'ctest -R 1D' 
+#      make 1D_2species             - to build all 1D executables, including tests, allow 'ctest -R 1D' 
+#      make 1D_3species             - to build all 1D executables, including tests, allow 'ctest -R 1D' 
 #      make 2D             - to build all 2D executables, including tests, allow 'ctest -R 2D'
-#      make 3D             - to build all 3D executables, including tests, allow 'ctest -R 3D' ")
+#      make 2D_2species             - to build all 2D executables, including tests, allow 'ctest -R 2D'
+#      make 2D_3species             - to build all 2D executables, including tests, allow 'ctest -R 2D'
+#      make 3D             - to build all 3D executables, including tests, allow 'ctest -R 3D'
+#      make 3D_2species             - to build all 3D executables, including tests, allow 'ctest -R 3D'
+#      make 3D_3species             - to build all 3D executables, including tests, allow 'ctest -R 3D' ")
 SET(_philip_targets "#
 #      make PHiLiP_1D      - to build main program (without tests) in 1D
+#      make PHiLiP_1D_2species      - to build main program (without tests) in 1D
+#      make PHiLiP_1D_3species      - to build main program (without tests) in 1D
 #      make PHiLiP_2D      - to build main program (without tests) in 2D
-#      make PHiLiP_3D      - to build main program (without tests) in 3D ")
+#      make PHiLiP_2D_2species      - to build main program (without tests) in 2D
+#      make PHiLiP_2D_3species      - to build main program (without tests) in 2D
+#      make PHiLiP_3D      - to build main program (without tests) in 3D
+#      make PHiLiP_3D_2species      - to build main program (without tests) in 3D
+#      make PHiLiP_3D_3species      - to build main program (without tests) in 3D ")
 add_custom_target(unit_tests)
 
 add_custom_target(grids)
@@ -239,3 +257,7 @@ MESSAGE(STATUS "
 #
 ###
 ")
+
+# ignore BOOST deprecated headers
+add_definitions("-DBOOST_ALLOW_DEPRECATED_HEADERS")
+

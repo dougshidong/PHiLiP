@@ -31,6 +31,7 @@
 const double TOL = 1e-7;
 
 const int dim = 2;
+const int nspecies = 1;
 const int nstate = 4;
 const int POLY_DEGREE = 2;
 const int MESH_DEGREE = POLY_DEGREE+1;
@@ -103,7 +104,7 @@ int test(const unsigned int nx_ffd)
                 param.euler_param.mach_inf,
                 param.euler_param.angle_of_attack,
                 param.euler_param.side_slip_angle);
-    FreeStreamInitialConditions<dim,nstate,double> initial_conditions(euler_physics_double);
+    FreeStreamInitialConditions<dim,nspecies,nstate,double> initial_conditions(euler_physics_double);
 
     std::vector<unsigned int> n_subdivisions(dim);
 

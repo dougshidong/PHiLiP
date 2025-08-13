@@ -1,3 +1,4 @@
+#include <boost/preprocessor/seq/for_each.hpp>
 #include "parameters/all_parameters.h"
 #include "parameters/parameters_manufactured_solution.h"
 
@@ -179,50 +180,31 @@ ModelFactory<dim,nstate,real>
     }
 }
 
-//----------------------------------------------------------------
-//----------------------------------------------------------------
-//----------------------------------------------------------------
 // Instantiate explicitly
-template class ModelFactory<PHILIP_DIM, 1, double>;
-template class ModelFactory<PHILIP_DIM, 2, double>;
-template class ModelFactory<PHILIP_DIM, 3, double>;
-template class ModelFactory<PHILIP_DIM, 4, double>;
-template class ModelFactory<PHILIP_DIM, 5, double>;
-template class ModelFactory<PHILIP_DIM, 6, double>;
-template class ModelFactory<PHILIP_DIM, 8, double>;
 
-template class ModelFactory<PHILIP_DIM, 1, FadType>;
-template class ModelFactory<PHILIP_DIM, 2, FadType>;
-template class ModelFactory<PHILIP_DIM, 3, FadType>;
-template class ModelFactory<PHILIP_DIM, 4, FadType>;
-template class ModelFactory<PHILIP_DIM, 5, FadType>;
-template class ModelFactory<PHILIP_DIM, 6, FadType>;
-template class ModelFactory<PHILIP_DIM, 8, FadType>;
+// Define a sequence of indices representing the range [1, 8]
+#define POSSIBLE_NSTATE (1)(2)(3)(4)(5)(6)(7)(8)
 
-template class ModelFactory<PHILIP_DIM, 1, RadType>;
-template class ModelFactory<PHILIP_DIM, 2, RadType>;
-template class ModelFactory<PHILIP_DIM, 3, RadType>;
-template class ModelFactory<PHILIP_DIM, 4, RadType>;
-template class ModelFactory<PHILIP_DIM, 5, RadType>;
-template class ModelFactory<PHILIP_DIM, 6, RadType>;
-template class ModelFactory<PHILIP_DIM, 8, RadType>;
+// Define a macro to instantiate MyTemplate for a specific index
+#define INSTANTIATE_DOUBLE(r, data, index) \
+    template class ModelFactory <PHILIP_DIM, index, double>;
+BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_DOUBLE, _, POSSIBLE_NSTATE)
 
-template class ModelFactory<PHILIP_DIM, 1, FadFadType>;
-template class ModelFactory<PHILIP_DIM, 2, FadFadType>;
-template class ModelFactory<PHILIP_DIM, 3, FadFadType>;
-template class ModelFactory<PHILIP_DIM, 4, FadFadType>;
-template class ModelFactory<PHILIP_DIM, 5, FadFadType>;
-template class ModelFactory<PHILIP_DIM, 6, FadFadType>;
-template class ModelFactory<PHILIP_DIM, 8, FadFadType>;
+#define INSTANTIATE_FADTYPE(r, data, index) \
+    template class ModelFactory <PHILIP_DIM, index, FadType>;
+BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_FADTYPE, _, POSSIBLE_NSTATE)
 
-template class ModelFactory<PHILIP_DIM, 1, RadFadType>;
-template class ModelFactory<PHILIP_DIM, 2, RadFadType>;
-template class ModelFactory<PHILIP_DIM, 3, RadFadType>;
-template class ModelFactory<PHILIP_DIM, 4, RadFadType>;
-template class ModelFactory<PHILIP_DIM, 5, RadFadType>;
-template class ModelFactory<PHILIP_DIM, 6, RadFadType>;
-template class ModelFactory<PHILIP_DIM, 8, RadFadType>;
+#define INSTANTIATE_RADTYPE(r, data, index) \
+    template class ModelFactory <PHILIP_DIM, index, RadType>;
+BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_RADTYPE, _, POSSIBLE_NSTATE)
 
+#define INSTANTIATE_FADFADTYPE(r, data, index) \
+    template class ModelFactory <PHILIP_DIM, index, FadFadType>;
+BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_FADFADTYPE, _, POSSIBLE_NSTATE)
+
+#define INSTANTIATE_RADFADTYPE(r, data, index) \
+    template class ModelFactory <PHILIP_DIM, index, RadFadType>;
+BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_RADFADTYPE, _, POSSIBLE_NSTATE)
 } // Physics namespace
 } // PHiLiP namespace
 

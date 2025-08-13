@@ -73,14 +73,14 @@ const std::string line_search_method =
     // "Iteration Scaling";
     "Backtracking";
 
-template <int dim, int nstate>
-EulerBumpOptimization<dim,nstate>::EulerBumpOptimization(const Parameters::AllParameters *const parameters_input)
+template <int dim, int nspecies, int nstate>
+EulerBumpOptimization<dim,nspecies,nstate>::EulerBumpOptimization(const Parameters::AllParameters *const parameters_input)
     :
     TestsBase::TestsBase(parameters_input)
 {}
 
-template<int dim, int nstate>
-int EulerBumpOptimization<dim,nstate>
+template<int dim, int nspecies, int nstate>
+int EulerBumpOptimization<dim,nspecies,nstate>
 ::run_test () const
 {
     int test_error = 0;
@@ -101,8 +101,8 @@ int EulerBumpOptimization<dim,nstate>
     return test_error;
 }
 
-template<int dim, int nstate>
-int EulerBumpOptimization<dim,nstate>
+template<int dim, int nspecies, int nstate>
+int EulerBumpOptimization<dim,nspecies,nstate>
 ::optimize_target_bump (const unsigned int nx_ffd, const unsigned int poly_degree) const
 {
     int test_error = 0;
@@ -197,7 +197,7 @@ int EulerBumpOptimization<dim,nstate>
                 param.euler_param.mach_inf,
                 param.euler_param.angle_of_attack,
                 param.euler_param.side_slip_angle);
-    FreeStreamInitialConditions<dim,nstate,double> initial_conditions(euler_physics_double);
+    FreeStreamInitialConditions<dim,nspecies,nstate,double> initial_conditions(euler_physics_double);
 
     std::vector<unsigned int> n_subdivisions(dim);
 
@@ -524,8 +524,8 @@ int EulerBumpOptimization<dim,nstate>
 }
 
 
-#if PHILIP_DIM==2
-    template class EulerBumpOptimization <PHILIP_DIM,PHILIP_DIM+2>;
+#if PHILIP_DIM==2 && PHILIP_SPECIES==1
+    template class EulerBumpOptimization <PHILIP_DIM,PHILIP_SPECIES,PHILIP_DIM+2>;
 #endif
 
 } // Tests namespace

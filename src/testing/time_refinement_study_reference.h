@@ -10,7 +10,7 @@ namespace PHiLiP {
 namespace Tests {
 
 /// Time refinement study which compares to a reference solution
-template <int dim, int nstate>
+template <int dim, int nspecies, int nstate>
 class TimeRefinementStudyReference: public TestsBase
 {
 public:

@@ -8,8 +8,8 @@
 namespace PHiLiP {
 namespace FlowSolver {
 
-template <int dim, int nstate>
-class NonPeriodicCubeFlow : public CubeFlow_UniformGrid<dim, nstate>
+template <int dim, int nspecies, int nstate>
+class NonPeriodicCubeFlow : public CubeFlow_UniformGrid<dim, nspecies, nstate>
 {
 #if PHILIP_DIM==1
      using Triangulation = dealii::Triangulation<PHILIP_DIM>;
@@ -26,13 +26,13 @@ class NonPeriodicCubeFlow : public CubeFlow_UniformGrid<dim, nstate>
 
  protected:
     /// Function to compute the adaptive time step
-    using CubeFlow_UniformGrid<dim, nstate>::get_adaptive_time_step;
+    using CubeFlow_UniformGrid<dim, nspecies, nstate>::get_adaptive_time_step;
 
     /// Function to compute the initial adaptive time step
-    using CubeFlow_UniformGrid<dim, nstate>::get_adaptive_time_step_initial;
+    using CubeFlow_UniformGrid<dim, nspecies, nstate>::get_adaptive_time_step_initial;
 
     /// Updates the maximum local wave speed
-    using CubeFlow_UniformGrid<dim, nstate>::update_maximum_local_wave_speed;
+    using CubeFlow_UniformGrid<dim, nspecies, nstate>::update_maximum_local_wave_speed;
 
     /// Updates the maximum local wave speed
     void check_positivity_density(DGBase<dim, double>& dg);
@@ -40,7 +40,7 @@ class NonPeriodicCubeFlow : public CubeFlow_UniformGrid<dim, nstate>
     /// Filename (with extension) for the unsteady data table
     const std::string unsteady_data_table_filename_with_extension;
 
-    using FlowSolverCaseBase<dim,nstate>::compute_unsteady_data_and_write_to_table;
+    using FlowSolverCaseBase<dim, nspecies, nstate>::compute_unsteady_data_and_write_to_table;
     /// Compute the desired unsteady data and write it to a table
     void compute_unsteady_data_and_write_to_table(
         const unsigned int current_iteration,

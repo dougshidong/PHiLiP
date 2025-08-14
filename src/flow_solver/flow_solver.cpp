@@ -448,26 +448,30 @@ void FlowSolver<dim,nstate>::perk_partitioning() const
         this->locations_rhs_1[i].resize(dg->triangulation->n_active_cells());
     }
 
-    dg->cell_volume.print(std::cout);
-    std::cout << "number of cells " << dg->cell_volume.size() << std::endl;
+    //dg->cell_volume.print(std::cout);
+    //std::cout << "number of cells " << dg->cell_volume.size() << std::endl;
 
     double local_max = dg->cell_volume.linfty_norm();
     double max_cell_volume = dealii::Utilities::MPI::max(local_max, this->mpi_communicator);
-    std::cout << "max cell volume " << max_cell_volume << " " << dg->cell_volume.size() << std::endl;
-    int rank = dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD);
+    //std::cout << "max cell volume " << max_cell_volume << " " << dg->cell_volume.size() << std::endl;
+    //int rank = dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD);
 
     for (typename dealii::DoFHandler<dim>::active_cell_iterator cell = dg->dof_handler.begin_active(); cell != dg->dof_handler.end(); ++cell) {
         if (!cell->is_locally_owned())
             continue;
         double vol = dg->cell_volume[cell->active_cell_index()];
         for (std::size_t i = 0; i < n_groups; ++i) {
-            if (vol >= 0.80 * max_cell_volume && i == 0) {
+            if (vol >= 0.05 * max_cell_volume && i == 0) {
                 locations_to_evaluate_rhs_1[i](cell->active_cell_index()) = 1;
-            } else if (i == 1 && vol >= 0.60 * max_cell_volume && vol < 0.80 * max_cell_volume) {
+            } else if (i == 1 && vol >= 0.005 * max_cell_volume && vol < 0.05 * max_cell_volume) {
                 locations_to_evaluate_rhs_1[i](cell->active_cell_index()) = 1;
-            } else if (i == 2 && vol >= 0.40 * max_cell_volume && vol < 0.60 * max_cell_volume) {
+            } else if (i == 2 && vol >= 0.0001 * max_cell_volume && vol < 0.005 * max_cell_volume) {
                 locations_to_evaluate_rhs_1[i](cell->active_cell_index()) = 1;
-            } else if (i == 3 && vol < 0.4 * max_cell_volume) {
+            } else if (i == 3 && vol >= 0.000005 * max_cell_volume && vol < 0.0001 * max_cell_volume) {
+                locations_to_evaluate_rhs_1[i](cell->active_cell_index()) = 1;
+            } else if (i == 4 && vol >= 0.0000006 * max_cell_volume && vol < 0.000005 * max_cell_volume) {
+                locations_to_evaluate_rhs_1[i](cell->active_cell_index()) = 1;
+            } else if (i == 5 && vol < 0.0000006 * max_cell_volume) {
                 locations_to_evaluate_rhs_1[i](cell->active_cell_index()) = 1;
             }
         }
@@ -485,7 +489,7 @@ void FlowSolver<dim,nstate>::perk_partitioning() const
 
         const std::size_t n_ranks = this->all_locations_rhs_1[i].size();
         for (std::size_t idx = 0; idx < n_ranks; ++idx){
-            std::cout << this->mpi_rank << " " << idx << '\n';
+            //std::cout << this->mpi_rank << " " << idx << '\n';
             if (idx != static_cast<std::size_t>(this->mpi_rank))
                 this->locations_to_evaluate_rhs_1[i].add(indices, this->all_locations_rhs_1[i][idx]);
         }
@@ -494,11 +498,11 @@ void FlowSolver<dim,nstate>::perk_partitioning() const
         dg->set_list_of_cell_group_IDs(this->locations_to_evaluate_rhs_1[i], this->ode_solver->group_ID[i]);
     }
 
-    std::cout << "rhs 1 " << rank << std::endl;
-    this->locations_to_evaluate_rhs_1[0].print(std::cout);
+    // std::cout << "rhs 1 " << rank << std::endl;
+    // this->locations_to_evaluate_rhs_1[0].print(std::cout);
 
-    std::cout << "rhs 2 " << rank << std::endl;
-    this->locations_to_evaluate_rhs_1[1].print(std::cout);
+    // std::cout << "rhs 2 " << rank << std::endl;
+    // this->locations_to_evaluate_rhs_1[1].print(std::cout);
 
     //const unsigned int n_partitions = dealii::Utilities::MPI::n_mpi_processes(MPI_COMM_WORLD);
     //std::vector<unsigned int> cell_weights(dg->triangulation->n_active_cells());
@@ -675,6 +679,7 @@ int FlowSolver<dim,nstate>::run() const
         while(ode_solver->current_time < final_time)
         {
             time_step = next_time_step; // update time step
+            pcout<<"Iter: "<<ode_solver->current_iteration<<".  Current time: "<<ode_solver->current_time<<".\n";
 
             // check if we need to decrease the time step
             if((ode_solver->current_time+time_step) > final_time && flow_solver_param.end_exactly_at_final_time) {
@@ -691,8 +696,41 @@ int FlowSolver<dim,nstate>::run() const
             // update time step in flow_solver_case
             flow_solver_case->set_time_step(time_step);
             //dg->set_unsteady_model_time_step(time_step);
-            // advance solution
+            // // // advance solution
+            // // pcout<<"\n\nSet time step.\n";
+            // const unsigned int max_dofs_per_cell = dg->dof_handler.get_fe_collection().max_dofs_per_cell();
+            // std::vector<dealii::types::global_dof_index> current_dofs_indices(max_dofs_per_cell);
+            // auto metric_cell = dg->high_order_grid->dof_handler_grid.begin_active();
+            // for (auto current_cell = dg->dof_handler.begin_active(); current_cell!=dg->dof_handler.end(); ++current_cell, ++metric_cell) {
+            //     if (!current_cell->is_locally_owned()) continue;
+            //     const dealii::types::global_dof_index current_cell_index = current_cell->active_cell_index();
+            //     const unsigned int n_dofs_cell = dg->fe_collection[poly_degree].dofs_per_cell;                  
+            //     current_dofs_indices.resize(n_dofs_cell);
+            //     current_cell->get_dof_indices (current_dofs_indices);
+            //     pcout<<"\n\ncurrent_cell_index: "<<current_cell_index;        
+            //     for(unsigned int idof=0; idof<n_dofs_cell; idof++){
+            //         pcout<<"\ndg->solution(idof = "<<idof<<"): "<<dg->solution(current_dofs_indices[idof]);
+            //     }
+            // }
+            // pcout<<"Step_in_time.\n";
             ode_solver->step_in_time(time_step,false); // pseudotime==false
+
+
+            // pcout<<"Current time: "<<ode_solver->current_time<<"\n";
+            // pcout<<"Time step: "<<time_step;
+            // auto metric_cell_1 = dg->high_order_grid->dof_handler_grid.begin_active();
+            // for (auto current_cell = dg->dof_handler.begin_active(); current_cell!=dg->dof_handler.end(); ++current_cell, ++metric_cell_1) {
+            //     if (!current_cell->is_locally_owned()) continue;
+            //     const dealii::types::global_dof_index current_cell_index = current_cell->active_cell_index();
+            //     if(current_cell_index==1){
+            //         const unsigned int n_dofs_cell = dg->fe_collection[poly_degree].dofs_per_cell;                  
+            //         current_dofs_indices.resize(n_dofs_cell);
+            //         current_cell->get_dof_indices (current_dofs_indices);             
+            //         for(unsigned int idof=0; idof<2; idof++){
+            //             pcout<<"\nCell 1 solution (idof = "<<idof<<"): "<<dg->solution(current_dofs_indices[idof]);
+            //         }
+            //     }
+            // }
             if constexpr (nstate==dim+2){
                 if(flow_solver_param.compute_time_averaged_solution && ( (ode_solver->current_time <= flow_solver_param.time_to_start_averaging) && (ode_solver->current_time+time_step > flow_solver_param.time_to_start_averaging) )) {
                     dg->time_averaged_solution =  dg->solution;

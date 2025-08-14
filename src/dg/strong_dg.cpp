@@ -581,7 +581,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_volume_term_auxiliary_equation
         if(ishape == 0)
             soln_coeff[istate].resize(n_shape_fns);
 
-        soln_coeff[istate][ishape] = this->solution(current_dofs_indices[idof]);
+        soln_coeff[istate][ishape] = DGBase<dim,real,MeshType>::solution(current_dofs_indices[idof]);
     }
     //Interpolate each state to the quadrature points using sum-factorization
     //with the basis functions in each reference direction.
@@ -660,7 +660,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_boundary_term_auxiliary_equati
         if(ishape == 0)
             soln_coeff[istate].resize(n_shape_fns);
         //solve
-        soln_coeff[istate][ishape] = this->solution(dofs_indices[idof]);
+        soln_coeff[istate][ishape] = DGBase<dim,real,MeshType>::solution(dofs_indices[idof]);
     }
 
     //Interpolate soln to facet, and gradient to facet.
@@ -829,7 +829,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_auxiliary_equation(
         if(ishape == 0) soln_coeff_int[istate].resize(n_shape_fns_int);
 
         //solve
-        soln_coeff_int[istate][ishape] = this->solution(dof_indices_int[idof]);
+        soln_coeff_int[istate][ishape] = DGBase<dim,real,MeshType>::solution(dof_indices_int[idof]);
     }
 
     //Extract exterior modal coefficients of solution
@@ -841,7 +841,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_auxiliary_equation(
         if(ishape == 0) soln_coeff_ext[istate].resize(n_shape_fns_ext);
 
         //solve
-        soln_coeff_ext[istate][ishape] = this->solution(dof_indices_ext[idof]);
+        soln_coeff_ext[istate][ishape] = DGBase<dim,real,MeshType>::solution(dof_indices_ext[idof]);
     }
 
     //Interpolate soln modal coefficients to the facet
@@ -993,7 +993,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_volume_term_strong(
         if(ishape == 0){
             soln_coeff[istate].resize(n_shape_fns);
         }
-        soln_coeff[istate][ishape] = this->solution(cell_dofs_indices[idof]);
+        soln_coeff[istate][ishape] = DGBase<dim,real,MeshType>::solution(cell_dofs_indices[idof]);
         for(int idim=0; idim<dim; idim++){
             if(ishape == 0){
                 aux_soln_coeff[istate][idim].resize(n_shape_fns);
@@ -1584,7 +1584,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_boundary_term_strong(
             soln_coeff[istate].resize(n_shape_fns);
         }
         // solve
-        soln_coeff[istate][ishape] = this->solution(dof_indices[idof]);
+        soln_coeff[istate][ishape] = DGBase<dim,real,MeshType>::solution(dof_indices[idof]);
         for(int idim=0; idim<dim; idim++){
             //allocate
             if(ishape == 0){
@@ -2311,6 +2311,9 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_strong(
     dealii::Vector<real>                               &local_rhs_int_cell,
     dealii::Vector<real>                               &local_rhs_ext_cell)
 {
+    // if(current_cell_index==26){   
+    //     std::cout<<"\nIn Strong->assemble_face_term_strong";
+    // }
 
     (void) current_cell_index;
     (void) neighbor_cell_index;
@@ -2344,7 +2347,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_strong(
         if(ishape == 0){
             soln_coeff_int[istate].resize(n_shape_fns_int);
         }
-        soln_coeff_int[istate][ishape] = this->solution(dof_indices_int[idof]);
+        soln_coeff_int[istate][ishape] = DGBase<dim,real,MeshType>::solution(dof_indices_int[idof]);
         for(int idim=0; idim<dim; idim++){
             if(ishape == 0){
                 aux_soln_coeff_int[istate][idim].resize(n_shape_fns_int);
@@ -2356,6 +2359,10 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_strong(
                 aux_soln_coeff_int[istate][idim][ishape] = 0.0;
             }
         }
+        // if(current_cell_index==26){
+        //     const unsigned int istate = this->fe_collection[poly_degree_ext].system_to_component_index(idof).first;
+        //     std::cout<<"\nsoln_coeff_int["<<istate<<"]["<<ishape<<"]: "<<soln_coeff_int[istate][ishape];
+        // }
     }
 
     // Extract exterior modal coefficients of solution
@@ -2367,7 +2374,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_strong(
         if(ishape == 0){
             soln_coeff_ext[istate].resize(n_shape_fns_ext);
         }
-        soln_coeff_ext[istate][ishape] = this->solution(dof_indices_ext[idof]);
+        soln_coeff_ext[istate][ishape] = DGBase<dim,real,MeshType>::solution(dof_indices_ext[idof]);
         for(int idim=0; idim<dim; idim++){
             if(ishape == 0){
                 aux_soln_coeff_ext[istate][idim].resize(n_shape_fns_ext);
@@ -3038,6 +3045,11 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_strong(
             if(iquad==0){
                 entropy_var_vol_int[istate].resize(n_quad_pts_vol_int);
             }
+            // if(current_cell_index==26){       
+            //     std::cout<<"\niquad: "<<iquad;
+            //     std::cout<<"\nsoln_at_vol_q_int["<<istate<<"]: "<<soln_state[istate];
+            //     std::cout<<"\nentropy_var["<<istate<<"]: "<<entropy_var[istate];
+            // }
             entropy_var_vol_int[istate][iquad] = entropy_var[istate];
         }
     }
@@ -3368,7 +3380,12 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_strong(
         soln_state_int = this->pde_physics_double->compute_conservative_variables_from_entropy_variables (entropy_var_face_int);
         std::array<real,nstate> soln_state_ext;
         soln_state_ext = this->pde_physics_double->compute_conservative_variables_from_entropy_variables (entropy_var_face_ext);
-
+        // for(int istate=0; istate<nstate; istate++){
+        //     if(current_cell_index==26){       
+        //         std::cout<<"\niquad: "<<iquad;
+        //         std::cout<<"\nprojected_entropy_var_surf_int_corrected["<<istate<<"]["<<iquad<<"]: "<<projected_entropy_var_surf_int_corrected[istate][iquad];
+        //     }
+        // }
 
         if(!this->all_parameters->use_split_form && !this->all_parameters->use_curvilinear_split_form){
             for(int istate=0; istate<nstate; istate++){
@@ -3396,6 +3413,11 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_strong(
         std::array<real,nstate> diss_auxi_num_flux_dot_n_at_q;
         // Convective numerical flux. 
         conv_num_flux_dot_n_at_q = this->conv_num_flux_double->evaluate_flux(soln_state_int, soln_state_ext, unit_phys_normal_int);
+        // if(current_cell_index==26){       
+        //     std::cout<<"\niquad: "<<iquad;
+        //     std::cout<<"\nsoln_state_int[0]: "<<soln_state_int[0];
+        //     std::cout<<"\nConv_num_flux_dot_n_at_q[0]: "<<conv_num_flux_dot_n_at_q[0];
+        // }
         // dissipative numerical flux
         diss_auxi_num_flux_dot_n_at_q = this->diss_num_flux_double->evaluate_auxiliary_flux(
             current_cell_index, neighbor_cell_index,
@@ -3429,7 +3451,10 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_strong(
     for(int istate=0; istate<nstate; istate++){
         // interior RHS
         std::vector<real> rhs_int(n_shape_fns_int);
-
+        
+        // if(current_cell_index==26){       
+        //     std::cout<<"\nrhs_int[0] (initialize): "<<rhs_int[0];
+        // }
         // convective flux
         if(this->all_parameters->use_split_form || this->all_parameters->use_curvilinear_split_form){
             std::vector<real> ones_surf(n_face_quad_pts, 1.0);
@@ -3456,6 +3481,9 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_strong(
                                                     soln_basis_int.oneD_vol_operator,
                                                     false, 1.0);
         }
+        // if(current_cell_index==26){       
+        //     std::cout<<"\nrhs_int[0] (convective): "<<rhs_int[0];
+        // }
         // dissipative flux
         soln_basis_int.inner_product_surface_1D(face_orientation_int, 
                                                 iface, n_quad_pts_1D_int,
@@ -3464,6 +3492,10 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_strong(
                                                 soln_basis_int.oneD_surf_operator, 
                                                 soln_basis_int.oneD_vol_operator,
                                                 true, 1.0);//adding=true, subtract the negative so add it
+        
+        // if(current_cell_index==26){       
+        //     std::cout<<"\nrhs_int[0] (diffusive): "<<rhs_int[0];
+        // }
         // convective numerical flux
         soln_basis_int.inner_product_surface_1D(face_orientation_int, 
                                                 iface, n_quad_pts_1D_int,
@@ -3472,6 +3504,10 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_strong(
                                                 soln_basis_int.oneD_surf_operator, 
                                                 soln_basis_int.oneD_vol_operator,
                                                 true, -1.0);//adding=true, scaled by factor=-1.0 bc subtract it
+        
+        // if(current_cell_index==26){       
+        //     std::cout<<"\nrhs_int[0] (convective numerical): "<<rhs_int[0];
+        // }
         // dissipative numerical flux
         soln_basis_int.inner_product_surface_1D(face_orientation_int, 
                                                 iface, n_quad_pts_1D_int,
@@ -3484,6 +3520,9 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_strong(
 
         for(unsigned int ishape=0; ishape<n_shape_fns_int; ishape++){
             local_rhs_int_cell(istate*n_shape_fns_int + ishape) += rhs_int[ishape];
+            // if(current_cell_index==26 && ishape==0){       
+            //     pcout<<"\nrhs_int["<<ishape<<"]: "<<rhs_int[ishape];
+            // }
         }
 
         // exterior RHS

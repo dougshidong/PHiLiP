@@ -26,10 +26,46 @@ void RungeKuttaBase<dim, real, n_rk_stages, MeshType>::step_in_time(real dt, con
         this->calculate_stage_solution(istage, dt, pseudotime); // u_n + dt * sum(a_ij * k_j) <explicit> + dt * a_ii * u^(istage) <implicit>
         this->apply_limiter();
         this->calculate_stage_derivative(istage, dt); //rk_stage[istage] = IMM*RHS = F(u_n + dt*sum(a_ij*k_j))
+        // this->pcout<<"RK Stage: "<<istage;
+        // this->pcout<<"RK Stage: "<<istage;
+        // const unsigned int max_dofs_per_cell = this->dg->dof_handler.get_fe_collection().max_dofs_per_cell();
+        // std::vector<dealii::types::global_dof_index> current_dofs_indices(max_dofs_per_cell);
+        // auto metric_cell_1 = this->dg->high_order_grid->dof_handler_grid.begin_active();
+        // for (auto current_cell = this->dg->dof_handler.begin_active(); current_cell!=this->dg->dof_handler.end(); ++current_cell, ++metric_cell_1) {
+        //     if (!current_cell->is_locally_owned()) continue;
+        //     const dealii::types::global_dof_index current_cell_index = current_cell->active_cell_index();
+        //     if(current_cell_index==1){
+        //         const unsigned int n_dofs_cell = this->dg->fe_collection[3].dofs_per_cell;                  
+        //         current_dofs_indices.resize(n_dofs_cell);
+        //         current_cell->get_dof_indices (current_dofs_indices);             
+        //         for(unsigned int idof=0; idof<2; idof++){
+        //             this->pcout<<"\nCell 1 solution (idof = "<<idof<<"): "<<this->dg->solution(current_dofs_indices[idof]);
+        //             this->pcout<<"\nCell 1 solution update (idof = "<<idof<<"): "<<this->solution_update(current_dofs_indices[idof]);
+        //         }
+        //     }
+        // }
     }
     dt = this->adjust_time_step(dt);
+    //this->pcout<<"\nadjusted time step: "<<dt<<"\n";
     this->sum_stages(dt, pseudotime); // u_np1 = u_n + dt* sum(k_i * b_i)
-    this->dg->solution = this->solution_update; 
+    this->dg->solution = this->solution_update;
+    // this->pcout<<"SOLUTION UPDATED\n";
+    // const unsigned int max_dofs_per_cell = this->dg->dof_handler.get_fe_collection().max_dofs_per_cell();
+    // std::vector<dealii::types::global_dof_index> current_dofs_indices(max_dofs_per_cell);
+    // auto metric_cell_1 = this->dg->high_order_grid->dof_handler_grid.begin_active();
+    // for (auto current_cell = this->dg->dof_handler.begin_active(); current_cell!=this->dg->dof_handler.end(); ++current_cell, ++metric_cell_1) {
+    //     if (!current_cell->is_locally_owned()) continue;
+    //     const dealii::types::global_dof_index current_cell_index = current_cell->active_cell_index();
+    //     if(current_cell_index==1){
+    //         const unsigned int n_dofs_cell = this->dg->fe_collection[3].dofs_per_cell;                  
+    //         current_dofs_indices.resize(n_dofs_cell);
+    //         current_cell->get_dof_indices (current_dofs_indices);             
+    //         for(unsigned int idof=0; idof<2; idof++){
+    //             this->pcout<<"\nCell 1 solution (idof = "<<idof<<"): "<<this->dg->solution(current_dofs_indices[idof]);
+    //             this->pcout<<"\nCell 1 solution update (idof = "<<idof<<"): "<<this->solution_update(current_dofs_indices[idof]);
+    //         }
+    //     }
+    // }
      // Calculate numerical entropy with FR correction. Does nothing if use has not selected param.
     this->FR_entropy_contribution_RRK_solver = relaxation_runge_kutta->compute_FR_entropy_contribution(dt, this->dg, this->rk_stage, true);
     this->apply_limiter();

@@ -102,7 +102,7 @@ protected:
     /// Stores the various RK stages.
     /** Currently hard-coded to RK4.
      */
-    std::vector<dealii::LinearAlgebra::distributed::Vector<double>> rk_stage;
+    //std::vector<dealii::LinearAlgebra::distributed::Vector<double>> rk_stage;
 
     /// Smart pointer to DGBase
     std::shared_ptr<DGBase<dim,real,MeshType>> dg;

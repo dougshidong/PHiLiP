@@ -72,9 +72,26 @@ void RungeKuttaODESolver<dim,real,n_rk_stages,MeshType>::calculate_stage_derivat
 {
      //set the DG current time for unsteady source terms
     this->dg->set_current_time(this->current_time + this->butcher_tableau->get_c(istage)*dt);
-    
+    // this->pcout<<"In calculate_stage_derivative. \n";
+    // this->pcout<<"Current time: "<<this->current_time + this->butcher_tableau->get_c(istage)*dt;
     //solve the system's right hand side
     this->dg->assemble_residual(); //RHS : du/dt = RHS = F(u_n + dt* sum(a_ij*k_j) + dt * a_ii * u^(istage)))
+
+    // const unsigned int max_dofs_per_cell = this->dg->dof_handler.get_fe_collection().max_dofs_per_cell();
+    // std::vector<dealii::types::global_dof_index> current_dofs_indices(max_dofs_per_cell);
+    // auto metric_cell_1 = this->dg->high_order_grid->dof_handler_grid.begin_active();
+    // for (auto current_cell = this->dg->dof_handler.begin_active(); current_cell!=this->dg->dof_handler.end(); ++current_cell, ++metric_cell_1) {
+    //     if (!current_cell->is_locally_owned()) continue;
+    //     const dealii::types::global_dof_index current_cell_index = current_cell->active_cell_index();
+    //     if(current_cell_index==1){
+    //         const unsigned int n_dofs_cell = this->dg->fe_collection[3].dofs_per_cell;                  
+    //         current_dofs_indices.resize(n_dofs_cell);
+    //         current_cell->get_dof_indices (current_dofs_indices);             
+    //         for(unsigned int idof=0; idof<2; idof++){
+    //             this->pcout<<"\nCell 1 RHS (idof = "<<idof<<"): "<<this->dg->right_hand_side(current_dofs_indices[idof]);
+    //         }
+    //     }
+    // }
 
     if(this->all_parameters->use_inverse_mass_on_the_fly){
         this->dg->apply_inverse_global_mass_matrix(this->dg->right_hand_side, this->rk_stage[istage]); //rk_stage[istage] = IMM*RHS = F(u_n + dt*sum(a_ij*k_j))
@@ -93,7 +110,27 @@ void RungeKuttaODESolver<dim,real,n_rk_stages,MeshType>::sum_stages (real dt, co
             this->dg->time_scale_solution_update(this->rk_stage[istage], CFL);
             this->solution_update.add(1.0, this->rk_stage[istage]);
         } else {
+            // this->pcout<<"In runge_kutta_ode_solver.\n";
+            // this->pcout<<"dt: "<<dt<<"\n";
+            // this->pcout<<"istage: "<<istage<<"\n";
+            // this->pcout<<"b: "<<this->butcher_tableau->get_b(istage)<<"\n";
             this->solution_update.add(dt* this->butcher_tableau->get_b(istage),this->rk_stage[istage]);
+            
+            // const unsigned int max_dofs_per_cell = this->dg->dof_handler.get_fe_collection().max_dofs_per_cell();
+            // std::vector<dealii::types::global_dof_index> current_dofs_indices(max_dofs_per_cell);
+            // auto metric_cell_1 = this->dg->high_order_grid->dof_handler_grid.begin_active();
+            // for (auto current_cell = this->dg->dof_handler.begin_active(); current_cell!=this->dg->dof_handler.end(); ++current_cell, ++metric_cell_1) {
+            //     if (!current_cell->is_locally_owned()) continue;
+            //     const dealii::types::global_dof_index current_cell_index = current_cell->active_cell_index();
+            //     if(current_cell_index==1){
+            //         const unsigned int n_dofs_cell = this->dg->fe_collection[3].dofs_per_cell;                  
+            //         current_dofs_indices.resize(n_dofs_cell);
+            //         current_cell->get_dof_indices (current_dofs_indices);             
+            //         for(unsigned int idof=0; idof<2; idof++){
+            //             this->pcout<<"\nCell 1 solution update (idof = "<<idof<<"): "<<this->solution_update(current_dofs_indices[idof]);
+            //         }
+            //     }
+            // }
         }
     }
 }

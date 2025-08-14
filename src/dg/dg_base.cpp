@@ -503,7 +503,7 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
 
     const bool store_vol_flux_nodes = all_parameters->manufactured_convergence_study_param.manufactured_solution_param.use_manufactured_source_term;
 
-    const bool store_surf_flux_nodes = (all_parameters->use_periodic_bc) ? true : true;
+    const bool store_surf_flux_nodes = (all_parameters->use_periodic_bc) ? false : true;
 
     std::array<std::vector<real>,dim> mapping_support_points;
     OPERATOR::metric_operators<real,dim,2*dim> metric_oper_int(nstate, poly_degree, grid_degree,
@@ -546,6 +546,15 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
             current_cell_rhs_aux,
             compute_auxiliary_right_hand_side,
             compute_dRdW, compute_dRdX, compute_d2R);
+        // if(current_cell_index==26){
+        //     pcout<<"\nVOLUME TERM.";
+        //     const unsigned int n_dofs_cell = fe_collection[poly_degree].dofs_per_cell;                  
+        //     current_dofs_indices.resize(n_dofs_cell);
+        //     current_cell->get_dof_indices (current_dofs_indices);             
+        //     for(unsigned int idof=0; idof<2; idof++){
+        //         pcout<<"\nCurrent_cell_rhs (idof = "<<idof<<"): "<<current_cell_rhs[idof];
+        //     }
+        // }
     }
 
     (void) fe_values_collection_face_int;
@@ -589,7 +598,15 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
                     compute_auxiliary_right_hand_side,
                     compute_dRdW, compute_dRdX, compute_d2R);
             }
-
+            // if(current_cell_index==26){
+            //     std::cout<<"\nCASE 1: FACE AT BOUNDARY.";
+            //     const unsigned int n_dofs_cell = fe_collection[poly_degree].dofs_per_cell;                  
+            //     current_dofs_indices.resize(n_dofs_cell);
+            //     current_cell->get_dof_indices (current_dofs_indices);             
+            //     for(unsigned int idof=0; idof<2; idof++){
+            //         std::cout<<"\nCurrent_cell_rhs (idof = "<<idof<<"): "<<current_cell_rhs[idof];
+            //     }
+            // }
         }
         // CASE 2: PERIODIC BOUNDARY CONDITIONS
         // NOTE: Periodicity is not adapted for hp adaptivity yet. this needs to be figured out in the future
@@ -717,6 +734,15 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
                     }
                 }
             }
+            // if(current_cell_index==26){
+            //     std::cout<<"\nCASE 2: PERIODIC BOUNDARY CONDITIONS.";
+            //     const unsigned int n_dofs_cell = fe_collection[poly_degree].dofs_per_cell;                  
+            //     current_dofs_indices.resize(n_dofs_cell);
+            //     current_cell->get_dof_indices (current_dofs_indices);             
+            //     for(unsigned int idof=0; idof<2; idof++){
+            //         std::cout<<"\nCurrent_cell_rhs (idof = "<<idof<<"): "<<current_cell_rhs[idof];
+            //     }
+            // }
         }
         // CASE 3: NEIGHBOUR IS FINER
         // Occurs if the face has children
@@ -856,6 +882,15 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
                     }
                 }
             }
+            // if(current_cell_index==26){
+            //     std::cout<<"\nCASE 4: NEIGHBOR IS COARSER.";
+            //     const unsigned int n_dofs_cell = fe_collection[poly_degree].dofs_per_cell;                  
+            //     current_dofs_indices.resize(n_dofs_cell);
+            //     current_cell->get_dof_indices (current_dofs_indices);             
+            //     for(unsigned int idof=0; idof<2; idof++){
+            //         std::cout<<"\nCurrent_cell_rhs (idof = "<<idof<<"): "<<current_cell_rhs[idof];
+            //     }
+            // }
         }
         // CASE 5: NEIGHBOR CELL HAS SAME COARSENESS
         // Therefore, we need to choose one of them to do the work
@@ -982,6 +1017,15 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
                     }
                 }
             }
+            // if(current_cell_index==26){
+            //     std::cout<<"\nCASE 5: NEIGHBOR CELL HAS SAME COARSENESS.";
+            //     const unsigned int n_dofs_cell = fe_collection[poly_degree].dofs_per_cell;                  
+            //     current_dofs_indices.resize(n_dofs_cell);
+            //     current_cell->get_dof_indices (current_dofs_indices);             
+            //     for(unsigned int idof=0; idof<2; idof++){
+            //         std::cout<<"\nCurrent_cell_rhs (idof = "<<idof<<"): "<<current_cell_rhs[idof];
+            //     }
+            // }
         } 
         else {
             // Should be faces where the neighbor cell has the same coarseness

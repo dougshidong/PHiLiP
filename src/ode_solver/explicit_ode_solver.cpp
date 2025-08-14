@@ -79,6 +79,21 @@ void RungeKuttaODESolver<dim,real,n_rk_stages,MeshType>::step_in_time (real dt, 
         } else{
             this->dg->global_inverse_mass_matrix.vmult(this->rk_stage[i], this->dg->right_hand_side); //rk_stage[i] = IMM*RHS = F(u_n + dt*sum(a_ij*k_j))
         }
+        // pcout<<"\nRK Stage: "<<i;
+        // auto metric_cell_1 = dg->high_order_grid->dof_handler_grid.begin_active();
+        // for (auto current_cell = dg->dof_handler.begin_active(); current_cell!=dg->dof_handler.end(); ++current_cell, ++metric_cell_1) {
+        //     if (!current_cell->is_locally_owned()) continue;
+        //     const dealii::types::global_dof_index current_cell_index = current_cell->active_cell_index();
+        //     if(current_cell_index==1){
+        //         const unsigned int n_dofs_cell = dg->fe_collection[poly_degree].dofs_per_cell;                  
+        //         current_dofs_indices.resize(n_dofs_cell);
+        //         current_cell->get_dof_indices (current_dofs_indices);             
+        //         for(unsigned int idof=0; idof<2; idof++){
+        //             pcout<<"\nCell 1 solution (idof = "<<idof<<")"<<dg->solution(current_dofs_indices[idof]);
+        //         }
+        //     }
+        // }
+
     }
 
     modify_time_step(dt);

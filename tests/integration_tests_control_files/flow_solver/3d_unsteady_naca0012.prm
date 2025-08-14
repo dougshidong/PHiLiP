@@ -4,9 +4,10 @@
 # Solver dim and run type
 set dimension = 3
 set run_type = flow_simulation
+set non_physical_behavior = abort_run
  
 # DG related parameters
-set overintegration = 1
+set overintegration = 0
 set use_weak_form = false
 set flux_nodes_type = GLL
 set use_split_form = true
@@ -36,13 +37,13 @@ set output_face_results_vtk = true
 # ODE solver
 subsection ODE solver
   set ode_output = quiet
-  set ode_solver_type = runge_kutta
+  set ode_solver_type = PERK
   set output_solution_every_dt_time_intervals = 4.4E-5
   # set output_solution_at_fixed_times = false
   # set output_solution_fixed_times_string = 2.5 4.0 5.0 8.0 9.0 10.0 12.0 15.0 16.0 20.0 
   # set output_solution_at_exact_fixed_times = true
   # set output_solution_every_x_steps = 500
-  set runge_kutta_method = ssprk3_ex
+  set runge_kutta_method = PERK_3_16_3
 end
  
 # Euler; freestream Mach number
@@ -86,7 +87,7 @@ subsection flow_solver
   set unsteady_data_table_filename = Unsteady_SD7003_P4
   set steady_state = false
   set adaptive_time_step = false
-  set constant_time_step = 4.4E-5
+  set constant_time_step = 1.2E-4
   set output_restart_files = true
   set restart_files_directory_name = restart
   set output_restart_files_every_dt_time_intervals = 1.0

@@ -32,7 +32,6 @@ std::shared_ptr<Triangulation> PeriodicCubeFlow<dim,nstate>::generate_grid() con
             std::shared_ptr <HighOrderGrid<dim, double>> cube_mesh = read_gmsh<dim, dim>(
                 mesh_filename, this->all_param.do_renumber_dofs, 0, false);
 
-            std::shared_ptr <HighOrderGrid<dim, double>> cube_mesh =  read_gmsh<dim, dim> (mesh_filename, this->all_param.do_renumber_dofs, 0, use_mesh_smoothing);
             return cube_mesh->triangulation;
         }
         else {

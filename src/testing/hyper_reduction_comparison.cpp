@@ -217,13 +217,13 @@ int HyperReductionComparison<dim, nspecies, nstate>::run_test() const
 
     // Build ODE for POD Petrov-Galerkin
     ode_solver_type = Parameters::ODESolverParam::ODESolverEnum::pod_petrov_galerkin_solver;
-    flow_solver_petrov_galerkin->ode_solver =  PHiLiP::ODE::ODESolverFactory<dim, double>::create_ODESolver_manual(ode_solver_type, flow_solver_petrov_galerkin->dg,  parameter_sampling->current_pod);
+    flow_solver_petrov_galerkin->ode_solver =  PHiLiP::ODE::ODESolverFactory<dim, nspecies, double>::create_ODESolver_manual(ode_solver_type, flow_solver_petrov_galerkin->dg,  parameter_sampling->current_pod);
     flow_solver_petrov_galerkin->ode_solver->allocate_ode_system();
     auto functional_petrov_galerkin = FunctionalFactory<dim,nstate,double>::create_Functional(all_parameters->functional_param, flow_solver_petrov_galerkin->dg);
 
     // Build ODE for Hyper-Reduced POD Petrov-Galerkin
     ode_solver_type = Parameters::ODESolverParam::ODESolverEnum::hyper_reduced_petrov_galerkin_solver;
-    flow_solver_hyper_reduced_petrov_galerkin->ode_solver =  PHiLiP::ODE::ODESolverFactory<dim, double>::create_ODESolver_manual(ode_solver_type, flow_solver_hyper_reduced_petrov_galerkin->dg,  parameter_sampling->current_pod, *ptr_weights);
+    flow_solver_hyper_reduced_petrov_galerkin->ode_solver =  PHiLiP::ODE::ODESolverFactory<dim, nspecies, double>::create_ODESolver_manual(ode_solver_type, flow_solver_hyper_reduced_petrov_galerkin->dg,  parameter_sampling->current_pod, *ptr_weights);
     flow_solver_hyper_reduced_petrov_galerkin->ode_solver->allocate_ode_system();
     auto functional_hyper_reduced_petrov_galerkin = FunctionalFactory<dim,nstate,double>::create_Functional(all_parameters->functional_param, flow_solver_hyper_reduced_petrov_galerkin->dg);
     

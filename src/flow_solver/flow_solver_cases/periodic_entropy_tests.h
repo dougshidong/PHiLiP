@@ -43,7 +43,7 @@ protected:
     using FlowSolverCaseBase<dim, nspecies, nstate>::compute_unsteady_data_and_write_to_table;
     /// Compute the desired unsteady data and write it to a table
     void compute_unsteady_data_and_write_to_table(
-            const std::shared_ptr<ODE::ODESolverBase<dim, double>> ode_solver, 
+            const std::shared_ptr<ODE::ODESolverBase<dim, nspecies, double>> ode_solver, 
             const std::shared_ptr <DGBase<dim, double>> dg,
             const std::shared_ptr<dealii::TableHandler> unsteady_data_table) override;
     

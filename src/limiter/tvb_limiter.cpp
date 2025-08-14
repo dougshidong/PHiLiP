@@ -305,6 +305,5 @@ template class TVBLimiter <PHILIP_DIM, PHILIP_SPECIES, 2, double>;
 template class TVBLimiter <PHILIP_DIM, PHILIP_SPECIES, 3, double>;
 template class TVBLimiter <PHILIP_DIM, PHILIP_SPECIES, 4, double>;
 template class TVBLimiter <PHILIP_DIM, PHILIP_SPECIES, 5, double>;
-template class TVBLimiter <PHILIP_DIM, PHILIP_SPECIES, 6, double>;
 #endif
 } // PHiLiP namespace

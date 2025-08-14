@@ -77,7 +77,7 @@ int EulerTaylorGreenScaling<dim, nspecies, nstate>::run_test() const
                     InitialConditionFactory<dim,nspecies,nstate,double>::create_InitialConditionFunction(&all_parameters_new);
         SetInitialCondition<dim,nspecies,nstate,double>::set_initial_condition(initial_condition_function, dg, &all_parameters_new);
         //Create ODE system. 
-        std::shared_ptr<ODE::ODESolverBase<dim, double>> ode_solver = ODE::ODESolverFactory<dim, double>::create_ODESolver(dg);
+        std::shared_ptr<ODE::ODESolverBase<dim, nspecies, double>> ode_solver = ODE::ODESolverFactory<dim, nspecies, double>::create_ODESolver(dg);
          
         ode_solver->current_iteration = 0;
         ode_solver->allocate_ode_system();
@@ -159,7 +159,7 @@ int EulerTaylorGreenScaling<dim, nspecies, nstate>::run_test() const
                     InitialConditionFactory<dim,nspecies,nstate,double>::create_InitialConditionFunction(&all_parameters_new);
         SetInitialCondition<dim,nspecies,nstate,double>::set_initial_condition(initial_condition_function, dg, &all_parameters_new);
          
-        std::shared_ptr<ODE::ODESolverBase<dim, double>> ode_solver = ODE::ODESolverFactory<dim, double>::create_ODESolver(dg);
+        std::shared_ptr<ODE::ODESolverBase<dim, nspecies, double>> ode_solver = ODE::ODESolverFactory<dim, nspecies, double>::create_ODESolver(dg);
          
         ode_solver->current_iteration = 0;
         ode_solver->allocate_ode_system();

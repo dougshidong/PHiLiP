@@ -280,7 +280,7 @@ public:
 };
 
 /// test case
-template <int dim, int nstate>
+template <int dim, int nspecies, int nstate>
 class DiffusionExactAdjoint : public TestsBase
 {
 public: 

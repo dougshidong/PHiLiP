@@ -27,6 +27,7 @@ using ModelType = PHiLiP::Parameters::AllParameters::ModelType;
     using Triangulation = dealii::parallel::distributed::Triangulation<PHILIP_DIM>;
 #endif
 
+const int nspecies = 1;
 const double TOLERANCE = 1E-3;
 const double EPS = 1E-4;
 
@@ -84,7 +85,7 @@ int test (
     dg->solution.update_ghost_values();
 
     // Solving the flow to make sure that we're not at the point of non-differentiality between elements.
-    std::shared_ptr<PHiLiP::ODE::ODESolverBase<dim, double>> ode_solver = PHiLiP::ODE::ODESolverFactory<dim, double>::create_ODESolver(dg);
+    std::shared_ptr<PHiLiP::ODE::ODESolverBase<dim, nspecies, double>> ode_solver = PHiLiP::ODE::ODESolverFactory<dim, nspecies, double>::create_ODESolver(dg);
     ode_solver->steady_state();
 
     // Set dual to 1.0 so that every 2nd derivative of the residual is accounted for.

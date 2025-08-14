@@ -49,7 +49,7 @@ double BoundPreservingLimiterTests<dim, nspecies, nstate>::calculate_uexact(cons
 }
 
 template <int dim, int nspecies, int nstate>
-std::array<double,3> BoundPreservingLimiterTests<dim, nstate>::calculate_l_n_error(
+std::array<double,3> BoundPreservingLimiterTests<dim, nspecies, nstate>::calculate_l_n_error(
     std::shared_ptr<DGBase<dim, double>> dg,
     const int poly_degree,
     const double final_time) const

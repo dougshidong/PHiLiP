@@ -15,7 +15,7 @@ MaximumPrincipleLimiter<dim, nspecies, nstate, real>::MaximumPrincipleLimiter(
 {
     // Create pointer to TVB Limiter class if use_tvb_limiter==true && dim == 1
     if (parameters_input->limiter_param.use_tvb_limiter) {
-        if (dim == 1) {
+        if (dim == 1 && nstate <=  dim + 2 + (nspecies - 1)) {
             tvbLimiter = std::make_shared < TVBLimiter<dim, nspecies, nstate, real> >(parameters_input);
         }
         else {
@@ -254,4 +254,5 @@ template class MaximumPrincipleLimiter <PHILIP_DIM, PHILIP_SPECIES, 3, double>;
 template class MaximumPrincipleLimiter <PHILIP_DIM, PHILIP_SPECIES, 4, double>;
 template class MaximumPrincipleLimiter <PHILIP_DIM, PHILIP_SPECIES, 5, double>;
 template class MaximumPrincipleLimiter <PHILIP_DIM, PHILIP_SPECIES, 6, double>;
+template class MaximumPrincipleLimiter <PHILIP_DIM, PHILIP_SPECIES, 7, double>;
 } // PHiLiP namespace

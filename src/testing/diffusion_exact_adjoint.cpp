@@ -322,12 +322,12 @@ real2 DiffusionFunctional<dim,nstate,real>::evaluate_volume_integrand(
 }
 
 
-template <int dim, int nstate>
-DiffusionExactAdjoint<dim, nstate>::DiffusionExactAdjoint(const Parameters::AllParameters *const parameters_input): 
+template <int dim, int nspecies, int nstate>
+DiffusionExactAdjoint<dim, nspecies, nstate>::DiffusionExactAdjoint(const Parameters::AllParameters *const parameters_input): 
     TestsBase::TestsBase(parameters_input){}
 
-template <int dim, int nstate>
-int DiffusionExactAdjoint<dim,nstate>::run_test() const
+template <int dim, int nspecies, int nstate>
+int DiffusionExactAdjoint<dim,nspecies,nstate>::run_test() const
 {
     pcout << "Running diffusion exact adjoint test case." << std::endl;
 
@@ -473,8 +473,8 @@ int DiffusionExactAdjoint<dim,nstate>::run_test() const
             //dg_v->solution.add(1.1);
             
             // Create ODE solvers using the factory and providing the DG object
-            std::shared_ptr<ODE::ODESolverBase<dim, double>> ode_solver_u = ODE::ODESolverFactory<dim, double>::create_ODESolver(dg_u);
-            std::shared_ptr<ODE::ODESolverBase<dim, double>> ode_solver_v = ODE::ODESolverFactory<dim, double>::create_ODESolver(dg_v);
+            std::shared_ptr<ODE::ODESolverBase<dim, nspecies, double>> ode_solver_u = ODE::ODESolverFactory<dim, nspecies, double>::create_ODESolver(dg_u);
+            std::shared_ptr<ODE::ODESolverBase<dim, nspecies, double>> ode_solver_v = ODE::ODESolverFactory<dim, nspecies, double>::create_ODESolver(dg_v);
 
             // solving
             ode_solver_u->steady_state();
@@ -852,7 +852,8 @@ double eval_avg_slope(std::vector<double> error, std::vector<double> grid_size, 
     return 0.5*(last_slope_error+prev_slope_error);
 }
 
-template class DiffusionExactAdjoint <PHILIP_DIM,1>;
-
+#if PHILIP_SPECIES==1
+template class DiffusionExactAdjoint <PHILIP_DIM,PHILIP_SPECIES,1>;
+#endif
 } // Tests namespace
 } // PHiLiP namespace

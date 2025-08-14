@@ -81,66 +81,43 @@ FlowSolverFactory<dim, nspecies, nstate>
             return std::make_unique<FlowSolver<dim, nspecies, nstate>>(parameters_input, flow_solver_case, parameter_handler_input);
         }
     } else if (flow_type == FlowCaseEnum::sod_shock_tube){
-        if constexpr (dim==1 && nstate==dim+2){
-            std::shared_ptr<FlowSolverCaseBase<dim, nstate>> flow_solver_case = std::make_shared<PositivityPreservingTests<dim, nstate>>(parameters_input);
-            return std::make_unique<FlowSolver<dim, nstate>>(parameters_input, flow_solver_case, parameter_handler_input);
+        if constexpr (dim==1 && nspecies==1 && nstate==dim+2){
+            std::shared_ptr<FlowSolverCaseBase<dim, nspecies, nstate>> flow_solver_case = std::make_shared<PositivityPreservingTests<dim, nspecies, nstate>>(parameters_input);
+            return std::make_unique<FlowSolver<dim, nspecies, nstate>>(parameters_input, flow_solver_case, parameter_handler_input);
         }
     } else if (flow_type == FlowCaseEnum::leblanc_shock_tube){
-        if constexpr (dim==1 && nstate==dim+2){
-            std::shared_ptr<FlowSolverCaseBase<dim, nstate>> flow_solver_case = std::make_shared<PositivityPreservingTests<dim, nstate>>(parameters_input);
-            return std::make_unique<FlowSolver<dim, nstate>>(parameters_input, flow_solver_case, parameter_handler_input);
+        if constexpr (dim==1 && nspecies==1 && nstate==dim+2){
+            std::shared_ptr<FlowSolverCaseBase<dim, nspecies, nstate>> flow_solver_case = std::make_shared<PositivityPreservingTests<dim, nspecies, nstate>>(parameters_input);
+            return std::make_unique<FlowSolver<dim, nspecies, nstate>>(parameters_input, flow_solver_case, parameter_handler_input);
         }
     } else if (flow_type == FlowCaseEnum::shu_osher_problem) {
-        if constexpr (dim==1 && nstate==dim + 2) {
-            std::shared_ptr<FlowSolverCaseBase<dim, nstate>> flow_solver_case = std::make_shared<PositivityPreservingTests<dim, nstate>>(parameters_input);
-            return std::make_unique<FlowSolver<dim, nstate>>(parameters_input, flow_solver_case, parameter_handler_input);
+        if constexpr (dim==1 && nspecies==1 && nstate==dim + 2) {
+            std::shared_ptr<FlowSolverCaseBase<dim, nspecies, nstate>> flow_solver_case = std::make_shared<PositivityPreservingTests<dim, nspecies, nstate>>(parameters_input);
+            return std::make_unique<FlowSolver<dim, nspecies, nstate>>(parameters_input, flow_solver_case, parameter_handler_input);
         }
     } else if (flow_type == FlowCaseEnum::double_mach_reflection) {
-        if constexpr (dim==2 && nstate==dim + 2) {
-            std::shared_ptr<FlowSolverCaseBase<dim, nstate>> flow_solver_case = std::make_shared<PositivityPreservingTests<dim, nstate>>(parameters_input);
-            return std::make_unique<FlowSolver<dim, nstate>>(parameters_input, flow_solver_case, parameter_handler_input);
+        if constexpr (dim==2 && nspecies==1 && nstate==dim + 2) {
+            std::shared_ptr<FlowSolverCaseBase<dim, nspecies, nstate>> flow_solver_case = std::make_shared<PositivityPreservingTests<dim, nspecies, nstate>>(parameters_input);
+            return std::make_unique<FlowSolver<dim, nspecies, nstate>>(parameters_input, flow_solver_case, parameter_handler_input);
         }
     } else if (flow_type == FlowCaseEnum::shock_diffraction) {
-        if constexpr (dim==2 && nstate==dim + 2) {
-            std::shared_ptr<FlowSolverCaseBase<dim, nstate>> flow_solver_case = std::make_shared<PositivityPreservingTests<dim, nstate>>(parameters_input);
-            return std::make_unique<FlowSolver<dim, nstate>>(parameters_input, flow_solver_case, parameter_handler_input);
+        if constexpr (dim==2 && nspecies==1 && nstate==dim + 2) {
+            std::shared_ptr<FlowSolverCaseBase<dim, nspecies, nstate>> flow_solver_case = std::make_shared<PositivityPreservingTests<dim, nspecies, nstate>>(parameters_input);
+            return std::make_unique<FlowSolver<dim, nspecies, nstate>>(parameters_input, flow_solver_case, parameter_handler_input);
         }
     } else if (flow_type == FlowCaseEnum::astrophysical_jet) {
-        if constexpr (dim==2 && nstate==dim + 2) {
-            std::shared_ptr<FlowSolverCaseBase<dim, nstate>> flow_solver_case = std::make_shared<PositivityPreservingTests<dim, nstate>>(parameters_input);
-            return std::make_unique<FlowSolver<dim, nstate>>(parameters_input, flow_solver_case, parameter_handler_input);
+        if constexpr (dim==2 && nspecies==1 && nstate==dim + 2) {
+            std::shared_ptr<FlowSolverCaseBase<dim, nspecies, nstate>> flow_solver_case = std::make_shared<PositivityPreservingTests<dim, nspecies, nstate>>(parameters_input);
+            return std::make_unique<FlowSolver<dim, nspecies, nstate>>(parameters_input, flow_solver_case, parameter_handler_input);
         }
     } else if (flow_type == FlowCaseEnum::strong_vortex_shock_wave) {
-        if constexpr (dim==2 && nstate==dim + 2) {
-            std::shared_ptr<FlowSolverCaseBase<dim, nstate>> flow_solver_case = std::make_shared<PositivityPreservingTests<dim, nstate>>(parameters_input);
-            return std::make_unique<FlowSolver<dim, nstate>>(parameters_input, flow_solver_case, parameter_handler_input);
-        }
-    } else if (flow_type == FlowCaseEnum::advection_limiter) {
-        if constexpr (dim<3 && nstate==1) {
-            std::shared_ptr<FlowSolverCaseBase<dim, nstate>> flow_solver_case = std::make_shared<LimiterConvergenceTests<dim, nstate>>(parameters_input);
-            return std::make_unique<FlowSolver<dim, nstate>>(parameters_input, flow_solver_case, parameter_handler_input);
-        }
-    } else if (flow_type == FlowCaseEnum::burgers_limiter) {
-        if constexpr (dim<3 && nstate==dim) {
-            std::shared_ptr<FlowSolverCaseBase<dim, nstate>> flow_solver_case = std::make_shared<LimiterConvergenceTests<dim, nstate>>(parameters_input);
-            return std::make_unique<FlowSolver<dim, nstate>>(parameters_input, flow_solver_case, parameter_handler_input);
+        if constexpr (dim==2 && nspecies==1 && nstate==dim + 2) {
+            std::shared_ptr<FlowSolverCaseBase<dim, nspecies, nstate>> flow_solver_case = std::make_shared<PositivityPreservingTests<dim, nspecies, nstate>>(parameters_input);
+            return std::make_unique<FlowSolver<dim, nspecies, nstate>>(parameters_input, flow_solver_case, parameter_handler_input);
         }
     } else if (flow_type == FlowCaseEnum::low_density) {
-        if constexpr (dim<3 && nstate==dim + 2) {
-            std::shared_ptr<FlowSolverCaseBase<dim, nstate>> flow_solver_case = std::make_shared<LimiterConvergenceTests<dim, nstate>>(parameters_input);
-            return std::make_unique<FlowSolver<dim, nstate>>(parameters_input, flow_solver_case, parameter_handler_input);
-        if constexpr (dim==1 && nspecies==1 && nstate==dim+2){
-            std::shared_ptr<FlowSolverCaseBase<dim, nspecies, nstate>> flow_solver_case = std::make_shared<NonPeriodicCubeFlow<dim, nspecies, nstate>>(parameters_input);
-            return std::make_unique<FlowSolver<dim, nspecies, nstate>>(parameters_input, flow_solver_case, parameter_handler_input);
-        }
-    } else if (flow_type == FlowCaseEnum::leblanc_shock_tube){
-        if constexpr (dim==1 && nspecies==1 && nstate==dim+2){
-            std::shared_ptr<FlowSolverCaseBase<dim, nspecies, nstate>> flow_solver_case = std::make_shared<NonPeriodicCubeFlow<dim, nspecies, nstate>>(parameters_input);
-            return std::make_unique<FlowSolver<dim, nspecies, nstate>>(parameters_input, flow_solver_case, parameter_handler_input);
-        }
-    } else if (flow_type == FlowCaseEnum::shu_osher_problem) {
-        if constexpr (dim == 1 && nspecies==1 && nstate == dim + 2) {
-            std::shared_ptr<FlowSolverCaseBase<dim, nspecies, nstate>> flow_solver_case = std::make_shared<NonPeriodicCubeFlow<dim, nspecies, nstate>>(parameters_input);
+        if constexpr (dim<3 && nspecies==1 && nstate==dim + 2) {
+            std::shared_ptr<FlowSolverCaseBase<dim, nspecies, nstate>> flow_solver_case = std::make_shared<LimiterConvergenceTests<dim, nspecies, nstate>>(parameters_input);
             return std::make_unique<FlowSolver<dim, nspecies, nstate>>(parameters_input, flow_solver_case, parameter_handler_input);
         }
     } else if (flow_type == FlowCaseEnum::advection_limiter) {

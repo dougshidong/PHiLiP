@@ -597,7 +597,7 @@ int EulerTaylorGreen<dim, nspecies, nstate>::run_test() const
     all_parameters_new.ode_solver_param.initial_time_step =  get_timestep(dg,poly_degree,delta_x);
      
     pcout << "creating ODE solver" << std::endl;
-    std::shared_ptr<ODE::ODESolverBase<dim, double>> ode_solver = ODE::ODESolverFactory<dim, double>::create_ODESolver(dg);
+    std::shared_ptr<ODE::ODESolverBase<dim, nspecies, double>> ode_solver = ODE::ODESolverFactory<dim, nspecies, double>::create_ODESolver(dg);
     pcout << "ODE solver successfully created" << std::endl;
     double finalTime = 14.;
 

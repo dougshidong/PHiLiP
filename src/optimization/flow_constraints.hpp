@@ -22,7 +22,7 @@ using AdaptVector = dealii::Rol::VectorAdaptor<dealii_Vector>;
  *  The given @p ffd_design_variables_indices_dim point to the points/directions
  *  used as design variables.
  */
-template<int dim>
+template<int dim, int nspecies>
 class FlowConstraints : public ROL::Constraint_SimOpt<double> {
 private:
     /// MPI rank used for printing.

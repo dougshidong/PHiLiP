@@ -43,7 +43,7 @@ std::unique_ptr< BoundPreservingLimiter<dim, nspecies, real> >
             } else if (flux_nodes_type != flux_nodes_enum::GLL) {
                 std::cout << "Error: Can only use limiter with GLL flux nodes" << std::endl;
                 std::abort();
-            } else if (dim == 1)
+            } else if (dim == 1 && nstate <=  dim + 2 + (nspecies - 1))
                 return std::make_unique < TVBLimiter<dim, nspecies, nstate, real> >(parameters_input);
             else {
                 std::cout << "Error: Cannot create TVB limiter for dim > 1" << std::endl;
@@ -62,11 +62,11 @@ std::unique_ptr< BoundPreservingLimiter<dim, nspecies, real> >
         return std::make_unique< MaximumPrincipleLimiter<dim, nspecies, nstate, real> >(parameters_input);
     } else if (limiter_type == limiter_enum::positivity_preservingZhang2010
                 || limiter_type == limiter_enum::positivity_preservingWang2012) {
-        if (nstate == dim + 2)
+        if (nstate == dim + 2 + (nspecies - 1))
             return std::make_unique< PositivityPreservingLimiter<dim, nspecies, nstate, real> >(parameters_input);
         else {
-            if(nstate != dim + 2) {
-                std::cout << "Error: Cannot create Positivity-Preserving limiter for nstate_input != dim + 2" << std::endl;
+            if(nstate != dim + 2 + (nspecies - 1)) {
+                std::cout << "Error: Cannot create Positivity-Preserving limiter for nstate_input != dim + 2 + (nspecies - 1)" << std::endl;
                 std::abort();
             }
         }
@@ -83,4 +83,5 @@ std::unique_ptr< BoundPreservingLimiter<dim, nspecies, real> >
     template class BoundPreservingLimiterFactory <PHILIP_DIM, PHILIP_SPECIES, 4, double>;
     template class BoundPreservingLimiterFactory <PHILIP_DIM, PHILIP_SPECIES, 5, double>;
     template class BoundPreservingLimiterFactory <PHILIP_DIM, PHILIP_SPECIES, 6, double>;
+    template class BoundPreservingLimiterFactory <PHILIP_DIM, PHILIP_SPECIES, 7, double>;
 } // PHiLiP namespace

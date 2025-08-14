@@ -247,13 +247,13 @@ std::unique_ptr< TestsBase > TestsFactory<dim,nspecies,nstate,MeshType>
     }
 
     if(test_type == Test_enum::run_control) { // TO DO: rename to grid_study
-        return std::make_unique<GridStudy<dim,nstate>>(parameters_input);
+        return std::make_unique<GridStudy<dim,nspecies,nstate>>(parameters_input);
     } else if(test_type == Test_enum::grid_refinement_study) {
-        return std::make_unique<GridRefinementStudy<dim,nstate,MeshType>>(parameters_input);
+        return std::make_unique<GridRefinementStudy<dim,nspecies,nstate,MeshType>>(parameters_input);
     } else if(test_type == Test_enum::burgers_energy_stability) {
         if constexpr (dim==1 && nspecies==1 && nstate==1) return std::make_unique<BurgersEnergyStability<dim,nspecies,nstate>>(parameters_input);
     } else if(test_type == Test_enum::diffusion_exact_adjoint) {
-        if constexpr (dim>=1 && nstate==1) return std::make_unique<DiffusionExactAdjoint<dim,nstate>>(parameters_input);
+        if constexpr (dim>=1 && nspecies==1 && nstate==1) return std::make_unique<DiffusionExactAdjoint<dim,nspecies,nstate>>(parameters_input);
     } else if (test_type == Test_enum::advection_periodicity){
         if constexpr (nspecies==1 && nstate == 1) return std::make_unique<AdvectionPeriodic<dim,nspecies,nstate>> (parameters_input);
     } else if (test_type == Test_enum::convection_diffusion_periodicity){
@@ -269,21 +269,21 @@ std::unique_ptr< TestsBase > TestsFactory<dim,nspecies,nstate,MeshType>
     } else if(test_type == Test_enum::euler_cylinder_adjoint) {
         if constexpr (dim==2 && nspecies==1 && nstate==dim+2) return std::make_unique<EulerCylinderAdjoint<dim,nspecies,nstate>>(parameters_input);
     } else if(test_type == Test_enum::euler_vortex) {
-        if constexpr (dim==2 && nstate==dim+2) return std::make_unique<EulerVortex<dim,nstate>>(parameters_input);
+        if constexpr (dim==2 && nspecies==1 && nstate==dim+2) return std::make_unique<EulerVortex<dim,nspecies,nstate>>(parameters_input);
     } else if(test_type == Test_enum::euler_entropy_waves) {
-        if constexpr (dim>=2 && nstate==PHILIP_DIM+2) return std::make_unique<EulerEntropyWaves<dim,nstate>>(parameters_input);
+        if constexpr (dim>=2 && nspecies==1 && nstate==PHILIP_DIM+2) return std::make_unique<EulerEntropyWaves<dim,nspecies,nstate>>(parameters_input);
     } else if(test_type == Test_enum::euler_split_taylor_green) {
         if constexpr (dim==3 && nspecies==1 && nstate == dim+2) return std::make_unique<EulerTaylorGreen<dim,nspecies,nstate>>(parameters_input);
     } else if(test_type == Test_enum::taylor_green_scaling) {
         if constexpr (dim==3 && nspecies==1 && nstate == dim+2) return std::make_unique<EulerTaylorGreenScaling<dim,nspecies,nstate>>(parameters_input);
     } else if(test_type == Test_enum::optimization_inverse_manufactured) {
-        return std::make_unique<OptimizationInverseManufactured<dim,nstate>>(parameters_input);
+        return std::make_unique<OptimizationInverseManufactured<dim,nspecies,nstate>>(parameters_input);
     } else if(test_type == Test_enum::euler_bump_optimization) {
         if constexpr (dim==2 && nspecies==1 && nstate==dim+2) return std::make_unique<EulerBumpOptimization<dim,nspecies,nstate>>(parameters_input);
     } else if(test_type == Test_enum::euler_naca_optimization) {
         if constexpr (dim==2 && nspecies==1 && nstate==dim+2) return std::make_unique<EulerNACAOptimization<dim,nspecies,nstate>>(parameters_input);
     } else if(test_type == Test_enum::shock_1d) {
-        if constexpr (dim==1 && nstate==1) return std::make_unique<Shock1D<dim,nstate>>(parameters_input);
+        if constexpr (dim==1 && nspecies==1 && nstate==1) return std::make_unique<Shock1D<dim,nspecies,nstate>>(parameters_input);
     } else if(test_type == Test_enum::reduced_order) {
         if constexpr (nspecies==1 && ((dim==2 && nstate==dim+2) || (dim==1 && nstate==1))) return std::make_unique<ReducedOrder<dim,nspecies,nstate>>(parameters_input, parameter_handler_input);
     } else if(test_type == Test_enum::unsteady_reduced_order) {

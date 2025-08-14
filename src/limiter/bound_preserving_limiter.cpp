@@ -46,4 +46,5 @@ template class BoundPreservingLimiterState <PHILIP_DIM, PHILIP_SPECIES, 3, doubl
 template class BoundPreservingLimiterState <PHILIP_DIM, PHILIP_SPECIES, 4, double>;
 template class BoundPreservingLimiterState <PHILIP_DIM, PHILIP_SPECIES, 5, double>;
 template class BoundPreservingLimiterState <PHILIP_DIM, PHILIP_SPECIES, 6, double>;
+template class BoundPreservingLimiterState <PHILIP_DIM, PHILIP_SPECIES, 7, double>;
 } // PHiLiP namespace

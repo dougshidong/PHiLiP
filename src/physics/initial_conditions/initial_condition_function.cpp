@@ -1264,7 +1264,7 @@ real InitialConditionFunction_MultiSpecies_VortexAdvection<dim,nspecies,nstate,r
         const real temperature = T_0 - (gamma_0-1.0)*big_gamma*big_gamma/(8.0*gamma_0*pi)*exp;
         const real y_H2 = (y_H2_0 - a_1*coeff*exp);
 
-        const std::array Rs = this->real_gas_physics->compute_Rs(this->real_gas_physics->Ru);
+        const std::array<real,nspecies> Rs = this->real_gas_physics->compute_Rs(this->real_gas_physics->Ru);
         real y_O2;
         real R_mixture;
         // For a 2 species test
@@ -1921,7 +1921,7 @@ real InitialConditionFunction_MultiSpecies_FuelDropAdvection<dim,nspecies,nstate
         const real r = sqrt((x-x_0)*(x-x_0) + (y-y_0)*(y-y_0));
         real mass_fraction_fuel;
         real mass_fraction_N2;
-        const std::array Rs = this->real_gas_physics->compute_Rs(this->real_gas_physics->Ru);
+        const std::array<real,nspecies> Rs = this->real_gas_physics->compute_Rs(this->real_gas_physics->Ru);
         const real velocity = 50.0;
 
         const real r_0 = 1.0/3.141592653589793;
@@ -1937,7 +1937,9 @@ real InitialConditionFunction_MultiSpecies_FuelDropAdvection<dim,nspecies,nstate
             mass_fraction_fuel = 1.0 - 0.5*(1 + tanh( steep*(r-r_0) ));          
         }
         mass_fraction_N2 = 1.0 - mass_fraction_fuel;
-        const real R_mixture = (mass_fraction_N2*Rs[0] + mass_fraction_fuel*Rs[1])*this->real_gas_physics->R_ref;
+        real R_mixture = 0.0;
+        if(nspecies==2)
+            R_mixture = (mass_fraction_N2*Rs[0] + mass_fraction_fuel*Rs[1])*this->real_gas_physics->R_ref;
         const real temperature = 573.0;
         const real pressure = 600*100*100;
         const real density = pressure/(R_mixture*temperature);
@@ -2475,13 +2477,7 @@ template class InitialConditionFunction_MultiSpecies_TwoDimensional_VortexAdvect
 template class InitialConditionFunction_MultiSpecies_FuelDropAdvection <PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2+PHILIP_SPECIES-1, double>;
 #endif
 
-#if PHILIP_DIM==1 && PHILIP_SPECIES==2
-template class InitialConditionFunction_MultiSpecies_HighTemperature_VortexAdvection <PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2+PHILIP_SPECIES-1, double>;
-template class InitialConditionFunction_MultiSpecies_VortexAdvection <PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2+PHILIP_SPECIES-1, double>;
-template class InitialConditionFunction_MultiSpecies_CaloricallyPerfect_Euler_VortexAdvection <PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2+PHILIP_SPECIES-1, double>;
-#endif
-
-#if PHILIP_DIM==1 && PHILIP_SPECIES==3
+#if PHILIP_DIM==1 && PHILIP_SPECIES!=1
 template class InitialConditionFunction_MultiSpecies_HighTemperature_VortexAdvection <PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2+PHILIP_SPECIES-1, double>;
 template class InitialConditionFunction_MultiSpecies_VortexAdvection <PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2+PHILIP_SPECIES-1, double>;
 template class InitialConditionFunction_MultiSpecies_CaloricallyPerfect_Euler_VortexAdvection <PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2+PHILIP_SPECIES-1, double>;

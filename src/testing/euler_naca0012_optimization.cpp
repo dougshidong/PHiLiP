@@ -124,7 +124,7 @@ int EulerNACAOptimization<dim,nspecies,nstate>
 template<int dim, int nspecies, int nstate>
 int check_flow_constraints(
     const unsigned int nx_ffd,
-    ROL::Ptr<FlowConstraints<dim>> flow_constraints,
+    ROL::Ptr<FlowConstraints<dim,nspecies>> flow_constraints,
     ROL::Ptr<ROL::Vector<double>> des_var_sim_rol_p,
     ROL::Ptr<ROL::Vector<double>> des_var_ctl_rol_p,
     ROL::Ptr<ROL::Vector<double>> des_var_adj_rol_p)
@@ -263,7 +263,7 @@ int check_objective(
     const unsigned int nx_ffd,
     std::shared_ptr < DGBase<dim, double> > dg,
     ROL::Ptr<ROL::Objective_SimOpt<double>> objective,
-    ROL::Ptr<FlowConstraints<dim>> flow_constraints,
+    ROL::Ptr<FlowConstraints<dim,nspecies>> flow_constraints,
     ROL::Ptr<ROL::Vector<double>> des_var_sim_rol_p,
     ROL::Ptr<ROL::Vector<double>> des_var_ctl_rol_p,
     ROL::Ptr<ROL::Vector<double>> des_var_adj_rol_p)
@@ -534,7 +534,7 @@ int EulerNACAOptimization<dim,nspecies,nstate>
 
         dg_target->allocate_system ();
         dealii::VectorTools::interpolate(dg_target->dof_handler, initial_conditions, dg_target->solution);
-        std::shared_ptr<ODE::ODESolverBase<dim, double>> ode_solver = ODE::ODESolverFactory<dim, double>::create_ODESolver(dg_target);
+        std::shared_ptr<ODE::ODESolverBase<dim, nspecies, double>> ode_solver = ODE::ODESolverFactory<dim, nspecies, double>::create_ODESolver(dg_target);
         ode_solver->initialize_steady_polynomial_ramping (poly_degree);
         ode_solver->steady_state();
 
@@ -552,7 +552,7 @@ int EulerNACAOptimization<dim,nspecies,nstate>
     dg->allocate_system ();
     dealii::VectorTools::interpolate(dg->dof_handler, initial_conditions, dg->solution);
     // Create ODE solver and ramp up the solution from p0
-    std::shared_ptr<ODE::ODESolverBase<dim, double>> ode_solver = ODE::ODESolverFactory<dim, double>::create_ODESolver(dg);
+    std::shared_ptr<ODE::ODESolverBase<dim, nspecies, double>> ode_solver = ODE::ODESolverFactory<dim, nspecies, double>::create_ODESolver(dg);
     ode_solver->initialize_steady_polynomial_ramping (poly_degree);
     // // Solve the steady state problem
     ode_solver->steady_state();
@@ -595,7 +595,7 @@ int EulerNACAOptimization<dim,nspecies,nstate>
     std::shared_ptr<BaseParameterization<dim>> design_parameterization = 
                         std::make_shared<FreeFormDeformationParameterization<dim>>(dg->high_order_grid, ffd, ffd_design_variables_indices_dim);
     
-    auto con  = ROL::makePtr<FlowConstraints<dim>>(dg, design_parameterization);
+    auto con  = ROL::makePtr<FlowConstraints<dim,nspecies>>(dg, design_parameterization);
     std::shared_ptr<MatrixType> precomputed_dXvdXp = std::make_shared<MatrixType> ();
     precomputed_dXvdXp->reinit(con->dXvdXp);
     precomputed_dXvdXp->copy_from(con->dXvdXp);

@@ -13,8 +13,8 @@
 
 namespace PHiLiP {
 
-template<int dim>
-FlowConstraints<dim>
+template<int dim, int nspecies>
+FlowConstraints<dim, nspecies>
 ::FlowConstraints(std::shared_ptr<DGBase<dim,double>> &_dg, 
                   std::shared_ptr<BaseParameterization<dim>> _design_parameterization,
                   std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> precomputed_dXvdXp)
@@ -60,15 +60,15 @@ FlowConstraints<dim>
 }
 
 
-template<int dim>
-FlowConstraints<dim>::~FlowConstraints()
+template<int dim, int nspecies>
+FlowConstraints<dim, nspecies>::~FlowConstraints()
 {
     destroy_JacobianPreconditioner_1();
     destroy_AdjointJacobianPreconditioner_1();
 }
 
-template<int dim>
-void FlowConstraints<dim>
+template<int dim, int nspecies>
+void FlowConstraints<dim, nspecies>
 ::update_1( const ROL::Vector<double>& des_var_sim, bool flag, int iter )
 {
     (void) flag; (void) iter;
@@ -76,8 +76,8 @@ void FlowConstraints<dim>
     dg->solution.update_ghost_values();
 }
 
-template<int dim>
-void FlowConstraints<dim>
+template<int dim, int nspecies>
+void FlowConstraints<dim, nspecies>
 ::update_2( const ROL::Vector<double>& des_var_ctl, bool flag, int iter )
 {
     (void) flag; (void) iter;
@@ -91,8 +91,8 @@ void FlowConstraints<dim>
     }
 }
 
-template<int dim>
-void FlowConstraints<dim>
+template<int dim, int nspecies>
+void FlowConstraints<dim, nspecies>
 ::solve(
     ROL::Vector<double>& constraint_values,
     ROL::Vector<double>& des_var_sim,
@@ -105,7 +105,7 @@ void FlowConstraints<dim>
 
     dg->output_results_vtk(i_out++);
     design_parameterization->output_design_variables(i_out);
-    std::shared_ptr<ODE::ODESolverBase<dim, double>> ode_solver_1 = ODE::ODESolverFactory<dim, double>::create_ODESolver(dg);
+    std::shared_ptr<ODE::ODESolverBase<dim, nspecies, double>> ode_solver_1 = ODE::ODESolverFactory<dim, nspecies, double>::create_ODESolver(dg);
     ode_solver_1->steady_state();
 
     dg->assemble_residual();
@@ -116,8 +116,8 @@ void FlowConstraints<dim>
     des_var_sim_v = dg->solution;
 }
 
-template<int dim>
-void FlowConstraints<dim>
+template<int dim, int nspecies>
+void FlowConstraints<dim, nspecies>
 ::value(
     ROL::Vector<double>& constraint_values,
     const ROL::Vector<double>& des_var_sim,
@@ -134,8 +134,8 @@ void FlowConstraints<dim>
     constraint = dg->right_hand_side;
 }
     
-template<int dim>
-void FlowConstraints<dim>
+template<int dim, int nspecies>
+void FlowConstraints<dim, nspecies>
 ::applyJacobian_1(
     ROL::Vector<double>& output_vector,
     const ROL::Vector<double>& input_vector,
@@ -160,8 +160,8 @@ void FlowConstraints<dim>
 
 }
 
-template<int dim>
-void FlowConstraints<dim>
+template<int dim, int nspecies>
+void FlowConstraints<dim, nspecies>
 ::applyInverseJacobian_1(
     ROL::Vector<double>& output_vector,
     const ROL::Vector<double>& input_vector,
@@ -211,23 +211,23 @@ void FlowConstraints<dim>
     //    output_vector.setScalar(1.0);
     //}
 }
-template<int dim>
-void FlowConstraints<dim>
+template<int dim, int nspecies>
+void FlowConstraints<dim, nspecies>
 ::destroy_JacobianPreconditioner_1()
 {
     delete jacobian_prec;
     jacobian_prec = nullptr;
 }
-template<int dim>
-void FlowConstraints<dim>
+template<int dim, int nspecies>
+void FlowConstraints<dim, nspecies>
 ::destroy_AdjointJacobianPreconditioner_1()
 {
     delete adjoint_jacobian_prec;
     adjoint_jacobian_prec = nullptr;
 }
 
-template<int dim>
-int FlowConstraints<dim>
+template<int dim, int nspecies>
+int FlowConstraints<dim, nspecies>
 ::construct_JacobianPreconditioner_1(
     const ROL::Vector<double>& des_var_sim,
     const ROL::Vector<double>& des_var_ctl)
@@ -270,8 +270,8 @@ int FlowConstraints<dim>
 
 }
 
-template<int dim>
-int FlowConstraints<dim>
+template<int dim, int nspecies>
+int FlowConstraints<dim, nspecies>
 ::construct_AdjointJacobianPreconditioner_1(
     const ROL::Vector<double>& des_var_sim,
     const ROL::Vector<double>& des_var_ctl)
@@ -311,8 +311,8 @@ int FlowConstraints<dim>
 
 }
 
-template<int dim>
-void FlowConstraints<dim>
+template<int dim, int nspecies>
+void FlowConstraints<dim, nspecies>
 ::applyInverseJacobianPreconditioner_1(
     ROL::Vector<double>& output_vector,
     const ROL::Vector<double>& input_vector,
@@ -343,8 +343,8 @@ void FlowConstraints<dim>
 
 }
 
-template<int dim>
-void FlowConstraints<dim>
+template<int dim, int nspecies>
+void FlowConstraints<dim, nspecies>
 ::applyInverseAdjointJacobianPreconditioner_1(
     ROL::Vector<double>& output_vector,
     const ROL::Vector<double>& input_vector,
@@ -374,8 +374,8 @@ void FlowConstraints<dim>
     dRdW_mult += 6;
 }
 
-template<int dim>
-void FlowConstraints<dim>
+template<int dim, int nspecies>
+void FlowConstraints<dim, nspecies>
 ::applyInverseAdjointJacobian_1( ROL::Vector<double>& output_vector,
 const ROL::Vector<double>& input_vector,
 const ROL::Vector<double>& des_var_sim,
@@ -398,8 +398,8 @@ double& /*tol*/ )
 
 }
 
-template<int dim>
-void FlowConstraints<dim>
+template<int dim, int nspecies>
+void FlowConstraints<dim, nspecies>
 ::applyJacobian_2( ROL::Vector<double>& output_vector,
 const ROL::Vector<double>& input_vector,
 const ROL::Vector<double>& des_var_sim,
@@ -448,8 +448,8 @@ double& /*tol*/ )
     dRdX_mult += 1;
 }
 
-template<int dim>
-void FlowConstraints<dim>
+template<int dim, int nspecies>
+void FlowConstraints<dim, nspecies>
 ::applyAdjointJacobian_1( ROL::Vector<double>& output_vector,
 const ROL::Vector<double>& input_vector,
 const ROL::Vector<double>& des_var_sim,
@@ -472,8 +472,8 @@ double& /*tol*/ )
     dRdW_mult += 1;
 }
 
-template<int dim>
-void FlowConstraints<dim>
+template<int dim, int nspecies>
+void FlowConstraints<dim, nspecies>
 ::applyAdjointJacobian_2( ROL::Vector<double>& output_vector,
 const ROL::Vector<double>& input_vector,
 const ROL::Vector<double>& des_var_sim,
@@ -521,8 +521,8 @@ double& /*tol*/ )
     dRdX_mult += 1;
 }
 
-template<int dim>
-void FlowConstraints<dim>
+template<int dim, int nspecies>
+void FlowConstraints<dim, nspecies>
 ::applyAdjointHessian_11 ( ROL::Vector<double> &output_vector,
                                   const ROL::Vector<double> &dual,
                                   const ROL::Vector<double> &input_vector,
@@ -548,8 +548,8 @@ void FlowConstraints<dim>
     d2R_mult += 1;
 }
 
-template<int dim>
-void FlowConstraints<dim>
+template<int dim, int nspecies>
+void FlowConstraints<dim, nspecies>
 ::applyAdjointHessian_12 ( ROL::Vector<double> &output_vector,
                                   const ROL::Vector<double> &dual,
                                   const ROL::Vector<double> &input_vector,
@@ -603,8 +603,8 @@ void FlowConstraints<dim>
     d2R_mult += 1;
 }
 
-template<int dim>
-void FlowConstraints<dim>
+template<int dim, int nspecies>
+void FlowConstraints<dim, nspecies>
 ::applyAdjointHessian_21 (
     ROL::Vector<double> &output_vector,
     const ROL::Vector<double> &dual,
@@ -662,8 +662,8 @@ void FlowConstraints<dim>
 }
 
 
-template<int dim>
-void FlowConstraints<dim>
+template<int dim, int nspecies>
+void FlowConstraints<dim, nspecies>
 ::applyAdjointHessian_22 (
     ROL::Vector<double> &output_vector,
     const ROL::Vector<double> &dual,
@@ -743,8 +743,8 @@ void FlowConstraints<dim>
     d2R_mult += 1;
 }
 
-// template<int dim>
-// void FlowConstraints<dim>
+// template<int dim, int nspecies>
+// void FlowConstraints<dim, nspecies>
 // ::applyPreconditioner(ROL::Vector<double> &pv,
 //                          const ROL::Vector<double> &v,
 //                          const ROL::Vector<double> &x,
@@ -840,6 +840,6 @@ void FlowConstraints<dim>
 //     const ROL::Vector<double> &b1_ctl = *(b1_simctl.get_2());
 // }
 
-template class FlowConstraints<PHILIP_DIM>;
+template class FlowConstraints<PHILIP_DIM, PHILIP_SPECIES>;
 
 } // PHiLiP namespace

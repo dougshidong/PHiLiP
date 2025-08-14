@@ -307,8 +307,8 @@ public:
  }
 };
 
-template <int dim, int nstate>
-OptimizationInverseManufactured<dim,nstate>::OptimizationInverseManufactured(const Parameters::AllParameters *const parameters_input)
+template <int dim, int nspecies, int nstate>
+OptimizationInverseManufactured<dim,nspecies,nstate>::OptimizationInverseManufactured(const Parameters::AllParameters *const parameters_input)
     :
     TestsBase::TestsBase(parameters_input)
 {}
@@ -322,8 +322,8 @@ void initialize_perturbed_solution(PHiLiP::DGBase<dim,double> &dg, const PHiLiP:
     dg.solution = solution_no_ghost;
 }
 
-template<int dim, int nstate>
-int OptimizationInverseManufactured<dim,nstate>
+template<int dim, int nspecies, int nstate>
+int OptimizationInverseManufactured<dim,nspecies,nstate>
 ::run_test () const
 {
  const double amplitude = AMPLITUDE_OPT;
@@ -442,7 +442,7 @@ int OptimizationInverseManufactured<dim,nstate>
  initialize_perturbed_solution(*dg, *physics_double);
  dg->output_results_vtk(999);
  high_order_grid->output_results_vtk(high_order_grid->nth_refinement++);
- std::shared_ptr<ODE::ODESolverBase<dim, double>> ode_solver = ODE::ODESolverFactory<dim, double>::create_ODESolver(dg);
+ std::shared_ptr<ODE::ODESolverBase<dim, nspecies, double>> ode_solver = ODE::ODESolverFactory<dim, nspecies, double>::create_ODESolver(dg);
  ode_solver->steady_state();
 
  // Save target solution and volume_nodes
@@ -1088,7 +1088,7 @@ int OptimizationInverseManufactured<dim,nstate>
 
 // Define a macro to instantiate MyTemplate for a specific index
 #define INSTANTIATE_TEMPLATE(r, data, index) \
-   template class OptimizationInverseManufactured <PHILIP_DIM,index>;
+   template class OptimizationInverseManufactured <PHILIP_DIM,PHILIP_SPECIES,index>;
 BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_TEMPLATE, _, POSSIBLE_NSTATE)
 
 

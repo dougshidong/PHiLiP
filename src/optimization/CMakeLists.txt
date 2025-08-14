@@ -21,7 +21,7 @@ foreach(species RANGE 1 3)
     string(CONCAT OptimizationLib Optimization ${lib_spec})
     add_library(${OptimizationLib} STATIC ${TESTS_SOURCE})
     # Replace occurences of PHILIP_DIM with 1, 2, or 3 in the code
-    target_compile_definitions(${OptimizationLib} PRIVATE PHILIP_DIM=${dim})
+    target_compile_definitions(${OptimizationLib} PRIVATE PHILIP_DIM=${dim} PHILIP_SPECIES=${species})
 
     # Library dependency
     string(CONCAT GridsLib Grids ${lib_spec})

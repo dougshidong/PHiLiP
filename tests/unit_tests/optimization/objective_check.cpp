@@ -132,7 +132,7 @@ int test(const unsigned int nx_ffd)
         dg->allocate_system ();
         dealii::VectorTools::interpolate(dg->dof_handler, initial_conditions, dg->solution);
         // Create ODE solver and ramp up the solution from p0
-        std::shared_ptr<ODE::ODESolverBase<dim, double>> ode_solver = ODE::ODESolverFactory<dim, double>::create_ODESolver(dg);
+        std::shared_ptr<ODE::ODESolverBase<dim, nspecies, double>> ode_solver = ODE::ODESolverFactory<dim, nspecies, double>::create_ODESolver(dg);
         ode_solver->initialize_steady_polynomial_ramping (POLY_DEGREE);
         // Solve the steady state problem
         ode_solver->steady_state();
@@ -189,7 +189,7 @@ int test(const unsigned int nx_ffd)
     dg->allocate_system ();
     dealii::VectorTools::interpolate(dg->dof_handler, initial_conditions, dg->solution);
     // Create ODE solver and ramp up the solution from p0
-    std::shared_ptr<ODE::ODESolverBase<dim, double>> ode_solver = ODE::ODESolverFactory<dim, double>::create_ODESolver(dg);
+    std::shared_ptr<ODE::ODESolverBase<dim, nspecies, double>> ode_solver = ODE::ODESolverFactory<dim, nspecies, double>::create_ODESolver(dg);
     ode_solver->initialize_steady_polynomial_ramping (POLY_DEGREE);
     // Solve the steady state problem
     ode_solver->steady_state();
@@ -234,7 +234,7 @@ int test(const unsigned int nx_ffd)
                         std::make_shared<FreeFormDeformationParameterization<dim>>(dg->high_order_grid, ffd, ffd_design_variables_indices_dim);
     
     auto obj  = ROL::makePtr<ROLObjectiveSimOpt<dim,nstate>>(functional, design_parameterization);
-    auto con  = ROL::makePtr<FlowConstraints<dim>>(dg, design_parameterization);
+    auto con  = ROL::makePtr<FlowConstraints<dim,nspecies>>(dg, design_parameterization);
     const bool storage = false;
     const bool useFDHessian = false;
     auto robj = ROL::makePtr<ROL::Reduced_Objective_SimOpt<double>>( obj, con, des_var_sim_rol_p, des_var_ctl_rol_p, des_var_adj_rol_p, storage, useFDHessian);

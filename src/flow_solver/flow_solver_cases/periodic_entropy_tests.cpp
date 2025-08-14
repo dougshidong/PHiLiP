@@ -239,7 +239,7 @@ double PeriodicEntropyTests<dim, nspecies, nstate>::compute_entropy(
 
 template <int dim, int nspecies, int nstate>
 void PeriodicEntropyTests<dim, nspecies, nstate>::compute_unsteady_data_and_write_to_table(
-        const std::shared_ptr<ODE::ODESolverBase<dim, double>> ode_solver, 
+        const std::shared_ptr<ODE::ODESolverBase<dim, nspecies, double>> ode_solver, 
         const std::shared_ptr <DGBase<dim, double>> dg,
         const std::shared_ptr<dealii::TableHandler> unsteady_data_table)
 {

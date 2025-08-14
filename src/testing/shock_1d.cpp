@@ -101,8 +101,8 @@ public:
     }
 };
 
-template <int dim, int nstate>
-double Shock1D<dim,nstate>
+template <int dim, int nspecies, int nstate>
+double Shock1D<dim,nspecies,nstate>
 ::integrate_solution_over_domain(DGBase<dim,double> &dg) const
 {
     pcout << "Evaluating solution integral..." << std::endl;
@@ -173,14 +173,14 @@ public:
   }
 };
 
-template <int dim, int nstate>
-Shock1D<dim,nstate>::Shock1D(const Parameters::AllParameters *const parameters_input)
+template <int dim, int nspecies, int nstate>
+Shock1D<dim,nspecies,nstate>::Shock1D(const Parameters::AllParameters *const parameters_input)
     :
     TestsBase::TestsBase(parameters_input)
 {}
 
-template <int dim, int nstate>
-void Shock1D<dim,nstate>
+template <int dim, int nspecies, int nstate>
+void Shock1D<dim,nspecies,nstate>
 ::initialize_perturbed_solution(DGBase<dim,double> &dg, const Physics::PhysicsBase<dim,nstate,double> &/*physics*/) const
 {
     dealii::LinearAlgebra::distributed::Vector<double> solution_no_ghost;
@@ -189,8 +189,8 @@ void Shock1D<dim,nstate>
     dg.solution = solution_no_ghost;
 }
 
-template<int dim, int nstate>
-int Shock1D<dim,nstate>
+template<int dim, int nspecies, int nstate>
+int Shock1D<dim,nspecies,nstate>
 ::run_test () const
 {
 #if PHILIP_DIM==1
@@ -301,7 +301,7 @@ int Shock1D<dim,nstate>
             dg->allocate_system ();
 
             // Create ODE solver using the factory and providing the DG object
-            std::shared_ptr<ODE::ODESolverBase<dim, double>> ode_solver = ODE::ODESolverFactory<dim, double>::create_ODESolver(dg);
+            std::shared_ptr<ODE::ODESolverBase<dim, nspecies, double>> ode_solver = ODE::ODESolverFactory<dim, nspecies, double>::create_ODESolver(dg);
 
             const unsigned int n_global_active_cells = grid->n_global_active_cells();
             const unsigned int n_dofs = dg->dof_handler.n_dofs();
@@ -434,8 +434,8 @@ int Shock1D<dim,nstate>
     return n_fail_poly;
 }
 
-template <int dim, int nstate>
-dealii::Point<dim> Shock1D<dim,nstate>
+template <int dim, int nspecies, int nstate>
+dealii::Point<dim> Shock1D<dim,nspecies,nstate>
 ::warp (const dealii::Point<dim> &p)
 {
     dealii::Point<dim> q = p;
@@ -445,8 +445,8 @@ dealii::Point<dim> Shock1D<dim,nstate>
     return q;
 }
 
-template <int dim, int nstate>
-void Shock1D<dim,nstate>
+template <int dim, int nspecies, int nstate>
+void Shock1D<dim,nspecies,nstate>
 ::print_mesh_info(const dealii::Triangulation<dim> &triangulation, const std::string &filename) const
 {
     pcout << "Mesh info:" << std::endl
@@ -471,8 +471,9 @@ void Shock1D<dim,nstate>
     }
 }
 
-template class Shock1D <PHILIP_DIM,1>;
-
+#if PHILIP_SPECIES==1
+template class Shock1D <PHILIP_DIM,PHILIP_SPECIES,1>;
+#endif
 } // Tests namespace
 } // PHiLiP namespace
 

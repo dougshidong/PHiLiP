@@ -174,7 +174,7 @@ int EulerCylinder<dim,nspecies,nstate>
         dealii::VectorTools::interpolate(dg->dof_handler, initial_conditions, dg->solution);
 
         // Create ODE solver and ramp up the solution from p0
-        std::shared_ptr<ODE::ODESolverBase<dim, double>> ode_solver = ODE::ODESolverFactory<dim, double>::create_ODESolver(dg);
+        std::shared_ptr<ODE::ODESolverBase<dim, nspecies, double>> ode_solver = ODE::ODESolverFactory<dim, nspecies, double>::create_ODESolver(dg);
         ode_solver->initialize_steady_polynomial_ramping(poly_degree);
 
         dealii::Vector<float> estimated_error_per_cell(grid->n_active_cells());

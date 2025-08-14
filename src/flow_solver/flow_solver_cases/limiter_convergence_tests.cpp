@@ -105,9 +105,8 @@ double LimiterConvergenceTests<dim, nspecies, nstate>::get_adaptive_time_step_in
     return time_step;
 }
 
-<<<<<<< HEAD
-template<int dim, int nstate>
-void LimiterConvergenceTests<dim, nstate>::update_maximum_local_wave_speed(DGBase<dim, double> &dg)
+template<int dim, int nspecies, int nstate>
+void LimiterConvergenceTests<dim, nspecies, nstate>::update_maximum_local_wave_speed(DGBase<dim, double> &dg)
 {    
     // Initialize the maximum local wave speed to zero
     this->maximum_local_wave_speed = 0.0;
@@ -143,13 +142,8 @@ void LimiterConvergenceTests<dim, nstate>::update_maximum_local_wave_speed(DGBas
     this->maximum_local_wave_speed = dealii::Utilities::MPI::max(this->maximum_local_wave_speed, this->mpi_communicator);
 }
 
-
-template <int dim, int nstate>
-void LimiterConvergenceTests<dim, nstate>::display_additional_flow_case_specific_parameters() const
-=======
 template <int dim, int nspecies, int nstate>
 void LimiterConvergenceTests<dim, nspecies, nstate>::display_additional_flow_case_specific_parameters() const
->>>>>>> liki-multi-species
 {
     this->pcout << "- - Courant-Friedrichs-Lewy number: " << this->all_param.flow_solver_param.courant_friedrichs_lewy_number << std::endl;
 }
@@ -266,12 +260,8 @@ void LimiterConvergenceTests<dim, nspecies, nstate>::compute_unsteady_data_and_w
 }
 
 #if PHILIP_DIM==1
-<<<<<<< HEAD
-    template class LimiterConvergenceTests<PHILIP_DIM, PHILIP_DIM>;
-    template class LimiterConvergenceTests<PHILIP_DIM, PHILIP_DIM+2>;
-=======
     template class LimiterConvergenceTests<PHILIP_DIM, 1, PHILIP_DIM>;
->>>>>>> liki-multi-species
+    template class LimiterConvergenceTests<PHILIP_DIM, 1, PHILIP_DIM+2>;
 #elif PHILIP_DIM==2
     template class LimiterConvergenceTests<PHILIP_DIM, 1, 1>;
     template class LimiterConvergenceTests<PHILIP_DIM, 1, PHILIP_DIM>;

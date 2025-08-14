@@ -56,7 +56,7 @@ int AdaptiveSamplingTesting<dim, nspecies, nstate>::run_test() const
         std::unique_ptr<FlowSolver::FlowSolver<dim,nspecies,nstate>> flow_solver = FlowSolver::FlowSolverFactory<dim,nspecies,nstate>::select_flow_case(&params, parameter_handler);
         auto ode_solver_type = Parameters::ODESolverParam::ODESolverEnum::pod_petrov_galerkin_solver;
         std::shared_ptr<ProperOrthogonalDecomposition::OfflinePOD<dim>> pod_standard = std::make_shared<ProperOrthogonalDecomposition::OfflinePOD<dim>>(flow_solver->dg);
-        flow_solver->ode_solver =  PHiLiP::ODE::ODESolverFactory<dim, double>::create_ODESolver_manual(ode_solver_type, flow_solver->dg, pod_standard);
+        flow_solver->ode_solver =  PHiLiP::ODE::ODESolverFactory<dim, nspecies, double>::create_ODESolver_manual(ode_solver_type, flow_solver->dg, pod_standard);
         flow_solver->ode_solver->allocate_ode_system();
         auto functional = FunctionalFactory<dim,nstate,double>::create_Functional(params.functional_param, flow_solver->dg);
 

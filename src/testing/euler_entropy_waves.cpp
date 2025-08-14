@@ -73,14 +73,14 @@ inline real EulerEntropyWavesFunction<dim,real>
     return conservative_values[istate];
 }
 
-template <int dim, int nstate>
-EulerEntropyWaves<dim,nstate>::EulerEntropyWaves(const Parameters::AllParameters *const parameters_input)
+template <int dim, int nspecies, int nstate>
+EulerEntropyWaves<dim,nspecies,nstate>::EulerEntropyWaves(const Parameters::AllParameters *const parameters_input)
     :
     TestsBase::TestsBase(parameters_input)
 {}
 
-template<int dim, int nstate>
-int EulerEntropyWaves<dim,nstate>
+template<int dim, int nspecies, int nstate>
+int EulerEntropyWaves<dim,nspecies,nstate>
 ::run_test () const
 {
     using ManParam = Parameters::ManufacturedConvergenceStudyParam;
@@ -204,7 +204,7 @@ int EulerEntropyWaves<dim,nstate>
             dealii::VectorTools::interpolate(dg->dof_handler, initial_vortex_function, dg->solution);
 
             // Create ODE solver using the factory and providing the DG object
-            std::shared_ptr<ODE::ODESolverBase<dim, double>> ode_solver = ODE::ODESolverFactory<dim, double>::create_ODESolver(dg);
+            std::shared_ptr<ODE::ODESolverBase<dim, nspecies, double>> ode_solver = ODE::ODESolverFactory<dim, nspecies, double>::create_ODESolver(dg);
 
             unsigned int n_active_cells = grid->n_active_cells();
             std::cout
@@ -372,8 +372,9 @@ int EulerEntropyWaves<dim,nstate>
     return n_fail_poly;
 }
 
-template class EulerEntropyWaves <PHILIP_DIM,PHILIP_DIM+2>;
-
+#if PHILIP_SPECIES==1
+template class EulerEntropyWaves <PHILIP_DIM,PHILIP_SPECIES,PHILIP_DIM+2>;
+#endif
 
 } // Tests namespace
 } // PHiLiP namespace

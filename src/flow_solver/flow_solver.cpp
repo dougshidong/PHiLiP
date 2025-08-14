@@ -90,9 +90,9 @@ FlowSolver<dim, nspecies, nstate>::FlowSolver(
        ode_param.ode_solver_type == Parameters::ODESolverParam::pod_petrov_galerkin_solver ||
        ode_param.ode_solver_type == Parameters::ODESolverParam::pod_galerkin_runge_kutta_solver){
         std::shared_ptr<ProperOrthogonalDecomposition::OfflinePOD<dim>> pod = std::make_shared<ProperOrthogonalDecomposition::OfflinePOD<dim>>(dg);
-        ode_solver = ODE::ODESolverFactory<dim, double>::create_ODESolver(dg, pod);
+        ode_solver = ODE::ODESolverFactory<dim, nspecies, double>::create_ODESolver(dg, pod);
     } else {
-        ode_solver = ODE::ODESolverFactory<dim, double>::create_ODESolver(dg);
+        ode_solver = ODE::ODESolverFactory<dim, nspecies, double>::create_ODESolver(dg);
     }
 
     // Allocate ODE solver after initializing DG

@@ -128,14 +128,14 @@ inline real EulerVortexFunction<dim,real>
     return conservative_values[istate];
 }
 
-template <int dim, int nstate>
-EulerVortex<dim,nstate>::EulerVortex(const Parameters::AllParameters *const parameters_input)
+template <int dim, int nspecies, int nstate>
+EulerVortex<dim,nspecies,nstate>::EulerVortex(const Parameters::AllParameters *const parameters_input)
     :
     TestsBase::TestsBase(parameters_input)
 {}
 
-template<int dim, int nstate>
-int EulerVortex<dim,nstate>
+template<int dim, int nspecies, int nstate>
+int EulerVortex<dim,nspecies,nstate>
 ::run_test () const
 {
     using ManParam = Parameters::ManufacturedConvergenceStudyParam;
@@ -243,7 +243,7 @@ int EulerVortex<dim,nstate>
             //                         dg->solution);
 
             // Create ODE solver using the factory and providing the DG object
-            std::shared_ptr<ODE::ODESolverBase<dim, double>> ode_solver = ODE::ODESolverFactory<dim, double>::create_ODESolver(dg);
+            std::shared_ptr<ODE::ODESolverBase<dim, nspecies, double>> ode_solver = ODE::ODESolverFactory<dim, nspecies, double>::create_ODESolver(dg);
 
             const unsigned int n_active_cells = grid->n_active_cells();
             const unsigned int n_dofs = dg->dof_handler.n_dofs();
@@ -410,8 +410,8 @@ int EulerVortex<dim,nstate>
     return n_fail_poly;
 }
 
-#if PHILIP_DIM==2
-    template class EulerVortex <PHILIP_DIM,PHILIP_DIM+2>;
+#if PHILIP_DIM==2 && PHILIP_SPECIES==1
+    template class EulerVortex <PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2>;
 #endif
 
 

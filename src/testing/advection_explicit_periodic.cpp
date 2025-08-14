@@ -157,7 +157,7 @@ int AdvectionPeriodic<dim, nspecies, nstate>::run_test() const
         SetInitialCondition<dim,nspecies,nstate,double>::set_initial_condition(initial_condition_function, dg, &all_parameters_new);
 
         // Create ODE solver using the factory and providing the DG object
-        std::shared_ptr<PHiLiP::ODE::ODESolverBase<dim, double>> ode_solver = PHiLiP::ODE::ODESolverFactory<dim, double>::create_ODESolver(dg);
+        std::shared_ptr<PHiLiP::ODE::ODESolverBase<dim, nspecies, double>> ode_solver = PHiLiP::ODE::ODESolverFactory<dim, nspecies, double>::create_ODESolver(dg);
         double finalTime = 2.0;
         if constexpr(dim==3) finalTime = 0.1;//to speed things up locally
     	

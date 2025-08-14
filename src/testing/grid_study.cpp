@@ -38,14 +38,14 @@
 namespace PHiLiP {
 namespace Tests {
 
-template <int dim, int nstate>
-GridStudy<dim,nstate>::GridStudy(const Parameters::AllParameters *const parameters_input)
+template <int dim, int nspecies, int nstate>
+GridStudy<dim,nspecies,nstate>::GridStudy(const Parameters::AllParameters *const parameters_input)
     :
     TestsBase::TestsBase(parameters_input)
 {}
 
-template <int dim, int nstate>
-void GridStudy<dim,nstate>
+template <int dim, int nspecies, int nstate>
+void GridStudy<dim,nspecies,nstate>
 ::initialize_perturbed_solution(DGBase<dim,double> &dg, const Physics::PhysicsBase<dim,nstate,double> &physics) const
 {
     dealii::LinearAlgebra::distributed::Vector<double> solution_no_ghost;
@@ -60,8 +60,8 @@ void GridStudy<dim,nstate>
     // }
     dg.solution = solution_no_ghost;
 }
-template <int dim, int nstate>
-double GridStudy<dim,nstate>
+template <int dim, int nspecies, int nstate>
+double GridStudy<dim,nspecies,nstate>
 ::integrate_solution_over_domain(DGBase<dim,double> &dg) const
 {
     pcout << "Evaluating solution integral..." << std::endl;
@@ -113,8 +113,8 @@ double GridStudy<dim,nstate>
     return solution_integral_mpi_sum;
 }
 
-template<int dim, int nstate>
-std::string GridStudy<dim,nstate>::
+template<int dim, int nspecies, int nstate>
+std::string GridStudy<dim,nspecies,nstate>::
 get_convergence_tables_baseline_filename(const Parameters::AllParameters *const param) const
 {    
     // initial base name
@@ -133,8 +133,8 @@ get_convergence_tables_baseline_filename(const Parameters::AllParameters *const 
     return error_filename_baseline;
 }
 
-template<int dim, int nstate>
-void GridStudy<dim,nstate>::
+template<int dim, int nspecies, int nstate>
+void GridStudy<dim,nspecies,nstate>::
 write_convergence_table_to_output_file(
     const std::string error_filename_baseline,
     const dealii::ConvergenceTable convergence_table,
@@ -148,8 +148,8 @@ write_convergence_table_to_output_file(
 }
 
 
-template<int dim, int nstate>
-int GridStudy<dim,nstate>
+template<int dim, int nspecies, int nstate>
+int GridStudy<dim,nspecies,nstate>
 ::run_test () const
 {
     int test_fail = 0;
@@ -373,7 +373,7 @@ int GridStudy<dim,nstate>
             initialize_perturbed_solution(*(dg), *(physics_double));
 
             // Create ODE solver using the factory and providing the DG object
-            std::shared_ptr<ODE::ODESolverBase<dim, double>> ode_solver = ODE::ODESolverFactory<dim, double>::create_ODESolver(dg);
+            std::shared_ptr<ODE::ODESolverBase<dim, nspecies, double>> ode_solver = ODE::ODESolverFactory<dim, nspecies, double>::create_ODESolver(dg);
 
             const unsigned int n_global_active_cells = grid->n_global_active_cells();
             const unsigned int n_dofs = dg->dof_handler.n_dofs();
@@ -635,8 +635,8 @@ int GridStudy<dim,nstate>
     return test_fail;
 }
 
-template <int dim, int nstate>
-dealii::Point<dim> GridStudy<dim,nstate>
+template <int dim, int nspecies, int nstate>
+dealii::Point<dim> GridStudy<dim,nspecies,nstate>
 ::warp (const dealii::Point<dim> &p)
 {
     dealii::Point<dim> q = p;
@@ -646,8 +646,8 @@ dealii::Point<dim> GridStudy<dim,nstate>
     return q;
 }
 
-template <int dim, int nstate>
-void GridStudy<dim,nstate>
+template <int dim, int nspecies, int nstate>
+void GridStudy<dim,nspecies,nstate>
 ::print_mesh_info(const dealii::Triangulation<dim> &triangulation, const std::string &filename) const
 {
     pcout << "Mesh info:" << std::endl
@@ -677,7 +677,7 @@ void GridStudy<dim,nstate>
 
 // Define a macro to instantiate MyTemplate for a specific index
 #define INSTANTIATE_TEMPLATE(r, data, index) \
-   template class GridStudy <PHILIP_DIM,index>;
+   template class GridStudy <PHILIP_DIM,PHILIP_SPECIES,index>;
 BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_TEMPLATE, _, POSSIBLE_NSTATE)
 
 } // Tests namespace

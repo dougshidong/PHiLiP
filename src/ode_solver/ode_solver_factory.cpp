@@ -238,6 +238,9 @@ std::shared_ptr<ODESolverBase<dim,real,MeshType>> ODESolverFactory<dim,real,Mesh
         if (n_rk_stages == 10){
             return std::make_shared<PERKODESolver<dim,real,10, MeshType>>(dg_input,perk_tableau,RRK_object);
         }
+        else if (n_rk_stages == 16){
+            return std::make_shared<PERKODESolver<dim,real,16, MeshType>>(dg_input,perk_tableau,RRK_object);
+        }
         else{
             pcout << "Error: invalid number of stages. Aborting..." << std::endl;
             std::abort();

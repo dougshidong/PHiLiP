@@ -1,4 +1,7 @@
 #include "parameters/parameters_ode_solver.h"
+#include <deal.II/base/mpi.h>
+#include <deal.II/base/utilities.h>
+#include <deal.II/base/conditional_ostream.h>
 
 namespace PHiLiP {
 namespace Parameters {
@@ -299,6 +302,11 @@ void ODESolverParam::parse_parameters (dealii::ParameterHandler &prm)
             if (use_relaxation_runge_kutta == false && ode_solver_type == rrk_explicit_solver) {
                 // For backwards compatibility
                 use_relaxation_runge_kutta = true;
+                const int mpi_rank = dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD);
+                dealii::ConditionalOStream pcout(std::cout, mpi_rank==0);
+                pcout << "Warning: rrk_explicit_solver parameter is depreciated. " << std::endl
+                      << "Backwards compatibility was verified upon implementation." <<std::endl;
+                      
             }
         }
         prm.leave_subsection();

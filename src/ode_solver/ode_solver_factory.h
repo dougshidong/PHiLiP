@@ -53,9 +53,6 @@ public:
     /// Creates an RKTableau object based on the specified RK method
     static std::shared_ptr<RKTableauBase<dim,real,MeshType>> create_RKTableau(std::shared_ptr< DGBase<dim,real,MeshType> > dg_input);
     
-    /// Creates an RKTableau object based on the specified RK method
-    static std::shared_ptr<LowStorageRKTableauBase<dim,real,MeshType>> create_LowStorageRKTableau(std::shared_ptr< DGBase<dim,real,MeshType> > dg_input);
-     
     /// Creates an RRK object with specified RRK type; if no RRK is being used, creates an RRK object with empty functions. 
     static std::shared_ptr<EmptyRRKBase<dim,real,MeshType>> create_RRKObject(std::shared_ptr< DGBase<dim,real,MeshType> > dg_input,
             std::shared_ptr<RKTableauBase<dim,real,MeshType>> rk_tableau);

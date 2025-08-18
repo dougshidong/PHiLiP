@@ -195,7 +195,7 @@ std::shared_ptr<ODESolverBase<dim,real,MeshType>> ODESolverFactory<dim,real,Mesh
             return nullptr;
         }
     } else if (ode_solver_type == ODEEnum::low_storage_runge_kutta_solver) {
-         std::shared_ptr<LowStorageRKTableauBase<dim,real,MeshType>> ls_rk_tableau = create_LowStorageRKTableau(dg_input);;
+        std::shared_ptr<LowStorageRKTableauBase<dim,real,MeshType>> ls_rk_tableau = std::dynamic_pointer_cast<LowStorageRKTableauBase<dim,real,MeshType>>(rk_tableau); 
 
         // Hard-coded templating of n_rk_stages because it is not known at compile time
         pcout << "Creating Low-Storage Runge Kutta ODE Solver with " 
@@ -281,28 +281,6 @@ std::shared_ptr<ODESolverBase<dim,real,MeshType>> ODESolverFactory<dim,real,Mesh
 }
 
 template <int dim, typename real, typename MeshType>
-std::shared_ptr<LowStorageRKTableauBase<dim,real,MeshType>> ODESolverFactory<dim,real,MeshType>::create_LowStorageRKTableau(std::shared_ptr< DGBase<dim,real,MeshType> > dg_input)
-{
-
-    dealii::ConditionalOStream pcout(std::cout, dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD)==0);
-    using RKMethodEnum = Parameters::ODESolverParam::RKMethodEnum;
-    const RKMethodEnum rk_method = dg_input->all_parameters->ode_solver_param.runge_kutta_method;
-
-    const int n_rk_stages = dg_input->all_parameters->ode_solver_param.n_rk_stages;
-    const int num_delta = dg_input->all_parameters->ode_solver_param.num_delta;
-    
-    if (rk_method == RKMethodEnum::RK3_2_5F_3SStarPlus)   return std::make_shared<RK3_2_5F_3SStarPlus<dim, real, MeshType>> (n_rk_stages, num_delta, "RK3_2_5F_3SStarPlus");
-    if (rk_method == RKMethodEnum::RK4_3_5_3SStar)      return std::make_shared<RK4_3_5_3SStar<dim, real, MeshType>>    (n_rk_stages, num_delta, "RK4_3_5_3SStar");
-    if (rk_method == RKMethodEnum::RK4_3_9F_3SStarPlus)      return std::make_shared<RK4_3_9F_3SStarPlus<dim, real, MeshType>>    (n_rk_stages, num_delta, "RK4_3_9F_3SStarPlus");
-    if (rk_method == RKMethodEnum::RK5_4_10F_3SStarPlus)      return std::make_shared<RK5_4_10F_3SStarPlus<dim, real, MeshType>>    (n_rk_stages, num_delta, "RK5_4_10F_3SStarPlus");
-    else {
-        pcout << "Error: invalid LS RK method. Aborting..." << std::endl;
-        std::abort();
-        return nullptr;
-    }
-}
-
-template <int dim, typename real, typename MeshType>
 std::shared_ptr<RKTableauBase<dim,real,MeshType>> ODESolverFactory<dim,real,MeshType>::create_RKTableau(std::shared_ptr< DGBase<dim,real,MeshType> > dg_input)
 {
     dealii::ConditionalOStream pcout(std::cout, dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD)==0);
@@ -327,24 +305,15 @@ std::shared_ptr<RKTableauBase<dim,real,MeshType>> ODESolverFactory<dim,real,Mesh
     if (rk_method == RKMethodEnum::euler_im)    return std::make_shared<EulerImplicit<dim, real, MeshType>>  (n_rk_stages, "Implicit Euler (implicit)");
     if (rk_method == RKMethodEnum::dirk_2_im)   return std::make_shared<DIRK2Implicit<dim, real, MeshType>>  (n_rk_stages, "2nd order diagonally-implicit (implicit)");
     if (rk_method == RKMethodEnum::dirk_3_im)   return std::make_shared<DIRK3Implicit<dim, real, MeshType>>  (n_rk_stages, "3nd order diagonally-implicit (implicit)");
+
+    //Low storage methods
+    const int num_delta = dg_input->all_parameters->ode_solver_param.num_delta;
+    
+    if (rk_method == RKMethodEnum::RK3_2_5F_3SStarPlus)         return std::make_shared<RK3_2_5F_3SStarPlus<dim, real, MeshType>> (n_rk_stages, num_delta, "RK3_2_5F_3SStarPlus");
+    if (rk_method == RKMethodEnum::RK4_3_5_3SStar)              return std::make_shared<RK4_3_5_3SStar<dim, real, MeshType>>    (n_rk_stages, num_delta, "RK4_3_5_3SStar");
+    if (rk_method == RKMethodEnum::RK4_3_9F_3SStarPlus)         return std::make_shared<RK4_3_9F_3SStarPlus<dim, real, MeshType>>    (n_rk_stages, num_delta, "RK4_3_9F_3SStarPlus");
+    if (rk_method == RKMethodEnum::RK5_4_10F_3SStarPlus)        return std::make_shared<RK5_4_10F_3SStarPlus<dim, real, MeshType>>    (n_rk_stages, num_delta, "RK5_4_10F_3SStarPlus");
     else {
-        // Return dummy RK method when running LSRK method because an RK tableau has to be created
-        if (rk_method == RKMethodEnum::RK3_2_5F_3SStarPlus){
-            pcout << "WARNING: returning dummy RK method!" << std::endl;
-            return std::make_shared<SSPRK3Explicit<dim, real, MeshType>> (n_rk_stages, "3rd order SSP (explicit)");
-        }   
-        if (rk_method == RKMethodEnum::RK4_3_5_3SStar) {
-            pcout << "WARNING: returning dummy RK method!" << std::endl;
-            return std::make_shared<SSPRK3Explicit<dim, real, MeshType>> (n_rk_stages, "3rd order SSP (explicit)");
-        }
-        if (rk_method == RKMethodEnum::RK4_3_9F_3SStarPlus) {
-            pcout << "WARNING: returning dummy RK method!" << std::endl;
-            return std::make_shared<SSPRK3Explicit<dim, real, MeshType>> (n_rk_stages, "3rd order SSP (explicit)");
-        }
-        if (rk_method == RKMethodEnum::RK5_4_10F_3SStarPlus) {
-            pcout << "WARNING: returning dummy RK method!" << std::endl;
-            return std::make_shared<SSPRK3Explicit<dim, real, MeshType>> (n_rk_stages, "3rd order SSP (explicit)");
-        }            
         pcout << "Error: invalid RK method. Aborting..." << std::endl;
         std::abort();
         return nullptr;

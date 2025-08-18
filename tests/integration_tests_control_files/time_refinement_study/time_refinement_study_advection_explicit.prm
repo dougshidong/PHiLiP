@@ -5,6 +5,7 @@
 set dimension = 1 
 set test_type = time_refinement_study
 set pde_type = advection
+set use_weak_form = false
 
 # Note: this was added to turn off check_same_coords() -- has no other function when dim!=1
 set use_periodic_bc = true

@@ -15,8 +15,6 @@
 #include "mesh/grids/naca_airfoil_grid.hpp"
 #include "mesh/gmsh_reader.hpp"
 #include "functional/lift_drag.hpp"
-#include "functional/extraction_functional.hpp"
-#include "functional/amiet_model.hpp"
 
 namespace PHiLiP {
 namespace FlowSolver {

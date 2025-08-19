@@ -22,7 +22,7 @@ class Airfoil_3D_LES : public FlowSolverCaseBase<dim,nstate>
 #else
     using Triangulation = dealii::parallel::distributed::Triangulation<PHILIP_DIM>;
 #endif
-    static const int NUMBER_OF_INTEGRATED_QUANTITIES = 5;
+
 public:
     /// Constructor.
     Airfoil_3D_LES(const Parameters::AllParameters *const parameters_input);
@@ -71,37 +71,12 @@ public:
         const double time_step) override;
 
 protected:
-        /// List of possible integrated quantities over the domain
-    enum IntegratedQuantitiesEnum {
-        kinetic_energy,
-        enstrophy,
-        pressure_dilatation,
-        deviatoric_strain_rate_tensor_magnitude_sqr,
-        strain_rate_tensor_magnitude_sqr
-    };
-    /// Array for storing the integrated quantities; done for computational efficiency
-    std::array<double,NUMBER_OF_INTEGRATED_QUANTITIES> integrated_quantities;
-
-    /// Integrated kinetic energy over the domain at previous time step; used for ensuring a physically consistent simulation
-    double integrated_kinetic_energy_at_previous_time_step;
 
     /// Maximum local wave speed (i.e. convective eigenvalue)
     double maximum_local_wave_speed;
 
-    /// Times at which to output the velocity field
-    dealii::Table<1,double> output_velocity_field_times;
-
-    /// Index of current desired time to output velocity field
-    unsigned int index_of_current_desired_time_to_output_velocity_field;
-
     /// Index of current desired time to output to terminal
     unsigned int terminal_counter = -1;
-
-    /// Flow field quantity filename prefix
-    std::string flow_field_quantity_filename_prefix;
-
-    /// Data table storing the exact output times for the velocity field files
-    std::shared_ptr<dealii::TableHandler> exact_output_times_of_velocity_field_files_table;
 
 private:
     /// Compute lift

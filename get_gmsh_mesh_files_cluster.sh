@@ -14,9 +14,7 @@ naca0012_hopw_ref0.msh \
 naca0012.msh \
 3d_gaussian_bump.msh \
 3d_cube_periodic.msh \
-SD7003_1_cell_spanwise.msh \
-SD7003_4_cell_spanwise.msh \
-SD7003_12_cell_spanwise.msh \
+SD7003_3rd_Order_4_Cell_Span.msh \
 )
 for file in ${FILENAMES[@]}; do
     cp ${PATH_TO_FILES}/${file} ${TARGET_DIR}
@@ -29,9 +27,7 @@ naca0012_hopw_ref2.msh \
 3D_CUBE_2ndOrder.msh \
 3d_gaussian_bump.msh \
 3d_cube_periodic.msh \
-SD7003_1_cell_spanwise.msh \
-SD7003_4_cell_spanwise.msh \
-SD7003_12_cell_spanwise.msh \
+SD7003_3rd_Order_4_Cell_Span.msh \
 channel_structured.msh \
 )
 for file in ${FILENAMES[@]}; do

@@ -4,6 +4,8 @@
 // for FlowSolver class:
 #include "physics/initial_conditions/initial_condition_function.h"
 #include "dg/dg.h"
+#include "ode_solver/explicit_ode_solver.h"
+#include "ode_solver/ode_solver_factory.h"
 #include "parameters/all_parameters.h"
 #include <deal.II/base/table_handler.h>
 #include <deal.II/distributed/shared_tria.h>
@@ -58,6 +60,18 @@ public:
 
     /// Virtual function for postprocessing when solving for steady state
     virtual void steady_state_postprocessing(std::shared_ptr <DGBase<dim, double>> dg) const;
+
+    /// Virtual function for computing time-averaged solution for turbulent cases
+    virtual void compute_time_averaged_solution(
+        const std::shared_ptr <ODE::ODESolverBase<dim, double>> ode_solver,
+        const std::shared_ptr <DGBase<dim, double>> dg,
+        const double time_step);
+
+    /// Virtual function for computing time-averaged Reynolds Stresses for turbulent cases
+    virtual void compute_Reynolds_stress(
+        const std::shared_ptr <ODE::ODESolverBase<dim, double>> ode_solver,
+        const std::shared_ptr <DGBase<dim, double>> dg,
+        const double time_step);
 
     /// Setter for time step
     void set_time_step(const double time_step_input);

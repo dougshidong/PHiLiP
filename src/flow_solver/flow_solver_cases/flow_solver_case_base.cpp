@@ -195,6 +195,25 @@ double FlowSolverCaseBase<dim, nstate>::get_time_step() const
     return this->time_step;
 }
 
+template <int dim, int nstate>
+void FlowSolverCaseBase<dim, nstate>::compute_time_averaged_solution(
+    const std::shared_ptr <ODE::ODESolverBase<dim, double>> /*ode_solver*/,
+    const std::shared_ptr <DGBase<dim, double>> /*dg*/,
+    const double /*time_step*/)
+{
+    // do nothing by default
+}
+
+template <int dim, int nstate>
+void FlowSolverCaseBase<dim, nstate>::compute_Reynolds_stress(
+    const std::shared_ptr <ODE::ODESolverBase<dim, double>> /*ode_solver*/,
+    const std::shared_ptr <DGBase<dim, double>> /*dg*/,
+    const double /*time_step*/)
+{
+    // do nothing by default
+}
+
+
 template class FlowSolverCaseBase<PHILIP_DIM,1>;
 template class FlowSolverCaseBase<PHILIP_DIM,2>;
 template class FlowSolverCaseBase<PHILIP_DIM,3>;

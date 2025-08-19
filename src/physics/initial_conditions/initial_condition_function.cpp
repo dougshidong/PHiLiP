@@ -688,7 +688,7 @@ InitialConditionFactory<dim,nstate, real>::create_InitialConditionFunction(
         if constexpr (dim==1 && nstate==1) return std::make_shared<InitialConditionFunction_BurgersRewienski<dim,nstate,real> > ();
     } else if (flow_type == FlowCaseEnum::burgers_viscous_snapshot) {
         if constexpr (dim==1 && nstate==1) return std::make_shared<InitialConditionFunction_BurgersViscous<dim,nstate,real> > ();
-    } else if (flow_type == FlowCaseEnum::naca0012  || flow_type == FlowCaseEnum::gaussian_bump || flow_type == FlowCaseEnum::airfoil_2D || flow_type == FlowCaseEnum::naca0012_turbulence) {
+    } else if (flow_type == FlowCaseEnum::naca0012  || flow_type == FlowCaseEnum::gaussian_bump || flow_type == FlowCaseEnum::airfoil_2D || flow_type == FlowCaseEnum::turbulent_airfoil_3D) {
         if constexpr ((dim==2 || dim==3) && nstate==dim+2) {
             Physics::Euler<dim,nstate,double> euler_physics_double = Physics::Euler<dim, nstate, double>(
                     param->euler_param.ref_length,

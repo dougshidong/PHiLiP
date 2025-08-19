@@ -2041,14 +2041,13 @@ void DGBase<dim,real,MeshType>::output_face_results_vtk (const unsigned int cycl
         data_out.write_pvtu_record(master_output, filenames);
     }
     //std::cout << "Completed writing out file." << std::endl;
-    if (all_parameters->flow_solver_param.compute_time_averaged_solution && 
+    if (all_parameters->flow_solver_param.do_compute_time_averaged_solution && 
         (current_time >= all_parameters->flow_solver_param.time_to_start_averaging) && 
         (output_time_averaged_solution == false) && (output_fluctuating_quantities == false)) {
-        //output_face_results_vtk (cycle, current_time);
-        output_face_results_vtk (cycle, current_time, false, true);
-        if (all_parameters->flow_solver_param.compute_Reynolds_stress && 
-        (current_time >= all_parameters->flow_solver_param.time_to_start_computing_Reynolds_Stress)){
-            output_face_results_vtk (cycle, current_time, true, false);
+        output_face_results_vtk (cycle, current_time, true, false);
+        if (all_parameters->flow_solver_param.do_compute_Reynolds_stress && 
+        (current_time >= all_parameters->flow_solver_param.time_to_start_computing_Reynolds_stress)){
+            output_face_results_vtk (cycle, current_time, false, true);
         }
     }
 
@@ -2184,12 +2183,12 @@ void DGBase<dim,real,MeshType>::output_results_vtk (const unsigned int cycle, co
         data_out.write_pvtu_record(master_output, filenames);
     }
 
-    if (all_parameters->flow_solver_param.compute_time_averaged_solution && 
+    if (all_parameters->flow_solver_param.do_compute_time_averaged_solution && 
         (current_time >= all_parameters->flow_solver_param.time_to_start_averaging) && 
         (output_time_averaged_solution == false) && (output_fluctuating_quantities == false))/*Only when false, such that it's not endlessly recursive*/ {
         output_results_vtk (cycle, current_time, true, false); //time-averaged quantites
-        if (all_parameters->flow_solver_param.compute_Reynolds_stress && 
-        (current_time >= all_parameters->flow_solver_param.time_to_start_computing_Reynolds_Stress)){
+        if (all_parameters->flow_solver_param.do_compute_Reynolds_stress && 
+        (current_time >= all_parameters->flow_solver_param.time_to_start_computing_Reynolds_stress)){
             output_results_vtk (cycle, current_time, false, true); //fluctuating quantitites
         }
     }
@@ -2273,13 +2272,13 @@ void DGBase<dim,real,MeshType>::allocate_system (
     right_hand_side.reinit(locally_owned_dofs, ghost_dofs, mpi_communicator);
     right_hand_side.add(1.0); // Avoid 0 initial residual for output and logarithmic visualization.
     //time averaged solution
-    if(all_parameters->flow_solver_param.compute_time_averaged_solution){
+    if(all_parameters->flow_solver_param.do_compute_time_averaged_solution){
         time_averaged_solution.reinit(locally_owned_dofs, ghost_dofs, mpi_communicator);
         time_averaged_solution *= 0.0;
         time_averaged_solution.add(std::numeric_limits<real>::lowest());
     }
     //fluctuating quantities (i.e, reynodsl stresses)
-    if(all_parameters->flow_solver_param.compute_time_averaged_solution && all_parameters->flow_solver_param.compute_Reynolds_stress){
+    if(all_parameters->flow_solver_param.do_compute_time_averaged_solution && all_parameters->flow_solver_param.do_compute_Reynolds_stress){
         fluctuating_quantities.reinit(locally_owned_dofs, ghost_dofs, mpi_communicator);
         fluctuating_quantities *= 0.0;
         fluctuating_quantities.add(std::numeric_limits<real>::lowest());

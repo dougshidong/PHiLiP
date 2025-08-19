@@ -15,7 +15,7 @@
 //#include "flow_solver_cases/wall_cube.h"
 //#include "flow_solver_cases/flat_plate_2D.h"
 #include "flow_solver_cases/airfoil_2D.h"
-#include "flow_solver_cases/naca0012_turbulence.h"
+#include "flow_solver_cases/turbulent_airfoil_3D.h"
 
 namespace PHiLiP {
 
@@ -105,12 +105,12 @@ FlowSolverFactory<dim,nstate>
             std::shared_ptr<FlowSolverCaseBase<dim, nstate>> flow_solver_case = std::make_shared<Airfoil2D<dim, nstate>>(parameters_input);
             return std::make_unique<FlowSolver<dim, nstate>>(parameters_input, flow_solver_case, parameter_handler_input);
         }
-    } else if (flow_type == FlowCaseEnum::naca0012_turbulence){
+    } else if (flow_type == FlowCaseEnum::turbulent_airfoil_3D){
         if constexpr (dim==2 && nstate==dim+2){
-            std::shared_ptr<FlowSolverCaseBase<dim, nstate>> flow_solver_case = std::make_shared<NACA0012_LES<dim,nstate>>(parameters_input);
+            std::shared_ptr<FlowSolverCaseBase<dim, nstate>> flow_solver_case = std::make_shared<Airfoil_3D_LES<dim,nstate>>(parameters_input);
             return std::make_unique<FlowSolver<dim,nstate>>(parameters_input, flow_solver_case, parameter_handler_input);
         } else if constexpr (dim==3 && nstate==dim+2){
-            std::shared_ptr<FlowSolverCaseBase<dim, nstate>> flow_solver_case = std::make_shared<NACA0012_LES<dim,nstate>>(parameters_input);
+            std::shared_ptr<FlowSolverCaseBase<dim, nstate>> flow_solver_case = std::make_shared<Airfoil_3D_LES<dim,nstate>>(parameters_input);
             return std::make_unique<FlowSolver<dim,nstate>>(parameters_input, flow_solver_case, parameter_handler_input);
         }
     } else {

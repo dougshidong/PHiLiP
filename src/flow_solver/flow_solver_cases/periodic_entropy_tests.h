@@ -22,7 +22,13 @@ public:
     /// Function to compute the constant time step
     /** Calculates based on CFL for Euler, and from parameters otherwise */
     double get_constant_time_step(std::shared_ptr<DGBase<dim,double>> dg) const override;
+
+    virtual void perk_partitioning(std::shared_ptr <DGBase<dim, double>> dg, std::shared_ptr<ODE::ODESolverBase<dim, double>> ode_solver) const;
 protected:
+
+    mutable std::vector<dealii::LinearAlgebra::distributed::Vector<int>> locations_to_evaluate_rhs_1;
+    mutable std::vector<std::vector<int>> locations_rhs_1;
+    mutable std::vector<std::vector<std::vector<int>>> all_locations_rhs_1;
 
     /// Enum of integrated quantities to calculate
     enum IntegratedQuantityEnum { kinetic_energy, max_wave_speed, numerical_entropy};

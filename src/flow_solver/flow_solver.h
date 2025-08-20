@@ -94,13 +94,6 @@ public:
     std::string get_restart_filename_without_extension(const unsigned int restart_index_input) const;
 
 protected:
-    mutable dealii::LinearAlgebra::distributed::Vector<int> locations_to_evaluate_rhs;
-    mutable dealii::LinearAlgebra::distributed::Vector<int> locations_to_evaluate_rhs_2;
-    mutable std::vector<dealii::LinearAlgebra::distributed::Vector<int>> locations_to_evaluate_rhs_1;
-    mutable std::vector<std::vector<int>> locations_rhs_1;
-    mutable std::vector<std::vector<std::vector<int>>> all_locations_rhs_1;
-    //std::vector<unsigned int> cell_weights;
-    mutable int evaluate_until_this_index;
     
     const MPI_Comm mpi_communicator; ///< MPI communicator.
     const int mpi_rank; ///< MPI rank.

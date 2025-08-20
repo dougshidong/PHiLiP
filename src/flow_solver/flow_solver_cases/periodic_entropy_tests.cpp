@@ -50,6 +50,69 @@ double PeriodicEntropyTests<dim,nstate>::get_constant_time_step(std::shared_ptr<
     return constant_time_step;
 }
 
+template <int dim, int nstate>
+void PeriodicEntropyTests<dim, nstate>::perk_partitioning(std::shared_ptr <DGBase<dim, double>> dg, std::shared_ptr<ODE::ODESolverBase<dim, double>> ode_solver) const
+{
+    //    Partitioning half of domain
+    std::cout<< "partitioning based on cell volume" <<std::endl;
+    dg->assemble_residual();
+
+    const std::size_t n_groups = ode_solver->group_ID.size();
+    const unsigned int n_cells = dg->triangulation->n_active_cells();
+
+    this->locations_to_evaluate_rhs_1.resize(n_groups);
+    this->locations_rhs_1.resize(n_groups);
+    this->all_locations_rhs_1.resize(n_groups);
+
+    for (std::size_t i = 0; i < n_groups; ++i) {
+        this->locations_to_evaluate_rhs_1[i].reinit(dg->triangulation->n_active_cells());
+        this->locations_to_evaluate_rhs_1[i] = 0;
+    }
+    for (std::size_t i = 0; i < n_groups; ++i) {
+        this->locations_rhs_1[i].resize(dg->triangulation->n_active_cells());
+    }
+
+    double local_max = dg->cell_volume.linfty_norm();
+    double max_cell_volume = dealii::Utilities::MPI::max(local_max, this->mpi_communicator);
+
+    for (typename dealii::DoFHandler<dim>::active_cell_iterator cell = dg->dof_handler.begin_active(); cell != dg->dof_handler.end(); ++cell) {
+        if (!cell->is_locally_owned())
+            continue;
+        double vol = dg->cell_volume[cell->active_cell_index()];
+        for (std::size_t i = 0; i < n_groups; ++i) {
+            if (vol >= 0.80 * max_cell_volume && i == 0) {
+                locations_to_evaluate_rhs_1[i](cell->active_cell_index()) = 1;
+            } else if (i == 1 && vol >= 0.60 * max_cell_volume && vol < 0.80 * max_cell_volume) {
+                locations_to_evaluate_rhs_1[i](cell->active_cell_index()) = 1;
+            } else if (i == 2 && vol >= 0.40 * max_cell_volume && vol < 0.60 * max_cell_volume) {
+                locations_to_evaluate_rhs_1[i](cell->active_cell_index()) = 1;
+            } else if (i == 3 && vol < 0.4 * max_cell_volume) {
+                locations_to_evaluate_rhs_1[i](cell->active_cell_index()) = 1;
+            }
+        }
+    }
+
+    std::vector<unsigned int> indices(n_cells);
+    std::iota(indices.begin(), indices.end(), 0);
+
+    for (std::size_t i = 0; i < n_groups; ++i){
+        for (std::size_t t = 0; t < n_cells; ++t){
+            this->locations_rhs_1[i][t] = this->locations_to_evaluate_rhs_1[i][t];
+        }
+        this->all_locations_rhs_1[i] = dealii::Utilities::MPI::all_gather(MPI_COMM_WORLD, this->locations_rhs_1[i]);
+
+        const std::size_t n_ranks = this->all_locations_rhs_1[i].size();
+        for (std::size_t idx = 0; idx < n_ranks; ++idx){
+            if (idx != static_cast<std::size_t>(this->mpi_rank))
+                this->locations_to_evaluate_rhs_1[i].add(indices, this->all_locations_rhs_1[i][idx]);
+        }
+        this->locations_to_evaluate_rhs_1[i].compress(dealii::VectorOperation::insert);
+        this->locations_to_evaluate_rhs_1[i].update_ghost_values();
+        dg->set_list_of_cell_group_IDs(this->locations_to_evaluate_rhs_1[i], ode_solver->group_ID[i]);
+    }
+
+}
+
 template<int dim, int nstate>
 double PeriodicEntropyTests<dim, nstate>::compute_integrated_quantities(DGBase<dim, double> &dg, IntegratedQuantityEnum quantity, const int overintegrate) const
 {

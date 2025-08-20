@@ -42,6 +42,34 @@ double Periodic1DUnsteady<dim, nstate>::get_numerical_entropy(
 }
 
 template <int dim, int nstate>
+void Periodic1DUnsteady<dim, nstate>::perk_partitioning(std::shared_ptr <DGBase<dim, double>> dg, std::shared_ptr<ODE::ODESolverBase<dim, double>> ode_solver) const
+{
+    //    Partitioning half of domain
+    std::cout<< "partitioning half of domain" <<std::endl;
+    locations_to_evaluate_rhs.reinit(dg->triangulation->n_active_cells());
+    evaluate_until_this_index = locations_to_evaluate_rhs.size() / 2; 
+
+    for (int i = 0; i < evaluate_until_this_index; ++i){
+        if (locations_to_evaluate_rhs.in_local_range(i))
+            locations_to_evaluate_rhs(i) = 1;
+    }
+    locations_to_evaluate_rhs.update_ghost_values();
+    locations_to_evaluate_rhs.print(std::cout);
+
+    dg->set_list_of_cell_group_IDs(locations_to_evaluate_rhs, ode_solver->group_ID[0]);
+
+    locations_to_evaluate_rhs *= 0;
+
+    for (size_t i = evaluate_until_this_index; i < locations_to_evaluate_rhs.size(); ++i){
+        if (locations_to_evaluate_rhs.in_local_range(i))
+            locations_to_evaluate_rhs(i) = 1;
+    }
+    locations_to_evaluate_rhs.update_ghost_values();
+    locations_to_evaluate_rhs.print(std::cout);
+    dg->set_list_of_cell_group_IDs(locations_to_evaluate_rhs, ode_solver->group_ID[1]); 
+}
+
+template <int dim, int nstate>
 void Periodic1DUnsteady<dim, nstate>::compute_unsteady_data_and_write_to_table(
        const unsigned int current_iteration,
         const double current_time,

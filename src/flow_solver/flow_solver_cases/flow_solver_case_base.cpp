@@ -186,6 +186,12 @@ void FlowSolverCaseBase<dim, nstate>::steady_state_postprocessing(std::shared_pt
 }
 
 template <int dim, int nstate>
+void FlowSolverCaseBase<dim, nstate>::perk_partitioning(std::shared_ptr <DGBase<dim, double>> /*dg*/, std::shared_ptr<ODE::ODESolverBase<dim, double>> /*ode_solver*/) const
+{
+    // do nothing by default
+}
+
+template <int dim, int nstate>
 void FlowSolverCaseBase<dim, nstate>::compute_unsteady_data_and_write_to_table(
         const std::shared_ptr<ODE::ODESolverBase<dim, double>> ode_solver, 
         const std::shared_ptr <DGBase<dim, double>> dg,

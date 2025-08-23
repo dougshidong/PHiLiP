@@ -27,6 +27,8 @@ Parameters::AllParameters TimeRefinementStudyReference<dim,nstate>::reinit_param
     
     parameters.flow_solver_param.final_time = final_time;
 
+    parameters.flow_solver_param.end_exactly_at_final_time = true;
+
     //Change to RK because at small dt RRK is more costly but doesn't impact solution much
     using ODESolverEnum = Parameters::ODESolverParam::ODESolverEnum;
     parameters.ode_solver_param.ode_solver_type = ODESolverEnum::runge_kutta_solver;

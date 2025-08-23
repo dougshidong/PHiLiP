@@ -443,7 +443,7 @@ bool test_nnls_handles_dependent_columns(const PHiLiP::Parameters::AllParameters
   }
   else{
     // Confirm the optimality of the solution wrt tolerance and positivity
-    opt &= verify_nnls_optimality(A_eig, b_eig, x_nnls_eig, all_parameters->hyper_reduction_param.NNLS_tol);
+    opt &= verify_nnls_optimality(A_eig, b_eig, x_nnls_eig, all_parameters->hyper_reduction_param.NNLS_tol, true);
   }
   pcout << " Solution x "<< std::endl;
   x.Print(std::cout);
@@ -500,7 +500,7 @@ bool test_nnls_handles_wide_matrix(const PHiLiP::Parameters::AllParameters *cons
   }
   else{
     // Confirm the optimality of the solution wrt tolerance and positivity
-    opt &= verify_nnls_optimality(A_eig, b_eig, x_nnls_eig, all_parameters->hyper_reduction_param.NNLS_tol);
+    opt &= verify_nnls_optimality(A_eig, b_eig, x_nnls_eig, all_parameters->hyper_reduction_param.NNLS_tol, true);
   }
   pcout << " Solution x "<< std::endl;
   x.Print(std::cout);
@@ -555,7 +555,7 @@ bool test_nnls_special_case_solves_in_zero_iterations(const PHiLiP::Parameters::
   // Check the number of iterations (expected to be zero)
   opt &= (NNLS_prob.iter_ == 0);
   // Confirm the optimality of the solution wrt tolerance and positivity
-  opt &= verify_nnls_optimality(A_eig, b_eig, x_nnls_eig, all_parameters->hyper_reduction_param.NNLS_tol);
+  opt &= verify_nnls_optimality(A_eig, b_eig, x_nnls_eig, all_parameters->hyper_reduction_param.NNLS_tol, true);
   return opt;
 }
 
@@ -608,7 +608,7 @@ bool test_nnls_special_case_solves_in_n_iterations(const PHiLiP::Parameters::All
   // Check the number of iterations (expected to be equal to the number of columns in A)
   opt &= (NNLS_prob.iter_ == n);
   // Confirm the optimality of the solution wrt tolerance and positivity
-  opt &= verify_nnls_optimality(A_eig, b_eig, x_nnls_eig, all_parameters->hyper_reduction_param.NNLS_tol);
+  opt &= verify_nnls_optimality(A_eig, b_eig, x_nnls_eig, all_parameters->hyper_reduction_param.NNLS_tol, true);
   return opt;
 }
 
@@ -804,10 +804,8 @@ int main(int argc, char *argv[]){
   //double tau = 1E-8;
   //const int max_iter = 10000;
 
-  // Setting the same seed on all cores for random functions
-  int seed = time(0);
-  MPI_Bcast(&seed,1,MPI_INT,0,MPI_COMM_WORLD);
-  srand((unsigned int) seed);
+  unsigned int seed = 42;
+  srand(seed);
 
   bool ok = true;
 

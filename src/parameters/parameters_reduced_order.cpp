@@ -33,6 +33,15 @@ void ReducedOrderModelParam::declare_parameters (dealii::ParameterHandler &prm)
         prm.declare_entry("parameter_max_values", "0.7, 4",
                           dealii::Patterns::List(dealii::Patterns::Double(), 0, 10, ","),
                           "Maximum values for parameters");
+        prm.declare_entry("number_modes", "0",
+                          dealii::Patterns::Integer(0, dealii::Patterns::Integer::max_int_value),
+                          "Number of modes used in the POD Basis");
+        prm.declare_entry("singular_value_threshold", "1",
+                          dealii::Patterns::Double(0, dealii::Patterns::Double::max_double_value),
+                          "Threshold for the Singular Value cutoff");
+        prm.declare_entry("output_snapshot_every_x_timesteps","0",
+                          dealii::Patterns::Integer(0,dealii::Patterns::Integer::max_int_value),
+                          "Number of Timesteps before snapshot is added");
         prm.declare_entry("FOM_error_linear_solver_type", "direct",
                           dealii::Patterns::Selection("direct|gmres"),
                           "Type of linear solver used for first adjoint problem (DWR between FOM and ROM)"
@@ -50,9 +59,12 @@ void ReducedOrderModelParam::parse_parameters (dealii::ParameterHandler &prm)
     {
         adaptation_tolerance = prm.get_double("adaptation_tolerance");
         reduced_residual_tolerance = prm.get_double("reduced_residual_tolerance");
+        singular_value_threshold = prm.get_double("singular_value_threshold");
         num_halton = prm.get_integer("num_halton");
         file_path_for_snapshot_locations = prm.get("file_path_for_snapshot_locations");
         recomputation_coefficient = prm.get_integer("recomputation_coefficient");
+        number_modes = prm.get_integer("number_modes");
+        output_snapshot_every_x_timesteps = prm.get_integer("output_snapshot_every_x_timesteps");
         path_to_search = prm.get("path_to_search");
 
         std::string parameter_names_string = prm.get("parameter_names");

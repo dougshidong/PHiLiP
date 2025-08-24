@@ -524,39 +524,8 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual_and_ad_derivatives (
         std::abort();
     }
 
-    using Tape = typename adtype::TapeType;
-    using Position = typename Tape::Position;
-    
-    Tape &tape = adtype::getGlobalTape();
-    
-    const dealii::FESystem<dim> &fe_metric = this->high_order_grid->fe_system;
-    std::vector<adtype> local_metric_coeff_int(fe_metric.dofs_per_cell);
-    
-    if (compute_dRdW || compute_dRdX || compute_d2R) 
-    {
-        tape.setActive();
-    }
-    for (unsigned int idof = 0; idof < n_metric_dofs_cell; ++idof) 
-    {
-        const real val = this->high_order_grid->volume_nodes[current_metric_dofs_indices[idof]];
-        local_metric_coeff_int[idof] = val;
-
-        if (compute_dRdX || compute_d2R) 
-        {
-            tape.registerInput(local_metric_coeff_int[idof]);
-        } 
-        else 
-        {
-            tape.deactivateValue(local_metric_coeff_int[idof]);
-        }
-    }
-
-    // Compute metric Jacobians of current cell here.
     std::array<std::vector<adtype>,dim> mapping_support_points;
-    build_volume_metric_operators(poly_degree, grid_degree, local_metric_coeff_int, metric_oper_int, mapping_basis, mapping_support_points);
-    
-    //set tape position for metric jacobian int
-    Position tape_position_metric_jacobian_int = tape.getPosition();
+    //build_volume_metric_operators(poly_degree, grid_degree, local_metric_coeff_int, metric_oper_int, mapping_basis, mapping_support_points);
     
     assemble_volume_codi_taped_derivatives_ad<adtype>(
         current_cell,
@@ -578,7 +547,6 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual_and_ad_derivatives (
         current_fe_ref,
         current_cell_rhs,
         current_cell_rhs_aux,
-        local_metric_coeff_int,
         compute_auxiliary_right_hand_side,
         compute_dRdW, compute_dRdX, compute_d2R);
     
@@ -2459,12 +2427,11 @@ void DGBase<dim,real,MeshType>::assemble_residual (const bool compute_dRdW, cons
         }
 
         auto metric_cell = high_order_grid->dof_handler_grid.begin_active();
-        for (auto soln_cell = dof_handler.begin_active(); soln_cell != dof_handler.end(); ++soln_cell, ++metric_cell) {
-            if (!soln_cell->is_locally_owned()) continue;
-            
-            // Add right-hand side contributions this cell can compute
-            if(compute_d2R)
+        if(compute_d2R)
+        {
+            for (auto soln_cell = dof_handler.begin_active(); soln_cell != dof_handler.end(); ++soln_cell, ++metric_cell) 
             {
+                if (!soln_cell->is_locally_owned()) continue;
                 assemble_cell_residual_and_ad_derivatives<codi_HessianComputationType>(
                     soln_cell,
                     metric_cell,
@@ -2486,8 +2453,12 @@ void DGBase<dim,real,MeshType>::assemble_residual (const bool compute_dRdW, cons
                     right_hand_side,
                     auxiliary_right_hand_side);
             }
-            else
+        }
+        else if(compute_dRdW || compute_dRdX)
+        {
+            for (auto soln_cell = dof_handler.begin_active(); soln_cell != dof_handler.end(); ++soln_cell, ++metric_cell) 
             {
+                if (!soln_cell->is_locally_owned()) continue;
                 assemble_cell_residual_and_ad_derivatives<codi_JacobianComputationType>(
                     soln_cell,
                     metric_cell,
@@ -2509,7 +2480,34 @@ void DGBase<dim,real,MeshType>::assemble_residual (const bool compute_dRdW, cons
                     right_hand_side,
                     auxiliary_right_hand_side);
             }
-        } // end of cell loop
+        }
+        else
+        {
+            for (auto soln_cell = dof_handler.begin_active(); soln_cell != dof_handler.end(); ++soln_cell, ++metric_cell) 
+            {
+                if (!soln_cell->is_locally_owned()) continue;
+                assemble_cell_residual_and_ad_derivatives<double>(
+                    soln_cell,
+                    metric_cell,
+                    compute_dRdW, compute_dRdX, compute_d2R,
+                    fe_values_collection_volume,
+                    fe_values_collection_face_int,
+                    fe_values_collection_face_ext,
+                    fe_values_collection_subface,
+                    fe_values_collection_volume_lagrange,
+                    soln_basis_int,
+                    soln_basis_ext,
+                    flux_basis_int,
+                    flux_basis_ext,
+                    flux_basis_stiffness,
+                    soln_basis_projection_oper_int,
+                    soln_basis_projection_oper_ext,
+                    mapping_basis,
+                    false,
+                    right_hand_side,
+                    auxiliary_right_hand_side);
+            }
+        }
 
         if(all_parameters->store_residual_cpu_time){
             timer.stop();

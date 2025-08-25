@@ -563,8 +563,6 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual_and_ad_derivatives (
 
             const unsigned int boundary_id = current_face->boundary_id();
             
-            tape.reset(tape_position_metric_jacobian_int);
-            tape.clearAdjoints();
             assemble_boundary_codi_taped_derivatives_ad<adtype>(
                 current_cell,
                 current_cell_index,
@@ -628,8 +626,6 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual_and_ad_derivatives (
                                                                            store_vol_flux_nodes,
                                                                            store_surf_flux_nodes);
 
-                tape.reset(tape_position_metric_jacobian_int);
-                tape.clearAdjoints();
                 const dealii::FESystem<dim,dim> &neighbor_fe_ref = fe_collection[i_fele_n];
                 assemble_face_codi_taped_derivatives_ad<adtype>(
                     current_cell,
@@ -663,7 +659,6 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual_and_ad_derivatives (
                     metric_oper_ext,
                     mapping_basis,
                     mapping_support_points,
-                    local_metric_coeff_int,
                     current_cell_rhs,
                     neighbor_cell_rhs,
                     current_cell_rhs_aux,
@@ -726,8 +721,6 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual_and_ad_derivatives (
                                                                store_vol_flux_nodes,
                                                                store_surf_flux_nodes);
 
-            tape.reset(tape_position_metric_jacobian_int);
-            tape.clearAdjoints();
             const dealii::FESystem<dim,dim> &neighbor_fe_ref = fe_collection[i_fele_n];
             assemble_face_codi_taped_derivatives_ad<adtype>(
                 current_cell,
@@ -761,7 +754,6 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual_and_ad_derivatives (
                 metric_oper_ext,
                 mapping_basis,
                 mapping_support_points,
-                local_metric_coeff_int,
                 current_cell_rhs,
                 neighbor_cell_rhs,
                 current_cell_rhs_aux,
@@ -1181,15 +1173,15 @@ void DGBase<dim,real,MeshType>::assemble_volume_codi_taped_derivatives_ad(
             if(this->use_auxiliary_eq){//only if use auxiliary equation has the auxiliary solution initialized
                 const real val = this->auxiliary_solution[idim](soln_dofs_indices[idof]);
                 local_aux_solution[idim][idof] = val;
-                tape.deactivateValue(local_aux_solution[idim][idof];
-                /* 
-                if ((compute_dRdW || compute_d2R) && this->use_auxiliary_eq) {
-                    th.registerInput(local_aux_solution[idim][idof]);
-                } else {
-                    tape.deactivateValue(local_aux_solution[idim][idof]);
-                }
-                */
             }
+            tape.deactivateValue(local_aux_solution[idim][idof];
+            /* 
+            if ((compute_dRdW || compute_d2R) && this->use_auxiliary_eq) {
+                th.registerInput(local_aux_solution[idim][idof]);
+            } else {
+                tape.deactivateValue(local_aux_solution[idim][idof]);
+            }
+            */
         }
     }
 
@@ -1429,16 +1421,15 @@ void DGBase<dim,real,MeshType>::assemble_boundary_codi_taped_derivatives_ad(
             if(this->use_auxiliary_eq){
                 const real val = this->auxiliary_solution[idim](soln_dofs_indices[idof]);
                 local_aux_solution[idim][idof] = val;
-                tape.deactivateValue(local_aux_solution[idim][idof]);
-                /*
-                if ((compute_dRdW || compute_d2R) && this->use_auxiliary_eq) {
-                    th.registerInput(local_aux_solution[idim][idof]);
-                } else {
-                    tape.deactivateValue(local_aux_solution[idim][idof]);
-                }
-                */
             }
-         
+            tape.deactivateValue(local_aux_solution[idim][idof]);
+            /*
+            if ((compute_dRdW || compute_d2R) && this->use_auxiliary_eq) {
+                th.registerInput(local_aux_solution[idim][idof]);
+            } else {
+                tape.deactivateValue(local_aux_solution[idim][idof]);
+            }
+            */        
         }
     }
 
@@ -1653,7 +1644,6 @@ void DGBase<dim,real,MeshType>::assemble_boundary_codi_taped_derivatives_ad(
         }
     }
 
-
     std::vector<real> local_dual(n_soln_dofs);
     for (unsigned int itest=0; itest<n_soln_dofs; ++itest) {
         local_dual[itest] = 0.0;
@@ -1706,7 +1696,7 @@ void DGBase<dim,real,MeshType>::assemble_boundary_codi_taped_derivatives_ad(
 
 }
 
-
+// AD version
 template <int dim, typename real, typename MeshType>
 template <typename adtype>
 void DGBase<dim,real,MeshType>::assemble_face_codi_taped_derivatives_ad(
@@ -1741,7 +1731,6 @@ void DGBase<dim,real,MeshType>::assemble_face_codi_taped_derivatives_ad(
     OPERATOR::metric_operators<adtype,dim,2*dim>           &metric_oper_ext,
     OPERATOR::mapping_shape_functions<dim,2*dim>           &mapping_basis,
     std::array<std::vector<adtype>,dim>                    &mapping_support_points,
-    std::vector<adtype>                                    &metric_coeff_int,
     std::vector<real> &local_rhs_int_cell,
     std::vector<real> &local_rhs_ext_cell,
     dealii::Tensor<1,dim,std::vector<real>>  &current_cell_rhs_aux,
@@ -1760,13 +1749,7 @@ void DGBase<dim,real,MeshType>::assemble_face_codi_taped_derivatives_ad(
     AssertDimension (n_soln_dofs_int, soln_dofs_indices_int.size());
     AssertDimension (n_soln_dofs_ext, soln_dofs_indices_ext.size());
 
-    std::vector<adtype> soln_coeff_int(fe_int.dofs_per_cell);
-    std::vector<adtype> soln_coeff_ext(fe_ext.dofs_per_cell);
-    std::vector<adtype> metric_coeff_ext(fe_metric.dofs_per_cell);
-    dealii::Tensor<1,dim,std::vector<adtype>> aux_soln_coeff_int;
-    dealii::Tensor<1,dim,std::vector<adtype>> aux_soln_coeff_ext;
-
-    // Current derivative ordering is: metric_int, metric_ext, soln_int, soln_ext 
+    // Current derivative ordering is: soln_int, soln_ext, metric_int, metric_ext 
     unsigned int w_int_start=0, w_int_end=0, w_ext_start=0, w_ext_end=0,
                  x_int_start=0, x_int_end=0, x_ext_start=0, x_ext_end=0;
     if(compute_dRdW || compute_dRdX || compute_d2R)
@@ -1782,21 +1765,7 @@ void DGBase<dim,real,MeshType>::assemble_face_codi_taped_derivatives_ad(
     TH th;
     typename adtype::TapeType &tape =  adtype::getGlobalTape();
     
-    if (compute_dRdX || compute_d2R) {
-        for (unsigned int idof = 0; idof < n_metric_dofs; ++idof) {
-            th.getinputValues().push_back(metric_coeff_int[idof].getGradientData());
-        }
-    } 
-
-    for (unsigned int idof = 0; idof < n_metric_dofs; ++idof) {
-        const real val = this->high_order_grid->volume_nodes[metric_dofs_indices_ext[idof]];
-        metric_coeff_ext[idof] = val;
-        if (compute_dRdX || compute_d2R) {
-            th.registerInput(metric_coeff_ext[idof]);
-        } else {
-            tape.deactivateValue(metric_coeff_ext[idof]);
-        }
-    }
+    std::vector<adtype> soln_coeff_int(fe_int.dofs_per_cell);
     for (unsigned int idof = 0; idof < n_soln_dofs_int; ++idof) {
         const real val = this->solution(soln_dofs_indices_int[idof]);
         soln_coeff_int[idof] = val;
@@ -1806,6 +1775,8 @@ void DGBase<dim,real,MeshType>::assemble_face_codi_taped_derivatives_ad(
             tape.deactivateValue(soln_coeff_int[idof]);
         }
     }
+    
+    std::vector<adtype> soln_coeff_ext(fe_ext.dofs_per_cell);
     for (unsigned int idof = 0; idof < n_soln_dofs_ext; ++idof) {
         const real val = this->solution(soln_dofs_indices_ext[idof]);
         soln_coeff_ext[idof] = val;
@@ -1815,6 +1786,37 @@ void DGBase<dim,real,MeshType>::assemble_face_codi_taped_derivatives_ad(
             tape.deactivateValue(soln_coeff_ext[idof]);
         }
     }
+    
+    std::vector<adtype> metric_coeff_int(fe_metric.dofs_per_cell);
+    for (unsigned int idof = 0; idof < n_metric_dofs; ++idof) {
+        const real val = this->high_order_grid->volume_nodes[metric_dofs_indices_int[idof]];
+        metric_coeff_int[idof] = val;
+        if (compute_dRdX || compute_d2R) {
+            th.registerInput(metric_coeff_int[idof]);
+        } else {
+            tape.deactivateValue(metric_coeff_int[idof]);
+        }
+    }
+    
+    if(compute_dRdX || compute_d2R)
+    {
+        // Rebuild metric Jacobian and cofactors of the interior cell again
+        build_volume_metric_operators(poly_degree_int, grid_degree_int, metric_coeff_int, metric_oper_int, mapping_basis, mapping_support_points);
+    }
+    
+    std::vector<adtype> metric_coeff_ext(fe_metric.dofs_per_cell);
+    for (unsigned int idof = 0; idof < n_metric_dofs; ++idof) {
+        const real val = this->high_order_grid->volume_nodes[metric_dofs_indices_ext[idof]];
+        metric_coeff_ext[idof] = val;
+        if (compute_dRdX || compute_d2R) {
+            th.registerInput(metric_coeff_ext[idof]);
+        } else {
+            tape.deactivateValue(metric_coeff_ext[idof]);
+        }
+    }
+    
+    dealii::Tensor<1,dim,std::vector<adtype>> aux_soln_coeff_int;
+    dealii::Tensor<1,dim,std::vector<adtype>> aux_soln_coeff_ext;
     for(int idim=0; idim<dim; idim++){
         aux_soln_coeff_int[idim].resize(n_soln_dofs_int);
         aux_soln_coeff_ext[idim].resize(n_soln_dofs_ext);
@@ -1823,22 +1825,28 @@ void DGBase<dim,real,MeshType>::assemble_face_codi_taped_derivatives_ad(
                 const real val = this->auxiliary_solution[idim](soln_dofs_indices_int[idof]);
                 aux_soln_coeff_int[idim][idof] = val;
             }
-            if ((compute_dRdW || compute_d2R) && this->use_auxiliary_eq) {
+            tape.deactivateValue(aux_soln_coeff_int[idim][idof]);
+            /*
+            if  ((compute_dRdW || compute_d2R) && this->use_auxiliary_eq) {
                 th.registerInput(aux_soln_coeff_int[idim][idof]);
             } else {
                 tape.deactivateValue(aux_soln_coeff_int[idim][idof]);
             }
+            */
         }
         for (unsigned int idof = 0; idof < n_soln_dofs_ext; ++idof) {
             if(this->use_auxiliary_eq){
                 const real val = this->auxiliary_solution[idim](soln_dofs_indices_ext[idof]);
                 aux_soln_coeff_ext[idim][idof] = val;
             }
+            tape.deactivateValue(aux_soln_coeff_ext[idim][idof]);
+            /*
             if ((compute_dRdW || compute_d2R) && this->use_auxiliary_eq) {
                 th.registerInput(aux_soln_coeff_ext[idim][idof]);
             } else {
                 tape.deactivateValue(aux_soln_coeff_ext[idim][idof]);
             }
+            */
         }
     }
 
@@ -1930,9 +1938,6 @@ void DGBase<dim,real,MeshType>::assemble_face_codi_taped_derivatives_ad(
             for (unsigned int itest_int=0; itest_int<n_soln_dofs_int; ++itest_int) {
                 current_cell_rhs_aux[idim][itest_int] += getValue<adtype>(aux_rhs_int[idim][itest_int]);
             }
-        //    for (unsigned int itest_ext=0; itest_ext<n_soln_dofs_ext; ++itest_ext) {
-        //        local_rhs_aux_ext_cell[itest_ext] += getValue<adtype>(aux_rhs_ext[idim][itest_ext]);
-        //    }
 
             // Add local contribution from neighbor cell to global vector
             for (unsigned int itest_ext=0; itest_ext<n_soln_dofs_ext; ++itest_ext) {
@@ -2176,14 +2181,194 @@ void DGBase<dim,real,MeshType>::assemble_face_codi_taped_derivatives_ad(
         tape.deactivateValue(soln_coeff_ext[idof]);
     }
     for (unsigned int idof = 0; idof < n_metric_dofs; ++idof) {
+        tape.deactivateValue(metric_coeff_int[idof]);
+    }
+    for (unsigned int idof = 0; idof < n_metric_dofs; ++idof) {
         tape.deactivateValue(metric_coeff_ext[idof]);
     }
+    /*
     for(int idim=0; idim<dim; idim++){
         for (unsigned int idof = 0; idof < n_soln_dofs_int; ++idof) {
             tape.deactivateValue(aux_soln_coeff_int[idim][idof]);
         }
         for (unsigned int idof = 0; idof < n_soln_dofs_ext; ++idof) {
             tape.deactivateValue(aux_soln_coeff_ext[idim][idof]);
+        }
+    }
+    */
+}
+
+// Double version
+template <int dim, typename real, typename MeshType>
+void DGBase<dim,real,MeshType>::assemble_face_codi_taped_derivatives_ad(
+    typename dealii::DoFHandler<dim>::active_cell_iterator cell,
+    typename dealii::DoFHandler<dim>::active_cell_iterator neighbor_cell,
+    const dealii::types::global_dof_index current_cell_index,
+    const dealii::types::global_dof_index neighbor_cell_index,
+    const unsigned int iface,
+    const unsigned int neighbor_iface,
+    const real penalty,
+    dealii::hp::FEFaceValues<dim,dim>  &fe_values_collection_face_int,
+    dealii::hp::FEFaceValues<dim,dim>  &fe_values_collection_face_ext,
+    dealii::hp::FESubfaceValues<dim,dim>  &fe_values_collection_subface,
+    const dealii::FESystem<dim,dim> &fe_int,
+    const dealii::FESystem<dim,dim> &fe_ext,
+    const std::vector<dealii::types::global_dof_index> &soln_dofs_indices_int,
+    const std::vector<dealii::types::global_dof_index> &soln_dofs_indices_ext,
+    const std::vector<dealii::types::global_dof_index> &metric_dofs_indices_int,
+    const std::vector<dealii::types::global_dof_index> &metric_dofs_indices_ext,
+    const unsigned int                                     poly_degree_int,
+    const unsigned int                                     poly_degree_ext,
+    const unsigned int                                     grid_degree_int,
+    const unsigned int                                     grid_degree_ext,
+    OPERATOR::basis_functions<dim,2*dim>                   &soln_basis_int,
+    OPERATOR::basis_functions<dim,2*dim>                   &soln_basis_ext,
+    OPERATOR::basis_functions<dim,2*dim>                   &flux_basis_int,
+    OPERATOR::basis_functions<dim,2*dim>                   &flux_basis_ext,
+    OPERATOR::local_basis_stiffness<dim,2*dim>             &flux_basis_stiffness,
+    OPERATOR::vol_projection_operator<dim,2*dim>           &soln_basis_projection_oper_int,
+    OPERATOR::vol_projection_operator<dim,2*dim>           &soln_basis_projection_oper_ext,
+    OPERATOR::metric_operators<double,dim,2*dim>           &metric_oper_int,
+    OPERATOR::metric_operators<double,dim,2*dim>           &metric_oper_ext,
+    OPERATOR::mapping_shape_functions<dim,2*dim>           &mapping_basis,
+    std::array<std::vector<double>,dim>                    &mapping_support_points,
+    std::vector<real> &local_rhs_int_cell,
+    std::vector<real> &local_rhs_ext_cell,
+    dealii::Tensor<1,dim,std::vector<real>>  &current_cell_rhs_aux,
+    dealii::LinearAlgebra::distributed::Vector<double>  &rhs,
+    std::array<dealii::LinearAlgebra::distributed::Vector<double>,dim> &rhs_aux,
+    const bool compute_auxiliary_right_hand_side,
+    const bool compute_dRdW, const bool compute_dRdX, const bool compute_d2R,
+    const bool is_a_subface,
+    const unsigned int neighbor_i_subface)
+{
+    const dealii::FESystem<dim> &fe_metric = this->high_order_grid->fe_system;
+    const unsigned int n_metric_dofs = fe_metric.dofs_per_cell;
+    const unsigned int n_soln_dofs_int = fe_int.dofs_per_cell;
+    const unsigned int n_soln_dofs_ext = fe_ext.dofs_per_cell;
+
+    AssertDimension (n_soln_dofs_int, soln_dofs_indices_int.size());
+    AssertDimension (n_soln_dofs_ext, soln_dofs_indices_ext.size());
+
+    std::vector<double> soln_coeff_int(fe_int.dofs_per_cell);
+    for (unsigned int idof = 0; idof < n_soln_dofs_int; ++idof) {
+        soln_coeff_int[idof] = this->solution(soln_dofs_indices_int[idof]);
+    }
+    
+    std::vector<double> soln_coeff_ext(fe_ext.dofs_per_cell);
+    for (unsigned int idof = 0; idof < n_soln_dofs_ext; ++idof) {
+        soln_coeff_ext[idof] = this->solution(soln_dofs_indices_ext[idof]);
+    }
+    
+    std::vector<double> metric_coeff_int(fe_metric.dofs_per_cell);
+    for (unsigned int idof = 0; idof < n_metric_dofs; ++idof) {
+        metric_coeff_int[idof] = this->high_order_grid->volume_nodes[metric_dofs_indices_int[idof]];
+    }
+    
+    std::vector<double> metric_coeff_ext(fe_metric.dofs_per_cell);
+    for (unsigned int idof = 0; idof < n_metric_dofs; ++idof) {
+        metric_coeff_ext[idof] = this->high_order_grid->volume_nodes[metric_dofs_indices_ext[idof]];
+    }
+    
+    dealii::Tensor<1,dim,std::vector<double>> aux_soln_coeff_int;
+    dealii::Tensor<1,dim,std::vector<double>> aux_soln_coeff_ext;
+    for(int idim=0; idim<dim; idim++){
+        aux_soln_coeff_int[idim].resize(n_soln_dofs_int);
+        aux_soln_coeff_ext[idim].resize(n_soln_dofs_ext);
+        if(this->use_auxiliary_eq){
+            for (unsigned int idof = 0; idof < n_soln_dofs_int; ++idof) {
+                    aux_soln_coeff_int[idim][idof] = this->auxiliary_solution[idim](soln_dofs_indices_int[idof]);
+            }
+            for (unsigned int idof = 0; idof < n_soln_dofs_ext; ++idof) {
+                    aux_soln_coeff_ext[idim][idof] = this->auxiliary_solution[idim](soln_dofs_indices_ext[idof]);
+            }
+        }
+    }
+
+    std::vector<double> dual_int(n_soln_dofs_int);
+    std::vector<double> dual_ext(n_soln_dofs_ext);
+
+    std::vector<double> rhs_int(n_soln_dofs_int);
+    std::vector<double> rhs_ext(n_soln_dofs_ext);
+    dealii::Tensor<1,dim,std::vector<double>> aux_rhs_int;
+    dealii::Tensor<1,dim,std::vector<double>> aux_rhs_ext;
+    if(compute_auxiliary_right_hand_side){
+        for(int idim=0; idim<dim; idim++){
+            aux_rhs_int[idim].resize(n_soln_dofs_int);
+            aux_rhs_ext[idim].resize(n_soln_dofs_ext);
+        }
+    }
+    double dual_dot_residual = 0.0;
+    
+    assemble_face_term_and_build_operators_ad(
+            cell,
+            neighbor_cell,
+            current_cell_index,
+            neighbor_cell_index,
+            iface,
+            neighbor_iface,
+            soln_coeff_int,
+            soln_coeff_ext,
+            aux_soln_coeff_int,
+            aux_soln_coeff_ext,
+            metric_coeff_int,
+            metric_coeff_ext,
+            dual_int,
+            dual_ext,
+            poly_degree_int,
+            poly_degree_ext,
+            grid_degree_int,
+            grid_degree_ext,
+            soln_basis_int,
+            soln_basis_ext,
+            flux_basis_int,
+            flux_basis_ext,
+            flux_basis_stiffness,
+            soln_basis_projection_oper_int,
+            soln_basis_projection_oper_ext,
+            metric_oper_int,
+            metric_oper_ext,
+            mapping_basis,
+            mapping_support_points,
+            fe_values_collection_face_int,
+            fe_values_collection_face_ext,
+            fe_values_collection_subface,
+            fe_int,
+            fe_ext,
+            penalty,
+            rhs_int,
+            rhs_ext,
+            aux_rhs_int,
+            aux_rhs_ext,
+            compute_auxiliary_right_hand_side,
+            dual_dot_residual,
+            compute_dRdW, compute_dRdX, compute_d2R,
+            is_a_subface,
+            neighbor_i_subface);
+
+    if(compute_auxiliary_right_hand_side){
+        for(int idim=0; idim<dim; idim++){
+            for (unsigned int itest_int=0; itest_int<n_soln_dofs_int; ++itest_int) {
+                current_cell_rhs_aux[idim][itest_int] += aux_rhs_int[idim][itest_int];
+            }
+
+            // Add local contribution from neighbor cell to global vector
+            for (unsigned int itest_ext=0; itest_ext<n_soln_dofs_ext; ++itest_ext) {
+                rhs_aux[idim][soln_dofs_indices_ext[itest_ext]] += aux_rhs_ext[idim][itest_ext];
+            }
+        }
+    }
+    else{
+        for (unsigned int itest_int=0; itest_int<n_soln_dofs_int; ++itest_int) {
+            local_rhs_int_cell[itest_int] += rhs_int[itest_int];
+        }
+        for (unsigned int itest_ext=0; itest_ext<n_soln_dofs_ext; ++itest_ext) {
+            local_rhs_ext_cell[itest_ext] += rhs_ext[itest_ext];
+        }
+         
+        // Add local contribution from neighbor cell to global vector
+        for (unsigned int itest_ext=0; itest_ext<n_soln_dofs_ext; ++itest_ext) {
+            rhs[soln_dofs_indices_ext[itest_ext]] += local_rhs_ext_cell[itest_ext];
         }
     }
 }
@@ -2218,11 +2403,7 @@ void DGBase<dim,real,MeshType>::automatic_differentiation_indexing_1(
     } else if (compute_dRdW) {
         w_start = 0;
         w_end   = w_start + n_soln_dofs;
-        x_start = 0;
-        x_end   = 0;
     } else if (compute_dRdX) {
-        w_start = 0;
-        w_end   = 0;
         x_start = 0;
         x_end   = x_start + n_metric_dofs;
     } else {
@@ -2237,24 +2418,21 @@ void DGBase<dim,real,MeshType>::automatic_differentiation_indexing_2(
     unsigned int &w_int_start, unsigned int &w_int_end, unsigned int &w_ext_start, unsigned int &w_ext_end,
     unsigned int &x_int_start, unsigned int &x_int_end, unsigned int &x_ext_start, unsigned int &x_ext_end)
 {
-    // Current derivative order is: metric_int, metric_ext, soln_int, soln_ext
+    // Current derivative order is: soln_int, soln_ext, metric_int, metric_ext
     w_int_start = 0; w_int_end = 0; w_ext_start = 0; w_ext_end = 0;
     x_int_start = 0; x_int_end = 0; x_ext_start = 0; x_ext_end = 0;
     if (compute_d2R || (compute_dRdW && compute_dRdX)) {
-        x_int_start = 0;
-        x_int_end = x_int_start + n_metric_dofs;
-        x_ext_start = x_int_end;
-        x_ext_end = x_ext_start + n_metric_dofs;
-        w_int_start = x_ext_end;
+        w_int_start = 0;
         w_int_end = w_int_start + n_soln_dofs_int;
         w_ext_start = w_int_end;
         w_ext_end = w_ext_start + n_soln_dofs_ext;
+
+        x_int_start = w_ext_end;
+        x_int_end = x_int_start + n_metric_dofs;
+        x_ext_start = x_int_end;
+        x_ext_end = x_ext_start + n_metric_dofs;
     } else if (compute_dRdW) {
-        x_int_start = 0;
-        x_int_end = 0;
-        x_ext_start = 0;
-        x_ext_end = 0;
-        w_int_start = x_ext_end;
+        w_int_start = 0;
         w_int_end = w_int_start + n_soln_dofs_int;
         w_ext_start = w_int_end;
         w_ext_end = w_ext_start + n_soln_dofs_ext;
@@ -2263,13 +2441,9 @@ void DGBase<dim,real,MeshType>::automatic_differentiation_indexing_2(
         x_int_end = x_int_start + n_metric_dofs;
         x_ext_start = x_int_end;
         x_ext_end = x_ext_start + n_metric_dofs;
-        w_int_start = x_ext_end;
-        w_int_end = w_int_start + 0;
-        w_ext_start = w_int_end;
-        w_ext_end = w_ext_start + 0;
-    } //else {
-        //std::cout << "Called the derivative version of the residual without requesting the derivative" << std::endl;
-    //}
+    } else {
+        std::cout << "Called the derivative version of the residual without requesting the derivative" << std::endl;
+    }
 }
 
 

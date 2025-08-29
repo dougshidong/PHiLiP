@@ -594,8 +594,8 @@ public:
 
     /// AD version
     template <typename adtype>
-    //std::requires(std::is_same<adtype,PHiLiP::codi_JacobianComputationType>::value || std::is_same<adtype,PHiLiP::codi_HessianComputationType>::value)
-    void assemble_volume_codi_taped_derivatives_ad(
+    typename std::enable_if<!std::is_same<adtype, double>::value,void>::type
+        assemble_volume_codi_taped_derivatives_ad(
         typename dealii::DoFHandler<dim>::active_cell_iterator cell,
         const dealii::types::global_dof_index                  current_cell_index,
         const std::vector<dealii::types::global_dof_index>     &soln_dofs_indices,
@@ -644,8 +644,8 @@ public:
 
     /// AD version
     template <typename adtype>
-    //std::requires(!std::is_same<adtype,double>::value)
-    void assemble_boundary_codi_taped_derivatives_ad(
+    typename std::enable_if<!std::is_same<adtype, double>::value,void>::type
+        assemble_boundary_codi_taped_derivatives_ad(
         typename dealii::DoFHandler<dim>::active_cell_iterator cell,
         const dealii::types::global_dof_index                  current_cell_index,
         const unsigned int                                     iface,
@@ -694,8 +694,8 @@ public:
 
     // AD version
     template <typename adtype>
-    //std::requires(!std::is_same<adtype,double>::value)
-    void assemble_face_codi_taped_derivatives_ad(
+    typename std::enable_if<!std::is_same<adtype, double>::value,void>::type
+        assemble_face_codi_taped_derivatives_ad(
         typename dealii::DoFHandler<dim>::active_cell_iterator cell,
         typename dealii::DoFHandler<dim>::active_cell_iterator neighbor_cell,
         const dealii::types::global_dof_index current_cell_index,

@@ -526,7 +526,7 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual_and_ad_derivatives (
 
     std::array<std::vector<adtype>,dim> mapping_support_points;
     
-    assemble_volume_codi_taped_derivatives_ad<adtype>(
+    assemble_volume_codi_taped_derivatives_ad(
         current_cell,
         current_cell_index,
         current_dofs_indices,
@@ -563,7 +563,7 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual_and_ad_derivatives (
 
             const unsigned int boundary_id = current_face->boundary_id();
             
-            assemble_boundary_codi_taped_derivatives_ad<adtype>(
+            assemble_boundary_codi_taped_derivatives_ad(
                 current_cell,
                 current_cell_index,
                 iface,
@@ -627,7 +627,7 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual_and_ad_derivatives (
                                                                            store_surf_flux_nodes);
 
                 const dealii::FESystem<dim,dim> &neighbor_fe_ref = fe_collection[i_fele_n];
-                assemble_face_codi_taped_derivatives_ad<adtype>(
+                assemble_face_codi_taped_derivatives_ad(
                     current_cell,
                     neighbor_cell,
                     current_cell_index,
@@ -722,7 +722,7 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual_and_ad_derivatives (
                                                                store_surf_flux_nodes);
 
             const dealii::FESystem<dim,dim> &neighbor_fe_ref = fe_collection[i_fele_n];
-            assemble_face_codi_taped_derivatives_ad<adtype>(
+            assemble_face_codi_taped_derivatives_ad(
                 current_cell,
                 neighbor_cell,
                 current_cell_index,
@@ -805,10 +805,8 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual_and_ad_derivatives (
                                                                store_vol_flux_nodes,
                                                                store_surf_flux_nodes);
 
-            tape.reset(tape_position_metric_jacobian_int);
-            tape.clearAdjoints();
             const dealii::FESystem<dim,dim> &neighbor_fe_ref = fe_collection[i_fele_n];
-            assemble_face_codi_taped_derivatives_ad<adtype>(
+            assemble_face_codi_taped_derivatives_ad(
                 current_cell,
                 neighbor_cell,
                 current_cell_index,
@@ -840,7 +838,6 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual_and_ad_derivatives (
                 metric_oper_ext,
                 mapping_basis,
                 mapping_support_points,
-                local_metric_coeff_int,
                 current_cell_rhs,
                 neighbor_cell_rhs,
                 current_cell_rhs_aux,
@@ -854,11 +851,6 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual_and_ad_derivatives (
             // but will be evaluated when we visit the other cell.
         }
     } // end of face loop
-    
-    if(compute_dRdW || compute_dRdX || compute_d2R)
-    {
-        tape.setPassive();
-    }
 
     if(compute_auxiliary_right_hand_side) {
         // Add local contribution from current cell to global vector
@@ -875,7 +867,7 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual_and_ad_derivatives (
         }
     }
 }
-
+/*
 template <int dim, typename real, typename MeshType>
 void DGBase<dim,real,MeshType>::assemble_volume_no_ad(
     typename dealii::DoFHandler<dim>::active_cell_iterator cell,
@@ -889,7 +881,7 @@ void DGBase<dim,real,MeshType>::assemble_volume_no_ad(
     OPERATOR::local_basis_stiffness<dim,2*dim>             &flux_basis_stiffness,
     OPERATOR::vol_projection_operator<dim,2*dim>           &soln_basis_projection_oper_int,
     OPERATOR::vol_projection_operator<dim,2*dim>           &soln_basis_projection_oper_ext,
-    OPERATOR::metric_operators<adtype,dim,2*dim>           &metric_oper,
+    OPERATOR::metric_operators<double,dim,2*dim>           &metric_oper,
     OPERATOR::mapping_shape_functions<dim,2*dim>           &mapping_basis,
     std::array<std::vector<double>,dim>                    &mapping_support_points,
     dealii::hp::FEValues<dim,dim>                          &fe_values_collection_volume,
@@ -978,7 +970,7 @@ void DGBase<dim,real,MeshType>::assemble_volume_no_ad(
     }
 
 }
-
+*/
 // Double version
 template <int dim, typename real, typename MeshType>
 void DGBase<dim,real,MeshType>::assemble_volume_codi_taped_derivatives_ad(
@@ -1002,7 +994,7 @@ void DGBase<dim,real,MeshType>::assemble_volume_codi_taped_derivatives_ad(
     std::vector<real>                                      &local_rhs_cell,
     dealii::Tensor<1,dim,std::vector<real>>                &local_auxiliary_RHS,
     const bool                                             compute_auxiliary_right_hand_side,
-    const bool compute_dRdW, const bool compute_dRdX, const bool compute_d2R)
+    const bool /*compute_dRdW*/, const bool /*compute_dRdX*/, const bool /*compute_d2R*/)
 {
     const unsigned int n_soln_dofs = fe_soln.dofs_per_cell;
 
@@ -1091,7 +1083,8 @@ void DGBase<dim,real,MeshType>::assemble_volume_codi_taped_derivatives_ad(
 // AD version
 template <int dim, typename real, typename MeshType>
 template <typename adtype>
-void DGBase<dim,real,MeshType>::assemble_volume_codi_taped_derivatives_ad(
+typename std::enable_if<!std::is_same<adtype, double>::value,void>::type
+    DGBase<dim,real,MeshType>::assemble_volume_codi_taped_derivatives_ad(
     typename dealii::DoFHandler<dim>::active_cell_iterator cell,
     const dealii::types::global_dof_index                  current_cell_index,
     const std::vector<dealii::types::global_dof_index>     &soln_dofs_indices,
@@ -1174,7 +1167,7 @@ void DGBase<dim,real,MeshType>::assemble_volume_codi_taped_derivatives_ad(
                 const real val = this->auxiliary_solution[idim](soln_dofs_indices[idof]);
                 local_aux_solution[idim][idof] = val;
             }
-            tape.deactivateValue(local_aux_solution[idim][idof];
+            tape.deactivateValue(local_aux_solution[idim][idof]);
             /* 
             if ((compute_dRdW || compute_d2R) && this->use_auxiliary_eq) {
                 th.registerInput(local_aux_solution[idim][idof]);
@@ -1345,7 +1338,8 @@ void DGBase<dim,real,MeshType>::assemble_volume_codi_taped_derivatives_ad(
 /// AD version
 template <int dim, typename real, typename MeshType>
 template <typename adtype>
-void DGBase<dim,real,MeshType>::assemble_boundary_codi_taped_derivatives_ad(
+typename std::enable_if<!std::is_same<adtype, double>::value,void>::type
+    DGBase<dim,real,MeshType>::assemble_boundary_codi_taped_derivatives_ad(
     typename dealii::DoFHandler<dim>::active_cell_iterator cell,
     const dealii::types::global_dof_index                  current_cell_index,
     const unsigned int                                     iface,
@@ -1616,7 +1610,7 @@ void DGBase<dim,real,MeshType>::assemble_boundary_codi_taped_derivatives_ad(
     std::vector<real>                                      &local_rhs_cell,
     dealii::Tensor<1,dim,std::vector<real>>                &local_auxiliary_RHS,
     const bool                                             compute_auxiliary_right_hand_side,
-    const bool compute_dRdW, const bool compute_dRdX, const bool compute_d2R)
+    const bool /*compute_dRdW*/, const bool /*compute_dRdX*/, const bool /*compute_d2R*/)
 {
     const unsigned int n_soln_dofs = fe_soln.dofs_per_cell;
     const unsigned int n_metric_dofs = this->high_order_grid->fe_system.dofs_per_cell;
@@ -1699,7 +1693,8 @@ void DGBase<dim,real,MeshType>::assemble_boundary_codi_taped_derivatives_ad(
 // AD version
 template <int dim, typename real, typename MeshType>
 template <typename adtype>
-void DGBase<dim,real,MeshType>::assemble_face_codi_taped_derivatives_ad(
+typename std::enable_if<!std::is_same<adtype, double>::value,void>::type
+    DGBase<dim,real,MeshType>::assemble_face_codi_taped_derivatives_ad(
     typename dealii::DoFHandler<dim>::active_cell_iterator cell,
     typename dealii::DoFHandler<dim>::active_cell_iterator neighbor_cell,
     const dealii::types::global_dof_index current_cell_index,

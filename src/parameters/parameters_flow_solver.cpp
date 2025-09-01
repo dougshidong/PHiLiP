@@ -246,21 +246,13 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
             }
             prm.leave_subsection();
 
-          prm.enter_subsection("positivity_preserving_tests");
+          prm.enter_subsection("grid_rectangle");
           {
-              prm.declare_entry("grid_xmin", "0.0",
+              prm.declare_entry("grid_top_bound", "0.0",
                                 dealii::Patterns::Double(-dealii::Patterns::Double::max_double_value, dealii::Patterns::Double::max_double_value),
                                 "Left bound of domain for hyper_cube mesh based cases.");
 
-              prm.declare_entry("grid_xmax", "0.0",
-                                dealii::Patterns::Double(-dealii::Patterns::Double::max_double_value, dealii::Patterns::Double::max_double_value),
-                                "Right bound of domain for hyper_cube mesh based cases.");
-
-              prm.declare_entry("grid_ymin", "0.0",
-                                dealii::Patterns::Double(-dealii::Patterns::Double::max_double_value, dealii::Patterns::Double::max_double_value),
-                                "Left bound of domain for hyper_cube mesh based cases.");
-
-              prm.declare_entry("grid_ymax", "0.0",
+              prm.declare_entry("grid_bottom_bound", "0.0",
                                 dealii::Patterns::Double(-dealii::Patterns::Double::max_double_value, dealii::Patterns::Double::max_double_value),
                                 "Right bound of domain for hyper_cube mesh based cases.");
 
@@ -274,15 +266,15 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
 
               prm.declare_entry("number_of_grid_elements_x", "1",
                                 dealii::Patterns::Integer(1, dealii::Patterns::Integer::max_int_value),
-                                "Number of grid elements in the x-direction for 2/3D positivity-preserving limiter cases.");
+                                "Number of grid elements in the x-direction.");
 
               prm.declare_entry("number_of_grid_elements_y", "1",
                                 dealii::Patterns::Integer(1, dealii::Patterns::Integer::max_int_value),
-                                "Number of grid elements in the y-direction for 2/3D positivity-preserving limiter cases.");
+                                "Number of grid elements in the y-direction.");
 
               prm.declare_entry("number_of_grid_elements_z", "1",
                                 dealii::Patterns::Integer(1, dealii::Patterns::Integer::max_int_value),
-                                "Number of grid elements in the z-direction for 2/3D positivity-preserving limiter cases.");
+                                "Number of grid elements in the z-direction.");
           }
           prm.leave_subsection();
 
@@ -471,12 +463,10 @@ void FlowSolverParam::parse_parameters(dealii::ParameterHandler &prm)
             }
             prm.leave_subsection();
 
-            prm.enter_subsection("positivity_preserving_tests");
+            prm.enter_subsection("grid_rectangle");
             {
-                grid_xmax = prm.get_double("grid_xmax");
-                grid_xmin = prm.get_double("grid_xmin");
-                grid_ymax = prm.get_double("grid_ymax");
-                grid_ymin = prm.get_double("grid_ymin");
+                grid_top_bound = prm.get_double("grid_top_bound");
+                grid_bottom_bound = prm.get_double("grid_bottom_bound");
                 grid_zmax = prm.get_double("grid_zmax");
                 grid_zmin = prm.get_double("grid_zmin");
 

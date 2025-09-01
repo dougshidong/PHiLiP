@@ -109,16 +109,14 @@ public:
     int number_of_subdivisions_in_x_direction; ///< Number of subdivisions in x direction for gaussian bump case
     int number_of_subdivisions_in_y_direction; ///< Number of subdivisions in y direction for gaussian bump case
     int number_of_subdivisions_in_z_direction; ///< Number of subdivisions in z direction for gaussian bump case
-    double grid_xmax; ///< Maximum x bound of domain for positivity_preserving_tests
-    double grid_xmin; ///< Minimum x bound of domain for positivity_preserving_tests
-    double grid_ymax; ///< Maximum y bound of domain for positivity_preserving_tests
-    double grid_ymin; ///< Minimum y bound of domain for positivity_preserving_tests
-    double grid_zmax; ///< Maximum z bound of domain for positivity_preserving_tests
-    double grid_zmin; ///< Minimum z bound of domain for positivity_preserving_tests
+    double grid_top_bound; ///< Maximum y bound of domain for a rectangle grid
+    double grid_bottom_bound; ///< Minimum y bound of domain for a rectangle grid
+    double grid_zmax; ///< Maximum z bound of domain for a rectangle grid
+    double grid_zmin; ///< Minimum z bound of domain for a rectangle grid
 
-    unsigned int number_of_grid_elements_x; ///< Number of subdivisions in x direction for positivity_preserving_tests
-    unsigned int number_of_grid_elements_y; ///< Number of subdivisions in y direction for positivity_preserving_tests
-    unsigned int number_of_grid_elements_z; ///< Number of subdivisions in z direction for positivity_preserving_tests
+    unsigned int number_of_grid_elements_x; ///< Number of subdivisions in x direction for a rectangle grid
+    unsigned int number_of_grid_elements_y; ///< Number of subdivisions in y direction for a rectangle grid
+    unsigned int number_of_grid_elements_z; ///< Number of subdivisions in z direction for a rectangle grid
 
     double expected_order_at_final_time; ///< For limiter convergence tests, specify expected order at final time
 

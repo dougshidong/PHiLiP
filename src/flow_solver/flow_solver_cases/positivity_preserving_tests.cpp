@@ -26,14 +26,14 @@ std::shared_ptr<Triangulation> PositivityPreservingTests<dim,nstate>::generate_g
         );
     
     if(dim >= 1) {
-        if(this->all_param.flow_solver_param.grid_xmax == this->all_param.flow_solver_param.grid_xmin) {
+        if(this->all_param.flow_solver_param.grid_right_bound == this->all_param.flow_solver_param.grid_left_bound) {
             std::cout << "Error: xmax and xmin need to be provided as parameters - Aborting... " << std::endl << std::flush;
             std::abort();
         }
     }
 
     if(dim >= 2) {
-        if(this->all_param.flow_solver_param.grid_ymax == this->all_param.flow_solver_param.grid_ymin) {
+        if(this->all_param.flow_solver_param.grid_top_bound == this->all_param.flow_solver_param.grid_bottom_bound) {
             std::cout << "Error: ymax and ymin need to be provided as parameters - Aborting... " << std::endl << std::flush;
             std::abort();
         }

@@ -39,20 +39,20 @@ set(TEST_OUTPUT_DIR ${CMAKE_CURRENT_BINARY_DIR})
 #                                            QUICK
 #                                            INTEGRATION_TEST)
 
-#configure_file(2D_low_density_OOA_NSFR.prm 2D_low_density_OOA_NSFR.prm COPYONLY)
-#add_test(
-#  NAME 2D_LOW_DENSITY_EULER_OOA_NSFR_TEST
-#  COMMAND mpirun -n 4 ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_2D -i ${CMAKE_CURRENT_BINARY_DIR}/2D_low_density_OOA_NSFR.prm
-#  WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
-#)
-#set_tests_labels(2D_LOW_DENSITY_EULER_OOA_NSFR_TEST LOW_DENSITY
-#                                            2D
-#                                            PARALLEL
-#                                            EULER
-#                                            RUNGE-KUTTA
-#                                            STRONG-SPLIT
-#                                            COLLOCATED
-#                                            LIMITER
-#                                            CONVERGENCE
-#                                            LONG
-#                                            INTEGRATION_TEST)
+configure_file(2D_low_density_OOA_NSFR.prm 2D_low_density_OOA_NSFR.prm COPYONLY)
+add_test(
+  NAME 2D_LOW_DENSITY_EULER_OOA_NSFR_TEST
+  COMMAND mpirun -n 4 ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_2D -i ${CMAKE_CURRENT_BINARY_DIR}/2D_low_density_OOA_NSFR.prm
+  WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
+)
+set_tests_labels(2D_LOW_DENSITY_EULER_OOA_NSFR_TEST LOW_DENSITY
+                                            2D
+                                            PARALLEL
+                                            EULER
+                                            RUNGE-KUTTA
+                                            STRONG-SPLIT
+                                            COLLOCATED
+                                            LIMITER
+                                            CONVERGENCE
+                                            LONG
+                                            INTEGRATION_TEST)

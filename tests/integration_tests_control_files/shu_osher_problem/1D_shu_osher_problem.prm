@@ -52,9 +52,9 @@ subsection flow_solver
   set adaptive_time_step = true
   set unsteady_data_table_filename = shu_osher_shock_energy
   subsection grid
-    subsection positivity_preserving_tests
-      set grid_xmin = -5.0
-      set grid_xmax = 5.0
+    set grid_left_bound = -5.0
+    set grid_right_bound = 5.0
+    subsection grid_rectangle
       set number_of_grid_elements_x = 100
 	end
   end

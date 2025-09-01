@@ -44,7 +44,6 @@ subsection flow_solver
   set flow_case_type = advection_limiter
   set poly_degree = 4
   set final_time = 0.1
-  set adaptive_time_step = true
   set unsteady_data_table_filename = advection_shock_energy
   set expected_order_at_final_time = 4.9314675462114
   subsection grid

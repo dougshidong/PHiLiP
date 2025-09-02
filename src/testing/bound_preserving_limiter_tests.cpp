@@ -226,10 +226,13 @@ int BoundPreservingLimiterTests<dim, nstate>::run_full_limiter_test() const
             param.flow_solver_param.number_of_grid_elements_y = pow(2.0,param.flow_solver_param.number_of_mesh_refinements);
     }
 
+    // Create flow solver to access DG object which is needed to calculate time step
     std::unique_ptr<FlowSolver::FlowSolver<dim, nstate>> flow_solver = FlowSolver::FlowSolverFactory<dim, nstate>::select_flow_case(&param, parameter_handler);
     double time_step = get_time_step(flow_solver->dg);
     param.flow_solver_param.constant_time_step = time_step;
+    // Delete flow solver object (the time_step param cannot be changed directly because flow_solver_param is protected in flow_solver)
     flow_solver.reset();
+    // Reinitialize flow solver with new time step parameter
     flow_solver = FlowSolver::FlowSolverFactory<dim, nstate>::select_flow_case(&param, parameter_handler);
     flow_solver->run();
 
@@ -268,13 +271,16 @@ int BoundPreservingLimiterTests<dim, nstate>::run_convergence_test() const
                 param.flow_solver_param.number_of_grid_elements_y = grid_elem;
             }
         }
-
+        
+        // Create flow solver to access DG object which is needed to calculate time step
         std::unique_ptr<FlowSolver::FlowSolver<dim, nstate>> flow_solver = FlowSolver::FlowSolverFactory<dim, nstate>::select_flow_case(&param, parameter_handler);
         const unsigned int n_global_active_cells = flow_solver->dg->triangulation->n_global_active_cells();
         const int poly_degree = all_parameters_new.flow_solver_param.poly_degree;
         double time_step = get_time_step(flow_solver->dg);
         param.flow_solver_param.constant_time_step = time_step;
+        // Delete flow solver object (the time_step param cannot be changed directly because flow_solver_param is protected in flow_solver)
         flow_solver.reset();
+        // Reinitialize flow solver with new time step parameter
         flow_solver = FlowSolver::FlowSolverFactory<dim, nstate>::select_flow_case(&param, parameter_handler);
         flow_solver->run();
         const double final_time_actual = flow_solver->ode_solver->current_time;

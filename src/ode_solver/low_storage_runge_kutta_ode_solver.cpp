@@ -62,7 +62,7 @@ void LowStorageRungeKuttaODESolver<dim,real,n_rk_stages, MeshType>::sum_stages (
     } else {
         this->dg->solution = rhs;
         // Apply limiter at every RK stage
-        this->apply_limiter();
+        this->apply_limiter(dt);
         this->dg->assemble_residual();
         this->dg->apply_inverse_global_mass_matrix(this->dg->right_hand_side, rhs);
         rhs *= dt;

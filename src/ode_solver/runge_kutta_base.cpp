@@ -24,7 +24,7 @@ void RungeKuttaBase<dim, real, n_rk_stages, MeshType>::step_in_time(real dt, con
     this->solution_update = this->dg->solution; //storing u_n
     for (int istage = 0; istage < n_rk_stages; ++istage){
         this->calculate_stage_solution(istage, dt, pseudotime); // u_n + dt * sum(a_ij * k_j) <explicit> + dt * a_ii * u^(istage) <implicit>
-        this->apply_limiter();
+        this->apply_limiter(dt);
         this->calculate_stage_derivative(istage, dt); //rk_stage[istage] = IMM*RHS = F(u_n + dt*sum(a_ij*k_j))
     }
     dt = this->adjust_time_step(dt);
@@ -32,13 +32,13 @@ void RungeKuttaBase<dim, real, n_rk_stages, MeshType>::step_in_time(real dt, con
     this->dg->solution = this->solution_update; 
      // Calculate numerical entropy with FR correction. Does nothing if use has not selected param.
     this->FR_entropy_contribution_RRK_solver = relaxation_runge_kutta->compute_FR_entropy_contribution(dt, this->dg, this->rk_stage, true);
-    this->apply_limiter();
+    this->apply_limiter(dt);
     ++(this->current_iteration);
     this->current_time += dt;
 }
 
 template <int dim, typename real, int n_rk_stages, typename MeshType>
-void RungeKuttaBase<dim, real, n_rk_stages, MeshType>::apply_limiter ()
+void RungeKuttaBase<dim, real, n_rk_stages, MeshType>::apply_limiter (real dt)
 {
     // Apply limiter at every RK stage
     if (this->limiter) {
@@ -49,7 +49,8 @@ void RungeKuttaBase<dim, real, n_rk_stages, MeshType>::apply_limiter ()
             this->dg->high_order_grid->fe_system.tensor_degree(),
             this->dg->max_degree,
             this->dg->oneD_fe_collection_1state,
-            this->dg->oneD_quadrature_collection);
+            this->dg->oneD_quadrature_collection,
+            dt);
     }
 }
 

@@ -1129,9 +1129,12 @@ typename std::enable_if<!std::is_same<adtype, double>::value,void>::type
                                               w_start, w_end, x_start, x_end );
     }
     
-    using TH = codi_TapeHelper<adtype>;
+    using TH = codi::TapeHelper<adtype>;
     TH th;
     typename adtype::TapeType &tape =  adtype::getGlobalTape(); 
+    if (compute_dRdW || compute_dRdX || compute_d2R) {
+        th.startRecording();
+    }
     
     std::vector<adtype> local_solution(n_soln_dofs);
     for (unsigned int idof = 0; idof < n_soln_dofs; ++idof) {
@@ -1230,6 +1233,10 @@ typename std::enable_if<!std::is_same<adtype, double>::value,void>::type
         //}
     } else if (compute_d2R) {
         th.registerOutput(dual_dot_residual);
+    }
+    
+    if (compute_dRdW || compute_dRdX || compute_d2R) {
+        th.stopRecording();
     }
     
     if(compute_auxiliary_right_hand_side){
@@ -1375,9 +1382,12 @@ typename std::enable_if<!std::is_same<adtype, double>::value,void>::type
                                               w_start, w_end, x_start, x_end );
     }
     
-    using TH = codi_TapeHelper<adtype>;
+    using TH = codi::TapeHelper<adtype>;
     TH th;
     typename adtype::TapeType &tape =  adtype::getGlobalTape();
+    if (compute_dRdW || compute_dRdX || compute_d2R) {
+        th.startRecording();
+    }
     
     std::vector<adtype> local_solution(fe_soln.dofs_per_cell);
     for (unsigned int idof = 0; idof < n_soln_dofs; ++idof) {
@@ -1484,6 +1494,10 @@ typename std::enable_if<!std::is_same<adtype, double>::value,void>::type
         //}
     } else if (compute_d2R) {
         th.registerOutput(dual_dot_residual);
+    }
+
+    if (compute_dRdW || compute_dRdX || compute_d2R) {
+        th.stopRecording();
     }
 
     for (unsigned int itest=0; itest<n_soln_dofs; ++itest) {
@@ -1756,9 +1770,12 @@ typename std::enable_if<!std::is_same<adtype, double>::value,void>::type
             x_int_start, x_int_end, x_ext_start, x_ext_end);
     }
     
-    using TH = codi_TapeHelper<adtype>;
+    using TH = codi::TapeHelper<adtype>;
     TH th;
     typename adtype::TapeType &tape =  adtype::getGlobalTape();
+    if (compute_dRdW || compute_dRdX || compute_d2R) {
+        th.startRecording();
+    }
     
     std::vector<adtype> soln_coeff_int(fe_int.dofs_per_cell);
     for (unsigned int idof = 0; idof < n_soln_dofs_int; ++idof) {
@@ -1926,6 +1943,11 @@ typename std::enable_if<!std::is_same<adtype, double>::value,void>::type
         }
     } else if (compute_d2R) {
         th.registerOutput(dual_dot_residual);
+    }
+    
+    if (compute_dRdW || compute_dRdX || compute_d2R) {
+        th.stopRecording();
+        //adtype::getGlobalTape().printStatistics();
     }
     
     if(compute_auxiliary_right_hand_side){

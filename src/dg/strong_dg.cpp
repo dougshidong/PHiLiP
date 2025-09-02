@@ -519,59 +519,90 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_auxiliary_residual(const bool 
             soln_basis_projection_oper_int, soln_basis_projection_oper_ext,
             mapping_basis);
 
-        //loop over cells solving for auxiliary rhs
         auto metric_cell = this->high_order_grid->dof_handler_grid.begin_active();
-        for (auto soln_cell = this->dof_handler.begin_active(); soln_cell != this->dof_handler.end(); ++soln_cell, ++metric_cell) {
-            if (!soln_cell->is_locally_owned()) continue;
 
-                // Add right-hand side contributions this cell can compute
-                if(compute_d2R)
-                {
-                    this->template assemble_cell_residual_and_ad_derivatives<codi_HessianComputationType>(
-                        soln_cell,
-                        metric_cell,
-                        compute_dRdW, compute_dRdX, compute_d2R,
-                        fe_values_collection_volume,
-                        fe_values_collection_face_int,
-                        fe_values_collection_face_ext,
-                        fe_values_collection_subface,
-                        fe_values_collection_volume_lagrange,
-                        soln_basis_int,
-                        soln_basis_ext,
-                        flux_basis_int,
-                        flux_basis_ext,
-                        flux_basis_stiffness,
-                        soln_basis_projection_oper_int,
-                        soln_basis_projection_oper_ext,
-                        mapping_basis,
-                        true,
-                        this->right_hand_side,
-                        this->auxiliary_right_hand_side);
-                }
-                else
-                {
-                    this->template assemble_cell_residual_and_ad_derivatives<codi_JacobianComputationType>(
-                        soln_cell,
-                        metric_cell,
-                        compute_dRdW, compute_dRdX, compute_d2R,
-                        fe_values_collection_volume,
-                        fe_values_collection_face_int,
-                        fe_values_collection_face_ext,
-                        fe_values_collection_subface,
-                        fe_values_collection_volume_lagrange,
-                        soln_basis_int,
-                        soln_basis_ext,
-                        flux_basis_int,
-                        flux_basis_ext,
-                        flux_basis_stiffness,
-                        soln_basis_projection_oper_int,
-                        soln_basis_projection_oper_ext,
-                        mapping_basis,
-                        true,
-                        this->right_hand_side,
-                        this->auxiliary_right_hand_side);
-                }
-        } // end of cell loop
+        // Add right-hand side contributions this cell can compute
+        if(compute_d2R)
+        {
+            //loop over cells solving for auxiliary rhs
+            for (auto soln_cell = this->dof_handler.begin_active(); soln_cell != this->dof_handler.end(); ++soln_cell, ++metric_cell) {
+                if (!soln_cell->is_locally_owned()) continue;
+                this->template assemble_cell_residual_and_ad_derivatives<codi_HessianComputationType>(
+                    soln_cell,
+                    metric_cell,
+                    compute_dRdW, compute_dRdX, compute_d2R,
+                    fe_values_collection_volume,
+                    fe_values_collection_face_int,
+                    fe_values_collection_face_ext,
+                    fe_values_collection_subface,
+                    fe_values_collection_volume_lagrange,
+                    soln_basis_int,
+                    soln_basis_ext,
+                    flux_basis_int,
+                    flux_basis_ext,
+                    flux_basis_stiffness,
+                    soln_basis_projection_oper_int,
+                    soln_basis_projection_oper_ext,
+                    mapping_basis,
+                    true,
+                    this->right_hand_side,
+                    this->auxiliary_right_hand_side);
+            } // end of cell loop
+        }
+        else if(compute_dRdW || compute_dRdX)
+        {
+            //loop over cells solving for auxiliary rhs
+            for (auto soln_cell = this->dof_handler.begin_active(); soln_cell != this->dof_handler.end(); ++soln_cell, ++metric_cell) {
+                if (!soln_cell->is_locally_owned()) continue;
+                this->template assemble_cell_residual_and_ad_derivatives<codi_JacobianComputationType>(
+                    soln_cell,
+                    metric_cell,
+                    compute_dRdW, compute_dRdX, compute_d2R,
+                    fe_values_collection_volume,
+                    fe_values_collection_face_int,
+                    fe_values_collection_face_ext,
+                    fe_values_collection_subface,
+                    fe_values_collection_volume_lagrange,
+                    soln_basis_int,
+                    soln_basis_ext,
+                    flux_basis_int,
+                    flux_basis_ext,
+                    flux_basis_stiffness,
+                    soln_basis_projection_oper_int,
+                    soln_basis_projection_oper_ext,
+                    mapping_basis,
+                    true,
+                    this->right_hand_side,
+                    this->auxiliary_right_hand_side);
+            } // end of cell loop
+        }
+        else
+        {
+            //loop over cells solving for auxiliary rhs
+            for (auto soln_cell = this->dof_handler.begin_active(); soln_cell != this->dof_handler.end(); ++soln_cell, ++metric_cell) {
+                if (!soln_cell->is_locally_owned()) continue;
+                this->template assemble_cell_residual_and_ad_derivatives<double>(
+                    soln_cell,
+                    metric_cell,
+                    compute_dRdW, compute_dRdX, compute_d2R,
+                    fe_values_collection_volume,
+                    fe_values_collection_face_int,
+                    fe_values_collection_face_ext,
+                    fe_values_collection_subface,
+                    fe_values_collection_volume_lagrange,
+                    soln_basis_int,
+                    soln_basis_ext,
+                    flux_basis_int,
+                    flux_basis_ext,
+                    flux_basis_stiffness,
+                    soln_basis_projection_oper_int,
+                    soln_basis_projection_oper_ext,
+                    mapping_basis,
+                    true,
+                    this->right_hand_side,
+                    this->auxiliary_right_hand_side);
+            } // end of cell loop
+        }
 
         for(int idim=0; idim<dim; idim++){
             //compress auxiliary rhs for solution transfer across mpi ranks

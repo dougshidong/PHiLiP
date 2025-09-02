@@ -44,8 +44,8 @@ int EulerTaylorGreenScaling<dim, nstate>::run_test() const
 
     std::ofstream myfile (all_parameters_new.energy_file + ".gpl"  , std::ios::trunc);
     const unsigned int poly_degree_start= all_parameters->flow_solver_param.poly_degree;
-    const unsigned int poly_degree_end = (all_parameters->use_curvilinear_grid) ? 11 : 16;
 
+    const unsigned int poly_degree_end = (all_parameters->use_curvilinear_grid) ? 11 : 16;
     pcout << "Max poly degree: " << poly_degree_end << std::endl;
     std::vector<double> time_to_run;
     time_to_run.reserve(poly_degree_end);
@@ -177,13 +177,11 @@ int EulerTaylorGreenScaling<dim, nstate>::run_test() const
             }
         }
     }
-
     catch(std::bad_alloc &e){
         std::cout << "ending with bad_alloc (ran out of memory)" << std::endl;   
         std::cout << "If the test fails here, then there is unnecessary memory being allocated." << std::endl;
         return 1;
     }
-
     //if it reaches here, then there is no memory issue.
     return 0;
 }

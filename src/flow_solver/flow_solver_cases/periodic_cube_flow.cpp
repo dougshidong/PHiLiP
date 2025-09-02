@@ -90,6 +90,7 @@ template class PeriodicCubeFlow <PHILIP_DIM,PHILIP_DIM+2>;
 #if PHILIP_DIM==2
     template class PeriodicCubeFlow <PHILIP_DIM, PHILIP_DIM>;
 #endif
+
 } // FlowSolver namespace
 } // PHiLiP namespace
 

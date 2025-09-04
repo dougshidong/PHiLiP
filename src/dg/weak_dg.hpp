@@ -29,6 +29,31 @@ public:
         const std::shared_ptr<Triangulation> triangulation_input);
 
 private:
+    /// Build the volume operators
+    /* This was added to enable assembling the residual only on one active group
+     * ( see strong DG)
+     * The subset residual evaluation feature is not currently tested on weak DG
+     * therefore this is empty.
+     * Current behaviour is to abort, though this function should never be called.
+     */
+    void build_volume_operators(
+        typename dealii::DoFHandler<dim>::active_cell_iterator /*cell*/,
+        const dealii::types::global_dof_index                  /*current_cell_index*/,
+        const std::vector<dealii::types::global_dof_index>     &/*cell_dofs_indices*/,
+        const std::vector<dealii::types::global_dof_index>     &/*metric_dof_indices*/,
+        const unsigned int                                     /*poly_degree*/,
+        const unsigned int                                     /*grid_degree*/,
+        OPERATOR::basis_functions<dim,2*dim,real>              &/*soln_basis*/,
+        OPERATOR::basis_functions<dim,2*dim,real>              &/*flux_basis*/,
+        OPERATOR::local_basis_stiffness<dim,2*dim,real>        &/*flux_basis_stiffness*/,
+        OPERATOR::vol_projection_operator<dim,2*dim,real>      &/*soln_basis_projection_oper_int*/,
+        OPERATOR::vol_projection_operator<dim,2*dim,real>      &/*soln_basis_projection_oper_ext*/,
+        OPERATOR::metric_operators<real,dim,2*dim>             &/*metric_oper*/,
+        OPERATOR::mapping_shape_functions<dim,2*dim,real>      &/*mapping_basis*/,
+        std::array<std::vector<real>,dim>                      &/*mapping_support_points*/,
+        dealii::hp::FEValues<dim,dim>                          &/*fe_values_collection_volume*/,
+        dealii::hp::FEValues<dim,dim>                          &/*fe_values_collection_volume_lagrange*/,
+        const dealii::FESystem<dim,dim>                        &/*current_fe_ref*/) override;
 
     /// Builds the necessary fe values and assembles volume residual.
     void assemble_volume_term_and_build_operators(
@@ -113,6 +138,7 @@ private:
         dealii::Vector<real>                                   &current_cell_rhs,
         dealii::Vector<real>                                   &neighbor_cell_rhs,
         std::vector<dealii::Tensor<1,dim,real>>                &/*current_cell_rhs_aux*/,
+        std::vector<dealii::Tensor<1,dim,real>>                &/*neighbor_cell_rhs_aux*/,
         dealii::LinearAlgebra::distributed::Vector<double>     &rhs,
         std::array<dealii::LinearAlgebra::distributed::Vector<double>,dim> &/*rhs_aux*/,
         const bool                                             /*compute_auxiliary_right_hand_side*/,
@@ -152,13 +178,14 @@ private:
         dealii::Vector<real>                                   &current_cell_rhs,
         dealii::Vector<real>                                   &neighbor_cell_rhs,
         std::vector<dealii::Tensor<1,dim,real>>                &/*current_cell_rhs_aux*/,
+        std::vector<dealii::Tensor<1,dim,real>>                &/*neighbor_cell_rhs_aux*/,
         dealii::LinearAlgebra::distributed::Vector<double>     &rhs,
         std::array<dealii::LinearAlgebra::distributed::Vector<double>,dim> &/*rhs_aux*/,
         const bool                                             /*compute_auxiliary_right_hand_side*/,
         const bool compute_dRdW, const bool compute_dRdX, const bool compute_d2R);
 
     /// Assembles the auxiliary equations' residuals and solves for the auxiliary variables.
-    void assemble_auxiliary_residual ();
+    void assemble_auxiliary_residual (const int cell_group_ID=0);
 
     /// Allocate the dual vector for optimization.
     void allocate_dual_vector ();

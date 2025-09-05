@@ -70,7 +70,7 @@ void SetInitialCondition<dim,nstate,real>::project_initial_condition(
                                 dealii::update_quadrature_points);
     const unsigned int max_dofs_per_cell = dg->dof_handler.get_fe_collection().max_dofs_per_cell();
     std::vector<dealii::types::global_dof_index> current_dofs_indices(max_dofs_per_cell);
-    OPERATOR::vol_projection_operator<dim,2*dim,real> vol_projection(1, dg->max_degree, dg->max_grid_degree);
+    OPERATOR::vol_projection_operator<dim,2*dim> vol_projection(1, dg->max_degree, dg->max_grid_degree);
     vol_projection.build_1D_volume_operator(dg->oneD_fe_collection_1state[dg->max_degree], dg->oneD_quadrature_collection[dg->max_degree]);
     for (auto current_cell = dg->dof_handler.begin_active(); current_cell!=dg->dof_handler.end(); ++current_cell) {
         if (!current_cell->is_locally_owned()) continue;
@@ -174,7 +174,7 @@ void SetInitialCondition<dim,nstate,real>::read_values_from_file_and_project(
                                 dealii::update_quadrature_points);
     const unsigned int max_dofs_per_cell = dg->dof_handler.get_fe_collection().max_dofs_per_cell();
     std::vector<dealii::types::global_dof_index> current_dofs_indices(max_dofs_per_cell);
-    OPERATOR::vol_projection_operator<dim,2*dim,real> vol_projection(1, dg->max_degree, dg->max_grid_degree);
+    OPERATOR::vol_projection_operator<dim,2*dim> vol_projection(1, dg->max_degree, dg->max_grid_degree);
     vol_projection.build_1D_volume_operator(dg->oneD_fe_collection_1state[dg->max_degree], dg->oneD_quadrature_collection[dg->max_degree]);
     for (auto current_cell = dg->dof_handler.begin_active(); current_cell!=dg->dof_handler.end(); ++current_cell) {
         if (!current_cell->is_locally_owned()) continue;

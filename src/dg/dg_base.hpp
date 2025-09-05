@@ -592,7 +592,7 @@ public:
         dealii::LinearAlgebra::distributed::Vector<double>                 &rhs,
         std::array<dealii::LinearAlgebra::distributed::Vector<double>,dim> &rhs_aux);
 
-    /// AD version
+    /// Computes the volume term of the cell and performs automatic differentiation.
     template <typename adtype>
     typename std::enable_if<!std::is_same<adtype, double>::value,void>::type
         assemble_volume_codi_taped_derivatives_ad(
@@ -618,7 +618,7 @@ public:
         const bool                                             compute_auxiliary_right_hand_side,
         const bool compute_dRdW, const bool compute_dRdX, const bool compute_d2R);
     
-    /// Double version
+    /// Computes the volume term of the cell.
     void assemble_volume_codi_taped_derivatives_ad(
         typename dealii::DoFHandler<dim>::active_cell_iterator cell,
         const dealii::types::global_dof_index                  current_cell_index,
@@ -642,7 +642,7 @@ public:
         const bool                                             compute_auxiliary_right_hand_side,
         const bool compute_dRdW, const bool compute_dRdX, const bool compute_d2R);
 
-    /// AD version
+    /// Computes boundary term of the cell if the cell has a face at the boundary and performs automatic differentiation.
     template <typename adtype>
     typename std::enable_if<!std::is_same<adtype, double>::value,void>::type
         assemble_boundary_codi_taped_derivatives_ad(
@@ -668,7 +668,7 @@ public:
         const bool                                             compute_auxiliary_right_hand_side,
         const bool compute_dRdW, const bool compute_dRdX, const bool compute_d2R);
     
-    /// Double version
+    /// Computes boundary term of the cell if the cell has a face at the boundary.
     void assemble_boundary_codi_taped_derivatives_ad(
         typename dealii::DoFHandler<dim>::active_cell_iterator cell,
         const dealii::types::global_dof_index                  current_cell_index,
@@ -692,7 +692,7 @@ public:
         const bool                                             compute_auxiliary_right_hand_side,
         const bool compute_dRdW, const bool compute_dRdX, const bool compute_d2R);
 
-    // AD version
+    /// Computes face term of the cell and performs automatic differentiation.
     template <typename adtype>
     typename std::enable_if<!std::is_same<adtype, double>::value,void>::type
         assemble_face_codi_taped_derivatives_ad(
@@ -737,7 +737,7 @@ public:
         const bool is_a_subface = false,
         const unsigned int neighbor_i_subface = 0);
     
-    // Double version
+    /// Computes face term of the cell.
     void assemble_face_codi_taped_derivatives_ad(
         typename dealii::DoFHandler<dim>::active_cell_iterator cell,
         typename dealii::DoFHandler<dim>::active_cell_iterator neighbor_cell,
@@ -779,7 +779,8 @@ public:
         const bool compute_dRdW, const bool compute_dRdX, const bool compute_d2R,
         const bool is_a_subface = false,
         const unsigned int neighbor_i_subface = 0);
-    
+   
+    /// Builds the necessary operators/fe values and assembles volume residual. For double type.
     virtual void assemble_volume_term_and_build_operators_ad(
         typename dealii::DoFHandler<dim>::active_cell_iterator cell,
         const dealii::types::global_dof_index                  current_cell_index,
@@ -807,6 +808,7 @@ public:
         const bool                                             compute_auxiliary_right_hand_side,
         double                                                 &dual_dot_residual) =0;
     
+    /// Builds the necessary operators/fe values and assembles volume residual. For codi_JacobianComputationType.
     virtual void assemble_volume_term_and_build_operators_ad(
         typename dealii::DoFHandler<dim>::active_cell_iterator                cell,
         const dealii::types::global_dof_index                                 current_cell_index,
@@ -834,6 +836,7 @@ public:
         const bool                                                            compute_auxiliary_right_hand_side,
         codi_JacobianComputationType                                          &dual_dot_residual) =0;
     
+    /// Builds the necessary operators/fe values and assembles volume residual. For codi_HessianComputationType.
     virtual void assemble_volume_term_and_build_operators_ad(
         typename dealii::DoFHandler<dim>::active_cell_iterator               cell,
         const dealii::types::global_dof_index                                current_cell_index,
@@ -860,7 +863,8 @@ public:
         dealii::Tensor<1,dim,std::vector<codi_HessianComputationType>>       &local_auxiliary_RHS,
         const bool                                                           compute_auxiliary_right_hand_side,
         codi_HessianComputationType                                          &dual_dot_residual) =0;
-    
+
+    /// Builds the necessary operators/fe values and assembles boundary residual. For double type.
     virtual void assemble_boundary_term_and_build_operators_ad(
         typename dealii::DoFHandler<dim>::active_cell_iterator             cell,
         const dealii::types::global_dof_index                              current_cell_index,
@@ -886,6 +890,7 @@ public:
         const bool                                                         compute_auxiliary_right_hand_side,
         double                                                             &dual_dot_residual) =0;
     
+    /// Builds the necessary operators/fe values and assembles boundary residual. For codi_JacobianComputationType.
     virtual void assemble_boundary_term_and_build_operators_ad(
         typename dealii::DoFHandler<dim>::active_cell_iterator                                   cell,
         const dealii::types::global_dof_index                                                    current_cell_index,
@@ -911,6 +916,7 @@ public:
         const bool                                                                               compute_auxiliary_right_hand_side,
         codi_JacobianComputationType                                                             &dual_dot_residual) =0;
     
+    /// Builds the necessary operators/fe values and assembles boundary residual. For codi_HessianComputationType.
     virtual void assemble_boundary_term_and_build_operators_ad(
         typename dealii::DoFHandler<dim>::active_cell_iterator                                  cell,
         const dealii::types::global_dof_index                                                   current_cell_index,
@@ -935,7 +941,8 @@ public:
         dealii::Tensor<1,dim,std::vector<codi_HessianComputationType>>                          &local_auxiliary_RHS,
         const bool                                                                              compute_auxiliary_right_hand_side,
         codi_HessianComputationType                                                             &dual_dot_residual) =0;
-    
+   
+    /// Builds the necessary operators/fe values and assembles face residual. For double type.   
     virtual void assemble_face_term_and_build_operators_ad(
         typename dealii::DoFHandler<dim>::active_cell_iterator             cell,
         typename dealii::DoFHandler<dim>::active_cell_iterator             neighbor_cell,
@@ -982,6 +989,7 @@ public:
         const bool                                                         is_a_subface,
         const unsigned int                                                 neighbor_i_subface) =0;
     
+    /// Builds the necessary operators/fe values and assembles face residual. For codi_JacobianComputationType.   
     virtual void assemble_face_term_and_build_operators_ad(
         typename dealii::DoFHandler<dim>::active_cell_iterator                                   cell,
         typename dealii::DoFHandler<dim>::active_cell_iterator                                   neighbor_cell,
@@ -1028,6 +1036,7 @@ public:
         const bool                                                                               is_a_subface,
         const unsigned int                                                                       neighbor_i_subface) =0;
 
+    /// Builds the necessary operators/fe values and assembles face residual. For codi_HessianComputationType.    
     virtual void assemble_face_term_and_build_operators_ad(
         typename dealii::DoFHandler<dim>::active_cell_iterator                                  cell,
         typename dealii::DoFHandler<dim>::active_cell_iterator                                  neighbor_cell,
@@ -1081,9 +1090,9 @@ public:
     double getValue(const real2 &x);
    
     /// Derivative indexing when only 1 cell is concerned.
-    /// Derivatives are ordered such that x comes first with index 0, then w.
-    /// If derivatives with respect to x are not needed, then derivatives
-    /// with respect to w will start at index 0. This function is for a single
+    /// Derivatives are ordered such that w comes first with index 0, then x.
+    /// If derivatives with respect to w are not needed, then derivatives
+    /// with respect to x will start at index 0. This function is for a single
     /// cell's DoFs.
     void automatic_differentiation_indexing_1(
         const bool compute_dRdW, const bool compute_dRdX, const bool compute_d2R,
@@ -1092,15 +1101,15 @@ public:
         unsigned int &x_start, unsigned int &x_end);
     
     /// Derivative indexing when 2 cells are concerned.
-    /// Derivatives are ordered such that x comes first with index 0, then w.
-    /// If derivatives with respect to x are not needed, then derivatives
-    /// with respect to w will start at index 0. This function is for a single
-    /// cell's DoFs.
+    /// Derivatives are ordered such that w comes first with index 0, then x.
+    /// If derivatives with respect to w are not needed, then derivatives
+    /// with respect to x will start at index 0.
     void automatic_differentiation_indexing_2(
         const bool compute_dRdW, const bool compute_dRdX, const bool compute_d2R,
         const unsigned int n_soln_dofs_int, const unsigned int n_soln_dofs_ext, const unsigned int n_metric_dofs,
         unsigned int &w_int_start, unsigned int &w_int_end, unsigned int &w_ext_start, unsigned int &w_ext_end,
         unsigned int &x_int_start, unsigned int &x_int_end, unsigned int &x_ext_start, unsigned int &x_ext_end);
+
     /// Finite Element Collection for p-finite-element to represent the solution
     /** This is a collection of FESystems */
     const dealii::hp::FECollection<dim>    fe_collection;
@@ -1225,6 +1234,7 @@ public:
         OPERATOR::metric_operators<double,dim,2*dim> &metric_oper,
         OPERATOR::mapping_shape_functions<dim,2*dim> &mapping_basis,
         std::array<std::vector<double>,dim>          &mapping_support_points) =0;
+    /// Builds volume metric operators (metric cofactor and determinant of metric Jacobian).
     virtual void build_volume_metric_operators(
         const unsigned int poly_degree,
         const unsigned int grid_degree,
@@ -1232,6 +1242,7 @@ public:
         OPERATOR::metric_operators<codi_JacobianComputationType,dim,2*dim> &metric_oper,
         OPERATOR::mapping_shape_functions<dim,2*dim>                       &mapping_basis,
         std::array<std::vector<codi_JacobianComputationType>,dim>          &mapping_support_points) =0;
+    /// Builds volume metric operators (metric cofactor and determinant of metric Jacobian).
     virtual void build_volume_metric_operators(
         const unsigned int poly_degree,
         const unsigned int grid_degree,

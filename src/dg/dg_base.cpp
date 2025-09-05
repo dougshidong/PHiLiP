@@ -855,122 +855,19 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual_and_ad_derivatives (
     if(compute_auxiliary_right_hand_side) {
         // Add local contribution from current cell to global vector
         for(int idim=0; idim<dim; idim++){
-            for (unsigned int i=0; i<n_dofs_curr_cell; ++i) {
-                rhs_aux[idim][current_dofs_indices[i]] += current_cell_rhs_aux[idim][i];
+            for (unsigned int idof=0; idof<n_dofs_curr_cell; ++idof) {
+                rhs_aux[idim][current_dofs_indices[idof]] += current_cell_rhs_aux[idim][idof];
             }
         }
     }
     else {
         // Add local contribution from current cell to global vector
-        for (unsigned int i=0; i<n_dofs_curr_cell; ++i) {
-            rhs[current_dofs_indices[i]] += current_cell_rhs[i];
+        for (unsigned int idof=0; idof<n_dofs_curr_cell; ++idof) {
+            rhs[current_dofs_indices[idof]] += current_cell_rhs[idof];
         }
     }
 }
-/*
-template <int dim, typename real, typename MeshType>
-void DGBase<dim,real,MeshType>::assemble_volume_no_ad(
-    typename dealii::DoFHandler<dim>::active_cell_iterator cell,
-    const dealii::types::global_dof_index                  current_cell_index,
-    const std::vector<dealii::types::global_dof_index>     &soln_dofs_indices,
-    const std::vector<dealii::types::global_dof_index>     &metric_dofs_indices,
-    const unsigned int                                     poly_degree,
-    const unsigned int                                     grid_degree,
-    OPERATOR::basis_functions<dim,2*dim>                   &soln_basis,
-    OPERATOR::basis_functions<dim,2*dim>                   &flux_basis,
-    OPERATOR::local_basis_stiffness<dim,2*dim>             &flux_basis_stiffness,
-    OPERATOR::vol_projection_operator<dim,2*dim>           &soln_basis_projection_oper_int,
-    OPERATOR::vol_projection_operator<dim,2*dim>           &soln_basis_projection_oper_ext,
-    OPERATOR::metric_operators<double,dim,2*dim>           &metric_oper,
-    OPERATOR::mapping_shape_functions<dim,2*dim>           &mapping_basis,
-    std::array<std::vector<double>,dim>                    &mapping_support_points,
-    dealii::hp::FEValues<dim,dim>                          &fe_values_collection_volume,
-    dealii::hp::FEValues<dim,dim>                          &fe_values_collection_volume_lagrange,
-    const dealii::FESystem<dim,dim>                        &fe_soln,
-    std::vector<real>                                      &local_rhs_cell,
-    dealii::Tensor<1,dim,std::vector<real>>                &local_auxiliary_RHS,
-    const bool                                             compute_auxiliary_right_hand_side,
-    const bool compute_dRdW, const bool compute_dRdX, const bool compute_d2R)
-{
-    const unsigned int n_soln_dofs = fe_soln.dofs_per_cell;
 
-    AssertDimension (n_soln_dofs, soln_dofs_indices.size());
-
-    const unsigned int n_metric_dofs = this->high_order_grid->fe_system.dofs_per_cell;
-
-    std::vector<real> local_dual(n_soln_dofs); // no need to set dual as we are not doing AD.
-    
-    std::vector<double> local_solution(n_soln_dofs);
-    for (unsigned int idof = 0; idof < n_soln_dofs; ++idof) 
-    {
-        local_solution[idof] = this->solution(soln_dofs_indices[idof]);
-    }
-    std::vector<double> local_metric_coeff_int(n_metric_dofs);
-    for(unsigned int idof = 0; idof<n_metric_dofs; ++idof)
-    {
-        local_metric_coeff_int[idof] = this->high_order_grid->volume_nodes[metric_dofs_indices[idof]];
-    }
-    dealii::Tensor<1,dim,std::vector<double>> local_aux_solution;
-    for(unsigned int idim=0; idim<dim; idim++){
-        local_aux_solution[idim].resize(n_soln_dofs);
-        for (unsigned int idof = 0; idof < n_soln_dofs; ++idof) {
-            if(this->use_auxiliary_eq){//only if use auxiliary equation has the auxiliary solution initialized
-                local_aux_solution[idim][idof] = this->auxiliary_solution[idim](soln_dofs_indices[idof]);
-            }
-        }
-    }
-    double dual_dot_residual = 0.0;
-    std::vector<double> rhs(n_soln_dofs);
-    dealii::Tensor<1,dim,std::vector<double>> rhs_aux;
-    if(compute_auxiliary_right_hand_side){
-        for(int idim=0; idim<dim; idim++){
-            rhs_aux[idim].resize(n_soln_dofs);
-        }
-    }
-    assemble_volume_term_and_build_operators_ad(
-        cell,
-        current_cell_index,
-        local_solution, 
-        local_aux_solution, 
-        local_metric_coeff_int,
-        local_dual,
-        soln_dofs_indices,
-        metric_dofs_indices,
-        poly_degree,
-        grid_degree,
-        soln_basis,
-        flux_basis,
-        flux_basis_stiffness,
-        soln_basis_projection_oper_int,
-        soln_basis_projection_oper_ext,
-        metric_oper,
-        mapping_basis,
-        mapping_support_points,
-        fe_values_collection_volume,
-        fe_values_collection_volume_lagrange,
-        fe_soln,
-        rhs, 
-        rhs_aux,
-        compute_auxiliary_right_hand_side,
-        dual_dot_residual);
-    
-    if(compute_auxiliary_right_hand_side){
-        for(int idim=0; idim<dim; idim++){
-            for (unsigned int itest=0; itest<n_soln_dofs; ++itest) {
-                local_auxiliary_RHS[idim][itest] += rhs_aux[idim][itest];
-                AssertIsFinite(local_auxiliary_RHS[idim][itest]);
-            }
-        }
-    }
-    else{
-        for (unsigned int itest=0; itest<n_soln_dofs; ++itest) {
-            local_rhs_cell[itest] += rhs[itest];
-            AssertIsFinite(local_rhs_cell[itest]);
-        }
-    }
-
-}
-*/
 // Double version
 template <int dim, typename real, typename MeshType>
 void DGBase<dim,real,MeshType>::assemble_volume_codi_taped_derivatives_ad(
@@ -1328,11 +1225,10 @@ typename std::enable_if<!std::is_same<adtype, double>::value,void>::type
 
     for (unsigned int idof = 0; idof < n_soln_dofs; ++idof) {
         tape.deactivateValue(local_solution[idof]);
-        /*
+        
         for(int idim=0; idim<dim; idim++){
             tape.deactivateValue(local_aux_solution[idim][idof]);
         }
-        */
     }
 
     for(unsigned int idof=0; idof<n_metric_dofs; ++idof)
@@ -1589,11 +1485,10 @@ typename std::enable_if<!std::is_same<adtype, double>::value,void>::type
 
     for (unsigned int idof = 0; idof < n_soln_dofs; ++idof) {
         tape.deactivateValue(local_solution[idof]);
-        /*
+    
         for(int idim=0; idim<dim; idim++){
             tape.deactivateValue(local_aux_solution[idim][idof]);
         }
-        */
     }
     for (unsigned int idof = 0; idof < n_metric_dofs; ++idof) {
         tape.deactivateValue(local_metric_coeff[idof]);
@@ -2203,7 +2098,7 @@ typename std::enable_if<!std::is_same<adtype, double>::value,void>::type
     for (unsigned int idof = 0; idof < n_metric_dofs; ++idof) {
         tape.deactivateValue(metric_coeff_ext[idof]);
     }
-    /*
+    
     for(int idim=0; idim<dim; idim++){
         for (unsigned int idof = 0; idof < n_soln_dofs_int; ++idof) {
             tape.deactivateValue(aux_soln_coeff_int[idim][idof]);
@@ -2212,7 +2107,6 @@ typename std::enable_if<!std::is_same<adtype, double>::value,void>::type
             tape.deactivateValue(aux_soln_coeff_ext[idim][idof]);
         }
     }
-    */
 }
 
 // Double version

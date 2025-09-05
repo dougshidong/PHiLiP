@@ -77,6 +77,7 @@ protected:
         const bool                                             compute_auxiliary_right_hand_side,
         adtype                                                 &dual_dot_residual);
     
+    /// Calls the function to assemble volume residual. For double type.
     void assemble_volume_term_and_build_operators_ad(
         typename dealii::DoFHandler<dim>::active_cell_iterator cell,
         const dealii::types::global_dof_index                  current_cell_index,
@@ -133,6 +134,7 @@ protected:
                 dual_dot_residual);
     }
     
+    /// Calls the function to assemble volume residual. For codi_JacobianComputationType.
     void assemble_volume_term_and_build_operators_ad(
         typename dealii::DoFHandler<dim>::active_cell_iterator                cell,
         const dealii::types::global_dof_index                                 current_cell_index,
@@ -189,6 +191,7 @@ protected:
                 dual_dot_residual);
     }
     
+    /// Calls the function to assemble volume residual. For codi_HessianComputationType.
     void assemble_volume_term_and_build_operators_ad(
         typename dealii::DoFHandler<dim>::active_cell_iterator               cell,
         const dealii::types::global_dof_index                                current_cell_index,
@@ -275,6 +278,7 @@ protected:
         const bool                                                         compute_auxiliary_right_hand_side,
         adtype                                                             &dual_dot_residual);
     
+    /// Calls the function to assemble boundary residual. For double type.
     void assemble_boundary_term_and_build_operators_ad(
         typename dealii::DoFHandler<dim>::active_cell_iterator             cell,
         const dealii::types::global_dof_index                              current_cell_index,
@@ -329,6 +333,7 @@ protected:
             dual_dot_residual);
     }
     
+    /// Calls the function to assemble boundary residual. For codi_JacobianComputationType.
     void assemble_boundary_term_and_build_operators_ad(
         typename dealii::DoFHandler<dim>::active_cell_iterator                                   cell,
         const dealii::types::global_dof_index                                                    current_cell_index,
@@ -383,6 +388,7 @@ protected:
             dual_dot_residual);
     }
     
+    /// Calls the function to assemble boundary residual. For codi_HessianComputationType.
     void assemble_boundary_term_and_build_operators_ad(
         typename dealii::DoFHandler<dim>::active_cell_iterator                                  cell,
         const dealii::types::global_dof_index                                                   current_cell_index,
@@ -437,6 +443,7 @@ protected:
             dual_dot_residual);
     }
     
+    /// Calls the function to assemble face residual.
     template <typename adtype>
     void assemble_face_term_and_build_operators_ad_templated(
         typename dealii::DoFHandler<dim>::active_cell_iterator             cell,
@@ -486,6 +493,7 @@ protected:
         const bool                                                         /*is_a_subface*/,
         const unsigned int                                                 /*neighbor_i_subface*/);
     
+    /// Calls the function to assemble face residual. For double type.
     void assemble_face_term_and_build_operators_ad(
         typename dealii::DoFHandler<dim>::active_cell_iterator             cell,
         typename dealii::DoFHandler<dim>::active_cell_iterator             neighbor_cell,
@@ -580,8 +588,8 @@ protected:
             is_a_subface,
             neighbor_i_subface);
     }
-
-    
+ 
+    /// Calls the function to assemble face residual. For codi_JacobianComputationType.
     void assemble_face_term_and_build_operators_ad(
         typename dealii::DoFHandler<dim>::active_cell_iterator                                   cell,
         typename dealii::DoFHandler<dim>::active_cell_iterator                                   neighbor_cell,
@@ -677,6 +685,7 @@ protected:
             neighbor_i_subface);
     }
 
+    /// Calls the function to assemble face residual. For codi_HessianComputationType.
     void assemble_face_term_and_build_operators_ad(
         typename dealii::DoFHandler<dim>::active_cell_iterator                                  cell,
         typename dealii::DoFHandler<dim>::active_cell_iterator                                  neighbor_cell,
@@ -943,6 +952,7 @@ public:
         OPERATOR::metric_operators<adtype,dim,2*dim> &metric_oper,
         OPERATOR::mapping_shape_functions<dim,2*dim> &mapping_basis,
         std::array<std::vector<adtype>,dim>          &mapping_support_points);
+    /// Builds volume metric operators (metric cofactor and determinant of metric Jacobian). For double type.
     void build_volume_metric_operators(
         const unsigned int poly_degree,
         const unsigned int grid_degree,
@@ -953,6 +963,7 @@ public:
     {
         build_volume_metric_operators<double>(poly_degree, grid_degree, metric_coeffs, metric_oper, mapping_basis, mapping_support_points);
     }
+    /// Builds volume metric operators (metric cofactor and determinant of metric Jacobian). For codi_JacobianComputationType.
     void build_volume_metric_operators(
         const unsigned int poly_degree,
         const unsigned int grid_degree,
@@ -963,6 +974,7 @@ public:
     {
         build_volume_metric_operators<codi_JacobianComputationType>(poly_degree, grid_degree, metric_coeffs, metric_oper, mapping_basis, mapping_support_points);
     }
+    /// Builds volume metric operators (metric cofactor and determinant of metric Jacobian). For codi_JacobianComputationType.
     void build_volume_metric_operators(
         const unsigned int poly_degree,
         const unsigned int grid_degree,

@@ -71,7 +71,7 @@ set(TEST_SRC
 foreach(dim RANGE 1 2)
 
     # Output executable
-    string(CONCAT TEST_TARGET ${dim}D_dRdX_fd_vs_ad)
+    string(CONCAT TEST_TARGET ${dim}D_dRdX_FD_VS_AD_WEAK)
     message("Adding executable " ${TEST_TARGET} " with files " ${TEST_SRC} "\n")
     add_executable(${TEST_TARGET} ${TEST_SRC})
     # Replace occurences of PHILIP_DIM with 1, 2, or 3 in the code
@@ -126,7 +126,7 @@ set(TEST_SRC
 foreach(dim RANGE 1 2)
 
     # Output executable
-    string(CONCAT TEST_TARGET ${dim}D_dRdX_fd_vs_ad_strong)
+    string(CONCAT TEST_TARGET ${dim}D_dRdX_FD_VS_AD_STRONG)
     message("Adding executable " ${TEST_TARGET} " with files " ${TEST_SRC} "\n")
     add_executable(${TEST_TARGET} ${TEST_SRC})
     # Replace occurences of PHILIP_DIM with 1, 2, or 3 in the code
@@ -169,7 +169,7 @@ set(TEST_SRC
 foreach(dim RANGE 1 2)
 
     # Output executable
-    string(CONCAT TEST_TARGET ${dim}D_d2RdWdX_fd_vs_ad)
+    string(CONCAT TEST_TARGET ${dim}D_d2RdWdX_FD_VS_AD_WEAK)
     message("Adding executable " ${TEST_TARGET} " with files " ${TEST_SRC} "\n")
     add_executable(${TEST_TARGET} ${TEST_SRC})
     # Replace occurences of PHILIP_DIM with 1, 2, or 3 in the code
@@ -234,7 +234,7 @@ set(TEST_SRC
 foreach(dim RANGE 1 2)
 
     # Output executable
-    string(CONCAT TEST_TARGET ${dim}D_d2RdWdX_fd_vs_ad_strong)
+    string(CONCAT TEST_TARGET ${dim}D_d2RdWdX_FD_VS_AD_STRONG)
     message("Adding executable " ${TEST_TARGET} " with files " ${TEST_SRC} "\n")
     add_executable(${TEST_TARGET} ${TEST_SRC})
     # Replace occurences of PHILIP_DIM with 1, 2, or 3 in the code
@@ -287,7 +287,7 @@ set(TEST_SRC
 foreach(dim RANGE 1 2)
 
     # Output executable
-    string(CONCAT TEST_TARGET ${dim}D_d2RdWdW_fd_vs_ad)
+    string(CONCAT TEST_TARGET ${dim}D_d2RdWdW_FD_VS_AD_WEAK)
     message("Adding executable " ${TEST_TARGET} " with files " ${TEST_SRC} "\n")
     add_executable(${TEST_TARGET} ${TEST_SRC})
     # Replace occurences of PHILIP_DIM with 1, 2, or 3 in the code
@@ -352,7 +352,7 @@ set(TEST_SRC
 foreach(dim RANGE 1 2)
 
     # Output executable
-    string(CONCAT TEST_TARGET ${dim}D_d2RdWdW_fd_vs_ad_strong)
+    string(CONCAT TEST_TARGET ${dim}D_d2RdWdW_FD_VS_AD_STRONG)
     message("Adding executable " ${TEST_TARGET} " with files " ${TEST_SRC} "\n")
     add_executable(${TEST_TARGET} ${TEST_SRC})
     # Replace occurences of PHILIP_DIM with 1, 2, or 3 in the code
@@ -405,7 +405,7 @@ set(TEST_SRC
 foreach(dim RANGE 1 2)
 
     # Output executable
-    string(CONCAT TEST_TARGET ${dim}D_d2RdXdX_fd_vs_ad)
+    string(CONCAT TEST_TARGET ${dim}D_d2RdXdX_FD_VS_AD_WEAK)
     message("Adding executable " ${TEST_TARGET} " with files " ${TEST_SRC} "\n")
     add_executable(${TEST_TARGET} ${TEST_SRC})
     # Replace occurences of PHILIP_DIM with 1, 2, or 3 in the code
@@ -468,7 +468,7 @@ set(TEST_SRC
 foreach(dim RANGE 1 2)
 
     # Output executable
-    string(CONCAT TEST_TARGET ${dim}D_d2RdXdX_fd_vs_ad_strong)
+    string(CONCAT TEST_TARGET ${dim}D_d2RdXdX_FD_VS_AD_STRONG)
     message("Adding executable " ${TEST_TARGET} " with files " ${TEST_SRC} "\n")
     add_executable(${TEST_TARGET} ${TEST_SRC})
     # Replace occurences of PHILIP_DIM with 1, 2, or 3 in the code
@@ -519,7 +519,7 @@ set(TEST_SRC
 foreach(dim RANGE 1 2)
 
     # Output executable
-    string(CONCAT TEST_TARGET ${dim}D_dRdW_fd_vs_ad)
+    string(CONCAT TEST_TARGET ${dim}D_dRdW_FD_VS_AD_WEAK)
     message("Adding executable " ${TEST_TARGET} " with files " ${TEST_SRC} "\n")
     add_executable(${TEST_TARGET} ${TEST_SRC})
     # Replace occurences of PHILIP_DIM with 1, 2, or 3 in the code
@@ -574,7 +574,7 @@ set(TEST_SRC
 foreach(dim RANGE 1 2)
 
     # Output executable
-    string(CONCAT TEST_TARGET ${dim}D_dRdW_fd_vs_ad_strong)
+    string(CONCAT TEST_TARGET ${dim}D_dRdW_FD_VS_AD_STRONG)
     message("Adding executable " ${TEST_TARGET} " with files " ${TEST_SRC} "\n")
     add_executable(${TEST_TARGET} ${TEST_SRC})
     # Replace occurences of PHILIP_DIM with 1, 2, or 3 in the code

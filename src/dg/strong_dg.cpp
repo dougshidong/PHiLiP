@@ -484,13 +484,15 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_auxiliary_residual(const bool 
         pcout << "DG Strong not yet verified for Burgers' viscous. Aborting..." << std::endl;
         std::abort();
     }
-    if(compute_dRdW || compute_dRdX || compute_d2R)
-    {
-        pcout << "DG Strong's viscous terms cannot yet be automatically differentiated. Aborting..."<<std::endl;
-        std::abort();
-    }
+    
     // NOTE: auxiliary currently only works explicit time advancement - not implicit
     if (this->use_auxiliary_eq && !(this->all_parameters->ode_solver_param.ode_solver_type == ODE_enum::implicit_solver)) {
+        
+        if(compute_dRdW || compute_dRdX || compute_d2R)
+        {
+            pcout << "DG Strong's viscous terms cannot yet be automatically differentiated. Aborting..."<<std::endl;
+            std::abort();
+        }
         //set auxiliary rhs to 0
         for(int idim=0; idim<dim; idim++){
             this->auxiliary_right_hand_side[idim] = 0;

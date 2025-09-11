@@ -1218,7 +1218,7 @@ public:
     /// Allocates the auxiliary equations' variables and right hand side (primarily for Strong form diffusive)
     void allocate_auxiliary_equation ();
 
-    /// Asembles the auxiliary equations' residuals and solves.
+    /// Asembles the auxiliary equations' residuals and solves. Note: This function cannot be automatically differentiated.
     virtual void assemble_auxiliary_residual (const bool compute_dRdW, const bool compute_dRdX, const bool compute_d2R) = 0;
 
     /// Allocate the dual vector for optimization.

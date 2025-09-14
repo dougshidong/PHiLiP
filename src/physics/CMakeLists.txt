@@ -23,14 +23,7 @@ SET(SOURCE
     model_factory.cpp)
 
 foreach(dim RANGE 1 3)
-foreach(species RANGE 1 3)
-    # Output library
-    if(species MATCHES 1)
-        string(CONCAT PhysicsLib Physics_${dim}D)
-    else()
-        string(CONCAT PhysicsLib Physics_${dim}D_${species}species)
-    endif()
-    
+    string(CONCAT PhysicsLib Physics_${dim}D)
     add_library(${PhysicsLib} STATIC ${SOURCE})
 
     # Library dependency
@@ -46,10 +39,8 @@ foreach(species RANGE 1 3)
         DEAL_II_SETUP_TARGET(${PhysicsLib})
     endif()
 
-    target_compile_definitions(${PhysicsLib} PRIVATE PHILIP_DIM=${dim} PHILIP_SPECIES=${species})
+    target_compile_definitions(${PhysicsLib} PRIVATE PHILIP_DIM=${dim} PHILIP_SPECIES=${NUMBER_OF_SPECIES})
 
     # Setup target with deal.II
     unset(PhysicsLib)
-
-endforeach()
 endforeach()

@@ -58,7 +58,10 @@ add_custom_target(INVISCID_TESTS
         COMMENT "Running tests labeled as EULER"
 )
 
+IF(${NUMBER_OF_SPECIES} EQUAL 1)
 add_subdirectory(unit_tests)
+ENDIF()
+
 add_subdirectory(integration_tests_control_files)
 add_subdirectory(meshes)
 add_subdirectory(chemistry)

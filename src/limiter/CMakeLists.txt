@@ -7,19 +7,14 @@ SET(LIMSOURCE
     )
 
 foreach(dim RANGE 1 3)
-foreach(species RANGE 1 3)
-    # String to append for library names
-    if(species MATCHES 1)
-        string(CONCAT lib_spec _${dim}D)
-    else()
-        string(CONCAT lib_spec _${dim}D_${species}species)
-    endif()
-
     # Output library
-    string(CONCAT LimiterLib Limiter ${lib_spec})
+    string(CONCAT LimiterLib Limiter_${dim}D)
     add_library(${LimiterLib} STATIC ${LIMSOURCE})
 
-    target_compile_definitions(${LimiterLib} PRIVATE PHILIP_DIM=${dim} PHILIP_SPECIES=${species})
+    target_compile_definitions(${LimiterLib} PRIVATE PHILIP_DIM=${dim})
+    # Replace occurences of PHILIP_SPECIES with user set cache variable in the code
+    target_compile_definitions(${LimiterLib} PRIVATE PHILIP_SPECIES=${NUMBER_OF_SPECIES})
+    
     # Library dependency
     string(CONCAT ParameterLib ParametersLibrary)
     target_link_libraries(${ParameterLib})
@@ -33,5 +28,4 @@ foreach(species RANGE 1 3)
     unset(PhysicsLib)
     unset(LimiterLib)
 
-endforeach()
 endforeach()

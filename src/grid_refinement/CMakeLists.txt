@@ -13,20 +13,13 @@ set(GRID_REFINEMENT_SOURCE
 
 # Output library
 foreach(dim RANGE 1 3)
-foreach(species RANGE 1 3)
-    # String to append for library names
-    if(species MATCHES 1)
-        string(CONCAT lib_spec _${dim}D)
-    else()
-        string(CONCAT lib_spec _${dim}D_${species}species)
-    endif()
-
-    string(CONCAT GridRefinementLib GridRefinement ${lib_spec})
+    string(CONCAT GridRefinementLib GridRefinement_${dim}D)
     add_library(${GridRefinementLib} STATIC ${GRID_REFINEMENT_SOURCE})
     # Replace occurences of PHILIP_DIM with 1, 2, or 3 in the code
+    # Replace occurences of PHILIP_SPECIES with user set cache variable in the code
     target_compile_definitions(${GridRefinementLib} PRIVATE 
-        PHILIP_DIM=${dim} 
-        PHILIP_SPECIES=${species} 
+        PHILIP_DIM=${dim}
+        PHILIP_SPECIES=${NUMBER_OF_SPECIES}
         ENABLE_GMSH=${ENABLE_GMSH}
         GMSH_PATH=\"gmsh\" 
         ENABLE_GNUPLOT=${ENABLE_GNUPLOT})
@@ -38,5 +31,4 @@ foreach(species RANGE 1 3)
 
     unset(GridRefinementLib)
 
-endforeach()
 endforeach()

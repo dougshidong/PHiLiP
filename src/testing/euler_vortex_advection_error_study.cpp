@@ -68,7 +68,7 @@ double EulerVortexAdvectionErrorStudy<dim,nspecies,nstate>
     else if (flow_type == FlowCaseEnum::multi_species_vortex_advection || 
              flow_type == FlowCaseEnum::multi_species_high_temperature_vortex_advection) 
     {
-        if constexpr (dim==2 && (nspecies==2||nspecies==3) && nstate==dim+2+nspecies-1) 
+        if constexpr (dim==1 && (nspecies==2||nspecies==3) && nstate==dim+2+nspecies-1) 
         {
             Physics::RealGas<dim,nstate,double> realgas_physics_double
             = Physics::RealGas<dim, nstate, double>(
@@ -136,7 +136,7 @@ double EulerVortexAdvectionErrorStudy<dim,nspecies,nstate>
     else if (flow_type == FlowCaseEnum::multi_species_vortex_advection ||
              flow_type == FlowCaseEnum::multi_species_high_temperature_vortex_advection) 
     {
-        if constexpr (dim==2 && (nspecies==2||nspecies==3) && nstate==dim+2+nspecies-1) 
+        if constexpr (dim==1 && (nspecies==2||nspecies==3) && nstate==dim+2+nspecies-1) 
         {
             Physics::RealGas<dim,nstate,double> realgas_physics_double
             = Physics::RealGas<dim, nstate, double>(
@@ -202,7 +202,7 @@ double EulerVortexAdvectionErrorStudy<dim,nspecies,nstate>
     else if (flow_type == FlowCaseEnum::multi_species_vortex_advection ||
              flow_type == FlowCaseEnum::multi_species_high_temperature_vortex_advection) 
     {
-        if constexpr (dim==2 && (nspecies==2||nspecies==3) && nstate==dim+2+nspecies-1) 
+        if constexpr (dim==1 && (nspecies==2||nspecies==3) && nstate==dim+2+nspecies-1) 
         {
             Physics::RealGas<dim,nstate,double> realgas_physics_double
             = Physics::RealGas<dim, nstate, double>(
@@ -329,7 +329,7 @@ double EulerVortexAdvectionErrorStudy<dim,nspecies,nstate>
     // 1D Multi-Species Euler (Calorically Imperfect) Vortex
     else if (flow_type == FlowCaseEnum::multi_species_vortex_advection)
     {
-        if constexpr (dim==2 && (nspecies==2||nspecies==3) && nstate==dim+2+nspecies-1) 
+        if constexpr (dim==1 && (nspecies==2||nspecies==3) && nstate==dim+2+nspecies-1) 
         {
             Physics::RealGas<dim,nstate,double> realgas_physics_double
             = Physics::RealGas<dim, nstate, double>(
@@ -994,11 +994,7 @@ double EulerVortexAdvectionErrorStudy<dim,nspecies,nstate>
     }
 }
 
-template class EulerVortexAdvectionErrorStudy <PHILIP_DIM,PHILIP_SPECIES,PHILIP_DIM+2>; // euler (1-species)_
-
-#if PHILIP_SPECIES!=1
 template class EulerVortexAdvectionErrorStudy <PHILIP_DIM,PHILIP_SPECIES,PHILIP_DIM + 2 + (PHILIP_SPECIES-1)>; // TO DO: N_SPECIES
-#endif
 
 } // Tests namespace
 } // PHiLiP namespace

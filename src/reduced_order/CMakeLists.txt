@@ -20,14 +20,8 @@ set(SOURCE
     test_location_base.cpp)
 
 foreach(dim RANGE 1 3)
-foreach(species RANGE 1 3)
     # Output library
-    if(species MATCHES 1)
-        string(CONCAT PODLib POD_${dim}D)
-    else()
-        string(CONCAT PODLib POD_${dim}D_${species}species)
-    endif()
-
+    string(CONCAT PODLib POD_${dim}D)
     add_library(${PODLib} STATIC ${SOURCE})
 
     # Library dependency
@@ -39,10 +33,10 @@ foreach(species RANGE 1 3)
         DEAL_II_SETUP_TARGET(${PODLib})
     endif()
 
-    target_compile_definitions(${PODLib} PRIVATE PHILIP_DIM=${dim} PHILIP_SPECIES=${species})
+    target_compile_definitions(${PODLib} PRIVATE PHILIP_DIM=${dim})
+    target_compile_definitions(${PODLib} PRIVATE PHILIP_SPECIES=${NUMBER_OF_SPECIES})
 
     # Setup target with deal.II
     unset(PODLib)
 
-endforeach()
 endforeach()

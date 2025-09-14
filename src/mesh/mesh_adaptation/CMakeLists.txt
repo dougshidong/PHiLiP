@@ -7,22 +7,17 @@ set(MESH_ADAPTATION_SRC
     fe_values_shape_hessian.cpp)
 
 foreach(dim RANGE 1 3)
-foreach(species RANGE 1 3)
-    # String to append for library names
-    if(species MATCHES 1)
-        string(CONCAT lib_spec _${dim}D)
-    else()
-        string(CONCAT lib_spec _${dim}D_${species}species)
-    endif()
 
-    string(CONCAT MeshAdaptationLib MeshAdaptation ${lib_spec})
+    string(CONCAT MeshAdaptationLib MeshAdaptation_${dim}D)
     add_library(${MeshAdaptationLib} STATIC ${MESH_ADAPTATION_SRC})
 
     # Replace occurences of PHILIP_DIM with 1, 2, or 3 in the code
-    target_compile_definitions(${MeshAdaptationLib} PRIVATE PHILIP_DIM=${dim} PHILIP_SPECIES=${species})
+    target_compile_definitions(${MeshAdaptationLib} PRIVATE PHILIP_DIM=${dim})
+    # Replace occurences of PHILIP_SPECIES with user set cache variable in the code
+    target_compile_definitions(${MeshAdaptationLib} PRIVATE PHILIP_SPECIES=${NUMBER_OF_SPECIES})
 
     # Link with HighOrderGridLib
-    string(CONCAT HighOrderGridLib HighOrderGrid ${lib_spec})
+    string(CONCAT HighOrderGridLib HighOrderGrid_${dim}D)
     target_link_libraries(${MeshAdaptationLib} ${HighOrderGridLib})
 
     # Setup target with deal.II
@@ -32,5 +27,4 @@ foreach(species RANGE 1 3)
 
     unset(HighOrderGridLib)
     unset(MeshAdaptationLib)
-endforeach()
 endforeach()

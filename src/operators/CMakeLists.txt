@@ -4,17 +4,12 @@ SET(OPERSOURCE
     )
 
 foreach(dim RANGE 1 3)
-foreach(species RANGE 1 3)
     # Output library
-    if(species MATCHES 1)
-        string(CONCAT OperatorsLib Operator_Lib_${dim}D)
-    else()
-        string(CONCAT OperatorsLib Operator_Lib_${dim}D_${species}species)
-    endif()
-
+    string(CONCAT OperatorsLib Operator_Lib_${dim}D)
     add_library(${OperatorsLib} STATIC ${OPERSOURCE})
 
-    target_compile_definitions(${OperatorsLib} PRIVATE PHILIP_DIM=${dim} PHILIP_SPECIES=${species})
+    target_compile_definitions(${OperatorsLib} PRIVATE PHILIP_DIM=${dim})
+    target_compile_definitions(${OperatorsLib} PRIVATE PHILIP_SPECIES=${NUMBER_OF_SPECIES})
     # Library dependency
     string(CONCAT ParameterLib ParametersLibrary)
     target_link_libraries(${ParameterLib})
@@ -26,5 +21,4 @@ foreach(species RANGE 1 3)
 
     unset(OperatorsLib)
 
-endforeach()
 endforeach()

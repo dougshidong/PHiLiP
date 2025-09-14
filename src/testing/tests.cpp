@@ -31,6 +31,7 @@
 #include "convection_diffusion_explicit_periodic.h"
 #include "dual_weighted_residual_mesh_adaptation.h"
 #include "anisotropic_mesh_adaptation_cases.h"
+#include "lpcvt_mesh_adaptation.h"
 #include "pod_adaptive_sampling.h"
 #include "pod_adaptive_sampling_testing.h"
 #include "taylor_green_vortex_energy_check.h"
@@ -282,6 +283,8 @@ std::unique_ptr< TestsBase > TestsFactory<dim,nstate,MeshType>
         if constexpr( (dim==2 && nstate==1) || (dim==2 && nstate==dim+2)) return std::make_unique<AnisotropicMeshAdaptationCases<dim, nstate>>(parameters_input,parameter_handler_input);
     } else if(test_type == Test_enum::taylor_green_vortex_energy_check) {
         if constexpr (dim==3 && nstate==dim+2) return std::make_unique<TaylorGreenVortexEnergyCheck<dim,nstate>>(parameters_input,parameter_handler_input);
+    } else if (test_type == Test_enum::lpcvt_mesh_adaptation) {
+        if constexpr ((dim == 2 && nstate == 1) || (dim == 2 && nstate == dim + 2)) return std::make_unique<LpCVTMeshAdaptationCases<dim, nstate>>(parameters_input, parameter_handler_input); 
     } else if(test_type == Test_enum::taylor_green_vortex_restart_check) {
         if constexpr (dim==3 && nstate==dim+2) return std::make_unique<TaylorGreenVortexRestartCheck<dim,nstate>>(parameters_input,parameter_handler_input);
     } else if(test_type == Test_enum::homogeneous_isotropic_turbulence_initialization_check){

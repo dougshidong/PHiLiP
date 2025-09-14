@@ -1,3 +1,7 @@
+#include <algorithm>
+#include <deal.II/base/conditional_ostream.h>
+#include <deal.II/base/mpi.h>
+
 #include <deal.II/grid/grid_out.h>
 #include <deal.II/grid/grid_in.h>
 
@@ -546,7 +550,8 @@ void GridRefinement_Continuous<dim,nstate,real,MeshType>::field_h_hessian()
     // constructing the largest directional derivatives
     reconstruct_poly.reconstruct_directional_derivative(
         this->dg->solution,
-        rel_order);
+        rel_order,
+        0);
     // reconstruct_poly.reconstruct_manufactured_derivative(
     //     this->physics->manufactured_solution_function,
     //     rel_order);
@@ -554,7 +559,7 @@ void GridRefinement_Continuous<dim,nstate,real,MeshType>::field_h_hessian()
     // if anisotropic, setting the cell anisotropy
     if(this->grid_refinement_param.anisotropic){
         std::cout << "Setting cell anisotropy" << std::endl;
-
+        this->h_field->reinit(this->dg->dof_handler.get_triangulation().n_active_cells());
         // builds the anisotropy from Dolejsi's anisotropic ellipse size
         this->h_field->set_anisotropy(
             this->dg->dof_handler,
@@ -653,7 +658,7 @@ void GridRefinement_Continuous<dim,nstate,real,MeshType>::field_h_adjoint()
 {
     // beginning h_field computation
     std::cout << "Beggining anisotropic field_h() computation" << std::endl;
-
+    dealii::ConditionalOStream pcout(std::cout, dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD) == 0);
     // mapping
     const dealii::hp::MappingCollection<dim> mapping_collection(*(this->dg->high_order_grid->mapping_fe_field));
 
@@ -671,12 +676,13 @@ void GridRefinement_Continuous<dim,nstate,real,MeshType>::field_h_adjoint()
     // constructing the largest directional derivatives
     reconstruct_poly.reconstruct_directional_derivative(
         this->dg->solution,
-        rel_order);
+        rel_order,
+        -1);
     
     // if anisotropic, setting the cell anisotropy
     if(this->grid_refinement_param.anisotropic){
         std::cout << "Setting cell anisotropy" << std::endl;
-
+        this->h_field->reinit(this->dg->dof_handler.get_triangulation().n_active_cells());
         // builds the anisotropy from Dolejsi's anisotropic ellipse size
         this->h_field->set_anisotropy(
             this->dg->dof_handler,
@@ -699,7 +705,15 @@ void GridRefinement_Continuous<dim,nstate,real,MeshType>::field_h_adjoint()
     this->adjoint->dual_weighted_residual();
     dealii::Vector<real> dwr = this->adjoint->dual_weighted_residual_fine;
     this->adjoint->convert_to_state(PHiLiP::Adjoint<dim,nstate,double,MeshType>::AdjointStateEnum::coarse);
+    double local_max_dwr = (dwr.size() > 0) ? *std::max_element(dwr.begin(), dwr.end()) : 0.0;
+    double local_min_dwr = (dwr.size() > 0) ? *std::min_element(dwr.begin(), dwr.end()) : 0.0;
 
+    double global_max_dwr = dealii::Utilities::MPI::max(local_max_dwr, MPI_COMM_WORLD);
+    double global_min_dwr = dealii::Utilities::MPI::min(local_min_dwr, MPI_COMM_WORLD);
+    const double epsilon = 1e-12;
+    for (auto& val : dwr) val = std::max(val, epsilon);
+    pcout << "Global Max DWR: " << global_max_dwr << std::endl;
+    pcout << "Global Min DWR: " << global_min_dwr << std::endl;
     // setting the current p-field and performing the size-field refinement step
 
     // checking if the polynomial order is uniform

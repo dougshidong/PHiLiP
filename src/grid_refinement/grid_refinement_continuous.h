@@ -67,6 +67,12 @@ public:
         // PHiLiP::Parameters::AllParameters const *const param_input,
         std::shared_ptr< PHiLiP::DGBase<dim, real, MeshType> > dg_input);
 
+    void field();
+
+    std::unique_ptr<Field<dim, real>> get_h_field()
+    {
+        return std::move(h_field);
+    }
 protected:
     /// Delegated constructor which handles the various optional inputs and setup.
     GridRefinement_Continuous(
@@ -139,7 +145,6 @@ protected:
       * is generated based on a variety of techniques using optimization of a 
       * corresponding continuous error model.
       */ 
-    void field();
 
     // based on exact error function from manufactured solution
 

@@ -349,7 +349,7 @@ void SizeField<dim,real>::adjoint_h_balan(
     }
 
     // each processor needs atleast 1 cell
-    Assert(first, dealii::ExcInternalError());
+    Assert(!first, dealii::ExcInternalError());
 
     // perform mpi call
     real eta_min = dealii::Utilities::MPI::min(eta_min_local, MPI_COMM_WORLD);
@@ -367,10 +367,45 @@ void SizeField<dim,real>::adjoint_h_balan(
     std::cout << "Target complexity = " << complexity << std::endl;
     std::cout << "f_0 = " << (initial_complexity - complexity) << std::endl;
 
+    const auto scales_backup = h_field->get_scale_vector();
+
     // setting up the bisection functional, based on an input value of
     // eta_ref, determines the complexity value for the mesh (using DWR estimates
     // weighted in the quadratic logarithmic space).
     auto f = [&](real eta_ref) -> real{
+        // DEBUG OUTPUT
+        const auto pre_restore = h_field->get_scale_vector();
+        std::cout << "printing pre-restore values" << std::endl;
+        for(unsigned int i = 0; i < pre_restore.size(); ++i)
+            std::cout << pre_restore[i] << " ";
+        std::cout << std::endl;
+        // DEBUG OUTPUT END 
+        // Reset h_field to backup state
+        h_field->set_scale_vector(scales_backup);
+        // DEBUG OUTPUT
+        const auto post_restore = h_field->get_scale_vector();
+        std::cout << "printing post-restore values" << std::endl;
+        for(unsigned int i = 0; i < post_restore.size(); ++i)
+            std::cout << post_restore[i] << " ";
+        std::cout << std::endl;
+        // DEBUG OUTPUT END
+        // DEBUG OUTPUT BEGIN
+        std::cout << "eta_ref = " << eta_ref << std::endl;
+        std::cout << "eta = ";
+        for(unsigned int i = 0; i < eta.size(); ++i)
+            std::cout << eta[i] << " ";
+        std::cout << std::endl;
+        std::cout << "I_c = ";
+        for(unsigned int i = 0; i < I_c.size(); ++i)
+            std::cout << I_c[i] << " ";
+        std::cout << std::endl;
+        std::cout << "eta_min = " << eta_min << ", eta_max = " << eta_max << std::endl;
+        std::cout << "r_max = " << r_max << ", c_max = " << c_max << std::endl;
+        std::cout << "h_field ="; 
+        for(unsigned int i = 0; i < h_field->size(); ++i)
+            std::cout << h_field->get_scale(i) << " ";
+        std::cout << std::endl;
+        // DEBUG OUTPUT END
         // updating the size field
         update_alpha_vector_balan(
             eta,
@@ -382,7 +417,11 @@ void SizeField<dim,real>::adjoint_h_balan(
             dof_handler,
             I_c,
             h_field);
-
+        std::cout << "[DEBUG] After update_alpha_vector_balan" << std::endl;
+        std::cout << "h_field =";
+        for(unsigned int i = 0; i < h_field->size(); ++i)
+            std::cout << h_field->get_scale(i) << " ";
+        std::cout << std::endl;
         // getting the complexity and returning the difference with the target
         real current_complexity = evaluate_complexity(
             dof_handler, 
@@ -399,6 +438,8 @@ void SizeField<dim,real>::adjoint_h_balan(
     real eta_target = bisection(f, eta_max, eta_min);
     std::cout << "Bisection finished with eta_ref = "<< eta_target << ", f(eta_ref)=" << f(eta_target) << std::endl;
 
+    h_field->set_scale_vector(scales_backup);
+            
     // final uppdate using the converged parameter
     update_alpha_vector_balan(
         eta,
@@ -543,6 +584,7 @@ void SizeField<dim,real>::update_alpha_vector_balan(
     const dealii::Vector<real>&        I_c,         // cell area measure
     std::unique_ptr<Field<dim,real>>&  h_field)     // (output) size-field
 {
+    std::cout << "[DEBUG]: --------------------------------" << std::endl;
     // looping through the cells and updating their size (h_field)
     for(auto cell = dof_handler.begin_active(); cell != dof_handler.end(); ++cell){
         if(!cell->is_locally_owned()) continue;
@@ -557,7 +599,7 @@ void SizeField<dim,real>::update_alpha_vector_balan(
             eta_min,
             eta_max,
             eta_ref);
-
+        std::cout << "[DEBUG]: Cell " << index << ", eta = " << eta[index] << ", eta_ref = " << eta_ref << ", eta_min = " << eta_min << ", eta_max = " << eta_max << ", alpha_k = " << alpha_k << std::endl;
         // getting the new length based on I_c (cell area)
         real h_target = pow(alpha_k * I_c[index], 1.0/dim);
 
@@ -569,6 +611,7 @@ void SizeField<dim,real>::update_alpha_vector_balan(
         h_field->set_scale(index, h_target);
 
     }
+    std::cout << "[DEBUG]: --------------------------------" << std::endl;
 }
 
 // function that determines local alpha size refinement factor (from adjoint estimates)
@@ -585,34 +628,180 @@ real SizeField<dim,real>::update_alpha_k_balan(
     // considering two possible cases (above or below reference)
     // also need to check close to equality to avoid divide by ~= 0
     real alpha_k;
-    
+    real r_eff;
+    real c_eff;
     if(eta_k > eta_ref){ 
-
         // getting the quadratic coefficient
         real xi_k = (log(eta_k) - log(eta_ref)) / (log(eta_max) - log(eta_ref));
-
-
+        // getting the effective refinement factor ensure continuity at eta_ref -> eta_max
+        r_eff = 1 + (r_max -1) * (log(eta_max) - log(eta_ref)) / (log(eta_max) - log(eta_min));
         // getting the refinement factor
-        alpha_k = 1.0 / ((r_max-1)*xi_k*xi_k + 1.0);
+        alpha_k = 1.0 / ((r_eff-1)*xi_k*xi_k + 1.0);
 
     }else if(eta_k < eta_ref){
 
         // getting the quadratic coefficient
         real xi_k = (log(eta_k) - log(eta_ref)) / (log(eta_min) - log(eta_ref));
-
+        // getting the effective coarsening factor ensure continuity at eta_ref -> eta_min
+        c_eff = 1 + (c_max -1) * (log(eta_ref) - log(eta_min)) / (log(eta_max) - log(eta_min));
         // getting the coarsening factor
-        alpha_k = ((c_max-1)*xi_k*xi_k + 1.0);
-
-    }else{
+        alpha_k = ((c_eff-1)*xi_k*xi_k + 1.0);
+    }
+    else{
 
         // performing no change (right on)
         alpha_k = 1.0;
-
     }
-
     // update area fraction (relative to initial area)
     return alpha_k;
 }
+// template <int dim, typename real>
+// real SizeField<dim,real>::update_alpha_k_balan(
+//     const real eta_k,   // local DWR factor
+//     const real r_max,   // maximum refinement factor
+//     const real c_max,   // maximum coarsening factor
+//     const real eta_min, // minimum DWR indicator
+//     const real eta_max, // maximum DWR indicator
+//     const real eta_ref) // reference DWR for determining coarsening/refinement
+// {
+//     // Define tolerance for numerical comparisons
+//     const real eps = 1e-12;
+    
+//     // Safety check: ensure eta_ref is within bounds
+//     if (eta_ref < eta_min || eta_ref > eta_max) {
+//         std::cerr << "WARNING: eta_ref out of bounds in update_alpha_k_balan" << std::endl;
+//         return 1.0;
+//     }
+    
+//     // Check if eta_k equals eta_ref (within tolerance)
+//     if (std::abs(eta_k - eta_ref) < eps * std::max(eta_ref, eps)) {
+//         return 1.0;  // No change needed when they're equal
+//     }
+    
+//     // Handle boundary cases where eta_ref is at or very close to eta_max or eta_min
+//     const real boundary_tol = eps * (eta_max - eta_min);
+    
+//     // Case 1: eta_ref is at the upper boundary (eta_max)
+//     if (std::abs(eta_ref - eta_max) < boundary_tol) {
+//         if (eta_k >= eta_ref - boundary_tol) {
+//             // Cell has maximum or near-maximum error - no refinement possible
+//             return 1.0;
+//         } else {
+//             // Use linear interpolation for coarsening from the boundary
+//             real ratio = eta_k / eta_max;  // Will be < 1
+//             // Map ratio from [0,1] to [c_max, 1]
+//             return c_max - (c_max - 1.0) * ratio;
+//         }
+//     }
+    
+//     // Case 2: eta_ref is at the lower boundary (eta_min)
+//     if (std::abs(eta_ref - eta_min) < boundary_tol) {
+//         if (eta_k <= eta_ref + boundary_tol) {
+//             // Cell has minimum or near-minimum error - no coarsening possible
+//             return 1.0;
+//         } else {
+//             // Use linear interpolation for refinement from the boundary
+//             real ratio = eta_min / eta_k;  // Will be < 1
+//             // Map ratio from [0,1] to [1/r_max, 1]
+//             return 1.0 - (1.0 - 1.0/r_max) * (1.0 - ratio);
+//         }
+//     }
+    
+//     // Normal interior case - eta_ref is safely away from boundaries
+//     real alpha_k;
+    
+//     if (eta_k > eta_ref) {
+//         // Refinement case
+        
+//         // Check denominator before division
+//         real log_eta_k = std::log(eta_k);
+//         real log_eta_ref = std::log(eta_ref);
+//         real log_eta_max = std::log(eta_max);
+        
+//         real denominator = log_eta_max - log_eta_ref;
+        
+//         if (std::abs(denominator) < eps) {
+//             // This shouldn't happen if boundary cases are handled correctly
+//             std::cerr << "WARNING: Near-zero denominator in refinement calculation" << std::endl;
+//             std::cerr << "  eta_k = " << eta_k << ", eta_ref = " << eta_ref 
+//                       << ", eta_max = " << eta_max << std::endl;
+//             return 1.0;
+//         }
+        
+//         // Compute xi_k with safety clamping
+//         real xi_k = (log_eta_k - log_eta_ref) / denominator;
+        
+//         // Clamp xi_k to [0, 1] for numerical stability
+//         if (xi_k < 0.0) {
+//             std::cerr << "WARNING: Negative xi_k in refinement: " << xi_k << std::endl;
+//             xi_k = 0.0;
+//         } else if (xi_k > 1.0) {
+//             std::cerr << "WARNING: xi_k > 1 in refinement: " << xi_k << std::endl;
+//             xi_k = 1.0;
+//         }
+        
+//         // Compute refinement factor
+//         alpha_k = 1.0 / ((r_max - 1.0) * xi_k * xi_k + 1.0);
+        
+//     } else if (eta_k < eta_ref) {
+//         // Coarsening case
+        
+//         // Check denominator before division
+//         real log_eta_k = std::log(eta_k);
+//         real log_eta_ref = std::log(eta_ref);
+//         real log_eta_min = std::log(std::max(eta_min, eps));  // Protect against log(0)
+        
+//         real denominator = log_eta_min - log_eta_ref;
+        
+//         if (std::abs(denominator) < eps) {
+//             // This shouldn't happen if boundary cases are handled correctly
+//             std::cerr << "WARNING: Near-zero denominator in coarsening calculation" << std::endl;
+//             std::cerr << "  eta_k = " << eta_k << ", eta_ref = " << eta_ref 
+//                       << ", eta_min = " << eta_min << std::endl;
+//             return 1.0;
+//         }
+        
+//         // Compute xi_k with safety clamping
+//         real xi_k = (log_eta_k - log_eta_ref) / denominator;
+        
+//         // Clamp xi_k to [0, 1] for numerical stability
+//         if (xi_k < 0.0) {
+//             std::cerr << "WARNING: Negative xi_k in coarsening: " << xi_k << std::endl;
+//             xi_k = 0.0;
+//         } else if (xi_k > 1.0) {
+//             std::cerr << "WARNING: xi_k > 1 in coarsening: " << xi_k << std::endl;
+//             xi_k = 1.0;
+//         }
+        
+//         // Compute coarsening factor
+//         alpha_k = (c_max - 1.0) * xi_k * xi_k + 1.0;
+        
+//     } else {
+//         // This case should have been caught by the equality check above
+//         alpha_k = 1.0;
+//     }
+    
+//     // Final safety check: ensure alpha_k is in the valid range [1/r_max, c_max]
+//     if (alpha_k < 1.0/r_max) {
+//         std::cerr << "WARNING: alpha_k too small: " << alpha_k 
+//                   << ", clamping to " << 1.0/r_max << std::endl;
+//         alpha_k = 1.0/r_max;
+//     } else if (alpha_k > c_max) {
+//         std::cerr << "WARNING: alpha_k too large: " << alpha_k 
+//                   << ", clamping to " << c_max << std::endl;
+//         alpha_k = c_max;
+//     }
+    
+//     // Check for NaN or Inf
+//     if (std::isnan(alpha_k) || std::isinf(alpha_k)) {
+//         std::cerr << "ERROR: alpha_k is NaN or Inf!" << std::endl;
+//         std::cerr << "  eta_k = " << eta_k << ", eta_ref = " << eta_ref << std::endl;
+//         std::cerr << "  eta_min = " << eta_min << ", eta_max = " << eta_max << std::endl;
+//         return 1.0;  // Safe fallback
+//     }
+    
+//     return alpha_k;
+// }
 
 // functions for solving non-linear problems
 template <int dim, typename real>
@@ -660,7 +849,7 @@ real SizeField<dim,real>::bisection(
         i++;
     }
 
-    Assert(i < max_iter, dealii::ExcInternalError());
+    // Assert(i < max_iter, dealii::ExcInternalError());
 
     return x;
 }

@@ -173,6 +173,7 @@ public:
         POD_adaptation,
         POD_adaptive_sampling,
         adaptive_sampling_testing,
+        lpcvt_mesh_adaptation,
         finite_difference_sensitivity,
         advection_periodicity,
         dual_weighted_residual_mesh_adaptation,

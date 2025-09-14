@@ -91,6 +91,37 @@ if(NOT DOC_ONLY)
       endif()
     endif()
 endif() # DOC_ONLY
+
+###### ADD LPCVT CONFIGURATION HERE ######
+    # Find LpCVT library - use full path to avoid issues
+    set(LPCVT_DIR "/home/nuoweishi/Libraries/LpCVTpp" CACHE PATH "Path to LpCVT")
+    set(LPCVT_BUILD_DIR "${LPCVT_DIR}/build")
+
+    message(STATUS "Looking for LpCVT in: ${LPCVT_DIR}")
+    message(STATUS "LpCVT build directory: ${LPCVT_BUILD_DIR}")
+
+    # Include directories
+    include_directories(
+        ${LPCVT_DIR}/src
+        ${LPCVT_DIR}/inc
+        ${LPCVT_DIR}/tests
+        ${LPCVT_DIR}/submodules/eigen
+        ${LPCVT_DIR}/inc/jcv
+        ${LPCVT_DIR}/inc/LBFGSpp
+        ${LPCVT_DIR}/inc/mpl
+    )
+
+    # Find specific LpCVT library
+    set(LPCVT_SOURCE_LIB "${LPCVT_BUILD_DIR}/src/libSourceLibrary.a")
+
+    if(NOT EXISTS ${LPCVT_SOURCE_LIB})
+        message(WARNING "LpCVT SourceLibrary not found at ${LPCVT_SOURCE_LIB}")
+        set(LPCVT_LIBS "")
+    else()
+        set(LPCVT_LIBS ${LPCVT_SOURCE_LIB})
+        message(STATUS "Found LpCVT SourceLibrary: ${LPCVT_SOURCE_LIB}")
+    endif()
+###### REST OF LPCVT CONFIG...
     
 add_custom_target(1D COMMAND ${CMAKE_COMMAND} -E echo "Makes all 1D executables, including tests. Allows ctest -R 1D")
 add_custom_target(2D COMMAND ${CMAKE_COMMAND} -E echo "Makes all 2D executables, including tests. Allows ctest -R 2D")

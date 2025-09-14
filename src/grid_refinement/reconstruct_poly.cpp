@@ -50,7 +50,8 @@ void ReconstructPoly<dim,nstate,real>::reinit(const unsigned int n)
 template <int dim, int nstate, typename real>
 void ReconstructPoly<dim,nstate,real>::reconstruct_chord_derivative(
     const dealii::LinearAlgebra::distributed::Vector<real>& solution,  // solution approximation to be reconstructed
-    const unsigned int                                      rel_order) // order of the apporximation
+    const unsigned int                                      rel_order,
+    const int target_state) // order of the apporximation
 {
     /* based on the dealii numbering, chords defined along nth axis
             ^ dir[1]
@@ -74,7 +75,8 @@ void ReconstructPoly<dim,nstate,real>::reconstruct_chord_derivative(
             norm_type,
             cell,
             poly_space,
-            solution);
+            solution,
+            target_state);
 
         const unsigned int n_poly   = poly_space.n();
         const unsigned int n_degree = poly_space.degree();
@@ -165,7 +167,8 @@ void ReconstructPoly<dim,nstate,real>::reconstruct_chord_derivative(
 template <int dim, int nstate, typename real>
 void ReconstructPoly<dim,nstate,real>::reconstruct_directional_derivative(
     const dealii::LinearAlgebra::distributed::Vector<real>&  solution,  // solution approximation to be reconstructed
-    const unsigned int                                       rel_order) // order of the apporximation
+    const unsigned int                                       rel_order,
+    const int                                                target_state) // order of the apporximation
 {
     const real pi = atan(1)*4.0;
 
@@ -181,7 +184,8 @@ void ReconstructPoly<dim,nstate,real>::reconstruct_directional_derivative(
             norm_type,
             cell,
             poly_space,
-            solution);
+            solution,
+            target_state);
 
         const unsigned int n_poly   = poly_space.n();
         const unsigned int n_degree = poly_space.degree();
@@ -246,11 +250,11 @@ void ReconstructPoly<dim,nstate,real>::reconstruct_directional_derivative(
 
             }
 
-            // // debugging for dim = 2
-            // for(unsigned int i = 0; i < n_vec; ++i)
-            //     std::cout << "n_vec[" << i << "] = " << coeffs[i] << " * x^"<< indices[i][0] << " * y^" << indices[i][1] << std::endl;
-            // std::cout << "Hessian = [" << hessian[0][0] << ", " << hessian[0][1] << "]" << std::endl;
-            // std::cout << "          [" << hessian[1][0] << ", " << hessian[1][1] << "]" << std::endl << std::endl;
+            // debugging for dim = 2
+            for(unsigned int i = 0; i < n_vec; ++i)
+                std::cout << "n_vec[" << i << "] = " << coeffs[i] << " * x^"<< indices[i][0] << " * y^" << indices[i][1] << std::endl;
+            std::cout << "Hessian = [" << hessian[0][0] << ", " << hessian[0][1] << "]" << std::endl;
+            std::cout << "          [" << hessian[1][0] << ", " << hessian[1][1] << "]" << std::endl << std::endl;
 
             // https://www.dealii.org/current/doxygen/deal.II/symmetric__tensor_8h.html#aa18a9d623fcd520f022421fd1d6c7a14
             using eigenpair = std::pair<real,dealii::Tensor<1,dim,real>>;
@@ -518,7 +522,8 @@ dealii::Vector<real> ReconstructPoly<dim,nstate,real>::reconstruct_norm(
     const NormType                                          norm_type,
     const DoFCellAccessorType &                             curr_cell,
     const dealii::PolynomialSpace<dim>                      ps,
-    const dealii::LinearAlgebra::distributed::Vector<real> &solution)
+    const dealii::LinearAlgebra::distributed::Vector<real> &solution,
+    const int target_state)
 {
 
     if(norm_type == NormType::H1){
@@ -526,14 +531,17 @@ dealii::Vector<real> ReconstructPoly<dim,nstate,real>::reconstruct_norm(
         return reconstruct_H1_norm(
             curr_cell,
             ps,
-            solution);
+            solution,
+            target_state
+        );
 
     }else if(norm_type == NormType::L2){
 
         return reconstruct_L2_norm(
             curr_cell,
             ps,
-            solution);
+            solution,
+            target_state);
 
     }else{
 
@@ -550,7 +558,8 @@ template <typename DoFCellAccessorType>
 dealii::Vector<real> ReconstructPoly<dim,nstate,real>::reconstruct_H1_norm(
     const DoFCellAccessorType &                             curr_cell,
     const dealii::PolynomialSpace<dim>                      ps,
-    const dealii::LinearAlgebra::distributed::Vector<real> &solution)
+    const dealii::LinearAlgebra::distributed::Vector<real> &solution,
+    const int target_state)
 {
 
     // center point of the current cell
@@ -640,11 +649,20 @@ dealii::Vector<real> ReconstructPoly<dim,nstate,real>::reconstruct_H1_norm(
         // take inner product of \psi_i and u (solution)
         // if multiple states, taking the 2 norm of the different states
         dealii::Vector<real> rhs_poly(nstate);
-        for(unsigned int istate = 0; istate < nstate; ++istate)
+        if (target_state >= 0) {
+            // Only use the specified state
             for(unsigned int i_vec = 0; i_vec < n_vec; ++i_vec)
-                rhs[i_poly] += ((ps.compute_value(i_poly, qpoint_vec[i_vec]) * soln_at_q_vec[i_vec][istate])
-                               +(ps.compute_grad(i_poly, qpoint_vec[i_vec]) * grad_at_q_vec[i_vec][istate]))
-                               *JxW_vec[i_vec];
+                rhs[i_poly] += ((ps.compute_value(i_poly, qpoint_vec[i_vec]) * soln_at_q_vec[i_vec][target_state])
+                            +(ps.compute_grad(i_poly, qpoint_vec[i_vec]) * grad_at_q_vec[i_vec][target_state]))
+                            *JxW_vec[i_vec];
+        } else {
+            // Current behavior: sum all states
+            for(unsigned int istate = 0; istate < nstate; ++istate)
+                for(unsigned int i_vec = 0; i_vec < n_vec; ++i_vec)
+                    rhs[i_poly] += ((ps.compute_value(i_poly, qpoint_vec[i_vec]) * soln_at_q_vec[i_vec][istate])
+                                    +(ps.compute_grad(i_poly, qpoint_vec[i_vec]) * grad_at_q_vec[i_vec][istate]))
+                                    *JxW_vec[i_vec];
+        }
     }
 
     // solving the system
@@ -661,7 +679,8 @@ template <typename DoFCellAccessorType>
 dealii::Vector<real> ReconstructPoly<dim,nstate,real>::reconstruct_L2_norm(
     const DoFCellAccessorType &                             curr_cell,
     const dealii::PolynomialSpace<dim>                      ps,
-    const dealii::LinearAlgebra::distributed::Vector<real> &solution)
+    const dealii::LinearAlgebra::distributed::Vector<real> &solution, 
+    const int target_state)
 {
     // center point of the current cell
     dealii::Point<dim,real> center_point = curr_cell->center();
@@ -743,10 +762,18 @@ dealii::Vector<real> ReconstructPoly<dim,nstate,real>::reconstruct_L2_norm(
         // take inner product of \psi_i and u (solution)
         // if multiple states, taking the 2 norm of the different states
         dealii::Vector<real> rhs_poly(nstate);
-        for(unsigned int istate = 0; istate < nstate; ++istate)
+        if (target_state >= 0 && target_state < nstate) {
+            // Use only the specified state
             for(unsigned int i_vec = 0; i_vec < n_vec; ++i_vec)
-                rhs[i_poly] += (ps.compute_value(i_poly, qpoint_vec[i_vec]) * soln_at_q_vec[i_vec][istate])
-                               *JxW_vec[i_vec];
+                rhs[i_poly] += (ps.compute_value(i_poly, qpoint_vec[i_vec]) * soln_at_q_vec[i_vec][target_state])
+                            *JxW_vec[i_vec];
+        } else {
+            // Original behavior
+            for(unsigned int istate = 0; istate < nstate; ++istate)
+                for(unsigned int i_vec = 0; i_vec < n_vec; ++i_vec)
+                    rhs[i_poly] += (ps.compute_value(i_poly, qpoint_vec[i_vec]) * soln_at_q_vec[i_vec][istate])
+                                    *JxW_vec[i_vec];
+        }
     }
 
     // solving the system

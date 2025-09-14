@@ -108,8 +108,9 @@ public:
       */ 
     void reconstruct_chord_derivative(
         const dealii::LinearAlgebra::distributed::Vector<real>&solution,   ///< Solution approximation to be reconstructed
-        const unsigned int                                     rel_order   ///< Relative order of the approximation
-        );
+        const unsigned int                                     rel_order,   ///< Relative order of the approximation
+        const int target_state = -1
+      );
 
     /// Construct the set of largest perpendicular directional derivatives
     /** \f$p+1\f$ (or rel_order) derivatives are constructed  and the largest values are extracted. In order to approximate 
@@ -141,8 +142,9 @@ public:
       */
     void reconstruct_directional_derivative(
         const dealii::LinearAlgebra::distributed::Vector<real>&solution,   ///< Solution approximation to be reconstructed
-        const unsigned int                                     rel_order   ///< Relative order of the approximation
-        );
+        const unsigned int                                     rel_order,   ///< Relative order of the approximation
+        const int target_state = -1
+      );
 
     /// Constructs directional derivates based on the manufactured solution hessian
     /** For \f$p=2\f$ only, gets the exact directional derivative components using the spectral decomposition of the hessian:
@@ -202,12 +204,16 @@ private:
       * and returned as a vector for further processing of the directional derivatives. For the current class, the polynomial space
       * is selected as the set of non-homogeneous polynomials of maximum order \f$p+1\f$. For example, \f$\phi_i(x,y) = \left[1, x, y, x^2, ...\right]\f$.
       */ 
+    
+    int selected_state = -1;
+
     template <typename DoFCellAccessorType>
     dealii::Vector<real> reconstruct_norm(
         const NormType                                          norm_type,
         const DoFCellAccessorType &                             curr_cell,
         const dealii::PolynomialSpace<dim>                      ps,
-        const dealii::LinearAlgebra::distributed::Vector<real> &solution);
+        const dealii::LinearAlgebra::distributed::Vector<real> &solution,
+        const int target_state = -1);
 
     /// Performs polynomial patchwise reconstruction on the current cell in the H1 semi-norm
     /** See general form of reconstruct_norm for basic reconstruction problem description. This function
@@ -229,7 +235,8 @@ private:
     dealii::Vector<real> reconstruct_H1_norm(
         const DoFCellAccessorType &                             curr_cell,
         const dealii::PolynomialSpace<dim>                      ps,
-        const dealii::LinearAlgebra::distributed::Vector<real> &solution);
+        const dealii::LinearAlgebra::distributed::Vector<real> &solution,
+        const int target_state = -1);
 
     /// Performs polynomial patchwise reconstruction on the current cell in the L2 norm
     /** See general form of reconstruct_norm for basic reconstruction problem description. This function
@@ -250,7 +257,9 @@ private:
     dealii::Vector<real> reconstruct_L2_norm(
         const DoFCellAccessorType &                             curr_cell,
         const dealii::PolynomialSpace<dim>                      ps,
-        const dealii::LinearAlgebra::distributed::Vector<real> &solution);
+        const dealii::LinearAlgebra::distributed::Vector<real> &solution,
+        const int target_state = -1
+        );
 
     /// Get the patch of cells surrounding the current cell of DofCellAccessorType
     /** Returns a list of neighbor cells sharing a face (or subface) with the current cell. 

@@ -77,7 +77,7 @@ int main (int argc, char *argv[])
         } else {
             std::cout << "********************************************************" << std::endl;
             std::cout << "Can't run test with " << all_parameters.number_of_species << " species." << std::endl
-                      << "Currently using " << PHILIP_SPECIES << " species." << std::endl
+                      << "Currently templated for " << PHILIP_SPECIES << " species." << std::endl
                       << "Aborting..." << std::endl;
             std::cout << "********************************************************" << std::endl;
             std::abort();

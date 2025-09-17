@@ -33,7 +33,6 @@
 #include <deal.II/numerics/vector_tools.h>
 #include <deal.II/base/quadrature_lib.h>
 #include <deal.II/base/utilities.h>
-#include <deal.II/base/convergence_table.h>
 #include <deal.II/base/mpi.h>
 #include <deal.II/grid/grid_generator.h>
 #include "post_processor/physics_post_processor.h"
@@ -77,56 +76,7 @@ namespace PHiLiP {
         template <int dim, int nstate>
         std::array<double,nstate> LpCVTMeshAdaptationCases<dim, nstate> :: evaluate_soln_exact(const dealii::Point<dim> &point) const
         {
-            std::array<double, nstate> soln_exact;
-            const double x = point[0];
-            const double y = point[1];
-            const double a = -0.4;
-            const double b = 0.4;
-            const double c = 3.0/8.0;
-            const double x_on_curve = a*pow(y,2) + b*y + c;
-
-            // Get u0 exact
-            soln_exact[0] = 0.0;
-            if(x <= x_on_curve)
-            {
-                soln_exact[0] = 1.0;
-            }
-
-            // Get u1 exact
-            const bool region_1 = (y > (1.0-x)) && (x <=x_on_curve);
-            const bool region_2 = (y <= (1.0-x)) && (x <= x_on_curve);
-            const bool region_3 = (y <= (1.0-x)) && (x > x_on_curve);
-            const bool region_4 = (x > x_on_curve) && (y < (11.0/8.0 - x)) && (y > (1.0-x));
-            const bool region_5 = y >= (11.0/8.0 - x);
-            const double y_tilde = (-(b+1.0) + sqrt(pow(b+1.0,2) - 4.0*a*(c-x-y)))/(2.0*a);
-            const double x_tilde = a*pow(y_tilde,2) + b*y_tilde + c;
-            const double u1_bc = 0.3;
-            if(region_1)
-            {
-                soln_exact[1] = u1_bc + (1.0-y);
-            }
-            else if(region_2)
-            {
-                soln_exact[1] = u1_bc + x;
-            }
-            else if(region_3)
-            {
-                soln_exact[1] = u1_bc + x_tilde;
-            }
-            else if(region_4)
-            {
-                soln_exact[1] = u1_bc + (1.0 - y_tilde);
-            }
-            else if(region_5)
-            {
-                soln_exact[1] = u1_bc;
-            }
-            else
-            {
-                std::cout<<"The domain is completely covered by regions 1 to 5. Shouldn't have reached here. Aborting.."<<std::endl;
-                std::abort();
-            }
-            return soln_exact;
+            pcout<<"WARNING: evaluate_soln_exact not implemented for LpCVTMeshAdaptationCases"<<std::endl;
         }
 
         // /**
@@ -418,6 +368,8 @@ namespace PHiLiP {
             } // cell loop ends
             regularization_matrix.compress(dealii::VectorOperation::add);
         }
+
+
         /**
          * Main inner adaptation loop
          * Runs mesh optimization cycles until convergence or max cycles reached
@@ -434,9 +386,6 @@ namespace PHiLiP {
             const unsigned int outer_iter
             ) const
         {
-            dealii::ConvergenceTable convergence_table;
-            const bool run_mesh_optimizer = true;  // Flag to enable mesh optimization
-
             // Open file for writing convergence data
             std::ofstream convergence_file;
             if (mpi_rank == 0) {
@@ -447,93 +396,93 @@ namespace PHiLiP {
             }
 
             // Run adaptation cycles (inner loop)
-            for (unsigned int cycle = 0; cycle < max_cycles; ++cycle)
+            pcout << "\n--- Adaptation cycle " << cycle + 1 << "/" << max_cycles << " ---" << std::endl;
+            
+            //Pre-optimization evaluation
+            const double pre_functional_error = evaluate_functional_error(flow_solver->dg);
+            const unsigned int pre_dofs = flow_solver->dg->n_dofs();
+            pcout << "Pre-adaptation functional error: " << pre_functional_error << std::endl;
+            
+            functional_error_vector.push_back(pre_functional_error);
+            n_dofs_vector.push_back(pre_dofs);
+            n_cycle_vector.push_back(outer_iter + 0.5);
+            
+            // Write pre-optimization data
+            if (mpi_rank == 0) {
+                convergence_file << (outer_iter + 0.5) << " " << pre_dofs << " " << pre_functional_error << "\n";
+                convergence_file.flush();
+            }
+
+
+            if (run_mesh_optimizer)
             {
-                pcout << "\n--- Adaptation cycle " << cycle + 1 << "/" << max_cycles << " ---" << std::endl;
+                pcout << "Running full-space mesh optimizer..." << std::endl;
                 
-                //Pre-optimization evaluation
-                const double pre_functional_error = evaluate_functional_error(flow_solver->dg);
-                const unsigned int pre_dofs = flow_solver->dg->n_dofs();
-                pcout << "Pre-adaptation functional error: " << pre_functional_error << std::endl;
-                
-                functional_error_vector.push_back(pre_functional_error);
-                n_dofs_vector.push_back(pre_dofs);
-                n_cycle_vector.push_back(outer_iter + 0.5);
-                
-                // Write pre-optimization data
-                if (mpi_rank == 0) {
-                    convergence_file << (outer_iter + 0.5) << " " << pre_dofs << " " << pre_functional_error << "\n";
-                    convergence_file.flush();
-                }
+                try {
+                    int p = 1;
+                    flow_solver->run();
+                    flow_solver->dg->set_p_degree_and_interpolate_solution(1);
+                    flow_solver->dg->freeze_artificial_dissipation=true;
+                    flow_solver->use_polynomial_ramping = false;
+                    increase_grid_degree_and_interpolate_solution(flow_solver->dg);
 
-                if (run_mesh_optimizer)
-                {
-                    pcout << "Running full-space mesh optimizer..." << std::endl;
-                    //double mesh_weight = param.optimization_param.mesh_weight_factor;
+                    dealii::TrilinosWrappers::SparseMatrix regularization_matrix_poisson_q1;
+                    evaluate_regularization_matrix(regularization_matrix_poisson_q1, flow_solver->dg);
+
+                    flow_solver->dg->set_upwinding_flux(true);
+                    const bool use_oneD_parameteriation = true;
+                    const bool output_refined_nodes = false;
+                    std::unique_ptr<MeshOptimizer<dim, nstate>> mesh_optimizer =
+                        std::make_unique<MeshOptimizer<dim, nstate>>(flow_solver->dg, &param, true);
+                    const bool output_refined_nodes = true;
+                    mesh_optimizer->run_full_space_optimizer(regularization_matrix_poisson_q1, use_oneD_parameteriation, output_refined_nodes,0);
                     
-                    try {
-                        // Create and run mesh optimizer
-                        dealii::TrilinosWrappers::SparseMatrix regularization_matrix_poisson_q1;
-                        evaluate_regularization_matrix(regularization_matrix_poisson_q1, flow_solver->dg);
-                        Parameters::AllParameters param_q1 = param;
-                        param_q1.optimization_param.max_design_cycles = 1;
-                        param_q1.optimization_param.regularization_parameter_sim = 1.0;
-                        param_q1.optimization_param.regularization_parameter_control = 1.0;
-                        const bool use_oneD_parameteriation = false;
-                        const bool output_refined_nodes = false;
-                        std::unique_ptr<MeshOptimizer<dim, nstate>> mesh_optimizer =
-                            std::make_unique<MeshOptimizer<dim, nstate>>(flow_solver->dg, &param_q1, true);
-                        // write_dwr_cellwise_vtk(flow_solver);
-                        mesh_optimizer->run_full_space_optimizer(regularization_matrix_poisson_q1, use_oneD_parameteriation, output_refined_nodes,0);
-                        //mesh_weight = 0.0;  // Reset weight after first iteration
-                        pcout << "Mesh optimizer completed successfully." << std::endl;
-                        flow_solver->run();
+                    pcout << "Mesh optimizer completed successfully." << std::endl;
+                    flow_solver->run();
 
+                }
+                catch (const std::exception& e) {
+                    pcout << "WARNING: Mesh optimizer failed with error: " << e.what() << std::endl;
+                    
+                    flow_solver->run();
+                    
+                    const double functional_error = evaluate_functional_error(flow_solver->dg);
+                    const unsigned int post_dofs = flow_solver->dg->n_dofs();
+                    
+                    functional_error_vector.push_back(functional_error);
+                    n_dofs_vector.push_back(post_dofs);
+                    n_cycle_vector.push_back(outer_iter + 1);
+                    
+                    pcout<<"Current cycle = "<<(outer_iter + 1)<<";  Functional error = "<<functional_error<<std::endl;
+                    
+                    // Write post-optimization data
+                    if (mpi_rank == 0) {
+                        convergence_file << (outer_iter + 1) << " " << post_dofs << " " << functional_error << "\n";
+                        convergence_file.flush();
                     }
-                    catch (const std::exception& e) {
-                        pcout << "WARNING: Mesh optimizer failed with error: " << e.what() << std::endl;
-                        flow_solver->run();
-                        write_dwr_cellwise_vtk(flow_solver);
-                        const double functional_error = evaluate_functional_error(flow_solver->dg);
-                        const unsigned int post_dofs = flow_solver->dg->n_dofs();
-                        
-                        functional_error_vector.push_back(functional_error);
-                        n_dofs_vector.push_back(post_dofs);
-                        n_cycle_vector.push_back(outer_iter + 1);
-                        
-                        pcout<<"Current cycle = "<<(outer_iter + 1)<<";  Functional error = "<<functional_error<<std::endl;
-                        
-                        // Write post-optimization data
-                        if (mpi_rank == 0) {
-                            convergence_file << (outer_iter + 1) << " " << post_dofs << " " << functional_error << "\n";
-                            convergence_file.flush();
-                        }
-                        
-                        //Add to convergence table for analysis
-                        convergence_table.add_value("cells", flow_solver->dg->triangulation->n_global_active_cells());
-                        convergence_table.add_value("functional_error",functional_error);
+                    
 
-                        std::string error_msg = e.what();
-                        // Check if optimization stalled
-                        if (error_msg.find("step size too small") != std::string::npos) {
-                            pcout << "Optimization stopped due to small step size. Need LpCVT reconstruction." << std::endl;
-                            if (mpi_rank == 0) convergence_file.close();
-                            return false;
-                        }
-
-                        // For any other error, stop the adaptation
-                        pcout << "Other error encountered, stopping adaptation." << std::endl;
+                    std::string error_msg = e.what();
+                    // Check if optimization stalled
+                    if (error_msg.find("step size too small") != std::string::npos) {
+                        pcout << "Optimization stopped due to small step size. Need LpCVT reconstruction." << std::endl;
                         if (mpi_rank == 0) convergence_file.close();
                         return false;
                     }
-                }
-                else
-                {
-                    // Alternative: just run flow solver without optimization
-                    pcout << "Running flow solver..." << std::endl;
-                    flow_solver->run();
+
+                    // For any other error, stop the adaptation
+                    pcout << "Other error encountered, stopping adaptation." << std::endl;
+                    if (mpi_rank == 0) convergence_file.close();
+                    return false;
                 }
             }
+            else
+            {
+                // Alternative: just run flow solver without optimization
+                pcout << "Running flow solver..." << std::endl;
+                flow_solver->run();
+            }
+
             const double functional_error = evaluate_functional_error(flow_solver->dg);
             const unsigned int post_dofs = flow_solver->dg->n_dofs();
             
@@ -548,10 +497,7 @@ namespace PHiLiP {
                 convergence_file << (outer_iter + 1) << " " << post_dofs << " " << functional_error << "\n";
                 convergence_file.flush();
             }
-            
-            // Add to convergence table for analysis
-            convergence_table.add_value("cells", flow_solver->dg->triangulation->n_global_active_cells());
-            convergence_table.add_value("functional_error",functional_error);
+        
             
             return true;  // Adaptation completed successfully
         }
@@ -601,7 +547,6 @@ namespace PHiLiP {
                 else {
                     double base_complexity = gr_param.complexity_vector.empty() ? 
                         2000.0 : gr_param.complexity_vector[0];
-                    // Use complexity_scale as growth factor
                     target_complexity = base_complexity * std::pow(gr_param.complexity_scale, outer_loop);
                 }
                 
@@ -637,7 +582,6 @@ namespace PHiLiP {
                 std::shared_ptr<Adjoint<dim, nstate, double>> adjoint = nullptr;
 
                 if (gr_param.error_indicator == Parameters::GridRefinementParam::ErrorIndicator::adjoint_based) {
-                    // Goal-oriented adaptation path
                     // Create functional based on parameters
                     functional = FunctionalFactory<dim, nstate, double>::create_Functional(
                         param.functional_param, dg);
@@ -668,7 +612,6 @@ namespace PHiLiP {
                 }
                 else {
                     // Solution-oriented adaptation path (Hessian-based)
-                    // Create GridRefinement_Continuous without adjoint
                     auto grid_refinement = std::make_unique<GridRefinement::GridRefinement_Continuous<dim, nstate, double>>(
                         gr_param, dg, physics);
 
@@ -739,91 +682,6 @@ namespace PHiLiP {
         }
 
 
-        // template <int dim, int nstate>
-        // void LpCVTMeshAdaptationCases<dim, nstate>::write_lpcvt_background_mesh(
-        //     const std::string& filename,
-        //     const std::unique_ptr<FlowSolver::FlowSolver<dim, nstate>>& flow_solver,
-        //     const MetricData& metric_data) const
-        // {
-        //     pcout << "Writing LpCVT-compatible background mesh to: " << filename << std::endl;
-
-        //     std::ofstream out_msh(filename);
-        //     out_msh << std::scientific << std::setprecision(16);
-
-        //     PHiLiP::GridRefinement::MshOut<dim, double> msh_out(flow_solver->dg->dof_handler);
-
-
-        //     if (metric_data.valid && metric_data.h_field)
-        //     {
-        //         // 1. Get the original metric vector. Its order is based on active_cell_index().
-        //         const std::vector<dealii::Tensor<2, dim>>& original_metrics =
-        //             metric_data.h_field->get_inverse_metric_vector();
-
-        //         // 2. Create a new vector to hold the metrics in the correct iteration order.
-        //         std::vector<dealii::Tensor<2, dim>> reordered_metrics;
-        //         reordered_metrics.reserve(flow_solver->dg->triangulation->n_active_cells());
-
-        //         // 3. Iterate through the cells in the same order that MshOut will use for writing geometry.
-        //         for (const auto& cell : flow_solver->dg->dof_handler.active_cell_iterators())
-        //         {
-        //             // For each cell in the iteration, get its unique index.
-        //             const unsigned int cell_index = cell->active_cell_index();
-
-        //             // Use the cell's unique index to look up the correct metric from the original
-        //             // data and add it to the new, correctly-ordered vector.
-        //             reordered_metrics.push_back(original_metrics[cell_index]);
-        //         }
-
-        //         // 4. Add the REORDERED metric vector to the writer.
-        //         msh_out.add_data_vector(reordered_metrics,
-        //             PHiLiP::GridRefinement::StorageType::element,
-        //             "metric");
-
-        //     }
-
-        //     // Make sure mapping reflects the current high-order geometry
-        //     flow_solver->dg->high_order_grid->update_mapping_fe_field();
-
-        //     auto& tria = *flow_solver->dg->triangulation;
-        //     auto& mapping = *flow_solver->dg->high_order_grid->mapping_fe_field;
-
-        //     auto& vertices = const_cast<std::vector<dealii::Point<dim>>&>(tria.get_vertices());
-        //     for (auto cell : flow_solver->dg->dof_handler.active_cell_iterators()) {
-        //         for (unsigned int v = 0; v < dealii::GeometryInfo<dim>::vertices_per_cell; ++v) {
-        //             const unsigned int vidx = cell->vertex_index(v);
-        //             const dealii::Point<dim> unit = dealii::GeometryInfo<dim>::unit_cell_vertex(v);
-        //             const dealii::Point<dim> real = mapping.transform_unit_to_real_cell(cell, unit);
-        //             vertices[vidx] = real;
-        //         }
-        //     }
-
-        //     msh_out.write_msh(out_msh);
-
-        //     pcout << "Mesh and metric field written successfully." << std::endl;
-        // }
-
-        
-        /**
-         * Comparison functor for dealii::Point objects
-         * Used for creating ordered maps of vertices
-         */
-        template <int dim>
-        struct PointLess {
-            bool operator()(const dealii::Point<dim>& a, const dealii::Point<dim>& b) const {
-                // Lexicographic ordering: compare dimension by dimension
-                for (int d = 0; d < dim; ++d) {
-                    if (a[d] < b[d]) return true;
-                    if (a[d] > b[d]) return false;
-                }
-                return false;
-            }
-        };
-
-        /**
-         * Writes background mesh with metric field for LpCVT solver
-         * This creates a serial mesh file that the external LpCVT Python code can read
-         * Includes MPI gathering to collect distributed mesh on rank 0
-         */
         template <int dim, int nstate>
         void LpCVTMeshAdaptationCases<dim, nstate>::write_lpcvt_background_mesh(
             const std::string& filename,
@@ -831,29 +689,50 @@ namespace PHiLiP {
             const MetricData& metric_data) const
         {
             pcout << "Writing LpCVT-compatible background mesh to: " << filename << std::endl;
-            
-            const auto& tria = *flow_solver->dg->triangulation;
-            const unsigned int verts_per_cell = dealii::GeometryInfo<dim>::vertices_per_cell;
-            const int mpi_rank = dealii::Utilities::MPI::this_mpi_process(mpi_communicator);
-            const int n_mpi = dealii::Utilities::MPI::n_mpi_processes(mpi_communicator);
 
-            // Update high-order geometry to get accurate vertex positions
-            flow_solver->dg->high_order_grid->update_mapping_fe_field();
-            flow_solver->dg->high_order_grid->volume_nodes.update_ghost_values();
-            
-            // Update vertex positions based on high-order mapping
-            auto& vertices = const_cast<std::vector<dealii::Point<dim>>&>(tria.get_vertices());
-            auto &mapping = *flow_solver->dg->high_order_grid->mapping_fe_field;
-            
-            // Transform vertices to physical space for curved elements
-            for (auto cell = flow_solver->dg->dof_handler.begin_active();
-                cell != flow_solver->dg->dof_handler.end(); ++cell)
+            std::ofstream out_msh(filename);
+            out_msh << std::scientific << std::setprecision(16);
+
+            PHiLiP::GridRefinement::MshOut<dim, double> msh_out(flow_solver->dg->dof_handler);
+
+
+            if (metric_data.valid && metric_data.h_field)
             {
-                if (!(cell->is_locally_owned() || cell->is_ghost()))
-                    continue;
+                // 1. Get the original metric vector. Its order is based on active_cell_index().
+                const std::vector<dealii::Tensor<2, dim>>& original_metrics =
+                    metric_data.h_field->get_inverse_metric_vector();
 
-                for (unsigned int v = 0; v < verts_per_cell; ++v)
+                // 2. Create a new vector to hold the metrics in the correct iteration order.
+                std::vector<dealii::Tensor<2, dim>> reordered_metrics;
+                reordered_metrics.reserve(flow_solver->dg->triangulation->n_active_cells());
+
+                // 3. Iterate through the cells in the same order that MshOut will use for writing geometry.
+                for (const auto& cell : flow_solver->dg->dof_handler.active_cell_iterators())
                 {
+                    // For each cell in the iteration, get its unique index.
+                    const unsigned int cell_index = cell->active_cell_index();
+
+                    // Use the cell's unique index to look up the correct metric from the original
+                    // data and add it to the new, correctly-ordered vector.
+                    reordered_metrics.push_back(original_metrics[cell_index]);
+                }
+
+                // 4. Add the REORDERED metric vector to the writer.
+                msh_out.add_data_vector(reordered_metrics,
+                    PHiLiP::GridRefinement::StorageType::element,
+                    "metric");
+
+            }
+
+            // Make sure mapping reflects the current high-order geometry
+            flow_solver->dg->high_order_grid->update_mapping_fe_field();
+
+            auto& tria = *flow_solver->dg->triangulation;
+            auto& mapping = *flow_solver->dg->high_order_grid->mapping_fe_field;
+
+            auto& vertices = const_cast<std::vector<dealii::Point<dim>>&>(tria.get_vertices());
+            for (auto cell : flow_solver->dg->dof_handler.active_cell_iterators()) {
+                for (unsigned int v = 0; v < dealii::GeometryInfo<dim>::vertices_per_cell; ++v) {
                     const unsigned int vidx = cell->vertex_index(v);
                     const dealii::Point<dim> unit = dealii::GeometryInfo<dim>::unit_cell_vertex(v);
                     const dealii::Point<dim> real = mapping.transform_unit_to_real_cell(cell, unit);
@@ -861,247 +740,311 @@ namespace PHiLiP {
                 }
             }
 
-            // --- MPI GATHERING PHASE 1: VERTICES WITH DEDUPLICATION ---
-            
-            // Collect indices of vertices used by locally owned cells
-            std::set<unsigned int> local_vertex_indices;
-            for (auto cell = tria.begin_active(); cell != tria.end(); ++cell) {
-                if (!cell->is_locally_owned()) continue;
-                for (unsigned int v = 0; v < verts_per_cell; ++v) {
-                    local_vertex_indices.insert(cell->vertex_index(v));
-                }
-            }
-            
-            // Build list of vertices actually used and create mapping
-            std::vector<dealii::Point<dim>> local_used_vertices;
-            std::map<unsigned int, unsigned int> old_to_local_map;
-            for (unsigned int vidx : local_vertex_indices) {
-                old_to_local_map[vidx] = local_used_vertices.size();
-                local_used_vertices.push_back(vertices[vidx]);
-            }
-            
-            // Flatten vertex coordinates for MPI
-            const unsigned int n_local = local_used_vertices.size();
-            std::vector<double> local_coords(n_local * dim);
-            for (unsigned int i = 0; i < n_local; ++i) {
-                for (int d = 0; d < dim; ++d) {
-                    local_coords[i * dim + d] = local_used_vertices[i][d];
-                }
-            }
-            
-            // Gather vertex counts
-            std::vector<int> sizes(n_mpi);
-            int local_size = static_cast<int>(n_local);
-            MPI_Gather(&local_size, 1, MPI_INT, sizes.data(), 1, MPI_INT, 0, mpi_communicator);
-            
-            // Prepare for gathering coordinates
-            std::vector<double> all_coords;
-            std::vector<dealii::Point<dim>> unique_vertices;
-            std::vector<unsigned int> local_to_global;
-            
-            if (mpi_rank == 0) {
-                std::vector<int> recvcounts(n_mpi), displs(n_mpi, 0);
-                for (int r = 0; r < n_mpi; ++r) {
-                    recvcounts[r] = sizes[r] * dim;
-                }
-                for (int r = 1; r < n_mpi; ++r) {
-                    displs[r] = displs[r - 1] + recvcounts[r - 1];
-                }
-                int total_coord_size = (n_mpi > 0) ? (displs.back() + recvcounts.back()) : 0;
-                all_coords.resize(total_coord_size);
-                
-                // Gather all coordinates
-                MPI_Gatherv(local_coords.data(), local_coords.size(), MPI_DOUBLE,
-                            all_coords.data(), recvcounts.data(), displs.data(), 
-                            MPI_DOUBLE, 0, mpi_communicator);
-                
-                // Deduplicate vertices with tolerance
-                const double tolerance = 1e-12;
-                std::vector<std::vector<unsigned int>> mappings(n_mpi);
-                
-                int offset = 0;
-                for (int r = 0; r < n_mpi; ++r) {
-                    mappings[r].resize(sizes[r]);
-                    
-                    for (int i = 0; i < sizes[r]; ++i) {
-                        dealii::Point<dim> p;
-                        for (int d = 0; d < dim; ++d) {
-                            p[d] = all_coords[offset++];
-                        }
-                        
-                        // Find if vertex already exists (with tolerance)
-                        unsigned int global_idx = unique_vertices.size();
-                        for (unsigned int j = 0; j < unique_vertices.size(); ++j) {
-                            if (unique_vertices[j].distance(p) < tolerance) {
-                                global_idx = j;
-                                break;
-                            }
-                        }
-                        
-                        // Add new vertex if not found
-                        if (global_idx == unique_vertices.size()) {
-                            unique_vertices.push_back(p);
-                        }
-                        
-                        mappings[r][i] = global_idx;
-                    }
-                }
-                
-                pcout << "Vertex deduplication: " << (offset/dim) << " -> " << unique_vertices.size() << std::endl;
-                
-                // Send mappings back to other ranks
-                local_to_global = mappings[0];
-                for (int r = 1; r < n_mpi; ++r) {
-                    MPI_Send(mappings[r].data(), mappings[r].size(), 
-                            MPI_UNSIGNED, r, 0, mpi_communicator);
-                }
-            } else {
-                MPI_Gatherv(local_coords.data(), local_coords.size(), MPI_DOUBLE,
-                            nullptr, nullptr, nullptr, MPI_DOUBLE, 0, mpi_communicator);
-                local_to_global.resize(n_local);
-                MPI_Recv(local_to_global.data(), n_local, MPI_UNSIGNED, 0, 0, 
-                        mpi_communicator, MPI_STATUS_IGNORE);
-            }
+            msh_out.write_msh(out_msh);
 
-            // --- MPI GATHERING PHASE 2: CELL CONNECTIVITY ---
-            
-            // Build cell connectivity using corrected vertex mapping
-            std::vector<unsigned int> local_cells;
-            unsigned int n_local_cells = 0;
-            for (auto cell = tria.begin_active(); cell != tria.end(); ++cell) {
-                if (!cell->is_locally_owned()) continue;
-                n_local_cells++;
-                for (unsigned int v = 0; v < verts_per_cell; ++v) {
-                    unsigned int old_idx = cell->vertex_index(v);
-                    unsigned int local_idx = old_to_local_map[old_idx];
-                    local_cells.push_back(local_to_global[local_idx]);
-                }
-            }
-            
-            // Gather cell counts
-            std::vector<int> cell_counts(n_mpi);
-            int local_cell_count = static_cast<int>(n_local_cells);
-            MPI_Gather(&local_cell_count, 1, MPI_INT, 
-                    cell_counts.data(), 1, MPI_INT, 0, mpi_communicator);
-            
-            // Gather cell connectivity
-            std::vector<unsigned int> all_cell_vertex_data;
-            unsigned int total_cells = 0;
-            
-            if (mpi_rank == 0) {
-                std::vector<int> cell_recvcounts(n_mpi), cell_displs(n_mpi, 0);
-                for (int r = 0; r < n_mpi; ++r) {
-                    cell_recvcounts[r] = cell_counts[r] * verts_per_cell;
-                    total_cells += cell_counts[r];
-                }
-                for (int r = 1; r < n_mpi; ++r) {
-                    cell_displs[r] = cell_displs[r - 1] + cell_recvcounts[r - 1];
-                }
-                all_cell_vertex_data.resize(total_cells * verts_per_cell);
-                
-                MPI_Gatherv(local_cells.data(), local_cells.size(), MPI_UNSIGNED,
-                            all_cell_vertex_data.data(), cell_recvcounts.data(), cell_displs.data(),
-                            MPI_UNSIGNED, 0, mpi_communicator);
-            } else {
-                MPI_Gatherv(local_cells.data(), local_cells.size(), MPI_UNSIGNED,
-                            nullptr, nullptr, nullptr, MPI_UNSIGNED, 0, mpi_communicator);
-            }
-
-            // --- MPI GATHERING PHASE 3: METRIC DATA ---
-            
-            const std::vector<dealii::Tensor<2, dim>>& original_metrics = 
-                metric_data.valid && metric_data.h_field ? 
-                metric_data.h_field->get_inverse_metric_vector() : 
-                std::vector<dealii::Tensor<2, dim>>();
-            
-            const unsigned int metric_size = dim * dim;
-            
-            // Collect local metric data
-            std::vector<double> local_cell_metric_data(n_local_cells * metric_size);
-            unsigned int idx = 0;
-            for (auto cell = tria.begin_active(); cell != tria.end(); ++cell) {
-                if (!cell->is_locally_owned()) continue;
-                
-                const unsigned int cell_index = cell->active_cell_index();
-                const dealii::Tensor<2, dim>& metric = 
-                    (cell_index < original_metrics.size()) ? 
-                    original_metrics[cell_index] : 
-                    dealii::Tensor<2, dim>(dealii::unit_symmetric_tensor<dim>());
-                
-                for (int i = 0; i < dim; ++i) {
-                    for (int j = 0; j < dim; ++j) {
-                        local_cell_metric_data[idx++] = metric[i][j];
-                    }
-                }
-            }
-            
-            // Gather metric data
-            std::vector<double> all_cell_metric_data;
-            
-            if (mpi_rank == 0) {
-                std::vector<int> metric_recvcounts(n_mpi), metric_displs(n_mpi, 0);
-                for (int r = 0; r < n_mpi; ++r) {
-                    metric_recvcounts[r] = cell_counts[r] * metric_size;
-                }
-                for (int r = 1; r < n_mpi; ++r) {
-                    metric_displs[r] = metric_displs[r - 1] + metric_recvcounts[r - 1];
-                }
-                all_cell_metric_data.resize(total_cells * metric_size);
-                
-                MPI_Gatherv(local_cell_metric_data.data(), local_cell_metric_data.size(), MPI_DOUBLE,
-                            all_cell_metric_data.data(), metric_recvcounts.data(), metric_displs.data(), 
-                            MPI_DOUBLE, 0, mpi_communicator);
-            } else {
-                MPI_Gatherv(local_cell_metric_data.data(), local_cell_metric_data.size(), MPI_DOUBLE,
-                            nullptr, nullptr, nullptr, MPI_DOUBLE, 0, mpi_communicator);
-            }
-
-            // --- SERIAL OUTPUT ON RANK 0 ---
-            if (mpi_rank == 0) {
-                // Build CellData structure
-                std::vector<dealii::CellData<dim>> cells(total_cells);
-                for (unsigned int c = 0; c < total_cells; ++c) {
-                    for (unsigned int v = 0; v < verts_per_cell; ++v) {
-                        cells[c].vertices[v] = all_cell_vertex_data[c * verts_per_cell + v];
-                    }
-                    cells[c].material_id = 0;
-                }
-
-                // Reconstruct metric tensors
-                std::vector<dealii::Tensor<2, dim>> serial_metrics(total_cells);
-                for (unsigned int c = 0; c < total_cells; ++c) {
-                    unsigned int offset = c * metric_size;
-                    for (int i = 0; i < dim; ++i) {
-                        for (int j = 0; j < dim; ++j) {
-                            serial_metrics[c][i][j] = all_cell_metric_data[offset++];
-                        }
-                    }
-                }
-
-                // Create serial triangulation
-                dealii::Triangulation<dim> serial_tria;
-                serial_tria.create_triangulation(unique_vertices, cells, dealii::SubCellData());
-
-                // Create serial DoFHandler
-                dealii::DoFHandler<dim> serial_dof_handler(serial_tria);
-                dealii::FESystem<dim> fe(dealii::FE_DGQ<dim>(flow_solver->dg->max_degree), nstate);
-                serial_dof_handler.distribute_dofs(fe);
-
-                // Write mesh and metric field
-                std::ofstream out_msh(filename);
-                out_msh << std::scientific << std::setprecision(16);
-                PHiLiP::GridRefinement::MshOut<dim, double> msh_out(serial_dof_handler);
-                msh_out.add_data_vector(serial_metrics, 
-                                    PHiLiP::GridRefinement::StorageType::element, 
-                                    "metric");
-                msh_out.write_msh(out_msh);
-
-                pcout << "Mesh written successfully: " << unique_vertices.size() << " vertices, "
-                    << total_cells << " cells" << std::endl;
-            }
-
-            MPI_Barrier(mpi_communicator);
+            pcout << "Mesh and metric field written successfully." << std::endl;
         }
+
+        
+        // /**
+        //  * Comparison functor for dealii::Point objects
+        //  * Used for creating ordered maps of vertices
+        //  */
+        // template <int dim>
+        // struct PointLess {
+        //     bool operator()(const dealii::Point<dim>& a, const dealii::Point<dim>& b) const {
+        //         // Lexicographic ordering: compare dimension by dimension
+        //         for (int d = 0; d < dim; ++d) {
+        //             if (a[d] < b[d]) return true;
+        //             if (a[d] > b[d]) return false;
+        //         }
+        //         return false;
+        //     }
+        // };
+
+        // /**
+        //  * Writes background mesh with metric field for LpCVT solver
+        //  * This creates a serial mesh file that the external LpCVT Python code can read
+        //  * Includes MPI gathering to collect distributed mesh on rank 0
+        //  */
+        // template <int dim, int nstate>
+        // void LpCVTMeshAdaptationCases<dim, nstate>::write_lpcvt_background_mesh(
+        //     const std::string& filename,
+        //     const std::unique_ptr<FlowSolver::FlowSolver<dim, nstate>>& flow_solver,
+        //     const MetricData& metric_data) const
+        // {
+        //     pcout << "Writing LpCVT-compatible background mesh to: " << filename << std::endl;
+            
+        //     const auto& tria = *flow_solver->dg->triangulation;
+        //     const unsigned int verts_per_cell = dealii::GeometryInfo<dim>::vertices_per_cell;
+        //     const int mpi_rank = dealii::Utilities::MPI::this_mpi_process(mpi_communicator);
+        //     const int n_mpi = dealii::Utilities::MPI::n_mpi_processes(mpi_communicator);
+
+        //     // Update high-order geometry to get accurate vertex positions
+        //     flow_solver->dg->high_order_grid->update_mapping_fe_field();
+        //     flow_solver->dg->high_order_grid->volume_nodes.update_ghost_values();
+            
+        //     // Update vertex positions based on high-order mapping
+        //     auto& vertices = const_cast<std::vector<dealii::Point<dim>>&>(tria.get_vertices());
+        //     auto &mapping = *flow_solver->dg->high_order_grid->mapping_fe_field;
+            
+        //     // Transform vertices to physical space for curved elements
+        //     for (auto cell = flow_solver->dg->dof_handler.begin_active();
+        //         cell != flow_solver->dg->dof_handler.end(); ++cell)
+        //     {
+        //         if (!(cell->is_locally_owned() || cell->is_ghost()))
+        //             continue;
+
+        //         for (unsigned int v = 0; v < verts_per_cell; ++v)
+        //         {
+        //             const unsigned int vidx = cell->vertex_index(v);
+        //             const dealii::Point<dim> unit = dealii::GeometryInfo<dim>::unit_cell_vertex(v);
+        //             const dealii::Point<dim> real = mapping.transform_unit_to_real_cell(cell, unit);
+        //             vertices[vidx] = real;
+        //         }
+        //     }
+
+        //     // --- MPI GATHERING PHASE 1: VERTICES WITH DEDUPLICATION ---
+            
+        //     // Collect indices of vertices used by locally owned cells
+        //     std::set<unsigned int> local_vertex_indices;
+        //     for (auto cell = tria.begin_active(); cell != tria.end(); ++cell) {
+        //         if (!cell->is_locally_owned()) continue;
+        //         for (unsigned int v = 0; v < verts_per_cell; ++v) {
+        //             local_vertex_indices.insert(cell->vertex_index(v));
+        //         }
+        //     }
+            
+        //     // Build list of vertices actually used and create mapping
+        //     std::vector<dealii::Point<dim>> local_used_vertices;
+        //     std::map<unsigned int, unsigned int> old_to_local_map;
+        //     for (unsigned int vidx : local_vertex_indices) {
+        //         old_to_local_map[vidx] = local_used_vertices.size();
+        //         local_used_vertices.push_back(vertices[vidx]);
+        //     }
+            
+        //     // Flatten vertex coordinates for MPI
+        //     const unsigned int n_local = local_used_vertices.size();
+        //     std::vector<double> local_coords(n_local * dim);
+        //     for (unsigned int i = 0; i < n_local; ++i) {
+        //         for (int d = 0; d < dim; ++d) {
+        //             local_coords[i * dim + d] = local_used_vertices[i][d];
+        //         }
+        //     }
+            
+        //     // Gather vertex counts
+        //     std::vector<int> sizes(n_mpi);
+        //     int local_size = static_cast<int>(n_local);
+        //     MPI_Gather(&local_size, 1, MPI_INT, sizes.data(), 1, MPI_INT, 0, mpi_communicator);
+            
+        //     // Prepare for gathering coordinates
+        //     std::vector<double> all_coords;
+        //     std::vector<dealii::Point<dim>> unique_vertices;
+        //     std::vector<unsigned int> local_to_global;
+            
+        //     if (mpi_rank == 0) {
+        //         std::vector<int> recvcounts(n_mpi), displs(n_mpi, 0);
+        //         for (int r = 0; r < n_mpi; ++r) {
+        //             recvcounts[r] = sizes[r] * dim;
+        //         }
+        //         for (int r = 1; r < n_mpi; ++r) {
+        //             displs[r] = displs[r - 1] + recvcounts[r - 1];
+        //         }
+        //         int total_coord_size = (n_mpi > 0) ? (displs.back() + recvcounts.back()) : 0;
+        //         all_coords.resize(total_coord_size);
+                
+        //         // Gather all coordinates
+        //         MPI_Gatherv(local_coords.data(), local_coords.size(), MPI_DOUBLE,
+        //                     all_coords.data(), recvcounts.data(), displs.data(), 
+        //                     MPI_DOUBLE, 0, mpi_communicator);
+                
+        //         // Deduplicate vertices with tolerance
+        //         const double tolerance = 1e-12;
+        //         std::vector<std::vector<unsigned int>> mappings(n_mpi);
+                
+        //         int offset = 0;
+        //         for (int r = 0; r < n_mpi; ++r) {
+        //             mappings[r].resize(sizes[r]);
+                    
+        //             for (int i = 0; i < sizes[r]; ++i) {
+        //                 dealii::Point<dim> p;
+        //                 for (int d = 0; d < dim; ++d) {
+        //                     p[d] = all_coords[offset++];
+        //                 }
+                        
+        //                 // Find if vertex already exists (with tolerance)
+        //                 unsigned int global_idx = unique_vertices.size();
+        //                 for (unsigned int j = 0; j < unique_vertices.size(); ++j) {
+        //                     if (unique_vertices[j].distance(p) < tolerance) {
+        //                         global_idx = j;
+        //                         break;
+        //                     }
+        //                 }
+                        
+        //                 // Add new vertex if not found
+        //                 if (global_idx == unique_vertices.size()) {
+        //                     unique_vertices.push_back(p);
+        //                 }
+                        
+        //                 mappings[r][i] = global_idx;
+        //             }
+        //         }
+                
+        //         pcout << "Vertex deduplication: " << (offset/dim) << " -> " << unique_vertices.size() << std::endl;
+                
+        //         // Send mappings back to other ranks
+        //         local_to_global = mappings[0];
+        //         for (int r = 1; r < n_mpi; ++r) {
+        //             MPI_Send(mappings[r].data(), mappings[r].size(), 
+        //                     MPI_UNSIGNED, r, 0, mpi_communicator);
+        //         }
+        //     } else {
+        //         MPI_Gatherv(local_coords.data(), local_coords.size(), MPI_DOUBLE,
+        //                     nullptr, nullptr, nullptr, MPI_DOUBLE, 0, mpi_communicator);
+        //         local_to_global.resize(n_local);
+        //         MPI_Recv(local_to_global.data(), n_local, MPI_UNSIGNED, 0, 0, 
+        //                 mpi_communicator, MPI_STATUS_IGNORE);
+        //     }
+
+        //     // --- MPI GATHERING PHASE 2: CELL CONNECTIVITY ---
+            
+        //     // Build cell connectivity using corrected vertex mapping
+        //     std::vector<unsigned int> local_cells;
+        //     unsigned int n_local_cells = 0;
+        //     for (auto cell = tria.begin_active(); cell != tria.end(); ++cell) {
+        //         if (!cell->is_locally_owned()) continue;
+        //         n_local_cells++;
+        //         for (unsigned int v = 0; v < verts_per_cell; ++v) {
+        //             unsigned int old_idx = cell->vertex_index(v);
+        //             unsigned int local_idx = old_to_local_map[old_idx];
+        //             local_cells.push_back(local_to_global[local_idx]);
+        //         }
+        //     }
+            
+        //     // Gather cell counts
+        //     std::vector<int> cell_counts(n_mpi);
+        //     int local_cell_count = static_cast<int>(n_local_cells);
+        //     MPI_Gather(&local_cell_count, 1, MPI_INT, 
+        //             cell_counts.data(), 1, MPI_INT, 0, mpi_communicator);
+            
+        //     // Gather cell connectivity
+        //     std::vector<unsigned int> all_cell_vertex_data;
+        //     unsigned int total_cells = 0;
+            
+        //     if (mpi_rank == 0) {
+        //         std::vector<int> cell_recvcounts(n_mpi), cell_displs(n_mpi, 0);
+        //         for (int r = 0; r < n_mpi; ++r) {
+        //             cell_recvcounts[r] = cell_counts[r] * verts_per_cell;
+        //             total_cells += cell_counts[r];
+        //         }
+        //         for (int r = 1; r < n_mpi; ++r) {
+        //             cell_displs[r] = cell_displs[r - 1] + cell_recvcounts[r - 1];
+        //         }
+        //         all_cell_vertex_data.resize(total_cells * verts_per_cell);
+                
+        //         MPI_Gatherv(local_cells.data(), local_cells.size(), MPI_UNSIGNED,
+        //                     all_cell_vertex_data.data(), cell_recvcounts.data(), cell_displs.data(),
+        //                     MPI_UNSIGNED, 0, mpi_communicator);
+        //     } else {
+        //         MPI_Gatherv(local_cells.data(), local_cells.size(), MPI_UNSIGNED,
+        //                     nullptr, nullptr, nullptr, MPI_UNSIGNED, 0, mpi_communicator);
+        //     }
+
+        //     // --- MPI GATHERING PHASE 3: METRIC DATA ---
+            
+        //     const std::vector<dealii::Tensor<2, dim>>& original_metrics = 
+        //         metric_data.valid && metric_data.h_field ? 
+        //         metric_data.h_field->get_inverse_metric_vector() : 
+        //         std::vector<dealii::Tensor<2, dim>>();
+            
+        //     const unsigned int metric_size = dim * dim;
+            
+        //     // Collect local metric data
+        //     std::vector<double> local_cell_metric_data(n_local_cells * metric_size);
+        //     unsigned int idx = 0;
+        //     for (auto cell = tria.begin_active(); cell != tria.end(); ++cell) {
+        //         if (!cell->is_locally_owned()) continue;
+                
+        //         const unsigned int cell_index = cell->active_cell_index();
+        //         const dealii::Tensor<2, dim>& metric = 
+        //             (cell_index < original_metrics.size()) ? 
+        //             original_metrics[cell_index] : 
+        //             dealii::Tensor<2, dim>(dealii::unit_symmetric_tensor<dim>());
+                
+        //         for (int i = 0; i < dim; ++i) {
+        //             for (int j = 0; j < dim; ++j) {
+        //                 local_cell_metric_data[idx++] = metric[i][j];
+        //             }
+        //         }
+        //     }
+            
+        //     // Gather metric data
+        //     std::vector<double> all_cell_metric_data;
+            
+        //     if (mpi_rank == 0) {
+        //         std::vector<int> metric_recvcounts(n_mpi), metric_displs(n_mpi, 0);
+        //         for (int r = 0; r < n_mpi; ++r) {
+        //             metric_recvcounts[r] = cell_counts[r] * metric_size;
+        //         }
+        //         for (int r = 1; r < n_mpi; ++r) {
+        //             metric_displs[r] = metric_displs[r - 1] + metric_recvcounts[r - 1];
+        //         }
+        //         all_cell_metric_data.resize(total_cells * metric_size);
+                
+        //         MPI_Gatherv(local_cell_metric_data.data(), local_cell_metric_data.size(), MPI_DOUBLE,
+        //                     all_cell_metric_data.data(), metric_recvcounts.data(), metric_displs.data(), 
+        //                     MPI_DOUBLE, 0, mpi_communicator);
+        //     } else {
+        //         MPI_Gatherv(local_cell_metric_data.data(), local_cell_metric_data.size(), MPI_DOUBLE,
+        //                     nullptr, nullptr, nullptr, MPI_DOUBLE, 0, mpi_communicator);
+        //     }
+
+        //     // --- SERIAL OUTPUT ON RANK 0 ---
+        //     if (mpi_rank == 0) {
+        //         // Build CellData structure
+        //         std::vector<dealii::CellData<dim>> cells(total_cells);
+        //         for (unsigned int c = 0; c < total_cells; ++c) {
+        //             for (unsigned int v = 0; v < verts_per_cell; ++v) {
+        //                 cells[c].vertices[v] = all_cell_vertex_data[c * verts_per_cell + v];
+        //             }
+        //             cells[c].material_id = 0;
+        //         }
+
+        //         // Reconstruct metric tensors
+        //         std::vector<dealii::Tensor<2, dim>> serial_metrics(total_cells);
+        //         for (unsigned int c = 0; c < total_cells; ++c) {
+        //             unsigned int offset = c * metric_size;
+        //             for (int i = 0; i < dim; ++i) {
+        //                 for (int j = 0; j < dim; ++j) {
+        //                     serial_metrics[c][i][j] = all_cell_metric_data[offset++];
+        //                 }
+        //             }
+        //         }
+
+        //         // Create serial triangulation
+        //         dealii::Triangulation<dim> serial_tria;
+        //         serial_tria.create_triangulation(unique_vertices, cells, dealii::SubCellData());
+
+        //         // Create serial DoFHandler
+        //         dealii::DoFHandler<dim> serial_dof_handler(serial_tria);
+        //         dealii::FESystem<dim> fe(dealii::FE_DGQ<dim>(flow_solver->dg->max_degree), nstate);
+        //         serial_dof_handler.distribute_dofs(fe);
+
+        //         // Write mesh and metric field
+        //         std::ofstream out_msh(filename);
+        //         out_msh << std::scientific << std::setprecision(16);
+        //         PHiLiP::GridRefinement::MshOut<dim, double> msh_out(serial_dof_handler);
+        //         msh_out.add_data_vector(serial_metrics, 
+        //                             PHiLiP::GridRefinement::StorageType::element, 
+        //                             "metric");
+        //         msh_out.write_msh(out_msh);
+
+        //         pcout << "Mesh written successfully: " << unique_vertices.size() << " vertices, "
+        //             << total_cells << " cells" << std::endl;
+        //     }
+
+        //     MPI_Barrier(mpi_communicator);
+        // }
 
 
         template <int dim, int nstate>
@@ -1111,110 +1054,7 @@ namespace PHiLiP {
             const double x_tolerance,
             const double min_distance_between_nodes) const
         {
-            pcout << "\nExtracting shock nodes from: " << msh_filename << std::endl;
-            
-
-            auto expected_x = [](double y) { return -0.4*y*y + 0.4*y + 0.375; ; };
-            
-            std::vector<dealii::Point<dim>> shock_nodes;
-            
-            // Read and parse the .msh file
-            std::ifstream msh_file(msh_filename);
-            if (!msh_file.is_open()) {
-                pcout << "ERROR: Cannot open file " << msh_filename << std::endl;
-                return;
-            }
-            
-            std::string line;
-            
-            // Skip to $Nodes section
-            while (std::getline(msh_file, line)) {
-                if (line == "$Nodes") break;
-            }
-            
-            // Read node header: numEntityBlocks numNodes minNodeTag maxNodeTag
-            std::getline(msh_file, line);
-            std::istringstream header_stream(line);
-            int num_entity_blocks, num_nodes, min_tag, max_tag;
-            header_stream >> num_entity_blocks >> num_nodes >> min_tag >> max_tag;
-            
-            pcout << "  Total nodes in mesh: " << num_nodes << std::endl;
-            
-            // Read entity blocks
-            for (int block = 0; block < num_entity_blocks; ++block) {
-                // Read entity header: entityDim entityTag parametric numNodesInBlock
-                std::getline(msh_file, line);
-                std::istringstream entity_stream(line);
-                int entity_dim, entity_tag, parametric, num_nodes_block;
-                entity_stream >> entity_dim >> entity_tag >> parametric >> num_nodes_block;
-                
-                // Read node tags
-                std::vector<int> node_tags(num_nodes_block);
-                for (int i = 0; i < num_nodes_block; ++i) {
-                    std::getline(msh_file, line);
-                    node_tags[i] = std::stoi(line);
-                }
-                
-                // Read node coordinates
-                for (int i = 0; i < num_nodes_block; ++i) {
-                    std::getline(msh_file, line);
-                    std::istringstream coord_stream(line);
-                    double x, y, z;
-                    coord_stream >> x >> y >> z;
-                    
-                    // Check if node is near the shock curve
-                    const double x_expected = expected_x(y);
-                    const double dx = std::abs(x - x_expected);
-                    
-                    if (dx <= x_tolerance) {
-                        shock_nodes.push_back(dealii::Point<dim>(x, y));
-                        pcout << "    Found shock node at (" << x << ", " << y 
-                            << "), expected_x = " << x_expected 
-                            << ", error = " << dx << std::endl;
-                    }
-                }
-            }
-            
-            msh_file.close();
-            
-            pcout << "  Found " << shock_nodes.size() << " nodes near shock (before filtering)" << std::endl;
-            
-            // Remove nodes that are too close to each other
-            std::vector<dealii::Point<dim>> filtered_nodes;
-            for (const auto& node : shock_nodes) {
-                bool too_close = false;
-                for (const auto& existing : filtered_nodes) {
-                    if (node.distance(existing) < min_distance_between_nodes) {
-                        too_close = true;
-                        break;
-                    }
-                }
-                if (!too_close) {
-                    filtered_nodes.push_back(node);
-                }
-            }
-            
-            pcout << "  After filtering: " << filtered_nodes.size() << " nodes" << std::endl;
-            
-            // Sort nodes by y-coordinate for better organization
-            std::sort(filtered_nodes.begin(), filtered_nodes.end(),
-                    [](const dealii::Point<dim>& a, const dealii::Point<dim>& b) {
-                        return a[1] < b[1];  // Sort by y
-                    });
-            
-            // Write to output file (only on rank 0 for MPI)
-            if (dealii::Utilities::MPI::this_mpi_process(mpi_communicator) == 0) {
-                std::ofstream out_file(output_txt_filename);
-                out_file << std::setprecision(16) << std::scientific;
-                
-                for (const auto& node : filtered_nodes) {
-                    out_file << node[0] << " " << node[1] << "\n";
-                }
-                
-                out_file.close();
-                pcout << "  Wrote " << filtered_nodes.size() << " shock nodes to " 
-                    << output_txt_filename << std::endl;
-            }
+            pcout << "Extracting shock nodes from mesh file: " << msh_filename << std::endl;
         }
 
 
@@ -1246,7 +1086,7 @@ namespace PHiLiP {
             pcout << "Initial solve completed." << std::endl;
 
             // Outer loop parameters
-            const unsigned int max_outer_loops = 8;
+            const unsigned int max_outer_loops = 1;
 
             // Main outer loop: alternates between optimization and mesh reconstruction
             for (unsigned int outer_loop = 0; outer_loop < max_outer_loops; ++outer_loop)
@@ -1267,17 +1107,8 @@ namespace PHiLiP {
                 std::vector<double> functional_error_vector;
                 std::vector<unsigned int> n_cycle_vector;
                 std::vector<unsigned int> n_dofs_vector;
-                flow_solver->dg->output_results_vtk(outer_loop * 10 + 1, 0.0); 
-                // if (outer_loop == 4) {                
-                //     bool adaptation_success = run_adaptation_loop(flow_solver, param,
-                //     param.mesh_adaptation_param.total_mesh_adaptation_cycles,
-                //     functional_error_vector, n_dofs_vector, n_cycle_vector, 
-                //     outer_loop + 1, "l2_vs_dofs.txt");
+                // flow_solver->dg->output_results_vtk(outer_loop * 10 + 1, 0.0); 
 
-                //     if (!adaptation_success) {
-                //         pcout << "\nAdaptation stopped, proceeding to LpCVT reconstruction." << std::endl;
-                //     }
-                // }
                 bool adaptation_success = run_adaptation_loop(flow_solver, param,
                     param.mesh_adaptation_param.total_mesh_adaptation_cycles,
                     functional_error_vector, n_dofs_vector, n_cycle_vector, 
@@ -1286,17 +1117,18 @@ namespace PHiLiP {
                 if (!adaptation_success) {
                     pcout << "\nAdaptation stopped, proceeding to LpCVT reconstruction." << std::endl;
                 }
+
                 flow_solver->run(); // Final solve after adaptation
                 flow_solver->dg->output_results_vtk(outer_loop * 10 + 2, 0.0);
-                // std::array<double, nstate> l2_errors_after = evaluate_L2_error_norm(flow_solver->dg);
-                // pcout << "  L2 Errors at outer loop #" << outer_loop + 1 << " end : ";
-                // for (unsigned int s = 0; s < nstate; ++s) {
-                //     pcout << l2_errors_after[s] << " ";
-                // }
-                // pcout << std::endl;
+
+                std::array<double, nstate> l2_errors_after = evaluate_L2_error_norm(flow_solver->dg);
+                pcout << "  L2 Errors at outer loop #" << outer_loop + 1 << " end : ";
+                for (unsigned int s = 0; s < nstate; ++s) {
+                    pcout << l2_errors_after[s] << " ";
+                }
+                pcout << std::endl;
 
                 // Step 2: Extract metric field from current solution
-                // This computes the anisotropic metric tensor that guides mesh generation
                 MetricData metric_data = extract_metric_field(flow_solver, outer_loop, param);
 
                 if (!metric_data.valid) {
@@ -1312,10 +1144,6 @@ namespace PHiLiP {
 
                 const double x_tolerance = 0.01;  // Tolerance for distance from shock curve
                 const double min_node_spacing = 0.01;  // Minimum distance between output nodes
-                extract_shock_nodes_from_msh(background_mesh_filename, 
-                                            "shock_vertices.txt",
-                                            x_tolerance,
-                                            min_node_spacing);
 
                 // Step 4: Call external LpCVT Python solver
                 // This generates a new optimal mesh based on the metric field
@@ -1409,10 +1237,6 @@ namespace PHiLiP {
 
                 // Step 6: Create new flow solver with interpolated solution on new mesh
                 pcout << "\n--- Setting up flow solver on new mesh ---" << std::endl;
-
-                // // Create fresh flow solver instance
-                // flow_solver = FlowSolver::FlowSolverFactory<dim, nstate>::select_flow_case(
-                //     &param, parameter_handler);
 
                 // Replace its DG with our interpolated one
                 flow_solver->dg = new_dg;

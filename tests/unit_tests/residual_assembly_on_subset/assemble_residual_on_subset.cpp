@@ -232,7 +232,7 @@ int main (int argc, char * argv[])
                 pcout << "Using " << pde_name[ipde] << std::endl;
                 all_parameters.pde_type = *pde;
                 all_parameters.use_weak_form = false;
-
+                all_parameters.use_inverse_mass_on_the_fly = true;
                 using ODEEnum = Parameters::ODESolverParam::ODESolverEnum;
                 all_parameters.ode_solver_param.ode_solver_type = ODEEnum::runge_kutta_solver; // Set as runge_kutta to supress an abort.
                 // Generate grids

@@ -519,9 +519,26 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
         pcout<<"ERROR: Implicit does not currently work for strong form. Aborting..."<<std::endl;
         std::abort();
     }
-
-
-    const bool current_cell_is_in_active_cell_group = cell_is_in_active_cell_group(current_cell_index,active_cell_group_ID);
+    bool calculate_aux_solution_neighbor = false;
+    if (compute_auxiliary_right_hand_side) {
+        for (unsigned int iface=0; iface < dealii::GeometryInfo<dim>::faces_per_cell; ++iface) {
+            auto current_face = current_cell->face(iface);
+            if (current_face->at_boundary()) continue;
+            const auto neighbor_cell = current_cell->has_periodic_neighbor(iface) ? current_cell->periodic_neighbor(iface) : current_cell->neighbor(iface);
+            if (current_face->has_children()) {
+                unsigned int n_subface = dealii::GeometryInfo<dim>::n_subfaces(current_cell->subface_case(iface));
+                for (unsigned int curr_i_subface = 0; curr_i_subface < n_subface; ++curr_i_subface) {
+                    const dealii::types::global_dof_index neighbor_cell_index = current_cell->neighbor_child_on_subface(iface, curr_i_subface)->active_cell_index();
+                    calculate_aux_solution_neighbor |= cell_is_in_active_cell_group(neighbor_cell_index, active_cell_group_ID);
+                }
+            }
+            else {
+                const dealii::types::global_dof_index neighbor_cell_index = neighbor_cell->active_cell_index();
+                calculate_aux_solution_neighbor |= cell_is_in_active_cell_group(neighbor_cell_index, active_cell_group_ID);
+            }
+        }
+    }
+    const bool current_cell_is_in_active_cell_group = cell_is_in_active_cell_group(current_cell_index,active_cell_group_ID) | calculate_aux_solution_neighbor;
 
     if (current_cell_is_in_active_cell_group) {
         // Assemble the volume term if the current cell is active.
@@ -738,7 +755,8 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
             const auto neighbor_cell = current_cell->neighbor(iface);
             const dealii::types::global_dof_index neighbor_cell_index = neighbor_cell->active_cell_index();
             const unsigned int neighbor_iface = current_cell->neighbor_face_no(iface);
-            const bool neighbor_cell_is_in_active_cell_group = cell_is_in_active_cell_group(neighbor_cell_index, active_cell_group_ID);
+            const bool neighbor_cell_is_in_active_cell_group = compute_auxiliary_right_hand_side ?
+                                                                current_cell_is_in_active_cell_group | cell_is_in_active_cell_group(neighbor_cell_index, active_cell_group_ID): cell_is_in_active_cell_group(neighbor_cell_index, active_cell_group_ID);
 
 
             // Find corresponding subface
@@ -1499,7 +1517,6 @@ void DGBase<dim,real,MeshType>::assemble_residual (const bool compute_dRdW, cons
         d2RdWdX.compress(dealii::VectorOperation::add);
     }
     //if ( compute_dRdW ) system_matrix.compress(dealii::VectorOperation::insert);
-    //system_matrix.print(std::cout);
 
 } // end of assemble_system_explicit ()
 

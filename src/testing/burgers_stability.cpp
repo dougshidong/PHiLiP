@@ -143,7 +143,7 @@ int BurgersEnergyStability<dim, nspecies, nstate>::run_test() const
         all_parameters_new.ode_solver_param.initial_time_step =  0.0001;
         
         //allocate dg
-        std::shared_ptr < PHiLiP::DGBase<dim, double> > dg = PHiLiP::DGFactory<dim,double>::create_discontinuous_galerkin(&all_parameters_new, poly_degree, poly_degree, grid_degree, grid);
+        std::shared_ptr < PHiLiP::DGBase<dim, double> > dg = PHiLiP::DGFactory<dim,nspecies,double>::create_discontinuous_galerkin(&all_parameters_new, poly_degree, poly_degree, grid_degree, grid);
         pcout << "dg created" <<std::endl;
         dg->allocate_system (false,false,false);
          

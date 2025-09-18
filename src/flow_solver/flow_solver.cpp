@@ -40,7 +40,7 @@ FlowSolver<dim, nspecies, nstate>::FlowSolver(
 , do_output_solution_at_fixed_times(ode_param.output_solution_at_fixed_times)
 , number_of_fixed_times_to_output_solution(ode_param.number_of_fixed_times_to_output_solution)
 , output_solution_at_exact_fixed_times(ode_param.output_solution_at_exact_fixed_times)
-, dg(DGFactory<dim,double>::create_discontinuous_galerkin(&all_param, poly_degree, flow_solver_param.max_poly_degree_for_adaptation, grid_degree, flow_solver_case->generate_grid()))
+, dg(DGFactory<dim,nspecies,double>::create_discontinuous_galerkin(&all_param, poly_degree, flow_solver_param.max_poly_degree_for_adaptation, grid_degree, flow_solver_case->generate_grid()))
 {
     flow_solver_case->set_higher_order_grid(dg);
     if (ode_param.allocate_matrix_dRdW) {

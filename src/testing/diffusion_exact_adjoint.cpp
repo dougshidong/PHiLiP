@@ -453,8 +453,8 @@ int DiffusionExactAdjoint<dim,nspecies,nstate>::run_test() const
 
             // since a different grid is constructed each time, need to also generate a new DG
             // I don't think this would work outside loop since grid.clear() req's no subscriptors
-            std::shared_ptr < DGBase<dim, double> > dg_u = DGFactory<dim,double>::create_discontinuous_galerkin(&param, poly_degree, grid);
-            std::shared_ptr < DGBase<dim, double> > dg_v = DGFactory<dim,double>::create_discontinuous_galerkin(&param, poly_degree, grid);
+            std::shared_ptr < DGBase<dim, double> > dg_u = DGFactory<dim,nspecies,double>::create_discontinuous_galerkin(&param, poly_degree, grid);
+            std::shared_ptr < DGBase<dim, double> > dg_v = DGFactory<dim,nspecies,double>::create_discontinuous_galerkin(&param, poly_degree, grid);
 
             // casting to dg state    
             std::shared_ptr< DGBaseState<dim,nstate,double> > dg_state_u = std::dynamic_pointer_cast< DGBaseState<dim,nstate,double> >(dg_u);

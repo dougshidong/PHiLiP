@@ -119,7 +119,7 @@ int GridRefinementStudy<dim,nspecies,nstate,MeshType>::run_test() const
 
         // generate DG
         std::shared_ptr< DGBase<dim, double, MeshType> > dg 
-            = DGFactory<dim,double,MeshType>::create_discontinuous_galerkin(
+            = DGFactory<dim,nspecies,double,MeshType>::create_discontinuous_galerkin(
                 &param, 
                 poly_degree,
                 poly_degree_max,
@@ -474,7 +474,7 @@ double GridRefinementStudy<dim,nspecies,nstate,MeshType>::approximate_exact_func
     // building the discontinuous galerkin solver
     std::cout << "Creating fine dg." << std::endl;
     std::shared_ptr< DGBase<dim, double, MeshType> > dg_fine = 
-        DGFactory<dim,double,MeshType>::create_discontinuous_galerkin(
+        DGFactory<dim,nspecies,double,MeshType>::create_discontinuous_galerkin(
             &param, 
             poly_degree,
             poly_degree_max,

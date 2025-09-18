@@ -126,7 +126,7 @@ int test(const unsigned int nx_ffd)
         grid->clear();
         Grids::gaussian_bump(*grid, n_subdivisions, CHANNEL_LENGTH, CHANNEL_HEIGHT, 0.5*BUMP_HEIGHT);
         // Create DG object
-        std::shared_ptr < DGBase<dim, double> > dg = DGFactory<dim,double>::create_discontinuous_galerkin(&param, POLY_DEGREE, POLY_DEGREE, MESH_DEGREE, grid);
+        std::shared_ptr < DGBase<dim, double> > dg = DGFactory<dim,nspecies,double>::create_discontinuous_galerkin(&param, POLY_DEGREE, POLY_DEGREE, MESH_DEGREE, grid);
 
         // Initialize coarse grid solution with free-stream
         dg->allocate_system ();
@@ -183,7 +183,7 @@ int test(const unsigned int nx_ffd)
     ffd_design_variables.update_ghost_values();
 
     // Create DG object
-    std::shared_ptr < DGBase<dim, double> > dg = DGFactory<dim,double>::create_discontinuous_galerkin(&param, POLY_DEGREE, grid);
+    std::shared_ptr < DGBase<dim, double> > dg = DGFactory<dim,nspecies,double>::create_discontinuous_galerkin(&param, POLY_DEGREE, grid);
 
     // Initialize coarse grid solution with free-stream
     dg->allocate_system ();

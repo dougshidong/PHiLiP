@@ -147,7 +147,7 @@ int AdvectionPeriodic<dim, nspecies, nstate>::run_test() const
         std::cout << "cells " <<n_global_active_cells2 <<  std::endl;
 
         //Set the DG spatial sys
-        std::shared_ptr < PHiLiP::DGBase<dim, double> > dg = PHiLiP::DGFactory<dim,double>::create_discontinuous_galerkin(&all_parameters_new, poly_degree, poly_degree, grid_degree, grid);
+        std::shared_ptr < PHiLiP::DGBase<dim, double> > dg = PHiLiP::DGFactory<dim,nspecies,double>::create_discontinuous_galerkin(&all_parameters_new, poly_degree, poly_degree, grid_degree, grid);
         dg->allocate_system (false,false,false);
 
         std::cout << "Implement initial conditions" << std::endl;

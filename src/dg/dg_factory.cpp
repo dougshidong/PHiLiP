@@ -4,9 +4,9 @@
 
 namespace PHiLiP {
 
-template <int dim, typename real, typename MeshType>
+template <int dim, int nspecies, typename real, typename MeshType>
 std::shared_ptr< DGBase<dim,real,MeshType> >
-DGFactory<dim,real,MeshType>
+DGFactory<dim,nspecies,real,MeshType>
 ::create_discontinuous_galerkin(
     const Parameters::AllParameters *const parameters_input,
     const unsigned int degree,
@@ -43,13 +43,9 @@ DGFactory<dim,real,MeshType>
         } else if (pde_type == PDE_enum::inviscid_real_gas) {
             return std::make_shared< DGWeak<dim,dim+2,real,MeshType> >(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input);
         } else if (pde_type == PDE_enum::real_gas) {
-            // TO DO: will need to modify the nstate; i suggest adding it as a compile time constant; eg PHiLiP_2D_10species then nstate=(nspecies-1)+dim+2
-            // TO DO: modify this when you change number of species
-            return std::make_shared< DGWeak<dim,dim+2+2-1,real,MeshType> >(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input); // TO DO:  N_SPECIES
+            return std::make_shared< DGWeak<dim,dim+2+(nspecies-1),real,MeshType> >(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input); // TO DO:  N_SPECIES
         } else if (pde_type == PDE_enum::multi_species_calorically_perfect_euler) {
-            // TO DO: will need to modify the nstate; i suggest adding it as a compile time constant; eg PHiLiP_2D_10species then nstate=(nspecies-1)+dim+2
-            // TO DO: modify this when you change number of species
-            return std::make_shared< DGWeak<dim,dim+2+2-1,real,MeshType> >(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input); // TO DO:  N_SPECIES
+            return std::make_shared< DGWeak<dim,dim+2+(nspecies-1),real,MeshType> >(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input); // TO DO:  N_SPECIES
         } else if ((pde_type == PDE_enum::physics_model) && (model_type == Model_enum::reynolds_averaged_navier_stokes) && (rans_model_type == RANSModel_enum::SA_negative)) {
             return std::make_shared< DGWeak<dim,dim+3,real,MeshType> >(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input);
         }
@@ -80,13 +76,9 @@ DGFactory<dim,real,MeshType>
         } else if (pde_type == PDE_enum::inviscid_real_gas) {
             return std::make_shared< DGStrong<dim,dim+2,real,MeshType> >(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input);
         } else if (pde_type == PDE_enum::real_gas) {
-            // TO DO: will need to modify the nstate; i suggest adding it as a compile time constant; eg PHiLiP_2D_10species then nstate=(nspecies-1)+dim+2
-            // TO DO: modify this when you change number of species
-            return std::make_shared< DGStrong<dim,dim+2+2-1,real,MeshType> >(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input); // TO DO: N_SPECIES
+            return std::make_shared< DGStrong<dim,dim+2+(nspecies-1),real,MeshType> >(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input); // TO DO: N_SPECIES
         } else if (pde_type == PDE_enum::multi_species_calorically_perfect_euler) {
-            // TO DO: will need to modify the nstate; i suggest adding it as a compile time constant; eg PHiLiP_2D_10species then nstate=(nspecies-1)+dim+2
-            // TO DO: modify this when you change number of species
-            return std::make_shared< DGStrong<dim,dim+2+2-1,real,MeshType> >(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input); // TO DO: N_SPECIES        
+            return std::make_shared< DGStrong<dim,dim+2+(nspecies-1),real,MeshType> >(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input); // TO DO: N_SPECIES        
         } else if ((pde_type == PDE_enum::physics_model) && (model_type == Model_enum::reynolds_averaged_navier_stokes) && (rans_model_type == RANSModel_enum::SA_negative)) {
             return std::make_shared< DGStrong<dim,dim+3,real,MeshType> >(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input);
         }
@@ -100,9 +92,9 @@ DGFactory<dim,real,MeshType>
     return nullptr;
 }
 
-template <int dim, typename real, typename MeshType>
+template <int dim, int nspecies, typename real, typename MeshType>
 std::shared_ptr< DGBase<dim,real,MeshType> >
-DGFactory<dim,real,MeshType>
+DGFactory<dim,nspecies,real,MeshType>
 ::create_discontinuous_galerkin(
     const Parameters::AllParameters *const parameters_input,
     const unsigned int degree,
@@ -112,9 +104,9 @@ DGFactory<dim,real,MeshType>
     return create_discontinuous_galerkin(parameters_input, degree, max_degree_input, degree+1, triangulation_input);
 }
 
-template <int dim, typename real, typename MeshType>
+template <int dim, int nspecies, typename real, typename MeshType>
 std::shared_ptr< DGBase<dim,real,MeshType> >
-DGFactory<dim,real,MeshType>
+DGFactory<dim,nspecies,real,MeshType>
 ::create_discontinuous_galerkin(
     const Parameters::AllParameters *const parameters_input,
     const unsigned int degree,
@@ -123,10 +115,10 @@ DGFactory<dim,real,MeshType>
     return create_discontinuous_galerkin(parameters_input, degree, degree, triangulation_input);
 }
 
-template class DGFactory <PHILIP_DIM, double, dealii::Triangulation<PHILIP_DIM>>;
-template class DGFactory <PHILIP_DIM, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+template class DGFactory <PHILIP_DIM, PHILIP_SPECIES, double, dealii::Triangulation<PHILIP_DIM>>;
+template class DGFactory <PHILIP_DIM, PHILIP_SPECIES, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
 #if PHILIP_DIM!=1
-template class DGFactory <PHILIP_DIM, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+template class DGFactory <PHILIP_DIM, PHILIP_SPECIES, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
 #endif
 
 } // PHiLiP namespace

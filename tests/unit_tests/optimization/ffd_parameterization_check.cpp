@@ -5,6 +5,7 @@
 #include "mesh/grids/gaussian_bump.h"
 
 const int dim = 2;
+const int nspecies = 1;
 const int nstate = 4;
 const int POLY_DEGREE = 2;
 const int MESH_DEGREE = POLY_DEGREE+1;
@@ -49,7 +50,7 @@ int main (int argc, char * argv[])
     
 
     // Create DG object
-    std::shared_ptr < DGBase<dim, double> > dg = DGFactory<dim,double>::create_discontinuous_galerkin(&all_parameters, POLY_DEGREE, POLY_DEGREE, MESH_DEGREE, grid);
+    std::shared_ptr < DGBase<dim, double> > dg = DGFactory<dim,nspecies,double>::create_discontinuous_galerkin(&all_parameters, POLY_DEGREE, POLY_DEGREE, MESH_DEGREE, grid);
     dg->allocate_system ();
     VectorType initial_vol_nodes = dg->high_order_grid->volume_nodes;
     

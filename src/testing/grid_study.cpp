@@ -209,7 +209,7 @@ int GridStudy<dim,nspecies,nstate>
             }
         }
 
-        std::shared_ptr < DGBase<dim, double> > dg_super_fine = DGFactory<dim,double>::create_discontinuous_galerkin(&param, p_end, grid_super_fine);
+        std::shared_ptr < DGBase<dim, double> > dg_super_fine = DGFactory<dim,nspecies,double>::create_discontinuous_galerkin(&param, p_end, grid_super_fine);
         dg_super_fine->allocate_system ();
 
         initialize_perturbed_solution(*dg_super_fine, *physics_double);
@@ -364,7 +364,7 @@ int GridStudy<dim,nspecies,nstate>
             using FadType = Sacado::Fad::DFad<double>;
 
             // Create DG object using the factory
-            std::shared_ptr < DGBase<dim, double> > dg = DGFactory<dim,double>::create_discontinuous_galerkin(&param, poly_degree, grid);
+            std::shared_ptr < DGBase<dim, double> > dg = DGFactory<dim,nspecies,double>::create_discontinuous_galerkin(&param, poly_degree, grid);
             dg->allocate_system ();
             //dg->evaluate_inverse_mass_matrices();
             //

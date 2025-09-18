@@ -69,7 +69,7 @@ int EulerTaylorGreenScaling<dim, nspecies, nstate>::run_test() const
         }
          
         // Create DG
-        std::shared_ptr < PHiLiP::DGBase<dim, double> > dg = PHiLiP::DGFactory<dim,double>::create_discontinuous_galerkin(&all_parameters_new, poly_degree, poly_degree, grid_degree, grid);
+        std::shared_ptr < PHiLiP::DGBase<dim, double> > dg = PHiLiP::DGFactory<dim,nspecies,double>::create_discontinuous_galerkin(&all_parameters_new, poly_degree, poly_degree, grid_degree, grid);
         dg->allocate_system (false,false,false);
          
         //Apply initial condition for TGV
@@ -151,7 +151,7 @@ int EulerTaylorGreenScaling<dim, nspecies, nstate>::run_test() const
     pcout<<"Checking that it does not run out of memory for poly degree "<<poly_degree<<std::endl;
     // For curvilinear cases, check allocation in high order grid.
     // Create DG
-    std::shared_ptr < PHiLiP::DGBase<dim, double> > dg = PHiLiP::DGFactory<dim,double>::create_discontinuous_galerkin(&all_parameters_new, poly_degree, poly_degree, grid_degree, grid);
+    std::shared_ptr < PHiLiP::DGBase<dim, double> > dg = PHiLiP::DGFactory<dim,nspecies,double>::create_discontinuous_galerkin(&all_parameters_new, poly_degree, poly_degree, grid_degree, grid);
     try{
         dg->allocate_system (false,false,false);
          

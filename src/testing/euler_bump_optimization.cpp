@@ -260,7 +260,7 @@ int EulerBumpOptimization<dim,nspecies,nstate>
         grid->clear();
         Grids::gaussian_bump(*grid, n_subdivisions, CHANNEL_LENGTH, CHANNEL_HEIGHT, 0.5*BUMP_HEIGHT);
         // Create DG object
-        std::shared_ptr < DGBase<dim, double> > dg = DGFactory<dim,double>::create_discontinuous_galerkin(&param, poly_degree, grid);
+        std::shared_ptr < DGBase<dim, double> > dg = DGFactory<dim,nspecies,double>::create_discontinuous_galerkin(&param, poly_degree, grid);
 
         // Initialize coarse grid solution with free-stream
         dg->allocate_system ();
@@ -289,7 +289,7 @@ int EulerBumpOptimization<dim,nspecies,nstate>
         ffd.set_design_variables( ffd_design_variables_indices_dim, ffd_design_variables);
 
         // Initialize flow solution with free-stream
-        std::shared_ptr < DGBase<dim, double> > dg = DGFactory<dim,double>::create_discontinuous_galerkin(&param, poly_degree, grid);
+        std::shared_ptr < DGBase<dim, double> > dg = DGFactory<dim,nspecies,double>::create_discontinuous_galerkin(&param, poly_degree, grid);
         dg->allocate_system ();
         dealii::VectorTools::interpolate(dg->dof_handler, initial_conditions, dg->solution);
         // Create ODE solver and ramp up the solution from p0
@@ -371,7 +371,7 @@ int EulerBumpOptimization<dim,nspecies,nstate>
     ffd.set_design_variables( ffd_design_variables_indices_dim, ffd_design_variables);
 
     // Initialize flow solution with free-stream
-    std::shared_ptr < DGBase<dim, double> > dg = DGFactory<dim,double>::create_discontinuous_galerkin(&param, poly_degree, grid);
+    std::shared_ptr < DGBase<dim, double> > dg = DGFactory<dim,nspecies,double>::create_discontinuous_galerkin(&param, poly_degree, grid);
     dg->allocate_system ();
     dealii::VectorTools::interpolate(dg->dof_handler, initial_conditions, dg->solution);
     // Create ODE solver and ramp up the solution from p0

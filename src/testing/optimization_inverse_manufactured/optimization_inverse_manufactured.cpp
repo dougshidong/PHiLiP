@@ -361,7 +361,7 @@ int OptimizationInverseManufactured<dim,nspecies,nstate>
  }
 
  // Create DG from which we'll modify the HighOrderGrid
- std::shared_ptr < PHiLiP::DGBase<dim, double> > dg = PHiLiP::DGFactory<dim,double>::create_discontinuous_galerkin(all_parameters, poly_degree, grid);
+ std::shared_ptr < PHiLiP::DGBase<dim, double> > dg = PHiLiP::DGFactory<dim,nspecies,double>::create_discontinuous_galerkin(all_parameters, poly_degree, grid);
     dg->allocate_system ();
 
  std::shared_ptr<HighOrderGrid<dim,double>> high_order_grid = dg->high_order_grid;

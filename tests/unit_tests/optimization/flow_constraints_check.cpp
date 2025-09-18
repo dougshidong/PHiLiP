@@ -146,7 +146,7 @@ int test(const unsigned int nx_ffd)
     ffd.set_design_variables( ffd_design_variables_indices_dim, ffd_design_variables);
 
     // Create DG object
-    std::shared_ptr < DGBase<dim, double> > dg = DGFactory<dim,double>::create_discontinuous_galerkin(&param, POLY_DEGREE, grid);
+    std::shared_ptr < DGBase<dim, double> > dg = DGFactory<dim,nspecies,double>::create_discontinuous_galerkin(&param, POLY_DEGREE, grid);
     dg->allocate_system ();
 
     // Initialize coarse grid solution with free-stream

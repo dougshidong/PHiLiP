@@ -295,7 +295,7 @@ int Shock1D<dim,nspecies,nstate>
             grid->add_periodicity(matched_pairs);
 
             // Create DG object using the factory
-            //std::shared_ptr < DGBase<dim, double> > dg = DGFactory<dim,double>::create_discontinuous_galerkin(&param, poly_degree, grid);
+            //std::shared_ptr < DGBase<dim, double> > dg = DGFactory<dim,nspecies,double>::create_discontinuous_galerkin(&param, poly_degree, grid);
             std::shared_ptr dg = std::make_shared< DGWeak<dim,1,double> > (&param, poly_degree, poly_degree, poly_degree+1, grid);
             dg->set_physics(physics_double, physics_fad, physics_rad, physics_fad_fad, physics_rad_fad);
             dg->allocate_system ();

@@ -159,7 +159,9 @@ void RealGas<dim,nstate,real>
    std::array<real,nstate> &/*soln_bc*/,
    std::array<dealii::Tensor<1,dim,real>,nstate> &/*soln_grad_bc*/) const
 {
-    // Note: update this if you are using any kind of BC that is not periodic for multi-species gas 
+    // Note: update this if you are using any kind of BC that is not periodic for multi-species gas
+    std::cout<<"Boundary Conditions for RealGas hasn't been done yet."<<std::endl;
+    std::abort();
 }
 
 // Details of the following algorithms are presented in Liki's Master's thesis.
@@ -659,7 +661,9 @@ template <int dim, int nstate, typename real>
 inline real RealGas<dim,nstate,real>
 ::compute_sound ( const std::array<real,nstate> &conservative_soln ) const
 {
-    return conservative_soln[0]*0.0;
+    std::cout<<"Compute Sound for RealGas hasn't been done yet."<<std::endl;
+    std::abort();
+    return conservative_soln[0];
 }
 
 // Compute mixture solution vector (without species solution)

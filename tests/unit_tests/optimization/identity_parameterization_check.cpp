@@ -10,6 +10,7 @@ int main (int argc, char * argv[])
     dealii::ConditionalOStream pcout(std::cout, mpi_rank==0);
 
     const int dim = PHILIP_DIM;
+    const int nspecies = 1;
     AssertDimension(dim, 2);
 
     using namespace PHiLiP;   
@@ -31,7 +32,7 @@ int main (int argc, char * argv[])
     const unsigned int poly_degree = 2;
     const unsigned int grid_degree = 1;
 
-    std::shared_ptr < DGBase<dim, double> > dg = DGFactory<dim, double>::create_discontinuous_galerkin(&all_parameters, poly_degree,poly_degree, grid_degree, grid);
+    std::shared_ptr < DGBase<dim, double> > dg = DGFactory<dim, nspecies, double>::create_discontinuous_galerkin(&all_parameters, poly_degree,poly_degree, grid_degree, grid);
     dg->allocate_system();
 
 

@@ -58,6 +58,7 @@ int main(int argc, char *argv[])
 {
 
  const int dim = PHILIP_DIM;
+ const int nspecies = 1;
  const int nstate = 1;
  int fail_bool = false;
 
@@ -98,7 +99,7 @@ int main(int argc, char *argv[])
  pcout << "Grid generated and refined" << std::endl;
 
  // creating the dg
- std::shared_ptr < PHiLiP::DGBase<dim, double> > dg = PHiLiP::DGFactory<dim,double>::create_discontinuous_galerkin(&all_parameters, poly_degree, grid);
+ std::shared_ptr < PHiLiP::DGBase<dim, double> > dg = PHiLiP::DGFactory<dim,nspecies,double>::create_discontinuous_galerkin(&all_parameters, poly_degree, grid);
  pcout << "dg created" << std::endl;
 
  dg->allocate_system();

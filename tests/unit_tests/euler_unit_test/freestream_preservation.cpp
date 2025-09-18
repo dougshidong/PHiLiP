@@ -239,7 +239,7 @@ int test()
             // Update param with new overintegration parameter.
             param.parse_parameters (parameter_handler);
 
-            std::shared_ptr < DGBase<dim, double> > dg = DGFactory<dim,double>::create_discontinuous_galerkin(&param, POLY_DEGREE, POLY_DEGREE, GRID_DEGREE, grid);
+            std::shared_ptr < DGBase<dim, double> > dg = DGFactory<dim,nspecies,double>::create_discontinuous_galerkin(&param, POLY_DEGREE, POLY_DEGREE, GRID_DEGREE, grid);
             dg->allocate_system ();
             
             perturb_high_order_grid (dg, PERT_SIZE);

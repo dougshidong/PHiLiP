@@ -71,6 +71,7 @@ int main (int argc, char * argv[])
 
     all_parameters_new.use_curvilinear_split_form=true;
     const int dim_check = 0;
+    const int nspecies = 1;
     const int nstate = 1;
 
     double left = 0.0;
@@ -127,7 +128,7 @@ int main (int argc, char * argv[])
             all_parameters_new.use_periodic_bc = true;
             all_parameters_new.ode_solver_param.ode_solver_type = ODE_enum::runge_kutta_solver;//auxiliary only works explicit for now
             all_parameters_new.use_inverse_mass_on_the_fly = true;
-            std::shared_ptr < PHiLiP::DGBase<dim, double> > dg = PHiLiP::DGFactory<dim,double>::create_discontinuous_galerkin(&all_parameters_new, poly_degree, poly_degree, grid_degree, grid);
+            std::shared_ptr < PHiLiP::DGBase<dim, double> > dg = PHiLiP::DGFactory<dim,nspecies,double>::create_discontinuous_galerkin(&all_parameters_new, poly_degree, poly_degree, grid_degree, grid);
             pcout<<"going in allocate"<<std::endl;
             dg->allocate_system (false,false,false);
             if(!all_parameters_new.use_inverse_mass_on_the_fly){

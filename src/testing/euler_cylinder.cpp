@@ -167,7 +167,7 @@ int EulerCylinder<dim,nspecies,nstate>
         const int solution_degree = poly_degree;
         //const int grid_degree = std::max(2,solution_degree);
         const int grid_degree = solution_degree+1;
-        std::shared_ptr < DGBase<dim, double> > dg = DGFactory<dim,double>::create_discontinuous_galerkin(&param, solution_degree, solution_degree, grid_degree, grid);
+        std::shared_ptr < DGBase<dim, double> > dg = DGFactory<dim,nspecies,double>::create_discontinuous_galerkin(&param, solution_degree, solution_degree, grid_degree, grid);
 
         dg->allocate_system ();
         // Initialize coarse grid solution with free-stream

@@ -15,7 +15,7 @@ set(MPIMAX 4 CACHE STRING "Default number of processors used in ctest mpirun -np
 set(ENABLE_GMSH 0 CACHE STRING "Enable GMSH access through command lines and tests.")
 set(ENABLE_GNUPLOT 0 CACHE STRING "Enable Gnu Plot outputs.")
 
-set(NUMBER_OF_SPECIES 1 CACHE STRING "Set number of species. If set to >1 then ctest will not run.")
+set(NUMBER_OF_SPECIES 1 CACHE STRING "Set number of species. If set to >1 executables for tests will not be made.")
 
 find_package(Git QUIET)
 if(GIT_FOUND AND EXISTS "${PROJECT_SOURCE_DIR}/.git")

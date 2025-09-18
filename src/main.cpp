@@ -62,7 +62,7 @@ int main (int argc, char *argv[])
 
         const int max_dim = PHILIP_DIM;
         const int max_nspecies = PHILIP_SPECIES;
-        const int max_nstate = PHILIP_DIM + 2 + (PHILIP_SPECIES-1); // TO DO: you need to update this when you increase nspecies
+        const int max_nstate = PHILIP_DIM + 2 + (PHILIP_SPECIES-1);
         if(all_parameters.number_of_species == PHILIP_SPECIES) {
             if(all_parameters.run_type == PHiLiP::Parameters::AllParameters::RunType::flow_simulation) {
                 std::unique_ptr<PHiLiP::FlowSolver::FlowSolverBase> flow_solver = PHiLiP::FlowSolver::FlowSolverFactory<max_dim,max_nspecies,max_nstate>::create_flow_solver(&all_parameters,parameter_handler);

@@ -234,7 +234,7 @@ int EulerCylinderAdjoint<dim,nspecies,nstate>
         half_cylinder_adjoint(*grid, n_cells_circle, n_cells_radial);
 
         // Create DG object, using max_poly = p+1 to allow for adjoint computation
-        std::shared_ptr < DGBase<dim, double> > dg = DGFactory<dim,double>::create_discontinuous_galerkin(&param, poly_degree, poly_degree+1, grid);
+        std::shared_ptr < DGBase<dim, double> > dg = DGFactory<dim,nspecies,double>::create_discontinuous_galerkin(&param, poly_degree, poly_degree+1, grid);
 
         dg->allocate_system ();
         // Initialize coarse grid solution with free-stream

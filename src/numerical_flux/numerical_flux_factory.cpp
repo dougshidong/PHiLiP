@@ -1,3 +1,4 @@
+#include <boost/preprocessor/seq/for_each.hpp>
 #include "numerical_flux_factory.hpp"
 
 #include "convective_numerical_flux.hpp"
@@ -9,9 +10,9 @@ namespace NumericalFlux {
 
 using AllParam = Parameters::AllParameters;
 
-template <int dim, int nstate, typename real>
+template <int dim, int nspecies, int nstate, typename real>
 std::unique_ptr< NumericalFluxConvective<dim,nstate,real> >
-NumericalFluxFactory<dim, nstate, real>
+NumericalFluxFactory<dim, nspecies, nstate, real>
 ::create_convective_numerical_flux(
     const AllParam::ConvectiveNumericalFlux conv_num_flux_type,
     const AllParam::PartialDifferentialEquation pde_type,
@@ -65,9 +66,9 @@ NumericalFluxFactory<dim, nstate, real>
     return nullptr;
 }
 
-template <int dim, int nstate, typename real>
+template <int dim, int nspecies, int nstate, typename real>
 std::unique_ptr< NumericalFluxConvective<dim,nstate,real> >
-NumericalFluxFactory<dim, nstate, real>
+NumericalFluxFactory<dim, nspecies, nstate, real>
 ::create_euler_based_convective_numerical_flux(
     const AllParam::ConvectiveNumericalFlux conv_num_flux_type,
     const AllParam::PartialDifferentialEquation pde_type,
@@ -91,7 +92,7 @@ NumericalFluxFactory<dim, nstate, real>
         model_type==Model_enum::large_eddy_simulation)) 
     {
         if constexpr (dim+2==nstate) {
-            std::shared_ptr<Physics::PhysicsModel<dim,dim+2,real,dim+2>> physics_model = std::dynamic_pointer_cast<Physics::PhysicsModel<dim,dim+2,real,dim+2>>(physics_input);
+            std::shared_ptr<Physics::PhysicsModel<dim,nspecies,dim+2,real,dim+2>> physics_model = std::dynamic_pointer_cast<Physics::PhysicsModel<dim,nspecies,dim+2,real,dim+2>>(physics_input);
             std::shared_ptr<Physics::Euler<dim,dim+2,real>> physics_baseline = std::dynamic_pointer_cast<Physics::Euler<dim,dim+2,real>>(physics_model->physics_baseline);
             euler_based_physics_to_be_passed = physics_baseline;
         }
@@ -124,9 +125,9 @@ NumericalFluxFactory<dim, nstate, real>
     return nullptr;
 }
 
-template <int dim, int nstate, typename real>
+template <int dim, int nspecies, int nstate, typename real>
 std::unique_ptr< NumericalFluxDissipative<dim,nstate,real> >
-NumericalFluxFactory<dim, nstate, real>
+NumericalFluxFactory<dim, nspecies, nstate, real>
 ::create_dissipative_numerical_flux(
     const AllParam::DissipativeNumericalFlux diss_num_flux_type,
     std::shared_ptr <Physics::PhysicsBase<dim, nstate, real>> physics_input,
@@ -144,41 +145,28 @@ NumericalFluxFactory<dim, nstate, real>
     return nullptr;
 }
 
-template class NumericalFluxFactory<PHILIP_DIM, 1, double>;
-template class NumericalFluxFactory<PHILIP_DIM, 2, double>;
-template class NumericalFluxFactory<PHILIP_DIM, 3, double>;
-template class NumericalFluxFactory<PHILIP_DIM, 4, double>;
-template class NumericalFluxFactory<PHILIP_DIM, 5, double>;
-template class NumericalFluxFactory<PHILIP_DIM, 6, double>;
+// Define a sequence of indices representing the range [1, 8]
+#define POSSIBLE_NSTATE (1)(2)(3)(4)(5)(6)(7)(8)
 
-template class NumericalFluxFactory<PHILIP_DIM, 1, FadType >;
-template class NumericalFluxFactory<PHILIP_DIM, 2, FadType >;
-template class NumericalFluxFactory<PHILIP_DIM, 3, FadType >;
-template class NumericalFluxFactory<PHILIP_DIM, 4, FadType >;
-template class NumericalFluxFactory<PHILIP_DIM, 5, FadType >;
-template class NumericalFluxFactory<PHILIP_DIM, 6, FadType >;
+// Define a macro to instantiate MyTemplate for a specific index
+#define INSTANTIATE_DOUBLE(r, data, index) \
+    template class NumericalFluxFactory <PHILIP_DIM, PHILIP_SPECIES, index, double>;
+BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_DOUBLE, _, POSSIBLE_NSTATE)
 
-template class NumericalFluxFactory<PHILIP_DIM, 1, RadType >;
-template class NumericalFluxFactory<PHILIP_DIM, 2, RadType >;
-template class NumericalFluxFactory<PHILIP_DIM, 3, RadType >;
-template class NumericalFluxFactory<PHILIP_DIM, 4, RadType >;
-template class NumericalFluxFactory<PHILIP_DIM, 5, RadType >;
-template class NumericalFluxFactory<PHILIP_DIM, 6, RadType >;
+#define INSTANTIATE_FADTYPE(r, data, index) \
+    template class NumericalFluxFactory <PHILIP_DIM, PHILIP_SPECIES, index, FadType>;
+BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_FADTYPE, _, POSSIBLE_NSTATE)
 
-template class NumericalFluxFactory<PHILIP_DIM, 1, FadFadType >;
-template class NumericalFluxFactory<PHILIP_DIM, 2, FadFadType >;
-template class NumericalFluxFactory<PHILIP_DIM, 3, FadFadType >;
-template class NumericalFluxFactory<PHILIP_DIM, 4, FadFadType >;
-template class NumericalFluxFactory<PHILIP_DIM, 5, FadFadType >;
-template class NumericalFluxFactory<PHILIP_DIM, 6, FadFadType >;
+#define INSTANTIATE_RADTYPE(r, data, index) \
+    template class NumericalFluxFactory <PHILIP_DIM, PHILIP_SPECIES, index, RadType>;
+BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_RADTYPE, _, POSSIBLE_NSTATE)
 
-template class NumericalFluxFactory<PHILIP_DIM, 1, RadFadType >;
-template class NumericalFluxFactory<PHILIP_DIM, 2, RadFadType >;
-template class NumericalFluxFactory<PHILIP_DIM, 3, RadFadType >;
-template class NumericalFluxFactory<PHILIP_DIM, 4, RadFadType >;
-template class NumericalFluxFactory<PHILIP_DIM, 5, RadFadType >;
-template class NumericalFluxFactory<PHILIP_DIM, 6, RadFadType >;
+#define INSTANTIATE_FADFADTYPE(r, data, index) \
+    template class NumericalFluxFactory <PHILIP_DIM, PHILIP_SPECIES, index, FadFadType>;
+BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_FADFADTYPE, _, POSSIBLE_NSTATE)
 
-
+#define INSTANTIATE_RADFADTYPE(r, data, index) \
+    template class NumericalFluxFactory <PHILIP_DIM, PHILIP_SPECIES, index, RadFadType>;
+BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_RADFADTYPE, _, POSSIBLE_NSTATE)
 } // NumericalFlux namespace
 } // PHiLiP namespace

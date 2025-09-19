@@ -630,7 +630,7 @@ protected:
     real convert_primitive_to_conversative_value(const dealii::Point<dim,real> &point, const unsigned int istate = 0) const;
 
     // Euler physics pointer. Used to convert primitive to conservative.
-    std::shared_ptr < Physics::RealGas<dim, nstate, double > > real_gas_physics;
+    std::shared_ptr < Physics::RealGas<dim, nspecies, nstate, double > > real_gas_physics;
 };
 
 /// 1D Initial Condition Function: MultiSpecies_VortexAdvection 
@@ -666,7 +666,7 @@ protected:
     real convert_primitive_to_conversative_value(const dealii::Point<dim,real> &point, const unsigned int istate = 0) const;
 
     // Euler physics pointer. Used to convert primitive to conservative.
-    std::shared_ptr < Physics::RealGas<dim, nstate, double > > real_gas_physics;
+    std::shared_ptr < Physics::RealGas<dim, nspecies, nstate, double > > real_gas_physics;
 };
 
 /// 1D Initial Condition Function: MultiSpecies_HighTemperature_VortexAdvection 
@@ -702,7 +702,7 @@ protected:
     real convert_primitive_to_conversative_value(const dealii::Point<dim,real> &point, const unsigned int istate = 0) const;
 
     // Euler physics pointer. Used to convert primitive to conservative.
-    std::shared_ptr < Physics::RealGas<dim, nstate, double > > real_gas_physics;
+    std::shared_ptr < Physics::RealGas<dim, nspecies, nstate, double > > real_gas_physics;
 };
 
 /// Initial Condition Function: Euler_VortexAdvection
@@ -774,7 +774,7 @@ protected:
     real convert_primitive_to_conversative_value(const dealii::Point<dim,real> &point, const unsigned int istate = 0) const;
 
     // Euler physics pointer. Used to convert primitive to conservative.
-    std::shared_ptr < Physics::MultiSpeciesCaloricallyPerfect<dim, nstate, double > > multi_species_calorically_perfect_euler_physics;
+    std::shared_ptr < Physics::MultiSpeciesCaloricallyPerfect<dim, nspecies, nstate, double > > multi_species_calorically_perfect_euler_physics;
 };
 
 /// Initial Condition Function: MultiSpecies_IsentropicEulerVortex
@@ -810,7 +810,7 @@ protected:
     real convert_primitive_to_conversative_value(const dealii::Point<dim,real> &point, const unsigned int istate = 0) const;
 
     // Euler physics pointer. Used to convert primitive to conservative.
-    std::shared_ptr < Physics::RealGas<dim, nstate, double > > real_gas_physics;
+    std::shared_ptr < Physics::RealGas<dim, nspecies, nstate, double > > real_gas_physics;
 };
 
 /// 2D Initial Condition Function: MultiSpecies_TwoDimensional_VortexAdvection 
@@ -846,7 +846,7 @@ protected:
     real convert_primitive_to_conversative_value(const dealii::Point<dim,real> &point, const unsigned int istate = 0) const;
 
     // Euler physics pointer. Used to convert primitive to conservative.
-    std::shared_ptr < Physics::RealGas<dim, nstate, double > > real_gas_physics;
+    std::shared_ptr < Physics::RealGas<dim, nspecies, nstate, double > > real_gas_physics;
 };
 
 /// 2D Initial Condition Function: MultiSpecies_FuelDropAdvection 
@@ -882,7 +882,7 @@ protected:
     real convert_primitive_to_conversative_value(const dealii::Point<dim,real> &point, const unsigned int istate = 0) const;
 
     // Euler physics pointer. Used to convert primitive to conservative.
-    std::shared_ptr < Physics::RealGas<dim, nstate, double > > real_gas_physics;
+    std::shared_ptr < Physics::RealGas<dim, nspecies, nstate, double > > real_gas_physics;
 };
 
 /// 3D Initial Condition Function: MultiSpecies_ThreeDimensional_VortexAdvection 
@@ -918,7 +918,7 @@ protected:
     real convert_primitive_to_conversative_value(const dealii::Point<dim,real> &point, const unsigned int istate = 0) const;
 
     // Euler physics pointer. Used to convert primitive to conservative.
-    std::shared_ptr < Physics::RealGas<dim, nstate, double > > real_gas_physics;
+    std::shared_ptr < Physics::RealGas<dim, nspecies, nstate, double > > real_gas_physics;
 };
 
 /// 3D Initial Condition Function: MultiSpecies_TaylorGreenVortex
@@ -954,7 +954,7 @@ protected:
     real convert_primitive_to_conversative_value(const dealii::Point<dim,real> &point, const unsigned int istate = 0) const;
 
     // Euler physics pointer. Used to convert primitive to conservative.
-    std::shared_ptr < Physics::RealGas<dim, nstate, double > > real_gas_physics;
+    std::shared_ptr < Physics::RealGas<dim, nspecies, nstate, double > > real_gas_physics;
 };
 
 /// 3D Initial Condition Function: MultiSpecies_Mixture_TaylorGreenVortex
@@ -990,7 +990,7 @@ protected:
     real convert_primitive_to_conversative_value(const dealii::Point<dim,real> &point, const unsigned int istate = 0) const;
 
     // Euler physics pointer. Used to convert primitive to conservative.
-    std::shared_ptr < Physics::RealGas<dim, nstate, double > > real_gas_physics;
+    std::shared_ptr < Physics::RealGas<dim, nspecies, nstate, double > > real_gas_physics;
 };
 
 

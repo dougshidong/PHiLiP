@@ -48,59 +48,59 @@ real1 norm(const dealii::Tensor<1,dim,real1> x)
      return sqrt(val);
 }
 
-template <int dim, int nstate, typename real>
-TargetFunctional<dim,nstate,real>::TargetFunctional(
+template <int dim, int nspecies, int nstate, typename real>
+TargetFunctional<dim,nspecies,nstate,real>::TargetFunctional(
     std::shared_ptr<DGBase<dim,real>> _dg,
     const bool _uses_solution_values,
     const bool _uses_solution_gradient)
-    : Functional<dim,nstate,real>::Functional(_dg, _uses_solution_values, _uses_solution_gradient)
+    : Functional<dim,nspecies,nstate,real>::Functional(_dg, _uses_solution_values, _uses_solution_gradient)
     , target_solution(dg->solution)
 { 
     using FadType = Sacado::Fad::DFad<real>;
     using FadFadType = Sacado::Fad::DFad<FadType>;
-    physics_fad_fad = Physics::PhysicsFactory<dim,nstate,FadFadType>::create_Physics(dg->all_parameters);
+    physics_fad_fad = Physics::PhysicsFactory<dim,nspecies,nstate,FadFadType>::create_Physics(dg->all_parameters);
 }
 
-template <int dim, int nstate, typename real>
-TargetFunctional<dim,nstate,real>::TargetFunctional(
+template <int dim, int nspecies, int nstate, typename real>
+TargetFunctional<dim,nspecies,nstate,real>::TargetFunctional(
     std::shared_ptr<DGBase<dim,real>> _dg,
     const dealii::LinearAlgebra::distributed::Vector<real> &target_solution,
     const bool _uses_solution_values,
     const bool _uses_solution_gradient)
-    : Functional<dim,nstate,real>::Functional(_dg, _uses_solution_values, _uses_solution_gradient)
+    : Functional<dim,nspecies,nstate,real>::Functional(_dg, _uses_solution_values, _uses_solution_gradient)
     , target_solution(target_solution)
 { 
     using FadType = Sacado::Fad::DFad<real>;
     using FadFadType = Sacado::Fad::DFad<FadType>;
     std::shared_ptr<Physics::ModelBase<dim,nstate,FadFadType>> model_fad_fad = Physics::ModelFactory<dim,nstate,FadFadType>::create_Model(dg->all_parameters);
-    physics_fad_fad = Physics::PhysicsFactory<dim,nstate,FadFadType>::create_Physics(dg->all_parameters,model_fad_fad);
+    physics_fad_fad = Physics::PhysicsFactory<dim,nspecies,nstate,FadFadType>::create_Physics(dg->all_parameters,model_fad_fad);
 }
 
-template <int dim, int nstate, typename real>
-TargetFunctional<dim,nstate,real>::TargetFunctional(
+template <int dim, int nspecies, int nstate, typename real>
+TargetFunctional<dim,nspecies,nstate,real>::TargetFunctional(
     std::shared_ptr<DGBase<dim,real>> _dg,
     std::shared_ptr< Physics::PhysicsBase<dim,nstate,Sacado::Fad::DFad<Sacado::Fad::DFad<real>>> > _physics_fad_fad,
     const bool _uses_solution_values,
     const bool _uses_solution_gradient)
-    : Functional<dim,nstate,real>::Functional(_dg, _physics_fad_fad, _uses_solution_values, _uses_solution_gradient)
+    : Functional<dim,nspecies,nstate,real>::Functional(_dg, _physics_fad_fad, _uses_solution_values, _uses_solution_gradient)
     , target_solution(dg->solution)
 { }
 
-template <int dim, int nstate, typename real>
-TargetFunctional<dim,nstate,real>::TargetFunctional(
+template <int dim, int nspecies, int nstate, typename real>
+TargetFunctional<dim,nspecies,nstate,real>::TargetFunctional(
     std::shared_ptr<DGBase<dim,real>> _dg,
     const dealii::LinearAlgebra::distributed::Vector<real> &target_solution,
     std::shared_ptr< Physics::PhysicsBase<dim,nstate,Sacado::Fad::DFad<Sacado::Fad::DFad<real>>> > _physics_fad_fad,
     const bool _uses_solution_values,
     const bool _uses_solution_gradient)
-    : Functional<dim,nstate,real>::Functional(_dg, _physics_fad_fad, _uses_solution_values, _uses_solution_gradient)
+    : Functional<dim,nspecies,nstate,real>::Functional(_dg, _physics_fad_fad, _uses_solution_values, _uses_solution_gradient)
     , target_solution(target_solution)
 { }
 
 
-template <int dim, int nstate, typename real>
+template <int dim, int nspecies, int nstate, typename real>
 template <typename real2>
-real2 TargetFunctional<dim, nstate, real>::evaluate_volume_cell_functional(
+real2 TargetFunctional<dim, nspecies, nstate, real>::evaluate_volume_cell_functional(
     const Physics::PhysicsBase<dim,nstate,real2> &physics,
     const std::vector< real2 > &soln_coeff,
     const std::vector< real > &target_soln_coeff,
@@ -171,8 +171,8 @@ real2 TargetFunctional<dim, nstate, real>::evaluate_volume_cell_functional(
     return volume_local_sum;
 }
 
-template <int dim, int nstate, typename real>
-real TargetFunctional<dim, nstate, real>::evaluate_volume_cell_functional(
+template <int dim, int nspecies, int nstate, typename real>
+real TargetFunctional<dim, nspecies, nstate, real>::evaluate_volume_cell_functional(
     const Physics::PhysicsBase<dim,nstate,real> &physics,
     const std::vector< real > &soln_coeff,
     const std::vector< real > &target_soln_coeff,
@@ -184,8 +184,8 @@ real TargetFunctional<dim, nstate, real>::evaluate_volume_cell_functional(
     return evaluate_volume_cell_functional<real>(physics, soln_coeff, target_soln_coeff, fe_solution, coords_coeff, fe_metric, volume_quadrature);
 }
 
-template <int dim, int nstate, typename real>
-Sacado::Fad::DFad<Sacado::Fad::DFad<real>> TargetFunctional<dim, nstate, real>::evaluate_volume_cell_functional(
+template <int dim, int nspecies, int nstate, typename real>
+Sacado::Fad::DFad<Sacado::Fad::DFad<real>> TargetFunctional<dim, nspecies, nstate, real>::evaluate_volume_cell_functional(
     const Physics::PhysicsBase<dim,nstate,Sacado::Fad::DFad<Sacado::Fad::DFad<real>>> &physics_fad_fad,
     const std::vector< Sacado::Fad::DFad<Sacado::Fad::DFad<real>> > &soln_coeff,
     const std::vector< real > &target_soln_coeff,
@@ -197,9 +197,9 @@ Sacado::Fad::DFad<Sacado::Fad::DFad<real>> TargetFunctional<dim, nstate, real>::
     return evaluate_volume_cell_functional<Sacado::Fad::DFad<Sacado::Fad::DFad<real>>>(physics_fad_fad, soln_coeff, target_soln_coeff, fe_solution, coords_coeff, fe_metric, volume_quadrature);
 }
 
-template <int dim, int nstate, typename real>
+template <int dim, int nspecies, int nstate, typename real>
 template <typename real2>
-real2 TargetFunctional<dim, nstate, real>::evaluate_boundary_cell_functional(
+real2 TargetFunctional<dim, nspecies, nstate, real>::evaluate_boundary_cell_functional(
     const Physics::PhysicsBase<dim,nstate,real2> &physics,
     const unsigned int boundary_id,
     const std::vector< real2 > &soln_coeff,
@@ -280,8 +280,8 @@ real2 TargetFunctional<dim, nstate, real>::evaluate_boundary_cell_functional(
     return face_local_sum;
 }
 
-template <int dim, int nstate, typename real>
-real TargetFunctional<dim, nstate, real>::evaluate_boundary_cell_functional(
+template <int dim, int nspecies, int nstate, typename real>
+real TargetFunctional<dim, nspecies, nstate, real>::evaluate_boundary_cell_functional(
     const Physics::PhysicsBase<dim,nstate,real> &physics,
     const unsigned int boundary_id,
     const std::vector< real > &soln_coeff,
@@ -295,8 +295,8 @@ real TargetFunctional<dim, nstate, real>::evaluate_boundary_cell_functional(
     return evaluate_boundary_cell_functional<real>(physics, boundary_id, soln_coeff, target_soln_coeff, fe_solution, coords_coeff, fe_metric, face_quadrature, face_number);
 }
 
-template <int dim, int nstate, typename real>
-Sacado::Fad::DFad<Sacado::Fad::DFad<real>> TargetFunctional<dim, nstate, real>::evaluate_boundary_cell_functional(
+template <int dim, int nspecies, int nstate, typename real>
+Sacado::Fad::DFad<Sacado::Fad::DFad<real>> TargetFunctional<dim, nspecies, nstate, real>::evaluate_boundary_cell_functional(
     const Physics::PhysicsBase<dim,nstate,Sacado::Fad::DFad<Sacado::Fad::DFad<real>>> &physics_fad_fad,
     const unsigned int boundary_id,
     const std::vector< Sacado::Fad::DFad<Sacado::Fad::DFad<real>> > &soln_coeff,
@@ -310,8 +310,8 @@ Sacado::Fad::DFad<Sacado::Fad::DFad<real>> TargetFunctional<dim, nstate, real>::
     return evaluate_boundary_cell_functional<Sacado::Fad::DFad<Sacado::Fad::DFad<real>>>(physics_fad_fad, boundary_id, soln_coeff, target_soln_coeff, fe_solution, coords_coeff, fe_metric, face_quadrature, face_number);
 }
 
-template <int dim, int nstate, typename real>
-real TargetFunctional<dim, nstate, real>::evaluate_functional(
+template <int dim, int nspecies, int nstate, typename real>
+real TargetFunctional<dim, nspecies, nstate, real>::evaluate_functional(
     const bool compute_dIdW,
     const bool compute_dIdX,
     const bool compute_d2I)
@@ -324,9 +324,9 @@ real TargetFunctional<dim, nstate, real>::evaluate_functional(
     bool actually_compute_dIdX = compute_dIdX;
     bool actually_compute_d2I  = compute_d2I;
 
-    Functional<dim,nstate,real>::pcout << "Evaluating functional... ";
-    Functional<dim,nstate,real>::need_compute(actually_compute_value, actually_compute_dIdW, actually_compute_dIdX, actually_compute_d2I);
-    Functional<dim,nstate,real>::pcout << std::endl;
+    Functional<dim,nspecies,nstate,real>::pcout << "Evaluating functional... ";
+    Functional<dim,nspecies,nstate,real>::need_compute(actually_compute_value, actually_compute_dIdW, actually_compute_dIdX, actually_compute_d2I);
+    Functional<dim,nspecies,nstate,real>::pcout << std::endl;
     if (!actually_compute_value && !actually_compute_dIdW && !actually_compute_dIdX && !actually_compute_d2I) {
         return current_functional_value;
     }
@@ -460,8 +460,8 @@ real TargetFunctional<dim, nstate, real>::evaluate_functional(
     return current_functional_value;
 }
 
-template <int dim, int nstate, typename real>
-dealii::LinearAlgebra::distributed::Vector<real> TargetFunctional<dim,nstate,real>::evaluate_dIdw_finiteDifferences(
+template <int dim, int nspecies, int nstate, typename real>
+dealii::LinearAlgebra::distributed::Vector<real> TargetFunctional<dim,nspecies,nstate,real>::evaluate_dIdw_finiteDifferences(
     PHiLiP::DGBase<dim,real> &dg, 
     const PHiLiP::Physics::PhysicsBase<dim,nstate,real> &physics,
     const double stepsize)
@@ -577,8 +577,8 @@ dealii::LinearAlgebra::distributed::Vector<real> TargetFunctional<dim,nstate,rea
     return dIdw;
 }
 
-template <int dim, int nstate, typename real>
-dealii::LinearAlgebra::distributed::Vector<real> TargetFunctional<dim,nstate,real>::evaluate_dIdX_finiteDifferences(
+template <int dim, int nspecies, int nstate, typename real>
+dealii::LinearAlgebra::distributed::Vector<real> TargetFunctional<dim,nspecies,nstate,real>::evaluate_dIdX_finiteDifferences(
     PHiLiP::DGBase<dim,real> &dg, 
     const PHiLiP::Physics::PhysicsBase<dim,nstate,real> &physics,
     const double stepsize)
@@ -695,7 +695,7 @@ dealii::LinearAlgebra::distributed::Vector<real> TargetFunctional<dim,nstate,rea
 
 // Define a macro to instantiate MyTemplate for a specific index
 #define INSTANTIATE_TEMPLATE(r, data, index) \
-   template class TargetFunctional <PHILIP_DIM,index, double>;
+   template class TargetFunctional <PHILIP_DIM,PHILIP_SPECIES,index, double>;
 BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_TEMPLATE, _, POSSIBLE_NSTATE)
 
 } // PHiLiP namespace

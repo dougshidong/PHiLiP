@@ -40,61 +40,61 @@ namespace PHiLiP {
   * are involved in the computation of the adjoint. If derivatives are needed, the Sacado
   * versions of these functions must also be defined.
   */
-template <int dim, int nstate, typename real>
-class TargetFunctional : public Functional<dim,nstate,real>
+template <int dim, int nspecies, int nstate, typename real>
+class TargetFunctional : public Functional<dim,nspecies,nstate,real>
 {
 public:
     using FadType = Sacado::Fad::DFad<real>; ///< Sacado AD type for first derivatives.
     using FadFadType = Sacado::Fad::DFad<FadType>; ///< Sacado AD type that allows 2nd derivatives.
 
     /// Vector for storing the derivatives with respect to each solution DoF
-    using Functional<dim,nstate,real>::dIdw;
+    using Functional<dim,nspecies,nstate,real>::dIdw;
     /// Vector for storing the derivatives with respect to each grid DoF
-    using Functional<dim,nstate,real>::dIdX;
+    using Functional<dim,nspecies,nstate,real>::dIdX;
     /// Store the functional value from the last time evaluate_functional() was called.
-    using Functional<dim,nstate,real>::current_functional_value;
+    using Functional<dim,nspecies,nstate,real>::current_functional_value;
     /// Sparse matrix for storing the functional partial second derivatives.
-    using Functional<dim,nstate,real>::d2IdWdW;
+    using Functional<dim,nspecies,nstate,real>::d2IdWdW;
     /// Sparse matrix for storing the functional partial second derivatives.
-    using Functional<dim,nstate,real>::d2IdWdX;
+    using Functional<dim,nspecies,nstate,real>::d2IdWdX;
     /// Sparse matrix for storing the functional partial second derivatives.
-    using Functional<dim,nstate,real>::d2IdXdX;
+    using Functional<dim,nspecies,nstate,real>::d2IdXdX;
 
 protected:
     /// Smart pointer to DGBase
-    using Functional<dim,nstate,real>::dg;
+    using Functional<dim,nspecies,nstate,real>::dg;
     /// Physics that should correspond to the one in DGBase
-    using Functional<dim,nstate,real>::physics_fad_fad;
+    using Functional<dim,nspecies,nstate,real>::physics_fad_fad;
 
-    using Functional<dim,nstate,real>::volume_update_flags; ///< Update flags needed at volume points.
-    using Functional<dim,nstate,real>::face_update_flags; ///< Update flags needed at face points.
-    using Functional<dim,nstate,real>::uses_solution_values; ///< Will evaluate solution values at quadrature points
-    using Functional<dim,nstate,real>::uses_solution_gradient; ///< Will evaluate solution gradient at quadrature points
+    using Functional<dim,nspecies,nstate,real>::volume_update_flags; ///< Update flags needed at volume points.
+    using Functional<dim,nspecies,nstate,real>::face_update_flags; ///< Update flags needed at face points.
+    using Functional<dim,nspecies,nstate,real>::uses_solution_values; ///< Will evaluate solution values at quadrature points
+    using Functional<dim,nspecies,nstate,real>::uses_solution_gradient; ///< Will evaluate solution gradient at quadrature points
 
     /// Avoid warning that the function was hidden [-Woverloaded-virtual].
     /** The compiler would otherwise hide Functional::evaluate_volume_integrand, which is fine for 
      *  us, but is a typical bug that other people have. This 'using' imports the base class function
      *  to our derived class even though we don't need it.
      */
-    using Functional<dim,nstate,real>::evaluate_volume_integrand;
+    using Functional<dim,nspecies,nstate,real>::evaluate_volume_integrand;
 
     ///// Avoid warning that the function was hidden [-Woverloaded-virtual].
     ///** The compiler would otherwise hide Functional::evaluate_cell_boundary, which is fine for 
     // *  us, but is a typical bug that other people have. This 'using' imports the base class function
     // *  to our derived class even though we don't need it.
     // */
-    //using Functional<dim,nstate,real>::evaluate_cell_boundary;
+    //using Functional<dim,nspecies,nstate,real>::evaluate_cell_boundary;
 
     /// Avoid warning that the function was hidden [-Woverloaded-virtual].
     /** The compiler would otherwise hide Functional::evaluate_volume_cell_functional, which is fine for 
      *  us, but is a typical bug that other people have. This 'using' imports the base class function
      *  to our derived class even though we don't need it.
      */
-    using Functional<dim,nstate,real>::evaluate_volume_cell_functional;
+    using Functional<dim,nspecies,nstate,real>::evaluate_volume_cell_functional;
 
 
-    using Functional<dim,nstate,real>::evaluate_boundary_cell_functional;
-    using Functional<dim,nstate,real>::evaluate_boundary_integrand;
+    using Functional<dim,nspecies,nstate,real>::evaluate_boundary_cell_functional;
+    using Functional<dim,nspecies,nstate,real>::evaluate_boundary_integrand;
 
 protected:
  /// Solution used to evaluate target functional

@@ -6,8 +6,8 @@
 namespace PHiLiP {
 namespace Postprocess {
 
-template <int dim> 
-std::unique_ptr< dealii::DataPostprocessor<dim> > PostprocessorFactory<dim>
+template <int dim, int nspecies> 
+std::unique_ptr< dealii::DataPostprocessor<dim> > PostprocessorFactory<dim,nspecies>
 ::create_Postprocessor(const Parameters::AllParameters *const parameters_input)
 {
     using PDE_enum = Parameters::AllParameters::PartialDifferentialEquation;
@@ -18,37 +18,35 @@ std::unique_ptr< dealii::DataPostprocessor<dim> > PostprocessorFactory<dim>
     const RANSModel_enum rans_model_type = parameters_input->physics_model_param.RANS_model_type;
 
     if (pde_type == PDE_enum::advection) {
-        return std::make_unique< PhysicsPostprocessor<dim,1> >(parameters_input);
+        return std::make_unique< PhysicsPostprocessor<dim,nspecies,1> >(parameters_input);
     } else if (pde_type == PDE_enum::advection_vector) {
-        return std::make_unique< PhysicsPostprocessor<dim,2> >(parameters_input);
+        return std::make_unique< PhysicsPostprocessor<dim,nspecies,2> >(parameters_input);
     } else if (pde_type == PDE_enum::diffusion) {
-        return std::make_unique< PhysicsPostprocessor<dim,1> >(parameters_input);
+        return std::make_unique< PhysicsPostprocessor<dim,nspecies,1> >(parameters_input);
     } else if (pde_type == PDE_enum::convection_diffusion) {
-        return std::make_unique< PhysicsPostprocessor<dim,1> >(parameters_input);
+        return std::make_unique< PhysicsPostprocessor<dim,nspecies,1> >(parameters_input);
     } else if (pde_type == PDE_enum::burgers_inviscid) {
-        return std::make_unique< PhysicsPostprocessor<dim,dim> >(parameters_input);
+        return std::make_unique< PhysicsPostprocessor<dim,nspecies,dim> >(parameters_input);
     } else if (pde_type == PDE_enum::burgers_viscous) {
-        return std::make_unique< PhysicsPostprocessor<dim,dim> >(parameters_input);
+        return std::make_unique< PhysicsPostprocessor<dim,nspecies,dim> >(parameters_input);
     } else if (pde_type == PDE_enum::burgers_rewienski) {
-        return std::make_unique< PhysicsPostprocessor<dim,dim> >(parameters_input);
+        return std::make_unique< PhysicsPostprocessor<dim,nspecies,dim> >(parameters_input);
     } else if (pde_type == PDE_enum::euler) {
-        return std::make_unique< PhysicsPostprocessor<dim,dim+2> >(parameters_input);
+        return std::make_unique< PhysicsPostprocessor<dim,nspecies,dim+2> >(parameters_input);
     } else if (pde_type == PDE_enum::navier_stokes) {
-        return std::make_unique< PhysicsPostprocessor<dim,dim+2> >(parameters_input);
+        return std::make_unique< PhysicsPostprocessor<dim,nspecies,dim+2> >(parameters_input);
     } else if (pde_type == PDE_enum::inviscid_real_gas) {
-        return std::make_unique< PhysicsPostprocessor<dim,dim+2> >(parameters_input);
+        return std::make_unique< PhysicsPostprocessor<dim,nspecies,dim+2> >(parameters_input);
     } else if (pde_type == PDE_enum::real_gas) {
-    // TO DO: modify this when you change number of species
-        return std::make_unique< PhysicsPostprocessor<dim,dim+2+2-1> >(parameters_input); // TO DO: N_SPECIES
+        return std::make_unique< PhysicsPostprocessor<dim,nspecies,dim+2+(nspecies-1)> >(parameters_input);
     } else if (pde_type == PDE_enum::multi_species_calorically_perfect_euler) {
-    // TO DO: modify this when you change number of species
-        return std::make_unique< PhysicsPostprocessor<dim,dim+2+2-1> >(parameters_input); // TO DO: N_SPECIES        
+        return std::make_unique< PhysicsPostprocessor<dim,nspecies,dim+2+(nspecies-1)> >(parameters_input);    
     } else if ((pde_type == PDE_enum::physics_model) && (model_type == Model_enum::reynolds_averaged_navier_stokes) && (rans_model_type == RANSModel_enum::SA_negative)) {
-        return std::make_unique< PhysicsPostprocessor<dim,dim+3> >(parameters_input);
+        return std::make_unique< PhysicsPostprocessor<dim,nspecies,dim+3> >(parameters_input);
     } 
 #if PHILIP_DIM==3
     else if ((pde_type == PDE_enum::physics_model) && (model_type == Model_enum::large_eddy_simulation)) {
-        return std::make_unique< PhysicsPostprocessor<dim,dim+2> >(parameters_input);
+        return std::make_unique< PhysicsPostprocessor<dim,nspecies,dim+2> >(parameters_input);
     } 
 #endif
     else {
@@ -56,15 +54,15 @@ std::unique_ptr< dealii::DataPostprocessor<dim> > PostprocessorFactory<dim>
         std::abort();
     }
 }
-template class PostprocessorFactory <PHILIP_DIM>;
+template class PostprocessorFactory <PHILIP_DIM, PHILIP_SPECIES>;
 
-template <int dim, int nstate> PhysicsPostprocessor<dim,nstate>
+template <int dim, int nspecies, int nstate> PhysicsPostprocessor<dim,nspecies,nstate>
 ::PhysicsPostprocessor (const Parameters::AllParameters *const parameters_input)
     : model(Physics::ModelFactory<dim,nstate,double>::create_Model(parameters_input)) 
-    , physics(Physics::PhysicsFactory<dim,nstate,double>::create_Physics(parameters_input,model))
+    , physics(Physics::PhysicsFactory<dim,nspecies,nstate,double>::create_Physics(parameters_input,model))
 { }
 
-template <int dim, int nstate> void PhysicsPostprocessor<dim,nstate>
+template <int dim, int nspecies, int nstate> void PhysicsPostprocessor<dim,nspecies,nstate>
 ::evaluate_vector_field (const dealii::DataPostprocessorInputs::Vector<dim> &inputs, std::vector<dealii::Vector<double>> &computed_quantities) const
 {
     const unsigned int n_quadrature_points = inputs.solution_values.size();
@@ -81,7 +79,7 @@ template <int dim, int nstate> void PhysicsPostprocessor<dim,nstate>
     }
 }
 
-template <int dim, int nstate> void PhysicsPostprocessor<dim,nstate>
+template <int dim, int nspecies, int nstate> void PhysicsPostprocessor<dim,nspecies,nstate>
 ::evaluate_scalar_field (const dealii::DataPostprocessorInputs::Scalar<dim> &inputs, std::vector<dealii::Vector<double>> &computed_quantities) const
 {
     const unsigned int n_quadrature_points = inputs.solution_values.size();
@@ -98,19 +96,19 @@ template <int dim, int nstate> void PhysicsPostprocessor<dim,nstate>
 }
 
 
-template <int dim, int nstate>
-std::vector<std::string> PhysicsPostprocessor<dim,nstate>::get_names () const
+template <int dim, int nspecies, int nstate>
+std::vector<std::string> PhysicsPostprocessor<dim,nspecies,nstate>::get_names () const
 {
     return this->physics->post_get_names();
 }
-template <int dim, int nstate>
+template <int dim, int nspecies, int nstate>
 std::vector<dealii::DataComponentInterpretation::DataComponentInterpretation>
-PhysicsPostprocessor<dim,nstate>::get_data_component_interpretation () const
+PhysicsPostprocessor<dim,nspecies,nstate>::get_data_component_interpretation () const
 {
     return this->physics->post_get_data_component_interpretation();
 }
-template <int dim, int nstate>
-dealii::UpdateFlags PhysicsPostprocessor<dim,nstate>::get_needed_update_flags () const
+template <int dim, int nspecies, int nstate>
+dealii::UpdateFlags PhysicsPostprocessor<dim,nspecies,nstate>::get_needed_update_flags () const
 {
     return this->physics->post_get_needed_update_flags();
 }
@@ -120,7 +118,7 @@ dealii::UpdateFlags PhysicsPostprocessor<dim,nstate>::get_needed_update_flags ()
 
 // Define a macro to instantiate MyTemplate for a specific index
 #define INSTANTIATE_TEMPLATE(r, data, index) \
-   template class PhysicsPostprocessor <PHILIP_DIM,index>;
+   template class PhysicsPostprocessor <PHILIP_DIM,PHILIP_SPECIES,index>;
 BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_TEMPLATE, _, POSSIBLE_NSTATE)
 
 } // Postprocess namespace

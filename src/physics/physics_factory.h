@@ -10,7 +10,7 @@ namespace Physics {
 /// Create specified physics as PhysicsBase object 
 /** Factory design pattern whose job is to create the correct physics
  */
-template <int dim, int nstate, typename real>
+template <int dim, int nspecies, int nstate, typename real>
 class PhysicsFactory
 {
 public:

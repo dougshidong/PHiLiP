@@ -10,7 +10,7 @@ namespace PHiLiP {
 namespace Physics {
 
 /// Physics Model equations. Derived from PhysicsBase, holds a baseline physics and model terms and equations. 
-template <int dim, int nstate, typename real, int nstate_baseline_physics>
+template <int dim, int nspecies, int nstate, typename real, int nstate_baseline_physics>
 class PhysicsModel : public PhysicsBase <dim, nstate, real>
 {
 public:

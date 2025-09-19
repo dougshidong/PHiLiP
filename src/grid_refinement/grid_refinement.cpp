@@ -37,8 +37,8 @@ namespace PHiLiP {
 namespace GridRefinement {
 
 // output results functions
-template <int dim, int nstate, typename real, typename MeshType>
-void GridRefinementBase<dim,nstate,real,MeshType>::output_results_vtk(const unsigned int iref)
+template <int dim, int nspecies, int nstate, typename real, typename MeshType>
+void GridRefinementBase<dim,nspecies,nstate,real,MeshType>::output_results_vtk(const unsigned int iref)
 {
     // creating the data out stream
     dealii::DataOut<dim, dealii::DoFHandler<dim>> data_out;
@@ -135,8 +135,8 @@ void GridRefinementBase<dim,nstate,real,MeshType>::output_results_vtk(const unsi
 
 }
 
-template <int dim, int nstate, typename real, typename MeshType>
-void GridRefinementBase<dim,nstate,real,MeshType>::output_results_vtk_dg(
+template <int dim, int nspecies, int nstate, typename real, typename MeshType>
+void GridRefinementBase<dim,nspecies,nstate,real,MeshType>::output_results_vtk_dg(
     dealii::DataOut<dim, dealii::DoFHandler<dim>> &    data_out,
     std::shared_ptr< dealii::DataPostprocessor<dim> > &post_processor,
     dealii::Vector<float> &                            subdomain,
@@ -144,7 +144,7 @@ void GridRefinementBase<dim,nstate,real,MeshType>::output_results_vtk_dg(
     dealii::Vector<double> &                           cell_poly_degree,
     std::vector<std::string> &                         residual_names)
 {
-    post_processor = std::make_shared< PHiLiP::Postprocess::PhysicsPostprocessor<dim,nstate> >(dg->all_parameters);
+    post_processor = std::make_shared< PHiLiP::Postprocess::PhysicsPostprocessor<dim,nspecies,nstate> >(dg->all_parameters);
     data_out.add_data_vector(dg->solution, *post_processor);
 
     subdomain.reinit(dg->triangulation->n_active_cells());
@@ -168,24 +168,24 @@ void GridRefinementBase<dim,nstate,real,MeshType>::output_results_vtk_dg(
     data_out.add_data_vector(dg->right_hand_side, residual_names, dealii::DataOut_DoFData<dealii::DoFHandler<dim>,dim>::DataVectorType::type_dof_data);
 }
 
-template <int dim, int nstate, typename real, typename MeshType>
-void GridRefinementBase<dim,nstate,real,MeshType>::output_results_vtk_functional(
+template <int dim, int nspecies, int nstate, typename real, typename MeshType>
+void GridRefinementBase<dim,nspecies,nstate,real,MeshType>::output_results_vtk_functional(
     dealii::DataOut<dim, dealii::DoFHandler<dim>> &data_out)
 {
     // nothing here for now, could plot the contributions or weighting function
     (void) data_out;
 }
 
-template <int dim, int nstate, typename real, typename MeshType>
-void GridRefinementBase<dim,nstate,real,MeshType>::output_results_vtk_physics(
+template <int dim, int nspecies, int nstate, typename real, typename MeshType>
+void GridRefinementBase<dim,nspecies,nstate,real,MeshType>::output_results_vtk_physics(
     dealii::DataOut<dim, dealii::DoFHandler<dim>> &data_out)
 {
     // TODO: plot the function value, gradient, tensor, etc.
     (void) data_out;
 }
 
-template <int dim, int nstate, typename real, typename MeshType>
-void GridRefinementBase<dim,nstate,real,MeshType>::output_results_vtk_adjoint(
+template <int dim, int nspecies, int nstate, typename real, typename MeshType>
+void GridRefinementBase<dim,nspecies,nstate,real,MeshType>::output_results_vtk_adjoint(
     dealii::DataOut<dim, dealii::DoFHandler<dim>> &data_out,
     std::vector<std::string> &                     dIdw_names_coarse,
     std::vector<std::string> &                     adjoint_names_coarse,
@@ -227,11 +227,11 @@ void GridRefinementBase<dim,nstate,real,MeshType>::output_results_vtk_adjoint(
     data_out.add_data_vector(adjoint->dual_weighted_residual_fine, "DWR", dealii::DataOut_DoFData<dealii::DoFHandler<dim>,dim>::DataVectorType::type_cell_data);
 
     // returning to original state
-    adjoint->convert_to_state(PHiLiP::Adjoint<dim,nstate,double,MeshType>::AdjointStateEnum::coarse);
+    adjoint->convert_to_state(PHiLiP::Adjoint<dim,nspecies,nstate,double,MeshType>::AdjointStateEnum::coarse);
 }
 
-template <int dim, int nstate, typename real, typename MeshType>
-void GridRefinementBase<dim,nstate,real,MeshType>::output_results_vtk_error(
+template <int dim, int nspecies, int nstate, typename real, typename MeshType>
+void GridRefinementBase<dim,nspecies,nstate,real,MeshType>::output_results_vtk_error(
     dealii::DataOut<dim, dealii::DoFHandler<dim>> &data_out,
     dealii::Vector<real> &                             l2_error_vec)
 {
@@ -276,48 +276,48 @@ void GridRefinementBase<dim,nstate,real,MeshType>::output_results_vtk_error(
 }
 
 // constructors for GridRefinementBase
-template <int dim, int nstate, typename real, typename MeshType>
-GridRefinementBase<dim,nstate,real,MeshType>::GridRefinementBase(
+template <int dim, int nspecies, int nstate, typename real, typename MeshType>
+GridRefinementBase<dim,nspecies,nstate,real,MeshType>::GridRefinementBase(
     PHiLiP::Parameters::GridRefinementParam                          gr_param_input,
-    std::shared_ptr< PHiLiP::Adjoint<dim, nstate, real, MeshType> >  adj_input,
+    std::shared_ptr< PHiLiP::Adjoint<dim, nspecies, nstate, real, MeshType> >  adj_input,
     std::shared_ptr< PHiLiP::Physics::PhysicsBase<dim,nstate,real> > physics_input) : 
-        GridRefinementBase<dim,nstate,real,MeshType>(
+        GridRefinementBase<dim,nspecies,nstate,real,MeshType>(
             gr_param_input, 
             adj_input, 
             adj_input->functional, 
             adj_input->dg, 
             physics_input){}
 
-template <int dim, int nstate, typename real, typename MeshType>
-GridRefinementBase<dim,nstate,real,MeshType>::GridRefinementBase(
+template <int dim, int nspecies, int nstate, typename real, typename MeshType>
+GridRefinementBase<dim,nspecies,nstate,real,MeshType>::GridRefinementBase(
     PHiLiP::Parameters::GridRefinementParam                            gr_param_input,
     std::shared_ptr< PHiLiP::DGBase<dim, real, MeshType> >             dg_input,
     std::shared_ptr< PHiLiP::Physics::PhysicsBase<dim,nstate,real> >   physics_input,
-    std::shared_ptr< PHiLiP::Functional<dim, nstate, real, MeshType> > functional_input) :
-        GridRefinementBase<dim,nstate,real,MeshType>(
+    std::shared_ptr< PHiLiP::Functional<dim, nspecies, nstate, real, MeshType> > functional_input) :
+        GridRefinementBase<dim,nspecies,nstate,real,MeshType>(
             gr_param_input, 
             nullptr, 
             functional_input, 
             dg_input, 
             physics_input){}
 
-template <int dim, int nstate, typename real, typename MeshType>
-GridRefinementBase<dim,nstate,real,MeshType>::GridRefinementBase(
+template <int dim, int nspecies, int nstate, typename real, typename MeshType>
+GridRefinementBase<dim,nspecies,nstate,real,MeshType>::GridRefinementBase(
     PHiLiP::Parameters::GridRefinementParam                          gr_param_input,
     std::shared_ptr< PHiLiP::DGBase<dim, real, MeshType> >           dg_input,
     std::shared_ptr< PHiLiP::Physics::PhysicsBase<dim,nstate,real> > physics_input) : 
-        GridRefinementBase<dim,nstate,real,MeshType>(
+        GridRefinementBase<dim,nspecies,nstate,real,MeshType>(
             gr_param_input, 
             nullptr, 
             nullptr, 
             dg_input, 
             physics_input){}
 
-template <int dim, int nstate, typename real, typename MeshType>
-GridRefinementBase<dim,nstate,real,MeshType>::GridRefinementBase(
+template <int dim, int nspecies, int nstate, typename real, typename MeshType>
+GridRefinementBase<dim,nspecies,nstate,real,MeshType>::GridRefinementBase(
     PHiLiP::Parameters::GridRefinementParam                gr_param_input,
     std::shared_ptr< PHiLiP::DGBase<dim, real, MeshType> > dg_input) :
-        GridRefinementBase<dim,nstate,real,MeshType>(
+        GridRefinementBase<dim,nspecies,nstate,real,MeshType>(
             gr_param_input, 
             nullptr, 
             nullptr, 
@@ -325,11 +325,11 @@ GridRefinementBase<dim,nstate,real,MeshType>::GridRefinementBase(
             nullptr){}
 
 // main constructor is private for constructor delegation
-template <int dim, int nstate, typename real, typename MeshType>
-GridRefinementBase<dim,nstate,real,MeshType>::GridRefinementBase(
+template <int dim, int nspecies, int nstate, typename real, typename MeshType>
+GridRefinementBase<dim,nspecies,nstate,real,MeshType>::GridRefinementBase(
     PHiLiP::Parameters::GridRefinementParam                            gr_param_input,
-    std::shared_ptr< PHiLiP::Adjoint<dim, nstate, real, MeshType> >    adj_input,
-    std::shared_ptr< PHiLiP::Functional<dim, nstate, real, MeshType> > functional_input,
+    std::shared_ptr< PHiLiP::Adjoint<dim, nspecies, nstate, real, MeshType> >    adj_input,
+    std::shared_ptr< PHiLiP::Functional<dim, nspecies, nstate, real, MeshType> > functional_input,
     std::shared_ptr< PHiLiP::DGBase<dim, real, MeshType> >             dg_input,
     std::shared_ptr< PHiLiP::Physics::PhysicsBase<dim,nstate,real> >   physics_input) :
         grid_refinement_param(gr_param_input),
@@ -347,11 +347,11 @@ GridRefinementBase<dim,nstate,real,MeshType>::GridRefinementBase(
 // values match with the selected refinement type
 
 // adjoint (dg + functional)
-template <int dim, int nstate, typename real, typename MeshType>
-std::shared_ptr< GridRefinementBase<dim,nstate,real,MeshType> > 
-GridRefinementFactory<dim,nstate,real,MeshType>::create_GridRefinement(
+template <int dim, int nspecies, int nstate, typename real, typename MeshType>
+std::shared_ptr< GridRefinementBase<dim,nspecies,nstate,real,MeshType> > 
+GridRefinementFactory<dim,nspecies,nstate,real,MeshType>::create_GridRefinement(
     PHiLiP::Parameters::GridRefinementParam                          gr_param,
-    std::shared_ptr< PHiLiP::Adjoint<dim, nstate, real, MeshType> >  adj,
+    std::shared_ptr< PHiLiP::Adjoint<dim, nspecies, nstate, real, MeshType> >  adj,
     std::shared_ptr< PHiLiP::Physics::PhysicsBase<dim,nstate,real> > physics)
 {
     // all adjoint based methods should be constructed here
@@ -363,49 +363,49 @@ GridRefinementFactory<dim,nstate,real,MeshType>::create_GridRefinement(
     // adjoint (dg + functional)
     if(refinement_method == RefinementMethodEnum::fixed_fraction &&
        error_indicator   == ErrorIndicatorEnum::adjoint_based){
-        return std::make_shared< GridRefinement_FixedFraction<dim,nstate,real,MeshType> >(gr_param, adj, physics);
+        return std::make_shared< GridRefinement_FixedFraction<dim,nspecies,nstate,real,MeshType> >(gr_param, adj, physics);
     }else if(refinement_method == RefinementMethodEnum::continuous &&
              error_indicator   == ErrorIndicatorEnum::adjoint_based){
-        return std::make_shared< GridRefinement_Continuous<dim,nstate,real,MeshType> >(gr_param, adj, physics);
+        return std::make_shared< GridRefinement_Continuous<dim,nspecies,nstate,real,MeshType> >(gr_param, adj, physics);
     }
 
     // dg + physics
     if(refinement_method == RefinementMethodEnum::fixed_fraction &&
        error_indicator   == ErrorIndicatorEnum::hessian_based){
-        return std::make_shared< GridRefinement_FixedFraction<dim,nstate,real,MeshType> >(gr_param, adj, physics);
+        return std::make_shared< GridRefinement_FixedFraction<dim,nspecies,nstate,real,MeshType> >(gr_param, adj, physics);
     }else if(refinement_method == RefinementMethodEnum::fixed_fraction &&
              error_indicator   == ErrorIndicatorEnum::error_based){
-        return std::make_shared< GridRefinement_FixedFraction<dim,nstate,real,MeshType> >(gr_param, adj, physics);
+        return std::make_shared< GridRefinement_FixedFraction<dim,nspecies,nstate,real,MeshType> >(gr_param, adj, physics);
     }else if(refinement_method == RefinementMethodEnum::continuous &&
              error_indicator   == ErrorIndicatorEnum::hessian_based){
-        return std::make_shared< GridRefinement_Continuous<dim,nstate,real,MeshType> >(gr_param, adj, physics);
+        return std::make_shared< GridRefinement_Continuous<dim,nspecies,nstate,real,MeshType> >(gr_param, adj, physics);
     }else if(refinement_method == RefinementMethodEnum::continuous &&
              error_indicator   == ErrorIndicatorEnum::error_based){
-        return std::make_shared< GridRefinement_Continuous<dim,nstate,real,MeshType> >(gr_param, adj, physics);
+        return std::make_shared< GridRefinement_Continuous<dim,nspecies,nstate,real,MeshType> >(gr_param, adj, physics);
     }
 
     // dg
     if(refinement_method == RefinementMethodEnum::fixed_fraction &&
        error_indicator   == ErrorIndicatorEnum::residual_based){
-        return std::make_shared< GridRefinement_FixedFraction<dim,nstate,real,MeshType> >(gr_param, adj, physics);
+        return std::make_shared< GridRefinement_FixedFraction<dim,nspecies,nstate,real,MeshType> >(gr_param, adj, physics);
     }else if(refinement_method == RefinementMethodEnum::continuous &&
              error_indicator   == ErrorIndicatorEnum::residual_based){
-        return std::make_shared< GridRefinement_Continuous<dim,nstate,real,MeshType> >(gr_param, adj, physics);
+        return std::make_shared< GridRefinement_Continuous<dim,nspecies,nstate,real,MeshType> >(gr_param, adj, physics);
     }else if(refinement_method == RefinementMethodEnum::uniform){
-        return std::make_shared< GridRefinement_Uniform<dim,nstate,real,MeshType> >(gr_param, adj, physics);
+        return std::make_shared< GridRefinement_Uniform<dim,nspecies,nstate,real,MeshType> >(gr_param, adj, physics);
     }
 
     return create_GridRefinement(gr_param, adj->dg, physics, adj->functional);
 }
 
 // dg + physics + Functional
-template <int dim, int nstate, typename real, typename MeshType>
-std::shared_ptr< GridRefinementBase<dim,nstate,real,MeshType> > 
-GridRefinementFactory<dim,nstate,real,MeshType>::create_GridRefinement(
+template <int dim, int nspecies, int nstate, typename real, typename MeshType>
+std::shared_ptr< GridRefinementBase<dim,nspecies,nstate,real,MeshType> > 
+GridRefinementFactory<dim,nspecies,nstate,real,MeshType>::create_GridRefinement(
     PHiLiP::Parameters::GridRefinementParam                            gr_param,
     std::shared_ptr< PHiLiP::DGBase<dim, real, MeshType> >             dg,
     std::shared_ptr< PHiLiP::Physics::PhysicsBase<dim,nstate,real> >   physics,
-    std::shared_ptr< PHiLiP::Functional<dim, nstate, real, MeshType> > functional)
+    std::shared_ptr< PHiLiP::Functional<dim, nspecies, nstate, real, MeshType> > functional)
 {
     // hessian and error based
     using RefinementMethodEnum = PHiLiP::Parameters::GridRefinementParam::RefinementMethod;
@@ -416,36 +416,36 @@ GridRefinementFactory<dim,nstate,real,MeshType>::create_GridRefinement(
     // dg + physics
     if(refinement_method == RefinementMethodEnum::fixed_fraction &&
        error_indicator   == ErrorIndicatorEnum::hessian_based){
-        return std::make_shared< GridRefinement_FixedFraction<dim,nstate,real,MeshType> >(gr_param, dg, physics, functional);
+        return std::make_shared< GridRefinement_FixedFraction<dim,nspecies,nstate,real,MeshType> >(gr_param, dg, physics, functional);
     }else if(refinement_method == RefinementMethodEnum::fixed_fraction &&
              error_indicator   == ErrorIndicatorEnum::error_based){
-        return std::make_shared< GridRefinement_FixedFraction<dim,nstate,real,MeshType> >(gr_param, dg, physics, functional);
+        return std::make_shared< GridRefinement_FixedFraction<dim,nspecies,nstate,real,MeshType> >(gr_param, dg, physics, functional);
     }else if(refinement_method == RefinementMethodEnum::continuous &&
              error_indicator   == ErrorIndicatorEnum::hessian_based){
-        return std::make_shared< GridRefinement_Continuous<dim,nstate,real,MeshType> >(gr_param, dg, physics, functional);
+        return std::make_shared< GridRefinement_Continuous<dim,nspecies,nstate,real,MeshType> >(gr_param, dg, physics, functional);
     }else if(refinement_method == RefinementMethodEnum::continuous &&
              error_indicator   == ErrorIndicatorEnum::error_based){
-        return std::make_shared< GridRefinement_Continuous<dim,nstate,real,MeshType> >(gr_param, dg, physics, functional);
+        return std::make_shared< GridRefinement_Continuous<dim,nspecies,nstate,real,MeshType> >(gr_param, dg, physics, functional);
     }
 
     // dg
     if(refinement_method == RefinementMethodEnum::fixed_fraction &&
        error_indicator   == ErrorIndicatorEnum::residual_based){
-        return std::make_shared< GridRefinement_FixedFraction<dim,nstate,real,MeshType> >(gr_param, dg, physics, functional);
+        return std::make_shared< GridRefinement_FixedFraction<dim,nspecies,nstate,real,MeshType> >(gr_param, dg, physics, functional);
     }else if(refinement_method == RefinementMethodEnum::continuous &&
              error_indicator   == ErrorIndicatorEnum::residual_based){
-        return std::make_shared< GridRefinement_Continuous<dim,nstate,real,MeshType> >(gr_param, dg, physics, functional);
+        return std::make_shared< GridRefinement_Continuous<dim,nspecies,nstate,real,MeshType> >(gr_param, dg, physics, functional);
     }else if(refinement_method == RefinementMethodEnum::uniform){
-        return std::make_shared< GridRefinement_Uniform<dim,nstate,real,MeshType> >(gr_param, dg, physics, functional);
+        return std::make_shared< GridRefinement_Uniform<dim,nspecies,nstate,real,MeshType> >(gr_param, dg, physics, functional);
     }
 
     return create_GridRefinement(gr_param, dg, physics);
 }
 
 // dg + physics
-template <int dim, int nstate, typename real, typename MeshType>
-std::shared_ptr< GridRefinementBase<dim,nstate,real,MeshType> > 
-GridRefinementFactory<dim,nstate,real,MeshType>::create_GridRefinement(
+template <int dim, int nspecies, int nstate, typename real, typename MeshType>
+std::shared_ptr< GridRefinementBase<dim,nspecies,nstate,real,MeshType> > 
+GridRefinementFactory<dim,nspecies,nstate,real,MeshType>::create_GridRefinement(
     PHiLiP::Parameters::GridRefinementParam                          gr_param,
     std::shared_ptr< PHiLiP::DGBase<dim, real, MeshType> >           dg,
     std::shared_ptr< PHiLiP::Physics::PhysicsBase<dim,nstate,real> > physics)
@@ -459,36 +459,36 @@ GridRefinementFactory<dim,nstate,real,MeshType>::create_GridRefinement(
     // dg + physics
     if(refinement_method == RefinementMethodEnum::fixed_fraction &&
        error_indicator   == ErrorIndicatorEnum::hessian_based){
-        return std::make_shared< GridRefinement_FixedFraction<dim,nstate,real,MeshType> >(gr_param, dg, physics);
+        return std::make_shared< GridRefinement_FixedFraction<dim,nspecies,nstate,real,MeshType> >(gr_param, dg, physics);
     }else if(refinement_method == RefinementMethodEnum::fixed_fraction &&
              error_indicator   == ErrorIndicatorEnum::error_based){
-        return std::make_shared< GridRefinement_FixedFraction<dim,nstate,real,MeshType> >(gr_param, dg, physics);
+        return std::make_shared< GridRefinement_FixedFraction<dim,nspecies,nstate,real,MeshType> >(gr_param, dg, physics);
     }else if(refinement_method == RefinementMethodEnum::continuous &&
              error_indicator   == ErrorIndicatorEnum::hessian_based){
-        return std::make_shared< GridRefinement_Continuous<dim,nstate,real,MeshType> >(gr_param, dg, physics);
+        return std::make_shared< GridRefinement_Continuous<dim,nspecies,nstate,real,MeshType> >(gr_param, dg, physics);
     }else if(refinement_method == RefinementMethodEnum::continuous &&
              error_indicator   == ErrorIndicatorEnum::error_based){
-        return std::make_shared< GridRefinement_Continuous<dim,nstate,real,MeshType> >(gr_param, dg, physics);
+        return std::make_shared< GridRefinement_Continuous<dim,nspecies,nstate,real,MeshType> >(gr_param, dg, physics);
     }
 
     // dg
     if(refinement_method == RefinementMethodEnum::fixed_fraction &&
        error_indicator   == ErrorIndicatorEnum::residual_based){
-        return std::make_shared< GridRefinement_FixedFraction<dim,nstate,real,MeshType> >(gr_param, dg, physics);
+        return std::make_shared< GridRefinement_FixedFraction<dim,nspecies,nstate,real,MeshType> >(gr_param, dg, physics);
     }else if(refinement_method == RefinementMethodEnum::continuous &&
              error_indicator   == ErrorIndicatorEnum::residual_based){
-        return std::make_shared< GridRefinement_Continuous<dim,nstate,real,MeshType> >(gr_param, dg, physics);
+        return std::make_shared< GridRefinement_Continuous<dim,nspecies,nstate,real,MeshType> >(gr_param, dg, physics);
     }else if(refinement_method == RefinementMethodEnum::uniform){
-        return std::make_shared< GridRefinement_Uniform<dim,nstate,real,MeshType> >(gr_param, dg, physics);
+        return std::make_shared< GridRefinement_Uniform<dim,nspecies,nstate,real,MeshType> >(gr_param, dg, physics);
     }
 
     return create_GridRefinement(gr_param, dg);
 }
 
 // dg
-template <int dim, int nstate, typename real, typename MeshType>
-std::shared_ptr< GridRefinementBase<dim,nstate,real,MeshType> > 
-GridRefinementFactory<dim,nstate,real,MeshType>::create_GridRefinement(
+template <int dim, int nspecies, int nstate, typename real, typename MeshType>
+std::shared_ptr< GridRefinementBase<dim,nspecies,nstate,real,MeshType> > 
+GridRefinementFactory<dim,nspecies,nstate,real,MeshType>::create_GridRefinement(
     PHiLiP::Parameters::GridRefinementParam                gr_param,
     std::shared_ptr< PHiLiP::DGBase<dim, real, MeshType> > dg)
 {
@@ -500,12 +500,12 @@ GridRefinementFactory<dim,nstate,real,MeshType>::create_GridRefinement(
 
     if(refinement_method == RefinementMethodEnum::fixed_fraction &&
        error_indicator   == ErrorIndicatorEnum::residual_based){
-        return std::make_shared< GridRefinement_FixedFraction<dim,nstate,real,MeshType> >(gr_param, dg);
+        return std::make_shared< GridRefinement_FixedFraction<dim,nspecies,nstate,real,MeshType> >(gr_param, dg);
     }else if(refinement_method == RefinementMethodEnum::continuous &&
              error_indicator   == ErrorIndicatorEnum::residual_based){
-        return std::make_shared< GridRefinement_Continuous<dim,nstate,real,MeshType> >(gr_param, dg);
+        return std::make_shared< GridRefinement_Continuous<dim,nspecies,nstate,real,MeshType> >(gr_param, dg);
     }else if(refinement_method == RefinementMethodEnum::uniform){
-        return std::make_shared< GridRefinement_Uniform<dim,nstate,real,MeshType> >(gr_param, dg);
+        return std::make_shared< GridRefinement_Uniform<dim,nspecies,nstate,real,MeshType> >(gr_param, dg);
     }
 
     std::cout << "Invalid GridRefinement." << std::endl;
@@ -518,33 +518,33 @@ GridRefinementFactory<dim,nstate,real,MeshType>::create_GridRefinement(
 
 // Define a macro to instantiate MyTemplate for a specific index
 #define INSTANTIATE_DISTRIBUTED_BASE(r, data, index) \
-    template class GridRefinementBase <PHILIP_DIM, index, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+    template class GridRefinementBase <PHILIP_DIM, PHILIP_SPECIES, index, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
 
 #if PHILIP_DIM!=1
 BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_DISTRIBUTED_BASE, _, POSSIBLE_NSTATE)
 #endif
 
 #define INSTANTIATE_SHARED_BASE(r, data, index) \
-    template class GridRefinementBase <PHILIP_DIM, index, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+    template class GridRefinementBase <PHILIP_DIM, PHILIP_SPECIES, index, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
 BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_SHARED_BASE, _, POSSIBLE_NSTATE)
 
 #define INSTANTIATE_TRIA_BASE(r, data, index) \
-    template class GridRefinementBase <PHILIP_DIM, index, double, dealii::Triangulation<PHILIP_DIM>>;
+    template class GridRefinementBase <PHILIP_DIM, PHILIP_SPECIES, index, double, dealii::Triangulation<PHILIP_DIM>>;
 BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_TRIA_BASE, _, POSSIBLE_NSTATE)
 
 #define INSTANTIATE_DISTRIBUTED_FACTORY(r, data, index) \
-    template class GridRefinementFactory <PHILIP_DIM, index, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+    template class GridRefinementFactory <PHILIP_DIM, PHILIP_SPECIES, index, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
 
 #if PHILIP_DIM!=1
 BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_DISTRIBUTED_FACTORY, _, POSSIBLE_NSTATE)
 #endif
 
 #define INSTANTIATE_SHARED_FACTORY(r, data, index) \
-    template class GridRefinementFactory <PHILIP_DIM, index, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+    template class GridRefinementFactory <PHILIP_DIM, PHILIP_SPECIES, index, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
 BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_SHARED_FACTORY, _, POSSIBLE_NSTATE)
 
 #define INSTANTIATE_TRIA_FACTORY(r, data, index) \
-    template class GridRefinementFactory <PHILIP_DIM, index, double, dealii::Triangulation<PHILIP_DIM>>;
+    template class GridRefinementFactory <PHILIP_DIM, PHILIP_SPECIES, index, double, dealii::Triangulation<PHILIP_DIM>>;
 BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_TRIA_FACTORY, _, POSSIBLE_NSTATE)
 
 } // namespace GridRefinement

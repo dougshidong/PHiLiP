@@ -43,9 +43,9 @@ DGFactory<dim,nspecies,real,MeshType>
         } else if (pde_type == PDE_enum::inviscid_real_gas) {
             return std::make_shared< DGWeak<dim,dim+2,real,MeshType> >(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input);
         } else if (pde_type == PDE_enum::real_gas) {
-            return std::make_shared< DGWeak<dim,dim+2+(nspecies-1),real,MeshType> >(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input); // TO DO:  N_SPECIES
+            return std::make_shared< DGWeak<dim,dim+2+(nspecies-1),real,MeshType> >(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input);
         } else if (pde_type == PDE_enum::multi_species_calorically_perfect_euler) {
-            return std::make_shared< DGWeak<dim,dim+2+(nspecies-1),real,MeshType> >(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input); // TO DO:  N_SPECIES
+            return std::make_shared< DGWeak<dim,dim+2+(nspecies-1),real,MeshType> >(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input);
         } else if ((pde_type == PDE_enum::physics_model) && (model_type == Model_enum::reynolds_averaged_navier_stokes) && (rans_model_type == RANSModel_enum::SA_negative)) {
             return std::make_shared< DGWeak<dim,dim+3,real,MeshType> >(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input);
         }
@@ -76,9 +76,9 @@ DGFactory<dim,nspecies,real,MeshType>
         } else if (pde_type == PDE_enum::inviscid_real_gas) {
             return std::make_shared< DGStrong<dim,dim+2,real,MeshType> >(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input);
         } else if (pde_type == PDE_enum::real_gas) {
-            return std::make_shared< DGStrong<dim,dim+2+(nspecies-1),real,MeshType> >(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input); // TO DO: N_SPECIES
+            return std::make_shared< DGStrong<dim,dim+2+(nspecies-1),real,MeshType> >(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input);
         } else if (pde_type == PDE_enum::multi_species_calorically_perfect_euler) {
-            return std::make_shared< DGStrong<dim,dim+2+(nspecies-1),real,MeshType> >(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input); // TO DO: N_SPECIES        
+            return std::make_shared< DGStrong<dim,dim+2+(nspecies-1),real,MeshType> >(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input);        
         } else if ((pde_type == PDE_enum::physics_model) && (model_type == Model_enum::reynolds_averaged_navier_stokes) && (rans_model_type == RANSModel_enum::SA_negative)) {
             return std::make_shared< DGStrong<dim,dim+3,real,MeshType> >(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input);
         }

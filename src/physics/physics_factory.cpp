@@ -23,9 +23,9 @@
 namespace PHiLiP {
 namespace Physics {
 
-template <int dim, int nstate, typename real>
+template <int dim, int nspecies, int nstate, typename real>
 std::shared_ptr < PhysicsBase<dim,nstate,real> >
-PhysicsFactory<dim,nstate,real>
+PhysicsFactory<dim,nspecies,nstate,real>
 ::create_Physics(const Parameters::AllParameters               *const parameters_input,
                  std::shared_ptr< ModelBase<dim,nstate,real> > model_input)
 {
@@ -35,9 +35,9 @@ PhysicsFactory<dim,nstate,real>
     return create_Physics(parameters_input, pde_type, model_input);
 }
 
-template <int dim, int nstate, typename real>
+template <int dim, int nspecies, int nstate, typename real>
 std::shared_ptr < PhysicsBase<dim,nstate,real> >
-PhysicsFactory<dim,nstate,real>
+PhysicsFactory<dim,nspecies,nstate,real>
 ::create_Physics(const Parameters::AllParameters                              *const parameters_input,
                  const Parameters::AllParameters::PartialDifferentialEquation pde_type,
                  std::shared_ptr< ModelBase<dim,nstate,real> >                model_input)
@@ -150,15 +150,15 @@ PhysicsFactory<dim,nstate,real>
         }
     } else if (pde_type == PDE_enum::real_gas) {
         // TO DO: modify this when you change number of species
-        if constexpr (nstate==dim+2+PHILIP_SPECIES-1) { // TO DO: N_SPECIES
-            return std::make_shared < RealGas<dim,nstate,real> > (
+        if constexpr (nstate==dim+2+(nspecies-1)) { // TO DO: N_SPECIES
+            return std::make_shared < RealGas<dim,nspecies,nstate,real> > (
                 parameters_input,
                 manufactured_solution_function);
         }
     } else if (pde_type == PDE_enum::multi_species_calorically_perfect_euler) {
         // TO DO: modify this when you change number of species
-        if constexpr (nstate==dim+2+PHILIP_SPECIES-1) { // TO DO: N_SPECIES
-            return std::make_shared < MultiSpeciesCaloricallyPerfect<dim,nstate,real> > (
+        if constexpr (nstate==dim+2+(nspecies-1)) { // TO DO: N_SPECIES
+            return std::make_shared < MultiSpeciesCaloricallyPerfect<dim,nspecies,nstate,real> > (
                 parameters_input,
                 manufactured_solution_function);
         }
@@ -179,9 +179,9 @@ PhysicsFactory<dim,nstate,real>
     return nullptr;
 }
 
-template <int dim, int nstate, typename real>
+template <int dim, int nspecies, int nstate, typename real>
 std::shared_ptr < PhysicsBase<dim,nstate,real> >
-PhysicsFactory<dim,nstate,real>
+PhysicsFactory<dim,nspecies,nstate,real>
 ::create_Physics_Model(const Parameters::AllParameters                           *const parameters_input,
                        std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function,
                        std::shared_ptr< ModelBase<dim,nstate,real> >             model_input)
@@ -226,7 +226,7 @@ PhysicsFactory<dim,nstate,real>
             }
 
             // Create the physics model object in physics
-            return std::make_shared < PhysicsModel<dim,nstate,real,nstate_baseline_physics> > (
+            return std::make_shared < PhysicsModel<dim,nspecies,nstate,real,nstate_baseline_physics> > (
                     parameters_input,
                     baseline_physics_type,
                     model_input,
@@ -263,7 +263,7 @@ PhysicsFactory<dim,nstate,real>
                 }
 
                 // Create the physics model object in physics
-                return std::make_shared < PhysicsModel<dim,nstate,real,nstate_baseline_physics> > (
+                return std::make_shared < PhysicsModel<dim,nspecies,nstate,real,nstate_baseline_physics> > (
                     parameters_input,
                     baseline_physics_type,
                     model_input,
@@ -296,23 +296,23 @@ PhysicsFactory<dim,nstate,real>
 
 // Define a macro to instantiate MyTemplate for a specific index
 #define INSTANTIATE_DOUBLE(r, data, index) \
-    template class PhysicsFactory <PHILIP_DIM, index, double>;
+    template class PhysicsFactory <PHILIP_DIM, PHILIP_SPECIES, index, double>;
 BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_DOUBLE, _, POSSIBLE_NSTATE)
 
 #define INSTANTIATE_FADTYPE(r, data, index) \
-    template class PhysicsFactory <PHILIP_DIM, index, FadType>;
+    template class PhysicsFactory <PHILIP_DIM, PHILIP_SPECIES, index, FadType>;
 BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_FADTYPE, _, POSSIBLE_NSTATE)
 
 #define INSTANTIATE_RADTYPE(r, data, index) \
-    template class PhysicsFactory <PHILIP_DIM, index, RadType>;
+    template class PhysicsFactory <PHILIP_DIM, PHILIP_SPECIES, index, RadType>;
 BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_RADTYPE, _, POSSIBLE_NSTATE)
 
 #define INSTANTIATE_FADFADTYPE(r, data, index) \
-    template class PhysicsFactory <PHILIP_DIM, index, FadFadType>;
+    template class PhysicsFactory <PHILIP_DIM, PHILIP_SPECIES, index, FadFadType>;
 BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_FADFADTYPE, _, POSSIBLE_NSTATE)
 
 #define INSTANTIATE_RADFADTYPE(r, data, index) \
-    template class PhysicsFactory <PHILIP_DIM, index, RadFadType>;
+    template class PhysicsFactory <PHILIP_DIM, PHILIP_SPECIES, index, RadFadType>;
 BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_RADFADTYPE, _, POSSIBLE_NSTATE)
 
 } // Physics namespace

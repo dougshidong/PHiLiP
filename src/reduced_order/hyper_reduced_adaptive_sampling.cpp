@@ -105,7 +105,7 @@ int HyperreducedAdaptiveSampling<dim, nspecies, nstate>::run_sampling() const
     flow_solver_FOM->run();
 
     // Create functional
-    std::shared_ptr<Functional<dim,nstate,double>> functional_FOM = FunctionalFactory<dim,nstate,double>::create_Functional(params.functional_param, flow_solver_FOM->dg);
+    std::shared_ptr<Functional<dim,nspecies,nstate,double>> functional_FOM = FunctionalFactory<dim,nspecies,nstate,double>::create_Functional(params.functional_param, flow_solver_FOM->dg);
     this->pcout << "FUNCTIONAL FROM FOM" << std::endl;
     this->pcout << functional_FOM->evaluate_functional(false, false) << std::endl;
 
@@ -300,7 +300,7 @@ double HyperreducedAdaptiveSampling<dim, nspecies, nstate>::solveSnapshotROMandF
     this->pcout << "Done solving HROM." << std::endl;
 
     // Create functional
-    std::shared_ptr<Functional<dim,nstate,double>> functional_ROM = FunctionalFactory<dim,nstate,double>::create_Functional(params.functional_param, flow_solver_ROM->dg);
+    std::shared_ptr<Functional<dim,nspecies,nstate,double>> functional_ROM = FunctionalFactory<dim,nspecies,nstate,double>::create_Functional(params.functional_param, flow_solver_ROM->dg);
 
     this->pcout << "Solving FOM at " << parameter << std::endl;
 
@@ -313,7 +313,7 @@ double HyperreducedAdaptiveSampling<dim, nspecies, nstate>::solveSnapshotROMandF
     flow_solver_FOM->run();
 
     // Create functional
-    std::shared_ptr<Functional<dim,nstate,double>> functional_FOM = FunctionalFactory<dim,nstate,double>::create_Functional(params.functional_param, flow_solver_FOM->dg);
+    std::shared_ptr<Functional<dim,nspecies,nstate,double>> functional_FOM = FunctionalFactory<dim,nspecies,nstate,double>::create_Functional(params.functional_param, flow_solver_FOM->dg);
 
     this->pcout << "Done solving FOM." << std::endl;
     return functional_ROM->evaluate_functional(false, false) - functional_FOM->evaluate_functional(false, false);
@@ -335,7 +335,7 @@ void HyperreducedAdaptiveSampling<dim, nspecies, nstate>::solveFunctionalHROM(co
     this->pcout << "Done solving HROM." << std::endl;
 
     // Create functional
-    std::shared_ptr<Functional<dim,nstate,double>> functional_ROM = FunctionalFactory<dim,nstate,double>::create_Functional(params.functional_param, flow_solver_ROM->dg);
+    std::shared_ptr<Functional<dim,nspecies,nstate,double>> functional_ROM = FunctionalFactory<dim,nspecies,nstate,double>::create_Functional(params.functional_param, flow_solver_ROM->dg);
 
     rom_functional.emplace_back(functional_ROM->evaluate_functional(false, false));
 }
@@ -396,7 +396,7 @@ std::unique_ptr<ProperOrthogonalDecomposition::ROMSolution<dim,nstate>> Hyperred
     flow_solver->ode_solver->steady_state();
 
     // Create functional
-    std::shared_ptr<Functional<dim,nstate,double>> functional = FunctionalFactory<dim,nstate,double>::create_Functional(params.functional_param, flow_solver->dg);
+    std::shared_ptr<Functional<dim,nspecies,nstate,double>> functional = FunctionalFactory<dim,nspecies,nstate,double>::create_Functional(params.functional_param, flow_solver->dg);
     functional->evaluate_functional( true, false, false);
 
     dealii::LinearAlgebra::distributed::Vector<double> solution(flow_solver->dg->solution);

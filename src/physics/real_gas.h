@@ -12,7 +12,7 @@ namespace PHiLiP {
 namespace Physics {
 
 /// RealGas equations. Derived from PhysicsBase
-template <int dim, int nstate, typename real> // TO DO: TEMPLATE for nspecies -- see how the LES class has nstate_baseline_physics
+template <int dim, int nspecies, int nstate, typename real> // TO DO: TEMPLATE for nspecies -- see how the LES class has nstate_baseline_physics
 class RealGas : public PhysicsBase <dim, nstate, real>
 {
 protected:
@@ -137,35 +137,35 @@ protected:
     real compute_mixture_specific_total_energy ( const std::array<real,nstate> &conservative_soln ) const;
 
     // Algorithm 6 (f_M6): Compute species densities from conservative_soln 
-    std::array<real,nstate-dim-1> compute_species_densities ( const std::array<real,nstate> &conservative_soln ) const;
+    std::array<real,nspecies> compute_species_densities ( const std::array<real,nstate> &conservative_soln ) const;
 
 public:
     // Algorithm 7 (f_M7): Compute mass fractions from conservative_soln 
-    std::array<real,nstate-dim-1> compute_mass_fractions ( const std::array<real,nstate> &conservative_soln ) const;
+    std::array<real,nspecies> compute_mass_fractions ( const std::array<real,nstate> &conservative_soln ) const;
 
 protected:
     // Algorithm 8 (f_M8): Compute mixture property from mass fractions and species properties
-    real compute_mixture_from_species( const std::array<real,nstate-dim-1> &mass_fractions, const std::array<real,nstate-dim-1> &species ) const;
+    real compute_mixture_from_species( const std::array<real,nspecies> &mass_fractions, const std::array<real,nspecies> &species ) const;
 
     // Algorithm 9 (f_M9): Compute dimensional temperature from (non-dimensional) temperature
     real compute_dimensional_temperature ( const real temperature ) const;
 
 public:
     // Algorithm 10 (f_M10): Compute species gas constants from Ru (universal gas constant)
-    std::array<real,nstate-dim-1> compute_Rs ( const real Ru ) const;
+    std::array<real,nspecies> compute_Rs ( const real Ru ) const;
 
 protected:
     // Algorithm 11 (f_M11): Compute species specific heat at constant pressure from temperature
-    std::array<real,nstate-dim-1> compute_species_specific_Cp ( const real temperature ) const;
+    std::array<real,nspecies> compute_species_specific_Cp ( const real temperature ) const;
 
     // Algorithm 12 (f_M12): Compute species specific heat at constant volume from temperature
-    std::array<real,nstate-dim-1>compute_species_specific_Cv ( const real temperature ) const;
+    std::array<real,nspecies>compute_species_specific_Cv ( const real temperature ) const;
 
     // Algorithm 13 (f_M13): Compute species specific enthalpy from temperature
-    std::array<real,nstate-dim-1> compute_species_specific_enthalpy ( const real temperature ) const;   
+    std::array<real,nspecies> compute_species_specific_enthalpy ( const real temperature ) const;   
 
     // Algorithm 14 (f_M14): Compute species specific internal energy from temperature
-    std::array<real,nstate-dim-1> compute_species_specific_internal_energy ( const real temperature ) const;
+    std::array<real,nspecies> compute_species_specific_internal_energy ( const real temperature ) const;
 
 public:
     // Algorithm 15 (f_M15): Compute temperature from conservative_soln
@@ -189,10 +189,10 @@ protected:
 
 protected:
     // Algorithm 21 (f_S21): Compute species specific heat ratio from conservative_soln
-    virtual std::array<real,nstate-dim-1> compute_species_specific_heat_ratio ( const std::array<real,nstate> &conservative_soln ) const;
+    virtual std::array<real,nspecies> compute_species_specific_heat_ratio ( const std::array<real,nstate> &conservative_soln ) const;
 
     // Algorithm 22 (f_S22): Compute species speed of sound from conservative_soln 
-    std::array<real,nstate-dim-1> compute_species_speed_of_sound ( const std::array<real,nstate> &conservative_soln ) const;
+    std::array<real,nspecies> compute_species_speed_of_sound ( const std::array<real,nstate> &conservative_soln ) const;
 
 
 protected:

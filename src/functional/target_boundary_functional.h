@@ -5,8 +5,8 @@ namespace PHiLiP {
 /** Target boundary values.
  *  Simply zero out the default volume contribution.
  */
-template <int dim, int nstate, typename real>
-class TargetBoundaryFunctional : public TargetFunctional<dim, nstate, real>
+template <int dim, int nspecies, int nstate, typename real>
+class TargetBoundaryFunctional : public TargetFunctional<dim, nspecies, nstate, real>
 {
     using FadType = Sacado::Fad::DFad<real>; ///< Sacado AD type for first derivatives.
     using FadFadType = Sacado::Fad::DFad<FadType>; ///< Sacado AD type that allows 2nd derivatives.
@@ -16,7 +16,7 @@ class TargetBoundaryFunctional : public TargetFunctional<dim, nstate, real>
      *  us, but is a typical bug that other people have. This 'using' imports the base class function
      *  to our derived class even though we don't need it.
      */
-    using Functional<dim,nstate,real>::evaluate_volume_integrand;
+    using Functional<dim,nspecies,nstate,real>::evaluate_volume_integrand;
 
 public:
     /// Constructor
@@ -25,7 +25,7 @@ public:
   const dealii::LinearAlgebra::distributed::Vector<real> &target_solution,
         const bool uses_solution_values = true,
         const bool uses_solution_gradient = false)
- : TargetFunctional<dim,nstate,real>(dg_input, target_solution, uses_solution_values, uses_solution_gradient)
+ : TargetFunctional<dim,nspecies,nstate,real>(dg_input, target_solution, uses_solution_values, uses_solution_gradient)
  {}
 
     /// Zero out the default inverse target volume functional.

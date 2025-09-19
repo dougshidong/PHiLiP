@@ -8,20 +8,20 @@
 namespace PHiLiP {
 namespace Physics {
 
-template <int dim, int nstate, typename real>
-MultiSpeciesCaloricallyPerfect<dim,nstate,real>::MultiSpeciesCaloricallyPerfect ( 
+template <int dim, int nspecies, int nstate, typename real>
+MultiSpeciesCaloricallyPerfect<dim,nspecies,nstate,real>::MultiSpeciesCaloricallyPerfect ( 
     const Parameters::AllParameters *const                    parameters_input,
     std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function,
     const bool                                                has_nonzero_diffusion,
     const bool                                                has_nonzero_physical_source)
-    : RealGas<dim,nstate,real>(parameters_input,manufactured_solution_function,has_nonzero_diffusion,has_nonzero_physical_source)
+    : RealGas<dim,nspecies,nstate,real>(parameters_input,manufactured_solution_function,has_nonzero_diffusion,has_nonzero_physical_source)
     , Cp(this->compute_species_specific_Cp(298.15/this->temperature_ref))
     , Cv(this->compute_species_specific_Cv(298.15/this->temperature_ref))
 {
     this->real_gas_cap = std::dynamic_pointer_cast<PHiLiP::RealGasConstants::AllRealGasConstants>(
         std::make_shared<PHiLiP::RealGasConstants::AllRealGasConstants>(parameters_input));
 
-    for (int s=0; s<(nstate-dim-1); ++s) 
+    for (int s=0; s<(nspecies); ++s) 
     {
         this->gamma[s] = Cp[s]/Cv[s];
     }
@@ -30,8 +30,8 @@ MultiSpeciesCaloricallyPerfect<dim,nstate,real>::MultiSpeciesCaloricallyPerfect 
 }
 
 // /// f_M18: convective flux
-// template <int dim, int nstate, typename real>
-// std::array<dealii::Tensor<1,dim,real>,nstate> MultiSpeciesCaloricallyPerfect<dim,nstate,real>
+// template <int dim, int nspecies, int nstate, typename real>
+// std::array<dealii::Tensor<1,dim,real>,nstate> MultiSpeciesCaloricallyPerfect<dim,nspecies,nstate,real>
 // ::convective_flux (const std::array<real,nstate> &conservative_soln) const  
 // {
 //     /* definitions */
@@ -56,7 +56,7 @@ MultiSpeciesCaloricallyPerfect<dim,nstate,real>::MultiSpeciesCaloricallyPerfect 
 //         conv_flux[dim+2-1][flux_dim] = 0.0;
 
 //         /* D) species density equations */
-//         for (int s=0; s<(nstate-dim-1)-1; ++s)
+//         for (int s=0; s<(nspecies)-1; ++s)
 //         {
 //              conv_flux[nstate-1+s][flux_dim] = 0.0;
 //         }
@@ -70,8 +70,8 @@ MultiSpeciesCaloricallyPerfect<dim,nstate,real>::MultiSpeciesCaloricallyPerfect 
 // }
 
 /// f_M14: compute_temperature
-template <int dim, int nstate, typename real>
-inline real MultiSpeciesCaloricallyPerfect<dim,nstate,real>
+template <int dim, int nspecies, int nstate, typename real>
+inline real MultiSpeciesCaloricallyPerfect<dim,nspecies,nstate,real>
 ::compute_temperature ( const std::array<real,nstate> &conservative_soln ) const
 {
     const real mixture_density = conservative_soln[0]; // TO DO: use compute_mixture_density
@@ -83,13 +83,13 @@ inline real MultiSpeciesCaloricallyPerfect<dim,nstate,real>
 }
 
 /// f_M16: compute_mixture_pressure
-template <int dim, int nstate, typename real>
-inline real MultiSpeciesCaloricallyPerfect<dim,nstate,real>
+template <int dim, int nspecies, int nstate, typename real>
+inline real MultiSpeciesCaloricallyPerfect<dim,nspecies,nstate,real>
 ::compute_mixture_pressure ( const std::array<real,nstate> &conservative_soln ) const
 {
     const real mixture_density = conservative_soln[0]; // TO DO: use compute_mixture_density
-    const std::array<real,nstate-dim-1> gamma = compute_species_specific_heat_ratio(conservative_soln);
-    const std::array<real,nstate-dim-1> mass_fractions = this->compute_mass_fractions(conservative_soln);
+    const std::array<real,nspecies> gamma = compute_species_specific_heat_ratio(conservative_soln);
+    const std::array<real,nspecies> mass_fractions = this->compute_mass_fractions(conservative_soln);
     const real mixture_gamma = this->compute_mixture_from_species(mass_fractions,gamma);
     const real E = this->compute_mixture_specific_total_energy(conservative_soln);
     const real k = this->compute_specific_kinetic_energy(conservative_soln);
@@ -99,8 +99,8 @@ inline real MultiSpeciesCaloricallyPerfect<dim,nstate,real>
 }
 
 /// f_S19: primitive to conservative
-template <int dim, int nstate, typename real>
-inline std::array<real,nstate> MultiSpeciesCaloricallyPerfect<dim,nstate,real>
+template <int dim, int nspecies, int nstate, typename real>
+inline std::array<real,nstate> MultiSpeciesCaloricallyPerfect<dim,nspecies,nstate,real>
 ::convert_primitive_to_conservative ( const std::array<real,nstate> &primitive_soln ) const 
 {
     /* definitions */
@@ -112,9 +112,9 @@ inline std::array<real,nstate> MultiSpeciesCaloricallyPerfect<dim,nstate,real>
 
     real vel2 = 0.0;
     real sum = 0.0;
-    std::array<real,nstate-dim-1> species_densities;
-    std::array<real,nstate-dim-1> mass_fractions;
-    const std::array<real,nstate-dim-1> gamma_s = compute_species_specific_heat_ratio(primitive_soln);
+    std::array<real,nspecies> species_densities;
+    std::array<real,nspecies> mass_fractions;
+    const std::array<real,nspecies> gamma_s = compute_species_specific_heat_ratio(primitive_soln);
     const real mixture_pressure = primitive_soln[dim+2-1];
 
     /* mixture density */
@@ -130,14 +130,14 @@ inline std::array<real,nstate> MultiSpeciesCaloricallyPerfect<dim,nstate,real>
 
     /* mixture energy */
     // mass fractions
-    for (int s=0; s<(nstate-dim-1)-1; ++s) 
+    for (int s=0; s<(nspecies)-1; ++s) 
     { 
         mass_fractions[s] = primitive_soln[dim+2+s];
         sum += mass_fractions[s];
     }
-    mass_fractions[(nstate-dim-1)-1] = 1.00 - sum;     
+    mass_fractions[(nspecies)-1] = 1.00 - sum;     
     // species densities
-    for (int s=0; s<nstate-dim-1; ++s) 
+    for (int s=0; s<nspecies; ++s) 
     { 
         species_densities[s] = mixture_density*mass_fractions[s];
     }
@@ -150,7 +150,7 @@ inline std::array<real,nstate> MultiSpeciesCaloricallyPerfect<dim,nstate,real>
     conservative_soln[dim+2-1] = mixture_density*mixture_specific_total_energy;
 
     /* species densities */
-    for (int s=0; s<(nstate-dim-1)-1; ++s) 
+    for (int s=0; s<(nspecies)-1; ++s) 
     {
         conservative_soln[dim+2+s] = species_densities[s];
     }
@@ -159,8 +159,8 @@ inline std::array<real,nstate> MultiSpeciesCaloricallyPerfect<dim,nstate,real>
 }
 
 /// f_M20: species specific heat ratio
-template <int dim, int nstate, typename real>
-inline std::array<real,nstate-dim-1> MultiSpeciesCaloricallyPerfect<dim,nstate,real>
+template <int dim, int nspecies, int nstate, typename real>
+inline std::array<real,nspecies> MultiSpeciesCaloricallyPerfect<dim,nspecies,nstate,real>
 ::compute_species_specific_heat_ratio ( const std::array<real,nstate> &/*conservative_soln*/ ) const
 {
     return this->gamma;
@@ -168,11 +168,11 @@ inline std::array<real,nstate-dim-1> MultiSpeciesCaloricallyPerfect<dim,nstate,r
 
 // Instantiate explicitly
 // TO DO: Modify this when you change number of species
-template class MultiSpeciesCaloricallyPerfect < PHILIP_DIM, PHILIP_DIM+2+PHILIP_SPECIES-1, double     >;
-template class MultiSpeciesCaloricallyPerfect < PHILIP_DIM, PHILIP_DIM+2+PHILIP_SPECIES-1, FadType    >;
-template class MultiSpeciesCaloricallyPerfect < PHILIP_DIM, PHILIP_DIM+2+PHILIP_SPECIES-1, RadType    >;
-template class MultiSpeciesCaloricallyPerfect < PHILIP_DIM, PHILIP_DIM+2+PHILIP_SPECIES-1, FadFadType >;
-template class MultiSpeciesCaloricallyPerfect < PHILIP_DIM, PHILIP_DIM+2+PHILIP_SPECIES-1, RadFadType >;
+template class MultiSpeciesCaloricallyPerfect < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2+PHILIP_SPECIES-1, double     >;
+template class MultiSpeciesCaloricallyPerfect < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2+PHILIP_SPECIES-1, FadType    >;
+template class MultiSpeciesCaloricallyPerfect < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2+PHILIP_SPECIES-1, RadType    >;
+template class MultiSpeciesCaloricallyPerfect < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2+PHILIP_SPECIES-1, FadFadType >;
+template class MultiSpeciesCaloricallyPerfect < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2+PHILIP_SPECIES-1, RadFadType >;
 
 } // Physics namespace
 } // PHiLiP namespace

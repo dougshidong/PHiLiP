@@ -9,11 +9,11 @@ namespace PHiLiP {
  *  Simply zero out the default volume contribution.
  */
 #if PHILIP_DIM==1
-template <int dim, int nstate, typename real, typename MeshType = dealii::Triangulation<dim>>
+template <int dim, int nspecies, int nstate, typename real, typename MeshType = dealii::Triangulation<dim>>
 #else
-template <int dim, int nstate, typename real, typename MeshType = dealii::parallel::distributed::Triangulation<dim>>
+template <int dim, int nspecies, int nstate, typename real, typename MeshType = dealii::parallel::distributed::Triangulation<dim>>
 #endif
-class LiftDragFunctional : public Functional<dim, nstate, real, MeshType>
+class LiftDragFunctional : public Functional<dim, nspecies, nstate, real, MeshType>
 {
 public:
     /// @brief Switch between lift and drag functional types.
@@ -27,7 +27,7 @@ private:
      *  us, but is a typical bug that other people have. This 'using' imports the base class function
      *  to our derived class even though we don't need it.
      */
-    using Functional<dim,nstate,real,MeshType>::evaluate_volume_integrand;
+    using Functional<dim,nspecies,nstate,real,MeshType>::evaluate_volume_integrand;
 
     /// @brief Switches between lift and drag.
     const Functional_types functional_type;

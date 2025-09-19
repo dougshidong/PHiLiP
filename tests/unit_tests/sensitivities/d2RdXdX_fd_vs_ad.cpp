@@ -26,7 +26,6 @@ using ModelType = PHiLiP::Parameters::AllParameters::ModelType;
     using Triangulation = dealii::parallel::distributed::Triangulation<PHILIP_DIM>;
 #endif
 
-const int nspecies = 1;
 const double TOLERANCE = 1E-3;
 const double EPS = 1E-4;
 
@@ -65,7 +64,7 @@ const double EPS = 1E-4;
 /** This test checks that dRdX evaluated using automatic differentiation
  *  matches with the results obtained using finite-difference.
  */
-template<int dim, int nstate>
+template<int dim, int nspecies, int nstate>
 int test (
     const unsigned int poly_degree,
     std::shared_ptr<Triangulation> grid,
@@ -75,7 +74,7 @@ int test (
     dealii::ConditionalOStream pcout(std::cout, mpi_rank==0);
     using namespace PHiLiP;
     // Assemble Jacobian
-    std::shared_ptr < DGBase<PHILIP_DIM, double> > dg = DGFactory<PHILIP_DIM,double>::create_discontinuous_galerkin(&all_parameters, poly_degree, grid);
+    std::shared_ptr < DGBase<dim, double> > dg = DGFactory<dim,nspecies,double>::create_discontinuous_galerkin(&all_parameters, poly_degree, grid);
 
     const int n_refine = 1;
     for (int i=0; i<n_refine;i++) {
@@ -352,6 +351,7 @@ int main (int argc, char * argv[])
 
     using namespace PHiLiP;
     const int dim = PHILIP_DIM;
+    const int nspecies = 1;
     int error = 0;
     //int success_bool = true;
 
@@ -418,13 +418,13 @@ int main (int argc, char * argv[])
          || ((*pde==PDEType::physics_model) && (model==ModelType::large_eddy_simulation))
 #endif
                     ) {
-                    error = test<dim,dim+2>(poly_degree, grid, all_parameters);
+                    error = test<dim,nspecies,dim+2>(poly_degree, grid, all_parameters);
                 } else if (*pde==PDEType::burgers_inviscid) {
-                    error = test<dim,dim>(poly_degree, grid, all_parameters);
+                    error = test<dim,nspecies,dim>(poly_degree, grid, all_parameters);
                 } else if (*pde==PDEType::advection_vector) {
-                    error = test<dim,2>(poly_degree, grid, all_parameters);
+                    error = test<dim,nspecies,2>(poly_degree, grid, all_parameters);
                 } else {
-                    error = test<dim,1>(poly_degree, grid, all_parameters);
+                    error = test<dim,nspecies,1>(poly_degree, grid, all_parameters);
                 }
                 if (error) return error;
             }

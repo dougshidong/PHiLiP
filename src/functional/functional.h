@@ -36,9 +36,9 @@ namespace PHiLiP {
   * versions of these functions must also be defined.
   */
 #if PHILIP_DIM==1
-template <int dim, int nstate, typename real, typename MeshType = dealii::Triangulation<dim>>
+template <int dim, int nspecies, int nstate, typename real, typename MeshType = dealii::Triangulation<dim>>
 #else
-template <int dim, int nstate, typename real, typename MeshType = dealii::parallel::distributed::Triangulation<dim>>
+template <int dim, int nspecies, int nstate, typename real, typename MeshType = dealii::parallel::distributed::Triangulation<dim>>
 #endif
 class Functional 
 {
@@ -326,11 +326,11 @@ protected:
   * \f] 
   */ 
 #if PHILIP_DIM==1
-template <int dim, int nstate, typename real, typename MeshType = dealii::Triangulation<dim>>
+template <int dim, int nspecies, int nstate, typename real, typename MeshType = dealii::Triangulation<dim>>
 #else
-template <int dim, int nstate, typename real, typename MeshType = dealii::parallel::distributed::Triangulation<dim>>
+template <int dim, int nspecies, int nstate, typename real, typename MeshType = dealii::parallel::distributed::Triangulation<dim>>
 #endif
-class FunctionalNormLpVolume : public Functional<dim,nstate,real,MeshType>
+class FunctionalNormLpVolume : public Functional<dim,nspecies,nstate,real,MeshType>
 {
     using FadType = Sacado::Fad::DFad<real>; ///< Sacado AD type for first derivatives.
     using FadFadType = Sacado::Fad::DFad<FadType>; ///< Sacado AD type that allows 2nd derivatives.
@@ -382,11 +382,11 @@ protected:
   * the chosen setup parameters.
   */ 
 #if PHILIP_DIM==1
-template <int dim, int nstate, typename real, typename MeshType = dealii::Triangulation<dim>>
+template <int dim, int nspecies, int nstate, typename real, typename MeshType = dealii::Triangulation<dim>>
 #else
-template <int dim, int nstate, typename real, typename MeshType = dealii::parallel::distributed::Triangulation<dim>>
+template <int dim, int nspecies, int nstate, typename real, typename MeshType = dealii::parallel::distributed::Triangulation<dim>>
 #endif
-class FunctionalNormLpBoundary : public Functional<dim,nstate,real,MeshType>
+class FunctionalNormLpBoundary : public Functional<dim,nspecies,nstate,real,MeshType>
 {
     using FadType = Sacado::Fad::DFad<real>; ///< Sacado AD type for first derivatives.
     using FadFadType = Sacado::Fad::DFad<FadType>; ///< Sacado AD type that allows 2nd derivatives.
@@ -449,11 +449,11 @@ protected:
   * \f] 
   */ 
 #if PHILIP_DIM==1
-template <int dim, int nstate, typename real, typename MeshType = dealii::Triangulation<dim>>
+template <int dim, int nspecies, int nstate, typename real, typename MeshType = dealii::Triangulation<dim>>
 #else
-template <int dim, int nstate, typename real, typename MeshType = dealii::parallel::distributed::Triangulation<dim>>
+template <int dim, int nspecies, int nstate, typename real, typename MeshType = dealii::parallel::distributed::Triangulation<dim>>
 #endif
-class FunctionalWeightedIntegralVolume : public Functional<dim,nstate,real,MeshType>
+class FunctionalWeightedIntegralVolume : public Functional<dim,nspecies,nstate,real,MeshType>
 {
     using FadType = Sacado::Fad::DFad<real>; ///< Sacado AD type for first derivatives.
     using FadFadType = Sacado::Fad::DFad<FadType>; ///< Sacado AD type that allows 2nd derivatives.
@@ -514,11 +514,11 @@ protected:
   * the chosen setup parameters.
   */ 
 #if PHILIP_DIM==1
-template <int dim, int nstate, typename real, typename MeshType = dealii::Triangulation<dim>>
+template <int dim, int nspecies, int nstate, typename real, typename MeshType = dealii::Triangulation<dim>>
 #else
-template <int dim, int nstate, typename real, typename MeshType = dealii::parallel::distributed::Triangulation<dim>>
+template <int dim, int nspecies, int nstate, typename real, typename MeshType = dealii::parallel::distributed::Triangulation<dim>>
 #endif
-class FunctionalWeightedIntegralBoundary : public Functional<dim,nstate,real,MeshType>
+class FunctionalWeightedIntegralBoundary : public Functional<dim,nspecies,nstate,real,MeshType>
 {
     using FadType = Sacado::Fad::DFad<real>; ///< Sacado AD type for first derivatives.
     using FadFadType = Sacado::Fad::DFad<FadType>; ///< Sacado AD type that allows 2nd derivatives.
@@ -587,11 +587,11 @@ protected:
   * \f]
   */ 
 #if PHILIP_DIM==1
-template <int dim, int nstate, typename real, typename MeshType = dealii::Triangulation<dim>>
+template <int dim, int nspecies, int nstate, typename real, typename MeshType = dealii::Triangulation<dim>>
 #else
-template <int dim, int nstate, typename real, typename MeshType = dealii::parallel::distributed::Triangulation<dim>>
+template <int dim, int nspecies, int nstate, typename real, typename MeshType = dealii::parallel::distributed::Triangulation<dim>>
 #endif
-class FunctionalErrorNormLpVolume : public Functional<dim,nstate,real,MeshType>
+class FunctionalErrorNormLpVolume : public Functional<dim,nspecies,nstate,real,MeshType>
 {
     using FadType = Sacado::Fad::DFad<real>; ///< Sacado AD type for first derivatives.
     using FadFadType = Sacado::Fad::DFad<FadType>; ///< Sacado AD type that allows 2nd derivatives.
@@ -644,11 +644,11 @@ protected:
   * the chosen setup parameters.
   */ 
 #if PHILIP_DIM==1
-template <int dim, int nstate, typename real, typename MeshType = dealii::Triangulation<dim>>
+template <int dim, int nspecies, int nstate, typename real, typename MeshType = dealii::Triangulation<dim>>
 #else
-template <int dim, int nstate, typename real, typename MeshType = dealii::parallel::distributed::Triangulation<dim>>
+template <int dim, int nspecies, int nstate, typename real, typename MeshType = dealii::parallel::distributed::Triangulation<dim>>
 #endif
-class FunctionalErrorNormLpBoundary : public Functional<dim,nstate,real,MeshType>
+class FunctionalErrorNormLpBoundary : public Functional<dim,nspecies,nstate,real,MeshType>
 {
     using FadType = Sacado::Fad::DFad<real>; ///< Sacado AD type for first derivatives.
     using FadFadType = Sacado::Fad::DFad<FadType>; ///< Sacado AD type that allows 2nd derivatives.
@@ -703,11 +703,11 @@ protected:
 
 ///Functional to take the integral of the solution
 #if PHILIP_DIM==1
-    template <int dim, int nstate, typename real, typename MeshType = dealii::Triangulation<dim>>
+    template <int dim, int nspecies, int nstate, typename real, typename MeshType = dealii::Triangulation<dim>>
 #else
-    template <int dim, int nstate, typename real, typename MeshType = dealii::parallel::distributed::Triangulation<dim>>
+    template <int dim, int nspecies, int nstate, typename real, typename MeshType = dealii::parallel::distributed::Triangulation<dim>>
 #endif
-class SolutionIntegral : public Functional<dim,nstate,real,MeshType>
+class SolutionIntegral : public Functional<dim,nspecies,nstate,real,MeshType>
 {
 public:
     using FadType = Sacado::Fad::DFad<real>; ///< Sacado AD type for first derivatives.
@@ -719,7 +719,7 @@ public:
             std::shared_ptr<PHiLiP::Physics::PhysicsBase<dim,nstate,FadFadType>> _physics_fad_fad,
             const bool uses_solution_values = true,
             const bool uses_solution_gradient = false)
-            : PHiLiP::Functional<dim,nstate,real,MeshType>(dg_input,_physics_fad_fad,uses_solution_values,uses_solution_gradient)
+            : PHiLiP::Functional<dim,nspecies,nstate,real,MeshType>(dg_input,_physics_fad_fad,uses_solution_values,uses_solution_gradient)
     {}
 
     /// Templated volume integrand
@@ -754,8 +754,8 @@ public:
 /** Boundary integral for the Euler Gaussian bump.
 *  Pressure integral on the outlet.
 */
-template <int dim, int nstate, typename real, typename MeshType = dealii::parallel::distributed::Triangulation<dim>>
-class OutletPressureIntegral : public Functional<dim,nstate,real,MeshType>
+template <int dim, int nspecies, int nstate, typename real, typename MeshType = dealii::parallel::distributed::Triangulation<dim>>
+class OutletPressureIntegral : public Functional<dim,nspecies,nstate,real,MeshType>
 {
     using FadType = Sacado::Fad::DFad<real>; ///< Sacado AD type for first derivatives.
     using FadFadType = Sacado::Fad::DFad<FadType>; ///< Sacado AD type that allows 2nd derivatives.
@@ -806,21 +806,21 @@ public:
   * functionals may still be used without this interface in the adjoint class.
   */ 
 #if PHILIP_DIM==1
-template <int dim, int nstate, typename real, typename MeshType = dealii::Triangulation<dim>>
+template <int dim, int nspecies, int nstate, typename real, typename MeshType = dealii::Triangulation<dim>>
 #else
-template <int dim, int nstate, typename real, typename MeshType = dealii::parallel::distributed::Triangulation<dim>>
+template <int dim, int nspecies, int nstate, typename real, typename MeshType = dealii::parallel::distributed::Triangulation<dim>>
 #endif
 class FunctionalFactory
 {
 public:
     /// Create standard functional object from constant parameter file
-    static std::shared_ptr< Functional<dim,nstate,real,MeshType> >
+    static std::shared_ptr< Functional<dim,nspecies,nstate,real,MeshType> >
     create_Functional(
         PHiLiP::Parameters::AllParameters const *const       param,
         std::shared_ptr< PHiLiP::DGBase<dim,real,MeshType> > dg);
 
     /// Create standard functional object from parameter file
-    static std::shared_ptr< Functional<dim,nstate,real,MeshType> >
+    static std::shared_ptr< Functional<dim,nspecies,nstate,real,MeshType> >
     create_Functional(
         PHiLiP::Parameters::FunctionalParam                  param,
         std::shared_ptr< PHiLiP::DGBase<dim,real,MeshType> > dg);

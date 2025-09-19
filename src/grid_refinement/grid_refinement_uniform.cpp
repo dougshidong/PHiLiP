@@ -10,8 +10,8 @@ namespace PHiLiP {
 
 namespace GridRefinement {
 
-template <int dim, int nstate, typename real, typename MeshType>
-void GridRefinement_Uniform<dim,nstate,real,MeshType>::refine_grid()
+template <int dim, int nspecies, int nstate, typename real, typename MeshType>
+void GridRefinement_Uniform<dim,nspecies,nstate,real,MeshType>::refine_grid()
 {
     using RefinementTypeEnum = PHiLiP::Parameters::GridRefinementParam::RefinementType;
     RefinementTypeEnum refinement_type = this->grid_refinement_param.refinement_type;
@@ -54,14 +54,14 @@ void GridRefinement_Uniform<dim,nstate,real,MeshType>::refine_grid()
 }
 
 // functions for the refinement calls for each of the classes
-template <int dim, int nstate, typename real, typename MeshType>
-void GridRefinement_Uniform<dim,nstate,real,MeshType>::refine_grid_h()
+template <int dim, int nspecies, int nstate, typename real, typename MeshType>
+void GridRefinement_Uniform<dim,nspecies,nstate,real,MeshType>::refine_grid_h()
 {
     this->tria->set_all_refine_flags();
 }
 
-template <int dim, int nstate, typename real, typename MeshType>
-void GridRefinement_Uniform<dim,nstate,real,MeshType>::refine_grid_p()
+template <int dim, int nspecies, int nstate, typename real, typename MeshType>
+void GridRefinement_Uniform<dim,nspecies,nstate,real,MeshType>::refine_grid_p()
 {
     for(auto cell = this->dg->dof_handler.begin_active(); cell != this->dg->dof_handler.end(); ++cell)
         if(cell->is_locally_owned() && cell->active_fe_index()+1 <= this->dg->max_degree)
@@ -69,15 +69,15 @@ void GridRefinement_Uniform<dim,nstate,real,MeshType>::refine_grid_p()
     
 }
 
-template <int dim, int nstate, typename real, typename MeshType>
-void GridRefinement_Uniform<dim,nstate,real,MeshType>::refine_grid_hp()
+template <int dim, int nspecies, int nstate, typename real, typename MeshType>
+void GridRefinement_Uniform<dim,nspecies,nstate,real,MeshType>::refine_grid_hp()
 {
     refine_grid_h();
     refine_grid_p();
 }
 
-template <int dim, int nstate, typename real, typename MeshType>
-std::vector< std::pair<dealii::Vector<real>, std::string> > GridRefinement_Uniform<dim,nstate,real,MeshType>::output_results_vtk_method()
+template <int dim, int nspecies, int nstate, typename real, typename MeshType>
+std::vector< std::pair<dealii::Vector<real>, std::string> > GridRefinement_Uniform<dim,nspecies,nstate,real,MeshType>::output_results_vtk_method()
 {
     // nothing special to do here
     std::vector< std::pair<dealii::Vector<real>, std::string> > data_out_vector;
@@ -90,18 +90,18 @@ std::vector< std::pair<dealii::Vector<real>, std::string> > GridRefinement_Unifo
 
 // Define a macro to instantiate GridRefinement_Uniform for a specific index
 #define INSTANTIATE_DISTRIBUTED(r, data, index) \
-    template class GridRefinement_Uniform <PHILIP_DIM, index, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+    template class GridRefinement_Uniform <PHILIP_DIM, PHILIP_SPECIES, index, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
 
 #if PHILIP_DIM!=1
 BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_DISTRIBUTED, _, POSSIBLE_NSTATE)
 #endif
 
 #define INSTANTIATE_SHARED(r, data, index) \
-    template class GridRefinement_Uniform <PHILIP_DIM, index, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+    template class GridRefinement_Uniform <PHILIP_DIM, PHILIP_SPECIES, index, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
 BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_SHARED, _, POSSIBLE_NSTATE)
 
 #define INSTANTIATE_TRIA(r, data, index) \
-    template class GridRefinement_Uniform <PHILIP_DIM, index, double, dealii::Triangulation<PHILIP_DIM>>;
+    template class GridRefinement_Uniform <PHILIP_DIM, PHILIP_SPECIES, index, double, dealii::Triangulation<PHILIP_DIM>>;
 BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_TRIA, _, POSSIBLE_NSTATE)
 
 } // namespace GridRefinement

@@ -10,8 +10,8 @@ namespace PHiLiP {
 namespace Physics {
 
 /// MultiSpeciesCaloricallyPerfect equations. Derived from PhysicsBase
-template <int dim, int nstate, typename real> // TO DO: TEMPLATE for nspecies -- see how the LES class has nstate_baseline_physics
-class MultiSpeciesCaloricallyPerfect : public RealGas <dim, nstate, real>
+template <int dim, int nspecies, int nstate, typename real> // TO DO: TEMPLATE for nspecies -- see how the LES class has nstate_baseline_physics
+class MultiSpeciesCaloricallyPerfect : public RealGas <dim, nspecies, nstate, real>
 {
 public:
     // using two_point_num_flux_enum = Parameters::AllParameters::TwoPointNumericalFlux;
@@ -23,8 +23,8 @@ public:
         const bool                                                has_nonzero_physical_source = false);
 
 private:
-    const std::array<real,nstate-dim-1> Cp;
-    const std::array<real,nstate-dim-1> Cv;
+    const std::array<real,nspecies> Cp;
+    const std::array<real,nspecies> Cv;
 
 public:
     /// Destructor
@@ -52,10 +52,10 @@ public:
 /// Suporting functions
 protected:
     /// f_S20: Compute species specific heat ratio from conservative_soln
-    std::array<real,nstate-dim-1> compute_species_specific_heat_ratio ( const std::array<real,nstate> &conservative_soln ) const override;
+    std::array<real,nspecies> compute_species_specific_heat_ratio ( const std::array<real,nstate> &conservative_soln ) const override;
 
 private:
-    std::array<real,nstate-dim-1> gamma;
+    std::array<real,nspecies> gamma;
 };
 
 } // Physics namespace

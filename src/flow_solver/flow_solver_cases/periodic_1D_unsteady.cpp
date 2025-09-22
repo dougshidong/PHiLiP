@@ -19,7 +19,7 @@ Periodic1DUnsteady<dim, nspecies, nstate>::Periodic1DUnsteady(const PHiLiP::Para
 
 template <int dim, int nspecies, int nstate>
 double Periodic1DUnsteady<dim, nspecies, nstate>::compute_energy(
-        const std::shared_ptr <DGBase<dim, double>> dg
+        const std::shared_ptr <DGBase<dim, nspecies, double>> dg
         ) const
 {
     //Calculating energy via matrix-vector product
@@ -35,7 +35,7 @@ double Periodic1DUnsteady<dim, nspecies, nstate>::compute_energy(
 
 template <int dim, int nspecies, int nstate>
 double Periodic1DUnsteady<dim, nspecies, nstate>::get_numerical_entropy(
-        const std::shared_ptr <DGBase<dim, double>> dg
+        const std::shared_ptr <DGBase<dim, nspecies, double>> dg
         ) const
 {
     return compute_energy(dg);
@@ -45,7 +45,7 @@ template <int dim, int nspecies, int nstate>
 void Periodic1DUnsteady<dim, nspecies, nstate>::compute_unsteady_data_and_write_to_table(
        const unsigned int current_iteration,
         const double current_time,
-        const std::shared_ptr <DGBase<dim, double>> dg ,
+        const std::shared_ptr <DGBase<dim, nspecies, double>> dg ,
         const std::shared_ptr <dealii::TableHandler> unsteady_data_table )
 {
     const double dt = this->all_param.ode_solver_param.initial_time_step;

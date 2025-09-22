@@ -102,9 +102,9 @@ dealii::TrilinosWrappers::SparseMatrix transpose_trilinos_matrix(dealii::Trilino
  return output_matrix;
 }
 
-template<int dim, int nstate>
-dealii::LinearAlgebra::distributed::BlockVector<double> evaluate_kkt_rhs(DGBase<dim,double> &dg,
-                   TargetFunctional<dim, nstate, double> &functional,
+template<int dim, int nspecies, int nstate>
+dealii::LinearAlgebra::distributed::BlockVector<double> evaluate_kkt_rhs(DGBase<dim,nspecies,double> &dg,
+                   TargetFunctional<dim, nspecies, nstate, double> &functional,
                    PHiLiP::MeshMover::LinearElasticity<dim, double> &meshmover
                    )
 {

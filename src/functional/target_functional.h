@@ -109,7 +109,7 @@ public:
      *  diffusion_exact_adjoint test case.
      */
     TargetFunctional(
-        std::shared_ptr<DGBase<dim,real>> dg_input,
+        std::shared_ptr<DGBase<dim,nspecies,real>> dg_input,
         const bool uses_solution_values = true,
         const bool uses_solution_gradient = true);
     /// Constructor
@@ -120,7 +120,7 @@ public:
      *  diffusion_exact_adjoint test case.
      */
     TargetFunctional(
-        std::shared_ptr<DGBase<dim,real>> dg_input,
+        std::shared_ptr<DGBase<dim,nspecies,real>> dg_input,
         const dealii::LinearAlgebra::distributed::Vector<real> &target_solution,
         const bool uses_solution_values = true,
         const bool uses_solution_gradient = true);
@@ -130,7 +130,7 @@ public:
       * The target solution is initialized with the one currently within DGBase.
       */
     TargetFunctional(
-        std::shared_ptr<DGBase<dim,real>> dg_input,
+        std::shared_ptr<DGBase<dim,nspecies,real>> dg_input,
         std::shared_ptr< Physics::PhysicsBase<dim,nstate,Sacado::Fad::DFad<Sacado::Fad::DFad<real>>> > _physics_fad_fad,
         const bool uses_solution_values = true,
         const bool uses_solution_gradient = true);
@@ -140,7 +140,7 @@ public:
      *  The target solution is provided instead of using the current solution in the DG object.
   */
     TargetFunctional(
-        std::shared_ptr<DGBase<dim,real>> dg_input,
+        std::shared_ptr<DGBase<dim,nspecies,real>> dg_input,
   const dealii::LinearAlgebra::distributed::Vector<real> &target_solution,
         std::shared_ptr< Physics::PhysicsBase<dim,nstate,Sacado::Fad::DFad<Sacado::Fad::DFad<real>>> > _physics_fad_fad,
         const bool uses_solution_values = true,
@@ -169,14 +169,14 @@ public:
     /** Finite difference evaluation of dIdW.
      */
     dealii::LinearAlgebra::distributed::Vector<real> evaluate_dIdw_finiteDifferences(
-        DGBase<dim,real> &dg, 
+        DGBase<dim,nspecies,real> &dg, 
         const PHiLiP::Physics::PhysicsBase<dim,nstate,real> &physics,
         const double stepsize);
 
     /** Finite difference evaluation of dIdX.
      */
     dealii::LinearAlgebra::distributed::Vector<real> evaluate_dIdX_finiteDifferences(
-        DGBase<dim,real> &dg, 
+        DGBase<dim,nspecies,real> &dg, 
         const PHiLiP::Physics::PhysicsBase<dim,nstate,real> &physics,
         const double stepsize);
 

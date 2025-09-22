@@ -12,8 +12,8 @@ template <int dim, int nspecies, int nstate>
 AssembleECSWBase<dim, nspecies, nstate>::AssembleECSWBase(
     const PHiLiP::Parameters::AllParameters *const parameters_input,
     const dealii::ParameterHandler &parameter_handler_input,
-    std::shared_ptr<DGBase<dim,double>> &dg_input, 
-    std::shared_ptr<ProperOrthogonalDecomposition::PODBase<dim>> pod, 
+    std::shared_ptr<DGBase<dim,nspecies,double>> &dg_input, 
+    std::shared_ptr<ProperOrthogonalDecomposition::PODBase<dim,nspecies>> pod, 
     MatrixXd snapshot_parameters_input,
     Parameters::ODESolverParam::ODESolverEnum ode_solver_type,
     Epetra_MpiComm &Comm)
@@ -106,7 +106,7 @@ void AssembleECSWBase<dim, nspecies, nstate>::update_snapshots(dealii::LinearAlg
 }
 
 template <int dim, int nspecies, int nstate>
-void AssembleECSWBase<dim, nspecies, nstate>::update_POD_snaps(std::shared_ptr<ProperOrthogonalDecomposition::PODBase<dim>> pod_update,    
+void AssembleECSWBase<dim, nspecies, nstate>::update_POD_snaps(std::shared_ptr<ProperOrthogonalDecomposition::PODBase<dim,nspecies>> pod_update,    
                                                     MatrixXd snapshot_parameters_update) {
     this->pod = pod_update;
     this->snapshot_parameters = snapshot_parameters_update;

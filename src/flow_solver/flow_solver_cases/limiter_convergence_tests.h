@@ -28,16 +28,16 @@ public:
     std::shared_ptr<Triangulation> generate_grid() const override;
 
     /// Function to compute the initial adaptive time step
-    double get_adaptive_time_step(std::shared_ptr<DGBase<dim,double>> dg) const override;
+    double get_adaptive_time_step(std::shared_ptr<DGBase<dim,nspecies,double>> dg) const override;
 
     /// Function to compute the initial adaptive time step
-    double get_adaptive_time_step_initial(std::shared_ptr<DGBase<dim,double>> dg) override;    
+    double get_adaptive_time_step_initial(std::shared_ptr<DGBase<dim,nspecies,double>> dg) override;    
 
     /// Updates the maximum local wave speed
-    void update_maximum_local_wave_speed(DGBase<dim, double> &dg);
+    void update_maximum_local_wave_speed(DGBase<dim, nspecies, double> &dg);
 
     /// Updates the maximum local wave speed
-    void check_limiter_principle(DGBase<dim, double>& dg);
+    void check_limiter_principle(DGBase<dim, nspecies, double>& dg);
 
     /// Filename (with extension) for the unsteady data table
     const std::string unsteady_data_table_filename_with_extension;
@@ -48,7 +48,7 @@ public:
     void compute_unsteady_data_and_write_to_table(
         const unsigned int current_iteration,
         const double current_time,
-        const std::shared_ptr <DGBase<dim, double>> dg,
+        const std::shared_ptr <DGBase<dim, nspecies, double>> dg,
         const std::shared_ptr<dealii::TableHandler> unsteady_data_table) override;
 
 protected:

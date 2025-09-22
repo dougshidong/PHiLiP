@@ -65,7 +65,7 @@ int BuildNNLSProblem<dim, nspecies, nstate>::run_test() const
     constructor_NNLS_problem.build_problem();
 
     /* UNCOMMENT TO SAVE THE RESIDUAL AND TEST BASIS FOR EACH OF THE SNAPSHOTS, used to feed MATLAB and build C/d
-    std::shared_ptr<DGBase<dim,double>> dg = flow_solver_petrov_galerkin->dg;
+    std::shared_ptr<DGBase<dim,nspecies,double>> dg = flow_solver_petrov_galerkin->dg;
     MatrixXd snapshotMatrix = parameter_sampling->current_pod->getSnapshotMatrix();
     const Epetra_CrsMatrix epetra_pod_basis = parameter_sampling->current_pod->getPODBasis()->trilinos_matrix();
     Epetra_CrsMatrix epetra_system_matrix = dg->system_matrix.trilinos_matrix();

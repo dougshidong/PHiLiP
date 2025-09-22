@@ -589,8 +589,8 @@ std::vector< std::pair<dealii::Vector<real>, std::string> > GridRefinement_Fixed
     return data_out_vector;
 }
 
-// Define a sequence of indices representing the range [1, 7] - max is 7 because nstate=dim+2+(species-1)=7 when dim=species=3
-#define POSSIBLE_NSTATE (1)(2)(3)(4)(5)(6)(7)
+// Define a sequence of indices representing the range [1, 6] - max is 6 because nstate=dim+2+(species-1)=6 when dim=3 species=2
+#define POSSIBLE_NSTATE (1)(2)(3)(4)(5)(6)
 
 // Define a macro to instantiate GridRefinement_FixedFraction for a specific index
 #define INSTANTIATE_DISTRIBUTED(r, data, index) \
@@ -608,6 +608,12 @@ BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_SHARED, _, POSSIBLE_NSTATE)
     template class GridRefinement_FixedFraction <PHILIP_DIM, PHILIP_SPECIES, index, double, dealii::Triangulation<PHILIP_DIM>>;
 BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_TRIA, _, POSSIBLE_NSTATE)
 
+// Templated to allow compilation when NUMBER_OF_SPECIES > 2, but may not work.
+#if (PHILIP_DIM+2+(PHILIP_SPECIES-1)) > 6
+    template class GridRefinement_FixedFraction <PHILIP_DIM, PHILIP_SPECIES, (PHILIP_DIM+2+(PHILIP_SPECIES-1)), double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+    template class GridRefinement_FixedFraction <PHILIP_DIM, PHILIP_SPECIES, (PHILIP_DIM+2+(PHILIP_SPECIES-1)), double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+    template class GridRefinement_FixedFraction <PHILIP_DIM, PHILIP_SPECIES, (PHILIP_DIM+2+(PHILIP_SPECIES-1)), double, dealii::Triangulation<PHILIP_DIM>>;
+#endif
 } // namespace GridRefinement
 
 } // namespace PHiLiP

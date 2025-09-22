@@ -126,7 +126,7 @@ int test(const unsigned int nx_ffd)
         grid->clear();
         Grids::gaussian_bump(*grid, n_subdivisions, CHANNEL_LENGTH, CHANNEL_HEIGHT, 0.5*BUMP_HEIGHT);
         // Create DG object
-        std::shared_ptr < DGBase<dim, double> > dg = DGFactory<dim,nspecies,double>::create_discontinuous_galerkin(&param, POLY_DEGREE, POLY_DEGREE, MESH_DEGREE, grid);
+        std::shared_ptr < DGBase<dim, nspecies, double> > dg = DGFactory<dim,nspecies,double>::create_discontinuous_galerkin(&param, POLY_DEGREE, POLY_DEGREE, MESH_DEGREE, grid);
 
         // Initialize coarse grid solution with free-stream
         dg->allocate_system ();
@@ -183,7 +183,7 @@ int test(const unsigned int nx_ffd)
     ffd_design_variables.update_ghost_values();
 
     // Create DG object
-    std::shared_ptr < DGBase<dim, double> > dg = DGFactory<dim,nspecies,double>::create_discontinuous_galerkin(&param, POLY_DEGREE, grid);
+    std::shared_ptr < DGBase<dim, nspecies, double> > dg = DGFactory<dim,nspecies,double>::create_discontinuous_galerkin(&param, POLY_DEGREE, grid);
 
     // Initialize coarse grid solution with free-stream
     dg->allocate_system ();
@@ -197,7 +197,7 @@ int test(const unsigned int nx_ffd)
     dg->output_results_vtk(9999);
 
     const bool functional_uses_solution_values = true, functional_uses_solution_gradient = false;
-    TargetBoundaryFunctional<dim,nstate,double> functional(dg, target_solution, functional_uses_solution_values, functional_uses_solution_gradient);
+    TargetBoundaryFunctional<dim,nspecies,nstate,double> functional(dg, target_solution, functional_uses_solution_values, functional_uses_solution_gradient);
 
     const bool has_ownership = false;
     DealiiVector des_var_sim = dg->solution;
@@ -233,7 +233,7 @@ int test(const unsigned int nx_ffd)
     std::shared_ptr<BaseParameterization<dim>> design_parameterization = 
                         std::make_shared<FreeFormDeformationParameterization<dim>>(dg->high_order_grid, ffd, ffd_design_variables_indices_dim);
     
-    auto obj  = ROL::makePtr<ROLObjectiveSimOpt<dim,nstate>>(functional, design_parameterization);
+    auto obj  = ROL::makePtr<ROLObjectiveSimOpt<dim,nspecies,nstate>>(functional, design_parameterization);
     auto con  = ROL::makePtr<FlowConstraints<dim,nspecies>>(dg, design_parameterization);
     const bool storage = false;
     const bool useFDHessian = false;

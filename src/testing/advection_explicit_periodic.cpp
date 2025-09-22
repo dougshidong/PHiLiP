@@ -38,7 +38,7 @@ AdvectionPeriodic<dim, nspecies, nstate>::AdvectionPeriodic(const PHiLiP::Parame
 {}
 
 template<int dim, int nspecies, int nstate>
-double AdvectionPeriodic<dim, nspecies, nstate>::compute_energy(std::shared_ptr < PHiLiP::DGBase<dim, double> > &dg) const
+double AdvectionPeriodic<dim, nspecies, nstate>::compute_energy(std::shared_ptr < PHiLiP::DGBase<dim, nspecies, double> > &dg) const
 {
 	double energy = 0.0;
         dealii::LinearAlgebra::distributed::Vector<double> mass_matrix_times_solution(dg->right_hand_side);
@@ -54,7 +54,7 @@ double AdvectionPeriodic<dim, nspecies, nstate>::compute_energy(std::shared_ptr 
 }
 
 template<int dim, int nspecies, int nstate>
-double AdvectionPeriodic<dim, nspecies, nstate>::compute_conservation(std::shared_ptr < PHiLiP::DGBase<dim, double> > &dg, const double poly_degree) const
+double AdvectionPeriodic<dim, nspecies, nstate>::compute_conservation(std::shared_ptr < PHiLiP::DGBase<dim, nspecies, double> > &dg, const double poly_degree) const
 {
         //Conservation \f$ =  \int 1 * u d\Omega_m \f$
         double conservation = 0.0;
@@ -147,7 +147,7 @@ int AdvectionPeriodic<dim, nspecies, nstate>::run_test() const
         std::cout << "cells " <<n_global_active_cells2 <<  std::endl;
 
         //Set the DG spatial sys
-        std::shared_ptr < PHiLiP::DGBase<dim, double> > dg = PHiLiP::DGFactory<dim,nspecies,double>::create_discontinuous_galerkin(&all_parameters_new, poly_degree, poly_degree, grid_degree, grid);
+        std::shared_ptr < PHiLiP::DGBase<dim, nspecies, double> > dg = PHiLiP::DGFactory<dim,nspecies,double>::create_discontinuous_galerkin(&all_parameters_new, poly_degree, poly_degree, grid_degree, grid);
         dg->allocate_system (false,false,false);
 
         std::cout << "Implement initial conditions" << std::endl;

@@ -77,8 +77,8 @@ solve_linear (
 }
 
 /// L2 solution error.
-template <int dim, int nstate, typename real>
-class L2_Norm_Functional : public PHiLiP::Functional<dim, nstate, real>
+template <int dim, int nspecies, int nstate, typename real>
+class L2_Norm_Functional : public PHiLiP::Functional<dim, nspecies, nstate, real>
 {
 
     using FadType = Sacado::Fad::DFad<real>; ///< Sacado AD type for first derivatives.
@@ -86,10 +86,10 @@ class L2_Norm_Functional : public PHiLiP::Functional<dim, nstate, real>
 public:
     /// Constructor
     L2_Norm_Functional(
-        std::shared_ptr<PHiLiP::DGBase<dim,real>> dg_input,
+        std::shared_ptr<PHiLiP::DGBase<dim,nspecies,real>> dg_input,
         const bool uses_solution_values = true,
         const bool uses_solution_gradient = false)
-    : PHiLiP::Functional<dim,nstate,real>(dg_input,uses_solution_values,uses_solution_gradient)
+    : PHiLiP::Functional<dim,nspecies,nstate,real>(dg_input,uses_solution_values,uses_solution_gradient)
     {}
 
     /// Templated volume integrand.
@@ -188,8 +188,8 @@ public:
 };
 
 
-template <int dim, int nstate>
-void initialize_perturbed_solution(PHiLiP::DGBase<dim,double> &dg, const PHiLiP::Physics::PhysicsBase<dim,nstate,double> &physics)
+template <int dim, int nspecies, int nstate>
+void initialize_perturbed_solution(PHiLiP::DGBase<dim,nspecies,double> &dg, const PHiLiP::Physics::PhysicsBase<dim,nstate,double> &physics)
 {
     dealii::LinearAlgebra::distributed::Vector<double> solution_no_ghost;
     solution_no_ghost.reinit(dg.locally_owned_dofs, MPI_COMM_WORLD);
@@ -242,7 +242,7 @@ int main(int argc, char *argv[])
     pcout << "Grid generated and refined" << std::endl;
 
     // creating the dg
-    std::shared_ptr < PHiLiP::DGBase<dim, double> > dg = PHiLiP::DGFactory<dim,nspecies,double>::create_discontinuous_galerkin(&all_parameters, poly_degree, grid);
+    std::shared_ptr < PHiLiP::DGBase<dim, nspecies, double> > dg = PHiLiP::DGFactory<dim,nspecies,double>::create_discontinuous_galerkin(&all_parameters, poly_degree, grid);
     pcout << "dg created" << std::endl;
 
     dg->allocate_system();
@@ -267,7 +267,7 @@ int main(int argc, char *argv[])
     dg->allocate_system ();
 
     // manufactured solution function
-    std::shared_ptr <PHiLiP::Physics::PhysicsBase<dim,nstate,double>> physics_double = PHiLiP::Physics::PhysicsFactory<dim, nstate, double>::create_Physics(&all_parameters);
+    std::shared_ptr <PHiLiP::Physics::PhysicsBase<dim,nstate,double>> physics_double = PHiLiP::Physics::PhysicsFactory<dim, nspecies, nstate, double>::create_Physics(&all_parameters);
     pcout << "Physics created" << std::endl;
  
     // performing the interpolation for the intial conditions
@@ -276,7 +276,7 @@ int main(int argc, char *argv[])
 
     // evaluating the derivative (using SACADO)
     pcout << std::endl << "Starting Hessian AD... " << std::endl;
-    L2_Norm_Functional<dim,nstate,double> functional(dg,true,false);
+    L2_Norm_Functional<dim,nspecies,nstate,double> functional(dg,true,false);
     const bool compute_dIdW = false, compute_dIdX = false, compute_d2I = true;
     double functional_value = functional.evaluate_functional(compute_dIdW, compute_dIdX, compute_d2I);
     (void) functional_value;

@@ -60,7 +60,7 @@ void initialize_model_variables(std::shared_ptr <PHiLiP::Physics::ModelBase<dim,
     }
 }
 
-template<int dim, int nstate>
+template<int dim, int nspecies, int nstate>
 int test_dissipative_numerical_flux_conservation (const PHiLiP::Parameters::AllParameters *const all_parameters)
 {
     std::cout << std::setprecision(std::numeric_limits<double>::digits10 + 1);
@@ -70,7 +70,7 @@ int test_dissipative_numerical_flux_conservation (const PHiLiP::Parameters::AllP
     using namespace PHiLiP;
     std::shared_ptr <Physics::ModelBase<dim, nstate, double>> pde_model = Physics::ModelFactory<dim, nstate, double>::create_Model(all_parameters);
     initialize_model_variables(pde_model);
-    std::shared_ptr <Physics::PhysicsBase<dim, nstate, double>> pde_physics = Physics::PhysicsFactory<dim, nstate, double>::create_Physics(all_parameters,pde_model);
+    std::shared_ptr <Physics::PhysicsBase<dim, nstate, double>> pde_physics = Physics::PhysicsFactory<dim, nspecies, nstate, double>::create_Physics(all_parameters,pde_model);
     std::shared_ptr <ArtificialDissipationBase<dim,nstate>> artificial_dissipation_pointer = ArtificialDissipationFactory<dim,nstate>::create_artificial_dissipation(all_parameters);
     
     dealii::Tensor<1,dim,double> normal_int;
@@ -90,7 +90,7 @@ int test_dissipative_numerical_flux_conservation (const PHiLiP::Parameters::AllP
     }
 
     std::unique_ptr<NumericalFlux::NumericalFluxDissipative<dim, nstate, double>> diss_num_flux = 
-        NumericalFlux::NumericalFluxFactory<dim, nstate, double>
+        NumericalFlux::NumericalFluxFactory<dim, nspecies, nstate, double>
         ::create_dissipative_numerical_flux (all_parameters->diss_num_flux_type, pde_physics, artificial_dissipation_pointer);
     std::array<double, nstate> diss_num_flux_dot_n_1 = diss_num_flux->evaluate_solution_flux(soln_int, soln_ext, normal_int);
     std::array<double, nstate> diss_num_flux_dot_n_2 = diss_num_flux->evaluate_solution_flux(soln_ext, soln_int, -normal_int);
@@ -123,17 +123,17 @@ int test_dissipative_numerical_flux_conservation (const PHiLiP::Parameters::AllP
     return 0;
 }
 
-template<int dim, int nstate>
+template<int dim, int nspecies, int nstate>
 int test_dissipative_numerical_flux_consistency (const PHiLiP::Parameters::AllParameters *const all_parameters)
 {
     using namespace PHiLiP;
     std::shared_ptr <Physics::ModelBase<dim, nstate, double>> pde_model = Physics::ModelFactory<dim, nstate, double>::create_Model(all_parameters);
     initialize_model_variables(pde_model);
-    std::shared_ptr <Physics::PhysicsBase<dim, nstate, double>> pde_physics = Physics::PhysicsFactory<dim, nstate, double>::create_Physics(all_parameters, pde_model);
+    std::shared_ptr <Physics::PhysicsBase<dim, nstate, double>> pde_physics = Physics::PhysicsFactory<dim, nspecies, nstate, double>::create_Physics(all_parameters, pde_model);
     std::shared_ptr <ArtificialDissipationBase<dim,nstate>> artificial_dissipation_pointer = ArtificialDissipationFactory<dim,nstate> ::create_artificial_dissipation(all_parameters);
     
     std::unique_ptr<NumericalFlux::NumericalFluxDissipative<dim, nstate, double>> diss_num_flux = 
-        NumericalFlux::NumericalFluxFactory<dim, nstate, double>
+        NumericalFlux::NumericalFluxFactory<dim, nspecies, nstate, double>
         ::create_dissipative_numerical_flux (all_parameters->diss_num_flux_type, pde_physics, artificial_dissipation_pointer);
 
     dealii::Tensor<1,dim,double> normal_int;
@@ -188,16 +188,16 @@ int test_dissipative_numerical_flux_consistency (const PHiLiP::Parameters::AllPa
     return 0;
 }
 
-template<int dim, int nstate>
+template<int dim, int nspecies, int nstate>
 int test_convective_numerical_flux_conservation (const PHiLiP::Parameters::AllParameters *const all_parameters)
 {
     using namespace PHiLiP;
     std::shared_ptr <Physics::ModelBase<dim, nstate, double>> pde_model = Physics::ModelFactory<dim, nstate, double>::create_Model(all_parameters);
     initialize_model_variables(pde_model);
-    std::shared_ptr <Physics::PhysicsBase<dim, nstate, double>> pde_physics = Physics::PhysicsFactory<dim, nstate, double>::create_Physics(all_parameters,pde_model);
+    std::shared_ptr <Physics::PhysicsBase<dim, nstate, double>> pde_physics = Physics::PhysicsFactory<dim, nspecies, nstate, double>::create_Physics(all_parameters,pde_model);
     
     std::unique_ptr<NumericalFlux::NumericalFluxConvective<dim, nstate, double>> conv_num_flux = 
-        NumericalFlux::NumericalFluxFactory<dim, nstate, double>
+        NumericalFlux::NumericalFluxFactory<dim, nspecies, nstate, double>
         ::create_convective_numerical_flux (all_parameters->conv_num_flux_type, all_parameters->pde_type, all_parameters->model_type, pde_physics);
 
     dealii::Tensor<1,dim,double> normal_int;
@@ -225,16 +225,16 @@ int test_convective_numerical_flux_conservation (const PHiLiP::Parameters::AllPa
     return 0;
 }
 
-template<int dim, int nstate>
+template<int dim, int nspecies, int nstate>
 int test_convective_numerical_flux_consistency (const PHiLiP::Parameters::AllParameters *const all_parameters)
 {
     using namespace PHiLiP;
     std::shared_ptr <Physics::ModelBase<dim, nstate, double>> pde_model = Physics::ModelFactory<dim, nstate, double>::create_Model(all_parameters);
     initialize_model_variables(pde_model);
-    std::shared_ptr <Physics::PhysicsBase<dim, nstate, double>> pde_physics = Physics::PhysicsFactory<dim, nstate, double>::create_Physics(all_parameters,pde_model);
+    std::shared_ptr <Physics::PhysicsBase<dim, nstate, double>> pde_physics = Physics::PhysicsFactory<dim, nspecies, nstate, double>::create_Physics(all_parameters,pde_model);
 
     std::unique_ptr<NumericalFlux::NumericalFluxConvective<dim, nstate, double>> conv_num_flux = 
-        NumericalFlux::NumericalFluxFactory<dim, nstate, double>
+        NumericalFlux::NumericalFluxFactory<dim, nspecies, nstate, double>
         ::create_convective_numerical_flux (all_parameters->conv_num_flux_type, all_parameters->pde_type, all_parameters->model_type, pde_physics);
 
     dealii::Tensor<1,dim,double> normal_int;
@@ -395,13 +395,13 @@ int main (int argc, char * argv[])
             std::cout << "PDE Type: " << pde_string << "\t Convective Flux Type: " << conv_string << std::endl;
             std::cout << "----------------------------------------------------------------------------" << std::endl;
 
-            if(*pde==PDEType::advection) success = test_convective_numerical_flux_conservation<PHILIP_DIM,1> (&all_parameters);
-            if(*pde==PDEType::diffusion) success = test_convective_numerical_flux_conservation<PHILIP_DIM,1> (&all_parameters);
-            if(*pde==PDEType::convection_diffusion) success = test_convective_numerical_flux_conservation<PHILIP_DIM,1> (&all_parameters);
-            if(*pde==PDEType::advection_vector) success = test_convective_numerical_flux_conservation<PHILIP_DIM,2> (&all_parameters);
-            if(*pde==PDEType::burgers_inviscid) success = test_convective_numerical_flux_conservation<PHILIP_DIM,PHILIP_DIM> (&all_parameters);
-            if(*pde==PDEType::euler) success = test_convective_numerical_flux_conservation<PHILIP_DIM,PHILIP_DIM+2> (&all_parameters);
-            if(*pde==PDEType::navier_stokes) success = test_convective_numerical_flux_conservation<PHILIP_DIM,PHILIP_DIM+2> (&all_parameters);
+            if(*pde==PDEType::advection) success = test_convective_numerical_flux_conservation<PHILIP_DIM,1,1> (&all_parameters);
+            if(*pde==PDEType::diffusion) success = test_convective_numerical_flux_conservation<PHILIP_DIM,1,1> (&all_parameters);
+            if(*pde==PDEType::convection_diffusion) success = test_convective_numerical_flux_conservation<PHILIP_DIM,1,1> (&all_parameters);
+            if(*pde==PDEType::advection_vector) success = test_convective_numerical_flux_conservation<PHILIP_DIM,1,2> (&all_parameters);
+            if(*pde==PDEType::burgers_inviscid) success = test_convective_numerical_flux_conservation<PHILIP_DIM,1,PHILIP_DIM> (&all_parameters);
+            if(*pde==PDEType::euler) success = test_convective_numerical_flux_conservation<PHILIP_DIM,1,PHILIP_DIM+2> (&all_parameters);
+            if(*pde==PDEType::navier_stokes) success = test_convective_numerical_flux_conservation<PHILIP_DIM,1,PHILIP_DIM+2> (&all_parameters);
             if(*pde==PDEType::physics_model) {
                 for (auto model = model_type.begin(); model != model_type.end() && success == 0; model++) {
                     all_parameters.model_type = *model;
@@ -409,22 +409,22 @@ int main (int argc, char * argv[])
                     if(all_parameters.model_type == ModelType::large_eddy_simulation) {
                         for (auto sgs_model = sgs_model_type.begin(); sgs_model != sgs_model_type.end() && success == 0; sgs_model++) {
                             print_sub_grid_scale_model_type(*sgs_model);
-                            success = test_convective_numerical_flux_conservation<PHILIP_DIM,PHILIP_DIM+2> (&all_parameters);
+                            success = test_convective_numerical_flux_conservation<PHILIP_DIM,1,PHILIP_DIM+2> (&all_parameters);
                         }
                     }
                     else {
-                        success = test_convective_numerical_flux_conservation<PHILIP_DIM,PHILIP_DIM+2> (&all_parameters);
+                        success = test_convective_numerical_flux_conservation<PHILIP_DIM,1,PHILIP_DIM+2> (&all_parameters);
                     }
                 }
             }
 
-            if(*pde==PDEType::advection) success = test_convective_numerical_flux_consistency<PHILIP_DIM,1> (&all_parameters);
-            if(*pde==PDEType::diffusion) success = test_convective_numerical_flux_consistency<PHILIP_DIM,1> (&all_parameters);
-            if(*pde==PDEType::convection_diffusion) success = test_convective_numerical_flux_consistency<PHILIP_DIM,1> (&all_parameters);
-            if(*pde==PDEType::advection_vector) success = test_convective_numerical_flux_consistency<PHILIP_DIM,2> (&all_parameters);
-            if(*pde==PDEType::burgers_inviscid) success = test_convective_numerical_flux_consistency<PHILIP_DIM,PHILIP_DIM> (&all_parameters);
-            if(*pde==PDEType::euler) success = test_convective_numerical_flux_consistency<PHILIP_DIM,PHILIP_DIM+2> (&all_parameters);
-            if(*pde==PDEType::navier_stokes) success = test_convective_numerical_flux_consistency<PHILIP_DIM,PHILIP_DIM+2> (&all_parameters);
+            if(*pde==PDEType::advection) success = test_convective_numerical_flux_consistency<PHILIP_DIM,1,1> (&all_parameters);
+            if(*pde==PDEType::diffusion) success = test_convective_numerical_flux_consistency<PHILIP_DIM,1,1> (&all_parameters);
+            if(*pde==PDEType::convection_diffusion) success = test_convective_numerical_flux_consistency<PHILIP_DIM,1,1> (&all_parameters);
+            if(*pde==PDEType::advection_vector) success = test_convective_numerical_flux_consistency<PHILIP_DIM,1,2> (&all_parameters);
+            if(*pde==PDEType::burgers_inviscid) success = test_convective_numerical_flux_consistency<PHILIP_DIM,1,PHILIP_DIM> (&all_parameters);
+            if(*pde==PDEType::euler) success = test_convective_numerical_flux_consistency<PHILIP_DIM,1,PHILIP_DIM+2> (&all_parameters);
+            if(*pde==PDEType::navier_stokes) success = test_convective_numerical_flux_consistency<PHILIP_DIM,1,PHILIP_DIM+2> (&all_parameters);
             if(*pde==PDEType::physics_model) {
                 for (auto model = model_type.begin(); model != model_type.end() && success == 0; model++) {
                     all_parameters.model_type = *model;
@@ -432,11 +432,11 @@ int main (int argc, char * argv[])
                     if(all_parameters.model_type == ModelType::large_eddy_simulation) {
                         for (auto sgs_model = sgs_model_type.begin(); sgs_model != sgs_model_type.end() && success == 0; sgs_model++) {
                             print_sub_grid_scale_model_type(*sgs_model);
-                            success = test_convective_numerical_flux_consistency<PHILIP_DIM,PHILIP_DIM+2> (&all_parameters);
+                            success = test_convective_numerical_flux_consistency<PHILIP_DIM,1,PHILIP_DIM+2> (&all_parameters);
                         }
                     }
                     else {
-                        success = test_convective_numerical_flux_consistency<PHILIP_DIM,PHILIP_DIM+2> (&all_parameters);
+                        success = test_convective_numerical_flux_consistency<PHILIP_DIM,1,PHILIP_DIM+2> (&all_parameters);
                     }
                 }
             }
@@ -452,13 +452,13 @@ int main (int argc, char * argv[])
             std::cout << "PDE Type: " << pde_string << "\t Dissipative Flux Type: " << diss_string << std::endl;
             std::cout << "----------------------------------------------------------------------------" << std::endl;
 
-            if(*pde==PDEType::advection) success = test_dissipative_numerical_flux_conservation<PHILIP_DIM,1> (&all_parameters);
-            if(*pde==PDEType::diffusion) success = test_dissipative_numerical_flux_conservation<PHILIP_DIM,1> (&all_parameters);
-            if(*pde==PDEType::convection_diffusion) success = test_dissipative_numerical_flux_conservation<PHILIP_DIM,1> (&all_parameters);
-            if(*pde==PDEType::advection_vector) success = test_dissipative_numerical_flux_conservation<PHILIP_DIM,2> (&all_parameters);
-            if(*pde==PDEType::burgers_inviscid) success = test_dissipative_numerical_flux_conservation<PHILIP_DIM,PHILIP_DIM> (&all_parameters);
-            if(*pde==PDEType::euler) success = test_dissipative_numerical_flux_conservation<PHILIP_DIM,PHILIP_DIM+2> (&all_parameters);
-            if(*pde==PDEType::navier_stokes) success = test_dissipative_numerical_flux_conservation<PHILIP_DIM,PHILIP_DIM+2> (&all_parameters);
+            if(*pde==PDEType::advection) success = test_dissipative_numerical_flux_conservation<PHILIP_DIM,1,1> (&all_parameters);
+            if(*pde==PDEType::diffusion) success = test_dissipative_numerical_flux_conservation<PHILIP_DIM,1,1> (&all_parameters);
+            if(*pde==PDEType::convection_diffusion) success = test_dissipative_numerical_flux_conservation<PHILIP_DIM,1,1> (&all_parameters);
+            if(*pde==PDEType::advection_vector) success = test_dissipative_numerical_flux_conservation<PHILIP_DIM,1,2> (&all_parameters);
+            if(*pde==PDEType::burgers_inviscid) success = test_dissipative_numerical_flux_conservation<PHILIP_DIM,1,PHILIP_DIM> (&all_parameters);
+            if(*pde==PDEType::euler) success = test_dissipative_numerical_flux_conservation<PHILIP_DIM,1,PHILIP_DIM+2> (&all_parameters);
+            if(*pde==PDEType::navier_stokes) success = test_dissipative_numerical_flux_conservation<PHILIP_DIM,1,PHILIP_DIM+2> (&all_parameters);
             if(*pde==PDEType::physics_model) {
                 for (auto model = model_type.begin(); model != model_type.end() && success == 0; model++) {
                     all_parameters.model_type = *model;
@@ -466,23 +466,23 @@ int main (int argc, char * argv[])
                     if(all_parameters.model_type == ModelType::large_eddy_simulation) {
                         for (auto sgs_model = sgs_model_type.begin(); sgs_model != sgs_model_type.end() && success == 0; sgs_model++) {
                             print_sub_grid_scale_model_type(*sgs_model);
-                            success = test_dissipative_numerical_flux_conservation<PHILIP_DIM,PHILIP_DIM+2> (&all_parameters);
+                            success = test_dissipative_numerical_flux_conservation<PHILIP_DIM,1,PHILIP_DIM+2> (&all_parameters);
                         }
                     }
                     else {
-                        success = test_dissipative_numerical_flux_conservation<PHILIP_DIM,PHILIP_DIM+2> (&all_parameters);
+                        success = test_dissipative_numerical_flux_conservation<PHILIP_DIM,1,PHILIP_DIM+2> (&all_parameters);
                     }
                 }
             }
 
 
-            if(*pde==PDEType::advection) success = test_dissipative_numerical_flux_consistency<PHILIP_DIM,1> (&all_parameters);
-            if(*pde==PDEType::diffusion) success = test_dissipative_numerical_flux_consistency<PHILIP_DIM,1> (&all_parameters);
-            if(*pde==PDEType::convection_diffusion) success = test_dissipative_numerical_flux_consistency<PHILIP_DIM,1> (&all_parameters);
-            if(*pde==PDEType::advection_vector) success = test_dissipative_numerical_flux_consistency<PHILIP_DIM,2> (&all_parameters);
-            if(*pde==PDEType::burgers_inviscid) success = test_dissipative_numerical_flux_consistency<PHILIP_DIM,PHILIP_DIM> (&all_parameters);
-            if(*pde==PDEType::euler) success = test_dissipative_numerical_flux_consistency<PHILIP_DIM,PHILIP_DIM+2> (&all_parameters);
-            if(*pde==PDEType::navier_stokes) success = test_dissipative_numerical_flux_consistency<PHILIP_DIM,PHILIP_DIM+2> (&all_parameters);
+            if(*pde==PDEType::advection) success = test_dissipative_numerical_flux_consistency<PHILIP_DIM,1,1> (&all_parameters);
+            if(*pde==PDEType::diffusion) success = test_dissipative_numerical_flux_consistency<PHILIP_DIM,1,1> (&all_parameters);
+            if(*pde==PDEType::convection_diffusion) success = test_dissipative_numerical_flux_consistency<PHILIP_DIM,1,1> (&all_parameters);
+            if(*pde==PDEType::advection_vector) success = test_dissipative_numerical_flux_consistency<PHILIP_DIM,1,2> (&all_parameters);
+            if(*pde==PDEType::burgers_inviscid) success = test_dissipative_numerical_flux_consistency<PHILIP_DIM,1,PHILIP_DIM> (&all_parameters);
+            if(*pde==PDEType::euler) success = test_dissipative_numerical_flux_consistency<PHILIP_DIM,1,PHILIP_DIM+2> (&all_parameters);
+            if(*pde==PDEType::navier_stokes) success = test_dissipative_numerical_flux_consistency<PHILIP_DIM,1,PHILIP_DIM+2> (&all_parameters);
             if(*pde==PDEType::physics_model) {
                 for (auto model = model_type.begin(); model != model_type.end() && success == 0; model++) {
                     all_parameters.model_type = *model;
@@ -490,11 +490,11 @@ int main (int argc, char * argv[])
                     if(all_parameters.model_type == ModelType::large_eddy_simulation) {
                         for (auto sgs_model = sgs_model_type.begin(); sgs_model != sgs_model_type.end() && success == 0; sgs_model++) {
                             print_sub_grid_scale_model_type(*sgs_model);
-                            success = test_dissipative_numerical_flux_consistency<PHILIP_DIM,PHILIP_DIM+2> (&all_parameters);
+                            success = test_dissipative_numerical_flux_consistency<PHILIP_DIM,1,PHILIP_DIM+2> (&all_parameters);
                         }
                     }
                     else {
-                        success = test_dissipative_numerical_flux_consistency<PHILIP_DIM,PHILIP_DIM+2> (&all_parameters);
+                        success = test_dissipative_numerical_flux_consistency<PHILIP_DIM,1,PHILIP_DIM+2> (&all_parameters);
                     }
                 }
             }

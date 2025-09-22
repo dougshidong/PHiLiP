@@ -24,22 +24,22 @@ int ReducedOrder<dim, nspecies, nstate>::run_test() const
     pcout << "Starting reduced-order test..." << std::endl;
 
     std::unique_ptr<FlowSolver::FlowSolver<dim,nspecies,nstate>> flow_solver_implicit = FlowSolver::FlowSolverFactory<dim,nspecies,nstate>::select_flow_case(all_parameters, parameter_handler);
-    auto functional_implicit = FunctionalFactory<dim,nstate,double>::create_Functional(all_parameters->functional_param, flow_solver_implicit->dg);
+    auto functional_implicit = FunctionalFactory<dim,nspecies,nstate,double>::create_Functional(all_parameters->functional_param, flow_solver_implicit->dg);
 
     std::unique_ptr<FlowSolver::FlowSolver<dim,nspecies,nstate>> flow_solver_galerkin = FlowSolver::FlowSolverFactory<dim,nspecies,nstate>::select_flow_case(all_parameters, parameter_handler);
     auto ode_solver_type = Parameters::ODESolverParam::ODESolverEnum::pod_galerkin_solver;
-    std::shared_ptr<ProperOrthogonalDecomposition::OfflinePOD<dim>> pod_galerkin = std::make_shared<ProperOrthogonalDecomposition::OfflinePOD<dim>>(flow_solver_galerkin->dg);
+    std::shared_ptr<ProperOrthogonalDecomposition::OfflinePOD<dim,nspecies>> pod_galerkin = std::make_shared<ProperOrthogonalDecomposition::OfflinePOD<dim,nspecies>>(flow_solver_galerkin->dg);
     flow_solver_galerkin->ode_solver =  PHiLiP::ODE::ODESolverFactory<dim, nspecies, double>::create_ODESolver_manual(ode_solver_type, flow_solver_galerkin->dg, pod_galerkin);
     flow_solver_galerkin->ode_solver->allocate_ode_system();
-    auto functional_galerkin = FunctionalFactory<dim,nstate,double>::create_Functional(all_parameters->functional_param, flow_solver_galerkin->dg);
+    auto functional_galerkin = FunctionalFactory<dim,nspecies,nstate,double>::create_Functional(all_parameters->functional_param, flow_solver_galerkin->dg);
 
 
     std::unique_ptr<FlowSolver::FlowSolver<dim,nspecies,nstate>> flow_solver_petrov_galerkin = FlowSolver::FlowSolverFactory<dim,nspecies,nstate>::select_flow_case(all_parameters, parameter_handler);
     ode_solver_type = Parameters::ODESolverParam::ODESolverEnum::pod_petrov_galerkin_solver;
-    std::shared_ptr<ProperOrthogonalDecomposition::OfflinePOD<dim>> pod_petrov_galerkin = std::make_shared<ProperOrthogonalDecomposition::OfflinePOD<dim>>(flow_solver_petrov_galerkin->dg);
+    std::shared_ptr<ProperOrthogonalDecomposition::OfflinePOD<dim,nspecies>> pod_petrov_galerkin = std::make_shared<ProperOrthogonalDecomposition::OfflinePOD<dim,nspecies>>(flow_solver_petrov_galerkin->dg);
     flow_solver_petrov_galerkin->ode_solver =  PHiLiP::ODE::ODESolverFactory<dim, nspecies, double>::create_ODESolver_manual(ode_solver_type, flow_solver_petrov_galerkin->dg, pod_petrov_galerkin);
     flow_solver_petrov_galerkin->ode_solver->allocate_ode_system();
-    auto functional_petrov_galerkin = FunctionalFactory<dim,nstate,double>::create_Functional(all_parameters->functional_param, flow_solver_petrov_galerkin->dg);
+    auto functional_petrov_galerkin = FunctionalFactory<dim,nspecies,nstate,double>::create_Functional(all_parameters->functional_param, flow_solver_petrov_galerkin->dg);
 
     flow_solver_implicit->run();
     flow_solver_galerkin->ode_solver->steady_state();

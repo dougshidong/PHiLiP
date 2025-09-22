@@ -47,7 +47,7 @@ namespace PHiLiP {
 namespace Tests {
 
 // template <int dim, int nstate, typename real>
-// class L2_Norm_Functional : public Functional<dim, nstate, real>
+// class L2_Norm_Functional : public Functional<dim, nspecies, nstate, real>
 // {
 //  public:
 //   template <typename real2>
@@ -102,7 +102,7 @@ namespace Tests {
  *  Pressure integral on the outlet.
  */
 template <int dim, int nstate, typename real>
-class BoundaryIntegral : public PHiLiP::Functional<dim, nstate, real>
+class BoundaryIntegral : public PHiLiP::Functional<dim, nspecies, nstate, real>
 {
  public:
         /// Templated function to evaluate exit pressure integral.
@@ -401,9 +401,9 @@ int EulerGaussianBumpAdjoint<dim,nspecies,nstate>
         grid.set_manifold ( manifold_id, bump_manifold );
 
         // Create DG object
-        // std::shared_ptr < DGBase<dim, double> > dg = DGFactory<dim,nspecies,double>::create_discontinuous_galerkin(&param, poly_degree, &grid);
-        // std::shared_ptr < DGBase<dim, double> > dg = DGFactory<dim,nspecies,double>::create_discontinuous_galerkin(&param, poly_max/*poly_degree*/, &grid);
-        std::shared_ptr < DGBase<dim, double> > dg = DGFactory<dim,nspecies,double>::create_discontinuous_galerkin(&param, poly_degree, poly_degree+1, &grid);
+        // std::shared_ptr < DGBase<dim, nspecies, double> > dg = DGFactory<dim,nspecies,double>::create_discontinuous_galerkin(&param, poly_degree, &grid);
+        // std::shared_ptr < DGBase<dim, nspecies, double> > dg = DGFactory<dim,nspecies,double>::create_discontinuous_galerkin(&param, poly_max/*poly_degree*/, &grid);
+        std::shared_ptr < DGBase<dim, nspecies, double> > dg = DGFactory<dim,nspecies,double>::create_discontinuous_galerkin(&param, poly_degree, poly_degree+1, &grid);
 
         // Initialize coarse grid solution with free-stream
         dg->allocate_system ();
@@ -417,7 +417,7 @@ int EulerGaussianBumpAdjoint<dim,nspecies,nstate>
         BoundaryIntegral<dim, nstate, double> BoundaryIntegralFunctional;
 
         // initializing an adjoint for this case
-        Adjoint<dim, nstate, double> adjoint(*dg, BoundaryIntegralFunctional, euler_physics_adtype);
+        Adjoint<dim, nspecies, nstate, double> adjoint(*dg, BoundaryIntegralFunctional, euler_physics_adtype);
 
         dealii::Vector<float> estimated_error_per_cell(grid.n_active_cells());
         for (unsigned int igrid=0; igrid<n_grids; ++igrid) {
@@ -503,14 +503,14 @@ int EulerGaussianBumpAdjoint<dim,nspecies,nstate>
             adjoint.reinit();
 
             // evaluating the derivatives and the adjoint on the fine grid
-            adjoint.convert_to_state(PHiLiP::Adjoint<dim,nstate,double>::AdjointStateEnum::fine); // will do this automatically, but I prefer to repeat explicitly
+            adjoint.convert_to_state(PHiLiP::Adjoint<dim,nspecies,nstate,double>::AdjointStateEnum::fine); // will do this automatically, but I prefer to repeat explicitly
             adjoint.fine_grid_adjoint();
             estimated_error_per_cell = adjoint.dual_weighted_residual(); // performing the error indicator computation
 
             // and outputing the fine properties
             adjoint.output_results_vtk(igrid);
 
-            adjoint.convert_to_state(PHiLiP::Adjoint<dim,nstate,double>::AdjointStateEnum::coarse); // this one is necessary though
+            adjoint.convert_to_state(PHiLiP::Adjoint<dim,nspecies,nstate,double>::AdjointStateEnum::coarse); // this one is necessary though
             adjoint.coarse_grid_adjoint();
             adjoint.output_results_vtk(igrid);
 

@@ -14,13 +14,13 @@ class CubeFlow_UniformGrid : public FlowSolverCaseBase<dim, nspecies, nstate>
      explicit CubeFlow_UniformGrid(const Parameters::AllParameters *const parameters_input);
      
     /// Function to compute the adaptive time step
-    double get_adaptive_time_step(std::shared_ptr<DGBase<dim,double>> dg) const override;
+    double get_adaptive_time_step(std::shared_ptr<DGBase<dim,nspecies,double>> dg) const override;
 
     /// Function to compute the initial adaptive time step
-    double get_adaptive_time_step_initial(std::shared_ptr<DGBase<dim,double>> dg) override;
+    double get_adaptive_time_step_initial(std::shared_ptr<DGBase<dim,nspecies,double>> dg) override;
 
     /// Updates the maximum local wave speed
-    void update_maximum_local_wave_speed(DGBase<dim, double> &dg);
+    void update_maximum_local_wave_speed(DGBase<dim, nspecies, double> &dg);
  
  protected:
     /// Maximum local wave speed (i.e. convective eigenvalue)

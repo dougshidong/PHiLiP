@@ -34,7 +34,7 @@ ConvectionDiffusionPeriodic<dim, nspecies, nstate>::ConvectionDiffusionPeriodic(
 {}
 
 template<int dim, int nspecies, int nstate>
-double ConvectionDiffusionPeriodic<dim, nspecies, nstate>::compute_energy_derivative_norm(std::shared_ptr < PHiLiP::DGBase<dim, double> > &dg) const
+double ConvectionDiffusionPeriodic<dim, nspecies, nstate>::compute_energy_derivative_norm(std::shared_ptr < PHiLiP::DGBase<dim, nspecies, double> > &dg) const
 {
 	double energy = 0.0;
     dg->assemble_residual();
@@ -54,7 +54,7 @@ double ConvectionDiffusionPeriodic<dim, nspecies, nstate>::compute_energy_deriva
 }
 
 template<int dim, int nspecies, int nstate>
-double ConvectionDiffusionPeriodic<dim, nspecies, nstate>::compute_conservation(std::shared_ptr < PHiLiP::DGBase<dim, double> > &dg, const double poly_degree) const
+double ConvectionDiffusionPeriodic<dim, nspecies, nstate>::compute_conservation(std::shared_ptr < PHiLiP::DGBase<dim, nspecies, double> > &dg, const double poly_degree) const
 {
     // Conservation \f$ =  \int 1 * u d\Omega_m \f$
     double conservation = 0.0;
@@ -175,7 +175,7 @@ int ConvectionDiffusionPeriodic<dim, nspecies, nstate>::run_test() const
         all_parameters_new.ode_solver_param.initial_time_step =  0.05*pow(delta_x,2)/diff_coeff2 / max_diff_tens;
              
         // allocate dg
-        std::shared_ptr < PHiLiP::DGBase<dim, double> > dg = PHiLiP::DGFactory<dim,nspecies,double>::create_discontinuous_galerkin(&all_parameters_new, poly_degree, poly_degree, grid_degree, grid);
+        std::shared_ptr < PHiLiP::DGBase<dim, nspecies, double> > dg = PHiLiP::DGFactory<dim,nspecies,double>::create_discontinuous_galerkin(&all_parameters_new, poly_degree, poly_degree, grid_degree, grid);
         this->pcout << "dg created" <<std::endl;
         dg->allocate_system (false,false,false);
 

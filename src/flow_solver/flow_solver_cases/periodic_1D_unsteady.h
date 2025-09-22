@@ -15,11 +15,11 @@ public:
     explicit Periodic1DUnsteady(const Parameters::AllParameters *const parameters_input);
 
     /// Calculate energy as a matrix-vector product,  solution^T (M+K) solution
-    double compute_energy(const std::shared_ptr <DGBase<dim, double>> dg) const;
+    double compute_energy(const std::shared_ptr <DGBase<dim, nspecies, double>> dg) const;
 
     /// Calculate numerical entropy.
     /// Here, is a wrapper for compute_energy. Used by tests.
-    double get_numerical_entropy(const std::shared_ptr <DGBase<dim, double>> dg) const;
+    double get_numerical_entropy(const std::shared_ptr <DGBase<dim, nspecies, double>> dg) const;
 protected:
 
     using FlowSolverCaseBase<dim, nspecies, nstate>::compute_unsteady_data_and_write_to_table;
@@ -27,7 +27,7 @@ protected:
     void compute_unsteady_data_and_write_to_table(
             const unsigned int current_iteration,
             const double current_time,
-            const std::shared_ptr <DGBase<dim, double>> dg,
+            const std::shared_ptr <DGBase<dim, nspecies, double>> dg,
             const std::shared_ptr<dealii::TableHandler> unsteady_data_table) override;
     
     /// Filename for unsteady data

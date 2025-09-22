@@ -19,9 +19,9 @@ template <int dim, int nspecies, typename real, int n_rk_stages, typename MeshTy
 class RungeKuttaODESolver: public RungeKuttaBase <dim, nspecies, real, n_rk_stages, MeshType>
 {
 public:
-    RungeKuttaODESolver(std::shared_ptr< DGBase<dim, real, MeshType> > dg_input,
+    RungeKuttaODESolver(std::shared_ptr< DGBase<dim, nspecies, real, MeshType> > dg_input,
             std::shared_ptr<RKTableauBase<dim,real,MeshType>> rk_tableau_input,
-            std::shared_ptr<EmptyRRKBase<dim,real,MeshType>> RRK_object_input); ///< Constructor.
+            std::shared_ptr<EmptyRRKBase<dim,nspecies,real,MeshType>> RRK_object_input); ///< Constructor.
 
     /// Function to allocate the Specific RK allocation
     void allocate_runge_kutta_system () override;

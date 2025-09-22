@@ -41,7 +41,7 @@ protected:
     
     /// Calculate L2 error at the final time in the passed parameters
     double calculate_L2_error_at_final_time_wrt_reference(
-            std::shared_ptr<DGBase<dim,double>> dg,
+            std::shared_ptr<DGBase<dim,nspecies,double>> dg,
             const Parameters::AllParameters parameters, 
             double final_time_actual,
             dealii::LinearAlgebra::distributed::Vector<double> reference_solution) const;

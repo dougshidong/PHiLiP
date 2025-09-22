@@ -812,8 +812,8 @@ dealii::Vector<real> ReconstructPoly<dim,nstate,real>::get_derivative_value_vect
     return vec;
 }
 
-// Define a sequence of indices representing the range [1, 7] - max is 7 because nstate=dim+2+(species-1)=7 when dim=species=3
-#define POSSIBLE_NSTATE (1)(2)(3)(4)(5)(6)(7)
+// Define a sequence of indices representing the range [1, 6] - max is 6 because nstate=dim+2+(species-1)=6 when dim=3 species=2
+#define POSSIBLE_NSTATE (1)(2)(3)(4)(5)(6)
 
 // Define a macro to instantiate MyTemplate for a specific index
 #define INSTANTIATE_TEMPLATE(r, data, index) \

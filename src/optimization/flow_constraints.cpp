@@ -15,7 +15,7 @@ namespace PHiLiP {
 
 template<int dim, int nspecies>
 FlowConstraints<dim, nspecies>
-::FlowConstraints(std::shared_ptr<DGBase<dim,double>> &_dg, 
+::FlowConstraints(std::shared_ptr<DGBase<dim,nspecies,double>> &_dg, 
                   std::shared_ptr<BaseParameterization<dim>> _design_parameterization,
                   std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> precomputed_dXvdXp)
     : mpi_rank(dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD))

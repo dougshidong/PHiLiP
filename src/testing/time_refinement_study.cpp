@@ -38,7 +38,7 @@ Parameters::AllParameters TimeRefinementStudy<dim,nspecies,nstate>::reinit_param
 }
 
 template <int dim, int nspecies, int nstate>
-double TimeRefinementStudy<dim,nspecies,nstate>::calculate_Lp_error_at_final_time_wrt_function(std::shared_ptr<DGBase<dim,double>> dg, const Parameters::AllParameters parameters, double final_time, int norm_p) const
+double TimeRefinementStudy<dim,nspecies,nstate>::calculate_Lp_error_at_final_time_wrt_function(std::shared_ptr<DGBase<dim,nspecies,double>> dg, const Parameters::AllParameters parameters, double final_time, int norm_p) const
 {
     //generate exact solution at final time
     std::shared_ptr<ExactSolutionFunction<dim,nstate,double>> exact_solution_function;

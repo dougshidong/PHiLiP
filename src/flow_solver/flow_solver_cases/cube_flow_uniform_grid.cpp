@@ -10,11 +10,11 @@ CubeFlow_UniformGrid<dim, nspecies, nstate>::CubeFlow_UniformGrid(const PHiLiP::
 {
     //create the Physics object
     this->pde_physics = std::dynamic_pointer_cast<Physics::PhysicsBase<dim,nstate,double>>(
-                Physics::PhysicsFactory<dim,nstate,double>::create_Physics(parameters_input));
+                Physics::PhysicsFactory<dim,nspecies,nstate,double>::create_Physics(parameters_input));
 }
 
 template <int dim, int nspecies, int nstate>
-double CubeFlow_UniformGrid<dim, nspecies, nstate>::get_adaptive_time_step(std::shared_ptr<DGBase<dim,double>> dg) const
+double CubeFlow_UniformGrid<dim, nspecies, nstate>::get_adaptive_time_step(std::shared_ptr<DGBase<dim,nspecies,double>> dg) const
 {
     // compute time step based on advection speed (i.e. maximum local wave speed)
     const unsigned int number_of_degrees_of_freedom_per_state = dg->dof_handler.n_dofs()/nstate;
@@ -30,7 +30,7 @@ double CubeFlow_UniformGrid<dim, nspecies, nstate>::get_adaptive_time_step(std::
 }
 
 template <int dim, int nspecies, int nstate>
-double CubeFlow_UniformGrid<dim, nspecies, nstate>::get_adaptive_time_step_initial(std::shared_ptr<DGBase<dim,double>> dg)
+double CubeFlow_UniformGrid<dim, nspecies, nstate>::get_adaptive_time_step_initial(std::shared_ptr<DGBase<dim,nspecies,double>> dg)
 {
     // initialize the maximum local wave speed
     update_maximum_local_wave_speed(*dg);
@@ -40,7 +40,7 @@ double CubeFlow_UniformGrid<dim, nspecies, nstate>::get_adaptive_time_step_initi
 }
 
 template<int dim, int nspecies, int nstate>
-void CubeFlow_UniformGrid<dim, nspecies, nstate>::update_maximum_local_wave_speed(DGBase<dim, double> &dg)
+void CubeFlow_UniformGrid<dim, nspecies, nstate>::update_maximum_local_wave_speed(DGBase<dim, nspecies, double> &dg)
 {    
     // Initialize the maximum local wave speed to zero
     this->maximum_local_wave_speed = 0.0;

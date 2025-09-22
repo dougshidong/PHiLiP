@@ -261,7 +261,7 @@ int check_flow_constraints(
 template<int dim, int nspecies, int nstate>
 int check_objective(
     const unsigned int nx_ffd,
-    std::shared_ptr < DGBase<dim, double> > dg,
+    std::shared_ptr < DGBase<dim, nspecies, double> > dg,
     ROL::Ptr<ROL::Objective_SimOpt<double>> objective,
     ROL::Ptr<FlowConstraints<dim,nspecies>> flow_constraints,
     ROL::Ptr<ROL::Vector<double>> des_var_sim_rol_p,
@@ -526,7 +526,7 @@ int EulerNACAOptimization<dim,nspecies,nstate>
         //const double target_AoA = 0.5;
         //const double pi = atan(1.0) * 4.0;
         //param_target.euler_param.angle_of_attack = target_AoA * pi/170.0;
-        std::shared_ptr < DGBase<dim, double> > dg_target = DGFactory<dim,nspecies,double>::create_discontinuous_galerkin(&param_target, poly_degree, grid);
+        std::shared_ptr < DGBase<dim, nspecies, double> > dg_target = DGFactory<dim,nspecies,double>::create_discontinuous_galerkin(&param_target, poly_degree, grid);
         std::shared_ptr<HighOrderGrid<dim,double>> naca0012_mesh = read_gmsh <dim, dim> ("naca0012.msh",param_target.do_renumber_dofs);
         dg_target->set_high_order_grid(naca0012_mesh);
 
@@ -543,7 +543,7 @@ int EulerNACAOptimization<dim,nspecies,nstate>
     }
     ffd.set_design_variables( ffd_design_variables_indices_dim, ffd_design_variables);
 
-    std::shared_ptr < DGBase<dim, double> > dg = DGFactory<dim,nspecies,double>::create_discontinuous_galerkin(&param, poly_degree, grid);
+    std::shared_ptr < DGBase<dim, nspecies, double> > dg = DGFactory<dim,nspecies,double>::create_discontinuous_galerkin(&param, poly_degree, grid);
 
     //naca0012_mesh->refine_global();
     std::shared_ptr<HighOrderGrid<dim,double>> naca0012_mesh = read_gmsh <dim, dim> ("naca0012.msh",param.do_renumber_dofs);
@@ -576,10 +576,10 @@ int EulerNACAOptimization<dim,nspecies,nstate>
     ROL::OptimizationProblem<double> opt;
     Teuchos::ParameterList parlist;
 
-    TargetWallPressure<dim,nstate,double> target_wall_pressure_functional(dg, target_solution);
+    TargetWallPressure<dim,nspecies,nstate,double> target_wall_pressure_functional(dg, target_solution);
 
-    LiftDragFunctional<dim,nstate,double,Triangulation> lift_functional( dg, LiftDragFunctional<dim,dim+2,double,Triangulation>::Functional_types::lift );
-    LiftDragFunctional<dim,nstate,double,Triangulation> drag_functional( dg, LiftDragFunctional<dim,dim+2,double,Triangulation>::Functional_types::drag );
+    LiftDragFunctional<dim,nspecies,nstate,double,Triangulation> lift_functional( dg, LiftDragFunctional<dim,nspecies,dim+2,double,Triangulation>::Functional_types::lift );
+    LiftDragFunctional<dim,nspecies,nstate,double,Triangulation> drag_functional( dg, LiftDragFunctional<dim,nspecies,dim+2,double,Triangulation>::Functional_types::drag );
 
     std::cout << " Current lift = " << lift_functional.evaluate_functional()
               << ". Current drag = " << drag_functional.evaluate_functional()
@@ -601,14 +601,14 @@ int EulerNACAOptimization<dim,nspecies,nstate>
     precomputed_dXvdXp->copy_from(con->dXvdXp);
     //int flow_constraints_check_error = check_flow_constraints<dim,nstate>( nx_ffd, con, des_var_sim_rol_p, des_var_ctl_rol_p, des_var_adj_rol_p);
     std::cout << " Constructing lift ROL objective " << std::endl;
-    auto lift_obj = ROL::makePtr<ROLObjectiveSimOpt<dim,nstate>>( lift_functional, design_parameterization, precomputed_dXvdXp);
+    auto lift_obj = ROL::makePtr<ROLObjectiveSimOpt<dim,nspecies,nstate>>( lift_functional, design_parameterization, precomputed_dXvdXp);
     std::cout << " Constructing lift ROL constraint " << std::endl;
     auto lift_con = ROL::makePtr<PHiLiP::ConstraintFromObjective_SimOpt<double>> (lift_obj, lift_target);
 
     //int objective_check_error = check_objective<dim,nstate>( nx_ffd, dg, lift_obj, con, des_var_sim_rol_p, des_var_ctl_rol_p, des_var_adj_rol_p);
 
     std::cout << " Constructing drag ROL objective " << std::endl;
-    auto drag_obj = ROL::makePtr<ROLObjectiveSimOpt<dim,nstate>>( drag_functional, design_parameterization, precomputed_dXvdXp);
+    auto drag_obj = ROL::makePtr<ROLObjectiveSimOpt<dim,nspecies,nstate>>( drag_functional, design_parameterization, precomputed_dXvdXp);
 
     //objective_check_error = check_objective<dim,nstate>( nx_ffd, dg, drag_obj, con, des_var_sim_rol_p, des_var_ctl_rol_p, des_var_adj_rol_p);
 
@@ -620,7 +620,7 @@ int EulerNACAOptimization<dim,nspecies,nstate>
     //auto drag_quad_penalty_lift = ROL::makePtr<ROL::AugmentedLagrangian_SimOpt<double>> (drag_obj, lift_con, zero_lagrange_mult, lift_penalty, *des_var_sim_rol_p, *des_var_ctl_rol_p, single_contraint, empty_parlist);
     //auto obj = drag_quad_penalty_lift;
 
-    auto pressure_obj = ROL::makePtr<ROLObjectiveSimOpt<dim,nstate>>( target_wall_pressure_functional, design_parameterization, precomputed_dXvdXp);
+    auto pressure_obj = ROL::makePtr<ROLObjectiveSimOpt<dim,nspecies,nstate>>( target_wall_pressure_functional, design_parameterization, precomputed_dXvdXp);
     auto obj = pressure_obj;
 
     //objective_check_error = check_objective<dim,nstate>( nx_ffd, dg, obj, con, des_var_sim_rol_p, des_var_ctl_rol_p, des_var_adj_rol_p);

@@ -19,11 +19,11 @@ using ROL_Vector = ROL::Vector<double>;
  *  and an update on the control variables updates the FreeFormDeformation object, which in
  *  turn, updates the DGBase.HighOrderGrid.volume_nodes.
  */
-template <int dim, int nstate>
+template <int dim, int nspecies, int nstate>
 class ROLObjectiveSimOpt : public ROL::Objective_SimOpt<double> {
 private:
     /// Functional to be evaluated
-    Functional<dim,nstate,double> &functional;
+    Functional<dim,nspecies,nstate,double> &functional;
 
     /// Design parameterization to link design variables with volume nodes.
     std::shared_ptr<BaseParameterization<dim>> design_parameterization;
@@ -38,7 +38,7 @@ public:
 
     /// Constructor.
     ROLObjectiveSimOpt(
-        Functional<dim,nstate,double> &_functional,
+        Functional<dim,nspecies,nstate,double> &_functional,
         std::shared_ptr<BaseParameterization<dim>> _design_parameterization,
         std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> precomputed_dXvdXp = nullptr);
   

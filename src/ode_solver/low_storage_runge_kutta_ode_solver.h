@@ -33,9 +33,9 @@ template <int dim, int nspecies, typename real, int n_rk_stages, typename MeshTy
 class LowStorageRungeKuttaODESolver: public RungeKuttaBase <dim, nspecies, real, n_rk_stages, MeshType>
 {
 public:
-    LowStorageRungeKuttaODESolver(std::shared_ptr< DGBase<dim, real, MeshType> > dg_input,
+    LowStorageRungeKuttaODESolver(std::shared_ptr< DGBase<dim, nspecies, real, MeshType> > dg_input,
             std::shared_ptr<LowStorageRKTableauBase<dim,real,MeshType>> rk_tableau_input,
-            std::shared_ptr<EmptyRRKBase<dim,real,MeshType>> RRK_object_input); ///< Constructor.
+            std::shared_ptr<EmptyRRKBase<dim,nspecies,real,MeshType>> RRK_object_input); ///< Constructor.
 
     /// Function to evaluate automatic error adaptive time step
     double get_automatic_error_adaptive_step_size(real dt, const bool /*pseudotime*/);

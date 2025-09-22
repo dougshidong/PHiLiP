@@ -21,7 +21,7 @@ class TargetBoundaryFunctional : public TargetFunctional<dim, nspecies, nstate, 
 public:
     /// Constructor
     TargetBoundaryFunctional(
-        std::shared_ptr<DGBase<dim,real>> dg_input,
+        std::shared_ptr<DGBase<dim,nspecies,real>> dg_input,
   const dealii::LinearAlgebra::distributed::Vector<real> &target_solution,
         const bool uses_solution_values = true,
         const bool uses_solution_gradient = false)

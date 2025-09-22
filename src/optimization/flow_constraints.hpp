@@ -30,7 +30,7 @@ private:
     /// Whether the current processor should print or not.
     const bool i_print;
     /// Smart pointer to DGBase
-    std::shared_ptr<DGBase<dim,double>> dg;
+    std::shared_ptr<DGBase<dim,nspecies,double>> dg;
 
     /// Parameterization which links design variables to the volume nodes.
     std::shared_ptr<BaseParameterization<dim>> design_parameterization;
@@ -85,7 +85,7 @@ public:
 
     /// Constructor
     FlowConstraints(
-        std::shared_ptr<DGBase<dim,double>> &_dg,
+        std::shared_ptr<DGBase<dim,nspecies,double>> &_dg,
         std::shared_ptr<BaseParameterization<dim>> _design_parameterization,
         std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> precomputed_dXvdXp = nullptr);
 

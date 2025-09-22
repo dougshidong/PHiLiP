@@ -39,8 +39,8 @@ public:
     AssembleECSWBase(
         const PHiLiP::Parameters::AllParameters *const parameters_input,
         const dealii::ParameterHandler &parameter_handler_input,
-        std::shared_ptr<DGBase<dim,double>> &dg_input, 
-        std::shared_ptr<ProperOrthogonalDecomposition::PODBase<dim>> pod,
+        std::shared_ptr<DGBase<dim,nspecies,double>> &dg_input, 
+        std::shared_ptr<ProperOrthogonalDecomposition::PODBase<dim,nspecies>> pod,
         MatrixXd snapshot_parameters_input,
         Parameters::ODESolverParam::ODESolverEnum ode_solver_type,
         Epetra_MpiComm &Comm);
@@ -54,10 +54,10 @@ public:
     const dealii::ParameterHandler &parameter_handler;
 
     /// dg
-    std::shared_ptr<DGBase<dim,double>> dg;
+    std::shared_ptr<DGBase<dim,nspecies,double>> dg;
 
     /// POD
-    std::shared_ptr<ProperOrthogonalDecomposition::PODBase<dim>> pod;
+    std::shared_ptr<ProperOrthogonalDecomposition::PODBase<dim,nspecies>> pod;
 
     /// Matrix of snapshot parameters
     mutable MatrixXd snapshot_parameters;
@@ -95,7 +95,7 @@ public:
     void update_snapshots(dealii::LinearAlgebra::distributed::Vector<double> fom_solution);
 
     /// Update POD and Snapshot Parameters
-    void update_POD_snaps(std::shared_ptr<ProperOrthogonalDecomposition::PODBase<dim>> pod_update, MatrixXd snapshot_parameters_update);
+    void update_POD_snaps(std::shared_ptr<ProperOrthogonalDecomposition::PODBase<dim,nspecies>> pod_update, MatrixXd snapshot_parameters_update);
 
     /// Fill entries of A and b
     virtual void build_problem() = 0;

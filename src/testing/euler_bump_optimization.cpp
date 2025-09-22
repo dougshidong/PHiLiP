@@ -260,7 +260,7 @@ int EulerBumpOptimization<dim,nspecies,nstate>
         grid->clear();
         Grids::gaussian_bump(*grid, n_subdivisions, CHANNEL_LENGTH, CHANNEL_HEIGHT, 0.5*BUMP_HEIGHT);
         // Create DG object
-        std::shared_ptr < DGBase<dim, double> > dg = DGFactory<dim,nspecies,double>::create_discontinuous_galerkin(&param, poly_degree, grid);
+        std::shared_ptr < DGBase<dim, nspecies, double> > dg = DGFactory<dim,nspecies,double>::create_discontinuous_galerkin(&param, poly_degree, grid);
 
         // Initialize coarse grid solution with free-stream
         dg->allocate_system ();
@@ -289,7 +289,7 @@ int EulerBumpOptimization<dim,nspecies,nstate>
         ffd.set_design_variables( ffd_design_variables_indices_dim, ffd_design_variables);
 
         // Initialize flow solution with free-stream
-        std::shared_ptr < DGBase<dim, double> > dg = DGFactory<dim,nspecies,double>::create_discontinuous_galerkin(&param, poly_degree, grid);
+        std::shared_ptr < DGBase<dim, nspecies, double> > dg = DGFactory<dim,nspecies,double>::create_discontinuous_galerkin(&param, poly_degree, grid);
         dg->allocate_system ();
         dealii::VectorTools::interpolate(dg->dof_handler, initial_conditions, dg->solution);
         // Create ODE solver and ramp up the solution from p0
@@ -317,11 +317,11 @@ int EulerBumpOptimization<dim,nspecies,nstate>
 
         // Reduced space problem
         const bool functional_uses_solution_values = true, functional_uses_solution_gradient = false;
-        TargetBoundaryFunctional<dim,nstate,double> target_bump_functional(dg, target_bump_solution, functional_uses_solution_values, functional_uses_solution_gradient);
+        TargetBoundaryFunctional<dim,nspecies,nstate,double> target_bump_functional(dg, target_bump_solution, functional_uses_solution_values, functional_uses_solution_gradient);
         std::shared_ptr<BaseParameterization<dim>> design_parameterization = 
                 std::make_shared<FreeFormDeformationParameterization<dim>>(dg->high_order_grid, ffd, ffd_design_variables_indices_dim);
         
-        auto obj  = ROL::makePtr<ROLObjectiveSimOpt<dim,nstate>>(target_bump_functional, design_parameterization);
+        auto obj  = ROL::makePtr<ROLObjectiveSimOpt<dim,nspecies,nstate>>(target_bump_functional, design_parameterization);
         auto con  = ROL::makePtr<FlowConstraints<dim,nspecies>>(dg, design_parameterization);
         const bool storage = false;
         const bool useFDHessian = false;
@@ -371,7 +371,7 @@ int EulerBumpOptimization<dim,nspecies,nstate>
     ffd.set_design_variables( ffd_design_variables_indices_dim, ffd_design_variables);
 
     // Initialize flow solution with free-stream
-    std::shared_ptr < DGBase<dim, double> > dg = DGFactory<dim,nspecies,double>::create_discontinuous_galerkin(&param, poly_degree, grid);
+    std::shared_ptr < DGBase<dim, nspecies, double> > dg = DGFactory<dim,nspecies,double>::create_discontinuous_galerkin(&param, poly_degree, grid);
     dg->allocate_system ();
     dealii::VectorTools::interpolate(dg->dof_handler, initial_conditions, dg->solution);
     // Create ODE solver and ramp up the solution from p0
@@ -400,11 +400,11 @@ int EulerBumpOptimization<dim,nspecies,nstate>
 
     // Reduced space problem
     const bool functional_uses_solution_values = true, functional_uses_solution_gradient = false;
-    TargetBoundaryFunctional<dim,nstate,double> target_ffd_functional(dg, target_ffd_solution, functional_uses_solution_values, functional_uses_solution_gradient);
+    TargetBoundaryFunctional<dim,nspecies,nstate,double> target_ffd_functional(dg, target_ffd_solution, functional_uses_solution_values, functional_uses_solution_gradient);
     std::shared_ptr<BaseParameterization<dim>> design_parameterization = 
                 std::make_shared<FreeFormDeformationParameterization<dim>>(dg->high_order_grid, ffd, ffd_design_variables_indices_dim);
     
-    auto obj  = ROL::makePtr<ROLObjectiveSimOpt<dim,nstate>>( target_ffd_functional, design_parameterization);
+    auto obj  = ROL::makePtr<ROLObjectiveSimOpt<dim,nspecies,nstate>>( target_ffd_functional, design_parameterization);
     auto con  = ROL::makePtr<FlowConstraints<dim,nspecies>>(dg, design_parameterization);
 
     timing_start = MPI_Wtime();

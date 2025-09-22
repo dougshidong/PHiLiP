@@ -50,7 +50,7 @@ public:
     mutable double max_error;
 
     /// Most up to date POD basis
-    std::shared_ptr<ProperOrthogonalDecomposition::OnlinePOD<dim>> current_pod;
+    std::shared_ptr<ProperOrthogonalDecomposition::OnlinePOD<dim,nspecies>> current_pod;
 
     /// Nearest neighbors of snapshots
     std::shared_ptr<ProperOrthogonalDecomposition::NearestNeighbors> nearest_neighbors;

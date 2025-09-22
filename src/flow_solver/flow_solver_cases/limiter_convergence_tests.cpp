@@ -21,7 +21,7 @@ LimiterConvergenceTests<dim, nspecies, nstate>::LimiterConvergenceTests(const PH
 {
     //create the Physics object
     this->pde_physics = std::dynamic_pointer_cast<Physics::PhysicsBase<dim,nstate,double>>(
-                Physics::PhysicsFactory<dim,nstate,double>::create_Physics(parameters_input));
+                Physics::PhysicsFactory<dim,nspecies,nstate,double>::create_Physics(parameters_input));
 }
 
 template <int dim, int nspecies, int nstate>
@@ -55,7 +55,7 @@ std::shared_ptr<Triangulation> LimiterConvergenceTests<dim, nspecies, nstate>::g
 }
 
 template <int dim, int nspecies, int nstate>
-double LimiterConvergenceTests<dim, nspecies, nstate>::get_adaptive_time_step(std::shared_ptr<DGBase<dim, double>> dg) const
+double LimiterConvergenceTests<dim, nspecies, nstate>::get_adaptive_time_step(std::shared_ptr<DGBase<dim, nspecies, double>> dg) const
 {
     using flow_case_enum = Parameters::FlowSolverParam::FlowCaseType;
     flow_case_enum flow_case = this->all_param.flow_solver_param.flow_case_type;
@@ -93,7 +93,7 @@ double LimiterConvergenceTests<dim, nspecies, nstate>::get_adaptive_time_step(st
 }
 
 template <int dim, int nspecies, int nstate>
-double LimiterConvergenceTests<dim, nspecies, nstate>::get_adaptive_time_step_initial(std::shared_ptr<DGBase<dim, double>> dg)
+double LimiterConvergenceTests<dim, nspecies, nstate>::get_adaptive_time_step_initial(std::shared_ptr<DGBase<dim, nspecies, double>> dg)
 {
     if(nstate == dim + 2){
         // initialize the maximum local wave speed
@@ -106,7 +106,7 @@ double LimiterConvergenceTests<dim, nspecies, nstate>::get_adaptive_time_step_in
 }
 
 template<int dim, int nspecies, int nstate>
-void LimiterConvergenceTests<dim, nspecies, nstate>::update_maximum_local_wave_speed(DGBase<dim, double> &dg)
+void LimiterConvergenceTests<dim, nspecies, nstate>::update_maximum_local_wave_speed(DGBase<dim, nspecies, double> &dg)
 {    
     // Initialize the maximum local wave speed to zero
     this->maximum_local_wave_speed = 0.0;
@@ -149,7 +149,7 @@ void LimiterConvergenceTests<dim, nspecies, nstate>::display_additional_flow_cas
 }
 
 template<int dim, int nspecies, int nstate>
-void LimiterConvergenceTests<dim, nspecies, nstate>::check_limiter_principle(DGBase<dim, double>& dg)
+void LimiterConvergenceTests<dim, nspecies, nstate>::check_limiter_principle(DGBase<dim, nspecies, double>& dg)
 {
     using flow_case_enum = Parameters::FlowSolverParam::FlowCaseType;
     flow_case_enum flow_case = this->all_param.flow_solver_param.flow_case_type;
@@ -234,7 +234,7 @@ template <int dim, int nspecies, int nstate>
 void LimiterConvergenceTests<dim, nspecies, nstate>::compute_unsteady_data_and_write_to_table(
     const unsigned int current_iteration,
     const double current_time,
-    const std::shared_ptr <DGBase<dim, double>> dg,
+    const std::shared_ptr <DGBase<dim, nspecies, double>> dg,
     const std::shared_ptr <dealii::TableHandler> unsteady_data_table)
 {
     this->check_limiter_principle(*dg);

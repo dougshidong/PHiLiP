@@ -56,7 +56,7 @@ void BurgersRewienskiSnapshot<dim, nspecies, nstate>::display_additional_flow_ca
 }
 
 template <int dim, int nspecies, int nstate>
-void BurgersRewienskiSnapshot<dim, nspecies, nstate>::steady_state_postprocessing(std::shared_ptr <DGBase<dim, double>> dg) const
+void BurgersRewienskiSnapshot<dim, nspecies, nstate>::steady_state_postprocessing(std::shared_ptr <DGBase<dim, nspecies, double>> dg) const
 {
     this->pcout << "Computing sensitivity to parameter" << std::endl;
     int overintegrate = 0;

@@ -189,7 +189,7 @@ std::string TestsBase::get_manufactured_solution_string(const Parameters::AllPar
 }
 
 //template<int dim, int nstate>
-// void TestsBase::globally_refine_and_interpolate(DGBase<dim, double> &dg) const
+// void TestsBase::globally_refine_and_interpolate(DGBase<dim, nspecies, double> &dg) const
 //{
 //    dealii::LinearAlgebra::distributed::Vector<double> old_solution(dg->solution);
 //    dealii::parallel::distributed::SolutionTransfer<dim, dealii::LinearAlgebra::distributed::Vector<double>, dealii::hp::DoFHandler<dim>> solution_transfer(dg->dof_handler);
@@ -246,17 +246,17 @@ std::unique_ptr< TestsBase > TestsFactory<dim,nspecies,nstate,MeshType>
         (void) parameter_handler_input;
     }
 
-    if(test_type == Test_enum::run_control) { // TO DO: rename to grid_study
+    if(test_type == Test_enum::run_control && nspecies==1) { // TO DO: rename to grid_study
         return std::make_unique<GridStudy<dim,nspecies,nstate>>(parameters_input);
-    } else if(test_type == Test_enum::grid_refinement_study) {
+    } else if(test_type == Test_enum::grid_refinement_study && nspecies==1) {
         return std::make_unique<GridRefinementStudy<dim,nspecies,nstate,MeshType>>(parameters_input);
-    } else if(test_type == Test_enum::burgers_energy_stability) {
+    } else if(test_type == Test_enum::burgers_energy_stability && nspecies==1) {
         if constexpr (dim==1 && nspecies==1 && nstate==1) return std::make_unique<BurgersEnergyStability<dim,nspecies,nstate>>(parameters_input);
-    } else if(test_type == Test_enum::diffusion_exact_adjoint) {
+    } else if(test_type == Test_enum::diffusion_exact_adjoint && nspecies==1) {
         if constexpr (dim>=1 && nspecies==1 && nstate==1) return std::make_unique<DiffusionExactAdjoint<dim,nspecies,nstate>>(parameters_input);
-    } else if (test_type == Test_enum::advection_periodicity){
+    } else if (test_type == Test_enum::advection_periodicity && nspecies==1){
         if constexpr (nspecies==1 && nstate == 1) return std::make_unique<AdvectionPeriodic<dim,nspecies,nstate>> (parameters_input);
-    } else if (test_type == Test_enum::convection_diffusion_periodicity){
+    } else if (test_type == Test_enum::convection_diffusion_periodicity && nspecies==1){
         if constexpr (nspecies==1 && nstate == 1) return std::make_unique<ConvectionDiffusionPeriodic<dim,nspecies,nstate>> (parameters_input);
     } else if(test_type == Test_enum::euler_gaussian_bump) {
         if constexpr (dim==2 && nspecies==1 && nstate==dim+2) return std::make_unique<EulerGaussianBump<dim,nspecies,nstate>>(parameters_input,parameter_handler_input);
@@ -276,13 +276,13 @@ std::unique_ptr< TestsBase > TestsFactory<dim,nspecies,nstate,MeshType>
         if constexpr (dim==3 && nspecies==1 && nstate == dim+2) return std::make_unique<EulerTaylorGreen<dim,nspecies,nstate>>(parameters_input);
     } else if(test_type == Test_enum::taylor_green_scaling) {
         if constexpr (dim==3 && nspecies==1 && nstate == dim+2) return std::make_unique<EulerTaylorGreenScaling<dim,nspecies,nstate>>(parameters_input);
-    } else if(test_type == Test_enum::optimization_inverse_manufactured) {
+    } else if(test_type == Test_enum::optimization_inverse_manufactured && nspecies==1) {
         return std::make_unique<OptimizationInverseManufactured<dim,nspecies,nstate>>(parameters_input);
-    } else if(test_type == Test_enum::euler_bump_optimization) {
+    } else if(test_type == Test_enum::euler_bump_optimization && nspecies==1) {
         if constexpr (dim==2 && nspecies==1 && nstate==dim+2) return std::make_unique<EulerBumpOptimization<dim,nspecies,nstate>>(parameters_input);
-    } else if(test_type == Test_enum::euler_naca_optimization) {
+    } else if(test_type == Test_enum::euler_naca_optimization && nspecies==1) {
         if constexpr (dim==2 && nspecies==1 && nstate==dim+2) return std::make_unique<EulerNACAOptimization<dim,nspecies,nstate>>(parameters_input);
-    } else if(test_type == Test_enum::shock_1d) {
+    } else if(test_type == Test_enum::shock_1d && nspecies==1) {
         if constexpr (dim==1 && nspecies==1 && nstate==1) return std::make_unique<Shock1D<dim,nspecies,nstate>>(parameters_input);
     } else if(test_type == Test_enum::reduced_order) {
         if constexpr (nspecies==1 && ((dim==2 && nstate==dim+2) || (dim==1 && nstate==1))) return std::make_unique<ReducedOrder<dim,nspecies,nstate>>(parameters_input, parameter_handler_input);
@@ -391,27 +391,16 @@ std::unique_ptr< TestsBase > TestsFactory<dim,nspecies,nstate,MeshType>
     }
 }
 
-// Will recursively create all the possible test sizes
-//template class TestsFactory <PHILIP_DIM,1>;
-//template class TestsFactory <PHILIP_DIM,2>;
-//template class TestsFactory <PHILIP_DIM,3>;
-//template class TestsFactory <PHILIP_DIM,4>;
-//template class TestsFactory <PHILIP_DIM,5>;
-// Note: might need to change the last two instantiation from 5 to 6, but it works fine at this point.
-
 template class TestsFactory <PHILIP_DIM,PHILIP_SPECIES,1>;
 template class TestsFactory <PHILIP_DIM,PHILIP_SPECIES,2>;
 template class TestsFactory <PHILIP_DIM,PHILIP_SPECIES,3>;
 template class TestsFactory <PHILIP_DIM,PHILIP_SPECIES,4>;
 template class TestsFactory <PHILIP_DIM,PHILIP_SPECIES,5>;
 template class TestsFactory <PHILIP_DIM,PHILIP_SPECIES,6>;
-template class TestsFactory <PHILIP_DIM,PHILIP_SPECIES,7>;
 
-
-// template class TestsFactory <PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM + 2 + (PHILIP_SPECIES-1),dealii::Triangulation<PHILIP_DIM>>;
-// #if PHILIP_DIM!=1
-// template class TestsFactory <PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM + 2 + (PHILIP_SPECIES-1),dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
-// #endif
+#if PHILIP_DIM + 2 + (PHILIP_SPECIES-1) > 6
+    template class TestsFactory <PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM + 2 + (PHILIP_SPECIES-1),dealii::Triangulation<PHILIP_DIM>>;
+#endif
 
 } // Tests namespace
 } // PHiLiP namespace

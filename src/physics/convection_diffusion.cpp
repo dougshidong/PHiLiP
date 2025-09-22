@@ -333,6 +333,13 @@ template class ConvectionDiffusion < PHILIP_DIM, 4, RadFadType>;
 template class ConvectionDiffusion < PHILIP_DIM, 5, RadFadType>;
 template class ConvectionDiffusion < PHILIP_DIM, 6, RadFadType>;
 
+#if (PHILIP_DIM+2+(PHILIP_SPECIES-1)) > 6
+   template class ConvectionDiffusion <PHILIP_DIM,(PHILIP_DIM+2+(PHILIP_SPECIES-1)), double>;
+   template class ConvectionDiffusion <PHILIP_DIM,(PHILIP_DIM+2+(PHILIP_SPECIES-1)), FadType>;
+   template class ConvectionDiffusion <PHILIP_DIM,(PHILIP_DIM+2+(PHILIP_SPECIES-1)), RadType>;
+   template class ConvectionDiffusion <PHILIP_DIM,(PHILIP_DIM+2+(PHILIP_SPECIES-1)), FadFadType>;
+   template class ConvectionDiffusion <PHILIP_DIM,(PHILIP_DIM+2+(PHILIP_SPECIES-1)), RadFadType>;
+#endif
 } // Physics namespace
 } // PHiLiP namespace
 

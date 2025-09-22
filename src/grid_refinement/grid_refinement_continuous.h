@@ -48,21 +48,21 @@ public:
     /// Constructor. Storers the dg object, physics, functional and parameters.
     GridRefinement_Continuous(
         PHiLiP::Parameters::GridRefinementParam                            gr_param_input,
-        std::shared_ptr< PHiLiP::DGBase<dim, real, MeshType> >             dg_input,
+        std::shared_ptr< PHiLiP::DGBase<dim, nspecies, real, MeshType> >             dg_input,
         std::shared_ptr< PHiLiP::Physics::PhysicsBase<dim,nstate,real> >   physics_input,
         std::shared_ptr< PHiLiP::Functional<dim, nspecies, nstate, real, MeshType> > functional_input);
 
     /// Constructor. Stores the dg object, physics and parameters
     GridRefinement_Continuous(
         PHiLiP::Parameters::GridRefinementParam                          gr_param_input,
-        std::shared_ptr< PHiLiP::DGBase<dim, real, MeshType> >           dg_input,
+        std::shared_ptr< PHiLiP::DGBase<dim, nspecies, real, MeshType> >           dg_input,
         std::shared_ptr< PHiLiP::Physics::PhysicsBase<dim,nstate,real> > physics_input);
 
     /// Constructor. Stores the dg object and parameters
     GridRefinement_Continuous(
         PHiLiP::Parameters::GridRefinementParam                gr_param_input,
         // PHiLiP::Parameters::AllParameters const *const param_input,
-        std::shared_ptr< PHiLiP::DGBase<dim, real, MeshType> > dg_input);
+        std::shared_ptr< PHiLiP::DGBase<dim, nspecies, real, MeshType> > dg_input);
 
 protected:
     /// Delegated constructor which handles the various optional inputs and setup.
@@ -70,7 +70,7 @@ protected:
         PHiLiP::Parameters::GridRefinementParam                            gr_param_input,
         std::shared_ptr< PHiLiP::Adjoint<dim, nspecies, nstate, real, MeshType> >    adj_input,
         std::shared_ptr< PHiLiP::Functional<dim, nspecies, nstate, real, MeshType> > functional_input,
-        std::shared_ptr< PHiLiP::DGBase<dim, real, MeshType> >             dg_input,
+        std::shared_ptr< PHiLiP::DGBase<dim, nspecies, real, MeshType> >             dg_input,
         std::shared_ptr< PHiLiP::Physics::PhysicsBase<dim,nstate,real> >   physics_input);
 
     using GridRefinementBase<dim,nspecies,nstate,real,MeshType>::GridRefinementBase;

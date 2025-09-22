@@ -34,10 +34,10 @@ int RealGasVsEulerPrimitiveToConservativeCheck<dim, nspecies, nstate>::run_test(
 
     // Create IRG physics
     std::shared_ptr<Physics::InviscidRealGas<dim, nstate, double>> air_physics = std::dynamic_pointer_cast<Physics::InviscidRealGas<dim,nstate,double>>(
-            Physics::PhysicsFactory<dim,nstate,double>::create_Physics(this->all_parameters,PDE_enum::inviscid_real_gas/*,nullptr*/));
+            Physics::PhysicsFactory<dim,nspecies,nstate,double>::create_Physics(this->all_parameters,PDE_enum::inviscid_real_gas/*,nullptr*/));
     // Create Euler physics
     std::shared_ptr<Physics::Euler<dim, nstate, double>> euler_physics = std::dynamic_pointer_cast<Physics::Euler<dim,nstate,double>>(
-            Physics::PhysicsFactory<dim,nstate,double>::create_Physics(this->all_parameters,PDE_enum::euler/*,nullptr*/));
+            Physics::PhysicsFactory<dim,nspecies,nstate,double>::create_Physics(this->all_parameters,PDE_enum::euler/*,nullptr*/));
     
     const std::string data_table_filename = "air_vs_euler_sound_speed.txt";
     std::ofstream FILE;

@@ -24,7 +24,7 @@ public:
     /** Computes the integrated quantities over the domain simultaneously and updates the array storing them
      *  Note: For efficiency, this also simultaneously updates the local maximum wave speed
      * */
-    void compute_and_update_integrated_quantities(DGBase<dim, double> &dg);
+    void compute_and_update_integrated_quantities(DGBase<dim, nspecies, double> &dg);
 
     /** Gets the nondimensional integrated kinetic energy given a DG object from dg->solution
      *  -- Reference: Cox, Christopher, et al. "Accuracy, stability, and performance comparison 
@@ -71,22 +71,22 @@ public:
 
     /// Output the velocity field to file
     void output_velocity_field(
-            std::shared_ptr<DGBase<dim,double>> dg,
+            std::shared_ptr<DGBase<dim,nspecies,double>> dg,
             const unsigned int output_file_index,
             const double current_time) const;
 
     /// Calculate numerical entropy by matrix-vector product
     double compute_current_integrated_numerical_entropy(
-            const std::shared_ptr <DGBase<dim, double>> dg) const;
+            const std::shared_ptr <DGBase<dim, nspecies, double>> dg) const;
 
     /// Update numerical entropy variables
     void update_numerical_entropy(
             const double FR_entropy_contribution_RRK_solver,
             const unsigned int current_iteration,
-            const std::shared_ptr <DGBase<dim, double>> dg);
+            const std::shared_ptr <DGBase<dim, nspecies, double>> dg);
     
     /// Retrieves cumulative_numerical_entropy_change_FRcorrected
-    double get_numerical_entropy(const std::shared_ptr <DGBase<dim, double>> /*dg*/) const;
+    double get_numerical_entropy(const std::shared_ptr <DGBase<dim, nspecies, double>> /*dg*/) const;
 
 protected:
     /// Filename (with extension) for the unsteady data table
@@ -118,7 +118,7 @@ protected:
     void display_additional_flow_case_specific_parameters() const override;
 
     /// Function to compute the constant time step
-    double get_constant_time_step(std::shared_ptr<DGBase<dim,double>> dg) const override;
+    double get_constant_time_step(std::shared_ptr<DGBase<dim,nspecies,double>> dg) const override;
 
     /// Function to compute the adaptive time step
     using CubeFlow_UniformGrid<dim, nspecies, nstate>::get_adaptive_time_step;
@@ -133,7 +133,7 @@ protected:
     /// Compute the desired unsteady data and write it to a table
     void compute_unsteady_data_and_write_to_table(
             const std::shared_ptr<ODE::ODESolverBase<dim, nspecies, double>> ode_solver, 
-            const std::shared_ptr <DGBase<dim, double>> dg,
+            const std::shared_ptr <DGBase<dim, nspecies, double>> dg,
             const std::shared_ptr<dealii::TableHandler> unsteady_data_table) override;
 
     /// List of possible integrated quantities over the domain

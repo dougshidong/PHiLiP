@@ -291,7 +291,7 @@ GridRefinementBase<dim,nspecies,nstate,real,MeshType>::GridRefinementBase(
 template <int dim, int nspecies, int nstate, typename real, typename MeshType>
 GridRefinementBase<dim,nspecies,nstate,real,MeshType>::GridRefinementBase(
     PHiLiP::Parameters::GridRefinementParam                            gr_param_input,
-    std::shared_ptr< PHiLiP::DGBase<dim, real, MeshType> >             dg_input,
+    std::shared_ptr< PHiLiP::DGBase<dim, nspecies, real, MeshType> >             dg_input,
     std::shared_ptr< PHiLiP::Physics::PhysicsBase<dim,nstate,real> >   physics_input,
     std::shared_ptr< PHiLiP::Functional<dim, nspecies, nstate, real, MeshType> > functional_input) :
         GridRefinementBase<dim,nspecies,nstate,real,MeshType>(
@@ -304,7 +304,7 @@ GridRefinementBase<dim,nspecies,nstate,real,MeshType>::GridRefinementBase(
 template <int dim, int nspecies, int nstate, typename real, typename MeshType>
 GridRefinementBase<dim,nspecies,nstate,real,MeshType>::GridRefinementBase(
     PHiLiP::Parameters::GridRefinementParam                          gr_param_input,
-    std::shared_ptr< PHiLiP::DGBase<dim, real, MeshType> >           dg_input,
+    std::shared_ptr< PHiLiP::DGBase<dim, nspecies, real, MeshType> >           dg_input,
     std::shared_ptr< PHiLiP::Physics::PhysicsBase<dim,nstate,real> > physics_input) : 
         GridRefinementBase<dim,nspecies,nstate,real,MeshType>(
             gr_param_input, 
@@ -316,7 +316,7 @@ GridRefinementBase<dim,nspecies,nstate,real,MeshType>::GridRefinementBase(
 template <int dim, int nspecies, int nstate, typename real, typename MeshType>
 GridRefinementBase<dim,nspecies,nstate,real,MeshType>::GridRefinementBase(
     PHiLiP::Parameters::GridRefinementParam                gr_param_input,
-    std::shared_ptr< PHiLiP::DGBase<dim, real, MeshType> > dg_input) :
+    std::shared_ptr< PHiLiP::DGBase<dim, nspecies, real, MeshType> > dg_input) :
         GridRefinementBase<dim,nspecies,nstate,real,MeshType>(
             gr_param_input, 
             nullptr, 
@@ -330,7 +330,7 @@ GridRefinementBase<dim,nspecies,nstate,real,MeshType>::GridRefinementBase(
     PHiLiP::Parameters::GridRefinementParam                            gr_param_input,
     std::shared_ptr< PHiLiP::Adjoint<dim, nspecies, nstate, real, MeshType> >    adj_input,
     std::shared_ptr< PHiLiP::Functional<dim, nspecies, nstate, real, MeshType> > functional_input,
-    std::shared_ptr< PHiLiP::DGBase<dim, real, MeshType> >             dg_input,
+    std::shared_ptr< PHiLiP::DGBase<dim, nspecies, real, MeshType> >             dg_input,
     std::shared_ptr< PHiLiP::Physics::PhysicsBase<dim,nstate,real> >   physics_input) :
         grid_refinement_param(gr_param_input),
         error_indicator_type(gr_param_input.error_indicator),
@@ -403,7 +403,7 @@ template <int dim, int nspecies, int nstate, typename real, typename MeshType>
 std::shared_ptr< GridRefinementBase<dim,nspecies,nstate,real,MeshType> > 
 GridRefinementFactory<dim,nspecies,nstate,real,MeshType>::create_GridRefinement(
     PHiLiP::Parameters::GridRefinementParam                            gr_param,
-    std::shared_ptr< PHiLiP::DGBase<dim, real, MeshType> >             dg,
+    std::shared_ptr< PHiLiP::DGBase<dim, nspecies, real, MeshType> >             dg,
     std::shared_ptr< PHiLiP::Physics::PhysicsBase<dim,nstate,real> >   physics,
     std::shared_ptr< PHiLiP::Functional<dim, nspecies, nstate, real, MeshType> > functional)
 {
@@ -447,7 +447,7 @@ template <int dim, int nspecies, int nstate, typename real, typename MeshType>
 std::shared_ptr< GridRefinementBase<dim,nspecies,nstate,real,MeshType> > 
 GridRefinementFactory<dim,nspecies,nstate,real,MeshType>::create_GridRefinement(
     PHiLiP::Parameters::GridRefinementParam                          gr_param,
-    std::shared_ptr< PHiLiP::DGBase<dim, real, MeshType> >           dg,
+    std::shared_ptr< PHiLiP::DGBase<dim, nspecies, real, MeshType> >           dg,
     std::shared_ptr< PHiLiP::Physics::PhysicsBase<dim,nstate,real> > physics)
 {
     // hessian and error based
@@ -490,7 +490,7 @@ template <int dim, int nspecies, int nstate, typename real, typename MeshType>
 std::shared_ptr< GridRefinementBase<dim,nspecies,nstate,real,MeshType> > 
 GridRefinementFactory<dim,nspecies,nstate,real,MeshType>::create_GridRefinement(
     PHiLiP::Parameters::GridRefinementParam                gr_param,
-    std::shared_ptr< PHiLiP::DGBase<dim, real, MeshType> > dg)
+    std::shared_ptr< PHiLiP::DGBase<dim, nspecies, real, MeshType> > dg)
 {
     // residual based or uniform
     using RefinementMethodEnum = PHiLiP::Parameters::GridRefinementParam::RefinementMethod;
@@ -513,8 +513,8 @@ GridRefinementFactory<dim,nspecies,nstate,real,MeshType>::create_GridRefinement(
     return nullptr;
 }
 
-// Define a sequence of indices representing the range [1, 7] - max is 7 because nstate=dim+2+(species-1)=7 when dim=species=3
-#define POSSIBLE_NSTATE (1)(2)(3)(4)(5)(6)(7)
+// Define a sequence of indices representing the range [1, 6] - max is 6 because nstate=dim+2+(species-1)=6 when dim=3 species=2
+#define POSSIBLE_NSTATE (1)(2)(3)(4)(5)(6)
 
 // Define a macro to instantiate MyTemplate for a specific index
 #define INSTANTIATE_DISTRIBUTED_BASE(r, data, index) \
@@ -547,6 +547,15 @@ BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_SHARED_FACTORY, _, POSSIBLE_NSTATE)
     template class GridRefinementFactory <PHILIP_DIM, PHILIP_SPECIES, index, double, dealii::Triangulation<PHILIP_DIM>>;
 BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_TRIA_FACTORY, _, POSSIBLE_NSTATE)
 
+// Templated to allow compilation when NUMBER_OF_SPECIES > 2, but may not work.
+#if (PHILIP_DIM+2+(PHILIP_SPECIES-1)) > 6
+    template class GridRefinementBase <PHILIP_DIM, PHILIP_SPECIES, (PHILIP_DIM+2+(PHILIP_SPECIES-1)), double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+    template class GridRefinementBase <PHILIP_DIM, PHILIP_SPECIES, (PHILIP_DIM+2+(PHILIP_SPECIES-1)), double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+    template class GridRefinementBase <PHILIP_DIM, PHILIP_SPECIES, (PHILIP_DIM+2+(PHILIP_SPECIES-1)), double, dealii::Triangulation<PHILIP_DIM>>;
+    template class GridRefinementFactory <PHILIP_DIM, PHILIP_SPECIES, (PHILIP_DIM+2+(PHILIP_SPECIES-1)), double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+    template class GridRefinementFactory <PHILIP_DIM, PHILIP_SPECIES, (PHILIP_DIM+2+(PHILIP_SPECIES-1)), double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+    template class GridRefinementFactory <PHILIP_DIM, PHILIP_SPECIES, (PHILIP_DIM+2+(PHILIP_SPECIES-1)), double, dealii::Triangulation<PHILIP_DIM>>;
+#endif
 } // namespace GridRefinement
 
 } // namespace PHiLiP

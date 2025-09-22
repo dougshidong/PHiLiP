@@ -1,4 +1,5 @@
 #include <boost/preprocessor/seq/for_each.hpp>
+#include <boost/preprocessor/repetition/repeat_from_to.hpp>
 #include "parameters/all_parameters.h"
 #include "parameters/parameters_manufactured_solution.h"
 
@@ -315,6 +316,28 @@ BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_FADFADTYPE, _, POSSIBLE_NSTATE)
     template class PhysicsFactory <PHILIP_DIM, PHILIP_SPECIES, index, RadFadType>;
 BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_RADFADTYPE, _, POSSIBLE_NSTATE)
 
+// Templated to allow compilation when NUMBER_OF_SPECIES > 2, but may not work.
+#if ((PHILIP_DIM+2+(PHILIP_SPECIES-1)) > 8)
+    #define INSTANTIATE_DOUBLE(r, data, index) \
+        template class PhysicsFactory <PHILIP_DIM, PHILIP_SPECIES, index, double>;
+    BOOST_PP_REPEAT_FROM_TO_d(0,PHILIP_DIM+2+(PHILIP_SPECIES-1),INSTANTIATE_DOUBLE, _)
+
+    #define INSTANTIATE_FADTYPE(r, data, index) \
+        template class PhysicsFactory <PHILIP_DIM, PHILIP_SPECIES, index, FadType>;
+    BOOST_PP_REPEAT_FROM_TO_d(0,PHILIP_DIM+2+(PHILIP_SPECIES-1),INSTANTIATE_FADTYPE, _)
+
+    #define INSTANTIATE_RADTYPE(r, data, index) \
+        template class PhysicsFactory <PHILIP_DIM, PHILIP_SPECIES, index, RadType>;
+    BOOST_PP_REPEAT_FROM_TO_d(0,PHILIP_DIM+2+(PHILIP_SPECIES-1),INSTANTIATE_RADTYPE, _)
+
+    #define INSTANTIATE_FADFADTYPE(r, data, index) \
+        template class PhysicsFactory <PHILIP_DIM, PHILIP_SPECIES, index, FadFadType>;
+    BOOST_PP_REPEAT_FROM_TO_d(0,PHILIP_DIM+2+(PHILIP_SPECIES-1),INSTANTIATE_FADFADTYPE, _)
+
+    #define INSTANTIATE_RADFADTYPE(r, data, index) \
+        template class PhysicsFactory <PHILIP_DIM, PHILIP_SPECIES, index, RadFadType>;
+    BOOST_PP_REPEAT_FROM_TO_d(0,PHILIP_DIM+2+(PHILIP_SPECIES-1),INSTANTIATE_RADFADTYPE, _)
+#endif
 } // Physics namespace
 } // PHiLiP namespace
 

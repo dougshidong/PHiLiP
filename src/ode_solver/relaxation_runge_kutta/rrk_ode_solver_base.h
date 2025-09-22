@@ -10,11 +10,11 @@ namespace ODE {
 
 /// Relaxation Runge-Kutta ODE solver base class
 #if PHILIP_DIM==1
-template <int dim, typename real, typename MeshType = dealii::Triangulation<dim>>
+template <int dim, int nspecies, typename real, typename MeshType = dealii::Triangulation<dim>>
 #else
-template <int dim, typename real, typename MeshType = dealii::parallel::distributed::Triangulation<dim>>
+template <int dim, int nspecies, typename real, typename MeshType = dealii::parallel::distributed::Triangulation<dim>>
 #endif
-class RRKODESolverBase: public RKNumEntropy<dim, real, MeshType>
+class RRKODESolverBase: public RKNumEntropy<dim, nspecies, real, MeshType>
 {
 public:
     /// Constructor
@@ -32,7 +32,7 @@ protected:
     /// Calculate the relaxation parameter at the current time step
     /// Calls compute_relaxation_parameter, which updates according to the desired RRK variant
     real update_relaxation_parameter (const real dt,
-            std::shared_ptr<DGBase<dim,real,MeshType>> dg,
+            std::shared_ptr<DGBase<dim,nspecies,real,MeshType>> dg,
             const std::vector<dealii::LinearAlgebra::distributed::Vector<double>> &rk_stage,
             const dealii::LinearAlgebra::distributed::Vector<double> & solution_update) override;
     
@@ -41,7 +41,7 @@ protected:
     /// See Ketcheson 2019, Eq. 2.4
     /// See Ranocha 2020, Eq. 2.4
     virtual real compute_relaxation_parameter(const real dt,
-            std::shared_ptr<DGBase<dim,real,MeshType>> dg,
+            std::shared_ptr<DGBase<dim,nspecies,real,MeshType>> dg,
             const std::vector<dealii::LinearAlgebra::distributed::Vector<double>> &rk_stage,
             const dealii::LinearAlgebra::distributed::Vector<double> &/*solution_update*/
             ) = 0;

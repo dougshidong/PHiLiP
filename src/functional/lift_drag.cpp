@@ -5,7 +5,7 @@ namespace PHiLiP {
 template <int dim,int nspecies,int nstate,typename real,typename MeshType>
 LiftDragFunctional<dim,nspecies,nstate,real,MeshType>
 ::LiftDragFunctional(
-    std::shared_ptr<DGBase<dim,real,MeshType>> dg_input,
+    std::shared_ptr<DGBase<dim,nspecies,real,MeshType>> dg_input,
     const Functional_types functional_type)
     : Functional<dim,nspecies,nstate,real,MeshType>(dg_input)
     , functional_type(functional_type)

@@ -89,7 +89,7 @@ FlowSolver<dim, nspecies, nstate>::FlowSolver(
     if(ode_param.ode_solver_type == Parameters::ODESolverParam::pod_galerkin_solver || 
        ode_param.ode_solver_type == Parameters::ODESolverParam::pod_petrov_galerkin_solver ||
        ode_param.ode_solver_type == Parameters::ODESolverParam::pod_galerkin_runge_kutta_solver){
-        std::shared_ptr<ProperOrthogonalDecomposition::OfflinePOD<dim>> pod = std::make_shared<ProperOrthogonalDecomposition::OfflinePOD<dim>>(dg);
+        std::shared_ptr<ProperOrthogonalDecomposition::OfflinePOD<dim,nspecies>> pod = std::make_shared<ProperOrthogonalDecomposition::OfflinePOD<dim,nspecies>>(dg);
         ode_solver = ODE::ODESolverFactory<dim, nspecies, double>::create_ODESolver(dg, pod);
     } else {
         ode_solver = ODE::ODESolverFactory<dim, nspecies, double>::create_ODESolver(dg);
@@ -107,7 +107,7 @@ FlowSolver<dim, nspecies, nstate>::FlowSolver(
             dg,
             &dg->system_matrix
         );
-        time_pod = std::make_shared<ProperOrthogonalDecomposition::OnlinePOD<dim>>(system_matrix); 
+        time_pod = std::make_shared<ProperOrthogonalDecomposition::OnlinePOD<dim,nspecies>>(system_matrix); 
         time_pod->addSnapshot(dg->solution);
     }
 
@@ -383,7 +383,7 @@ void FlowSolver<dim, nspecies, nstate>::output_restart_files(
 template <int dim, int nspecies, int nstate>
 void FlowSolver<dim, nspecies, nstate>::perform_steady_state_mesh_adaptation() const
 {
-    std::unique_ptr<MeshAdaptation<dim,double>> meshadaptation = std::make_unique<MeshAdaptation<dim,double>>(this->dg, &(this->all_param.mesh_adaptation_param));
+    std::unique_ptr<MeshAdaptation<dim,nspecies,double>> meshadaptation = std::make_unique<MeshAdaptation<dim,nspecies,double>>(this->dg, &(this->all_param.mesh_adaptation_param));
     const int total_adaptation_cycles = this->all_param.mesh_adaptation_param.total_mesh_adaptation_cycles;
     double residual_norm = this->dg->get_residual_l2norm();
     

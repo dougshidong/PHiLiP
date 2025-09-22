@@ -35,7 +35,7 @@ protected:
     /// norm_p is used to indicate the error order -- e.g., norm_p=2 
     /// is L2 norm
     /// Negative norm_p is used to indicate L_infinity norm
-    double calculate_Lp_error_at_final_time_wrt_function(std::shared_ptr<DGBase<dim,double>> dg,const Parameters::AllParameters parameters, double final_time, int norm_p) const;
+    double calculate_Lp_error_at_final_time_wrt_function(std::shared_ptr<DGBase<dim,nspecies,double>> dg,const Parameters::AllParameters parameters, double final_time, int norm_p) const;
 
     /// Reinitialize parameters while refining the timestep. Necessary because all_parameters is constant.
     Parameters::AllParameters reinit_params_and_refine_timestep(int refinement) const;

@@ -331,7 +331,7 @@ InitialConditionFunction_IsentropicVortex<dim,nspecies,nstate,real>
     // Euler object; create using dynamic_pointer_cast and the create_Physics factory
     // This test should only be used for Euler
     this->euler_physics = std::dynamic_pointer_cast<Physics::Euler<dim,dim+2,double>>(
-                Physics::PhysicsFactory<dim,dim+2,double>::create_Physics(param));
+                Physics::PhysicsFactory<dim,nspecies,dim+2,double>::create_Physics(param));
 }
 
 template <int dim, int nspecies, int nstate, typename real>
@@ -389,7 +389,7 @@ InitialConditionFunction_KHI<dim,nspecies,nstate,real>
     // Euler object; create using dynamic_pointer_cast and the create_Physics factory
     // This test should only be used for Euler
     this->euler_physics = std::dynamic_pointer_cast<Physics::Euler<dim,dim+2,double>>(
-                Physics::PhysicsFactory<dim,dim+2,double>::create_Physics(param));
+                Physics::PhysicsFactory<dim,nspecies,dim+2,double>::create_Physics(param));
 }
 
 template <int dim, int nspecies, int nstate, typename real>
@@ -427,7 +427,7 @@ InitialConditionFunction_EulerBase<dim, nspecies, nstate, real>
     PHiLiP::Parameters::AllParameters parameters_euler = *param;
     parameters_euler.pde_type = Parameters::AllParameters::PartialDifferentialEquation::euler;
     this->euler_physics = std::dynamic_pointer_cast<Physics::Euler<dim,dim+2,double>>(
-                Physics::PhysicsFactory<dim,dim+2,double>::create_Physics(&parameters_euler));
+                Physics::PhysicsFactory<dim,nspecies,dim+2,double>::create_Physics(&parameters_euler));
 }
 
 template <int dim, int nspecies, int nstate, typename real>
@@ -977,7 +977,7 @@ InitialConditionFunction_AcousticWave_Air<dim,nspecies,nstate,real>
     PHiLiP::Parameters::AllParameters parameters_euler = *param;
     parameters_euler.pde_type = Parameters::AllParameters::PartialDifferentialEquation::euler;
     this->euler_physics = std::dynamic_pointer_cast<Physics::Euler<dim,dim+2,double>>(
-                Physics::PhysicsFactory<dim,dim+2,double>::create_Physics(&parameters_euler));
+                Physics::PhysicsFactory<dim,nspecies,dim+2,double>::create_Physics(&parameters_euler));
 }
 
 template <int dim, int nspecies, int nstate, typename real>
@@ -1065,7 +1065,7 @@ InitialConditionFunction_AcousticWave_Species<dim,nspecies,nstate,real>
     PHiLiP::Parameters::AllParameters parameters_euler = *param;
     parameters_euler.pde_type = Parameters::AllParameters::PartialDifferentialEquation::inviscid_real_gas;
     this->inviscid_real_gas_physics = std::dynamic_pointer_cast<Physics::InviscidRealGas<dim,dim+2,double>>(
-                Physics::PhysicsFactory<dim,dim+2,double>::create_Physics(&parameters_euler));
+                Physics::PhysicsFactory<dim,nspecies,dim+2,double>::create_Physics(&parameters_euler));
 }
 
 template <int dim, int nspecies, int nstate, typename real>
@@ -1153,7 +1153,7 @@ InitialConditionFunction_AcousticWave_MultiSpecies<dim,nspecies,nstate,real>
     PHiLiP::Parameters::AllParameters parameters_euler = *param;
     parameters_euler.pde_type = Parameters::AllParameters::PartialDifferentialEquation::real_gas;
     this->real_gas_physics = std::dynamic_pointer_cast<Physics::RealGas<dim,nspecies,dim+2+nspecies-1,double>>(
-                Physics::PhysicsFactory<dim,dim+2+nspecies-1,double>::create_Physics(&parameters_euler));
+                Physics::PhysicsFactory<dim,nspecies,dim+2+nspecies-1,double>::create_Physics(&parameters_euler));
 }
 
 template <int dim, int nspecies, int nstate, typename real>
@@ -1237,7 +1237,7 @@ InitialConditionFunction_MultiSpecies_VortexAdvection<dim,nspecies,nstate,real>
     PHiLiP::Parameters::AllParameters parameters_euler = *param;
     parameters_euler.pde_type = Parameters::AllParameters::PartialDifferentialEquation::real_gas;
     this->real_gas_physics = std::dynamic_pointer_cast<Physics::RealGas<dim,nspecies,dim+2+nspecies-1,double>>( 
-                Physics::PhysicsFactory<dim,dim+2+nspecies-1,double>::create_Physics(&parameters_euler)); 
+                Physics::PhysicsFactory<dim,nspecies,dim+2+nspecies-1,double>::create_Physics(&parameters_euler)); 
 }
 
 template <int dim, int nspecies, int nstate, typename real>
@@ -1354,7 +1354,7 @@ InitialConditionFunction_MultiSpecies_HighTemperature_VortexAdvection<dim,nspeci
     PHiLiP::Parameters::AllParameters parameters_euler = *param;
     parameters_euler.pde_type = Parameters::AllParameters::PartialDifferentialEquation::real_gas;
     this->real_gas_physics = std::dynamic_pointer_cast<Physics::RealGas<dim,nspecies,dim+2+nspecies-1,double>>(
-                Physics::PhysicsFactory<dim,dim+2+nspecies-1,double>::create_Physics(&parameters_euler)); 
+                Physics::PhysicsFactory<dim,nspecies,dim+2+nspecies-1,double>::create_Physics(&parameters_euler)); 
 }
 
 template <int dim, int nspecies, int nstate, typename real>
@@ -1475,7 +1475,7 @@ InitialConditionFunction_Euler_VortexAdvection<dim,nspecies,nstate,real>
     PHiLiP::Parameters::AllParameters parameters_euler = *param;
     parameters_euler.pde_type = Parameters::AllParameters::PartialDifferentialEquation::euler;
     this->euler_physics = std::dynamic_pointer_cast<Physics::Euler<dim,dim+2,double>>(
-                Physics::PhysicsFactory<dim,dim+2,double>::create_Physics(&parameters_euler));
+                Physics::PhysicsFactory<dim,nspecies,dim+2,double>::create_Physics(&parameters_euler));
 }
 
 template <int dim, int nspecies, int nstate, typename real>
@@ -1561,7 +1561,7 @@ InitialConditionFunction_MultiSpecies_CaloricallyPerfect_Euler_VortexAdvection<d
     PHiLiP::Parameters::AllParameters parameters_euler = *param;
     parameters_euler.pde_type = Parameters::AllParameters::PartialDifferentialEquation::multi_species_calorically_perfect_euler;
     this->multi_species_calorically_perfect_euler_physics = std::dynamic_pointer_cast<Physics::MultiSpeciesCaloricallyPerfect<dim,nspecies,dim+2+nspecies-1,double>>(
-                Physics::PhysicsFactory<dim,dim+2+nspecies-1,double>::create_Physics(&parameters_euler)); 
+                Physics::PhysicsFactory<dim,nspecies,dim+2+nspecies-1,double>::create_Physics(&parameters_euler)); 
 }
 
 template <int dim, int nspecies, int nstate, typename real>
@@ -1679,7 +1679,7 @@ InitialConditionFunction_MultiSpecies_IsentropicEulerVortex<dim,nspecies,nstate,
     PHiLiP::Parameters::AllParameters parameters_euler = *param;
     parameters_euler.pde_type = Parameters::AllParameters::PartialDifferentialEquation::real_gas;
     this->real_gas_physics = std::dynamic_pointer_cast<Physics::RealGas<dim,nspecies,dim+2+nspecies-1,double>>(
-                Physics::PhysicsFactory<dim,dim+2+nspecies-1,double>::create_Physics(&parameters_euler));
+                Physics::PhysicsFactory<dim,nspecies,dim+2+nspecies-1,double>::create_Physics(&parameters_euler));
 }
 
 template <int dim, int nspecies, int nstate, typename real>
@@ -1787,7 +1787,7 @@ InitialConditionFunction_MultiSpecies_TwoDimensional_VortexAdvection<dim,nspecie
     PHiLiP::Parameters::AllParameters parameters_euler = *param;
     parameters_euler.pde_type = Parameters::AllParameters::PartialDifferentialEquation::real_gas;
     this->real_gas_physics = std::dynamic_pointer_cast<Physics::RealGas<dim,nspecies,dim+2+nspecies-1,double>>(    // Note: modify this when you change the number of species. nstate == dim+2+(nspecies)-1
-                Physics::PhysicsFactory<dim,dim+2+nspecies-1,double>::create_Physics(&parameters_euler)); // Note: modify this when you change the number of species. nstate == dim+2+(nspecies)-1
+                Physics::PhysicsFactory<dim,nspecies,dim+2+nspecies-1,double>::create_Physics(&parameters_euler)); // Note: modify this when you change the number of species. nstate == dim+2+(nspecies)-1
 }
 
 template <int dim, int nspecies, int nstate, typename real>
@@ -1902,7 +1902,7 @@ InitialConditionFunction_MultiSpecies_FuelDropAdvection<dim,nspecies,nstate,real
     PHiLiP::Parameters::AllParameters parameters_euler = *param;
     parameters_euler.pde_type = Parameters::AllParameters::PartialDifferentialEquation::real_gas;
     this->real_gas_physics = std::dynamic_pointer_cast<Physics::RealGas<dim,nspecies,dim+2+nspecies-1,double>>( // Note: modify this when you change the number of species. nstate == dim+2+(nspecies)-1
-                Physics::PhysicsFactory<dim,dim+2+nspecies-1,double>::create_Physics(&parameters_euler)); // Note: modify this when you change the number of species. nstate == dim+2+(nspecies)-1
+                Physics::PhysicsFactory<dim,nspecies,dim+2+nspecies-1,double>::create_Physics(&parameters_euler)); // Note: modify this when you change the number of species. nstate == dim+2+(nspecies)-1
 }
 
 template <int dim, int nspecies, int nstate, typename real>
@@ -2015,7 +2015,7 @@ InitialConditionFunction_MultiSpecies_ThreeDimensional_VortexAdvection<dim,nspec
     PHiLiP::Parameters::AllParameters parameters_euler = *param;
     parameters_euler.pde_type = Parameters::AllParameters::PartialDifferentialEquation::real_gas;
     this->real_gas_physics = std::dynamic_pointer_cast<Physics::RealGas<dim,nspecies,dim+2+nspecies-1,double>>(    // Note: modify this when you change the number of species. nstate == dim+2+(nspecies)-1
-                Physics::PhysicsFactory<dim,dim+2+nspecies-1,double>::create_Physics(&parameters_euler)); // Note: modify this when you change the number of species. nstate == dim+2+(nspecies)-1
+                Physics::PhysicsFactory<dim,nspecies,dim+2+nspecies-1,double>::create_Physics(&parameters_euler)); // Note: modify this when you change the number of species. nstate == dim+2+(nspecies)-1
 }
 
 template <int dim, int nspecies, int nstate, typename real>
@@ -2134,7 +2134,7 @@ InitialConditionFunction_MultiSpecies_TaylorGreenVortex<dim,nspecies,nstate,real
     PHiLiP::Parameters::AllParameters parameters_euler = *param;
     parameters_euler.pde_type = Parameters::AllParameters::PartialDifferentialEquation::real_gas;
     this->real_gas_physics = std::dynamic_pointer_cast<Physics::RealGas<dim,nspecies,dim+2+nspecies-1,double>>(    // Note: modify this when you change the number of species. nstate == dim+2+(nspecies)-1
-                Physics::PhysicsFactory<dim,dim+2+nspecies-1,double>::create_Physics(&parameters_euler)); // Note: modify this when you change the number of species. nstate == dim+2+(nspecies)-1
+                Physics::PhysicsFactory<dim,nspecies,dim+2+nspecies-1,double>::create_Physics(&parameters_euler)); // Note: modify this when you change the number of species. nstate == dim+2+(nspecies)-1
 }
 
 template <int dim, int nspecies, int nstate, typename real>
@@ -2223,7 +2223,7 @@ InitialConditionFunction_MultiSpecies_Mixture_TaylorGreenVortex<dim,nspecies,nst
     PHiLiP::Parameters::AllParameters parameters_euler = *param;
     parameters_euler.pde_type = Parameters::AllParameters::PartialDifferentialEquation::real_gas;
     this->real_gas_physics = std::dynamic_pointer_cast<Physics::RealGas<dim,nspecies,dim+2+nspecies-1,double>>(    // Note: modify this when you change the number of species. nstate == dim+2+(nspecies)-1
-                Physics::PhysicsFactory<dim,dim+2+nspecies-1,double>::create_Physics(&parameters_euler)); // Note: modify this when you change the number of species. nstate == dim+2+(nspecies)-1
+                Physics::PhysicsFactory<dim,nspecies,dim+2+nspecies-1,double>::create_Physics(&parameters_euler)); // Note: modify this when you change the number of species. nstate == dim+2+(nspecies)-1
 }
 
 template <int dim, int nspecies, int nstate, typename real>

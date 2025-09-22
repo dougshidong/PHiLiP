@@ -13,7 +13,7 @@ namespace PHiLiP{
 template<int dim, int nspecies, int nstate, typename real>
 void SetInitialCondition<dim,nspecies,nstate,real>::set_initial_condition(
         std::shared_ptr< InitialConditionFunction<dim,nspecies,nstate,double> > initial_condition_function_input,
-        std::shared_ptr< PHiLiP::DGBase<dim, real> > dg_input,
+        std::shared_ptr< PHiLiP::DGBase<dim, nspecies, real> > dg_input,
         const Parameters::AllParameters *const parameters_input)
 {
     dealii::ConditionalOStream pcout(std::cout, dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD)==0);
@@ -42,7 +42,7 @@ void SetInitialCondition<dim,nspecies,nstate,real>::set_initial_condition(
 template<int dim, int nspecies, int nstate, typename real>
 void SetInitialCondition<dim,nspecies,nstate,real>::interpolate_initial_condition(
         std::shared_ptr< InitialConditionFunction<dim,nspecies,nstate,double> > &initial_condition_function,
-        std::shared_ptr < PHiLiP::DGBase<dim,real> > &dg) 
+        std::shared_ptr < PHiLiP::DGBase<dim,nspecies,real> > &dg) 
 {
     dealii::LinearAlgebra::distributed::Vector<double> solution_no_ghost;
     solution_no_ghost.reinit(dg->locally_owned_dofs, MPI_COMM_WORLD);
@@ -53,7 +53,7 @@ void SetInitialCondition<dim,nspecies,nstate,real>::interpolate_initial_conditio
 template<int dim, int nspecies, int nstate, typename real>
 void SetInitialCondition<dim,nspecies,nstate,real>::project_initial_condition(
         std::shared_ptr< InitialConditionFunction<dim,nspecies,nstate,double> > &initial_condition_function,
-        std::shared_ptr < PHiLiP::DGBase<dim,real> > &dg) 
+        std::shared_ptr < PHiLiP::DGBase<dim,nspecies,real> > &dg) 
 {
     // Commented since this has not yet been tested
     // dealii::LinearAlgebra::distributed::Vector<double> solution_no_ghost;
@@ -113,7 +113,7 @@ std::string get_padded_mpi_rank_string(const int mpi_rank_input) {
 
 template<int dim, int nspecies, int nstate, typename real>
 void SetInitialCondition<dim,nspecies,nstate,real>::read_values_from_file_and_project(
-        std::shared_ptr < PHiLiP::DGBase<dim,real> > &dg,
+        std::shared_ptr < PHiLiP::DGBase<dim,nspecies,real> > &dg,
         const std::string input_filename_prefix) 
 {
     dealii::ConditionalOStream pcout(std::cout, dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD)==0);

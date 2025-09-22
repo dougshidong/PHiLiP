@@ -26,7 +26,7 @@ public:
     Parameters::AllParameters reinit_params(const int max_iter) const;
 
     /// Read ECSW weights from the text file 
-    bool getWeightsFromFile(std::shared_ptr<DGBase<dim,double>> &dg) const;
+    bool getWeightsFromFile(std::shared_ptr<DGBase<dim,nspecies,double>> &dg) const;
 
     /// Build three models and evaluate error measures
     int run_test () const override;

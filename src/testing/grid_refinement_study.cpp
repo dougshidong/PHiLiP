@@ -78,9 +78,9 @@ int GridRefinementStudy<dim,nspecies,nstate,MeshType>::run_test() const
 
     // creating the physics object
     std::shared_ptr< Physics::PhysicsBase<dim,nstate,double> > physics_double
-        = Physics::PhysicsFactory<dim,nstate,double>::create_Physics(&param,model_double);
+        = Physics::PhysicsFactory<dim,nspecies,nstate,double>::create_Physics(&param,model_double);
     std::shared_ptr< Physics::PhysicsBase<dim,nstate,ADtype> > physics_adtype
-        = Physics::PhysicsFactory<dim,nstate,ADtype>::create_Physics(&param,model_adtype);
+        = Physics::PhysicsFactory<dim,nspecies,nstate,ADtype>::create_Physics(&param,model_adtype);
 
     // for each of the runs, a seperate refinement table
     std::vector<dealii::ConvergenceTable> convergence_table_vector;
@@ -118,7 +118,7 @@ int GridRefinementStudy<dim,nspecies,nstate,MeshType>::run_test() const
         std::cout << "Functional estimate = " << functional_value_exact << std::endl;
 
         // generate DG
-        std::shared_ptr< DGBase<dim, double, MeshType> > dg 
+        std::shared_ptr< DGBase<dim, nspecies, double, MeshType> > dg 
             = DGFactory<dim,nspecies,double,MeshType>::create_discontinuous_galerkin(
                 &param, 
                 poly_degree,
@@ -144,16 +144,16 @@ int GridRefinementStudy<dim,nspecies,nstate,MeshType>::run_test() const
         // ode_solver->initialize_steady_polynomial_ramping(poly_degree);
 
         // generate Functional
-        std::shared_ptr< Functional<dim,nstate,double,MeshType> > functional 
-            = FunctionalFactory<dim,nstate,double,MeshType>::create_Functional(grs_param.functional_param, dg);
+        std::shared_ptr< Functional<dim,nspecies,nstate,double,MeshType> > functional 
+            = FunctionalFactory<dim,nspecies,nstate,double,MeshType>::create_Functional(grs_param.functional_param, dg);
 
         // generate Adjoint
-        std::shared_ptr< Adjoint<dim,nstate,double,MeshType> > adjoint 
-            = std::make_shared< Adjoint<dim,nstate,double,MeshType> >(dg, functional, physics_adtype);
+        std::shared_ptr< Adjoint<dim,nspecies,nstate,double,MeshType> > adjoint 
+            = std::make_shared< Adjoint<dim,nspecies,nstate,double,MeshType> >(dg, functional, physics_adtype);
 
         // generate the GridRefinement
-        std::shared_ptr< GridRefinement::GridRefinementBase<dim,nstate,double,MeshType> > grid_refinement 
-            = GridRefinement::GridRefinementFactory<dim,nstate,double,MeshType>::create_GridRefinement(gr_param,adjoint,physics_double);
+        std::shared_ptr< GridRefinement::GridRefinementBase<dim,nspecies,nstate,double,MeshType> > grid_refinement 
+            = GridRefinement::GridRefinementFactory<dim,nspecies,nstate,double,MeshType>::create_GridRefinement(gr_param,adjoint,physics_double);
 
         // starting the iterations
         dealii::ConvergenceTable convergence_table;
@@ -266,7 +266,7 @@ int GridRefinementStudy<dim,nspecies,nstate,MeshType>::run_test() const
                 // evaluating the derivatives and the fine grid adjoint
                 if(dg->get_max_fe_degree() + 1 <= dg->max_degree){ // don't output if at max order (as p-enrichment will segfault)
                     auto adj_start = std::chrono::steady_clock::now();
-                    adjoint->convert_to_state(PHiLiP::Adjoint<dim,nstate,double,MeshType>::AdjointStateEnum::fine);
+                    adjoint->convert_to_state(PHiLiP::Adjoint<dim,nspecies,nstate,double,MeshType>::AdjointStateEnum::fine);
                     adjoint->fine_grid_adjoint();
                     estimated_error_per_cell.reinit(grid->n_active_cells());
                     estimated_error_per_cell = adjoint->dual_weighted_residual();
@@ -282,7 +282,7 @@ int GridRefinementStudy<dim,nspecies,nstate,MeshType>::run_test() const
                 }
 
                 // and for the coarse grid
-                adjoint->convert_to_state(PHiLiP::Adjoint<dim,nstate,double,MeshType>::AdjointStateEnum::coarse); // this one is necessary though
+                adjoint->convert_to_state(PHiLiP::Adjoint<dim,nspecies,nstate,double,MeshType>::AdjointStateEnum::coarse); // this one is necessary though
                 adjoint->coarse_grid_adjoint();
                 adjoint->output_results_vtk(iref*10+igrid);
             }
@@ -473,7 +473,7 @@ double GridRefinementStudy<dim,nspecies,nstate,MeshType>::approximate_exact_func
 
     // building the discontinuous galerkin solver
     std::cout << "Creating fine dg." << std::endl;
-    std::shared_ptr< DGBase<dim, double, MeshType> > dg_fine = 
+    std::shared_ptr< DGBase<dim, nspecies, double, MeshType> > dg_fine = 
         DGFactory<dim,nspecies,double,MeshType>::create_discontinuous_galerkin(
             &param, 
             poly_degree,
@@ -491,8 +491,8 @@ double GridRefinementStudy<dim,nspecies,nstate,MeshType>::approximate_exact_func
 
     // creating a functional
     std::cout << "Generating the functional." << std::endl;
-    std::shared_ptr< Functional<dim,nstate,double,MeshType> > functional_fine
-        = FunctionalFactory<dim,nstate,double,MeshType>::create_Functional(grs_param.functional_param, dg_fine);
+    std::shared_ptr< Functional<dim,nspecies,nstate,double,MeshType> > functional_fine
+        = FunctionalFactory<dim,nspecies,nstate,double,MeshType>::create_Functional(grs_param.functional_param, dg_fine);
 
     // getting the "exact" value using it
     std::cout << "Computing and returning approximation" << std::endl;
@@ -572,8 +572,8 @@ MeshFactory<dealii::parallel::distributed::Triangulation<PHILIP_DIM>>::create_Me
 }
 #endif
 
-// Define a sequence of indices representing the range [1, 7] - max is 7 because nstate=dim+2+(species-1)=7 when dim=species=3
-#define POSSIBLE_NSTATE (1)(2)(3)(4)(5)(6)(7)
+// Define a sequence of indices representing the range [1, 6] - max is 6 because nstate=dim+2+(species-1)=6 when dim=3 species=2
+#define POSSIBLE_NSTATE (1)(2)(3)(4)(5)(6)
 
 // Define a macro to instantiate MyTemplate for a specific index
 #define INSTANTIATE_DISTRIBUTED(r, data, index) \

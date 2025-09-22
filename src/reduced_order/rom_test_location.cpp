@@ -26,7 +26,7 @@ ROMTestLocation<dim, nspecies, nstate>::ROMTestLocation(const RowVectorXd& param
 }
 
 template <int dim, int nspecies, int nstate>
-void ROMTestLocation<dim, nspecies, nstate>::compute_initial_rom_to_final_rom_error(std::shared_ptr<ProperOrthogonalDecomposition::PODBase<dim>> pod_updated){
+void ROMTestLocation<dim, nspecies, nstate>::compute_initial_rom_to_final_rom_error(std::shared_ptr<ProperOrthogonalDecomposition::PODBase<dim,nspecies>> pod_updated){
 
     this->pcout << "Computing adjoint-based error estimate between initial ROM and updated ROM..." << std::endl;
 

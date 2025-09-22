@@ -46,7 +46,7 @@ GridStudy<dim,nspecies,nstate>::GridStudy(const Parameters::AllParameters *const
 
 template <int dim, int nspecies, int nstate>
 void GridStudy<dim,nspecies,nstate>
-::initialize_perturbed_solution(DGBase<dim,double> &dg, const Physics::PhysicsBase<dim,nstate,double> &physics) const
+::initialize_perturbed_solution(DGBase<dim,nspecies,double> &dg, const Physics::PhysicsBase<dim,nstate,double> &physics) const
 {
     dealii::LinearAlgebra::distributed::Vector<double> solution_no_ghost;
     solution_no_ghost.reinit(dg.locally_owned_dofs, MPI_COMM_WORLD);
@@ -62,7 +62,7 @@ void GridStudy<dim,nspecies,nstate>
 }
 template <int dim, int nspecies, int nstate>
 double GridStudy<dim,nspecies,nstate>
-::integrate_solution_over_domain(DGBase<dim,double> &dg) const
+::integrate_solution_over_domain(DGBase<dim,nspecies,double> &dg) const
 {
     pcout << "Evaluating solution integral..." << std::endl;
     double solution_integral = 0.0;
@@ -169,7 +169,7 @@ int GridStudy<dim,nspecies,nstate>
     const unsigned int n_grids_input       = manu_grid_conv_param.number_of_grids;
 
     std::shared_ptr< Physics::ModelBase<dim,nstate,double> > model_double = Physics::ModelFactory<dim,nstate,double>::create_Model(&param);
-    std::shared_ptr <Physics::PhysicsBase<dim,nstate,double>> physics_double = Physics::PhysicsFactory<dim, nstate, double>::create_Physics(&param,model_double);
+    std::shared_ptr <Physics::PhysicsBase<dim,nstate,double>> physics_double = Physics::PhysicsFactory<dim, nspecies, nstate, double>::create_Physics(&param,model_double);
 
     // Evaluate solution integral on really fine mesh
     double exact_solution_integral;
@@ -209,7 +209,7 @@ int GridStudy<dim,nspecies,nstate>
             }
         }
 
-        std::shared_ptr < DGBase<dim, double> > dg_super_fine = DGFactory<dim,nspecies,double>::create_discontinuous_galerkin(&param, p_end, grid_super_fine);
+        std::shared_ptr < DGBase<dim, nspecies, double> > dg_super_fine = DGFactory<dim,nspecies,double>::create_discontinuous_galerkin(&param, p_end, grid_super_fine);
         dg_super_fine->allocate_system ();
 
         initialize_perturbed_solution(*dg_super_fine, *physics_double);
@@ -364,7 +364,7 @@ int GridStudy<dim,nspecies,nstate>
             using FadType = Sacado::Fad::DFad<double>;
 
             // Create DG object using the factory
-            std::shared_ptr < DGBase<dim, double> > dg = DGFactory<dim,nspecies,double>::create_discontinuous_galerkin(&param, poly_degree, grid);
+            std::shared_ptr < DGBase<dim, nspecies, double> > dg = DGFactory<dim,nspecies,double>::create_discontinuous_galerkin(&param, poly_degree, grid);
             dg->allocate_system ();
             //dg->evaluate_inverse_mass_matrices();
             //
@@ -470,8 +470,8 @@ int GridStudy<dim,nspecies,nstate>
                 std::ofstream outpos(write_posname);
                 GridRefinement::GmshOut<dim,double>::write_pos(grid,estimated_error_per_cell_double,outpos);
 
-                std::shared_ptr< GridRefinement::GridRefinementBase<dim,nstate,double> >  gr 
-                    = GridRefinement::GridRefinementFactory<dim,nstate,double>::create_GridRefinement(param.grid_refinement_study_param.grid_refinement_param_vector[0],dg,physics_double);
+                std::shared_ptr< GridRefinement::GridRefinementBase<dim,nspecies,nstate,double> >  gr 
+                    = GridRefinement::GridRefinementFactory<dim,nspecies,nstate,double>::create_GridRefinement(param.grid_refinement_study_param.grid_refinement_param_vector[0],dg,physics_double);
 
                 gr->refine_grid();
 
@@ -479,8 +479,8 @@ int GridStudy<dim,nspecies,nstate>
                 */
             
                 // Use gr->output_results_vtk(), which includes L2error per cell, instead of dg->output_results_vtk() as done above
-                std::shared_ptr< GridRefinement::GridRefinementBase<dim,nstate,double> >  gr 
-                   = GridRefinement::GridRefinementFactory<dim,nstate,double>::create_GridRefinement(param.grid_refinement_study_param.grid_refinement_param_vector[0],dg,physics_double);
+                std::shared_ptr< GridRefinement::GridRefinementBase<dim,nspecies,nstate,double> >  gr 
+                   = GridRefinement::GridRefinementFactory<dim,nspecies,nstate,double>::create_GridRefinement(param.grid_refinement_study_param.grid_refinement_param_vector[0],dg,physics_double);
                 gr->output_results_vtk(igrid);
             }
             
@@ -672,8 +672,8 @@ void GridStudy<dim,nspecies,nstate>
     }
 }
 
-// Define a sequence of indices representing the range [1, 7] - max is 7 because nstate=dim+2+(species-1)=7 when dim=species=3
-#define POSSIBLE_NSTATE (1)(2)(3)(4)(5)(6)(7)
+// Define a sequence of indices representing the range [1, 6] - max is 6 because nstate=dim+2+(species-1)=6 when dim=3 species=2
+#define POSSIBLE_NSTATE (1)(2)(3)(4)(5)(6)
 
 // Define a macro to instantiate MyTemplate for a specific index
 #define INSTANTIATE_TEMPLATE(r, data, index) \

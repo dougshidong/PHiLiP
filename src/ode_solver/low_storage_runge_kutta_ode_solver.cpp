@@ -4,9 +4,9 @@ namespace PHiLiP {
 namespace ODE {
 
 template <int dim, int nspecies, typename real, int n_rk_stages, typename MeshType> 
-LowStorageRungeKuttaODESolver<dim,nspecies,real,n_rk_stages, MeshType>::LowStorageRungeKuttaODESolver(std::shared_ptr< DGBase<dim, real, MeshType> > dg_input,
+LowStorageRungeKuttaODESolver<dim,nspecies,real,n_rk_stages, MeshType>::LowStorageRungeKuttaODESolver(std::shared_ptr< DGBase<dim, nspecies, real, MeshType> > dg_input,
         std::shared_ptr<LowStorageRKTableauBase<dim,real,MeshType>> rk_tableau_input,
-        std::shared_ptr<EmptyRRKBase<dim,real,MeshType>> RRK_object_input)
+        std::shared_ptr<EmptyRRKBase<dim,nspecies,real,MeshType>> RRK_object_input)
         : RungeKuttaBase<dim,nspecies,real,n_rk_stages,MeshType>(dg_input,RRK_object_input)
         , butcher_tableau(rk_tableau_input)
         , epsilon{1.0, 1.0, 1.0} 

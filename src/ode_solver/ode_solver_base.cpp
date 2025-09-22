@@ -5,8 +5,8 @@ namespace PHiLiP {
 namespace ODE{
 
 template <int dim, int nspecies, typename real, typename MeshType>
-ODESolverBase<dim,nspecies,real,MeshType>::ODESolverBase(std::shared_ptr< DGBase<dim, real, MeshType> > dg_input
-        , std::shared_ptr< ProperOrthogonalDecomposition::PODBase<dim>> pod)
+ODESolverBase<dim,nspecies,real,MeshType>::ODESolverBase(std::shared_ptr< DGBase<dim, nspecies, real, MeshType> > dg_input
+        , std::shared_ptr< ProperOrthogonalDecomposition::PODBase<dim,nspecies>> pod)
         : dg(dg_input)
         , pod(pod)
         , limiter(BoundPreservingLimiterFactory<dim, nspecies, 6, real>::create_limiter(dg->all_parameters))
@@ -23,7 +23,7 @@ ODESolverBase<dim,nspecies,real,MeshType>::ODESolverBase(std::shared_ptr< DGBase
 {}
 
 template <int dim, int nspecies, typename real, typename MeshType>
-ODESolverBase<dim,nspecies,real,MeshType>::ODESolverBase(std::shared_ptr< DGBase<dim, real, MeshType> > dg_input)
+ODESolverBase<dim,nspecies,real,MeshType>::ODESolverBase(std::shared_ptr< DGBase<dim, nspecies, real, MeshType> > dg_input)
         : ODESolverBase(dg_input, nullptr)
 {}
 

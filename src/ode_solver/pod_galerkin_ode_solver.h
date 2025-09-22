@@ -25,7 +25,7 @@ class PODGalerkinODESolver: public ReducedOrderODESolver<dim, nspecies, real, Me
 {
 public:
     /// Default constructor that will set the constants.
-    PODGalerkinODESolver(std::shared_ptr< DGBase<dim, real, MeshType> > dg_input, std::shared_ptr<ProperOrthogonalDecomposition::PODBase<dim>> pod); ///< Constructor.
+    PODGalerkinODESolver(std::shared_ptr< DGBase<dim, nspecies, real, MeshType> > dg_input, std::shared_ptr<ProperOrthogonalDecomposition::PODBase<dim,nspecies>> pod); ///< Constructor.
 
     ///Generate test basis
     std::shared_ptr<Epetra_CrsMatrix> generate_test_basis(const Epetra_CrsMatrix &epetra_system_matrix, const Epetra_CrsMatrix &pod_basis) override;

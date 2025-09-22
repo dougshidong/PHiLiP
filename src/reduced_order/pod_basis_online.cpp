@@ -14,8 +14,8 @@
 namespace PHiLiP {
 namespace ProperOrthogonalDecomposition {
 
-template<int dim>
-OnlinePOD<dim>::OnlinePOD(std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> _system_matrix)
+template<int dim, int nspecies>
+OnlinePOD<dim, nspecies>::OnlinePOD(std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> _system_matrix)
         : basis(std::make_shared<dealii::TrilinosWrappers::SparseMatrix>())
         , system_matrix(_system_matrix)
         , mpi_communicator(MPI_COMM_WORLD)
@@ -24,8 +24,8 @@ OnlinePOD<dim>::OnlinePOD(std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix
 {
 }
 
-template <int dim>
-void OnlinePOD<dim>::addSnapshot(dealii::LinearAlgebra::distributed::Vector<double> snapshot) {
+template <int dim, int nspecies>
+void OnlinePOD<dim, nspecies>::addSnapshot(dealii::LinearAlgebra::distributed::Vector<double> snapshot) {
     pcout << "Adding new snapshot to snapshot matrix..." << std::endl;
     dealii::LinearAlgebra::ReadWriteVector<double> read_snapshot(snapshot.size());
     read_snapshot.import(snapshot, dealii::VectorOperation::values::insert);
@@ -45,8 +45,8 @@ void OnlinePOD<dim>::addSnapshot(dealii::LinearAlgebra::distributed::Vector<doub
     }
 }
 
-template <int dim>
-void OnlinePOD<dim>::computeBasis() {
+template <int dim, int nspecies>
+void OnlinePOD<dim, nspecies>::computeBasis() {
     pcout << "Computing POD basis..." << std::endl;
 
     VectorXd reference_state = snapshotMatrix.rowwise().mean();
@@ -84,22 +84,22 @@ void OnlinePOD<dim>::computeBasis() {
     pcout << "Done computing POD basis. Basis now has " << basis->n() << " columns." << std::endl;
 }
 
-template <int dim>
-std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> OnlinePOD<dim>::getPODBasis() {
+template <int dim, int nspecies>
+std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> OnlinePOD<dim, nspecies>::getPODBasis() {
     return basis;
 }
 
-template <int dim>
-dealii::LinearAlgebra::ReadWriteVector<double> OnlinePOD<dim>::getReferenceState() {
+template <int dim, int nspecies>
+dealii::LinearAlgebra::ReadWriteVector<double> OnlinePOD<dim, nspecies>::getReferenceState() {
     return referenceState;
 }
 
-template <int dim>
-MatrixXd OnlinePOD<dim>::getSnapshotMatrix() {
+template <int dim, int nspecies>
+MatrixXd OnlinePOD<dim, nspecies>::getSnapshotMatrix() {
     return snapshotMatrix;
 }
 
-template class OnlinePOD <PHILIP_DIM>;
+template class OnlinePOD <PHILIP_DIM, PHILIP_SPECIES>;
 
 }
 }

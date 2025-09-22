@@ -13,7 +13,7 @@ PositivityPreservingTests<dim, nspecies, nstate>::PositivityPreservingTests(cons
     , unsteady_data_table_filename_with_extension(this->all_param.flow_solver_param.unsteady_data_table_filename+".txt")
 {
     this->euler_physics = std::dynamic_pointer_cast<Physics::Euler<dim,dim+2,double>>(
-            PHiLiP::Physics::PhysicsFactory<dim,nstate,double>::create_Physics(&(this->all_param)));
+            PHiLiP::Physics::PhysicsFactory<dim,nspecies,nstate,double>::create_Physics(&(this->all_param)));
 }
 
 template <int dim, int nspecies, int nstate>
@@ -75,7 +75,7 @@ void PositivityPreservingTests<dim,nspecies,nstate>::display_additional_flow_cas
 }
 
 template <int dim, int nspecies, int nstate>
-void PositivityPreservingTests<dim,nspecies,nstate>::check_positivity_density(DGBase<dim, double>& dg)
+void PositivityPreservingTests<dim,nspecies,nstate>::check_positivity_density(DGBase<dim, nspecies, double>& dg)
 {
     //create 1D solution polynomial basis functions and corresponding projection operator
     //to interpolate the solution to the quadrature nodes, and to project it back to the
@@ -153,7 +153,7 @@ void PositivityPreservingTests<dim,nspecies,nstate>::check_positivity_density(DG
 }
 
 template <int dim, int nspecies, int nstate>
-double PositivityPreservingTests<dim, nspecies, nstate>::compute_integrated_entropy(DGBase<dim, double> &dg) const
+double PositivityPreservingTests<dim, nspecies, nstate>::compute_integrated_entropy(DGBase<dim, nspecies, double> &dg) const
 {
     // Check that poly_degree is uniform everywhere
     if (dg.get_max_fe_degree() != dg.get_min_fe_degree()) {
@@ -279,7 +279,7 @@ double PositivityPreservingTests<dim, nspecies, nstate>::compute_integrated_entr
 template <int dim, int nspecies, int nstate>
 void PositivityPreservingTests<dim, nspecies, nstate>::compute_unsteady_data_and_write_to_table(
     const std::shared_ptr<ODE::ODESolverBase<dim, nspecies, double>> ode_solver,
-    const std::shared_ptr <DGBase<dim, double>> dg,
+    const std::shared_ptr <DGBase<dim, nspecies, double>> dg,
     const std::shared_ptr <dealii::TableHandler> unsteady_data_table)
 {
     //unpack current iteration and current time from ode solver

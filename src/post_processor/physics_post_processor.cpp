@@ -113,14 +113,18 @@ dealii::UpdateFlags PhysicsPostprocessor<dim,nspecies,nstate>::get_needed_update
     return this->physics->post_get_needed_update_flags();
 }
 
-// Define a sequence of indices representing the range [1, 7] - max is 7 because nstate=dim+2+(species-1)=7 when dim=species=3
-#define POSSIBLE_NSTATE (1)(2)(3)(4)(5)(6)(7)
+// Define a sequence of indices representing the range [1, 6] - max is 6 because nstate=dim+2+(species-1)=6 when dim=3 species=2
+// Templated to allow compilation when NUMBER_OF_SPECIES > 2, but may not work.
+#define POSSIBLE_NSTATE (1)(2)(3)(4)(5)(6)(7)(8)
 
 // Define a macro to instantiate MyTemplate for a specific index
 #define INSTANTIATE_TEMPLATE(r, data, index) \
    template class PhysicsPostprocessor <PHILIP_DIM,PHILIP_SPECIES,index>;
 BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_TEMPLATE, _, POSSIBLE_NSTATE)
 
+#if (PHILIP_DIM+2+(PHILIP_SPECIES-1)) > 8
+   template class PhysicsPostprocessor <PHILIP_DIM,PHILIP_SPECIES,(PHILIP_DIM+2+(PHILIP_SPECIES-1))>;
+#endif
 } // Postprocess namespace
 } // PHiLiP namespace
 

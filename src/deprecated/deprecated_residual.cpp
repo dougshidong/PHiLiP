@@ -133,7 +133,7 @@ void DGWeak<dim,nstate,real>::assemble_volume_terms_dRdX(
     // AD variable
     std::vector< FadType > soln_coeff(n_soln_dofs_int);
     for (unsigned int idof = 0; idof < n_soln_dofs_int; ++idof) {
-        soln_coeff[idof] = DGBase<dim,real>::solution(soln_dof_indices_int[idof]);
+        soln_coeff[idof] = DGBase<dim,nspecies,real>::solution(soln_dof_indices_int[idof]);
     }
 
     const std::vector<dealii::Point<dim,double>> &unit_quad_pts = quadrature.get_points();
@@ -325,7 +325,7 @@ void DGWeak<dim,nstate,real>::assemble_boundary_term_dRdX(
     // AD variable
     std::vector< FadType > soln_coeff_int(n_soln_dofs_int);
     for (unsigned int idof = 0; idof < n_soln_dofs_int; ++idof) {
-        soln_coeff_int[idof] = DGBase<dim,real>::solution(soln_dof_indices_int[idof]);
+        soln_coeff_int[idof] = DGBase<dim,nspecies,real>::solution(soln_dof_indices_int[idof]);
     }
 
     dealii::FullMatrix<FadType> interpolation_operator(n_soln_dofs_int,n_quad_pts);
@@ -551,10 +551,10 @@ void DGWeak<dim,nstate,real>::assemble_face_term_dRdX(
     ADArrayTensor1 diss_flux_jump_ext; // u*-u_ext
     // AD variable
     for (unsigned int idof = 0; idof < n_soln_dofs_int; ++idof) {
-        soln_coeff_int[idof] = DGBase<dim,real>::solution(soln_dof_indices_int[idof]);
+        soln_coeff_int[idof] = DGBase<dim,nspecies,real>::solution(soln_dof_indices_int[idof]);
     }
     for (unsigned int idof = 0; idof < n_soln_dofs_ext; ++idof) {
-        soln_coeff_ext[idof] = DGBase<dim,real>::solution(soln_dof_indices_ext[idof]);
+        soln_coeff_ext[idof] = DGBase<dim,nspecies,real>::solution(soln_dof_indices_ext[idof]);
     }
 
     std::vector<FadType> interpolation_operator_int(n_soln_dofs_int);
@@ -757,7 +757,7 @@ void DGWeak<dim,nstate,real>::assemble_volume_terms_implicit(
     // AD variable
     std::vector< FadType > soln_coeff(n_soln_dofs_int);
     for (unsigned int idof = 0; idof < n_soln_dofs_int; ++idof) {
-        soln_coeff[idof] = DGBase<dim,real>::solution(soln_dof_indices_int[idof]);
+        soln_coeff[idof] = DGBase<dim,nspecies,real>::solution(soln_dof_indices_int[idof]);
         soln_coeff[idof].diff(idof, n_soln_dofs_int);
     }
     for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
@@ -865,7 +865,7 @@ void DGWeak<dim,nstate,real>::assemble_boundary_term_implicit(
     std::vector< FadType > soln_coeff_int(n_soln_dofs_int);
     const unsigned int n_total_indep = n_soln_dofs_int;
     for (unsigned int idof = 0; idof < n_soln_dofs_int; ++idof) {
-        soln_coeff_int[idof] = DGBase<dim,real>::solution(soln_dof_indices_int[idof]);
+        soln_coeff_int[idof] = DGBase<dim,nspecies,real>::solution(soln_dof_indices_int[idof]);
         soln_coeff_int[idof].diff(idof, n_total_indep);
     }
 
@@ -1031,11 +1031,11 @@ void DGWeak<dim,nstate,real>::assemble_face_term_implicit(
     // AD variable
     const unsigned int n_total_indep = n_soln_dofs_int + n_soln_dofs_ext;
     for (unsigned int idof = 0; idof < n_soln_dofs_int; ++idof) {
-        soln_coeff_int[idof] = DGBase<dim,real>::solution(soln_dof_indices_int[idof]);
+        soln_coeff_int[idof] = DGBase<dim,nspecies,real>::solution(soln_dof_indices_int[idof]);
         soln_coeff_int[idof].diff(idof, n_total_indep);
     }
     for (unsigned int idof = 0; idof < n_soln_dofs_ext; ++idof) {
-        soln_coeff_ext[idof] = DGBase<dim,real>::solution(soln_dof_indices_ext[idof]);
+        soln_coeff_ext[idof] = DGBase<dim,nspecies,real>::solution(soln_dof_indices_ext[idof]);
         soln_coeff_ext[idof].diff(idof+n_soln_dofs_int, n_total_indep);
     }
     for (unsigned int iquad=0; iquad<n_face_quad_pts; ++iquad) {

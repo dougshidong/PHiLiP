@@ -16,7 +16,7 @@ namespace PHiLiP {
 namespace ODE {
 
 template <int dim, int nspecies, typename real, typename MeshType>
-HyperReducedODESolver<dim,nspecies,real,MeshType>::HyperReducedODESolver(std::shared_ptr< DGBase<dim, real, MeshType> > dg_input, std::shared_ptr<ProperOrthogonalDecomposition::PODBase<dim>> pod, Epetra_Vector weights)
+HyperReducedODESolver<dim,nspecies,real,MeshType>::HyperReducedODESolver(std::shared_ptr< DGBase<dim, nspecies, real, MeshType> > dg_input, std::shared_ptr<ProperOrthogonalDecomposition::PODBase<dim,nspecies>> pod, Epetra_Vector weights)
         : ODESolverBase<dim,nspecies,real,MeshType>(dg_input)
         , pod(pod)
         , ECSW_weights(weights)

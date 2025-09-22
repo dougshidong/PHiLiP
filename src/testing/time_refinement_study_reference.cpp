@@ -72,7 +72,7 @@ dealii::LinearAlgebra::distributed::Vector<double> TimeRefinementStudyReference<
 
 template <int dim, int nspecies, int nstate>
 double TimeRefinementStudyReference<dim, nspecies, nstate>::calculate_L2_error_at_final_time_wrt_reference(
-            std::shared_ptr<DGBase<dim,double>> dg,
+            std::shared_ptr<DGBase<dim,nspecies,double>> dg,
             const Parameters::AllParameters parameters, 
             double final_time_actual,
             dealii::LinearAlgebra::distributed::Vector<double> reference_solution) const

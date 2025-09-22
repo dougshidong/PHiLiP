@@ -297,9 +297,9 @@ real diffusion_v<dim,nstate,real>::objective_function (
 }
 
 // Funcitonal that performs the inner product over the entire domain 
-template <int dim, int nstate, typename real>
+template <int dim, int nspecies, int nstate, typename real>
 template <typename real2>
-real2 DiffusionFunctional<dim,nstate,real>::evaluate_volume_integrand(
+real2 DiffusionFunctional<dim,nspecies,nstate,real>::evaluate_volume_integrand(
     const PHiLiP::Physics::PhysicsBase<dim,nstate,real2> &physics,
     const dealii::Point<dim,real2> &phys_coord,
     const std::array<real2,nstate> &soln_at_q,
@@ -453,12 +453,12 @@ int DiffusionExactAdjoint<dim,nspecies,nstate>::run_test() const
 
             // since a different grid is constructed each time, need to also generate a new DG
             // I don't think this would work outside loop since grid.clear() req's no subscriptors
-            std::shared_ptr < DGBase<dim, double> > dg_u = DGFactory<dim,nspecies,double>::create_discontinuous_galerkin(&param, poly_degree, grid);
-            std::shared_ptr < DGBase<dim, double> > dg_v = DGFactory<dim,nspecies,double>::create_discontinuous_galerkin(&param, poly_degree, grid);
+            std::shared_ptr < DGBase<dim, nspecies, double> > dg_u = DGFactory<dim,nspecies,double>::create_discontinuous_galerkin(&param, poly_degree, grid);
+            std::shared_ptr < DGBase<dim, nspecies, double> > dg_v = DGFactory<dim,nspecies,double>::create_discontinuous_galerkin(&param, poly_degree, grid);
 
             // casting to dg state    
-            std::shared_ptr< DGBaseState<dim,nstate,double> > dg_state_u = std::dynamic_pointer_cast< DGBaseState<dim,nstate,double> >(dg_u);
-            std::shared_ptr< DGBaseState<dim,nstate,double> > dg_state_v = std::dynamic_pointer_cast< DGBaseState<dim,nstate,double> >(dg_v);
+            std::shared_ptr< DGBaseState<dim,nspecies,nstate,double> > dg_state_u = std::dynamic_pointer_cast< DGBaseState<dim,nspecies,nstate,double> >(dg_u);
+            std::shared_ptr< DGBaseState<dim,nspecies,nstate,double> > dg_state_v = std::dynamic_pointer_cast< DGBaseState<dim,nspecies,nstate,double> >(dg_v);
 
             // now overriding the original physics on each
             dg_state_u->set_physics(physics_u_double, physics_u_fadtype, physics_u_radtype, physics_u_fadfadtype, physics_u_radfadtype);
@@ -482,8 +482,8 @@ int DiffusionExactAdjoint<dim,nspecies,nstate>::run_test() const
 
             pcout << "Creating DiffusionFunctional... " << std::endl; 
             // functional for computations
-            auto diffusion_functional_u = std::make_shared<DiffusionFunctional<dim,nstate,double>>(dg_u,physics_u_fadfadtype,true,false);
-            auto diffusion_functional_v = std::make_shared<DiffusionFunctional<dim,nstate,double>>(dg_v,physics_v_fadfadtype,true,false);
+            auto diffusion_functional_u = std::make_shared<DiffusionFunctional<dim,nspecies,nstate,double>>(dg_u,physics_u_fadfadtype,true,false);
+            auto diffusion_functional_v = std::make_shared<DiffusionFunctional<dim,nspecies,nstate,double>>(dg_v,physics_v_fadfadtype,true,false);
 
             pcout << "Evaluating functional... " << std::endl; 
             // evaluating functionals from both methods
@@ -500,8 +500,8 @@ int DiffusionExactAdjoint<dim,nspecies,nstate>::run_test() const
             pcout << std::endl << "error_val1 = " << error_functional_u << "\terror_val2 = " << error_functional_v << std::endl << std::endl; 
 
             // // Initializing the adjoints for each problem
-            Adjoint<dim, nstate, double> adj_u(dg_u, diffusion_functional_u, physics_u_fadtype);
-            Adjoint<dim, nstate, double> adj_v(dg_v, diffusion_functional_v, physics_v_fadtype);
+            Adjoint<dim, nspecies, nstate, double> adj_u(dg_u, diffusion_functional_u, physics_u_fadtype);
+            Adjoint<dim, nspecies, nstate, double> adj_v(dg_v, diffusion_functional_v, physics_v_fadtype);
 
             // solving for each coarse adjoint
             pcout << "Solving for the discrete adjoints." << std::endl;
@@ -632,8 +632,8 @@ int DiffusionExactAdjoint<dim,nspecies,nstate>::run_test() const
                 data_out.attach_dof_handler(dg_u->dof_handler);
 
                 // // can't use this post processor as it gives them the same name
-                // const std::unique_ptr< dealii::DataPostprocessor<dim> > post_processor_u = Postprocess::PostprocessorFactory<dim>::create_Postprocessor(all_parameters);
-                // const std::unique_ptr< dealii::DataPostprocessor<dim> > post_processor_v = Postprocess::PostprocessorFactory<dim>::create_Postprocessor(all_parameters);
+                // const std::unique_ptr< dealii::DataPostprocessor<dim> > post_processor_u = Postprocess::PostprocessorFactory<dim,nspecies>::create_Postprocessor(all_parameters);
+                // const std::unique_ptr< dealii::DataPostprocessor<dim> > post_processor_v = Postprocess::PostprocessorFactory<dim,nspecies>::create_Postprocessor(all_parameters);
                 // data_out.add_data_vector(dg_u->solution, *post_processor_u);
                 // data_out.add_data_vector(dg_v->solution, *post_processor_v);
 

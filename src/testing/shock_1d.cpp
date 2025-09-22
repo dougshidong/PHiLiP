@@ -103,7 +103,7 @@ public:
 
 template <int dim, int nspecies, int nstate>
 double Shock1D<dim,nspecies,nstate>
-::integrate_solution_over_domain(DGBase<dim,double> &dg) const
+::integrate_solution_over_domain(DGBase<dim,nspecies,double> &dg) const
 {
     pcout << "Evaluating solution integral..." << std::endl;
     double solution_integral = 0.0;
@@ -181,7 +181,7 @@ Shock1D<dim,nspecies,nstate>::Shock1D(const Parameters::AllParameters *const par
 
 template <int dim, int nspecies, int nstate>
 void Shock1D<dim,nspecies,nstate>
-::initialize_perturbed_solution(DGBase<dim,double> &dg, const Physics::PhysicsBase<dim,nstate,double> &/*physics*/) const
+::initialize_perturbed_solution(DGBase<dim,nspecies,double> &dg, const Physics::PhysicsBase<dim,nstate,double> &/*physics*/) const
 {
     dealii::LinearAlgebra::distributed::Vector<double> solution_no_ghost;
     solution_no_ghost.reinit(dg.locally_owned_dofs, MPI_COMM_WORLD);
@@ -215,11 +215,11 @@ int Shock1D<dim,nspecies,nstate>
     const unsigned int n_grids_input       = manu_grid_conv_param.number_of_grids;
 
     // Set the physics' manufactured solution to be the Shocked1D1State manufactured solution
-    std::shared_ptr <Physics::PhysicsBase<dim,nstate,double>> physics_double = Physics::PhysicsFactory<dim, nstate, double>::create_Physics(&param);
-    std::shared_ptr <Physics::PhysicsBase<dim,nstate,FadType>> physics_fad = Physics::PhysicsFactory<dim, nstate, FadType>::create_Physics(&param);
-    std::shared_ptr <Physics::PhysicsBase<dim,nstate,RadType>> physics_rad = Physics::PhysicsFactory<dim, nstate, RadType>::create_Physics(&param);
-    std::shared_ptr <Physics::PhysicsBase<dim,nstate,FadFadType>> physics_fad_fad = Physics::PhysicsFactory<dim, nstate, FadFadType>::create_Physics(&param);
-    std::shared_ptr <Physics::PhysicsBase<dim,nstate,RadFadType>> physics_rad_fad = Physics::PhysicsFactory<dim, nstate, RadFadType>::create_Physics(&param);
+    std::shared_ptr <Physics::PhysicsBase<dim,nstate,double>> physics_double = Physics::PhysicsFactory<dim, nspecies, nstate, double>::create_Physics(&param);
+    std::shared_ptr <Physics::PhysicsBase<dim,nstate,FadType>> physics_fad = Physics::PhysicsFactory<dim, nspecies, nstate, FadType>::create_Physics(&param);
+    std::shared_ptr <Physics::PhysicsBase<dim,nstate,RadType>> physics_rad = Physics::PhysicsFactory<dim, nspecies, nstate, RadType>::create_Physics(&param);
+    std::shared_ptr <Physics::PhysicsBase<dim,nstate,FadFadType>> physics_fad_fad = Physics::PhysicsFactory<dim, nspecies, nstate, FadFadType>::create_Physics(&param);
+    std::shared_ptr <Physics::PhysicsBase<dim,nstate,RadFadType>> physics_rad_fad = Physics::PhysicsFactory<dim, nspecies, nstate, RadFadType>::create_Physics(&param);
     std::shared_ptr shocked_1d1state_double = std::make_shared < Shocked1D1State<dim,double> > (nstate);
     std::shared_ptr shocked_1d1state_fad = std::make_shared < Shocked1D1State<dim,FadType> > (nstate);
     std::shared_ptr shocked_1d1state_rad = std::make_shared < Shocked1D1State<dim,RadType> > (nstate);
@@ -244,7 +244,7 @@ int Shock1D<dim,nspecies,nstate>
                 dealii::Triangulation<dim>::smoothing_on_refinement |
                 dealii::Triangulation<dim>::smoothing_on_coarsening));
         dealii::GridGenerator::subdivided_hyper_cube(*grid_super_fine, n_1d_cells[n_grids_input-1]);
-        std::shared_ptr dg_super_fine = std::make_shared< DGWeak<dim,1,double> > (&param, p_end, p_end, p_end+1, grid_super_fine);
+        std::shared_ptr dg_super_fine = std::make_shared< DGWeak<dim,nspecies,1,double> > (&param, p_end, p_end, p_end+1, grid_super_fine);
         dg_super_fine->set_physics(physics_double, physics_fad, physics_rad, physics_fad_fad, physics_rad_fad);
         dg_super_fine->allocate_system ();
 
@@ -295,8 +295,8 @@ int Shock1D<dim,nspecies,nstate>
             grid->add_periodicity(matched_pairs);
 
             // Create DG object using the factory
-            //std::shared_ptr < DGBase<dim, double> > dg = DGFactory<dim,nspecies,double>::create_discontinuous_galerkin(&param, poly_degree, grid);
-            std::shared_ptr dg = std::make_shared< DGWeak<dim,1,double> > (&param, poly_degree, poly_degree, poly_degree+1, grid);
+            //std::shared_ptr < DGBase<dim, nspecies, double> > dg = DGFactory<dim,nspecies,double>::create_discontinuous_galerkin(&param, poly_degree, grid);
+            std::shared_ptr dg = std::make_shared< DGWeak<dim,nspecies,1,double> > (&param, poly_degree, poly_degree, poly_degree+1, grid);
             dg->set_physics(physics_double, physics_fad, physics_rad, physics_fad_fad, physics_rad_fad);
             dg->allocate_system ();
 

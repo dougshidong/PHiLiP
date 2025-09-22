@@ -75,7 +75,7 @@ std::shared_ptr<Triangulation> NACA0012<dim, nspecies, nstate>::generate_grid() 
 }
 
 template <int dim, int nspecies, int nstate>
-void NACA0012<dim, nspecies, nstate>::set_higher_order_grid(std::shared_ptr<DGBase<dim, double>> dg) const
+void NACA0012<dim, nspecies, nstate>::set_higher_order_grid(std::shared_ptr<DGBase<dim, nspecies, double>> dg) const
 {
     const std::string mesh_filename = this->all_param.flow_solver_param.input_mesh_filename+std::string(".msh");
     const bool use_mesh_smoothing = false;
@@ -87,23 +87,23 @@ void NACA0012<dim, nspecies, nstate>::set_higher_order_grid(std::shared_ptr<DGBa
 }
 
 template <int dim, int nspecies, int nstate>
-double NACA0012<dim, nspecies, nstate>::compute_lift(std::shared_ptr<DGBase<dim, double>> dg) const
+double NACA0012<dim, nspecies, nstate>::compute_lift(std::shared_ptr<DGBase<dim, nspecies, double>> dg) const
 {
-    LiftDragFunctional<dim,dim+2,double,Triangulation> lift_functional(dg, LiftDragFunctional<dim,dim+2,double,Triangulation>::Functional_types::lift);
+    LiftDragFunctional<dim,nspecies,dim+2,double,Triangulation> lift_functional(dg, LiftDragFunctional<dim,nspecies,dim+2,double,Triangulation>::Functional_types::lift);
     const double lift = lift_functional.evaluate_functional();
     return lift;
 }
 
 template <int dim, int nspecies, int nstate>
-double NACA0012<dim, nspecies, nstate>::compute_drag(std::shared_ptr<DGBase<dim, double>> dg) const
+double NACA0012<dim, nspecies, nstate>::compute_drag(std::shared_ptr<DGBase<dim, nspecies, double>> dg) const
 {
-    LiftDragFunctional<dim,dim+2,double,Triangulation> drag_functional(dg, LiftDragFunctional<dim,dim+2,double,Triangulation>::Functional_types::drag);
+    LiftDragFunctional<dim,nspecies,dim+2,double,Triangulation> drag_functional(dg, LiftDragFunctional<dim,nspecies,dim+2,double,Triangulation>::Functional_types::drag);
     const double drag = drag_functional.evaluate_functional();
     return drag;
 }
 
 template <int dim, int nspecies, int nstate>
-void NACA0012<dim, nspecies, nstate>::steady_state_postprocessing(std::shared_ptr<DGBase<dim, double>> dg) const
+void NACA0012<dim, nspecies, nstate>::steady_state_postprocessing(std::shared_ptr<DGBase<dim, nspecies, double>> dg) const
 {
     const double lift = this->compute_lift(dg);
     const double drag = this->compute_drag(dg);
@@ -116,7 +116,7 @@ template <int dim, int nspecies, int nstate>
 void NACA0012<dim, nspecies, nstate>::compute_unsteady_data_and_write_to_table(
         const unsigned int current_iteration,
         const double current_time,
-        const std::shared_ptr <DGBase<dim, double>> dg,
+        const std::shared_ptr <DGBase<dim, nspecies, double>> dg,
         const std::shared_ptr <dealii::TableHandler> unsteady_data_table)
 {
     // Compute aerodynamic values

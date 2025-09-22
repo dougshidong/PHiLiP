@@ -27,11 +27,11 @@ class ODESolverBase
 {
 public:
     /// Default constructor that will set the constants.
-    explicit ODESolverBase(std::shared_ptr< DGBase<dim, real, MeshType> > dg_input,
-                           std::shared_ptr< ProperOrthogonalDecomposition::PODBase<dim>> pod); ///< Default Constructor.
+    explicit ODESolverBase(std::shared_ptr< DGBase<dim, nspecies, real, MeshType> > dg_input,
+                           std::shared_ptr< ProperOrthogonalDecomposition::PODBase<dim,nspecies>> pod); ///< Default Constructor.
 
     /// Situational Constructor that will call the default with no POD.
-    ODESolverBase(std::shared_ptr< DGBase<dim, real, MeshType> >  dg_input);
+    ODESolverBase(std::shared_ptr< DGBase<dim, nspecies, real, MeshType> >  dg_input);
 
     virtual ~ODESolverBase() = default; ///< Destructor.
 
@@ -97,10 +97,10 @@ protected:
 
 public:
     /// Smart pointer to DGBase
-    std::shared_ptr<DGBase<dim,real,MeshType>> dg;
+    std::shared_ptr<DGBase<dim,nspecies,real,MeshType>> dg;
 
     /// Smart pointer to PODBasis
-    std::shared_ptr<ProperOrthogonalDecomposition::PODBase<dim>> pod;
+    std::shared_ptr<ProperOrthogonalDecomposition::PODBase<dim,nspecies>> pod;
 
     /// Pointer to BoundPreservingLimiter
     std::unique_ptr<BoundPreservingLimiter<dim,nspecies,real>> limiter;

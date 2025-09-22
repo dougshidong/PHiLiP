@@ -4,17 +4,17 @@ namespace PHiLiP {
 namespace ODE {
 
 template<int dim, int nspecies, typename real, int n_rk_stages, typename MeshType>
-RungeKuttaBase<dim, nspecies, real, n_rk_stages, MeshType>::RungeKuttaBase(std::shared_ptr< DGBase<dim, real, MeshType> > dg_input,
-            std::shared_ptr<EmptyRRKBase<dim,real,MeshType>> RRK_object_input,
-            std::shared_ptr<ProperOrthogonalDecomposition::PODBase<dim>> pod)
+RungeKuttaBase<dim, nspecies, real, n_rk_stages, MeshType>::RungeKuttaBase(std::shared_ptr< DGBase<dim, nspecies, real, MeshType> > dg_input,
+            std::shared_ptr<EmptyRRKBase<dim,nspecies,real,MeshType>> RRK_object_input,
+            std::shared_ptr<ProperOrthogonalDecomposition::PODBase<dim,nspecies>> pod)
             : ODESolverBase<dim,nspecies,real,MeshType>(dg_input, pod)
             , relaxation_runge_kutta(RRK_object_input)
             , solver(dg_input)
 {}            
 
 template<int dim, int nspecies, typename real, int n_rk_stages, typename MeshType>
-RungeKuttaBase<dim, nspecies, real, n_rk_stages, MeshType>::RungeKuttaBase(std::shared_ptr< DGBase<dim, real, MeshType> > dg_input,
-            std::shared_ptr<EmptyRRKBase<dim,real,MeshType>> RRK_object_input)
+RungeKuttaBase<dim, nspecies, real, n_rk_stages, MeshType>::RungeKuttaBase(std::shared_ptr< DGBase<dim, nspecies, real, MeshType> > dg_input,
+            std::shared_ptr<EmptyRRKBase<dim,nspecies,real,MeshType>> RRK_object_input)
             : RungeKuttaBase(dg_input, RRK_object_input, nullptr)
 {}
 template<int dim, int nspecies, typename real, int n_rk_stages, typename MeshType>

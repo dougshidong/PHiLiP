@@ -145,8 +145,8 @@ NumericalFluxFactory<dim, nspecies, nstate, real>
     return nullptr;
 }
 
-// Define a sequence of indices representing the range [1, 8]
-#define POSSIBLE_NSTATE (1)(2)(3)(4)(5)(6)(7)(8)
+// Define a sequence of indices representing the range [1, 6] - max is 6 because nstate=dim+2+(species-1)=6 when dim=3 species=2
+#define POSSIBLE_NSTATE (1)(2)(3)(4)(5)(6)
 
 // Define a macro to instantiate MyTemplate for a specific index
 #define INSTANTIATE_DOUBLE(r, data, index) \
@@ -168,5 +168,14 @@ BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_FADFADTYPE, _, POSSIBLE_NSTATE)
 #define INSTANTIATE_RADFADTYPE(r, data, index) \
     template class NumericalFluxFactory <PHILIP_DIM, PHILIP_SPECIES, index, RadFadType>;
 BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_RADFADTYPE, _, POSSIBLE_NSTATE)
+
+// Templated to allow compilation when NUMBER_OF_SPECIES > 2, but may not work.
+#if (PHILIP_DIM+2+(PHILIP_SPECIES-1)) > 6
+    template class NumericalFluxFactory <PHILIP_DIM, PHILIP_SPECIES, (PHILIP_DIM+2+(PHILIP_SPECIES-1)), double>;
+    template class NumericalFluxFactory <PHILIP_DIM, PHILIP_SPECIES, (PHILIP_DIM+2+(PHILIP_SPECIES-1)), FadType>;
+    template class NumericalFluxFactory <PHILIP_DIM, PHILIP_SPECIES, (PHILIP_DIM+2+(PHILIP_SPECIES-1)), RadType>;
+    template class NumericalFluxFactory <PHILIP_DIM, PHILIP_SPECIES, (PHILIP_DIM+2+(PHILIP_SPECIES-1)), FadFadType>;
+    template class NumericalFluxFactory <PHILIP_DIM, PHILIP_SPECIES, (PHILIP_DIM+2+(PHILIP_SPECIES-1)), RadFadType>;
+#endif
 } // NumericalFlux namespace
 } // PHiLiP namespace

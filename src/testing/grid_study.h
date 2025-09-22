@@ -49,11 +49,11 @@ protected:
     /** This is not an issue since the discretized solution will not be the exact solution.
      *  Therefore, the residual does not start at 0.
      */
-    void initialize_perturbed_solution(DGBase<dim,double> &dg, const Physics::PhysicsBase<dim,nstate,double> &physics) const;
+    void initialize_perturbed_solution(DGBase<dim,nspecies,double> &dg, const Physics::PhysicsBase<dim,nstate,double> &physics) const;
     /// L2-Integral of the solution over the entire domain.
     /** Used to evaluate error of a functional.
      */
-    double integrate_solution_over_domain(DGBase<dim,double> &dg) const;
+    double integrate_solution_over_domain(DGBase<dim,nspecies,double> &dg) const;
 
     /// Returns the baseline filename for outputted convergence tables
     std::string get_convergence_tables_baseline_filename(const Parameters::AllParameters *const parameters_input) const;

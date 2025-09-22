@@ -235,19 +235,19 @@ public:
 };
 
 /// Functional that performs the inner product over the entire domain 
-template <int dim, int nstate, typename real>
-class DiffusionFunctional : public Functional<dim, nstate, real>
+template <int dim, int nspecies, int nstate, typename real>
+class DiffusionFunctional : public Functional<dim, nspecies, nstate, real>
 {
     using FadType = Sacado::Fad::DFad<real>; ///< Sacado AD type for first derivatives.
     using FadFadType = Sacado::Fad::DFad<FadType>; ///< Sacado AD type that allows 2nd derivatives.
 public:
     /// Constructor
     DiffusionFunctional(
-        std::shared_ptr<PHiLiP::DGBase<dim,real>> dg_input,
+        std::shared_ptr<PHiLiP::DGBase<dim,nspecies,real>> dg_input,
         std::shared_ptr<PHiLiP::Physics::PhysicsBase<dim,nstate,FadFadType>> _physics_fad_fad,
         const bool uses_solution_values = true,
         const bool uses_solution_gradient = false)
-    : PHiLiP::Functional<dim,nstate,real>(dg_input,_physics_fad_fad,uses_solution_values,uses_solution_gradient)
+    : PHiLiP::Functional<dim,nspecies,nstate,real>(dg_input,_physics_fad_fad,uses_solution_values,uses_solution_gradient)
     {}
 
     /// Templated volume integrand

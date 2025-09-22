@@ -33,16 +33,16 @@ namespace Tests {
 
 /** L2 norm of entropy generated in the domain
  */
-template <int dim, int nstate, typename real>
-class L2normError : public Functional<dim, nstate, real>
+template <int dim, int nspecies, int nstate, typename real>
+class L2normError : public Functional<dim, nspecies, nstate, real>
 {
 public:
     /// Constructor
     L2normError(
-        std::shared_ptr<PHiLiP::DGBase<dim,real>> dg_input,
+        std::shared_ptr<PHiLiP::DGBase<dim,nspecies,real>> dg_input,
         const bool uses_solution_values = true,
         const bool uses_solution_gradient = true)
-    : PHiLiP::Functional<dim,nstate,real>(dg_input,uses_solution_values,uses_solution_gradient)
+    : PHiLiP::Functional<dim,nspecies,nstate,real>(dg_input,uses_solution_values,uses_solution_gradient)
     {}
 
     /// Templated volume integrand of the functional, which is the point entropy generated squared.
@@ -182,13 +182,13 @@ int EulerCylinderAdjoint<dim,nspecies,nstate>
     const unsigned int n_grids_input       = manu_grid_conv_param.number_of_grids;
 
     std::shared_ptr< Physics::PhysicsBase<dim,nstate,double> > physics_double 
-        = Physics::PhysicsFactory<dim,nstate,double>::create_Physics(&param);
+        = Physics::PhysicsFactory<dim,nspecies,nstate,double>::create_Physics(&param);
 
     std::shared_ptr< Physics::Euler<dim,nstate,double> > euler_physics_double 
         = std::dynamic_pointer_cast< Physics::Euler<dim,nstate,double> >(physics_double);
 
     std::shared_ptr< Physics::PhysicsBase<dim,nstate,Sacado::Fad::DFad<double>> > euler_physics_adtype 
-        = Physics::PhysicsFactory<dim,nstate,Sacado::Fad::DFad<double>>::create_Physics(&param);
+        = Physics::PhysicsFactory<dim,nspecies,nstate,Sacado::Fad::DFad<double>>::create_Physics(&param);
 
     // Physics::Euler<dim,nstate,double> euler_physics_double
     //     = Physics::Euler<dim, nstate, double>(
@@ -234,7 +234,7 @@ int EulerCylinderAdjoint<dim,nspecies,nstate>
         half_cylinder_adjoint(*grid, n_cells_circle, n_cells_radial);
 
         // Create DG object, using max_poly = p+1 to allow for adjoint computation
-        std::shared_ptr < DGBase<dim, double> > dg = DGFactory<dim,nspecies,double>::create_discontinuous_galerkin(&param, poly_degree, poly_degree+1, grid);
+        std::shared_ptr < DGBase<dim, nspecies, double> > dg = DGFactory<dim,nspecies,double>::create_discontinuous_galerkin(&param, poly_degree, poly_degree+1, grid);
 
         dg->allocate_system ();
         // Initialize coarse grid solution with free-stream
@@ -245,11 +245,11 @@ int EulerCylinderAdjoint<dim,nspecies,nstate>
         ode_solver->initialize_steady_polynomial_ramping(poly_degree);
 
         // setting up the target functional (error reduction)
-        std::shared_ptr< L2normError<dim, nstate, double> > L2normFunctional = 
-                std::make_shared< L2normError<dim, nstate, double> >(dg,true,false);
+        std::shared_ptr< L2normError<dim, nspecies, nstate, double> > L2normFunctional = 
+                std::make_shared< L2normError<dim, nspecies, nstate, double> >(dg,true,false);
 
         // initializing an adjoint for this case
-        Adjoint<dim, nstate, double> adjoint(dg, L2normFunctional, euler_physics_adtype);
+        Adjoint<dim, nspecies, nstate, double> adjoint(dg, L2normFunctional, euler_physics_adtype);
 
         dealii::Vector<float> estimated_error_per_cell(grid->n_active_cells());
         for (unsigned int igrid=0; igrid<n_grids; ++igrid) {
@@ -361,14 +361,14 @@ int EulerCylinderAdjoint<dim,nspecies,nstate>
             adjoint.reinit();
 
             // evaluating the derivatives and the adjoint on the fine grid
-            adjoint.convert_to_state(PHiLiP::Adjoint<dim,nstate,double>::AdjointStateEnum::fine); // will do this automatically, but I prefer to repeat explicitly
+            adjoint.convert_to_state(PHiLiP::Adjoint<dim,nspecies,nstate,double>::AdjointStateEnum::fine); // will do this automatically, but I prefer to repeat explicitly
             adjoint.fine_grid_adjoint();
             estimated_error_per_cell = adjoint.dual_weighted_residual(); // performing the error indicator computation
 
             // and outputing the fine properties
             adjoint.output_results_vtk(igrid);
 
-            adjoint.convert_to_state(PHiLiP::Adjoint<dim,nstate,double>::AdjointStateEnum::coarse); // this one is necessary though
+            adjoint.convert_to_state(PHiLiP::Adjoint<dim,nspecies,nstate,double>::AdjointStateEnum::coarse); // this one is necessary though
             adjoint.coarse_grid_adjoint();
             adjoint.output_results_vtk(igrid);
 

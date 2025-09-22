@@ -18,7 +18,7 @@ AnisotropicMeshAdaptationCases<dim, nspecies, nstate> :: AnisotropicMeshAdaptati
 {}
 
 template <int dim, int nspecies, int nstate>
-void AnisotropicMeshAdaptationCases<dim, nspecies, nstate> :: verify_fe_values_shape_hessian(const DGBase<dim, double> &dg) const
+void AnisotropicMeshAdaptationCases<dim, nspecies, nstate> :: verify_fe_values_shape_hessian(const DGBase<dim, nspecies, double> &dg) const
 {
     const auto mapping = (*(dg.high_order_grid->mapping_fe_field));
     dealii::hp::MappingCollection<dim> mapping_collection(mapping);
@@ -74,10 +74,10 @@ void AnisotropicMeshAdaptationCases<dim, nspecies, nstate> :: verify_fe_values_s
 }
 
 template <int dim, int nspecies, int nstate>
-double AnisotropicMeshAdaptationCases<dim, nspecies, nstate> :: evaluate_functional(std::shared_ptr<DGBase<dim,double>> dg) const
+double AnisotropicMeshAdaptationCases<dim, nspecies, nstate> :: evaluate_functional(std::shared_ptr<DGBase<dim,nspecies,double>> dg) const
 {
-    std::shared_ptr< Functional<dim, nstate, double> > functional
-                                = FunctionalFactory<dim,nstate,double>::create_Functional(dg->all_parameters->functional_param, dg);
+    std::shared_ptr< Functional<dim, nspecies, nstate, double> > functional
+                                = FunctionalFactory<dim,nspecies,nstate,double>::create_Functional(dg->all_parameters->functional_param, dg);
     return (functional->evaluate_functional());
 }
 
@@ -91,8 +91,8 @@ int AnisotropicMeshAdaptationCases<dim, nspecies, nstate> :: run_test () const
     const double complexity = param.mesh_adaptation_param.mesh_complexity_anisotropic_adaptation;
     const double normLp = param.mesh_adaptation_param.norm_Lp_anisotropic_adaptation;
 
-    std::unique_ptr<AnisotropicMeshAdaptation<dim, nstate, double>> anisotropic_mesh_adaptation =
-                        std::make_unique<AnisotropicMeshAdaptation<dim, nstate, double>> (flow_solver->dg, normLp, complexity, use_goal_oriented_approach);
+    std::unique_ptr<AnisotropicMeshAdaptation<dim, nspecies, nstate, double>> anisotropic_mesh_adaptation =
+                        std::make_unique<AnisotropicMeshAdaptation<dim, nspecies, nstate, double>> (flow_solver->dg, normLp, complexity, use_goal_oriented_approach);
     
     flow_solver->run();
     const double functional_initial = evaluate_functional(flow_solver->dg);

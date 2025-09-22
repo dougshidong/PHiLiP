@@ -35,7 +35,7 @@ Parameters::AllParameters HRefinementStudyIsentropicVortex<dim,nspecies,nstate>:
 template <int dim, int nspecies, int nstate>
 void HRefinementStudyIsentropicVortex<dim,nspecies,nstate>::calculate_Lp_error_at_final_time_wrt_function(double &Lp_error_density, 
         double &Lp_error_pressure,
-        std::shared_ptr<DGBase<dim,double>> dg,
+        std::shared_ptr<DGBase<dim,nspecies,double>> dg,
         const Parameters::AllParameters parameters,
         double final_time,
         int norm_p) const
@@ -54,7 +54,7 @@ void HRefinementStudyIsentropicVortex<dim,nspecies,nstate>::calculate_Lp_error_a
     double Lp_error_pressure_local = 0;
     
     std::shared_ptr< Physics::Euler<dim,dim+2,double> > euler_physics = std::dynamic_pointer_cast<Physics::Euler<dim,dim+2,double>>(
-            Physics::PhysicsFactory<dim,dim+2,double>::create_Physics(&parameters));
+            Physics::PhysicsFactory<dim,nspecies,dim+2,double>::create_Physics(&parameters));
     dealii::QGauss<dim> quad_extra(dg->max_degree+1+overintegrate);
     dealii::FEValues<dim,dim> fe_values_extra(*(dg->high_order_grid->mapping_fe_field), dg->fe_collection[dg->max_degree], quad_extra,
                                               dealii::update_values | dealii::update_gradients | dealii::update_JxW_values | dealii::update_quadrature_points);

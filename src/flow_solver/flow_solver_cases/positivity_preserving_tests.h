@@ -38,10 +38,10 @@ class PositivityPreservingTests : public CubeFlow_UniformGrid<dim, nspecies, nst
     using CubeFlow_UniformGrid<dim, nspecies, nstate>::update_maximum_local_wave_speed;
 
     /// Check positivity of density and total energy + verify that density is not NaN
-    void check_positivity_density(DGBase<dim, double>& dg);
+    void check_positivity_density(DGBase<dim, nspecies, double>& dg);
 
     /// Updates the maximum local wave speed
-    double compute_integrated_entropy(DGBase<dim, double>& dg) const;
+    double compute_integrated_entropy(DGBase<dim, nspecies, double>& dg) const;
 
     /// Filename (with extension) for the unsteady data table
     const std::string unsteady_data_table_filename_with_extension;
@@ -50,7 +50,7 @@ class PositivityPreservingTests : public CubeFlow_UniformGrid<dim, nspecies, nst
     /// Compute the desired unsteady data and write it to a table
     void compute_unsteady_data_and_write_to_table(
         const std::shared_ptr<ODE::ODESolverBase<dim, nspecies, double>> ode_solver,
-        const std::shared_ptr <DGBase<dim, double>> dg,
+        const std::shared_ptr <DGBase<dim, nspecies, double>> dg,
         const std::shared_ptr<dealii::TableHandler> unsteady_data_table) override;
  
  private:

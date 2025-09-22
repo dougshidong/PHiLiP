@@ -47,7 +47,7 @@ class Functional
 
 public:
     /// Smart pointer to DGBase
-    std::shared_ptr<DGBase<dim,real,MeshType>> dg;
+    std::shared_ptr<DGBase<dim,nspecies,real,MeshType>> dg;
 
 protected:
     /// Physics that should correspond to the one in DGBase
@@ -63,14 +63,14 @@ public:
      *  diffusion_exact_adjoint test case.
      */
     explicit Functional(
-        std::shared_ptr<PHiLiP::DGBase<dim,real,MeshType>> _dg,
+        std::shared_ptr<PHiLiP::DGBase<dim,nspecies,real,MeshType>> _dg,
         const bool _uses_solution_values = true,
         const bool _uses_solution_gradient = true);
 
     /** Constructor.
      *  Uses provided physics instead of creating a new one based on DGBase */
     Functional(
-        std::shared_ptr<PHiLiP::DGBase<dim,real,MeshType>> _dg,
+        std::shared_ptr<PHiLiP::DGBase<dim,nspecies,real,MeshType>> _dg,
         std::shared_ptr<PHiLiP::Physics::PhysicsBase<dim,nstate,Sacado::Fad::DFad<Sacado::Fad::DFad<real>> >> _physics_fad_fad,
         const bool _uses_solution_values = true,
         const bool _uses_solution_gradient = true);
@@ -102,13 +102,13 @@ public:
 
     /** Finite difference evaluation of dIdW to verify against analytical.  */
     dealii::LinearAlgebra::distributed::Vector<real> evaluate_dIdw_finiteDifferences(
-        DGBase<dim,real,MeshType> &dg, 
+        DGBase<dim,nspecies,real,MeshType> &dg, 
         const PHiLiP::Physics::PhysicsBase<dim,nstate,real> &physics,
         const double stepsize);
 
     /** Finite difference evaluation of dIdX to verify against analytical.  */
     dealii::LinearAlgebra::distributed::Vector<real> evaluate_dIdX_finiteDifferences(
-        DGBase<dim,real,MeshType> &dg, 
+        DGBase<dim,nspecies,real,MeshType> &dg, 
         const PHiLiP::Physics::PhysicsBase<dim,nstate,real> &physics,
         const double stepsize);
 
@@ -337,7 +337,7 @@ class FunctionalNormLpVolume : public Functional<dim,nspecies,nstate,real,MeshTy
 public:
     FunctionalNormLpVolume(
         const double                               _normLp,
-        std::shared_ptr<DGBase<dim,real,MeshType>> _dg,
+        std::shared_ptr<DGBase<dim,nspecies,real,MeshType>> _dg,
         const bool                                 _uses_solution_values   = true,
         const bool                                 _uses_solution_gradient = false);
 
@@ -395,7 +395,7 @@ public:
         const double                               _normLp,
         std::vector<unsigned int>                  _boundary_vector,
         const bool                                 _use_all_boundaries,
-        std::shared_ptr<DGBase<dim,real,MeshType>> _dg,
+        std::shared_ptr<DGBase<dim,nspecies,real,MeshType>> _dg,
         const bool                                 _uses_solution_values   = true,
         const bool                                 _uses_solution_gradient = false);
 
@@ -462,7 +462,7 @@ public:
         std::shared_ptr<ManufacturedSolutionFunction<dim,real>>   _weight_function_double,
         std::shared_ptr<ManufacturedSolutionFunction<dim,FadFadType>> _weight_function_adtype,
         const bool                                                _use_weight_function_laplacian,
-        std::shared_ptr<DGBase<dim,real,MeshType>>                _dg,
+        std::shared_ptr<DGBase<dim,nspecies,real,MeshType>>                _dg,
         const bool                                                _uses_solution_values   = true,
         const bool                                                _uses_solution_gradient = false);
 
@@ -529,7 +529,7 @@ public:
         const bool                                                    _use_weight_function_laplacian,
         std::vector<unsigned int>                                     _boundary_vector,
         const bool                                                    _use_all_boundaries,
-        std::shared_ptr<DGBase<dim,real,MeshType>>                    _dg,
+        std::shared_ptr<DGBase<dim,nspecies,real,MeshType>>                    _dg,
         const bool                                                    _uses_solution_values   = true,
         const bool                                                    _uses_solution_gradient = false);
 
@@ -598,7 +598,7 @@ class FunctionalErrorNormLpVolume : public Functional<dim,nspecies,nstate,real,M
 public:
     FunctionalErrorNormLpVolume(
         const double                               _normLp,
-        std::shared_ptr<DGBase<dim,real,MeshType>> _dg,
+        std::shared_ptr<DGBase<dim,nspecies,real,MeshType>> _dg,
         const bool                                 _uses_solution_values   = true,
         const bool                                 _uses_solution_gradient = false);
 
@@ -657,7 +657,7 @@ public:
         const double                               _normLp,
         std::vector<unsigned int>                  _boundary_vector,
         const bool                                 _use_all_boundaries,
-        std::shared_ptr<DGBase<dim,real,MeshType>> _dg,
+        std::shared_ptr<DGBase<dim,nspecies,real,MeshType>> _dg,
         const bool                                 _uses_solution_values   = true,
         const bool                                 _uses_solution_gradient = false);
 
@@ -715,7 +715,7 @@ public:
 public:
     /// Constructor
     SolutionIntegral(
-            std::shared_ptr<PHiLiP::DGBase<dim,real, MeshType>> dg_input,
+            std::shared_ptr<PHiLiP::DGBase<dim,nspecies,real,MeshType>> dg_input,
             std::shared_ptr<PHiLiP::Physics::PhysicsBase<dim,nstate,FadFadType>> _physics_fad_fad,
             const bool uses_solution_values = true,
             const bool uses_solution_gradient = false)
@@ -761,7 +761,7 @@ class OutletPressureIntegral : public Functional<dim,nspecies,nstate,real,MeshTy
     using FadFadType = Sacado::Fad::DFad<FadType>; ///< Sacado AD type that allows 2nd derivatives.
 public:
     OutletPressureIntegral(
-            std::shared_ptr<PHiLiP::DGBase<dim,real, MeshType>> dg_input,
+            std::shared_ptr<PHiLiP::DGBase<dim,nspecies,real,MeshType>> dg_input,
             const bool uses_solution_values = true,
             const bool uses_solution_gradient = false);
 
@@ -817,13 +817,13 @@ public:
     static std::shared_ptr< Functional<dim,nspecies,nstate,real,MeshType> >
     create_Functional(
         PHiLiP::Parameters::AllParameters const *const       param,
-        std::shared_ptr< PHiLiP::DGBase<dim,real,MeshType> > dg);
+        std::shared_ptr< PHiLiP::DGBase<dim,nspecies,real,MeshType> > dg);
 
     /// Create standard functional object from parameter file
     static std::shared_ptr< Functional<dim,nspecies,nstate,real,MeshType> >
     create_Functional(
         PHiLiP::Parameters::FunctionalParam                  param,
-        std::shared_ptr< PHiLiP::DGBase<dim,real,MeshType> > dg);
+        std::shared_ptr< PHiLiP::DGBase<dim,nspecies,real,MeshType> > dg);
 };
 
 } // PHiLiP namespace

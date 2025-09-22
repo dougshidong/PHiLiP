@@ -45,7 +45,7 @@ PeriodicTurbulence<dim, nspecies, nstate>::PeriodicTurbulence(const PHiLiP::Para
     PHiLiP::Parameters::AllParameters parameters_navier_stokes = this->all_param;
     parameters_navier_stokes.pde_type = Parameters::AllParameters::PartialDifferentialEquation::navier_stokes;
     this->navier_stokes_physics = std::dynamic_pointer_cast<Physics::NavierStokes<dim,dim+2,double>>(
-                Physics::PhysicsFactory<dim,dim+2,double>::create_Physics(&parameters_navier_stokes));
+                Physics::PhysicsFactory<dim,nspecies,dim+2,double>::create_Physics(&parameters_navier_stokes));
 
     /* Initialize integrated quantities as NAN; 
        done as a precaution in the case compute_integrated_quantities() is not called
@@ -101,7 +101,7 @@ void PeriodicTurbulence<dim, nspecies, nstate>::display_additional_flow_case_spe
 }
 
 template <int dim, int nspecies, int nstate>
-double PeriodicTurbulence<dim, nspecies, nstate>::get_constant_time_step(std::shared_ptr<DGBase<dim,double>> dg) const
+double PeriodicTurbulence<dim, nspecies, nstate>::get_constant_time_step(std::shared_ptr<DGBase<dim,nspecies,double>> dg) const
 {
     if(this->all_param.flow_solver_param.constant_time_step > 0.0) {
         const double constant_time_step = this->all_param.flow_solver_param.constant_time_step;
@@ -127,7 +127,7 @@ std::string get_padded_mpi_rank_string(const int mpi_rank_input) {
 
 template <int dim, int nspecies, int nstate>
 void PeriodicTurbulence<dim, nspecies, nstate>::output_velocity_field(
-    std::shared_ptr<DGBase<dim,double>> dg,
+    std::shared_ptr<DGBase<dim,nspecies,double>> dg,
     const unsigned int output_file_index,
     const double current_time) const
 {
@@ -321,7 +321,7 @@ void PeriodicTurbulence<dim, nspecies, nstate>::output_velocity_field(
 }
 
 template <int dim, int nspecies, int nstate>
-void PeriodicTurbulence<dim, nspecies, nstate>::compute_and_update_integrated_quantities(DGBase<dim, double> &dg)
+void PeriodicTurbulence<dim, nspecies, nstate>::compute_and_update_integrated_quantities(DGBase<dim, nspecies, double> &dg)
 {
     std::array<double,NUMBER_OF_INTEGRATED_QUANTITIES> integral_values;
     std::fill(integral_values.begin(), integral_values.end(), 0.0);
@@ -544,14 +544,14 @@ double PeriodicTurbulence<dim, nspecies, nstate>::get_strain_rate_tensor_based_d
 }
 
 template <int dim, int nspecies, int nstate>
-double PeriodicTurbulence<dim, nspecies, nstate>::get_numerical_entropy(const std::shared_ptr <DGBase<dim, double>> /*dg*/) const
+double PeriodicTurbulence<dim, nspecies, nstate>::get_numerical_entropy(const std::shared_ptr <DGBase<dim, nspecies, double>> /*dg*/) const
 {
     return this->cumulative_numerical_entropy_change_FRcorrected;
 }
 
 template <int dim, int nspecies, int nstate>
 double PeriodicTurbulence<dim, nspecies, nstate>::compute_current_integrated_numerical_entropy(
-        const std::shared_ptr <DGBase<dim, double>> dg
+        const std::shared_ptr <DGBase<dim, nspecies, double>> dg
         ) const
 {
     const double poly_degree = this->all_param.flow_solver_param.poly_degree;
@@ -661,7 +661,7 @@ template <int dim, int nspecies, int nstate>
 void PeriodicTurbulence<dim, nspecies, nstate>::update_numerical_entropy(
         const double FR_entropy_contribution_RRK_solver,
         const unsigned int current_iteration,
-        const std::shared_ptr <DGBase<dim, double>> dg)
+        const std::shared_ptr <DGBase<dim, nspecies, double>> dg)
 {
 
     const double current_numerical_entropy = this->compute_current_integrated_numerical_entropy(dg);
@@ -680,7 +680,7 @@ void PeriodicTurbulence<dim, nspecies, nstate>::update_numerical_entropy(
 template <int dim, int nspecies, int nstate>
 void PeriodicTurbulence<dim, nspecies, nstate>::compute_unsteady_data_and_write_to_table(
         const std::shared_ptr<ODE::ODESolverBase<dim, nspecies, double>> ode_solver, 
-        const std::shared_ptr <DGBase<dim, double>> dg,
+        const std::shared_ptr <DGBase<dim, nspecies, double>> dg,
         const std::shared_ptr <dealii::TableHandler> unsteady_data_table)
 {
     //unpack current iteration and current time from ode solver

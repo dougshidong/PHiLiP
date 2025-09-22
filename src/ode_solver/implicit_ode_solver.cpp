@@ -5,7 +5,7 @@ namespace PHiLiP {
 namespace ODE {
 
 template <int dim, int nspecies, typename real, typename MeshType>
-ImplicitODESolver<dim,nspecies,real,MeshType>::ImplicitODESolver(std::shared_ptr< DGBase<dim, real, MeshType> > dg_input)
+ImplicitODESolver<dim,nspecies,real,MeshType>::ImplicitODESolver(std::shared_ptr< DGBase<dim, nspecies, real, MeshType> > dg_input)
         : ODESolverBase<dim,nspecies,real,MeshType>(dg_input)
         {}
 

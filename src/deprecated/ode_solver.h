@@ -46,7 +46,7 @@ public:
     int n_refine;
 
     ODESolver(int ode_solver_type); ///< Constructor.
-    ODESolver(std::shared_ptr< DGBase<dim, real, MeshType> > dg_input); ///< Constructor.
+    ODESolver(std::shared_ptr< DGBase<dim, nspecies, real, MeshType> > dg_input); ///< Constructor.
     virtual ~ODESolver() {}; ///< Destructor.
 
     /// Useful for accurate time-stepping.
@@ -105,7 +105,7 @@ protected:
     std::vector<dealii::LinearAlgebra::distributed::Vector<double>> rk_stage;
 
     /// Smart pointer to DGBase
-    std::shared_ptr<DGBase<dim,real,MeshType>> dg;
+    std::shared_ptr<DGBase<dim,nspecies,real,MeshType>> dg;
 
     /// Input parameters.
     const Parameters::AllParameters *const all_parameters;
@@ -146,7 +146,7 @@ class Implicit_ODESolver
 public:
     Implicit_ODESolver() = delete; ///< Constructor.
     /// Constructor.
-    Implicit_ODESolver(std::shared_ptr<DGBase<dim, real, MeshType>> dg_input)
+    Implicit_ODESolver(std::shared_ptr<DGBase<dim, nspecies, real, MeshType>> dg_input)
     :
     ODESolver<dim,real,MeshType>::ODESolver(dg_input)
     {};
@@ -186,7 +186,7 @@ class Explicit_ODESolver
 {
 public:
     /// Constructor.
-    Explicit_ODESolver(std::shared_ptr<DGBase<dim, real, MeshType>> dg_input)
+    Explicit_ODESolver(std::shared_ptr<DGBase<dim, nspecies, real, MeshType>> dg_input)
     : ODESolver<dim,real,MeshType>::ODESolver(dg_input) 
     {};
     /// Destructor.
@@ -214,7 +214,7 @@ public:
     /// Creates the ODE solver given a DGBase.
     /** The input parameters are copied from the DGBase since they should be consistent
      */
-    static std::shared_ptr<ODESolver<dim,real,MeshType>> create_ODESolver(std::shared_ptr< DGBase<dim, real, MeshType> > dg_input);
+    static std::shared_ptr<ODESolver<dim,real,MeshType>> create_ODESolver(std::shared_ptr< DGBase<dim, nspecies, real, MeshType> > dg_input);
     // static std::shared_ptr<ODESolver<dim,real,MeshType>> create_ODESolver(Parameters::ODESolverParam::ODESolverEnum ode_solver_type);
 };
 

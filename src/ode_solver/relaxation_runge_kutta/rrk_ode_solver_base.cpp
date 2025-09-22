@@ -3,17 +3,17 @@
 namespace PHiLiP {
 namespace ODE {
 
-template <int dim, typename real, typename MeshType>
-RRKODESolverBase<dim,real,MeshType>::RRKODESolverBase(
+template <int dim, int nspecies, typename real, typename MeshType>
+RRKODESolverBase<dim,nspecies,real,MeshType>::RRKODESolverBase(
             std::shared_ptr<RKTableauBase<dim,real,MeshType>> rk_tableau_input)
-        : RKNumEntropy<dim,real,MeshType>(rk_tableau_input)
+        : RKNumEntropy<dim,nspecies,real,MeshType>(rk_tableau_input)
 {
     // Do nothing
 }
 
-template <int dim, typename real, typename MeshType>
-real RRKODESolverBase<dim,real,MeshType>::update_relaxation_parameter(const real dt,
-            std::shared_ptr<DGBase<dim,real,MeshType>> dg,
+template <int dim, int nspecies, typename real, typename MeshType>
+real RRKODESolverBase<dim,nspecies,real,MeshType>::update_relaxation_parameter(const real dt,
+            std::shared_ptr<DGBase<dim,nspecies,real,MeshType>> dg,
             const std::vector<dealii::LinearAlgebra::distributed::Vector<double>> &rk_stage,
             const dealii::LinearAlgebra::distributed::Vector<double> &solution_update) 
 {
@@ -33,10 +33,10 @@ real RRKODESolverBase<dim,real,MeshType>::update_relaxation_parameter(const real
     return relaxation_parameter_RRK_solver;
 }
 
-template class RRKODESolverBase<PHILIP_DIM, double, dealii::Triangulation<PHILIP_DIM> >;
-template class RRKODESolverBase<PHILIP_DIM, double, dealii::parallel::shared::Triangulation<PHILIP_DIM> >;
+template class RRKODESolverBase<PHILIP_DIM, PHILIP_SPECIES, double, dealii::Triangulation<PHILIP_DIM> >;
+template class RRKODESolverBase<PHILIP_DIM, PHILIP_SPECIES, double, dealii::parallel::shared::Triangulation<PHILIP_DIM> >;
 #if PHILIP_DIM != 1
-    template class RRKODESolverBase<PHILIP_DIM, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM> >;
+    template class RRKODESolverBase<PHILIP_DIM, PHILIP_SPECIES, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM> >;
 #endif
 
 } // ODESolver namespace

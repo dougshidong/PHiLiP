@@ -52,7 +52,7 @@ public:
      *  for the mesh for converting back to coarse state after refinement.
      */
     Adjoint(
-        std::shared_ptr< DGBase<dim,real,MeshType> > _dg,
+        std::shared_ptr< DGBase<dim,nspecies,real,MeshType> > _dg,
         std::shared_ptr< Functional<dim, nspecies, nstate, real, MeshType> > _functional,
         std::shared_ptr< Physics::PhysicsBase<dim,nstate,Sacado::Fad::DFad<real>> > _physics);
 
@@ -118,7 +118,7 @@ public:
     void output_results_vtk(const unsigned int cycle);
 
     /// DG class pointer
-    std::shared_ptr< DGBase<dim,real,MeshType> > dg;
+    std::shared_ptr< DGBase<dim,nspecies,real,MeshType> > dg;
     /// Functional class pointer
     std::shared_ptr< Functional<dim, nspecies, nstate, real, MeshType> > functional;
     /// Problem physics (for calling the functional class) 

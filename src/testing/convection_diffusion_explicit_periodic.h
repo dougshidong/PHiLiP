@@ -27,10 +27,10 @@ private:
     * we can prove the above is equal to 0 within machine precision. This is not the same
     * as the energy being conserved.
     */
-	double compute_energy_derivative_norm(std::shared_ptr < PHiLiP::DGBase<dim, double> > &dg) const;
+	double compute_energy_derivative_norm(std::shared_ptr < PHiLiP::DGBase<dim, nspecies, double> > &dg) const;
     
     /// Function computes the conservation
-    double compute_conservation(std::shared_ptr < PHiLiP::DGBase<dim, double> > &dg, const double poly_degree) const;
+    double compute_conservation(std::shared_ptr < PHiLiP::DGBase<dim, nspecies, double> > &dg, const double poly_degree) const;
 };
 
 } // Tests namespace

@@ -34,7 +34,7 @@ Parameters::AllParameters HyperReductionComparison<dim, nspecies, nstate>::reini
 }
 
 template <int dim, int nspecies, int nstate>
-bool HyperReductionComparison<dim, nspecies, nstate>::getWeightsFromFile(std::shared_ptr<DGBase<dim,double>> &dg) const{
+bool HyperReductionComparison<dim, nspecies, nstate>::getWeightsFromFile(std::shared_ptr<DGBase<dim,nspecies,double>> &dg) const{
     bool file_found = false;
     Epetra_MpiComm epetra_comm(MPI_COMM_WORLD);
     VectorXd weights_eig;
@@ -136,7 +136,7 @@ int HyperReductionComparison<dim, nspecies, nstate>::run_test() const
 
     // Create implicit solver for comparison
     std::unique_ptr<FlowSolver::FlowSolver<dim,nspecies,nstate>> flow_solver_implicit = FlowSolver::FlowSolverFactory<dim,nspecies,nstate>::select_flow_case(all_parameters, parameter_handler);
-    auto functional_implicit = FunctionalFactory<dim,nstate,double>::create_Functional(all_parameters->functional_param, flow_solver_implicit->dg);
+    auto functional_implicit = FunctionalFactory<dim,nspecies,nstate,double>::create_Functional(all_parameters->functional_param, flow_solver_implicit->dg);
 
     // Create POD Petrov-Galerkin ROM without Hyper-reduction
     std::unique_ptr<FlowSolver::FlowSolver<dim,nspecies,nstate>> flow_solver_petrov_galerkin = FlowSolver::FlowSolverFactory<dim,nspecies,nstate>::select_flow_case(all_parameters, parameter_handler);
@@ -198,7 +198,7 @@ int HyperReductionComparison<dim, nspecies, nstate>::run_test() const
             pcout << "File with snapshots not found in folder" << std::endl;
             return -1;
         }
-        std::shared_ptr<ProperOrthogonalDecomposition::OfflinePOD<dim>> pod_petrov_galerkin = std::make_shared<ProperOrthogonalDecomposition::OfflinePOD<dim>>(flow_solver_petrov_galerkin->dg);
+        std::shared_ptr<ProperOrthogonalDecomposition::OfflinePOD<dim,nspecies>> pod_petrov_galerkin = std::make_shared<ProperOrthogonalDecomposition::OfflinePOD<dim,nspecies>>(flow_solver_petrov_galerkin->dg);
         parameter_sampling->current_pod->basis = pod_petrov_galerkin->basis;
         parameter_sampling->current_pod->referenceState = pod_petrov_galerkin->referenceState;
         parameter_sampling->current_pod->snapshotMatrix = pod_petrov_galerkin->snapshotMatrix;
@@ -219,13 +219,13 @@ int HyperReductionComparison<dim, nspecies, nstate>::run_test() const
     ode_solver_type = Parameters::ODESolverParam::ODESolverEnum::pod_petrov_galerkin_solver;
     flow_solver_petrov_galerkin->ode_solver =  PHiLiP::ODE::ODESolverFactory<dim, nspecies, double>::create_ODESolver_manual(ode_solver_type, flow_solver_petrov_galerkin->dg,  parameter_sampling->current_pod);
     flow_solver_petrov_galerkin->ode_solver->allocate_ode_system();
-    auto functional_petrov_galerkin = FunctionalFactory<dim,nstate,double>::create_Functional(all_parameters->functional_param, flow_solver_petrov_galerkin->dg);
+    auto functional_petrov_galerkin = FunctionalFactory<dim,nspecies,nstate,double>::create_Functional(all_parameters->functional_param, flow_solver_petrov_galerkin->dg);
 
     // Build ODE for Hyper-Reduced POD Petrov-Galerkin
     ode_solver_type = Parameters::ODESolverParam::ODESolverEnum::hyper_reduced_petrov_galerkin_solver;
     flow_solver_hyper_reduced_petrov_galerkin->ode_solver =  PHiLiP::ODE::ODESolverFactory<dim, nspecies, double>::create_ODESolver_manual(ode_solver_type, flow_solver_hyper_reduced_petrov_galerkin->dg,  parameter_sampling->current_pod, *ptr_weights);
     flow_solver_hyper_reduced_petrov_galerkin->ode_solver->allocate_ode_system();
-    auto functional_hyper_reduced_petrov_galerkin = FunctionalFactory<dim,nstate,double>::create_Functional(all_parameters->functional_param, flow_solver_hyper_reduced_petrov_galerkin->dg);
+    auto functional_hyper_reduced_petrov_galerkin = FunctionalFactory<dim,nspecies,nstate,double>::create_Functional(all_parameters->functional_param, flow_solver_hyper_reduced_petrov_galerkin->dg);
     
     pcout << "Implicit Solve Results"<< std::endl;
     flow_solver_implicit->run();

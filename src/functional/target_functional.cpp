@@ -50,7 +50,7 @@ real1 norm(const dealii::Tensor<1,dim,real1> x)
 
 template <int dim, int nspecies, int nstate, typename real>
 TargetFunctional<dim,nspecies,nstate,real>::TargetFunctional(
-    std::shared_ptr<DGBase<dim,real>> _dg,
+    std::shared_ptr<DGBase<dim,nspecies,real>> _dg,
     const bool _uses_solution_values,
     const bool _uses_solution_gradient)
     : Functional<dim,nspecies,nstate,real>::Functional(_dg, _uses_solution_values, _uses_solution_gradient)
@@ -63,7 +63,7 @@ TargetFunctional<dim,nspecies,nstate,real>::TargetFunctional(
 
 template <int dim, int nspecies, int nstate, typename real>
 TargetFunctional<dim,nspecies,nstate,real>::TargetFunctional(
-    std::shared_ptr<DGBase<dim,real>> _dg,
+    std::shared_ptr<DGBase<dim,nspecies,real>> _dg,
     const dealii::LinearAlgebra::distributed::Vector<real> &target_solution,
     const bool _uses_solution_values,
     const bool _uses_solution_gradient)
@@ -78,7 +78,7 @@ TargetFunctional<dim,nspecies,nstate,real>::TargetFunctional(
 
 template <int dim, int nspecies, int nstate, typename real>
 TargetFunctional<dim,nspecies,nstate,real>::TargetFunctional(
-    std::shared_ptr<DGBase<dim,real>> _dg,
+    std::shared_ptr<DGBase<dim,nspecies,real>> _dg,
     std::shared_ptr< Physics::PhysicsBase<dim,nstate,Sacado::Fad::DFad<Sacado::Fad::DFad<real>>> > _physics_fad_fad,
     const bool _uses_solution_values,
     const bool _uses_solution_gradient)
@@ -88,7 +88,7 @@ TargetFunctional<dim,nspecies,nstate,real>::TargetFunctional(
 
 template <int dim, int nspecies, int nstate, typename real>
 TargetFunctional<dim,nspecies,nstate,real>::TargetFunctional(
-    std::shared_ptr<DGBase<dim,real>> _dg,
+    std::shared_ptr<DGBase<dim,nspecies,real>> _dg,
     const dealii::LinearAlgebra::distributed::Vector<real> &target_solution,
     std::shared_ptr< Physics::PhysicsBase<dim,nstate,Sacado::Fad::DFad<Sacado::Fad::DFad<real>>> > _physics_fad_fad,
     const bool _uses_solution_values,
@@ -462,7 +462,7 @@ real TargetFunctional<dim, nspecies, nstate, real>::evaluate_functional(
 
 template <int dim, int nspecies, int nstate, typename real>
 dealii::LinearAlgebra::distributed::Vector<real> TargetFunctional<dim,nspecies,nstate,real>::evaluate_dIdw_finiteDifferences(
-    PHiLiP::DGBase<dim,real> &dg, 
+    PHiLiP::DGBase<dim,nspecies,real> &dg, 
     const PHiLiP::Physics::PhysicsBase<dim,nstate,real> &physics,
     const double stepsize)
 {
@@ -579,7 +579,7 @@ dealii::LinearAlgebra::distributed::Vector<real> TargetFunctional<dim,nspecies,n
 
 template <int dim, int nspecies, int nstate, typename real>
 dealii::LinearAlgebra::distributed::Vector<real> TargetFunctional<dim,nspecies,nstate,real>::evaluate_dIdX_finiteDifferences(
-    PHiLiP::DGBase<dim,real> &dg, 
+    PHiLiP::DGBase<dim,nspecies,real> &dg, 
     const PHiLiP::Physics::PhysicsBase<dim,nstate,real> &physics,
     const double stepsize)
 {
@@ -690,13 +690,17 @@ dealii::LinearAlgebra::distributed::Vector<real> TargetFunctional<dim,nspecies,n
     return dIdX_FD;
 }
 
-// Define a sequence of indices representing the range [1, 7] - max is 7 because nstate=dim+2+(species-1)=7 when dim=species=3
-#define POSSIBLE_NSTATE (1)(2)(3)(4)(5)(6)(7)
+// Define a sequence of indices representing the range [1, 6] - max is 6 because nstate=dim+2+(species-1)=6 when dim=3 species=2
+#define POSSIBLE_NSTATE (1)(2)(3)(4)(5)(6)
 
 // Define a macro to instantiate MyTemplate for a specific index
 #define INSTANTIATE_TEMPLATE(r, data, index) \
    template class TargetFunctional <PHILIP_DIM,PHILIP_SPECIES,index, double>;
 BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_TEMPLATE, _, POSSIBLE_NSTATE)
 
+// Templated to allow compilation when NUMBER_OF_SPECIES > 2, but may not work.
+#if (PHILIP_DIM+2+(PHILIP_SPECIES-1)) > 6
+    template class TargetFunctional <PHILIP_DIM, PHILIP_SPECIES, (PHILIP_DIM+2+(PHILIP_SPECIES-1)), double>;
+#endif
 } // PHiLiP namespace
 

@@ -35,7 +35,7 @@ AdaptiveSamplingBase<dim, nspecies, nstate>::AdaptiveSamplingBase(const PHiLiP::
     flow_solver->dg->assemble_residual(compute_dRdW);
     std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> system_matrix = std::make_shared<dealii::TrilinosWrappers::SparseMatrix>();
     system_matrix->copy_from(flow_solver->dg->system_matrix);
-    current_pod = std::make_shared<ProperOrthogonalDecomposition::OnlinePOD<dim>>(system_matrix);
+    current_pod = std::make_shared<ProperOrthogonalDecomposition::OnlinePOD<dim,nspecies>>(system_matrix);
     nearest_neighbors = std::make_shared<ProperOrthogonalDecomposition::NearestNeighbors>();
 }
 

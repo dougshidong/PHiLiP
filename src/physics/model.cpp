@@ -271,5 +271,12 @@ template class ModelBase<PHILIP_DIM, 5, RadFadType>;
 template class ModelBase<PHILIP_DIM, 6, RadFadType>;
 template class ModelBase<PHILIP_DIM, 8, RadFadType>;
 
+#if (PHILIP_DIM+2+(PHILIP_SPECIES-1)) > 8
+   template class ModelBase <PHILIP_DIM,(PHILIP_DIM+2+(PHILIP_SPECIES-1)),double>;
+   template class ModelBase <PHILIP_DIM,(PHILIP_DIM+2+(PHILIP_SPECIES-1)),FadType>;
+   template class ModelBase <PHILIP_DIM,(PHILIP_DIM+2+(PHILIP_SPECIES-1)),RadType>;
+   template class ModelBase <PHILIP_DIM,(PHILIP_DIM+2+(PHILIP_SPECIES-1)),FadFadType>;
+   template class ModelBase <PHILIP_DIM,(PHILIP_DIM+2+(PHILIP_SPECIES-1)),RadFadType>;
+#endif
 } // Physics namespace
 } // PHiLiP namespace

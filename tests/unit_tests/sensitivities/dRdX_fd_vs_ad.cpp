@@ -41,7 +41,7 @@ int test (
     dealii::ConditionalOStream pcout(std::cout, mpi_rank==0);
     using namespace PHiLiP;
     // Assemble Jacobian
-    std::shared_ptr < DGBase<dim, double> > dg = DGFactory<dim,nspecies,double>::create_discontinuous_galerkin(&all_parameters, poly_degree, grid);
+    std::shared_ptr < DGBase<dim, nspecies, double> > dg = DGFactory<dim,nspecies,double>::create_discontinuous_galerkin(&all_parameters, poly_degree, grid);
 
     const int n_refine = 1;
     for (int i=0; i<n_refine;i++) {
@@ -67,7 +67,7 @@ int test (
     // Initialize solution with something
     using solutionVector = dealii::LinearAlgebra::distributed::Vector<double>;
 
-    std::shared_ptr <Physics::PhysicsBase<dim,nstate,double>> physics_double = Physics::PhysicsFactory<dim, nstate, double>::create_Physics(&all_parameters);
+    std::shared_ptr <Physics::PhysicsBase<dim,nstate,double>> physics_double = Physics::PhysicsFactory<dim, nspecies, nstate, double>::create_Physics(&all_parameters);
     solutionVector solution_no_ghost;
     solution_no_ghost.reinit(dg->locally_owned_dofs, MPI_COMM_WORLD);
     dealii::VectorTools::interpolate(dg->dof_handler, *(physics_double->manufactured_solution_function), solution_no_ghost);

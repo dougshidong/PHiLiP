@@ -41,7 +41,7 @@ int ROMErrorPostSampling<dim, nspecies, nstate>::run_test() const
 
     // Create POD Petrov-Galerkin ROM from Offline POD Files
     std::unique_ptr<FlowSolver::FlowSolver<dim,nspecies,nstate>> flow_solver_petrov_galerkin = FlowSolver::FlowSolverFactory<dim,nspecies,nstate>::select_flow_case(all_parameters, parameter_handler);
-    std::shared_ptr<ProperOrthogonalDecomposition::OfflinePOD<dim>> pod_petrov_galerkin = std::make_shared<ProperOrthogonalDecomposition::OfflinePOD<dim>>(flow_solver_petrov_galerkin->dg);
+    std::shared_ptr<ProperOrthogonalDecomposition::OfflinePOD<dim,nspecies>> pod_petrov_galerkin = std::make_shared<ProperOrthogonalDecomposition::OfflinePOD<dim,nspecies>>(flow_solver_petrov_galerkin->dg);
     
     // Create Instance of Adaptive Sampling to calculate the error between the FOM and ROM at the points from getROMPoints
     std::shared_ptr<AdaptiveSampling<dim,nspecies,nstate>> parameter_sampling = std::make_unique<AdaptiveSampling<dim,nspecies,nstate>>(all_parameters, parameter_handler);

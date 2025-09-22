@@ -17,11 +17,11 @@ public:
 
     /// Calculate numerical entropy
     /// Calls compute_integrated_quantities
-    double compute_entropy(const std::shared_ptr <DGBase<dim, double>> dg) const;
+    double compute_entropy(const std::shared_ptr <DGBase<dim, nspecies, double>> dg) const;
 
     /// Function to compute the constant time step
     /** Calculates based on CFL for Euler, and from parameters otherwise */
-    double get_constant_time_step(std::shared_ptr<DGBase<dim,double>> dg) const override;
+    double get_constant_time_step(std::shared_ptr<DGBase<dim,nspecies,double>> dg) const override;
 protected:
 
     /// Enum of integrated quantities to calculate
@@ -35,7 +35,7 @@ protected:
      * Will need to be modified in the future if multiple quantites are needed
      * See structure in periodic_turbulence
      */
-    double compute_integrated_quantities(DGBase<dim, double> &dg,
+    double compute_integrated_quantities(DGBase<dim, nspecies, double> &dg,
             IntegratedQuantityEnum quantity, 
             const int overintegrate=10 // Overintegrate for KE, don't for num. entropy
             ) const;
@@ -44,7 +44,7 @@ protected:
     /// Compute the desired unsteady data and write it to a table
     void compute_unsteady_data_and_write_to_table(
             const std::shared_ptr<ODE::ODESolverBase<dim, nspecies, double>> ode_solver, 
-            const std::shared_ptr <DGBase<dim, double>> dg,
+            const std::shared_ptr <DGBase<dim, nspecies, double>> dg,
             const std::shared_ptr<dealii::TableHandler> unsteady_data_table) override;
     
     /// Filename for unsteady data

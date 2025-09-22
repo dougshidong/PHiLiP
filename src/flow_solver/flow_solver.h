@@ -111,12 +111,12 @@ protected:
     
 public:
     /// Pointer to dg so it can be accessed externally.
-    std::shared_ptr<DGBase<dim, double>> dg;
+    std::shared_ptr<DGBase<dim, nspecies, double>> dg;
 
     /// Pointer to ode solver so it can be accessed externally.
     std::shared_ptr<ODE::ODESolverBase<dim, nspecies, double>> ode_solver;
 
-    std::shared_ptr<ProperOrthogonalDecomposition::OnlinePOD<dim>> time_pod;
+    std::shared_ptr<ProperOrthogonalDecomposition::OnlinePOD<dim,nspecies>> time_pod;
 
 private:
     /** Returns the column names of a dealii::TableHandler object

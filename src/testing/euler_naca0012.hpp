@@ -44,7 +44,7 @@ public:
 protected:
 
     //  // Integrate entropy over the entire domain to use as a functional.
-    //  double integrate_entropy_over_domain(DGBase<dim,double> &dg) const;
+    //  double integrate_entropy_over_domain(DGBase<dim,nspecies,double> &dg) const;
 };
 
 

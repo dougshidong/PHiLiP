@@ -21,7 +21,7 @@ namespace PHiLiP {
 namespace ODE {
 
 template <int dim, int nspecies, typename real, typename MeshType>
-std::shared_ptr<ODESolverBase<dim,nspecies,real,MeshType>> ODESolverFactory<dim,nspecies,real,MeshType>::create_ODESolver(std::shared_ptr< DGBase<dim,real,MeshType> > dg_input)
+std::shared_ptr<ODESolverBase<dim,nspecies,real,MeshType>> ODESolverFactory<dim,nspecies,real,MeshType>::create_ODESolver(std::shared_ptr< DGBase<dim,nspecies,real,MeshType> > dg_input)
 {
     dealii::ConditionalOStream pcout(std::cout, dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD)==0);
     pcout << "Creating ODE Solver..." << std::endl;
@@ -38,7 +38,7 @@ std::shared_ptr<ODESolverBase<dim,nspecies,real,MeshType>> ODESolverFactory<dim,
 }
 
 template <int dim, int nspecies, typename real, typename MeshType>
-std::shared_ptr<ODESolverBase<dim,nspecies,real,MeshType>> ODESolverFactory<dim,nspecies,real,MeshType>::create_ODESolver(std::shared_ptr< DGBase<dim,real,MeshType> > dg_input, std::shared_ptr<ProperOrthogonalDecomposition::PODBase<dim>> pod)
+std::shared_ptr<ODESolverBase<dim,nspecies,real,MeshType>> ODESolverFactory<dim,nspecies,real,MeshType>::create_ODESolver(std::shared_ptr< DGBase<dim,nspecies,real,MeshType> > dg_input, std::shared_ptr<ProperOrthogonalDecomposition::PODBase<dim,nspecies>> pod)
 {
     dealii::ConditionalOStream pcout(std::cout, dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD)==0);
     pcout << "Creating ODE Solver..." << std::endl;
@@ -57,7 +57,7 @@ std::shared_ptr<ODESolverBase<dim,nspecies,real,MeshType>> ODESolverFactory<dim,
 }
 
 template <int dim, int nspecies, typename real, typename MeshType>
-std::shared_ptr<ODESolverBase<dim,nspecies,real,MeshType>> ODESolverFactory<dim,nspecies,real,MeshType>::create_ODESolver(std::shared_ptr< DGBase<dim,real,MeshType> > dg_input, std::shared_ptr<ProperOrthogonalDecomposition::PODBase<dim>> pod, Epetra_Vector weights)
+std::shared_ptr<ODESolverBase<dim,nspecies,real,MeshType>> ODESolverFactory<dim,nspecies,real,MeshType>::create_ODESolver(std::shared_ptr< DGBase<dim,nspecies,real,MeshType> > dg_input, std::shared_ptr<ProperOrthogonalDecomposition::PODBase<dim,nspecies>> pod, Epetra_Vector weights)
 {
     dealii::ConditionalOStream pcout(std::cout, dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD)==0);
     pcout << "Creating ODE Solver..." << std::endl;
@@ -72,7 +72,7 @@ std::shared_ptr<ODESolverBase<dim,nspecies,real,MeshType>> ODESolverFactory<dim,
 }
 
 template <int dim, int nspecies, typename real, typename MeshType>
-std::shared_ptr<ODESolverBase<dim,nspecies,real,MeshType>> ODESolverFactory<dim,nspecies,real,MeshType>::create_ODESolver_manual(Parameters::ODESolverParam::ODESolverEnum ode_solver_type, std::shared_ptr< DGBase<dim,real,MeshType> > dg_input)
+std::shared_ptr<ODESolverBase<dim,nspecies,real,MeshType>> ODESolverFactory<dim,nspecies,real,MeshType>::create_ODESolver_manual(Parameters::ODESolverParam::ODESolverEnum ode_solver_type, std::shared_ptr< DGBase<dim,nspecies,real,MeshType> > dg_input)
 {
     dealii::ConditionalOStream pcout(std::cout, dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD)==0);
     pcout << "Creating ODE Solver..." << std::endl;
@@ -88,7 +88,7 @@ std::shared_ptr<ODESolverBase<dim,nspecies,real,MeshType>> ODESolverFactory<dim,
 }
 
 template <int dim, int nspecies, typename real, typename MeshType>
-std::shared_ptr<ODESolverBase<dim,nspecies,real,MeshType>> ODESolverFactory<dim,nspecies,real,MeshType>::create_ODESolver_manual(Parameters::ODESolverParam::ODESolverEnum ode_solver_type, std::shared_ptr< DGBase<dim,real,MeshType> > dg_input, std::shared_ptr<ProperOrthogonalDecomposition::PODBase<dim>> pod)
+std::shared_ptr<ODESolverBase<dim,nspecies,real,MeshType>> ODESolverFactory<dim,nspecies,real,MeshType>::create_ODESolver_manual(Parameters::ODESolverParam::ODESolverEnum ode_solver_type, std::shared_ptr< DGBase<dim,nspecies,real,MeshType> > dg_input, std::shared_ptr<ProperOrthogonalDecomposition::PODBase<dim,nspecies>> pod)
 {
     dealii::ConditionalOStream pcout(std::cout, dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD)==0);
     pcout << "Creating ODE Solver..." << std::endl;
@@ -106,7 +106,7 @@ std::shared_ptr<ODESolverBase<dim,nspecies,real,MeshType>> ODESolverFactory<dim,
 }
 
 template <int dim, int nspecies, typename real, typename MeshType>
-std::shared_ptr<ODESolverBase<dim,nspecies,real,MeshType>> ODESolverFactory<dim,nspecies,real,MeshType>::create_ODESolver_manual(Parameters::ODESolverParam::ODESolverEnum ode_solver_type, std::shared_ptr< DGBase<dim,real,MeshType> > dg_input, std::shared_ptr<ProperOrthogonalDecomposition::PODBase<dim>> pod, Epetra_Vector weights)
+std::shared_ptr<ODESolverBase<dim,nspecies,real,MeshType>> ODESolverFactory<dim,nspecies,real,MeshType>::create_ODESolver_manual(Parameters::ODESolverParam::ODESolverEnum ode_solver_type, std::shared_ptr< DGBase<dim,nspecies,real,MeshType> > dg_input, std::shared_ptr<ProperOrthogonalDecomposition::PODBase<dim,nspecies>> pod, Epetra_Vector weights)
 {
     dealii::ConditionalOStream pcout(std::cout, dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD)==0);
     pcout << "Creating ODE Solver..." << std::endl;
@@ -162,11 +162,11 @@ void ODESolverFactory<dim,nspecies,real,MeshType>::display_error_ode_solver_fact
 }
 
 template <int dim, int nspecies, typename real, typename MeshType>
-std::shared_ptr<ODESolverBase<dim,nspecies,real,MeshType>> ODESolverFactory<dim,nspecies,real,MeshType>::create_RungeKuttaODESolver(std::shared_ptr< DGBase<dim,real,MeshType> > dg_input)
+std::shared_ptr<ODESolverBase<dim,nspecies,real,MeshType>> ODESolverFactory<dim,nspecies,real,MeshType>::create_RungeKuttaODESolver(std::shared_ptr< DGBase<dim,nspecies,real,MeshType> > dg_input)
 {
     dealii::ConditionalOStream pcout(std::cout, dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD)==0);
     std::shared_ptr<RKTableauBase<dim,real,MeshType>> rk_tableau = create_RKTableau(dg_input);
-    std::shared_ptr<EmptyRRKBase<dim,real,MeshType>> RRK_object = create_RRKObject(dg_input, rk_tableau);
+    std::shared_ptr<EmptyRRKBase<dim,nspecies,real,MeshType>> RRK_object = create_RRKObject(dg_input, rk_tableau);
 
 
     const int n_rk_stages = dg_input->all_parameters->ode_solver_param.n_rk_stages;
@@ -233,12 +233,12 @@ std::shared_ptr<ODESolverBase<dim,nspecies,real,MeshType>> ODESolverFactory<dim,
 }
 
 template <int dim, int nspecies, typename real, typename MeshType> 
-std::shared_ptr<ODESolverBase<dim,nspecies,real,MeshType>> ODESolverFactory<dim,nspecies,real,MeshType>::create_RungeKuttaODESolver(std::shared_ptr< DGBase<dim, real, MeshType> > dg_input, std::shared_ptr<ProperOrthogonalDecomposition::PODBase<dim>> pod)
+std::shared_ptr<ODESolverBase<dim,nspecies,real,MeshType>> ODESolverFactory<dim,nspecies,real,MeshType>::create_RungeKuttaODESolver(std::shared_ptr< DGBase<dim, nspecies, real, MeshType> > dg_input, std::shared_ptr<ProperOrthogonalDecomposition::PODBase<dim,nspecies>> pod)
 {
     dealii::ConditionalOStream pcout(std::cout, dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD)==0);
 
     std::shared_ptr<RKTableauBase<dim,real,MeshType>> rk_tableau = create_RKTableau(dg_input);
-    std::shared_ptr<EmptyRRKBase<dim,real,MeshType>> RRK_object = create_RRKObject(dg_input, rk_tableau);
+    std::shared_ptr<EmptyRRKBase<dim,nspecies,real,MeshType>> RRK_object = create_RRKObject(dg_input, rk_tableau);
 
     const int n_rk_stages = dg_input->all_parameters->ode_solver_param.n_rk_stages;
     using ODEEnum = Parameters::ODESolverParam::ODESolverEnum;
@@ -279,7 +279,7 @@ std::shared_ptr<ODESolverBase<dim,nspecies,real,MeshType>> ODESolverFactory<dim,
 }
 
 template <int dim, int nspecies, typename real, typename MeshType>
-std::shared_ptr<LowStorageRKTableauBase<dim,real,MeshType>> ODESolverFactory<dim,nspecies,real,MeshType>::create_LowStorageRKTableau(std::shared_ptr< DGBase<dim,real,MeshType> > dg_input)
+std::shared_ptr<LowStorageRKTableauBase<dim,real,MeshType>> ODESolverFactory<dim,nspecies,real,MeshType>::create_LowStorageRKTableau(std::shared_ptr< DGBase<dim,nspecies,real,MeshType> > dg_input)
 {
 
     dealii::ConditionalOStream pcout(std::cout, dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD)==0);
@@ -301,7 +301,7 @@ std::shared_ptr<LowStorageRKTableauBase<dim,real,MeshType>> ODESolverFactory<dim
 }
 
 template <int dim, int nspecies, typename real, typename MeshType>
-std::shared_ptr<RKTableauBase<dim,real,MeshType>> ODESolverFactory<dim,nspecies,real,MeshType>::create_RKTableau(std::shared_ptr< DGBase<dim,real,MeshType> > dg_input)
+std::shared_ptr<RKTableauBase<dim,real,MeshType>> ODESolverFactory<dim,nspecies,real,MeshType>::create_RKTableau(std::shared_ptr< DGBase<dim,nspecies,real,MeshType> > dg_input)
 {
     dealii::ConditionalOStream pcout(std::cout, dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD)==0);
     using RKMethodEnum = Parameters::ODESolverParam::RKMethodEnum;
@@ -350,7 +350,7 @@ std::shared_ptr<RKTableauBase<dim,real,MeshType>> ODESolverFactory<dim,nspecies,
 }
 
 template <int dim, int nspecies, typename real, typename MeshType>
-std::shared_ptr<EmptyRRKBase<dim,real,MeshType>> ODESolverFactory<dim,nspecies,real,MeshType>::create_RRKObject( std::shared_ptr< DGBase<dim,real,MeshType> > dg_input,
+std::shared_ptr<EmptyRRKBase<dim,nspecies,real,MeshType>> ODESolverFactory<dim,nspecies,real,MeshType>::create_RRKObject( std::shared_ptr< DGBase<dim,nspecies,real,MeshType> > dg_input,
        std::shared_ptr<RKTableauBase<dim,real,MeshType>> rk_tableau)
 {
     dealii::ConditionalOStream pcout(std::cout, dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD)==0);
@@ -359,7 +359,7 @@ std::shared_ptr<EmptyRRKBase<dim,real,MeshType>> ODESolverFactory<dim,nspecies,r
 
     if (ode_solver_type == ODEEnum::runge_kutta_solver && dg_input->all_parameters->flow_solver_param.do_calculate_numerical_entropy) {
         // If calculating numerical entropy, select the class which has that functionality
-            return std::make_shared<RKNumEntropy<dim,real,MeshType>>(rk_tableau);
+            return std::make_shared<RKNumEntropy<dim,nspecies,real,MeshType>>(rk_tableau);
     }
     else if (ode_solver_type == ODEEnum::rrk_explicit_solver){
 
@@ -385,12 +385,12 @@ std::shared_ptr<EmptyRRKBase<dim,real,MeshType>> ODESolverFactory<dim,nspecies,r
 
         pcout << "Adding " << rrk_type_string << " Relaxation Runge Kutta to the ODE solver..." << std::endl;
         if (numerical_entropy_type==NumEntropyEnum::energy)
-            return std::make_shared<AlgebraicRRKODESolver<dim,real,MeshType>>(rk_tableau);
+            return std::make_shared<AlgebraicRRKODESolver<dim,nspecies,real,MeshType>>(rk_tableau);
         else if (numerical_entropy_type==NumEntropyEnum::nonlinear)
-            return std::make_shared<RootFindingRRKODESolver<dim,real,MeshType>>(rk_tableau);
+            return std::make_shared<RootFindingRRKODESolver<dim,nspecies,real,MeshType>>(rk_tableau);
         else return nullptr; // no need for message as numerical_entropy_type has already been checked
     } else {
-        return std::make_shared<EmptyRRKBase<dim,real,MeshType>> (rk_tableau);
+        return std::make_shared<EmptyRRKBase<dim,nspecies,real,MeshType>> (rk_tableau);
     }
 }
 

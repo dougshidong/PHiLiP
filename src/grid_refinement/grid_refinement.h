@@ -54,20 +54,20 @@ public:
     /// Constructor. Storers the dg object, physics, functional and parameters.
     GridRefinementBase(
         PHiLiP::Parameters::GridRefinementParam                            gr_param_input,
-        std::shared_ptr< PHiLiP::DGBase<dim, real, MeshType> >             dg_input,
+        std::shared_ptr< PHiLiP::DGBase<dim, nspecies, real, MeshType> >             dg_input,
         std::shared_ptr< PHiLiP::Physics::PhysicsBase<dim,nstate,real> >   physics_input,
         std::shared_ptr< PHiLiP::Functional<dim, nspecies, nstate, real, MeshType> > functional_input);
 
     /// Constructor. Stores the dg object, physics and parameters
     GridRefinementBase(
         PHiLiP::Parameters::GridRefinementParam                          gr_param_input,
-        std::shared_ptr< PHiLiP::DGBase<dim, real, MeshType> >           dg_input,
+        std::shared_ptr< PHiLiP::DGBase<dim, nspecies, real, MeshType> >           dg_input,
         std::shared_ptr< PHiLiP::Physics::PhysicsBase<dim,nstate,real> > physics_input);
 
     /// Constructor. Stores the dg object and parameters
     GridRefinementBase(
         PHiLiP::Parameters::GridRefinementParam                gr_param_input,
-        std::shared_ptr< PHiLiP::DGBase<dim, real, MeshType> > dg_input);
+        std::shared_ptr< PHiLiP::DGBase<dim, nspecies, real, MeshType> > dg_input);
 
 protected:
     /// Delegated constructor which handles the various optional inputs and setup.
@@ -75,7 +75,7 @@ protected:
         PHiLiP::Parameters::GridRefinementParam                            gr_param_input,
         std::shared_ptr< PHiLiP::Adjoint<dim, nspecies, nstate, real, MeshType> >    adj_input,
         std::shared_ptr< PHiLiP::Functional<dim, nspecies, nstate, real, MeshType> > functional_input,
-        std::shared_ptr< PHiLiP::DGBase<dim, real, MeshType> >             dg_input,
+        std::shared_ptr< PHiLiP::DGBase<dim, nspecies, real, MeshType> >             dg_input,
         std::shared_ptr< PHiLiP::Physics::PhysicsBase<dim,nstate,real> >   physics_input);
 
 public:
@@ -150,7 +150,7 @@ protected:
     std::shared_ptr< PHiLiP::Functional<dim, nspecies, nstate, real, MeshType> > functional;
 
     /// Discontinuous Galerkin object
-    std::shared_ptr< PHiLiP::DGBase<dim, real, MeshType> > dg;
+    std::shared_ptr< PHiLiP::DGBase<dim, nspecies, real, MeshType> > dg;
 
     // high order grid, not a pointer 
     // so needs to be manipulated through dg->high_order_grid
@@ -241,7 +241,7 @@ public:
     static std::shared_ptr< GridRefinementBase<dim,nspecies,nstate,real,MeshType> > 
     create_GridRefinement(
         PHiLiP::Parameters::GridRefinementParam                            gr_param,
-        std::shared_ptr< PHiLiP::DGBase<dim, real, MeshType> >             dg,
+        std::shared_ptr< PHiLiP::DGBase<dim, nspecies, real, MeshType> >             dg,
         std::shared_ptr< PHiLiP::Physics::PhysicsBase<dim,nstate,real> >   physics,
         std::shared_ptr< PHiLiP::Functional<dim, nspecies, nstate, real, MeshType> > functional);
 
@@ -252,7 +252,7 @@ public:
     static std::shared_ptr< GridRefinementBase<dim,nspecies,nstate,real,MeshType> > 
     create_GridRefinement(
         PHiLiP::Parameters::GridRefinementParam                          gr_param,
-        std::shared_ptr< PHiLiP::DGBase<dim, real, MeshType> >           dg,
+        std::shared_ptr< PHiLiP::DGBase<dim, nspecies, real, MeshType> >           dg,
         std::shared_ptr< PHiLiP::Physics::PhysicsBase<dim,nstate,real> > physics);
 
     /// Construct grid refinement class based on dg only
@@ -262,7 +262,7 @@ public:
     static std::shared_ptr< GridRefinementBase<dim,nspecies,nstate,real,MeshType> > 
     create_GridRefinement(
         PHiLiP::Parameters::GridRefinementParam                gr_param,
-        std::shared_ptr< PHiLiP::DGBase<dim, real, MeshType> > dg);
+        std::shared_ptr< PHiLiP::DGBase<dim, nspecies, real, MeshType> > dg);
 
 };
 

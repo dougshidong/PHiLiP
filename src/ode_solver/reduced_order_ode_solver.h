@@ -18,11 +18,11 @@ class ReducedOrderODESolver: public ODESolverBase<dim, nspecies, real, MeshType>
 {
 protected:
     /// Default constructor that will set the constants.
-    ReducedOrderODESolver(std::shared_ptr< DGBase<dim, real, MeshType> > dg_input, std::shared_ptr<ProperOrthogonalDecomposition::PODBase<dim>> pod); ///< Constructor.
+    ReducedOrderODESolver(std::shared_ptr< DGBase<dim, nspecies, real, MeshType> > dg_input, std::shared_ptr<ProperOrthogonalDecomposition::PODBase<dim,nspecies>> pod); ///< Constructor.
 
 public:
     ///POD
-    std::shared_ptr<ProperOrthogonalDecomposition::PODBase<dim>> pod;
+    std::shared_ptr<ProperOrthogonalDecomposition::PODBase<dim,nspecies>> pod;
 
     /// Destructor
     virtual ~ReducedOrderODESolver() = default;

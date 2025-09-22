@@ -32,7 +32,7 @@ int main (int argc, char * argv[])
     const unsigned int poly_degree = 2;
     const unsigned int grid_degree = 1;
 
-    std::shared_ptr < DGBase<dim, double> > dg = DGFactory<dim, nspecies, double>::create_discontinuous_galerkin(&all_parameters, poly_degree,poly_degree, grid_degree, grid);
+    std::shared_ptr < DGBase<dim, nspecies, double> > dg = DGFactory<dim, nspecies, double>::create_discontinuous_galerkin(&all_parameters, poly_degree,poly_degree, grid_degree, grid);
     dg->allocate_system();
 
 

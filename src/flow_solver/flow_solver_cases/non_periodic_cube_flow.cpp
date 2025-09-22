@@ -10,7 +10,7 @@ NonPeriodicCubeFlow<dim, nspecies, nstate>::NonPeriodicCubeFlow(const PHiLiP::Pa
 {
     //create the Physics object
     this->pde_physics = std::dynamic_pointer_cast<Physics::PhysicsBase<dim,nstate,double>>(
-                Physics::PhysicsFactory<dim,nstate,double>::create_Physics(parameters_input));
+                Physics::PhysicsFactory<dim,nspecies,nstate,double>::create_Physics(parameters_input));
 }
 
 template <int dim, int nspecies, int nstate>

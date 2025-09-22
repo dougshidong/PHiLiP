@@ -22,7 +22,7 @@ namespace PHiLiP {
 namespace ProperOrthogonalDecomposition {
 
 template <int dim, int nspecies, int nstate>
-HROMTestLocation<dim, nspecies, nstate>::HROMTestLocation(const RowVectorXd& parameter, std::unique_ptr<ROMSolution<dim, nstate>> rom_solution, std::shared_ptr< DGBase<dim, double> > dg_input, Epetra_Vector weights)
+HROMTestLocation<dim, nspecies, nstate>::HROMTestLocation(const RowVectorXd& parameter, std::unique_ptr<ROMSolution<dim, nstate>> rom_solution, std::shared_ptr< DGBase<dim, nspecies, double> > dg_input, Epetra_Vector weights)
         : TestLocationBase<dim, nspecies, nstate>(parameter, std::move(rom_solution))
         , dg(dg_input)
         , ECSW_weights(weights)
@@ -30,7 +30,7 @@ HROMTestLocation<dim, nspecies, nstate>::HROMTestLocation(const RowVectorXd& par
 }
 
 template <int dim, int nspecies, int nstate>
-void HROMTestLocation<dim, nspecies, nstate>::compute_initial_rom_to_final_rom_error(std::shared_ptr<ProperOrthogonalDecomposition::PODBase<dim>> pod_updated){
+void HROMTestLocation<dim, nspecies, nstate>::compute_initial_rom_to_final_rom_error(std::shared_ptr<ProperOrthogonalDecomposition::PODBase<dim,nspecies>> pod_updated){
 
     this->pcout << "Computing adjoint-based error estimate between initial ROM and updated ROM..." << std::endl;
 

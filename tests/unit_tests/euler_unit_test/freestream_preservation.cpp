@@ -42,7 +42,7 @@ double random_pert(double lower, double upper)
 
 
 template<int dim>
-void perturb_high_order_grid ( std::shared_ptr < DGBase<dim, double> > dg, const double perturbation_size )
+void perturb_high_order_grid ( std::shared_ptr < DGBase<dim, nspecies, double> > dg, const double perturbation_size )
 {
     const dealii::DoFHandler<dim> &DH_grid = dg->high_order_grid->dof_handler_grid;
     const dealii::FESystem<dim,dim> &fe_grid = DH_grid.get_fe();
@@ -239,7 +239,7 @@ int test()
             // Update param with new overintegration parameter.
             param.parse_parameters (parameter_handler);
 
-            std::shared_ptr < DGBase<dim, double> > dg = DGFactory<dim,nspecies,double>::create_discontinuous_galerkin(&param, POLY_DEGREE, POLY_DEGREE, GRID_DEGREE, grid);
+            std::shared_ptr < DGBase<dim, nspecies, double> > dg = DGFactory<dim,nspecies,double>::create_discontinuous_galerkin(&param, POLY_DEGREE, POLY_DEGREE, GRID_DEGREE, grid);
             dg->allocate_system ();
             
             perturb_high_order_grid (dg, PERT_SIZE);

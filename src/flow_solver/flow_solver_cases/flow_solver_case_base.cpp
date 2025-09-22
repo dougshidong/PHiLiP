@@ -86,7 +86,7 @@ std::string FlowSolverCaseBase<dim, nspecies, nstate>::get_flow_case_string() co
 }
 
 template <int dim, int nspecies, int nstate>
-void FlowSolverCaseBase<dim, nspecies, nstate>::display_flow_solver_setup(std::shared_ptr<DGBase<dim,double>> dg) const
+void FlowSolverCaseBase<dim, nspecies, nstate>::display_flow_solver_setup(std::shared_ptr<DGBase<dim,nspecies,double>> dg) const
 {
     const std::string pde_string = this->get_pde_string();
     pcout << "- PDE Type: " << pde_string << " " << "(dim=" << dim << ", nstate=" << nstate << ")" << std::endl;
@@ -146,13 +146,13 @@ void FlowSolverCaseBase<dim, nspecies, nstate>::display_flow_solver_setup(std::s
 }
 
 template <int dim, int nspecies, int nstate>
-void FlowSolverCaseBase<dim, nspecies, nstate>::set_higher_order_grid(std::shared_ptr<DGBase<dim, double>> /*dg*/) const
+void FlowSolverCaseBase<dim, nspecies, nstate>::set_higher_order_grid(std::shared_ptr<DGBase<dim, nspecies, double>> /*dg*/) const
 {
     // Do nothing
 }
 
 template <int dim, int nspecies, int nstate>
-double FlowSolverCaseBase<dim, nspecies, nstate>::get_constant_time_step(std::shared_ptr<DGBase<dim,double>> /*dg*/) const
+double FlowSolverCaseBase<dim, nspecies, nstate>::get_constant_time_step(std::shared_ptr<DGBase<dim,nspecies,double>> /*dg*/) const
 {
     if(all_param.flow_solver_param.constant_time_step > 0.0) {
         // Using constant time step in FlowSolver parameters.
@@ -164,7 +164,7 @@ double FlowSolverCaseBase<dim, nspecies, nstate>::get_constant_time_step(std::sh
 }
 
 template <int dim, int nspecies, int nstate>
-double FlowSolverCaseBase<dim, nspecies, nstate>::get_adaptive_time_step(std::shared_ptr<DGBase<dim,double>> /*dg*/) const
+double FlowSolverCaseBase<dim, nspecies, nstate>::get_adaptive_time_step(std::shared_ptr<DGBase<dim,nspecies,double>> /*dg*/) const
 {
     pcout << "ERROR: Base definition for get_adaptive_time_step() has not yet been implemented. " <<std::flush;
     std::abort();
@@ -172,7 +172,7 @@ double FlowSolverCaseBase<dim, nspecies, nstate>::get_adaptive_time_step(std::sh
 }
 
 template <int dim, int nspecies, int nstate>
-double FlowSolverCaseBase<dim, nspecies, nstate>::get_adaptive_time_step_initial(std::shared_ptr<DGBase<dim,double>> /*dg*/)
+double FlowSolverCaseBase<dim, nspecies, nstate>::get_adaptive_time_step_initial(std::shared_ptr<DGBase<dim,nspecies,double>> /*dg*/)
 {
     pcout << "ERROR: Base definition for get_adaptive_time_step_initial() has not yet been implemented. " <<std::flush;
     std::abort();
@@ -180,7 +180,7 @@ double FlowSolverCaseBase<dim, nspecies, nstate>::get_adaptive_time_step_initial
 }
 
 template <int dim, int nspecies, int nstate>
-void FlowSolverCaseBase<dim, nspecies, nstate>::steady_state_postprocessing(std::shared_ptr <DGBase<dim, double>> /*dg*/) const
+void FlowSolverCaseBase<dim, nspecies, nstate>::steady_state_postprocessing(std::shared_ptr <DGBase<dim, nspecies, double>> /*dg*/) const
 {
     // do nothing by default
 }
@@ -188,7 +188,7 @@ void FlowSolverCaseBase<dim, nspecies, nstate>::steady_state_postprocessing(std:
 template <int dim, int nspecies, int nstate>
 void FlowSolverCaseBase<dim, nspecies, nstate>::compute_unsteady_data_and_write_to_table(
         const std::shared_ptr<ODE::ODESolverBase<dim, nspecies, double>> ode_solver, 
-        const std::shared_ptr <DGBase<dim, double>> dg,
+        const std::shared_ptr <DGBase<dim, nspecies, double>> dg,
         const std::shared_ptr <dealii::TableHandler> unsteady_data_table)
 {
     this->compute_unsteady_data_and_write_to_table(ode_solver->current_iteration, ode_solver->current_time, dg, unsteady_data_table);
@@ -198,7 +198,7 @@ template <int dim, int nspecies, int nstate>
 void FlowSolverCaseBase<dim, nspecies, nstate>::compute_unsteady_data_and_write_to_table(
         const unsigned int /*current_iteration*/,
         const double /*current_time*/,
-        const std::shared_ptr <DGBase<dim, double>> /*dg*/,
+        const std::shared_ptr <DGBase<dim, nspecies, double>> /*dg*/,
         const std::shared_ptr <dealii::TableHandler> /*unsteady_data_table*/)
 {
     // do nothing by default

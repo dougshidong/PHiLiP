@@ -29,7 +29,7 @@ namespace PHiLiP {
 // constructor
 template <int dim, int nspecies, int nstate, typename real, typename MeshType>
 Adjoint<dim, nspecies, nstate, real, MeshType>::Adjoint(
-    std::shared_ptr< DGBase<dim,real,MeshType> > _dg, 
+    std::shared_ptr< DGBase<dim,nspecies,real,MeshType> > _dg, 
     std::shared_ptr< Functional<dim, nspecies, nstate, real, MeshType> > _functional,
     std::shared_ptr< Physics::PhysicsBase<dim,nstate,Sacado::Fad::DFad<real>> > _physics):
     dg(_dg),
@@ -340,8 +340,8 @@ void Adjoint<dim, nspecies, nstate, real, MeshType>::output_results_vtk(const un
     }
 }
 
-// Define a sequence of indices representing the range [1, 7] - max is 7 because nstate=dim+2+(species-1)=7 when dim=species=3
-#define POSSIBLE_NSTATE (1)(2)(3)(4)(5)(6)(7)
+// Define a sequence of indices representing the range [1, 6] - max is 6 because nstate=dim+2+(species-1)=6 when dim=3 species=2
+#define POSSIBLE_NSTATE (1)(2)(3)(4)(5)(6)
 
 // Define a macro to instantiate Adjoint for a specific index
 #define INSTANTIATE_DISTRIBUTED(r, data, index) \
@@ -358,4 +358,11 @@ BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_SHARED, _, POSSIBLE_NSTATE)
 #define INSTANTIATE_TRIA(r, data, index) \
     template class Adjoint <PHILIP_DIM, PHILIP_SPECIES, index, double, dealii::Triangulation<PHILIP_DIM>>;
 BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_TRIA, _, POSSIBLE_NSTATE)
+
+// Templated to allow compilation when NUMBER_OF_SPECIES > 2, but may not work.
+#if (PHILIP_DIM+2+(PHILIP_SPECIES-1)) > 6
+    template class Adjoint <PHILIP_DIM, PHILIP_SPECIES, (PHILIP_DIM+2+(PHILIP_SPECIES-1)), double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+    template class Adjoint <PHILIP_DIM, PHILIP_SPECIES, (PHILIP_DIM+2+(PHILIP_SPECIES-1)), double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+    template class Adjoint <PHILIP_DIM, PHILIP_SPECIES, (PHILIP_DIM+2+(PHILIP_SPECIES-1)), double, dealii::Triangulation<PHILIP_DIM>>;
+#endif
 } // PHiLiP namespace

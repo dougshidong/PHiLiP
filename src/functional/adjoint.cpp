@@ -340,6 +340,7 @@ void Adjoint<dim, nspecies, nstate, real, MeshType>::output_results_vtk(const un
     }
 }
 
+#if PHILIP_SPECIES==1
 // Define a sequence of indices representing the range [1, 6] - max is 6 because nstate=dim+2+(species-1)=6 when dim=3 species=2
 #define POSSIBLE_NSTATE (1)(2)(3)(4)(5)(6)
 
@@ -359,8 +360,8 @@ BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_SHARED, _, POSSIBLE_NSTATE)
     template class Adjoint <PHILIP_DIM, PHILIP_SPECIES, index, double, dealii::Triangulation<PHILIP_DIM>>;
 BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_TRIA, _, POSSIBLE_NSTATE)
 
-// Templated to allow compilation when NUMBER_OF_SPECIES > 2, but may not work.
-#if (PHILIP_DIM+2+(PHILIP_SPECIES-1)) > 6
+// Templated to allow compilation when NUMBER_OF_SPECIES > 1, but may not work.
+#else
     template class Adjoint <PHILIP_DIM, PHILIP_SPECIES, (PHILIP_DIM+2+(PHILIP_SPECIES-1)), double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
     template class Adjoint <PHILIP_DIM, PHILIP_SPECIES, (PHILIP_DIM+2+(PHILIP_SPECIES-1)), double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
     template class Adjoint <PHILIP_DIM, PHILIP_SPECIES, (PHILIP_DIM+2+(PHILIP_SPECIES-1)), double, dealii::Triangulation<PHILIP_DIM>>;

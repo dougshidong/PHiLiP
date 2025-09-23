@@ -10,7 +10,8 @@ MeshAdaptation<dim,nspecies,real,MeshType>::MeshAdaptation(std::shared_ptr< DGBa
     , mesh_adaptation_param(mesh_adaptation_param_input)
     , pcout(std::cout, dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD)==0)
     {
-        mesh_error = MeshErrorFactory<dim, nspecies, 5, real, MeshType> :: create_mesh_error(dg);
+        if(nspecies==1)
+            mesh_error = MeshErrorFactory<dim, nspecies, 5, real, MeshType> :: create_mesh_error(dg);
     }
 
 
@@ -191,4 +192,5 @@ template class MeshAdaptation<PHILIP_DIM, PHILIP_SPECIES, double, dealii::parall
 #if PHILIP_DIM != 1
 template class MeshAdaptation<PHILIP_DIM, PHILIP_SPECIES, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
 #endif
+
 } // namespace PHiLiP

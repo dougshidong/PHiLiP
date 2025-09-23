@@ -181,22 +181,28 @@ FlowSolverFactory<dim, nspecies, nstate>
             return std::make_unique<FlowSolver<dim, nspecies, nstate>>(parameters_input, flow_solver_case, parameter_handler_input);
         }
     } else if (flow_type == FlowCaseEnum::multi_species_three_dimensional_vortex_advection){
-        if constexpr (dim==3 && (nspecies==2||nspecies==3) && nstate==dim+2+nspecies-1){
+        if constexpr (dim==3 && nspecies==2 && nstate==dim+2+nspecies-1){
             std::shared_ptr<FlowSolverCaseBase<dim, nspecies, nstate>> flow_solver_case = std::make_shared<PeriodicCubeFlow<dim, nspecies, nstate>>(parameters_input);
             return std::make_unique<FlowSolver<dim, nspecies, nstate>>(parameters_input, flow_solver_case, parameter_handler_input);
         }
     } else if (flow_type == FlowCaseEnum::multi_species_taylor_green_vortex){
-        if constexpr (dim==3 && (nspecies==2||nspecies==3) && nstate==dim+2+nspecies-1){
+        if constexpr (dim==3 && nspecies==2 && nstate==dim+2+nspecies-1){
             std::shared_ptr<FlowSolverCaseBase<dim, nspecies, nstate>> flow_solver_case = std::make_shared<PeriodicCubeFlow<dim, nspecies, nstate>>(parameters_input);
             return std::make_unique<FlowSolver<dim, nspecies, nstate>>(parameters_input, flow_solver_case, parameter_handler_input);
         }
     } else if (flow_type == FlowCaseEnum::multi_species_mixture_taylor_green_vortex){
-        if constexpr (dim==3 && (nspecies==2||nspecies==3) && nstate==dim+2+nspecies-1){
+        if constexpr (dim==3 && nspecies==2 && nstate==dim+2+nspecies-1){
             std::shared_ptr<FlowSolverCaseBase<dim, nspecies, nstate>> flow_solver_case = std::make_shared<PeriodicCubeFlow<dim, nspecies, nstate>>(parameters_input);
             return std::make_unique<FlowSolver<dim, nspecies, nstate>>(parameters_input, flow_solver_case, parameter_handler_input);
         }
 
-    } else {
+    } else if ((nstate==dim+2+nspecies-1)) {
+        std::shared_ptr<FlowSolverCaseBase<dim, nspecies, nstate>> flow_solver_case = std::make_shared<PeriodicCubeFlow<dim, nspecies, nstate>>(parameters_input);
+        return std::make_unique<FlowSolver<dim, nspecies, nstate>>(parameters_input, flow_solver_case, parameter_handler_input);
+        std::cout << "No flow case has been created for " << dim << "D and " << nspecies << " species. Implement a test for the conditions." << std::endl;
+        std::abort();
+    }
+    else {
         std::cout << "Invalid flow case. You probably forgot to add it to the list of flow cases in flow_solver_factory.cpp" << std::endl;
         std::abort();
     }
@@ -234,19 +240,16 @@ std::unique_ptr< FlowSolverBase > FlowSolverFactory<dim, nspecies, nstate>
     }
 }
 
-// #if PHILIP_SPECIES==1
-// template class FlowSolverFactory <PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM>;
-// template class FlowSolverFactory <PHILIP_DIM, PHILIP_SPECIES, 1>;
-// #endif
-// template class FlowSolverFactory <PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM + 2 + (PHILIP_SPECIES-1)>;
+#if PHILIP_SPECIES==1
 template class FlowSolverFactory <PHILIP_DIM, PHILIP_SPECIES, 1>;
 template class FlowSolverFactory <PHILIP_DIM, PHILIP_SPECIES, 2>;
 template class FlowSolverFactory <PHILIP_DIM, PHILIP_SPECIES, 3>;
 template class FlowSolverFactory <PHILIP_DIM, PHILIP_SPECIES, 4>;
 template class FlowSolverFactory <PHILIP_DIM, PHILIP_SPECIES, 5>;
 template class FlowSolverFactory <PHILIP_DIM, PHILIP_SPECIES, 6>;
-template class FlowSolverFactory <PHILIP_DIM, PHILIP_SPECIES, 7>;
-
+#else
+template class FlowSolverFactory <PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2+(PHILIP_SPECIES-1)>;
+#endif
 } // FlowSolver namespace
 } // PHiLiP namespace
 

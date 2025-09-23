@@ -719,11 +719,13 @@ std::vector<std::string> ReynoldsAveragedNavierStokes_SAneg<dim,nstate,real>
 //----------------------------------------------------------------
 // Instantiate explicitly
 // -- ReynoldsAveragedNavierStokes_SAneg
+#if PHILIP_SPECIES==1
 template class ReynoldsAveragedNavierStokes_SAneg < PHILIP_DIM, PHILIP_DIM+3, double >;
 template class ReynoldsAveragedNavierStokes_SAneg < PHILIP_DIM, PHILIP_DIM+3, FadType  >;
 template class ReynoldsAveragedNavierStokes_SAneg < PHILIP_DIM, PHILIP_DIM+3, RadType  >;
 template class ReynoldsAveragedNavierStokes_SAneg < PHILIP_DIM, PHILIP_DIM+3, FadFadType >;
 template class ReynoldsAveragedNavierStokes_SAneg < PHILIP_DIM, PHILIP_DIM+3, RadFadType >;
+#endif
 
 } // Physics namespace
 } // PHiLiP namespace

@@ -55,14 +55,14 @@ PhysicsFactory<dim,nspecies,nstate,real>
     const double                     diffusion_coefficient = parameters_input->manufactured_convergence_study_param.manufactured_solution_param.diffusion_coefficient;
 
     if (pde_type == PDE_enum::advection || pde_type == PDE_enum::advection_vector) {
-        if constexpr (nstate<=2) 
+        if constexpr (nstate<=2 && nspecies==1) 
             return std::make_shared < ConvectionDiffusion<dim,nstate,real> >(
                 parameters_input,
                 true, false,
                 diffusion_tensor, advection_vector, diffusion_coefficient,
                 manufactured_solution_function);
     } else if (pde_type == PDE_enum::diffusion) {
-        if constexpr (nstate==1) 
+        if constexpr (nstate==1 && nspecies==1) 
             return std::make_shared < ConvectionDiffusion<dim,nstate,real> >(
                 parameters_input,
                 false, true,
@@ -70,7 +70,7 @@ PhysicsFactory<dim,nspecies,nstate,real>
                 manufactured_solution_function,
                 parameters_input->test_type);
     } else if (pde_type == PDE_enum::convection_diffusion) {
-        if constexpr (nstate==1) 
+        if constexpr (nstate==1 && nspecies==1) 
             return std::make_shared < ConvectionDiffusion<dim,nstate,real> >(
                 parameters_input,
                 true, true,
@@ -78,7 +78,7 @@ PhysicsFactory<dim,nspecies,nstate,real>
                 manufactured_solution_function,
                 parameters_input->test_type);
     } else if (pde_type == PDE_enum::burgers_inviscid) {
-        if constexpr (nstate==dim) 
+        if constexpr (nstate==dim && nspecies==1) 
             return std::make_shared < Burgers<dim,nstate,real> >(
                 parameters_input,
                 parameters_input->burgers_param.diffusion_coefficient,
@@ -87,7 +87,7 @@ PhysicsFactory<dim,nspecies,nstate,real>
                 manufactured_solution_function,
                 parameters_input->test_type);
     } else if (pde_type == PDE_enum::burgers_viscous) {
-        if constexpr (nstate==dim)
+        if constexpr (nstate==dim && nspecies==1)
             return std::make_shared < Burgers<dim,nstate,real> >(
                 parameters_input,
                 parameters_input->burgers_param.diffusion_coefficient,
@@ -95,7 +95,7 @@ PhysicsFactory<dim,nspecies,nstate,real>
                 diffusion_tensor,
                 manufactured_solution_function);
     } else if (pde_type == PDE_enum::burgers_rewienski) {
-        if constexpr (nstate==dim)
+        if constexpr (nstate==dim && nspecies==1)
             return std::make_shared < BurgersRewienski<dim,nstate,real> >(
                 parameters_input,
                 parameters_input->burgers_param.rewienski_a,
@@ -106,7 +106,7 @@ PhysicsFactory<dim,nspecies,nstate,real>
                 diffusion_tensor,
                 manufactured_solution_function);
     } else if (pde_type == PDE_enum::euler) {
-        if constexpr (nstate==dim+2) {
+        if constexpr (nstate==dim+2 && nspecies==1) {
             return std::make_shared < Euler<dim,nstate,real> > (
                 parameters_input,
                 parameters_input->euler_param.ref_length,
@@ -118,14 +118,14 @@ PhysicsFactory<dim,nspecies,nstate,real>
                 parameters_input->two_point_num_flux_type);
         }
     } else if (pde_type == PDE_enum::mhd) {
-        if constexpr (nstate == 8) 
+        if constexpr (nstate == 8 && nspecies==1) 
             return std::make_shared < MHD<dim,nstate,real> > (
                 parameters_input,
                 parameters_input->euler_param.gamma_gas,
                 diffusion_tensor, 
                 manufactured_solution_function);
     } else if (pde_type == PDE_enum::navier_stokes) {
-        if constexpr (nstate==dim+2) {
+        if constexpr (nstate==dim+2 && nspecies==1) {
             return std::make_shared < NavierStokes<dim,nstate,real> > (
                 parameters_input,
                 parameters_input->euler_param.ref_length,
@@ -144,7 +144,7 @@ PhysicsFactory<dim,nspecies,nstate,real>
                 parameters_input->two_point_num_flux_type);
         }
     } else if (pde_type == PDE_enum::inviscid_real_gas) {
-        if constexpr (nstate==dim+2) {
+        if constexpr (nstate==dim+2 && nspecies==1) {
             return std::make_shared < InviscidRealGas<dim,nstate,real> > (
                 parameters_input,
                 manufactured_solution_function);
@@ -164,7 +164,7 @@ PhysicsFactory<dim,nspecies,nstate,real>
                 manufactured_solution_function);
         }
     } else if (pde_type == PDE_enum::physics_model) {
-        if constexpr (nstate>=dim+2) {
+        if constexpr (nstate>=dim+2 && nspecies==1) {
             return create_Physics_Model(parameters_input,
                                         manufactured_solution_function,
                                         model_input);
@@ -211,7 +211,7 @@ PhysicsFactory<dim,nspecies,nstate,real>
     // -------------------------------------------------------------------------------
     // Large Eddy Simulation (LES)
     // -------------------------------------------------------------------------------
-    if (model_type == Model_enum::large_eddy_simulation) {
+    if (model_type == Model_enum::large_eddy_simulation && nspecies==1) {
         has_nonzero_diffusion = true; // because of SGS model term
         has_nonzero_physical_source = false; // LES has no physical source terms
         if constexpr ((nstate==dim+2) && (dim==3)) {
@@ -246,7 +246,7 @@ PhysicsFactory<dim,nspecies,nstate,real>
     // -------------------------------------------------------------------------------
     // Reynolds-Averaged Navier-Stokes (RANS) + RANS model
     // -------------------------------------------------------------------------------
-    else if (model_type == Model_enum::reynolds_averaged_navier_stokes) {
+    else if (model_type == Model_enum::reynolds_averaged_navier_stokes && nspecies==1) {
         has_nonzero_diffusion = true; // RANS (baseline part) has diffusion terms
         has_nonzero_physical_source = true; // RANS (baseline part) has physical source terms
         if (rans_model_type == RANSModel_enum::SA_negative)
@@ -292,52 +292,39 @@ PhysicsFactory<dim,nspecies,nstate,real>
     return nullptr;
 }
 
-// Define a sequence of indices representing the range [1, 8]
-#define POSSIBLE_NSTATE (1)(2)(3)(4)(5)(6)(7)(8)
+#if PHILIP_SPECIES==1
+    // Define a sequence of indices representing the range [1, 8]
+    #define POSSIBLE_NSTATE (1)(2)(3)(4)(5)(6)(7)(8)
 
-// Define a macro to instantiate MyTemplate for a specific index
-#define INSTANTIATE_DOUBLE(r, data, index) \
-    template class PhysicsFactory <PHILIP_DIM, PHILIP_SPECIES, index, double>;
-BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_DOUBLE, _, POSSIBLE_NSTATE)
-
-#define INSTANTIATE_FADTYPE(r, data, index) \
-    template class PhysicsFactory <PHILIP_DIM, PHILIP_SPECIES, index, FadType>;
-BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_FADTYPE, _, POSSIBLE_NSTATE)
-
-#define INSTANTIATE_RADTYPE(r, data, index) \
-    template class PhysicsFactory <PHILIP_DIM, PHILIP_SPECIES, index, RadType>;
-BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_RADTYPE, _, POSSIBLE_NSTATE)
-
-#define INSTANTIATE_FADFADTYPE(r, data, index) \
-    template class PhysicsFactory <PHILIP_DIM, PHILIP_SPECIES, index, FadFadType>;
-BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_FADFADTYPE, _, POSSIBLE_NSTATE)
-
-#define INSTANTIATE_RADFADTYPE(r, data, index) \
-    template class PhysicsFactory <PHILIP_DIM, PHILIP_SPECIES, index, RadFadType>;
-BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_RADFADTYPE, _, POSSIBLE_NSTATE)
-
-// Templated to allow compilation when NUMBER_OF_SPECIES > 2, but may not work.
-#if ((PHILIP_DIM+2+(PHILIP_SPECIES-1)) > 8)
+    // Define a macro to instantiate MyTemplate for a specific index
     #define INSTANTIATE_DOUBLE(r, data, index) \
         template class PhysicsFactory <PHILIP_DIM, PHILIP_SPECIES, index, double>;
-    BOOST_PP_REPEAT_FROM_TO_d(0,PHILIP_DIM+2+(PHILIP_SPECIES-1),INSTANTIATE_DOUBLE, _)
+    BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_DOUBLE, _, POSSIBLE_NSTATE)
 
     #define INSTANTIATE_FADTYPE(r, data, index) \
         template class PhysicsFactory <PHILIP_DIM, PHILIP_SPECIES, index, FadType>;
-    BOOST_PP_REPEAT_FROM_TO_d(0,PHILIP_DIM+2+(PHILIP_SPECIES-1),INSTANTIATE_FADTYPE, _)
+    BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_FADTYPE, _, POSSIBLE_NSTATE)
 
     #define INSTANTIATE_RADTYPE(r, data, index) \
         template class PhysicsFactory <PHILIP_DIM, PHILIP_SPECIES, index, RadType>;
-    BOOST_PP_REPEAT_FROM_TO_d(0,PHILIP_DIM+2+(PHILIP_SPECIES-1),INSTANTIATE_RADTYPE, _)
+    BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_RADTYPE, _, POSSIBLE_NSTATE)
 
     #define INSTANTIATE_FADFADTYPE(r, data, index) \
         template class PhysicsFactory <PHILIP_DIM, PHILIP_SPECIES, index, FadFadType>;
-    BOOST_PP_REPEAT_FROM_TO_d(0,PHILIP_DIM+2+(PHILIP_SPECIES-1),INSTANTIATE_FADFADTYPE, _)
+    BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_FADFADTYPE, _, POSSIBLE_NSTATE)
 
     #define INSTANTIATE_RADFADTYPE(r, data, index) \
         template class PhysicsFactory <PHILIP_DIM, PHILIP_SPECIES, index, RadFadType>;
-    BOOST_PP_REPEAT_FROM_TO_d(0,PHILIP_DIM+2+(PHILIP_SPECIES-1),INSTANTIATE_RADFADTYPE, _)
+    BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_RADFADTYPE, _, POSSIBLE_NSTATE)
+#else
+    // Templated to allow compilation when NUMBER_OF_SPECIES > 1, but may not work.
+    template class PhysicsFactory <PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM + 2 + (PHILIP_SPECIES - 1), double>;
+    template class PhysicsFactory <PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM + 2 + (PHILIP_SPECIES - 1), FadType>;
+    template class PhysicsFactory <PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM + 2 + (PHILIP_SPECIES - 1), RadType>;
+    template class PhysicsFactory <PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM + 2 + (PHILIP_SPECIES - 1), FadFadType>;
+    template class PhysicsFactory <PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM + 2 + (PHILIP_SPECIES - 1), RadFadType>;
 #endif
+
 } // Physics namespace
 } // PHiLiP namespace
 

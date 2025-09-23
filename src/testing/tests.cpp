@@ -250,13 +250,13 @@ std::unique_ptr< TestsBase > TestsFactory<dim,nspecies,nstate,MeshType>
         return std::make_unique<GridStudy<dim,nspecies,nstate>>(parameters_input);
     } else if(test_type == Test_enum::grid_refinement_study && nspecies==1) {
         return std::make_unique<GridRefinementStudy<dim,nspecies,nstate,MeshType>>(parameters_input);
-    } else if(test_type == Test_enum::burgers_energy_stability && nspecies==1) {
+    } else if(test_type == Test_enum::burgers_energy_stability) {
         if constexpr (dim==1 && nspecies==1 && nstate==1) return std::make_unique<BurgersEnergyStability<dim,nspecies,nstate>>(parameters_input);
-    } else if(test_type == Test_enum::diffusion_exact_adjoint && nspecies==1) {
+    } else if(test_type == Test_enum::diffusion_exact_adjoint) {
         if constexpr (dim>=1 && nspecies==1 && nstate==1) return std::make_unique<DiffusionExactAdjoint<dim,nspecies,nstate>>(parameters_input);
-    } else if (test_type == Test_enum::advection_periodicity && nspecies==1){
+    } else if (test_type == Test_enum::advection_periodicity){
         if constexpr (nspecies==1 && nstate == 1) return std::make_unique<AdvectionPeriodic<dim,nspecies,nstate>> (parameters_input);
-    } else if (test_type == Test_enum::convection_diffusion_periodicity && nspecies==1){
+    } else if (test_type == Test_enum::convection_diffusion_periodicity){
         if constexpr (nspecies==1 && nstate == 1) return std::make_unique<ConvectionDiffusionPeriodic<dim,nspecies,nstate>> (parameters_input);
     } else if(test_type == Test_enum::euler_gaussian_bump) {
         if constexpr (dim==2 && nspecies==1 && nstate==dim+2) return std::make_unique<EulerGaussianBump<dim,nspecies,nstate>>(parameters_input,parameter_handler_input);
@@ -278,11 +278,11 @@ std::unique_ptr< TestsBase > TestsFactory<dim,nspecies,nstate,MeshType>
         if constexpr (dim==3 && nspecies==1 && nstate == dim+2) return std::make_unique<EulerTaylorGreenScaling<dim,nspecies,nstate>>(parameters_input);
     } else if(test_type == Test_enum::optimization_inverse_manufactured && nspecies==1) {
         return std::make_unique<OptimizationInverseManufactured<dim,nspecies,nstate>>(parameters_input);
-    } else if(test_type == Test_enum::euler_bump_optimization && nspecies==1) {
+    } else if(test_type == Test_enum::euler_bump_optimization) {
         if constexpr (dim==2 && nspecies==1 && nstate==dim+2) return std::make_unique<EulerBumpOptimization<dim,nspecies,nstate>>(parameters_input);
-    } else if(test_type == Test_enum::euler_naca_optimization && nspecies==1) {
+    } else if(test_type == Test_enum::euler_naca_optimization) {
         if constexpr (dim==2 && nspecies==1 && nstate==dim+2) return std::make_unique<EulerNACAOptimization<dim,nspecies,nstate>>(parameters_input);
-    } else if(test_type == Test_enum::shock_1d && nspecies==1) {
+    } else if(test_type == Test_enum::shock_1d) {
         if constexpr (dim==1 && nspecies==1 && nstate==1) return std::make_unique<Shock1D<dim,nspecies,nstate>>(parameters_input);
     } else if(test_type == Test_enum::reduced_order) {
         if constexpr (nspecies==1 && ((dim==2 && nstate==dim+2) || (dim==1 && nstate==1))) return std::make_unique<ReducedOrder<dim,nspecies,nstate>>(parameters_input, parameter_handler_input);
@@ -345,11 +345,11 @@ std::unique_ptr< TestsBase > TestsFactory<dim,nspecies,nstate,MeshType>
     } else if(test_type == Test_enum::euler_vortex_advection_error_study) {
         if constexpr (dim==1 && nspecies==1 && nstate==dim+2)  return std::make_unique<EulerVortexAdvectionErrorStudy<dim,nspecies,nstate>>(parameters_input, parameter_handler_input);
     } else if(test_type == Test_enum::multi_species_vortex_advection_error_study) {
-        if constexpr (dim==1 && (nspecies==2||nspecies==3) && nstate==dim+2+(nspecies-1))  return std::make_unique<EulerVortexAdvectionErrorStudy<dim,nspecies,nstate>>(parameters_input, parameter_handler_input);   
+        if constexpr (dim==1 && (nspecies==2) && nstate==dim+2+(nspecies-1))  return std::make_unique<EulerVortexAdvectionErrorStudy<dim,nspecies,nstate>>(parameters_input, parameter_handler_input);   
     } else if(test_type == Test_enum::multi_species_high_temperature_vortex_advection_error_study) {
-        if constexpr (dim==1 && (nspecies==2||nspecies==3) && nstate==dim+2+(nspecies-1))   return std::make_unique<EulerVortexAdvectionErrorStudy<dim,nspecies,nstate>>(parameters_input, parameter_handler_input);       
+        if constexpr (dim==1 && (nspecies==2) && nstate==dim+2+(nspecies-1))   return std::make_unique<EulerVortexAdvectionErrorStudy<dim,nspecies,nstate>>(parameters_input, parameter_handler_input);       
     } else if(test_type == Test_enum::multi_species_calorically_perfect_euler_vortex_advection_error_study) {
-        if constexpr (dim==1 && (nspecies==2||nspecies==3) && nstate==dim+2+(nspecies-1))   return std::make_unique<EulerVortexAdvectionErrorStudy<dim,nspecies,nstate>>(parameters_input, parameter_handler_input);                 
+        if constexpr (dim==1 && (nspecies==2) && nstate==dim+2+(nspecies-1))   return std::make_unique<EulerVortexAdvectionErrorStudy<dim,nspecies,nstate>>(parameters_input, parameter_handler_input);                 
     } else if(test_type == Test_enum::multi_species_two_dimensional_vortex_advection_error_study) {
         if constexpr (dim==2 && nspecies==2 && nstate==dim+2+(nspecies-1))  return std::make_unique<EulerVortexAdvectionErrorStudy<dim,nspecies,nstate>>(parameters_input, parameter_handler_input);           
     } else {

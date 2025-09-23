@@ -168,7 +168,7 @@ int GridStudy<dim,nspecies,nstate>
 
     const unsigned int n_grids_input       = manu_grid_conv_param.number_of_grids;
 
-    std::shared_ptr< Physics::ModelBase<dim,nstate,double> > model_double = Physics::ModelFactory<dim,nstate,double>::create_Model(&param);
+    std::shared_ptr< Physics::ModelBase<dim,nstate,double> > model_double = Physics::ModelFactory<dim,nspecies,nstate,double>::create_Model(&param);
     std::shared_ptr <Physics::PhysicsBase<dim,nstate,double>> physics_double = Physics::PhysicsFactory<dim, nspecies, nstate, double>::create_Physics(&param,model_double);
 
     // Evaluate solution integral on really fine mesh
@@ -672,13 +672,14 @@ void GridStudy<dim,nspecies,nstate>
     }
 }
 
-// Define a sequence of indices representing the range [1, 6] - max is 6 because nstate=dim+2+(species-1)=6 when dim=3 species=2
+#if PHILIP_SPECIES==1
+// Define a sequence of indices representing the range [1, 6]
 #define POSSIBLE_NSTATE (1)(2)(3)(4)(5)(6)
 
 // Define a macro to instantiate MyTemplate for a specific index
 #define INSTANTIATE_TEMPLATE(r, data, index) \
    template class GridStudy <PHILIP_DIM,PHILIP_SPECIES,index>;
 BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_TEMPLATE, _, POSSIBLE_NSTATE)
-
+#endif
 } // Tests namespace
 } // PHiLiP namespace

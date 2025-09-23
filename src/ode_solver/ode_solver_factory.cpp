@@ -357,11 +357,11 @@ std::shared_ptr<EmptyRRKBase<dim,nspecies,real,MeshType>> ODESolverFactory<dim,n
     using ODEEnum = Parameters::ODESolverParam::ODESolverEnum;
     const ODEEnum ode_solver_type = dg_input->all_parameters->ode_solver_param.ode_solver_type;
 
-    if (ode_solver_type == ODEEnum::runge_kutta_solver && dg_input->all_parameters->flow_solver_param.do_calculate_numerical_entropy) {
+    if (ode_solver_type == ODEEnum::runge_kutta_solver && dg_input->all_parameters->flow_solver_param.do_calculate_numerical_entropy && nspecies==1) {
         // If calculating numerical entropy, select the class which has that functionality
             return std::make_shared<RKNumEntropy<dim,nspecies,real,MeshType>>(rk_tableau);
     }
-    else if (ode_solver_type == ODEEnum::rrk_explicit_solver){
+    else if (ode_solver_type == ODEEnum::rrk_explicit_solver && nspecies==1){
 
         using PDEEnum = Parameters::AllParameters::PartialDifferentialEquation;
         const PDEEnum pde_type = dg_input->all_parameters->pde_type;

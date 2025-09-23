@@ -17,20 +17,20 @@ DGBaseState<dim, nspecies, nstate, real, MeshType>::DGBaseState(const Parameters
 {
     artificial_dissip = ArtificialDissipationFactory<dim, nstate>::create_artificial_dissipation(parameters_input);
 
-    pde_model_double = Physics::ModelFactory<dim, nstate, real>::create_Model(parameters_input);
+    pde_model_double = Physics::ModelFactory<dim, nspecies, nstate, real>::create_Model(parameters_input);
     pde_physics_double = Physics::PhysicsFactory<dim, nspecies, nstate, real>::create_Physics(parameters_input, pde_model_double);
 
-    pde_model_fad = Physics::ModelFactory<dim, nstate, FadType>::create_Model(parameters_input);
+    pde_model_fad = Physics::ModelFactory<dim, nspecies, nstate, FadType>::create_Model(parameters_input);
     pde_physics_fad = Physics::PhysicsFactory<dim, nspecies, nstate, FadType>::create_Physics(parameters_input, pde_model_fad);
 
-    pde_model_rad = Physics::ModelFactory<dim, nstate, RadType>::create_Model(parameters_input);
+    pde_model_rad = Physics::ModelFactory<dim, nspecies, nstate, RadType>::create_Model(parameters_input);
     pde_physics_rad = Physics::PhysicsFactory<dim, nspecies, nstate, RadType>::create_Physics(parameters_input, pde_model_rad);
 
-    pde_model_fad_fad = Physics::ModelFactory<dim, nstate, FadFadType>::create_Model(parameters_input);
+    pde_model_fad_fad = Physics::ModelFactory<dim, nspecies, nstate, FadFadType>::create_Model(parameters_input);
     pde_physics_fad_fad =
         Physics::PhysicsFactory<dim, nspecies, nstate, FadFadType>::create_Physics(parameters_input, pde_model_fad_fad);
 
-    pde_model_rad_fad = Physics::ModelFactory<dim, nstate, RadFadType>::create_Model(parameters_input);
+    pde_model_rad_fad = Physics::ModelFactory<dim, nspecies, nstate, RadFadType>::create_Model(parameters_input);
     pde_physics_rad_fad =
         Physics::PhysicsFactory<dim, nspecies, nstate, RadFadType>::create_Physics(parameters_input, pde_model_rad_fad);
 
@@ -217,6 +217,7 @@ real DGBaseState<dim, nspecies, nstate, real, MeshType>::evaluate_CFL(std::vecto
     return min_cfl;
 }
 
+#if PHILIP_SPECIES==1
 // Define a sequence of indices representing the range [1, 6] - max is 6 because nstate=dim+2+(species-1)=6 when dim=3 species=2
 #define POSSIBLE_NSTATE (1)(2)(3)(4)(5)(6)
 
@@ -236,9 +237,11 @@ BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_SHARED, _, POSSIBLE_NSTATE)
     template class DGBaseState <PHILIP_DIM, PHILIP_SPECIES, index, double, dealii::Triangulation<PHILIP_DIM>>;
 BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_TRIA, _, POSSIBLE_NSTATE)
 
-// Templated to allow compilation when NUMBER_OF_SPECIES > 2, but may not work.
-#if (PHILIP_DIM+2+(PHILIP_SPECIES-1)) > 6
+// Templated to allow compilation when NUMBER_OF_SPECIES > 1, but may not work.
+#else
+    #if PHILIP_DIM!=1
     template class DGBaseState <PHILIP_DIM, PHILIP_SPECIES, (PHILIP_DIM+2+(PHILIP_SPECIES-1)), double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+    #endif
     template class DGBaseState <PHILIP_DIM, PHILIP_SPECIES, (PHILIP_DIM+2+(PHILIP_SPECIES-1)), double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
     template class DGBaseState <PHILIP_DIM, PHILIP_SPECIES, (PHILIP_DIM+2+(PHILIP_SPECIES-1)), double, dealii::Triangulation<PHILIP_DIM>>;
 #endif

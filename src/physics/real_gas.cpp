@@ -661,8 +661,8 @@ template <int dim, int nspecies, int nstate, typename real>
 inline real RealGas<dim,nspecies,nstate,real>
 ::compute_sound ( const std::array<real,nstate> &conservative_soln ) const
 {
-    std::cout<<"Compute Sound for RealGas hasn't been done yet."<<std::endl;
-    std::abort();
+    // std::cout<<"Compute Sound for RealGas hasn't been done yet."<<std::endl;
+    // std::abort();
     return conservative_soln[0];
 }
 
@@ -858,12 +858,10 @@ dealii::UpdateFlags RealGas<dim,nspecies,nstate,real>
 }
 
 // Instantiate explicitly
-// TO DO: Modify this when you change number of species
 template class RealGas < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2+PHILIP_SPECIES-1, double     >;
 template class RealGas < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2+PHILIP_SPECIES-1, FadType    >;
 template class RealGas < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2+PHILIP_SPECIES-1, RadType    >;
 template class RealGas < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2+PHILIP_SPECIES-1, FadFadType >;
 template class RealGas < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2+PHILIP_SPECIES-1, RadFadType >;
-
 } // Physics namespace
 } // PHiLiP namespace

@@ -2383,7 +2383,7 @@ InitialConditionFactory<dim,nspecies,nstate, real>::create_InitialConditionFunct
     } else if (flow_type == FlowCaseEnum::burgers_limiter) {
         if constexpr (nstate==dim && dim<3) return std::make_shared<InitialConditionFunction_BurgersInviscid<dim,nspecies,nstate,real> >();
     } else if (flow_type == FlowCaseEnum::acoustic_wave_air) {
-        if constexpr (dim==2 && nstate==dim+2) return std::make_shared<InitialConditionFunction_AcousticWave_Air<dim,nspecies,nstate,real> >(param);
+        if constexpr (dim==2 && nstate==dim+2 && nspecies==1) return std::make_shared<InitialConditionFunction_AcousticWave_Air<dim,nspecies,nstate,real> >(param);
     } else if (flow_type == FlowCaseEnum::acoustic_wave_species) {
         if constexpr (dim==2 && nstate==dim+2) return std::make_shared<InitialConditionFunction_AcousticWave_Species<dim,nspecies,nstate,real> >(param);
     } else if (flow_type == FlowCaseEnum::multi_species_acoustic_wave) {
@@ -2415,13 +2415,13 @@ InitialConditionFactory<dim,nspecies,nstate, real>::create_InitialConditionFunct
     return nullptr;
 }
 
+#if PHILIP_SPECIES==1
 template class InitialConditionFunction <PHILIP_DIM, PHILIP_SPECIES, 1, double>;
 template class InitialConditionFunction <PHILIP_DIM, PHILIP_SPECIES, 2, double>;
 template class InitialConditionFunction <PHILIP_DIM, PHILIP_SPECIES, 3, double>;
 template class InitialConditionFunction <PHILIP_DIM, PHILIP_SPECIES, 4, double>;
 template class InitialConditionFunction <PHILIP_DIM, PHILIP_SPECIES, 5, double>;
 template class InitialConditionFunction <PHILIP_DIM, PHILIP_SPECIES, 6, double>;
-template class InitialConditionFunction <PHILIP_DIM, PHILIP_SPECIES, 7, double>;
 
 template class InitialConditionFactory <PHILIP_DIM, PHILIP_SPECIES, 1, double>;
 template class InitialConditionFactory <PHILIP_DIM, PHILIP_SPECIES, 2, double>;
@@ -2429,59 +2429,6 @@ template class InitialConditionFactory <PHILIP_DIM, PHILIP_SPECIES, 3, double>;
 template class InitialConditionFactory <PHILIP_DIM, PHILIP_SPECIES, 4, double>;
 template class InitialConditionFactory <PHILIP_DIM, PHILIP_SPECIES, 5, double>;
 template class InitialConditionFactory <PHILIP_DIM, PHILIP_SPECIES, 6, double>;
-template class InitialConditionFactory <PHILIP_DIM, PHILIP_SPECIES, 7, double>;
- 
-#if PHILIP_DIM==1 && PHILIP_SPECIES==1
-template class InitialConditionFunction_BurgersViscous <PHILIP_DIM, PHILIP_SPECIES, 1, double>;
-template class InitialConditionFunction_BurgersRewienski <PHILIP_DIM, PHILIP_SPECIES, 1, double>;
-template class InitialConditionFunction_BurgersInviscidEnergy <PHILIP_DIM, PHILIP_SPECIES, 1, double>;
-template class InitialConditionFunction_EulerBase <PHILIP_DIM,PHILIP_SPECIES, PHILIP_DIM+2, double>;
-template class InitialConditionFunction_SodShockTube <PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, double>;
-template class InitialConditionFunction_LeblancShockTube <PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, double>;
-template class InitialConditionFunction_ShuOsherProblem <PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM + 2, double>;
-#endif
-
-#if PHILIP_DIM==3 && PHILIP_SPECIES==1
-template class InitialConditionFunction_TaylorGreenVortex <PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, double>;
-template class InitialConditionFunction_TaylorGreenVortex_Isothermal <PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, double>;
-#endif
-
-#if PHILIP_DIM>1 && PHILIP_SPECIES==1
-template class InitialConditionFunction_IsentropicVortex <PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, double>;
-#endif
-
-#if PHILIP_DIM==2 && PHILIP_SPECIES==1
-template class InitialConditionFunction_KHI <PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, double>;
-template class InitialConditionFunction_EulerBase <PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM + 2, double>;
-template class InitialConditionFunction_AcousticWave_Air <PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, double>;
-template class InitialConditionFunction_AcousticWave_Species <PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, double>;
-template class InitialConditionFunction_DoubleMachReflection <PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, double>;
-template class InitialConditionFunction_ShockDiffraction <PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, double>;
-template class InitialConditionFunction_AstrophysicalJet <PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, double>;
-template class InitialConditionFunction_SVSW <PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, double>;
-#endif
-
-#if PHILIP_DIM < 3 && PHILIP_SPECIES==1
-template class InitialConditionFunction_LowDensity <PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, double>;
-#endif
-
-#if PHILIP_DIM==3 && PHILIP_SPECIES==2
-template class InitialConditionFunction_MultiSpecies_ThreeDimensional_VortexAdvection <PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2+PHILIP_SPECIES-1, double>;
-template class InitialConditionFunction_MultiSpecies_TaylorGreenVortex <PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2+PHILIP_SPECIES-1, double>;
-template class InitialConditionFunction_MultiSpecies_Mixture_TaylorGreenVortex <PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2+PHILIP_SPECIES-1, double>;
-#endif
-
-#if PHILIP_DIM==2 && PHILIP_SPECIES==2
-template class InitialConditionFunction_MultiSpecies_IsentropicEulerVortex <PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2+PHILIP_SPECIES-1, double>;
-template class InitialConditionFunction_MultiSpecies_TwoDimensional_VortexAdvection <PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2+PHILIP_SPECIES-1, double>;
-template class InitialConditionFunction_MultiSpecies_FuelDropAdvection <PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2+PHILIP_SPECIES-1, double>;
-#endif
-
-#if PHILIP_DIM==1 && PHILIP_SPECIES!=1
-template class InitialConditionFunction_MultiSpecies_HighTemperature_VortexAdvection <PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2+PHILIP_SPECIES-1, double>;
-template class InitialConditionFunction_MultiSpecies_VortexAdvection <PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2+PHILIP_SPECIES-1, double>;
-template class InitialConditionFunction_MultiSpecies_CaloricallyPerfect_Euler_VortexAdvection <PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2+PHILIP_SPECIES-1, double>;
-#endif
 
 // functions instantiated for all dim
 template class InitialConditionFunction_Zero <PHILIP_DIM, PHILIP_SPECIES, 1, double>;
@@ -2495,5 +2442,65 @@ template class InitialConditionFunction_BurgersInviscid <PHILIP_DIM, 1, PHILIP_D
 template class InitialConditionFunction_AdvectionEnergy <PHILIP_DIM, 1, 1, double>;
 template class InitialConditionFunction_ConvDiff <PHILIP_DIM, 1, 1, double>;
 template class InitialConditionFunction_ConvDiffEnergy <PHILIP_DIM, 1, 1,double>;
+
+
+#if PHILIP_DIM==1
+template class InitialConditionFunction_BurgersViscous <PHILIP_DIM, PHILIP_SPECIES, 1, double>;
+template class InitialConditionFunction_BurgersRewienski <PHILIP_DIM, PHILIP_SPECIES, 1, double>;
+template class InitialConditionFunction_BurgersInviscidEnergy <PHILIP_DIM, PHILIP_SPECIES, 1, double>;
+template class InitialConditionFunction_EulerBase <PHILIP_DIM,PHILIP_SPECIES, PHILIP_DIM+2, double>;
+template class InitialConditionFunction_SodShockTube <PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, double>;
+template class InitialConditionFunction_LeblancShockTube <PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, double>;
+template class InitialConditionFunction_ShuOsherProblem <PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM + 2, double>;
+#endif
+
+#if PHILIP_DIM==3
+template class InitialConditionFunction_TaylorGreenVortex <PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, double>;
+template class InitialConditionFunction_TaylorGreenVortex_Isothermal <PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, double>;
+#endif
+
+#if PHILIP_DIM>1
+template class InitialConditionFunction_IsentropicVortex <PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, double>;
+#endif
+
+#if PHILIP_DIM==2
+template class InitialConditionFunction_KHI <PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, double>;
+template class InitialConditionFunction_EulerBase <PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM + 2, double>;
+template class InitialConditionFunction_AcousticWave_Air <PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, double>;
+template class InitialConditionFunction_AcousticWave_Species <PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, double>;
+template class InitialConditionFunction_DoubleMachReflection <PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, double>;
+template class InitialConditionFunction_ShockDiffraction <PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, double>;
+template class InitialConditionFunction_AstrophysicalJet <PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, double>;
+template class InitialConditionFunction_SVSW <PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, double>;
+#endif
+
+#if PHILIP_DIM < 3
+template class InitialConditionFunction_LowDensity <PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, double>;
+#endif
+
+#else
+template class InitialConditionFunction <PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2+(PHILIP_SPECIES-1), double>;
+template class InitialConditionFactory <PHILIP_DIM, PHILIP_SPECIES,  PHILIP_DIM+2+(PHILIP_SPECIES-1), double>;
+template class InitialConditionFunction_Zero <PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2+(PHILIP_SPECIES-1), double>;
+
+    #if PHILIP_DIM==3 && PHILIP_SPECIES==2
+    template class InitialConditionFunction_MultiSpecies_ThreeDimensional_VortexAdvection <PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2+PHILIP_SPECIES-1, double>;
+    template class InitialConditionFunction_MultiSpecies_TaylorGreenVortex <PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2+PHILIP_SPECIES-1, double>;
+    template class InitialConditionFunction_MultiSpecies_Mixture_TaylorGreenVortex <PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2+PHILIP_SPECIES-1, double>;
+    #endif
+
+    #if PHILIP_DIM==2 && PHILIP_SPECIES==2
+    template class InitialConditionFunction_MultiSpecies_IsentropicEulerVortex <PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2+PHILIP_SPECIES-1, double>;
+    template class InitialConditionFunction_MultiSpecies_TwoDimensional_VortexAdvection <PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2+PHILIP_SPECIES-1, double>;
+    template class InitialConditionFunction_MultiSpecies_FuelDropAdvection <PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2+PHILIP_SPECIES-1, double>;
+    #endif
+
+    #if PHILIP_DIM==1 && PHILIP_SPECIES > 1 && PHILIP_SPECIES < 4
+    template class InitialConditionFunction_MultiSpecies_HighTemperature_VortexAdvection <PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2+PHILIP_SPECIES-1, double>;
+    template class InitialConditionFunction_MultiSpecies_VortexAdvection <PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2+PHILIP_SPECIES-1, double>;
+    template class InitialConditionFunction_MultiSpecies_CaloricallyPerfect_Euler_VortexAdvection <PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2+PHILIP_SPECIES-1, double>;
+    #endif
+
+#endif
 
 } // PHiLiP namespace

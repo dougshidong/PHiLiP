@@ -513,48 +513,40 @@ GridRefinementFactory<dim,nspecies,nstate,real,MeshType>::create_GridRefinement(
     return nullptr;
 }
 
-// Define a sequence of indices representing the range [1, 6] - max is 6 because nstate=dim+2+(species-1)=6 when dim=3 species=2
-#define POSSIBLE_NSTATE (1)(2)(3)(4)(5)(6)
+#if PHILIP_SPECIES==1
+    // Define a sequence of indices representing the range [1, 6] - max is 6 because nstate=dim+2+(species-1)=6 when dim=3 species=2
+    #define POSSIBLE_NSTATE (1)(2)(3)(4)(5)(6)
 
-// Define a macro to instantiate MyTemplate for a specific index
-#define INSTANTIATE_DISTRIBUTED_BASE(r, data, index) \
-    template class GridRefinementBase <PHILIP_DIM, PHILIP_SPECIES, index, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+    // Define a macro to instantiate MyTemplate for a specific index
+    #define INSTANTIATE_DISTRIBUTED_BASE(r, data, index) \
+        template class GridRefinementBase <PHILIP_DIM, PHILIP_SPECIES, index, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
 
-#if PHILIP_DIM!=1
-BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_DISTRIBUTED_BASE, _, POSSIBLE_NSTATE)
-#endif
+    #if PHILIP_DIM!=1
+    BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_DISTRIBUTED_BASE, _, POSSIBLE_NSTATE)
+    #endif
 
-#define INSTANTIATE_SHARED_BASE(r, data, index) \
-    template class GridRefinementBase <PHILIP_DIM, PHILIP_SPECIES, index, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
-BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_SHARED_BASE, _, POSSIBLE_NSTATE)
+    #define INSTANTIATE_SHARED_BASE(r, data, index) \
+        template class GridRefinementBase <PHILIP_DIM, PHILIP_SPECIES, index, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+    BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_SHARED_BASE, _, POSSIBLE_NSTATE)
 
-#define INSTANTIATE_TRIA_BASE(r, data, index) \
-    template class GridRefinementBase <PHILIP_DIM, PHILIP_SPECIES, index, double, dealii::Triangulation<PHILIP_DIM>>;
-BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_TRIA_BASE, _, POSSIBLE_NSTATE)
+    #define INSTANTIATE_TRIA_BASE(r, data, index) \
+        template class GridRefinementBase <PHILIP_DIM, PHILIP_SPECIES, index, double, dealii::Triangulation<PHILIP_DIM>>;
+    BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_TRIA_BASE, _, POSSIBLE_NSTATE)
 
-#define INSTANTIATE_DISTRIBUTED_FACTORY(r, data, index) \
-    template class GridRefinementFactory <PHILIP_DIM, PHILIP_SPECIES, index, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+    #define INSTANTIATE_DISTRIBUTED_FACTORY(r, data, index) \
+        template class GridRefinementFactory <PHILIP_DIM, PHILIP_SPECIES, index, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
 
-#if PHILIP_DIM!=1
-BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_DISTRIBUTED_FACTORY, _, POSSIBLE_NSTATE)
-#endif
+    #if PHILIP_DIM!=1
+    BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_DISTRIBUTED_FACTORY, _, POSSIBLE_NSTATE)
+    #endif
 
-#define INSTANTIATE_SHARED_FACTORY(r, data, index) \
-    template class GridRefinementFactory <PHILIP_DIM, PHILIP_SPECIES, index, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
-BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_SHARED_FACTORY, _, POSSIBLE_NSTATE)
+    #define INSTANTIATE_SHARED_FACTORY(r, data, index) \
+        template class GridRefinementFactory <PHILIP_DIM, PHILIP_SPECIES, index, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+    BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_SHARED_FACTORY, _, POSSIBLE_NSTATE)
 
-#define INSTANTIATE_TRIA_FACTORY(r, data, index) \
-    template class GridRefinementFactory <PHILIP_DIM, PHILIP_SPECIES, index, double, dealii::Triangulation<PHILIP_DIM>>;
-BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_TRIA_FACTORY, _, POSSIBLE_NSTATE)
-
-// Templated to allow compilation when NUMBER_OF_SPECIES > 2, but may not work.
-#if (PHILIP_DIM+2+(PHILIP_SPECIES-1)) > 6
-    template class GridRefinementBase <PHILIP_DIM, PHILIP_SPECIES, (PHILIP_DIM+2+(PHILIP_SPECIES-1)), double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
-    template class GridRefinementBase <PHILIP_DIM, PHILIP_SPECIES, (PHILIP_DIM+2+(PHILIP_SPECIES-1)), double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
-    template class GridRefinementBase <PHILIP_DIM, PHILIP_SPECIES, (PHILIP_DIM+2+(PHILIP_SPECIES-1)), double, dealii::Triangulation<PHILIP_DIM>>;
-    template class GridRefinementFactory <PHILIP_DIM, PHILIP_SPECIES, (PHILIP_DIM+2+(PHILIP_SPECIES-1)), double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
-    template class GridRefinementFactory <PHILIP_DIM, PHILIP_SPECIES, (PHILIP_DIM+2+(PHILIP_SPECIES-1)), double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
-    template class GridRefinementFactory <PHILIP_DIM, PHILIP_SPECIES, (PHILIP_DIM+2+(PHILIP_SPECIES-1)), double, dealii::Triangulation<PHILIP_DIM>>;
+    #define INSTANTIATE_TRIA_FACTORY(r, data, index) \
+        template class GridRefinementFactory <PHILIP_DIM, PHILIP_SPECIES, index, double, dealii::Triangulation<PHILIP_DIM>>;
+    BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_TRIA_FACTORY, _, POSSIBLE_NSTATE)
 #endif
 } // namespace GridRefinement
 

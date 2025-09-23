@@ -36,7 +36,7 @@ AnisotropicMeshAdaptation<dim, nspecies, nstate, real, MeshType> :: AnisotropicM
             std::abort();
         }
         
-        std::shared_ptr<Physics::ModelBase<dim,nstate,real>> pde_model_double    = Physics::ModelFactory<dim,nstate,real>::create_Model(dg->all_parameters);
+        std::shared_ptr<Physics::ModelBase<dim,nstate,real>> pde_model_double    = Physics::ModelFactory<dim,nspecies,nstate,real>::create_Model(dg->all_parameters);
         pde_physics_double  = Physics::PhysicsFactory<dim,nspecies,nstate,real>::create_Physics(dg->all_parameters, pde_model_double);
         functional = FunctionalFactory<dim,nspecies,nstate,real,MeshType>::create_Functional(dg->all_parameters->functional_param, dg);
     }

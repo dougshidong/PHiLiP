@@ -333,7 +333,7 @@ Functional<dim,nspecies,nstate,real,MeshType>::Functional(
 { 
     using FadType = Sacado::Fad::DFad<real>;
     using FadFadType = Sacado::Fad::DFad<FadType>;
-    std::shared_ptr<Physics::ModelBase<dim,nstate,FadFadType>> model_fad_fad = Physics::ModelFactory<dim,nstate,FadFadType>::create_Model(dg->all_parameters);
+    std::shared_ptr<Physics::ModelBase<dim,nstate,FadFadType>> model_fad_fad = Physics::ModelFactory<dim,nspecies,nstate,FadFadType>::create_Model(dg->all_parameters);
     physics_fad_fad = Physics::PhysicsFactory<dim,nspecies,nstate,FadFadType>::create_Physics(dg->all_parameters,model_fad_fad);
 
     init_vectors();
@@ -1257,13 +1257,13 @@ FunctionalFactory<dim,nspecies,nstate,real,MeshType>::create_Functional(
     std::vector<unsigned int> boundary_vector    = param.boundary_vector;
     const bool                use_all_boundaries = param.use_all_boundaries;
 
-    if(functional_type == FunctionalTypeEnum::normLp_volume){
+    if(functional_type == FunctionalTypeEnum::normLp_volume && nspecies==1){
         return std::make_shared<FunctionalNormLpVolume<dim,nspecies,nstate,real,MeshType>>(
             normLp,
             dg,
             true,
             false);
-    }else if(functional_type == FunctionalTypeEnum::normLp_boundary){
+    }else if(functional_type == FunctionalTypeEnum::normLp_boundary && nspecies==1){
         return std::make_shared<FunctionalNormLpBoundary<dim,nspecies,nstate,real,MeshType>>(
             normLp,
             boundary_vector,
@@ -1271,7 +1271,7 @@ FunctionalFactory<dim,nspecies,nstate,real,MeshType>::create_Functional(
             dg,
             true,
             false);
-    }else if(functional_type == FunctionalTypeEnum::weighted_integral_volume){
+    }else if(functional_type == FunctionalTypeEnum::weighted_integral_volume && nspecies==1){
         return std::make_shared<FunctionalWeightedIntegralVolume<dim,nspecies,nstate,real,MeshType>>(
             weight_function_double,
             weight_function_adtype,
@@ -1279,7 +1279,7 @@ FunctionalFactory<dim,nspecies,nstate,real,MeshType>::create_Functional(
             dg,
             true,
             false);
-    }else if(functional_type == FunctionalTypeEnum::weighted_integral_boundary){
+    }else if(functional_type == FunctionalTypeEnum::weighted_integral_boundary && nspecies==1){
         return std::make_shared<FunctionalWeightedIntegralBoundary<dim,nspecies,nstate,real,MeshType>>(
             weight_function_double,
             weight_function_adtype,
@@ -1289,13 +1289,13 @@ FunctionalFactory<dim,nspecies,nstate,real,MeshType>::create_Functional(
             dg,
             true,
             false);
-    }else if(functional_type == FunctionalTypeEnum::error_normLp_volume){
+    }else if(functional_type == FunctionalTypeEnum::error_normLp_volume && nspecies==1){
         return std::make_shared<FunctionalErrorNormLpVolume<dim,nspecies,nstate,real,MeshType>>(
             normLp,
             dg,
             true,
             false);
-    }else if(functional_type == FunctionalTypeEnum::error_normLp_boundary){
+    }else if(functional_type == FunctionalTypeEnum::error_normLp_boundary && nspecies==1){
         return std::make_shared<FunctionalErrorNormLpBoundary<dim,nspecies,nstate,real,MeshType>>(
             normLp,
             boundary_vector,
@@ -1303,7 +1303,7 @@ FunctionalFactory<dim,nspecies,nstate,real,MeshType>::create_Functional(
             dg,
             true,
             false);
-    }else if(functional_type == FunctionalTypeEnum::lift){
+    }else if(functional_type == FunctionalTypeEnum::lift && nspecies==1){
         if constexpr(dim==2 && 
                      nstate==(dim+2) && 
                      std::is_same<MeshType, dealii::parallel::distributed::Triangulation<dim>>::value)
@@ -1312,7 +1312,7 @@ FunctionalFactory<dim,nspecies,nstate,real,MeshType>::create_Functional(
                 dg,
                 LiftDragFunctional<dim,nspecies,dim+2,double,MeshType>::Functional_types::lift);
         }
-    }else if(functional_type == FunctionalTypeEnum::drag){
+    }else if(functional_type == FunctionalTypeEnum::drag && nspecies==1){
         if constexpr(dim==2 && 
                      nstate==(dim+2) && 
                      std::is_same<MeshType, dealii::parallel::distributed::Triangulation<dim>>::value)
@@ -1321,10 +1321,10 @@ FunctionalFactory<dim,nspecies,nstate,real,MeshType>::create_Functional(
                 dg,
                 LiftDragFunctional<dim,nspecies,dim+2,double,MeshType>::Functional_types::drag);
         }
-    }else if(functional_type == FunctionalTypeEnum::solution_integral) {
+    }else if(functional_type == FunctionalTypeEnum::solution_integral && nspecies==1) {
         std::shared_ptr< DGBaseState<dim,nspecies,nstate,double,MeshType>> dg_state = std::dynamic_pointer_cast< DGBaseState<dim,nspecies,nstate,double, MeshType>>(dg);
         return std::make_shared<SolutionIntegral<dim,nspecies,nstate,real,MeshType>>(dg,dg_state->pde_physics_fad_fad,true,false);
-    }else if(functional_type == FunctionalTypeEnum::outlet_pressure_integral) {
+    }else if(functional_type == FunctionalTypeEnum::outlet_pressure_integral && nspecies==1) {
         if constexpr (dim==2 && nstate==dim+2){
             return std::make_shared<OutletPressureIntegral<dim,nspecies,nstate,real,MeshType>>(dg, true,false);
         }
@@ -1335,6 +1335,7 @@ FunctionalFactory<dim,nspecies,nstate,real,MeshType>::create_Functional(
     return nullptr;
 }
 
+#if PHILIP_SPECIES==1
 // Define a sequence of indices representing the range [1, 6] - max is 6 because nstate=dim+2+(species-1)=6 when dim=3 species=2
 #define POSSIBLE_NSTATE (1)(2)(3)(4)(5)(6)
 
@@ -1467,37 +1468,17 @@ BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_SHARED_NORMLPVOLUME, _, POSSIBLE_NSTATE)
 #define INSTANTIATE_TRIA_NORMLPVOLUME(r, data, index) \
     template class FunctionalNormLpVolume <PHILIP_DIM, PHILIP_SPECIES, index, double, dealii::Triangulation<PHILIP_DIM>>;
 BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_TRIA_NORMLPVOLUME, _, POSSIBLE_NSTATE)
-
-// Templated to allow compilation when NUMBER_OF_SPECIES > 2, but may not work.
-#if (PHILIP_DIM+2+(PHILIP_SPECIES-1)) > 6
-    template class Functional <PHILIP_DIM, PHILIP_SPECIES, (PHILIP_DIM+2+(PHILIP_SPECIES-1)), double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
-    template class Functional <PHILIP_DIM, PHILIP_SPECIES, (PHILIP_DIM+2+(PHILIP_SPECIES-1)), double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
-    template class Functional <PHILIP_DIM, PHILIP_SPECIES, (PHILIP_DIM+2+(PHILIP_SPECIES-1)), double, dealii::Triangulation<PHILIP_DIM>>;
-    template class FunctionalFactory <PHILIP_DIM, PHILIP_SPECIES, (PHILIP_DIM+2+(PHILIP_SPECIES-1)), double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
-    template class FunctionalFactory <PHILIP_DIM, PHILIP_SPECIES, (PHILIP_DIM+2+(PHILIP_SPECIES-1)), double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
-    template class FunctionalFactory <PHILIP_DIM, PHILIP_SPECIES, (PHILIP_DIM+2+(PHILIP_SPECIES-1)), double, dealii::Triangulation<PHILIP_DIM>>;
-    template class FunctionalErrorNormLpBoundary <PHILIP_DIM, PHILIP_SPECIES, (PHILIP_DIM+2+(PHILIP_SPECIES-1)), double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
-    template class FunctionalErrorNormLpBoundary <PHILIP_DIM, PHILIP_SPECIES, (PHILIP_DIM+2+(PHILIP_SPECIES-1)), double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
-    template class FunctionalErrorNormLpBoundary <PHILIP_DIM, PHILIP_SPECIES, (PHILIP_DIM+2+(PHILIP_SPECIES-1)), double, dealii::Triangulation<PHILIP_DIM>>;
-    template class FunctionalErrorNormLpVolume <PHILIP_DIM, PHILIP_SPECIES, (PHILIP_DIM+2+(PHILIP_SPECIES-1)), double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
-    template class FunctionalErrorNormLpVolume <PHILIP_DIM, PHILIP_SPECIES, (PHILIP_DIM+2+(PHILIP_SPECIES-1)), double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
-    template class FunctionalErrorNormLpVolume <PHILIP_DIM, PHILIP_SPECIES, (PHILIP_DIM+2+(PHILIP_SPECIES-1)), double, dealii::Triangulation<PHILIP_DIM>>;
-    template class FunctionalWeightedIntegralBoundary <PHILIP_DIM, PHILIP_SPECIES, (PHILIP_DIM+2+(PHILIP_SPECIES-1)), double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
-    template class FunctionalWeightedIntegralBoundary <PHILIP_DIM, PHILIP_SPECIES, (PHILIP_DIM+2+(PHILIP_SPECIES-1)), double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
-    template class FunctionalWeightedIntegralBoundary <PHILIP_DIM, PHILIP_SPECIES, (PHILIP_DIM+2+(PHILIP_SPECIES-1)), double, dealii::Triangulation<PHILIP_DIM>>;
-    template class FunctionalWeightedIntegralVolume <PHILIP_DIM, PHILIP_SPECIES, (PHILIP_DIM+2+(PHILIP_SPECIES-1)), double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
-    template class FunctionalWeightedIntegralVolume <PHILIP_DIM, PHILIP_SPECIES, (PHILIP_DIM+2+(PHILIP_SPECIES-1)), double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
-    template class FunctionalWeightedIntegralVolume <PHILIP_DIM, PHILIP_SPECIES, (PHILIP_DIM+2+(PHILIP_SPECIES-1)), double, dealii::Triangulation<PHILIP_DIM>>;
-    template class FunctionalNormLpBoundary <PHILIP_DIM, PHILIP_SPECIES, (PHILIP_DIM+2+(PHILIP_SPECIES-1)), double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
-    template class FunctionalNormLpBoundary <PHILIP_DIM, PHILIP_SPECIES, (PHILIP_DIM+2+(PHILIP_SPECIES-1)), double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
-    template class FunctionalNormLpBoundary <PHILIP_DIM, PHILIP_SPECIES, (PHILIP_DIM+2+(PHILIP_SPECIES-1)), double, dealii::Triangulation<PHILIP_DIM>>;
-    template class FunctionalNormLpVolume <PHILIP_DIM, PHILIP_SPECIES, (PHILIP_DIM+2+(PHILIP_SPECIES-1)), double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
-    template class FunctionalNormLpVolume <PHILIP_DIM, PHILIP_SPECIES, (PHILIP_DIM+2+(PHILIP_SPECIES-1)), double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
-    template class FunctionalNormLpVolume <PHILIP_DIM, PHILIP_SPECIES, (PHILIP_DIM+2+(PHILIP_SPECIES-1)), double, dealii::Triangulation<PHILIP_DIM>>;
-#endif
-
 #if PHILIP_DIM == 2
 template class OutletPressureIntegral<PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+#endif
+// Templated to allow compilation when NUMBER_OF_SPECIES > 1, but may not work.
+#else
+    #if PHILIP_DIM!=1
+    template class FunctionalFactory <PHILIP_DIM, PHILIP_SPECIES, (PHILIP_DIM+2+(PHILIP_SPECIES-1)), double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+    #endif
+
+    template class FunctionalFactory <PHILIP_DIM, PHILIP_SPECIES, (PHILIP_DIM+2+(PHILIP_SPECIES-1)), double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+    template class FunctionalFactory <PHILIP_DIM, PHILIP_SPECIES, (PHILIP_DIM+2+(PHILIP_SPECIES-1)), double, dealii::Triangulation<PHILIP_DIM>>;
 #endif
 
 } // PHiLiP namespace

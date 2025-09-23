@@ -272,8 +272,6 @@ template class BoundPreservingLimiterTests<PHILIP_DIM, PHILIP_SPECIES, PHILIP_DI
 template class BoundPreservingLimiterTests<PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM>;
 template class BoundPreservingLimiterTests<PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM + 2>;
 template class BoundPreservingLimiterTests<PHILIP_DIM, PHILIP_SPECIES, 1>;
-#elif PHILIP_SPECIES!=1
-template class BoundPreservingLimiterTests<PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM + 2 + (PHILIP_SPECIES-1)>;
 #endif
 } // Tests namespace
 } // PHiLiP namespace

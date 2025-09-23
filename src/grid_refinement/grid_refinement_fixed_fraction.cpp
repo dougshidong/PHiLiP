@@ -608,7 +608,7 @@ BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_SHARED, _, POSSIBLE_NSTATE)
     template class GridRefinement_FixedFraction <PHILIP_DIM, PHILIP_SPECIES, index, double, dealii::Triangulation<PHILIP_DIM>>;
 BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_TRIA, _, POSSIBLE_NSTATE)
 
-// Templated to allow compilation when NUMBER_OF_SPECIES > 2, but may not work.
+// Templated to allow compilation when NUMBER_OF_SPECIES > 1, but may not work.
 #if (PHILIP_DIM+2+(PHILIP_SPECIES-1)) > 6
     template class GridRefinement_FixedFraction <PHILIP_DIM, PHILIP_SPECIES, (PHILIP_DIM+2+(PHILIP_SPECIES-1)), double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
     template class GridRefinement_FixedFraction <PHILIP_DIM, PHILIP_SPECIES, (PHILIP_DIM+2+(PHILIP_SPECIES-1)), double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;

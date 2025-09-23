@@ -43,7 +43,7 @@ std::unique_ptr< BoundPreservingLimiter<dim, nspecies, real> >
             } else if (flux_nodes_type != flux_nodes_enum::GLL) {
                 std::cout << "Error: Can only use limiter with GLL flux nodes" << std::endl;
                 std::abort();
-            } else if (dim == 1 && nstate <=  dim + 2 + (nspecies - 1))
+            } else if (dim == 1 && nspecies==1 && nstate <=  dim + 2 + (nspecies - 1))
                 return std::make_unique < TVBLimiter<dim, nspecies, nstate, real> >(parameters_input);
             else {
                 std::cout << "Error: Cannot create TVB limiter for dim > 1" << std::endl;

@@ -239,6 +239,7 @@ void SetInitialCondition<dim,nspecies,nstate,real>::read_values_from_file_and_pr
     }
 }
 
+#if PHILIP_SPECIES==1
 template class SetInitialCondition<PHILIP_DIM, PHILIP_SPECIES, 1, double>;
 template class SetInitialCondition<PHILIP_DIM, PHILIP_SPECIES, 2, double>;
 template class SetInitialCondition<PHILIP_DIM, PHILIP_SPECIES, 3, double>;
@@ -246,5 +247,9 @@ template class SetInitialCondition<PHILIP_DIM, PHILIP_SPECIES, 4, double>;
 template class SetInitialCondition<PHILIP_DIM, PHILIP_SPECIES, 5, double>;
 template class SetInitialCondition<PHILIP_DIM, PHILIP_SPECIES, 6, double>;
 template class SetInitialCondition<PHILIP_DIM, PHILIP_SPECIES, 7, double>;
+#else
+template class SetInitialCondition<PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2+(PHILIP_SPECIES-1), double>;
+#endif
+
 
 }//end of namespace PHILIP

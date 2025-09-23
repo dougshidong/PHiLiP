@@ -197,19 +197,20 @@ const std::array<RadFadType,nstate> &conservative_soln, const std::array<dealii:
 }
 
 
-
+#if PHILIP_SPECIES==1
 template class ArtificialDissipationBase<PHILIP_DIM,1>; template class LaplacianArtificialDissipation < PHILIP_DIM,1>; 
 template class ArtificialDissipationBase<PHILIP_DIM,2>; template class LaplacianArtificialDissipation < PHILIP_DIM,2>;
 template class ArtificialDissipationBase<PHILIP_DIM,3>; template class LaplacianArtificialDissipation < PHILIP_DIM,3>;
 template class ArtificialDissipationBase<PHILIP_DIM,4>; template class LaplacianArtificialDissipation < PHILIP_DIM,4>;
 template class ArtificialDissipationBase<PHILIP_DIM,5>; template class LaplacianArtificialDissipation < PHILIP_DIM,5>;
 template class ArtificialDissipationBase<PHILIP_DIM,6>; template class LaplacianArtificialDissipation < PHILIP_DIM,6>;
-#if (PHILIP_DIM+2+(PHILIP_SPECIES-1)) > 6
-    template class ArtificialDissipationBase<PHILIP_DIM,(PHILIP_DIM+2+(PHILIP_SPECIES-1))>; 
-    template class LaplacianArtificialDissipation<PHILIP_DIM,(PHILIP_DIM+2+(PHILIP_SPECIES-1))>; 
-#endif
+
 template class PhysicalArtificialDissipation<PHILIP_DIM,PHILIP_DIM+2>;
 
 template class EnthalpyConservingArtificialDissipation < PHILIP_DIM,PHILIP_DIM+2>; 
+#else
+    template class ArtificialDissipationBase<PHILIP_DIM,(PHILIP_DIM+2+(PHILIP_SPECIES-1))>; 
+    template class LaplacianArtificialDissipation<PHILIP_DIM,(PHILIP_DIM+2+(PHILIP_SPECIES-1))>; 
+#endif
 
 }// PHiLiP namespace

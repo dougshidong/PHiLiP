@@ -72,9 +72,9 @@ int GridRefinementStudy<dim,nspecies,nstate,MeshType>::run_test() const
 
     // creating the model object for physics
     std::shared_ptr< Physics::ModelBase<dim,nstate,double> > model_double
-        = Physics::ModelFactory<dim,nstate,double>::create_Model(&param);
+        = Physics::ModelFactory<dim,nspecies,nstate,double>::create_Model(&param);
     std::shared_ptr< Physics::ModelBase<dim,nstate,ADtype> > model_adtype
-        = Physics::ModelFactory<dim,nstate,ADtype>::create_Model(&param);
+        = Physics::ModelFactory<dim,nspecies,nstate,ADtype>::create_Model(&param);
 
     // creating the physics object
     std::shared_ptr< Physics::PhysicsBase<dim,nstate,double> > physics_double
@@ -572,7 +572,8 @@ MeshFactory<dealii::parallel::distributed::Triangulation<PHILIP_DIM>>::create_Me
 }
 #endif
 
-// Define a sequence of indices representing the range [1, 6] - max is 6 because nstate=dim+2+(species-1)=6 when dim=3 species=2
+#if PHILIP_SPECIES==1
+// Define a sequence of indices representing the range [1, 6]
 #define POSSIBLE_NSTATE (1)(2)(3)(4)(5)(6)
 
 // Define a macro to instantiate MyTemplate for a specific index
@@ -590,7 +591,7 @@ BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_SHARED, _, POSSIBLE_NSTATE)
 #define INSTANTIATE_TRIA(r, data, index) \
     template class GridRefinementStudy <PHILIP_DIM, PHILIP_SPECIES, index, dealii::Triangulation<PHILIP_DIM>>;
 BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_TRIA, _, POSSIBLE_NSTATE)
-
+#endif
 } // namespace Tests
 
 } // namespace PHiLiP

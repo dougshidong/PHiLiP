@@ -956,6 +956,7 @@ void NavierStokes<dim,nstate,real>
     }
 }
 
+
 // Instantiate explicitly
 template class NavierStokes < PHILIP_DIM, PHILIP_DIM+2, double >;
 template class NavierStokes < PHILIP_DIM, PHILIP_DIM+2, FadType  >;

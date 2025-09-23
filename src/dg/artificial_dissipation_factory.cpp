@@ -47,13 +47,14 @@ ArtificialDissipationFactory<dim,nstate> ::create_artificial_dissipation(const P
     return nullptr;
 }
 
+#if PHILIP_SPECIES==1
 template class ArtificialDissipationFactory<PHILIP_DIM,1>; 
 template class ArtificialDissipationFactory<PHILIP_DIM,2>; 
 template class ArtificialDissipationFactory<PHILIP_DIM,3>; 
 template class ArtificialDissipationFactory<PHILIP_DIM,4>; 
 template class ArtificialDissipationFactory<PHILIP_DIM,5>; 
 template class ArtificialDissipationFactory<PHILIP_DIM,6>; 
-#if (PHILIP_DIM+2+(PHILIP_SPECIES-1)) > 6
+#else
     template class ArtificialDissipationFactory<PHILIP_DIM,(PHILIP_DIM+2+(PHILIP_SPECIES-1))>; 
 #endif
 } // namespace PHiLiP

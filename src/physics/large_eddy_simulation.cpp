@@ -886,6 +886,7 @@ real2 LargeEddySimulation_Vreman<dim,nstate,real>
 //----------------------------------------------------------------
 //----------------------------------------------------------------
 // Instantiate explicitly
+#if PHILIP_SPECIES==1
 // -- LargeEddySimulationBase
 template class LargeEddySimulationBase         < PHILIP_DIM, PHILIP_DIM+2, double >;
 template class LargeEddySimulationBase         < PHILIP_DIM, PHILIP_DIM+2, FadType  >;
@@ -924,7 +925,7 @@ template FadType    LargeEddySimulationBase < PHILIP_DIM, PHILIP_DIM+2, double  
 template FadType    LargeEddySimulationBase < PHILIP_DIM, PHILIP_DIM+2, RadType    >::get_tensor_magnitude_sqr< FadType    >(const dealii::Tensor<2,PHILIP_DIM,FadType   > &tensor) const;
 template FadType    LargeEddySimulationBase < PHILIP_DIM, PHILIP_DIM+2, FadFadType >::get_tensor_magnitude_sqr< FadType    >(const dealii::Tensor<2,PHILIP_DIM,FadType   > &tensor) const;
 template FadType    LargeEddySimulationBase < PHILIP_DIM, PHILIP_DIM+2, RadFadType >::get_tensor_magnitude_sqr< FadType    >(const dealii::Tensor<2,PHILIP_DIM,FadType   > &tensor) const;
-
+#endif
 
 } // Physics namespace
 } // PHiLiP namespace

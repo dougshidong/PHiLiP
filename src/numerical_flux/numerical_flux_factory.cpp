@@ -34,7 +34,7 @@ NumericalFluxFactory<dim, nspecies, nstate, real>
         std::abort();
     }
 
-    if (conv_num_flux_type == AllParam::ConvectiveNumericalFlux::central_flux) {
+    if (conv_num_flux_type == AllParam::ConvectiveNumericalFlux::central_flux && nspecies==1) {
         if constexpr (nstate<=5) {
             return std::make_unique< Central<dim, nstate, real> > (physics_input);
         }
@@ -48,12 +48,12 @@ NumericalFluxFactory<dim, nspecies, nstate, real>
         }
     }
     else if (conv_num_flux_type == AllParam::ConvectiveNumericalFlux::two_point_flux) {
-        if constexpr (nstate<=5) {
+        if constexpr (nstate<=5 && nspecies==1) {
             return std::make_unique< EntropyConserving<dim, nstate, real> > (physics_input);
         }
     } 
     else if (conv_num_flux_type == AllParam::ConvectiveNumericalFlux::two_point_flux_with_lax_friedrichs_dissipation) {
-        if constexpr (nstate<=5) {
+        if constexpr (nstate<=5 && nspecies==1) {
             return std::make_unique< EntropyConservingWithLaxFriedrichsDissipation<dim, nstate, real> > (physics_input);
         }
     } 
@@ -87,11 +87,11 @@ NumericalFluxFactory<dim, nspecies, nstate, real>
         std::abort();
     }
 
-#if PHILIP_DIM==3
+#if PHILIP_DIM==3 && PHILIP_SPECIES==1
     if((pde_type==PDE_enum::physics_model && 
         model_type==Model_enum::large_eddy_simulation)) 
     {
-        if constexpr (dim+2==nstate) {
+        if constexpr (dim+2==nstate && nspecies==1) {
             std::shared_ptr<Physics::PhysicsModel<dim,nspecies,dim+2,real,dim+2>> physics_model = std::dynamic_pointer_cast<Physics::PhysicsModel<dim,nspecies,dim+2,real,dim+2>>(physics_input);
             std::shared_ptr<Physics::Euler<dim,dim+2,real>> physics_baseline = std::dynamic_pointer_cast<Physics::Euler<dim,dim+2,real>>(physics_model->physics_baseline);
             euler_based_physics_to_be_passed = physics_baseline;
@@ -145,6 +145,7 @@ NumericalFluxFactory<dim, nspecies, nstate, real>
     return nullptr;
 }
 
+#if PHILIP_SPECIES==1
 // Define a sequence of indices representing the range [1, 6] - max is 6 because nstate=dim+2+(species-1)=6 when dim=3 species=2
 #define POSSIBLE_NSTATE (1)(2)(3)(4)(5)(6)
 
@@ -169,8 +170,8 @@ BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_FADFADTYPE, _, POSSIBLE_NSTATE)
     template class NumericalFluxFactory <PHILIP_DIM, PHILIP_SPECIES, index, RadFadType>;
 BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_RADFADTYPE, _, POSSIBLE_NSTATE)
 
-// Templated to allow compilation when NUMBER_OF_SPECIES > 2, but may not work.
-#if (PHILIP_DIM+2+(PHILIP_SPECIES-1)) > 6
+// Templated to allow compilation when NUMBER_OF_SPECIES > 1, but may not work.
+#else
     template class NumericalFluxFactory <PHILIP_DIM, PHILIP_SPECIES, (PHILIP_DIM+2+(PHILIP_SPECIES-1)), double>;
     template class NumericalFluxFactory <PHILIP_DIM, PHILIP_SPECIES, (PHILIP_DIM+2+(PHILIP_SPECIES-1)), FadType>;
     template class NumericalFluxFactory <PHILIP_DIM, PHILIP_SPECIES, (PHILIP_DIM+2+(PHILIP_SPECIES-1)), RadType>;

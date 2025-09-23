@@ -68,7 +68,7 @@ int test_dissipative_numerical_flux_conservation (const PHiLiP::Parameters::AllP
 
 
     using namespace PHiLiP;
-    std::shared_ptr <Physics::ModelBase<dim, nstate, double>> pde_model = Physics::ModelFactory<dim, nstate, double>::create_Model(all_parameters);
+    std::shared_ptr <Physics::ModelBase<dim, nstate, double>> pde_model = Physics::ModelFactory<dim, nspecies, nstate, double>::create_Model(all_parameters);
     initialize_model_variables(pde_model);
     std::shared_ptr <Physics::PhysicsBase<dim, nstate, double>> pde_physics = Physics::PhysicsFactory<dim, nspecies, nstate, double>::create_Physics(all_parameters,pde_model);
     std::shared_ptr <ArtificialDissipationBase<dim,nstate>> artificial_dissipation_pointer = ArtificialDissipationFactory<dim,nstate>::create_artificial_dissipation(all_parameters);
@@ -127,7 +127,7 @@ template<int dim, int nspecies, int nstate>
 int test_dissipative_numerical_flux_consistency (const PHiLiP::Parameters::AllParameters *const all_parameters)
 {
     using namespace PHiLiP;
-    std::shared_ptr <Physics::ModelBase<dim, nstate, double>> pde_model = Physics::ModelFactory<dim, nstate, double>::create_Model(all_parameters);
+    std::shared_ptr <Physics::ModelBase<dim, nstate, double>> pde_model = Physics::ModelFactory<dim, nspecies, nstate, double>::create_Model(all_parameters);
     initialize_model_variables(pde_model);
     std::shared_ptr <Physics::PhysicsBase<dim, nstate, double>> pde_physics = Physics::PhysicsFactory<dim, nspecies, nstate, double>::create_Physics(all_parameters, pde_model);
     std::shared_ptr <ArtificialDissipationBase<dim,nstate>> artificial_dissipation_pointer = ArtificialDissipationFactory<dim,nstate> ::create_artificial_dissipation(all_parameters);
@@ -192,7 +192,7 @@ template<int dim, int nspecies, int nstate>
 int test_convective_numerical_flux_conservation (const PHiLiP::Parameters::AllParameters *const all_parameters)
 {
     using namespace PHiLiP;
-    std::shared_ptr <Physics::ModelBase<dim, nstate, double>> pde_model = Physics::ModelFactory<dim, nstate, double>::create_Model(all_parameters);
+    std::shared_ptr <Physics::ModelBase<dim, nstate, double>> pde_model = Physics::ModelFactory<dim, nspecies, nstate, double>::create_Model(all_parameters);
     initialize_model_variables(pde_model);
     std::shared_ptr <Physics::PhysicsBase<dim, nstate, double>> pde_physics = Physics::PhysicsFactory<dim, nspecies, nstate, double>::create_Physics(all_parameters,pde_model);
     
@@ -229,7 +229,7 @@ template<int dim, int nspecies, int nstate>
 int test_convective_numerical_flux_consistency (const PHiLiP::Parameters::AllParameters *const all_parameters)
 {
     using namespace PHiLiP;
-    std::shared_ptr <Physics::ModelBase<dim, nstate, double>> pde_model = Physics::ModelFactory<dim, nstate, double>::create_Model(all_parameters);
+    std::shared_ptr <Physics::ModelBase<dim, nstate, double>> pde_model = Physics::ModelFactory<dim, nspecies, nstate, double>::create_Model(all_parameters);
     initialize_model_variables(pde_model);
     std::shared_ptr <Physics::PhysicsBase<dim, nstate, double>> pde_physics = Physics::PhysicsFactory<dim, nspecies, nstate, double>::create_Physics(all_parameters,pde_model);
 

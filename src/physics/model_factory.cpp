@@ -16,15 +16,15 @@
 namespace PHiLiP {
 namespace Physics {
 
-template <int dim, int nstate, typename real>
+template <int dim, int nspecies, int nstate, typename real>
 std::shared_ptr < ModelBase<dim,nstate,real> >
-ModelFactory<dim,nstate,real>
+ModelFactory<dim,nspecies,nstate,real>
 ::create_Model(const Parameters::AllParameters *const parameters_input)
 {
     using PDE_enum = Parameters::AllParameters::PartialDifferentialEquation;
     PDE_enum pde_type = parameters_input->pde_type;
 
-    if(pde_type == PDE_enum::physics_model) {
+    if(pde_type == PDE_enum::physics_model && nspecies==1) {
         // generating the manufactured solution from the manufactured solution factory
         std::shared_ptr< ManufacturedSolutionFunction<dim,real> >  manufactured_solution_function 
             = ManufacturedSolutionFactory<dim,real>::create_ManufacturedSolution(parameters_input, nstate);
@@ -182,52 +182,37 @@ ModelFactory<dim,nstate,real>
 }
 
 // Instantiate explicitly
+#if PHILIP_SPECIES==1
+    // Define a sequence of indices representing the range [1, 8]
+    #define POSSIBLE_NSTATE (1)(2)(3)(4)(5)(6)(7)(8)
 
-// Define a sequence of indices representing the range [1, 8]
-#define POSSIBLE_NSTATE (1)(2)(3)(4)(5)(6)(7)(8)
-
-// Define a macro to instantiate MyTemplate for a specific index
-#define INSTANTIATE_DOUBLE(r, data, index) \
-    template class ModelFactory <PHILIP_DIM, index, double>;
-BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_DOUBLE, _, POSSIBLE_NSTATE)
-
-#define INSTANTIATE_FADTYPE(r, data, index) \
-    template class ModelFactory <PHILIP_DIM, index, FadType>;
-BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_FADTYPE, _, POSSIBLE_NSTATE)
-
-#define INSTANTIATE_RADTYPE(r, data, index) \
-    template class ModelFactory <PHILIP_DIM, index, RadType>;
-BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_RADTYPE, _, POSSIBLE_NSTATE)
-
-#define INSTANTIATE_FADFADTYPE(r, data, index) \
-    template class ModelFactory <PHILIP_DIM, index, FadFadType>;
-BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_FADFADTYPE, _, POSSIBLE_NSTATE)
-
-#define INSTANTIATE_RADFADTYPE(r, data, index) \
-    template class ModelFactory <PHILIP_DIM, index, RadFadType>;
-BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_RADFADTYPE, _, POSSIBLE_NSTATE)
-
-// Templated to allow compilation when NUMBER_OF_SPECIES > 2, but may not work.
-#if ((PHILIP_DIM+2+(PHILIP_SPECIES-1)) > 8)
+    // Define a macro to instantiate MyTemplate for a specific index
     #define INSTANTIATE_DOUBLE(r, data, index) \
-        template class ModelFactory <PHILIP_DIM, index, double>;
-    BOOST_PP_REPEAT_FROM_TO_d(0,PHILIP_DIM+2+(PHILIP_SPECIES-1),INSTANTIATE_DOUBLE, _)
+        template class ModelFactory <PHILIP_DIM, PHILIP_SPECIES, index, double>;
+    BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_DOUBLE, _, POSSIBLE_NSTATE)
 
     #define INSTANTIATE_FADTYPE(r, data, index) \
-        template class ModelFactory <PHILIP_DIM, index, FadType>;
-    BOOST_PP_REPEAT_FROM_TO_d(0,PHILIP_DIM+2+(PHILIP_SPECIES-1),INSTANTIATE_FADTYPE, _)
+        template class ModelFactory <PHILIP_DIM, PHILIP_SPECIES, index, FadType>;
+    BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_FADTYPE, _, POSSIBLE_NSTATE)
 
     #define INSTANTIATE_RADTYPE(r, data, index) \
-        template class ModelFactory <PHILIP_DIM, index, RadType>;
-    BOOST_PP_REPEAT_FROM_TO_d(0,PHILIP_DIM+2+(PHILIP_SPECIES-1),INSTANTIATE_RADTYPE, _)
+        template class ModelFactory <PHILIP_DIM, PHILIP_SPECIES, index, RadType>;
+    BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_RADTYPE, _, POSSIBLE_NSTATE)
 
     #define INSTANTIATE_FADFADTYPE(r, data, index) \
-        template class ModelFactory <PHILIP_DIM, index, FadFadType>;
-    BOOST_PP_REPEAT_FROM_TO_d(0,PHILIP_DIM+2+(PHILIP_SPECIES-1),INSTANTIATE_FADFADTYPE, _)
+        template class ModelFactory <PHILIP_DIM, PHILIP_SPECIES, index, FadFadType>;
+    BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_FADFADTYPE, _, POSSIBLE_NSTATE)
 
     #define INSTANTIATE_RADFADTYPE(r, data, index) \
-        template class ModelFactory <PHILIP_DIM, index, RadFadType>;
-    BOOST_PP_REPEAT_FROM_TO_d(0,PHILIP_DIM+2+(PHILIP_SPECIES-1),INSTANTIATE_RADFADTYPE, _)
+        template class ModelFactory <PHILIP_DIM, PHILIP_SPECIES, index, RadFadType>;
+    BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_RADFADTYPE, _, POSSIBLE_NSTATE)
+#else
+    // Templated to allow compilation when NUMBER_OF_SPECIES > 1, but may not work.
+    template class ModelFactory <PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM + 2 + (PHILIP_SPECIES - 1), double>;
+    template class ModelFactory <PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM + 2 + (PHILIP_SPECIES - 1), FadType>;
+    template class ModelFactory <PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM + 2 + (PHILIP_SPECIES - 1), RadType>;
+    template class ModelFactory <PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM + 2 + (PHILIP_SPECIES - 1), FadFadType>;
+    template class ModelFactory <PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM + 2 + (PHILIP_SPECIES - 1), RadFadType>;
 #endif
 } // Physics namespace
 } // PHiLiP namespace

@@ -299,7 +299,7 @@ void TVBLimiter<dim, nspecies, nstate, real>::limit(
     }
 }
 
-#if PHILIP_DIM==1
+#if PHILIP_DIM==1 && PHILIP_SPECIES==1
 template class TVBLimiter <PHILIP_DIM, PHILIP_SPECIES, 1, double>;
 template class TVBLimiter <PHILIP_DIM, PHILIP_SPECIES, 2, double>;
 template class TVBLimiter <PHILIP_DIM, PHILIP_SPECIES, 3, double>;

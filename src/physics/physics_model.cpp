@@ -414,6 +414,7 @@ dealii::UpdateFlags PhysicsModel<dim,nspecies,nstate,real,nstate_baseline_physic
 }
 
 // Instantiate explicitly
+#if PHILIP_SPECIES==1
 template class PhysicsModel < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, double    , PHILIP_DIM+2 >;
 template class PhysicsModel < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, FadType   , PHILIP_DIM+2 >;
 template class PhysicsModel < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, RadType   , PHILIP_DIM+2 >;
@@ -425,6 +426,12 @@ template class PhysicsModel < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+3, FadType 
 template class PhysicsModel < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+3, RadType   , PHILIP_DIM+2 >;
 template class PhysicsModel < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+3, FadFadType, PHILIP_DIM+2 >;
 template class PhysicsModel < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+3, RadFadType, PHILIP_DIM+2 >;
-
+#else
+template class PhysicsModel < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2+(PHILIP_SPECIES-1), double    , PHILIP_DIM+2+(PHILIP_SPECIES-1) >;
+template class PhysicsModel < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2+(PHILIP_SPECIES-1), FadType   , PHILIP_DIM+2+(PHILIP_SPECIES-1) >;
+template class PhysicsModel < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2+(PHILIP_SPECIES-1), RadType   , PHILIP_DIM+2+(PHILIP_SPECIES-1) >;
+template class PhysicsModel < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2+(PHILIP_SPECIES-1), FadFadType, PHILIP_DIM+2+(PHILIP_SPECIES-1) >;
+template class PhysicsModel < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2+(PHILIP_SPECIES-1), RadFadType, PHILIP_DIM+2+(PHILIP_SPECIES-1) >;
+#endif
 } // Physics namespace
 } // PHiLiP namespace

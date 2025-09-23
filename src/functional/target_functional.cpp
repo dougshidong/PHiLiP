@@ -72,7 +72,7 @@ TargetFunctional<dim,nspecies,nstate,real>::TargetFunctional(
 { 
     using FadType = Sacado::Fad::DFad<real>;
     using FadFadType = Sacado::Fad::DFad<FadType>;
-    std::shared_ptr<Physics::ModelBase<dim,nstate,FadFadType>> model_fad_fad = Physics::ModelFactory<dim,nstate,FadFadType>::create_Model(dg->all_parameters);
+    std::shared_ptr<Physics::ModelBase<dim,nstate,FadFadType>> model_fad_fad = Physics::ModelFactory<dim,nspecies,nstate,FadFadType>::create_Model(dg->all_parameters);
     physics_fad_fad = Physics::PhysicsFactory<dim,nspecies,nstate,FadFadType>::create_Physics(dg->all_parameters,model_fad_fad);
 }
 
@@ -690,6 +690,7 @@ dealii::LinearAlgebra::distributed::Vector<real> TargetFunctional<dim,nspecies,n
     return dIdX_FD;
 }
 
+#if PHILIP_SPECIES==1
 // Define a sequence of indices representing the range [1, 6] - max is 6 because nstate=dim+2+(species-1)=6 when dim=3 species=2
 #define POSSIBLE_NSTATE (1)(2)(3)(4)(5)(6)
 
@@ -698,8 +699,8 @@ dealii::LinearAlgebra::distributed::Vector<real> TargetFunctional<dim,nspecies,n
    template class TargetFunctional <PHILIP_DIM,PHILIP_SPECIES,index, double>;
 BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_TEMPLATE, _, POSSIBLE_NSTATE)
 
-// Templated to allow compilation when NUMBER_OF_SPECIES > 2, but may not work.
-#if (PHILIP_DIM+2+(PHILIP_SPECIES-1)) > 6
+// Templated to allow compilation when NUMBER_OF_SPECIES > 1, but may not work.
+#else
     template class TargetFunctional <PHILIP_DIM, PHILIP_SPECIES, (PHILIP_DIM+2+(PHILIP_SPECIES-1)), double>;
 #endif
 } // PHiLiP namespace

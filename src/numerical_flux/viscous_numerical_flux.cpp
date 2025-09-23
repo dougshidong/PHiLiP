@@ -326,6 +326,7 @@ std::array<real, nstate> BassiRebay2<dim,nstate,real>
 }
 
 // Instantiation
+#if PHILIP_SPECIES==1
 template class NumericalFluxDissipative<PHILIP_DIM, 1, double>;
 template class NumericalFluxDissipative<PHILIP_DIM, 2, double>;
 template class NumericalFluxDissipative<PHILIP_DIM, 3, double>;
@@ -360,14 +361,6 @@ template class NumericalFluxDissipative<PHILIP_DIM, 3, RadFadType >;
 template class NumericalFluxDissipative<PHILIP_DIM, 4, RadFadType >;
 template class NumericalFluxDissipative<PHILIP_DIM, 5, RadFadType >;
 template class NumericalFluxDissipative<PHILIP_DIM, 6, RadFadType >;
-
-#if (PHILIP_DIM+2+(PHILIP_SPECIES-1)) > 6
-   template class NumericalFluxDissipative <PHILIP_DIM,(PHILIP_DIM+2+(PHILIP_SPECIES-1)), double>;
-   template class NumericalFluxDissipative <PHILIP_DIM,(PHILIP_DIM+2+(PHILIP_SPECIES-1)), FadType>;
-   template class NumericalFluxDissipative <PHILIP_DIM,(PHILIP_DIM+2+(PHILIP_SPECIES-1)), RadType>;
-   template class NumericalFluxDissipative <PHILIP_DIM,(PHILIP_DIM+2+(PHILIP_SPECIES-1)), FadFadType>;
-   template class NumericalFluxDissipative <PHILIP_DIM,(PHILIP_DIM+2+(PHILIP_SPECIES-1)), RadFadType>;
-#endif
 
 template class SymmetricInternalPenalty<PHILIP_DIM, 1, double>;
 template class SymmetricInternalPenalty<PHILIP_DIM, 2, double>;
@@ -404,14 +397,6 @@ template class SymmetricInternalPenalty<PHILIP_DIM, 4, RadFadType >;
 template class SymmetricInternalPenalty<PHILIP_DIM, 5, RadFadType >;
 template class SymmetricInternalPenalty<PHILIP_DIM, 6, RadFadType >;
 
-#if (PHILIP_DIM+2+(PHILIP_SPECIES-1)) > 6
-   template class SymmetricInternalPenalty <PHILIP_DIM,(PHILIP_DIM+2+(PHILIP_SPECIES-1)), double>;
-   template class SymmetricInternalPenalty <PHILIP_DIM,(PHILIP_DIM+2+(PHILIP_SPECIES-1)), FadType>;
-   template class SymmetricInternalPenalty <PHILIP_DIM,(PHILIP_DIM+2+(PHILIP_SPECIES-1)), RadType>;
-   template class SymmetricInternalPenalty <PHILIP_DIM,(PHILIP_DIM+2+(PHILIP_SPECIES-1)), FadFadType>;
-   template class SymmetricInternalPenalty <PHILIP_DIM,(PHILIP_DIM+2+(PHILIP_SPECIES-1)), RadFadType>;
-#endif
-
 template class BassiRebay2<PHILIP_DIM, 1, double>;
 template class BassiRebay2<PHILIP_DIM, 2, double>;
 template class BassiRebay2<PHILIP_DIM, 3, double>;
@@ -446,14 +431,6 @@ template class BassiRebay2<PHILIP_DIM, 3, RadFadType >;
 template class BassiRebay2<PHILIP_DIM, 4, RadFadType >;
 template class BassiRebay2<PHILIP_DIM, 5, RadFadType >;
 template class BassiRebay2<PHILIP_DIM, 6, RadFadType >;
-
-#if (PHILIP_DIM+2+(PHILIP_SPECIES-1)) > 6
-   template class BassiRebay2 <PHILIP_DIM,(PHILIP_DIM+2+(PHILIP_SPECIES-1)), double>;
-   template class BassiRebay2 <PHILIP_DIM,(PHILIP_DIM+2+(PHILIP_SPECIES-1)), FadType>;
-   template class BassiRebay2 <PHILIP_DIM,(PHILIP_DIM+2+(PHILIP_SPECIES-1)), RadType>;
-   template class BassiRebay2 <PHILIP_DIM,(PHILIP_DIM+2+(PHILIP_SPECIES-1)), FadFadType>;
-   template class BassiRebay2 <PHILIP_DIM,(PHILIP_DIM+2+(PHILIP_SPECIES-1)), RadFadType>;
-#endif
 
 template class CentralViscousNumericalFlux<PHILIP_DIM, 1, double>;
 template class CentralViscousNumericalFlux<PHILIP_DIM, 2, double>;
@@ -490,7 +467,25 @@ template class CentralViscousNumericalFlux<PHILIP_DIM, 4, RadFadType >;
 template class CentralViscousNumericalFlux<PHILIP_DIM, 5, RadFadType >;
 template class CentralViscousNumericalFlux<PHILIP_DIM, 6, RadFadType >;
 
-#if (PHILIP_DIM+2+(PHILIP_SPECIES-1)) > 6
+#else
+   template class NumericalFluxDissipative <PHILIP_DIM,(PHILIP_DIM+2+(PHILIP_SPECIES-1)), double>;
+   template class NumericalFluxDissipative <PHILIP_DIM,(PHILIP_DIM+2+(PHILIP_SPECIES-1)), FadType>;
+   template class NumericalFluxDissipative <PHILIP_DIM,(PHILIP_DIM+2+(PHILIP_SPECIES-1)), RadType>;
+   template class NumericalFluxDissipative <PHILIP_DIM,(PHILIP_DIM+2+(PHILIP_SPECIES-1)), FadFadType>;
+   template class NumericalFluxDissipative <PHILIP_DIM,(PHILIP_DIM+2+(PHILIP_SPECIES-1)), RadFadType>;
+
+   template class SymmetricInternalPenalty <PHILIP_DIM,(PHILIP_DIM+2+(PHILIP_SPECIES-1)), double>;
+   template class SymmetricInternalPenalty <PHILIP_DIM,(PHILIP_DIM+2+(PHILIP_SPECIES-1)), FadType>;
+   template class SymmetricInternalPenalty <PHILIP_DIM,(PHILIP_DIM+2+(PHILIP_SPECIES-1)), RadType>;
+   template class SymmetricInternalPenalty <PHILIP_DIM,(PHILIP_DIM+2+(PHILIP_SPECIES-1)), FadFadType>;
+   template class SymmetricInternalPenalty <PHILIP_DIM,(PHILIP_DIM+2+(PHILIP_SPECIES-1)), RadFadType>;
+
+   template class BassiRebay2 <PHILIP_DIM,(PHILIP_DIM+2+(PHILIP_SPECIES-1)), double>;
+   template class BassiRebay2 <PHILIP_DIM,(PHILIP_DIM+2+(PHILIP_SPECIES-1)), FadType>;
+   template class BassiRebay2 <PHILIP_DIM,(PHILIP_DIM+2+(PHILIP_SPECIES-1)), RadType>;
+   template class BassiRebay2 <PHILIP_DIM,(PHILIP_DIM+2+(PHILIP_SPECIES-1)), FadFadType>;
+   template class BassiRebay2 <PHILIP_DIM,(PHILIP_DIM+2+(PHILIP_SPECIES-1)), RadFadType>;
+
    template class CentralViscousNumericalFlux <PHILIP_DIM,(PHILIP_DIM+2+(PHILIP_SPECIES-1)), double>;
    template class CentralViscousNumericalFlux <PHILIP_DIM,(PHILIP_DIM+2+(PHILIP_SPECIES-1)), FadType>;
    template class CentralViscousNumericalFlux <PHILIP_DIM,(PHILIP_DIM+2+(PHILIP_SPECIES-1)), RadType>;

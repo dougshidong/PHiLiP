@@ -13,6 +13,7 @@ set(FLOW_SOLVER_SOURCE
     flow_solver_cases/gaussian_bump.cpp
     flow_solver_cases/limiter_convergence_tests.cpp
     flow_solver_cases/positivity_preserving_tests.cpp
+    flow_solver_cases/flow_solver_zero.cpp
     flow_solver.cpp
     flow_solver_factory.cpp)
 

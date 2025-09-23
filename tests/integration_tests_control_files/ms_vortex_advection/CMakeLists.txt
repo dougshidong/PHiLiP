@@ -4,6 +4,7 @@ set(TEST_OUTPUT_DIR ${CMAKE_CURRENT_BINARY_DIR})
 # === Multi Species Tests ===
 # =======================================
 
+if(NUMBER_OF_SPECIES EQUAL 2)
 # =======================================
 # Vortex advection 1D
 # =======================================
@@ -70,7 +71,9 @@ set_tests_labels(1D_MULTI_SPECIES_HIGH_TEMPERATURE_VORTEX_ERROR_STUDY   MS_VORTE
                                                                         MODERATE
                                                                         CONVERGENCE
                                                                         INTEGRATION_TEST)
-                                                       
+
+                                                                        # ----------------------------------------
+
 # ----------------------------------------
 # Vortex advection 1D (Multi-Species, Calorically perfect)
 # ----------------------------------------
@@ -207,4 +210,27 @@ set_tests_labels(MPI_3D_MULTI_SPECIES_VORTEX_ADVECTION   MS_VORTEX_ADVECTION
                                                          UNCOLLOCATED
                                                          MODERATE
                                                          INTEGRATION_TEST)
-                                                           
+endif()
+
+if(NUMBER_OF_SPECIES EQUAL 3)
+# Vortex advection 1D - 3 Species (Multi-Species_High-Temperature, error test)
+# ----------------------------------------
+configure_file(1d_multi_species_high_temperature_vortex_advection_error_study_3_species.prm 1d_multi_species_high_temperature_vortex_advection_error_study_3_species.prm COPYONLY)
+add_test(
+  NAME 1D_MULTI_SPECIES_HIGH_TEMPERATURE_VORTEX_ERROR_STUDY_3_SPECIES
+  COMMAND mpirun -n 1 ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_1D -i ${CMAKE_CURRENT_BINARY_DIR}/1d_multi_species_high_temperature_vortex_advection_error_study_3_species.prm
+  WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
+)
+
+set_tests_labels(1D_MULTI_SPECIES_HIGH_TEMPERATURE_VORTEX_ERROR_STUDY_3_SPECIES   MS_VORTEX_ADVECTION
+                                                                                  1D
+                                                                                  SERIAL
+                                                                                  REAL-GAS
+                                                                                  MULTI-SPECIES
+                                                                                  RUNGE-KUTTA
+                                                                                  WEAK
+                                                                                  UNCOLLOCATED
+                                                                                  MODERATE
+                                                                                  CONVERGENCE
+                                                                                  INTEGRATION_TEST)
+endif()

@@ -11,7 +11,7 @@ set test_type = multi_species_high_temperature_vortex_advection_error_study
 set dimension = 1
 
 # Chemical species
-set number_of_species = 2
+set number_of_species = 3
 set pde_type = real_gas
 set chemistry_input_file = ../../chemistry/ReactionFiles/H2_O2_N2.kinetics
 set initial_mixture_fractions_input_file = ../../chemistry/InitialMixtureFiles/InitialMixtureFractions_H2_O2_N2.txt

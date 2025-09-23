@@ -74,7 +74,8 @@ int main (int argc, char *argv[])
                 run_error = test->run_test();
                 pcout << "Finished integration test with run error code: " << run_error << std::endl;
             }
-        } else {
+        } 
+        else {
             std::cout << "********************************************************" << std::endl;
             std::cout << "Can't run test with " << all_parameters.number_of_species << " species." << std::endl
                       << "Currently templated for " << PHILIP_SPECIES << " species." << std::endl

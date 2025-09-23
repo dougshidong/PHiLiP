@@ -347,7 +347,7 @@ std::unique_ptr< TestsBase > TestsFactory<dim,nspecies,nstate,MeshType>
     } else if(test_type == Test_enum::multi_species_vortex_advection_error_study) {
         if constexpr (dim==1 && (nspecies==2) && nstate==dim+2+(nspecies-1))  return std::make_unique<EulerVortexAdvectionErrorStudy<dim,nspecies,nstate>>(parameters_input, parameter_handler_input);   
     } else if(test_type == Test_enum::multi_species_high_temperature_vortex_advection_error_study) {
-        if constexpr (dim==1 && (nspecies==2) && nstate==dim+2+(nspecies-1))   return std::make_unique<EulerVortexAdvectionErrorStudy<dim,nspecies,nstate>>(parameters_input, parameter_handler_input);       
+        if constexpr (dim==1 && (nspecies==2 || nspecies==3) && nstate==dim+2+(nspecies-1))   return std::make_unique<EulerVortexAdvectionErrorStudy<dim,nspecies,nstate>>(parameters_input, parameter_handler_input);       
     } else if(test_type == Test_enum::multi_species_calorically_perfect_euler_vortex_advection_error_study) {
         if constexpr (dim==1 && (nspecies==2) && nstate==dim+2+(nspecies-1))   return std::make_unique<EulerVortexAdvectionErrorStudy<dim,nspecies,nstate>>(parameters_input, parameter_handler_input);                 
     } else if(test_type == Test_enum::multi_species_two_dimensional_vortex_advection_error_study) {

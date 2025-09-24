@@ -282,32 +282,22 @@ void PositivityPreservingTests<dim, nspecies, nstate>::compute_unsteady_data_and
     const std::shared_ptr <DGBase<dim, nspecies, double>> dg,
     const std::shared_ptr <dealii::TableHandler> unsteady_data_table)
 {
-    //unpack current iteration and current time from ode solver
+       //unpack current iteration and current time from ode solver
     const unsigned int current_iteration = ode_solver->current_iteration;
     const double current_time = ode_solver->current_time;
 
     // All discrete proofs use solution nodes, therefore it is best to report 
     // entropy on the solution nodes rather than by overintegrating.
-    double current_numerical_entropy = 0.0;
-    double entropy = 0.0;
-    if (nspecies == 1) {
-        current_numerical_entropy = this->compute_integrated_entropy(*dg); // no overintegration
-        if (current_iteration==0) this->previous_numerical_entropy = current_numerical_entropy;
-        entropy = current_numerical_entropy - previous_numerical_entropy + ode_solver->FR_entropy_contribution_RRK_solver;
-
-        if (std::isnan(entropy)){
-        this->pcout << "Entropy is nan. Aborting flow simulation..." << std::endl << std::flush;
-        std::abort();
-        } 
-    }
-    else {
-        if (current_iteration==0)
-            this->pcout << "Entropy not implemented for multispecies flow, will not be calculated." << std::endl;
-    }
-
+    const double current_numerical_entropy = this->compute_integrated_entropy(*dg); // no overintegration
+    if (current_iteration==0) this->previous_numerical_entropy = current_numerical_entropy;
+    const double entropy = current_numerical_entropy - previous_numerical_entropy + ode_solver->FR_entropy_contribution_RRK_solver;
     this->previous_numerical_entropy = current_numerical_entropy;
 
-    if (current_iteration == 0)  this->initial_entropy = current_numerical_entropy;
+    if (std::isnan(entropy)){
+        this->pcout << "Entropy is nan. Aborting flow simulation..." << std::endl << std::flush;
+        std::abort();
+    }
+    if (current_iteration == 0)  initial_entropy = current_numerical_entropy;
 
     if(nstate == dim + 2)
         this->check_positivity_density(*dg);
@@ -324,14 +314,6 @@ void PositivityPreservingTests<dim, nspecies, nstate>::compute_unsteady_data_and
         this->add_value_to_data_table(entropy/initial_entropy,"U/Uo",unsteady_data_table);
         unsteady_data_table->set_scientific("U/Uo", false);
 
-        if(nspecies==1) {
-            this->add_value_to_data_table(entropy,"entropy",unsteady_data_table);
-            unsteady_data_table->set_scientific("entropy", false);
-            this->add_value_to_data_table(current_numerical_entropy,"current_numerical_entropy",unsteady_data_table);
-            unsteady_data_table->set_scientific("current_numerical_entropy", false);
-            this->add_value_to_data_table(entropy/this->initial_entropy,"U/Uo",unsteady_data_table);
-            unsteady_data_table->set_scientific("U/Uo", false);
-        }
 
         // Write to file
         std::ofstream unsteady_data_table_file(this->unsteady_data_table_filename_with_extension);
@@ -341,19 +323,16 @@ void PositivityPreservingTests<dim, nspecies, nstate>::compute_unsteady_data_and
     if (current_iteration % this->all_param.ode_solver_param.print_iteration_modulo == 0) {
         // Print to console
         this->pcout << "    Iter: " << current_iteration
-                    << "    Time: " << std::setprecision(16) << current_time;
-        if (nspecies == 1) {
-                    this->pcout << "    Current Numerical Entropy:  " << current_numerical_entropy
-                                << "    Entropy: " << entropy
-                                << "    (U-Uo)/Uo: " << entropy/this->initial_entropy;
-        }
+                    << "    Time: " << std::setprecision(16) << current_time
+                    << "    Current Numerical Entropy:  " << current_numerical_entropy
+                    << "    Entropy: " << entropy
+                    << "    (U-Uo)/Uo: " << entropy/initial_entropy;
+
         this->pcout << std::endl;
     }
-    if (this->all_param.flow_solver_param.adaptive_time_step){
-        //this->pcout << "Goes into adaptive step for some reason." << std::endl;
-        // Update local maximum wave speed before calculating next time step
-        update_maximum_local_wave_speed(*dg);
-    }
+
+    // Update local maximum wave speed before calculating next time step
+    update_maximum_local_wave_speed(*dg);
 }
 
 #if PHILIP_SPECIES==1

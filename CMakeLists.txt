@@ -50,6 +50,8 @@ endif()
 set(CMAKE_CXX_FLAGS_DEBUG  "${CMAKE_CXX_FLAGS_DEBUG} -Og -g")
 
 set(EXECUTABLE_OUTPUT_PATH ${PROJECT_BINARY_DIR}/bin)
+
+
 set(CLEAN_UP_FILES ./bin/* ./CMakeCache.txt)
 
 option(DOC_ONLY "Only generate code for documentation sake. Not compilable." OFF)
@@ -105,6 +107,15 @@ SET(_philip_targets "#
 #      make PHiLiP_1D      - to build main program (without tests) in 1D
 #      make PHiLiP_2D      - to build main program (without tests) in 2D
 #      make PHiLiP_3D      - to build main program (without tests) in 3D")
+
+IF(${NUMBER_OF_SPECIES} GREATER 1)
+add_custom_target(
+    ${NUMBER_OF_SPECIES}species
+    COMMAND make -j${MPIMAX} PHiLiP_1D_${NUMBER_OF_SPECIES}species
+    COMMAND make -j${MPIMAX} PHiLiP_2D_${NUMBER_OF_SPECIES}species
+    COMMAND make -j${MPIMAX} PHiLiP_3D_${NUMBER_OF_SPECIES}species
+)
+ENDIF()
 
 IF(${NUMBER_OF_SPECIES} EQUAL 1)
 add_custom_target(unit_tests)

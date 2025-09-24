@@ -31,7 +31,9 @@ public:
     /// Virtual function to generate the grid
     std::shared_ptr<Triangulation> generate_grid() const override;
 protected:
-
+    /// Pointer to Physics object for computing things on the fly
+    std::shared_ptr< Physics::PhysicsBase<dim,nstate,double> > pde_physics;
+    
     /// Display additional more specific flow case parameters
     void display_additional_flow_case_specific_parameters() const override;
 };

@@ -197,7 +197,7 @@ FlowSolverFactory<dim, nspecies, nstate>
             return std::make_unique<FlowSolver<dim, nspecies, nstate>>(parameters_input, flow_solver_case, parameter_handler_input);
         }
 
-    } else if ((nstate==dim+2+nspecies-1)) {
+    } else if (flow_type == FlowCaseEnum::flow_solver_zero || (nstate==dim+2+nspecies-1)) {
         std::shared_ptr<FlowSolverCaseBase<dim, nspecies, nstate>> flow_solver_case = std::make_shared<FlowSolverCaseZero<dim, nspecies, nstate>>(parameters_input);
         std::cout << "No flow case has been created for " << dim << "D and " << nspecies << " species. Implement a test for the conditions." << std::endl;
         std::abort();
@@ -219,14 +219,20 @@ std::unique_ptr< FlowSolverBase > FlowSolverFactory<dim, nspecies, nstate>
     // without having 15 different if-else statements
     if(dim == parameters_input->dimension)
     {
+        // Get the flow case type
+        using FlowCaseEnum = Parameters::FlowSolverParam::FlowCaseType;
+        const FlowCaseEnum flow_type = parameters_input->flow_solver_param.flow_case_type;
+        if(flow_type == FlowCaseEnum::flow_solver_zero){
+            return FlowSolverFactory<dim, nspecies, dim + 2 + (nspecies-1)>::select_flow_case(parameters_input,parameter_handler_input);            
+        }
         // This template parameters dim and nstate match the runtime parameters
         // then create the selected flow case with template parameters dim and nstate
         // Otherwise, keep decreasing nstate and dim until it matches
-        if(nstate == parameters_input->nstate) 
+        if(nstate == parameters_input->nstate) {
             return FlowSolverFactory<dim, nspecies, nstate>::select_flow_case(parameters_input,parameter_handler_input);
-        else if constexpr (nstate > 1)
+        } else if constexpr (nstate > 1) {
             return FlowSolverFactory<dim, nspecies, nstate-1>::create_flow_solver(parameters_input,parameter_handler_input);
-        else
+        } else
             return nullptr;
     }
     else if constexpr (dim > 1)

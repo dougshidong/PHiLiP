@@ -56,7 +56,11 @@ foreach(dim RANGE 1 3)
     # #####################################################
     # Main executable
     # Simply calls the case manager given an input file
-    string(CONCAT MAIN_TARGET PHiLiP_${dim}D)
+    if(${NUMBER_OF_SPECIES} GREATER 1)
+	string(CONCAT MAIN_TARGET PHiLiP_${dim}D_${NUMBER_OF_SPECIES}species)
+	else()
+	string(CONCAT MAIN_TARGET PHiLiP_${dim}D)
+	endif()
     message("Adding executable " ${MAIN_TARGET} " with files " ${MAIN_SRC} "\n")
     add_executable(${MAIN_TARGET} ${MAIN_SRC})
     set_target_properties(${MAIN_TARGET} PROPERTIES EXCLUDE_FROM_DEFAULT_BUILD 1)

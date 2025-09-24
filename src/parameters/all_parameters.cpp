@@ -41,7 +41,7 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       "Number of dimensions");
 
     prm.declare_entry("number_of_species", "1",
-                      dealii::Patterns::Integer(),
+                      dealii::Patterns::Integer(0,100),
                       "Number of species");
 
     prm.declare_entry("run_type", "integration_test",

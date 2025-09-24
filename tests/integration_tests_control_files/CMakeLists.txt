@@ -1,5 +1,4 @@
 # Integration tests
-if(NUMBER_OF_SPECIES EQUAL 1)
 add_subdirectory(advection_implicit)
 add_subdirectory(diffusion_implicit)
 add_subdirectory(convection_diffusion_implicit)
@@ -39,15 +38,7 @@ add_subdirectory(shock_diffraction)
 add_subdirectory(astrophysical_jet)
 add_subdirectory(svsw)
 add_subdirectory(real_gas)
-endif()
-
-if(NUMBER_OF_SPECIES EQUAL 2)
 add_subdirectory(ms_acoustic_wave)
 add_subdirectory(ms_fuel_drop_advection)
-add_subdirectory(ms_vortex_advection)
 add_subdirectory(ms_tgv)
-endif()
-
-if(NUMBER_OF_SPECIES EQUAL 3)
 add_subdirectory(ms_vortex_advection)
-endif()

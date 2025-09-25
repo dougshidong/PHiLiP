@@ -45,7 +45,7 @@ set_tests_labels(1D_MULTI_SPECIES_VORTEX_ERROR_STUDY   MS_VORTEX_ADVECTION
                                                        RUNGE-KUTTA
                                                        WEAK
                                                        UNCOLLOCATED
-                                                       LONG
+                                                       EXTRA-LONG
                                                        CONVERGENCE
                                                        INTEGRATION_TEST)
                                                        
@@ -67,7 +67,7 @@ set_tests_labels(1D_MULTI_SPECIES_HIGH_TEMPERATURE_VORTEX_ERROR_STUDY   MS_VORTE
                                                                         RUNGE-KUTTA
                                                                         WEAK
                                                                         UNCOLLOCATED
-                                                                        MODERATE
+                                                                        EXTRA-LONG
                                                                         CONVERGENCE
                                                                         INTEGRATION_TEST)
 
@@ -112,7 +112,7 @@ set_tests_labels(1D_MULTI_SPECIES_CALORICALLY_PERFECT_VORTEX_ERROR_STUDY   MS_VO
                                                                            RUNGE-KUTTA
                                                                            WEAK
                                                                            UNCOLLOCATED
-                                                                           MODERATE
+                                                                           EXTRA-LONG
                                                                            CONVERGENCE
                                                                            INTEGRATION_TEST)
                                                                          
@@ -158,7 +158,7 @@ set_tests_labels(MPI_2D_MULTI_SPECIES_VORTEX_ERROR_STUDY   MS_VORTEX_ADVECTION
                                                            RUNGE-KUTTA
                                                            WEAK
                                                            UNCOLLOCATED
-                                                           MODERATE
+                                                           EXTRA-LONG
                                                            CONVERGENCE
                                                            INTEGRATION_TEST)
                                                          
@@ -227,6 +227,6 @@ set_tests_labels(1D_MULTI_SPECIES_HIGH_TEMPERATURE_VORTEX_ERROR_STUDY_3_SPECIES 
                                                                                   RUNGE-KUTTA
                                                                                   WEAK
                                                                                   UNCOLLOCATED
-                                                                                  MODERATE
+                                                                                  EXTRA-LONG
                                                                                   CONVERGENCE
                                                                                   INTEGRATION_TEST)

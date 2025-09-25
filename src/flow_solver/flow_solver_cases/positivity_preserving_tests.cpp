@@ -40,7 +40,7 @@ std::shared_ptr<Triangulation> PositivityPreservingTests<dim,nstate>::generate_g
     }
 
     if(dim == 3) {
-        if(this->all_param.flow_solver_param.grid_zmax == this->all_param.flow_solver_param.grid_zmin) {
+        if(this->all_param.flow_solver_param.grid_z_upper_bound == this->all_param.flow_solver_param.grid_z_lower_bound) {
             std::cout << "Error: zmax and zmin need to be provided as parameters - Aborting... " << std::endl << std::flush;
             std::abort();
         }

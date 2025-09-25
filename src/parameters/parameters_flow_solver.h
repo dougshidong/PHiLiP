@@ -111,8 +111,8 @@ public:
     int number_of_subdivisions_in_z_direction; ///< Number of subdivisions in z direction for gaussian bump case
     double grid_top_bound; ///< Maximum y bound of domain for a rectangle grid
     double grid_bottom_bound; ///< Minimum y bound of domain for a rectangle grid
-    double grid_zmax; ///< Maximum z bound of domain for a rectangle grid
-    double grid_zmin; ///< Minimum z bound of domain for a rectangle grid
+    double grid_z_upper_bound; ///< Maximum z bound of domain for a rectangle grid
+    double grid_z_lower_bound; ///< Minimum z bound of domain for a rectangle grid
 
     unsigned int number_of_grid_elements_x; ///< Number of subdivisions in x direction for a rectangle grid
     unsigned int number_of_grid_elements_y; ///< Number of subdivisions in y direction for a rectangle grid

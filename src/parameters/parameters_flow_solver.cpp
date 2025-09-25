@@ -256,11 +256,11 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
                                 dealii::Patterns::Double(-dealii::Patterns::Double::max_double_value, dealii::Patterns::Double::max_double_value),
                                 "Right bound of domain for hyper_cube mesh based cases.");
 
-              prm.declare_entry("grid_zmin", "0.0",
+              prm.declare_entry("grid_z_lower_bound", "0.0",
                                 dealii::Patterns::Double(-dealii::Patterns::Double::max_double_value, dealii::Patterns::Double::max_double_value),
                                 "Left bound of domain for hyper_cube mesh based cases.");
 
-              prm.declare_entry("grid_zmax", "0.0",
+              prm.declare_entry("grid_z_upper_bound", "0.0",
                                 dealii::Patterns::Double(-dealii::Patterns::Double::max_double_value, dealii::Patterns::Double::max_double_value),
                                 "Right bound of domain for hyper_cube mesh based cases.");
 
@@ -467,8 +467,8 @@ void FlowSolverParam::parse_parameters(dealii::ParameterHandler &prm)
             {
                 grid_top_bound = prm.get_double("grid_top_bound");
                 grid_bottom_bound = prm.get_double("grid_bottom_bound");
-                grid_zmax = prm.get_double("grid_zmax");
-                grid_zmin = prm.get_double("grid_zmin");
+                grid_z_upper_bound = prm.get_double("grid_z_upper_bound");
+                grid_z_lower_bound = prm.get_double("grid_z_lower_bound");
 
                 number_of_grid_elements_x = prm.get_integer("number_of_grid_elements_x");
                 number_of_grid_elements_y = prm.get_integer("number_of_grid_elements_y");

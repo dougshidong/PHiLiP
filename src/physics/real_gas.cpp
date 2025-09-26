@@ -80,12 +80,14 @@ std::array<real,nstate> RealGas<dim,nspecies,nstate,real>
     const std::array<real,nstate> &/*conservative_soln*/,
     const dealii::Tensor<1,dim,real> &/*normal*/) const
 {
-    // Note: define this when convective eigenvalues for multi-species are required in the future
+    // *** ADDED BY SHRUTHI - NEEDS TO BE VALIDATED/VERIFIED ***
+    const dealii::Tensor<1,dim,real> vel = compute_velocities(conservative_soln);
     std::array<real,nstate> eig;
-    eig.fill(0.0);
-
-    std::cout << "Convective Eigenvalues function not implemented for RealGas." << std::endl << std::flush;
-    std::abort();
+    real vel_dot_n = 0.0;
+    for (int d=0;d<dim;++d) { vel_dot_n += vel[d]*normal[d]; };
+    for (int i=0; i<nstate; i++) {
+        eig[i] = vel_dot_n;
+    }
 
     return eig;
 }
@@ -94,7 +96,8 @@ template <int dim, int nspecies, int nstate, typename real>
 real RealGas<dim,nspecies,nstate,real>
 ::max_convective_eigenvalue (const std::array<real,nstate> &conservative_soln) const
 {
-    const real sound = compute_sound (conservative_soln);
+    // *** ADDED BY SHRUTHI - NEEDS TO BE VALIDATED/VERIFIED ***
+    const real sound = compute_sound(conservative_soln);
     real vel2 = compute_velocity_squared(conservative_soln);
 
     const real max_eig = sqrt(vel2) + sound;
@@ -108,6 +111,7 @@ real RealGas<dim,nspecies,nstate,real>
     const std::array<real,nstate> &conservative_soln,
     const dealii::Tensor<1,dim,real> &normal) const
 {
+    // *** ADDED BY SHRUTHI - NEEDS TO BE VALIDATED/VERIFIED ***
     const dealii::Tensor<1,dim,real> vel = compute_velocities(conservative_soln);
 
     const real sound = compute_sound (conservative_soln);
@@ -151,6 +155,8 @@ std::array<real,nstate> RealGas<dim,nspecies,nstate,real>
     const real /*current_time*/,
     const dealii::types::global_dof_index /*cell_index*/) const
 {
+    std::cout<<"Source Terms not implemented for RealGas."<<std::endl;
+    std::abort();
     std::array<real,nstate> source_term;
     source_term.fill(0.0);
     return source_term;
@@ -466,7 +472,7 @@ inline real RealGas<dim,nspecies,nstate,real>
         Cv = compute_species_specific_Cv(T_n/this->temperature_ref); // non-dimensional value
         // mixture Cv
         mixture_Cv = compute_mixture_from_species(mass_fractions,Cv)*this->R_ref; // dimensional value
-        // Newton-Raphson derivertive function
+        // Newton-Raphson derivative function
         f_d = mixture_Cv;
 
         /// 3) main part
@@ -652,6 +658,7 @@ template <int dim, int nspecies, int nstate, typename real>
 inline real RealGas<dim,nspecies,nstate,real>
 ::compute_gamma ( const std::array<real,nstate> &conservative_soln ) const
 {
+    // *** ADDED BY SHRUTHI - NEEDS TO BE VALIDATED/VERIFIED ***
     const real temperature = compute_temperature(conservative_soln);
     const std::array<real,nspecies> mass_fractions = compute_mass_fractions(conservative_soln);
     const std::array<real,nspecies> Cp = compute_species_specific_Cp(temperature);
@@ -685,6 +692,7 @@ template <int dim, int nspecies, int nstate, typename real>
 inline real RealGas<dim,nspecies,nstate,real>
 ::compute_sound ( const std::array<real,nstate> &conservative_soln ) const
 {
+    // *** ADDED BY SHRUTHI - NEEDS TO BE VALIDATED/VERIFIED ***
     real gam = compute_gamma(conservative_soln);
 
     real mixture_density = conservative_soln[0];

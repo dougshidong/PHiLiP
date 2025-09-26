@@ -17,7 +17,6 @@ SET(SOURCE
     large_eddy_simulation.cpp
     reynolds_averaged_navier_stokes.cpp
     negative_spalart_allmaras_rans_model.cpp
-    inviscid_real_gas.cpp
     real_gas.cpp
     multi_species_calorically_perfect_euler.cpp
     model_factory.cpp)

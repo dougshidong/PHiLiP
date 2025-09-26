@@ -6,7 +6,6 @@
 #include <deal.II/base/function.h>
 #include "parameters/all_parameters.h"
 #include "../euler.h" // for FreeStreamInitialConditions
-#include "../inviscid_real_gas.h" // for FreeStreamInitialConditions
 #include "../real_gas.h" // for FreeStreamInitialConditions
 #include "../multi_species_calorically_perfect_euler.h" // for FreeStreamInitialConditions
 
@@ -594,7 +593,7 @@ protected:
     real convert_primitive_to_conversative_value(const dealii::Point<dim,real> &point, const unsigned int istate = 0) const;
 
     // Euler physics pointer. Used to convert primitive to conservative.
-    std::shared_ptr < Physics::InviscidRealGas<dim, nstate, double > > inviscid_real_gas_physics;
+    std::shared_ptr < Physics::RealGas<dim, nspecies, nstate, double > > real_gas_physics;
 };
 
 /// Initial Condition Function: AcousticWave_MultiSpecies (uniform density)

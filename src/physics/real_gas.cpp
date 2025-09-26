@@ -83,15 +83,22 @@ std::array<real,nstate> RealGas<dim,nspecies,nstate,real>
     // Note: define this when convective eigenvalues for multi-species are required in the future
     std::array<real,nstate> eig;
     eig.fill(0.0);
+
+    std::cout << "Convective Eigenvalues function not implemented for RealGas." << std::endl << std::flush;
+    std::abort();
+
     return eig;
 }
 
 template <int dim, int nspecies, int nstate, typename real>
 real RealGas<dim,nspecies,nstate,real>
-::max_convective_eigenvalue (const std::array<real,nstate> &/*conservative_soln*/) const
+::max_convective_eigenvalue (const std::array<real,nstate> &conservative_soln) const
 {
-    // Note: define this when max_convective_eigenvalue for multi-species are required in the future
-    const real max_eig = 0.0;
+    const real sound = compute_sound (conservative_soln);
+    real vel2 = compute_velocity_squared(conservative_soln);
+
+    const real max_eig = sqrt(vel2) + sound;
+
     return max_eig;
 }
 
@@ -104,6 +111,7 @@ real RealGas<dim,nspecies,nstate,real>
     const dealii::Tensor<1,dim,real> vel = compute_velocities(conservative_soln);
 
     const real sound = compute_sound (conservative_soln);
+
     real vel_dot_n = 0.0;
     for (int d=0;d<dim;++d) { vel_dot_n += vel[d]*normal[d]; };
     const real max_normal_eig = abs(vel_dot_n) + sound;
@@ -160,7 +168,7 @@ void RealGas<dim,nspecies,nstate,real>
    std::array<dealii::Tensor<1,dim,real>,nstate> &/*soln_grad_bc*/) const
 {
     // Note: update this if you are using any kind of BC that is not periodic for multi-species gas
-    std::cout<<"Boundary Conditions for RealGas hasn't been done yet."<<std::endl;
+    std::cout<<"Boundary Conditions not implemented for RealGas."<<std::endl;
     std::abort();
 }
 
@@ -640,6 +648,22 @@ inline std::array<real,nspecies> RealGas<dim,nspecies,nstate,real>
     return gamma;
 }
 
+template <int dim, int nspecies, int nstate, typename real>
+inline real RealGas<dim,nspecies,nstate,real>
+::compute_gamma ( const std::array<real,nstate> &conservative_soln ) const
+{
+    const real temperature = compute_temperature(conservative_soln);
+    const std::array<real,nspecies> mass_fractions = compute_mass_fractions(conservative_soln);
+    const std::array<real,nspecies> Cp = compute_species_specific_Cp(temperature);
+    const std::array<real,nspecies> Cv = compute_species_specific_Cv(temperature);
+
+    real mixture_Cp = compute_mixture_from_species(mass_fractions,Cp);
+    real mixture_Cv = compute_mixture_from_species(mass_fractions,Cv);
+
+    real gamma = mixture_Cp/mixture_Cv;
+    return gamma;
+}
+
 // Algorithm 22 (f_S22): Compute species speed of sound
 template <int dim, int nspecies, int nstate, typename real>
 inline std::array<real,nspecies> RealGas<dim,nspecies,nstate,real>
@@ -661,9 +685,14 @@ template <int dim, int nspecies, int nstate, typename real>
 inline real RealGas<dim,nspecies,nstate,real>
 ::compute_sound ( const std::array<real,nstate> &conservative_soln ) const
 {
-    // std::cout<<"Compute Sound for RealGas hasn't been done yet."<<std::endl;
-    // std::abort();
-    return conservative_soln[0];
+    real gam = compute_gamma(conservative_soln);
+
+    real mixture_density = conservative_soln[0];
+    // check_positive_quantity(density, "density");
+    const real mixture_pressure = compute_mixture_pressure(conservative_soln);
+
+    const real sound = sqrt(mixture_pressure*gam/mixture_density);
+    return sound;
 }
 
 // Compute mixture solution vector (without species solution)

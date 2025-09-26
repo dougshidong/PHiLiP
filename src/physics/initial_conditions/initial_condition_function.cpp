@@ -1063,8 +1063,8 @@ InitialConditionFunction_AcousticWave_Species<dim,nspecies,nstate,real>
     // Euler object; create using dynamic_pointer_cast and the create_Physics factory
     // Note that Euler primitive/conservative vars are the same as NS
     PHiLiP::Parameters::AllParameters parameters_euler = *param;
-    parameters_euler.pde_type = Parameters::AllParameters::PartialDifferentialEquation::inviscid_real_gas;
-    this->inviscid_real_gas_physics = std::dynamic_pointer_cast<Physics::InviscidRealGas<dim,dim+2,double>>(
+    parameters_euler.pde_type = Parameters::AllParameters::PartialDifferentialEquation::real_gas;
+    this->real_gas_physics = std::dynamic_pointer_cast<Physics::RealGas<dim,nspecies,dim+2+(nspecies-1),double>>(
                 Physics::PhysicsFactory<dim,nspecies,dim+2,double>::create_Physics(&parameters_euler));
 }
 
@@ -1121,7 +1121,7 @@ real InitialConditionFunction_AcousticWave_Species<dim,nspecies,nstate,real>
         soln_primitive[2] = primitive_value(point,2);
         soln_primitive[3] = primitive_value(point,3);
 
-        const std::array<real,nstate> soln_conservative = this->inviscid_real_gas_physics->convert_primitive_to_conservative(soln_primitive);
+        const std::array<real,nstate> soln_conservative = this->real_gas_physics->convert_primitive_to_conservative(soln_primitive);
         value = soln_conservative[istate];
     }
     return value;

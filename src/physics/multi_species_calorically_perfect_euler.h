@@ -10,7 +10,7 @@ namespace PHiLiP {
 namespace Physics {
 
 /// MultiSpeciesCaloricallyPerfect equations. Derived from PhysicsBase
-template <int dim, int nspecies, int nstate, typename real> // TO DO: TEMPLATE for nspecies -- see how the LES class has nstate_baseline_physics
+template <int dim, int nspecies, int nstate, typename real>
 class MultiSpeciesCaloricallyPerfect : public RealGas <dim, nspecies, nstate, real>
 {
 public:

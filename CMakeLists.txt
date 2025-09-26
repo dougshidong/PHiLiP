@@ -108,12 +108,15 @@ SET(_philip_targets "#
 #      make PHiLiP_2D      - to build main program (without tests) in 2D
 #      make PHiLiP_3D      - to build main program (without tests) in 3D")
 
-IF(${NUMBER_OF_SPECIES} GREATER 1)
+IF (${NUMBER_OF_SPECIES} GREATER 1)
 add_custom_target(
-    ${NUMBER_OF_SPECIES}species
-    COMMAND make -j${MPIMAX} PHiLiP_1D_${NUMBER_OF_SPECIES}species
-    COMMAND make -j${MPIMAX} PHiLiP_2D_${NUMBER_OF_SPECIES}species
-    COMMAND make -j${MPIMAX} PHiLiP_3D_${NUMBER_OF_SPECIES}species
+  ${NUMBER_OF_SPECIES}species
+  COMMAND echo 'COMPILING 1D_${NUMBER_OF_SPECIES}species EXECUTABLE...'
+  COMMAND make -j${MPIMAX} PHiLiP_1D_${NUMBER_OF_SPECIES}species
+  COMMAND echo 'COMPILING 2D_${NUMBER_OF_SPECIES}species EXECUTABLE...'
+  COMMAND make -j${MPIMAX} PHiLiP_2D_${NUMBER_OF_SPECIES}species
+  COMMAND echo 'COMPILING 3D_${NUMBER_OF_SPECIES}species EXECUTABLE...'
+  COMMAND make -j${MPIMAX} PHiLiP_3D_${NUMBER_OF_SPECIES}species
 )
 ENDIF()
 

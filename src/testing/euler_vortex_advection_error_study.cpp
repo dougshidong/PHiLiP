@@ -995,7 +995,7 @@ double EulerVortexAdvectionErrorStudy<dim,nspecies,nstate>
 }
 
 #if PHILIP_SPECIES < 4
-template class EulerVortexAdvectionErrorStudy <PHILIP_DIM,PHILIP_SPECIES,PHILIP_DIM + 2 + (PHILIP_SPECIES-1)>; // TO DO: N_SPECIES
+template class EulerVortexAdvectionErrorStudy <PHILIP_DIM,PHILIP_SPECIES,PHILIP_DIM + 2 + (PHILIP_SPECIES-1)>;
 #endif
 } // Tests namespace
 } // PHiLiP namespace

@@ -17,7 +17,6 @@
 #include "mhd.h"
 #include "navier_stokes.h"
 #include "physics_model.h"
-#include "inviscid_real_gas.h"
 #include "real_gas.h"
 #include "multi_species_calorically_perfect_euler.h"
 
@@ -143,22 +142,14 @@ PhysicsFactory<dim,nspecies,nstate,real>
                 manufactured_solution_function,
                 parameters_input->two_point_num_flux_type);
         }
-    } else if (pde_type == PDE_enum::inviscid_real_gas) {
-        if constexpr (nstate==dim+2 && nspecies==1) {
-            return std::make_shared < InviscidRealGas<dim,nstate,real> > (
-                parameters_input,
-                manufactured_solution_function);
-        }
     } else if (pde_type == PDE_enum::real_gas) {
-        // TO DO: modify this when you change number of species
-        if constexpr (nstate==dim+2+(nspecies-1)) { // TO DO: N_SPECIES
+        if constexpr (nstate==dim+2+(nspecies-1)) {
             return std::make_shared < RealGas<dim,nspecies,nstate,real> > (
                 parameters_input,
                 manufactured_solution_function);
         }
     } else if (pde_type == PDE_enum::multi_species_calorically_perfect_euler) {
-        // TO DO: modify this when you change number of species
-        if constexpr (nstate==dim+2+(nspecies-1)) { // TO DO: N_SPECIES
+        if constexpr (nstate==dim+2+(nspecies-1)) {
             return std::make_shared < MultiSpeciesCaloricallyPerfect<dim,nspecies,nstate,real> > (
                 parameters_input,
                 manufactured_solution_function);

@@ -54,7 +54,6 @@
 #include "HROM_error_post_sampling.h"
 #include "hyper_adaptive_sampling_new_error.h"
 #include "halton_sampling_run.h"
-#include "real_gas_vs_euler_primitive_to_conservative_check.h"
 #include "euler_vortex_advection_error_study.h"
 
 namespace PHiLiP {
@@ -340,8 +339,6 @@ std::unique_ptr< TestsBase > TestsFactory<dim,nspecies,nstate,MeshType>
         if constexpr (dim==2 && nspecies==1 && nstate==dim+2)  return std::make_unique<BoundPreservingLimiterTests<dim,nspecies,nstate>>(parameters_input, parameter_handler_input);
     } else if(test_type == Test_enum::naca0012_unsteady_check_quick){
         if constexpr (dim==2 && nspecies==1 && nstate==dim+2)  return std::make_unique<NACA0012UnsteadyCheckQuick<dim,nspecies,nstate>>(parameters_input, parameter_handler_input);
-    } else if(test_type == Test_enum::real_gas_vs_euler_primitive_to_conservative_check) {
-        if constexpr (nstate==dim+2 && nspecies==1)  return std::make_unique<RealGasVsEulerPrimitiveToConservativeCheck<dim,nspecies,nstate>>(parameters_input, parameter_handler_input);
     } else if(test_type == Test_enum::euler_vortex_advection_error_study) {
         if constexpr (dim==1 && nspecies==1 && nstate==dim+2)  return std::make_unique<EulerVortexAdvectionErrorStudy<dim,nspecies,nstate>>(parameters_input, parameter_handler_input);
     } else if(test_type == Test_enum::multi_species_vortex_advection_error_study) {

@@ -46,7 +46,6 @@ set(TESTS_SOURCE
     halton_sampling_run.cpp
     bound_preserving_limiter_tests.cpp
     naca0012_unsteady_check_quick.cpp
-    real_gas_vs_euler_primitive_to_conservative_check.cpp
     euler_vortex_advection_error_study.cpp
     )
 

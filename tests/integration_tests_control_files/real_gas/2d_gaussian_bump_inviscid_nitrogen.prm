@@ -3,7 +3,9 @@
 
 set dimension = 2
 set run_type = flow_simulation
-set pde_type = inviscid_real_gas
+set pde_type = real_gas
+set chemistry_input_file = ../../chemistry/ReactionFiles/N2.kinetics
+set initial_mixture_fractions_input_file = ../../chemistry/InitialMixtureFiles/InitialMixtureFractions_N2.txt
 
 set conv_num_flux = lax_friedrichs
 

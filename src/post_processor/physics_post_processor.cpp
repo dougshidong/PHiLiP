@@ -35,8 +35,6 @@ std::unique_ptr< dealii::DataPostprocessor<dim> > PostprocessorFactory<dim,nspec
         return std::make_unique< PhysicsPostprocessor<dim,nspecies,dim+2> >(parameters_input);
     } else if (pde_type == PDE_enum::navier_stokes && nspecies == 1) {
         return std::make_unique< PhysicsPostprocessor<dim,nspecies,dim+2> >(parameters_input);
-    } else if (pde_type == PDE_enum::inviscid_real_gas && nspecies == 1) {
-        return std::make_unique< PhysicsPostprocessor<dim,nspecies,dim+2> >(parameters_input);
     } else if (pde_type == PDE_enum::real_gas) {
         return std::make_unique< PhysicsPostprocessor<dim,nspecies,dim+2+(nspecies-1)> >(parameters_input);
     } else if (pde_type == PDE_enum::multi_species_calorically_perfect_euler) {

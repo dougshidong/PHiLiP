@@ -12,7 +12,7 @@ namespace PHiLiP {
 namespace Physics {
 
 /// RealGas equations. Derived from PhysicsBase
-template <int dim, int nspecies, int nstate, typename real> // TO DO: TEMPLATE for nspecies -- see how the LES class has nstate_baseline_physics
+template <int dim, int nspecies, int nstate, typename real>
 class RealGas : public PhysicsBase <dim, nstate, real>
 {
 protected:
@@ -190,6 +190,9 @@ protected:
 protected:
     // Algorithm 21 (f_S21): Compute species specific heat ratio from conservative_soln
     virtual std::array<real,nspecies> compute_species_specific_heat_ratio ( const std::array<real,nstate> &conservative_soln ) const;
+
+    // Compute gamma from conservative_soln
+    virtual real compute_gamma ( const std::array<real,nstate> &conservative_soln ) const;
 
     // Algorithm 22 (f_S22): Compute species speed of sound from conservative_soln 
     std::array<real,nspecies> compute_species_speed_of_sound ( const std::array<real,nstate> &conservative_soln ) const;

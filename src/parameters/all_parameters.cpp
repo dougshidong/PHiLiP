@@ -205,7 +205,6 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       " naca0012_unsteady_check_quick | "
                       " khi_robustness | "
                       " low_density | "
-                      " real_gas_vs_euler_primitive_to_conservative_check | "
                       " euler_vortex_advection_error_study | "
                       " multi_species_vortex_advection_error_study | "
                       " multi_species_high_temperature_vortex_advection_error_study | "
@@ -263,7 +262,6 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       "  naca0012_unsteady_check_quick | "
                       "  khi_robustness | "
                       "  low_density | "
-                      "  real_gas_vs_euler_primitive_to_conservative_check | "
                       "  euler_vortex_advection_error_study | "
                       "  multi_species_vortex_advection_error_study | "
                       "  multi_species_high_temperature_vortex_advection_error_study | "
@@ -283,7 +281,6 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       " euler |"
                       " mhd |"
                       " navier_stokes |"
-                      " inviscid_real_gas | "
                       " real_gas | "
                       " multi_species_calorically_perfect_euler | "                      
                       " physics_model"),
@@ -299,7 +296,6 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       "  euler | "
                       "  mhd |"
                       "  navier_stokes |"
-                      "  inviscid_real_gas | "
                       "  real_gas | "
                       "  multi_species_calorically_perfect_euler | "
                       "  physics_model>.");
@@ -473,8 +469,6 @@ const std::string test_string = prm.get("test_type");
     else if (test_string == "euler_entropy_conserving_split_forms_check") 
                                                                         { test_type = euler_entropy_conserving_split_forms_check; }
     else if (test_string == "h_refinement_study_isentropic_vortex")     { test_type = h_refinement_study_isentropic_vortex; }
-    else if (test_string == "real_gas_vs_euler_primitive_to_conservative_check")
-                                                                        { test_type = real_gas_vs_euler_primitive_to_conservative_check;}
     else if (test_string == "euler_vortex_advection_error_study")       { test_type = euler_vortex_advection_error_study; }
     else if (test_string == "multi_species_vortex_advection_error_study"){ test_type = multi_species_vortex_advection_error_study; }
     else if (test_string == "multi_species_high_temperature_vortex_advection_error_study"){ test_type = multi_species_high_temperature_vortex_advection_error_study; }    
@@ -669,10 +663,6 @@ const std::string test_string = prm.get("test_type");
     }
     else if (pde_string == "navier_stokes") {
         pde_type = navier_stokes;
-        nstate = dimension+2;
-    }
-    else if(pde_string == "inviscid_real_gas") {
-        pde_type = inviscid_real_gas;
         nstate = dimension+2;
     }
     else if(pde_string == "real_gas") {

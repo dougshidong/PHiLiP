@@ -543,7 +543,7 @@ void DGWeak<dim,nspecies,nstate,real,MeshType>::assemble_volume_term_explicit(
     //const real cell_diameter = cell_volume;
     const real cell_radius = 0.5 * cell_diameter;
     this->cell_volume[cell_index] = cell_volume;
-    this->max_dt_cell[cell_index] = DGBaseState<dim,nspecies,nstate,real,MeshType>::evaluate_CFL ( soln_at_q, max_artificial_diss, cell_radius, cell_degree);
+    this->max_dt_cell[current_cell_index] =  DGBaseState<dim,nspecies,nstate,real,MeshType>::evaluate_CFL ( soln_at_q, max_artificial_diss, cell_radius, cell_degree);
 }
 
 template <int dim, int nstate, typename real2>

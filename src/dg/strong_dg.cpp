@@ -973,7 +973,7 @@ void DGStrong<dim,nspecies,nstate,real,MeshType>::assemble_volume_term_strong(
     const real cell_radius = 0.5 * cell_diameter;
     this->cell_volume[current_cell_index] = cell_volume;
     this->max_dt_cell[current_cell_index] = this->evaluate_CFL ( soln_at_q_for_max_CFL, max_artificial_diss, cell_radius, poly_degree);
-
+    
     //get entropy projected variables
     std::array<std::vector<real>,nstate> entropy_var_at_q;
     std::array<std::vector<real>,nstate> projected_entropy_var_at_q;

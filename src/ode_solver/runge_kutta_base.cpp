@@ -36,6 +36,7 @@ void RungeKuttaBase<dim, real, n_rk_stages, MeshType>::step_in_time(real dt, con
     ++(this->current_iteration);
     this->current_time += dt;
 }
+
 template <int dim, typename real, int n_rk_stages, typename MeshType>
 void RungeKuttaBase<dim, real, n_rk_stages, MeshType>::apply_limiter (real dt)
 {
@@ -52,6 +53,7 @@ void RungeKuttaBase<dim, real, n_rk_stages, MeshType>::apply_limiter (real dt)
             dt);
     }
 }
+
 template<int dim, typename real, int n_rk_stages, typename MeshType>
 void RungeKuttaBase<dim, real, n_rk_stages, MeshType>::allocate_ode_system()
 {

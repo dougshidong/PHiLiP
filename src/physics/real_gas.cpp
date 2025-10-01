@@ -77,8 +77,8 @@ std::array<real,nstate> RealGas<dim, nspecies, nstate, real>
 template <int dim, int nspecies, int nstate, typename real>
 std::array<real,nstate> RealGas<dim,nspecies,nstate,real>
 ::convective_eigenvalues (
-    const std::array<real,nstate> &/*conservative_soln*/,
-    const dealii::Tensor<1,dim,real> &/*normal*/) const
+    const std::array<real,nstate> &conservative_soln,
+    const dealii::Tensor<1,dim,real> &normal) const
 {
     // *** ADDED BY SHRUTHI - NEEDS TO BE VALIDATED/VERIFIED ***
     const dealii::Tensor<1,dim,real> vel = compute_velocities(conservative_soln);
@@ -754,7 +754,7 @@ dealii::Vector<double> RealGas<dim,nspecies,nstate,real>::post_compute_derived_q
         }
         // get mixture solution for computing quantities from Navier-Stokes object
         std::array<double,dim+2> mixture_soln = get_mixture_solution_vector(conservative_soln);
-        mixture_soln[dim+2-1] = 1.0e10; // hacky fix warning -- does not affect vorticity calc
+        // mixture_soln[dim+2-1] = 1.0e10; // hacky fix warning -- does not affect vorticity calc
         // get the solution gradient
         std::array<dealii::Tensor<1,dim,double>,nstate> conservative_soln_gradient;
         for (unsigned int s=0; s<nstate; ++s) {

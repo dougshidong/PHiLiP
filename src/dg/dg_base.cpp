@@ -484,10 +484,10 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual_and_ad_derivatives (
     // Local vector contribution from each cell
     std::vector<real> current_cell_rhs (n_dofs_curr_cell); // Defaults to 0.0 initialization
     // Local vector contribution from each cell for Auxiliary equations
-    dealii::Tensor<1,dim,std::vector<real>> current_cell_rhs_aux;// Defaults to 0.0 initialization
+    dealii::Tensor<1,dim,std::vector<real>> current_cell_rhs_aux;
     if(compute_auxiliary_right_hand_side){
         for(int idim=0; idim<dim; idim++){
-            current_cell_rhs_aux[idim].resize(n_dofs_curr_cell);
+            current_cell_rhs_aux[idim].resize(n_dofs_curr_cell);// Defaults to 0.0 initialization
         }
     }
 

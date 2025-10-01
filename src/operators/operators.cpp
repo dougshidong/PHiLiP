@@ -818,18 +818,18 @@ void SumFactorizedOperators<dim,n_faces>::Hadamard_product(
 template <int dim, int n_faces>  
 template <typename real>
 void SumFactorizedOperators<dim,n_faces>::Hadamard_product_AD_vector(
-    const dealii::FullMatrix<double> &input_mat,
-    const std::vector<real> &input_vect,
-    std::vector<real> &output_vect)
+    const dealii::FullMatrix<double> &input_mat1,
+    const std::vector<real> &input_mat2,
+    std::vector<real> &output_mat)
 {
-    const unsigned int rows    = input_mat.m();
-    const unsigned int columns = input_mat.n();
-    assert(rows * columns == input_vect.size());
+    const unsigned int rows    = input_mat1.m();
+    const unsigned int columns = input_mat1.n();
+    assert(rows * columns == input_mat2.size());
     
     for(unsigned int irow=0; irow<rows; irow++){
         for(unsigned int icol=0; icol<columns; icol++){
-            output_vect[irow * columns + icol] = input_mat[irow][icol] 
-                                               * input_vect[irow * columns + icol];
+            output_mat[irow * columns + icol] = input_mat1[irow][icol] 
+                                               * input_mat2[irow * columns + icol];
         }
     }
 }
@@ -3266,114 +3266,6 @@ template void SumFactorizedOperators<PHILIP_DIM,2*PHILIP_DIM>::inner_product<Rad
             const bool adding = false,
             const double factor = 1.0);
 
-//template void SumFactorizedOperators<PHILIP_DIM,2*PHILIP_DIM>::divergence_two_pt_flux_Hadamard_product<double>(
-//            const dealii::Tensor<1,PHILIP_DIM,dealii::FullMatrix<double>> &input_mat,
-//            std::vector<double> &output_vect,
-//            const std::vector<double> &weights,
-//            const dealii::FullMatrix<double> &basis,
-//            const double scaling = 2.0);//the only direction that isn't identity
-//template void SumFactorizedOperators<PHILIP_DIM,2*PHILIP_DIM>::divergence_two_pt_flux_Hadamard_product<FadType>(
-//            const dealii::Tensor<1,PHILIP_DIM,dealii::FullMatrix<FadType>> &input_mat,
-//            std::vector<FadType> &output_vect,
-//            const std::vector<FadType> &weights,
-//            const dealii::FullMatrix<double> &basis,
-//            const double scaling = 2.0);//the only direction that isn't identity
-//template void SumFactorizedOperators<PHILIP_DIM,2*PHILIP_DIM>::divergence_two_pt_flux_Hadamard_product<RadType>(
-//            const dealii::Tensor<1,PHILIP_DIM,dealii::FullMatrix<RadType>> &input_mat,
-//            std::vector<RadType> &output_vect,
-//            const std::vector<RadType> &weights,
-//            const dealii::FullMatrix<double> &basis,
-//            const double scaling = 2.0);//the only direction that isn't identity
-//template void SumFactorizedOperators<PHILIP_DIM,2*PHILIP_DIM>::divergence_two_pt_flux_Hadamard_product<FadFadType>(
-//            const dealii::Tensor<1,PHILIP_DIM,dealii::FullMatrix<FadFadType>> &input_mat,
-//            std::vector<FadFadType> &output_vect,
-//            const std::vector<FadFadType> &weights,
-//            const dealii::FullMatrix<double> &basis,
-//            const double scaling = 2.0);//the only direction that isn't identity
-//template void SumFactorizedOperators<PHILIP_DIM,2*PHILIP_DIM>::divergence_two_pt_flux_Hadamard_product<RadFadType>(
-//            const dealii::Tensor<1,PHILIP_DIM,dealii::FullMatrix<RadFadType>> &input_mat,
-//            std::vector<RadFadType> &output_vect,
-//            const std::vector<RadFadType> &weights,
-//            const dealii::FullMatrix<double> &basis,
-//            const double scaling = 2.0);//the only direction that isn't identity
-//
-//template void SumFactorizedOperators<PHILIP_DIM,2*PHILIP_DIM>::surface_two_pt_flux_Hadamard_product<double>(
-//            const dealii::FullMatrix<double> &input_mat,
-//            std::vector<double> &output_vect_vol,
-//            std::vector<double> &output_vect_surf,
-//            const std::vector<double> &weights,
-//            const std::array<dealii::FullMatrix<double>,2> &surf_basis,
-//            const unsigned int iface,
-//            const unsigned int PHILIP_DIM_not_zero,
-//            const double scaling = 2.0);
-//template void SumFactorizedOperators<PHILIP_DIM,2*PHILIP_DIM>::surface_two_pt_flux_Hadamard_product<FadType>(
-//            const dealii::FullMatrix<FadType> &input_mat,
-//            std::vector<FadType> &output_vect_vol,
-//            std::vector<FadType> &output_vect_surf,
-//            const std::vector<FadType> &weights,
-//            const std::array<dealii::FullMatrix<double>,2> &surf_basis,
-//            const unsigned int iface,
-//            const unsigned int PHILIP_DIM_not_zero,
-//            const double scaling = 2.0);
-//template void SumFactorizedOperators<PHILIP_DIM,2*PHILIP_DIM>::surface_two_pt_flux_Hadamard_product<RadType>(
-//            const dealii::FullMatrix<RadType> &input_mat,
-//            std::vector<RadType> &output_vect_vol,
-//            std::vector<RadType> &output_vect_surf,
-//            const std::vector<RadType> &weights,
-//            const std::array<dealii::FullMatrix<double>,2> &surf_basis,
-//            const unsigned int iface,
-//            const unsigned int PHILIP_DIM_not_zero,
-//            const double scaling = 2.0);
-//template void SumFactorizedOperators<PHILIP_DIM,2*PHILIP_DIM>::surface_two_pt_flux_Hadamard_product<FadFadType>(
-//            const dealii::FullMatrix<FadFadType> &input_mat,
-//            std::vector<FadFadType> &output_vect_vol,
-//            std::vector<FadFadType> &output_vect_surf,
-//            const std::vector<FadFadType> &weights,
-//            const std::array<dealii::FullMatrix<double>,2> &surf_basis,
-//            const unsigned int iface,
-//            const unsigned int PHILIP_DIM_not_zero,
-//            const double scaling = 2.0);
-//template void SumFactorizedOperators<PHILIP_DIM,2*PHILIP_DIM>::surface_two_pt_flux_Hadamard_product<RadFadType>(
-//            const dealii::FullMatrix<RadFadType> &input_mat,
-//            std::vector<RadFadType> &output_vect_vol,
-//            std::vector<RadFadType> &output_vect_surf,
-//            const std::vector<RadFadType> &weights,
-//            const std::array<dealii::FullMatrix<double>,2> &surf_basis,
-//            const unsigned int iface,
-//            const unsigned int PHILIP_DIM_not_zero,
-//            const double scaling = 2.0);
-//
-//template void SumFactorizedOperators<PHILIP_DIM,2*PHILIP_DIM>::two_pt_flux_Hadamard_product<double>(
-//            const dealii::FullMatrix<double> &input_mat,
-//            dealii::FullMatrix<double> &output_mat,
-//            const dealii::FullMatrix<double> &basis,//the only direction that isn't identity
-//            const std::vector<double> &weights,//vector storing diagonal entries for case not identity
-//            const int direction);//direction for the derivative that corresponds to basis
-//template void SumFactorizedOperators<PHILIP_DIM,2*PHILIP_DIM>::two_pt_flux_Hadamard_product<FadType>(
-//            const dealii::FullMatrix<FadType> &input_mat,
-//            dealii::FullMatrix<FadType> &output_mat,
-//            const dealii::FullMatrix<double> &basis,//the only direction that isn't identity
-//            const std::vector<FadType> &weights,//vector storing diagonal entries for case not identity
-//            const int direction);//direction for the derivative that corresponds to basis
-//template void SumFactorizedOperators<PHILIP_DIM,2*PHILIP_DIM>::two_pt_flux_Hadamard_product<RadType>(
-//            const dealii::FullMatrix<RadType> &input_mat,
-//            dealii::FullMatrix<RadType> &output_mat,
-//            const dealii::FullMatrix<double> &basis,//the only direction that isn't identity
-//            const std::vector<RadType> &weights,//vector storing diagonal entries for case not identity
-//            const int direction);//direction for the derivative that corresponds to basis
-//template void SumFactorizedOperators<PHILIP_DIM,2*PHILIP_DIM>::two_pt_flux_Hadamard_product<FadFadType>(
-//            const dealii::FullMatrix<FadFadType> &input_mat,
-//            dealii::FullMatrix<FadFadType> &output_mat,
-//            const dealii::FullMatrix<double> &basis,//the only direction that isn't identity
-//            const std::vector<FadFadType> &weights,//vector storing diagonal entries for case not identity
-//            const int direction);//direction for the derivative that corresponds to basis
-//template void SumFactorizedOperators<PHILIP_DIM,2*PHILIP_DIM>::two_pt_flux_Hadamard_product<RadFadType>(
-//            const dealii::FullMatrix<RadFadType> &input_mat,
-//            dealii::FullMatrix<RadFadType> &output_mat,
-//            const dealii::FullMatrix<double> &basis,//the only direction that isn't identity
-//            const std::vector<RadFadType> &weights,//vector storing diagonal entries for case not identity
-//            const int direction);//direction for the derivative that corresponds to basis
-
 template void SumFactorizedOperators<PHILIP_DIM,2*PHILIP_DIM>::matrix_vector_mult_1D<double>(
             const std::vector<double> &input_vect,
             std::vector<double> &output_vect,
@@ -3549,7 +3441,6 @@ template void SumFactorizedOperators<PHILIP_DIM,2*PHILIP_DIM>::Hadamard_product_
         const dealii::FullMatrix<double> &input_mat,
         const std::vector<RadFadType> &input_vect,
         std::vector<      RadFadType> &output_vect);
-
 
 } // OPERATOR namespace
 } // PHiLiP namespace

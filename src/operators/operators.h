@@ -97,28 +97,6 @@ public:
     ///Standard function to compute factorial of a number.
     double compute_factorial(double n);
 
-    ///Base matrix vetor mult never implemented.
-//    ///virtual function to be defined.
-//    template <typename real>
-//    virtual void matrix_vector_mult(
-//                const std::vector<real> &input_vect,
-//                std::vector<real> &output_vect,
-//                const dealii::FullMatrix<double> &basis_x,
-//                const dealii::FullMatrix<double> &basis_y,
-//                const dealii::FullMatrix<double> &basis_z,
-//                const bool adding = false,
-//                const double factor = 1.0) = 0;
-//    ///virtual function to be defined.
-//    template <typename real>
-//    virtual void inner_product(
-//                const std::vector<real> &input_vect,
-//                const std::vector<real> &weight_vect,
-//                std::vector<real> &output_vect,
-//                const dealii::FullMatrix<double> &basis_x,
-//                const dealii::FullMatrix<double> &basis_y,
-//                const dealii::FullMatrix<double> &basis_z,
-//                const bool adding = false,
-//                const double factor = 1.0) = 0;
 protected:
 
     const MPI_Comm mpi_communicator; ///< MPI communicator.
@@ -363,14 +341,16 @@ public:
         dealii::FullMatrix<double> &output_mat);
 
     ///Computes a single Hadamard product for AD type.
-    /** The input_mat is a matrix of double, input vector is a matrix stored as a vector
+    /** For input mat1 \f$ A \f$ and input mat2 \f$ B \f$, this computes
+    * \f$ A \circ B = C \implies \left( C \right)_{ij} = \left( A \right)_{ij}\left( B \right)_{ij}\f$.
+    * The input_mat1 is a matrix of double, input_mat2 is a matrix stored as a vector
     * in contiguous memory, and outputs a matrix stored as a vector in contiguous memory.
     */
     template <typename real>
     void Hadamard_product_AD_vector(
-        const dealii::FullMatrix<double> &input_mat,
-        const std::vector<real> &input_vect,
-        std::vector<real> &output_vect);
+        const dealii::FullMatrix<double> &input_mat1,
+        const std::vector<real> &input_mat2,
+        std::vector<real> &output_mat);
 
 //protected:
 public:

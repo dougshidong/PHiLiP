@@ -4654,10 +4654,9 @@ DGBase<PHILIP_DIM,double,dealii::Triangulation<PHILIP_DIM>>::assemble_cell_resid
     OPERATOR::vol_projection_operator<PHILIP_DIM,2*PHILIP_DIM>                       &soln_basis_projection_oper_int,
     OPERATOR::vol_projection_operator<PHILIP_DIM,2*PHILIP_DIM>                       &soln_basis_projection_oper_ext,
     OPERATOR::mapping_shape_functions<PHILIP_DIM,2*PHILIP_DIM>                       &mapping_basis,
-    const bool                                                         compute_auxiliary_right_hand_side,//flag on whether computing the Auxiliary variable's equations' residuals
-    dealii::LinearAlgebra::distributed::Vector<double>                 &rhs,
-    std::array<dealii::LinearAlgebra::distributed::Vector<double>,PHILIP_DIM> &rhs_aux);
-
+    const bool                                                                       compute_auxiliary_right_hand_side,//flag on whether computing the Auxiliary variable's equations' residuals
+    dealii::LinearAlgebra::distributed::Vector<double>                               &rhs,
+    std::array<dealii::LinearAlgebra::distributed::Vector<double>,PHILIP_DIM>        &rhs_aux);
 template void 
 DGBase<PHILIP_DIM,double,dealii::parallel::distributed::Triangulation<PHILIP_DIM>>::assemble_cell_residual_and_ad_derivatives<codi_JacobianComputationType> (
     const dealii::TriaActiveIterator<dealii::DoFCellAccessor<PHILIP_DIM, PHILIP_DIM, false>> &current_cell,

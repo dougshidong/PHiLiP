@@ -437,13 +437,12 @@ void SumFactorizedOperators<dim,n_faces>::gradient_matrix_vector_mult(
     const dealii::FullMatrix<double> &gradient_basis_z)
 {
     for(int idim=0; idim<dim;idim++){
-//        output_vect[idim].resize(input_vect.size());
         if(idim==0)
             this->matrix_vector_mult(input_vect, output_vect[idim],
                                      gradient_basis_x, 
                                      basis_y, 
                                      basis_z,
-                                     false);//first one doesn't add in the divergence
+                                     false);
         if(idim==1)
             this->matrix_vector_mult(input_vect, output_vect[idim],
                                      basis_x, 

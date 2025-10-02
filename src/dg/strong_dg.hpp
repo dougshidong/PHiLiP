@@ -974,7 +974,7 @@ public:
     {
         build_volume_metric_operators<codi_JacobianComputationType>(poly_degree, grid_degree, metric_coeffs, metric_oper, mapping_basis, mapping_support_points);
     }
-    /// Builds volume metric operators (metric cofactor and determinant of metric Jacobian). For codi_JacobianComputationType.
+    /// Builds volume metric operators (metric cofactor and determinant of metric Jacobian). For codi_HessianComputationType.
     void build_volume_metric_operators(
         const unsigned int poly_degree,
         const unsigned int grid_degree,

@@ -1222,11 +1222,9 @@ public:
     virtual void assemble_auxiliary_residual (const bool compute_dRdW, const bool compute_dRdX, const bool compute_d2R) = 0;
 
     /// Allocate the dual vector for optimization.
-    /** Currently only used in weak form.
-    */
     virtual void allocate_dual_vector (const bool compute_d2R) = 0;
 
-    /// Builds volume metric operators (metric cofactor and determinant of metric Jacobian).
+    /// Builds volume metric operators (metric cofactor and determinant of metric Jacobian). For double type.
     virtual void build_volume_metric_operators(
         const unsigned int poly_degree,
         const unsigned int grid_degree,
@@ -1234,7 +1232,7 @@ public:
         OPERATOR::metric_operators<double,dim,2*dim> &metric_oper,
         OPERATOR::mapping_shape_functions<dim,2*dim> &mapping_basis,
         std::array<std::vector<double>,dim>          &mapping_support_points) =0;
-    /// Builds volume metric operators (metric cofactor and determinant of metric Jacobian).
+    /// Builds volume metric operators (metric cofactor and determinant of metric Jacobian). For codi_JacobianComputationType.
     virtual void build_volume_metric_operators(
         const unsigned int poly_degree,
         const unsigned int grid_degree,
@@ -1242,7 +1240,7 @@ public:
         OPERATOR::metric_operators<codi_JacobianComputationType,dim,2*dim> &metric_oper,
         OPERATOR::mapping_shape_functions<dim,2*dim>                       &mapping_basis,
         std::array<std::vector<codi_JacobianComputationType>,dim>          &mapping_support_points) =0;
-    /// Builds volume metric operators (metric cofactor and determinant of metric Jacobian).
+    /// Builds volume metric operators (metric cofactor and determinant of metric Jacobian). For codi_HessianComputationType.
     virtual void build_volume_metric_operators(
         const unsigned int poly_degree,
         const unsigned int grid_degree,

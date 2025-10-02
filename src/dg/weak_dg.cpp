@@ -759,7 +759,6 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_boundary_term(
                 for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
 
                     for (int d=0; d<dim; ++d) {
-                        //const real2 basis_average = gradient_operator[d][idof][iquad];
                         const double basis_average = interpolation_operator[idof][iquad];
                         lifting_op_R_rhs_int[idof_base][s] -= soln_jump_int[iquad][s][d] * basis_average * faceJxW[iquad];
                     }
@@ -1288,7 +1287,6 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_face_term(
                 for (unsigned int iquad=0; iquad<n_face_quad_pts; ++iquad) {
 
                     for (int d=0; d<dim; ++d) {
-                        //const real2 basis_average = 0.5 * (gradient_operator_int[d][idof][iquad] + 0.0);
                         const double basis_average = 0.5 * (interpolation_operator_int[idof][iquad] + 0.0);
                         lifting_op_R_rhs_int[idof_base][s] -= soln_jump_int[iquad][s][d] * basis_average * faceJxW[iquad];
                     }
@@ -1307,7 +1305,6 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_face_term(
                 for (unsigned int iquad=0; iquad<n_face_quad_pts; ++iquad) {
 
                     for (int d=0; d<dim; ++d) {
-                        //const real2 basis_average = 0.5 * ( 0.0 + gradient_operator_ext[d][idof][iquad] );
                         const double basis_average = 0.5 * ( 0.0 + interpolation_operator_ext[idof][iquad] );
                         lifting_op_R_rhs_ext[idof_base][s] -= soln_jump_ext[iquad][s][d] * basis_average * faceJxW[iquad];
                     }

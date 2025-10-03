@@ -330,7 +330,8 @@ std::shared_ptr<EmptyRRKBase<dim,real,MeshType>> ODESolverFactory<dim,real,MeshT
     // Type-cast to the appropriate RKTableau type
     std::shared_ptr<RKTableauButcherBase<dim,real,MeshType>> rk_tableau_butcher = std::dynamic_pointer_cast<RKTableauButcherBase<dim,real,MeshType>>(rk_tableau); 
 
-    if (ode_solver_type == ODEEnum::runge_kutta_solver && dg_input->all_parameters->flow_solver_param.do_calculate_numerical_entropy) {
+    if ( (ode_solver_type == ODEEnum::runge_kutta_solver && dg_input->all_parameters->flow_solver_param.do_calculate_numerical_entropy)
+            || ( !dg_input->all_parameters->ode_solver_param.use_relaxation_runge_kutta && dg_input->all_parameters->flow_solver_param.do_calculate_numerical_entropy )  ) {
             return std::make_shared<RKNumEntropy<dim,real,MeshType>>(rk_tableau_butcher);
     }
     else if (dg_input->all_parameters->ode_solver_param.use_relaxation_runge_kutta){

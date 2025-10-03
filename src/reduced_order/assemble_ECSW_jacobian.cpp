@@ -49,7 +49,7 @@ void AssembleECSWJac<dim,nstate>::build_problem(){
     const int rank = this->Comm_.MyPID();
     const int n_quad_pts = this->dg->volume_quadrature_collection[this->all_parameters->flow_solver_param.poly_degree].size();
     const int length = epetra_system_matrix.NumMyRows()/(nstate*n_quad_pts);
-    int *local_elements = new int[length];
+    std::unique_ptr local_elements(std::make_unique<int[]>(length));
     int ctr = 0;
     for (const auto &cell : this->dg->dof_handler.active_cell_iterators())
     {
@@ -60,10 +60,9 @@ void AssembleECSWJac<dim,nstate>::build_problem(){
     }
 
     Epetra_Map RowMap((n_reduced_dim_POD*n_reduced_dim_POD*training_snaps),(n_reduced_dim_POD*n_reduced_dim_POD*training_snaps), 0, this->Comm_); // Number of rows in Jacobian based training matrix = n^2 * (number of training snapshots)
-    Epetra_Map ColMap(num_elements_N_e, length, local_elements, 0, this->Comm_);
+    Epetra_Map ColMap(num_elements_N_e, length, local_elements.get(), 0, this->Comm_);
     Epetra_Map dMap((n_reduced_dim_POD*n_reduced_dim_POD*training_snaps), (rank == 0) ?  (n_reduced_dim_POD*n_reduced_dim_POD*training_snaps) : 0,  0, this->Comm_);
 
-    delete[] local_elements;
 
     Epetra_CrsMatrix C_T(Epetra_DataAccess::Copy, ColMap, RowMap, num_elements_N_e);
     Epetra_Vector d(dMap);
@@ -101,8 +100,8 @@ void AssembleECSWJac<dim,nstate>::build_problem(){
         {
             if (cell->is_locally_owned()){
                 int cell_num = cell->active_cell_index();
-                double *row = new double[local_system_matrix.NumGlobalCols()];
-                int *global_indices = new int[local_system_matrix.NumGlobalCols()];
+                std::unique_ptr row(std::make_unique<double[]>(local_system_matrix.NumGlobalCols()));
+                std::unique_ptr global_indices(std::make_unique<int[]>(local_system_matrix.NumGlobalCols()));
 
                 // Create L_e matrix and transposed L_e matrix for current cell
                 const int fe_index_curr_cell = cell->active_fe_index();
@@ -115,16 +114,13 @@ void AssembleECSWJac<dim,nstate>::build_problem(){
                 int numE;
                 int row_i = current_dofs_indices[0];
                 // Use the Jacobian to determine the stencil around the current element
-                local_system_matrix.ExtractGlobalRowCopy(row_i, local_system_matrix.NumGlobalCols(), numE, row, global_indices);
+                local_system_matrix.ExtractGlobalRowCopy(row_i, local_system_matrix.NumGlobalCols(), numE, row.get(), global_indices.get());
                 int neighbour_dofs_curr_cell = 0;
                 for (int i = 0; i < numE; i++){
                     neighbour_dofs_curr_cell +=1;
                     neighbour_dofs_indices.resize(neighbour_dofs_curr_cell);
                     neighbour_dofs_indices[neighbour_dofs_curr_cell-1] = global_indices[i];
                 }
-
-                delete[] row;
-                delete[] global_indices;
 
                 const Epetra_SerialComm sComm;
                 Epetra_Map LeRowMap(n_dofs_curr_cell, 0, sComm);
@@ -168,17 +164,15 @@ void AssembleECSWJac<dim,nstate>::build_problem(){
                 // Assemble the transpose of the test basis
                 Epetra_CrsMatrix W_T(Epetra_DataAccess::Copy, local_test_basis.ColMap(), N_FOM_dim);
                 for(int i =0; i < local_test_basis.NumGlobalRows(); i++){
-                    double *row = new double[local_test_basis.NumGlobalCols()];
-                    int *global_cols = new int[local_test_basis.NumGlobalCols()];
+                    std::unique_ptr row(std::make_unique<double[]>(local_test_basis.NumGlobalCols()));
+                    std::unique_ptr global_cols(std::make_unique<int[]>(local_test_basis.NumGlobalCols()));
                     int numE;
                     const int globalRow = local_test_basis.GRID(i);
-                    local_test_basis.ExtractGlobalRowCopy(globalRow, local_test_basis.NumGlobalCols(), numE , row, global_cols);
+                    local_test_basis.ExtractGlobalRowCopy(globalRow, local_test_basis.NumGlobalCols(), numE , row.get(), global_cols.get());
                     for(int j = 0; j < numE; j++){
                         int col = global_cols[j];
                         W_T.InsertGlobalValues(col, 1, &row[j], &i);
                     }
-                    delete[] row;
-                    delete[] global_cols;
                 }
                 W_T.FillComplete(local_test_basis.RowMap(), local_test_basis.ColMap());
 
@@ -190,30 +184,27 @@ void AssembleECSWJac<dim,nstate>::build_problem(){
                 Epetra_Map cseRowMap(n_reduced_dim_POD*n_reduced_dim_POD, 0, sComm);
                 Epetra_Vector c_se(cseRowMap);
                 for(int i =0; i < W_T_J_e_V.NumGlobalRows(); i++){
-                    double *row = new double[W_T_J_e_V.NumGlobalCols()];
-                    int *global_cols = new int[epetra_system_matrix.NumGlobalCols()];
+                    std::unique_ptr row(std::make_unique<double[]>(local_test_basis.NumGlobalCols()));
+                    std::unique_ptr global_cols(std::make_unique<int[]>(local_test_basis.NumGlobalCols()));
                     int numE;
                     const int globalRow = W_T_J_e_V.GRID(i);
-                    W_T_J_e_V.ExtractGlobalRowCopy(globalRow, W_T_J_e_V.NumGlobalCols(), numE , row, global_cols);
+                    W_T_J_e_V.ExtractGlobalRowCopy(globalRow, W_T_J_e_V.NumGlobalCols(), numE , row.get(), global_cols.get());
                     for(int j = 0; j < numE; j++){
                         int col = global_cols[j];
                         int idx = col*n_reduced_dim_POD + i; 
                         c_se[idx] = row[j];
                     }
-                    delete[] row;
-                    delete[] global_cols;
                 }
 
-                double *c_se_array = new double[n_reduced_dim_POD*n_reduced_dim_POD];
+                std::unique_ptr c_se_array(std::make_unique<double[]>(n_reduced_dim_POD*n_reduced_dim_POD));
 
-                c_se.ExtractCopy(c_se_array);
+                c_se.ExtractCopy(c_se_array.get());
             
                 // Sub into entries of C and d
                 for (int k = 0; k < (n_reduced_dim_POD*n_reduced_dim_POD); ++k){
                     int place = row_num+k;
                     C_T.InsertGlobalValues(cell_num, 1, &c_se_array[k], &place);
                 }
-                delete[] c_se_array; 
             }     
         }
         row_num+=(n_reduced_dim_POD*n_reduced_dim_POD);
@@ -232,16 +223,14 @@ void AssembleECSWJac<dim,nstate>::build_problem(){
 
     Epetra_CrsMatrix C_single = copy_matrix_to_all_cores(C_T);
     for (int p = 0; p < num_elements_N_e; p++){
-        double *row = new double[C_single.NumGlobalCols()];
-        int *global_cols = new int[C_single.NumGlobalCols()];
+        std::unique_ptr row(std::make_unique<double[]>(C_single.NumGlobalCols()));
+        std::unique_ptr global_cols(std::make_unique<int[]>(C_single.NumGlobalCols()));
         int numE;
-        C_single.ExtractGlobalRowCopy(p, C_single.NumGlobalCols(), numE , row, global_cols);
+        C_single.ExtractGlobalRowCopy(p, C_single.NumGlobalCols(), numE , row.get(), global_cols.get());
         for (int o = 0; o < dMap.NumMyElements(); o++){
             int col = dMap.GID(o);
             d.SumIntoMyValues(1, &row[col], &o);
         }
-        delete[] row;
-        delete[] global_cols;
     }
 
     // Sub temp C and d into class A and b

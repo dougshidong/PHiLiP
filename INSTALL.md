@@ -183,7 +183,7 @@ Note that you want to request at least as many processes as MPIMAX.
 ctest -LE EXTRA-LONG
 ~~~~
 The  `-LE EXTRA-LONG` flag will disable all tests that will take over an hour and should only be removed when wanting to
-run tests that will take over an hour. The `-LE` flag will disable all tests that are expected to fail. All tests also have labels and can be used with the `-L` flag. For example,
+run tests that will take over an hour. All tests also have labels and can be used with the `-L` flag. For example,
 if you want to run all `EULER` dg tests use the following.
 ~~~~
 ctest -L EULER

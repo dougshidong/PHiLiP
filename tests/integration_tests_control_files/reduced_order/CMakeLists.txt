@@ -183,3 +183,28 @@ set_tests_labels(1D_BURGERS_REWIENSKI_MANUFACTURED_SOLUTION REDUCED_ORDER
                                                             CONVERGENCE
                                                             MODERATE
                                                             INTEGRATION_TEST)
+
+# =======================================
+# Unsteady Galerkin POD Runge-Kutta
+# =======================================
+# Estimated run time: 125s
+configure_file(unsteady_reduced_order_testing.prm unsteady_reduced_order_testing.prm COPYONLY)
+add_test(
+        NAME 2D_UNSTEADY_GALERKIN_RK
+        COMMAND
+        bash -c
+        "
+        rm -f *.txt;
+        mpirun -np ${MPIMAX} ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_2D -i ${CMAKE_CURRENT_BINARY_DIR}/unsteady_reduced_order_testing.prm
+        "
+        WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
+)
+set_tests_labels(2D_UNSTEADY_GALERKIN_RK        REDUCED_ORDER
+                                                2D
+                                                PARALLEL
+                                                EULER
+                                                RUNGE-KUTTA
+                                                STRONG-SPLIT
+                                                COLLOCATED
+                                                MODERATE
+                                                INTEGRATION_TEST)

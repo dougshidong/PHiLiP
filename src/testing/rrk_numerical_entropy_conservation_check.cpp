@@ -25,8 +25,8 @@ Parameters::AllParameters RRKNumericalEntropyConservationCheck<dim,nstate>::rein
     parameters.flow_solver_param.courant_friedrichs_lewy_number*=time_step_size_factor;
     
     using ODESolverEnum = Parameters::ODESolverParam::ODESolverEnum;
-    if (use_rrk)    {parameters.ode_solver_param.ode_solver_type = ODESolverEnum::rrk_explicit_solver;}
-    else            {parameters.ode_solver_param.ode_solver_type = ODESolverEnum::runge_kutta_solver;}
+    if (use_rrk)    {parameters.ode_solver_param.use_relaxation_runge_kutta = true;}
+    else            {parameters.ode_solver_param.use_relaxation_runge_kutta = false;}
 
     return parameters;
 }

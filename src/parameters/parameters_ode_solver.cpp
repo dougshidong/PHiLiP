@@ -1,4 +1,7 @@
 #include "parameters/parameters_ode_solver.h"
+#include <deal.II/base/mpi.h>
+#include <deal.II/base/utilities.h>
+#include <deal.II/base/conditional_ostream.h>
 
 namespace PHiLiP {
 namespace Parameters {
@@ -43,7 +46,8 @@ void ODESolverParam::declare_parameters (dealii::ParameterHandler &prm)
                           " rrk_explicit | "
                           " pod_galerkin | "
                           " pod_petrov_galerkin | "
-                          " hyper_reduced_petrov_galerkin"),
+                          " hyper_reduced_petrov_galerkin | "
+                          " pod_galerkin_runge_kutta "),
                           "Type of ODE solver to use."
                           "Choices are "
                           " <runge_kutta | "
@@ -52,7 +56,8 @@ void ODESolverParam::declare_parameters (dealii::ParameterHandler &prm)
                           " rrk_explicit | "
                           " pod_galerkin | "
                           " pod_petrov_galerkin | "
-                          " hyper_reduced_petrov_galerkin>.");
+                          " hyper_reduced_petrov_galerkin | "
+                          " pod_galerkin_runge_kutta>.");
 
         prm.declare_entry("nonlinear_max_iterations", "500000",
                           dealii::Patterns::Integer(0,dealii::Patterns::Integer::max_int_value),
@@ -136,6 +141,12 @@ void ODESolverParam::declare_parameters (dealii::ParameterHandler &prm)
                               dealii::Patterns::Double(),
                               "Tolerance for root-finding problem in entropy RRK ode solver."
                               "Defult 5E-10 is suitable in most cases.");
+            prm.declare_entry("use_relaxation_runge_kutta","false",
+                              dealii::Patterns::Bool(),
+                              "Toggle using relaxation runge-kutta. "
+                              "Must use a RK ode solver."
+                    );
+                
         }
         prm.leave_subsection();
 
@@ -197,6 +208,8 @@ void ODESolverParam::parse_parameters (dealii::ParameterHandler &prm)
                                                            allocate_matrix_dRdW = true; }
         else if (solver_string == "hyper_reduced_petrov_galerkin") { ode_solver_type = ODESolverEnum::hyper_reduced_petrov_galerkin_solver;
                                                            allocate_matrix_dRdW = true; }
+        else if (solver_string == "pod_galerkin_runge_kutta") { ode_solver_type = ODESolverEnum::pod_galerkin_runge_kutta_solver;
+                                                            allocate_matrix_dRdW = true; }
 
         nonlinear_steady_residual_tolerance  = prm.get_double("nonlinear_steady_residual_tolerance");
         nonlinear_max_iterations = prm.get_integer("nonlinear_max_iterations");
@@ -285,6 +298,16 @@ void ODESolverParam::parse_parameters (dealii::ParameterHandler &prm)
             else if (output_string_rrk == "quiet")   rrk_root_solver_output = quiet;
 
             relaxation_runge_kutta_root_tolerance = prm.get_double("relaxation_runge_kutta_root_tolerance");
+            use_relaxation_runge_kutta = prm.get_bool("use_relaxation_runge_kutta");
+            if (use_relaxation_runge_kutta == false && ode_solver_type == rrk_explicit_solver) {
+                // For backwards compatibility
+                use_relaxation_runge_kutta = true;
+                const int mpi_rank = dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD);
+                dealii::ConditionalOStream pcout(std::cout, mpi_rank==0);
+                pcout << "Warning: rrk_explicit_solver parameter is depreciated. " << std::endl
+                      << "Backwards compatibility was verified upon implementation." <<std::endl;
+                      
+            }
         }
         prm.leave_subsection();
 

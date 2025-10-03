@@ -196,12 +196,11 @@ FlowSolverFactory<dim, nspecies, nstate>
             std::shared_ptr<FlowSolverCaseBase<dim, nspecies, nstate>> flow_solver_case = std::make_shared<PeriodicCubeFlow<dim, nspecies, nstate>>(parameters_input);
             return std::make_unique<FlowSolver<dim, nspecies, nstate>>(parameters_input, flow_solver_case, parameter_handler_input);
         }
-
-    } else if (flow_type == FlowCaseEnum::flow_solver_zero || (nstate==dim+2+nspecies-1)) {
+    } else if (flow_type == FlowCaseEnum::flow_solver_zero && (nstate==dim+2+nspecies-1)) {
         std::shared_ptr<FlowSolverCaseBase<dim, nspecies, nstate>> flow_solver_case = std::make_shared<FlowSolverCaseZero<dim, nspecies, nstate>>(parameters_input);
         std::cout << "No flow case has been created for " << dim << "D and " << nspecies << " species. Implement a test for the conditions." << std::endl;
         std::abort();
-    }
+    } 
     else {
         std::cout << "Invalid flow case. You probably forgot to add it to the list of flow cases in flow_solver_factory.cpp" << std::endl;
         std::abort();

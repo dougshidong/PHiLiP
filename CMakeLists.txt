@@ -120,6 +120,27 @@ add_custom_target(
 )
 ENDIF()
 
+add_custom_target(
+  multispecies_compilation_check
+  COMMAND ${CMAKE_COMMAND} -DNUMBER_OF_SPECIES=1 ${CMAKE_SOURCE_DIR}
+  COMMAND ${CMAKE_COMMAND} --build ${CMAKE_BINARY_DIR} --target all -j${MPIMAX}
+  COMMAND ${CMAKE_COMMAND} -DNUMBER_OF_SPECIES=2 ${CMAKE_SOURCE_DIR}
+  COMMAND echo 'COMPILING 1D_2species EXECUTABLE...'
+  COMMAND make -j${MPIMAX} PHiLiP_1D_2species
+  COMMAND echo 'COMPILING 2D_2species EXECUTABLE...'
+  COMMAND make -j${MPIMAX} PHiLiP_2D_2species
+  COMMAND echo 'COMPILING 3D_2species EXECUTABLE...'
+  COMMAND make -j${MPIMAX} PHiLiP_3D_2species
+  COMMAND ${CMAKE_COMMAND} -DNUMBER_OF_SPECIES=3 ${CMAKE_SOURCE_DIR}
+  COMMAND echo 'COMPILING 1D_3species EXECUTABLE...'
+  COMMAND make -j${MPIMAX} PHiLiP_1D_3species
+  COMMAND echo 'COMPILING 2D_2species EXECUTABLE...'
+  COMMAND make -j${MPIMAX} PHiLiP_2D_3species
+  COMMAND echo 'COMPILING 3D_2species EXECUTABLE...'
+  COMMAND make -j${MPIMAX} PHiLiP_3D_3species
+)
+
+
 IF(${NUMBER_OF_SPECIES} EQUAL 1)
 add_custom_target(unit_tests)
 ENDIF()

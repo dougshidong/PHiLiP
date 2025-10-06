@@ -37,7 +37,7 @@ add_test(
         fi"
         WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
 )
-set_tests_labels(1D_BURGERS_NNLS_PROBLEM_ASSEMBLY   HYPER_REDUCTION
+set_tests_labels(1D_BURGERS_HYPER_POST_SAMPLING   HYPER_REDUCTION
                                                     1D
                                                     SERIAL
                                                     BURGERS_REWIENSKI
@@ -104,15 +104,15 @@ add_test(
         mv weights_table_iteration_final.txt ./1d_burgers_hyper_new_error_results ; "
         WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
 )
-set_tests_labels(1D_BURGERS_HYPER_POST_SAMPLING HYPER_REDUCTION
-                                                1D
-                                                SERIAL
-                                                BURGERS_REWIENSKI
-                                                IMPLICIT
-                                                WEAK
-                                                UNCOLLOCATED
-                                                MODERATE
-                                                INTEGRATION_TEST)
+set_tests_labels(1D_BURGERS_HYPER_SAMPLING_NEW_ERROR HYPER_REDUCTION
+                                                     1D
+                                                     SERIAL
+                                                     BURGERS_REWIENSKI
+                                                     IMPLICIT
+                                                     WEAK
+                                                     UNCOLLOCATED
+                                                     MODERATE
+                                                     INTEGRATION_TEST)
 
 # =======================================
 # Inviscid NACA0012 Adaptive Sampling

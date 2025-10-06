@@ -15,9 +15,9 @@ PositivityPreservingLimiter<dim, nspecies, nstate, real>::PositivityPreservingLi
     const Parameters::AllParameters* const parameters_input)
     : BoundPreservingLimiterState<dim,nspecies,nstate,real>::BoundPreservingLimiterState(parameters_input)
     , flow_solver_param(parameters_input->flow_solver_param)
-    , dx((flow_solver_param.grid_xmax-flow_solver_param.grid_xmin)/flow_solver_param.number_of_grid_elements_x)
-    , dy((flow_solver_param.grid_ymax-flow_solver_param.grid_ymin)/flow_solver_param.number_of_grid_elements_y)
-    , dz((flow_solver_param.grid_zmax-flow_solver_param.grid_zmin)/flow_solver_param.number_of_grid_elements_z)
+    , dx((flow_solver_param.grid_right_bound-flow_solver_param.grid_left_bound)/flow_solver_param.number_of_grid_elements_x)
+    , dy((flow_solver_param.grid_top_bound-flow_solver_param.grid_bottom_bound)/flow_solver_param.number_of_grid_elements_y)
+    , dz((flow_solver_param.grid_z_upper_bound-flow_solver_param.grid_z_lower_bound)/flow_solver_param.number_of_grid_elements_z)
 {
     // Create pointer to Euler Physics to compute pressure if pde_type==euler
     using PDE_enum = Parameters::AllParameters::PartialDifferentialEquation;

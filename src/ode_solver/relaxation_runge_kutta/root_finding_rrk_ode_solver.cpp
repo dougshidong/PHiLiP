@@ -7,7 +7,7 @@ namespace ODE {
 
 template <int dim, int nspecies, typename real, typename MeshType>
 RootFindingRRKODESolver<dim,nspecies,real,MeshType>::RootFindingRRKODESolver(
-            std::shared_ptr<RKTableauBase<dim,real,MeshType>> rk_tableau_input)
+            std::shared_ptr<RKTableauButcherBase<dim,real,MeshType>> rk_tableau_input)
         : RRKODESolverBase<dim,nspecies,real,MeshType>(rk_tableau_input)
 {
 }

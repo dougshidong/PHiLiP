@@ -437,8 +437,8 @@ protected:
     void boundary_farfield (
         std::array<real,nstate> &soln_bc) const;
 
-    /// Wall boundary condition
-    void boundary_do_nothing (
+    /// p0 extrapolation at the boundary
+    void boundary_p0_extrapolation (
         const std::array<real,nstate> &soln_int,
         std::array<real,nstate> &soln_bc,
         std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_bc) const;

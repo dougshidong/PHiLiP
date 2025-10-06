@@ -6,6 +6,7 @@
 #include "parameters/all_parameters.h"
 #include "reduced_order/pod_basis_base.h"
 #include "runge_kutta_methods/rk_tableau_base.h"
+#include "runge_kutta_methods/rk_tableau_butcher_base.h"
 #include "runge_kutta_methods/low_storage_rk_tableau_base.h"
 #include "relaxation_runge_kutta/empty_RRK_base.h"
 

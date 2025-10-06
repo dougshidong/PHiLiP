@@ -9,7 +9,7 @@
 namespace PHiLiP::ODE {
 template <int dim, int nspecies, typename real, int n_rk_stages, typename MeshType>
 PODGalerkinRungeKuttaODESolver<dim,nspecies,real,n_rk_stages,MeshType>::PODGalerkinRungeKuttaODESolver(std::shared_ptr< DGBase<dim, nspecies, real, MeshType> > dg_input,
-            std::shared_ptr<RKTableauBase<dim,real,MeshType>> rk_tableau_input,
+            std::shared_ptr<RKTableauButcherBase<dim,real,MeshType>> rk_tableau_input,
             std::shared_ptr<EmptyRRKBase<dim,nspecies,real,MeshType>> RRK_object_input,
             std::shared_ptr<ProperOrthogonalDecomposition::PODBase<dim,nspecies>> pod) 
             : RungeKuttaBase<dim,nspecies,real,n_rk_stages,MeshType>(dg_input, RRK_object_input, pod)
@@ -107,7 +107,6 @@ void PODGalerkinRungeKuttaODESolver<dim,nspecies,real,n_rk_stages,MeshType>::all
     for(auto idx : this->dg->solution.locally_owned_elements()){
         global_indicies.push_back(static_cast<int>(idx));
     }
-
     Epetra_Map reduced_map = epetra_pod_basis.DomainMap();
     // Setting up Mass and Test Matrix
     Epetra_CrsMatrix old_epetra_system_matrix = this->dg->global_mass_matrix.trilinos_matrix();

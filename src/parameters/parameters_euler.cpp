@@ -26,7 +26,7 @@ void EulerParam::declare_parameters (dealii::ParameterHandler &prm)
         using convert_tensor = dealii::Patterns::Tools::Convert<dealii::Tensor<1, 5, double>>;
         prm.declare_entry("custom_boundary_for_each_state", "0,0,0,0,0", 
                           *convert_tensor::to_pattern(), 
-                          "Custom boundary values for each primitive state. Used for cases that involve post shock boundaries or do not work with non-dimensionalization (ie. Shu Osher)");
+                          "Custom boundary values for each primitive state. Used for cases that involve post shock boundaries or do not work with non-dimensionalization (e.g. Shu Osher).");
     }
     prm.leave_subsection();
 }

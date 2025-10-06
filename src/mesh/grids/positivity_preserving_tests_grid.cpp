@@ -10,8 +10,8 @@ void shock_tube_1D_grid(
     TriangulationType&  grid,
     const Parameters::FlowSolverParam *const flow_solver_param)
 {
-    const double xmax = flow_solver_param->grid_xmax;
-    const double xmin = flow_solver_param->grid_xmin;
+    const double xmax = flow_solver_param->grid_right_bound;
+    const double xmin = flow_solver_param->grid_left_bound;
     const unsigned int n_subdivisions_x = flow_solver_param->number_of_grid_elements_x;
 
     dealii::GridGenerator::subdivided_hyper_cube(grid, n_subdivisions_x, xmin, xmax, true);
@@ -44,8 +44,8 @@ void double_mach_reflection_grid(
 {
     dealii::Point<dim> p1;
     dealii::Point<dim> p2;
-    p1[0] = flow_solver_param->grid_xmin; p1[1] = flow_solver_param->grid_ymin;
-    p2[0] = flow_solver_param->grid_xmax; p2[1] = flow_solver_param->grid_ymax;
+    p1[0] = flow_solver_param->grid_left_bound; p1[1] = flow_solver_param->grid_bottom_bound;
+    p2[0] = flow_solver_param->grid_right_bound; p2[1] = flow_solver_param->grid_top_bound;
     
     std::vector<unsigned int> n_subdivisions(2);
 
@@ -93,8 +93,8 @@ void shock_diffraction_grid(
 {
     dealii::Point<dim> p1;
     dealii::Point<dim> p2;
-    p1[0] = flow_solver_param->grid_xmin; p1[1] = flow_solver_param->grid_ymin;
-    p2[0] = flow_solver_param->grid_xmax; p2[1] = flow_solver_param->grid_ymax;
+    p1[0] = flow_solver_param->grid_left_bound; p1[1] = flow_solver_param->grid_bottom_bound;
+    p2[0] = flow_solver_param->grid_right_bound; p2[1] = flow_solver_param->grid_top_bound;
     
     std::vector<unsigned int> n_subdivisions(2);
 
@@ -151,8 +151,8 @@ void astrophysical_jet_grid(
 {
     dealii::Point<dim> p1;
     dealii::Point<dim> p2;
-    p1[0] = flow_solver_param->grid_xmin; p1[1] = flow_solver_param->grid_ymin;
-    p2[0] = flow_solver_param->grid_xmax; p2[1] = flow_solver_param->grid_ymax;
+    p1[0] = flow_solver_param->grid_left_bound; p1[1] = flow_solver_param->grid_bottom_bound;
+    p2[0] = flow_solver_param->grid_right_bound; p2[1] = flow_solver_param->grid_top_bound;
     
     std::vector<unsigned int> n_subdivisions(2);
 
@@ -204,8 +204,8 @@ void svsw_grid(
 {
     dealii::Point<dim> p1;
     dealii::Point<dim> p2;
-    p1[0] = flow_solver_param->grid_xmin; p1[1] = flow_solver_param->grid_ymin;
-    p2[0] = flow_solver_param->grid_xmax; p2[1] = flow_solver_param->grid_ymax;
+    p1[0] = flow_solver_param->grid_left_bound; p1[1] = flow_solver_param->grid_bottom_bound;
+    p2[0] = flow_solver_param->grid_right_bound; p2[1] = flow_solver_param->grid_top_bound;
     
     std::vector<unsigned int> n_subdivisions(2);
 

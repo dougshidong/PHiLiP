@@ -5,7 +5,7 @@ namespace ODE {
 
 template <int dim, int nspecies, typename real, typename MeshType>
 RRKODESolverBase<dim,nspecies,real,MeshType>::RRKODESolverBase(
-            std::shared_ptr<RKTableauBase<dim,real,MeshType>> rk_tableau_input)
+            std::shared_ptr<RKTableauButcherBase<dim,real,MeshType>> rk_tableau_input)
         : RKNumEntropy<dim,nspecies,real,MeshType>(rk_tableau_input)
 {
     // Do nothing

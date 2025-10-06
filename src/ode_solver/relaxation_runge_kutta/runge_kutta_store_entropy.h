@@ -21,7 +21,7 @@ class RKNumEntropy: public EmptyRRKBase <dim, nspecies, real, MeshType>
 public:
     /// Default constructor that will set the constants.
     explicit RKNumEntropy(
-            std::shared_ptr<RKTableauBase<dim,real,MeshType>> rk_tableau_input);
+            std::shared_ptr<RKTableauButcherBase<dim,real,MeshType>> rk_tableau_input);
 
     /// Calculate FR entropy adjustment
     /** FR_contribution = dt \sum_i=1^s b_i v^{(i)} K du^{(i)}/dt
@@ -40,7 +40,7 @@ public:
 protected:
 
     /// Store pointer to RK tableau
-    std::shared_ptr<RKTableauBase<dim,real,MeshType>> butcher_tableau;
+    std::shared_ptr<RKTableauButcherBase<dim,real,MeshType>> butcher_tableau;
 
     /// Number of RK stages
     const int n_rk_stages;

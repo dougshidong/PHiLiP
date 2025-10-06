@@ -19,7 +19,7 @@ class RRKODESolverBase: public RKNumEntropy<dim, nspecies, real, MeshType>
 public:
     /// Constructor
     explicit RRKODESolverBase(
-            std::shared_ptr<RKTableauBase<dim,real,MeshType>> rk_tableau_input);
+            std::shared_ptr<RKTableauButcherBase<dim,real,MeshType>> rk_tableau_input);
 
     /// Relaxation Runge-Kutta parameter gamma^n
     /** See:  Ketcheson 2019, "Relaxation Runge--Kutta methods: Conservation and stability for inner-product norms"

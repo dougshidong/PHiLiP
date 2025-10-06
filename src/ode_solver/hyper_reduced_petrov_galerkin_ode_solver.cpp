@@ -348,19 +348,16 @@ std::shared_ptr<Epetra_CrsMatrix> HyperReducedODESolver<dim,nspecies,real,MeshTy
 
                 int numE;
                 int row_i = current_dofs_indices[0];
-                double *row = new double[local_system_matrix.NumGlobalCols()];
-                int *global_indices = new int[local_system_matrix.NumGlobalCols()];
+                std::unique_ptr row(std::make_unique<double[]>(local_system_matrix.NumGlobalCols()));
+                std::unique_ptr global_indices(std::make_unique<int[]>(local_system_matrix.NumGlobalCols()));
                 // Use the Jacobian to determine the stencil around the current element
-                local_system_matrix.ExtractGlobalRowCopy(row_i, local_system_matrix.NumGlobalCols(), numE, row, global_indices);
+                local_system_matrix.ExtractGlobalRowCopy(row_i, local_system_matrix.NumGlobalCols(), numE, row.get(), global_indices.get());
                 int neighbour_dofs_curr_cell = 0;
                 for (int i = 0; i < numE; i++){
                     neighbour_dofs_curr_cell +=1;
                     neighbour_dofs_indices.resize(neighbour_dofs_curr_cell);
                     neighbour_dofs_indices[neighbour_dofs_curr_cell-1] = global_indices[i];
                 }
-
-                delete[] row;
-                delete[] global_indices;
 
                 // Create L_e matrix and transposed L_e matrix for current cell
                 const Epetra_SerialComm sComm;
@@ -416,12 +413,11 @@ std::shared_ptr<Epetra_Vector> HyperReducedODESolver<dim,nspecies,real,MeshType>
     Create empty Hyper-reduced residual Epetra structure */
     Epetra_MpiComm epetra_comm(MPI_COMM_WORLD);
     Epetra_Map test_basis_colmap = test_basis.DomainMap();
-    int *global_ind = new int[test_basis.NumGlobalCols()];
+    std::unique_ptr global_ind(std::make_unique<int[]>(test_basis.NumGlobalCols()));
     for (int i = 0; i < test_basis.NumGlobalCols(); i++){
         global_ind[i] = i;
     }
-    Epetra_Map POD_dim (-1,test_basis.NumGlobalCols(), global_ind, 0, epetra_comm);
-    delete[] global_ind;
+    Epetra_Map POD_dim (-1,test_basis.NumGlobalCols(), global_ind.get(), 0, epetra_comm);
     Epetra_Vector hyper_reduced_residual(POD_dim);
     const int N = test_basis.NumGlobalRows();
     Epetra_BlockMap element_map = ECSW_weights.Map();
@@ -469,14 +465,13 @@ std::shared_ptr<Epetra_Vector> HyperReducedODESolver<dim,nspecies,real,MeshType>
                 Epetra_Vector reduced_rhs_e(POD_local);
                 local_test_basis.Multiply(true, global_r_e, reduced_rhs_e);
                 reduced_rhs_e.Scale(ECSW_weights[local_element]);
-                double *reduced_rhs_array = new double[reduced_rhs_e.MyLength()];
+                std::unique_ptr reduced_rhs_array(std::make_unique<double[]>(reduced_rhs_e.MyLength()));
 
                 // Add to hyper-reduced representation of the residual
-                reduced_rhs_e.ExtractCopy(reduced_rhs_array);
+                reduced_rhs_e.ExtractCopy(reduced_rhs_array.get());
                 for (int k = 0; k < reduced_rhs_e.MyLength(); ++k){
                     hyper_reduced_residual.SumIntoMyValues(1, &reduced_rhs_array[k], &k);
                 }
-                delete[] reduced_rhs_array;
             }
         }
     }

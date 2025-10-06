@@ -59,13 +59,6 @@ subsection flow_solver
     set grid_left_bound = -0.5
     set grid_right_bound = 0.5
     set number_of_mesh_refinements = 3
-
-    subsection positivity_preserving_tests
-      set grid_xmin = -0.5
-      set grid_xmax = 0.5
-      set grid_ymin = -0.5
-      set grid_ymax = 0.5
-    end
   end
 end
 

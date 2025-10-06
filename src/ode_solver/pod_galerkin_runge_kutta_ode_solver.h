@@ -4,7 +4,7 @@
 #include "JFNK_solver/JFNK_solver.h"
 #include "dg/dg_base.hpp"
 #include "runge_kutta_base.h"
-#include "runge_kutta_methods/rk_tableau_base.h"
+#include "runge_kutta_methods/rk_tableau_butcher_base.h"
 #include "relaxation_runge_kutta/empty_RRK_base.h"
 
 
@@ -31,7 +31,7 @@ class PODGalerkinRungeKuttaODESolver: public RungeKuttaBase <dim, nspecies, real
 {
 public:
     PODGalerkinRungeKuttaODESolver(std::shared_ptr< DGBase<dim, nspecies, real, MeshType> > dg_input,
-            std::shared_ptr<RKTableauBase<dim,real,MeshType>> rk_tableau_input,
+            std::shared_ptr<RKTableauButcherBase<dim,real,MeshType>> rk_tableau_input,
             std::shared_ptr<EmptyRRKBase<dim,nspecies,real,MeshType>> RRK_object_input,
             std::shared_ptr<ProperOrthogonalDecomposition::PODBase<dim,nspecies>> pod); ///< Constructor.
 
@@ -60,7 +60,7 @@ public:
 
 protected:
     /// Stores Butcher tableau a and b, which specify the RK method
-    std::shared_ptr<RKTableauBase<dim,real,MeshType>> butcher_tableau;
+    std::shared_ptr<RKTableauButcherBase<dim,real,MeshType>> butcher_tableau;
     
     /// Reduced Space sized Runge Kutta Stages
     std::vector<dealii::LinearAlgebra::distributed::Vector<double>> reduced_rk_stage;

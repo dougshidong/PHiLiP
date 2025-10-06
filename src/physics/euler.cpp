@@ -1329,7 +1329,7 @@ void Euler<dim,nstate,real>
 
 template <int dim, int nstate, typename real>
 void Euler<dim, nstate, real>
-::boundary_do_nothing(
+::boundary_p0_extrapolation(
     const std::array<real, nstate>& soln_int,
     std::array<real, nstate>& soln_bc,
     std::array<dealii::Tensor<1, dim, real>, nstate>& soln_grad_bc) const
@@ -1428,7 +1428,7 @@ void Euler<dim,nstate,real>
     }
     else if (boundary_type == 1007) {
         // Do nothing bc, p0 interpolation
-        boundary_do_nothing (soln_int, soln_bc, soln_grad_bc);
+        boundary_p0_extrapolation (soln_int, soln_bc, soln_grad_bc);
     }
     else if (boundary_type == 1008) {
         // Custom boundary condition, user defined in parameters

@@ -51,20 +51,17 @@ subsection flow_solver
   set flow_case_type = low_density
   set poly_degree = 3
   set final_time = 1.0
-  set adaptive_time_step = true
   set courant_friedrichs_lewy_number = 0.5
   set unsteady_data_table_filename = low_density_shock_energy
-  set expected_order_at_final_time = 4.20078
+  set expected_order_at_final_time = 5.01832
   subsection grid
     set grid_left_bound = -0.5
     set grid_right_bound = 0.5
     set number_of_mesh_refinements = 0
 
-    subsection positivity_preserving_tests
-      set grid_xmin = -0.5
-      set grid_xmax = 0.5
-      set grid_ymin = -0.5
-      set grid_ymax = 0.5
+    subsection grid_rectangle
+      set grid_bottom_bound = -0.5
+      set grid_top_bound = 0.5
     end
   end
 end

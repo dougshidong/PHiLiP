@@ -43,8 +43,6 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
                           " shock_diffraction | "
                           " astrophysical_jet | "
                           " strong_vortex_shock_wave | "
-                          " acoustic_wave_air | "
-                          " acoustic_wave_species | "
                           " multi_species_acoustic_wave | "
                           " multi_species_vortex_advection| "
                           " multi_species_high_temperature_vortex_advection| "
@@ -83,8 +81,6 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
                           " shock_diffraction | "
                           " astrophysical_jet | "
                           " strong_vortex_shock_wave | "
-                          " acoustic_wave_air | "
-                          " acoustic_wave_species | "
                           " multi_species_acoustic_wave | "
                           " multi_species_vortex_advection| "
                           " multi_species_high_temperature_vortex_advection| "
@@ -276,43 +272,35 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
             }
             prm.leave_subsection();
 
-          prm.enter_subsection("positivity_preserving_tests");
+          prm.enter_subsection("grid_rectangle");
           {
-              prm.declare_entry("grid_xmin", "0.0",
+              prm.declare_entry("grid_top_bound", "0.0",
                                 dealii::Patterns::Double(-dealii::Patterns::Double::max_double_value, dealii::Patterns::Double::max_double_value),
                                 "Left bound of domain for hyper_cube mesh based cases.");
 
-              prm.declare_entry("grid_xmax", "0.0",
+              prm.declare_entry("grid_bottom_bound", "0.0",
                                 dealii::Patterns::Double(-dealii::Patterns::Double::max_double_value, dealii::Patterns::Double::max_double_value),
                                 "Right bound of domain for hyper_cube mesh based cases.");
 
-              prm.declare_entry("grid_ymin", "0.0",
+              prm.declare_entry("grid_z_lower_bound", "0.0",
                                 dealii::Patterns::Double(-dealii::Patterns::Double::max_double_value, dealii::Patterns::Double::max_double_value),
                                 "Left bound of domain for hyper_cube mesh based cases.");
 
-              prm.declare_entry("grid_ymax", "0.0",
-                                dealii::Patterns::Double(-dealii::Patterns::Double::max_double_value, dealii::Patterns::Double::max_double_value),
-                                "Right bound of domain for hyper_cube mesh based cases.");
-
-              prm.declare_entry("grid_zmin", "0.0",
-                                dealii::Patterns::Double(-dealii::Patterns::Double::max_double_value, dealii::Patterns::Double::max_double_value),
-                                "Left bound of domain for hyper_cube mesh based cases.");
-
-              prm.declare_entry("grid_zmax", "0.0",
+              prm.declare_entry("grid_z_upper_bound", "0.0",
                                 dealii::Patterns::Double(-dealii::Patterns::Double::max_double_value, dealii::Patterns::Double::max_double_value),
                                 "Right bound of domain for hyper_cube mesh based cases.");
 
               prm.declare_entry("number_of_grid_elements_x", "1",
                                 dealii::Patterns::Integer(1, dealii::Patterns::Integer::max_int_value),
-                                "Number of grid elements in the x-direction for 2/3D positivity-preserving limiter cases.");
+                                "Number of grid elements in the x-direction.");
 
               prm.declare_entry("number_of_grid_elements_y", "1",
                                 dealii::Patterns::Integer(1, dealii::Patterns::Integer::max_int_value),
-                                "Number of grid elements in the y-direction for 2/3D positivity-preserving limiter cases.");
+                                "Number of grid elements in the y-direction.");
 
               prm.declare_entry("number_of_grid_elements_z", "1",
                                 dealii::Patterns::Integer(1, dealii::Patterns::Integer::max_int_value),
-                                "Number of grid elements in the z-direction for 2/3D positivity-preserving limiter cases.");
+                                "Number of grid elements in the z-direction.");
           }
           prm.leave_subsection();
 
@@ -420,8 +408,6 @@ void FlowSolverParam::parse_parameters(dealii::ParameterHandler &prm)
         else if (flow_case_type_string == "periodic_1D_unsteady")       {flow_case_type = periodic_1D_unsteady;}
         else if (flow_case_type_string == "gaussian_bump")              {flow_case_type = gaussian_bump;}
         else if (flow_case_type_string == "isentropic_vortex")          {flow_case_type = isentropic_vortex;}
-        else if (flow_case_type_string == "acoustic_wave_air")          {flow_case_type = acoustic_wave_air;}
-        else if (flow_case_type_string == "acoustic_wave_species")      {flow_case_type = acoustic_wave_species;}
         else if (flow_case_type_string == "multi_species_acoustic_wave"){flow_case_type = multi_species_acoustic_wave;}
         else if (flow_case_type_string == "multi_species_vortex_advection"){flow_case_type = multi_species_vortex_advection;}
         else if (flow_case_type_string == "multi_species_high_temperature_vortex_advection"){flow_case_type = multi_species_high_temperature_vortex_advection;}
@@ -516,14 +502,12 @@ void FlowSolverParam::parse_parameters(dealii::ParameterHandler &prm)
             }
             prm.leave_subsection();
 
-            prm.enter_subsection("positivity_preserving_tests");
+            prm.enter_subsection("grid_rectangle");
             {
-                grid_xmax = prm.get_double("grid_xmax");
-                grid_xmin = prm.get_double("grid_xmin");
-                grid_ymax = prm.get_double("grid_ymax");
-                grid_ymin = prm.get_double("grid_ymin");
-                grid_zmax = prm.get_double("grid_zmax");
-                grid_zmin = prm.get_double("grid_zmin");
+                grid_top_bound = prm.get_double("grid_top_bound");
+                grid_bottom_bound = prm.get_double("grid_bottom_bound");
+                grid_z_upper_bound = prm.get_double("grid_z_upper_bound");
+                grid_z_lower_bound = prm.get_double("grid_z_lower_bound");
 
                 number_of_grid_elements_x = prm.get_integer("number_of_grid_elements_x");
                 number_of_grid_elements_y = prm.get_integer("number_of_grid_elements_y");

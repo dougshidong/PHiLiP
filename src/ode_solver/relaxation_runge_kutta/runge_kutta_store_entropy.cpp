@@ -7,7 +7,7 @@ namespace ODE {
 
 template <int dim, int nspecies, typename real, typename MeshType>
 RKNumEntropy<dim,nspecies,real,MeshType>::RKNumEntropy(
-            std::shared_ptr<RKTableauBase<dim,real,MeshType>> rk_tableau_input)
+            std::shared_ptr<RKTableauButcherBase<dim,real,MeshType>> rk_tableau_input)
         : EmptyRRKBase<dim,nspecies,real,MeshType>(rk_tableau_input)
         , butcher_tableau(rk_tableau_input)
         , n_rk_stages(butcher_tableau->n_rk_stages)
@@ -31,81 +31,86 @@ template <int dim, int nspecies, typename real, typename MeshType>
 dealii::LinearAlgebra::distributed::Vector<double> RKNumEntropy<dim,nspecies,real,MeshType>::compute_entropy_vars(const dealii::LinearAlgebra::distributed::Vector<double> &u,
         std::shared_ptr<DGBase<dim,nspecies,real,MeshType>> dg) const
 {
-    // hard-code nstate for Euler/NS - ODESolverFactory has already ensured that we use Euler/NS
-    const unsigned int nstate = dim + 2;
-    // Currently only implemented for constant p
-    const unsigned int poly_degree = dg->get_max_fe_degree();
-    if (poly_degree != dg->get_min_fe_degree()){
-        this->pcout << "Error: Entropy RRK is only implemented for uniform p. Aborting..." << std::endl;
+    if(nspecies > 1) {
+        std::cout<<"Entropy variables for RealGas hasn't been done yet."<<std::endl;
         std::abort();
-    }
-    
-    // Select Euler physics. ODESolverFactory has already ensured that we are using Euler orSelect Euler physics. ODESolverFactory has already ensured that we are using Euler or NS, which both use the same entropy variable computation.
-    PHiLiP::Parameters::AllParameters parameters_using_euler_pde_type = *(dg->all_parameters);
-    parameters_using_euler_pde_type.pde_type = Parameters::AllParameters::PartialDifferentialEquation::euler;
-    std::shared_ptr < Physics::Euler<dim, dim+2, double > > euler_physics = std::dynamic_pointer_cast<Physics::Euler<dim,dim+2,double>>(
-                Physics::PhysicsFactory<dim,nspecies,dim+2,double>::create_Physics(&parameters_using_euler_pde_type));
-
-    const unsigned int n_dofs_cell = dg->fe_collection[poly_degree].dofs_per_cell;
-    const unsigned int n_quad_pts = dg->volume_quadrature_collection[poly_degree].size();
-    const unsigned int n_shape_fns = n_dofs_cell / nstate;
-    //We have to project the vector of entropy variables because the mass matrix has an interpolation from solution nodes built into it.
-    OPERATOR::vol_projection_operator<dim,2*dim,double> vol_projection(1, poly_degree, dg->max_grid_degree);
-    vol_projection.build_1D_volume_operator(dg->oneD_fe_collection_1state[poly_degree], dg->oneD_quadrature_collection[poly_degree]);
-
-    OPERATOR::basis_functions<dim,2*dim,double> soln_basis(1, poly_degree, dg->max_grid_degree);
-    soln_basis.build_1D_volume_operator(dg->oneD_fe_collection_1state[poly_degree], dg->oneD_quadrature_collection[poly_degree]);
-
-    dealii::LinearAlgebra::distributed::Vector<double> entropy_var_hat_global(dg->right_hand_side);
-    std::vector<dealii::types::global_dof_index> dofs_indices (n_dofs_cell);
-
-    for (auto cell = dg->dof_handler.begin_active(); cell!=dg->dof_handler.end(); ++cell) {
-        if (!cell->is_locally_owned()) continue;
-        cell->get_dof_indices (dofs_indices);
-
-        std::array<std::vector<double>,nstate> soln_coeff;
-        for(unsigned int idof=0; idof<n_dofs_cell; idof++){
-            const unsigned int istate = dg->fe_collection[poly_degree].system_to_component_index(idof).first;
-            const unsigned int ishape = dg->fe_collection[poly_degree].system_to_component_index(idof).second;
-            if(ishape == 0)
-                soln_coeff[istate].resize(n_shape_fns);
-            soln_coeff[istate][ishape] = u(dofs_indices[idof]);
+    } else {
+        // hard-code nstate for Euler/NS - ODESolverFactory has already ensured that we use Euler/NS
+        const unsigned int nstate = dim + 2;
+        // Currently only implemented for constant p
+        const unsigned int poly_degree = dg->get_max_fe_degree();
+        if (poly_degree != dg->get_min_fe_degree()){
+            this->pcout << "Error: Entropy RRK is only implemented for uniform p. Aborting..." << std::endl;
+            std::abort();
         }
+        
+        // Select Euler physics. ODESolverFactory has already ensured that we are using Euler orSelect Euler physics. ODESolverFactory has already ensured that we are using Euler or NS, which both use the same entropy variable computation.
+        PHiLiP::Parameters::AllParameters parameters_using_euler_pde_type = *(dg->all_parameters);
+        parameters_using_euler_pde_type.pde_type = Parameters::AllParameters::PartialDifferentialEquation::euler;
+        std::shared_ptr < Physics::Euler<dim, dim+2, double > > euler_physics = std::dynamic_pointer_cast<Physics::Euler<dim,dim+2,double>>(
+                    Physics::PhysicsFactory<dim,nspecies,dim+2,double>::create_Physics(&parameters_using_euler_pde_type));
 
-        std::array<std::vector<double>,nstate> soln_at_q;
-        for(unsigned int istate=0; istate<nstate; istate++){
-            soln_at_q[istate].resize(n_quad_pts);
-            soln_basis.matrix_vector_mult_1D(soln_coeff[istate], soln_at_q[istate],
-                                             soln_basis.oneD_vol_operator);
-        }
-        std::array<std::vector<double>,nstate> entropy_var_at_q;
-        for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){
-            std::array<double,nstate> soln_state;
+        const unsigned int n_dofs_cell = dg->fe_collection[poly_degree].dofs_per_cell;
+        const unsigned int n_quad_pts = dg->volume_quadrature_collection[poly_degree].size();
+        const unsigned int n_shape_fns = n_dofs_cell / nstate;
+        //We have to project the vector of entropy variables because the mass matrix has an interpolation from solution nodes built into it.
+        OPERATOR::vol_projection_operator<dim,2*dim,double> vol_projection(1, poly_degree, dg->max_grid_degree);
+        vol_projection.build_1D_volume_operator(dg->oneD_fe_collection_1state[poly_degree], dg->oneD_quadrature_collection[poly_degree]);
+
+        OPERATOR::basis_functions<dim,2*dim,double> soln_basis(1, poly_degree, dg->max_grid_degree);
+        soln_basis.build_1D_volume_operator(dg->oneD_fe_collection_1state[poly_degree], dg->oneD_quadrature_collection[poly_degree]);
+
+        dealii::LinearAlgebra::distributed::Vector<double> entropy_var_hat_global(dg->right_hand_side);
+        std::vector<dealii::types::global_dof_index> dofs_indices (n_dofs_cell);
+
+        for (auto cell = dg->dof_handler.begin_active(); cell!=dg->dof_handler.end(); ++cell) {
+            if (!cell->is_locally_owned()) continue;
+            cell->get_dof_indices (dofs_indices);
+
+            std::array<std::vector<double>,nstate> soln_coeff;
+            for(unsigned int idof=0; idof<n_dofs_cell; idof++){
+                const unsigned int istate = dg->fe_collection[poly_degree].system_to_component_index(idof).first;
+                const unsigned int ishape = dg->fe_collection[poly_degree].system_to_component_index(idof).second;
+                if(ishape == 0)
+                    soln_coeff[istate].resize(n_shape_fns);
+                soln_coeff[istate][ishape] = u(dofs_indices[idof]);
+            }
+
+            std::array<std::vector<double>,nstate> soln_at_q;
             for(unsigned int istate=0; istate<nstate; istate++){
-                soln_state[istate] = soln_at_q[istate][iquad];
+                soln_at_q[istate].resize(n_quad_pts);
+                soln_basis.matrix_vector_mult_1D(soln_coeff[istate], soln_at_q[istate],
+                                                soln_basis.oneD_vol_operator);
             }
+            std::array<std::vector<double>,nstate> entropy_var_at_q;
+            for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){
+                std::array<double,nstate> soln_state;
+                for(unsigned int istate=0; istate<nstate; istate++){
+                    soln_state[istate] = soln_at_q[istate][iquad];
+                }
 
-            std::array<double,nstate> entropy_var = euler_physics->compute_entropy_variables(soln_state);
+                std::array<double,nstate> entropy_var = euler_physics->compute_entropy_variables(soln_state);
 
+                for(unsigned int istate=0; istate<nstate; istate++){
+                    if(iquad==0)
+                        entropy_var_at_q[istate].resize(n_quad_pts);
+                    entropy_var_at_q[istate][iquad] = entropy_var[istate];
+                }
+            }
             for(unsigned int istate=0; istate<nstate; istate++){
-                if(iquad==0)
-                    entropy_var_at_q[istate].resize(n_quad_pts);
-                entropy_var_at_q[istate][iquad] = entropy_var[istate];
-            }
-        }
-        for(unsigned int istate=0; istate<nstate; istate++){
-            //Projected vector of entropy variables.
-            std::vector<double> entropy_var_hat(n_shape_fns);
-            vol_projection.matrix_vector_mult_1D(entropy_var_at_q[istate], entropy_var_hat,
-                                                 vol_projection.oneD_vol_operator);
+                //Projected vector of entropy variables.
+                std::vector<double> entropy_var_hat(n_shape_fns);
+                vol_projection.matrix_vector_mult_1D(entropy_var_at_q[istate], entropy_var_hat,
+                                                    vol_projection.oneD_vol_operator);
 
-            for(unsigned int ishape=0; ishape<n_shape_fns; ishape++){
-                const unsigned int idof = istate * n_shape_fns + ishape;
-                entropy_var_hat_global[dofs_indices[idof]] = entropy_var_hat[ishape];
+                for(unsigned int ishape=0; ishape<n_shape_fns; ishape++){
+                    const unsigned int idof = istate * n_shape_fns + ishape;
+                    entropy_var_hat_global[dofs_indices[idof]] = entropy_var_hat[ishape];
+                }
             }
         }
+        return entropy_var_hat_global;
     }
-    return entropy_var_hat_global;
 }
 
 

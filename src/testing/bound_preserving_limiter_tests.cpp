@@ -22,6 +22,89 @@ BoundPreservingLimiterTests<dim, nspecies, nstate>::BoundPreservingLimiterTests(
 {}
 
 template <int dim, int nspecies, int nstate>
+double BoundPreservingLimiterTests<dim, nspecies, nstate>::get_time_step(std::shared_ptr<DGBase<dim, nspecies, double>> dg) const
+{
+    PHiLiP::Parameters::AllParameters all_parameters_new = *all_parameters;
+    using flow_case_enum = Parameters::FlowSolverParam::FlowCaseType;
+    flow_case_enum flow_case = all_parameters_new.flow_solver_param.flow_case_type;
+
+    double left = all_parameters_new.flow_solver_param.grid_left_bound;
+    double right = all_parameters_new.flow_solver_param.grid_right_bound;
+    const unsigned int number_of_degrees_of_freedom_per_state = dg->dof_handler.n_dofs()/nstate;
+
+    const unsigned int n_global_active_cells = dg->triangulation->n_global_active_cells();
+    const unsigned int n_dofs_cfl = dg->dof_handler.n_dofs() / nstate;
+    double delta_x = (PHILIP_DIM == 2) ? (right - left) / pow(n_global_active_cells, (1.0 / dim)) : (right - left) / pow(n_dofs_cfl, (1.0 / dim));
+    double time_step = 1e-5;
+
+    /**********************************
+    * These values for the time step are chosen to show dominant spatial accuracy in the OOA results for P2
+    * For >=P3 timestep values  refer to: 
+    * Zhang, Xiangxiong, and Chi-Wang Shu. 
+    * "On maximum-principle-satisfying high order schemes for scalar conservation laws." 
+    * Journal of Computational Physics 229.9 (2010): 3091-3120.
+    **********************************/
+   
+    if(flow_case == flow_case_enum::advection_limiter)
+        time_step = (PHILIP_DIM == 2) ? (1.0 / 14.0) * delta_x : (1.0 / 3.0) * pow(delta_x, 2.0);
+    
+    if(flow_case == flow_case_enum::burgers_limiter)
+        time_step = (PHILIP_DIM == 2) ? (1.0 / 14.0) * delta_x : (1.0 / 24.0) * delta_x;
+
+    if (flow_case == flow_case_enum::low_density){
+        // Initialize the maximum local wave speed to zero
+        double maximum_local_wave_speed = 0.0;
+
+        // Overintegrate the error to make sure there is not integration error in the error estimate
+        int overintegrate = 10;
+        dealii::QGauss<dim> quad_extra(dg->max_degree+1+overintegrate);
+        dealii::FEValues<dim,dim> fe_values_extra(*(dg->high_order_grid->mapping_fe_field), dg->fe_collection[dg->max_degree], quad_extra,
+                                                dealii::update_values | dealii::update_gradients | dealii::update_JxW_values | dealii::update_quadrature_points);
+
+        const unsigned int n_quad_pts = fe_values_extra.n_quadrature_points;
+        std::array<double,nstate> soln_at_q;
+
+        std::vector<dealii::types::global_dof_index> dofs_indices (fe_values_extra.dofs_per_cell);
+        for (auto cell = dg->dof_handler.begin_active(); cell!=dg->dof_handler.end(); ++cell) {
+            if (!cell->is_locally_owned()) continue;
+            fe_values_extra.reinit (cell);
+            cell->get_dof_indices (dofs_indices);
+
+            for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
+
+                std::fill(soln_at_q.begin(), soln_at_q.end(), 0.0);
+                for (unsigned int idof=0; idof<fe_values_extra.dofs_per_cell; ++idof) {
+                    const unsigned int istate = fe_values_extra.get_fe().system_to_component_index(idof).first;
+                    soln_at_q[istate] += dg->solution[dofs_indices[idof]] * fe_values_extra.shape_value_component(idof, iquad, istate);
+                }
+                double local_wave_speed = 0.0;
+                if(nstate == dim + 2) {
+                    // Update the maximum local wave speed (i.e. convective eigenvalue)
+                    Physics::Euler<dim,nstate,double> euler_physics_double
+                        = Physics::Euler<dim, nstate, double>(
+                                all_parameters,
+                                all_parameters_new.euler_param.ref_length,
+                                all_parameters_new.euler_param.gamma_gas,
+                                all_parameters_new.euler_param.mach_inf,
+                                all_parameters_new.euler_param.angle_of_attack,
+                                all_parameters_new.euler_param.side_slip_angle);
+
+                    local_wave_speed = euler_physics_double.max_convective_eigenvalue(soln_at_q);
+                }
+                if(local_wave_speed > maximum_local_wave_speed) maximum_local_wave_speed = local_wave_speed;
+            }
+        }
+        maximum_local_wave_speed = dealii::Utilities::MPI::max(maximum_local_wave_speed, this->mpi_communicator);
+
+        const double approximate_grid_spacing = (all_parameters_new.flow_solver_param.grid_right_bound-all_parameters_new.flow_solver_param.grid_left_bound)/pow(number_of_degrees_of_freedom_per_state,(1.0/dim));
+        const double cfl_number = all_parameters_new.flow_solver_param.courant_friedrichs_lewy_number;
+        time_step = cfl_number * approximate_grid_spacing / maximum_local_wave_speed;
+    }
+
+    return time_step;
+}
+
+template <int dim, int nspecies, int nstate>
 double BoundPreservingLimiterTests<dim, nspecies, nstate>::calculate_uexact(const dealii::Point<dim> qpoint, const dealii::Tensor<1, 3, double> adv_speeds, double final_time) const
 {
     PHiLiP::Parameters::AllParameters all_parameters_new = *all_parameters;
@@ -143,7 +226,14 @@ int BoundPreservingLimiterTests<dim, nspecies, nstate>::run_full_limiter_test() 
             param.flow_solver_param.number_of_grid_elements_y = pow(2.0,param.flow_solver_param.number_of_mesh_refinements);
     }
 
+    // Create flow solver to access DG object which is needed to calculate time step
     std::unique_ptr<FlowSolver::FlowSolver<dim, nspecies, nstate>> flow_solver = FlowSolver::FlowSolverFactory<dim, nspecies, nstate>::select_flow_case(&param, parameter_handler);
+    double time_step = get_time_step(flow_solver->dg);
+    param.flow_solver_param.constant_time_step = time_step;
+    // Delete flow solver object (the time_step param cannot be changed directly because flow_solver_param is protected in flow_solver)
+    flow_solver.reset();
+    // Reinitialize flow solver with new time step parameter
+    flow_solver = FlowSolver::FlowSolverFactory<dim, nspecies, nstate>::select_flow_case(&param, parameter_handler);
     flow_solver->run();
 
     return 0;
@@ -167,24 +257,31 @@ int BoundPreservingLimiterTests<dim, nspecies, nstate>::run_convergence_test() c
         pcout << "\n" << "Creating FlowSolver" << std::endl;
 
         Parameters::AllParameters param = *(TestsBase::all_parameters);
-        param.flow_solver_param.number_of_mesh_refinements = igrid;
+        param.flow_solver_param.number_of_grid_elements_per_dimension = pow(2.0,igrid);
+        int grid_elem = param.flow_solver_param.number_of_grid_elements_per_dimension;
 
         using flow_case_enum = Parameters::FlowSolverParam::FlowCaseType;
         flow_case_enum flow_case = all_parameters_new.flow_solver_param.flow_case_type;
         //const double pi = atan(1) * 4.0;
 
         if (flow_case == Parameters::FlowSolverParam::FlowCaseType::low_density) {    
-            param.flow_solver_param.number_of_grid_elements_x = pow(2.0,param.flow_solver_param.number_of_mesh_refinements);
+            param.flow_solver_param.number_of_grid_elements_x = grid_elem;
             
             if (dim == 2) {
-                param.flow_solver_param.number_of_grid_elements_y = pow(2.0,param.flow_solver_param.number_of_mesh_refinements);
+                param.flow_solver_param.number_of_grid_elements_y = grid_elem;
             }
         }
-
+        
+        // Create flow solver to access DG object which is needed to calculate time step
         std::unique_ptr<FlowSolver::FlowSolver<dim, nspecies, nstate>> flow_solver = FlowSolver::FlowSolverFactory<dim, nspecies, nstate>::select_flow_case(&param, parameter_handler);
         const unsigned int n_global_active_cells = flow_solver->dg->triangulation->n_global_active_cells();
         const int poly_degree = all_parameters_new.flow_solver_param.poly_degree;
-
+        double time_step = get_time_step(flow_solver->dg);
+        param.flow_solver_param.constant_time_step = time_step;
+        // Delete flow solver object (the time_step param cannot be changed directly because flow_solver_param is protected in flow_solver)
+        flow_solver.reset();
+        // Reinitialize flow solver with new time step parameter
+        flow_solver = FlowSolver::FlowSolverFactory<dim, nspecies, nstate>::select_flow_case(&param, parameter_handler);
         flow_solver->run();
         const double final_time_actual = flow_solver->ode_solver->current_time;
 

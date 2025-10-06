@@ -47,7 +47,7 @@ void AssembleECSWRes<dim,nspecies,nstate>::build_problem(){
     const int rank = this->Comm_.MyPID();
     const int n_quad_pts = this->dg->volume_quadrature_collection[this->all_parameters->flow_solver_param.poly_degree].size();
     const int length = epetra_system_matrix.NumMyRows()/(nstate*n_quad_pts);
-    int *local_elements = new int[length];
+    std::unique_ptr local_elements(std::make_unique<int[]>(length));
     int ctr = 0;
     for (const auto &cell : this->dg->dof_handler.active_cell_iterators())
     {
@@ -57,10 +57,9 @@ void AssembleECSWRes<dim,nspecies,nstate>::build_problem(){
         }
     }
     Epetra_Map RowMap((n_reduced_dim_POD*training_snaps), (n_reduced_dim_POD*training_snaps), 0, this->Comm_); // Number of rows in residual based training matrix = n * (number of training snapshots)
-    Epetra_Map ColMap(num_elements_N_e, length, local_elements, 0, this->Comm_);
+    Epetra_Map ColMap(num_elements_N_e, length, local_elements.get(), 0, this->Comm_);
     Epetra_Map dMap((n_reduced_dim_POD*training_snaps), (rank == 0) ?  (n_reduced_dim_POD*training_snaps) : 0,  0, this->Comm_);
 
-    delete[] local_elements;
 
     Epetra_CrsMatrix C_T(Epetra_DataAccess::Copy, ColMap, RowMap, num_elements_N_e);
     Epetra_Vector d(dMap);
@@ -127,16 +126,15 @@ void AssembleECSWRes<dim,nspecies,nstate>::build_problem(){
                 Epetra_Vector c_se(cseRowMap);
 
                 local_test_basis.Multiply(true, global_r_e, c_se);
-                double *c_se_array = new double[n_reduced_dim_POD];
+                std::unique_ptr c_se_array(std::make_unique<double[]>(n_reduced_dim_POD));
 
-                c_se.ExtractCopy(c_se_array);
+                c_se.ExtractCopy(c_se_array.get());
                 
                 // Sub into entries of C and d
                 for (int k = 0; k < n_reduced_dim_POD; ++k){
                     int place = row_num+k;
                     C_T.InsertGlobalValues(cell_num, 1, &c_se_array[k], &place);
                 }
-                delete[] c_se_array;
             }
         }
         row_num+=n_reduced_dim_POD;
@@ -155,16 +153,14 @@ void AssembleECSWRes<dim,nspecies,nstate>::build_problem(){
 
     Epetra_CrsMatrix C_single = copy_matrix_to_all_cores(C_T);
     for (int p = 0; p < num_elements_N_e; p++){
-        double *row = new double[C_single.NumGlobalCols()];
-        int *global_cols = new int[C_single.NumGlobalCols()];
+        std::unique_ptr row(std::make_unique<double[]>(C_single.NumGlobalCols()));
+        std::unique_ptr global_cols(std::make_unique<int[]>(C_single.NumGlobalCols()));
         int numE;
-        C_single.ExtractGlobalRowCopy(p, C_single.NumGlobalCols(), numE , row, global_cols);
+        C_single.ExtractGlobalRowCopy(p, C_single.NumGlobalCols(), numE , row.get(), global_cols.get());
         for (int o = 0; o < dMap.NumMyElements(); o++){
             int col = dMap.GID(o);
             d.SumIntoMyValues(1, &row[col], &o);
         }
-        delete[] row;
-        delete[] global_cols;
     }
 
     // Sub temp C and d into class A and b

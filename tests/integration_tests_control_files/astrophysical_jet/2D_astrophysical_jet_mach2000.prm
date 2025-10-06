@@ -53,11 +53,11 @@ subsection flow_solver
   set adaptive_time_step = true
   set unsteady_data_table_filename = astrophysical_jet_energy
   subsection grid
-    subsection positivity_preserving_tests
-      set grid_xmin = -0.5
-      set grid_xmax = 0.5
-      set grid_ymin = -0.5
-      set grid_ymax = 0.5
+    set grid_left_bound = -0.5
+    set grid_right_bound = 0.5
+    subsection grid_rectangle
+      set grid_bottom_bound = -0.5
+      set grid_top_bound = 0.5
 
       set number_of_grid_elements_x = 200
       set number_of_grid_elements_y = 200

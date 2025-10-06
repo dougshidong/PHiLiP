@@ -43,7 +43,6 @@ subsection flow_solver
   set flow_case_type = burgers_limiter
   set poly_degree = 3
   set final_time = 0.05
-  set adaptive_time_step = true
   set unsteady_data_table_filename = burgers_energy
   set expected_order_at_final_time = 3.2286392453097
   subsection grid

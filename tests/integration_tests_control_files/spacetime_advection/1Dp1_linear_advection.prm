@@ -1,0 +1,53 @@
+# -------------------
+
+set run_type = flow_simulation
+
+# Number of SPATIAL dimensions
+set dimension = 1
+# Numbre of TEMPORAL dimensions
+set temporal_dimension = 1
+
+set use_weak_form = false
+
+set overintegration = 2
+
+set flux_nodes_type = GL
+
+set use_split_form = false
+
+# TO DO think about how this should be set
+set use_periodic_bc = true
+
+set use_inverse_mass_on_the_fly = true
+
+# The PDE we want to solve
+set pde_type = advection
+
+#set conv_num_flux = lax_friedrichs
+set conv_num_flux = central_flux
+
+subsection ODE solver
+
+  set ode_output = verbose
+  
+#  set nonlinear_max_iterations = 500
+  set nonlinear_max_iterations = 50000
+  set nonlinear_steady_residual_tolerance = 1e-12
+
+  set print_iteration_modulo = 100
+ # set print_iteration_modulo = 1
+
+  set ode_solver_type = runge_kutta
+
+  set initial_time_step = 0.001
+
+  set runge_kutta_method = rk4_ex
+
+end
+
+subsection flow_solver
+    set flow_case_type = advection
+    set apply_initial_condition_method = project_initial_condition_function
+    set final_time = 0.000001 #small such that we don't actually take a step
+end
+

@@ -41,7 +41,10 @@ private:
         double final_time) const;
 
     /// Calculate and return the L2 Error
-    double calculate_l2error(std::shared_ptr<DGBase<dim, double>> flow_solver_dg, const int poly_degree, const double final_time) const;
+    std::array<double,3> calculate_l_n_error(std::shared_ptr<DGBase<dim, double>> flow_solver_dg, const int poly_degree, const double final_time) const;
+
+    /// Function to compute the initial adaptive time step
+    double get_time_step(std::shared_ptr<DGBase<dim, double>> dg) const; 
 };
 
 } // End of Tests namespace

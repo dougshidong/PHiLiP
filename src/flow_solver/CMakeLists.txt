@@ -12,6 +12,7 @@ set(FLOW_SOLVER_SOURCE
     flow_solver_cases/naca0012.cpp
     flow_solver_cases/gaussian_bump.cpp
     flow_solver_cases/positivity_preserving_tests.cpp
+    flow_solver_cases/spacetime_cartesian_problem.cpp
     flow_solver.cpp
     flow_solver_factory.cpp)
 

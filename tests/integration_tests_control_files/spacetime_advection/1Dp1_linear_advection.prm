@@ -46,8 +46,7 @@ subsection ODE solver
 end
 
 subsection flow_solver
-    set flow_case_type = advection
-    set apply_initial_condition_method = project_initial_condition_function
+    set flow_case_type = spacetime_cartesian
     set final_time = 0.000001 #small such that we don't actually take a step
 end
 

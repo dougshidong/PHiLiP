@@ -50,8 +50,6 @@ endif()
 #set(CMAKE_CXX_FLAGS_DEBUG  "${CMAKE_CXX_FLAGS_DEBUG} -Og -g")
 
 set(EXECUTABLE_OUTPUT_PATH ${PROJECT_BINARY_DIR}/bin)
-
-
 set(CLEAN_UP_FILES ./bin/* ./CMakeCache.txt)
 
 option(DOC_ONLY "Only generate code for documentation sake. Not compilable." OFF)
@@ -102,11 +100,11 @@ add_custom_target(3D COMMAND ${CMAKE_COMMAND} -E echo "Makes all 3D executables,
 SET(_dimension_targets "#
 #      make 1D             - to build all 1D executables, including tests, allow 'ctest -R 1D' 
 #      make 2D             - to build all 2D executables, including tests, allow 'ctest -R 2D'
-#      make 3D             - to build all 3D executables, including tests, allow 'ctest -R 3D'")
+#      make 3D             - to build all 3D executables, including tests, allow 'ctest -R 3D' ")
 SET(_philip_targets "#
 #      make PHiLiP_1D      - to build main program (without tests) in 1D
 #      make PHiLiP_2D      - to build main program (without tests) in 2D
-#      make PHiLiP_3D      - to build main program (without tests) in 3D")
+#      make PHiLiP_3D      - to build main program (without tests) in 3D ")
 
 IF (${NUMBER_OF_SPECIES} GREATER 1)
 add_custom_target(

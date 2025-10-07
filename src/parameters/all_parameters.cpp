@@ -374,15 +374,7 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       "Tolerance for checking that the determinant of surface jacobians at element faces matches. "
                       "Note: Currently only used in weak dg.");
 
-    prm.declare_entry("chemistry_input_file", "H2_O2_N2.kinetics",
-                      dealii::Patterns::FileName(dealii::Patterns::FileName::FileType::input),
-                      "Filename of the unsteady data table output file: unsteady_data_table_filename.txt.");
-
     prm.declare_entry("chemistry_input_file", "N2_O2.kinetics",
-                      dealii::Patterns::FileName(dealii::Patterns::FileName::FileType::input),
-                      "Filename of the unsteady data table output file: unsteady_data_table_filename.txt.");
-
-    prm.declare_entry("initial_mixture_fractions_input_file", "InitialMixtureFractions_H2_O2_N2.txt",
                       dealii::Patterns::FileName(dealii::Patterns::FileName::FileType::input),
                       "Filename of the unsteady data table output file: unsteady_data_table_filename.txt.");
 

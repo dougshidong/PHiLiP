@@ -63,25 +63,15 @@ int main (int argc, char *argv[])
         const int max_dim = PHILIP_DIM;
         const int max_nspecies = PHILIP_SPECIES;
         const int max_nstate = PHILIP_DIM + 2 + (PHILIP_SPECIES-1);
-        if(all_parameters.number_of_species == PHILIP_SPECIES) {
-            if(all_parameters.run_type == PHiLiP::Parameters::AllParameters::RunType::flow_simulation) {
-                std::unique_ptr<PHiLiP::FlowSolver::FlowSolverBase> flow_solver = PHiLiP::FlowSolver::FlowSolverFactory<max_dim,max_nspecies,max_nstate>::create_flow_solver(&all_parameters,parameter_handler);
-                run_error = flow_solver->run();
-                pcout << "Flow simulation complete with run error code: " << run_error << std::endl;
-            }
-            else if(all_parameters.run_type == PHiLiP::Parameters::AllParameters::RunType::integration_test) {
-                std::unique_ptr<PHiLiP::Tests::TestsBase> test = PHiLiP::Tests::TestsFactory<max_dim,max_nspecies,max_nstate>::create_test(&all_parameters,parameter_handler);
-                run_error = test->run_test();
-                pcout << "Finished integration test with run error code: " << run_error << std::endl;
-            }
-        } 
-        else {
-            std::cout << "********************************************************" << std::endl;
-            std::cout << "Can't run test with " << all_parameters.number_of_species << " species." << std::endl
-                      << "Currently templated for " << PHILIP_SPECIES << " species." << std::endl
-                      << "Aborting..." << std::endl;
-            std::cout << "********************************************************" << std::endl;
-            std::abort();
+        if(all_parameters.run_type == PHiLiP::Parameters::AllParameters::RunType::flow_simulation) {
+            std::unique_ptr<PHiLiP::FlowSolver::FlowSolverBase> flow_solver = PHiLiP::FlowSolver::FlowSolverFactory<max_dim,max_nspecies,max_nstate>::create_flow_solver(&all_parameters,parameter_handler);
+            run_error = flow_solver->run();
+            pcout << "Flow simulation complete with run error code: " << run_error << std::endl;
+        }
+        else if(all_parameters.run_type == PHiLiP::Parameters::AllParameters::RunType::integration_test) {
+            std::unique_ptr<PHiLiP::Tests::TestsBase> test = PHiLiP::Tests::TestsFactory<max_dim,max_nspecies,max_nstate>::create_test(&all_parameters,parameter_handler);
+            run_error = test->run_test();
+            pcout << "Finished integration test with run error code: " << run_error << std::endl;
         }
     }
     catch (std::exception &exc)

@@ -508,22 +508,6 @@ public:
         Parameters::AllParameters const* const param);
 };
 
-
-/// Initial condition 0.
-template <int dim, int nspecies, int nstate, typename real>
-class InitialConditionFunction_Zero : public InitialConditionFunction<dim,nspecies,nstate,real>
-{
-protected:
-    using dealii::Function<dim,real>::value; ///< dealii::Function we are templating on
-    
-public:
-    /// Constructor
-    InitialConditionFunction_Zero();
-
-    /// Returns zero.
-    real value(const dealii::Point<dim,real> &point, const unsigned int istate = 0) const override;
-};
-
 /// Initial Condition Function: AcousticWave_MultiSpecies (uniform density)
 template <int dim, int nspecies, int nstate, typename real>
 class InitialConditionFunction_AcousticWave_MultiSpecies : public InitialConditionFunction<dim,nspecies,nstate,real>
@@ -920,6 +904,20 @@ protected:
     std::shared_ptr < Physics::RealGas<dim, nspecies, nstate, double > > real_gas_physics;
 };
 
+/// Initial condition 0.
+template <int dim, int nspecies, int nstate, typename real>
+class InitialConditionFunction_Zero : public InitialConditionFunction<dim,nspecies,nstate,real>
+{
+protected:
+    using dealii::Function<dim,real>::value; ///< dealii::Function we are templating on
+    
+public:
+    /// Constructor
+    InitialConditionFunction_Zero();
+
+    /// Returns zero.
+    real value(const dealii::Point<dim,real> &point, const unsigned int istate = 0) const override;
+};
 
 /// Initial condition function factory
 template <int dim, int nspecies, int nstate, typename real>

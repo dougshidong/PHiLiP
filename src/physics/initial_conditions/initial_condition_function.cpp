@@ -942,23 +942,6 @@ real InitialConditionFunction_SVSW<dim, nspecies, nstate, real>
     return value;
 }
 
-// ========================================================
-// ZERO INITIAL CONDITION
-// ========================================================
-template <int dim, int nspecies, int nstate, typename real>
-InitialConditionFunction_Zero<dim,nspecies,nstate,real>
-::InitialConditionFunction_Zero()
-    : InitialConditionFunction<dim,nspecies,nstate,real>()
-{
-    // Nothing to do here yet
-}
-
-template <int dim, int nspecies, int nstate, typename real>
-real InitialConditionFunction_Zero<dim, nspecies, nstate, real>
-::value(const dealii::Point<dim,real> &/*point*/, const unsigned int /*istate*/) const
-{
-    return 0.0;
-}
 
 // ========================================================
 // Acoustic Wave (Multi Species) -- Initial Condition (Uniform density)
@@ -1125,7 +1108,6 @@ real InitialConditionFunction_MultiSpecies_VortexAdvection<dim,nspecies,nstate,r
         }
         if(istate==4){
             // other species density (O2)
-            std::cout << "THE VALUE OF O2 IS:   " << y_O2 << std::endl;
             value = y_O2;
         }
     }
@@ -2125,6 +2107,24 @@ inline real InitialConditionFunction_MultiSpecies_Mixture_TaylorGreenVortex<dim,
     real value = 0.0;
     value = convert_primitive_to_conversative_value(point,istate);
     return value;
+}
+
+// ========================================================
+// ZERO INITIAL CONDITION
+// ========================================================
+template <int dim, int nspecies, int nstate, typename real>
+InitialConditionFunction_Zero<dim,nspecies,nstate,real>
+::InitialConditionFunction_Zero()
+    : InitialConditionFunction<dim,nspecies,nstate,real>()
+{
+    // Nothing to do here yet
+}
+
+template <int dim, int nspecies, int nstate, typename real>
+real InitialConditionFunction_Zero<dim, nspecies, nstate, real>
+::value(const dealii::Point<dim,real> &/*point*/, const unsigned int /*istate*/) const
+{
+    return 0.0;
 }
 
 // =========================================================

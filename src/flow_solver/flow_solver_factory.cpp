@@ -12,6 +12,7 @@
 #include "flow_solver_cases/gaussian_bump.h"
 #include "flow_solver_cases/non_periodic_cube_flow.h"
 #include "flow_solver_cases/positivity_preserving_tests.h"
+#include "flow_solver_cases/spacetime_cartesian_problem.h"
 
 namespace PHiLiP {
 

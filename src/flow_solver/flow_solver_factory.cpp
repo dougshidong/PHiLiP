@@ -115,6 +115,21 @@ FlowSolverFactory<dim, nspecies, nstate>
             std::shared_ptr<FlowSolverCaseBase<dim, nspecies, nstate>> flow_solver_case = std::make_shared<PositivityPreservingTests<dim, nspecies, nstate>>(parameters_input);
             return std::make_unique<FlowSolver<dim, nspecies, nstate>>(parameters_input, flow_solver_case, parameter_handler_input);
         }
+    } else if (flow_type == FlowCaseEnum::advection_limiter) {
+        if constexpr (dim<3 && nspecies==1 && nstate==1) {
+            std::shared_ptr<FlowSolverCaseBase<dim, nspecies, nstate>> flow_solver_case = std::make_shared<PeriodicCubeFlow<dim, nspecies, nstate>>(parameters_input);
+            return std::make_unique<FlowSolver<dim, nspecies, nstate>>(parameters_input, flow_solver_case, parameter_handler_input);
+        }
+    } else if (flow_type == FlowCaseEnum::burgers_limiter) {
+        if constexpr (dim<3 && nspecies==1 && nstate==dim) {
+            std::shared_ptr<FlowSolverCaseBase<dim, nspecies, nstate>> flow_solver_case = std::make_shared<PeriodicCubeFlow<dim, nspecies, nstate>>(parameters_input);
+            return std::make_unique<FlowSolver<dim, nspecies, nstate>>(parameters_input, flow_solver_case, parameter_handler_input);
+        }
+    } else if (flow_type == FlowCaseEnum::low_density) {
+        if constexpr (dim<3 && nspecies==1 && nstate==dim + 2) {
+            std::shared_ptr<FlowSolverCaseBase<dim, nspecies, nstate>> flow_solver_case = std::make_shared<PeriodicCubeFlow<dim, nspecies, nstate>>(parameters_input);
+            return std::make_unique<FlowSolver<dim, nspecies, nstate>>(parameters_input, flow_solver_case, parameter_handler_input);
+        }
     } else if (flow_type == FlowCaseEnum::multi_species_acoustic_wave){
         if constexpr (dim==2 && nspecies==2 && nstate==dim+2+nspecies-1){
             std::shared_ptr<FlowSolverCaseBase<dim, nspecies, nstate>> flow_solver_case = std::make_shared<PeriodicCubeFlow<dim, nspecies, nstate>>(parameters_input);

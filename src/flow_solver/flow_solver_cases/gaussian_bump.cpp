@@ -76,8 +76,8 @@ void GaussianBump<dim, nspecies, nstate>::display_additional_flow_case_specific_
     }
 }
 
-#if PHILIP_DIM!=1
-    template class GaussianBump<PHILIP_DIM, 1, PHILIP_DIM+2>;
+#if PHILIP_DIM!=1 && PHILIP_SPECIES==1
+    template class GaussianBump<PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2>;
 #endif
 
 }

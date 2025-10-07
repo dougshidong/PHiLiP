@@ -74,7 +74,7 @@ namespace PHiLiP {
 
 
 // template <int dim, typename real>
-// dealii::SparsityPattern DGBase<dim,nspecies,real,MeshType>::get_dRdX_sparsity_pattern () {
+// dealii::SparsityPattern DGBase<dim,real,MeshType>::get_dRdX_sparsity_pattern () {
 // 
 //     const unsigned n_residuals = dof_handler.n_dofs();
 //     const unsigned n_nodes_coeff = high_order_grid.dof_handler_grid.n_dofs();
@@ -165,7 +165,7 @@ namespace PHiLiP {
 // }
 
 //template <int dim, typename real, typename MeshType>
-//dealii::TrilinosWrappers::SparseMatrix DGBase<dim,nspecies,real,MeshType>::get_dRdX_finite_differences (dealii::SparsityPattern dRdX_sparsity_pattern) {
+//dealii::TrilinosWrappers::SparseMatrix DGBase<dim,real,MeshType>::get_dRdX_finite_differences (dealii::SparsityPattern dRdX_sparsity_pattern) {
 //
 //    const double pertubation = 1e-8;
 //

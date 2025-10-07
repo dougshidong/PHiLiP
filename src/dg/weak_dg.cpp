@@ -3959,4 +3959,5 @@ void DGWeak<dim,nspecies,nstate,real,MeshType>::allocate_dual_vector ()
     template class DGWeak <PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM + 2 + (PHILIP_SPECIES-1), double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
     #endif
 #endif
+
 } // PHiLiP namespace

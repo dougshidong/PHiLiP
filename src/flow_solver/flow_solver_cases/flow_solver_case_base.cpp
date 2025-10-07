@@ -238,5 +238,6 @@ template class FlowSolverCaseBase<PHILIP_DIM, PHILIP_SPECIES, 6>;
 #else
 template class FlowSolverCaseBase<PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2+(PHILIP_SPECIES-1)>;
 #endif
+
 } // FlowSolver namespace
 } // PHiLiP namespace

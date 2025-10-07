@@ -6,15 +6,11 @@ namespace FlowSolver {
 
 template <int dim, int nspecies, int nstate>
 NonPeriodicCubeFlow<dim, nspecies, nstate>::NonPeriodicCubeFlow(const PHiLiP::Parameters::AllParameters *const parameters_input)
-    : CubeFlow_UniformGrid<dim, nspecies, nstate>(parameters_input)
-{
-    //create the Physics object
-    this->pde_physics = std::dynamic_pointer_cast<Physics::PhysicsBase<dim,nstate,double>>(
-                Physics::PhysicsFactory<dim,nspecies,nstate,double>::create_Physics(parameters_input));
-}
+    : FlowSolverCaseBase<dim, nspecies, nstate>(parameters_input)
+{}
 
 template <int dim, int nspecies, int nstate>
-std::shared_ptr<Triangulation> NonPeriodicCubeFlow<dim, nspecies, nstate>::generate_grid() const
+std::shared_ptr<Triangulation> NonPeriodicCubeFlow<dim,nspecies,nstate>::generate_grid() const
 {
     std::shared_ptr<Triangulation> grid = std::make_shared<Triangulation> (this->mpi_communicator); // Mesh smoothing is set to none by default.
     
@@ -30,7 +26,7 @@ std::shared_ptr<Triangulation> NonPeriodicCubeFlow<dim, nspecies, nstate>::gener
 }
 
 template <int dim, int nspecies, int nstate>
-void NonPeriodicCubeFlow<dim, nspecies, nstate>::display_additional_flow_case_specific_parameters() const
+void NonPeriodicCubeFlow<dim,nspecies,nstate>::display_additional_flow_case_specific_parameters() const
 {
     // Do nothing for now.
 }

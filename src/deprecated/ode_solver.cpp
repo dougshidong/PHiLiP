@@ -10,7 +10,7 @@ namespace ODE {
 double global_step = 1.0;
 
 template <int dim, typename real, typename MeshType>
-ODESolver<dim,real,MeshType>::ODESolver(std::shared_ptr< DGBase<dim, nspecies, real, MeshType> > dg_input)
+ODESolver<dim,real,MeshType>::ODESolver(std::shared_ptr< DGBase<dim, real, MeshType> > dg_input)
     : current_time(0.0)
     , dg(dg_input)
     , all_parameters(dg->all_parameters)
@@ -521,7 +521,7 @@ void Implicit_ODESolver<dim,real,MeshType>::allocate_ode_system ()
 //    }
 //}
 template <int dim, typename real, typename MeshType>
-std::shared_ptr<ODESolver<dim,real,MeshType>> ODESolverFactory<dim,real,MeshType>::create_ODESolver(std::shared_ptr< DGBase<dim,nspecies,real,MeshType> > dg_input)
+std::shared_ptr<ODESolver<dim,real,MeshType>> ODESolverFactory<dim,real,MeshType>::create_ODESolver(std::shared_ptr< DGBase<dim,real,MeshType> > dg_input)
 {
     using ODEEnum = Parameters::ODESolverParam::ODESolverEnum;
     ODEEnum ode_solver_type = dg_input->all_parameters->ode_solver_param.ode_solver_type;

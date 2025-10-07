@@ -147,8 +147,8 @@ void NACA0012<dim, nspecies, nstate>::compute_unsteady_data_and_write_to_table(
     }
 }
 
-#if PHILIP_DIM!=1
-    template class NACA0012<PHILIP_DIM,1,PHILIP_DIM+2>;
+#if PHILIP_DIM!=1 && PHILIP_SPECIES==1
+    template class NACA0012<PHILIP_DIM,PHILIP_SPECIES,PHILIP_DIM+2>;
 #endif
 
 } // FlowSolver namespace

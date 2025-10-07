@@ -2,19 +2,19 @@
 #define __NON_PERIODIC_CUBE_FLOW__
 
 #include "flow_solver_case_base.h"
-#include "cube_flow_uniform_grid.h"
 
 namespace PHiLiP {
 namespace FlowSolver {
+
+template <int dim, int nspecies, int nstate>
+class NonPeriodicCubeFlow : public FlowSolverCaseBase<dim, nspecies, nstate>
+{
 #if PHILIP_DIM==1
      using Triangulation = dealii::Triangulation<PHILIP_DIM>;
  #else
      using Triangulation = dealii::parallel::distributed::Triangulation<PHILIP_DIM>;
  #endif
- 
-template <int dim, int nspecies, int nstate>
-class NonPeriodicCubeFlow : public CubeFlow_UniformGrid<dim, nspecies, nstate>
-{
+
  public:
      explicit NonPeriodicCubeFlow(const Parameters::AllParameters *const parameters_input);
      

@@ -16,7 +16,7 @@ std::array<real,nstate> stdvector_to_stdarray(const std::vector<real> vector)
 template <int dim, int nstate, typename real>
 void ConvectionDiffusion<dim,nstate,real>
 ::boundary_face_values (
-   const int /*boundary_type*/,
+   const int boundary_type,
    const dealii::Point<dim, real> &pos,
    const dealii::Tensor<1,dim,real> &normal_int,
    const std::array<real,nstate> &soln_int,
@@ -27,8 +27,17 @@ void ConvectionDiffusion<dim,nstate,real>
     std::array<real,nstate> boundary_values;
     std::array<dealii::Tensor<1,dim,real>,nstate> boundary_gradients;
     for (int i=0; i<nstate; i++) {
-        boundary_values[i] = this->manufactured_solution_function->value (pos, i);
-        boundary_gradients[i] = this->manufactured_solution_function->gradient (pos, i);
+        if(boundary_type == 1009){
+            // Corresponds to custom function
+            // TO DO: refer to initial condition function class.
+            const double pi = atan(1.0) * 4.0;
+            boundary_values[i] = sin(pi * (pos[0])) + 0.01;
+            boundary_gradients[i] = 0.0;
+
+        } else{
+            boundary_values[i] = this->manufactured_solution_function->value (pos, i);
+            boundary_gradients[i] = this->manufactured_solution_function->gradient (pos, i);
+        }
     }
 
     for (int istate=0; istate<nstate; ++istate) {

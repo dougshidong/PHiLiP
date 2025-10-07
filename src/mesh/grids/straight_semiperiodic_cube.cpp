@@ -45,6 +45,17 @@ void straight_semiperiodic_cube(std::shared_ptr<TriangulationType> &grid,
         std::vector<dealii::GridTools::PeriodicFacePair<typename dealii::Triangulation<dim>::cell_iterator> > matched_pairs;
         dealii::GridTools::collect_periodic_faces(*grid,0,1,0,matched_pairs);
         grid->add_periodicity(matched_pairs);
+
+
+        const int time_zero_boundary_ID = 1009; // for custom function
+
+        for (auto cell = grid->begin_active(); cell != grid->end(); ++cell) {
+            // Set a dummy material ID
+            cell->set_material_id(9002);
+            if (cell->face(2)->at_boundary()) cell->face(2)->set_boundary_id(time_zero_boundary_ID);
+            if (cell->face(3)->at_boundary()) cell->face(3)->set_boundary_id(1005); // Simple farfield type; corresponding to outflow
+        }
+
     }
         /* Commenting for now as it won't be used until 2D+1 version.
     }else if constexpr(dim==3) {

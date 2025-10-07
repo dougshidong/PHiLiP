@@ -18,7 +18,7 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
 {
     prm.enter_subsection("flow_solver");
     {
-        prm.declare_entry("flow_case_type","taylor_green_vortex",
+        prm.declare_entry("flow_case_type","flow_solver_zero",
                           dealii::Patterns::Selection(
                           " taylor_green_vortex | "
                           " decaying_homogeneous_isotropic_turbulence | "

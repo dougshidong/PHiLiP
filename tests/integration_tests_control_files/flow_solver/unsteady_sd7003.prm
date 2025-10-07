@@ -99,7 +99,7 @@ subsection flow_solver
    set do_compute_time_averaged_solution = true
    set time_to_start_averaging = 20.0
    set do_compute_Reynolds_stress = true
-   set time_to_start_computing_Reynolds_stress = 30.0E-5
+   set time_to_start_computing_Reynolds_stress = 30.0
   end
   subsection grid
     set use_gmsh_mesh = true

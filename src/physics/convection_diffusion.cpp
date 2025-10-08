@@ -34,7 +34,10 @@ void ConvectionDiffusion<dim,nstate,real>
             boundary_values[i] = sin(pi * (pos[0])) + 0.01;
             boundary_gradients[i] = 0.0;
 
-        } else{
+        } else if (boundary_type == 1005){
+            // Corresponds to "simple farfield" i.e., outflow
+        }
+        else{
             boundary_values[i] = this->manufactured_solution_function->value (pos, i);
             boundary_gradients[i] = this->manufactured_solution_function->gradient (pos, i);
         }
@@ -45,14 +48,19 @@ void ConvectionDiffusion<dim,nstate,real>
         std::array<real,nstate> characteristic_dot_n = convective_eigenvalues(boundary_values, normal_int);
         const bool inflow = (characteristic_dot_n[istate] <= 0.);
 
-        if (inflow || hasDiffusion) { // Dirichlet boundary condition
-            // soln_bc[istate] = boundary_values[istate];
-            // soln_grad_bc[istate] = soln_grad_int[istate];
+        if (inflow || hasDiffusion || boundary_type == 1009) { // Dirichlet boundary condition
 
             soln_bc[istate] = boundary_values[istate];
             soln_grad_bc[istate] = soln_grad_int[istate];
+        } else if (inflow && boundary_type == 1005) {
+
+            this->pcout << "Warning: inflow detected at outflow type boundary." << std::endl;
+
+            soln_bc[istate] = 0.0;
+            soln_grad_bc[istate] = 0.0;
 
         } else { // Neumann boundary condition
+            // BC ID 1005 will also return here
             // //soln_bc[istate] = soln_int[istate];
             // //soln_bc[istate] = boundary_values[istate];
             // soln_bc[istate] = -soln_int[istate]+2*boundary_values[istate];

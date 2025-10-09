@@ -19,14 +19,14 @@
 
 namespace PHiLiP {
 
-template <int dim, int nstate, typename real, typename MeshType>
-DGStrong<dim,nstate,real,MeshType>::DGStrong(
+template <int dim, int nspecies, int nstate, typename real, typename MeshType>
+DGStrong<dim,nspecies,nstate,real,MeshType>::DGStrong(
     const Parameters::AllParameters *const parameters_input,
     const unsigned int degree,
     const unsigned int max_degree_input,
     const unsigned int grid_degree_input,
     const std::shared_ptr<Triangulation> triangulation_input)
-    : DGBaseState<dim,nstate,real,MeshType>::DGBaseState(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input)
+    : DGBaseState<dim,nspecies,nstate,real,MeshType>::DGBaseState(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input)
 { }
 
 /***********************************************************
@@ -34,8 +34,8 @@ DGStrong<dim,nstate,real,MeshType>::DGStrong(
 *       Build operators and solve for RHS
 *
 ***********************************************************/
-template <int dim, int nstate, typename real, typename MeshType>
-void DGStrong<dim,nstate,real,MeshType>::assemble_volume_term_and_build_operators(
+template <int dim, int nspecies, int nstate, typename real, typename MeshType>
+void DGStrong<dim,nspecies,nstate,real,MeshType>::assemble_volume_term_and_build_operators(
     typename dealii::DoFHandler<dim>::active_cell_iterator cell,
     const dealii::types::global_dof_index                  current_cell_index,
     const std::vector<dealii::types::global_dof_index>     &cell_dofs_indices,
@@ -121,8 +121,8 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_volume_term_and_build_operator
             local_rhs_int_cell);
     }
 }
-template <int dim, int nstate, typename real, typename MeshType>
-void DGStrong<dim,nstate,real,MeshType>::assemble_boundary_term_and_build_operators(
+template <int dim, int nspecies, int nstate, typename real, typename MeshType>
+void DGStrong<dim,nspecies,nstate,real,MeshType>::assemble_boundary_term_and_build_operators(
     typename dealii::DoFHandler<dim>::active_cell_iterator /*cell*/,
     const dealii::types::global_dof_index                  current_cell_index,
     const unsigned int                                     iface,
@@ -182,8 +182,8 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_boundary_term_and_build_operat
 
 }
 
-template <int dim, int nstate, typename real, typename MeshType>
-void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_and_build_operators(
+template <int dim, int nspecies, int nstate, typename real, typename MeshType>
+void DGStrong<dim,nspecies,nstate,real,MeshType>::assemble_face_term_and_build_operators(
     typename dealii::DoFHandler<dim>::active_cell_iterator /*cell*/,
     typename dealii::DoFHandler<dim>::active_cell_iterator neighbor_cell,
     const dealii::types::global_dof_index                  current_cell_index,
@@ -309,8 +309,8 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_and_build_operators(
 
 }
 
-template <int dim, int nstate, typename real, typename MeshType>
-void DGStrong<dim,nstate,real,MeshType>::assemble_subface_term_and_build_operators(
+template <int dim, int nspecies, int nstate, typename real, typename MeshType>
+void DGStrong<dim,nspecies,nstate,real,MeshType>::assemble_subface_term_and_build_operators(
     typename dealii::DoFHandler<dim>::active_cell_iterator cell,
     typename dealii::DoFHandler<dim>::active_cell_iterator neighbor_cell,
     const dealii::types::global_dof_index                  current_cell_index,
@@ -394,8 +394,8 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_subface_term_and_build_operato
  *
  *******************************************************************/
 
-template <int dim, int nstate, typename real, typename MeshType>
-void DGStrong<dim,nstate,real,MeshType>::assemble_auxiliary_residual()
+template <int dim, int nspecies, int nstate, typename real, typename MeshType>
+void DGStrong<dim,nspecies,nstate,real,MeshType>::assemble_auxiliary_residual()
 {
     using PDE_enum = Parameters::AllParameters::PartialDifferentialEquation;
     using ODE_enum = Parameters::ODESolverParam::ODESolverEnum;
@@ -497,8 +497,8 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_auxiliary_residual()
  *
  **************************************************/
 
-template <int dim, int nstate, typename real, typename MeshType>
-void DGStrong<dim,nstate,real,MeshType>::assemble_volume_term_auxiliary_equation(
+template <int dim, int nspecies, int nstate, typename real, typename MeshType>
+void DGStrong<dim,nspecies,nstate,real,MeshType>::assemble_volume_term_auxiliary_equation(
     const std::vector<dealii::types::global_dof_index> &current_dofs_indices,
     const unsigned int poly_degree,
     OPERATOR::basis_functions<dim,2*dim,real> &soln_basis,
@@ -524,7 +524,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_volume_term_auxiliary_equation
         if(ishape == 0)
             soln_coeff[istate].resize(n_shape_fns);
 
-        soln_coeff[istate][ishape] = DGBase<dim,real,MeshType>::solution(current_dofs_indices[idof]);
+        soln_coeff[istate][ishape] = DGBase<dim,nspecies,real,MeshType>::solution(current_dofs_indices[idof]);
     }
     //Interpolate each state to the quadrature points using sum-factorization
     //with the basis functions in each reference direction.
@@ -571,8 +571,8 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_volume_term_auxiliary_equation
     }
 }
 
-template <int dim, int nstate, typename real, typename MeshType>
-void DGStrong<dim,nstate,real,MeshType>::assemble_boundary_term_auxiliary_equation(
+template <int dim, int nspecies, int nstate, typename real, typename MeshType>
+void DGStrong<dim,nspecies,nstate,real,MeshType>::assemble_boundary_term_auxiliary_equation(
     const unsigned int iface,
     const dealii::types::global_dof_index current_cell_index,
     const unsigned int poly_degree,
@@ -599,7 +599,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_boundary_term_auxiliary_equati
         if(ishape == 0)
             soln_coeff[istate].resize(n_shape_fns);
         //solve
-        soln_coeff[istate][ishape] = DGBase<dim,real,MeshType>::solution(dofs_indices[idof]);
+        soln_coeff[istate][ishape] = DGBase<dim,nspecies,real,MeshType>::solution(dofs_indices[idof]);
     }
 
     //Interpolate soln to facet, and gradient to facet.
@@ -717,8 +717,8 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_boundary_term_auxiliary_equati
     }
 }
 /*********************************************************************************/
-template <int dim, int nstate, typename real, typename MeshType>
-void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_auxiliary_equation(
+template <int dim, int nspecies, int nstate, typename real, typename MeshType>
+void DGStrong<dim,nspecies,nstate,real,MeshType>::assemble_face_term_auxiliary_equation(
     const unsigned int iface, const unsigned int neighbor_iface,
     const dealii::types::global_dof_index current_cell_index,
     const dealii::types::global_dof_index neighbor_cell_index,
@@ -755,7 +755,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_auxiliary_equation(
         if(ishape == 0) soln_coeff_int[istate].resize(n_shape_fns_int);
 
         //solve
-        soln_coeff_int[istate][ishape] = DGBase<dim,real,MeshType>::solution(dof_indices_int[idof]);
+        soln_coeff_int[istate][ishape] = DGBase<dim,nspecies,real,MeshType>::solution(dof_indices_int[idof]);
     }
 
     //Extract exterior modal coefficients of solution
@@ -767,7 +767,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_auxiliary_equation(
         if(ishape == 0) soln_coeff_ext[istate].resize(n_shape_fns_ext);
 
         //solve
-        soln_coeff_ext[istate][ishape] = DGBase<dim,real,MeshType>::solution(dof_indices_ext[idof]);
+        soln_coeff_ext[istate][ishape] = DGBase<dim,nspecies,real,MeshType>::solution(dof_indices_ext[idof]);
     }
 
     //Interpolate soln modal coefficients to the facet
@@ -875,8 +875,8 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_auxiliary_equation(
 * PRIMARY EQUATIONS STRONG FORM
 *
 ****************************************************/
-template <int dim, int nstate, typename real, typename MeshType>
-void DGStrong<dim,nstate,real,MeshType>::assemble_volume_term_strong(
+template <int dim, int nspecies, int nstate, typename real, typename MeshType>
+void DGStrong<dim,nspecies,nstate,real,MeshType>::assemble_volume_term_strong(
     typename dealii::DoFHandler<dim>::active_cell_iterator cell,
     const dealii::types::global_dof_index                  current_cell_index,
     const std::vector<dealii::types::global_dof_index>     &cell_dofs_indices,
@@ -911,12 +911,12 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_volume_term_strong(
         const unsigned int ishape = this->fe_collection[poly_degree].system_to_component_index(idof).second;
         if(ishape == 0)
             soln_coeff[istate].resize(n_shape_fns);
-        soln_coeff[istate][ishape] = DGBase<dim,real,MeshType>::solution(cell_dofs_indices[idof]);
+        soln_coeff[istate][ishape] = DGBase<dim,nspecies,real,MeshType>::solution(cell_dofs_indices[idof]);
         for(int idim=0; idim<dim; idim++){
             if(ishape == 0)
                 aux_soln_coeff[istate][idim].resize(n_shape_fns);
             if(this->use_auxiliary_eq){
-                aux_soln_coeff[istate][idim][ishape] = DGBase<dim,real,MeshType>::auxiliary_solution[idim](cell_dofs_indices[idof]);
+                aux_soln_coeff[istate][idim][ishape] = DGBase<dim,nspecies,real,MeshType>::auxiliary_solution[idim](cell_dofs_indices[idof]);
             }
             else{
                 aux_soln_coeff[istate][idim][ishape] = 0.0;
@@ -973,7 +973,6 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_volume_term_strong(
     const real cell_radius = 0.5 * cell_diameter;
     this->cell_volume[current_cell_index] = cell_volume;
     this->max_dt_cell[current_cell_index] = this->evaluate_CFL ( soln_at_q_for_max_CFL, max_artificial_diss, cell_radius, poly_degree);
-
     //get entropy projected variables
     std::array<std::vector<real>,nstate> entropy_var_at_q;
     std::array<std::vector<real>,nstate> projected_entropy_var_at_q;
@@ -1308,8 +1307,8 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_volume_term_strong(
     }
 }
 
-template <int dim, int nstate, typename real, typename MeshType>
-void DGStrong<dim,nstate,real,MeshType>::assemble_boundary_term_strong(
+template <int dim, int nspecies, int nstate, typename real, typename MeshType>
+void DGStrong<dim,nspecies,nstate,real,MeshType>::assemble_boundary_term_strong(
     const unsigned int iface, 
     const dealii::types::global_dof_index current_cell_index,
     const unsigned int boundary_id,
@@ -1347,7 +1346,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_boundary_term_strong(
             soln_coeff[istate].resize(n_shape_fns);
         }
         // solve
-        soln_coeff[istate][ishape] = DGBase<dim,real,MeshType>::solution(dof_indices[idof]);
+        soln_coeff[istate][ishape] = DGBase<dim,nspecies,real,MeshType>::solution(dof_indices[idof]);
         for(int idim=0; idim<dim; idim++){
             //allocate
             if(ishape == 0){
@@ -1355,7 +1354,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_boundary_term_strong(
             }
             //solve
             if(this->use_auxiliary_eq){
-                aux_soln_coeff[istate][idim][ishape] = DGBase<dim,real,MeshType>::auxiliary_solution[idim](dof_indices[idof]);
+                aux_soln_coeff[istate][idim][ishape] = DGBase<dim,nspecies,real,MeshType>::auxiliary_solution[idim](dof_indices[idof]);
             }
             else{
                 aux_soln_coeff[istate][idim][ishape] = 0.0;
@@ -1804,8 +1803,8 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_boundary_term_strong(
 }
 
 
-template <int dim, int nstate, typename real, typename MeshType>
-void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_strong(
+template <int dim, int nspecies, int nstate, typename real, typename MeshType>
+void DGStrong<dim,nspecies,nstate,real,MeshType>::assemble_face_term_strong(
     const unsigned int iface, const unsigned int neighbor_iface, 
     const dealii::types::global_dof_index current_cell_index,
     const dealii::types::global_dof_index neighbor_cell_index,
@@ -1853,13 +1852,13 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_strong(
         if(ishape == 0)
             soln_coeff_int[istate].resize(n_shape_fns_int);
 
-        soln_coeff_int[istate][ishape] = DGBase<dim,real,MeshType>::solution(dof_indices_int[idof]);
+        soln_coeff_int[istate][ishape] = DGBase<dim,nspecies,real,MeshType>::solution(dof_indices_int[idof]);
         for(int idim=0; idim<dim; idim++){
             if(ishape == 0){
                 aux_soln_coeff_int[istate][idim].resize(n_shape_fns_int);
             }
             if(this->use_auxiliary_eq){
-                aux_soln_coeff_int[istate][idim][ishape] = DGBase<dim,real,MeshType>::auxiliary_solution[idim](dof_indices_int[idof]);
+                aux_soln_coeff_int[istate][idim][ishape] = DGBase<dim,nspecies,real,MeshType>::auxiliary_solution[idim](dof_indices_int[idof]);
             }
             else{
                 aux_soln_coeff_int[istate][idim][ishape] = 0.0;
@@ -1876,13 +1875,13 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_strong(
         if(ishape == 0){
             soln_coeff_ext[istate].resize(n_shape_fns_ext);
         }
-        soln_coeff_ext[istate][ishape] = DGBase<dim,real,MeshType>::solution(dof_indices_ext[idof]);
+        soln_coeff_ext[istate][ishape] = DGBase<dim,nspecies,real,MeshType>::solution(dof_indices_ext[idof]);
         for(int idim=0; idim<dim; idim++){
             if(ishape == 0){
                 aux_soln_coeff_ext[istate][idim].resize(n_shape_fns_ext);
             }
             if(this->use_auxiliary_eq){
-                aux_soln_coeff_ext[istate][idim][ishape] = DGBase<dim,real,MeshType>::auxiliary_solution[idim](dof_indices_ext[idof]);
+                aux_soln_coeff_ext[istate][idim][ishape] = DGBase<dim,nspecies,real,MeshType>::auxiliary_solution[idim](dof_indices_ext[idof]);
             }
             else{
                 aux_soln_coeff_ext[istate][idim][ishape] = 0.0;
@@ -2633,8 +2632,8 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_strong(
  *
  *******************************************************************/
 
-template <int dim, int nstate, typename real, typename MeshType>
-void DGStrong<dim,nstate,real,MeshType>::assemble_boundary_term_derivatives(
+template <int dim, int nspecies, int nstate, typename real, typename MeshType>
+void DGStrong<dim,nspecies,nstate,real,MeshType>::assemble_boundary_term_derivatives(
     typename dealii::DoFHandler<dim>::active_cell_iterator /*cell*/,
     const dealii::types::global_dof_index /*current_cell_index*/,
     const unsigned int ,//face_number,
@@ -2785,8 +2784,8 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_boundary_term_derivatives(
 //    }
 }
 
-template <int dim, int nstate, typename real, typename MeshType>
-void DGStrong<dim,nstate,real,MeshType>::assemble_volume_term_derivatives(
+template <int dim, int nspecies, int nstate, typename real, typename MeshType>
+void DGStrong<dim,nspecies,nstate,real,MeshType>::assemble_volume_term_derivatives(
     typename dealii::DoFHandler<dim>::active_cell_iterator /*cell*/,
     const dealii::types::global_dof_index /*current_cell_index*/,
     const dealii::FEValues<dim,dim> &/*fe_values_vol*/,
@@ -2851,7 +2850,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_volume_term_derivatives(
 //        conv_phys_flux_at_q[iquad] = DGBaseState<dim,nstate,real,MeshType>::pde_physics_double->convective_flux (soln_at_q[iquad]);
 //        diss_phys_flux_at_q[iquad] = DGBaseState<dim,nstate,real,MeshType>::pde_physics_double->dissipative_flux (soln_at_q[iquad], soln_grad_at_q[iquad], current_cell_index);
 //        if(this->all_parameters->manufactured_convergence_study_param.manufactured_solution_param.use_manufactured_source_term) {
-//            source_at_q[iquad] = DGBaseState<dim,nstate,real,MeshType>::pde_physics_double->source_term (fe_values_vol.quadrature_point(iquad), soln_at_q[iquad], current_cell_index, DGBase<dim,real,MeshType>::current_time);
+//            source_at_q[iquad] = DGBaseState<dim,nstate,real,MeshType>::pde_physics_double->source_term (fe_values_vol.quadrature_point(iquad), soln_at_q[iquad], current_cell_index, DGBase<dim,nspecies,real,MeshType>::current_time);
 //        }
 //    }
 //
@@ -2912,8 +2911,8 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_volume_term_derivatives(
 }
 
 
-template <int dim, int nstate, typename real, typename MeshType>
-void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_derivatives(
+template <int dim, int nspecies, int nstate, typename real, typename MeshType>
+void DGStrong<dim,nspecies,nstate,real,MeshType>::assemble_face_term_derivatives(
     typename dealii::DoFHandler<dim>::active_cell_iterator    /*cell*/,
     const dealii::types::global_dof_index                     /*current_cell_index*/,
     const dealii::types::global_dof_index                     /*neighbor_cell_index*/,
@@ -3116,8 +3115,8 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_derivatives(
  *
  *******************************************************/
 
-template <int dim, int nstate, typename real, typename MeshType>
-void DGStrong<dim,nstate,real,MeshType>::assemble_volume_term_explicit(
+template <int dim, int nspecies, int nstate, typename real, typename MeshType>
+void DGStrong<dim,nspecies,nstate,real,MeshType>::assemble_volume_term_explicit(
     typename dealii::DoFHandler<dim>::active_cell_iterator /*cell*/,
     const dealii::types::global_dof_index /*current_cell_index*/,
     const dealii::FEValues<dim,dim> &/*fe_values_vol*/,
@@ -3132,8 +3131,8 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_volume_term_explicit(
 }
 
 
-template <int dim, int nstate, typename real, typename MeshType>
-void DGStrong<dim,nstate,real,MeshType>::allocate_dual_vector()
+template <int dim, int nspecies, int nstate, typename real, typename MeshType>
+void DGStrong<dim,nspecies,nstate,real,MeshType>::allocate_dual_vector()
 {
     //Do nothing.
 }
@@ -3141,27 +3140,36 @@ void DGStrong<dim,nstate,real,MeshType>::allocate_dual_vector()
 // using default MeshType = Triangulation
 // 1D: dealii::Triangulation<dim>;
 // Otherwise: dealii::parallel::distributed::Triangulation<dim>;
-template class DGStrong <PHILIP_DIM, 1, double, dealii::Triangulation<PHILIP_DIM>>;
-template class DGStrong <PHILIP_DIM, 2, double, dealii::Triangulation<PHILIP_DIM>>;
-template class DGStrong <PHILIP_DIM, 3, double, dealii::Triangulation<PHILIP_DIM>>;
-template class DGStrong <PHILIP_DIM, 4, double, dealii::Triangulation<PHILIP_DIM>>;
-template class DGStrong <PHILIP_DIM, 5, double, dealii::Triangulation<PHILIP_DIM>>;
-template class DGStrong <PHILIP_DIM, 6, double, dealii::Triangulation<PHILIP_DIM>>;
+#if PHILIP_SPECIES==1
+    template class DGStrong <PHILIP_DIM, PHILIP_SPECIES, 1, double, dealii::Triangulation<PHILIP_DIM>>;
+    template class DGStrong <PHILIP_DIM, PHILIP_SPECIES, 2, double, dealii::Triangulation<PHILIP_DIM>>;
+    template class DGStrong <PHILIP_DIM, PHILIP_SPECIES, 3, double, dealii::Triangulation<PHILIP_DIM>>;
+    template class DGStrong <PHILIP_DIM, PHILIP_SPECIES, 4, double, dealii::Triangulation<PHILIP_DIM>>;
+    template class DGStrong <PHILIP_DIM, PHILIP_SPECIES, 5, double, dealii::Triangulation<PHILIP_DIM>>;
+    template class DGStrong <PHILIP_DIM, PHILIP_SPECIES, 6, double, dealii::Triangulation<PHILIP_DIM>>;
 
-template class DGStrong <PHILIP_DIM, 1, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
-template class DGStrong <PHILIP_DIM, 2, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
-template class DGStrong <PHILIP_DIM, 3, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
-template class DGStrong <PHILIP_DIM, 4, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
-template class DGStrong <PHILIP_DIM, 5, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
-template class DGStrong <PHILIP_DIM, 6, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+    template class DGStrong <PHILIP_DIM, PHILIP_SPECIES, 1, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+    template class DGStrong <PHILIP_DIM, PHILIP_SPECIES, 2, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+    template class DGStrong <PHILIP_DIM, PHILIP_SPECIES, 3, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+    template class DGStrong <PHILIP_DIM, PHILIP_SPECIES, 4, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+    template class DGStrong <PHILIP_DIM, PHILIP_SPECIES, 5, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+    template class DGStrong <PHILIP_DIM, PHILIP_SPECIES, 6, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
 
-#if PHILIP_DIM!=1
-template class DGStrong <PHILIP_DIM, 1, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
-template class DGStrong <PHILIP_DIM, 2, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
-template class DGStrong <PHILIP_DIM, 3, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
-template class DGStrong <PHILIP_DIM, 4, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
-template class DGStrong <PHILIP_DIM, 5, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
-template class DGStrong <PHILIP_DIM, 6, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+    #if PHILIP_DIM!=1
+    template class DGStrong <PHILIP_DIM, PHILIP_SPECIES, 1, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+    template class DGStrong <PHILIP_DIM, PHILIP_SPECIES, 2, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+    template class DGStrong <PHILIP_DIM, PHILIP_SPECIES, 3, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+    template class DGStrong <PHILIP_DIM, PHILIP_SPECIES, 4, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+    template class DGStrong <PHILIP_DIM, PHILIP_SPECIES, 5, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+    template class DGStrong <PHILIP_DIM, PHILIP_SPECIES, 6, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+    #endif
+#else
+    template class DGStrong <PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM + 2 + (PHILIP_SPECIES-1), double, dealii::Triangulation<PHILIP_DIM>>;
+    template class DGStrong <PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM + 2 + (PHILIP_SPECIES-1), double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+
+    #if PHILIP_DIM!=1
+    template class DGStrong <PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM + 2 + (PHILIP_SPECIES-1), double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+    #endif
 #endif
 
 } // PHiLiP namespace

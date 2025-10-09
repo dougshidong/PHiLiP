@@ -22,8 +22,8 @@ namespace PHiLiP {
 /** Target boundary values.
  *  Simply zero out the default volume contribution.
  */
-template <int dim, int nstate, typename real>
-class TargetWallPressure : public TargetFunctional<dim, nstate, real>
+template <int dim, int nspecies, int nstate, typename real>
+class TargetWallPressure : public TargetFunctional<dim, nspecies, nstate, real>
 {
 private:
     using FadType = Sacado::Fad::DFad<real>; ///< Sacado AD type for first derivatives.
@@ -34,15 +34,15 @@ private:
      *  us, but is a typical bug that other people have. This 'using' imports the base class function
      *  to our derived class even though we don't need it.
      */
-    using TargetFunctional<dim,nstate,real>::evaluate_volume_integrand;
-    using TargetFunctional<dim,nstate,real>::evaluate_boundary_integrand;
-    using TargetFunctional<dim,nstate,real>::TargetFunctional;
+    using TargetFunctional<dim,nspecies,nstate,real>::evaluate_volume_integrand;
+    using TargetFunctional<dim,nspecies,nstate,real>::evaluate_boundary_integrand;
+    using TargetFunctional<dim,nspecies,nstate,real>::TargetFunctional;
 
 public:
 
     real evaluate_functional( const bool compute_dIdW = false, const bool compute_dIdX = false, const bool compute_d2I = false) override
     {
-        double value = TargetFunctional<dim,nstate,real>::evaluate_functional( compute_dIdW, compute_dIdX, compute_d2I);
+        double value = TargetFunctional<dim,nspecies,nstate,real>::evaluate_functional( compute_dIdW, compute_dIdX, compute_d2I);
 
         this->pcout << "Target pressure error l2_norm: " << value << "\n";
 

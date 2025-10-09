@@ -14,7 +14,7 @@ namespace Tests {
  * NOTE: it has not been verified that the results are physically meaningful;
  *       this is a verification test that weak and strong give relatively consistent results.
  */
-template <int dim, int nstate>
+template <int dim, int nspecies, int nstate>
 class NACA0012UnsteadyCheckQuick: public TestsBase
 {
 public:

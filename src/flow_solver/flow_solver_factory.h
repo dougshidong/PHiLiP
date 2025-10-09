@@ -10,12 +10,12 @@ namespace FlowSolver {
 /// Create specified flow solver as FlowSolver object 
 /** Factory design pattern whose job is to create the correct flow solver
  */
-template <int dim, int nstate>
+template <int dim, int nspecies, int nstate>
 class FlowSolverFactory
 {
 public:
     /// Factory to return the correct flow solver given input file.
-    static std::unique_ptr< FlowSolver<dim,nstate> >
+    static std::unique_ptr< FlowSolver<dim, nspecies, nstate> >
         select_flow_case(const Parameters::AllParameters *const parameters_input,
                          const dealii::ParameterHandler &parameter_handler_input);
 

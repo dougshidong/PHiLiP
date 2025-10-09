@@ -21,8 +21,8 @@ using Eigen::VectorXd;
 Based on the work in Donovan Blais' thesis:
 Goal-Oriented Adaptive Sampling for Projection-Based Reduced-Order Models, 2022
 */
-template <int dim, int nstate>
-class AdaptiveSampling: public AdaptiveSamplingBase<dim,nstate>
+template <int dim, int nspecies, int nstate>
+class AdaptiveSampling: public AdaptiveSamplingBase<dim,nspecies,nstate>
 {
 public:
     /// Constructor

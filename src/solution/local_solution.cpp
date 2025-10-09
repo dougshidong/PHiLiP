@@ -55,7 +55,7 @@ LocalSolution<real, dim, n_components>::evaluate_reference_gradients(const std::
 }
 
 // Define a sequence of indices representing the range [1, 7]
-#define POSSIBLE_NSTATE (1)(2)(3)(4)(5)(6)(7)
+#define POSSIBLE_NSTATE (1)(2)(3)(4)(5)(6)(7)(14)
 
 // Define a macro to instantiate MyTemplate for a specific index
 #define INSTANTIATE_DISTRIBUTED(r, data, nstate)                  \
@@ -65,4 +65,12 @@ LocalSolution<real, dim, n_components>::evaluate_reference_gradients(const std::
     template class LocalSolution<FadFadType, PHILIP_DIM, nstate>; \
     template class LocalSolution<RadFadType, PHILIP_DIM, nstate>;
 BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_DISTRIBUTED, _, POSSIBLE_NSTATE)
+
+#if (PHILIP_DIM+2+(PHILIP_SPECIES-1)) > 7 && (PHILIP_DIM+2+(PHILIP_SPECIES-1))!=14
+    template class LocalSolution<double, PHILIP_DIM, (PHILIP_DIM+2+(PHILIP_SPECIES-1))>;     
+    template class LocalSolution<FadType, PHILIP_DIM, (PHILIP_DIM+2+(PHILIP_SPECIES-1))>;    
+    template class LocalSolution<RadType, PHILIP_DIM, (PHILIP_DIM+2+(PHILIP_SPECIES-1))>;    
+    template class LocalSolution<FadFadType, PHILIP_DIM, (PHILIP_DIM+2+(PHILIP_SPECIES-1))>; 
+    template class LocalSolution<RadFadType, PHILIP_DIM, (PHILIP_DIM+2+(PHILIP_SPECIES-1))>;
+#endif
 }  // namespace PHiLiP

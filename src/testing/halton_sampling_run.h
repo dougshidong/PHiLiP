@@ -8,7 +8,7 @@ namespace PHiLiP {
 namespace Tests {
 
 /// Runs adaptive sampling procedure 
-template <int dim, int nstate>
+template <int dim, int nspecies, int nstate>
 class HaltonSamplingRun: public TestsBase
 {
 public:

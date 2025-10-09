@@ -36,9 +36,9 @@ namespace PHiLiP {
   * versions of these functions must also be defined.
   */
 #if PHILIP_DIM==1
-template <int dim, int nstate, typename real, typename MeshType = dealii::Triangulation<dim>>
+template <int dim, int nspecies, int nstate, typename real, typename MeshType = dealii::Triangulation<dim>>
 #else
-template <int dim, int nstate, typename real, typename MeshType = dealii::parallel::distributed::Triangulation<dim>>
+template <int dim, int nspecies, int nstate, typename real, typename MeshType = dealii::parallel::distributed::Triangulation<dim>>
 #endif
 class Functional 
 {
@@ -47,7 +47,7 @@ class Functional
 
 public:
     /// Smart pointer to DGBase
-    std::shared_ptr<DGBase<dim,real,MeshType>> dg;
+    std::shared_ptr<DGBase<dim,nspecies,real,MeshType>> dg;
 
 protected:
     /// Physics that should correspond to the one in DGBase
@@ -63,14 +63,14 @@ public:
      *  diffusion_exact_adjoint test case.
      */
     explicit Functional(
-        std::shared_ptr<PHiLiP::DGBase<dim,real,MeshType>> _dg,
+        std::shared_ptr<PHiLiP::DGBase<dim,nspecies,real,MeshType>> _dg,
         const bool _uses_solution_values = true,
         const bool _uses_solution_gradient = true);
 
     /** Constructor.
      *  Uses provided physics instead of creating a new one based on DGBase */
     Functional(
-        std::shared_ptr<PHiLiP::DGBase<dim,real,MeshType>> _dg,
+        std::shared_ptr<PHiLiP::DGBase<dim,nspecies,real,MeshType>> _dg,
         std::shared_ptr<PHiLiP::Physics::PhysicsBase<dim,nstate,Sacado::Fad::DFad<Sacado::Fad::DFad<real>> >> _physics_fad_fad,
         const bool _uses_solution_values = true,
         const bool _uses_solution_gradient = true);
@@ -102,13 +102,13 @@ public:
 
     /** Finite difference evaluation of dIdW to verify against analytical.  */
     dealii::LinearAlgebra::distributed::Vector<real> evaluate_dIdw_finiteDifferences(
-        DGBase<dim,real,MeshType> &dg, 
+        DGBase<dim,nspecies,real,MeshType> &dg, 
         const PHiLiP::Physics::PhysicsBase<dim,nstate,real> &physics,
         const double stepsize);
 
     /** Finite difference evaluation of dIdX to verify against analytical.  */
     dealii::LinearAlgebra::distributed::Vector<real> evaluate_dIdX_finiteDifferences(
-        DGBase<dim,real,MeshType> &dg, 
+        DGBase<dim,nspecies,real,MeshType> &dg, 
         const PHiLiP::Physics::PhysicsBase<dim,nstate,real> &physics,
         const double stepsize);
 
@@ -326,18 +326,18 @@ protected:
   * \f] 
   */ 
 #if PHILIP_DIM==1
-template <int dim, int nstate, typename real, typename MeshType = dealii::Triangulation<dim>>
+template <int dim, int nspecies, int nstate, typename real, typename MeshType = dealii::Triangulation<dim>>
 #else
-template <int dim, int nstate, typename real, typename MeshType = dealii::parallel::distributed::Triangulation<dim>>
+template <int dim, int nspecies, int nstate, typename real, typename MeshType = dealii::parallel::distributed::Triangulation<dim>>
 #endif
-class FunctionalNormLpVolume : public Functional<dim,nstate,real,MeshType>
+class FunctionalNormLpVolume : public Functional<dim,nspecies,nstate,real,MeshType>
 {
     using FadType = Sacado::Fad::DFad<real>; ///< Sacado AD type for first derivatives.
     using FadFadType = Sacado::Fad::DFad<FadType>; ///< Sacado AD type that allows 2nd derivatives.
 public:
     FunctionalNormLpVolume(
         const double                               _normLp,
-        std::shared_ptr<DGBase<dim,real,MeshType>> _dg,
+        std::shared_ptr<DGBase<dim,nspecies,real,MeshType>> _dg,
         const bool                                 _uses_solution_values   = true,
         const bool                                 _uses_solution_gradient = false);
 
@@ -382,11 +382,11 @@ protected:
   * the chosen setup parameters.
   */ 
 #if PHILIP_DIM==1
-template <int dim, int nstate, typename real, typename MeshType = dealii::Triangulation<dim>>
+template <int dim, int nspecies, int nstate, typename real, typename MeshType = dealii::Triangulation<dim>>
 #else
-template <int dim, int nstate, typename real, typename MeshType = dealii::parallel::distributed::Triangulation<dim>>
+template <int dim, int nspecies, int nstate, typename real, typename MeshType = dealii::parallel::distributed::Triangulation<dim>>
 #endif
-class FunctionalNormLpBoundary : public Functional<dim,nstate,real,MeshType>
+class FunctionalNormLpBoundary : public Functional<dim,nspecies,nstate,real,MeshType>
 {
     using FadType = Sacado::Fad::DFad<real>; ///< Sacado AD type for first derivatives.
     using FadFadType = Sacado::Fad::DFad<FadType>; ///< Sacado AD type that allows 2nd derivatives.
@@ -395,7 +395,7 @@ public:
         const double                               _normLp,
         std::vector<unsigned int>                  _boundary_vector,
         const bool                                 _use_all_boundaries,
-        std::shared_ptr<DGBase<dim,real,MeshType>> _dg,
+        std::shared_ptr<DGBase<dim,nspecies,real,MeshType>> _dg,
         const bool                                 _uses_solution_values   = true,
         const bool                                 _uses_solution_gradient = false);
 
@@ -449,11 +449,11 @@ protected:
   * \f] 
   */ 
 #if PHILIP_DIM==1
-template <int dim, int nstate, typename real, typename MeshType = dealii::Triangulation<dim>>
+template <int dim, int nspecies, int nstate, typename real, typename MeshType = dealii::Triangulation<dim>>
 #else
-template <int dim, int nstate, typename real, typename MeshType = dealii::parallel::distributed::Triangulation<dim>>
+template <int dim, int nspecies, int nstate, typename real, typename MeshType = dealii::parallel::distributed::Triangulation<dim>>
 #endif
-class FunctionalWeightedIntegralVolume : public Functional<dim,nstate,real,MeshType>
+class FunctionalWeightedIntegralVolume : public Functional<dim,nspecies,nstate,real,MeshType>
 {
     using FadType = Sacado::Fad::DFad<real>; ///< Sacado AD type for first derivatives.
     using FadFadType = Sacado::Fad::DFad<FadType>; ///< Sacado AD type that allows 2nd derivatives.
@@ -462,7 +462,7 @@ public:
         std::shared_ptr<ManufacturedSolutionFunction<dim,real>>   _weight_function_double,
         std::shared_ptr<ManufacturedSolutionFunction<dim,FadFadType>> _weight_function_adtype,
         const bool                                                _use_weight_function_laplacian,
-        std::shared_ptr<DGBase<dim,real,MeshType>>                _dg,
+        std::shared_ptr<DGBase<dim,nspecies,real,MeshType>>                _dg,
         const bool                                                _uses_solution_values   = true,
         const bool                                                _uses_solution_gradient = false);
 
@@ -514,11 +514,11 @@ protected:
   * the chosen setup parameters.
   */ 
 #if PHILIP_DIM==1
-template <int dim, int nstate, typename real, typename MeshType = dealii::Triangulation<dim>>
+template <int dim, int nspecies, int nstate, typename real, typename MeshType = dealii::Triangulation<dim>>
 #else
-template <int dim, int nstate, typename real, typename MeshType = dealii::parallel::distributed::Triangulation<dim>>
+template <int dim, int nspecies, int nstate, typename real, typename MeshType = dealii::parallel::distributed::Triangulation<dim>>
 #endif
-class FunctionalWeightedIntegralBoundary : public Functional<dim,nstate,real,MeshType>
+class FunctionalWeightedIntegralBoundary : public Functional<dim,nspecies,nstate,real,MeshType>
 {
     using FadType = Sacado::Fad::DFad<real>; ///< Sacado AD type for first derivatives.
     using FadFadType = Sacado::Fad::DFad<FadType>; ///< Sacado AD type that allows 2nd derivatives.
@@ -529,7 +529,7 @@ public:
         const bool                                                    _use_weight_function_laplacian,
         std::vector<unsigned int>                                     _boundary_vector,
         const bool                                                    _use_all_boundaries,
-        std::shared_ptr<DGBase<dim,real,MeshType>>                    _dg,
+        std::shared_ptr<DGBase<dim,nspecies,real,MeshType>>                    _dg,
         const bool                                                    _uses_solution_values   = true,
         const bool                                                    _uses_solution_gradient = false);
 
@@ -587,18 +587,18 @@ protected:
   * \f]
   */ 
 #if PHILIP_DIM==1
-template <int dim, int nstate, typename real, typename MeshType = dealii::Triangulation<dim>>
+template <int dim, int nspecies, int nstate, typename real, typename MeshType = dealii::Triangulation<dim>>
 #else
-template <int dim, int nstate, typename real, typename MeshType = dealii::parallel::distributed::Triangulation<dim>>
+template <int dim, int nspecies, int nstate, typename real, typename MeshType = dealii::parallel::distributed::Triangulation<dim>>
 #endif
-class FunctionalErrorNormLpVolume : public Functional<dim,nstate,real,MeshType>
+class FunctionalErrorNormLpVolume : public Functional<dim,nspecies,nstate,real,MeshType>
 {
     using FadType = Sacado::Fad::DFad<real>; ///< Sacado AD type for first derivatives.
     using FadFadType = Sacado::Fad::DFad<FadType>; ///< Sacado AD type that allows 2nd derivatives.
 public:
     FunctionalErrorNormLpVolume(
         const double                               _normLp,
-        std::shared_ptr<DGBase<dim,real,MeshType>> _dg,
+        std::shared_ptr<DGBase<dim,nspecies,real,MeshType>> _dg,
         const bool                                 _uses_solution_values   = true,
         const bool                                 _uses_solution_gradient = false);
 
@@ -644,11 +644,11 @@ protected:
   * the chosen setup parameters.
   */ 
 #if PHILIP_DIM==1
-template <int dim, int nstate, typename real, typename MeshType = dealii::Triangulation<dim>>
+template <int dim, int nspecies, int nstate, typename real, typename MeshType = dealii::Triangulation<dim>>
 #else
-template <int dim, int nstate, typename real, typename MeshType = dealii::parallel::distributed::Triangulation<dim>>
+template <int dim, int nspecies, int nstate, typename real, typename MeshType = dealii::parallel::distributed::Triangulation<dim>>
 #endif
-class FunctionalErrorNormLpBoundary : public Functional<dim,nstate,real,MeshType>
+class FunctionalErrorNormLpBoundary : public Functional<dim,nspecies,nstate,real,MeshType>
 {
     using FadType = Sacado::Fad::DFad<real>; ///< Sacado AD type for first derivatives.
     using FadFadType = Sacado::Fad::DFad<FadType>; ///< Sacado AD type that allows 2nd derivatives.
@@ -657,7 +657,7 @@ public:
         const double                               _normLp,
         std::vector<unsigned int>                  _boundary_vector,
         const bool                                 _use_all_boundaries,
-        std::shared_ptr<DGBase<dim,real,MeshType>> _dg,
+        std::shared_ptr<DGBase<dim,nspecies,real,MeshType>> _dg,
         const bool                                 _uses_solution_values   = true,
         const bool                                 _uses_solution_gradient = false);
 
@@ -703,11 +703,11 @@ protected:
 
 ///Functional to take the integral of the solution
 #if PHILIP_DIM==1
-    template <int dim, int nstate, typename real, typename MeshType = dealii::Triangulation<dim>>
+    template <int dim, int nspecies, int nstate, typename real, typename MeshType = dealii::Triangulation<dim>>
 #else
-    template <int dim, int nstate, typename real, typename MeshType = dealii::parallel::distributed::Triangulation<dim>>
+    template <int dim, int nspecies, int nstate, typename real, typename MeshType = dealii::parallel::distributed::Triangulation<dim>>
 #endif
-class SolutionIntegral : public Functional<dim,nstate,real,MeshType>
+class SolutionIntegral : public Functional<dim,nspecies,nstate,real,MeshType>
 {
 public:
     using FadType = Sacado::Fad::DFad<real>; ///< Sacado AD type for first derivatives.
@@ -715,11 +715,11 @@ public:
 public:
     /// Constructor
     SolutionIntegral(
-            std::shared_ptr<PHiLiP::DGBase<dim,real, MeshType>> dg_input,
+            std::shared_ptr<PHiLiP::DGBase<dim,nspecies,real,MeshType>> dg_input,
             std::shared_ptr<PHiLiP::Physics::PhysicsBase<dim,nstate,FadFadType>> _physics_fad_fad,
             const bool uses_solution_values = true,
             const bool uses_solution_gradient = false)
-            : PHiLiP::Functional<dim,nstate,real,MeshType>(dg_input,_physics_fad_fad,uses_solution_values,uses_solution_gradient)
+            : PHiLiP::Functional<dim,nspecies,nstate,real,MeshType>(dg_input,_physics_fad_fad,uses_solution_values,uses_solution_gradient)
     {}
 
     /// Templated volume integrand
@@ -754,14 +754,14 @@ public:
 /** Boundary integral for the Euler Gaussian bump.
 *  Pressure integral on the outlet.
 */
-template <int dim, int nstate, typename real, typename MeshType = dealii::parallel::distributed::Triangulation<dim>>
-class OutletPressureIntegral : public Functional<dim,nstate,real,MeshType>
+template <int dim, int nspecies, int nstate, typename real, typename MeshType = dealii::parallel::distributed::Triangulation<dim>>
+class OutletPressureIntegral : public Functional<dim,nspecies,nstate,real,MeshType>
 {
     using FadType = Sacado::Fad::DFad<real>; ///< Sacado AD type for first derivatives.
     using FadFadType = Sacado::Fad::DFad<FadType>; ///< Sacado AD type that allows 2nd derivatives.
 public:
     OutletPressureIntegral(
-            std::shared_ptr<PHiLiP::DGBase<dim,real, MeshType>> dg_input,
+            std::shared_ptr<PHiLiP::DGBase<dim,nspecies,real,MeshType>> dg_input,
             const bool uses_solution_values = true,
             const bool uses_solution_gradient = false);
 
@@ -806,24 +806,24 @@ public:
   * functionals may still be used without this interface in the adjoint class.
   */ 
 #if PHILIP_DIM==1
-template <int dim, int nstate, typename real, typename MeshType = dealii::Triangulation<dim>>
+template <int dim, int nspecies, int nstate, typename real, typename MeshType = dealii::Triangulation<dim>>
 #else
-template <int dim, int nstate, typename real, typename MeshType = dealii::parallel::distributed::Triangulation<dim>>
+template <int dim, int nspecies, int nstate, typename real, typename MeshType = dealii::parallel::distributed::Triangulation<dim>>
 #endif
 class FunctionalFactory
 {
 public:
     /// Create standard functional object from constant parameter file
-    static std::shared_ptr< Functional<dim,nstate,real,MeshType> >
+    static std::shared_ptr< Functional<dim,nspecies,nstate,real,MeshType> >
     create_Functional(
         PHiLiP::Parameters::AllParameters const *const       param,
-        std::shared_ptr< PHiLiP::DGBase<dim,real,MeshType> > dg);
+        std::shared_ptr< PHiLiP::DGBase<dim,nspecies,real,MeshType> > dg);
 
     /// Create standard functional object from parameter file
-    static std::shared_ptr< Functional<dim,nstate,real,MeshType> >
+    static std::shared_ptr< Functional<dim,nspecies,nstate,real,MeshType> >
     create_Functional(
         PHiLiP::Parameters::FunctionalParam                  param,
-        std::shared_ptr< PHiLiP::DGBase<dim,real,MeshType> > dg);
+        std::shared_ptr< PHiLiP::DGBase<dim,nspecies,real,MeshType> > dg);
 };
 
 } // PHiLiP namespace

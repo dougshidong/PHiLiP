@@ -1,0 +1,15 @@
+INITIAL MIXTURE FRACTIONS
+-----------------------------------------------
+- SPECIFY TYPE OF FRACTIONS BELOW "TYPE"
+- OPTIONS: "MOLE" or "MASS"
+- SPECIFY TRACE FRACTION BELOW "TRACE"
+===============================================
+TYPE
+MOLE
+TRACE
+1.0E-11
+SPECIES     	FRACTIONS
+H2              0.000001
+O2              0.211525
+N2              0.788474
+END

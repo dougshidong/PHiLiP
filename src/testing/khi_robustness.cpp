@@ -5,16 +5,16 @@
 namespace PHiLiP {
 namespace Tests {
 
-template <int dim, int nstate>
-KHIRobustness<dim, nstate>::KHIRobustness(
+template <int dim, int nspecies, int nstate>
+KHIRobustness<dim, nspecies, nstate>::KHIRobustness(
     const PHiLiP::Parameters::AllParameters *const parameters_input,
     const dealii::ParameterHandler &parameter_handler_input)
         : TestsBase::TestsBase(parameters_input)
         , parameter_handler(parameter_handler_input)
 {}
 
-template <int dim, int nstate>
-Parameters::AllParameters KHIRobustness<dim,nstate>::reinit_params(double atwood_number) const
+template <int dim, int nspecies, int nstate>
+Parameters::AllParameters KHIRobustness<dim, nspecies, nstate>::reinit_params(double atwood_number) const
 {
      PHiLiP::Parameters::AllParameters parameters = *(this->all_parameters);
      
@@ -24,8 +24,8 @@ Parameters::AllParameters KHIRobustness<dim,nstate>::reinit_params(double atwood
      return parameters;
 }
 
-template <int dim, int nstate>
-int KHIRobustness<dim, nstate>::run_test() const
+template <int dim, int nspecies, int nstate>
+int KHIRobustness<dim, nspecies, nstate>::run_test() const
 {
     const unsigned int n_runs = 2;
     // Range of Atwood numbers to test
@@ -40,7 +40,7 @@ int KHIRobustness<dim, nstate>::run_test() const
         const Parameters::AllParameters params = reinit_params(A_range[i_run]);
 
         // Initialize flow_solver
-        std::unique_ptr<FlowSolver::FlowSolver<dim,nstate>> flow_solver = FlowSolver::FlowSolverFactory<dim,nstate>::select_flow_case(&params, parameter_handler);
+        std::unique_ptr<FlowSolver::FlowSolver<dim,nspecies,nstate>> flow_solver = FlowSolver::FlowSolverFactory<dim,nspecies,nstate>::select_flow_case(&params, parameter_handler);
 
         // Solve flow case 
         try{
@@ -71,8 +71,8 @@ int KHIRobustness<dim, nstate>::run_test() const
     return 0; //Always pass as the flow_solver runs are expected to crash
 }
 
-#if PHILIP_DIM==2
-    template class KHIRobustness<PHILIP_DIM,PHILIP_DIM+2>;
+#if PHILIP_DIM==2 && PHILIP_SPECIES==1
+    template class KHIRobustness<PHILIP_DIM,PHILIP_SPECIES,PHILIP_DIM+2>;
 #endif
 } // Tests namespace
 } // PHiLiP namespace

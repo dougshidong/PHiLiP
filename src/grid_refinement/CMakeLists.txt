@@ -16,8 +16,10 @@ foreach(dim RANGE 1 3)
     string(CONCAT GridRefinementLib GridRefinement_${dim}D)
     add_library(${GridRefinementLib} STATIC ${GRID_REFINEMENT_SOURCE})
     # Replace occurences of PHILIP_DIM with 1, 2, or 3 in the code
+    # Replace occurences of PHILIP_SPECIES with user set cache variable in the code
     target_compile_definitions(${GridRefinementLib} PRIVATE 
-        PHILIP_DIM=${dim} 
+        PHILIP_DIM=${dim}
+        PHILIP_SPECIES=${NUMBER_OF_SPECIES}
         ENABLE_GMSH=${ENABLE_GMSH}
         GMSH_PATH=\"gmsh\" 
         ENABLE_GNUPLOT=${ENABLE_GNUPLOT})

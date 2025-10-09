@@ -15,6 +15,8 @@ set(MPIMAX 4 CACHE STRING "Default number of processors used in ctest mpirun -np
 set(ENABLE_GMSH 0 CACHE STRING "Enable GMSH access through command lines and tests.")
 set(ENABLE_GNUPLOT 0 CACHE STRING "Enable Gnu Plot outputs.")
 
+set(NUMBER_OF_SPECIES 1 CACHE STRING "Set number of species. If set to >1 executables for tests will not be made.")
+
 find_package(Git QUIET)
 if(GIT_FOUND AND EXISTS "${PROJECT_SOURCE_DIR}/.git")
 # Update submodules as needed
@@ -103,7 +105,43 @@ SET(_philip_targets "#
 #      make PHiLiP_1D      - to build main program (without tests) in 1D
 #      make PHiLiP_2D      - to build main program (without tests) in 2D
 #      make PHiLiP_3D      - to build main program (without tests) in 3D ")
+
+IF (${NUMBER_OF_SPECIES} GREATER 1)
+add_custom_target(
+  ${NUMBER_OF_SPECIES}species
+  COMMAND echo 'COMPILING 1D_${NUMBER_OF_SPECIES}species EXECUTABLE...'
+  COMMAND make -j${MPIMAX} PHiLiP_1D_${NUMBER_OF_SPECIES}species
+  COMMAND echo 'COMPILING 2D_${NUMBER_OF_SPECIES}species EXECUTABLE...'
+  COMMAND make -j${MPIMAX} PHiLiP_2D_${NUMBER_OF_SPECIES}species
+  COMMAND echo 'COMPILING 3D_${NUMBER_OF_SPECIES}species EXECUTABLE...'
+  COMMAND make -j${MPIMAX} PHiLiP_3D_${NUMBER_OF_SPECIES}species
+)
+ENDIF()
+
+add_custom_target(
+  multispecies_compilation_check
+  COMMAND ${CMAKE_COMMAND} -DNUMBER_OF_SPECIES=1 ${CMAKE_SOURCE_DIR}
+  COMMAND ${CMAKE_COMMAND} --build ${CMAKE_BINARY_DIR} --target all -j${MPIMAX}
+  COMMAND ${CMAKE_COMMAND} -DNUMBER_OF_SPECIES=2 ${CMAKE_SOURCE_DIR}
+  COMMAND echo 'COMPILING 1D_2species EXECUTABLE...'
+  COMMAND make -j${MPIMAX} PHiLiP_1D_2species
+  COMMAND echo 'COMPILING 2D_2species EXECUTABLE...'
+  COMMAND make -j${MPIMAX} PHiLiP_2D_2species
+  COMMAND echo 'COMPILING 3D_2species EXECUTABLE...'
+  COMMAND make -j${MPIMAX} PHiLiP_3D_2species
+  COMMAND ${CMAKE_COMMAND} -DNUMBER_OF_SPECIES=3 ${CMAKE_SOURCE_DIR}
+  COMMAND echo 'COMPILING 1D_3species EXECUTABLE...'
+  COMMAND make -j${MPIMAX} PHiLiP_1D_3species
+  COMMAND echo 'COMPILING 2D_3species EXECUTABLE...'
+  COMMAND make -j${MPIMAX} PHiLiP_2D_3species
+  COMMAND echo 'COMPILING 3D_3species EXECUTABLE...'
+  COMMAND make -j${MPIMAX} PHiLiP_3D_3species
+)
+
+
+IF(${NUMBER_OF_SPECIES} EQUAL 1)
 add_custom_target(unit_tests)
+ENDIF()
 
 add_custom_target(grids)
 
@@ -237,5 +275,12 @@ MESSAGE(STATUS "
 # Using MPIMAX = ${MPIMAX}, which sets the default values used by ctest for the MPI runs.
 # Can use cmake ../ -DMPIMAX=XX to change this default value.
 #
+# Using NUMBER_OF_SPECIES = ${NUMBER_OF_SPECIES}, which sets the number of species used for templating functions.
+# Can use cmake ../ -DNUMBER_OF_SPECIES=XX to change this default value.
+#
 ###
 ")
+
+# ignore BOOST deprecated headers
+add_definitions("-DBOOST_ALLOW_DEPRECATED_HEADERS")
+

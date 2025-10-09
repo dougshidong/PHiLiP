@@ -12,6 +12,7 @@ set(FLOW_SOLVER_SOURCE
     flow_solver_cases/naca0012.cpp
     flow_solver_cases/gaussian_bump.cpp
     flow_solver_cases/positivity_preserving_tests.cpp
+    flow_solver_cases/flow_solver_zero.cpp
     flow_solver.cpp
     flow_solver_factory.cpp)
 
@@ -21,6 +22,8 @@ foreach(dim RANGE 1 3)
     add_library(${FlowSolverLib} STATIC ${FLOW_SOLVER_SOURCE})
     # Replace occurences of PHILIP_DIM with 1, 2, or 3 in the code
     target_compile_definitions(${FlowSolverLib} PRIVATE PHILIP_DIM=${dim})
+    # Replace occurences of PHILIP_SPECIES with user set cache variable in the code
+    target_compile_definitions(${FlowSolverLib} PRIVATE PHILIP_SPECIES=${NUMBER_OF_SPECIES})
 
     # Library dependency
     string(CONCAT GridsLib Grids_${dim}D)

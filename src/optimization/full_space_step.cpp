@@ -60,7 +60,7 @@ void FullSpace_BirosGhattas<Real>::computeLagrangianGradient(
     /* Apply adjoint of constraint Jacobian to current multiplier. */
     Real tol = std::sqrt(ROL_EPSILON<Real>());
 
-    auto &flow_constraint = (dynamic_cast<PHiLiP::FlowConstraints<PHILIP_DIM>&>(equal_constraints));
+    auto &flow_constraint = (dynamic_cast<PHiLiP::FlowConstraints<PHILIP_DIM,PHILIP_SPECIES>&>(equal_constraints));
     const double old_CFL = flow_constraint.flow_CFL_;
     // Lagrangian of the gradient should not be influenced by the constraint regularization (CFL)
     // Otherwise, you when end magnifying the dual variable values since
@@ -206,7 +206,7 @@ void FullSpace_BirosGhattas<Real>::initialize(
     previous_reduced_gradient_ = lagrangian_gradient_simopt.get_2()->clone();
     algo_state.ngrad++;
 
-    auto &flow_constraint = (dynamic_cast<PHiLiP::FlowConstraints<PHILIP_DIM>&>(equal_constraints));
+    auto &flow_constraint = (dynamic_cast<PHiLiP::FlowConstraints<PHILIP_DIM,PHILIP_SPECIES>&>(equal_constraints));
     //flow_constraint.flow_CFL_ = 1.0/std::pow(algo_state.cnorm, 0.5);
     //flow_constraint.flow_CFL_ = 1.0/std::pow(lagrangian_gradient->norm(), 1.00);
     //flow_constraint.flow_CFL_ = -std::max(1.0/std::pow(algo_state.cnorm, 2.0), 100.0);
@@ -794,7 +794,7 @@ void FullSpace_BirosGhattas<Real>::update(
                        std::pow(search_adj_norm,2);
     algo_state.snorm = std::sqrt(algo_state.snorm);
 
-    auto &flow_constraint = (dynamic_cast<PHiLiP::FlowConstraints<PHILIP_DIM>&>(equal_constraints));
+    auto &flow_constraint = (dynamic_cast<PHiLiP::FlowConstraints<PHILIP_DIM,PHILIP_SPECIES>&>(equal_constraints));
     //flow_constraint.update(
     //    *((dynamic_cast<const Vector_SimOpt<Real>&>(design_variables)).get_1()),
     //    *((dynamic_cast<const Vector_SimOpt<Real>&>(design_variables)).get_2()),

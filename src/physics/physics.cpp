@@ -226,12 +226,14 @@ real2 PhysicsBase<dim,nstate,real>
     return (real2)BIG_NUMBER;
 }
 
+#if PHILIP_SPECIES==1
 template class PhysicsBase < PHILIP_DIM, 1, double >;
 template class PhysicsBase < PHILIP_DIM, 2, double >;
 template class PhysicsBase < PHILIP_DIM, 3, double >;
 template class PhysicsBase < PHILIP_DIM, 4, double >;
 template class PhysicsBase < PHILIP_DIM, 5, double >;
 template class PhysicsBase < PHILIP_DIM, 6, double >;
+template class PhysicsBase < PHILIP_DIM, 7, double >;
 template class PhysicsBase < PHILIP_DIM, 8, double >;
 
 template class PhysicsBase < PHILIP_DIM, 1, FadType >;
@@ -240,6 +242,7 @@ template class PhysicsBase < PHILIP_DIM, 3, FadType >;
 template class PhysicsBase < PHILIP_DIM, 4, FadType >;
 template class PhysicsBase < PHILIP_DIM, 5, FadType >;
 template class PhysicsBase < PHILIP_DIM, 6, FadType >;
+template class PhysicsBase < PHILIP_DIM, 7, FadType >;
 template class PhysicsBase < PHILIP_DIM, 8, FadType >;
 
 template class PhysicsBase < PHILIP_DIM, 1, RadType >;
@@ -248,6 +251,7 @@ template class PhysicsBase < PHILIP_DIM, 3, RadType >;
 template class PhysicsBase < PHILIP_DIM, 4, RadType >;
 template class PhysicsBase < PHILIP_DIM, 5, RadType >;
 template class PhysicsBase < PHILIP_DIM, 6, RadType >;
+template class PhysicsBase < PHILIP_DIM, 7, RadType >;
 template class PhysicsBase < PHILIP_DIM, 8, RadType >;
 
 template class PhysicsBase < PHILIP_DIM, 1, FadFadType >;
@@ -256,6 +260,7 @@ template class PhysicsBase < PHILIP_DIM, 3, FadFadType >;
 template class PhysicsBase < PHILIP_DIM, 4, FadFadType >;
 template class PhysicsBase < PHILIP_DIM, 5, FadFadType >;
 template class PhysicsBase < PHILIP_DIM, 6, FadFadType >;
+template class PhysicsBase < PHILIP_DIM, 7, FadFadType >;
 template class PhysicsBase < PHILIP_DIM, 8, FadFadType >;
 
 template class PhysicsBase < PHILIP_DIM, 1, RadFadType >;
@@ -264,6 +269,7 @@ template class PhysicsBase < PHILIP_DIM, 3, RadFadType >;
 template class PhysicsBase < PHILIP_DIM, 4, RadFadType >;
 template class PhysicsBase < PHILIP_DIM, 5, RadFadType >;
 template class PhysicsBase < PHILIP_DIM, 6, RadFadType >;
+template class PhysicsBase < PHILIP_DIM, 7, RadFadType >;
 template class PhysicsBase < PHILIP_DIM, 8, RadFadType >;
 
 //==============================================================================
@@ -276,6 +282,7 @@ template double PhysicsBase < PHILIP_DIM, 3, double >::handle_non_physical_resul
 template double PhysicsBase < PHILIP_DIM, 4, double >::handle_non_physical_result<double>(const std::string message) const;
 template double PhysicsBase < PHILIP_DIM, 5, double >::handle_non_physical_result<double>(const std::string message) const;
 template double PhysicsBase < PHILIP_DIM, 6, double >::handle_non_physical_result<double>(const std::string message) const;
+template double PhysicsBase < PHILIP_DIM, 7, double >::handle_non_physical_result<double>(const std::string message) const;
 template double PhysicsBase < PHILIP_DIM, 8, double >::handle_non_physical_result<double>(const std::string message) const;
 
 template FadType PhysicsBase < PHILIP_DIM, 1, FadType >::handle_non_physical_result<FadType>(const std::string message) const;
@@ -284,6 +291,7 @@ template FadType PhysicsBase < PHILIP_DIM, 3, FadType >::handle_non_physical_res
 template FadType PhysicsBase < PHILIP_DIM, 4, FadType >::handle_non_physical_result<FadType>(const std::string message) const;
 template FadType PhysicsBase < PHILIP_DIM, 5, FadType >::handle_non_physical_result<FadType>(const std::string message) const;
 template FadType PhysicsBase < PHILIP_DIM, 6, FadType >::handle_non_physical_result<FadType>(const std::string message) const;
+template FadType PhysicsBase < PHILIP_DIM, 7, FadType >::handle_non_physical_result<FadType>(const std::string message) const;
 template FadType PhysicsBase < PHILIP_DIM, 8, FadType >::handle_non_physical_result<FadType>(const std::string message) const;
 
 template RadType PhysicsBase < PHILIP_DIM, 1, RadType >::handle_non_physical_result<RadType>(const std::string message) const;
@@ -292,6 +300,7 @@ template RadType PhysicsBase < PHILIP_DIM, 3, RadType >::handle_non_physical_res
 template RadType PhysicsBase < PHILIP_DIM, 4, RadType >::handle_non_physical_result<RadType>(const std::string message) const;
 template RadType PhysicsBase < PHILIP_DIM, 5, RadType >::handle_non_physical_result<RadType>(const std::string message) const;
 template RadType PhysicsBase < PHILIP_DIM, 6, RadType >::handle_non_physical_result<RadType>(const std::string message) const;
+template RadType PhysicsBase < PHILIP_DIM, 7, RadType >::handle_non_physical_result<RadType>(const std::string message) const;
 template RadType PhysicsBase < PHILIP_DIM, 8, RadType >::handle_non_physical_result<RadType>(const std::string message) const;
 
 template FadFadType PhysicsBase < PHILIP_DIM, 1, FadFadType >::handle_non_physical_result<FadFadType>(const std::string message) const;
@@ -300,6 +309,7 @@ template FadFadType PhysicsBase < PHILIP_DIM, 3, FadFadType >::handle_non_physic
 template FadFadType PhysicsBase < PHILIP_DIM, 4, FadFadType >::handle_non_physical_result<FadFadType>(const std::string message) const;
 template FadFadType PhysicsBase < PHILIP_DIM, 5, FadFadType >::handle_non_physical_result<FadFadType>(const std::string message) const;
 template FadFadType PhysicsBase < PHILIP_DIM, 6, FadFadType >::handle_non_physical_result<FadFadType>(const std::string message) const;
+template FadFadType PhysicsBase < PHILIP_DIM, 7, FadFadType >::handle_non_physical_result<FadFadType>(const std::string message) const;
 template FadFadType PhysicsBase < PHILIP_DIM, 8, FadFadType >::handle_non_physical_result<FadFadType>(const std::string message) const;
 
 template RadFadType PhysicsBase < PHILIP_DIM, 1, RadFadType >::handle_non_physical_result<RadFadType>(const std::string message) const;
@@ -308,7 +318,9 @@ template RadFadType PhysicsBase < PHILIP_DIM, 3, RadFadType >::handle_non_physic
 template RadFadType PhysicsBase < PHILIP_DIM, 4, RadFadType >::handle_non_physical_result<RadFadType>(const std::string message) const;
 template RadFadType PhysicsBase < PHILIP_DIM, 5, RadFadType >::handle_non_physical_result<RadFadType>(const std::string message) const;
 template RadFadType PhysicsBase < PHILIP_DIM, 6, RadFadType >::handle_non_physical_result<RadFadType>(const std::string message) const;
+template RadFadType PhysicsBase < PHILIP_DIM, 7, RadFadType >::handle_non_physical_result<RadFadType>(const std::string message) const;
 template RadFadType PhysicsBase < PHILIP_DIM, 8, RadFadType >::handle_non_physical_result<RadFadType>(const std::string message) const;
+
  // -- -- instantiate all the real types with real2 = FadType for automatic differentiation in NavierStokes::dissipative_flux_directional_jacobian() 
 template FadType PhysicsBase < PHILIP_DIM, 1, double >::handle_non_physical_result<FadType>(const std::string message) const;
 template FadType PhysicsBase < PHILIP_DIM, 2, double >::handle_non_physical_result<FadType>(const std::string message) const;
@@ -316,6 +328,7 @@ template FadType PhysicsBase < PHILIP_DIM, 3, double >::handle_non_physical_resu
 template FadType PhysicsBase < PHILIP_DIM, 4, double >::handle_non_physical_result<FadType>(const std::string message) const;
 template FadType PhysicsBase < PHILIP_DIM, 5, double >::handle_non_physical_result<FadType>(const std::string message) const;
 template FadType PhysicsBase < PHILIP_DIM, 6, double >::handle_non_physical_result<FadType>(const std::string message) const;
+template FadType PhysicsBase < PHILIP_DIM, 7, double >::handle_non_physical_result<FadType>(const std::string message) const;
 template FadType PhysicsBase < PHILIP_DIM, 8, double >::handle_non_physical_result<FadType>(const std::string message) const;
 
 template FadType PhysicsBase < PHILIP_DIM, 1, RadType >::handle_non_physical_result<FadType>(const std::string message) const;
@@ -324,6 +337,7 @@ template FadType PhysicsBase < PHILIP_DIM, 3, RadType >::handle_non_physical_res
 template FadType PhysicsBase < PHILIP_DIM, 4, RadType >::handle_non_physical_result<FadType>(const std::string message) const;
 template FadType PhysicsBase < PHILIP_DIM, 5, RadType >::handle_non_physical_result<FadType>(const std::string message) const;
 template FadType PhysicsBase < PHILIP_DIM, 6, RadType >::handle_non_physical_result<FadType>(const std::string message) const;
+template FadType PhysicsBase < PHILIP_DIM, 7, RadType >::handle_non_physical_result<FadType>(const std::string message) const;
 template FadType PhysicsBase < PHILIP_DIM, 8, RadType >::handle_non_physical_result<FadType>(const std::string message) const;
 
 template FadType PhysicsBase < PHILIP_DIM, 1, FadFadType >::handle_non_physical_result<FadType>(const std::string message) const;
@@ -332,6 +346,7 @@ template FadType PhysicsBase < PHILIP_DIM, 3, FadFadType >::handle_non_physical_
 template FadType PhysicsBase < PHILIP_DIM, 4, FadFadType >::handle_non_physical_result<FadType>(const std::string message) const;
 template FadType PhysicsBase < PHILIP_DIM, 5, FadFadType >::handle_non_physical_result<FadType>(const std::string message) const;
 template FadType PhysicsBase < PHILIP_DIM, 6, FadFadType >::handle_non_physical_result<FadType>(const std::string message) const;
+template FadType PhysicsBase < PHILIP_DIM, 7, FadFadType >::handle_non_physical_result<FadType>(const std::string message) const;
 template FadType PhysicsBase < PHILIP_DIM, 8, FadFadType >::handle_non_physical_result<FadType>(const std::string message) const;
 
 template FadType PhysicsBase < PHILIP_DIM, 1, RadFadType >::handle_non_physical_result<FadType>(const std::string message) const;
@@ -340,8 +355,43 @@ template FadType PhysicsBase < PHILIP_DIM, 3, RadFadType >::handle_non_physical_
 template FadType PhysicsBase < PHILIP_DIM, 4, RadFadType >::handle_non_physical_result<FadType>(const std::string message) const;
 template FadType PhysicsBase < PHILIP_DIM, 5, RadFadType >::handle_non_physical_result<FadType>(const std::string message) const;
 template FadType PhysicsBase < PHILIP_DIM, 6, RadFadType >::handle_non_physical_result<FadType>(const std::string message) const;
+template FadType PhysicsBase < PHILIP_DIM, 7, RadFadType >::handle_non_physical_result<FadType>(const std::string message) const;
 template FadType PhysicsBase < PHILIP_DIM, 8, RadFadType >::handle_non_physical_result<FadType>(const std::string message) const;
+#else
+template class PhysicsBase < PHILIP_DIM, PHILIP_DIM+2, double >;
+template class PhysicsBase < PHILIP_DIM, PHILIP_DIM+2, FadType >;
+template class PhysicsBase < PHILIP_DIM, PHILIP_DIM+2, RadType >;
+template class PhysicsBase < PHILIP_DIM, PHILIP_DIM+2, FadFadType >;
+template class PhysicsBase < PHILIP_DIM, PHILIP_DIM+2, RadFadType >;
 
+template double PhysicsBase < PHILIP_DIM, PHILIP_DIM+2, double >::handle_non_physical_result<double>(const std::string message) const;
+template FadType PhysicsBase < PHILIP_DIM, PHILIP_DIM+2, FadType >::handle_non_physical_result<FadType>(const std::string message) const;
+template RadType PhysicsBase < PHILIP_DIM, PHILIP_DIM+2, RadType >::handle_non_physical_result<RadType>(const std::string message) const;
+template FadFadType PhysicsBase < PHILIP_DIM, PHILIP_DIM+2, FadFadType >::handle_non_physical_result<FadFadType>(const std::string message) const;
+template RadFadType PhysicsBase < PHILIP_DIM, PHILIP_DIM+2, RadFadType >::handle_non_physical_result<RadFadType>(const std::string message) const;
+
+template FadType PhysicsBase < PHILIP_DIM, PHILIP_DIM+2, double >::handle_non_physical_result<FadType>(const std::string message) const;
+template FadType PhysicsBase < PHILIP_DIM, PHILIP_DIM+2, RadType >::handle_non_physical_result<FadType>(const std::string message) const;
+template FadType PhysicsBase < PHILIP_DIM, PHILIP_DIM+2, FadFadType >::handle_non_physical_result<FadType>(const std::string message) const;
+template FadType PhysicsBase < PHILIP_DIM, PHILIP_DIM+2, RadFadType >::handle_non_physical_result<FadType>(const std::string message) const;
+
+template class PhysicsBase < PHILIP_DIM, PHILIP_DIM+2+(PHILIP_SPECIES-1), double >;
+template class PhysicsBase < PHILIP_DIM, PHILIP_DIM+2+(PHILIP_SPECIES-1), FadType >;
+template class PhysicsBase < PHILIP_DIM, PHILIP_DIM+2+(PHILIP_SPECIES-1), RadType >;
+template class PhysicsBase < PHILIP_DIM, PHILIP_DIM+2+(PHILIP_SPECIES-1), FadFadType >;
+template class PhysicsBase < PHILIP_DIM, PHILIP_DIM+2+(PHILIP_SPECIES-1), RadFadType >;
+
+template double PhysicsBase < PHILIP_DIM, PHILIP_DIM+2+(PHILIP_SPECIES-1), double >::handle_non_physical_result<double>(const std::string message) const;
+template FadType PhysicsBase < PHILIP_DIM, PHILIP_DIM+2+(PHILIP_SPECIES-1), FadType >::handle_non_physical_result<FadType>(const std::string message) const;
+template RadType PhysicsBase < PHILIP_DIM, PHILIP_DIM+2+(PHILIP_SPECIES-1), RadType >::handle_non_physical_result<RadType>(const std::string message) const;
+template FadFadType PhysicsBase < PHILIP_DIM, PHILIP_DIM+2+(PHILIP_SPECIES-1), FadFadType >::handle_non_physical_result<FadFadType>(const std::string message) const;
+template RadFadType PhysicsBase < PHILIP_DIM, PHILIP_DIM+2+(PHILIP_SPECIES-1), RadFadType >::handle_non_physical_result<RadFadType>(const std::string message) const;
+
+template FadType PhysicsBase < PHILIP_DIM, PHILIP_DIM+2+(PHILIP_SPECIES-1), double >::handle_non_physical_result<FadType>(const std::string message) const;
+template FadType PhysicsBase < PHILIP_DIM, PHILIP_DIM+2+(PHILIP_SPECIES-1), RadType >::handle_non_physical_result<FadType>(const std::string message) const;
+template FadType PhysicsBase < PHILIP_DIM, PHILIP_DIM+2+(PHILIP_SPECIES-1), FadFadType >::handle_non_physical_result<FadType>(const std::string message) const;
+template FadType PhysicsBase < PHILIP_DIM, PHILIP_DIM+2+(PHILIP_SPECIES-1), RadFadType >::handle_non_physical_result<FadType>(const std::string message) const;
+#endif
 } // Physics namespace
 } // PHiLiP namespace
 

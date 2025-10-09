@@ -128,14 +128,14 @@ inline real EulerVortexFunction<dim,real>
     return conservative_values[istate];
 }
 
-template <int dim, int nstate>
-EulerVortex<dim,nstate>::EulerVortex(const Parameters::AllParameters *const parameters_input)
+template <int dim, int nspecies, int nstate>
+EulerVortex<dim,nspecies,nstate>::EulerVortex(const Parameters::AllParameters *const parameters_input)
     :
     TestsBase::TestsBase(parameters_input)
 {}
 
-template<int dim, int nstate>
-int EulerVortex<dim,nstate>
+template<int dim, int nspecies, int nstate>
+int EulerVortex<dim,nspecies,nstate>
 ::run_test () const
 {
     using ManParam = Parameters::ManufacturedConvergenceStudyParam;
@@ -156,7 +156,7 @@ int EulerVortex<dim,nstate>
     std::vector<double> fail_conv_slop;
     std::vector<dealii::ConvergenceTable> convergence_table_vector;
 
-    std::shared_ptr <Physics::PhysicsBase<dim,nstate,double>> physics = Physics::PhysicsFactory<dim, nstate, double>::create_Physics(&param);
+    std::shared_ptr <Physics::PhysicsBase<dim,nstate,double>> physics = Physics::PhysicsFactory<dim, nspecies, nstate, double>::create_Physics(&param);
     std::shared_ptr <Physics::Euler<dim,nstate,double>> euler = std::dynamic_pointer_cast<Physics::Euler<dim,nstate,double>>(physics);
 
     const dealii::Point<dim> initial_vortex_center(-0.0,-0.0);
@@ -229,7 +229,7 @@ int EulerVortex<dim,nstate>
             if (random_factor > 0.0) dealii::GridTools::distort_random (random_factor, *grid, keep_boundary);
 
             // Create DG object using the factory
-            std::shared_ptr < DGBase<dim, double> > dg = DGFactory<dim,double>::create_discontinuous_galerkin(&param, poly_degree, grid);
+            std::shared_ptr < DGBase<dim, nspecies, double> > dg = DGFactory<dim,nspecies,double>::create_discontinuous_galerkin(&param, poly_degree, grid);
             dg->allocate_system ();
 
             // Initialize solution with vortex function at time t=0
@@ -243,7 +243,7 @@ int EulerVortex<dim,nstate>
             //                         dg->solution);
 
             // Create ODE solver using the factory and providing the DG object
-            std::shared_ptr<ODE::ODESolverBase<dim, double>> ode_solver = ODE::ODESolverFactory<dim, double>::create_ODESolver(dg);
+            std::shared_ptr<ODE::ODESolverBase<dim, nspecies, double>> ode_solver = ODE::ODESolverFactory<dim, nspecies, double>::create_ODESolver(dg);
 
             const unsigned int n_active_cells = grid->n_active_cells();
             const unsigned int n_dofs = dg->dof_handler.n_dofs();
@@ -410,8 +410,8 @@ int EulerVortex<dim,nstate>
     return n_fail_poly;
 }
 
-#if PHILIP_DIM==2
-    template class EulerVortex <PHILIP_DIM,PHILIP_DIM+2>;
+#if PHILIP_DIM==2 && PHILIP_SPECIES==1
+    template class EulerVortex <PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2>;
 #endif
 
 

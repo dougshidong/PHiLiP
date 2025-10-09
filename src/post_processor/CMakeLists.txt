@@ -13,6 +13,7 @@ foreach(dim RANGE 1 3)
     endif()
 
     target_compile_definitions(${PostprocessingLib} PRIVATE PHILIP_DIM=${dim})
+    target_compile_definitions(${PostprocessingLib} PRIVATE PHILIP_SPECIES=${NUMBER_OF_SPECIES})
     # target_link_libraries(${PostprocessingLib} m mpi mpi_cxx)
 
     # Setup target with deal.II

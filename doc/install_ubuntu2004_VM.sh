@@ -175,7 +175,6 @@ mkdir -p Codes
         # If not already installed, gdown can be installed as explained in INSTALL.md. 
         chmod +x get_flow_initialization_files_local.sh
         sh get_flow_initialization_files_local.sh ;\
-
         # Release build with all the optimization flags
         mkdir -p build_release && cd build_release ;\
         # MPI_MAX is the number of cores to use by default for tests with MPI
@@ -183,5 +182,5 @@ mkdir -p Codes
         # 	however, it does not work well on Ubuntu with OpenMPI. Works well with Fedora
         cmake ../ -DCMAKE_BUILD_TYPE=Release -DMPIMAX=4 -DUSE_LD_GOLD=OFF ;\
         make -j4 ;\
-        ctest -LE EXTRA-LONG ;\
+        ctest -LE "EXTRA-LONG|MULTI-SPECIES";\
 )

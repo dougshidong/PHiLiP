@@ -60,7 +60,7 @@ cd build_release
 cmake -DDEAL_II_DIR=$DEAL_II_DIR ../PHiLiP -DMPIMAX=${NUM_PROCS} -DCMAKE_BUILD_TYPE=Release -DGMSH_DIR=$GMSH_DIR/bin/gmsh -DGMSH_LIB=$GMSH_DIR -DCMAKE_SKIP_INSTALL_RPATH=ON 
 make -j${NUM_PROCS}
 if [ "${RUN_CTEST}" = true ]; then
-    ctest
+    ctest -LE MULTI-SPECIES
 fi
 
 for((i=1;i<=3;i++)); do

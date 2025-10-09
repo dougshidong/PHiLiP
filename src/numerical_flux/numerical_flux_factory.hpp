@@ -11,7 +11,7 @@ namespace PHiLiP {
 namespace NumericalFlux {
 
 /// Creates a NumericalFluxConvective or NumericalFluxDissipative based on input.
-template <int dim, int nstate, typename real>
+template <int dim, int nspecies, int nstate, typename real>
 class NumericalFluxFactory
 {
 public:

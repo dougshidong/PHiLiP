@@ -22,7 +22,7 @@ public:
 };
 
 /// Performs grid convergence for various polynomial degrees.
-template <int dim, int nstate>
+template <int dim, int nspecies, int nstate>
 class EulerBumpOptimization: public TestsBase
 {
 public:
@@ -53,7 +53,7 @@ private:
 protected:
 
     //  // Integrate entropy over the entire domain to use as a functional.
-    //  double integrate_entropy_over_domain(DGBase<dim,double> &dg) const;
+    //  double integrate_entropy_over_domain(DGBase<dim,nspecies,double> &dg) const;
 };
 
 

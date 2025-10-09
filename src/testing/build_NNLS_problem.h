@@ -11,7 +11,7 @@ namespace Tests {
 /// Test assembling NNLS problem from Online POD
 /// Note: An instance of AdaptiveSampling is built, but the sampling is not run to completion, only the initial snapshots are placed
 /// Results compared to NNLS solution for MATLAB
-template <int dim, int nstate>
+template <int dim, int nspecies, int nstate>
 class BuildNNLSProblem: public TestsBase
 {
 public:

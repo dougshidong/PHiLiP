@@ -46,6 +46,7 @@ set(TESTS_SOURCE
     halton_sampling_run.cpp
     bound_preserving_limiter_tests.cpp
     naca0012_unsteady_check_quick.cpp
+    euler_vortex_advection_error_study.cpp
     )
 
 foreach(dim RANGE 1 3)
@@ -54,6 +55,8 @@ foreach(dim RANGE 1 3)
     add_library(${TestsLib} STATIC ${TESTS_SOURCE})
     # Replace occurences of PHILIP_DIM with 1, 2, or 3 in the code
     target_compile_definitions(${TestsLib} PRIVATE PHILIP_DIM=${dim})
+    # Replace occurences of PHILIP_SPECIES with user set cache variable in the code
+    target_compile_definitions(${TestsLib} PRIVATE PHILIP_SPECIES=${NUMBER_OF_SPECIES})
 
     # Library dependency
     string(CONCAT GridsLib Grids_${dim}D)

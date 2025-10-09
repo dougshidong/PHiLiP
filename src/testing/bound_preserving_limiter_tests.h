@@ -12,7 +12,7 @@ namespace Tests {
 * Cases include: Linear Advection (1D & 2D), Burgers' 
 * Equation (1D & 2D) and Low Density Accuracy Test (2D Euler)
 *************************************************************/
-template <int dim, int nstate>
+template <int dim, int nspecies, int nstate>
 class BoundPreservingLimiterTests : public TestsBase
 {
 public:
@@ -41,10 +41,10 @@ private:
         double final_time) const;
 
     /// Calculate and return the L2 Error
-    std::array<double,3> calculate_l_n_error(std::shared_ptr<DGBase<dim, double>> flow_solver_dg, const int poly_degree, const double final_time) const;
+    std::array<double,3> calculate_l_n_error(std::shared_ptr<DGBase<dim, nspecies, double>> flow_solver_dg, const int poly_degree, const double final_time) const;
 
     /// Function to compute the initial adaptive time step
-    double get_time_step(std::shared_ptr<DGBase<dim, double>> dg) const; 
+    double get_time_step(std::shared_ptr<DGBase<dim, nspecies, double>> dg) const; 
 };
 
 } // End of Tests namespace

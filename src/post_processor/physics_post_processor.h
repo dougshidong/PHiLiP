@@ -10,7 +10,7 @@ namespace PHiLiP {
 namespace Postprocess {
 
 /// Postprocessor factory.
-template <int dim>
+template <int dim, int nspecies>
 class PostprocessorFactory
 {
 public:
@@ -21,7 +21,7 @@ public:
 /// Postprocessor to output solution and other values computed by associated physics.
 /** The functions in this class will call the Physics functions to query data.
  */
-template <int dim, int nstate>
+template <int dim, int nspecies, int nstate>
 class PhysicsPostprocessor : public dealii::DataPostprocessor<dim>
 {
 public:

@@ -14,7 +14,7 @@ using Eigen::VectorXd;
 using Eigen::MatrixXd;
 
 /// Adaptive Sampling Testing
-template <int dim, int nstate>
+template <int dim, int nspecies, int nstate>
 class AdaptiveSamplingTesting: public TestsBase
 {
 public:

@@ -14,9 +14,9 @@ namespace PHiLiP {
  * @note The goal oriented approach is currently implemented for convection dominated flows.
  */
 #if PHILIP_DIM==1 // dealii::parallel::distributed::Triangulation<dim> does not work for 1D
-template <int dim, int nstate, typename real, typename MeshType = dealii::Triangulation<dim>>
+template <int dim, int nspecies, int nstate, typename real, typename MeshType = dealii::Triangulation<dim>>
 #else
-template <int dim, int nstate, typename real, typename MeshType = dealii::parallel::distributed::Triangulation<dim>>
+template <int dim, int nspecies, int nstate, typename real, typename MeshType = dealii::parallel::distributed::Triangulation<dim>>
 #endif
 
 class AnisotropicMeshAdaptation {
@@ -26,7 +26,7 @@ class AnisotropicMeshAdaptation {
 public:
     /// Constructor
     AnisotropicMeshAdaptation(
-        std::shared_ptr< DGBase<dim, real, MeshType> > dg_input, 
+        std::shared_ptr< DGBase<dim, nspecies, real, MeshType> > dg_input, 
         const real _norm_Lp,
         const real _complexity,
         const bool _use_goal_oriented_approach = false);
@@ -78,7 +78,7 @@ private:
             typename dealii::DoFHandler<dim>::active_cell_iterator cell) const;
 
     /// Shared pointer to DGBase.
-    std::shared_ptr<DGBase<dim,real,MeshType>> dg;
+    std::shared_ptr<DGBase<dim,nspecies,real,MeshType>> dg;
 
     ///Flag to use goal oriented approach. It is set to false by default.
     const bool use_goal_oriented_approach;
@@ -111,7 +111,7 @@ private:
     std::shared_ptr < Physics::PhysicsBase<dim, nstate, real > > pde_physics_double;
     
     /// Functional to evaluate the adjoint for goal oriented anisotropic meshing.
-    std::shared_ptr< Functional<dim, nstate, real, MeshType> > functional;
+    std::shared_ptr< Functional<dim, nspecies, nstate, real, MeshType> > functional;
 
     /// Stores optimal metric in each cell
     std::vector<dealii::Tensor<2, dim, real>> cellwise_optimal_metric;

@@ -11,18 +11,18 @@ namespace PHiLiP {
 /*  Contains the objects and functions that need to be templated on the number of state variables.
  */
 #if PHILIP_DIM==1 // dealii::parallel::distributed::Triangulation<dim> does not work for 1D
-template <int dim, int nstate, typename real, typename MeshType = dealii::Triangulation<dim>>
+template <int dim, int nspecies, int nstate, typename real, typename MeshType = dealii::Triangulation<dim>>
 #else
-template <int dim, int nstate, typename real, typename MeshType = dealii::parallel::distributed::Triangulation<dim>>
+template <int dim, int nspecies, int nstate, typename real, typename MeshType = dealii::parallel::distributed::Triangulation<dim>>
 #endif
-class DGBaseState : public DGBase<dim, real, MeshType>
+class DGBaseState : public DGBase<dim, nspecies, real, MeshType>
 {
    protected:
     /// Alias to base class Triangulation.
-    using Triangulation = typename DGBase<dim,real,MeshType>::Triangulation;
+    using Triangulation = typename DGBase<dim,nspecies,real,MeshType>::Triangulation;
 
    public:
-    using DGBase<dim,real,MeshType>::all_parameters; ///< Input parameters.
+    using DGBase<dim,nspecies,real,MeshType>::all_parameters; ///< Input parameters.
 
     /// Constructor.
     DGBaseState(

@@ -69,6 +69,7 @@ if(NOT DOC_ONLY)
 endif()
 
 target_compile_definitions(${TEST_TARGET} PRIVATE PHILIP_DIM=2)
+target_compile_definitions(${TEST_TARGET} PRIVATE PHILIP_SPECIES=1)
 set(NMPI ${MPIMAX})
 add_test(
   NAME ${TEST_TARGET}_nmpi=${NMPI}
@@ -112,6 +113,7 @@ if(NOT DOC_ONLY)
 endif()
 
 target_compile_definitions(${TEST_TARGET} PRIVATE PHILIP_DIM=2)
+target_compile_definitions(${TEST_TARGET} PRIVATE PHILIP_SPECIES=1)
 set(NMPI ${MPIMAX})
 add_test(
   NAME ${TEST_TARGET}_nmpi=${NMPI}
@@ -152,6 +154,7 @@ if(NOT DOC_ONLY)
 endif()
 
 target_compile_definitions(${TEST_TARGET} PRIVATE PHILIP_DIM=2)
+target_compile_definitions(${TEST_TARGET} PRIVATE PHILIP_SPECIES=1)
 set(NMPI ${MPIMAX})
 add_test(
   NAME ${TEST_TARGET}_nmpi=${NMPI}
@@ -194,6 +197,7 @@ if(NOT DOC_ONLY)
 endif()
 
 target_compile_definitions(${TEST_TARGET} PRIVATE PHILIP_DIM=2)
+target_compile_definitions(${TEST_TARGET} PRIVATE PHILIP_SPECIES=1)
 set(NMPI ${MPIMAX})
 add_test(
   NAME ${TEST_TARGET}_nmpi=${NMPI}
@@ -235,6 +239,7 @@ if(NOT DOC_ONLY)
 endif()
 
 target_compile_definitions(${TEST_TARGET} PRIVATE PHILIP_DIM=2)
+target_compile_definitions(${TEST_TARGET} PRIVATE PHILIP_SPECIES=1)
 set(NMPI ${MPIMAX})
 add_test(
   NAME ${TEST_TARGET}_nmpi=${NMPI}

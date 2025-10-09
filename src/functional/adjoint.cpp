@@ -1,5 +1,6 @@
 #include "adjoint.h"
 
+#include <boost/preprocessor/seq/for_each.hpp>
 #include <Epetra_RowMatrixTransposer.h>
 #include <deal.II/distributed/shared_tria.h>
 #include <deal.II/distributed/solution_transfer.h>
@@ -26,10 +27,10 @@
 namespace PHiLiP {
 
 // constructor
-template <int dim, int nstate, typename real, typename MeshType>
-Adjoint<dim, nstate, real, MeshType>::Adjoint(
-    std::shared_ptr< DGBase<dim,real,MeshType> > _dg, 
-    std::shared_ptr< Functional<dim, nstate, real, MeshType> > _functional,
+template <int dim, int nspecies, int nstate, typename real, typename MeshType>
+Adjoint<dim, nspecies, nstate, real, MeshType>::Adjoint(
+    std::shared_ptr< DGBase<dim,nspecies,real,MeshType> > _dg, 
+    std::shared_ptr< Functional<dim, nspecies, nstate, real, MeshType> > _functional,
     std::shared_ptr< Physics::PhysicsBase<dim,nstate,Sacado::Fad::DFad<real>> > _physics):
     dg(_dg),
     functional(_functional),
@@ -49,8 +50,8 @@ Adjoint<dim, nstate, real, MeshType>::Adjoint(
             coarse_fe_index[cell->active_cell_index()] = cell->active_fe_index();
 }
 
-template <int dim, int nstate, typename real, typename MeshType>
-void Adjoint<dim, nstate, real, MeshType>::reinit()
+template <int dim, int nspecies, int nstate, typename real, typename MeshType>
+void Adjoint<dim, nspecies, nstate, real, MeshType>::reinit()
 {
     // assuming that all pointers are still valid
     // reinitilizing all variables after triangulation in the constructor
@@ -74,8 +75,8 @@ void Adjoint<dim, nstate, real, MeshType>::reinit()
     dual_weighted_residual_fine = dealii::Vector<real>();
 }
 
-template <int dim, int nstate, typename real, typename MeshType>
-void Adjoint<dim, nstate, real, MeshType>::convert_to_state(AdjointStateEnum state)
+template <int dim, int nspecies, int nstate, typename real, typename MeshType>
+void Adjoint<dim, nspecies, nstate, real, MeshType>::convert_to_state(AdjointStateEnum state)
 {   
     // checks if conversion is needed
     if(adjoint_state == state) 
@@ -89,8 +90,8 @@ void Adjoint<dim, nstate, real, MeshType>::convert_to_state(AdjointStateEnum sta
         fine_to_coarse();
 }
 
-template <int dim, int nstate, typename real, typename MeshType>
-void Adjoint<dim, nstate, real, MeshType>::coarse_to_fine()
+template <int dim, int nspecies, int nstate, typename real, typename MeshType>
+void Adjoint<dim, nspecies, nstate, real, MeshType>::coarse_to_fine()
 {
     dealii::IndexSet locally_owned_dofs, locally_relevant_dofs;
     locally_owned_dofs =  dg->dof_handler.locally_owned_dofs();
@@ -132,8 +133,8 @@ void Adjoint<dim, nstate, real, MeshType>::coarse_to_fine()
     adjoint_state = AdjointStateEnum::fine;
 }
 
-template <int dim, int nstate, typename real, typename MeshType>
-void Adjoint<dim, nstate, real, MeshType>::fine_to_coarse()
+template <int dim, int nspecies, int nstate, typename real, typename MeshType>
+void Adjoint<dim, nspecies, nstate, real, MeshType>::fine_to_coarse()
 {
     dg->high_order_grid->prepare_for_coarsening_and_refinement();
     dg->triangulation->prepare_coarsening_and_refinement();
@@ -153,8 +154,8 @@ void Adjoint<dim, nstate, real, MeshType>::fine_to_coarse()
     adjoint_state = AdjointStateEnum::coarse;
 }
 
-template <int dim, int nstate, typename real, typename MeshType>
-dealii::LinearAlgebra::distributed::Vector<real> Adjoint<dim, nstate, real, MeshType>::fine_grid_adjoint()
+template <int dim, int nspecies, int nstate, typename real, typename MeshType>
+dealii::LinearAlgebra::distributed::Vector<real> Adjoint<dim, nspecies, nstate, real, MeshType>::fine_grid_adjoint()
 {
     convert_to_state(AdjointStateEnum::fine);
 
@@ -183,8 +184,8 @@ dealii::LinearAlgebra::distributed::Vector<real> Adjoint<dim, nstate, real, Mesh
     return adjoint_fine;
 }
 
-template <int dim, int nstate, typename real, typename MeshType>
-dealii::LinearAlgebra::distributed::Vector<real> Adjoint<dim, nstate, real, MeshType>::coarse_grid_adjoint()
+template <int dim, int nspecies, int nstate, typename real, typename MeshType>
+dealii::LinearAlgebra::distributed::Vector<real> Adjoint<dim, nspecies, nstate, real, MeshType>::coarse_grid_adjoint()
 {
     convert_to_state(AdjointStateEnum::coarse);
 
@@ -212,8 +213,8 @@ dealii::LinearAlgebra::distributed::Vector<real> Adjoint<dim, nstate, real, Mesh
     return adjoint_coarse;
 }
 
-template <int dim, int nstate, typename real, typename MeshType>
-dealii::Vector<real> Adjoint<dim, nstate, real, MeshType>::dual_weighted_residual()
+template <int dim, int nspecies, int nstate, typename real, typename MeshType>
+dealii::Vector<real> Adjoint<dim, nspecies, nstate, real, MeshType>::dual_weighted_residual()
 {
     convert_to_state(AdjointStateEnum::fine);
 
@@ -245,13 +246,13 @@ dealii::Vector<real> Adjoint<dim, nstate, real, MeshType>::dual_weighted_residua
     return dual_weighted_residual_fine;
 }
 
-template <int dim, int nstate, typename real, typename MeshType>
-void Adjoint<dim, nstate, real, MeshType>::output_results_vtk(const unsigned int cycle)
+template <int dim, int nspecies, int nstate, typename real, typename MeshType>
+void Adjoint<dim, nspecies, nstate, real, MeshType>::output_results_vtk(const unsigned int cycle)
 {
     dealii::DataOut<dim, dealii::DoFHandler<dim>> data_out;
     data_out.attach_dof_handler(dg->dof_handler);
 
-    const std::unique_ptr< dealii::DataPostprocessor<dim> > post_processor = Postprocess::PostprocessorFactory<dim>::create_Postprocessor(dg->all_parameters);
+    const std::unique_ptr< dealii::DataPostprocessor<dim> > post_processor = Postprocess::PostprocessorFactory<dim,nspecies>::create_Postprocessor(dg->all_parameters);
     data_out.add_data_vector(dg->solution, *post_processor);
 
     dealii::Vector<float> subdomain(dg->triangulation->n_active_cells());
@@ -339,24 +340,30 @@ void Adjoint<dim, nstate, real, MeshType>::output_results_vtk(const unsigned int
     }
 }
 
-template class Adjoint <PHILIP_DIM, 1, double, dealii::Triangulation<PHILIP_DIM>>;
-template class Adjoint <PHILIP_DIM, 2, double, dealii::Triangulation<PHILIP_DIM>>;
-template class Adjoint <PHILIP_DIM, 3, double, dealii::Triangulation<PHILIP_DIM>>;
-template class Adjoint <PHILIP_DIM, 4, double, dealii::Triangulation<PHILIP_DIM>>;
-template class Adjoint <PHILIP_DIM, 5, double, dealii::Triangulation<PHILIP_DIM>>;
+#if PHILIP_SPECIES==1
+// Define a sequence of indices representing the range [1, 6] - max is 6 because nstate=dim+2+(species-1)=6 when dim=3 species=2
+#define POSSIBLE_NSTATE (1)(2)(3)(4)(5)(6)
 
-template class Adjoint <PHILIP_DIM, 1, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
-template class Adjoint <PHILIP_DIM, 2, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
-template class Adjoint <PHILIP_DIM, 3, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
-template class Adjoint <PHILIP_DIM, 4, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
-template class Adjoint <PHILIP_DIM, 5, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+// Define a macro to instantiate Adjoint for a specific index
+#define INSTANTIATE_DISTRIBUTED(r, data, index) \
+    template class Adjoint <PHILIP_DIM, PHILIP_SPECIES, index, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
 
 #if PHILIP_DIM!=1
-template class Adjoint <PHILIP_DIM, 1, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
-template class Adjoint <PHILIP_DIM, 2, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
-template class Adjoint <PHILIP_DIM, 3, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
-template class Adjoint <PHILIP_DIM, 4, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
-template class Adjoint <PHILIP_DIM, 5, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_DISTRIBUTED, _, POSSIBLE_NSTATE)
 #endif
 
+#define INSTANTIATE_SHARED(r, data, index) \
+    template class Adjoint <PHILIP_DIM, PHILIP_SPECIES, index, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_SHARED, _, POSSIBLE_NSTATE)
+
+#define INSTANTIATE_TRIA(r, data, index) \
+    template class Adjoint <PHILIP_DIM, PHILIP_SPECIES, index, double, dealii::Triangulation<PHILIP_DIM>>;
+BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_TRIA, _, POSSIBLE_NSTATE)
+
+// Templated to allow compilation when NUMBER_OF_SPECIES > 1, but may not work.
+#else
+    template class Adjoint <PHILIP_DIM, PHILIP_SPECIES, (PHILIP_DIM+2+(PHILIP_SPECIES-1)), double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+    template class Adjoint <PHILIP_DIM, PHILIP_SPECIES, (PHILIP_DIM+2+(PHILIP_SPECIES-1)), double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+    template class Adjoint <PHILIP_DIM, PHILIP_SPECIES, (PHILIP_DIM+2+(PHILIP_SPECIES-1)), double, dealii::Triangulation<PHILIP_DIM>>;
+#endif
 } // PHiLiP namespace

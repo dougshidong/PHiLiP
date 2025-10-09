@@ -19,7 +19,7 @@ protected:
     /// Objective function.
     const ROL::Ptr<ROL::Objective_SimOpt<Real>> objective_;
     /// Equality constraints.
-    const ROL::Ptr<PHiLiP::FlowConstraints<PHILIP_DIM>> equal_constraints_;
+    const ROL::Ptr<PHiLiP::FlowConstraints<PHILIP_DIM,PHILIP_SPECIES>> equal_constraints_;
 
     /// Design variables.
     const ROL::Ptr<const ROL::Vector_SimOpt<Real>> design_variables_;
@@ -56,7 +56,7 @@ public:
         : objective_
             (ROL::makePtrFromRef<ROL::Objective_SimOpt<Real>>(dynamic_cast<ROL::Objective_SimOpt<Real>&>(*objective)))
         , equal_constraints_
-            (ROL::makePtrFromRef<PHiLiP::FlowConstraints<PHILIP_DIM>>(dynamic_cast<PHiLiP::FlowConstraints<PHILIP_DIM>&>(*equal_constraints)))
+            (ROL::makePtrFromRef<PHiLiP::FlowConstraints<PHILIP_DIM,PHILIP_SPECIES>>(dynamic_cast<PHiLiP::FlowConstraints<PHILIP_DIM,PHILIP_SPECIES>&>(*equal_constraints)))
         , design_variables_
             (ROL::makePtrFromRef<const ROL::Vector_SimOpt<Real>>(dynamic_cast<const ROL::Vector_SimOpt<Real>&>(*design_variables)))
         , lagrange_mult_(lagrange_mult)

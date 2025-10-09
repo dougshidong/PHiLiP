@@ -12,6 +12,9 @@ foreach(dim RANGE 1 3)
     add_library(${LimiterLib} STATIC ${LIMSOURCE})
 
     target_compile_definitions(${LimiterLib} PRIVATE PHILIP_DIM=${dim})
+    # Replace occurences of PHILIP_SPECIES with user set cache variable in the code
+    target_compile_definitions(${LimiterLib} PRIVATE PHILIP_SPECIES=${NUMBER_OF_SPECIES})
+    
     # Library dependency
     string(CONCAT ParameterLib ParametersLibrary)
     target_link_libraries(${ParameterLib})

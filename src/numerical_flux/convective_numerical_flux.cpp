@@ -478,6 +478,7 @@ std::array<real, nstate> RoeBaseRiemannSolverDissipation<dim,nstate,real>
 }
 
 // Instantiation
+#if PHILIP_SPECIES==1
 template class NumericalFluxConvective<PHILIP_DIM, 1, double>;
 template class NumericalFluxConvective<PHILIP_DIM, 2, double>;
 template class NumericalFluxConvective<PHILIP_DIM, 3, double>;
@@ -873,5 +874,42 @@ template class L2RoeRiemannSolverDissipation<PHILIP_DIM, PHILIP_DIM+2, RadType >
 template class L2RoeRiemannSolverDissipation<PHILIP_DIM, PHILIP_DIM+2, FadFadType >;
 template class L2RoeRiemannSolverDissipation<PHILIP_DIM, PHILIP_DIM+2, RadFadType >;
 
+#else
+   template class NumericalFluxConvective <PHILIP_DIM,(PHILIP_DIM+2+(PHILIP_SPECIES-1)), double>;
+   template class NumericalFluxConvective <PHILIP_DIM,(PHILIP_DIM+2+(PHILIP_SPECIES-1)), FadType>;
+   template class NumericalFluxConvective <PHILIP_DIM,(PHILIP_DIM+2+(PHILIP_SPECIES-1)), RadType>;
+   template class NumericalFluxConvective <PHILIP_DIM,(PHILIP_DIM+2+(PHILIP_SPECIES-1)), FadFadType>;
+   template class NumericalFluxConvective <PHILIP_DIM,(PHILIP_DIM+2+(PHILIP_SPECIES-1)), RadFadType>;
+
+   template class LaxFriedrichs <PHILIP_DIM,(PHILIP_DIM+2+(PHILIP_SPECIES-1)), double>;
+   template class LaxFriedrichs <PHILIP_DIM,(PHILIP_DIM+2+(PHILIP_SPECIES-1)), FadType>;
+   template class LaxFriedrichs <PHILIP_DIM,(PHILIP_DIM+2+(PHILIP_SPECIES-1)), RadType>;
+   template class LaxFriedrichs <PHILIP_DIM,(PHILIP_DIM+2+(PHILIP_SPECIES-1)), FadFadType>;
+   template class LaxFriedrichs <PHILIP_DIM,(PHILIP_DIM+2+(PHILIP_SPECIES-1)), RadFadType>;
+
+   template class BaselineNumericalFluxConvective <PHILIP_DIM,(PHILIP_DIM+2+(PHILIP_SPECIES-1)), double>;
+   template class BaselineNumericalFluxConvective <PHILIP_DIM,(PHILIP_DIM+2+(PHILIP_SPECIES-1)), FadType>;
+   template class BaselineNumericalFluxConvective <PHILIP_DIM,(PHILIP_DIM+2+(PHILIP_SPECIES-1)), RadType>;
+   template class BaselineNumericalFluxConvective <PHILIP_DIM,(PHILIP_DIM+2+(PHILIP_SPECIES-1)), FadFadType>;
+   template class BaselineNumericalFluxConvective <PHILIP_DIM,(PHILIP_DIM+2+(PHILIP_SPECIES-1)), RadFadType>;
+
+   template class CentralBaselineNumericalFluxConvective <PHILIP_DIM,(PHILIP_DIM+2+(PHILIP_SPECIES-1)), double>;
+   template class CentralBaselineNumericalFluxConvective <PHILIP_DIM,(PHILIP_DIM+2+(PHILIP_SPECIES-1)), FadType>;
+   template class CentralBaselineNumericalFluxConvective <PHILIP_DIM,(PHILIP_DIM+2+(PHILIP_SPECIES-1)), RadType>;
+   template class CentralBaselineNumericalFluxConvective <PHILIP_DIM,(PHILIP_DIM+2+(PHILIP_SPECIES-1)), FadFadType>;
+   template class CentralBaselineNumericalFluxConvective <PHILIP_DIM,(PHILIP_DIM+2+(PHILIP_SPECIES-1)), RadFadType>;
+
+   template class RiemannSolverDissipation <PHILIP_DIM,(PHILIP_DIM+2+(PHILIP_SPECIES-1)), double>;
+   template class RiemannSolverDissipation <PHILIP_DIM,(PHILIP_DIM+2+(PHILIP_SPECIES-1)), FadType>;
+   template class RiemannSolverDissipation <PHILIP_DIM,(PHILIP_DIM+2+(PHILIP_SPECIES-1)), RadType>;
+   template class RiemannSolverDissipation <PHILIP_DIM,(PHILIP_DIM+2+(PHILIP_SPECIES-1)), FadFadType>;
+   template class RiemannSolverDissipation <PHILIP_DIM,(PHILIP_DIM+2+(PHILIP_SPECIES-1)), RadFadType>;
+
+   template class LaxFriedrichsRiemannSolverDissipation <PHILIP_DIM,(PHILIP_DIM+2+(PHILIP_SPECIES-1)), double>;
+   template class LaxFriedrichsRiemannSolverDissipation <PHILIP_DIM,(PHILIP_DIM+2+(PHILIP_SPECIES-1)), FadType>;
+   template class LaxFriedrichsRiemannSolverDissipation <PHILIP_DIM,(PHILIP_DIM+2+(PHILIP_SPECIES-1)), RadType>;
+   template class LaxFriedrichsRiemannSolverDissipation <PHILIP_DIM,(PHILIP_DIM+2+(PHILIP_SPECIES-1)), FadFadType>;
+   template class LaxFriedrichsRiemannSolverDissipation <PHILIP_DIM,(PHILIP_DIM+2+(PHILIP_SPECIES-1)), RadFadType>;
+#endif
 } // NumericalFlux namespace
 } // PHiLiP namespace

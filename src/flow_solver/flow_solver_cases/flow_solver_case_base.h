@@ -20,52 +20,52 @@ using Triangulation = dealii::Triangulation<PHILIP_DIM>;
 using Triangulation = dealii::parallel::distributed::Triangulation<PHILIP_DIM>;
 #endif
 
-template <int dim, int nstate>
+template <int dim, int nspecies, int nstate>
 class FlowSolverCaseBase
 {
 public:
     ///Constructor
     explicit FlowSolverCaseBase(const Parameters::AllParameters *const parameters_input);
 
-    std::shared_ptr<InitialConditionFunction<dim,nstate,double>> initial_condition_function; ///< Initial condition function
+    std::shared_ptr<InitialConditionFunction<dim,nspecies,nstate,double>> initial_condition_function; ///< Initial condition function
 
     /// Destructor
     virtual ~FlowSolverCaseBase() = default;
 
     /// Displays the flow setup parameters
-    void display_flow_solver_setup(std::shared_ptr<DGBase<dim,double>> dg) const;
+    void display_flow_solver_setup(std::shared_ptr<DGBase<dim,nspecies,double>> dg) const;
 
     /// Pure Virtual function to generate the grid
     virtual std::shared_ptr<Triangulation> generate_grid() const = 0;
 
     /// Set higher order grid
-    virtual void set_higher_order_grid(std::shared_ptr <DGBase<dim, double>> dg) const;
+    virtual void set_higher_order_grid(std::shared_ptr <DGBase<dim, nspecies, double>> dg) const;
 
     /// Virtual function to write unsteady snapshot data to table
     /// Defaults to passing only ode_solver->current_iteration and ode_solver->current_time to the second definition
     virtual void compute_unsteady_data_and_write_to_table(
-            const std::shared_ptr<ODE::ODESolverBase<dim, double>> ode_solver, 
-            const std::shared_ptr <DGBase<dim, double>> dg,
+            const std::shared_ptr<ODE::ODESolverBase<dim, nspecies, double>> ode_solver, 
+            const std::shared_ptr <DGBase<dim, nspecies, double>> dg,
             const std::shared_ptr<dealii::TableHandler> unsteady_data_table);
 
     /// Virtual function to write unsteady snapshot data to table
     virtual void compute_unsteady_data_and_write_to_table(
             const unsigned int current_iteration,
             const double current_time,
-            const std::shared_ptr <DGBase<dim, double>> dg,
+            const std::shared_ptr <DGBase<dim, nspecies, double>> dg,
             const std::shared_ptr<dealii::TableHandler> unsteady_data_table);
 
     /// Virtual function to compute the constant time step
-    virtual double get_constant_time_step(std::shared_ptr <DGBase<dim, double>> dg) const;
+    virtual double get_constant_time_step(std::shared_ptr <DGBase<dim, nspecies, double>> dg) const;
 
     /// Virtual function to compute the adaptive time step
-    virtual double get_adaptive_time_step(std::shared_ptr <DGBase<dim, double>> dg) const;
+    virtual double get_adaptive_time_step(std::shared_ptr <DGBase<dim, nspecies, double>> dg) const;
 
     /// Virtual function to compute the initial adaptive time step
-    virtual double get_adaptive_time_step_initial(std::shared_ptr <DGBase<dim, double>> dg);
+    virtual double get_adaptive_time_step_initial(std::shared_ptr <DGBase<dim, nspecies, double>> dg);
 
     /// Virtual function for postprocessing when solving for steady state
-    virtual void steady_state_postprocessing(std::shared_ptr <DGBase<dim, double>> dg) const;
+    virtual void steady_state_postprocessing(std::shared_ptr <DGBase<dim, nspecies, double>> dg) const;
 
     /// Setter for time step
     void set_time_step(const double time_step_input);

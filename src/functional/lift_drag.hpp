@@ -9,11 +9,11 @@ namespace PHiLiP {
  *  Simply zero out the default volume contribution.
  */
 #if PHILIP_DIM==1
-template <int dim, int nstate, typename real, typename MeshType = dealii::Triangulation<dim>>
+template <int dim, int nspecies, int nstate, typename real, typename MeshType = dealii::Triangulation<dim>>
 #else
-template <int dim, int nstate, typename real, typename MeshType = dealii::parallel::distributed::Triangulation<dim>>
+template <int dim, int nspecies, int nstate, typename real, typename MeshType = dealii::parallel::distributed::Triangulation<dim>>
 #endif
-class LiftDragFunctional : public Functional<dim, nstate, real, MeshType>
+class LiftDragFunctional : public Functional<dim, nspecies, nstate, real, MeshType>
 {
 public:
     /// @brief Switch between lift and drag functional types.
@@ -27,7 +27,7 @@ private:
      *  us, but is a typical bug that other people have. This 'using' imports the base class function
      *  to our derived class even though we don't need it.
      */
-    using Functional<dim,nstate,real,MeshType>::evaluate_volume_integrand;
+    using Functional<dim,nspecies,nstate,real,MeshType>::evaluate_volume_integrand;
 
     /// @brief Switches between lift and drag.
     const Functional_types functional_type;
@@ -79,7 +79,7 @@ private:
 public:
     /// Constructor
     LiftDragFunctional(
-        std::shared_ptr<DGBase<dim,real,MeshType>> dg_input,
+        std::shared_ptr<DGBase<dim,nspecies,real,MeshType>> dg_input,
         const Functional_types functional_type);
     /// Destructor
 
@@ -172,12 +172,12 @@ public:
 };
 
 // template <int dim, int nstate, typename real>
-// class TargetLiftDragFunctional : public LiftDragFunctional<dim,nstate,real>
+// class TargetLiftDragFunctional : public LiftDragFunctional<dim,nspecies,nstate,real>
 // {
 // private:
 //     /// Constructor
 //     TargetLiftDragFunctional(
-//         std::shared_ptr<DGBase<dim,real>> dg_input,
+//         std::shared_ptr<DGBase<dim,nspecies,real>> dg_input,
 //         const Functional_types functional_type
 //         const double target_value = -1e200
 //         : LiftDragFunctional(dg_input, functional_type)
@@ -190,7 +190,7 @@ public:
 //         const bool compute_dIdX,
 //         const bool compute_d2I)
 //     {
-//         real value = LiftDragFunctional<dim,nstate,real>::evaluate_functional(compute_dIdW, compute_dIdX, compute_d2I);
+//         real value = LiftDragFunctional<dim,nspecies,nstate,real>::evaluate_functional(compute_dIdW, compute_dIdX, compute_d2I);
 // 
 //         return value - target_value
 //     }
@@ -198,7 +198,7 @@ public:
 // };
 // 
 // template <int dim, int nstate, typename real>
-// class QuadraticPenaltyTargetLiftDragFunctional : public TargetLiftDragFunctional<dim,nstate,real>
+// class QuadraticPenaltyTargetLiftDragFunctional : public TargetLiftDragFunctional<dim,nspecies,nstate,real>
 // {
 // public:
 // 
@@ -206,7 +206,7 @@ public:
 // 
 //     /// Constructor
 //     QuadraticPenaltyTargetLiftDragFunctional(
-//         std::shared_ptr<DGBase<dim,real>> dg_input,
+//         std::shared_ptr<DGBase<dim,nspecies,real>> dg_input,
 //         const Functional_types functional_type
 //         const double target_value = -1e200
 //         const double penalty = 0
@@ -220,7 +220,7 @@ public:
 //         const bool compute_dIdX,
 //         const bool compute_d2I)
 //     {
-//         real value = TargetLiftDragFunctional<dim,nstate,real>::evaluate_functional((compute_dIdW || compute_d2I), (compute_dIdX || compute_d2I), compute_d2I);
+//         real value = TargetLiftDragFunctional<dim,nspecies,nstate,real>::evaluate_functional((compute_dIdW || compute_d2I), (compute_dIdX || compute_d2I), compute_d2I);
 // 
 //         if (compute_dIdW) {
 //             const real scaling = 2.0*value;

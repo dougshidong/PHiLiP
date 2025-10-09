@@ -47,7 +47,7 @@ namespace PHiLiP {
 namespace Tests {
 
 // template <int dim, int nstate, typename real>
-// class L2_Norm_Functional : public Functional<dim, nstate, real>
+// class L2_Norm_Functional : public Functional<dim, nspecies, nstate, real>
 // {
 //  public:
 //   template <typename real2>
@@ -102,7 +102,7 @@ namespace Tests {
  *  Pressure integral on the outlet.
  */
 template <int dim, int nstate, typename real>
-class BoundaryIntegral : public PHiLiP::Functional<dim, nstate, real>
+class BoundaryIntegral : public PHiLiP::Functional<dim, nspecies, nstate, real>
 {
  public:
         /// Templated function to evaluate exit pressure integral.
@@ -225,8 +225,8 @@ public:
 };
 template class FreeStreamInitialConditionsAdjoint <PHILIP_DIM, PHILIP_DIM+2>;
 
-template <int dim, int nstate>
-EulerGaussianBumpAdjoint<dim,nstate>::EulerGaussianBumpAdjoint(const Parameters::AllParameters *const parameters_input)
+template <int dim, int nspecies, int nstate>
+EulerGaussianBumpAdjoint<dim,nspecies,nstate>::EulerGaussianBumpAdjoint(const Parameters::AllParameters *const parameters_input)
     :
     TestsBase::TestsBase(parameters_input)
 {}
@@ -235,8 +235,8 @@ const double y_height = 0.8;
 const double bump_height = 0.0625; // High-Order Prediction Workshop
 const double coeff_expx = -25; // High-Order Prediction Workshop
 const double coeff_expy = -30;
-template <int dim, int nstate>
-dealii::Point<dim> EulerGaussianBumpAdjoint<dim,nstate>
+template <int dim, int nspecies, int nstate>
+dealii::Point<dim> EulerGaussianBumpAdjoint<dim,nspecies,nstate>
 ::warp (const dealii::Point<dim> &p)
 {
     const double x_ref = p[0];
@@ -305,8 +305,8 @@ std::unique_ptr<dealii::Manifold<2,2> > BumpManifoldAdjoint::clone() const
 }
 
 
-template<int dim, int nstate>
-int EulerGaussianBumpAdjoint<dim,nstate>
+template<int dim, int nspecies, int nstate>
+int EulerGaussianBumpAdjoint<dim,nspecies,nstate>
 ::run_test () const
 {
     using ManParam = Parameters::ManufacturedConvergenceStudyParam;
@@ -401,23 +401,23 @@ int EulerGaussianBumpAdjoint<dim,nstate>
         grid.set_manifold ( manifold_id, bump_manifold );
 
         // Create DG object
-        // std::shared_ptr < DGBase<dim, double> > dg = DGFactory<dim,double>::create_discontinuous_galerkin(&param, poly_degree, &grid);
-        // std::shared_ptr < DGBase<dim, double> > dg = DGFactory<dim,double>::create_discontinuous_galerkin(&param, poly_max/*poly_degree*/, &grid);
-        std::shared_ptr < DGBase<dim, double> > dg = DGFactory<dim,double>::create_discontinuous_galerkin(&param, poly_degree, poly_degree+1, &grid);
+        // std::shared_ptr < DGBase<dim, nspecies, double> > dg = DGFactory<dim,nspecies,double>::create_discontinuous_galerkin(&param, poly_degree, &grid);
+        // std::shared_ptr < DGBase<dim, nspecies, double> > dg = DGFactory<dim,nspecies,double>::create_discontinuous_galerkin(&param, poly_max/*poly_degree*/, &grid);
+        std::shared_ptr < DGBase<dim, nspecies, double> > dg = DGFactory<dim,nspecies,double>::create_discontinuous_galerkin(&param, poly_degree, poly_degree+1, &grid);
 
         // Initialize coarse grid solution with free-stream
         dg->allocate_system ();
         dealii::VectorTools::interpolate(dg->dof_handler, initial_conditions, dg->solution);
 
         // Create ODE solver and ramp up the solution from p0
-        std::shared_ptr<ODE::ODESolverBase<dim, double>> ode_solver = ODE::ODESolverFactory<dim, double>::create_ODESolver(dg);
+        std::shared_ptr<ODE::ODESolverBase<dim, nspecies, double>> ode_solver = ODE::ODESolverFactory<dim, nspecies, double>::create_ODESolver(dg);
         ode_solver->initialize_steady_polynomial_ramping (poly_degree);
 
         // setting up the target functional (error reduction)
         BoundaryIntegral<dim, nstate, double> BoundaryIntegralFunctional;
 
         // initializing an adjoint for this case
-        Adjoint<dim, nstate, double> adjoint(*dg, BoundaryIntegralFunctional, euler_physics_adtype);
+        Adjoint<dim, nspecies, nstate, double> adjoint(*dg, BoundaryIntegralFunctional, euler_physics_adtype);
 
         dealii::Vector<float> estimated_error_per_cell(grid.n_active_cells());
         for (unsigned int igrid=0; igrid<n_grids; ++igrid) {
@@ -503,14 +503,14 @@ int EulerGaussianBumpAdjoint<dim,nstate>
             adjoint.reinit();
 
             // evaluating the derivatives and the adjoint on the fine grid
-            adjoint.convert_to_state(PHiLiP::Adjoint<dim,nstate,double>::AdjointStateEnum::fine); // will do this automatically, but I prefer to repeat explicitly
+            adjoint.convert_to_state(PHiLiP::Adjoint<dim,nspecies,nstate,double>::AdjointStateEnum::fine); // will do this automatically, but I prefer to repeat explicitly
             adjoint.fine_grid_adjoint();
             estimated_error_per_cell = adjoint.dual_weighted_residual(); // performing the error indicator computation
 
             // and outputing the fine properties
             adjoint.output_results_vtk(igrid);
 
-            adjoint.convert_to_state(PHiLiP::Adjoint<dim,nstate,double>::AdjointStateEnum::coarse); // this one is necessary though
+            adjoint.convert_to_state(PHiLiP::Adjoint<dim,nspecies,nstate,double>::AdjointStateEnum::coarse); // this one is necessary though
             adjoint.coarse_grid_adjoint();
             adjoint.output_results_vtk(igrid);
 
@@ -614,8 +614,8 @@ int EulerGaussianBumpAdjoint<dim,nstate>
 }
 
 
-#if PHILIP_DIM==2
-    template class EulerGaussianBumpAdjoint <PHILIP_DIM,PHILIP_DIM+2>;
+#if PHILIP_DIM==2 && PHILIP_SPECIES==1
+    template class EulerGaussianBumpAdjoint <PHILIP_DIM,PHILIP_SPECIES,PHILIP_DIM+2>;
 #endif
 
 } // Tests namespace

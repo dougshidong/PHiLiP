@@ -9,6 +9,7 @@ foreach(dim RANGE 1 3)
     add_library(${OperatorsLib} STATIC ${OPERSOURCE})
 
     target_compile_definitions(${OperatorsLib} PRIVATE PHILIP_DIM=${dim})
+    target_compile_definitions(${OperatorsLib} PRIVATE PHILIP_SPECIES=${NUMBER_OF_SPECIES})
     # Library dependency
     string(CONCAT ParameterLib ParametersLibrary)
     target_link_libraries(${ParameterLib})

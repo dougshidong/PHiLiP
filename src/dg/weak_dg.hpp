@@ -10,15 +10,15 @@ namespace PHiLiP {
 /*  Contains the functions that need to be templated on the number of state variables.
  */
 #if PHILIP_DIM==1 // dealii::parallel::distributed::Triangulation<dim> does not work for 1D
-template <int dim, int nstate, typename real, typename MeshType = dealii::Triangulation<dim>>
+template <int dim, int nspecies, int nstate, typename real, typename MeshType = dealii::Triangulation<dim>>
 #else
-template <int dim, int nstate, typename real, typename MeshType = dealii::parallel::distributed::Triangulation<dim>>
+template <int dim, int nspecies, int nstate, typename real, typename MeshType = dealii::parallel::distributed::Triangulation<dim>>
 #endif
-class DGWeak : public DGBaseState<dim, nstate, real, MeshType>
+class DGWeak : public DGBaseState<dim, nspecies, nstate, real, MeshType>
 {
 protected:
     /// Alias to base class Triangulation.
-    using Triangulation = typename DGBaseState<dim,nstate,real,MeshType>::Triangulation;
+    using Triangulation = typename DGBaseState<dim,nspecies,nstate,real,MeshType>::Triangulation;
 public:
     /// Constructor.
     DGWeak(
@@ -441,7 +441,7 @@ private:
         const dealii::FEValues<dim,dim> &fe_values_lagrange);
     
 
-    using DGBase<dim,real,MeshType>::pcout; ///< Parallel std::cout that only outputs on mpi_rank==0
+    using DGBase<dim,nspecies,real,MeshType>::pcout; ///< Parallel std::cout that only outputs on mpi_rank==0
 }; // end of DGWeak class
 
 } // PHiLiP namespace

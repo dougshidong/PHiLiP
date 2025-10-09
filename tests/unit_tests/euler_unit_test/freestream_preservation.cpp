@@ -20,6 +20,7 @@
 
 using namespace PHiLiP;
 
+const int nspecies = 1;
 const bool NONCONFORMING = false;//true;
 enum GridType { eccentric_hyper_shell, abe2015_wavy, naca0012 };
 const GridType GRID_TYPE = eccentric_hyper_shell;
@@ -41,7 +42,7 @@ double random_pert(double lower, double upper)
 
 
 template<int dim>
-void perturb_high_order_grid ( std::shared_ptr < DGBase<dim, double> > dg, const double perturbation_size )
+void perturb_high_order_grid ( std::shared_ptr < DGBase<dim, nspecies, double> > dg, const double perturbation_size )
 {
     const dealii::DoFHandler<dim> &DH_grid = dg->high_order_grid->dof_handler_grid;
     const dealii::FESystem<dim,dim> &fe_grid = DH_grid.get_fe();
@@ -238,7 +239,7 @@ int test()
             // Update param with new overintegration parameter.
             param.parse_parameters (parameter_handler);
 
-            std::shared_ptr < DGBase<dim, double> > dg = DGFactory<dim,double>::create_discontinuous_galerkin(&param, POLY_DEGREE, POLY_DEGREE, GRID_DEGREE, grid);
+            std::shared_ptr < DGBase<dim, nspecies, double> > dg = DGFactory<dim,nspecies,double>::create_discontinuous_galerkin(&param, POLY_DEGREE, POLY_DEGREE, GRID_DEGREE, grid);
             dg->allocate_system ();
             
             perturb_high_order_grid (dg, PERT_SIZE);
@@ -252,7 +253,7 @@ int test()
                         param.euler_param.mach_inf,
                         param.euler_param.angle_of_attack,
                         param.euler_param.side_slip_angle);
-            FreeStreamInitialConditions<dim,dim+2,double> initial_conditions(euler_physics_double);
+            FreeStreamInitialConditions<dim,nspecies,dim+2,double> initial_conditions(euler_physics_double);
             dealii::VectorTools::interpolate(dg->dof_handler, initial_conditions, dg->solution);
 
             dg->assemble_residual();

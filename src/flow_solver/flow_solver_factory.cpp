@@ -131,6 +131,7 @@ FlowSolverFactory<dim,nstate>
             return std::make_unique<FlowSolver<dim, nstate>>(parameters_input, flow_solver_case, parameter_handler_input);
         }
     } else if (flow_type == FlowCaseEnum::spacetime_cartesian) {
+        std::cout << "Creating spacetime_cartesian flowcase" << std::endl;
         if constexpr (dim==2 && nstate==1) {
             std::shared_ptr<FlowSolverCaseBase<dim, nstate>> flow_solver_case = std::make_shared<SpacetimeCartesianProblem<dim, nstate>>(parameters_input);
             return std::make_unique<FlowSolver<dim, nstate>>(parameters_input, flow_solver_case, parameter_handler_input);
@@ -147,10 +148,11 @@ std::unique_ptr< FlowSolverBase > FlowSolverFactory<dim,nstate>
 ::create_flow_solver(const Parameters::AllParameters *const parameters_input,
                      const dealii::ParameterHandler &parameter_handler_input)
 {
+    std::cout << "In create_flow_solver" << std::endl;
     // Recursive templating required because template parameters must be compile time constants
     // As a results, this recursive template initializes all possible dimensions with all possible nstate
     // without having 15 different if-else statements
-    if(dim == parameters_input->dimension)
+    if(dim == parameters_input->dimension + parameters_input->temporal_dimension)
     {
         // This template parameters dim and nstate match the runtime parameters
         // then create the selected flow case with template parameters dim and nstate

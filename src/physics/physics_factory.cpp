@@ -9,6 +9,7 @@
 #include "manufactured_solution.h"
 #include "physics.h"
 #include "convection_diffusion.h"
+#include "advection_spacetime.h"
 #include "burgers.h"
 #include "burgers_rewienski.h"
 #include "euler.h"
@@ -48,10 +49,18 @@ PhysicsFactory<dim,nstate,real>
     const dealii::Tensor<2,3,double> diffusion_tensor      = parameters_input->manufactured_convergence_study_param.manufactured_solution_param.diffusion_tensor;
     const dealii::Tensor<1,3,double> advection_vector      = parameters_input->manufactured_convergence_study_param.manufactured_solution_param.advection_vector;
     const double                     diffusion_coefficient = parameters_input->manufactured_convergence_study_param.manufactured_solution_param.diffusion_coefficient;
+    const bool                       spacetime             = parameters_input->temporal_dimension > 0;
 
-    if (pde_type == PDE_enum::advection || pde_type == PDE_enum::advection_vector) {
+    if ((pde_type == PDE_enum::advection || pde_type == PDE_enum::advection_vector) && !spacetime ) {
         if constexpr (nstate<=2) 
             return std::make_shared < ConvectionDiffusion<dim,nstate,real> >(
+                parameters_input,
+                true, false,
+                diffusion_tensor, advection_vector, diffusion_coefficient,
+                manufactured_solution_function);
+    } else if (pde_type == PDE_enum::advection  && spacetime) {
+        if constexpr (nstate==1) 
+            return std::make_shared < AdvectionSpacetime<dim,nstate,real> >(
                 parameters_input,
                 true, false,
                 diffusion_tensor, advection_vector, diffusion_coefficient,

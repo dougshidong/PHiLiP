@@ -13,7 +13,7 @@ std::array<dealii::Tensor<1,dim,real>,nstate> AdvectionSpacetime<dim,nstate,real
     std::array<dealii::Tensor<1,dim-1,real>,nstate> conv_flux_spatial;
 
     // get spatial part from base physics
-    conv_flux_spatial = ConvectionDiffusion<dim-1,nstate,real>::convective_flux(solution);
+    conv_flux_spatial = spatial_physics(solution);
 
     const real temporal_advection = 1.0; // unit by definition
     for (int i=0; i<nstate; ++i) {

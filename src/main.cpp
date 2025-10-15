@@ -57,7 +57,7 @@ int main (int argc, char *argv[])
         pcout << "Reading input..." << std::endl;
         all_parameters.parse_parameters (parameter_handler);
 
-        AssertDimension(all_parameters.dimension, PHILIP_DIM);
+        AssertDimension(all_parameters.dimension+all_parameters.temporal_dimension, PHILIP_DIM);
 
         const int max_dim = PHILIP_DIM;
         const int max_nstate = 5;

@@ -89,6 +89,10 @@ public:
     /// Store selected MeshType from the input file
     MeshType mesh_type;
     
+    /// Number of additional dimensions of the grid in time.
+    /// space-time discretization will set this to 1.
+    unsigned int temporal_dimension;
+
     /// Number of additional quadrature points to use.
     /** overintegration = 0 leads to number_quad_points = dg_solution_degree + 1
      */

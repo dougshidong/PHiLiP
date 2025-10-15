@@ -37,7 +37,8 @@ public:
         double_mach_reflection,
         shock_diffraction,
         astrophysical_jet,
-        strong_vortex_shock_wave
+        strong_vortex_shock_wave,
+        spacetime_cartesian
         };
     FlowCaseType flow_case_type; ///< Selected FlowCaseType from the input file
 

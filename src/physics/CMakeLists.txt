@@ -5,6 +5,7 @@ SET(SOURCE
     physics_factory.cpp
     physics.cpp
     convection_diffusion.cpp
+    advection_spacetime.cpp
     burgers.cpp
     euler.cpp
     manufactured_solution.cpp

@@ -34,6 +34,9 @@ void ConvectionDiffusion<dim,nstate,real>
             boundary_values[i] = sin(pi * (pos[0])) + 0.01;
             boundary_gradients[i] = 0.0;
 
+
+            //std::cout << "Applying custom function BC at pos " << pos[0] << " " << pos[1] << " val " <<boundary_values[i] << std::endl;
+
         } else if (boundary_type == 1005){
             // Corresponds to "simple farfield" i.e., outflow
         }
@@ -50,6 +53,7 @@ void ConvectionDiffusion<dim,nstate,real>
 
         if (inflow || hasDiffusion || boundary_type == 1009) { // Dirichlet boundary condition
 
+            //std::cout << "Applying BC as Dirichlet condition" << std::endl;
             soln_bc[istate] = boundary_values[istate];
             soln_grad_bc[istate] = soln_grad_int[istate];
         } else if (inflow && boundary_type == 1005) {
@@ -131,6 +135,8 @@ dealii::Tensor<1,dim,real> ConvectionDiffusion<dim,nstate,real>
         if(dim >= 1) advection_speed[0] = linear_advection_velocity[0];
         if(dim >= 2) advection_speed[1] = linear_advection_velocity[1];
         if(dim >= 3) advection_speed[2] = linear_advection_velocity[2];
+        //std::cout << "Advection speed is " << advection_speed[0] << " " << advection_speed[1]
+        //          << " " <<  advection_speed[2] << std::endl;
     } else {
         const real zero = 0.0;
         if(dim >= 1) advection_speed[0] = zero;

@@ -54,7 +54,16 @@ public:
         const Parameters::AllParameters::TestType                 parameters_test = Parameters::AllParameters::TestType::run_control,
         const bool                                                has_nonzero_physical_source = false) : 
             ConvectionDiffusion<dim,nstate,real>(parameters_input, convection, diffusion,input_diffusion_tensor,input_advection_vector,input_diffusion_coefficient,manufactured_solution_function,parameters_test,has_nonzero_physical_source)
+            , spatial_physics(
+                              parameters_input, convection, diffusion,input_diffusion_tensor,input_advection_vector,input_diffusion_coefficient,manufactured_solution_function,parameters_test,has_nonzero_physical_source)
     {};
+
+protected:
+
+    const ConvectionDiffusion<dim-1,nstate,real> spatial_physics;
+    
+    /// Convective flux: \f$ \mathbf{F}_{conv} =  u \f$
+    std::array<dealii::Tensor<1,dim,real>,nstate> convective_flux (const std::array<real,nstate> &solution) const;
 
 };
 

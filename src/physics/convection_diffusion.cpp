@@ -34,9 +34,6 @@ void ConvectionDiffusion<dim,nstate,real>
             boundary_values[i] = sin(pi * (pos[0])) + 0.01;
             boundary_gradients[i] = 0.0;
 
-
-            //std::cout << "Applying custom function BC at pos " << pos[0] << " " << pos[1] << " val " <<boundary_values[i] << std::endl;
-
         } else if (boundary_type == 1005){
             // Corresponds to "simple farfield" i.e., outflow
         }
@@ -53,7 +50,6 @@ void ConvectionDiffusion<dim,nstate,real>
 
         if (inflow || hasDiffusion || boundary_type == 1009) { // Dirichlet boundary condition
 
-            //std::cout << "Applying BC as Dirichlet condition" << std::endl;
             soln_bc[istate] = boundary_values[istate];
             soln_grad_bc[istate] = soln_grad_int[istate];
         } else if (inflow && boundary_type == 1005) {

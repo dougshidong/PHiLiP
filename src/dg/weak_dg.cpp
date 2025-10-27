@@ -910,7 +910,6 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_boundary_term(
     for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
 
         const dealii::Tensor<1,dim,real2> normal_int = phys_unit_normal[iquad];
-    std::cout << "normal " << phys_unit_normal[0][0] << " " << phys_unit_normal[0][1] << std::endl;
 
         // Evaluate physical convective flux, physical dissipative flux
         // Following the boundary treatment given by
@@ -925,7 +924,6 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_boundary_term(
         // Losing 2p+1 OOA on functionals for all PDEs.
         //conv_num_flux_dot_n[iquad] = conv_num_flux.evaluate_flux(soln_int[iquad], soln_ext[iquad], normal_int);
         conv_num_flux_dot_n[iquad] = conv_num_flux.evaluate_flux(soln_int[iquad], soln_ext[iquad], normal_int);
-        std::cout << conv_num_flux_dot_n[iquad][0] << std::endl;
         // Notice that the flux uses the solution given by the Dirichlet or Neumann boundary condition
         diss_soln_num_flux[iquad] = diss_num_flux.evaluate_solution_flux(soln_ext[iquad], soln_ext[iquad], normal_int);
 
@@ -1902,14 +1900,11 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_face_term(
     DirectionalState diss_flux_jump_int; // u*-u_int
     DirectionalState diss_flux_jump_ext; // u*-u_ext
 
-    std::cout << "normal " << phys_unit_normal_int[0][0] << " " << phys_unit_normal_int[0][1] << std::endl;
     for (unsigned int iquad=0; iquad<n_face_quad_pts; ++iquad) {
 
         // Evaluate physical convective flux, physical dissipative flux, and source term
         conv_num_flux_dot_n = conv_num_flux.evaluate_flux(soln_int_at_q[iquad], soln_ext_at_q[iquad], phys_unit_normal_int[iquad]);
         diss_soln_num_flux = diss_num_flux.evaluate_solution_flux(soln_int_at_q[iquad], soln_ext_at_q[iquad], phys_unit_normal_int[iquad]);
-
-        std::cout << "soln int " << soln_int_at_q[iquad][0] << " " <<  "soln ext " << soln_ext_at_q[iquad][0] << "flux" << conv_num_flux_dot_n[0] << std::endl;
 
         DirectionalState diss_soln_jump_int, diss_soln_jump_ext;
         for (int s=0; s<nstate; s++) {

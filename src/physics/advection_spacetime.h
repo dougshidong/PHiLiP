@@ -54,16 +54,26 @@ public:
         const Parameters::AllParameters::TestType                 parameters_test = Parameters::AllParameters::TestType::run_control,
         const bool                                                has_nonzero_physical_source = false) : 
             ConvectionDiffusion<dim,nstate,real>(parameters_input, convection, diffusion,input_diffusion_tensor,input_advection_vector,input_diffusion_coefficient,manufactured_solution_function,parameters_test,has_nonzero_physical_source)
-            , spatial_physics(
-                              parameters_input, convection, diffusion,input_diffusion_tensor,input_advection_vector,input_diffusion_coefficient,manufactured_solution_function,parameters_test,has_nonzero_physical_source)
     {};
 
-protected:
 
-    const ConvectionDiffusion<dim-1,nstate,real> spatial_physics;
-    
-    /// Convective flux: \f$ \mathbf{F}_{conv} =  u \f$
+    /// Convective flux 
     std::array<dealii::Tensor<1,dim,real>,nstate> convective_flux (const std::array<real,nstate> &solution) const;
+
+    /// Convective eigenvalues, calculated based on spatial convection only
+    /// These are used in calculation of numerical flux; since we use a 
+    /// different numerical flux in time, max eigenvalues should only 
+    /// come from space.
+    std::array<real,nstate> convective_eigenvalues (const std::array<real,nstate> &solution,
+            const dealii::Tensor<1,dim,real> &normal) const;
+
+    /// Maximum convective eigenvalue in only the spatial direction
+    real max_convective_eigenvalue (const std::array<real,nstate> &solution) const;
+
+protected:
+    /// Linear advection speed:  c
+    /// Only spatial part.
+    dealii::Tensor<1,dim-1,real> advection_speed () const;
 
 };
 

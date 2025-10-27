@@ -397,6 +397,7 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
     else if (mesh_type_string == "parallel_distributed_triangulation") { mesh_type = parallel_distributed_triangulation; }
     
     temporal_dimension = prm.get_integer("temporal_dimension");
+    is_spacetime = (temporal_dimension == 1) ? true : false;
 
 const std::string test_string = prm.get("test_type");
     if      (test_string == "run_control")                              { test_type = run_control; }

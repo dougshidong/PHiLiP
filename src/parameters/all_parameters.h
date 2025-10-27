@@ -93,6 +93,10 @@ public:
     /// space-time discretization will set this to 1.
     unsigned int temporal_dimension;
 
+    /// Flag for space-time.
+    /// Set based on user input for temporal_dimension.
+    bool is_spacetime;
+
     /// Number of additional quadrature points to use.
     /** overintegration = 0 leads to number_quad_points = dg_solution_degree + 1
      */

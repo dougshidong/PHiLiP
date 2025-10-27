@@ -23,9 +23,11 @@ std::array<real_tensor, nstate> array_average(
 template <int dim, int nstate, typename real>
 NumericalFluxConvective<dim, nstate, real>::NumericalFluxConvective(
     std::unique_ptr< BaselineNumericalFluxConvective<dim,nstate,real> > baseline_input,
-    std::unique_ptr< RiemannSolverDissipation<dim,nstate,real> >   riemann_solver_dissipation_input)
+    std::unique_ptr< RiemannSolverDissipation<dim,nstate,real> >   riemann_solver_dissipation_input,
+    const bool is_spacetime_input)
     : baseline(std::move(baseline_input))
     , riemann_solver_dissipation(std::move(riemann_solver_dissipation_input))
+    , is_spacetime(is_spacetime_input)
 { }
 
 template<int dim, int nstate, typename real>
@@ -35,6 +37,29 @@ std::array<real, nstate> NumericalFluxConvective<dim,nstate,real>
     const std::array<real, nstate> &soln_ext,
     const dealii::Tensor<1,dim,real> &normal_int) const
 {
+    std::array<real, nstate> numerical_flux_dot_n;
+    if (is_spacetime && (abs(normal_int[dim-1])>0)) {
+        // If abs(normal_int[dim])==1, we are on a temporal face
+        if (normal_int[dim-1] == -1) {
+            // on a t^n face. Return external solution.
+            for (int s=0; s<nstate; s++) {
+                numerical_flux_dot_n[s] = -1.0 * soln_ext[s];
+            }
+        } else if (normal_int[dim-1] == 1){
+            // on a t^{n+1} face. Return internal solution.
+            for (int s=0; s<nstate; s++) {
+                numerical_flux_dot_n[s] = soln_int[s];
+            }
+        } else {
+            // I expect that the temporal face would always have a unit normal of [ 0*zeros(spatial_dim) +/-1]
+            // Including a break statement here in case this assumption is incorrect.
+            std::cout << "ERROR: Space-time normal is not parallel to temporal axis." << std::endl
+                      << "Unexpected behaviour; aborting." << std::endl;
+            std::abort();
+        }
+        return numerical_flux_dot_n;
+
+    }
     // baseline flux (without upwind dissipation)
     const std::array<real, nstate> baseline_flux_dot_n 
         = this->baseline->evaluate_flux(soln_int, soln_ext, normal_int);
@@ -44,7 +69,6 @@ std::array<real, nstate> NumericalFluxConvective<dim,nstate,real>
         = this->riemann_solver_dissipation->evaluate_riemann_solver_dissipation(soln_int, soln_ext, normal_int);
 
     // convective numerical flux: sum of baseline and Riemann solver dissipation term
-    std::array<real, nstate> numerical_flux_dot_n;
     for (int s=0; s<nstate; s++) {
         numerical_flux_dot_n[s] = baseline_flux_dot_n[s] + riemann_solver_dissipation_dot_n[s];
     }
@@ -56,7 +80,8 @@ LaxFriedrichs<dim, nstate, real>::LaxFriedrichs(
     std::shared_ptr<Physics::PhysicsBase<dim, nstate, real>> physics_input)
     : NumericalFluxConvective<dim,nstate,real>(
         std::make_unique< CentralBaselineNumericalFluxConvective<dim, nstate, real> > (physics_input), 
-        std::make_unique< LaxFriedrichsRiemannSolverDissipation<dim, nstate, real> > (physics_input))
+        std::make_unique< LaxFriedrichsRiemannSolverDissipation<dim, nstate, real> > (physics_input),
+        physics_input->all_parameters->is_spacetime)
 {}
 
 template <int dim, int nstate, typename real>

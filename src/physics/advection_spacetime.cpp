@@ -10,7 +10,6 @@ std::array<dealii::Tensor<1,dim,real>,nstate> AdvectionSpacetime<dim,nstate,real
 ::convective_flux (const std::array<real,nstate> &solution) const
 {
     std::array<dealii::Tensor<1,dim,real>,nstate> conv_flux;
-    // get spatial part from base physics
 
     const real temporal_advection = 1.0; // unit by definition
     const dealii::Tensor<1,dim-1,real> spatial_velocity_field = advection_speed();
@@ -20,20 +19,19 @@ std::array<dealii::Tensor<1,dim,real>,nstate> AdvectionSpacetime<dim,nstate,real
             conv_flux[i][d] += spatial_velocity_field[d] * solution[i];
         }
         // temporal
-        conv_flux[i][dim] = temporal_advection * solution[i]; 
+        conv_flux[i][dim-1] += temporal_advection * solution[i]; 
     }
     return conv_flux;
     
 }
-
 template <int dim, int nstate, typename real>
 dealii::Tensor<1,dim-1,real> AdvectionSpacetime<dim,nstate,real>
 ::advection_speed () const
 {
     dealii::Tensor<1,dim-1,real> advection_speed;
-    if(dim >= 1) advection_speed[0] = this->linear_advection_velocity[0];
-    if(dim >= 2) advection_speed[1] = this->linear_advection_velocity[1];
-    if(dim >= 3) advection_speed[2] = this->linear_advection_velocity[2];
+    if(dim > 1) advection_speed[0] = this->linear_advection_velocity[0];
+    if(dim > 2) advection_speed[1] = this->linear_advection_velocity[1];
+    if(dim > 3) advection_speed[2] = this->linear_advection_velocity[2];
     return advection_speed;
 }
 

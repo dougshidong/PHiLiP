@@ -9,9 +9,9 @@ set temporal_dimension = 1
 
 set use_weak_form = true
 
-set overintegration = 2
+set overintegration = 0
 
-set flux_nodes_type = GL
+#set flux_nodes_type = GL
 
 set use_split_form = false
 
@@ -32,6 +32,7 @@ subsection ODE solver
   
   #set nonlinear_max_iterations = 500
   set nonlinear_max_iterations = 50000
+  set nonlinear_max_iterations = 100
   set nonlinear_steady_residual_tolerance = 1e-8
 
   set print_iteration_modulo = 100
@@ -39,9 +40,9 @@ subsection ODE solver
 
   set ode_solver_type = implicit
 
-  set output_solution_every_x_steps = 10
+  set output_solution_every_x_steps = 1
 
-  set initial_time_step = 0.1
+  set initial_time_step = 1
 
   set runge_kutta_method = rk4_ex
 
@@ -55,11 +56,11 @@ end
 subsection flow_solver
     set flow_case_type = spacetime_cartesian
     set steady_state = true
-    set poly_degree = 2
+    set poly_degree = 4
     subsection grid
       set grid_left_bound = 0.0
       set grid_right_bound = 2.0
-      set number_of_grid_elements_per_dimension = 8
+      set number_of_grid_elements_per_dimension = 2
     end
     set final_time = 0.004 #small such that we don't actually take a step
 end

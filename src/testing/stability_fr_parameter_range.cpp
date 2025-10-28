@@ -309,7 +309,7 @@ int StabilityFRParametersRange<dim, nstate>::run_test() const
         convergence_table.clear();
     }//end of Loop over c_array
     conv_tab_file.close();
-    return testfail; //if got to here means passed the test, otherwise would've failed earlier
+    return testfail;
 }
 template class StabilityFRParametersRange<PHILIP_DIM,1>;
 template class StabilityFRParametersRange<PHILIP_DIM,2>;

@@ -1497,7 +1497,7 @@ void local_Flux_Reconstruction_operator<dim,n_faces,real>::get_FR_correction_par
 {
     using FR_enum = Parameters::AllParameters::Flux_Reconstruction;
     if(FR_param_type == FR_enum::cHU || FR_param_type == FR_enum::cHULumped){ 
-        get_Huynh_g2_parameter(curr_cell_degree, FR_param); 
+        get_Huynh_g2_parameter(curr_cell_degree, c); 
     }
     else if(FR_param_type == FR_enum::cSD){ 
         get_spectral_difference_parameter(curr_cell_degree, c); 

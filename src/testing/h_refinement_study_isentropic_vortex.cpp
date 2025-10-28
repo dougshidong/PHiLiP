@@ -157,7 +157,7 @@ int HRefinementStudyIsentropicVortex<dim, nstate>::run_test() const
         c_array[nb_c_value] = this->all_parameters->FR_user_specified_correction_parameter_value;
     }
     else{
-        // default value to not let it empty, it won't be use later.
+        // default value to ensure it is not empty, it won't be used later.
         c_array[nb_c_value] = 0.0;
     }
 

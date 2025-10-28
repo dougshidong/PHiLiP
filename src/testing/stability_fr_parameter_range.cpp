@@ -101,29 +101,17 @@ int StabilityFRParametersRange<dim, nstate>::run_test() const
     const double log_c_max = std::log10(c_max);
     std::vector<double> c_array(nb_c_value+1);
 
-    std::ofstream l2error_file("l2error.txt");
-    std::ofstream slope_file("slope_soln_err.txt");
-    std::ofstream c_value_file("c_value.txt");
-    std::ofstream cell_number_file("cell_number.txt");
     std::ofstream conv_tab_file;
     const std::string fname = "convergence_tables.txt";
     conv_tab_file.open(fname);
-
-    for(unsigned int igrid = igrid_start; igrid<n_grids; igrid++){
-        cell_number_file << std::pow(2.0, igrid) << " ";
-    }
-    cell_number_file.close();
 
     // Create log space array of c_value
     for (unsigned int ic = 0; ic < nb_c_value; ic++) {
         double log_c = log_c_min + (log_c_max - log_c_min) / (nb_c_value - 1) * ic;
         c_array[ic] = std::pow(10.0, log_c);
-        c_value_file << c_array[ic] << std::endl;
     }
 
     c_array[nb_c_value] = all_parameters_new.FR_user_specified_correction_parameter_value;
-    c_value_file << c_array[nb_c_value] << std::endl;
-    c_value_file.close();
 
     // Loop over c_array to compute slope
     for (unsigned int ic = 0; ic < nb_c_value+1; ic++) {
@@ -245,8 +233,6 @@ int StabilityFRParametersRange<dim, nstate>::run_test() const
             }
             const double l2error_mpi_sum = std::sqrt(dealii::Utilities::MPI::sum(l2error, mpi_communicator));
 
-            l2error_file << l2error_mpi_sum << " ";
-
             const double linferror_mpi= (dealii::Utilities::MPI::max(linf_error, this->mpi_communicator));
 
             // Convergence table
@@ -288,9 +274,7 @@ int StabilityFRParametersRange<dim, nstate>::run_test() const
 
             if (igrid > igrid_start) {
                 const double slope_soln_err = log(soln_error[igrid]/soln_error[igrid-1])
-                                    / log(grid_size[igrid]/grid_size[igrid-1]);
-
-                slope_file << slope_soln_err << " ";  
+                                    / log(grid_size[igrid]/grid_size[igrid-1]); 
 
                 const double slope_soln_err_inf = log(soln_error_inf[igrid]/soln_error_inf[igrid-1])
                                         / log(grid_size[igrid]/grid_size[igrid-1]);
@@ -323,14 +307,10 @@ int StabilityFRParametersRange<dim, nstate>::run_test() const
             if (pcout.is_active()) convergence_table.write_text(pcout.get_stream());
             //end of OOA
         }//end of grid loop
-        l2error_file << std::endl;
-        slope_file << std::endl;
 
         convergence_table.write_text(conv_tab_file);
         convergence_table.clear();
     }//end of Loop over c_array
-    l2error_file.close();
-    slope_file.close();
     conv_tab_file.close();
     return testfail; //if got to here means passed the test, otherwise would've failed earlier
 }

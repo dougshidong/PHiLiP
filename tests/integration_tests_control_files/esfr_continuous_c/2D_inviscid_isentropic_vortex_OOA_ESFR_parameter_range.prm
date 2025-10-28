@@ -14,7 +14,7 @@ set flux_nodes_type = GL
 
 #set flux_reconstruction = cPlus
 set flux_reconstruction = user_specified_value
-set FR_user_specified_correction_parameter_value = 3.67e-3 #0.186; 3.67e-3; 4.79e-5; 4.24e-7
+set FR_user_specified_correction_parameter_value = 3.67e-3
 set use_inverse_mass_on_the_fly = true
 
 # Note: this was added to turn off check_same_coords() -- has no other function when dim!=1

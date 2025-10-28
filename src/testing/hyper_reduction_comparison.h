@@ -3,7 +3,9 @@
 
 #include "tests.h"
 #include "parameters/all_parameters.h"
+#include "dg/dg_base.hpp"
 #include <eigen/Eigen/Dense>
+#include <Epetra_Vector.h>
 
 namespace PHiLiP {
 namespace Tests {
@@ -21,7 +23,10 @@ public:
                  const dealii::ParameterHandler &parameter_handler_input);
     
     /// Reinitialize parameters
-    Parameters::AllParameters reinitParams(const int max_iter) const;
+    Parameters::AllParameters reinit_params(const int max_iter) const;
+
+    /// Read ECSW weights from the text file 
+    bool getWeightsFromFile(std::shared_ptr<DGBase<dim,double>> &dg) const;
 
     /// Build three models and evaluate error measures
     int run_test () const override;
@@ -31,6 +36,9 @@ public:
 
     /// Matrix of snapshot parameters
     mutable MatrixXd snapshot_parameters;
+
+    /// Ptr vector of ECSW Weights
+    mutable std::shared_ptr<Epetra_Vector> ptr_weights;
 };
 } // End of Tests namespace
 } // End of PHiLiP namespace

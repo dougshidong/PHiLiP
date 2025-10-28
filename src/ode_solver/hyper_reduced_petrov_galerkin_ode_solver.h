@@ -73,6 +73,7 @@ public:
 
     /// Generate reduced LHS
     std::shared_ptr<Epetra_CrsMatrix> generate_reduced_lhs(Epetra_CrsMatrix &test_basis);
+
 };
 
 } // ODE namespace

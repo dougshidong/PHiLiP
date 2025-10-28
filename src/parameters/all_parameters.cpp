@@ -181,6 +181,7 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       " shock_1d | "
                       " euler_naca0012 | "
                       " reduced_order | "
+                      " unsteady_reduced_order |"
                       " convection_diffusion_periodicity |"
                       " POD_adaptation | "
                       " POD_adaptive_sampling_run | "
@@ -204,6 +205,7 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       " ROM_error_post_sampling |"
                       " HROM_error_post_sampling | "
                       " hyper_adaptive_sampling_new_error |"
+                      " halton_sampling_run |"
                       " naca0012_unsteady_check_quick | "
                       " khi_robustness | "
                       " low_density "),
@@ -232,6 +234,7 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       "  euler_naca0012 | "
                       "  convection_diffusion_periodicity |"
                       "  reduced_order | "
+                      "  unsteady_reduced_order | "
                       "  POD_adaptation | "
                       "  POD_adaptive_sampling_run | "
                       "  adaptive_sampling_testing | "
@@ -254,6 +257,7 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       "  ROM_error_post_sampling |"
                       "  HROM_error_post_sampling | "
                       "  hyper_adaptive_sampling_new_error |"
+                      "  halton_sampling_run |"
                       "  naca0012_unsteady_check_quick | "
                       "  khi_robustness | "
                       "  low_density>.");
@@ -418,6 +422,7 @@ const std::string test_string = prm.get("test_type");
     else if (test_string == "euler_naca_optimization")                  { test_type = euler_naca_optimization; }
     else if (test_string == "shock_1d")                                 { test_type = shock_1d; }
     else if (test_string == "reduced_order")                            { test_type = reduced_order; }
+    else if (test_string == "unsteady_reduced_order")                   { test_type = unsteady_reduced_order; }
     else if (test_string == "POD_adaptation")                           { test_type = POD_adaptation; }
     else if (test_string == "POD_adaptive_sampling_run")                { test_type = POD_adaptive_sampling_run; }
     else if (test_string == "adaptive_sampling_testing")                { test_type = adaptive_sampling_testing; }
@@ -445,6 +450,7 @@ const std::string test_string = prm.get("test_type");
     else if (test_string == "ROM_error_post_sampling")                  { test_type = ROM_error_post_sampling; }
     else if (test_string == "HROM_error_post_sampling")                 { test_type = HROM_error_post_sampling; }
     else if (test_string == "hyper_adaptive_sampling_new_error")        { test_type = hyper_adaptive_sampling_new_error; }
+    else if (test_string == "halton_sampling_run")                      { test_type = halton_sampling_run; }
     else if (test_string == "low_density")                              { test_type = low_density; }
     else if (test_string == "naca0012_unsteady_check_quick")            { test_type = naca0012_unsteady_check_quick; }
     

@@ -52,9 +52,17 @@ bool getSnapshotParamsFromFile(Eigen::MatrixXd& snapshot_parameters, std::string
                 
             }
 
-            snapshot_parameters.conservativeResize(rows, snapshot_parameters.cols()+cols);
-
-            int row = 0;
+            int row;
+            if (snapshot_parameters.rows() == 0){
+                row = 0;
+               snapshot_parameters.conservativeResize(rows, snapshot_parameters.cols()+cols);
+                
+            }
+            else{
+                row = snapshot_parameters.rows(); 
+                snapshot_parameters.conservativeResize(snapshot_parameters.rows() + rows, snapshot_parameters.cols());
+            }
+            
             myfile.clear();
             myfile.seekg(0); //Bring back to beginning of file
             //Second loop set to build solutions matrix
@@ -88,32 +96,45 @@ bool getSnapshotParamsFromFile(Eigen::MatrixXd& snapshot_parameters, std::string
 
 void getROMPoints(Eigen::MatrixXd& rom_points, const Parameters::AllParameters *const all_parameters) {
     const double pi = atan(1.0) * 4.0;
-    rom_points.conservativeResize(400, 2);
-    RowVectorXd parameter1_range;
-    parameter1_range.resize(2);
-    parameter1_range << all_parameters->reduced_order_param.parameter_min_values[0], all_parameters->reduced_order_param.parameter_max_values[0];
+    if(all_parameters->reduced_order_param.parameter_names.size() == 1){
+        rom_points.conservativeResize(20, 1);
+        RowVectorXd parameter1_range;
+        parameter1_range.resize(2);
+        parameter1_range << all_parameters->reduced_order_param.parameter_min_values[0], all_parameters->reduced_order_param.parameter_max_values[0];
+        if(all_parameters->reduced_order_param.parameter_names[0] == "alpha"){
+            parameter1_range *= pi/180; // convert to radians
+        }
 
-    RowVectorXd parameter2_range;
-    parameter2_range.resize(2);
-    parameter2_range << all_parameters->reduced_order_param.parameter_min_values[1], all_parameters->reduced_order_param.parameter_max_values[1];
-    if(all_parameters->reduced_order_param.parameter_names[1] == "alpha"){
-        parameter2_range *= pi/180; //convert to radians
-    }
-    double step_1 = (parameter1_range[1] - parameter1_range[0]) / (20 - 1);
-    double step_2 = (parameter2_range[1] - parameter2_range[0]) / (20 - 1);
+        double step_1 = (parameter1_range[1] - parameter1_range[0]) / (20 - 1);
 
-    std::cout << step_1 << std::endl;
-    std::cout << step_2 << std::endl;
-
-    int row = 0;
-    for (int i = 0; i < 20; i++){
-        for(int j = 0; j < 20; j++){
+        int row = 0;
+        for (int i = 0; i < 20; i++){
             rom_points(row, 0) =  parameter1_range[0] + (step_1 * i);
-            rom_points(row, 1) =  parameter2_range[0] + (step_2 * j);
-
-            std::cout << rom_points(row, 0)  << std::endl;
-            std::cout << rom_points(row, 1)  << std::endl;
             row ++;
+        }
+    }
+    else{
+        rom_points.conservativeResize(400, 2);
+        RowVectorXd parameter1_range;
+        parameter1_range.resize(2);
+        parameter1_range << all_parameters->reduced_order_param.parameter_min_values[0], all_parameters->reduced_order_param.parameter_max_values[0];
+
+        RowVectorXd parameter2_range;
+        parameter2_range.resize(2);
+        parameter2_range << all_parameters->reduced_order_param.parameter_min_values[1], all_parameters->reduced_order_param.parameter_max_values[1];
+        if(all_parameters->reduced_order_param.parameter_names[1] == "alpha"){
+            parameter2_range *= pi/180; //convert to radians
+        }
+        double step_1 = (parameter1_range[1] - parameter1_range[0]) / (20 - 1);
+        double step_2 = (parameter2_range[1] - parameter2_range[0]) / (20 - 1);
+
+        int row = 0;
+        for (int i = 0; i < 20; i++){
+            for(int j = 0; j < 20; j++){
+                rom_points(row, 0) =  parameter1_range[0] + (step_1 * i);
+                rom_points(row, 1) =  parameter2_range[0] + (step_2 * j);
+                row ++;
+            }
         }
     }
 }

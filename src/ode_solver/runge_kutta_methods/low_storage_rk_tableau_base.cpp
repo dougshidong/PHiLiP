@@ -3,17 +3,17 @@
 
 namespace PHiLiP {
 namespace ODE {
-
+    
 template <int dim, typename real, typename MeshType> 
-LowStorageRKTableauBase<dim,real, MeshType> :: LowStorageRKTableauBase (const int n_rk_stages, const int num_delta,
+LowStorageRKTableauBase<dim,real, MeshType> :: LowStorageRKTableauBase (const int n_rk_stages_input, const int num_delta_input,
         const std::string rk_method_string_input)
-    : rk_method_string(rk_method_string_input)
-    , pcout(std::cout, dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD)==0)
+    : RKTableauBase<dim,real,MeshType>(n_rk_stages_input,rk_method_string_input)
+      , num_delta(num_delta_input)
 {
-    this->butcher_tableau_gamma.reinit(n_rk_stages+1,3);
-    this->butcher_tableau_beta.reinit(n_rk_stages+1);
-    this->butcher_tableau_delta.reinit(num_delta);
-    this->butcher_tableau_b_hat.reinit(n_rk_stages+1);
+    this->butcher_tableau_gamma.reinit(this->n_rk_stages+1,3);
+    this->butcher_tableau_beta.reinit(this->n_rk_stages+1);
+    this->butcher_tableau_delta.reinit(this->num_delta);
+    this->butcher_tableau_b_hat.reinit(this->n_rk_stages+1);
 }
 
 template <int dim, typename real, typename MeshType> 
@@ -23,7 +23,7 @@ void LowStorageRKTableauBase<dim,real, MeshType> :: set_tableau ()
     set_beta();
     set_delta();
     set_b_hat();
-    pcout << "Assigned RK method: " << rk_method_string << std::endl;
+    this->pcout << "Assigned RK method: " << this->rk_method_string << std::endl;
 }
 
 template <int dim, typename real, typename MeshType> 

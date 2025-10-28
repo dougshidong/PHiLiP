@@ -35,6 +35,7 @@ subsection reduced order
   set parameter_max_values = 0.1
   set num_halton = 0
   set recomputation_coefficient = 5
+  set FOM_error_linear_solver_type = gmres
 end
 
 subsection linear solver
@@ -62,4 +63,8 @@ subsection manufactured solution convergence study
  set use_manufactured_source_term = true
 end
 
+subsection hyperreduction
+  set NNLS_tol = 1e-7
+  set NNLS_max_iter = 5000
+end
 

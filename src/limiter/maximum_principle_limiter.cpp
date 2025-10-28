@@ -112,24 +112,23 @@ void MaximumPrincipleLimiter<dim, nstate, real>::limit(
         const unsigned int                                      grid_degree,
         const unsigned int                                      max_degree,
         const dealii::hp::FECollection<1>                       oneD_fe_collection_1state,
-        const dealii::hp::QCollection<1>                        oneD_quadrature_collection)
+        const dealii::hp::QCollection<1>                        oneD_quadrature_collection,
+        double                                                  dt)
 {
     // If use_tvb_limiter is true, apply TVB limiter before applying maximum-principle-satisfying limiter
     if (this->all_parameters->limiter_param.use_tvb_limiter == true)
-        this->tvbLimiter->limit(solution, dof_handler, fe_collection, volume_quadrature_collection, grid_degree, max_degree, oneD_fe_collection_1state, oneD_quadrature_collection);
+        this->tvbLimiter->limit(solution, dof_handler, fe_collection, volume_quadrature_collection, grid_degree, max_degree, oneD_fe_collection_1state, oneD_quadrature_collection, dt);
 
-    //create 1D solution polynomial basis functions and corresponding projection operator
-    //to interpolate the solution to the quadrature nodes, and to project it back to the
-    //modal coefficients.
+    // Construct 1D Quad Points
     const unsigned int init_grid_degree = grid_degree;
-    //Constructor for the operators
-    OPERATOR::basis_functions<dim, 2 * dim, real> soln_basis(1, max_degree, init_grid_degree);
-    OPERATOR::vol_projection_operator<dim, 2 * dim, real> soln_basis_projection_oper(1, max_degree, init_grid_degree);
+    dealii::QGauss<1> oneD_quad_GL(max_degree + 1);
+    dealii::QGaussLobatto<1> oneD_quad_GLL(max_degree + 1);
 
-
-    // Build the oneD operator to perform interpolation/projection
-    soln_basis.build_1D_volume_operator(oneD_fe_collection_1state[max_degree], oneD_quadrature_collection[max_degree]);
-    soln_basis_projection_oper.build_1D_volume_operator(oneD_fe_collection_1state[max_degree], oneD_quadrature_collection[max_degree]);
+    // Constructor for the operators
+    OPERATOR::basis_functions<dim, 2 * dim, real> soln_basis_GLL(1, max_degree, init_grid_degree);
+    soln_basis_GLL.build_1D_volume_operator(oneD_fe_collection_1state[max_degree], oneD_quad_GLL);
+    OPERATOR::basis_functions<dim, 2 * dim, real> soln_basis_GL(1, max_degree, init_grid_degree);
+    soln_basis_GL.build_1D_volume_operator(oneD_fe_collection_1state[max_degree], oneD_quad_GL);
 
     // Obtain the global max and min (ie. max and min of the initial solution)
     if (global_max.empty() && global_min.empty())
@@ -175,19 +174,51 @@ void MaximumPrincipleLimiter<dim, nstate, real>::limit(
                 local_min[istate] = soln_coeff[istate][ishape];
         }
 
+
         const unsigned int n_quad_pts = volume_quadrature_collection[poly_degree].size();
         const std::vector<real>& quad_weights = volume_quadrature_collection[poly_degree].get_weights();
 
-        std::array<std::vector<real>, nstate> soln_at_q;
+        std::array<std::array<std::vector<real>, nstate>, dim> soln_at_q;
+        std::array<std::vector<real>, nstate> soln_at_q_dim;
 
         // Interpolate solution dofs to quadrature pts.
-        for (int istate = 0; istate < nstate; istate++) {
-            soln_at_q[istate].resize(n_quad_pts);
-            soln_basis.matrix_vector_mult_1D(soln_coeff[istate], soln_at_q[istate], soln_basis.oneD_vol_operator);
+        for(unsigned int idim = 0; idim < dim; idim++) {
+            for (int istate = 0; istate < nstate; istate++) {
+                soln_at_q_dim[istate].resize(n_quad_pts);
+
+                if(idim == 0) {
+                    soln_basis_GLL.matrix_vector_mult(soln_coeff[istate], soln_at_q_dim[istate],
+                        soln_basis_GLL.oneD_vol_operator, soln_basis_GL.oneD_vol_operator, soln_basis_GL.oneD_vol_operator);
+                }
+
+                if(idim == 1) {
+                    soln_basis_GLL.matrix_vector_mult(soln_coeff[istate], soln_at_q_dim[istate],
+                        soln_basis_GL.oneD_vol_operator, soln_basis_GLL.oneD_vol_operator, soln_basis_GL.oneD_vol_operator);
+                }
+
+                if(idim == 2) {
+                    soln_basis_GLL.matrix_vector_mult(soln_coeff[istate], soln_at_q_dim[istate],
+                        soln_basis_GL.oneD_vol_operator, soln_basis_GL.oneD_vol_operator, soln_basis_GLL.oneD_vol_operator);
+                }
+            }
+            soln_at_q[idim] = soln_at_q_dim;
+        }
+
+        for (unsigned int idim = 0; idim < dim; ++idim) {
+             for (unsigned int istate = 0; istate < nstate; ++istate) {
+                for (unsigned int iquad = 0; iquad < n_quad_pts; ++iquad) {
+                    if(soln_at_q[idim][istate][iquad] > local_max[istate]) {
+                        local_max[istate] = soln_at_q[idim][istate][iquad];
+                    }
+                    if(soln_at_q[idim][istate][iquad] < local_min[istate]) {
+                        local_min[istate] = soln_at_q[idim][istate][iquad];
+                    }
+                }
+            }
         }
 
         // Obtain solution cell average
-        std::array<real, nstate> soln_cell_avg = get_soln_cell_avg(soln_at_q, n_quad_pts, quad_weights);
+        std::array<real, nstate> soln_cell_avg = get_soln_cell_avg(soln_coeff, n_quad_pts, quad_weights);
 
         // Obtain theta value
         std::array<real, nstate> theta; // Value used to linearly scale solution 
@@ -207,15 +238,9 @@ void MaximumPrincipleLimiter<dim, nstate, real>::limit(
         // Apply limiter on solution values at quadrature points
         for (unsigned int istate = 0; istate < nstate; ++istate) {
             for (unsigned int iquad = 0; iquad < n_quad_pts; ++iquad) {
-                soln_at_q[istate][iquad] = theta[istate] * (soln_at_q[istate][iquad] - soln_cell_avg[istate])
+                soln_coeff[istate][iquad] = theta[istate] * (soln_coeff[istate][iquad] - soln_cell_avg[istate])
                     + soln_cell_avg[istate];
             }
-        }
-
-        // Project solution at quadrature points to dofs.
-        for (int istate = 0; istate < nstate; istate++) {
-            soln_basis_projection_oper.matrix_vector_mult_1D(soln_at_q[istate], soln_coeff[istate],
-                soln_basis_projection_oper.oneD_vol_operator);
         }
 
         // Write limited solution back and verify that the strict maximum principle is satisfied

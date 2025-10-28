@@ -29,6 +29,7 @@
 #include "shock_1d.h"
 #include "euler_naca0012.hpp"
 #include "reduced_order.h"
+#include "unsteady_reduced_order.h"
 #include "convection_diffusion_explicit_periodic.h"
 #include "dual_weighted_residual_mesh_adaptation.h"
 #include "anisotropic_mesh_adaptation_cases.h"
@@ -53,6 +54,7 @@
 #include "ROM_error_post_sampling.h"
 #include "HROM_error_post_sampling.h"
 #include "hyper_adaptive_sampling_new_error.h"
+#include "halton_sampling_run.h"
 
 namespace PHiLiP {
 namespace Tests {
@@ -285,6 +287,8 @@ std::unique_ptr< TestsBase > TestsFactory<dim,nstate,MeshType>
         if constexpr (dim==1 && nstate==1) return std::make_unique<Shock1D<dim,nstate>>(parameters_input);
     } else if(test_type == Test_enum::reduced_order) {
         if constexpr ((dim==2 && nstate==dim+2) || (dim==1 && nstate==1)) return std::make_unique<ReducedOrder<dim,nstate>>(parameters_input, parameter_handler_input);
+    } else if(test_type == Test_enum::unsteady_reduced_order) {
+        if constexpr (dim==2 && nstate==dim+2) return std::make_unique<UnsteadyReducedOrder<dim,nstate>>(parameters_input, parameter_handler_input);
     } else if(test_type == Test_enum::POD_adaptive_sampling_run) {
         if constexpr ((dim==2 && nstate==dim+2) || (dim==1 && nstate==1)) return std::make_unique<AdaptiveSamplingRun<dim,nstate>>(parameters_input,parameter_handler_input);
     } else if(test_type == Test_enum::adaptive_sampling_testing) {
@@ -327,12 +331,14 @@ std::unique_ptr< TestsBase > TestsFactory<dim,nstate,MeshType>
         if constexpr ((dim==2 && nstate==dim+2) || (dim==1 && nstate==1))  return std::make_unique<HROMErrorPostSampling<dim,nstate>>(parameters_input, parameter_handler_input);
     } else if(test_type == Test_enum::hyper_adaptive_sampling_new_error) {
         if constexpr ((dim==2 && nstate==dim+2) || (dim==1 && nstate==1))  return std::make_unique<HyperAdaptiveSamplingNewError<dim,nstate>>(parameters_input, parameter_handler_input);
+    } else if(test_type == Test_enum::halton_sampling_run) {
+        if constexpr ((dim==2 && nstate==dim+2) || (dim==1 && nstate==1))  return std::make_unique<HaltonSamplingRun<dim,nstate>>(parameters_input, parameter_handler_input);
     } else if (test_type == Test_enum::advection_limiter) {
         if constexpr (nstate == 1 && dim < 3) return std::make_unique<BoundPreservingLimiterTests<dim, nstate>>(parameters_input, parameter_handler_input);
     } else if (test_type == Test_enum::burgers_limiter) {
         if constexpr (nstate == dim && dim < 3) return std::make_unique<BoundPreservingLimiterTests<dim, nstate>>(parameters_input, parameter_handler_input);
     } else if(test_type == Test_enum::low_density) {
-        if constexpr (dim==2 && nstate==dim+2)  return std::make_unique<BoundPreservingLimiterTests<dim, nstate>>(parameters_input, parameter_handler_input);
+        if constexpr (dim<3 && nstate==dim+2)  return std::make_unique<BoundPreservingLimiterTests<dim, nstate>>(parameters_input, parameter_handler_input);
     } else if(test_type == Test_enum::naca0012_unsteady_check_quick){
         if constexpr (dim==2 && nstate==dim+2)  return std::make_unique<NACA0012UnsteadyCheckQuick<dim, nstate>>(parameters_input, parameter_handler_input);
     } else {

@@ -515,6 +515,10 @@ const std::string test_string = prm.get("test_type");
                                                      { flux_reconstruction_type = user_specified_value; }
 
     FR_user_specified_correction_parameter_value = prm.get_double("FR_user_specified_correction_parameter_value");
+    if ( abs(FR_user_specified_correction_parameter_value ) >1E-13 && flux_reconstruction_type != user_specified_value){
+        pcout << "Warning: User-specified FR parameter has been set, but flux_reconstruction_type is " << std::endl
+              << "not chosen as user_specified_value. This may be unintended." << std::endl;
+    }
 
     const std::string flux_reconstruction_aux_string = prm.get("flux_reconstruction_aux");
     if (flux_reconstruction_aux_string == "kDG")         { flux_reconstruction_aux_type = kDG; }

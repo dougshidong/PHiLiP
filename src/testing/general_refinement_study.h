@@ -39,6 +39,10 @@ protected:
     /// Ratio to refine by
     const double refine_ratio;
 
+
+    /// Run the refinements.
+    int run_refinement_study_and_write_result(const Parameters::AllParameters *parameters_in) const;
+
     /// Calculate Lp error at the final time in the passed parameters
     /// norm_p is used to indicate the error order -- e.g., norm_p=2 
     /// is L2 norm

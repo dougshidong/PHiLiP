@@ -1,4 +1,4 @@
-#include "time_refinement_study.h"
+#include "general_refinement_study.h"
 #include "flow_solver/flow_solver_factory.h"
 #include "flow_solver/flow_solver_cases/periodic_1D_unsteady.h"
 #include "flow_solver/flow_solver_cases/periodic_entropy_tests.h"
@@ -79,15 +79,11 @@ double GeneralRefinementStudy<dim,nstate>::calculate_Lp_error_at_final_time_wrt_
     return Lp_error;    
 }
 
-//template <int dim, int nstate>
-//int GeneralRefinementStudy<dim,nstate>::run_time_refinement_and_write_result(const Parameters::AllParameters *parameters_in, const int n_refinements, const int refinement_to_test_convergence)
-
 template <int dim, int nstate>
-int GeneralRefinementStudy<dim, nstate>::run_test() const
-{
-    
-    const double final_time = this->all_parameters->flow_solver_param.final_time;
-    const double initial_time_step = this->all_parameters->ode_solver_param.initial_time_step;
+int GeneralRefinementStudy<dim,nstate>::run_refinement_study_and_write_result(const Parameters::AllParameters *parameters_in) const{
+
+    const double final_time = parameters_in->flow_solver_param.final_time;
+    const double initial_time_step = parameters_in->ode_solver_param.initial_time_step;
     const int n_steps = floor(final_time/initial_time_step);
     if (n_steps * initial_time_step != final_time){
         pcout << "WARNING: final_time is not evenly divisible by initial_time_step!" << std::endl
@@ -107,7 +103,7 @@ int GeneralRefinementStudy<dim, nstate>::run_test() const
         pcout << "Refinement number " << refinement << " of " << n_calculations - 1 << std::endl;
         pcout << "---------------------------------------------" << std::endl;
 
-        const Parameters::AllParameters params = reinit_params_and_refine(this->all_parameters,refinement, refinement_type);
+        const Parameters::AllParameters params = reinit_params_and_refine(parameters_in,refinement, refinement_type);
         std::unique_ptr<FlowSolver::FlowSolver<dim,nstate>> flow_solver = FlowSolver::FlowSolverFactory<dim,nstate>::select_flow_case(&params, parameter_handler);
         static_cast<void>(flow_solver->run());
         
@@ -127,9 +123,9 @@ int GeneralRefinementStudy<dim, nstate>::run_test() const
 
 
         // hard-coded for LSRK test
-        if (this->all_parameters->ode_solver_param.runge_kutta_method == PHiLiP::Parameters::ODESolverParam::RK3_2_5F_3SStarPlus 
-            && this->all_parameters->ode_solver_param.atol == 1e-4 && this->all_parameters->ode_solver_param.rtol == 1e-4 
-            && this->all_parameters->time_refinement_study_param.number_of_times_to_solve == 1){
+        if (params.ode_solver_param.runge_kutta_method == PHiLiP::Parameters::ODESolverParam::RK3_2_5F_3SStarPlus 
+            && params.ode_solver_param.atol == 1e-4 && params.ode_solver_param.rtol == 1e-4 
+            && params.time_refinement_study_param.number_of_times_to_solve == 1){
             double L2_error_expected = 2.14808703658e-5; 
             pcout << " Expected L2 error is: " << L2_error_expected << std::endl;
             if (L2_error > L2_error_expected + 1e-9 || L2_error < L2_error_expected - 1e-9){
@@ -207,6 +203,16 @@ int GeneralRefinementStudy<dim, nstate>::run_test() const
     conv_tab_file.open(fname);
     convergence_table.write_text(conv_tab_file);
     conv_tab_file.close();
+
+
+    return testfail;
+}
+
+template <int dim, int nstate>
+int GeneralRefinementStudy<dim, nstate>::run_test() const
+{
+    
+    double testfail = this->run_refinement_study_and_write_result(this->all_parameters);
 
     return testfail;
 }

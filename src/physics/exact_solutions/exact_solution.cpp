@@ -137,6 +137,9 @@ template class ExactSolutionFunction <PHILIP_DIM,PHILIP_DIM, double>;
 template class ExactSolutionFunction <PHILIP_DIM,PHILIP_DIM+2, double>;
 template class ExactSolutionFactory <PHILIP_DIM, PHILIP_DIM+2, double>;
 template class ExactSolutionFactory <PHILIP_DIM, PHILIP_DIM, double>;
+#if PHILIP_DIM>1
+    template class ExactSolutionFactory <PHILIP_DIM, 1, double>;
+#endif
 template class ExactSolutionFunction_Zero <PHILIP_DIM,1, double>;
 template class ExactSolutionFunction_Zero <PHILIP_DIM,2, double>;
 template class ExactSolutionFunction_Zero <PHILIP_DIM,3, double>;

@@ -219,6 +219,8 @@ int GeneralRefinementStudy<dim, nstate>::run_test() const
 
 #if PHILIP_DIM==1
     template class GeneralRefinementStudy<PHILIP_DIM,PHILIP_DIM>;
+#else
+    template class GeneralRefinementStudy<PHILIP_DIM,1>;
 #endif
 } // Tests namespace
 } // PHiLiP namespace

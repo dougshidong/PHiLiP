@@ -125,10 +125,17 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
 
     prm.declare_entry("flux_reconstruction", "cDG",
                       dealii::Patterns::Selection(
-                      "cDG | cSD | cHU | cNegative | cNegative2 | cPlus | c10Thousand | cHULumped"),
+                      "cDG | cSD | cHU | cNegative | cNegative2 | cPlus | c10Thousand | cHULumped | user_specified_value"),
                       "Flux Reconstruction. "
                       "Choices are "
-                      " <cDG | cSD | cHU | cNegative | cNegative2 | cPlus | c10Thousand | cHULumped>.");
+                      " <cDG | cSD | cHU | cNegative | cNegative2 | cPlus | c10Thousand | cHULumped | user_specified_value>.");
+
+    prm.declare_entry("FR_user_specified_correction_parameter_value", "0.0",
+                      dealii::Patterns::Double(-dealii::Patterns::Double::max_double_value, dealii::Patterns::Double::max_double_value),
+                      "User specified flux recontruction correction parameter value. "
+                      "Enter a 1D correction parameter. "
+                      "Internally, the input c value is divided by 2 to account for the basis and adjusted for the deal.ii reference element. "
+                      "Default value is 0.0. ");
 
     prm.declare_entry("flux_reconstruction_aux", "kDG",
                       dealii::Patterns::Selection(
@@ -160,6 +167,7 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       dealii::Patterns::Selection(
                       " run_control | "
                       " grid_refinement_study | "
+                      " stability_fr_parameter_range | "
                       " advection_limiter | "
                       " burgers_limiter | "
                       " burgers_energy_stability | "
@@ -211,6 +219,7 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       "Choices are " 
                       " <run_control | " 
                       "  grid_refinement_study | "
+                      "  stability_fr_parameter_range | "
                       "  advection_limiter | "
                       "  burgers_limiter | "
                       "  burgers_energy_stability | "
@@ -402,6 +411,7 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
 const std::string test_string = prm.get("test_type");
     if      (test_string == "run_control")                              { test_type = run_control; }
     else if (test_string == "grid_refinement_study")                    { test_type = grid_refinement_study; }
+    else if (test_string == "stability_fr_parameter_range")             { test_type = stability_fr_parameter_range; }
     else if (test_string == "advection_limiter")                        { test_type = advection_limiter; }
     else if (test_string == "burgers_limiter")                          { test_type = burgers_limiter; }
     else if (test_string == "burgers_energy_stability")                 { test_type = burgers_energy_stability; }
@@ -516,6 +526,14 @@ const std::string test_string = prm.get("test_type");
     if (flux_reconstruction_string == "cPlus")       { flux_reconstruction_type = cPlus; }
     if (flux_reconstruction_string == "c10Thousand") { flux_reconstruction_type = c10Thousand; }
     if (flux_reconstruction_string == "cHULumped")   { flux_reconstruction_type = cHULumped; }
+    if (flux_reconstruction_string == "user_specified_value") 
+                                                     { flux_reconstruction_type = user_specified_value; }
+
+    FR_user_specified_correction_parameter_value = prm.get_double("FR_user_specified_correction_parameter_value");
+    if ( abs(FR_user_specified_correction_parameter_value ) >1E-13 && flux_reconstruction_type != user_specified_value){
+        pcout << "Warning: User-specified FR parameter has been set, but flux_reconstruction_type is " << std::endl
+              << "not chosen as user_specified_value. This may be unintended." << std::endl;
+    }
 
     const std::string flux_reconstruction_aux_string = prm.get("flux_reconstruction_aux");
     if (flux_reconstruction_aux_string == "kDG")         { flux_reconstruction_aux_type = kDG; }

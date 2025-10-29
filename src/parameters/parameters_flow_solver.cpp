@@ -318,6 +318,21 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
         }
         prm.leave_subsection();
 
+        prm.enter_subsection("ESFR_parameter_tests");
+        {
+            prm.declare_entry("number_ESFR_parameter_values", "0",
+                              dealii::Patterns::Integer(),
+                              "Number of tested ESFR parameter values");
+            prm.declare_entry("ESFR_parameter_values_start", "1e-3",
+                              dealii::Patterns::Double(0.0, dealii::Patterns::Double::max_double_value),
+                              "Minimum ESFR parameter values >0 since logspace vector");
+          
+            prm.declare_entry("ESFR_parameter_values_end", "1e-3",
+                              dealii::Patterns::Double(0.0, dealii::Patterns::Double::max_double_value),
+                              "Maximum ESFR parameter values >0 since logspace vector");
+        }
+        prm.leave_subsection();
+
         prm.declare_entry("apply_initial_condition_method", "interpolate_initial_condition_function",
                           dealii::Patterns::Selection(
                           " interpolate_initial_condition_function | "
@@ -497,6 +512,14 @@ void FlowSolverParam::parse_parameters(dealii::ParameterHandler &prm)
         prm.enter_subsection("kelvin_helmholtz_instability");
         {
             atwood_number = prm.get_double("atwood_number");
+        }
+        prm.leave_subsection();
+
+        prm.enter_subsection("ESFR_parameter_tests");
+        {
+            number_ESFR_parameter_values = prm.get_integer("number_ESFR_parameter_values");
+            ESFR_parameter_values_start = prm.get_double("ESFR_parameter_values_start");
+            ESFR_parameter_values_end = prm.get_double("ESFR_parameter_values_end");
         }
         prm.leave_subsection();
 

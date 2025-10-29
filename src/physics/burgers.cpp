@@ -212,7 +212,8 @@ std::array<real,nstate> Burgers<dim,nstate,real>
 
     using TestType = Parameters::AllParameters::TestType;
 
-    if(this->test_type == TestType::burgers_energy_stability || this->test_type == TestType::burgers_limiter){
+    if(this->test_type == TestType::burgers_energy_stability || this->test_type == TestType::burgers_limiter
+            || this->test_type == TestType::stability_fr_parameter_range){
         for(int istate =0; istate<nstate; istate++){
             source[istate] = 0.0;
             const double pi = atan(1)*4.0;

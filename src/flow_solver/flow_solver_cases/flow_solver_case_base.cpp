@@ -120,7 +120,14 @@ void FlowSolverCaseBase<dim,nstate>::display_flow_solver_setup(std::shared_ptr<D
         if (c_parameter_string == "cDG" ) {
             // No additional output to indicate classical strong DG
         } else {
-            this->pcout << "- - Using flux reconstruction c parameter: " << c_parameter_string << std::endl;
+            if(fr_type == FREnum::user_specified_value) {
+                this->pcout << "- - Using user specified flux reconstruction c parameter: " 
+                            << this->all_param.FR_user_specified_correction_parameter_value 
+                            << std::endl;
+            }
+            else {
+                this->pcout << "- - Using flux reconstruction c parameter: " << c_parameter_string << std::endl;
+            }
         }
 
         const bool use_split_form = this->all_param.use_split_form;

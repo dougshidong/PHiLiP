@@ -43,7 +43,9 @@ protected:
             int norm_p) const;
 
     /// Reinitialize parameters while refining the timestep. Necessary because all_parameters is constant.
-    Parameters::AllParameters reinit_params_and_refine(int refinement) const;
+    Parameters::AllParameters reinit_params_and_refine(int refinement,
+            double cvalue,
+            int nb_c_value) const;
 
 };
 

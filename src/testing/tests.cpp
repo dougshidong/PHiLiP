@@ -37,7 +37,7 @@
 #include "pod_adaptive_sampling_testing.h"
 #include "taylor_green_vortex_energy_check.h"
 #include "taylor_green_vortex_restart_check.h"
-#include "time_refinement_study.h"
+#include "general_refinement_study.h"
 #include "time_refinement_study_reference.h"
 #include "h_refinement_study_isentropic_vortex.h"
 #include "rrk_numerical_entropy_conservation_check.h"

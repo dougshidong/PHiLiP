@@ -19,58 +19,6 @@ StabilityFRParametersRange<dim, nstate>::StabilityFRParametersRange(const PHiLiP
 : TestsBase::TestsBase(parameters_input)
 {}
 
-template<int dim, int nstate>
-double StabilityFRParametersRange<dim, nstate>::compute_energy(std::shared_ptr < PHiLiP::DGBase<dim, double> > &dg) const
-{
-    double energy = 0.0;
-    dealii::LinearAlgebra::distributed::Vector<double> mass_matrix_times_solution(dg->right_hand_side);
-    if(dg->all_parameters->use_inverse_mass_on_the_fly)
-        dg->apply_global_mass_matrix(dg->solution,mass_matrix_times_solution);
-    else
-        dg->global_mass_matrix.vmult( mass_matrix_times_solution, dg->solution);
-    //Since we normalize the energy later, don't bother scaling by 0.5
-    //Energy \f$ = 0.5 * \int u^2 d\Omega_m \f$
-    energy = dg->solution * mass_matrix_times_solution;
-    
-    return energy;
-}
-
-template<int dim, int nstate>
-double StabilityFRParametersRange<dim, nstate>::compute_conservation(std::shared_ptr < PHiLiP::DGBase<dim, double> > &dg, const double poly_degree) const
-{
-    // Conservation \f$ =  \int 1 * u d\Omega_m \f$
-    double conservation = 0.0;
-    dealii::LinearAlgebra::distributed::Vector<double> mass_matrix_times_solution(dg->right_hand_side);
-    if(dg->all_parameters->use_inverse_mass_on_the_fly)
-        dg->apply_global_mass_matrix(dg->solution,mass_matrix_times_solution);
-    else
-        dg->global_mass_matrix.vmult( mass_matrix_times_solution, dg->solution);
-
-    const unsigned int n_dofs_cell = dg->fe_collection[poly_degree].dofs_per_cell;
-    const unsigned int n_quad_pts = dg->volume_quadrature_collection[poly_degree].size();
-    std::vector<double> ones(n_quad_pts, 1.0);
-    //Projected vector of ones. That is, the interpolation of ones_hat to the volume nodes is 1.
-    std::vector<double> ones_hat(n_dofs_cell);
-    //We have to project the vector of ones because the mass matrix has an interpolation from solution nodes built into it.
-    OPERATOR::vol_projection_operator<dim,2*dim,double> vol_projection(dg->nstate, poly_degree, dg->max_grid_degree);
-    vol_projection.build_1D_volume_operator(dg->oneD_fe_collection[poly_degree], dg->oneD_quadrature_collection[poly_degree]);
-    vol_projection.matrix_vector_mult_1D(ones, ones_hat,
-                                               vol_projection.oneD_vol_operator);
-
-    dealii::LinearAlgebra::distributed::Vector<double> ones_hat_global(dg->right_hand_side);
-    std::vector<dealii::types::global_dof_index> dofs_indices (n_dofs_cell);
-    for (auto cell = dg->dof_handler.begin_active(); cell!=dg->dof_handler.end(); ++cell) {
-        if (!cell->is_locally_owned()) continue;
-        cell->get_dof_indices (dofs_indices);
-        for(unsigned int idof=0;idof<n_dofs_cell; idof++){
-            ones_hat_global[dofs_indices[idof]] = ones_hat[idof];
-        }
-    }
-
-    conservation = ones_hat_global * mass_matrix_times_solution;
-
-    return conservation;
-}
 
 template <int dim, int nstate>
 int StabilityFRParametersRange<dim, nstate>::run_test() const

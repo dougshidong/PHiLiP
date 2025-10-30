@@ -26,7 +26,7 @@ protected:
     /// Reinitialize parameters and set initial_timestep according to reference solution and passed final time
     Parameters::AllParameters reinit_params_for_reference_solution(int number_of_timesteps, double final_time) const;
 
-    dealii::LinearAlgebra::distributed::Vector<double> calculate_reference_solution(double final_time);
+    dealii::LinearAlgebra::distributed::Vector<double> calculate_reference_solution(const double final_time) const;
     
     /// Calculate L2 error at the final time in the passed parameters
     double calculate_L2_error_at_final_time_wrt_reference(
@@ -44,7 +44,7 @@ protected:
             const double expected_order) const override;
     
     // Hold reference solution using a small timestep size
-    dealii::LinearAlgebra::distributed::Vector<double> reference_solution;
+    const dealii::LinearAlgebra::distributed::Vector<double> reference_solution;
 };
 
 } // End of Tests namespace

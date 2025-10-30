@@ -51,7 +51,7 @@ protected:
     double calculate_Lp_error_at_final_time_wrt_function(std::shared_ptr<DGBase<dim,double>> dg,const Parameters::AllParameters parameters, double final_time, int norm_p) const;
 
     /// Calculate the L2 error and return local testfail for the converged flowsolver.
-    std::tuple<double,int> process_and_write_conv_tables(std::shared_ptr<FlowSolver::FlowSolver<dim,nstate>> flow_solver, 
+    virtual std::tuple<double,int> process_and_write_conv_tables(std::shared_ptr<FlowSolver::FlowSolver<dim,nstate>> flow_solver, 
             const Parameters::AllParameters params, 
             double L2_error_old, 
             std::shared_ptr<dealii::ConvergenceTable> convergence_table,

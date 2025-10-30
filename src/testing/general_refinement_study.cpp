@@ -80,7 +80,7 @@ double GeneralRefinementStudy<dim,nstate>::calculate_Lp_error_at_final_time_wrt_
 }
 
 template <int dim, int nstate>
-int GeneralRefinementStudy<dim,nstate>::run_refinement_study_and_write_result(const Parameters::AllParameters *parameters_in) const{
+int GeneralRefinementStudy<dim,nstate>::run_refinement_study_and_write_result(const Parameters::AllParameters *parameters_in, const double expected_order, const bool append_to_file) const{
 
     const double final_time = parameters_in->flow_solver_param.final_time;
     const double initial_time_step = parameters_in->ode_solver_param.initial_time_step;
@@ -170,14 +170,6 @@ int GeneralRefinementStudy<dim,nstate>::run_refinement_study_and_write_result(co
             convergence_table.evaluate_convergence_rates("gamma_aggregate_m1", step_string, dealii::ConvergenceTable::reduction_rate_log2, 1);
         }
  
-        //Checking convergence order
-        double expected_order=0;
-        if (refinement_type == RefinementType::timestep){
-            expected_order = params.ode_solver_param.rk_order;
-        } else if (refinement_type == RefinementType::h){
-            // Using p because order will be at least p for any flux reconstruction param
-            expected_order = params.flow_solver_param.poly_degree; 
-        }
         const double order_tolerance = 0.1;
         if (refinement > 0) {
             L2_error_conv_rate = abs(log(L2_error_old/L2_error)/log(refine_ratio));
@@ -196,13 +188,19 @@ int GeneralRefinementStudy<dim,nstate>::run_refinement_study_and_write_result(co
 
     //Printing and writing convergence table
     pcout << std::endl;
-    if (pcout.is_active()) convergence_table.write_text(pcout.get_stream());
+    if (pcout.is_active()){ 
+        convergence_table.write_text(pcout.get_stream());
 
-    std::ofstream conv_tab_file;
-    const std::string fname = "temporal_convergence_table.txt";
-    conv_tab_file.open(fname);
-    convergence_table.write_text(conv_tab_file);
-    conv_tab_file.close();
+        std::ofstream conv_tab_file;
+        const std::string fname = "convergence_table.txt";
+        if (append_to_file == true) {
+            conv_tab_file.open(fname, std::ios::app);
+        } else{
+            conv_tab_file.open(fname);
+        }
+        convergence_table.write_text(conv_tab_file);
+        conv_tab_file.close();
+    }
 
 
     return testfail;
@@ -211,8 +209,16 @@ int GeneralRefinementStudy<dim,nstate>::run_refinement_study_and_write_result(co
 template <int dim, int nstate>
 int GeneralRefinementStudy<dim, nstate>::run_test() const
 {
+    // setting expected order
+    double expected_order_=0;
+    if (refinement_type == RefinementType::timestep){
+        expected_order_ = this->all_parameters->ode_solver_param.rk_order;
+    } else if (refinement_type == RefinementType::h){
+        expected_order_ = this->all_parameters->flow_solver_param.poly_degree + 1; 
+    }
+    const double expected_order = expected_order_;
     
-    double testfail = this->run_refinement_study_and_write_result(this->all_parameters);
+    double testfail = this->run_refinement_study_and_write_result(this->all_parameters, expected_order);
 
     return testfail;
 }

@@ -250,7 +250,8 @@ std::unique_ptr< TestsBase > TestsFactory<dim,nstate,MeshType>
     } else if(test_type == Test_enum::grid_refinement_study) {
         return std::make_unique<GridRefinementStudy<dim,nstate,MeshType>>(parameters_input);
     } else if(test_type == Test_enum::stability_fr_parameter_range) {
-        return std::make_unique<StabilityFRParametersRange<dim,nstate>>(parameters_input);
+        if constexpr ((dim==1 && nstate==1 ) || (dim==2 && nstate==1 ))
+            return std::make_unique<StabilityFRParametersRange<dim,nstate>>(parameters_input, parameter_handler_input);
     } else if(test_type == Test_enum::burgers_energy_stability) {
         if constexpr (dim==1 && nstate==1) return std::make_unique<BurgersEnergyStability<dim,nstate>>(parameters_input);
     } else if(test_type == Test_enum::diffusion_exact_adjoint) {

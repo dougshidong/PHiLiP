@@ -41,7 +41,7 @@ protected:
 
 
     /// Run the refinements.
-    int run_refinement_study_and_write_result(const Parameters::AllParameters *parameters_in) const;
+    int run_refinement_study_and_write_result(const Parameters::AllParameters *parameters_in, const double expected_order, const bool append_to_file = false) const;
 
     /// Calculate Lp error at the final time in the passed parameters
     /// norm_p is used to indicate the error order -- e.g., norm_p=2 

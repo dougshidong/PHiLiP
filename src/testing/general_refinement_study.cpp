@@ -146,6 +146,7 @@ int GeneralRefinementStudy<dim,nstate>::run_refinement_study_and_write_result(co
         convergence_table.add_value("refinement", refinement);
         convergence_table.add_value(step_string, step );
         convergence_table.set_precision(step_string, 16);
+        convergence_table.add_value("n_cells_per_dim",params.flow_solver_param.number_of_grid_elements_per_dimension); 
         convergence_table.set_scientific(step_string, true);
         convergence_table.add_value("L1_error",L1_error);
         convergence_table.set_precision("L1_error", 16);
@@ -227,6 +228,7 @@ int GeneralRefinementStudy<dim, nstate>::run_test() const
     template class GeneralRefinementStudy<PHILIP_DIM,PHILIP_DIM>;
 #else
     template class GeneralRefinementStudy<PHILIP_DIM,1>;
+    template class GeneralRefinementStudy<PHILIP_DIM,PHILIP_DIM+2>;
 #endif
 } // Tests namespace
 } // PHiLiP namespace

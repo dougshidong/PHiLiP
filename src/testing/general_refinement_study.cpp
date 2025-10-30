@@ -80,6 +80,93 @@ double GeneralRefinementStudy<dim,nstate>::calculate_Lp_error_at_final_time_wrt_
 }
 
 template <int dim, int nstate>
+std::tuple<double,int> GeneralRefinementStudy<dim,nstate>::process_and_write_conv_tables(std::shared_ptr<FlowSolver::FlowSolver<dim,nstate>> flow_solver, 
+        const Parameters::AllParameters params, 
+        double L2_error_old, 
+        std::shared_ptr<dealii::ConvergenceTable> convergence_table,
+        int refinement,
+        const double expected_order) const
+{
+    int testfail;
+    const double final_time_actual = flow_solver->ode_solver->current_time;
+    
+    //check Lp error
+    const double L1_error = calculate_Lp_error_at_final_time_wrt_function(flow_solver->dg, params,final_time_actual, 1);
+    const double L2_error = calculate_Lp_error_at_final_time_wrt_function(flow_solver->dg, params,final_time_actual, 2);
+    const double Linfty_error = calculate_Lp_error_at_final_time_wrt_function(flow_solver->dg, params,final_time_actual, -1);
+    pcout << "Computed errors are: " << std::endl
+          << "    L1:      " << L1_error << std::endl
+          << "    L2:      " << L2_error << std::endl
+          << "    Linfty:  " << Linfty_error << std::endl;
+
+
+
+    // hard-coded for LSRK test
+    if (params.ode_solver_param.runge_kutta_method == PHiLiP::Parameters::ODESolverParam::RK3_2_5F_3SStarPlus 
+        && params.ode_solver_param.atol == 1e-4 && params.ode_solver_param.rtol == 1e-4 
+        && params.time_refinement_study_param.number_of_times_to_solve == 1){
+        double L2_error_expected = 2.14808703658e-5; 
+        pcout << " Expected L2 error is: " << L2_error_expected << std::endl;
+        if (L2_error > L2_error_expected + 1e-9 || L2_error < L2_error_expected - 1e-9){
+            testfail = 1;
+            pcout << "Expected L2 error for RK3(2)5F[3S*+] using an atol = rtol = 1e-4 was not reached " << refinement <<std::endl;
+        }
+    }
+    
+    std::string step_string; 
+    double step=1.0;
+    if (refinement_type == RefinementType::timestep){
+        step_string = "dt";
+        step = params.ode_solver_param.initial_time_step;
+    }else if (refinement_type == RefinementType::h){
+        step_string = "h";
+        step = (params.flow_solver_param.grid_right_bound - params.flow_solver_param.grid_left_bound) / (params.flow_solver_param.number_of_grid_elements_per_dimension);
+    }
+    convergence_table->add_value("refinement", refinement);
+    convergence_table->add_value(step_string, step );
+    convergence_table->set_precision(step_string, 16);
+    convergence_table->add_value("n_cells_per_dim",params.flow_solver_param.number_of_grid_elements_per_dimension); 
+    convergence_table->set_scientific(step_string, true);
+    convergence_table->add_value("L1_error",L1_error);
+    convergence_table->set_precision("L1_error", 16);
+    convergence_table->evaluate_convergence_rates("L1_error", step_string, dealii::ConvergenceTable::reduction_rate_log2, 1);
+    convergence_table->add_value("L2_error",L2_error);
+    convergence_table->set_precision("L2_error", 16);
+    convergence_table->evaluate_convergence_rates("L2_error", step_string, dealii::ConvergenceTable::reduction_rate_log2, 1);
+    convergence_table->add_value("Linfty_error",Linfty_error);
+    convergence_table->set_precision("Linfty_error", 16);
+    convergence_table->evaluate_convergence_rates("Linfty_error", step_string, dealii::ConvergenceTable::reduction_rate_log2, 1);
+    
+    using ODESolverEnum = Parameters::ODESolverParam::ODESolverEnum;
+    if(params.ode_solver_param.ode_solver_type == ODESolverEnum::rrk_explicit_solver){
+        const double dt =  params.ode_solver_param.initial_time_step;
+        const int n_timesteps= flow_solver->ode_solver->current_iteration;
+        pcout << " at dt = " << dt << std::endl;
+        //for burgers, this is the average gamma over the runtime
+        const double gamma_aggregate_m1 = final_time_actual / (n_timesteps * dt)-1;
+        convergence_table->add_value("gamma_aggregate_m1", gamma_aggregate_m1);
+        convergence_table->set_precision("gamma_aggregate_m1", 16);
+        convergence_table->set_scientific("gamma_aggregate_m1", true);
+        convergence_table->evaluate_convergence_rates("gamma_aggregate_m1", step_string, dealii::ConvergenceTable::reduction_rate_log2, 1);
+    }
+
+    const double order_tolerance = 0.1;
+    if (refinement > 0) {
+        double L2_error_conv_rate = abs(log(L2_error_old/L2_error)/log(refine_ratio));
+        pcout << "L2 order at " << refinement << " is " << L2_error_conv_rate << std::endl;
+        if ((L2_error_conv_rate ) < expected_order - order_tolerance){
+            // Fail if the found convergence order is lower than the expected order.
+            testfail = 1;
+            pcout << "Expected convergence order was not reached at refinement " << refinement <<std::endl;
+        }
+       
+        // output current time refinement results to console 
+        if (refinement < n_calculations-1 && pcout.is_active()) convergence_table->write_text(pcout.get_stream());
+    }
+    return std::make_tuple(L2_error,testfail);
+}
+
+template <int dim, int nstate>
 int GeneralRefinementStudy<dim,nstate>::run_refinement_study_and_write_result(const Parameters::AllParameters *parameters_in, const double expected_order, const bool append_to_file) const{
 
     const double final_time = parameters_in->flow_solver_param.final_time;
@@ -93,9 +180,9 @@ int GeneralRefinementStudy<dim,nstate>::run_refinement_study_and_write_result(co
 
     int testfail = 0;
 
-    dealii::ConvergenceTable convergence_table;
+    std::shared_ptr<dealii::ConvergenceTable> convergence_table = std::make_shared<dealii::ConvergenceTable>();
     double L2_error_old = 0;
-    double L2_error_conv_rate=0;
+    double L2_error=0;
 
     for (int refinement = 0; refinement < n_calculations; ++refinement){
         
@@ -104,93 +191,28 @@ int GeneralRefinementStudy<dim,nstate>::run_refinement_study_and_write_result(co
         pcout << "---------------------------------------------" << std::endl;
 
         const Parameters::AllParameters params = reinit_params_and_refine(parameters_in,refinement, refinement_type);
-        std::unique_ptr<FlowSolver::FlowSolver<dim,nstate>> flow_solver = FlowSolver::FlowSolverFactory<dim,nstate>::select_flow_case(&params, parameter_handler);
+        std::shared_ptr<FlowSolver::FlowSolver<dim,nstate>> flow_solver = std::move(FlowSolver::FlowSolverFactory<dim,nstate>::select_flow_case(&params, parameter_handler));
         static_cast<void>(flow_solver->run());
         
-        pcout << "Finished flowsolver " << std::endl;
-
-        const double final_time_actual = flow_solver->ode_solver->current_time;
-        
-        //check Lp error
-        const double L1_error = calculate_Lp_error_at_final_time_wrt_function(flow_solver->dg, params,final_time_actual, 1);
-        const double L2_error = calculate_Lp_error_at_final_time_wrt_function(flow_solver->dg, params,final_time_actual, 2);
-        const double Linfty_error = calculate_Lp_error_at_final_time_wrt_function(flow_solver->dg, params,final_time_actual, -1);
-        pcout << "Computed errors are: " << std::endl
-              << "    L1:      " << L1_error << std::endl
-              << "    L2:      " << L2_error << std::endl
-              << "    Linfty:  " << Linfty_error << std::endl;
-
-
-
-        // hard-coded for LSRK test
-        if (params.ode_solver_param.runge_kutta_method == PHiLiP::Parameters::ODESolverParam::RK3_2_5F_3SStarPlus 
-            && params.ode_solver_param.atol == 1e-4 && params.ode_solver_param.rtol == 1e-4 
-            && params.time_refinement_study_param.number_of_times_to_solve == 1){
-            double L2_error_expected = 2.14808703658e-5; 
-            pcout << " Expected L2 error is: " << L2_error_expected << std::endl;
-            if (L2_error > L2_error_expected + 1e-9 || L2_error < L2_error_expected - 1e-9){
-                testfail = 1;
-                pcout << "Expected L2 error for RK3(2)5F[3S*+] using an atol = rtol = 1e-4 was not reached " << refinement <<std::endl;
-            }
-        }
-        
-        std::string step_string; 
-        double step=1.0;
-        if (refinement_type == RefinementType::timestep){
-            step_string = "dt";
-            step = params.ode_solver_param.initial_time_step;
-        }else if (refinement_type == RefinementType::h){
-            step_string = "h";
-            step = (params.flow_solver_param.grid_right_bound - params.flow_solver_param.grid_left_bound) / (params.flow_solver_param.number_of_grid_elements_per_dimension);
-        }
-        convergence_table.add_value("refinement", refinement);
-        convergence_table.add_value(step_string, step );
-        convergence_table.set_precision(step_string, 16);
-        convergence_table.add_value("n_cells_per_dim",params.flow_solver_param.number_of_grid_elements_per_dimension); 
-        convergence_table.set_scientific(step_string, true);
-        convergence_table.add_value("L1_error",L1_error);
-        convergence_table.set_precision("L1_error", 16);
-        convergence_table.evaluate_convergence_rates("L1_error", step_string, dealii::ConvergenceTable::reduction_rate_log2, 1);
-        convergence_table.add_value("L2_error",L2_error);
-        convergence_table.set_precision("L2_error", 16);
-        convergence_table.evaluate_convergence_rates("L2_error", step_string, dealii::ConvergenceTable::reduction_rate_log2, 1);
-        convergence_table.add_value("Linfty_error",Linfty_error);
-        convergence_table.set_precision("Linfty_error", 16);
-        convergence_table.evaluate_convergence_rates("Linfty_error", step_string, dealii::ConvergenceTable::reduction_rate_log2, 1);
-        
-        using ODESolverEnum = Parameters::ODESolverParam::ODESolverEnum;
-        if(params.ode_solver_param.ode_solver_type == ODESolverEnum::rrk_explicit_solver){
-            const double dt =  params.ode_solver_param.initial_time_step;
-            const int n_timesteps= flow_solver->ode_solver->current_iteration;
-            pcout << " at dt = " << dt << std::endl;
-            //for burgers, this is the average gamma over the runtime
-            const double gamma_aggregate_m1 = final_time_actual / (n_timesteps * dt)-1;
-            convergence_table.add_value("gamma_aggregate_m1", gamma_aggregate_m1);
-            convergence_table.set_precision("gamma_aggregate_m1", 16);
-            convergence_table.set_scientific("gamma_aggregate_m1", true);
-            convergence_table.evaluate_convergence_rates("gamma_aggregate_m1", step_string, dealii::ConvergenceTable::reduction_rate_log2, 1);
-        }
- 
-        const double order_tolerance = 0.1;
-        if (refinement > 0) {
-            L2_error_conv_rate = abs(log(L2_error_old/L2_error)/log(refine_ratio));
-            pcout << "L2 order at " << refinement << " is " << L2_error_conv_rate << std::endl;
-            if ((L2_error_conv_rate ) < expected_order - order_tolerance){
-                // Fail if the found convergence order is lower than the expected order.
-                testfail = 1;
-                pcout << "Expected convergence order was not reached at refinement " << refinement <<std::endl;
-            }
-           
-            // output current time refinement results to console 
-            if (refinement < n_calculations-1 && pcout.is_active()) convergence_table.write_text(pcout.get_stream());
-        }
+        pcout << "Finished flowsolver." << std::endl;
+        std::tuple<double, int> out_tuple = process_and_write_conv_tables(
+                flow_solver, 
+                params, 
+                L2_error_old, 
+                convergence_table,
+                refinement,
+                expected_order);
+        L2_error = std::get<0>(out_tuple);
+        int local_testfail = std::get<1>(out_tuple);
+        this->pcout<< "local testfail:" << local_testfail << std::endl;
+        testfail = (std::get<1>(out_tuple) == 1 || testfail == 1) ? 1 : 0;
         L2_error_old = L2_error;
     }
 
     //Printing and writing convergence table
     pcout << std::endl;
     if (pcout.is_active()){ 
-        convergence_table.write_text(pcout.get_stream());
+        convergence_table->write_text(pcout.get_stream());
 
         std::ofstream conv_tab_file;
         const std::string fname = "convergence_table.txt";
@@ -199,7 +221,7 @@ int GeneralRefinementStudy<dim,nstate>::run_refinement_study_and_write_result(co
         } else{
             conv_tab_file.open(fname);
         }
-        convergence_table.write_text(conv_tab_file);
+        convergence_table->write_text(conv_tab_file);
         conv_tab_file.close();
     }
 
@@ -219,7 +241,7 @@ int GeneralRefinementStudy<dim, nstate>::run_test() const
     }
     const double expected_order = expected_order_;
     
-    double testfail = this->run_refinement_study_and_write_result(this->all_parameters, expected_order);
+    int testfail = this->run_refinement_study_and_write_result(this->all_parameters, expected_order);
 
     return testfail;
 }

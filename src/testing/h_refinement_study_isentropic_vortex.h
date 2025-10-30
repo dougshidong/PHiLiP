@@ -3,6 +3,7 @@
 
 #include <deal.II/base/convergence_table.h>
 
+#include "general_refinement_study.h"
 #include "dg/dg_base.hpp"
 #include "tests.h"
 
@@ -11,7 +12,7 @@ namespace Tests {
 
 /// h refinement test for the isentropic vortex advection test case. 
 template <int dim, int nstate>
-class HRefinementStudyIsentropicVortex: public TestsBase
+class HRefinementStudyIsentropicVortex: public GeneralRefinementStudy<dim,nstate>
 {
 public:
     /// Constructor
@@ -19,17 +20,9 @@ public:
             const Parameters::AllParameters *const parameters_input,
             const dealii::ParameterHandler &parameter_handler_input);
 
-    /// Parameter handler for storing the .prm file being ran
-    const dealii::ParameterHandler &parameter_handler;
-    
     /// Run test
     int run_test () const override;
 protected:
-    /// Number of times to solve for convergence summary
-    const int n_calculations;
-
-    /// Ratio to refine by
-    const double refine_ratio;
 
     /// Calculate Lp error at the final time in the passed parameters
     /// norm_p is used to indicate the error order -- e.g., norm_p=2 
@@ -41,11 +34,6 @@ protected:
             const Parameters::AllParameters parameters,
             double final_time, 
             int norm_p) const;
-
-    /// Reinitialize parameters while refining the timestep. Necessary because all_parameters is constant.
-    Parameters::AllParameters reinit_params_and_refine(int refinement,
-            double cvalue,
-            int nb_c_value) const;
 
 };
 

@@ -16,6 +16,7 @@ add_test(
 )
 set_tests_labels(1D_BURGERS_ENERGY_CONSERVATION_RRK_CDG RELAXATION_RUNGE_KUTTA_CHECKS
                                                         1D
+                                                        REFINEMENT_STUDY
                                                         SERIAL
                                                         BURGERS_INVISCID
                                                         RUNGE-KUTTA
@@ -40,6 +41,7 @@ add_test(
 )
 set_tests_labels(1D_BURGERS_RRK_TEMPORAL_OOA_CDG    RELAXATION_RUNGE_KUTTA_CHECKS
                                                     1D
+                                                    REFINEMENT_STUDY
                                                     SERIAL
                                                     BURGERS_INVISCID
                                                     RUNGE-KUTTA
@@ -94,6 +96,7 @@ add_test(
 )
 set_tests_labels(1D_BURGERS_ENERGY_CONSERVATION_RRK_CPLUS   RELAXATION_RUNGE_KUTTA_CHECKS
                                                             1D
+                                                            REFINEMENT_STUDY
                                                             SERIAL
                                                             BURGERS_INVISCID
                                                             RUNGE-KUTTA
@@ -118,6 +121,7 @@ add_test(
 )
 set_tests_labels(1D_BURGERS_RRK_TEMPORAL_OOA_CPLUS  RELAXATION_RUNGE_KUTTA_CHECKS
                                                     1D
+                                                    REFINEMENT_STUDY
                                                     SERIAL
                                                     BURGERS_INVISCID
                                                     RUNGE-KUTTA
@@ -196,6 +200,7 @@ add_test(
 )
 set_tests_labels(MPI_2D_H_REFINEMENT_RRK_INVISCID_ISENTROPIC_VORTEX     RELAXATION_RUNGE_KUTTA_CHECKS
                                                                         2D
+                                                                        REFINEMENT_STUDY
                                                                         PARALLEL
                                                                         EULER
                                                                         RUNGE-KUTTA

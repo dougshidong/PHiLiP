@@ -17,23 +17,6 @@ HRefinementStudyIsentropicVortex<dim, nstate>::HRefinementStudyIsentropicVortex(
         GeneralRefinementStudy<dim,nstate>::RefinementType::h)  
 {}
 
-/*
-template <int dim, int nstate>
-Parameters::AllParameters HRefinementStudyIsentropicVortex<dim,nstate>::reinit_params_and_refine(int refinement, double cvalue, int nb_c_value) const
-{
-     PHiLiP::Parameters::AllParameters parameters = *(this->all_parameters);
-     
-     parameters.flow_solver_param.number_of_grid_elements_per_dimension *= pow(2, refinement);
-     parameters.flow_solver_param.unsteady_data_table_filename += std::to_string(parameters.flow_solver_param.number_of_grid_elements_per_dimension);
-     
-     if (nb_c_value > 0){
-        parameters.FR_user_specified_correction_parameter_value = cvalue;
-     }
-
-     return parameters;
-}
-*/
-
 template <int dim, int nstate>
 void HRefinementStudyIsentropicVortex<dim,nstate>::calculate_Lp_error_at_final_time_wrt_function(double &Lp_error_density, 
         double &Lp_error_pressure,

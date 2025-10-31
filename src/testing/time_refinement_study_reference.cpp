@@ -10,8 +10,9 @@ template <int dim, int nstate>
 TimeRefinementStudyReference<dim, nstate>::TimeRefinementStudyReference(
         const PHiLiP::Parameters::AllParameters *const parameters_input,
         const dealii::ParameterHandler &parameter_handler_input)  
-: GeneralRefinementStudy<dim,nstate>(parameters_input, parameter_handler_input,
-        GeneralRefinementStudy<dim,nstate>::RefinementType::timestep)  
+        : GeneralRefinementStudy<dim,nstate>(parameters_input, parameter_handler_input,
+                GeneralRefinementStudy<dim,nstate>::RefinementType::timestep)  
+        , reference_solution(this->calculate_reference_solution(parameters_input->flow_solver_param.final_time))
 {}
 
 template <int dim, int nstate>
@@ -37,7 +38,7 @@ Parameters::AllParameters TimeRefinementStudyReference<dim,nstate>::reinit_param
 
 template <int dim, int nstate>
 dealii::LinearAlgebra::distributed::Vector<double> TimeRefinementStudyReference<dim,nstate>::calculate_reference_solution(
-        const double final_time)
+        const double final_time) const
 {
     const int number_of_timesteps_for_reference_solution = this->all_parameters->time_refinement_study_param.number_of_timesteps_for_reference_solution;
     const Parameters::AllParameters params_reference = reinit_params_for_reference_solution(number_of_timesteps_for_reference_solution, final_time);
@@ -161,46 +162,10 @@ std::tuple<double,int> TimeRefinementStudyReference<dim,nstate>::process_and_wri
 template <int dim, int nstate>
 int TimeRefinementStudyReference<dim, nstate>::run_test() const
 {
-    const double final_time_target = this->all_parameters->flow_solver_param.final_time;
-    this->pcout << "\n\n-------------------------------------------------------" << std::endl;
-    this->pcout << "Calculating reference solution at target final_time = " << std::setprecision(16) << final_time_target << " ..."<<std::endl;
-    this->pcout << "-------------------------------------------------------" << std::endl;
-    
-    this->reference_solution = calculate_reference_solution(final_time_target);
-
     const double expected_order = this->all_parameters->ode_solver_param.rk_order;
 
     int testfail = this->run_refinement_study_and_write_result(this->all_parameters, expected_order);
     return testfail;
-/*
-    for (int refinement = 0; refinement < n_time_calculations; ++refinement){
-        
-        this->pcout << "\n\n-------------------------------------------------------" << std::endl;
-        this->pcout << "Refinement number " << refinement << " of " << n_time_calculations - 1 << std::endl;
-        this->pcout << "-------------------------------------------------------" << std::endl;
-
-        const Parameters::AllParameters params = reinit_params_and_refine_timestep(refinement);
-        std::unique_ptr<FlowSolver::FlowSolver<dim,nstate>> flow_solver = FlowSolver::FlowSolverFactory<dim,nstate>::select_flow_case(&params, parameter_handler);
-        const double energy_initial = flow_solver_case->compute_energy(flow_solver->dg);
-        static_cast<void>(flow_solver->run());
-
-        L2_error_old = L2_error;
-    }
-
-    //Printing and writing convergence table
-    this->pcout << std::endl;
-    if (this->pcout.is_active()) {
-        convergence_table->write_text(this->pcout.get_stream());
-
-        std::ofstream conv_tab_file;
-        const std::string fname = "temporal_convergence_table->txt";
-        conv_tab_file.open(fname);
-        convergence_table->write_text(conv_tab_file);
-        conv_tab_file.close();
-    }
-
-    return testfail;
-    */
 }
 
 #if PHILIP_DIM==1

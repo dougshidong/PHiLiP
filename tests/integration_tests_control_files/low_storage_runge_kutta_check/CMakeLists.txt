@@ -16,6 +16,7 @@ add_test(
 )
 set_tests_labels(1D_ADVECTION_LSRK  LOW_STORAGE_RUNGE-KUTTA_CHECK
                                     1D
+                                    REFINEMENT_STUDY
                                     SERIAL
                                     ADVECTION
                                     LOW_STORAGE_RUNGE-KUTTA

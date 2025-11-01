@@ -20,15 +20,15 @@ namespace PHiLiP {
 namespace Tests {
 
 
-template <int dim, int nstate>
-HyperReductionPostSampling<dim, nstate>::HyperReductionPostSampling(const Parameters::AllParameters *const parameters_input,
+template <int dim, int nspecies, int nstate>
+HyperReductionPostSampling<dim, nspecies, nstate>::HyperReductionPostSampling(const Parameters::AllParameters *const parameters_input,
                                         const dealii::ParameterHandler &parameter_handler_input)
         : TestsBase::TestsBase(parameters_input)
         , parameter_handler(parameter_handler_input)
 {}
 
-template <int dim, int nstate>
-Parameters::AllParameters HyperReductionPostSampling<dim, nstate>::reinit_params(const int max_iter) const{
+template <int dim, int nspecies, int nstate>
+Parameters::AllParameters HyperReductionPostSampling<dim, nspecies, nstate>::reinit_params(const int max_iter) const{
     // Copy all parameters
     PHiLiP::Parameters::AllParameters parameters = *(this->all_parameters);
 
@@ -36,27 +36,27 @@ Parameters::AllParameters HyperReductionPostSampling<dim, nstate>::reinit_params
     return parameters;
 }
 
-template <int dim, int nstate>
-int HyperReductionPostSampling<dim, nstate>::run_test() const
+template <int dim, int nspecies, int nstate>
+int HyperReductionPostSampling<dim, nspecies, nstate>::run_test() const
 {
     pcout << "Starting hyperreduction test..." << std::endl;
 
     Epetra_MpiComm Comm( MPI_COMM_WORLD );
     // Create POD Petrov-Galerkin ROM with Hyperreduction
-    std::unique_ptr<FlowSolver::FlowSolver<dim,nstate>> flow_solver_hyper_reduced_petrov_galerkin = FlowSolver::FlowSolverFactory<dim,nstate>::select_flow_case(all_parameters, parameter_handler);
+    std::unique_ptr<FlowSolver::FlowSolver<dim,nspecies,nstate>> flow_solver_hyper_reduced_petrov_galerkin = FlowSolver::FlowSolverFactory<dim,nspecies,nstate>::select_flow_case(all_parameters, parameter_handler);
     auto ode_solver_type = Parameters::ODESolverParam::ODESolverEnum::hyper_reduced_petrov_galerkin_solver;
 
     // Run Adaptive Sampling to choose snapshot locations and create POD basis
-    std::shared_ptr<AdaptiveSampling<dim,nstate>> parameter_sampling = std::make_unique<AdaptiveSampling<dim,nstate>>(all_parameters, parameter_handler);
+    std::shared_ptr<AdaptiveSampling<dim,nspecies,nstate>> parameter_sampling = std::make_unique<AdaptiveSampling<dim,nspecies,nstate>>(all_parameters, parameter_handler);
     parameter_sampling->run_sampling();
 
     // Find C and d for NNLS Problem
     std::cout << "Construct instance of Assembler..."<< std::endl;
-    std::shared_ptr<HyperReduction::AssembleECSWBase<dim,nstate>> constructor_NNLS_problem;
+    std::shared_ptr<HyperReduction::AssembleECSWBase<dim,nspecies,nstate>> constructor_NNLS_problem;
     if (this->all_parameters->hyper_reduction_param.training_data == "residual")         
-        constructor_NNLS_problem = std::make_shared<HyperReduction::AssembleECSWRes<dim,nstate>>(all_parameters, parameter_handler, flow_solver_hyper_reduced_petrov_galerkin->dg, parameter_sampling->current_pod, parameter_sampling->snapshot_parameters, ode_solver_type, Comm);
+        constructor_NNLS_problem = std::make_shared<HyperReduction::AssembleECSWRes<dim,nspecies,nstate>>(all_parameters, parameter_handler, flow_solver_hyper_reduced_petrov_galerkin->dg, parameter_sampling->current_pod, parameter_sampling->snapshot_parameters, ode_solver_type, Comm);
     else {
-        constructor_NNLS_problem = std::make_shared<HyperReduction::AssembleECSWJac<dim,nstate>>(all_parameters, parameter_handler, flow_solver_hyper_reduced_petrov_galerkin->dg, parameter_sampling->current_pod, parameter_sampling->snapshot_parameters, ode_solver_type, Comm);
+        constructor_NNLS_problem = std::make_shared<HyperReduction::AssembleECSWJac<dim,nspecies,nstate>>(all_parameters, parameter_handler, flow_solver_hyper_reduced_petrov_galerkin->dg, parameter_sampling->current_pod, parameter_sampling->snapshot_parameters, ode_solver_type, Comm);
     }
     for (unsigned int j = 0 ; j < parameter_sampling->fom_locations.size() ; j++ ){
         constructor_NNLS_problem->update_snapshots(parameter_sampling->fom_locations[j]);
@@ -97,7 +97,7 @@ int HyperReductionPostSampling<dim, nstate>::run_test() const
     weights_table_file.close();
 
     // Solve for the DWR Error at the ROM points with the hyperreduced weights
-    std::shared_ptr<HyperreducedAdaptiveSampling<dim,nstate>> hyper_reduced_ROM_solver = std::make_unique<HyperreducedAdaptiveSampling<dim,nstate>>(all_parameters, parameter_handler);
+    std::shared_ptr<HyperreducedAdaptiveSampling<dim,nspecies,nstate>> hyper_reduced_ROM_solver = std::make_unique<HyperreducedAdaptiveSampling<dim,nspecies,nstate>>(all_parameters, parameter_handler);
     hyper_reduced_ROM_solver->current_pod = parameter_sampling->current_pod;
     hyper_reduced_ROM_solver->snapshot_parameters = parameter_sampling->snapshot_parameters;
     MatrixXd rom_points(0, hyper_reduced_ROM_solver->snapshot_parameters.cols());
@@ -119,11 +119,11 @@ int HyperReductionPostSampling<dim, nstate>::run_test() const
 }
 
 #if PHILIP_DIM==1
-        template class HyperReductionPostSampling<PHILIP_DIM, PHILIP_DIM>;
+        template class HyperReductionPostSampling<PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM>;
 #endif
 
 #if PHILIP_DIM!=1
-        template class HyperReductionPostSampling<PHILIP_DIM, PHILIP_DIM+2>;
+        template class HyperReductionPostSampling<PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2>;
 #endif
 } // Tests namespace
 } // PHiLiP namespace

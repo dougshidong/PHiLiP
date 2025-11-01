@@ -19,7 +19,7 @@ namespace GridRefinement {
   * for a given cell. A collection of elements is contained in the corresponding Field class (with respective extensions
   * for anisotropy). Note: setting anisotropic properties in the isotropic case will assert(0) and make no changes.
   */
-template <int dim, typename real>
+template <int dim, int nspecies, typename real>
 class Element
 {
 public:
@@ -157,8 +157,8 @@ public:
   * A collection of elements is contained in the corresponding Field class.
   * Note: virtual functions controlling axes or anisotropic ratio do nothing, assert(0).
   */
-template <int dim, typename real>
-class ElementIsotropic : public Element<dim,real>
+template <int dim, int nspecies, typename real>
+class ElementIsotropic : public Element<dim,nspecies,real>
 {
 public:
 	/// Reference for element size
@@ -239,7 +239,7 @@ protected:
 	  * Internal function used in handling of set_cell().
 	  */
 	void set_cell_internal(
-		const typename Element<dim,real>::VertexList& vertices) override;
+		const typename Element<dim,nspecies,real>::VertexList& vertices) override;
 
 public:
 	/// Set anisotropy from reconstructed directional derivatives
@@ -265,7 +265,7 @@ public:
 	  */ 
 	friend std::ostream& operator<<(
 		std::ostream&                     os,
-		const ElementIsotropic<dim,real>& element) 
+		const ElementIsotropic<dim,nspecies,real>& element) 
 	{
 		os << "Isotropic element with properties:" << std::endl
 		   << '\t' << "m_scale = " << element.m_scale << std::endl;
@@ -283,8 +283,8 @@ private:
   * Stores decomposed frame field axes (size, orientation and anisotropy).
   * A collection of elements is contained in the corresponding Field class.
   */
-template <int dim, typename real>
-class ElementAnisotropic : public Element<dim,real>
+template <int dim, int nspecies, typename real>
+class ElementAnisotropic : public Element<dim,nspecies,real>
 {
 public:
 	/// Constructor, sets default element definition
@@ -359,7 +359,7 @@ protected:
 	  * Internal function used in handling of set_cell().
 	  */
 	void set_cell_internal(
-		const typename Element<dim,real>::VertexList& vertices) override;
+		const typename Element<dim,nspecies,real>::VertexList& vertices) override;
 
 public:
 	/// Set anisotropy from reconstructed directional derivatives
@@ -385,7 +385,7 @@ public:
 	  */ 
 	friend std::ostream& operator<<(
 		std::ostream&                       os,
-		const ElementAnisotropic<dim,real>& element)
+		const ElementAnisotropic<dim,nspecies,real>& element)
 	{
 		os << "Anisotropic element with properties:" << std::endl
 		   << '\t' << "m_scale = " << element.m_scale << std::endl
@@ -448,7 +448,7 @@ private:
   * Each local element is stored in ElementIsotropic or ELementAnisotropic
   * specified above and the FieldInternal class is used to differentiate.
   */
-template <int dim, typename real>
+template <int dim, int nspecies, typename real>
 class Field 
 {
 public:
@@ -602,7 +602,7 @@ public:
 	/// Performs output to ostream using internal serialization
 	friend std::ostream& operator<<(
 		std::ostream&          os,
-		const Field<dim,real>& field)
+		const Field<dim,nspecies,real>& field)
 	{
 		return field.serialize(os);
 	}
@@ -615,8 +615,8 @@ public:
   * check the type of field which is being used. Internally stores the target output mesh 
   * description from the continuous space as a discrete vector associated with each element.
   */
-template <int dim, typename real, typename ElementType>
-class FieldInternal : public Field<dim,real>
+template <int dim, int nspecies, typename real, typename ElementType>
+class FieldInternal : public Field<dim,nspecies,real>
 {
 public:
 	/// reinitialize the internal data structure 
@@ -692,7 +692,7 @@ public:
 
 	// Assigns the existing field based on an input DoFHandlerType
 	void set_cell(
-		const typename Field<dim,real>::DoFHandlerType& dof_handler) override
+		const typename Field<dim,nspecies,real>::DoFHandlerType& dof_handler) override
 	{
 		reinit(dof_handler.get_triangulation().n_active_cells());
 
@@ -728,15 +728,15 @@ private:
 /// Field with isotropic element 
 /** Describes target size field for the mesh only
   */ 
-template <int dim, typename real>
-using FieldIsotropic = FieldInternal<dim,real,ElementIsotropic<dim,real>>;
+template <int dim, int nspecies, typename real>
+using FieldIsotropic = FieldInternal<dim,nspecies,real,ElementIsotropic<dim,nspecies,real>>;
 
 /// Field with anisotropic element
 /** Describes mesh size, orientation and anisotropy. Description is based
   * on storage of frame axes for the target tensor-product element in dim dimensions.
   */
-template <int dim, typename real>
-using FieldAnisotropic = FieldInternal<dim,real,ElementAnisotropic<dim,real>>;
+template <int dim, int nspecies, typename real>
+using FieldAnisotropic = FieldInternal<dim,nspecies,real,ElementAnisotropic<dim,nspecies,real>>;
 
 } // namespace GridRefinement
 

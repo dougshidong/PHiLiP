@@ -115,13 +115,13 @@ public:
  *  deal.II will change this one day such that we have one interface for both.
  */
 #if PHILIP_DIM==1 // dealii::parallel::distributed::Triangulation<dim> does not work for 1D
-template <int      dim            = PHILIP_DIM, 
+template <int      dim            = PHILIP_DIM,
           typename real           = double, 
           typename MeshType       = dealii::Triangulation<dim>, 
           typename VectorType     = typename MeshTypeHelper<MeshType>::VectorType, 
           typename DoFHandlerType = typename MeshTypeHelper<MeshType>::DoFHandlerType>
 #else
-template <int      dim            = PHILIP_DIM, 
+template <int      dim            = PHILIP_DIM,
           typename real           = double, 
           typename MeshType       = dealii::parallel::distributed::Triangulation<dim>, 
           typename VectorType     = typename MeshTypeHelper<MeshType>::VectorType, 
@@ -360,7 +360,7 @@ public:
     // /** The metric Jacobian is given by the gradient of the physical location
     //  *  with respect to the reference locations
     //  */
-    //  dealii::Tensor<2,dim,real> cell_jacobian (const typename dealii::Triangulation<dim,spacedim>::cell_iterator &cell, const dealii::Point<dim> &point) const override
+    //  dealii::Tensor<2,dim,real> cell_jacobian (const typename dealii::Triangulation<dim,nspecies,spacedim>::cell_iterator &cell, const dealii::Point<dim> &point) const override
     //  {
     //  }
 
@@ -453,7 +453,7 @@ protected:
 };
 
 /// Postprocessor used to output the grid.
-template <int dim>
+template <int dim, int nspecies>
 class GridPostprocessor : public dealii::DataPostprocessor<dim>
 {
 public:

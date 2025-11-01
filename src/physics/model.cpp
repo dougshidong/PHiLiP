@@ -11,16 +11,16 @@ namespace Physics {
 //================================================================
 // Models Base Class
 //================================================================
-template <int dim, int nstate, typename real>
-ModelBase<dim, nstate, real>::ModelBase(
-    std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function_input):
+template <int dim, int nspecies, int nstate, typename real>
+ModelBase<dim, nspecies, nstate, real>::ModelBase(
+    std::shared_ptr< ManufacturedSolutionFunction<dim,nspecies,real> > manufactured_solution_function_input):
         manufactured_solution_function(manufactured_solution_function_input)
         , mpi_communicator(MPI_COMM_WORLD)
         , pcout(std::cout, dealii::Utilities::MPI::this_mpi_process(mpi_communicator)==0)
 {}
 //----------------------------------------------------------------
-template <int dim, int nstate, typename real>
-std::array<real,nstate> ModelBase<dim, nstate, real>
+template <int dim, int nspecies, int nstate, typename real>
+std::array<real,nstate> ModelBase<dim, nspecies, nstate, real>
 ::physical_source_term (
     const dealii::Point<dim,real> &/*pos*/,
     const std::array<real,nstate> &/*solution*/,
@@ -32,8 +32,8 @@ std::array<real,nstate> ModelBase<dim, nstate, real>
     return physical_source;
 }
 //----------------------------------------------------------------
-template <int dim, int nstate, typename real>
-void ModelBase<dim,nstate,real>
+template <int dim, int nspecies, int nstate, typename real>
+void ModelBase<dim,nspecies,nstate,real>
 ::boundary_manufactured_solution (
     const dealii::Point<dim, real> &/*pos*/,
     const dealii::Tensor<1,dim,real> &/*normal_int*/,
@@ -50,8 +50,8 @@ void ModelBase<dim,nstate,real>
     }
 }
 //----------------------------------------------------------------
-template <int dim, int nstate, typename real>
-void ModelBase<dim,nstate,real>
+template <int dim, int nspecies, int nstate, typename real>
+void ModelBase<dim,nspecies,nstate,real>
 ::boundary_wall (
    std::array<real,nstate> &/*soln_bc*/,
    std::array<dealii::Tensor<1,dim,real>,nstate> &/*soln_grad_bc*/) const
@@ -64,8 +64,8 @@ void ModelBase<dim,nstate,real>
     }
 }
 //----------------------------------------------------------------
-template <int dim, int nstate, typename real>
-void ModelBase<dim,nstate,real>
+template <int dim, int nspecies, int nstate, typename real>
+void ModelBase<dim,nspecies,nstate,real>
 ::boundary_outflow (
    const std::array<real,nstate> &/*soln_int*/,
    const std::array<dealii::Tensor<1,dim,real>,nstate> &/*soln_grad_int*/,
@@ -80,8 +80,8 @@ void ModelBase<dim,nstate,real>
     }
 }
 //----------------------------------------------------------------
-template <int dim, int nstate, typename real>
-void ModelBase<dim,nstate,real>
+template <int dim, int nspecies, int nstate, typename real>
+void ModelBase<dim,nspecies,nstate,real>
 ::boundary_inflow (
    const std::array<real,nstate> &/*soln_int*/,
    const std::array<dealii::Tensor<1,dim,real>,nstate> &/*soln_grad_int*/,
@@ -96,8 +96,8 @@ void ModelBase<dim,nstate,real>
     }
 }
 //----------------------------------------------------------------
-template <int dim, int nstate, typename real>
-void ModelBase<dim,nstate,real>
+template <int dim, int nspecies, int nstate, typename real>
+void ModelBase<dim,nspecies,nstate,real>
 ::boundary_farfield (
    std::array<real,nstate> &/*soln_bc*/) const
 {
@@ -109,8 +109,8 @@ void ModelBase<dim,nstate,real>
     }
 }
 //----------------------------------------------------------------
-template <int dim, int nstate, typename real>
-void ModelBase<dim,nstate,real>
+template <int dim, int nspecies, int nstate, typename real>
+void ModelBase<dim,nspecies,nstate,real>
 ::boundary_slip_wall (
    const dealii::Tensor<1,dim,real> &/*normal_int*/,
    const std::array<real,nstate> &/*soln_int*/,
@@ -126,8 +126,8 @@ void ModelBase<dim,nstate,real>
     }
 }
 //----------------------------------------------------------------
-template <int dim, int nstate, typename real>
-void ModelBase<dim,nstate,real>
+template <int dim, int nspecies, int nstate, typename real>
+void ModelBase<dim,nspecies,nstate,real>
 ::boundary_riemann (
    const dealii::Tensor<1,dim,real> &/*normal_int*/,
    const std::array<real,nstate> &/*soln_int*/,
@@ -141,8 +141,8 @@ void ModelBase<dim,nstate,real>
     }
 }
 //----------------------------------------------------------------
-template <int dim, int nstate, typename real>
-void ModelBase<dim,nstate,real>
+template <int dim, int nspecies, int nstate, typename real>
+void ModelBase<dim,nspecies,nstate,real>
 ::boundary_face_values (
    const int boundary_type,
    const dealii::Point<dim, real> &pos,
@@ -187,8 +187,8 @@ void ModelBase<dim,nstate,real>
     // Note: this does not get called when nstate==dim+2 since baseline physics takes care of it
 }
 //----------------------------------------------------------------
-template <int dim, int nstate, typename real>
-dealii::Vector<double> ModelBase<dim, nstate, real>
+template <int dim, int nspecies, int nstate, typename real>
+dealii::Vector<double> ModelBase<dim, nspecies, nstate, real>
 ::post_compute_derived_quantities_vector (
     const dealii::Vector<double>              &uh,
     const std::vector<dealii::Tensor<1,dim> > &/*duh*/,
@@ -203,8 +203,8 @@ dealii::Vector<double> ModelBase<dim, nstate, real>
     return computed_quantities;
 }
 //----------------------------------------------------------------
-template <int dim, int nstate, typename real>
-std::vector<std::string> ModelBase<dim, nstate, real>
+template <int dim, int nspecies, int nstate, typename real>
+std::vector<std::string> ModelBase<dim, nspecies, nstate, real>
 ::post_get_names () const
 {
     std::vector<std::string> names;
@@ -215,8 +215,8 @@ std::vector<std::string> ModelBase<dim, nstate, real>
     return names;
 }
 //----------------------------------------------------------------
-template <int dim, int nstate, typename real>
-std::vector<dealii::DataComponentInterpretation::DataComponentInterpretation> ModelBase<dim, nstate, real>
+template <int dim, int nspecies, int nstate, typename real>
+std::vector<dealii::DataComponentInterpretation::DataComponentInterpretation> ModelBase<dim, nspecies, nstate, real>
 ::post_get_data_component_interpretation () const
 {
     namespace DCI = dealii::DataComponentInterpretation;
@@ -231,45 +231,45 @@ std::vector<dealii::DataComponentInterpretation::DataComponentInterpretation> Mo
 //----------------------------------------------------------------
 //----------------------------------------------------------------
 // Instantiate explicitly
-template class ModelBase<PHILIP_DIM, 1, double>;
-template class ModelBase<PHILIP_DIM, 2, double>;
-template class ModelBase<PHILIP_DIM, 3, double>;
-template class ModelBase<PHILIP_DIM, 4, double>;
-template class ModelBase<PHILIP_DIM, 5, double>;
-template class ModelBase<PHILIP_DIM, 6, double>;
-template class ModelBase<PHILIP_DIM, 8, double>;
+template class ModelBase<PHILIP_DIM, PHILIP_SPECIES, 1, double>;
+template class ModelBase<PHILIP_DIM, PHILIP_SPECIES, 2, double>;
+template class ModelBase<PHILIP_DIM, PHILIP_SPECIES, 3, double>;
+template class ModelBase<PHILIP_DIM, PHILIP_SPECIES, 4, double>;
+template class ModelBase<PHILIP_DIM, PHILIP_SPECIES, 5, double>;
+template class ModelBase<PHILIP_DIM, PHILIP_SPECIES, 6, double>;
+template class ModelBase<PHILIP_DIM, PHILIP_SPECIES, 8, double>;
 
-template class ModelBase<PHILIP_DIM, 1, FadType>;
-template class ModelBase<PHILIP_DIM, 2, FadType>;
-template class ModelBase<PHILIP_DIM, 3, FadType>;
-template class ModelBase<PHILIP_DIM, 4, FadType>;
-template class ModelBase<PHILIP_DIM, 5, FadType>;
-template class ModelBase<PHILIP_DIM, 6, FadType>;
-template class ModelBase<PHILIP_DIM, 8, FadType>;
+template class ModelBase<PHILIP_DIM, PHILIP_SPECIES, 1, FadType>;
+template class ModelBase<PHILIP_DIM, PHILIP_SPECIES, 2, FadType>;
+template class ModelBase<PHILIP_DIM, PHILIP_SPECIES, 3, FadType>;
+template class ModelBase<PHILIP_DIM, PHILIP_SPECIES, 4, FadType>;
+template class ModelBase<PHILIP_DIM, PHILIP_SPECIES, 5, FadType>;
+template class ModelBase<PHILIP_DIM, PHILIP_SPECIES, 6, FadType>;
+template class ModelBase<PHILIP_DIM, PHILIP_SPECIES, 8, FadType>;
 
-template class ModelBase<PHILIP_DIM, 1, RadType>;
-template class ModelBase<PHILIP_DIM, 2, RadType>;
-template class ModelBase<PHILIP_DIM, 3, RadType>;
-template class ModelBase<PHILIP_DIM, 4, RadType>;
-template class ModelBase<PHILIP_DIM, 5, RadType>;
-template class ModelBase<PHILIP_DIM, 6, RadType>;
-template class ModelBase<PHILIP_DIM, 8, RadType>;
+template class ModelBase<PHILIP_DIM, PHILIP_SPECIES, 1, RadType>;
+template class ModelBase<PHILIP_DIM, PHILIP_SPECIES, 2, RadType>;
+template class ModelBase<PHILIP_DIM, PHILIP_SPECIES, 3, RadType>;
+template class ModelBase<PHILIP_DIM, PHILIP_SPECIES, 4, RadType>;
+template class ModelBase<PHILIP_DIM, PHILIP_SPECIES, 5, RadType>;
+template class ModelBase<PHILIP_DIM, PHILIP_SPECIES, 6, RadType>;
+template class ModelBase<PHILIP_DIM, PHILIP_SPECIES, 8, RadType>;
 
-template class ModelBase<PHILIP_DIM, 1, FadFadType>;
-template class ModelBase<PHILIP_DIM, 2, FadFadType>;
-template class ModelBase<PHILIP_DIM, 3, FadFadType>;
-template class ModelBase<PHILIP_DIM, 4, FadFadType>;
-template class ModelBase<PHILIP_DIM, 5, FadFadType>;
-template class ModelBase<PHILIP_DIM, 6, FadFadType>;
-template class ModelBase<PHILIP_DIM, 8, FadFadType>;
+template class ModelBase<PHILIP_DIM, PHILIP_SPECIES, 1, FadFadType>;
+template class ModelBase<PHILIP_DIM, PHILIP_SPECIES, 2, FadFadType>;
+template class ModelBase<PHILIP_DIM, PHILIP_SPECIES, 3, FadFadType>;
+template class ModelBase<PHILIP_DIM, PHILIP_SPECIES, 4, FadFadType>;
+template class ModelBase<PHILIP_DIM, PHILIP_SPECIES, 5, FadFadType>;
+template class ModelBase<PHILIP_DIM, PHILIP_SPECIES, 6, FadFadType>;
+template class ModelBase<PHILIP_DIM, PHILIP_SPECIES, 8, FadFadType>;
 
-template class ModelBase<PHILIP_DIM, 1, RadFadType>;
-template class ModelBase<PHILIP_DIM, 2, RadFadType>;
-template class ModelBase<PHILIP_DIM, 3, RadFadType>;
-template class ModelBase<PHILIP_DIM, 4, RadFadType>;
-template class ModelBase<PHILIP_DIM, 5, RadFadType>;
-template class ModelBase<PHILIP_DIM, 6, RadFadType>;
-template class ModelBase<PHILIP_DIM, 8, RadFadType>;
+template class ModelBase<PHILIP_DIM, PHILIP_SPECIES, 1, RadFadType>;
+template class ModelBase<PHILIP_DIM, PHILIP_SPECIES, 2, RadFadType>;
+template class ModelBase<PHILIP_DIM, PHILIP_SPECIES, 3, RadFadType>;
+template class ModelBase<PHILIP_DIM, PHILIP_SPECIES, 4, RadFadType>;
+template class ModelBase<PHILIP_DIM, PHILIP_SPECIES, 5, RadFadType>;
+template class ModelBase<PHILIP_DIM, PHILIP_SPECIES, 6, RadFadType>;
+template class ModelBase<PHILIP_DIM, PHILIP_SPECIES, 8, RadFadType>;
 
 } // Physics namespace
 } // PHiLiP namespace

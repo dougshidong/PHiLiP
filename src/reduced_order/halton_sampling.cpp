@@ -20,14 +20,14 @@
 
 namespace PHiLiP {
 
-template<int dim, int nstate>
-HaltonSampling<dim, nstate>::HaltonSampling(const PHiLiP::Parameters::AllParameters *const parameters_input,
+template<int dim, int nspecies, int nstate>
+HaltonSampling<dim, nspecies, nstate>::HaltonSampling(const PHiLiP::Parameters::AllParameters *const parameters_input,
                                                 const dealii::ParameterHandler &parameter_handler_input)
-        : AdaptiveSamplingBase<dim, nstate>(parameters_input, parameter_handler_input)
+        : AdaptiveSamplingBase<dim, nspecies, nstate>(parameters_input, parameter_handler_input)
 {}
 
-template <int dim, int nstate>
-int HaltonSampling<dim, nstate>::run_sampling() const
+template <int dim, int nspecies, int nstate>
+int HaltonSampling<dim, nspecies, nstate>::run_sampling() const
 {
     this->pcout << "Starting Halton sampling process" << std::endl;
     auto stream = this->pcout;
@@ -44,11 +44,11 @@ int HaltonSampling<dim, nstate>::run_sampling() const
 }
 
 #if PHILIP_DIM==1
-        template class HaltonSampling<PHILIP_DIM, PHILIP_DIM>;
+        template class HaltonSampling<PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM>;
 #endif
 
 #if PHILIP_DIM!=1
-        template class HaltonSampling<PHILIP_DIM, PHILIP_DIM+2>;
+        template class HaltonSampling<PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2>;
 #endif
 
 }

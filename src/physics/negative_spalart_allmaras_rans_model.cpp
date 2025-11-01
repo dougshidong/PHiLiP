@@ -14,8 +14,8 @@ namespace Physics {
 //================================================================
 // Negative Spalart-Allmaras model
 //================================================================
-template <int dim, int nstate, typename real>
-ReynoldsAveragedNavierStokes_SAneg<dim, nstate, real>::ReynoldsAveragedNavierStokes_SAneg(
+template <int dim, int nspecies, int nstate, typename real>
+ReynoldsAveragedNavierStokes_SAneg<dim, nspecies, nstate, real>::ReynoldsAveragedNavierStokes_SAneg(
     const Parameters::AllParameters *const                    parameters_input,
     const double                                              ref_length,
     const double                                              gamma_gas,
@@ -30,9 +30,9 @@ ReynoldsAveragedNavierStokes_SAneg<dim, nstate, real>::ReynoldsAveragedNavierSto
     const double                                              temperature_inf,
     const double                                              isothermal_wall_temperature,
     const thermal_boundary_condition_enum                     thermal_boundary_condition_type,
-    std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function,
+    std::shared_ptr< ManufacturedSolutionFunction<dim,nspecies,real> > manufactured_solution_function,
     const two_point_num_flux_enum                             two_point_num_flux_type)
-    : ReynoldsAveragedNavierStokesBase<dim,nstate,real>(parameters_input,
+    : ReynoldsAveragedNavierStokesBase<dim,nspecies,nstate,real>(parameters_input,
                                                         ref_length,
                                                         gamma_gas,
                                                         mach_inf,
@@ -50,8 +50,8 @@ ReynoldsAveragedNavierStokes_SAneg<dim, nstate, real>::ReynoldsAveragedNavierSto
                                                         two_point_num_flux_type)
 { }
 //----------------------------------------------------------------
-template <int dim, int nstate, typename real>
-real ReynoldsAveragedNavierStokes_SAneg<dim,nstate,real>
+template <int dim, int nspecies, int nstate, typename real>
+real ReynoldsAveragedNavierStokes_SAneg<dim,nspecies,nstate,real>
 ::compute_eddy_viscosity (
     const std::array<real,nstate_navier_stokes> &primitive_soln_rans,
     const std::array<real,nstate_turbulence_model> &primitive_soln_turbulence_model) const
@@ -59,8 +59,8 @@ real ReynoldsAveragedNavierStokes_SAneg<dim,nstate,real>
     return compute_eddy_viscosity_templated<real>(primitive_soln_rans,primitive_soln_turbulence_model);
 }
 //----------------------------------------------------------------
-template <int dim, int nstate, typename real>
-FadType ReynoldsAveragedNavierStokes_SAneg<dim,nstate,real>
+template <int dim, int nspecies, int nstate, typename real>
+FadType ReynoldsAveragedNavierStokes_SAneg<dim,nspecies,nstate,real>
 ::compute_eddy_viscosity_fad (
     const std::array<FadType,nstate_navier_stokes> &primitive_soln_rans,
     const std::array<FadType,nstate_turbulence_model> &primitive_soln_turbulence_model) const
@@ -68,9 +68,9 @@ FadType ReynoldsAveragedNavierStokes_SAneg<dim,nstate,real>
     return compute_eddy_viscosity_templated<FadType>(primitive_soln_rans,primitive_soln_turbulence_model);
 }
 //----------------------------------------------------------------
-template <int dim, int nstate, typename real>
+template <int dim, int nspecies, int nstate, typename real>
 template<typename real2>
-real2 ReynoldsAveragedNavierStokes_SAneg<dim,nstate,real>
+real2 ReynoldsAveragedNavierStokes_SAneg<dim,nspecies,nstate,real>
 ::compute_eddy_viscosity_templated (
     const std::array<real2,nstate_navier_stokes> &primitive_soln_rans,
     const std::array<real2,nstate_turbulence_model> &primitive_soln_turbulence_model) const
@@ -91,9 +91,9 @@ real2 ReynoldsAveragedNavierStokes_SAneg<dim,nstate,real>
     return eddy_viscosity;
 }
 //----------------------------------------------------------------
-template <int dim, int nstate, typename real>
+template <int dim, int nspecies, int nstate, typename real>
 template<typename real2>
-real2 ReynoldsAveragedNavierStokes_SAneg<dim,nstate,real>
+real2 ReynoldsAveragedNavierStokes_SAneg<dim,nspecies,nstate,real>
 ::scale_coefficient (
     const real2 coefficient) const
 {
@@ -113,8 +113,8 @@ real2 ReynoldsAveragedNavierStokes_SAneg<dim,nstate,real>
     return scaled_coefficient;
 }
 //----------------------------------------------------------------
-template <int dim, int nstate, typename real>
-std::array<real,nstate-(dim+2)> ReynoldsAveragedNavierStokes_SAneg<dim,nstate,real>
+template <int dim, int nspecies, int nstate, typename real>
+std::array<real,nstate-(dim+2)> ReynoldsAveragedNavierStokes_SAneg<dim,nspecies,nstate,real>
 ::compute_effective_viscosity_turbulence_model (
     const std::array<real,nstate_navier_stokes> &primitive_soln_rans,
     const std::array<real,nstate_turbulence_model> &primitive_soln_turbulence_model) const
@@ -122,8 +122,8 @@ std::array<real,nstate-(dim+2)> ReynoldsAveragedNavierStokes_SAneg<dim,nstate,re
     return compute_effective_viscosity_turbulence_model_templated<real>(primitive_soln_rans,primitive_soln_turbulence_model);
 }
 //----------------------------------------------------------------
-template <int dim, int nstate, typename real>
-std::array<FadType,nstate-(dim+2)> ReynoldsAveragedNavierStokes_SAneg<dim,nstate,real>
+template <int dim, int nspecies, int nstate, typename real>
+std::array<FadType,nstate-(dim+2)> ReynoldsAveragedNavierStokes_SAneg<dim,nspecies,nstate,real>
 ::compute_effective_viscosity_turbulence_model_fad (
     const std::array<FadType,nstate_navier_stokes> &primitive_soln_rans,
     const std::array<FadType,nstate_turbulence_model> &primitive_soln_turbulence_model) const
@@ -131,9 +131,9 @@ std::array<FadType,nstate-(dim+2)> ReynoldsAveragedNavierStokes_SAneg<dim,nstate
     return compute_effective_viscosity_turbulence_model_templated<FadType>(primitive_soln_rans,primitive_soln_turbulence_model);
 }
 //----------------------------------------------------------------
-template <int dim, int nstate, typename real>
+template <int dim, int nspecies, int nstate, typename real>
 template <typename real2>
-std::array<real2,nstate-(dim+2)> ReynoldsAveragedNavierStokes_SAneg<dim,nstate,real>
+std::array<real2,nstate-(dim+2)> ReynoldsAveragedNavierStokes_SAneg<dim,nspecies,nstate,real>
 ::compute_effective_viscosity_turbulence_model_templated (
     const std::array<real2,nstate_navier_stokes> &primitive_soln_rans,
     const std::array<real2,nstate_turbulence_model> &primitive_soln_turbulence_model) const
@@ -162,9 +162,9 @@ std::array<real2,nstate-(dim+2)> ReynoldsAveragedNavierStokes_SAneg<dim,nstate,r
     return effective_viscosity_turbulence_model;
 }
 //----------------------------------------------------------------
-template <int dim, int nstate, typename real>
+template <int dim, int nspecies, int nstate, typename real>
 template<typename real2>
-real2 ReynoldsAveragedNavierStokes_SAneg<dim,nstate,real>
+real2 ReynoldsAveragedNavierStokes_SAneg<dim,nspecies,nstate,real>
 ::compute_coefficient_Chi (
     const real2 nu_tilde,
     const real2 laminar_kinematic_viscosity) const
@@ -175,9 +175,9 @@ real2 ReynoldsAveragedNavierStokes_SAneg<dim,nstate,real>
     return Chi;
 }
 //----------------------------------------------------------------
-template <int dim, int nstate, typename real>
+template <int dim, int nspecies, int nstate, typename real>
 template<typename real2>
-real2 ReynoldsAveragedNavierStokes_SAneg<dim,nstate,real>
+real2 ReynoldsAveragedNavierStokes_SAneg<dim,nspecies,nstate,real>
 ::compute_coefficient_f_v1 (
     const real2 coefficient_Chi) const
 {
@@ -199,8 +199,8 @@ real2 ReynoldsAveragedNavierStokes_SAneg<dim,nstate,real>
     return coefficient_f_v1;
 }
 //----------------------------------------------------------------
-template <int dim, int nstate, typename real>
-real ReynoldsAveragedNavierStokes_SAneg<dim,nstate,real>
+template <int dim, int nspecies, int nstate, typename real>
+real ReynoldsAveragedNavierStokes_SAneg<dim,nspecies,nstate,real>
 ::compute_coefficient_f_v2 (
     const real coefficient_Chi) const
 {
@@ -213,9 +213,9 @@ real ReynoldsAveragedNavierStokes_SAneg<dim,nstate,real>
     return coefficient_f_v2;
 }
 //----------------------------------------------------------------
-template <int dim, int nstate, typename real>
+template <int dim, int nspecies, int nstate, typename real>
 template<typename real2>
-real2 ReynoldsAveragedNavierStokes_SAneg<dim,nstate,real>
+real2 ReynoldsAveragedNavierStokes_SAneg<dim,nspecies,nstate,real>
 ::compute_coefficient_f_n (
     const real2 nu_tilde,
     const real2 laminar_kinematic_viscosity) const
@@ -245,8 +245,8 @@ real2 ReynoldsAveragedNavierStokes_SAneg<dim,nstate,real>
     return coefficient_f_n;
 }
 //----------------------------------------------------------------
-template <int dim, int nstate, typename real>
-real ReynoldsAveragedNavierStokes_SAneg<dim,nstate,real>
+template <int dim, int nspecies, int nstate, typename real>
+real ReynoldsAveragedNavierStokes_SAneg<dim,nspecies,nstate,real>
 ::compute_coefficient_f_t2 (
     const real coefficient_Chi) const
 {
@@ -258,8 +258,8 @@ real ReynoldsAveragedNavierStokes_SAneg<dim,nstate,real>
     return coefficient_f_t2;
 }
 //----------------------------------------------------------------
-template <int dim, int nstate, typename real>
-real ReynoldsAveragedNavierStokes_SAneg<dim,nstate,real>
+template <int dim, int nspecies, int nstate, typename real>
+real ReynoldsAveragedNavierStokes_SAneg<dim,nspecies,nstate,real>
 ::compute_coefficient_f_w (
     const real coefficient_g) const
 {
@@ -271,8 +271,8 @@ real ReynoldsAveragedNavierStokes_SAneg<dim,nstate,real>
     return coefficient_f_w;
 }
 //----------------------------------------------------------------
-template <int dim, int nstate, typename real>
-real ReynoldsAveragedNavierStokes_SAneg<dim,nstate,real>
+template <int dim, int nspecies, int nstate, typename real>
+real ReynoldsAveragedNavierStokes_SAneg<dim,nspecies,nstate,real>
 ::compute_coefficient_r (
     const real nu_tilde,
     const real d_wall,
@@ -288,8 +288,8 @@ real ReynoldsAveragedNavierStokes_SAneg<dim,nstate,real>
     return coefficient_r;
 }
 //----------------------------------------------------------------
-template <int dim, int nstate, typename real>
-real ReynoldsAveragedNavierStokes_SAneg<dim,nstate,real>
+template <int dim, int nspecies, int nstate, typename real>
+real ReynoldsAveragedNavierStokes_SAneg<dim,nspecies,nstate,real>
 ::compute_coefficient_g (
     const real coefficient_r) const
 {
@@ -301,8 +301,8 @@ real ReynoldsAveragedNavierStokes_SAneg<dim,nstate,real>
     return coefficient_g;
 }
 //----------------------------------------------------------------
-template <int dim, int nstate, typename real>
-real ReynoldsAveragedNavierStokes_SAneg<dim,nstate,real>
+template <int dim, int nspecies, int nstate, typename real>
+real ReynoldsAveragedNavierStokes_SAneg<dim,nspecies,nstate,real>
 ::compute_s (
     const std::array<real,nstate_navier_stokes> &conservative_soln_rans,
     const std::array<dealii::Tensor<1,dim,real>,nstate_navier_stokes> &conservative_soln_gradient_rans) const
@@ -319,8 +319,8 @@ real ReynoldsAveragedNavierStokes_SAneg<dim,nstate,real>
     return s;
 }
 //----------------------------------------------------------------
-template <int dim, int nstate, typename real>
-real ReynoldsAveragedNavierStokes_SAneg<dim,nstate,real>
+template <int dim, int nspecies, int nstate, typename real>
+real ReynoldsAveragedNavierStokes_SAneg<dim,nspecies,nstate,real>
 ::compute_s_bar (
     const real coefficient_Chi,
     const real nu_tilde,
@@ -335,8 +335,8 @@ real ReynoldsAveragedNavierStokes_SAneg<dim,nstate,real>
     return s_bar;
 }
 //----------------------------------------------------------------
-template <int dim, int nstate, typename real>
-real ReynoldsAveragedNavierStokes_SAneg<dim,nstate,real>
+template <int dim, int nspecies, int nstate, typename real>
+real ReynoldsAveragedNavierStokes_SAneg<dim,nspecies,nstate,real>
 ::compute_s_tilde (
     const real coefficient_Chi,
     const real nu_tilde,
@@ -359,8 +359,8 @@ real ReynoldsAveragedNavierStokes_SAneg<dim,nstate,real>
     return s_tilde;
 }
 //----------------------------------------------------------------
-template <int dim, int nstate, typename real>
-std::array<real,nstate> ReynoldsAveragedNavierStokes_SAneg<dim,nstate,real>
+template <int dim, int nspecies, int nstate, typename real>
+std::array<real,nstate> ReynoldsAveragedNavierStokes_SAneg<dim,nspecies,nstate,real>
 ::compute_production_source (
     const real coefficient_f_t2,
     const real density,
@@ -384,8 +384,8 @@ std::array<real,nstate> ReynoldsAveragedNavierStokes_SAneg<dim,nstate,real>
     return production_source;
 }
 //----------------------------------------------------------------
-template <int dim, int nstate, typename real>
-std::array<real,nstate> ReynoldsAveragedNavierStokes_SAneg<dim,nstate,real>
+template <int dim, int nspecies, int nstate, typename real>
+std::array<real,nstate> ReynoldsAveragedNavierStokes_SAneg<dim,nspecies,nstate,real>
 ::compute_dissipation_source (
     const real coefficient_f_t2,
     const real density,
@@ -413,8 +413,8 @@ std::array<real,nstate> ReynoldsAveragedNavierStokes_SAneg<dim,nstate,real>
     return dissipation_source;
 }
 //----------------------------------------------------------------
-template <int dim, int nstate, typename real>
-std::array<real,nstate> ReynoldsAveragedNavierStokes_SAneg<dim,nstate,real>
+template <int dim, int nspecies, int nstate, typename real>
+std::array<real,nstate> ReynoldsAveragedNavierStokes_SAneg<dim,nspecies,nstate,real>
 ::compute_cross_source (
     const real density,
     const real nu_tilde,
@@ -441,8 +441,8 @@ std::array<real,nstate> ReynoldsAveragedNavierStokes_SAneg<dim,nstate,real>
     return cross_source;
 }
 //----------------------------------------------------------------
-template <int dim, int nstate, typename real>
-dealii::Tensor<1,dim,real> ReynoldsAveragedNavierStokes_SAneg<dim,nstate,real>
+template <int dim, int nspecies, int nstate, typename real>
+dealii::Tensor<1,dim,real> ReynoldsAveragedNavierStokes_SAneg<dim,nspecies,nstate,real>
 ::compute_Reynolds_heat_flux (
     const std::array<real,nstate_navier_stokes> &primitive_soln_rans,
     const std::array<dealii::Tensor<1,dim,real>,nstate_navier_stokes> &primitive_soln_gradient_rans,
@@ -451,8 +451,8 @@ dealii::Tensor<1,dim,real> ReynoldsAveragedNavierStokes_SAneg<dim,nstate,real>
     return compute_Reynolds_heat_flux_templated<real>(primitive_soln_rans,primitive_soln_gradient_rans,primitive_soln_turbulence_model);
 }
 //----------------------------------------------------------------
-template <int dim, int nstate, typename real>
-dealii::Tensor<1,dim,FadType> ReynoldsAveragedNavierStokes_SAneg<dim,nstate,real>
+template <int dim, int nspecies, int nstate, typename real>
+dealii::Tensor<1,dim,FadType> ReynoldsAveragedNavierStokes_SAneg<dim,nspecies,nstate,real>
 ::compute_Reynolds_heat_flux_fad (
     const std::array<FadType,nstate_navier_stokes> &primitive_soln_rans,
     const std::array<dealii::Tensor<1,dim,FadType>,nstate_navier_stokes> &primitive_soln_gradient_rans,
@@ -461,9 +461,9 @@ dealii::Tensor<1,dim,FadType> ReynoldsAveragedNavierStokes_SAneg<dim,nstate,real
     return compute_Reynolds_heat_flux_templated<FadType>(primitive_soln_rans,primitive_soln_gradient_rans,primitive_soln_turbulence_model);
 }
 //----------------------------------------------------------------
-template <int dim, int nstate, typename real>
+template <int dim, int nspecies, int nstate, typename real>
 template<typename real2>
-dealii::Tensor<1,dim,real2> ReynoldsAveragedNavierStokes_SAneg<dim,nstate,real>
+dealii::Tensor<1,dim,real2> ReynoldsAveragedNavierStokes_SAneg<dim,nspecies,nstate,real>
 ::compute_Reynolds_heat_flux_templated (
     const std::array<real2,nstate_navier_stokes> &primitive_soln_rans,
     const std::array<dealii::Tensor<1,dim,real2>,nstate_navier_stokes> &primitive_soln_gradient_rans,
@@ -497,8 +497,8 @@ dealii::Tensor<1,dim,real2> ReynoldsAveragedNavierStokes_SAneg<dim,nstate,real>
     return heat_flux_Reynolds;
 }
 //----------------------------------------------------------------
-template <int dim, int nstate, typename real>
-dealii::Tensor<2,dim,real> ReynoldsAveragedNavierStokes_SAneg<dim,nstate,real>
+template <int dim, int nspecies, int nstate, typename real>
+dealii::Tensor<2,dim,real> ReynoldsAveragedNavierStokes_SAneg<dim,nspecies,nstate,real>
 ::compute_Reynolds_stress_tensor (
     const std::array<real,nstate_navier_stokes> &primitive_soln_rans,
     const std::array<dealii::Tensor<1,dim,real>,nstate_navier_stokes> &primitive_soln_gradient_rans,
@@ -507,8 +507,8 @@ dealii::Tensor<2,dim,real> ReynoldsAveragedNavierStokes_SAneg<dim,nstate,real>
     return compute_Reynolds_stress_tensor_templated<real>(primitive_soln_rans,primitive_soln_gradient_rans,primitive_soln_turbulence_model);
 }
 //----------------------------------------------------------------
-template <int dim, int nstate, typename real>
-dealii::Tensor<2,dim,FadType> ReynoldsAveragedNavierStokes_SAneg<dim,nstate,real>
+template <int dim, int nspecies, int nstate, typename real>
+dealii::Tensor<2,dim,FadType> ReynoldsAveragedNavierStokes_SAneg<dim,nspecies,nstate,real>
 ::compute_Reynolds_stress_tensor_fad (
     const std::array<FadType,nstate_navier_stokes> &primitive_soln_rans,
     const std::array<dealii::Tensor<1,dim,FadType>,nstate_navier_stokes> &primitive_soln_gradient_rans,
@@ -517,9 +517,9 @@ dealii::Tensor<2,dim,FadType> ReynoldsAveragedNavierStokes_SAneg<dim,nstate,real
     return compute_Reynolds_stress_tensor_templated<FadType>(primitive_soln_rans,primitive_soln_gradient_rans,primitive_soln_turbulence_model);
 }
 //----------------------------------------------------------------
-template <int dim, int nstate, typename real>
+template <int dim, int nspecies, int nstate, typename real>
 template<typename real2>
-dealii::Tensor<2,dim,real2> ReynoldsAveragedNavierStokes_SAneg<dim,nstate,real>
+dealii::Tensor<2,dim,real2> ReynoldsAveragedNavierStokes_SAneg<dim,nspecies,nstate,real>
 ::compute_Reynolds_stress_tensor_templated (
     const std::array<real2,nstate_navier_stokes> &primitive_soln_rans,
     const std::array<dealii::Tensor<1,dim,real2>,nstate_navier_stokes> &primitive_soln_gradient_rans,
@@ -556,8 +556,8 @@ dealii::Tensor<2,dim,real2> ReynoldsAveragedNavierStokes_SAneg<dim,nstate,real>
     return Reynolds_stress_tensor;
 }
 //----------------------------------------------------------------
-template <int dim, int nstate, typename real>
-std::array<real,nstate> ReynoldsAveragedNavierStokes_SAneg<dim,nstate,real>
+template <int dim, int nspecies, int nstate, typename real>
+std::array<real,nstate> ReynoldsAveragedNavierStokes_SAneg<dim,nspecies,nstate,real>
 ::compute_production_dissipation_cross_term (
     const dealii::Point<dim,real> &pos,
     const std::array<real,nstate> &conservative_soln,
@@ -596,8 +596,8 @@ std::array<real,nstate> ReynoldsAveragedNavierStokes_SAneg<dim,nstate,real>
     return physical_source_term;
 }
 //----------------------------------------------------------------
-template <int dim, int nstate, typename real>
-void ReynoldsAveragedNavierStokes_SAneg<dim,nstate,real>
+template <int dim, int nspecies, int nstate, typename real>
+void ReynoldsAveragedNavierStokes_SAneg<dim,nspecies,nstate,real>
 ::boundary_wall (
    std::array<real,nstate> &soln_bc,
    std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_bc) const
@@ -610,8 +610,8 @@ void ReynoldsAveragedNavierStokes_SAneg<dim,nstate,real>
     }
 }
 //----------------------------------------------------------------
-template <int dim, int nstate, typename real>
-void ReynoldsAveragedNavierStokes_SAneg<dim,nstate,real>
+template <int dim, int nspecies, int nstate, typename real>
+void ReynoldsAveragedNavierStokes_SAneg<dim,nspecies,nstate,real>
 ::boundary_outflow (
    const std::array<real,nstate> &soln_int,
    const std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_int,
@@ -624,8 +624,8 @@ void ReynoldsAveragedNavierStokes_SAneg<dim,nstate,real>
     }
 }
 //----------------------------------------------------------------
-template <int dim, int nstate, typename real>
-void ReynoldsAveragedNavierStokes_SAneg<dim,nstate,real>
+template <int dim, int nspecies, int nstate, typename real>
+void ReynoldsAveragedNavierStokes_SAneg<dim,nspecies,nstate,real>
 ::boundary_inflow (
    const std::array<real,nstate> &/*soln_int*/,
    const std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_int,
@@ -641,8 +641,8 @@ void ReynoldsAveragedNavierStokes_SAneg<dim,nstate,real>
     }
 }
 //----------------------------------------------------------------
-template <int dim, int nstate, typename real>
-void ReynoldsAveragedNavierStokes_SAneg<dim,nstate,real>
+template <int dim, int nspecies, int nstate, typename real>
+void ReynoldsAveragedNavierStokes_SAneg<dim,nspecies,nstate,real>
 ::boundary_farfield (
    std::array<real,nstate> &soln_bc) const
 {
@@ -657,8 +657,8 @@ void ReynoldsAveragedNavierStokes_SAneg<dim,nstate,real>
    }
 }
 //----------------------------------------------------------------
-template <int dim, int nstate, typename real>
-dealii::Vector<double> ReynoldsAveragedNavierStokes_SAneg<dim,nstate,real>
+template <int dim, int nspecies, int nstate, typename real>
+dealii::Vector<double> ReynoldsAveragedNavierStokes_SAneg<dim,nspecies,nstate,real>
 ::post_compute_derived_quantities_vector (
     const dealii::Vector<double>              &uh,
     const std::vector<dealii::Tensor<1,dim> > &duh,
@@ -667,7 +667,7 @@ dealii::Vector<double> ReynoldsAveragedNavierStokes_SAneg<dim,nstate,real>
     const dealii::Point<dim>                  &evaluation_points) const
 {
     std::vector<std::string> names = post_get_names ();
-    dealii::Vector<double> computed_quantities = ModelBase<dim,nstate,real>::post_compute_derived_quantities_vector ( uh, duh, dduh, normals, evaluation_points);
+    dealii::Vector<double> computed_quantities = ModelBase<dim,nspecies,nstate,real>::post_compute_derived_quantities_vector ( uh, duh, dduh, normals, evaluation_points);
     unsigned int current_data_index = computed_quantities.size() - 1;
     computed_quantities.grow_or_shrink(names.size());
     if constexpr (std::is_same<real,double>::value) {
@@ -690,12 +690,12 @@ dealii::Vector<double> ReynoldsAveragedNavierStokes_SAneg<dim,nstate,real>
     return computed_quantities;
 }
 //----------------------------------------------------------------
-template <int dim, int nstate, typename real>
-std::vector<dealii::DataComponentInterpretation::DataComponentInterpretation> ReynoldsAveragedNavierStokes_SAneg<dim,nstate,real>
+template <int dim, int nspecies, int nstate, typename real>
+std::vector<dealii::DataComponentInterpretation::DataComponentInterpretation> ReynoldsAveragedNavierStokes_SAneg<dim,nspecies,nstate,real>
 ::post_get_data_component_interpretation () const
 {
     namespace DCI = dealii::DataComponentInterpretation;
-    std::vector<DCI::DataComponentInterpretation> interpretation = ModelBase<dim,nstate,real>::post_get_data_component_interpretation (); // state variables
+    std::vector<DCI::DataComponentInterpretation> interpretation = ModelBase<dim,nspecies,nstate,real>::post_get_data_component_interpretation (); // state variables
     interpretation.push_back (DCI::component_is_scalar); 
 
     std::vector<std::string> names = post_get_names();
@@ -705,11 +705,11 @@ std::vector<dealii::DataComponentInterpretation::DataComponentInterpretation> Re
     return interpretation;
 }
 //----------------------------------------------------------------
-template <int dim, int nstate, typename real>
-std::vector<std::string> ReynoldsAveragedNavierStokes_SAneg<dim,nstate,real>
+template <int dim, int nspecies, int nstate, typename real>
+std::vector<std::string> ReynoldsAveragedNavierStokes_SAneg<dim,nspecies,nstate,real>
 ::post_get_names () const
 {
-    std::vector<std::string> names = ModelBase<dim,nstate,real>::post_get_names ();
+    std::vector<std::string> names = ModelBase<dim,nspecies,nstate,real>::post_get_names ();
     names.push_back ("nu_tilde");
 
     return names;    
@@ -719,11 +719,11 @@ std::vector<std::string> ReynoldsAveragedNavierStokes_SAneg<dim,nstate,real>
 //----------------------------------------------------------------
 // Instantiate explicitly
 // -- ReynoldsAveragedNavierStokes_SAneg
-template class ReynoldsAveragedNavierStokes_SAneg < PHILIP_DIM, PHILIP_DIM+3, double >;
-template class ReynoldsAveragedNavierStokes_SAneg < PHILIP_DIM, PHILIP_DIM+3, FadType  >;
-template class ReynoldsAveragedNavierStokes_SAneg < PHILIP_DIM, PHILIP_DIM+3, RadType  >;
-template class ReynoldsAveragedNavierStokes_SAneg < PHILIP_DIM, PHILIP_DIM+3, FadFadType >;
-template class ReynoldsAveragedNavierStokes_SAneg < PHILIP_DIM, PHILIP_DIM+3, RadFadType >;
+template class ReynoldsAveragedNavierStokes_SAneg < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+3, double >;
+template class ReynoldsAveragedNavierStokes_SAneg < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+3, FadType  >;
+template class ReynoldsAveragedNavierStokes_SAneg < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+3, RadType  >;
+template class ReynoldsAveragedNavierStokes_SAneg < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+3, FadFadType >;
+template class ReynoldsAveragedNavierStokes_SAneg < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+3, RadFadType >;
 
 } // Physics namespace
 } // PHiLiP namespace

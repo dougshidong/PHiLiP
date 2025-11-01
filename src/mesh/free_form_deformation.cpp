@@ -754,15 +754,15 @@ void FreeFormDeformation<dim>
 template class FreeFormDeformation<PHILIP_DIM>;
 
 // template dealii::Point<dim,double> FreeFormDeformation<dim>
-// ::evaluate_ffd (const dealii::Point<PHILIP_DIM,double> &, const std::vector<dealii::Point<PHILIP_DIM,double>> &) const;
+// ::evaluate_ffd (const dealii::Point<PHILIP_DIM, double> &, const std::vector<dealii::Point<PHILIP_DIM, double>> &) const;
 // 
-// template dealii::Point<PHILIP_DIM, double> FreeFormDeformation<PHILIP_DIM>
-// ::new_point_location(const dealii::Point<PHILIP_DIM, double>&, const std::vector<dealii::Point<PHILIP_DIM,double>> &) const;
+// template dealii::Point<PHILIP_DIM,  double> FreeFormDeformation<PHILIP_DIM>
+// ::new_point_location(const dealii::Point<PHILIP_DIM,  double>&, const std::vector<dealii::Point<PHILIP_DIM, double>> &) const;
 // 
-// template dealii::Tensor<1, PHILIP_DIM, double> FreeFormDeformation<PHILIP_DIM>
-// ::get_displacement (const dealii::Point<PHILIP_DIM,double> &, const std::vector<dealii::Point<PHILIP_DIM,double>> &) const;
+// template dealii::Tensor<1, PHILIP_DIM, PHILIP_SPECIES, double> FreeFormDeformation<PHILIP_DIM>
+// ::get_displacement (const dealii::Point<PHILIP_DIM, double> &, const std::vector<dealii::Point<PHILIP_DIM, double>> &) const;
 // 
-// template std::vector<dealii::Tensor<1, PHILIP_DIM, double>> FreeFormDeformation<PHILIP_DIM>
-// ::get_displacement (const std::vector<dealii::Point<PHILIP_DIM,double>> &, const std::vector<dealii::Point<PHILIP_DIM,double>> &) const;
+// template std::vector<dealii::Tensor<1, PHILIP_DIM, PHILIP_SPECIES, double>> FreeFormDeformation<PHILIP_DIM>
+// ::get_displacement (const std::vector<dealii::Point<PHILIP_DIM, double>> &, const std::vector<dealii::Point<PHILIP_DIM, double>> &) const;
 
 } // namespace PHiLiP

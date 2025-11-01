@@ -32,9 +32,9 @@ namespace PHiLiP {
   * and \f$h\f$ are used to denote coarse and fine grid variables respectively. 
   */ 
  #if PHILIP_DIM==1 // dealii::parallel::distributed::Triangulation<dim> does not work for 1D
-template <int dim, int nstate, typename real, typename MeshType = dealii::Triangulation<dim>>
+template <int dim, int nspecies, int nstate, typename real, typename MeshType = dealii::Triangulation<dim>>
 #else
-template <int dim, int nstate, typename real, typename MeshType = dealii::parallel::distributed::Triangulation<dim>>
+template <int dim, int nspecies, int nstate, typename real, typename MeshType = dealii::parallel::distributed::Triangulation<dim>>
 #endif
 class Adjoint
 {
@@ -52,9 +52,9 @@ public:
      *  for the mesh for converting back to coarse state after refinement.
      */
     Adjoint(
-        std::shared_ptr< DGBase<dim,real,MeshType> > _dg,
-        std::shared_ptr< Functional<dim, nstate, real, MeshType> > _functional,
-        std::shared_ptr< Physics::PhysicsBase<dim,nstate,Sacado::Fad::DFad<real>> > _physics);
+        std::shared_ptr< DGBase<dim,nspecies,real,MeshType> > _dg,
+        std::shared_ptr< Functional<dim, nspecies, nstate, real, MeshType> > _functional,
+        std::shared_ptr< Physics::PhysicsBase<dim,nspecies,nstate,Sacado::Fad::DFad<real>> > _physics);
 
     /// Reinitialize Adjoint with the same pointers
     /** Sets adjoint_state to AdjointEnum::coarse and stores the current
@@ -118,11 +118,11 @@ public:
     void output_results_vtk(const unsigned int cycle);
 
     /// DG class pointer
-    std::shared_ptr< DGBase<dim,real,MeshType> > dg;
+    std::shared_ptr< DGBase<dim,nspecies,real,MeshType> > dg;
     /// Functional class pointer
-    std::shared_ptr< Functional<dim, nstate, real, MeshType> > functional;
+    std::shared_ptr< Functional<dim, nspecies, nstate, real, MeshType> > functional;
     /// Problem physics (for calling the functional class) 
-    std::shared_ptr< Physics::PhysicsBase<dim,nstate,Sacado::Fad::DFad<real>> > physics;
+    std::shared_ptr< Physics::PhysicsBase<dim,nspecies,nstate,Sacado::Fad::DFad<real>> > physics;
     
     /// Grid
     std::shared_ptr<MeshType> triangulation;

@@ -9,12 +9,12 @@
 namespace PHiLiP {
 namespace Tests {
 
-template <int dim, int nstate>
-EulerTaylorGreen<dim, nstate>::EulerTaylorGreen(const Parameters::AllParameters *const parameters_input)
+template <int dim, int nspecies, int nstate>
+EulerTaylorGreen<dim, nspecies, nstate>::EulerTaylorGreen(const Parameters::AllParameters *const parameters_input)
     : TestsBase::TestsBase(parameters_input)
 {}
-template<int dim, int nstate>
-std::array<double,2> EulerTaylorGreen<dim, nstate>::compute_change_in_entropy(const std::shared_ptr < DGBase<dim, double> > &dg, unsigned int poly_degree) const
+template<int dim, int nspecies, int nstate>
+std::array<double,2> EulerTaylorGreen<dim, nspecies, nstate>::compute_change_in_entropy(const std::shared_ptr < DGBase<dim, nspecies, double> > &dg, unsigned int poly_degree) const
 {
     const unsigned int n_dofs_cell = dg->fe_collection[poly_degree].dofs_per_cell;
     const unsigned int n_quad_pts = dg->volume_quadrature_collection[poly_degree].size();
@@ -30,7 +30,7 @@ std::array<double,2> EulerTaylorGreen<dim, nstate>::compute_change_in_entropy(co
     dealii::LinearAlgebra::distributed::Vector<double> energy_var_hat_global(dg->right_hand_side);
     std::vector<dealii::types::global_dof_index> dofs_indices (n_dofs_cell);
 
-    std::shared_ptr < Physics::Euler<dim, nstate, double > > euler_double  = std::dynamic_pointer_cast<Physics::Euler<dim,dim+2,double>>(PHiLiP::Physics::PhysicsFactory<dim,nstate,double>::create_Physics(dg->all_parameters));
+    std::shared_ptr < Physics::Euler<dim, nspecies, nstate, double > > euler_double  = std::dynamic_pointer_cast<Physics::Euler<dim,nspecies,dim+2,double>>(PHiLiP::Physics::PhysicsFactory<dim,nspecies,nstate,double>::create_Physics(dg->all_parameters));
 
     for (auto cell = dg->dof_handler.begin_active(); cell!=dg->dof_handler.end(); ++cell) {
         if (!cell->is_locally_owned()) continue;
@@ -98,8 +98,8 @@ std::array<double,2> EulerTaylorGreen<dim, nstate>::compute_change_in_entropy(co
     change_entropy_and_energy[1] = energy_var_hat_global * dg->right_hand_side;
     return change_entropy_and_energy;
 }
-template<int dim, int nstate>
-double EulerTaylorGreen<dim, nstate>::compute_volume_term(const std::shared_ptr < DGBase<dim, double> > &dg, unsigned int poly_degree) const
+template<int dim, int nspecies, int nstate>
+double EulerTaylorGreen<dim, nspecies, nstate>::compute_volume_term(const std::shared_ptr < DGBase<dim, nspecies, double> > &dg, unsigned int poly_degree) const
 {
     const unsigned int n_dofs_cell = dg->fe_collection[poly_degree].dofs_per_cell;
     const unsigned int n_quad_pts = dg->volume_quadrature_collection[poly_degree].size();
@@ -130,7 +130,7 @@ double EulerTaylorGreen<dim, nstate>::compute_volume_term(const std::shared_ptr 
 
     std::vector<dealii::types::global_dof_index> dofs_indices (n_dofs_cell);
 
-    std::shared_ptr < Physics::Euler<dim, nstate, double > > euler_double  = std::dynamic_pointer_cast<Physics::Euler<dim,dim+2,double>>(PHiLiP::Physics::PhysicsFactory<dim,nstate,double>::create_Physics(dg->all_parameters));
+    std::shared_ptr < Physics::Euler<dim, nspecies, nstate, double > > euler_double  = std::dynamic_pointer_cast<Physics::Euler<dim,nspecies,dim+2,double>>(PHiLiP::Physics::PhysicsFactory<dim,nspecies,nstate,double>::create_Physics(dg->all_parameters));
 
     double volume_term = 0.0;
     auto metric_cell = dg->high_order_grid->dof_handler_grid.begin_active();
@@ -328,8 +328,8 @@ double EulerTaylorGreen<dim, nstate>::compute_volume_term(const std::shared_ptr 
     return volume_term;
 }
 
-template<int dim, int nstate>
-double EulerTaylorGreen<dim, nstate>::compute_entropy(const std::shared_ptr < DGBase<dim, double> > &dg, unsigned int poly_degree) const
+template<int dim, int nspecies, int nstate>
+double EulerTaylorGreen<dim, nspecies, nstate>::compute_entropy(const std::shared_ptr < DGBase<dim, nspecies, double> > &dg, unsigned int poly_degree) const
 {
     const unsigned int n_dofs_cell = dg->fe_collection[poly_degree].dofs_per_cell;
     const unsigned int n_quad_pts = dg->volume_quadrature_collection[poly_degree].size();
@@ -345,7 +345,7 @@ double EulerTaylorGreen<dim, nstate>::compute_entropy(const std::shared_ptr < DG
 
     std::vector<dealii::types::global_dof_index> dofs_indices (n_dofs_cell);
 
-    std::shared_ptr < Physics::Euler<dim, nstate, double > > euler_double  = std::dynamic_pointer_cast<Physics::Euler<dim,dim+2,double>>(PHiLiP::Physics::PhysicsFactory<dim,nstate,double>::create_Physics(dg->all_parameters));
+    std::shared_ptr < Physics::Euler<dim, nspecies, nstate, double > > euler_double  = std::dynamic_pointer_cast<Physics::Euler<dim,nspecies,dim+2,double>>(PHiLiP::Physics::PhysicsFactory<dim,nspecies,nstate,double>::create_Physics(dg->all_parameters));
 
     double entropy_fn = 0.0;
     const std::vector<double> &quad_weights = dg->volume_quadrature_collection[poly_degree].get_weights();
@@ -419,8 +419,8 @@ double EulerTaylorGreen<dim, nstate>::compute_entropy(const std::shared_ptr < DG
     return entropy_fn;
 }
 
-template<int dim, int nstate>
-double EulerTaylorGreen<dim, nstate>::compute_kinetic_energy(const std::shared_ptr < DGBase<dim, double> > &dg, unsigned int poly_degree) const
+template<int dim, int nspecies, int nstate>
+double EulerTaylorGreen<dim, nspecies, nstate>::compute_kinetic_energy(const std::shared_ptr < DGBase<dim, nspecies, double> > &dg, unsigned int poly_degree) const
 {
     //returns the energy in the L2-norm (physically relevant)
     int overintegrate = 10 ;
@@ -511,8 +511,8 @@ double EulerTaylorGreen<dim, nstate>::compute_kinetic_energy(const std::shared_p
     return total_kinetic_energy;
 }
 
-template<int dim, int nstate>
-double EulerTaylorGreen<dim, nstate>::get_timestep(const std::shared_ptr < DGBase<dim, double> > &dg, unsigned int poly_degree, const double delta_x) const
+template<int dim, int nspecies, int nstate>
+double EulerTaylorGreen<dim, nspecies, nstate>::get_timestep(const std::shared_ptr < DGBase<dim, nspecies, double> > &dg, unsigned int poly_degree, const double delta_x) const
 {
     //get local CFL
     const unsigned int n_dofs_cell = nstate*pow(poly_degree+1,dim);
@@ -520,7 +520,7 @@ double EulerTaylorGreen<dim, nstate>::get_timestep(const std::shared_ptr < DGBas
     std::vector<dealii::types::global_dof_index> dofs_indices1 (n_dofs_cell);
 
     double cfl_min = 1e100;
-    std::shared_ptr < Physics::PhysicsBase<dim, nstate, double > > pde_physics_double  = PHiLiP::Physics::PhysicsFactory<dim,nstate,double>::create_Physics(dg->all_parameters);
+    std::shared_ptr < Physics::PhysicsBase<dim, nspecies, nstate, double > > pde_physics_double  = PHiLiP::Physics::PhysicsFactory<dim,nspecies,nstate,double>::create_Physics(dg->all_parameters);
     for (auto cell = dg->dof_handler.begin_active(); cell!=dg->dof_handler.end(); ++cell) {
         if (!cell->is_locally_owned()) continue;
 
@@ -553,8 +553,8 @@ double EulerTaylorGreen<dim, nstate>::get_timestep(const std::shared_ptr < DGBas
     return cfl_min;
 }
 
-template <int dim, int nstate>
-int EulerTaylorGreen<dim, nstate>::run_test() const
+template <int dim, int nspecies, int nstate>
+int EulerTaylorGreen<dim, nspecies, nstate>::run_test() const
 {
     using Triangulation = dealii::parallel::distributed::Triangulation<dim>;
     std::shared_ptr<Triangulation> grid = std::make_shared<Triangulation>(
@@ -582,13 +582,13 @@ int EulerTaylorGreen<dim, nstate>::run_test() const
     }
 
     // Create DG
-    std::shared_ptr < PHiLiP::DGBase<dim, double> > dg = PHiLiP::DGFactory<dim,double>::create_discontinuous_galerkin(&all_parameters_new, poly_degree, poly_degree, grid_degree, grid);
+    std::shared_ptr < PHiLiP::DGBase<dim, nspecies, double> > dg = PHiLiP::DGFactory<dim,nspecies,double>::create_discontinuous_galerkin(&all_parameters_new, poly_degree, poly_degree, grid_degree, grid);
     dg->allocate_system (false,false,false);
 
     pcout << "Implement initial conditions" << std::endl;
-    std::shared_ptr< InitialConditionFunction<dim,nstate,double> > initial_condition_function = 
-                InitialConditionFactory<dim,nstate,double>::create_InitialConditionFunction(&all_parameters_new);
-    SetInitialCondition<dim,nstate,double>::set_initial_condition(initial_condition_function, dg, &all_parameters_new);
+    std::shared_ptr< InitialConditionFunction<dim,nspecies,nstate,double> > initial_condition_function = 
+                InitialConditionFactory<dim,nspecies,nstate,double>::create_InitialConditionFunction(&all_parameters_new);
+    SetInitialCondition<dim,nspecies,nstate,double>::set_initial_condition(initial_condition_function, dg, &all_parameters_new);
 
     const unsigned int n_global_active_cells2 = grid->n_global_active_cells();
     double delta_x = (right-left)/pow(n_global_active_cells2,1.0/dim)/(poly_degree+1.0);
@@ -597,7 +597,7 @@ int EulerTaylorGreen<dim, nstate>::run_test() const
     all_parameters_new.ode_solver_param.initial_time_step =  get_timestep(dg,poly_degree,delta_x);
      
     pcout << "creating ODE solver" << std::endl;
-    std::shared_ptr<ODE::ODESolverBase<dim, double>> ode_solver = ODE::ODESolverFactory<dim, double>::create_ODESolver(dg);
+    std::shared_ptr<ODE::ODESolverBase<dim, nspecies, double>> ode_solver = ODE::ODESolverFactory<dim, nspecies, double>::create_ODESolver(dg);
     pcout << "ODE solver successfully created" << std::endl;
     double finalTime = 14.;
 
@@ -673,7 +673,7 @@ int EulerTaylorGreen<dim, nstate>::run_test() const
 }
 
 #if PHILIP_DIM==3
-    template class EulerTaylorGreen <PHILIP_DIM,PHILIP_DIM+2>;
+    template class EulerTaylorGreen <PHILIP_DIM, PHILIP_SPECIES,PHILIP_DIM+2>;
 #endif
 
 } // Tests namespace

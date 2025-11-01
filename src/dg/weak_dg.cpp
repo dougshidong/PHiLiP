@@ -224,12 +224,12 @@ void automatic_differentiation_indexing_2(
     }
 }
 
-template <int dim, typename real>
+template <int dim, int nspecies, typename real>
 bool check_same_coords (
     const std::vector<dealii::Point<dim>> &unit_quad_pts_int,
     const std::vector<dealii::Point<dim>> &unit_quad_pts_ext,
-    const PHiLiP::LocalSolution<real, dim, dim> &metric_int,
-    const PHiLiP::LocalSolution<real, dim, dim> &metric_ext,
+    const PHiLiP::LocalSolution<real, dim, nspecies, dim> &metric_int,
+    const PHiLiP::LocalSolution<real, dim, nspecies, dim> &metric_ext,
     const double tolerance)
 {
     assert(unit_quad_pts_int.size() == unit_quad_pts_ext.size());
@@ -265,10 +265,10 @@ bool check_same_coords (
     return issame;
 }
 
-template <int dim, typename real>
+template <int dim, int nspecies, typename real>
 std::vector<dealii::Tensor<2,dim,real>> evaluate_metric_jacobian (
     const std::vector<dealii::Point<dim>> &points,
-    const PHiLiP::LocalSolution<real, dim, dim> metric_solution)
+    const PHiLiP::LocalSolution<real, dim, nspecies, dim> metric_solution)
 {
     const unsigned int n_dofs = metric_solution.finite_element.dofs_per_cell;
     (void) n_dofs;
@@ -290,7 +290,7 @@ std::vector<dealii::Tensor<2,dim,real>> evaluate_metric_jacobian (
     return metric_jacobian;
 }
 
-template <int dim, typename real>
+template <int dim, int nspecies, typename real>
 std::vector <real> determinant_ArrayTensor(std::vector<CoordGrad<real,dim>> &coords_gradients)
 {
     const unsigned int n = coords_gradients.size();
@@ -311,10 +311,10 @@ std::vector <real> determinant_ArrayTensor(std::vector<CoordGrad<real,dim>> &coo
     return determinants;
 }
 
-template <int dim, typename real>
+template <int dim, int nspecies, typename real>
 void evaluate_covariant_metric_jacobian (
     const dealii::Quadrature<dim> &quadrature,
-    const PHiLiP::LocalSolution<real, dim, dim> metric_solution,
+    const PHiLiP::LocalSolution<real, dim, nspecies, dim> metric_solution,
     std::vector<dealii::Tensor<2,dim,real>> &covariant_metric_jacobian,
     std::vector<real> &jacobian_determinants)
 {
@@ -330,7 +330,7 @@ void evaluate_covariant_metric_jacobian (
     const unsigned int n_grid_pts = unit_grid_pts.size();
     const unsigned int n_quad_pts = unit_quad_pts.size();
 
-    jacobian_determinants = determinant_ArrayTensor<dim,real>(quad_pts_coords_gradients);
+    jacobian_determinants = determinant_ArrayTensor<dim,nspecies,real>(quad_pts_coords_gradients);
 
     if constexpr (dim==1) {
         for (unsigned int iquad = 0; iquad<n_quad_pts; ++iquad) {
@@ -446,18 +446,18 @@ void evaluate_covariant_metric_jacobian (
 
 namespace PHiLiP {
 
-template <int dim, int nstate, typename real, typename MeshType>
-DGWeak<dim,nstate,real,MeshType>::DGWeak(
+template <int dim, int nspecies, int nstate, typename real, typename MeshType>
+DGWeak<dim,nspecies,nstate,real,MeshType>::DGWeak(
     const Parameters::AllParameters *const parameters_input,
     const unsigned int degree,
     const unsigned int max_degree_input,
     const unsigned int grid_degree_input,
     const std::shared_ptr<Triangulation> triangulation_input)
-    : DGBaseState<dim,nstate,real,MeshType>::DGBaseState(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input)
+    : DGBaseState<dim,nspecies,nstate,real,MeshType>::DGBaseState(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input)
 { }
 
-template <int dim, int nstate, typename real, typename MeshType>
-void DGWeak<dim,nstate,real,MeshType>::assemble_volume_term_explicit(
+template <int dim, int nspecies, int nstate, typename real, typename MeshType>
+void DGWeak<dim,nspecies,nstate,real,MeshType>::assemble_volume_term_explicit(
     typename dealii::DoFHandler<dim>::active_cell_iterator cell,
     const dealii::types::global_dof_index current_cell_index,
     const dealii::FEValues<dim,dim> &fe_values_vol,
@@ -495,7 +495,7 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_volume_term_explicit(
 
     std::vector< real > soln_coeff(n_soln_dofs_int);
     for (unsigned int idof = 0; idof < n_soln_dofs_int; ++idof) {
-        soln_coeff[idof] = DGBase<dim,real,MeshType>::solution(soln_dof_indices_int[idof]);
+        soln_coeff[idof] = DGBase<dim,nspecies,real,MeshType>::solution(soln_dof_indices_int[idof]);
     }
 
     typename dealii::DoFHandler<dim>::active_cell_iterator artificial_dissipation_cell(
@@ -543,13 +543,13 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_volume_term_explicit(
     //const real cell_diameter = cell_volume;
     const real cell_radius = 0.5 * cell_diameter;
     this->cell_volume[cell_index] = cell_volume;
-    this->max_dt_cell[cell_index] = DGBaseState<dim,nstate,real,MeshType>::evaluate_CFL ( soln_at_q, max_artificial_diss, cell_radius, cell_degree);
+    this->max_dt_cell[cell_index] = DGBaseState<dim,nspecies,nstate,real,MeshType>::evaluate_CFL ( soln_at_q, max_artificial_diss, cell_radius, cell_degree);
 }
 
-template <int dim, int nstate, typename real2>
+template <int dim, int nspecies, int nstate, typename real2>
 void compute_br2_correction(
     const dealii::FESystem<dim,dim> &fe_soln,
-    const LocalSolution<real2, dim, dim> &metric_solution,
+    const LocalSolution<real2, dim, nspecies, dim> &metric_solution,
     const std::vector<State<real2, nstate>> &lifting_op_R_rhs,
     std::vector<State<real2, nstate>> &soln_grad_correction
     )
@@ -611,7 +611,7 @@ void compute_br2_correction(
     }
 }
 
-template <int dim, int nstate, typename real2>
+template <int dim, int nspecies, int nstate, typename real2>
 void correct_the_gradient(
     const std::vector<State<real2, nstate>>                              &soln_grad_corr,
     const dealii::FESystem<dim,dim>                                      &fe_soln,
@@ -642,19 +642,19 @@ void correct_the_gradient(
     }
 }
 
-template <int dim, int nstate, typename real, typename MeshType>
+template <int dim, int nspecies, int nstate, typename real, typename MeshType>
 template <typename real2>
-void DGWeak<dim,nstate,real,MeshType>::assemble_boundary_term(
+void DGWeak<dim,nspecies,nstate,real,MeshType>::assemble_boundary_term(
     typename dealii::DoFHandler<dim>::active_cell_iterator cell,
     const dealii::types::global_dof_index current_cell_index,
-    const LocalSolution<real2, dim, nstate> &local_solution,
-    const LocalSolution<real2, dim, dim> &local_metric,
+    const LocalSolution<real2, dim, nspecies, nstate> &local_solution,
+    const LocalSolution<real2, dim, nspecies, dim> &local_metric,
     const std::vector< real > &local_dual,
     const unsigned int face_number,
     const unsigned int boundary_id,
-    const Physics::PhysicsBase<dim, nstate, real2> &physics,
-    const NumericalFlux::NumericalFluxConvective<dim, nstate, real2> &conv_num_flux,
-    const NumericalFlux::NumericalFluxDissipative<dim, nstate, real2> &diss_num_flux,
+    const Physics::PhysicsBase<dim, nspecies, nstate, real2> &physics,
+    const NumericalFlux::NumericalFluxConvective<dim, nspecies, nstate, real2> &conv_num_flux,
+    const NumericalFlux::NumericalFluxDissipative<dim, nspecies, nstate, real2> &diss_num_flux,
     const dealii::FEFaceValuesBase<dim,dim> &fe_values_boundary,
     const real penalty,
     const dealii::Quadrature<dim-1> &quadrature,
@@ -732,7 +732,7 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_boundary_term(
     auto old_jac_inv_tran = jac_inv_tran;
 
     if constexpr (dim != 1) {
-        evaluate_covariant_metric_jacobian<dim,real2> ( face_quadrature, local_metric, jac_inv_tran, jac_det);
+        evaluate_covariant_metric_jacobian<dim,nspecies,real2> ( face_quadrature, local_metric, jac_inv_tran, jac_det);
     }
 #endif
 
@@ -850,9 +850,9 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_boundary_term(
             }
         }
         std::vector<State> soln_grad_corr_int(n_base_dofs_int);
-        compute_br2_correction<dim,nstate,real2>(local_solution.finite_element, local_metric, lifting_op_R_rhs_int, soln_grad_corr_int);
+        compute_br2_correction<dim,nspecies,nstate,real2>(local_solution.finite_element, local_metric, lifting_op_R_rhs_int, soln_grad_corr_int);
 
-        correct_the_gradient<dim,nstate,real2>( soln_grad_corr_int, local_solution.finite_element, soln_jump_int, interpolation_operator, gradient_operator, soln_grad_int);
+        correct_the_gradient<dim,nspecies,nstate,real2>( soln_grad_corr_int, local_solution.finite_element, soln_jump_int, interpolation_operator, gradient_operator, soln_grad_int);
 
         for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
             for (unsigned int idof=0; idof<n_soln_dofs; ++idof) {
@@ -936,7 +936,7 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_boundary_term(
         diss_flux_jump_int[iquad] = physics.dissipative_flux (soln_int[iquad], diss_soln_jump_int, current_cell_index);
 
         if (this->all_parameters->artificial_dissipation_param.add_artificial_dissipation) {
-            const DirectionalState artificial_diss_flux_jump_int = DGBaseState<dim,nstate,real,MeshType>::artificial_dissip->calc_artificial_dissipation_flux(soln_int[iquad], diss_soln_jump_int,artificial_diss_coeff_at_q[iquad]);
+            const DirectionalState artificial_diss_flux_jump_int = DGBaseState<dim,nspecies,nstate,real,MeshType>::artificial_dissip->calc_artificial_dissipation_flux(soln_int[iquad], diss_soln_jump_int,artificial_diss_coeff_at_q[iquad]);
             for (int s=0; s<nstate; s++) {
                 diss_flux_jump_int[iquad][s] += artificial_diss_flux_jump_int[s];
             }
@@ -980,8 +980,8 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_boundary_term(
 }
 
 #ifdef FADFAD
-template <int dim, int nstate, typename real, typename MeshType>
-void DGWeak<dim,nstate,real,MeshType>::assemble_boundary_term_derivatives(
+template <int dim, int nspecies, int nstate, typename real, typename MeshType>
+void DGWeak<dim,nspecies,nstate,real,MeshType>::assemble_boundary_term_derivatives(
     typename dealii::DoFHandler<dim>::active_cell_iterator /*cell*/,
     const dealii::types::global_dof_index current_cell_index,
     const unsigned int face_number,
@@ -1045,9 +1045,9 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_boundary_term_derivatives(
         local_dual[itest] = this->dual[soln_dof_indices[itest]];
     }
 
-    const auto &physics = *(DGBaseState<dim,nstate,real,MeshType>::pde_physics_fad_fad);
-    const auto &conv_num_flux = *(DGBaseState<dim,nstate,real,MeshType>::conv_num_flux_fad_fad);
-    const auto &diss_num_flux = *(DGBaseState<dim,nstate,real,MeshType>::diss_num_flux_fad_fad);
+    const auto &physics = *(DGBaseState<dim,nspecies,nstate,real,MeshType>::pde_physics_fad_fad);
+    const auto &conv_num_flux = *(DGBaseState<dim,nspecies,nstate,real,MeshType>::conv_num_flux_fad_fad);
+    const auto &diss_num_flux = *(DGBaseState<dim,nspecies,nstate,real,MeshType>::diss_num_flux_fad_fad);
 
     std::vector<adtype> rhs(n_soln_dofs);
     adtype dual_dot_residual;
@@ -1133,9 +1133,9 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_boundary_term_derivatives(
 }
 #endif
 
-template <int dim, int nstate, typename real, typename MeshType>
+template <int dim, int nspecies, int nstate, typename real, typename MeshType>
 template <typename adtype>
-void DGWeak<dim,nstate,real,MeshType>::assemble_boundary_codi_taped_derivatives(
+void DGWeak<dim,nspecies,nstate,real,MeshType>::assemble_boundary_codi_taped_derivatives(
     typename dealii::DoFHandler<dim>::active_cell_iterator cell,
     const dealii::types::global_dof_index current_cell_index,
     const unsigned int face_number,
@@ -1146,9 +1146,9 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_boundary_codi_taped_derivatives(
     const dealii::Quadrature<dim-1> &quadrature,
     const std::vector<dealii::types::global_dof_index> &metric_dof_indices,
     const std::vector<dealii::types::global_dof_index> &soln_dof_indices,
-    const Physics::PhysicsBase<dim, nstate, adtype> &physics,
-    const NumericalFlux::NumericalFluxConvective<dim, nstate, adtype> &conv_num_flux,
-    const NumericalFlux::NumericalFluxDissipative<dim, nstate, adtype> &diss_num_flux,
+    const Physics::PhysicsBase<dim, nspecies, nstate, adtype> &physics,
+    const NumericalFlux::NumericalFluxConvective<dim, nspecies, nstate, adtype> &conv_num_flux,
+    const NumericalFlux::NumericalFluxDissipative<dim, nspecies, nstate, adtype> &diss_num_flux,
     dealii::Vector<real> &local_rhs_cell,
     const bool compute_dRdW, const bool compute_dRdX, const bool compute_d2R)
 {
@@ -1160,8 +1160,8 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_boundary_codi_taped_derivatives(
     const bool compute_metric_derivatives = true;//(!compute_dRdX && !compute_d2R) ? false : true;
     AssertDimension (n_soln_dofs, soln_dof_indices.size());
 
-    LocalSolution<adtype, dim, nstate> local_solution(fe_soln);
-    LocalSolution<adtype, dim, dim> local_metric(fe_metric);
+    LocalSolution<adtype, dim, nspecies, nstate> local_solution(fe_soln);
+    LocalSolution<adtype, dim, nspecies, dim> local_metric(fe_metric);
 
     unsigned int w_start, w_end, x_start, x_end;
     automatic_differentiation_indexing_1( compute_dRdW, compute_dRdX, compute_d2R,
@@ -1318,8 +1318,8 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_boundary_codi_taped_derivatives(
 
 }
 
-template <int dim, int nstate, typename real, typename MeshType>
-void DGWeak<dim,nstate,real,MeshType>::assemble_boundary_residual(
+template <int dim, int nspecies, int nstate, typename real, typename MeshType>
+void DGWeak<dim,nspecies,nstate,real,MeshType>::assemble_boundary_residual(
     typename dealii::DoFHandler<dim>::active_cell_iterator cell,
     const dealii::types::global_dof_index current_cell_index,
     const unsigned int face_number,
@@ -1330,9 +1330,9 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_boundary_residual(
     const dealii::Quadrature<dim-1> &quadrature,
     const std::vector<dealii::types::global_dof_index> &metric_dof_indices,
     const std::vector<dealii::types::global_dof_index> &soln_dof_indices,
-    const Physics::PhysicsBase<dim, nstate, real> &physics,
-    const NumericalFlux::NumericalFluxConvective<dim, nstate, real> &conv_num_flux,
-    const NumericalFlux::NumericalFluxDissipative<dim, nstate, real> &diss_num_flux,
+    const Physics::PhysicsBase<dim, nspecies, nstate, real> &physics,
+    const NumericalFlux::NumericalFluxConvective<dim, nspecies, nstate, real> &conv_num_flux,
+    const NumericalFlux::NumericalFluxDissipative<dim, nspecies, nstate, real> &diss_num_flux,
     dealii::Vector<real> &local_rhs_cell,
     const bool compute_dRdW, const bool compute_dRdX, const bool compute_d2R)
 {
@@ -1347,8 +1347,8 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_boundary_residual(
     const bool compute_metric_derivatives = true; //= (!compute_dRdX && !compute_d2R) ? false : true;
     AssertDimension (n_soln_dofs, soln_dof_indices.size());
 
-    LocalSolution<real, dim, nstate> local_solution(fe_soln);
-    LocalSolution<real, dim, dim> local_metric(fe_metric);
+    LocalSolution<real, dim, nspecies, nstate> local_solution(fe_soln);
+    LocalSolution<real, dim, nspecies, dim> local_metric(fe_metric);
 
     for (unsigned int idof = 0; idof < n_soln_dofs; ++idof) {
         const real val = this->solution(soln_dof_indices[idof]);
@@ -1392,8 +1392,8 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_boundary_residual(
 }
 
 #ifndef FADFAD
-template <int dim, int nstate, typename real, typename MeshType>
-void DGWeak<dim,nstate,real,MeshType>::assemble_boundary_term_derivatives(
+template <int dim, int nspecies, int nstate, typename real, typename MeshType>
+void DGWeak<dim,nspecies,nstate,real,MeshType>::assemble_boundary_term_derivatives(
     typename dealii::DoFHandler<dim>::active_cell_iterator cell,
     const dealii::types::global_dof_index current_cell_index,
     const unsigned int face_number,
@@ -1420,9 +1420,9 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_boundary_term_derivatives(
             quadrature,
             metric_dof_indices,
             soln_dof_indices,
-            *(DGBaseState<dim,nstate,real,MeshType>::pde_physics_rad_fad),
-            *(DGBaseState<dim,nstate,real,MeshType>::conv_num_flux_rad_fad),
-            *(DGBaseState<dim,nstate,real,MeshType>::diss_num_flux_rad_fad),
+            *(DGBaseState<dim,nspecies,nstate,real,MeshType>::pde_physics_rad_fad),
+            *(DGBaseState<dim,nspecies,nstate,real,MeshType>::conv_num_flux_rad_fad),
+            *(DGBaseState<dim,nspecies,nstate,real,MeshType>::diss_num_flux_rad_fad),
             local_rhs_cell,
             compute_dRdW, compute_dRdX, compute_d2R);
     } else if (compute_dRdW || compute_dRdX) {
@@ -1437,9 +1437,9 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_boundary_term_derivatives(
             quadrature,
             metric_dof_indices,
             soln_dof_indices,
-            *(DGBaseState<dim,nstate,real,MeshType>::pde_physics_rad),
-            *(DGBaseState<dim,nstate,real,MeshType>::conv_num_flux_rad),
-            *(DGBaseState<dim,nstate,real,MeshType>::diss_num_flux_rad),
+            *(DGBaseState<dim,nspecies,nstate,real,MeshType>::pde_physics_rad),
+            *(DGBaseState<dim,nspecies,nstate,real,MeshType>::conv_num_flux_rad),
+            *(DGBaseState<dim,nspecies,nstate,real,MeshType>::diss_num_flux_rad),
             local_rhs_cell,
             compute_dRdW, compute_dRdX, compute_d2R);
     } else {
@@ -1454,9 +1454,9 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_boundary_term_derivatives(
             quadrature,
             metric_dof_indices,
             soln_dof_indices,
-            *(DGBaseState<dim,nstate,real,MeshType>::pde_physics_double),
-            *(DGBaseState<dim,nstate,real,MeshType>::conv_num_flux_double),
-            *(DGBaseState<dim,nstate,real,MeshType>::diss_num_flux_double),
+            *(DGBaseState<dim,nspecies,nstate,real,MeshType>::pde_physics_double),
+            *(DGBaseState<dim,nspecies,nstate,real,MeshType>::conv_num_flux_double),
+            *(DGBaseState<dim,nspecies,nstate,real,MeshType>::diss_num_flux_double),
             local_rhs_cell,
             compute_dRdW, compute_dRdX, compute_d2R);
     }
@@ -1500,25 +1500,25 @@ dealii::Quadrature<dim> project_face_quadrature(
     return face_quadrature;
 }
 
-template <int dim, int nstate, typename real, typename MeshType>
+template <int dim, int nspecies, int nstate, typename real, typename MeshType>
 template <typename real2>
-void DGWeak<dim,nstate,real,MeshType>::assemble_face_term(
+void DGWeak<dim,nspecies,nstate,real,MeshType>::assemble_face_term(
     typename dealii::DoFHandler<dim>::active_cell_iterator cell,
     const dealii::types::global_dof_index current_cell_index,
     const dealii::types::global_dof_index neighbor_cell_index,
-    const LocalSolution<real2, dim, nstate> &soln_int,
-    const LocalSolution<real2, dim, nstate> &soln_ext,
-    const LocalSolution<real2, dim, dim> &metric_int,
-    const LocalSolution<real2, dim, dim> &metric_ext,
+    const LocalSolution<real2, dim, nspecies, nstate> &soln_int,
+    const LocalSolution<real2, dim, nspecies, nstate> &soln_ext,
+    const LocalSolution<real2, dim, nspecies, dim> &metric_int,
+    const LocalSolution<real2, dim, nspecies, dim> &metric_ext,
     const std::vector< double > &dual_int,
     const std::vector< double > &dual_ext,
     const std::pair<unsigned int, int> face_subface_int,
     const std::pair<unsigned int, int> face_subface_ext,
     const typename dealii::QProjector<dim>::DataSetDescriptor face_data_set_int,
     const typename dealii::QProjector<dim>::DataSetDescriptor face_data_set_ext,
-    const Physics::PhysicsBase<dim, nstate, real2> &physics,
-    const NumericalFlux::NumericalFluxConvective<dim, nstate, real2> &conv_num_flux,
-    const NumericalFlux::NumericalFluxDissipative<dim, nstate, real2> &diss_num_flux,
+    const Physics::PhysicsBase<dim, nspecies, nstate, real2> &physics,
+    const NumericalFlux::NumericalFluxConvective<dim, nspecies, nstate, real2> &conv_num_flux,
+    const NumericalFlux::NumericalFluxDissipative<dim, nspecies, nstate, real2> &diss_num_flux,
     const dealii::FEFaceValuesBase<dim,dim>     &fe_values_int,
     const dealii::FEFaceValuesBase<dim,dim>     &fe_values_ext,
     const real penalty,
@@ -1627,14 +1627,14 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_face_term(
     auto old_jacobian_transpose_inverse_ext = jacobian_transpose_inverse_ext;
 
     if constexpr (dim != 1) {
-        evaluate_covariant_metric_jacobian<dim,real2> ( face_quadrature_int, metric_int, jacobian_transpose_inverse_int, jacobian_determinant_int);
-        evaluate_covariant_metric_jacobian<dim,real2> ( face_quadrature_ext, metric_ext, jacobian_transpose_inverse_ext, jacobian_determinant_ext);
+        evaluate_covariant_metric_jacobian<dim,nspecies,real2> ( face_quadrature_int, metric_int, jacobian_transpose_inverse_int, jacobian_determinant_int);
+        evaluate_covariant_metric_jacobian<dim,nspecies,real2> ( face_quadrature_ext, metric_ext, jacobian_transpose_inverse_ext, jacobian_determinant_ext);
     }
 #endif
 
     // Note: This is ignored when use_periodic_bc is set to true -- this variable has no other function when dim!=1
     if(this->all_parameters->use_periodic_bc == false) {
-        check_same_coords<dim,real2>(unit_quad_pts_int, unit_quad_pts_ext, metric_int, metric_ext, 1e-10);
+        check_same_coords<dim,nspecies,real2>(unit_quad_pts_int, unit_quad_pts_ext, metric_int, metric_ext, 1e-10);
     }
 
     // Compute metrics
@@ -1884,11 +1884,11 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_face_term(
         }
 
         std::vector<State> soln_grad_corr_int(n_base_dofs_int), soln_grad_corr_ext(n_base_dofs_ext);
-        compute_br2_correction<dim,nstate,real2>(soln_int.finite_element, metric_int, lifting_op_R_rhs_int, soln_grad_corr_int);
-        compute_br2_correction<dim,nstate,real2>(soln_ext.finite_element, metric_ext, lifting_op_R_rhs_ext, soln_grad_corr_ext);
+        compute_br2_correction<dim,nspecies,nstate,real2>(soln_int.finite_element, metric_int, lifting_op_R_rhs_int, soln_grad_corr_int);
+        compute_br2_correction<dim,nspecies,nstate,real2>(soln_ext.finite_element, metric_ext, lifting_op_R_rhs_ext, soln_grad_corr_ext);
 
-        correct_the_gradient<dim,nstate,real2>( soln_grad_corr_int, soln_int.finite_element, soln_jump_int, interpolation_operator_int, gradient_operator_int, soln_grad_int);
-        correct_the_gradient<dim,nstate,real2>( soln_grad_corr_ext, soln_ext.finite_element, soln_jump_ext, interpolation_operator_ext, gradient_operator_ext, soln_grad_ext);
+        correct_the_gradient<dim,nspecies,nstate,real2>( soln_grad_corr_int, soln_int.finite_element, soln_jump_int, interpolation_operator_int, gradient_operator_int, soln_grad_int);
+        correct_the_gradient<dim,nspecies,nstate,real2>( soln_grad_corr_ext, soln_ext.finite_element, soln_jump_ext, interpolation_operator_ext, gradient_operator_ext, soln_grad_ext);
 
     }
 
@@ -1917,8 +1917,8 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_face_term(
         diss_flux_jump_ext = physics.dissipative_flux (soln_ext_at_q[iquad], diss_soln_jump_ext, neighbor_cell_index);
 
         if (this->all_parameters->artificial_dissipation_param.add_artificial_dissipation) {
-            const DirectionalState artificial_diss_flux_jump_int =  DGBaseState<dim,nstate,real,MeshType>::artificial_dissip->calc_artificial_dissipation_flux(soln_int_at_q[iquad], diss_soln_jump_int,artificial_diss_coeff_at_q[iquad]);
-            const DirectionalState artificial_diss_flux_jump_ext =  DGBaseState<dim,nstate,real,MeshType>::artificial_dissip->calc_artificial_dissipation_flux(soln_ext_at_q[iquad], diss_soln_jump_ext,artificial_diss_coeff_at_q[iquad]);
+            const DirectionalState artificial_diss_flux_jump_int =  DGBaseState<dim,nspecies,nstate,real,MeshType>::artificial_dissip->calc_artificial_dissipation_flux(soln_int_at_q[iquad], diss_soln_jump_int,artificial_diss_coeff_at_q[iquad]);
+            const DirectionalState artificial_diss_flux_jump_ext =  DGBaseState<dim,nspecies,nstate,real,MeshType>::artificial_dissip->calc_artificial_dissipation_flux(soln_ext_at_q[iquad], diss_soln_jump_ext,artificial_diss_coeff_at_q[iquad]);
             for (int s=0; s<nstate; s++) {
                 diss_flux_jump_int[s] += artificial_diss_flux_jump_int[s];
                 diss_flux_jump_ext[s] += artificial_diss_flux_jump_ext[s];
@@ -1975,8 +1975,8 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_face_term(
 }
 
 #ifdef FADFAD
-template <int dim, int nstate, typename real, typename MeshType>
-void DGWeak<dim,nstate,real,MeshType>::assemble_face_term_derivatives(
+template <int dim, int nspecies, int nstate, typename real, typename MeshType>
+void DGWeak<dim,nspecies,nstate,real,MeshType>::assemble_face_term_derivatives(
     typename dealii::DoFHandler<dim>::active_cell_iterator cell,
     const dealii::types::global_dof_index current_cell_index,
     const dealii::types::global_dof_index neighbor_cell_index,
@@ -2083,9 +2083,9 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_face_term_derivatives(
     std::vector<adtype> rhs_ext(n_soln_dofs_ext);
     adtype dual_dot_residual;
 
-    const auto &physics = *(DGBaseState<dim,nstate,real,MeshType>::pde_physics_fad_fad);
-    const auto &conv_num_flux = *(DGBaseState<dim,nstate,real,MeshType>::conv_num_flux_fad_fad);
-    const auto &diss_num_flux = *(DGBaseState<dim,nstate,real,MeshType>::diss_num_flux_fad_fad);
+    const auto &physics = *(DGBaseState<dim,nspecies,nstate,real,MeshType>::pde_physics_fad_fad);
+    const auto &conv_num_flux = *(DGBaseState<dim,nspecies,nstate,real,MeshType>::conv_num_flux_fad_fad);
+    const auto &diss_num_flux = *(DGBaseState<dim,nspecies,nstate,real,MeshType>::diss_num_flux_fad_fad);
     assemble_face_term(
         cell,
         current_cell_index,
@@ -2318,9 +2318,9 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_face_term_derivatives(
 #endif
 
 #ifndef FADFAD
-template <int dim, int nstate, typename real, typename MeshType>
+template <int dim, int nspecies, int nstate, typename real, typename MeshType>
 template <typename adtype>
-void DGWeak<dim,nstate,real,MeshType>::assemble_face_codi_taped_derivatives(
+void DGWeak<dim,nspecies,nstate,real,MeshType>::assemble_face_codi_taped_derivatives(
     typename dealii::DoFHandler<dim>::active_cell_iterator cell,
     const dealii::types::global_dof_index current_cell_index,
     const dealii::types::global_dof_index neighbor_cell_index,
@@ -2338,9 +2338,9 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_face_codi_taped_derivatives(
     const std::vector<dealii::types::global_dof_index> &metric_dof_indices_ext,
     const std::vector<dealii::types::global_dof_index> &soln_dof_indices_int,
     const std::vector<dealii::types::global_dof_index> &soln_dof_indices_ext,
-    const Physics::PhysicsBase<dim, nstate, adtype> &physics,
-    const NumericalFlux::NumericalFluxConvective<dim, nstate, adtype> &conv_num_flux,
-    const NumericalFlux::NumericalFluxDissipative<dim, nstate, adtype> &diss_num_flux,
+    const Physics::PhysicsBase<dim, nspecies, nstate, adtype> &physics,
+    const NumericalFlux::NumericalFluxConvective<dim, nspecies, nstate, adtype> &conv_num_flux,
+    const NumericalFlux::NumericalFluxDissipative<dim, nspecies, nstate, adtype> &diss_num_flux,
     dealii::Vector<real>          &local_rhs_int_cell,
     dealii::Vector<real>          &local_rhs_ext_cell,
     const bool compute_dRdW, const bool compute_dRdX, const bool compute_d2R)
@@ -2353,10 +2353,10 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_face_codi_taped_derivatives(
     AssertDimension (n_soln_dofs_int, soln_dof_indices_int.size());
     AssertDimension (n_soln_dofs_ext, soln_dof_indices_ext.size());
 
-    LocalSolution<adtype, dim, nstate> soln_int(fe_int);
-    LocalSolution<adtype, dim, nstate> soln_ext(fe_ext);
-    LocalSolution<adtype, dim, dim> metric_int(fe_metric);
-    LocalSolution<adtype, dim, dim> metric_ext(fe_metric);
+    LocalSolution<adtype, dim, nspecies, nstate> soln_int(fe_int);
+    LocalSolution<adtype, dim, nspecies, nstate> soln_ext(fe_ext);
+    LocalSolution<adtype, dim, nspecies, dim> metric_int(fe_metric);
+    LocalSolution<adtype, dim, nspecies, dim> metric_ext(fe_metric);
 
     // Current derivative ordering is: soln_int, soln_ext, metric_int, metric_ext
     unsigned int w_int_start, w_int_end, w_ext_start, w_ext_end,
@@ -2700,8 +2700,8 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_face_codi_taped_derivatives(
 
 }
 
-template <int dim, int nstate, typename real, typename MeshType>
-void DGWeak<dim,nstate,real,MeshType>::assemble_face_residual(
+template <int dim, int nspecies, int nstate, typename real, typename MeshType>
+void DGWeak<dim,nspecies,nstate,real,MeshType>::assemble_face_residual(
     typename dealii::DoFHandler<dim>::active_cell_iterator cell,
     const dealii::types::global_dof_index current_cell_index,
     const dealii::types::global_dof_index neighbor_cell_index,
@@ -2719,9 +2719,9 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_face_residual(
     const std::vector<dealii::types::global_dof_index> &metric_dof_indices_ext,
     const std::vector<dealii::types::global_dof_index> &soln_dof_indices_int,
     const std::vector<dealii::types::global_dof_index> &soln_dof_indices_ext,
-    const Physics::PhysicsBase<dim, nstate, real> &physics,
-    const NumericalFlux::NumericalFluxConvective<dim, nstate, real> &conv_num_flux,
-    const NumericalFlux::NumericalFluxDissipative<dim, nstate, real> &diss_num_flux,
+    const Physics::PhysicsBase<dim, nspecies, nstate, real> &physics,
+    const NumericalFlux::NumericalFluxConvective<dim, nspecies, nstate, real> &conv_num_flux,
+    const NumericalFlux::NumericalFluxDissipative<dim, nspecies, nstate, real> &diss_num_flux,
     dealii::Vector<real>          &local_rhs_int_cell,
     dealii::Vector<real>          &local_rhs_ext_cell,
     const bool compute_dRdW, const bool compute_dRdX, const bool compute_d2R)
@@ -2734,10 +2734,10 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_face_residual(
     AssertDimension (n_soln_dofs_int, soln_dof_indices_int.size());
     AssertDimension (n_soln_dofs_ext, soln_dof_indices_ext.size());
 
-    LocalSolution<real, dim, nstate> soln_int(fe_int);
-    LocalSolution<real, dim, nstate> soln_ext(fe_ext);
-    LocalSolution<real, dim, dim> metric_int(fe_metric);
-    LocalSolution<real, dim, dim> metric_ext(fe_metric);
+    LocalSolution<real, dim, nspecies, nstate> soln_int(fe_int);
+    LocalSolution<real, dim, nspecies, nstate> soln_ext(fe_ext);
+    LocalSolution<real, dim, nspecies, dim> metric_int(fe_metric);
+    LocalSolution<real, dim, nspecies, dim> metric_ext(fe_metric);
 
     for (unsigned int idof = 0; idof < n_soln_dofs_int; ++idof) {
         const real val = this->solution(soln_dof_indices_int[idof]);
@@ -2805,16 +2805,16 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_face_residual(
 }
 #endif
 
-template <int dim, int nstate, typename real, typename MeshType>
+template <int dim, int nspecies, int nstate, typename real, typename MeshType>
 template <typename real2>
-void DGWeak<dim,nstate,real,MeshType>::assemble_volume_term(
+void DGWeak<dim,nspecies,nstate,real,MeshType>::assemble_volume_term(
     typename dealii::DoFHandler<dim>::active_cell_iterator cell,
     const dealii::types::global_dof_index current_cell_index,
-    const LocalSolution<real2, dim, nstate> &local_solution,
-    const LocalSolution<real2, dim, dim> &local_metric,
+    const LocalSolution<real2, dim, nspecies, nstate> &local_solution,
+    const LocalSolution<real2, dim, nspecies, dim> &local_metric,
     const std::vector<real> &local_dual,
     const dealii::Quadrature<dim> &quadrature,
-    const Physics::PhysicsBase<dim, nstate, real2> &physics,
+    const Physics::PhysicsBase<dim, nspecies, nstate, real2> &physics,
     std::vector<real2> &rhs, real2 &dual_dot_residual,
     const bool compute_metric_derivatives,
     const dealii::FEValues<dim,dim> &fe_values_vol)
@@ -2857,7 +2857,7 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_volume_term(
     auto old_jac_inv_tran = jac_inv_tran;
     auto old_jac_det = jac_det;
     if constexpr (dim != 1) {
-        evaluate_covariant_metric_jacobian<dim,real2> ( quadrature, local_metric, jac_inv_tran, jac_det);
+        evaluate_covariant_metric_jacobian<dim,nspecies,real2> ( quadrature, local_metric, jac_inv_tran, jac_det);
     }
     for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
         if (abs(old_jac_det[iquad] - jac_det[iquad])/abs(old_jac_det[iquad]) > 1e-10) {
@@ -3069,8 +3069,8 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_volume_term(
 }
 
 #ifdef FADFAD
-template <int dim, int nstate, typename real, typename MeshType>
-void DGWeak<dim,nstate,real,MeshType>::assemble_volume_term_derivatives(
+template <int dim, int nspecies, int nstate, typename real, typename MeshType>
+void DGWeak<dim,nspecies,nstate,real,MeshType>::assemble_volume_term_derivatives(
     typename dealii::DoFHandler<dim>::active_cell_iterator cell,
     const dealii::types::global_dof_index current_cell_index,
     const dealii::FEValues<dim,dim> &fe_values_vol,
@@ -3144,7 +3144,7 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_volume_term_derivatives(
         current_cell_index,
         soln_coeff, coords_coeff, local_dual,
         fe_soln, fe_metric, quadrature,
-        *(DGBaseState<dim,nstate,real,MeshType>::pde_physics_fad_fad),
+        *(DGBaseState<dim,nspecies,nstate,real,MeshType>::pde_physics_fad_fad),
         rhs, dual_dot_residual,
         compute_metric_derivatives, fe_values_vol);
 
@@ -3227,9 +3227,9 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_volume_term_derivatives(
 }
 #endif
 #ifndef FADFAD
-template <int dim, int nstate, typename real, typename MeshType>
+template <int dim, int nspecies, int nstate, typename real, typename MeshType>
 template <typename real2>
-void DGWeak<dim,nstate,real,MeshType>::assemble_volume_codi_taped_derivatives(
+void DGWeak<dim,nspecies,nstate,real,MeshType>::assemble_volume_codi_taped_derivatives(
     typename dealii::DoFHandler<dim>::active_cell_iterator cell,
     const dealii::types::global_dof_index current_cell_index,
     const dealii::FEValues<dim,dim> &fe_values_vol,
@@ -3239,7 +3239,7 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_volume_codi_taped_derivatives(
     const std::vector<dealii::types::global_dof_index> &soln_dof_indices,
     dealii::Vector<real> &local_rhs_cell,
     const dealii::FEValues<dim,dim> &fe_values_lagrange,
-    const Physics::PhysicsBase<dim, nstate, real2> &physics,
+    const Physics::PhysicsBase<dim, nspecies, nstate, real2> &physics,
     const bool compute_dRdW, const bool compute_dRdX, const bool compute_d2R)
 {
     (void) fe_values_lagrange;
@@ -3253,8 +3253,8 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_volume_codi_taped_derivatives(
     const dealii::FESystem<dim> &fe_metric = this->high_order_grid->fe_system;
     const unsigned int n_metric_dofs = fe_metric.dofs_per_cell;
 
-    LocalSolution<adtype, dim, nstate> local_solution(fe_soln);
-    LocalSolution<adtype, dim, dim> local_metric(fe_metric);
+    LocalSolution<adtype, dim, nspecies, nstate> local_solution(fe_soln);
+    LocalSolution<adtype, dim, nspecies, dim> local_metric(fe_metric);
 
     std::vector<real> local_dual(n_soln_dofs);
     for (unsigned int itest=0; itest<n_soln_dofs; ++itest) {
@@ -3408,8 +3408,8 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_volume_codi_taped_derivatives(
 
 }
 
-template <int dim, int nstate, typename real, typename MeshType>
-void DGWeak<dim,nstate,real,MeshType>::assemble_volume_residual(
+template <int dim, int nspecies, int nstate, typename real, typename MeshType>
+void DGWeak<dim,nspecies,nstate,real,MeshType>::assemble_volume_residual(
     typename dealii::DoFHandler<dim>::active_cell_iterator cell,
     const dealii::types::global_dof_index current_cell_index,
     const dealii::FEValues<dim,dim> &fe_values_vol,
@@ -3419,7 +3419,7 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_volume_residual(
     const std::vector<dealii::types::global_dof_index> &soln_dof_indices,
     dealii::Vector<real> &local_rhs_cell,
     const dealii::FEValues<dim,dim> &fe_values_lagrange,
-    const Physics::PhysicsBase<dim, nstate, real> &physics,
+    const Physics::PhysicsBase<dim, nspecies, nstate, real> &physics,
     const bool compute_dRdW, const bool compute_dRdX, const bool compute_d2R)
 {
     (void) fe_values_lagrange;
@@ -3436,8 +3436,8 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_volume_residual(
 
     AssertDimension (n_soln_dofs, soln_dof_indices.size());
 
-    LocalSolution<double, dim, nstate> local_solution(fe_soln);
-    LocalSolution<double, dim, dim> local_metric(fe_metric);
+    LocalSolution<double, dim, nspecies, nstate> local_solution(fe_soln);
+    LocalSolution<double, dim, nspecies, dim> local_metric(fe_metric);
 
     std::vector<real> local_dual(n_soln_dofs);
     for (unsigned int itest=0; itest<n_soln_dofs; ++itest) {
@@ -3471,8 +3471,8 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_volume_residual(
     }
 }
 
-template <int dim, int nstate, typename real, typename MeshType>
-void DGWeak<dim,nstate,real,MeshType>::assemble_volume_term_derivatives(
+template <int dim, int nspecies, int nstate, typename real, typename MeshType>
+void DGWeak<dim,nspecies,nstate,real,MeshType>::assemble_volume_term_derivatives(
     typename dealii::DoFHandler<dim>::active_cell_iterator cell,
     const dealii::types::global_dof_index current_cell_index,
     const dealii::FEValues<dim,dim> &fe_values_vol,
@@ -3495,7 +3495,7 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_volume_term_derivatives(
             metric_dof_indices, soln_dof_indices,
             local_rhs_cell,
             fe_values_lagrange,
-            *(DGBaseState<dim,nstate,real,MeshType>::pde_physics_rad_fad),
+            *(DGBaseState<dim,nspecies,nstate,real,MeshType>::pde_physics_rad_fad),
             compute_dRdW, compute_dRdX, compute_d2R);
     } else if (compute_dRdW || compute_dRdX) {
         assemble_volume_codi_taped_derivatives<codi_JacobianComputationType>(
@@ -3506,7 +3506,7 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_volume_term_derivatives(
             metric_dof_indices, soln_dof_indices,
             local_rhs_cell,
             fe_values_lagrange,
-            *(DGBaseState<dim,nstate,real,MeshType>::pde_physics_rad),
+            *(DGBaseState<dim,nspecies,nstate,real,MeshType>::pde_physics_rad),
             compute_dRdW, compute_dRdX, compute_d2R);
     } else {
         assemble_volume_residual(
@@ -3517,13 +3517,13 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_volume_term_derivatives(
             metric_dof_indices, soln_dof_indices,
             local_rhs_cell,
             fe_values_lagrange,
-            *(DGBaseState<dim,nstate,real,MeshType>::pde_physics_double),
+            *(DGBaseState<dim,nspecies,nstate,real,MeshType>::pde_physics_double),
             compute_dRdW, compute_dRdX, compute_d2R);
     }
 }
 
-template <int dim, int nstate, typename real, typename MeshType>
-void DGWeak<dim,nstate,real,MeshType>::assemble_face_term_derivatives(
+template <int dim, int nspecies, int nstate, typename real, typename MeshType>
+void DGWeak<dim,nspecies,nstate,real,MeshType>::assemble_face_term_derivatives(
     typename dealii::DoFHandler<dim>::active_cell_iterator cell,
     const dealii::types::global_dof_index current_cell_index,
     const dealii::types::global_dof_index neighbor_cell_index,
@@ -3566,9 +3566,9 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_face_term_derivatives(
             metric_dof_indices_ext,
             soln_dof_indices_int,
             soln_dof_indices_ext,
-            *(DGBaseState<dim,nstate,real,MeshType>::pde_physics_rad_fad),
-            *(DGBaseState<dim,nstate,real,MeshType>::conv_num_flux_rad_fad),
-            *(DGBaseState<dim,nstate,real,MeshType>::diss_num_flux_rad_fad),
+            *(DGBaseState<dim,nspecies,nstate,real,MeshType>::pde_physics_rad_fad),
+            *(DGBaseState<dim,nspecies,nstate,real,MeshType>::conv_num_flux_rad_fad),
+            *(DGBaseState<dim,nspecies,nstate,real,MeshType>::diss_num_flux_rad_fad),
             local_rhs_int_cell,
             local_rhs_ext_cell,
             compute_dRdW, compute_dRdX, compute_d2R);
@@ -3591,9 +3591,9 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_face_term_derivatives(
             metric_dof_indices_ext,
             soln_dof_indices_int,
             soln_dof_indices_ext,
-            *(DGBaseState<dim,nstate,real,MeshType>::pde_physics_rad),
-            *(DGBaseState<dim,nstate,real,MeshType>::conv_num_flux_rad),
-            *(DGBaseState<dim,nstate,real,MeshType>::diss_num_flux_rad),
+            *(DGBaseState<dim,nspecies,nstate,real,MeshType>::pde_physics_rad),
+            *(DGBaseState<dim,nspecies,nstate,real,MeshType>::conv_num_flux_rad),
+            *(DGBaseState<dim,nspecies,nstate,real,MeshType>::diss_num_flux_rad),
             local_rhs_int_cell,
             local_rhs_ext_cell,
             compute_dRdW, compute_dRdX, compute_d2R);
@@ -3616,9 +3616,9 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_face_term_derivatives(
             metric_dof_indices_ext,
             soln_dof_indices_int,
             soln_dof_indices_ext,
-            *(DGBaseState<dim,nstate,real,MeshType>::pde_physics_double),
-            *(DGBaseState<dim,nstate,real,MeshType>::conv_num_flux_double),
-            *(DGBaseState<dim,nstate,real,MeshType>::diss_num_flux_double),
+            *(DGBaseState<dim,nspecies,nstate,real,MeshType>::pde_physics_double),
+            *(DGBaseState<dim,nspecies,nstate,real,MeshType>::conv_num_flux_double),
+            *(DGBaseState<dim,nspecies,nstate,real,MeshType>::diss_num_flux_double),
             local_rhs_int_cell,
             local_rhs_ext_cell,
             compute_dRdW, compute_dRdX, compute_d2R);
@@ -3627,8 +3627,8 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_face_term_derivatives(
 #endif
 
 
-template <int dim, int nstate, typename real, typename MeshType>
-void DGWeak<dim,nstate,real,MeshType>::assemble_volume_term_and_build_operators(
+template <int dim, int nspecies, int nstate, typename real, typename MeshType>
+void DGWeak<dim,nspecies,nstate,real,MeshType>::assemble_volume_term_and_build_operators(
     typename dealii::DoFHandler<dim>::active_cell_iterator cell,
     const dealii::types::global_dof_index                  current_cell_index,
     const std::vector<dealii::types::global_dof_index>     &cell_dofs_indices,
@@ -3643,8 +3643,8 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_volume_term_and_build_operators(
     OPERATOR::metric_operators<real,dim,2*dim>             &/*metric_oper*/,
     OPERATOR::mapping_shape_functions<dim,2*dim,real>           &/*mapping_basis*/,
     std::array<std::vector<real>,dim>                      &/*mapping_support_points*/,
-    dealii::hp::FEValues<dim,dim>                          &fe_values_collection_volume,
-    dealii::hp::FEValues<dim,dim>                          &fe_values_collection_volume_lagrange,
+    dealii::hp::FEValues<dim,dim>                           &fe_values_collection_volume,
+    dealii::hp::FEValues<dim,dim>                           &fe_values_collection_volume_lagrange,
     const dealii::FESystem<dim,dim>                        &current_fe_ref,
     dealii::Vector<real>                                   &local_rhs_int_cell,
     std::vector<dealii::Tensor<1,dim,real>>                &/*local_auxiliary_RHS*/,
@@ -3656,7 +3656,7 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_volume_term_and_build_operators(
     const int i_quad = i_fele;
     const int i_mapp = 0;
     fe_values_collection_volume.reinit (cell, i_quad, i_mapp, i_fele);
-    dealii::TriaIterator<dealii::CellAccessor<dim,dim>> cell_iterator = static_cast<dealii::TriaIterator<dealii::CellAccessor<dim,dim>> > (cell);
+    dealii::TriaIterator<dealii::CellAccessor<dim, dim>> cell_iterator = static_cast<dealii::TriaIterator<dealii::CellAccessor<dim, dim>> > (cell);
     fe_values_collection_volume_lagrange.reinit (cell_iterator, i_quad, i_mapp, i_fele);
 
     const dealii::FEValues<dim,dim> &fe_values_volume = fe_values_collection_volume.get_present_fe_values();
@@ -3683,8 +3683,8 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_volume_term_and_build_operators(
         compute_dRdW, compute_dRdX, compute_d2R);
 }
 
-template <int dim, int nstate, typename real, typename MeshType>
-void DGWeak<dim,nstate,real,MeshType>::assemble_boundary_term_and_build_operators(
+template <int dim, int nspecies, int nstate, typename real, typename MeshType>
+void DGWeak<dim,nspecies,nstate,real,MeshType>::assemble_boundary_term_and_build_operators(
     typename dealii::DoFHandler<dim>::active_cell_iterator cell,
     const dealii::types::global_dof_index                  current_cell_index,
     const unsigned int                                     iface,
@@ -3726,8 +3726,8 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_boundary_term_and_build_operator
         compute_dRdW, compute_dRdX, compute_d2R);
 }
 
-template <int dim, int nstate, typename real, typename MeshType>
-void DGWeak<dim,nstate,real,MeshType>::assemble_face_term_and_build_operators(
+template <int dim, int nspecies, int nstate, typename real, typename MeshType>
+void DGWeak<dim,nspecies,nstate,real,MeshType>::assemble_face_term_and_build_operators(
     typename dealii::DoFHandler<dim>::active_cell_iterator cell,
     typename dealii::DoFHandler<dim>::active_cell_iterator neighbor_cell,
     const dealii::types::global_dof_index                  current_cell_index,
@@ -3818,8 +3818,8 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_face_term_and_build_operators(
     }
 }
 
-template <int dim, int nstate, typename real, typename MeshType>
-void DGWeak<dim,nstate,real,MeshType>::assemble_subface_term_and_build_operators(
+template <int dim, int nspecies, int nstate, typename real, typename MeshType>
+void DGWeak<dim,nspecies,nstate,real,MeshType>::assemble_subface_term_and_build_operators(
     typename dealii::DoFHandler<dim>::active_cell_iterator cell,
     typename dealii::DoFHandler<dim>::active_cell_iterator neighbor_cell,
     const dealii::types::global_dof_index                  current_cell_index,
@@ -3913,14 +3913,14 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_subface_term_and_build_operators
 
 }
 
-template <int dim, int nstate, typename real, typename MeshType>
-void DGWeak<dim,nstate,real,MeshType>::assemble_auxiliary_residual ()
+template <int dim, int nspecies, int nstate, typename real, typename MeshType>
+void DGWeak<dim,nspecies,nstate,real,MeshType>::assemble_auxiliary_residual ()
 {
     //Do Nothing.
 }
 
-template <int dim, int nstate, typename real, typename MeshType>
-void DGWeak<dim,nstate,real,MeshType>::allocate_dual_vector ()
+template <int dim, int nspecies, int nstate, typename real, typename MeshType>
+void DGWeak<dim,nspecies,nstate,real,MeshType>::allocate_dual_vector ()
 {
     this->dual.reinit(this->locally_owned_dofs, this->ghost_dofs, this->mpi_communicator);
 }
@@ -3928,27 +3928,27 @@ void DGWeak<dim,nstate,real,MeshType>::allocate_dual_vector ()
 // using default MeshType = Triangulation
 // 1D: dealii::Triangulation<dim>;
 // Otherwise: dealii::parallel::distributed::Triangulation<dim>;
-template class DGWeak <PHILIP_DIM, 1, double, dealii::Triangulation<PHILIP_DIM>>;
-template class DGWeak <PHILIP_DIM, 2, double, dealii::Triangulation<PHILIP_DIM>>;
-template class DGWeak <PHILIP_DIM, 3, double, dealii::Triangulation<PHILIP_DIM>>;
-template class DGWeak <PHILIP_DIM, 4, double, dealii::Triangulation<PHILIP_DIM>>;
-template class DGWeak <PHILIP_DIM, 5, double, dealii::Triangulation<PHILIP_DIM>>;
-template class DGWeak <PHILIP_DIM, 6, double, dealii::Triangulation<PHILIP_DIM>>;
+template class DGWeak <PHILIP_DIM, PHILIP_SPECIES, 1, double, dealii::Triangulation<PHILIP_DIM>>;
+template class DGWeak <PHILIP_DIM, PHILIP_SPECIES, 2, double, dealii::Triangulation<PHILIP_DIM>>;
+template class DGWeak <PHILIP_DIM, PHILIP_SPECIES, 3, double, dealii::Triangulation<PHILIP_DIM>>;
+template class DGWeak <PHILIP_DIM, PHILIP_SPECIES, 4, double, dealii::Triangulation<PHILIP_DIM>>;
+template class DGWeak <PHILIP_DIM, PHILIP_SPECIES, 5, double, dealii::Triangulation<PHILIP_DIM>>;
+template class DGWeak <PHILIP_DIM, PHILIP_SPECIES, 6, double, dealii::Triangulation<PHILIP_DIM>>;
 
-template class DGWeak <PHILIP_DIM, 1, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
-template class DGWeak <PHILIP_DIM, 2, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
-template class DGWeak <PHILIP_DIM, 3, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
-template class DGWeak <PHILIP_DIM, 4, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
-template class DGWeak <PHILIP_DIM, 5, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
-template class DGWeak <PHILIP_DIM, 6, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+template class DGWeak <PHILIP_DIM, PHILIP_SPECIES, 1, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+template class DGWeak <PHILIP_DIM, PHILIP_SPECIES, 2, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+template class DGWeak <PHILIP_DIM, PHILIP_SPECIES, 3, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+template class DGWeak <PHILIP_DIM, PHILIP_SPECIES, 4, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+template class DGWeak <PHILIP_DIM, PHILIP_SPECIES, 5, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+template class DGWeak <PHILIP_DIM, PHILIP_SPECIES, 6, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
 
 #if PHILIP_DIM!=1
-template class DGWeak <PHILIP_DIM, 1, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
-template class DGWeak <PHILIP_DIM, 2, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
-template class DGWeak <PHILIP_DIM, 3, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
-template class DGWeak <PHILIP_DIM, 4, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
-template class DGWeak <PHILIP_DIM, 5, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
-template class DGWeak <PHILIP_DIM, 6, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+template class DGWeak <PHILIP_DIM, PHILIP_SPECIES, 1, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+template class DGWeak <PHILIP_DIM, PHILIP_SPECIES, 2, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+template class DGWeak <PHILIP_DIM, PHILIP_SPECIES, 3, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+template class DGWeak <PHILIP_DIM, PHILIP_SPECIES, 4, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+template class DGWeak <PHILIP_DIM, PHILIP_SPECIES, 5, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+template class DGWeak <PHILIP_DIM, PHILIP_SPECIES, 6, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
 #endif
 
 } // PHiLiP namespace

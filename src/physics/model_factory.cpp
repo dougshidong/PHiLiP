@@ -14,9 +14,9 @@
 namespace PHiLiP {
 namespace Physics {
 
-template <int dim, int nstate, typename real>
-std::shared_ptr < ModelBase<dim,nstate,real> >
-ModelFactory<dim,nstate,real>
+template <int dim, int nspecies, int nstate, typename real>
+std::shared_ptr < ModelBase<dim,nspecies,nstate,real> >
+ModelFactory<dim,nspecies,nstate,real>
 ::create_Model(const Parameters::AllParameters *const parameters_input)
 {
     using PDE_enum = Parameters::AllParameters::PartialDifferentialEquation;
@@ -24,8 +24,8 @@ ModelFactory<dim,nstate,real>
 
     if(pde_type == PDE_enum::physics_model) {
         // generating the manufactured solution from the manufactured solution factory
-        std::shared_ptr< ManufacturedSolutionFunction<dim,real> >  manufactured_solution_function 
-            = ManufacturedSolutionFactory<dim,real>::create_ManufacturedSolution(parameters_input, nstate);
+        std::shared_ptr< ManufacturedSolutionFunction<dim,nspecies,real> >  manufactured_solution_function 
+            = ManufacturedSolutionFactory<dim,nspecies,real>::create_ManufacturedSolution(parameters_input, nstate);
 
         using Model_enum = Parameters::AllParameters::ModelType;
         Model_enum model_type = parameters_input->model_type;
@@ -45,7 +45,7 @@ ModelFactory<dim,nstate,real>
                     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
                     // Smagorinsky model
                     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-                    return std::make_shared < LargeEddySimulation_Smagorinsky<dim,nstate,real> > (
+                    return std::make_shared < LargeEddySimulation_Smagorinsky<dim,nspecies,nstate,real> > (
                         parameters_input,
                         parameters_input->euler_param.ref_length,
                         parameters_input->euler_param.gamma_gas,
@@ -68,7 +68,7 @@ ModelFactory<dim,nstate,real>
                     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
                     // WALE (Wall-Adapting Local Eddy-viscosity) eddy viscosity model
                     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-                    return std::make_shared < LargeEddySimulation_WALE<dim,nstate,real> > (
+                    return std::make_shared < LargeEddySimulation_WALE<dim,nspecies,nstate,real> > (
                         parameters_input,
                         parameters_input->euler_param.ref_length,
                         parameters_input->euler_param.gamma_gas,
@@ -91,7 +91,7 @@ ModelFactory<dim,nstate,real>
                     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
                     // Vreman eddy viscosity model
                     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-                    return std::make_shared < LargeEddySimulation_Vreman<dim,nstate,real> > (
+                    return std::make_shared < LargeEddySimulation_Vreman<dim,nspecies,nstate,real> > (
                         parameters_input,
                         parameters_input->euler_param.ref_length,
                         parameters_input->euler_param.gamma_gas,
@@ -135,7 +135,7 @@ ModelFactory<dim,nstate,real>
                     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
                     // SA negative model
                     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -      
-                    return std::make_shared < ReynoldsAveragedNavierStokes_SAneg<dim,nstate,real> > (
+                    return std::make_shared < ReynoldsAveragedNavierStokes_SAneg<dim,nspecies,nstate,real> > (
                         parameters_input,
                         parameters_input->euler_param.ref_length,
                         parameters_input->euler_param.gamma_gas,
@@ -183,45 +183,45 @@ ModelFactory<dim,nstate,real>
 //----------------------------------------------------------------
 //----------------------------------------------------------------
 // Instantiate explicitly
-template class ModelFactory<PHILIP_DIM, 1, double>;
-template class ModelFactory<PHILIP_DIM, 2, double>;
-template class ModelFactory<PHILIP_DIM, 3, double>;
-template class ModelFactory<PHILIP_DIM, 4, double>;
-template class ModelFactory<PHILIP_DIM, 5, double>;
-template class ModelFactory<PHILIP_DIM, 6, double>;
-template class ModelFactory<PHILIP_DIM, 8, double>;
+template class ModelFactory<PHILIP_DIM, PHILIP_SPECIES, 1, double>;
+template class ModelFactory<PHILIP_DIM, PHILIP_SPECIES, 2, double>;
+template class ModelFactory<PHILIP_DIM, PHILIP_SPECIES, 3, double>;
+template class ModelFactory<PHILIP_DIM, PHILIP_SPECIES, 4, double>;
+template class ModelFactory<PHILIP_DIM, PHILIP_SPECIES, 5, double>;
+template class ModelFactory<PHILIP_DIM, PHILIP_SPECIES, 6, double>;
+template class ModelFactory<PHILIP_DIM, PHILIP_SPECIES, 8, double>;
 
-template class ModelFactory<PHILIP_DIM, 1, FadType>;
-template class ModelFactory<PHILIP_DIM, 2, FadType>;
-template class ModelFactory<PHILIP_DIM, 3, FadType>;
-template class ModelFactory<PHILIP_DIM, 4, FadType>;
-template class ModelFactory<PHILIP_DIM, 5, FadType>;
-template class ModelFactory<PHILIP_DIM, 6, FadType>;
-template class ModelFactory<PHILIP_DIM, 8, FadType>;
+template class ModelFactory<PHILIP_DIM, PHILIP_SPECIES, 1, FadType>;
+template class ModelFactory<PHILIP_DIM, PHILIP_SPECIES, 2, FadType>;
+template class ModelFactory<PHILIP_DIM, PHILIP_SPECIES, 3, FadType>;
+template class ModelFactory<PHILIP_DIM, PHILIP_SPECIES, 4, FadType>;
+template class ModelFactory<PHILIP_DIM, PHILIP_SPECIES, 5, FadType>;
+template class ModelFactory<PHILIP_DIM, PHILIP_SPECIES, 6, FadType>;
+template class ModelFactory<PHILIP_DIM, PHILIP_SPECIES, 8, FadType>;
 
-template class ModelFactory<PHILIP_DIM, 1, RadType>;
-template class ModelFactory<PHILIP_DIM, 2, RadType>;
-template class ModelFactory<PHILIP_DIM, 3, RadType>;
-template class ModelFactory<PHILIP_DIM, 4, RadType>;
-template class ModelFactory<PHILIP_DIM, 5, RadType>;
-template class ModelFactory<PHILIP_DIM, 6, RadType>;
-template class ModelFactory<PHILIP_DIM, 8, RadType>;
+template class ModelFactory<PHILIP_DIM, PHILIP_SPECIES, 1, RadType>;
+template class ModelFactory<PHILIP_DIM, PHILIP_SPECIES, 2, RadType>;
+template class ModelFactory<PHILIP_DIM, PHILIP_SPECIES, 3, RadType>;
+template class ModelFactory<PHILIP_DIM, PHILIP_SPECIES, 4, RadType>;
+template class ModelFactory<PHILIP_DIM, PHILIP_SPECIES, 5, RadType>;
+template class ModelFactory<PHILIP_DIM, PHILIP_SPECIES, 6, RadType>;
+template class ModelFactory<PHILIP_DIM, PHILIP_SPECIES, 8, RadType>;
 
-template class ModelFactory<PHILIP_DIM, 1, FadFadType>;
-template class ModelFactory<PHILIP_DIM, 2, FadFadType>;
-template class ModelFactory<PHILIP_DIM, 3, FadFadType>;
-template class ModelFactory<PHILIP_DIM, 4, FadFadType>;
-template class ModelFactory<PHILIP_DIM, 5, FadFadType>;
-template class ModelFactory<PHILIP_DIM, 6, FadFadType>;
-template class ModelFactory<PHILIP_DIM, 8, FadFadType>;
+template class ModelFactory<PHILIP_DIM, PHILIP_SPECIES, 1, FadFadType>;
+template class ModelFactory<PHILIP_DIM, PHILIP_SPECIES, 2, FadFadType>;
+template class ModelFactory<PHILIP_DIM, PHILIP_SPECIES, 3, FadFadType>;
+template class ModelFactory<PHILIP_DIM, PHILIP_SPECIES, 4, FadFadType>;
+template class ModelFactory<PHILIP_DIM, PHILIP_SPECIES, 5, FadFadType>;
+template class ModelFactory<PHILIP_DIM, PHILIP_SPECIES, 6, FadFadType>;
+template class ModelFactory<PHILIP_DIM, PHILIP_SPECIES, 8, FadFadType>;
 
-template class ModelFactory<PHILIP_DIM, 1, RadFadType>;
-template class ModelFactory<PHILIP_DIM, 2, RadFadType>;
-template class ModelFactory<PHILIP_DIM, 3, RadFadType>;
-template class ModelFactory<PHILIP_DIM, 4, RadFadType>;
-template class ModelFactory<PHILIP_DIM, 5, RadFadType>;
-template class ModelFactory<PHILIP_DIM, 6, RadFadType>;
-template class ModelFactory<PHILIP_DIM, 8, RadFadType>;
+template class ModelFactory<PHILIP_DIM, PHILIP_SPECIES, 1, RadFadType>;
+template class ModelFactory<PHILIP_DIM, PHILIP_SPECIES, 2, RadFadType>;
+template class ModelFactory<PHILIP_DIM, PHILIP_SPECIES, 3, RadFadType>;
+template class ModelFactory<PHILIP_DIM, PHILIP_SPECIES, 4, RadFadType>;
+template class ModelFactory<PHILIP_DIM, PHILIP_SPECIES, 5, RadFadType>;
+template class ModelFactory<PHILIP_DIM, PHILIP_SPECIES, 6, RadFadType>;
+template class ModelFactory<PHILIP_DIM, PHILIP_SPECIES, 8, RadFadType>;
 
 } // Physics namespace
 } // PHiLiP namespace

@@ -21,17 +21,17 @@ using StorageType = PHiLiP::GridRefinement::StorageType;
 
 // typename for each datatype
 using Scalar = double;
-using Vector = dealii::Tensor<1,PHILIP_DIM,double>;
-using Matrix = dealii::Tensor<2,PHILIP_DIM,double>;
+using Vector = dealii::Tensor<1,PHILIP_DIM, double>;
+using Matrix = dealii::Tensor<2,PHILIP_DIM, double>;
 
 // functions for getting data values
 template <typename T>
-T data_function(dealii::Point<PHILIP_DIM,double> x);
+T data_function(dealii::Point<PHILIP_DIM, double> x);
 
 // specializations
 template <>
 Scalar data_function<Scalar>(
-    dealii::Point<PHILIP_DIM,double> x)
+    dealii::Point<PHILIP_DIM, double> x)
 {
     const int dim = PHILIP_DIM;
     const int exp = 3;
@@ -69,7 +69,7 @@ Scalar data_function<Scalar>(
 
 template <>
 Vector data_function<Vector>(
-    dealii::Point<PHILIP_DIM,double> x)
+    dealii::Point<PHILIP_DIM, double> x)
 {
     const int dim = PHILIP_DIM;
     const int exp = 3;
@@ -111,7 +111,7 @@ Vector data_function<Vector>(
 
 template <>
 Matrix data_function<Matrix>(
-    dealii::Point<PHILIP_DIM,double> x)
+    dealii::Point<PHILIP_DIM, double> x)
 {
     const int dim = PHILIP_DIM;
     const int exp = 3;

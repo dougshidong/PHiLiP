@@ -32,6 +32,7 @@ int main (int argc, char * argv[])
     all_parameters.parse_parameters (parameter_handler);
 
     const int dim = PHILIP_DIM;
+    const int nspecies = 1;
     AssertDimension(dim, 2);
 
     // Create grid
@@ -49,7 +50,7 @@ int main (int argc, char * argv[])
     
 
     // Create DG object
-    std::shared_ptr < DGBase<dim, double> > dg = DGFactory<dim,double>::create_discontinuous_galerkin(&all_parameters, POLY_DEGREE, POLY_DEGREE, MESH_DEGREE, grid);
+    std::shared_ptr < DGBase<dim, nspecies, double> > dg = DGFactory<dim,nspecies,double>::create_discontinuous_galerkin(&all_parameters, POLY_DEGREE, POLY_DEGREE, MESH_DEGREE, grid);
     dg->allocate_system ();
     VectorType initial_vol_nodes = dg->high_order_grid->volume_nodes;
     

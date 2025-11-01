@@ -6,9 +6,9 @@
 
 namespace PHiLiP {
 
-template <int dim, int nstate>
-std::shared_ptr < ArtificialDissipationBase<dim,nstate> >
-ArtificialDissipationFactory<dim,nstate> ::create_artificial_dissipation(const Parameters::AllParameters *const parameters_input)
+template <int dim, int nspecies, int nstate>
+std::shared_ptr < ArtificialDissipationBase<dim,nspecies,nstate> >
+ArtificialDissipationFactory<dim,nspecies,nstate> ::create_artificial_dissipation(const Parameters::AllParameters *const parameters_input)
 {
     using artificial_dissipation_enum = Parameters::ArtificialDissipationParam::ArtificialDissipationType;
     artificial_dissipation_enum arti_dissipation_type = parameters_input->artificial_dissipation_param.artificial_dissipation_type;
@@ -17,7 +17,7 @@ ArtificialDissipationFactory<dim,nstate> ::create_artificial_dissipation(const P
     {
         case artificial_dissipation_enum::laplacian:
         {
-            return std::make_shared<LaplacianArtificialDissipation<dim,nstate>>(parameters_input);
+            return std::make_shared<LaplacianArtificialDissipation<dim,nspecies,nstate>>(parameters_input);
             break;
         }
 
@@ -26,7 +26,7 @@ ArtificialDissipationFactory<dim,nstate> ::create_artificial_dissipation(const P
             if constexpr(dim+2==nstate)
             {
                 std::cout<<"Physical Artifical Dissipation pointer created"<<std::endl;
-                return std::make_shared<PhysicalArtificialDissipation<dim,nstate>>(parameters_input);
+                return std::make_shared<PhysicalArtificialDissipation<dim,nspecies,nstate>>(parameters_input);
             }
             break;
         }
@@ -36,7 +36,7 @@ ArtificialDissipationFactory<dim,nstate> ::create_artificial_dissipation(const P
             if constexpr(dim+2==nstate)
             {
                 std::cout<<"Enthalpy Conserving Laplacian Artifical Dissipation pointer created"<<std::endl;
-                return std::make_shared<EnthalpyConservingArtificialDissipation<dim,nstate>>(parameters_input);
+                return std::make_shared<EnthalpyConservingArtificialDissipation<dim,nspecies,nstate>>(parameters_input);
             }
             break;
         }
@@ -48,11 +48,11 @@ ArtificialDissipationFactory<dim,nstate> ::create_artificial_dissipation(const P
 }
 
 
-template class ArtificialDissipationFactory<PHILIP_DIM,1>; 
-template class ArtificialDissipationFactory<PHILIP_DIM,2>; 
-template class ArtificialDissipationFactory<PHILIP_DIM,3>; 
-template class ArtificialDissipationFactory<PHILIP_DIM,4>; 
-template class ArtificialDissipationFactory<PHILIP_DIM,5>; 
-template class ArtificialDissipationFactory<PHILIP_DIM,6>; 
+template class ArtificialDissipationFactory<PHILIP_DIM, PHILIP_SPECIES,1>; 
+template class ArtificialDissipationFactory<PHILIP_DIM, PHILIP_SPECIES,2>; 
+template class ArtificialDissipationFactory<PHILIP_DIM, PHILIP_SPECIES,3>; 
+template class ArtificialDissipationFactory<PHILIP_DIM, PHILIP_SPECIES,4>; 
+template class ArtificialDissipationFactory<PHILIP_DIM, PHILIP_SPECIES,5>; 
+template class ArtificialDissipationFactory<PHILIP_DIM, PHILIP_SPECIES,6>; 
 
 } // namespace PHiLiP

@@ -2,6 +2,6 @@
 
 namespace PHiLiP {
 
-template class TargetWallPressure <PHILIP_DIM, PHILIP_DIM+2, double>;
+template class TargetWallPressure <PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, double>;
 
 } // PHiLiP namespace

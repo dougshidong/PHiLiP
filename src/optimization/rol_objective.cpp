@@ -7,9 +7,9 @@
 
 namespace PHiLiP {
 
-template <int dim, int nstate>
-ROLObjectiveSimOpt<dim,nstate>::ROLObjectiveSimOpt(
-    Functional<dim,nstate,double> &_functional, 
+template <int dim, int nspecies, int nstate>
+ROLObjectiveSimOpt<dim,nspecies,nstate>::ROLObjectiveSimOpt(
+    Functional<dim,nspecies,nstate,double> &_functional, 
     std::shared_ptr<BaseParameterization<dim>> _design_parameterization,
     std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> precomputed_dXvdXp)
     : functional(_functional)
@@ -30,8 +30,8 @@ ROLObjectiveSimOpt<dim,nstate>::ROLObjectiveSimOpt(
 }
 
 
-template <int dim, int nstate>
-void ROLObjectiveSimOpt<dim,nstate>::update(
+template <int dim, int nspecies, int nstate>
+void ROLObjectiveSimOpt<dim,nspecies,nstate>::update(
     const ROL::Vector<double> &des_var_sim,
     const ROL::Vector<double> &des_var_ctl,
     bool /*flag*/, int /*iter*/)
@@ -43,8 +43,8 @@ void ROLObjectiveSimOpt<dim,nstate>::update(
 }
 
 
-template <int dim, int nstate>
-double ROLObjectiveSimOpt<dim,nstate>::value(
+template <int dim, int nspecies, int nstate>
+double ROLObjectiveSimOpt<dim,nspecies,nstate>::value(
     const ROL::Vector<double> &des_var_sim,
     const ROL::Vector<double> &des_var_ctl,
     double &tol )
@@ -62,8 +62,8 @@ double ROLObjectiveSimOpt<dim,nstate>::value(
     return functional.evaluate_functional( compute_dIdW, compute_dIdX, compute_d2I );
 }
 
-template <int dim, int nstate>
-void ROLObjectiveSimOpt<dim,nstate>::gradient_1(
+template <int dim, int nspecies, int nstate>
+void ROLObjectiveSimOpt<dim,nspecies,nstate>::gradient_1(
     ROL::Vector<double> &gradient_sim,
     const ROL::Vector<double> &des_var_sim,
     const ROL::Vector<double> &des_var_ctl,
@@ -79,8 +79,8 @@ void ROLObjectiveSimOpt<dim,nstate>::gradient_1(
     dIdW = functional.dIdw;
 }
 
-template <int dim, int nstate>
-void ROLObjectiveSimOpt<dim,nstate>::gradient_2(
+template <int dim, int nspecies, int nstate>
+void ROLObjectiveSimOpt<dim,nspecies,nstate>::gradient_2(
     ROL::Vector<double> &gradient_ctl,
     const ROL::Vector<double> &des_var_sim,
     const ROL::Vector<double> &des_var_ctl,
@@ -101,7 +101,7 @@ void ROLObjectiveSimOpt<dim,nstate>::gradient_2(
     // auto dIdXvs = dIdXv;
     // {
     //     dealii::LinearAlgebra::distributed::Vector<double> dummy_vector(functional.dg->high_order_grid->surface_nodes);
-    //     MeshMover::LinearElasticity<dim, double, dealii::LinearAlgebra::distributed::Vector<double>, dealii::DoFHandler<dim>> 
+    //     MeshMover::LinearElasticity<dim, nspecies, double, dealii::LinearAlgebra::distributed::Vector<double>, dealii::DoFHandler<dim>> 
     //         meshmover(*(functional.dg->high_order_grid->triangulation),
     //           functional.dg->high_order_grid->initial_mapping_fe_field,
     //           functional.dg->high_order_grid->dof_handler_grid,
@@ -119,8 +119,8 @@ void ROLObjectiveSimOpt<dim,nstate>::gradient_2(
 
 }
 
-template <int dim, int nstate>
-void ROLObjectiveSimOpt<dim,nstate>::hessVec_11(
+template <int dim, int nspecies, int nstate>
+void ROLObjectiveSimOpt<dim,nspecies,nstate>::hessVec_11(
     ROL::Vector<double> &output_vector,
     const ROL::Vector<double> &input_vector,
     const ROL::Vector<double> &des_var_sim,
@@ -142,8 +142,8 @@ void ROLObjectiveSimOpt<dim,nstate>::hessVec_11(
     //n_vmult += 1;
 }
 
-template <int dim, int nstate>
-void ROLObjectiveSimOpt<dim,nstate>::hessVec_12(
+template <int dim, int nspecies, int nstate>
+void ROLObjectiveSimOpt<dim,nspecies,nstate>::hessVec_12(
     ROL::Vector<double> &output_vector,
     const ROL::Vector<double> &input_vector,
     const ROL::Vector<double> &des_var_sim,
@@ -164,7 +164,7 @@ void ROLObjectiveSimOpt<dim,nstate>::hessVec_12(
     // auto dXvdXp_input = dXvsdXp_input;
     // {
     //     dealii::LinearAlgebra::distributed::Vector<double> dummy_vector(functional.dg->high_order_grid->surface_nodes);
-    //     MeshMover::LinearElasticity<dim, double, dealii::LinearAlgebra::distributed::Vector<double>, dealii::DoFHandler<dim>> 
+    //     MeshMover::LinearElasticity<dim, nspecies, double, dealii::LinearAlgebra::distributed::Vector<double>, dealii::DoFHandler<dim>> 
     //         meshmover(*(functional.dg->high_order_grid->triangulation),
     //           functional.dg->high_order_grid->initial_mapping_fe_field,
     //           functional.dg->high_order_grid->dof_handler_grid,
@@ -194,8 +194,8 @@ void ROLObjectiveSimOpt<dim,nstate>::hessVec_12(
 
 }
 
-template <int dim, int nstate>
-void ROLObjectiveSimOpt<dim,nstate>::hessVec_21(
+template <int dim, int nspecies, int nstate>
+void ROLObjectiveSimOpt<dim,nspecies,nstate>::hessVec_21(
     ROL::Vector<double> &output_vector,
     const ROL::Vector<double> &input_vector,
     const ROL::Vector<double> &des_var_sim,
@@ -217,7 +217,7 @@ void ROLObjectiveSimOpt<dim,nstate>::hessVec_21(
     // auto d2IdXvsdW_input = functional.dg->high_order_grid->volume_nodes;
     // {
     //     dealii::LinearAlgebra::distributed::Vector<double> dummy_vector(functional.dg->high_order_grid->surface_nodes);
-    //     MeshMover::LinearElasticity<dim, double, dealii::LinearAlgebra::distributed::Vector<double>, dealii::DoFHandler<dim>> 
+    //     MeshMover::LinearElasticity<dim, nspecies, double, dealii::LinearAlgebra::distributed::Vector<double>, dealii::DoFHandler<dim>> 
     //         meshmover(*(functional.dg->high_order_grid->triangulation),
     //           functional.dg->high_order_grid->initial_mapping_fe_field,
     //           functional.dg->high_order_grid->dof_handler_grid,
@@ -239,8 +239,8 @@ void ROLObjectiveSimOpt<dim,nstate>::hessVec_21(
     //n_vmult += 2;
 }
 
-template <int dim, int nstate>
-void ROLObjectiveSimOpt<dim,nstate>::hessVec_22(
+template <int dim, int nspecies, int nstate>
+void ROLObjectiveSimOpt<dim,nspecies,nstate>::hessVec_22(
     ROL::Vector<double> &output_vector,
     const ROL::Vector<double> &input_vector,
     const ROL::Vector<double> &des_var_sim,
@@ -263,7 +263,7 @@ void ROLObjectiveSimOpt<dim,nstate>::hessVec_22(
     // auto dXvdXp_input = dXvsdXp_input;
     // {
     //     dealii::LinearAlgebra::distributed::Vector<double> dummy_vector(functional.dg->high_order_grid->surface_nodes);
-    //     MeshMover::LinearElasticity<dim, double, dealii::LinearAlgebra::distributed::Vector<double>, dealii::DoFHandler<dim>> 
+    //     MeshMover::LinearElasticity<dim, nspecies, double, dealii::LinearAlgebra::distributed::Vector<double>, dealii::DoFHandler<dim>> 
     //         meshmover(*(functional.dg->high_order_grid->triangulation),
     //           functional.dg->high_order_grid->initial_mapping_fe_field,
     //           functional.dg->high_order_grid->dof_handler_grid,
@@ -285,7 +285,7 @@ void ROLObjectiveSimOpt<dim,nstate>::hessVec_22(
     //auto d2IdXvsdXp_input = functional.dg->high_order_grid->volume_nodes;
     //{
     //    dealii::LinearAlgebra::distributed::Vector<double> dummy_vector(functional.dg->high_order_grid->surface_nodes);
-    //    MeshMover::LinearElasticity<dim, double, dealii::LinearAlgebra::distributed::Vector<double>, dealii::DoFHandler<dim>> 
+    //    MeshMover::LinearElasticity<dim, nspecies, double, dealii::LinearAlgebra::distributed::Vector<double>, dealii::DoFHandler<dim>> 
     //        meshmover(*(functional.dg->high_order_grid->triangulation),
     //          functional.dg->high_order_grid->initial_mapping_fe_field,
     //          functional.dg->high_order_grid->dof_handler_grid,
@@ -305,10 +305,10 @@ void ROLObjectiveSimOpt<dim,nstate>::hessVec_22(
     //n_vmult += 3;
 }
 
-template class ROLObjectiveSimOpt <PHILIP_DIM,1>;
-template class ROLObjectiveSimOpt <PHILIP_DIM,2>;
-template class ROLObjectiveSimOpt <PHILIP_DIM,3>;
-template class ROLObjectiveSimOpt <PHILIP_DIM,4>;
-template class ROLObjectiveSimOpt <PHILIP_DIM,5>;
+template class ROLObjectiveSimOpt <PHILIP_DIM, PHILIP_SPECIES,1>;
+template class ROLObjectiveSimOpt <PHILIP_DIM, PHILIP_SPECIES,2>;
+template class ROLObjectiveSimOpt <PHILIP_DIM, PHILIP_SPECIES,3>;
+template class ROLObjectiveSimOpt <PHILIP_DIM, PHILIP_SPECIES,4>;
+template class ROLObjectiveSimOpt <PHILIP_DIM, PHILIP_SPECIES,5>;
 
 } // PHiLiP namespace

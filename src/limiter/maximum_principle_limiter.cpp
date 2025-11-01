@@ -8,15 +8,15 @@ namespace PHiLiP {
 *
 **********************************/
 // Constructor
-template <int dim, int nstate, typename real>
-MaximumPrincipleLimiter<dim, nstate, real>::MaximumPrincipleLimiter(
+template <int dim, int nspecies, int nstate, typename real>
+MaximumPrincipleLimiter<dim, nspecies, nstate, real>::MaximumPrincipleLimiter(
     const Parameters::AllParameters* const parameters_input)
-    : BoundPreservingLimiterState<dim,nstate, real>::BoundPreservingLimiterState(parameters_input) 
+    : BoundPreservingLimiterState<dim,nspecies,nstate, real>::BoundPreservingLimiterState(parameters_input) 
 {
     // Create pointer to TVB Limiter class if use_tvb_limiter==true && dim == 1
     if (parameters_input->limiter_param.use_tvb_limiter) {
         if (dim == 1) {
-            tvbLimiter = std::make_shared < TVBLimiter<dim, nstate, real> >(parameters_input);
+            tvbLimiter = std::make_shared < TVBLimiter<dim, nspecies, nstate, real> >(parameters_input);
         }
         else {
             std::cout << "Error: Cannot create TVB limiter for dim > 1" << std::endl;
@@ -25,8 +25,8 @@ MaximumPrincipleLimiter<dim, nstate, real>::MaximumPrincipleLimiter(
     }
 }
 
-template <int dim, int nstate, typename real>
-void MaximumPrincipleLimiter<dim, nstate, real>::get_global_max_and_min_of_solution(
+template <int dim, int nspecies, int nstate, typename real>
+void MaximumPrincipleLimiter<dim, nspecies, nstate, real>::get_global_max_and_min_of_solution(
     const dealii::LinearAlgebra::distributed::Vector<double>&   solution,
     const dealii::DoFHandler<dim>&                              dof_handler,
     const dealii::hp::FECollection<dim>&                        fe_collection)
@@ -78,8 +78,8 @@ void MaximumPrincipleLimiter<dim, nstate, real>::get_global_max_and_min_of_solut
     }
 }
 
-template <int dim, int nstate, typename real>
-void MaximumPrincipleLimiter<dim, nstate, real>::write_limited_solution(
+template <int dim, int nspecies, int nstate, typename real>
+void MaximumPrincipleLimiter<dim, nspecies, nstate, real>::write_limited_solution(
     dealii::LinearAlgebra::distributed::Vector<double>&      solution,
     const std::array<std::vector<real>, nstate>&             soln_coeff,
     const unsigned int                                       n_shape_fns,
@@ -103,8 +103,8 @@ void MaximumPrincipleLimiter<dim, nstate, real>::write_limited_solution(
     }
 }
 
-template <int dim, int nstate, typename real>
-void MaximumPrincipleLimiter<dim, nstate, real>::limit(
+template <int dim, int nspecies, int nstate, typename real>
+void MaximumPrincipleLimiter<dim, nspecies, nstate, real>::limit(
         dealii::LinearAlgebra::distributed::Vector<double>&     solution,
         const dealii::DoFHandler<dim>&                          dof_handler,
         const dealii::hp::FECollection<dim>&                    fe_collection,
@@ -248,10 +248,10 @@ void MaximumPrincipleLimiter<dim, nstate, real>::limit(
     }
 }
 
-template class MaximumPrincipleLimiter <PHILIP_DIM, 1, double>;
-template class MaximumPrincipleLimiter <PHILIP_DIM, 2, double>;
-template class MaximumPrincipleLimiter <PHILIP_DIM, 3, double>;
-template class MaximumPrincipleLimiter <PHILIP_DIM, 4, double>;
-template class MaximumPrincipleLimiter <PHILIP_DIM, 5, double>;
-template class MaximumPrincipleLimiter <PHILIP_DIM, 6, double>;
+template class MaximumPrincipleLimiter <PHILIP_DIM, PHILIP_SPECIES, 1, double>;
+template class MaximumPrincipleLimiter <PHILIP_DIM, PHILIP_SPECIES, 2, double>;
+template class MaximumPrincipleLimiter <PHILIP_DIM, PHILIP_SPECIES, 3, double>;
+template class MaximumPrincipleLimiter <PHILIP_DIM, PHILIP_SPECIES, 4, double>;
+template class MaximumPrincipleLimiter <PHILIP_DIM, PHILIP_SPECIES, 5, double>;
+template class MaximumPrincipleLimiter <PHILIP_DIM, PHILIP_SPECIES, 6, double>;
 } // PHiLiP namespace

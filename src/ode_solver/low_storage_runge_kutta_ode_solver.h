@@ -26,16 +26,16 @@ namespace ODE {
 
 /// Low-Storage Runge-Kutta ODE solver derived from ODESolver.
 #if PHILIP_DIM==1
-template <int dim, typename real, int n_rk_stages, typename MeshType = dealii::Triangulation<dim>>
+template <int dim, int nspecies, typename real, int n_rk_stages, typename MeshType = dealii::Triangulation<dim>>
 #else
-template <int dim, typename real, int n_rk_stages, typename MeshType = dealii::parallel::distributed::Triangulation<dim>>
+template <int dim, int nspecies, typename real, int n_rk_stages, typename MeshType = dealii::parallel::distributed::Triangulation<dim>>
 #endif
-class LowStorageRungeKuttaODESolver: public RungeKuttaBase <dim, real, n_rk_stages, MeshType>
+class LowStorageRungeKuttaODESolver: public RungeKuttaBase <dim, nspecies, real, n_rk_stages, MeshType>
 {
 public:
-    LowStorageRungeKuttaODESolver(std::shared_ptr< DGBase<dim, real, MeshType> > dg_input,
-            std::shared_ptr<LowStorageRKTableauBase<dim,real,MeshType>> rk_tableau_input,
-            std::shared_ptr<EmptyRRKBase<dim,real,MeshType>> RRK_object_input); ///< Constructor.
+    LowStorageRungeKuttaODESolver(std::shared_ptr< DGBase<dim, nspecies, real, MeshType> > dg_input,
+            std::shared_ptr<LowStorageRKTableauBase<dim,nspecies,real,MeshType>> rk_tableau_input,
+            std::shared_ptr<EmptyRRKBase<dim,nspecies,real,MeshType>> RRK_object_input); ///< Constructor.
 
     /// Function to evaluate automatic error adaptive time step
     double get_automatic_error_adaptive_step_size(real dt, const bool /*pseudotime*/);
@@ -62,7 +62,7 @@ public:
     void prep_for_step_in_time();
 protected:
     /// Stores Butcher tableau a and b, which specify the RK method
-    std::shared_ptr<LowStorageRKTableauBase<dim,real,MeshType>> butcher_tableau;
+    std::shared_ptr<LowStorageRKTableauBase<dim,nspecies,real,MeshType>> butcher_tableau;
 
     /// Storage of the solution for the first storage register
     dealii::LinearAlgebra::distributed::Vector<double> storage_register_1;

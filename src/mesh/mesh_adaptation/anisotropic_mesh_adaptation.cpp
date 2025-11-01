@@ -10,9 +10,9 @@
 
 namespace PHiLiP {
 
-template <int dim, int nstate, typename real, typename MeshType>
-AnisotropicMeshAdaptation<dim, nstate, real, MeshType> :: AnisotropicMeshAdaptation(
-    std::shared_ptr< DGBase<dim, real, MeshType> > dg_input, 
+template <int dim, int nspecies, int nstate, typename real, typename MeshType>
+AnisotropicMeshAdaptation<dim, nspecies, nstate, real, MeshType> :: AnisotropicMeshAdaptation(
+    std::shared_ptr< DGBase<dim, nspecies, real, MeshType> > dg_input, 
     const real _norm_Lp,
     const real _complexity,
     const bool _use_goal_oriented_approach)
@@ -36,9 +36,9 @@ AnisotropicMeshAdaptation<dim, nstate, real, MeshType> :: AnisotropicMeshAdaptat
             std::abort();
         }
         
-        std::shared_ptr<Physics::ModelBase<dim,nstate,real>> pde_model_double    = Physics::ModelFactory<dim,nstate,real>::create_Model(dg->all_parameters);
-        pde_physics_double  = Physics::PhysicsFactory<dim,nstate,real>::create_Physics(dg->all_parameters, pde_model_double);
-        functional = FunctionalFactory<dim,nstate,real,MeshType>::create_Functional(dg->all_parameters->functional_param, dg);
+        std::shared_ptr<Physics::ModelBase<dim,nspecies,nstate,real>> pde_model_double    = Physics::ModelFactory<dim,nspecies,nstate,real>::create_Model(dg->all_parameters);
+        pde_physics_double  = Physics::PhysicsFactory<dim,nspecies,nstate,real>::create_Physics(dg->all_parameters, pde_model_double);
+        functional = FunctionalFactory<dim,nspecies,nstate,real,MeshType>::create_Functional(dg->all_parameters->functional_param, dg);
     }
 
     if(dg->get_min_fe_degree() != dg->get_max_fe_degree())
@@ -58,8 +58,8 @@ AnisotropicMeshAdaptation<dim, nstate, real, MeshType> :: AnisotropicMeshAdaptat
 
 }
 
-template<int dim, int nstate, typename real, typename MeshType>
-dealii::Tensor<2, dim, real> AnisotropicMeshAdaptation<dim, nstate, real, MeshType> 
+template<int dim, int nspecies, int nstate, typename real, typename MeshType>
+dealii::Tensor<2, dim, real> AnisotropicMeshAdaptation<dim, nspecies, nstate, real, MeshType> 
     :: get_positive_definite_tensor(const dealii::Tensor<2, dim, real> &input_tensor) const
 {
     // Check if the tensor is symmetric.
@@ -110,8 +110,8 @@ dealii::Tensor<2, dim, real> AnisotropicMeshAdaptation<dim, nstate, real, MeshTy
     return positive_definite_tensor;
 }
 
-template<int dim, int nstate, typename real, typename MeshType>
-void AnisotropicMeshAdaptation<dim, nstate, real, MeshType> :: initialize_cellwise_metric_and_hessians()
+template<int dim, int nspecies, int nstate, typename real, typename MeshType>
+void AnisotropicMeshAdaptation<dim, nspecies, nstate, real, MeshType> :: initialize_cellwise_metric_and_hessians()
 {
     cellwise_optimal_metric.clear();
     cellwise_hessian.clear();
@@ -125,8 +125,8 @@ void AnisotropicMeshAdaptation<dim, nstate, real, MeshType> :: initialize_cellwi
     }
 }
 
-template<int dim, int nstate, typename real, typename MeshType>
-void AnisotropicMeshAdaptation<dim, nstate, real, MeshType> :: compute_cellwise_optimal_metric()
+template<int dim, int nspecies, int nstate, typename real, typename MeshType>
+void AnisotropicMeshAdaptation<dim, nspecies, nstate, real, MeshType> :: compute_cellwise_optimal_metric()
 {
     initialize_cellwise_metric_and_hessians();
     compute_abs_hessian(); // computes hessian according to goal oriented or feature based approach.
@@ -149,7 +149,7 @@ void AnisotropicMeshAdaptation<dim, nstate, real, MeshType> :: compute_cellwise_
     const auto mapping = (*(dg->high_order_grid->mapping_fe_field));
     dealii::hp::MappingCollection<dim> mapping_collection(mapping);
     const dealii::UpdateFlags update_flags = dealii::update_JxW_values;
-    dealii::hp::FEValues<dim,dim>   fe_values_collection_volume (mapping_collection, dg->fe_collection, dg->volume_quadrature_collection, update_flags);
+    dealii::hp::FEValues<dim,dim>    fe_values_collection_volume (mapping_collection, dg->fe_collection, dg->volume_quadrature_collection, update_flags);
     
     real integral_val = 0;
     for(const auto &cell : dg->dof_handler.active_cell_iterators())
@@ -194,8 +194,8 @@ void AnisotropicMeshAdaptation<dim, nstate, real, MeshType> :: compute_cellwise_
     pcout<<"Done computing optimal metric."<<std::endl;
 }
 
-template<int dim, int nstate, typename real, typename MeshType>
-void AnisotropicMeshAdaptation<dim, nstate, real, MeshType> :: compute_abs_hessian()
+template<int dim, int nspecies, int nstate, typename real, typename MeshType>
+void AnisotropicMeshAdaptation<dim, nspecies, nstate, real, MeshType> :: compute_abs_hessian()
 {
     VectorType solution_old = dg->solution;
     solution_old.update_ghost_values();
@@ -218,8 +218,8 @@ void AnisotropicMeshAdaptation<dim, nstate, real, MeshType> :: compute_abs_hessi
     dg->solution.update_ghost_values();
 }
 
-template<int dim, int nstate, typename real, typename MeshType>
-void AnisotropicMeshAdaptation<dim, nstate, real, MeshType> :: change_p_degree_and_interpolate_solution(const unsigned int poly_degree)
+template<int dim, int nspecies, int nstate, typename real, typename MeshType>
+void AnisotropicMeshAdaptation<dim, nspecies, nstate, real, MeshType> :: change_p_degree_and_interpolate_solution(const unsigned int poly_degree)
 {
     assert(dg->get_min_fe_degree() == dg->get_max_fe_degree());
     const unsigned int current_poly_degree = dg->get_min_fe_degree();
@@ -247,8 +247,8 @@ void AnisotropicMeshAdaptation<dim, nstate, real, MeshType> :: change_p_degree_a
     this->dg->solution.update_ghost_values();
 }
 
-template<int dim, int nstate, typename real, typename MeshType>
-void AnisotropicMeshAdaptation<dim, nstate, real, MeshType> :: reconstruct_p2_solution()
+template<int dim, int nspecies, int nstate, typename real, typename MeshType>
+void AnisotropicMeshAdaptation<dim, nspecies, nstate, real, MeshType> :: reconstruct_p2_solution()
 {
     assert(dg->get_min_fe_degree() == 2);
     pcout<<"Reconstructing p2 solution."<<std::endl;
@@ -261,8 +261,8 @@ void AnisotropicMeshAdaptation<dim, nstate, real, MeshType> :: reconstruct_p2_so
     dg->solution.update_ghost_values();
 }
 
-template<int dim, int nstate, typename real, typename MeshType>
-void AnisotropicMeshAdaptation<dim, nstate, real, MeshType> :: compute_feature_based_hessian()
+template<int dim, int nspecies, int nstate, typename real, typename MeshType>
+void AnisotropicMeshAdaptation<dim, nspecies, nstate, real, MeshType> :: compute_feature_based_hessian()
 {
     assert(dg->get_min_fe_degree() == dg->get_max_fe_degree());
     assert(dg->get_min_fe_degree() == 2);
@@ -272,7 +272,7 @@ void AnisotropicMeshAdaptation<dim, nstate, real, MeshType> :: compute_feature_b
     const auto mapping = (*(dg->high_order_grid->mapping_fe_field));
     dealii::hp::MappingCollection<dim> mapping_collection(mapping);
     const dealii::UpdateFlags update_flags = dealii::update_jacobian_pushed_forward_grads | dealii::update_inverse_jacobians;
-    dealii::hp::FEValues<dim,dim>   fe_values_collection_volume (mapping_collection, dg->fe_collection, dg->volume_quadrature_collection, update_flags);
+    dealii::hp::FEValues<dim,dim>    fe_values_collection_volume (mapping_collection, dg->fe_collection, dg->volume_quadrature_collection, update_flags);
     PHiLiP::FEValuesShapeHessian<dim> fe_values_shape_hessian;
     
     std::vector<dealii::types::global_dof_index> dof_indices(max_dofs_per_cell);
@@ -310,8 +310,8 @@ void AnisotropicMeshAdaptation<dim, nstate, real, MeshType> :: compute_feature_b
     }
 }
 
-template<int dim, int nstate, typename real, typename MeshType>
-void AnisotropicMeshAdaptation<dim, nstate, real, MeshType> :: compute_goal_oriented_hessian()
+template<int dim, int nspecies, int nstate, typename real, typename MeshType>
+void AnisotropicMeshAdaptation<dim, nspecies, nstate, real, MeshType> :: compute_goal_oriented_hessian()
 {
     assert(dg->get_min_fe_degree() == dg->get_max_fe_degree());
     assert(dg->get_min_fe_degree() == 2);
@@ -334,7 +334,7 @@ void AnisotropicMeshAdaptation<dim, nstate, real, MeshType> :: compute_goal_orie
     const auto mapping = (*(dg->high_order_grid->mapping_fe_field));
     dealii::hp::MappingCollection<dim> mapping_collection(mapping);
     const dealii::UpdateFlags update_flags = dealii::update_values | dealii::update_gradients | dealii::update_jacobian_pushed_forward_grads | dealii::update_inverse_jacobians;
-    dealii::hp::FEValues<dim,dim>   fe_values_collection_volume (mapping_collection, dg->fe_collection, dg->volume_quadrature_collection, update_flags);
+    dealii::hp::FEValues<dim,dim>    fe_values_collection_volume (mapping_collection, dg->fe_collection, dg->volume_quadrature_collection, update_flags);
     PHiLiP::FEValuesShapeHessian<dim> fe_values_shape_hessian;
     
     std::vector<dealii::types::global_dof_index> dof_indices(max_dofs_per_cell);
@@ -393,8 +393,8 @@ void AnisotropicMeshAdaptation<dim, nstate, real, MeshType> :: compute_goal_orie
     } // cell loop ends
 }
 
-template<int dim, int nstate, typename real, typename MeshType>
-unsigned int AnisotropicMeshAdaptation<dim, nstate, real, MeshType> :: get_iquad_near_cellcenter(
+template<int dim, int nspecies, int nstate, typename real, typename MeshType>
+unsigned int AnisotropicMeshAdaptation<dim, nspecies, nstate, real, MeshType> :: get_iquad_near_cellcenter(
     const dealii::Quadrature<dim> &volume_quadrature) const
 {
     dealii::Point<dim,real> ref_center;
@@ -418,8 +418,8 @@ unsigned int AnisotropicMeshAdaptation<dim, nstate, real, MeshType> :: get_iquad
 }
 
 // Flux referenced by flux[idof][istate][idim]
-template<int dim, int nstate, typename real, typename MeshType>
-void AnisotropicMeshAdaptation<dim, nstate, real, MeshType> :: get_flux_at_support_pts(
+template<int dim, int nspecies, int nstate, typename real, typename MeshType>
+void AnisotropicMeshAdaptation<dim, nspecies, nstate, real, MeshType> :: get_flux_at_support_pts(
     std::vector<std::array<dealii::Tensor<1,dim,real>,nstate>> &flux_at_support_pts, 
     const dealii::FEValues<dim,dim> &fe_values_input,
     const std::vector<dealii::types::global_dof_index> &dof_indices,
@@ -455,13 +455,13 @@ void AnisotropicMeshAdaptation<dim, nstate, real, MeshType> :: get_flux_at_suppo
 
 }
 
-template<int dim, int nstate, typename real, typename MeshType>
-void AnisotropicMeshAdaptation<dim, nstate, real, MeshType> :: adapt_mesh()
+template<int dim, int nspecies, int nstate, typename real, typename MeshType>
+void AnisotropicMeshAdaptation<dim, nspecies, nstate, real, MeshType> :: adapt_mesh()
 {
     compute_cellwise_optimal_metric();
     
-    std::unique_ptr<MetricToMeshGenerator<dim, nstate, real>> metric_to_mesh_generator
-        = std::make_unique<MetricToMeshGenerator<dim, nstate, real>> (dg->high_order_grid->mapping_fe_field, dg->triangulation);
+    std::unique_ptr<MetricToMeshGenerator<dim, nspecies, nstate, real>> metric_to_mesh_generator
+        = std::make_unique<MetricToMeshGenerator<dim, nspecies, nstate, real>> (dg->high_order_grid->mapping_fe_field, dg->triangulation);
     metric_to_mesh_generator->generate_mesh_from_cellwise_metric(cellwise_optimal_metric);
     
     std::shared_ptr<HighOrderGrid<dim,double,MeshType>> new_high_order_mesh = 
@@ -476,10 +476,10 @@ void AnisotropicMeshAdaptation<dim, nstate, real, MeshType> :: adapt_mesh()
 
 // Instantiations
 #if PHILIP_DIM!=1
-template class AnisotropicMeshAdaptation <PHILIP_DIM, 1, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
-template class AnisotropicMeshAdaptation <PHILIP_DIM, 2, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
-template class AnisotropicMeshAdaptation <PHILIP_DIM, 3, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
-template class AnisotropicMeshAdaptation <PHILIP_DIM, 4, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
-template class AnisotropicMeshAdaptation <PHILIP_DIM, 5, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+template class AnisotropicMeshAdaptation <PHILIP_DIM, PHILIP_SPECIES, 1, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+template class AnisotropicMeshAdaptation <PHILIP_DIM, PHILIP_SPECIES, 2, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+template class AnisotropicMeshAdaptation <PHILIP_DIM, PHILIP_SPECIES, 3, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+template class AnisotropicMeshAdaptation <PHILIP_DIM, PHILIP_SPECIES, 4, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+template class AnisotropicMeshAdaptation <PHILIP_DIM, PHILIP_SPECIES, 5, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
 #endif
 } // PHiLiP namespace

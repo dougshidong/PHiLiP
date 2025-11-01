@@ -5,8 +5,8 @@
 namespace PHiLiP {
 namespace Physics {
 
-template <int dim, int nstate, typename real>
-BurgersRewienski<dim,nstate,real>::BurgersRewienski(
+template <int dim, int nspecies, int nstate, typename real>
+BurgersRewienski<dim,nspecies,nstate,real>::BurgersRewienski(
         const Parameters::AllParameters *const parameters_input,
         const double rewienski_a,
         const double rewienski_b,
@@ -14,8 +14,8 @@ BurgersRewienski<dim,nstate,real>::BurgersRewienski(
         const bool convection,
         const bool diffusion,
         const dealii::Tensor<2, 3> input_diffusion_tensor,
-        std::shared_ptr<ManufacturedSolutionFunction<dim, real>> manufactured_solution_function)
-        : Burgers<dim, nstate, real>(parameters_input,
+        std::shared_ptr<ManufacturedSolutionFunction<dim, nspecies, real>> manufactured_solution_function)
+        : Burgers<dim, nspecies, nstate, real>(parameters_input,
                                      0, //Burgers rewienski diffusion coefficient is zero
                                      convection,
                                      diffusion,
@@ -30,8 +30,8 @@ BurgersRewienski<dim,nstate,real>::BurgersRewienski(
 
 
 
-template <int dim, int nstate, typename real>
-void BurgersRewienski<dim,nstate,real>
+template <int dim, int nspecies, int nstate, typename real>
+void BurgersRewienski<dim,nspecies,nstate,real>
 ::boundary_face_values (
         const int /*boundary_type*/,
         const dealii::Point<dim, real> &pos,
@@ -70,8 +70,8 @@ void BurgersRewienski<dim,nstate,real>
     }
 }
 
-template <int dim, int nstate, typename real>
-std::array<real,nstate> BurgersRewienski<dim,nstate,real>
+template <int dim, int nspecies, int nstate, typename real>
+std::array<real,nstate> BurgersRewienski<dim,nspecies,nstate,real>
 ::source_term (
         const dealii::Point<dim,real> &pos,
         const std::array<real,nstate> &/*solution*/,
@@ -105,11 +105,11 @@ std::array<real,nstate> BurgersRewienski<dim,nstate,real>
     return source;
 }
 
-template class BurgersRewienski < PHILIP_DIM, PHILIP_DIM, double >;
-template class BurgersRewienski < PHILIP_DIM, PHILIP_DIM, FadType  >;
-template class BurgersRewienski < PHILIP_DIM, PHILIP_DIM, RadType  >;
-template class BurgersRewienski < PHILIP_DIM, PHILIP_DIM, FadFadType >;
-template class BurgersRewienski < PHILIP_DIM, PHILIP_DIM, RadFadType >;
+template class BurgersRewienski < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM, double >;
+template class BurgersRewienski < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM, FadType  >;
+template class BurgersRewienski < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM, RadType  >;
+template class BurgersRewienski < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM, FadFadType >;
+template class BurgersRewienski < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM, RadFadType >;
 
 } // Physics namespace
 } // PHiLiP namespace

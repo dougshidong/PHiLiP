@@ -6,16 +6,16 @@ namespace PHiLiP {
 // ========================================================
 // ZERO -- Returns zero everywhere; used a placeholder when no exact solution is defined.
 // ========================================================
-template <int dim, int nstate, typename real>
-ExactSolutionFunction_Zero<dim,nstate,real>
+template <int dim, int nspecies, int nstate, typename real>
+ExactSolutionFunction_Zero<dim,nspecies,nstate,real>
 ::ExactSolutionFunction_Zero(double time_compare)
-        : ExactSolutionFunction<dim,nstate,real>()
+        : ExactSolutionFunction<dim,nspecies,nstate,real>()
         , t(time_compare)
 {
 }
 
-template <int dim, int nstate, typename real>
-inline real ExactSolutionFunction_Zero<dim,nstate,real>
+template <int dim, int nspecies, int nstate, typename real>
+inline real ExactSolutionFunction_Zero<dim,nspecies,nstate,real>
 ::value(const dealii::Point<dim,real> &/*point*/, const unsigned int /*istate*/) const
 {
     real value = 0;
@@ -25,16 +25,16 @@ inline real ExactSolutionFunction_Zero<dim,nstate,real>
 // ========================================================
 // 1D SINE -- Exact solution for advection_explicit_time_study
 // ========================================================
-template <int dim, int nstate, typename real>
-ExactSolutionFunction_1DSine<dim,nstate,real>
+template <int dim, int nspecies, int nstate, typename real>
+ExactSolutionFunction_1DSine<dim,nspecies,nstate,real>
 ::ExactSolutionFunction_1DSine (double time_compare)
-        : ExactSolutionFunction<dim,nstate,real>()
+        : ExactSolutionFunction<dim,nspecies,nstate,real>()
         , t(time_compare)
 {
 }
 
-template <int dim, int nstate, typename real>
-inline real ExactSolutionFunction_1DSine<dim,nstate,real>
+template <int dim, int nspecies, int nstate, typename real>
+inline real ExactSolutionFunction_1DSine<dim,nspecies,nstate,real>
 ::value(const dealii::Point<dim,real> &point, const unsigned int /*istate*/) const
 {
     double x_adv_speed = 1.0;
@@ -50,17 +50,17 @@ inline real ExactSolutionFunction_1DSine<dim,nstate,real>
 // ========================================================
 // Inviscid Isentropic Vortex 
 // ========================================================
-template <int dim, int nstate, typename real>
-ExactSolutionFunction_IsentropicVortex<dim,nstate,real>
+template <int dim, int nspecies, int nstate, typename real>
+ExactSolutionFunction_IsentropicVortex<dim,nspecies,nstate,real>
 ::ExactSolutionFunction_IsentropicVortex(double time_compare)
-        : ExactSolutionFunction<dim,nstate,real>()
+        : ExactSolutionFunction<dim,nspecies,nstate,real>()
         , t(time_compare)
 {
     // Nothing to do here yet
 }
 
-template <int dim, int nstate, typename real>
-inline real ExactSolutionFunction_IsentropicVortex<dim,nstate,real>
+template <int dim, int nspecies, int nstate, typename real>
+inline real ExactSolutionFunction_IsentropicVortex<dim,nspecies,nstate,real>
 ::value(const dealii::Point<dim,real> &point, const unsigned int istate) const
 {
     // Setting constants
@@ -106,44 +106,44 @@ inline real ExactSolutionFunction_IsentropicVortex<dim,nstate,real>
 //=========================================================
 // FLOW SOLVER -- Exact Solution Base Class + Factory
 //=========================================================
-template <int dim, int nstate, typename real>
-ExactSolutionFunction<dim,nstate,real>
+template <int dim, int nspecies, int nstate, typename real>
+ExactSolutionFunction<dim,nspecies,nstate,real>
 ::ExactSolutionFunction ()
     : dealii::Function<dim,real>(nstate)
 {
     //do nothing
 }
 
-template <int dim, int nstate, typename real>
-std::shared_ptr<ExactSolutionFunction<dim, nstate, real>>
-ExactSolutionFactory<dim,nstate, real>::create_ExactSolutionFunction(
+template <int dim, int nspecies, int nstate, typename real>
+std::shared_ptr<ExactSolutionFunction<dim, nspecies, nstate, real>>
+ExactSolutionFactory<dim,nspecies,nstate, real>::create_ExactSolutionFunction(
         const Parameters::FlowSolverParam& flow_solver_parameters, 
         const double time_compare)
 {
     // Get the flow case type
     const FlowCaseEnum flow_type = flow_solver_parameters.flow_case_type;
     if (flow_type == FlowCaseEnum::periodic_1D_unsteady){
-        if constexpr (dim==1 && nstate==dim)  return std::make_shared<ExactSolutionFunction_1DSine<dim,nstate,real> > (time_compare);
+        if constexpr (dim==1 && nstate==dim)  return std::make_shared<ExactSolutionFunction_1DSine<dim,nspecies,nstate,real> > (time_compare);
     } else if (flow_type == FlowCaseEnum::isentropic_vortex){
-        if constexpr (dim>1 && nstate==dim+2)  return std::make_shared<ExactSolutionFunction_IsentropicVortex<dim,nstate,real> > (time_compare);
+        if constexpr (dim>1 && nstate==dim+2)  return std::make_shared<ExactSolutionFunction_IsentropicVortex<dim,nspecies,nstate,real> > (time_compare);
     } else {
         // Select zero function if there is no exact solution defined
-        return std::make_shared<ExactSolutionFunction_Zero<dim,nstate,real>> (time_compare);
+        return std::make_shared<ExactSolutionFunction_Zero<dim,nspecies,nstate,real>> (time_compare);
     }
     return nullptr;
 }
 
-template class ExactSolutionFunction <PHILIP_DIM,PHILIP_DIM, double>;
-template class ExactSolutionFunction <PHILIP_DIM,PHILIP_DIM+2, double>;
-template class ExactSolutionFactory <PHILIP_DIM, PHILIP_DIM+2, double>;
-template class ExactSolutionFactory <PHILIP_DIM, PHILIP_DIM, double>;
-template class ExactSolutionFunction_Zero <PHILIP_DIM,1, double>;
-template class ExactSolutionFunction_Zero <PHILIP_DIM,2, double>;
-template class ExactSolutionFunction_Zero <PHILIP_DIM,3, double>;
-template class ExactSolutionFunction_Zero <PHILIP_DIM,4, double>;
-template class ExactSolutionFunction_Zero <PHILIP_DIM,5, double>;
+template class ExactSolutionFunction <PHILIP_DIM, PHILIP_SPECIES,PHILIP_DIM, double>;
+template class ExactSolutionFunction <PHILIP_DIM, PHILIP_SPECIES,PHILIP_DIM+2, double>;
+template class ExactSolutionFactory <PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, double>;
+template class ExactSolutionFactory <PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM, double>;
+template class ExactSolutionFunction_Zero <PHILIP_DIM, PHILIP_SPECIES,1, double>;
+template class ExactSolutionFunction_Zero <PHILIP_DIM, PHILIP_SPECIES,2, double>;
+template class ExactSolutionFunction_Zero <PHILIP_DIM, PHILIP_SPECIES,3, double>;
+template class ExactSolutionFunction_Zero <PHILIP_DIM, PHILIP_SPECIES,4, double>;
+template class ExactSolutionFunction_Zero <PHILIP_DIM, PHILIP_SPECIES,5, double>;
 
 #if PHILIP_DIM>1
-template class ExactSolutionFunction_IsentropicVortex <PHILIP_DIM,PHILIP_DIM+2, double>;
+template class ExactSolutionFunction_IsentropicVortex <PHILIP_DIM, PHILIP_SPECIES,PHILIP_DIM+2, double>;
 #endif
 } // PHiLiP namespace

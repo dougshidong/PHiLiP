@@ -13,19 +13,19 @@
 namespace PHiLiP {
 namespace Tests {
 
-template <int dim, int nstate>
-HaltonSamplingRun<dim, nstate>::HaltonSamplingRun(const Parameters::AllParameters *const parameters_input,
+template <int dim, int nspecies, int nstate>
+HaltonSamplingRun<dim, nspecies, nstate>::HaltonSamplingRun(const Parameters::AllParameters *const parameters_input,
                                         const dealii::ParameterHandler &parameter_handler_input)
         : TestsBase::TestsBase(parameters_input)
         , parameter_handler(parameter_handler_input)
 {}
 
-template <int dim, int nstate>
-int HaltonSamplingRun<dim, nstate>::run_test() const
+template <int dim, int nspecies, int nstate>
+int HaltonSamplingRun<dim, nspecies, nstate>::run_test() const
 {
     pcout << "Starting halton sampling procedure..." << std::endl;
 
-    HaltonSampling<dim, nstate> sampling_imp(this->all_parameters, parameter_handler);
+    HaltonSampling<dim, nspecies, nstate> sampling_imp(this->all_parameters, parameter_handler);
     int exit = sampling_imp.run_sampling();
     
     if (exit == 0){
@@ -38,11 +38,11 @@ int HaltonSamplingRun<dim, nstate>::run_test() const
 }
 
 #if PHILIP_DIM==1
-        template class HaltonSamplingRun<PHILIP_DIM, PHILIP_DIM>;
+        template class HaltonSamplingRun<PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM>;
 #endif
 
 #if PHILIP_DIM!=1
-        template class HaltonSamplingRun<PHILIP_DIM, PHILIP_DIM+2>;
+        template class HaltonSamplingRun<PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2>;
 #endif
 } // Tests namespace
 } // PHiLiP namespace

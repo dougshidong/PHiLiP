@@ -10,16 +10,16 @@ namespace ODE {
 /** see 
  *  Shu, Chi-Wang, and Stanley Osher. "Efficient implementation of essentially non-oscillatory shock-capturing schemes." Journal of computational physics 77.2 (1988): 439-471. */
 #if PHILIP_DIM==1
-template <int dim, typename real, typename MeshType = dealii::Triangulation<dim>>
+template <int dim, int nspecies, typename real, typename MeshType = dealii::Triangulation<dim>>
 #else
-template <int dim, typename real, typename MeshType = dealii::parallel::distributed::Triangulation<dim>>
+template <int dim, int nspecies, typename real, typename MeshType = dealii::parallel::distributed::Triangulation<dim>>
 #endif
-class SSPRK3Explicit: public RKTableauButcherBase <dim, real, MeshType>
+class SSPRK3Explicit: public RKTableauButcherBase <dim, nspecies, real, MeshType>
 {
 public:
     /// Constructor
     SSPRK3Explicit(const int n_rk_stages, const std::string rk_method_string_input) 
-        : RKTableauButcherBase<dim,real,MeshType>(n_rk_stages, rk_method_string_input) { }
+        : RKTableauButcherBase<dim,nspecies,real,MeshType>(n_rk_stages, rk_method_string_input) { }
 
 protected:
     /// Setter for butcher_tableau_a
@@ -37,16 +37,16 @@ protected:
  * https://en.wikipedia.org/wiki/List_of_Runge–Kutta_methods
  * Section titled "Classic fourth-order method" */
 #if PHILIP_DIM==1
-template <int dim, typename real, typename MeshType = dealii::Triangulation<dim>>
+template <int dim, int nspecies, typename real, typename MeshType = dealii::Triangulation<dim>>
 #else
-template <int dim, typename real, typename MeshType = dealii::parallel::distributed::Triangulation<dim>>
+template <int dim, int nspecies, typename real, typename MeshType = dealii::parallel::distributed::Triangulation<dim>>
 #endif
-class RK4Explicit: public RKTableauButcherBase <dim, real, MeshType>
+class RK4Explicit: public RKTableauButcherBase <dim, nspecies, real, MeshType>
 {
 public:
     /// Constructor
     RK4Explicit(const int n_rk_stages, const std::string rk_method_string_input) 
-        : RKTableauButcherBase<dim,real,MeshType>(n_rk_stages, rk_method_string_input) { }
+        : RKTableauButcherBase<dim,nspecies,real,MeshType>(n_rk_stages, rk_method_string_input) { }
 
 protected:
     /// Setter for butcher_tableau_a
@@ -61,16 +61,16 @@ protected:
 
 /// Forward Euler (explicit) 
 #if PHILIP_DIM==1
-template <int dim, typename real, typename MeshType = dealii::Triangulation<dim>>
+template <int dim, int nspecies, typename real, typename MeshType = dealii::Triangulation<dim>>
 #else
-template <int dim, typename real, typename MeshType = dealii::parallel::distributed::Triangulation<dim>>
+template <int dim, int nspecies, typename real, typename MeshType = dealii::parallel::distributed::Triangulation<dim>>
 #endif
-class EulerExplicit: public RKTableauButcherBase <dim, real, MeshType>
+class EulerExplicit: public RKTableauButcherBase <dim, nspecies, real, MeshType>
 {
 public:
     /// Constructor
     EulerExplicit(const int n_rk_stages, const std::string rk_method_string_input) 
-        : RKTableauButcherBase<dim,real,MeshType>(n_rk_stages, rk_method_string_input) { }
+        : RKTableauButcherBase<dim,nspecies,real,MeshType>(n_rk_stages, rk_method_string_input) { }
 
 protected:
     /// Setter for butcher_tableau_a
@@ -89,16 +89,16 @@ protected:
  * https://en.wikipedia.org/wiki/List_of_Runge–Kutta_methods
  * Section titled "Heun's method" */
 #if PHILIP_DIM==1
-template <int dim, typename real, typename MeshType = dealii::Triangulation<dim>>
+template <int dim, int nspecies, typename real, typename MeshType = dealii::Triangulation<dim>>
 #else
-template <int dim, typename real, typename MeshType = dealii::parallel::distributed::Triangulation<dim>>
+template <int dim, int nspecies, typename real, typename MeshType = dealii::parallel::distributed::Triangulation<dim>>
 #endif
-class HeunExplicit: public RKTableauButcherBase <dim, real, MeshType>
+class HeunExplicit: public RKTableauButcherBase <dim, nspecies, real, MeshType>
 {
 public:
     /// Constructor
     HeunExplicit(const int n_rk_stages, const std::string rk_method_string_input) 
-        : RKTableauButcherBase<dim,real,MeshType>(n_rk_stages, rk_method_string_input) { }
+        : RKTableauButcherBase<dim,nspecies,real,MeshType>(n_rk_stages, rk_method_string_input) { }
 
 protected:
     /// Setter for butcher_tableau_a
@@ -114,16 +114,16 @@ protected:
 
 /// Implicit Euler 
 #if PHILIP_DIM==1
-template <int dim, typename real, typename MeshType = dealii::Triangulation<dim>>
+template <int dim, int nspecies, typename real, typename MeshType = dealii::Triangulation<dim>>
 #else
-template <int dim, typename real, typename MeshType = dealii::parallel::distributed::Triangulation<dim>>
+template <int dim, int nspecies, typename real, typename MeshType = dealii::parallel::distributed::Triangulation<dim>>
 #endif
-class EulerImplicit: public RKTableauButcherBase <dim, real, MeshType>
+class EulerImplicit: public RKTableauButcherBase <dim, nspecies, real, MeshType>
 {
 public:
     ///Constructor
     EulerImplicit(const int n_rk_stages, const std::string rk_method_string_input) 
-        : RKTableauButcherBase<dim,real,MeshType>(n_rk_stages, rk_method_string_input) { }
+        : RKTableauButcherBase<dim,nspecies,real,MeshType>(n_rk_stages, rk_method_string_input) { }
 
 protected:
     /// Setter for butcher_tableau_a
@@ -142,16 +142,16 @@ protected:
 /// Kennedy & Carpenter, 2016
 /// Sec. 4.1.2
 #if PHILIP_DIM==1
-template <int dim, typename real, typename MeshType = dealii::Triangulation<dim>>
+template <int dim, int nspecies, typename real, typename MeshType = dealii::Triangulation<dim>>
 #else
-template <int dim, typename real, typename MeshType = dealii::parallel::distributed::Triangulation<dim>>
+template <int dim, int nspecies, typename real, typename MeshType = dealii::parallel::distributed::Triangulation<dim>>
 #endif
-class DIRK2Implicit: public RKTableauButcherBase <dim, real, MeshType>
+class DIRK2Implicit: public RKTableauButcherBase <dim, nspecies, real, MeshType>
 {
 public:
     /// Constructor
     DIRK2Implicit(const int n_rk_stages, const std::string rk_method_string_input) 
-        : RKTableauButcherBase<dim,real,MeshType>(n_rk_stages, rk_method_string_input) { }
+        : RKTableauButcherBase<dim,nspecies,real,MeshType>(n_rk_stages, rk_method_string_input) { }
 
 protected:
     /// Setter for butcher_tableau_a
@@ -170,16 +170,16 @@ protected:
 /// Kennedy & Carpenter, 2016
 /// Sec. 5.1.3
 #if PHILIP_DIM==1
-template <int dim, typename real, typename MeshType = dealii::Triangulation<dim>>
+template <int dim, int nspecies, typename real, typename MeshType = dealii::Triangulation<dim>>
 #else
-template <int dim, typename real, typename MeshType = dealii::parallel::distributed::Triangulation<dim>>
+template <int dim, int nspecies, typename real, typename MeshType = dealii::parallel::distributed::Triangulation<dim>>
 #endif
-class DIRK3Implicit: public RKTableauButcherBase <dim, real, MeshType>
+class DIRK3Implicit: public RKTableauButcherBase <dim, nspecies, real, MeshType>
 {
 public:
     /// Constructor
     DIRK3Implicit(const int n_rk_stages, const std::string rk_method_string_input) 
-        : RKTableauButcherBase<dim,real,MeshType>(n_rk_stages, rk_method_string_input) { }
+        : RKTableauButcherBase<dim,nspecies,real,MeshType>(n_rk_stages, rk_method_string_input) { }
 
 protected:
 

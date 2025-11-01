@@ -9,25 +9,25 @@
 namespace PHiLiP {
 namespace Tests {
 
-template <int dim, int nstate>
-AnisotropicMeshAdaptationCases<dim, nstate> :: AnisotropicMeshAdaptationCases(
+template <int dim, int nspecies, int nstate>
+AnisotropicMeshAdaptationCases<dim, nspecies, nstate> :: AnisotropicMeshAdaptationCases(
     const Parameters::AllParameters *const parameters_input,
     const dealii::ParameterHandler &parameter_handler_input)
     : TestsBase::TestsBase(parameters_input)
     , parameter_handler(parameter_handler_input)
 {}
 
-template <int dim, int nstate>
-void AnisotropicMeshAdaptationCases<dim,nstate> :: verify_fe_values_shape_hessian(const DGBase<dim, double> &dg) const
+template <int dim, int nspecies, int nstate>
+void AnisotropicMeshAdaptationCases<dim,nspecies,nstate> :: verify_fe_values_shape_hessian(const DGBase<dim, nspecies, double> &dg) const
 {
     const auto mapping = (*(dg.high_order_grid->mapping_fe_field));
     dealii::hp::MappingCollection<dim> mapping_collection(mapping);
     const dealii::UpdateFlags update_flags = dealii::update_jacobian_pushed_forward_grads | dealii::update_inverse_jacobians;
-    dealii::hp::FEValues<dim,dim>   fe_values_collection_volume (mapping_collection, dg.fe_collection, dg.volume_quadrature_collection, update_flags);
+    dealii::hp::FEValues<dim,dim>    fe_values_collection_volume (mapping_collection, dg.fe_collection, dg.volume_quadrature_collection, update_flags);
     
     dealii::MappingQGeneric<dim, dim> mapping2(dg.high_order_grid->dof_handler_grid.get_fe().degree);
     dealii::hp::MappingCollection<dim> mapping_collection2(mapping2);
-    dealii::hp::FEValues<dim,dim>   fe_values_collection_volume2 (mapping_collection2, dg.fe_collection, dg.volume_quadrature_collection, dealii::update_hessians);
+    dealii::hp::FEValues<dim,dim>    fe_values_collection_volume2 (mapping_collection2, dg.fe_collection, dg.volume_quadrature_collection, dealii::update_hessians);
     
     PHiLiP::FEValuesShapeHessian<dim> fe_values_shape_hessian;
     for(const auto &cell : dg.dof_handler.active_cell_iterators())
@@ -73,26 +73,26 @@ void AnisotropicMeshAdaptationCases<dim,nstate> :: verify_fe_values_shape_hessia
     pcout<<"PHiLiP's physical shape hessian matches that computed by dealii."<<std::endl;
 }
 
-template <int dim, int nstate>
-double AnisotropicMeshAdaptationCases<dim,nstate> :: evaluate_functional(std::shared_ptr<DGBase<dim,double>> dg) const
+template <int dim, int nspecies, int nstate>
+double AnisotropicMeshAdaptationCases<dim,nspecies,nstate> :: evaluate_functional(std::shared_ptr<DGBase<dim,nspecies,double>> dg) const
 {
-    std::shared_ptr< Functional<dim, nstate, double> > functional
-                                = FunctionalFactory<dim,nstate,double>::create_Functional(dg->all_parameters->functional_param, dg);
+    std::shared_ptr< Functional<dim, nspecies, nstate, double> > functional
+                                = FunctionalFactory<dim,nspecies,nstate,double>::create_Functional(dg->all_parameters->functional_param, dg);
     return (functional->evaluate_functional());
 }
 
-template <int dim, int nstate>
-int AnisotropicMeshAdaptationCases<dim, nstate> :: run_test () const
+template <int dim, int nspecies, int nstate>
+int AnisotropicMeshAdaptationCases<dim, nspecies, nstate> :: run_test () const
 {
     const Parameters::AllParameters param = *(TestsBase::all_parameters);
     
-    std::unique_ptr<FlowSolver::FlowSolver<dim,nstate>> flow_solver = FlowSolver::FlowSolverFactory<dim,nstate>::select_flow_case(&param, parameter_handler);
+    std::unique_ptr<FlowSolver::FlowSolver<dim,nspecies,nstate>> flow_solver = FlowSolver::FlowSolverFactory<dim,nspecies,nstate>::select_flow_case(&param, parameter_handler);
     const bool use_goal_oriented_approach = param.mesh_adaptation_param.use_goal_oriented_mesh_adaptation;
     const double complexity = param.mesh_adaptation_param.mesh_complexity_anisotropic_adaptation;
     const double normLp = param.mesh_adaptation_param.norm_Lp_anisotropic_adaptation;
 
-    std::unique_ptr<AnisotropicMeshAdaptation<dim, nstate, double>> anisotropic_mesh_adaptation =
-                        std::make_unique<AnisotropicMeshAdaptation<dim, nstate, double>> (flow_solver->dg, normLp, complexity, use_goal_oriented_approach);
+    std::unique_ptr<AnisotropicMeshAdaptation<dim, nspecies, nstate, double>> anisotropic_mesh_adaptation =
+                        std::make_unique<AnisotropicMeshAdaptation<dim, nspecies, nstate, double>> (flow_solver->dg, normLp, complexity, use_goal_oriented_approach);
     
     flow_solver->run();
     const double functional_initial = evaluate_functional(flow_solver->dg);
@@ -138,12 +138,12 @@ int AnisotropicMeshAdaptationCases<dim, nstate> :: run_test () const
 }
 
 //#if PHILIP_DIM==1
-//template class AnisotropicMeshAdaptationCases <PHILIP_DIM,PHILIP_DIM>;
+//template class AnisotropicMeshAdaptationCases <PHILIP_DIM, PHILIP_SPECIES,PHILIP_DIM>;
 //#endif
 
 #if PHILIP_DIM==2
-template class AnisotropicMeshAdaptationCases <PHILIP_DIM, 1>;
-template class AnisotropicMeshAdaptationCases <PHILIP_DIM, PHILIP_DIM + 2>;
+template class AnisotropicMeshAdaptationCases <PHILIP_DIM, PHILIP_SPECIES, 1>;
+template class AnisotropicMeshAdaptationCases <PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM + 2>;
 #endif
 } // namespace Tests
 } // namespace PHiLiP 

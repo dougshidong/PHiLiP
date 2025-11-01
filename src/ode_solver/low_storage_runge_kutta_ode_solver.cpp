@@ -3,11 +3,11 @@
 namespace PHiLiP {
 namespace ODE {
 
-template <int dim, typename real, int n_rk_stages, typename MeshType> 
-LowStorageRungeKuttaODESolver<dim,real,n_rk_stages, MeshType>::LowStorageRungeKuttaODESolver(std::shared_ptr< DGBase<dim, real, MeshType> > dg_input,
-        std::shared_ptr<LowStorageRKTableauBase<dim,real,MeshType>> rk_tableau_input,
-        std::shared_ptr<EmptyRRKBase<dim,real,MeshType>> RRK_object_input)
-        : RungeKuttaBase<dim,real,n_rk_stages,MeshType>(dg_input,RRK_object_input)
+template <int dim, int nspecies, typename real, int n_rk_stages, typename MeshType> 
+LowStorageRungeKuttaODESolver<dim,nspecies,real,n_rk_stages, MeshType>::LowStorageRungeKuttaODESolver(std::shared_ptr< DGBase<dim, nspecies, real, MeshType> > dg_input,
+        std::shared_ptr<LowStorageRKTableauBase<dim,nspecies,real,MeshType>> rk_tableau_input,
+        std::shared_ptr<EmptyRRKBase<dim,nspecies,real,MeshType>> RRK_object_input)
+        : RungeKuttaBase<dim,nspecies,real,n_rk_stages,MeshType>(dg_input,RRK_object_input)
         , butcher_tableau(rk_tableau_input)
         , epsilon{1.0, 1.0, 1.0} 
         , atol(this->ode_param.atol)
@@ -20,8 +20,8 @@ LowStorageRungeKuttaODESolver<dim,real,n_rk_stages, MeshType>::LowStorageRungeKu
         , beta3(this->ode_param.beta3)
 {}
 
-template <int dim, typename real, int n_rk_stages, typename MeshType> 
-void LowStorageRungeKuttaODESolver<dim,real,n_rk_stages, MeshType>::calculate_stage_solution(int istage, real /*dt*/, const bool pseudotime)
+template <int dim, int nspecies, typename real, int n_rk_stages, typename MeshType> 
+void LowStorageRungeKuttaODESolver<dim,nspecies,real,n_rk_stages, MeshType>::calculate_stage_solution(int istage, real /*dt*/, const bool pseudotime)
 {
     if(istage == 0) prep_for_step_in_time();
     if(pseudotime == true){
@@ -32,8 +32,8 @@ void LowStorageRungeKuttaODESolver<dim,real,n_rk_stages, MeshType>::calculate_st
     this->dg->solution = rhs;
 }
 
-template <int dim, typename real, int n_rk_stages, typename MeshType> 
-void LowStorageRungeKuttaODESolver<dim,real,n_rk_stages, MeshType>::calculate_stage_derivative (int istage, real dt)
+template <int dim, int nspecies, typename real, int n_rk_stages, typename MeshType> 
+void LowStorageRungeKuttaODESolver<dim,nspecies,real,n_rk_stages, MeshType>::calculate_stage_derivative (int istage, real dt)
 {
     this->dg->assemble_residual();
     this->dg->apply_inverse_global_mass_matrix(this->dg->right_hand_side, rhs);
@@ -48,8 +48,8 @@ void LowStorageRungeKuttaODESolver<dim,real,n_rk_stages, MeshType>::calculate_st
     rhs = storage_register_1;
 }
 
-template <int dim, typename real, int n_rk_stages, typename MeshType> 
-void LowStorageRungeKuttaODESolver<dim,real,n_rk_stages, MeshType>::sum_stages (real dt, const bool /*pseudotime*/)
+template <int dim, int nspecies, typename real, int n_rk_stages, typename MeshType> 
+void LowStorageRungeKuttaODESolver<dim,nspecies,real,n_rk_stages, MeshType>::sum_stages (real dt, const bool /*pseudotime*/)
 {
     double sum_delta = 0.0;
     if (!is_3Sstarplus){
@@ -78,15 +78,15 @@ void LowStorageRungeKuttaODESolver<dim,real,n_rk_stages, MeshType>::sum_stages (
     }
 }
 
-template <int dim, typename real, int n_rk_stages, typename MeshType> 
-real LowStorageRungeKuttaODESolver<dim,real,n_rk_stages, MeshType>::adjust_time_step (real dt)
+template <int dim, int nspecies, typename real, int n_rk_stages, typename MeshType> 
+real LowStorageRungeKuttaODESolver<dim,nspecies,real,n_rk_stages, MeshType>::adjust_time_step (real dt)
 {  
     /*Empty function for now*/ 
     return dt;
 }
 
-template <int dim, typename real, int n_rk_stages, typename MeshType> 
-double LowStorageRungeKuttaODESolver<dim,real,n_rk_stages, MeshType>::get_automatic_error_adaptive_step_size (real dt, const bool /*pseudotime*/)
+template <int dim, int nspecies, typename real, int n_rk_stages, typename MeshType> 
+double LowStorageRungeKuttaODESolver<dim,nspecies,real,n_rk_stages, MeshType>::get_automatic_error_adaptive_step_size (real dt, const bool /*pseudotime*/)
 {
     double error = 0.0;
     w = 0.0;
@@ -116,8 +116,8 @@ double LowStorageRungeKuttaODESolver<dim,real,n_rk_stages, MeshType>::get_automa
     return dt;
 }
 
-template <int dim, typename real, int n_rk_stages, typename MeshType> 
-double LowStorageRungeKuttaODESolver<dim,real,n_rk_stages, MeshType>::get_automatic_initial_step_size (real dt, const bool /*pseudotime*/)
+template <int dim, int nspecies, typename real, int n_rk_stages, typename MeshType> 
+double LowStorageRungeKuttaODESolver<dim,nspecies,real,n_rk_stages, MeshType>::get_automatic_initial_step_size (real dt, const bool /*pseudotime*/)
 {
     // h will store the starting step size
     double h0 = 0.0;
@@ -179,8 +179,8 @@ double LowStorageRungeKuttaODESolver<dim,real,n_rk_stages, MeshType>::get_automa
 }
 
 
-template <int dim, typename real, int n_rk_stages, typename MeshType> 
-void LowStorageRungeKuttaODESolver<dim,real,n_rk_stages, MeshType>::allocate_runge_kutta_system ()
+template <int dim, int nspecies, typename real, int n_rk_stages, typename MeshType> 
+void LowStorageRungeKuttaODESolver<dim,nspecies,real,n_rk_stages, MeshType>::allocate_runge_kutta_system ()
 {
     // Clear the rk_stage object for memory optimization
     this->rk_stage.clear();
@@ -208,8 +208,8 @@ void LowStorageRungeKuttaODESolver<dim,real,n_rk_stages, MeshType>::allocate_run
 }
 
 
-template <int dim, typename real, int n_rk_stages, typename MeshType> 
-void LowStorageRungeKuttaODESolver<dim,real,n_rk_stages, MeshType>::prep_for_step_in_time()
+template <int dim, int nspecies, typename real, int n_rk_stages, typename MeshType> 
+void LowStorageRungeKuttaODESolver<dim,nspecies,real,n_rk_stages, MeshType>::prep_for_step_in_time()
 {
     storage_register_1.reinit(this->solution_update);
     storage_register_2.reinit(this->solution_update);
@@ -220,28 +220,28 @@ void LowStorageRungeKuttaODESolver<dim,real,n_rk_stages, MeshType>::prep_for_ste
         storage_register_4 = storage_register_1;
     } 
 }
-template class LowStorageRungeKuttaODESolver<PHILIP_DIM, double,1, dealii::Triangulation<PHILIP_DIM> >;
-template class LowStorageRungeKuttaODESolver<PHILIP_DIM, double,2, dealii::Triangulation<PHILIP_DIM> >;
-template class LowStorageRungeKuttaODESolver<PHILIP_DIM, double,3, dealii::Triangulation<PHILIP_DIM> >;
-template class LowStorageRungeKuttaODESolver<PHILIP_DIM, double,4, dealii::Triangulation<PHILIP_DIM> >;
-template class LowStorageRungeKuttaODESolver<PHILIP_DIM, double,5, dealii::Triangulation<PHILIP_DIM> >;
-template class LowStorageRungeKuttaODESolver<PHILIP_DIM, double,9, dealii::Triangulation<PHILIP_DIM> >;
-template class LowStorageRungeKuttaODESolver<PHILIP_DIM, double,10, dealii::Triangulation<PHILIP_DIM> >;
-template class LowStorageRungeKuttaODESolver<PHILIP_DIM, double,1, dealii::parallel::shared::Triangulation<PHILIP_DIM> >;
-template class LowStorageRungeKuttaODESolver<PHILIP_DIM, double,2, dealii::parallel::shared::Triangulation<PHILIP_DIM> >;
-template class LowStorageRungeKuttaODESolver<PHILIP_DIM, double,3, dealii::parallel::shared::Triangulation<PHILIP_DIM> >;
-template class LowStorageRungeKuttaODESolver<PHILIP_DIM, double,4, dealii::parallel::shared::Triangulation<PHILIP_DIM> >;
-template class LowStorageRungeKuttaODESolver<PHILIP_DIM, double,5, dealii::parallel::shared::Triangulation<PHILIP_DIM> >;
-template class LowStorageRungeKuttaODESolver<PHILIP_DIM, double,9, dealii::parallel::shared::Triangulation<PHILIP_DIM> >;
-template class LowStorageRungeKuttaODESolver<PHILIP_DIM, double,10, dealii::parallel::shared::Triangulation<PHILIP_DIM> >;
+template class LowStorageRungeKuttaODESolver<PHILIP_DIM, PHILIP_SPECIES, double,1, dealii::Triangulation<PHILIP_DIM> >;
+template class LowStorageRungeKuttaODESolver<PHILIP_DIM, PHILIP_SPECIES, double,2, dealii::Triangulation<PHILIP_DIM> >;
+template class LowStorageRungeKuttaODESolver<PHILIP_DIM, PHILIP_SPECIES, double,3, dealii::Triangulation<PHILIP_DIM> >;
+template class LowStorageRungeKuttaODESolver<PHILIP_DIM, PHILIP_SPECIES, double,4, dealii::Triangulation<PHILIP_DIM> >;
+template class LowStorageRungeKuttaODESolver<PHILIP_DIM, PHILIP_SPECIES, double,5, dealii::Triangulation<PHILIP_DIM> >;
+template class LowStorageRungeKuttaODESolver<PHILIP_DIM, PHILIP_SPECIES, double,9, dealii::Triangulation<PHILIP_DIM> >;
+template class LowStorageRungeKuttaODESolver<PHILIP_DIM, PHILIP_SPECIES, double,10, dealii::Triangulation<PHILIP_DIM> >;
+template class LowStorageRungeKuttaODESolver<PHILIP_DIM, PHILIP_SPECIES, double,1, dealii::parallel::shared::Triangulation<PHILIP_DIM> >;
+template class LowStorageRungeKuttaODESolver<PHILIP_DIM, PHILIP_SPECIES, double,2, dealii::parallel::shared::Triangulation<PHILIP_DIM> >;
+template class LowStorageRungeKuttaODESolver<PHILIP_DIM, PHILIP_SPECIES, double,3, dealii::parallel::shared::Triangulation<PHILIP_DIM> >;
+template class LowStorageRungeKuttaODESolver<PHILIP_DIM, PHILIP_SPECIES, double,4, dealii::parallel::shared::Triangulation<PHILIP_DIM> >;
+template class LowStorageRungeKuttaODESolver<PHILIP_DIM, PHILIP_SPECIES, double,5, dealii::parallel::shared::Triangulation<PHILIP_DIM> >;
+template class LowStorageRungeKuttaODESolver<PHILIP_DIM, PHILIP_SPECIES, double,9, dealii::parallel::shared::Triangulation<PHILIP_DIM> >;
+template class LowStorageRungeKuttaODESolver<PHILIP_DIM, PHILIP_SPECIES, double,10, dealii::parallel::shared::Triangulation<PHILIP_DIM> >;
 #if PHILIP_DIM != 1
-    template class LowStorageRungeKuttaODESolver<PHILIP_DIM, double,1, dealii::parallel::distributed::Triangulation<PHILIP_DIM> >;
-    template class LowStorageRungeKuttaODESolver<PHILIP_DIM, double,2, dealii::parallel::distributed::Triangulation<PHILIP_DIM> >;
-    template class LowStorageRungeKuttaODESolver<PHILIP_DIM, double,3, dealii::parallel::distributed::Triangulation<PHILIP_DIM> >;
-    template class LowStorageRungeKuttaODESolver<PHILIP_DIM, double,4, dealii::parallel::distributed::Triangulation<PHILIP_DIM> >;
-    template class LowStorageRungeKuttaODESolver<PHILIP_DIM, double,5, dealii::parallel::distributed::Triangulation<PHILIP_DIM> >;
-    template class LowStorageRungeKuttaODESolver<PHILIP_DIM, double,9, dealii::parallel::distributed::Triangulation<PHILIP_DIM> >;
-    template class LowStorageRungeKuttaODESolver<PHILIP_DIM, double,10, dealii::parallel::distributed::Triangulation<PHILIP_DIM> >;
+    template class LowStorageRungeKuttaODESolver<PHILIP_DIM, PHILIP_SPECIES, double,1, dealii::parallel::distributed::Triangulation<PHILIP_DIM> >;
+    template class LowStorageRungeKuttaODESolver<PHILIP_DIM, PHILIP_SPECIES, double,2, dealii::parallel::distributed::Triangulation<PHILIP_DIM> >;
+    template class LowStorageRungeKuttaODESolver<PHILIP_DIM, PHILIP_SPECIES, double,3, dealii::parallel::distributed::Triangulation<PHILIP_DIM> >;
+    template class LowStorageRungeKuttaODESolver<PHILIP_DIM, PHILIP_SPECIES, double,4, dealii::parallel::distributed::Triangulation<PHILIP_DIM> >;
+    template class LowStorageRungeKuttaODESolver<PHILIP_DIM, PHILIP_SPECIES, double,5, dealii::parallel::distributed::Triangulation<PHILIP_DIM> >;
+    template class LowStorageRungeKuttaODESolver<PHILIP_DIM, PHILIP_SPECIES, double,9, dealii::parallel::distributed::Triangulation<PHILIP_DIM> >;
+    template class LowStorageRungeKuttaODESolver<PHILIP_DIM, PHILIP_SPECIES, double,10, dealii::parallel::distributed::Triangulation<PHILIP_DIM> >;
 #endif
 
 } // ODESolver namespace

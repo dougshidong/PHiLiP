@@ -33,6 +33,7 @@ const double FD_TOL = 1e-6;
 const double CONSISTENCY_ABS_TOL = 1e-10;
 
 const int dim = 2;
+const int nspecies = 1;
 const int nstate = 4;
 const int POLY_DEGREE = 2;
 const double BUMP_HEIGHT = 0.0625;
@@ -84,14 +85,14 @@ int test(const unsigned int nx_ffd)
 
     param.euler_param.parse_parameters (parameter_handler);
     param.euler_param.mach_inf = 0.3;
-    Physics::Euler<dim,nstate,double> euler_physics_double = Physics::Euler<dim, nstate, double>(
+    Physics::Euler<dim,nspecies,nstate,double> euler_physics_double = Physics::Euler<dim, nspecies, nstate, double>(
                 &param,
                 param.euler_param.ref_length,
                 param.euler_param.gamma_gas,
                 param.euler_param.mach_inf,
                 param.euler_param.angle_of_attack,
                 param.euler_param.side_slip_angle);
-    FreeStreamInitialConditions<dim,nstate,double> initial_conditions(euler_physics_double);
+    FreeStreamInitialConditions<dim,nspecies,nstate,double> initial_conditions(euler_physics_double);
 
     std::vector<unsigned int> n_subdivisions(dim);
     n_subdivisions[1] = NY_CELL;
@@ -145,13 +146,13 @@ int test(const unsigned int nx_ffd)
     ffd.set_design_variables( ffd_design_variables_indices_dim, ffd_design_variables);
 
     // Create DG object
-    std::shared_ptr < DGBase<dim, double> > dg = DGFactory<dim,double>::create_discontinuous_galerkin(&param, POLY_DEGREE, grid);
+    std::shared_ptr < DGBase<dim, nspecies, double> > dg = DGFactory<dim,nspecies,double>::create_discontinuous_galerkin(&param, POLY_DEGREE, grid);
     dg->allocate_system ();
 
     // Initialize coarse grid solution with free-stream
     dealii::VectorTools::interpolate(dg->dof_handler, initial_conditions, dg->solution);
     // Create ODE solver and ramp up the solution from p0
-    std::shared_ptr<ODE::ODESolverBase<dim, double>> ode_solver = ODE::ODESolverFactory<dim, double>::create_ODESolver(dg);
+    std::shared_ptr<ODE::ODESolverBase<dim, nspecies, double>> ode_solver = ODE::ODESolverFactory<dim, nspecies, double>::create_ODESolver(dg);
     ode_solver->initialize_steady_polynomial_ramping (POLY_DEGREE);
     // Solve the steady state problem
     ode_solver->steady_state();
@@ -191,7 +192,7 @@ int test(const unsigned int nx_ffd)
     std::shared_ptr<BaseParameterization<dim>> design_parameterization = 
                             std::make_shared<FreeFormDeformationParameterization<dim>>(dg->high_order_grid, ffd, ffd_design_variables_indices_dim);
     
-    auto con  = ROL::makePtr<FlowConstraints<dim>>(dg,design_parameterization);
+    auto con  = ROL::makePtr<FlowConstraints<dim,nspecies>>(dg,design_parameterization);
 
     const ROL::Ptr<ROL::Vector_SimOpt<double>> des_var_rol_p = ROL::makePtr<ROL::Vector_SimOpt<double>>(des_var_sim_rol_p, des_var_ctl_rol_p);
 

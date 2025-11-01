@@ -30,16 +30,16 @@ https://onlinelibrary.wiley.com/doi/10.1002/nme.6603
 NOTE: The above presents the approach for training with the residual data
 */
 
-template <int dim, int nstate>
-class AssembleECSWRes: public AssembleECSWBase<dim,nstate>
+template <int dim, int nspecies, int nstate>
+class AssembleECSWRes: public AssembleECSWBase<dim,nspecies,nstate>
 {
 public:
     /// Constructor
     AssembleECSWRes(
         const PHiLiP::Parameters::AllParameters *const parameters_input,
         const dealii::ParameterHandler &parameter_handler_input,
-        std::shared_ptr<DGBase<dim,double>> &dg_input, 
-        std::shared_ptr<ProperOrthogonalDecomposition::PODBase<dim>> pod,
+        std::shared_ptr<DGBase<dim,nspecies,double>> &dg_input, 
+        std::shared_ptr<ProperOrthogonalDecomposition::PODBase<dim,nspecies>> pod,
         MatrixXd snapshot_parameters_input,
         Parameters::ODESolverParam::ODESolverEnum ode_solver_type,
         Epetra_MpiComm &Comm);

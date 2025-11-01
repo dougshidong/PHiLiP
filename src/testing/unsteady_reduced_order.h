@@ -8,7 +8,7 @@ namespace PHiLiP {
 namespace Tests {
 
 /// Unsteady POD reduced order test, verifies consistency of solution and implementation of threshold function
-template <int dim, int nstate>
+template <int dim, int nspecies, int nstate>
 class UnsteadyReducedOrder: public TestsBase
 {
 public:

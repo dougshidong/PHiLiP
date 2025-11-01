@@ -19,11 +19,11 @@
 namespace PHiLiP {
 namespace Physics {
 
-template <int dim, int nstate, typename real>
-std::shared_ptr < PhysicsBase<dim,nstate,real> >
-PhysicsFactory<dim,nstate,real>
+template <int dim, int nspecies, int nstate, typename real>
+std::shared_ptr < PhysicsBase<dim,nspecies,nstate,real> >
+PhysicsFactory<dim,nspecies,nstate,real>
 ::create_Physics(const Parameters::AllParameters               *const parameters_input,
-                 std::shared_ptr< ModelBase<dim,nstate,real> > model_input)
+                 std::shared_ptr< ModelBase<dim,nspecies,nstate,real> > model_input)
 {
     using PDE_enum = Parameters::AllParameters::PartialDifferentialEquation;
     PDE_enum pde_type = parameters_input->pde_type;
@@ -31,18 +31,18 @@ PhysicsFactory<dim,nstate,real>
     return create_Physics(parameters_input, pde_type, model_input);
 }
 
-template <int dim, int nstate, typename real>
-std::shared_ptr < PhysicsBase<dim,nstate,real> >
-PhysicsFactory<dim,nstate,real>
+template <int dim, int nspecies, int nstate, typename real>
+std::shared_ptr < PhysicsBase<dim,nspecies,nstate,real> >
+PhysicsFactory<dim,nspecies,nstate,real>
 ::create_Physics(const Parameters::AllParameters                              *const parameters_input,
                  const Parameters::AllParameters::PartialDifferentialEquation pde_type,
-                 std::shared_ptr< ModelBase<dim,nstate,real> >                model_input)
+                 std::shared_ptr< ModelBase<dim,nspecies,nstate,real> >                model_input)
 {
     using PDE_enum = Parameters::AllParameters::PartialDifferentialEquation;
 
     // generating the manufactured solution from the manufactured solution factory
-    std::shared_ptr< ManufacturedSolutionFunction<dim,real> >  manufactured_solution_function 
-        = ManufacturedSolutionFactory<dim,real>::create_ManufacturedSolution(parameters_input, nstate);
+    std::shared_ptr< ManufacturedSolutionFunction<dim,nspecies,real> >  manufactured_solution_function 
+        = ManufacturedSolutionFactory<dim,nspecies,real>::create_ManufacturedSolution(parameters_input, nstate);
 
     // setting the diffusion tensor and advection vectors from parameters (if needed)
     const dealii::Tensor<2,3,double> diffusion_tensor      = parameters_input->manufactured_convergence_study_param.manufactured_solution_param.diffusion_tensor;
@@ -51,14 +51,14 @@ PhysicsFactory<dim,nstate,real>
 
     if (pde_type == PDE_enum::advection || pde_type == PDE_enum::advection_vector) {
         if constexpr (nstate<=2) 
-            return std::make_shared < ConvectionDiffusion<dim,nstate,real> >(
+            return std::make_shared < ConvectionDiffusion<dim,nspecies,nstate,real> >(
                 parameters_input,
                 true, false,
                 diffusion_tensor, advection_vector, diffusion_coefficient,
                 manufactured_solution_function);
     } else if (pde_type == PDE_enum::diffusion) {
         if constexpr (nstate==1) 
-            return std::make_shared < ConvectionDiffusion<dim,nstate,real> >(
+            return std::make_shared < ConvectionDiffusion<dim,nspecies,nstate,real> >(
                 parameters_input,
                 false, true,
                 diffusion_tensor, advection_vector, diffusion_coefficient,
@@ -66,7 +66,7 @@ PhysicsFactory<dim,nstate,real>
                 parameters_input->test_type);
     } else if (pde_type == PDE_enum::convection_diffusion) {
         if constexpr (nstate==1) 
-            return std::make_shared < ConvectionDiffusion<dim,nstate,real> >(
+            return std::make_shared < ConvectionDiffusion<dim,nspecies,nstate,real> >(
                 parameters_input,
                 true, true,
                 diffusion_tensor, advection_vector, diffusion_coefficient,
@@ -74,7 +74,7 @@ PhysicsFactory<dim,nstate,real>
                 parameters_input->test_type);
     } else if (pde_type == PDE_enum::burgers_inviscid) {
         if constexpr (nstate==dim) 
-            return std::make_shared < Burgers<dim,nstate,real> >(
+            return std::make_shared < Burgers<dim,nspecies,nstate,real> >(
                 parameters_input,
                 parameters_input->burgers_param.diffusion_coefficient,
                 true, false,
@@ -83,7 +83,7 @@ PhysicsFactory<dim,nstate,real>
                 parameters_input->test_type);
     } else if (pde_type == PDE_enum::burgers_viscous) {
         if constexpr (nstate==dim)
-            return std::make_shared < Burgers<dim,nstate,real> >(
+            return std::make_shared < Burgers<dim,nspecies,nstate,real> >(
                 parameters_input,
                 parameters_input->burgers_param.diffusion_coefficient,
                 true, true,
@@ -91,7 +91,7 @@ PhysicsFactory<dim,nstate,real>
                 manufactured_solution_function);
     } else if (pde_type == PDE_enum::burgers_rewienski) {
         if constexpr (nstate==dim)
-            return std::make_shared < BurgersRewienski<dim,nstate,real> >(
+            return std::make_shared < BurgersRewienski<dim,nspecies,nstate,real> >(
                 parameters_input,
                 parameters_input->burgers_param.rewienski_a,
                 parameters_input->burgers_param.rewienski_b,
@@ -102,7 +102,7 @@ PhysicsFactory<dim,nstate,real>
                 manufactured_solution_function);
     } else if (pde_type == PDE_enum::euler) {
         if constexpr (nstate==dim+2) {
-            return std::make_shared < Euler<dim,nstate,real> > (
+            return std::make_shared < Euler<dim,nspecies,nstate,real> > (
                 parameters_input,
                 parameters_input->euler_param.ref_length,
                 parameters_input->euler_param.gamma_gas,
@@ -114,14 +114,14 @@ PhysicsFactory<dim,nstate,real>
         }
     } else if (pde_type == PDE_enum::mhd) {
         if constexpr (nstate == 8) 
-            return std::make_shared < MHD<dim,nstate,real> > (
+            return std::make_shared < MHD<dim,nspecies,nstate,real> > (
                 parameters_input,
                 parameters_input->euler_param.gamma_gas,
                 diffusion_tensor, 
                 manufactured_solution_function);
     } else if (pde_type == PDE_enum::navier_stokes) {
         if constexpr (nstate==dim+2) {
-            return std::make_shared < NavierStokes<dim,nstate,real> > (
+            return std::make_shared < NavierStokes<dim,nspecies,nstate,real> > (
                 parameters_input,
                 parameters_input->euler_param.ref_length,
                 parameters_input->euler_param.gamma_gas,
@@ -155,12 +155,12 @@ PhysicsFactory<dim,nstate,real>
     return nullptr;
 }
 
-template <int dim, int nstate, typename real>
-std::shared_ptr < PhysicsBase<dim,nstate,real> >
-PhysicsFactory<dim,nstate,real>
+template <int dim, int nspecies, int nstate, typename real>
+std::shared_ptr < PhysicsBase<dim,nspecies,nstate,real> >
+PhysicsFactory<dim,nspecies,nstate,real>
 ::create_Physics_Model(const Parameters::AllParameters                           *const parameters_input,
-                       std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function,
-                       std::shared_ptr< ModelBase<dim,nstate,real> >             model_input)
+                       std::shared_ptr< ManufacturedSolutionFunction<dim,nspecies,real> > manufactured_solution_function,
+                       std::shared_ptr< ModelBase<dim,nspecies,nstate,real> >             model_input)
 {
     using PDE_enum = Parameters::AllParameters::PartialDifferentialEquation;
 
@@ -202,7 +202,7 @@ PhysicsFactory<dim,nstate,real>
             }
 
             // Create the physics model object in physics
-            return std::make_shared < PhysicsModel<dim,nstate,real,nstate_baseline_physics> > (
+            return std::make_shared < PhysicsModel<dim,nspecies,nstate,real,nstate_baseline_physics> > (
                     parameters_input,
                     baseline_physics_type,
                     model_input,
@@ -239,7 +239,7 @@ PhysicsFactory<dim,nstate,real>
                 }
 
                 // Create the physics model object in physics
-                return std::make_shared < PhysicsModel<dim,nstate,real,nstate_baseline_physics> > (
+                return std::make_shared < PhysicsModel<dim,nspecies,nstate,real,nstate_baseline_physics> > (
                     parameters_input,
                     baseline_physics_type,
                     model_input,
@@ -267,45 +267,45 @@ PhysicsFactory<dim,nstate,real>
     return nullptr;
 }
 
-template class PhysicsFactory<PHILIP_DIM, 1, double>;
-template class PhysicsFactory<PHILIP_DIM, 2, double>;
-template class PhysicsFactory<PHILIP_DIM, 3, double>;
-template class PhysicsFactory<PHILIP_DIM, 4, double>;
-template class PhysicsFactory<PHILIP_DIM, 5, double>;
-template class PhysicsFactory<PHILIP_DIM, 6, double>;
-template class PhysicsFactory<PHILIP_DIM, 8, double>;
+template class PhysicsFactory<PHILIP_DIM, PHILIP_SPECIES, 1, double>;
+template class PhysicsFactory<PHILIP_DIM, PHILIP_SPECIES, 2, double>;
+template class PhysicsFactory<PHILIP_DIM, PHILIP_SPECIES, 3, double>;
+template class PhysicsFactory<PHILIP_DIM, PHILIP_SPECIES, 4, double>;
+template class PhysicsFactory<PHILIP_DIM, PHILIP_SPECIES, 5, double>;
+template class PhysicsFactory<PHILIP_DIM, PHILIP_SPECIES, 6, double>;
+template class PhysicsFactory<PHILIP_DIM, PHILIP_SPECIES, 8, double>;
 
-template class PhysicsFactory<PHILIP_DIM, 1, FadType >;
-template class PhysicsFactory<PHILIP_DIM, 2, FadType >;
-template class PhysicsFactory<PHILIP_DIM, 3, FadType >;
-template class PhysicsFactory<PHILIP_DIM, 4, FadType >;
-template class PhysicsFactory<PHILIP_DIM, 5, FadType >;
-template class PhysicsFactory<PHILIP_DIM, 6, FadType >;
-template class PhysicsFactory<PHILIP_DIM, 8, FadType >;
+template class PhysicsFactory<PHILIP_DIM, PHILIP_SPECIES, 1, FadType >;
+template class PhysicsFactory<PHILIP_DIM, PHILIP_SPECIES, 2, FadType >;
+template class PhysicsFactory<PHILIP_DIM, PHILIP_SPECIES, 3, FadType >;
+template class PhysicsFactory<PHILIP_DIM, PHILIP_SPECIES, 4, FadType >;
+template class PhysicsFactory<PHILIP_DIM, PHILIP_SPECIES, 5, FadType >;
+template class PhysicsFactory<PHILIP_DIM, PHILIP_SPECIES, 6, FadType >;
+template class PhysicsFactory<PHILIP_DIM, PHILIP_SPECIES, 8, FadType >;
 
-template class PhysicsFactory<PHILIP_DIM, 1, RadType >;
-template class PhysicsFactory<PHILIP_DIM, 2, RadType >;
-template class PhysicsFactory<PHILIP_DIM, 3, RadType >;
-template class PhysicsFactory<PHILIP_DIM, 4, RadType >;
-template class PhysicsFactory<PHILIP_DIM, 5, RadType >;
-template class PhysicsFactory<PHILIP_DIM, 6, RadType >;
-template class PhysicsFactory<PHILIP_DIM, 8, RadType >;
+template class PhysicsFactory<PHILIP_DIM, PHILIP_SPECIES, 1, RadType >;
+template class PhysicsFactory<PHILIP_DIM, PHILIP_SPECIES, 2, RadType >;
+template class PhysicsFactory<PHILIP_DIM, PHILIP_SPECIES, 3, RadType >;
+template class PhysicsFactory<PHILIP_DIM, PHILIP_SPECIES, 4, RadType >;
+template class PhysicsFactory<PHILIP_DIM, PHILIP_SPECIES, 5, RadType >;
+template class PhysicsFactory<PHILIP_DIM, PHILIP_SPECIES, 6, RadType >;
+template class PhysicsFactory<PHILIP_DIM, PHILIP_SPECIES, 8, RadType >;
 
-template class PhysicsFactory<PHILIP_DIM, 1, FadFadType >;
-template class PhysicsFactory<PHILIP_DIM, 2, FadFadType >;
-template class PhysicsFactory<PHILIP_DIM, 3, FadFadType >;
-template class PhysicsFactory<PHILIP_DIM, 4, FadFadType >;
-template class PhysicsFactory<PHILIP_DIM, 5, FadFadType >;
-template class PhysicsFactory<PHILIP_DIM, 6, FadFadType >;
-template class PhysicsFactory<PHILIP_DIM, 8, FadFadType >;
+template class PhysicsFactory<PHILIP_DIM, PHILIP_SPECIES, 1, FadFadType >;
+template class PhysicsFactory<PHILIP_DIM, PHILIP_SPECIES, 2, FadFadType >;
+template class PhysicsFactory<PHILIP_DIM, PHILIP_SPECIES, 3, FadFadType >;
+template class PhysicsFactory<PHILIP_DIM, PHILIP_SPECIES, 4, FadFadType >;
+template class PhysicsFactory<PHILIP_DIM, PHILIP_SPECIES, 5, FadFadType >;
+template class PhysicsFactory<PHILIP_DIM, PHILIP_SPECIES, 6, FadFadType >;
+template class PhysicsFactory<PHILIP_DIM, PHILIP_SPECIES, 8, FadFadType >;
 
-template class PhysicsFactory<PHILIP_DIM, 1, RadFadType >;
-template class PhysicsFactory<PHILIP_DIM, 2, RadFadType >;
-template class PhysicsFactory<PHILIP_DIM, 3, RadFadType >;
-template class PhysicsFactory<PHILIP_DIM, 4, RadFadType >;
-template class PhysicsFactory<PHILIP_DIM, 5, RadFadType >;
-template class PhysicsFactory<PHILIP_DIM, 6, RadFadType >;
-template class PhysicsFactory<PHILIP_DIM, 8, RadFadType >;
+template class PhysicsFactory<PHILIP_DIM, PHILIP_SPECIES, 1, RadFadType >;
+template class PhysicsFactory<PHILIP_DIM, PHILIP_SPECIES, 2, RadFadType >;
+template class PhysicsFactory<PHILIP_DIM, PHILIP_SPECIES, 3, RadFadType >;
+template class PhysicsFactory<PHILIP_DIM, PHILIP_SPECIES, 4, RadFadType >;
+template class PhysicsFactory<PHILIP_DIM, PHILIP_SPECIES, 5, RadFadType >;
+template class PhysicsFactory<PHILIP_DIM, PHILIP_SPECIES, 6, RadFadType >;
+template class PhysicsFactory<PHILIP_DIM, PHILIP_SPECIES, 8, RadFadType >;
 
 
 

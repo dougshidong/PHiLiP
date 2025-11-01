@@ -24,11 +24,12 @@ int main (int argc, char * argv[])
     MPI_Init(&argc, &argv);
     std::cout << std::setprecision(std::numeric_limits<long double>::digits10 + 1) << std::scientific;
     const int dim = PHILIP_DIM;
+    const int nspecies = 1;
     const int nstate = dim+3;
 
     // Create ManufacturedSolutionFunction
-    std::shared_ptr< PHiLiP::ManufacturedSolutionFunction<dim,double> > 
-        manufactured_solution_function = std::make_shared<PHiLiP::ManufacturedSolutionSine<dim,double>>(nstate);
+    std::shared_ptr< PHiLiP::ManufacturedSolutionFunction<dim,nspecies,double> > 
+        manufactured_solution_function = std::make_shared<PHiLiP::ManufacturedSolutionSine<dim,nspecies,double>>(nstate);
     
     //const double ref_length=1.0, mach_inf=1.0, angle_of_attack = 0.0, side_slip_angle = 0.0, gamma_gas = 1.4;
     //const double prandtl_number=0.72, reynolds_number_inf=1e-4;
@@ -42,7 +43,7 @@ int main (int argc, char * argv[])
     all_parameters.parse_parameters (parameter_handler);
     using thermal_boundary_condition_enum = PHiLiP::Parameters::NavierStokesParam::ThermalBoundaryCondition;
     const thermal_boundary_condition_enum g = thermal_boundary_condition_enum::adiabatic;
-    PHiLiP::Physics::ReynoldsAveragedNavierStokes_SAneg<dim, nstate, double> rans_sa_neg_physics = PHiLiP::Physics::ReynoldsAveragedNavierStokes_SAneg<dim, nstate, double>(&all_parameters,a,c,a,b,b,d,e,false,1.0,f,a,a,g,manufactured_solution_function);
+    PHiLiP::Physics::ReynoldsAveragedNavierStokes_SAneg<dim, nspecies, nstate, double> rans_sa_neg_physics = PHiLiP::Physics::ReynoldsAveragedNavierStokes_SAneg<dim, nspecies, nstate, double>(&all_parameters,a,c,a,b,b,d,e,false,1.0,f,a,a,g,manufactured_solution_function);
     
     const double min = 0.0;
     const double max = 1.0;

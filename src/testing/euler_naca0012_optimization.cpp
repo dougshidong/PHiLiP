@@ -93,14 +93,14 @@ const std::string line_search_method =
     // "Iteration Scaling";
     "Backtracking";
 
-template <int dim, int nstate>
-EulerNACAOptimization<dim,nstate>::EulerNACAOptimization(const Parameters::AllParameters *const parameters_input)
+template <int dim, int nspecies, int nstate>
+EulerNACAOptimization<dim,nspecies,nstate>::EulerNACAOptimization(const Parameters::AllParameters *const parameters_input)
     :
     TestsBase::TestsBase(parameters_input)
 {}
 
-template<int dim, int nstate>
-int EulerNACAOptimization<dim,nstate>
+template<int dim, int nspecies, int nstate>
+int EulerNACAOptimization<dim,nspecies,nstate>
 ::run_test () const
 {
     int test_error = 0;
@@ -121,22 +121,22 @@ int EulerNACAOptimization<dim,nstate>
     return test_error;
 }
 
-template<int dim, int nstate>
+template<int dim, int nspecies, int nstate>
 int check_flow_constraints(
     const unsigned int nx_ffd,
-    ROL::Ptr<FlowConstraints<dim>> flow_constraints,
+    ROL::Ptr<FlowConstraints<dim,nspecies>> flow_constraints,
     ROL::Ptr<ROL::Vector<double>> des_var_sim_rol_p,
     ROL::Ptr<ROL::Vector<double>> des_var_ctl_rol_p,
     ROL::Ptr<ROL::Vector<double>> des_var_adj_rol_p)
 {
-    Physics::Euler<dim,nstate,double> euler_physics_double
-        = Physics::Euler<dim, nstate, double>(
+    Physics::Euler<dim,nspecies,nstate,double> euler_physics_double
+        = Physics::Euler<dim, nspecies, nstate, double>(
                 1,
                 1.4,
                 0.8,
                 1.25,
                 0.0);
-    FreeStreamInitialConditions<dim,nstate,double> initial_conditions(euler_physics_double);
+    FreeStreamInitialConditions<dim,nspecies,nstate,double> initial_conditions(euler_physics_double);
 
     int test_error = 0;
     // Temporary vectors
@@ -258,12 +258,12 @@ int check_flow_constraints(
     return test_error;
 }
 
-template<int dim, int nstate>
+template<int dim, int nspecies, int nstate>
 int check_objective(
     const unsigned int nx_ffd,
-    std::shared_ptr < DGBase<dim, double> > dg,
+    std::shared_ptr < DGBase<dim, nspecies, double> > dg,
     ROL::Ptr<ROL::Objective_SimOpt<double>> objective,
-    ROL::Ptr<FlowConstraints<dim>> flow_constraints,
+    ROL::Ptr<FlowConstraints<dim,nspecies>> flow_constraints,
     ROL::Ptr<ROL::Vector<double>> des_var_sim_rol_p,
     ROL::Ptr<ROL::Vector<double>> des_var_ctl_rol_p,
     ROL::Ptr<ROL::Vector<double>> des_var_adj_rol_p)
@@ -277,14 +277,14 @@ int check_objective(
     // Set parameters.
     Teuchos::ParameterList parlist;
 
-    Physics::Euler<dim,nstate,double> euler_physics_double
-        = Physics::Euler<dim, nstate, double>(
+    Physics::Euler<dim,nspecies,nstate,double> euler_physics_double
+        = Physics::Euler<dim, nspecies, nstate, double>(
                 1,
                 1.4,
                 0.8,
                 1.25,
                 0.0);
-    FreeStreamInitialConditions<dim,nstate,double> initial_conditions(euler_physics_double);
+    FreeStreamInitialConditions<dim,nspecies,nstate,double> initial_conditions(euler_physics_double);
 
     auto des_var_p = ROL::makePtr<ROL::Vector_SimOpt<double>>(des_var_sim_rol_p, des_var_ctl_rol_p);
 
@@ -351,8 +351,8 @@ int check_objective(
     return test_error;
 }
 
-template<int dim, int nstate>
-int EulerNACAOptimization<dim,nstate>
+template<int dim, int nspecies, int nstate>
+int EulerNACAOptimization<dim,nspecies,nstate>
 ::optimize (const unsigned int nx_ffd, const unsigned int poly_degree) const
 {
     int test_error = 0;
@@ -439,15 +439,15 @@ int EulerNACAOptimization<dim,nstate>
     ManParam manu_grid_conv_param = param.manufactured_convergence_study_param;
 
 
-    Physics::Euler<dim,nstate,double> euler_physics_double
-        = Physics::Euler<dim, nstate, double>(
+    Physics::Euler<dim,nspecies,nstate,double> euler_physics_double
+        = Physics::Euler<dim, nspecies, nstate, double>(
                 &param,
                 param.euler_param.ref_length,
                 param.euler_param.gamma_gas,
                 param.euler_param.mach_inf,
                 param.euler_param.angle_of_attack,
                 param.euler_param.side_slip_angle);
-    FreeStreamInitialConditions<dim,nstate,double> initial_conditions(euler_physics_double);
+    FreeStreamInitialConditions<dim,nspecies,nstate,double> initial_conditions(euler_physics_double);
 
     using Triangulation = dealii::parallel::distributed::Triangulation<dim>;
     std::shared_ptr <Triangulation> grid = std::make_shared<Triangulation> (
@@ -526,7 +526,7 @@ int EulerNACAOptimization<dim,nstate>
         //const double target_AoA = 0.5;
         //const double pi = atan(1.0) * 4.0;
         //param_target.euler_param.angle_of_attack = target_AoA * pi/170.0;
-        std::shared_ptr < DGBase<dim, double> > dg_target = DGFactory<dim,double>::create_discontinuous_galerkin(&param_target, poly_degree, grid);
+        std::shared_ptr < DGBase<dim, nspecies, double> > dg_target = DGFactory<dim,nspecies,double>::create_discontinuous_galerkin(&param_target, poly_degree, grid);
         std::shared_ptr<HighOrderGrid<dim,double>> naca0012_mesh = read_gmsh <dim, dim> ("naca0012.msh",param_target.do_renumber_dofs);
         dg_target->set_high_order_grid(naca0012_mesh);
 
@@ -534,7 +534,7 @@ int EulerNACAOptimization<dim,nstate>
 
         dg_target->allocate_system ();
         dealii::VectorTools::interpolate(dg_target->dof_handler, initial_conditions, dg_target->solution);
-        std::shared_ptr<ODE::ODESolverBase<dim, double>> ode_solver = ODE::ODESolverFactory<dim, double>::create_ODESolver(dg_target);
+        std::shared_ptr<ODE::ODESolverBase<dim, nspecies, double>> ode_solver = ODE::ODESolverFactory<dim, nspecies, double>::create_ODESolver(dg_target);
         ode_solver->initialize_steady_polynomial_ramping (poly_degree);
         ode_solver->steady_state();
 
@@ -543,7 +543,7 @@ int EulerNACAOptimization<dim,nstate>
     }
     ffd.set_design_variables( ffd_design_variables_indices_dim, ffd_design_variables);
 
-    std::shared_ptr < DGBase<dim, double> > dg = DGFactory<dim,double>::create_discontinuous_galerkin(&param, poly_degree, grid);
+    std::shared_ptr < DGBase<dim, nspecies, double> > dg = DGFactory<dim,nspecies,double>::create_discontinuous_galerkin(&param, poly_degree, grid);
 
     //naca0012_mesh->refine_global();
     std::shared_ptr<HighOrderGrid<dim,double>> naca0012_mesh = read_gmsh <dim, dim> ("naca0012.msh",param.do_renumber_dofs);
@@ -552,7 +552,7 @@ int EulerNACAOptimization<dim,nstate>
     dg->allocate_system ();
     dealii::VectorTools::interpolate(dg->dof_handler, initial_conditions, dg->solution);
     // Create ODE solver and ramp up the solution from p0
-    std::shared_ptr<ODE::ODESolverBase<dim, double>> ode_solver = ODE::ODESolverFactory<dim, double>::create_ODESolver(dg);
+    std::shared_ptr<ODE::ODESolverBase<dim, nspecies, double>> ode_solver = ODE::ODESolverFactory<dim, nspecies, double>::create_ODESolver(dg);
     ode_solver->initialize_steady_polynomial_ramping (poly_degree);
     // // Solve the steady state problem
     ode_solver->steady_state();
@@ -576,10 +576,10 @@ int EulerNACAOptimization<dim,nstate>
     ROL::OptimizationProblem<double> opt;
     Teuchos::ParameterList parlist;
 
-    TargetWallPressure<dim,nstate,double> target_wall_pressure_functional(dg, target_solution);
+    TargetWallPressure<dim,nspecies,nstate,double> target_wall_pressure_functional(dg, target_solution);
 
-    LiftDragFunctional<dim,nstate,double,Triangulation> lift_functional( dg, LiftDragFunctional<dim,dim+2,double,Triangulation>::Functional_types::lift );
-    LiftDragFunctional<dim,nstate,double,Triangulation> drag_functional( dg, LiftDragFunctional<dim,dim+2,double,Triangulation>::Functional_types::drag );
+    LiftDragFunctional<dim,nspecies,nstate,double,Triangulation> lift_functional( dg, LiftDragFunctional<dim,nspecies,dim+2,double,Triangulation>::Functional_types::lift );
+    LiftDragFunctional<dim,nspecies,nstate,double,Triangulation> drag_functional( dg, LiftDragFunctional<dim,nspecies,dim+2,double,Triangulation>::Functional_types::drag );
 
     std::cout << " Current lift = " << lift_functional.evaluate_functional()
               << ". Current drag = " << drag_functional.evaluate_functional()
@@ -595,22 +595,22 @@ int EulerNACAOptimization<dim,nstate>
     std::shared_ptr<BaseParameterization<dim>> design_parameterization = 
                         std::make_shared<FreeFormDeformationParameterization<dim>>(dg->high_order_grid, ffd, ffd_design_variables_indices_dim);
     
-    auto con  = ROL::makePtr<FlowConstraints<dim>>(dg, design_parameterization);
+    auto con  = ROL::makePtr<FlowConstraints<dim,nspecies>>(dg, design_parameterization);
     std::shared_ptr<MatrixType> precomputed_dXvdXp = std::make_shared<MatrixType> ();
     precomputed_dXvdXp->reinit(con->dXvdXp);
     precomputed_dXvdXp->copy_from(con->dXvdXp);
-    //int flow_constraints_check_error = check_flow_constraints<dim,nstate>( nx_ffd, con, des_var_sim_rol_p, des_var_ctl_rol_p, des_var_adj_rol_p);
+    //int flow_constraints_check_error = check_flow_constraints<dim,nspecies,nstate>( nx_ffd, con, des_var_sim_rol_p, des_var_ctl_rol_p, des_var_adj_rol_p);
     std::cout << " Constructing lift ROL objective " << std::endl;
-    auto lift_obj = ROL::makePtr<ROLObjectiveSimOpt<dim,nstate>>( lift_functional, design_parameterization, precomputed_dXvdXp);
+    auto lift_obj = ROL::makePtr<ROLObjectiveSimOpt<dim,nspecies,nstate>>( lift_functional, design_parameterization, precomputed_dXvdXp);
     std::cout << " Constructing lift ROL constraint " << std::endl;
     auto lift_con = ROL::makePtr<PHiLiP::ConstraintFromObjective_SimOpt<double>> (lift_obj, lift_target);
 
-    //int objective_check_error = check_objective<dim,nstate>( nx_ffd, dg, lift_obj, con, des_var_sim_rol_p, des_var_ctl_rol_p, des_var_adj_rol_p);
+    //int objective_check_error = check_objective<dim,nspecies,nstate>( nx_ffd, dg, lift_obj, con, des_var_sim_rol_p, des_var_ctl_rol_p, des_var_adj_rol_p);
 
     std::cout << " Constructing drag ROL objective " << std::endl;
-    auto drag_obj = ROL::makePtr<ROLObjectiveSimOpt<dim,nstate>>( drag_functional, design_parameterization, precomputed_dXvdXp);
+    auto drag_obj = ROL::makePtr<ROLObjectiveSimOpt<dim,nspecies,nstate>>( drag_functional, design_parameterization, precomputed_dXvdXp);
 
-    //objective_check_error = check_objective<dim,nstate>( nx_ffd, dg, drag_obj, con, des_var_sim_rol_p, des_var_ctl_rol_p, des_var_adj_rol_p);
+    //objective_check_error = check_objective<dim,nspecies,nstate>( nx_ffd, dg, drag_obj, con, des_var_sim_rol_p, des_var_ctl_rol_p, des_var_adj_rol_p);
 
     std::cout << " Constructing drag quadratic penalty lift ROL objective " << std::endl;
     ROL::SingletonVector<double> zero_lagrange_mult(0.0);
@@ -620,10 +620,10 @@ int EulerNACAOptimization<dim,nstate>
     //auto drag_quad_penalty_lift = ROL::makePtr<ROL::AugmentedLagrangian_SimOpt<double>> (drag_obj, lift_con, zero_lagrange_mult, lift_penalty, *des_var_sim_rol_p, *des_var_ctl_rol_p, single_contraint, empty_parlist);
     //auto obj = drag_quad_penalty_lift;
 
-    auto pressure_obj = ROL::makePtr<ROLObjectiveSimOpt<dim,nstate>>( target_wall_pressure_functional, design_parameterization, precomputed_dXvdXp);
+    auto pressure_obj = ROL::makePtr<ROLObjectiveSimOpt<dim,nspecies,nstate>>( target_wall_pressure_functional, design_parameterization, precomputed_dXvdXp);
     auto obj = pressure_obj;
 
-    //objective_check_error = check_objective<dim,nstate>( nx_ffd, dg, obj, con, des_var_sim_rol_p, des_var_ctl_rol_p, des_var_adj_rol_p);
+    //objective_check_error = check_objective<dim,nspecies,nstate>( nx_ffd, dg, obj, con, des_var_sim_rol_p, des_var_ctl_rol_p, des_var_adj_rol_p);
 
     double tol = 0.0;
     std::cout << "Drag with quadratic lift penalty = " << obj->value(*des_var_sim_rol_p, *des_var_ctl_rol_p, tol) << std::endl;
@@ -767,7 +767,7 @@ int EulerNACAOptimization<dim,nstate>
 
 
 #if PHILIP_DIM==2
-    template class EulerNACAOptimization <PHILIP_DIM,PHILIP_DIM+2>;
+    template class EulerNACAOptimization <PHILIP_DIM, PHILIP_SPECIES,PHILIP_DIM+2>;
 #endif
 
 } // Tests namespace

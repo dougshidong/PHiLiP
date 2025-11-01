@@ -21,7 +21,7 @@ using Eigen::VectorXd;
 /// the adaptive sampling procedure. It should include one text file beginning with "snapshot_table", one
 /// beginning with "solution_snapshots", and one beginning with "weights" which contains the last ECSW weights
 /// found in the adaptive sampling procedure.
-template <int dim, int nstate>
+template <int dim, int nspecies, int nstate>
 class HROMErrorPostSampling: public TestsBase
 {
 public:
@@ -33,7 +33,7 @@ public:
     Parameters::AllParameters reinit_params(std::string path) const;
 
     /// Read ECSW weights from the text file 
-    bool getWeightsFromFile(std::shared_ptr<DGBase<dim,double>> &dg) const;
+    bool getWeightsFromFile(std::shared_ptr<DGBase<dim,nspecies,double>> &dg) const;
 
     /// Evaluate and output the "true" error at ROM Points
     int run_test () const override;

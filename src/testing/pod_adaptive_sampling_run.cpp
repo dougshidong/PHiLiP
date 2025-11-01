@@ -13,19 +13,19 @@
 namespace PHiLiP {
 namespace Tests {
 
-template <int dim, int nstate>
-AdaptiveSamplingRun<dim, nstate>::AdaptiveSamplingRun(const Parameters::AllParameters *const parameters_input,
+template <int dim, int nspecies, int nstate>
+AdaptiveSamplingRun<dim, nspecies, nstate>::AdaptiveSamplingRun(const Parameters::AllParameters *const parameters_input,
                                         const dealii::ParameterHandler &parameter_handler_input)
         : TestsBase::TestsBase(parameters_input)
         , parameter_handler(parameter_handler_input)
 {}
 
-template <int dim, int nstate>
-int AdaptiveSamplingRun<dim, nstate>::run_test() const
+template <int dim, int nspecies, int nstate>
+int AdaptiveSamplingRun<dim, nspecies, nstate>::run_test() const
 {
     pcout << "Starting adaptive sampling procedure..." << std::endl;
 
-    AdaptiveSampling<dim, nstate> sampling_imp(this->all_parameters, parameter_handler);
+    AdaptiveSampling<dim, nspecies, nstate> sampling_imp(this->all_parameters, parameter_handler);
     int exit = sampling_imp.run_sampling();
     
     if (exit == 0){
@@ -38,11 +38,11 @@ int AdaptiveSamplingRun<dim, nstate>::run_test() const
 }
 
 #if PHILIP_DIM==1
-        template class AdaptiveSamplingRun<PHILIP_DIM, PHILIP_DIM>;
+        template class AdaptiveSamplingRun<PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM>;
 #endif
 
 #if PHILIP_DIM!=1
-        template class AdaptiveSamplingRun<PHILIP_DIM, PHILIP_DIM+2>;
+        template class AdaptiveSamplingRun<PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2>;
 #endif
 } // Tests namespace
 } // PHiLiP namespace

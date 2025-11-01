@@ -46,13 +46,13 @@
 namespace PHiLiP {
 namespace Tests {
 
-// template <int dim, int nstate, typename real>
-// class L2_Norm_Functional : public Functional<dim, nstate, real>
+// template <int dim, int nspecies, int nstate, typename real>
+// class L2_Norm_Functional : public Functional<dim, nspecies, nstate, real>
 // {
 //  public:
 //   template <typename real2>
 //   real2 evaluate_cell_volume(
-//    const Physics::PhysicsBase<dim,nstate,real> &physics,
+//    const Physics::PhysicsBase<dim,nspecies,nstate,real> &physics,
 //    const dealii::FEValues<dim,dim> &fe_values_volume,
 //    std::vector<real2> local_solution)
 //   {
@@ -83,14 +83,14 @@ namespace Tests {
 
 //   // non-template functions to override the template classes
 //   real evaluate_cell_volume(
-//    const Physics::PhysicsBase<dim,nstate,real> &physics,
+//    const Physics::PhysicsBase<dim,nspecies,nstate,real> &physics,
 //    const dealii::FEValues<dim,dim> &fe_values_volume,
 //    std::vector<real> local_solution) override
 //   {
 //    return evaluate_cell_volume<>(physics, fe_values_volume, local_solution);
 //   }
 //   Sacado::Fad::DFad<real> evaluate_cell_volume(
-//    const Physics::PhysicsBase<dim,nstate,real> &physics,
+//    const Physics::PhysicsBase<dim,nspecies,nstate,real> &physics,
 //    const dealii::FEValues<dim,dim> &fe_values_volume,
 //    std::vector<Sacado::Fad::DFad<real>> local_solution) override
 //   {
@@ -101,14 +101,14 @@ namespace Tests {
 /** Boundary integral for the Euler Gaussian bump.
  *  Pressure integral on the outlet.
  */
-template <int dim, int nstate, typename real>
-class BoundaryIntegral : public PHiLiP::Functional<dim, nstate, real>
+template <int dim, int nspecies, int nstate, typename real>
+class BoundaryIntegral : public PHiLiP::Functional<dim, nspecies, nstate, real>
 {
  public:
         /// Templated function to evaluate exit pressure integral.
         template <typename real2>
         real2 evaluate_cell_boundary(
-            const PHiLiP::Physics::PhysicsBase<dim,nstate,real2> &physics,
+            const PHiLiP::Physics::PhysicsBase<dim,nspecies,nstate,real2> &physics,
             const unsigned int boundary_id,
             const dealii::FEFaceValues<dim,dim> &fe_values_boundary,
             std::vector<real2> local_solution){
@@ -117,7 +117,7 @@ class BoundaryIntegral : public PHiLiP::Functional<dim, nstate, real>
 
             if(boundary_id == 1002){
                 // casting it to a physics euler as it is needed for the pressure computation
-                const Physics::Euler<dim,nstate,real2>& euler_physics = dynamic_cast<const Physics::Euler<dim,nstate,real2>&>(physics);
+                const Physics::Euler<dim,nspecies,nstate,real2>& euler_physics = dynamic_cast<const Physics::Euler<dim,nspecies,nstate,real2>&>(physics);
 
                 unsigned int n_quad_pts = fe_values_boundary.n_quadrature_points;
 
@@ -183,21 +183,21 @@ class BoundaryIntegral : public PHiLiP::Functional<dim, nstate, real>
 
         /// Corresponding non-templated function for evaluate_cell_boundary.
   real evaluate_cell_boundary(
-            const PHiLiP::Physics::PhysicsBase<dim,nstate,real> &physics,
+            const PHiLiP::Physics::PhysicsBase<dim,nspecies,nstate,real> &physics,
             const unsigned int boundary_id,
             const dealii::FEFaceValues<dim,dim> &fe_values_boundary,
             std::vector<real> local_solution) override {return evaluate_cell_boundary<>(physics, boundary_id, fe_values_boundary, local_solution);}
 
         /// Corresponding non-templated function for evaluate_cell_boundary.
   Sacado::Fad::DFad<real> evaluate_cell_boundary(
-            const PHiLiP::Physics::PhysicsBase<dim,nstate,Sacado::Fad::DFad<real>> &physics,
+            const PHiLiP::Physics::PhysicsBase<dim,nspecies,nstate,Sacado::Fad::DFad<real>> &physics,
             const unsigned int boundary_id,
             const dealii::FEFaceValues<dim,dim> &fe_values_boundary,
             std::vector<Sacado::Fad::DFad<real>> local_solution) override {return evaluate_cell_boundary<>(physics, boundary_id, fe_values_boundary, local_solution);}
 };
 
 /// Initial conditions to initialize our flow with.
-template <int dim, int nstate>
+template <int dim, int nspecies, int nstate>
 class FreeStreamInitialConditionsAdjoint : public dealii::Function<dim>
 {
 public:
@@ -205,7 +205,7 @@ public:
     std::array<double,nstate> far_field_conservative;
 
     /// Constructor
-    FreeStreamInitialConditions (const Physics::Euler<dim,nstate,double> euler_physics)
+    FreeStreamInitialConditions (const Physics::Euler<dim,nspecies,nstate,double> euler_physics)
     : dealii::Function<dim,double>(nstate)
     {
         const double density_bc = 2.33333*euler_physics.density_inf;
@@ -223,10 +223,10 @@ public:
         return farfield_conservative[istate];
     }
 };
-template class FreeStreamInitialConditionsAdjoint <PHILIP_DIM, PHILIP_DIM+2>;
+template class FreeStreamInitialConditionsAdjoint <PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2>;
 
-template <int dim, int nstate>
-EulerGaussianBumpAdjoint<dim,nstate>::EulerGaussianBumpAdjoint(const Parameters::AllParameters *const parameters_input)
+template <int dim, int nspecies, int nstate>
+EulerGaussianBumpAdjoint<dim,nspecies,nstate>::EulerGaussianBumpAdjoint(const Parameters::AllParameters *const parameters_input)
     :
     TestsBase::TestsBase(parameters_input)
 {}
@@ -235,8 +235,8 @@ const double y_height = 0.8;
 const double bump_height = 0.0625; // High-Order Prediction Workshop
 const double coeff_expx = -25; // High-Order Prediction Workshop
 const double coeff_expy = -30;
-template <int dim, int nstate>
-dealii::Point<dim> EulerGaussianBumpAdjoint<dim,nstate>
+template <int dim, int nspecies, int nstate>
+dealii::Point<dim> EulerGaussianBumpAdjoint<dim,nspecies,nstate>
 ::warp (const dealii::Point<dim> &p)
 {
     const double x_ref = p[0];
@@ -305,8 +305,8 @@ std::unique_ptr<dealii::Manifold<2,2> > BumpManifoldAdjoint::clone() const
 }
 
 
-template<int dim, int nstate>
-int EulerGaussianBumpAdjoint<dim,nstate>
+template<int dim, int nspecies, int nstate>
+int EulerGaussianBumpAdjoint<dim,nspecies,nstate>
 ::run_test () const
 {
     using ManParam = Parameters::ManufacturedConvergenceStudyParam;
@@ -326,23 +326,23 @@ int EulerGaussianBumpAdjoint<dim,nstate>
 
     // const unsigned int poly_max = p_end+1;
 
-    Physics::Euler<dim,nstate,double> euler_physics_double
-        = Physics::Euler<dim, nstate, double>(
+    Physics::Euler<dim,nspecies,nstate,double> euler_physics_double
+        = Physics::Euler<dim, nspecies, nstate, double>(
                 param.euler_param.ref_length,
                 param.euler_param.gamma_gas,
                 param.euler_param.mach_inf,
                 param.euler_param.angle_of_attack,
                 param.euler_param.side_slip_angle);
 
-    Physics::Euler<dim,nstate,Sacado::Fad::DFad<double>> euler_physics_adtype
-        = Physics::Euler<dim, nstate, Sacado::Fad::DFad<double>>(
+    Physics::Euler<dim,nspecies,nstate,Sacado::Fad::DFad<double>> euler_physics_adtype
+        = Physics::Euler<dim, nspecies, nstate, Sacado::Fad::DFad<double>>(
             param.euler_param.ref_length,
             param.euler_param.gamma_gas,
             param.euler_param.mach_inf,
             param.euler_param.angle_of_attack,
             param.euler_param.side_slip_angle);
 
-    FreeStreamInitialConditionsAdjoint<dim,nstate> initial_conditions(euler_physics_double);
+    FreeStreamInitialConditionsAdjoint<dim,nspecies,nstate> initial_conditions(euler_physics_double);
     pcout << "Farfield conditions: "<< std::endl;
     for (int s=0;s<nstate;s++) {
         pcout << initial_conditions.farfield_conservative[s] << std::endl;
@@ -401,23 +401,23 @@ int EulerGaussianBumpAdjoint<dim,nstate>
         grid.set_manifold ( manifold_id, bump_manifold );
 
         // Create DG object
-        // std::shared_ptr < DGBase<dim, double> > dg = DGFactory<dim,double>::create_discontinuous_galerkin(&param, poly_degree, &grid);
-        // std::shared_ptr < DGBase<dim, double> > dg = DGFactory<dim,double>::create_discontinuous_galerkin(&param, poly_max/*poly_degree*/, &grid);
-        std::shared_ptr < DGBase<dim, double> > dg = DGFactory<dim,double>::create_discontinuous_galerkin(&param, poly_degree, poly_degree+1, &grid);
+        // std::shared_ptr < DGBase<dim, nspecies, double> > dg = DGFactory<dim,nspecies,double>::create_discontinuous_galerkin(&param, poly_degree, &grid);
+        // std::shared_ptr < DGBase<dim, nspecies, double> > dg = DGFactory<dim,nspecies,double>::create_discontinuous_galerkin(&param, poly_max/*poly_degree*/, &grid);
+        std::shared_ptr < DGBase<dim, nspecies, double> > dg = DGFactory<dim,nspecies,double>::create_discontinuous_galerkin(&param, poly_degree, poly_degree+1, &grid);
 
         // Initialize coarse grid solution with free-stream
         dg->allocate_system ();
         dealii::VectorTools::interpolate(dg->dof_handler, initial_conditions, dg->solution);
 
         // Create ODE solver and ramp up the solution from p0
-        std::shared_ptr<ODE::ODESolverBase<dim, double>> ode_solver = ODE::ODESolverFactory<dim, double>::create_ODESolver(dg);
+        std::shared_ptr<ODE::ODESolverBase<dim, nspecies, double>> ode_solver = ODE::ODESolverFactory<dim, nspecies, double>::create_ODESolver(dg);
         ode_solver->initialize_steady_polynomial_ramping (poly_degree);
 
         // setting up the target functional (error reduction)
-        BoundaryIntegral<dim, nstate, double> BoundaryIntegralFunctional;
+        BoundaryIntegral<dim, nspecies, nstate, double> BoundaryIntegralFunctional;
 
         // initializing an adjoint for this case
-        Adjoint<dim, nstate, double> adjoint(*dg, BoundaryIntegralFunctional, euler_physics_adtype);
+        Adjoint<dim, nspecies, nstate, double> adjoint(*dg, BoundaryIntegralFunctional, euler_physics_adtype);
 
         dealii::Vector<float> estimated_error_per_cell(grid.n_active_cells());
         for (unsigned int igrid=0; igrid<n_grids; ++igrid) {
@@ -425,7 +425,7 @@ int EulerGaussianBumpAdjoint<dim,nstate>
 
             if (igrid!=0) {
                 dealii::LinearAlgebra::distributed::Vector<double> old_solution(dg->solution);
-                dealii::parallel::distributed::SolutionTransfer<dim, dealii::LinearAlgebra::distributed::Vector<double>, dealii::DoFHandler<dim>> solution_transfer(dg->dof_handler);
+                dealii::parallel::distributed::SolutionTransfer<dim,dealii::LinearAlgebra::distributed::Vector<double>, dealii::DoFHandler<dim>> solution_transfer(dg->dof_handler);
                 solution_transfer.prepare_for_coarsening_and_refinement(old_solution);
                 dg->high_order_grid.prepare_for_coarsening_and_refinement();
                 // grid.refine_global (1);
@@ -503,14 +503,14 @@ int EulerGaussianBumpAdjoint<dim,nstate>
             adjoint.reinit();
 
             // evaluating the derivatives and the adjoint on the fine grid
-            adjoint.convert_to_state(PHiLiP::Adjoint<dim,nstate,double>::AdjointStateEnum::fine); // will do this automatically, but I prefer to repeat explicitly
+            adjoint.convert_to_state(PHiLiP::Adjoint<dim,nspecies,nstate,double>::AdjointStateEnum::fine); // will do this automatically, but I prefer to repeat explicitly
             adjoint.fine_grid_adjoint();
             estimated_error_per_cell = adjoint.dual_weighted_residual(); // performing the error indicator computation
 
             // and outputing the fine properties
             adjoint.output_results_vtk(igrid);
 
-            adjoint.convert_to_state(PHiLiP::Adjoint<dim,nstate,double>::AdjointStateEnum::coarse); // this one is necessary though
+            adjoint.convert_to_state(PHiLiP::Adjoint<dim,nspecies,nstate,double>::AdjointStateEnum::coarse); // this one is necessary though
             adjoint.coarse_grid_adjoint();
             adjoint.output_results_vtk(igrid);
 
@@ -615,7 +615,7 @@ int EulerGaussianBumpAdjoint<dim,nstate>
 
 
 #if PHILIP_DIM==2
-    template class EulerGaussianBumpAdjoint <PHILIP_DIM,PHILIP_DIM+2>;
+    template class EulerGaussianBumpAdjoint <PHILIP_DIM, PHILIP_SPECIES,PHILIP_DIM+2>;
 #endif
 
 } // Tests namespace

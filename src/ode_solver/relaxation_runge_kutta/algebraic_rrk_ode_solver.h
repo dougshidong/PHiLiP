@@ -13,23 +13,23 @@ namespace ODE {
 /// Ketcheson, David I. "Relaxation Runge--Kutta methods: Conservation and stability for 
 /// inner-product norms." SIAM Journal on Numerical Analysis 57.6 (2019): 2850-2870.
 #if PHILIP_DIM==1
-template <int dim, typename real, typename MeshType = dealii::Triangulation<dim>>
+template <int dim, int nspecies, typename real, typename MeshType = dealii::Triangulation<dim>>
 #else
-template <int dim, typename real, typename MeshType = dealii::parallel::distributed::Triangulation<dim>>
+template <int dim, int nspecies, typename real, typename MeshType = dealii::parallel::distributed::Triangulation<dim>>
 #endif
-class AlgebraicRRKODESolver: public RRKODESolverBase<dim, real, MeshType>
+class AlgebraicRRKODESolver: public RRKODESolverBase<dim, nspecies, real, MeshType>
 {
 public:
     /// Default constructor that will set the constants.
     explicit AlgebraicRRKODESolver(
-            std::shared_ptr<RKTableauButcherBase<dim,real,MeshType>> rk_tableau_input);
+            std::shared_ptr<RKTableauButcherBase<dim,nspecies,real,MeshType>> rk_tableau_input);
 
 protected:
 
     /// Compute relaxation parameter explicitly (i.e. if energy is the entropy variable)
     /// See Ketcheson 2019, Eq. 2.4
     real compute_relaxation_parameter(const real dt,
-            std::shared_ptr<DGBase<dim,real,MeshType>> dg,
+            std::shared_ptr<DGBase<dim,nspecies,real,MeshType>> dg,
             const std::vector<dealii::LinearAlgebra::distributed::Vector<double>> &rk_stage,
             const dealii::LinearAlgebra::distributed::Vector<double> &/*solution_update*/
             ) override;
@@ -38,7 +38,7 @@ protected:
     real compute_inner_product(
             const dealii::LinearAlgebra::distributed::Vector<double> &stage_i,
             const dealii::LinearAlgebra::distributed::Vector<double> &stage_j,
-            std::shared_ptr<DGBase<dim,real,MeshType>> dg
+            std::shared_ptr<DGBase<dim,nspecies,real,MeshType>> dg
             ) const;
 
 };

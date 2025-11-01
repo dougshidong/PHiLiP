@@ -16,6 +16,7 @@ int main (int argc, char * argv[])
     MPI_Init(&argc, &argv);
     std::cout << std::setprecision(std::numeric_limits<long double>::digits10 + 1) << std::scientific;
     const int dim = PHILIP_DIM;
+    const int nspecies = 1;
     const int nstate = dim+2;
 
     //const double ref_length = 1.0, mach_inf=1.0, angle_of_attack = 0.0, side_slip_angle = 0.0, gamma_gas = 1.4;
@@ -26,7 +27,7 @@ int main (int argc, char * argv[])
     PHiLiP::Parameters::AllParameters::declare_parameters (parameter_handler); // default fills options
     PHiLiP::Parameters::AllParameters all_parameters;
     all_parameters.parse_parameters (parameter_handler);
-    PHiLiP::Physics::NavierStokes<dim, nstate, double> navier_stokes_physics = PHiLiP::Physics::NavierStokes<dim, nstate, double>(&all_parameters,a,c,a,b,b,d,e,false,1.0);
+    PHiLiP::Physics::NavierStokes<dim, nspecies, nstate, double> navier_stokes_physics = PHiLiP::Physics::NavierStokes<dim, nspecies, nstate, double>(&all_parameters,a,c,a,b,b,d,e,false,1.0);
 
     const double min = 0;
     const double max = 1.0;

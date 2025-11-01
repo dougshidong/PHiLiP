@@ -13,8 +13,8 @@ namespace Physics {
 //================================================================
 // Reynolds Averaged Navier Stokes (RANS) Base Class
 //================================================================
-template <int dim, int nstate, typename real>
-ReynoldsAveragedNavierStokesBase<dim, nstate, real>::ReynoldsAveragedNavierStokesBase(
+template <int dim, int nspecies, int nstate, typename real>
+ReynoldsAveragedNavierStokesBase<dim, nspecies, nstate, real>::ReynoldsAveragedNavierStokesBase(
     const Parameters::AllParameters *const                    parameters_input,
     const double                                              ref_length,
     const double                                              gamma_gas,
@@ -29,11 +29,11 @@ ReynoldsAveragedNavierStokesBase<dim, nstate, real>::ReynoldsAveragedNavierStoke
     const double                                              temperature_inf,
     const double                                              isothermal_wall_temperature,
     const thermal_boundary_condition_enum                     thermal_boundary_condition_type,
-    std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function,
+    std::shared_ptr< ManufacturedSolutionFunction<dim,nspecies,real> > manufactured_solution_function,
     const two_point_num_flux_enum                             two_point_num_flux_type)
-    : ModelBase<dim,nstate,real>(manufactured_solution_function) 
+    : ModelBase<dim,nspecies,nstate,real>(manufactured_solution_function) 
     , turbulent_prandtl_number(turbulent_prandtl_number)
-    , navier_stokes_physics(std::make_unique < NavierStokes<dim,nstate_navier_stokes,real> > (
+    , navier_stokes_physics(std::make_unique < NavierStokes<dim,nspecies,nstate_navier_stokes,real> > (
             parameters_input,
             ref_length,
             gamma_gas,
@@ -53,9 +53,9 @@ ReynoldsAveragedNavierStokesBase<dim, nstate, real>::ReynoldsAveragedNavierStoke
     static_assert(nstate>=dim+3, "ModelBase::ReynoldsAveragedNavierStokesBase() should be created with nstate>=dim+3");
 }
 //----------------------------------------------------------------
-template <int dim, int nstate, typename real>
+template <int dim, int nspecies, int nstate, typename real>
 template<typename real2>
-real2 ReynoldsAveragedNavierStokesBase<dim,nstate,real>
+real2 ReynoldsAveragedNavierStokesBase<dim,nspecies,nstate,real>
 ::get_vector_magnitude_sqr (
     const dealii::Tensor<1,3,real2> &vector) const
 {
@@ -69,9 +69,9 @@ real2 ReynoldsAveragedNavierStokesBase<dim,nstate,real>
     return vector_magnitude_sqr;
 }
 //----------------------------------------------------------------
-template <int dim, int nstate, typename real>
+template <int dim, int nspecies, int nstate, typename real>
 template<typename real2>
-real2 ReynoldsAveragedNavierStokesBase<dim,nstate,real>
+real2 ReynoldsAveragedNavierStokesBase<dim,nspecies,nstate,real>
 ::get_tensor_magnitude_sqr (
     const dealii::Tensor<2,dim,real2> &tensor) const
 {
@@ -87,17 +87,17 @@ real2 ReynoldsAveragedNavierStokesBase<dim,nstate,real>
     return tensor_magnitude_sqr;
 }
 //----------------------------------------------------------------
-template <int dim, int nstate, typename real>
-std::array<dealii::Tensor<1,dim,real>,nstate> ReynoldsAveragedNavierStokesBase<dim,nstate,real>
+template <int dim, int nspecies, int nstate, typename real>
+std::array<dealii::Tensor<1,dim,real>,nstate> ReynoldsAveragedNavierStokesBase<dim,nspecies,nstate,real>
 ::convective_flux (
     const std::array<real,nstate> &conservative_soln) const
 {
     return convective_flux_templated<real>(conservative_soln);
 }
 //----------------------------------------------------------------
-template <int dim, int nstate, typename real>
+template <int dim, int nspecies, int nstate, typename real>
 template <typename real2>
-std::array<dealii::Tensor<1,dim,real2>,nstate> ReynoldsAveragedNavierStokesBase<dim,nstate,real>
+std::array<dealii::Tensor<1,dim,real2>,nstate> ReynoldsAveragedNavierStokesBase<dim,nspecies,nstate,real>
 ::convective_flux_templated (
     const std::array<real2,nstate> &conservative_soln) const
 {
@@ -117,8 +117,8 @@ std::array<dealii::Tensor<1,dim,real2>,nstate> ReynoldsAveragedNavierStokesBase<
     return conv_flux;
 }
 //----------------------------------------------------------------
-template <int dim, int nstate, typename real>
-std::array<dealii::Tensor<1,dim,real>,nstate> ReynoldsAveragedNavierStokesBase<dim,nstate,real>
+template <int dim, int nspecies, int nstate, typename real>
+std::array<dealii::Tensor<1,dim,real>,nstate> ReynoldsAveragedNavierStokesBase<dim,nspecies,nstate,real>
 ::dissipative_flux (
     const std::array<real,nstate> &conservative_soln,
     const std::array<dealii::Tensor<1,dim,real>,nstate> &solution_gradient,
@@ -127,9 +127,9 @@ std::array<dealii::Tensor<1,dim,real>,nstate> ReynoldsAveragedNavierStokesBase<d
     return dissipative_flux_templated<real>(conservative_soln,solution_gradient,cell_index);
 }
 //----------------------------------------------------------------
-template <int dim, int nstate, typename real>
+template <int dim, int nspecies, int nstate, typename real>
 template <typename real2>
-std::array<dealii::Tensor<1,dim,real2>,nstate> ReynoldsAveragedNavierStokesBase<dim,nstate,real>
+std::array<dealii::Tensor<1,dim,real2>,nstate> ReynoldsAveragedNavierStokesBase<dim,nspecies,nstate,real>
 ::dissipative_flux_templated (
     const std::array<real2,nstate> &conservative_soln,
     const std::array<dealii::Tensor<1,dim,real2>,nstate> &solution_gradient,
@@ -183,9 +183,9 @@ std::array<dealii::Tensor<1,dim,real2>,nstate> ReynoldsAveragedNavierStokesBase<
     return viscous_flux;
 }
 //----------------------------------------------------------------
-template <int dim, int nstate, typename real>
+template <int dim, int nspecies, int nstate, typename real>
 template <typename real2>
-std::array<real2,dim+2> ReynoldsAveragedNavierStokesBase<dim,nstate,real>
+std::array<real2,dim+2> ReynoldsAveragedNavierStokesBase<dim,nspecies,nstate,real>
 ::extract_rans_conservative_solution (
     const std::array<real2,nstate> &conservative_soln) const
 {   
@@ -197,9 +197,9 @@ std::array<real2,dim+2> ReynoldsAveragedNavierStokesBase<dim,nstate,real>
     return conservative_soln_rans;
 }
 //----------------------------------------------------------------
-template <int dim, int nstate, typename real>
+template <int dim, int nspecies, int nstate, typename real>
 template <typename real2>
-std::array<dealii::Tensor<1,dim,real2>,dim+2> ReynoldsAveragedNavierStokesBase<dim,nstate,real>
+std::array<dealii::Tensor<1,dim,real2>,dim+2> ReynoldsAveragedNavierStokesBase<dim,nspecies,nstate,real>
 ::extract_rans_solution_gradient (
     const std::array<dealii::Tensor<1,dim,real2>,nstate> &solution_gradient) const
 {   
@@ -211,9 +211,9 @@ std::array<dealii::Tensor<1,dim,real2>,dim+2> ReynoldsAveragedNavierStokesBase<d
     return solution_gradient_rans;
 }
 //----------------------------------------------------------------
-template <int dim, int nstate, typename real>
+template <int dim, int nspecies, int nstate, typename real>
 template <typename real2>
-std::array<dealii::Tensor<1,dim,real2>,nstate-(dim+2)> ReynoldsAveragedNavierStokesBase<dim,nstate,real>
+std::array<dealii::Tensor<1,dim,real2>,nstate-(dim+2)> ReynoldsAveragedNavierStokesBase<dim,nspecies,nstate,real>
 ::dissipative_flux_turbulence_model (
     const std::array<real2,nstate_navier_stokes> &primitive_soln_rans,
     const std::array<real2,nstate_turbulence_model> &primitive_soln_turbulence_model,
@@ -243,9 +243,9 @@ std::array<dealii::Tensor<1,dim,real2>,nstate-(dim+2)> ReynoldsAveragedNavierSto
     return viscous_flux_turbulence_model;
 }
 //----------------------------------------------------------------
-template <int dim, int nstate, typename real>
+template <int dim, int nspecies, int nstate, typename real>
 template <typename real2>
-std::array<real2,nstate-(dim+2)> ReynoldsAveragedNavierStokesBase<dim,nstate,real>
+std::array<real2,nstate-(dim+2)> ReynoldsAveragedNavierStokesBase<dim,nspecies,nstate,real>
 ::convert_conservative_to_primitive_turbulence_model (
     const std::array<real2,nstate> &conservative_soln) const
 {   
@@ -257,9 +257,9 @@ std::array<real2,nstate-(dim+2)> ReynoldsAveragedNavierStokesBase<dim,nstate,rea
     return primitive_soln_turbulence_model;
 }
 //----------------------------------------------------------------
-template <int dim, int nstate, typename real>
+template <int dim, int nspecies, int nstate, typename real>
 template <typename real2>
-std::array<dealii::Tensor<1,dim,real2>,nstate-(dim+2)> ReynoldsAveragedNavierStokesBase<dim,nstate,real>
+std::array<dealii::Tensor<1,dim,real2>,nstate-(dim+2)> ReynoldsAveragedNavierStokesBase<dim,nspecies,nstate,real>
 ::convert_conservative_gradient_to_primitive_gradient_turbulence_model (
     const std::array<real2,nstate> &conservative_soln,
     const std::array<dealii::Tensor<1,dim,real2>,nstate> &solution_gradient) const
@@ -276,8 +276,8 @@ std::array<dealii::Tensor<1,dim,real2>,nstate-(dim+2)> ReynoldsAveragedNavierSto
     return primitive_soln_gradient_turbulence_model;
 }
 //----------------------------------------------------------------
-template <int dim, int nstate, typename real>
-std::array<real,nstate-(dim+2)> ReynoldsAveragedNavierStokesBase<dim,nstate,real>
+template <int dim, int nspecies, int nstate, typename real>
+std::array<real,nstate-(dim+2)> ReynoldsAveragedNavierStokesBase<dim,nspecies,nstate,real>
 ::compute_mean_turbulence_property(const std::array<real,nstate> &conservative_soln1,
                                    const std::array<real,nstate> &conservative_soln2) const
 {
@@ -293,8 +293,8 @@ std::array<real,nstate-(dim+2)> ReynoldsAveragedNavierStokesBase<dim,nstate,real
     return mean_turbulence_property;
 }
 //----------------------------------------------------------------
-template <int dim, int nstate, typename real>
-std::array<real,nstate> ReynoldsAveragedNavierStokesBase<dim,nstate,real>
+template <int dim, int nspecies, int nstate, typename real>
+std::array<real,nstate> ReynoldsAveragedNavierStokesBase<dim,nspecies,nstate,real>
 ::convective_eigenvalues (
     const std::array<real,nstate> &conservative_soln,
     const dealii::Tensor<1,dim,real> &normal) const
@@ -311,8 +311,8 @@ std::array<real,nstate> ReynoldsAveragedNavierStokesBase<dim,nstate,real>
     return eig;
 }
 //----------------------------------------------------------------
-template <int dim, int nstate, typename real>
-real ReynoldsAveragedNavierStokesBase<dim,nstate,real>
+template <int dim, int nspecies, int nstate, typename real>
+real ReynoldsAveragedNavierStokesBase<dim,nspecies,nstate,real>
 ::max_convective_eigenvalue (const std::array<real,nstate> &conservative_soln) const
 {
     const std::array<real,nstate_navier_stokes> conservative_soln_rans = extract_rans_conservative_solution(conservative_soln);
@@ -326,8 +326,8 @@ real ReynoldsAveragedNavierStokesBase<dim,nstate,real>
     return max_eig;
 }
 //----------------------------------------------------------------
-template <int dim, int nstate, typename real>
-real ReynoldsAveragedNavierStokesBase<dim,nstate,real>
+template <int dim, int nspecies, int nstate, typename real>
+real ReynoldsAveragedNavierStokesBase<dim,nspecies,nstate,real>
 ::max_convective_normal_eigenvalue (
     const std::array<real,nstate> &conservative_soln,
     const dealii::Tensor<1,dim,real> &normal) const
@@ -343,8 +343,8 @@ real ReynoldsAveragedNavierStokesBase<dim,nstate,real>
     return max_normal_eig;
 }
 //----------------------------------------------------------------
-template <int dim, int nstate, typename real>
-std::array<real,nstate> ReynoldsAveragedNavierStokesBase<dim,nstate,real>
+template <int dim, int nspecies, int nstate, typename real>
+std::array<real,nstate> ReynoldsAveragedNavierStokesBase<dim,nspecies,nstate,real>
 ::physical_source_term (
         const dealii::Point<dim,real> &pos,
         const std::array<real,nstate> &conservative_soln,
@@ -357,8 +357,8 @@ std::array<real,nstate> ReynoldsAveragedNavierStokesBase<dim,nstate,real>
     return physical_source;
 }
 //----------------------------------------------------------------
-template <int dim, int nstate, typename real>
-std::array<real,nstate> ReynoldsAveragedNavierStokesBase<dim,nstate,real>
+template <int dim, int nspecies, int nstate, typename real>
+std::array<real,nstate> ReynoldsAveragedNavierStokesBase<dim,nspecies,nstate,real>
 ::source_term (
         const dealii::Point<dim,real> &pos,
         const std::array<real,nstate> &/*solution*/,
@@ -377,8 +377,8 @@ std::array<real,nstate> ReynoldsAveragedNavierStokesBase<dim,nstate,real>
 }
 
 //----------------------------------------------------------------
-template <int dim, int nstate, typename real>
-std::array<real,nstate> ReynoldsAveragedNavierStokesBase<dim,nstate,real>
+template <int dim, int nspecies, int nstate, typename real>
+std::array<real,nstate> ReynoldsAveragedNavierStokesBase<dim,nspecies,nstate,real>
 ::convective_dissipative_source_term (
         const dealii::Point<dim,real> &pos,
         const std::array<real,nstate> &/*solution*/,
@@ -414,8 +414,8 @@ double getValue(const real &x) {
     }
 }
 //----------------------------------------------------------------
-template <int dim, int nstate, typename real>
-dealii::Tensor<2,nstate,real> ReynoldsAveragedNavierStokesBase<dim,nstate,real>
+template <int dim, int nspecies, int nstate, typename real>
+dealii::Tensor<2,nstate,real> ReynoldsAveragedNavierStokesBase<dim,nspecies,nstate,real>
 ::convective_flux_directional_jacobian (
     const std::array<real,nstate> &conservative_soln,
     const dealii::Tensor<1,dim,real> &normal) const
@@ -447,8 +447,8 @@ dealii::Tensor<2,nstate,real> ReynoldsAveragedNavierStokesBase<dim,nstate,real>
     return jacobian;
 }
 //----------------------------------------------------------------
-template <int dim, int nstate, typename real>
-dealii::Tensor<2,nstate,real> ReynoldsAveragedNavierStokesBase<dim,nstate,real>
+template <int dim, int nspecies, int nstate, typename real>
+dealii::Tensor<2,nstate,real> ReynoldsAveragedNavierStokesBase<dim,nspecies,nstate,real>
 ::dissipative_flux_directional_jacobian (
     const std::array<real,nstate> &conservative_soln,
     const std::array<dealii::Tensor<1,dim,real>,nstate> &solution_gradient,
@@ -486,8 +486,8 @@ dealii::Tensor<2,nstate,real> ReynoldsAveragedNavierStokesBase<dim,nstate,real>
     return jacobian;
 }
 //----------------------------------------------------------------
-template <int dim, int nstate, typename real>
-dealii::Tensor<2,nstate,real> ReynoldsAveragedNavierStokesBase<dim,nstate,real>
+template <int dim, int nspecies, int nstate, typename real>
+dealii::Tensor<2,nstate,real> ReynoldsAveragedNavierStokesBase<dim,nspecies,nstate,real>
 ::dissipative_flux_directional_jacobian_wrt_gradient_component (
     const std::array<real,nstate> &conservative_soln,
     const std::array<dealii::Tensor<1,dim,real>,nstate> &solution_gradient,
@@ -531,8 +531,8 @@ dealii::Tensor<2,nstate,real> ReynoldsAveragedNavierStokesBase<dim,nstate,real>
     return jacobian;
 }
 //----------------------------------------------------------------
-template <int dim, int nstate, typename real>
-std::array<real,nstate> ReynoldsAveragedNavierStokesBase<dim,nstate,real>
+template <int dim, int nspecies, int nstate, typename real>
+std::array<real,nstate> ReynoldsAveragedNavierStokesBase<dim,nspecies,nstate,real>
 ::get_manufactured_solution_value (
     const dealii::Point<dim,real> &pos) const
 {
@@ -546,8 +546,8 @@ std::array<real,nstate> ReynoldsAveragedNavierStokesBase<dim,nstate,real>
     return manufactured_solution;
 }
 //----------------------------------------------------------------
-template <int dim, int nstate, typename real>
-std::array<dealii::Tensor<1,dim,real>,nstate> ReynoldsAveragedNavierStokesBase<dim,nstate,real>
+template <int dim, int nspecies, int nstate, typename real>
+std::array<dealii::Tensor<1,dim,real>,nstate> ReynoldsAveragedNavierStokesBase<dim,nspecies,nstate,real>
 ::get_manufactured_solution_gradient (
     const dealii::Point<dim,real> &pos) const
 {
@@ -562,8 +562,8 @@ std::array<dealii::Tensor<1,dim,real>,nstate> ReynoldsAveragedNavierStokesBase<d
     return manufactured_solution_gradient;
 }
 //----------------------------------------------------------------
-template <int dim, int nstate, typename real>
-std::array<real,nstate> ReynoldsAveragedNavierStokesBase<dim,nstate,real>
+template <int dim, int nspecies, int nstate, typename real>
+std::array<real,nstate> ReynoldsAveragedNavierStokesBase<dim,nspecies,nstate,real>
 ::convective_source_term_computed_from_manufactured_solution (
     const dealii::Point<dim,real> &pos) const
 {    
@@ -596,8 +596,8 @@ std::array<real,nstate> ReynoldsAveragedNavierStokesBase<dim,nstate,real>
     return convective_source_term_computed_from_manufactured_solution;
 }
 //----------------------------------------------------------------
-template <int dim, int nstate, typename real>
-std::array<real,nstate> ReynoldsAveragedNavierStokesBase<dim,nstate,real>
+template <int dim, int nspecies, int nstate, typename real>
+std::array<real,nstate> ReynoldsAveragedNavierStokesBase<dim,nspecies,nstate,real>
 ::dissipative_source_term_computed_from_manufactured_solution (
     const dealii::Point<dim,real> &pos,
     const dealii::types::global_dof_index cell_index) const
@@ -668,8 +668,8 @@ std::array<real,nstate> ReynoldsAveragedNavierStokesBase<dim,nstate,real>
     return dissipative_source_term_computed_from_manufactured_solution;
 }
 //----------------------------------------------------------------
-template <int dim, int nstate, typename real>
-std::array<real,nstate> ReynoldsAveragedNavierStokesBase<dim,nstate,real>
+template <int dim, int nspecies, int nstate, typename real>
+std::array<real,nstate> ReynoldsAveragedNavierStokesBase<dim,nspecies,nstate,real>
 ::physical_source_term_computed_from_manufactured_solution (
     const dealii::Point<dim,real> &pos,
     const dealii::types::global_dof_index cell_index) const
@@ -688,8 +688,8 @@ std::array<real,nstate> ReynoldsAveragedNavierStokesBase<dim,nstate,real>
     return physical_source_source_term_computed_from_manufactured_solution;
 }
 //----------------------------------------------------------------
-template <int dim, int nstate, typename real>
-void ReynoldsAveragedNavierStokesBase<dim,nstate,real>
+template <int dim, int nspecies, int nstate, typename real>
+void ReynoldsAveragedNavierStokesBase<dim,nspecies,nstate,real>
 ::boundary_manufactured_solution (
     const dealii::Point<dim, real> &pos,
     const dealii::Tensor<1,dim,real> &/*normal_int*/,
@@ -715,85 +715,85 @@ void ReynoldsAveragedNavierStokesBase<dim,nstate,real>
 //----------------------------------------------------------------
 // Instantiate explicitly
 // -- ReynoldsAveragedNavierStokesBase
-template class ReynoldsAveragedNavierStokesBase         < PHILIP_DIM, PHILIP_DIM+3, double >;
-template class ReynoldsAveragedNavierStokesBase         < PHILIP_DIM, PHILIP_DIM+3, FadType  >;
-template class ReynoldsAveragedNavierStokesBase         < PHILIP_DIM, PHILIP_DIM+3, RadType  >;
-template class ReynoldsAveragedNavierStokesBase         < PHILIP_DIM, PHILIP_DIM+3, FadFadType >;
-template class ReynoldsAveragedNavierStokesBase         < PHILIP_DIM, PHILIP_DIM+3, RadFadType >;
+template class ReynoldsAveragedNavierStokesBase         < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+3, double >;
+template class ReynoldsAveragedNavierStokesBase         < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+3, FadType  >;
+template class ReynoldsAveragedNavierStokesBase         < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+3, RadType  >;
+template class ReynoldsAveragedNavierStokesBase         < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+3, FadFadType >;
+template class ReynoldsAveragedNavierStokesBase         < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+3, RadFadType >;
 //-------------------------------------------------------------------------------------
 // Templated members used by derived classes, defined in respective parent classes
 //-------------------------------------------------------------------------------------
 // -- get_tensor_magnitude_sqr()
-template double     ReynoldsAveragedNavierStokesBase < PHILIP_DIM, PHILIP_DIM+3, double     >::get_tensor_magnitude_sqr< double     >(const dealii::Tensor<2,PHILIP_DIM,double    > &tensor) const;
-template FadType    ReynoldsAveragedNavierStokesBase < PHILIP_DIM, PHILIP_DIM+3, FadType    >::get_tensor_magnitude_sqr< FadType    >(const dealii::Tensor<2,PHILIP_DIM,FadType   > &tensor) const;
-template RadType    ReynoldsAveragedNavierStokesBase < PHILIP_DIM, PHILIP_DIM+3, RadType    >::get_tensor_magnitude_sqr< RadType    >(const dealii::Tensor<2,PHILIP_DIM,RadType   > &tensor) const;
-template FadFadType ReynoldsAveragedNavierStokesBase < PHILIP_DIM, PHILIP_DIM+3, FadFadType >::get_tensor_magnitude_sqr< FadFadType >(const dealii::Tensor<2,PHILIP_DIM,FadFadType> &tensor) const;
-template RadFadType ReynoldsAveragedNavierStokesBase < PHILIP_DIM, PHILIP_DIM+3, RadFadType >::get_tensor_magnitude_sqr< RadFadType >(const dealii::Tensor<2,PHILIP_DIM,RadFadType> &tensor) const;
+template double     ReynoldsAveragedNavierStokesBase < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+3, double     >::get_tensor_magnitude_sqr< double     >(const dealii::Tensor<2,PHILIP_DIM,double    > &tensor) const;
+template FadType    ReynoldsAveragedNavierStokesBase < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+3, FadType    >::get_tensor_magnitude_sqr< FadType    >(const dealii::Tensor<2,PHILIP_DIM, FadType   > &tensor) const;
+template RadType    ReynoldsAveragedNavierStokesBase < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+3, RadType    >::get_tensor_magnitude_sqr< RadType    >(const dealii::Tensor<2,PHILIP_DIM, RadType   > &tensor) const;
+template FadFadType ReynoldsAveragedNavierStokesBase < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+3, FadFadType >::get_tensor_magnitude_sqr< FadFadType >(const dealii::Tensor<2,PHILIP_DIM, FadFadType> &tensor) const;
+template RadFadType ReynoldsAveragedNavierStokesBase < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+3, RadFadType >::get_tensor_magnitude_sqr< RadFadType >(const dealii::Tensor<2,PHILIP_DIM, RadFadType> &tensor) const;
 // -- instantiate all the real types with real2 = FadType for automatic differentiation
-template FadType    ReynoldsAveragedNavierStokesBase < PHILIP_DIM, PHILIP_DIM+3, double     >::get_tensor_magnitude_sqr< FadType >(const dealii::Tensor<2,PHILIP_DIM,FadType> &tensor) const;
-template FadType    ReynoldsAveragedNavierStokesBase < PHILIP_DIM, PHILIP_DIM+3, RadType    >::get_tensor_magnitude_sqr< FadType >(const dealii::Tensor<2,PHILIP_DIM,FadType> &tensor) const;
-template FadType    ReynoldsAveragedNavierStokesBase < PHILIP_DIM, PHILIP_DIM+3, FadFadType >::get_tensor_magnitude_sqr< FadType >(const dealii::Tensor<2,PHILIP_DIM,FadType> &tensor) const;
-template FadType    ReynoldsAveragedNavierStokesBase < PHILIP_DIM, PHILIP_DIM+3, RadFadType >::get_tensor_magnitude_sqr< FadType >(const dealii::Tensor<2,PHILIP_DIM,FadType> &tensor) const;
+template FadType    ReynoldsAveragedNavierStokesBase < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+3, double     >::get_tensor_magnitude_sqr< FadType >(const dealii::Tensor<2,PHILIP_DIM, FadType> &tensor) const;
+template FadType    ReynoldsAveragedNavierStokesBase < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+3, RadType    >::get_tensor_magnitude_sqr< FadType >(const dealii::Tensor<2,PHILIP_DIM, FadType> &tensor) const;
+template FadType    ReynoldsAveragedNavierStokesBase < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+3, FadFadType >::get_tensor_magnitude_sqr< FadType >(const dealii::Tensor<2,PHILIP_DIM, FadType> &tensor) const;
+template FadType    ReynoldsAveragedNavierStokesBase < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+3, RadFadType >::get_tensor_magnitude_sqr< FadType >(const dealii::Tensor<2,PHILIP_DIM, FadType> &tensor) const;
 
 // -- get_vector_magnitude_sqr()
-template double     ReynoldsAveragedNavierStokesBase < PHILIP_DIM, PHILIP_DIM+3, double     >::get_vector_magnitude_sqr< double     >(const dealii::Tensor<1,3,double    > &vector) const;
-template FadType    ReynoldsAveragedNavierStokesBase < PHILIP_DIM, PHILIP_DIM+3, FadType    >::get_vector_magnitude_sqr< FadType    >(const dealii::Tensor<1,3,FadType   > &vector) const;
-template RadType    ReynoldsAveragedNavierStokesBase < PHILIP_DIM, PHILIP_DIM+3, RadType    >::get_vector_magnitude_sqr< RadType    >(const dealii::Tensor<1,3,RadType   > &vector) const;
-template FadFadType ReynoldsAveragedNavierStokesBase < PHILIP_DIM, PHILIP_DIM+3, FadFadType >::get_vector_magnitude_sqr< FadFadType >(const dealii::Tensor<1,3,FadFadType> &vector) const;
-template RadFadType ReynoldsAveragedNavierStokesBase < PHILIP_DIM, PHILIP_DIM+3, RadFadType >::get_vector_magnitude_sqr< RadFadType >(const dealii::Tensor<1,3,RadFadType> &vector) const;
+template double     ReynoldsAveragedNavierStokesBase < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+3, double     >::get_vector_magnitude_sqr< double     >(const dealii::Tensor<1,3,double    > &vector) const;
+template FadType    ReynoldsAveragedNavierStokesBase < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+3, FadType    >::get_vector_magnitude_sqr< FadType    >(const dealii::Tensor<1,3,FadType   > &vector) const;
+template RadType    ReynoldsAveragedNavierStokesBase < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+3, RadType    >::get_vector_magnitude_sqr< RadType    >(const dealii::Tensor<1,3,RadType   > &vector) const;
+template FadFadType ReynoldsAveragedNavierStokesBase < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+3, FadFadType >::get_vector_magnitude_sqr< FadFadType >(const dealii::Tensor<1,3,FadFadType> &vector) const;
+template RadFadType ReynoldsAveragedNavierStokesBase < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+3, RadFadType >::get_vector_magnitude_sqr< RadFadType >(const dealii::Tensor<1,3,RadFadType> &vector) const;
 // -- instantiate all the real types with real2 = FadType for automatic differentiation
-template FadType    ReynoldsAveragedNavierStokesBase < PHILIP_DIM, PHILIP_DIM+3, double     >::get_vector_magnitude_sqr< FadType >(const dealii::Tensor<1,3,FadType> &vector) const;
-template FadType    ReynoldsAveragedNavierStokesBase < PHILIP_DIM, PHILIP_DIM+3, RadType    >::get_vector_magnitude_sqr< FadType >(const dealii::Tensor<1,3,FadType> &vector) const;
-template FadType    ReynoldsAveragedNavierStokesBase < PHILIP_DIM, PHILIP_DIM+3, FadFadType >::get_vector_magnitude_sqr< FadType >(const dealii::Tensor<1,3,FadType> &vector) const;
-template FadType    ReynoldsAveragedNavierStokesBase < PHILIP_DIM, PHILIP_DIM+3, RadFadType >::get_vector_magnitude_sqr< FadType >(const dealii::Tensor<1,3,FadType> &vector) const;
+template FadType    ReynoldsAveragedNavierStokesBase < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+3, double     >::get_vector_magnitude_sqr< FadType >(const dealii::Tensor<1,3,FadType> &vector) const;
+template FadType    ReynoldsAveragedNavierStokesBase < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+3, RadType    >::get_vector_magnitude_sqr< FadType >(const dealii::Tensor<1,3,FadType> &vector) const;
+template FadType    ReynoldsAveragedNavierStokesBase < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+3, FadFadType >::get_vector_magnitude_sqr< FadType >(const dealii::Tensor<1,3,FadType> &vector) const;
+template FadType    ReynoldsAveragedNavierStokesBase < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+3, RadFadType >::get_vector_magnitude_sqr< FadType >(const dealii::Tensor<1,3,FadType> &vector) const;
 
 // -- extract_rans_conservative_solution()
-template std::array<double,     PHILIP_DIM+2> ReynoldsAveragedNavierStokesBase < PHILIP_DIM, PHILIP_DIM+3, double     >::extract_rans_conservative_solution< double     >(const std::array<double,     PHILIP_DIM+3> &conservative_soln) const;
-template std::array<FadType,    PHILIP_DIM+2> ReynoldsAveragedNavierStokesBase < PHILIP_DIM, PHILIP_DIM+3, FadType    >::extract_rans_conservative_solution< FadType    >(const std::array<FadType,    PHILIP_DIM+3> &conservative_soln) const;
-template std::array<RadType,    PHILIP_DIM+2> ReynoldsAveragedNavierStokesBase < PHILIP_DIM, PHILIP_DIM+3, RadType    >::extract_rans_conservative_solution< RadType    >(const std::array<RadType,    PHILIP_DIM+3> &conservative_soln) const;
-template std::array<FadFadType, PHILIP_DIM+2> ReynoldsAveragedNavierStokesBase < PHILIP_DIM, PHILIP_DIM+3, FadFadType >::extract_rans_conservative_solution< FadFadType >(const std::array<FadFadType, PHILIP_DIM+3> &conservative_soln) const;
-template std::array<RadFadType, PHILIP_DIM+2> ReynoldsAveragedNavierStokesBase < PHILIP_DIM, PHILIP_DIM+3, RadFadType >::extract_rans_conservative_solution< RadFadType >(const std::array<RadFadType, PHILIP_DIM+3> &conservative_soln) const;
+template std::array<double,     PHILIP_DIM+2> ReynoldsAveragedNavierStokesBase < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+3, double     >::extract_rans_conservative_solution< double     >(const std::array<double,     PHILIP_DIM+3> &conservative_soln) const;
+template std::array<FadType,    PHILIP_DIM+2> ReynoldsAveragedNavierStokesBase < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+3, FadType    >::extract_rans_conservative_solution< FadType    >(const std::array<FadType,    PHILIP_DIM+3> &conservative_soln) const;
+template std::array<RadType,    PHILIP_DIM+2> ReynoldsAveragedNavierStokesBase < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+3, RadType    >::extract_rans_conservative_solution< RadType    >(const std::array<RadType,    PHILIP_DIM+3> &conservative_soln) const;
+template std::array<FadFadType, PHILIP_DIM+2> ReynoldsAveragedNavierStokesBase < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+3, FadFadType >::extract_rans_conservative_solution< FadFadType >(const std::array<FadFadType, PHILIP_DIM+3> &conservative_soln) const;
+template std::array<RadFadType, PHILIP_DIM+2> ReynoldsAveragedNavierStokesBase < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+3, RadFadType >::extract_rans_conservative_solution< RadFadType >(const std::array<RadFadType, PHILIP_DIM+3> &conservative_soln) const;
 // -- instantiate all the real types with real2 = FadType for automatic differentiation
-template std::array<FadType, PHILIP_DIM+2> ReynoldsAveragedNavierStokesBase < PHILIP_DIM, PHILIP_DIM+3, double     >::extract_rans_conservative_solution< FadType >(const std::array<FadType, PHILIP_DIM+3> &conservative_soln) const;
-template std::array<FadType, PHILIP_DIM+2> ReynoldsAveragedNavierStokesBase < PHILIP_DIM, PHILIP_DIM+3, RadType    >::extract_rans_conservative_solution< FadType >(const std::array<FadType, PHILIP_DIM+3> &conservative_soln) const;
-template std::array<FadType, PHILIP_DIM+2> ReynoldsAveragedNavierStokesBase < PHILIP_DIM, PHILIP_DIM+3, FadFadType >::extract_rans_conservative_solution< FadType >(const std::array<FadType, PHILIP_DIM+3> &conservative_soln) const;
-template std::array<FadType, PHILIP_DIM+2> ReynoldsAveragedNavierStokesBase < PHILIP_DIM, PHILIP_DIM+3, RadFadType >::extract_rans_conservative_solution< FadType >(const std::array<FadType, PHILIP_DIM+3> &conservative_soln) const;
+template std::array<FadType, PHILIP_DIM+2> ReynoldsAveragedNavierStokesBase < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+3, double     >::extract_rans_conservative_solution< FadType >(const std::array<FadType, PHILIP_DIM+3> &conservative_soln) const;
+template std::array<FadType, PHILIP_DIM+2> ReynoldsAveragedNavierStokesBase < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+3, RadType    >::extract_rans_conservative_solution< FadType >(const std::array<FadType, PHILIP_DIM+3> &conservative_soln) const;
+template std::array<FadType, PHILIP_DIM+2> ReynoldsAveragedNavierStokesBase < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+3, FadFadType >::extract_rans_conservative_solution< FadType >(const std::array<FadType, PHILIP_DIM+3> &conservative_soln) const;
+template std::array<FadType, PHILIP_DIM+2> ReynoldsAveragedNavierStokesBase < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+3, RadFadType >::extract_rans_conservative_solution< FadType >(const std::array<FadType, PHILIP_DIM+3> &conservative_soln) const;
 
 // -- extract_rans_solution_gradient()
-template std::array<dealii::Tensor<1,PHILIP_DIM,double    >,PHILIP_DIM+2> ReynoldsAveragedNavierStokesBase < PHILIP_DIM, PHILIP_DIM+3, double     >::extract_rans_solution_gradient< double     >(const std::array<dealii::Tensor<1,PHILIP_DIM,double    >,PHILIP_DIM+3> &solution_gradient) const;
-template std::array<dealii::Tensor<1,PHILIP_DIM,FadType   >,PHILIP_DIM+2> ReynoldsAveragedNavierStokesBase < PHILIP_DIM, PHILIP_DIM+3, FadType    >::extract_rans_solution_gradient< FadType    >(const std::array<dealii::Tensor<1,PHILIP_DIM,FadType   >,PHILIP_DIM+3> &solution_gradient) const;
-template std::array<dealii::Tensor<1,PHILIP_DIM,RadType   >,PHILIP_DIM+2> ReynoldsAveragedNavierStokesBase < PHILIP_DIM, PHILIP_DIM+3, RadType    >::extract_rans_solution_gradient< RadType    >(const std::array<dealii::Tensor<1,PHILIP_DIM,RadType   >,PHILIP_DIM+3> &solution_gradient) const;
-template std::array<dealii::Tensor<1,PHILIP_DIM,FadFadType>,PHILIP_DIM+2> ReynoldsAveragedNavierStokesBase < PHILIP_DIM, PHILIP_DIM+3, FadFadType >::extract_rans_solution_gradient< FadFadType >(const std::array<dealii::Tensor<1,PHILIP_DIM,FadFadType>,PHILIP_DIM+3> &solution_gradient) const;
-template std::array<dealii::Tensor<1,PHILIP_DIM,RadFadType>,PHILIP_DIM+2> ReynoldsAveragedNavierStokesBase < PHILIP_DIM, PHILIP_DIM+3, RadFadType >::extract_rans_solution_gradient< RadFadType >(const std::array<dealii::Tensor<1,PHILIP_DIM,RadFadType>,PHILIP_DIM+3> &solution_gradient) const;
+template std::array<dealii::Tensor<1,PHILIP_DIM, double    >,PHILIP_DIM+2> ReynoldsAveragedNavierStokesBase < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+3, double     >::extract_rans_solution_gradient< double     >(const std::array<dealii::Tensor<1,PHILIP_DIM, double    >,PHILIP_DIM+3> &solution_gradient) const;
+template std::array<dealii::Tensor<1,PHILIP_DIM, FadType   >,PHILIP_DIM+2> ReynoldsAveragedNavierStokesBase < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+3, FadType    >::extract_rans_solution_gradient< FadType    >(const std::array<dealii::Tensor<1,PHILIP_DIM, FadType   >,PHILIP_DIM+3> &solution_gradient) const;
+template std::array<dealii::Tensor<1,PHILIP_DIM, RadType   >,PHILIP_DIM+2> ReynoldsAveragedNavierStokesBase < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+3, RadType    >::extract_rans_solution_gradient< RadType    >(const std::array<dealii::Tensor<1,PHILIP_DIM, RadType   >,PHILIP_DIM+3> &solution_gradient) const;
+template std::array<dealii::Tensor<1,PHILIP_DIM, FadFadType>,PHILIP_DIM+2> ReynoldsAveragedNavierStokesBase < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+3, FadFadType >::extract_rans_solution_gradient< FadFadType >(const std::array<dealii::Tensor<1,PHILIP_DIM, FadFadType>,PHILIP_DIM+3> &solution_gradient) const;
+template std::array<dealii::Tensor<1,PHILIP_DIM, RadFadType>,PHILIP_DIM+2> ReynoldsAveragedNavierStokesBase < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+3, RadFadType >::extract_rans_solution_gradient< RadFadType >(const std::array<dealii::Tensor<1,PHILIP_DIM, RadFadType>,PHILIP_DIM+3> &solution_gradient) const;
 // -- instantiate all the real types with real2 = FadType for automatic differentiation
-template std::array<dealii::Tensor<1,PHILIP_DIM,FadType>,PHILIP_DIM+2> ReynoldsAveragedNavierStokesBase < PHILIP_DIM, PHILIP_DIM+3, double     >::extract_rans_solution_gradient< FadType >(const std::array<dealii::Tensor<1,PHILIP_DIM,FadType>,PHILIP_DIM+3> &solution_gradient) const;
-template std::array<dealii::Tensor<1,PHILIP_DIM,FadType>,PHILIP_DIM+2> ReynoldsAveragedNavierStokesBase < PHILIP_DIM, PHILIP_DIM+3, RadType    >::extract_rans_solution_gradient< FadType >(const std::array<dealii::Tensor<1,PHILIP_DIM,FadType>,PHILIP_DIM+3> &solution_gradient) const;
-template std::array<dealii::Tensor<1,PHILIP_DIM,FadType>,PHILIP_DIM+2> ReynoldsAveragedNavierStokesBase < PHILIP_DIM, PHILIP_DIM+3, FadFadType >::extract_rans_solution_gradient< FadType >(const std::array<dealii::Tensor<1,PHILIP_DIM,FadType>,PHILIP_DIM+3> &solution_gradient) const;
-template std::array<dealii::Tensor<1,PHILIP_DIM,FadType>,PHILIP_DIM+2> ReynoldsAveragedNavierStokesBase < PHILIP_DIM, PHILIP_DIM+3, RadFadType >::extract_rans_solution_gradient< FadType >(const std::array<dealii::Tensor<1,PHILIP_DIM,FadType>,PHILIP_DIM+3> &solution_gradient) const;
+template std::array<dealii::Tensor<1,PHILIP_DIM, FadType>,PHILIP_DIM+2> ReynoldsAveragedNavierStokesBase < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+3, double     >::extract_rans_solution_gradient< FadType >(const std::array<dealii::Tensor<1,PHILIP_DIM, FadType>,PHILIP_DIM+3> &solution_gradient) const;
+template std::array<dealii::Tensor<1,PHILIP_DIM, FadType>,PHILIP_DIM+2> ReynoldsAveragedNavierStokesBase < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+3, RadType    >::extract_rans_solution_gradient< FadType >(const std::array<dealii::Tensor<1,PHILIP_DIM, FadType>,PHILIP_DIM+3> &solution_gradient) const;
+template std::array<dealii::Tensor<1,PHILIP_DIM, FadType>,PHILIP_DIM+2> ReynoldsAveragedNavierStokesBase < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+3, FadFadType >::extract_rans_solution_gradient< FadType >(const std::array<dealii::Tensor<1,PHILIP_DIM, FadType>,PHILIP_DIM+3> &solution_gradient) const;
+template std::array<dealii::Tensor<1,PHILIP_DIM, FadType>,PHILIP_DIM+2> ReynoldsAveragedNavierStokesBase < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+3, RadFadType >::extract_rans_solution_gradient< FadType >(const std::array<dealii::Tensor<1,PHILIP_DIM, FadType>,PHILIP_DIM+3> &solution_gradient) const;
 
 // -- convert_conservative_to_primitive_turbulence_model()
-template std::array<double,     1> ReynoldsAveragedNavierStokesBase < PHILIP_DIM, PHILIP_DIM+3, double     >::convert_conservative_to_primitive_turbulence_model< double     >(const std::array<double,     PHILIP_DIM+3> &conservative_soln) const;
-template std::array<FadType,    1> ReynoldsAveragedNavierStokesBase < PHILIP_DIM, PHILIP_DIM+3, FadType    >::convert_conservative_to_primitive_turbulence_model< FadType    >(const std::array<FadType,    PHILIP_DIM+3> &conservative_soln) const;
-template std::array<RadType,    1> ReynoldsAveragedNavierStokesBase < PHILIP_DIM, PHILIP_DIM+3, RadType    >::convert_conservative_to_primitive_turbulence_model< RadType    >(const std::array<RadType,    PHILIP_DIM+3> &conservative_soln) const;
-template std::array<FadFadType, 1> ReynoldsAveragedNavierStokesBase < PHILIP_DIM, PHILIP_DIM+3, FadFadType >::convert_conservative_to_primitive_turbulence_model< FadFadType >(const std::array<FadFadType, PHILIP_DIM+3> &conservative_soln) const;
-template std::array<RadFadType, 1> ReynoldsAveragedNavierStokesBase < PHILIP_DIM, PHILIP_DIM+3, RadFadType >::convert_conservative_to_primitive_turbulence_model< RadFadType >(const std::array<RadFadType, PHILIP_DIM+3> &conservative_soln) const;
+template std::array<double,     1> ReynoldsAveragedNavierStokesBase < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+3, double     >::convert_conservative_to_primitive_turbulence_model< double     >(const std::array<double,     PHILIP_DIM+3> &conservative_soln) const;
+template std::array<FadType,    1> ReynoldsAveragedNavierStokesBase < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+3, FadType    >::convert_conservative_to_primitive_turbulence_model< FadType    >(const std::array<FadType,    PHILIP_DIM+3> &conservative_soln) const;
+template std::array<RadType,    1> ReynoldsAveragedNavierStokesBase < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+3, RadType    >::convert_conservative_to_primitive_turbulence_model< RadType    >(const std::array<RadType,    PHILIP_DIM+3> &conservative_soln) const;
+template std::array<FadFadType, 1> ReynoldsAveragedNavierStokesBase < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+3, FadFadType >::convert_conservative_to_primitive_turbulence_model< FadFadType >(const std::array<FadFadType, PHILIP_DIM+3> &conservative_soln) const;
+template std::array<RadFadType, 1> ReynoldsAveragedNavierStokesBase < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+3, RadFadType >::convert_conservative_to_primitive_turbulence_model< RadFadType >(const std::array<RadFadType, PHILIP_DIM+3> &conservative_soln) const;
 // -- instantiate all the real types with real2 = FadType for automatic differentiation
-template std::array<FadType, 1> ReynoldsAveragedNavierStokesBase < PHILIP_DIM, PHILIP_DIM+3, double     >::convert_conservative_to_primitive_turbulence_model< FadType >(const std::array<FadType, PHILIP_DIM+3> &conservative_soln) const;
-template std::array<FadType, 1> ReynoldsAveragedNavierStokesBase < PHILIP_DIM, PHILIP_DIM+3, RadType    >::convert_conservative_to_primitive_turbulence_model< FadType >(const std::array<FadType, PHILIP_DIM+3> &conservative_soln) const;
-template std::array<FadType, 1> ReynoldsAveragedNavierStokesBase < PHILIP_DIM, PHILIP_DIM+3, FadFadType >::convert_conservative_to_primitive_turbulence_model< FadType >(const std::array<FadType, PHILIP_DIM+3> &conservative_soln) const;
-template std::array<FadType, 1> ReynoldsAveragedNavierStokesBase < PHILIP_DIM, PHILIP_DIM+3, RadFadType >::convert_conservative_to_primitive_turbulence_model< FadType >(const std::array<FadType, PHILIP_DIM+3> &conservative_soln) const;
+template std::array<FadType, 1> ReynoldsAveragedNavierStokesBase < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+3, double     >::convert_conservative_to_primitive_turbulence_model< FadType >(const std::array<FadType, PHILIP_DIM+3> &conservative_soln) const;
+template std::array<FadType, 1> ReynoldsAveragedNavierStokesBase < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+3, RadType    >::convert_conservative_to_primitive_turbulence_model< FadType >(const std::array<FadType, PHILIP_DIM+3> &conservative_soln) const;
+template std::array<FadType, 1> ReynoldsAveragedNavierStokesBase < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+3, FadFadType >::convert_conservative_to_primitive_turbulence_model< FadType >(const std::array<FadType, PHILIP_DIM+3> &conservative_soln) const;
+template std::array<FadType, 1> ReynoldsAveragedNavierStokesBase < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+3, RadFadType >::convert_conservative_to_primitive_turbulence_model< FadType >(const std::array<FadType, PHILIP_DIM+3> &conservative_soln) const;
 
 // -- convert_conservative_gradient_to_primitive_gradient_turbulence_model()
-template std::array<dealii::Tensor<1,PHILIP_DIM,double    >,1> ReynoldsAveragedNavierStokesBase < PHILIP_DIM, PHILIP_DIM+3, double     >::convert_conservative_gradient_to_primitive_gradient_turbulence_model< double     >(const std::array<double,     PHILIP_DIM+3> &conservative_soln, const std::array<dealii::Tensor<1,PHILIP_DIM,double    >,PHILIP_DIM+3> &solution_gradient) const;
-template std::array<dealii::Tensor<1,PHILIP_DIM,FadType   >,1> ReynoldsAveragedNavierStokesBase < PHILIP_DIM, PHILIP_DIM+3, FadType    >::convert_conservative_gradient_to_primitive_gradient_turbulence_model< FadType    >(const std::array<FadType,    PHILIP_DIM+3> &conservative_soln, const std::array<dealii::Tensor<1,PHILIP_DIM,FadType   >,PHILIP_DIM+3> &solution_gradient) const;
-template std::array<dealii::Tensor<1,PHILIP_DIM,RadType   >,1> ReynoldsAveragedNavierStokesBase < PHILIP_DIM, PHILIP_DIM+3, RadType    >::convert_conservative_gradient_to_primitive_gradient_turbulence_model< RadType    >(const std::array<RadType,    PHILIP_DIM+3> &conservative_soln, const std::array<dealii::Tensor<1,PHILIP_DIM,RadType   >,PHILIP_DIM+3> &solution_gradient) const;
-template std::array<dealii::Tensor<1,PHILIP_DIM,FadFadType>,1> ReynoldsAveragedNavierStokesBase < PHILIP_DIM, PHILIP_DIM+3, FadFadType >::convert_conservative_gradient_to_primitive_gradient_turbulence_model< FadFadType >(const std::array<FadFadType, PHILIP_DIM+3> &conservative_soln, const std::array<dealii::Tensor<1,PHILIP_DIM,FadFadType>,PHILIP_DIM+3> &solution_gradient) const;
-template std::array<dealii::Tensor<1,PHILIP_DIM,RadFadType>,1> ReynoldsAveragedNavierStokesBase < PHILIP_DIM, PHILIP_DIM+3, RadFadType >::convert_conservative_gradient_to_primitive_gradient_turbulence_model< RadFadType >(const std::array<RadFadType, PHILIP_DIM+3> &conservative_soln, const std::array<dealii::Tensor<1,PHILIP_DIM,RadFadType>,PHILIP_DIM+3> &solution_gradient) const;
+template std::array<dealii::Tensor<1,PHILIP_DIM, double    >,1> ReynoldsAveragedNavierStokesBase < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+3, double     >::convert_conservative_gradient_to_primitive_gradient_turbulence_model< double     >(const std::array<double,     PHILIP_DIM+3> &conservative_soln, const std::array<dealii::Tensor<1,PHILIP_DIM, double    >,PHILIP_DIM+3> &solution_gradient) const;
+template std::array<dealii::Tensor<1,PHILIP_DIM, FadType   >,1> ReynoldsAveragedNavierStokesBase < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+3, FadType    >::convert_conservative_gradient_to_primitive_gradient_turbulence_model< FadType    >(const std::array<FadType,    PHILIP_DIM+3> &conservative_soln, const std::array<dealii::Tensor<1,PHILIP_DIM, FadType   >,PHILIP_DIM+3> &solution_gradient) const;
+template std::array<dealii::Tensor<1,PHILIP_DIM, RadType   >,1> ReynoldsAveragedNavierStokesBase < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+3, RadType    >::convert_conservative_gradient_to_primitive_gradient_turbulence_model< RadType    >(const std::array<RadType,    PHILIP_DIM+3> &conservative_soln, const std::array<dealii::Tensor<1,PHILIP_DIM, RadType   >,PHILIP_DIM+3> &solution_gradient) const;
+template std::array<dealii::Tensor<1,PHILIP_DIM, FadFadType>,1> ReynoldsAveragedNavierStokesBase < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+3, FadFadType >::convert_conservative_gradient_to_primitive_gradient_turbulence_model< FadFadType >(const std::array<FadFadType, PHILIP_DIM+3> &conservative_soln, const std::array<dealii::Tensor<1,PHILIP_DIM, FadFadType>,PHILIP_DIM+3> &solution_gradient) const;
+template std::array<dealii::Tensor<1,PHILIP_DIM, RadFadType>,1> ReynoldsAveragedNavierStokesBase < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+3, RadFadType >::convert_conservative_gradient_to_primitive_gradient_turbulence_model< RadFadType >(const std::array<RadFadType, PHILIP_DIM+3> &conservative_soln, const std::array<dealii::Tensor<1,PHILIP_DIM, RadFadType>,PHILIP_DIM+3> &solution_gradient) const;
 // -- instantiate all the real types with real2 = FadType for automatic differentiation
-template std::array<dealii::Tensor<1,PHILIP_DIM,FadType>,1> ReynoldsAveragedNavierStokesBase < PHILIP_DIM, PHILIP_DIM+3, double     >::convert_conservative_gradient_to_primitive_gradient_turbulence_model< FadType >(const std::array<FadType, PHILIP_DIM+3> &conservative_soln, const std::array<dealii::Tensor<1,PHILIP_DIM,FadType>,PHILIP_DIM+3> &solution_gradient) const;
-template std::array<dealii::Tensor<1,PHILIP_DIM,FadType>,1> ReynoldsAveragedNavierStokesBase < PHILIP_DIM, PHILIP_DIM+3, RadType    >::convert_conservative_gradient_to_primitive_gradient_turbulence_model< FadType >(const std::array<FadType, PHILIP_DIM+3> &conservative_soln, const std::array<dealii::Tensor<1,PHILIP_DIM,FadType>,PHILIP_DIM+3> &solution_gradient) const;
-template std::array<dealii::Tensor<1,PHILIP_DIM,FadType>,1> ReynoldsAveragedNavierStokesBase < PHILIP_DIM, PHILIP_DIM+3, FadFadType >::convert_conservative_gradient_to_primitive_gradient_turbulence_model< FadType >(const std::array<FadType, PHILIP_DIM+3> &conservative_soln, const std::array<dealii::Tensor<1,PHILIP_DIM,FadType>,PHILIP_DIM+3> &solution_gradient) const;
-template std::array<dealii::Tensor<1,PHILIP_DIM,FadType>,1> ReynoldsAveragedNavierStokesBase < PHILIP_DIM, PHILIP_DIM+3, RadFadType >::convert_conservative_gradient_to_primitive_gradient_turbulence_model< FadType >(const std::array<FadType, PHILIP_DIM+3> &conservative_soln, const std::array<dealii::Tensor<1,PHILIP_DIM,FadType>,PHILIP_DIM+3> &solution_gradient) const;
+template std::array<dealii::Tensor<1,PHILIP_DIM, FadType>,1> ReynoldsAveragedNavierStokesBase < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+3, double     >::convert_conservative_gradient_to_primitive_gradient_turbulence_model< FadType >(const std::array<FadType, PHILIP_DIM+3> &conservative_soln, const std::array<dealii::Tensor<1,PHILIP_DIM, FadType>,PHILIP_DIM+3> &solution_gradient) const;
+template std::array<dealii::Tensor<1,PHILIP_DIM, FadType>,1> ReynoldsAveragedNavierStokesBase < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+3, RadType    >::convert_conservative_gradient_to_primitive_gradient_turbulence_model< FadType >(const std::array<FadType, PHILIP_DIM+3> &conservative_soln, const std::array<dealii::Tensor<1,PHILIP_DIM, FadType>,PHILIP_DIM+3> &solution_gradient) const;
+template std::array<dealii::Tensor<1,PHILIP_DIM, FadType>,1> ReynoldsAveragedNavierStokesBase < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+3, FadFadType >::convert_conservative_gradient_to_primitive_gradient_turbulence_model< FadType >(const std::array<FadType, PHILIP_DIM+3> &conservative_soln, const std::array<dealii::Tensor<1,PHILIP_DIM, FadType>,PHILIP_DIM+3> &solution_gradient) const;
+template std::array<dealii::Tensor<1,PHILIP_DIM, FadType>,1> ReynoldsAveragedNavierStokesBase < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+3, RadFadType >::convert_conservative_gradient_to_primitive_gradient_turbulence_model< FadType >(const std::array<FadType, PHILIP_DIM+3> &conservative_soln, const std::array<dealii::Tensor<1,PHILIP_DIM, FadType>,PHILIP_DIM+3> &solution_gradient) const;
 
 
 } // Physics namespace

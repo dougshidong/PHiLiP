@@ -1098,11 +1098,11 @@ public:
 
 /*****************************************************************************
 *
-*       METRIC OPERTAORS TO BE CALLED ON-THE-FLY
+*       METRIC OPERATORS TO BE CALLED ON-THE-FLY
 *
 *****************************************************************************/
 ///Base metric operators class that stores functions used in both the volume and on surface.
-template <typename real, int dim, int n_faces>  
+template <typename real, int dim,  int n_faces>  
 class metric_operators: public SumFactorizedOperators<dim,n_faces,real>
 {
 public:

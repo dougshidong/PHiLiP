@@ -10,16 +10,16 @@ namespace PHiLiP {
 namespace Physics {
 
 /// Physics Model equations. Derived from PhysicsBase, holds a baseline physics and model terms and equations. 
-template <int dim, int nstate, typename real, int nstate_baseline_physics>
-class PhysicsModel : public PhysicsBase <dim, nstate, real>
+template <int dim, int nspecies, int nstate, typename real, int nstate_baseline_physics>
+class PhysicsModel : public PhysicsBase <dim, nspecies, nstate, real>
 {
 public:
     /// Constructor
     PhysicsModel(
         const Parameters::AllParameters                              *const parameters_input,
         Parameters::AllParameters::PartialDifferentialEquation       baseline_physics_type,
-        std::shared_ptr< ModelBase<dim,nstate,real> >                model_input,
-        std::shared_ptr< ManufacturedSolutionFunction<dim,real> >    manufactured_solution_function,
+        std::shared_ptr< ModelBase<dim,nspecies,nstate,real> >                model_input,
+        std::shared_ptr< ManufacturedSolutionFunction<dim,nspecies,real> >    manufactured_solution_function,
         const bool                                                   has_nonzero_diffusion,
         const bool                                                   has_nonzero_physical_source);
 
@@ -27,10 +27,10 @@ public:
     const int n_model_equations;
 
     /// Baseline physics object with nstate==nstate_baseline_physics
-    std::shared_ptr< PhysicsBase<dim,nstate_baseline_physics,real> > physics_baseline;
+    std::shared_ptr< PhysicsBase<dim,nspecies,nstate_baseline_physics,real> > physics_baseline;
 
     /// Model object
-    std::shared_ptr< ModelBase<dim,nstate,real> > model;
+    std::shared_ptr< ModelBase<dim,nspecies,nstate,real> > model;
 
     /// Convective flux: \f$ \mathbf{F}_{conv} \f$
     std::array<dealii::Tensor<1,dim,real>,nstate> convective_flux (

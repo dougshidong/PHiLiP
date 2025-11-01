@@ -5,10 +5,10 @@
 namespace PHiLiP {
 namespace ODE {
 
-template <int dim, typename real, typename MeshType>
-RKNumEntropy<dim,real,MeshType>::RKNumEntropy(
-            std::shared_ptr<RKTableauButcherBase<dim,real,MeshType>> rk_tableau_input)
-        : EmptyRRKBase<dim,real,MeshType>(rk_tableau_input)
+template <int dim, int nspecies, typename real, typename MeshType>
+RKNumEntropy<dim,nspecies,real,MeshType>::RKNumEntropy(
+            std::shared_ptr<RKTableauButcherBase<dim,nspecies,real,MeshType>> rk_tableau_input)
+        : EmptyRRKBase<dim,nspecies,real,MeshType>(rk_tableau_input)
         , butcher_tableau(rk_tableau_input)
         , n_rk_stages(butcher_tableau->n_rk_stages)
         , mpi_communicator(MPI_COMM_WORLD)
@@ -19,17 +19,17 @@ RKNumEntropy<dim,real,MeshType>::RKNumEntropy(
    
 }
 
-template <int dim, typename real, typename MeshType>
-void RKNumEntropy<dim,real,MeshType>::store_stage_solutions(const int istage, const dealii::LinearAlgebra::distributed::Vector<double> rk_stage_i)
+template <int dim, int nspecies, typename real, typename MeshType>
+void RKNumEntropy<dim,nspecies,real,MeshType>::store_stage_solutions(const int istage, const dealii::LinearAlgebra::distributed::Vector<double> rk_stage_i)
 {
     //Store the solution value
     //This function is called before rk_stage is modified to hold the time-derivative
     this->rk_stage_solution[istage] = rk_stage_i; 
 }
 
-template <int dim, typename real, typename MeshType>
-dealii::LinearAlgebra::distributed::Vector<double> RKNumEntropy<dim,real,MeshType>::compute_entropy_vars(const dealii::LinearAlgebra::distributed::Vector<double> &u,
-        std::shared_ptr<DGBase<dim,real,MeshType>> dg) const
+template <int dim, int nspecies, typename real, typename MeshType>
+dealii::LinearAlgebra::distributed::Vector<double> RKNumEntropy<dim,nspecies,real,MeshType>::compute_entropy_vars(const dealii::LinearAlgebra::distributed::Vector<double> &u,
+        std::shared_ptr<DGBase<dim,nspecies,real,MeshType>> dg) const
 {
     // hard-code nstate for Euler/NS - ODESolverFactory has already ensured that we use Euler/NS
     const unsigned int nstate = dim + 2;
@@ -43,8 +43,8 @@ dealii::LinearAlgebra::distributed::Vector<double> RKNumEntropy<dim,real,MeshTyp
     // Select Euler physics. ODESolverFactory has already ensured that we are using Euler orSelect Euler physics. ODESolverFactory has already ensured that we are using Euler or NS, which both use the same entropy variable computation.
     PHiLiP::Parameters::AllParameters parameters_using_euler_pde_type = *(dg->all_parameters);
     parameters_using_euler_pde_type.pde_type = Parameters::AllParameters::PartialDifferentialEquation::euler;
-    std::shared_ptr < Physics::Euler<dim, dim+2, double > > euler_physics = std::dynamic_pointer_cast<Physics::Euler<dim,dim+2,double>>(
-                Physics::PhysicsFactory<dim,dim+2,double>::create_Physics(&parameters_using_euler_pde_type));
+    std::shared_ptr < Physics::Euler<dim, nspecies, dim+2, double > > euler_physics = std::dynamic_pointer_cast<Physics::Euler<dim,nspecies,dim+2,double>>(
+                Physics::PhysicsFactory<dim,nspecies,dim+2,double>::create_Physics(&parameters_using_euler_pde_type));
 
     const unsigned int n_dofs_cell = dg->fe_collection[poly_degree].dofs_per_cell;
     const unsigned int n_quad_pts = dg->volume_quadrature_collection[poly_degree].size();
@@ -109,9 +109,9 @@ dealii::LinearAlgebra::distributed::Vector<double> RKNumEntropy<dim,real,MeshTyp
 }
 
 
-template <int dim, typename real, typename MeshType>
-real RKNumEntropy<dim,real,MeshType>::compute_FR_entropy_contribution(const real dt, 
-        std::shared_ptr<DGBase<dim,real,MeshType>> dg,
+template <int dim, int nspecies, typename real, typename MeshType>
+real RKNumEntropy<dim,nspecies,real,MeshType>::compute_FR_entropy_contribution(const real dt, 
+        std::shared_ptr<DGBase<dim,nspecies,real,MeshType>> dg,
         const std::vector<dealii::LinearAlgebra::distributed::Vector<double>> &rk_stage,
         const bool compute_K_norm) const
 {
@@ -166,10 +166,10 @@ real RKNumEntropy<dim,real,MeshType>::compute_FR_entropy_contribution(const real
     return entropy_contribution;
 }
 
-template class RKNumEntropy<PHILIP_DIM, double, dealii::Triangulation<PHILIP_DIM> >;
-template class RKNumEntropy<PHILIP_DIM, double, dealii::parallel::shared::Triangulation<PHILIP_DIM> >;
+template class RKNumEntropy<PHILIP_DIM, PHILIP_SPECIES, double, dealii::Triangulation<PHILIP_DIM> >;
+template class RKNumEntropy<PHILIP_DIM, PHILIP_SPECIES, double, dealii::parallel::shared::Triangulation<PHILIP_DIM> >;
 #if PHILIP_DIM != 1
-    template class RKNumEntropy<PHILIP_DIM, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM> >;
+    template class RKNumEntropy<PHILIP_DIM, PHILIP_SPECIES, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM> >;
 #endif
 
 } // ODESolver namespace

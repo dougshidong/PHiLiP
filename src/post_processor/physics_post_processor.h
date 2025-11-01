@@ -10,7 +10,7 @@ namespace PHiLiP {
 namespace Postprocess {
 
 /// Postprocessor factory.
-template <int dim>
+template <int dim, int nspecies>
 class PostprocessorFactory
 {
 public:
@@ -21,7 +21,7 @@ public:
 /// Postprocessor to output solution and other values computed by associated physics.
 /** The functions in this class will call the Physics functions to query data.
  */
-template <int dim, int nstate>
+template <int dim, int nspecies, int nstate>
 class PhysicsPostprocessor : public dealii::DataPostprocessor<dim>
 {
 public:
@@ -29,10 +29,10 @@ public:
     explicit PhysicsPostprocessor (const Parameters::AllParameters *const parameters_input);
 
     /// Model passed to create_Physics
-    std::shared_ptr < Physics::ModelBase<dim, nstate, double > > model;
+    std::shared_ptr < Physics::ModelBase<dim, nspecies, nstate, double > > model;
 
     /// Physics that the post-processor will use to evaluate derived data types.
-    std::shared_ptr < Physics::PhysicsBase<dim, nstate, double > > physics;
+    std::shared_ptr < Physics::PhysicsBase<dim, nspecies, nstate, double > > physics;
 
     /// Queries the Physics to output data of a vector-valued problem.
     virtual void evaluate_vector_field (const dealii::DataPostprocessorInputs::Vector<dim> &inputs, std::vector<dealii::Vector<double>> &computed_quantities) const override;

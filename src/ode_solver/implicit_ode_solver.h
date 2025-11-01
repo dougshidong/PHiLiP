@@ -27,15 +27,15 @@ namespace ODE {
  *  \f]
  */
 #if PHILIP_DIM==1
-template <int dim, typename real, typename MeshType = dealii::Triangulation<dim>>
+template <int dim, int nspecies, typename real, typename MeshType = dealii::Triangulation<dim>>
 #else
-template <int dim, typename real, typename MeshType = dealii::parallel::distributed::Triangulation<dim>>
+template <int dim, int nspecies, typename real, typename MeshType = dealii::parallel::distributed::Triangulation<dim>>
 #endif
-class ImplicitODESolver: public ODESolverBase <dim, real, MeshType>
+class ImplicitODESolver: public ODESolverBase <dim, nspecies, real, MeshType>
 {
 public:
     /// Default constructor that will set the constants.
-    explicit ImplicitODESolver(std::shared_ptr< DGBase<dim, real, MeshType> > dg_input); ///< Constructor.
+    explicit ImplicitODESolver(std::shared_ptr< DGBase<dim, nspecies, real, MeshType> > dg_input); ///< Constructor.
 
     /// Function to evaluate solution update
     void step_in_time(real dt, const bool pseudotime);

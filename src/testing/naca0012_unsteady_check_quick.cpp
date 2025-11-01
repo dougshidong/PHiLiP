@@ -5,16 +5,16 @@
 namespace PHiLiP {
 namespace Tests {
 
-template <int dim, int nstate>
-NACA0012UnsteadyCheckQuick<dim, nstate>::NACA0012UnsteadyCheckQuick(
+template <int dim, int nspecies, int nstate>
+NACA0012UnsteadyCheckQuick<dim, nspecies, nstate>::NACA0012UnsteadyCheckQuick(
     const PHiLiP::Parameters::AllParameters *const parameters_input,
     const dealii::ParameterHandler &parameter_handler_input)
         : TestsBase::TestsBase(parameters_input)
         , parameter_handler(parameter_handler_input)
 {}
 
-template <int dim, int nstate>
-Parameters::AllParameters NACA0012UnsteadyCheckQuick<dim,nstate>::reinit_params(const bool use_weak_form_input, const bool use_two_point_flux_input) const
+template <int dim, int nspecies, int nstate>
+Parameters::AllParameters NACA0012UnsteadyCheckQuick<dim,nspecies,nstate>::reinit_params(const bool use_weak_form_input, const bool use_two_point_flux_input) const
 {
      PHiLiP::Parameters::AllParameters parameters = *(this->all_parameters);
      
@@ -26,8 +26,8 @@ Parameters::AllParameters NACA0012UnsteadyCheckQuick<dim,nstate>::reinit_params(
      return parameters;
 }
 
-template <int dim, int nstate>
-int NACA0012UnsteadyCheckQuick<dim, nstate>::run_test() const
+template <int dim, int nspecies, int nstate>
+int NACA0012UnsteadyCheckQuick<dim, nspecies, nstate>::run_test() const
 {
     const int n_runs = 3;
     double lift_calculated[n_runs] = {0};
@@ -55,10 +55,10 @@ int NACA0012UnsteadyCheckQuick<dim, nstate>::run_test() const
         this->pcout << std::endl;
         
         // Initialize flow_solver
-        std::unique_ptr<FlowSolver::FlowSolver<dim,nstate>> flow_solver_loop = FlowSolver::FlowSolverFactory<dim,nstate>::select_flow_case(&params_loop, parameter_handler);
+        std::unique_ptr<FlowSolver::FlowSolver<dim,nspecies,nstate>> flow_solver_loop = FlowSolver::FlowSolverFactory<dim,nspecies,nstate>::select_flow_case(&params_loop, parameter_handler);
         
         static_cast<void>(flow_solver_loop->run());
-        std::unique_ptr<FlowSolver::NACA0012<dim, nstate>> flow_solver_case_loop = std::make_unique<FlowSolver::NACA0012<dim,nstate>>(this->all_parameters);
+        std::unique_ptr<FlowSolver::NACA0012<dim, nspecies, nstate>> flow_solver_case_loop = std::make_unique<FlowSolver::NACA0012<dim,nspecies,nstate>>(this->all_parameters);
         lift_calculated[irun] = flow_solver_case_loop->compute_lift((flow_solver_loop->dg));
         drag_calculated[irun] = flow_solver_case_loop->compute_drag((flow_solver_loop->dg));
         this->pcout << "Finished run." << std::endl;
@@ -108,7 +108,7 @@ int NACA0012UnsteadyCheckQuick<dim, nstate>::run_test() const
 }
 
 #if PHILIP_DIM==2
-    template class NACA0012UnsteadyCheckQuick<PHILIP_DIM,PHILIP_DIM+2>;
+    template class NACA0012UnsteadyCheckQuick<PHILIP_DIM, PHILIP_SPECIES,PHILIP_DIM+2>;
 #endif
 } // Tests namespace
 } // PHiLiP namespace

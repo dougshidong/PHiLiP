@@ -14,13 +14,13 @@
 namespace PHiLiP {
 namespace Tests {
 
-template <int dim, int nstate>
-StabilityFRParametersRange<dim, nstate>::StabilityFRParametersRange(const PHiLiP::Parameters::AllParameters *const parameters_input)
+template <int dim, int nspecies, int nstate>
+StabilityFRParametersRange<dim, nspecies, nstate>::StabilityFRParametersRange(const PHiLiP::Parameters::AllParameters *const parameters_input)
 : TestsBase::TestsBase(parameters_input)
 {}
 
-template<int dim, int nstate>
-double StabilityFRParametersRange<dim, nstate>::compute_energy(std::shared_ptr < PHiLiP::DGBase<dim, double> > &dg) const
+template<int dim, int nspecies, int nstate>
+double StabilityFRParametersRange<dim, nspecies, nstate>::compute_energy(std::shared_ptr < PHiLiP::DGBase<dim, nspecies, double> > &dg) const
 {
     double energy = 0.0;
     dealii::LinearAlgebra::distributed::Vector<double> mass_matrix_times_solution(dg->right_hand_side);
@@ -35,8 +35,8 @@ double StabilityFRParametersRange<dim, nstate>::compute_energy(std::shared_ptr <
     return energy;
 }
 
-template<int dim, int nstate>
-double StabilityFRParametersRange<dim, nstate>::compute_conservation(std::shared_ptr < PHiLiP::DGBase<dim, double> > &dg, const double poly_degree) const
+template<int dim, int nspecies, int nstate>
+double StabilityFRParametersRange<dim, nspecies, nstate>::compute_conservation(std::shared_ptr < PHiLiP::DGBase<dim, nspecies, double> > &dg, const double poly_degree) const
 {
     // Conservation \f$ =  \int 1 * u d\Omega_m \f$
     double conservation = 0.0;
@@ -72,8 +72,8 @@ double StabilityFRParametersRange<dim, nstate>::compute_conservation(std::shared
     return conservation;
 }
 
-template <int dim, int nstate>
-int StabilityFRParametersRange<dim, nstate>::run_test() const
+template <int dim, int nspecies, int nstate>
+int StabilityFRParametersRange<dim, nspecies, nstate>::run_test() const
 {
     pcout << " Running stability ESFR parameter range test. " << std::endl;
     int testfail = 0;
@@ -140,19 +140,19 @@ int StabilityFRParametersRange<dim, nstate>::run_test() const
             all_parameters_new.FR_user_specified_correction_parameter_value = c_value;
             std::cout << "c ESFR " <<all_parameters_new.FR_user_specified_correction_parameter_value <<  std::endl;
             //allocate dg
-            std::shared_ptr < PHiLiP::DGBase<dim, double> > dg = PHiLiP::DGFactory<dim,double>::create_discontinuous_galerkin(&all_parameters_new, poly_degree, poly_degree, grid_degree, grid);
+            std::shared_ptr < PHiLiP::DGBase<dim, nspecies, double> > dg = PHiLiP::DGFactory<dim,nspecies,double>::create_discontinuous_galerkin(&all_parameters_new, poly_degree, poly_degree, grid_degree, grid);
             pcout << "dg created" <<std::endl;
             dg->allocate_system (false,false,false);
             
             //initialize IC
             pcout<<"Setting up Initial Condition"<<std::endl;
             // Create initial condition function
-            std::shared_ptr< InitialConditionFunction<dim,nstate,double> > initial_condition_function = 
-                InitialConditionFactory<dim,nstate,double>::create_InitialConditionFunction(&all_parameters_new);
-            SetInitialCondition<dim,nstate,double>::set_initial_condition(initial_condition_function, dg, &all_parameters_new);
+            std::shared_ptr< InitialConditionFunction<dim,nspecies,nstate,double> > initial_condition_function = 
+                InitialConditionFactory<dim,nspecies,nstate,double>::create_InitialConditionFunction(&all_parameters_new);
+            SetInitialCondition<dim,nspecies,nstate,double>::set_initial_condition(initial_condition_function, dg, &all_parameters_new);
 
             // Create ODE solver using the factory and providing the DG object
-            std::shared_ptr<ODE::ODESolverBase<dim, double>> ode_solver = ODE::ODESolverFactory<dim, double>::create_ODESolver(dg);
+            std::shared_ptr<ODE::ODESolverBase<dim, nspecies, double>> ode_solver = ODE::ODESolverFactory<dim, nspecies, double>::create_ODESolver(dg);
 
             //do OOA
             double finalTime=all_parameters_new.flow_solver_param.final_time;
@@ -311,11 +311,11 @@ int StabilityFRParametersRange<dim, nstate>::run_test() const
     conv_tab_file.close();
     return testfail;
 }
-template class StabilityFRParametersRange<PHILIP_DIM,1>;
-template class StabilityFRParametersRange<PHILIP_DIM,2>;
-template class StabilityFRParametersRange<PHILIP_DIM,3>;
-template class StabilityFRParametersRange<PHILIP_DIM,4>;
-template class StabilityFRParametersRange<PHILIP_DIM,5>;
+template class StabilityFRParametersRange<PHILIP_DIM, PHILIP_SPECIES,1>;
+template class StabilityFRParametersRange<PHILIP_DIM, PHILIP_SPECIES,2>;
+template class StabilityFRParametersRange<PHILIP_DIM, PHILIP_SPECIES,3>;
+template class StabilityFRParametersRange<PHILIP_DIM, PHILIP_SPECIES,4>;
+template class StabilityFRParametersRange<PHILIP_DIM, PHILIP_SPECIES,5>;
 
 } // Tests namespace
 } // PHiLiP namespace

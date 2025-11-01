@@ -12,13 +12,13 @@
 namespace PHiLiP{
 namespace FlowSolver{
 
-template <int dim, int nstate>
-GaussianBump<dim, nstate>::GaussianBump(const PHiLiP::Parameters::AllParameters *const parameters_input)
-    : FlowSolverCaseBase<dim, nstate>(parameters_input)
+template <int dim, int nspecies, int nstate>
+GaussianBump<dim, nspecies, nstate>::GaussianBump(const PHiLiP::Parameters::AllParameters *const parameters_input)
+    : FlowSolverCaseBase<dim, nspecies, nstate>(parameters_input)
 {}
 
-template <int dim, int nstate>
-std::shared_ptr<Triangulation> GaussianBump<dim,nstate>::generate_grid() const 
+template <int dim, int nspecies, int nstate>
+std::shared_ptr<Triangulation> GaussianBump<dim,nspecies,nstate>::generate_grid() const 
 {
     if constexpr(dim==2) {
         std::shared_ptr <Triangulation> grid = std::make_shared<Triangulation>(
@@ -48,8 +48,8 @@ std::shared_ptr<Triangulation> GaussianBump<dim,nstate>::generate_grid() const
     // TO DO: Avoid reading the mesh twice (here and in set_high_order_grid -- need a default dummy triangulation)
 }
 
-template <int dim, int nstate>
-void GaussianBump<dim,nstate>::set_higher_order_grid(std::shared_ptr<DGBase<dim, double>> dg) const
+template <int dim, int nspecies, int nstate>
+void GaussianBump<dim,nspecies,nstate>::set_higher_order_grid(std::shared_ptr<DGBase<dim, nspecies, double>> dg) const
 {
     if constexpr(dim==3) {
         const std::string mesh_filename = this->all_param.flow_solver_param.input_mesh_filename+std::string(".msh");
@@ -61,8 +61,8 @@ void GaussianBump<dim,nstate>::set_higher_order_grid(std::shared_ptr<DGBase<dim,
     }
 }
 
-template <int dim, int nstate>
-void GaussianBump<dim,nstate>::display_additional_flow_case_specific_parameters() const
+template <int dim, int nspecies, int nstate>
+void GaussianBump<dim,nspecies,nstate>::display_additional_flow_case_specific_parameters() const
 {
     if constexpr(dim==2) {
         this->pcout << "- - Gaussian bump parameters: " << std::endl;
@@ -77,7 +77,7 @@ void GaussianBump<dim,nstate>::display_additional_flow_case_specific_parameters(
 }
 
 #if PHILIP_DIM!=1
-    template class GaussianBump<PHILIP_DIM, PHILIP_DIM+2>;
+    template class GaussianBump<PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2>;
 #endif
 
 }

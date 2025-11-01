@@ -16,11 +16,11 @@ namespace ODE {
 
 /// Base class for storing the RK method 
 #if PHILIP_DIM==1
-template <int dim, typename real, typename MeshType = dealii::Triangulation<dim>>
+template <int dim, int nspecies, typename real, typename MeshType = dealii::Triangulation<dim>>
 #else
-template <int dim, typename real, typename MeshType = dealii::parallel::distributed::Triangulation<dim>>
+template <int dim, int nspecies, typename real, typename MeshType = dealii::parallel::distributed::Triangulation<dim>>
 #endif
-class LowStorageRKTableauBase : public RKTableauBase<dim,real,MeshType>
+class LowStorageRKTableauBase : public RKTableauBase<dim,nspecies,real,MeshType>
 {
 public:
     /// Default constructor that will set the constants.

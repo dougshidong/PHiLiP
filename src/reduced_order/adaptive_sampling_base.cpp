@@ -20,8 +20,8 @@
 
 namespace PHiLiP {
 
-template<int dim, int nstate>
-AdaptiveSamplingBase<dim, nstate>::AdaptiveSamplingBase(const PHiLiP::Parameters::AllParameters *const parameters_input,
+template<int dim, int nspecies, int nstate>
+AdaptiveSamplingBase<dim, nspecies, nstate>::AdaptiveSamplingBase(const PHiLiP::Parameters::AllParameters *const parameters_input,
                                                 const dealii::ParameterHandler &parameter_handler_input)
         : all_parameters(parameters_input)
         , parameter_handler(parameter_handler_input)
@@ -30,17 +30,17 @@ AdaptiveSamplingBase<dim, nstate>::AdaptiveSamplingBase(const PHiLiP::Parameters
         , pcout(std::cout, mpi_rank==0)
 {
     configureInitialParameterSpace();
-    std::unique_ptr<FlowSolver::FlowSolver<dim,nstate>> flow_solver = FlowSolver::FlowSolverFactory<dim,nstate>::select_flow_case(all_parameters, parameter_handler);
+    std::unique_ptr<FlowSolver::FlowSolver<dim,nspecies,nstate>> flow_solver = FlowSolver::FlowSolverFactory<dim,nspecies,nstate>::select_flow_case(all_parameters, parameter_handler);
     const bool compute_dRdW = true;
     flow_solver->dg->assemble_residual(compute_dRdW);
     std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> system_matrix = std::make_shared<dealii::TrilinosWrappers::SparseMatrix>();
     system_matrix->copy_from(flow_solver->dg->system_matrix);
-    current_pod = std::make_shared<ProperOrthogonalDecomposition::OnlinePOD<dim>>(system_matrix);
+    current_pod = std::make_shared<ProperOrthogonalDecomposition::OnlinePOD<dim,nspecies>>(system_matrix);
     nearest_neighbors = std::make_shared<ProperOrthogonalDecomposition::NearestNeighbors>();
 }
 
-template <int dim, int nstate>
-void AdaptiveSamplingBase<dim, nstate>::outputIterationData(std::string iteration) const{
+template <int dim, int nspecies, int nstate>
+void AdaptiveSamplingBase<dim, nspecies, nstate>::outputIterationData(std::string iteration) const{
     std::unique_ptr<dealii::TableHandler> snapshot_table = std::make_unique<dealii::TableHandler>();
 
     std::ofstream solution_out_file("solution_snapshots_iteration_" +  iteration + ".txt");
@@ -76,8 +76,8 @@ void AdaptiveSamplingBase<dim, nstate>::outputIterationData(std::string iteratio
 }
 
 
-template <int dim, int nstate>
-RowVectorXd AdaptiveSamplingBase<dim, nstate>::readROMFunctionalPoint() const{
+template <int dim, int nspecies, int nstate>
+RowVectorXd AdaptiveSamplingBase<dim, nspecies, nstate>::readROMFunctionalPoint() const{
     RowVectorXd params(1);
 
     using FlowCaseEnum = Parameters::FlowSolverParam::FlowCaseType;
@@ -127,8 +127,8 @@ RowVectorXd AdaptiveSamplingBase<dim, nstate>::readROMFunctionalPoint() const{
     return params;
 }
 
-template <int dim, int nstate>
-RowVectorXd AdaptiveSamplingBase<dim, nstate>::getMaxErrorROM() const{
+template <int dim, int nspecies, int nstate>
+RowVectorXd AdaptiveSamplingBase<dim, nspecies, nstate>::getMaxErrorROM() const{
     this->pcout << "Updating RBF interpolation..." << std::endl;
 
     int n_rows = snapshot_parameters.rows() + rom_locations.size();
@@ -240,8 +240,8 @@ RowVectorXd AdaptiveSamplingBase<dim, nstate>::getMaxErrorROM() const{
     return max_error_params;
 }
 
-template <int dim, int nstate>
-void AdaptiveSamplingBase<dim, nstate>::placeInitialSnapshots() const{
+template <int dim, int nspecies, int nstate>
+void AdaptiveSamplingBase<dim, nspecies, nstate>::placeInitialSnapshots() const{
     for(auto snap_param : snapshot_parameters.rowwise()){
         this->pcout << "Sampling initial snapshot at " << snap_param << std::endl;
         dealii::LinearAlgebra::distributed::Vector<double> fom_solution = solveSnapshotFOM(snap_param);
@@ -251,16 +251,16 @@ void AdaptiveSamplingBase<dim, nstate>::placeInitialSnapshots() const{
     }
 }
 
-template <int dim, int nstate>
-dealii::LinearAlgebra::distributed::Vector<double> AdaptiveSamplingBase<dim, nstate>::solveSnapshotFOM(const RowVectorXd& parameter) const{
+template <int dim, int nspecies, int nstate>
+dealii::LinearAlgebra::distributed::Vector<double> AdaptiveSamplingBase<dim, nspecies, nstate>::solveSnapshotFOM(const RowVectorXd& parameter) const{
     this->pcout << "Solving FOM at " << parameter << std::endl;
     Parameters::AllParameters params = reinit_params(parameter);
 
-    std::unique_ptr<FlowSolver::FlowSolver<dim,nstate>> flow_solver = FlowSolver::FlowSolverFactory<dim,nstate>::select_flow_case(&params, parameter_handler);
+    std::unique_ptr<FlowSolver::FlowSolver<dim,nspecies,nstate>> flow_solver = FlowSolver::FlowSolverFactory<dim,nspecies,nstate>::select_flow_case(&params, parameter_handler);
 
     // Solve implicit solution
     auto ode_solver_type = Parameters::ODESolverParam::ODESolverEnum::implicit_solver;
-    flow_solver->ode_solver =  PHiLiP::ODE::ODESolverFactory<dim, double>::create_ODESolver_manual(ode_solver_type, flow_solver->dg);
+    flow_solver->ode_solver =  PHiLiP::ODE::ODESolverFactory<dim, nspecies, double>::create_ODESolver_manual(ode_solver_type, flow_solver->dg);
     flow_solver->ode_solver->allocate_ode_system();
     flow_solver->run();
 
@@ -268,8 +268,8 @@ dealii::LinearAlgebra::distributed::Vector<double> AdaptiveSamplingBase<dim, nst
     return flow_solver->dg->solution;
 }
 
-template <int dim, int nstate>
-Parameters::AllParameters AdaptiveSamplingBase<dim, nstate>::reinit_params(const RowVectorXd& parameter) const{
+template <int dim, int nspecies, int nstate>
+Parameters::AllParameters AdaptiveSamplingBase<dim, nspecies, nstate>::reinit_params(const RowVectorXd& parameter) const{
     // Copy all parameters
     PHiLiP::Parameters::AllParameters parameters = *(this->all_parameters);
 
@@ -318,8 +318,8 @@ Parameters::AllParameters AdaptiveSamplingBase<dim, nstate>::reinit_params(const
     return parameters;
 }
 
-template <int dim, int nstate>
-void AdaptiveSamplingBase<dim, nstate>::configureInitialParameterSpace() const
+template <int dim, int nspecies, int nstate>
+void AdaptiveSamplingBase<dim, nspecies, nstate>::configureInitialParameterSpace() const
 {
     const double pi = atan(1.0) * 4.0;
 
@@ -406,11 +406,11 @@ void AdaptiveSamplingBase<dim, nstate>::configureInitialParameterSpace() const
 }
 
 #if PHILIP_DIM==1
-    template class AdaptiveSamplingBase<PHILIP_DIM, PHILIP_DIM>;
+    template class AdaptiveSamplingBase<PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM>;
 #endif
 
 #if PHILIP_DIM!=1
-    template class AdaptiveSamplingBase<PHILIP_DIM, PHILIP_DIM+2>;
+    template class AdaptiveSamplingBase<PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2>;
 #endif
 
 }

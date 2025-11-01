@@ -18,8 +18,8 @@
 namespace PHiLiP {
 namespace ProperOrthogonalDecomposition {
 
-template <int dim>
-OfflinePOD<dim>::OfflinePOD(std::shared_ptr<DGBase<dim,double>> &dg_input)
+template <int dim, int nspecies>
+OfflinePOD<dim,nspecies>::OfflinePOD(std::shared_ptr<DGBase<dim,nspecies,double>> &dg_input)
         : basis(std::make_shared<dealii::TrilinosWrappers::SparseMatrix>())
         , dg(dg_input)
         , mpi_communicator(MPI_COMM_WORLD)
@@ -34,8 +34,8 @@ OfflinePOD<dim>::OfflinePOD(std::shared_ptr<DGBase<dim,double>> &dg_input)
     getPODBasisFromSnapshots();
 }
 
-template <int dim>
-bool OfflinePOD<dim>::getPODBasisFromSnapshots() {
+template <int dim, int nspecies>
+bool OfflinePOD<dim,nspecies>::getPODBasisFromSnapshots() {
     bool file_found = false;
     snapshotMatrix.resize(0,0);
     std::string path = dg->all_parameters->reduced_order_param.path_to_search; //Search specified directory for files containing "solutions_table"
@@ -104,8 +104,8 @@ bool OfflinePOD<dim>::getPODBasisFromSnapshots() {
     return file_found;
 }
 
-template <int dim>
-void OfflinePOD<dim>::computeBasis() {
+template <int dim, int nspecies>
+void OfflinePOD<dim,nspecies>::computeBasis() {
     /* Reference for simple POD basis computation: Refer to Algorithm 1 in the following reference:
     "Efficient non-linear model reduction via a least-squares Petrov–Galerkin projection and compressive tensor approximations"
     Kevin Carlberg, Charbel Bou-Mosleh, Charbel Farhat
@@ -183,22 +183,22 @@ void OfflinePOD<dim>::computeBasis() {
     basis->reinit(epetra_basis);
 }
 
-template <int dim>
-std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> OfflinePOD<dim>::getPODBasis() {
+template <int dim, int nspecies>
+std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> OfflinePOD<dim,nspecies>::getPODBasis() {
     return basis;
 }
 
-template <int dim>
-dealii::LinearAlgebra::ReadWriteVector<double> OfflinePOD<dim>::getReferenceState() {
+template <int dim, int nspecies>
+dealii::LinearAlgebra::ReadWriteVector<double> OfflinePOD<dim,nspecies>::getReferenceState() {
     return referenceState;
 }
 
-template <int dim>
-MatrixXd OfflinePOD<dim>::getSnapshotMatrix() {
+template <int dim, int nspecies>
+MatrixXd OfflinePOD<dim,nspecies>::getSnapshotMatrix() {
     return snapshotMatrix;
 }
 
-template class OfflinePOD <PHILIP_DIM>;
+template class OfflinePOD <PHILIP_DIM, PHILIP_SPECIES>;
 
 }
 }

@@ -34,6 +34,9 @@ foreach(dim RANGE 1 3)
     endif()
 
     target_compile_definitions(${PODLib} PRIVATE PHILIP_DIM=${dim})
+    # Replace occurences of PHILIP_SPECIES with 1 in the code
+    # NOTE: PHILIP_SPECIES will become user defined in a future PR
+    target_compile_definitions(${PODLib} PRIVATE PHILIP_SPECIES=1)
 
     # Setup target with deal.II
     unset(PODLib)

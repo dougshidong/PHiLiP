@@ -73,14 +73,14 @@ const std::string line_search_method =
     // "Iteration Scaling";
     "Backtracking";
 
-template <int dim, int nstate>
-EulerBumpOptimization<dim,nstate>::EulerBumpOptimization(const Parameters::AllParameters *const parameters_input)
+template <int dim, int nspecies, int nstate>
+EulerBumpOptimization<dim,nspecies,nstate>::EulerBumpOptimization(const Parameters::AllParameters *const parameters_input)
     :
     TestsBase::TestsBase(parameters_input)
 {}
 
-template<int dim, int nstate>
-int EulerBumpOptimization<dim,nstate>
+template<int dim, int nspecies, int nstate>
+int EulerBumpOptimization<dim,nspecies,nstate>
 ::run_test () const
 {
     int test_error = 0;
@@ -101,8 +101,8 @@ int EulerBumpOptimization<dim,nstate>
     return test_error;
 }
 
-template<int dim, int nstate>
-int EulerBumpOptimization<dim,nstate>
+template<int dim, int nspecies, int nstate>
+int EulerBumpOptimization<dim,nspecies,nstate>
 ::optimize_target_bump (const unsigned int nx_ffd, const unsigned int poly_degree) const
 {
     int test_error = 0;
@@ -189,15 +189,15 @@ int EulerBumpOptimization<dim,nstate>
     ManParam manu_grid_conv_param = param.manufactured_convergence_study_param;
 
 
-    Physics::Euler<dim,nstate,double> euler_physics_double
-        = Physics::Euler<dim, nstate, double>(
+    Physics::Euler<dim,nspecies,nstate,double> euler_physics_double
+        = Physics::Euler<dim, nspecies, nstate, double>(
                 &param,
                 param.euler_param.ref_length,
                 param.euler_param.gamma_gas,
                 param.euler_param.mach_inf,
                 param.euler_param.angle_of_attack,
                 param.euler_param.side_slip_angle);
-    FreeStreamInitialConditions<dim,nstate,double> initial_conditions(euler_physics_double);
+    FreeStreamInitialConditions<dim,nspecies,nstate,double> initial_conditions(euler_physics_double);
 
     std::vector<unsigned int> n_subdivisions(dim);
 
@@ -260,13 +260,13 @@ int EulerBumpOptimization<dim,nstate>
         grid->clear();
         Grids::gaussian_bump(*grid, n_subdivisions, CHANNEL_LENGTH, CHANNEL_HEIGHT, 0.5*BUMP_HEIGHT);
         // Create DG object
-        std::shared_ptr < DGBase<dim, double> > dg = DGFactory<dim,double>::create_discontinuous_galerkin(&param, poly_degree, grid);
+        std::shared_ptr < DGBase<dim, nspecies, double> > dg = DGFactory<dim,nspecies,double>::create_discontinuous_galerkin(&param, poly_degree, grid);
 
         // Initialize coarse grid solution with free-stream
         dg->allocate_system ();
         dealii::VectorTools::interpolate(dg->dof_handler, initial_conditions, dg->solution);
         // Create ODE solver and ramp up the solution from p0
-        std::shared_ptr<ODE::ODESolverBase<dim, double>> ode_solver = ODE::ODESolverFactory<dim, double>::create_ODESolver(dg);
+        std::shared_ptr<ODE::ODESolverBase<dim, nspecies, double>> ode_solver = ODE::ODESolverFactory<dim, nspecies, double>::create_ODESolver(dg);
         ode_solver->initialize_steady_polynomial_ramping (poly_degree);
         // Solve the steady state problem
         ode_solver->steady_state();
@@ -289,11 +289,11 @@ int EulerBumpOptimization<dim,nstate>
         ffd.set_design_variables( ffd_design_variables_indices_dim, ffd_design_variables);
 
         // Initialize flow solution with free-stream
-        std::shared_ptr < DGBase<dim, double> > dg = DGFactory<dim,double>::create_discontinuous_galerkin(&param, poly_degree, grid);
+        std::shared_ptr < DGBase<dim, nspecies, double> > dg = DGFactory<dim,nspecies,double>::create_discontinuous_galerkin(&param, poly_degree, grid);
         dg->allocate_system ();
         dealii::VectorTools::interpolate(dg->dof_handler, initial_conditions, dg->solution);
         // Create ODE solver and ramp up the solution from p0
-        std::shared_ptr<ODE::ODESolverBase<dim, double>> ode_solver = ODE::ODESolverFactory<dim, double>::create_ODESolver(dg);
+        std::shared_ptr<ODE::ODESolverBase<dim, nspecies, double>> ode_solver = ODE::ODESolverFactory<dim, nspecies, double>::create_ODESolver(dg);
         ode_solver->initialize_steady_polynomial_ramping (poly_degree);
         // Solve the steady state problem
         ode_solver->steady_state();
@@ -317,12 +317,12 @@ int EulerBumpOptimization<dim,nstate>
 
         // Reduced space problem
         const bool functional_uses_solution_values = true, functional_uses_solution_gradient = false;
-        TargetBoundaryFunctional<dim,nstate,double> target_bump_functional(dg, target_bump_solution, functional_uses_solution_values, functional_uses_solution_gradient);
+        TargetBoundaryFunctional<dim,nspecies,nstate,double> target_bump_functional(dg, target_bump_solution, functional_uses_solution_values, functional_uses_solution_gradient);
         std::shared_ptr<BaseParameterization<dim>> design_parameterization = 
                 std::make_shared<FreeFormDeformationParameterization<dim>>(dg->high_order_grid, ffd, ffd_design_variables_indices_dim);
         
-        auto obj  = ROL::makePtr<ROLObjectiveSimOpt<dim,nstate>>(target_bump_functional, design_parameterization);
-        auto con  = ROL::makePtr<FlowConstraints<dim>>(dg, design_parameterization);
+        auto obj  = ROL::makePtr<ROLObjectiveSimOpt<dim,nspecies,nstate>>(target_bump_functional, design_parameterization);
+        auto con  = ROL::makePtr<FlowConstraints<dim,nspecies>>(dg, design_parameterization);
         const bool storage = false;
         const bool useFDHessian = false;
         auto robj = ROL::makePtr<ROL::Reduced_Objective_SimOpt<double>>( obj, con, des_var_sim_rol_p, des_var_ctl_rol_p, des_var_adj_rol_p, storage, useFDHessian);
@@ -371,11 +371,11 @@ int EulerBumpOptimization<dim,nstate>
     ffd.set_design_variables( ffd_design_variables_indices_dim, ffd_design_variables);
 
     // Initialize flow solution with free-stream
-    std::shared_ptr < DGBase<dim, double> > dg = DGFactory<dim,double>::create_discontinuous_galerkin(&param, poly_degree, grid);
+    std::shared_ptr < DGBase<dim, nspecies, double> > dg = DGFactory<dim,nspecies,double>::create_discontinuous_galerkin(&param, poly_degree, grid);
     dg->allocate_system ();
     dealii::VectorTools::interpolate(dg->dof_handler, initial_conditions, dg->solution);
     // Create ODE solver and ramp up the solution from p0
-    std::shared_ptr<ODE::ODESolverBase<dim, double>> ode_solver = ODE::ODESolverFactory<dim, double>::create_ODESolver(dg);
+    std::shared_ptr<ODE::ODESolverBase<dim, nspecies, double>> ode_solver = ODE::ODESolverFactory<dim, nspecies, double>::create_ODESolver(dg);
     //param.ode_solver_param.nonlinear_steady_residual_tolerance = 1e-4;
     ode_solver->initialize_steady_polynomial_ramping (poly_degree);
     // // Solve the steady state problem
@@ -400,12 +400,12 @@ int EulerBumpOptimization<dim,nstate>
 
     // Reduced space problem
     const bool functional_uses_solution_values = true, functional_uses_solution_gradient = false;
-    TargetBoundaryFunctional<dim,nstate,double> target_ffd_functional(dg, target_ffd_solution, functional_uses_solution_values, functional_uses_solution_gradient);
+    TargetBoundaryFunctional<dim,nspecies,nstate,double> target_ffd_functional(dg, target_ffd_solution, functional_uses_solution_values, functional_uses_solution_gradient);
     std::shared_ptr<BaseParameterization<dim>> design_parameterization = 
                 std::make_shared<FreeFormDeformationParameterization<dim>>(dg->high_order_grid, ffd, ffd_design_variables_indices_dim);
     
-    auto obj  = ROL::makePtr<ROLObjectiveSimOpt<dim,nstate>>( target_ffd_functional, design_parameterization);
-    auto con  = ROL::makePtr<FlowConstraints<dim>>(dg, design_parameterization);
+    auto obj  = ROL::makePtr<ROLObjectiveSimOpt<dim,nspecies,nstate>>( target_ffd_functional, design_parameterization);
+    auto con  = ROL::makePtr<FlowConstraints<dim,nspecies>>(dg, design_parameterization);
 
     timing_start = MPI_Wtime();
     // Verbosity setting
@@ -525,7 +525,7 @@ int EulerBumpOptimization<dim,nstate>
 
 
 #if PHILIP_DIM==2
-    template class EulerBumpOptimization <PHILIP_DIM,PHILIP_DIM+2>;
+    template class EulerBumpOptimization <PHILIP_DIM, PHILIP_SPECIES,PHILIP_DIM+2>;
 #endif
 
 } // Tests namespace

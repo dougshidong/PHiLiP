@@ -9,8 +9,8 @@ namespace FlowSolver{
 //=========================================================
 // Gaussian Bump
 //=========================================================
-template <int dim, int nstate>
-class GaussianBump : public FlowSolverCaseBase<dim, nstate>
+template <int dim, int nspecies, int nstate>
+class GaussianBump : public FlowSolverCaseBase<dim, nspecies, nstate>
 {
 #if PHILIP_DIM==1
     using Triangulation = dealii::Triangulation<PHILIP_DIM>;
@@ -25,7 +25,7 @@ public:
     std::shared_ptr<Triangulation> generate_grid() const override;
 
     /// Function to set the higher order grid
-    void set_higher_order_grid(std::shared_ptr <DGBase<dim, double>> dg) const override;
+    void set_higher_order_grid(std::shared_ptr <DGBase<dim, nspecies, double>> dg) const override;
 
 protected:
     /// Display additional more specific flow case parameters

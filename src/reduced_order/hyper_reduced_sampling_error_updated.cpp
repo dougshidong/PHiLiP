@@ -24,14 +24,14 @@
 
 namespace PHiLiP {
 
-template<int dim, int nstate>
-HyperreducedSamplingErrorUpdated<dim, nstate>::HyperreducedSamplingErrorUpdated(const PHiLiP::Parameters::AllParameters *const parameters_input,
+template<int dim, int nspecies, int nstate>
+HyperreducedSamplingErrorUpdated<dim, nspecies, nstate>::HyperreducedSamplingErrorUpdated(const PHiLiP::Parameters::AllParameters *const parameters_input,
                                                 const dealii::ParameterHandler &parameter_handler_input)
-        : AdaptiveSamplingBase<dim, nstate>(parameters_input, parameter_handler_input)
+        : AdaptiveSamplingBase<dim, nspecies, nstate>(parameters_input, parameter_handler_input)
 {   }
 
-template <int dim, int nstate>
-int HyperreducedSamplingErrorUpdated<dim, nstate>::run_sampling() const
+template <int dim, int nspecies, int nstate>
+int HyperreducedSamplingErrorUpdated<dim, nspecies, nstate>::run_sampling() const
 {
     this->pcout << "Starting adaptive sampling process" << std::endl;
     auto stream = this->pcout;
@@ -39,7 +39,7 @@ int HyperreducedSamplingErrorUpdated<dim, nstate>::run_sampling() const
     int iteration = 0;
     timer.enter_subsection ("Iteration " + std::to_string(iteration));
     
-    std::unique_ptr<FlowSolver::FlowSolver<dim,nstate>> flow_solver = FlowSolver::FlowSolverFactory<dim,nstate>::select_flow_case(this->all_parameters, this->parameter_handler);
+    std::unique_ptr<FlowSolver::FlowSolver<dim,nspecies,nstate>> flow_solver = FlowSolver::FlowSolverFactory<dim,nspecies,nstate>::select_flow_case(this->all_parameters, this->parameter_handler);
 
     this->placeInitialSnapshots();
     this->current_pod->computeBasis();
@@ -49,11 +49,11 @@ int HyperreducedSamplingErrorUpdated<dim, nstate>::run_sampling() const
     // Find C and d for NNLS Problem
     Epetra_MpiComm Comm( MPI_COMM_WORLD );
     this->pcout << "Construct instance of Assembler..."<< std::endl;  
-    std::unique_ptr<HyperReduction::AssembleECSWBase<dim,nstate>> constructor_NNLS_problem;
+    std::unique_ptr<HyperReduction::AssembleECSWBase<dim,nspecies,nstate>> constructor_NNLS_problem;
     if (this->all_parameters->hyper_reduction_param.training_data == "residual")         
-        constructor_NNLS_problem = std::make_unique<HyperReduction::AssembleECSWRes<dim,nstate>>(this->all_parameters, this->parameter_handler, flow_solver->dg, this->current_pod, this->snapshot_parameters, ode_solver_type_HROM, Comm);
+        constructor_NNLS_problem = std::make_unique<HyperReduction::AssembleECSWRes<dim,nspecies,nstate>>(this->all_parameters, this->parameter_handler, flow_solver->dg, this->current_pod, this->snapshot_parameters, ode_solver_type_HROM, Comm);
     else {
-        constructor_NNLS_problem = std::make_unique<HyperReduction::AssembleECSWJac<dim,nstate>>(this->all_parameters, this->parameter_handler, flow_solver->dg, this->current_pod, this->snapshot_parameters, ode_solver_type_HROM, Comm);
+        constructor_NNLS_problem = std::make_unique<HyperReduction::AssembleECSWJac<dim,nspecies,nstate>>(this->all_parameters, this->parameter_handler, flow_solver->dg, this->current_pod, this->snapshot_parameters, ode_solver_type_HROM, Comm);
     }
 
     for (int k = 0; k < this->snapshot_parameters.rows(); k++){
@@ -96,16 +96,16 @@ int HyperreducedSamplingErrorUpdated<dim, nstate>::run_sampling() const
     this->pcout << "Solving FOM at " << functional_ROM << std::endl;
 
     Parameters::AllParameters params = this->reinit_params(functional_ROM);
-    std::unique_ptr<FlowSolver::FlowSolver<dim,nstate>> flow_solver_FOM = FlowSolver::FlowSolverFactory<dim,nstate>::select_flow_case(&params, this->parameter_handler);
+    std::unique_ptr<FlowSolver::FlowSolver<dim,nspecies,nstate>> flow_solver_FOM = FlowSolver::FlowSolverFactory<dim,nspecies,nstate>::select_flow_case(&params, this->parameter_handler);
 
     // Solve implicit solution
     auto ode_solver_type = Parameters::ODESolverParam::ODESolverEnum::implicit_solver;
-    flow_solver_FOM->ode_solver =  PHiLiP::ODE::ODESolverFactory<dim, double>::create_ODESolver_manual(ode_solver_type, flow_solver_FOM->dg);
+    flow_solver_FOM->ode_solver =  PHiLiP::ODE::ODESolverFactory<dim, nspecies, double>::create_ODESolver_manual(ode_solver_type, flow_solver_FOM->dg);
     flow_solver_FOM->ode_solver->allocate_ode_system();
     flow_solver_FOM->run();
 
     // Create functional
-    std::shared_ptr<Functional<dim,nstate,double>> functional_FOM = FunctionalFactory<dim,nstate,double>::create_Functional(params.functional_param, flow_solver_FOM->dg);
+    std::shared_ptr<Functional<dim,nspecies,nstate,double>> functional_FOM = FunctionalFactory<dim,nspecies,nstate,double>::create_Functional(params.functional_param, flow_solver_FOM->dg);
     this->pcout << "FUNCTIONAL FROM FOM" << std::endl;
     this->pcout << functional_FOM->evaluate_functional(false, false) << std::endl;
 
@@ -234,8 +234,8 @@ int HyperreducedSamplingErrorUpdated<dim, nstate>::run_sampling() const
     return 0;
 }
 
-template <int dim, int nstate>
-RowVectorXd HyperreducedSamplingErrorUpdated<dim, nstate>::getMaxErrorROM() const{
+template <int dim, int nspecies, int nstate>
+RowVectorXd HyperreducedSamplingErrorUpdated<dim, nspecies, nstate>::getMaxErrorROM() const{
     this->pcout << "Updating RBF interpolation..." << std::endl;
 
     int n_rows = this->snapshot_parameters.rows() + hrom_locations.size();
@@ -348,15 +348,15 @@ RowVectorXd HyperreducedSamplingErrorUpdated<dim, nstate>::getMaxErrorROM() cons
 }
 
 
-template <int dim, int nstate>
-bool HyperreducedSamplingErrorUpdated<dim, nstate>::placeROMLocations(const MatrixXd& rom_points, Epetra_Vector weights) const{
+template <int dim, int nspecies, int nstate>
+bool HyperreducedSamplingErrorUpdated<dim, nspecies, nstate>::placeROMLocations(const MatrixXd& rom_points, Epetra_Vector weights) const{
     bool error_greater_than_tolerance = false;
-    std::unique_ptr<FlowSolver::FlowSolver<dim,nstate>> flow_solver = FlowSolver::FlowSolverFactory<dim,nstate>::select_flow_case(this->all_parameters, this->parameter_handler);
+    std::unique_ptr<FlowSolver::FlowSolver<dim,nspecies,nstate>> flow_solver = FlowSolver::FlowSolverFactory<dim,nspecies,nstate>::select_flow_case(this->all_parameters, this->parameter_handler);
 
     for(auto midpoint : rom_points.rowwise()){
 
         // Check if ROM point already exists as another ROM point
-        auto element = std::find_if(hrom_locations.begin(), hrom_locations.end(), [&midpoint](std::unique_ptr<ProperOrthogonalDecomposition::HROMTestLocation<dim,nstate>>& location){ return location->parameter.isApprox(midpoint);} );
+        auto element = std::find_if(hrom_locations.begin(), hrom_locations.end(), [&midpoint](std::unique_ptr<ProperOrthogonalDecomposition::HROMTestLocation<dim,nspecies,nstate>>& location){ return location->parameter.isApprox(midpoint);} );
 
         // Check if ROM point already exists as a snapshot
         bool snapshot_exists = false;
@@ -367,8 +367,8 @@ bool HyperreducedSamplingErrorUpdated<dim, nstate>::placeROMLocations(const Matr
         }
 
         if(element == hrom_locations.end() && snapshot_exists == false){
-            std::unique_ptr<ProperOrthogonalDecomposition::ROMSolution<dim, nstate>> rom_solution = solveSnapshotROM(midpoint, weights);
-            hrom_locations.emplace_back(std::make_unique<ProperOrthogonalDecomposition::HROMTestLocation<dim,nstate>>(midpoint, std::move(rom_solution), flow_solver->dg, weights));
+            std::unique_ptr<ProperOrthogonalDecomposition::ROMSolution<dim, nspecies, nstate>> rom_solution = solveSnapshotROM(midpoint, weights);
+            hrom_locations.emplace_back(std::make_unique<ProperOrthogonalDecomposition::HROMTestLocation<dim,nspecies,nstate>>(midpoint, std::move(rom_solution), flow_solver->dg, weights));
             if(abs(hrom_locations.back()->total_error) > this->all_parameters->reduced_order_param.adaptation_tolerance){
                 error_greater_than_tolerance = true;
             }
@@ -380,8 +380,8 @@ bool HyperreducedSamplingErrorUpdated<dim, nstate>::placeROMLocations(const Matr
     return error_greater_than_tolerance;
 }
 
-template <int dim, int nstate>
-void HyperreducedSamplingErrorUpdated<dim, nstate>::trueErrorROM(const MatrixXd& rom_points, Epetra_Vector weights) const{
+template <int dim, int nspecies, int nstate>
+void HyperreducedSamplingErrorUpdated<dim, nspecies, nstate>::trueErrorROM(const MatrixXd& rom_points, Epetra_Vector weights) const{
 
     std::unique_ptr<dealii::TableHandler> rom_table = std::make_unique<dealii::TableHandler>();
 
@@ -401,65 +401,65 @@ void HyperreducedSamplingErrorUpdated<dim, nstate>::trueErrorROM(const MatrixXd&
     rom_table_file.close();
 }
 
-template <int dim, int nstate>
-double HyperreducedSamplingErrorUpdated<dim, nstate>::solveSnapshotROMandFOM(const RowVectorXd& parameter, Epetra_Vector weights) const{
+template <int dim, int nspecies, int nstate>
+double HyperreducedSamplingErrorUpdated<dim, nspecies, nstate>::solveSnapshotROMandFOM(const RowVectorXd& parameter, Epetra_Vector weights) const{
     this->pcout << "Solving HROM at " << parameter << std::endl;
     Parameters::AllParameters params = this->reinit_params(parameter);
 
-    std::unique_ptr<FlowSolver::FlowSolver<dim,nstate>> flow_solver_ROM = FlowSolver::FlowSolverFactory<dim,nstate>::select_flow_case(&params, this->parameter_handler);
+    std::unique_ptr<FlowSolver::FlowSolver<dim,nspecies,nstate>> flow_solver_ROM = FlowSolver::FlowSolverFactory<dim,nspecies,nstate>::select_flow_case(&params, this->parameter_handler);
 
     // Solve implicit solution
     auto ode_solver_type_ROM = Parameters::ODESolverParam::ODESolverEnum::hyper_reduced_petrov_galerkin_solver;
-    flow_solver_ROM->ode_solver =  PHiLiP::ODE::ODESolverFactory<dim, double>::create_ODESolver_manual(ode_solver_type_ROM, flow_solver_ROM->dg, this->current_pod, weights);
+    flow_solver_ROM->ode_solver =  PHiLiP::ODE::ODESolverFactory<dim, nspecies, double>::create_ODESolver_manual(ode_solver_type_ROM, flow_solver_ROM->dg, this->current_pod, weights);
     flow_solver_ROM->ode_solver->allocate_ode_system();
     flow_solver_ROM->ode_solver->steady_state();
 
     this->pcout << "Done solving HROM." << std::endl;
 
     // Create functional
-    std::shared_ptr<Functional<dim,nstate,double>> functional_ROM = FunctionalFactory<dim,nstate,double>::create_Functional(params.functional_param, flow_solver_ROM->dg);
+    std::shared_ptr<Functional<dim,nspecies,nstate,double>> functional_ROM = FunctionalFactory<dim,nspecies,nstate,double>::create_Functional(params.functional_param, flow_solver_ROM->dg);
 
     this->pcout << "Solving FOM at " << parameter << std::endl;
 
-    std::unique_ptr<FlowSolver::FlowSolver<dim,nstate>> flow_solver_FOM = FlowSolver::FlowSolverFactory<dim,nstate>::select_flow_case(&params, this->parameter_handler);
+    std::unique_ptr<FlowSolver::FlowSolver<dim,nspecies,nstate>> flow_solver_FOM = FlowSolver::FlowSolverFactory<dim,nspecies,nstate>::select_flow_case(&params, this->parameter_handler);
 
     // Solve implicit solution
     auto ode_solver_type = Parameters::ODESolverParam::ODESolverEnum::implicit_solver;
-    flow_solver_FOM->ode_solver =  PHiLiP::ODE::ODESolverFactory<dim, double>::create_ODESolver_manual(ode_solver_type, flow_solver_FOM->dg);
+    flow_solver_FOM->ode_solver =  PHiLiP::ODE::ODESolverFactory<dim, nspecies, double>::create_ODESolver_manual(ode_solver_type, flow_solver_FOM->dg);
     flow_solver_FOM->ode_solver->allocate_ode_system();
     flow_solver_FOM->run();
 
     // Create functional
-    std::shared_ptr<Functional<dim,nstate,double>> functional_FOM = FunctionalFactory<dim,nstate,double>::create_Functional(params.functional_param, flow_solver_FOM->dg);
+    std::shared_ptr<Functional<dim,nspecies,nstate,double>> functional_FOM = FunctionalFactory<dim,nspecies,nstate,double>::create_Functional(params.functional_param, flow_solver_FOM->dg);
 
     this->pcout << "Done solving FOM." << std::endl;
     return functional_ROM->evaluate_functional(false, false) - functional_FOM->evaluate_functional(false, false);
 }
 
-template <int dim, int nstate>
-void HyperreducedSamplingErrorUpdated<dim, nstate>::solveFunctionalHROM(const RowVectorXd& parameter, Epetra_Vector weights) const{
+template <int dim, int nspecies, int nstate>
+void HyperreducedSamplingErrorUpdated<dim, nspecies, nstate>::solveFunctionalHROM(const RowVectorXd& parameter, Epetra_Vector weights) const{
     this->pcout << "Solving HROM at " << parameter << std::endl;
     Parameters::AllParameters params = this->reinit_params(parameter);
 
-    std::unique_ptr<FlowSolver::FlowSolver<dim,nstate>> flow_solver_ROM = FlowSolver::FlowSolverFactory<dim,nstate>::select_flow_case(&params, this->parameter_handler);
+    std::unique_ptr<FlowSolver::FlowSolver<dim,nspecies,nstate>> flow_solver_ROM = FlowSolver::FlowSolverFactory<dim,nspecies,nstate>::select_flow_case(&params, this->parameter_handler);
 
     // Solve 
     auto ode_solver_type_ROM = Parameters::ODESolverParam::ODESolverEnum::hyper_reduced_petrov_galerkin_solver;
-    flow_solver_ROM->ode_solver =  PHiLiP::ODE::ODESolverFactory<dim, double>::create_ODESolver_manual(ode_solver_type_ROM, flow_solver_ROM->dg, this->current_pod, weights);
+    flow_solver_ROM->ode_solver =  PHiLiP::ODE::ODESolverFactory<dim, nspecies, double>::create_ODESolver_manual(ode_solver_type_ROM, flow_solver_ROM->dg, this->current_pod, weights);
     flow_solver_ROM->ode_solver->allocate_ode_system();
     flow_solver_ROM->ode_solver->steady_state();
 
     this->pcout << "Done solving HROM." << std::endl;
 
     // Create functional
-    std::shared_ptr<Functional<dim,nstate,double>> functional_ROM = FunctionalFactory<dim,nstate,double>::create_Functional(params.functional_param, flow_solver_ROM->dg);
+    std::shared_ptr<Functional<dim,nspecies,nstate,double>> functional_ROM = FunctionalFactory<dim,nspecies,nstate,double>::create_Functional(params.functional_param, flow_solver_ROM->dg);
 
     rom_functional.emplace_back(functional_ROM->evaluate_functional(false, false));
 }
 
-template <int dim, int nstate>
-void HyperreducedSamplingErrorUpdated<dim, nstate>::updateNearestExistingROMs(const RowVectorXd& /*parameter*/, Epetra_Vector weights) const{
-    std::unique_ptr<FlowSolver::FlowSolver<dim,nstate>> flow_solver = FlowSolver::FlowSolverFactory<dim,nstate>::select_flow_case(this->all_parameters, this->parameter_handler);
+template <int dim, int nspecies, int nstate>
+void HyperreducedSamplingErrorUpdated<dim, nspecies, nstate>::updateNearestExistingROMs(const RowVectorXd& /*parameter*/, Epetra_Vector weights) const{
+    std::unique_ptr<FlowSolver::FlowSolver<dim,nspecies,nstate>> flow_solver = FlowSolver::FlowSolverFactory<dim,nspecies,nstate>::select_flow_case(this->all_parameters, this->parameter_handler);
 
     this->pcout << "Verifying ROM points for recomputation." << std::endl;
     // Assemble ROM points in a matrix
@@ -493,41 +493,41 @@ void HyperreducedSamplingErrorUpdated<dim, nstate>::updateNearestExistingROMs(co
         local_mean_error = local_mean_error / (rom_points.cols() + 1);
         if ((std::abs(hrom_locations[index[0]]->total_error) > this->all_parameters->reduced_order_param.recomputation_coefficient * local_mean_error) || (std::abs(hrom_locations[index[0]]->total_error) < (1/this->all_parameters->reduced_order_param.recomputation_coefficient) * local_mean_error)) {
             this->pcout << "Total error greater than tolerance. Recomputing ROM solution" << std::endl;
-            std::unique_ptr<ProperOrthogonalDecomposition::ROMSolution<dim, nstate>> rom_solution = solveSnapshotROM(hrom_locations[index[0]]->parameter, weights);
-            std::unique_ptr<ProperOrthogonalDecomposition::HROMTestLocation<dim, nstate>> rom_location = std::make_unique<ProperOrthogonalDecomposition::HROMTestLocation<dim, nstate>>(hrom_locations[index[0]]->parameter, std::move(rom_solution), flow_solver->dg, weights);
+            std::unique_ptr<ProperOrthogonalDecomposition::ROMSolution<dim, nspecies, nstate>> rom_solution = solveSnapshotROM(hrom_locations[index[0]]->parameter, weights);
+            std::unique_ptr<ProperOrthogonalDecomposition::HROMTestLocation<dim, nspecies, nstate>> rom_location = std::make_unique<ProperOrthogonalDecomposition::HROMTestLocation<dim, nspecies, nstate>>(hrom_locations[index[0]]->parameter, std::move(rom_solution), flow_solver->dg, weights);
             hrom_locations[index[0]] = std::move(rom_location);
         }
     }
 }
 
-template <int dim, int nstate>
-std::unique_ptr<ProperOrthogonalDecomposition::ROMSolution<dim,nstate>> HyperreducedSamplingErrorUpdated<dim, nstate>::solveSnapshotROM(const RowVectorXd& parameter, Epetra_Vector weights) const{
+template <int dim, int nspecies, int nstate>
+std::unique_ptr<ProperOrthogonalDecomposition::ROMSolution<dim,nspecies,nstate>> HyperreducedSamplingErrorUpdated<dim, nspecies, nstate>::solveSnapshotROM(const RowVectorXd& parameter, Epetra_Vector weights) const{
     this->pcout << "Solving ROM at " << parameter << std::endl;
     Parameters::AllParameters params = this->reinit_params(parameter);
 
-    std::unique_ptr<FlowSolver::FlowSolver<dim,nstate>> flow_solver = FlowSolver::FlowSolverFactory<dim,nstate>::select_flow_case(&params, this->parameter_handler);
+    std::unique_ptr<FlowSolver::FlowSolver<dim,nspecies,nstate>> flow_solver = FlowSolver::FlowSolverFactory<dim,nspecies,nstate>::select_flow_case(&params, this->parameter_handler);
 
     // Solve implicit solution
     auto ode_solver_type = Parameters::ODESolverParam::ODESolverEnum::hyper_reduced_petrov_galerkin_solver;
-    flow_solver->ode_solver =  PHiLiP::ODE::ODESolverFactory<dim, double>::create_ODESolver_manual(ode_solver_type, flow_solver->dg, this->current_pod, weights);
+    flow_solver->ode_solver =  PHiLiP::ODE::ODESolverFactory<dim, nspecies, double>::create_ODESolver_manual(ode_solver_type, flow_solver->dg, this->current_pod, weights);
     flow_solver->ode_solver->allocate_ode_system();
     flow_solver->ode_solver->steady_state();
 
     // Create functional
-    std::shared_ptr<Functional<dim,nstate,double>> functional = FunctionalFactory<dim,nstate,double>::create_Functional(params.functional_param, flow_solver->dg);
+    std::shared_ptr<Functional<dim,nspecies,nstate,double>> functional = FunctionalFactory<dim,nspecies,nstate,double>::create_Functional(params.functional_param, flow_solver->dg);
     functional->evaluate_functional( true, false, false);
 
     dealii::LinearAlgebra::distributed::Vector<double> solution(flow_solver->dg->solution);
     dealii::LinearAlgebra::distributed::Vector<double> gradient(functional->dIdw);
 
-    std::unique_ptr<ProperOrthogonalDecomposition::ROMSolution<dim,nstate>> rom_solution = std::make_unique<ProperOrthogonalDecomposition::ROMSolution<dim, nstate>>(params, solution, gradient);
+    std::unique_ptr<ProperOrthogonalDecomposition::ROMSolution<dim,nspecies,nstate>> rom_solution = std::make_unique<ProperOrthogonalDecomposition::ROMSolution<dim, nspecies, nstate>>(params, solution, gradient);
     this->pcout << "Done solving ROM." << std::endl;
 
     return rom_solution;
 }
 
-template <int dim, int nstate>
-Epetra_Vector HyperreducedSamplingErrorUpdated<dim,nstate>::allocateVectorToSingleCore(const Epetra_Vector &b) const{
+template <int dim, int nspecies, int nstate>
+Epetra_Vector HyperreducedSamplingErrorUpdated<dim,nspecies,nstate>::allocateVectorToSingleCore(const Epetra_Vector &b) const{
     // Gather Vector Information
     const Epetra_SerialComm sComm;
     const int b_size = b.GlobalLength();
@@ -543,8 +543,8 @@ Epetra_Vector HyperreducedSamplingErrorUpdated<dim,nstate>::allocateVectorToSing
     return b_temp;
 }
 
-template <int dim, int nstate>
-void HyperreducedSamplingErrorUpdated<dim, nstate>::outputIterationData(std::string iteration) const{
+template <int dim, int nspecies, int nstate>
+void HyperreducedSamplingErrorUpdated<dim, nspecies, nstate>::outputIterationData(std::string iteration) const{
     std::unique_ptr<dealii::TableHandler> snapshot_table = std::make_unique<dealii::TableHandler>();
 
     std::ofstream solution_out_file("solution_snapshots_iteration_" +  iteration + ".txt");
@@ -580,11 +580,11 @@ void HyperreducedSamplingErrorUpdated<dim, nstate>::outputIterationData(std::str
 }
 
 #if PHILIP_DIM==1
-        template class HyperreducedSamplingErrorUpdated<PHILIP_DIM, PHILIP_DIM>;
+        template class HyperreducedSamplingErrorUpdated<PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM>;
 #endif
 
 #if PHILIP_DIM!=1
-        template class HyperreducedSamplingErrorUpdated<PHILIP_DIM, PHILIP_DIM+2>;
+        template class HyperreducedSamplingErrorUpdated<PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2>;
 #endif
 
 }

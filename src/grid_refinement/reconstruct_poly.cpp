@@ -16,8 +16,8 @@ namespace PHiLiP {
 
 namespace GridRefinement {
 
-template <int dim, int nstate, typename real>
-ReconstructPoly<dim,nstate,real>::ReconstructPoly(
+template <int dim, int nspecies, int nstate, typename real>
+ReconstructPoly<dim,nspecies,nstate,real>::ReconstructPoly(
         const dealii::DoFHandler<dim>&            dof_handler,           // dof_handler
         const dealii::hp::MappingCollection<dim>& mapping_collection,    // mapping collection
         const dealii::hp::FECollection<dim>&      fe_collection,         // fe collection
@@ -33,22 +33,22 @@ ReconstructPoly<dim,nstate,real>::ReconstructPoly(
     reinit(dof_handler.get_triangulation().n_active_cells());
 }
 
-template <int dim, int nstate, typename real>
-void ReconstructPoly<dim,nstate,real>::set_norm_type(const NormType norm_type)
+template <int dim, int nspecies, int nstate, typename real>
+void ReconstructPoly<dim,nspecies,nstate,real>::set_norm_type(const NormType norm_type)
 {
     this->norm_type = norm_type;
 }
 
-template <int dim, int nstate, typename real>
-void ReconstructPoly<dim,nstate,real>::reinit(const unsigned int n)
+template <int dim, int nspecies, int nstate, typename real>
+void ReconstructPoly<dim,nspecies,nstate,real>::reinit(const unsigned int n)
 {
     derivative_value.resize(n);
     derivative_direction.resize(n);
 }
 
 // reconstruct the directional derivatives of the reconstructed solution along each of the quad chords
-template <int dim, int nstate, typename real>
-void ReconstructPoly<dim,nstate,real>::reconstruct_chord_derivative(
+template <int dim, int nspecies, int nstate, typename real>
+void ReconstructPoly<dim,nspecies,nstate,real>::reconstruct_chord_derivative(
     const dealii::LinearAlgebra::distributed::Vector<real>& solution,  // solution approximation to be reconstructed
     const unsigned int                                      rel_order) // order of the apporximation
 {
@@ -162,8 +162,8 @@ void ReconstructPoly<dim,nstate,real>::reconstruct_chord_derivative(
 }
 
 // takes an input field and polynomial space and output the largest directional derivative and coresponding normal direction
-template <int dim, int nstate, typename real>
-void ReconstructPoly<dim,nstate,real>::reconstruct_directional_derivative(
+template <int dim, int nspecies, int nstate, typename real>
+void ReconstructPoly<dim,nspecies,nstate,real>::reconstruct_directional_derivative(
     const dealii::LinearAlgebra::distributed::Vector<real>&  solution,  // solution approximation to be reconstructed
     const unsigned int                                       rel_order) // order of the apporximation
 {
@@ -428,9 +428,9 @@ void ReconstructPoly<dim,nstate,real>::reconstruct_directional_derivative(
     }
 }
 
-template <int dim, int nstate, typename real>
-void ReconstructPoly<dim,nstate,real>::reconstruct_manufactured_derivative(
-    const std::shared_ptr<ManufacturedSolutionFunction<dim,real>>& manufactured_solution,
+template <int dim, int nspecies, int nstate, typename real>
+void ReconstructPoly<dim,nspecies,nstate,real>::reconstruct_manufactured_derivative(
+    const std::shared_ptr<ManufacturedSolutionFunction<dim,nspecies,real>>& manufactured_solution,
     const unsigned int                                             rel_order)
 {
     for(auto cell = dof_handler.begin_active(); cell != dof_handler.end(); ++cell){
@@ -512,9 +512,9 @@ std::array<unsigned int, 3> compute_index<3>(
     return {{dealii::numbers::invalid_unsigned_int, dealii::numbers::invalid_unsigned_int, dealii::numbers::invalid_unsigned_int}};
 }
 
-template <int dim, int nstate, typename real>
+template <int dim, int nspecies, int nstate, typename real>
 template <typename DoFCellAccessorType>
-dealii::Vector<real> ReconstructPoly<dim,nstate,real>::reconstruct_norm(
+dealii::Vector<real> ReconstructPoly<dim,nspecies,nstate,real>::reconstruct_norm(
     const NormType                                          norm_type,
     const DoFCellAccessorType &                             curr_cell,
     const dealii::PolynomialSpace<dim>                      ps,
@@ -545,9 +545,9 @@ dealii::Vector<real> ReconstructPoly<dim,nstate,real>::reconstruct_norm(
 
 }
 
-template <int dim, int nstate, typename real>
+template <int dim, int nspecies, int nstate, typename real>
 template <typename DoFCellAccessorType>
-dealii::Vector<real> ReconstructPoly<dim,nstate,real>::reconstruct_H1_norm(
+dealii::Vector<real> ReconstructPoly<dim,nspecies,nstate,real>::reconstruct_H1_norm(
     const DoFCellAccessorType &                             curr_cell,
     const dealii::PolynomialSpace<dim>                      ps,
     const dealii::LinearAlgebra::distributed::Vector<real> &solution)
@@ -566,7 +566,7 @@ dealii::Vector<real> ReconstructPoly<dim,nstate,real>::reconstruct_H1_norm(
     unsigned int n_vec = 0;
 
     // fe_values
-    dealii::hp::FEValues<dim,dim> fe_values_collection(
+    dealii::hp::FEValues<dim,dim>  fe_values_collection(
         mapping_collection,
         fe_collection,
         quadrature_collection,
@@ -656,9 +656,9 @@ dealii::Vector<real> ReconstructPoly<dim,nstate,real>::reconstruct_H1_norm(
     return coeffs;
 }
 
-template <int dim, int nstate, typename real>
+template <int dim, int nspecies, int nstate, typename real>
 template <typename DoFCellAccessorType>
-dealii::Vector<real> ReconstructPoly<dim,nstate,real>::reconstruct_L2_norm(
+dealii::Vector<real> ReconstructPoly<dim,nspecies,nstate,real>::reconstruct_L2_norm(
     const DoFCellAccessorType &                             curr_cell,
     const dealii::PolynomialSpace<dim>                      ps,
     const dealii::LinearAlgebra::distributed::Vector<real> &solution)
@@ -675,7 +675,7 @@ dealii::Vector<real> ReconstructPoly<dim,nstate,real>::reconstruct_L2_norm(
     unsigned int n_vec = 0;
 
     // fe_values
-    dealii::hp::FEValues<dim,dim> fe_values_collection(
+    dealii::hp::FEValues<dim,dim>  fe_values_collection(
         mapping_collection,
         fe_collection,
         quadrature_collection,
@@ -761,9 +761,9 @@ dealii::Vector<real> ReconstructPoly<dim,nstate,real>::reconstruct_L2_norm(
 // based on DEALII GridTools::get_patch_around_cell
 // https://www.dealii.org/current/doxygen/deal.II/grid__tools__dof__handlers_8cc_source.html#l01411
 // modified to work directly on the dof_handler accesor for hp-access rather than casting back and forth
-template <int dim, int nstate, typename real>
+template <int dim, int nspecies, int nstate, typename real>
 template <typename DoFCellAccessorType>
-std::vector<DoFCellAccessorType> ReconstructPoly<dim,nstate,real>::get_patch_around_dof_cell(
+std::vector<DoFCellAccessorType> ReconstructPoly<dim,nspecies,nstate,real>::get_patch_around_dof_cell(
     const DoFCellAccessorType &cell)
 {
     Assert(cell->is_locally_owned(), dealii::ExcInternalError());
@@ -799,8 +799,8 @@ std::vector<DoFCellAccessorType> ReconstructPoly<dim,nstate,real>::get_patch_aro
     return patch;
 }
 
-template <int dim, int nstate, typename real>
-dealii::Vector<real> ReconstructPoly<dim,nstate,real>::get_derivative_value_vector_dealii(
+template <int dim, int nspecies, int nstate, typename real>
+dealii::Vector<real> ReconstructPoly<dim,nspecies,nstate,real>::get_derivative_value_vector_dealii(
     const unsigned int index)
 {
     dealii::Vector<real> vec(derivative_value.size());
@@ -812,11 +812,11 @@ dealii::Vector<real> ReconstructPoly<dim,nstate,real>::get_derivative_value_vect
     return vec;
 }
 
-template class ReconstructPoly<PHILIP_DIM, 1, double>;
-template class ReconstructPoly<PHILIP_DIM, 2, double>;
-template class ReconstructPoly<PHILIP_DIM, 3, double>;
-template class ReconstructPoly<PHILIP_DIM, 4, double>;
-template class ReconstructPoly<PHILIP_DIM, 5, double>;
+template class ReconstructPoly<PHILIP_DIM, PHILIP_SPECIES, 1, double>;
+template class ReconstructPoly<PHILIP_DIM, PHILIP_SPECIES, 2, double>;
+template class ReconstructPoly<PHILIP_DIM, PHILIP_SPECIES, 3, double>;
+template class ReconstructPoly<PHILIP_DIM, PHILIP_SPECIES, 4, double>;
+template class ReconstructPoly<PHILIP_DIM, PHILIP_SPECIES, 5, double>;
 
 } // namespace GridRefinement
 

@@ -14,19 +14,19 @@
 namespace PHiLiP {
 namespace Tests {
 
-template <int dim, int nstate>
-HyperAdaptiveSamplingRun<dim, nstate>::HyperAdaptiveSamplingRun(const Parameters::AllParameters *const parameters_input,
+template <int dim, int nspecies, int nstate>
+HyperAdaptiveSamplingRun<dim, nspecies, nstate>::HyperAdaptiveSamplingRun(const Parameters::AllParameters *const parameters_input,
                                         const dealii::ParameterHandler &parameter_handler_input)
         : TestsBase::TestsBase(parameters_input)
         , parameter_handler(parameter_handler_input)
 {}
 
-template <int dim, int nstate>
-int HyperAdaptiveSamplingRun<dim, nstate>::run_test() const
+template <int dim, int nspecies, int nstate>
+int HyperAdaptiveSamplingRun<dim, nspecies, nstate>::run_test() const
 {
     pcout << "Starting hyperreduced adaptive sampling procedure..." << std::endl;
 
-    HyperreducedAdaptiveSampling<dim, nstate> sampling_imp(this->all_parameters, parameter_handler);
+    HyperreducedAdaptiveSampling<dim, nspecies, nstate> sampling_imp(this->all_parameters, parameter_handler);
     int exit = sampling_imp.run_sampling();
     
     if (exit == 0){
@@ -39,11 +39,11 @@ int HyperAdaptiveSamplingRun<dim, nstate>::run_test() const
 }
 
 #if PHILIP_DIM==1
-        template class HyperAdaptiveSamplingRun<PHILIP_DIM, PHILIP_DIM>;
+        template class HyperAdaptiveSamplingRun<PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM>;
 #endif
 
 #if PHILIP_DIM!=1
-        template class HyperAdaptiveSamplingRun<PHILIP_DIM, PHILIP_DIM+2>;
+        template class HyperAdaptiveSamplingRun<PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2>;
 #endif
 } // Tests namespace
 } // PHiLiP namespace

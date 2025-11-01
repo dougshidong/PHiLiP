@@ -22,15 +22,15 @@ Details on the ROM points/errors can be found in sections 5 and 6
 
 Derivation of the new error indicator will likely be detailed in Calista Biondic's thesis
 */
-template <int dim, int nstate>
-class HROMTestLocation: public TestLocationBase<dim,nstate>
+template <int dim, int nspecies, int nstate>
+class HROMTestLocation: public TestLocationBase<dim,nspecies,nstate>
 {
 public:
     /// Constructor
-    HROMTestLocation(const RowVectorXd& parameter, std::unique_ptr<ROMSolution < dim, nstate>> rom_solution, std::shared_ptr< DGBase<dim, double> > dg_input, Epetra_Vector weights);
+    HROMTestLocation(const RowVectorXd& parameter, std::unique_ptr<ROMSolution < dim, nspecies, nstate>> rom_solution, std::shared_ptr< DGBase<dim, nspecies, double> > dg_input, Epetra_Vector weights);
 
     /// Compute error between initial ROM and final ROM
-    void compute_initial_rom_to_final_rom_error(std::shared_ptr<ProperOrthogonalDecomposition::PODBase<dim>> pod_updated) override;
+    void compute_initial_rom_to_final_rom_error(std::shared_ptr<ProperOrthogonalDecomposition::PODBase<dim,nspecies>> pod_updated) override;
 
     /// Generate hyper-reduced jacobian matrix
     std::shared_ptr<Epetra_CrsMatrix> generate_hyper_reduced_jacobian(const Epetra_CrsMatrix &system_matrix);
@@ -39,7 +39,7 @@ public:
     std::shared_ptr<Epetra_CrsMatrix> generate_test_basis(Epetra_CrsMatrix &epetra_system_matrix, const Epetra_CrsMatrix &pod_basis);
 
     /// Smart pointer to DGBase
-    std::shared_ptr<DGBase<dim,double>> dg;
+    std::shared_ptr<DGBase<dim,nspecies,double>> dg;
 
     /// ECSW hyper-reduction weights
     Epetra_Vector ECSW_weights;

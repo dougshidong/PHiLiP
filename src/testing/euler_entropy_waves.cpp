@@ -33,9 +33,9 @@
 namespace PHiLiP {
 namespace Tests {
 
-template <int dim, typename real>
-EulerEntropyWavesFunction<dim,real>
-::EulerEntropyWavesFunction (const Physics::Euler<dim, dim+2, real> euler_physics, const real dimensional_density_inf)
+template <int dim, int nspecies, typename real>
+EulerEntropyWavesFunction<dim,nspecies,real>
+::EulerEntropyWavesFunction (const Physics::Euler<dim, nspecies, dim+2, real> euler_physics, const real dimensional_density_inf)
     : dealii::Function<dim,real>(dim+2, 0.0)
     , euler_physics(euler_physics)
     , dimensional_density_inf(dimensional_density_inf)
@@ -46,8 +46,8 @@ EulerEntropyWavesFunction<dim,real>
     }
 }
 
-template <int dim, typename real>
-inline real EulerEntropyWavesFunction<dim,real>
+template <int dim, int nspecies, typename real>
+inline real EulerEntropyWavesFunction<dim,nspecies,real>
 ::value (const dealii::Point<dim> &point, const unsigned int istate) const
 {
 
@@ -73,14 +73,14 @@ inline real EulerEntropyWavesFunction<dim,real>
     return conservative_values[istate];
 }
 
-template <int dim, int nstate>
-EulerEntropyWaves<dim,nstate>::EulerEntropyWaves(const Parameters::AllParameters *const parameters_input)
+template <int dim, int nspecies, int nstate>
+EulerEntropyWaves<dim,nspecies,nstate>::EulerEntropyWaves(const Parameters::AllParameters *const parameters_input)
     :
     TestsBase::TestsBase(parameters_input)
 {}
 
-template<int dim, int nstate>
-int EulerEntropyWaves<dim,nstate>
+template<int dim, int nspecies, int nstate>
+int EulerEntropyWaves<dim,nspecies,nstate>
 ::run_test () const
 {
     using ManParam = Parameters::ManufacturedConvergenceStudyParam;
@@ -101,14 +101,14 @@ int EulerEntropyWaves<dim,nstate>
     std::vector<double> fail_conv_slop;
     std::vector<dealii::ConvergenceTable> convergence_table_vector;
 
-    std::shared_ptr <Physics::PhysicsBase<dim,nstate,double>> physics = Physics::PhysicsFactory<dim, nstate, double>::create_Physics(&param);
-    std::shared_ptr <Physics::Euler<dim,nstate,double>> euler = std::dynamic_pointer_cast<Physics::Euler<dim,nstate,double>>(physics);
+    std::shared_ptr <Physics::PhysicsBase<dim,nspecies,nstate,double>> physics = Physics::PhysicsFactory<dim, nspecies, nstate, double>::create_Physics(&param);
+    std::shared_ptr <Physics::Euler<dim,nspecies,nstate,double>> euler = std::dynamic_pointer_cast<Physics::Euler<dim,nspecies,nstate,double>>(physics);
 
     const double dimensional_density_inf = 1.0;
-    EulerEntropyWavesFunction<dim,double> initial_vortex_function(*euler, dimensional_density_inf);
+    EulerEntropyWavesFunction<dim,nspecies,double> initial_vortex_function(*euler, dimensional_density_inf);
     initial_vortex_function.set_time(0.0);
 
-    EulerEntropyWavesFunction<dim,double> final_vortex_function(*euler, dimensional_density_inf);
+    EulerEntropyWavesFunction<dim,nspecies,double> final_vortex_function(*euler, dimensional_density_inf);
     final_vortex_function.set_time(1.0);
 
     for (unsigned int poly_degree = p_start; poly_degree <= p_end; ++poly_degree) {
@@ -197,14 +197,14 @@ int EulerEntropyWaves<dim,nstate>
             if (random_factor > 0.0) dealii::GridTools::distort_random (random_factor, *grid, keep_boundary);
 
             // Create DG object using the factory
-            std::shared_ptr < DGBase<dim, double> > dg = DGFactory<dim,double>::create_discontinuous_galerkin(&param, poly_degree, grid);
+            std::shared_ptr < DGBase<dim, nspecies, double> > dg = DGFactory<dim,nspecies,double>::create_discontinuous_galerkin(&param, poly_degree, grid);
             dg->allocate_system ();
 
             // Initialize solution with vortex function at time t=0
             dealii::VectorTools::interpolate(dg->dof_handler, initial_vortex_function, dg->solution);
 
             // Create ODE solver using the factory and providing the DG object
-            std::shared_ptr<ODE::ODESolverBase<dim, double>> ode_solver = ODE::ODESolverFactory<dim, double>::create_ODESolver(dg);
+            std::shared_ptr<ODE::ODESolverBase<dim, nspecies, double>> ode_solver = ODE::ODESolverFactory<dim, nspecies, double>::create_ODESolver(dg);
 
             unsigned int n_active_cells = grid->n_active_cells();
             std::cout
@@ -372,7 +372,7 @@ int EulerEntropyWaves<dim,nstate>
     return n_fail_poly;
 }
 
-template class EulerEntropyWaves <PHILIP_DIM,PHILIP_DIM+2>;
+template class EulerEntropyWaves <PHILIP_DIM, PHILIP_SPECIES,PHILIP_DIM+2>;
 
 
 } // Tests namespace

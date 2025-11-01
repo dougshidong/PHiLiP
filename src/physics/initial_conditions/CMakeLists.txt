@@ -8,6 +8,9 @@ foreach(dim RANGE 1 3)
     string(CONCAT InitialConditionsLib InitialConditions_${dim}D)
     add_library(${InitialConditionsLib} STATIC ${INITIAL_CONDITIONS_SOURCE})
     target_compile_definitions(${InitialConditionsLib} PRIVATE PHILIP_DIM=${dim})
+    # Replace occurences of PHILIP_SPECIES with 1 in the code
+    # NOTE: PHILIP_SPECIES will become user defined in a future PR
+    target_compile_definitions(${InitialConditionsLib} PRIVATE PHILIP_SPECIES=1)
 
     # Link with Libraries
     string(CONCAT PhysicsLib Physics_${dim}D)

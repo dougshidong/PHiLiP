@@ -360,7 +360,7 @@ public:
     // /** The metric Jacobian is given by the gradient of the physical location
     //  *  with respect to the reference locations
     //  */
-    //  dealii::Tensor<2,dim,real> cell_jacobian (const typename dealii::Triangulation<dim,nspecies,spacedim>::cell_iterator &cell, const dealii::Point<dim> &point) const override
+    //  dealii::Tensor<2,dim,real> cell_jacobian (const typename dealii::Triangulation<dim,spacedim>::cell_iterator &cell, const dealii::Point<dim> &point) const override
     //  {
     //  }
 
@@ -453,7 +453,7 @@ protected:
 };
 
 /// Postprocessor used to output the grid.
-template <int dim, int nspecies>
+template <int dim>
 class GridPostprocessor : public dealii::DataPostprocessor<dim>
 {
 public:

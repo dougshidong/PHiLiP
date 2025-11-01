@@ -120,8 +120,8 @@ real2 FunctionalNormLpBoundary<dim,nspecies,nstate,real,MeshType>::evaluate_boun
 
 template <int dim, int nspecies, int nstate, typename real, typename MeshType>
 FunctionalWeightedIntegralVolume<dim,nspecies,nstate,real,MeshType>::FunctionalWeightedIntegralVolume(
-    std::shared_ptr<ManufacturedSolutionFunction<dim,nspecies,real>>                    _weight_function_double,
-    std::shared_ptr<ManufacturedSolutionFunction<dim,nspecies,FadFadType>>              _weight_function_adtype,
+    std::shared_ptr<ManufacturedSolutionFunction<dim,real> >                    _weight_function_double,
+    std::shared_ptr<ManufacturedSolutionFunction<dim,FadFadType>>              _weight_function_adtype,
     const bool                                                                 _use_weight_function_laplacian,
     std::shared_ptr<DGBase<dim,nspecies,real,MeshType>>                                 _dg,
     const bool                                                                 _uses_solution_values,
@@ -138,7 +138,7 @@ real2 FunctionalWeightedIntegralVolume<dim,nspecies,nstate,real,MeshType>::evalu
     const dealii::Point<dim,real2> &                        phys_coord,
     const std::array<real2,nstate> &                        soln_at_q,
     const std::array<dealii::Tensor<1,dim,real2>,nstate> &  /*soln_grad_at_q*/,
-    std::shared_ptr<ManufacturedSolutionFunction<dim,nspecies,real2>> weight_function) const
+    std::shared_ptr<ManufacturedSolutionFunction<dim,real2>> weight_function) const
 {
     real2 val = 0;
 
@@ -155,8 +155,8 @@ real2 FunctionalWeightedIntegralVolume<dim,nspecies,nstate,real,MeshType>::evalu
 
 template <int dim, int nspecies, int nstate, typename real, typename MeshType>
 FunctionalWeightedIntegralBoundary<dim,nspecies,nstate,real,MeshType>::FunctionalWeightedIntegralBoundary(
-    std::shared_ptr<ManufacturedSolutionFunction<dim,nspecies,real>>                    _weight_function_double,
-    std::shared_ptr<ManufacturedSolutionFunction<dim,nspecies,FadFadType>>              _weight_function_adtype,
+    std::shared_ptr<ManufacturedSolutionFunction<dim,real> >                    _weight_function_double,
+    std::shared_ptr<ManufacturedSolutionFunction<dim,FadFadType>>              _weight_function_adtype,
     const bool                                                                 _use_weight_function_laplacian,
     std::vector<unsigned int>                                                  _boundary_vector,
     const bool                                                                 _use_all_boundaries,
@@ -179,7 +179,7 @@ real2 FunctionalWeightedIntegralBoundary<dim,nspecies,nstate,real,MeshType>::eva
     const dealii::Tensor<1,dim,real2> &                   /* normal */,
     const std::array<real2,nstate> &                      soln_at_q,
     const std::array<dealii::Tensor<1,dim,real2>,nstate> &/* soln_grad_at_q */,
-    std::shared_ptr<ManufacturedSolutionFunction<dim,nspecies,real2>> weight_function) const
+    std::shared_ptr<ManufacturedSolutionFunction<dim,real2>> weight_function) const
 {
     real2 val = 0;
 
@@ -1246,10 +1246,10 @@ FunctionalFactory<dim,nspecies,nstate,real,MeshType>::create_Functional(
     const double normLp = param.normLp;
 
     ManufacturedSolutionEnum  weight_function_type = param.weight_function_type;
-    std::shared_ptr< ManufacturedSolutionFunction<dim,nspecies,real> > weight_function_double 
-        = ManufacturedSolutionFactory<dim,nspecies,real>::create_ManufacturedSolution(weight_function_type, nstate);
-    std::shared_ptr< ManufacturedSolutionFunction<dim,nspecies,FadFadType> > weight_function_adtype 
-        = ManufacturedSolutionFactory<dim,nspecies,FadFadType>::create_ManufacturedSolution(weight_function_type, nstate);
+    std::shared_ptr< ManufacturedSolutionFunction<dim,real>  > weight_function_double 
+        = ManufacturedSolutionFactory<dim,real>::create_ManufacturedSolution(weight_function_type, nstate);
+    std::shared_ptr< ManufacturedSolutionFunction<dim,FadFadType> > weight_function_adtype 
+        = ManufacturedSolutionFactory<dim,FadFadType>::create_ManufacturedSolution(weight_function_type, nstate);
     
     const bool use_weight_function_laplacian       = param.use_weight_function_laplacian;
 
@@ -1333,171 +1333,48 @@ FunctionalFactory<dim,nspecies,nstate,real,MeshType>::create_Functional(
 
     return nullptr;
 }
+#if PHILIP_SPECIES==1
+    // Define a sequence of indices representing the range [1, 5]
+    #define POSSIBLE_NSTATE (1)(2)(3)(4)(5)
+    // dealii::Triangulation<PHILIP_DIM> and dealii::parallel::shared::Triangulation<PHILIP_DIM>
+    #define INSTANTIATE_TRIA(r, data, index) \
+        template class FunctionalNormLpVolume <PHILIP_DIM, PHILIP_SPECIES, index, double, dealii::Triangulation<PHILIP_DIM>>; \
+        template class FunctionalNormLpBoundary <PHILIP_DIM, PHILIP_SPECIES, index, double, dealii::Triangulation<PHILIP_DIM>>; \
+        template class FunctionalWeightedIntegralVolume <PHILIP_DIM, PHILIP_SPECIES, index, double, dealii::Triangulation<PHILIP_DIM>>; \
+        template class FunctionalWeightedIntegralBoundary <PHILIP_DIM, PHILIP_SPECIES, index, double, dealii::Triangulation<PHILIP_DIM>>; \
+        template class FunctionalErrorNormLpVolume <PHILIP_DIM, PHILIP_SPECIES, index, double, dealii::Triangulation<PHILIP_DIM>>; \
+        template class FunctionalErrorNormLpBoundary <PHILIP_DIM, PHILIP_SPECIES, index, double, dealii::Triangulation<PHILIP_DIM>>; \
+        template class Functional <PHILIP_DIM, PHILIP_SPECIES, index, double, dealii::Triangulation<PHILIP_DIM>>; \
+        template class FunctionalFactory <PHILIP_DIM, PHILIP_SPECIES, index, double, dealii::Triangulation<PHILIP_DIM>>; \
+        template class SolutionIntegral<PHILIP_DIM, PHILIP_SPECIES, index, double, dealii::Triangulation<PHILIP_DIM>>; \
+        \
+        template class FunctionalNormLpVolume <PHILIP_DIM, PHILIP_SPECIES, index, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>; \
+        template class FunctionalNormLpBoundary <PHILIP_DIM, PHILIP_SPECIES, index, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>; \
+        template class FunctionalWeightedIntegralVolume <PHILIP_DIM, PHILIP_SPECIES, index, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>; \
+        template class FunctionalWeightedIntegralBoundary <PHILIP_DIM, PHILIP_SPECIES, index, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>; \
+        template class FunctionalErrorNormLpVolume <PHILIP_DIM, PHILIP_SPECIES, index, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>; \
+        template class FunctionalErrorNormLpBoundary <PHILIP_DIM, PHILIP_SPECIES, index, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>; \
+        template class Functional <PHILIP_DIM, PHILIP_SPECIES, index, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>; \
+        template class FunctionalFactory <PHILIP_DIM, PHILIP_SPECIES, index, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>; \
+        template class SolutionIntegral<PHILIP_DIM, PHILIP_SPECIES, index, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+    BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_TRIA, _, POSSIBLE_NSTATE)
 
-// dealii::Triangulation<PHILIP_DIM>
-template class FunctionalNormLpVolume <PHILIP_DIM, PHILIP_SPECIES, 1, double, dealii::Triangulation<PHILIP_DIM>>;
-template class FunctionalNormLpVolume <PHILIP_DIM, PHILIP_SPECIES, 2, double, dealii::Triangulation<PHILIP_DIM>>;
-template class FunctionalNormLpVolume <PHILIP_DIM, PHILIP_SPECIES, 3, double, dealii::Triangulation<PHILIP_DIM>>;
-template class FunctionalNormLpVolume <PHILIP_DIM, PHILIP_SPECIES, 4, double, dealii::Triangulation<PHILIP_DIM>>;
-template class FunctionalNormLpVolume <PHILIP_DIM, PHILIP_SPECIES, 5, double, dealii::Triangulation<PHILIP_DIM>>;
+    // dealii::parallel::distributed::Triangulation<PHILIP_DIM>
+    #define INSTANTIATE_DISTRIBUTED(r, data, index) \
+        template class FunctionalNormLpVolume <PHILIP_DIM, PHILIP_SPECIES, index, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>; \
+        template class FunctionalNormLpBoundary <PHILIP_DIM, PHILIP_SPECIES, index, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>; \
+        template class FunctionalWeightedIntegralVolume <PHILIP_DIM, PHILIP_SPECIES, index, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>; \
+        template class FunctionalWeightedIntegralBoundary <PHILIP_DIM, PHILIP_SPECIES, index, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>; \
+        template class FunctionalErrorNormLpVolume <PHILIP_DIM, PHILIP_SPECIES, index, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>; \
+        template class FunctionalErrorNormLpBoundary <PHILIP_DIM, PHILIP_SPECIES, index, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>; \
+        template class Functional <PHILIP_DIM, PHILIP_SPECIES, index, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>; \
+        template class FunctionalFactory <PHILIP_DIM, PHILIP_SPECIES, index, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+    #if PHILIP_DIM != 1
+        BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_DISTRIBUTED, _, POSSIBLE_NSTATE)
+    #endif
 
-template class FunctionalNormLpBoundary <PHILIP_DIM, PHILIP_SPECIES, 1, double, dealii::Triangulation<PHILIP_DIM>>;
-template class FunctionalNormLpBoundary <PHILIP_DIM, PHILIP_SPECIES, 2, double, dealii::Triangulation<PHILIP_DIM>>;
-template class FunctionalNormLpBoundary <PHILIP_DIM, PHILIP_SPECIES, 3, double, dealii::Triangulation<PHILIP_DIM>>;
-template class FunctionalNormLpBoundary <PHILIP_DIM, PHILIP_SPECIES, 4, double, dealii::Triangulation<PHILIP_DIM>>;
-template class FunctionalNormLpBoundary <PHILIP_DIM, PHILIP_SPECIES, 5, double, dealii::Triangulation<PHILIP_DIM>>;
-
-template class FunctionalWeightedIntegralVolume <PHILIP_DIM, PHILIP_SPECIES, 1, double, dealii::Triangulation<PHILIP_DIM>>;
-template class FunctionalWeightedIntegralVolume <PHILIP_DIM, PHILIP_SPECIES, 2, double, dealii::Triangulation<PHILIP_DIM>>;
-template class FunctionalWeightedIntegralVolume <PHILIP_DIM, PHILIP_SPECIES, 3, double, dealii::Triangulation<PHILIP_DIM>>;
-template class FunctionalWeightedIntegralVolume <PHILIP_DIM, PHILIP_SPECIES, 4, double, dealii::Triangulation<PHILIP_DIM>>;
-template class FunctionalWeightedIntegralVolume <PHILIP_DIM, PHILIP_SPECIES, 5, double, dealii::Triangulation<PHILIP_DIM>>;
-
-template class FunctionalWeightedIntegralBoundary <PHILIP_DIM, PHILIP_SPECIES, 1, double, dealii::Triangulation<PHILIP_DIM>>;
-template class FunctionalWeightedIntegralBoundary <PHILIP_DIM, PHILIP_SPECIES, 2, double, dealii::Triangulation<PHILIP_DIM>>;
-template class FunctionalWeightedIntegralBoundary <PHILIP_DIM, PHILIP_SPECIES, 3, double, dealii::Triangulation<PHILIP_DIM>>;
-template class FunctionalWeightedIntegralBoundary <PHILIP_DIM, PHILIP_SPECIES, 4, double, dealii::Triangulation<PHILIP_DIM>>;
-template class FunctionalWeightedIntegralBoundary <PHILIP_DIM, PHILIP_SPECIES, 5, double, dealii::Triangulation<PHILIP_DIM>>;
-
-template class FunctionalErrorNormLpVolume <PHILIP_DIM, PHILIP_SPECIES, 1, double, dealii::Triangulation<PHILIP_DIM>>;
-template class FunctionalErrorNormLpVolume <PHILIP_DIM, PHILIP_SPECIES, 2, double, dealii::Triangulation<PHILIP_DIM>>;
-template class FunctionalErrorNormLpVolume <PHILIP_DIM, PHILIP_SPECIES, 3, double, dealii::Triangulation<PHILIP_DIM>>;
-template class FunctionalErrorNormLpVolume <PHILIP_DIM, PHILIP_SPECIES, 4, double, dealii::Triangulation<PHILIP_DIM>>;
-template class FunctionalErrorNormLpVolume <PHILIP_DIM, PHILIP_SPECIES, 5, double, dealii::Triangulation<PHILIP_DIM>>;
-
-template class FunctionalErrorNormLpBoundary <PHILIP_DIM, PHILIP_SPECIES, 1, double, dealii::Triangulation<PHILIP_DIM>>;
-template class FunctionalErrorNormLpBoundary <PHILIP_DIM, PHILIP_SPECIES, 2, double, dealii::Triangulation<PHILIP_DIM>>;
-template class FunctionalErrorNormLpBoundary <PHILIP_DIM, PHILIP_SPECIES, 3, double, dealii::Triangulation<PHILIP_DIM>>;
-template class FunctionalErrorNormLpBoundary <PHILIP_DIM, PHILIP_SPECIES, 4, double, dealii::Triangulation<PHILIP_DIM>>;
-template class FunctionalErrorNormLpBoundary <PHILIP_DIM, PHILIP_SPECIES, 5, double, dealii::Triangulation<PHILIP_DIM>>;
-
-template class Functional <PHILIP_DIM, PHILIP_SPECIES, 1, double, dealii::Triangulation<PHILIP_DIM>>;
-template class Functional <PHILIP_DIM, PHILIP_SPECIES, 2, double, dealii::Triangulation<PHILIP_DIM>>;
-template class Functional <PHILIP_DIM, PHILIP_SPECIES, 3, double, dealii::Triangulation<PHILIP_DIM>>;
-template class Functional <PHILIP_DIM, PHILIP_SPECIES, 4, double, dealii::Triangulation<PHILIP_DIM>>;
-template class Functional <PHILIP_DIM, PHILIP_SPECIES, 5, double, dealii::Triangulation<PHILIP_DIM>>;
-
-template class FunctionalFactory <PHILIP_DIM, PHILIP_SPECIES, 1, double, dealii::Triangulation<PHILIP_DIM>>;
-template class FunctionalFactory <PHILIP_DIM, PHILIP_SPECIES, 2, double, dealii::Triangulation<PHILIP_DIM>>;
-template class FunctionalFactory <PHILIP_DIM, PHILIP_SPECIES, 3, double, dealii::Triangulation<PHILIP_DIM>>;
-template class FunctionalFactory <PHILIP_DIM, PHILIP_SPECIES, 4, double, dealii::Triangulation<PHILIP_DIM>>;
-template class FunctionalFactory <PHILIP_DIM, PHILIP_SPECIES, 5, double, dealii::Triangulation<PHILIP_DIM>>;
-
-// dealii::parallel::shared::Triangulation<PHILIP_DIM>
-template class FunctionalNormLpVolume <PHILIP_DIM, PHILIP_SPECIES, 1, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
-template class FunctionalNormLpVolume <PHILIP_DIM, PHILIP_SPECIES, 2, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
-template class FunctionalNormLpVolume <PHILIP_DIM, PHILIP_SPECIES, 3, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
-template class FunctionalNormLpVolume <PHILIP_DIM, PHILIP_SPECIES, 4, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
-template class FunctionalNormLpVolume <PHILIP_DIM, PHILIP_SPECIES, 5, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
-
-template class FunctionalNormLpBoundary <PHILIP_DIM, PHILIP_SPECIES, 1, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
-template class FunctionalNormLpBoundary <PHILIP_DIM, PHILIP_SPECIES, 2, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
-template class FunctionalNormLpBoundary <PHILIP_DIM, PHILIP_SPECIES, 3, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
-template class FunctionalNormLpBoundary <PHILIP_DIM, PHILIP_SPECIES, 4, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
-template class FunctionalNormLpBoundary <PHILIP_DIM, PHILIP_SPECIES, 5, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
-
-template class FunctionalWeightedIntegralVolume <PHILIP_DIM, PHILIP_SPECIES, 1, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
-template class FunctionalWeightedIntegralVolume <PHILIP_DIM, PHILIP_SPECIES, 2, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
-template class FunctionalWeightedIntegralVolume <PHILIP_DIM, PHILIP_SPECIES, 3, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
-template class FunctionalWeightedIntegralVolume <PHILIP_DIM, PHILIP_SPECIES, 4, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
-template class FunctionalWeightedIntegralVolume <PHILIP_DIM, PHILIP_SPECIES, 5, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
-
-template class FunctionalWeightedIntegralBoundary <PHILIP_DIM, PHILIP_SPECIES, 1, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
-template class FunctionalWeightedIntegralBoundary <PHILIP_DIM, PHILIP_SPECIES, 2, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
-template class FunctionalWeightedIntegralBoundary <PHILIP_DIM, PHILIP_SPECIES, 3, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
-template class FunctionalWeightedIntegralBoundary <PHILIP_DIM, PHILIP_SPECIES, 4, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
-template class FunctionalWeightedIntegralBoundary <PHILIP_DIM, PHILIP_SPECIES, 5, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
-
-template class FunctionalErrorNormLpVolume <PHILIP_DIM, PHILIP_SPECIES, 1, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
-template class FunctionalErrorNormLpVolume <PHILIP_DIM, PHILIP_SPECIES, 2, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
-template class FunctionalErrorNormLpVolume <PHILIP_DIM, PHILIP_SPECIES, 3, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
-template class FunctionalErrorNormLpVolume <PHILIP_DIM, PHILIP_SPECIES, 4, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
-template class FunctionalErrorNormLpVolume <PHILIP_DIM, PHILIP_SPECIES, 5, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
-
-template class FunctionalErrorNormLpBoundary <PHILIP_DIM, PHILIP_SPECIES, 1, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
-template class FunctionalErrorNormLpBoundary <PHILIP_DIM, PHILIP_SPECIES, 2, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
-template class FunctionalErrorNormLpBoundary <PHILIP_DIM, PHILIP_SPECIES, 3, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
-template class FunctionalErrorNormLpBoundary <PHILIP_DIM, PHILIP_SPECIES, 4, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
-template class FunctionalErrorNormLpBoundary <PHILIP_DIM, PHILIP_SPECIES, 5, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
-
-template class SolutionIntegral<PHILIP_DIM, PHILIP_SPECIES, 1, double, dealii::Triangulation<PHILIP_DIM>>;
-template class SolutionIntegral<PHILIP_DIM, PHILIP_SPECIES, 2, double, dealii::Triangulation<PHILIP_DIM>>;
-template class SolutionIntegral<PHILIP_DIM, PHILIP_SPECIES, 3, double, dealii::Triangulation<PHILIP_DIM>>;
-template class SolutionIntegral<PHILIP_DIM, PHILIP_SPECIES, 4, double, dealii::Triangulation<PHILIP_DIM>>;
-template class SolutionIntegral<PHILIP_DIM, PHILIP_SPECIES, 5, double, dealii::Triangulation<PHILIP_DIM>>;
-
-template class Functional <PHILIP_DIM, PHILIP_SPECIES, 1, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
-template class Functional <PHILIP_DIM, PHILIP_SPECIES, 2, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
-template class Functional <PHILIP_DIM, PHILIP_SPECIES, 3, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
-template class Functional <PHILIP_DIM, PHILIP_SPECIES, 4, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
-template class Functional <PHILIP_DIM, PHILIP_SPECIES, 5, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
-
-template class FunctionalFactory <PHILIP_DIM, PHILIP_SPECIES, 1, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
-template class FunctionalFactory <PHILIP_DIM, PHILIP_SPECIES, 2, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
-template class FunctionalFactory <PHILIP_DIM, PHILIP_SPECIES, 3, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
-template class FunctionalFactory <PHILIP_DIM, PHILIP_SPECIES, 4, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
-template class FunctionalFactory <PHILIP_DIM, PHILIP_SPECIES, 5, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
-
-#if PHILIP_DIM != 1
-// dealii::parallel::distributed::Triangulation<PHILIP_DIM>
-template class FunctionalNormLpVolume <PHILIP_DIM, PHILIP_SPECIES, 1, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
-template class FunctionalNormLpVolume <PHILIP_DIM, PHILIP_SPECIES, 2, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
-template class FunctionalNormLpVolume <PHILIP_DIM, PHILIP_SPECIES, 3, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
-template class FunctionalNormLpVolume <PHILIP_DIM, PHILIP_SPECIES, 4, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
-template class FunctionalNormLpVolume <PHILIP_DIM, PHILIP_SPECIES, 5, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
-
-template class FunctionalNormLpBoundary <PHILIP_DIM, PHILIP_SPECIES, 1, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
-template class FunctionalNormLpBoundary <PHILIP_DIM, PHILIP_SPECIES, 2, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
-template class FunctionalNormLpBoundary <PHILIP_DIM, PHILIP_SPECIES, 3, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
-template class FunctionalNormLpBoundary <PHILIP_DIM, PHILIP_SPECIES, 4, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
-template class FunctionalNormLpBoundary <PHILIP_DIM, PHILIP_SPECIES, 5, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
-
-template class FunctionalWeightedIntegralVolume <PHILIP_DIM, PHILIP_SPECIES, 1, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
-template class FunctionalWeightedIntegralVolume <PHILIP_DIM, PHILIP_SPECIES, 2, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
-template class FunctionalWeightedIntegralVolume <PHILIP_DIM, PHILIP_SPECIES, 3, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
-template class FunctionalWeightedIntegralVolume <PHILIP_DIM, PHILIP_SPECIES, 4, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
-template class FunctionalWeightedIntegralVolume <PHILIP_DIM, PHILIP_SPECIES, 5, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
-
-template class FunctionalWeightedIntegralBoundary <PHILIP_DIM, PHILIP_SPECIES, 1, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
-template class FunctionalWeightedIntegralBoundary <PHILIP_DIM, PHILIP_SPECIES, 2, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
-template class FunctionalWeightedIntegralBoundary <PHILIP_DIM, PHILIP_SPECIES, 3, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
-template class FunctionalWeightedIntegralBoundary <PHILIP_DIM, PHILIP_SPECIES, 4, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
-template class FunctionalWeightedIntegralBoundary <PHILIP_DIM, PHILIP_SPECIES, 5, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
-
-template class FunctionalErrorNormLpVolume <PHILIP_DIM, PHILIP_SPECIES, 1, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
-template class FunctionalErrorNormLpVolume <PHILIP_DIM, PHILIP_SPECIES, 2, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
-template class FunctionalErrorNormLpVolume <PHILIP_DIM, PHILIP_SPECIES, 3, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
-template class FunctionalErrorNormLpVolume <PHILIP_DIM, PHILIP_SPECIES, 4, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
-template class FunctionalErrorNormLpVolume <PHILIP_DIM, PHILIP_SPECIES, 5, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
-
-template class FunctionalErrorNormLpBoundary <PHILIP_DIM, PHILIP_SPECIES, 1, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
-template class FunctionalErrorNormLpBoundary <PHILIP_DIM, PHILIP_SPECIES, 2, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
-template class FunctionalErrorNormLpBoundary <PHILIP_DIM, PHILIP_SPECIES, 3, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
-template class FunctionalErrorNormLpBoundary <PHILIP_DIM, PHILIP_SPECIES, 4, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
-template class FunctionalErrorNormLpBoundary <PHILIP_DIM, PHILIP_SPECIES, 5, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
-
-template class SolutionIntegral<PHILIP_DIM, PHILIP_SPECIES, 1, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
-template class SolutionIntegral<PHILIP_DIM, PHILIP_SPECIES, 2, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
-template class SolutionIntegral<PHILIP_DIM, PHILIP_SPECIES, 3, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
-template class SolutionIntegral<PHILIP_DIM, PHILIP_SPECIES, 4, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
-template class SolutionIntegral<PHILIP_DIM, PHILIP_SPECIES, 5, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
-
-template class Functional <PHILIP_DIM, PHILIP_SPECIES, 1, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
-template class Functional <PHILIP_DIM, PHILIP_SPECIES, 2, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
-template class Functional <PHILIP_DIM, PHILIP_SPECIES, 3, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
-template class Functional <PHILIP_DIM, PHILIP_SPECIES, 4, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
-template class Functional <PHILIP_DIM, PHILIP_SPECIES, 5, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
-
-template class FunctionalFactory <PHILIP_DIM, PHILIP_SPECIES, 1, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
-template class FunctionalFactory <PHILIP_DIM, PHILIP_SPECIES, 2, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
-template class FunctionalFactory <PHILIP_DIM, PHILIP_SPECIES, 3, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
-template class FunctionalFactory <PHILIP_DIM, PHILIP_SPECIES, 4, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
-template class FunctionalFactory <PHILIP_DIM, PHILIP_SPECIES, 5, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
-
+    #if PHILIP_DIM == 2
+    template class OutletPressureIntegral<PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+    #endif
 #endif
-
-#if PHILIP_DIM == 2
-template class OutletPressureIntegral<PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
-#endif
-
 } // PHiLiP namespace

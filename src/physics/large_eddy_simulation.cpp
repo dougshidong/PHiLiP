@@ -30,7 +30,7 @@ LargeEddySimulationBase<dim, nspecies, nstate, real>::LargeEddySimulationBase(
     const double                                              ratio_of_filter_width_to_cell_size,
     const double                                              isothermal_wall_temperature,
     const thermal_boundary_condition_enum                     thermal_boundary_condition_type,
-    std::shared_ptr< ManufacturedSolutionFunction<dim,nspecies,real> > manufactured_solution_function,
+    std::shared_ptr< ManufacturedSolutionFunction<dim,real>  > manufactured_solution_function,
     const two_point_num_flux_enum                             two_point_num_flux_type)
     : ModelBase<dim,nspecies,nstate,real>(manufactured_solution_function) 
     , turbulent_prandtl_number(turbulent_prandtl_number)
@@ -424,7 +424,7 @@ LargeEddySimulation_Smagorinsky<dim, nspecies, nstate, real>::LargeEddySimulatio
     const double                                              model_constant,
     const double                                              isothermal_wall_temperature,
     const thermal_boundary_condition_enum                     thermal_boundary_condition_type,
-    std::shared_ptr< ManufacturedSolutionFunction<dim,nspecies,real> > manufactured_solution_function,
+    std::shared_ptr< ManufacturedSolutionFunction<dim,real>  > manufactured_solution_function,
     const two_point_num_flux_enum                             two_point_num_flux_type)
     : LargeEddySimulationBase<dim,nspecies,nstate,real>(parameters_input,
                                                ref_length,
@@ -652,7 +652,7 @@ LargeEddySimulation_WALE<dim, nspecies, nstate, real>::LargeEddySimulation_WALE(
     const double                                              model_constant,
     const double                                              isothermal_wall_temperature,
     const thermal_boundary_condition_enum                     thermal_boundary_condition_type,
-    std::shared_ptr< ManufacturedSolutionFunction<dim,nspecies,real> > manufactured_solution_function,
+    std::shared_ptr< ManufacturedSolutionFunction<dim,real>  > manufactured_solution_function,
     const two_point_num_flux_enum                             two_point_num_flux_type)
     : LargeEddySimulation_Smagorinsky<dim,nspecies,nstate,real>(parameters_input,
                                                        ref_length,
@@ -781,7 +781,7 @@ LargeEddySimulation_Vreman<dim, nspecies, nstate, real>::LargeEddySimulation_Vre
     const double                                              model_constant,
     const double                                              isothermal_wall_temperature,
     const thermal_boundary_condition_enum                     thermal_boundary_condition_type,
-    std::shared_ptr< ManufacturedSolutionFunction<dim,nspecies,real> > manufactured_solution_function,
+    std::shared_ptr< ManufacturedSolutionFunction<dim,real>  > manufactured_solution_function,
     const two_point_num_flux_enum                             two_point_num_flux_type)
     : LargeEddySimulation_Smagorinsky<dim,nspecies,nstate,real>(parameters_input,
                                                        ref_length,
@@ -882,6 +882,8 @@ real2 LargeEddySimulation_Vreman<dim,nspecies,nstate,real>
 
     return eddy_viscosity;
 }
+
+#if PHILIP_SPECIES==1
 //----------------------------------------------------------------
 //----------------------------------------------------------------
 //----------------------------------------------------------------
@@ -924,7 +926,6 @@ template FadType    LargeEddySimulationBase < PHILIP_DIM, PHILIP_SPECIES, PHILIP
 template FadType    LargeEddySimulationBase < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, RadType    >::get_tensor_magnitude_sqr< FadType    >(const dealii::Tensor<2,PHILIP_DIM, FadType   > &tensor) const;
 template FadType    LargeEddySimulationBase < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, FadFadType >::get_tensor_magnitude_sqr< FadType    >(const dealii::Tensor<2,PHILIP_DIM, FadType   > &tensor) const;
 template FadType    LargeEddySimulationBase < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, RadFadType >::get_tensor_magnitude_sqr< FadType    >(const dealii::Tensor<2,PHILIP_DIM, FadType   > &tensor) const;
-
-
+#endif
 } // Physics namespace
 } // PHiLiP namespace

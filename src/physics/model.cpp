@@ -1,5 +1,6 @@
 #include <cmath>
 #include <vector>
+#include <boost/preprocessor/seq/for_each.hpp>
 
 #include "ADTypes.hpp"
 
@@ -13,7 +14,7 @@ namespace Physics {
 //================================================================
 template <int dim, int nspecies, int nstate, typename real>
 ModelBase<dim, nspecies, nstate, real>::ModelBase(
-    std::shared_ptr< ManufacturedSolutionFunction<dim,nspecies,real> > manufactured_solution_function_input):
+    std::shared_ptr< ManufacturedSolutionFunction<dim,real>  > manufactured_solution_function_input):
         manufactured_solution_function(manufactured_solution_function_input)
         , mpi_communicator(MPI_COMM_WORLD)
         , pcout(std::cout, dealii::Utilities::MPI::this_mpi_process(mpi_communicator)==0)
@@ -231,45 +232,18 @@ std::vector<dealii::DataComponentInterpretation::DataComponentInterpretation> Mo
 //----------------------------------------------------------------
 //----------------------------------------------------------------
 // Instantiate explicitly
-template class ModelBase<PHILIP_DIM, PHILIP_SPECIES, 1, double>;
-template class ModelBase<PHILIP_DIM, PHILIP_SPECIES, 2, double>;
-template class ModelBase<PHILIP_DIM, PHILIP_SPECIES, 3, double>;
-template class ModelBase<PHILIP_DIM, PHILIP_SPECIES, 4, double>;
-template class ModelBase<PHILIP_DIM, PHILIP_SPECIES, 5, double>;
-template class ModelBase<PHILIP_DIM, PHILIP_SPECIES, 6, double>;
-template class ModelBase<PHILIP_DIM, PHILIP_SPECIES, 8, double>;
+#if PHILIP_SPECIES==1
+    // Define a sequence of indices representing the range of nstate
+    #define POSSIBLE_NSTATE (1)(2)(3)(4)(5)(6)(8)
 
-template class ModelBase<PHILIP_DIM, PHILIP_SPECIES, 1, FadType>;
-template class ModelBase<PHILIP_DIM, PHILIP_SPECIES, 2, FadType>;
-template class ModelBase<PHILIP_DIM, PHILIP_SPECIES, 3, FadType>;
-template class ModelBase<PHILIP_DIM, PHILIP_SPECIES, 4, FadType>;
-template class ModelBase<PHILIP_DIM, PHILIP_SPECIES, 5, FadType>;
-template class ModelBase<PHILIP_DIM, PHILIP_SPECIES, 6, FadType>;
-template class ModelBase<PHILIP_DIM, PHILIP_SPECIES, 8, FadType>;
-
-template class ModelBase<PHILIP_DIM, PHILIP_SPECIES, 1, RadType>;
-template class ModelBase<PHILIP_DIM, PHILIP_SPECIES, 2, RadType>;
-template class ModelBase<PHILIP_DIM, PHILIP_SPECIES, 3, RadType>;
-template class ModelBase<PHILIP_DIM, PHILIP_SPECIES, 4, RadType>;
-template class ModelBase<PHILIP_DIM, PHILIP_SPECIES, 5, RadType>;
-template class ModelBase<PHILIP_DIM, PHILIP_SPECIES, 6, RadType>;
-template class ModelBase<PHILIP_DIM, PHILIP_SPECIES, 8, RadType>;
-
-template class ModelBase<PHILIP_DIM, PHILIP_SPECIES, 1, FadFadType>;
-template class ModelBase<PHILIP_DIM, PHILIP_SPECIES, 2, FadFadType>;
-template class ModelBase<PHILIP_DIM, PHILIP_SPECIES, 3, FadFadType>;
-template class ModelBase<PHILIP_DIM, PHILIP_SPECIES, 4, FadFadType>;
-template class ModelBase<PHILIP_DIM, PHILIP_SPECIES, 5, FadFadType>;
-template class ModelBase<PHILIP_DIM, PHILIP_SPECIES, 6, FadFadType>;
-template class ModelBase<PHILIP_DIM, PHILIP_SPECIES, 8, FadFadType>;
-
-template class ModelBase<PHILIP_DIM, PHILIP_SPECIES, 1, RadFadType>;
-template class ModelBase<PHILIP_DIM, PHILIP_SPECIES, 2, RadFadType>;
-template class ModelBase<PHILIP_DIM, PHILIP_SPECIES, 3, RadFadType>;
-template class ModelBase<PHILIP_DIM, PHILIP_SPECIES, 4, RadFadType>;
-template class ModelBase<PHILIP_DIM, PHILIP_SPECIES, 5, RadFadType>;
-template class ModelBase<PHILIP_DIM, PHILIP_SPECIES, 6, RadFadType>;
-template class ModelBase<PHILIP_DIM, PHILIP_SPECIES, 8, RadFadType>;
-
+    // Define a macro to instantiate functions for a specific index
+    #define INSTANTIATE_FOR_NSTATE(r, data, index) \
+        template class ModelBase<PHILIP_DIM, PHILIP_SPECIES, index, double>; \
+        template class ModelBase<PHILIP_DIM, PHILIP_SPECIES, index, FadType>; \
+        template class ModelBase<PHILIP_DIM, PHILIP_SPECIES, index, RadType>; \
+        template class ModelBase<PHILIP_DIM, PHILIP_SPECIES, index, FadFadType>; \
+        template class ModelBase<PHILIP_DIM, PHILIP_SPECIES, index, RadFadType>;
+    BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_FOR_NSTATE, _, POSSIBLE_NSTATE)
+#endif
 } // Physics namespace
 } // PHiLiP namespace

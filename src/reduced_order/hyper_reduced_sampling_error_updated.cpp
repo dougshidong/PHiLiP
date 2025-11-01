@@ -579,11 +579,11 @@ void HyperreducedSamplingErrorUpdated<dim, nspecies, nstate>::outputIterationDat
     rom_table_file.close();
 }
 
-#if PHILIP_DIM==1
+#if PHILIP_DIM==1 && PHILIP_SPECIES==1
         template class HyperreducedSamplingErrorUpdated<PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM>;
 #endif
 
-#if PHILIP_DIM!=1
+#if PHILIP_DIM!=1 && PHILIP_SPECIES==1
         template class HyperreducedSamplingErrorUpdated<PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2>;
 #endif
 

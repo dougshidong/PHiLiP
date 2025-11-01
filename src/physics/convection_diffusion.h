@@ -58,7 +58,7 @@ public:
         const dealii::Tensor<2,3,double>                          input_diffusion_tensor = Parameters::ManufacturedSolutionParam::get_default_diffusion_tensor(),
         const dealii::Tensor<1,3,double>                          input_advection_vector = Parameters::ManufacturedSolutionParam::get_default_advection_vector(),
         const double                                              input_diffusion_coefficient = Parameters::ManufacturedSolutionParam::get_default_diffusion_coefficient(),
-        std::shared_ptr< ManufacturedSolutionFunction<dim,nspecies,real> > manufactured_solution_function = nullptr,
+        std::shared_ptr< ManufacturedSolutionFunction<dim,real>  > manufactured_solution_function = nullptr,
         const Parameters::AllParameters::TestType                 parameters_test = Parameters::AllParameters::TestType::run_control,
         const bool                                                has_nonzero_physical_source = false) : 
             PhysicsBase<dim,nspecies,nstate,real>(parameters_input, diffusion, has_nonzero_physical_source, input_diffusion_tensor, manufactured_solution_function), 

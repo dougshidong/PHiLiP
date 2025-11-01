@@ -20,7 +20,7 @@ PhysicsModel<dim,nspecies,nstate,real,nstate_baseline_physics>::PhysicsModel(
     const Parameters::AllParameters                              *const parameters_input,
     Parameters::AllParameters::PartialDifferentialEquation       baseline_physics_type,
     std::shared_ptr< ModelBase<dim,nspecies,nstate,real> >                model_input,
-    std::shared_ptr< ManufacturedSolutionFunction<dim,nspecies,real> >    manufactured_solution_function,
+    std::shared_ptr< ManufacturedSolutionFunction<dim,real>  >    manufactured_solution_function,
     const bool                                                   has_nonzero_diffusion,
     const bool                                                   has_nonzero_physical_source)
     : PhysicsBase<dim,nspecies,nstate,real>(parameters_input, has_nonzero_diffusion, has_nonzero_physical_source, manufactured_solution_function)
@@ -414,6 +414,7 @@ dealii::UpdateFlags PhysicsModel<dim,nspecies,nstate,real,nstate_baseline_physic
 }
 
 // Instantiate explicitly
+#if PHILIP_SPECIES==1
 template class PhysicsModel < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, double    , PHILIP_DIM+2 >;
 template class PhysicsModel < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, FadType   , PHILIP_DIM+2 >;
 template class PhysicsModel < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, RadType   , PHILIP_DIM+2 >;
@@ -425,6 +426,6 @@ template class PhysicsModel < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+3, FadType 
 template class PhysicsModel < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+3, RadType   , PHILIP_DIM+2 >;
 template class PhysicsModel < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+3, FadFadType, PHILIP_DIM+2 >;
 template class PhysicsModel < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+3, RadFadType, PHILIP_DIM+2 >;
-
+#endif
 } // Physics namespace
 } // PHiLiP namespace

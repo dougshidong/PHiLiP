@@ -159,7 +159,7 @@ public:
       * Where then \f$\lambda_i\f$ (eigenvales) are the directional derivatives and \f$v_i\f$ (eigenvectors) are the direction vectors.
       */
     void reconstruct_manufactured_derivative(
-        const std::shared_ptr<ManufacturedSolutionFunction<dim,nspecies,real>>& manufactured_solution, ///< Manufactured solution function
+        const std::shared_ptr<ManufacturedSolutionFunction<dim,real> >& manufactured_solution, ///< Manufactured solution function
         const unsigned int                                             rel_order              ///< Relative order of the approximation
         );
 

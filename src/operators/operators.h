@@ -494,7 +494,7 @@ public:
     dealii::FullMatrix<double> oneD_skew_symm_vol_oper;
 };
 
-///This is the solution basis \f$\mathbf{D}_i\f$, the modal differential opertaor commonly seen in DG defined as \f$\mathbf{D}_i=\mathbf{M}^{-1}*\mathbf{S}_i\f$.
+///This is the solution basis \f$\mathbf{D}_i\f$, the modal differential operator commonly seen in DG defined as \f$\mathbf{D}_i=\mathbf{M}^{-1}*\mathbf{S}_i\f$.
 template<int dim, int n_faces, typename real>
 class modal_basis_differential_operator : public SumFactorizedOperators<dim,n_faces,real>
 {
@@ -1102,7 +1102,7 @@ public:
 *
 *****************************************************************************/
 ///Base metric operators class that stores functions used in both the volume and on surface.
-template <typename real, int dim,  int n_faces>  
+template <typename real, int dim, int n_faces>  
 class metric_operators: public SumFactorizedOperators<dim,n_faces,real>
 {
 public:

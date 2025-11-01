@@ -572,26 +572,27 @@ MeshFactory<dealii::parallel::distributed::Triangulation<PHILIP_DIM>>::create_Me
 }
 #endif
 
-template class GridRefinementStudy <PHILIP_DIM, PHILIP_SPECIES,1,dealii::Triangulation<PHILIP_DIM>>;
-template class GridRefinementStudy <PHILIP_DIM, PHILIP_SPECIES,2,dealii::Triangulation<PHILIP_DIM>>;
-template class GridRefinementStudy <PHILIP_DIM, PHILIP_SPECIES,3,dealii::Triangulation<PHILIP_DIM>>;
-template class GridRefinementStudy <PHILIP_DIM, PHILIP_SPECIES,4,dealii::Triangulation<PHILIP_DIM>>;
-template class GridRefinementStudy <PHILIP_DIM, PHILIP_SPECIES,5,dealii::Triangulation<PHILIP_DIM>>;
+#if PHILIP_SPECIES==1
+    // Define a sequence of indices representing the range [1, 5]
+    #define POSSIBLE_NSTATE (1)(2)(3)(4)(5)
 
-template class GridRefinementStudy <PHILIP_DIM, PHILIP_SPECIES,1,dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
-template class GridRefinementStudy <PHILIP_DIM, PHILIP_SPECIES,2,dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
-template class GridRefinementStudy <PHILIP_DIM, PHILIP_SPECIES,3,dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
-template class GridRefinementStudy <PHILIP_DIM, PHILIP_SPECIES,4,dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
-template class GridRefinementStudy <PHILIP_DIM, PHILIP_SPECIES,5,dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+    // using default MeshType = Triangulation
+    // 1D: dealii::Triangulation<dim>;
+    // Otherwise: dealii::parallel::distributed::Triangulation<dim>;
 
-#if PHILIP_DIM!=1
-template class GridRefinementStudy <PHILIP_DIM, PHILIP_SPECIES,1,dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
-template class GridRefinementStudy <PHILIP_DIM, PHILIP_SPECIES,2,dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
-template class GridRefinementStudy <PHILIP_DIM, PHILIP_SPECIES,3,dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
-template class GridRefinementStudy <PHILIP_DIM, PHILIP_SPECIES,4,dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
-template class GridRefinementStudy <PHILIP_DIM, PHILIP_SPECIES,5,dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+    // Define a macro to instantiate with Meshtype = Triangulation or Shared Triangulation for a specific index
+    #define INSTANTIATE_TRIA(r, data, index) \
+        template class GridRefinementStudy <PHILIP_DIM, PHILIP_SPECIES,index,dealii::Triangulation<PHILIP_DIM>>; \
+        template class GridRefinementStudy <PHILIP_DIM, PHILIP_SPECIES,index,dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+    BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_TRIA, _, POSSIBLE_NSTATE)
+
+    // Define a macro to instantiate with distributed triangulation for a specific index
+    #define INSTANTIATE_DISTRIBUTED(r, data, index) \
+        template class GridRefinementStudy <PHILIP_DIM, PHILIP_SPECIES,index,dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+    #if PHILIP_DIM!=1
+    BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_DISTRIBUTED, _, POSSIBLE_NSTATE)
+    #endif
 #endif
-
 } // namespace Tests
 
 } // namespace PHiLiP

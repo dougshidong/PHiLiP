@@ -7,7 +7,7 @@ namespace ODE {
 
 template <int dim, int nspecies, typename real, typename MeshType>
 RKNumEntropy<dim,nspecies,real,MeshType>::RKNumEntropy(
-            std::shared_ptr<RKTableauButcherBase<dim,nspecies,real,MeshType>> rk_tableau_input)
+            std::shared_ptr<RKTableauButcherBase<dim,real,MeshType>> rk_tableau_input)
         : EmptyRRKBase<dim,nspecies,real,MeshType>(rk_tableau_input)
         , butcher_tableau(rk_tableau_input)
         , n_rk_stages(butcher_tableau->n_rk_stages)
@@ -166,11 +166,12 @@ real RKNumEntropy<dim,nspecies,real,MeshType>::compute_FR_entropy_contribution(c
     return entropy_contribution;
 }
 
-template class RKNumEntropy<PHILIP_DIM, PHILIP_SPECIES, double, dealii::Triangulation<PHILIP_DIM> >;
-template class RKNumEntropy<PHILIP_DIM, PHILIP_SPECIES, double, dealii::parallel::shared::Triangulation<PHILIP_DIM> >;
-#if PHILIP_DIM != 1
-    template class RKNumEntropy<PHILIP_DIM, PHILIP_SPECIES, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM> >;
+#if PHILIP_SPECIES==1
+    template class RKNumEntropy<PHILIP_DIM, PHILIP_SPECIES, double, dealii::Triangulation<PHILIP_DIM> >;
+    template class RKNumEntropy<PHILIP_DIM, PHILIP_SPECIES, double, dealii::parallel::shared::Triangulation<PHILIP_DIM> >;
+    #if PHILIP_DIM != 1
+        template class RKNumEntropy<PHILIP_DIM, PHILIP_SPECIES, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM> >;
+    #endif
 #endif
-
 } // ODESolver namespace
 } // PHiLiP namespace

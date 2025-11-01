@@ -77,10 +77,13 @@ std::unique_ptr< BoundPreservingLimiter<dim, nspecies, real> >
     return nullptr;
 }
 
-    template class BoundPreservingLimiterFactory <PHILIP_DIM, PHILIP_SPECIES, 1, double>;
-    template class BoundPreservingLimiterFactory <PHILIP_DIM, PHILIP_SPECIES, 2, double>;
-    template class BoundPreservingLimiterFactory <PHILIP_DIM, PHILIP_SPECIES, 3, double>;
-    template class BoundPreservingLimiterFactory <PHILIP_DIM, PHILIP_SPECIES, 4, double>;
-    template class BoundPreservingLimiterFactory <PHILIP_DIM, PHILIP_SPECIES, 5, double>;
-    template class BoundPreservingLimiterFactory <PHILIP_DIM, PHILIP_SPECIES, 6, double>;
+#if PHILIP_SPECIES==1
+    // Define a sequence of indices representing the range [1, 6]
+    #define POSSIBLE_NSTATE (1)(2)(3)(4)(5)(6)
+
+    // Define a macro to instantiate Limiter Factory Function for a specific index
+    #define INSTANTIATE_LIMITER(r, data, index) \
+        template class BoundPreservingLimiterFactory <PHILIP_DIM, PHILIP_SPECIES, index, double>;
+    BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_LIMITER, _, POSSIBLE_NSTATE)
+#endif
 } // PHiLiP namespace

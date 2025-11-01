@@ -3026,97 +3026,99 @@ void DGBase<dim,nspecies,real,MeshType>::set_current_time(const real current_tim
     this->current_time = current_time_input;
 }
 
-#if PHILIP_DIM!=1
-template class DGBase <PHILIP_DIM, PHILIP_SPECIES, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+#if PHILIP_SPECIES==1
+    #if PHILIP_DIM!=1
+    template class DGBase <PHILIP_DIM, PHILIP_SPECIES, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+    #endif
+
+    template class DGBase <PHILIP_DIM, PHILIP_SPECIES, double, dealii::Triangulation<PHILIP_DIM>>;
+    template class DGBase <PHILIP_DIM, PHILIP_SPECIES, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+
+    template double DGBase<PHILIP_DIM, PHILIP_SPECIES,double,dealii::Triangulation<PHILIP_DIM>>::discontinuity_sensor<double>(const dealii::Quadrature<PHILIP_DIM> &volume_quadrature, const std::vector< double > &soln_coeff_high, const dealii::FiniteElement<PHILIP_DIM,PHILIP_DIM> &fe_high, const std::vector<double>  &jac_det);
+    template FadType DGBase<PHILIP_DIM, PHILIP_SPECIES,double,dealii::Triangulation<PHILIP_DIM>>::discontinuity_sensor<FadType>(const dealii::Quadrature<PHILIP_DIM> &volume_quadrature, const std::vector< FadType > &soln_coeff_high, const dealii::FiniteElement<PHILIP_DIM,PHILIP_DIM> &fe_high, const std::vector<FadType>  &jac_det);
+    template RadType DGBase<PHILIP_DIM, PHILIP_SPECIES,double,dealii::Triangulation<PHILIP_DIM>>::discontinuity_sensor<RadType>(const dealii::Quadrature<PHILIP_DIM> &volume_quadrature, const std::vector< RadType > &soln_coeff_high, const dealii::FiniteElement<PHILIP_DIM,PHILIP_DIM> &fe_high, const std::vector<RadType>  &jac_det);
+    template FadFadType DGBase<PHILIP_DIM, PHILIP_SPECIES,double,dealii::Triangulation<PHILIP_DIM>>::discontinuity_sensor<FadFadType>(const dealii::Quadrature<PHILIP_DIM> &volume_quadrature, const std::vector< FadFadType > &soln_coeff_high, const dealii::FiniteElement<PHILIP_DIM,PHILIP_DIM> &fe_high, const std::vector<FadFadType>  &jac_det);
+    template RadFadType DGBase<PHILIP_DIM, PHILIP_SPECIES,double,dealii::Triangulation<PHILIP_DIM>>::discontinuity_sensor<RadFadType>(const dealii::Quadrature<PHILIP_DIM> &volume_quadrature, const std::vector< RadFadType > &soln_coeff_high, const dealii::FiniteElement<PHILIP_DIM,PHILIP_DIM> &fe_high, const std::vector<RadFadType>  &jac_det);
+
+
+    template double DGBase<PHILIP_DIM, PHILIP_SPECIES,double,dealii::parallel::distributed::Triangulation<PHILIP_DIM>>::discontinuity_sensor<double>(const dealii::Quadrature<PHILIP_DIM> &volume_quadrature, const std::vector< double > &soln_coeff_high, const dealii::FiniteElement<PHILIP_DIM,PHILIP_DIM> &fe_high, const std::vector<double>  &jac_det);
+    template FadType DGBase<PHILIP_DIM, PHILIP_SPECIES,double,dealii::parallel::distributed::Triangulation<PHILIP_DIM>>::discontinuity_sensor<FadType>(const dealii::Quadrature<PHILIP_DIM> &volume_quadrature, const std::vector< FadType > &soln_coeff_high, const dealii::FiniteElement<PHILIP_DIM,PHILIP_DIM> &fe_high, const std::vector<FadType>  &jac_det);
+    template RadType DGBase<PHILIP_DIM, PHILIP_SPECIES,double,dealii::parallel::distributed::Triangulation<PHILIP_DIM>>::discontinuity_sensor<RadType>(const dealii::Quadrature<PHILIP_DIM> &volume_quadrature, const std::vector< RadType > &soln_coeff_high, const dealii::FiniteElement<PHILIP_DIM,PHILIP_DIM> &fe_high, const std::vector<RadType>  &jac_det);
+    template FadFadType DGBase<PHILIP_DIM, PHILIP_SPECIES,double,dealii::parallel::distributed::Triangulation<PHILIP_DIM>>::discontinuity_sensor<FadFadType>(const dealii::Quadrature<PHILIP_DIM> &volume_quadrature, const std::vector< FadFadType > &soln_coeff_high, const dealii::FiniteElement<PHILIP_DIM,PHILIP_DIM> &fe_high, const std::vector<FadFadType>  &jac_det);
+    template RadFadType DGBase<PHILIP_DIM, PHILIP_SPECIES,double,dealii::parallel::distributed::Triangulation<PHILIP_DIM>>::discontinuity_sensor<RadFadType>(const dealii::Quadrature<PHILIP_DIM> &volume_quadrature, const std::vector< RadFadType > &soln_coeff_high, const dealii::FiniteElement<PHILIP_DIM,PHILIP_DIM> &fe_high, const std::vector<RadFadType>  &jac_det);
+
+
+    template double DGBase<PHILIP_DIM, PHILIP_SPECIES,double,dealii::parallel::shared::Triangulation<PHILIP_DIM>>::discontinuity_sensor<double>(const dealii::Quadrature<PHILIP_DIM> &volume_quadrature, const std::vector< double > &soln_coeff_high, const dealii::FiniteElement<PHILIP_DIM,PHILIP_DIM> &fe_high, const std::vector<double>  &jac_det);
+    template FadType DGBase<PHILIP_DIM, PHILIP_SPECIES,double,dealii::parallel::shared::Triangulation<PHILIP_DIM>>::discontinuity_sensor<FadType>(const dealii::Quadrature<PHILIP_DIM> &volume_quadrature, const std::vector< FadType > &soln_coeff_high, const dealii::FiniteElement<PHILIP_DIM,PHILIP_DIM> &fe_high, const std::vector<FadType>  &jac_det);
+    template RadType DGBase<PHILIP_DIM, PHILIP_SPECIES,double,dealii::parallel::shared::Triangulation<PHILIP_DIM>>::discontinuity_sensor<RadType>(const dealii::Quadrature<PHILIP_DIM> &volume_quadrature, const std::vector< RadType > &soln_coeff_high, const dealii::FiniteElement<PHILIP_DIM,PHILIP_DIM> &fe_high, const std::vector<RadType>  &jac_det);
+    template FadFadType DGBase<PHILIP_DIM, PHILIP_SPECIES,double,dealii::parallel::shared::Triangulation<PHILIP_DIM>>::discontinuity_sensor<FadFadType>(const dealii::Quadrature<PHILIP_DIM> &volume_quadrature, const std::vector< FadFadType > &soln_coeff_high, const dealii::FiniteElement<PHILIP_DIM,PHILIP_DIM> &fe_high, const std::vector<FadFadType>  &jac_det);
+    template RadFadType DGBase<PHILIP_DIM, PHILIP_SPECIES,double,dealii::parallel::shared::Triangulation<PHILIP_DIM>>::discontinuity_sensor<RadFadType>(const dealii::Quadrature<PHILIP_DIM> &volume_quadrature, const std::vector< RadFadType > &soln_coeff_high, const dealii::FiniteElement<PHILIP_DIM,PHILIP_DIM> &fe_high, const std::vector<RadFadType>  &jac_det);
+
+
+    template void
+    DGBase<PHILIP_DIM, PHILIP_SPECIES,double,dealii::Triangulation<PHILIP_DIM>>::assemble_cell_residual<dealii::TriaActiveIterator<dealii::DoFCellAccessor<PHILIP_DIM, PHILIP_DIM, false>>,dealii::TriaActiveIterator<dealii::DoFCellAccessor<PHILIP_DIM, PHILIP_DIM, false>>>(
+        const dealii::TriaActiveIterator<dealii::DoFCellAccessor<PHILIP_DIM, PHILIP_DIM, false>> &current_cell,
+        const dealii::TriaActiveIterator<dealii::DoFCellAccessor<PHILIP_DIM, PHILIP_DIM, false>> &current_metric_cell,
+        const bool compute_dRdW, const bool compute_dRdX, const bool compute_d2R,
+        dealii::hp::FEValues<PHILIP_DIM, PHILIP_DIM>        &fe_values_collection_volume,
+        dealii::hp::FEFaceValues<PHILIP_DIM, PHILIP_DIM>    &fe_values_collection_face_int,
+        dealii::hp::FEFaceValues<PHILIP_DIM, PHILIP_DIM>    &fe_values_collection_face_ext,
+        dealii::hp::FESubfaceValues<PHILIP_DIM, PHILIP_DIM> &fe_values_collection_subface,
+        dealii::hp::FEValues<PHILIP_DIM, PHILIP_DIM>        &fe_values_collection_volume_lagrange,
+        OPERATOR::basis_functions<PHILIP_DIM, 2*PHILIP_DIM,double> &soln_basis_int,
+        OPERATOR::basis_functions<PHILIP_DIM, 2*PHILIP_DIM,double> &soln_basis_ext,
+        OPERATOR::basis_functions<PHILIP_DIM, 2*PHILIP_DIM,double> &flux_basis_int,
+        OPERATOR::basis_functions<PHILIP_DIM, 2*PHILIP_DIM,double> &flux_basis_ext,
+        OPERATOR::local_basis_stiffness<PHILIP_DIM, 2*PHILIP_DIM,double> &flux_basis_stiffness,
+        OPERATOR::vol_projection_operator<PHILIP_DIM, 2*PHILIP_DIM,double> &soln_basis_projection_oper_int,
+        OPERATOR::vol_projection_operator<PHILIP_DIM, 2*PHILIP_DIM,double> &soln_basis_projection_oper_ext,
+        OPERATOR::mapping_shape_functions<PHILIP_DIM, 2*PHILIP_DIM,double> &mapping_basis,
+        const bool compute_auxiliary_right_hand_side,
+        dealii::LinearAlgebra::distributed::Vector<double> &rhs,
+        std::array<dealii::LinearAlgebra::distributed::Vector<double>,PHILIP_DIM> &rhs_aux);
+
+    template void
+    DGBase<PHILIP_DIM, PHILIP_SPECIES,double,dealii::parallel::distributed::Triangulation<PHILIP_DIM>>::assemble_cell_residual<dealii::TriaActiveIterator<dealii::DoFCellAccessor<PHILIP_DIM, PHILIP_DIM, false>>,dealii::TriaActiveIterator<dealii::DoFCellAccessor<PHILIP_DIM, PHILIP_DIM, false>>>(
+        const dealii::TriaActiveIterator<dealii::DoFCellAccessor<PHILIP_DIM, PHILIP_DIM, false>> &current_cell,
+        const dealii::TriaActiveIterator<dealii::DoFCellAccessor<PHILIP_DIM, PHILIP_DIM, false>> &current_metric_cell,
+        const bool compute_dRdW, const bool compute_dRdX, const bool compute_d2R,
+        dealii::hp::FEValues<PHILIP_DIM, PHILIP_DIM>        &fe_values_collection_volume,
+        dealii::hp::FEFaceValues<PHILIP_DIM, PHILIP_DIM>    &fe_values_collection_face_int,
+        dealii::hp::FEFaceValues<PHILIP_DIM, PHILIP_DIM>    &fe_values_collection_face_ext,
+        dealii::hp::FESubfaceValues<PHILIP_DIM, PHILIP_DIM> &fe_values_collection_subface,
+        dealii::hp::FEValues<PHILIP_DIM, PHILIP_DIM>        &fe_values_collection_volume_lagrange,
+        OPERATOR::basis_functions<PHILIP_DIM, 2*PHILIP_DIM,double> &soln_basis_int,
+        OPERATOR::basis_functions<PHILIP_DIM, 2*PHILIP_DIM,double> &soln_basis_ext,
+        OPERATOR::basis_functions<PHILIP_DIM, 2*PHILIP_DIM,double> &flux_basis_int,
+        OPERATOR::basis_functions<PHILIP_DIM, 2*PHILIP_DIM,double> &flux_basis_ext,
+        OPERATOR::local_basis_stiffness<PHILIP_DIM, 2*PHILIP_DIM,double> &flux_basis_stiffness,
+        OPERATOR::vol_projection_operator<PHILIP_DIM, 2*PHILIP_DIM,double> &soln_basis_projection_oper_int,
+        OPERATOR::vol_projection_operator<PHILIP_DIM, 2*PHILIP_DIM,double> &soln_basis_projection_oper_ext,
+        OPERATOR::mapping_shape_functions<PHILIP_DIM, 2*PHILIP_DIM,double> &mapping_basis,
+        const bool compute_auxiliary_right_hand_side,
+        dealii::LinearAlgebra::distributed::Vector<double> &rhs,
+        std::array<dealii::LinearAlgebra::distributed::Vector<double>,PHILIP_DIM> &rhs_aux);
+
+    template void
+    DGBase<PHILIP_DIM, PHILIP_SPECIES,double,dealii::parallel::shared::Triangulation<PHILIP_DIM>>::assemble_cell_residual<dealii::TriaActiveIterator<dealii::DoFCellAccessor<PHILIP_DIM, PHILIP_DIM, false>>,dealii::TriaActiveIterator<dealii::DoFCellAccessor<PHILIP_DIM, PHILIP_DIM, false>>>(
+        const dealii::TriaActiveIterator<dealii::DoFCellAccessor<PHILIP_DIM, PHILIP_DIM, false>> &current_cell,
+        const dealii::TriaActiveIterator<dealii::DoFCellAccessor<PHILIP_DIM, PHILIP_DIM, false>> &current_metric_cell,
+        const bool compute_dRdW, const bool compute_dRdX, const bool compute_d2R,
+        dealii::hp::FEValues<PHILIP_DIM, PHILIP_DIM>        &fe_values_collection_volume,
+        dealii::hp::FEFaceValues<PHILIP_DIM, PHILIP_DIM>    &fe_values_collection_face_int,
+        dealii::hp::FEFaceValues<PHILIP_DIM, PHILIP_DIM>    &fe_values_collection_face_ext,
+        dealii::hp::FESubfaceValues<PHILIP_DIM, PHILIP_DIM> &fe_values_collection_subface,
+        dealii::hp::FEValues<PHILIP_DIM, PHILIP_DIM>        &fe_values_collection_volume_lagrange,
+        OPERATOR::basis_functions<PHILIP_DIM, 2*PHILIP_DIM,double> &soln_basis_int,
+        OPERATOR::basis_functions<PHILIP_DIM, 2*PHILIP_DIM,double> &soln_basis_ext,
+        OPERATOR::basis_functions<PHILIP_DIM, 2*PHILIP_DIM,double> &flux_basis_int,
+        OPERATOR::basis_functions<PHILIP_DIM, 2*PHILIP_DIM,double> &flux_basis_ext,
+        OPERATOR::local_basis_stiffness<PHILIP_DIM, 2*PHILIP_DIM,double> &flux_basis_stiffness,
+        OPERATOR::vol_projection_operator<PHILIP_DIM, 2*PHILIP_DIM,double> &soln_basis_projection_oper_int,
+        OPERATOR::vol_projection_operator<PHILIP_DIM, 2*PHILIP_DIM,double> &soln_basis_projection_oper_ext,
+        OPERATOR::mapping_shape_functions<PHILIP_DIM, 2*PHILIP_DIM,double> &mapping_basis,
+        const bool compute_auxiliary_right_hand_side,
+        dealii::LinearAlgebra::distributed::Vector<double> &rhs,
+        std::array<dealii::LinearAlgebra::distributed::Vector<double>,PHILIP_DIM> &rhs_aux);
 #endif
-
-template class DGBase <PHILIP_DIM, PHILIP_SPECIES, double, dealii::Triangulation<PHILIP_DIM>>;
-template class DGBase <PHILIP_DIM, PHILIP_SPECIES, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
-
-template double DGBase<PHILIP_DIM, PHILIP_SPECIES,double,dealii::Triangulation<PHILIP_DIM>>::discontinuity_sensor<double>(const dealii::Quadrature<PHILIP_DIM> &volume_quadrature, const std::vector< double > &soln_coeff_high, const dealii::FiniteElement<PHILIP_DIM,PHILIP_DIM> &fe_high, const std::vector<double>  &jac_det);
-template FadType DGBase<PHILIP_DIM, PHILIP_SPECIES,double,dealii::Triangulation<PHILIP_DIM>>::discontinuity_sensor<FadType>(const dealii::Quadrature<PHILIP_DIM> &volume_quadrature, const std::vector< FadType > &soln_coeff_high, const dealii::FiniteElement<PHILIP_DIM,PHILIP_DIM> &fe_high, const std::vector<FadType>  &jac_det);
-template RadType DGBase<PHILIP_DIM, PHILIP_SPECIES,double,dealii::Triangulation<PHILIP_DIM>>::discontinuity_sensor<RadType>(const dealii::Quadrature<PHILIP_DIM> &volume_quadrature, const std::vector< RadType > &soln_coeff_high, const dealii::FiniteElement<PHILIP_DIM,PHILIP_DIM> &fe_high, const std::vector<RadType>  &jac_det);
-template FadFadType DGBase<PHILIP_DIM, PHILIP_SPECIES,double,dealii::Triangulation<PHILIP_DIM>>::discontinuity_sensor<FadFadType>(const dealii::Quadrature<PHILIP_DIM> &volume_quadrature, const std::vector< FadFadType > &soln_coeff_high, const dealii::FiniteElement<PHILIP_DIM,PHILIP_DIM> &fe_high, const std::vector<FadFadType>  &jac_det);
-template RadFadType DGBase<PHILIP_DIM, PHILIP_SPECIES,double,dealii::Triangulation<PHILIP_DIM>>::discontinuity_sensor<RadFadType>(const dealii::Quadrature<PHILIP_DIM> &volume_quadrature, const std::vector< RadFadType > &soln_coeff_high, const dealii::FiniteElement<PHILIP_DIM,PHILIP_DIM> &fe_high, const std::vector<RadFadType>  &jac_det);
-
-
-template double DGBase<PHILIP_DIM, PHILIP_SPECIES,double,dealii::parallel::distributed::Triangulation<PHILIP_DIM>>::discontinuity_sensor<double>(const dealii::Quadrature<PHILIP_DIM> &volume_quadrature, const std::vector< double > &soln_coeff_high, const dealii::FiniteElement<PHILIP_DIM,PHILIP_DIM> &fe_high, const std::vector<double>  &jac_det);
-template FadType DGBase<PHILIP_DIM, PHILIP_SPECIES,double,dealii::parallel::distributed::Triangulation<PHILIP_DIM>>::discontinuity_sensor<FadType>(const dealii::Quadrature<PHILIP_DIM> &volume_quadrature, const std::vector< FadType > &soln_coeff_high, const dealii::FiniteElement<PHILIP_DIM,PHILIP_DIM> &fe_high, const std::vector<FadType>  &jac_det);
-template RadType DGBase<PHILIP_DIM, PHILIP_SPECIES,double,dealii::parallel::distributed::Triangulation<PHILIP_DIM>>::discontinuity_sensor<RadType>(const dealii::Quadrature<PHILIP_DIM> &volume_quadrature, const std::vector< RadType > &soln_coeff_high, const dealii::FiniteElement<PHILIP_DIM,PHILIP_DIM> &fe_high, const std::vector<RadType>  &jac_det);
-template FadFadType DGBase<PHILIP_DIM, PHILIP_SPECIES,double,dealii::parallel::distributed::Triangulation<PHILIP_DIM>>::discontinuity_sensor<FadFadType>(const dealii::Quadrature<PHILIP_DIM> &volume_quadrature, const std::vector< FadFadType > &soln_coeff_high, const dealii::FiniteElement<PHILIP_DIM,PHILIP_DIM> &fe_high, const std::vector<FadFadType>  &jac_det);
-template RadFadType DGBase<PHILIP_DIM, PHILIP_SPECIES,double,dealii::parallel::distributed::Triangulation<PHILIP_DIM>>::discontinuity_sensor<RadFadType>(const dealii::Quadrature<PHILIP_DIM> &volume_quadrature, const std::vector< RadFadType > &soln_coeff_high, const dealii::FiniteElement<PHILIP_DIM,PHILIP_DIM> &fe_high, const std::vector<RadFadType>  &jac_det);
-
-
-template double DGBase<PHILIP_DIM, PHILIP_SPECIES,double,dealii::parallel::shared::Triangulation<PHILIP_DIM>>::discontinuity_sensor<double>(const dealii::Quadrature<PHILIP_DIM> &volume_quadrature, const std::vector< double > &soln_coeff_high, const dealii::FiniteElement<PHILIP_DIM,PHILIP_DIM> &fe_high, const std::vector<double>  &jac_det);
-template FadType DGBase<PHILIP_DIM, PHILIP_SPECIES,double,dealii::parallel::shared::Triangulation<PHILIP_DIM>>::discontinuity_sensor<FadType>(const dealii::Quadrature<PHILIP_DIM> &volume_quadrature, const std::vector< FadType > &soln_coeff_high, const dealii::FiniteElement<PHILIP_DIM,PHILIP_DIM> &fe_high, const std::vector<FadType>  &jac_det);
-template RadType DGBase<PHILIP_DIM, PHILIP_SPECIES,double,dealii::parallel::shared::Triangulation<PHILIP_DIM>>::discontinuity_sensor<RadType>(const dealii::Quadrature<PHILIP_DIM> &volume_quadrature, const std::vector< RadType > &soln_coeff_high, const dealii::FiniteElement<PHILIP_DIM,PHILIP_DIM> &fe_high, const std::vector<RadType>  &jac_det);
-template FadFadType DGBase<PHILIP_DIM, PHILIP_SPECIES,double,dealii::parallel::shared::Triangulation<PHILIP_DIM>>::discontinuity_sensor<FadFadType>(const dealii::Quadrature<PHILIP_DIM> &volume_quadrature, const std::vector< FadFadType > &soln_coeff_high, const dealii::FiniteElement<PHILIP_DIM,PHILIP_DIM> &fe_high, const std::vector<FadFadType>  &jac_det);
-template RadFadType DGBase<PHILIP_DIM, PHILIP_SPECIES,double,dealii::parallel::shared::Triangulation<PHILIP_DIM>>::discontinuity_sensor<RadFadType>(const dealii::Quadrature<PHILIP_DIM> &volume_quadrature, const std::vector< RadFadType > &soln_coeff_high, const dealii::FiniteElement<PHILIP_DIM,PHILIP_DIM> &fe_high, const std::vector<RadFadType>  &jac_det);
-
-
-template void
-DGBase<PHILIP_DIM, PHILIP_SPECIES,double,dealii::Triangulation<PHILIP_DIM>>::assemble_cell_residual<dealii::TriaActiveIterator<dealii::DoFCellAccessor<PHILIP_DIM, PHILIP_DIM, false>>,dealii::TriaActiveIterator<dealii::DoFCellAccessor<PHILIP_DIM, PHILIP_DIM, false>>>(
-    const dealii::TriaActiveIterator<dealii::DoFCellAccessor<PHILIP_DIM, PHILIP_DIM, false>> &current_cell,
-    const dealii::TriaActiveIterator<dealii::DoFCellAccessor<PHILIP_DIM, PHILIP_DIM, false>> &current_metric_cell,
-    const bool compute_dRdW, const bool compute_dRdX, const bool compute_d2R,
-    dealii::hp::FEValues<PHILIP_DIM, PHILIP_DIM>        &fe_values_collection_volume,
-    dealii::hp::FEFaceValues<PHILIP_DIM, PHILIP_DIM>    &fe_values_collection_face_int,
-    dealii::hp::FEFaceValues<PHILIP_DIM, PHILIP_DIM>    &fe_values_collection_face_ext,
-    dealii::hp::FESubfaceValues<PHILIP_DIM, PHILIP_DIM> &fe_values_collection_subface,
-    dealii::hp::FEValues<PHILIP_DIM, PHILIP_DIM>        &fe_values_collection_volume_lagrange,
-    OPERATOR::basis_functions<PHILIP_DIM, 2*PHILIP_DIM,double> &soln_basis_int,
-    OPERATOR::basis_functions<PHILIP_DIM, 2*PHILIP_DIM,double> &soln_basis_ext,
-    OPERATOR::basis_functions<PHILIP_DIM, 2*PHILIP_DIM,double> &flux_basis_int,
-    OPERATOR::basis_functions<PHILIP_DIM, 2*PHILIP_DIM,double> &flux_basis_ext,
-    OPERATOR::local_basis_stiffness<PHILIP_DIM, 2*PHILIP_DIM,double> &flux_basis_stiffness,
-    OPERATOR::vol_projection_operator<PHILIP_DIM, 2*PHILIP_DIM,double> &soln_basis_projection_oper_int,
-    OPERATOR::vol_projection_operator<PHILIP_DIM, 2*PHILIP_DIM,double> &soln_basis_projection_oper_ext,
-    OPERATOR::mapping_shape_functions<PHILIP_DIM, 2*PHILIP_DIM,double> &mapping_basis,
-    const bool compute_auxiliary_right_hand_side,
-    dealii::LinearAlgebra::distributed::Vector<double> &rhs,
-    std::array<dealii::LinearAlgebra::distributed::Vector<double>,PHILIP_DIM> &rhs_aux);
-
-template void
-DGBase<PHILIP_DIM, PHILIP_SPECIES,double,dealii::parallel::distributed::Triangulation<PHILIP_DIM>>::assemble_cell_residual<dealii::TriaActiveIterator<dealii::DoFCellAccessor<PHILIP_DIM, PHILIP_DIM, false>>,dealii::TriaActiveIterator<dealii::DoFCellAccessor<PHILIP_DIM, PHILIP_DIM, false>>>(
-    const dealii::TriaActiveIterator<dealii::DoFCellAccessor<PHILIP_DIM, PHILIP_DIM, false>> &current_cell,
-    const dealii::TriaActiveIterator<dealii::DoFCellAccessor<PHILIP_DIM, PHILIP_DIM, false>> &current_metric_cell,
-    const bool compute_dRdW, const bool compute_dRdX, const bool compute_d2R,
-    dealii::hp::FEValues<PHILIP_DIM, PHILIP_DIM>        &fe_values_collection_volume,
-    dealii::hp::FEFaceValues<PHILIP_DIM, PHILIP_DIM>    &fe_values_collection_face_int,
-    dealii::hp::FEFaceValues<PHILIP_DIM, PHILIP_DIM>    &fe_values_collection_face_ext,
-    dealii::hp::FESubfaceValues<PHILIP_DIM, PHILIP_DIM> &fe_values_collection_subface,
-    dealii::hp::FEValues<PHILIP_DIM, PHILIP_DIM>        &fe_values_collection_volume_lagrange,
-    OPERATOR::basis_functions<PHILIP_DIM, 2*PHILIP_DIM,double> &soln_basis_int,
-    OPERATOR::basis_functions<PHILIP_DIM, 2*PHILIP_DIM,double> &soln_basis_ext,
-    OPERATOR::basis_functions<PHILIP_DIM, 2*PHILIP_DIM,double> &flux_basis_int,
-    OPERATOR::basis_functions<PHILIP_DIM, 2*PHILIP_DIM,double> &flux_basis_ext,
-    OPERATOR::local_basis_stiffness<PHILIP_DIM, 2*PHILIP_DIM,double> &flux_basis_stiffness,
-    OPERATOR::vol_projection_operator<PHILIP_DIM, 2*PHILIP_DIM,double> &soln_basis_projection_oper_int,
-    OPERATOR::vol_projection_operator<PHILIP_DIM, 2*PHILIP_DIM,double> &soln_basis_projection_oper_ext,
-    OPERATOR::mapping_shape_functions<PHILIP_DIM, 2*PHILIP_DIM,double> &mapping_basis,
-    const bool compute_auxiliary_right_hand_side,
-    dealii::LinearAlgebra::distributed::Vector<double> &rhs,
-    std::array<dealii::LinearAlgebra::distributed::Vector<double>,PHILIP_DIM> &rhs_aux);
-
-template void
-DGBase<PHILIP_DIM, PHILIP_SPECIES,double,dealii::parallel::shared::Triangulation<PHILIP_DIM>>::assemble_cell_residual<dealii::TriaActiveIterator<dealii::DoFCellAccessor<PHILIP_DIM, PHILIP_DIM, false>>,dealii::TriaActiveIterator<dealii::DoFCellAccessor<PHILIP_DIM, PHILIP_DIM, false>>>(
-    const dealii::TriaActiveIterator<dealii::DoFCellAccessor<PHILIP_DIM, PHILIP_DIM, false>> &current_cell,
-    const dealii::TriaActiveIterator<dealii::DoFCellAccessor<PHILIP_DIM, PHILIP_DIM, false>> &current_metric_cell,
-    const bool compute_dRdW, const bool compute_dRdX, const bool compute_d2R,
-    dealii::hp::FEValues<PHILIP_DIM, PHILIP_DIM>        &fe_values_collection_volume,
-    dealii::hp::FEFaceValues<PHILIP_DIM, PHILIP_DIM>    &fe_values_collection_face_int,
-    dealii::hp::FEFaceValues<PHILIP_DIM, PHILIP_DIM>    &fe_values_collection_face_ext,
-    dealii::hp::FESubfaceValues<PHILIP_DIM, PHILIP_DIM> &fe_values_collection_subface,
-    dealii::hp::FEValues<PHILIP_DIM, PHILIP_DIM>        &fe_values_collection_volume_lagrange,
-    OPERATOR::basis_functions<PHILIP_DIM, 2*PHILIP_DIM,double> &soln_basis_int,
-    OPERATOR::basis_functions<PHILIP_DIM, 2*PHILIP_DIM,double> &soln_basis_ext,
-    OPERATOR::basis_functions<PHILIP_DIM, 2*PHILIP_DIM,double> &flux_basis_int,
-    OPERATOR::basis_functions<PHILIP_DIM, 2*PHILIP_DIM,double> &flux_basis_ext,
-    OPERATOR::local_basis_stiffness<PHILIP_DIM, 2*PHILIP_DIM,double> &flux_basis_stiffness,
-    OPERATOR::vol_projection_operator<PHILIP_DIM, 2*PHILIP_DIM,double> &soln_basis_projection_oper_int,
-    OPERATOR::vol_projection_operator<PHILIP_DIM, 2*PHILIP_DIM,double> &soln_basis_projection_oper_ext,
-    OPERATOR::mapping_shape_functions<PHILIP_DIM, 2*PHILIP_DIM,double> &mapping_basis,
-    const bool compute_auxiliary_right_hand_side,
-    dealii::LinearAlgebra::distributed::Vector<double> &rhs,
-    std::array<dealii::LinearAlgebra::distributed::Vector<double>,PHILIP_DIM> &rhs_aux);
 } // PHiLiP namespace

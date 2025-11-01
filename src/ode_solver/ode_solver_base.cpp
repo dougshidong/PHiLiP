@@ -324,11 +324,12 @@ int ODESolverBase<dim,nspecies,real,MeshType>::advance_solution_time (double tim
     return 1;
 }
 
-template class ODESolverBase<PHILIP_DIM, PHILIP_SPECIES, double, dealii::Triangulation<PHILIP_DIM>>;
-template class ODESolverBase<PHILIP_DIM, PHILIP_SPECIES, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
-#if PHILIP_DIM != 1
-template class ODESolverBase<PHILIP_DIM, PHILIP_SPECIES, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+#if PHILIP_SPECIES==1
+    template class ODESolverBase<PHILIP_DIM, PHILIP_SPECIES, double, dealii::Triangulation<PHILIP_DIM>>;
+    template class ODESolverBase<PHILIP_DIM, PHILIP_SPECIES, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+    #if PHILIP_DIM != 1
+        template class ODESolverBase<PHILIP_DIM, PHILIP_SPECIES, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+    #endif
 #endif
-
 } // ODE namespace
 } // PHiLiP namespace

@@ -70,31 +70,26 @@ void RungeKuttaBase<dim, nspecies, real, n_rk_stages, MeshType>::allocate_ode_sy
     this->allocate_runge_kutta_system();
 }
 
-/*
-Templates with n_rk_stages > 4 are for the LSRK method
-*/
-template class RungeKuttaBase<PHILIP_DIM, PHILIP_SPECIES, double,1, dealii::Triangulation<PHILIP_DIM> >;
-template class RungeKuttaBase<PHILIP_DIM, PHILIP_SPECIES, double,2, dealii::Triangulation<PHILIP_DIM> >;
-template class RungeKuttaBase<PHILIP_DIM, PHILIP_SPECIES, double,3, dealii::Triangulation<PHILIP_DIM> >;
-template class RungeKuttaBase<PHILIP_DIM, PHILIP_SPECIES, double,4, dealii::Triangulation<PHILIP_DIM> >;
-template class RungeKuttaBase<PHILIP_DIM, PHILIP_SPECIES, double,5, dealii::Triangulation<PHILIP_DIM> >; 
-template class RungeKuttaBase<PHILIP_DIM, PHILIP_SPECIES, double,9, dealii::Triangulation<PHILIP_DIM> >; 
-template class RungeKuttaBase<PHILIP_DIM, PHILIP_SPECIES, double,10, dealii::Triangulation<PHILIP_DIM> >; 
-template class RungeKuttaBase<PHILIP_DIM, PHILIP_SPECIES, double,1, dealii::parallel::shared::Triangulation<PHILIP_DIM> >;
-template class RungeKuttaBase<PHILIP_DIM, PHILIP_SPECIES, double,2, dealii::parallel::shared::Triangulation<PHILIP_DIM> >;
-template class RungeKuttaBase<PHILIP_DIM, PHILIP_SPECIES, double,3, dealii::parallel::shared::Triangulation<PHILIP_DIM> >;
-template class RungeKuttaBase<PHILIP_DIM, PHILIP_SPECIES, double,4, dealii::parallel::shared::Triangulation<PHILIP_DIM> >;
-template class RungeKuttaBase<PHILIP_DIM, PHILIP_SPECIES, double,5, dealii::parallel::shared::Triangulation<PHILIP_DIM> >;
-template class RungeKuttaBase<PHILIP_DIM, PHILIP_SPECIES, double,9, dealii::parallel::shared::Triangulation<PHILIP_DIM> >;
-template class RungeKuttaBase<PHILIP_DIM, PHILIP_SPECIES, double,10, dealii::parallel::shared::Triangulation<PHILIP_DIM> >;
-#if PHILIP_DIM != 1
-    template class RungeKuttaBase<PHILIP_DIM, PHILIP_SPECIES, double,1, dealii::parallel::distributed::Triangulation<PHILIP_DIM> >;
-    template class RungeKuttaBase<PHILIP_DIM, PHILIP_SPECIES, double,2, dealii::parallel::distributed::Triangulation<PHILIP_DIM> >;
-    template class RungeKuttaBase<PHILIP_DIM, PHILIP_SPECIES, double,3, dealii::parallel::distributed::Triangulation<PHILIP_DIM> >;
-    template class RungeKuttaBase<PHILIP_DIM, PHILIP_SPECIES, double,4, dealii::parallel::distributed::Triangulation<PHILIP_DIM> >;
-    template class RungeKuttaBase<PHILIP_DIM, PHILIP_SPECIES, double,5, dealii::parallel::distributed::Triangulation<PHILIP_DIM> >;
-    template class RungeKuttaBase<PHILIP_DIM, PHILIP_SPECIES, double,9, dealii::parallel::distributed::Triangulation<PHILIP_DIM> >;
-    template class RungeKuttaBase<PHILIP_DIM, PHILIP_SPECIES, double,10, dealii::parallel::distributed::Triangulation<PHILIP_DIM> >;
+#if PHILIP_SPECIES==1
+    // Define a sequence of indices representing the range of nstates (>5 is for LSRK)
+    #define POSSIBLE_NSTATE (1)(2)(3)(4)(5)(9)(10)
+
+    // using default MeshType = Triangulation
+    // 1D: dealii::Triangulation<dim>;
+    // Otherwise: dealii::parallel::distributed::Triangulation<dim>;
+
+    // Define a macro to instantiate with Meshtype = Triangulation or Shared Triangulation for a specific index
+    #define INSTANTIATE_TRIA(r, data, index) \
+        template class RungeKuttaBase<PHILIP_DIM, PHILIP_SPECIES, double, index, dealii::Triangulation<PHILIP_DIM> >; \
+        template class RungeKuttaBase<PHILIP_DIM, PHILIP_SPECIES, double, index, dealii::parallel::shared::Triangulation<PHILIP_DIM> >; 
+    BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_TRIA, _, POSSIBLE_NSTATE)
+
+    // Define a macro to instantiate with distributed triangulation for a specific index
+    #define INSTANTIATE_DISTRIBUTED(r, data, index) \
+        template class RungeKuttaBase<PHILIP_DIM, PHILIP_SPECIES, double, index, dealii::parallel::distributed::Triangulation<PHILIP_DIM> >;
+    #if PHILIP_DIM!=1
+    BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_DISTRIBUTED, _, POSSIBLE_NSTATE)
+    #endif
 #endif
 } // ODE namespace
 } // PHiLiP namespace

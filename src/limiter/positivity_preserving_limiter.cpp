@@ -23,8 +23,8 @@ PositivityPreservingLimiter<dim, nspecies, nstate, real>::PositivityPreservingLi
     using PDE_enum = Parameters::AllParameters::PartialDifferentialEquation;
     PDE_enum pde_type = parameters_input->pde_type;
 
-    std::shared_ptr< ManufacturedSolutionFunction<dim, nspecies, real> >  manufactured_solution_function
-        = ManufacturedSolutionFactory<dim, nspecies, real>::create_ManufacturedSolution(parameters_input, nstate);
+    std::shared_ptr< ManufacturedSolutionFunction<dim, real> >  manufactured_solution_function
+        = ManufacturedSolutionFactory<dim, real>::create_ManufacturedSolution(parameters_input, nstate);
 
     if (pde_type == PDE_enum::euler && nstate == dim + 2) {
         euler_physics = std::make_shared < Physics::Euler<dim, nspecies, nstate, real> >(
@@ -585,6 +585,7 @@ void PositivityPreservingLimiter<dim, nspecies, nstate, real>::limit(
         write_limited_solution(solution, soln_coeff, n_shape_fns, current_dofs_indices);
     }
 }
-
+#if PHILIP_SPECIES==1
 template class PositivityPreservingLimiter <PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM + 2, double>;
+#endif
 } // PHiLiP namespace

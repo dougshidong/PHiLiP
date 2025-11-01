@@ -171,11 +171,11 @@ void AssembleECSWRes<dim,nspecies,nstate>::build_problem(){
     }
 }
 
-#if PHILIP_DIM==1
+#if PHILIP_DIM==1 && PHILIP_SPECIES==1
     template class AssembleECSWRes<PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM>;
 #endif
 
-#if PHILIP_DIM!=1
+#if PHILIP_DIM!=1 && PHILIP_SPECIES==1
     template class AssembleECSWRes<PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2>;
 #endif
 

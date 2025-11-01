@@ -305,10 +305,13 @@ void ROLObjectiveSimOpt<dim,nspecies,nstate>::hessVec_22(
     //n_vmult += 3;
 }
 
-template class ROLObjectiveSimOpt <PHILIP_DIM, PHILIP_SPECIES,1>;
-template class ROLObjectiveSimOpt <PHILIP_DIM, PHILIP_SPECIES,2>;
-template class ROLObjectiveSimOpt <PHILIP_DIM, PHILIP_SPECIES,3>;
-template class ROLObjectiveSimOpt <PHILIP_DIM, PHILIP_SPECIES,4>;
-template class ROLObjectiveSimOpt <PHILIP_DIM, PHILIP_SPECIES,5>;
+#if PHILIP_SPECIES==1
+    // Define a sequence of indices representing the range [1, 5]
+    #define POSSIBLE_NSTATE (1)(2)(3)(4)(5)
 
+    // Define a macro to instantiate ROL Objective Functions for a specific index
+    #define INSTANTIATE_ROL_OBJECTIVE(r, data, index) \
+        template class ROLObjectiveSimOpt <PHILIP_DIM, PHILIP_SPECIES, index>;
+    BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_ROL_OBJECTIVE, _, POSSIBLE_NSTATE)
+#endif
 } // PHiLiP namespace

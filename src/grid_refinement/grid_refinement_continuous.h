@@ -315,7 +315,7 @@ protected:
       */
     void get_current_field_p();
 
-    std::unique_ptr<Field<dim,nspecies,real>> h_field; ///< Continuous representation of the mesh size and anisotropy distribution
+    std::unique_ptr<Field<dim,real>> h_field; ///< Continuous representation of the mesh size and anisotropy distribution
     dealii::Vector<real>             p_field; ///< Continuous representation of the polynomial distribution
 };
 

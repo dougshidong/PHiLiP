@@ -14,16 +14,16 @@ namespace ODE {
  *  Naming convention: RK4 with an embedded RK3 method, 5 stages, 3S* method*/
 
 #if PHILIP_DIM==1
-template <int dim, int nspecies, typename real, typename MeshType = dealii::Triangulation<dim>>
+template <int dim, typename real, typename MeshType = dealii::Triangulation<dim>>
 #else
-template <int dim, int nspecies, typename real, typename MeshType = dealii::parallel::distributed::Triangulation<dim>>
+template <int dim, typename real, typename MeshType = dealii::parallel::distributed::Triangulation<dim>>
 #endif
-class RK4_3_5_3SStar: public LowStorageRKTableauBase <dim, nspecies, real, MeshType>
+class RK4_3_5_3SStar: public LowStorageRKTableauBase <dim, real, MeshType>
 {
 public:
     /// Constructor
     RK4_3_5_3SStar(const int n_rk_stages, const int num_delta, const std::string rk_method_string_input) 
-        : LowStorageRKTableauBase<dim,nspecies,real,MeshType>(n_rk_stages, num_delta, rk_method_string_input) { }
+        : LowStorageRKTableauBase<dim,real,MeshType>(n_rk_stages, num_delta, rk_method_string_input) { }
 
 protected:
     /// Setters
@@ -43,16 +43,16 @@ protected:
  * Naming convention: RK3 with an embedded RK2 method, 6 stages FSAL, 3S*+ method*/
  
 #if PHILIP_DIM==1
-template <int dim, int nspecies, typename real, typename MeshType = dealii::Triangulation<dim>>
+template <int dim, typename real, typename MeshType = dealii::Triangulation<dim>>
 #else
-template <int dim, int nspecies, typename real, typename MeshType = dealii::parallel::distributed::Triangulation<dim>>
+template <int dim, typename real, typename MeshType = dealii::parallel::distributed::Triangulation<dim>>
 #endif
-class RK3_2_5F_3SStarPlus: public LowStorageRKTableauBase <dim, nspecies, real, MeshType>
+class RK3_2_5F_3SStarPlus: public LowStorageRKTableauBase <dim, real, MeshType>
 {
 public:
     /// Constructor
     RK3_2_5F_3SStarPlus(const int n_rk_stages, const int num_delta, const std::string rk_method_string_input) 
-        : LowStorageRKTableauBase<dim,nspecies,real,MeshType>(n_rk_stages, num_delta, rk_method_string_input) { }
+        : LowStorageRKTableauBase<dim,real,MeshType>(n_rk_stages, num_delta, rk_method_string_input) { }
 
 protected:
     /// Setters
@@ -72,16 +72,16 @@ protected:
  * Naming convention: RK4 with an embedded RK3 method, 10 stages FSAL, 3S*+ method*/
  
 #if PHILIP_DIM==1
-template <int dim, int nspecies, typename real, typename MeshType = dealii::Triangulation<dim>>
+template <int dim, typename real, typename MeshType = dealii::Triangulation<dim>>
 #else
-template <int dim, int nspecies, typename real, typename MeshType = dealii::parallel::distributed::Triangulation<dim>>
+template <int dim, typename real, typename MeshType = dealii::parallel::distributed::Triangulation<dim>>
 #endif
-class RK4_3_9F_3SStarPlus: public LowStorageRKTableauBase <dim, nspecies, real, MeshType>
+class RK4_3_9F_3SStarPlus: public LowStorageRKTableauBase <dim, real, MeshType>
 {
 public:
     /// Constructor
     RK4_3_9F_3SStarPlus(const int n_rk_stages, const int num_delta, const std::string rk_method_string_input) 
-        : LowStorageRKTableauBase<dim,nspecies,real,MeshType>(n_rk_stages, num_delta, rk_method_string_input) { }
+        : LowStorageRKTableauBase<dim,real,MeshType>(n_rk_stages, num_delta, rk_method_string_input) { }
 
 protected:
     /// Setters
@@ -101,16 +101,16 @@ protected:
  *  Naming convention: RK5 with an embedded RK4 method, 11 stages FSAL, 3S*+ method*/
  
 #if PHILIP_DIM==1
-template <int dim, int nspecies, typename real, typename MeshType = dealii::Triangulation<dim>>
+template <int dim, typename real, typename MeshType = dealii::Triangulation<dim>>
 #else
-template <int dim, int nspecies, typename real, typename MeshType = dealii::parallel::distributed::Triangulation<dim>>
+template <int dim, typename real, typename MeshType = dealii::parallel::distributed::Triangulation<dim>>
 #endif
-class RK5_4_10F_3SStarPlus: public LowStorageRKTableauBase <dim, nspecies, real, MeshType>
+class RK5_4_10F_3SStarPlus: public LowStorageRKTableauBase <dim, real, MeshType>
 {
 public:
     /// Constructor
     RK5_4_10F_3SStarPlus(const int n_rk_stages, const int num_delta, const std::string rk_method_string_input) 
-        : LowStorageRKTableauBase<dim,nspecies,real,MeshType>(n_rk_stages, num_delta, rk_method_string_input) { }
+        : LowStorageRKTableauBase<dim,real,MeshType>(n_rk_stages, num_delta, rk_method_string_input) { }
 
 protected:
     /// Setters

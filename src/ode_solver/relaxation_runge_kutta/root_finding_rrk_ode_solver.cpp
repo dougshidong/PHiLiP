@@ -7,7 +7,7 @@ namespace ODE {
 
 template <int dim, int nspecies, typename real, typename MeshType>
 RootFindingRRKODESolver<dim,nspecies,real,MeshType>::RootFindingRRKODESolver(
-            std::shared_ptr<RKTableauButcherBase<dim,nspecies,real,MeshType>> rk_tableau_input)
+            std::shared_ptr<RKTableauButcherBase<dim,real,MeshType>> rk_tableau_input)
         : RRKODESolverBase<dim,nspecies,real,MeshType>(rk_tableau_input)
 {
 }
@@ -389,11 +389,12 @@ real RootFindingRRKODESolver<dim,nspecies,real,MeshType>::compute_entropy_change
     return dt * entropy_change_estimate;
 }
 
-template class RootFindingRRKODESolver<PHILIP_DIM, PHILIP_SPECIES, double, dealii::Triangulation<PHILIP_DIM> >;
-template class RootFindingRRKODESolver<PHILIP_DIM, PHILIP_SPECIES, double, dealii::parallel::shared::Triangulation<PHILIP_DIM> >;
-#if PHILIP_DIM != 1
-    template class RootFindingRRKODESolver<PHILIP_DIM, PHILIP_SPECIES, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM> >;
+#if PHILIP_SPECIES==1
+    template class RootFindingRRKODESolver<PHILIP_DIM, PHILIP_SPECIES, double, dealii::Triangulation<PHILIP_DIM> >;
+    template class RootFindingRRKODESolver<PHILIP_DIM, PHILIP_SPECIES, double, dealii::parallel::shared::Triangulation<PHILIP_DIM> >;
+    #if PHILIP_DIM != 1
+        template class RootFindingRRKODESolver<PHILIP_DIM, PHILIP_SPECIES, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM> >;
+    #endif
 #endif
-
 } // ODESolver namespace
 } // PHiLiP namespace

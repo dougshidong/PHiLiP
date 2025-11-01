@@ -1,5 +1,6 @@
 #include "parameters/all_parameters.h"
 #include "parameters/parameters_artificial_dissipation.h"
+#include <boost/preprocessor/seq/for_each.hpp>
 #include <deal.II/base/tensor.h>
 #include "artificial_dissipation_factory.h"
 #include "artificial_dissipation.h"
@@ -47,12 +48,13 @@ ArtificialDissipationFactory<dim,nspecies,nstate> ::create_artificial_dissipatio
     return nullptr;
 }
 
+#if PHILIP_SPECIES==1
+    // Define a sequence of indices representing the range [1, 6]
+    #define POSSIBLE_NSTATE (1)(2)(3)(4)(5)(6)
 
-template class ArtificialDissipationFactory<PHILIP_DIM, PHILIP_SPECIES,1>; 
-template class ArtificialDissipationFactory<PHILIP_DIM, PHILIP_SPECIES,2>; 
-template class ArtificialDissipationFactory<PHILIP_DIM, PHILIP_SPECIES,3>; 
-template class ArtificialDissipationFactory<PHILIP_DIM, PHILIP_SPECIES,4>; 
-template class ArtificialDissipationFactory<PHILIP_DIM, PHILIP_SPECIES,5>; 
-template class ArtificialDissipationFactory<PHILIP_DIM, PHILIP_SPECIES,6>; 
-
+    // Define a macro to instantiate MyTemplate for a specific index
+    #define INSTANTIATE_ADFactory(r, data, index) \
+    template class ArtificialDissipationFactory <PHILIP_DIM, PHILIP_SPECIES, index>;
+    BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_ADFactory, _, POSSIBLE_NSTATE)
+#endif
 } // namespace PHiLiP

@@ -30,7 +30,7 @@ ReynoldsAveragedNavierStokes_SAneg<dim, nspecies, nstate, real>::ReynoldsAverage
     const double                                              temperature_inf,
     const double                                              isothermal_wall_temperature,
     const thermal_boundary_condition_enum                     thermal_boundary_condition_type,
-    std::shared_ptr< ManufacturedSolutionFunction<dim,nspecies,real> > manufactured_solution_function,
+    std::shared_ptr< ManufacturedSolutionFunction<dim,real>  > manufactured_solution_function,
     const two_point_num_flux_enum                             two_point_num_flux_type)
     : ReynoldsAveragedNavierStokesBase<dim,nspecies,nstate,real>(parameters_input,
                                                         ref_length,
@@ -719,11 +719,12 @@ std::vector<std::string> ReynoldsAveragedNavierStokes_SAneg<dim,nspecies,nstate,
 //----------------------------------------------------------------
 // Instantiate explicitly
 // -- ReynoldsAveragedNavierStokes_SAneg
+#if PHILIP_SPECIES==1
 template class ReynoldsAveragedNavierStokes_SAneg < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+3, double >;
 template class ReynoldsAveragedNavierStokes_SAneg < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+3, FadType  >;
 template class ReynoldsAveragedNavierStokes_SAneg < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+3, RadType  >;
 template class ReynoldsAveragedNavierStokes_SAneg < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+3, FadFadType >;
 template class ReynoldsAveragedNavierStokes_SAneg < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+3, RadFadType >;
-
+#endif
 } // Physics namespace
 } // PHiLiP namespace

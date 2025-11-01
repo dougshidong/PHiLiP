@@ -1,3 +1,4 @@
+#include <boost/preprocessor/seq/for_each.hpp>
 #include "ADTypes.hpp"
 
 #include "convection_diffusion.h"
@@ -298,41 +299,19 @@ std::array<real,nstate> ConvectionDiffusion<dim,nspecies,nstate,real>
     return source;
 }
 
-template class ConvectionDiffusion < PHILIP_DIM, PHILIP_SPECIES, 1, double >;
-template class ConvectionDiffusion < PHILIP_DIM, PHILIP_SPECIES, 2, double >;
-template class ConvectionDiffusion < PHILIP_DIM, PHILIP_SPECIES, 3, double >;
-template class ConvectionDiffusion < PHILIP_DIM, PHILIP_SPECIES, 4, double >;
-template class ConvectionDiffusion < PHILIP_DIM, PHILIP_SPECIES, 5, double >;
-template class ConvectionDiffusion < PHILIP_DIM, PHILIP_SPECIES, 6, double >;
+#if PHILIP_SPECIES==1
+    // Define a sequence of indices representing the range [1, 6]
+    #define POSSIBLE_NSTATE (1)(2)(3)(4)(5)(6)
 
-template class ConvectionDiffusion < PHILIP_DIM, PHILIP_SPECIES, 1, FadType>;
-template class ConvectionDiffusion < PHILIP_DIM, PHILIP_SPECIES, 2, FadType>;
-template class ConvectionDiffusion < PHILIP_DIM, PHILIP_SPECIES, 3, FadType>;
-template class ConvectionDiffusion < PHILIP_DIM, PHILIP_SPECIES, 4, FadType>;
-template class ConvectionDiffusion < PHILIP_DIM, PHILIP_SPECIES, 5, FadType>;
-template class ConvectionDiffusion < PHILIP_DIM, PHILIP_SPECIES, 6, FadType>;
-
-template class ConvectionDiffusion < PHILIP_DIM, PHILIP_SPECIES, 1, RadType>;
-template class ConvectionDiffusion < PHILIP_DIM, PHILIP_SPECIES, 2, RadType>;
-template class ConvectionDiffusion < PHILIP_DIM, PHILIP_SPECIES, 3, RadType>;
-template class ConvectionDiffusion < PHILIP_DIM, PHILIP_SPECIES, 4, RadType>;
-template class ConvectionDiffusion < PHILIP_DIM, PHILIP_SPECIES, 5, RadType>;
-template class ConvectionDiffusion < PHILIP_DIM, PHILIP_SPECIES, 6, RadType>;
-
-template class ConvectionDiffusion < PHILIP_DIM, PHILIP_SPECIES, 1, FadFadType>;
-template class ConvectionDiffusion < PHILIP_DIM, PHILIP_SPECIES, 2, FadFadType>;
-template class ConvectionDiffusion < PHILIP_DIM, PHILIP_SPECIES, 3, FadFadType>;
-template class ConvectionDiffusion < PHILIP_DIM, PHILIP_SPECIES, 4, FadFadType>;
-template class ConvectionDiffusion < PHILIP_DIM, PHILIP_SPECIES, 5, FadFadType>;
-template class ConvectionDiffusion < PHILIP_DIM, PHILIP_SPECIES, 6, FadFadType>;
-
-template class ConvectionDiffusion < PHILIP_DIM, PHILIP_SPECIES, 1, RadFadType>;
-template class ConvectionDiffusion < PHILIP_DIM, PHILIP_SPECIES, 2, RadFadType>;
-template class ConvectionDiffusion < PHILIP_DIM, PHILIP_SPECIES, 3, RadFadType>;
-template class ConvectionDiffusion < PHILIP_DIM, PHILIP_SPECIES, 4, RadFadType>;
-template class ConvectionDiffusion < PHILIP_DIM, PHILIP_SPECIES, 5, RadFadType>;
-template class ConvectionDiffusion < PHILIP_DIM, PHILIP_SPECIES, 6, RadFadType>;
-
+    // Define a macro to instantiate Convection Diffusion Functions for a specific index
+    #define INSTANTIATE_CONVECTION_DIFFUSION(r, data, index) \
+        template class ConvectionDiffusion < PHILIP_DIM, PHILIP_SPECIES, index, double >; \
+        template class ConvectionDiffusion < PHILIP_DIM, PHILIP_SPECIES, index, FadType >; \
+        template class ConvectionDiffusion < PHILIP_DIM, PHILIP_SPECIES, index, RadType >; \
+        template class ConvectionDiffusion < PHILIP_DIM, PHILIP_SPECIES, index, FadFadType >; \
+        template class ConvectionDiffusion < PHILIP_DIM, PHILIP_SPECIES, index, RadFadType >;
+    BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_CONVECTION_DIFFUSION, _, POSSIBLE_NSTATE)
+#endif
 } // Physics namespace
 } // PHiLiP namespace
 

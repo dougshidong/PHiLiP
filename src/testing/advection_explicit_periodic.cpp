@@ -365,7 +365,8 @@ int AdvectionPeriodic<dim, nspecies, nstate>::run_test() const
     return 0;//if reaches here mean passed test 
 }
 
+#if PHILIP_SPECIES==1
 template class AdvectionPeriodic <PHILIP_DIM, PHILIP_SPECIES,1>;
-
+#endif
 } //Tests namespace
 } //PHiLiP namespace

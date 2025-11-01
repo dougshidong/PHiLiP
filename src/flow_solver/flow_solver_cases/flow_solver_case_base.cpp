@@ -235,12 +235,15 @@ double FlowSolverCaseBase<dim, nspecies, nstate>::get_time_step() const
     return this->time_step;
 }
 
-template class FlowSolverCaseBase<PHILIP_DIM, PHILIP_SPECIES,1>;
-template class FlowSolverCaseBase<PHILIP_DIM, PHILIP_SPECIES,2>;
-template class FlowSolverCaseBase<PHILIP_DIM, PHILIP_SPECIES,3>;
-template class FlowSolverCaseBase<PHILIP_DIM, PHILIP_SPECIES,4>;
-template class FlowSolverCaseBase<PHILIP_DIM, PHILIP_SPECIES,5>;
-template class FlowSolverCaseBase<PHILIP_DIM, PHILIP_SPECIES,6>;
+#if PHILIP_SPECIES==1
+    // Define a sequence of indices representing the range [1, 6]
+    #define POSSIBLE_NSTATE (1)(2)(3)(4)(5)(6)
+
+    // Define a macro to instantiate FlowSolverCaseBase for a specific index
+    #define INSTANTIATE_FLOWSOLVER(r, data, index) \
+        template class FlowSolverCaseBase<PHILIP_DIM, PHILIP_SPECIES,index>;
+    BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_FLOWSOLVER, _, POSSIBLE_NSTATE)
+#endif
 
 } // FlowSolver namespace
 } // PHiLiP namespace

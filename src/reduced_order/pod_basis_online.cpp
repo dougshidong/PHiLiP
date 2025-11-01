@@ -99,7 +99,8 @@ MatrixXd OnlinePOD<dim,nspecies>::getSnapshotMatrix() {
     return snapshotMatrix;
 }
 
+#if PHILIP_SPECIES==1
 template class OnlinePOD <PHILIP_DIM, PHILIP_SPECIES>;
-
+#endif
 }
 }

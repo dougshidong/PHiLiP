@@ -14,7 +14,7 @@ BurgersRewienski<dim,nspecies,nstate,real>::BurgersRewienski(
         const bool convection,
         const bool diffusion,
         const dealii::Tensor<2, 3> input_diffusion_tensor,
-        std::shared_ptr<ManufacturedSolutionFunction<dim, nspecies, real>> manufactured_solution_function)
+        std::shared_ptr<ManufacturedSolutionFunction<dim, real>> manufactured_solution_function)
         : Burgers<dim, nspecies, nstate, real>(parameters_input,
                                      0, //Burgers rewienski diffusion coefficient is zero
                                      convection,
@@ -105,12 +105,13 @@ std::array<real,nstate> BurgersRewienski<dim,nspecies,nstate,real>
     return source;
 }
 
+#if PHILIP_SPECIES==1
 template class BurgersRewienski < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM, double >;
 template class BurgersRewienski < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM, FadType  >;
 template class BurgersRewienski < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM, RadType  >;
 template class BurgersRewienski < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM, FadFadType >;
 template class BurgersRewienski < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM, RadFadType >;
-
+#endif
 } // Physics namespace
 } // PHiLiP namespace
 

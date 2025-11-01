@@ -363,7 +363,8 @@ int ConvectionDiffusionPeriodic<dim, nspecies, nstate>::run_test() const
     return 0; 
 }
 
+#if PHILIP_SPECIES==1
 template class ConvectionDiffusionPeriodic<PHILIP_DIM, PHILIP_SPECIES,1>;
-
+#endif
 } // Tests namespace
 } // PHiLiP namespace

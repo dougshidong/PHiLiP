@@ -47,8 +47,8 @@ int UnsteadyReducedOrder<dim,nspecies,nstate>::run_test() const
     return testfail;
 }
 
+#if PHILIP_SPECIES==1
 template class UnsteadyReducedOrder<PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2>;
-
-
+#endif
 } // Tests namespace
 } // PHiLiP namespace

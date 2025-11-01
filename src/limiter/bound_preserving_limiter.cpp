@@ -39,11 +39,14 @@ std::array<real, nstate> BoundPreservingLimiterState<dim, nspecies, nstate, real
     return soln_cell_avg;
 }
 
-template class BoundPreservingLimiter <PHILIP_DIM, PHILIP_SPECIES, double>;
-template class BoundPreservingLimiterState <PHILIP_DIM, PHILIP_SPECIES, 1, double>;
-template class BoundPreservingLimiterState <PHILIP_DIM, PHILIP_SPECIES, 2, double>;
-template class BoundPreservingLimiterState <PHILIP_DIM, PHILIP_SPECIES, 3, double>;
-template class BoundPreservingLimiterState <PHILIP_DIM, PHILIP_SPECIES, 4, double>;
-template class BoundPreservingLimiterState <PHILIP_DIM, PHILIP_SPECIES, 5, double>;
-template class BoundPreservingLimiterState <PHILIP_DIM, PHILIP_SPECIES, 6, double>;
+#if PHILIP_SPECIES==1
+    template class BoundPreservingLimiter <PHILIP_DIM, PHILIP_SPECIES, double>;
+    // Define a sequence of indices representing the range [1, 6]
+    #define POSSIBLE_NSTATE (1)(2)(3)(4)(5)(6)
+
+    // Define a macro to instantiate Limiter Function for a specific index
+    #define INSTANTIATE_LIMITER(r, data, index) \
+        template class BoundPreservingLimiterState <PHILIP_DIM, PHILIP_SPECIES, index, double>;
+    BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_LIMITER, _, POSSIBLE_NSTATE)
+#endif
 } // PHiLiP namespace

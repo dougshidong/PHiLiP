@@ -766,7 +766,7 @@ int EulerNACAOptimization<dim,nspecies,nstate>
 }
 
 
-#if PHILIP_DIM==2
+#if PHILIP_DIM==2 && PHILIP_SPECIES==1
     template class EulerNACAOptimization <PHILIP_DIM, PHILIP_SPECIES,PHILIP_DIM+2>;
 #endif
 

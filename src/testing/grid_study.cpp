@@ -672,14 +672,13 @@ void GridStudy<dim,nspecies,nstate>
     }
 }
 
+#if PHILIP_SPECIES==1
 template class GridStudy <PHILIP_DIM, PHILIP_SPECIES,1>;
 template class GridStudy <PHILIP_DIM, PHILIP_SPECIES,2>;
 template class GridStudy <PHILIP_DIM, PHILIP_SPECIES,3>;
 template class GridStudy <PHILIP_DIM, PHILIP_SPECIES,4>;
 template class GridStudy <PHILIP_DIM, PHILIP_SPECIES,5>;
 //template struct Instantiator<GridStudy,3,5>;
-
-
-
+#endif
 } // Tests namespace
 } // PHiLiP namespace

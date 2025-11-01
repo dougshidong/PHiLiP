@@ -103,10 +103,12 @@ DGFactory<dim,nspecies,real,MeshType>
     return create_discontinuous_galerkin(parameters_input, degree, degree, triangulation_input);
 }
 
-template class DGFactory <PHILIP_DIM, PHILIP_SPECIES, double, dealii::Triangulation<PHILIP_DIM>>;
-template class DGFactory <PHILIP_DIM, PHILIP_SPECIES, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
-#if PHILIP_DIM!=1
-template class DGFactory <PHILIP_DIM, PHILIP_SPECIES, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+#if PHILIP_SPECIES==1
+    template class DGFactory <PHILIP_DIM, PHILIP_SPECIES, double, dealii::Triangulation<PHILIP_DIM>>;
+    template class DGFactory <PHILIP_DIM, PHILIP_SPECIES, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+    #if PHILIP_DIM!=1
+    template class DGFactory <PHILIP_DIM, PHILIP_SPECIES, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+    #endif
 #endif
 
 } // PHiLiP namespace

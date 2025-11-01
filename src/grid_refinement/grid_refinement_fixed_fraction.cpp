@@ -589,29 +589,23 @@ std::vector< std::pair<dealii::Vector<real>, std::string> > GridRefinement_Fixed
     return data_out_vector;
 }
 
-// dealii::Triangulation<PHILIP_DIM>
-template class GridRefinement_FixedFraction<PHILIP_DIM, PHILIP_SPECIES, 1, double, dealii::Triangulation<PHILIP_DIM>>;
-template class GridRefinement_FixedFraction<PHILIP_DIM, PHILIP_SPECIES, 2, double, dealii::Triangulation<PHILIP_DIM>>;
-template class GridRefinement_FixedFraction<PHILIP_DIM, PHILIP_SPECIES, 3, double, dealii::Triangulation<PHILIP_DIM>>;
-template class GridRefinement_FixedFraction<PHILIP_DIM, PHILIP_SPECIES, 4, double, dealii::Triangulation<PHILIP_DIM>>;
-template class GridRefinement_FixedFraction<PHILIP_DIM, PHILIP_SPECIES, 5, double, dealii::Triangulation<PHILIP_DIM>>;
+#if PHILIP_SPECIES==1
+    // Define a sequence of indices representing the range [1, 5]
+    #define POSSIBLE_NSTATE (1)(2)(3)(4)(5)
 
-// dealii::parallel::shared::Triangulation<PHILIP_DIM>
-template class GridRefinement_FixedFraction<PHILIP_DIM, PHILIP_SPECIES, 1, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
-template class GridRefinement_FixedFraction<PHILIP_DIM, PHILIP_SPECIES, 2, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
-template class GridRefinement_FixedFraction<PHILIP_DIM, PHILIP_SPECIES, 3, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
-template class GridRefinement_FixedFraction<PHILIP_DIM, PHILIP_SPECIES, 4, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
-template class GridRefinement_FixedFraction<PHILIP_DIM, PHILIP_SPECIES, 5, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+    // Define a macro to instantiate with Meshtype = Triangulation or Shared Triangulation for a specific index
+    #define INSTANTIATE_TRIA(r, data, index) \
+        template class GridRefinement_FixedFraction<PHILIP_DIM, PHILIP_SPECIES, index, double, dealii::Triangulation<PHILIP_DIM>>; \
+        template class GridRefinement_FixedFraction<PHILIP_DIM, PHILIP_SPECIES, index, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+    BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_TRIA, _, POSSIBLE_NSTATE)
 
-#if PHILIP_DIM != 1
-// dealii::parallel::distributed::Triangulation<PHILIP_DIM>
-template class GridRefinement_FixedFraction<PHILIP_DIM, PHILIP_SPECIES, 1, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
-template class GridRefinement_FixedFraction<PHILIP_DIM, PHILIP_SPECIES, 2, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
-template class GridRefinement_FixedFraction<PHILIP_DIM, PHILIP_SPECIES, 3, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
-template class GridRefinement_FixedFraction<PHILIP_DIM, PHILIP_SPECIES, 4, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
-template class GridRefinement_FixedFraction<PHILIP_DIM, PHILIP_SPECIES, 5, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+    // Define a macro to instantiate with distributed triangulation for a specific index
+    #define INSTANTIATE_DISTRIBUTED(r, data, index) \
+        template class GridRefinement_FixedFraction<PHILIP_DIM, PHILIP_SPECIES, index, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+    #if PHILIP_DIM!=1
+    BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_DISTRIBUTED, _, POSSIBLE_NSTATE)
+    #endif
 #endif
-
 } // namespace GridRefinement
 
 } // namespace PHiLiP

@@ -51,11 +51,11 @@ public:
     static std::shared_ptr<ODESolverBase<dim,nspecies,real,MeshType>> create_RungeKuttaODESolver(std::shared_ptr< DGBase<dim, nspecies, real, MeshType> > dg_input, std::shared_ptr<ProperOrthogonalDecomposition::PODBase<dim,nspecies>> pod);
     
     /// Creates an RKTableau object based on the specified RK method
-    static std::shared_ptr<RKTableauBase<dim,nspecies,real,MeshType>> create_RKTableau(std::shared_ptr< DGBase<dim,nspecies,real,MeshType> > dg_input);
+    static std::shared_ptr<RKTableauBase<dim,real,MeshType>> create_RKTableau(std::shared_ptr< DGBase<dim,nspecies,real,MeshType> > dg_input);
     
     /// Creates an RRK object with specified RRK type; if no RRK is being used, creates an RRK object with empty functions. 
     static std::shared_ptr<EmptyRRKBase<dim,nspecies,real,MeshType>> create_RRKObject(std::shared_ptr< DGBase<dim,nspecies,real,MeshType> > dg_input,
-            std::shared_ptr<RKTableauBase<dim,nspecies,real,MeshType>> rk_tableau);
+            std::shared_ptr<RKTableauBase<dim,real,MeshType>> rk_tableau);
 
 };
 

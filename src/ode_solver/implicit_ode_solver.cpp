@@ -151,10 +151,12 @@ void ImplicitODESolver<dim,nspecies,real,MeshType>::allocate_ode_system ()
     this->solution_update.reinit(this->dg->right_hand_side);
 }
 
-template class ImplicitODESolver<PHILIP_DIM, PHILIP_SPECIES, double, dealii::Triangulation<PHILIP_DIM>>;
-template class ImplicitODESolver<PHILIP_DIM, PHILIP_SPECIES, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
-#if PHILIP_DIM != 1
-template class ImplicitODESolver<PHILIP_DIM, PHILIP_SPECIES, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+#if PHILIP_SPECIES==1
+    template class ImplicitODESolver<PHILIP_DIM, PHILIP_SPECIES, double, dealii::Triangulation<PHILIP_DIM>>;
+    template class ImplicitODESolver<PHILIP_DIM, PHILIP_SPECIES, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+    #if PHILIP_DIM != 1
+        template class ImplicitODESolver<PHILIP_DIM, PHILIP_SPECIES, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+    #endif
 #endif
 
 } // ODE namespace

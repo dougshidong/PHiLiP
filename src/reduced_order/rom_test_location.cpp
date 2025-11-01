@@ -85,11 +85,11 @@ void ROMTestLocation<dim, nspecies, nstate>::compute_initial_rom_to_final_rom_er
     this->pcout << "Parameter: " << this->parameter << ". Error estimate between initial ROM and updated ROM: " << this->initial_rom_to_final_rom_error << std::endl;
 }
 
-#if PHILIP_DIM==1
+#if PHILIP_DIM==1 && PHILIP_SPECIES==1
         template class ROMTestLocation<PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM>;
 #endif
 
-#if PHILIP_DIM!=1
+#if PHILIP_DIM!=1 && PHILIP_SPECIES==1
         template class ROMTestLocation<PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2>;
 #endif
 

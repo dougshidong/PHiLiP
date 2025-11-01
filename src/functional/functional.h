@@ -459,8 +459,8 @@ class FunctionalWeightedIntegralVolume : public Functional<dim,nspecies,nstate,r
     using FadFadType = Sacado::Fad::DFad<FadType>; ///< Sacado AD type that allows 2nd derivatives.
 public:
     FunctionalWeightedIntegralVolume(
-        std::shared_ptr<ManufacturedSolutionFunction<dim,nspecies,real>>   _weight_function_double,
-        std::shared_ptr<ManufacturedSolutionFunction<dim,nspecies,FadFadType>> _weight_function_adtype,
+        std::shared_ptr<ManufacturedSolutionFunction<dim,real> >   _weight_function_double,
+        std::shared_ptr<ManufacturedSolutionFunction<dim,FadFadType>> _weight_function_adtype,
         const bool                                                _use_weight_function_laplacian,
         std::shared_ptr<DGBase<dim,nspecies,real,MeshType>>                _dg,
         const bool                                                _uses_solution_values   = true,
@@ -472,7 +472,7 @@ public:
         const dealii::Point<dim,real2> &                        phys_coord,
         const std::array<real2,nstate> &                        soln_at_q,
         const std::array<dealii::Tensor<1,dim,real2>,nstate> &  soln_grad_at_q,
-        std::shared_ptr<ManufacturedSolutionFunction<dim,nspecies,real2>> weight_function) const;
+        std::shared_ptr<ManufacturedSolutionFunction<dim,real2>> weight_function) const;
 
     real evaluate_volume_integrand(
         const PHiLiP::Physics::PhysicsBase<dim,nspecies,nstate,real> &physics,
@@ -494,9 +494,9 @@ public:
 
 protected:
     /// Manufactured solution weighting function of double return type
-    std::shared_ptr<ManufacturedSolutionFunction<dim,nspecies,real>>   weight_function_double;
+    std::shared_ptr<ManufacturedSolutionFunction<dim,real> >   weight_function_double;
     /// Manufactured solution weighting function of adtype return type
-    std::shared_ptr<ManufacturedSolutionFunction<dim,nspecies,FadFadType>> weight_function_adtype;
+    std::shared_ptr<ManufacturedSolutionFunction<dim,FadFadType>> weight_function_adtype;
     /// Flag to enable using the weight function laplacian
     const bool                                                use_weight_function_laplacian;
 };
@@ -524,8 +524,8 @@ class FunctionalWeightedIntegralBoundary : public Functional<dim,nspecies,nstate
     using FadFadType = Sacado::Fad::DFad<FadType>; ///< Sacado AD type that allows 2nd derivatives.
 public:
     FunctionalWeightedIntegralBoundary(
-        std::shared_ptr<ManufacturedSolutionFunction<dim,nspecies,real>>       _weight_function_double,
-        std::shared_ptr<ManufacturedSolutionFunction<dim,nspecies,FadFadType>> _weight_function_adtype,
+        std::shared_ptr<ManufacturedSolutionFunction<dim,real> >       _weight_function_double,
+        std::shared_ptr<ManufacturedSolutionFunction<dim,FadFadType>> _weight_function_adtype,
         const bool                                                    _use_weight_function_laplacian,
         std::vector<unsigned int>                                     _boundary_vector,
         const bool                                                    _use_all_boundaries,
@@ -541,7 +541,7 @@ public:
         const dealii::Tensor<1,dim,real2> &                      normal,
         const std::array<real2,nstate> &                         soln_at_q,
         const std::array<dealii::Tensor<1,dim,real2>,nstate> &   soln_grad_at_q,
-        std::shared_ptr<ManufacturedSolutionFunction<dim,nspecies,real2>> weight_function) const;
+        std::shared_ptr<ManufacturedSolutionFunction<dim,real2>> weight_function) const;
         
     real evaluate_boundary_integrand(
         const PHiLiP::Physics::PhysicsBase<dim,nspecies,nstate,real> &physics,
@@ -567,9 +567,9 @@ public:
 
 protected:
     /// Manufactured solution weighting function of double return type
-    std::shared_ptr<ManufacturedSolutionFunction<dim,nspecies,real>>   weight_function_double;
+    std::shared_ptr<ManufacturedSolutionFunction<dim,real> >   weight_function_double;
     /// Manufactured solution weighting function of adtype return type
-    std::shared_ptr<ManufacturedSolutionFunction<dim,nspecies,FadFadType>> weight_function_adtype;
+    std::shared_ptr<ManufacturedSolutionFunction<dim,FadFadType>> weight_function_adtype;
     /// Flag to enable using the weight function laplacian
     const bool                                                use_weight_function_laplacian;
     /// Ids of selected boundaries for integration

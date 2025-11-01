@@ -193,11 +193,11 @@ std::shared_ptr<Epetra_CrsMatrix> HROMTestLocation<dim, nspecies, nstate>::gener
     return std::make_shared<Epetra_CrsMatrix>(petrov_galerkin_basis);
 }
 
-#if PHILIP_DIM==1
+#if PHILIP_DIM==1 && PHILIP_SPECIES==1
         template class HROMTestLocation<PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM>;
 #endif
 
-#if PHILIP_DIM!=1
+#if PHILIP_DIM!=1 && PHILIP_SPECIES==1
         template class HROMTestLocation<PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2>;
 #endif
 

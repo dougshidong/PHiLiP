@@ -319,7 +319,7 @@ void PeriodicEntropyTests<dim, nspecies, nstate>::compute_unsteady_data_and_writ
 
 }
 
-#if PHILIP_DIM>1
+#if PHILIP_DIM>1 && PHILIP_SPECIES==1
     template class PeriodicEntropyTests <PHILIP_DIM, PHILIP_SPECIES,PHILIP_DIM+2>;
 #endif
 

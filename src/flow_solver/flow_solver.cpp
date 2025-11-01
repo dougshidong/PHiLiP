@@ -649,20 +649,22 @@ int FlowSolver<dim,nspecies,nstate>::run() const
     return 0;
 }
 
-#if PHILIP_DIM==1
-template class FlowSolver <PHILIP_DIM, PHILIP_SPECIES,PHILIP_DIM>;
-template class FlowSolver <PHILIP_DIM, PHILIP_SPECIES,PHILIP_DIM+2>;
-#endif
+#if PHILIP_SPECIES==1
+    #if PHILIP_DIM==1
+    template class FlowSolver <PHILIP_DIM, PHILIP_SPECIES,PHILIP_DIM>;
+    template class FlowSolver <PHILIP_DIM, PHILIP_SPECIES,PHILIP_DIM+2>;
+    #endif
 
-#if PHILIP_DIM!=1
-template class FlowSolver <PHILIP_DIM, PHILIP_SPECIES,1>;
-template class FlowSolver <PHILIP_DIM, PHILIP_SPECIES,2>;
-template class FlowSolver <PHILIP_DIM, PHILIP_SPECIES,3>;
-template class FlowSolver <PHILIP_DIM, PHILIP_SPECIES,4>;
-template class FlowSolver <PHILIP_DIM, PHILIP_SPECIES,5>;
-template class FlowSolver <PHILIP_DIM, PHILIP_SPECIES,6>;
-#endif
+    #if PHILIP_DIM!=1
+    // Define a sequence of indices representing the range [1, 6]
+    #define POSSIBLE_NSTATE (1)(2)(3)(4)(5)(6)
 
+    // Define a macro to instantiate FlowSolverCaseBase for a specific index
+    #define INSTANTIATE_FLOWSOLVER(r, data, index) \
+        template class FlowSolver <PHILIP_DIM, PHILIP_SPECIES,index>;
+    BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_FLOWSOLVER, _, POSSIBLE_NSTATE)
+    #endif
+#endif
 } // FlowSolver namespace
 } // PHiLiP namespace
 

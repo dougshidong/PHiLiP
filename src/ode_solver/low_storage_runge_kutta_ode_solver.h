@@ -34,7 +34,7 @@ class LowStorageRungeKuttaODESolver: public RungeKuttaBase <dim, nspecies, real,
 {
 public:
     LowStorageRungeKuttaODESolver(std::shared_ptr< DGBase<dim, nspecies, real, MeshType> > dg_input,
-            std::shared_ptr<LowStorageRKTableauBase<dim,nspecies,real,MeshType>> rk_tableau_input,
+            std::shared_ptr<LowStorageRKTableauBase<dim,real,MeshType>> rk_tableau_input,
             std::shared_ptr<EmptyRRKBase<dim,nspecies,real,MeshType>> RRK_object_input); ///< Constructor.
 
     /// Function to evaluate automatic error adaptive time step
@@ -62,7 +62,7 @@ public:
     void prep_for_step_in_time();
 protected:
     /// Stores Butcher tableau a and b, which specify the RK method
-    std::shared_ptr<LowStorageRKTableauBase<dim,nspecies,real,MeshType>> butcher_tableau;
+    std::shared_ptr<LowStorageRKTableauBase<dim,real,MeshType>> butcher_tableau;
 
     /// Storage of the solution for the first storage register
     dealii::LinearAlgebra::distributed::Vector<double> storage_register_1;

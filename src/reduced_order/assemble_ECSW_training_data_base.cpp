@@ -112,11 +112,11 @@ void AssembleECSWBase<dim, nspecies, nstate>::update_POD_snaps(std::shared_ptr<P
     this->snapshot_parameters = snapshot_parameters_update;
 }
 
-#if PHILIP_DIM==1
+#if PHILIP_DIM==1 && PHILIP_SPECIES==1
         template class AssembleECSWBase<PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM>;
 #endif
 
-#if PHILIP_DIM!=1
+#if PHILIP_DIM!=1 && PHILIP_SPECIES==1
         template class AssembleECSWBase<PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2>;
 #endif
 

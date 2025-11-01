@@ -348,7 +348,7 @@ int BurgersEnergyStability<dim, nspecies, nstate>::run_test() const
     return 0; //if got to here means passed the test, otherwise would've failed earlier
 }
 
-#if PHILIP_DIM==1
+#if PHILIP_DIM==1 && PHILIP_SPECIES==1
 template class BurgersEnergyStability<PHILIP_DIM, PHILIP_SPECIES,PHILIP_DIM>;
 #endif
 

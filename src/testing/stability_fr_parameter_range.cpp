@@ -311,11 +311,12 @@ int StabilityFRParametersRange<dim, nspecies, nstate>::run_test() const
     conv_tab_file.close();
     return testfail;
 }
+#if PHILIP_SPECIES==1
 template class StabilityFRParametersRange<PHILIP_DIM, PHILIP_SPECIES,1>;
 template class StabilityFRParametersRange<PHILIP_DIM, PHILIP_SPECIES,2>;
 template class StabilityFRParametersRange<PHILIP_DIM, PHILIP_SPECIES,3>;
 template class StabilityFRParametersRange<PHILIP_DIM, PHILIP_SPECIES,4>;
 template class StabilityFRParametersRange<PHILIP_DIM, PHILIP_SPECIES,5>;
-
+#endif
 } // Tests namespace
 } // PHiLiP namespace

@@ -92,7 +92,7 @@ void Periodic1DUnsteady<dim, nspecies, nstate>::compute_unsteady_data_and_write_
 
 }
 
-#if PHILIP_DIM==1
+#if PHILIP_DIM==1 && PHILIP_SPECIES==1
 template class Periodic1DUnsteady <PHILIP_DIM, PHILIP_SPECIES,PHILIP_DIM>;
 #endif
 

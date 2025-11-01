@@ -141,7 +141,7 @@ int AnisotropicMeshAdaptationCases<dim, nspecies, nstate> :: run_test () const
 //template class AnisotropicMeshAdaptationCases <PHILIP_DIM, PHILIP_SPECIES,PHILIP_DIM>;
 //#endif
 
-#if PHILIP_DIM==2
+#if PHILIP_DIM==2 && PHILIP_SPECIES==1
 template class AnisotropicMeshAdaptationCases <PHILIP_DIM, PHILIP_SPECIES, 1>;
 template class AnisotropicMeshAdaptationCases <PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM + 2>;
 #endif

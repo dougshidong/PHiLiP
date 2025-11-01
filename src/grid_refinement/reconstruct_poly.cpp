@@ -430,7 +430,7 @@ void ReconstructPoly<dim,nspecies,nstate,real>::reconstruct_directional_derivati
 
 template <int dim, int nspecies, int nstate, typename real>
 void ReconstructPoly<dim,nspecies,nstate,real>::reconstruct_manufactured_derivative(
-    const std::shared_ptr<ManufacturedSolutionFunction<dim,nspecies,real>>& manufactured_solution,
+    const std::shared_ptr<ManufacturedSolutionFunction<dim,real> >& manufactured_solution,
     const unsigned int                                             rel_order)
 {
     for(auto cell = dof_handler.begin_active(); cell != dof_handler.end(); ++cell){
@@ -812,12 +812,15 @@ dealii::Vector<real> ReconstructPoly<dim,nspecies,nstate,real>::get_derivative_v
     return vec;
 }
 
-template class ReconstructPoly<PHILIP_DIM, PHILIP_SPECIES, 1, double>;
-template class ReconstructPoly<PHILIP_DIM, PHILIP_SPECIES, 2, double>;
-template class ReconstructPoly<PHILIP_DIM, PHILIP_SPECIES, 3, double>;
-template class ReconstructPoly<PHILIP_DIM, PHILIP_SPECIES, 4, double>;
-template class ReconstructPoly<PHILIP_DIM, PHILIP_SPECIES, 5, double>;
+#if PHILIP_SPECIES==1
+    // Define a sequence of indices representing the range [1, 5]
+    #define POSSIBLE_NSTATE (1)(2)(3)(4)(5)
 
+    // Define a macro to instantiate Reconstruct Poly for a specific index
+    #define INSTANTIATE_RECONSTRUCTPOLY(r, data, index) \
+        template class ReconstructPoly<PHILIP_DIM, PHILIP_SPECIES, index, double>;
+    BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_RECONSTRUCTPOLY, _, POSSIBLE_NSTATE)
+#endif
 } // namespace GridRefinement
 
 } // namespace PHiLiP

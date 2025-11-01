@@ -43,11 +43,11 @@ int HaltonSampling<dim, nspecies, nstate>::run_sampling() const
     return 0;
 }
 
-#if PHILIP_DIM==1
+#if PHILIP_DIM==1 && PHILIP_SPECIES==1
         template class HaltonSampling<PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM>;
 #endif
 
-#if PHILIP_DIM!=1
+#if PHILIP_DIM!=1 && PHILIP_SPECIES==1
         template class HaltonSampling<PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2>;
 #endif
 

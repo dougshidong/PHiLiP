@@ -410,7 +410,7 @@ int EulerVortex<dim,nspecies,nstate>
     return n_fail_poly;
 }
 
-#if PHILIP_DIM==2
+#if PHILIP_DIM==2 && PHILIP_SPECIES==1
     template class EulerVortex <PHILIP_DIM, PHILIP_SPECIES,PHILIP_DIM+2>;
 #endif
 

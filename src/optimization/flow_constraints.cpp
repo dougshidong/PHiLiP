@@ -840,6 +840,7 @@ void FlowConstraints<dim, nspecies>
 //     const ROL::Vector<double> &b1_ctl = *(b1_simctl.get_2());
 // }
 
+#if PHILIP_SPECIES==1
 template class FlowConstraints<PHILIP_DIM, PHILIP_SPECIES>;
-
+#endif
 } // PHiLiP namespace

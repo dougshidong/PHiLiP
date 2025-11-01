@@ -31,7 +31,7 @@ private:
     static std::shared_ptr< PhysicsBase<dim,nspecies,nstate,real> >
         create_Physics_Model(
             const Parameters::AllParameters                           *const parameters_input,
-            std::shared_ptr< ManufacturedSolutionFunction<dim,nspecies,real> > manufactured_solution_function = nullptr,
+            std::shared_ptr< ManufacturedSolutionFunction<dim,real>  > manufactured_solution_function = nullptr,
             std::shared_ptr< ModelBase<dim,nspecies,nstate,real> >             model_input = nullptr);
 };
 

@@ -198,7 +198,8 @@ MatrixXd OfflinePOD<dim,nspecies>::getSnapshotMatrix() {
     return snapshotMatrix;
 }
 
+#if PHILIP_SPECIES==1
 template class OfflinePOD <PHILIP_DIM, PHILIP_SPECIES>;
-
+#endif
 }
 }

@@ -852,7 +852,8 @@ double eval_avg_slope(std::vector<double> error, std::vector<double> grid_size, 
     return 0.5*(last_slope_error+prev_slope_error);
 }
 
+#if PHILIP_SPECIES==1
 template class DiffusionExactAdjoint <PHILIP_DIM, PHILIP_SPECIES,1>;
-
+#endif
 } // Tests namespace
 } // PHiLiP namespace

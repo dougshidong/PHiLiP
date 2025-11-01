@@ -163,7 +163,7 @@ template <int dim, int nspecies, typename real, typename MeshType>
 std::shared_ptr<ODESolverBase<dim,nspecies,real,MeshType>> ODESolverFactory<dim,nspecies,real,MeshType>::create_RungeKuttaODESolver(std::shared_ptr< DGBase<dim,nspecies,real,MeshType> > dg_input)
 {
     dealii::ConditionalOStream pcout(std::cout, dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD)==0);
-    std::shared_ptr<RKTableauBase<dim,nspecies,real,MeshType>> rk_tableau = create_RKTableau(dg_input);
+    std::shared_ptr<RKTableauBase<dim,real,MeshType>> rk_tableau = create_RKTableau(dg_input);
     std::shared_ptr<EmptyRRKBase<dim,nspecies,real,MeshType>> RRK_object = create_RRKObject(dg_input, rk_tableau);
 
 
@@ -173,7 +173,7 @@ std::shared_ptr<ODESolverBase<dim,nspecies,real,MeshType>> ODESolverFactory<dim,
     if (ode_solver_type == ODEEnum::runge_kutta_solver || ode_solver_type == ODEEnum::rrk_explicit_solver) {
 
         // Type-cast to the appropriate RKTableau type
-        std::shared_ptr<RKTableauButcherBase<dim,nspecies,real,MeshType>> rk_tableau_butcher = std::dynamic_pointer_cast<RKTableauButcherBase<dim,nspecies,real,MeshType>>(rk_tableau); 
+        std::shared_ptr<RKTableauButcherBase<dim,real,MeshType>> rk_tableau_butcher = std::dynamic_pointer_cast<RKTableauButcherBase<dim,real,MeshType>>(rk_tableau); 
         // Hard-coded templating of n_rk_stages because it is not known at compile time
         pcout << "Creating Runge Kutta ODE Solver with " 
               << n_rk_stages << " stage(s)..." << std::endl;
@@ -195,7 +195,7 @@ std::shared_ptr<ODESolverBase<dim,nspecies,real,MeshType>> ODESolverFactory<dim,
             return nullptr;
         }
     } else if (ode_solver_type == ODEEnum::low_storage_runge_kutta_solver) {
-        std::shared_ptr<LowStorageRKTableauBase<dim,nspecies,real,MeshType>> ls_rk_tableau = std::dynamic_pointer_cast<LowStorageRKTableauBase<dim,nspecies,real,MeshType>>(rk_tableau); 
+        std::shared_ptr<LowStorageRKTableauBase<dim,real,MeshType>> ls_rk_tableau = std::dynamic_pointer_cast<LowStorageRKTableauBase<dim,real,MeshType>>(rk_tableau); 
 
         // Hard-coded templating of n_rk_stages because it is not known at compile time
         pcout << "Creating Low-Storage Runge Kutta ODE Solver with " 
@@ -237,7 +237,7 @@ std::shared_ptr<ODESolverBase<dim,nspecies,real,MeshType>> ODESolverFactory<dim,
 {
     dealii::ConditionalOStream pcout(std::cout, dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD)==0);
 
-    std::shared_ptr<RKTableauBase<dim,nspecies,real,MeshType>> rk_tableau = create_RKTableau(dg_input);
+    std::shared_ptr<RKTableauBase<dim,real,MeshType>> rk_tableau = create_RKTableau(dg_input);
     std::shared_ptr<EmptyRRKBase<dim,nspecies,real,MeshType>> RRK_object = create_RRKObject(dg_input, rk_tableau);
 
     const int n_rk_stages = dg_input->all_parameters->ode_solver_param.n_rk_stages;
@@ -245,7 +245,7 @@ std::shared_ptr<ODESolverBase<dim,nspecies,real,MeshType>> ODESolverFactory<dim,
     const ODEEnum ode_solver_type = dg_input->all_parameters->ode_solver_param.ode_solver_type;
     if (ode_solver_type == ODEEnum::pod_galerkin_runge_kutta_solver) {
         // Type-cast to the appropriate RKTableau type
-        std::shared_ptr<RKTableauButcherBase<dim,nspecies,real,MeshType>> rk_tableau_butcher = std::dynamic_pointer_cast<RKTableauButcherBase<dim,nspecies,real,MeshType>>(rk_tableau); 
+        std::shared_ptr<RKTableauButcherBase<dim,real,MeshType>> rk_tableau_butcher = std::dynamic_pointer_cast<RKTableauButcherBase<dim,real,MeshType>>(rk_tableau); 
         // Hard-coded templating of n_rk_stages because it is not known at compile time
         if(dg_input->all_parameters->use_inverse_mass_on_the_fly){
             pcout   << "Not Implemented: use_inverse_mass_on_the_fly=true && ode_solver_type=pod_galerkin_rk_solver"
@@ -281,7 +281,7 @@ std::shared_ptr<ODESolverBase<dim,nspecies,real,MeshType>> ODESolverFactory<dim,
 }
 
 template <int dim, int nspecies, typename real, typename MeshType>
-std::shared_ptr<RKTableauBase<dim,nspecies,real,MeshType>> ODESolverFactory<dim,nspecies,real,MeshType>::create_RKTableau(std::shared_ptr< DGBase<dim,nspecies,real,MeshType> > dg_input)
+std::shared_ptr<RKTableauBase<dim,real,MeshType>> ODESolverFactory<dim,nspecies,real,MeshType>::create_RKTableau(std::shared_ptr< DGBase<dim,nspecies,real,MeshType> > dg_input)
 {
     dealii::ConditionalOStream pcout(std::cout, dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD)==0);
     using RKMethodEnum = Parameters::ODESolverParam::RKMethodEnum;
@@ -289,9 +289,9 @@ std::shared_ptr<RKTableauBase<dim,nspecies,real,MeshType>> ODESolverFactory<dim,
 
     const int n_rk_stages = dg_input->all_parameters->ode_solver_param.n_rk_stages;
 
-    if (rk_method == RKMethodEnum::ssprk3_ex)   return std::make_shared<SSPRK3Explicit<dim, nspecies, real, MeshType>> (n_rk_stages, "3rd order SSP (explicit)");
-    if (rk_method == RKMethodEnum::rk4_ex)      return std::make_shared<RK4Explicit<dim, nspecies, real, MeshType>>    (n_rk_stages, "4th order classical RK (explicit)");
-    if (rk_method == RKMethodEnum::heun2_ex)      return std::make_shared<HeunExplicit<dim, nspecies, real, MeshType>>    (n_rk_stages, "2nd order Heun's method (explicit)");
+    if (rk_method == RKMethodEnum::ssprk3_ex)   return std::make_shared<SSPRK3Explicit<dim, real, MeshType>> (n_rk_stages, "3rd order SSP (explicit)");
+    if (rk_method == RKMethodEnum::rk4_ex)      return std::make_shared<RK4Explicit<dim, real, MeshType>>    (n_rk_stages, "4th order classical RK (explicit)");
+    if (rk_method == RKMethodEnum::heun2_ex)      return std::make_shared<HeunExplicit<dim, real, MeshType>>    (n_rk_stages, "2nd order Heun's method (explicit)");
     if (rk_method == RKMethodEnum::euler_ex) {
         using ODEEnum = Parameters::ODESolverParam::ODESolverEnum;
         ODEEnum ode_solver_type = dg_input->all_parameters->ode_solver_param.ode_solver_type;
@@ -300,19 +300,19 @@ std::shared_ptr<RKTableauBase<dim,nspecies,real,MeshType>> ODESolverFactory<dim,
             pcout << "Error: RRK is not valid for Forward Euler. Aborting..." << std::endl;
             std::abort();
             return nullptr;
-        } else return std::make_shared<EulerExplicit<dim, nspecies, real, MeshType>>  (n_rk_stages, "Forward Euler (explicit)");
+        } else return std::make_shared<EulerExplicit<dim, real, MeshType>>  (n_rk_stages, "Forward Euler (explicit)");
     }
-    if (rk_method == RKMethodEnum::euler_im)    return std::make_shared<EulerImplicit<dim, nspecies, real, MeshType>>  (n_rk_stages, "Implicit Euler (implicit)");
-    if (rk_method == RKMethodEnum::dirk_2_im)   return std::make_shared<DIRK2Implicit<dim, nspecies, real, MeshType>>  (n_rk_stages, "2nd order diagonally-implicit (implicit)");
-    if (rk_method == RKMethodEnum::dirk_3_im)   return std::make_shared<DIRK3Implicit<dim, nspecies, real, MeshType>>  (n_rk_stages, "3nd order diagonally-implicit (implicit)");
+    if (rk_method == RKMethodEnum::euler_im)    return std::make_shared<EulerImplicit<dim, real, MeshType>>  (n_rk_stages, "Implicit Euler (implicit)");
+    if (rk_method == RKMethodEnum::dirk_2_im)   return std::make_shared<DIRK2Implicit<dim, real, MeshType>>  (n_rk_stages, "2nd order diagonally-implicit (implicit)");
+    if (rk_method == RKMethodEnum::dirk_3_im)   return std::make_shared<DIRK3Implicit<dim, real, MeshType>>  (n_rk_stages, "3nd order diagonally-implicit (implicit)");
 
     //Low storage methods
     const int num_delta = dg_input->all_parameters->ode_solver_param.num_delta;
     
-    if (rk_method == RKMethodEnum::RK3_2_5F_3SStarPlus)         return std::make_shared<RK3_2_5F_3SStarPlus<dim, nspecies, real, MeshType>> (n_rk_stages, num_delta, "RK3_2_5F_3SStarPlus");
-    if (rk_method == RKMethodEnum::RK4_3_5_3SStar)              return std::make_shared<RK4_3_5_3SStar<dim, nspecies, real, MeshType>>    (n_rk_stages, num_delta, "RK4_3_5_3SStar");
-    if (rk_method == RKMethodEnum::RK4_3_9F_3SStarPlus)         return std::make_shared<RK4_3_9F_3SStarPlus<dim, nspecies, real, MeshType>>    (n_rk_stages, num_delta, "RK4_3_9F_3SStarPlus");
-    if (rk_method == RKMethodEnum::RK5_4_10F_3SStarPlus)        return std::make_shared<RK5_4_10F_3SStarPlus<dim, nspecies, real, MeshType>>    (n_rk_stages, num_delta, "RK5_4_10F_3SStarPlus");
+    if (rk_method == RKMethodEnum::RK3_2_5F_3SStarPlus)         return std::make_shared<RK3_2_5F_3SStarPlus<dim, real, MeshType>> (n_rk_stages, num_delta, "RK3_2_5F_3SStarPlus");
+    if (rk_method == RKMethodEnum::RK4_3_5_3SStar)              return std::make_shared<RK4_3_5_3SStar<dim, real, MeshType>>    (n_rk_stages, num_delta, "RK4_3_5_3SStar");
+    if (rk_method == RKMethodEnum::RK4_3_9F_3SStarPlus)         return std::make_shared<RK4_3_9F_3SStarPlus<dim, real, MeshType>>    (n_rk_stages, num_delta, "RK4_3_9F_3SStarPlus");
+    if (rk_method == RKMethodEnum::RK5_4_10F_3SStarPlus)        return std::make_shared<RK5_4_10F_3SStarPlus<dim, real, MeshType>>    (n_rk_stages, num_delta, "RK5_4_10F_3SStarPlus");
     else {
         pcout << "Error: invalid RK method. Aborting..." << std::endl;
         std::abort();
@@ -322,13 +322,13 @@ std::shared_ptr<RKTableauBase<dim,nspecies,real,MeshType>> ODESolverFactory<dim,
 
 template <int dim, int nspecies, typename real, typename MeshType>
 std::shared_ptr<EmptyRRKBase<dim,nspecies,real,MeshType>> ODESolverFactory<dim,nspecies,real,MeshType>::create_RRKObject( std::shared_ptr< DGBase<dim,nspecies,real,MeshType> > dg_input,
-       std::shared_ptr<RKTableauBase<dim,nspecies,real,MeshType>> rk_tableau)
+       std::shared_ptr<RKTableauBase<dim,real,MeshType>> rk_tableau)
 {
     dealii::ConditionalOStream pcout(std::cout, dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD)==0);
     using ODEEnum = Parameters::ODESolverParam::ODESolverEnum;
     const ODEEnum ode_solver_type = dg_input->all_parameters->ode_solver_param.ode_solver_type;
     // Type-cast to the appropriate RKTableau type
-    std::shared_ptr<RKTableauButcherBase<dim,nspecies,real,MeshType>> rk_tableau_butcher = std::dynamic_pointer_cast<RKTableauButcherBase<dim,nspecies,real,MeshType>>(rk_tableau); 
+    std::shared_ptr<RKTableauButcherBase<dim,real,MeshType>> rk_tableau_butcher = std::dynamic_pointer_cast<RKTableauButcherBase<dim,real,MeshType>>(rk_tableau); 
 
     if ( (ode_solver_type == ODEEnum::runge_kutta_solver && dg_input->all_parameters->flow_solver_param.do_calculate_numerical_entropy)
             || ( !dg_input->all_parameters->ode_solver_param.use_relaxation_runge_kutta && dg_input->all_parameters->flow_solver_param.do_calculate_numerical_entropy )  ) {
@@ -367,11 +367,12 @@ std::shared_ptr<EmptyRRKBase<dim,nspecies,real,MeshType>> ODESolverFactory<dim,n
     }
 }
 
-template class ODESolverFactory<PHILIP_DIM, PHILIP_SPECIES, double, dealii::Triangulation<PHILIP_DIM>>;
-template class ODESolverFactory<PHILIP_DIM, PHILIP_SPECIES, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
-#if PHILIP_DIM != 1
-    template class ODESolverFactory<PHILIP_DIM, PHILIP_SPECIES, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+#if PHILIP_SPECIES==1
+    template class ODESolverFactory<PHILIP_DIM, PHILIP_SPECIES, double, dealii::Triangulation<PHILIP_DIM>>;
+    template class ODESolverFactory<PHILIP_DIM, PHILIP_SPECIES, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+    #if PHILIP_DIM != 1
+        template class ODESolverFactory<PHILIP_DIM, PHILIP_SPECIES, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+    #endif
 #endif
-
 } // ODE namespace
 } // PHiLiP namespace

@@ -38,11 +38,11 @@ int HyperAdaptiveSamplingNewError<dim, nspecies, nstate>::run_test() const
     }
 }
 
-#if PHILIP_DIM==1
+#if PHILIP_DIM==1 && PHILIP_SPECIES==1
         template class HyperAdaptiveSamplingNewError<PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM>;
 #endif
 
-#if PHILIP_DIM!=1
+#if PHILIP_DIM!=1 && PHILIP_SPECIES==1
         template class HyperAdaptiveSamplingNewError<PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2>;
 #endif
 } // Tests namespace

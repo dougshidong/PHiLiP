@@ -54,7 +54,7 @@ void BurgersViscousSnapshot<dim,nspecies,nstate>::display_additional_flow_case_s
     this->pcout << "- - Number of refinements:  " << number_of_refinements << std::endl;
 }
 
-#if PHILIP_DIM==1
+#if PHILIP_DIM==1 && PHILIP_SPECIES==1
 template class BurgersViscousSnapshot<PHILIP_DIM, PHILIP_SPECIES,PHILIP_DIM>;
 #endif
 

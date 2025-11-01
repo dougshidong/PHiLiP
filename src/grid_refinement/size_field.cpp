@@ -34,12 +34,12 @@ namespace GridRefinement {
 // eventually add a parameter file to select how to construct the size field
 // takes as input a target complexity, computes the h(x,y) (target isotropic 
 // size field) and outputs to a cell-wise vector for gmsh_out
-template <int dim, int nspecies, typename real>
-void SizeField<dim,nspecies,real>::isotropic_uniform(
+template <int dim, typename real>
+void SizeField<dim,real>::isotropic_uniform(
     const real &                               complexity,  // (input) complexity target
     const dealii::Vector<real> &               B,           // only one since p is constant
     const dealii::DoFHandler<dim> &            dof_handler, // dof_handler
-    std::unique_ptr<Field<dim,nspecies,real>> &         h_field,     // (output) size field
+    std::unique_ptr<Field<dim,real>> &         h_field,     // (output) size field
     const real &                               poly_degree) // (input)  polynomial degree
 {
     const real q = 2.0; 
@@ -66,8 +66,8 @@ void SizeField<dim,nspecies,real>::isotropic_uniform(
             h_field->set_scale(cell->active_cell_index(), pow(K*pow(B[cell->active_cell_index()], exponent), -1.0/dim));
 }
 
-template <int dim, int nspecies, typename real>
-void SizeField<dim,nspecies,real>::isotropic_h(
+template <int dim, typename real>
+void SizeField<dim,real>::isotropic_h(
     const real                                 complexity,            // (input) complexity target
     const dealii::Vector<real> &               B,                     // only one since p is constant
     const dealii::DoFHandler<dim> &            dof_handler,           // dof_handler
@@ -75,7 +75,7 @@ void SizeField<dim,nspecies,real>::isotropic_h(
     const dealii::hp::FECollection<dim> &      fe_collection,         // fe collection
     const dealii::hp::QCollection<dim> &       quadrature_collection, // quadrature collection
     const dealii::UpdateFlags &                update_flags,          // update flags for for volume fe
-    std::unique_ptr<Field<dim,nspecies,real>> &         h_field,               // (output) size field
+    std::unique_ptr<Field<dim,real>> &         h_field,               // (output) size field
     const dealii::Vector<real> &               p_field)               // (input)  poly field
 {
     // setting up lambda function which, given a constant for the size field, 
@@ -95,14 +95,14 @@ void SizeField<dim,nspecies,real>::isotropic_h(
     update_h_optimal(lam, B, dof_handler, h_field, p_field);
 }
 
-template <int dim, int nspecies, typename real>
-real SizeField<dim,nspecies,real>::evaluate_complexity(
+template <int dim, typename real>
+real SizeField<dim,real>::evaluate_complexity(
     const dealii::DoFHandler<dim> &            dof_handler,           // dof_handler
     const dealii::hp::MappingCollection<dim> & mapping_collection,    // mapping collection
     const dealii::hp::FECollection<dim> &      fe_collection,         // fe collection
     const dealii::hp::QCollection<dim> &       quadrature_collection, // quadrature collection
     const dealii::UpdateFlags &                update_flags,          // update flags for for volume fe
-    const std::unique_ptr<Field<dim,nspecies,real>> &   h_field,               // (input) size field
+    const std::unique_ptr<Field<dim,real>> &   h_field,               // (input) size field
     const dealii::Vector<real> &               p_field)               // (input)  poly field    
 {
     real complexity_sum = 0.0;
@@ -139,12 +139,12 @@ real SizeField<dim,nspecies,real>::evaluate_complexity(
     return dealii::Utilities::MPI::sum(complexity_sum, MPI_COMM_WORLD);
 }
 
-template <int dim, int nspecies, typename real>
-void SizeField<dim,nspecies,real>::update_h_optimal(
+template <int dim, typename real>
+void SizeField<dim,real>::update_h_optimal(
     const real                          lam,         // (input) bisection parameter
     const dealii::Vector<real> &        B,           // constant for current p
     const dealii::DoFHandler<dim> &     dof_handler, // dof_handler
-    std::unique_ptr<Field<dim,nspecies,real>> &  h_field,     // (output) size field
+    std::unique_ptr<Field<dim,real>> &  h_field,     // (output) size field
     const dealii::Vector<real> &        p_field)     // (input)  poly field
 {
     const real q = 2.0;
@@ -167,8 +167,8 @@ void SizeField<dim,nspecies,real>::update_h_optimal(
 // computes updated p-field with a constant h-field
 // NOT IMPLEMENTED yet
 /*
-template <int dim, int nspecies, typename real>
-void SizeField<dim,nspecies,real>::isotropic_p(
+template <int dim, typename real>
+void SizeField<dim,real>::isotropic_p(
     const dealii::Vector<real> &               Bm,                    // constant for p-1
     const dealii::Vector<real> &               B,                     // constant for p
     const dealii::Vector<real> &               Bp,                    // constant for p+1
@@ -177,7 +177,7 @@ void SizeField<dim,nspecies,real>::isotropic_p(
     const dealii::hp::FECollection<dim> &      fe_collection,         // fe collection
     const dealii::hp::QCollection<dim> &       quadrature_collection, // quadrature collection
     const dealii::UpdateFlags &                update_flags,          // update flags for for volume fe
-    const std::unique_ptr<Field<dim,nspecies,real>> &   h_field,               // (input) size field
+    const std::unique_ptr<Field<dim,real>> &   h_field,               // (input) size field
     dealii::Vector<real> &                     p_field)               // (output) poly field
 {
     (void)Bm;
@@ -202,8 +202,8 @@ void SizeField<dim,nspecies,real>::isotropic_p(
 }
 */
 
-template <int dim, int nspecies, typename real>
-void SizeField<dim,nspecies,real>::isotropic_hp(
+template <int dim, typename real>
+void SizeField<dim,real>::isotropic_hp(
     const real                                 complexity,            // complexity target
     const dealii::Vector<real> &               Bm,                    // constant for p-1
     const dealii::Vector<real> &               B,                     // constant for p
@@ -213,7 +213,7 @@ void SizeField<dim,nspecies,real>::isotropic_hp(
     const dealii::hp::FECollection<dim> &      fe_collection,         // fe collection
     const dealii::hp::QCollection<dim> &       quadrature_collection, // quadrature collection
     const dealii::UpdateFlags &                update_flags,          // update flags for for volume fe
-    std::unique_ptr<Field<dim,nspecies,real>> &         h_field,               // (output) size field
+    std::unique_ptr<Field<dim,real>> &         h_field,               // (output) size field
     dealii::Vector<real> &                     p_field)               // (output) poly field
 {
     isotropic_h(
@@ -268,8 +268,8 @@ void SizeField<dim,nspecies,real>::isotropic_hp(
     // only if another change needs to be made here
 }
 
-template <int dim, int nspecies, typename real>
-void SizeField<dim,nspecies,real>::adjoint_uniform_balan(
+template <int dim, typename real>
+void SizeField<dim,real>::adjoint_uniform_balan(
     const real                                 complexity,            // target complexity
     const real                                 r_max,                 // maximum refinement factor
     const real                                 c_max,                 // maximum coarsening factor
@@ -279,7 +279,7 @@ void SizeField<dim,nspecies,real>::adjoint_uniform_balan(
     const dealii::hp::FECollection<dim> &      fe_collection,         // fe collection
     const dealii::hp::QCollection<dim> &       quadrature_collection, // quadrature collection
     const dealii::UpdateFlags &                update_flags,          // update flags for for volume fe
-    std::unique_ptr<Field<dim,nspecies,real>>&          h_field,               // (output) target size_field
+    std::unique_ptr<Field<dim,real>>&          h_field,               // (output) target size_field
     const real &                               poly_degree)           // uniform polynomial degree
 {
     // creating a proper polynomial vector
@@ -303,8 +303,8 @@ void SizeField<dim,nspecies,real>::adjoint_uniform_balan(
         p_field);
 }
 
-template <int dim, int nspecies, typename real>
-void SizeField<dim,nspecies,real>::adjoint_h_balan(
+template <int dim, typename real>
+void SizeField<dim,real>::adjoint_h_balan(
     const real                                 complexity,            // target complexity
     const real                                 r_max,                 // maximum refinement factor
     const real                                 c_max,                 // maximum coarsening factor
@@ -314,7 +314,7 @@ void SizeField<dim,nspecies,real>::adjoint_h_balan(
     const dealii::hp::FECollection<dim> &      fe_collection,         // fe collection
     const dealii::hp::QCollection<dim> &       quadrature_collection, // quadrature collection
     const dealii::UpdateFlags &                update_flags,          // update flags for for volume fe
-    std::unique_ptr<Field<dim,nspecies,real>>&          h_field,               // (output) target size_field
+    std::unique_ptr<Field<dim,real>>&          h_field,               // (output) target size_field
     const dealii::Vector<real> &               p_field)               // polynomial degree vector
 {
     // getting the I_c vector of the initial sizes
@@ -415,8 +415,8 @@ void SizeField<dim,nspecies,real>::adjoint_h_balan(
 
 // performs adjoint based size field adaptatation with uniform p-field
 // peforms equidistribution of DWR to sizes based on 2p+1 power of convergence
-template <int dim, int nspecies, typename real>
-void SizeField<dim,nspecies,real>::adjoint_h_equal(
+template <int dim, typename real>
+void SizeField<dim,real>::adjoint_h_equal(
     const real                                 complexity,            // target complexity
     const dealii::Vector<real> &               eta,                   // error indicator (DWR)
     const dealii::DoFHandler<dim> &            dof_handler,           // dof_handler
@@ -424,7 +424,7 @@ void SizeField<dim,nspecies,real>::adjoint_h_equal(
     const dealii::hp::FECollection<dim> &      fe_collection,         // fe collection
     const dealii::hp::QCollection<dim> &       quadrature_collection, // quadrature collection
     const dealii::UpdateFlags &                update_flags,          // update flags for for volume fe
-    std::unique_ptr<Field<dim,nspecies,real>>&          h_field,               // (output) target size_field
+    std::unique_ptr<Field<dim,real>>&          h_field,               // (output) target size_field
     const real &                               poly_degree)           // uniform polynomial degree
 {
     std::cout << "Starting equal distribution of DWR based on 2p+1 power." << std::endl;
@@ -503,12 +503,12 @@ void SizeField<dim,nspecies,real>::adjoint_h_equal(
 }
 
 // sets the h_field sizes based on a reference value and DWR distribution
-template <int dim, int nspecies, typename real>
-void SizeField<dim,nspecies,real>::update_h_dwr(
+template <int dim, typename real>
+void SizeField<dim,real>::update_h_dwr(
     const real                          tau,         // reference value for settings sizes
     const dealii::Vector<real> &        eta,         // error indicator (DWR)
     const dealii::DoFHandler<dim> &     dof_handler, // dof_handler
-    std::unique_ptr<Field<dim,nspecies,real>>&   h_field,     // (output) target size_field
+    std::unique_ptr<Field<dim,real>>&   h_field,     // (output) target size_field
     const real &                        poly_degree) // uniform polynomial degree
 {
     // exponent for inverse DWR scaling
@@ -531,8 +531,8 @@ void SizeField<dim,nspecies,real>::update_h_dwr(
 
 // updates the size targets for the entire mesh (from alpha)
 // based on the input of a bisection parameter eta_ref
-template <int dim, int nspecies, typename real>
-void SizeField<dim,nspecies,real>::update_alpha_vector_balan(
+template <int dim, typename real>
+void SizeField<dim,real>::update_alpha_vector_balan(
     const dealii::Vector<real>&        eta,         // vector of DWR indicators
     const real                         r_max,       // max refinement factor
     const real                         c_max,       // max coarsening factor
@@ -541,7 +541,7 @@ void SizeField<dim,nspecies,real>::update_alpha_vector_balan(
     const real                         eta_ref,     // reference parameter for bisection
     const dealii::DoFHandler<dim>&     dof_handler, // dof_handler
     const dealii::Vector<real>&        I_c,         // cell area measure
-    std::unique_ptr<Field<dim,nspecies,real>>&  h_field)     // (output) size-field
+    std::unique_ptr<Field<dim,real>>&  h_field)     // (output) size-field
 {
     // looping through the cells and updating their size (h_field)
     for(auto cell = dof_handler.begin_active(); cell != dof_handler.end(); ++cell){
@@ -573,8 +573,8 @@ void SizeField<dim,nspecies,real>::update_alpha_vector_balan(
 
 // function that determines local alpha size refinement factor (from adjoint estimates)
 // from eq. 30-33 of Balan et al. "djoint-based hp-adaptivity on anisotropic meshes for high-order..."
-template <int dim, int nspecies, typename real>
-real SizeField<dim,nspecies,real>::update_alpha_k_balan(
+template <int dim, typename real>
+real SizeField<dim,real>::update_alpha_k_balan(
     const real eta_k,   // local DWR factor
     const real r_max,   // maximum refinement factor
     const real c_max,   // maximum coarsening factor
@@ -615,8 +615,8 @@ real SizeField<dim,nspecies,real>::update_alpha_k_balan(
 }
 
 // functions for solving non-linear problems
-template <int dim, int nspecies, typename real>
-real SizeField<dim,nspecies,real>::bisection(
+template <int dim, typename real>
+real SizeField<dim,real>::bisection(
     const std::function<real(real)> func,  
     real                            lower_bound, 
     real                            upper_bound,
@@ -665,8 +665,8 @@ real SizeField<dim,nspecies,real>::bisection(
     return x;
 }
 
-template class SizeField <PHILIP_DIM, PHILIP_SPECIES, double>;
-// template class SizeField <PHILIP_DIM, PHILIP_SPECIES, float>; // manufactured solution isn't defined for this
+template class SizeField <PHILIP_DIM, double>;
+// template class SizeField <PHILIP_DIM, float>; // manufactured solution isn't defined for this
 
 } // namespace GridRefinement
 

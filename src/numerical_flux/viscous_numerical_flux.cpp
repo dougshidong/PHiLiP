@@ -1,3 +1,5 @@
+#include <boost/preprocessor/seq/for_each.hpp>
+
 #include "ADTypes.hpp"
 
 #include "viscous_numerical_flux.hpp"
@@ -325,131 +327,36 @@ std::array<real, nstate> BassiRebay2<dim,nspecies,nstate,real>
     return auxiliary_flux_dot_n;
 }
 
-// Instantiation
-template class NumericalFluxDissipative<PHILIP_DIM, PHILIP_SPECIES, 1, double>;
-template class NumericalFluxDissipative<PHILIP_DIM, PHILIP_SPECIES, 2, double>;
-template class NumericalFluxDissipative<PHILIP_DIM, PHILIP_SPECIES, 3, double>;
-template class NumericalFluxDissipative<PHILIP_DIM, PHILIP_SPECIES, 4, double>;
-template class NumericalFluxDissipative<PHILIP_DIM, PHILIP_SPECIES, 5, double>;
-template class NumericalFluxDissipative<PHILIP_DIM, PHILIP_SPECIES, 6, double>;
-template class NumericalFluxDissipative<PHILIP_DIM, PHILIP_SPECIES, 1, FadType >;
-template class NumericalFluxDissipative<PHILIP_DIM, PHILIP_SPECIES, 2, FadType >;
-template class NumericalFluxDissipative<PHILIP_DIM, PHILIP_SPECIES, 3, FadType >;
-template class NumericalFluxDissipative<PHILIP_DIM, PHILIP_SPECIES, 4, FadType >;
-template class NumericalFluxDissipative<PHILIP_DIM, PHILIP_SPECIES, 5, FadType >;
-template class NumericalFluxDissipative<PHILIP_DIM, PHILIP_SPECIES, 6, FadType >;
-template class NumericalFluxDissipative<PHILIP_DIM, PHILIP_SPECIES, 1, RadType >;
-template class NumericalFluxDissipative<PHILIP_DIM, PHILIP_SPECIES, 2, RadType >;
-template class NumericalFluxDissipative<PHILIP_DIM, PHILIP_SPECIES, 3, RadType >;
-template class NumericalFluxDissipative<PHILIP_DIM, PHILIP_SPECIES, 4, RadType >;
-template class NumericalFluxDissipative<PHILIP_DIM, PHILIP_SPECIES, 5, RadType >;
-template class NumericalFluxDissipative<PHILIP_DIM, PHILIP_SPECIES, 6, RadType >;
-template class NumericalFluxDissipative<PHILIP_DIM, PHILIP_SPECIES, 1, FadFadType >;
-template class NumericalFluxDissipative<PHILIP_DIM, PHILIP_SPECIES, 2, FadFadType >;
-template class NumericalFluxDissipative<PHILIP_DIM, PHILIP_SPECIES, 3, FadFadType >;
-template class NumericalFluxDissipative<PHILIP_DIM, PHILIP_SPECIES, 4, FadFadType >;
-template class NumericalFluxDissipative<PHILIP_DIM, PHILIP_SPECIES, 5, FadFadType >;
-template class NumericalFluxDissipative<PHILIP_DIM, PHILIP_SPECIES, 6, FadFadType >;
-template class NumericalFluxDissipative<PHILIP_DIM, PHILIP_SPECIES, 1, RadFadType >;
-template class NumericalFluxDissipative<PHILIP_DIM, PHILIP_SPECIES, 2, RadFadType >;
-template class NumericalFluxDissipative<PHILIP_DIM, PHILIP_SPECIES, 3, RadFadType >;
-template class NumericalFluxDissipative<PHILIP_DIM, PHILIP_SPECIES, 4, RadFadType >;
-template class NumericalFluxDissipative<PHILIP_DIM, PHILIP_SPECIES, 5, RadFadType >;
-template class NumericalFluxDissipative<PHILIP_DIM, PHILIP_SPECIES, 6, RadFadType >;
+#if PHILIP_SPECIES==1
+    // Define a sequence of indices representing the range [1, 6]
+    #define POSSIBLE_NSTATE (1)(2)(3)(4)(5)(6)
 
-
-template class SymmetricInternalPenalty<PHILIP_DIM, PHILIP_SPECIES, 1, double>;
-template class SymmetricInternalPenalty<PHILIP_DIM, PHILIP_SPECIES, 2, double>;
-template class SymmetricInternalPenalty<PHILIP_DIM, PHILIP_SPECIES, 3, double>;
-template class SymmetricInternalPenalty<PHILIP_DIM, PHILIP_SPECIES, 4, double>;
-template class SymmetricInternalPenalty<PHILIP_DIM, PHILIP_SPECIES, 5, double>;
-template class SymmetricInternalPenalty<PHILIP_DIM, PHILIP_SPECIES, 6, double>;
-template class SymmetricInternalPenalty<PHILIP_DIM, PHILIP_SPECIES, 1, FadType >;
-template class SymmetricInternalPenalty<PHILIP_DIM, PHILIP_SPECIES, 2, FadType >;
-template class SymmetricInternalPenalty<PHILIP_DIM, PHILIP_SPECIES, 3, FadType >;
-template class SymmetricInternalPenalty<PHILIP_DIM, PHILIP_SPECIES, 4, FadType >;
-template class SymmetricInternalPenalty<PHILIP_DIM, PHILIP_SPECIES, 5, FadType >;
-template class SymmetricInternalPenalty<PHILIP_DIM, PHILIP_SPECIES, 6, FadType >;
-template class SymmetricInternalPenalty<PHILIP_DIM, PHILIP_SPECIES, 1, RadType >;
-template class SymmetricInternalPenalty<PHILIP_DIM, PHILIP_SPECIES, 2, RadType >;
-template class SymmetricInternalPenalty<PHILIP_DIM, PHILIP_SPECIES, 3, RadType >;
-template class SymmetricInternalPenalty<PHILIP_DIM, PHILIP_SPECIES, 4, RadType >;
-template class SymmetricInternalPenalty<PHILIP_DIM, PHILIP_SPECIES, 5, RadType >;
-template class SymmetricInternalPenalty<PHILIP_DIM, PHILIP_SPECIES, 6, RadType >;
-template class SymmetricInternalPenalty<PHILIP_DIM, PHILIP_SPECIES, 1, FadFadType >;
-template class SymmetricInternalPenalty<PHILIP_DIM, PHILIP_SPECIES, 2, FadFadType >;
-template class SymmetricInternalPenalty<PHILIP_DIM, PHILIP_SPECIES, 3, FadFadType >;
-template class SymmetricInternalPenalty<PHILIP_DIM, PHILIP_SPECIES, 4, FadFadType >;
-template class SymmetricInternalPenalty<PHILIP_DIM, PHILIP_SPECIES, 5, FadFadType >;
-template class SymmetricInternalPenalty<PHILIP_DIM, PHILIP_SPECIES, 6, FadFadType >;
-template class SymmetricInternalPenalty<PHILIP_DIM, PHILIP_SPECIES, 1, RadFadType >;
-template class SymmetricInternalPenalty<PHILIP_DIM, PHILIP_SPECIES, 2, RadFadType >;
-template class SymmetricInternalPenalty<PHILIP_DIM, PHILIP_SPECIES, 3, RadFadType >;
-template class SymmetricInternalPenalty<PHILIP_DIM, PHILIP_SPECIES, 4, RadFadType >;
-template class SymmetricInternalPenalty<PHILIP_DIM, PHILIP_SPECIES, 5, RadFadType >;
-template class SymmetricInternalPenalty<PHILIP_DIM, PHILIP_SPECIES, 6, RadFadType >;
-
-template class BassiRebay2<PHILIP_DIM, PHILIP_SPECIES, 1, double>;
-template class BassiRebay2<PHILIP_DIM, PHILIP_SPECIES, 2, double>;
-template class BassiRebay2<PHILIP_DIM, PHILIP_SPECIES, 3, double>;
-template class BassiRebay2<PHILIP_DIM, PHILIP_SPECIES, 4, double>;
-template class BassiRebay2<PHILIP_DIM, PHILIP_SPECIES, 5, double>;
-template class BassiRebay2<PHILIP_DIM, PHILIP_SPECIES, 6, double>;
-template class BassiRebay2<PHILIP_DIM, PHILIP_SPECIES, 1, FadType >;
-template class BassiRebay2<PHILIP_DIM, PHILIP_SPECIES, 2, FadType >;
-template class BassiRebay2<PHILIP_DIM, PHILIP_SPECIES, 3, FadType >;
-template class BassiRebay2<PHILIP_DIM, PHILIP_SPECIES, 4, FadType >;
-template class BassiRebay2<PHILIP_DIM, PHILIP_SPECIES, 5, FadType >;
-template class BassiRebay2<PHILIP_DIM, PHILIP_SPECIES, 6, FadType >;
-template class BassiRebay2<PHILIP_DIM, PHILIP_SPECIES, 1, RadType >;
-template class BassiRebay2<PHILIP_DIM, PHILIP_SPECIES, 2, RadType >;
-template class BassiRebay2<PHILIP_DIM, PHILIP_SPECIES, 3, RadType >;
-template class BassiRebay2<PHILIP_DIM, PHILIP_SPECIES, 4, RadType >;
-template class BassiRebay2<PHILIP_DIM, PHILIP_SPECIES, 5, RadType >;
-template class BassiRebay2<PHILIP_DIM, PHILIP_SPECIES, 6, RadType >;
-template class BassiRebay2<PHILIP_DIM, PHILIP_SPECIES, 1, FadFadType >;
-template class BassiRebay2<PHILIP_DIM, PHILIP_SPECIES, 2, FadFadType >;
-template class BassiRebay2<PHILIP_DIM, PHILIP_SPECIES, 3, FadFadType >;
-template class BassiRebay2<PHILIP_DIM, PHILIP_SPECIES, 4, FadFadType >;
-template class BassiRebay2<PHILIP_DIM, PHILIP_SPECIES, 5, FadFadType >;
-template class BassiRebay2<PHILIP_DIM, PHILIP_SPECIES, 6, FadFadType >;
-template class BassiRebay2<PHILIP_DIM, PHILIP_SPECIES, 1, RadFadType >;
-template class BassiRebay2<PHILIP_DIM, PHILIP_SPECIES, 2, RadFadType >;
-template class BassiRebay2<PHILIP_DIM, PHILIP_SPECIES, 3, RadFadType >;
-template class BassiRebay2<PHILIP_DIM, PHILIP_SPECIES, 4, RadFadType >;
-template class BassiRebay2<PHILIP_DIM, PHILIP_SPECIES, 5, RadFadType >;
-template class BassiRebay2<PHILIP_DIM, PHILIP_SPECIES, 6, RadFadType >;
-
-template class CentralViscousNumericalFlux<PHILIP_DIM, PHILIP_SPECIES, 1, double>;
-template class CentralViscousNumericalFlux<PHILIP_DIM, PHILIP_SPECIES, 2, double>;
-template class CentralViscousNumericalFlux<PHILIP_DIM, PHILIP_SPECIES, 3, double>;
-template class CentralViscousNumericalFlux<PHILIP_DIM, PHILIP_SPECIES, 4, double>;
-template class CentralViscousNumericalFlux<PHILIP_DIM, PHILIP_SPECIES, 5, double>;
-template class CentralViscousNumericalFlux<PHILIP_DIM, PHILIP_SPECIES, 6, double>;
-template class CentralViscousNumericalFlux<PHILIP_DIM, PHILIP_SPECIES, 1, FadType >;
-template class CentralViscousNumericalFlux<PHILIP_DIM, PHILIP_SPECIES, 2, FadType >;
-template class CentralViscousNumericalFlux<PHILIP_DIM, PHILIP_SPECIES, 3, FadType >;
-template class CentralViscousNumericalFlux<PHILIP_DIM, PHILIP_SPECIES, 4, FadType >;
-template class CentralViscousNumericalFlux<PHILIP_DIM, PHILIP_SPECIES, 5, FadType >;
-template class CentralViscousNumericalFlux<PHILIP_DIM, PHILIP_SPECIES, 6, FadType >;
-template class CentralViscousNumericalFlux<PHILIP_DIM, PHILIP_SPECIES, 1, RadType >;
-template class CentralViscousNumericalFlux<PHILIP_DIM, PHILIP_SPECIES, 2, RadType >;
-template class CentralViscousNumericalFlux<PHILIP_DIM, PHILIP_SPECIES, 3, RadType >;
-template class CentralViscousNumericalFlux<PHILIP_DIM, PHILIP_SPECIES, 4, RadType >;
-template class CentralViscousNumericalFlux<PHILIP_DIM, PHILIP_SPECIES, 5, RadType >;
-template class CentralViscousNumericalFlux<PHILIP_DIM, PHILIP_SPECIES, 6, RadType >;
-template class CentralViscousNumericalFlux<PHILIP_DIM, PHILIP_SPECIES, 1, FadFadType >;
-template class CentralViscousNumericalFlux<PHILIP_DIM, PHILIP_SPECIES, 2, FadFadType >;
-template class CentralViscousNumericalFlux<PHILIP_DIM, PHILIP_SPECIES, 3, FadFadType >;
-template class CentralViscousNumericalFlux<PHILIP_DIM, PHILIP_SPECIES, 4, FadFadType >;
-template class CentralViscousNumericalFlux<PHILIP_DIM, PHILIP_SPECIES, 5, FadFadType >;
-template class CentralViscousNumericalFlux<PHILIP_DIM, PHILIP_SPECIES, 6, FadFadType >;
-template class CentralViscousNumericalFlux<PHILIP_DIM, PHILIP_SPECIES, 1, RadFadType >;
-template class CentralViscousNumericalFlux<PHILIP_DIM, PHILIP_SPECIES, 2, RadFadType >;
-template class CentralViscousNumericalFlux<PHILIP_DIM, PHILIP_SPECIES, 3, RadFadType >;
-template class CentralViscousNumericalFlux<PHILIP_DIM, PHILIP_SPECIES, 4, RadFadType >;
-template class CentralViscousNumericalFlux<PHILIP_DIM, PHILIP_SPECIES, 5, RadFadType >;
-template class CentralViscousNumericalFlux<PHILIP_DIM, PHILIP_SPECIES, 6, RadFadType >;
-
+    // Define a macro to instantiate functions for a specific index
+    #define INSTANTIATE_FOR_NSTATE(r, data, index) \
+        template class NumericalFluxDissipative<PHILIP_DIM, PHILIP_SPECIES, index, double>; \
+        template class NumericalFluxDissipative<PHILIP_DIM, PHILIP_SPECIES, index, FadType>; \
+        template class NumericalFluxDissipative<PHILIP_DIM, PHILIP_SPECIES, index, RadType>; \
+        template class NumericalFluxDissipative<PHILIP_DIM, PHILIP_SPECIES, index, FadFadType>; \
+        template class NumericalFluxDissipative<PHILIP_DIM, PHILIP_SPECIES, index, RadFadType>; \
+        \
+        template class SymmetricInternalPenalty<PHILIP_DIM, PHILIP_SPECIES, index, double>; \
+        template class SymmetricInternalPenalty<PHILIP_DIM, PHILIP_SPECIES, index, FadType>; \
+        template class SymmetricInternalPenalty<PHILIP_DIM, PHILIP_SPECIES, index, RadType>; \
+        template class SymmetricInternalPenalty<PHILIP_DIM, PHILIP_SPECIES, index, FadFadType>; \
+        template class SymmetricInternalPenalty<PHILIP_DIM, PHILIP_SPECIES, index, RadFadType>; \
+        \
+        template class BassiRebay2<PHILIP_DIM, PHILIP_SPECIES, index, double>; \
+        template class BassiRebay2<PHILIP_DIM, PHILIP_SPECIES, index, FadType>; \
+        template class BassiRebay2<PHILIP_DIM, PHILIP_SPECIES, index, RadType>; \
+        template class BassiRebay2<PHILIP_DIM, PHILIP_SPECIES, index, FadFadType>; \
+        template class BassiRebay2<PHILIP_DIM, PHILIP_SPECIES, index, RadFadType>; \
+        \
+        template class CentralViscousNumericalFlux<PHILIP_DIM, PHILIP_SPECIES, index, double>; \
+        template class CentralViscousNumericalFlux<PHILIP_DIM, PHILIP_SPECIES, index, FadType>; \
+        template class CentralViscousNumericalFlux<PHILIP_DIM, PHILIP_SPECIES, index, RadType>; \
+        template class CentralViscousNumericalFlux<PHILIP_DIM, PHILIP_SPECIES, index, FadFadType>; \
+        template class CentralViscousNumericalFlux<PHILIP_DIM, PHILIP_SPECIES, index, RadFadType>;
+    BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_FOR_NSTATE, _, POSSIBLE_NSTATE)
+#endif
 } // NumericalFlux namespace
 } // PHiLiP namespace

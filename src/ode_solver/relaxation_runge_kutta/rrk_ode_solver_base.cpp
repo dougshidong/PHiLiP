@@ -5,7 +5,7 @@ namespace ODE {
 
 template <int dim, int nspecies, typename real, typename MeshType>
 RRKODESolverBase<dim,nspecies,real,MeshType>::RRKODESolverBase(
-            std::shared_ptr<RKTableauButcherBase<dim,nspecies,real,MeshType>> rk_tableau_input)
+            std::shared_ptr<RKTableauButcherBase<dim,real,MeshType>> rk_tableau_input)
         : RKNumEntropy<dim,nspecies,real,MeshType>(rk_tableau_input)
 {
     // Do nothing
@@ -33,11 +33,12 @@ real RRKODESolverBase<dim,nspecies,real,MeshType>::update_relaxation_parameter(c
     return relaxation_parameter_RRK_solver;
 }
 
-template class RRKODESolverBase<PHILIP_DIM, PHILIP_SPECIES, double, dealii::Triangulation<PHILIP_DIM> >;
-template class RRKODESolverBase<PHILIP_DIM, PHILIP_SPECIES, double, dealii::parallel::shared::Triangulation<PHILIP_DIM> >;
-#if PHILIP_DIM != 1
-    template class RRKODESolverBase<PHILIP_DIM, PHILIP_SPECIES, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM> >;
+#if PHILIP_SPECIES==1
+    template class RRKODESolverBase<PHILIP_DIM, PHILIP_SPECIES, double, dealii::Triangulation<PHILIP_DIM> >;
+    template class RRKODESolverBase<PHILIP_DIM, PHILIP_SPECIES, double, dealii::parallel::shared::Triangulation<PHILIP_DIM> >;
+    #if PHILIP_DIM != 1
+        template class RRKODESolverBase<PHILIP_DIM, PHILIP_SPECIES, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM> >;
+    #endif
 #endif
-
 } // ODESolver namespace
 } // PHiLiP namespace

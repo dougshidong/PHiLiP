@@ -167,8 +167,9 @@ std::unique_ptr< FlowSolverBase > FlowSolverFactory<dim,nspecies,nstate>
     }
 }
 
+#if PHILIP_SPECIES==1
 template class FlowSolverFactory <PHILIP_DIM, PHILIP_SPECIES,5>;
-
+#endif
 } // FlowSolver namespace
 } // PHiLiP namespace
 

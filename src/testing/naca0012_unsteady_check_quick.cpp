@@ -107,7 +107,7 @@ int NACA0012UnsteadyCheckQuick<dim, nspecies, nstate>::run_test() const
     return testfail; 
 }
 
-#if PHILIP_DIM==2
+#if PHILIP_DIM==2 && PHILIP_SPECIES==1
     template class NACA0012UnsteadyCheckQuick<PHILIP_DIM, PHILIP_SPECIES,PHILIP_DIM+2>;
 #endif
 } // Tests namespace

@@ -60,7 +60,7 @@ int main (int argc, char *argv[])
         AssertDimension(all_parameters.dimension, PHILIP_DIM);
 
         const int max_dim = PHILIP_DIM;
-        const int max_species = 1;
+        const int max_species = PHILIP_SPECIES;
         const int max_nstate = 5;
 
         if(all_parameters.run_type == PHiLiP::Parameters::AllParameters::RunType::flow_simulation) {

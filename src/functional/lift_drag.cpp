@@ -121,7 +121,7 @@ real LiftDragFunctional<dim,nspecies,nstate,real,MeshType>
     return value;
 }
 
-#if PHILIP_DIM!=1
+#if PHILIP_DIM!=1 && PHILIP_SPECIES==1
 template class LiftDragFunctional <PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
 #endif
 

@@ -60,7 +60,7 @@ namespace GridRefinement {
   * Together these provide an approximation of the continuous degrees of freedoms in the adapted target mesh.
   * Note: \f$p-\f$ based functionality is still not complete and requires updates in other parts of the code.
   */ 
-template <int dim, int nspecies, typename real>
+template <int dim, typename real>
 class SizeField
 {
 public:
@@ -104,7 +104,7 @@ public:
         const real &                               complexity,   ///< Target global continuous mesh complexity
         const dealii::Vector<real> &               B,            ///< Continuous error model for \f$p+1\f$ directional derivatives
         const dealii::DoFHandler<dim> &            dof_handler,  ///< DoFHandler describing the mesh
-        std::unique_ptr<Field<dim,nspecies,real>> &         h_field,      ///< (Output) Target size-field
+        std::unique_ptr<Field<dim,real>> &         h_field,      ///< (Output) Target size-field
         const real &                               poly_degree   ///< (Input) Uniform polynomial degree
         );
 
@@ -149,7 +149,7 @@ public:
         const dealii::hp::FECollection<dim> &      fe_collection,         ///< Finite element collection
         const dealii::hp::QCollection<dim> &       quadrature_collection, ///< Quadrature rules collection
         const dealii::UpdateFlags &                update_flags,          ///< Update flags for the volume finite elements
-        std::unique_ptr<Field<dim,nspecies,real>> &         h_field,               ///< (Output) Target size-field
+        std::unique_ptr<Field<dim,real>> &         h_field,               ///< (Output) Target size-field
         const dealii::Vector<real> &               p_field                ///< (Input) Current polynomial field  
         );
       
@@ -165,7 +165,7 @@ public:
         const dealii::hp::FECollection<dim> &      fe_collection,         ///< Finite element collection
         const dealii::hp::QCollection<dim> &       quadrature_collection, ///< Quadrature rules collection
         const dealii::UpdateFlags &                update_flags,          ///< Update flags for the volume finite elements
-        const std::unique_ptr<Field<dim,nspecies,real>> &   h_field,               ///< (Input) Current size-field
+        const std::unique_ptr<Field<dim,real>> &   h_field,               ///< (Input) Current size-field
         dealii::Vector<real> &                     p_field);              ///< (Output) Target polynomial field  
     */
 
@@ -233,7 +233,7 @@ public:
         const dealii::hp::FECollection<dim> &      fe_collection,         ///< Finite element collection
         const dealii::hp::QCollection<dim> &       quadrature_collection, ///< Quadrature rules collection
         const dealii::UpdateFlags &                update_flags,          ///< Update flags for the volume finite elements
-        std::unique_ptr<Field<dim,nspecies,real>> &         h_field,               ///< (Output) Target size-field
+        std::unique_ptr<Field<dim,real>> &         h_field,               ///< (Output) Target size-field
         dealii::Vector<real> &                     p_field                ///< (Output) Target polynomial field  
         );
 
@@ -252,7 +252,7 @@ public:
         const dealii::hp::FECollection<dim> &      fe_collection,         ///< Finite element collection
         const dealii::hp::QCollection<dim> &       quadrature_collection, ///< Quadrature rules collection
         const dealii::UpdateFlags &                update_flags,          ///< Update flags for the volume finite elements
-        std::unique_ptr<Field<dim,nspecies,real>>&          h_field,               ///< (Output) Target size-field
+        std::unique_ptr<Field<dim,real>>&          h_field,               ///< (Output) Target size-field
         const real &                               poly_degree            ///< uniform polynomial degree
         );
 
@@ -279,7 +279,7 @@ public:
         const dealii::hp::FECollection<dim> &      fe_collection,         ///< Finite element collection
         const dealii::hp::QCollection<dim> &       quadrature_collection, ///< Quadrature rules collection
         const dealii::UpdateFlags &                update_flags,          ///< Update flags for the volume finite elements
-        std::unique_ptr<Field<dim,nspecies,real>>&          h_field,               ///< (Output) Target size-field
+        std::unique_ptr<Field<dim,real>>&          h_field,               ///< (Output) Target size-field
         const dealii::Vector<real> &               p_field                ///< polynomial degree vector
         );
 
@@ -301,7 +301,7 @@ public:
         const dealii::hp::FECollection<dim> &      fe_collection,         ///< Finite element collection
         const dealii::hp::QCollection<dim> &       quadrature_collection, ///< Quadrature rules collection
         const dealii::UpdateFlags &                update_flags,          ///< Update flags for the volume finite elements
-        std::unique_ptr<Field<dim,nspecies,real>>&          h_field,               ///< (Output) Target size-field
+        std::unique_ptr<Field<dim,real>>&          h_field,               ///< (Output) Target size-field
         const real &                               poly_degree            ///< (Input) Uniform polynomial degree
         );
 
@@ -325,7 +325,7 @@ protected:
         const real                          tau,          ///< Bisection reference value for scaling
         const dealii::Vector<real> &        eta,          ///< Dual-weighted residual (DWR) error indicator distribution
         const dealii::DoFHandler<dim> &     dof_handler,  ///< DoFHandler describing the mesh
-        std::unique_ptr<Field<dim,nspecies,real>>&   h_field,      ///< (Output) Target size-field
+        std::unique_ptr<Field<dim,real>>&   h_field,      ///< (Output) Target size-field
         const real &                        poly_degree   ///< (Input) Uniform polynomial degree
         );
 
@@ -349,7 +349,7 @@ protected:
         const real                          lambda,      ///< (Input) Current complexity bisection parameter
         const dealii::Vector<real> &        B,           ///< Continuous error constant for quadratic model of \f$p+1\f$ directional derivatives
         const dealii::DoFHandler<dim> &     dof_handler, ///< DoFHandler describing the mesh
-        std::unique_ptr<Field<dim,nspecies,real>> &  h_field,     ///< (Input) Target size-field
+        std::unique_ptr<Field<dim,real>> &  h_field,     ///< (Input) Target size-field
         const dealii::Vector<real> &        p_field      ///< (Input) Current polynomial field  
         );
 
@@ -386,7 +386,7 @@ protected:
         const dealii::hp::FECollection<dim> &      fe_collection,         ///< Finite element collection
         const dealii::hp::QCollection<dim> &       quadrature_collection, ///< Quadrature rules collection
         const dealii::UpdateFlags &                update_flags,          ///< Update flags for the volume finite elements
-        const std::unique_ptr<Field<dim,nspecies,real>> &   h_field,               ///< (Input) Current size-field
+        const std::unique_ptr<Field<dim,real>> &   h_field,               ///< (Input) Current size-field
         const dealii::Vector<real> &               p_field                ///< (Input) Current polynomial field  
         );
 
@@ -418,7 +418,7 @@ protected:
         const real                         eta_ref,     ///< Threshold value of DWR for deciding between coarsening and refinement
         const dealii::DoFHandler<dim>&     dof_handler, ///< DoFHandler describing the mesh
         const dealii::Vector<real>&        I_c,         ///< Vector of cell current cell area measure
-        std::unique_ptr<Field<dim,nspecies,real>>&  h_field      ///< (Output) Updated size-field 
+        std::unique_ptr<Field<dim,real>>&  h_field      ///< (Output) Updated size-field 
         );
 
     /// Determines local \f$\alpha\f$ sizing factor (from adjoint estimates)

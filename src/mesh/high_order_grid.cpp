@@ -338,7 +338,7 @@ void HighOrderGrid<dim,real,MeshType,VectorType,DoFHandlerType>
         }
     }
 }
-//template <int dim, int nspecies, typename real>
+//template <int dim, typename real>
 //void HighOrderGrid<dim,real>
 //::get_surface_projected_position_vector(const DoFHandlerType &dh, VectorType &position_vector, const dealii::ComponentMask &mask)
 //{
@@ -1460,8 +1460,8 @@ void HighOrderGrid<dim,real,MeshType,VectorType,DoFHandlerType>::output_results_
 
 }
 
-template <int dim, int nspecies>
-void GridPostprocessor<dim, nspecies>::evaluate_vector_field (
+template <int dim>
+void GridPostprocessor<dim>::evaluate_vector_field (
     const dealii::DataPostprocessorInputs::Vector<dim> &inputs,
     std::vector<dealii::Vector<double>> &computed_quantities) const
 {
@@ -1501,8 +1501,8 @@ void GridPostprocessor<dim, nspecies>::evaluate_vector_field (
 
 }
 
-template <int dim, int nspecies>
-std::vector<dealii::DataComponentInterpretation::DataComponentInterpretation> GridPostprocessor<dim, nspecies>
+template <int dim>
+std::vector<dealii::DataComponentInterpretation::DataComponentInterpretation> GridPostprocessor<dim>
 ::get_data_component_interpretation () const
 {
     namespace DCI = dealii::DataComponentInterpretation;
@@ -1517,16 +1517,16 @@ std::vector<dealii::DataComponentInterpretation::DataComponentInterpretation> Gr
 }
 
 
-template <int dim, int nspecies>
-std::vector<std::string> GridPostprocessor<dim, nspecies>::get_names () const
+template <int dim>
+std::vector<std::string> GridPostprocessor<dim>::get_names () const
 {
     std::vector<std::string> names;
     names.push_back ("JacobianDeterminant");
     return names;
 }
 
-template <int dim, int nspecies>
-dealii::UpdateFlags GridPostprocessor<dim, nspecies>::get_needed_update_flags () const
+template <int dim>
+dealii::UpdateFlags GridPostprocessor<dim>::get_needed_update_flags () const
 {
     //return update_values | update_gradients;
     return dealii::update_values | dealii::update_gradients;

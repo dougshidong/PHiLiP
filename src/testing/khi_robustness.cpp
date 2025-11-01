@@ -71,7 +71,7 @@ int KHIRobustness<dim, nspecies, nstate>::run_test() const
     return 0; //Always pass as the flow_solver runs are expected to crash
 }
 
-#if PHILIP_DIM==2
+#if PHILIP_DIM==2 && PHILIP_SPECIES==1
     template class KHIRobustness<PHILIP_DIM, PHILIP_SPECIES,PHILIP_DIM+2>;
 #endif
 } // Tests namespace

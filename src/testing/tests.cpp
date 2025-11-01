@@ -386,12 +386,12 @@ std::unique_ptr< TestsBase > TestsFactory<dim,nspecies,nstate,MeshType>
 //template class TestsFactory <PHILIP_DIM, PHILIP_SPECIES,3>;
 //template class TestsFactory <PHILIP_DIM, PHILIP_SPECIES,4>;
 //template class TestsFactory <PHILIP_DIM, PHILIP_SPECIES,5>;
-
-template class TestsFactory <PHILIP_DIM, PHILIP_SPECIES,5,dealii::Triangulation<PHILIP_DIM>>;
-template class TestsFactory <PHILIP_DIM, PHILIP_SPECIES,5,dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
-#if PHILIP_DIM!=1
-template class TestsFactory <PHILIP_DIM, PHILIP_SPECIES,5,dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+#if PHILIP_SPECIES==1
+    template class TestsFactory <PHILIP_DIM, PHILIP_SPECIES,5,dealii::Triangulation<PHILIP_DIM>>;
+    template class TestsFactory <PHILIP_DIM, PHILIP_SPECIES,5,dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+    #if PHILIP_DIM!=1
+    template class TestsFactory <PHILIP_DIM, PHILIP_SPECIES,5,dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+    #endif
 #endif
-
 } // Tests namespace
 } // PHiLiP namespace

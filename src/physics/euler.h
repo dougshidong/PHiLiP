@@ -96,7 +96,7 @@ public:
         const double                                              mach_inf,
         const double                                              angle_of_attack,
         const double                                              side_slip_angle,
-        std::shared_ptr< ManufacturedSolutionFunction<dim,nspecies,real> > manufactured_solution_function = nullptr,
+        std::shared_ptr< ManufacturedSolutionFunction<dim,real>  > manufactured_solution_function = nullptr,
         const two_point_num_flux_enum                             two_point_num_flux_type = two_point_num_flux_enum::KG,
         const bool                                                has_nonzero_diffusion = false,
         const bool                                                has_nonzero_physical_source = false);

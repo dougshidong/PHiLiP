@@ -68,7 +68,7 @@ int EulerGaussianBumpEnthalpyCheck<dim,nspecies,nstate>::run_test () const
 
 
 
-#if PHILIP_DIM==2
+#if PHILIP_DIM==2 && PHILIP_SPECIES==1
  template class EulerGaussianBumpEnthalpyCheck <PHILIP_DIM, PHILIP_SPECIES,PHILIP_DIM+2>;
 #endif
 } // Tests namespace

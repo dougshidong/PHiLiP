@@ -95,9 +95,9 @@ GridRefinement_Continuous<dim,nspecies,nstate,real,MeshType>::GridRefinement_Con
 
     // sets the Field to default to either anisotropic or isotropic field
     if(this->grid_refinement_param.anisotropic){
-        h_field = std::make_unique<FieldAnisotropic<dim,nspecies,real>>();
+        h_field = std::make_unique<FieldAnisotropic<dim,real>>();
     }else{
-        h_field = std::make_unique<FieldIsotropic<dim,nspecies,real>>();
+        h_field = std::make_unique<FieldIsotropic<dim,real>>();
     }
 
     // set the initial complexity
@@ -482,7 +482,7 @@ void GridRefinement_Continuous<dim,nspecies,nstate,real,MeshType>::field_h_error
         unsigned int poly_degree = this->dg->get_min_fe_degree();
 
         // building error based on exact hessian
-        SizeField<dim,nspecies,real>::isotropic_uniform(
+        SizeField<dim,real>::isotropic_uniform(
             this->complexity_target,
             B,
             this->dg->dof_handler,
@@ -496,7 +496,7 @@ void GridRefinement_Continuous<dim,nspecies,nstate,real,MeshType>::field_h_error
         // mapping
         const dealii::hp::MappingCollection<dim> mapping_collection(*(this->dg->high_order_grid->mapping_fe_field));
 
-        SizeField<dim,nspecies,real>::isotropic_h(
+        SizeField<dim,real>::isotropic_h(
             this->complexity_target,
             B,
             this->dg->dof_handler,
@@ -591,7 +591,7 @@ void GridRefinement_Continuous<dim,nspecies,nstate,real,MeshType>::field_h_hessi
     if(this->dg->get_min_fe_degree() == this->dg->get_max_fe_degree()){
         unsigned int poly_degree = this->dg->get_min_fe_degree();
 
-        SizeField<dim,nspecies,real>::isotropic_uniform(
+        SizeField<dim,real>::isotropic_uniform(
             this->complexity_target,
             B,
             this->dg->dof_handler,
@@ -602,7 +602,7 @@ void GridRefinement_Continuous<dim,nspecies,nstate,real,MeshType>::field_h_hessi
         // the case of non-uniform p
         GridRefinement_Continuous<dim,nspecies,nstate,real,MeshType>::get_current_field_p();
 
-        SizeField<dim,nspecies,real>::isotropic_h(
+        SizeField<dim,real>::isotropic_h(
             this->complexity_target,
             B,
             this->dg->dof_handler,
@@ -707,7 +707,7 @@ void GridRefinement_Continuous<dim,nspecies,nstate,real,MeshType>::field_h_adjoi
         unsigned int poly_degree = this->dg->get_min_fe_degree();
 
         this->get_current_field_h();
-        SizeField<dim,nspecies,real>::adjoint_uniform_balan(
+        SizeField<dim,real>::adjoint_uniform_balan(
             this->complexity_target,
             this->grid_refinement_param.r_max,
             this->grid_refinement_param.c_max,
@@ -719,7 +719,7 @@ void GridRefinement_Continuous<dim,nspecies,nstate,real,MeshType>::field_h_adjoi
             this->volume_update_flags,
             this->h_field,
             poly_degree);
-        // SizeField<dim,nspecies,real>::adjoint_h_equal(
+        // SizeField<dim,real>::adjoint_h_equal(
         //     this->complexity_target,
         //     dwr,
         //     this->dg->dof_handler,
@@ -735,7 +735,7 @@ void GridRefinement_Continuous<dim,nspecies,nstate,real,MeshType>::field_h_adjoi
         GridRefinement_Continuous<dim,nspecies,nstate,real,MeshType>::get_current_field_p();
 
         this->get_current_field_h();
-        SizeField<dim,nspecies,real>::adjoint_h_balan(
+        SizeField<dim,real>::adjoint_h_balan(
             this->complexity_target,
             this->grid_refinement_param.r_max,
             this->grid_refinement_param.c_max,
@@ -838,29 +838,23 @@ std::vector< std::pair<dealii::Vector<real>, std::string> > GridRefinement_Conti
 
 }
 
-// dealii::Triangulation<PHILIP_DIM>
-template class GridRefinement_Continuous<PHILIP_DIM, PHILIP_SPECIES, 1, double, dealii::Triangulation<PHILIP_DIM>>;
-template class GridRefinement_Continuous<PHILIP_DIM, PHILIP_SPECIES, 2, double, dealii::Triangulation<PHILIP_DIM>>;
-template class GridRefinement_Continuous<PHILIP_DIM, PHILIP_SPECIES, 3, double, dealii::Triangulation<PHILIP_DIM>>;
-template class GridRefinement_Continuous<PHILIP_DIM, PHILIP_SPECIES, 4, double, dealii::Triangulation<PHILIP_DIM>>;
-template class GridRefinement_Continuous<PHILIP_DIM, PHILIP_SPECIES, 5, double, dealii::Triangulation<PHILIP_DIM>>;
+#if PHILIP_SPECIES==1
+    // Define a sequence of indices representing the range [1, 5]
+    #define POSSIBLE_NSTATE (1)(2)(3)(4)(5)
 
-// dealii::parallel::shared::Triangulation<PHILIP_DIM>
-template class GridRefinement_Continuous<PHILIP_DIM, PHILIP_SPECIES, 1, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
-template class GridRefinement_Continuous<PHILIP_DIM, PHILIP_SPECIES, 2, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
-template class GridRefinement_Continuous<PHILIP_DIM, PHILIP_SPECIES, 3, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
-template class GridRefinement_Continuous<PHILIP_DIM, PHILIP_SPECIES, 4, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
-template class GridRefinement_Continuous<PHILIP_DIM, PHILIP_SPECIES, 5, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+    // Define a macro to instantiate with Meshtype = Triangulation or Shared Triangulation for a specific index
+    #define INSTANTIATE_TRIA(r, data, index) \
+        template class GridRefinement_Continuous<PHILIP_DIM, PHILIP_SPECIES, index, double, dealii::Triangulation<PHILIP_DIM>>; \
+        template class GridRefinement_Continuous<PHILIP_DIM, PHILIP_SPECIES, index, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+    BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_TRIA, _, POSSIBLE_NSTATE)
 
-#if PHILIP_DIM != 1
-// dealii::parallel::distributed::Triangulation<PHILIP_DIM>
-template class GridRefinement_Continuous<PHILIP_DIM, PHILIP_SPECIES, 1, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
-template class GridRefinement_Continuous<PHILIP_DIM, PHILIP_SPECIES, 2, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
-template class GridRefinement_Continuous<PHILIP_DIM, PHILIP_SPECIES, 3, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
-template class GridRefinement_Continuous<PHILIP_DIM, PHILIP_SPECIES, 4, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
-template class GridRefinement_Continuous<PHILIP_DIM, PHILIP_SPECIES, 5, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+    // Define a macro to instantiate with distributed triangulation for a specific index
+    #define INSTANTIATE_DISTRIBUTED(r, data, index) \
+        template class GridRefinement_Continuous<PHILIP_DIM, PHILIP_SPECIES, index, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+    #if PHILIP_DIM!=1
+    BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_DISTRIBUTED, _, POSSIBLE_NSTATE)
+    #endif
 #endif
-
 } // namespace GridRefinement
 
 } // namespace PHiLiP

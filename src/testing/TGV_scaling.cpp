@@ -186,7 +186,7 @@ int EulerTaylorGreenScaling<dim, nspecies, nstate>::run_test() const
     return 0;
 }
 
-#if PHILIP_DIM==3
+#if PHILIP_DIM==3 && PHILIP_SPECIES==1
     template class EulerTaylorGreenScaling <PHILIP_DIM, PHILIP_SPECIES,PHILIP_DIM+2>;
 #endif
 

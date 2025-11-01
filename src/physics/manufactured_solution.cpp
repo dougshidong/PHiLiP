@@ -3,6 +3,7 @@
 #include <deal.II/base/function.h>
 #include <deal.II/base/function.templates.h> // Needed to instantiate dealii::Function<PHILIP_DIM, Sacado::Fad::DFad<double>>
 #include <deal.II/base/function_time.templates.h> // Needed to instantiate dealii::Function<PHILIP_DIM, Sacado::Fad::DFad<double>>
+#include <boost/preprocessor/seq/for_each.hpp>
 
 #include "manufactured_solution.h"
 
@@ -35,16 +36,16 @@ bool isfinite(Sacado::Rad::ADvar<Sacado::Fad::DFad<double>> value)
     return std::isfinite(static_cast<double>(value.val().val()));
 }
 
-template <int dim, int nspecies, typename real>
-inline real ManufacturedSolutionZero<dim,nspecies,real>
+template <int dim, typename real>
+inline real ManufacturedSolutionZero<dim,real>
 ::value (const dealii::Point<dim,real> &/*point*/, const unsigned int /*istate*/) const
 {
     real value = 0;
     return value;
 }
 
-template <int dim, int nspecies, typename real>
-inline real ManufacturedSolutionSine<dim,nspecies,real>
+template <int dim, typename real>
+inline real ManufacturedSolutionSine<dim,real>
 ::value (const dealii::Point<dim,real> &point, const unsigned int istate) const
 {
     real value = this->amplitudes[istate];
@@ -56,8 +57,8 @@ inline real ManufacturedSolutionSine<dim,nspecies,real>
     return value;
 }
 
-template <int dim, int nspecies, typename real>
-inline real ManufacturedSolutionAdd<dim,nspecies,real>
+template <int dim, typename real>
+inline real ManufacturedSolutionAdd<dim,real>
 ::value (const dealii::Point<dim,real> &point, const unsigned int istate) const
 {
     real value = 0.0;
@@ -69,8 +70,8 @@ inline real ManufacturedSolutionAdd<dim,nspecies,real>
     return value;
 }
 
-template <int dim, int nspecies, typename real>
-inline real ManufacturedSolutionCosine<dim,nspecies,real>
+template <int dim, typename real>
+inline real ManufacturedSolutionCosine<dim,real>
 ::value (const dealii::Point<dim,real> &point, const unsigned int istate) const
 {
     real value = this->amplitudes[istate];
@@ -82,8 +83,8 @@ inline real ManufacturedSolutionCosine<dim,nspecies,real>
     return value;
 }
 
-template <int dim, int nspecies, typename real>
-inline real ManufacturedSolutionExp<dim,nspecies,real>
+template <int dim, typename real>
+inline real ManufacturedSolutionExp<dim,real>
 ::value (const dealii::Point<dim,real> &point, const unsigned int istate) const
 {
     real value = 0.0;
@@ -95,8 +96,8 @@ inline real ManufacturedSolutionExp<dim,nspecies,real>
     return value;
 }
 
-template <int dim, int nspecies, typename real>
-inline real ManufacturedSolutionEvenPoly<dim,nspecies,real>
+template <int dim, typename real>
+inline real ManufacturedSolutionEvenPoly<dim,real>
 ::value (const dealii::Point<dim,real> &point, const unsigned int istate) const
 {
     real value = 0.0;
@@ -108,8 +109,8 @@ inline real ManufacturedSolutionEvenPoly<dim,nspecies,real>
     return value;
 }
 
-template <int dim, int nspecies, typename real>
-inline real ManufacturedSolutionPoly<dim,nspecies,real>
+template <int dim, typename real>
+inline real ManufacturedSolutionPoly<dim,real>
 ::value (const dealii::Point<dim,real> &point, const unsigned int istate) const
 {
     real value = 0.0;
@@ -121,8 +122,8 @@ inline real ManufacturedSolutionPoly<dim,nspecies,real>
     return value;
 }
 
-template <int dim, int nspecies, typename real>
-inline real ManufacturedSolutionAtan<dim,nspecies,real>
+template <int dim, typename real>
+inline real ManufacturedSolutionAtan<dim,real>
 ::value(const dealii::Point<dim,real> &point, const unsigned int /*istate*/) const
 {
     real val = 1.0;
@@ -138,8 +139,8 @@ inline real ManufacturedSolutionAtan<dim,nspecies,real>
     return val;
 }
 
-template <int dim, int nspecies, typename real>
-inline real ManufacturedSolutionBoundaryLayer<dim,nspecies,real>
+template <int dim, typename real>
+inline real ManufacturedSolutionBoundaryLayer<dim,real>
 ::value(const dealii::Point<dim,real> &point, const unsigned int istate) const
 {
     real val = 1.0;
@@ -150,8 +151,8 @@ inline real ManufacturedSolutionBoundaryLayer<dim,nspecies,real>
     return val;
 }
 
-template <int dim, int nspecies, typename real>
-inline real ManufacturedSolutionSShock<dim,nspecies,real>
+template <int dim, typename real>
+inline real ManufacturedSolutionSShock<dim,real>
 ::value(const dealii::Point<dim,real> &point, const unsigned int /*istate*/) const
 {
     real val = 0.0;
@@ -164,8 +165,8 @@ inline real ManufacturedSolutionSShock<dim,nspecies,real>
     return val;
 }
 
-template <int dim, int nspecies, typename real>
-inline real ManufacturedSolutionQuadratic<dim,nspecies,real>
+template <int dim, typename real>
+inline real ManufacturedSolutionQuadratic<dim,real>
 ::value(const dealii::Point<dim,real> &point, const unsigned int /*istate*/) const
 {
     real val = 0.0;
@@ -177,8 +178,8 @@ inline real ManufacturedSolutionQuadratic<dim,nspecies,real>
     return val;
 }
 
-template <int dim, int nspecies, typename real>
-inline real ManufacturedSolutionExample<dim,nspecies,real>
+template <int dim, typename real>
+inline real ManufacturedSolutionExample<dim,real>
 ::value (const dealii::Point<dim,real> &point, const unsigned int istate) const
 {
     real value = 0.0;
@@ -190,8 +191,8 @@ inline real ManufacturedSolutionExample<dim,nspecies,real>
     return value;
 }
 
-template <int dim, int nspecies, typename real>
-inline real ManufacturedSolutionNavahBase<dim,nspecies,real>
+template <int dim, typename real>
+inline real ManufacturedSolutionNavahBase<dim,real>
 ::primitive_value(const dealii::Point<dim,real> &point, const unsigned int istate) const
 {
     real value = 0.;
@@ -224,8 +225,8 @@ inline real ManufacturedSolutionNavahBase<dim,nspecies,real>
     return value;
 }
 
-template <int dim, int nspecies, typename real>
-inline real ManufacturedSolutionNavahBase<dim,nspecies,real>
+template <int dim, typename real>
+inline real ManufacturedSolutionNavahBase<dim,real>
 ::value(const dealii::Point<dim,real> &point, const unsigned int istate) const
 {
     real value = 0.0;
@@ -251,8 +252,8 @@ inline real ManufacturedSolutionNavahBase<dim,nspecies,real>
     return value;
 }
 
-template <int dim, int nspecies, typename real>
-inline dealii::Tensor<1,dim,real> ManufacturedSolutionZero<dim,nspecies,real>
+template <int dim, typename real>
+inline dealii::Tensor<1,dim,real> ManufacturedSolutionZero<dim,real>
 ::gradient (const dealii::Point<dim,real> &/*point*/, const unsigned int /*istate*/) const
 {
     dealii::Tensor<1,dim,real> gradient;
@@ -262,8 +263,8 @@ inline dealii::Tensor<1,dim,real> ManufacturedSolutionZero<dim,nspecies,real>
     return gradient;
 }
 
-template <int dim, int nspecies, typename real>
-inline dealii::Tensor<1,dim,real> ManufacturedSolutionSine<dim,nspecies,real>
+template <int dim, typename real>
+inline dealii::Tensor<1,dim,real> ManufacturedSolutionSine<dim,real>
 ::gradient (const dealii::Point<dim,real> &point, const unsigned int istate) const
 {
     dealii::Tensor<1,dim,real> gradient;
@@ -300,8 +301,8 @@ inline dealii::Tensor<1,dim,real> ManufacturedSolutionSine<dim,nspecies,real>
     return gradient;
 }
 
-template <int dim, int nspecies, typename real>
-inline dealii::Tensor<1,dim,real> ManufacturedSolutionAdd<dim,nspecies,real>
+template <int dim, typename real>
+inline dealii::Tensor<1,dim,real> ManufacturedSolutionAdd<dim,real>
 ::gradient (const dealii::Point<dim,real> &point, const unsigned int istate) const
 {
     dealii::Tensor<1,dim,real> gradient;
@@ -328,8 +329,8 @@ inline dealii::Tensor<1,dim,real> ManufacturedSolutionAdd<dim,nspecies,real>
     return gradient;
 }
 
-template <int dim, int nspecies, typename real>
-inline dealii::Tensor<1,dim,real> ManufacturedSolutionCosine<dim,nspecies,real>
+template <int dim, typename real>
+inline dealii::Tensor<1,dim,real> ManufacturedSolutionCosine<dim,real>
 ::gradient (const dealii::Point<dim,real> &point, const unsigned int istate) const
 {
     dealii::Tensor<1,dim,real> gradient;
@@ -356,8 +357,8 @@ inline dealii::Tensor<1,dim,real> ManufacturedSolutionCosine<dim,nspecies,real>
     return gradient;
 }
 
-template <int dim, int nspecies, typename real>
-inline dealii::Tensor<1,dim,real> ManufacturedSolutionExp<dim,nspecies,real>
+template <int dim, typename real>
+inline dealii::Tensor<1,dim,real> ManufacturedSolutionExp<dim,real>
 ::gradient (const dealii::Point<dim,real> &point, const unsigned int /*istate*/) const
 {
     dealii::Tensor<1,dim,real> gradient;
@@ -376,8 +377,8 @@ inline dealii::Tensor<1,dim,real> ManufacturedSolutionExp<dim,nspecies,real>
     return gradient;
 }
 
-template <int dim, int nspecies, typename real>
-inline dealii::Tensor<1,dim,real> ManufacturedSolutionEvenPoly<dim,nspecies,real>
+template <int dim, typename real>
+inline dealii::Tensor<1,dim,real> ManufacturedSolutionEvenPoly<dim,real>
 ::gradient (const dealii::Point<dim,real> &point, const unsigned int  /*istate*/) const
 {
     dealii::Tensor<1,dim,real> gradient;
@@ -397,8 +398,8 @@ inline dealii::Tensor<1,dim,real> ManufacturedSolutionEvenPoly<dim,nspecies,real
     return gradient;
 }
 
-template <int dim, int nspecies, typename real>
-inline dealii::Tensor<1,dim,real> ManufacturedSolutionPoly<dim,nspecies,real>
+template <int dim, typename real>
+inline dealii::Tensor<1,dim,real> ManufacturedSolutionPoly<dim,real>
 ::gradient (const dealii::Point<dim,real> &point, const unsigned int  /*istate*/) const
 {
     dealii::Tensor<1,dim,real> gradient;
@@ -423,8 +424,8 @@ inline dealii::Tensor<1,dim,real> ManufacturedSolutionPoly<dim,nspecies,real>
     return gradient;
 }
 
-template <int dim, int nspecies, typename real>
-inline dealii::Tensor<1,dim,real> ManufacturedSolutionAtan<dim,nspecies,real>
+template <int dim, typename real>
+inline dealii::Tensor<1,dim,real> ManufacturedSolutionAtan<dim,real>
 ::gradient(const dealii::Point<dim,real> &point, const unsigned int /*istate*/) const
 {
     dealii::Tensor<1,dim,real> gradient;
@@ -451,8 +452,8 @@ inline dealii::Tensor<1,dim,real> ManufacturedSolutionAtan<dim,nspecies,real>
     return gradient;
 }
 
-template <int dim, int nspecies, typename real>
-inline dealii::Tensor<1,dim,real> ManufacturedSolutionBoundaryLayer<dim,nspecies,real>
+template <int dim, typename real>
+inline dealii::Tensor<1,dim,real> ManufacturedSolutionBoundaryLayer<dim,real>
 ::gradient(const dealii::Point<dim,real> &point, const unsigned int istate) const
 {
     dealii::Tensor<1,dim,real> gradient;
@@ -480,8 +481,8 @@ inline dealii::Tensor<1,dim,real> ManufacturedSolutionBoundaryLayer<dim,nspecies
     return gradient;
 }
 
-template <int dim, int nspecies, typename real>
-inline dealii::Tensor<1,dim,real> ManufacturedSolutionSShock<dim,nspecies,real>
+template <int dim, typename real>
+inline dealii::Tensor<1,dim,real> ManufacturedSolutionSShock<dim,real>
 ::gradient(const dealii::Point<dim,real> &point, const unsigned int /*istate*/) const
 {
     dealii::Tensor<1,dim,real> gradient;
@@ -499,8 +500,8 @@ inline dealii::Tensor<1,dim,real> ManufacturedSolutionSShock<dim,nspecies,real>
     return gradient;
 }
 
-template <int dim, int nspecies, typename real>
-inline dealii::Tensor<1,dim,real> ManufacturedSolutionQuadratic<dim,nspecies,real>
+template <int dim, typename real>
+inline dealii::Tensor<1,dim,real> ManufacturedSolutionQuadratic<dim,real>
 ::gradient(const dealii::Point<dim,real> &point, const unsigned int /*istate*/) const
 {
     dealii::Tensor<1,dim,real> gradient;
@@ -512,8 +513,8 @@ inline dealii::Tensor<1,dim,real> ManufacturedSolutionQuadratic<dim,nspecies,rea
     return gradient;
 }
 
-template <int dim, int nspecies, typename real>
-inline dealii::Tensor<1,dim,real> ManufacturedSolutionExample<dim,nspecies,real>
+template <int dim, typename real>
+inline dealii::Tensor<1,dim,real> ManufacturedSolutionExample<dim,real>
 ::gradient(const dealii::Point<dim,real> &point, const unsigned int /*istate*/) const
 {
     dealii::Tensor<1,dim,real> gradient;
@@ -523,8 +524,8 @@ inline dealii::Tensor<1,dim,real> ManufacturedSolutionExample<dim,nspecies,real>
     return gradient;
 }
 
-template <int dim, int nspecies, typename real>
-inline dealii::Tensor<1,dim,real> ManufacturedSolutionNavahBase<dim,nspecies,real>
+template <int dim, typename real>
+inline dealii::Tensor<1,dim,real> ManufacturedSolutionNavahBase<dim,real>
 ::primitive_gradient (const dealii::Point<dim,real> &point, const unsigned int istate) const
 {
     dealii::Tensor<1,dim,real> gradient;
@@ -561,8 +562,8 @@ inline dealii::Tensor<1,dim,real> ManufacturedSolutionNavahBase<dim,nspecies,rea
     return gradient;
 }
 
-template <int dim, int nspecies, typename real>
-inline dealii::Tensor<1,dim,real> ManufacturedSolutionNavahBase<dim,nspecies,real>
+template <int dim, typename real>
+inline dealii::Tensor<1,dim,real> ManufacturedSolutionNavahBase<dim,real>
 ::gradient (const dealii::Point<dim,real> &point, const unsigned int istate) const
 {
     dealii::Tensor<1,dim,real> gradient;
@@ -614,8 +615,8 @@ inline dealii::Tensor<1,dim,real> ManufacturedSolutionNavahBase<dim,nspecies,rea
     return gradient;
 }
 
-template <int dim, int nspecies, typename real>
-inline dealii::SymmetricTensor<2,dim,real> ManufacturedSolutionZero<dim,nspecies,real>
+template <int dim, typename real>
+inline dealii::SymmetricTensor<2,dim,real> ManufacturedSolutionZero<dim,real>
 ::hessian (const dealii::Point<dim,real> &/*point*/, const unsigned int /*istate*/) const
 {
     dealii::SymmetricTensor<2,dim,real> hessian;
@@ -627,8 +628,8 @@ inline dealii::SymmetricTensor<2,dim,real> ManufacturedSolutionZero<dim,nspecies
     return hessian;
 }
 
-template <int dim, int nspecies, typename real>
-inline dealii::SymmetricTensor<2,dim,real> ManufacturedSolutionSine<dim,nspecies,real>
+template <int dim, typename real>
+inline dealii::SymmetricTensor<2,dim,real> ManufacturedSolutionSine<dim,real>
 ::hessian (const dealii::Point<dim,real> &point, const unsigned int istate) const
 {
     dealii::SymmetricTensor<2,dim,real> hessian;
@@ -667,8 +668,8 @@ inline dealii::SymmetricTensor<2,dim,real> ManufacturedSolutionSine<dim,nspecies
     return hessian;
 }
 
-template <int dim, int nspecies, typename real>
-inline dealii::SymmetricTensor<2,dim,real> ManufacturedSolutionAdd<dim,nspecies,real>
+template <int dim, typename real>
+inline dealii::SymmetricTensor<2,dim,real> ManufacturedSolutionAdd<dim,real>
 ::hessian (const dealii::Point<dim,real> &point, const unsigned int istate) const
 {
     dealii::SymmetricTensor<2,dim,real> hessian;
@@ -706,8 +707,8 @@ inline dealii::SymmetricTensor<2,dim,real> ManufacturedSolutionAdd<dim,nspecies,
     return hessian;
 }
 
-template <int dim, int nspecies, typename real>
-inline dealii::SymmetricTensor<2,dim,real> ManufacturedSolutionCosine<dim,nspecies,real>
+template <int dim, typename real>
+inline dealii::SymmetricTensor<2,dim,real> ManufacturedSolutionCosine<dim,real>
 ::hessian (const dealii::Point<dim,real> &point, const unsigned int istate) const
 {
     dealii::SymmetricTensor<2,dim,real> hessian;
@@ -745,8 +746,8 @@ inline dealii::SymmetricTensor<2,dim,real> ManufacturedSolutionCosine<dim,nspeci
     return hessian;
 }
 
-template <int dim, int nspecies, typename real>
-inline dealii::SymmetricTensor<2,dim,real> ManufacturedSolutionExp<dim,nspecies,real>
+template <int dim, typename real>
+inline dealii::SymmetricTensor<2,dim,real> ManufacturedSolutionExp<dim,real>
 ::hessian (const dealii::Point<dim,real> &point, const unsigned int  /*istate*/) const
 {
     dealii::SymmetricTensor<2,dim,real> hessian;
@@ -776,8 +777,8 @@ inline dealii::SymmetricTensor<2,dim,real> ManufacturedSolutionExp<dim,nspecies,
     return hessian;
 }
 
-template <int dim, int nspecies, typename real>
-inline dealii::SymmetricTensor<2,dim,real> ManufacturedSolutionEvenPoly<dim,nspecies,real>
+template <int dim, typename real>
+inline dealii::SymmetricTensor<2,dim,real> ManufacturedSolutionEvenPoly<dim,real>
 ::hessian (const dealii::Point<dim,real> &point, const unsigned int  /*istate*/) const
 {
     dealii::SymmetricTensor<2,dim,real> hessian;
@@ -808,8 +809,8 @@ inline dealii::SymmetricTensor<2,dim,real> ManufacturedSolutionEvenPoly<dim,nspe
     return hessian;
 }
 
-template <int dim, int nspecies, typename real>
-inline dealii::SymmetricTensor<2,dim,real> ManufacturedSolutionPoly<dim,nspecies,real>
+template <int dim, typename real>
+inline dealii::SymmetricTensor<2,dim,real> ManufacturedSolutionPoly<dim,real>
 ::hessian (const dealii::Point<dim,real> &point, const unsigned int  /*istate*/) const
 {
     dealii::SymmetricTensor<2,dim,real> hessian;
@@ -834,8 +835,8 @@ inline dealii::SymmetricTensor<2,dim,real> ManufacturedSolutionPoly<dim,nspecies
     return hessian;
 }
 
-template <int dim, int nspecies, typename real>
-inline dealii::SymmetricTensor<2,dim,real> ManufacturedSolutionAtan<dim,nspecies,real>
+template <int dim, typename real>
+inline dealii::SymmetricTensor<2,dim,real> ManufacturedSolutionAtan<dim,real>
 ::hessian(const dealii::Point<dim,real> &point, const unsigned int /*istate*/) const
 {
     dealii::SymmetricTensor<2,dim,real> hes;
@@ -871,8 +872,8 @@ inline dealii::SymmetricTensor<2,dim,real> ManufacturedSolutionAtan<dim,nspecies
     return hes;
 }
 
-template <int dim, int nspecies, typename real>
-inline dealii::SymmetricTensor<2,dim,real> ManufacturedSolutionBoundaryLayer<dim,nspecies,real>
+template <int dim, typename real>
+inline dealii::SymmetricTensor<2,dim,real> ManufacturedSolutionBoundaryLayer<dim,real>
 ::hessian(const dealii::Point<dim,real> &point, const unsigned int istate) const
 {
     dealii::SymmetricTensor<2,dim,real> hessian;
@@ -920,8 +921,8 @@ inline dealii::SymmetricTensor<2,dim,real> ManufacturedSolutionBoundaryLayer<dim
     return hessian;
 }
 
-template <int dim, int nspecies, typename real>
-inline dealii::SymmetricTensor<2,dim,real> ManufacturedSolutionSShock<dim,nspecies,real>
+template <int dim, typename real>
+inline dealii::SymmetricTensor<2,dim,real> ManufacturedSolutionSShock<dim,real>
 ::hessian(const dealii::Point<dim,real> &point, const unsigned int /*istate*/) const
 {
     dealii::SymmetricTensor<2,dim,real> hessian;
@@ -952,8 +953,8 @@ inline dealii::SymmetricTensor<2,dim,real> ManufacturedSolutionSShock<dim,nspeci
     return hessian;
 }
 
-template <int dim, int nspecies, typename real>
-inline dealii::SymmetricTensor<2,dim,real> ManufacturedSolutionQuadratic<dim,nspecies,real>
+template <int dim, typename real>
+inline dealii::SymmetricTensor<2,dim,real> ManufacturedSolutionQuadratic<dim,real>
 ::hessian(const dealii::Point<dim,real> &/* point */, const unsigned int /* istate */) const
 {
     dealii::SymmetricTensor<2,dim,real> hessian;
@@ -969,8 +970,8 @@ inline dealii::SymmetricTensor<2,dim,real> ManufacturedSolutionQuadratic<dim,nsp
     return hessian;
 }
 
-template <int dim, int nspecies, typename real>
-inline dealii::SymmetricTensor<2,dim,real> ManufacturedSolutionExample<dim,nspecies,real>
+template <int dim, typename real>
+inline dealii::SymmetricTensor<2,dim,real> ManufacturedSolutionExample<dim,real>
 ::hessian (const dealii::Point<dim,real> &point, const unsigned int  /*istate*/) const
 {
     dealii::SymmetricTensor<2,dim,real> hessian;
@@ -985,8 +986,8 @@ inline dealii::SymmetricTensor<2,dim,real> ManufacturedSolutionExample<dim,nspec
     return hessian;
 }
 
-template <int dim, int nspecies, typename real>
-inline dealii::SymmetricTensor<2,dim,real> ManufacturedSolutionNavahBase<dim,nspecies,real>
+template <int dim, typename real>
+inline dealii::SymmetricTensor<2,dim,real> ManufacturedSolutionNavahBase<dim,real>
 ::primitive_hessian (const dealii::Point<dim,real> &point, const unsigned int istate) const
 {
     dealii::SymmetricTensor<2,dim,real> hessian;
@@ -1033,8 +1034,8 @@ inline dealii::SymmetricTensor<2,dim,real> ManufacturedSolutionNavahBase<dim,nsp
     return hessian;
 }
 
-template <int dim, int nspecies, typename real>
-inline dealii::SymmetricTensor<2,dim,real> ManufacturedSolutionNavahBase<dim,nspecies,real>
+template <int dim, typename real>
+inline dealii::SymmetricTensor<2,dim,real> ManufacturedSolutionNavahBase<dim,real>
 ::hessian (const dealii::Point<dim,real> &point, const unsigned int istate) const
 {
     dealii::SymmetricTensor<2,dim,real> hessian;
@@ -1103,8 +1104,8 @@ inline dealii::SymmetricTensor<2,dim,real> ManufacturedSolutionNavahBase<dim,nsp
     return hessian;
 }
 
-template <int dim, int nspecies, typename real>
-ManufacturedSolutionFunction<dim,nspecies,real>
+template <int dim, typename real>
+ManufacturedSolutionFunction<dim,real>
 ::ManufacturedSolutionFunction (const unsigned int nstate)
     :
     dealii::Function<dim,real>(nstate)
@@ -1128,8 +1129,8 @@ ManufacturedSolutionFunction<dim,nspecies,real>
     }
 }
 
-template <int dim, int nspecies, typename real>
-inline dealii::Tensor<1,dim,real> ManufacturedSolutionFunction<dim,nspecies,real>
+template <int dim, typename real>
+inline dealii::Tensor<1,dim,real> ManufacturedSolutionFunction<dim,real>
 ::gradient_fd (const dealii::Point<dim,real> &point, const unsigned int istate) const
 {
     dealii::Tensor<1,dim,real> gradient;
@@ -1146,8 +1147,8 @@ inline dealii::Tensor<1,dim,real> ManufacturedSolutionFunction<dim,nspecies,real
     return gradient;
 }
 
-template <int dim, int nspecies, typename real>
-inline dealii::SymmetricTensor<2,dim,real> ManufacturedSolutionFunction<dim,nspecies,real>
+template <int dim, typename real>
+inline dealii::SymmetricTensor<2,dim,real> ManufacturedSolutionFunction<dim,real>
 ::hessian_fd (const dealii::Point<dim,real> &point, const unsigned int istate) const
 {
     dealii::SymmetricTensor<2,dim,real> hessian;
@@ -1175,8 +1176,8 @@ inline dealii::SymmetricTensor<2,dim,real> ManufacturedSolutionFunction<dim,nspe
     return hessian;
 }
 
-template <int dim, int nspecies, typename real>
-void ManufacturedSolutionFunction<dim,nspecies,real>
+template <int dim, typename real>
+void ManufacturedSolutionFunction<dim,real>
 ::vector_gradient (
     const dealii::Point<dim,real> &p,
     std::vector<dealii::Tensor<1,dim, real> > &gradients) const
@@ -1186,8 +1187,8 @@ void ManufacturedSolutionFunction<dim,nspecies,real>
 }
 
 
-template <int dim, int nspecies, typename real>
-inline std::vector<real> ManufacturedSolutionFunction<dim,nspecies,real>
+template <int dim, typename real>
+inline std::vector<real> ManufacturedSolutionFunction<dim,real>
 ::stdvector_values (const dealii::Point<dim,real> &point) const
 {
     std::vector<real> values(nstate);
@@ -1195,9 +1196,9 @@ inline std::vector<real> ManufacturedSolutionFunction<dim,nspecies,real>
     return values;
 }
 
-template <int dim, int nspecies, typename real>
-std::shared_ptr< ManufacturedSolutionFunction<dim,nspecies,real> > 
-ManufacturedSolutionFactory<dim,nspecies,real>::create_ManufacturedSolution(
+template <int dim, typename real>
+std::shared_ptr< ManufacturedSolutionFunction<dim,real> > 
+ManufacturedSolutionFactory<dim,real>::create_ManufacturedSolution(
     Parameters::AllParameters const *const param, 
     int                                    nstate)
 {
@@ -1207,46 +1208,46 @@ ManufacturedSolutionFactory<dim,nspecies,real>::create_ManufacturedSolution(
     return create_ManufacturedSolution(solution_type, nstate);
 }
 
-template <int dim, int nspecies, typename real>
-std::shared_ptr< ManufacturedSolutionFunction<dim,nspecies,real> >
-ManufacturedSolutionFactory<dim,nspecies,real>::create_ManufacturedSolution(
+template <int dim, typename real>
+std::shared_ptr< ManufacturedSolutionFunction<dim,real> >
+ManufacturedSolutionFactory<dim,real>::create_ManufacturedSolution(
     Parameters::ManufacturedSolutionParam::ManufacturedSolutionType solution_type,
     int                                                                     nstate)
 {
     if(solution_type == ManufacturedSolutionEnum::sine_solution){
-        return std::make_shared<ManufacturedSolutionSine<dim,nspecies,real>>(nstate);
+        return std::make_shared<ManufacturedSolutionSine<dim,real>>(nstate);
     }else if(solution_type == ManufacturedSolutionEnum::zero_solution){
-        return std::make_shared<ManufacturedSolutionZero<dim,nspecies,real>>(nstate);
+        return std::make_shared<ManufacturedSolutionZero<dim,real>>(nstate);
     }else if(solution_type == ManufacturedSolutionEnum::cosine_solution){
-        return std::make_shared<ManufacturedSolutionCosine<dim,nspecies,real>>(nstate);
+        return std::make_shared<ManufacturedSolutionCosine<dim,real>>(nstate);
     }else if(solution_type == ManufacturedSolutionEnum::additive_solution){
-        return std::make_shared<ManufacturedSolutionAdd<dim,nspecies,real>>(nstate);
+        return std::make_shared<ManufacturedSolutionAdd<dim,real>>(nstate);
     }else if(solution_type == ManufacturedSolutionEnum::exp_solution){
-        return std::make_shared<ManufacturedSolutionExp<dim,nspecies,real>>(nstate);
+        return std::make_shared<ManufacturedSolutionExp<dim,real>>(nstate);
     }else if(solution_type == ManufacturedSolutionEnum::poly_solution){
-        return std::make_shared<ManufacturedSolutionPoly<dim,nspecies,real>>(nstate);
+        return std::make_shared<ManufacturedSolutionPoly<dim,real>>(nstate);
     }else if(solution_type == ManufacturedSolutionEnum::even_poly_solution){
-        return std::make_shared<ManufacturedSolutionEvenPoly<dim,nspecies,real>>(nstate);
+        return std::make_shared<ManufacturedSolutionEvenPoly<dim,real>>(nstate);
     }else if(solution_type == ManufacturedSolutionEnum::atan_solution){
-        return std::make_shared<ManufacturedSolutionAtan<dim,nspecies,real>>(nstate);
+        return std::make_shared<ManufacturedSolutionAtan<dim,real>>(nstate);
     }else if(solution_type == ManufacturedSolutionEnum::boundary_layer_solution){
-        return std::make_shared<ManufacturedSolutionBoundaryLayer<dim,nspecies,real>>(nstate);
+        return std::make_shared<ManufacturedSolutionBoundaryLayer<dim,real>>(nstate);
     }else if((solution_type == ManufacturedSolutionEnum::s_shock_solution) && (dim==2)){
-        return std::make_shared<ManufacturedSolutionSShock<dim,nspecies,real>>(nstate);
+        return std::make_shared<ManufacturedSolutionSShock<dim,real>>(nstate);
     }else if(solution_type == ManufacturedSolutionEnum::quadratic_solution){
-        return std::make_shared<ManufacturedSolutionQuadratic<dim,nspecies,real>>(nstate);
+        return std::make_shared<ManufacturedSolutionQuadratic<dim,real>>(nstate);
     }else if(solution_type == ManufacturedSolutionEnum::example_solution){
-        return std::make_shared<ManufacturedSolutionExample<dim,nspecies,real>>(nstate);
+        return std::make_shared<ManufacturedSolutionExample<dim,real>>(nstate);
     }else if((solution_type == ManufacturedSolutionEnum::navah_solution_1) && (dim==2) && (nstate==dim+2 || nstate==dim+3)){
-        return std::make_shared<ManufacturedSolutionNavah_MS1<dim,nspecies,real>>(nstate);
+        return std::make_shared<ManufacturedSolutionNavah_MS1<dim,real>>(nstate);
     }else if((solution_type == ManufacturedSolutionEnum::navah_solution_2) && (dim==2) && (nstate==dim+2 || nstate==dim+3)){
-        return std::make_shared<ManufacturedSolutionNavah_MS2<dim,nspecies,real>>(nstate);
+        return std::make_shared<ManufacturedSolutionNavah_MS2<dim,real>>(nstate);
     }else if((solution_type == ManufacturedSolutionEnum::navah_solution_3) && (dim==2) && (nstate==dim+2 || nstate==dim+3)){
-        return std::make_shared<ManufacturedSolutionNavah_MS3<dim,nspecies,real>>(nstate);
+        return std::make_shared<ManufacturedSolutionNavah_MS3<dim,real>>(nstate);
     }else if((solution_type == ManufacturedSolutionEnum::navah_solution_4) && (dim==2) && (nstate==dim+2 || nstate==dim+3)){
-        return std::make_shared<ManufacturedSolutionNavah_MS4<dim,nspecies,real>>(nstate);
+        return std::make_shared<ManufacturedSolutionNavah_MS4<dim,real>>(nstate);
     }else if((solution_type == ManufacturedSolutionEnum::navah_solution_5) && (dim==2) && (nstate==dim+2 || nstate==dim+3)){
-        return std::make_shared<ManufacturedSolutionNavah_MS5<dim,nspecies,real>>(nstate);
+        return std::make_shared<ManufacturedSolutionNavah_MS5<dim,real>>(nstate);
     }else{
         std::cout << "Invalid combination of Manufactured Solution, dimension, and PDE Type." << std::endl;
     }
@@ -1270,102 +1271,31 @@ using codi_HessianComputationType = codi::RealReversePrimalIndexGen< codi::RealF
 //using RadFadType = codi_JacobianComputationType; ///< Reverse only mode that only allows Jacobian computation.
 using RadType = codi_JacobianComputationType; ///< CoDiPaco reverse-AD type for first derivatives.
 using RadFadType = codi_HessianComputationType; ///< Nested reverse-forward mode type for Jacobian and Hessian computation using TapeHelper.
+#if PHILIP_SPECIES==1
+    // Define a sequence of the types to be used for instantiation
+    #define POSSIBLE_TYPE (double)(FadType)(RadType)(FadFadType)(RadFadType)
 
-template class ManufacturedSolutionFunction<PHILIP_DIM, PHILIP_SPECIES,double>;
-template class ManufacturedSolutionFunction<PHILIP_DIM, PHILIP_SPECIES,FadType>;
-template class ManufacturedSolutionFunction<PHILIP_DIM, PHILIP_SPECIES,RadType>;
-template class ManufacturedSolutionFunction<PHILIP_DIM, PHILIP_SPECIES,FadFadType>;
-template class ManufacturedSolutionFunction<PHILIP_DIM, PHILIP_SPECIES,RadFadType>;
-
-template class ManufacturedSolutionZero<PHILIP_DIM, PHILIP_SPECIES,double>;
-template class ManufacturedSolutionZero<PHILIP_DIM, PHILIP_SPECIES,FadType>;
-template class ManufacturedSolutionZero<PHILIP_DIM, PHILIP_SPECIES,RadType>;
-template class ManufacturedSolutionZero<PHILIP_DIM, PHILIP_SPECIES,FadFadType>;
-template class ManufacturedSolutionZero<PHILIP_DIM, PHILIP_SPECIES,RadFadType>;
-template class ManufacturedSolutionSine<PHILIP_DIM, PHILIP_SPECIES,double>;
-template class ManufacturedSolutionSine<PHILIP_DIM, PHILIP_SPECIES,FadType>;
-template class ManufacturedSolutionSine<PHILIP_DIM, PHILIP_SPECIES,RadType>;
-template class ManufacturedSolutionSine<PHILIP_DIM, PHILIP_SPECIES,FadFadType>;
-template class ManufacturedSolutionSine<PHILIP_DIM, PHILIP_SPECIES,RadFadType>;
-template class ManufacturedSolutionCosine<PHILIP_DIM, PHILIP_SPECIES,double>;
-template class ManufacturedSolutionCosine<PHILIP_DIM, PHILIP_SPECIES,FadType>;
-template class ManufacturedSolutionCosine<PHILIP_DIM, PHILIP_SPECIES,RadType>;
-template class ManufacturedSolutionCosine<PHILIP_DIM, PHILIP_SPECIES,FadFadType>;
-template class ManufacturedSolutionCosine<PHILIP_DIM, PHILIP_SPECIES,RadFadType>;
-template class ManufacturedSolutionAdd<PHILIP_DIM, PHILIP_SPECIES,double>;
-template class ManufacturedSolutionAdd<PHILIP_DIM, PHILIP_SPECIES,FadType>;
-template class ManufacturedSolutionAdd<PHILIP_DIM, PHILIP_SPECIES,RadType>;
-template class ManufacturedSolutionAdd<PHILIP_DIM, PHILIP_SPECIES,FadFadType>;
-template class ManufacturedSolutionAdd<PHILIP_DIM, PHILIP_SPECIES,RadFadType>;
-template class ManufacturedSolutionExp<PHILIP_DIM, PHILIP_SPECIES,double>;
-template class ManufacturedSolutionExp<PHILIP_DIM, PHILIP_SPECIES,FadType>;
-template class ManufacturedSolutionExp<PHILIP_DIM, PHILIP_SPECIES,RadType>;
-template class ManufacturedSolutionExp<PHILIP_DIM, PHILIP_SPECIES,FadFadType>;
-template class ManufacturedSolutionExp<PHILIP_DIM, PHILIP_SPECIES,RadFadType>;
-template class ManufacturedSolutionPoly<PHILIP_DIM, PHILIP_SPECIES,double>;
-template class ManufacturedSolutionPoly<PHILIP_DIM, PHILIP_SPECIES,FadType>;
-template class ManufacturedSolutionPoly<PHILIP_DIM, PHILIP_SPECIES,RadType>;
-template class ManufacturedSolutionPoly<PHILIP_DIM, PHILIP_SPECIES,FadFadType>;
-template class ManufacturedSolutionPoly<PHILIP_DIM, PHILIP_SPECIES,RadFadType>;
-template class ManufacturedSolutionEvenPoly<PHILIP_DIM, PHILIP_SPECIES,double>;
-template class ManufacturedSolutionEvenPoly<PHILIP_DIM, PHILIP_SPECIES,FadType>;
-template class ManufacturedSolutionEvenPoly<PHILIP_DIM, PHILIP_SPECIES,RadType>;
-template class ManufacturedSolutionEvenPoly<PHILIP_DIM, PHILIP_SPECIES,FadFadType>;
-template class ManufacturedSolutionEvenPoly<PHILIP_DIM, PHILIP_SPECIES,RadFadType>;
-template class ManufacturedSolutionAtan<PHILIP_DIM, PHILIP_SPECIES,double>;
-template class ManufacturedSolutionAtan<PHILIP_DIM, PHILIP_SPECIES,FadType>;
-template class ManufacturedSolutionAtan<PHILIP_DIM, PHILIP_SPECIES,RadType>;
-template class ManufacturedSolutionAtan<PHILIP_DIM, PHILIP_SPECIES,FadFadType>;
-template class ManufacturedSolutionAtan<PHILIP_DIM, PHILIP_SPECIES,RadFadType>;
-template class ManufacturedSolutionBoundaryLayer<PHILIP_DIM, PHILIP_SPECIES,double>;
-template class ManufacturedSolutionBoundaryLayer<PHILIP_DIM, PHILIP_SPECIES,FadType>;
-template class ManufacturedSolutionBoundaryLayer<PHILIP_DIM, PHILIP_SPECIES,RadType>;
-template class ManufacturedSolutionBoundaryLayer<PHILIP_DIM, PHILIP_SPECIES,FadFadType>;
-template class ManufacturedSolutionBoundaryLayer<PHILIP_DIM, PHILIP_SPECIES,RadFadType>;
-template class ManufacturedSolutionSShock<PHILIP_DIM, PHILIP_SPECIES,double>;
-template class ManufacturedSolutionSShock<PHILIP_DIM, PHILIP_SPECIES,FadType>;
-template class ManufacturedSolutionSShock<PHILIP_DIM, PHILIP_SPECIES,RadType>;
-template class ManufacturedSolutionSShock<PHILIP_DIM, PHILIP_SPECIES,FadFadType>;
-template class ManufacturedSolutionSShock<PHILIP_DIM, PHILIP_SPECIES,RadFadType>;
-template class ManufacturedSolutionQuadratic<PHILIP_DIM, PHILIP_SPECIES,double>;
-template class ManufacturedSolutionQuadratic<PHILIP_DIM, PHILIP_SPECIES,FadType>;
-template class ManufacturedSolutionQuadratic<PHILIP_DIM, PHILIP_SPECIES,RadType>;
-template class ManufacturedSolutionQuadratic<PHILIP_DIM, PHILIP_SPECIES,FadFadType>;
-template class ManufacturedSolutionQuadratic<PHILIP_DIM, PHILIP_SPECIES,RadFadType>;
-template class ManufacturedSolutionNavahBase<PHILIP_DIM, PHILIP_SPECIES,double>;
-template class ManufacturedSolutionNavahBase<PHILIP_DIM, PHILIP_SPECIES,FadType>;
-template class ManufacturedSolutionNavahBase<PHILIP_DIM, PHILIP_SPECIES,RadType>;
-template class ManufacturedSolutionNavahBase<PHILIP_DIM, PHILIP_SPECIES,FadFadType>;
-template class ManufacturedSolutionNavahBase<PHILIP_DIM, PHILIP_SPECIES,RadFadType>;
-template class ManufacturedSolutionNavah_MS1<PHILIP_DIM, PHILIP_SPECIES,double>;
-template class ManufacturedSolutionNavah_MS1<PHILIP_DIM, PHILIP_SPECIES,FadType>;
-template class ManufacturedSolutionNavah_MS1<PHILIP_DIM, PHILIP_SPECIES,RadType>;
-template class ManufacturedSolutionNavah_MS1<PHILIP_DIM, PHILIP_SPECIES,FadFadType>;
-template class ManufacturedSolutionNavah_MS1<PHILIP_DIM, PHILIP_SPECIES,RadFadType>;
-template class ManufacturedSolutionNavah_MS2<PHILIP_DIM, PHILIP_SPECIES,double>;
-template class ManufacturedSolutionNavah_MS2<PHILIP_DIM, PHILIP_SPECIES,FadType>;
-template class ManufacturedSolutionNavah_MS2<PHILIP_DIM, PHILIP_SPECIES,RadType>;
-template class ManufacturedSolutionNavah_MS2<PHILIP_DIM, PHILIP_SPECIES,FadFadType>;
-template class ManufacturedSolutionNavah_MS2<PHILIP_DIM, PHILIP_SPECIES,RadFadType>;
-template class ManufacturedSolutionNavah_MS3<PHILIP_DIM, PHILIP_SPECIES,double>;
-template class ManufacturedSolutionNavah_MS3<PHILIP_DIM, PHILIP_SPECIES,FadType>;
-template class ManufacturedSolutionNavah_MS3<PHILIP_DIM, PHILIP_SPECIES,RadType>;
-template class ManufacturedSolutionNavah_MS3<PHILIP_DIM, PHILIP_SPECIES,FadFadType>;
-template class ManufacturedSolutionNavah_MS3<PHILIP_DIM, PHILIP_SPECIES,RadFadType>;
-template class ManufacturedSolutionNavah_MS4<PHILIP_DIM, PHILIP_SPECIES,double>;
-template class ManufacturedSolutionNavah_MS4<PHILIP_DIM, PHILIP_SPECIES,FadType>;
-template class ManufacturedSolutionNavah_MS4<PHILIP_DIM, PHILIP_SPECIES,RadType>;
-template class ManufacturedSolutionNavah_MS4<PHILIP_DIM, PHILIP_SPECIES,FadFadType>;
-template class ManufacturedSolutionNavah_MS4<PHILIP_DIM, PHILIP_SPECIES,RadFadType>;
-template class ManufacturedSolutionNavah_MS5<PHILIP_DIM, PHILIP_SPECIES,double>;
-template class ManufacturedSolutionNavah_MS5<PHILIP_DIM, PHILIP_SPECIES,FadType>;
-template class ManufacturedSolutionNavah_MS5<PHILIP_DIM, PHILIP_SPECIES,RadType>;
-template class ManufacturedSolutionNavah_MS5<PHILIP_DIM, PHILIP_SPECIES,FadFadType>;
-template class ManufacturedSolutionNavah_MS5<PHILIP_DIM, PHILIP_SPECIES,RadFadType>;
-
-template class ManufacturedSolutionFactory<PHILIP_DIM, PHILIP_SPECIES,double>;
-template class ManufacturedSolutionFactory<PHILIP_DIM, PHILIP_SPECIES,FadType>;
-template class ManufacturedSolutionFactory<PHILIP_DIM, PHILIP_SPECIES,RadType>;
-template class ManufacturedSolutionFactory<PHILIP_DIM, PHILIP_SPECIES,FadFadType>;
-template class ManufacturedSolutionFactory<PHILIP_DIM, PHILIP_SPECIES,RadFadType>;
+    // Define a macro to instantiate Convection Diffusion Functions for a specific index
+    #define INSTANTIATE_MANUFACTURED_SOLN(r, data, index) \
+        template class ManufacturedSolutionFunction<PHILIP_DIM, index>; \
+        template class ManufacturedSolutionZero<PHILIP_DIM, index>; \
+        template class ManufacturedSolutionSine<PHILIP_DIM, index>; \
+        template class ManufacturedSolutionCosine<PHILIP_DIM, index>; \
+        template class ManufacturedSolutionAdd<PHILIP_DIM, index>; \
+        template class ManufacturedSolutionExp<PHILIP_DIM, index>; \
+        template class ManufacturedSolutionPoly<PHILIP_DIM, index>; \
+        template class ManufacturedSolutionEvenPoly<PHILIP_DIM, index>; \
+        template class ManufacturedSolutionAtan<PHILIP_DIM, index>; \
+        template class ManufacturedSolutionBoundaryLayer<PHILIP_DIM, index>; \
+        template class ManufacturedSolutionSShock<PHILIP_DIM, index>; \
+        template class ManufacturedSolutionQuadratic<PHILIP_DIM, index>; \
+        template class ManufacturedSolutionNavahBase<PHILIP_DIM, index>; \
+        template class ManufacturedSolutionNavah_MS1<PHILIP_DIM, index>; \
+        template class ManufacturedSolutionNavah_MS2<PHILIP_DIM, index>; \
+        template class ManufacturedSolutionNavah_MS3<PHILIP_DIM, index>; \
+        template class ManufacturedSolutionNavah_MS4<PHILIP_DIM, index>; \
+        template class ManufacturedSolutionNavah_MS5<PHILIP_DIM, index>; \
+        template class ManufacturedSolutionFactory<PHILIP_DIM, index>;
+    BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_MANUFACTURED_SOLN, _, POSSIBLE_TYPE)
+#endif
 }

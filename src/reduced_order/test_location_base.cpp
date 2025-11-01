@@ -89,11 +89,11 @@ void TestLocationBase<dim, nspecies, nstate>::compute_total_error(){
     pcout << "Parameter: " << parameter <<  ". Total error estimate between FOM and updated ROM: " << total_error << std::endl;
 }
 
-#if PHILIP_DIM==1
+#if PHILIP_DIM==1 && PHILIP_SPECIES==1
         template class TestLocationBase<PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM>;
 #endif
 
-#if PHILIP_DIM!=1
+#if PHILIP_DIM!=1 && PHILIP_SPECIES==1
         template class TestLocationBase<PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2>;
 #endif
 

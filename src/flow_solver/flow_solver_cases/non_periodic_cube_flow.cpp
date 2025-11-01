@@ -31,7 +31,7 @@ void NonPeriodicCubeFlow<dim,nspecies,nstate>::display_additional_flow_case_spec
     // Do nothing for now.
 }
 
-#if PHILIP_DIM==2
+#if PHILIP_DIM==2 && PHILIP_SPECIES==1
     template class NonPeriodicCubeFlow<PHILIP_DIM, PHILIP_SPECIES, 1>;
 #endif
 } // FlowSolver namespace

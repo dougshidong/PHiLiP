@@ -405,11 +405,11 @@ void AdaptiveSamplingBase<dim, nspecies, nstate>::configureInitialParameterSpace
     }
 }
 
-#if PHILIP_DIM==1
+#if PHILIP_DIM==1 && PHILIP_SPECIES==1
     template class AdaptiveSamplingBase<PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM>;
 #endif
 
-#if PHILIP_DIM!=1
+#if PHILIP_DIM!=1 && PHILIP_SPECIES==1
     template class AdaptiveSamplingBase<PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2>;
 #endif
 

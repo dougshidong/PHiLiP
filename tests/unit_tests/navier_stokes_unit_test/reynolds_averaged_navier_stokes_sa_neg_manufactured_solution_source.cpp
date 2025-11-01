@@ -28,8 +28,8 @@ int main (int argc, char * argv[])
     const int nstate = dim+3;
 
     // Create ManufacturedSolutionFunction
-    std::shared_ptr< PHiLiP::ManufacturedSolutionFunction<dim,nspecies,double> > 
-        manufactured_solution_function = std::make_shared<PHiLiP::ManufacturedSolutionSine<dim,nspecies,double>>(nstate);
+    std::shared_ptr< PHiLiP::ManufacturedSolutionFunction<dim,double> > 
+        manufactured_solution_function = std::make_shared<PHiLiP::ManufacturedSolutionSine<dim,double>>(nstate);
     
     //const double ref_length=1.0, mach_inf=1.0, angle_of_attack = 0.0, side_slip_angle = 0.0, gamma_gas = 1.4;
     //const double prandtl_number=0.72, reynolds_number_inf=1e-4;

@@ -335,7 +335,8 @@ void PositivityPreservingTests<dim, nspecies, nstate>::compute_unsteady_data_and
     update_maximum_local_wave_speed(*dg);
 }
 
+#if PHILIP_SPECIES==1
 template class PositivityPreservingTests<PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2>;
-
+#endif
 } // FlowSolver namespace
 } // PHiLiP namespace

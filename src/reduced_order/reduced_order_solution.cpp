@@ -13,11 +13,12 @@ ROMSolution<dim, nspecies, nstate>::ROMSolution(Parameters::AllParameters params
 {
 }
 
+#if PHILIP_SPECIES==1
 template class ROMSolution <PHILIP_DIM, PHILIP_SPECIES, 1>;
 template class ROMSolution <PHILIP_DIM, PHILIP_SPECIES, 2>;
 template class ROMSolution <PHILIP_DIM, PHILIP_SPECIES, 3>;
 template class ROMSolution <PHILIP_DIM, PHILIP_SPECIES, 4>;
 template class ROMSolution <PHILIP_DIM, PHILIP_SPECIES, 5>;
-
+#endif
 }
 }

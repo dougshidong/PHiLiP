@@ -116,11 +116,11 @@ Parameters::AllParameters AdaptiveSamplingTesting<dim, nspecies, nstate>::reinit
     return parameters;
 }
 
-#if PHILIP_DIM==1
+#if PHILIP_DIM==1 && PHILIP_SPECIES==1
         template class AdaptiveSamplingTesting<PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM>;
 #endif
 
-#if PHILIP_DIM!=1
+#if PHILIP_DIM!=1 && PHILIP_SPECIES==1
         template class AdaptiveSamplingTesting<PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2>;
 #endif
 

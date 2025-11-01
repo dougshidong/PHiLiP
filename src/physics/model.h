@@ -20,13 +20,13 @@ class ModelBase
 public:
 	/// Constructor
 	explicit ModelBase(
-        std::shared_ptr< ManufacturedSolutionFunction<dim,nspecies,real> > manufactured_solution_function_input = nullptr);
+        std::shared_ptr< ManufacturedSolutionFunction<dim,real>  > manufactured_solution_function_input = nullptr);
 
     /// Virtual destructor required for abstract classes.
     virtual ~ModelBase() = default;
 
     /// Manufactured solution function
-    std::shared_ptr< ManufacturedSolutionFunction<dim,nspecies,real> > manufactured_solution_function;
+    std::shared_ptr< ManufacturedSolutionFunction<dim,real>  > manufactured_solution_function;
 
 protected:
     const MPI_Comm mpi_communicator; ///< MPI communicator.

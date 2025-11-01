@@ -3138,30 +3138,24 @@ void DGStrong<dim,nspecies,nstate,real,MeshType>::allocate_dual_vector()
     //Do nothing.
 }
 
-// using default MeshType = Triangulation
-// 1D: dealii::Triangulation<dim>;
-// Otherwise: dealii::parallel::distributed::Triangulation<dim>;
-template class DGStrong <PHILIP_DIM, PHILIP_SPECIES, 1, double, dealii::Triangulation<PHILIP_DIM>>;
-template class DGStrong <PHILIP_DIM, PHILIP_SPECIES, 2, double, dealii::Triangulation<PHILIP_DIM>>;
-template class DGStrong <PHILIP_DIM, PHILIP_SPECIES, 3, double, dealii::Triangulation<PHILIP_DIM>>;
-template class DGStrong <PHILIP_DIM, PHILIP_SPECIES, 4, double, dealii::Triangulation<PHILIP_DIM>>;
-template class DGStrong <PHILIP_DIM, PHILIP_SPECIES, 5, double, dealii::Triangulation<PHILIP_DIM>>;
-template class DGStrong <PHILIP_DIM, PHILIP_SPECIES, 6, double, dealii::Triangulation<PHILIP_DIM>>;
+#if PHILIP_SPECIES==1
+    // Define a sequence of indices representing the range [1, 6]
+    #define POSSIBLE_NSTATE (1)(2)(3)(4)(5)(6)
 
-template class DGStrong <PHILIP_DIM, PHILIP_SPECIES, 1, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
-template class DGStrong <PHILIP_DIM, PHILIP_SPECIES, 2, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
-template class DGStrong <PHILIP_DIM, PHILIP_SPECIES, 3, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
-template class DGStrong <PHILIP_DIM, PHILIP_SPECIES, 4, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
-template class DGStrong <PHILIP_DIM, PHILIP_SPECIES, 5, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
-template class DGStrong <PHILIP_DIM, PHILIP_SPECIES, 6, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+    // using default MeshType = Triangulation
+    // 1D: dealii::Triangulation<dim>;
+    // Otherwise: dealii::parallel::distributed::Triangulation<dim>;
 
-#if PHILIP_DIM!=1
-template class DGStrong <PHILIP_DIM, PHILIP_SPECIES, 1, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
-template class DGStrong <PHILIP_DIM, PHILIP_SPECIES, 2, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
-template class DGStrong <PHILIP_DIM, PHILIP_SPECIES, 3, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
-template class DGStrong <PHILIP_DIM, PHILIP_SPECIES, 4, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
-template class DGStrong <PHILIP_DIM, PHILIP_SPECIES, 5, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
-template class DGStrong <PHILIP_DIM, PHILIP_SPECIES, 6, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+    // Define a macro to instantiate with Meshtype = Triangulation or Shared Triangulation for a specific index
+    #define INSTANTIATE_TRIA(r, data, index) \
+        template class DGStrong <PHILIP_DIM, PHILIP_SPECIES, index, double, dealii::Triangulation<PHILIP_DIM>>; \
+        template class DGStrong <PHILIP_DIM, PHILIP_SPECIES, index, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+    #define INSTANTIATE_DISTRIBUTED_TRIA(r, data, index) \
+        template class DGStrong <PHILIP_DIM, PHILIP_SPECIES, index, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+
+    BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_TRIA, _, POSSIBLE_NSTATE)
+    #if PHILIP_DIM!=1
+    BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_DISTRIBUTED_TRIA, _, POSSIBLE_NSTATE)
+    #endif
 #endif
-
 } // PHiLiP namespace

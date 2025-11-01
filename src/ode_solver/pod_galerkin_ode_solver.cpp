@@ -26,12 +26,12 @@ std::shared_ptr<Epetra_CrsMatrix> PODGalerkinODESolver<dim,nspecies,real,MeshTyp
     return std::make_shared<Epetra_CrsMatrix>(epetra_reduced_lhs);
 }
 
-
-template class PODGalerkinODESolver<PHILIP_DIM, PHILIP_SPECIES, double, dealii::Triangulation<PHILIP_DIM>>;
-template class PODGalerkinODESolver<PHILIP_DIM, PHILIP_SPECIES, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
-#if PHILIP_DIM != 1
-template class PODGalerkinODESolver<PHILIP_DIM, PHILIP_SPECIES, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+#if PHILIP_SPECIES==1
+    template class PODGalerkinODESolver<PHILIP_DIM, PHILIP_SPECIES, double, dealii::Triangulation<PHILIP_DIM>>;
+    template class PODGalerkinODESolver<PHILIP_DIM, PHILIP_SPECIES, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+    #if PHILIP_DIM != 1
+        template class PODGalerkinODESolver<PHILIP_DIM, PHILIP_SPECIES, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+    #endif
 #endif
-
 } // ODE namespace
 } // PHiLiP namespace

@@ -215,7 +215,7 @@ int TimeRefinementStudyReference<dim, nspecies, nstate>::run_test() const
     return testfail;
 }
 
-#if PHILIP_DIM==1
+#if PHILIP_DIM==1 && PHILIP_SPECIES==1
     template class TimeRefinementStudyReference<PHILIP_DIM, PHILIP_SPECIES,PHILIP_DIM>;
 #endif
 } // Tests namespace

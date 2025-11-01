@@ -372,9 +372,9 @@ int EulerEntropyWaves<dim,nspecies,nstate>
     return n_fail_poly;
 }
 
+#if PHILIP_SPECIES==1
 template class EulerEntropyWaves <PHILIP_DIM, PHILIP_SPECIES,PHILIP_DIM+2>;
-
-
+#endif
 } // Tests namespace
 } // PHiLiP namespace
 

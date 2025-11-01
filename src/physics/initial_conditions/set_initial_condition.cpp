@@ -239,11 +239,13 @@ void SetInitialCondition<dim,nspecies,nstate,real>::read_values_from_file_and_pr
     }
 }
 
-template class SetInitialCondition<PHILIP_DIM, PHILIP_SPECIES, 1, double>;
-template class SetInitialCondition<PHILIP_DIM, PHILIP_SPECIES, 2, double>;
-template class SetInitialCondition<PHILIP_DIM, PHILIP_SPECIES, 3, double>;
-template class SetInitialCondition<PHILIP_DIM, PHILIP_SPECIES, 4, double>;
-template class SetInitialCondition<PHILIP_DIM, PHILIP_SPECIES, 5, double>;
-template class SetInitialCondition<PHILIP_DIM, PHILIP_SPECIES, 6, double>;
+#if PHILIP_SPECIES==1
+    // Define a sequence of indices representing the range [1, 6]
+    #define POSSIBLE_NSTATE (1)(2)(3)(4)(5)(6)
 
+    // Define a macro to instantiate SetIC Functions for a specific index
+    #define INSTANTIATE_SET_IC(r, data, index) \
+        template class SetInitialCondition<PHILIP_DIM, PHILIP_SPECIES, index, double>;
+    BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_SET_IC, _, POSSIBLE_NSTATE)
+#endif
 }//end of namespace PHILIP

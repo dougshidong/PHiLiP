@@ -1082,12 +1082,13 @@ int OptimizationInverseManufactured<dim,nspecies,nstate>
     return fail_bool;
 }
 
+#if PHILIP_SPECIES==1
 template class OptimizationInverseManufactured <PHILIP_DIM, PHILIP_SPECIES,1>;
 template class OptimizationInverseManufactured <PHILIP_DIM, PHILIP_SPECIES,2>;
 template class OptimizationInverseManufactured <PHILIP_DIM, PHILIP_SPECIES,3>;
 template class OptimizationInverseManufactured <PHILIP_DIM, PHILIP_SPECIES,4>;
 template class OptimizationInverseManufactured <PHILIP_DIM, PHILIP_SPECIES,5>;
-
+#endif
 } // Tests namespace
 } // PHiLiP namespace
 

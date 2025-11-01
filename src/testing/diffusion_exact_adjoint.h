@@ -52,7 +52,7 @@ namespace Tests {
 
 /// manufactured solution for u
 template <int dim, int nspecies, typename real>
-class ManufacturedSolutionU : public ManufacturedSolutionFunction <dim, nspecies, real>
+class ManufacturedSolutionU : public ManufacturedSolutionFunction <dim, real>
 {
 protected:
     using dealii::Function<dim,real>::value;
@@ -74,7 +74,7 @@ public:
 
 /// manufactured solution for v
 template <int dim, int nspecies, typename real>
-class ManufacturedSolutionV : public ManufacturedSolutionFunction <dim, nspecies, real>
+class ManufacturedSolutionV : public ManufacturedSolutionFunction <dim, real>
 {
 protected:
     using dealii::Function<dim,real>::value;
@@ -114,7 +114,7 @@ public:
         const Parameters::AllParameters *const                  parameters_input,
         const bool                                              convection, 
         const bool                                              diffusion,
-        std::shared_ptr<ManufacturedSolutionFunction<dim,nspecies,real>> manufactured_solution_function): 
+        std::shared_ptr<ManufacturedSolutionFunction<dim,real> > manufactured_solution_function): 
             Physics::ConvectionDiffusion<dim,nspecies,nstate,real>::ConvectionDiffusion(
                 parameters_input,
                 convection, 

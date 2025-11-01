@@ -362,10 +362,10 @@ int BoundPreservingLimiterTests<dim, nspecies, nstate>::run_convergence_test() c
         return 1;
 }
 
-#if PHILIP_DIM==1
+#if PHILIP_DIM==1 && PHILIP_SPECIES==1
 template class BoundPreservingLimiterTests<PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM>;
 template class BoundPreservingLimiterTests<PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM + 2>;
-#elif PHILIP_DIM==2
+#elif PHILIP_DIM==2 && PHILIP_SPECIES==1
 template class BoundPreservingLimiterTests<PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM>;
 template class BoundPreservingLimiterTests<PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM + 2>;
 template class BoundPreservingLimiterTests<PHILIP_DIM, PHILIP_SPECIES, 1>;

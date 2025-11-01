@@ -133,17 +133,19 @@ ExactSolutionFactory<dim,nspecies,nstate, real>::create_ExactSolutionFunction(
     return nullptr;
 }
 
-template class ExactSolutionFunction <PHILIP_DIM, PHILIP_SPECIES,PHILIP_DIM, double>;
-template class ExactSolutionFunction <PHILIP_DIM, PHILIP_SPECIES,PHILIP_DIM+2, double>;
-template class ExactSolutionFactory <PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, double>;
-template class ExactSolutionFactory <PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM, double>;
-template class ExactSolutionFunction_Zero <PHILIP_DIM, PHILIP_SPECIES,1, double>;
-template class ExactSolutionFunction_Zero <PHILIP_DIM, PHILIP_SPECIES,2, double>;
-template class ExactSolutionFunction_Zero <PHILIP_DIM, PHILIP_SPECIES,3, double>;
-template class ExactSolutionFunction_Zero <PHILIP_DIM, PHILIP_SPECIES,4, double>;
-template class ExactSolutionFunction_Zero <PHILIP_DIM, PHILIP_SPECIES,5, double>;
+#if PHILIP_SPECIES==1
+    template class ExactSolutionFunction <PHILIP_DIM, PHILIP_SPECIES,PHILIP_DIM, double>;
+    template class ExactSolutionFunction <PHILIP_DIM, PHILIP_SPECIES,PHILIP_DIM+2, double>;
+    template class ExactSolutionFactory <PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, double>;
+    template class ExactSolutionFactory <PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM, double>;
+    template class ExactSolutionFunction_Zero <PHILIP_DIM, PHILIP_SPECIES,1, double>;
+    template class ExactSolutionFunction_Zero <PHILIP_DIM, PHILIP_SPECIES,2, double>;
+    template class ExactSolutionFunction_Zero <PHILIP_DIM, PHILIP_SPECIES,3, double>;
+    template class ExactSolutionFunction_Zero <PHILIP_DIM, PHILIP_SPECIES,4, double>;
+    template class ExactSolutionFunction_Zero <PHILIP_DIM, PHILIP_SPECIES,5, double>;
 
-#if PHILIP_DIM>1
-template class ExactSolutionFunction_IsentropicVortex <PHILIP_DIM, PHILIP_SPECIES,PHILIP_DIM+2, double>;
+    #if PHILIP_DIM>1
+    template class ExactSolutionFunction_IsentropicVortex <PHILIP_DIM, PHILIP_SPECIES,PHILIP_DIM+2, double>;
+    #endif
 #endif
 } // PHiLiP namespace

@@ -296,11 +296,11 @@ std::unique_ptr<ProperOrthogonalDecomposition::ROMSolution<dim,nspecies,nstate>>
     return rom_solution;
 }
 
-#if PHILIP_DIM==1
+#if PHILIP_DIM==1 && PHILIP_SPECIES==1
         template class AdaptiveSampling<PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM>;
 #endif
 
-#if PHILIP_DIM!=1
+#if PHILIP_DIM!=1 && PHILIP_SPECIES==1
         template class AdaptiveSampling<PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2>;
 #endif
 

@@ -108,7 +108,7 @@ void BurgersRewienskiSnapshot<dim, nspecies, nstate>::steady_state_postprocessin
     solutions_table.write_text(out_file);
 }
 
-#if PHILIP_DIM==1
+#if PHILIP_DIM==1 && PHILIP_SPECIES==1
 template class BurgersRewienskiSnapshot<PHILIP_DIM, PHILIP_SPECIES,PHILIP_DIM>;
 #endif
 

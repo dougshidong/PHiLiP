@@ -865,12 +865,13 @@ void MHD<dim,nspecies,nstate,real>
 //    return dealii::update_values;
 //}
 
+#if PHILIP_SPECIES==1
 // Instantiate explicitly
 template class MHD < PHILIP_DIM, PHILIP_SPECIES, 8, double >;
 template class MHD < PHILIP_DIM, PHILIP_SPECIES, 8, FadType >;
 template class MHD < PHILIP_DIM, PHILIP_SPECIES, 8, RadType >;
 template class MHD < PHILIP_DIM, PHILIP_SPECIES, 8, FadFadType >;
 template class MHD < PHILIP_DIM, PHILIP_SPECIES, 8, RadFadType >;
-
+#endif
 } // Physics namespace
 } // PHiLiP namespace

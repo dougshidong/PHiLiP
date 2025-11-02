@@ -363,6 +363,14 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       "Tolerance for checking that the determinant of surface jacobians at element faces matches. "
                       "Note: Currently only used in weak dg.");
 
+    prm.declare_entry("chemistry_input_file", "N2_O2.kinetics",
+                      dealii::Patterns::FileName(dealii::Patterns::FileName::FileType::input),
+                      "Filename of the unsteady data table output file: unsteady_data_table_filename.txt.");
+
+    prm.declare_entry("initial_mixture_fractions_input_file", "InitialMixtureFractions_N2_O2.txt",
+                      dealii::Patterns::FileName(dealii::Patterns::FileName::FileType::input),
+                      "Filename of the unsteady data table output file: unsteady_data_table_filename.txt.");
+
     Parameters::LinearSolverParam::declare_parameters (prm);
     Parameters::ManufacturedConvergenceStudyParam::declare_parameters (prm);
     Parameters::ODESolverParam::declare_parameters (prm);
@@ -558,6 +566,9 @@ const std::string test_string = prm.get("test_type");
 
     matching_surface_jac_det_tolerance = prm.get_double("matching_surface_jac_det_tolerance");
 
+    chemistry_input_file = prm.get("chemistry_input_file");
+    initial_mixture_fractions_input_file = prm.get("initial_mixture_fractions_input_file");
+    
     pcout << "Parsing linear solver subsection..." << std::endl;
     linear_solver_param.parse_parameters (prm);
 

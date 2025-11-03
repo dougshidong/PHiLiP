@@ -48,8 +48,9 @@ void SpacetimeCartesianProblem<dim,nstate>::display_additional_flow_case_specifi
     // Empty for now.
 }
 
-
+#if PHILIP_DIM>1
 template class SpacetimeCartesianProblem <PHILIP_DIM,1>;
+#endif
 
 } // FlowSolver namespace
 } // PHiLiP namespace

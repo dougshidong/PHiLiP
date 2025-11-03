@@ -132,7 +132,7 @@ FlowSolverFactory<dim,nstate>
         }
     } else if (flow_type == FlowCaseEnum::spacetime_cartesian) {
         std::cout << "Creating spacetime_cartesian flowcase" << std::endl;
-        if constexpr (dim==2 && nstate==1) {
+        if constexpr (dim>=2 && nstate==1) {
             std::shared_ptr<FlowSolverCaseBase<dim, nstate>> flow_solver_case = std::make_shared<SpacetimeCartesianProblem<dim, nstate>>(parameters_input);
             return std::make_unique<FlowSolver<dim, nstate>>(parameters_input, flow_solver_case, parameter_handler_input);
         }

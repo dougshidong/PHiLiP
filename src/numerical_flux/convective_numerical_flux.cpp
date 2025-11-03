@@ -38,7 +38,7 @@ std::array<real, nstate> NumericalFluxConvective<dim,nstate,real>
     const dealii::Tensor<1,dim,real> &normal_int) const
 {
     std::array<real, nstate> numerical_flux_dot_n;
-    if (is_spacetime && (abs(normal_int[dim-1])>0)) {
+    if (is_spacetime && (abs(normal_int[dim-1])>1E-14)) {
         // If abs(normal_int[dim])==1, we are on a temporal face
         if (normal_int[dim-1] == -1) {
             // on a t^n face. Return external solution.

@@ -82,6 +82,27 @@ public:
     real value (const dealii::Point<dim,real> &point, const unsigned int istate = 0) const override;
 };
 
+/// Exact Solution Function: Spacetime cartesian
+/// For 1D+1 or 2D+1
+/// Note that no final time is passed; we assume the (dim-1)-th coordinate
+/// is time. Solution must be converged.
+/// NOTE: advection speed is assumed to be (0.3,0.4).
+template <int dim, int nstate, typename real>
+class ExactSolutionFunction_SpacetimeCartesian
+        : public ExactSolutionFunction<dim,nstate,real>
+{
+protected:
+    using dealii::Function<dim,real>::value; ///< dealii::Function we are templating on
+
+public:
+    /// Constructor for ExactSolutionFunction_IsentropicVortex
+    /** Calls the Function(const unsigned int n_components) constructor in deal.II*/
+    explicit ExactSolutionFunction_SpacetimeCartesian();
+
+    /// Value of the exact solution at a point 
+    real value (const dealii::Point<dim,real> &point, const unsigned int istate = 0) const override;
+};
+
 /// Exact solution function factory
 template <int dim, int nstate, typename real>
 class ExactSolutionFactory

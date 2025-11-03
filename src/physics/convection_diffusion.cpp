@@ -1,6 +1,7 @@
 #include "ADTypes.hpp"
 
 #include "convection_diffusion.h"
+#include "exact_solutions/exact_solution.h"
 
 namespace PHiLiP {
 namespace Physics {
@@ -29,9 +30,32 @@ void ConvectionDiffusion<dim,nstate,real>
     for (int i=0; i<nstate; i++) {
         if(boundary_type == 1009){
             // Corresponds to custom function
-            // TO DO: refer to initial condition function class.
-            const double pi = atan(1.0) * 4.0;
-            boundary_values[i] = sin(pi * (pos[0])) + 0.01;
+            if constexpr(dim>1&&nstate==1){
+                ///////
+                // Ideally, this would redirect to the exact_solutions class.
+                // However, templating nightmares within... hard-coding 
+                // is approriate for the linear advection case.
+                const real adv_speed0 = 0.3;
+                const real adv_speed1 = 0.4;
+
+                const real pi = atan(1.0) * 4.0;
+
+                const real x = pos[0];
+#if PHILIP_DIM==2
+                const real t = pos[1];
+                const real y = 0;
+#elif PHILIP_DIM==3
+                const real y = pos[1];
+                const real t = pos[2];
+#endif
+
+                const real value = sin(pi * (x - adv_speed0 * t) + 2*pi* (y - adv_speed1*t)) + 0.01;
+                ///////
+                boundary_values[i] = value;
+            }else{
+                this->pcout << "Warning:No Dirichlet boundary function is defined for this PDE." << std::endl;
+                boundary_values[i] = 0;
+            }
             boundary_gradients[i] = 0.0;
 
         } else if (boundary_type == 1005){

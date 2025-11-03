@@ -561,9 +561,13 @@ public:
      * 4. Neighbor is coarser. Therefore, the current cell is the finer one.
      * Do nothing since this cell will be taken care of by scenario 2.
      *
+     * The residual is only assembled for the indicated active_cell_group_ID.
+     * If nothing is passed for active_cell_group_ID, AND no group_IDs have been set,
+     * the default behaviour is to assemble the residual everywhere.
+     *
      */
     //void assemble_residual_dRdW ();
-    void assemble_residual (const bool compute_dRdW=false, const bool compute_dRdX=false, const bool compute_d2R=false, const double CFL_mass = 0.0);
+    void assemble_residual (const bool compute_dRdW=false, const bool compute_dRdX=false, const bool compute_d2R=false, const double CFL_mass = 0.0, const int active_cell_group_ID = 0);
 
     /// Used in assemble_residual().
     /** IMPORTANT: This does not fully compute the cell residual since it might not
@@ -590,7 +594,40 @@ public:
         OPERATOR::mapping_shape_functions<dim,2*dim,real>                  &mapping_basis,
         const bool                                                         compute_auxiliary_right_hand_side,//flag on whether computing the Auxiliary variable's equations' residuals
         dealii::LinearAlgebra::distributed::Vector<double>                 &rhs,
-        std::array<dealii::LinearAlgebra::distributed::Vector<double>,dim> &rhs_aux);
+        std::array<dealii::LinearAlgebra::distributed::Vector<double>,dim> &rhs_aux,
+        const int active_cell_group_ID=0);
+
+    /// Function to determine whether the residual should be assembled in a given cell
+    /** Returns true if the current cell belongs to active_cell_group_ID
+     *  If the cell is not in that group, return false.
+     */
+    bool cell_is_in_active_cell_group(const unsigned int cell_index, const int active_cell_group_ID) const;
+
+protected:
+    /// List of the group ID of each cell.
+    /** This is used to determine whether the residual will be evaluated.
+     *  By default, this is a list of zeroes, indicating that all cells are evaluated together.
+     *  The group IDs are intended to be used with hyperreduced order models
+     *  or partitioned Runge-Kutta.
+     */
+    dealii::LinearAlgebra::distributed::Vector<int> list_of_cell_group_IDs;
+
+    /// L1 norm of list_of_cell_group_IDs
+    /** If the norm is zero, then we can skip some logic. */
+    int norm_list_of_cell_group_IDs=0;
+public:
+
+    ///Setter for list_of_cell_group_IDs
+    /** Useage: pass a vector of the same size as the list_of_cell_group_IDs
+     *  where 1 indicates that that cell should be assigned the indicated
+     *  group_ID and 0 everywhere else
+     *  Note: when using MPI, it is important that ghost cells are updated in
+     *  addition to the locally owned cells.
+     *  For an example of setting the locations vector, see PHiLiP/tests/unit_tests/residual_assembly_on_subset/assemble_residual_on_subset.cpp
+     */
+    void set_list_of_cell_group_IDs(const dealii::LinearAlgebra::distributed::Vector<int> &locations, const int group_ID);
+
+public:
 
     /// Finite Element Collection for p-finite-element to represent the solution
     /** This is a collection of FESystems */
@@ -696,6 +733,26 @@ protected:
         const bool                                             compute_auxiliary_right_hand_side,
         const bool compute_dRdW, const bool compute_dRdX, const bool compute_d2R) = 0;
 
+    /// Only builds the operators/fe values required for the volume residual.
+    virtual void build_volume_operators(
+        typename dealii::DoFHandler<dim>::active_cell_iterator cell,
+        const dealii::types::global_dof_index                  current_cell_index,
+        const std::vector<dealii::types::global_dof_index>     &cell_dofs_indices,
+        const std::vector<dealii::types::global_dof_index>     &metric_dof_indices,
+        const unsigned int                                     poly_degree,
+        const unsigned int                                     grid_degree,
+        OPERATOR::basis_functions<dim,2*dim,real>              &soln_basis,
+        OPERATOR::basis_functions<dim,2*dim,real>              &flux_basis,
+        OPERATOR::local_basis_stiffness<dim,2*dim,real>        &flux_basis_stiffness,
+        OPERATOR::vol_projection_operator<dim,2*dim,real>      &soln_basis_projection_oper_int,
+        OPERATOR::vol_projection_operator<dim,2*dim,real>      &soln_basis_projection_oper_ext,
+        OPERATOR::metric_operators<real,dim,2*dim>             &metric_oper,
+        OPERATOR::mapping_shape_functions<dim,2*dim,real>      &mapping_basis,
+        std::array<std::vector<real>,dim>                      &mapping_support_points,
+        dealii::hp::FEValues<dim,dim>                          &fe_values_collection_volume,
+        dealii::hp::FEValues<dim,dim>                          &fe_values_collection_volume_lagrange,
+        const dealii::FESystem<dim,dim>                        &current_fe_ref)=0;
+
     /// Builds the necessary operators/fe values and assembles boundary residual.
     virtual void assemble_boundary_term_and_build_operators(
         typename dealii::DoFHandler<dim>::active_cell_iterator cell,
@@ -755,6 +812,7 @@ protected:
         dealii::Vector<real>                                   &current_cell_rhs,
         dealii::Vector<real>                                   &neighbor_cell_rhs,
         std::vector<dealii::Tensor<1,dim,real>>                &current_cell_rhs_aux,
+        std::vector<dealii::Tensor<1,dim,real>>                &neighbor_cell_rhs_aux,
         dealii::LinearAlgebra::distributed::Vector<double>     &rhs,
         std::array<dealii::LinearAlgebra::distributed::Vector<double>,dim> &rhs_aux,
         const bool                                             compute_auxiliary_right_hand_side,
@@ -794,6 +852,7 @@ protected:
         dealii::Vector<real>                                   &current_cell_rhs,
         dealii::Vector<real>                                   &neighbor_cell_rhs,
         std::vector<dealii::Tensor<1,dim,real>>                &current_cell_rhs_aux,
+        std::vector<dealii::Tensor<1,dim,real>>                &neighbor_cell_rhs_aux,
         dealii::LinearAlgebra::distributed::Vector<double>     &rhs,
         std::array<dealii::LinearAlgebra::distributed::Vector<double>,dim> &rhs_aux,
         const bool                                             compute_auxiliary_right_hand_side,
@@ -882,7 +941,7 @@ public:
     void allocate_auxiliary_equation ();
 
     /// Asembles the auxiliary equations' residuals and solves.
-    virtual void assemble_auxiliary_residual () = 0;
+    virtual void assemble_auxiliary_residual (const int active_cell_group_ID=0) = 0;
 
     /// Allocate the dual vector for optimization.
     /** Currently only used in weak form.

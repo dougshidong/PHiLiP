@@ -50,7 +50,7 @@ subsection ODE solver
 end
 
 subsection time_refinement_study
-  set number_of_times_to_solve = 3
+  set number_of_times_to_solve = 2
   set refinement_ratio = 0.5
 end
 

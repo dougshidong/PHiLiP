@@ -119,8 +119,6 @@ template <int dim, int nstate, typename real>
 inline real ExactSolutionFunction_SpacetimeCartesian<dim,nstate,real>
 ::value(const dealii::Point<dim,real> &point, const unsigned int /*istate*/) const
 {
-    const real adv_speed0 = 0.3;
-    const real adv_speed1 = 0.4;
 
     const real pi = atan(1.0) * 4.0;
 
@@ -128,9 +126,13 @@ inline real ExactSolutionFunction_SpacetimeCartesian<dim,nstate,real>
 #if PHILIP_DIM==2
     const real t = point[1];
     const real y = 0;
+    const real adv_speed0 = 0.3;
+    const real adv_speed1 = 0.0;
 #elif PHILIP_DIM==3
     const real y = point[1];
     const real t = point[2];
+    const real adv_speed0 = 0.3;
+    const real adv_speed1 = 0.4;
 #endif
 
     const real value = sin(pi * (x - adv_speed0 * t) + 2*pi* (y - adv_speed1*t)) + 0.01;

@@ -1,5 +1,4 @@
-# -------------------
-
+#set run_type = flow_simulation
 set test_type = stability_fr_parameter_range
 
 # Number of SPATIAL dimensions
@@ -48,9 +47,14 @@ subsection ODE solver
 
 end
 
+subsection time_refinement_study
+  set number_of_times_to_solve = 3
+  set refinement_ratio = 0.5
+end
+
 subsection manufactured solution convergence study
   set advection_0 = 0.3
-  set advection_1 = 1 #For now, unit advection in temporal direction
+  set advection_1 = 0.4
   set number_of_grids = 2
 end
 
@@ -61,11 +65,11 @@ subsection flow_solver
   subsection grid
     set grid_left_bound = 0.0
     set grid_right_bound = 2.0
-    set number_of_grid_elements_per_dimension = 2
+    set number_of_grid_elements_per_dimension = 4
   end
   set final_time = 0.004 #small such that we don't actually take a step
   subsection ESFR_parameter_tests
-    set number_ESFR_parameter_values = 10
+    set number_ESFR_parameter_values = 2
     set ESFR_parameter_values_start = 1.0e-4
     set ESFR_parameter_values_end = 1.0e4
   end

@@ -166,7 +166,7 @@ std::tuple<double,int> GeneralRefinementStudy<dim,nstate>::process_and_write_con
 }
 
 template <int dim, int nstate>
-int GeneralRefinementStudy<dim,nstate>::run_refinement_study_and_write_result(const Parameters::AllParameters *parameters_in, const double expected_order, const bool append_to_file) const{
+int GeneralRefinementStudy<dim,nstate>::run_refinement_study_and_write_result(const Parameters::AllParameters *parameters_in, const double expected_order, const bool check_only_last_refinement, const bool append_to_file) const{
 
     const double final_time = parameters_in->flow_solver_param.final_time;
     const double initial_time_step = parameters_in->ode_solver_param.initial_time_step;
@@ -203,8 +203,17 @@ int GeneralRefinementStudy<dim,nstate>::run_refinement_study_and_write_result(co
                 expected_order);
         L2_error = std::get<0>(out_tuple);
         int local_testfail = std::get<1>(out_tuple);
-        this->pcout<< "local testfail:" << local_testfail << std::endl;
-        testfail = (std::get<1>(out_tuple) == 1 || testfail == 1) ? 1 : 0;
+
+        if (local_testfail == 1) {
+            this->pcout<< "Expected order was not reached at refinement " << refinement << std::endl;
+        }
+
+        if (check_only_last_refinement && refinement == n_calculations - 1) {
+            testfail = local_testfail;
+        } else if (!check_only_last_refinement) {
+            // check all refinements
+            testfail = (local_testfail == 1 || testfail == 1) ? 1 : 0;
+        }
         L2_error_old = L2_error;
     }
 

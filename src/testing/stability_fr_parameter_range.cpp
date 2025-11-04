@@ -79,7 +79,7 @@ int StabilityFRParametersRange<dim, nstate>::run_test() const
 
         const double expected_order = (c_value > 0.186) ? parameters_c_loop.flow_solver_param.poly_degree : parameters_c_loop.flow_solver_param.poly_degree + 1;
 
-        int local_testfail = this->run_refinement_study_and_write_result(&parameters_c_loop, expected_order, true);
+        int local_testfail = this->run_refinement_study_and_write_result(&parameters_c_loop, expected_order, false, true);
         if (local_testfail == 1) testfail = 1;
     }
 

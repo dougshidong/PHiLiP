@@ -1,5 +1,7 @@
 #include <deal.II/base/function.h>
 #include "exact_solution.h"
+#include <deal.II/base/utilities.h>
+#include <deal.II/base/mpi.h>
 
 namespace PHiLiP {
 
@@ -128,6 +130,9 @@ ExactSolutionFactory<dim,nstate, real>::create_ExactSolutionFunction(
         if constexpr (dim>1 && nstate==dim+2)  return std::make_shared<ExactSolutionFunction_IsentropicVortex<dim,nstate,real> > (time_compare);
     } else {
         // Select zero function if there is no exact solution defined
+        dealii::ConditionalOStream pcout(std::cout, dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD)==0);
+        pcout << "Warning: Returning zero for the exact solution." << std::endl
+              << "This may be unintentional!" << std::endl;
         return std::make_shared<ExactSolutionFunction_Zero<dim,nstate,real>> (time_compare);
     }
     return nullptr;

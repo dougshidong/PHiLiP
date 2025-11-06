@@ -37,6 +37,12 @@ int StabilityFRParametersRange<dim, nstate>::run_test() const
 {
     this->pcout << " Running stability ESFR parameter range test. " << std::endl;
     int testfail = 0;
+
+    if (this->all_parameters->flow_solver_param.poly_degree != 2){
+        this->pcout << "Warning: order checks in StabilityFRParametersRange are hard-coded for p=3." << std::endl
+                    << "This test may fail for other poly_degree choices, as FR will lose an order" << std::endl
+                    << "at a different c value." << std::endl;
+    }
     
     const unsigned int nb_c_value = this->all_parameters->flow_solver_param.number_ESFR_parameter_values;
     const double c_min = this->all_parameters->flow_solver_param.ESFR_parameter_values_start;

@@ -1,6 +1,6 @@
 # This must be ran at once whenever a clone of PHiLiP is made onto the cluster
 # DESCRIPTION: Copies the large mesh files for NACA0012 that cannot be stored on GitHub
-# NOTE: This is currently setup only for the Narval cluster
+# NOTE: This is currently setup only for the Rorqual cluster
 PATH_TO_FILES=~/links/projects/def-nadaraja/Libraries/NACA0012MeshFiles
 # Copy meshes required for integration tests
 TARGET_DIR=tests/meshes/

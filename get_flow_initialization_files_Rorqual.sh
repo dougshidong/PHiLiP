@@ -1,6 +1,6 @@
 # This must be ran at once whenever a clone of PHiLiP is made onto the cluster
 # DESCRIPTION: Copies the large flow initialization files that cannot be stored on GitHub
-# NOTE: This is currently setup only for the Narval cluster
+# NOTE: This is currently setup only for the Rorqual cluster
 PATH_TO_FILES=~/links/projects/def-nadaraja/Libraries/flow_initialization_files
 
 TARGET_DIR=tests/integration_tests_control_files/decaying_homogeneous_isotropic_turbulence/setup_files/

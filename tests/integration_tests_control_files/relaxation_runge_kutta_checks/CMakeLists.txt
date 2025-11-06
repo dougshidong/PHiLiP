@@ -16,7 +16,6 @@ add_test(
 )
 set_tests_labels(1D_BURGERS_ENERGY_CONSERVATION_RRK_CDG RELAXATION_RUNGE_KUTTA_CHECKS
                                                         1D
-                                                        REFINEMENT_STUDY
                                                         SERIAL
                                                         BURGERS_INVISCID
                                                         RUNGE-KUTTA
@@ -96,7 +95,6 @@ add_test(
 )
 set_tests_labels(1D_BURGERS_ENERGY_CONSERVATION_RRK_CPLUS   RELAXATION_RUNGE_KUTTA_CHECKS
                                                             1D
-                                                            REFINEMENT_STUDY
                                                             SERIAL
                                                             BURGERS_INVISCID
                                                             RUNGE-KUTTA

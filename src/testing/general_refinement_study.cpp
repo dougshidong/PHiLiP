@@ -27,7 +27,7 @@ Parameters::AllParameters GeneralRefinementStudy<dim,nstate>::reinit_params_and_
 
     if (how == RefinementType::timestep){
         parameters.ode_solver_param.initial_time_step *= pow(refine_ratio,refinement);
-    } else if (how == RefinementType::h){
+    } else if (how == RefinementType::cell_length){
         if (abs(refine_ratio - 2.0 ) > 1E-13) { 
             this->pcout << "Warning: h refinement will use a refinement factor of 2." << std::endl
                         << "User input time_refinement_study_param.refinement_ratio will be ignored." << std::endl;
@@ -117,7 +117,7 @@ std::tuple<double,int> GeneralRefinementStudy<dim,nstate>::process_and_write_con
     if (refinement_type == RefinementType::timestep){
         step_string = "dt";
         step = params.ode_solver_param.initial_time_step;
-    }else if (refinement_type == RefinementType::h){
+    }else if (refinement_type == RefinementType::cell_length){
         step_string = "h";
         step = (params.flow_solver_param.grid_right_bound - params.flow_solver_param.grid_left_bound) / (params.flow_solver_param.number_of_grid_elements_per_dimension);
     }
@@ -244,7 +244,7 @@ int GeneralRefinementStudy<dim, nstate>::run_test() const
     double expected_order_=0;
     if (refinement_type == RefinementType::timestep){
         expected_order_ = this->all_parameters->ode_solver_param.rk_order;
-    } else if (refinement_type == RefinementType::h){
+    } else if (refinement_type == RefinementType::cell_length){
         expected_order_ = this->all_parameters->flow_solver_param.poly_degree + 1; 
     }
     const double expected_order = expected_order_;

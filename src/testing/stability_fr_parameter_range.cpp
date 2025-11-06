@@ -19,7 +19,7 @@ StabilityFRParametersRange<dim, nstate>::StabilityFRParametersRange(
         const PHiLiP::Parameters::AllParameters *const parameters_input,
         const dealii::ParameterHandler &parameter_handler_input)
 : GeneralRefinementStudy<dim,nstate>(parameters_input, parameter_handler_input,
-        GeneralRefinementStudy<dim,nstate>::RefinementType::h)  
+        GeneralRefinementStudy<dim,nstate>::RefinementType::cell_length)  
 {}
 
 

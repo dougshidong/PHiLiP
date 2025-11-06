@@ -14,7 +14,7 @@ HRefinementStudyIsentropicVortex<dim, nstate>::HRefinementStudyIsentropicVortex(
         const PHiLiP::Parameters::AllParameters *const parameters_input,
         const dealii::ParameterHandler &parameter_handler_input)
 : GeneralRefinementStudy<dim,nstate>(parameters_input, parameter_handler_input,
-        GeneralRefinementStudy<dim,nstate>::RefinementType::h)  
+        GeneralRefinementStudy<dim,nstate>::RefinementType::cell_length)  
 {}
 
 template <int dim, int nstate>
@@ -156,7 +156,7 @@ int HRefinementStudyIsentropicVortex<dim, nstate>::run_test() const
             this->pcout << "Refinement number " << refinement + 1 << " of " << this->n_calculations << ", flux reconstruction parameter c = " << c_value <<  std::endl;
             this->pcout << "---------------------------------------------" << std::endl;
 
-            Parameters::AllParameters params = this->reinit_params_and_refine(this->all_parameters,refinement, GeneralRefinementStudy<dim,nstate>::RefinementType::h);
+            Parameters::AllParameters params = this->reinit_params_and_refine(this->all_parameters,refinement, GeneralRefinementStudy<dim,nstate>::RefinementType::cell_length);
             if (nb_c_value > 0){
                 params.FR_user_specified_correction_parameter_value = c_value;
             }

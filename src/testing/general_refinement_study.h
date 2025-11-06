@@ -16,7 +16,7 @@ class GeneralRefinementStudy: public TestsBase
 {
 public:
     /// Type of refinement to run
-    enum RefinementType { timestep, h }; // in the future, can also add p-refinement here
+    enum RefinementType { timestep, cell_length }; // in the future, can also add refinement by poly_degree here
 
     /// Constructor
     GeneralRefinementStudy(

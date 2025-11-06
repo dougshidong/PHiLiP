@@ -39,7 +39,7 @@ int StabilityFRParametersRange<dim, nstate>::run_test() const
     int testfail = 0;
 
     if (this->all_parameters->flow_solver_param.poly_degree != 2){
-        this->pcout << "Warning: order checks in StabilityFRParametersRange are hard-coded for p=3." << std::endl
+        this->pcout << "Warning: order checks in StabilityFRParametersRange are hard-coded for p=2." << std::endl
                     << "This test may fail for other poly_degree choices, as FR will lose an order" << std::endl
                     << "at a different c value." << std::endl;
     }

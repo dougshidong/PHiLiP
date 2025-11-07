@@ -37,7 +37,7 @@
 #include "pod_adaptive_sampling_testing.h"
 #include "taylor_green_vortex_energy_check.h"
 #include "taylor_green_vortex_restart_check.h"
-#include "time_refinement_study.h"
+#include "general_refinement_study.h"
 #include "time_refinement_study_reference.h"
 #include "h_refinement_study_isentropic_vortex.h"
 #include "rrk_numerical_entropy_conservation_check.h"
@@ -250,7 +250,9 @@ std::unique_ptr< TestsBase > TestsFactory<dim,nstate,MeshType>
     } else if(test_type == Test_enum::grid_refinement_study) {
         return std::make_unique<GridRefinementStudy<dim,nstate,MeshType>>(parameters_input);
     } else if(test_type == Test_enum::stability_fr_parameter_range) {
-        return std::make_unique<StabilityFRParametersRange<dim,nstate>>(parameters_input);
+        std::cout << "HERE" << std::endl;
+        if constexpr (nstate==1 )
+            return std::make_unique<StabilityFRParametersRange<dim,nstate>>(parameters_input, parameter_handler_input);
     } else if(test_type == Test_enum::burgers_energy_stability) {
         if constexpr (dim==1 && nstate==1) return std::make_unique<BurgersEnergyStability<dim,nstate>>(parameters_input);
     } else if(test_type == Test_enum::diffusion_exact_adjoint) {
@@ -306,7 +308,8 @@ std::unique_ptr< TestsBase > TestsFactory<dim,nstate,MeshType>
     } else if(test_type == Test_enum::homogeneous_isotropic_turbulence_initialization_check){
         if constexpr (dim==3 && nstate==dim+2) return std::make_unique<HomogeneousIsotropicTurbulenceInitializationCheck<dim,nstate>>(parameters_input,parameter_handler_input);
     } else if(test_type == Test_enum::time_refinement_study) {
-        if constexpr (dim==1 && nstate==1)  return std::make_unique<TimeRefinementStudy<dim, nstate>>(parameters_input, parameter_handler_input);
+        if constexpr (dim==1 && nstate==1)  return std::make_unique<GeneralRefinementStudy<dim, nstate>>(parameters_input, parameter_handler_input, 
+                GeneralRefinementStudy<dim,nstate>::RefinementType::timestep);
     } else if(test_type == Test_enum::h_refinement_study_isentropic_vortex) {
         if constexpr (dim+2==nstate && dim!=1)  return std::make_unique<HRefinementStudyIsentropicVortex<dim, nstate>>(parameters_input, parameter_handler_input);
     } else if(test_type == Test_enum::time_refinement_study_reference) {
@@ -355,9 +358,9 @@ std::unique_ptr< TestsBase > TestsFactory<dim,nstate,MeshType>
               dealii::ParameterHandler &parameter_handler_input)
 {
     // Recursive templating required because template parameters must be compile time constants
-    // As a results, this recursive template initializes all possible dimensions with all possible nstate
+    // As a result, this recursive template initializes all possible dimensions with all possible nstate
     // without having 15 different if-else statements
-    if(dim == parameters_input->dimension)
+    if(dim == parameters_input->dimension + parameters_input->temporal_dimension)
     {
         // This template parameters dim and nstate match the runtime parameters
         // then create the selected test with template parameters dim and nstate

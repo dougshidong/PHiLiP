@@ -59,6 +59,7 @@ void ODESolverParam::declare_parameters (dealii::ParameterHandler &prm)
                           " hyper_reduced_petrov_galerkin | "
                           " pod_galerkin_runge_kutta>.");
 
+        // TO DO: add space-time as a param here and check consistency with temporal_dim parameter.
         prm.declare_entry("nonlinear_max_iterations", "500000",
                           dealii::Patterns::Integer(0,dealii::Patterns::Integer::max_int_value),
                           "Maximum nonlinear solver iterations");

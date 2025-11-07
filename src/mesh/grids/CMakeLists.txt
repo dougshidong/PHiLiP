@@ -7,6 +7,7 @@ set(GRIDS_SOURCE
     naca_airfoil_grid.cpp
     spline_channel.cpp
     straight_periodic_cube.cpp
+    straight_semiperiodic_cube.cpp
     nonsymmetric_curved_periodic_grid.cpp
     nonsymmetric_curved_nonperiodic_grid.cpp
     skew_symmetric_periodic_grid.cpp

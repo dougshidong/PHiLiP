@@ -12,6 +12,7 @@
 #include "flow_solver_cases/gaussian_bump.h"
 #include "flow_solver_cases/non_periodic_cube_flow.h"
 #include "flow_solver_cases/positivity_preserving_tests.h"
+#include "flow_solver_cases/spacetime_cartesian_problem.h"
 
 namespace PHiLiP {
 
@@ -129,6 +130,12 @@ FlowSolverFactory<dim,nstate>
             std::shared_ptr<FlowSolverCaseBase<dim, nstate>> flow_solver_case = std::make_shared<PeriodicCubeFlow<dim, nstate>>(parameters_input);
             return std::make_unique<FlowSolver<dim, nstate>>(parameters_input, flow_solver_case, parameter_handler_input);
         }
+    } else if (flow_type == FlowCaseEnum::spacetime_cartesian) {
+        std::cout << "Creating spacetime_cartesian flowcase" << std::endl;
+        if constexpr (dim>=2 && nstate==1) {
+            std::shared_ptr<FlowSolverCaseBase<dim, nstate>> flow_solver_case = std::make_shared<SpacetimeCartesianProblem<dim, nstate>>(parameters_input);
+            return std::make_unique<FlowSolver<dim, nstate>>(parameters_input, flow_solver_case, parameter_handler_input);
+        }
     } else {
         std::cout << "Invalid flow case. You probably forgot to add it to the list of flow cases in flow_solver_factory.cpp" << std::endl;
         std::abort();
@@ -141,10 +148,11 @@ std::unique_ptr< FlowSolverBase > FlowSolverFactory<dim,nstate>
 ::create_flow_solver(const Parameters::AllParameters *const parameters_input,
                      const dealii::ParameterHandler &parameter_handler_input)
 {
+    std::cout << "In create_flow_solver" << std::endl;
     // Recursive templating required because template parameters must be compile time constants
     // As a results, this recursive template initializes all possible dimensions with all possible nstate
     // without having 15 different if-else statements
-    if(dim == parameters_input->dimension)
+    if(dim == parameters_input->dimension + parameters_input->temporal_dimension)
     {
         // This template parameters dim and nstate match the runtime parameters
         // then create the selected flow case with template parameters dim and nstate

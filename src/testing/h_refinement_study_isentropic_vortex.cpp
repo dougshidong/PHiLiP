@@ -5,7 +5,6 @@
 #include "physics/exact_solutions/exact_solution.h"
 #include "physics/euler.h"
 #include "cmath"
-//#include "ode_solver/runge_kutta_ode_solver.h"
 
 namespace PHiLiP {
 namespace Tests {
@@ -13,29 +12,10 @@ namespace Tests {
 template <int dim, int nstate>
 HRefinementStudyIsentropicVortex<dim, nstate>::HRefinementStudyIsentropicVortex(
         const PHiLiP::Parameters::AllParameters *const parameters_input,
-        const dealii::ParameterHandler &parameter_handler_input)  
-        : TestsBase::TestsBase(parameters_input),
-         parameter_handler(parameter_handler_input),
-         n_calculations(parameters_input->time_refinement_study_param.number_of_times_to_solve),
-         refine_ratio(parameters_input->time_refinement_study_param.refinement_ratio)
+        const dealii::ParameterHandler &parameter_handler_input)
+: GeneralRefinementStudy<dim,nstate>(parameters_input, parameter_handler_input,
+        GeneralRefinementStudy<dim,nstate>::RefinementType::h)  
 {}
-
-
-
-template <int dim, int nstate>
-Parameters::AllParameters HRefinementStudyIsentropicVortex<dim,nstate>::reinit_params_and_refine(int refinement, double cvalue, int nb_c_value) const
-{
-     PHiLiP::Parameters::AllParameters parameters = *(this->all_parameters);
-     
-     parameters.flow_solver_param.number_of_grid_elements_per_dimension *= pow(2, refinement);
-     parameters.flow_solver_param.unsteady_data_table_filename += std::to_string(parameters.flow_solver_param.number_of_grid_elements_per_dimension);
-     
-     if (nb_c_value > 0){
-        parameters.FR_user_specified_correction_parameter_value = cvalue;
-     }
-
-     return parameters;
-}
 
 template <int dim, int nstate>
 void HRefinementStudyIsentropicVortex<dim,nstate>::calculate_Lp_error_at_final_time_wrt_function(double &Lp_error_density, 
@@ -126,7 +106,7 @@ int HRefinementStudyIsentropicVortex<dim, nstate>::run_test() const
     const double initial_time_step = this->all_parameters->ode_solver_param.initial_time_step;
     const int n_steps = floor(final_time/initial_time_step);
     if (n_steps * initial_time_step != final_time){
-        pcout << "WARNING: final_time is not evenly divisible by initial_time_step!" << std::endl
+        this->pcout << "WARNING: final_time is not evenly divisible by initial_time_step!" << std::endl
               << "Remainder is " << fmod(final_time, initial_time_step)
               << ". Consider modifying parameters." << std::endl;
     }
@@ -170,20 +150,23 @@ int HRefinementStudyIsentropicVortex<dim, nstate>::run_test() const
         double L2_error_pressure_conv_rate=0;
 
 
-        for (int refinement = 0; refinement < n_calculations; ++refinement){
+        for (int refinement = 0; refinement < this->n_calculations; ++refinement){
             
-            pcout << "\n\n---------------------------------------------" << std::endl;
-            pcout << "Refinement number " << refinement + 1 << " of " << n_calculations << ", flux reconstruction parameter c = " << c_value <<  std::endl;
-            pcout << "---------------------------------------------" << std::endl;
+            this->pcout << "\n\n---------------------------------------------" << std::endl;
+            this->pcout << "Refinement number " << refinement + 1 << " of " << this->n_calculations << ", flux reconstruction parameter c = " << c_value <<  std::endl;
+            this->pcout << "---------------------------------------------" << std::endl;
 
-            const Parameters::AllParameters params = reinit_params_and_refine(refinement, c_value, nb_c_value);
+            Parameters::AllParameters params = this->reinit_params_and_refine(this->all_parameters,refinement, GeneralRefinementStudy<dim,nstate>::RefinementType::h);
+            if (nb_c_value > 0){
+                params.FR_user_specified_correction_parameter_value = c_value;
+            }
             auto params_modified = params;
 
-            std::unique_ptr<FlowSolver::FlowSolver<dim,nstate>> flow_solver = FlowSolver::FlowSolverFactory<dim,nstate>::select_flow_case(&params_modified, parameter_handler);
+            std::unique_ptr<FlowSolver::FlowSolver<dim,nstate>> flow_solver = FlowSolver::FlowSolverFactory<dim,nstate>::select_flow_case(&params_modified, this->parameter_handler);
             std::unique_ptr<FlowSolver::PeriodicEntropyTests<dim, nstate>> flow_solver_case = std::make_unique<FlowSolver::PeriodicEntropyTests<dim,nstate>>(&params_modified);
         
             static_cast<void>(flow_solver->run());
-            pcout << "Finished flowsolver " << std::endl;
+            this->pcout << "Finished flowsolver " << std::endl;
 
             const double final_time_actual = flow_solver->ode_solver->current_time;
             
@@ -196,14 +179,14 @@ int HRefinementStudyIsentropicVortex<dim, nstate>::run_test() const
             double Linfty_error_density = 0;
             double Linfty_error_pressure = 0;
             calculate_Lp_error_at_final_time_wrt_function(Linfty_error_density,Linfty_error_pressure, flow_solver->dg, params_modified,final_time_actual, -1);
-            pcout << "Computed density errors are: " << std::endl
+            this->pcout << "Computed density errors are: " << std::endl
                 << "    L1:      " << L1_error_density << std::endl
                 << "    L2:      " << L2_error_density << std::endl
                 << "    Linfty:  " << Linfty_error_density << std::endl;
 
             const double dt = flow_solver_case->get_constant_time_step(flow_solver->dg);
             const int n_cells = pow(params_modified.flow_solver_param.number_of_grid_elements_per_dimension, PHILIP_DIM);
-            pcout << " at dt = " << dt << std::endl;
+            this->pcout << " at dt = " << dt << std::endl;
             
             // Convergence for density
             if (this->all_parameters->flux_reconstruction_type == PHiLiP::Parameters::AllParameters::Flux_Reconstruction::user_specified_value){
@@ -262,25 +245,25 @@ int HRefinementStudyIsentropicVortex<dim, nstate>::run_test() const
             //set tolerance to make test pass for ctest. Note that the grids are very coarse (not in asymptotic range)
             const double order_tolerance = 1.0; 
             if (refinement > 0) {
-                L2_error_pressure_conv_rate = -log(L2_error_pressure_old/L2_error_pressure)/log(refine_ratio);
-                pcout << "Order for L2 pressure at " << refinement << " is " << L2_error_pressure_conv_rate << std::endl;
+                L2_error_pressure_conv_rate = -log(L2_error_pressure_old/L2_error_pressure)/log(this->refine_ratio);
+                this->pcout << "Order for L2 pressure at " << refinement << " is " << L2_error_pressure_conv_rate << std::endl;
                 if (abs(L2_error_pressure_conv_rate - expected_order) > order_tolerance){
                     testfail = 1;
-                    pcout << "Expected convergence order for L2 pressure  was not reached at refinement " << refinement <<std::endl;
+                    this->pcout << "Expected convergence order for L2 pressure  was not reached at refinement " << refinement <<std::endl;
                 }
-                if (refinement < n_calculations-1 && pcout.is_active()){
+                if (refinement < this->n_calculations-1 && this->pcout.is_active()){
                     // Print current convergence results for solution monitoring
-                    convergence_table_density.write_text(pcout.get_stream());
-                    convergence_table_pressure.write_text(pcout.get_stream());
+                    convergence_table_density.write_text(this->pcout.get_stream());
+                    convergence_table_pressure.write_text(this->pcout.get_stream());
                 }
             }
             L2_error_pressure_old = L2_error_pressure;
         }// refinement loop
         //Printing and writing convergence tables
-        pcout << std::endl;
-        if (pcout.is_active()){
-            convergence_table_density.write_text(pcout.get_stream());
-            convergence_table_pressure.write_text(pcout.get_stream());
+        this->pcout << std::endl;
+        if (this->pcout.is_active()){
+            convergence_table_density.write_text(this->pcout.get_stream());
+            convergence_table_pressure.write_text(this->pcout.get_stream());
         }
 
         convergence_table_density.write_text(conv_tab_file);

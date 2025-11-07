@@ -59,6 +59,12 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       "  triangulation | "
                       "  parallel_shared_triangulation |"
                       "  parallel_distributed_triangulation>.");
+
+    prm.declare_entry("temporal_dimension", "0",
+                      dealii::Patterns::Integer(0,1),
+                      "Number of dimensions of the grid in time."
+                      "set to 0 for method-of-lines approaches."
+                      "set to 1 for space-time approach.");
                       
     prm.declare_entry("overintegration", "0",
                       dealii::Patterns::Integer(),
@@ -398,6 +404,9 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
     else if (mesh_type_string == "triangulation")                      { mesh_type = triangulation; }
     else if (mesh_type_string == "parallel_shared_triangulation")      { mesh_type = parallel_shared_triangulation; }
     else if (mesh_type_string == "parallel_distributed_triangulation") { mesh_type = parallel_distributed_triangulation; }
+    
+    temporal_dimension = prm.get_integer("temporal_dimension");
+    is_spacetime = (temporal_dimension == 1) ? true : false;
 
 const std::string test_string = prm.get("test_type");
     if      (test_string == "run_control")                              { test_type = run_control; }

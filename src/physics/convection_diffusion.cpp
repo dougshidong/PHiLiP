@@ -1,6 +1,7 @@
 #include "ADTypes.hpp"
 
 #include "convection_diffusion.h"
+#include "exact_solutions/exact_solution.h"
 
 namespace PHiLiP {
 namespace Physics {
@@ -16,7 +17,7 @@ std::array<real,nstate> stdvector_to_stdarray(const std::vector<real> vector)
 template <int dim, int nstate, typename real>
 void ConvectionDiffusion<dim,nstate,real>
 ::boundary_face_values (
-   const int /*boundary_type*/,
+   const int boundary_type,
    const dealii::Point<dim, real> &pos,
    const dealii::Tensor<1,dim,real> &normal_int,
    const std::array<real,nstate> &soln_int,
@@ -27,8 +28,47 @@ void ConvectionDiffusion<dim,nstate,real>
     std::array<real,nstate> boundary_values;
     std::array<dealii::Tensor<1,dim,real>,nstate> boundary_gradients;
     for (int i=0; i<nstate; i++) {
-        boundary_values[i] = this->manufactured_solution_function->value (pos, i);
-        boundary_gradients[i] = this->manufactured_solution_function->gradient (pos, i);
+        if(boundary_type == 1009){
+            // Corresponds to custom function
+            if constexpr(dim>1&&nstate==1){
+                ///////
+                // Ideally, this would redirect to the exact_solutions class.
+                // However, templating nightmares within... hard-coding 
+                // is approriate for the linear advection case.
+                const real adv_speed0 = 0.3;
+                const real adv_speed1 = 0.4;
+
+                const real pi = atan(1.0) * 4.0;
+
+                const real x = pos[0];
+#if PHILIP_DIM==2
+                const real t = pos[1];
+                const real y = 0;
+#elif PHILIP_DIM==3
+                const real y = pos[1];
+                const real t = pos[2];
+#else
+                // to avoid compile error. this will never be reached.
+                const real y = 0;
+                const real t = 0;
+#endif
+
+                const real value = sin(pi * (x - adv_speed0 * t) + 2*pi* (y - adv_speed1*t)) + 0.01;
+                ///////
+                boundary_values[i] = value;
+            }else{
+                this->pcout << "Warning:No Dirichlet boundary function is defined for this PDE." << std::endl;
+                boundary_values[i] = 0;
+            }
+            boundary_gradients[i] = 0.0;
+
+        } else if (boundary_type == 1005){
+            // Corresponds to "simple farfield" i.e., outflow
+        }
+        else{
+            boundary_values[i] = this->manufactured_solution_function->value (pos, i);
+            boundary_gradients[i] = this->manufactured_solution_function->gradient (pos, i);
+        }
     }
 
     for (int istate=0; istate<nstate; ++istate) {
@@ -36,14 +76,19 @@ void ConvectionDiffusion<dim,nstate,real>
         std::array<real,nstate> characteristic_dot_n = convective_eigenvalues(boundary_values, normal_int);
         const bool inflow = (characteristic_dot_n[istate] <= 0.);
 
-        if (inflow || hasDiffusion) { // Dirichlet boundary condition
-            // soln_bc[istate] = boundary_values[istate];
-            // soln_grad_bc[istate] = soln_grad_int[istate];
+        if (inflow || hasDiffusion || boundary_type == 1009) { // Dirichlet boundary condition
 
             soln_bc[istate] = boundary_values[istate];
             soln_grad_bc[istate] = soln_grad_int[istate];
+        } else if (inflow && boundary_type == 1005) {
+
+            this->pcout << "Warning: inflow detected at outflow type boundary." << std::endl;
+
+            soln_bc[istate] = 0.0;
+            soln_grad_bc[istate] = 0.0;
 
         } else { // Neumann boundary condition
+            // BC ID 1005 will also return here
             // //soln_bc[istate] = soln_int[istate];
             // //soln_bc[istate] = boundary_values[istate];
             // soln_bc[istate] = -soln_int[istate]+2*boundary_values[istate];
@@ -114,6 +159,8 @@ dealii::Tensor<1,dim,real> ConvectionDiffusion<dim,nstate,real>
         if(dim >= 1) advection_speed[0] = linear_advection_velocity[0];
         if(dim >= 2) advection_speed[1] = linear_advection_velocity[1];
         if(dim >= 3) advection_speed[2] = linear_advection_velocity[2];
+        //std::cout << "Advection speed is " << advection_speed[0] << " " << advection_speed[1]
+        //          << " " <<  advection_speed[2] << std::endl;
     } else {
         const real zero = 0.0;
         if(dim >= 1) advection_speed[0] = zero;

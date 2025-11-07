@@ -234,7 +234,8 @@ public:
     /// Constructor
     NumericalFluxConvective(
         std::unique_ptr< BaselineNumericalFluxConvective<dim,nstate,real> > baseline_input,
-        std::unique_ptr< RiemannSolverDissipation<dim,nstate,real> > riemann_solver_dissipation_input);
+        std::unique_ptr< RiemannSolverDissipation<dim,nstate,real> > riemann_solver_dissipation_input,
+        const bool is_spacetime_input = false);
 
 protected:
     /// Baseline convective numerical flux object
@@ -242,6 +243,9 @@ protected:
 
     /// Upwind convective numerical flux object
     std::unique_ptr< RiemannSolverDissipation<dim,nstate,real> > riemann_solver_dissipation;
+
+    /// Flag identifyign space-time discretizations
+    const bool is_spacetime;
 
 public:
     /// Returns the convective numerical flux at an interface.

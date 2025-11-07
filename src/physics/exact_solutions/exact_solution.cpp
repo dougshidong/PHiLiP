@@ -1,4 +1,5 @@
 #include <deal.II/base/function.h>
+#include "ADTypes.hpp"
 #include "exact_solution.h"
 
 namespace PHiLiP {
@@ -103,6 +104,46 @@ inline real ExactSolutionFunction_IsentropicVortex<dim,nstate,real>
 
 }
 
+// ========================================================
+// SPACETIME CARTESIAN -- Solution for spacetime linear advection with a = (0.3,0.4)
+// Valid for 1D+1 or 2D+1
+// ========================================================
+template <int dim, int nstate, typename real>
+ExactSolutionFunction_SpacetimeCartesian<dim,nstate,real>
+::ExactSolutionFunction_SpacetimeCartesian()
+        : ExactSolutionFunction<dim,nstate,real>()
+{
+}
+
+template <int dim, int nstate, typename real>
+inline real ExactSolutionFunction_SpacetimeCartesian<dim,nstate,real>
+::value(const dealii::Point<dim,real> &point, const unsigned int /*istate*/) const
+{
+
+    const real pi = atan(1.0) * 4.0;
+
+    const real x = point[0];
+#if PHILIP_DIM==2
+    const real t = point[1];
+    const real y = 0;
+    const real adv_speed0 = 0.3;
+    const real adv_speed1 = 0.0;
+#elif PHILIP_DIM==3
+    const real y = point[1];
+    const real t = point[2];
+    const real adv_speed0 = 0.3;
+    const real adv_speed1 = 0.4;
+#else
+    //This will never be reached; including to avoid compile errors
+    const real t = 0;
+    const real y = 0;
+    const real adv_speed0 = 0.0;
+    const real adv_speed1 = 0.0;
+#endif
+
+    const real value = sin(pi * (x - adv_speed0 * t) + 2*pi* (y - adv_speed1*t)) + 0.01;
+    return value;
+}
 //=========================================================
 // FLOW SOLVER -- Exact Solution Base Class + Factory
 //=========================================================
@@ -126,6 +167,8 @@ ExactSolutionFactory<dim,nstate, real>::create_ExactSolutionFunction(
         if constexpr (dim==1 && nstate==dim)  return std::make_shared<ExactSolutionFunction_1DSine<dim,nstate,real> > (time_compare);
     } else if (flow_type == FlowCaseEnum::isentropic_vortex){
         if constexpr (dim>1 && nstate==dim+2)  return std::make_shared<ExactSolutionFunction_IsentropicVortex<dim,nstate,real> > (time_compare);
+    }else if (flow_type == FlowCaseEnum::spacetime_cartesian){
+        if constexpr(dim>1 && nstate==1) return std::make_shared<ExactSolutionFunction_SpacetimeCartesian<dim,nstate,real> > ();
     } else {
         // Select zero function if there is no exact solution defined
         return std::make_shared<ExactSolutionFunction_Zero<dim,nstate,real>> (time_compare);
@@ -137,6 +180,9 @@ template class ExactSolutionFunction <PHILIP_DIM,PHILIP_DIM, double>;
 template class ExactSolutionFunction <PHILIP_DIM,PHILIP_DIM+2, double>;
 template class ExactSolutionFactory <PHILIP_DIM, PHILIP_DIM+2, double>;
 template class ExactSolutionFactory <PHILIP_DIM, PHILIP_DIM, double>;
+#if PHILIP_DIM>1
+    template class ExactSolutionFactory <PHILIP_DIM, 1, double>;
+#endif
 template class ExactSolutionFunction_Zero <PHILIP_DIM,1, double>;
 template class ExactSolutionFunction_Zero <PHILIP_DIM,2, double>;
 template class ExactSolutionFunction_Zero <PHILIP_DIM,3, double>;
@@ -145,5 +191,6 @@ template class ExactSolutionFunction_Zero <PHILIP_DIM,5, double>;
 
 #if PHILIP_DIM>1
 template class ExactSolutionFunction_IsentropicVortex <PHILIP_DIM,PHILIP_DIM+2, double>;
+template class ExactSolutionFunction_SpacetimeCartesian<PHILIP_DIM,1, double>;
 #endif
 } // PHiLiP namespace

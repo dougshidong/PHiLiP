@@ -47,6 +47,10 @@ void ConvectionDiffusion<dim,nstate,real>
 #elif PHILIP_DIM==3
                 const real y = pos[1];
                 const real t = pos[2];
+#else
+                // to avoid compile error. this will never be reached.
+                const real y = 0;
+                const real t = 0;
 #endif
 
                 const real value = sin(pi * (x - adv_speed0 * t) + 2*pi* (y - adv_speed1*t)) + 0.01;

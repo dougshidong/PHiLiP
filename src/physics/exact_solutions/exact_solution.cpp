@@ -133,6 +133,12 @@ inline real ExactSolutionFunction_SpacetimeCartesian<dim,nstate,real>
     const real t = point[2];
     const real adv_speed0 = 0.3;
     const real adv_speed1 = 0.4;
+#else
+    //This will never be reached; including to avoid compile errors
+    const real t = 0;
+    const real y = 0;
+    const real adv_speed0 = 0.0;
+    const real adv_speed1 = 0.0;
 #endif
 
     const real value = sin(pi * (x - adv_speed0 * t) + 2*pi* (y - adv_speed1*t)) + 0.01;

@@ -15,6 +15,7 @@ COMMAND mpirun -n 1 ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_1D -i ${CMAKE_CURRENT_BINAR
 )
 set_tests_labels(1D_ADVECTION_EXPLICIT_PERIODIC_OOA_CONTINUOUS_C_NSFR_LONG  	    ESFR_CONTINUOUS_C
                                                                                             1D
+                                                                                            REFINEMENT_STUDY
                                                                                             SERIAL
                                                                                             ADVECTION
                                                                                             RUNGE-KUTTA
@@ -64,6 +65,7 @@ add_test(
 set_tests_labels(MPI_2D_H_REFINEMENT_ESFR_RANGE_INVISCID_ISENTROPIC_VORTEX ESFR_CONTINUOUS_C
                                                                 	   2D
                                                                            PARALLEL
+                                                                           REFINEMENT_STUDY
                                                                            EULER
                                                                            RUNGE-KUTTA
                                                                            STRONG-SPLIT

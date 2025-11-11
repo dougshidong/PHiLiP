@@ -198,13 +198,13 @@ const std::array<RadFadType,nstate> &conservative_soln, const std::array<dealii:
 }
 
 #if PHILIP_SPECIES==1
-    // Define a sequence of indices representing the range [1, 6]
+    // Define a sequence of possible nstate in the range [1, 6]
     #define POSSIBLE_NSTATE (1)(2)(3)(4)(5)(6)
 
-    // Define a macro to instantiate ArtificialDissipation functions for a specific index
-    #define INSTANTIATE_ADFunctions(r, data, index) \
-        template class ArtificialDissipationBase <PHILIP_DIM, PHILIP_SPECIES, index>; \
-        template class LaplacianArtificialDissipation < PHILIP_DIM, PHILIP_SPECIES, index>;
+    // Define a macro to instantiate ArtificialDissipation functions for a specific nstate
+    #define INSTANTIATE_ADFunctions(r, data, nstate) \
+        template class ArtificialDissipationBase <PHILIP_DIM, PHILIP_SPECIES, nstate>; \
+        template class LaplacianArtificialDissipation < PHILIP_DIM, PHILIP_SPECIES, nstate>;
     BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_ADFunctions, _, POSSIBLE_NSTATE)
 
     template class PhysicalArtificialDissipation<PHILIP_DIM, PHILIP_SPECIES,PHILIP_DIM+2>;

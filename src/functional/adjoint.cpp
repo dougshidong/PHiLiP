@@ -339,22 +339,22 @@ void Adjoint<dim, nspecies, nstate, real, MeshType>::output_results_vtk(const un
     }
 }
 #if PHILIP_SPECIES==1
-    // Define a sequence of indices representing the range [1, 5]
+    // Define a sequence of nstate in the range [1, 5]
     #define POSSIBLE_NSTATE (1)(2)(3)(4)(5)
 
     // using default MeshType = Triangulation
     // 1D: dealii::Triangulation<dim>;
     // Otherwise: dealii::parallel::distributed::Triangulation<dim>;
 
-    // Define a macro to instantiate with Meshtype = Triangulation for a specific index
-    #define INSTANTIATE_TRIA(r, data, index) \
-        template class Adjoint <PHILIP_DIM, PHILIP_SPECIES, index, double, dealii::Triangulation<PHILIP_DIM>>; \
-        template class Adjoint <PHILIP_DIM, PHILIP_SPECIES, index, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+    // Define a macro to instantiate with Meshtype = Triangulation for a specific nstate
+    #define INSTANTIATE_TRIA(r, data, nstate) \
+        template class Adjoint <PHILIP_DIM, PHILIP_SPECIES, nstate, double, dealii::Triangulation<PHILIP_DIM>>; \
+        template class Adjoint <PHILIP_DIM, PHILIP_SPECIES, nstate, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
     BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_TRIA, _, POSSIBLE_NSTATE)
 
-    // Define a macro to instantiate with distributed triangulation for a specific index
-    #define INSTANTIATE_DISTRIBUTED(r, data, index) \
-        template class Adjoint <PHILIP_DIM, PHILIP_SPECIES, index, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+    // Define a macro to instantiate with distributed triangulation for a specific nstate
+    #define INSTANTIATE_DISTRIBUTED(r, data, nstate) \
+        template class Adjoint <PHILIP_DIM, PHILIP_SPECIES, nstate, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
     #if PHILIP_DIM!=1
     BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_DISTRIBUTED, _, POSSIBLE_NSTATE)
     #endif

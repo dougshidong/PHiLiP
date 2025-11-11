@@ -273,13 +273,13 @@ PhysicsFactory<dim,nspecies,nstate,real>
     // Define a sequence of indices representing the range of nstate
     #define POSSIBLE_NSTATE (1)(2)(3)(4)(5)(6)(8)
 
-    // Define a macro to instantiate functions for a specific index
-    #define INSTANTIATE_FOR_NSTATE(r, data, index) \
-        template class PhysicsFactory<PHILIP_DIM, PHILIP_SPECIES, index, double>; \
-        template class PhysicsFactory<PHILIP_DIM, PHILIP_SPECIES, index, FadType>; \
-        template class PhysicsFactory<PHILIP_DIM, PHILIP_SPECIES, index, RadType>; \
-        template class PhysicsFactory<PHILIP_DIM, PHILIP_SPECIES, index, FadFadType>; \
-        template class PhysicsFactory<PHILIP_DIM, PHILIP_SPECIES, index, RadFadType>;
+    // Define a macro to instantiate functions for a specific nstate
+    #define INSTANTIATE_FOR_NSTATE(r, data, nstate) \
+        template class PhysicsFactory<PHILIP_DIM, PHILIP_SPECIES, nstate, double>; \
+        template class PhysicsFactory<PHILIP_DIM, PHILIP_SPECIES, nstate, FadType>; \
+        template class PhysicsFactory<PHILIP_DIM, PHILIP_SPECIES, nstate, RadType>; \
+        template class PhysicsFactory<PHILIP_DIM, PHILIP_SPECIES, nstate, FadFadType>; \
+        template class PhysicsFactory<PHILIP_DIM, PHILIP_SPECIES, nstate, RadFadType>;
     BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_FOR_NSTATE, _, POSSIBLE_NSTATE)
 #endif
 } // Physics namespace

@@ -476,10 +476,12 @@ void AnisotropicMeshAdaptation<dim, nspecies, nstate, real, MeshType> :: adapt_m
 
 // Instantiations
 #if PHILIP_DIM!=1
-template class AnisotropicMeshAdaptation <PHILIP_DIM, PHILIP_SPECIES, 1, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
-template class AnisotropicMeshAdaptation <PHILIP_DIM, PHILIP_SPECIES, 2, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
-template class AnisotropicMeshAdaptation <PHILIP_DIM, PHILIP_SPECIES, 3, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
-template class AnisotropicMeshAdaptation <PHILIP_DIM, PHILIP_SPECIES, 4, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
-template class AnisotropicMeshAdaptation <PHILIP_DIM, PHILIP_SPECIES, 5, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+    // Define a sequence of nstate in the range [1, 5]
+    #define POSSIBLE_NSTATE (1)(2)(3)(4)(5)
+
+    // Define a macro to instantiate AnisotropicMeshAdaptation for a specific nstate
+    #define INSTANTIATE_ANISOTROPIC(r, data, nstate) \
+        template class AnisotropicMeshAdaptation <PHILIP_DIM, PHILIP_SPECIES, nstate, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+    BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_ANISOTROPIC, _, POSSIBLE_NSTATE)
 #endif
 } // PHiLiP namespace

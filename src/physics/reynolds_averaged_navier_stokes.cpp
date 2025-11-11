@@ -1,6 +1,7 @@
 #include <cmath>
 #include <vector>
 #include <complex> // for the jacobian
+#include <boost/preprocessor/seq/for_each.hpp>
 
 #include "ADTypes.hpp"
 
@@ -715,86 +716,33 @@ void ReynoldsAveragedNavierStokesBase<dim,nspecies,nstate,real>
 //----------------------------------------------------------------
 // Instantiate explicitly
 #if PHILIP_SPECIES==1
-// -- ReynoldsAveragedNavierStokesBase
-template class ReynoldsAveragedNavierStokesBase         < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+3, double >;
-template class ReynoldsAveragedNavierStokesBase         < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+3, FadType  >;
-template class ReynoldsAveragedNavierStokesBase         < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+3, RadType  >;
-template class ReynoldsAveragedNavierStokesBase         < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+3, FadFadType >;
-template class ReynoldsAveragedNavierStokesBase         < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+3, RadFadType >;
-//-------------------------------------------------------------------------------------
-// Templated members used by derived classes, defined in respective parent classes
-//-------------------------------------------------------------------------------------
-// -- get_tensor_magnitude_sqr()
-template double     ReynoldsAveragedNavierStokesBase < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+3, double     >::get_tensor_magnitude_sqr< double     >(const dealii::Tensor<2,PHILIP_DIM,double    > &tensor) const;
-template FadType    ReynoldsAveragedNavierStokesBase < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+3, FadType    >::get_tensor_magnitude_sqr< FadType    >(const dealii::Tensor<2,PHILIP_DIM, FadType   > &tensor) const;
-template RadType    ReynoldsAveragedNavierStokesBase < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+3, RadType    >::get_tensor_magnitude_sqr< RadType    >(const dealii::Tensor<2,PHILIP_DIM, RadType   > &tensor) const;
-template FadFadType ReynoldsAveragedNavierStokesBase < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+3, FadFadType >::get_tensor_magnitude_sqr< FadFadType >(const dealii::Tensor<2,PHILIP_DIM, FadFadType> &tensor) const;
-template RadFadType ReynoldsAveragedNavierStokesBase < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+3, RadFadType >::get_tensor_magnitude_sqr< RadFadType >(const dealii::Tensor<2,PHILIP_DIM, RadFadType> &tensor) const;
-// -- instantiate all the real types with real2 = FadType for automatic differentiation
-template FadType    ReynoldsAveragedNavierStokesBase < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+3, double     >::get_tensor_magnitude_sqr< FadType >(const dealii::Tensor<2,PHILIP_DIM, FadType> &tensor) const;
-template FadType    ReynoldsAveragedNavierStokesBase < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+3, RadType    >::get_tensor_magnitude_sqr< FadType >(const dealii::Tensor<2,PHILIP_DIM, FadType> &tensor) const;
-template FadType    ReynoldsAveragedNavierStokesBase < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+3, FadFadType >::get_tensor_magnitude_sqr< FadType >(const dealii::Tensor<2,PHILIP_DIM, FadType> &tensor) const;
-template FadType    ReynoldsAveragedNavierStokesBase < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+3, RadFadType >::get_tensor_magnitude_sqr< FadType >(const dealii::Tensor<2,PHILIP_DIM, FadType> &tensor) const;
+    // Define a sequence of possible types
+    #define POSSIBLE_TYPES (double)(FadType)(RadType)(FadFadType)(RadFadType)
 
-// -- get_vector_magnitude_sqr()
-template double     ReynoldsAveragedNavierStokesBase < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+3, double     >::get_vector_magnitude_sqr< double     >(const dealii::Tensor<1,3,double    > &vector) const;
-template FadType    ReynoldsAveragedNavierStokesBase < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+3, FadType    >::get_vector_magnitude_sqr< FadType    >(const dealii::Tensor<1,3,FadType   > &vector) const;
-template RadType    ReynoldsAveragedNavierStokesBase < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+3, RadType    >::get_vector_magnitude_sqr< RadType    >(const dealii::Tensor<1,3,RadType   > &vector) const;
-template FadFadType ReynoldsAveragedNavierStokesBase < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+3, FadFadType >::get_vector_magnitude_sqr< FadFadType >(const dealii::Tensor<1,3,FadFadType> &vector) const;
-template RadFadType ReynoldsAveragedNavierStokesBase < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+3, RadFadType >::get_vector_magnitude_sqr< RadFadType >(const dealii::Tensor<1,3,RadFadType> &vector) const;
-// -- instantiate all the real types with real2 = FadType for automatic differentiation
-template FadType    ReynoldsAveragedNavierStokesBase < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+3, double     >::get_vector_magnitude_sqr< FadType >(const dealii::Tensor<1,3,FadType> &vector) const;
-template FadType    ReynoldsAveragedNavierStokesBase < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+3, RadType    >::get_vector_magnitude_sqr< FadType >(const dealii::Tensor<1,3,FadType> &vector) const;
-template FadType    ReynoldsAveragedNavierStokesBase < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+3, FadFadType >::get_vector_magnitude_sqr< FadType >(const dealii::Tensor<1,3,FadType> &vector) const;
-template FadType    ReynoldsAveragedNavierStokesBase < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+3, RadFadType >::get_vector_magnitude_sqr< FadType >(const dealii::Tensor<1,3,FadType> &vector) const;
+    // Define a macro to instantiate RANS and RANS functions for a specific type
+    #define INSTANTIATE_TYPES(r, data, type) \
+        template class ReynoldsAveragedNavierStokesBase < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+3, type >; \
+        template type  ReynoldsAveragedNavierStokesBase < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+3, type >::get_tensor_magnitude_sqr< type >(const dealii::Tensor<2,PHILIP_DIM,type> &tensor) const; \
+        template type  ReynoldsAveragedNavierStokesBase < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+3, type >::get_vector_magnitude_sqr< type >(const dealii::Tensor<1,3,type> &vector) const; \
+        template std::array<type,PHILIP_DIM+2> ReynoldsAveragedNavierStokesBase < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+3, type >::extract_rans_conservative_solution< type >(const std::array<type,PHILIP_DIM+3> &conservative_soln) const; \
+        template std::array<dealii::Tensor<1,PHILIP_DIM, type >,PHILIP_DIM+2> ReynoldsAveragedNavierStokesBase < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+3, type >::extract_rans_solution_gradient< type >(const std::array<dealii::Tensor<1,PHILIP_DIM, type >,PHILIP_DIM+3> &solution_gradient) const; \
+        template std::array<type,1> ReynoldsAveragedNavierStokesBase < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+3, type >::convert_conservative_to_primitive_turbulence_model< type >(const std::array<type,PHILIP_DIM+3> &conservative_soln) const; \
+        template std::array<dealii::Tensor<1,PHILIP_DIM, type>,1> ReynoldsAveragedNavierStokesBase < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+3, type >::convert_conservative_gradient_to_primitive_gradient_turbulence_model< type >(const std::array<type, PHILIP_DIM+3> &conservative_soln, const std::array<dealii::Tensor<1,PHILIP_DIM, type >,PHILIP_DIM+3> &solution_gradient) const;
+    BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_TYPES, _, POSSIBLE_TYPES)
 
-// -- extract_rans_conservative_solution()
-template std::array<double,     PHILIP_DIM+2> ReynoldsAveragedNavierStokesBase < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+3, double     >::extract_rans_conservative_solution< double     >(const std::array<double,     PHILIP_DIM+3> &conservative_soln) const;
-template std::array<FadType,    PHILIP_DIM+2> ReynoldsAveragedNavierStokesBase < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+3, FadType    >::extract_rans_conservative_solution< FadType    >(const std::array<FadType,    PHILIP_DIM+3> &conservative_soln) const;
-template std::array<RadType,    PHILIP_DIM+2> ReynoldsAveragedNavierStokesBase < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+3, RadType    >::extract_rans_conservative_solution< RadType    >(const std::array<RadType,    PHILIP_DIM+3> &conservative_soln) const;
-template std::array<FadFadType, PHILIP_DIM+2> ReynoldsAveragedNavierStokesBase < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+3, FadFadType >::extract_rans_conservative_solution< FadFadType >(const std::array<FadFadType, PHILIP_DIM+3> &conservative_soln) const;
-template std::array<RadFadType, PHILIP_DIM+2> ReynoldsAveragedNavierStokesBase < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+3, RadFadType >::extract_rans_conservative_solution< RadFadType >(const std::array<RadFadType, PHILIP_DIM+3> &conservative_soln) const;
-// -- instantiate all the real types with real2 = FadType for automatic differentiation
-template std::array<FadType, PHILIP_DIM+2> ReynoldsAveragedNavierStokesBase < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+3, double     >::extract_rans_conservative_solution< FadType >(const std::array<FadType, PHILIP_DIM+3> &conservative_soln) const;
-template std::array<FadType, PHILIP_DIM+2> ReynoldsAveragedNavierStokesBase < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+3, RadType    >::extract_rans_conservative_solution< FadType >(const std::array<FadType, PHILIP_DIM+3> &conservative_soln) const;
-template std::array<FadType, PHILIP_DIM+2> ReynoldsAveragedNavierStokesBase < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+3, FadFadType >::extract_rans_conservative_solution< FadType >(const std::array<FadType, PHILIP_DIM+3> &conservative_soln) const;
-template std::array<FadType, PHILIP_DIM+2> ReynoldsAveragedNavierStokesBase < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+3, RadFadType >::extract_rans_conservative_solution< FadType >(const std::array<FadType, PHILIP_DIM+3> &conservative_soln) const;
-
-// -- extract_rans_solution_gradient()
-template std::array<dealii::Tensor<1,PHILIP_DIM, double    >,PHILIP_DIM+2> ReynoldsAveragedNavierStokesBase < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+3, double     >::extract_rans_solution_gradient< double     >(const std::array<dealii::Tensor<1,PHILIP_DIM, double    >,PHILIP_DIM+3> &solution_gradient) const;
-template std::array<dealii::Tensor<1,PHILIP_DIM, FadType   >,PHILIP_DIM+2> ReynoldsAveragedNavierStokesBase < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+3, FadType    >::extract_rans_solution_gradient< FadType    >(const std::array<dealii::Tensor<1,PHILIP_DIM, FadType   >,PHILIP_DIM+3> &solution_gradient) const;
-template std::array<dealii::Tensor<1,PHILIP_DIM, RadType   >,PHILIP_DIM+2> ReynoldsAveragedNavierStokesBase < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+3, RadType    >::extract_rans_solution_gradient< RadType    >(const std::array<dealii::Tensor<1,PHILIP_DIM, RadType   >,PHILIP_DIM+3> &solution_gradient) const;
-template std::array<dealii::Tensor<1,PHILIP_DIM, FadFadType>,PHILIP_DIM+2> ReynoldsAveragedNavierStokesBase < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+3, FadFadType >::extract_rans_solution_gradient< FadFadType >(const std::array<dealii::Tensor<1,PHILIP_DIM, FadFadType>,PHILIP_DIM+3> &solution_gradient) const;
-template std::array<dealii::Tensor<1,PHILIP_DIM, RadFadType>,PHILIP_DIM+2> ReynoldsAveragedNavierStokesBase < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+3, RadFadType >::extract_rans_solution_gradient< RadFadType >(const std::array<dealii::Tensor<1,PHILIP_DIM, RadFadType>,PHILIP_DIM+3> &solution_gradient) const;
-// -- instantiate all the real types with real2 = FadType for automatic differentiation
-template std::array<dealii::Tensor<1,PHILIP_DIM, FadType>,PHILIP_DIM+2> ReynoldsAveragedNavierStokesBase < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+3, double     >::extract_rans_solution_gradient< FadType >(const std::array<dealii::Tensor<1,PHILIP_DIM, FadType>,PHILIP_DIM+3> &solution_gradient) const;
-template std::array<dealii::Tensor<1,PHILIP_DIM, FadType>,PHILIP_DIM+2> ReynoldsAveragedNavierStokesBase < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+3, RadType    >::extract_rans_solution_gradient< FadType >(const std::array<dealii::Tensor<1,PHILIP_DIM, FadType>,PHILIP_DIM+3> &solution_gradient) const;
-template std::array<dealii::Tensor<1,PHILIP_DIM, FadType>,PHILIP_DIM+2> ReynoldsAveragedNavierStokesBase < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+3, FadFadType >::extract_rans_solution_gradient< FadType >(const std::array<dealii::Tensor<1,PHILIP_DIM, FadType>,PHILIP_DIM+3> &solution_gradient) const;
-template std::array<dealii::Tensor<1,PHILIP_DIM, FadType>,PHILIP_DIM+2> ReynoldsAveragedNavierStokesBase < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+3, RadFadType >::extract_rans_solution_gradient< FadType >(const std::array<dealii::Tensor<1,PHILIP_DIM, FadType>,PHILIP_DIM+3> &solution_gradient) const;
-
-// -- convert_conservative_to_primitive_turbulence_model()
-template std::array<double,     1> ReynoldsAveragedNavierStokesBase < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+3, double     >::convert_conservative_to_primitive_turbulence_model< double     >(const std::array<double,     PHILIP_DIM+3> &conservative_soln) const;
-template std::array<FadType,    1> ReynoldsAveragedNavierStokesBase < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+3, FadType    >::convert_conservative_to_primitive_turbulence_model< FadType    >(const std::array<FadType,    PHILIP_DIM+3> &conservative_soln) const;
-template std::array<RadType,    1> ReynoldsAveragedNavierStokesBase < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+3, RadType    >::convert_conservative_to_primitive_turbulence_model< RadType    >(const std::array<RadType,    PHILIP_DIM+3> &conservative_soln) const;
-template std::array<FadFadType, 1> ReynoldsAveragedNavierStokesBase < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+3, FadFadType >::convert_conservative_to_primitive_turbulence_model< FadFadType >(const std::array<FadFadType, PHILIP_DIM+3> &conservative_soln) const;
-template std::array<RadFadType, 1> ReynoldsAveragedNavierStokesBase < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+3, RadFadType >::convert_conservative_to_primitive_turbulence_model< RadFadType >(const std::array<RadFadType, PHILIP_DIM+3> &conservative_soln) const;
-// -- instantiate all the real types with real2 = FadType for automatic differentiation
-template std::array<FadType, 1> ReynoldsAveragedNavierStokesBase < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+3, double     >::convert_conservative_to_primitive_turbulence_model< FadType >(const std::array<FadType, PHILIP_DIM+3> &conservative_soln) const;
-template std::array<FadType, 1> ReynoldsAveragedNavierStokesBase < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+3, RadType    >::convert_conservative_to_primitive_turbulence_model< FadType >(const std::array<FadType, PHILIP_DIM+3> &conservative_soln) const;
-template std::array<FadType, 1> ReynoldsAveragedNavierStokesBase < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+3, FadFadType >::convert_conservative_to_primitive_turbulence_model< FadType >(const std::array<FadType, PHILIP_DIM+3> &conservative_soln) const;
-template std::array<FadType, 1> ReynoldsAveragedNavierStokesBase < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+3, RadFadType >::convert_conservative_to_primitive_turbulence_model< FadType >(const std::array<FadType, PHILIP_DIM+3> &conservative_soln) const;
-
-// -- convert_conservative_gradient_to_primitive_gradient_turbulence_model()
-template std::array<dealii::Tensor<1,PHILIP_DIM, double    >,1> ReynoldsAveragedNavierStokesBase < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+3, double     >::convert_conservative_gradient_to_primitive_gradient_turbulence_model< double     >(const std::array<double,     PHILIP_DIM+3> &conservative_soln, const std::array<dealii::Tensor<1,PHILIP_DIM, double    >,PHILIP_DIM+3> &solution_gradient) const;
-template std::array<dealii::Tensor<1,PHILIP_DIM, FadType   >,1> ReynoldsAveragedNavierStokesBase < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+3, FadType    >::convert_conservative_gradient_to_primitive_gradient_turbulence_model< FadType    >(const std::array<FadType,    PHILIP_DIM+3> &conservative_soln, const std::array<dealii::Tensor<1,PHILIP_DIM, FadType   >,PHILIP_DIM+3> &solution_gradient) const;
-template std::array<dealii::Tensor<1,PHILIP_DIM, RadType   >,1> ReynoldsAveragedNavierStokesBase < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+3, RadType    >::convert_conservative_gradient_to_primitive_gradient_turbulence_model< RadType    >(const std::array<RadType,    PHILIP_DIM+3> &conservative_soln, const std::array<dealii::Tensor<1,PHILIP_DIM, RadType   >,PHILIP_DIM+3> &solution_gradient) const;
-template std::array<dealii::Tensor<1,PHILIP_DIM, FadFadType>,1> ReynoldsAveragedNavierStokesBase < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+3, FadFadType >::convert_conservative_gradient_to_primitive_gradient_turbulence_model< FadFadType >(const std::array<FadFadType, PHILIP_DIM+3> &conservative_soln, const std::array<dealii::Tensor<1,PHILIP_DIM, FadFadType>,PHILIP_DIM+3> &solution_gradient) const;
-template std::array<dealii::Tensor<1,PHILIP_DIM, RadFadType>,1> ReynoldsAveragedNavierStokesBase < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+3, RadFadType >::convert_conservative_gradient_to_primitive_gradient_turbulence_model< RadFadType >(const std::array<RadFadType, PHILIP_DIM+3> &conservative_soln, const std::array<dealii::Tensor<1,PHILIP_DIM, RadFadType>,PHILIP_DIM+3> &solution_gradient) const;
-// -- instantiate all the real types with real2 = FadType for automatic differentiation
-template std::array<dealii::Tensor<1,PHILIP_DIM, FadType>,1> ReynoldsAveragedNavierStokesBase < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+3, double     >::convert_conservative_gradient_to_primitive_gradient_turbulence_model< FadType >(const std::array<FadType, PHILIP_DIM+3> &conservative_soln, const std::array<dealii::Tensor<1,PHILIP_DIM, FadType>,PHILIP_DIM+3> &solution_gradient) const;
-template std::array<dealii::Tensor<1,PHILIP_DIM, FadType>,1> ReynoldsAveragedNavierStokesBase < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+3, RadType    >::convert_conservative_gradient_to_primitive_gradient_turbulence_model< FadType >(const std::array<FadType, PHILIP_DIM+3> &conservative_soln, const std::array<dealii::Tensor<1,PHILIP_DIM, FadType>,PHILIP_DIM+3> &solution_gradient) const;
-template std::array<dealii::Tensor<1,PHILIP_DIM, FadType>,1> ReynoldsAveragedNavierStokesBase < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+3, FadFadType >::convert_conservative_gradient_to_primitive_gradient_turbulence_model< FadType >(const std::array<FadType, PHILIP_DIM+3> &conservative_soln, const std::array<dealii::Tensor<1,PHILIP_DIM, FadType>,PHILIP_DIM+3> &solution_gradient) const;
-template std::array<dealii::Tensor<1,PHILIP_DIM, FadType>,1> ReynoldsAveragedNavierStokesBase < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+3, RadFadType >::convert_conservative_gradient_to_primitive_gradient_turbulence_model< FadType >(const std::array<FadType, PHILIP_DIM+3> &conservative_soln, const std::array<dealii::Tensor<1,PHILIP_DIM, FadType>,PHILIP_DIM+3> &solution_gradient) const;
+// -- -- instantiate all the real types with real2 = FadType for automatic differentiation in NavierStokes::dissipative_flux_directional_jacobian()
+    #undef POSSIBLE_TYPES
+    #define POSSIBLE_TYPES (double)(RadType)(FadFadType)(RadFadType)
+    // Define a macro to instantiate Euler and Euler functions for a specific type
+    #define INSTANTIATE_FADTYPES(r, data, type) \
+        template FadType ReynoldsAveragedNavierStokesBase < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+3, type >::get_tensor_magnitude_sqr< FadType >(const dealii::Tensor<2,PHILIP_DIM, FadType> &tensor) const; \
+        template FadType ReynoldsAveragedNavierStokesBase < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+3, type >::get_vector_magnitude_sqr< FadType >(const dealii::Tensor<1,3,FadType> &vector) const; \
+        template std::array<FadType, PHILIP_DIM+2> ReynoldsAveragedNavierStokesBase < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+3, type >::extract_rans_conservative_solution< FadType >(const std::array<FadType, PHILIP_DIM+3> &conservative_soln) const; \
+        template std::array<dealii::Tensor<1,PHILIP_DIM, FadType>,PHILIP_DIM+2> ReynoldsAveragedNavierStokesBase < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+3, type >::extract_rans_solution_gradient< FadType >(const std::array<dealii::Tensor<1,PHILIP_DIM, FadType>,PHILIP_DIM+3> &solution_gradient) const; \
+        template std::array<FadType, 1> ReynoldsAveragedNavierStokesBase < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+3, type >::convert_conservative_to_primitive_turbulence_model< FadType >(const std::array<FadType, PHILIP_DIM+3> &conservative_soln) const; \
+        template std::array<dealii::Tensor<1,PHILIP_DIM, FadType>,1> ReynoldsAveragedNavierStokesBase < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+3, type >::convert_conservative_gradient_to_primitive_gradient_turbulence_model< FadType >(const std::array<FadType, PHILIP_DIM+3> &conservative_soln, const std::array<dealii::Tensor<1,PHILIP_DIM, FadType>,PHILIP_DIM+3> &solution_gradient) const;
+    BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_FADTYPES, _, POSSIBLE_TYPES)
+//==============================================================================
 #endif
 } // Physics namespace
 } // PHiLiP namespace

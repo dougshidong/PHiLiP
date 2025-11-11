@@ -3933,15 +3933,15 @@ void DGWeak<dim,nspecies,nstate,real,MeshType>::allocate_dual_vector ()
     // 1D: dealii::Triangulation<dim>;
     // Otherwise: dealii::parallel::distributed::Triangulation<dim>;
 
-    // Define a macro to instantiate with Meshtype = Triangulation or Shared Triangulation for a specific index
-    #define INSTANTIATE_TRIA(r, data, index) \
-        template class DGWeak <PHILIP_DIM, PHILIP_SPECIES, index, double, dealii::Triangulation<PHILIP_DIM>>; \
-        template class DGWeak <PHILIP_DIM, PHILIP_SPECIES, index, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+    // Define a macro to instantiate with Meshtype = Triangulation or Shared Triangulation
+    #define INSTANTIATE_TRIA(r, data, nstate) \
+        template class DGWeak <PHILIP_DIM, PHILIP_SPECIES, nstate, double, dealii::Triangulation<PHILIP_DIM>>; \
+        template class DGWeak <PHILIP_DIM, PHILIP_SPECIES, nstate, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
     BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_TRIA, _, POSSIBLE_NSTATE)
 
-    // Define a macro to instantiate with distributed triangulation for a specific index
-    #define INSTANTIATE_DISTRIBUTED(r, data, index) \
-        template class DGWeak <PHILIP_DIM, PHILIP_SPECIES, index, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+    // Define a macro to instantiate with distributed triangulation
+    #define INSTANTIATE_DISTRIBUTED(r, data, nstate) \
+        template class DGWeak <PHILIP_DIM, PHILIP_SPECIES, nstate, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
     #if PHILIP_DIM!=1
     BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_DISTRIBUTED, _, POSSIBLE_NSTATE)
     #endif

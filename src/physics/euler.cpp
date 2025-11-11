@@ -1,5 +1,6 @@
 #include <cmath>
 #include <vector>
+#include <boost/preprocessor/seq/for_each.hpp>
 
 #include "ADTypes.hpp"
 
@@ -1551,93 +1552,34 @@ dealii::UpdateFlags Euler<dim,nspecies,nstate,real>
 }
 
 #if PHILIP_SPECIES==1
-// Instantiate explicitly
-template class Euler < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, double     >;
-template class Euler < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, FadType    >;
-template class Euler < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, RadType    >;
-template class Euler < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, FadFadType >;
-template class Euler < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, RadFadType >;
+    // Define a sequence of possible types
+    #define POSSIBLE_TYPES (double)(FadType)(RadType)(FadFadType)(RadFadType)
 
-//==============================================================================
-// -> Templated member functions: // could be automated later on using Boost MPL
-//------------------------------------------------------------------------------
-// -- check_positive_quantity
-template bool Euler < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, double     >::check_positive_quantity< double     >(double     &qty, const std::string qty_name) const;
-template bool Euler < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, FadType    >::check_positive_quantity< FadType    >(FadType    &qty, const std::string qty_name) const;
-template bool Euler < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, RadType    >::check_positive_quantity< RadType    >(RadType    &qty, const std::string qty_name) const;
-template bool Euler < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, FadFadType >::check_positive_quantity< FadFadType >(FadFadType &qty, const std::string qty_name) const;
-template bool Euler < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, RadFadType >::check_positive_quantity< RadFadType >(RadFadType &qty, const std::string qty_name) const;
+    // Define a macro to instantiate Euler and Euler functions for a specific type
+    #define INSTANTIATE_TYPES(r, data, type) \
+        template class Euler < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, type >; \
+        template bool Euler < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, type >::check_positive_quantity< type >(type &qty, const std::string qty_name) const; \
+        template type Euler < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, type >::compute_pressure< type >(const std::array<type, PHILIP_DIM+2> &conservative_soln) const; \
+        template type Euler < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, type >::compute_temperature< type >(const std::array<type, PHILIP_DIM+2> &primitive_soln) const; \
+        template type Euler < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, type >::compute_velocity_squared< type >(const dealii::Tensor<1,PHILIP_DIM, type > &velocities) const; \
+        template std::array < type, PHILIP_DIM+2 > Euler < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, type >::convert_conservative_to_primitive< type >(const std::array<type, PHILIP_DIM+2> &conservative_soln) const; \
+        template dealii::Tensor<1,PHILIP_DIM, type > Euler < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, type >::extract_velocities_from_primitive< type >(const std::array<type, PHILIP_DIM+2> &primitive_soln) const; \
+        template dealii::Tensor<1,PHILIP_DIM, type > Euler < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, type >::compute_velocities< type >(const std::array<type, PHILIP_DIM+2> &conservative_soln) const;
+    BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_TYPES, _, POSSIBLE_TYPES)
+
 // -- -- instantiate all the real types with real2 = FadType for automatic differentiation in NavierStokes::dissipative_flux_directional_jacobian()
-template bool Euler < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, double     >::check_positive_quantity< FadType    >(FadType    &qty, const std::string qty_name) const;
-template bool Euler < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, RadType    >::check_positive_quantity< FadType    >(FadType    &qty, const std::string qty_name) const;
-template bool Euler < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, FadFadType >::check_positive_quantity< FadType    >(FadType    &qty, const std::string qty_name) const;
-template bool Euler < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, RadFadType >::check_positive_quantity< FadType    >(FadType    &qty, const std::string qty_name) const;
-// -- compute_pressure()
-template double     Euler < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, double     >::compute_pressure< double     >(const std::array<double,    PHILIP_DIM+2> &conservative_soln) const;
-template FadType    Euler < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, FadType    >::compute_pressure< FadType    >(const std::array<FadType,   PHILIP_DIM+2> &conservative_soln) const;
-template RadType    Euler < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, RadType    >::compute_pressure< RadType    >(const std::array<RadType,   PHILIP_DIM+2> &conservative_soln) const;
-template FadFadType Euler < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, FadFadType >::compute_pressure< FadFadType >(const std::array<FadFadType,PHILIP_DIM+2> &conservative_soln) const;
-template RadFadType Euler < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, RadFadType >::compute_pressure< RadFadType >(const std::array<RadFadType,PHILIP_DIM+2> &conservative_soln) const;
-// -- -- instantiate all the real types with real2 = FadType for automatic differentiation in NavierStokes::dissipative_flux_directional_jacobian()
-template FadType    Euler < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, double     >::compute_pressure< FadType    >(const std::array<FadType,   PHILIP_DIM+2> &conservative_soln) const;
-template FadType    Euler < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, RadType    >::compute_pressure< FadType    >(const std::array<FadType,   PHILIP_DIM+2> &conservative_soln) const;
-template FadType    Euler < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, FadFadType >::compute_pressure< FadType    >(const std::array<FadType,   PHILIP_DIM+2> &conservative_soln) const;
-template FadType    Euler < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, RadFadType >::compute_pressure< FadType    >(const std::array<FadType,   PHILIP_DIM+2> &conservative_soln) const;
-// -- compute_temperature()
-template double     Euler < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, double     >::compute_temperature< double     >(const std::array<double,    PHILIP_DIM+2> &primitive_soln) const;
-template FadType    Euler < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, FadType    >::compute_temperature< FadType    >(const std::array<FadType,   PHILIP_DIM+2> &primitive_soln) const;
-template RadType    Euler < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, RadType    >::compute_temperature< RadType    >(const std::array<RadType,   PHILIP_DIM+2> &primitive_soln) const;
-template FadFadType Euler < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, FadFadType >::compute_temperature< FadFadType >(const std::array<FadFadType,PHILIP_DIM+2> &primitive_soln) const;
-template RadFadType Euler < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, RadFadType >::compute_temperature< RadFadType >(const std::array<RadFadType,PHILIP_DIM+2> &primitive_soln) const;
-// -- -- instantiate all the real types with real2 = FadType for automatic differentiation in NavierStokes::dissipative_flux_directional_jacobian()
-template FadType    Euler < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, double     >::compute_temperature< FadType    >(const std::array<FadType,   PHILIP_DIM+2> &primitive_soln) const;
-template FadType    Euler < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, RadType    >::compute_temperature< FadType    >(const std::array<FadType,   PHILIP_DIM+2> &primitive_soln) const;
-template FadType    Euler < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, FadFadType >::compute_temperature< FadType    >(const std::array<FadType,   PHILIP_DIM+2> &primitive_soln) const;
-template FadType    Euler < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, RadFadType >::compute_temperature< FadType    >(const std::array<FadType,   PHILIP_DIM+2> &primitive_soln) const;
-// -- compute_velocity_squared()
-template double     Euler < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, double     >::compute_velocity_squared< double     >(const dealii::Tensor<1,PHILIP_DIM, double    > &velocities) const;
-template FadType    Euler < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, FadType    >::compute_velocity_squared< FadType    >(const dealii::Tensor<1,PHILIP_DIM, FadType   > &velocities) const;
-template RadType    Euler < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, RadType    >::compute_velocity_squared< RadType    >(const dealii::Tensor<1,PHILIP_DIM, RadType   > &velocities) const;
-template FadFadType Euler < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, FadFadType >::compute_velocity_squared< FadFadType >(const dealii::Tensor<1,PHILIP_DIM, FadFadType> &velocities) const;
-template RadFadType Euler < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, RadFadType >::compute_velocity_squared< RadFadType >(const dealii::Tensor<1,PHILIP_DIM, RadFadType> &velocities) const;
-// -- -- instantiate all the real types with real2 = FadType for automatic differentiation in NavierStokes::dissipative_flux_directional_jacobian()
-template FadType    Euler < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, double     >::compute_velocity_squared< FadType    >(const dealii::Tensor<1,PHILIP_DIM, FadType   > &velocities) const;
-template FadType    Euler < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, RadType    >::compute_velocity_squared< FadType    >(const dealii::Tensor<1,PHILIP_DIM, FadType   > &velocities) const;
-template FadType    Euler < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, FadFadType >::compute_velocity_squared< FadType    >(const dealii::Tensor<1,PHILIP_DIM, FadType   > &velocities) const;
-template FadType    Euler < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, RadFadType >::compute_velocity_squared< FadType    >(const dealii::Tensor<1,PHILIP_DIM, FadType   > &velocities) const;
-// -- convert_conservative_to_primitive()
-template std::array<double,    PHILIP_DIM+2> Euler < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, double     >::convert_conservative_to_primitive< double     >(const std::array<double,    PHILIP_DIM+2> &conservative_soln) const;
-template std::array<FadType,   PHILIP_DIM+2> Euler < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, FadType    >::convert_conservative_to_primitive< FadType    >(const std::array<FadType,   PHILIP_DIM+2> &conservative_soln) const;
-template std::array<RadType,   PHILIP_DIM+2> Euler < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, RadType    >::convert_conservative_to_primitive< RadType    >(const std::array<RadType,   PHILIP_DIM+2> &conservative_soln) const;
-template std::array<FadFadType,PHILIP_DIM+2> Euler < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, FadFadType >::convert_conservative_to_primitive< FadFadType >(const std::array<FadFadType,PHILIP_DIM+2> &conservative_soln) const;
-template std::array<RadFadType,PHILIP_DIM+2> Euler < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, RadFadType >::convert_conservative_to_primitive< RadFadType >(const std::array<RadFadType,PHILIP_DIM+2> &conservative_soln) const;
-// -- -- instantiate all the real types with real2 = FadType for automatic differentiation in NavierStokes::dissipative_flux_directional_jacobian()
-template std::array<FadType,   PHILIP_DIM+2> Euler < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, double     >::convert_conservative_to_primitive< FadType    >(const std::array<FadType,   PHILIP_DIM+2> &conservative_soln) const;
-template std::array<FadType,   PHILIP_DIM+2> Euler < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, RadType    >::convert_conservative_to_primitive< FadType    >(const std::array<FadType,   PHILIP_DIM+2> &conservative_soln) const;
-template std::array<FadType,   PHILIP_DIM+2> Euler < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, FadFadType >::convert_conservative_to_primitive< FadType    >(const std::array<FadType,   PHILIP_DIM+2> &conservative_soln) const;
-template std::array<FadType,   PHILIP_DIM+2> Euler < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, RadFadType >::convert_conservative_to_primitive< FadType    >(const std::array<FadType,   PHILIP_DIM+2> &conservative_soln) const;
-// -- extract_velocities_from_primitive()
-template dealii::Tensor<1,PHILIP_DIM, double    > Euler < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, double     >::extract_velocities_from_primitive< double     >(const std::array<double,    PHILIP_DIM+2> &primitive_soln) const;
-template dealii::Tensor<1,PHILIP_DIM, FadType   > Euler < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, FadType    >::extract_velocities_from_primitive< FadType    >(const std::array<FadType,   PHILIP_DIM+2> &primitive_soln) const;
-template dealii::Tensor<1,PHILIP_DIM, RadType   > Euler < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, RadType    >::extract_velocities_from_primitive< RadType    >(const std::array<RadType,   PHILIP_DIM+2> &primitive_soln) const;
-template dealii::Tensor<1,PHILIP_DIM, FadFadType> Euler < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, FadFadType >::extract_velocities_from_primitive< FadFadType >(const std::array<FadFadType,PHILIP_DIM+2> &primitive_soln) const;
-template dealii::Tensor<1,PHILIP_DIM, RadFadType> Euler < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, RadFadType >::extract_velocities_from_primitive< RadFadType >(const std::array<RadFadType,PHILIP_DIM+2> &primitive_soln) const;
-// -- -- instantiate all the real types with real2 = FadType for automatic differentiation in NavierStokes::dissipative_flux_directional_jacobian()
-template dealii::Tensor<1,PHILIP_DIM, FadType   > Euler < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, double     >::extract_velocities_from_primitive< FadType    >(const std::array<FadType,   PHILIP_DIM+2> &primitive_soln) const;
-template dealii::Tensor<1,PHILIP_DIM, FadType   > Euler < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, RadType    >::extract_velocities_from_primitive< FadType    >(const std::array<FadType,   PHILIP_DIM+2> &primitive_soln) const;
-template dealii::Tensor<1,PHILIP_DIM, FadType   > Euler < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, FadFadType >::extract_velocities_from_primitive< FadType    >(const std::array<FadType,   PHILIP_DIM+2> &primitive_soln) const;
-template dealii::Tensor<1,PHILIP_DIM, FadType   > Euler < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, RadFadType >::extract_velocities_from_primitive< FadType    >(const std::array<FadType,   PHILIP_DIM+2> &primitive_soln) const;
-// -- compute_velocities()
-template dealii::Tensor<1,PHILIP_DIM, double    > Euler < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, double     >::compute_velocities< double     >(const std::array<double,    PHILIP_DIM+2> &conservative_soln) const;
-template dealii::Tensor<1,PHILIP_DIM, FadType   > Euler < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, FadType    >::compute_velocities< FadType    >(const std::array<FadType,   PHILIP_DIM+2> &conservative_soln) const;
-template dealii::Tensor<1,PHILIP_DIM, RadType   > Euler < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, RadType    >::compute_velocities< RadType    >(const std::array<RadType,   PHILIP_DIM+2> &conservative_soln) const;
-template dealii::Tensor<1,PHILIP_DIM, FadFadType> Euler < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, FadFadType >::compute_velocities< FadFadType >(const std::array<FadFadType,PHILIP_DIM+2> &conservative_soln) const;
-template dealii::Tensor<1,PHILIP_DIM, RadFadType> Euler < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, RadFadType >::compute_velocities< RadFadType >(const std::array<RadFadType,PHILIP_DIM+2> &conservative_soln) const;
-// -- -- instantiate all the real types with real2 = FadType for automatic differentiation in NavierStokes::dissipative_flux_directional_jacobian()
-template dealii::Tensor<1,PHILIP_DIM, FadType   > Euler < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, double     >::compute_velocities< FadType    >(const std::array<FadType,   PHILIP_DIM+2> &conservative_soln) const;
-template dealii::Tensor<1,PHILIP_DIM, FadType   > Euler < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, RadType    >::compute_velocities< FadType    >(const std::array<FadType,   PHILIP_DIM+2> &conservative_soln) const;
-template dealii::Tensor<1,PHILIP_DIM, FadType   > Euler < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, FadFadType >::compute_velocities< FadType    >(const std::array<FadType,   PHILIP_DIM+2> &conservative_soln) const;
-template dealii::Tensor<1,PHILIP_DIM, FadType   > Euler < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, RadFadType >::compute_velocities< FadType    >(const std::array<FadType,   PHILIP_DIM+2> &conservative_soln) const;
+    #undef POSSIBLE_TYPES
+    #define POSSIBLE_TYPES (double)(RadType)(FadFadType)(RadFadType)
+    // Define a macro to instantiate Euler and Euler functions for a specific type
+    #define INSTANTIATE_FADTYPES(r, data, type) \
+        template bool Euler < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, type >::check_positive_quantity< FadType >(FadType &qty, const std::string qty_name) const; \
+        template FadType    Euler < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, type >::compute_pressure< FadType >(const std::array<FadType, PHILIP_DIM+2> &conservative_soln) const; \
+        template FadType    Euler < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, type >::compute_temperature< FadType >(const std::array<FadType, PHILIP_DIM+2> &primitive_soln) const; \
+        template FadType    Euler < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, type >::compute_velocity_squared< FadType >(const dealii::Tensor<1,PHILIP_DIM, FadType > &velocities) const; \
+        template std::array<FadType, PHILIP_DIM+2> Euler < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, type >::convert_conservative_to_primitive< FadType >(const std::array<FadType, PHILIP_DIM+2> &conservative_soln) const; \
+        template dealii::Tensor<1,PHILIP_DIM, FadType > Euler < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, type >::extract_velocities_from_primitive< FadType >(const std::array<FadType, PHILIP_DIM+2> &primitive_soln) const; \
+        template dealii::Tensor<1,PHILIP_DIM, FadType > Euler < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, type >::compute_velocities< FadType >(const std::array<FadType, PHILIP_DIM+2> &conservative_soln) const;
+    BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_FADTYPES, _, POSSIBLE_TYPES)
 //==============================================================================
 #endif
 } // Physics namespace

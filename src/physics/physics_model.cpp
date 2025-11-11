@@ -1,6 +1,7 @@
 #include <cmath>
 #include <vector>
 #include <complex> // for the jacobian
+#include <boost/preprocessor/seq/for_each.hpp>
 
 #include "ADTypes.hpp"
 
@@ -415,17 +416,14 @@ dealii::UpdateFlags PhysicsModel<dim,nspecies,nstate,real,nstate_baseline_physic
 
 // Instantiate explicitly
 #if PHILIP_SPECIES==1
-template class PhysicsModel < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, double    , PHILIP_DIM+2 >;
-template class PhysicsModel < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, FadType   , PHILIP_DIM+2 >;
-template class PhysicsModel < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, RadType   , PHILIP_DIM+2 >;
-template class PhysicsModel < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, FadFadType, PHILIP_DIM+2 >;
-template class PhysicsModel < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, RadFadType, PHILIP_DIM+2 >;
+    // Define a sequence of possible types
+    #define POSSIBLE_TYPES (double)(FadType)(RadType)(FadFadType)(RadFadType)
 
-template class PhysicsModel < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+3, double    , PHILIP_DIM+2 >;
-template class PhysicsModel < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+3, FadType   , PHILIP_DIM+2 >;
-template class PhysicsModel < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+3, RadType   , PHILIP_DIM+2 >;
-template class PhysicsModel < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+3, FadFadType, PHILIP_DIM+2 >;
-template class PhysicsModel < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+3, RadFadType, PHILIP_DIM+2 >;
+    // Define a macro to instantiate RANS and RANS functions for a specific type
+    #define INSTANTIATE_TYPES(r, data, type) \
+        template class PhysicsModel < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, type , PHILIP_DIM+2 >; \
+        template class PhysicsModel < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+3, type , PHILIP_DIM+2 >;
+    BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_TYPES, _, POSSIBLE_TYPES)
 #endif
 } // Physics namespace
 } // PHiLiP namespace

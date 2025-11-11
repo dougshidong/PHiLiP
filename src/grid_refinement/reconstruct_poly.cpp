@@ -813,12 +813,12 @@ dealii::Vector<real> ReconstructPoly<dim,nspecies,nstate,real>::get_derivative_v
 }
 
 #if PHILIP_SPECIES==1
-    // Define a sequence of indices representing the range [1, 5]
+    // Define a sequence of nstate in the range [1, 5]
     #define POSSIBLE_NSTATE (1)(2)(3)(4)(5)
 
-    // Define a macro to instantiate Reconstruct Poly for a specific index
-    #define INSTANTIATE_RECONSTRUCTPOLY(r, data, index) \
-        template class ReconstructPoly<PHILIP_DIM, PHILIP_SPECIES, index, double>;
+    // Define a macro to instantiate Reconstruct Poly for a specific nstate
+    #define INSTANTIATE_RECONSTRUCTPOLY(r, data, nstate) \
+        template class ReconstructPoly<PHILIP_DIM, PHILIP_SPECIES, nstate, double>;
     BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_RECONSTRUCTPOLY, _, POSSIBLE_NSTATE)
 #endif
 } // namespace GridRefinement

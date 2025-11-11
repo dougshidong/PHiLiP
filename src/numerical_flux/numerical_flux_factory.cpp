@@ -150,13 +150,13 @@ NumericalFluxFactory<dim, nspecies, nstate, real>
     // Define a sequence of indices representing the range [1, 6]
     #define POSSIBLE_NSTATE (1)(2)(3)(4)(5)(6)
 
-    // Define a macro to instantiate functions for a specific index
-    #define INSTANTIATE_FOR_NSTATE(r, data, index) \
-    template class NumericalFluxFactory<PHILIP_DIM, PHILIP_SPECIES, index, double>; \
-    template class NumericalFluxFactory<PHILIP_DIM, PHILIP_SPECIES, index, FadType >; \
-    template class NumericalFluxFactory<PHILIP_DIM, PHILIP_SPECIES, index, RadType >; \
-    template class NumericalFluxFactory<PHILIP_DIM, PHILIP_SPECIES, index, FadFadType >; \
-    template class NumericalFluxFactory<PHILIP_DIM, PHILIP_SPECIES, index, RadFadType >; 
+    // Define a macro to instantiate functions for a specific nstate
+    #define INSTANTIATE_FOR_NSTATE(r, data, nstate) \
+    template class NumericalFluxFactory<PHILIP_DIM, PHILIP_SPECIES, nstate, double>; \
+    template class NumericalFluxFactory<PHILIP_DIM, PHILIP_SPECIES, nstate, FadType >; \
+    template class NumericalFluxFactory<PHILIP_DIM, PHILIP_SPECIES, nstate, RadType >; \
+    template class NumericalFluxFactory<PHILIP_DIM, PHILIP_SPECIES, nstate, FadFadType >; \
+    template class NumericalFluxFactory<PHILIP_DIM, PHILIP_SPECIES, nstate, RadFadType >; 
     BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_FOR_NSTATE, _, POSSIBLE_NSTATE)
 #endif
 } // NumericalFlux namespace

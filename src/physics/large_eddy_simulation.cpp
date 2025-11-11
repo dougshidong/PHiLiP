@@ -1,6 +1,7 @@
 #include <cmath>
 #include <vector>
 #include <complex> // for the jacobian
+#include <boost/preprocessor/seq/for_each.hpp>
 
 #include "ADTypes.hpp"
 
@@ -888,39 +889,18 @@ real2 LargeEddySimulation_Vreman<dim,nspecies,nstate,real>
 //----------------------------------------------------------------
 //----------------------------------------------------------------
 // Instantiate explicitly
-// -- LargeEddySimulationBase
-template class LargeEddySimulationBase         < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, double >;
-template class LargeEddySimulationBase         < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, FadType  >;
-template class LargeEddySimulationBase         < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, RadType  >;
-template class LargeEddySimulationBase         < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, FadFadType >;
-template class LargeEddySimulationBase         < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, RadFadType >;
-// -- LargeEddySimulation_Smagorinsky
-template class LargeEddySimulation_Smagorinsky < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, double >;
-template class LargeEddySimulation_Smagorinsky < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, FadType  >;
-template class LargeEddySimulation_Smagorinsky < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, RadType  >;
-template class LargeEddySimulation_Smagorinsky < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, FadFadType >;
-template class LargeEddySimulation_Smagorinsky < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, RadFadType >;
-// -- LargeEddySimulation_WALE
-template class LargeEddySimulation_WALE        < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, double >;
-template class LargeEddySimulation_WALE        < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, FadType  >;
-template class LargeEddySimulation_WALE        < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, RadType  >;
-template class LargeEddySimulation_WALE        < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, FadFadType >;
-template class LargeEddySimulation_WALE        < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, RadFadType >;
-// -- LargeEddySimulation_Vreman
-template class LargeEddySimulation_Vreman      < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, double >;
-template class LargeEddySimulation_Vreman      < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, FadType  >;
-template class LargeEddySimulation_Vreman      < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, RadType  >;
-template class LargeEddySimulation_Vreman      < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, FadFadType >;
-template class LargeEddySimulation_Vreman      < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, RadFadType >;
-//-------------------------------------------------------------------------------------
-// Templated members used by derived classes, defined in respective parent classes
-//-------------------------------------------------------------------------------------
-// -- get_tensor_magnitude_sqr()
-template double     LargeEddySimulationBase < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, double     >::get_tensor_magnitude_sqr< double     >(const dealii::Tensor<2,PHILIP_DIM,double    > &tensor) const;
-template FadType    LargeEddySimulationBase < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, FadType    >::get_tensor_magnitude_sqr< FadType    >(const dealii::Tensor<2,PHILIP_DIM, FadType   > &tensor) const;
-template RadType    LargeEddySimulationBase < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, RadType    >::get_tensor_magnitude_sqr< RadType    >(const dealii::Tensor<2,PHILIP_DIM, RadType   > &tensor) const;
-template FadFadType LargeEddySimulationBase < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, FadFadType >::get_tensor_magnitude_sqr< FadFadType >(const dealii::Tensor<2,PHILIP_DIM, FadFadType> &tensor) const;
-template RadFadType LargeEddySimulationBase < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, RadFadType >::get_tensor_magnitude_sqr< RadFadType >(const dealii::Tensor<2,PHILIP_DIM, RadFadType> &tensor) const;
+// Define a sequence of possible types
+#define POSSIBLE_TYPES (double)(FadType)(RadType)(FadFadType)(RadFadType)
+
+// Define a macro to instantiate Euler and Euler functions for a specific type
+#define INSTANTIATE_TYPES(r, data, type) \
+    template class LargeEddySimulationBase < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, type >; \
+    template class LargeEddySimulation_Smagorinsky < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, type >; \
+    template class LargeEddySimulation_WALE        < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, type >; \
+    template class LargeEddySimulation_Vreman      < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, type >; \
+    template type LargeEddySimulationBase < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, type >::get_tensor_magnitude_sqr< type >(const dealii::Tensor<2,PHILIP_DIM, type> &tensor) const;
+BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_TYPES, _, POSSIBLE_TYPES)
+
 // -- -- instantiate all the real types with real2 = FadType for automatic differentiation
 template FadType    LargeEddySimulationBase < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, double     >::get_tensor_magnitude_sqr< FadType    >(const dealii::Tensor<2,PHILIP_DIM, FadType   > &tensor) const;
 template FadType    LargeEddySimulationBase < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, RadType    >::get_tensor_magnitude_sqr< FadType    >(const dealii::Tensor<2,PHILIP_DIM, FadType   > &tensor) const;

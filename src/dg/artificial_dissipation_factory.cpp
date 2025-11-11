@@ -49,12 +49,12 @@ ArtificialDissipationFactory<dim,nspecies,nstate> ::create_artificial_dissipatio
 }
 
 #if PHILIP_SPECIES==1
-    // Define a sequence of indices representing the range [1, 6]
+    // Define a sequence of possible nstate in the range [1, 6]
     #define POSSIBLE_NSTATE (1)(2)(3)(4)(5)(6)
 
-    // Define a macro to instantiate MyTemplate for a specific index
-    #define INSTANTIATE_ADFactory(r, data, index) \
-    template class ArtificialDissipationFactory <PHILIP_DIM, PHILIP_SPECIES, index>;
+    // Define a macro to instantiate ArtificialDissipationFactory for a specific index
+    #define INSTANTIATE_ADFactory(r, data, nstate) \
+    template class ArtificialDissipationFactory <PHILIP_DIM, PHILIP_SPECIES, nstate>;
     BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_ADFactory, _, POSSIBLE_NSTATE)
 #endif
 } // namespace PHiLiP

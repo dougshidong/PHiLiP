@@ -78,15 +78,15 @@ void RungeKuttaBase<dim, nspecies, real, n_rk_stages, MeshType>::allocate_ode_sy
     // 1D: dealii::Triangulation<dim>;
     // Otherwise: dealii::parallel::distributed::Triangulation<dim>;
 
-    // Define a macro to instantiate with Meshtype = Triangulation or Shared Triangulation for a specific index
-    #define INSTANTIATE_TRIA(r, data, index) \
-        template class RungeKuttaBase<PHILIP_DIM, PHILIP_SPECIES, double, index, dealii::Triangulation<PHILIP_DIM> >; \
-        template class RungeKuttaBase<PHILIP_DIM, PHILIP_SPECIES, double, index, dealii::parallel::shared::Triangulation<PHILIP_DIM> >; 
+    // Define a macro to instantiate with Meshtype = Triangulation or Shared Triangulation for a specific nstate
+    #define INSTANTIATE_TRIA(r, data, nstate) \
+        template class RungeKuttaBase<PHILIP_DIM, PHILIP_SPECIES, double, nstate, dealii::Triangulation<PHILIP_DIM> >; \
+        template class RungeKuttaBase<PHILIP_DIM, PHILIP_SPECIES, double, nstate, dealii::parallel::shared::Triangulation<PHILIP_DIM> >; 
     BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_TRIA, _, POSSIBLE_NSTATE)
 
-    // Define a macro to instantiate with distributed triangulation for a specific index
-    #define INSTANTIATE_DISTRIBUTED(r, data, index) \
-        template class RungeKuttaBase<PHILIP_DIM, PHILIP_SPECIES, double, index, dealii::parallel::distributed::Triangulation<PHILIP_DIM> >;
+    // Define a macro to instantiate with distributed triangulation for a specific nstate
+    #define INSTANTIATE_DISTRIBUTED(r, data, nstate) \
+        template class RungeKuttaBase<PHILIP_DIM, PHILIP_SPECIES, double, nstate, dealii::parallel::distributed::Triangulation<PHILIP_DIM> >;
     #if PHILIP_DIM!=1
     BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_DISTRIBUTED, _, POSSIBLE_NSTATE)
     #endif

@@ -43,6 +43,7 @@ add_test(
 )
 set_tests_labels(MPI_2D_H_REFINEMENT_INVISCID_ISENTROPIC_VORTEX ISENTROPIC_VORTEX_INTEGRATION
                                                                 2D
+                                                                REFINEMENT_STUDY
                                                                 PARALLEL
                                                                 EULER
                                                                 RUNGE-KUTTA

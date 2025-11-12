@@ -1,5 +1,7 @@
 #include <deal.II/base/function.h>
 #include "exact_solution.h"
+#include <deal.II/base/utilities.h>
+#include <deal.II/base/mpi.h>
 
 namespace PHiLiP {
 
@@ -128,21 +130,27 @@ ExactSolutionFactory<dim,nspecies,nstate, real>::create_ExactSolutionFunction(
         if constexpr (dim>1 && nstate==dim+2)  return std::make_shared<ExactSolutionFunction_IsentropicVortex<dim,nspecies,nstate,real> > (time_compare);
     } else {
         // Select zero function if there is no exact solution defined
+        dealii::ConditionalOStream pcout(std::cout, dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD)==0);
+        pcout << "Warning: Returning zero for the exact solution." << std::endl
+              << "This may be unintentional!" << std::endl;
         return std::make_shared<ExactSolutionFunction_Zero<dim,nspecies,nstate,real>> (time_compare);
     }
     return nullptr;
 }
 
 #if PHILIP_SPECIES==1
-    template class ExactSolutionFunction <PHILIP_DIM, PHILIP_SPECIES,PHILIP_DIM, double>;
-    template class ExactSolutionFunction <PHILIP_DIM, PHILIP_SPECIES,PHILIP_DIM+2, double>;
+    template class ExactSolutionFunction <PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM, double>;
+    template class ExactSolutionFunction <PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, double>;
     template class ExactSolutionFactory <PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, double>;
     template class ExactSolutionFactory <PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM, double>;
-    template class ExactSolutionFunction_Zero <PHILIP_DIM, PHILIP_SPECIES,1, double>;
-    template class ExactSolutionFunction_Zero <PHILIP_DIM, PHILIP_SPECIES,2, double>;
-    template class ExactSolutionFunction_Zero <PHILIP_DIM, PHILIP_SPECIES,3, double>;
-    template class ExactSolutionFunction_Zero <PHILIP_DIM, PHILIP_SPECIES,4, double>;
-    template class ExactSolutionFunction_Zero <PHILIP_DIM, PHILIP_SPECIES,5, double>;
+    #if PHILIP_DIM>1
+        template class ExactSolutionFactory <PHILIP_DIM, PHILIP_SPECIES, 1, double>;
+    #endif
+    template class ExactSolutionFunction_Zero <PHILIP_DIM, PHILIP_SPECIES, 1, double>;
+    template class ExactSolutionFunction_Zero <PHILIP_DIM, PHILIP_SPECIES, 2, double>;
+    template class ExactSolutionFunction_Zero <PHILIP_DIM, PHILIP_SPECIES, 3, double>;
+    template class ExactSolutionFunction_Zero <PHILIP_DIM, PHILIP_SPECIES, 4, double>;
+    template class ExactSolutionFunction_Zero <PHILIP_DIM, PHILIP_SPECIES, 5, double>;
 
     #if PHILIP_DIM>1
     template class ExactSolutionFunction_IsentropicVortex <PHILIP_DIM, PHILIP_SPECIES,PHILIP_DIM+2, double>;

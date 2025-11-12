@@ -30,7 +30,7 @@ set(TESTS_SOURCE
     reduced_order.cpp
     unsteady_reduced_order.cpp
     rom_import_helper_functions.cpp
-    time_refinement_study.cpp
+    general_refinement_study.cpp
     time_refinement_study_reference.cpp
     h_refinement_study_isentropic_vortex.cpp
     rrk_numerical_entropy_conservation_check.cpp

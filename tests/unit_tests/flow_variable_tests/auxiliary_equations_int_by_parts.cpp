@@ -28,9 +28,9 @@ const double TOLERANCE = 1E-6;
 using namespace std;
 //namespace PHiLiP {
 
-template <int dim, int nstate,typename real>
+template <int dim, int nspecies, int nstate,typename real>
 void assemble_weak_auxiliary_volume(
-    std::shared_ptr < PHiLiP::DGStrong<dim,nstate,double> > &dg,
+    std::shared_ptr < PHiLiP::DGStrong<dim,nspecies,nstate,double> > &dg,
     const std::vector<dealii::types::global_dof_index> &current_dofs_indices,
     const unsigned int poly_degree,
     PHiLiP::OPERATOR::basis_functions<dim,2*dim,real> &soln_basis,
@@ -87,9 +87,9 @@ void assemble_weak_auxiliary_volume(
         }
     }
 }
-template <int dim, int nstate,typename real>
+template <int dim, int nspecies, int nstate,typename real>
 void assemble_face_term_auxiliary_weak(
-    std::shared_ptr < PHiLiP::DGStrong<dim,nstate,double> > &dg,
+    std::shared_ptr < PHiLiP::DGStrong<dim,nspecies,nstate,double> > &dg,
     const unsigned int iface, const unsigned int neighbor_iface,
     const dealii::types::global_dof_index /*current_cell_index*/,
     const dealii::types::global_dof_index /*neighbor_cell_index*/,
@@ -239,6 +239,7 @@ int main (int argc, char * argv[])
     using namespace PHiLiP;
     std::cout << std::setprecision(std::numeric_limits<long double>::digits10 + 1) << std::scientific;
     const int dim = PHILIP_DIM;
+    const int nspecies = 1;
     dealii::ParameterHandler parameter_handler;
     PHiLiP::Parameters::AllParameters::declare_parameters (parameter_handler);
     dealii::ConditionalOStream pcout(std::cout, dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD)==0);
@@ -300,7 +301,7 @@ int main (int argc, char * argv[])
             all_parameters_new.use_periodic_bc = true;
             all_parameters_new.ode_solver_param.ode_solver_type = ODE_enum::runge_kutta_solver;//auxiliary only works explicit for now
             all_parameters_new.use_inverse_mass_on_the_fly = true;
-            std::shared_ptr < PHiLiP::DGStrong<dim,dim+2,double> > dg = std::make_shared< PHiLiP::DGStrong<dim,dim+2,real,Triangulation> >(&all_parameters_new, poly_degree, poly_degree, grid_degree, grid);
+            std::shared_ptr < PHiLiP::DGStrong<dim,nspecies,dim+2,double> > dg = std::make_shared< PHiLiP::DGStrong<dim,nspecies,dim+2,real,Triangulation> >(&all_parameters_new, poly_degree, poly_degree, grid_degree, grid);
             dg->allocate_system (false,false,false);
             if(!all_parameters_new.use_inverse_mass_on_the_fly){
                 dg->evaluate_mass_matrices(true);
@@ -385,7 +386,7 @@ int main (int argc, char * argv[])
                     metric_oper,
                     rhs_strong);
                 //assemble weak DG auxiliary eq
-                assemble_weak_auxiliary_volume<PHILIP_DIM,PHILIP_DIM+2>(
+                assemble_weak_auxiliary_volume<PHILIP_DIM, PHILIP_SPECIES,PHILIP_DIM+2>(
                     dg,
                     current_dofs_indices,
                     poly_degree,
@@ -427,7 +428,7 @@ int main (int argc, char * argv[])
                     //assemble facet auxiliary WEAK DG RHS
                     //note that for the ext rhs, this function will return the DG strong 
                     //facet rhs in rhs_ext_weak to directly compare to the above's neighbour
-                    assemble_face_term_auxiliary_weak<PHILIP_DIM,PHILIP_DIM+2> (
+                    assemble_face_term_auxiliary_weak<PHILIP_DIM, PHILIP_SPECIES,PHILIP_DIM+2> (
                         dg,
                         iface, neighbor_iface, 
                         current_cell_index, neighbor_cell_index,

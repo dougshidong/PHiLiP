@@ -7,27 +7,27 @@
 namespace PHiLiP {
 namespace FlowSolver {
 
-template <int dim, int nstate>
-class CubeFlow_UniformGrid : public FlowSolverCaseBase<dim, nstate>
+template <int dim, int nspecies, int nstate>
+class CubeFlow_UniformGrid : public FlowSolverCaseBase<dim, nspecies, nstate>
 {
  public:
      explicit CubeFlow_UniformGrid(const Parameters::AllParameters *const parameters_input);
      
     /// Function to compute the adaptive time step
-    double get_adaptive_time_step(std::shared_ptr<DGBase<dim,double>> dg) const override;
+    double get_adaptive_time_step(std::shared_ptr<DGBase<dim,nspecies,double>> dg) const override;
 
     /// Function to compute the initial adaptive time step
-    double get_adaptive_time_step_initial(std::shared_ptr<DGBase<dim,double>> dg) override;
+    double get_adaptive_time_step_initial(std::shared_ptr<DGBase<dim,nspecies,double>> dg) override;
 
     /// Updates the maximum local wave speed
-    void update_maximum_local_wave_speed(DGBase<dim, double> &dg);
+    void update_maximum_local_wave_speed(DGBase<dim, nspecies, double> &dg);
  
  protected:
     /// Maximum local wave speed (i.e. convective eigenvalue)
     double maximum_local_wave_speed;
 
     /// Pointer to Physics object for computing things on the fly
-    std::shared_ptr< Physics::PhysicsBase<dim,nstate,double> > pde_physics;
+    std::shared_ptr< Physics::PhysicsBase<dim,nspecies,nstate,double> > pde_physics;
 
 };
 

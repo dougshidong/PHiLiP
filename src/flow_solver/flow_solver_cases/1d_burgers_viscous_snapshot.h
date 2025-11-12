@@ -21,8 +21,8 @@ using Triangulation = dealii::Triangulation<PHILIP_DIM>;
 using Triangulation = dealii::parallel::distributed::Triangulation<PHILIP_DIM>;
 #endif
 
-template <int dim, int nstate>
-class BurgersViscousSnapshot: public FlowSolverCaseBase<dim, nstate>
+template <int dim, int nspecies, int nstate>
+class BurgersViscousSnapshot: public FlowSolverCaseBase<dim, nspecies, nstate>
 {
 public:
     /// Constructor.

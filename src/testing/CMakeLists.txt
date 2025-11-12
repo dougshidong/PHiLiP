@@ -55,6 +55,9 @@ foreach(dim RANGE 1 3)
     add_library(${TestsLib} STATIC ${TESTS_SOURCE})
     # Replace occurences of PHILIP_DIM with 1, 2, or 3 in the code
     target_compile_definitions(${TestsLib} PRIVATE PHILIP_DIM=${dim})
+    # Replace occurences of PHILIP_SPECIES with 1 in the code
+    # NOTE: PHILIP_SPECIES will become user defined in a future PR
+    target_compile_definitions(${TestsLib} PRIVATE PHILIP_SPECIES=1)
 
     # Library dependency
     string(CONCAT GridsLib Grids_${dim}D)

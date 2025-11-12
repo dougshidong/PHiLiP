@@ -20,8 +20,8 @@ using Eigen::MatrixXd;
 using Eigen::VectorXd;
 
 /// Class for Online Proper Orthogonal Decomposition basis. This class takes snapshots on the fly and computes a POD basis for use in adaptive sampling.
-template <int dim>
-class OnlinePOD: public PODBase<dim>
+template <int dim, int nspecies>
+class OnlinePOD: public PODBase<dim,nspecies>
 {
 public:
     /// Constructor

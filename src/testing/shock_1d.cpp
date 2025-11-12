@@ -36,8 +36,8 @@ namespace Tests {
 /// Shocked 1D solution for 1 state variable.
 /** This class also provides derivatives necessary to evaluate source terms.
  */
-template <int dim, typename real>
-class Shocked1D1State : public ManufacturedSolutionFunction<dim,real>
+template <int dim, int nspecies, typename real>
+class Shocked1D1State : public ManufacturedSolutionFunction<dim,real> 
 {
 protected:
     using dealii::Function<dim,real>::value;
@@ -51,7 +51,7 @@ public:
      *  by all the other functions
      */
     explicit Shocked1D1State (const unsigned int nstate = 1)
-    : ManufacturedSolutionFunction<dim,real> (nstate)
+    : ManufacturedSolutionFunction<dim,real>  (nstate)
     { };
 
     /// Manufactured solution exact value
@@ -101,9 +101,9 @@ public:
     }
 };
 
-template <int dim, int nstate>
-double Shock1D<dim,nstate>
-::integrate_solution_over_domain(DGBase<dim,double> &dg) const
+template <int dim, int nspecies, int nstate>
+double Shock1D<dim,nspecies,nstate>
+::integrate_solution_over_domain(DGBase<dim,nspecies,double> &dg) const
 {
     pcout << "Evaluating solution integral..." << std::endl;
     double solution_integral = 0.0;
@@ -155,7 +155,7 @@ double Shock1D<dim,nstate>
 }
 
 /// Sine initial conditions.
-template <int dim>
+template <int dim, int nspecies>
 class SineInitialCondition : public dealii::Function<dim>
 {
 public:
@@ -173,24 +173,24 @@ public:
   }
 };
 
-template <int dim, int nstate>
-Shock1D<dim,nstate>::Shock1D(const Parameters::AllParameters *const parameters_input)
+template <int dim, int nspecies, int nstate>
+Shock1D<dim,nspecies,nstate>::Shock1D(const Parameters::AllParameters *const parameters_input)
     :
     TestsBase::TestsBase(parameters_input)
 {}
 
-template <int dim, int nstate>
-void Shock1D<dim,nstate>
-::initialize_perturbed_solution(DGBase<dim,double> &dg, const Physics::PhysicsBase<dim,nstate,double> &/*physics*/) const
+template <int dim, int nspecies, int nstate>
+void Shock1D<dim,nspecies,nstate>
+::initialize_perturbed_solution(DGBase<dim,nspecies,double> &dg, const Physics::PhysicsBase<dim,nspecies,nstate,double> &/*physics*/) const
 {
     dealii::LinearAlgebra::distributed::Vector<double> solution_no_ghost;
     solution_no_ghost.reinit(dg.locally_owned_dofs, MPI_COMM_WORLD);
-    dealii::VectorTools::interpolate(dg.dof_handler, SineInitialCondition<dim> (1,0), solution_no_ghost);
+    dealii::VectorTools::interpolate(dg.dof_handler, SineInitialCondition<dim, nspecies> (1,0), solution_no_ghost);
     dg.solution = solution_no_ghost;
 }
 
-template<int dim, int nstate>
-int Shock1D<dim,nstate>
+template<int dim, int nspecies, int nstate>
+int Shock1D<dim,nspecies,nstate>
 ::run_test () const
 {
 #if PHILIP_DIM==1
@@ -215,16 +215,16 @@ int Shock1D<dim,nstate>
     const unsigned int n_grids_input       = manu_grid_conv_param.number_of_grids;
 
     // Set the physics' manufactured solution to be the Shocked1D1State manufactured solution
-    std::shared_ptr <Physics::PhysicsBase<dim,nstate,double>> physics_double = Physics::PhysicsFactory<dim, nstate, double>::create_Physics(&param);
-    std::shared_ptr <Physics::PhysicsBase<dim,nstate,FadType>> physics_fad = Physics::PhysicsFactory<dim, nstate, FadType>::create_Physics(&param);
-    std::shared_ptr <Physics::PhysicsBase<dim,nstate,RadType>> physics_rad = Physics::PhysicsFactory<dim, nstate, RadType>::create_Physics(&param);
-    std::shared_ptr <Physics::PhysicsBase<dim,nstate,FadFadType>> physics_fad_fad = Physics::PhysicsFactory<dim, nstate, FadFadType>::create_Physics(&param);
-    std::shared_ptr <Physics::PhysicsBase<dim,nstate,RadFadType>> physics_rad_fad = Physics::PhysicsFactory<dim, nstate, RadFadType>::create_Physics(&param);
-    std::shared_ptr shocked_1d1state_double = std::make_shared < Shocked1D1State<dim,double> > (nstate);
-    std::shared_ptr shocked_1d1state_fad = std::make_shared < Shocked1D1State<dim,FadType> > (nstate);
-    std::shared_ptr shocked_1d1state_rad = std::make_shared < Shocked1D1State<dim,RadType> > (nstate);
-    std::shared_ptr shocked_1d1state_fad_fad = std::make_shared < Shocked1D1State<dim,FadFadType> > (nstate);
-    std::shared_ptr shocked_1d1state_rad_fad = std::make_shared < Shocked1D1State<dim,RadFadType> > (nstate);
+    std::shared_ptr <Physics::PhysicsBase<dim,nspecies,nstate,double>> physics_double = Physics::PhysicsFactory<dim, nspecies, nstate, double>::create_Physics(&param);
+    std::shared_ptr <Physics::PhysicsBase<dim,nspecies,nstate,FadType>> physics_fad = Physics::PhysicsFactory<dim, nspecies, nstate, FadType>::create_Physics(&param);
+    std::shared_ptr <Physics::PhysicsBase<dim,nspecies,nstate,RadType>> physics_rad = Physics::PhysicsFactory<dim, nspecies, nstate, RadType>::create_Physics(&param);
+    std::shared_ptr <Physics::PhysicsBase<dim,nspecies,nstate,FadFadType>> physics_fad_fad = Physics::PhysicsFactory<dim, nspecies, nstate, FadFadType>::create_Physics(&param);
+    std::shared_ptr <Physics::PhysicsBase<dim,nspecies,nstate,RadFadType>> physics_rad_fad = Physics::PhysicsFactory<dim, nspecies, nstate, RadFadType>::create_Physics(&param);
+    std::shared_ptr shocked_1d1state_double = std::make_shared < Shocked1D1State<dim,nspecies,double> > (nstate);
+    std::shared_ptr shocked_1d1state_fad = std::make_shared < Shocked1D1State<dim,nspecies,FadType> > (nstate);
+    std::shared_ptr shocked_1d1state_rad = std::make_shared < Shocked1D1State<dim,nspecies,RadType> > (nstate);
+    std::shared_ptr shocked_1d1state_fad_fad = std::make_shared < Shocked1D1State<dim,nspecies,FadFadType> > (nstate);
+    std::shared_ptr shocked_1d1state_rad_fad = std::make_shared < Shocked1D1State<dim,nspecies,RadFadType> > (nstate);
     physics_double->manufactured_solution_function = shocked_1d1state_double;
     physics_fad->manufactured_solution_function = shocked_1d1state_fad;
     physics_fad_fad->manufactured_solution_function = shocked_1d1state_fad_fad;
@@ -244,7 +244,7 @@ int Shock1D<dim,nstate>
                 dealii::Triangulation<dim>::smoothing_on_refinement |
                 dealii::Triangulation<dim>::smoothing_on_coarsening));
         dealii::GridGenerator::subdivided_hyper_cube(*grid_super_fine, n_1d_cells[n_grids_input-1]);
-        std::shared_ptr dg_super_fine = std::make_shared< DGWeak<dim,1,double> > (&param, p_end, p_end, p_end+1, grid_super_fine);
+        std::shared_ptr dg_super_fine = std::make_shared< DGWeak<dim,nspecies,1,double> > (&param, p_end, p_end, p_end+1, grid_super_fine);
         dg_super_fine->set_physics(physics_double, physics_fad, physics_rad, physics_fad_fad, physics_rad_fad);
         dg_super_fine->allocate_system ();
 
@@ -295,13 +295,13 @@ int Shock1D<dim,nstate>
             grid->add_periodicity(matched_pairs);
 
             // Create DG object using the factory
-            //std::shared_ptr < DGBase<dim, double> > dg = DGFactory<dim,double>::create_discontinuous_galerkin(&param, poly_degree, grid);
-            std::shared_ptr dg = std::make_shared< DGWeak<dim,1,double> > (&param, poly_degree, poly_degree, poly_degree+1, grid);
+            //std::shared_ptr < DGBase<dim, nspecies, double> > dg = DGFactory<dim,nspecies,double>::create_discontinuous_galerkin(&param, poly_degree, grid);
+            std::shared_ptr dg = std::make_shared< DGWeak<dim,nspecies,1,double> > (&param, poly_degree, poly_degree, poly_degree+1, grid);
             dg->set_physics(physics_double, physics_fad, physics_rad, physics_fad_fad, physics_rad_fad);
             dg->allocate_system ();
 
             // Create ODE solver using the factory and providing the DG object
-            std::shared_ptr<ODE::ODESolverBase<dim, double>> ode_solver = ODE::ODESolverFactory<dim, double>::create_ODESolver(dg);
+            std::shared_ptr<ODE::ODESolverBase<dim, nspecies, double>> ode_solver = ODE::ODESolverFactory<dim, nspecies, double>::create_ODESolver(dg);
 
             const unsigned int n_global_active_cells = grid->n_global_active_cells();
             const unsigned int n_dofs = dg->dof_handler.n_dofs();
@@ -434,8 +434,8 @@ int Shock1D<dim,nstate>
     return n_fail_poly;
 }
 
-template <int dim, int nstate>
-dealii::Point<dim> Shock1D<dim,nstate>
+template <int dim, int nspecies, int nstate>
+dealii::Point<dim> Shock1D<dim,nspecies,nstate>
 ::warp (const dealii::Point<dim> &p)
 {
     dealii::Point<dim> q = p;
@@ -445,8 +445,8 @@ dealii::Point<dim> Shock1D<dim,nstate>
     return q;
 }
 
-template <int dim, int nstate>
-void Shock1D<dim,nstate>
+template <int dim, int nspecies, int nstate>
+void Shock1D<dim,nspecies,nstate>
 ::print_mesh_info(const dealii::Triangulation<dim> &triangulation, const std::string &filename) const
 {
     pcout << "Mesh info:" << std::endl
@@ -471,8 +471,9 @@ void Shock1D<dim,nstate>
     }
 }
 
-template class Shock1D <PHILIP_DIM,1>;
-
+#if PHILIP_SPECIES==1
+template class Shock1D <PHILIP_DIM, PHILIP_SPECIES,1>;
+#endif
 } // Tests namespace
 } // PHiLiP namespace
 

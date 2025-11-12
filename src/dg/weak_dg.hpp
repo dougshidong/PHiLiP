@@ -10,15 +10,15 @@ namespace PHiLiP {
 /*  Contains the functions that need to be templated on the number of state variables.
  */
 #if PHILIP_DIM==1 // dealii::parallel::distributed::Triangulation<dim> does not work for 1D
-template <int dim, int nstate, typename real, typename MeshType = dealii::Triangulation<dim>>
+template <int dim, int nspecies, int nstate, typename real, typename MeshType = dealii::Triangulation<dim>>
 #else
-template <int dim, int nstate, typename real, typename MeshType = dealii::parallel::distributed::Triangulation<dim>>
+template <int dim, int nspecies, int nstate, typename real, typename MeshType = dealii::parallel::distributed::Triangulation<dim>>
 #endif
-class DGWeak : public DGBaseState<dim, nstate, real, MeshType>
+class DGWeak : public DGBaseState<dim, nspecies, nstate, real, MeshType>
 {
 protected:
     /// Alias to base class Triangulation.
-    using Triangulation = typename DGBaseState<dim,nstate,real,MeshType>::Triangulation;
+    using Triangulation = typename DGBaseState<dim,nspecies,nstate,real,MeshType>::Triangulation;
 public:
     /// Constructor.
     DGWeak(
@@ -46,8 +46,8 @@ private:
         OPERATOR::metric_operators<real,dim,2*dim>             &/*metric_oper*/,
         OPERATOR::mapping_shape_functions<dim,2*dim,real>      &/*mapping_basis*/,
         std::array<std::vector<real>,dim>                      &/*mapping_support_points*/,
-        dealii::hp::FEValues<dim,dim>                          &fe_values_collection_volume,
-        dealii::hp::FEValues<dim,dim>                          &fe_values_collection_volume_lagrange,
+        dealii::hp::FEValues<dim,dim>                           &fe_values_collection_volume,
+        dealii::hp::FEValues<dim,dim>                           &fe_values_collection_volume_lagrange,
         const dealii::FESystem<dim,dim>                        &current_fe_ref,
         dealii::Vector<real>                                   &local_rhs_int_cell,
         std::vector<dealii::Tensor<1,dim,real>>                &/*local_auxiliary_RHS*/,
@@ -170,11 +170,11 @@ private:
     void assemble_volume_term(
         typename dealii::DoFHandler<dim>::active_cell_iterator cell,
         const dealii::types::global_dof_index current_cell_index,
-        const LocalSolution<real2, dim, nstate> &local_solution,
-        const LocalSolution<real2, dim, dim> &local_metric,
+        const LocalSolution<real2, dim, nspecies, nstate> &local_solution,
+        const LocalSolution<real2, dim, nspecies, dim> &local_metric,
         const std::vector<real> &local_dual,
         const dealii::Quadrature<dim> &quadrature,
-        const Physics::PhysicsBase<dim, nstate, real2> &physics,
+        const Physics::PhysicsBase<dim, nspecies, nstate, real2> &physics,
         std::vector<real2> &rhs, real2 &dual_dot_residual,
         const bool compute_metric_derivatives,
         const dealii::FEValues<dim,dim> &fe_values_vol);
@@ -186,14 +186,14 @@ private:
     void assemble_boundary_term(
         typename dealii::DoFHandler<dim>::active_cell_iterator cell,
         const dealii::types::global_dof_index current_cell_index,
-        const LocalSolution<real2, dim, nstate> &local_solution,
-        const LocalSolution<real2, dim, dim> &local_metric,
+        const LocalSolution<real2, dim, nspecies, nstate> &local_solution,
+        const LocalSolution<real2, dim, nspecies, dim> &local_metric,
         const std::vector< real > &local_dual,
         const unsigned int face_number,
         const unsigned int boundary_id,
-        const Physics::PhysicsBase<dim, nstate, real2> &physics,
-        const NumericalFlux::NumericalFluxConvective<dim, nstate, real2> &conv_num_flux,
-        const NumericalFlux::NumericalFluxDissipative<dim, nstate, real2> &diss_num_flux,
+        const Physics::PhysicsBase<dim, nspecies, nstate, real2> &physics,
+        const NumericalFlux::NumericalFluxConvective<dim, nspecies, nstate, real2> &conv_num_flux,
+        const NumericalFlux::NumericalFluxDissipative<dim, nspecies, nstate, real2> &diss_num_flux,
         const dealii::FEFaceValuesBase<dim,dim> &fe_values_boundary,
         const real penalty,
         const dealii::Quadrature<dim-1> &quadrature,
@@ -209,19 +209,19 @@ private:
         typename dealii::DoFHandler<dim>::active_cell_iterator cell,
         const dealii::types::global_dof_index current_cell_index,
         const dealii::types::global_dof_index neighbor_cell_index,
-        const LocalSolution<real2, dim, nstate> &soln_int,
-        const LocalSolution<real2, dim, nstate> &soln_ext,
-        const LocalSolution<real2, dim, dim> &metric_int,
-        const LocalSolution<real2, dim, dim> &metric_ext,
+        const LocalSolution<real2, dim, nspecies, nstate> &soln_int,
+        const LocalSolution<real2, dim, nspecies, nstate> &soln_ext,
+        const LocalSolution<real2, dim, nspecies, dim> &metric_int,
+        const LocalSolution<real2, dim, nspecies, dim> &metric_ext,
         const std::vector< double > &dual_int,
         const std::vector< double > &dual_ext,
         const std::pair<unsigned int, int> face_subface_int,
         const std::pair<unsigned int, int> face_subface_ext,
         const typename dealii::QProjector<dim>::DataSetDescriptor face_data_set_int,
         const typename dealii::QProjector<dim>::DataSetDescriptor face_data_set_ext,
-        const Physics::PhysicsBase<dim, nstate, real2> &physics,
-        const NumericalFlux::NumericalFluxConvective<dim, nstate, real2> &conv_num_flux,
-        const NumericalFlux::NumericalFluxDissipative<dim, nstate, real2> &diss_num_flux,
+        const Physics::PhysicsBase<dim, nspecies, nstate, real2> &physics,
+        const NumericalFlux::NumericalFluxConvective<dim, nspecies, nstate, real2> &conv_num_flux,
+        const NumericalFlux::NumericalFluxDissipative<dim, nspecies, nstate, real2> &diss_num_flux,
         const dealii::FEFaceValuesBase<dim,dim>     &fe_values_int,
         const dealii::FEFaceValuesBase<dim,dim>     &fe_values_ext,
         const real penalty,
@@ -248,7 +248,7 @@ private:
         const std::vector<dealii::types::global_dof_index> &soln_dof_indices,
         dealii::Vector<real> &local_rhs_cell,
         const dealii::FEValues<dim,dim> &fe_values_lagrange,
-        const Physics::PhysicsBase<dim, nstate, real2> &physics,
+        const Physics::PhysicsBase<dim, nspecies, nstate, real2> &physics,
         const bool compute_dRdW, const bool compute_dRdX, const bool compute_d2R);
 
     /// Preparation of CoDiPack taping for boundary integral, and derivative evaluation.
@@ -267,9 +267,9 @@ private:
         const dealii::Quadrature<dim-1> &quadrature,
         const std::vector<dealii::types::global_dof_index> &metric_dof_indices,
         const std::vector<dealii::types::global_dof_index> &soln_dof_indices,
-        const Physics::PhysicsBase<dim, nstate, adtype> &physics,
-        const NumericalFlux::NumericalFluxConvective<dim, nstate, adtype> &conv_num_flux,
-        const NumericalFlux::NumericalFluxDissipative<dim, nstate, adtype> &diss_num_flux,
+        const Physics::PhysicsBase<dim, nspecies, nstate, adtype> &physics,
+        const NumericalFlux::NumericalFluxConvective<dim, nspecies, nstate, adtype> &conv_num_flux,
+        const NumericalFlux::NumericalFluxDissipative<dim, nspecies, nstate, adtype> &diss_num_flux,
         dealii::Vector<real> &local_rhs_cell,
         const bool compute_dRdW, const bool compute_dRdX, const bool compute_d2R);
 
@@ -298,9 +298,9 @@ private:
         const std::vector<dealii::types::global_dof_index> &metric_dof_indices_ext,
         const std::vector<dealii::types::global_dof_index> &soln_dof_indices_int,
         const std::vector<dealii::types::global_dof_index> &soln_dof_indices_ext,
-        const Physics::PhysicsBase<dim, nstate, adtype> &physics,
-        const NumericalFlux::NumericalFluxConvective<dim, nstate, adtype> &conv_num_flux,
-        const NumericalFlux::NumericalFluxDissipative<dim, nstate, adtype> &diss_num_flux,
+        const Physics::PhysicsBase<dim, nspecies, nstate, adtype> &physics,
+        const NumericalFlux::NumericalFluxConvective<dim, nspecies, nstate, adtype> &conv_num_flux,
+        const NumericalFlux::NumericalFluxDissipative<dim, nspecies, nstate, adtype> &diss_num_flux,
         dealii::Vector<real>          &local_rhs_int_cell,
         dealii::Vector<real>          &local_rhs_ext_cell,
         const bool compute_dRdW, const bool compute_dRdX, const bool compute_d2R);
@@ -379,7 +379,7 @@ private:
         const std::vector<dealii::types::global_dof_index> &soln_dof_indices,
         dealii::Vector<real> &local_rhs_cell,
         const dealii::FEValues<dim,dim> &fe_values_lagrange,
-        const Physics::PhysicsBase<dim, nstate, real> &physics,
+        const Physics::PhysicsBase<dim, nspecies, nstate, real> &physics,
         const bool compute_dRdW, const bool compute_dRdX, const bool compute_d2R);
 
     /// Evaluate the integral over the boundary.
@@ -395,9 +395,9 @@ private:
         const dealii::Quadrature<dim-1> &quadrature,
         const std::vector<dealii::types::global_dof_index> &metric_dof_indices,
         const std::vector<dealii::types::global_dof_index> &soln_dof_indices,
-        const Physics::PhysicsBase<dim, nstate, real> &physics,
-        const NumericalFlux::NumericalFluxConvective<dim, nstate, real> &conv_num_flux,
-        const NumericalFlux::NumericalFluxDissipative<dim, nstate, real> &diss_num_flux,
+        const Physics::PhysicsBase<dim, nspecies, nstate, real> &physics,
+        const NumericalFlux::NumericalFluxConvective<dim, nspecies, nstate, real> &conv_num_flux,
+        const NumericalFlux::NumericalFluxDissipative<dim, nspecies, nstate, real> &diss_num_flux,
         dealii::Vector<real> &local_rhs_cell,
         const bool compute_dRdW, const bool compute_dRdX, const bool compute_d2R);
 
@@ -421,9 +421,9 @@ private:
         const std::vector<dealii::types::global_dof_index> &metric_dof_indices_ext,
         const std::vector<dealii::types::global_dof_index> &soln_dof_indices_int,
         const std::vector<dealii::types::global_dof_index> &soln_dof_indices_ext,
-        const Physics::PhysicsBase<dim, nstate, real> &physics,
-        const NumericalFlux::NumericalFluxConvective<dim, nstate, real> &conv_num_flux,
-        const NumericalFlux::NumericalFluxDissipative<dim, nstate, real> &diss_num_flux,
+        const Physics::PhysicsBase<dim, nspecies, nstate, real> &physics,
+        const NumericalFlux::NumericalFluxConvective<dim, nspecies, nstate, real> &conv_num_flux,
+        const NumericalFlux::NumericalFluxDissipative<dim, nspecies, nstate, real> &diss_num_flux,
         dealii::Vector<real>          &local_rhs_int_cell,
         dealii::Vector<real>          &local_rhs_ext_cell,
         const bool compute_dRdW, const bool compute_dRdX, const bool compute_d2R);
@@ -441,7 +441,7 @@ private:
         const dealii::FEValues<dim,dim> &fe_values_lagrange);
     
 
-    using DGBase<dim,real,MeshType>::pcout; ///< Parallel std::cout that only outputs on mpi_rank==0
+    using DGBase<dim,nspecies,real,MeshType>::pcout; ///< Parallel std::cout that only outputs on mpi_rank==0
 }; // end of DGWeak class
 
 } // PHiLiP namespace

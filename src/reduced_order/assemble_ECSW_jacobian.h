@@ -36,16 +36,16 @@ Computer Methods in Applied Mechanics and Engineering
 https://www.sciencedirect.com/science/article/pii/S0045782522004558?via%3Dihub
 */
 
-template <int dim, int nstate>
-class AssembleECSWJac: public AssembleECSWBase<dim,nstate>
+template <int dim, int nspecies, int nstate>
+class AssembleECSWJac: public AssembleECSWBase<dim,nspecies,nstate>
 {
 public:
     /// Constructor
     AssembleECSWJac(
         const PHiLiP::Parameters::AllParameters *const parameters_input,
         const dealii::ParameterHandler &parameter_handler_input,
-        std::shared_ptr<DGBase<dim,double>> &dg_input, 
-        std::shared_ptr<ProperOrthogonalDecomposition::PODBase<dim>> pod,
+        std::shared_ptr<DGBase<dim,nspecies,double>> &dg_input, 
+        std::shared_ptr<ProperOrthogonalDecomposition::PODBase<dim,nspecies>> pod,
         MatrixXd snapshot_parameters_input,
         Parameters::ODESolverParam::ODESolverEnum ode_solver_type,
         Epetra_MpiComm &Comm);

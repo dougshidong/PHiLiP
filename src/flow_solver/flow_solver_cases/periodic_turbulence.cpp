@@ -21,9 +21,9 @@ namespace FlowSolver {
 //=========================================================
 // TURBULENCE IN PERIODIC CUBE DOMAIN
 //=========================================================
-template <int dim, int nstate>
-PeriodicTurbulence<dim, nstate>::PeriodicTurbulence(const PHiLiP::Parameters::AllParameters *const parameters_input)
-        : PeriodicCubeFlow<dim, nstate>(parameters_input)
+template <int dim, int nspecies, int nstate>
+PeriodicTurbulence<dim, nspecies, nstate>::PeriodicTurbulence(const PHiLiP::Parameters::AllParameters *const parameters_input)
+        : PeriodicCubeFlow<dim, nspecies, nstate>(parameters_input)
         , unsteady_data_table_filename_with_extension(this->all_param.flow_solver_param.unsteady_data_table_filename+".txt")
         , number_of_times_to_output_velocity_field(this->all_param.flow_solver_param.number_of_times_to_output_velocity_field)
         , output_velocity_field_at_fixed_times(this->all_param.flow_solver_param.output_velocity_field_at_fixed_times)
@@ -44,8 +44,8 @@ PeriodicTurbulence<dim, nstate>::PeriodicTurbulence(const PHiLiP::Parameters::Al
     // Navier-Stokes object; create using dynamic_pointer_cast and the create_Physics factory
     PHiLiP::Parameters::AllParameters parameters_navier_stokes = this->all_param;
     parameters_navier_stokes.pde_type = Parameters::AllParameters::PartialDifferentialEquation::navier_stokes;
-    this->navier_stokes_physics = std::dynamic_pointer_cast<Physics::NavierStokes<dim,dim+2,double>>(
-                Physics::PhysicsFactory<dim,dim+2,double>::create_Physics(&parameters_navier_stokes));
+    this->navier_stokes_physics = std::dynamic_pointer_cast<Physics::NavierStokes<dim,nspecies,dim+2,double>>(
+                Physics::PhysicsFactory<dim,nspecies,dim+2,double>::create_Physics(&parameters_navier_stokes));
 
     /* Initialize integrated quantities as NAN; 
        done as a precaution in the case compute_integrated_quantities() is not called
@@ -88,8 +88,8 @@ PeriodicTurbulence<dim, nstate>::PeriodicTurbulence(const PHiLiP::Parameters::Al
     }
 }
 
-template <int dim, int nstate>
-void PeriodicTurbulence<dim,nstate>::display_additional_flow_case_specific_parameters() const
+template <int dim, int nspecies, int nstate>
+void PeriodicTurbulence<dim,nspecies,nstate>::display_additional_flow_case_specific_parameters() const
 {
     this->pcout << "- - Courant-Friedrichs-Lewy number: " << this->all_param.flow_solver_param.courant_friedrichs_lewy_number << std::endl;
     std::string flow_type_string;
@@ -100,8 +100,8 @@ void PeriodicTurbulence<dim,nstate>::display_additional_flow_case_specific_param
     this->display_grid_parameters();
 }
 
-template <int dim, int nstate>
-double PeriodicTurbulence<dim,nstate>::get_constant_time_step(std::shared_ptr<DGBase<dim,double>> dg) const
+template <int dim, int nspecies, int nstate>
+double PeriodicTurbulence<dim,nspecies,nstate>::get_constant_time_step(std::shared_ptr<DGBase<dim,nspecies,double>> dg) const
 {
     if(this->all_param.flow_solver_param.constant_time_step > 0.0) {
         const double constant_time_step = this->all_param.flow_solver_param.constant_time_step;
@@ -125,9 +125,9 @@ std::string get_padded_mpi_rank_string(const int mpi_rank_input) {
     return mpi_rank_string;
 }
 
-template<int dim, int nstate>
-void PeriodicTurbulence<dim, nstate>::output_velocity_field(
-    std::shared_ptr<DGBase<dim,double>> dg,
+template<int dim, int nspecies, int nstate>
+void PeriodicTurbulence<dim, nspecies, nstate>::output_velocity_field(
+    std::shared_ptr<DGBase<dim,nspecies,double>> dg,
     const unsigned int output_file_index,
     const double current_time) const
 {
@@ -320,8 +320,8 @@ void PeriodicTurbulence<dim, nstate>::output_velocity_field(
     this->pcout << "done." << std::endl;
 }
 
-template<int dim, int nstate>
-void PeriodicTurbulence<dim, nstate>::compute_and_update_integrated_quantities(DGBase<dim, double> &dg)
+template<int dim, int nspecies, int nstate>
+void PeriodicTurbulence<dim, nspecies, nstate>::compute_and_update_integrated_quantities(DGBase<dim, nspecies, double> &dg)
 {
     std::array<double,NUMBER_OF_INTEGRATED_QUANTITIES> integral_values;
     std::fill(integral_values.begin(), integral_values.end(), 0.0);
@@ -482,8 +482,8 @@ void PeriodicTurbulence<dim, nstate>::compute_and_update_integrated_quantities(D
     }
 }
 
-template<int dim, int nstate>
-double PeriodicTurbulence<dim, nstate>::get_integrated_kinetic_energy() const
+template<int dim, int nspecies, int nstate>
+double PeriodicTurbulence<dim, nspecies, nstate>::get_integrated_kinetic_energy() const
 {
     const double integrated_kinetic_energy = this->integrated_quantities[IntegratedQuantitiesEnum::kinetic_energy];
     // // Abort if energy is nan
@@ -495,14 +495,14 @@ double PeriodicTurbulence<dim, nstate>::get_integrated_kinetic_energy() const
     return integrated_kinetic_energy;
 }
 
-template<int dim, int nstate>
-double PeriodicTurbulence<dim, nstate>::get_integrated_enstrophy() const
+template<int dim, int nspecies, int nstate>
+double PeriodicTurbulence<dim, nspecies, nstate>::get_integrated_enstrophy() const
 {
     return this->integrated_quantities[IntegratedQuantitiesEnum::enstrophy];
 }
 
-template<int dim, int nstate>
-double PeriodicTurbulence<dim, nstate>::get_vorticity_based_dissipation_rate() const
+template<int dim, int nspecies, int nstate>
+double PeriodicTurbulence<dim, nspecies, nstate>::get_vorticity_based_dissipation_rate() const
 {
     const double integrated_enstrophy = this->integrated_quantities[IntegratedQuantitiesEnum::enstrophy];
     double vorticity_based_dissipation_rate = 0.0;
@@ -512,15 +512,15 @@ double PeriodicTurbulence<dim, nstate>::get_vorticity_based_dissipation_rate() c
     return vorticity_based_dissipation_rate;
 }
 
-template<int dim, int nstate>
-double PeriodicTurbulence<dim, nstate>::get_pressure_dilatation_based_dissipation_rate() const
+template<int dim, int nspecies, int nstate>
+double PeriodicTurbulence<dim, nspecies, nstate>::get_pressure_dilatation_based_dissipation_rate() const
 {
     const double integrated_pressure_dilatation = this->integrated_quantities[IntegratedQuantitiesEnum::pressure_dilatation];
     return (-1.0*integrated_pressure_dilatation); // See reference (listed in header file), equation (57b)
 }
 
-template<int dim, int nstate>
-double PeriodicTurbulence<dim, nstate>::get_deviatoric_strain_rate_tensor_based_dissipation_rate() const
+template<int dim, int nspecies, int nstate>
+double PeriodicTurbulence<dim, nspecies, nstate>::get_deviatoric_strain_rate_tensor_based_dissipation_rate() const
 {
     const double integrated_deviatoric_strain_rate_tensor_magnitude_sqr = this->integrated_quantities[IntegratedQuantitiesEnum::deviatoric_strain_rate_tensor_magnitude_sqr];
     double deviatoric_strain_rate_tensor_based_dissipation_rate = 0.0;
@@ -531,8 +531,8 @@ double PeriodicTurbulence<dim, nstate>::get_deviatoric_strain_rate_tensor_based_
     return deviatoric_strain_rate_tensor_based_dissipation_rate;
 }
 
-template<int dim, int nstate>
-double PeriodicTurbulence<dim, nstate>::get_strain_rate_tensor_based_dissipation_rate() const
+template<int dim, int nspecies, int nstate>
+double PeriodicTurbulence<dim, nspecies, nstate>::get_strain_rate_tensor_based_dissipation_rate() const
 {
     const double integrated_strain_rate_tensor_magnitude_sqr = this->integrated_quantities[IntegratedQuantitiesEnum::strain_rate_tensor_magnitude_sqr];
     double strain_rate_tensor_based_dissipation_rate = 0.0;
@@ -543,15 +543,15 @@ double PeriodicTurbulence<dim, nstate>::get_strain_rate_tensor_based_dissipation
     return strain_rate_tensor_based_dissipation_rate;
 }
 
-template<int dim, int nstate>
-double PeriodicTurbulence<dim, nstate>::get_numerical_entropy(const std::shared_ptr <DGBase<dim, double>> /*dg*/) const
+template<int dim, int nspecies, int nstate>
+double PeriodicTurbulence<dim, nspecies, nstate>::get_numerical_entropy(const std::shared_ptr <DGBase<dim, nspecies, double>> /*dg*/) const
 {
     return this->cumulative_numerical_entropy_change_FRcorrected;
 }
 
-template<int dim, int nstate>
-double PeriodicTurbulence<dim, nstate>::compute_current_integrated_numerical_entropy(
-        const std::shared_ptr <DGBase<dim, double>> dg
+template<int dim, int nspecies, int nstate>
+double PeriodicTurbulence<dim, nspecies, nstate>::compute_current_integrated_numerical_entropy(
+        const std::shared_ptr <DGBase<dim, nspecies, double>> dg
         ) const
 {
     const double poly_degree = this->all_param.flow_solver_param.poly_degree;
@@ -657,11 +657,11 @@ double PeriodicTurbulence<dim, nstate>::compute_current_integrated_numerical_ent
 }
 
 
-template <int dim, int nstate>
-void PeriodicTurbulence<dim, nstate>::update_numerical_entropy(
+template <int dim, int nspecies, int nstate>
+void PeriodicTurbulence<dim, nspecies, nstate>::update_numerical_entropy(
         const double FR_entropy_contribution_RRK_solver,
         const unsigned int current_iteration,
-        const std::shared_ptr <DGBase<dim, double>> dg)
+        const std::shared_ptr <DGBase<dim, nspecies, double>> dg)
 {
 
     const double current_numerical_entropy = this->compute_current_integrated_numerical_entropy(dg);
@@ -677,10 +677,10 @@ void PeriodicTurbulence<dim, nstate>::update_numerical_entropy(
 
 }
 
-template <int dim, int nstate>
-void PeriodicTurbulence<dim, nstate>::compute_unsteady_data_and_write_to_table(
-        const std::shared_ptr<ODE::ODESolverBase<dim, double>> ode_solver, 
-        const std::shared_ptr <DGBase<dim, double>> dg,
+template <int dim, int nspecies, int nstate>
+void PeriodicTurbulence<dim, nspecies, nstate>::compute_unsteady_data_and_write_to_table(
+        const std::shared_ptr<ODE::ODESolverBase<dim, nspecies, double>> ode_solver, 
+        const std::shared_ptr <DGBase<dim, nspecies, double>> dg,
         const std::shared_ptr <dealii::TableHandler> unsteady_data_table)
 {
     //unpack current iteration and current time from ode solver
@@ -768,8 +768,8 @@ void PeriodicTurbulence<dim, nstate>::compute_unsteady_data_and_write_to_table(
     }
 }
 
-#if PHILIP_DIM==3
-template class PeriodicTurbulence <PHILIP_DIM,PHILIP_DIM+2>;
+#if PHILIP_DIM==3 && PHILIP_SPECIES==1
+template class PeriodicTurbulence <PHILIP_DIM, PHILIP_SPECIES,PHILIP_DIM+2>;
 #endif
 
 } // FlowSolver namespace

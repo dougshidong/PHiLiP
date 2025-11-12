@@ -9,8 +9,8 @@ namespace PHiLiP {
 namespace Tests {
 
 /// Burgers' periodic unsteady test
-template <int dim, int nstate>
-class StabilityFRParametersRange: public GeneralRefinementStudy<dim,nstate>
+template <int dim, int nspecies, int nstate>
+class StabilityFRParametersRange: public GeneralRefinementStudy<dim,nspecies,nstate>
 {
 public:
     /// Constructor

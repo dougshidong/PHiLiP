@@ -9,17 +9,17 @@ namespace FlowSolver {
 // TEST FOR ENTROPY CONSERVATION/STABILITY ON PERIODIC DOMAINS (EULER/NS)
 //=========================================================
 
-template <int dim, int nstate>
-PeriodicEntropyTests<dim, nstate>::PeriodicEntropyTests(const PHiLiP::Parameters::AllParameters *const parameters_input)
-        : PeriodicCubeFlow<dim, nstate>(parameters_input)
+template <int dim, int nspecies, int nstate>
+PeriodicEntropyTests<dim, nspecies, nstate>::PeriodicEntropyTests(const PHiLiP::Parameters::AllParameters *const parameters_input)
+        : PeriodicCubeFlow<dim, nspecies, nstate>(parameters_input)
         , unsteady_data_table_filename_with_extension(this->all_param.flow_solver_param.unsteady_data_table_filename+".txt")
 {
-    this->euler_physics = std::dynamic_pointer_cast<Physics::Euler<dim,dim+2,double>>(
-            PHiLiP::Physics::PhysicsFactory<dim,nstate,double>::create_Physics(&(this->all_param)));
+    this->euler_physics = std::dynamic_pointer_cast<Physics::Euler<dim,nspecies,dim+2,double>>(
+            PHiLiP::Physics::PhysicsFactory<dim,nspecies,nstate,double>::create_Physics(&(this->all_param)));
 }
 
-template <int dim, int nstate>
-double PeriodicEntropyTests<dim,nstate>::get_constant_time_step(std::shared_ptr<DGBase<dim,double>> dg) const
+template <int dim, int nspecies, int nstate>
+double PeriodicEntropyTests<dim,nspecies,nstate>::get_constant_time_step(std::shared_ptr<DGBase<dim,nspecies,double>> dg) const
 {
 
     using FlowCaseEnum = Parameters::FlowSolverParam::FlowCaseType;
@@ -50,8 +50,8 @@ double PeriodicEntropyTests<dim,nstate>::get_constant_time_step(std::shared_ptr<
     return constant_time_step;
 }
 
-template<int dim, int nstate>
-double PeriodicEntropyTests<dim, nstate>::compute_integrated_quantities(DGBase<dim, double> &dg, IntegratedQuantityEnum quantity, const int overintegrate) const
+template<int dim, int nspecies, int nstate>
+double PeriodicEntropyTests<dim, nspecies, nstate>::compute_integrated_quantities(DGBase<dim, nspecies, double> &dg, IntegratedQuantityEnum quantity, const int overintegrate) const
 {
     // Check that poly_degree is uniform everywhere
     if (dg.get_max_fe_degree() != dg.get_min_fe_degree()) {
@@ -229,18 +229,18 @@ double PeriodicEntropyTests<dim, nstate>::compute_integrated_quantities(DGBase<d
 }
 
 
-template <int dim, int nstate>
-double PeriodicEntropyTests<dim, nstate>::compute_entropy(
-        const std::shared_ptr <DGBase<dim, double>> dg
+template <int dim, int nspecies, int nstate>
+double PeriodicEntropyTests<dim, nspecies, nstate>::compute_entropy(
+        const std::shared_ptr <DGBase<dim, nspecies, double>> dg
         ) const
 {
      return compute_integrated_quantities(*dg, IntegratedQuantityEnum::numerical_entropy, 0);
 }
 
-template <int dim, int nstate>
-void PeriodicEntropyTests<dim, nstate>::compute_unsteady_data_and_write_to_table(
-        const std::shared_ptr<ODE::ODESolverBase<dim, double>> ode_solver, 
-        const std::shared_ptr <DGBase<dim, double>> dg,
+template <int dim, int nspecies, int nstate>
+void PeriodicEntropyTests<dim, nspecies, nstate>::compute_unsteady_data_and_write_to_table(
+        const std::shared_ptr<ODE::ODESolverBase<dim, nspecies, double>> ode_solver, 
+        const std::shared_ptr <DGBase<dim, nspecies, double>> dg,
         const std::shared_ptr<dealii::TableHandler> unsteady_data_table)
 {
     //unpack current iteration and current time from ode solver
@@ -319,8 +319,8 @@ void PeriodicEntropyTests<dim, nstate>::compute_unsteady_data_and_write_to_table
 
 }
 
-#if PHILIP_DIM>1
-    template class PeriodicEntropyTests <PHILIP_DIM,PHILIP_DIM+2>;
+#if PHILIP_DIM>1 && PHILIP_SPECIES==1
+    template class PeriodicEntropyTests <PHILIP_DIM, PHILIP_SPECIES,PHILIP_DIM+2>;
 #endif
 
 } // FlowSolver namespace

@@ -1,3 +1,5 @@
+#include <boost/preprocessor/seq/for_each.hpp>
+
 #include "ADTypes.hpp"
 
 #include "viscous_numerical_flux.hpp"
@@ -34,7 +36,7 @@ std::array<dealii::Tensor<1,dim,real>, nstate> array_average(
     return array_average;
 }
 
-template<int dim, int nstate, typename real>
+template<int dim, int nspecies, int nstate, typename real>
 std::array<dealii::Tensor<1,dim,real>,nstate> array_jump(
     const std::array<real, nstate> &array1,
     const std::array<real, nstate> &array2,
@@ -49,8 +51,8 @@ std::array<dealii::Tensor<1,dim,real>,nstate> array_jump(
     return array_jump;
 }
 
-template<int dim, int nstate, typename real>
-std::array<real, nstate> CentralViscousNumericalFlux<dim,nstate,real>
+template<int dim, int nspecies, int nstate, typename real>
+std::array<real, nstate> CentralViscousNumericalFlux<dim,nspecies,nstate,real>
 ::evaluate_solution_flux (
     const std::array<real, nstate> &soln_int,
     const std::array<real, nstate> &soln_ext,
@@ -61,8 +63,8 @@ std::array<real, nstate> CentralViscousNumericalFlux<dim,nstate,real>
     return soln_avg;
 }
 
-template<int dim, int nstate, typename real>
-std::array<real, nstate> CentralViscousNumericalFlux<dim,nstate,real>
+template<int dim, int nspecies, int nstate, typename real>
+std::array<real, nstate> CentralViscousNumericalFlux<dim,nspecies,nstate,real>
 ::evaluate_auxiliary_flux (
     const dealii::types::global_dof_index current_cell_index,
     const dealii::types::global_dof_index neighbor_cell_index,
@@ -123,7 +125,7 @@ std::array<real, nstate> CentralViscousNumericalFlux<dim,nstate,real>
         ArrayTensor1 artificial_phys_flux_avg = array_average<nstate,dim,real>(artificial_phys_flux_int, artificial_phys_flux_ext);
 
         // {{A}}*[[u]]
-        ArrayTensor1 soln_jump     = array_jump<dim,nstate,real>(soln_int, soln_ext, normal_int);
+        ArrayTensor1 soln_jump     = array_jump<dim,nspecies,nstate,real>(soln_int, soln_ext, normal_int);
         ArrayTensor1 artificial_A_jumpu_int, artificial_A_jumpu_ext;
         artificial_A_jumpu_int = artificial_dissip->calc_artificial_dissipation_flux (soln_int, soln_jump, artificial_diss_coeff_int);
         artificial_A_jumpu_ext = artificial_dissip->calc_artificial_dissipation_flux (soln_ext, soln_jump, artificial_diss_coeff_ext);
@@ -142,8 +144,8 @@ std::array<real, nstate> CentralViscousNumericalFlux<dim,nstate,real>
     return auxiliary_flux_dot_n;
 }
 
-template<int dim, int nstate, typename real>
-std::array<real, nstate> SymmetricInternalPenalty<dim,nstate,real>
+template<int dim, int nspecies, int nstate, typename real>
+std::array<real, nstate> SymmetricInternalPenalty<dim,nspecies,nstate,real>
 ::evaluate_solution_flux (
     const std::array<real, nstate> &soln_int,
     const std::array<real, nstate> &soln_ext,
@@ -154,8 +156,8 @@ std::array<real, nstate> SymmetricInternalPenalty<dim,nstate,real>
     return soln_avg;
 }
 
-template<int dim, int nstate, typename real>
-std::array<real, nstate> SymmetricInternalPenalty<dim,nstate,real>
+template<int dim, int nspecies, int nstate, typename real>
+std::array<real, nstate> SymmetricInternalPenalty<dim,nspecies,nstate,real>
 ::evaluate_auxiliary_flux (
     const dealii::types::global_dof_index current_cell_index,
     const dealii::types::global_dof_index neighbor_cell_index,
@@ -198,7 +200,7 @@ std::array<real, nstate> SymmetricInternalPenalty<dim,nstate,real>
     ArrayTensor1 phys_flux_avg = array_average<nstate,dim,real>(phys_flux_int, phys_flux_ext);
 
     // {{A}}*[[u]]
-    ArrayTensor1 soln_jump     = array_jump<dim,nstate,real>(soln_int, soln_ext, normal_int);
+    ArrayTensor1 soln_jump     = array_jump<dim,nspecies,nstate,real>(soln_int, soln_ext, normal_int);
     ArrayTensor1 A_jumpu_int, A_jumpu_ext;
     A_jumpu_int = pde_physics->dissipative_flux (soln_int, soln_jump, current_cell_index);
     A_jumpu_ext = pde_physics->dissipative_flux (soln_ext, soln_jump, neighbor_cell_index);
@@ -241,8 +243,8 @@ std::array<real, nstate> SymmetricInternalPenalty<dim,nstate,real>
     return auxiliary_flux_dot_n;
 }
 
-template<int dim, int nstate, typename real>
-std::array<real, nstate> BassiRebay2<dim,nstate,real>
+template<int dim, int nspecies, int nstate, typename real>
+std::array<real, nstate> BassiRebay2<dim,nspecies,nstate,real>
 ::evaluate_solution_flux (
     const std::array<real, nstate> &soln_int,
     const std::array<real, nstate> &soln_ext,
@@ -253,8 +255,8 @@ std::array<real, nstate> BassiRebay2<dim,nstate,real>
     return soln_avg;
 }
 
-template<int dim, int nstate, typename real>
-std::array<real, nstate> BassiRebay2<dim,nstate,real>
+template<int dim, int nspecies, int nstate, typename real>
+std::array<real, nstate> BassiRebay2<dim,nspecies,nstate,real>
 ::evaluate_auxiliary_flux (
     const dealii::types::global_dof_index current_cell_index,
     const dealii::types::global_dof_index neighbor_cell_index,
@@ -325,131 +327,36 @@ std::array<real, nstate> BassiRebay2<dim,nstate,real>
     return auxiliary_flux_dot_n;
 }
 
-// Instantiation
-template class NumericalFluxDissipative<PHILIP_DIM, 1, double>;
-template class NumericalFluxDissipative<PHILIP_DIM, 2, double>;
-template class NumericalFluxDissipative<PHILIP_DIM, 3, double>;
-template class NumericalFluxDissipative<PHILIP_DIM, 4, double>;
-template class NumericalFluxDissipative<PHILIP_DIM, 5, double>;
-template class NumericalFluxDissipative<PHILIP_DIM, 6, double>;
-template class NumericalFluxDissipative<PHILIP_DIM, 1, FadType >;
-template class NumericalFluxDissipative<PHILIP_DIM, 2, FadType >;
-template class NumericalFluxDissipative<PHILIP_DIM, 3, FadType >;
-template class NumericalFluxDissipative<PHILIP_DIM, 4, FadType >;
-template class NumericalFluxDissipative<PHILIP_DIM, 5, FadType >;
-template class NumericalFluxDissipative<PHILIP_DIM, 6, FadType >;
-template class NumericalFluxDissipative<PHILIP_DIM, 1, RadType >;
-template class NumericalFluxDissipative<PHILIP_DIM, 2, RadType >;
-template class NumericalFluxDissipative<PHILIP_DIM, 3, RadType >;
-template class NumericalFluxDissipative<PHILIP_DIM, 4, RadType >;
-template class NumericalFluxDissipative<PHILIP_DIM, 5, RadType >;
-template class NumericalFluxDissipative<PHILIP_DIM, 6, RadType >;
-template class NumericalFluxDissipative<PHILIP_DIM, 1, FadFadType >;
-template class NumericalFluxDissipative<PHILIP_DIM, 2, FadFadType >;
-template class NumericalFluxDissipative<PHILIP_DIM, 3, FadFadType >;
-template class NumericalFluxDissipative<PHILIP_DIM, 4, FadFadType >;
-template class NumericalFluxDissipative<PHILIP_DIM, 5, FadFadType >;
-template class NumericalFluxDissipative<PHILIP_DIM, 6, FadFadType >;
-template class NumericalFluxDissipative<PHILIP_DIM, 1, RadFadType >;
-template class NumericalFluxDissipative<PHILIP_DIM, 2, RadFadType >;
-template class NumericalFluxDissipative<PHILIP_DIM, 3, RadFadType >;
-template class NumericalFluxDissipative<PHILIP_DIM, 4, RadFadType >;
-template class NumericalFluxDissipative<PHILIP_DIM, 5, RadFadType >;
-template class NumericalFluxDissipative<PHILIP_DIM, 6, RadFadType >;
+#if PHILIP_SPECIES==1
+    // Define a sequence of indices representing the range [1, 6]
+    #define POSSIBLE_NSTATE (1)(2)(3)(4)(5)(6)
 
-
-template class SymmetricInternalPenalty<PHILIP_DIM, 1, double>;
-template class SymmetricInternalPenalty<PHILIP_DIM, 2, double>;
-template class SymmetricInternalPenalty<PHILIP_DIM, 3, double>;
-template class SymmetricInternalPenalty<PHILIP_DIM, 4, double>;
-template class SymmetricInternalPenalty<PHILIP_DIM, 5, double>;
-template class SymmetricInternalPenalty<PHILIP_DIM, 6, double>;
-template class SymmetricInternalPenalty<PHILIP_DIM, 1, FadType >;
-template class SymmetricInternalPenalty<PHILIP_DIM, 2, FadType >;
-template class SymmetricInternalPenalty<PHILIP_DIM, 3, FadType >;
-template class SymmetricInternalPenalty<PHILIP_DIM, 4, FadType >;
-template class SymmetricInternalPenalty<PHILIP_DIM, 5, FadType >;
-template class SymmetricInternalPenalty<PHILIP_DIM, 6, FadType >;
-template class SymmetricInternalPenalty<PHILIP_DIM, 1, RadType >;
-template class SymmetricInternalPenalty<PHILIP_DIM, 2, RadType >;
-template class SymmetricInternalPenalty<PHILIP_DIM, 3, RadType >;
-template class SymmetricInternalPenalty<PHILIP_DIM, 4, RadType >;
-template class SymmetricInternalPenalty<PHILIP_DIM, 5, RadType >;
-template class SymmetricInternalPenalty<PHILIP_DIM, 6, RadType >;
-template class SymmetricInternalPenalty<PHILIP_DIM, 1, FadFadType >;
-template class SymmetricInternalPenalty<PHILIP_DIM, 2, FadFadType >;
-template class SymmetricInternalPenalty<PHILIP_DIM, 3, FadFadType >;
-template class SymmetricInternalPenalty<PHILIP_DIM, 4, FadFadType >;
-template class SymmetricInternalPenalty<PHILIP_DIM, 5, FadFadType >;
-template class SymmetricInternalPenalty<PHILIP_DIM, 6, FadFadType >;
-template class SymmetricInternalPenalty<PHILIP_DIM, 1, RadFadType >;
-template class SymmetricInternalPenalty<PHILIP_DIM, 2, RadFadType >;
-template class SymmetricInternalPenalty<PHILIP_DIM, 3, RadFadType >;
-template class SymmetricInternalPenalty<PHILIP_DIM, 4, RadFadType >;
-template class SymmetricInternalPenalty<PHILIP_DIM, 5, RadFadType >;
-template class SymmetricInternalPenalty<PHILIP_DIM, 6, RadFadType >;
-
-template class BassiRebay2<PHILIP_DIM, 1, double>;
-template class BassiRebay2<PHILIP_DIM, 2, double>;
-template class BassiRebay2<PHILIP_DIM, 3, double>;
-template class BassiRebay2<PHILIP_DIM, 4, double>;
-template class BassiRebay2<PHILIP_DIM, 5, double>;
-template class BassiRebay2<PHILIP_DIM, 6, double>;
-template class BassiRebay2<PHILIP_DIM, 1, FadType >;
-template class BassiRebay2<PHILIP_DIM, 2, FadType >;
-template class BassiRebay2<PHILIP_DIM, 3, FadType >;
-template class BassiRebay2<PHILIP_DIM, 4, FadType >;
-template class BassiRebay2<PHILIP_DIM, 5, FadType >;
-template class BassiRebay2<PHILIP_DIM, 6, FadType >;
-template class BassiRebay2<PHILIP_DIM, 1, RadType >;
-template class BassiRebay2<PHILIP_DIM, 2, RadType >;
-template class BassiRebay2<PHILIP_DIM, 3, RadType >;
-template class BassiRebay2<PHILIP_DIM, 4, RadType >;
-template class BassiRebay2<PHILIP_DIM, 5, RadType >;
-template class BassiRebay2<PHILIP_DIM, 6, RadType >;
-template class BassiRebay2<PHILIP_DIM, 1, FadFadType >;
-template class BassiRebay2<PHILIP_DIM, 2, FadFadType >;
-template class BassiRebay2<PHILIP_DIM, 3, FadFadType >;
-template class BassiRebay2<PHILIP_DIM, 4, FadFadType >;
-template class BassiRebay2<PHILIP_DIM, 5, FadFadType >;
-template class BassiRebay2<PHILIP_DIM, 6, FadFadType >;
-template class BassiRebay2<PHILIP_DIM, 1, RadFadType >;
-template class BassiRebay2<PHILIP_DIM, 2, RadFadType >;
-template class BassiRebay2<PHILIP_DIM, 3, RadFadType >;
-template class BassiRebay2<PHILIP_DIM, 4, RadFadType >;
-template class BassiRebay2<PHILIP_DIM, 5, RadFadType >;
-template class BassiRebay2<PHILIP_DIM, 6, RadFadType >;
-
-template class CentralViscousNumericalFlux<PHILIP_DIM, 1, double>;
-template class CentralViscousNumericalFlux<PHILIP_DIM, 2, double>;
-template class CentralViscousNumericalFlux<PHILIP_DIM, 3, double>;
-template class CentralViscousNumericalFlux<PHILIP_DIM, 4, double>;
-template class CentralViscousNumericalFlux<PHILIP_DIM, 5, double>;
-template class CentralViscousNumericalFlux<PHILIP_DIM, 6, double>;
-template class CentralViscousNumericalFlux<PHILIP_DIM, 1, FadType >;
-template class CentralViscousNumericalFlux<PHILIP_DIM, 2, FadType >;
-template class CentralViscousNumericalFlux<PHILIP_DIM, 3, FadType >;
-template class CentralViscousNumericalFlux<PHILIP_DIM, 4, FadType >;
-template class CentralViscousNumericalFlux<PHILIP_DIM, 5, FadType >;
-template class CentralViscousNumericalFlux<PHILIP_DIM, 6, FadType >;
-template class CentralViscousNumericalFlux<PHILIP_DIM, 1, RadType >;
-template class CentralViscousNumericalFlux<PHILIP_DIM, 2, RadType >;
-template class CentralViscousNumericalFlux<PHILIP_DIM, 3, RadType >;
-template class CentralViscousNumericalFlux<PHILIP_DIM, 4, RadType >;
-template class CentralViscousNumericalFlux<PHILIP_DIM, 5, RadType >;
-template class CentralViscousNumericalFlux<PHILIP_DIM, 6, RadType >;
-template class CentralViscousNumericalFlux<PHILIP_DIM, 1, FadFadType >;
-template class CentralViscousNumericalFlux<PHILIP_DIM, 2, FadFadType >;
-template class CentralViscousNumericalFlux<PHILIP_DIM, 3, FadFadType >;
-template class CentralViscousNumericalFlux<PHILIP_DIM, 4, FadFadType >;
-template class CentralViscousNumericalFlux<PHILIP_DIM, 5, FadFadType >;
-template class CentralViscousNumericalFlux<PHILIP_DIM, 6, FadFadType >;
-template class CentralViscousNumericalFlux<PHILIP_DIM, 1, RadFadType >;
-template class CentralViscousNumericalFlux<PHILIP_DIM, 2, RadFadType >;
-template class CentralViscousNumericalFlux<PHILIP_DIM, 3, RadFadType >;
-template class CentralViscousNumericalFlux<PHILIP_DIM, 4, RadFadType >;
-template class CentralViscousNumericalFlux<PHILIP_DIM, 5, RadFadType >;
-template class CentralViscousNumericalFlux<PHILIP_DIM, 6, RadFadType >;
-
+    // Define a macro to instantiate functions for a specific nstate
+    #define INSTANTIATE_FOR_NSTATE(r, data, nstate) \
+        template class NumericalFluxDissipative<PHILIP_DIM, PHILIP_SPECIES, nstate, double>; \
+        template class NumericalFluxDissipative<PHILIP_DIM, PHILIP_SPECIES, nstate, FadType>; \
+        template class NumericalFluxDissipative<PHILIP_DIM, PHILIP_SPECIES, nstate, RadType>; \
+        template class NumericalFluxDissipative<PHILIP_DIM, PHILIP_SPECIES, nstate, FadFadType>; \
+        template class NumericalFluxDissipative<PHILIP_DIM, PHILIP_SPECIES, nstate, RadFadType>; \
+        \
+        template class SymmetricInternalPenalty<PHILIP_DIM, PHILIP_SPECIES, nstate, double>; \
+        template class SymmetricInternalPenalty<PHILIP_DIM, PHILIP_SPECIES, nstate, FadType>; \
+        template class SymmetricInternalPenalty<PHILIP_DIM, PHILIP_SPECIES, nstate, RadType>; \
+        template class SymmetricInternalPenalty<PHILIP_DIM, PHILIP_SPECIES, nstate, FadFadType>; \
+        template class SymmetricInternalPenalty<PHILIP_DIM, PHILIP_SPECIES, nstate, RadFadType>; \
+        \
+        template class BassiRebay2<PHILIP_DIM, PHILIP_SPECIES, nstate, double>; \
+        template class BassiRebay2<PHILIP_DIM, PHILIP_SPECIES, nstate, FadType>; \
+        template class BassiRebay2<PHILIP_DIM, PHILIP_SPECIES, nstate, RadType>; \
+        template class BassiRebay2<PHILIP_DIM, PHILIP_SPECIES, nstate, FadFadType>; \
+        template class BassiRebay2<PHILIP_DIM, PHILIP_SPECIES, nstate, RadFadType>; \
+        \
+        template class CentralViscousNumericalFlux<PHILIP_DIM, PHILIP_SPECIES, nstate, double>; \
+        template class CentralViscousNumericalFlux<PHILIP_DIM, PHILIP_SPECIES, nstate, FadType>; \
+        template class CentralViscousNumericalFlux<PHILIP_DIM, PHILIP_SPECIES, nstate, RadType>; \
+        template class CentralViscousNumericalFlux<PHILIP_DIM, PHILIP_SPECIES, nstate, FadFadType>; \
+        template class CentralViscousNumericalFlux<PHILIP_DIM, PHILIP_SPECIES, nstate, RadFadType>;
+    BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_FOR_NSTATE, _, POSSIBLE_NSTATE)
+#endif
 } // NumericalFlux namespace
 } // PHiLiP namespace

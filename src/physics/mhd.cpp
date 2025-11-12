@@ -10,8 +10,8 @@
 namespace PHiLiP {
 namespace Physics {
 
-template <int dim, int nstate, typename real>
-std::array<real,nstate> MHD<dim,nstate,real>
+template <int dim, int nspecies, int nstate, typename real>
+std::array<real,nstate> MHD<dim,nspecies,nstate,real>
 ::source_term (
     const dealii::Point<dim,real> &pos,
     const std::array<real,nstate> &conservative_soln,
@@ -21,8 +21,8 @@ std::array<real,nstate> MHD<dim,nstate,real>
     return source_term(pos,conservative_soln,current_time);
 }
 
-template <int dim, int nstate, typename real>
-std::array<real,nstate> MHD<dim,nstate,real>
+template <int dim, int nspecies, int nstate, typename real>
+std::array<real,nstate> MHD<dim,nspecies,nstate,real>
 ::source_term (
     const dealii::Point<dim,real> &/*pos*/,
     const std::array<real,nstate> &/*conservative_soln*/,
@@ -37,8 +37,8 @@ std::array<real,nstate> MHD<dim,nstate,real>
 }
 
 //incomplete
-template <int dim, int nstate, typename real>
-inline std::array<real,nstate> MHD<dim,nstate,real>
+template <int dim, int nspecies, int nstate, typename real>
+inline std::array<real,nstate> MHD<dim,nspecies,nstate,real>
 ::convert_conservative_to_primitive ( const std::array<real,nstate> &conservative_soln ) const
 {
     std::array<real, nstate> primitive_soln;
@@ -56,8 +56,8 @@ inline std::array<real,nstate> MHD<dim,nstate,real>
 }
 
 //incomplete
-template <int dim, int nstate, typename real>
-inline std::array<real,nstate> MHD<dim,nstate,real>
+template <int dim, int nspecies, int nstate, typename real>
+inline std::array<real,nstate> MHD<dim,nspecies,nstate,real>
 ::convert_primitive_to_conservative ( const std::array<real,nstate> &primitive_soln ) const
 {
 
@@ -74,8 +74,8 @@ inline std::array<real,nstate> MHD<dim,nstate,real>
     return conservative_soln;
 }
 
-template <int dim, int nstate, typename real>
-inline dealii::Tensor<1,dim,real> MHD<dim,nstate,real>
+template <int dim, int nspecies, int nstate, typename real>
+inline dealii::Tensor<1,dim,real> MHD<dim,nspecies,nstate,real>
 ::compute_velocities ( const std::array<real,nstate> &conservative_soln ) const
 {
     const real density = conservative_soln[0];
@@ -84,8 +84,8 @@ inline dealii::Tensor<1,dim,real> MHD<dim,nstate,real>
     return vel;
 }
 
-template <int dim, int nstate, typename real>
-inline real MHD<dim,nstate,real>
+template <int dim, int nspecies, int nstate, typename real>
+inline real MHD<dim,nspecies,nstate,real>
 ::compute_velocity_squared ( const dealii::Tensor<1,dim,real> &velocities ) const
 {
     real vel2 = 0.0;
@@ -93,8 +93,8 @@ inline real MHD<dim,nstate,real>
     return vel2;
 }
 
-template <int dim, int nstate, typename real>
-inline dealii::Tensor<1,dim,real> MHD<dim,nstate,real>
+template <int dim, int nspecies, int nstate, typename real>
+inline dealii::Tensor<1,dim,real> MHD<dim,nspecies,nstate,real>
 ::extract_velocities_from_primitive ( const std::array<real,nstate> &primitive_soln ) const
 {
     dealii::Tensor<1,dim,real> velocities;
@@ -104,8 +104,8 @@ inline dealii::Tensor<1,dim,real> MHD<dim,nstate,real>
 
 
 //incomplete
-template <int dim, int nstate, typename real>
-inline real MHD<dim,nstate,real>
+template <int dim, int nspecies, int nstate, typename real>
+inline real MHD<dim,nspecies,nstate,real>
 ::compute_total_energy ( const std::array<real,nstate> &primitive_soln ) const
 {
     const real density = primitive_soln[0];
@@ -118,8 +118,8 @@ inline real MHD<dim,nstate,real>
 }
 
 //incomplete
-template <int dim, int nstate, typename real>
-inline real MHD<dim,nstate,real>
+template <int dim, int nspecies, int nstate, typename real>
+inline real MHD<dim,nspecies,nstate,real>
 ::compute_entropy_measure ( const std::array<real,nstate> &conservative_soln ) const
 {
     const real density = conservative_soln[0];
@@ -129,8 +129,8 @@ inline real MHD<dim,nstate,real>
 }
 
 //incomplete
-template <int dim, int nstate, typename real>
-inline real MHD<dim,nstate,real>
+template <int dim, int nspecies, int nstate, typename real>
+inline real MHD<dim,nspecies,nstate,real>
 ::compute_specific_enthalpy ( const std::array<real,nstate> &conservative_soln, const real pressure ) const
 {
     const real density = conservative_soln[0];
@@ -140,8 +140,8 @@ inline real MHD<dim,nstate,real>
 }
 
 
-template <int dim, int nstate, typename real>
-inline real MHD<dim,nstate,real>
+template <int dim, int nspecies, int nstate, typename real>
+inline real MHD<dim,nspecies,nstate,real>
 ::compute_dimensional_temperature ( const std::array<real,nstate> &primitive_soln ) const
 {
     const real density = primitive_soln[0];
@@ -150,8 +150,8 @@ inline real MHD<dim,nstate,real>
     return temperature;
 }
 
-template <int dim, int nstate, typename real>
-inline real MHD<dim,nstate,real>
+template <int dim, int nspecies, int nstate, typename real>
+inline real MHD<dim,nspecies,nstate,real>
 ::compute_temperature ( const std::array<real,nstate> &primitive_soln ) const
 {
     const real dimensional_temperature = compute_dimensional_temperature(primitive_soln);
@@ -159,15 +159,15 @@ inline real MHD<dim,nstate,real>
     return temperature;
 }
 
-template <int dim, int nstate, typename real>
-inline real MHD<dim,nstate,real>
+template <int dim, int nspecies, int nstate, typename real>
+inline real MHD<dim,nspecies,nstate,real>
 ::compute_density_from_pressure_temperature ( const real pressure, const real temperature ) const
 {
     const real density = gam*pressure/temperature /** mach_inf_sqr*/;
     return density;
 }
-template <int dim, int nstate, typename real>
-inline real MHD<dim,nstate,real>
+template <int dim, int nspecies, int nstate, typename real>
+inline real MHD<dim,nspecies,nstate,real>
 ::compute_temperature_from_density_pressure ( const real density, const real pressure ) const
 {
     const real temperature = gam*pressure/density /* mach_inf_sqr*/;
@@ -175,8 +175,8 @@ inline real MHD<dim,nstate,real>
 }
 
 
-template <int dim, int nstate, typename real>
-inline real MHD<dim,nstate,real>
+template <int dim, int nspecies, int nstate, typename real>
+inline real MHD<dim,nspecies,nstate,real>
 ::compute_pressure ( const std::array<real,nstate> &conservative_soln ) const
 {
     const real density = conservative_soln[0];
@@ -205,8 +205,8 @@ inline real MHD<dim,nstate,real>
     return pressure;
 }
 
-template <int dim, int nstate, typename real>
-inline real MHD<dim,nstate,real>
+template <int dim, int nspecies, int nstate, typename real>
+inline real MHD<dim,nspecies,nstate,real>
 ::compute_sound ( const std::array<real,nstate> &conservative_soln ) const
 {
     real density = conservative_soln[0];
@@ -223,8 +223,8 @@ inline real MHD<dim,nstate,real>
     return sound;
 }
 
-template <int dim, int nstate, typename real>
-inline real MHD<dim,nstate,real>
+template <int dim, int nspecies, int nstate, typename real>
+inline real MHD<dim,nspecies,nstate,real>
 ::compute_sound ( const real density, const real pressure ) const
 {
     assert(density > 0);
@@ -232,8 +232,8 @@ inline real MHD<dim,nstate,real>
     return sound;
 }
 
-template <int dim, int nstate, typename real>
-inline real MHD<dim,nstate,real>
+template <int dim, int nspecies, int nstate, typename real>
+inline real MHD<dim,nspecies,nstate,real>
 ::compute_mach_number ( const std::array<real,nstate> &conservative_soln ) const
 {
     const dealii::Tensor<1,dim,real> vel = compute_velocities(conservative_soln);
@@ -243,8 +243,8 @@ inline real MHD<dim,nstate,real>
     return mach_number;
 }
 
-template <int dim, int nstate, typename real>
-inline real MHD<dim,nstate,real>
+template <int dim, int nspecies, int nstate, typename real>
+inline real MHD<dim,nspecies,nstate,real>
 ::compute_magnetic_energy (const std::array<real,nstate> &conservative_soln) const
 {
     real magnetic_energy = 0;
@@ -256,16 +256,16 @@ inline real MHD<dim,nstate,real>
 
 // Split form functions:
 
-template <int dim, int nstate, typename real>
-inline real MHD<dim,nstate,real>::
+template <int dim, int nspecies, int nstate, typename real>
+inline real MHD<dim,nspecies,nstate,real>::
 compute_mean_density(const std::array<real,nstate> &soln_const,
                           const std::array<real,nstate> &soln_loop) const
 {
     return (soln_const[0] + soln_loop[0])/2.;
 }
 
-template <int dim, int nstate, typename real>
-inline real MHD<dim,nstate,real>::
+template <int dim, int nspecies, int nstate, typename real>
+inline real MHD<dim,nspecies,nstate,real>::
 compute_mean_pressure(const std::array<real,nstate> &soln_const,
                       const std::array<real,nstate> &soln_loop) const
 {
@@ -274,8 +274,8 @@ compute_mean_pressure(const std::array<real,nstate> &soln_const,
     return (pressure_const + pressure_loop)/2.;
 }
 
-template <int dim, int nstate, typename real>
-inline dealii::Tensor<1,dim,real> MHD<dim,nstate,real>::
+template <int dim, int nspecies, int nstate, typename real>
+inline dealii::Tensor<1,dim,real> MHD<dim,nspecies,nstate,real>::
 compute_mean_velocities(const std::array<real,nstate> &soln_const,
                         const std::array<real,nstate> &soln_loop) const
 {
@@ -289,8 +289,8 @@ compute_mean_velocities(const std::array<real,nstate> &soln_const,
     return mean_vel;
 }
 
-template <int dim, int nstate, typename real>
-inline real MHD<dim,nstate,real>::
+template <int dim, int nspecies, int nstate, typename real>
+inline real MHD<dim,nspecies,nstate,real>::
 compute_mean_specific_energy(const std::array<real,nstate> &soln_const,
                              const std::array<real,nstate> &soln_loop) const
 {
@@ -298,8 +298,8 @@ compute_mean_specific_energy(const std::array<real,nstate> &soln_const,
 }
 
 
-template <int dim, int nstate, typename real>
-std::array<dealii::Tensor<1,dim,real>,nstate> MHD<dim,nstate,real>
+template <int dim, int nspecies, int nstate, typename real>
+std::array<dealii::Tensor<1,dim,real>,nstate> MHD<dim,nspecies,nstate,real>
 ::convective_flux (const std::array<real,nstate> &conservative_soln) const
 {
     std::array<dealii::Tensor<1,dim,real>,nstate> conv_flux;
@@ -324,8 +324,8 @@ std::array<dealii::Tensor<1,dim,real>,nstate> MHD<dim,nstate,real>
     return conv_flux;
 }
 
-template <int dim, int nstate, typename real>
-std::array<real,nstate> MHD<dim, nstate, real>
+template <int dim, int nspecies, int nstate, typename real>
+std::array<real,nstate> MHD<dim, nspecies, nstate, real>
 ::compute_entropy_variables (
     const std::array<real,nstate> &conservative_soln) const
 {
@@ -334,8 +334,8 @@ std::array<real,nstate> MHD<dim, nstate, real>
     return conservative_soln;
 }
 
-template <int dim, int nstate, typename real>
-std::array<real,nstate> MHD<dim, nstate, real>
+template <int dim, int nspecies, int nstate, typename real>
+std::array<real,nstate> MHD<dim, nspecies, nstate, real>
 ::compute_conservative_variables_from_entropy_variables (
     const std::array<real,nstate> &entropy_var) const
 {
@@ -344,8 +344,8 @@ std::array<real,nstate> MHD<dim, nstate, real>
     return entropy_var;
 }
 
-template <int dim, int nstate, typename real>
-std::array<real,nstate> MHD<dim,nstate,real>
+template <int dim, int nspecies, int nstate, typename real>
+std::array<real,nstate> MHD<dim,nspecies,nstate,real>
 ::convective_normal_flux (const std::array<real,nstate> &conservative_soln, const dealii::Tensor<1,dim,real> &normal) const
 {
     std::array<real, nstate> conv_normal_flux;
@@ -372,8 +372,8 @@ std::array<real,nstate> MHD<dim,nstate,real>
     return conv_normal_flux;
 }
 
-template <int dim, int nstate, typename real>
-dealii::Tensor<2,nstate,real> MHD<dim,nstate,real>
+template <int dim, int nspecies, int nstate, typename real>
+dealii::Tensor<2,nstate,real> MHD<dim,nspecies,nstate,real>
 ::convective_flux_directional_jacobian (
     const std::array<real,nstate> &conservative_soln,
     const dealii::Tensor<1,dim,real> &normal) const
@@ -417,8 +417,8 @@ dealii::Tensor<2,nstate,real> MHD<dim,nstate,real>
     return jacobian;
 }
 
-template <int dim, int nstate, typename real>
-std::array<real,nstate> MHD<dim,nstate,real>
+template <int dim, int nspecies, int nstate, typename real>
+std::array<real,nstate> MHD<dim,nspecies,nstate,real>
 ::convective_eigenvalues (
     const std::array<real,nstate> &conservative_soln,
     const dealii::Tensor<1,dim,real> &normal) const
@@ -436,8 +436,8 @@ std::array<real,nstate> MHD<dim,nstate,real>
     }
     return eig;
 }
-template <int dim, int nstate, typename real>
-real MHD<dim,nstate,real>
+template <int dim, int nspecies, int nstate, typename real>
+real MHD<dim,nspecies,nstate,real>
 ::max_convective_eigenvalue (const std::array<real,nstate> &conservative_soln) const
 {
     //std::cout << "going to calculate max eig" << std::endl;
@@ -459,15 +459,15 @@ real MHD<dim,nstate,real>
     return max_eig;
 }
 
-template <int dim, int nstate, typename real>
-real MHD<dim,nstate,real>
+template <int dim, int nspecies, int nstate, typename real>
+real MHD<dim,nspecies,nstate,real>
 ::max_viscous_eigenvalue (const std::array<real,nstate> &/*conservative_soln*/) const
 {
     return 0.0;
 }
 
-template <int dim, int nstate, typename real>
-std::array<dealii::Tensor<1,dim,real>,nstate> MHD<dim,nstate,real>
+template <int dim, int nspecies, int nstate, typename real>
+std::array<dealii::Tensor<1,dim,real>,nstate> MHD<dim,nspecies,nstate,real>
 ::dissipative_flux (
     const std::array<real,nstate> &conservative_soln,
     const std::array<dealii::Tensor<1,dim,real>,nstate> &solution_gradient,
@@ -476,8 +476,8 @@ std::array<dealii::Tensor<1,dim,real>,nstate> MHD<dim,nstate,real>
     return dissipative_flux(conservative_soln,solution_gradient);
 }
 
-template <int dim, int nstate, typename real>
-std::array<dealii::Tensor<1,dim,real>,nstate> MHD<dim,nstate,real>
+template <int dim, int nspecies, int nstate, typename real>
+std::array<dealii::Tensor<1,dim,real>,nstate> MHD<dim,nspecies,nstate,real>
 ::dissipative_flux (
     const std::array<real,nstate> &/*conservative_soln*/,
     const std::array<dealii::Tensor<1,dim,real>,nstate> &/*solution_gradient*/) const
@@ -490,8 +490,8 @@ std::array<dealii::Tensor<1,dim,real>,nstate> MHD<dim,nstate,real>
     return diss_flux;
 }
 
-template <int dim, int nstate, typename real>
-void MHD<dim,nstate,real>
+template <int dim, int nspecies, int nstate, typename real>
+void MHD<dim,nspecies,nstate,real>
 ::boundary_face_values (
    const int /*boundary_type*/,
    const dealii::Point<dim, real> &pos,
@@ -539,8 +539,8 @@ void MHD<dim,nstate,real>
     }
 }
 
-//template <int dim, int nstate, typename real>
-//void MHD<dim,nstate,real>
+//template <int dim, int nspecies, int nstate, typename real>
+//void MHD<dim,nspecies,nstate,real>
 //::boundary_face_values (
 //   const int boundary_type,
 //   const dealii::Point<dim, real> &pos,
@@ -759,8 +759,8 @@ void MHD<dim,nstate,real>
 //    }
 //}
 //
-//template <int dim, int nstate, typename real>
-//dealii::Vector<double> MHD<dim,nstate,real>::post_compute_derived_quantities_vector (
+//template <int dim, int nspecies, int nstate, typename real>
+//dealii::Vector<double> MHD<dim,nspecies,nstate,real>::post_compute_derived_quantities_vector (
 //    const dealii::Vector<double>              &uh,
 //    const std::vector<dealii::Tensor<1,dim> > &duh,
 //    const std::vector<dealii::Tensor<2,dim> > &dduh,
@@ -768,7 +768,7 @@ void MHD<dim,nstate,real>
 //    const dealii::Point<dim>                  &evaluation_points) const
 //{
 //    std::vector<std::string> names = post_get_names ();
-//    dealii::Vector<double> computed_quantities = PhysicsBase<dim,nstate,real>::post_compute_derived_quantities_vector ( uh, duh, dduh, normals, evaluation_points);
+//    dealii::Vector<double> computed_quantities = PhysicsBase<dim,nspecies,nstate,real>::post_compute_derived_quantities_vector ( uh, duh, dduh, normals, evaluation_points);
 //    unsigned int current_data_index = computed_quantities.size() - 1;
 //    computed_quantities.grow_or_shrink(names.size());
 //    if constexpr (std::is_same<real,double>::value) {
@@ -810,12 +810,12 @@ void MHD<dim,nstate,real>
 //    return computed_quantities;
 //}
 //
-//template <int dim, int nstate, typename real>
-//std::vector<dealii::DataComponentInterpretation::DataComponentInterpretation> MHD<dim,nstate,real>
+//template <int dim, int nspecies, int nstate, typename real>
+//std::vector<dealii::DataComponentInterpretation::DataComponentInterpretation> MHD<dim,nspecies,nstate,real>
 //::post_get_data_component_interpretation () const
 //{
 //    namespace DCI = dealii::DataComponentInterpretation;
-//    std::vector<DCI::DataComponentInterpretation> interpretation = PhysicsBase<dim,nstate,real>::post_get_data_component_interpretation (); // state variables
+//    std::vector<DCI::DataComponentInterpretation> interpretation = PhysicsBase<dim,nspecies,nstate,real>::post_get_data_component_interpretation (); // state variables
 //    interpretation.push_back (DCI::component_is_scalar); // Density
 //    for (unsigned int d=0; d<dim; ++d) {
 //        interpretation.push_back (DCI::component_is_part_of_vector); // Velocity
@@ -837,10 +837,10 @@ void MHD<dim,nstate,real>
 //}
 //
 //
-//template <int dim, int nstate, typename real>
-//std::vector<std::string> MHD<dim,nstate,real> ::post_get_names () const
+//template <int dim, int nspecies, int nstate, typename real>
+//std::vector<std::string> MHD<dim,nspecies,nstate,real> ::post_get_names () const
 //{
-//    std::vector<std::string> names = PhysicsBase<dim,nstate,real>::post_get_names ();
+//    std::vector<std::string> names = PhysicsBase<dim,nspecies,nstate,real>::post_get_names ();
 //    names.push_back ("density");
 //    for (unsigned int d=0; d<dim; ++d) {
 //      names.push_back ("velocity");
@@ -857,20 +857,21 @@ void MHD<dim,nstate,real>
 //    return names;
 //}
 //
-//template <int dim, int nstate, typename real>
-//dealii::UpdateFlags MHD<dim,nstate,real>
+//template <int dim, int nspecies, int nstate, typename real>
+//dealii::UpdateFlags MHD<dim,nspecies,nstate,real>
 //::post_get_needed_update_flags () const
 //{
 //    //return update_values | update_gradients;
 //    return dealii::update_values;
 //}
 
+#if PHILIP_SPECIES==1
 // Instantiate explicitly
-template class MHD < PHILIP_DIM, 8, double >;
-template class MHD < PHILIP_DIM, 8, FadType >;
-template class MHD < PHILIP_DIM, 8, RadType >;
-template class MHD < PHILIP_DIM, 8, FadFadType >;
-template class MHD < PHILIP_DIM, 8, RadFadType >;
-
+template class MHD < PHILIP_DIM, PHILIP_SPECIES, 8, double >;
+template class MHD < PHILIP_DIM, PHILIP_SPECIES, 8, FadType >;
+template class MHD < PHILIP_DIM, PHILIP_SPECIES, 8, RadType >;
+template class MHD < PHILIP_DIM, PHILIP_SPECIES, 8, FadFadType >;
+template class MHD < PHILIP_DIM, PHILIP_SPECIES, 8, RadFadType >;
+#endif
 } // Physics namespace
 } // PHiLiP namespace

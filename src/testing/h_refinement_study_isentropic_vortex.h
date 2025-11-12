@@ -11,8 +11,8 @@ namespace PHiLiP {
 namespace Tests {
 
 /// h refinement test for the isentropic vortex advection test case. 
-template <int dim, int nstate>
-class HRefinementStudyIsentropicVortex: public GeneralRefinementStudy<dim,nstate>
+template <int dim, int nspecies, int nstate>
+class HRefinementStudyIsentropicVortex: public GeneralRefinementStudy<dim,nspecies,nstate>
 {
 public:
     /// Constructor
@@ -30,7 +30,7 @@ protected:
     /// Negative norm_p is used to indicate L_infinity norm
     void calculate_Lp_error_at_final_time_wrt_function(double &Lp_error_density, 
             double &Lp_error_pressure,
-            std::shared_ptr<DGBase<dim,double>> dg,
+            std::shared_ptr<DGBase<dim,nspecies,double>> dg,
             const Parameters::AllParameters parameters,
             double final_time, 
             int norm_p) const;

@@ -11,8 +11,8 @@ namespace PHiLiP {
 
 namespace GridRefinement {
 
-template <int dim, int nstate, typename real, typename MeshType>
-void GridRefinement_FixedFraction<dim,nstate,real,MeshType>::refine_grid()
+template <int dim, int nspecies, int nstate, typename real, typename MeshType>
+void GridRefinement_FixedFraction<dim,nspecies,nstate,real,MeshType>::refine_grid()
 {
     using RefinementTypeEnum = PHiLiP::Parameters::GridRefinementParam::RefinementType;
     RefinementTypeEnum refinement_type = this->grid_refinement_param.refinement_type;
@@ -83,8 +83,8 @@ void GridRefinement_FixedFraction<dim,nstate,real,MeshType>::refine_grid()
     this->iteration++;
 }
 
-template <int dim, int nstate, typename real, typename MeshType>
-void GridRefinement_FixedFraction<dim,nstate,real,MeshType>::refine_grid_h()
+template <int dim, int nspecies, int nstate, typename real, typename MeshType>
+void GridRefinement_FixedFraction<dim,nspecies,nstate,real,MeshType>::refine_grid_h()
 {
     // Performing the call for refinement
 // #if PHILIP_DIM==1
@@ -102,8 +102,8 @@ void GridRefinement_FixedFraction<dim,nstate,real,MeshType>::refine_grid_h()
 // #endif
 }
 
-template <int dim, int nstate, typename real, typename MeshType>
-void GridRefinement_FixedFraction<dim,nstate,real,MeshType>::refine_grid_p()
+template <int dim, int nspecies, int nstate, typename real, typename MeshType>
+void GridRefinement_FixedFraction<dim,nspecies,nstate,real,MeshType>::refine_grid_p()
 {
     // flags cells using refine_grid_h, then loop over and replace any h refinement flags with a polynomial enrichment
     refine_grid_h();
@@ -116,8 +116,8 @@ void GridRefinement_FixedFraction<dim,nstate,real,MeshType>::refine_grid_p()
             }
 }
 
-template <int dim, int nstate, typename real, typename MeshType>
-void GridRefinement_FixedFraction<dim,nstate,real,MeshType>::refine_grid_hp()
+template <int dim, int nspecies, int nstate, typename real, typename MeshType>
+void GridRefinement_FixedFraction<dim,nspecies,nstate,real,MeshType>::refine_grid_hp()
 {
     // TODO: Same idea as above, except the switch in refine_grid_p
     //       now has to meet some tolerance, e.g. smoothness, jump
@@ -140,8 +140,8 @@ void GridRefinement_FixedFraction<dim,nstate,real,MeshType>::refine_grid_hp()
             }
 }
 
-template <int dim, int nstate, typename real, typename MeshType>
-void GridRefinement_FixedFraction<dim,nstate,real,MeshType>::refine_boundary_h()
+template <int dim, int nspecies, int nstate, typename real, typename MeshType>
+void GridRefinement_FixedFraction<dim,nspecies,nstate,real,MeshType>::refine_boundary_h()
 {
     // setting refinement flag on all boundary cells of the dof_handler
     for(auto cell = this->dg->dof_handler.begin_active(); cell != this->dg->dof_handler.end(); ++cell){
@@ -157,8 +157,8 @@ void GridRefinement_FixedFraction<dim,nstate,real,MeshType>::refine_boundary_h()
     }
 }
 
-template <int dim, int nstate, typename real, typename MeshType>
-void GridRefinement_FixedFraction<dim,nstate,real,MeshType>::smoothness_indicator()
+template <int dim, int nspecies, int nstate, typename real, typename MeshType>
+void GridRefinement_FixedFraction<dim,nspecies,nstate,real,MeshType>::smoothness_indicator()
 {
     // reads the options and determines the proper smoothness indicator
     smoothness.reinit(this->tria->n_active_cells());
@@ -169,8 +169,8 @@ void GridRefinement_FixedFraction<dim,nstate,real,MeshType>::smoothness_indicato
     // placeholder function for future added hp-refinement threshold function
 }
 
-template <int dim, int nstate, typename real, typename MeshType>
-void GridRefinement_FixedFraction<dim,nstate,real,MeshType>::anisotropic_h()
+template <int dim, int nspecies, int nstate, typename real, typename MeshType>
+void GridRefinement_FixedFraction<dim,nspecies,nstate,real,MeshType>::anisotropic_h()
 {
     using AnisoIndicator = typename PHiLiP::Parameters::GridRefinementParam::AnisoIndicator;
     AnisoIndicator aniso_indicator = this->grid_refinement_param.anisotropic_indicator;
@@ -184,8 +184,8 @@ void GridRefinement_FixedFraction<dim,nstate,real,MeshType>::anisotropic_h()
 }
 
 // based on dealii step-30
-template <int dim, int nstate, typename real, typename MeshType>
-void GridRefinement_FixedFraction<dim,nstate,real,MeshType>::anisotropic_h_jump_based()
+template <int dim, int nspecies, int nstate, typename real, typename MeshType>
+void GridRefinement_FixedFraction<dim,nspecies,nstate,real,MeshType>::anisotropic_h_jump_based()
 {
     const dealii::hp::MappingCollection<dim> mapping_collection(*(this->dg->high_order_grid->mapping_fe_field));
     const dealii::hp::FECollection<dim>      fe_collection(this->dg->fe_collection);
@@ -314,8 +314,8 @@ void GridRefinement_FixedFraction<dim,nstate,real,MeshType>::anisotropic_h_jump_
     }    
 }
 
-template <int dim, int nstate, typename real, typename MeshType>
-void GridRefinement_FixedFraction<dim,nstate,real,MeshType>::anisotropic_h_reconstruction_based()
+template <int dim, int nspecies, int nstate, typename real, typename MeshType>
+void GridRefinement_FixedFraction<dim,nspecies,nstate,real,MeshType>::anisotropic_h_reconstruction_based()
 {
     // mapping
     const dealii::hp::MappingCollection<dim> mapping_collection(*(this->dg->high_order_grid->mapping_fe_field));
@@ -324,7 +324,7 @@ void GridRefinement_FixedFraction<dim,nstate,real,MeshType>::anisotropic_h_recon
     const unsigned int rel_order = 1;
 
     // generating object to reconstruct derivatives
-    ReconstructPoly<dim,nstate,real> reconstruct_poly(
+    ReconstructPoly<dim,nspecies,nstate,real> reconstruct_poly(
         this->dg->dof_handler,
         mapping_collection,
         this->dg->fe_collection,
@@ -384,8 +384,8 @@ void GridRefinement_FixedFraction<dim,nstate,real,MeshType>::anisotropic_h_recon
     }
 }
 
-template <int dim, int nstate, typename real, typename MeshType>
-void GridRefinement_FixedFraction<dim,nstate,real,MeshType>::error_indicator()
+template <int dim, int nspecies, int nstate, typename real, typename MeshType>
+void GridRefinement_FixedFraction<dim,nspecies,nstate,real,MeshType>::error_indicator()
 {
     // different cases depending on indicator types
     using ErrorIndicatorEnum = PHiLiP::Parameters::GridRefinementParam::ErrorIndicator;
@@ -402,14 +402,14 @@ void GridRefinement_FixedFraction<dim,nstate,real,MeshType>::error_indicator()
     }
 }
 
-template <int dim, int nstate, typename real, typename MeshType>
-void GridRefinement_FixedFraction<dim,nstate,real,MeshType>::error_indicator_error()
+template <int dim, int nspecies, int nstate, typename real, typename MeshType>
+void GridRefinement_FixedFraction<dim,nspecies,nstate,real,MeshType>::error_indicator_error()
 {
     // TODO: update this to work with p-adaptive schemes (will need proper fe_values for each p)
     // see dg.cpp
     // const auto mapping = (*(high_order_grid.mapping_fe_field));
     // dealii::hp::MappingCollection<dim> mapping_collection(mapping);
-    // dealii::hp::FEValues<dim,dim> fe_values_collection(mapping_collection, fe_collection, this->dg->volume_quadrature_collection, this->dg->volume_update_flags);
+    // dealii::hp::FEValues<dim,dim>  fe_values_collection(mapping_collection, fe_collection, this->dg->volume_quadrature_collection, this->dg->volume_update_flags);
 
     // use manufactured solution to measure the cell-wise error (overintegrate)
     int overintegrate = 10;
@@ -453,8 +453,8 @@ void GridRefinement_FixedFraction<dim,nstate,real,MeshType>::error_indicator_err
 
 }
 
-template <int dim, int nstate, typename real, typename MeshType>
-void GridRefinement_FixedFraction<dim,nstate,real,MeshType>::error_indicator_hessian()
+template <int dim, int nspecies, int nstate, typename real, typename MeshType>
+void GridRefinement_FixedFraction<dim,nspecies,nstate,real,MeshType>::error_indicator_hessian()
 {
     // TODO: Feature based, should use the reconstructed next mode as an indicator
 
@@ -465,7 +465,7 @@ void GridRefinement_FixedFraction<dim,nstate,real,MeshType>::error_indicator_hes
     const unsigned int rel_order = 1;
 
     // call to the function to reconstruct the derivatives onto A
-    ReconstructPoly<dim,nstate,real> reconstruct_poly(
+    ReconstructPoly<dim,nspecies,nstate,real> reconstruct_poly(
         this->dg->dof_handler,
         mapping_collection,
         this->dg->fe_collection,
@@ -503,8 +503,8 @@ void GridRefinement_FixedFraction<dim,nstate,real,MeshType>::error_indicator_hes
         }
 }
 
-template <int dim, int nstate, typename real, typename MeshType>
-void GridRefinement_FixedFraction<dim,nstate,real,MeshType>::error_indicator_residual()
+template <int dim, int nspecies, int nstate, typename real, typename MeshType>
+void GridRefinement_FixedFraction<dim,nspecies,nstate,real,MeshType>::error_indicator_residual()
 {
     // NOT IMPLEMENTED
     assert(0);
@@ -553,11 +553,11 @@ void GridRefinement_FixedFraction<dim,nstate,real,MeshType>::error_indicator_res
     // // this->fine_to_coarse();
 }
 
-template <int dim, int nstate, typename real, typename MeshType>
-void GridRefinement_FixedFraction<dim,nstate,real,MeshType>::error_indicator_adjoint()
+template <int dim, int nspecies, int nstate, typename real, typename MeshType>
+void GridRefinement_FixedFraction<dim,nspecies,nstate,real,MeshType>::error_indicator_adjoint()
 {
     // evaluating the functional derivatives and adjoint
-    this->adjoint->convert_to_state(PHiLiP::Adjoint<dim,nstate,real,MeshType>::AdjointStateEnum::fine);
+    this->adjoint->convert_to_state(PHiLiP::Adjoint<dim,nspecies,nstate,real,MeshType>::AdjointStateEnum::fine);
     this->adjoint->fine_grid_adjoint();
     
     // reinitializing the error indicator vector
@@ -565,11 +565,11 @@ void GridRefinement_FixedFraction<dim,nstate,real,MeshType>::error_indicator_adj
     this->indicator = this->adjoint->dual_weighted_residual();
 
     // return to the coarse grid
-    this->adjoint->convert_to_state(PHiLiP::Adjoint<dim,nstate,real,MeshType>::AdjointStateEnum::coarse);
+    this->adjoint->convert_to_state(PHiLiP::Adjoint<dim,nspecies,nstate,real,MeshType>::AdjointStateEnum::coarse);
 }
 
-template <int dim, int nstate, typename real, typename MeshType>
-std::vector< std::pair<dealii::Vector<real>, std::string> > GridRefinement_FixedFraction<dim,nstate,real,MeshType>::output_results_vtk_method()
+template <int dim, int nspecies, int nstate, typename real, typename MeshType>
+std::vector< std::pair<dealii::Vector<real>, std::string> > GridRefinement_FixedFraction<dim,nspecies,nstate,real,MeshType>::output_results_vtk_method()
 {
     std::vector< std::pair<dealii::Vector<real>, std::string> > data_out_vector;
 
@@ -589,29 +589,23 @@ std::vector< std::pair<dealii::Vector<real>, std::string> > GridRefinement_Fixed
     return data_out_vector;
 }
 
-// dealii::Triangulation<PHILIP_DIM>
-template class GridRefinement_FixedFraction<PHILIP_DIM, 1, double, dealii::Triangulation<PHILIP_DIM>>;
-template class GridRefinement_FixedFraction<PHILIP_DIM, 2, double, dealii::Triangulation<PHILIP_DIM>>;
-template class GridRefinement_FixedFraction<PHILIP_DIM, 3, double, dealii::Triangulation<PHILIP_DIM>>;
-template class GridRefinement_FixedFraction<PHILIP_DIM, 4, double, dealii::Triangulation<PHILIP_DIM>>;
-template class GridRefinement_FixedFraction<PHILIP_DIM, 5, double, dealii::Triangulation<PHILIP_DIM>>;
+#if PHILIP_SPECIES==1
+    // Define a sequence of nstate in the range [1, 5]
+    #define POSSIBLE_NSTATE (1)(2)(3)(4)(5)
 
-// dealii::parallel::shared::Triangulation<PHILIP_DIM>
-template class GridRefinement_FixedFraction<PHILIP_DIM, 1, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
-template class GridRefinement_FixedFraction<PHILIP_DIM, 2, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
-template class GridRefinement_FixedFraction<PHILIP_DIM, 3, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
-template class GridRefinement_FixedFraction<PHILIP_DIM, 4, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
-template class GridRefinement_FixedFraction<PHILIP_DIM, 5, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+    // Define a macro to instantiate with Meshtype = Triangulation or Shared Triangulation for a specific nstate
+    #define INSTANTIATE_TRIA(r, data, nstate) \
+        template class GridRefinement_FixedFraction<PHILIP_DIM, PHILIP_SPECIES, nstate, double, dealii::Triangulation<PHILIP_DIM>>; \
+        template class GridRefinement_FixedFraction<PHILIP_DIM, PHILIP_SPECIES, nstate, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+    BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_TRIA, _, POSSIBLE_NSTATE)
 
-#if PHILIP_DIM != 1
-// dealii::parallel::distributed::Triangulation<PHILIP_DIM>
-template class GridRefinement_FixedFraction<PHILIP_DIM, 1, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
-template class GridRefinement_FixedFraction<PHILIP_DIM, 2, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
-template class GridRefinement_FixedFraction<PHILIP_DIM, 3, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
-template class GridRefinement_FixedFraction<PHILIP_DIM, 4, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
-template class GridRefinement_FixedFraction<PHILIP_DIM, 5, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+    // Define a macro to instantiate with distributed triangulation for a specific nstate
+    #define INSTANTIATE_DISTRIBUTED(r, data, nstate) \
+        template class GridRefinement_FixedFraction<PHILIP_DIM, PHILIP_SPECIES, nstate, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+    #if PHILIP_DIM!=1
+    BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_DISTRIBUTED, _, POSSIBLE_NSTATE)
+    #endif
 #endif
-
 } // namespace GridRefinement
 
 } // namespace PHiLiP

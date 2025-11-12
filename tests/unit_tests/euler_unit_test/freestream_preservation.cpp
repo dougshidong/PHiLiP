@@ -40,8 +40,8 @@ double random_pert(double lower, double upper)
 }
 
 
-template<int dim>
-void perturb_high_order_grid ( std::shared_ptr < DGBase<dim, double> > dg, const double perturbation_size )
+template<int dim, int nspecies>
+void perturb_high_order_grid ( std::shared_ptr < DGBase<dim, nspecies, double> > dg, const double perturbation_size )
 {
     const dealii::DoFHandler<dim> &DH_grid = dg->high_order_grid->dof_handler_grid;
     const dealii::FESystem<dim,dim> &fe_grid = DH_grid.get_fe();
@@ -82,7 +82,7 @@ void perturb_high_order_grid ( std::shared_ptr < DGBase<dim, double> > dg, const
     dg->high_order_grid->ensure_conforming_mesh();
 }
 
-template<int dim>
+template<int dim, int nspecies>
 void create_curved_grid (std::shared_ptr<dealii::parallel::distributed::Triangulation<dim>> grid, const GridType grid_type) {
 
     using Triangulation = dealii::parallel::distributed::Triangulation<dim>;
@@ -142,7 +142,7 @@ void create_curved_grid (std::shared_ptr<dealii::parallel::distributed::Triangul
                 }
             }
         } else {
-            create_curved_grid (grid, GridType::eccentric_hyper_shell);
+            create_curved_grid <dim, nspecies> (grid, GridType::eccentric_hyper_shell);
         }
     }
     if (grid_type == GridType::abe2015_wavy) {
@@ -175,7 +175,7 @@ void create_curved_grid (std::shared_ptr<dealii::parallel::distributed::Triangul
     }
 }
 
-template<int dim>
+template<int dim, int nspecies>
 int test()
 {
     srand (1.0);
@@ -216,7 +216,7 @@ int test()
             dealii::Triangulation<dim>::smoothing_on_refinement |
             dealii::Triangulation<dim>::smoothing_on_coarsening));
 
-    create_curved_grid (grid, GRID_TYPE);
+    create_curved_grid <dim, nspecies> (grid, GRID_TYPE);
 
     pcout << "Number of cells: " << grid->n_active_cells() << std::endl;
 
@@ -238,21 +238,21 @@ int test()
             // Update param with new overintegration parameter.
             param.parse_parameters (parameter_handler);
 
-            std::shared_ptr < DGBase<dim, double> > dg = DGFactory<dim,double>::create_discontinuous_galerkin(&param, POLY_DEGREE, POLY_DEGREE, GRID_DEGREE, grid);
+            std::shared_ptr < DGBase<dim, nspecies, double> > dg = DGFactory<dim,nspecies,double>::create_discontinuous_galerkin(&param, POLY_DEGREE, POLY_DEGREE, GRID_DEGREE, grid);
             dg->allocate_system ();
             
-            perturb_high_order_grid (dg, PERT_SIZE);
+            perturb_high_order_grid <dim, nspecies> (dg, PERT_SIZE);
             //dg->high_order_grid->output_results_vtk(9999);
 
             // Initialize coarse grid solution with free-stream
-            Physics::Euler<dim,dim+2,double> euler_physics_double = Physics::Euler<dim, dim+2, double>(
+            Physics::Euler<dim,nspecies,dim+2,double> euler_physics_double = Physics::Euler<dim, nspecies, dim+2, double>(
                         &param,
                         param.euler_param.ref_length,
                         param.euler_param.gamma_gas,
                         param.euler_param.mach_inf,
                         param.euler_param.angle_of_attack,
                         param.euler_param.side_slip_angle);
-            FreeStreamInitialConditions<dim,dim+2,double> initial_conditions(euler_physics_double);
+            FreeStreamInitialConditions<dim,nspecies,dim+2,double> initial_conditions(euler_physics_double);
             dealii::VectorTools::interpolate(dg->dof_handler, initial_conditions, dg->solution);
 
             dg->assemble_residual();
@@ -303,7 +303,7 @@ int main (int argc, char * argv[])
     dealii::Utilities::MPI::MPI_InitFinalize mpi_initialization(argc, argv, 1);
     int test_error = false;
     try {
-         test_error += test<PHILIP_DIM>();
+         test_error += test<PHILIP_DIM, PHILIP_SPECIES>();
     }
     catch (std::exception &exc) {
         std::cerr << std::endl

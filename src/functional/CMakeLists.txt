@@ -12,6 +12,9 @@ foreach(dim RANGE 1 3)
     string(CONCAT FunctionalLib Functional_${dim}D)
     add_library(${FunctionalLib} STATIC ${SOURCE})
     target_compile_definitions(${FunctionalLib} PRIVATE PHILIP_DIM=${dim})
+    # Replace occurences of PHILIP_SPECIES with 1 in the code
+    # NOTE: PHILIP_SPECIES will become user defined in a future PR
+    target_compile_definitions(${FunctionalLib} PRIVATE PHILIP_SPECIES=1)
 
     # Library dependency
     string(CONCAT PhysicsLib Physics_${dim}D)

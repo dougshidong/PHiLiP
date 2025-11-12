@@ -111,13 +111,13 @@ int main (int argc, char * argv[])
 
         //  OPERATOR::OperatorsBase<dim,real> operators_p_q(&all_parameters_new, nstate, poly_degree + q_degree, poly_degree + q_degree, 1); 
         all_parameters_new.overintegration = q_degree;
-        // std::shared_ptr<OPERATOR::OperatorsBase<dim, real>> operators_p = OPERATOR::OperatorsFactory<dim, real>::create_operators(&all_parameters_new, nstate, poly_degree, poly_degree, 1);
+        // std::shared_ptr<OPERATOR::OperatorsBase<dim,  real>> operators_p = OPERATOR::OperatorsFactory<dim, real>::create_operators(&all_parameters_new, nstate, poly_degree, poly_degree, 1);
         std::shared_ptr<OPERATOR::OperatorsBaseState<dim,real,nstate,2*dim>> operators_p = std::make_shared< OPERATOR::OperatorsBaseState<dim,real,nstate,2*dim> >(&all_parameters_new, poly_degree, poly_degree);
         // OPERATOR::OperatorsBase<dim,real> operators_p(&all_parameters_new, nstate, poly_degree, poly_degree, 1); 
         all_parameters_new.overintegration = poly_degree;
         // OPERATOR::OperatorsBase<dim,real> operators_q(&all_parameters_new, nstate, q_degree, q_degree, 1); 
         std::shared_ptr<OPERATOR::OperatorsBaseState<dim,real,nstate,2*dim>> operators_q = std::make_shared< OPERATOR::OperatorsBaseState<dim,real,nstate,2*dim> >(&all_parameters_new, q_degree, q_degree);
-        // std::shared_ptr<OPERATOR::OperatorsBase<dim, real>> operators_q = OPERATOR::OperatorsFactory<dim, real>::create_operators(&all_parameters_new, nstate, q_degree, q_degree, 1);
+        // std::shared_ptr<OPERATOR::OperatorsBase<dim,  real>> operators_q = OPERATOR::OperatorsFactory<dim, real>::create_operators(&all_parameters_new, nstate, q_degree, q_degree, 1);
 
         const unsigned int n_dofs_p = pow(poly_degree+1, dim);
         const unsigned int n_dofs_q = pow(q_degree+1, dim);

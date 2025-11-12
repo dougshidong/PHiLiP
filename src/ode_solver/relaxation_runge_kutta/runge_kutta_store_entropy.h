@@ -12,11 +12,11 @@ namespace ODE {
 /// with fully-discrete NSFR, such that numerical entropy is reported in a consistent fashion.
 /// This class does not modify the behaviour of the ODE solver.
 #if PHILIP_DIM==1
-template <int dim, typename real, typename MeshType = dealii::Triangulation<dim>>
+template <int dim, int nspecies, typename real, typename MeshType = dealii::Triangulation<dim>>
 #else
-template <int dim, typename real, typename MeshType = dealii::parallel::distributed::Triangulation<dim>>
+template <int dim, int nspecies, typename real, typename MeshType = dealii::parallel::distributed::Triangulation<dim>>
 #endif
-class RKNumEntropy: public EmptyRRKBase <dim, real, MeshType>
+class RKNumEntropy: public EmptyRRKBase <dim, nspecies, real, MeshType>
 {
 public:
     /// Default constructor that will set the constants.
@@ -27,14 +27,14 @@ public:
     /** FR_contribution = dt \sum_i=1^s b_i v^{(i)} K du^{(i)}/dt
      */
     real compute_FR_entropy_contribution(const real dt,
-            std::shared_ptr<DGBase<dim,real,MeshType>> dg,
+            std::shared_ptr<DGBase<dim,nspecies,real,MeshType>> dg,
             const std::vector<dealii::LinearAlgebra::distributed::Vector<double>> &rk_stage,
             const bool compute_K_norm) const override;
     
     // "using" keyword to prevent compiler complaining
-    using EmptyRRKBase<dim, real, MeshType>::compute_FR_entropy_contribution;
-    using EmptyRRKBase<dim, real, MeshType>::update_relaxation_parameter;
-    using EmptyRRKBase<dim, real, MeshType>::store_stage_solutions;
+    using EmptyRRKBase<dim, nspecies, real, MeshType>::compute_FR_entropy_contribution;
+    using EmptyRRKBase<dim, nspecies, real, MeshType>::update_relaxation_parameter;
+    using EmptyRRKBase<dim, nspecies, real, MeshType>::store_stage_solutions;
     
 
 protected:
@@ -61,7 +61,7 @@ protected:
     /// Return the entropy variables from a solution vector u
     dealii::LinearAlgebra::distributed::Vector<double> compute_entropy_vars(
             const dealii::LinearAlgebra::distributed::Vector<double> &u,
-            std::shared_ptr<DGBase<dim,real,MeshType>> dg) const;
+            std::shared_ptr<DGBase<dim,nspecies,real,MeshType>> dg) const;
 
 };
 

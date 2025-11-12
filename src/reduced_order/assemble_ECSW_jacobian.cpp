@@ -8,21 +8,21 @@ namespace PHiLiP {
 namespace HyperReduction {
 using Eigen::MatrixXd;
 
-template <int dim, int nstate>
-AssembleECSWJac<dim,nstate>::AssembleECSWJac(
+template <int dim, int nspecies, int nstate>
+AssembleECSWJac<dim,nspecies,nstate>::AssembleECSWJac(
     const PHiLiP::Parameters::AllParameters *const parameters_input,
     const dealii::ParameterHandler &parameter_handler_input,
-    std::shared_ptr<DGBase<dim,double>> &dg_input, 
-    std::shared_ptr<ProperOrthogonalDecomposition::PODBase<dim>> pod, 
+    std::shared_ptr<DGBase<dim,nspecies,double>> &dg_input, 
+    std::shared_ptr<ProperOrthogonalDecomposition::PODBase<dim,nspecies>> pod, 
     MatrixXd snapshot_parameters_input,
     Parameters::ODESolverParam::ODESolverEnum ode_solver_type,
     Epetra_MpiComm &Comm)
-        : AssembleECSWBase<dim, nstate>(parameters_input, parameter_handler_input, dg_input, pod, snapshot_parameters_input, ode_solver_type, Comm)
+        : AssembleECSWBase<dim, nspecies, nstate>(parameters_input, parameter_handler_input, dg_input, pod, snapshot_parameters_input, ode_solver_type, Comm)
 {
 }
 
-template <int dim, int nstate>
-void AssembleECSWJac<dim,nstate>::build_problem(){
+template <int dim, int nspecies, int nstate>
+void AssembleECSWJac<dim,nspecies,nstate>::build_problem(){
     this->pcout << "Solve for A and b for the NNLS Problem from POD Snapshots"<< std::endl;
     MatrixXd snapshotMatrix = this->pod->getSnapshotMatrix();
     const Epetra_CrsMatrix epetra_pod_basis = this->pod->getPODBasis()->trilinos_matrix();
@@ -79,7 +79,7 @@ void AssembleECSWJac<dim,nstate>::build_problem(){
 
         // Modifiy parameters for snapshot location and create new flow solver
         Parameters::AllParameters params = this->reinit_params(snap_param);
-        std::unique_ptr<FlowSolver::FlowSolver<dim,nstate>> flow_solver = FlowSolver::FlowSolverFactory<dim,nstate>::select_flow_case(&params, this->parameter_handler);
+        std::unique_ptr<FlowSolver::FlowSolver<dim,nspecies,nstate>> flow_solver = FlowSolver::FlowSolverFactory<dim,nspecies,nstate>::select_flow_case(&params, this->parameter_handler);
         this->dg = flow_solver->dg;
 
         // Set solution to snapshot and re-compute the residual/Jacobian
@@ -241,12 +241,12 @@ void AssembleECSWJac<dim,nstate>::build_problem(){
     }
 }
 
-#if PHILIP_DIM==1
-    template class AssembleECSWJac<PHILIP_DIM, PHILIP_DIM>;
+#if PHILIP_DIM==1 && PHILIP_SPECIES==1
+    template class AssembleECSWJac<PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM>;
 #endif
 
-#if PHILIP_DIM!=1
-    template class AssembleECSWJac<PHILIP_DIM, PHILIP_DIM+2>;
+#if PHILIP_DIM!=1 && PHILIP_SPECIES==1
+    template class AssembleECSWJac<PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2>;
 #endif
 
 } // HyperReduction namespace

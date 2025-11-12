@@ -38,7 +38,7 @@ namespace PHiLiP {
     
 namespace Tests {
 
-template <int dim, int nstate>
+template <int dim, int nspecies, int nstate>
 class InitialConditions : public dealii::Function<dim>
 {
 public:
@@ -50,13 +50,13 @@ public:
     }
 };
 
-template <int dim, int nstate, typename MeshType>
-GridRefinementStudy<dim,nstate,MeshType>::GridRefinementStudy(
+template <int dim, int nspecies, int nstate, typename MeshType>
+GridRefinementStudy<dim,nspecies,nstate,MeshType>::GridRefinementStudy(
     const Parameters::AllParameters *const parameters_input) :
         TestsBase::TestsBase(parameters_input){}
 
-template <int dim, int nstate, typename MeshType>
-int GridRefinementStudy<dim,nstate,MeshType>::run_test() const
+template <int dim, int nspecies, int nstate, typename MeshType>
+int GridRefinementStudy<dim,nspecies,nstate,MeshType>::run_test() const
 {
     pcout << " Running Grid Refinement Study. " << std::endl;
     const Parameters::AllParameters param                = *(TestsBase::all_parameters);
@@ -71,16 +71,16 @@ int GridRefinementStudy<dim,nstate,MeshType>::run_test() const
     const unsigned int num_refinements = grs_param.num_refinements;
 
     // creating the model object for physics
-    std::shared_ptr< Physics::ModelBase<dim,nstate,double> > model_double
-        = Physics::ModelFactory<dim,nstate,double>::create_Model(&param);
-    std::shared_ptr< Physics::ModelBase<dim,nstate,ADtype> > model_adtype
-        = Physics::ModelFactory<dim,nstate,ADtype>::create_Model(&param);
+    std::shared_ptr< Physics::ModelBase<dim,nspecies,nstate,double> > model_double
+        = Physics::ModelFactory<dim,nspecies,nstate,double>::create_Model(&param);
+    std::shared_ptr< Physics::ModelBase<dim,nspecies,nstate,ADtype> > model_adtype
+        = Physics::ModelFactory<dim,nspecies,nstate,ADtype>::create_Model(&param);
 
     // creating the physics object
-    std::shared_ptr< Physics::PhysicsBase<dim,nstate,double> > physics_double
-        = Physics::PhysicsFactory<dim,nstate,double>::create_Physics(&param,model_double);
-    std::shared_ptr< Physics::PhysicsBase<dim,nstate,ADtype> > physics_adtype
-        = Physics::PhysicsFactory<dim,nstate,ADtype>::create_Physics(&param,model_adtype);
+    std::shared_ptr< Physics::PhysicsBase<dim,nspecies,nstate,double> > physics_double
+        = Physics::PhysicsFactory<dim,nspecies,nstate,double>::create_Physics(&param,model_double);
+    std::shared_ptr< Physics::PhysicsBase<dim,nspecies,nstate,ADtype> > physics_adtype
+        = Physics::PhysicsFactory<dim,nspecies,nstate,ADtype>::create_Physics(&param,model_adtype);
 
     // for each of the runs, a seperate refinement table
     std::vector<dealii::ConvergenceTable> convergence_table_vector;
@@ -118,8 +118,8 @@ int GridRefinementStudy<dim,nstate,MeshType>::run_test() const
         std::cout << "Functional estimate = " << functional_value_exact << std::endl;
 
         // generate DG
-        std::shared_ptr< DGBase<dim, double, MeshType> > dg 
-            = DGFactory<dim,double,MeshType>::create_discontinuous_galerkin(
+        std::shared_ptr< DGBase<dim, nspecies, double, MeshType> > dg 
+            = DGFactory<dim,nspecies,double,MeshType>::create_discontinuous_galerkin(
                 &param, 
                 poly_degree,
                 poly_degree_max,
@@ -129,7 +129,7 @@ int GridRefinementStudy<dim,nstate,MeshType>::run_test() const
 
         // initialize the solution
         std::shared_ptr<dealii::Function<dim>> initial_conditions = 
-            std::make_shared<InitialConditions<dim,nstate>>();
+            std::make_shared<InitialConditions<dim,nspecies,nstate>>();
         
         dealii::LinearAlgebra::distributed::Vector<double> solution_no_ghost;
         solution_no_ghost.reinit(dg->locally_owned_dofs, MPI_COMM_WORLD);
@@ -138,22 +138,22 @@ int GridRefinementStudy<dim,nstate,MeshType>::run_test() const
         dg->solution = solution_no_ghost;
 
         // generate ODE solver
-        std::shared_ptr< ODE::ODESolverBase<dim,double,MeshType> > ode_solver
-            = ODE::ODESolverFactory<dim,double,MeshType>::create_ODESolver(dg);
+        std::shared_ptr< ODE::ODESolverBase<dim,nspecies,double,MeshType> > ode_solver
+            = ODE::ODESolverFactory<dim,nspecies,double,MeshType>::create_ODESolver(dg);
         // ode_solver->steady_state();
         // ode_solver->initialize_steady_polynomial_ramping(poly_degree);
 
         // generate Functional
-        std::shared_ptr< Functional<dim,nstate,double,MeshType> > functional 
-            = FunctionalFactory<dim,nstate,double,MeshType>::create_Functional(grs_param.functional_param, dg);
+        std::shared_ptr< Functional<dim,nspecies,nstate,double,MeshType> > functional 
+            = FunctionalFactory<dim,nspecies,nstate,double,MeshType>::create_Functional(grs_param.functional_param, dg);
 
         // generate Adjoint
-        std::shared_ptr< Adjoint<dim,nstate,double,MeshType> > adjoint 
-            = std::make_shared< Adjoint<dim,nstate,double,MeshType> >(dg, functional, physics_adtype);
+        std::shared_ptr< Adjoint<dim,nspecies,nstate,double,MeshType> > adjoint 
+            = std::make_shared< Adjoint<dim,nspecies,nstate,double,MeshType> >(dg, functional, physics_adtype);
 
         // generate the GridRefinement
-        std::shared_ptr< GridRefinement::GridRefinementBase<dim,nstate,double,MeshType> > grid_refinement 
-            = GridRefinement::GridRefinementFactory<dim,nstate,double,MeshType>::create_GridRefinement(gr_param,adjoint,physics_double);
+        std::shared_ptr< GridRefinement::GridRefinementBase<dim,nspecies,nstate,double,MeshType> > grid_refinement 
+            = GridRefinement::GridRefinementFactory<dim,nspecies,nstate,double,MeshType>::create_GridRefinement(gr_param,adjoint,physics_double);
 
         // starting the iterations
         dealii::ConvergenceTable convergence_table;
@@ -266,7 +266,7 @@ int GridRefinementStudy<dim,nstate,MeshType>::run_test() const
                 // evaluating the derivatives and the fine grid adjoint
                 if(dg->get_max_fe_degree() + 1 <= dg->max_degree){ // don't output if at max order (as p-enrichment will segfault)
                     auto adj_start = std::chrono::steady_clock::now();
-                    adjoint->convert_to_state(PHiLiP::Adjoint<dim,nstate,double,MeshType>::AdjointStateEnum::fine);
+                    adjoint->convert_to_state(PHiLiP::Adjoint<dim,nspecies,nstate,double,MeshType>::AdjointStateEnum::fine);
                     adjoint->fine_grid_adjoint();
                     estimated_error_per_cell.reinit(grid->n_active_cells());
                     estimated_error_per_cell = adjoint->dual_weighted_residual();
@@ -282,7 +282,7 @@ int GridRefinementStudy<dim,nstate,MeshType>::run_test() const
                 }
 
                 // and for the coarse grid
-                adjoint->convert_to_state(PHiLiP::Adjoint<dim,nstate,double,MeshType>::AdjointStateEnum::coarse); // this one is necessary though
+                adjoint->convert_to_state(PHiLiP::Adjoint<dim,nspecies,nstate,double,MeshType>::AdjointStateEnum::coarse); // this one is necessary though
                 adjoint->coarse_grid_adjoint();
                 adjoint->output_results_vtk(iref*10+igrid);
             }
@@ -391,8 +391,8 @@ int GridRefinementStudy<dim,nstate,MeshType>::run_test() const
 }
 
 // gets the grid from the enum and reads file if neccesary
-template <int dim, int nstate, typename MeshType>
-void GridRefinementStudy<dim,nstate,MeshType>::get_grid(
+template <int dim, int nspecies, int nstate, typename MeshType>
+void GridRefinementStudy<dim,nspecies,nstate,MeshType>::get_grid(
     const std::shared_ptr<MeshType>&            grid,
     const Parameters::GridRefinementStudyParam& grs_param) const
 {
@@ -447,10 +447,10 @@ void GridRefinementStudy<dim,nstate,MeshType>::get_grid(
 }
 
 // performs the approximation of the functional value using a refined grid with interpolation
-template <int dim, int nstate, typename MeshType>
-double GridRefinementStudy<dim,nstate,MeshType>::approximate_exact_functional(
-    const std::shared_ptr<Physics::PhysicsBase<dim,nstate,double>>& physics_double,
-    const std::shared_ptr<Physics::PhysicsBase<dim,nstate,Sacado::Fad::DFad<double>>>& /* physics_adtype */,
+template <int dim, int nspecies, int nstate, typename MeshType>
+double GridRefinementStudy<dim,nspecies,nstate,MeshType>::approximate_exact_functional(
+    const std::shared_ptr<Physics::PhysicsBase<dim,nspecies,nstate,double>>& physics_double,
+    const std::shared_ptr<Physics::PhysicsBase<dim,nspecies,nstate,Sacado::Fad::DFad<double>>>& /* physics_adtype */,
     const Parameters::AllParameters& param,
     const Parameters::GridRefinementStudyParam& grs_param) const
 {
@@ -473,8 +473,8 @@ double GridRefinementStudy<dim,nstate,MeshType>::approximate_exact_functional(
 
     // building the discontinuous galerkin solver
     std::cout << "Creating fine dg." << std::endl;
-    std::shared_ptr< DGBase<dim, double, MeshType> > dg_fine = 
-        DGFactory<dim,double,MeshType>::create_discontinuous_galerkin(
+    std::shared_ptr< DGBase<dim, nspecies, double, MeshType> > dg_fine = 
+        DGFactory<dim,nspecies,double,MeshType>::create_discontinuous_galerkin(
             &param, 
             poly_degree,
             poly_degree_max,
@@ -491,8 +491,8 @@ double GridRefinementStudy<dim,nstate,MeshType>::approximate_exact_functional(
 
     // creating a functional
     std::cout << "Generating the functional." << std::endl;
-    std::shared_ptr< Functional<dim,nstate,double,MeshType> > functional_fine
-        = FunctionalFactory<dim,nstate,double,MeshType>::create_Functional(grs_param.functional_param, dg_fine);
+    std::shared_ptr< Functional<dim,nspecies,nstate,double,MeshType> > functional_fine
+        = FunctionalFactory<dim,nspecies,nstate,double,MeshType>::create_Functional(grs_param.functional_param, dg_fine);
 
     // getting the "exact" value using it
     std::cout << "Computing and returning approximation" << std::endl;
@@ -572,26 +572,27 @@ MeshFactory<dealii::parallel::distributed::Triangulation<PHILIP_DIM>>::create_Me
 }
 #endif
 
-template class GridRefinementStudy <PHILIP_DIM,1,dealii::Triangulation<PHILIP_DIM>>;
-template class GridRefinementStudy <PHILIP_DIM,2,dealii::Triangulation<PHILIP_DIM>>;
-template class GridRefinementStudy <PHILIP_DIM,3,dealii::Triangulation<PHILIP_DIM>>;
-template class GridRefinementStudy <PHILIP_DIM,4,dealii::Triangulation<PHILIP_DIM>>;
-template class GridRefinementStudy <PHILIP_DIM,5,dealii::Triangulation<PHILIP_DIM>>;
+#if PHILIP_SPECIES==1
+    // Define a sequence of indices representing the range [1, 5]
+    #define POSSIBLE_NSTATE (1)(2)(3)(4)(5)
 
-template class GridRefinementStudy <PHILIP_DIM,1,dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
-template class GridRefinementStudy <PHILIP_DIM,2,dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
-template class GridRefinementStudy <PHILIP_DIM,3,dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
-template class GridRefinementStudy <PHILIP_DIM,4,dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
-template class GridRefinementStudy <PHILIP_DIM,5,dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+    // using default MeshType = Triangulation
+    // 1D: dealii::Triangulation<dim>;
+    // Otherwise: dealii::parallel::distributed::Triangulation<dim>;
 
-#if PHILIP_DIM!=1
-template class GridRefinementStudy <PHILIP_DIM,1,dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
-template class GridRefinementStudy <PHILIP_DIM,2,dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
-template class GridRefinementStudy <PHILIP_DIM,3,dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
-template class GridRefinementStudy <PHILIP_DIM,4,dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
-template class GridRefinementStudy <PHILIP_DIM,5,dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+    // Define a macro to instantiate with Meshtype = Triangulation or Shared Triangulation for a specific nstate
+    #define INSTANTIATE_TRIA(r, data, nstate) \
+        template class GridRefinementStudy <PHILIP_DIM, PHILIP_SPECIES,nstate,dealii::Triangulation<PHILIP_DIM>>; \
+        template class GridRefinementStudy <PHILIP_DIM, PHILIP_SPECIES,nstate,dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+    BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_TRIA, _, POSSIBLE_NSTATE)
+
+    // Define a macro to instantiate with distributed triangulation for a specific nstate
+    #define INSTANTIATE_DISTRIBUTED(r, data, nstate) \
+        template class GridRefinementStudy <PHILIP_DIM, PHILIP_SPECIES,nstate,dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+    #if PHILIP_DIM!=1
+    BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_DISTRIBUTED, _, POSSIBLE_NSTATE)
+    #endif
 #endif
-
 } // namespace Tests
 
 } // namespace PHiLiP

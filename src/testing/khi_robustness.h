@@ -11,7 +11,7 @@ namespace Tests {
  * until a crash is detected, then restart a new 
  * simulation with a different Atwood number.
  */
-template <int dim, int nstate>
+template <int dim, int nspecies, int nstate>
 class KHIRobustness: public TestsBase
 {
 public:

@@ -259,22 +259,22 @@ void MshOutData<dim>::set_integer_tags(
 
 // different data output types
 using Scalar = double;
-using Vector = dealii::Tensor<1,PHILIP_DIM,double>;
-using Matrix = dealii::Tensor<2,PHILIP_DIM,double>;
+using Vector = dealii::Tensor<1,PHILIP_DIM, double>;
+using Matrix = dealii::Tensor<2,PHILIP_DIM, double>;
 
 // specifying the data size of each entry for storage
 template <>
-unsigned int const MshOutDataInternal<PHILIP_DIM,Scalar>::num_components = 1;
+unsigned int const MshOutDataInternal<PHILIP_DIM, Scalar>::num_components = 1;
 
 template <>
-unsigned int const MshOutDataInternal<PHILIP_DIM,Vector>::num_components = 3;
+unsigned int const MshOutDataInternal<PHILIP_DIM, Vector>::num_components = 3;
 
 template <>
-unsigned int const MshOutDataInternal<PHILIP_DIM,Matrix>::num_components = 9;
+unsigned int const MshOutDataInternal<PHILIP_DIM, Matrix>::num_components = 9;
 
 // writing the data for scalar data
 template <>
-void MshOutDataInternal<PHILIP_DIM,Scalar>::write_msh_data_internal(
+void MshOutDataInternal<PHILIP_DIM, Scalar>::write_msh_data_internal(
     const dealii::DoFHandler<PHILIP_DIM> &dof_handler,
     std::ostream &                        out)
 {
@@ -343,7 +343,7 @@ void MshOutDataInternal<PHILIP_DIM,Scalar>::write_msh_data_internal(
 
 // writing the data for vector data
 template <>
-void MshOutDataInternal<PHILIP_DIM,Vector>::write_msh_data_internal(
+void MshOutDataInternal<PHILIP_DIM, Vector>::write_msh_data_internal(
     const dealii::DoFHandler<PHILIP_DIM> &dof_handler,
     std::ostream &                        out)
 {
@@ -437,7 +437,7 @@ void MshOutDataInternal<PHILIP_DIM,Vector>::write_msh_data_internal(
 
 // writing the data for matrix data
 template <>
-void MshOutDataInternal<PHILIP_DIM,Matrix>::write_msh_data_internal(
+void MshOutDataInternal<PHILIP_DIM, Matrix>::write_msh_data_internal(
     const dealii::DoFHandler<PHILIP_DIM> &dof_handler,
     std::ostream &                        out)
 {
@@ -550,7 +550,7 @@ void MshOutDataInternal<PHILIP_DIM,Matrix>::write_msh_data_internal(
     }
 }
 
-template class MshOut <PHILIP_DIM, double>;
+template class MshOut <PHILIP_DIM,  double>;
 template class MshOutData <PHILIP_DIM>;
 
 } // namespace GridRefinement

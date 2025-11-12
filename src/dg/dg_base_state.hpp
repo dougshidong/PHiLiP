@@ -11,18 +11,18 @@ namespace PHiLiP {
 /*  Contains the objects and functions that need to be templated on the number of state variables.
  */
 #if PHILIP_DIM==1 // dealii::parallel::distributed::Triangulation<dim> does not work for 1D
-template <int dim, int nstate, typename real, typename MeshType = dealii::Triangulation<dim>>
+template <int dim, int nspecies, int nstate, typename real, typename MeshType = dealii::Triangulation<dim>>
 #else
-template <int dim, int nstate, typename real, typename MeshType = dealii::parallel::distributed::Triangulation<dim>>
+template <int dim, int nspecies, int nstate, typename real, typename MeshType = dealii::parallel::distributed::Triangulation<dim>>
 #endif
-class DGBaseState : public DGBase<dim, real, MeshType>
+class DGBaseState : public DGBase<dim, nspecies, real, MeshType>
 {
    protected:
     /// Alias to base class Triangulation.
-    using Triangulation = typename DGBase<dim,real,MeshType>::Triangulation;
+    using Triangulation = typename DGBase<dim,nspecies,real,MeshType>::Triangulation;
 
    public:
-    using DGBase<dim,real,MeshType>::all_parameters; ///< Input parameters.
+    using DGBase<dim,nspecies,real,MeshType>::all_parameters; ///< Input parameters.
 
     /// Constructor.
     DGBaseState(
@@ -33,61 +33,61 @@ class DGBaseState : public DGBase<dim, real, MeshType>
         const std::shared_ptr<Triangulation> triangulation_input);
 
     /// Contains the physics of the PDE with real type
-    std::shared_ptr < Physics::PhysicsBase<dim, nstate, real > > pde_physics_double;
+    std::shared_ptr < Physics::PhysicsBase<dim, nspecies, nstate, real > > pde_physics_double;
     /// Contains the model terms of the PDEType == PhysicsModel with real type
-    std::shared_ptr < Physics::ModelBase<dim, nstate, real > > pde_model_double;
+    std::shared_ptr < Physics::ModelBase<dim, nspecies, nstate, real > > pde_model_double;
     /// Convective numerical flux with real type
-    std::unique_ptr < NumericalFlux::NumericalFluxConvective<dim, nstate, real > > conv_num_flux_double;
+    std::unique_ptr < NumericalFlux::NumericalFluxConvective<dim, nspecies, nstate, real > > conv_num_flux_double;
     /// Dissipative numerical flux with real type
-    std::unique_ptr < NumericalFlux::NumericalFluxDissipative<dim, nstate, real > > diss_num_flux_double;
+    std::unique_ptr < NumericalFlux::NumericalFluxDissipative<dim, nspecies, nstate, real > > diss_num_flux_double;
     /// Link to Artificial dissipation class (with three dissipation types, depending on the input).
-    std::shared_ptr <ArtificialDissipationBase<dim,nstate>> artificial_dissip;
+    std::shared_ptr <ArtificialDissipationBase<dim,nspecies,nstate>> artificial_dissip;
 
     /// Contains the physics of the PDE with FadType
-    std::shared_ptr < Physics::PhysicsBase<dim, nstate, FadType > > pde_physics_fad;
+    std::shared_ptr < Physics::PhysicsBase<dim, nspecies, nstate, FadType > > pde_physics_fad;
     /// Contains the model terms of the PDEType == PhysicsModel with FadType
-    std::shared_ptr < Physics::ModelBase<dim, nstate, FadType > > pde_model_fad;
+    std::shared_ptr < Physics::ModelBase<dim, nspecies, nstate, FadType > > pde_model_fad;
     /// Convective numerical flux with FadType
-    std::unique_ptr < NumericalFlux::NumericalFluxConvective<dim, nstate, FadType > > conv_num_flux_fad;
+    std::unique_ptr < NumericalFlux::NumericalFluxConvective<dim, nspecies, nstate, FadType > > conv_num_flux_fad;
     /// Dissipative numerical flux with FadType
-    std::unique_ptr < NumericalFlux::NumericalFluxDissipative<dim, nstate, FadType > > diss_num_flux_fad;
+    std::unique_ptr < NumericalFlux::NumericalFluxDissipative<dim, nspecies, nstate, FadType > > diss_num_flux_fad;
 
     /// Contains the physics of the PDE with RadType
-    std::shared_ptr < Physics::PhysicsBase<dim, nstate, RadType > > pde_physics_rad;
+    std::shared_ptr < Physics::PhysicsBase<dim, nspecies, nstate, RadType > > pde_physics_rad;
     /// Contains the model terms of the PDEType == PhysicsModel with RadType
-    std::shared_ptr < Physics::ModelBase<dim, nstate, RadType > > pde_model_rad;
+    std::shared_ptr < Physics::ModelBase<dim, nspecies, nstate, RadType > > pde_model_rad;
     /// Convective numerical flux with RadType
-    std::unique_ptr < NumericalFlux::NumericalFluxConvective<dim, nstate, RadType > > conv_num_flux_rad;
+    std::unique_ptr < NumericalFlux::NumericalFluxConvective<dim, nspecies, nstate, RadType > > conv_num_flux_rad;
     /// Dissipative numerical flux with RadType
-    std::unique_ptr < NumericalFlux::NumericalFluxDissipative<dim, nstate, RadType > > diss_num_flux_rad;
+    std::unique_ptr < NumericalFlux::NumericalFluxDissipative<dim, nspecies, nstate, RadType > > diss_num_flux_rad;
 
     /// Contains the physics of the PDE with FadFadType
-    std::shared_ptr < Physics::PhysicsBase<dim, nstate, FadFadType > > pde_physics_fad_fad;
+    std::shared_ptr < Physics::PhysicsBase<dim, nspecies, nstate, FadFadType > > pde_physics_fad_fad;
     /// Contains the model terms of the PDEType == PhysicsModel with FadFadType
-    std::shared_ptr < Physics::ModelBase<dim, nstate, FadFadType > > pde_model_fad_fad;
+    std::shared_ptr < Physics::ModelBase<dim, nspecies, nstate, FadFadType > > pde_model_fad_fad;
     /// Convective numerical flux with FadFadType
-    std::unique_ptr < NumericalFlux::NumericalFluxConvective<dim, nstate, FadFadType > > conv_num_flux_fad_fad;
+    std::unique_ptr < NumericalFlux::NumericalFluxConvective<dim, nspecies, nstate, FadFadType > > conv_num_flux_fad_fad;
     /// Dissipative numerical flux with FadFadType
-    std::unique_ptr < NumericalFlux::NumericalFluxDissipative<dim, nstate, FadFadType > > diss_num_flux_fad_fad;
+    std::unique_ptr < NumericalFlux::NumericalFluxDissipative<dim, nspecies, nstate, FadFadType > > diss_num_flux_fad_fad;
 
     /// Contains the physics of the PDE with RadFadDtype
-    std::shared_ptr < Physics::PhysicsBase<dim, nstate, RadFadType > > pde_physics_rad_fad;
+    std::shared_ptr < Physics::PhysicsBase<dim, nspecies, nstate, RadFadType > > pde_physics_rad_fad;
     /// Contains the model terms of the PDEType == PhysicsModel with RadFadType
-    std::shared_ptr < Physics::ModelBase<dim, nstate, RadFadType > > pde_model_rad_fad;
+    std::shared_ptr < Physics::ModelBase<dim, nspecies, nstate, RadFadType > > pde_model_rad_fad;
     /// Convective numerical flux with RadFadDtype
-    std::unique_ptr < NumericalFlux::NumericalFluxConvective<dim, nstate, RadFadType > > conv_num_flux_rad_fad;
+    std::unique_ptr < NumericalFlux::NumericalFluxConvective<dim, nspecies, nstate, RadFadType > > conv_num_flux_rad_fad;
     /// Dissipative numerical flux with RadFadDtype
-    std::unique_ptr < NumericalFlux::NumericalFluxDissipative<dim, nstate, RadFadType > > diss_num_flux_rad_fad;
+    std::unique_ptr < NumericalFlux::NumericalFluxDissipative<dim, nspecies, nstate, RadFadType > > diss_num_flux_rad_fad;
 
     /** Change the physics object.
      *  Must provide all the AD types to ensure that the derivatives are consistent.
      */
     void set_physics(
-        std::shared_ptr< Physics::PhysicsBase<dim, nstate, real       > > pde_physics_double_input,
-        std::shared_ptr< Physics::PhysicsBase<dim, nstate, FadType    > > pde_physics_fad_input,
-        std::shared_ptr< Physics::PhysicsBase<dim, nstate, RadType    > > pde_physics_rad_input,
-        std::shared_ptr< Physics::PhysicsBase<dim, nstate, FadFadType > > pde_physics_fad_fad_input,
-        std::shared_ptr< Physics::PhysicsBase<dim, nstate, RadFadType > > pde_physics_rad_fad_input);
+        std::shared_ptr< Physics::PhysicsBase<dim, nspecies, nstate, real       > > pde_physics_double_input,
+        std::shared_ptr< Physics::PhysicsBase<dim, nspecies, nstate, FadType    > > pde_physics_fad_input,
+        std::shared_ptr< Physics::PhysicsBase<dim, nspecies, nstate, RadType    > > pde_physics_rad_input,
+        std::shared_ptr< Physics::PhysicsBase<dim, nspecies, nstate, FadFadType > > pde_physics_fad_fad_input,
+        std::shared_ptr< Physics::PhysicsBase<dim, nspecies, nstate, RadFadType > > pde_physics_rad_fad_input);
 
     /// Allocate the necessary variables declared in src/physics/model.h
     void allocate_model_variables();

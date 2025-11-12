@@ -12,19 +12,19 @@ namespace ODE {
 
 /// Runge-Kutta Base (explicit or implicit) derived from ODESolver.
 #if PHILIP_DIM==1
-template <int dim, typename real, int n_rk_stages, typename MeshType = dealii::Triangulation<dim>>
+template <int dim, int nspecies, typename real, int n_rk_stages, typename MeshType = dealii::Triangulation<dim>>
 #else
-template <int dim, typename real, int n_rk_stages, typename MeshType = dealii::parallel::distributed::Triangulation<dim>>
+template <int dim, int nspecies, typename real, int n_rk_stages, typename MeshType = dealii::parallel::distributed::Triangulation<dim>>
 #endif
-class RungeKuttaBase: public ODESolverBase <dim, real, MeshType>
+class RungeKuttaBase: public ODESolverBase <dim, nspecies, real, MeshType>
 {
 public:
-    RungeKuttaBase(std::shared_ptr< DGBase<dim, real, MeshType> > dg_input,
-            std::shared_ptr<EmptyRRKBase<dim,real,MeshType>> RRK_object_input,
-            std::shared_ptr<ProperOrthogonalDecomposition::PODBase<dim>> pod); ///< Default Constructor.
+    RungeKuttaBase(std::shared_ptr< DGBase<dim, nspecies, real, MeshType> > dg_input,
+            std::shared_ptr<EmptyRRKBase<dim,nspecies,real,MeshType>> RRK_object_input,
+            std::shared_ptr<ProperOrthogonalDecomposition::PODBase<dim,nspecies>> pod); ///< Default Constructor.
 
-    RungeKuttaBase(std::shared_ptr< DGBase<dim, real, MeshType> > dg_input,
-            std::shared_ptr<EmptyRRKBase<dim,real,MeshType>> RRK_object_input); ///< Constructor /wo POD
+    RungeKuttaBase(std::shared_ptr< DGBase<dim, nspecies, real, MeshType> > dg_input,
+            std::shared_ptr<EmptyRRKBase<dim,nspecies,real,MeshType>> RRK_object_input); ///< Constructor /wo POD
 
     /// Function to evaluate solution update
     void step_in_time(real dt, const bool pseudotime) override;
@@ -53,13 +53,13 @@ protected:
 
     /// Stores functions related to relaxation Runge-Kutta (RRK).
     /// Functions are empty by default.
-    std::shared_ptr<EmptyRRKBase<dim,real,MeshType>> relaxation_runge_kutta;
+    std::shared_ptr<EmptyRRKBase<dim,nspecies,real,MeshType>> relaxation_runge_kutta;
 
     /// Implicit solver for diagonally-implicit RK methods, using Jacobian-free Newton-Krylov 
     /** This is initialized for any RK method, but solution-sized vectors are 
      *  only initialized if there is an implicit solve
      */
-    JFNKSolver<dim,real,MeshType> solver;
+    JFNKSolver<dim,nspecies,real,MeshType> solver;
 
     /// Storage for the derivative at each Runge-Kutta stage
     std::vector<dealii::LinearAlgebra::distributed::Vector<double>> rk_stage;

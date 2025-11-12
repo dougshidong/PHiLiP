@@ -4,12 +4,12 @@
 namespace PHiLiP {
 namespace ODE{
 
-template <int dim, typename real, typename MeshType>
-ODESolverBase<dim,real,MeshType>::ODESolverBase(std::shared_ptr< DGBase<dim, real, MeshType> > dg_input
-        , std::shared_ptr< ProperOrthogonalDecomposition::PODBase<dim>> pod)
+template <int dim, int nspecies, typename real, typename MeshType>
+ODESolverBase<dim,nspecies,real,MeshType>::ODESolverBase(std::shared_ptr< DGBase<dim, nspecies, real, MeshType> > dg_input
+        , std::shared_ptr< ProperOrthogonalDecomposition::PODBase<dim,nspecies>> pod)
         : dg(dg_input)
         , pod(pod)
-        , limiter(BoundPreservingLimiterFactory<dim, 6, real>::create_limiter(dg->all_parameters))
+        , limiter(BoundPreservingLimiterFactory<dim, nspecies, 6, real>::create_limiter(dg->all_parameters))
         , all_parameters(dg->all_parameters)
         , ode_param(all_parameters->ode_solver_param)
         , current_time(ode_param.initial_time)
@@ -22,39 +22,39 @@ ODESolverBase<dim,real,MeshType>::ODESolverBase(std::shared_ptr< DGBase<dim, rea
         , pcout(std::cout, mpi_rank==0)
 {}
 
-template <int dim, typename real, typename MeshType>
-ODESolverBase<dim,real,MeshType>::ODESolverBase(std::shared_ptr< DGBase<dim, real, MeshType> > dg_input)
+template <int dim, int nspecies, typename real, typename MeshType>
+ODESolverBase<dim,nspecies,real,MeshType>::ODESolverBase(std::shared_ptr< DGBase<dim, nspecies, real, MeshType> > dg_input)
         : ODESolverBase(dg_input, nullptr)
 {}
 
-template <int dim, typename real, typename MeshType> 
-double ODESolverBase<dim,real,MeshType>::get_automatic_error_adaptive_step_size (real dt, const bool pseudotime)
+template <int dim, int nspecies, typename real, typename MeshType> 
+double ODESolverBase<dim,nspecies,real,MeshType>::get_automatic_error_adaptive_step_size (real dt, const bool pseudotime)
 {
     (void) pseudotime;
     return dt;
 }
 
-template <int dim, typename real, typename MeshType> 
-double ODESolverBase<dim,real,MeshType>::get_automatic_initial_step_size (real dt, const bool pseudotime)
+template <int dim, int nspecies, typename real, typename MeshType> 
+double ODESolverBase<dim,nspecies,real,MeshType>::get_automatic_initial_step_size (real dt, const bool pseudotime)
 {
     (void) pseudotime;
     return dt;
 }
 
-template <int dim, typename real, typename MeshType>
-double ODESolverBase<dim,real,MeshType>::get_original_time_step() const
+template <int dim, int nspecies, typename real, typename MeshType>
+double ODESolverBase<dim,nspecies,real,MeshType>::get_original_time_step() const
 {
     return this->original_time_step;
 }
 
-template <int dim, typename real, typename MeshType>
-double ODESolverBase<dim,real,MeshType>::get_modified_time_step() const
+template <int dim, int nspecies, typename real, typename MeshType>
+double ODESolverBase<dim,nspecies,real,MeshType>::get_modified_time_step() const
 {
     return this->modified_time_step;
 }
 
-template <int dim, typename real, typename MeshType>
-void ODESolverBase<dim,real,MeshType>::initialize_steady_polynomial_ramping (const unsigned int global_final_poly_degree)
+template <int dim, int nspecies, typename real, typename MeshType>
+void ODESolverBase<dim,nspecies,real,MeshType>::initialize_steady_polynomial_ramping (const unsigned int global_final_poly_degree)
 {
     pcout << " ************************************************************************ " << std::endl;
     pcout << " Initializing DG with global polynomial degree = " << global_final_poly_degree << " by ramping from degree 0 ... " << std::endl;
@@ -68,7 +68,7 @@ void ODESolverBase<dim,real,MeshType>::initialize_steady_polynomial_ramping (con
         // Transfer solution to current degree.
         dealii::LinearAlgebra::distributed::Vector<double> old_solution(dg->solution);
         old_solution.update_ghost_values();
-        dealii::parallel::distributed::SolutionTransfer<dim, dealii::LinearAlgebra::distributed::Vector<double>, dealii::DoFHandler<dim>> solution_transfer(dg->dof_handler);
+        dealii::parallel::distributed::SolutionTransfer<dim,dealii::LinearAlgebra::distributed::Vector<double>, dealii::DoFHandler<dim>> solution_transfer(dg->dof_handler);
         solution_transfer.prepare_for_coarsening_and_refinement(old_solution);
         dg->set_all_cells_fe_degree(degree);
         dg->allocate_system ();
@@ -82,8 +82,8 @@ void ODESolverBase<dim,real,MeshType>::initialize_steady_polynomial_ramping (con
 }
 
 
-template <int dim, typename real, typename MeshType>
-void ODESolverBase<dim,real,MeshType>::valid_initial_conditions () const
+template <int dim, int nspecies, typename real, typename MeshType>
+void ODESolverBase<dim,nspecies,real,MeshType>::valid_initial_conditions () const
 {
     for (const auto &sol : dg->solution) {
         if (sol == std::numeric_limits<real>::lowest()) {
@@ -92,8 +92,8 @@ void ODESolverBase<dim,real,MeshType>::valid_initial_conditions () const
     }
 }
 
-template <int dim, typename real, typename MeshType>
-void ODESolverBase<dim,real,MeshType>::write_ode_solver_steady_state_convergence_data_to_table(
+template <int dim, int nspecies, typename real, typename MeshType>
+void ODESolverBase<dim,nspecies,real,MeshType>::write_ode_solver_steady_state_convergence_data_to_table(
         const unsigned int current_iteration,
         const double current_residual,
         const std::shared_ptr <dealii::TableHandler> data_table) const
@@ -113,8 +113,8 @@ void ODESolverBase<dim,real,MeshType>::write_ode_solver_steady_state_convergence
     }
 }
 
-template <int dim, typename real, typename MeshType>
-int ODESolverBase<dim,real,MeshType>::steady_state ()
+template <int dim, int nspecies, typename real, typename MeshType>
+int ODESolverBase<dim,nspecies,real,MeshType>::steady_state ()
 {
     try {
         valid_initial_conditions();
@@ -258,8 +258,8 @@ int ODESolverBase<dim,real,MeshType>::steady_state ()
     return convergence_error;
 }
 
-template <int dim, typename real, typename MeshType>
-int ODESolverBase<dim,real,MeshType>::advance_solution_time (double time_advance)
+template <int dim, int nspecies, typename real, typename MeshType>
+int ODESolverBase<dim,nspecies,real,MeshType>::advance_solution_time (double time_advance)
 {
 
     const unsigned int number_of_time_steps = (!this->all_parameters->use_energy) ? static_cast<int>(ceil(time_advance/ode_param.initial_time_step)) : this->current_iteration+1;
@@ -324,11 +324,12 @@ int ODESolverBase<dim,real,MeshType>::advance_solution_time (double time_advance
     return 1;
 }
 
-template class ODESolverBase<PHILIP_DIM, double, dealii::Triangulation<PHILIP_DIM>>;
-template class ODESolverBase<PHILIP_DIM, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
-#if PHILIP_DIM != 1
-template class ODESolverBase<PHILIP_DIM, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+#if PHILIP_SPECIES==1
+    template class ODESolverBase<PHILIP_DIM, PHILIP_SPECIES, double, dealii::Triangulation<PHILIP_DIM>>;
+    template class ODESolverBase<PHILIP_DIM, PHILIP_SPECIES, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+    #if PHILIP_DIM != 1
+        template class ODESolverBase<PHILIP_DIM, PHILIP_SPECIES, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+    #endif
 #endif
-
 } // ODE namespace
 } // PHiLiP namespace

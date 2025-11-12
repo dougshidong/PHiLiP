@@ -8,8 +8,8 @@
 namespace PHiLiP {
 namespace Tests {
 
-template <int dim, int nstate>
-GeneralRefinementStudy<dim, nstate>::GeneralRefinementStudy(
+template <int dim, int nspecies, int nstate>
+GeneralRefinementStudy<dim, nspecies, nstate>::GeneralRefinementStudy(
         const PHiLiP::Parameters::AllParameters *const parameters_input,
         const dealii::ParameterHandler &parameter_handler_input,
         const RefinementType refinement_type_input)  
@@ -20,8 +20,8 @@ GeneralRefinementStudy<dim, nstate>::GeneralRefinementStudy(
          refine_ratio(parameters_input->time_refinement_study_param.refinement_ratio)
 {}
 
-template <int dim, int nstate>
-Parameters::AllParameters GeneralRefinementStudy<dim,nstate>::reinit_params_and_refine(const Parameters::AllParameters *parameters_in, int refinement, const RefinementType how) const
+template <int dim, int nspecies, int nstate>
+Parameters::AllParameters GeneralRefinementStudy<dim,nspecies,nstate>::reinit_params_and_refine(const Parameters::AllParameters *parameters_in, int refinement, const RefinementType how) const
 {
     PHiLiP::Parameters::AllParameters parameters = *(parameters_in);
 
@@ -44,12 +44,12 @@ Parameters::AllParameters GeneralRefinementStudy<dim,nstate>::reinit_params_and_
     return parameters;
 }
 
-template <int dim, int nstate>
-double GeneralRefinementStudy<dim,nstate>::calculate_Lp_error_at_final_time_wrt_function(std::shared_ptr<DGBase<dim,double>> dg, const Parameters::AllParameters parameters, double final_time, int norm_p) const
+template <int dim, int nspecies, int nstate>
+double GeneralRefinementStudy<dim,nspecies,nstate>::calculate_Lp_error_at_final_time_wrt_function(std::shared_ptr<DGBase<dim,nspecies,double>> dg, const Parameters::AllParameters parameters, double final_time, int norm_p) const
 {
     //generate exact solution at final time
-    std::shared_ptr<ExactSolutionFunction<dim,nstate,double>> exact_solution_function;
-    exact_solution_function = ExactSolutionFactory<dim,nstate,double>::create_ExactSolutionFunction(parameters.flow_solver_param, final_time);
+    std::shared_ptr<ExactSolutionFunction<dim,nspecies,nstate,double>> exact_solution_function;
+    exact_solution_function = ExactSolutionFactory<dim,nspecies,nstate,double>::create_ExactSolutionFunction(parameters.flow_solver_param, final_time);
     this->pcout << "End time: " << final_time << std::endl;
     double Lp_error=0;
     int overintegrate = 10;
@@ -78,8 +78,8 @@ double GeneralRefinementStudy<dim,nstate>::calculate_Lp_error_at_final_time_wrt_
     return Lp_error;    
 }
 
-template <int dim, int nstate>
-std::tuple<double,int> GeneralRefinementStudy<dim,nstate>::process_and_write_conv_tables(std::shared_ptr<FlowSolver::FlowSolver<dim,nstate>> flow_solver, 
+template <int dim, int nspecies, int nstate>
+std::tuple<double,int> GeneralRefinementStudy<dim,nspecies,nstate>::process_and_write_conv_tables(std::shared_ptr<FlowSolver::FlowSolver<dim,nspecies,nstate>> flow_solver, 
         const Parameters::AllParameters params, 
         double L2_error_old, 
         std::shared_ptr<dealii::ConvergenceTable> convergence_table,
@@ -165,8 +165,8 @@ std::tuple<double,int> GeneralRefinementStudy<dim,nstate>::process_and_write_con
     return std::make_tuple(L2_error,testfail);
 }
 
-template <int dim, int nstate>
-int GeneralRefinementStudy<dim,nstate>::run_refinement_study_and_write_result(const Parameters::AllParameters *parameters_in, const double expected_order, const bool check_only_last_refinement, const bool append_to_file) const{
+template <int dim, int nspecies, int nstate>
+int GeneralRefinementStudy<dim,nspecies,nstate>::run_refinement_study_and_write_result(const Parameters::AllParameters *parameters_in, const double expected_order, const bool check_only_last_refinement, const bool append_to_file) const{
 
     const double final_time = parameters_in->flow_solver_param.final_time;
     const double initial_time_step = parameters_in->ode_solver_param.initial_time_step;
@@ -190,7 +190,7 @@ int GeneralRefinementStudy<dim,nstate>::run_refinement_study_and_write_result(co
         pcout << "---------------------------------------------" << std::endl;
 
         const Parameters::AllParameters params = reinit_params_and_refine(parameters_in,refinement, refinement_type);
-        std::shared_ptr<FlowSolver::FlowSolver<dim,nstate>> flow_solver = std::move(FlowSolver::FlowSolverFactory<dim,nstate>::select_flow_case(&params, parameter_handler));
+        std::shared_ptr<FlowSolver::FlowSolver<dim,nspecies,nstate>> flow_solver = std::move(FlowSolver::FlowSolverFactory<dim,nspecies,nstate>::select_flow_case(&params, parameter_handler));
         static_cast<void>(flow_solver->run());
         
         pcout << "Finished flowsolver." << std::endl;
@@ -237,8 +237,8 @@ int GeneralRefinementStudy<dim,nstate>::run_refinement_study_and_write_result(co
     return testfail;
 }
 
-template <int dim, int nstate>
-int GeneralRefinementStudy<dim, nstate>::run_test() const
+template <int dim, int nspecies, int nstate>
+int GeneralRefinementStudy<dim, nspecies, nstate>::run_test() const
 {
     // setting expected order
     double expected_order_=0;
@@ -255,10 +255,10 @@ int GeneralRefinementStudy<dim, nstate>::run_test() const
 }
 
 #if PHILIP_DIM==1
-    template class GeneralRefinementStudy<PHILIP_DIM,PHILIP_DIM>;
+    template class GeneralRefinementStudy<PHILIP_DIM,PHILIP_SPECIES,PHILIP_DIM>;
 #else
-    template class GeneralRefinementStudy<PHILIP_DIM,1>;
-    template class GeneralRefinementStudy<PHILIP_DIM,PHILIP_DIM+2>;
+    template class GeneralRefinementStudy<PHILIP_DIM,PHILIP_SPECIES,1>;
+    template class GeneralRefinementStudy<PHILIP_DIM,PHILIP_SPECIES,PHILIP_DIM+2>;
 #endif
 } // Tests namespace
 } // PHiLiP namespace

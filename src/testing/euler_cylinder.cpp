@@ -97,14 +97,14 @@ void half_cylinder(dealii::parallel::distributed::Triangulation<2> & tria,
     }
 }
 
-template <int dim, int nstate>
-EulerCylinder<dim,nstate>::EulerCylinder(const Parameters::AllParameters *const parameters_input)
+template <int dim, int nspecies, int nstate>
+EulerCylinder<dim,nspecies,nstate>::EulerCylinder(const Parameters::AllParameters *const parameters_input)
     :
     TestsBase::TestsBase(parameters_input)
 {}
 
-template<int dim, int nstate>
-int EulerCylinder<dim,nstate>
+template<int dim, int nspecies, int nstate>
+int EulerCylinder<dim,nspecies,nstate>
 ::run_test () const
 {
     pcout << " Running Euler cylinder entropy convergence. " << std::endl;
@@ -124,15 +124,15 @@ int EulerCylinder<dim,nstate>
 
     const unsigned int n_grids_input       = manu_grid_conv_param.number_of_grids;
 
-    Physics::Euler<dim,nstate,double> euler_physics_double
-        = Physics::Euler<dim, nstate, double>(
+    Physics::Euler<dim,nspecies,nstate,double> euler_physics_double
+        = Physics::Euler<dim, nspecies, nstate, double>(
                 &param,
                 param.euler_param.ref_length,
                 param.euler_param.gamma_gas,
                 param.euler_param.mach_inf,
                 param.euler_param.angle_of_attack,
                 param.euler_param.side_slip_angle);
-    FreeStreamInitialConditions<dim,nstate,double> initial_conditions(euler_physics_double);
+    FreeStreamInitialConditions<dim,nspecies,nstate,double> initial_conditions(euler_physics_double);
 
     std::vector<int> fail_conv_poly;
     std::vector<double> fail_conv_slop;
@@ -167,14 +167,14 @@ int EulerCylinder<dim,nstate>
         const int solution_degree = poly_degree;
         //const int grid_degree = std::max(2,solution_degree);
         const int grid_degree = solution_degree+1;
-        std::shared_ptr < DGBase<dim, double> > dg = DGFactory<dim,double>::create_discontinuous_galerkin(&param, solution_degree, solution_degree, grid_degree, grid);
+        std::shared_ptr < DGBase<dim, nspecies, double> > dg = DGFactory<dim,nspecies,double>::create_discontinuous_galerkin(&param, solution_degree, solution_degree, grid_degree, grid);
 
         dg->allocate_system ();
         // Initialize coarse grid solution with free-stream
         dealii::VectorTools::interpolate(dg->dof_handler, initial_conditions, dg->solution);
 
         // Create ODE solver and ramp up the solution from p0
-        std::shared_ptr<ODE::ODESolverBase<dim, double>> ode_solver = ODE::ODESolverFactory<dim, double>::create_ODESolver(dg);
+        std::shared_ptr<ODE::ODESolverBase<dim, nspecies, double>> ode_solver = ODE::ODESolverFactory<dim, nspecies, double>::create_ODESolver(dg);
         ode_solver->initialize_steady_polynomial_ramping(poly_degree);
 
         dealii::Vector<float> estimated_error_per_cell(grid->n_active_cells());
@@ -183,7 +183,7 @@ int EulerCylinder<dim,nstate>
             // Interpolate solution from previous grid
             if (igrid>0) {
                 dealii::LinearAlgebra::distributed::Vector<double> old_solution(dg->solution);
-                dealii::parallel::distributed::SolutionTransfer<dim, dealii::LinearAlgebra::distributed::Vector<double>, dealii::DoFHandler<dim>> solution_transfer(dg->dof_handler);
+                dealii::parallel::distributed::SolutionTransfer<dim,dealii::LinearAlgebra::distributed::Vector<double>, dealii::DoFHandler<dim>> solution_transfer(dg->dof_handler);
                 solution_transfer.prepare_for_coarsening_and_refinement(old_solution);
                 dg->high_order_grid->prepare_for_coarsening_and_refinement();
 
@@ -222,7 +222,7 @@ int EulerCylinder<dim,nstate>
 
             const auto mapping = (*(dg->high_order_grid->mapping_fe_field));
             dealii::hp::MappingCollection<dim> mapping_collection(mapping);
-            dealii::hp::FEValues<dim,dim> fe_values_collection_volume (mapping_collection, dg->fe_collection, dg->volume_quadrature_collection, dealii::update_values | dealii::update_JxW_values); ///< FEValues of volume.
+            dealii::hp::FEValues<dim,dim>  fe_values_collection_volume (mapping_collection, dg->fe_collection, dg->volume_quadrature_collection, dealii::update_values | dealii::update_JxW_values); ///< FEValues of volume.
             // Overintegrate the error to make sure there is not integration error in the error estimate
             //int overintegrate = 0;
             //dealii::QGauss<dim> quad_extra(dg->max_degree+1+overintegrate);
@@ -375,8 +375,8 @@ int EulerCylinder<dim,nstate>
     return n_fail_poly;
 }
 
-#if PHILIP_DIM==2
-    template class EulerCylinder <PHILIP_DIM,PHILIP_DIM+2>;
+#if PHILIP_DIM==2 && PHILIP_SPECIES==1
+    template class EulerCylinder <PHILIP_DIM, PHILIP_SPECIES,PHILIP_DIM+2>;
 #endif
 
 } // Tests namespace

@@ -444,7 +444,7 @@ int GmshOut<dim,real>::call_gmsh(
 
 
 template class GmshOut <PHILIP_DIM, double>;
-template class GmshOut <PHILIP_DIM, float>;
+template class GmshOut <PHILIP_DIM,  float>;
 
 } // namespace GridRefinement
 

@@ -16,8 +16,8 @@ namespace PHiLiP {
 * "Robust high order discontinuous Galerkin schemes for two-dimensional gaseous detonations."
 * Journal of Computational Physics 231.2 (2012): 653-665.
 **********************************/
-template<int dim, int nstate, typename real>
-class PositivityPreservingLimiter : public BoundPreservingLimiterState <dim, nstate, real>
+template<int dim, int nspecies, int nstate, typename real>
+class PositivityPreservingLimiter : public BoundPreservingLimiterState <dim, nspecies, nstate, real>
 {
 public:
     /// Constructor
@@ -31,13 +31,13 @@ public:
     const Parameters::FlowSolverParam flow_solver_param; 
 
     /// Pointer to TVB limiter class (TVB limiter can be applied in conjunction with this limiter)
-    std::shared_ptr<BoundPreservingLimiterState<dim, nstate, real>> tvbLimiter;
+    std::shared_ptr<BoundPreservingLimiterState<dim, nspecies, nstate, real>> tvbLimiter;
 
     /// Euler physics pointer. Used to compute pressure.
-    std::shared_ptr < Physics::Euler<dim, nstate, double > > euler_physics;
+    std::shared_ptr < Physics::Euler<dim, nspecies, nstate, double > > euler_physics;
 
     /// Function to obtain the solution cell average
-    using BoundPreservingLimiterState<dim, nstate, real>::get_soln_cell_avg;
+    using BoundPreservingLimiterState<dim, nspecies, nstate, real>::get_soln_cell_avg;
 
     /// Applies positivity-preserving limiter to the solution.
     /// Using Zhang,Shu November 2010 Eq 3.14-3.19 or Wang, Shu 2012 Eq 3.7

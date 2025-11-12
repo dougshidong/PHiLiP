@@ -30,7 +30,7 @@ namespace Physics {
  *      = s(\mathbf{x})
  *  \f]
  */
-template <int dim, int nstate, typename real>
+template <int dim, int nspecies, int nstate, typename real>
 class PhysicsBase
 {
 public:
@@ -43,14 +43,14 @@ public:
         const bool                                                has_nonzero_diffusion_input,
         const bool                                                has_nonzero_physical_source_input,
         const dealii::Tensor<2,3,double>                          input_diffusion_tensor = Parameters::ManufacturedSolutionParam::get_default_diffusion_tensor(),
-        std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function_input = nullptr);
+        std::shared_ptr< ManufacturedSolutionFunction<dim,real>  > manufactured_solution_function_input = nullptr);
 
     /// Constructor that will call default constructor.
     PhysicsBase(
         const Parameters::AllParameters *const                    parameters_input,
         const bool                                                has_nonzero_diffusion_input,
         const bool                                                has_nonzero_physical_source_input,
-        std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function_input = nullptr);
+        std::shared_ptr< ManufacturedSolutionFunction<dim,real>  > manufactured_solution_function_input = nullptr);
 
     /// Virtual destructor required for abstract classes.
     virtual ~PhysicsBase() = default;
@@ -68,7 +68,7 @@ public:
     const NonPhysicalBehaviorEnum non_physical_behavior_type;    
 
     /// Manufactured solution function
-    std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function;
+    std::shared_ptr< ManufacturedSolutionFunction<dim,real>  > manufactured_solution_function;
 
     /// Convective fluxes that will be differentiated once in space.
     virtual std::array<dealii::Tensor<1,dim,real>,nstate> convective_flux (

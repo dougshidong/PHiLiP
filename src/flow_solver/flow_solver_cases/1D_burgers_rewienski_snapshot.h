@@ -21,8 +21,8 @@ namespace FlowSolver {
     using Triangulation = dealii::parallel::distributed::Triangulation<PHILIP_DIM>;
 #endif
 
-template <int dim, int nstate>
-class BurgersRewienskiSnapshot: public FlowSolverCaseBase<dim, nstate>
+template <int dim, int nspecies, int nstate>
+class BurgersRewienskiSnapshot: public FlowSolverCaseBase<dim, nspecies, nstate>
 {
 public:
     /// Constructor.
@@ -32,7 +32,7 @@ public:
     std::shared_ptr<Triangulation> generate_grid() const override;
 
     /// Function for postprocessing when solving for steady state
-    void steady_state_postprocessing(std::shared_ptr <DGBase<dim, double>> dg) const override;
+    void steady_state_postprocessing(std::shared_ptr <DGBase<dim, nspecies, double>> dg) const override;
 
 protected:
     const int number_of_refinements; ///< Number of cells per direction for the grid

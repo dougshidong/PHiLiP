@@ -15,7 +15,7 @@ namespace PHiLiP {
 namespace ProperOrthogonalDecomposition {
 
 /// Class to hold information about the reduced-order solution
-template<int dim, int nstate>
+template<int dim, int nspecies, int nstate>
 class ROMSolution
 {
 public:

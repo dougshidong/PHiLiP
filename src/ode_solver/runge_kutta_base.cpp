@@ -3,22 +3,22 @@
 namespace PHiLiP {
 namespace ODE {
 
-template<int dim, typename real, int n_rk_stages, typename MeshType>
-RungeKuttaBase<dim, real, n_rk_stages, MeshType>::RungeKuttaBase(std::shared_ptr< DGBase<dim, real, MeshType> > dg_input,
-            std::shared_ptr<EmptyRRKBase<dim,real,MeshType>> RRK_object_input,
-            std::shared_ptr<ProperOrthogonalDecomposition::PODBase<dim>> pod)
-            : ODESolverBase<dim,real,MeshType>(dg_input, pod)
+template<int dim, int nspecies, typename real, int n_rk_stages, typename MeshType>
+RungeKuttaBase<dim, nspecies, real, n_rk_stages, MeshType>::RungeKuttaBase(std::shared_ptr< DGBase<dim, nspecies, real, MeshType> > dg_input,
+            std::shared_ptr<EmptyRRKBase<dim,nspecies,real,MeshType>> RRK_object_input,
+            std::shared_ptr<ProperOrthogonalDecomposition::PODBase<dim,nspecies>> pod)
+            : ODESolverBase<dim,nspecies,real,MeshType>(dg_input, pod)
             , relaxation_runge_kutta(RRK_object_input)
             , solver(dg_input)
 {}            
 
-template<int dim, typename real, int n_rk_stages, typename MeshType>
-RungeKuttaBase<dim, real, n_rk_stages, MeshType>::RungeKuttaBase(std::shared_ptr< DGBase<dim, real, MeshType> > dg_input,
-            std::shared_ptr<EmptyRRKBase<dim,real,MeshType>> RRK_object_input)
+template<int dim, int nspecies, typename real, int n_rk_stages, typename MeshType>
+RungeKuttaBase<dim, nspecies, real, n_rk_stages, MeshType>::RungeKuttaBase(std::shared_ptr< DGBase<dim, nspecies, real, MeshType> > dg_input,
+            std::shared_ptr<EmptyRRKBase<dim,nspecies,real,MeshType>> RRK_object_input)
             : RungeKuttaBase(dg_input, RRK_object_input, nullptr)
 {}
-template<int dim, typename real, int n_rk_stages, typename MeshType>
-void RungeKuttaBase<dim, real, n_rk_stages, MeshType>::step_in_time(real dt, const bool pseudotime)
+template<int dim, int nspecies, typename real, int n_rk_stages, typename MeshType>
+void RungeKuttaBase<dim, nspecies, real, n_rk_stages, MeshType>::step_in_time(real dt, const bool pseudotime)
 {
     this->original_time_step = dt;
     this->solution_update = this->dg->solution; //storing u_n
@@ -37,8 +37,8 @@ void RungeKuttaBase<dim, real, n_rk_stages, MeshType>::step_in_time(real dt, con
     this->current_time += dt;
 }
 
-template <int dim, typename real, int n_rk_stages, typename MeshType>
-void RungeKuttaBase<dim, real, n_rk_stages, MeshType>::apply_limiter (real dt)
+template <int dim, int nspecies, typename real, int n_rk_stages, typename MeshType>
+void RungeKuttaBase<dim, nspecies, real, n_rk_stages, MeshType>::apply_limiter (real dt)
 {
     // Apply limiter at every RK stage
     if (this->limiter) {
@@ -54,8 +54,8 @@ void RungeKuttaBase<dim, real, n_rk_stages, MeshType>::apply_limiter (real dt)
     }
 }
 
-template<int dim, typename real, int n_rk_stages, typename MeshType>
-void RungeKuttaBase<dim, real, n_rk_stages, MeshType>::allocate_ode_system()
+template<int dim, int nspecies, typename real, int n_rk_stages, typename MeshType>
+void RungeKuttaBase<dim, nspecies, real, n_rk_stages, MeshType>::allocate_ode_system()
 {
     this->pcout << "Allocating ODE system..." << std::flush;
     this->solution_update.reinit(this->dg->right_hand_side);
@@ -70,31 +70,26 @@ void RungeKuttaBase<dim, real, n_rk_stages, MeshType>::allocate_ode_system()
     this->allocate_runge_kutta_system();
 }
 
-/*
-Templates with n_rk_stages > 4 are for the LSRK method
-*/
-template class RungeKuttaBase<PHILIP_DIM, double,1, dealii::Triangulation<PHILIP_DIM> >;
-template class RungeKuttaBase<PHILIP_DIM, double,2, dealii::Triangulation<PHILIP_DIM> >;
-template class RungeKuttaBase<PHILIP_DIM, double,3, dealii::Triangulation<PHILIP_DIM> >;
-template class RungeKuttaBase<PHILIP_DIM, double,4, dealii::Triangulation<PHILIP_DIM> >;
-template class RungeKuttaBase<PHILIP_DIM, double,5, dealii::Triangulation<PHILIP_DIM> >; 
-template class RungeKuttaBase<PHILIP_DIM, double,9, dealii::Triangulation<PHILIP_DIM> >; 
-template class RungeKuttaBase<PHILIP_DIM, double,10, dealii::Triangulation<PHILIP_DIM> >; 
-template class RungeKuttaBase<PHILIP_DIM, double,1, dealii::parallel::shared::Triangulation<PHILIP_DIM> >;
-template class RungeKuttaBase<PHILIP_DIM, double,2, dealii::parallel::shared::Triangulation<PHILIP_DIM> >;
-template class RungeKuttaBase<PHILIP_DIM, double,3, dealii::parallel::shared::Triangulation<PHILIP_DIM> >;
-template class RungeKuttaBase<PHILIP_DIM, double,4, dealii::parallel::shared::Triangulation<PHILIP_DIM> >;
-template class RungeKuttaBase<PHILIP_DIM, double,5, dealii::parallel::shared::Triangulation<PHILIP_DIM> >;
-template class RungeKuttaBase<PHILIP_DIM, double,9, dealii::parallel::shared::Triangulation<PHILIP_DIM> >;
-template class RungeKuttaBase<PHILIP_DIM, double,10, dealii::parallel::shared::Triangulation<PHILIP_DIM> >;
-#if PHILIP_DIM != 1
-    template class RungeKuttaBase<PHILIP_DIM, double,1, dealii::parallel::distributed::Triangulation<PHILIP_DIM> >;
-    template class RungeKuttaBase<PHILIP_DIM, double,2, dealii::parallel::distributed::Triangulation<PHILIP_DIM> >;
-    template class RungeKuttaBase<PHILIP_DIM, double,3, dealii::parallel::distributed::Triangulation<PHILIP_DIM> >;
-    template class RungeKuttaBase<PHILIP_DIM, double,4, dealii::parallel::distributed::Triangulation<PHILIP_DIM> >;
-    template class RungeKuttaBase<PHILIP_DIM, double,5, dealii::parallel::distributed::Triangulation<PHILIP_DIM> >;
-    template class RungeKuttaBase<PHILIP_DIM, double,9, dealii::parallel::distributed::Triangulation<PHILIP_DIM> >;
-    template class RungeKuttaBase<PHILIP_DIM, double,10, dealii::parallel::distributed::Triangulation<PHILIP_DIM> >;
+#if PHILIP_SPECIES==1
+    // Define a sequence of indices representing the range of nstates (>5 is for LSRK)
+    #define POSSIBLE_NSTATE (1)(2)(3)(4)(5)(9)(10)
+
+    // using default MeshType = Triangulation
+    // 1D: dealii::Triangulation<dim>;
+    // Otherwise: dealii::parallel::distributed::Triangulation<dim>;
+
+    // Define a macro to instantiate with Meshtype = Triangulation or Shared Triangulation for a specific nstate
+    #define INSTANTIATE_TRIA(r, data, nstate) \
+        template class RungeKuttaBase<PHILIP_DIM, PHILIP_SPECIES, double, nstate, dealii::Triangulation<PHILIP_DIM> >; \
+        template class RungeKuttaBase<PHILIP_DIM, PHILIP_SPECIES, double, nstate, dealii::parallel::shared::Triangulation<PHILIP_DIM> >; 
+    BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_TRIA, _, POSSIBLE_NSTATE)
+
+    // Define a macro to instantiate with distributed triangulation for a specific nstate
+    #define INSTANTIATE_DISTRIBUTED(r, data, nstate) \
+        template class RungeKuttaBase<PHILIP_DIM, PHILIP_SPECIES, double, nstate, dealii::parallel::distributed::Triangulation<PHILIP_DIM> >;
+    #if PHILIP_DIM!=1
+    BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_DISTRIBUTED, _, POSSIBLE_NSTATE)
+    #endif
 #endif
 } // ODE namespace
 } // PHiLiP namespace

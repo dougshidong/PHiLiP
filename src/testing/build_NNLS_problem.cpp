@@ -14,8 +14,8 @@
 namespace PHiLiP {
 namespace Tests {
 
-template <int dim, int nstate>
-BuildNNLSProblem<dim, nstate>::BuildNNLSProblem(const Parameters::AllParameters *const parameters_input,
+template <int dim, int nspecies, int nstate>
+BuildNNLSProblem<dim, nspecies, nstate>::BuildNNLSProblem(const Parameters::AllParameters *const parameters_input,
                                         const dealii::ParameterHandler &parameter_handler_input)
         : TestsBase::TestsBase(parameters_input)
         , parameter_handler(parameter_handler_input)
@@ -39,14 +39,14 @@ std::shared_ptr<Epetra_CrsMatrix> local_generate_test_basis(Parameters::ODESolve
 }
 
 
-template <int dim, int nstate>
-int BuildNNLSProblem<dim, nstate>::run_test() const
+template <int dim, int nspecies, int nstate>
+int BuildNNLSProblem<dim, nspecies, nstate>::run_test() const
 {
     Epetra_MpiComm Comm( MPI_COMM_WORLD );
     // Create flow solver and adaptive sampling class instances
-    std::unique_ptr<FlowSolver::FlowSolver<dim,nstate>> flow_solver_petrov_galerkin = FlowSolver::FlowSolverFactory<dim,nstate>::select_flow_case(all_parameters, parameter_handler);
+    std::unique_ptr<FlowSolver::FlowSolver<dim,nspecies,nstate>> flow_solver_petrov_galerkin = FlowSolver::FlowSolverFactory<dim,nspecies,nstate>::select_flow_case(all_parameters, parameter_handler);
     auto ode_solver_type = Parameters::ODESolverParam::ODESolverEnum::pod_petrov_galerkin_solver;
-    std::shared_ptr<AdaptiveSampling<dim,nstate>> parameter_sampling = std::make_unique<AdaptiveSampling<dim,nstate>>(all_parameters, parameter_handler);
+    std::shared_ptr<AdaptiveSampling<dim,nspecies,nstate>> parameter_sampling = std::make_unique<AdaptiveSampling<dim,nspecies,nstate>>(all_parameters, parameter_handler);
 
     // Place minimum number of snapshots in the parameter space (3 snapshots in 1 parameter cases)
     parameter_sampling->configureInitialParameterSpace();
@@ -56,7 +56,7 @@ int BuildNNLSProblem<dim, nstate>::run_test() const
 
     // Create instance of NNLS Problem assembler
     std::cout << "Construct instance of Assembler..."<< std::endl;
-    HyperReduction::AssembleECSWRes<dim,nstate> constructor_NNLS_problem(all_parameters, parameter_handler, flow_solver_petrov_galerkin->dg, parameter_sampling->current_pod, snapshot_parameters, ode_solver_type, Comm);
+    HyperReduction::AssembleECSWRes<dim,nspecies,nstate> constructor_NNLS_problem(all_parameters, parameter_handler, flow_solver_petrov_galerkin->dg, parameter_sampling->current_pod, snapshot_parameters, ode_solver_type, Comm);
     
     // Add in FOM snapshots from sampling
     constructor_NNLS_problem.fom_locations = parameter_sampling->fom_locations;
@@ -65,7 +65,7 @@ int BuildNNLSProblem<dim, nstate>::run_test() const
     constructor_NNLS_problem.build_problem();
 
     /* UNCOMMENT TO SAVE THE RESIDUAL AND TEST BASIS FOR EACH OF THE SNAPSHOTS, used to feed MATLAB and build C/d
-    std::shared_ptr<DGBase<dim,double>> dg = flow_solver_petrov_galerkin->dg;
+    std::shared_ptr<DGBase<dim,nspecies,double>> dg = flow_solver_petrov_galerkin->dg;
     MatrixXd snapshotMatrix = parameter_sampling->current_pod->getSnapshotMatrix();
     const Epetra_CrsMatrix epetra_pod_basis = parameter_sampling->current_pod->getPODBasis()->trilinos_matrix();
     Epetra_CrsMatrix epetra_system_matrix = dg->system_matrix.trilinos_matrix();
@@ -84,7 +84,7 @@ int BuildNNLSProblem<dim, nstate>::run_test() const
         
         Parameters::AllParameters params = parameter_sampling->reinit_params(snap_param);
         
-        std::unique_ptr<FlowSolver::FlowSolver<dim,nstate>> flow_solver = FlowSolver::FlowSolverFactory<dim,nstate>::select_flow_case(&params, parameter_handler);
+        std::unique_ptr<FlowSolver::FlowSolver<dim,nspecies,nstate>> flow_solver = FlowSolver::FlowSolverFactory<dim,nspecies,nstate>::select_flow_case(&params, parameter_handler);
         dg = flow_solver->dg;
 
         std::cout << "Set dg solution to snapshot"<< std::endl;
@@ -166,12 +166,12 @@ int BuildNNLSProblem<dim, nstate>::run_test() const
     return !exit_con;
 }
 
-#if PHILIP_DIM==1
-        template class BuildNNLSProblem<PHILIP_DIM, PHILIP_DIM>;
+#if PHILIP_DIM==1 && PHILIP_SPECIES==1
+        template class BuildNNLSProblem<PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM>;
 #endif
 
-#if PHILIP_DIM!=1
-        template class BuildNNLSProblem<PHILIP_DIM, PHILIP_DIM+2>;
+#if PHILIP_DIM!=1 && PHILIP_SPECIES==1
+        template class BuildNNLSProblem<PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2>;
 #endif
 } // Tests namespace
 } // PHiLiP namespace

@@ -16,7 +16,7 @@ namespace PHiLiP {
 namespace GridRefinement {
 
 // Function class to rezero the solution on grid read
-template <int dim, int nstate>
+template <int dim, int nspecies, int nstate>
 class InitialConditions : public dealii::Function<dim>
 {
 public:
@@ -28,63 +28,63 @@ public:
     }
 };
 
-template <int dim, int nstate, typename real, typename MeshType>
-GridRefinement_Continuous<dim,nstate,real,MeshType>::GridRefinement_Continuous(
+template <int dim, int nspecies, int nstate, typename real, typename MeshType>
+GridRefinement_Continuous<dim,nspecies,nstate,real,MeshType>::GridRefinement_Continuous(
     PHiLiP::Parameters::GridRefinementParam                          gr_param_input,
-    std::shared_ptr< PHiLiP::Adjoint<dim, nstate, real, MeshType> >  adj_input,
-    std::shared_ptr< PHiLiP::Physics::PhysicsBase<dim,nstate,real> > physics_input) :
-        GridRefinement_Continuous<dim,nstate,real,MeshType>(
+    std::shared_ptr< PHiLiP::Adjoint<dim, nspecies, nstate, real, MeshType> >  adj_input,
+    std::shared_ptr< PHiLiP::Physics::PhysicsBase<dim,nspecies,nstate,real> > physics_input) :
+        GridRefinement_Continuous<dim,nspecies,nstate,real,MeshType>(
             gr_param_input,
             adj_input,
             adj_input->functional, 
             adj_input->dg, 
             physics_input){}
 
-template <int dim, int nstate, typename real, typename MeshType>
-GridRefinement_Continuous<dim,nstate,real,MeshType>::GridRefinement_Continuous(
+template <int dim, int nspecies, int nstate, typename real, typename MeshType>
+GridRefinement_Continuous<dim,nspecies,nstate,real,MeshType>::GridRefinement_Continuous(
     PHiLiP::Parameters::GridRefinementParam                            gr_param_input,
-    std::shared_ptr< PHiLiP::DGBase<dim, real, MeshType> >             dg_input,
-    std::shared_ptr< PHiLiP::Physics::PhysicsBase<dim,nstate,real> >   physics_input,
-    std::shared_ptr< PHiLiP::Functional<dim, nstate, real, MeshType> > functional_input) : 
-        GridRefinement_Continuous<dim,nstate,real,MeshType>(
+    std::shared_ptr< PHiLiP::DGBase<dim, nspecies, real, MeshType> >             dg_input,
+    std::shared_ptr< PHiLiP::Physics::PhysicsBase<dim,nspecies,nstate,real> >   physics_input,
+    std::shared_ptr< PHiLiP::Functional<dim, nspecies, nstate, real, MeshType> > functional_input) : 
+        GridRefinement_Continuous<dim,nspecies,nstate,real,MeshType>(
             gr_param_input, 
             nullptr, 
             functional_input, 
             dg_input, 
             physics_input){}
 
-template <int dim, int nstate, typename real, typename MeshType>
-GridRefinement_Continuous<dim,nstate,real,MeshType>::GridRefinement_Continuous(
+template <int dim, int nspecies, int nstate, typename real, typename MeshType>
+GridRefinement_Continuous<dim,nspecies,nstate,real,MeshType>::GridRefinement_Continuous(
     PHiLiP::Parameters::GridRefinementParam                          gr_param_input,
-    std::shared_ptr< PHiLiP::DGBase<dim, real, MeshType> >           dg_input,
-    std::shared_ptr< PHiLiP::Physics::PhysicsBase<dim,nstate,real> > physics_input) : 
-        GridRefinement_Continuous<dim,nstate,real,MeshType>(
+    std::shared_ptr< PHiLiP::DGBase<dim, nspecies, real, MeshType> >           dg_input,
+    std::shared_ptr< PHiLiP::Physics::PhysicsBase<dim,nspecies,nstate,real> > physics_input) : 
+        GridRefinement_Continuous<dim,nspecies,nstate,real,MeshType>(
             gr_param_input, 
             nullptr, 
             nullptr, 
             dg_input, 
             physics_input){}
 
-template <int dim, int nstate, typename real, typename MeshType>
-GridRefinement_Continuous<dim,nstate,real,MeshType>::GridRefinement_Continuous(
+template <int dim, int nspecies, int nstate, typename real, typename MeshType>
+GridRefinement_Continuous<dim,nspecies,nstate,real,MeshType>::GridRefinement_Continuous(
     PHiLiP::Parameters::GridRefinementParam                gr_param_input,
     // PHiLiP::Parameters::AllParameters const *const param_input,
-    std::shared_ptr< PHiLiP::DGBase<dim, real, MeshType> > dg_input) :
-        GridRefinement_Continuous<dim,nstate,real,MeshType>(
+    std::shared_ptr< PHiLiP::DGBase<dim, nspecies, real, MeshType> > dg_input) :
+        GridRefinement_Continuous<dim,nspecies,nstate,real,MeshType>(
             gr_param_input, 
             nullptr, 
             nullptr, 
             dg_input, 
             nullptr){}
 
-template <int dim, int nstate, typename real, typename MeshType>
-GridRefinement_Continuous<dim,nstate,real,MeshType>::GridRefinement_Continuous(
+template <int dim, int nspecies, int nstate, typename real, typename MeshType>
+GridRefinement_Continuous<dim,nspecies,nstate,real,MeshType>::GridRefinement_Continuous(
     PHiLiP::Parameters::GridRefinementParam                            gr_param_input,
-    std::shared_ptr< PHiLiP::Adjoint<dim, nstate, real, MeshType> >    adj_input,
-    std::shared_ptr< PHiLiP::Functional<dim, nstate, real, MeshType> > functional_input,
-    std::shared_ptr< PHiLiP::DGBase<dim, real, MeshType> >             dg_input,
-    std::shared_ptr< PHiLiP::Physics::PhysicsBase<dim,nstate,real> >   physics_input) :
-        GridRefinementBase<dim,nstate,real,MeshType>(
+    std::shared_ptr< PHiLiP::Adjoint<dim, nspecies, nstate, real, MeshType> >    adj_input,
+    std::shared_ptr< PHiLiP::Functional<dim, nspecies, nstate, real, MeshType> > functional_input,
+    std::shared_ptr< PHiLiP::DGBase<dim, nspecies, real, MeshType> >             dg_input,
+    std::shared_ptr< PHiLiP::Physics::PhysicsBase<dim,nspecies,nstate,real> >   physics_input) :
+        GridRefinementBase<dim,nspecies,nstate,real,MeshType>(
             gr_param_input,
             adj_input,
             functional_input,
@@ -116,8 +116,8 @@ GridRefinement_Continuous<dim,nstate,real,MeshType>::GridRefinement_Continuous(
     target_complexity();
 }
 
-template <int dim, int nstate, typename real, typename MeshType>
-void GridRefinement_Continuous<dim,nstate,real,MeshType>::refine_grid()
+template <int dim, int nspecies, int nstate, typename real, typename MeshType>
+void GridRefinement_Continuous<dim,nspecies,nstate,real,MeshType>::refine_grid()
 {
     using RefinementTypeEnum = PHiLiP::Parameters::GridRefinementParam::RefinementType;
     RefinementTypeEnum refinement_type = this->grid_refinement_param.refinement_type;
@@ -144,7 +144,7 @@ void GridRefinement_Continuous<dim,nstate,real,MeshType>::refine_grid()
 
     // zeroing the solution
     std::shared_ptr<dealii::Function<dim>> initial_conditions = 
-        std::make_shared<InitialConditions<dim,nstate>>();
+        std::make_shared<InitialConditions<dim,nspecies,nstate>>();
     
     dealii::LinearAlgebra::distributed::Vector<double> solution_no_ghost;
     solution_no_ghost.reinit(this->dg->locally_owned_dofs, MPI_COMM_WORLD);
@@ -156,8 +156,8 @@ void GridRefinement_Continuous<dim,nstate,real,MeshType>::refine_grid()
     this->iteration++;
 }
 
-template <int dim, int nstate, typename real, typename MeshType>
-void GridRefinement_Continuous<dim,nstate,real,MeshType>::refine_grid_h()
+template <int dim, int nspecies, int nstate, typename real, typename MeshType>
+void GridRefinement_Continuous<dim,nspecies,nstate,real,MeshType>::refine_grid_h()
 {
     using OutputType = PHiLiP::Parameters::GridRefinementParam::OutputType;
     OutputType output_type = this->grid_refinement_param.output_type;
@@ -171,8 +171,8 @@ void GridRefinement_Continuous<dim,nstate,real,MeshType>::refine_grid_h()
 
 }
 
-template <int dim, int nstate, typename real, typename MeshType>
-void GridRefinement_Continuous<dim,nstate,real,MeshType>::refine_grid_p()
+template <int dim, int nspecies, int nstate, typename real, typename MeshType>
+void GridRefinement_Continuous<dim,nspecies,nstate,real,MeshType>::refine_grid_p()
 {
     // physical grid stays the same, apply the update to the p_field
     for(auto cell = this->dg->dof_handler.begin_active(); cell != this->dg->dof_handler.end(); ++cell)
@@ -180,8 +180,8 @@ void GridRefinement_Continuous<dim,nstate,real,MeshType>::refine_grid_p()
             cell->set_future_fe_index(round(p_field[cell->active_cell_index()]));
 }
 
-template <int dim, int nstate, typename real, typename MeshType>
-void GridRefinement_Continuous<dim,nstate,real,MeshType>::refine_grid_hp()
+template <int dim, int nspecies, int nstate, typename real, typename MeshType>
+void GridRefinement_Continuous<dim,nspecies,nstate,real,MeshType>::refine_grid_hp()
 {
     // NOT IMPLEMENTED
     assert(0);
@@ -190,8 +190,8 @@ void GridRefinement_Continuous<dim,nstate,real,MeshType>::refine_grid_hp()
     // new P will be the weighted average of the integral over the new cell
 }
 
-template <int dim, int nstate, typename real, typename MeshType>
-void GridRefinement_Continuous<dim,nstate,real,MeshType>::refine_grid_gmsh()
+template <int dim, int nspecies, int nstate, typename real, typename MeshType>
+void GridRefinement_Continuous<dim,nspecies,nstate,real,MeshType>::refine_grid_gmsh()
 {
     const int iproc = dealii::Utilities::MPI::this_mpi_process(this->mpi_communicator);
     
@@ -264,8 +264,8 @@ void GridRefinement_Continuous<dim,nstate,real,MeshType>::refine_grid_gmsh()
     gridin.read_msh(f);
 }
 
-template <int dim, int nstate, typename real, typename MeshType>
-void GridRefinement_Continuous<dim,nstate,real,MeshType>::refine_grid_msh()
+template <int dim, int nspecies, int nstate, typename real, typename MeshType>
+void GridRefinement_Continuous<dim,nspecies,nstate,real,MeshType>::refine_grid_msh()
 {
     // geting the data output type
     using OutputDataType = PHiLiP::Parameters::GridRefinementParam::OutputDataType;
@@ -350,8 +350,8 @@ void GridRefinement_Continuous<dim,nstate,real,MeshType>::refine_grid_msh()
     }
 }
 
-template <int dim, int nstate, typename real, typename MeshType>
-void GridRefinement_Continuous<dim,nstate,real,MeshType>::field()
+template <int dim, int nspecies, int nstate, typename real, typename MeshType>
+void GridRefinement_Continuous<dim,nspecies,nstate,real,MeshType>::field()
 {
     using RefinementTypeEnum = PHiLiP::Parameters::GridRefinementParam::RefinementType;
     using ErrorIndicatorEnum = PHiLiP::Parameters::GridRefinementParam::ErrorIndicator;
@@ -397,8 +397,8 @@ void GridRefinement_Continuous<dim,nstate,real,MeshType>::field()
     }
 }
 
-template <int dim, int nstate, typename real, typename MeshType>
-void GridRefinement_Continuous<dim,nstate,real,MeshType>::target_complexity()
+template <int dim, int nspecies, int nstate, typename real, typename MeshType>
+void GridRefinement_Continuous<dim,nspecies,nstate,real,MeshType>::target_complexity()
 {
     // if the complexity vector needs to be expanded
     while(complexity_vector.size() <= this->iteration)
@@ -413,8 +413,8 @@ void GridRefinement_Continuous<dim,nstate,real,MeshType>::target_complexity()
     std::cout << "Complexity target = " << complexity_target << std::endl;
 }
 
-template <int dim, int nstate, typename real, typename MeshType>
-real GridRefinement_Continuous<dim,nstate,real,MeshType>::current_complexity()
+template <int dim, int nspecies, int nstate, typename real, typename MeshType>
+real GridRefinement_Continuous<dim,nspecies,nstate,real,MeshType>::current_complexity()
 {
     real complexity_sum;
 
@@ -433,8 +433,8 @@ real GridRefinement_Continuous<dim,nstate,real,MeshType>::current_complexity()
     return dealii::Utilities::MPI::sum(complexity_sum, MPI_COMM_WORLD);
 }
 
-template <int dim, int nstate, typename real, typename MeshType>
-void GridRefinement_Continuous<dim,nstate,real,MeshType>::get_current_field_h()
+template <int dim, int nspecies, int nstate, typename real, typename MeshType>
+void GridRefinement_Continuous<dim,nspecies,nstate,real,MeshType>::get_current_field_h()
 {
     // gets the current size and copy it into field_h
     // for isotropic, sets the size to be the h = volume ^ (1/dim)
@@ -444,8 +444,8 @@ void GridRefinement_Continuous<dim,nstate,real,MeshType>::get_current_field_h()
             this->h_field->set_scale(cell->active_cell_index(), pow(cell->measure(), 1.0/dim));
 }
 
-template <int dim, int nstate, typename real, typename MeshType>
-void GridRefinement_Continuous<dim,nstate,real,MeshType>::get_current_field_p()
+template <int dim, int nspecies, int nstate, typename real, typename MeshType>
+void GridRefinement_Continuous<dim,nspecies,nstate,real,MeshType>::get_current_field_p()
 {
     // gets the current polynomiala distribution and copies it into field_p
     p_field.reinit(this->tria->n_active_cells());
@@ -454,8 +454,8 @@ void GridRefinement_Continuous<dim,nstate,real,MeshType>::get_current_field_p()
             this->p_field[cell->active_cell_index()] = cell->active_fe_index();
 }
 
-template <int dim, int nstate, typename real, typename MeshType>
-void GridRefinement_Continuous<dim,nstate,real,MeshType>::field_h_error()
+template <int dim, int nspecies, int nstate, typename real, typename MeshType>
+void GridRefinement_Continuous<dim,nspecies,nstate,real,MeshType>::field_h_error()
 {
     real q = 2.0;
 
@@ -491,7 +491,7 @@ void GridRefinement_Continuous<dim,nstate,real,MeshType>::field_h_error()
 
     }else{
         // call the non-uniform hp-version without the p-update
-        GridRefinement_Continuous<dim,nstate,real,MeshType>::get_current_field_p();
+        GridRefinement_Continuous<dim,nspecies,nstate,real,MeshType>::get_current_field_p();
 
         // mapping
         const dealii::hp::MappingCollection<dim> mapping_collection(*(this->dg->high_order_grid->mapping_fe_field));
@@ -510,21 +510,21 @@ void GridRefinement_Continuous<dim,nstate,real,MeshType>::field_h_error()
     }
 }
 
-template <int dim, int nstate, typename real, typename MeshType>
-void GridRefinement_Continuous<dim,nstate,real,MeshType>::field_p_error()
+template <int dim, int nspecies, int nstate, typename real, typename MeshType>
+void GridRefinement_Continuous<dim,nspecies,nstate,real,MeshType>::field_p_error()
 {
     // NOT IMPLEMENTED
     assert(0);
 }
-template <int dim, int nstate, typename real, typename MeshType>
-void GridRefinement_Continuous<dim,nstate,real,MeshType>::field_hp_error()
+template <int dim, int nspecies, int nstate, typename real, typename MeshType>
+void GridRefinement_Continuous<dim,nspecies,nstate,real,MeshType>::field_hp_error()
 {
     // NOT IMPLEMENTED
     assert(0);
 }
 
-template <int dim, int nstate, typename real, typename MeshType>
-void GridRefinement_Continuous<dim,nstate,real,MeshType>::field_h_hessian()
+template <int dim, int nspecies, int nstate, typename real, typename MeshType>
+void GridRefinement_Continuous<dim,nspecies,nstate,real,MeshType>::field_h_hessian()
 {
     // beginning h_field computation
     std::cout << "Beggining field_h() computation" << std::endl;
@@ -536,7 +536,7 @@ void GridRefinement_Continuous<dim,nstate,real,MeshType>::field_h_hessian()
     const unsigned int rel_order = 1;
 
     // construct object to reconstruct the derivatives onto A
-    ReconstructPoly<dim,nstate,real> reconstruct_poly(
+    ReconstructPoly<dim,nspecies,nstate,real> reconstruct_poly(
         this->dg->dof_handler,
         mapping_collection,
         this->dg->fe_collection,
@@ -600,7 +600,7 @@ void GridRefinement_Continuous<dim,nstate,real,MeshType>::field_h_hessian()
 
     }else{
         // the case of non-uniform p
-        GridRefinement_Continuous<dim,nstate,real,MeshType>::get_current_field_p();
+        GridRefinement_Continuous<dim,nspecies,nstate,real,MeshType>::get_current_field_p();
 
         SizeField<dim,real>::isotropic_h(
             this->complexity_target,
@@ -616,40 +616,40 @@ void GridRefinement_Continuous<dim,nstate,real,MeshType>::field_h_hessian()
     }
 }
 
-template <int dim, int nstate, typename real, typename MeshType>
-void GridRefinement_Continuous<dim,nstate,real,MeshType>::field_p_hessian()
+template <int dim, int nspecies, int nstate, typename real, typename MeshType>
+void GridRefinement_Continuous<dim,nspecies,nstate,real,MeshType>::field_p_hessian()
 {
     // NOT IMPLEMENTED
     assert(0);
 }
-template <int dim, int nstate, typename real, typename MeshType>
-void GridRefinement_Continuous<dim,nstate,real,MeshType>::field_hp_hessian()
-{
-    // NOT IMPLEMENTED
-    assert(0);
-}
-
-template <int dim, int nstate, typename real, typename MeshType>
-void GridRefinement_Continuous<dim,nstate,real,MeshType>::field_h_residual()
-{
-    // NOT IMPLEMENTED
-    assert(0);
-}
-template <int dim, int nstate, typename real, typename MeshType>
-void GridRefinement_Continuous<dim,nstate,real,MeshType>::field_p_residual()
-{
-    // NOT IMPLEMENTED
-    assert(0);
-}
-template <int dim, int nstate, typename real, typename MeshType>
-void GridRefinement_Continuous<dim,nstate,real,MeshType>::field_hp_residual()
+template <int dim, int nspecies, int nstate, typename real, typename MeshType>
+void GridRefinement_Continuous<dim,nspecies,nstate,real,MeshType>::field_hp_hessian()
 {
     // NOT IMPLEMENTED
     assert(0);
 }
 
-template <int dim, int nstate, typename real, typename MeshType>
-void GridRefinement_Continuous<dim,nstate,real,MeshType>::field_h_adjoint()
+template <int dim, int nspecies, int nstate, typename real, typename MeshType>
+void GridRefinement_Continuous<dim,nspecies,nstate,real,MeshType>::field_h_residual()
+{
+    // NOT IMPLEMENTED
+    assert(0);
+}
+template <int dim, int nspecies, int nstate, typename real, typename MeshType>
+void GridRefinement_Continuous<dim,nspecies,nstate,real,MeshType>::field_p_residual()
+{
+    // NOT IMPLEMENTED
+    assert(0);
+}
+template <int dim, int nspecies, int nstate, typename real, typename MeshType>
+void GridRefinement_Continuous<dim,nspecies,nstate,real,MeshType>::field_hp_residual()
+{
+    // NOT IMPLEMENTED
+    assert(0);
+}
+
+template <int dim, int nspecies, int nstate, typename real, typename MeshType>
+void GridRefinement_Continuous<dim,nspecies,nstate,real,MeshType>::field_h_adjoint()
 {
     // beginning h_field computation
     std::cout << "Beggining anisotropic field_h() computation" << std::endl;
@@ -661,7 +661,7 @@ void GridRefinement_Continuous<dim,nstate,real,MeshType>::field_h_adjoint()
     const unsigned int rel_order = 1;
 
     // construct object to reconstruct the derivatives onto A
-    ReconstructPoly<dim,nstate,real> reconstruct_poly(
+    ReconstructPoly<dim,nspecies,nstate,real> reconstruct_poly(
         this->dg->dof_handler,
         mapping_collection,
         this->dg->fe_collection,
@@ -698,7 +698,7 @@ void GridRefinement_Continuous<dim,nstate,real,MeshType>::field_h_adjoint()
     this->adjoint->fine_grid_adjoint();
     this->adjoint->dual_weighted_residual();
     dealii::Vector<real> dwr = this->adjoint->dual_weighted_residual_fine;
-    this->adjoint->convert_to_state(PHiLiP::Adjoint<dim,nstate,double,MeshType>::AdjointStateEnum::coarse);
+    this->adjoint->convert_to_state(PHiLiP::Adjoint<dim,nspecies,nstate,double,MeshType>::AdjointStateEnum::coarse);
 
     // setting the current p-field and performing the size-field refinement step
 
@@ -732,7 +732,7 @@ void GridRefinement_Continuous<dim,nstate,real,MeshType>::field_h_adjoint()
 
     }else{
         // the case of non-uniform p
-        GridRefinement_Continuous<dim,nstate,real,MeshType>::get_current_field_p();
+        GridRefinement_Continuous<dim,nspecies,nstate,real,MeshType>::get_current_field_p();
 
         this->get_current_field_h();
         SizeField<dim,real>::adjoint_h_balan(
@@ -751,21 +751,21 @@ void GridRefinement_Continuous<dim,nstate,real,MeshType>::field_h_adjoint()
     }
 }
 
-template <int dim, int nstate, typename real, typename MeshType>
-void GridRefinement_Continuous<dim,nstate,real,MeshType>::field_p_adjoint()
+template <int dim, int nspecies, int nstate, typename real, typename MeshType>
+void GridRefinement_Continuous<dim,nspecies,nstate,real,MeshType>::field_p_adjoint()
 {
     // NOT IMPLEMENTED
     assert(0);
 }
-template <int dim, int nstate, typename real, typename MeshType>
-void GridRefinement_Continuous<dim,nstate,real,MeshType>::field_hp_adjoint()
+template <int dim, int nspecies, int nstate, typename real, typename MeshType>
+void GridRefinement_Continuous<dim,nspecies,nstate,real,MeshType>::field_hp_adjoint()
 {
     // NOT IMPLEMENTED
     assert(0);
 }
 
-template <int dim, int nstate, typename real, typename MeshType>
-std::vector< std::pair<dealii::Vector<real>, std::string> > GridRefinement_Continuous<dim,nstate,real,MeshType>::output_results_vtk_method()
+template <int dim, int nspecies, int nstate, typename real, typename MeshType>
+std::vector< std::pair<dealii::Vector<real>, std::string> > GridRefinement_Continuous<dim,nspecies,nstate,real,MeshType>::output_results_vtk_method()
 {
     std::vector< std::pair<dealii::Vector<real>, std::string> > data_out_vector;
 
@@ -810,7 +810,7 @@ std::vector< std::pair<dealii::Vector<real>, std::string> > GridRefinement_Conti
         const unsigned int rel_order = 1;
 
         // construct object to reconstruct the derivatives onto A
-        ReconstructPoly<dim,nstate,real> reconstruct_poly(
+        ReconstructPoly<dim,nspecies,nstate,real> reconstruct_poly(
             this->dg->dof_handler,
             mapping_collection,
             this->dg->fe_collection,
@@ -838,29 +838,23 @@ std::vector< std::pair<dealii::Vector<real>, std::string> > GridRefinement_Conti
 
 }
 
-// dealii::Triangulation<PHILIP_DIM>
-template class GridRefinement_Continuous<PHILIP_DIM, 1, double, dealii::Triangulation<PHILIP_DIM>>;
-template class GridRefinement_Continuous<PHILIP_DIM, 2, double, dealii::Triangulation<PHILIP_DIM>>;
-template class GridRefinement_Continuous<PHILIP_DIM, 3, double, dealii::Triangulation<PHILIP_DIM>>;
-template class GridRefinement_Continuous<PHILIP_DIM, 4, double, dealii::Triangulation<PHILIP_DIM>>;
-template class GridRefinement_Continuous<PHILIP_DIM, 5, double, dealii::Triangulation<PHILIP_DIM>>;
+#if PHILIP_SPECIES==1
+    // Define a sequence of nstate in the range [1, 5]
+    #define POSSIBLE_NSTATE (1)(2)(3)(4)(5)
 
-// dealii::parallel::shared::Triangulation<PHILIP_DIM>
-template class GridRefinement_Continuous<PHILIP_DIM, 1, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
-template class GridRefinement_Continuous<PHILIP_DIM, 2, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
-template class GridRefinement_Continuous<PHILIP_DIM, 3, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
-template class GridRefinement_Continuous<PHILIP_DIM, 4, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
-template class GridRefinement_Continuous<PHILIP_DIM, 5, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+    // Define a macro to instantiate with Meshtype = Triangulation or Shared Triangulation for a specific nstate
+    #define INSTANTIATE_TRIA(r, data, nstate) \
+        template class GridRefinement_Continuous<PHILIP_DIM, PHILIP_SPECIES, nstate, double, dealii::Triangulation<PHILIP_DIM>>; \
+        template class GridRefinement_Continuous<PHILIP_DIM, PHILIP_SPECIES, nstate, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+    BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_TRIA, _, POSSIBLE_NSTATE)
 
-#if PHILIP_DIM != 1
-// dealii::parallel::distributed::Triangulation<PHILIP_DIM>
-template class GridRefinement_Continuous<PHILIP_DIM, 1, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
-template class GridRefinement_Continuous<PHILIP_DIM, 2, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
-template class GridRefinement_Continuous<PHILIP_DIM, 3, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
-template class GridRefinement_Continuous<PHILIP_DIM, 4, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
-template class GridRefinement_Continuous<PHILIP_DIM, 5, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+    // Define a macro to instantiate with distributed triangulation for a specific nstate
+    #define INSTANTIATE_DISTRIBUTED(r, data, nstate) \
+        template class GridRefinement_Continuous<PHILIP_DIM, PHILIP_SPECIES, nstate, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+    #if PHILIP_DIM!=1
+    BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_DISTRIBUTED, _, POSSIBLE_NSTATE)
+    #endif
 #endif
-
 } // namespace GridRefinement
 
 } // namespace PHiLiP

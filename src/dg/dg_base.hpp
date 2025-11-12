@@ -46,11 +46,11 @@
 #include <deal.II/base/timer.h>
 
 // Template specialization of MappingFEField
-//extern template class dealii::MappingFEField<PHILIP_DIM,PHILIP_DIM,dealii::LinearAlgebra::distributed::Vector<double>, dealii::DoFHandler<PHILIP_DIM> >;
+//extern template class dealii::MappingFEField<PHILIP_DIM, PHILIP_SPECIES,PHILIP_DIM, PHILIP_SPECIES,dealii::LinearAlgebra::distributed::Vector<double>, dealii::DoFHandler<PHILIP_DIM> >;
 namespace PHiLiP {
 
 /// Get the coefficients of a function projected onto a set of basis (to be replaced with operators->projection_operator). 
-template<int dim, typename real>
+template<int dim, int nspecies, typename real>
 std::vector< real > project_function(
     const std::vector< real > &function_coeff,
     const dealii::FESystem<dim,dim> &fe_input,
@@ -75,9 +75,9 @@ std::vector< real > project_function(
   *
   */
 #if PHILIP_DIM==1 // dealii::parallel::distributed::Triangulation<dim> does not work for 1D
-template <int dim, typename real, typename MeshType = dealii::Triangulation<dim>>
+template <int dim, int nspecies, typename real, typename MeshType = dealii::Triangulation<dim>>
 #else
-template <int dim, typename real, typename MeshType = dealii::parallel::distributed::Triangulation<dim>>
+template <int dim, int nspecies, typename real, typename MeshType = dealii::parallel::distributed::Triangulation<dim>>
 #endif
 class DGBase 
 {
@@ -575,11 +575,11 @@ public:
         const DoFCellAccessorType1 &current_cell,
         const DoFCellAccessorType2 &current_metric_cell,
         const bool compute_dRdW, const bool compute_dRdX, const bool compute_d2R,
-        dealii::hp::FEValues<dim,dim>                                      &fe_values_collection_volume,
+        dealii::hp::FEValues<dim,dim>                                       &fe_values_collection_volume,
         dealii::hp::FEFaceValues<dim,dim>                                  &fe_values_collection_face_int,
         dealii::hp::FEFaceValues<dim,dim>                                  &fe_values_collection_face_ext,
         dealii::hp::FESubfaceValues<dim,dim>                               &fe_values_collection_subface,
-        dealii::hp::FEValues<dim,dim>                                      &fe_values_collection_volume_lagrange,
+        dealii::hp::FEValues<dim,dim>                                       &fe_values_collection_volume_lagrange,
         OPERATOR::basis_functions<dim,2*dim,real>                          &soln_basis_int,
         OPERATOR::basis_functions<dim,2*dim,real>                          &soln_basis_ext,
         OPERATOR::basis_functions<dim,2*dim,real>                          &flux_basis_int,
@@ -688,8 +688,8 @@ protected:
         OPERATOR::metric_operators<real,dim,2*dim>             &metric_oper,
         OPERATOR::mapping_shape_functions<dim,2*dim,real>      &mapping_basis,
         std::array<std::vector<real>,dim>                      &mapping_support_points,
-        dealii::hp::FEValues<dim,dim>                          &fe_values_collection_volume,
-        dealii::hp::FEValues<dim,dim>                          &fe_values_collection_volume_lagrange,
+        dealii::hp::FEValues<dim,dim>                           &fe_values_collection_volume,
+        dealii::hp::FEValues<dim,dim>                           &fe_values_collection_volume_lagrange,
         const dealii::FESystem<dim,dim>                        &current_fe_ref,
         dealii::Vector<real>                                   &local_rhs_int_cell,
         std::vector<dealii::Tensor<1,dim,real>>                &local_auxiliary_RHS,

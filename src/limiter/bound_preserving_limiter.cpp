@@ -3,22 +3,22 @@
 
 namespace PHiLiP {
 // Constructor
-template <int dim, typename real>
-BoundPreservingLimiter<dim, real>::BoundPreservingLimiter(
+template <int dim, int nspecies, typename real>
+BoundPreservingLimiter<dim, nspecies, real>::BoundPreservingLimiter(
     const int nstate_input,
     const Parameters::AllParameters* const parameters_input)
     : nstate(nstate_input)
     , all_parameters(parameters_input) {}
 
 
-template <int dim, int nstate, typename real>
-BoundPreservingLimiterState<dim, nstate, real>::BoundPreservingLimiterState(
+template <int dim, int nspecies, int nstate, typename real>
+BoundPreservingLimiterState<dim, nspecies, nstate, real>::BoundPreservingLimiterState(
     const Parameters::AllParameters* const parameters_input)
-    : BoundPreservingLimiter<dim, real>::BoundPreservingLimiter(nstate, parameters_input)
+    : BoundPreservingLimiter<dim, nspecies, real>::BoundPreservingLimiter(nstate, parameters_input)
 {}
 
-template <int dim, int nstate, typename real>
-std::array<real, nstate> BoundPreservingLimiterState<dim, nstate, real>::get_soln_cell_avg(
+template <int dim, int nspecies, int nstate, typename real>
+std::array<real, nstate> BoundPreservingLimiterState<dim, nspecies, nstate, real>::get_soln_cell_avg(
     const std::array<std::vector<real>, nstate>&        soln_at_q,
     const unsigned int                                  n_quad_pts,
     const std::vector<real>&                            quad_weights)
@@ -39,11 +39,14 @@ std::array<real, nstate> BoundPreservingLimiterState<dim, nstate, real>::get_sol
     return soln_cell_avg;
 }
 
-template class BoundPreservingLimiter <PHILIP_DIM, double>;
-template class BoundPreservingLimiterState <PHILIP_DIM, 1, double>;
-template class BoundPreservingLimiterState <PHILIP_DIM, 2, double>;
-template class BoundPreservingLimiterState <PHILIP_DIM, 3, double>;
-template class BoundPreservingLimiterState <PHILIP_DIM, 4, double>;
-template class BoundPreservingLimiterState <PHILIP_DIM, 5, double>;
-template class BoundPreservingLimiterState <PHILIP_DIM, 6, double>;
+#if PHILIP_SPECIES==1
+    template class BoundPreservingLimiter <PHILIP_DIM, PHILIP_SPECIES, double>;
+    // Define a sequence of nstate in the range [1, 6]
+    #define POSSIBLE_NSTATE (1)(2)(3)(4)(5)(6)
+
+    // Define a macro to instantiate Limiter Function for a specific nstate
+    #define INSTANTIATE_LIMITER(r, data, nstate) \
+        template class BoundPreservingLimiterState <PHILIP_DIM, PHILIP_SPECIES, nstate, double>;
+    BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_LIMITER, _, POSSIBLE_NSTATE)
+#endif
 } // PHiLiP namespace

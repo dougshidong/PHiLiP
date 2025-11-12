@@ -108,7 +108,7 @@ real SizeField<dim,real>::evaluate_complexity(
     real complexity_sum = 0.0;
 
     // fe_values
-    dealii::hp::FEValues<dim,dim> fe_values_collection(
+    dealii::hp::FEValues<dim,dim>  fe_values_collection(
         mapping_collection,
         fe_collection,
         quadrature_collection,

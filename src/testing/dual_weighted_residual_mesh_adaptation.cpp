@@ -6,16 +6,16 @@
 namespace PHiLiP {
 namespace Tests {
 
-template <int dim, int nstate>
-DualWeightedResidualMeshAdaptation<dim, nstate> :: DualWeightedResidualMeshAdaptation(
+template <int dim, int nspecies, int nstate>
+DualWeightedResidualMeshAdaptation<dim, nspecies, nstate> :: DualWeightedResidualMeshAdaptation(
     const Parameters::AllParameters *const parameters_input,
     const dealii::ParameterHandler &parameter_handler_input)
     : TestsBase::TestsBase(parameters_input)
     , parameter_handler(parameter_handler_input)
 {}
 
-template <int dim, int nstate>
-int DualWeightedResidualMeshAdaptation<dim, nstate> :: run_test () const
+template <int dim, int nspecies, int nstate>
+int DualWeightedResidualMeshAdaptation<dim, nspecies, nstate> :: run_test () const
 {
     const Parameters::AllParameters param = *(TestsBase::all_parameters);
     bool use_mesh_adaptation = param.mesh_adaptation_param.total_mesh_adaptation_cycles > 0;
@@ -37,7 +37,7 @@ int DualWeightedResidualMeshAdaptation<dim, nstate> :: run_test () const
         std::abort();
     }
     
-    std::unique_ptr<FlowSolver::FlowSolver<dim,nstate>> flow_solver = FlowSolver::FlowSolverFactory<dim,nstate>::select_flow_case(&param, parameter_handler);
+    std::unique_ptr<FlowSolver::FlowSolver<dim,nspecies,nstate>> flow_solver = FlowSolver::FlowSolverFactory<dim,nspecies,nstate>::select_flow_case(&param, parameter_handler);
     flow_solver->run();
 
     // Check location of the most refined cell
@@ -56,8 +56,8 @@ int DualWeightedResidualMeshAdaptation<dim, nstate> :: run_test () const
     }
 }
 
-#if PHILIP_DIM==2
-template class DualWeightedResidualMeshAdaptation <PHILIP_DIM, 1>;
+#if PHILIP_DIM==2 && PHILIP_SPECIES==1
+template class DualWeightedResidualMeshAdaptation <PHILIP_DIM, PHILIP_SPECIES, 1>;
 #endif
 
 } // namespace Tests

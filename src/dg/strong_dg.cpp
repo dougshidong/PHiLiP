@@ -147,7 +147,6 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_boundary_term_and_build_operat
     const bool                                             compute_auxiliary_right_hand_side,
     const bool /*compute_dRdW*/, const bool /*compute_dRdX*/, const bool /*compute_d2R*/)
 {
-
     const dealii::FESystem<dim> &fe_metric = this->high_order_grid->fe_system;
     const unsigned int n_metric_dofs = fe_metric.dofs_per_cell;
     const unsigned int n_grid_nodes  = n_metric_dofs / dim;
@@ -1671,7 +1670,6 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_boundary_term_strong(
             }
         }
     }//end of if split form or curvilinear split form
-
 
     //the outward reference normal dircetion.
     std::array<std::vector<real>,nstate> conv_flux_dot_normal;

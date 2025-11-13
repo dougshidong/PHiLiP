@@ -1632,11 +1632,13 @@ dealii::FullMatrix<double> local_Flux_Reconstruction_operator<dim,n_faces,real>:
     if (dim >= 2){
         dealii::FullMatrix<double> FR1(n_dofs);
         FR1 = this->tensor_product_state(nstate, this->oneD_vol_operator, local_Mass_Matrix, local_Mass_Matrix);
-        dealii::FullMatrix<double> FR2(n_dofs);
-        FR2 = this->tensor_product_state(nstate, local_Mass_Matrix, this->oneD_vol_operator, local_Mass_Matrix);
-        dealii::FullMatrix<double> FR_cross1(n_dofs);
-        FR_cross1 = this->tensor_product_state(nstate, this->oneD_vol_operator, this->oneD_vol_operator, local_Mass_Matrix);
-        dim_FR_operator.add(1.0, FR1, 1.0, FR2, 1.0, FR_cross1);
+        //dealii::FullMatrix<double> FR2(n_dofs);
+        //FR2 = this->tensor_product_state(nstate, local_Mass_Matrix, this->oneD_vol_operator, local_Mass_Matrix);
+        //FR2 = this->tensor_product_state(nstate, local_Mass_Matrix, this->oneD_vol_operator, local_Mass_Matrix);
+        //dealii::FullMatrix<double> FR_cross1(n_dofs);
+        //FR_cross1 = this->tensor_product_state(nstate, this->oneD_vol_operator, this->oneD_vol_operator, local_Mass_Matrix);
+        dim_FR_operator.add(1.0, FR1);//, 1.0, FR2, 1.0, FR_cross1);
+        std::cout <<"Made FR operator 1d+1" << std::endl;
     }
     if constexpr (dim == 3){
         dealii::FullMatrix<double> FR3(n_dofs);

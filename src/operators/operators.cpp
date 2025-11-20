@@ -1625,13 +1625,16 @@ dealii::FullMatrix<double> local_Flux_Reconstruction_operator<dim,n_faces,real>:
     const int nstate,
     const unsigned int n_dofs)
 {
+    std::cout << "here" << std::endl;
     dealii::FullMatrix<double> dim_FR_operator(n_dofs);
     if constexpr (dim == 1){
         dim_FR_operator = this->oneD_vol_operator;
     }
     if (dim >= 2){
         dealii::FullMatrix<double> FR1(n_dofs);
-        FR1 = this->tensor_product_state(nstate, this->oneD_vol_operator, local_Mass_Matrix, local_Mass_Matrix);
+        const dealii::FullMatrix<double> identity = dealii::IdentityMatrix(n_dofs);
+        FR1 = this->tensor_product_state(nstate, this->oneD_vol_operator, identity, local_Mass_Matrix);
+        //FR1 = this->tensor_product_state(nstate, this->oneD_vol_operator, local_Mass_Matrix, local_Mass_Matrix);
         //dealii::FullMatrix<double> FR2(n_dofs);
         //FR2 = this->tensor_product_state(nstate, local_Mass_Matrix, this->oneD_vol_operator, local_Mass_Matrix);
         //FR2 = this->tensor_product_state(nstate, local_Mass_Matrix, this->oneD_vol_operator, local_Mass_Matrix);
@@ -1652,6 +1655,8 @@ dealii::FullMatrix<double> local_Flux_Reconstruction_operator<dim,n_faces,real>:
         dim_FR_operator.add(1.0, FR3, 1.0, FR_cross2, 1.0, FR_cross3); 
         dim_FR_operator.add(1.0, FR_triple); 
     }
+
+    dim_FR_operator.print_formatted(std::cout);
     return dim_FR_operator;
     
 }

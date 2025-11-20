@@ -1,0 +1,62 @@
+# -------------------
+
+set test_type = stability_fr_parameter_range
+# The PDE we want to solve
+set pde_type = advection
+# Number of dimensions
+set dimension = 1
+
+set use_weak_form = false
+
+set overintegration = 0
+
+set flux_nodes_type = GL
+
+set use_periodic_bc = true
+
+set flux_reconstruction = user_specified_value
+set FR_user_specified_correction_parameter_value = 0.186
+set use_inverse_mass_on_the_fly = true
+
+subsection ODE solver
+  set ode_solver_type = runge_kutta
+  set initial_time_step = 0.0001
+  set runge_kutta_method = rk4_ex
+  set output_solution_every_dt_time_intervals = 0.1
+end
+
+subsection manufactured solution convergence study
+  set advection_0 = 1.0
+  set advection_1 = 0.0
+  #set use_manufactured_source_term = true
+
+  # Starting degree for convergence study
+  #set degree_start      = 2
+
+  # Initial grid of size 2^initial_grid_size
+  #set initial_grid_size = 3
+
+  # Number of grids in grid study
+  #set number_of_grids   = 5
+end
+
+subsection time_refinement_study
+  set number_of_times_to_solve = 3
+  set refinement_ratio = 0.5
+end
+
+subsection flow_solver
+  set flow_case_type = periodic_1D_unsteady
+  set poly_degree = 2
+  set final_time = 0.1
+  subsection grid
+    set grid_left_bound = 0.0
+    set grid_right_bound = 2.0
+    set number_of_grid_elements_per_dimension = 32
+  end
+  subsection ESFR_parameter_tests
+    set number_ESFR_parameter_values = 10
+    set ESFR_parameter_values_start = 1.0e-4
+    set ESFR_parameter_values_end = 1.0e4
+  end
+end

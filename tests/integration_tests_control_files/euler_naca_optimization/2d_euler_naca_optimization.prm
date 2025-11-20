@@ -65,7 +65,8 @@ subsection linear solver
 end
 
 subsection ODE solver
-  set output_solution_every_x_steps = 1
+  # Uncomment next line to output VTUs
+  # set output_solution_every_x_steps = 1
   # Maximum nonlinear solver iterations
   set nonlinear_max_iterations            = 150
 

@@ -1432,9 +1432,11 @@ local_Flux_Reconstruction_operator<dim,n_faces>::local_Flux_Reconstruction_opera
     const int nstate_input,
     const unsigned int max_degree_input,
     const unsigned int grid_degree_input,
-    const Parameters::AllParameters::Flux_Reconstruction FR_param_input)
+    const Parameters::AllParameters::Flux_Reconstruction FR_param_input,
+    const double FR_user_specified_correction_parameter_value_input)
     : SumFactorizedOperators<dim,n_faces>::SumFactorizedOperators(nstate_input, max_degree_input, grid_degree_input)
     , FR_param_type(FR_param_input)
+    , FR_user_specified_correction_parameter_value(FR_user_specified_correction_parameter_value_input)
 {
     //Initialize to the max degrees
     current_degree      = max_degree_input;
@@ -1518,7 +1520,7 @@ void local_Flux_Reconstruction_operator<dim,n_faces>::get_FR_correction_paramete
 {
     using FR_enum = Parameters::AllParameters::Flux_Reconstruction;
     if(FR_param_type == FR_enum::cHU || FR_param_type == FR_enum::cHULumped){ 
-        get_Huynh_g2_parameter(curr_cell_degree, FR_param); 
+        get_Huynh_g2_parameter(curr_cell_degree, c); 
     }
     else if(FR_param_type == FR_enum::cSD){ 
         get_spectral_difference_parameter(curr_cell_degree, c); 
@@ -1539,6 +1541,10 @@ void local_Flux_Reconstruction_operator<dim,n_faces>::get_FR_correction_paramete
     }
     else if(FR_param_type == FR_enum::cPlus){ 
         get_c_plus_parameter(curr_cell_degree, c); 
+    } else if(FR_param_type == FR_enum::user_specified_value) {
+        c = FR_user_specified_correction_parameter_value;
+        c/=2.0;//since orthonormal
+        c/=pow(pow(2.0,curr_cell_degree),2);//since ref elem [0,1]
     }
 }
 template <int dim, int n_faces>  
@@ -1678,7 +1684,7 @@ local_Flux_Reconstruction_operator_aux<dim,n_faces>::local_Flux_Reconstruction_o
     const unsigned int max_degree_input,
     const unsigned int grid_degree_input,
     const Parameters::AllParameters::Flux_Reconstruction_Aux FR_param_aux_input)
-    : local_Flux_Reconstruction_operator<dim,n_faces>::local_Flux_Reconstruction_operator(nstate_input, max_degree_input, grid_degree_input, Parameters::AllParameters::Flux_Reconstruction::cDG)
+    : local_Flux_Reconstruction_operator<dim,n_faces>::local_Flux_Reconstruction_operator(nstate_input, max_degree_input, grid_degree_input, Parameters::AllParameters::Flux_Reconstruction::cDG, 0.0) // Note: cDG and 0.0 are passed as dummy variables
     , FR_param_aux_type(FR_param_aux_input)
 {
     //Initialize to the max degrees
@@ -1776,10 +1782,12 @@ vol_projection_operator_FR<dim,n_faces>::vol_projection_operator_FR(
     const unsigned int max_degree_input,
     const unsigned int grid_degree_input,
     const Parameters::AllParameters::Flux_Reconstruction FR_param_input,
+    const double FR_user_specified_correction_parameter_value_input,
     const bool store_transpose_input)
     : vol_projection_operator<dim,n_faces>::vol_projection_operator(nstate_input, max_degree_input, grid_degree_input)
     , store_transpose(store_transpose_input)
     , FR_param_type(FR_param_input)
+    , FR_user_specified_correction_parameter_value(FR_user_specified_correction_parameter_value_input)
 {
     //Initialize to the max degrees
     current_degree      = max_degree_input;
@@ -1794,7 +1802,7 @@ void vol_projection_operator_FR<dim,n_faces>::build_1D_volume_operator(
     const unsigned int n_quad_pts = quadrature.size();
     vol_integral_basis<dim,n_faces> integral_vol_basis(this->nstate, this->max_degree, this->max_grid_degree);
     integral_vol_basis.build_1D_volume_operator(finite_element, quadrature);
-    FR_mass_inv<dim,n_faces> local_FR_Mass_Matrix_inv(this->nstate, this->max_degree, this->max_grid_degree, FR_param_type);
+    FR_mass_inv<dim,n_faces> local_FR_Mass_Matrix_inv(this->nstate, this->max_degree, this->max_grid_degree, FR_param_type, FR_user_specified_correction_parameter_value);
     local_FR_Mass_Matrix_inv.build_1D_volume_operator(finite_element, quadrature);
     //allocate the volume operator
     this->oneD_vol_operator.reinit(n_dofs, n_quad_pts);
@@ -1856,9 +1864,11 @@ FR_mass_inv<dim,n_faces>::FR_mass_inv(
     const int nstate_input,
     const unsigned int max_degree_input,
     const unsigned int grid_degree_input,
-    const Parameters::AllParameters::Flux_Reconstruction FR_param_input)
+    const Parameters::AllParameters::Flux_Reconstruction FR_param_input,
+    const double FR_user_specified_correction_parameter_value_input)
     : SumFactorizedOperators<dim,n_faces>::SumFactorizedOperators(nstate_input, max_degree_input, grid_degree_input)
     , FR_param_type(FR_param_input)
+    , FR_user_specified_correction_parameter_value(FR_user_specified_correction_parameter_value_input)
 {
     //Initialize to the max degrees
     current_degree      = max_degree_input;
@@ -1872,7 +1882,7 @@ void FR_mass_inv<dim,n_faces>::build_1D_volume_operator(
     const unsigned int n_dofs     = finite_element.dofs_per_cell;
     local_mass<dim,n_faces> local_Mass_Matrix(this->nstate, this->max_degree, this->max_grid_degree);
     local_Mass_Matrix.build_1D_volume_operator(finite_element, quadrature);
-    local_Flux_Reconstruction_operator<dim,n_faces> local_FR_oper(this->nstate, this->max_degree, this->max_grid_degree, FR_param_type);
+    local_Flux_Reconstruction_operator<dim,n_faces> local_FR_oper(this->nstate, this->max_degree, this->max_grid_degree, FR_param_type, FR_user_specified_correction_parameter_value);
     local_FR_oper.build_1D_volume_operator(finite_element, quadrature);
     dealii::FullMatrix<double> FR_mass_matrix(n_dofs);
     FR_mass_matrix.add(1.0, local_Mass_Matrix.oneD_vol_operator, 1.0, local_FR_oper.oneD_vol_operator);
@@ -1917,9 +1927,11 @@ FR_mass<dim,n_faces>::FR_mass(
     const int nstate_input,
     const unsigned int max_degree_input,
     const unsigned int grid_degree_input,
-    const Parameters::AllParameters::Flux_Reconstruction FR_param_input)
+    const Parameters::AllParameters::Flux_Reconstruction FR_param_input,
+    const double FR_user_specified_correction_parameter_value_input)
     : SumFactorizedOperators<dim,n_faces>::SumFactorizedOperators(nstate_input, max_degree_input, grid_degree_input)
     , FR_param_type(FR_param_input)
+    , FR_user_specified_correction_parameter_value(FR_user_specified_correction_parameter_value_input)
 {
     //Initialize to the max degrees
     current_degree      = max_degree_input;
@@ -1933,7 +1945,7 @@ void FR_mass<dim,n_faces>::build_1D_volume_operator(
     const unsigned int n_dofs     = finite_element.dofs_per_cell;
     local_mass<dim,n_faces> local_Mass_Matrix(this->nstate, this->max_degree, this->max_grid_degree);
     local_Mass_Matrix.build_1D_volume_operator(finite_element, quadrature);
-    local_Flux_Reconstruction_operator<dim,n_faces> local_FR_oper(this->nstate, this->max_degree, this->max_grid_degree, FR_param_type);
+    local_Flux_Reconstruction_operator<dim,n_faces> local_FR_oper(this->nstate, this->max_degree, this->max_grid_degree, FR_param_type, FR_user_specified_correction_parameter_value);
     local_FR_oper.build_1D_volume_operator(finite_element, quadrature);
     dealii::FullMatrix<double> FR_mass_matrix(n_dofs);
     FR_mass_matrix.add(1.0, local_Mass_Matrix.oneD_vol_operator, 1.0, local_FR_oper.oneD_vol_operator);
@@ -2110,9 +2122,11 @@ lifting_operator_FR<dim,n_faces>::lifting_operator_FR(
     const int nstate_input,
     const unsigned int max_degree_input,
     const unsigned int grid_degree_input,
-    const Parameters::AllParameters::Flux_Reconstruction FR_param_input)
+    const Parameters::AllParameters::Flux_Reconstruction FR_param_input,
+    const double FR_user_specified_correction_parameter_value_input)
     : lifting_operator<dim,n_faces>::lifting_operator(nstate_input, max_degree_input, grid_degree_input)
     , FR_param_type(FR_param_input)
+    , FR_user_specified_correction_parameter_value(FR_user_specified_correction_parameter_value_input)
 {
     //Initialize to the max degrees
     current_degree      = max_degree_input;
@@ -2126,7 +2140,7 @@ void lifting_operator_FR<dim,n_faces>::build_1D_volume_operator(
     const unsigned int n_dofs = finite_element.dofs_per_cell;
     local_mass<dim,n_faces> local_Mass_Matrix(this->nstate, this->max_degree, this->max_grid_degree);
     local_Mass_Matrix.build_1D_volume_operator(finite_element, quadrature);
-    local_Flux_Reconstruction_operator<dim,n_faces> local_FR(this->nstate, this->max_degree, this->max_grid_degree, FR_param_type);
+    local_Flux_Reconstruction_operator<dim,n_faces> local_FR(this->nstate, this->max_degree, this->max_grid_degree, FR_param_type, FR_user_specified_correction_parameter_value);
     local_FR.build_1D_volume_operator(finite_element, quadrature);
     //allocate the volume operator
     this->oneD_vol_operator.reinit(n_dofs, n_dofs);

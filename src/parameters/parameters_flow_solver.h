@@ -141,6 +141,16 @@ public:
     /// For KHI, the atwood number
     double atwood_number;
 
+
+    /// For user defined FR parameter tests, number of values to be tested
+    int number_ESFR_parameter_values;
+
+    /// For user defined FR parameter tests, value of starting FR param
+    double ESFR_parameter_values_start;
+
+    /// For user defined FR parameter tests, value of final FR param
+    double ESFR_parameter_values_end;
+
     /// Selects the method for applying the initial condition
     enum ApplyInitialConditionMethod{
         interpolate_initial_condition_function,

@@ -3628,6 +3628,8 @@ void DGBase<dim,real,MeshType>::evaluate_mass_matrices (bool do_inverse_mass_mat
 {   
     using FR_enum = Parameters::AllParameters::Flux_Reconstruction;
     const FR_enum FR_Type = this->all_parameters->flux_reconstruction_type;
+
+    const double FR_user_specified_correction_parameter_value = this->all_parameters->FR_user_specified_correction_parameter_value;
     
     using FR_Aux_enum = Parameters::AllParameters::Flux_Reconstruction_Aux;
     const FR_Aux_enum FR_Type_Aux = this->all_parameters->flux_reconstruction_aux_type;
@@ -4020,6 +4022,7 @@ void DGBase<dim,real,MeshType>::apply_inverse_global_mass_matrix(
     using FR_enum = Parameters::AllParameters::Flux_Reconstruction;
     using FR_Aux_enum = Parameters::AllParameters::Flux_Reconstruction_Aux;
     const FR_enum FR_Type = this->all_parameters->flux_reconstruction_type;
+    const double FR_user_specified_correction_parameter_value = this->all_parameters->FR_user_specified_correction_parameter_value;
     const FR_Aux_enum FR_Type_Aux = this->all_parameters->flux_reconstruction_aux_type;
      
     const unsigned int init_grid_degree = high_order_grid->fe_system.tensor_degree();
@@ -4197,6 +4200,7 @@ void DGBase<dim,real,MeshType>::apply_global_mass_matrix(
     // if using only the M norm, set c=0 through the choice of cDG, which results in K=0
     // and the un-modified mass matrix will be applied.
     const FR_enum FR_Type = (use_unmodified_mass_matrix) ? FR_cDG : this->all_parameters->flux_reconstruction_type;
+    const double FR_user_specified_correction_parameter_value = this->all_parameters->FR_user_specified_correction_parameter_value;
     const FR_Aux_enum FR_Type_Aux = this->all_parameters->flux_reconstruction_aux_type;
      
     const unsigned int init_grid_degree = high_order_grid->fe_system.tensor_degree();

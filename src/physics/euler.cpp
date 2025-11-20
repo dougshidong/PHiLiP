@@ -509,7 +509,7 @@ real Euler<dim, nstate, real>
     real F;
     if(u<1.0e-2){ F = 1.0 + u/3.0 + u*u/5.0 + u*u*u/7.0; } 
     else { 
-        if constexpr(std::is_same<real,double>::value) F = std::log(zeta)/2.0/f; 
+        F = log(zeta)/2.0/f; 
     }
     
     const real log_mean_val = (val1+val2)/(2.0*F);

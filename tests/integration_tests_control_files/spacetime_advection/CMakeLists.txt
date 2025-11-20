@@ -82,3 +82,19 @@ COMMAND mpirun -n ${MPIMAX} ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_3D -i ${CMAKE_CURRE
 #                                                                 UNCOLLOCATED
 #                                                                 MODERATE
 #                                                                 INTEGRATION_TEST)
+set(TEST_OUTPUT_DIR ${CMAKE_CURRENT_BINARY_DIR})
+configure_file(2Dp1_linear_advection_OOA.prm 2Dp1_linear_advection_OOA.prm COPYONLY)
+add_test(
+    NAME MPI_2Dp1_ADVECTION_OOA
+    COMMAND mpirun -n ${MPIMAX} ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_3D -i ${CMAKE_CURRENT_BINARY_DIR}/2Dp1_linear_advection_OOA.prm
+  WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
+)
+# set_tests_labels(MPI_2D_ADVECTION_EXPLICIT_PERIODIC_ENERGY_LONG ADVECTION_EXPLICIT_PERIODIC
+#                                                                 2D
+#                                                                 PARALLEL
+#                                                                 ADVECTION
+#                                                                 RUNGE-KUTTA
+#                                                                 STRONG
+#                                                                 UNCOLLOCATED
+#                                                                 MODERATE
+#                                                                 INTEGRATION_TEST)

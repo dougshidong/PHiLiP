@@ -1,6 +1,7 @@
 # -------------------
 
-set run_type = flow_simulation
+#set run_type = flow_simulation
+set test_type = general_h_refinement_study
 
 # Number of SPATIAL dimensions
 set dimension = 1
@@ -25,6 +26,10 @@ set pde_type = advection
 
 set conv_num_flux = lax_friedrichs
 #set conv_num_flux = upwind
+
+#set flux_reconstruction = user_specified_value
+set flux_reconstruction = cHU
+set FR_user_specified_correction_parameter_value = 0.001
 
 subsection ODE solver
 
@@ -53,10 +58,14 @@ subsection manufactured solution convergence study
   set advection_1 = 1 #For now, unit advection in temporal direction
 end
 
+subsection time_refinement_study
+  set number_of_times_to_solve = 3
+end
+
 subsection flow_solver
     set flow_case_type = spacetime_cartesian
     set steady_state = true
-    set poly_degree = 4
+    set poly_degree = 3
     subsection grid
       set grid_left_bound = 0.0
       set grid_right_bound = 2.0

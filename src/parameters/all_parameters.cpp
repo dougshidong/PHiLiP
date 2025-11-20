@@ -200,6 +200,7 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       " taylor_green_vortex_restart_check | "
                       " homogeneous_isotropic_turbulence_initialization_check | "
                       " time_refinement_study | "
+                      " general_h_refinement_study | "
                       " time_refinement_study_reference | "
                       " rrk_numerical_entropy_conservation_check | "
                       " euler_entropy_conserving_split_forms_check | "
@@ -252,6 +253,7 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       "  taylor_green_vortex_restart_check | "
                       "  homogeneous_isotropic_turbulence_initialization_check | "
                       "  time_refinement_study | "
+                      "  general_h_refinement_study | "
                       "  time_refinement_study_reference | "
                       "  rrk_numerical_entropy_conservation_check | "
                       "  euler_entropy_conserving_split_forms_check | "
@@ -445,6 +447,7 @@ const std::string test_string = prm.get("test_type");
     else if (test_string == "homogeneous_isotropic_turbulence_initialization_check")
                                                                         { test_type = homogeneous_isotropic_turbulence_initialization_check; }
     else if (test_string == "time_refinement_study")                    { test_type = time_refinement_study; }
+    else if (test_string == "general_h_refinement_study")               { test_type = general_h_refinement_study; }
     else if (test_string == "time_refinement_study_reference")          { test_type = time_refinement_study_reference; }
     else if (test_string == "h_refinement_study_isentropic_vortex")     { test_type = h_refinement_study_isentropic_vortex; }
     else if (test_string == "rrk_numerical_entropy_conservation_check") { test_type = rrk_numerical_entropy_conservation_check; }

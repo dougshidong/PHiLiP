@@ -6,8 +6,8 @@
 namespace PHiLiP {
 namespace Physics {
 /// Burgers Rewienski equation. Derived from Burgers, which is derived from PhysicsBase. Based on eq.(18) in Carlberg 2011
-template <int dim, int nstate, typename real>
-class BurgersRewienski : public Burgers <dim, nstate, real>
+template <int dim, int nspecies, int nstate, typename real>
+class BurgersRewienski : public Burgers <dim, nspecies, nstate, real>
 {
 protected:
     // For overloading the virtual functions defined in PhysicsBase
@@ -17,8 +17,8 @@ protected:
      *  Solution: In order to make the hidden function visible in derived class, 
      *  we need to add the following:
     */
-    using PhysicsBase<dim,nstate,real>::dissipative_flux;
-    using PhysicsBase<dim,nstate,real>::source_term;
+    using PhysicsBase<dim,nspecies,nstate,real>::dissipative_flux;
+    using PhysicsBase<dim,nspecies,nstate,real>::source_term;
 public:
     /// Constructor
     BurgersRewienski(
@@ -29,7 +29,7 @@ public:
             const bool                                                convection,
             const bool                                                diffusion,
             const dealii::Tensor<2,3,double>                          input_diffusion_tensor = Parameters::ManufacturedSolutionParam::get_default_diffusion_tensor(),
-            std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function = nullptr);
+            std::shared_ptr< ManufacturedSolutionFunction<dim,real>  > manufactured_solution_function = nullptr);
 
     /// Parameter a for eq.(18) in Carlberg 2011
     const double rewienski_a;

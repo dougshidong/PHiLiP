@@ -26,7 +26,7 @@ public:
 };
 
 /// Performs grid convergence for various polynomial degrees.
-template <int dim, int nstate>
+template <int dim, int nspecies, int nstate>
 class EulerGaussianBumpAdjoint: public TestsBase
 {
 public:
@@ -56,7 +56,7 @@ public:
 protected:
 
     // Not used?
-    // double integrate_entropy_over_domain(DGBase<dim,double> &dg) const;
+    // double integrate_entropy_over_domain(DGBase<dim,nspecies,double> &dg) const;
 };
 
 

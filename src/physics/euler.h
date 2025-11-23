@@ -74,8 +74,8 @@ namespace Physics {
  *  Still need to provide functions to un-non-dimensionalize the variables.
  *  Like, given density_inf
  */
-template <int dim, int nstate, typename real>
-class Euler : public PhysicsBase <dim, nstate, real>
+template <int dim, int nspecies, int nstate, typename real>
+class Euler : public PhysicsBase <dim, nspecies, nstate, real>
 {
 protected:
     // For overloading the virtual functions defined in PhysicsBase
@@ -84,8 +84,8 @@ protected:
      *  
      *  Solution: In order to make the hidden function visible in derived class, 
      *  we need to add the following: */
-    using PhysicsBase<dim,nstate,real>::dissipative_flux;
-    using PhysicsBase<dim,nstate,real>::source_term;
+    using PhysicsBase<dim,nspecies,nstate,real>::dissipative_flux;
+    using PhysicsBase<dim,nspecies,nstate,real>::source_term;
 public:
     using two_point_num_flux_enum = Parameters::AllParameters::TwoPointNumericalFlux;
     /// Constructor
@@ -96,7 +96,7 @@ public:
         const double                                              mach_inf,
         const double                                              angle_of_attack,
         const double                                              side_slip_angle,
-        std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function = nullptr,
+        std::shared_ptr< ManufacturedSolutionFunction<dim,real>  > manufactured_solution_function = nullptr,
         const two_point_num_flux_enum                             two_point_num_flux_type = two_point_num_flux_enum::KG,
         const bool                                                has_nonzero_diffusion = false,
         const bool                                                has_nonzero_physical_source = false);

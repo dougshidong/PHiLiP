@@ -21,7 +21,7 @@ using Eigen::VectorXd;
 Based on the work in Donovan Blais' thesis:
 Goal-Oriented Adaptive Sampling for Projection-Based Reduced-Order Models, 2022
 */
-template <int dim, int nstate>
+template <int dim, int nspecies, int nstate>
 class AdaptiveSamplingBase
 {
 public:
@@ -41,7 +41,7 @@ public:
     mutable MatrixXd snapshot_parameters;
 
     /// Vector of parameter-ROMTestLocation pairs
-    mutable std::vector<std::unique_ptr<ProperOrthogonalDecomposition::ROMTestLocation<dim,nstate>>> rom_locations;
+    mutable std::vector<std::unique_ptr<ProperOrthogonalDecomposition::ROMTestLocation<dim,nspecies,nstate>>> rom_locations;
 
     /// Vector of parameter-ROMTestLocation pairs
     mutable std::vector<dealii::LinearAlgebra::distributed::Vector<double>> fom_locations;
@@ -50,7 +50,7 @@ public:
     mutable double max_error;
 
     /// Most up to date POD basis
-    std::shared_ptr<ProperOrthogonalDecomposition::OnlinePOD<dim>> current_pod;
+    std::shared_ptr<ProperOrthogonalDecomposition::OnlinePOD<dim,nspecies>> current_pod;
 
     /// Nearest neighbors of snapshots
     std::shared_ptr<ProperOrthogonalDecomposition::NearestNeighbors> nearest_neighbors;

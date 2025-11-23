@@ -19,17 +19,17 @@
 namespace PHiLiP {
 namespace FlowSolver {
 
-template <int dim, int nstate>
-BurgersViscousSnapshot<dim, nstate>::BurgersViscousSnapshot(const PHiLiP::Parameters::AllParameters *const parameters_input)
-        : FlowSolverCaseBase<dim, nstate>(parameters_input)
+template <int dim, int nspecies, int nstate>
+BurgersViscousSnapshot<dim, nspecies, nstate>::BurgersViscousSnapshot(const PHiLiP::Parameters::AllParameters *const parameters_input)
+        : FlowSolverCaseBase<dim, nspecies, nstate>(parameters_input)
         , number_of_refinements(this->all_param.grid_refinement_study_param.num_refinements)
         , domain_left(this->all_param.flow_solver_param.grid_left_bound)
         , domain_right(this->all_param.flow_solver_param.grid_right_bound)
 {
 }
 
-template <int dim, int nstate>
-std::shared_ptr<Triangulation> BurgersViscousSnapshot<dim,nstate>::generate_grid() const
+template <int dim, int nspecies, int nstate>
+std::shared_ptr<Triangulation> BurgersViscousSnapshot<dim,nspecies,nstate>::generate_grid() const
 {
     std::shared_ptr<Triangulation> grid = std::make_shared<Triangulation> (
 #if PHILIP_DIM!=1
@@ -43,8 +43,8 @@ std::shared_ptr<Triangulation> BurgersViscousSnapshot<dim,nstate>::generate_grid
     return grid;
 }
 
-template <int dim, int nstate>
-void BurgersViscousSnapshot<dim,nstate>::display_additional_flow_case_specific_parameters() const
+template <int dim, int nspecies, int nstate>
+void BurgersViscousSnapshot<dim,nspecies,nstate>::display_additional_flow_case_specific_parameters() const
 {
     // Display the information about the grid
     this->pcout << "\n- GRID INFORMATION:" << std::endl;
@@ -54,8 +54,8 @@ void BurgersViscousSnapshot<dim,nstate>::display_additional_flow_case_specific_p
     this->pcout << "- - Number of refinements:  " << number_of_refinements << std::endl;
 }
 
-#if PHILIP_DIM==1
-template class BurgersViscousSnapshot<PHILIP_DIM,PHILIP_DIM>;
+#if PHILIP_DIM==1 && PHILIP_SPECIES==1
+template class BurgersViscousSnapshot<PHILIP_DIM, PHILIP_SPECIES,PHILIP_DIM>;
 #endif
 
 } // FlowSolver namespace

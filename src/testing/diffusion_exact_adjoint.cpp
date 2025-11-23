@@ -40,8 +40,8 @@ namespace Tests {
 // built own physics classes here for one time use and added a function to pass them directly to dg state
 
 // manufactured solution in u
-template <int dim, typename real>
-real ManufacturedSolutionU<dim,real>::value(const dealii::Point<dim,real> &pos, const unsigned int /*istate*/) const
+template <int dim, int nspecies, typename real>
+real ManufacturedSolutionU<dim,nspecies,real>::value(const dealii::Point<dim,real> &pos, const unsigned int /*istate*/) const
 {
     real val = 0;
 
@@ -63,8 +63,8 @@ real ManufacturedSolutionU<dim,real>::value(const dealii::Point<dim,real> &pos, 
 }
 
 // gradient of the solution in u
-template <int dim, typename real>
-dealii::Tensor<1,dim,real> ManufacturedSolutionU<dim,real>::gradient(const dealii::Point<dim,real> &pos, const unsigned int /*istate*/) const
+template <int dim, int nspecies, typename real>
+dealii::Tensor<1,dim,real> ManufacturedSolutionU<dim,nspecies,real>::gradient(const dealii::Point<dim,real> &pos, const unsigned int /*istate*/) const
 {
     dealii::Tensor<1,dim,real> gradient;
 
@@ -94,8 +94,8 @@ dealii::Tensor<1,dim,real> ManufacturedSolutionU<dim,real>::gradient(const deali
 }
 
 // manufactured solution in v
-template <int dim, typename real>
-real ManufacturedSolutionV<dim,real>::value(const dealii::Point<dim,real> &pos, const unsigned int /*istate*/) const
+template <int dim, int nspecies, typename real>
+real ManufacturedSolutionV<dim,nspecies,real>::value(const dealii::Point<dim,real> &pos, const unsigned int /*istate*/) const
 {
     const double pi = std::acos(-1);
 
@@ -119,8 +119,8 @@ real ManufacturedSolutionV<dim,real>::value(const dealii::Point<dim,real> &pos, 
 }
 
 // gradient of the solution in v
-template <int dim, typename real>
-dealii::Tensor<1,dim,real> ManufacturedSolutionV<dim,real>::gradient(const dealii::Point<dim,real> &pos, const unsigned int /*istate*/) const
+template <int dim, int nspecies, typename real>
+dealii::Tensor<1,dim,real> ManufacturedSolutionV<dim,nspecies,real>::gradient(const dealii::Point<dim,real> &pos, const unsigned int /*istate*/) const
 {
     const double pi = std::acos(-1);
 
@@ -152,8 +152,8 @@ dealii::Tensor<1,dim,real> ManufacturedSolutionV<dim,real>::gradient(const deali
 }
 
 /* Defining the physics objects to be used  */
-template <int dim, int nstate, typename real>
-std::array<real,nstate> diffusion_u<dim,nstate,real>::source_term (
+template <int dim, int nspecies, int nstate, typename real>
+std::array<real,nstate> diffusion_u<dim,nspecies,nstate,real>::source_term (
     const dealii::Point<dim,real> &pos,
     const std::array<real,nstate> &/*solution*/,
     const real /*current_time*/,
@@ -191,8 +191,8 @@ std::array<real,nstate> diffusion_u<dim,nstate,real>::source_term (
     return source;
 }
 
-template <int dim, int nstate, typename real>
-real diffusion_u<dim,nstate,real>::objective_function (
+template <int dim, int nspecies, int nstate, typename real>
+real diffusion_u<dim,nspecies,nstate,real>::objective_function (
     const dealii::Point<dim,real> &pos) const
 {
     const double pi = std::acos(-1);
@@ -224,8 +224,8 @@ real diffusion_u<dim,nstate,real>::objective_function (
     return val;
 }
 
-template <int dim, int nstate, typename real>
-std::array<real,nstate> diffusion_v<dim,nstate,real>::source_term (
+template <int dim, int nspecies, int nstate, typename real>
+std::array<real,nstate> diffusion_v<dim,nspecies,nstate,real>::source_term (
     const dealii::Point<dim,real> &pos,
     const std::array<real,nstate> &/*solution*/,
     const real /*current_time*/,
@@ -265,8 +265,8 @@ std::array<real,nstate> diffusion_v<dim,nstate,real>::source_term (
     return source;
 }
 
-template <int dim, int nstate, typename real>
-real diffusion_v<dim,nstate,real>::objective_function (
+template <int dim, int nspecies, int nstate, typename real>
+real diffusion_v<dim,nspecies,nstate,real>::objective_function (
     const dealii::Point<dim,real> &pos) const
 {
     real val = 0;
@@ -297,10 +297,10 @@ real diffusion_v<dim,nstate,real>::objective_function (
 }
 
 // Funcitonal that performs the inner product over the entire domain 
-template <int dim, int nstate, typename real>
+template <int dim, int nspecies, int nstate, typename real>
 template <typename real2>
-real2 DiffusionFunctional<dim,nstate,real>::evaluate_volume_integrand(
-    const PHiLiP::Physics::PhysicsBase<dim,nstate,real2> &physics,
+real2 DiffusionFunctional<dim,nspecies,nstate,real>::evaluate_volume_integrand(
+    const PHiLiP::Physics::PhysicsBase<dim,nspecies,nstate,real2> &physics,
     const dealii::Point<dim,real2> &phys_coord,
     const std::array<real2,nstate> &soln_at_q,
     const std::array<dealii::Tensor<1,dim,real2>,nstate> &/*soln_grad_at_q*/) const
@@ -308,7 +308,7 @@ real2 DiffusionFunctional<dim,nstate,real>::evaluate_volume_integrand(
     real2 val = 0;
 
     // casting our physics object into a diffusion_objective object 
-    const diffusion_objective<dim,nstate,real2> &diff_physics = dynamic_cast< const diffusion_objective<dim,nstate,real2> & >(physics);
+    const diffusion_objective<dim,nspecies,nstate,real2> &diff_physics = dynamic_cast< const diffusion_objective<dim,nspecies,nstate,real2> & >(physics);
     
     // evaluating the associated objective function weighting at the quadrature point
     real2 objective_value = diff_physics.objective_function(phys_coord);
@@ -322,12 +322,12 @@ real2 DiffusionFunctional<dim,nstate,real>::evaluate_volume_integrand(
 }
 
 
-template <int dim, int nstate>
-DiffusionExactAdjoint<dim, nstate>::DiffusionExactAdjoint(const Parameters::AllParameters *const parameters_input): 
+template <int dim, int nspecies, int nstate>
+DiffusionExactAdjoint<dim, nspecies, nstate>::DiffusionExactAdjoint(const Parameters::AllParameters *const parameters_input): 
     TestsBase::TestsBase(parameters_input){}
 
-template <int dim, int nstate>
-int DiffusionExactAdjoint<dim,nstate>::run_test() const
+template <int dim, int nspecies, int nstate>
+int DiffusionExactAdjoint<dim,nspecies,nstate>::run_test() const
 {
     pcout << "Running diffusion exact adjoint test case." << std::endl;
 
@@ -358,31 +358,31 @@ int DiffusionExactAdjoint<dim,nstate>::run_test() const
     }
 
     // creating the physics objects
-    std::shared_ptr< Physics::PhysicsBase<dim, nstate, double> > physics_u_double 
-          = std::make_shared< diffusion_u<dim, nstate, double> >(&param, convection, diffusion);
-    std::shared_ptr< Physics::PhysicsBase<dim, nstate, double> > physics_v_double  
-          = std::make_shared< diffusion_v<dim, nstate, double> >(&param, convection, diffusion);
+    std::shared_ptr< Physics::PhysicsBase<dim, nspecies, nstate, double> > physics_u_double 
+          = std::make_shared< diffusion_u<dim, nspecies, nstate, double> >(&param, convection, diffusion);
+    std::shared_ptr< Physics::PhysicsBase<dim, nspecies, nstate, double> > physics_v_double  
+          = std::make_shared< diffusion_v<dim, nspecies, nstate, double> >(&param, convection, diffusion);
 
     // for adjoint, also need the AD'd physics
-    std::shared_ptr< Physics::PhysicsBase<dim, nstate, FadType> > physics_u_fadtype 
-          = std::make_shared< diffusion_u<dim, nstate, FadType> >(&param, convection, diffusion);
-    std::shared_ptr< Physics::PhysicsBase<dim, nstate, FadType> > physics_v_fadtype 
-          = std::make_shared< diffusion_v<dim, nstate, FadType> >(&param, convection, diffusion);
+    std::shared_ptr< Physics::PhysicsBase<dim, nspecies, nstate, FadType> > physics_u_fadtype 
+          = std::make_shared< diffusion_u<dim, nspecies, nstate, FadType> >(&param, convection, diffusion);
+    std::shared_ptr< Physics::PhysicsBase<dim, nspecies, nstate, FadType> > physics_v_fadtype 
+          = std::make_shared< diffusion_v<dim, nspecies, nstate, FadType> >(&param, convection, diffusion);
 
-    std::shared_ptr< Physics::PhysicsBase<dim, nstate, RadType> > physics_u_radtype 
-          = std::make_shared< diffusion_u<dim, nstate, RadType> >(&param, convection, diffusion);
-    std::shared_ptr< Physics::PhysicsBase<dim, nstate, RadType> > physics_v_radtype 
-          = std::make_shared< diffusion_v<dim, nstate, RadType> >(&param, convection, diffusion);
+    std::shared_ptr< Physics::PhysicsBase<dim, nspecies, nstate, RadType> > physics_u_radtype 
+          = std::make_shared< diffusion_u<dim, nspecies, nstate, RadType> >(&param, convection, diffusion);
+    std::shared_ptr< Physics::PhysicsBase<dim, nspecies, nstate, RadType> > physics_v_radtype 
+          = std::make_shared< diffusion_v<dim, nspecies, nstate, RadType> >(&param, convection, diffusion);
 
-    std::shared_ptr< Physics::PhysicsBase<dim, nstate, FadFadType> > physics_u_fadfadtype 
-          = std::make_shared< diffusion_u<dim, nstate, FadFadType> >(&param, convection, diffusion);
-    std::shared_ptr< Physics::PhysicsBase<dim, nstate, FadFadType> > physics_v_fadfadtype 
-          = std::make_shared< diffusion_v<dim, nstate, FadFadType> >(&param, convection, diffusion);
+    std::shared_ptr< Physics::PhysicsBase<dim, nspecies, nstate, FadFadType> > physics_u_fadfadtype 
+          = std::make_shared< diffusion_u<dim, nspecies, nstate, FadFadType> >(&param, convection, diffusion);
+    std::shared_ptr< Physics::PhysicsBase<dim, nspecies, nstate, FadFadType> > physics_v_fadfadtype 
+          = std::make_shared< diffusion_v<dim, nspecies, nstate, FadFadType> >(&param, convection, diffusion);
 
-    std::shared_ptr< Physics::PhysicsBase<dim, nstate, RadFadType> > physics_u_radfadtype 
-          = std::make_shared< diffusion_u<dim, nstate, RadFadType> >(&param, convection, diffusion);
-    std::shared_ptr< Physics::PhysicsBase<dim, nstate, RadFadType> > physics_v_radfadtype 
-          = std::make_shared< diffusion_v<dim, nstate, RadFadType> >(&param, convection, diffusion);
+    std::shared_ptr< Physics::PhysicsBase<dim, nspecies, nstate, RadFadType> > physics_u_radfadtype 
+          = std::make_shared< diffusion_u<dim, nspecies, nstate, RadFadType> >(&param, convection, diffusion);
+    std::shared_ptr< Physics::PhysicsBase<dim, nspecies, nstate, RadFadType> > physics_v_radfadtype 
+          = std::make_shared< diffusion_v<dim, nspecies, nstate, RadFadType> >(&param, convection, diffusion);
 
     // exact value to be used in checks below
     const double pi = std::acos(-1);
@@ -453,12 +453,12 @@ int DiffusionExactAdjoint<dim,nstate>::run_test() const
 
             // since a different grid is constructed each time, need to also generate a new DG
             // I don't think this would work outside loop since grid.clear() req's no subscriptors
-            std::shared_ptr < DGBase<dim, double> > dg_u = DGFactory<dim,double>::create_discontinuous_galerkin(&param, poly_degree, grid);
-            std::shared_ptr < DGBase<dim, double> > dg_v = DGFactory<dim,double>::create_discontinuous_galerkin(&param, poly_degree, grid);
+            std::shared_ptr < DGBase<dim, nspecies, double> > dg_u = DGFactory<dim,nspecies,double>::create_discontinuous_galerkin(&param, poly_degree, grid);
+            std::shared_ptr < DGBase<dim, nspecies, double> > dg_v = DGFactory<dim,nspecies,double>::create_discontinuous_galerkin(&param, poly_degree, grid);
 
             // casting to dg state    
-            std::shared_ptr< DGBaseState<dim,nstate,double> > dg_state_u = std::dynamic_pointer_cast< DGBaseState<dim,nstate,double> >(dg_u);
-            std::shared_ptr< DGBaseState<dim,nstate,double> > dg_state_v = std::dynamic_pointer_cast< DGBaseState<dim,nstate,double> >(dg_v);
+            std::shared_ptr< DGBaseState<dim,nspecies,nstate,double> > dg_state_u = std::dynamic_pointer_cast< DGBaseState<dim,nspecies,nstate,double> >(dg_u);
+            std::shared_ptr< DGBaseState<dim,nspecies,nstate,double> > dg_state_v = std::dynamic_pointer_cast< DGBaseState<dim,nspecies,nstate,double> >(dg_v);
 
             // now overriding the original physics on each
             dg_state_u->set_physics(physics_u_double, physics_u_fadtype, physics_u_radtype, physics_u_fadfadtype, physics_u_radfadtype);
@@ -473,8 +473,8 @@ int DiffusionExactAdjoint<dim,nstate>::run_test() const
             //dg_v->solution.add(1.1);
             
             // Create ODE solvers using the factory and providing the DG object
-            std::shared_ptr<ODE::ODESolverBase<dim, double>> ode_solver_u = ODE::ODESolverFactory<dim, double>::create_ODESolver(dg_u);
-            std::shared_ptr<ODE::ODESolverBase<dim, double>> ode_solver_v = ODE::ODESolverFactory<dim, double>::create_ODESolver(dg_v);
+            std::shared_ptr<ODE::ODESolverBase<dim, nspecies, double>> ode_solver_u = ODE::ODESolverFactory<dim, nspecies, double>::create_ODESolver(dg_u);
+            std::shared_ptr<ODE::ODESolverBase<dim, nspecies, double>> ode_solver_v = ODE::ODESolverFactory<dim, nspecies, double>::create_ODESolver(dg_v);
 
             // solving
             ode_solver_u->steady_state();
@@ -482,8 +482,8 @@ int DiffusionExactAdjoint<dim,nstate>::run_test() const
 
             pcout << "Creating DiffusionFunctional... " << std::endl; 
             // functional for computations
-            auto diffusion_functional_u = std::make_shared<DiffusionFunctional<dim,nstate,double>>(dg_u,physics_u_fadfadtype,true,false);
-            auto diffusion_functional_v = std::make_shared<DiffusionFunctional<dim,nstate,double>>(dg_v,physics_v_fadfadtype,true,false);
+            auto diffusion_functional_u = std::make_shared<DiffusionFunctional<dim,nspecies,nstate,double>>(dg_u,physics_u_fadfadtype,true,false);
+            auto diffusion_functional_v = std::make_shared<DiffusionFunctional<dim,nspecies,nstate,double>>(dg_v,physics_v_fadfadtype,true,false);
 
             pcout << "Evaluating functional... " << std::endl; 
             // evaluating functionals from both methods
@@ -500,8 +500,8 @@ int DiffusionExactAdjoint<dim,nstate>::run_test() const
             pcout << std::endl << "error_val1 = " << error_functional_u << "\terror_val2 = " << error_functional_v << std::endl << std::endl; 
 
             // // Initializing the adjoints for each problem
-            Adjoint<dim, nstate, double> adj_u(dg_u, diffusion_functional_u, physics_u_fadtype);
-            Adjoint<dim, nstate, double> adj_v(dg_v, diffusion_functional_v, physics_v_fadtype);
+            Adjoint<dim, nspecies, nstate, double> adj_u(dg_u, diffusion_functional_u, physics_u_fadtype);
+            Adjoint<dim, nspecies, nstate, double> adj_v(dg_v, diffusion_functional_v, physics_v_fadtype);
 
             // solving for each coarse adjoint
             pcout << "Solving for the discrete adjoints." << std::endl;
@@ -632,8 +632,8 @@ int DiffusionExactAdjoint<dim,nstate>::run_test() const
                 data_out.attach_dof_handler(dg_u->dof_handler);
 
                 // // can't use this post processor as it gives them the same name
-                // const std::unique_ptr< dealii::DataPostprocessor<dim> > post_processor_u = Postprocess::PostprocessorFactory<dim>::create_Postprocessor(all_parameters);
-                // const std::unique_ptr< dealii::DataPostprocessor<dim> > post_processor_v = Postprocess::PostprocessorFactory<dim>::create_Postprocessor(all_parameters);
+                // const std::unique_ptr< dealii::DataPostprocessor<dim> > post_processor_u = Postprocess::PostprocessorFactory<dim,nspecies>::create_Postprocessor(all_parameters);
+                // const std::unique_ptr< dealii::DataPostprocessor<dim> > post_processor_v = Postprocess::PostprocessorFactory<dim,nspecies>::create_Postprocessor(all_parameters);
                 // data_out.add_data_vector(dg_u->solution, *post_processor_u);
                 // data_out.add_data_vector(dg_v->solution, *post_processor_v);
 
@@ -852,7 +852,8 @@ double eval_avg_slope(std::vector<double> error, std::vector<double> grid_size, 
     return 0.5*(last_slope_error+prev_slope_error);
 }
 
-template class DiffusionExactAdjoint <PHILIP_DIM,1>;
-
+#if PHILIP_SPECIES==1
+template class DiffusionExactAdjoint <PHILIP_DIM, PHILIP_SPECIES,1>;
+#endif
 } // Tests namespace
 } // PHiLiP namespace

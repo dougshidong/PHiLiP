@@ -21,21 +21,21 @@
 namespace PHiLiP {
 namespace ProperOrthogonalDecomposition {
 
-template <int dim, int nstate>
-HROMTestLocation<dim, nstate>::HROMTestLocation(const RowVectorXd& parameter, std::unique_ptr<ROMSolution<dim, nstate>> rom_solution, std::shared_ptr< DGBase<dim, double> > dg_input, Epetra_Vector weights)
-        : TestLocationBase<dim, nstate>(parameter, std::move(rom_solution))
+template <int dim, int nspecies, int nstate>
+HROMTestLocation<dim, nspecies, nstate>::HROMTestLocation(const RowVectorXd& parameter, std::unique_ptr<ROMSolution<dim, nspecies, nstate>> rom_solution, std::shared_ptr< DGBase<dim, nspecies, double> > dg_input, Epetra_Vector weights)
+        : TestLocationBase<dim, nspecies, nstate>(parameter, std::move(rom_solution))
         , dg(dg_input)
         , ECSW_weights(weights)
 {
 }
 
-template <int dim, int nstate>
-void HROMTestLocation<dim, nstate>::compute_initial_rom_to_final_rom_error(std::shared_ptr<ProperOrthogonalDecomposition::PODBase<dim>> pod_updated){
+template <int dim, int nspecies, int nstate>
+void HROMTestLocation<dim, nspecies, nstate>::compute_initial_rom_to_final_rom_error(std::shared_ptr<ProperOrthogonalDecomposition::PODBase<dim,nspecies>> pod_updated){
 
     this->pcout << "Computing adjoint-based error estimate between initial ROM and updated ROM..." << std::endl;
 
     dealii::ParameterHandler dummy_handler;
-    std::unique_ptr<FlowSolver::FlowSolver<dim,nstate>> flow_solver = FlowSolver::FlowSolverFactory<dim,nstate>::select_flow_case(&this->rom_solution->params, dummy_handler);
+    std::unique_ptr<FlowSolver::FlowSolver<dim,nspecies,nstate>> flow_solver = FlowSolver::FlowSolverFactory<dim,nspecies,nstate>::select_flow_case(&this->rom_solution->params, dummy_handler);
     flow_solver->dg->solution = this->rom_solution->solution;
     const bool compute_dRdW = true;
     flow_solver->dg->assemble_residual(compute_dRdW);
@@ -92,8 +92,8 @@ void HROMTestLocation<dim, nstate>::compute_initial_rom_to_final_rom_error(std::
     this->pcout << "Parameter: " << this->parameter << ". Error estimate between initial ROM and updated ROM: " << this->initial_rom_to_final_rom_error << std::endl;
 }
 
-template <int dim, int nstate>
-std::shared_ptr<Epetra_CrsMatrix> HROMTestLocation<dim, nstate>::generate_hyper_reduced_jacobian(const Epetra_CrsMatrix &system_matrix)
+template <int dim, int nspecies, int nstate>
+std::shared_ptr<Epetra_CrsMatrix> HROMTestLocation<dim, nspecies, nstate>::generate_hyper_reduced_jacobian(const Epetra_CrsMatrix &system_matrix)
 {
     /* Refer to Equation (12) in:
     https://onlinelibrary.wiley.com/doi/10.1002/nme.6603 (includes definitions of matrices used below such as L_e and L_e_PLUS)
@@ -183,8 +183,8 @@ std::shared_ptr<Epetra_CrsMatrix> HROMTestLocation<dim, nstate>::generate_hyper_
     return std::make_shared<Epetra_CrsMatrix>(reduced_jacobian);
 }
 
-template <int dim, int nstate>
-std::shared_ptr<Epetra_CrsMatrix> HROMTestLocation<dim, nstate>::generate_test_basis(Epetra_CrsMatrix &system_matrix, const Epetra_CrsMatrix &pod_basis)
+template <int dim, int nspecies, int nstate>
+std::shared_ptr<Epetra_CrsMatrix> HROMTestLocation<dim, nspecies, nstate>::generate_test_basis(Epetra_CrsMatrix &system_matrix, const Epetra_CrsMatrix &pod_basis)
 {
     Epetra_Map system_matrix_rowmap = system_matrix.RowMap();
     Epetra_CrsMatrix petrov_galerkin_basis(Epetra_DataAccess::Copy, system_matrix_rowmap, pod_basis.NumGlobalCols());
@@ -193,12 +193,12 @@ std::shared_ptr<Epetra_CrsMatrix> HROMTestLocation<dim, nstate>::generate_test_b
     return std::make_shared<Epetra_CrsMatrix>(petrov_galerkin_basis);
 }
 
-#if PHILIP_DIM==1
-        template class HROMTestLocation<PHILIP_DIM, PHILIP_DIM>;
+#if PHILIP_DIM==1 && PHILIP_SPECIES==1
+        template class HROMTestLocation<PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM>;
 #endif
 
-#if PHILIP_DIM!=1
-        template class HROMTestLocation<PHILIP_DIM, PHILIP_DIM+2>;
+#if PHILIP_DIM!=1 && PHILIP_SPECIES==1
+        template class HROMTestLocation<PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2>;
 #endif
 
 }

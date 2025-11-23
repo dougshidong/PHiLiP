@@ -1,3 +1,5 @@
+#include <boost/preprocessor/seq/for_each.hpp>
+
 #include "parameters/all_parameters.h"
 #include "parameters/parameters_manufactured_solution.h"
 
@@ -14,9 +16,9 @@
 namespace PHiLiP {
 namespace Physics {
 
-template <int dim, int nstate, typename real>
-std::shared_ptr < ModelBase<dim,nstate,real> >
-ModelFactory<dim,nstate,real>
+template <int dim, int nspecies, int nstate, typename real>
+std::shared_ptr < ModelBase<dim,nspecies,nstate,real> >
+ModelFactory<dim,nspecies,nstate,real>
 ::create_Model(const Parameters::AllParameters *const parameters_input)
 {
     using PDE_enum = Parameters::AllParameters::PartialDifferentialEquation;
@@ -24,7 +26,7 @@ ModelFactory<dim,nstate,real>
 
     if(pde_type == PDE_enum::physics_model) {
         // generating the manufactured solution from the manufactured solution factory
-        std::shared_ptr< ManufacturedSolutionFunction<dim,real> >  manufactured_solution_function 
+        std::shared_ptr< ManufacturedSolutionFunction<dim,real>  >  manufactured_solution_function 
             = ManufacturedSolutionFactory<dim,real>::create_ManufacturedSolution(parameters_input, nstate);
 
         using Model_enum = Parameters::AllParameters::ModelType;
@@ -45,7 +47,7 @@ ModelFactory<dim,nstate,real>
                     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
                     // Smagorinsky model
                     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-                    return std::make_shared < LargeEddySimulation_Smagorinsky<dim,nstate,real> > (
+                    return std::make_shared < LargeEddySimulation_Smagorinsky<dim,nspecies,nstate,real> > (
                         parameters_input,
                         parameters_input->euler_param.ref_length,
                         parameters_input->euler_param.gamma_gas,
@@ -68,7 +70,7 @@ ModelFactory<dim,nstate,real>
                     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
                     // WALE (Wall-Adapting Local Eddy-viscosity) eddy viscosity model
                     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-                    return std::make_shared < LargeEddySimulation_WALE<dim,nstate,real> > (
+                    return std::make_shared < LargeEddySimulation_WALE<dim,nspecies,nstate,real> > (
                         parameters_input,
                         parameters_input->euler_param.ref_length,
                         parameters_input->euler_param.gamma_gas,
@@ -91,7 +93,7 @@ ModelFactory<dim,nstate,real>
                     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
                     // Vreman eddy viscosity model
                     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-                    return std::make_shared < LargeEddySimulation_Vreman<dim,nstate,real> > (
+                    return std::make_shared < LargeEddySimulation_Vreman<dim,nspecies,nstate,real> > (
                         parameters_input,
                         parameters_input->euler_param.ref_length,
                         parameters_input->euler_param.gamma_gas,
@@ -135,7 +137,7 @@ ModelFactory<dim,nstate,real>
                     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
                     // SA negative model
                     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -      
-                    return std::make_shared < ReynoldsAveragedNavierStokes_SAneg<dim,nstate,real> > (
+                    return std::make_shared < ReynoldsAveragedNavierStokes_SAneg<dim,nspecies,nstate,real> > (
                         parameters_input,
                         parameters_input->euler_param.ref_length,
                         parameters_input->euler_param.gamma_gas,
@@ -183,46 +185,19 @@ ModelFactory<dim,nstate,real>
 //----------------------------------------------------------------
 //----------------------------------------------------------------
 // Instantiate explicitly
-template class ModelFactory<PHILIP_DIM, 1, double>;
-template class ModelFactory<PHILIP_DIM, 2, double>;
-template class ModelFactory<PHILIP_DIM, 3, double>;
-template class ModelFactory<PHILIP_DIM, 4, double>;
-template class ModelFactory<PHILIP_DIM, 5, double>;
-template class ModelFactory<PHILIP_DIM, 6, double>;
-template class ModelFactory<PHILIP_DIM, 8, double>;
+#if PHILIP_SPECIES==1
+    // Define a sequence of indices representing the range of nstate
+    #define POSSIBLE_NSTATE (1)(2)(3)(4)(5)(6)(8)
 
-template class ModelFactory<PHILIP_DIM, 1, FadType>;
-template class ModelFactory<PHILIP_DIM, 2, FadType>;
-template class ModelFactory<PHILIP_DIM, 3, FadType>;
-template class ModelFactory<PHILIP_DIM, 4, FadType>;
-template class ModelFactory<PHILIP_DIM, 5, FadType>;
-template class ModelFactory<PHILIP_DIM, 6, FadType>;
-template class ModelFactory<PHILIP_DIM, 8, FadType>;
-
-template class ModelFactory<PHILIP_DIM, 1, RadType>;
-template class ModelFactory<PHILIP_DIM, 2, RadType>;
-template class ModelFactory<PHILIP_DIM, 3, RadType>;
-template class ModelFactory<PHILIP_DIM, 4, RadType>;
-template class ModelFactory<PHILIP_DIM, 5, RadType>;
-template class ModelFactory<PHILIP_DIM, 6, RadType>;
-template class ModelFactory<PHILIP_DIM, 8, RadType>;
-
-template class ModelFactory<PHILIP_DIM, 1, FadFadType>;
-template class ModelFactory<PHILIP_DIM, 2, FadFadType>;
-template class ModelFactory<PHILIP_DIM, 3, FadFadType>;
-template class ModelFactory<PHILIP_DIM, 4, FadFadType>;
-template class ModelFactory<PHILIP_DIM, 5, FadFadType>;
-template class ModelFactory<PHILIP_DIM, 6, FadFadType>;
-template class ModelFactory<PHILIP_DIM, 8, FadFadType>;
-
-template class ModelFactory<PHILIP_DIM, 1, RadFadType>;
-template class ModelFactory<PHILIP_DIM, 2, RadFadType>;
-template class ModelFactory<PHILIP_DIM, 3, RadFadType>;
-template class ModelFactory<PHILIP_DIM, 4, RadFadType>;
-template class ModelFactory<PHILIP_DIM, 5, RadFadType>;
-template class ModelFactory<PHILIP_DIM, 6, RadFadType>;
-template class ModelFactory<PHILIP_DIM, 8, RadFadType>;
-
+    // Define a macro to instantiate functions for a specific nstate
+    #define INSTANTIATE_FOR_NSTATE(r, data, nstate) \
+        template class ModelFactory<PHILIP_DIM, PHILIP_SPECIES, nstate, double>; \
+        template class ModelFactory<PHILIP_DIM, PHILIP_SPECIES, nstate, FadType>; \
+        template class ModelFactory<PHILIP_DIM, PHILIP_SPECIES, nstate, RadType>; \
+        template class ModelFactory<PHILIP_DIM, PHILIP_SPECIES, nstate, FadFadType>; \
+        template class ModelFactory<PHILIP_DIM, PHILIP_SPECIES, nstate, RadFadType>;
+    BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_FOR_NSTATE, _, POSSIBLE_NSTATE)
+#endif
 } // Physics namespace
 } // PHiLiP namespace
 

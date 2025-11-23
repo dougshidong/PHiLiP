@@ -10,8 +10,8 @@
 
 namespace PHiLiP {
 
-template<int dim, int nstate, typename real, typename MeshType>
-MetricToMeshGenerator<dim, nstate, real, MeshType> :: MetricToMeshGenerator(
+template<int dim, int nspecies, int nstate, typename real, typename MeshType>
+MetricToMeshGenerator<dim, nspecies, nstate, real, MeshType> :: MetricToMeshGenerator(
     std::shared_ptr<dealii::MappingFEField<dim,dim,VectorType,DoFHandlerType>> _volume_nodes_mapping,
     std::shared_ptr<MeshType> _triangulation)
     : volume_nodes_mapping(_volume_nodes_mapping)
@@ -38,8 +38,8 @@ MetricToMeshGenerator<dim, nstate, real, MeshType> :: MetricToMeshGenerator(
     reinit();
 }
 
-template<int dim, int nstate, typename real, typename MeshType>
-void MetricToMeshGenerator<dim, nstate, real, MeshType> :: reinit()
+template<int dim, int nspecies, int nstate, typename real, typename MeshType>
+void MetricToMeshGenerator<dim, nspecies, nstate, real, MeshType> :: reinit()
 {
     dof_handler_vertices.initialize(*triangulation, fe_system);
     dof_handler_vertices.distribute_dofs(fe_system);
@@ -61,8 +61,8 @@ void MetricToMeshGenerator<dim, nstate, real, MeshType> :: reinit()
     all_vertices.resize(n_vertices);
 }
     
-template<int dim, int nstate, typename real, typename MeshType>
-void MetricToMeshGenerator<dim, nstate, real, MeshType> :: interpolate_metric_to_vertices(
+template<int dim, int nspecies, int nstate, typename real, typename MeshType>
+void MetricToMeshGenerator<dim, nspecies, nstate, real, MeshType> :: interpolate_metric_to_vertices(
     const std::vector<dealii::Tensor<2, dim, real>> &cellwise_optimal_metric)
 {
     reinit();
@@ -158,8 +158,8 @@ void MetricToMeshGenerator<dim, nstate, real, MeshType> :: interpolate_metric_to
     }
 }
 
-template<int dim, int nstate, typename real, typename MeshType>
-void MetricToMeshGenerator<dim, nstate, real, MeshType> :: write_pos_file() const
+template<int dim, int nspecies, int nstate, typename real, typename MeshType>
+void MetricToMeshGenerator<dim, nspecies, nstate, real, MeshType> :: write_pos_file() const
 {
     AssertDimension(fe_system.dofs_per_cell, dealii::GeometryInfo<dim>::vertices_per_cell);
     
@@ -282,8 +282,8 @@ void MetricToMeshGenerator<dim, nstate, real, MeshType> :: write_pos_file() cons
     MPI_Barrier(mpi_communicator);
 }
 
-template<int dim, int nstate, typename real, typename MeshType>
-void MetricToMeshGenerator<dim, nstate, real, MeshType> :: write_geo_file() const
+template<int dim, int nspecies, int nstate, typename real, typename MeshType>
+void MetricToMeshGenerator<dim, nspecies, nstate, real, MeshType> :: write_geo_file() const
 {
     // Based on gmsh/tutorials/t17.geo in GMSH 4.11.1.
     std::ofstream outfile(filename_geo);
@@ -314,8 +314,8 @@ void MetricToMeshGenerator<dim, nstate, real, MeshType> :: write_geo_file() cons
     outfile.close();
 }
 
-template<int dim, int nstate, typename real, typename MeshType>
-void MetricToMeshGenerator<dim, nstate, real, MeshType> :: generate_mesh_from_cellwise_metric(
+template<int dim, int nspecies, int nstate, typename real, typename MeshType>
+void MetricToMeshGenerator<dim, nspecies, nstate, real, MeshType> :: generate_mesh_from_cellwise_metric(
     const std::vector<dealii::Tensor<2, dim, real>> &cellwise_optimal_metric)
 {
     interpolate_metric_to_vertices(cellwise_optimal_metric);
@@ -334,19 +334,20 @@ void MetricToMeshGenerator<dim, nstate, real, MeshType> :: generate_mesh_from_ce
     MPI_Barrier(mpi_communicator);
 }
 
-template<int dim, int nstate, typename real, typename MeshType>
-std::string MetricToMeshGenerator<dim, nstate, real, MeshType> :: get_generated_mesh_filename() const
+template<int dim, int nspecies, int nstate, typename real, typename MeshType>
+std::string MetricToMeshGenerator<dim, nspecies, nstate, real, MeshType> :: get_generated_mesh_filename() const
 {
     return filename_msh;
 }
 
-
 // Instantiations
 #if PHILIP_DIM!=1
-template class MetricToMeshGenerator <PHILIP_DIM, 1, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
-template class MetricToMeshGenerator <PHILIP_DIM, 2, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
-template class MetricToMeshGenerator <PHILIP_DIM, 3, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
-template class MetricToMeshGenerator <PHILIP_DIM, 4, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
-template class MetricToMeshGenerator <PHILIP_DIM, 5, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+    // Define a sequence of nstate in the range [1, 5]
+    #define POSSIBLE_NSTATE (1)(2)(3)(4)(5)
+
+    // Define a macro to instantiate AnisotropicMeshAdaptation for a specific nstate
+    #define INSTANTIATE_METRICTOMESH(r, data, nstate) \
+        template class MetricToMeshGenerator <PHILIP_DIM, PHILIP_SPECIES, nstate, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+    BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_METRICTOMESH, _, POSSIBLE_NSTATE)
 #endif
 } // PHiLiP namespace

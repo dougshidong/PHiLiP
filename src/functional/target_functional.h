@@ -40,61 +40,61 @@ namespace PHiLiP {
   * are involved in the computation of the adjoint. If derivatives are needed, the Sacado
   * versions of these functions must also be defined.
   */
-template <int dim, int nstate, typename real>
-class TargetFunctional : public Functional<dim,nstate,real>
+template <int dim, int nspecies, int nstate, typename real>
+class TargetFunctional : public Functional<dim,nspecies,nstate,real>
 {
 public:
     using FadType = Sacado::Fad::DFad<real>; ///< Sacado AD type for first derivatives.
     using FadFadType = Sacado::Fad::DFad<FadType>; ///< Sacado AD type that allows 2nd derivatives.
 
     /// Vector for storing the derivatives with respect to each solution DoF
-    using Functional<dim,nstate,real>::dIdw;
+    using Functional<dim,nspecies,nstate,real>::dIdw;
     /// Vector for storing the derivatives with respect to each grid DoF
-    using Functional<dim,nstate,real>::dIdX;
+    using Functional<dim,nspecies,nstate,real>::dIdX;
     /// Store the functional value from the last time evaluate_functional() was called.
-    using Functional<dim,nstate,real>::current_functional_value;
+    using Functional<dim,nspecies,nstate,real>::current_functional_value;
     /// Sparse matrix for storing the functional partial second derivatives.
-    using Functional<dim,nstate,real>::d2IdWdW;
+    using Functional<dim,nspecies,nstate,real>::d2IdWdW;
     /// Sparse matrix for storing the functional partial second derivatives.
-    using Functional<dim,nstate,real>::d2IdWdX;
+    using Functional<dim,nspecies,nstate,real>::d2IdWdX;
     /// Sparse matrix for storing the functional partial second derivatives.
-    using Functional<dim,nstate,real>::d2IdXdX;
+    using Functional<dim,nspecies,nstate,real>::d2IdXdX;
 
 protected:
     /// Smart pointer to DGBase
-    using Functional<dim,nstate,real>::dg;
+    using Functional<dim,nspecies,nstate,real>::dg;
     /// Physics that should correspond to the one in DGBase
-    using Functional<dim,nstate,real>::physics_fad_fad;
+    using Functional<dim,nspecies,nstate,real>::physics_fad_fad;
 
-    using Functional<dim,nstate,real>::volume_update_flags; ///< Update flags needed at volume points.
-    using Functional<dim,nstate,real>::face_update_flags; ///< Update flags needed at face points.
-    using Functional<dim,nstate,real>::uses_solution_values; ///< Will evaluate solution values at quadrature points
-    using Functional<dim,nstate,real>::uses_solution_gradient; ///< Will evaluate solution gradient at quadrature points
+    using Functional<dim,nspecies,nstate,real>::volume_update_flags; ///< Update flags needed at volume points.
+    using Functional<dim,nspecies,nstate,real>::face_update_flags; ///< Update flags needed at face points.
+    using Functional<dim,nspecies,nstate,real>::uses_solution_values; ///< Will evaluate solution values at quadrature points
+    using Functional<dim,nspecies,nstate,real>::uses_solution_gradient; ///< Will evaluate solution gradient at quadrature points
 
     /// Avoid warning that the function was hidden [-Woverloaded-virtual].
     /** The compiler would otherwise hide Functional::evaluate_volume_integrand, which is fine for 
      *  us, but is a typical bug that other people have. This 'using' imports the base class function
      *  to our derived class even though we don't need it.
      */
-    using Functional<dim,nstate,real>::evaluate_volume_integrand;
+    using Functional<dim,nspecies,nstate,real>::evaluate_volume_integrand;
 
     ///// Avoid warning that the function was hidden [-Woverloaded-virtual].
     ///** The compiler would otherwise hide Functional::evaluate_cell_boundary, which is fine for 
     // *  us, but is a typical bug that other people have. This 'using' imports the base class function
     // *  to our derived class even though we don't need it.
     // */
-    //using Functional<dim,nstate,real>::evaluate_cell_boundary;
+    //using Functional<dim,nspecies,nstate,real>::evaluate_cell_boundary;
 
     /// Avoid warning that the function was hidden [-Woverloaded-virtual].
     /** The compiler would otherwise hide Functional::evaluate_volume_cell_functional, which is fine for 
      *  us, but is a typical bug that other people have. This 'using' imports the base class function
      *  to our derived class even though we don't need it.
      */
-    using Functional<dim,nstate,real>::evaluate_volume_cell_functional;
+    using Functional<dim,nspecies,nstate,real>::evaluate_volume_cell_functional;
 
 
-    using Functional<dim,nstate,real>::evaluate_boundary_cell_functional;
-    using Functional<dim,nstate,real>::evaluate_boundary_integrand;
+    using Functional<dim,nspecies,nstate,real>::evaluate_boundary_cell_functional;
+    using Functional<dim,nspecies,nstate,real>::evaluate_boundary_integrand;
 
 protected:
  /// Solution used to evaluate target functional
@@ -109,7 +109,7 @@ public:
      *  diffusion_exact_adjoint test case.
      */
     TargetFunctional(
-        std::shared_ptr<DGBase<dim,real>> dg_input,
+        std::shared_ptr<DGBase<dim,nspecies,real>> dg_input,
         const bool uses_solution_values = true,
         const bool uses_solution_gradient = true);
     /// Constructor
@@ -120,7 +120,7 @@ public:
      *  diffusion_exact_adjoint test case.
      */
     TargetFunctional(
-        std::shared_ptr<DGBase<dim,real>> dg_input,
+        std::shared_ptr<DGBase<dim,nspecies,real>> dg_input,
         const dealii::LinearAlgebra::distributed::Vector<real> &target_solution,
         const bool uses_solution_values = true,
         const bool uses_solution_gradient = true);
@@ -130,8 +130,8 @@ public:
       * The target solution is initialized with the one currently within DGBase.
       */
     TargetFunctional(
-        std::shared_ptr<DGBase<dim,real>> dg_input,
-        std::shared_ptr< Physics::PhysicsBase<dim,nstate,Sacado::Fad::DFad<Sacado::Fad::DFad<real>>> > _physics_fad_fad,
+        std::shared_ptr<DGBase<dim,nspecies,real>> dg_input,
+        std::shared_ptr< Physics::PhysicsBase<dim,nspecies,nstate,Sacado::Fad::DFad<Sacado::Fad::DFad<real>>> > _physics_fad_fad,
         const bool uses_solution_values = true,
         const bool uses_solution_gradient = true);
 
@@ -140,9 +140,9 @@ public:
      *  The target solution is provided instead of using the current solution in the DG object.
   */
     TargetFunctional(
-        std::shared_ptr<DGBase<dim,real>> dg_input,
+        std::shared_ptr<DGBase<dim,nspecies,real>> dg_input,
   const dealii::LinearAlgebra::distributed::Vector<real> &target_solution,
-        std::shared_ptr< Physics::PhysicsBase<dim,nstate,Sacado::Fad::DFad<Sacado::Fad::DFad<real>>> > _physics_fad_fad,
+        std::shared_ptr< Physics::PhysicsBase<dim,nspecies,nstate,Sacado::Fad::DFad<Sacado::Fad::DFad<real>>> > _physics_fad_fad,
         const bool uses_solution_values = true,
         const bool uses_solution_gradient = true);
 
@@ -169,22 +169,22 @@ public:
     /** Finite difference evaluation of dIdW.
      */
     dealii::LinearAlgebra::distributed::Vector<real> evaluate_dIdw_finiteDifferences(
-        DGBase<dim,real> &dg, 
-        const PHiLiP::Physics::PhysicsBase<dim,nstate,real> &physics,
+        DGBase<dim,nspecies,real> &dg, 
+        const PHiLiP::Physics::PhysicsBase<dim,nspecies,nstate,real> &physics,
         const double stepsize);
 
     /** Finite difference evaluation of dIdX.
      */
     dealii::LinearAlgebra::distributed::Vector<real> evaluate_dIdX_finiteDifferences(
-        DGBase<dim,real> &dg, 
-        const PHiLiP::Physics::PhysicsBase<dim,nstate,real> &physics,
+        DGBase<dim,nspecies,real> &dg, 
+        const PHiLiP::Physics::PhysicsBase<dim,nspecies,nstate,real> &physics,
         const double stepsize);
 
 private:
     /// Templated function to evaluate a cell's volume functional.
     template <typename real2>
     real2 evaluate_volume_cell_functional(
-        const Physics::PhysicsBase<dim,nstate,real2> &physics,
+        const Physics::PhysicsBase<dim,nspecies,nstate,real2> &physics,
         const std::vector< real2 > &soln_coeff,
         const std::vector< real > &target_soln_coeff,
         const dealii::FESystem<dim> &fe_solution,
@@ -195,7 +195,7 @@ private:
 protected:
     /// Corresponding real function to evaluate a cell's volume functional.
     virtual real evaluate_volume_cell_functional(
-        const Physics::PhysicsBase<dim,nstate,real> &physics,
+        const Physics::PhysicsBase<dim,nspecies,nstate,real> &physics,
         const std::vector< real > &soln_coeff,
         const std::vector< real > &target_soln_coeff,
         const dealii::FESystem<dim> &fe_solution,
@@ -204,7 +204,7 @@ protected:
         const dealii::Quadrature<dim> &volume_quadrature) const;
     /// Corresponding FadFadType function to evaluate a cell's volume functional.
     virtual Sacado::Fad::DFad<Sacado::Fad::DFad<real>> evaluate_volume_cell_functional(
-        const Physics::PhysicsBase<dim,nstate,Sacado::Fad::DFad<Sacado::Fad::DFad<real>>> &physics_fad_fad,
+        const Physics::PhysicsBase<dim,nspecies,nstate,Sacado::Fad::DFad<Sacado::Fad::DFad<real>>> &physics_fad_fad,
         const std::vector< Sacado::Fad::DFad<Sacado::Fad::DFad<real>> > &soln_coeff,
         const std::vector< real > &target_soln_coeff,
         const dealii::FESystem<dim> &fe_solution,
@@ -216,7 +216,7 @@ private:
     /// Templated function to evaluate a cell's face functional.
     template <typename real2>
     real2 evaluate_boundary_cell_functional(
-        const Physics::PhysicsBase<dim,nstate,real2> &physics,
+        const Physics::PhysicsBase<dim,nspecies,nstate,real2> &physics,
         const unsigned int boundary_id,
         const std::vector< real2 > &soln_coeff,
         const std::vector< real > &target_soln_coeff,
@@ -228,7 +228,7 @@ private:
 protected:
     /// Corresponding real function to evaluate a cell's face functional.
     virtual real evaluate_boundary_cell_functional(
-        const Physics::PhysicsBase<dim,nstate,real> &physics,
+        const Physics::PhysicsBase<dim,nspecies,nstate,real> &physics,
         const unsigned int boundary_id,
         const std::vector< real > &soln_coeff,
         const std::vector< real > &target_soln_coeff,
@@ -240,7 +240,7 @@ protected:
 
     /// Corresponding FadFadType function to evaluate a cell's face functional.
     virtual Sacado::Fad::DFad<Sacado::Fad::DFad<real>> evaluate_boundary_cell_functional(
-        const Physics::PhysicsBase<dim,nstate,Sacado::Fad::DFad<Sacado::Fad::DFad<real>>> &physics_fad_fad,
+        const Physics::PhysicsBase<dim,nspecies,nstate,Sacado::Fad::DFad<Sacado::Fad::DFad<real>>> &physics_fad_fad,
         const unsigned int boundary_id,
         const std::vector< Sacado::Fad::DFad<Sacado::Fad::DFad<real>> > &soln_coeff,
         const std::vector< real > &target_soln_coeff,
@@ -253,7 +253,7 @@ protected:
     /// Virtual function for computation of cell volume functional term
     /** Used only in the computation of evaluate_function(). If not overriden returns 0. */
     virtual real evaluate_volume_integrand(
-        const PHiLiP::Physics::PhysicsBase<dim,nstate,real> &/*physics*/,
+        const PHiLiP::Physics::PhysicsBase<dim,nspecies,nstate,real> &/*physics*/,
         const dealii::Point<dim,real> &/*phys_coord*/,
         const std::array<real,nstate> &soln_at_q,
         const std::array<real,nstate> &target_soln_at_q,
@@ -271,7 +271,7 @@ protected:
     /// Virtual function for Sacado computation of cell volume functional term and derivatives
     /** Used only in the computation of evaluate_dIdw(). If not overriden returns 0. */
     virtual FadFadType evaluate_volume_integrand(
-        const PHiLiP::Physics::PhysicsBase<dim,nstate,FadFadType> &/*physics*/,
+        const PHiLiP::Physics::PhysicsBase<dim,nspecies,nstate,FadFadType> &/*physics*/,
         const dealii::Point<dim,FadFadType> &/*phys_coord*/,
         const std::array<FadFadType,nstate> &soln_at_q,
         const std::array<real,nstate> &target_soln_at_q,
@@ -288,7 +288,7 @@ protected:
     /// Virtual function for computation of cell face functional term
     /** Used only in the computation of evaluate_function(). If not overriden returns 0. */
     virtual real evaluate_boundary_integrand(
-        const PHiLiP::Physics::PhysicsBase<dim,nstate,real> &/*physics*/,
+        const PHiLiP::Physics::PhysicsBase<dim,nspecies,nstate,real> &/*physics*/,
         const unsigned int /*boundary_id*/,
         const dealii::Point<dim,real> &,//phys_coord,
         const dealii::Tensor<1,dim,real> &/*normal*/,
@@ -307,7 +307,7 @@ protected:
     /// Virtual function for Sacado computation of cell face functional term and derivatives
     /** Used only in the computation of evaluate_dIdw(). If not overriden returns 0. */
     virtual FadFadType evaluate_boundary_integrand(
-        const PHiLiP::Physics::PhysicsBase<dim,nstate,FadFadType> &/*physics*/,
+        const PHiLiP::Physics::PhysicsBase<dim,nspecies,nstate,FadFadType> &/*physics*/,
         const unsigned int /*boundary_id*/,
         const dealii::Point<dim,FadFadType> &,//phys_coord,
         const dealii::Tensor<1,dim,FadFadType> &/*normal*/,
@@ -327,7 +327,7 @@ protected:
     // /// Virtual function for computation of cell boundary functional term
     // /** Used only in the computation of evaluate_function(). If not overriden returns 0. */
     // virtual real evaluate_cell_boundary(
-    //     const PHiLiP::Physics::PhysicsBase<dim,nstate,real> &/*physics*/,
+    //     const PHiLiP::Physics::PhysicsBase<dim,nspecies,nstate,real> &/*physics*/,
     //     const unsigned int /*boundary_id*/,
     //     const dealii::FEFaceValues<dim,dim> &/*fe_values_boundary*/,
     //     std::vector<real> /*soln_coeff*/,
@@ -339,7 +339,7 @@ protected:
     // /// Virtual function for Sacado computation of cell boundary functional term and derivatives
     // /** Used only in the computation of evaluate_dIdw(). If not overriden returns 0. */
     // virtual FadFadType evaluate_cell_boundary(
-    //     const PHiLiP::Physics::PhysicsBase<dim,nstate,FadFadType> &/*physics*/,
+    //     const PHiLiP::Physics::PhysicsBase<dim,nspecies,nstate,FadFadType> &/*physics*/,
     //     const unsigned int /*boundary_id*/,
     //     const dealii::FEFaceValues<dim,dim> &/*fe_values_boundary*/,
     //     std::vector<FadFadType> /*soln_coeff*/,

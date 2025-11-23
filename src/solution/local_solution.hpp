@@ -16,7 +16,7 @@ namespace PHiLiP {
  * - dim: The dimension of the problem.
  * - n_components: The number of components of the solution. This is nstate for state solutions and dim for metric solutions.
  */
-template <typename real, int dim, int n_components>
+template <typename real, int dim, int nspecies, int n_components>
 class LocalSolution {
    public:
     /// Solution coefficients in the finite element basis.

@@ -7,12 +7,12 @@
 #include "Amesos_BaseSolver.h"
 
 namespace PHiLiP::ODE {
-template <int dim, typename real, int n_rk_stages, typename MeshType>
-PODGalerkinRungeKuttaODESolver<dim,real,n_rk_stages,MeshType>::PODGalerkinRungeKuttaODESolver(std::shared_ptr< DGBase<dim, real, MeshType> > dg_input,
+template <int dim, int nspecies, typename real, int n_rk_stages, typename MeshType>
+PODGalerkinRungeKuttaODESolver<dim,nspecies,real,n_rk_stages,MeshType>::PODGalerkinRungeKuttaODESolver(std::shared_ptr< DGBase<dim, nspecies, real, MeshType> > dg_input,
             std::shared_ptr<RKTableauButcherBase<dim,real,MeshType>> rk_tableau_input,
-            std::shared_ptr<EmptyRRKBase<dim,real,MeshType>> RRK_object_input,
-            std::shared_ptr<ProperOrthogonalDecomposition::PODBase<dim>> pod) 
-            : RungeKuttaBase<dim,real,n_rk_stages,MeshType>(dg_input, RRK_object_input, pod)
+            std::shared_ptr<EmptyRRKBase<dim,nspecies,real,MeshType>> RRK_object_input,
+            std::shared_ptr<ProperOrthogonalDecomposition::PODBase<dim,nspecies>> pod) 
+            : RungeKuttaBase<dim,nspecies,real,n_rk_stages,MeshType>(dg_input, RRK_object_input, pod)
             , butcher_tableau(rk_tableau_input)
             , epetra_pod_basis(pod->getPODBasis()->trilinos_matrix())
             , epetra_system_matrix(Epetra_DataAccess::View, epetra_pod_basis.RowMap(), epetra_pod_basis.NumGlobalRows())
@@ -20,8 +20,8 @@ PODGalerkinRungeKuttaODESolver<dim,real,n_rk_stages,MeshType>::PODGalerkinRungeK
             , epetra_reduced_lhs(nullptr)
 {}
 
-template <int dim, typename real, int n_rk_stages, typename MeshType>
-void PODGalerkinRungeKuttaODESolver<dim,real,n_rk_stages,MeshType>::calculate_stage_solution(int istage, real dt, const bool /*pseudotime*/)
+template <int dim, int nspecies, typename real, int n_rk_stages, typename MeshType>
+void PODGalerkinRungeKuttaODESolver<dim,nspecies,real,n_rk_stages,MeshType>::calculate_stage_solution(int istage, real dt, const bool /*pseudotime*/)
 {
     this->rk_stage[istage] = 0.0;
     this->reduced_rk_stage[istage] = 0.0;
@@ -44,8 +44,8 @@ void PODGalerkinRungeKuttaODESolver<dim,real,n_rk_stages,MeshType>::calculate_st
     
 }
 
-template <int dim, typename real, int n_rk_stages, typename MeshType>
-void PODGalerkinRungeKuttaODESolver<dim,real,n_rk_stages,MeshType>::calculate_stage_derivative(int istage, real dt)
+template <int dim, int nspecies, typename real, int n_rk_stages, typename MeshType>
+void PODGalerkinRungeKuttaODESolver<dim,nspecies,real,n_rk_stages,MeshType>::calculate_stage_derivative(int istage, real dt)
 {
     this->dg->set_current_time(this->current_time + this->butcher_tableau->get_c(istage)*dt);
     this->dg->assemble_residual(); //RHS : du/dt = RHS = F(u_n + dt* sum(a_ij*V*k_j) + dt * a_ii * u^(istage)))
@@ -68,8 +68,8 @@ void PODGalerkinRungeKuttaODESolver<dim,real,n_rk_stages,MeshType>::calculate_st
     
 }
 
-template <int dim, typename real, int n_rk_stages, typename MeshType>
-void PODGalerkinRungeKuttaODESolver<dim,real,n_rk_stages,MeshType>::sum_stages(real dt, const bool /*pseudotime*/)
+template <int dim, int nspecies, typename real, int n_rk_stages, typename MeshType>
+void PODGalerkinRungeKuttaODESolver<dim,nspecies,real,n_rk_stages,MeshType>::sum_stages(real dt, const bool /*pseudotime*/)
 {
     dealii::LinearAlgebra::distributed::Vector<double> reduced_sum;
     reduced_sum.reinit(this->reduced_rk_stage[0]);
@@ -82,14 +82,14 @@ void PODGalerkinRungeKuttaODESolver<dim,real,n_rk_stages,MeshType>::sum_stages(r
     this->solution_update.add(1.0,dealii_update);
 }
 
-template <int dim, typename real, int n_rk_stages, typename MeshType>
-real PODGalerkinRungeKuttaODESolver<dim,real,n_rk_stages,MeshType>::adjust_time_step(real dt)
+template <int dim, int nspecies, typename real, int n_rk_stages, typename MeshType>
+real PODGalerkinRungeKuttaODESolver<dim,nspecies,real,n_rk_stages,MeshType>::adjust_time_step(real dt)
 {
     this->modified_time_step = dt;
     return dt;
 }
-template <int dim, typename real, int n_rk_stages, typename MeshType>
-void PODGalerkinRungeKuttaODESolver<dim,real,n_rk_stages,MeshType>::allocate_runge_kutta_system()
+template <int dim, int nspecies, typename real, int n_rk_stages, typename MeshType>
+void PODGalerkinRungeKuttaODESolver<dim,nspecies,real,n_rk_stages,MeshType>::allocate_runge_kutta_system()
 {
 
     this->butcher_tableau->set_tableau();
@@ -147,14 +147,14 @@ void PODGalerkinRungeKuttaODESolver<dim,real,n_rk_stages,MeshType>::allocate_run
 
 }
 
-template <int dim, typename real, int n_rk_stages, typename MeshType>
-std::shared_ptr<Epetra_CrsMatrix> PODGalerkinRungeKuttaODESolver<dim,real,n_rk_stages,MeshType>::generate_test_basis(const Epetra_CrsMatrix &/*system_matrix*/, const Epetra_CrsMatrix &pod_basis)
+template <int dim, int nspecies, typename real, int n_rk_stages, typename MeshType>
+std::shared_ptr<Epetra_CrsMatrix> PODGalerkinRungeKuttaODESolver<dim,nspecies,real,n_rk_stages,MeshType>::generate_test_basis(const Epetra_CrsMatrix &/*system_matrix*/, const Epetra_CrsMatrix &pod_basis)
 {
     return std::make_shared<Epetra_CrsMatrix>(pod_basis);
 }
 
-template <int dim, typename real, int n_rk_stages, typename MeshType>
-std::shared_ptr<Epetra_CrsMatrix> PODGalerkinRungeKuttaODESolver<dim,real,n_rk_stages,MeshType>::generate_reduced_lhs(const Epetra_CrsMatrix &system_matrix, const Epetra_CrsMatrix &test_basis)
+template <int dim, int nspecies, typename real, int n_rk_stages, typename MeshType>
+std::shared_ptr<Epetra_CrsMatrix> PODGalerkinRungeKuttaODESolver<dim,nspecies,real,n_rk_stages,MeshType>::generate_reduced_lhs(const Epetra_CrsMatrix &system_matrix, const Epetra_CrsMatrix &test_basis)
 {   
     if (test_basis.RowMap().SameAs(system_matrix.RowMap()) && test_basis.NumGlobalRows() == system_matrix.NumGlobalRows()){
         Epetra_CrsMatrix epetra_reduced_lhs(Epetra_DataAccess::Copy, test_basis.DomainMap(), test_basis.NumGlobalCols());
@@ -180,8 +180,8 @@ std::shared_ptr<Epetra_CrsMatrix> PODGalerkinRungeKuttaODESolver<dim,real,n_rk_s
     return nullptr;
 }
 
-template<int dim, typename real, int n_rk_stages, typename MeshType>
-int PODGalerkinRungeKuttaODESolver<dim,real,n_rk_stages,MeshType>::multiply(Epetra_CrsMatrix &epetra_matrix,
+template<int dim, int nspecies, typename real, int n_rk_stages, typename MeshType>
+int PODGalerkinRungeKuttaODESolver<dim,nspecies,real,n_rk_stages,MeshType>::multiply(Epetra_CrsMatrix &epetra_matrix,
                                                                     dealii::LinearAlgebra::distributed::Vector<double> &input_dealii_vector,
                                                                     dealii::LinearAlgebra::distributed::Vector<double> &output_dealii_vector,
                                                                     const dealii::IndexSet &index_set,
@@ -204,8 +204,8 @@ int PODGalerkinRungeKuttaODESolver<dim,real,n_rk_stages,MeshType>::multiply(Epet
     return -1;
 }
 
-template <int dim, typename real, int n_rk_stages, typename MeshType>
-void PODGalerkinRungeKuttaODESolver<dim,real,n_rk_stages,MeshType>::epetra_to_dealii(Epetra_Vector &epetra_vector,
+template <int dim, int nspecies, typename real, int n_rk_stages, typename MeshType>
+void PODGalerkinRungeKuttaODESolver<dim,nspecies,real,n_rk_stages,MeshType>::epetra_to_dealii(Epetra_Vector &epetra_vector,
                                                                              dealii::LinearAlgebra::distributed::Vector<double> &dealii_vector,
                                                                              const dealii::IndexSet &index_set)
 {
@@ -221,18 +221,25 @@ void PODGalerkinRungeKuttaODESolver<dim,real,n_rk_stages,MeshType>::epetra_to_de
 
 }
 
-template class PODGalerkinRungeKuttaODESolver<PHILIP_DIM, double,1, dealii::Triangulation<PHILIP_DIM> >;
-template class PODGalerkinRungeKuttaODESolver<PHILIP_DIM, double,2, dealii::Triangulation<PHILIP_DIM> >;
-template class PODGalerkinRungeKuttaODESolver<PHILIP_DIM, double,3, dealii::Triangulation<PHILIP_DIM> >;
-template class PODGalerkinRungeKuttaODESolver<PHILIP_DIM, double,4, dealii::Triangulation<PHILIP_DIM> >;
-template class PODGalerkinRungeKuttaODESolver<PHILIP_DIM, double,1, dealii::parallel::shared::Triangulation<PHILIP_DIM> >;
-template class PODGalerkinRungeKuttaODESolver<PHILIP_DIM, double,2, dealii::parallel::shared::Triangulation<PHILIP_DIM> >;
-template class PODGalerkinRungeKuttaODESolver<PHILIP_DIM, double,3, dealii::parallel::shared::Triangulation<PHILIP_DIM> >;
-template class PODGalerkinRungeKuttaODESolver<PHILIP_DIM, double,4, dealii::parallel::shared::Triangulation<PHILIP_DIM> >;
-#if PHILIP_DIM != 1
-    template class PODGalerkinRungeKuttaODESolver<PHILIP_DIM, double,1, dealii::parallel::distributed::Triangulation<PHILIP_DIM> >;
-    template class PODGalerkinRungeKuttaODESolver<PHILIP_DIM, double,2, dealii::parallel::distributed::Triangulation<PHILIP_DIM> >;
-    template class PODGalerkinRungeKuttaODESolver<PHILIP_DIM, double,3, dealii::parallel::distributed::Triangulation<PHILIP_DIM> >;
-    template class PODGalerkinRungeKuttaODESolver<PHILIP_DIM, double,4, dealii::parallel::distributed::Triangulation<PHILIP_DIM> >;
+#if PHILIP_SPECIES==1
+    // Define a sequence of indices representing the range of nstates
+    #define POSSIBLE_NSTATE (1)(2)(3)(4)
+
+    // using default MeshType = Triangulation
+    // 1D: dealii::Triangulation<dim>;
+    // Otherwise: dealii::parallel::distributed::Triangulation<dim>;
+
+    // Define a macro to instantiate with Meshtype = Triangulation or Shared Triangulation for a specific nstate
+    #define INSTANTIATE_TRIA(r, data, nstate) \
+        template class PODGalerkinRungeKuttaODESolver<PHILIP_DIM, PHILIP_SPECIES, double, nstate, dealii::Triangulation<PHILIP_DIM> >; \
+        template class PODGalerkinRungeKuttaODESolver<PHILIP_DIM, PHILIP_SPECIES, double, nstate, dealii::parallel::shared::Triangulation<PHILIP_DIM> >; 
+    BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_TRIA, _, POSSIBLE_NSTATE)
+
+    // Define a macro to instantiate with distributed triangulation for a specific nstate
+    #define INSTANTIATE_DISTRIBUTED(r, data, nstate) \
+        template class PODGalerkinRungeKuttaODESolver<PHILIP_DIM, PHILIP_SPECIES, double, nstate, dealii::parallel::distributed::Triangulation<PHILIP_DIM> >;
+    #if PHILIP_DIM!=1
+    BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_DISTRIBUTED, _, POSSIBLE_NSTATE)
+    #endif
 #endif
 } // PHiLiP::ODE namespace

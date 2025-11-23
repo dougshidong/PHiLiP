@@ -19,19 +19,19 @@
 namespace PHiLiP {
 namespace ProperOrthogonalDecomposition {
 
-template <int dim, int nstate>
-ROMTestLocation<dim, nstate>::ROMTestLocation(const RowVectorXd& parameter, std::unique_ptr<ROMSolution<dim, nstate>> rom_solution)
-        :  TestLocationBase<dim, nstate>(parameter, std::move(rom_solution))
+template <int dim, int nspecies, int nstate>
+ROMTestLocation<dim, nspecies, nstate>::ROMTestLocation(const RowVectorXd& parameter, std::unique_ptr<ROMSolution<dim, nspecies, nstate>> rom_solution)
+        :  TestLocationBase<dim, nspecies, nstate>(parameter, std::move(rom_solution))
 {
 }
 
-template <int dim, int nstate>
-void ROMTestLocation<dim, nstate>::compute_initial_rom_to_final_rom_error(std::shared_ptr<ProperOrthogonalDecomposition::PODBase<dim>> pod_updated){
+template <int dim, int nspecies, int nstate>
+void ROMTestLocation<dim, nspecies, nstate>::compute_initial_rom_to_final_rom_error(std::shared_ptr<ProperOrthogonalDecomposition::PODBase<dim,nspecies>> pod_updated){
 
     this->pcout << "Computing adjoint-based error estimate between initial ROM and updated ROM..." << std::endl;
 
     dealii::ParameterHandler dummy_handler;
-    std::unique_ptr<FlowSolver::FlowSolver<dim,nstate>> flow_solver = FlowSolver::FlowSolverFactory<dim,nstate>::select_flow_case(&this->rom_solution->params, dummy_handler);
+    std::unique_ptr<FlowSolver::FlowSolver<dim,nspecies,nstate>> flow_solver = FlowSolver::FlowSolverFactory<dim,nspecies,nstate>::select_flow_case(&this->rom_solution->params, dummy_handler);
     flow_solver->dg->solution = this->rom_solution->solution;
     const bool compute_dRdW = true;
     flow_solver->dg->assemble_residual(compute_dRdW);
@@ -85,12 +85,12 @@ void ROMTestLocation<dim, nstate>::compute_initial_rom_to_final_rom_error(std::s
     this->pcout << "Parameter: " << this->parameter << ". Error estimate between initial ROM and updated ROM: " << this->initial_rom_to_final_rom_error << std::endl;
 }
 
-#if PHILIP_DIM==1
-        template class ROMTestLocation<PHILIP_DIM, PHILIP_DIM>;
+#if PHILIP_DIM==1 && PHILIP_SPECIES==1
+        template class ROMTestLocation<PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM>;
 #endif
 
-#if PHILIP_DIM!=1
-        template class ROMTestLocation<PHILIP_DIM, PHILIP_DIM+2>;
+#if PHILIP_DIM!=1 && PHILIP_SPECIES==1
+        template class ROMTestLocation<PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2>;
 #endif
 
 }

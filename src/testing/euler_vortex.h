@@ -14,7 +14,7 @@ namespace Tests {
 /// Spiegel, S. C., Huynh, H. T., and DeBonis, J. R.,
 /// “A Survey of the Isentropic Euler Vortex Problem using High-Order Methods,”
 /// 22nd AIAA Computational Fluid Dynamics Conference, American Institute of Aeronautics and Astronautics, 2015.
-template <int dim, typename real>
+template <int dim, int nspecies, typename real>
 class EulerVortexFunction : public dealii::Function<dim,real>
 {
 public:
@@ -24,12 +24,12 @@ public:
      *  by all the other functions
      */
     EulerVortexFunction (
-        const Physics::Euler<dim, dim+2, real> euler_physics,
+        const Physics::Euler<dim, nspecies, dim+2, real> euler_physics,
         const dealii::Point<dim> initial_vortex_center,
         const real vortex_strength,
         const real vortex_stddev_decay);
 
-    const Physics::Euler<dim, dim+2, real> euler_physics; ///< Euler physics.
+    const Physics::Euler<dim, nspecies, dim+2, real> euler_physics; ///< Euler physics.
     const real vortex_characteristic_length; ///< R
     const dealii::Point<dim> initial_vortex_center; ///< x_c, y_c
     const real vortex_strength; ///< beta
@@ -49,7 +49,7 @@ private:
 };
 
 /// Performs grid convergence for various polynomial degrees.
-template <int dim, int nstate>
+template <int dim, int nspecies, int nstate>
 class EulerVortex: public TestsBase
 {
 public:

@@ -7,7 +7,7 @@ namespace PHiLiP {
 namespace Tests {
 
 /// Taylor Green Vortex Energy Check
-template <int dim, int nstate>
+template <int dim, int nspecies, int nstate>
 class TaylorGreenVortexEnergyCheck: public TestsBase
 {
 public:

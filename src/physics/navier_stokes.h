@@ -8,8 +8,8 @@ namespace PHiLiP {
 namespace Physics {
 
 /// Navier-Stokes equations. Derived from Euler for the convective terms, which is derived from PhysicsBase. 
-template <int dim, int nstate, typename real>
-class NavierStokes : public Euler <dim, nstate, real>
+template <int dim, int nspecies, int nstate, typename real>
+class NavierStokes : public Euler <dim, nspecies, nstate, real>
 {
 protected:
     // For overloading the virtual functions defined in PhysicsBase
@@ -19,8 +19,8 @@ protected:
      *  Solution: In order to make the hidden function visible in derived class, 
      *  we need to add the following:
     */
-    using PhysicsBase<dim,nstate,real>::dissipative_flux;
-    using PhysicsBase<dim,nstate,real>::source_term;
+    using PhysicsBase<dim,nspecies,nstate,real>::dissipative_flux;
+    using PhysicsBase<dim,nspecies,nstate,real>::source_term;
 public:
     using thermal_boundary_condition_enum = Parameters::NavierStokesParam::ThermalBoundaryCondition;
     using two_point_num_flux_enum = Parameters::AllParameters::TwoPointNumericalFlux;
@@ -39,7 +39,7 @@ public:
         const double                                              temperature_inf = 273.15,
         const double                                              isothermal_wall_temperature = 1.0,
         const thermal_boundary_condition_enum                     thermal_boundary_condition_type = thermal_boundary_condition_enum::adiabatic,
-        std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function = nullptr,
+        std::shared_ptr< ManufacturedSolutionFunction<dim,real>  > manufactured_solution_function = nullptr,
         const two_point_num_flux_enum                             two_point_num_flux_type = two_point_num_flux_enum::KG);
 
     /// Nondimensionalized viscosity coefficient at infinity.

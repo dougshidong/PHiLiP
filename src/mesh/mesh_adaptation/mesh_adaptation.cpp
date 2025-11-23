@@ -3,19 +3,19 @@
 
 namespace PHiLiP {
 
-template <int dim, typename real, typename MeshType>
-MeshAdaptation<dim,real,MeshType>::MeshAdaptation(std::shared_ptr< DGBase<dim, real, MeshType> > dg_input, const Parameters::MeshAdaptationParam *const mesh_adaptation_param_input)
+template <int dim, int nspecies, typename real, typename MeshType>
+MeshAdaptation<dim,nspecies,real,MeshType>::MeshAdaptation(std::shared_ptr< DGBase<dim, nspecies, real, MeshType> > dg_input, const Parameters::MeshAdaptationParam *const mesh_adaptation_param_input)
     : dg(dg_input)
     , current_mesh_adaptation_cycle(0)
     , mesh_adaptation_param(mesh_adaptation_param_input)
     , pcout(std::cout, dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD)==0)
     {
-        mesh_error = MeshErrorFactory<dim, 5, real, MeshType> :: create_mesh_error(dg);
+        mesh_error = MeshErrorFactory<dim, nspecies, 5, real, MeshType> :: create_mesh_error(dg);
     }
 
 
-template <int dim, typename real, typename MeshType>
-void MeshAdaptation<dim,real,MeshType>::adapt_mesh()
+template <int dim, int nspecies, typename real, typename MeshType>
+void MeshAdaptation<dim,nspecies,real,MeshType>::adapt_mesh()
 {
     [[maybe_unused]] unsigned int expected_size_of_cellwise_errors = dg->triangulation->n_active_cells();
     cellwise_errors = mesh_error->compute_cellwise_errors();
@@ -28,11 +28,11 @@ void MeshAdaptation<dim,real,MeshType>::adapt_mesh()
 }
 
 
-template <int dim, typename real, typename MeshType>
-void MeshAdaptation<dim,real,MeshType>::fixed_fraction_isotropic_refinement_and_coarsening()
+template <int dim, int nspecies, typename real, typename MeshType>
+void MeshAdaptation<dim,nspecies,real,MeshType>::fixed_fraction_isotropic_refinement_and_coarsening()
 {
     dealii::LinearAlgebra::distributed::Vector<real> old_solution(dg->solution);
-    dealii::parallel::distributed::SolutionTransfer<dim, dealii::LinearAlgebra::distributed::Vector<real>, dealii::DoFHandler<dim>> solution_transfer(dg->dof_handler);
+    dealii::parallel::distributed::SolutionTransfer<dim,dealii::LinearAlgebra::distributed::Vector<real>, dealii::DoFHandler<dim>> solution_transfer(dg->dof_handler);
     solution_transfer.prepare_for_coarsening_and_refinement(old_solution);
     dg->high_order_grid->prepare_for_coarsening_and_refinement();
 
@@ -81,13 +81,13 @@ void MeshAdaptation<dim,real,MeshType>::fixed_fraction_isotropic_refinement_and_
     dg->assemble_residual ();
 }
 
-template <int dim, typename real, typename MeshType>
-void MeshAdaptation<dim,real,MeshType>::smoothness_sensor_based_hp_refinement()
+template <int dim, int nspecies, typename real, typename MeshType>
+void MeshAdaptation<dim,nspecies,real,MeshType>::smoothness_sensor_based_hp_refinement()
 {
     const auto mapping = (*(dg->high_order_grid->mapping_fe_field));
     dealii::hp::MappingCollection<dim> mapping_collection(mapping);
     const dealii::UpdateFlags update_flags = dealii::update_values | dealii::update_JxW_values;
-    dealii::hp::FEValues<dim,dim> fe_values_collection_volume (mapping_collection, dg->fe_collection, dg->volume_quadrature_collection, update_flags); ///< FEValues of volume.
+    dealii::hp::FEValues<dim,dim>  fe_values_collection_volume (mapping_collection, dg->fe_collection, dg->volume_quadrature_collection, update_flags); ///< FEValues of volume.
 
     std::vector< real > soln_coeff_high;
     std::vector<dealii::types::global_dof_index> dof_indices;
@@ -131,7 +131,7 @@ void MeshAdaptation<dim,real,MeshType>::smoothness_sensor_based_hp_refinement()
 
         // Projection quadrature.
         const dealii::QGauss<dim> projection_quadrature(degree+5);
-        std::vector< real > soln_coeff_lower = project_function<dim, real>( soln_coeff_high, fe_high, fe_lower, projection_quadrature);
+        std::vector< real > soln_coeff_lower = project_function<dim, nspecies, real>( soln_coeff_high, fe_high, fe_lower, projection_quadrature);
 
         // Quadrature used for solution difference.
         const dealii::Quadrature<dim> &quadrature = fe_values_volume.get_quadrature();
@@ -186,9 +186,9 @@ void MeshAdaptation<dim,real,MeshType>::smoothness_sensor_based_hp_refinement()
 }
 
 
-template class MeshAdaptation<PHILIP_DIM, double, dealii::Triangulation<PHILIP_DIM>>;
-template class MeshAdaptation<PHILIP_DIM, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+template class MeshAdaptation<PHILIP_DIM, PHILIP_SPECIES, double, dealii::Triangulation<PHILIP_DIM>>;
+template class MeshAdaptation<PHILIP_DIM, PHILIP_SPECIES, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
 #if PHILIP_DIM != 1
-template class MeshAdaptation<PHILIP_DIM, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+template class MeshAdaptation<PHILIP_DIM, PHILIP_SPECIES, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
 #endif
 } // namespace PHiLiP

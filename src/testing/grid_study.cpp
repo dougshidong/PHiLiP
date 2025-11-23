@@ -38,15 +38,15 @@
 namespace PHiLiP {
 namespace Tests {
 
-template <int dim, int nstate>
-GridStudy<dim,nstate>::GridStudy(const Parameters::AllParameters *const parameters_input)
+template <int dim, int nspecies, int nstate>
+GridStudy<dim,nspecies,nstate>::GridStudy(const Parameters::AllParameters *const parameters_input)
     :
     TestsBase::TestsBase(parameters_input)
 {}
 
-template <int dim, int nstate>
-void GridStudy<dim,nstate>
-::initialize_perturbed_solution(DGBase<dim,double> &dg, const Physics::PhysicsBase<dim,nstate,double> &physics) const
+template <int dim, int nspecies, int nstate>
+void GridStudy<dim,nspecies,nstate>
+::initialize_perturbed_solution(DGBase<dim,nspecies,double> &dg, const Physics::PhysicsBase<dim,nspecies,nstate,double> &physics) const
 {
     dealii::LinearAlgebra::distributed::Vector<double> solution_no_ghost;
     solution_no_ghost.reinit(dg.locally_owned_dofs, MPI_COMM_WORLD);
@@ -60,9 +60,9 @@ void GridStudy<dim,nstate>
     // }
     dg.solution = solution_no_ghost;
 }
-template <int dim, int nstate>
-double GridStudy<dim,nstate>
-::integrate_solution_over_domain(DGBase<dim,double> &dg) const
+template <int dim, int nspecies, int nstate>
+double GridStudy<dim,nspecies,nstate>
+::integrate_solution_over_domain(DGBase<dim,nspecies,double> &dg) const
 {
     pcout << "Evaluating solution integral..." << std::endl;
     double solution_integral = 0.0;
@@ -113,8 +113,8 @@ double GridStudy<dim,nstate>
     return solution_integral_mpi_sum;
 }
 
-template<int dim, int nstate>
-std::string GridStudy<dim,nstate>::
+template<int dim, int nspecies, int nstate>
+std::string GridStudy<dim,nspecies,nstate>::
 get_convergence_tables_baseline_filename(const Parameters::AllParameters *const param) const
 {    
     // initial base name
@@ -133,8 +133,8 @@ get_convergence_tables_baseline_filename(const Parameters::AllParameters *const 
     return error_filename_baseline;
 }
 
-template<int dim, int nstate>
-void GridStudy<dim,nstate>::
+template<int dim, int nspecies, int nstate>
+void GridStudy<dim,nspecies,nstate>::
 write_convergence_table_to_output_file(
     const std::string error_filename_baseline,
     const dealii::ConvergenceTable convergence_table,
@@ -148,8 +148,8 @@ write_convergence_table_to_output_file(
 }
 
 
-template<int dim, int nstate>
-int GridStudy<dim,nstate>
+template<int dim, int nspecies, int nstate>
+int GridStudy<dim,nspecies,nstate>
 ::run_test () const
 {
     int test_fail = 0;
@@ -168,8 +168,8 @@ int GridStudy<dim,nstate>
 
     const unsigned int n_grids_input       = manu_grid_conv_param.number_of_grids;
 
-    std::shared_ptr< Physics::ModelBase<dim,nstate,double> > model_double = Physics::ModelFactory<dim,nstate,double>::create_Model(&param);
-    std::shared_ptr <Physics::PhysicsBase<dim,nstate,double>> physics_double = Physics::PhysicsFactory<dim, nstate, double>::create_Physics(&param,model_double);
+    std::shared_ptr< Physics::ModelBase<dim,nspecies,nstate,double> > model_double = Physics::ModelFactory<dim,nspecies,nstate,double>::create_Model(&param);
+    std::shared_ptr <Physics::PhysicsBase<dim,nspecies,nstate,double>> physics_double = Physics::PhysicsFactory<dim, nspecies, nstate, double>::create_Physics(&param,model_double);
 
     // Evaluate solution integral on really fine mesh
     double exact_solution_integral;
@@ -198,18 +198,18 @@ int GridStudy<dim,nstate>
         //    p2[d] = 1.0+DX;
         //}
         //const std::vector<unsigned int> repetitions(dim,n_1d_cells[n_grids_input-1]);
-        //dealii::GridGenerator::subdivided_hyper_rectangle<dim,dim>(*grid_super_fine, repetitions, p1, p2);
+        //dealii::GridGenerator::subdivided_hyper_rectangle<dim,nspecies,dim>(*grid_super_fine, repetitions, p1, p2);
 
         //grid_super_fine->clear();
         //const std::vector<unsigned int> n_subdivisions(dim,n_1d_cells[n_grids_input-1]);
-        //PHiLiP::Grids::curved_periodic_sine_grid<dim,Triangulation>(*grid_super_fine, n_subdivisions);
+        //PHiLiP::Grids::curved_periodic_sine_grid<dim,nspecies,Triangulation>(*grid_super_fine, n_subdivisions);
         for (auto cell = grid_super_fine->begin_active(); cell != grid_super_fine->end(); ++cell) {
             for (unsigned int face=0; face<dealii::GeometryInfo<dim>::faces_per_cell; ++face) {
                 if (cell->face(face)->at_boundary()) cell->face(face)->set_boundary_id (1000);
             }
         }
 
-        std::shared_ptr < DGBase<dim, double> > dg_super_fine = DGFactory<dim,double>::create_discontinuous_galerkin(&param, p_end, grid_super_fine);
+        std::shared_ptr < DGBase<dim, nspecies, double> > dg_super_fine = DGFactory<dim,nspecies,double>::create_discontinuous_galerkin(&param, p_end, grid_super_fine);
         dg_super_fine->allocate_system ();
 
         initialize_perturbed_solution(*dg_super_fine, *physics_double);
@@ -269,7 +269,7 @@ int GridStudy<dim,nstate>
             //    p2[d] = 1.0+DX;
             //}
             //const std::vector<unsigned int> repetitions(dim,n_1d_cells[igrid]);
-            //dealii::GridGenerator::subdivided_hyper_rectangle<dim,dim>(*grid, repetitions, p1, p2);
+            //dealii::GridGenerator::subdivided_hyper_rectangle<dim,nspecies,dim>(*grid, repetitions, p1, p2);
 
             for (auto cell = grid->begin_active(); cell != grid->end(); ++cell) {
                 // Set a dummy boundary ID
@@ -285,7 +285,7 @@ int GridStudy<dim,nstate>
 
             //grid->clear();
             //const std::vector<unsigned int> n_subdivisions(dim,n_1d_cells[igrid]);
-            //PHiLiP::Grids::curved_periodic_sine_grid<dim,Triangulation>(*grid, n_subdivisions);
+            //PHiLiP::Grids::curved_periodic_sine_grid<dim,nspecies,Triangulation>(*grid, n_subdivisions);
             //for (auto cell = grid->begin_active(); cell != grid->end(); ++cell) {
             //    for (unsigned int face=0; face<dealii::GeometryInfo<dim>::faces_per_cell; ++face) {
             //        if (cell->face(face)->at_boundary()) cell->face(face)->set_boundary_id (1000);
@@ -364,7 +364,7 @@ int GridStudy<dim,nstate>
             using FadType = Sacado::Fad::DFad<double>;
 
             // Create DG object using the factory
-            std::shared_ptr < DGBase<dim, double> > dg = DGFactory<dim,double>::create_discontinuous_galerkin(&param, poly_degree, grid);
+            std::shared_ptr < DGBase<dim, nspecies, double> > dg = DGFactory<dim,nspecies,double>::create_discontinuous_galerkin(&param, poly_degree, grid);
             dg->allocate_system ();
             //dg->evaluate_inverse_mass_matrices();
             //
@@ -373,7 +373,7 @@ int GridStudy<dim,nstate>
             initialize_perturbed_solution(*(dg), *(physics_double));
 
             // Create ODE solver using the factory and providing the DG object
-            std::shared_ptr<ODE::ODESolverBase<dim, double>> ode_solver = ODE::ODESolverFactory<dim, double>::create_ODESolver(dg);
+            std::shared_ptr<ODE::ODESolverBase<dim, nspecies, double>> ode_solver = ODE::ODESolverFactory<dim, nspecies, double>::create_ODESolver(dg);
 
             const unsigned int n_global_active_cells = grid->n_global_active_cells();
             const unsigned int n_dofs = dg->dof_handler.n_dofs();
@@ -468,10 +468,10 @@ int GridStudy<dim,nstate>
 
                 std::string write_posname = "error-"+std::to_string(igrid)+".pos";
                 std::ofstream outpos(write_posname);
-                GridRefinement::GmshOut<dim,double>::write_pos(grid,estimated_error_per_cell_double,outpos);
+                GridRefinement::GMshOut<dim,double>::write_pos(grid,estimated_error_per_cell_double,outpos);
 
-                std::shared_ptr< GridRefinement::GridRefinementBase<dim,nstate,double> >  gr 
-                    = GridRefinement::GridRefinementFactory<dim,nstate,double>::create_GridRefinement(param.grid_refinement_study_param.grid_refinement_param_vector[0],dg,physics_double);
+                std::shared_ptr< GridRefinement::GridRefinementBase<dim,nspecies,nstate,double> >  gr 
+                    = GridRefinement::GridRefinementFactory<dim,nspecies,nstate,double>::create_GridRefinement(param.grid_refinement_study_param.grid_refinement_param_vector[0],dg,physics_double);
 
                 gr->refine_grid();
 
@@ -479,8 +479,8 @@ int GridStudy<dim,nstate>
                 */
             
                 // Use gr->output_results_vtk(), which includes L2error per cell, instead of dg->output_results_vtk() as done above
-                std::shared_ptr< GridRefinement::GridRefinementBase<dim,nstate,double> >  gr 
-                   = GridRefinement::GridRefinementFactory<dim,nstate,double>::create_GridRefinement(param.grid_refinement_study_param.grid_refinement_param_vector[0],dg,physics_double);
+                std::shared_ptr< GridRefinement::GridRefinementBase<dim,nspecies,nstate,double> >  gr 
+                   = GridRefinement::GridRefinementFactory<dim,nspecies,nstate,double>::create_GridRefinement(param.grid_refinement_study_param.grid_refinement_param_vector[0],dg,physics_double);
                 gr->output_results_vtk(igrid);
             }
             
@@ -635,8 +635,8 @@ int GridStudy<dim,nstate>
     return test_fail;
 }
 
-template <int dim, int nstate>
-dealii::Point<dim> GridStudy<dim,nstate>
+template <int dim, int nspecies, int nstate>
+dealii::Point<dim> GridStudy<dim,nspecies,nstate>
 ::warp (const dealii::Point<dim> &p)
 {
     dealii::Point<dim> q = p;
@@ -646,8 +646,8 @@ dealii::Point<dim> GridStudy<dim,nstate>
     return q;
 }
 
-template <int dim, int nstate>
-void GridStudy<dim,nstate>
+template <int dim, int nspecies, int nstate>
+void GridStudy<dim,nspecies,nstate>
 ::print_mesh_info(const dealii::Triangulation<dim> &triangulation, const std::string &filename) const
 {
     pcout << "Mesh info:" << std::endl
@@ -672,14 +672,13 @@ void GridStudy<dim,nstate>
     }
 }
 
-template class GridStudy <PHILIP_DIM,1>;
-template class GridStudy <PHILIP_DIM,2>;
-template class GridStudy <PHILIP_DIM,3>;
-template class GridStudy <PHILIP_DIM,4>;
-template class GridStudy <PHILIP_DIM,5>;
+#if PHILIP_SPECIES==1
+template class GridStudy <PHILIP_DIM, PHILIP_SPECIES,1>;
+template class GridStudy <PHILIP_DIM, PHILIP_SPECIES,2>;
+template class GridStudy <PHILIP_DIM, PHILIP_SPECIES,3>;
+template class GridStudy <PHILIP_DIM, PHILIP_SPECIES,4>;
+template class GridStudy <PHILIP_DIM, PHILIP_SPECIES,5>;
 //template struct Instantiator<GridStudy,3,5>;
-
-
-
+#endif
 } // Tests namespace
 } // PHiLiP namespace

@@ -7,15 +7,15 @@ namespace PHiLiP {
 
 /// Returns pointer to appropriate mesh error class depending on the input parameters. 
 #if PHILIP_DIM==1 
-template <int dim, int nstate, typename real, typename MeshType = dealii::Triangulation<dim>>
+template <int dim, int nspecies, int nstate, typename real, typename MeshType = dealii::Triangulation<dim>>
 #else
-template <int dim, int nstate, typename real, typename MeshType = dealii::parallel::distributed::Triangulation<dim>>
+template <int dim, int nspecies, int nstate, typename real, typename MeshType = dealii::parallel::distributed::Triangulation<dim>>
 #endif
 class MeshErrorFactory
 {
 public:
     /// Returns pointer of the mesh error's abstract class.
-    static std::unique_ptr<MeshErrorEstimateBase<dim, real, MeshType>> create_mesh_error(std::shared_ptr< DGBase<dim,real,MeshType> > dg);
+    static std::unique_ptr<MeshErrorEstimateBase<dim, nspecies, real, MeshType>> create_mesh_error(std::shared_ptr< DGBase<dim,nspecies,real,MeshType> > dg);
 };
 
 } // namespace PHiLiP

@@ -4,16 +4,16 @@
 
 namespace PHiLiP {
 
-template <typename real, int dim, int n_components>
-LocalSolution<real, dim, n_components>::LocalSolution(const dealii::FESystem<dim, dim> &i_finite_element)
+template <typename real, int dim, int nspecies, int n_components>
+LocalSolution<real, dim, nspecies, n_components>::LocalSolution(const dealii::FESystem<dim, dim> &i_finite_element)
     : finite_element(i_finite_element), n_dofs(i_finite_element.dofs_per_cell) {
     Assert(n_components == finite_element.n_components(),
            dealii::ExcMessage("Number of components must match finite element system"));
     coefficients.resize(finite_element.dofs_per_cell);
 }
 
-template <typename real, int dim, int n_components>
-std::vector<std::array<real, n_components>> LocalSolution<real, dim, n_components>::evaluate_values(
+template <typename real, int dim, int nspecies, int n_components>
+std::vector<std::array<real, n_components>> LocalSolution<real, dim, nspecies, n_components>::evaluate_values(
     const std::vector<dealii::Point<dim>> &unit_points) const {
     const unsigned int n_points = unit_points.size();
     std::vector<std::array<real, n_components>> values(n_points);
@@ -32,9 +32,9 @@ std::vector<std::array<real, n_components>> LocalSolution<real, dim, n_component
     return values;
 }
 
-template <typename real, int dim, int n_components>
+template <typename real, int dim, int nspecies, int n_components>
 std::vector<std::array<dealii::Tensor<1, dim, real>, n_components>>
-LocalSolution<real, dim, n_components>::evaluate_reference_gradients(const std::vector<dealii::Point<dim>> &unit_points) const {
+LocalSolution<real, dim, nspecies, n_components>::evaluate_reference_gradients(const std::vector<dealii::Point<dim>> &unit_points) const {
     const unsigned int n_points = unit_points.size();
     std::vector<std::array<dealii::Tensor<1, dim, real>, n_components>> gradients(unit_points.size());
 
@@ -54,15 +54,17 @@ LocalSolution<real, dim, n_components>::evaluate_reference_gradients(const std::
     return gradients;
 }
 
+#if PHILIP_SPECIES==1
 // Define a sequence of indices representing the range [1, 7]
 #define POSSIBLE_NSTATE (1)(2)(3)(4)(5)(6)(7)
 
 // Define a macro to instantiate MyTemplate for a specific index
 #define INSTANTIATE_DISTRIBUTED(r, data, nstate)                  \
-    template class LocalSolution<double, PHILIP_DIM, nstate>;     \
-    template class LocalSolution<FadType, PHILIP_DIM, nstate>;    \
-    template class LocalSolution<RadType, PHILIP_DIM, nstate>;    \
-    template class LocalSolution<FadFadType, PHILIP_DIM, nstate>; \
-    template class LocalSolution<RadFadType, PHILIP_DIM, nstate>;
+    template class LocalSolution<double, PHILIP_DIM, PHILIP_SPECIES, nstate>;     \
+    template class LocalSolution<FadType, PHILIP_DIM, PHILIP_SPECIES, nstate>;    \
+    template class LocalSolution<RadType, PHILIP_DIM, PHILIP_SPECIES, nstate>;    \
+    template class LocalSolution<FadFadType, PHILIP_DIM, PHILIP_SPECIES, nstate>; \
+    template class LocalSolution<RadFadType, PHILIP_DIM, PHILIP_SPECIES, nstate>;
 BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_DISTRIBUTED, _, POSSIBLE_NSTATE)
+#endif
 }  // namespace PHiLiP

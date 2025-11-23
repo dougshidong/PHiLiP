@@ -30,11 +30,11 @@ namespace GridRefinement {
   *       polynomial distributions, \f$p\f$ and \f$hp\f$ adaptation have not been fully implemented or tested.
   */ 
 #if PHILIP_DIM==1
-template <int dim, int nstate, typename real, typename MeshType = dealii::Triangulation<dim>>
+template <int dim, int nspecies, int nstate, typename real, typename MeshType = dealii::Triangulation<dim>>
 #else
-template <int dim, int nstate, typename real, typename MeshType = dealii::parallel::distributed::Triangulation<dim>>
+template <int dim, int nspecies, int nstate, typename real, typename MeshType = dealii::parallel::distributed::Triangulation<dim>>
 #endif
-class GridRefinement_Continuous : public GridRefinementBase<dim,nstate,real,MeshType>
+class GridRefinement_Continuous : public GridRefinementBase<dim,nspecies,nstate,real,MeshType>
 {
 public:
     // overriding the other constructors to call delegated constructor for this class
@@ -42,38 +42,38 @@ public:
     /// Constructor. Stores the adjoint object, physics and parameters
     GridRefinement_Continuous(
         PHiLiP::Parameters::GridRefinementParam                          gr_param_input,
-        std::shared_ptr< PHiLiP::Adjoint<dim, nstate, real, MeshType> >  adj_input,
-        std::shared_ptr< PHiLiP::Physics::PhysicsBase<dim,nstate,real> > physics_input);
+        std::shared_ptr< PHiLiP::Adjoint<dim, nspecies, nstate, real, MeshType> >  adj_input,
+        std::shared_ptr< PHiLiP::Physics::PhysicsBase<dim,nspecies,nstate,real> > physics_input);
 
     /// Constructor. Storers the dg object, physics, functional and parameters.
     GridRefinement_Continuous(
         PHiLiP::Parameters::GridRefinementParam                            gr_param_input,
-        std::shared_ptr< PHiLiP::DGBase<dim, real, MeshType> >             dg_input,
-        std::shared_ptr< PHiLiP::Physics::PhysicsBase<dim,nstate,real> >   physics_input,
-        std::shared_ptr< PHiLiP::Functional<dim, nstate, real, MeshType> > functional_input);
+        std::shared_ptr< PHiLiP::DGBase<dim, nspecies, real, MeshType> >             dg_input,
+        std::shared_ptr< PHiLiP::Physics::PhysicsBase<dim,nspecies,nstate,real> >   physics_input,
+        std::shared_ptr< PHiLiP::Functional<dim, nspecies, nstate, real, MeshType> > functional_input);
 
     /// Constructor. Stores the dg object, physics and parameters
     GridRefinement_Continuous(
         PHiLiP::Parameters::GridRefinementParam                          gr_param_input,
-        std::shared_ptr< PHiLiP::DGBase<dim, real, MeshType> >           dg_input,
-        std::shared_ptr< PHiLiP::Physics::PhysicsBase<dim,nstate,real> > physics_input);
+        std::shared_ptr< PHiLiP::DGBase<dim, nspecies, real, MeshType> >           dg_input,
+        std::shared_ptr< PHiLiP::Physics::PhysicsBase<dim,nspecies,nstate,real> > physics_input);
 
     /// Constructor. Stores the dg object and parameters
     GridRefinement_Continuous(
         PHiLiP::Parameters::GridRefinementParam                gr_param_input,
         // PHiLiP::Parameters::AllParameters const *const param_input,
-        std::shared_ptr< PHiLiP::DGBase<dim, real, MeshType> > dg_input);
+        std::shared_ptr< PHiLiP::DGBase<dim, nspecies, real, MeshType> > dg_input);
 
 protected:
     /// Delegated constructor which handles the various optional inputs and setup.
     GridRefinement_Continuous(
         PHiLiP::Parameters::GridRefinementParam                            gr_param_input,
-        std::shared_ptr< PHiLiP::Adjoint<dim, nstate, real, MeshType> >    adj_input,
-        std::shared_ptr< PHiLiP::Functional<dim, nstate, real, MeshType> > functional_input,
-        std::shared_ptr< PHiLiP::DGBase<dim, real, MeshType> >             dg_input,
-        std::shared_ptr< PHiLiP::Physics::PhysicsBase<dim,nstate,real> >   physics_input);
+        std::shared_ptr< PHiLiP::Adjoint<dim, nspecies, nstate, real, MeshType> >    adj_input,
+        std::shared_ptr< PHiLiP::Functional<dim, nspecies, nstate, real, MeshType> > functional_input,
+        std::shared_ptr< PHiLiP::DGBase<dim, nspecies, real, MeshType> >             dg_input,
+        std::shared_ptr< PHiLiP::Physics::PhysicsBase<dim,nspecies,nstate,real> >   physics_input);
 
-    using GridRefinementBase<dim,nstate,real,MeshType>::GridRefinementBase;
+    using GridRefinementBase<dim,nspecies,nstate,real,MeshType>::GridRefinementBase;
 
     /// Perform call to the grid refinement object of choice
     /** This will automatically select the proper subclass, error indicator

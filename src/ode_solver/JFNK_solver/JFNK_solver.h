@@ -11,12 +11,12 @@ namespace PHiLiP {
 namespace ODE{
 
 /// Implicit solver for an implicit Euler step using the Jacobian-free Newton-Krylov method
-template <int dim, typename real, typename MeshType>
+template <int dim, int nspecies, typename real, typename MeshType>
 class JFNKSolver{
 public:
 
     /// Constructor
-    explicit JFNKSolver(std::shared_ptr< DGBase<dim, real, MeshType> > dg_input);
+    explicit JFNKSolver(std::shared_ptr< DGBase<dim, nspecies, real, MeshType> > dg_input);
     
     /// Solve an implicit Euler step according to Jacobian-free Newton-Krylov method
     /** See for example Knoll & Keyes 2004 "Jacobian-free Newton-Krylov methods; a survey of approaches and applications
@@ -63,7 +63,7 @@ protected:
     const bool do_output;
 
     /// Jacobian-vector product utilities
-    JacobianVectorProduct<dim,real,MeshType> jacobian_vector_product;
+    JacobianVectorProduct<dim,nspecies,real,MeshType> jacobian_vector_product;
 
     /// Solver control object
     dealii::SolverControl solver_control;

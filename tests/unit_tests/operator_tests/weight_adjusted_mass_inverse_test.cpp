@@ -240,7 +240,7 @@ static dealii::Point<dim> warp (const dealii::Point<dim> &p)
  * End of Curvilinear Grid
  * ***************************/
 
-template <int dim, typename real>
+template <int dim, int nspecies, typename real>
 void compute_inverse_mass_matrix(
     std::shared_ptr < PHiLiP::OPERATOR::OperatorsBase<dim,real,2*dim> > &operators, 
     const std::array<std::vector<real>,PHILIP_DIM> &mapping_support_points, 
@@ -272,7 +272,7 @@ void compute_inverse_mass_matrix(
     mass_inv.invert(local_mass_matrix);
 }
 
-template <int dim, typename real>
+template <int dim, int nspecies, typename real>
 void compute_weighted_inverse_mass_matrix(std::shared_ptr < PHiLiP::OPERATOR::OperatorsBase<dim,real,2*dim> > &operators, 
                     const std::array<std::vector<real>,PHILIP_DIM> &mapping_support_points, const unsigned int n_metric_dofs, 
                     const unsigned int n_quad_pts, const unsigned int n_dofs_cell, 
@@ -311,6 +311,7 @@ int main (int argc, char * argv[])
     using namespace PHiLiP;
     std::cout << std::setprecision(std::numeric_limits<long double>::digits10 + 1) << std::scientific;
     const int dim = PHILIP_DIM;
+    const int nspecies = 1;
     dealii::ParameterHandler parameter_handler;
     PHiLiP::Parameters::AllParameters::declare_parameters (parameter_handler);
     dealii::ConditionalOStream pcout(std::cout, dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD)==0);
@@ -365,8 +366,8 @@ int main (int argc, char * argv[])
             // OPERATOR::OperatorsBase<dim,real> operators(&all_parameters_new, nstate, poly_degree, poly_degree, grid_degree); 
             // OPERATOR::OperatorsBaseState<dim,real,nstate,2*dim> operators(&all_parameters_new, poly_degree, poly_degree);
             // setup DG
-            // std::shared_ptr < PHiLiP::DGBase<dim, double> > dg = PHiLiP::DGFactory<dim,double>::create_discontinuous_galerkin(&all_parameters_new, poly_degree, grid);
-            std::shared_ptr < PHiLiP::DGBase<dim, double> > dg = PHiLiP::DGFactory<dim,double>::create_discontinuous_galerkin(&all_parameters_new, poly_degree, poly_degree, grid_degree, grid);
+            // std::shared_ptr < PHiLiP::DGBase<dim, nspecies, double> > dg = PHiLiP::DGFactory<dim,nspecies,double>::create_discontinuous_galerkin(&all_parameters_new, poly_degree, grid);
+            std::shared_ptr < PHiLiP::DGBase<dim, nspecies, double> > dg = PHiLiP::DGFactory<dim,nspecies,double>::create_discontinuous_galerkin(&all_parameters_new, poly_degree, poly_degree, grid_degree, grid);
             dg->allocate_system ();
         
             dealii::IndexSet locally_owned_dofs;

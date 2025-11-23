@@ -7,77 +7,77 @@
 
 namespace PHiLiP {
 
-template <int dim, int nstate, typename real, typename MeshType>
-DGBaseState<dim, nstate, real, MeshType>::DGBaseState(const Parameters::AllParameters *const parameters_input,
+template <int dim, int nspecies, int nstate, typename real, typename MeshType>
+DGBaseState<dim, nspecies, nstate, real, MeshType>::DGBaseState(const Parameters::AllParameters *const parameters_input,
                                                       const unsigned int degree, const unsigned int max_degree_input,
                                                       const unsigned int grid_degree_input,
                                                       const std::shared_ptr<Triangulation> triangulation_input)
-    : DGBase<dim, real, MeshType>::DGBase(nstate, parameters_input, degree, max_degree_input, grid_degree_input,
+    : DGBase<dim, nspecies, real, MeshType>::DGBase(nstate, parameters_input, degree, max_degree_input, grid_degree_input,
                                           triangulation_input)  // Use DGBase constructor
 {
-    artificial_dissip = ArtificialDissipationFactory<dim, nstate>::create_artificial_dissipation(parameters_input);
+    artificial_dissip = ArtificialDissipationFactory<dim, nspecies, nstate>::create_artificial_dissipation(parameters_input);
 
-    pde_model_double = Physics::ModelFactory<dim, nstate, real>::create_Model(parameters_input);
-    pde_physics_double = Physics::PhysicsFactory<dim, nstate, real>::create_Physics(parameters_input, pde_model_double);
+    pde_model_double = Physics::ModelFactory<dim, nspecies, nstate, real>::create_Model(parameters_input);
+    pde_physics_double = Physics::PhysicsFactory<dim, nspecies, nstate, real>::create_Physics(parameters_input, pde_model_double);
 
-    pde_model_fad = Physics::ModelFactory<dim, nstate, FadType>::create_Model(parameters_input);
-    pde_physics_fad = Physics::PhysicsFactory<dim, nstate, FadType>::create_Physics(parameters_input, pde_model_fad);
+    pde_model_fad = Physics::ModelFactory<dim, nspecies, nstate, FadType>::create_Model(parameters_input);
+    pde_physics_fad = Physics::PhysicsFactory<dim, nspecies, nstate, FadType>::create_Physics(parameters_input, pde_model_fad);
 
-    pde_model_rad = Physics::ModelFactory<dim, nstate, RadType>::create_Model(parameters_input);
-    pde_physics_rad = Physics::PhysicsFactory<dim, nstate, RadType>::create_Physics(parameters_input, pde_model_rad);
+    pde_model_rad = Physics::ModelFactory<dim, nspecies, nstate, RadType>::create_Model(parameters_input);
+    pde_physics_rad = Physics::PhysicsFactory<dim, nspecies, nstate, RadType>::create_Physics(parameters_input, pde_model_rad);
 
-    pde_model_fad_fad = Physics::ModelFactory<dim, nstate, FadFadType>::create_Model(parameters_input);
+    pde_model_fad_fad = Physics::ModelFactory<dim, nspecies, nstate, FadFadType>::create_Model(parameters_input);
     pde_physics_fad_fad =
-        Physics::PhysicsFactory<dim, nstate, FadFadType>::create_Physics(parameters_input, pde_model_fad_fad);
+        Physics::PhysicsFactory<dim, nspecies, nstate, FadFadType>::create_Physics(parameters_input, pde_model_fad_fad);
 
-    pde_model_rad_fad = Physics::ModelFactory<dim, nstate, RadFadType>::create_Model(parameters_input);
+    pde_model_rad_fad = Physics::ModelFactory<dim, nspecies, nstate, RadFadType>::create_Model(parameters_input);
     pde_physics_rad_fad =
-        Physics::PhysicsFactory<dim, nstate, RadFadType>::create_Physics(parameters_input, pde_model_rad_fad);
+        Physics::PhysicsFactory<dim, nspecies, nstate, RadFadType>::create_Physics(parameters_input, pde_model_rad_fad);
 
     reset_numerical_fluxes();
 }
 
-template <int dim, int nstate, typename real, typename MeshType>
-void DGBaseState<dim, nstate, real, MeshType>::reset_numerical_fluxes() {
-    conv_num_flux_double = NumericalFlux::NumericalFluxFactory<dim, nstate, real>::create_convective_numerical_flux(
+template <int dim, int nspecies, int nstate, typename real, typename MeshType>
+void DGBaseState<dim, nspecies, nstate, real, MeshType>::reset_numerical_fluxes() {
+    conv_num_flux_double = NumericalFlux::NumericalFluxFactory<dim, nspecies, nstate, real>::create_convective_numerical_flux(
         all_parameters->conv_num_flux_type, all_parameters->pde_type, all_parameters->model_type, pde_physics_double);
-    diss_num_flux_double = NumericalFlux::NumericalFluxFactory<dim, nstate, real>::create_dissipative_numerical_flux(
+    diss_num_flux_double = NumericalFlux::NumericalFluxFactory<dim, nspecies, nstate, real>::create_dissipative_numerical_flux(
         all_parameters->diss_num_flux_type, pde_physics_double, artificial_dissip);
 
-    conv_num_flux_fad = NumericalFlux::NumericalFluxFactory<dim, nstate, FadType>::create_convective_numerical_flux(
+    conv_num_flux_fad = NumericalFlux::NumericalFluxFactory<dim, nspecies, nstate, FadType>::create_convective_numerical_flux(
         all_parameters->conv_num_flux_type, all_parameters->pde_type, all_parameters->model_type, pde_physics_fad);
-    diss_num_flux_fad = NumericalFlux::NumericalFluxFactory<dim, nstate, FadType>::create_dissipative_numerical_flux(
+    diss_num_flux_fad = NumericalFlux::NumericalFluxFactory<dim, nspecies, nstate, FadType>::create_dissipative_numerical_flux(
         all_parameters->diss_num_flux_type, pde_physics_fad, artificial_dissip);
 
-    conv_num_flux_rad = NumericalFlux::NumericalFluxFactory<dim, nstate, RadType>::create_convective_numerical_flux(
+    conv_num_flux_rad = NumericalFlux::NumericalFluxFactory<dim, nspecies, nstate, RadType>::create_convective_numerical_flux(
         all_parameters->conv_num_flux_type, all_parameters->pde_type, all_parameters->model_type, pde_physics_rad);
-    diss_num_flux_rad = NumericalFlux::NumericalFluxFactory<dim, nstate, RadType>::create_dissipative_numerical_flux(
+    diss_num_flux_rad = NumericalFlux::NumericalFluxFactory<dim, nspecies, nstate, RadType>::create_dissipative_numerical_flux(
         all_parameters->diss_num_flux_type, pde_physics_rad, artificial_dissip);
 
     conv_num_flux_fad_fad =
-        NumericalFlux::NumericalFluxFactory<dim, nstate, FadFadType>::create_convective_numerical_flux(
+        NumericalFlux::NumericalFluxFactory<dim, nspecies, nstate, FadFadType>::create_convective_numerical_flux(
             all_parameters->conv_num_flux_type, all_parameters->pde_type, all_parameters->model_type,
             pde_physics_fad_fad);
     diss_num_flux_fad_fad =
-        NumericalFlux::NumericalFluxFactory<dim, nstate, FadFadType>::create_dissipative_numerical_flux(
+        NumericalFlux::NumericalFluxFactory<dim, nspecies, nstate, FadFadType>::create_dissipative_numerical_flux(
             all_parameters->diss_num_flux_type, pde_physics_fad_fad, artificial_dissip);
 
     conv_num_flux_rad_fad =
-        NumericalFlux::NumericalFluxFactory<dim, nstate, RadFadType>::create_convective_numerical_flux(
+        NumericalFlux::NumericalFluxFactory<dim, nspecies, nstate, RadFadType>::create_convective_numerical_flux(
             all_parameters->conv_num_flux_type, all_parameters->pde_type, all_parameters->model_type,
             pde_physics_rad_fad);
     diss_num_flux_rad_fad =
-        NumericalFlux::NumericalFluxFactory<dim, nstate, RadFadType>::create_dissipative_numerical_flux(
+        NumericalFlux::NumericalFluxFactory<dim, nspecies, nstate, RadFadType>::create_dissipative_numerical_flux(
             all_parameters->diss_num_flux_type, pde_physics_rad_fad, artificial_dissip);
 }
 
-template <int dim, int nstate, typename real, typename MeshType>
-void DGBaseState<dim, nstate, real, MeshType>::set_physics(
-    std::shared_ptr<Physics::PhysicsBase<dim, nstate, real> > pde_physics_double_input,
-    std::shared_ptr<Physics::PhysicsBase<dim, nstate, FadType> > pde_physics_fad_input,
-    std::shared_ptr<Physics::PhysicsBase<dim, nstate, RadType> > pde_physics_rad_input,
-    std::shared_ptr<Physics::PhysicsBase<dim, nstate, FadFadType> > pde_physics_fad_fad_input,
-    std::shared_ptr<Physics::PhysicsBase<dim, nstate, RadFadType> > pde_physics_rad_fad_input) {
+template <int dim, int nspecies, int nstate, typename real, typename MeshType>
+void DGBaseState<dim, nspecies, nstate, real, MeshType>::set_physics(
+    std::shared_ptr<Physics::PhysicsBase<dim, nspecies, nstate, real> > pde_physics_double_input,
+    std::shared_ptr<Physics::PhysicsBase<dim, nspecies, nstate, FadType> > pde_physics_fad_input,
+    std::shared_ptr<Physics::PhysicsBase<dim, nspecies, nstate, RadType> > pde_physics_rad_input,
+    std::shared_ptr<Physics::PhysicsBase<dim, nspecies, nstate, FadFadType> > pde_physics_fad_fad_input,
+    std::shared_ptr<Physics::PhysicsBase<dim, nspecies, nstate, RadFadType> > pde_physics_rad_fad_input) {
     pde_physics_double = pde_physics_double_input;
     pde_physics_fad = pde_physics_fad_input;
     pde_physics_rad = pde_physics_rad_input;
@@ -87,8 +87,8 @@ void DGBaseState<dim, nstate, real, MeshType>::set_physics(
     reset_numerical_fluxes();
 }
 
-template <int dim, int nstate, typename real, typename MeshType>
-void DGBaseState<dim, nstate, real, MeshType>::allocate_model_variables() {
+template <int dim, int nspecies, int nstate, typename real, typename MeshType>
+void DGBaseState<dim, nspecies, nstate, real, MeshType>::allocate_model_variables() {
     // allocate all model variables for each ModelBase object
     // -- double
     pde_model_double->cellwise_poly_degree.reinit(this->triangulation->n_active_cells(), this->mpi_communicator);
@@ -107,8 +107,8 @@ void DGBaseState<dim, nstate, real, MeshType>::allocate_model_variables() {
     pde_model_rad_fad->cellwise_volume.reinit(this->triangulation->n_active_cells(), this->mpi_communicator);
 }
 
-template <int dim, int nstate, typename real, typename MeshType>
-void DGBaseState<dim, nstate, real, MeshType>::update_model_variables() {
+template <int dim, int nspecies, int nstate, typename real, typename MeshType>
+void DGBaseState<dim, nspecies, nstate, real, MeshType>::update_model_variables() {
     // allocate/reinit the model variables
     allocate_model_variables();
 
@@ -178,13 +178,13 @@ void DGBaseState<dim, nstate, real, MeshType>::update_model_variables() {
     pde_model_rad_fad->cellwise_volume.update_ghost_values();
 }
 
-template <int dim, int nstate, typename real, typename MeshType>
-void DGBaseState<dim, nstate, real, MeshType>::set_use_auxiliary_eq() {
+template <int dim, int nspecies, int nstate, typename real, typename MeshType>
+void DGBaseState<dim, nspecies, nstate, real, MeshType>::set_use_auxiliary_eq() {
     this->use_auxiliary_eq = pde_physics_double->has_nonzero_diffusion;
 }
 
-template <int dim, int nstate, typename real, typename MeshType>
-real DGBaseState<dim, nstate, real, MeshType>::evaluate_CFL(std::vector<std::array<real, nstate> > soln_at_q,
+template <int dim, int nspecies, int nstate, typename real, typename MeshType>
+real DGBaseState<dim, nspecies, nstate, real, MeshType>::evaluate_CFL(std::vector<std::array<real, nstate> > soln_at_q,
                                                             const real artificial_dissipation, const real cell_diameter,
                                                             const unsigned int cell_degree) {
     const unsigned int n_pts = soln_at_q.size();
@@ -217,23 +217,20 @@ real DGBaseState<dim, nstate, real, MeshType>::evaluate_CFL(std::vector<std::arr
     return min_cfl;
 }
 
-// Define a sequence of indices representing the range [1, 5]
-#define POSSIBLE_NSTATE (1)(2)(3)(4)(5)(6)
+#if PHILIP_SPECIES==1
+    // Define a sequence of possible nstate in the range [1, 6]
+    #define POSSIBLE_NSTATE (1)(2)(3)(4)(5)(6)
 
-// Define a macro to instantiate MyTemplate for a specific index
-#define INSTANTIATE_DISTRIBUTED(r, data, index) \
-    template class DGBaseState <PHILIP_DIM, index, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+    // Define a macro to instantiate DGBaseState for a specific nstate
+    #define INSTANTIATE_DISTRIBUTED(r, data, nstate) \
+        template class DGBaseState <PHILIP_DIM, PHILIP_SPECIES, nstate, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+    #if PHILIP_DIM!=1
+    BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_DISTRIBUTED, _, POSSIBLE_NSTATE)
+    #endif
 
-#if PHILIP_DIM!=1
-BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_DISTRIBUTED, _, POSSIBLE_NSTATE)
+    #define INSTANTIATE_TRIA(r, data, nstate) \
+        template class DGBaseState <PHILIP_DIM, PHILIP_SPECIES, nstate, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>; \
+        template class DGBaseState <PHILIP_DIM, PHILIP_SPECIES, nstate, double, dealii::Triangulation<PHILIP_DIM>>;
+    BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_TRIA, _, POSSIBLE_NSTATE)
 #endif
-
-#define INSTANTIATE_SHARED(r, data, index) \
-    template class DGBaseState <PHILIP_DIM, index, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
-BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_SHARED, _, POSSIBLE_NSTATE)
-
-#define INSTANTIATE_TRIA(r, data, index) \
-    template class DGBaseState <PHILIP_DIM, index, double, dealii::Triangulation<PHILIP_DIM>>;
-BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_TRIA, _, POSSIBLE_NSTATE)
-
 }  // namespace PHiLiP

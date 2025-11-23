@@ -9,15 +9,15 @@ namespace PHiLiP {
 /*  Contains the functions that need to be templated on the number of state variables.
  */
 #if PHILIP_DIM==1 // dealii::parallel::distributed::Triangulation<dim> does not work for 1D
-template <int dim, int nstate, typename real, typename MeshType = dealii::Triangulation<dim>>
+template <int dim, int nspecies, int nstate, typename real, typename MeshType = dealii::Triangulation<dim>>
 #else
-template <int dim, int nstate, typename real, typename MeshType = dealii::parallel::distributed::Triangulation<dim>>
+template <int dim, int nspecies, int nstate, typename real, typename MeshType = dealii::parallel::distributed::Triangulation<dim>>
 #endif
-class DGStrong: public DGBaseState<dim, nstate, real, MeshType>
+class DGStrong: public DGBaseState<dim, nspecies, nstate, real, MeshType>
 {
 protected:
     /// Alias to base class Triangulation.
-    using Triangulation = typename DGBaseState<dim,nstate,real,MeshType>::Triangulation;
+    using Triangulation = typename DGBaseState<dim,nspecies,nstate,real,MeshType>::Triangulation;
 
 public:
     /// Constructor
@@ -63,8 +63,8 @@ protected:
         OPERATOR::metric_operators<real,dim,2*dim>             &metric_oper,
         OPERATOR::mapping_shape_functions<dim,2*dim,real>      &mapping_basis,
         std::array<std::vector<real>,dim>                      &mapping_support_points,
-        dealii::hp::FEValues<dim,dim>                          &/*fe_values_collection_volume*/,
-        dealii::hp::FEValues<dim,dim>                          &/*fe_values_collection_volume_lagrange*/,
+        dealii::hp::FEValues<dim,dim>                           &/*fe_values_collection_volume*/,
+        dealii::hp::FEValues<dim,dim>                           &/*fe_values_collection_volume_lagrange*/,
         const dealii::FESystem<dim,dim>                        &/*current_fe_ref*/,
         dealii::Vector<real>                                   &local_rhs_int_cell,
         std::vector<dealii::Tensor<1,dim,real>>                &local_auxiliary_RHS,
@@ -368,7 +368,7 @@ protected:
         const dealii::FEValues<dim,dim> &fe_values_lagrange);
     
 
-    using DGBase<dim,real,MeshType>::pcout; ///< Parallel std::cout that only outputs on mpi_rank==0
+    using DGBase<dim,nspecies,real,MeshType>::pcout; ///< Parallel std::cout that only outputs on mpi_rank==0
     
 }; // end of DGStrong class
 

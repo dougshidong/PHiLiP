@@ -244,8 +244,8 @@ dealii::Point<dim> target_deformation(dealii::Point<dim> point) {
 /** Target boundary values.
  *  Simply zero out the default volume contribution.
  */
-template <int dim, int nstate, typename real>
-class BoundaryInverseTarget : public TargetFunctional<dim, nstate, real>
+template <int dim, int nspecies, int nstate, typename real>
+class BoundaryInverseTarget : public TargetFunctional<dim, nspecies, nstate, real>
 {
     using FadType = Sacado::Fad::DFad<real>; ///< Sacado AD type for first derivatives.
     using FadFadType = Sacado::Fad::DFad<FadType>; ///< Sacado AD type that allows 2nd derivatives.
@@ -255,22 +255,22 @@ class BoundaryInverseTarget : public TargetFunctional<dim, nstate, real>
      *  us, but is a typical bug that other people have. This 'using' imports the base class function
      *  to our derived class even though we don't need it.
      */
-    using Functional<dim,nstate,real>::evaluate_volume_integrand;
+    using Functional<dim,nspecies,nstate,real>::evaluate_volume_integrand;
 
 public:
     /// Constructor
     BoundaryInverseTarget(
-        std::shared_ptr<DGBase<dim,real>> dg_input,
+        std::shared_ptr<DGBase<dim,nspecies,real>> dg_input,
   const dealii::LinearAlgebra::distributed::Vector<real> &target_solution,
         const bool uses_solution_values = true,
         const bool uses_solution_gradient = true)
- : TargetFunctional<dim,nstate,real>(dg_input, target_solution, uses_solution_values, uses_solution_gradient)
+ : TargetFunctional<dim,nspecies,nstate,real>(dg_input, target_solution, uses_solution_values, uses_solution_gradient)
  {}
 
     /// Zero out the default inverse target volume functional.
  template <typename real2>
  real2 evaluate_volume_integrand(
-  const PHiLiP::Physics::PhysicsBase<dim,nstate,real2> &/*physics*/,
+  const PHiLiP::Physics::PhysicsBase<dim,nspecies,nstate,real2> &/*physics*/,
   const dealii::Point<dim,real2> &/*phys_coord*/,
   const std::array<real2,nstate> &,//soln_at_q,
         const std::array<real,nstate> &,//target_soln_at_q,
@@ -284,7 +284,7 @@ public:
 
  /// non-template functions to override the template classes
  real evaluate_volume_integrand(
-  const PHiLiP::Physics::PhysicsBase<dim,nstate,real> &physics,
+  const PHiLiP::Physics::PhysicsBase<dim,nspecies,nstate,real> &physics,
   const dealii::Point<dim,real> &phys_coord,
   const std::array<real,nstate> &soln_at_q,
         const std::array<real,nstate> &target_soln_at_q,
@@ -295,7 +295,7 @@ public:
  }
  /// non-template functions to override the template classes
  FadFadType evaluate_volume_integrand(
-  const PHiLiP::Physics::PhysicsBase<dim,nstate,FadFadType> &physics,
+  const PHiLiP::Physics::PhysicsBase<dim,nspecies,nstate,FadFadType> &physics,
   const dealii::Point<dim,FadFadType> &phys_coord,
   const std::array<FadFadType,nstate> &soln_at_q,
         const std::array<real,nstate> &target_soln_at_q,
@@ -306,14 +306,14 @@ public:
  }
 };
 
-template <int dim, int nstate>
-OptimizationInverseManufactured<dim,nstate>::OptimizationInverseManufactured(const Parameters::AllParameters *const parameters_input)
+template <int dim, int nspecies, int nstate>
+OptimizationInverseManufactured<dim,nspecies,nstate>::OptimizationInverseManufactured(const Parameters::AllParameters *const parameters_input)
     :
     TestsBase::TestsBase(parameters_input)
 {}
 
-template <int dim, int nstate>
-void initialize_perturbed_solution(PHiLiP::DGBase<dim,double> &dg, const PHiLiP::Physics::PhysicsBase<dim,nstate,double> &physics)
+template <int dim, int nspecies, int nstate>
+void initialize_perturbed_solution(PHiLiP::DGBase<dim,nspecies,double> &dg, const PHiLiP::Physics::PhysicsBase<dim,nspecies,nstate,double> &physics)
 {
     dealii::LinearAlgebra::distributed::Vector<double> solution_no_ghost;
     solution_no_ghost.reinit(dg.locally_owned_dofs, MPI_COMM_WORLD);
@@ -321,8 +321,8 @@ void initialize_perturbed_solution(PHiLiP::DGBase<dim,double> &dg, const PHiLiP:
     dg.solution = solution_no_ghost;
 }
 
-template<int dim, int nstate>
-int OptimizationInverseManufactured<dim,nstate>
+template<int dim, int nspecies, int nstate>
+int OptimizationInverseManufactured<dim,nspecies,nstate>
 ::run_test () const
 {
  const double amplitude = AMPLITUDE_OPT;
@@ -360,7 +360,7 @@ int OptimizationInverseManufactured<dim,nstate>
  }
 
  // Create DG from which we'll modify the HighOrderGrid
- std::shared_ptr < PHiLiP::DGBase<dim, double> > dg = PHiLiP::DGFactory<dim,double>::create_discontinuous_galerkin(all_parameters, poly_degree, grid);
+ std::shared_ptr < PHiLiP::DGBase<dim, nspecies, double> > dg = PHiLiP::DGFactory<dim,nspecies,double>::create_discontinuous_galerkin(all_parameters, poly_degree, grid);
     dg->allocate_system ();
 
  std::shared_ptr<HighOrderGrid<dim,double>> high_order_grid = dg->high_order_grid;
@@ -437,11 +437,11 @@ int OptimizationInverseManufactured<dim,nstate>
     //high_order_grid->update_surface_nodes();
 
  // Get discrete solution on this target grid
- std::shared_ptr <PHiLiP::Physics::PhysicsBase<dim,nstate,double>> physics_double = PHiLiP::Physics::PhysicsFactory<dim, nstate, double>::create_Physics(all_parameters);
+ std::shared_ptr <PHiLiP::Physics::PhysicsBase<dim,nspecies,nstate,double>> physics_double = PHiLiP::Physics::PhysicsFactory<dim, nspecies, nstate, double>::create_Physics(all_parameters);
  initialize_perturbed_solution(*dg, *physics_double);
  dg->output_results_vtk(999);
  high_order_grid->output_results_vtk(high_order_grid->nth_refinement++);
- std::shared_ptr<ODE::ODESolverBase<dim, double>> ode_solver = ODE::ODESolverFactory<dim, double>::create_ODESolver(dg);
+ std::shared_ptr<ODE::ODESolverBase<dim, nspecies, double>> ode_solver = ODE::ODESolverFactory<dim, nspecies, double>::create_ODESolver(dg);
  ode_solver->steady_state();
 
  // Save target solution and volume_nodes
@@ -507,7 +507,7 @@ int OptimizationInverseManufactured<dim,nstate>
  error_vector -= target_solution;
  const double l2_vector_error = error_vector.l2_norm();
 
- BoundaryInverseTarget<dim,nstate,double> inverse_target_functional(dg, target_solution, true, false);
+ BoundaryInverseTarget<dim,nspecies,nstate,double> inverse_target_functional(dg, target_solution, true, false);
  bool compute_dIdW = false, compute_dIdX = false, compute_d2I = true;
     const double current_l2_error = inverse_target_functional.evaluate_functional(compute_dIdW, compute_dIdX, compute_d2I);
  pcout << "Vector l2_norm of the coefficients: " << l2_vector_error << std::endl;
@@ -1082,12 +1082,13 @@ int OptimizationInverseManufactured<dim,nstate>
     return fail_bool;
 }
 
-template class OptimizationInverseManufactured <PHILIP_DIM,1>;
-template class OptimizationInverseManufactured <PHILIP_DIM,2>;
-template class OptimizationInverseManufactured <PHILIP_DIM,3>;
-template class OptimizationInverseManufactured <PHILIP_DIM,4>;
-template class OptimizationInverseManufactured <PHILIP_DIM,5>;
-
+#if PHILIP_SPECIES==1
+template class OptimizationInverseManufactured <PHILIP_DIM, PHILIP_SPECIES,1>;
+template class OptimizationInverseManufactured <PHILIP_DIM, PHILIP_SPECIES,2>;
+template class OptimizationInverseManufactured <PHILIP_DIM, PHILIP_SPECIES,3>;
+template class OptimizationInverseManufactured <PHILIP_DIM, PHILIP_SPECIES,4>;
+template class OptimizationInverseManufactured <PHILIP_DIM, PHILIP_SPECIES,5>;
+#endif
 } // Tests namespace
 } // PHiLiP namespace
 

@@ -4,8 +4,8 @@
 namespace PHiLiP{
 namespace ODE{
 
-template <int dim, typename real, typename MeshType>
-JFNKSolver<dim,real,MeshType>::JFNKSolver(std::shared_ptr< DGBase<dim, real, MeshType> > dg_input)
+template <int dim, int nspecies, typename real, typename MeshType>
+JFNKSolver<dim,nspecies,real,MeshType>::JFNKSolver(std::shared_ptr< DGBase<dim, nspecies, real, MeshType> > dg_input)
     : pcout(std::cout, dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD)==0)
     , all_parameters(dg_input->all_parameters)
     , linear_param(all_parameters->linear_solver_param) 
@@ -25,8 +25,8 @@ JFNKSolver<dim,real,MeshType>::JFNKSolver(std::shared_ptr< DGBase<dim, real, Mes
             dealii::SolverGMRES<dealii::LinearAlgebra::distributed::Vector<double>>::AdditionalData(max_num_temp_vectors))
 {}
 
-template <int dim, typename real, typename MeshType>
-void JFNKSolver<dim,real,MeshType>::solve (real dt,
+template <int dim, int nspecies, typename real, typename MeshType>
+void JFNKSolver<dim,nspecies,real,MeshType>::solve (real dt,
         dealii::LinearAlgebra::distributed::Vector<double> &previous_step_solution)
 { 
     double update_norm = 1.0;
@@ -57,12 +57,12 @@ void JFNKSolver<dim,real,MeshType>::solve (real dt,
 
 }
 
-template class JFNKSolver<PHILIP_DIM, double, dealii::Triangulation<PHILIP_DIM>>;
-template class JFNKSolver<PHILIP_DIM, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
-#if PHILIP_DIM != 1
-template class JFNKSolver<PHILIP_DIM, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+#if PHILIP_SPECIES==1
+    template class JFNKSolver<PHILIP_DIM, PHILIP_SPECIES, double, dealii::Triangulation<PHILIP_DIM>>;
+    template class JFNKSolver<PHILIP_DIM, PHILIP_SPECIES, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+    #if PHILIP_DIM != 1
+    template class JFNKSolver<PHILIP_DIM, PHILIP_SPECIES, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+    #endif
 #endif
-
-
 }
 }

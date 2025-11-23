@@ -18,14 +18,14 @@ namespace GridRefinement {
   * ($hp$-refinement).
   */ 
 #if PHILIP_DIM==1
-template <int dim, int nstate, typename real, typename MeshType = dealii::Triangulation<dim>>
+template <int dim, int nspecies, int nstate, typename real, typename MeshType = dealii::Triangulation<dim>>
 #else
-template <int dim, int nstate, typename real, typename MeshType = dealii::parallel::distributed::Triangulation<dim>>
+template <int dim, int nspecies, int nstate, typename real, typename MeshType = dealii::parallel::distributed::Triangulation<dim>>
 #endif
-class GridRefinement_Uniform : public GridRefinementBase<dim,nstate,real,MeshType>
+class GridRefinement_Uniform : public GridRefinementBase<dim,nspecies,nstate,real,MeshType>
 {
 public:
-    using GridRefinementBase<dim,nstate,real,MeshType>::GridRefinementBase;
+    using GridRefinementBase<dim,nspecies,nstate,real,MeshType>::GridRefinementBase;
 
     /// Perform call to the grid refinement object of choice
     /** This will automatically select the proper subclass, error indicator

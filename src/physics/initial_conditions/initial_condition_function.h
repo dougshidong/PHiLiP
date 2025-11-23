@@ -10,7 +10,7 @@
 namespace PHiLiP {
 
 /// Initial condition function used to initialize a particular flow setup/case
-template <int dim, int nstate, typename real>
+template <int dim, int nspecies, int nstate, typename real>
 class InitialConditionFunction : public dealii::Function<dim,real>
 {
 protected:
@@ -26,8 +26,8 @@ public:
 };
 
 /// Function used to evaluate farfield conservative solution
-template <int dim, int nstate, typename real>
-class FreeStreamInitialConditions : public InitialConditionFunction<dim,nstate,real>
+template <int dim, int nspecies, int nstate, typename real>
+class FreeStreamInitialConditions : public InitialConditionFunction<dim,nspecies,nstate,real>
 {
 protected:
     using dealii::Function<dim,real>::value; ///< dealii::Function we are templating on
@@ -39,8 +39,8 @@ public:
     /// Constructor.
     /** Evaluates the primary farfield solution and converts it into the store farfield_conservative solution
      */
-    explicit FreeStreamInitialConditions (const Physics::Euler<dim,nstate,double> euler_physics)
-            : InitialConditionFunction<dim,nstate,real>()
+    explicit FreeStreamInitialConditions (const Physics::Euler<dim,nspecies,nstate,double> euler_physics)
+            : InitialConditionFunction<dim,nspecies,nstate,real>()
     {
         //const double density_bc = 2.33333*euler_physics.density_inf;
         const double density_bc = euler_physics.density_inf;
@@ -60,8 +60,8 @@ public:
 };
 
 /// Initial Condition Function: Euler Equations (primitive values)
-template <int dim, int nstate, typename real>
-class InitialConditionFunction_EulerBase : public InitialConditionFunction<dim, nstate, real>
+template <int dim, int nspecies, int nstate, typename real>
+class InitialConditionFunction_EulerBase : public InitialConditionFunction<dim, nspecies, nstate, real>
 {
 protected:
     using dealii::Function<dim, real>::value; ///< dealii::Function we are templating on
@@ -83,12 +83,12 @@ protected:
 
 private:
     // Euler physics pointer. Used to convert primitive to conservative.
-    std::shared_ptr < Physics::Euler<dim, nstate, double > > euler_physics;
+    std::shared_ptr < Physics::Euler<dim, nspecies, nstate, double > > euler_physics;
 };
 
 /// Initial Condition Function: Taylor Green Vortex (uniform density)
-template <int dim, int nstate, typename real>
-class InitialConditionFunction_TaylorGreenVortex : public InitialConditionFunction_EulerBase<dim,nstate,real>
+template <int dim, int nspecies, int nstate, typename real>
+class InitialConditionFunction_TaylorGreenVortex : public InitialConditionFunction_EulerBase<dim,nspecies,nstate,real>
 {
 protected:
     using dealii::Function<dim,real>::value; ///< dealii::Function we are templating on
@@ -118,9 +118,9 @@ protected:
 };
 
 /// Initial Condition Function: Taylor Green Vortex (isothermal density)
-template <int dim, int nstate, typename real>
+template <int dim, int nspecies, int nstate, typename real>
 class InitialConditionFunction_TaylorGreenVortex_Isothermal
-    : public InitialConditionFunction_TaylorGreenVortex<dim,nstate,real>
+    : public InitialConditionFunction_TaylorGreenVortex<dim,nspecies,nstate,real>
 {
 public:
     /// Constructor for TaylorGreenVortex_InitialCondition with isothermal density
@@ -142,8 +142,8 @@ protected:
 };
 
 /// Initial Condition Function: 1D Burgers Rewienski
-template <int dim, int nstate, typename real>
-class InitialConditionFunction_BurgersRewienski: public InitialConditionFunction<dim,nstate,real>
+template <int dim, int nspecies, int nstate, typename real>
+class InitialConditionFunction_BurgersRewienski: public InitialConditionFunction<dim,nspecies,nstate,real>
 {
 protected:
     using dealii::Function<dim,real>::value; ///< dealii::Function we are templating on
@@ -158,8 +158,8 @@ public:
 };
 
 /// Initial Condition Function: 1D Burgers Viscous
-template <int dim, int nstate, typename real>
-class InitialConditionFunction_BurgersViscous: public InitialConditionFunction<dim,nstate,real>
+template <int dim, int nspecies, int nstate, typename real>
+class InitialConditionFunction_BurgersViscous: public InitialConditionFunction<dim,nspecies,nstate,real>
 {
 protected:
     using dealii::Function<dim,real>::value; ///< dealii::Function we are templating on
@@ -174,8 +174,8 @@ public:
 };
 
 /// Initial Condition Function: 1D Burgers Inviscid
-template <int dim, int nstate, typename real>
-class InitialConditionFunction_BurgersInviscid: public InitialConditionFunction<dim,nstate,real>
+template <int dim, int nspecies, int nstate, typename real>
+class InitialConditionFunction_BurgersInviscid: public InitialConditionFunction<dim,nspecies,nstate,real>
 {
 protected:
     using dealii::Function<dim,real>::value; ///< dealii::Function we are templating on
@@ -190,9 +190,9 @@ public:
 };
 
 /// Initial Condition Function: 1D Burgers Inviscid Energy
-template <int dim, int nstate, typename real>
+template <int dim, int nspecies, int nstate, typename real>
 class InitialConditionFunction_BurgersInviscidEnergy
-        : public InitialConditionFunction<dim,nstate,real>
+        : public InitialConditionFunction<dim,nspecies,nstate,real>
 {
 protected:
     using dealii::Function<dim,real>::value; ///< dealii::Function we are templating on
@@ -207,9 +207,9 @@ public:
 };
 
 /// Initial Condition Function: 1D Burgers Inviscid
-template <int dim, int nstate, typename real>
+template <int dim, int nspecies, int nstate, typename real>
 class InitialConditionFunction_Advection
-        : public InitialConditionFunction<dim,nstate,real>
+        : public InitialConditionFunction<dim,nspecies,nstate,real>
 {
 protected:
     using dealii::Function<dim,real>::value; ///< dealii::Function we are templating on
@@ -224,9 +224,9 @@ public:
 };
 
 /// Initial Condition Function: Advection Energy
-template <int dim, int nstate, typename real>
+template <int dim, int nspecies, int nstate, typename real>
 class InitialConditionFunction_AdvectionEnergy
-        : public InitialConditionFunction<dim,nstate,real>
+        : public InitialConditionFunction<dim,nspecies,nstate,real>
 {
 protected:
     using dealii::Function<dim,real>::value; ///< dealii::Function we are templating on
@@ -241,9 +241,9 @@ public:
 };
 
 /// Initial Condition Function: Convection Diffusion Orders of Accuracy
-template <int dim, int nstate, typename real>
+template <int dim, int nspecies, int nstate, typename real>
 class InitialConditionFunction_ConvDiff
-        : public InitialConditionFunction<dim,nstate,real>
+        : public InitialConditionFunction<dim,nspecies,nstate,real>
 {
 protected:
     using dealii::Function<dim,real>::value; ///< dealii::Function we are templating on
@@ -258,9 +258,9 @@ public:
 };
 
 /// Initial Condition Function: Convection Diffusion Energy
-template <int dim, int nstate, typename real>
+template <int dim, int nspecies, int nstate, typename real>
 class InitialConditionFunction_ConvDiffEnergy
-        : public InitialConditionFunction<dim,nstate,real>
+        : public InitialConditionFunction<dim,nspecies,nstate,real>
 {
 protected:
     using dealii::Function<dim,real>::value; ///< dealii::Function we are templating on
@@ -275,9 +275,9 @@ public:
 };
 
 /// Initial Condition Function: 1D Sine Function; used for temporal convergence
-template <int dim, int nstate, typename real>
+template <int dim, int nspecies, int nstate, typename real>
 class InitialConditionFunction_1DSine
-        : public InitialConditionFunction<dim,nstate,real>
+        : public InitialConditionFunction<dim,nspecies,nstate,real>
 {
 protected:
     using dealii::Function<dim,real>::value; ///< dealii::Function we are templating on
@@ -291,9 +291,9 @@ public:
 };
 
 /// Initial Condition Function: Isentropic vortex
-template <int dim, int nstate, typename real>
+template <int dim, int nspecies, int nstate, typename real>
 class InitialConditionFunction_IsentropicVortex
-        : public InitialConditionFunction<dim,nstate,real>
+        : public InitialConditionFunction<dim,nspecies,nstate,real>
 {
 protected:
     using dealii::Function<dim,real>::value; ///< dealii::Function we are templating on
@@ -315,7 +315,7 @@ public:
 protected:
 
     // Euler physics pointer. Used to convert primitive to conservative.
-    std::shared_ptr < Physics::Euler<dim, nstate, double > > euler_physics;
+    std::shared_ptr < Physics::Euler<dim, nspecies, nstate, double > > euler_physics;
 
 };
 
@@ -327,8 +327,8 @@ protected:
  *      See github.com/trixi-framework/paper-2022-robustness-entropy-projection
  *      for initial condition which is implemented herein
  */
-template <int dim, int nstate, typename real>
-class InitialConditionFunction_KHI : public InitialConditionFunction<dim,nstate,real>
+template <int dim, int nspecies, int nstate, typename real>
+class InitialConditionFunction_KHI : public InitialConditionFunction<dim,nspecies,nstate,real>
 {
 protected:
     using dealii::Function<dim,real>::value; ///< dealii::Function we are templating on
@@ -347,7 +347,7 @@ protected:
     const real atwood_number;
 
     // Euler physics pointer. Used to convert primitive to conservative.
-    std::shared_ptr < Physics::Euler<dim, nstate, double > > euler_physics;
+    std::shared_ptr < Physics::Euler<dim, nspecies, nstate, double > > euler_physics;
 
 };
 
@@ -356,8 +356,8 @@ protected:
 *   Galerkin methods with suitable quadrature rules for hyperbolic 
 *   conservation laws., 2017, Pg. 25
 */
-template <int dim, int nstate, typename real>
-class InitialConditionFunction_SodShockTube: public InitialConditionFunction_EulerBase<dim,nstate,real>
+template <int dim, int nspecies, int nstate, typename real>
+class InitialConditionFunction_SodShockTube: public InitialConditionFunction_EulerBase<dim,nspecies,nstate,real>
 {
 protected:
     /// Value of initial condition expressed in terms of primitive variables
@@ -376,8 +376,8 @@ public:
 *   discontinuous Galerkin schemes for compressible Euler
 *   equations on rectangular meshes, 2010 Pg. 14
 */
-template <int dim, int nstate, typename real>
-class InitialConditionFunction_LeblancShockTube : public InitialConditionFunction_EulerBase<dim, nstate, real>
+template <int dim, int nspecies, int nstate, typename real>
+class InitialConditionFunction_LeblancShockTube : public InitialConditionFunction_EulerBase<dim, nspecies, nstate, real>
 {
 protected:
     /// Value of initial condition expressed in terms of primitive variables
@@ -395,8 +395,8 @@ public:
 *   discontinuous Galerkin schemes for compressible Euler 
 *   equations on rectangular meshes, 2010 Pg. 10
 */
-template <int dim, int nstate, typename real>
-class InitialConditionFunction_LowDensity: public InitialConditionFunction_EulerBase<dim,nstate,real>
+template <int dim, int nspecies, int nstate, typename real>
+class InitialConditionFunction_LowDensity: public InitialConditionFunction_EulerBase<dim,nspecies,nstate,real>
 {
 protected:
     /// Value of initial condition expressed in terms of primitive variables
@@ -414,8 +414,8 @@ public:
 *   for numerical simulations of compressible turbulence with 
 *   shock waves, 2010 Pg. 7
 */
-template <int dim, int nstate, typename real>
-class InitialConditionFunction_ShuOsherProblem : public InitialConditionFunction_EulerBase<dim, nstate, real>
+template <int dim, int nspecies, int nstate, typename real>
+class InitialConditionFunction_ShuOsherProblem : public InitialConditionFunction_EulerBase<dim, nspecies, nstate, real>
 {
 protected:
     /// Value of initial condition expressed in terms of primitive variables
@@ -433,8 +433,8 @@ public:
  *  and positivity-preserving Lax-Wendroff discontinuous Galerkin 
  *  methods for hyperbolic conservation laws, 2022 pg. 29
 */
-template <int dim, int nstate, typename real>
-class InitialConditionFunction_DoubleMachReflection : public InitialConditionFunction_EulerBase<dim, nstate, real>
+template <int dim, int nspecies, int nstate, typename real>
+class InitialConditionFunction_DoubleMachReflection : public InitialConditionFunction_EulerBase<dim, nspecies, nstate, real>
 {
 protected:
     /// Value of initial condition expressed in terms of primitive variables
@@ -452,8 +452,8 @@ public:
  *  and positivity-preserving Lax-Wendroff discontinuous Galerkin 
  *  methods for hyperbolic conservation laws, 2022 pg. 30
 */
-template <int dim, int nstate, typename real>
-class InitialConditionFunction_ShockDiffraction : public InitialConditionFunction_EulerBase<dim, nstate, real>
+template <int dim, int nspecies, int nstate, typename real>
+class InitialConditionFunction_ShockDiffraction : public InitialConditionFunction_EulerBase<dim, nspecies, nstate, real>
 {
 protected:
     /// Value of initial condition expressed in terms of primitive variables
@@ -472,8 +472,8 @@ public:
  *  and positivity-preserving Lax-Wendroff discontinuous Galerkin 
  *  methods for hyperbolic conservation laws, 2022 pg. 30
 */
-template <int dim, int nstate, typename real>
-class InitialConditionFunction_AstrophysicalJet : public InitialConditionFunction_EulerBase<dim, nstate, real>
+template <int dim, int nspecies, int nstate, typename real>
+class InitialConditionFunction_AstrophysicalJet : public InitialConditionFunction_EulerBase<dim, nspecies, nstate, real>
 {
 protected:
     /// Value of initial condition expressed in terms of primitive variables
@@ -492,8 +492,8 @@ public:
  *  and positivity-preserving Lax-Wendroff discontinuous Galerkin 
  *  methods for hyperbolic conservation laws, 2022 pg. 30
 */
-template <int dim, int nstate, typename real>
-class InitialConditionFunction_SVSW : public InitialConditionFunction_EulerBase<dim, nstate, real>
+template <int dim, int nspecies, int nstate, typename real>
+class InitialConditionFunction_SVSW : public InitialConditionFunction_EulerBase<dim, nspecies, nstate, real>
 {
 protected:
     /// Value of initial condition expressed in terms of primitive variables
@@ -508,8 +508,8 @@ public:
 
 
 /// Initial condition 0.
-template <int dim, int nstate, typename real>
-class InitialConditionFunction_Zero : public InitialConditionFunction<dim,nstate,real>
+template <int dim, int nspecies, int nstate, typename real>
+class InitialConditionFunction_Zero : public InitialConditionFunction<dim,nspecies,nstate,real>
 {
 protected:
     using dealii::Function<dim,real>::value; ///< dealii::Function we are templating on
@@ -523,7 +523,7 @@ public:
 };
 
 /// Initial condition function factory
-template <int dim, int nstate, typename real>
+template <int dim, int nspecies, int nstate, typename real>
 class InitialConditionFactory
 {
 protected:    
@@ -534,7 +534,7 @@ protected:
 
 public:
     /// Construct InitialConditionFunction object from global parameter file
-    static std::shared_ptr<InitialConditionFunction<dim,nstate,real>>
+    static std::shared_ptr<InitialConditionFunction<dim,nspecies,nstate,real>>
     create_InitialConditionFunction(
         Parameters::AllParameters const *const param);
 };

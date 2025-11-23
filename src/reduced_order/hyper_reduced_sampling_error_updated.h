@@ -28,8 +28,8 @@ Details on the ROM points/errors can be found in sections 5 and 6
 Derivation of the new error indicator will likely be detailed in Calista Biondic's thesis
 */
 
-template <int dim, int nstate>
-class HyperreducedSamplingErrorUpdated: public AdaptiveSamplingBase<dim,nstate>
+template <int dim, int nspecies, int nstate>
+class HyperreducedSamplingErrorUpdated: public AdaptiveSamplingBase<dim,nspecies,nstate>
 {
 public:
     /// Constructor
@@ -58,7 +58,7 @@ public:
     void updateNearestExistingROMs(const RowVectorXd& parameter, Epetra_Vector weights) const;
 
     /// Solve reduced-order solution
-    std::unique_ptr<ProperOrthogonalDecomposition::ROMSolution<dim,nstate>> solveSnapshotROM(const RowVectorXd& parameter, Epetra_Vector weights) const;
+    std::unique_ptr<ProperOrthogonalDecomposition::ROMSolution<dim,nspecies,nstate>> solveSnapshotROM(const RowVectorXd& parameter, Epetra_Vector weights) const;
 
     /// Copy all elements in matrix A to all cores
     Epetra_Vector allocateVectorToSingleCore(const Epetra_Vector &b) const;
@@ -67,7 +67,7 @@ public:
     void outputIterationData(std::string iteration) const override;
 
     /// Vector of parameter-HROMTestLocation pairs
-    mutable std::vector<std::unique_ptr<ProperOrthogonalDecomposition::HROMTestLocation<dim,nstate>>> hrom_locations;
+    mutable std::vector<std::unique_ptr<ProperOrthogonalDecomposition::HROMTestLocation<dim,nspecies,nstate>>> hrom_locations;
 
     /// Ptr vector of ECSW Weights
     mutable std::shared_ptr<Epetra_Vector> ptr_weights;

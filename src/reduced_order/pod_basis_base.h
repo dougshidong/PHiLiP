@@ -12,7 +12,7 @@ using Eigen::MatrixXd;
 using Eigen::VectorXd;
 
 /// Interface for POD
-template <int dim>
+template <int dim, int nspecies>
 class PODBase
 {
 public:

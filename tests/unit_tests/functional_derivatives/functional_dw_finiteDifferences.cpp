@@ -28,24 +28,24 @@ const double TOLERANCE = 1e-5;
     using Triangulation = dealii::parallel::distributed::Triangulation<PHILIP_DIM>;
 #endif
 
-template <int dim, int nstate, typename real>
-class L2_Norm_Functional : public PHiLiP::Functional<dim, nstate, real>
+template <int dim, int nspecies, int nstate, typename real>
+class L2_Norm_Functional : public PHiLiP::Functional<dim, nspecies, nstate, real>
 {
     using FadType = Sacado::Fad::DFad<real>; ///< Sacado AD type for first derivatives.
     using FadFadType = Sacado::Fad::DFad<FadType>; ///< Sacado AD type that allows 2nd derivatives.
 public:
     /// Constructor
     L2_Norm_Functional(
-        std::shared_ptr<PHiLiP::DGBase<dim,real>> dg_input,
+        std::shared_ptr<PHiLiP::DGBase<dim,nspecies,real>> dg_input,
         const bool uses_solution_values = true,
         const bool uses_solution_gradient = false)
-    : PHiLiP::Functional<dim,nstate,real>(dg_input,uses_solution_values,uses_solution_gradient)
+    : PHiLiP::Functional<dim,nspecies,nstate,real>(dg_input,uses_solution_values,uses_solution_gradient)
     {}
 
     /// Templated L2 norm integrand.
     template <typename real2>
     real2 evaluate_volume_integrand(
-              const PHiLiP::Physics::PhysicsBase<dim,nstate,real2> &physics,
+              const PHiLiP::Physics::PhysicsBase<dim,nspecies,nstate,real2> &physics,
               const dealii::Point<dim,real2> &phys_coord,
               const std::array<real2,nstate> &soln_at_q,
               const std::array<dealii::Tensor<1,dim,real2>,nstate> &/*soln_grad_at_q*/) const
@@ -62,7 +62,7 @@ public:
     /** Used only in the computation of evaluate_function(). If not overriden returns 0. */
     template<typename real2>
     real2 evaluate_boundary_integrand(
-        const PHiLiP::Physics::PhysicsBase<dim,nstate,real2> &physics,
+        const PHiLiP::Physics::PhysicsBase<dim,nspecies,nstate,real2> &physics,
         const unsigned int /*boundary_id*/,
         const dealii::Point<dim,real2> &phys_coord,
         const dealii::Tensor<1,dim,real2> &/*normal*/,
@@ -80,7 +80,7 @@ public:
     /// Virtual function for computation of cell boundary functional term
     /** Used only in the computation of evaluate_function(). If not overriden returns 0. */
     virtual real evaluate_boundary_integrand(
-        const PHiLiP::Physics::PhysicsBase<dim,nstate,real> &physics,
+        const PHiLiP::Physics::PhysicsBase<dim,nspecies,nstate,real> &physics,
         const unsigned int boundary_id,
         const dealii::Point<dim,real> &phys_coord,
         const dealii::Tensor<1,dim,real> &normal,
@@ -98,7 +98,7 @@ public:
     /// Virtual function for Sacado computation of cell boundary functional term and derivatives
     /** Used only in the computation of evaluate_dIdw(). If not overriden returns 0. */
     virtual FadFadType evaluate_boundary_integrand(
-        const PHiLiP::Physics::PhysicsBase<dim,nstate,FadFadType> &physics,
+        const PHiLiP::Physics::PhysicsBase<dim,nspecies,nstate,FadFadType> &physics,
         const unsigned int boundary_id,
         const dealii::Point<dim,FadFadType> &phys_coord,
         const dealii::Tensor<1,dim,FadFadType> &normal,
@@ -116,7 +116,7 @@ public:
 
     /// non-template functions to override the template classes
     real evaluate_volume_integrand(
-        const PHiLiP::Physics::PhysicsBase<dim,nstate,real> &physics,
+        const PHiLiP::Physics::PhysicsBase<dim,nspecies,nstate,real> &physics,
         const dealii::Point<dim,real> &phys_coord,
         const std::array<real,nstate> &soln_at_q,
         const std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_at_q) const override
@@ -125,7 +125,7 @@ public:
     }
     /// non-template functions to override the template classes
     FadFadType evaluate_volume_integrand(
-        const PHiLiP::Physics::PhysicsBase<dim,nstate,FadFadType> &physics,
+        const PHiLiP::Physics::PhysicsBase<dim,nspecies,nstate,FadFadType> &physics,
         const dealii::Point<dim,FadFadType> &phys_coord,
         const std::array<FadFadType,nstate> &soln_at_q,
         const std::array<dealii::Tensor<1,dim,FadFadType>,nstate> &soln_grad_at_q) const override
@@ -136,8 +136,8 @@ public:
 };
 
 
-template <int dim, int nstate>
-void initialize_perturbed_solution(PHiLiP::DGBase<dim,double> &dg, const PHiLiP::Physics::PhysicsBase<dim,nstate,double> &physics)
+template <int dim, int nspecies, int nstate>
+void initialize_perturbed_solution(PHiLiP::DGBase<dim,nspecies,double> &dg, const PHiLiP::Physics::PhysicsBase<dim,nspecies,nstate,double> &physics)
 {
     dealii::LinearAlgebra::distributed::Vector<double> solution_no_ghost;
     solution_no_ghost.reinit(dg.locally_owned_dofs, MPI_COMM_WORLD);
@@ -149,6 +149,7 @@ int main(int argc, char *argv[])
 {
 
     const int dim = PHILIP_DIM;
+    const int nspecies = 1;
     const int nstate = 1;
     int fail_bool = false;
    
@@ -196,7 +197,7 @@ int main(int argc, char *argv[])
     pcout << "Grid generated and refined" << std::endl;
    
     // creating the dg
-    std::shared_ptr < PHiLiP::DGBase<dim, double> > dg = PHiLiP::DGFactory<dim,double>::create_discontinuous_galerkin(&all_parameters, poly_degree, grid);
+    std::shared_ptr < PHiLiP::DGBase<dim, nspecies, double> > dg = PHiLiP::DGFactory<dim,nspecies,double>::create_discontinuous_galerkin(&all_parameters, poly_degree, grid);
     pcout << "dg created" << std::endl;
    
     dg->allocate_system();
@@ -222,7 +223,7 @@ int main(int argc, char *argv[])
    
     // manufactured solution function
        using FadType = Sacado::Fad::DFad<double>;
-    std::shared_ptr <PHiLiP::Physics::PhysicsBase<dim,nstate,double>> physics_double = PHiLiP::Physics::PhysicsFactory<dim, nstate, double>::create_Physics(&all_parameters);
+    std::shared_ptr <PHiLiP::Physics::PhysicsBase<dim,nspecies,nstate,double>> physics_double = PHiLiP::Physics::PhysicsFactory<dim, nspecies, nstate, double>::create_Physics(&all_parameters);
     pcout << "Physics created" << std::endl;
     
     // performing the interpolation for the intial conditions
@@ -231,7 +232,7 @@ int main(int argc, char *argv[])
    
     // evaluating the derivative (using SACADO)
     pcout << std::endl << "Starting AD... " << std::endl;
-    L2_Norm_Functional<dim,nstate,double> l2norm(dg,true,false);
+    L2_Norm_Functional<dim,nspecies,nstate,double> l2norm(dg,true,false);
     double l2error_mpi_sum2 = std::sqrt(l2norm.evaluate_functional(true,true));
    
     dealii::LinearAlgebra::distributed::Vector<double> dIdw = l2norm.dIdw;

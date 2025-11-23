@@ -9,7 +9,7 @@
 namespace PHiLiP {
 
 /// Exact solution function used for a particular flow setup/case
-template <int dim, int nstate, typename real>
+template <int dim, int nspecies, int nstate, typename real>
 class ExactSolutionFunction : public dealii::Function<dim,real>
 {
 protected:
@@ -24,9 +24,9 @@ public:
 };
 
 /// Exact Solution Function: Zero Function; used as a placeholder when there is no exact solution
-template <int dim, int nstate, typename real>
+template <int dim, int nspecies, int nstate, typename real>
 class ExactSolutionFunction_Zero
-        : public ExactSolutionFunction<dim,nstate,real>
+        : public ExactSolutionFunction<dim,nspecies,nstate,real>
 {
 protected:
     using dealii::Function<dim,real>::value; ///< dealii::Function we are templating on
@@ -43,9 +43,9 @@ public:
 };
 
 /// Exact Solution Function: 1D Sine Function; used for temporal convergence
-template <int dim, int nstate, typename real>
+template <int dim, int nspecies, int nstate, typename real>
 class ExactSolutionFunction_1DSine
-        : public ExactSolutionFunction<dim,nstate,real>
+        : public ExactSolutionFunction<dim,nspecies,nstate,real>
 {
 protected:
     using dealii::Function<dim,real>::value; ///< dealii::Function we are templating on
@@ -63,9 +63,9 @@ public:
 };
 
 /// Exact Solution Function: Isentropic vortex 
-template <int dim, int nstate, typename real>
+template <int dim, int nspecies, int nstate, typename real>
 class ExactSolutionFunction_IsentropicVortex
-        : public ExactSolutionFunction<dim,nstate,real>
+        : public ExactSolutionFunction<dim,nspecies,nstate,real>
 {
 protected:
     using dealii::Function<dim,real>::value; ///< dealii::Function we are templating on
@@ -83,7 +83,7 @@ public:
 };
 
 /// Exact solution function factory
-template <int dim, int nstate, typename real>
+template <int dim, int nspecies, int nstate, typename real>
 class ExactSolutionFactory
 {
 protected:    
@@ -92,7 +92,7 @@ protected:
 
 public:
     /// Construct ExactSolutionFunction object from global parameter file
-    static std::shared_ptr<ExactSolutionFunction<dim,nstate,real>>
+    static std::shared_ptr<ExactSolutionFunction<dim,nspecies,nstate,real>>
         create_ExactSolutionFunction(const Parameters::FlowSolverParam& flow_solver_parameters, const double time_compare);
 };
 

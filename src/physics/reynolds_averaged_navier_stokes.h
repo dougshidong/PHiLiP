@@ -9,8 +9,8 @@ namespace PHiLiP {
 namespace Physics {
 
 /// Reynolds-Averaged Navier-Stokes (RANS) equations. Derived from Navier-Stokes for modifying the stress tensor and heat flux, which is derived from PhysicsBase. 
-template <int dim, int nstate, typename real>
-class ReynoldsAveragedNavierStokesBase : public ModelBase <dim, nstate, real>
+template <int dim, int nspecies, int nstate, typename real>
+class ReynoldsAveragedNavierStokesBase : public ModelBase <dim, nspecies, nstate, real>
 {
 public:
     using thermal_boundary_condition_enum = Parameters::NavierStokesParam::ThermalBoundaryCondition;
@@ -31,7 +31,7 @@ public:
         const double                                              temperature_inf = 273.15,
         const double                                              isothermal_wall_temperature = 1.0,
         const thermal_boundary_condition_enum                     thermal_boundary_condition_type = thermal_boundary_condition_enum::adiabatic,
-        std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function = nullptr,
+        std::shared_ptr< ManufacturedSolutionFunction<dim,real>  > manufactured_solution_function = nullptr,
         const two_point_num_flux_enum                             two_point_num_flux_type = two_point_num_flux_enum::KG);
 
     /// Number of PDEs for RANS equations
@@ -44,7 +44,7 @@ public:
     const double turbulent_prandtl_number;
 
     /// Pointer to Navier-Stokes physics object
-    std::unique_ptr< NavierStokes<dim,nstate_navier_stokes,real> > navier_stokes_physics;
+    std::unique_ptr< NavierStokes<dim,nspecies,nstate_navier_stokes,real> > navier_stokes_physics;
 
     /// Additional convective flux of RANS + convective flux of turbulence model
     std::array<dealii::Tensor<1,dim,real>,nstate> convective_flux (

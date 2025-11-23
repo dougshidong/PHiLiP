@@ -9,7 +9,7 @@ namespace PHiLiP {
 namespace Tests {
 
 /// Taylor Green Vortex Restart Check
-template <int dim, int nstate>
+template <int dim, int nspecies, int nstate>
 class HomogeneousIsotropicTurbulenceInitializationCheck: public TestsBase
 {
 public:

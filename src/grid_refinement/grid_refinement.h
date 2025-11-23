@@ -35,9 +35,9 @@ namespace GridRefinement {
   *       not availible in parralel at this time. 
   */
 #if PHILIP_DIM==1
-template <int dim, int nstate, typename real, typename MeshType = dealii::Triangulation<dim>>
+template <int dim, int nspecies, int nstate, typename real, typename MeshType = dealii::Triangulation<dim>>
 #else
-template <int dim, int nstate, typename real, typename MeshType = dealii::parallel::distributed::Triangulation<dim>>
+template <int dim, int nspecies, int nstate, typename real, typename MeshType = dealii::parallel::distributed::Triangulation<dim>>
 #endif
 class GridRefinementBase
 {
@@ -48,35 +48,35 @@ public:
     /// Constructor. Stores the adjoint object, physics and parameters
     GridRefinementBase(
         PHiLiP::Parameters::GridRefinementParam                          gr_param_input,
-        std::shared_ptr< PHiLiP::Adjoint<dim, nstate, real, MeshType> >  adj_input,
-        std::shared_ptr< PHiLiP::Physics::PhysicsBase<dim,nstate,real> > physics_input);
+        std::shared_ptr< PHiLiP::Adjoint<dim, nspecies, nstate, real, MeshType> >  adj_input,
+        std::shared_ptr< PHiLiP::Physics::PhysicsBase<dim,nspecies,nstate,real> > physics_input);
 
     /// Constructor. Storers the dg object, physics, functional and parameters.
     GridRefinementBase(
         PHiLiP::Parameters::GridRefinementParam                            gr_param_input,
-        std::shared_ptr< PHiLiP::DGBase<dim, real, MeshType> >             dg_input,
-        std::shared_ptr< PHiLiP::Physics::PhysicsBase<dim,nstate,real> >   physics_input,
-        std::shared_ptr< PHiLiP::Functional<dim, nstate, real, MeshType> > functional_input);
+        std::shared_ptr< PHiLiP::DGBase<dim, nspecies, real, MeshType> >             dg_input,
+        std::shared_ptr< PHiLiP::Physics::PhysicsBase<dim,nspecies,nstate,real> >   physics_input,
+        std::shared_ptr< PHiLiP::Functional<dim, nspecies, nstate, real, MeshType> > functional_input);
 
     /// Constructor. Stores the dg object, physics and parameters
     GridRefinementBase(
         PHiLiP::Parameters::GridRefinementParam                          gr_param_input,
-        std::shared_ptr< PHiLiP::DGBase<dim, real, MeshType> >           dg_input,
-        std::shared_ptr< PHiLiP::Physics::PhysicsBase<dim,nstate,real> > physics_input);
+        std::shared_ptr< PHiLiP::DGBase<dim, nspecies, real, MeshType> >           dg_input,
+        std::shared_ptr< PHiLiP::Physics::PhysicsBase<dim,nspecies,nstate,real> > physics_input);
 
     /// Constructor. Stores the dg object and parameters
     GridRefinementBase(
         PHiLiP::Parameters::GridRefinementParam                gr_param_input,
-        std::shared_ptr< PHiLiP::DGBase<dim, real, MeshType> > dg_input);
+        std::shared_ptr< PHiLiP::DGBase<dim, nspecies, real, MeshType> > dg_input);
 
 protected:
     /// Delegated constructor which handles the various optional inputs and setup.
     GridRefinementBase(
         PHiLiP::Parameters::GridRefinementParam                            gr_param_input,
-        std::shared_ptr< PHiLiP::Adjoint<dim, nstate, real, MeshType> >    adj_input,
-        std::shared_ptr< PHiLiP::Functional<dim, nstate, real, MeshType> > functional_input,
-        std::shared_ptr< PHiLiP::DGBase<dim, real, MeshType> >             dg_input,
-        std::shared_ptr< PHiLiP::Physics::PhysicsBase<dim,nstate,real> >   physics_input);
+        std::shared_ptr< PHiLiP::Adjoint<dim, nspecies, nstate, real, MeshType> >    adj_input,
+        std::shared_ptr< PHiLiP::Functional<dim, nspecies, nstate, real, MeshType> > functional_input,
+        std::shared_ptr< PHiLiP::DGBase<dim, nspecies, real, MeshType> >             dg_input,
+        std::shared_ptr< PHiLiP::Physics::PhysicsBase<dim,nspecies,nstate,real> >   physics_input);
 
 public:
     /// Perform call to the grid refinement object of choice
@@ -144,20 +144,20 @@ protected:
     ErrorIndicatorEnum error_indicator_type;
 
     /// Adjoint object (if provided to factory)
-    std::shared_ptr< PHiLiP::Adjoint<dim, nstate, real, MeshType> > adjoint;
+    std::shared_ptr< PHiLiP::Adjoint<dim, nspecies, nstate, real, MeshType> > adjoint;
 
     /// Functional object (if provided to factory, directly or indirectly)
-    std::shared_ptr< PHiLiP::Functional<dim, nstate, real, MeshType> > functional;
+    std::shared_ptr< PHiLiP::Functional<dim, nspecies, nstate, real, MeshType> > functional;
 
     /// Discontinuous Galerkin object
-    std::shared_ptr< PHiLiP::DGBase<dim, real, MeshType> > dg;
+    std::shared_ptr< PHiLiP::DGBase<dim, nspecies, real, MeshType> > dg;
 
     // high order grid, not a pointer 
     // so needs to be manipulated through dg->high_order_grid
     // HighOrderGrid<dim,real> high_order_grid
     
     /// Problem physics (if provided to factory, directly or indirectly)
-    std::shared_ptr< PHiLiP::Physics::PhysicsBase<dim,nstate,real> > physics;
+    std::shared_ptr< PHiLiP::Physics::PhysicsBase<dim,nspecies,nstate,real> > physics;
 
     // triangulation
     // dealii::Triangulation<dim, dim> &tria;
@@ -214,9 +214,9 @@ protected:
   *       not availible in parralel at this time. 
   */ 
 #if PHILIP_DIM==1
-template <int dim, int nstate, typename real, typename MeshType = dealii::Triangulation<dim>>
+template <int dim, int nspecies, int nstate, typename real, typename MeshType = dealii::Triangulation<dim>>
 #else
-template <int dim, int nstate, typename real, typename MeshType = dealii::parallel::distributed::Triangulation<dim>>
+template <int dim, int nspecies, int nstate, typename real, typename MeshType = dealii::parallel::distributed::Triangulation<dim>>
 #endif
 class GridRefinementFactory
 {
@@ -226,11 +226,11 @@ public:
     /** Provides access to all refinement types. Needs to be called for adjoint_based
       * error indicators. Adjoint object also provides access to dg and functional objects.
       */ 
-    static std::shared_ptr< GridRefinementBase<dim,nstate,real,MeshType> > 
+    static std::shared_ptr< GridRefinementBase<dim,nspecies,nstate,real,MeshType> > 
     create_GridRefinement(
         PHiLiP::Parameters::GridRefinementParam                          gr_param,
-        std::shared_ptr< PHiLiP::Adjoint<dim, nstate, real, MeshType> >  adj,
-        std::shared_ptr< PHiLiP::Physics::PhysicsBase<dim,nstate,real> > physics_input);
+        std::shared_ptr< PHiLiP::Adjoint<dim, nspecies, nstate, real, MeshType> >  adj,
+        std::shared_ptr< PHiLiP::Physics::PhysicsBase<dim,nspecies,nstate,real> > physics_input);
 
     /// Construct grid refinement class based on dg, physics and functional
     /** Provides access to non-adjoint based method. However, allows the functional object
@@ -238,31 +238,31 @@ public:
       * convergence when working with feature-based refinement types (if an adjoint-object 
       * itself is not availible).
       */ 
-    static std::shared_ptr< GridRefinementBase<dim,nstate,real,MeshType> > 
+    static std::shared_ptr< GridRefinementBase<dim,nspecies,nstate,real,MeshType> > 
     create_GridRefinement(
         PHiLiP::Parameters::GridRefinementParam                            gr_param,
-        std::shared_ptr< PHiLiP::DGBase<dim, real, MeshType> >             dg,
-        std::shared_ptr< PHiLiP::Physics::PhysicsBase<dim,nstate,real> >   physics,
-        std::shared_ptr< PHiLiP::Functional<dim, nstate, real, MeshType> > functional);
+        std::shared_ptr< PHiLiP::DGBase<dim, nspecies, real, MeshType> >             dg,
+        std::shared_ptr< PHiLiP::Physics::PhysicsBase<dim,nspecies,nstate,real> >   physics,
+        std::shared_ptr< PHiLiP::Functional<dim, nspecies, nstate, real, MeshType> > functional);
 
     /// Construct grid refinement class based on dg and physics
     /** Provides access to feature-based (hessian_based) error indicators and exact error-based
       * refinement methods using the manufactured solution from the physics object. 
       */
-    static std::shared_ptr< GridRefinementBase<dim,nstate,real,MeshType> > 
+    static std::shared_ptr< GridRefinementBase<dim,nspecies,nstate,real,MeshType> > 
     create_GridRefinement(
         PHiLiP::Parameters::GridRefinementParam                          gr_param,
-        std::shared_ptr< PHiLiP::DGBase<dim, real, MeshType> >           dg,
-        std::shared_ptr< PHiLiP::Physics::PhysicsBase<dim,nstate,real> > physics);
+        std::shared_ptr< PHiLiP::DGBase<dim, nspecies, real, MeshType> >           dg,
+        std::shared_ptr< PHiLiP::Physics::PhysicsBase<dim,nspecies,nstate,real> > physics);
 
     /// Construct grid refinement class based on dg only
     /** Provides access to basic uniform refinement methods and residual based refinement
       * methods (not yet implemented).
       */ 
-    static std::shared_ptr< GridRefinementBase<dim,nstate,real,MeshType> > 
+    static std::shared_ptr< GridRefinementBase<dim,nspecies,nstate,real,MeshType> > 
     create_GridRefinement(
         PHiLiP::Parameters::GridRefinementParam                gr_param,
-        std::shared_ptr< PHiLiP::DGBase<dim, real, MeshType> > dg);
+        std::shared_ptr< PHiLiP::DGBase<dim, nspecies, real, MeshType> > dg);
 
 };
 

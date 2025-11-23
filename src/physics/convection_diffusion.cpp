@@ -1,3 +1,4 @@
+#include <boost/preprocessor/seq/for_each.hpp>
 #include "ADTypes.hpp"
 
 #include "convection_diffusion.h"
@@ -13,8 +14,8 @@ std::array<real,nstate> stdvector_to_stdarray(const std::vector<real> vector)
     return array;
 }
 
-template <int dim, int nstate, typename real>
-void ConvectionDiffusion<dim,nstate,real>
+template <int dim, int nspecies, int nstate, typename real>
+void ConvectionDiffusion<dim,nspecies,nstate,real>
 ::boundary_face_values (
    const int /*boundary_type*/,
    const dealii::Point<dim, real> &pos,
@@ -61,8 +62,8 @@ void ConvectionDiffusion<dim,nstate,real>
     }
 }
 
-template <int dim, int nstate, typename real>
-std::array<dealii::Tensor<1,dim,real>,nstate> ConvectionDiffusion<dim,nstate,real>
+template <int dim, int nspecies, int nstate, typename real>
+std::array<dealii::Tensor<1,dim,real>,nstate> ConvectionDiffusion<dim,nspecies,nstate,real>
 ::convective_flux (const std::array<real,nstate> &solution) const
 {
     std::array<dealii::Tensor<1,dim,real>,nstate> conv_flux;
@@ -76,8 +77,8 @@ std::array<dealii::Tensor<1,dim,real>,nstate> ConvectionDiffusion<dim,nstate,rea
     return conv_flux;
 }
 
-template <int dim, int nstate, typename real>
-std::array<dealii::Tensor<1,dim,real>,nstate> ConvectionDiffusion<dim,nstate,real>
+template <int dim, int nspecies, int nstate, typename real>
+std::array<dealii::Tensor<1,dim,real>,nstate> ConvectionDiffusion<dim,nspecies,nstate,real>
 ::convective_numerical_split_flux (
     const std::array<real,nstate> &soln1,
     const std::array<real,nstate> &soln2) const
@@ -89,24 +90,24 @@ std::array<dealii::Tensor<1,dim,real>,nstate> ConvectionDiffusion<dim,nstate,rea
     return convective_flux(arr_avg);
 }
 
-template <int dim, int nstate, typename real>
-std::array<real,nstate> ConvectionDiffusion<dim, nstate, real>
+template <int dim, int nspecies, int nstate, typename real>
+std::array<real,nstate> ConvectionDiffusion<dim, nspecies, nstate, real>
 ::compute_entropy_variables (
     const std::array<real,nstate> &conservative_soln) const
 {
     return conservative_soln;
 }
 
-template <int dim, int nstate, typename real>
-std::array<real,nstate> ConvectionDiffusion<dim, nstate, real>
+template <int dim, int nspecies, int nstate, typename real>
+std::array<real,nstate> ConvectionDiffusion<dim, nspecies, nstate, real>
 ::compute_conservative_variables_from_entropy_variables (
     const std::array<real,nstate> &entropy_var) const
 {
     return entropy_var;
 }
 
-template <int dim, int nstate, typename real>
-dealii::Tensor<1,dim,real> ConvectionDiffusion<dim,nstate,real>
+template <int dim, int nspecies, int nstate, typename real>
+dealii::Tensor<1,dim,real> ConvectionDiffusion<dim,nspecies,nstate,real>
 ::advection_speed () const
 {
     dealii::Tensor<1,dim,real> advection_speed;
@@ -123,8 +124,8 @@ dealii::Tensor<1,dim,real> ConvectionDiffusion<dim,nstate,real>
     return advection_speed;
 }
 
-template <int dim, int nstate, typename real>
-real ConvectionDiffusion<dim,nstate,real>
+template <int dim, int nspecies, int nstate, typename real>
+real ConvectionDiffusion<dim,nspecies,nstate,real>
 ::diffusion_coefficient () const
 {
     if(hasDiffusion) return diffusion_scaling_coeff;
@@ -132,8 +133,8 @@ real ConvectionDiffusion<dim,nstate,real>
     return zero;
 }
 
-template <int dim, int nstate, typename real>
-std::array<real,nstate> ConvectionDiffusion<dim,nstate,real>
+template <int dim, int nspecies, int nstate, typename real>
+std::array<real,nstate> ConvectionDiffusion<dim,nspecies,nstate,real>
 ::convective_eigenvalues (
     const std::array<real,nstate> &/*solution*/,
     const dealii::Tensor<1,dim,real> &normal) const
@@ -150,8 +151,8 @@ std::array<real,nstate> ConvectionDiffusion<dim,nstate,real>
     return eig;
 }
 
-template <int dim, int nstate, typename real>
-real ConvectionDiffusion<dim,nstate,real>
+template <int dim, int nspecies, int nstate, typename real>
+real ConvectionDiffusion<dim,nspecies,nstate,real>
 ::max_convective_eigenvalue (const std::array<real,nstate> &/*soln*/) const
 {
     const dealii::Tensor<1,dim,real> advection_speed = this->advection_speed();
@@ -163,8 +164,8 @@ real ConvectionDiffusion<dim,nstate,real>
     return max_eig;
 }
 
-template <int dim, int nstate, typename real>
-real ConvectionDiffusion<dim,nstate,real>
+template <int dim, int nspecies, int nstate, typename real>
+real ConvectionDiffusion<dim,nspecies,nstate,real>
 ::max_viscous_eigenvalue (const std::array<real,nstate> &/*soln*/) const
 {
     const real diff_coeff = this->diffusion_coefficient();
@@ -178,8 +179,8 @@ real ConvectionDiffusion<dim,nstate,real>
     return max_eig;
 }
 
-template <int dim, int nstate, typename real>
-std::array<dealii::Tensor<1,dim,real>,nstate> ConvectionDiffusion<dim,nstate,real>
+template <int dim, int nspecies, int nstate, typename real>
+std::array<dealii::Tensor<1,dim,real>,nstate> ConvectionDiffusion<dim,nspecies,nstate,real>
 ::dissipative_flux (
     const std::array<real,nstate> &/*solution*/,
     const std::array<dealii::Tensor<1,dim,real>,nstate> &solution_gradient) const
@@ -197,8 +198,8 @@ std::array<dealii::Tensor<1,dim,real>,nstate> ConvectionDiffusion<dim,nstate,rea
     return diss_flux;
 }
 
-template <int dim, int nstate, typename real>
-std::array<dealii::Tensor<1,dim,real>,nstate> ConvectionDiffusion<dim,nstate,real>
+template <int dim, int nspecies, int nstate, typename real>
+std::array<dealii::Tensor<1,dim,real>,nstate> ConvectionDiffusion<dim,nspecies,nstate,real>
 ::dissipative_flux (
     const std::array<real,nstate> &solution,
     const std::array<dealii::Tensor<1,dim,real>,nstate> &solution_gradient,
@@ -207,8 +208,8 @@ std::array<dealii::Tensor<1,dim,real>,nstate> ConvectionDiffusion<dim,nstate,rea
     return dissipative_flux(solution, solution_gradient);
 }
 
-template <int dim, int nstate, typename real>
-std::array<real,nstate> ConvectionDiffusion<dim,nstate,real>
+template <int dim, int nspecies, int nstate, typename real>
+std::array<real,nstate> ConvectionDiffusion<dim,nspecies,nstate,real>
 ::source_term (
     const dealii::Point<dim,real> &pos,
     const std::array<real,nstate> &solution,
@@ -218,8 +219,8 @@ std::array<real,nstate> ConvectionDiffusion<dim,nstate,real>
     return source_term(pos,solution,current_time);
 }
 
-template <int dim, int nstate, typename real>
-std::array<real,nstate> ConvectionDiffusion<dim,nstate,real>
+template <int dim, int nspecies, int nstate, typename real>
+std::array<real,nstate> ConvectionDiffusion<dim,nspecies,nstate,real>
 ::source_term (
     const dealii::Point<dim,real> &pos,
     const std::array<real,nstate> &/*solution*/,
@@ -298,41 +299,19 @@ std::array<real,nstate> ConvectionDiffusion<dim,nstate,real>
     return source;
 }
 
-template class ConvectionDiffusion < PHILIP_DIM, 1, double >;
-template class ConvectionDiffusion < PHILIP_DIM, 2, double >;
-template class ConvectionDiffusion < PHILIP_DIM, 3, double >;
-template class ConvectionDiffusion < PHILIP_DIM, 4, double >;
-template class ConvectionDiffusion < PHILIP_DIM, 5, double >;
-template class ConvectionDiffusion < PHILIP_DIM, 6, double >;
+#if PHILIP_SPECIES==1
+    // Define a sequence of indices representing the range [1, 6]
+    #define POSSIBLE_NSTATE (1)(2)(3)(4)(5)(6)
 
-template class ConvectionDiffusion < PHILIP_DIM, 1, FadType>;
-template class ConvectionDiffusion < PHILIP_DIM, 2, FadType>;
-template class ConvectionDiffusion < PHILIP_DIM, 3, FadType>;
-template class ConvectionDiffusion < PHILIP_DIM, 4, FadType>;
-template class ConvectionDiffusion < PHILIP_DIM, 5, FadType>;
-template class ConvectionDiffusion < PHILIP_DIM, 6, FadType>;
-
-template class ConvectionDiffusion < PHILIP_DIM, 1, RadType>;
-template class ConvectionDiffusion < PHILIP_DIM, 2, RadType>;
-template class ConvectionDiffusion < PHILIP_DIM, 3, RadType>;
-template class ConvectionDiffusion < PHILIP_DIM, 4, RadType>;
-template class ConvectionDiffusion < PHILIP_DIM, 5, RadType>;
-template class ConvectionDiffusion < PHILIP_DIM, 6, RadType>;
-
-template class ConvectionDiffusion < PHILIP_DIM, 1, FadFadType>;
-template class ConvectionDiffusion < PHILIP_DIM, 2, FadFadType>;
-template class ConvectionDiffusion < PHILIP_DIM, 3, FadFadType>;
-template class ConvectionDiffusion < PHILIP_DIM, 4, FadFadType>;
-template class ConvectionDiffusion < PHILIP_DIM, 5, FadFadType>;
-template class ConvectionDiffusion < PHILIP_DIM, 6, FadFadType>;
-
-template class ConvectionDiffusion < PHILIP_DIM, 1, RadFadType>;
-template class ConvectionDiffusion < PHILIP_DIM, 2, RadFadType>;
-template class ConvectionDiffusion < PHILIP_DIM, 3, RadFadType>;
-template class ConvectionDiffusion < PHILIP_DIM, 4, RadFadType>;
-template class ConvectionDiffusion < PHILIP_DIM, 5, RadFadType>;
-template class ConvectionDiffusion < PHILIP_DIM, 6, RadFadType>;
-
+    // Define a macro to instantiate Convection Diffusion Functions for a specific nstate
+    #define INSTANTIATE_CONVECTION_DIFFUSION(r, data, nstate) \
+        template class ConvectionDiffusion < PHILIP_DIM, PHILIP_SPECIES, nstate, double >; \
+        template class ConvectionDiffusion < PHILIP_DIM, PHILIP_SPECIES, nstate, FadType >; \
+        template class ConvectionDiffusion < PHILIP_DIM, PHILIP_SPECIES, nstate, RadType >; \
+        template class ConvectionDiffusion < PHILIP_DIM, PHILIP_SPECIES, nstate, FadFadType >; \
+        template class ConvectionDiffusion < PHILIP_DIM, PHILIP_SPECIES, nstate, RadFadType >;
+    BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_CONVECTION_DIFFUSION, _, POSSIBLE_NSTATE)
+#endif
 } // Physics namespace
 } // PHiLiP namespace
 

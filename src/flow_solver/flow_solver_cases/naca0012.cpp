@@ -23,14 +23,14 @@ namespace FlowSolver {
 //=========================================================
 // NACA0012
 //=========================================================
-template <int dim, int nstate>
-NACA0012<dim, nstate>::NACA0012(const PHiLiP::Parameters::AllParameters *const parameters_input)
-        : FlowSolverCaseBase<dim, nstate>(parameters_input)
+template <int dim, int nspecies, int nstate>
+NACA0012<dim, nspecies, nstate>::NACA0012(const PHiLiP::Parameters::AllParameters *const parameters_input)
+        : FlowSolverCaseBase<dim, nspecies, nstate>(parameters_input)
         , unsteady_data_table_filename_with_extension(this->all_param.flow_solver_param.unsteady_data_table_filename+".txt")
 {}
 
-template <int dim, int nstate>
-void NACA0012<dim,nstate>::display_additional_flow_case_specific_parameters() const
+template <int dim, int nspecies, int nstate>
+void NACA0012<dim,nspecies,nstate>::display_additional_flow_case_specific_parameters() const
 {
     using PDE_enum = Parameters::AllParameters::PartialDifferentialEquation;
     const PDE_enum pde_type = this->all_param.pde_type;
@@ -49,8 +49,8 @@ void NACA0012<dim,nstate>::display_additional_flow_case_specific_parameters() co
     }
 }
 
-template <int dim, int nstate>
-std::shared_ptr<Triangulation> NACA0012<dim,nstate>::generate_grid() const
+template <int dim, int nspecies, int nstate>
+std::shared_ptr<Triangulation> NACA0012<dim,nspecies,nstate>::generate_grid() const
 {
     //Dummy triangulation
     if constexpr(dim==2) {
@@ -74,8 +74,8 @@ std::shared_ptr<Triangulation> NACA0012<dim,nstate>::generate_grid() const
     // TO DO: Avoid reading the mesh twice (here and in set_high_order_grid -- need a default dummy triangulation)
 }
 
-template <int dim, int nstate>
-void NACA0012<dim,nstate>::set_higher_order_grid(std::shared_ptr<DGBase<dim, double>> dg) const
+template <int dim, int nspecies, int nstate>
+void NACA0012<dim,nspecies,nstate>::set_higher_order_grid(std::shared_ptr<DGBase<dim, nspecies, double>> dg) const
 {
     const std::string mesh_filename = this->all_param.flow_solver_param.input_mesh_filename+std::string(".msh");
     const bool use_mesh_smoothing = false;
@@ -86,24 +86,24 @@ void NACA0012<dim,nstate>::set_higher_order_grid(std::shared_ptr<DGBase<dim, dou
     }
 }
 
-template <int dim, int nstate>
-double NACA0012<dim,nstate>::compute_lift(std::shared_ptr<DGBase<dim, double>> dg) const
+template <int dim, int nspecies, int nstate>
+double NACA0012<dim,nspecies,nstate>::compute_lift(std::shared_ptr<DGBase<dim, nspecies, double>> dg) const
 {
-    LiftDragFunctional<dim,dim+2,double,Triangulation> lift_functional(dg, LiftDragFunctional<dim,dim+2,double,Triangulation>::Functional_types::lift);
+    LiftDragFunctional<dim,nspecies,dim+2,double,Triangulation> lift_functional(dg, LiftDragFunctional<dim,nspecies,dim+2,double,Triangulation>::Functional_types::lift);
     const double lift = lift_functional.evaluate_functional();
     return lift;
 }
 
-template <int dim, int nstate>
-double NACA0012<dim,nstate>::compute_drag(std::shared_ptr<DGBase<dim, double>> dg) const
+template <int dim, int nspecies, int nstate>
+double NACA0012<dim,nspecies,nstate>::compute_drag(std::shared_ptr<DGBase<dim, nspecies, double>> dg) const
 {
-    LiftDragFunctional<dim,dim+2,double,Triangulation> drag_functional(dg, LiftDragFunctional<dim,dim+2,double,Triangulation>::Functional_types::drag);
+    LiftDragFunctional<dim,nspecies,dim+2,double,Triangulation> drag_functional(dg, LiftDragFunctional<dim,nspecies,dim+2,double,Triangulation>::Functional_types::drag);
     const double drag = drag_functional.evaluate_functional();
     return drag;
 }
 
-template <int dim, int nstate>
-void NACA0012<dim,nstate>::steady_state_postprocessing(std::shared_ptr<DGBase<dim, double>> dg) const
+template <int dim, int nspecies, int nstate>
+void NACA0012<dim,nspecies,nstate>::steady_state_postprocessing(std::shared_ptr<DGBase<dim, nspecies, double>> dg) const
 {
     const double lift = this->compute_lift(dg);
     const double drag = this->compute_drag(dg);
@@ -112,11 +112,11 @@ void NACA0012<dim,nstate>::steady_state_postprocessing(std::shared_ptr<DGBase<di
     this->pcout << " Resulting drag : " << drag << std::endl;
 }
 
-template <int dim, int nstate>
-void NACA0012<dim, nstate>::compute_unsteady_data_and_write_to_table(
+template <int dim, int nspecies, int nstate>
+void NACA0012<dim, nspecies, nstate>::compute_unsteady_data_and_write_to_table(
         const unsigned int current_iteration,
         const double current_time,
-        const std::shared_ptr <DGBase<dim, double>> dg,
+        const std::shared_ptr <DGBase<dim, nspecies, double>> dg,
         const std::shared_ptr <dealii::TableHandler> unsteady_data_table)
 {
     // Compute aerodynamic values
@@ -147,8 +147,8 @@ void NACA0012<dim, nstate>::compute_unsteady_data_and_write_to_table(
     }
 }
 
-#if PHILIP_DIM!=1
-    template class NACA0012<PHILIP_DIM,PHILIP_DIM+2>;
+#if PHILIP_DIM!=1 && PHILIP_SPECIES==1
+    template class NACA0012<PHILIP_DIM, PHILIP_SPECIES,PHILIP_DIM+2>;
 #endif
 
 } // FlowSolver namespace

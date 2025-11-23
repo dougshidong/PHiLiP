@@ -10,10 +10,10 @@ namespace PHiLiP {
 *
 **********************************/
 // Constructor
-template <int dim, int nstate, typename real>
-PositivityPreservingLimiter<dim, nstate, real>::PositivityPreservingLimiter(
+template <int dim, int nspecies, int nstate, typename real>
+PositivityPreservingLimiter<dim, nspecies, nstate, real>::PositivityPreservingLimiter(
     const Parameters::AllParameters* const parameters_input)
-    : BoundPreservingLimiterState<dim,nstate,real>::BoundPreservingLimiterState(parameters_input)
+    : BoundPreservingLimiterState<dim,nspecies,nstate,real>::BoundPreservingLimiterState(parameters_input)
     , flow_solver_param(parameters_input->flow_solver_param)
     , dx((flow_solver_param.grid_right_bound-flow_solver_param.grid_left_bound)/flow_solver_param.number_of_grid_elements_x)
     , dy((flow_solver_param.grid_top_bound-flow_solver_param.grid_bottom_bound)/flow_solver_param.number_of_grid_elements_y)
@@ -27,7 +27,7 @@ PositivityPreservingLimiter<dim, nstate, real>::PositivityPreservingLimiter(
         = ManufacturedSolutionFactory<dim, real>::create_ManufacturedSolution(parameters_input, nstate);
 
     if (pde_type == PDE_enum::euler && nstate == dim + 2) {
-        euler_physics = std::make_shared < Physics::Euler<dim, nstate, real> >(
+        euler_physics = std::make_shared < Physics::Euler<dim, nspecies, nstate, real> >(
             parameters_input,
             parameters_input->euler_param.ref_length,
             parameters_input->euler_param.gamma_gas,
@@ -45,7 +45,7 @@ PositivityPreservingLimiter<dim, nstate, real>::PositivityPreservingLimiter(
     // Create pointer to TVB Limiter class if use_tvb_limiter==true && dim == 1
     if (parameters_input->limiter_param.use_tvb_limiter) {
         if (dim == 1) {
-            tvbLimiter = std::make_shared < TVBLimiter<dim, nstate, real> >(parameters_input);
+            tvbLimiter = std::make_shared < TVBLimiter<dim, nspecies, nstate, real> >(parameters_input);
         }
         else {
             std::cout << "Error: Cannot create TVB limiter for dim > 1" << std::endl;
@@ -64,8 +64,8 @@ PositivityPreservingLimiter<dim, nstate, real>::PositivityPreservingLimiter(
     }
 }
 
-template <int dim, int nstate, typename real>
-std::vector<real> PositivityPreservingLimiter<dim, nstate, real>::get_theta2_Zhang2010(
+template <int dim, int nspecies, int nstate, typename real>
+std::vector<real> PositivityPreservingLimiter<dim, nspecies, nstate, real>::get_theta2_Zhang2010(
     const std::vector< real >&                      p_lim,
     const std::array<real, nstate>&                 soln_cell_avg,
     const std::array<std::vector<real>, nstate>&    soln_at_q,
@@ -110,8 +110,8 @@ std::vector<real> PositivityPreservingLimiter<dim, nstate, real>::get_theta2_Zha
     return theta2;
 }
 
-template <int dim, int nstate, typename real>
-real PositivityPreservingLimiter<dim, nstate, real>::get_theta2_Wang2012(
+template <int dim, int nspecies, int nstate, typename real>
+real PositivityPreservingLimiter<dim, nspecies, nstate, real>::get_theta2_Wang2012(
     const std::array<std::vector<real>, nstate>&    soln_at_q,
     const unsigned int                              n_quad_pts,
     const double                                    p_avg)
@@ -145,8 +145,8 @@ real PositivityPreservingLimiter<dim, nstate, real>::get_theta2_Wang2012(
     return theta2;
 }
 
-template <int dim, int nstate, typename real>
-real PositivityPreservingLimiter<dim, nstate, real>::get_density_scaling_value(
+template <int dim, int nspecies, int nstate, typename real>
+real PositivityPreservingLimiter<dim, nspecies, nstate, real>::get_density_scaling_value(
     const double    density_avg,
     const double    density_min,
     const double    lower_bound,
@@ -166,8 +166,8 @@ real PositivityPreservingLimiter<dim, nstate, real>::get_density_scaling_value(
     return theta;
 }
 
-template <int dim, int nstate, typename real>
-void PositivityPreservingLimiter<dim, nstate, real>::write_limited_solution(
+template <int dim, int nspecies, int nstate, typename real>
+void PositivityPreservingLimiter<dim, nspecies, nstate, real>::write_limited_solution(
     dealii::LinearAlgebra::distributed::Vector<double>& solution,
     const std::array<std::vector<real>, nstate>& soln_coeff,
     const unsigned int                                      n_shape_fns,
@@ -201,8 +201,8 @@ void PositivityPreservingLimiter<dim, nstate, real>::write_limited_solution(
     }
 }
 
-template <int dim, int nstate, typename real>
-std::array<real, nstate> PositivityPreservingLimiter<dim, nstate, real>::get_soln_cell_avg_PPL(
+template <int dim, int nspecies, int nstate, typename real>
+std::array<real, nstate> PositivityPreservingLimiter<dim, nspecies, nstate, real>::get_soln_cell_avg_PPL(
     const std::array<std::array<std::vector<real>, nstate>, dim>&        soln_at_q,
     const unsigned int                                                   n_quad_pts,
     const std::vector<real>&                                             quad_weights_GLL,
@@ -342,8 +342,8 @@ std::array<real, nstate> PositivityPreservingLimiter<dim, nstate, real>::get_sol
     return soln_cell_avg;
 }
 
-template <int dim, int nstate, typename real>
-void PositivityPreservingLimiter<dim, nstate, real>::limit(
+template <int dim, int nspecies, int nstate, typename real>
+void PositivityPreservingLimiter<dim, nspecies, nstate, real>::limit(
     dealii::LinearAlgebra::distributed::Vector<double>&     solution,
     const dealii::DoFHandler<dim>&                          dof_handler,
     const dealii::hp::FECollection<dim>&                    fe_collection,
@@ -585,6 +585,7 @@ void PositivityPreservingLimiter<dim, nstate, real>::limit(
         write_limited_solution(solution, soln_coeff, n_shape_fns, current_dofs_indices);
     }
 }
-
-template class PositivityPreservingLimiter <PHILIP_DIM, PHILIP_DIM + 2, double>;
+#if PHILIP_SPECIES==1
+template class PositivityPreservingLimiter <PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM + 2, double>;
+#endif
 } // PHiLiP namespace

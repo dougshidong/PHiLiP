@@ -12,7 +12,7 @@ namespace Tests {
  * Entropy is not conserved by KG, but a tolerance has been set based on the 
  * expected behaviour of the test.
  */
-template <int dim, int nstate>
+template <int dim, int nspecies, int nstate>
 class EulerSplitEntropyCheck: public TestsBase
 {
 public:

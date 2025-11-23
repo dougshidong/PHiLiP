@@ -10,8 +10,8 @@ namespace PHiLiP {
 namespace Physics {
 
 /// Negative Spalart-Allmaras model. Derived from Reynolds Averaged Navier Stokes.
-template <int dim, int nstate, typename real>
-class ReynoldsAveragedNavierStokes_SAneg : public ReynoldsAveragedNavierStokesBase <dim, nstate, real>
+template <int dim, int nspecies, int nstate, typename real>
+class ReynoldsAveragedNavierStokes_SAneg : public ReynoldsAveragedNavierStokesBase <dim, nspecies, nstate, real>
 {
 public:
     using thermal_boundary_condition_enum = Parameters::NavierStokesParam::ThermalBoundaryCondition;
@@ -34,7 +34,7 @@ public:
         const double                                              temperature_inf = 273.15,
         const double                                              isothermal_wall_temperature = 1.0,
         const thermal_boundary_condition_enum                     thermal_boundary_condition_type = thermal_boundary_condition_enum::adiabatic,
-        std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function = nullptr,
+        std::shared_ptr< ManufacturedSolutionFunction<dim,real>  > manufactured_solution_function = nullptr,
         const two_point_num_flux_enum                             two_point_num_flux_type = two_point_num_flux_enum::KG);
 
     /// Number of PDEs for RANS equations

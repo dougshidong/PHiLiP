@@ -28,8 +28,8 @@ Sebastian Grimberg, Charbel Farhat, Radek Tezaur, Charbel Bou-Mosleh
 International Journal for Numerical Methods in Engineering, 2020
 https://onlinelibrary.wiley.com/doi/10.1002/nme.6603
 */
-template <int dim, int nstate>
-class HyperreducedAdaptiveSampling: public AdaptiveSamplingBase<dim,nstate>
+template <int dim, int nspecies, int nstate>
+class HyperreducedAdaptiveSampling: public AdaptiveSamplingBase<dim,nspecies,nstate>
 {
 public:
     /// Constructor
@@ -55,7 +55,7 @@ public:
     void updateNearestExistingROMs(const RowVectorXd& parameter, Epetra_Vector weights) const;
 
     /// Solve reduced-order solution
-    std::unique_ptr<ProperOrthogonalDecomposition::ROMSolution<dim,nstate>> solveSnapshotROM(const RowVectorXd& parameter, Epetra_Vector weights) const;
+    std::unique_ptr<ProperOrthogonalDecomposition::ROMSolution<dim,nspecies,nstate>> solveSnapshotROM(const RowVectorXd& parameter, Epetra_Vector weights) const;
 
     /// Copy all elements in matrix A to all cores
     Epetra_Vector allocateVectorToSingleCore(const Epetra_Vector &b) const;

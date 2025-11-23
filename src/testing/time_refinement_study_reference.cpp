@@ -6,17 +6,17 @@
 namespace PHiLiP {
 namespace Tests {
 
-template <int dim, int nstate>
-TimeRefinementStudyReference<dim, nstate>::TimeRefinementStudyReference(
+template <int dim, int nspecies, int nstate>
+TimeRefinementStudyReference<dim, nspecies, nstate>::TimeRefinementStudyReference(
         const PHiLiP::Parameters::AllParameters *const parameters_input,
         const dealii::ParameterHandler &parameter_handler_input)  
-        : GeneralRefinementStudy<dim,nstate>(parameters_input, parameter_handler_input,
-                GeneralRefinementStudy<dim,nstate>::RefinementType::timestep)  
+        : GeneralRefinementStudy<dim,nspecies,nstate>(parameters_input, parameter_handler_input,
+                GeneralRefinementStudy<dim,nspecies,nstate>::RefinementType::timestep)  
         , reference_solution(this->calculate_reference_solution(parameters_input->flow_solver_param.final_time))
 {}
 
-template <int dim, int nstate>
-Parameters::AllParameters TimeRefinementStudyReference<dim,nstate>::reinit_params_for_reference_solution(const int number_of_timesteps, const double final_time) const
+template <int dim, int nspecies, int nstate>
+Parameters::AllParameters TimeRefinementStudyReference<dim,nspecies,nstate>::reinit_params_for_reference_solution(int number_of_timesteps, double final_time) const
 {
     PHiLiP::Parameters::AllParameters parameters = *(this->all_parameters);
 
@@ -36,13 +36,13 @@ Parameters::AllParameters TimeRefinementStudyReference<dim,nstate>::reinit_param
     return parameters;
 }
 
-template <int dim, int nstate>
-dealii::LinearAlgebra::distributed::Vector<double> TimeRefinementStudyReference<dim,nstate>::calculate_reference_solution(
+template <int dim, int nspecies, int nstate>
+dealii::LinearAlgebra::distributed::Vector<double> TimeRefinementStudyReference<dim,nspecies, nstate>::calculate_reference_solution(
         const double final_time) const
 {
     const int number_of_timesteps_for_reference_solution = this->all_parameters->time_refinement_study_param.number_of_timesteps_for_reference_solution;
     const Parameters::AllParameters params_reference = reinit_params_for_reference_solution(number_of_timesteps_for_reference_solution, final_time);
-    std::unique_ptr<FlowSolver::FlowSolver<dim,nstate>> flow_solver_reference = FlowSolver::FlowSolverFactory<dim,nstate>::select_flow_case(&params_reference, this->parameter_handler);
+    std::unique_ptr<FlowSolver::FlowSolver<dim,nspecies,nstate>> flow_solver_reference = FlowSolver::FlowSolverFactory<dim,nspecies,nstate>::select_flow_case(&params_reference, this->parameter_handler);
     static_cast<void>(flow_solver_reference->run());
     
     this->pcout << "   Actual final time: " << flow_solver_reference->ode_solver->current_time << std::endl;
@@ -50,9 +50,9 @@ dealii::LinearAlgebra::distributed::Vector<double> TimeRefinementStudyReference<
     return flow_solver_reference->dg->solution;
 }
 
-template <int dim, int nstate>
-double TimeRefinementStudyReference<dim,nstate>::calculate_L2_error_at_final_time_wrt_reference(
-            std::shared_ptr<DGBase<dim,double>> dg,
+template <int dim, int nspecies, int nstate>
+double TimeRefinementStudyReference<dim,nspecies,nstate>::calculate_L2_error_at_final_time_wrt_reference(
+            std::shared_ptr<DGBase<dim,nspecies,double>> dg,
             const Parameters::AllParameters parameters, 
             const double final_time_actual
             ) const
@@ -85,8 +85,8 @@ double TimeRefinementStudyReference<dim,nstate>::calculate_L2_error_at_final_tim
     
 }
 
-template <int dim, int nstate>
-std::tuple<double,int> TimeRefinementStudyReference<dim,nstate>::process_and_write_conv_tables(std::shared_ptr<FlowSolver::FlowSolver<dim,nstate>> flow_solver, 
+template <int dim, int nspecies, int nstate>
+std::tuple<double,int> TimeRefinementStudyReference<dim,nspecies,nstate>::process_and_write_conv_tables(std::shared_ptr<FlowSolver::FlowSolver<dim,nspecies,nstate>> flow_solver, 
             const Parameters::AllParameters params, 
             double L2_error_old, 
             std::shared_ptr<dealii::ConvergenceTable> convergence_table,
@@ -96,7 +96,7 @@ std::tuple<double,int> TimeRefinementStudyReference<dim,nstate>::process_and_wri
     int testfail = 0;
 
     //pointer to flow_solver_case for computing energy
-    std::unique_ptr<FlowSolver::Periodic1DUnsteady<dim, nstate>> flow_solver_case = std::make_unique<FlowSolver::Periodic1DUnsteady<dim,nstate>>(this->all_parameters);
+    std::unique_ptr<FlowSolver::Periodic1DUnsteady<dim, nspecies, nstate>> flow_solver_case = std::make_unique<FlowSolver::Periodic1DUnsteady<dim,nspecies,nstate>>(this->all_parameters);
     if (params.flow_solver_param.flow_case_type != Parameters::FlowSolverParam::FlowCaseType::periodic_1D_unsteady){
         this->pcout << "ERROR: the TimeRefinementStudyReference class is currently only valid " << std::endl
                     << "for flow_case_type = periodic_1D_unsteady. Aborting..." << std::endl;
@@ -159,8 +159,8 @@ std::tuple<double,int> TimeRefinementStudyReference<dim,nstate>::process_and_wri
 }
 
 
-template <int dim, int nstate>
-int TimeRefinementStudyReference<dim, nstate>::run_test() const
+template <int dim, int nspecies, int nstate>
+int TimeRefinementStudyReference<dim, nspecies, nstate>::run_test() const
 {
     const double expected_order = this->all_parameters->ode_solver_param.rk_order;
 
@@ -168,8 +168,8 @@ int TimeRefinementStudyReference<dim, nstate>::run_test() const
     return testfail;
 }
 
-#if PHILIP_DIM==1
-    template class TimeRefinementStudyReference<PHILIP_DIM,PHILIP_DIM>;
+#if PHILIP_DIM==1 && PHILIP_SPECIES==1
+    template class TimeRefinementStudyReference<PHILIP_DIM, PHILIP_SPECIES,PHILIP_DIM>;
 #endif
 } // Tests namespace
 } // PHiLiP namespace

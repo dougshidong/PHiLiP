@@ -12,7 +12,7 @@ namespace Tests {
 /// Exact entropy waves solution.
 /** Masatsuka2018 section 6.3 & section 7.13.3
  */
-template <int dim, typename real>
+template <int dim, int nspecies, typename real>
 class EulerEntropyWavesFunction : public dealii::Function<dim,real>
 {
 public:
@@ -21,9 +21,9 @@ public:
      *  This sets the public attribute n_components = nstate, which can then be accessed
      *  by all the other functions
      */
-    EulerEntropyWavesFunction (const Physics::Euler<dim, dim+2, real> euler_physics, const real dimensional_density_inf);
+    EulerEntropyWavesFunction (const Physics::Euler<dim, nspecies, dim+2, real> euler_physics, const real dimensional_density_inf);
 
-    const Physics::Euler<dim, dim+2, real> euler_physics; ///< Euler physics.
+    const Physics::Euler<dim, nspecies, dim+2, real> euler_physics; ///< Euler physics.
 
     const real dimensional_density_inf; ///< Dimensional density at infinity.
     real Q_inf; ///< Velocity at infinity.
@@ -59,7 +59,7 @@ private:
 };
 
 /// Performs grid convergence for various polynomial degrees.
-template <int dim, int nstate>
+template <int dim, int nspecies, int nstate>
 class EulerEntropyWaves: public TestsBase
 {
 public:

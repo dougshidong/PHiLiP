@@ -21,8 +21,8 @@ using Eigen::VectorXd;
 Based on the work in Donovan Blais' thesis:
 Goal-Oriented Adaptive Sampling for Projection-Based Reduced-Order Models, 2022
 */
-template <int dim, int nstate>
-class AdaptiveSampling: public AdaptiveSamplingBase<dim,nstate>
+template <int dim, int nspecies, int nstate>
+class AdaptiveSampling: public AdaptiveSamplingBase<dim,nspecies,nstate>
 {
 public:
     /// Constructor
@@ -51,7 +51,7 @@ public:
     void updateNearestExistingROMs(const RowVectorXd& parameter) const;
 
     /// Solve reduced-order solution
-    std::unique_ptr<ProperOrthogonalDecomposition::ROMSolution<dim,nstate>> solveSnapshotROM(const RowVectorXd& parameter) const;
+    std::unique_ptr<ProperOrthogonalDecomposition::ROMSolution<dim,nspecies,nstate>> solveSnapshotROM(const RowVectorXd& parameter) const;
 
     /// Functional value predicted by the rom at each sammpling iteration at parameter location specified in the inputs
     mutable std::vector<double> rom_functional;

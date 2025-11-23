@@ -11,8 +11,8 @@ namespace PHiLiP {
 namespace Tests {
 
 /// Time refinement study which compares to a reference solution
-template <int dim, int nstate>
-class TimeRefinementStudyReference: public GeneralRefinementStudy<dim,nstate>
+template <int dim, int nspecies, int nstate>
+class TimeRefinementStudyReference: public GeneralRefinementStudy<dim,nspecies,nstate>
 {
 public:
     /// Constructor
@@ -30,13 +30,13 @@ protected:
     
     /// Calculate L2 error at the final time in the passed parameters
     double calculate_L2_error_at_final_time_wrt_reference(
-            std::shared_ptr<DGBase<dim,double>> dg,
+            std::shared_ptr<DGBase<dim,nspecies,double>> dg,
             const Parameters::AllParameters parameters, 
             double final_time_actual
             ) const;
     
     /// Calculate the L2 error and return local testfail for the converged flowsolver.
-    std::tuple<double,int> process_and_write_conv_tables(std::shared_ptr<FlowSolver::FlowSolver<dim,nstate>> flow_solver, 
+    std::tuple<double,int> process_and_write_conv_tables(std::shared_ptr<FlowSolver::FlowSolver<dim,nspecies,nstate>> flow_solver, 
             const Parameters::AllParameters params, 
             double L2_error_old, 
             std::shared_ptr<dealii::ConvergenceTable> convergence_table,

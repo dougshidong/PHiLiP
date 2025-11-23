@@ -11,35 +11,35 @@
 namespace PHiLiP {
 namespace Tests {
 
-template <int dim, int nstate>
-ReducedOrder<dim, nstate>::ReducedOrder(const Parameters::AllParameters *const parameters_input,
+template <int dim, int nspecies, int nstate>
+ReducedOrder<dim, nspecies, nstate>::ReducedOrder(const Parameters::AllParameters *const parameters_input,
                                         const dealii::ParameterHandler &parameter_handler_input)
         : TestsBase::TestsBase(parameters_input)
         , parameter_handler(parameter_handler_input)
 {}
 
-template <int dim, int nstate>
-int ReducedOrder<dim, nstate>::run_test() const
+template <int dim, int nspecies, int nstate>
+int ReducedOrder<dim, nspecies, nstate>::run_test() const
 {
     pcout << "Starting reduced-order test..." << std::endl;
 
-    std::unique_ptr<FlowSolver::FlowSolver<dim,nstate>> flow_solver_implicit = FlowSolver::FlowSolverFactory<dim,nstate>::select_flow_case(all_parameters, parameter_handler);
-    auto functional_implicit = FunctionalFactory<dim,nstate,double>::create_Functional(all_parameters->functional_param, flow_solver_implicit->dg);
+    std::unique_ptr<FlowSolver::FlowSolver<dim,nspecies,nstate>> flow_solver_implicit = FlowSolver::FlowSolverFactory<dim,nspecies,nstate>::select_flow_case(all_parameters, parameter_handler);
+    auto functional_implicit = FunctionalFactory<dim,nspecies,nstate,double>::create_Functional(all_parameters->functional_param, flow_solver_implicit->dg);
 
-    std::unique_ptr<FlowSolver::FlowSolver<dim,nstate>> flow_solver_galerkin = FlowSolver::FlowSolverFactory<dim,nstate>::select_flow_case(all_parameters, parameter_handler);
+    std::unique_ptr<FlowSolver::FlowSolver<dim,nspecies,nstate>> flow_solver_galerkin = FlowSolver::FlowSolverFactory<dim,nspecies,nstate>::select_flow_case(all_parameters, parameter_handler);
     auto ode_solver_type = Parameters::ODESolverParam::ODESolverEnum::pod_galerkin_solver;
-    std::shared_ptr<ProperOrthogonalDecomposition::OfflinePOD<dim>> pod_galerkin = std::make_shared<ProperOrthogonalDecomposition::OfflinePOD<dim>>(flow_solver_galerkin->dg);
-    flow_solver_galerkin->ode_solver =  PHiLiP::ODE::ODESolverFactory<dim, double>::create_ODESolver_manual(ode_solver_type, flow_solver_galerkin->dg, pod_galerkin);
+    std::shared_ptr<ProperOrthogonalDecomposition::OfflinePOD<dim,nspecies>> pod_galerkin = std::make_shared<ProperOrthogonalDecomposition::OfflinePOD<dim,nspecies>>(flow_solver_galerkin->dg);
+    flow_solver_galerkin->ode_solver =  PHiLiP::ODE::ODESolverFactory<dim, nspecies, double>::create_ODESolver_manual(ode_solver_type, flow_solver_galerkin->dg, pod_galerkin);
     flow_solver_galerkin->ode_solver->allocate_ode_system();
-    auto functional_galerkin = FunctionalFactory<dim,nstate,double>::create_Functional(all_parameters->functional_param, flow_solver_galerkin->dg);
+    auto functional_galerkin = FunctionalFactory<dim,nspecies,nstate,double>::create_Functional(all_parameters->functional_param, flow_solver_galerkin->dg);
 
 
-    std::unique_ptr<FlowSolver::FlowSolver<dim,nstate>> flow_solver_petrov_galerkin = FlowSolver::FlowSolverFactory<dim,nstate>::select_flow_case(all_parameters, parameter_handler);
+    std::unique_ptr<FlowSolver::FlowSolver<dim,nspecies,nstate>> flow_solver_petrov_galerkin = FlowSolver::FlowSolverFactory<dim,nspecies,nstate>::select_flow_case(all_parameters, parameter_handler);
     ode_solver_type = Parameters::ODESolverParam::ODESolverEnum::pod_petrov_galerkin_solver;
-    std::shared_ptr<ProperOrthogonalDecomposition::OfflinePOD<dim>> pod_petrov_galerkin = std::make_shared<ProperOrthogonalDecomposition::OfflinePOD<dim>>(flow_solver_petrov_galerkin->dg);
-    flow_solver_petrov_galerkin->ode_solver =  PHiLiP::ODE::ODESolverFactory<dim, double>::create_ODESolver_manual(ode_solver_type, flow_solver_petrov_galerkin->dg, pod_petrov_galerkin);
+    std::shared_ptr<ProperOrthogonalDecomposition::OfflinePOD<dim,nspecies>> pod_petrov_galerkin = std::make_shared<ProperOrthogonalDecomposition::OfflinePOD<dim,nspecies>>(flow_solver_petrov_galerkin->dg);
+    flow_solver_petrov_galerkin->ode_solver =  PHiLiP::ODE::ODESolverFactory<dim, nspecies, double>::create_ODESolver_manual(ode_solver_type, flow_solver_petrov_galerkin->dg, pod_petrov_galerkin);
     flow_solver_petrov_galerkin->ode_solver->allocate_ode_system();
-    auto functional_petrov_galerkin = FunctionalFactory<dim,nstate,double>::create_Functional(all_parameters->functional_param, flow_solver_petrov_galerkin->dg);
+    auto functional_petrov_galerkin = FunctionalFactory<dim,nspecies,nstate,double>::create_Functional(all_parameters->functional_param, flow_solver_petrov_galerkin->dg);
 
     flow_solver_implicit->run();
     flow_solver_galerkin->ode_solver->steady_state();
@@ -69,12 +69,12 @@ int ReducedOrder<dim, nstate>::run_test() const
     }
 }
 
-#if PHILIP_DIM==1
-        template class ReducedOrder<PHILIP_DIM, PHILIP_DIM>;
+#if PHILIP_DIM==1 && PHILIP_SPECIES==1
+        template class ReducedOrder<PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM>;
 #endif
 
-#if PHILIP_DIM!=1
-        template class ReducedOrder<PHILIP_DIM, PHILIP_DIM+2>;
+#if PHILIP_DIM!=1 && PHILIP_SPECIES==1
+        template class ReducedOrder<PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2>;
 #endif
 } // Tests namespace
 } // PHiLiP namespace

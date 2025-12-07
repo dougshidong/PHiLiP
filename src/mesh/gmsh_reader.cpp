@@ -1258,6 +1258,11 @@ read_gmsh(std::string filename,
     const int mpi_rank = dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD);
     dealii::ConditionalOStream pcout(std::cout, mpi_rank==0);
 
+    if(!do_renumber_dofs) {
+        pcout << "GMSH reader requires do_renumber_dofs==true. Aborting..." << std::endl;
+        std::abort();
+    }
+
 //    Assert(dim==2, dealii::ExcInternalError());
     std::ifstream infile;
 

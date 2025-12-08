@@ -1258,6 +1258,8 @@ read_gmsh(std::string filename,
     const int mpi_rank = dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD);
     dealii::ConditionalOStream pcout(std::cout, mpi_rank==0);
 
+    // read_gmsh creates a ptr to HighOrderGrid which has renumber_dof_handler_Cuthill_Mckee_input hardcoded to true
+    // If the user passes in do_renumber_dofs==false, it conflicts with the hardcoding in high_order_grid.h which causes a segfault.
     if(!do_renumber_dofs) {
         pcout << "GMSH reader requires do_renumber_dofs==true. Aborting..." << std::endl;
         std::abort();

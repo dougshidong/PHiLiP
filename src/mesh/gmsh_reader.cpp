@@ -1368,7 +1368,7 @@ read_gmsh(std::string filename,
         triangulation = std::make_shared<Triangulation>(MPI_COMM_WORLD); // Dealii's default mesh smoothing flag is none. 
     }
 
-    auto high_order_grid = std::make_shared<HighOrderGrid<dim, double>>(grid_order, triangulation);
+    auto high_order_grid = std::make_shared<HighOrderGrid<dim, double>>(grid_order, triangulation, true, do_renumber_dofs, true);
   
     unsigned int n_entity_blocks, n_cells;
     int min_ele_tag, max_ele_tag;

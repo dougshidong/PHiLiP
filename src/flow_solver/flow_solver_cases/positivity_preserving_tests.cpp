@@ -83,8 +83,8 @@ void PositivityPreservingTests<dim, nstate>::check_positivity_density(DGBase<dim
     const unsigned int init_grid_degree = dg.max_grid_degree;
     const unsigned int poly_degree = this->all_param.flow_solver_param.poly_degree;
     //Constructor for the operators
-    OPERATOR::basis_functions<dim, 2 * dim, double> soln_basis(1, poly_degree, init_grid_degree);
-    OPERATOR::vol_projection_operator<dim, 2 * dim, double> soln_basis_projection_oper(1, dg.max_degree, init_grid_degree);
+    OPERATOR::basis_functions<dim, 2 * dim> soln_basis(1, poly_degree, init_grid_degree);
+    OPERATOR::vol_projection_operator<dim, 2 * dim> soln_basis_projection_oper(1, dg.max_degree, init_grid_degree);
 
 
     // Build the oneD operator to perform interpolation/projection
@@ -173,8 +173,8 @@ double PositivityPreservingTests<dim, nstate>::compute_integrated_entropy(DGBase
     unsigned int n_quad_pts = dg.volume_quadrature_collection[poly_degree].size();
 
     // Construct the basis functions and mapping shape functions.
-    OPERATOR::basis_functions<dim,2*dim,double> soln_basis(1, poly_degree, grid_degree); 
-    OPERATOR::mapping_shape_functions<dim,2*dim,double> mapping_basis(1, poly_degree, grid_degree);
+    OPERATOR::basis_functions<dim,2*dim> soln_basis(1, poly_degree, grid_degree); 
+    OPERATOR::mapping_shape_functions<dim,2*dim> mapping_basis(1, poly_degree, grid_degree);
     // Build basis function volume operator from 1D finite element for 1 state.
     soln_basis.build_1D_volume_operator(dg.oneD_fe_collection_1state[poly_degree], quad_1D);
     // Build mapping shape functions operators using the oneD high_ordeR_grid finite element

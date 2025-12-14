@@ -365,11 +365,10 @@ void PositivityPreservingLimiter<dim, nstate, real>::limit(
     // Construct 1D Quad Points
     dealii::QGauss<1> oneD_quad_GL(max_degree + 1);
     dealii::QGaussLobatto<1> oneD_quad_GLL(max_degree + 1);
-
     // Constructor for the operators
-    OPERATOR::basis_functions<dim, 2 * dim, real> soln_basis_GLL(1, max_degree, init_grid_degree);
+    OPERATOR::basis_functions<dim, 2 * dim> soln_basis_GLL(1, max_degree, init_grid_degree);
     soln_basis_GLL.build_1D_volume_operator(oneD_fe_collection_1state[max_degree], oneD_quad_GLL);
-    OPERATOR::basis_functions<dim, 2 * dim, real> soln_basis_GL(1, max_degree, init_grid_degree);
+    OPERATOR::basis_functions<dim, 2 * dim> soln_basis_GL(1, max_degree, init_grid_degree);
     soln_basis_GL.build_1D_volume_operator(oneD_fe_collection_1state[max_degree], oneD_quad_GL);
 
     for (auto soln_cell : dof_handler.active_cell_iterators()) {

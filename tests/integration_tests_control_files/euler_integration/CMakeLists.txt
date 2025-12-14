@@ -277,6 +277,22 @@ set_tests_labels(MPI_3D_EULER_INTEGRATION_GAUSSIAN_BUMP     EULER_INTEGRATION
                                                             QUICK
                                                             INTEGRATION_TEST)
 
+configure_file(3d_euler_gaussian_bump_strong.prm 3d_euler_gaussian_bump_strong.prm COPYONLY)
+add_test(
+  NAME MPI_3D_EULER_INTEGRATION_GAUSSIAN_BUMP_STRONG_ENTROPY_STABLE
+  COMMAND mpirun -np ${MPIMAX} ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_3D -i ${CMAKE_CURRENT_BINARY_DIR}/3d_euler_gaussian_bump_strong.prm
+  WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
+)
+set_tests_labels(MPI_3D_EULER_INTEGRATION_GAUSSIAN_BUMP_STRONG_ENTROPY_STABLE     EULER_INTEGRATION
+                                                                                  3D
+                                                                                  PARALLEL
+                                                                                  EULER
+                                                                                  IMPLICIT
+                                                                                  STRONG
+                                                                                  UNCOLLOCATED
+                                                                                  QUICK
+                                                                                  INTEGRATION_TEST)
+
 ##Artificial dissipation tests
 configure_file(2d_euler_gaussian_bump_with_artificial_dissipation_laplacian_residual_convergence_test.prm 2d_euler_gaussian_bump_with_artificial_dissipation_laplacian_residual_convergence_test.prm COPYONLY)
 add_test(

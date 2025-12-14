@@ -28,12 +28,12 @@ const double TOLERANCE = 1E-6;
 using namespace std;
 //namespace PHiLiP {
 
-template <int dim, int nstate,typename real>
+template <int dim, int nstate>
 void assemble_weak_auxiliary_volume(
     std::shared_ptr < PHiLiP::DGStrong<dim,nstate,double> > &dg,
     const std::vector<dealii::types::global_dof_index> &current_dofs_indices,
     const unsigned int poly_degree,
-    PHiLiP::OPERATOR::basis_functions<dim,2*dim,real> &soln_basis,
+    PHiLiP::OPERATOR::basis_functions<dim,2*dim> &soln_basis,
     PHiLiP::OPERATOR::metric_operators<double,dim,2*dim> &metric_oper,
     std::vector<dealii::Tensor<1,dim,double>> &local_auxiliary_RHS)
 {
@@ -87,7 +87,7 @@ void assemble_weak_auxiliary_volume(
         }
     }
 }
-template <int dim, int nstate,typename real>
+template <int dim, int nstate>
 void assemble_face_term_auxiliary_weak(
     std::shared_ptr < PHiLiP::DGStrong<dim,nstate,double> > &dg,
     const unsigned int iface, const unsigned int neighbor_iface,
@@ -100,8 +100,8 @@ void assemble_face_term_auxiliary_weak(
     const unsigned int n_face_quad_pts,
     const std::vector<dealii::types::global_dof_index> &dof_indices_int,
     const std::vector<dealii::types::global_dof_index> &dof_indices_ext,
-    PHiLiP::OPERATOR::basis_functions<dim,2*dim,real> &soln_basis_int,
-    PHiLiP::OPERATOR::basis_functions<dim,2*dim,real> &soln_basis_ext,
+    PHiLiP::OPERATOR::basis_functions<dim,2*dim> &soln_basis_int,
+    PHiLiP::OPERATOR::basis_functions<dim,2*dim> &soln_basis_ext,
     PHiLiP::OPERATOR::metric_operators<double,dim,2*dim> &metric_oper_int,
     std::vector<dealii::Tensor<1,dim,double>> &local_auxiliary_RHS_int,
     std::vector<dealii::Tensor<1,dim,double>> &local_auxiliary_RHS_ext)
@@ -327,16 +327,16 @@ int main (int argc, char * argv[])
             auto metric_cell = dg->high_order_grid->dof_handler_grid.begin_active();
              
             //build 1D reference operators
-            PHiLiP::OPERATOR::mapping_shape_functions<dim,2*dim,real> mapping_basis(dg->nstate, poly_degree, 1);
+            PHiLiP::OPERATOR::mapping_shape_functions<dim,2*dim> mapping_basis(dg->nstate, poly_degree, 1);
             mapping_basis.build_1D_shape_functions_at_grid_nodes(dg->high_order_grid->oneD_fe_system, dg->high_order_grid->oneD_grid_nodes);
             mapping_basis.build_1D_shape_functions_at_flux_nodes(dg->high_order_grid->oneD_fe_system, dg->oneD_quadrature_collection[poly_degree], dg->oneD_face_quadrature);
              
-            PHiLiP::OPERATOR::basis_functions<dim,2*dim,real> basis(dg->nstate, dg->max_degree, dg->max_grid_degree);
+            PHiLiP::OPERATOR::basis_functions<dim,2*dim> basis(dg->nstate, dg->max_degree, dg->max_grid_degree);
             basis.build_1D_volume_operator(dg->oneD_fe_collection_1state[dg->max_degree], dg->oneD_quadrature_collection[dg->max_degree]);
             basis.build_1D_gradient_operator(dg->oneD_fe_collection_1state[dg->max_degree], dg->oneD_quadrature_collection[dg->max_degree]);
             basis.build_1D_surface_operator(dg->oneD_fe_collection_1state[dg->max_degree], dg->oneD_face_quadrature);
 
-            PHiLiP::OPERATOR::basis_functions<dim,2*dim,real> flux_basis(dg->nstate, dg->max_degree, dg->max_grid_degree);
+            PHiLiP::OPERATOR::basis_functions<dim,2*dim> flux_basis(dg->nstate, dg->max_degree, dg->max_grid_degree);
             flux_basis.build_1D_volume_operator(dg->oneD_fe_collection_flux[dg->max_degree], dg->oneD_quadrature_collection[dg->max_degree]);
             flux_basis.build_1D_gradient_operator(dg->oneD_fe_collection_flux[dg->max_degree], dg->oneD_quadrature_collection[dg->max_degree]);
             flux_basis.build_1D_surface_operator(dg->oneD_fe_collection_flux[dg->max_degree], dg->oneD_face_quadrature);
@@ -373,12 +373,24 @@ int main (int argc, char * argv[])
                 current_cell->get_dof_indices (current_dofs_indices);
                 const dealii::types::global_dof_index current_cell_index = current_cell->active_cell_index();
 
-                std::vector<dealii::Tensor<1,dim,real>> rhs_strong(n_dofs_cell);
+                dealii::Tensor<1,dim,std::vector<real>> rhs_strong;
+                for(int idim=0; idim<dim; idim++){
+                    rhs_strong[idim].resize(n_dofs_cell);
+                }
                 std::vector<dealii::Tensor<1,dim,real>> rhs_weak(n_dofs_cell);
+                const unsigned int n_shape_fns = n_dofs_cell / (PHILIP_DIM+2);
+                std::array<std::vector<real>,PHILIP_DIM+2> soln_coeff;
+                for (unsigned int idof = 0; idof < n_dofs_cell; ++idof) {
+                    const unsigned int istate = dg->fe_collection[poly_degree].system_to_component_index(idof).first;
+                    const unsigned int ishape = dg->fe_collection[poly_degree].system_to_component_index(idof).second;
+                    if(ishape == 0)
+                        soln_coeff[istate].resize(n_shape_fns);
+                    soln_coeff[istate][ishape] = dg->solution[current_dofs_indices[idof]];
+                }
 
                 //assemble DG strong rhs auxiliary
-                dg->assemble_volume_term_auxiliary_equation (
-                    current_dofs_indices,
+                dg->assemble_volume_term_auxiliary_equation<double> (
+                    soln_coeff,
                     poly_degree,
                     basis,
                     flux_basis,
@@ -396,7 +408,10 @@ int main (int argc, char * argv[])
                 //loop over faces
                 for (unsigned int iface=0; iface < dealii::GeometryInfo<dim>::faces_per_cell; ++iface) {
                     const auto neighbor_cell = current_cell->neighbor_or_periodic_neighbor(iface);
-                    std::vector<dealii::Tensor<1,dim,real>> rhs_ext_strong(n_dofs_cell);
+                    dealii::Tensor<1,dim,std::vector<real>> rhs_ext_strong;
+                    for(int idim=0; idim<dim; idim++){
+                        rhs_ext_strong[idim].resize(n_dofs_cell);
+                    }
                     std::vector<dealii::Tensor<1,dim,real>> rhs_ext_weak(n_dofs_cell);
 
                     //get facet metric operators
@@ -412,15 +427,28 @@ int main (int argc, char * argv[])
                     neighbor_dofs_indices.resize(n_dofs_cell);
                     neighbor_cell->get_dof_indices (neighbor_dofs_indices);
                     const dealii::types::global_dof_index neighbor_cell_index = neighbor_cell->active_cell_index();
+
+                    // Extract exterior modal coefficients of solution
+                    std::array<std::vector<real>,(PHILIP_DIM+2)> soln_coeff_ext;
+                    for (unsigned int idof = 0; idof < n_dofs_cell; ++idof) {
+                        const unsigned int istate = dg->fe_collection[poly_degree].system_to_component_index(idof).first;
+                        const unsigned int ishape = dg->fe_collection[poly_degree].system_to_component_index(idof).second;
+                        if(ishape == 0){
+                            soln_coeff_ext[istate].resize(n_shape_fns);
+                        }
+                        soln_coeff_ext[istate][ishape] = dg->solution[neighbor_dofs_indices[idof]];
+                    }
                      
                     //evaluate facet auxiliary RHS
-                    dg->assemble_face_term_auxiliary_equation (
+                    dg->assemble_face_term_auxiliary_equation<double> (
                         iface, neighbor_iface, 
                         current_cell_index, neighbor_cell_index,
+                        soln_coeff, soln_coeff_ext,
                         poly_degree, poly_degree,
-                        current_dofs_indices, neighbor_dofs_indices,
                         basis, basis,
                         metric_oper,
+                        *dg->pde_physics_double,
+                        *dg->diss_num_flux_double,
                         rhs_strong, rhs_ext_strong);
                      
                     const unsigned int n_face_quad_pts = dg->face_quadrature_collection[poly_degree].size();//assume interior cell does the work
@@ -441,7 +469,7 @@ int main (int argc, char * argv[])
 
                     for(unsigned int idof=0; idof<n_dofs_cell; idof++){
                         for(int idim=0; idim<dim; idim++){
-                            if(std::abs(rhs_ext_strong[idof][idim]-rhs_ext_weak[idof][idim])>1e-13){
+                            if(std::abs(rhs_ext_strong[idim][idof]-rhs_ext_weak[idof][idim])>1e-13){
                                 pcout<<"The strong external cell face RHS is not correct."<<std::endl;
                                 return 1;
                             }
@@ -454,7 +482,7 @@ int main (int argc, char * argv[])
 
                 for(unsigned int idof=0; idof<n_dofs_cell; idof++){
                     for(int idim=0; idim<dim; idim++){
-                        if(std::abs(rhs_strong[idof][idim]-rhs_weak[idof][idim])>1e-13){
+                        if(std::abs(rhs_strong[idim][idof]-rhs_weak[idof][idim])>1e-13){
                             pcout<<"The strong and weak RHS are not equivalent interior cell."<<std::endl;
                             return 1;
                         }

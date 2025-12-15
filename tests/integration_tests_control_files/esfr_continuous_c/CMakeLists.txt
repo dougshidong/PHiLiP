@@ -42,6 +42,7 @@ set_tests_labels(1D_BURGERS_OOA_ESFR_RANGE_LONG  					    ESFR_CONTINUOUS_C
                                                                                             1D
                                                                                             SERIAL
                                                                                             BURGERS_INVISCID
+                                                                                            REFINEMENT_STUDY
                                                                                             RUNGE-KUTTA
                                                                                             STRONG-SPLIT
                                                                                             COLLOCATED

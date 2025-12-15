@@ -50,6 +50,29 @@ inline real ExactSolutionFunction_1DSine<dim,nstate,real>
 }
 
 // ========================================================
+// 1D SINE -- Exact solution for burgers 1D sine manufactured solution
+// ========================================================
+template <int dim, int nstate, typename real>
+ExactSolutionFunction_BurgersInviscidManufactured<dim,nstate,real>
+::ExactSolutionFunction_BurgersInviscidManufactured(double time_compare)
+        : ExactSolutionFunction<dim,nstate,real>()
+        , t(time_compare)
+{
+}
+
+template <int dim, int nstate, typename real>
+inline real ExactSolutionFunction_BurgersInviscidManufactured<dim,nstate,real>
+::value(const dealii::Point<dim,real> &point, const unsigned int /*istate*/) const
+{
+    real value = 0;
+    real pi = dealii::numbers::PI;
+    if(point[0] >= 0.0 && point[0] <= 2.0){
+        value = cos(pi*(point[0] - t));
+    }
+    return value;
+}
+
+// ========================================================
 // Inviscid Isentropic Vortex 
 // ========================================================
 template <int dim, int nstate, typename real>
@@ -128,6 +151,8 @@ ExactSolutionFactory<dim,nstate, real>::create_ExactSolutionFunction(
         if constexpr (dim==1 && nstate==dim)  return std::make_shared<ExactSolutionFunction_1DSine<dim,nstate,real> > (time_compare);
     } else if (flow_type == FlowCaseEnum::isentropic_vortex){
         if constexpr (dim>1 && nstate==dim+2)  return std::make_shared<ExactSolutionFunction_IsentropicVortex<dim,nstate,real> > (time_compare);
+    } else if (flow_type == FlowCaseEnum::burgers_inviscid){
+        if constexpr (dim==1 && nstate==dim)  return std::make_shared<ExactSolutionFunction_BurgersInviscidManufactured<dim,nstate,real> > (time_compare);
     } else {
         // Select zero function if there is no exact solution defined
         dealii::ConditionalOStream pcout(std::cout, dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD)==0);

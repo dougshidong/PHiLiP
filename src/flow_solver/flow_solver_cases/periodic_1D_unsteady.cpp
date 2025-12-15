@@ -68,7 +68,7 @@ void Periodic1DUnsteady<dim, nstate>::compute_unsteady_data_and_write_to_table(
     else if (pde_type == PDEEnum::burgers_inviscid){
         const double energy = this->compute_energy(dg);
     
-        if ((current_iteration % output_solution_every_n_iterations) == 0){
+        if (output_solution_every_n_iterations > 0  && (current_iteration % output_solution_every_n_iterations) == 0){
             this->pcout << "    Iter: " << current_iteration
                         << "    Time: " << current_time
                         << "    Energy: " << energy

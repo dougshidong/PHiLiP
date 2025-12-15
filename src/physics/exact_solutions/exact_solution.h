@@ -62,6 +62,26 @@ public:
     real value (const dealii::Point<dim,real> &point, const unsigned int istate = 0) const override;
 };
 
+/// Exact Solution Function: 1D periodic manufactured solution
+template <int dim, int nstate, typename real>
+class ExactSolutionFunction_BurgersInviscidManufactured
+        : public ExactSolutionFunction<dim,nstate,real>
+{
+protected:
+    using dealii::Function<dim,real>::value; ///< dealii::Function we are templating on
+
+public:
+    /// Constructor for ExactSolutionFunction_1DSine
+    /** Calls the Function(const unsigned int n_components) constructor in deal.II*/
+    explicit ExactSolutionFunction_BurgersInviscidManufactured (double time_compare);
+
+    /// Time at which to compute the exact solution
+    const double t; 
+
+    /// Value of the exact solution at a point 
+    real value (const dealii::Point<dim,real> &point, const unsigned int istate = 0) const override;
+};
+
 /// Exact Solution Function: Isentropic vortex 
 template <int dim, int nstate, typename real>
 class ExactSolutionFunction_IsentropicVortex

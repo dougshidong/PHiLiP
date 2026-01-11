@@ -1277,9 +1277,10 @@ void DGBase<dim,real,MeshType>::assemble_residual (const bool compute_dRdW, cons
             timer.stop();
             assemble_residual_time += timer.cpu_time();
         }
-    // } catch(...) {
-    //     assembly_error = 1;
-    // }
+    } catch(...) {
+        assembly_error = 1;
+    }
+    // NOTE: To debug the code with gdb, the above 3 lines `catch(...)` may need to be commented out
     const int mpi_assembly_error = dealii::Utilities::MPI::sum(assembly_error, mpi_communicator);
 
     if (mpi_assembly_error != 0) {

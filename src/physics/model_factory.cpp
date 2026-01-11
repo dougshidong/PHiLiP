@@ -240,6 +240,8 @@ ModelFactory<dim,nstate,real>
             } 
             else {
                 // LES does not exist for nstate!=(dim+2) || dim!=3
+                std::cout << "Can't create LES for nstate!=(dim+2) or dim!=3" << std::endl;
+                assert(0==1 && "Can't create LES for nstate!=(dim+2) or dim!=3");
                 manufactured_solution_function = nullptr;
                 return nullptr;
             }
@@ -271,6 +273,8 @@ ModelFactory<dim,nstate,real>
                     parameters_input->two_point_num_flux_type);
             } else {
                 // Navier-Stokes model does not exist for nstate!=(dim+2) || dim!=3
+                std::cout << "Can't create Navier-Stokes model for nstate!=(dim+2) or dim!=3" << std::endl;
+                assert(0==1 && "Can't create Navier-Stokes model for nstate!=(dim+2) or dim!=3");
                 manufactured_solution_function = nullptr;
                 return nullptr;
             }
@@ -307,6 +311,8 @@ ModelFactory<dim,nstate,real>
                 }
                 else {
                     // SA negative does not exist for nstate!=(dim+3)
+                    std::cout << "Can't create RANS for nstate!=(dim+2) or dim!=3" << std::endl;
+                    assert(0==1 && "Can't create RANS for nstate!=(dim+2) or dim!=3");
                     manufactured_solution_function = nullptr;
                     return nullptr;
                 }   

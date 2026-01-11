@@ -362,7 +362,7 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       "Tolerance for checking that the determinant of surface jacobians at element faces matches. "
                       "Note: Currently only used in weak dg.");
 
-    prm.declare_entry("wall_model_input_from_second_element", "false",// TO DO: change to true for final PR
+    prm.declare_entry("wall_model_input_from_second_element", "true",
                       dealii::Patterns::Bool(),
                       "Flag for using second element as wall model input. If false, uses buffer (i.e. wall-adjacent) element.");
 

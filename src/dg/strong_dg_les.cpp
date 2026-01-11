@@ -271,6 +271,7 @@ void DGStrongLES_ShearImproved<dim,nstate,real,MeshType>::update_cellwise_mean_q
         std::array<std::vector<real>,nstate> legendre_soln_at_q_vect;
         std::array<dealii::Tensor<1,dim,std::vector<real>>,nstate> legendre_aux_soln_at_q_vect; // legendre auxiliary sol at flux nodes
         if(this->do_compute_filtered_solution) {
+            // NOTE: This only pertains to advanced SGS models for LES
             const unsigned int p_min_filtered = this->poly_degree_max_large_scales + 1;
             //==================================================
             // GET THE PRIMITIVE SOLUTION

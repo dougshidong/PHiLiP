@@ -954,6 +954,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_volume_term_strong(
     std::array<std::vector<real>,nstate> legendre_soln_at_q;
     std::array<dealii::Tensor<1,dim,std::vector<real>>,nstate> legendre_aux_soln_at_q; // legendre auxiliary sol at flux nodes
     if(this->do_compute_filtered_solution) {
+        // NOTE: This only pertains to advanced SGS models for LES
         //==================================================
         // GET THE PRIMITIVE SOLUTION
         //==================================================
@@ -1607,6 +1608,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_boundary_term_strong(
     std::array<std::vector<real>,nstate> legendre_soln_at_surf_q;
     std::array<dealii::Tensor<1,dim,std::vector<real>>,nstate> legendre_aux_soln_at_surf_q; // legendre auxiliary sol at flux nodes
     if(this->do_compute_filtered_solution) {
+        // NOTE: This only pertains to advanced SGS models for LES
         //==================================================
         // GET THE PRIMITIVE SOLUTION
         //==================================================
@@ -2388,6 +2390,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_strong(
     std::array<std::vector<real>,nstate> legendre_soln_at_surf_q_ext;
     std::array<dealii::Tensor<1,dim,std::vector<real>>,nstate> legendre_aux_soln_at_surf_q_ext; // legendre auxiliary sol at flux nodes
     if(this->do_compute_filtered_solution) {
+        // NOTE: This only pertains to advanced SGS models for LES
         //==================================================
         // GET THE PRIMITIVE SOLUTION
         //==================================================

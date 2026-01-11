@@ -565,6 +565,7 @@ class WallModelLookUpTable
 {
     /** Number of different computed quantities
      *  Corresponds to the number of items in IntegratedQuantitiesEnum
+     * Reference: Page 31-32 of Julien Brillon's thesis available at https://escholarship.mcgill.ca/concern/theses/h989r903p
      * */
     static const int NUMBER_OF_SAMPLE_POINTS = 38;
     ///< x and y data for the look up table

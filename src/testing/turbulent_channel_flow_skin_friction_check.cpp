@@ -303,7 +303,7 @@ int TurbulentChannelFlowSkinFrictionCheck<dim, nstate>::run_test() const
     const double percent_emperical_estimate_error = 100.0*abs(computed_skin_friction_coefficient - emperical_estimate_for_skin_friction_coefficient)/emperical_estimate_for_skin_friction_coefficient;
     pcout << "percent error with computed is " << percent_emperical_estimate_error << " %" << std::endl;
     if(percent_emperical_estimate_error > 30.0) {
-        pcout << "Warning: considerable difference with emperical estimate for skin friction coefficient value." << std::endl;
+        pcout << "Warning: considerable difference with empirical estimate for skin friction coefficient value." << std::endl;
     }
     pcout << std::endl;
     

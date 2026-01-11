@@ -65,7 +65,7 @@ public:
         const bool on_boundary,
         const dealii::types::global_dof_index cell_index,
         const dealii::Tensor<1,dim,real> &normal,
-        const int boundary_type) const;
+        const int boundary_type) const override;
 
     /// Convective eigenvalues of the additional models' PDEs
     /** For RANS model, all entries associated with RANS are assigned to be zero 

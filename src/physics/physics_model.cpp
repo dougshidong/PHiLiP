@@ -315,6 +315,8 @@ std::array<real,nstate> PhysicsModel<dim, nstate, real, nstate_baseline_physics>
         entropy_var = physics_baseline->compute_entropy_variables(conservative_soln);
     } else {
         // TO DO, make use of the physics_model object for nstate>nstate_baseline_physics
+        pcout << "Error: compute_entropy_variables() not implemented for nstate!=nstate_baseline_physics." << std::endl;
+        pcout << "Aborting..." << std::endl;
         std::abort();
     }
     return entropy_var;
@@ -330,6 +332,8 @@ std::array<real,nstate> PhysicsModel<dim, nstate, real, nstate_baseline_physics>
         conservative_soln = physics_baseline->compute_conservative_variables_from_entropy_variables(entropy_var);
     } else {
         // TO DO, make use of the physics_model object for nstate>nstate_baseline_physics
+        pcout << "Error: compute_conservative_variables_from_entropy_variables() not implemented for nstate!=nstate_baseline_physics." << std::endl;
+        pcout << "Aborting..." << std::endl;
         std::abort();
     }
     return conservative_soln;
@@ -457,6 +461,8 @@ void PhysicsModel<dim,nstate,real,nstate_baseline_physics>
             soln_bc[s] += baseline_soln_bc[s];
             soln_grad_bc[s] += baseline_soln_grad_bc[s];
         }
+        pcout << "Error: boundary_face_values_viscous_flux() not implemented for nstate!=nstate_baseline_physics." << std::endl;
+        pcout << "Aborting..." << std::endl;
         std::abort(); // <-- TO DO NOT IMPLEMENTED YET
     }
 }

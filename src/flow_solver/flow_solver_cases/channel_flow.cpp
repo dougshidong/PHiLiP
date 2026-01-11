@@ -90,7 +90,7 @@ void ChannelFlow<dim, nstate>::compute_unsteady_data_and_write_to_table(
                 << "    BulkMassFlow: " << this->bulk_mass_flow_rate
                 << std::endl;
 
-    // TO DO: print t/2pi and Re_b calculated to track the convergence of the flow; add these to the table
+    // NOTE: Would be good to print t/2pi and Re_b calculated to track the convergence of the flow; add these to the table
 
     // Abort if average_wall_shear_stress is nan
     if(std::isnan(average_wall_shear_stress)) {
@@ -288,7 +288,7 @@ std::shared_ptr<Triangulation> ChannelFlow<dim,nstate>::generate_grid() const
 {
     // // uncomment this to use the gmsh reader
     // // Dummy triangulation
-    // // TO DO: Avoid reading the mesh twice (here and in set_high_order_grid -- need a default dummy triangulation)
+    // // NOTE: Avoid reading the mesh twice (here and in set_high_order_grid -- need a default dummy triangulation)
     // const std::string mesh_filename = this->all_param.flow_solver_param.input_mesh_filename+std::string(".msh");
     // const bool use_mesh_smoothing = false;
     // const int grid_order = 0;
@@ -568,7 +568,7 @@ void ChannelFlow<dim, nstate>::set_bulk_flow_quantities(DGBase<dim, double> &dg)
     std::fill(integral_values.begin(), integral_values.end(), 0.0);
 
     // Overintegrate the error to make sure there is not integration error in the error estimate
-    int overintegrate = 10; // TO DO: could reduce this to reduce computational cost
+    int overintegrate = 10; // NOTE: could reduce this to reduce computational cost
     dealii::QGauss<dim> quad_extra(dg.max_degree+1+overintegrate);
     dealii::FEValues<dim,dim> fe_values_extra(*(dg.high_order_grid->mapping_fe_field), dg.fe_collection[dg.max_degree], quad_extra,
                                               dealii::update_values /*| dealii::update_gradients*/ | dealii::update_JxW_values | dealii::update_quadrature_points);

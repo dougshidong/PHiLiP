@@ -1370,6 +1370,7 @@ void NavierStokes<dim,nstate,real>
     using thermal_boundary_condition_enum = Parameters::NavierStokesParam::ThermalBoundaryCondition;
 
     // No-slip wall boundary conditions
+    // Reference: Page 48 of Julien Brillon's thesis available at https://escholarship.mcgill.ca/concern/theses/h989r903p
 
     // Apply boundary conditions:
     // -- solution at boundary

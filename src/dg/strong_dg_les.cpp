@@ -48,7 +48,9 @@ void DGStrongLES<dim,nstate,real,MeshType>::update_model_variables()
     // allocate/reinit the model variables
     allocate_model_variables();
 
-    // TO DO: should only call this once if no hp-adaptation
+    /* NOTE: While not essential, the function update_cellwise_volume_and_poly_degree() 
+             could only be called once if no hp-adaptation
+    */
     update_cellwise_volume_and_poly_degree();
 
     // update the cellwise mean quantities
@@ -941,7 +943,7 @@ void DGStrong_ChannelFlow<dim,nstate,real,MeshType>::set_bulk_flow_quantities()
     std::fill(integral_values.begin(), integral_values.end(), 0.0);
 
     // Overintegrate the error to make sure there is not integration error in the error estimate
-    int overintegrate = 10; // TO DO: could reduce this to reduce computational cost
+    int overintegrate = 10; // NOTE: could reduce this to reduce computational cost
     dealii::QGauss<dim> quad_extra(this->max_degree+1+overintegrate);
     dealii::FEValues<dim,dim> fe_values_extra(*(this->high_order_grid->mapping_fe_field), this->fe_collection[this->max_degree], quad_extra,
                                               dealii::update_values /*| dealii::update_gradients*/ | dealii::update_JxW_values | dealii::update_quadrature_points);

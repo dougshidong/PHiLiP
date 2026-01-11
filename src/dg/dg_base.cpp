@@ -1229,7 +1229,7 @@ void DGBase<dim,real,MeshType>::assemble_residual (const bool compute_dRdW, cons
 
 
     int assembly_error = 0;
-    // try {
+    try {
 
         // update artificial dissipation discontinuity sensor only if using artificial dissipation
         if(all_parameters->artificial_dissipation_param.add_artificial_dissipation) update_artificial_dissipation_discontinuity_sensor();

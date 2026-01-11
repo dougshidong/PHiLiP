@@ -142,6 +142,10 @@ real2 NavierStokes<dim,nstate,real>
     const std::array<dealii::Tensor<1,dim,real2>,nstate> primitive_soln_gradient
                  = this->template convert_conservative_gradient_to_primitive_gradient_templated<real2>(conservative_soln,conservative_soln_gradient);
     
+    /* NOTE: The following commented code has been left here as it includes different
+             expressions for computing this quantity which may be helpful to someone
+             in future work
+    */
     // const dealii::Tensor<2,dim,real2> velocities_gradient = extract_velocities_gradient_from_primitive_solution_gradient<real2>(primitive_soln_gradient);
     /*
     // - compute normal velocity gradient

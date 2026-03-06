@@ -72,7 +72,7 @@ std::shared_ptr<Triangulation> Airfoil_3D_LES<dim,nstate>::generate_grid() const
         return grid;
     } 
     else if constexpr(dim==3) {
-        const std::string mesh_filename = this->all_param.flow_solver_param.input_mesh_filename+std::string(".msh");
+        const std::string mesh_filename = this->all_param.flow_solver_pazram.input_mesh_filename+std::string(".msh");
         const bool use_mesh_smoothing = false;
         std::shared_ptr<HighOrderGrid<dim,double>> airfoil_mesh = read_gmsh<dim, dim> (mesh_filename, 
                 this->all_param.flow_solver_param.use_periodic_BC_in_x, 
@@ -212,7 +212,7 @@ void Airfoil_3D_LES<dim, nstate>::compute_Reynolds_stress(
     const std::shared_ptr <DGBase<dim, double>> dg,
     const double time_step)
 {
-    if((ode_solver->current_time > this->all_param.flow_solver_param.time_to_start_averaging) && (ode_solver->current_time >= this->all_param.flow_solver_param.time_to_start_computing_Reynolds_stress)){
+    if((ode_solver->current_time > this->all_param.flow_solver_param.time_to_start_averaging) && (ode_solver->current_time+time_step > this->all_param.flow_solver_param.time_to_start_computing_Reynolds_stress)){
         const unsigned int max_dofs_per_cell = dg->dof_handler.get_fe_collection().max_dofs_per_cell();
         std::vector<dealii::types::global_dof_index> current_dofs_indices(max_dofs_per_cell);
         auto metric_cell = dg->high_order_grid->dof_handler_grid.begin_active();
@@ -293,7 +293,7 @@ void Airfoil_3D_LES<dim, nstate>::compute_Reynolds_stress(
             for(unsigned int idof=0; idof<n_dofs_cell; idof++){
                 const unsigned int istate = dg->fe_collection[poly_degree].system_to_component_index(idof).first;
                 const unsigned int ishape = dg->fe_collection[poly_degree].system_to_component_index(idof).second;
-                if((ode_solver->current_time <= this->all_param.flow_solver_param.time_to_start_computing_Reynolds_stress) && (ode_solver->current_time+time_step > this->all_param.flow_solver_param.time_to_start_computing_Reynolds_stress)){
+                if((ode_solver->current_time <= this->all_param.flow_solver_param.time_to_start_computing_Reynolds_stress)){
                     //First time step, simply compute Reynolds stress
                     if(istate == 0){//u'v'
                         dg->fluctuating_quantities(current_dofs_indices[idof]) = velocity_fluctuations_at_q[0][ishape]*velocity_fluctuations_at_q[1][ishape];
@@ -326,7 +326,7 @@ void Airfoil_3D_LES<dim, nstate>::compute_Reynolds_stress(
 
 
 
-#if PHILIP_DIM!=1
+#if PHILIP_DIM==3
     template class Airfoil_3D_LES<PHILIP_DIM,PHILIP_DIM+2>;
 #endif
 

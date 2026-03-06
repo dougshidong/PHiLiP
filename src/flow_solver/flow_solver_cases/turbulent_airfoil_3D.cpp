@@ -72,7 +72,7 @@ std::shared_ptr<Triangulation> Airfoil_3D_LES<dim,nstate>::generate_grid() const
         return grid;
     } 
     else if constexpr(dim==3) {
-        const std::string mesh_filename = this->all_param.flow_solver_pazram.input_mesh_filename+std::string(".msh");
+        const std::string mesh_filename = this->all_param.flow_solver_param.input_mesh_filename+std::string(".msh");
         const bool use_mesh_smoothing = false;
         std::shared_ptr<HighOrderGrid<dim,double>> airfoil_mesh = read_gmsh<dim, dim> (mesh_filename, 
                 this->all_param.flow_solver_param.use_periodic_BC_in_x, 

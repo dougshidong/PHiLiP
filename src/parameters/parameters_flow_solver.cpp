@@ -331,6 +331,12 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
             prm.declare_entry("relaxation_coefficient_for_turbulent_channel_flow_source_term", "0.0",
                               dealii::Patterns::Double(-dealii::Patterns::Double::max_double_value, dealii::Patterns::Double::max_double_value),
                               "Relaxation coefficient for the turbulent channel flow source term. Default is 0.");
+            prm.declare_entry("expected_average_wall_shear_stress_at_final_time", "1",
+                              dealii::Patterns::Double(0, dealii::Patterns::Double::max_double_value),
+                              "For integration test purposes, expected average wall shear stress at final time.");
+            prm.declare_entry("expected_skin_friction_coefficient_at_final_time", "1",
+                              dealii::Patterns::Double(0, dealii::Patterns::Double::max_double_value),
+                              "For integration test purposes, expected skin friction coefficient at final time.");
         }
         prm.leave_subsection();
 
@@ -342,6 +348,12 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
             prm.declare_entry("do_compute_angular_momentum", "false",
                               dealii::Patterns::Bool(),
                               "Flag to compute the angular momentum. By default, false.");
+            prm.declare_entry("expected_enstrophy_at_final_time", "1",
+                              dealii::Patterns::Double(0, dealii::Patterns::Double::max_double_value),
+                              "For integration test purposes, expected enstrophy at final time.");
+            prm.declare_entry("expected_palinstrophy_at_final_time", "1",
+                              dealii::Patterns::Double(0, dealii::Patterns::Double::max_double_value),
+                              "For integration test purposes, expected palinstrophy at final time.");
         }
         prm.leave_subsection();
 
@@ -554,6 +566,8 @@ void FlowSolverParam::parse_parameters(dealii::ParameterHandler &prm)
             else if (xvelocity_initial_condition_type_string == "turbulent")    {xvelocity_initial_condition_type = turbulent;}
             else if (xvelocity_initial_condition_type_string == "manufactured") {xvelocity_initial_condition_type = manufactured;}
             relaxation_coefficient_for_turbulent_channel_flow_source_term = prm.get_double("relaxation_coefficient_for_turbulent_channel_flow_source_term");
+            expected_average_wall_shear_stress_at_final_time = prm.get_double("expected_average_wall_shear_stress_at_final_time");
+            expected_skin_friction_coefficient_at_final_time = prm.get_double("expected_skin_friction_coefficient_at_final_time");
         }
         prm.leave_subsection();
 
@@ -561,6 +575,8 @@ void FlowSolverParam::parse_parameters(dealii::ParameterHandler &prm)
         {
             do_use_stretched_mesh = prm.get_bool("do_use_stretched_mesh");
             do_compute_angular_momentum = prm.get_bool("do_compute_angular_momentum");
+            expected_enstrophy_at_final_time = prm.get_double("expected_enstrophy_at_final_time");
+            expected_palinstrophy_at_final_time = prm.get_double("expected_palinstrophy_at_final_time");
         }
         prm.leave_subsection();
 

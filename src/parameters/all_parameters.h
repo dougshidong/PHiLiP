@@ -204,6 +204,8 @@ public:
         naca0012_unsteady_check_quick,
         homogeneous_isotropic_turbulence_initialization_check,
         turbulent_channel_flow_skin_friction_check,
+        dipole_wall_collision_quantity_check,
+        turbulent_channel_flow_quantity_check,
         build_NNLS_problem,
         hyper_reduction_comparison,
         hyper_adaptive_sampling_run,

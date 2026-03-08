@@ -46,3 +46,20 @@ set_tests_labels(TURBULENT_CHANNEL_FLOW_SKIN_FRICTION_CHECK_FOR_FRICTION_REYNOLD
                                                                             QUICK
                                                                             INTEGRATION_TEST)
 # ----------------------------------------
+configure_file(viscous_TCF_ILES_NSFR_cDG_IR-Roe_2PF_GLL_OI-0_Re395_p4_10x5x5_turbulent_initialization_not_cPlus_second_element_input.prm viscous_TCF_ILES_NSFR_cDG_IR-Roe_2PF_GLL_OI-0_Re395_p4_10x5x5_turbulent_initialization_not_cPlus_second_element_input.prm COPYONLY)
+add_test(
+  NAME VISCOUS_TURBULENT_CHANNEL_FLOW_QUANTITY_CHECK_cDG_IR-Roe_WALL_MODEL_C4_Re395_P4_10x5x5_SHORT
+  COMMAND mpirun -np ${MPIMAX} ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_3D -i ${CMAKE_CURRENT_BINARY_DIR}/viscous_TCF_ILES_NSFR_cDG_IR-Roe_2PF_GLL_OI-0_Re395_p4_10x5x5_turbulent_initialization_not_cPlus_second_element_input.prm
+  WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
+)
+set_tests_labels(VISCOUS_TURBULENT_CHANNEL_FLOW_QUANTITY_CHECK_cDG_IR-Roe_WALL_MODEL_C4_Re395_P4_10x5x5_SHORT 3D
+                                                                                                              PARALLEL
+                                                                                                              NAVIER_STOKES
+                                                                                                              RUNGE-KUTTA
+                                                                                                              STRONG
+                                                                                                              COLLOCATED
+                                                                                                              LES
+                                                                                                              WALL_MODEL
+                                                                                                              QUICK
+                                                                                                              INTEGRATION_TEST)
+# ----------------------------------------

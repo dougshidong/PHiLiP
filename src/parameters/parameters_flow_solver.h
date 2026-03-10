@@ -32,11 +32,15 @@ public:
         dipole_wall_collision_oblique,
         non_periodic_cube_flow,
         sod_shock_tube,
-        low_density_2d,
+        low_density,
         leblanc_shock_tube,
         shu_osher_problem,
         advection_limiter,
-        burgers_limiter
+        burgers_limiter,
+        double_mach_reflection,
+        shock_diffraction,
+        astrophysical_jet,
+        strong_vortex_shock_wave
         };
     FlowCaseType flow_case_type; ///< Selected FlowCaseType from the input file
 
@@ -109,6 +113,16 @@ public:
     int number_of_subdivisions_in_x_direction; ///< Number of subdivisions in x direction for gaussian bump case
     int number_of_subdivisions_in_y_direction; ///< Number of subdivisions in y direction for gaussian bump case
     int number_of_subdivisions_in_z_direction; ///< Number of subdivisions in z direction for gaussian bump case
+    double grid_top_bound; ///< Maximum y bound of domain for a rectangle grid
+    double grid_bottom_bound; ///< Minimum y bound of domain for a rectangle grid
+    double grid_z_upper_bound; ///< Maximum z bound of domain for a rectangle grid
+    double grid_z_lower_bound; ///< Minimum z bound of domain for a rectangle grid
+
+    unsigned int number_of_grid_elements_x; ///< Number of subdivisions in x direction for a rectangle grid
+    unsigned int number_of_grid_elements_y; ///< Number of subdivisions in y direction for a rectangle grid
+    unsigned int number_of_grid_elements_z; ///< Number of subdivisions in z direction for a rectangle grid
+
+    double expected_order_at_final_time; ///< For limiter convergence tests, specify expected order at final time
 
     /** For taylor green vortex integration tests, expected kinetic energy at final time. */
     double expected_kinetic_energy_at_final_time;
@@ -178,6 +192,16 @@ public:
     
     /// For KHI, the atwood number
     double atwood_number;
+
+
+    /// For user defined FR parameter tests, number of values to be tested
+    int number_ESFR_parameter_values;
+
+    /// For user defined FR parameter tests, value of starting FR param
+    double ESFR_parameter_values_start;
+
+    /// For user defined FR parameter tests, value of final FR param
+    double ESFR_parameter_values_end;
 
     /// Selects the method for applying the initial condition
     enum ApplyInitialConditionMethod{

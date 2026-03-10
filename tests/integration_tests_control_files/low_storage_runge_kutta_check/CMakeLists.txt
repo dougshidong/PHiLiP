@@ -16,6 +16,7 @@ add_test(
 )
 set_tests_labels(1D_ADVECTION_LSRK  LOW_STORAGE_RUNGE-KUTTA_CHECK
                                     1D
+                                    REFINEMENT_STUDY
                                     SERIAL
                                     ADVECTION
                                     LOW_STORAGE_RUNGE-KUTTA
@@ -25,3 +26,20 @@ set_tests_labels(1D_ADVECTION_LSRK  LOW_STORAGE_RUNGE-KUTTA_CHECK
                                     QUICK
                                     INTEGRATION_TEST)
 # ----------------------------------------
+
+
+configure_file(taylor_green_vortex_error_adaptive.prm taylor_green_vortex_error_adaptive.prm COPYONLY)
+add_test(
+    NAME MPI_3D_LSRK_ERROR_ADAPTIVE_TGV
+    COMMAND mpirun -n ${MPIMAX} ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_3D -i ${CMAKE_CURRENT_BINARY_DIR}/taylor_green_vortex_error_adaptive.prm
+    WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
+)
+set_tests_labels(MPI_3D_LSRK_ERROR_ADAPTIVE_TGV     LOW_STORAGE_RUNGE-KUTTA_CHECK
+                                                    3D
+                                                    PARALLEL
+                                                    EULER
+                                                    LOW_STORAGE_RUNGE-KUTTA
+                                                    STRONG-SPLIT
+                                                    UNCOLLOCATED
+                                                    QUICK
+                                                    INTEGRATION_TEST)

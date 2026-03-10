@@ -17,7 +17,8 @@ subsection euler
 end
 
 subsection ODE solver
-  set output_solution_every_x_steps = 10
+  # Uncomment to output VTUs
+  # set output_solution_every_x_steps = 10
   set ode_solver_type  = runge_kutta
   set print_iteration_modulo = 1
 end

@@ -21,6 +21,7 @@ Parameters::AllParameters NACA0012UnsteadyCheckQuick<dim,nstate>::reinit_params(
      parameters.use_weak_form = use_weak_form_input;
      using ConvFluxEnum = Parameters::AllParameters::ConvectiveNumericalFlux;
      parameters.conv_num_flux_type = (use_two_point_flux_input) ? ConvFluxEnum::two_point_flux : ConvFluxEnum::roe;
+     parameters.use_split_form = use_two_point_flux_input;
      
      return parameters;
 }

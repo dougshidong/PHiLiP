@@ -32,6 +32,7 @@ set_tests_labels(MPI_2D_ADVECTION_EXPLICIT_PERIODIC_OOA_LONG    ADVECTION_EXPLIC
                                                                 CONVERGENCE
                                                                 MODERATE
                                                                 INTEGRATION_TEST)
+
 set(TEST_OUTPUT_DIR ${CMAKE_CURRENT_BINARY_DIR})
 configure_file(2D_advection_explicit_periodic_energy_weight_adjusted.prm 2D_advection_explicit_periodic_energy_weight_adjusted.prm COPYONLY)
 add_test(

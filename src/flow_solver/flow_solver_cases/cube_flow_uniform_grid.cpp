@@ -74,5 +74,8 @@ void CubeFlow_UniformGrid<dim, nstate>::update_maximum_local_wave_speed(DGBase<d
 
 template class CubeFlow_UniformGrid <PHILIP_DIM, 1>;
 template class CubeFlow_UniformGrid <PHILIP_DIM, PHILIP_DIM + 2>;
+#if PHILIP_DIM==2
+    template class CubeFlow_UniformGrid <PHILIP_DIM, PHILIP_DIM>;
+#endif
 } // FlowSolver namespace
 } // PHiLiP namespace

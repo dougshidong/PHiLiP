@@ -1,10 +1,13 @@
 set(ODE_SOURCE
     ode_solver_factory.cpp
     ode_solver_base.cpp
+    runge_kutta_base.cpp
     runge_kutta_ode_solver.cpp
     low_storage_runge_kutta_ode_solver.cpp
+    pod_galerkin_runge_kutta_ode_solver.cpp
     runge_kutta_methods/runge_kutta_methods.cpp
     runge_kutta_methods/rk_tableau_base.cpp
+    runge_kutta_methods/rk_tableau_butcher_base.cpp
     runge_kutta_methods/low_storage_rk_tableau_base.cpp
     runge_kutta_methods/low_storage_runge_kutta_methods.cpp
     relaxation_runge_kutta/empty_RRK_base.cpp
@@ -32,10 +35,12 @@ foreach(dim RANGE 1 3)
     string(CONCAT DiscontinuousGalerkinLib DiscontinuousGalerkin_${dim}D)
     string(CONCAT LimiterLib Limiter_${dim}D)
     string(CONCAT LinearSolverLib LinearSolver)
+    string(CONCAT PODLib POD_${dim}D)
     target_link_libraries(${ODESolverLib} ${DiscontinuousGalerkinLib})
     target_link_libraries(${ODESolverLib} ${LimiterLib})
     target_link_libraries(${ODESolverLib} ${HighOrderGridLib})
     target_link_libraries(${ODESolverLib} ${LinearSolverLib})
+    target_link_libraries(${ODESolverLib} ${PODLib})
     # Setup target with deal.II
     if(NOT DOC_ONLY)
         DEAL_II_SETUP_TARGET(${ODESolverLib})

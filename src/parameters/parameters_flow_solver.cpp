@@ -37,11 +37,15 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
                           " dipole_wall_collision_oblique | "
                           " non_periodic_cube_flow | "
                           " sod_shock_tube | "
-                          " low_density_2d | "
+                          " low_density | "
                           " leblanc_shock_tube | "
                           " shu_osher_problem | "
                           " advection_limiter | "
-                          " burgers_limiter "),
+                          " burgers_limiter | "
+                          " double_mach_reflection | "
+                          " shock_diffraction | "
+                          " astrophysical_jet | "
+                          " strong_vortex_shock_wave |"),
                           "The type of flow we want to simulate. "
                           "Choices are "
                           " <taylor_green_vortex | "
@@ -61,11 +65,15 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
                           " dipole_wall_collision_oblique | "
                           " non_periodic_cube_flow | "
                           " sod_shock_tube | "
-                          " low_density_2d | "
+                          " low_density | "
                           " leblanc_shock_tube | "
                           " shu_osher_problem | "
                           " advection_limiter | "
-                          " burgers_limiter >. ");
+                          " burgers_limiter | "
+                          " double_mach_reflection | "
+                          " shock_diffraction | "
+                          " astrophysical_jet | "
+                          " strong_vortex_shock_wave >. ");
 
         prm.declare_entry("poly_degree", "1",
                           dealii::Patterns::Integer(0, dealii::Patterns::Integer::max_int_value),
@@ -141,6 +149,10 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
                           dealii::Patterns::Double(0,dealii::Patterns::Double::max_double_value),
                           "Writes the unsteady data table file at time intervals of dt. "
                           "If set to zero, it outputs at every time step.");
+
+        prm.declare_entry("expected_order_at_final_time", "0.0",
+                  dealii::Patterns::Double(0.0, 10.0),
+                  "For convergence tests related to limiters, expected order of accuracy for final run.");
 
         prm.enter_subsection("grid");
         {
@@ -244,6 +256,39 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
                                   "Number of subdivisions in the z direction for gaussian bump meshes.");
             }
             prm.leave_subsection();
+
+          prm.enter_subsection("grid_rectangle");
+          {
+              prm.declare_entry("grid_top_bound", "0.0",
+                                dealii::Patterns::Double(-dealii::Patterns::Double::max_double_value, dealii::Patterns::Double::max_double_value),
+                                "Left bound of domain for hyper_cube mesh based cases.");
+
+              prm.declare_entry("grid_bottom_bound", "0.0",
+                                dealii::Patterns::Double(-dealii::Patterns::Double::max_double_value, dealii::Patterns::Double::max_double_value),
+                                "Right bound of domain for hyper_cube mesh based cases.");
+
+              prm.declare_entry("grid_z_lower_bound", "0.0",
+                                dealii::Patterns::Double(-dealii::Patterns::Double::max_double_value, dealii::Patterns::Double::max_double_value),
+                                "Left bound of domain for hyper_cube mesh based cases.");
+
+              prm.declare_entry("grid_z_upper_bound", "0.0",
+                                dealii::Patterns::Double(-dealii::Patterns::Double::max_double_value, dealii::Patterns::Double::max_double_value),
+                                "Right bound of domain for hyper_cube mesh based cases.");
+
+              prm.declare_entry("number_of_grid_elements_x", "1",
+                                dealii::Patterns::Integer(1, dealii::Patterns::Integer::max_int_value),
+                                "Number of grid elements in the x-direction.");
+
+              prm.declare_entry("number_of_grid_elements_y", "1",
+                                dealii::Patterns::Integer(1, dealii::Patterns::Integer::max_int_value),
+                                "Number of grid elements in the y-direction.");
+
+              prm.declare_entry("number_of_grid_elements_z", "1",
+                                dealii::Patterns::Integer(1, dealii::Patterns::Integer::max_int_value),
+                                "Number of grid elements in the z-direction.");
+          }
+          prm.leave_subsection();
+
         }
         prm.leave_subsection();
 
@@ -366,6 +411,21 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
         }
         prm.leave_subsection();
 
+        prm.enter_subsection("ESFR_parameter_tests");
+        {
+            prm.declare_entry("number_ESFR_parameter_values", "0",
+                              dealii::Patterns::Integer(),
+                              "Number of tested ESFR parameter values");
+            prm.declare_entry("ESFR_parameter_values_start", "1e-3",
+                              dealii::Patterns::Double(0.0, dealii::Patterns::Double::max_double_value),
+                              "Minimum ESFR parameter values >0 since logspace vector");
+          
+            prm.declare_entry("ESFR_parameter_values_end", "1e-3",
+                              dealii::Patterns::Double(0.0, dealii::Patterns::Double::max_double_value),
+                              "Maximum ESFR parameter values >0 since logspace vector");
+        }
+        prm.leave_subsection();
+
         prm.declare_entry("apply_initial_condition_method", "interpolate_initial_condition_function",
                           dealii::Patterns::Selection(
                           " interpolate_initial_condition_function | "
@@ -452,8 +512,9 @@ void FlowSolverParam::parse_parameters(dealii::ParameterHandler &prm)
         else if (flow_case_type_string == "kelvin_helmholtz_instability")   
                                                                         {flow_case_type = kelvin_helmholtz_instability;}
         else if (flow_case_type_string == "non_periodic_cube_flow")     {flow_case_type = non_periodic_cube_flow;}
+        // Positivity Preserving Tests
         else if (flow_case_type_string == "sod_shock_tube")             {flow_case_type = sod_shock_tube;}
-        else if (flow_case_type_string == "low_density_2d")             {flow_case_type = low_density_2d;}
+        else if (flow_case_type_string == "low_density")                {flow_case_type = low_density;}
         else if (flow_case_type_string == "leblanc_shock_tube")         {flow_case_type = leblanc_shock_tube;}
         else if (flow_case_type_string == "shu_osher_problem")          {flow_case_type = shu_osher_problem;}
         else if (flow_case_type_string == "advection_limiter")          {flow_case_type = advection_limiter;}
@@ -462,7 +523,11 @@ void FlowSolverParam::parse_parameters(dealii::ParameterHandler &prm)
                                                                         {flow_case_type = dipole_wall_collision_normal;}
         else if (flow_case_type_string == "dipole_wall_collision_oblique")
                                                                         {flow_case_type = dipole_wall_collision_oblique;}
-
+        else if (flow_case_type_string == "double_mach_reflection")     {flow_case_type = double_mach_reflection;}
+        else if (flow_case_type_string == "shock_diffraction")          {flow_case_type = shock_diffraction;}
+        else if (flow_case_type_string == "astrophysical_jet")          {flow_case_type = astrophysical_jet;}
+        else if (flow_case_type_string == "strong_vortex_shock_wave")   {flow_case_type = strong_vortex_shock_wave;}
+        
         poly_degree = prm.get_integer("poly_degree");
         
         // get max poly degree for adaptation
@@ -494,6 +559,7 @@ void FlowSolverParam::parse_parameters(dealii::ParameterHandler &prm)
         output_restart_files_every_x_steps = prm.get_integer("output_restart_files_every_x_steps");
         output_restart_files_every_dt_time_intervals = prm.get_double("output_restart_files_every_dt_time_intervals");
         write_unsteady_data_table_file_every_dt_time_intervals = prm.get_double("write_unsteady_data_table_file_every_dt_time_intervals");
+        expected_order_at_final_time = prm.get_double("expected_order_at_final_time");
 
         prm.enter_subsection("grid");
         {
@@ -530,8 +596,22 @@ void FlowSolverParam::parse_parameters(dealii::ParameterHandler &prm)
                 bump_height = prm.get_double("bump_height");
             }
             prm.leave_subsection();
+
+            prm.enter_subsection("grid_rectangle");
+            {
+                grid_top_bound = prm.get_double("grid_top_bound");
+                grid_bottom_bound = prm.get_double("grid_bottom_bound");
+                grid_z_upper_bound = prm.get_double("grid_z_upper_bound");
+                grid_z_lower_bound = prm.get_double("grid_z_lower_bound");
+
+                number_of_grid_elements_x = prm.get_integer("number_of_grid_elements_x");
+                number_of_grid_elements_y = prm.get_integer("number_of_grid_elements_y");
+                number_of_grid_elements_z = prm.get_integer("number_of_grid_elements_z");
+            }
+            prm.leave_subsection();
         }       
         prm.leave_subsection();
+
 
         prm.enter_subsection("taylor_green_vortex");
         {
@@ -583,6 +663,14 @@ void FlowSolverParam::parse_parameters(dealii::ParameterHandler &prm)
         prm.enter_subsection("kelvin_helmholtz_instability");
         {
             atwood_number = prm.get_double("atwood_number");
+        }
+        prm.leave_subsection();
+
+        prm.enter_subsection("ESFR_parameter_tests");
+        {
+            number_ESFR_parameter_values = prm.get_integer("number_ESFR_parameter_values");
+            ESFR_parameter_values_start = prm.get_double("ESFR_parameter_values_start");
+            ESFR_parameter_values_end = prm.get_double("ESFR_parameter_values_end");
         }
         prm.leave_subsection();
 

@@ -50,6 +50,7 @@ subsection flow_solver
   set final_time = 5.9160797831 #1/4 cycle to make ctest faster. Full cycle is recommended for better results.
   set courant_friedrichs_lewy_number = 0.1
   set unsteady_data_table_filename = isentropic_vortex_time_table
+  set end_exactly_at_final_time = false
   subsection grid
     set grid_left_bound = -10.0
     set grid_right_bound = 10.0

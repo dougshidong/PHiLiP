@@ -2,7 +2,7 @@
 #define __EMPTY_RRK_BASE_H__
 
 #include "dg/dg_base.hpp"
-#include "ode_solver/runge_kutta_methods/rk_tableau_base.h"
+#include "ode_solver/runge_kutta_methods/rk_tableau_butcher_base.h"
 
 namespace PHiLiP {
 namespace ODE {
@@ -18,7 +18,7 @@ class EmptyRRKBase
 {
 public:
     /// Default constructor that will set the constants.
-    explicit EmptyRRKBase(std::shared_ptr<RKTableauBase<dim,real,MeshType>> /*rk_tableau_input*/);
+    explicit EmptyRRKBase(std::shared_ptr<RKTableauButcherBase<dim,real,MeshType>> /*rk_tableau_input*/);
 
     /// Calculate FR entropy adjustment
     /** Empty here

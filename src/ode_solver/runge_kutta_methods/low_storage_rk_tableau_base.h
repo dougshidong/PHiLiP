@@ -6,6 +6,10 @@
 #include <deal.II/grid/tria.h>
 #include <deal.II/distributed/shared_tria.h>
 #include <deal.II/distributed/tria.h>
+#include <deal.II/lac/full_matrix.h>
+#include <deal.II/lac/vector.h>
+
+#include "rk_tableau_base.h"
 
 namespace PHiLiP {
 namespace ODE {
@@ -16,7 +20,7 @@ template <int dim, typename real, typename MeshType = dealii::Triangulation<dim>
 #else
 template <int dim, typename real, typename MeshType = dealii::parallel::distributed::Triangulation<dim>>
 #endif
-class LowStorageRKTableauBase
+class LowStorageRKTableauBase : public RKTableauBase<dim,real,MeshType>
 {
 public:
     /// Default constructor that will set the constants.
@@ -25,12 +29,6 @@ public:
     /// Destructor
     virtual ~LowStorageRKTableauBase() = default;
 
-protected:
-    /// String identifying the RK method
-    const std::string rk_method_string;
-    
-    dealii::ConditionalOStream pcout; ///< Parallel std::cout that only outputs on mpi_rank==0
-    
 public:
     /// Returns Butcher tableau "gamma" coefficient at position [i][j]
     double get_gamma(const int i, const int j) const;
@@ -45,10 +43,12 @@ public:
     double get_b_hat(const int i) const;
 
     /// Calls setters for butcher tableau
-    void set_tableau();
+    void set_tableau() override;
 
-    
 protected:
+    
+    /// Size of "delta"
+    const int num_delta;
 
     /// Butcher tableau "gamma"
     dealii::Table<2,double> butcher_tableau_gamma;
@@ -61,7 +61,7 @@ protected:
 
     /// Butcher tableau "b hat"
     dealii::Table<1,double> butcher_tableau_b_hat;
-    
+
     /// Setter for gamma
     virtual void set_gamma() = 0;
 

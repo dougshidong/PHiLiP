@@ -2,6 +2,7 @@ set(TESTS_SOURCE
     tests.cpp
     grid_study.cpp
     grid_refinement_study.cpp
+    stability_fr_parameter_range.cpp
     burgers_stability.cpp
     diffusion_exact_adjoint.cpp
     euler_gaussian_bump.cpp
@@ -27,8 +28,9 @@ set(TESTS_SOURCE
     pod_adaptive_sampling_run.cpp
     pod_adaptive_sampling_testing.cpp
     reduced_order.cpp
+    unsteady_reduced_order.cpp
     rom_import_helper_functions.cpp
-    time_refinement_study.cpp
+    general_refinement_study.cpp
     time_refinement_study_reference.cpp
     h_refinement_study_isentropic_vortex.cpp
     rrk_numerical_entropy_conservation_check.cpp
@@ -42,6 +44,7 @@ set(TESTS_SOURCE
     ROM_error_post_sampling.cpp
     HROM_error_post_sampling.cpp
     hyper_adaptive_sampling_new_error.cpp
+    halton_sampling_run.cpp
     bound_preserving_limiter_tests.cpp
     naca0012_unsteady_check_quick.cpp
     turbulent_channel_flow_skin_friction_check.cpp

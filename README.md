@@ -1,8 +1,12 @@
+# Gallery
 Transonic NACA0012 with adaptive refinement         |  Viscous NACA0012 with Recirculation bubble (Swanson) | Kelvin-Helmholtz Instability
 :-------------------------:|:-------------------------:|:-------------------------: 
 <img width="300" src='https://user-images.githubusercontent.com/9758507/162810203-6e5c327d-a22e-4681-8dbd-381e72a8ca46.png'/>  |  <img width="300" src='https://user-images.githubusercontent.com/9758507/163444219-3fc0e375-ebbd-4850-beba-35183f849585.png'/> | <img width="300" src='doc/gallery/KHI.gif'/>
 
 
+Double Mach Reflection         |  Mach 80 Astrophysical Jet | Daru Tenaud Shock Tube
+:-------------------------:|:-------------------------:|:-------------------------: 
+<img width="247" src='doc/gallery/dmr.gif'/>  |  <img width="250" src='doc/gallery/astrojet.gif'/> | <img width="247" src='doc/gallery/darutenaud.gif'/>
 
 # Table of Contents
 
@@ -112,8 +116,12 @@ ROOT$ ctest -N (List the tests that would be run but not actually run them)
 ROOT$ ctest -R <regex> (Run tests matching regular expression)
 ROOT$ ctest -E <regex> (Exclude tests matching regular expression)
 ROOT$ ctest -V (Enable verbose output from tests)
+ROOT$ ctest -L <label> (Run tests matching label)
+ROOT$ ctest -LE <label> (Exclude tests matching label)
 ```
 Note that running `ctest` in `Debug` will take forever since some integration tests fully solve nonlinear problems with multiple orders and multiple meshes. It is suggested to perform `ctest` in `Release` mode, and only use `Debug` mode for debugging purposes.
+
+More detail about running tests using labels can be found [here](tests/CTEST_LABELS.md).
 
 ## Debugging
 

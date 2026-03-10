@@ -37,6 +37,11 @@
  * https://onlinelibrary.wiley.com/doi/full/10.1002/nme.5332
  * More details on the ECSW hyper-reduction technique can be found in:
  * https://onlinelibrary.wiley.com/doi/full/10.1002/nme.4820
+ * 
+ * Additionally Functionality added to the Eigen NNLS:
+ * -Option to use Gradient Exit Condition (used in Eigen/original textbook) or Residual Exit Condition (default - Introduced in ECSW work) (discussed further in NNLS_solver.cpp)
+ * -Option to use an iterative linear solver or direct solve (default) for LS problem in the algorithm
+ * -Option to input a transposed matrix
 */
 
 #ifndef NNLS_H
@@ -59,6 +64,7 @@
 #include <Amesos_BaseSolver.h>
 #include <eigen/Eigen/Dense>
 #include "parameters/all_parameters.h"
+#include "reduced_order/multi_core_helper_functions.h"
 
 using Eigen::Matrix;
 namespace PHiLiP {
@@ -68,28 +74,47 @@ namespace PHiLiP {
  *   https://www.mathworks.com/help/matlab/ref/lsqnonneg.html
  */
 
-class NNLS_solver
+class NNLSSolver
 {
 public:
     /// Default Constructor
-    NNLS_solver(
+    NNLSSolver(
         const Parameters::AllParameters *const parameters_input,
         const dealii::ParameterHandler &parameter_handler_input,
         const Epetra_CrsMatrix &A, 
         Epetra_MpiComm &Comm, 
         Epetra_Vector &b);
 
+    /// Constructor w/ transposed A matrix
+    NNLSSolver(
+        const Parameters::AllParameters *const parameters_input,
+        const dealii::ParameterHandler &parameter_handler_input,
+        const Epetra_CrsMatrix &A,
+        const bool is_input_A_matrix_transposed, 
+        Epetra_MpiComm &Comm, 
+        Epetra_Vector &b);
+
     /// Constructor w/ Gradient Exit Condition
-    NNLS_solver(
+    NNLSSolver(
         const Parameters::AllParameters *const parameters_input,
         const dealii::ParameterHandler &parameter_handler_input,
         const Epetra_CrsMatrix &A, 
         Epetra_MpiComm &Comm, 
         Epetra_Vector &b, 
         bool grad_exit_crit);
+
+    /// Constructor w/ Gradient Exit Condition & transposed A matrix
+    NNLSSolver(
+        const Parameters::AllParameters *const parameters_input,
+        const dealii::ParameterHandler &parameter_handler_input,
+        const Epetra_CrsMatrix &A,
+        const bool is_input_A_matrix_transposed, 
+        Epetra_MpiComm &Comm, 
+        Epetra_Vector &b, 
+        bool grad_exit_crit);
     
     /// Constructor w/ Iterative Linear Solver
-    NNLS_solver(        
+    NNLSSolver(        
         const Parameters::AllParameters *const parameters_input,
         const dealii::ParameterHandler &parameter_handler_input,
         const Epetra_CrsMatrix &A, 
@@ -99,11 +124,24 @@ public:
         int LS_iter, 
         double LS_tol);
 
-    /// Common Constructor w/ Gradient Exit Condition & Iterative Linear Solver
-    NNLS_solver(
+    /// Constructor w/ Iterative Linear Solver & transposed A matrix
+    NNLSSolver(        
+        const Parameters::AllParameters *const parameters_input,
+        const dealii::ParameterHandler &parameter_handler_input,
+        const Epetra_CrsMatrix &A,
+        const bool is_input_A_matrix_transposed, 
+        Epetra_MpiComm &Comm, 
+        Epetra_Vector &b, 
+        bool iter_solver, 
+        int LS_iter, 
+        double LS_tol);
+
+    /// Common Constructor w/ Gradient Exit Condition & Iterative Linear Solver & transposed A matrix
+    NNLSSolver(
         const Parameters::AllParameters *const parameters_input,
         const dealii::ParameterHandler &parameter_handler_input,
         const Epetra_CrsMatrix &A, 
+        const bool is_input_A_matrix_transposed,
         Epetra_MpiComm &Comm, 
         Epetra_Vector &b, 
         bool grad_exit_crit, 
@@ -112,19 +150,19 @@ public:
         double LS_tol);
  
     /// Destructor
-    virtual ~NNLS_solver() {};
+    ~NNLSSolver() {};
 
     /// Call to solve NNLS problem
     bool solve();
 
     /// Returns protected approximate solution
-    Epetra_Vector & getSolution() {return multi_x_;}
+    Epetra_Vector & get_solution() {return multi_x_;}
 
     /// Initiliazes the solution vector, must be used before .solve is called
-    void startingSolution(Epetra_Vector &start) {
-        Epetra_Vector start_single_core = allocateVectorToSingleCore(start);
+    void starting_solution(Epetra_Vector &start) {
+        Epetra_Vector start_single_core = allocate_vector_to_single_core(start);
         P.flip();
-        SubIntoX(start_single_core);
+        sub_into_x(start_single_core);
         P.flip();}
   
     const Parameters::AllParameters *const all_parameters; ///< Pointer to all parameters
@@ -159,6 +197,9 @@ public:
     bool iter_solver_;
     /// Boolean to use an exit Condition depending on maximum gradent
     bool grad_exit_crit_;
+    /// Boolean to indicate whether A matrix is transposed wrt the dimension of b
+    /// Note: This is because of the construction of the ECSW training data which when done in parallel requires the matrix A to be transposed
+    const bool is_input_A_matrix_transposed_;
     /// Number of iterations in the NNLS solver
     int iter_;
 
@@ -168,40 +209,23 @@ protected:
 
 private:
     /// Creates square permutation matrix based off the active/inactive set, no longer in use
-    void Epetra_PermutationMatrix(Epetra_CrsMatrix &P_mat);
+    void epetra_permutation_matrix(Epetra_CrsMatrix &P_mat);
 
     /// Creates a matrix using the columns in A in the set P
-    void PositiveSetMatrix(Epetra_CrsMatrix &P_mat);
+    void positive_set_matrix(Epetra_CrsMatrix &P_mat);
 
     /// Replaces the entries with x with the values in temp
-    void SubIntoX(Epetra_Vector &temp);
+    void sub_into_x(Epetra_Vector &temp);
 
     /// Adds the values of temp times alpha into the solution vector x 
-    void AddIntoX(Epetra_Vector &temp, double alpha);
+    void add_into_x(Epetra_Vector &temp, double alpha);
 
     /// Moves the column at idx into the active set (updating the index_set, Z, P, and numInactive_)
-    void moveToActiveSet(int idx);
+    void move_to_active_set(int idx);
 
     /// Moves the column at idx into the inactive set (updating the index_set, Z, P, and numInactive_)
-    void moveToInactiveSet(int idx);
+    void move_to_inactive_set(int idx);
 
-    /** @brief Re-allocates solution to multiple cores
-    *   @param c Epetra_vector to reallocate on multiple cores
-    *   @return An Epetra_vector with the data of c distributed on multiple cores
-    */
-    Epetra_Vector allocateVectorToMultipleCores(const Epetra_Vector &c);
-
-    /** @brief Allocates the incoming A Matrix to a single core
-    *   @param A Epetra_CrsMatrix to reallocate on a single core
-    *   @return An Epetra_CrsMatrix with the data of A distributed on a single core
-    */
-    Epetra_CrsMatrix allocateMatrixToSingleCore(const Epetra_CrsMatrix &A);
-    
-    /** @brief Allocates the incoming b vector to a single core
-    *   @param b Epetra_Vector to reallocate on a single core
-    *   @return An Epetra_Vector with the data of b distributed on a single core
-    */
-    Epetra_Vector allocateVectorToSingleCore(const Epetra_Vector &b);
 };
 } // PHiLiP namespace
 #endif  // NNLS_H

@@ -19,6 +19,7 @@ template <int dim, int nstate>
 int TaylorGreenVortexEnergyCheck<dim, nstate>::run_test() const
 {
     // Integrate to final time
+    this->all_parameters.non_physical_behavior_type = PHiLiP::Parameters::AllParameters::NonPhysicalBehaviorEnum::print_warning;
     std::unique_ptr<FlowSolver::FlowSolver<dim,nstate>> flow_solver = FlowSolver::FlowSolverFactory<dim,nstate>::select_flow_case(this->all_parameters, parameter_handler);
     static_cast<void>(flow_solver->run());
 

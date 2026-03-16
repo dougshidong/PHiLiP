@@ -19,6 +19,7 @@ protected:
     */
     using PhysicsBase<dim,nspecies,nstate,real>::dissipative_flux;
     using PhysicsBase<dim,nspecies,nstate,real>::source_term;
+    using PhysicsBase<dim,nspecies,nstate,real>::boundary_face_values;
 public:
     /// Constructor
     BurgersRewienski(

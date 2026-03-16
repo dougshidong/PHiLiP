@@ -82,15 +82,18 @@ NumericalFluxFactory<dim, nspecies, nstate, real>
 
     if(pde_type!=PDE_enum::euler && 
         pde_type!=PDE_enum::navier_stokes && 
-        !(pde_type==PDE_enum::physics_model && model_type==Model_enum::large_eddy_simulation) && nspecies==1) 
+        !(pde_type==PDE_enum::physics_model && model_type==Model_enum::large_eddy_simulation) &&
+        pde_type!=PDE_enum::navier_stokes_channel_flow_constant_source_term && 
+        pde_type!=PDE_enum::navier_stokes_channel_flow_constant_source_term_wall_model && 
+        pde_type!=PDE_enum::real_gas && (pde_type==PDE_enum::real_gas && nspecies ==1)) 
     {
         std::cout << "Invalid convective numerical flux for pde_type. Aborting..." << std::endl;
         std::abort();
     }
 
 #if PHILIP_DIM==3
-    if((pde_type==PDE_enum::physics_model && 
-        model_type==Model_enum::large_eddy_simulation)) 
+    if(((pde_type==PDE_enum::physics_model || pde_type==PDE_enum::physics_model_filtered) && 
+        (model_type==Model_enum::large_eddy_simulation || model_type==Model_enum::navier_stokes_model))) 
     {
         if constexpr (dim+2==nstate) {
             std::shared_ptr<Physics::PhysicsModel<dim,nspecies,dim+2,real,dim+2>> physics_model = std::dynamic_pointer_cast<Physics::PhysicsModel<dim,nspecies,dim+2,real,dim+2>>(physics_input);
@@ -98,8 +101,8 @@ NumericalFluxFactory<dim, nspecies, nstate, real>
             euler_based_physics_to_be_passed = physics_baseline;
         }
     }
-    else if((pde_type==PDE_enum::physics_model && 
-             model_type!=Model_enum::large_eddy_simulation))
+    else if((pde_type==PDE_enum::physics_model  || pde_type==PDE_enum::physics_model_filtered) && 
+             (model_type!=Model_enum::large_eddy_simulation && model_type!=Model_enum::navier_stokes_model)) 
     {
         std::cout << "Invalid convective numerical flux for physics_model and/or corresponding baseline_physics_type" << std::endl;
         if(nstate!=(dim+2)) std::cout << "Error: Cannot create_euler_based_convective_numerical_flux() for nstate_baseline_physics != nstate." << std::endl;

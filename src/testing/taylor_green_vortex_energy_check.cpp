@@ -18,12 +18,16 @@ TaylorGreenVortexEnergyCheck<dim, nspecies, nstate>::TaylorGreenVortexEnergyChec
 template <int dim, int nspecies, int nstate>
 int TaylorGreenVortexEnergyCheck<dim, nspecies, nstate>::run_test() const
 {
-    // Integrate to final time
-    std::unique_ptr<FlowSolver::FlowSolver<dim,nspecies,nstate>> flow_solver = FlowSolver::FlowSolverFactory<dim,nspecies,nstate>::select_flow_case(this->all_parameters, parameter_handler);
+    // copy all parameters
+    PHiLiP::Parameters::AllParameters parameters = *(this->all_parameters);
+    // change non-physical behavior handling
+    parameters.non_physical_behavior_type = PHiLiP::Parameters::AllParameters::NonPhysicalBehaviorEnum::print_warning;
+
+    std::unique_ptr<FlowSolver::FlowSolver<dim,nspecies,nstate>> flow_solver = FlowSolver::FlowSolverFactory<dim,nspecies,nstate>::select_flow_case(&parameters, parameter_handler);
     static_cast<void>(flow_solver->run());
 
     // Compute kinetic energy and theoretical dissipation rate
-    std::unique_ptr<FlowSolver::PeriodicTurbulence<dim, nspecies, nstate>> flow_solver_case = std::make_unique<FlowSolver::PeriodicTurbulence<dim,nspecies,nstate>>(this->all_parameters);
+    std::unique_ptr<FlowSolver::PeriodicTurbulence<dim, nspecies, nstate>> flow_solver_case = std::make_unique<FlowSolver::PeriodicTurbulence<dim,nspecies,nstate>>(&parameters);
     flow_solver_case->compute_and_update_integrated_quantities(*(flow_solver->dg));
     const double kinetic_energy_computed = flow_solver_case->get_integrated_kinetic_energy();
     const double theoretical_dissipation_rate_computed = flow_solver_case->get_vorticity_based_dissipation_rate();

@@ -51,7 +51,8 @@ class PositivityPreservingTests : public CubeFlow_UniformGrid<dim, nspecies, nst
     void compute_unsteady_data_and_write_to_table(
         const std::shared_ptr<ODE::ODESolverBase<dim, nspecies, double>> ode_solver,
         const std::shared_ptr <DGBase<dim, nspecies, double>> dg,
-        const std::shared_ptr<dealii::TableHandler> unsteady_data_table) override;
+        const std::shared_ptr<dealii::TableHandler> unsteady_data_table,
+        const bool do_write_unsteady_data_table_file) override;
  
  private:
     /// Maximum local wave speed (i.e. convective eigenvalue)

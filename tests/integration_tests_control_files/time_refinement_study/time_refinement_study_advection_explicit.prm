@@ -6,8 +6,8 @@ set dimension = 1
 set test_type = time_refinement_study
 set pde_type = advection
 
-# Note: this was added to turn off check_same_coords() -- has no other function when dim!=1
-set use_periodic_bc = true
+set all_boundaries_are_periodic = true
+set check_same_coords_in_weak_dg = false
 
 # ODE solver
 subsection ODE solver

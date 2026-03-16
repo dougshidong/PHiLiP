@@ -112,7 +112,6 @@ real RungeKuttaODESolver<dim,nspecies,real,n_rk_stages,MeshType>::adjust_time_st
 template <int dim, int nspecies, typename real, int n_rk_stages, typename MeshType> 
 void RungeKuttaODESolver<dim,nspecies,real,n_rk_stages,MeshType>::allocate_runge_kutta_system ()
 {
-
     this->butcher_tableau->set_tableau();
     
     this->butcher_tableau_aii_is_zero.resize(n_rk_stages);

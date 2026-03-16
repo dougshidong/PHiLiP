@@ -21,7 +21,7 @@ public:
     explicit PeriodicCubeFlow(const Parameters::AllParameters *const parameters_input);
 
     /// Function to generate the grid
-    std::shared_ptr<Triangulation> generate_grid() const override;
+    virtual std::shared_ptr<Triangulation> generate_grid() const override;
 
 protected:
     /// Function to compute the adaptive time step
@@ -41,22 +41,20 @@ protected:
     void compute_unsteady_data_and_write_to_table(
         const std::shared_ptr<ODE::ODESolverBase<dim, nspecies, double>> ode_solver,
         const std::shared_ptr <DGBase<dim, nspecies, double>> dg,
-        const std::shared_ptr<dealii::TableHandler> unsteady_data_table) override;
+        const std::shared_ptr<dealii::TableHandler> unsteady_data_table,
+        const bool do_write_unsteady_data_table_file) override;
 
     const int number_of_cells_per_direction; ///< Number of cells per direction for the grid
     const double domain_left; ///< Domain left-boundary value for generating the grid
     const double domain_right; ///< Domain right-boundary value for generating the grid
     const double domain_size; ///< Domain size (length in 1D, area in 2D, and volume in 3D)
+    const double domain_size_per_element; ///< Domain size per element (length in 1D, area in 2D, and volume in 3D)
 
     /// Display additional more specific flow case parameters
     virtual void display_additional_flow_case_specific_parameters() const override;
 
     /// Display grid parameters
-    void display_grid_parameters() const;
-    
-private:
-    /// Maximum local wave speed (i.e. convective eigenvalue)
-    double maximum_local_wave_speed;
+    virtual void display_grid_parameters() const;
 };
 
 } // FlowSolver namespace

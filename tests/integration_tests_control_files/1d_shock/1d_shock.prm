@@ -8,9 +8,8 @@ set dimension = 1
 
 set pde_type  = burgers_inviscid
 
-# Note: this was added to turn off check_same_coords() -- was previously false but test still passes
-# TO DO: Investigate the purpose of this parameter for dim==1; shows up in dg somewhere
-set use_periodic_bc = true
+set all_boundaries_are_periodic = true
+set check_same_coords_in_weak_dg = false
 
 set conv_num_flux = lax_friedrichs
 

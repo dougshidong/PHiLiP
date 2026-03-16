@@ -970,6 +970,30 @@ inline std::array<real,nstate> RealGas<dim,nspecies,nstate,real>
     return primitive_soln;
 }
 
+template <int dim, int nspecies, int nstate, typename real>
+std::array<dealii::Tensor<1,dim,real>,nstate> RealGas<dim,nspecies,nstate,real>
+::convert_primitive_gradient_to_conservative_gradient (
+    const std::array<real,nstate> &/*primitive_soln*/,
+    const std::array<dealii::Tensor<1,dim,real>,nstate> &primitive_soln_gradient) const
+{
+    this->pcout << "WARNING: convert_primitive_gradient_to_conservative_gradient() is not defined for current physics." << std::endl;
+    this->pcout << "Aborting..." << std::endl;
+    std::abort();
+    return primitive_soln_gradient;
+}
+
+template <int dim, int nspecies, int nstate, typename real>
+std::array<dealii::Tensor<1,dim,real>,nstate> RealGas<dim,nspecies,nstate,real>
+::convert_conservative_gradient_to_primitive_gradient (
+    const std::array<real,nstate> &/*conservative_soln*/,
+    const std::array<dealii::Tensor<1,dim,real>,nstate> &conservative_soln_gradient) const
+{
+    this->pcout << "WARNING: convert_conservative_gradient_to_primitive_gradient() is not defined for current physics." << std::endl;
+    this->pcout << "Aborting..." << std::endl;
+    std::abort();
+    return conservative_soln_gradient;
+}
+
 // Algorithm 21 (f_S21): Compute species specific heat ratio
 template <int dim, int nspecies, int nstate, typename real>
 inline std::array<real,nspecies> RealGas<dim,nspecies,nstate,real>

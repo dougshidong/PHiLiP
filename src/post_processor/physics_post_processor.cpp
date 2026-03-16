@@ -12,18 +12,18 @@ std::unique_ptr< dealii::DataPostprocessor<dim> > PostprocessorFactory<dim,nspec
     using PDE_enum = Parameters::AllParameters::PartialDifferentialEquation;
     const PDE_enum pde_type = parameters_input->pde_type;
     
-    #if PHILIP_SPECIES==1
+#if PHILIP_SPECIES==1
     using Model_enum = Parameters::AllParameters::ModelType;
     const Model_enum model_type = parameters_input->model_type;
     using RANSModel_enum = Parameters::PhysicsModelParam::ReynoldsAveragedNavierStokesModel;
     const RANSModel_enum rans_model_type = parameters_input->physics_model_param.RANS_model_type;
-    #endif
+#endif
 
     if (pde_type == PDE_enum::real_gas) {
             return std::make_unique< PhysicsPostprocessor<dim,nspecies,dim+nspecies+1> >(parameters_input);
     }
-    #if PHILIP_SPECIES==1
-    else if (pde_type == PDE_enum::advection && nspecies == 1) {
+#if PHILIP_SPECIES==1
+    if (pde_type == PDE_enum::advection && nspecies == 1) {
         return std::make_unique< PhysicsPostprocessor<dim,nspecies,1> >(parameters_input);
     } else if (pde_type == PDE_enum::advection_vector && nspecies == 1) {
         return std::make_unique< PhysicsPostprocessor<dim,nspecies,2> >(parameters_input);
@@ -41,15 +41,19 @@ std::unique_ptr< dealii::DataPostprocessor<dim> > PostprocessorFactory<dim,nspec
         return std::make_unique< PhysicsPostprocessor<dim,nspecies,dim+2> >(parameters_input);
     } else if (pde_type == PDE_enum::navier_stokes && nspecies == 1) {
         return std::make_unique< PhysicsPostprocessor<dim,nspecies,dim+2> >(parameters_input);
-    } else if ((pde_type == PDE_enum::physics_model) && nspecies == 1 && (model_type == Model_enum::reynolds_averaged_navier_stokes) && (rans_model_type == RANSModel_enum::SA_negative)) {
+    } else if (pde_type == PDE_enum::navier_stokes_channel_flow_constant_source_term && nspecies == 1) {
+        return std::make_unique< PhysicsPostprocessor<dim,nspecies,dim+2> >(parameters_input);
+    } else if (pde_type == PDE_enum::navier_stokes_channel_flow_constant_source_term_wall_model && nspecies == 1) {
+        return std::make_unique< PhysicsPostprocessor<dim,nspecies,dim+2> >(parameters_input);
+    } else if ((pde_type == PDE_enum::physics_model) && (model_type == Model_enum::reynolds_averaged_navier_stokes) && (rans_model_type == RANSModel_enum::SA_negative)  && nspecies == 1) {
         return std::make_unique< PhysicsPostprocessor<dim,nspecies,dim+3> >(parameters_input);
     } 
-    #if PHILIP_DIM==3
-    else if ((pde_type == PDE_enum::physics_model) && nspecies == 1 && (model_type == Model_enum::large_eddy_simulation)) {
+#if PHILIP_DIM==3
+    else if ((pde_type == PDE_enum::physics_model || pde_type == PDE_enum::physics_model_filtered) && (model_type==Model_enum::large_eddy_simulation || model_type==Model_enum::navier_stokes_model)  && nspecies == 1) {
         return std::make_unique< PhysicsPostprocessor<dim,nspecies,dim+2> >(parameters_input);
     } 
-    #endif
-    #endif
+#endif
+#endif
     else {
         std::cout << "Invalid PDE when creating post-processor" << std::endl;
         std::abort();

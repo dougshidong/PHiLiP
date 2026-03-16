@@ -119,16 +119,20 @@ public:
     /// Flag to use curvilinear metric split form.
     bool use_curvilinear_split_form;
 
+    /// Flag to store the residual local processor cpu time.
+    bool store_residual_cpu_time;
+
     /// Flag to use weight-adjusted Mass Matrix for curvilinear elements.
     bool use_weight_adjusted_mass;
 
-    /// Flag to store the residual local processor cput time.
-    bool store_residual_cpu_time;
+    /// Flag to signal that all boundaries are periodic; if true surface flux nodes will not be stored for efficiency.
+    bool all_boundaries_are_periodic;
 
-    /// Flag to use periodic BC.
-    /** Not fully tested.
-     */
-    bool use_periodic_bc;
+    /** Flag to check if the coordinates of two points are same where expected in weak DG.
+        Default is true; set to false if you have periodic boundaries in your domain since 
+        it currently does not consider that case and will print large warning messages.
+     **/
+    bool check_same_coords_in_weak_dg;
 
     /// Flag to use curvilinear grid.
     bool use_curvilinear_grid;
@@ -138,10 +142,6 @@ public:
 
     ///Flag to use an L2 energy monotonicity test (for FR)
     bool use_L2_norm;
-
-    ///Flag to use a Classical ESFR scheme where only the surface is reconstructed
-    //The default ESFR scheme is the Nonlinearly Stable FR where the volume is also reconstructed
-    bool use_classical_FR;
 
     ///Flag to store global mass matrix
     bool store_global_mass_matrix;
@@ -208,6 +208,9 @@ public:
         khi_robustness,
         naca0012_unsteady_check_quick,
         homogeneous_isotropic_turbulence_initialization_check,
+        turbulent_channel_flow_skin_friction_check,
+        dipole_wall_collision_quantity_check,
+        turbulent_channel_flow_quantity_check,
         build_NNLS_problem,
         hyper_reduction_comparison,
         hyper_adaptive_sampling_run,
@@ -234,7 +237,10 @@ public:
         euler,
         mhd,
         navier_stokes,
+        navier_stokes_channel_flow_constant_source_term,
+        navier_stokes_channel_flow_constant_source_term_wall_model,
         physics_model,
+        physics_model_filtered,
         real_gas
     };
     /// Store the PDE type to be solved
@@ -244,6 +250,7 @@ public:
     enum ModelType {
         large_eddy_simulation,
         reynolds_averaged_navier_stokes,
+        navier_stokes_model,
     };
     /// Store the model type
     ModelType model_type;
@@ -324,6 +331,15 @@ public:
 
     std::string chemistry_input_file; ///< Name of file containing NASA CAP data for species
 
+    /// Flag for using wall model (initialized as false)
+    bool using_wall_model = false;
+
+    /// Flag for using second element as wall model input; if false, uses buffer (i.e. wall-adjacent) element
+    bool wall_model_input_from_second_element;
+
+    /// Flag for using projected entropy variables for NSFR boundary term
+    bool use_projected_entropy_variables_for_nsfr_boundary_term;
+    
     /// Declare parameters that can be set as inputs and set up the default options
     /** This subroutine should call the sub-parameter classes static declare_parameters()
       * such that each sub-parameter class is responsible to declare their own parameters.
@@ -335,6 +351,9 @@ public:
       * such that each sub-parameter class is responsible to parse their own parameters.
       */
     void parse_parameters (dealii::ParameterHandler &prm);
+
+    /// Modify parameters after parsing for certain cases
+    void modify_parameters ();
 
     //FunctionParser<dim> initial_conditions;
     //BoundaryConditions  boundary_conditions[max_n_boundaries];

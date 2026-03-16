@@ -124,7 +124,7 @@ int main (int argc, char * argv[])
             using ODE_enum = Parameters::ODESolverParam::ODESolverEnum;
             all_parameters_new.pde_type = PDE_enum::diffusion;
             all_parameters_new.use_weak_form = false;
-            all_parameters_new.use_periodic_bc = true;
+            all_parameters_new.all_boundaries_are_periodic = true;
             all_parameters_new.ode_solver_param.ode_solver_type = ODE_enum::runge_kutta_solver;//auxiliary only works explicit for now
             all_parameters_new.use_inverse_mass_on_the_fly = true;
             std::shared_ptr < PHiLiP::DGBase<dim, double> > dg = PHiLiP::DGFactory<dim,double>::create_discontinuous_galerkin(&all_parameters_new, poly_degree, poly_degree, grid_degree, grid);

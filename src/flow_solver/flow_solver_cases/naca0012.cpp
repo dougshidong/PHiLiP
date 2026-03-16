@@ -114,11 +114,14 @@ void NACA0012<dim,nstate>::steady_state_postprocessing(std::shared_ptr<DGBase<di
 
 template <int dim, int nstate>
 void NACA0012<dim, nstate>::compute_unsteady_data_and_write_to_table(
-        const unsigned int current_iteration,
-        const double current_time,
+        const std::shared_ptr <ODE::ODESolverBase<dim, double>> ode_solver,
         const std::shared_ptr <DGBase<dim, double>> dg,
-        const std::shared_ptr <dealii::TableHandler> unsteady_data_table)
+        const std::shared_ptr <dealii::TableHandler> unsteady_data_table,
+        const bool do_write_unsteady_data_table_file)
 {
+    // unpack current iteration and current time from ode solver
+    const unsigned int current_iteration = ode_solver->current_iteration;
+    const double current_time = ode_solver->current_time;
     // Compute aerodynamic values
     const double lift = this->compute_lift(dg);
     const double drag = this->compute_drag(dg);
@@ -129,8 +132,10 @@ void NACA0012<dim, nstate>::compute_unsteady_data_and_write_to_table(
         this->add_value_to_data_table(lift,"lift",unsteady_data_table);
         this->add_value_to_data_table(drag,"drag",unsteady_data_table);
         // Write to file
-        std::ofstream unsteady_data_table_file(this->unsteady_data_table_filename_with_extension);
-        unsteady_data_table->write_text(unsteady_data_table_file);
+        if(do_write_unsteady_data_table_file){
+            std::ofstream unsteady_data_table_file(this->unsteady_data_table_filename_with_extension);
+            unsteady_data_table->write_text(unsteady_data_table_file);
+        }
     }
     // Print to console
     this->pcout << "    Iter: " << current_iteration

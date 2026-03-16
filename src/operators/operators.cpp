@@ -676,8 +676,6 @@ void SumFactorizedOperators<dim,n_faces,real>::surface_two_pt_flux_Hadamard_prod
     }
 }
 
-
-
 template <int dim, int n_faces, typename real>  
 void SumFactorizedOperators<dim,n_faces,real>::two_pt_flux_Hadamard_product(
     const dealii::FullMatrix<real> &input_mat,
@@ -875,6 +873,7 @@ void SumFactorizedOperators<dim,n_faces,real>::sum_factorized_Hadamard_sparsity_
         }
     }
 }
+
 template <int dim, int n_faces, typename real>  
 void SumFactorizedOperators<dim,n_faces,real>::sum_factorized_Hadamard_basis_assembly(
     const unsigned int rows_size_1D,
@@ -928,6 +927,7 @@ void SumFactorizedOperators<dim,n_faces,real>::sum_factorized_Hadamard_basis_ass
     }
 
 }
+
 template <int dim, int n_faces, typename real>  
 void SumFactorizedOperators<dim,n_faces,real>::sum_factorized_Hadamard_surface_sparsity_pattern(
     const unsigned int rows_size,
@@ -996,6 +996,7 @@ void SumFactorizedOperators<dim,n_faces,real>::sum_factorized_Hadamard_surface_s
         }
     }
 }
+
 template <int dim, int n_faces, typename real>  
 void SumFactorizedOperators<dim,n_faces,real>::sum_factorized_Hadamard_surface_basis_assembly(
     const unsigned int rows_size,

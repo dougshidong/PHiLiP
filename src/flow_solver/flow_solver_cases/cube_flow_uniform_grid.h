@@ -10,19 +10,19 @@ namespace FlowSolver {
 template <int dim, int nstate>
 class CubeFlow_UniformGrid : public FlowSolverCaseBase<dim, nstate>
 {
- public:
-     explicit CubeFlow_UniformGrid(const Parameters::AllParameters *const parameters_input);
-     
+public:
+    explicit CubeFlow_UniformGrid(const Parameters::AllParameters *const parameters_input);
+
     /// Function to compute the adaptive time step
-    double get_adaptive_time_step(std::shared_ptr<DGBase<dim,double>> dg) const override;
+    virtual double get_adaptive_time_step(std::shared_ptr<DGBase<dim,double>> dg) const override;
 
     /// Function to compute the initial adaptive time step
-    double get_adaptive_time_step_initial(std::shared_ptr<DGBase<dim,double>> dg) override;
+    virtual double get_adaptive_time_step_initial(std::shared_ptr<DGBase<dim,double>> dg) override;
 
     /// Updates the maximum local wave speed
-    void update_maximum_local_wave_speed(DGBase<dim, double> &dg);
+    virtual void update_maximum_local_wave_speed(DGBase<dim, double> &dg);
  
- protected:
+protected:
     /// Maximum local wave speed (i.e. convective eigenvalue)
     double maximum_local_wave_speed;
 

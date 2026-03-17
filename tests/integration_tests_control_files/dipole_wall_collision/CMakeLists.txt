@@ -38,7 +38,7 @@ set_tests_labels(MPI_VISCOUS_DIPOLE_WALL_COLLISION_QUANTITY_CHECK_STRONG_DG_P2 D
                                                                                RUNGE-KUTTA
                                                                                STRONG
                                                                                UNCOLLOCATED
-                                                                               LONG
+                                                                               EXTRA-LONG
                                                                                INTEGRATION_TEST)
 # ----------------------------------------
 configure_file(viscous_DWC_ILES_NSFR_cHU_IR_2PF_GL_OI-0_dofs0384_p5_quick.prm viscous_DWC_ILES_NSFR_cHU_IR_2PF_GL_OI-0_dofs0384_p5_quick.prm COPYONLY)

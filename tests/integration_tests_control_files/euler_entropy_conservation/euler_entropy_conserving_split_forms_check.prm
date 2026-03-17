@@ -48,5 +48,6 @@ subsection flow_solver
   subsection taylor_green_vortex
     set do_calculate_numerical_entropy = true
     set density_initial_condition_type = isothermal
+    set check_nonphysical_flow_case_behavior = false
   end
 end

@@ -461,9 +461,11 @@ void PhysicsModel<dim,nstate,real,nstate_baseline_physics>
             soln_bc[s] += baseline_soln_bc[s];
             soln_grad_bc[s] += baseline_soln_grad_bc[s];
         }
-        pcout << "Error: boundary_face_values_viscous_flux() not implemented for nstate!=nstate_baseline_physics." << std::endl;
-        pcout << "Aborting..." << std::endl;
-        std::abort(); // <-- TO DO NOT IMPLEMENTED YET
+        if (boundary_type != 1000) {
+            pcout << "Error: boundary_face_values_viscous_flux() not implemented for nstate!=nstate_baseline_physics." << std::endl;
+            pcout << "Aborting..." << std::endl;
+            std::abort(); // <-- TO DO NOT IMPLEMENTED YET
+        }
     }
 }
 

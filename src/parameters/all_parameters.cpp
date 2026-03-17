@@ -555,6 +555,9 @@ const std::string test_string = prm.get("test_type");
         if (model_type == large_eddy_simulation || model_type == navier_stokes_model) {
             nstate = dimension+2;
         }
+    } else if (pde_string == "real_gas") {
+        pde_type = real_gas;
+        nstate = dimension+species+1;
     }
     
     overintegration = prm.get_integer("overintegration");

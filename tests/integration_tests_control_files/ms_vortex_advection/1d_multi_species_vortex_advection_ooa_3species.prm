@@ -21,9 +21,6 @@ set non_physical_behavior = abort_run
 # set directry to write output data
 #set solution_vtk_files_directory_name = multi_species
 
-# Note: this was added to turn off check_same_coords() -- has no other function when dim!=1
-set use_periodic_bc = true
-
 # degree of freedom renumbering not necessary for explicit time advancement cases
 set do_renumber_dofs = false
 

@@ -7,7 +7,7 @@ namespace PHiLiP {
 namespace Tests {
 
 /// Dipole Wall Collision Unsteady Quantity Check
-template <int dim, int nstate>
+template <int dim, int nspecies, int nstate>
 class DipoleWallCollisionUnsteadyQuantityCheck: public TestsBase
 {
 public:

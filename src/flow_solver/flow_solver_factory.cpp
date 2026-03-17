@@ -39,13 +39,13 @@ FlowSolverFactory<dim,nspecies,nstate>
         }
     } else if (flow_type == FlowCaseEnum::dipole_wall_collision_normal){
         if constexpr (dim==2 && nstate==dim+2){
-            std::shared_ptr<FlowSolverCaseBase<dim, nstate>> flow_solver_case = std::make_shared<DipoleWallCollision<dim,nstate>>(parameters_input);
-            return std::make_unique<FlowSolver<dim,nstate>>(parameters_input, flow_solver_case, parameter_handler_input);
+            std::shared_ptr<FlowSolverCaseBase<dim, nspecies, nstate>> flow_solver_case = std::make_shared<DipoleWallCollision<dim, nspecies, nstate>>(parameters_input);
+            return std::make_unique<FlowSolver<dim, nspecies, nstate>>(parameters_input, flow_solver_case, parameter_handler_input);
         }
     } else if (flow_type == FlowCaseEnum::dipole_wall_collision_oblique){
         if constexpr (dim==2 && nstate==dim+2){
-            std::shared_ptr<FlowSolverCaseBase<dim, nstate>> flow_solver_case = std::make_shared<DipoleWallCollision_Oblique<dim,nstate>>(parameters_input);
-            return std::make_unique<FlowSolver<dim,nstate>>(parameters_input, flow_solver_case, parameter_handler_input);
+            std::shared_ptr<FlowSolverCaseBase<dim, nspecies, nstate>> flow_solver_case = std::make_shared<DipoleWallCollision_Oblique<dim, nspecies, nstate>>(parameters_input);
+            return std::make_unique<FlowSolver<dim, nspecies, nstate>>(parameters_input, flow_solver_case, parameter_handler_input);
         }
     } else if (flow_type == FlowCaseEnum::decaying_homogeneous_isotropic_turbulence){
         if constexpr (dim==3 && nstate==dim+2 && nspecies==1){
@@ -74,13 +74,13 @@ FlowSolverFactory<dim,nspecies,nstate>
         }
     } else if (flow_type == FlowCaseEnum::gaussian_bump){
         if constexpr (dim==2 && nstate==dim+2){
-            std::shared_ptr<FlowSolverCaseBase<dim, nstate>> flow_solver_case = std::make_shared<GaussianBump<dim, nstate>>(parameters_input);
-            return std::make_unique<FlowSolver<dim, nstate>>(parameters_input, flow_solver_case, parameter_handler_input);
+            std::shared_ptr<FlowSolverCaseBase<dim, nspecies, nstate>> flow_solver_case = std::make_shared<GaussianBump<dim, nspecies, nstate>>(parameters_input);
+            return std::make_unique<FlowSolver<dim, nspecies, nstate>>(parameters_input, flow_solver_case, parameter_handler_input);
         }
     } else if (flow_type == FlowCaseEnum::channel_flow){
         if constexpr (dim==3 && nstate==dim+2){
-            std::shared_ptr<FlowSolverCaseBase<dim, nstate>> flow_solver_case = std::make_shared<ChannelFlow<dim,nstate>>(parameters_input);
-            return std::make_unique<FlowSolver<dim, nstate>>(parameters_input, flow_solver_case, parameter_handler_input);
+            std::shared_ptr<FlowSolverCaseBase<dim, nspecies, nstate>> flow_solver_case = std::make_shared<ChannelFlow<dim, nspecies, nstate>>(parameters_input);
+            return std::make_unique<FlowSolver<dim, nspecies, nstate>>(parameters_input, flow_solver_case, parameter_handler_input);
         }
     } else if (flow_type == FlowCaseEnum::burgers_inviscid){
         if constexpr (dim==1 && nstate==dim && nspecies==1){
@@ -178,7 +178,7 @@ FlowSolverFactory<dim,nspecies,nstate>
             return std::make_unique<FlowSolver<dim, nspecies, nstate>>(parameters_input, flow_solver_case, parameter_handler_input);
         }
     } else {
-        std::shared_ptr<FlowSolverCaseBase<dim, nspecies, nstate>> flow_solver_case = std::make_shared<PeriodicCubeFlow<dim, nspecies, nstate>>(parameters_input);
+        // std::shared_ptr<FlowSolverCaseBase<dim, nspecies, nstate>> flow_solver_case = std::make_shared<PeriodicCubeFlow<dim, nspecies, nstate>>(parameters_input);
         std::cout << "Invalid flow case. You probably forgot to add it to the list of flow cases in flow_solver_factory.cpp" << std::endl;
         std::abort();
     }

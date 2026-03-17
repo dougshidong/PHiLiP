@@ -5,8 +5,8 @@
 namespace PHiLiP {
 namespace Tests {
 
-template <int dim, int nstate>
-TurbulentChannelFlowUnsteadyQuantityCheck<dim, nstate>::TurbulentChannelFlowUnsteadyQuantityCheck(
+template <int dim, int nspecies, int nstate>
+TurbulentChannelFlowUnsteadyQuantityCheck<dim, nspecies, nstate>::TurbulentChannelFlowUnsteadyQuantityCheck(
     const PHiLiP::Parameters::AllParameters *const parameters_input,
     const dealii::ParameterHandler &parameter_handler_input)
         : TestsBase::TestsBase(parameters_input)
@@ -16,15 +16,15 @@ TurbulentChannelFlowUnsteadyQuantityCheck<dim, nstate>::TurbulentChannelFlowUnst
         , using_wall_model(parameters_input->using_wall_model)
 {}
 
-template <int dim, int nstate>
-int TurbulentChannelFlowUnsteadyQuantityCheck<dim, nstate>::run_test() const
+template <int dim, int nspecies, int nstate>
+int TurbulentChannelFlowUnsteadyQuantityCheck<dim, nspecies, nstate>::run_test() const
 {
     // Integrate to final time
-    std::unique_ptr<FlowSolver::FlowSolver<dim,nstate>> flow_solver = FlowSolver::FlowSolverFactory<dim,nstate>::select_flow_case(this->all_parameters, parameter_handler);
+    std::unique_ptr<FlowSolver::FlowSolver<dim,nspecies,nstate>> flow_solver = FlowSolver::FlowSolverFactory<dim,nspecies,nstate>::select_flow_case(this->all_parameters, parameter_handler);
     static_cast<void>(flow_solver->run());
 
     // Compute kinetic energy, enstrophy, and palinstrophy
-    std::unique_ptr<FlowSolver::ChannelFlow<dim, nstate>> flow_solver_case = std::make_unique<FlowSolver::ChannelFlow<dim,nstate>>(this->all_parameters);
+    std::unique_ptr<FlowSolver::ChannelFlow<dim, nspecies, nstate>> flow_solver_case = std::make_unique<FlowSolver::ChannelFlow<dim,nspecies,nstate>>(this->all_parameters);
     flow_solver_case->compute_and_update_integrated_quantities(*(flow_solver->dg));
 
     double average_wall_shear_stress = 0.0;
@@ -49,7 +49,7 @@ int TurbulentChannelFlowUnsteadyQuantityCheck<dim, nstate>::run_test() const
 }
 
 #if PHILIP_DIM==3
-    template class TurbulentChannelFlowUnsteadyQuantityCheck<PHILIP_DIM,PHILIP_DIM+2>;
+    template class TurbulentChannelFlowUnsteadyQuantityCheck<PHILIP_DIM,PHILIP_SPECIES,PHILIP_DIM+2>;
 #endif
 } // Tests namespace
 } // PHiLiP namespace

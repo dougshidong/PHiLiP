@@ -1436,14 +1436,15 @@ double LargeEddySimulation_DynamicSmagorinsky<dim,nspecies,nstate,real>
     template type LargeEddySimulationBase < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, type >::get_tensor_magnitude< type >(const dealii::Tensor<2,PHILIP_DIM, type> &tensor) const;
 BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_TYPES, _, POSSIBLE_TYPES)
 
+#undef POSSIBLE_TYPES
 // Define a sequence of possible types
 #define POSSIBLE_TYPES (double)(RadType)(FadFadType)(RadFadType)
 // Define a macro to instantiate LES functions for a specific type
-#define INSTANTIATE_TYPES(r, data, type) \
 // -- -- instantiate all the real types with real2 = FadType for automatic differentiation
+#define INSTANTIATE_FADTYPES(r, data, type) \
 template FadType    LargeEddySimulationBase < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, type >::get_tensor_magnitude< FadType    >(const dealii::Tensor<2,PHILIP_DIM,FadType   > &tensor) const; \
 template FadType    LargeEddySimulationBase < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, type >::get_tensor_magnitude_sqr< FadType    >(const dealii::Tensor<2,PHILIP_DIM, FadType   > &tensor) const;
-BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_TYPES, _, POSSIBLE_TYPES)
+BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_FADTYPES, _, POSSIBLE_TYPES)
 #endif
 } // Physics namespace
 } // PHiLiP namespace

@@ -41,7 +41,8 @@ protected:
     void compute_unsteady_data_and_write_to_table(
         const std::shared_ptr<ODE::ODESolverBase<dim, nspecies, double>> ode_solver,
         const std::shared_ptr <DGBase<dim, nspecies, double>> dg,
-        const std::shared_ptr<dealii::TableHandler> unsteady_data_table) override;
+        const std::shared_ptr<dealii::TableHandler> unsteady_data_table,
+        const bool do_write_unsteady_data_table_file) override;
 
     const unsigned int number_of_cells_per_direction; ///< Number of cells per direction for the grid
     const double domain_left; ///< Domain left-boundary value for generating the grid

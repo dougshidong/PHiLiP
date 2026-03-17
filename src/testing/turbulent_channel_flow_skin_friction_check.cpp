@@ -6,8 +6,8 @@
 namespace PHiLiP {
 namespace Tests {
 
-template <int dim, int nstate>
-TurbulentChannelFlowSkinFrictionCheck<dim, nstate>::TurbulentChannelFlowSkinFrictionCheck(
+template <int dim, int nspecies, int nstate>
+TurbulentChannelFlowSkinFrictionCheck<dim, nspecies, nstate>::TurbulentChannelFlowSkinFrictionCheck(
     const PHiLiP::Parameters::AllParameters *const parameters_input,
     const dealii::ParameterHandler &parameter_handler_input)
         : TestsBase::TestsBase(parameters_input)
@@ -24,8 +24,8 @@ TurbulentChannelFlowSkinFrictionCheck<dim, nstate>::TurbulentChannelFlowSkinFric
     PHiLiP::Parameters::AllParameters parameters_navier_stokes_channel_flow_constant_source_term_wall_model = *this->all_parameters;
     parameters_navier_stokes_channel_flow_constant_source_term_wall_model.pde_type = PDE_enum::navier_stokes_channel_flow_constant_source_term_wall_model;
     this->navier_stokes_channel_flow_constant_source_term_wall_model_physics = 
-        std::dynamic_pointer_cast<Physics::NavierStokes_ChannelFlowConstantSourceTerm_WallModel<dim,dim+2,double>>(
-                Physics::PhysicsFactory<dim,dim+2,double>::create_Physics(&parameters_navier_stokes_channel_flow_constant_source_term_wall_model));
+        std::dynamic_pointer_cast<Physics::NavierStokes_ChannelFlowConstantSourceTerm_WallModel<dim,nspecies,dim+2,double>>(
+                Physics::PhysicsFactory<dim,nspecies,dim+2,double>::create_Physics(&parameters_navier_stokes_channel_flow_constant_source_term_wall_model));
     // Set check wall model flag if uniform grid
     using turbulent_channel_mesh_stretching_function_enum = Parameters::FlowSolverParam::TurbulentChannelMeshStretchingFunctionType;
     const turbulent_channel_mesh_stretching_function_enum turbulent_channel_mesh_stretching_function_type = this->all_parameters->flow_solver_param.turbulent_channel_mesh_stretching_function_type;
@@ -33,8 +33,8 @@ TurbulentChannelFlowSkinFrictionCheck<dim, nstate>::TurbulentChannelFlowSkinFric
     else this->check_wall_model = false;
 }
 
-template <int dim, int nstate>
-double TurbulentChannelFlowSkinFrictionCheck<dim, nstate>::get_x_velocity(const double y) const 
+template <int dim, int nspecies, int nstate>
+double TurbulentChannelFlowSkinFrictionCheck<dim, nspecies, nstate>::get_x_velocity(const double y) const 
 {
     double x_velocity = 0.0;
     if(this->xvelocity_initial_condition_type == XVelocityInitialConditionEnum::laminar)
@@ -78,8 +78,8 @@ double TurbulentChannelFlowSkinFrictionCheck<dim, nstate>::get_x_velocity(const 
 }
 
 
-template <int dim, int nstate>
-double TurbulentChannelFlowSkinFrictionCheck<dim, nstate>::get_x_velocity_gradient(const double y) const 
+template <int dim, int nspecies, int nstate>
+double TurbulentChannelFlowSkinFrictionCheck<dim, nspecies, nstate>::get_x_velocity_gradient(const double y) const 
 {
     double x_velocity_gradient = 0.0;
     if(this->xvelocity_initial_condition_type == XVelocityInitialConditionEnum::laminar)
@@ -141,8 +141,8 @@ double TurbulentChannelFlowSkinFrictionCheck<dim, nstate>::get_x_velocity_gradie
     return x_velocity_gradient;
 }
 
-template <int dim, int nstate>
-double TurbulentChannelFlowSkinFrictionCheck<dim, nstate>::get_wall_shear_stress() const
+template <int dim, int nspecies, int nstate>
+double TurbulentChannelFlowSkinFrictionCheck<dim, nspecies, nstate>::get_wall_shear_stress() const
 {
     // for constant viscosity we can write:
     const double nondimensionalized_constant_viscosity = this->all_parameters->navier_stokes_param.nondimensionalized_constant_viscosity;
@@ -153,8 +153,8 @@ double TurbulentChannelFlowSkinFrictionCheck<dim, nstate>::get_wall_shear_stress
     return average_wall_shear_stress;
 }
 
-template <int dim, int nstate>
-double TurbulentChannelFlowSkinFrictionCheck<dim, nstate>::get_integral_of_x_velocity(const double y_plus) const
+template <int dim, int nspecies, int nstate>
+double TurbulentChannelFlowSkinFrictionCheck<dim, nspecies, nstate>::get_integral_of_x_velocity(const double y_plus) const
 {
     double value = 0.0;
     if((this->xvelocity_initial_condition_type == XVelocityInitialConditionEnum::turbulent) || 
@@ -181,8 +181,8 @@ double TurbulentChannelFlowSkinFrictionCheck<dim, nstate>::get_integral_of_x_vel
     return value;
 }
 
-template <int dim, int nstate>
-double TurbulentChannelFlowSkinFrictionCheck<dim, nstate>::get_bulk_velocity() const
+template <int dim, int nspecies, int nstate>
+double TurbulentChannelFlowSkinFrictionCheck<dim, nspecies, nstate>::get_bulk_velocity() const
 {
     double bulk_velocity = 0.0;
     if(this->xvelocity_initial_condition_type == XVelocityInitialConditionEnum::laminar)
@@ -219,8 +219,8 @@ double TurbulentChannelFlowSkinFrictionCheck<dim, nstate>::get_bulk_velocity() c
     return bulk_velocity;
 }
 
-template <int dim, int nstate>
-double TurbulentChannelFlowSkinFrictionCheck<dim, nstate>::get_skin_friction_coefficient() const
+template <int dim, int nspecies, int nstate>
+double TurbulentChannelFlowSkinFrictionCheck<dim, nspecies, nstate>::get_skin_friction_coefficient() const
 {
     // Reference: Equation 34 of Lodato G, Castonguay P, Jameson A. Discrete filter operators for large-eddy simulation using high-order spectral difference methods. International Journal for Numerical Methods in Fluids2013;72(2):231–258. 
     const double avg_wall_shear_stress = this->get_wall_shear_stress();
@@ -230,8 +230,8 @@ double TurbulentChannelFlowSkinFrictionCheck<dim, nstate>::get_skin_friction_coe
     return skin_friction_coefficient;
 }
 
-template <int dim, int nstate>
-double TurbulentChannelFlowSkinFrictionCheck<dim, nstate>::get_wall_shear_stress_from_friction_reynolds_number() const
+template <int dim, int nspecies, int nstate>
+double TurbulentChannelFlowSkinFrictionCheck<dim, nspecies, nstate>::get_wall_shear_stress_from_friction_reynolds_number() const
 {
     const double reynolds_number_inf = this->all_parameters->navier_stokes_param.reynolds_number_inf;
     const double density = 1.0; // non-dimensional
@@ -243,8 +243,8 @@ double TurbulentChannelFlowSkinFrictionCheck<dim, nstate>::get_wall_shear_stress
     return wall_shear_stress;
 }
 
-template <int dim, int nstate>
-double TurbulentChannelFlowSkinFrictionCheck<dim, nstate>::get_wall_shear_stress_from_wall_model() const
+template <int dim, int nspecies, int nstate>
+double TurbulentChannelFlowSkinFrictionCheck<dim, nspecies, nstate>::get_wall_shear_stress_from_wall_model() const
 {
     const double distance_from_wall_for_wall_model_input_velocity = this->navier_stokes_channel_flow_constant_source_term_wall_model_physics->distance_from_wall_for_wall_model_input_velocity; // non-dimensional -- delta x on uniform grid
     pcout << " - distance_from_wall_for_wall_model_input_velocity = " << distance_from_wall_for_wall_model_input_velocity << std::endl;
@@ -262,15 +262,15 @@ double TurbulentChannelFlowSkinFrictionCheck<dim, nstate>::get_wall_shear_stress
     return wall_shear_stress;
 }
 
-template <int dim, int nstate>
-int TurbulentChannelFlowSkinFrictionCheck<dim, nstate>::run_test() const
+template <int dim, int nspecies, int nstate>
+int TurbulentChannelFlowSkinFrictionCheck<dim, nspecies, nstate>::run_test() const
 {
     // Integrate to final time
-    std::unique_ptr<FlowSolver::FlowSolver<dim,nstate>> flow_solver = FlowSolver::FlowSolverFactory<dim,nstate>::select_flow_case(this->all_parameters, parameter_handler);
+    std::unique_ptr<FlowSolver::FlowSolver<dim,nspecies,nstate>> flow_solver = FlowSolver::FlowSolverFactory<dim,nspecies,nstate>::select_flow_case(this->all_parameters, parameter_handler);
     static_cast<void>(flow_solver->run());
 
     // (1) Compute wall shear stress
-    std::unique_ptr<FlowSolver::ChannelFlow<dim, nstate>> flow_solver_case = std::make_unique<FlowSolver::ChannelFlow<dim,nstate>>(this->all_parameters);
+    std::unique_ptr<FlowSolver::ChannelFlow<dim, nspecies, nstate>> flow_solver_case = std::make_unique<FlowSolver::ChannelFlow<dim,nspecies,nstate>>(this->all_parameters);
     double computed_wall_shear_stress = 0.0;
     if(this->all_parameters->using_wall_model) computed_wall_shear_stress = flow_solver_case->get_average_wall_shear_stress_from_wall_model(*(flow_solver->dg));
     else computed_wall_shear_stress = flow_solver_case->get_average_wall_shear_stress(*(flow_solver->dg));
@@ -349,7 +349,7 @@ int TurbulentChannelFlowSkinFrictionCheck<dim, nstate>::run_test() const
 }
 
 #if PHILIP_DIM==3
-    template class TurbulentChannelFlowSkinFrictionCheck<PHILIP_DIM,PHILIP_DIM+2>;
+    template class TurbulentChannelFlowSkinFrictionCheck<PHILIP_DIM,PHILIP_SPECIES,PHILIP_DIM+2>;
 #endif
 } // Tests namespace
 } // PHiLiP namespace

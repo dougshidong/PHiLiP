@@ -1682,11 +1682,6 @@ InitialConditionFactory<dim,nspecies,nstate, real>::create_InitialConditionFunct
     template class InitialConditionFunction_TurbulentChannelFlow_Manufactured <PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, double>;
     #endif
 
-    #if PHILIP_DIM==3
-    template class InitialConditionFunction_TaylorGreenVortex <PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, double>;
-    template class InitialConditionFunction_TaylorGreenVortex_Isothermal <PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, double>;
-    #endif
-
     #if PHILIP_DIM>1
     template class InitialConditionFunction_IsentropicVortex <PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, double>;
     #endif

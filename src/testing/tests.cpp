@@ -37,15 +37,19 @@
 #include "pod_adaptive_sampling_testing.h"
 #include "taylor_green_vortex_energy_check.h"
 #include "taylor_green_vortex_restart_check.h"
-#include "time_refinement_study.h"
+#include "general_refinement_study.h"
 #include "time_refinement_study_reference.h"
 #include "h_refinement_study_isentropic_vortex.h"
 #include "rrk_numerical_entropy_conservation_check.h"
 #include "euler_entropy_conserving_split_forms_check.h"
 #include "homogeneous_isotropic_turbulence_initialization_check.h"
 #include "khi_robustness.h"
+#include "stability_fr_parameter_range.h"
 #include "bound_preserving_limiter_tests.h"
 #include "naca0012_unsteady_check_quick.h"
+#include "turbulent_channel_flow_skin_friction_check.h"
+#include "dipole_wall_collision_unsteady_quantity_check.h"
+#include "turbulent_channel_flow_unsteady_quantity_check.h"
 #include "build_NNLS_problem.h"
 #include "hyper_reduction_comparison.h"
 #include "hyper_adaptive_sampling_run.h"
@@ -113,6 +117,8 @@ std::string TestsBase::get_pde_string(const Parameters::AllParameters *const par
             else if(sgs_model==SGSModel_enum::wall_adaptive_local_eddy_viscosity) sgs_model_string = "wall_adaptive_local_eddy_viscosity";
             else if(sgs_model==SGSModel_enum::vreman) sgs_model_string = "vreman";
             pde_string += std::string(" (Model: ") + model_string + std::string(", SGS Model: ") + sgs_model_string + std::string(")");
+        } else if(model == Model_enum::navier_stokes_model) {
+            model_string = "navier_stokes_model";
         }
         else if(model == Model_enum::reynolds_averaged_navier_stokes) {
             // assign model string
@@ -238,7 +244,9 @@ std::unique_ptr< TestsBase > TestsFactory<dim,nstate,MeshType>
     // prevent warnings for when a create_FlowSolver is not being called (explicit and implicit cases)
     if((test_type != Test_enum::finite_difference_sensitivity) &&
        (test_type != Test_enum::taylor_green_vortex_energy_check) && 
-       (test_type != Test_enum::taylor_green_vortex_restart_check)) {
+       (test_type != Test_enum::taylor_green_vortex_restart_check) && 
+       (test_type != Test_enum::dipole_wall_collision_quantity_check) && 
+       (test_type != Test_enum::turbulent_channel_flow_quantity_check)) {
         (void) parameter_handler_input;
     } else if (!((dim==3 && nstate==dim+2) || (dim==1 && nstate==1))) {
         (void) parameter_handler_input;
@@ -248,6 +256,9 @@ std::unique_ptr< TestsBase > TestsFactory<dim,nstate,MeshType>
         return std::make_unique<GridStudy<dim,nstate>>(parameters_input);
     } else if(test_type == Test_enum::grid_refinement_study) {
         return std::make_unique<GridRefinementStudy<dim,nstate,MeshType>>(parameters_input);
+    } else if(test_type == Test_enum::stability_fr_parameter_range) {
+        if constexpr ((dim==1 && nstate==1 ) || (dim==2 && nstate==1 ))
+            return std::make_unique<StabilityFRParametersRange<dim,nstate>>(parameters_input, parameter_handler_input);
     } else if(test_type == Test_enum::burgers_energy_stability) {
         if constexpr (dim==1 && nstate==1) return std::make_unique<BurgersEnergyStability<dim,nstate>>(parameters_input);
     } else if(test_type == Test_enum::diffusion_exact_adjoint) {
@@ -302,8 +313,15 @@ std::unique_ptr< TestsBase > TestsFactory<dim,nstate,MeshType>
         if constexpr (dim==3 && nstate==dim+2) return std::make_unique<TaylorGreenVortexRestartCheck<dim,nstate>>(parameters_input,parameter_handler_input);
     } else if(test_type == Test_enum::homogeneous_isotropic_turbulence_initialization_check){
         if constexpr (dim==3 && nstate==dim+2) return std::make_unique<HomogeneousIsotropicTurbulenceInitializationCheck<dim,nstate>>(parameters_input,parameter_handler_input);
+    } else if(test_type == Test_enum::turbulent_channel_flow_skin_friction_check){
+        if constexpr (dim==3 && nstate==dim+2) return std::make_unique<TurbulentChannelFlowSkinFrictionCheck<dim,nstate>>(parameters_input,parameter_handler_input);
+    } else if(test_type == Test_enum::dipole_wall_collision_quantity_check) {
+        if constexpr (dim==2 && nstate==dim+2) return std::make_unique<DipoleWallCollisionUnsteadyQuantityCheck<dim,nstate>>(parameters_input,parameter_handler_input);
+    } else if(test_type == Test_enum::turbulent_channel_flow_quantity_check) {
+        if constexpr (dim==3 && nstate==dim+2) return std::make_unique<TurbulentChannelFlowUnsteadyQuantityCheck<dim,nstate>>(parameters_input,parameter_handler_input);
     } else if(test_type == Test_enum::time_refinement_study) {
-        if constexpr (dim==1 && nstate==1)  return std::make_unique<TimeRefinementStudy<dim, nstate>>(parameters_input, parameter_handler_input);
+        if constexpr (dim==1 && nstate==1)  return std::make_unique<GeneralRefinementStudy<dim, nstate>>(parameters_input, parameter_handler_input, 
+                GeneralRefinementStudy<dim,nstate>::RefinementType::timestep);
     } else if(test_type == Test_enum::h_refinement_study_isentropic_vortex) {
         if constexpr (dim+2==nstate && dim!=1)  return std::make_unique<HRefinementStudyIsentropicVortex<dim, nstate>>(parameters_input, parameter_handler_input);
     } else if(test_type == Test_enum::time_refinement_study_reference) {

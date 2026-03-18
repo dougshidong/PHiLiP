@@ -371,7 +371,7 @@ DGWeak<dim,nstate,real,MeshType>::DGWeak(
     const unsigned int max_degree_input,
     const unsigned int grid_degree_input,
     const std::shared_ptr<Triangulation> triangulation_input)
-    : DGBaseState<dim,nstate,real,MeshType>::DGBaseState(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input)
+    : DGBaseState<dim,nstate,real,MeshType>(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input)
 { }
 
 template <int dim, int nstate, typename real, typename MeshType>
@@ -413,7 +413,7 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_volume_term_explicit(
 
     std::vector< real > soln_coeff(n_soln_dofs_int);
     for (unsigned int idof = 0; idof < n_soln_dofs_int; ++idof) {
-        soln_coeff[idof] = DGBase<dim,real,MeshType>::solution(soln_dof_indices_int[idof]);
+        soln_coeff[idof] = this->solution(soln_dof_indices_int[idof]);
     }
 
     typename dealii::DoFHandler<dim>::active_cell_iterator artificial_dissipation_cell(
@@ -461,7 +461,7 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_volume_term_explicit(
     //const real cell_diameter = cell_volume;
     const real cell_radius = 0.5 * cell_diameter;
     this->cell_volume[cell_index] = cell_volume;
-    this->max_dt_cell[cell_index] = DGBaseState<dim,nstate,real,MeshType>::evaluate_CFL ( soln_at_q, max_artificial_diss, cell_radius, cell_degree);
+    this->max_dt_cell[cell_index] = this->evaluate_CFL(soln_at_q, max_artificial_diss, cell_radius, cell_degree);
 }
 
 template <int dim, int nstate, typename real2>
@@ -706,10 +706,9 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_boundary_term(
         }
     }
 
-
     std::vector<State> soln_int = local_solution.evaluate_values(unit_quad_pts);
-    std::vector<State> soln_ext(n_quad_pts);
-    std::vector<DirectionalState> soln_grad_int(n_quad_pts), soln_grad_ext(n_quad_pts);
+    std::vector<State> soln_ext(n_quad_pts), soln_ext_viscous_flux(n_quad_pts);
+    std::vector<DirectionalState> soln_grad_int(n_quad_pts), soln_grad_ext(n_quad_pts), soln_grad_ext_viscous_flux(n_quad_pts);
 
     for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
 
@@ -727,6 +726,7 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_boundary_term(
     for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
         const dealii::Tensor<1,dim,real2> normal_int = phys_unit_normal[iquad];
         physics.boundary_face_values (boundary_id, real_quad_pts[iquad], normal_int, soln_int[iquad], soln_grad_int[iquad], soln_ext[iquad], soln_grad_ext[iquad]);
+        physics.boundary_face_values_viscous_flux (boundary_id, real_quad_pts[iquad], normal_int, soln_int[iquad], soln_grad_int[iquad], soln_int[iquad], soln_grad_int[iquad], soln_ext_viscous_flux[iquad], soln_grad_ext_viscous_flux[iquad]);
     }
 
     // Assemble BR2 gradient correction right-hand side
@@ -842,7 +842,7 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_boundary_term(
         //conv_num_flux_dot_n[iquad] = conv_num_flux.evaluate_flux(soln_int[iquad], soln_ext[iquad], normal_int);
         conv_num_flux_dot_n[iquad] = conv_num_flux.evaluate_flux(soln_int[iquad], soln_ext[iquad], normal_int);
         // Notice that the flux uses the solution given by the Dirichlet or Neumann boundary condition
-        diss_soln_num_flux[iquad] = diss_num_flux.evaluate_solution_flux(soln_ext[iquad], soln_ext[iquad], normal_int);
+        diss_soln_num_flux[iquad] = diss_num_flux.evaluate_solution_flux(soln_ext_viscous_flux[iquad], soln_ext_viscous_flux[iquad], normal_int);
 
         DirectionalState diss_soln_jump_int;
         for (int s=0; s<nstate; s++) {
@@ -853,22 +853,22 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_boundary_term(
         diss_flux_jump_int[iquad] = physics.dissipative_flux (soln_int[iquad], diss_soln_jump_int, current_cell_index);
 
         if (this->all_parameters->artificial_dissipation_param.add_artificial_dissipation) {
-            const DirectionalState artificial_diss_flux_jump_int = DGBaseState<dim,nstate,real,MeshType>::artificial_dissip->calc_artificial_dissipation_flux(soln_int[iquad], diss_soln_jump_int,artificial_diss_coeff_at_q[iquad]);
+            const DirectionalState artificial_diss_flux_jump_int = this->artificial_dissip->calc_artificial_dissipation_flux(soln_int[iquad], diss_soln_jump_int, artificial_diss_coeff_at_q[iquad]);
             for (int s=0; s<nstate; s++) {
                 diss_flux_jump_int[iquad][s] += artificial_diss_flux_jump_int[s];
             }
         }
 
         diss_auxi_num_flux_dot_n[iquad] = diss_num_flux.evaluate_auxiliary_flux(
-            //artificial_diss_coeff,
-            //artificial_diss_coeff,
             current_cell_index,
             current_cell_index,
             artificial_diss_coeff_at_q[iquad],
             artificial_diss_coeff_at_q[iquad],
-            soln_int[iquad], soln_ext[iquad],
-            soln_grad_int[iquad], soln_grad_ext[iquad],
-            normal_int, penalty, true);
+            soln_int[iquad], soln_ext_viscous_flux[iquad],
+            soln_grad_int[iquad], soln_grad_ext_viscous_flux[iquad],
+            soln_int[iquad], soln_ext_viscous_flux[iquad],
+            soln_grad_int[iquad], soln_grad_ext_viscous_flux[iquad],
+            normal_int, penalty, true, boundary_id);
     }
 
     // Applying convection boundary condition
@@ -1064,8 +1064,7 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_face_term(
     }
 #endif
 
-    // Note: This is ignored when use_periodic_bc is set to true -- this variable has no other function when dim!=1
-    if(this->all_parameters->use_periodic_bc == false) {
+    if(this->all_parameters->check_same_coords_in_weak_dg) {
         check_same_coords<dim,real2>(unit_quad_pts_int, unit_quad_pts_ext, metric_int, metric_ext, 1e-10);
     }
 
@@ -1098,7 +1097,6 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_face_term(
             const Tensor1D normal_ext = vmult(jac_inv_tran_ext, unit_normal_ext);
             const real2 area_int = norm(normal_int);
             const real2 area_ext = norm(normal_ext);
-
             // Technically the normals have jac_det multiplied.
             // However, we use normalized normals by convention, so the term
             // ends up appearing in the surface jacobian.
@@ -1363,7 +1361,9 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_face_term(
             artificial_diss_coeff_at_q[iquad],
             soln_int_at_q[iquad], soln_ext_at_q[iquad],
             soln_grad_int[iquad], soln_grad_ext[iquad],
-            phys_unit_normal_int[iquad], penalty);
+            soln_int_at_q[iquad], soln_ext_at_q[iquad],
+            soln_grad_int[iquad], soln_grad_ext[iquad],
+            phys_unit_normal_int[iquad], penalty, false);
 
         // From test functions associated with interior cell point of view
         for (unsigned int itest_int=0; itest_int<n_soln_dofs_int; ++itest_int) {
@@ -1612,9 +1612,7 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_volume_term(
         }
 
         if (this->all_parameters->artificial_dissipation_param.add_artificial_dissipation) {
-            DirectionalState artificial_diss_phys_flux_at_q;
-            //artificial_diss_phys_flux_at_q = physics.artificial_dissipative_flux (artificial_diss_coeff, soln_at_q[iquad], soln_grad_at_q[iquad]);
-            artificial_diss_phys_flux_at_q = this->artificial_dissip->calc_artificial_dissipation_flux(soln_at_q[iquad], soln_grad_at_q[iquad],artificial_diss_coeff_at_q[iquad]);
+            const DirectionalState artificial_diss_phys_flux_at_q = this->artificial_dissip->calc_artificial_dissipation_flux(soln_at_q[iquad], soln_grad_at_q[iquad], artificial_diss_coeff_at_q[iquad]);
             for (int s=0; s<nstate; s++) {
                 diss_phys_flux_at_q[iquad][s] += artificial_diss_phys_flux_at_q[s];
             }
@@ -1728,7 +1726,6 @@ void DGWeak<dim,nstate,real,MeshType>::assemble_volume_term_and_build_operators_
 
     const dealii::Quadrature<dim> &quadrature = this->volume_quadrature_collection[i_quad];
     
-
     LocalSolution<adtype, dim, nstate> local_solution(fe_soln);
     LocalSolution<adtype, dim, dim> local_metric(fe_metric);
     for(unsigned int i=0; i<n_soln_dofs; ++i)

@@ -29,9 +29,9 @@ template <int dim, int nstate>
 double CubeFlow_UniformGrid<dim,nstate>::get_adaptive_time_step_initial(std::shared_ptr<DGBase<dim,double>> dg)
 {
     // initialize the maximum local wave speed
-    update_maximum_local_wave_speed(*dg);
+    this->update_maximum_local_wave_speed(*dg);
     // compute time step based on advection speed (i.e. maximum local wave speed)
-    const double time_step = get_adaptive_time_step(dg);
+    const double time_step = this->get_adaptive_time_step(dg);
     return time_step;
 }
 

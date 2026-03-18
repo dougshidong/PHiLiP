@@ -28,6 +28,13 @@ public:
         const unsigned int grid_degree_input,
         const std::shared_ptr<Triangulation> triangulation_input);
 
+    const bool do_compute_filtered_solution; ///< Flag to compute the filtered solution
+    const bool apply_modal_high_pass_filter_on_filtered_solution; ///< Flag to apply modal high pass filter on the filtered solution
+    const unsigned int poly_degree_max_large_scales; ///< For filtered solution; lower bound of high pass filter
+    const bool using_wall_model; ///< Flag for using wall model
+    const bool wall_model_input_from_second_element; /// Flag for using the second element as the wall model input
+    const bool use_projected_entropy_variables_for_nsfr_boundary_term; /// Flag for using projected entropy variables for NSFR boundary term
+
     /// Assembles the auxiliary equations' residuals and solves for the auxiliary variables.
     /** For information regarding auxiliary vs. primary quations, see 
      *  Quaegebeur, Nadarajah, Navah and Zwanenburg 2019: Stability of Energy Stable Flux 
@@ -60,7 +67,7 @@ protected:
         const std::vector<dealii::types::global_dof_index>     &metric_dofs_indices,
         const unsigned int                                     poly_degree,
         const unsigned int                                     grid_degree,
-        const Physics::PhysicsBase<dim, nstate, adtype>        &physics,
+        Physics::PhysicsBase<dim, nstate, adtype>              &physics,
         OPERATOR::basis_functions<dim,2*dim>                   &soln_basis,
         OPERATOR::basis_functions<dim,2*dim>                   &flux_basis,
         OPERATOR::local_basis_stiffness<dim,2*dim>             &flux_basis_stiffness,
@@ -259,7 +266,7 @@ protected:
         const std::vector<real>                                            &local_dual,
         const unsigned int                                                 face_number,
         const unsigned int                                                 boundary_id,
-        const Physics::PhysicsBase<dim, nstate, adtype>                    &physics,
+        Physics::PhysicsBase<dim, nstate, adtype>                          &physics,
         const NumericalFlux::NumericalFluxConvective<dim, nstate, adtype>  &conv_num_flux,
         const NumericalFlux::NumericalFluxDissipative<dim, nstate, adtype> &diss_num_flux,
         const unsigned int                                                 poly_degree,
@@ -475,7 +482,7 @@ protected:
         OPERATOR::metric_operators<adtype,dim,2*dim>                       &metric_oper_ext,
         OPERATOR::mapping_shape_functions<dim,2*dim>                       &mapping_basis,
         std::array<std::vector<adtype>,dim>                                &mapping_support_points,
-        const Physics::PhysicsBase<dim, nstate, adtype>                    &physics,
+        Physics::PhysicsBase<dim, nstate, adtype>                          &physics,
         const NumericalFlux::NumericalFluxConvective<dim, nstate, adtype>  &conv_num_flux,
         const NumericalFlux::NumericalFluxDissipative<dim, nstate, adtype> &diss_num_flux,
         dealii::hp::FEFaceValues<dim,dim>                                  &/*fe_values_collection_face_int*/,
@@ -866,13 +873,14 @@ protected:
         OPERATOR::basis_functions<dim,2*dim>                   &flux_basis,
         OPERATOR::local_basis_stiffness<dim,2*dim>             &flux_basis_stiffness,
         OPERATOR::vol_projection_operator<dim,2*dim>           &soln_basis_projection_oper,
-        OPERATOR::metric_operators<adtype,dim,2*dim>             &metric_oper,
-        const Physics::PhysicsBase<dim, nstate, adtype>          &pde_physics,
+        OPERATOR::metric_operators<adtype,dim,2*dim>           &metric_oper,
+        Physics::PhysicsBase<dim, nstate, adtype>              &pde_physics,
         std::vector<adtype>                                    &local_rhs_int_cell);
 
     /// Strong form primary equation's boundary right-hand-side.
     template <typename adtype>
     void assemble_boundary_term_strong(
+        typename dealii::DoFHandler<dim>::active_cell_iterator             current_cell,
         const unsigned int                                                 iface, 
         const dealii::types::global_dof_index                              current_cell_index,
         const std::array<std::vector<adtype>,nstate>                       &soln_coeff,
@@ -884,7 +892,7 @@ protected:
         OPERATOR::basis_functions<dim,2*dim>                               &flux_basis,
         OPERATOR::vol_projection_operator<dim,2*dim>                       &soln_basis_projection_oper,
         OPERATOR::metric_operators<adtype,dim,2*dim>                       &metric_oper,
-        const Physics::PhysicsBase<dim, nstate, adtype>                    &pde_physics,
+        Physics::PhysicsBase<dim, nstate, adtype>                          &pde_physics,
         const NumericalFlux::NumericalFluxConvective<dim, nstate, adtype>  &conv_num_flux,
         const NumericalFlux::NumericalFluxDissipative<dim, nstate, adtype> &diss_num_flux,
         std::vector<adtype>                                                &local_rhs_cell);
@@ -919,7 +927,7 @@ protected:
         OPERATOR::vol_projection_operator<dim,2*dim>                       &soln_basis_projection_oper_ext,
         OPERATOR::metric_operators<adtype,dim,2*dim>                       &metric_oper_int,
         OPERATOR::metric_operators<adtype,dim,2*dim>                       &metric_oper_ext,
-        const Physics::PhysicsBase<dim, nstate, adtype>                    &pde_physics,
+        Physics::PhysicsBase<dim, nstate, adtype>                          &pde_physics,
         const NumericalFlux::NumericalFluxConvective<dim, nstate, adtype>  &conv_num_flux,
         const NumericalFlux::NumericalFluxDissipative<dim, nstate, adtype> &diss_num_flux,
         std::vector<adtype>                                                  &local_rhs_int_cell,

@@ -75,6 +75,27 @@ inline std::array<real,nstate> MHD<dim,nstate,real>
 }
 
 template <int dim, int nstate, typename real>
+std::array<dealii::Tensor<1,dim,real>,nstate> MHD<dim,nstate,real>
+::convert_primitive_gradient_to_conservative_gradient (
+    const std::array<real,nstate> &/*primitive_soln*/,
+    const std::array<dealii::Tensor<1,dim,real>,nstate> &primitive_soln_gradient) const
+{
+    this->pcout << "WARNING: convert_primitive_gradient_to_conservative_gradient() is not defined for current physics." << std::endl;
+    this->pcout << "Aborting..." << std::endl;
+    std::abort();
+    return primitive_soln_gradient;
+}
+
+template <int dim, int nstate, typename real>
+std::array<dealii::Tensor<1,dim,real>,nstate> MHD<dim,nstate,real>
+::convert_conservative_gradient_to_primitive_gradient (
+    const std::array<real,nstate> &/*conservative_soln*/,
+    const std::array<dealii::Tensor<1,dim,real>,nstate> &conservative_soln_gradient) const
+{
+    return conservative_soln_gradient;
+}
+
+template <int dim, int nstate, typename real>
 inline dealii::Tensor<1,dim,real> MHD<dim,nstate,real>
 ::compute_velocities ( const std::array<real,nstate> &conservative_soln ) const
 {

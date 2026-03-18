@@ -260,7 +260,6 @@ DGBase<dim,real,MeshType>::create_collection_tuple(
     return std::make_tuple(fe_coll, volume_quad_coll, face_quad_coll, fe_coll_lagr, fe_coll_1D, fe_coll_1D_1state, fe_coll_lagr_1D, oneD_quad_coll);
 }
 
-
 template <int dim, typename real, typename MeshType>
 void DGBase<dim,real,MeshType>::time_scale_solution_update ( dealii::LinearAlgebra::distributed::Vector<double> &solution_update, const real CFL ) const
 {
@@ -505,11 +504,6 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual_and_ad_derivatives (
 
     const dealii::types::global_dof_index current_cell_index = current_cell->active_cell_index();
 
-    //if have source term need to store vol flux nodes.
-    const bool store_vol_flux_nodes = all_parameters->manufactured_convergence_study_param.manufactured_solution_param.use_manufactured_source_term;
-    //for boundary conditions not periodic we need surface flux nodes
-    //should change this flag to something like if have face on boundary not periodic in the future
-    const bool store_surf_flux_nodes = (all_parameters->use_periodic_bc) ? false : true;
     OPERATOR::metric_operators<adtype,dim,2*dim> metric_oper_int(nstate, poly_degree, grid_degree,
                                                                  store_vol_flux_nodes,
                                                                  store_surf_flux_nodes);
@@ -2587,7 +2581,7 @@ void DGBase<dim,real,MeshType>::reinit_operators_for_cell_residual_loop(
 
     //basis functions projection operator
     soln_basis_projection_oper_int.build_1D_volume_operator(oneD_fe_collection_1state[poly_degree_int], oneD_quadrature_collection[poly_degree_int]);
-    soln_basis_projection_oper_ext.build_1D_volume_operator(oneD_fe_collection_1state[poly_degree_int], oneD_quadrature_collection[poly_degree_int]);
+    soln_basis_projection_oper_ext.build_1D_volume_operator(oneD_fe_collection_1state[poly_degree_ext], oneD_quadrature_collection[poly_degree_ext]);
 
     //We only need to compute the most recent mapping basis since we compute interior before looping faces
     mapping_basis.build_1D_shape_functions_at_grid_nodes(high_order_grid->oneD_fe_system, high_order_grid->oneD_grid_nodes);
@@ -2748,7 +2742,8 @@ void DGBase<dim,real,MeshType>::assemble_residual (const bool compute_dRdW, cons
         if(all_parameters->artificial_dissipation_param.add_artificial_dissipation) update_artificial_dissipation_discontinuity_sensor();
         
         // updates model variables only if there is a model
-        if(all_parameters->pde_type == Parameters::AllParameters::PartialDifferentialEquation::physics_model) update_model_variables();
+        if(all_parameters->pde_type == Parameters::AllParameters::PartialDifferentialEquation::physics_model ||
+           all_parameters->pde_type == Parameters::AllParameters::PartialDifferentialEquation::physics_model_filtered) update_model_variables();
 
         // assembles and solves for auxiliary variable if necessary.
         assemble_auxiliary_residual(compute_dRdW, compute_dRdX, compute_d2R);
@@ -2848,8 +2843,8 @@ void DGBase<dim,real,MeshType>::assemble_residual (const bool compute_dRdW, cons
     } catch(...) {
         assembly_error = 1;
     }
+    // NOTE: To debug the code with gdb, the above 3 lines `catch(...)` may need to be commented out
     const int mpi_assembly_error = dealii::Utilities::MPI::sum(assembly_error, mpi_communicator);
-
 
     if (mpi_assembly_error != 0) {
         std::cout << "Invalid residual assembly encountered..."
@@ -3464,7 +3459,8 @@ void DGBase<dim,real,MeshType>::allocate_system (
     reduced_mesh_weights.reinit(triangulation->n_active_cells());
 
     // allocates model variables only if there is a model
-    if(all_parameters->pde_type == Parameters::AllParameters::PartialDifferentialEquation::physics_model) allocate_model_variables();
+    if(all_parameters->pde_type == Parameters::AllParameters::PartialDifferentialEquation::physics_model ||
+       all_parameters->pde_type == Parameters::AllParameters::PartialDifferentialEquation::physics_model_filtered) allocate_model_variables();
 
     solution.reinit(locally_owned_dofs, ghost_dofs, mpi_communicator);
     solution *= 0.0;
@@ -3477,6 +3473,12 @@ void DGBase<dim,real,MeshType>::allocate_system (
 
     // Set use_auxiliary_eq flag
     set_use_auxiliary_eq();
+
+    // Set store_vol_flux_nodes flag
+    set_store_vol_flux_nodes();
+
+    // Set store_surf_flux_nodes flag
+    set_store_surf_flux_nodes();
 
     // Allocate for auxiliary equation only.
     if(use_auxiliary_eq) allocate_auxiliary_equation ();
@@ -3628,6 +3630,8 @@ void DGBase<dim,real,MeshType>::evaluate_mass_matrices (bool do_inverse_mass_mat
 {   
     using FR_enum = Parameters::AllParameters::Flux_Reconstruction;
     const FR_enum FR_Type = this->all_parameters->flux_reconstruction_type;
+
+    const double FR_user_specified_correction_parameter_value = this->all_parameters->FR_user_specified_correction_parameter_value;
     
     using FR_Aux_enum = Parameters::AllParameters::Flux_Reconstruction_Aux;
     const FR_Aux_enum FR_Type_Aux = this->all_parameters->flux_reconstruction_aux_type;
@@ -3682,7 +3686,7 @@ void DGBase<dim,real,MeshType>::evaluate_mass_matrices (bool do_inverse_mass_mat
     OPERATOR::mapping_shape_functions<dim,2*dim> mapping_basis(1, max_degree, init_grid_degree);//first set at max degree
     OPERATOR::basis_functions<dim,2*dim> basis(1, max_degree, init_grid_degree);
     OPERATOR::local_mass<dim,2*dim> reference_mass_matrix(1, max_degree, init_grid_degree);//first set at max degree
-    OPERATOR::local_Flux_Reconstruction_operator<dim,2*dim> reference_FR(1, max_degree, init_grid_degree, FR_Type);
+    OPERATOR::local_Flux_Reconstruction_operator<dim,2*dim> reference_FR(1, max_degree, init_grid_degree, FR_Type, FR_user_specified_correction_parameter_value);
     OPERATOR::local_Flux_Reconstruction_operator_aux<dim,2*dim> reference_FR_aux(1, max_degree, init_grid_degree, FR_Type_Aux);
     OPERATOR::derivative_p<dim,2*dim> deriv_p(1, max_degree, init_grid_degree);
 
@@ -4020,15 +4024,16 @@ void DGBase<dim,real,MeshType>::apply_inverse_global_mass_matrix(
     using FR_enum = Parameters::AllParameters::Flux_Reconstruction;
     using FR_Aux_enum = Parameters::AllParameters::Flux_Reconstruction_Aux;
     const FR_enum FR_Type = this->all_parameters->flux_reconstruction_type;
+    const double FR_user_specified_correction_parameter_value = this->all_parameters->FR_user_specified_correction_parameter_value;
     const FR_Aux_enum FR_Type_Aux = this->all_parameters->flux_reconstruction_aux_type;
      
     const unsigned int init_grid_degree = high_order_grid->fe_system.tensor_degree();
     OPERATOR::mapping_shape_functions<dim,2*dim> mapping_basis(1, init_grid_degree, init_grid_degree);
      
-    OPERATOR::FR_mass_inv<dim,2*dim> mass_inv(1, max_degree, init_grid_degree, FR_Type);
+    OPERATOR::FR_mass_inv<dim,2*dim> mass_inv(1, max_degree, init_grid_degree, FR_Type, FR_user_specified_correction_parameter_value);
     OPERATOR::FR_mass_inv_aux<dim,2*dim> mass_inv_aux(1, max_degree, init_grid_degree, FR_Type_Aux);
      
-    OPERATOR::vol_projection_operator_FR<dim,2*dim> projection_oper(1, max_degree, init_grid_degree, FR_Type, true);
+    OPERATOR::vol_projection_operator_FR<dim,2*dim> projection_oper(1, max_degree, init_grid_degree, FR_Type, FR_user_specified_correction_parameter_value, true);
     OPERATOR::vol_projection_operator_FR_aux<dim,2*dim> projection_oper_aux(1, max_degree, init_grid_degree, FR_Type_Aux, true);
      
     mapping_basis.build_1D_shape_functions_at_volume_flux_nodes(high_order_grid->oneD_fe_system, oneD_quadrature_collection[max_degree]);
@@ -4197,12 +4202,13 @@ void DGBase<dim,real,MeshType>::apply_global_mass_matrix(
     // if using only the M norm, set c=0 through the choice of cDG, which results in K=0
     // and the un-modified mass matrix will be applied.
     const FR_enum FR_Type = (use_unmodified_mass_matrix) ? FR_cDG : this->all_parameters->flux_reconstruction_type;
+    const double FR_user_specified_correction_parameter_value = this->all_parameters->FR_user_specified_correction_parameter_value;
     const FR_Aux_enum FR_Type_Aux = this->all_parameters->flux_reconstruction_aux_type;
      
     const unsigned int init_grid_degree = high_order_grid->fe_system.tensor_degree();
     OPERATOR::mapping_shape_functions<dim,2*dim> mapping_basis(1, max_degree, init_grid_degree);
      
-    OPERATOR::FR_mass<dim,2*dim> mass(1, max_degree, init_grid_degree, FR_Type);
+    OPERATOR::FR_mass<dim,2*dim> mass(1, max_degree, init_grid_degree, FR_Type, FR_user_specified_correction_parameter_value);
     OPERATOR::FR_mass_aux<dim,2*dim> mass_aux(1, max_degree, init_grid_degree, FR_Type_Aux);
      
     OPERATOR::vol_projection_operator<dim,2*dim> projection_oper(1, max_degree, init_grid_degree);

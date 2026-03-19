@@ -49,7 +49,9 @@ subsection flow_solver
   set poly_degree = 3
   set final_time = 0.05
   set unsteady_data_table_filename = burgers_energy
-  set expected_order_at_final_time = 3.2384761991754
+  # reaches p+1 if ran for finer grids 
+  # restricted to lower expected order and grid to keep ctest short
+  set expected_order_at_final_time = 3.2
   subsection grid
     set grid_left_bound = 0.0
     set grid_right_bound = 2.0

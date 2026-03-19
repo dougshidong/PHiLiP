@@ -53,7 +53,7 @@ subsection flow_solver
   set final_time = 1.0
   set courant_friedrichs_lewy_number = 0.5
   set unsteady_data_table_filename = low_density_shock_energy
-  set expected_order_at_final_time = 5.01832
+  set expected_order_at_final_time = 4.0 # p+1
   subsection grid
     set grid_left_bound = -0.5
     set grid_right_bound = 0.5

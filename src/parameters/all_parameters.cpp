@@ -546,9 +546,7 @@ const std::string test_string = prm.get("test_type");
         if (model_type == large_eddy_simulation || model_type == navier_stokes_model) {
             nstate = dimension+2;
         } else if (model_type == reynolds_averaged_navier_stokes) {
-            if(physics_model_param.RANS_model_type == Parameters::PhysicsModelParam::ReynoldsAveragedNavierStokesModel::SA_negative) {
-              nstate = dimension+3;
-            }
+            nstate = dimension+3;
         }
     } else if (pde_string == "physics_model_filtered") {
         pde_type = physics_model_filtered;

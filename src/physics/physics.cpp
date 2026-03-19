@@ -30,7 +30,7 @@ PhysicsBase<dim,nspecies,nstate,real>::PhysicsBase(
     // if provided with a null ptr, give it the default manufactured solution
     // currently only necessary for the unit test
     if(!manufactured_solution_function)
-        manufactured_solution_function = std::make_shared<ManufacturedSolutionZero<dim,real>>(nstate);
+        manufactured_solution_function = std::make_shared<ManufacturedSolutionExp<dim,real>>(nstate);
 
     // anisotropic diffusion matrix
     diffusion_tensor[0][0] = input_diffusion_tensor[0][0];

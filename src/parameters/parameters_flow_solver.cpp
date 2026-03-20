@@ -153,7 +153,7 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
                           dealii::Patterns::Double(0,dealii::Patterns::Double::max_double_value),
                           "Outputs the restart files at time intervals of dt.");
         
-        prm.declare_entry("write_unsteady_data_table_file_every_dt_time_intervals", "0.1",
+        prm.declare_entry("write_unsteady_data_table_file_every_dt_time_intervals", "0.0",
                           dealii::Patterns::Double(0,dealii::Patterns::Double::max_double_value),
                           "Writes the unsteady data table file at time intervals of dt. "
                           "If set to zero, it outputs at every time step.");

@@ -40,7 +40,7 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       dealii::Patterns::Integer(),
                       "Number of dimensions");
 
-    prm.declare_entry("species", "-1",
+    prm.declare_entry("species", "1",
                       dealii::Patterns::Integer(),
                       "Number of species");
 

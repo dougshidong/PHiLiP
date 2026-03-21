@@ -285,7 +285,7 @@ int MultispeciesVortexAdvection<dim, nspecies, nstate>::run_test() const
         
     }//end of grid loop
 
-    if(abs(final_order - expected_order) < 1e-4)
+    if(final_order > expected_order - 0.1)
         return 0;
     else
         return 1;

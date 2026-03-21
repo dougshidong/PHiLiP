@@ -120,7 +120,7 @@ real2 FunctionalNormLpBoundary<dim,nspecies,nstate,real,MeshType>::evaluate_boun
 
 template <int dim, int nspecies, int nstate, typename real, typename MeshType>
 FunctionalWeightedIntegralVolume<dim,nspecies,nstate,real,MeshType>::FunctionalWeightedIntegralVolume(
-    std::shared_ptr<ManufacturedSolutionFunction<dim,real> >                    _weight_function_double,
+    std::shared_ptr<ManufacturedSolutionFunction<dim,real>>                    _weight_function_double,
     std::shared_ptr<ManufacturedSolutionFunction<dim,FadFadType>>              _weight_function_adtype,
     const bool                                                                 _use_weight_function_laplacian,
     std::shared_ptr<DGBase<dim,nspecies,real,MeshType>>                                 _dg,
@@ -155,7 +155,7 @@ real2 FunctionalWeightedIntegralVolume<dim,nspecies,nstate,real,MeshType>::evalu
 
 template <int dim, int nspecies, int nstate, typename real, typename MeshType>
 FunctionalWeightedIntegralBoundary<dim,nspecies,nstate,real,MeshType>::FunctionalWeightedIntegralBoundary(
-    std::shared_ptr<ManufacturedSolutionFunction<dim,real> >                    _weight_function_double,
+    std::shared_ptr<ManufacturedSolutionFunction<dim,real>>                    _weight_function_double,
     std::shared_ptr<ManufacturedSolutionFunction<dim,FadFadType>>              _weight_function_adtype,
     const bool                                                                 _use_weight_function_laplacian,
     std::vector<unsigned int>                                                  _boundary_vector,
@@ -1007,7 +1007,7 @@ dealii::LinearAlgebra::distributed::Vector<real> Functional<dim,nspecies,nstate,
     const auto mapping = (*(dg.high_order_grid->mapping_fe_field));
     dealii::hp::MappingCollection<dim> mapping_collection(mapping);
 
-    dealii::hp::FEValues<dim,dim>      fe_values_collection_volume(mapping_collection, dg.fe_collection, dg.volume_quadrature_collection, this->volume_update_flags);
+    dealii::hp::FEValues<dim,dim>     fe_values_collection_volume(mapping_collection, dg.fe_collection, dg.volume_quadrature_collection, this->volume_update_flags);
     dealii::hp::FEFaceValues<dim,dim> fe_values_collection_face  (mapping_collection, dg.fe_collection, dg.face_quadrature_collection,   this->face_update_flags);
 
     dg.solution.update_ghost_values();
@@ -1127,7 +1127,7 @@ dealii::LinearAlgebra::distributed::Vector<real> Functional<dim,nspecies,nstate,
     const auto mapping = (*(dg.high_order_grid->mapping_fe_field));
     dealii::hp::MappingCollection<dim> mapping_collection(mapping);
 
-    dealii::hp::FEValues<dim,dim>      fe_values_collection_volume(mapping_collection, dg.fe_collection, dg.volume_quadrature_collection, this->volume_update_flags);
+    dealii::hp::FEValues<dim,dim>     fe_values_collection_volume(mapping_collection, dg.fe_collection, dg.volume_quadrature_collection, this->volume_update_flags);
     dealii::hp::FEFaceValues<dim,dim> fe_values_collection_face  (mapping_collection, dg.fe_collection, dg.face_quadrature_collection,   this->face_update_flags);
 
     dg.solution.update_ghost_values();
@@ -1246,7 +1246,7 @@ FunctionalFactory<dim,nspecies,nstate,real,MeshType>::create_Functional(
     const double normLp = param.normLp;
 
     ManufacturedSolutionEnum  weight_function_type = param.weight_function_type;
-    std::shared_ptr< ManufacturedSolutionFunction<dim,real>  > weight_function_double 
+    std::shared_ptr< ManufacturedSolutionFunction<dim,real> > weight_function_double 
         = ManufacturedSolutionFactory<dim,real>::create_ManufacturedSolution(weight_function_type, nstate);
     std::shared_ptr< ManufacturedSolutionFunction<dim,FadFadType> > weight_function_adtype 
         = ManufacturedSolutionFactory<dim,FadFadType>::create_ManufacturedSolution(weight_function_type, nstate);
@@ -1385,4 +1385,5 @@ FunctionalFactory<dim,nspecies,nstate,real,MeshType>::create_Functional(
     template class FunctionalFactory <PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+PHILIP_SPECIES+1, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
     #endif
 #endif
+
 } // PHiLiP namespace

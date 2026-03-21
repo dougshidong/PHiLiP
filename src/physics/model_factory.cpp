@@ -27,7 +27,7 @@ ModelFactory<dim,nspecies,nstate,real>
 
     if((pde_type == PDE_enum::physics_model || pde_type == PDE_enum::physics_model_filtered) && nspecies==1) {
         // generating the manufactured solution from the manufactured solution factory
-        std::shared_ptr< ManufacturedSolutionFunction<dim,real>  >  manufactured_solution_function 
+        std::shared_ptr< ManufacturedSolutionFunction<dim,real> >  manufactured_solution_function 
             = ManufacturedSolutionFactory<dim,real>::create_ManufacturedSolution(parameters_input, nstate);
 
         using Model_enum = Parameters::AllParameters::ModelType;

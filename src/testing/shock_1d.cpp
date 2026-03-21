@@ -51,7 +51,7 @@ public:
      *  by all the other functions
      */
     explicit Shocked1D1State (const unsigned int nstate = 1)
-    : ManufacturedSolutionFunction<dim,real>  (nstate)
+    : ManufacturedSolutionFunction<dim,real> (nstate)
     { };
 
     /// Manufactured solution exact value

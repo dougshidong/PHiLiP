@@ -455,11 +455,11 @@ void DGBase<dim,nspecies,real,MeshType>::assemble_cell_residual (
     const DoFCellAccessorType1 &current_cell,
     const DoFCellAccessorType2 &current_metric_cell,
     const bool compute_dRdW, const bool compute_dRdX, const bool compute_d2R,
-    dealii::hp::FEValues<dim,dim>                 &fe_values_collection_volume,
+    dealii::hp::FEValues<dim,dim>                &fe_values_collection_volume,
     dealii::hp::FEFaceValues<dim,dim>            &fe_values_collection_face_int,
     dealii::hp::FEFaceValues<dim,dim>            &fe_values_collection_face_ext,
     dealii::hp::FESubfaceValues<dim,dim>         &fe_values_collection_subface,
-    dealii::hp::FEValues<dim,dim>                 &fe_values_collection_volume_lagrange,
+    dealii::hp::FEValues<dim,dim>                &fe_values_collection_volume_lagrange,
     OPERATOR::basis_functions<dim,2*dim,real>         &soln_basis_int,
     OPERATOR::basis_functions<dim,2*dim,real>         &soln_basis_ext,
     OPERATOR::basis_functions<dim,2*dim,real>         &flux_basis_int,
@@ -858,7 +858,7 @@ void DGBase<dim,nspecies,real,MeshType>::update_artificial_dissipation_discontin
     const auto mapping = (*(high_order_grid->mapping_fe_field));
     dealii::hp::MappingCollection<dim> mapping_collection(mapping);
     const dealii::UpdateFlags update_flags = dealii::update_values | dealii::update_JxW_values;
-    dealii::hp::FEValues<dim,dim>  fe_values_collection_volume (mapping_collection, fe_collection, volume_quadrature_collection, update_flags); ///< FEValues of volume.
+    dealii::hp::FEValues<dim,dim> fe_values_collection_volume (mapping_collection, fe_collection, volume_quadrature_collection, update_flags); ///< FEValues of volume.
 
     std::vector< double > soln_coeff_high;
     std::vector<dealii::types::global_dof_index> dof_indices;
@@ -1201,12 +1201,12 @@ void DGBase<dim,nspecies,real,MeshType>::assemble_residual (const bool compute_d
 
     dealii::hp::MappingCollection<dim> mapping_collection(mapping);
 
-    dealii::hp::FEValues<dim,dim>         fe_values_collection_volume (mapping_collection, fe_collection, volume_quadrature_collection, this->volume_update_flags); ///< FEValues of volume.
+    dealii::hp::FEValues<dim,dim>        fe_values_collection_volume (mapping_collection, fe_collection, volume_quadrature_collection, this->volume_update_flags); ///< FEValues of volume.
     dealii::hp::FEFaceValues<dim,dim>    fe_values_collection_face_int (mapping_collection, fe_collection, face_quadrature_collection, this->face_update_flags); ///< FEValues of interior face.
     dealii::hp::FEFaceValues<dim,dim>    fe_values_collection_face_ext (mapping_collection, fe_collection, face_quadrature_collection, this->neighbor_face_update_flags); ///< FEValues of exterior face.
     dealii::hp::FESubfaceValues<dim,dim> fe_values_collection_subface (mapping_collection, fe_collection, face_quadrature_collection, this->face_update_flags); ///< FEValues of subface.
 
-    dealii::hp::FEValues<dim,dim>         fe_values_collection_volume_lagrange (mapping_collection, fe_collection_lagrange, volume_quadrature_collection, this->volume_update_flags);
+    dealii::hp::FEValues<dim,dim>        fe_values_collection_volume_lagrange (mapping_collection, fe_collection_lagrange, volume_quadrature_collection, this->volume_update_flags);
 
     const unsigned int init_grid_degree = high_order_grid->fe_system.tensor_degree();
     OPERATOR::basis_functions<dim,2*dim,real> soln_basis_int(1, max_degree, init_grid_degree); 
@@ -1354,7 +1354,7 @@ double DGBase<dim,nspecies,real,MeshType>::get_residual_linfnorm () const
     double residual_linf_norm = 0.0;
     std::vector<dealii::types::global_dof_index> dofs_indices;
     const dealii::UpdateFlags update_flags = dealii::update_values | dealii::update_JxW_values;
-    dealii::hp::FEValues<dim,dim>  fe_values_collection_volume (mapping_collection,
+    dealii::hp::FEValues<dim,dim> fe_values_collection_volume (mapping_collection,
                                                                fe_collection,
                                                                volume_quadrature_collection,
                                                                update_flags);
@@ -1411,7 +1411,7 @@ double DGBase<dim,nspecies,real,MeshType>::get_residual_l2norm () const
     double domain_volume = 0.0;
     std::vector<dealii::types::global_dof_index> dofs_indices;
     const dealii::UpdateFlags update_flags = dealii::update_values | dealii::update_JxW_values;
-    dealii::hp::FEValues<dim,dim>  fe_values_collection_volume (mapping_collection,
+    dealii::hp::FEValues<dim,dim> fe_values_collection_volume (mapping_collection,
                                                                fe_collection,
                                                                volume_quadrature_collection,
                                                                update_flags);
@@ -3051,19 +3051,19 @@ DGBase<PHILIP_DIM, PHILIP_SPECIES,double,dealii::Triangulation<PHILIP_DIM>>::ass
     const dealii::TriaActiveIterator<dealii::DoFCellAccessor<PHILIP_DIM, PHILIP_DIM, false>> &current_cell,
     const dealii::TriaActiveIterator<dealii::DoFCellAccessor<PHILIP_DIM, PHILIP_DIM, false>> &current_metric_cell,
     const bool compute_dRdW, const bool compute_dRdX, const bool compute_d2R,
-    dealii::hp::FEValues<PHILIP_DIM, PHILIP_DIM>        &fe_values_collection_volume,
-    dealii::hp::FEFaceValues<PHILIP_DIM, PHILIP_DIM>    &fe_values_collection_face_int,
-    dealii::hp::FEFaceValues<PHILIP_DIM, PHILIP_DIM>    &fe_values_collection_face_ext,
-    dealii::hp::FESubfaceValues<PHILIP_DIM, PHILIP_DIM> &fe_values_collection_subface,
-    dealii::hp::FEValues<PHILIP_DIM, PHILIP_DIM>        &fe_values_collection_volume_lagrange,
-    OPERATOR::basis_functions<PHILIP_DIM, 2*PHILIP_DIM,double> &soln_basis_int,
-    OPERATOR::basis_functions<PHILIP_DIM, 2*PHILIP_DIM,double> &soln_basis_ext,
-    OPERATOR::basis_functions<PHILIP_DIM, 2*PHILIP_DIM,double> &flux_basis_int,
-    OPERATOR::basis_functions<PHILIP_DIM, 2*PHILIP_DIM,double> &flux_basis_ext,
-    OPERATOR::local_basis_stiffness<PHILIP_DIM, 2*PHILIP_DIM,double> &flux_basis_stiffness,
-    OPERATOR::vol_projection_operator<PHILIP_DIM, 2*PHILIP_DIM,double> &soln_basis_projection_oper_int,
-    OPERATOR::vol_projection_operator<PHILIP_DIM, 2*PHILIP_DIM,double> &soln_basis_projection_oper_ext,
-    OPERATOR::mapping_shape_functions<PHILIP_DIM, 2*PHILIP_DIM,double> &mapping_basis,
+    dealii::hp::FEValues<PHILIP_DIM,PHILIP_DIM>        &fe_values_collection_volume,
+    dealii::hp::FEFaceValues<PHILIP_DIM,PHILIP_DIM>    &fe_values_collection_face_int,
+    dealii::hp::FEFaceValues<PHILIP_DIM,PHILIP_DIM>    &fe_values_collection_face_ext,
+    dealii::hp::FESubfaceValues<PHILIP_DIM,PHILIP_DIM> &fe_values_collection_subface,
+    dealii::hp::FEValues<PHILIP_DIM,PHILIP_DIM>        &fe_values_collection_volume_lagrange,
+    OPERATOR::basis_functions<PHILIP_DIM,2*PHILIP_DIM,double> &soln_basis_int,
+    OPERATOR::basis_functions<PHILIP_DIM,2*PHILIP_DIM,double> &soln_basis_ext,
+    OPERATOR::basis_functions<PHILIP_DIM,2*PHILIP_DIM,double> &flux_basis_int,
+    OPERATOR::basis_functions<PHILIP_DIM,2*PHILIP_DIM,double> &flux_basis_ext,
+    OPERATOR::local_basis_stiffness<PHILIP_DIM,2*PHILIP_DIM,double> &flux_basis_stiffness,
+    OPERATOR::vol_projection_operator<PHILIP_DIM,2*PHILIP_DIM,double> &soln_basis_projection_oper_int,
+    OPERATOR::vol_projection_operator<PHILIP_DIM,2*PHILIP_DIM,double> &soln_basis_projection_oper_ext,
+    OPERATOR::mapping_shape_functions<PHILIP_DIM,2*PHILIP_DIM,double> &mapping_basis,
     const bool compute_auxiliary_right_hand_side,
     dealii::LinearAlgebra::distributed::Vector<double> &rhs,
     std::array<dealii::LinearAlgebra::distributed::Vector<double>,PHILIP_DIM> &rhs_aux);
@@ -3073,19 +3073,19 @@ DGBase<PHILIP_DIM, PHILIP_SPECIES,double,dealii::parallel::distributed::Triangul
     const dealii::TriaActiveIterator<dealii::DoFCellAccessor<PHILIP_DIM, PHILIP_DIM, false>> &current_cell,
     const dealii::TriaActiveIterator<dealii::DoFCellAccessor<PHILIP_DIM, PHILIP_DIM, false>> &current_metric_cell,
     const bool compute_dRdW, const bool compute_dRdX, const bool compute_d2R,
-    dealii::hp::FEValues<PHILIP_DIM, PHILIP_DIM>        &fe_values_collection_volume,
-    dealii::hp::FEFaceValues<PHILIP_DIM, PHILIP_DIM>    &fe_values_collection_face_int,
-    dealii::hp::FEFaceValues<PHILIP_DIM, PHILIP_DIM>    &fe_values_collection_face_ext,
-    dealii::hp::FESubfaceValues<PHILIP_DIM, PHILIP_DIM> &fe_values_collection_subface,
-    dealii::hp::FEValues<PHILIP_DIM, PHILIP_DIM>        &fe_values_collection_volume_lagrange,
-    OPERATOR::basis_functions<PHILIP_DIM, 2*PHILIP_DIM,double> &soln_basis_int,
-    OPERATOR::basis_functions<PHILIP_DIM, 2*PHILIP_DIM,double> &soln_basis_ext,
-    OPERATOR::basis_functions<PHILIP_DIM, 2*PHILIP_DIM,double> &flux_basis_int,
-    OPERATOR::basis_functions<PHILIP_DIM, 2*PHILIP_DIM,double> &flux_basis_ext,
-    OPERATOR::local_basis_stiffness<PHILIP_DIM, 2*PHILIP_DIM,double> &flux_basis_stiffness,
-    OPERATOR::vol_projection_operator<PHILIP_DIM, 2*PHILIP_DIM,double> &soln_basis_projection_oper_int,
-    OPERATOR::vol_projection_operator<PHILIP_DIM, 2*PHILIP_DIM,double> &soln_basis_projection_oper_ext,
-    OPERATOR::mapping_shape_functions<PHILIP_DIM, 2*PHILIP_DIM,double> &mapping_basis,
+    dealii::hp::FEValues<PHILIP_DIM,PHILIP_DIM>        &fe_values_collection_volume,
+    dealii::hp::FEFaceValues<PHILIP_DIM,PHILIP_DIM>    &fe_values_collection_face_int,
+    dealii::hp::FEFaceValues<PHILIP_DIM,PHILIP_DIM>    &fe_values_collection_face_ext,
+    dealii::hp::FESubfaceValues<PHILIP_DIM,PHILIP_DIM> &fe_values_collection_subface,
+    dealii::hp::FEValues<PHILIP_DIM,PHILIP_DIM>        &fe_values_collection_volume_lagrange,
+    OPERATOR::basis_functions<PHILIP_DIM,2*PHILIP_DIM,double> &soln_basis_int,
+    OPERATOR::basis_functions<PHILIP_DIM,2*PHILIP_DIM,double> &soln_basis_ext,
+    OPERATOR::basis_functions<PHILIP_DIM,2*PHILIP_DIM,double> &flux_basis_int,
+    OPERATOR::basis_functions<PHILIP_DIM,2*PHILIP_DIM,double> &flux_basis_ext,
+    OPERATOR::local_basis_stiffness<PHILIP_DIM,2*PHILIP_DIM,double> &flux_basis_stiffness,
+    OPERATOR::vol_projection_operator<PHILIP_DIM,2*PHILIP_DIM,double> &soln_basis_projection_oper_int,
+    OPERATOR::vol_projection_operator<PHILIP_DIM,2*PHILIP_DIM,double> &soln_basis_projection_oper_ext,
+    OPERATOR::mapping_shape_functions<PHILIP_DIM,2*PHILIP_DIM,double> &mapping_basis,
     const bool compute_auxiliary_right_hand_side,
     dealii::LinearAlgebra::distributed::Vector<double> &rhs,
     std::array<dealii::LinearAlgebra::distributed::Vector<double>,PHILIP_DIM> &rhs_aux);
@@ -3095,19 +3095,19 @@ DGBase<PHILIP_DIM, PHILIP_SPECIES,double,dealii::parallel::shared::Triangulation
     const dealii::TriaActiveIterator<dealii::DoFCellAccessor<PHILIP_DIM, PHILIP_DIM, false>> &current_cell,
     const dealii::TriaActiveIterator<dealii::DoFCellAccessor<PHILIP_DIM, PHILIP_DIM, false>> &current_metric_cell,
     const bool compute_dRdW, const bool compute_dRdX, const bool compute_d2R,
-    dealii::hp::FEValues<PHILIP_DIM, PHILIP_DIM>        &fe_values_collection_volume,
-    dealii::hp::FEFaceValues<PHILIP_DIM, PHILIP_DIM>    &fe_values_collection_face_int,
-    dealii::hp::FEFaceValues<PHILIP_DIM, PHILIP_DIM>    &fe_values_collection_face_ext,
-    dealii::hp::FESubfaceValues<PHILIP_DIM, PHILIP_DIM> &fe_values_collection_subface,
-    dealii::hp::FEValues<PHILIP_DIM, PHILIP_DIM>        &fe_values_collection_volume_lagrange,
-    OPERATOR::basis_functions<PHILIP_DIM, 2*PHILIP_DIM,double> &soln_basis_int,
-    OPERATOR::basis_functions<PHILIP_DIM, 2*PHILIP_DIM,double> &soln_basis_ext,
-    OPERATOR::basis_functions<PHILIP_DIM, 2*PHILIP_DIM,double> &flux_basis_int,
-    OPERATOR::basis_functions<PHILIP_DIM, 2*PHILIP_DIM,double> &flux_basis_ext,
-    OPERATOR::local_basis_stiffness<PHILIP_DIM, 2*PHILIP_DIM,double> &flux_basis_stiffness,
-    OPERATOR::vol_projection_operator<PHILIP_DIM, 2*PHILIP_DIM,double> &soln_basis_projection_oper_int,
-    OPERATOR::vol_projection_operator<PHILIP_DIM, 2*PHILIP_DIM,double> &soln_basis_projection_oper_ext,
-    OPERATOR::mapping_shape_functions<PHILIP_DIM, 2*PHILIP_DIM,double> &mapping_basis,
+    dealii::hp::FEValues<PHILIP_DIM,PHILIP_DIM>        &fe_values_collection_volume,
+    dealii::hp::FEFaceValues<PHILIP_DIM,PHILIP_DIM>    &fe_values_collection_face_int,
+    dealii::hp::FEFaceValues<PHILIP_DIM,PHILIP_DIM>    &fe_values_collection_face_ext,
+    dealii::hp::FESubfaceValues<PHILIP_DIM,PHILIP_DIM> &fe_values_collection_subface,
+    dealii::hp::FEValues<PHILIP_DIM,PHILIP_DIM>        &fe_values_collection_volume_lagrange,
+    OPERATOR::basis_functions<PHILIP_DIM,2*PHILIP_DIM,double> &soln_basis_int,
+    OPERATOR::basis_functions<PHILIP_DIM,2*PHILIP_DIM,double> &soln_basis_ext,
+    OPERATOR::basis_functions<PHILIP_DIM,2*PHILIP_DIM,double> &flux_basis_int,
+    OPERATOR::basis_functions<PHILIP_DIM,2*PHILIP_DIM,double> &flux_basis_ext,
+    OPERATOR::local_basis_stiffness<PHILIP_DIM,2*PHILIP_DIM,double> &flux_basis_stiffness,
+    OPERATOR::vol_projection_operator<PHILIP_DIM,2*PHILIP_DIM,double> &soln_basis_projection_oper_int,
+    OPERATOR::vol_projection_operator<PHILIP_DIM,2*PHILIP_DIM,double> &soln_basis_projection_oper_ext,
+    OPERATOR::mapping_shape_functions<PHILIP_DIM,2*PHILIP_DIM,double> &mapping_basis,
     const bool compute_auxiliary_right_hand_side,
     dealii::LinearAlgebra::distributed::Vector<double> &rhs,
     std::array<dealii::LinearAlgebra::distributed::Vector<double>,PHILIP_DIM> &rhs_aux);

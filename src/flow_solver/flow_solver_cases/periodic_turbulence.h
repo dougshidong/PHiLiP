@@ -158,7 +158,7 @@ protected:
     double get_adaptive_time_step(std::shared_ptr<DGBase<dim,nspecies,double>> dg) const override;
 
     /// Updates the maximum local wave speed
-    void update_maximum_local_wave_speed(DGBase<dim, nspecies, double> &dg);
+    void update_maximum_local_wave_speed(DGBase<dim, nspecies, double> &dg) override;
 
     /// Function to compute the angular momentum
     double compute_angular_momentum(const dealii::Point<dim> position, const dealii::Tensor<1,3,double> vorticity) const;

@@ -44,7 +44,7 @@ PhysicsFactory<dim,nspecies,nstate,real>
     using PDE_enum = Parameters::AllParameters::PartialDifferentialEquation;
 
     // generating the manufactured solution from the manufactured solution factory
-    std::shared_ptr< ManufacturedSolutionFunction<dim,real>  >  manufactured_solution_function 
+    std::shared_ptr< ManufacturedSolutionFunction<dim,real> >  manufactured_solution_function 
         = ManufacturedSolutionFactory<dim,real>::create_ManufacturedSolution(parameters_input, nstate);
 
     // setting the diffusion tensor and advection vectors from parameters (if needed)
@@ -219,7 +219,7 @@ template <int dim, int nspecies, int nstate, typename real>
 std::shared_ptr < PhysicsBase<dim,nspecies,nstate,real> >
 PhysicsFactory<dim,nspecies,nstate,real>
 ::create_Physics_Model(const Parameters::AllParameters                           *const parameters_input,
-                       std::shared_ptr< ManufacturedSolutionFunction<dim,real>  > manufactured_solution_function,
+                       std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function,
                        std::shared_ptr< ModelBase<dim,nspecies,nstate,real> >             model_input)
 {
     using PDE_enum = Parameters::AllParameters::PartialDifferentialEquation;

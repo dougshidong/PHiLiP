@@ -102,6 +102,7 @@ std::vector< std::pair<dealii::Vector<real>, std::string> > GridRefinement_Unifo
     BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_DISTRIBUTED, _, POSSIBLE_NSTATE)
     #endif
 #endif
+
 } // namespace GridRefinement
 
 } // namespace PHiLiP

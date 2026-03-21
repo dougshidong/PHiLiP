@@ -10,8 +10,7 @@ foreach(dim RANGE 1 3)
     add_executable(${TEST_TARGET} ${TEST_SRC})
     # Replace occurences of PHILIP_DIM with 1, 2, or 3 in the code
     target_compile_definitions(${TEST_TARGET} PRIVATE PHILIP_DIM=${dim})
-    # Replace occurences of PHILIP_SPECIES with 1 in the code
-    # NOTE: PHILIP_SPECIES will become user defined in a future PR
+    # Replace occurences of PHILIP_SPECIES with user-defined value in the code
     target_compile_definitions(${TEST_TARGET} PRIVATE PHILIP_SPECIES=${NUMBER_OF_SPECIES})
 
     # Compile this executable when 'make unit_tests'
@@ -54,8 +53,7 @@ foreach(dim RANGE 1 3)
     add_executable(${TEST_TARGET} ${TEST_SRC})
     # Replace occurences of PHILIP_DIM with 1, 2, or 3 in the code
     target_compile_definitions(${TEST_TARGET} PRIVATE PHILIP_DIM=${dim})
-    # Replace occurences of PHILIP_SPECIES with 1 in the code
-    # NOTE: PHILIP_SPECIES will become user defined in a future PR
+    # Replace occurences of PHILIP_SPECIES with user-defined value in the code
     target_compile_definitions(${TEST_TARGET} PRIVATE PHILIP_SPECIES=${NUMBER_OF_SPECIES})
 
     # Compile this executable when 'make unit_tests'
@@ -98,8 +96,7 @@ foreach(dim RANGE 1 3)
     add_executable(${TEST_TARGET} ${TEST_SRC})
     # Replace occurences of PHILIP_DIM with 1, 2, or 3 in the code
     target_compile_definitions(${TEST_TARGET} PRIVATE PHILIP_DIM=${dim})
-    # Replace occurences of PHILIP_SPECIES with 1 in the code
-    # NOTE: PHILIP_SPECIES will become user defined in a future PR
+    # Replace occurences of PHILIP_SPECIES with user-defined value in the code
     target_compile_definitions(${TEST_TARGET} PRIVATE PHILIP_SPECIES=${NUMBER_OF_SPECIES})
 
     # Compile this executable when 'make unit_tests'
@@ -142,8 +139,7 @@ foreach(dim RANGE 1 3)
     add_executable(${TEST_TARGET} ${TEST_SRC})
     # Replace occurences of PHILIP_DIM with 1, 2, or 3 in the code
     target_compile_definitions(${TEST_TARGET} PRIVATE PHILIP_DIM=${dim})
-    # Replace occurences of PHILIP_SPECIES with 1 in the code
-    # NOTE: PHILIP_SPECIES will become user defined in a future PR
+    # Replace occurences of PHILIP_SPECIES with user-defined value in the code
     target_compile_definitions(${TEST_TARGET} PRIVATE PHILIP_SPECIES=${NUMBER_OF_SPECIES})
 
     # Compile this executable when 'make unit_tests'
@@ -186,8 +182,7 @@ foreach(dim RANGE 1 3)
     add_executable(${TEST_TARGET} ${TEST_SRC})
     # Replace occurences of PHILIP_DIM with 1, 2, or 3 in the code
     target_compile_definitions(${TEST_TARGET} PRIVATE PHILIP_DIM=${dim})
-    # Replace occurences of PHILIP_SPECIES with 1 in the code
-    # NOTE: PHILIP_SPECIES will become user defined in a future PR
+    # Replace occurences of PHILIP_SPECIES with user-defined value in the code
     target_compile_definitions(${TEST_TARGET} PRIVATE PHILIP_SPECIES=${NUMBER_OF_SPECIES})
 
     # Compile this executable when 'make unit_tests'
@@ -230,8 +225,7 @@ foreach(dim RANGE 1 3)
     add_executable(${TEST_TARGET} ${TEST_SRC})
     # Replace occurences of PHILIP_DIM with 1, 2, or 3 in the code
     target_compile_definitions(${TEST_TARGET} PRIVATE PHILIP_DIM=${dim})
-    # Replace occurences of PHILIP_SPECIES with 1 in the code
-    # NOTE: PHILIP_SPECIES will become user defined in a future PR
+    # Replace occurences of PHILIP_SPECIES with user-defined value in the code
     target_compile_definitions(${TEST_TARGET} PRIVATE PHILIP_SPECIES=${NUMBER_OF_SPECIES})
 
     # Compile this executable when 'make unit_tests'

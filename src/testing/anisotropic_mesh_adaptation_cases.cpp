@@ -23,11 +23,11 @@ void AnisotropicMeshAdaptationCases<dim,nspecies,nstate> :: verify_fe_values_sha
     const auto mapping = (*(dg.high_order_grid->mapping_fe_field));
     dealii::hp::MappingCollection<dim> mapping_collection(mapping);
     const dealii::UpdateFlags update_flags = dealii::update_jacobian_pushed_forward_grads | dealii::update_inverse_jacobians;
-    dealii::hp::FEValues<dim,dim>    fe_values_collection_volume (mapping_collection, dg.fe_collection, dg.volume_quadrature_collection, update_flags);
+    dealii::hp::FEValues<dim,dim>   fe_values_collection_volume (mapping_collection, dg.fe_collection, dg.volume_quadrature_collection, update_flags);
     
     dealii::MappingQGeneric<dim, dim> mapping2(dg.high_order_grid->dof_handler_grid.get_fe().degree);
     dealii::hp::MappingCollection<dim> mapping_collection2(mapping2);
-    dealii::hp::FEValues<dim,dim>    fe_values_collection_volume2 (mapping_collection2, dg.fe_collection, dg.volume_quadrature_collection, dealii::update_hessians);
+    dealii::hp::FEValues<dim,dim>   fe_values_collection_volume2 (mapping_collection2, dg.fe_collection, dg.volume_quadrature_collection, dealii::update_hessians);
     
     PHiLiP::FEValuesShapeHessian<dim> fe_values_shape_hessian;
     for(const auto &cell : dg.dof_handler.active_cell_iterators())

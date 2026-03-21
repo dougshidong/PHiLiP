@@ -14,13 +14,13 @@ public:
     explicit CubeFlow_UniformGrid(const Parameters::AllParameters *const parameters_input);
 
     /// Function to compute the adaptive time step
-    double get_adaptive_time_step(std::shared_ptr<DGBase<dim,nspecies,double>> dg) const override;
+    virtual double get_adaptive_time_step(std::shared_ptr<DGBase<dim,nspecies,double>> dg) const override;
 
     /// Function to compute the initial adaptive time step
-    double get_adaptive_time_step_initial(std::shared_ptr<DGBase<dim,nspecies,double>> dg) override;
+    virtual double get_adaptive_time_step_initial(std::shared_ptr<DGBase<dim,nspecies,double>> dg) override;
 
     /// Updates the maximum local wave speed
-    void update_maximum_local_wave_speed(DGBase<dim, nspecies, double> &dg);
+    virtual void update_maximum_local_wave_speed(DGBase<dim, nspecies, double> &dg);
  
 protected:
     /// Maximum local wave speed (i.e. convective eigenvalue)

@@ -56,8 +56,8 @@ void DGStrong<dim,nspecies,nstate,real,MeshType>::assemble_volume_term_and_build
     OPERATOR::metric_operators<real,dim,2*dim>             &metric_oper,
     OPERATOR::mapping_shape_functions<dim,2*dim,real>      &mapping_basis,
     std::array<std::vector<real>,dim>                      &mapping_support_points,
-    dealii::hp::FEValues<dim,dim>                           &/*fe_values_collection_volume*/,
-    dealii::hp::FEValues<dim,dim>                           &/*fe_values_collection_volume_lagrange*/,
+    dealii::hp::FEValues<dim,dim>                          &/*fe_values_collection_volume*/,
+    dealii::hp::FEValues<dim,dim>                          &/*fe_values_collection_volume_lagrange*/,
     const dealii::FESystem<dim,dim>                        &/*current_fe_ref*/,
     dealii::Vector<real>                                   &local_rhs_int_cell,
     std::vector<dealii::Tensor<1,dim,real>>                &local_auxiliary_RHS,
@@ -423,12 +423,12 @@ void DGStrong<dim,nspecies,nstate,real,MeshType>::assemble_auxiliary_residual()
 
         dealii::hp::MappingCollection<dim> mapping_collection(mapping);
 
-        dealii::hp::FEValues<dim,dim>         fe_values_collection_volume (mapping_collection, this->fe_collection, this->volume_quadrature_collection, this->volume_update_flags); ///< FEValues of volume.
+        dealii::hp::FEValues<dim,dim>        fe_values_collection_volume (mapping_collection, this->fe_collection, this->volume_quadrature_collection, this->volume_update_flags); ///< FEValues of volume.
         dealii::hp::FEFaceValues<dim,dim>    fe_values_collection_face_int (mapping_collection, this->fe_collection, this->face_quadrature_collection, this->face_update_flags); ///< FEValues of interior face.
         dealii::hp::FEFaceValues<dim,dim>    fe_values_collection_face_ext (mapping_collection, this->fe_collection, this->face_quadrature_collection, this->neighbor_face_update_flags); ///< FEValues of exterior face.
         dealii::hp::FESubfaceValues<dim,dim> fe_values_collection_subface (mapping_collection, this->fe_collection, this->face_quadrature_collection, this->face_update_flags); ///< FEValues of subface.
          
-        dealii::hp::FEValues<dim,dim>         fe_values_collection_volume_lagrange (mapping_collection, this->fe_collection_lagrange, this->volume_quadrature_collection, this->volume_update_flags);
+        dealii::hp::FEValues<dim,dim>        fe_values_collection_volume_lagrange (mapping_collection, this->fe_collection_lagrange, this->volume_quadrature_collection, this->volume_update_flags);
 
         OPERATOR::basis_functions<dim,2*dim,real> soln_basis_int(1, this->max_degree, this->max_grid_degree); 
         OPERATOR::basis_functions<dim,2*dim,real> soln_basis_ext(1, this->max_degree, this->max_grid_degree); 
@@ -3969,4 +3969,5 @@ void DGStrong<dim,nspecies,nstate,real,MeshType>::allocate_dual_vector()
     BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_DISTRIBUTED_TRIA, _, POSSIBLE_NSTATE)
     #endif
 #endif
+
 } // PHiLiP namespace

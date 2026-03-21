@@ -11,8 +11,7 @@ foreach(dim RANGE 1 3)
     target_link_libraries(${ExactSolutionsLib} ${PhysicsLib})
 
     target_compile_definitions(${ExactSolutionsLib} PRIVATE PHILIP_DIM=${dim})
-    # Replace occurences of PHILIP_SPECIES with 1 in the code
-    # NOTE: PHILIP_SPECIES will become user defined in a future PR
+    # Replace occurences of PHILIP_SPECIES with user-defined value in the code
     target_compile_definitions(${ExactSolutionsLib} PRIVATE PHILIP_SPECIES=${NUMBER_OF_SPECIES})
 
     unset(PhysicsLib)

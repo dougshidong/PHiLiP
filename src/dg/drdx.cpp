@@ -221,19 +221,19 @@ namespace PHiLiP {
 //        const auto mapping = (*(high_order_grid.mapping_fe_field));
 //        dealii::hp::MappingCollection<dim> mapping_collection(mapping);
 //
-//        dealii::hp::FEValues<dim,dim>         fe_values_collection_volume (mapping_collection, fe_collection, volume_quadrature_collection, this->volume_update_flags); ///< FEValues of volume.
+//        dealii::hp::FEValues<dim,dim>        fe_values_collection_volume (mapping_collection, fe_collection, volume_quadrature_collection, this->volume_update_flags); ///< FEValues of volume.
 //        dealii::hp::FEFaceValues<dim,dim>    fe_values_collection_face_int (mapping_collection, fe_collection, face_quadrature_collection, this->face_update_flags); ///< FEValues of interior face.
 //        dealii::hp::FEFaceValues<dim,dim>    fe_values_collection_face_ext (mapping_collection, fe_collection, face_quadrature_collection, this->neighbor_face_update_flags); ///< FEValues of exterior face.
 //        dealii::hp::FESubfaceValues<dim,dim> fe_values_collection_subface (mapping_collection, fe_collection, face_quadrature_collection, this->face_update_flags); ///< FEValues of subface.
 //
-//        dealii::hp::FEValues<dim,dim>         fe_values_collection_volume_lagrange (mapping_collection, fe_collection_lagrange, volume_quadrature_collection, this->volume_update_flags);
+//        dealii::hp::FEValues<dim,dim>        fe_values_collection_volume_lagrange (mapping_collection, fe_collection_lagrange, volume_quadrature_collection, this->volume_update_flags);
 //
 //        // fe_values_collection.reinit(current_cell, quad_collection_index, mapping_collection_index, fe_collection_index)
 //        fe_values_collection_volume.reinit (current_cell, quad_index, mapping_index, fe_index_curr_cell);
 //        const dealii::FEValues<dim,dim> &fe_values_volume = fe_values_collection_volume.get_present_fe_values();
 //
 //
-//        dealii::TriaIterator<dealii::CellAccessor<dim, dim>> cell_iterator = static_cast<dealii::TriaIterator<dealii::CellAccessor<dim, dim>> > (current_cell);
+//        dealii::TriaIterator<dealii::CellAccessor<dim,dim>> cell_iterator = static_cast<dealii::TriaIterator<dealii::CellAccessor<dim, dim>> > (current_cell);
 //        //if (!(all_parameters->use_weak_form)) fe_values_collection_volume_lagrange.reinit (current_cell, quad_index, mapping_index, fe_index_curr_cell);
 //        fe_values_collection_volume_lagrange.reinit (cell_iterator, quad_index, mapping_index, fe_index_curr_cell);
 //        const dealii::FEValues<dim,dim> &fe_values_lagrange = fe_values_collection_volume_lagrange.get_present_fe_values();

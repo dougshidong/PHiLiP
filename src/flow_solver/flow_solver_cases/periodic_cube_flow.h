@@ -24,26 +24,6 @@ public:
     virtual std::shared_ptr<Triangulation> generate_grid() const override;
 
 protected:
-    /// Function to compute the adaptive time step
-    using CubeFlow_UniformGrid<dim, nspecies, nstate>::get_adaptive_time_step;
-
-    /// Function to compute the initial adaptive time step
-    using CubeFlow_UniformGrid<dim, nspecies, nstate>::get_adaptive_time_step_initial;
-
-    /// Updates the maximum local wave speed
-    using CubeFlow_UniformGrid<dim, nspecies, nstate>::update_maximum_local_wave_speed;
-
-    /// Filename (with extension) for the unsteady data table
-    const std::string unsteady_data_table_filename_with_extension;
-
-    using FlowSolverCaseBase<dim, nspecies, nstate>::compute_unsteady_data_and_write_to_table;
-    /// Compute the desired unsteady data and write it to a table
-    void compute_unsteady_data_and_write_to_table(
-        const std::shared_ptr<ODE::ODESolverBase<dim, nspecies, double>> ode_solver,
-        const std::shared_ptr <DGBase<dim, nspecies, double>> dg,
-        const std::shared_ptr<dealii::TableHandler> unsteady_data_table,
-        const bool do_write_unsteady_data_table_file) override;
-
     const int number_of_cells_per_direction; ///< Number of cells per direction for the grid
     const double domain_left; ///< Domain left-boundary value for generating the grid
     const double domain_right; ///< Domain right-boundary value for generating the grid

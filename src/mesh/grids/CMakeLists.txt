@@ -22,7 +22,6 @@ foreach(dim RANGE 1 3)
     target_link_libraries(${GridsLib} ${HighOrderGridLib})
 
     target_compile_definitions(${GridsLib} PRIVATE PHILIP_DIM=${dim})
-
     unset(HighOrderGridLib)
 
     # Setup target with deal.II

@@ -532,6 +532,7 @@ GridRefinementFactory<dim,nspecies,nstate,real,MeshType>::create_GridRefinement(
     BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_DISTRIBUTED, _, POSSIBLE_NSTATE)
     #endif
 #endif
+
 } // namespace GridRefinement
 
 } // namespace PHiLiP

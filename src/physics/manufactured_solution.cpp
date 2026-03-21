@@ -8,7 +8,7 @@
 #include "manufactured_solution.h"
 
 template class dealii::FunctionTime<Sacado::Fad::DFad<double>>; // Needed by Function
-template class dealii::Function<PHILIP_DIM, Sacado::Fad::DFad<double>>;
+template class dealii::Function<PHILIP_DIM,Sacado::Fad::DFad<double>>;
 
 namespace PHiLiP {
 

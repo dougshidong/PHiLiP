@@ -566,7 +566,7 @@ dealii::Vector<real> ReconstructPoly<dim,nspecies,nstate,real>::reconstruct_H1_n
     unsigned int n_vec = 0;
 
     // fe_values
-    dealii::hp::FEValues<dim,dim>  fe_values_collection(
+    dealii::hp::FEValues<dim,dim> fe_values_collection(
         mapping_collection,
         fe_collection,
         quadrature_collection,
@@ -675,7 +675,7 @@ dealii::Vector<real> ReconstructPoly<dim,nspecies,nstate,real>::reconstruct_L2_n
     unsigned int n_vec = 0;
 
     // fe_values
-    dealii::hp::FEValues<dim,dim>  fe_values_collection(
+    dealii::hp::FEValues<dim,dim> fe_values_collection(
         mapping_collection,
         fe_collection,
         quadrature_collection,

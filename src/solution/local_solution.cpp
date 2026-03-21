@@ -54,7 +54,6 @@ LocalSolution<real, dim, nspecies, n_components>::evaluate_reference_gradients(c
     return gradients;
 }
 
-
 // Define a sequence of indices representing the range [1, 7]
 #define POSSIBLE_NSTATE (1)(2)(3)(4)(5)(6)(7)
 

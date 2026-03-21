@@ -31,7 +31,7 @@ LargeEddySimulationBase<dim, nspecies, nstate, real>::LargeEddySimulationBase(
     const double                                              ratio_of_filter_width_to_cell_size,
     const double                                              isothermal_wall_temperature,
     const thermal_boundary_condition_enum                     thermal_boundary_condition_type,
-    std::shared_ptr< ManufacturedSolutionFunction<dim,real>  > manufactured_solution_function,
+    std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function,
     const two_point_num_flux_enum                             two_point_num_flux_type)
     : ModelBase<dim,nspecies,nstate,real>(manufactured_solution_function) 
     , turbulent_prandtl_number(turbulent_prandtl_number)
@@ -1086,7 +1086,6 @@ real2 LargeEddySimulation_Vreman<dim,nspecies,nstate,real>
 
     return eddy_viscosity;
 }
-
 //----------------------------------------------------------------
 //================================================================
 // Shear-improved Smagorinsky eddy viscosity model
@@ -1411,7 +1410,6 @@ double LargeEddySimulation_DynamicSmagorinsky<dim,nspecies,nstate,real>
     // Model constant times filter width squared
     return this->dynamic_smagorinsky_model_constant_times_filter_width_sqr[cell_index];
 }
-
 #if PHILIP_SPECIES==1
 //----------------------------------------------------------------
 //----------------------------------------------------------------

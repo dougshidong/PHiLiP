@@ -23,81 +23,86 @@ DGFactory<dim,nspecies,real,MeshType>
     const RANSModel_enum rans_model_type = parameters_input->physics_model_param.RANS_model_type;
 
     if (parameters_input->use_weak_form) {
-        if (pde_type == PDE_enum::advection && nspecies==1) {
-            return std::make_shared< DGWeak<dim,nspecies,1,real,MeshType> >(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input);
-        } else if (pde_type == PDE_enum::advection_vector && nspecies==1) {
-            return std::make_shared< DGWeak<dim,nspecies,2,real,MeshType> >(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input);
-        } else if (pde_type == PDE_enum::diffusion && nspecies==1) {
-            return std::make_shared< DGWeak<dim,nspecies,1,real,MeshType> >(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input);
-        } else if (pde_type == PDE_enum::convection_diffusion && nspecies==1) {
-            return std::make_shared< DGWeak<dim,nspecies,1,real,MeshType> >(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input);
-        } else if (pde_type == PDE_enum::burgers_inviscid && nspecies==1) {
-            return std::make_shared< DGWeak<dim,nspecies,dim,real,MeshType> >(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input);
-        } else if (pde_type == PDE_enum::burgers_viscous && nspecies==1) {
-            return std::make_shared< DGWeak<dim,nspecies,dim,real,MeshType> >(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input);
-        } else if (pde_type == PDE_enum::burgers_rewienski && nspecies==1) {
-            return std::make_shared< DGWeak<dim,nspecies,dim,real,MeshType> >(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input);
-        } else if (pde_type == PDE_enum::euler && nspecies==1) {
-            return std::make_shared< DGWeak<dim,nspecies,dim+2,real,MeshType> >(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input);
-        } else if (pde_type == PDE_enum::navier_stokes && nspecies==1) {
-            return std::make_shared< DGWeak<dim,nspecies,dim+2,real,MeshType> >(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input);
-        } else if (pde_type == PDE_enum::navier_stokes_channel_flow_constant_source_term && nspecies==1) {
-            return std::make_shared< DGWeak<dim,nspecies,dim+2,real,MeshType> >(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input);
-        } else if ((pde_type == PDE_enum::physics_model) && (model_type == Model_enum::reynolds_averaged_navier_stokes) && (rans_model_type == RANSModel_enum::SA_negative) && nspecies==1) {
-            return std::make_shared< DGWeak<dim,nspecies,dim+3,real,MeshType> >(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input);
-        } else if (pde_type == PDE_enum::real_gas) {
+        if(nspecies==1){
+            if (pde_type == PDE_enum::advection) {
+                return std::make_shared< DGWeak<dim,nspecies,1,real,MeshType> >(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input);
+            } else if (pde_type == PDE_enum::advection_vector) {
+                return std::make_shared< DGWeak<dim,nspecies,2,real,MeshType> >(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input);
+            } else if (pde_type == PDE_enum::diffusion) {
+                return std::make_shared< DGWeak<dim,nspecies,1,real,MeshType> >(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input);
+            } else if (pde_type == PDE_enum::convection_diffusion) {
+                return std::make_shared< DGWeak<dim,nspecies,1,real,MeshType> >(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input);
+            } else if (pde_type == PDE_enum::burgers_inviscid) {
+                return std::make_shared< DGWeak<dim,nspecies,dim,real,MeshType> >(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input);
+            } else if (pde_type == PDE_enum::burgers_viscous) {
+                return std::make_shared< DGWeak<dim,nspecies,dim,real,MeshType> >(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input);
+            } else if (pde_type == PDE_enum::burgers_rewienski) {
+                return std::make_shared< DGWeak<dim,nspecies,dim,real,MeshType> >(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input);
+            } else if (pde_type == PDE_enum::euler) {
+                return std::make_shared< DGWeak<dim,nspecies,dim+2,real,MeshType> >(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input);
+            } else if (pde_type == PDE_enum::navier_stokes) {
+                return std::make_shared< DGWeak<dim,nspecies,dim+2,real,MeshType> >(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input);
+            } else if (pde_type == PDE_enum::navier_stokes_channel_flow_constant_source_term) {
+                return std::make_shared< DGWeak<dim,nspecies,dim+2,real,MeshType> >(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input);
+            } else if ((pde_type == PDE_enum::physics_model) && (model_type == Model_enum::reynolds_averaged_navier_stokes) && (rans_model_type == RANSModel_enum::SA_negative)) {
+                return std::make_shared< DGWeak<dim,nspecies,dim+3,real,MeshType> >(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input);
+            }
+#if PHILIP_DIM==3
+            else if ((pde_type == PDE_enum::physics_model || pde_type == PDE_enum::physics_model_filtered) && (model_type == Model_enum::large_eddy_simulation || model_type == Model_enum::navier_stokes_model)) {
+                return std::make_shared< DGWeak<dim,nspecies,dim+2,real,MeshType> >(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input);
+            }
+#endif
+        }
+        else if (pde_type == PDE_enum::real_gas) {
             return std::make_shared< DGWeak<dim,nspecies,dim+nspecies+1,real,MeshType> >(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input);
         } 
-#if PHILIP_DIM==3
-        else if ((pde_type == PDE_enum::physics_model || pde_type == PDE_enum::physics_model_filtered) && (model_type == Model_enum::large_eddy_simulation || model_type == Model_enum::navier_stokes_model) && nspecies==1) {
-            return std::make_shared< DGWeak<dim,nspecies,dim+2,real,MeshType> >(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input);
-        }
-#endif
     } else {
-        if (pde_type == PDE_enum::advection && nspecies==1) {
-            return std::make_shared< DGStrong<dim,nspecies,1,real,MeshType> >(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input);
-        } else if (pde_type == PDE_enum::advection_vector && nspecies==1) {
-            return std::make_shared< DGStrong<dim,nspecies,2,real,MeshType> >(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input);
-        } else if (pde_type == PDE_enum::diffusion && nspecies==1) {
-            return std::make_shared< DGStrong<dim,nspecies,1,real,MeshType> >(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input);
-        } else if (pde_type == PDE_enum::convection_diffusion && nspecies==1) {
-            return std::make_shared< DGStrong<dim,nspecies,1,real,MeshType> >(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input);
-        } else if (pde_type == PDE_enum::burgers_inviscid && nspecies==1) {
-            return std::make_shared< DGStrong<dim,nspecies,dim,real,MeshType> >(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input);
-        } else if (pde_type == PDE_enum::burgers_viscous && nspecies==1) {
-            return std::make_shared< DGStrong<dim,nspecies,dim,real,MeshType> >(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input);
-        } else if (pde_type == PDE_enum::burgers_rewienski && nspecies==1) {
-            return std::make_shared< DGStrong<dim,nspecies,dim,real,MeshType> >(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input);
-        } else if (pde_type == PDE_enum::euler && nspecies==1) {
-            return std::make_shared< DGStrong<dim,nspecies,dim+2,real,MeshType> >(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input);
-        } else if (pde_type == PDE_enum::navier_stokes && nspecies==1) {
-            return std::make_shared< DGStrong<dim,nspecies,dim+2,real,MeshType> >(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input);
-        } else if (pde_type == PDE_enum::navier_stokes_channel_flow_constant_source_term && nspecies==1) {
-            return std::make_shared< DGStrong<dim,nspecies,dim+2,real,MeshType> >(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input);
-        } else if (pde_type == PDE_enum::navier_stokes_channel_flow_constant_source_term_wall_model && nspecies==1) {
-            return std::make_shared< DGStrong<dim,nspecies,dim+2,real,MeshType> >(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input);
-        } else if ((pde_type == PDE_enum::physics_model) && (model_type == Model_enum::reynolds_averaged_navier_stokes) && (rans_model_type == RANSModel_enum::SA_negative) && nspecies==1) {
-            return std::make_shared< DGStrong<dim,nspecies,dim+3,real,MeshType> >(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input);
-        }
-#if PHILIP_DIM==3
-        else if ((pde_type == PDE_enum::physics_model || pde_type == PDE_enum::physics_model_filtered) && (model_type == Model_enum::large_eddy_simulation || model_type == Model_enum::navier_stokes_model) && nspecies==1) {
-            using FlowCaseType_enum = Parameters::FlowSolverParam::FlowCaseType;
-            const FlowCaseType_enum flow_case_type = parameters_input->flow_solver_param.flow_case_type;
-            if(model_type == Model_enum::large_eddy_simulation) {
-                using SGS_enum = Parameters::PhysicsModelParam::SubGridScaleModel;
-                const SGS_enum SGS_model_type = parameters_input->physics_model_param.SGS_model_type;
-                if(SGS_model_type == SGS_enum::shear_improved_smagorinsky) {
-                    return std::make_shared< DGStrongLES_ShearImproved<dim,nspecies,dim+2,real,MeshType> >(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input);
-                } else if(SGS_model_type == SGS_enum::dynamic_smagorinsky) {
-                    return std::make_shared< DGStrongLES_DynamicSmagorinsky<dim,nspecies,dim+2,real,MeshType> >(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input);
-                } else {
-                    return std::make_shared< DGStrongLES<dim,nspecies,dim+2,real,MeshType> >(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input);
-                }
-            } else if (model_type == Model_enum::navier_stokes_model && flow_case_type == FlowCaseType_enum::channel_flow) {
-                return std::make_shared< DGStrong_ChannelFlow<dim,nspecies,dim+2,real,MeshType> >(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input);    
+        if(nspecies==1) {
+            if (pde_type == PDE_enum::advection) {
+                return std::make_shared< DGStrong<dim,nspecies,1,real,MeshType> >(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input);
+            } else if (pde_type == PDE_enum::advection_vector) {
+                return std::make_shared< DGStrong<dim,nspecies,2,real,MeshType> >(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input);
+            } else if (pde_type == PDE_enum::diffusion) {
+                return std::make_shared< DGStrong<dim,nspecies,1,real,MeshType> >(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input);
+            } else if (pde_type == PDE_enum::convection_diffusion) {
+                return std::make_shared< DGStrong<dim,nspecies,1,real,MeshType> >(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input);
+            } else if (pde_type == PDE_enum::burgers_inviscid) {
+                return std::make_shared< DGStrong<dim,nspecies,dim,real,MeshType> >(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input);
+            } else if (pde_type == PDE_enum::burgers_viscous) {
+                return std::make_shared< DGStrong<dim,nspecies,dim,real,MeshType> >(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input);
+            } else if (pde_type == PDE_enum::burgers_rewienski) {
+                return std::make_shared< DGStrong<dim,nspecies,dim,real,MeshType> >(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input);
+            } else if (pde_type == PDE_enum::euler) {
+                return std::make_shared< DGStrong<dim,nspecies,dim+2,real,MeshType> >(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input);
+            } else if (pde_type == PDE_enum::navier_stokes) {
+                return std::make_shared< DGStrong<dim,nspecies,dim+2,real,MeshType> >(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input);
+            } else if (pde_type == PDE_enum::navier_stokes_channel_flow_constant_source_term) {
+                return std::make_shared< DGStrong<dim,nspecies,dim+2,real,MeshType> >(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input);
+            } else if (pde_type == PDE_enum::navier_stokes_channel_flow_constant_source_term_wall_model) {
+                return std::make_shared< DGStrong<dim,nspecies,dim+2,real,MeshType> >(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input);
+            } else if ((pde_type == PDE_enum::physics_model) && (model_type == Model_enum::reynolds_averaged_navier_stokes) && (rans_model_type == RANSModel_enum::SA_negative)) {
+                return std::make_shared< DGStrong<dim,nspecies,dim+3,real,MeshType> >(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input);
             }
-        }
+#if PHILIP_DIM==3
+            else if ((pde_type == PDE_enum::physics_model || pde_type == PDE_enum::physics_model_filtered) && (model_type == Model_enum::large_eddy_simulation || model_type == Model_enum::navier_stokes_model)) {
+                using FlowCaseType_enum = Parameters::FlowSolverParam::FlowCaseType;
+                const FlowCaseType_enum flow_case_type = parameters_input->flow_solver_param.flow_case_type;
+                if(model_type == Model_enum::large_eddy_simulation) {
+                    using SGS_enum = Parameters::PhysicsModelParam::SubGridScaleModel;
+                    const SGS_enum SGS_model_type = parameters_input->physics_model_param.SGS_model_type;
+                    if(SGS_model_type == SGS_enum::shear_improved_smagorinsky) {
+                        return std::make_shared< DGStrongLES_ShearImproved<dim,nspecies,dim+2,real,MeshType> >(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input);
+                    } else if(SGS_model_type == SGS_enum::dynamic_smagorinsky) {
+                        return std::make_shared< DGStrongLES_DynamicSmagorinsky<dim,nspecies,dim+2,real,MeshType> >(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input);
+                    } else {
+                        return std::make_shared< DGStrongLES<dim,nspecies,dim+2,real,MeshType> >(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input);
+                    }
+                } else if (model_type == Model_enum::navier_stokes_model && flow_case_type == FlowCaseType_enum::channel_flow) {
+                    return std::make_shared< DGStrong_ChannelFlow<dim,nspecies,dim+2,real,MeshType> >(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input);    
+                }
+            }
 #endif
+        }
     }
     std::cout << "Can't create DGBase in create_discontinuous_galerkin(). Invalid PDE type: " << pde_type << std::endl;
     return nullptr;

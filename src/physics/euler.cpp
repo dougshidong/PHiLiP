@@ -18,7 +18,7 @@ Euler<dim,nspecies,nstate,real>::Euler (
     const double                                              mach_inf,
     const double                                              angle_of_attack,
     const double                                              side_slip_angle,
-    std::shared_ptr< ManufacturedSolutionFunction<dim,real>  > manufactured_solution_function,
+    std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function,
     const two_point_num_flux_enum                             two_point_num_flux_type_input,
     const bool                                                has_nonzero_diffusion,
     const bool                                                has_nonzero_physical_source)
@@ -1702,6 +1702,7 @@ dealii::UpdateFlags Euler<dim,nspecies,nstate,real>
         template dealii::Tensor<1,PHILIP_DIM, FadType > Euler < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, type >::compute_velocities< FadType >(const std::array<FadType, PHILIP_DIM+2> &conservative_soln) const;
     BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_FADTYPES, _, POSSIBLE_TYPES)
 //==============================================================================
+
 #endif
 } // Physics namespace
 } // PHiLiP namespace

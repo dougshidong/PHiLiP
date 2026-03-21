@@ -21,7 +21,7 @@ protected:
     /// Alias to base class Triangulation.
     using Triangulation = typename DGBase<dim,nspecies,real,MeshType>::Triangulation;
 
-   public:
+public:
     using DGBase<dim,nspecies,real,MeshType>::all_parameters; ///< Input parameters.
 
     /// Constructor.

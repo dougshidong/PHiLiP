@@ -16,7 +16,7 @@ namespace FlowSolver {
 // CHANNEL FLOW CLASS
 //=========================================================
 template <int dim, int nspecies, int nstate>
-ChannelFlow<dim, nspecies,nstate>::ChannelFlow(const PHiLiP::Parameters::AllParameters *const parameters_input)
+ChannelFlow<dim, nspecies, nstate>::ChannelFlow(const PHiLiP::Parameters::AllParameters *const parameters_input)
         : PeriodicTurbulence<dim, nspecies, nstate>(parameters_input)
         , channel_height(this->all_param.flow_solver_param.turbulent_channel_domain_length_y_direction)
         , half_channel_height(channel_height/2.0)
@@ -49,7 +49,7 @@ ChannelFlow<dim, nspecies,nstate>::ChannelFlow(const PHiLiP::Parameters::AllPara
 }
 
 template <int dim, int nspecies, int nstate>
-void ChannelFlow<dim, nspecies,nstate>::compute_unsteady_data_and_write_to_table(
+void ChannelFlow<dim, nspecies, nstate>::compute_unsteady_data_and_write_to_table(
         const std::shared_ptr <ODE::ODESolverBase<dim, nspecies, double>> ode_solver,
         const std::shared_ptr <DGBase<dim, nspecies, double>> dg,
         const std::shared_ptr <dealii::TableHandler> unsteady_data_table,
@@ -370,7 +370,7 @@ unsigned int ChannelFlow<dim, nspecies, nstate>::get_number_of_degrees_of_freedo
 }
 
 template<int dim, int nspecies, int nstate>
-double ChannelFlow<dim, nspecies,nstate>::get_average_wall_shear_stress(DGBase<dim, nspecies, double> &dg) const
+double ChannelFlow<dim, nspecies, nstate>::get_average_wall_shear_stress(DGBase<dim, nspecies, double> &dg) const
 {
     /// Update flags needed at face points.
     const dealii::UpdateFlags face_update_flags = dealii::update_values | dealii::update_gradients | dealii::update_quadrature_points | dealii::update_JxW_values | dealii::update_normal_vectors;
@@ -529,7 +529,7 @@ double ChannelFlow<dim,nspecies,nstate>::get_average_wall_shear_stress_from_wall
 }
 
 template <int dim, int nspecies, int nstate>
-double ChannelFlow<dim, nspecies,nstate>::get_skin_friction_coefficient_from_average_wall_shear_stress(const double avg_wall_shear_stress) const
+double ChannelFlow<dim, nspecies, nstate>::get_skin_friction_coefficient_from_average_wall_shear_stress(const double avg_wall_shear_stress) const
 {
     // Reference: Equation 34 of Lodato G, Castonguay P, Jameson A. Discrete filter operators for large-eddy simulation using high-order spectral difference methods. International Journal for Numerical Methods in Fluids2013;72(2):231–258. 
     const double skin_friction_coefficient = 2.0*avg_wall_shear_stress/(this->bulk_density*this->bulk_velocity*this->bulk_velocity);
@@ -537,25 +537,25 @@ double ChannelFlow<dim, nspecies,nstate>::get_skin_friction_coefficient_from_ave
 }
 
 template <int dim, int nspecies, int nstate>
-double ChannelFlow<dim, nspecies,nstate>::get_bulk_density() const
+double ChannelFlow<dim, nspecies, nstate>::get_bulk_density() const
 {
     return this->bulk_density;
 }
 
 template <int dim, int nspecies, int nstate>
-double ChannelFlow<dim, nspecies,nstate>::get_bulk_mass_flow_rate() const
+double ChannelFlow<dim, nspecies, nstate>::get_bulk_mass_flow_rate() const
 {
     return this->bulk_mass_flow_rate;
 }
 
 template <int dim, int nspecies, int nstate>
-double ChannelFlow<dim, nspecies,nstate>::get_bulk_velocity() const
+double ChannelFlow<dim, nspecies, nstate>::get_bulk_velocity() const
 {
     return this->bulk_velocity;
 }
 
 template <int dim, int nspecies, int nstate>
-void ChannelFlow<dim, nspecies,nstate>::set_bulk_flow_quantities(DGBase<dim, nspecies, double> &dg)
+void ChannelFlow<dim, nspecies, nstate>::set_bulk_flow_quantities(DGBase<dim, nspecies, double> &dg)
 {
     const int NUMBER_OF_INTEGRATED_QUANTITIES = 2;
     std::array<double,NUMBER_OF_INTEGRATED_QUANTITIES> integrated_quantities;

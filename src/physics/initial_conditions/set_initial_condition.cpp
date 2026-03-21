@@ -82,7 +82,7 @@ void SetInitialCondition<dim,nspecies,nstate,real>::project_initial_condition(
     //Thus we interpolate it directly.
     const auto mapping = (*(dg->high_order_grid->mapping_fe_field));
     dealii::hp::MappingCollection<dim> mapping_collection(mapping);
-    dealii::hp::FEValues<dim,dim>  fe_values_collection(mapping_collection, dg->fe_collection, dg->volume_quadrature_collection, 
+    dealii::hp::FEValues<dim,dim> fe_values_collection(mapping_collection, dg->fe_collection, dg->volume_quadrature_collection, 
                                 dealii::update_quadrature_points);
     const unsigned int max_dofs_per_cell = dg->dof_handler.get_fe_collection().max_dofs_per_cell();
     std::vector<dealii::types::global_dof_index> current_dofs_indices(max_dofs_per_cell);
@@ -186,7 +186,7 @@ void SetInitialCondition<dim,nspecies,nstate,real>::read_values_from_file_and_pr
     //Thus we interpolate it directly.
     const auto mapping = (*(dg->high_order_grid->mapping_fe_field));
     dealii::hp::MappingCollection<dim> mapping_collection(mapping);
-    dealii::hp::FEValues<dim,dim>  fe_values_collection(mapping_collection, dg->fe_collection, dg->volume_quadrature_collection, 
+    dealii::hp::FEValues<dim,dim> fe_values_collection(mapping_collection, dg->fe_collection, dg->volume_quadrature_collection, 
                                 dealii::update_quadrature_points);
     const unsigned int max_dofs_per_cell = dg->dof_handler.get_fe_collection().max_dofs_per_cell();
     std::vector<dealii::types::global_dof_index> current_dofs_indices(max_dofs_per_cell);

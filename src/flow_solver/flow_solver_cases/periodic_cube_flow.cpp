@@ -14,7 +14,6 @@ namespace FlowSolver {
 template <int dim, int nspecies, int nstate>
 PeriodicCubeFlow<dim, nspecies, nstate>::PeriodicCubeFlow(const PHiLiP::Parameters::AllParameters *const parameters_input)
         : CubeFlow_UniformGrid<dim, nspecies, nstate>(parameters_input)
-        , unsteady_data_table_filename_with_extension(this->all_param.flow_solver_param.unsteady_data_table_filename+".txt")
         , number_of_cells_per_direction(this->all_param.flow_solver_param.number_of_grid_elements_per_dimension)
         , domain_left(this->all_param.flow_solver_param.grid_left_bound)
         , domain_right(this->all_param.flow_solver_param.grid_right_bound)
@@ -85,41 +84,6 @@ template <int dim, int nspecies, int nstate>
 void PeriodicCubeFlow<dim,nspecies,nstate>::display_additional_flow_case_specific_parameters() const
 {
     this->display_grid_parameters();
-}
-
-template <int dim, int nspecies, int nstate>
-void PeriodicCubeFlow<dim, nspecies, nstate>::compute_unsteady_data_and_write_to_table(
-    const std::shared_ptr<ODE::ODESolverBase<dim, nspecies, double>> ode_solver,
-    const std::shared_ptr <DGBase<dim, nspecies, double>> dg,
-    const std::shared_ptr <dealii::TableHandler> unsteady_data_table,
-    const bool do_write_unsteady_data_table_file    )
-{
-    //unpack current iteration and current time from ode solver
-    const unsigned int current_iteration = ode_solver->current_iteration;
-    const double current_time = ode_solver->current_time;
-
-    if (this->mpi_rank == 0) {
-
-        unsteady_data_table->add_value("iteration", current_iteration);
-        // Add values to data table
-        this->add_value_to_data_table(current_time, "time", unsteady_data_table);
-        // Write to file
-        if(do_write_unsteady_data_table_file) {
-            std::ofstream unsteady_data_table_file(this->unsteady_data_table_filename_with_extension);
-            unsteady_data_table->write_text(unsteady_data_table_file);
-        }
-    }
-
-    if (current_iteration % this->all_param.ode_solver_param.print_iteration_modulo == 0) {
-        // Print to console
-        this->pcout << "    Iter: " << current_iteration
-                    << "    Time: " << std::setprecision(16) << current_time;
-
-        this->pcout << std::endl;
-    }
-
-    // Update local maximum wave speed before calculating next time step
-    update_maximum_local_wave_speed(*dg);
 }
 
 #if PHILIP_SPECIES==1

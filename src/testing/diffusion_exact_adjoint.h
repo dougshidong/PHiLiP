@@ -114,7 +114,7 @@ public:
         const Parameters::AllParameters *const                  parameters_input,
         const bool                                              convection, 
         const bool                                              diffusion,
-        std::shared_ptr<ManufacturedSolutionFunction<dim,real> > manufactured_solution_function): 
+        std::shared_ptr<ManufacturedSolutionFunction<dim,real>> manufactured_solution_function): 
             Physics::ConvectionDiffusion<dim,nspecies,nstate,real>::ConvectionDiffusion(
                 parameters_input,
                 convection, 

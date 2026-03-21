@@ -425,7 +425,7 @@ int EulerGaussianBumpAdjoint<dim,nspecies,nstate>
 
             if (igrid!=0) {
                 dealii::LinearAlgebra::distributed::Vector<double> old_solution(dg->solution);
-                dealii::parallel::distributed::SolutionTransfer<dim,dealii::LinearAlgebra::distributed::Vector<double>, dealii::DoFHandler<dim>> solution_transfer(dg->dof_handler);
+                dealii::parallel::distributed::SolutionTransfer<dim, dealii::LinearAlgebra::distributed::Vector<double>, dealii::DoFHandler<dim>> solution_transfer(dg->dof_handler);
                 solution_transfer.prepare_for_coarsening_and_refinement(old_solution);
                 dg->high_order_grid.prepare_for_coarsening_and_refinement();
                 // grid.refine_global (1);

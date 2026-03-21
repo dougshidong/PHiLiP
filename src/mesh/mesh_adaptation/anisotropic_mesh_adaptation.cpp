@@ -149,7 +149,7 @@ void AnisotropicMeshAdaptation<dim, nspecies, nstate, real, MeshType> :: compute
     const auto mapping = (*(dg->high_order_grid->mapping_fe_field));
     dealii::hp::MappingCollection<dim> mapping_collection(mapping);
     const dealii::UpdateFlags update_flags = dealii::update_JxW_values;
-    dealii::hp::FEValues<dim,dim>    fe_values_collection_volume (mapping_collection, dg->fe_collection, dg->volume_quadrature_collection, update_flags);
+    dealii::hp::FEValues<dim,dim>   fe_values_collection_volume (mapping_collection, dg->fe_collection, dg->volume_quadrature_collection, update_flags);
     
     real integral_val = 0;
     for(const auto &cell : dg->dof_handler.active_cell_iterators())
@@ -272,7 +272,7 @@ void AnisotropicMeshAdaptation<dim, nspecies, nstate, real, MeshType> :: compute
     const auto mapping = (*(dg->high_order_grid->mapping_fe_field));
     dealii::hp::MappingCollection<dim> mapping_collection(mapping);
     const dealii::UpdateFlags update_flags = dealii::update_jacobian_pushed_forward_grads | dealii::update_inverse_jacobians;
-    dealii::hp::FEValues<dim,dim>    fe_values_collection_volume (mapping_collection, dg->fe_collection, dg->volume_quadrature_collection, update_flags);
+    dealii::hp::FEValues<dim,dim>   fe_values_collection_volume (mapping_collection, dg->fe_collection, dg->volume_quadrature_collection, update_flags);
     PHiLiP::FEValuesShapeHessian<dim> fe_values_shape_hessian;
     
     std::vector<dealii::types::global_dof_index> dof_indices(max_dofs_per_cell);
@@ -334,7 +334,7 @@ void AnisotropicMeshAdaptation<dim, nspecies, nstate, real, MeshType> :: compute
     const auto mapping = (*(dg->high_order_grid->mapping_fe_field));
     dealii::hp::MappingCollection<dim> mapping_collection(mapping);
     const dealii::UpdateFlags update_flags = dealii::update_values | dealii::update_gradients | dealii::update_jacobian_pushed_forward_grads | dealii::update_inverse_jacobians;
-    dealii::hp::FEValues<dim,dim>    fe_values_collection_volume (mapping_collection, dg->fe_collection, dg->volume_quadrature_collection, update_flags);
+    dealii::hp::FEValues<dim,dim>   fe_values_collection_volume (mapping_collection, dg->fe_collection, dg->volume_quadrature_collection, update_flags);
     PHiLiP::FEValuesShapeHessian<dim> fe_values_shape_hessian;
     
     std::vector<dealii::types::global_dof_index> dof_indices(max_dofs_per_cell);

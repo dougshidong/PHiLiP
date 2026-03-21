@@ -39,7 +39,7 @@ int HomogeneousIsotropicTurbulenceInitializationCheck<dim, nspecies, nstate>::ru
 }
 
 #if PHILIP_DIM==3 && PHILIP_SPECIES==1
-    template class HomogeneousIsotropicTurbulenceInitializationCheck<PHILIP_DIM, PHILIP_SPECIES,PHILIP_DIM+2>;
+    template class HomogeneousIsotropicTurbulenceInitializationCheck<PHILIP_DIM,PHILIP_SPECIES,PHILIP_DIM+2>;
 #endif
 } // Tests namespace
 } // PHiLiP namespace

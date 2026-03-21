@@ -409,7 +409,7 @@ void GridRefinement_FixedFraction<dim,nspecies,nstate,real,MeshType>::error_indi
     // see dg.cpp
     // const auto mapping = (*(high_order_grid.mapping_fe_field));
     // dealii::hp::MappingCollection<dim> mapping_collection(mapping);
-    // dealii::hp::FEValues<dim,dim>  fe_values_collection(mapping_collection, fe_collection, this->dg->volume_quadrature_collection, this->dg->volume_update_flags);
+    // dealii::hp::FEValues<dim,dim> fe_values_collection(mapping_collection, fe_collection, this->dg->volume_quadrature_collection, this->dg->volume_update_flags);
 
     // use manufactured solution to measure the cell-wise error (overintegrate)
     int overintegrate = 10;
@@ -606,6 +606,7 @@ std::vector< std::pair<dealii::Vector<real>, std::string> > GridRefinement_Fixed
     BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_DISTRIBUTED, _, POSSIBLE_NSTATE)
     #endif
 #endif
+
 } // namespace GridRefinement
 
 } // namespace PHiLiP

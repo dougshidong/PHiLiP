@@ -19,7 +19,7 @@ PhysicsBase<dim,nspecies,nstate,real>::PhysicsBase(
     const bool                                                has_nonzero_diffusion_input,
     const bool                                                has_nonzero_physical_source_input,
     const dealii::Tensor<2,3,double>                          input_diffusion_tensor,
-    std::shared_ptr< ManufacturedSolutionFunction<dim,real>  > manufactured_solution_function_input)
+    std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function_input)
     : has_nonzero_diffusion(has_nonzero_diffusion_input)
     , has_nonzero_physical_source(has_nonzero_physical_source_input)
     , all_parameters(parameters_input)
@@ -53,7 +53,7 @@ PhysicsBase<dim,nspecies,nstate,real>::PhysicsBase(
     const Parameters::AllParameters *const                    parameters_input,
     const bool                                                has_nonzero_diffusion_input,
     const bool                                                has_nonzero_physical_source_input,
-    std::shared_ptr< ManufacturedSolutionFunction<dim,real>  > manufactured_solution_function_input)
+    std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function_input)
     : PhysicsBase<dim,nspecies,nstate,real>(
         parameters_input,
         has_nonzero_diffusion_input,

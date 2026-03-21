@@ -459,7 +459,7 @@ class FunctionalWeightedIntegralVolume : public Functional<dim,nspecies,nstate,r
     using FadFadType = Sacado::Fad::DFad<FadType>; ///< Sacado AD type that allows 2nd derivatives.
 public:
     FunctionalWeightedIntegralVolume(
-        std::shared_ptr<ManufacturedSolutionFunction<dim,real> >   _weight_function_double,
+        std::shared_ptr<ManufacturedSolutionFunction<dim,real>>   _weight_function_double,
         std::shared_ptr<ManufacturedSolutionFunction<dim,FadFadType>> _weight_function_adtype,
         const bool                                                _use_weight_function_laplacian,
         std::shared_ptr<DGBase<dim,nspecies,real,MeshType>>                _dg,
@@ -494,7 +494,7 @@ public:
 
 protected:
     /// Manufactured solution weighting function of double return type
-    std::shared_ptr<ManufacturedSolutionFunction<dim,real> >   weight_function_double;
+    std::shared_ptr<ManufacturedSolutionFunction<dim,real>>   weight_function_double;
     /// Manufactured solution weighting function of adtype return type
     std::shared_ptr<ManufacturedSolutionFunction<dim,FadFadType>> weight_function_adtype;
     /// Flag to enable using the weight function laplacian
@@ -524,7 +524,7 @@ class FunctionalWeightedIntegralBoundary : public Functional<dim,nspecies,nstate
     using FadFadType = Sacado::Fad::DFad<FadType>; ///< Sacado AD type that allows 2nd derivatives.
 public:
     FunctionalWeightedIntegralBoundary(
-        std::shared_ptr<ManufacturedSolutionFunction<dim,real> >       _weight_function_double,
+        std::shared_ptr<ManufacturedSolutionFunction<dim,real>>       _weight_function_double,
         std::shared_ptr<ManufacturedSolutionFunction<dim,FadFadType>> _weight_function_adtype,
         const bool                                                    _use_weight_function_laplacian,
         std::vector<unsigned int>                                     _boundary_vector,
@@ -567,7 +567,7 @@ public:
 
 protected:
     /// Manufactured solution weighting function of double return type
-    std::shared_ptr<ManufacturedSolutionFunction<dim,real> >   weight_function_double;
+    std::shared_ptr<ManufacturedSolutionFunction<dim,real>>   weight_function_double;
     /// Manufactured solution weighting function of adtype return type
     std::shared_ptr<ManufacturedSolutionFunction<dim,FadFadType>> weight_function_adtype;
     /// Flag to enable using the weight function laplacian

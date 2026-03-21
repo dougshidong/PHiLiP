@@ -36,7 +36,7 @@ template <int dim, int nspecies, typename real, typename MeshType>
 void MeshAdaptation<dim,nspecies,real,MeshType>::fixed_fraction_isotropic_refinement_and_coarsening()
 {
     dealii::LinearAlgebra::distributed::Vector<real> old_solution(dg->solution);
-    dealii::parallel::distributed::SolutionTransfer<dim,dealii::LinearAlgebra::distributed::Vector<real>, dealii::DoFHandler<dim>> solution_transfer(dg->dof_handler);
+    dealii::parallel::distributed::SolutionTransfer<dim, dealii::LinearAlgebra::distributed::Vector<real>, dealii::DoFHandler<dim>> solution_transfer(dg->dof_handler);
     solution_transfer.prepare_for_coarsening_and_refinement(old_solution);
     dg->high_order_grid->prepare_for_coarsening_and_refinement();
 
@@ -91,7 +91,7 @@ void MeshAdaptation<dim,nspecies,real,MeshType>::smoothness_sensor_based_hp_refi
     const auto mapping = (*(dg->high_order_grid->mapping_fe_field));
     dealii::hp::MappingCollection<dim> mapping_collection(mapping);
     const dealii::UpdateFlags update_flags = dealii::update_values | dealii::update_JxW_values;
-    dealii::hp::FEValues<dim,dim>  fe_values_collection_volume (mapping_collection, dg->fe_collection, dg->volume_quadrature_collection, update_flags); ///< FEValues of volume.
+    dealii::hp::FEValues<dim,dim> fe_values_collection_volume (mapping_collection, dg->fe_collection, dg->volume_quadrature_collection, update_flags); ///< FEValues of volume.
 
     std::vector< real > soln_coeff_high;
     std::vector<dealii::types::global_dof_index> dof_indices;

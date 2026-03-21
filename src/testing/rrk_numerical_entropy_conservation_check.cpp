@@ -162,9 +162,9 @@ int RRKNumericalEntropyConservationCheck<dim, nspecies, nstate>::run_test() cons
     return testfail;
 }
 #if PHILIP_DIM == 1 && PHILIP_SPECIES==1
-    template class RRKNumericalEntropyConservationCheck<PHILIP_DIM, PHILIP_SPECIES,PHILIP_DIM>;
+    template class RRKNumericalEntropyConservationCheck<PHILIP_DIM,PHILIP_SPECIES,PHILIP_DIM>;
 #elif PHILIP_DIM == 3 && PHILIP_SPECIES==1
-    template class RRKNumericalEntropyConservationCheck<PHILIP_DIM, PHILIP_SPECIES,PHILIP_DIM+2>;
+    template class RRKNumericalEntropyConservationCheck<PHILIP_DIM,PHILIP_SPECIES,PHILIP_DIM+2>;
 #endif
 } // Tests namespace
 } // PHiLiP namespace

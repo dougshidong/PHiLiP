@@ -16,7 +16,7 @@ TimeRefinementStudyReference<dim, nspecies, nstate>::TimeRefinementStudyReferenc
 {}
 
 template <int dim, int nspecies, int nstate>
-Parameters::AllParameters TimeRefinementStudyReference<dim,nspecies,nstate>::reinit_params_for_reference_solution(int number_of_timesteps, double final_time) const
+Parameters::AllParameters TimeRefinementStudyReference<dim,nspecies,nstate>::reinit_params_for_reference_solution(const int number_of_timesteps, const double final_time) const
 {
     PHiLiP::Parameters::AllParameters parameters = *(this->all_parameters);
 

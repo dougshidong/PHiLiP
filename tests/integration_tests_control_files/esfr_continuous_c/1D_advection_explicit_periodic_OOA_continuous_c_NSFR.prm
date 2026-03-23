@@ -12,7 +12,7 @@ set overintegration = 0
 
 set flux_nodes_type = GL
 
-set use_periodic_bc = true
+set all_boundaries_are_periodic = true
 
 set flux_reconstruction = user_specified_value
 set FR_user_specified_correction_parameter_value = 0.186

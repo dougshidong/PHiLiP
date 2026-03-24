@@ -14,9 +14,7 @@ set use_energy = false
 
 set use_L2_norm = false
 
-set use_classical_FR = false
-
-set use_periodic_bc = true
+set all_boundaries_are_periodic = true
 
 #set flux_reconstruction = cPlus
 set flux_reconstruction = user_specified_value

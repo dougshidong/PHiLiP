@@ -45,7 +45,9 @@ subsection flow_solver
   set poly_degree = 4
   set final_time = 0.1
   set unsteady_data_table_filename = advection_shock_energy
-  set expected_order_at_final_time = 4.9314675462114
+  # reaches p+1 if ran for finer grids 
+  # restricted to lower expected order and grid to keep ctest short
+  set expected_order_at_final_time = 4.93
   subsection grid
     set grid_left_bound = -1.0
     set grid_right_bound = 1.0

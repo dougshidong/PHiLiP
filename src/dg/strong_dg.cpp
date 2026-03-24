@@ -1604,8 +1604,6 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_boundary_term_strong(
     const unsigned int n_shape_fns = n_dofs / nstate; 
     const std::vector<double> &face_quad_weights = this->face_quadrature_collection[poly_degree].get_weights();
 
-    AssertDimension (n_dofs, dof_indices.size());
-
     // Fetch the modal soln coefficients and the modal auxiliary soln coefficients
     // We immediately separate them by state as to be able to use sum-factorization
     // in the interpolation operator. If we left it by n_dofs_cell, then the matrix-vector

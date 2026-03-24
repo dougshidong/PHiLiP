@@ -106,10 +106,7 @@ SET(_philip_targets "#
 #      make PHiLiP_2D      - to build main program (without tests) in 2D
 #      make PHiLiP_3D      - to build main program (without tests) in 3D ")
 
-if(${NUMBER_OF_SPECIES} EQUAL 1)
 add_custom_target(unit_tests)
-endif()
-
 add_custom_target(grids)
 
 # Source code
@@ -242,7 +239,7 @@ MESSAGE(STATUS "
 # Using MPIMAX = ${MPIMAX}, which sets the default values used by ctest for the MPI runs.
 # Can use cmake ../ -DMPIMAX=XX to change this default value.
 #
-# Using NUMBER_OF_SPECIES = ${NUMBER_OF_SPECIES}, values other than 1 are not currently supported.
-# Future implementations will allow users to set this parameter.
+# Using NUMBER_OF_SPECIES = ${NUMBER_OF_SPECIES}, which sets the number of species used to compile PHiLiP.
+# Can use cmake ../ -DNUMBER_OF_SPECIES=XX to change this default value.
 ###
 ")

@@ -462,6 +462,7 @@ void PhysicsModel<dim,nspecies,nstate,real,nstate_baseline_physics>
             soln_bc[s] += baseline_soln_bc[s];
             soln_grad_bc[s] += baseline_soln_grad_bc[s];
         }
+        // Only boundary_manufactured_solution (id 1000) can be used currently
         if (boundary_type != 1000) {
             pcout << "Error: boundary_face_values_viscous_flux() not implemented for nstate!=nstate_baseline_physics." << std::endl;
             pcout << "Aborting..." << std::endl;

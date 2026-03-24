@@ -1,4 +1,5 @@
 # Integration tests
+if(${NUMBER_OF_SPECIES} EQUAL 1)
 add_subdirectory(advection_implicit)
 add_subdirectory(diffusion_implicit)
 add_subdirectory(convection_diffusion_implicit)
@@ -40,8 +41,14 @@ add_subdirectory(astrophysical_jet)
 add_subdirectory(svsw)
 add_subdirectory(turbulent_channel_flow)
 add_subdirectory(dipole_wall_collision)
+endif()
+
 # Multispecies Tests
+if(${NUMBER_OF_SPECIES} EQUAL 2)
 add_subdirectory(ms_vortex_advection)
 add_subdirectory(ms_sod_shock_tube)
 add_subdirectory(ms_isentropic_vortex)
-
+endif()
+if(${NUMBER_OF_SPECIES} EQUAL 3)
+add_subdirectory(ms_vortex_advection)
+endif()

@@ -430,7 +430,7 @@ void ReconstructPoly<dim,nspecies,nstate,real>::reconstruct_directional_derivati
 
 template <int dim, int nspecies, int nstate, typename real>
 void ReconstructPoly<dim,nspecies,nstate,real>::reconstruct_manufactured_derivative(
-    const std::shared_ptr<ManufacturedSolutionFunction<dim,real> >& manufactured_solution,
+    const std::shared_ptr<ManufacturedSolutionFunction<dim,nspecies,real> >& manufactured_solution,
     const unsigned int                                             rel_order)
 {
     for(auto cell = dof_handler.begin_active(); cell != dof_handler.end(); ++cell){

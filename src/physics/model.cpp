@@ -14,7 +14,7 @@ namespace Physics {
 //================================================================
 template <int dim, int nspecies, int nstate, typename real>
 ModelBase<dim, nspecies, nstate, real>::ModelBase(
-    std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function_input):
+    std::shared_ptr< ManufacturedSolutionFunction<dim,nspecies,real> > manufactured_solution_function_input):
         manufactured_solution_function(manufactured_solution_function_input)
         , mpi_communicator(MPI_COMM_WORLD)
         , pcout(std::cout, dealii::Utilities::MPI::this_mpi_process(mpi_communicator)==0)

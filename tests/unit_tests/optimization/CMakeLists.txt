@@ -40,6 +40,7 @@ endif()
 
 unset(TEST_TARGET)
 
+if(${NUMBER_OF_SPECIES} EQUAL 1)
 set(TEST_SRC
     flow_constraints_check.cpp
     )
@@ -176,6 +177,7 @@ set_tests_labels(${TEST_TARGET}_nmpi=${NMPI}    OPTIMIZATION
                                                 QUICK
                                                 UNIT_TEST)
 unset(TEST_TARGET)
+
 ##################################################################################################################################
 
 
@@ -267,4 +269,6 @@ set_tests_labels(${TEST_TARGET}_nmpi=${NMPI}    OPTIMIZATION
                                                 QUICK
                                                 UNIT_TEST)
 unset(TEST_TARGET)
+endif()
+
 ##################################################################################################################################

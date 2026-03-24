@@ -37,7 +37,7 @@ namespace Tests {
 /** This class also provides derivatives necessary to evaluate source terms.
  */
 template <int dim, int nspecies, typename real>
-class Shocked1D1State : public ManufacturedSolutionFunction<dim,real> 
+class Shocked1D1State : public ManufacturedSolutionFunction<dim,nspecies,real> 
 {
 protected:
     using dealii::Function<dim,real>::value;
@@ -51,7 +51,7 @@ public:
      *  by all the other functions
      */
     explicit Shocked1D1State (const unsigned int nstate = 1)
-    : ManufacturedSolutionFunction<dim,real> (nstate)
+    : ManufacturedSolutionFunction<dim,nspecies,real> (nstate)
     { };
 
     /// Manufactured solution exact value

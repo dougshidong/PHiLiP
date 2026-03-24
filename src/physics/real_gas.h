@@ -29,7 +29,7 @@ public:
     /// Constructor
     RealGas ( 
         const Parameters::AllParameters *const                    parameters_input,
-        std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function = nullptr,
+        std::shared_ptr< ManufacturedSolutionFunction<dim,nspecies,real> > manufactured_solution_function = nullptr,
         const bool                                                has_nonzero_diffusion = false,
         const bool                                                has_nonzero_physical_source = false);
 
@@ -170,7 +170,13 @@ protected:
     dealii::Tensor<1,dim,real> compute_velocities ( const std::array<real,nstate> &conservative_soln ) const;
 
     // Algorithm 3 (f_M3): Compute squared velocities from conservative_soln
-    real compute_velocity_squared ( const std::array<real,nstate> &conservative_soln ) const;
+    real compute_velocity_squared_from_conservative_solution ( const std::array<real,nstate> &conservative_soln ) const;
+
+    // Algorithm 3b: Compute velocity squared when provided with velocities
+    real compute_velocity_squared ( const dealii::Tensor<1,dim,real> &velocities ) const;
+
+    /// Given primitive variables, returns velocities.
+    dealii::Tensor<1,dim,real> extract_velocities_from_primitive ( const std::array<real,nstate> &primitive_soln ) const;
 
     // Algorithm 4 (f_M4): Compute specific kinetic energy from conservative_soln
     real compute_specific_kinetic_energy ( const std::array<real,nstate> &conservative_soln ) const;
@@ -199,11 +205,10 @@ public:
 protected:
     // Algorithm 11 (f_M11): Compute species specific heat at constant pressure from temperature
     // Modified by Shruthi
-    std::array<real,nspecies> compute_species_specific_molar_Cp ( const real temperature ) const;
+    std::array<real,nspecies> compute_species_specific_Cp ( const real temperature ) const;
 
     // Algorithm 12 (f_M12): Compute species specific heat at constant volume from temperature
-    // Modified by Shruthi
-    std::array<real,nspecies>compute_species_specific_molar_Cv ( const real temperature ) const;
+    std::array<real,nspecies>compute_species_specific_Cv ( const real temperature ) const;
 
     // Algorithm 13 (f_M13): Compute species specific enthalpy from temperature
     // Modified by Shruthi
@@ -224,13 +229,20 @@ public:
     // Algorithm 17 (f_M17): Compute mixture pressure from conservative_soln
     virtual real compute_mixture_pressure ( const std::array<real,nstate> &conservative_soln ) const;
 
-protected:
+    /// Given density and temperature, returns NON-DIMENSIONALIZED pressure using free-stream non-dimensionalization
+    real compute_pressure_from_density_temperature ( const real density, const real temperature, const std::array<real,nstate> &conservative_soln ) const;
+
     // Algorithm 18 (f_M18): Compute mixture specific total enthalpy from conservative_soln
     real compute_mixture_specific_total_enthalpy ( const std::array<real,nstate> &conservative_soln ) const;
 
     // Algorithm 19 (f_M19): Compute convective flux from conservative_soln
     std::array<dealii::Tensor<1,dim,real>,nstate> convective_flux ( 
         const std::array<real,nstate> &conservative_soln) const;
+
+    /// Convective flux Jacobian: \f$ \frac{\partial \mathbf{F}_{conv}}{\partial w} \cdot \mathbf{n} \f$
+    dealii::Tensor<2,nstate,real> convective_flux_directional_jacobian (
+        const std::array<real,nstate> &conservative_soln,
+        const dealii::Tensor<1,dim,real> &normal) const;
 
 protected:
     // Algorithm 21 (f_S21): Compute species specific heat ratio from conservative_soln
@@ -243,7 +255,7 @@ protected:
     std::array<real,nspecies> compute_species_speed_of_sound ( const std::array<real,nstate> &conservative_soln ) const;
 
 
-protected:
+public:
     /// Evaluate speed of sound from conservative variables
     real compute_sound ( const std::array<real,nstate> &conservative_soln ) const;
 
@@ -271,7 +283,8 @@ protected:
     std::array<std::array<double,4>,nspecies> NASACAPTemperatureLimits;
     std::array<std::string,nspecies> species_name; // Species name
     std::array<double,nspecies> species_weight; // Species molecular weight [kg/mol]
-    std::array<double,nspecies> species_enthalpy_of_formation; // Species enthalpy of formation [J/mol]
+    std::array<double,nspecies> species_enthalpy_offset; // Species enthalpy offset - reads in [J/mol], stores nondimesnional
+    std::array<real,nspecies> Rs; // Species gas constant
 };
 
 } // Physics namespace

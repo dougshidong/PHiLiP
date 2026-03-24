@@ -14,7 +14,7 @@ BurgersRewienski<dim,nspecies,nstate,real>::BurgersRewienski(
         const bool convection,
         const bool diffusion,
         const dealii::Tensor<2, 3> input_diffusion_tensor,
-        std::shared_ptr<ManufacturedSolutionFunction<dim, real>> manufactured_solution_function)
+        std::shared_ptr<ManufacturedSolutionFunction<dim, nspecies, real>> manufactured_solution_function)
         : Burgers<dim, nspecies, nstate, real>(parameters_input,
                                      0, //Burgers rewienski diffusion coefficient is zero
                                      convection,

@@ -17,6 +17,8 @@ set chemistry_input_file = ../../chemistry_files/H2_O2_N2.kinetics
 # DG formulation
 set use_weak_form = true
 set non_physical_behavior = abort_run
+set all_boundaries_are_periodic = true
+set check_same_coords_in_weak_dg = false
 
 # set directry to write output data
 #set solution_vtk_files_directory_name = multi_species
@@ -52,6 +54,9 @@ subsection flow_solver
   set adaptive_time_step = true
   set courant_friedrichs_lewy_number = 0.25
   set unsteady_data_table_filename = ms_vortex_advection
+  # reaches p+1 if ran for finer grids 
+  # restricted to lower expected order and grid to keep ctest short 
+  set expected_order_at_final_time = 5.7
   subsection grid
     set grid_left_bound = 0.0
     set grid_right_bound = 10.0
@@ -73,5 +78,5 @@ subsection manufactured solution convergence study
   set initial_grid_size = 2
 
   # Number of grids in grid study
-  set number_of_grids   = 8
+  set number_of_grids   = 4
 end

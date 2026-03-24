@@ -167,7 +167,9 @@ int MultispeciesVortexAdvection<dim, nspecies, nstate>::run_test() const
     std::vector<double> grid_size(n_grids);
     std::vector<double> soln_error_l2(n_grids);
     double final_order = 0.0;
-    const double expected_order = all_parameters_new.flow_solver_param.expected_order_at_final_time;
+    double expected_order = all_parameters_new.flow_solver_param.expected_order_at_final_time;
+    if(expected_order==0.0)
+        expected_order = all_parameters_new.flow_solver_param.poly_degree + 1.0;
 
     for (unsigned int igrid = 1; igrid < n_grids; igrid++) {
 

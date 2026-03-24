@@ -386,7 +386,7 @@ int main (int argc, char * argv[])
                     metric_oper,
                     rhs_strong);
                 //assemble weak DG auxiliary eq
-                assemble_weak_auxiliary_volume<PHILIP_DIM, PHILIP_SPECIES,PHILIP_DIM+2>(
+                assemble_weak_auxiliary_volume<PHILIP_DIM, PHILIP_SPECIES,PHILIP_DIM+PHILIP_SPECIES+1>(
                     dg,
                     current_dofs_indices,
                     poly_degree,
@@ -428,7 +428,7 @@ int main (int argc, char * argv[])
                     //assemble facet auxiliary WEAK DG RHS
                     //note that for the ext rhs, this function will return the DG strong 
                     //facet rhs in rhs_ext_weak to directly compare to the above's neighbour
-                    assemble_face_term_auxiliary_weak<PHILIP_DIM, PHILIP_SPECIES,PHILIP_DIM+2> (
+                    assemble_face_term_auxiliary_weak<PHILIP_DIM, PHILIP_SPECIES,PHILIP_DIM+PHILIP_SPECIES+1> (
                         dg,
                         iface, neighbor_iface, 
                         current_cell_index, neighbor_cell_index,

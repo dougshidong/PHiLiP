@@ -120,8 +120,8 @@ real2 FunctionalNormLpBoundary<dim,nspecies,nstate,real,MeshType>::evaluate_boun
 
 template <int dim, int nspecies, int nstate, typename real, typename MeshType>
 FunctionalWeightedIntegralVolume<dim,nspecies,nstate,real,MeshType>::FunctionalWeightedIntegralVolume(
-    std::shared_ptr<ManufacturedSolutionFunction<dim,real>>                    _weight_function_double,
-    std::shared_ptr<ManufacturedSolutionFunction<dim,FadFadType>>              _weight_function_adtype,
+    std::shared_ptr<ManufacturedSolutionFunction<dim,nspecies,real>>                    _weight_function_double,
+    std::shared_ptr<ManufacturedSolutionFunction<dim,nspecies,FadFadType>>              _weight_function_adtype,
     const bool                                                                 _use_weight_function_laplacian,
     std::shared_ptr<DGBase<dim,nspecies,real,MeshType>>                                 _dg,
     const bool                                                                 _uses_solution_values,
@@ -138,7 +138,7 @@ real2 FunctionalWeightedIntegralVolume<dim,nspecies,nstate,real,MeshType>::evalu
     const dealii::Point<dim,real2> &                        phys_coord,
     const std::array<real2,nstate> &                        soln_at_q,
     const std::array<dealii::Tensor<1,dim,real2>,nstate> &  /*soln_grad_at_q*/,
-    std::shared_ptr<ManufacturedSolutionFunction<dim,real2>> weight_function) const
+    std::shared_ptr<ManufacturedSolutionFunction<dim,nspecies,real2>> weight_function) const
 {
     real2 val = 0;
 
@@ -155,8 +155,8 @@ real2 FunctionalWeightedIntegralVolume<dim,nspecies,nstate,real,MeshType>::evalu
 
 template <int dim, int nspecies, int nstate, typename real, typename MeshType>
 FunctionalWeightedIntegralBoundary<dim,nspecies,nstate,real,MeshType>::FunctionalWeightedIntegralBoundary(
-    std::shared_ptr<ManufacturedSolutionFunction<dim,real>>                    _weight_function_double,
-    std::shared_ptr<ManufacturedSolutionFunction<dim,FadFadType>>              _weight_function_adtype,
+    std::shared_ptr<ManufacturedSolutionFunction<dim,nspecies,real>>                    _weight_function_double,
+    std::shared_ptr<ManufacturedSolutionFunction<dim,nspecies,FadFadType>>              _weight_function_adtype,
     const bool                                                                 _use_weight_function_laplacian,
     std::vector<unsigned int>                                                  _boundary_vector,
     const bool                                                                 _use_all_boundaries,
@@ -179,7 +179,7 @@ real2 FunctionalWeightedIntegralBoundary<dim,nspecies,nstate,real,MeshType>::eva
     const dealii::Tensor<1,dim,real2> &                   /* normal */,
     const std::array<real2,nstate> &                      soln_at_q,
     const std::array<dealii::Tensor<1,dim,real2>,nstate> &/* soln_grad_at_q */,
-    std::shared_ptr<ManufacturedSolutionFunction<dim,real2>> weight_function) const
+    std::shared_ptr<ManufacturedSolutionFunction<dim,nspecies,real2>> weight_function) const
 {
     real2 val = 0;
 
@@ -1246,10 +1246,10 @@ FunctionalFactory<dim,nspecies,nstate,real,MeshType>::create_Functional(
     const double normLp = param.normLp;
 
     ManufacturedSolutionEnum  weight_function_type = param.weight_function_type;
-    std::shared_ptr< ManufacturedSolutionFunction<dim,real> > weight_function_double 
-        = ManufacturedSolutionFactory<dim,real>::create_ManufacturedSolution(weight_function_type, nstate);
-    std::shared_ptr< ManufacturedSolutionFunction<dim,FadFadType> > weight_function_adtype 
-        = ManufacturedSolutionFactory<dim,FadFadType>::create_ManufacturedSolution(weight_function_type, nstate);
+    std::shared_ptr< ManufacturedSolutionFunction<dim,nspecies,real> > weight_function_double 
+        = ManufacturedSolutionFactory<dim,nspecies,real>::create_ManufacturedSolution(weight_function_type, nstate);
+    std::shared_ptr< ManufacturedSolutionFunction<dim,nspecies,FadFadType> > weight_function_adtype 
+        = ManufacturedSolutionFactory<dim,nspecies,FadFadType>::create_ManufacturedSolution(weight_function_type, nstate);
     
     const bool use_weight_function_laplacian       = param.use_weight_function_laplacian;
 

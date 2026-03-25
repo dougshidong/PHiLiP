@@ -158,8 +158,8 @@ void DGStrongLES_ShearImproved<dim,nspecies,nstate,real,MeshType>::update_cellwi
     const unsigned int grid_degree = this->high_order_grid->fe_system.tensor_degree();
     const unsigned int poly_degree = this->max_degree;
     // Construct the basis functions and mapping shape functions.
-    OPERATOR::basis_functions<dim,2*dim,real> soln_basis(1, poly_degree, grid_degree); 
-    OPERATOR::mapping_shape_functions<dim,2*dim,real> mapping_basis(1, poly_degree, grid_degree);
+    OPERATOR::basis_functions<dim,2*dim> soln_basis(1, poly_degree, grid_degree); 
+    OPERATOR::mapping_shape_functions<dim,2*dim> mapping_basis(1, poly_degree, grid_degree);
     // Build basis function volume operator and gradient operator from 1D finite element for 1 state.
     soln_basis.build_1D_volume_operator(this->oneD_fe_collection_1state[poly_degree], quad_extra_1D);
     soln_basis.build_1D_gradient_operator(this->oneD_fe_collection_1state[poly_degree], quad_extra_1D);
@@ -319,10 +319,10 @@ void DGStrongLES_ShearImproved<dim,nspecies,nstate,real,MeshType>::update_cellwi
             // -- Constructor for tensor product polynomials based on Polynomials::Legendre interpolation. 
             dealii::FE_DGQLegendre<1,1> legendre_poly_1D(poly_degree);
             // -- Projection operator for legendre basis
-            OPERATOR::vol_projection_operator<dim,2*dim,real> legendre_soln_basis_projection_oper(1, poly_degree, grid_degree);
+            OPERATOR::vol_projection_operator<dim,2*dim> legendre_soln_basis_projection_oper(1, poly_degree, grid_degree);
             legendre_soln_basis_projection_oper.build_1D_volume_operator(legendre_poly_1D, quad_extra_1D);
             // -- Legendre basis functions 
-            OPERATOR::basis_functions<dim,2*dim,real> legendre_soln_basis(1, poly_degree, grid_degree);
+            OPERATOR::basis_functions<dim,2*dim> legendre_soln_basis(1, poly_degree, grid_degree);
             legendre_soln_basis.build_1D_volume_operator(legendre_poly_1D, quad_extra_1D);
             legendre_soln_basis.build_1D_gradient_operator(legendre_poly_1D, quad_extra_1D);
             for(int istate=0; istate<nstate; istate++){
@@ -491,8 +491,8 @@ void DGStrongLES_DynamicSmagorinsky<dim,nspecies,nstate,real,MeshType>::update_c
     const unsigned int grid_degree = this->high_order_grid->fe_system.tensor_degree();
     const unsigned int poly_degree = this->max_degree;
     // Construct the basis functions and mapping shape functions.
-    OPERATOR::basis_functions<dim,2*dim,real> soln_basis(1, poly_degree, grid_degree); 
-    OPERATOR::mapping_shape_functions<dim,2*dim,real> mapping_basis(1, poly_degree, grid_degree);
+    OPERATOR::basis_functions<dim,2*dim> soln_basis(1, poly_degree, grid_degree); 
+    OPERATOR::mapping_shape_functions<dim,2*dim> mapping_basis(1, poly_degree, grid_degree);
     // Build basis function volume operator and gradient operator from 1D finite element for 1 state.
     soln_basis.build_1D_volume_operator(this->oneD_fe_collection_1state[poly_degree], quad_extra_1D);
     soln_basis.build_1D_gradient_operator(this->oneD_fe_collection_1state[poly_degree], quad_extra_1D);
@@ -675,10 +675,10 @@ void DGStrongLES_DynamicSmagorinsky<dim,nspecies,nstate,real,MeshType>::update_c
             // -- Constructor for tensor product polynomials based on Polynomials::Legendre interpolation. 
             dealii::FE_DGQLegendre<1,1> legendre_poly_1D(poly_degree);
             // -- Projection operator for legendre basis
-            OPERATOR::vol_projection_operator<dim,2*dim,real> legendre_soln_basis_projection_oper(1, poly_degree, grid_degree);
+            OPERATOR::vol_projection_operator<dim,2*dim> legendre_soln_basis_projection_oper(1, poly_degree, grid_degree);
             legendre_soln_basis_projection_oper.build_1D_volume_operator(legendre_poly_1D, quad_extra_1D);
             // -- Legendre basis functions 
-            OPERATOR::basis_functions<dim,2*dim,real> legendre_soln_basis(1, poly_degree, grid_degree);
+            OPERATOR::basis_functions<dim,2*dim> legendre_soln_basis(1, poly_degree, grid_degree);
             legendre_soln_basis.build_1D_volume_operator(legendre_poly_1D, quad_extra_1D);
             legendre_soln_basis.build_1D_gradient_operator(legendre_poly_1D, quad_extra_1D);
             for(int istate=0; istate<nstate; istate++){

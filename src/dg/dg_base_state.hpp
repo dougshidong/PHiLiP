@@ -122,6 +122,7 @@ protected:
     /** Usually called after setting physics.
      */
     void reset_numerical_fluxes();
+
 }; // end of DGBaseState class
 
 }  // namespace PHiLiP

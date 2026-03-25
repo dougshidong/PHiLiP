@@ -193,7 +193,7 @@ void DGBaseState<dim,nspecies,nstate,real,MeshType>::set_unsteady_model_time_ste
 
 template <int dim, int nspecies, int nstate, typename real, typename MeshType>
 void DGBaseState<dim, nspecies, nstate, real, MeshType>::set_use_auxiliary_eq() {
-    this->use_auxiliary_eq = pde_physics_double->has_nonzero_diffusion;
+    this->use_auxiliary_eq = (pde_physics_double->has_nonzero_diffusion && !this->all_parameters->use_weak_form) ? true : false;
 }
 
 template <int dim, int nspecies, int nstate, typename real, typename MeshType>
@@ -248,25 +248,29 @@ real DGBaseState<dim, nspecies, nstate, real, MeshType>::evaluate_CFL(std::vecto
 }
 
 #if PHILIP_SPECIES==1
-    // Define a sequence of possible nstate in the range [1, 6]
+    // Define a sequence of indices representing the range [1, 5]
     #define POSSIBLE_NSTATE (1)(2)(3)(4)(5)(6)
 
-    // Define a macro to instantiate DGBaseState for a specific nstate
-    #define INSTANTIATE_DISTRIBUTED(r, data, nstate) \
-        template class DGBaseState <PHILIP_DIM, PHILIP_SPECIES, nstate, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+    // Define a macro to instantiate MyTemplate for a specific index
+    #define INSTANTIATE_DISTRIBUTED(r, data, index) \
+        template class DGBaseState <PHILIP_DIM, PHILIP_SPECIES, index, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+
     #if PHILIP_DIM!=1
     BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_DISTRIBUTED, _, POSSIBLE_NSTATE)
     #endif
 
-    #define INSTANTIATE_TRIA(r, data, nstate) \
-        template class DGBaseState <PHILIP_DIM, PHILIP_SPECIES, nstate, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>; \
-        template class DGBaseState <PHILIP_DIM, PHILIP_SPECIES, nstate, double, dealii::Triangulation<PHILIP_DIM>>;
+    #define INSTANTIATE_SHARED(r, data, index) \
+        template class DGBaseState <PHILIP_DIM, PHILIP_SPECIES, index, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+    BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_SHARED, _, POSSIBLE_NSTATE)
+
+    #define INSTANTIATE_TRIA(r, data, index) \
+        template class DGBaseState <PHILIP_DIM, PHILIP_SPECIES, index, double, dealii::Triangulation<PHILIP_DIM>>;
     BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_TRIA, _, POSSIBLE_NSTATE)
 #else
-    template class DGBaseState <PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+PHILIP_SPECIES+1, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
-    template class DGBaseState <PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+PHILIP_SPECIES+1, double, dealii::Triangulation<PHILIP_DIM>>;
     #if PHILIP_DIM!=1
         template class DGBaseState <PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+PHILIP_SPECIES+1, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
     #endif
+    template class DGBaseState <PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+PHILIP_SPECIES+1, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+    template class DGBaseState <PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+PHILIP_SPECIES+1, double, dealii::Triangulation<PHILIP_DIM>>;
 #endif
 }  // namespace PHiLiP

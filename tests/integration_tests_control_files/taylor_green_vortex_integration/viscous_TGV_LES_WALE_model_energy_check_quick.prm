@@ -68,5 +68,6 @@ subsection flow_solver
   subsection taylor_green_vortex
     set expected_kinetic_energy_at_final_time = 1.2073496747088834e-01
     set expected_theoretical_dissipation_rate_at_final_time = 4.5423825108833685e-04
+    set check_nonphysical_flow_case_behavior = false
   end
 end

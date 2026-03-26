@@ -1119,7 +1119,10 @@ ManufacturedSolutionFunction<dim,nspecies,real>
 
     for (int s=0; s<(int)nstate; s++) {
         base_values[s] = 1+(s+1.0)/nstate;
-        base_values[dim+1] = 10;
+        if(nspecies == 1)
+            base_values[nstate-1] = 10;
+        else
+            base_values[dim+1] = 10;
 
         // ensure species density < mixture density
         if (nspecies > 1 && s > dim+1) {

@@ -109,8 +109,6 @@ void assemble_face_term_auxiliary_weak(
 
     const unsigned int n_shape_fns_int = n_dofs_int / nstate;
     const unsigned int n_shape_fns_ext = n_dofs_ext / nstate;
-    const unsigned int n_quad_pts_1D_int  = dg->oneD_quadrature_collection[poly_degree_int].size();
-    const unsigned int n_quad_pts_1D_ext  = dg->oneD_quadrature_collection[poly_degree_int].size();
     //Extract interior modal coefficients of solution
     std::array<std::vector<double>,nstate> soln_coeff_int;
     std::array<std::vector<double>,nstate> soln_coeff_ext;
@@ -139,12 +137,10 @@ void assemble_face_term_auxiliary_weak(
         soln_at_surf_q_ext[istate].resize(n_face_quad_pts);
         //solve soln at facet cubature nodes
         soln_basis_int.matrix_vector_mult_surface_1D({true, false, false},iface,
-                                                     n_quad_pts_1D_int,
                                                      soln_coeff_int[istate], soln_at_surf_q_int[istate],
                                                      soln_basis_int.oneD_surf_operator,
                                                      soln_basis_int.oneD_vol_operator);
         soln_basis_ext.matrix_vector_mult_surface_1D({true, false, false}, neighbor_iface,
-                                                     n_quad_pts_1D_ext,
                                                      soln_coeff_ext[istate], soln_at_surf_q_ext[istate],
                                                      soln_basis_ext.oneD_surf_operator,
                                                      soln_basis_ext.oneD_vol_operator);
@@ -209,7 +205,6 @@ void assemble_face_term_auxiliary_weak(
             std::vector<double> rhs_int(n_shape_fns_int);
 
             soln_basis_int.inner_product_surface_1D({true, false, false}, iface, 
-                                                n_quad_pts_1D_int,
                                                 surf_num_flux_int_dot_normal[istate][idim],
                                                 surf_quad_weights, rhs_int,
                                                 soln_basis_int.oneD_surf_operator,
@@ -222,7 +217,6 @@ void assemble_face_term_auxiliary_weak(
             std::vector<double> rhs_ext(n_shape_fns_ext);
 
             soln_basis_ext.inner_product_surface_1D({true, false, false}, neighbor_iface, 
-                                                n_quad_pts_1D_ext,
                                                 surf_num_flux_ext_dot_normal[istate][idim],
                                                 surf_quad_weights, rhs_ext,
                                                 soln_basis_ext.oneD_surf_operator,

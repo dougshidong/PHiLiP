@@ -196,13 +196,12 @@ template <int dim, int n_faces>
 void SumFactorizedOperators<dim,n_faces>::face_orientation_tensor_product(
     const std::vector<bool> face_orientation,
     const unsigned int /*face_number*/,
-    const unsigned int n_quad_pts_1D,
     std::vector<double> &output_vect,
-    const dealii::FullMatrix<double> &/*basis*/) 
+    const dealii::FullMatrix<double> &basis) 
 {
     //Initialize temp vector as input vector.
     std::vector<double> output_vect_temp = output_vect;
-    const unsigned int columns = n_quad_pts_1D;
+    const unsigned int columns = basis.m();
     if(!face_orientation[0]){
         for(unsigned int ydof=0; ydof<columns; ydof++){ 
             for(unsigned int xdof=0; xdof<columns; xdof++){//x runs fastest
@@ -242,14 +241,13 @@ template <int dim, int n_faces>
 void SumFactorizedOperators<dim,n_faces>::face_orientation_inner_product(
     const std::vector<bool> face_orientation,
     const unsigned int /*face_number*/,
-    const unsigned int n_quad_pts_1D,
     const std::vector<double> &input_vect,
     std::vector<double> &output_vect,
-    const dealii::FullMatrix<double> &/*basis*/)
+    const dealii::FullMatrix<double> &basis)
 { 
     //Initialize output vector as input vector.
     output_vect = input_vect;
-    const unsigned int columns = n_quad_pts_1D;
+    const unsigned int columns = basis.m();
     if(!face_orientation[0]){
         for(unsigned int ydof=0; ydof<columns; ydof++){ 
             for(unsigned int xdof=0; xdof<columns; xdof++){//x runs fastest
@@ -412,7 +410,6 @@ template <int dim, int n_faces>
 void SumFactorizedOperators<dim,n_faces>::matrix_vector_mult_surface_1D(
     const std::vector<bool> face_orientation,
     const unsigned int face_number,
-    const unsigned int n_quad_pts_1D,
     const std::vector<double> &input_vect,
     std::vector<double> &output_vect,
     const std::array<dealii::FullMatrix<double>,2> &basis_surf,
@@ -434,7 +431,7 @@ void SumFactorizedOperators<dim,n_faces>::matrix_vector_mult_surface_1D(
         this->matrix_vector_mult(input_vect, output_vect, basis_vol, basis_vol, basis_surf[1], adding, factor);
 
     if(!face_orientation[0] || face_orientation[1] || face_orientation[2]){
-        this->face_orientation_tensor_product(face_orientation, face_number, n_quad_pts_1D, output_vect, basis_surf[0]);
+        this->face_orientation_tensor_product(face_orientation, face_number, output_vect, basis_vol);
     }
 }
 
@@ -443,7 +440,6 @@ template <int dim, int n_faces>
 void SumFactorizedOperators<dim,n_faces>::inner_product_surface_1D(
     const std::vector<bool> face_orientation,
     const unsigned int face_number,
-    const unsigned int n_quad_pts_1D,
     const std::vector<double> &input_vect,
     const std::vector<double> &weight_vect,
     std::vector<double> &output_vect,
@@ -456,7 +452,7 @@ void SumFactorizedOperators<dim,n_faces>::inner_product_surface_1D(
 
     std::vector<double> input_vect_corrected;
     if(!face_orientation[0] || face_orientation[1] || face_orientation[2]){
-        this->face_orientation_inner_product(face_orientation, face_number, n_quad_pts_1D, input_vect, input_vect_corrected, basis_surf[0]);
+        this->face_orientation_inner_product(face_orientation, face_number, input_vect, input_vect_corrected, basis_vol);
     }else{
         input_vect_corrected = input_vect;
     }

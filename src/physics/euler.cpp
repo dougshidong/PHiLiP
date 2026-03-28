@@ -1680,6 +1680,7 @@ dealii::UpdateFlags Euler<dim,nspecies,nstate,real>
     // Define a macro to instantiate Euler and Euler functions for a specific type
     #define INSTANTIATE_TYPES(r, data, type) \
         template std::array<dealii::Tensor<1,PHILIP_DIM,type>,PHILIP_DIM+2> Euler<PHILIP_DIM,PHILIP_SPECIES,PHILIP_DIM+2,type>::convert_conservative_gradient_to_primitive_gradient_templated<type>(const std::array<type,PHILIP_DIM+2> &conservative_soln, const std::array<dealii::Tensor<1,PHILIP_DIM,type>,PHILIP_DIM+2> &conservative_soln_gradient) const; \
+        template std::array<type, PHILIP_DIM+2> Euler < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, type>::convert_conservative_to_primitive_templated< type >(const std::array<type, PHILIP_DIM+2> &conservative_soln) const; \
         template class Euler < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, type >; \
         template bool Euler < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, type >::check_positive_quantity< type >(type &qty, const std::string qty_name) const; \
         template type Euler < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, type >::compute_pressure< type >(const std::array<type, PHILIP_DIM+2> &conservative_soln) const; \
@@ -1694,6 +1695,7 @@ dealii::UpdateFlags Euler<dim,nspecies,nstate,real>
     // Define a macro to instantiate Euler and Euler functions for a specific type
     #define INSTANTIATE_FADTYPES(r, data, type) \
         template std::array<dealii::Tensor<1,PHILIP_DIM,FadType>,PHILIP_DIM+2> Euler<PHILIP_DIM,PHILIP_SPECIES,PHILIP_DIM+2,type>::convert_conservative_gradient_to_primitive_gradient_templated<FadType>(const std::array<FadType,PHILIP_DIM+2> &conservative_soln, const std::array<dealii::Tensor<1,PHILIP_DIM,FadType>,PHILIP_DIM+2> &conservative_soln_gradient) const;\
+        template std::array<FadType, PHILIP_DIM+2> Euler < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, type>::convert_conservative_to_primitive_templated< FadType >(const std::array<FadType, PHILIP_DIM+2> &conservative_soln) const; \
         template bool Euler < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, type >::check_positive_quantity< FadType >(FadType &qty, const std::string qty_name) const; \
         template FadType    Euler < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, type >::compute_pressure< FadType >(const std::array<FadType, PHILIP_DIM+2> &conservative_soln) const; \
         template FadType    Euler < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, type >::compute_temperature< FadType >(const std::array<FadType, PHILIP_DIM+2> &primitive_soln) const; \

@@ -56,7 +56,7 @@ public:
 public:
     
      /// Reads in data from chemistry file
-    void readspecies(std::string reactionFilename);
+    void readspeciesdata(std::string reactionFilename);
     
      /// Determine the  
     std::array<int,nspecies>GetNASACAP_TemperatureIndex ( const real temperature ) const;

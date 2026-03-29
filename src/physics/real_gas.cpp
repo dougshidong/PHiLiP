@@ -37,18 +37,19 @@ RealGas<dim,nspecies,nstate,real>::RealGas (
         this->pcout << "Name of chemistry file containing NASA CAP data for species has not been passed in. Aborting..." << std::endl;
         std::abort(); 
     }
-    readspecies(parameters_input->chemistry_input_file);
+    readspeciesdata(parameters_input->chemistry_input_file);
 }
 
 // Read chemistry file
 template <int dim, int nspecies, int nstate, typename real>
 void RealGas<dim, nspecies, nstate, real>
-::readspecies(std::string NASADataFilename)
+::readspeciesdata(std::string NASADataFilename)
 {
     std::string line, dum_char;
 
     std::ifstream chemfile (NASADataFilename);
     // std::cout << "Reading NASA Coefficients and Polynomials (CAP) Data..." << std::endl;
+    std::getline(chemfile, line);
     std::getline(chemfile, line);
     int N_species = (int)std::stof(line);
     if(nspecies != N_species) {
@@ -62,7 +63,6 @@ void RealGas<dim, nspecies, nstate, real>
                   << std::endl;
         std::abort();
     }
-    // std::cout << "Running simulation with " << N_species << " species..." << std::endl;
 
     std::string dummy_name;
     std::string::size_type sz1;
@@ -76,16 +76,22 @@ void RealGas<dim, nspecies, nstate, real>
         sz1 = 0;
         std::getline(chemfile, line);
         std::getline(chemfile, line);
+        std::getline(chemfile, line);
         species_name[i] = line;
-
+        std::getline(chemfile, line);
+        std::getline(chemfile, line);
         std::getline(chemfile, line);
         species_weight[i] = std::stof(line); // Species molecular weight [g/mol]
         species_weight[i] /= 1000.0; // Species molecular weight [kg/mol]
 
         std::getline(chemfile, line);
+        std::getline(chemfile, line);
+        std::getline(chemfile, line);
         species_enthalpy_offset[i] = std::stof(line); // Species enthalpy from T = 0 to T= 298.15K [J/mol]
         species_enthalpy_offset[i] /= (this->species_weight[i]*this->u_ref_sqr); // nondimensionalized mass value
 
+        std::getline(chemfile, line);
+        std::getline(chemfile, line);
         std::getline(chemfile, line);
         for(int j=0; j<4; j++)
         {
@@ -94,6 +100,8 @@ void RealGas<dim, nspecies, nstate, real>
             NASACAPTemperatureLimits[i][j] = std::stof(line,&sz1);
         }
 
+        std::getline(chemfile, line);
+        std::getline(chemfile, line);
         // Init
         for(int k=0; k<3; k++) {
             sz1 = 0;

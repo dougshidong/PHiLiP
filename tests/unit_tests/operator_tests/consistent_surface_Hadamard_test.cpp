@@ -68,8 +68,8 @@ int main (int argc, char * argv[])
     const unsigned int poly_min = 2;
     for(unsigned int poly_degree=poly_min; poly_degree<poly_max; poly_degree++){
 
-        PHiLiP::OPERATOR::basis_functions<dim,2*dim,real> basis(1, poly_degree, 1);
-        PHiLiP::OPERATOR::local_mass<dim,2*dim,real> mass(1, poly_degree, 1);
+        PHiLiP::OPERATOR::basis_functions<dim,2*dim> basis(1, poly_degree, 1);
+        PHiLiP::OPERATOR::local_mass<dim,2*dim> mass(1, poly_degree, 1);
         dealii::QGauss<1> quad1D (poly_degree+1);
         dealii::QGauss<0> quad1D_surf (poly_degree+1);
         const dealii::FE_DGQArbitraryNodes<1> fe_dg(quad1D);

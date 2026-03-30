@@ -193,7 +193,7 @@ void DGBaseState<dim,nstate,real,MeshType>::set_unsteady_model_time_step(
 
 template <int dim, int nstate, typename real, typename MeshType>
 void DGBaseState<dim, nstate, real, MeshType>::set_use_auxiliary_eq() {
-    this->use_auxiliary_eq = pde_physics_double->has_nonzero_diffusion;
+    this->use_auxiliary_eq = (pde_physics_double->has_nonzero_diffusion && !this->all_parameters->use_weak_form) ? true : false;
 }
 
 template <int dim, int nstate, typename real, typename MeshType>

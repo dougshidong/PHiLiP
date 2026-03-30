@@ -1404,6 +1404,7 @@ void DGWeak<dim,nspecies,nstate,real,MeshType>::assemble_face_term(
 
 }
 
+
 template <int dim, int nspecies, int nstate, typename real, typename MeshType>
 template <typename real2>
 void DGWeak<dim,nspecies,nstate,real,MeshType>::assemble_volume_term(

@@ -49,6 +49,9 @@ protected:
     const double domain_right; ///< Domain right-boundary value for generating the grid
     const double domain_size; ///< Domain size (length in 1D, area in 2D, and volume in 3D)
 
+    /// Modifies the DG object to reverse the velocity of the flow for the isentropic vortex case
+    virtual void modify_dg_object(std::shared_ptr <DGBase<dim, nspecies, double>> dg) const;
+
     /// Display additional more specific flow case parameters
     virtual void display_additional_flow_case_specific_parameters() const override;
 

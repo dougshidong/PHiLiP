@@ -237,6 +237,12 @@ void FlowSolverCaseBase<dim, nspecies, nstate>::add_value_to_data_table(
 }
 
 template <int dim, int nspecies, int nstate>
+void FlowSolverCaseBase<dim, nspecies, nstate>::modify_dg_object(std::shared_ptr <DGBase<dim, nspecies, double>> /*dg*/) const
+{
+    // Do nothing by default
+}
+
+template <int dim, int nspecies, int nstate>
 void FlowSolverCaseBase<dim, nspecies, nstate>::set_time_step(
     const double time_step_input)
 {

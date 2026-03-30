@@ -259,11 +259,8 @@ real DGBaseState<dim, nspecies, nstate, real, MeshType>::evaluate_CFL(std::vecto
     BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_DISTRIBUTED, _, POSSIBLE_NSTATE)
     #endif
 
-    #define INSTANTIATE_SHARED(r, data, index) \
-        template class DGBaseState <PHILIP_DIM, PHILIP_SPECIES, index, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
-    BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_SHARED, _, POSSIBLE_NSTATE)
-
     #define INSTANTIATE_TRIA(r, data, index) \
+        template class DGBaseState <PHILIP_DIM, PHILIP_SPECIES, index, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>; \
         template class DGBaseState <PHILIP_DIM, PHILIP_SPECIES, index, double, dealii::Triangulation<PHILIP_DIM>>;
     BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_TRIA, _, POSSIBLE_NSTATE)
 #else

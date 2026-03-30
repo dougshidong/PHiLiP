@@ -144,9 +144,6 @@ private:
      */
     void perform_steady_state_mesh_adaptation() const;
 
-    /// Reverses the velocity of the flow for the isentropic vortex case
-    void reverse_flow_velocities() const;
-
     /// Fixed times at which to output the solution
     dealii::Table<1,double> output_solution_fixed_times;
 };

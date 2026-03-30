@@ -2257,7 +2257,6 @@ void metric_operators<real,dim,n_faces>::transform_reference_to_physical(
     dealii::Tensor<1,dim,real> &phys)
 {
     for(int idim=0; idim<dim; idim++){
-//        phys[idim] = metric_cofactor[idim] * ref;
         phys[idim] = 0.0;
         for(int idim2=0; idim2<dim; idim2++){
             phys[idim] += metric_cofactor[idim][idim2] 

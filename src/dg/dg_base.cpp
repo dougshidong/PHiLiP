@@ -512,9 +512,16 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual_and_ad_derivatives (
     if((this->all_parameters->use_weak_form==false) 
        && (this->all_parameters->ode_solver_param.ode_solver_type
                     == Parameters::ODESolverParam::ODESolverEnum::implicit_solver)
-       && this->use_auxiliary_eq)
+       && (this->use_auxiliary_eq || this->all_parameters->using_wall_model))
     {
-        pcout<<"ERROR: Implicit does not currently work for strong form with Auxiliary Equation. The added terms dR/dq * dq/du needs to be added. Aborting..."<<std::endl;
+        if(this->use_auxiliary_eq)
+        {
+            pcout<<"ERROR: Implicit does not currently work for strong form with Auxiliary Equation. The added terms dR/dq * dq/du needs to be added. Aborting..."<<std::endl;
+        }
+        else
+        {
+            pcout<<"ERROR: Implicit does not currently work for strong form with wall model. The Jacobian dR/du does not account for the neighboring solution at the wall. Aborting..."<<std::endl;
+        }
         std::abort();
     }
 

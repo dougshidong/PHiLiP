@@ -95,6 +95,17 @@ Based on past experiences, you might want to limit the number of processor to 2 
 
 The html documentation can be accessed by pointing a browser at `ROOT/doc/html/index.html`. e.g. `google-chrome ROOT/doc/html/index.html`.
 
+## Multi-species Simulations
+
+To compile the code for multi-species simulations, the build must be configured as such:
+ ```sh
+ ROOT$ cmake ../ -DNUMBER_OF_SPECIES=2 // Compile code for 2 species
+ ```
+It is recommended that a separate build directory be used for single-species and multi-species. If a build is completed for single-species, then reconfigured for multi-species, there are likely to be test failures.
+
+Additionally, in order to run simulations using multiple species, the code requires species properties and NASA CAP coefficients to be provided. Example files including the required data is provided in tests/chemistry\_files.
+
+
 ## Testing
 
 A list of currently known failing tests is kept in the [GitHub issues](https://github.com/dougshidong/PHiLiP/issues?q=is%3Aissue+is%3Aopen+label%3Atestfail) with `testfail` tags.

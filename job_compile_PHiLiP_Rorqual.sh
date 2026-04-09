@@ -56,12 +56,18 @@ rsync  -axvH --no-g --no-p --exclude 'build_release' --exclude 'build_debug' --e
 mkdir build_release
 
 cd build_release
-cmake -DDEAL_II_DIR=$DEAL_II_DIR ../PHiLiP -DMPIMAX=${NUM_PROCS} -DCMAKE_BUILD_TYPE=Release -DGMSH_DIR=$GMSH_DIR/bin/gmsh -DGMSH_LIB=$GMSH_DIR -DCMAKE_SKIP_INSTALL_RPATH=ON 
+cmake -DDEAL_II_DIR=$DEAL_II_DIR ../PHiLiP -DMPIMAX=${NUM_PROCS} -DCMAKE_BUILD_TYPE=Release -DNUMBER_OF_SPECIES=1 -DGMSH_DIR=$GMSH_DIR/bin/gmsh -DGMSH_LIB=$GMSH_DIR -DCMAKE_SKIP_INSTALL_RPATH=ON 
 make -j${NUM_PROCS}
 
 
 if [ "${RUN_CTEST}" = true ]; then
     ctest
+	## Build and verify multi-species implementation as well
+	mkdir ${SLURM_TMPDIR}/build_multispecies
+	cd ${SLURM_TMPDIR}/build_multispecies
+	cmake -DDEAL_II_DIR=$DEAL_II_DIR ../PHiLiP -DMPIMAX=${NUM_PROCS} -DCMAKE_BUILD_TYPE=Release -DNUMBER_OF_SPECIES=2 -DGMSH_DIR=$GMSH_DIR/bin/gmsh -DGMSH_LIB=$GMSH_DIR -DCMAKE_SKIP_INSTALL_RPATH=ON
+	make -j${NUM_PROCS}
+	ctest
 fi
  
 

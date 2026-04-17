@@ -126,8 +126,6 @@ std::array<std::array<double,3>,nstate+1> MultispeciesVortexAdvection<dim, nspec
             
             for(int istate = 0; istate < nstate; ++istate) {
                 std::array<double, nstate> soln_at_q_primitive = this->real_gas_physics->convert_conservative_to_primitive(soln_at_q);
-                // if(istate==0)
-                //     std::cout << soln_at_q_primitive[istate] << " " << soln_exact_primitive[istate] << std::endl;
                 lerror_primitive[istate][0] += pow(abs(soln_at_q_primitive[istate] - soln_exact_primitive[istate]), 1.0) * fe_values_extra.JxW(iquad);
                 lerror_primitive[istate][1] += pow(abs(soln_at_q_primitive[istate] - soln_exact_primitive[istate]), 2.0) * fe_values_extra.JxW(iquad);
                 //L-infinity norm
@@ -216,9 +214,6 @@ int MultispeciesVortexAdvection<dim, nspecies, nstate>::run_test() const
         convergence_table.add_value("pressure_L1", lerror_mpi_sum[dim+1][0]);
         convergence_table.add_value("pressure_L2", lerror_mpi_sum[dim+1][1]);
         convergence_table.add_value("pressure_Linf", lerror_mpi_sum[dim+1][2]);
-        // convergence_table.add_value("temp_L1", lerror_mpi_sum[nstate][0]);
-        // convergence_table.add_value("temp_L2", lerror_mpi_sum[nstate][1]);
-        // convergence_table.add_value("temp_Linf", lerror_mpi_sum[nstate][2]);
         convergence_table.add_value("Y_H2_L1", lerror_mpi_sum[dim+2][0]);
         convergence_table.add_value("Y_H2_L2", lerror_mpi_sum[dim+2][1]);
         convergence_table.add_value("Y_H2_Linf", lerror_mpi_sum[dim+2][2]);
@@ -260,9 +255,6 @@ int MultispeciesVortexAdvection<dim, nspecies, nstate>::run_test() const
         convergence_table.evaluate_convergence_rates("pressure_L1", "cells", dealii::ConvergenceTable::reduction_rate_log2, dim);
         convergence_table.evaluate_convergence_rates("pressure_L2", "cells", dealii::ConvergenceTable::reduction_rate_log2, dim);
         convergence_table.evaluate_convergence_rates("pressure_Linf", "cells", dealii::ConvergenceTable::reduction_rate_log2, dim);
-        // convergence_table.evaluate_convergence_rates("temp_L1", "cells", dealii::ConvergenceTable::reduction_rate_log2, dim);
-        // convergence_table.evaluate_convergence_rates("temp_L2", "cells", dealii::ConvergenceTable::reduction_rate_log2, dim);
-        // convergence_table.evaluate_convergence_rates("temp_Linf", "cells", dealii::ConvergenceTable::reduction_rate_log2, dim);
         convergence_table.evaluate_convergence_rates("Y_H2_L1", "cells", dealii::ConvergenceTable::reduction_rate_log2, dim);
         convergence_table.evaluate_convergence_rates("Y_H2_L2", "cells", dealii::ConvergenceTable::reduction_rate_log2, dim);
         convergence_table.evaluate_convergence_rates("Y_H2_Linf", "cells", dealii::ConvergenceTable::reduction_rate_log2, dim);
@@ -273,9 +265,6 @@ int MultispeciesVortexAdvection<dim, nspecies, nstate>::run_test() const
         convergence_table.set_scientific("pressure_L1", true);
         convergence_table.set_scientific("pressure_L2", true);
         convergence_table.set_scientific("pressure_Linf", true);
-        // convergence_table.set_scientific("temp_L1", true);
-        // convergence_table.set_scientific("temp_L2", true);
-        // convergence_table.set_scientific("temp_Linf", true);
         convergence_table.set_scientific("Y_H2_L1", true);
         convergence_table.set_scientific("Y_H2_L2", true);
         convergence_table.set_scientific("Y_H2_Linf", true);
@@ -287,10 +276,15 @@ int MultispeciesVortexAdvection<dim, nspecies, nstate>::run_test() const
         
     }//end of grid loop
 
-    if(final_order > expected_order - 0.1)
+    if(final_order > expected_order - 0.1) {
+        std::cout << "Expected order is reached!" << std::endl;
         return 0;
-    else
+    }
+    else {
+        std::cout << "Expected order of " << expected_order <<  " is not reached!" << std::endl;
+        std::cout << "Final order is " << final_order << std::endl;
         return 1;
+    }
 }
 
 #if PHILIP_SPECIES>1

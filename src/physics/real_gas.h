@@ -50,8 +50,6 @@ public:
     const double u_ref_sqr; ///< reference velocity squared[m/s]^2
     const double tol; ///< tolerance for NRM (Newton-raphson Method) [m/s] 
     const double density_ref; ///< reference mixture density: [kg/m^3]
-    /// Pointer to Navier-Stokes physics object
-    // std::unique_ptr< NavierStokes<dim,nspecies,dim+2,real> > navier_stokes_physics;
 
 public:
     

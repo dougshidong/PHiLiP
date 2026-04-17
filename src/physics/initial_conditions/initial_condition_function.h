@@ -677,17 +677,14 @@ public:
 };
 
 /// 1D Initial Condition Function: Multispecies_VortexAdvection 
+/** See Wang, J. H., Pan, S., Hu, X. Y., & Adams, N. A. (2019). 
+ * Partial characteristic decomposition for multi-species Euler equations. 
+ * Computers & Fluids, 181, 364-382.
+ */
 template <int dim, int nspecies, int nstate, typename real>
 class InitialConditionFunction_Multispecies_VortexAdvection: public InitialConditionFunction_RealGasBase<dim,nspecies,nstate,real>
 {
 public:
-    /// Constructor for TaylorGreenVortex_InitialCondition with uniform density
-    /** Calls the Function(const unsigned int n_components) constructor in deal.II
-     *  This sets the public attribute n_components = nstate, which can then be accessed
-     *  by all the other functions
-     *  Reference: TBD
-     *  These initial conditions are given in nondimensional form (free-stream as reference)
-     */
     InitialConditionFunction_Multispecies_VortexAdvection (
             Parameters::AllParameters const *const param,
             bool high_temperature);
@@ -698,17 +695,14 @@ protected:
 };
 
 /// 1D Initial Condition Function: Multispecies_SodShockTube
+/** See Wang, J. H., Pan, S., Hu, X. Y., & Adams, N. A. (2019). 
+ * Partial characteristic decomposition for multi-species Euler equations. 
+ * Computers & Fluids, 181, 364-382.
+ */
 template <int dim, int nspecies, int nstate, typename real>
 class InitialConditionFunction_Multispecies_SodShockTube: public InitialConditionFunction_RealGasBase<dim,nspecies,nstate,real>
 {
 public:
-    /// Constructor for TaylorGreenVortex_InitialCondition with uniform density
-    /** Calls the Function(const unsigned int n_components) constructor in deal.II
-     *  This sets the public attribute n_components = nstate, which can then be accessed
-     *  by all the other functions
-     *  Reference: TBD
-     *  These initial conditions are given in nondimensional form (free-stream as reference)
-     */
     InitialConditionFunction_Multispecies_SodShockTube (
             Parameters::AllParameters const *const param);
 protected:
@@ -717,17 +711,15 @@ protected:
 };
 
 /// 2D Initial Condition Function: Multispecies_IsentropicVortex
+/** See Trojak, Will, and Tarik Dzanic.
+ *  Positivity-preserving discontinuous spectral element methods for 
+ *  compressible multi-species flows." 
+ *  Computers & Fluids 280 (2024): 106343.
+ */
 template <int dim, int nspecies, int nstate, typename real>
 class InitialConditionFunction_Multispecies_IsentropicVortex: public InitialConditionFunction_RealGasBase<dim,nspecies,nstate,real>
 {
 public:
-    /// Constructor for TaylorGreenVortex_InitialCondition with uniform density
-    /** Calls the Function(const unsigned int n_components) constructor in deal.II
-     *  This sets the public attribute n_components = nstate, which can then be accessed
-     *  by all the other functions
-     *  Reference: TBD
-     *  These initial conditions are given in nondimensional form (free-stream as reference)
-     */
     InitialConditionFunction_Multispecies_IsentropicVortex (
             Parameters::AllParameters const *const param);
 protected:

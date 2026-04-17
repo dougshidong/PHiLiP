@@ -40,9 +40,10 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       dealii::Patterns::Integer(),
                       "Number of dimensions");
 
-    prm.declare_entry("species", "1",
-                      dealii::Patterns::Integer(),
-                      "Number of species");
+    prm.declare_entry("number_of_species", "1",
+                      dealii::Patterns::Integer(1, dealii::Patterns::Integer::max_int_value),
+                      "Number of species. "
+                      "Default number of species is 1. For number_of_species > 1, only real_gas pde_type can be used.");
 
     prm.declare_entry("run_type", "integration_test",
                       dealii::Patterns::Selection(
@@ -389,7 +390,8 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
 
     prm.declare_entry("chemistry_input_file", "",
                       dealii::Patterns::FileName(dealii::Patterns::FileName::FileType::input),
-                      "Filename of the unsteady data table output file: unsteady_data_table_filename.txt.");
+                      "Filename of the chemistry data file that contains the properties of the species used in simulation. (ex. H2_O2.kinetics");
+
     prm.declare_entry("wall_model_input_from_second_element", "true",
                       dealii::Patterns::Bool(),
                       "Flag for using second element as wall model input. If false, uses buffer (i.e. wall-adjacent) element.");
@@ -424,7 +426,7 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
     pcout << "Parsing main input..." << std::endl;
 
     dimension = prm.get_integer("dimension");
-    species = prm.get_integer("species");
+    number_of_species = prm.get_integer("number_of_species");
 
     const std::string run_type_string = prm.get("run_type");
     if      (run_type_string == "integration_test") { run_type = integration_test; }
@@ -555,7 +557,7 @@ const std::string test_string = prm.get("test_type");
         }
     } else if (pde_string == "real_gas") {
         pde_type = real_gas;
-        nstate = dimension+species+1;
+        nstate = dimension+number_of_species+1;
     }
     
     overintegration = prm.get_integer("overintegration");

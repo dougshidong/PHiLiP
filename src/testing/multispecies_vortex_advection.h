@@ -24,9 +24,9 @@ public:
     /// Parameter handler for storing the .prm file being ran
     const dealii::ParameterHandler& parameter_handler;
 
-    /// Currently passes no matter what.
-    /// Checks are included within the limiter to ensure that the principle 
-    /// it is meant to preserve is satisfied at each node.
+    /// Runs an order of accuracy convergence test
+    /// Passes if the expected order is reached.
+    /// Expected order can be set in the prm file
     int run_test() const override;
     
     /// Flag to determine which exact solution is used

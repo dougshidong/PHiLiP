@@ -178,7 +178,6 @@ FlowSolverFactory<dim,nspecies,nstate>
             }
         }
     } else {
-            // std::shared_ptr<FlowSolverCaseBase<dim, nspecies, nstate>> flow_solver_case = std::make_shared<PeriodicCubeFlow<dim, nspecies, nstate>>(parameters_input);
             std::cout << "Invalid flow case. You probably forgot to add it to the list of flow cases in flow_solver_factory.cpp" << std::endl;
             std::abort();
     }

@@ -1287,7 +1287,7 @@ real InitialConditionFunction_Multispecies_VortexAdvection<dim,nspecies,nstate,r
     const real gamma_0 = 1.4;
     const real y_H2_0 = 0.01277;
     const real a_1 = 0.005;
-    const real pi = 6.28318530717958623200 / 2; // pi
+    const real pi = dealii::numbers::PI;
 
     real pressure = 101325; // [N/m^2]
     if(this->use_high_temp_ic) pressure *= 5.0;
@@ -1444,7 +1444,7 @@ real InitialConditionFunction_Multispecies_IsentropicVortex<dim,nspecies,nstate,
         const real U_0 = 0.0;
         const real V_0 = 1.0;
         const real M = 0.40;
-        const real pi = 6.28318530717958623200 / 2; // pi
+        const real pi = dealii::numbers::PI;
         const real L = 10.0;
         const real alpha_N2 = 0.50*sin(pi/L*(x-x_0))+0.50;
         const real alpha_O2 = 1.0 - alpha_N2;
@@ -1457,8 +1457,7 @@ real InitialConditionFunction_Multispecies_IsentropicVortex<dim,nspecies,nstate,
         const real u = U_0 + beta*y/(2.0*pi*radius)*exp(f);
         const real v = V_0 - beta*x/(2.0*pi*radius)*exp(f);
 
-        // const real temperature_modification = 2.0;
-        const real mixture_pressure = 1.0/(mixture_gamma*M*M)*pow(mixture_density,mixture_gamma);// * temperature_modification;
+        const real mixture_pressure = 1.0/(mixture_gamma*M*M)*pow(mixture_density,mixture_gamma);
 
         // non-dimensionalized values above, non-dimensionalized values below
         if(istate==0) {

@@ -53,7 +53,7 @@ protected:
     virtual void modify_dg_object(std::shared_ptr <DGBase<dim, nspecies, double>> dg) const;
 
     /// Display additional more specific flow case parameters
-    virtual void display_additional_flow_case_specific_parameters() const override;
+    void display_additional_flow_case_specific_parameters() const override;
 
     /// Display grid parameters
     void display_grid_parameters() const;

@@ -31,8 +31,7 @@ RealGas<dim,nspecies,nstate,real>::RealGas (
     , tol(1.0e-14) /// []
     , density_ref(1.225) /// [kg/m^3]
 {
-    // Note: modify this when you change the number of species. nstate == dim+2+nspecies-1
-    static_assert(nstate==dim+nspecies+1, "Physics::RealGas() should be created with nstate=(PHILIP_DIM+2)+(PHILIP_SPECIES-1)"); // Note: update this with nspecies in the future
+    static_assert(nstate==dim+nspecies+1, "Physics::RealGas() should be created with nstate=PHILIP_DIM+PHILIP_SPECIES+1"); // Note: update this with nspecies in the future
     if(parameters_input->chemistry_input_file=="") {
         this->pcout << "Name of chemistry file containing NASA CAP data for species has not been passed in. Aborting..." << std::endl;
         std::abort(); 
@@ -48,7 +47,6 @@ void RealGas<dim, nspecies, nstate, real>
     std::string line, dum_char;
 
     std::ifstream chemfile (NASADataFilename);
-    // std::cout << "Reading NASA Coefficients and Polynomials (CAP) Data..." << std::endl;
     std::getline(chemfile, line);
     std::getline(chemfile, line);
     int N_species = (int)std::stof(line);
@@ -189,7 +187,6 @@ std::array<real,nstate> RealGas<dim,nspecies,nstate,real>
     const std::array<real,nstate> &conservative_soln,
     const dealii::Tensor<1,dim,real> &normal) const
 {
-    // *** ADDED BY SHRUTHI - NEEDS TO BE VALIDATED/VERIFIED ***
     const dealii::Tensor<1,dim,real> vel = compute_velocities(conservative_soln);
     std::array<real,nstate> eig;
     real vel_dot_n = 0.0;
@@ -205,7 +202,6 @@ template <int dim, int nspecies, int nstate, typename real>
 real RealGas<dim,nspecies,nstate,real>
 ::max_convective_eigenvalue (const std::array<real,nstate> &conservative_soln) const
 {
-    // *** ADDED BY SHRUTHI - NEEDS TO BE VALIDATED/VERIFIED ***
     const real sound = compute_sound(conservative_soln);
     real vel2 = compute_velocity_squared_from_conservative_solution(conservative_soln);
 
@@ -220,7 +216,6 @@ real RealGas<dim,nspecies,nstate,real>
     const std::array<real,nstate> &conservative_soln,
     const dealii::Tensor<1,dim,real> &normal) const
 {
-    // *** ADDED BY SHRUTHI - NEEDS TO BE VALIDATED/VERIFIED ***
     const dealii::Tensor<1,dim,real> vel = compute_velocities(conservative_soln);
 
     const real sound = compute_sound (conservative_soln);
@@ -348,7 +343,7 @@ void RealGas<dim,nspecies,nstate,real>
    std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_bc) const
 {
     if (boundary_type == 1001) {
-        // Wall boundary condition (slip for Euler, no-slip for Navier-Stokes; done through polymorphism)
+        // Wall boundary condition (slip for Real Gas, no-slip for Navier-Stokes-Real-Gas)
         boundary_wall (normal_int, soln_int, soln_grad_int, soln_bc, soln_grad_bc);
     } else if (boundary_type == 1006) {
         // Slip wall boundary condition
@@ -559,7 +554,6 @@ std::array<real,nspecies> RealGas<dim,nspecies,nstate,real>
 {
     const std::array<real,nspecies> Cp = compute_species_specific_Cp(temperature);
     std::array<real,nspecies> Cv;
-    // const std::array<real,nspecies> Rs = compute_Rs(this->Ru);
 
     for (int s=0; s<nspecies; ++s) 
     {
@@ -674,7 +668,6 @@ inline real RealGas<dim,nspecies,nstate,real>
 
     /* compute temperature using the Newton-Raphson method */
     real T_n = 2.0*this->temperature_ref; // the initial guess
-    // std::cout << std::endl;
     do
     {
         /// 1) f(T_n)
@@ -717,7 +710,6 @@ inline real RealGas<dim,nspecies,nstate,real>
         std::cout << "Maximum iterations for temperature reached without converging...Aborting..." << std::endl;
         std::abort();
     }
-    // std::cout << std::endl << "next loop: " << std::endl;
     T_n /= temperature_ref; // non-dimensional value
     if(T_n < 0) {
         std::cout << "Computed temperature is a negative value...Aborting..." << std::endl;
@@ -1000,7 +992,6 @@ template <int dim, int nspecies, int nstate, typename real>
 inline real RealGas<dim,nspecies,nstate,real>
 ::compute_gamma ( const std::array<real,nstate> &conservative_soln ) const
 {
-    // *** ADDED BY SHRUTHI - NEEDS TO BE VALIDATED/VERIFIED ***
     // Uses the definition given in Gouasmi thesis
     const real temperature = compute_temperature(conservative_soln);
     const std::array<real,nspecies> mass_fractions = compute_mass_fractions(conservative_soln);
@@ -1035,7 +1026,6 @@ template <int dim, int nspecies, int nstate, typename real>
 inline real RealGas<dim,nspecies,nstate,real>
 ::compute_sound ( const std::array<real,nstate> &conservative_soln ) const
 {
-    // *** ADDED BY SHRUTHI - NEEDS TO BE VALIDATED/VERIFIED ***
     // This is the appropriate method for deriving mixture
     // speed of sound for thermally perfect gas as per
     // Hypersonic and High Temperature Gas Dynamics, 2nd Ed.

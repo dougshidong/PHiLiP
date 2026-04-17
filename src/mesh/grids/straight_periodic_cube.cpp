@@ -18,20 +18,20 @@ void straight_periodic_cube(std::shared_ptr<TriangulationType> &grid,
                             const double domain_left,
                             const double domain_right,
                             const int number_of_cells_per_direction)
-{    
+{
     // Get equivalent number of refinements
     const int number_of_refinements = log(number_of_cells_per_direction)/log(2);
 
     // Check that number_of_cells_per_direction is a power of 2 if number_of_refinements is non-zero
+    // If value is not a power of 2 then subdivided_hyper_cube will be used
     int val_check = number_of_cells_per_direction;
     if(number_of_refinements >= 0){
         while(val_check > 1) {
             if(val_check % 2 == 0) val_check /= 2;
             else{
-                // std::cout << "ERROR: number_of_cells_per_direction is not a power of 2. " 
-                //           << "Current value is " << number_of_cells_per_direction << ". "
-                //           << "Change value of number_of_grid_elements_per_dimension in .prm file." << std::endl;
-                // std::abort();
+                std::cout << "WARNING: number_of_cells_per_direction is not a power of 2, subdivided_hyper_cube will be used. " 
+                          << "Current value is " << number_of_cells_per_direction << ". "
+                          << "If hyper_cube is desired, change value of number_of_grid_elements_per_dimension in .prm file." << std::endl;
                 val_check = 0;
             }
         }

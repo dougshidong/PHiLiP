@@ -93,7 +93,8 @@ protected:
         const double    p_avg);
 
     
-    /// Obtain the value used to scale density and enforce positivity of density
+    /// Obtain the value used to scale the species density and enforce positivity
+    /// while maintaining a total mass fraction of 1.0
     /// Using 4.10 from Du, Wang et al. 2018
     real get_density_scaling_value_species(
         const double    species_avg,

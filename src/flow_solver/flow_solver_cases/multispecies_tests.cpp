@@ -87,49 +87,54 @@ void MultispeciesTests<dim,nspecies,nstate>::display_additional_flow_case_specif
 template <int dim, int nspecies, int nstate>
 void MultispeciesTests<dim,nspecies,nstate>::modify_dg_object(std::shared_ptr <DGBase<dim, nspecies, double>> dg) const
 {
-    this->pcout << "Reversing velocities to conduct flow reversal...";
-    for (auto soln_cell : dg->dof_handler.active_cell_iterators()) {
-        if (!soln_cell->is_locally_owned()) continue;
+    using flow_case_enum = Parameters::FlowSolverParam::FlowCaseType;
+    flow_case_enum flow_case_type = this->all_param.flow_solver_param.flow_case_type;
+    
+    if (flow_case_type == flow_case_enum::multi_species_isentropic_vortex && this->all_param.flow_solver_param.final_time == 40.0) {
+        this->pcout << "Reversing velocities to conduct flow reversal...";
+        for (auto soln_cell : dg->dof_handler.active_cell_iterators()) {
+            if (!soln_cell->is_locally_owned()) continue;
 
-        std::vector<dealii::types::global_dof_index> current_dofs_indices;
-        // Current reference element related to this physical cell
-        const int i_fele = soln_cell->active_fe_index();
-        const dealii::FESystem<dim, dim>& current_fe_ref = dg->fe_collection[i_fele];
-        const int poly_degree = current_fe_ref.tensor_degree();
+            std::vector<dealii::types::global_dof_index> current_dofs_indices;
+            // Current reference element related to this physical cell
+            const int i_fele = soln_cell->active_fe_index();
+            const dealii::FESystem<dim, dim>& current_fe_ref = dg->fe_collection[i_fele];
+            const int poly_degree = current_fe_ref.tensor_degree();
 
-        const unsigned int n_dofs_curr_cell = current_fe_ref.n_dofs_per_cell();
+            const unsigned int n_dofs_curr_cell = current_fe_ref.n_dofs_per_cell();
 
-        // Obtain the mapping from local dof indices to global dof indices
-        current_dofs_indices.resize(n_dofs_curr_cell);
-        soln_cell->get_dof_indices(current_dofs_indices);
+            // Obtain the mapping from local dof indices to global dof indices
+            current_dofs_indices.resize(n_dofs_curr_cell);
+            soln_cell->get_dof_indices(current_dofs_indices);
 
-        // Extract the local solution dofs in the cell from the global solution dofs
-        std::array<std::vector<double>, nstate> soln_coeff;
+            // Extract the local solution dofs in the cell from the global solution dofs
+            std::array<std::vector<double>, nstate> soln_coeff;
 
-        const unsigned int n_shape_fns = n_dofs_curr_cell / nstate;
+            const unsigned int n_shape_fns = n_dofs_curr_cell / nstate;
 
-        for (unsigned int istate = 0; istate < nstate; ++istate) {
-            soln_coeff[istate].resize(n_shape_fns);
-        }
+            for (unsigned int istate = 0; istate < nstate; ++istate) {
+                soln_coeff[istate].resize(n_shape_fns);
+            }
 
-        // Allocate solution dofs
-        for (unsigned int idof = 0; idof < n_dofs_curr_cell; ++idof) {
-            const unsigned int istate = dg->fe_collection[poly_degree].system_to_component_index(idof).first;
-            const unsigned int ishape = dg->fe_collection[poly_degree].system_to_component_index(idof).second;
-            soln_coeff[istate][ishape] = dg->solution[current_dofs_indices[idof]];
-        }
+            // Allocate solution dofs
+            for (unsigned int idof = 0; idof < n_dofs_curr_cell; ++idof) {
+                const unsigned int istate = dg->fe_collection[poly_degree].system_to_component_index(idof).first;
+                const unsigned int ishape = dg->fe_collection[poly_degree].system_to_component_index(idof).second;
+                soln_coeff[istate][ishape] = dg->solution[current_dofs_indices[idof]];
+            }
 
-        // Write limited solution dofs to the global solution vector.
-        for (int istate = 0; istate < nstate; istate++) {
-            for (unsigned int ishape = 0; ishape < n_shape_fns; ++ishape) {
-                if (istate == 1 || istate == 2)
-                    soln_coeff[istate][ishape] *= -1;
-                const unsigned int idof = istate * n_shape_fns + ishape;
-                dg->solution[current_dofs_indices[idof]] = soln_coeff[istate][ishape]; //
+            // Write limited solution dofs to the global solution vector.
+            for (int istate = 0; istate < nstate; istate++) {
+                for (unsigned int ishape = 0; ishape < n_shape_fns; ++ishape) {
+                    if (istate == 1 || istate == 2)
+                        soln_coeff[istate][ishape] *= -1;
+                    const unsigned int idof = istate * n_shape_fns + ishape;
+                    dg->solution[current_dofs_indices[idof]] = soln_coeff[istate][ishape]; //
+                }
             }
         }
+        this->pcout << "done." << std::endl;
     }
-    this->pcout << "done." << std::endl;
 }
 
 template <int dim, int nspecies, int nstate>

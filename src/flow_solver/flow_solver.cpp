@@ -519,12 +519,7 @@ int FlowSolver<dim,nspecies,nstate>::run() const
             initialize_data_table_from_file(flow_solver_param.restart_files_directory_name + std::string("/") + restart_unsteady_data_table_filename,unsteady_data_table);
             pcout << "done." << std::endl;
 
-            using flow_case_enum = Parameters::FlowSolverParam::FlowCaseType;
-            flow_case_enum flow_case_type = this->all_param.flow_solver_param.flow_case_type;
-
-            if (flow_case_type == flow_case_enum::multi_species_isentropic_vortex && this->all_param.flow_solver_param.final_time == 40.0) {
-                flow_solver_case->modify_dg_object(dg);
-            }
+            flow_solver_case->modify_dg_object(dg);
         } else {
             // no restart:
             if(do_compute_unsteady_data_and_write_to_table){

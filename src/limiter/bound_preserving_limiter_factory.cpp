@@ -68,11 +68,7 @@ std::unique_ptr< BoundPreservingLimiter<dim, nspecies, real> >
         if (nstate == dim + nspecies + 1)
             return std::make_unique< PositivityPreservingLimiter<dim, nspecies, nstate, real> >(parameters_input);
         else {
-            if(nspecies == 1 && nstate != dim + 2) {
-                std::cout << "Error: Cannot create Positivity-Preserving limiter for nstate_input != dim + 2" << std::endl;
-                std::abort();
-            }
-            if(nspecies > 1 && nstate != dim + nspecies + 1) {
+            if(nstate != dim + nspecies + 1) {
                 std::cout << "Error: Cannot create Positivity-Preserving limiter for nstate_input != dim + nspecies + 1" << std::endl;
                 std::abort();
             }

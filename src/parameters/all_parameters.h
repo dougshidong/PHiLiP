@@ -73,7 +73,7 @@ public:
     unsigned int dimension;
 
     /// Number of species. Note that it has to match the CMake variable NUMBER_OF_SPECIES
-    unsigned int species;
+    unsigned int number_of_species;
 
     /// Run type
     enum RunType {

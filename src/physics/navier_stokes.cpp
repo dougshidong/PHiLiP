@@ -52,7 +52,7 @@ NavierStokes<dim, nspecies, nstate, real>::NavierStokes(
     , freestream_temperature(temperature_inf) // Freestream temperature. Units: [K]
     , temperature_ratio(sutherlands_temperature/freestream_temperature)
 {
-    // static_assert(nstate==dim+2, "Physics::NavierStokes() should be created with nstate=dim+2");
+    static_assert(nstate==dim+2, "Physics::NavierStokes() should be created with nstate=dim+2");
     // Nothing to do here so far
 }
 

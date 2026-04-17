@@ -190,9 +190,6 @@ real PositivityPreservingLimiter<dim, nspecies, nstate, real>::get_density_scali
     if (denominator > 1e-13)
         theta = (-1.0*species_quad*mixture_avg) / denominator;
 
-    //if (theta < 0 || theta > 1)
-    //   theta = 0.0;
-
     return theta;
 }
 
@@ -216,10 +213,10 @@ void PositivityPreservingLimiter<dim, nspecies, nstate, real>::write_limited_sol
             }
 
             // Verify that positivity of Total Energy is preserved after application of theta2 limiter
-            // if (istate == (dim + 1) && solution[current_dofs_indices[idof]] < 0) {
-            //     std::cout << "Error: Total Energy is a negative value - Aborting... " << std::endl << solution[current_dofs_indices[idof]] << std::endl << std::flush;
-            //     std::abort();
-            // }
+            if (istate == (dim + 1) && solution[current_dofs_indices[idof]] < 0) {
+                std::cout << "Error: Total Energy is a negative value - Aborting... " << std::endl << solution[current_dofs_indices[idof]] << std::endl << std::flush;
+                std::abort();
+            }
 
             // Verify that the solution values haven't been changed to NaN as a result of all quad pts in a cell having negative density 
             // (all quad pts having negative density would result in the local maximum convective eigenvalue being zero leading to division by zero)
@@ -575,7 +572,7 @@ void PositivityPreservingLimiter<dim, nspecies, nstate, real>::limit(
         }
 
         // Interpolate new density values to mixed quadrature points
-        if(dim >= 1) {
+        if constexpr(dim >= 1) {
             soln_basis_GLL.matrix_vector_mult(soln_coeff[0], soln_at_q[0][0],
                 soln_basis_GLL.oneD_vol_operator, soln_basis_GL.oneD_vol_operator, soln_basis_GL.oneD_vol_operator);
             if(nspecies > 1) {
@@ -587,7 +584,7 @@ void PositivityPreservingLimiter<dim, nspecies, nstate, real>::limit(
             }
         }
 
-        if(dim >= 2) {
+        if constexpr(dim >= 2) {
             soln_basis_GLL.matrix_vector_mult(soln_coeff[0], soln_at_q[1][0],
                 soln_basis_GL.oneD_vol_operator, soln_basis_GLL.oneD_vol_operator, soln_basis_GL.oneD_vol_operator);
             if(nspecies > 1) {
@@ -599,7 +596,7 @@ void PositivityPreservingLimiter<dim, nspecies, nstate, real>::limit(
             }
         }
 
-        if(dim == 3) {
+        if constexpr(dim == 3) {
             soln_basis_GLL.matrix_vector_mult(soln_coeff[0], soln_at_q[2][0],
                 soln_basis_GL.oneD_vol_operator, soln_basis_GL.oneD_vol_operator, soln_basis_GLL.oneD_vol_operator);
             if(nspecies > 1) {

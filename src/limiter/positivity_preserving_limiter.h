@@ -33,11 +33,8 @@ public:
     /// Pointer to TVB limiter class (TVB limiter can be applied in conjunction with this limiter)
     std::shared_ptr<BoundPreservingLimiterState<dim, nspecies, nstate, real>> tvbLimiter;
 
-    /// Euler physics pointer. Used to compute pressure.
-    std::shared_ptr < Physics::Euler<dim, nspecies, nstate, double > > euler_physics;
-
-    /// Real gas physics pointer. Used to compute pressure.
-    std::shared_ptr < Physics::RealGas<dim, nspecies, nstate, double > > real_gas_physics;
+    /// Pointer to Physics object for computing things on the fly
+    std::shared_ptr< Physics::PhysicsBase<dim,nspecies,nstate,double> > pde_physics;
     
     /// Function to obtain the solution cell average
     using BoundPreservingLimiterState<dim, nspecies, nstate, real>::get_soln_cell_avg;

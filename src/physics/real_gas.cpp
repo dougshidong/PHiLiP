@@ -745,6 +745,13 @@ inline real RealGas<dim,nspecies,nstate,real>
     return mixture_pressure;
 }
 
+// Algorithm 17 (f_M17): Compute pressure -> calls compute_pressure (allows other classes to use PhysicsBase ptr)
+template <int dim, int nspecies, int nstate, typename real>
+inline real RealGas<dim,nspecies,nstate,real>
+::compute_pressure ( const std::array<real,nstate> &conservative_soln ) const
+{
+    return compute_mixture_pressure(conservative_soln);
+}
 template <int dim, int nspecies, int nstate, typename real>
 inline real RealGas<dim,nspecies,nstate,real>
 ::compute_pressure_from_density_temperature ( const real density, const real temperature, const std::array<real,nstate> &conservative_soln ) const

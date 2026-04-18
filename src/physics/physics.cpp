@@ -164,6 +164,15 @@ std::array<real,nstate> PhysicsBase<dim,nspecies,nstate,real>
 }
 
 template <int dim, int nspecies, int nstate, typename real>
+real PhysicsBase<dim,nspecies,nstate,real>
+::compute_pressure ( const std::array<real,nstate> &/*conservative_soln*/ ) const
+{
+    std::cout << "The compute_pressure function has been called for an incorrect class...Aborting." << std::endl;
+    std::abort();
+    return 0;
+}
+
+template <int dim, int nspecies, int nstate, typename real>
 void PhysicsBase<dim,nspecies,nstate,real>
 ::boundary_face_values (
         const int boundary_type,

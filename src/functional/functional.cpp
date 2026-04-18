@@ -1256,7 +1256,7 @@ FunctionalFactory<dim,nspecies,nstate,real,MeshType>::create_Functional(
     std::vector<unsigned int> boundary_vector    = param.boundary_vector;
     const bool                use_all_boundaries = param.use_all_boundaries;
 
-    if(nspecies==1) {
+    if constexpr(nspecies==1) {
         if(functional_type == FunctionalTypeEnum::normLp_volume){
             return std::make_shared<FunctionalNormLpVolume<dim,nspecies,nstate,real,MeshType>>(
                 normLp,

@@ -1,5 +1,6 @@
 #include "positivity_preserving_limiter.h"
 #include "tvb_limiter.h"
+#include "physics/physics_factory.h"
 #include <eigen/unsupported/Eigen/Polynomials>
 #include <eigen/Eigen/Dense>
 
@@ -19,31 +20,20 @@ PositivityPreservingLimiter<dim, nspecies, nstate, real>::PositivityPreservingLi
     , dy((flow_solver_param.grid_top_bound-flow_solver_param.grid_bottom_bound)/flow_solver_param.number_of_grid_elements_y)
     , dz((flow_solver_param.grid_z_upper_bound-flow_solver_param.grid_z_lower_bound)/flow_solver_param.number_of_grid_elements_z)
 {
-    // Create pointer to Euler Physics to compute pressure if pde_type==euler
     using PDE_enum = Parameters::AllParameters::PartialDifferentialEquation;
     PDE_enum pde_type = parameters_input->pde_type;
 
-    std::shared_ptr< ManufacturedSolutionFunction<dim, nspecies, real> >  manufactured_solution_function
-        = ManufacturedSolutionFactory<dim, nspecies, real>::create_ManufacturedSolution(parameters_input, nstate);
-
-    if (pde_type == PDE_enum::euler && nstate == dim + 2) {
-        euler_physics = std::make_shared < Physics::Euler<dim, nspecies, nstate, real> >(
-            parameters_input,
-            parameters_input->euler_param.ref_length,
-            parameters_input->euler_param.gamma_gas,
-            parameters_input->euler_param.mach_inf,
-            parameters_input->euler_param.angle_of_attack,
-            parameters_input->euler_param.side_slip_angle,
-            manufactured_solution_function,
-            parameters_input->two_point_num_flux_type);
-    } else if (pde_type == PDE_enum::real_gas && nstate == (dim  + nspecies + 1)) {
+    if (nstate == dim + nspecies + 1) {
         using limiter_enum = Parameters::LimiterParam::LimiterType;
-        limiter_enum limiter_type = this->all_parameters->limiter_param.bound_preserving_limiter;
-        if(limiter_type == limiter_enum::positivity_preservingZhang2010) {
+        limiter_enum limiter_type = parameters_input->limiter_param.bound_preserving_limiter;
+
+        if(pde_type == PDE_enum::real_gas && limiter_type == limiter_enum::positivity_preservingZhang2010) {
             std::cout << "Error: Zhang 2010 limiting has not been implemented for multispecies flow" << std::endl;
             std::abort();
-        } else {
-            real_gas_physics = std::make_shared < Physics::RealGas<dim,nspecies,nstate,real> > (parameters_input);
+        } else if (pde_type == PDE_enum::euler || pde_type == PDE_enum::real_gas){
+            //create the Physics object
+            this->pde_physics = std::dynamic_pointer_cast<Physics::PhysicsBase<dim,nspecies,nstate,double>>(
+                        Physics::PhysicsFactory<dim,nspecies,nstate,double>::create_Physics(parameters_input));
         }
     } else {
         std::cout << "Error: Positivity-Preserving Limiter can only be applied for pde_type==euler or pde_type==real_gas" << std::endl;
@@ -135,11 +125,8 @@ real PositivityPreservingLimiter<dim, nspecies, nstate, real>::get_theta2_Wang20
         }
         real p_lim = 0;
 
-        if (nspecies == 1 && nstate == dim + 2)
-            p_lim = euler_physics->compute_pressure(soln_at_iquad);
-
-        if (nspecies > 1 && nstate == dim + nspecies + 1)
-            p_lim = real_gas_physics->compute_mixture_pressure(soln_at_iquad);
+        if (nstate == dim + nspecies + 1)
+            p_lim = pde_physics->compute_pressure(soln_at_iquad);
 
         if (p_lim >= 0)
             t2[iquad] = 1;
@@ -340,19 +327,12 @@ std::array<real, nstate> PositivityPreservingLimiter<dim, nspecies, nstate, real
             real local_wave_speed_1 = 0.0;
             real local_wave_speed_2 = 0.0;
             real local_wave_speed_3 = 0.0;
-            if (nspecies == 1) {
-                local_wave_speed_1 = this->euler_physics->max_convective_eigenvalue(local_soln_at_q_1);
-                local_wave_speed_2 = this->euler_physics->max_convective_eigenvalue(local_soln_at_q_2);
+  
+            local_wave_speed_1 = this->pde_physics->max_convective_eigenvalue(local_soln_at_q_1);
+            local_wave_speed_2 = this->pde_physics->max_convective_eigenvalue(local_soln_at_q_2);
 
-                if(dim == 3)
-                    local_wave_speed_3 = this->euler_physics->max_convective_eigenvalue(local_soln_at_q_3);
-            } else {
-                local_wave_speed_1 = this->real_gas_physics->max_convective_eigenvalue(local_soln_at_q_1);
-                local_wave_speed_2 = this->real_gas_physics->max_convective_eigenvalue(local_soln_at_q_2);
-
-                if(dim == 3)
-                    local_wave_speed_3 = this->real_gas_physics->max_convective_eigenvalue(local_soln_at_q_3);
-            }
+            if(dim == 3)
+                local_wave_speed_3 = this->pde_physics->max_convective_eigenvalue(local_soln_at_q_3);
 
             if(local_wave_speed_1 > max_local_wave_speed_1) max_local_wave_speed_1 = local_wave_speed_1;
             if(local_wave_speed_2 > max_local_wave_speed_2) max_local_wave_speed_2 = local_wave_speed_2;
@@ -514,14 +494,10 @@ void PositivityPreservingLimiter<dim, nspecies, nstate, real>::limit(
             nth_species_avg = soln_cell_avg[0] - avg_sum;
         }
 
-        if (nspecies == 1 && nstate == dim + 2) {
+        if (nstate == dim + nspecies + 1) {
             // Compute average value of pressure using soln_cell_avg
-            p_avg = euler_physics->compute_pressure(soln_cell_avg);
-        } else {
-            // Compute average value of pressure using soln_cell_avg
-            p_avg = real_gas_physics->compute_mixture_pressure(soln_cell_avg);
+            p_avg = pde_physics->compute_pressure(soln_cell_avg);
         }
-        
         // Obtain value used to linearly scale density
         real theta = get_density_scaling_value(soln_cell_avg[0], local_min_density, lower_bound, p_avg);
 
@@ -538,7 +514,13 @@ void PositivityPreservingLimiter<dim, nspecies, nstate, real>::limit(
                     soln_at_iquad[istate] = soln_coeff[istate][iquad];
                 }
                 std::array<real,nspecies> species_densities;
-                species_densities = real_gas_physics->compute_species_densities(soln_at_iquad);
+                for(int ispecies = 0; ispecies < nspecies; ++ispecies) {
+                    real density_sum = 0.0;
+                    if(ispecies != nspecies-1)
+                        species_densities[ispecies] = soln_at_iquad[dim+2+ispecies];
+                    else
+                        species_densities[ispecies] = soln_at_iquad[0] - density_sum;
+                }
                 
                 real theta_species_quad = 0.0;
                 
@@ -649,7 +631,7 @@ void PositivityPreservingLimiter<dim, nspecies, nstate, real>::limit(
                     for (unsigned int istate = 0; istate < nstate; ++istate) {
                         soln_at_iquad[istate] = soln_at_q[idim][istate][iquad];
                     }
-                    p_lim_quad[idim][iquad] = euler_physics->compute_pressure(soln_at_iquad);
+                    p_lim_quad[idim][iquad] = pde_physics->compute_pressure(soln_at_iquad);
                 }
             }
 
@@ -657,7 +639,7 @@ void PositivityPreservingLimiter<dim, nspecies, nstate, real>::limit(
             // Obtain value used to linearly scale state variables
             for(unsigned int idim = 0; idim < dim; ++idim) {
                 theta2_quad[idim].resize(n_quad_pts);
-                theta2_quad[idim] = get_theta2_Zhang2010(p_lim_quad[idim], soln_cell_avg, soln_at_q[idim], n_quad_pts, lower_bound, euler_physics->gam);
+                theta2_quad[idim] = get_theta2_Zhang2010(p_lim_quad[idim], soln_cell_avg, soln_at_q[idim], n_quad_pts, lower_bound, 1.4);
             }
 
             // Compute pressure at solution points
@@ -667,9 +649,9 @@ void PositivityPreservingLimiter<dim, nspecies, nstate, real>::limit(
                 for (unsigned int istate = 0; istate < nstate; ++istate) {
                     soln_at_iquad[istate] = soln_coeff[istate][iquad];
                 }
-                p_lim[iquad] = euler_physics->compute_pressure(soln_at_iquad);
+                p_lim[iquad] = pde_physics->compute_pressure(soln_at_iquad);
             }
-            std::vector<real> theta2_soln = get_theta2_Zhang2010(p_lim, soln_cell_avg, soln_coeff, n_quad_pts, lower_bound, euler_physics->gam);
+            std::vector<real> theta2_soln = get_theta2_Zhang2010(p_lim, soln_cell_avg, soln_coeff, n_quad_pts, lower_bound, 1.4);
 
             // Limit values at quadrature points
             for (unsigned int istate = 0; istate < nstate; ++istate) {

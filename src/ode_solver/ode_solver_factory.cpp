@@ -142,8 +142,8 @@ void ODESolverFactory<dim,nspecies,real,MeshType>::display_error_ode_solver_fact
     pcout << "********************************************************************" << std::endl;
     pcout << "Can't create ODE solver since solver type is not clear." << std::endl;
     pcout << "Solver type specified: " << solver_string << std::endl;
-    pcout << "Solver type possible: " << std::endl;
-    if(nspecies==1){
+    if constexpr(nspecies==1){
+        pcout << "Solver type possible: " << std::endl;
         if(reduced_order){
             pcout <<  "pod_galerkin" << std::endl;
             pcout <<  "pod_petrov_galerkin" << std::endl;

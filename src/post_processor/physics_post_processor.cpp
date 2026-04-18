@@ -64,7 +64,7 @@ template class PostprocessorFactory <PHILIP_DIM,PHILIP_SPECIES>;
 template <int dim, int nspecies,int nstate> PhysicsPostprocessor<dim,nspecies,nstate>
 ::PhysicsPostprocessor (const Parameters::AllParameters *const parameters_input)
 {
-    if(nspecies==1) {
+    if constexpr(nspecies==1) {
         this->model = Physics::ModelFactory<dim,nspecies,nstate,double>::create_Model(parameters_input);
         this->physics = Physics::PhysicsFactory<dim,nspecies,nstate,double>::create_Physics(parameters_input,this->model);
     } else {

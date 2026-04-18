@@ -32,7 +32,7 @@ FlowSolverFactory<dim,nspecies,nstate>
     // Get the flow case type
     using FlowCaseEnum = Parameters::FlowSolverParam::FlowCaseType;
     const FlowCaseEnum flow_type = parameters_input->flow_solver_param.flow_case_type;
-    if(nspecies==1) {
+    if constexpr(nspecies==1) {
         if (flow_type == FlowCaseEnum::taylor_green_vortex){
             if constexpr (dim==3 && nstate==dim+2){
                 std::shared_ptr<FlowSolverCaseBase<dim, nspecies, nstate>> flow_solver_case = std::make_shared<PeriodicTurbulence<dim,nspecies,nstate>>(parameters_input);

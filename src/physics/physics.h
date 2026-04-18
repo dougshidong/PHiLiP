@@ -76,6 +76,9 @@ public:
     /// Convert primitive solution to conservative solution
     virtual std::array<real,nstate> convert_primitive_to_conservative ( const std::array<real,nstate> &primitive_soln ) const = 0;
 
+    /// Compute pressure from conservative solution
+    virtual real compute_pressure ( const std::array<real,nstate> &conservative_soln ) const;
+
     /** Obtain gradient of primitive variables from gradient of conservative variables */
     virtual std::array<dealii::Tensor<1,dim,real>,nstate> 
     convert_conservative_gradient_to_primitive_gradient (

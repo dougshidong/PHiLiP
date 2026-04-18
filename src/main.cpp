@@ -58,7 +58,7 @@ int main (int argc, char *argv[])
         all_parameters.parse_parameters (parameter_handler);
 
         AssertDimension(all_parameters.dimension, PHILIP_DIM);
-        AssertDimension(all_parameters.species, PHILIP_SPECIES);
+        AssertDimension(all_parameters.number_of_species, PHILIP_SPECIES);
 
         const int max_dim = PHILIP_DIM;
         const int max_species = PHILIP_SPECIES;

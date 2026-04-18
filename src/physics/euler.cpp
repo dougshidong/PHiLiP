@@ -181,7 +181,7 @@ inline std::array<real2,nstate> Euler<dim,nspecies,nstate,real>
 
     real2 density = conservative_soln[0];
     dealii::Tensor<1,dim,real2> vel = compute_velocities<real2>(conservative_soln);
-    real2 pressure = compute_pressure<real2>(conservative_soln);
+    real2 pressure = compute_pressure_templated<real2>(conservative_soln);
 
     check_positive_quantity<real2>(density, "density");
     check_positive_quantity<real2>(pressure, "pressure");
@@ -406,7 +406,7 @@ inline real Euler<dim,nspecies,nstate,real>
 ::compute_entropy_measure ( const std::array<real,nstate> &conservative_soln ) const
 {
     real density = conservative_soln[0];
-    const real pressure = compute_pressure<real>(conservative_soln);
+    const real pressure = compute_pressure_templated<real>(conservative_soln);
     return compute_entropy_measure(density, pressure);
 }
 
@@ -436,7 +436,7 @@ template <int dim, int nspecies, int nstate, typename real>
 inline real Euler<dim,nspecies,nstate,real>
 ::compute_numerical_entropy_function ( const std::array<real,nstate> &conservative_soln ) const
 {
-    const real pressure = compute_pressure<real>(conservative_soln);
+    const real pressure = compute_pressure_templated<real>(conservative_soln);
     const real density = conservative_soln[0];
 
     const real entropy = compute_entropy<real>(density, pressure);
@@ -484,7 +484,7 @@ inline real Euler<dim,nspecies,nstate,real>
 template <int dim, int nspecies, int nstate, typename real>
 template<typename real2>
 inline real2 Euler<dim,nspecies,nstate,real>
-::compute_pressure ( const std::array<real2,nstate> &conservative_soln ) const
+::compute_pressure_templated ( const std::array<real2,nstate> &conservative_soln ) const
 {
     const real2 density = conservative_soln[0];
 
@@ -499,6 +499,12 @@ inline real2 Euler<dim,nspecies,nstate,real>
     return pressure;
 }
 
+template <int dim, int nspecies, int nstate, typename real>
+inline real Euler<dim,nspecies,nstate,real>
+::compute_pressure ( const std::array<real,nstate> &conservative_soln ) const
+{
+    return compute_pressure_templated<real>(conservative_soln);
+}
 
 template <int dim, int nspecies, int nstate, typename real>
 template<typename real2>
@@ -531,7 +537,7 @@ inline real Euler<dim,nspecies,nstate,real>
 {
     real density = conservative_soln[0];
     check_positive_quantity<real>(density, "density");
-    const real pressure = compute_pressure<real>(conservative_soln);
+    const real pressure = compute_pressure_templated<real>(conservative_soln);
     const real sound = sqrt(pressure*gam/density);
     return sound;
 }
@@ -708,8 +714,8 @@ std::array<dealii::Tensor<1,dim,real>,nstate> Euler<dim, nspecies, nstate, real>
 
     std::array<dealii::Tensor<1,dim,real>,nstate> conv_num_split_flux;
     const real rho_log = compute_ismail_roe_logarithmic_mean(conservative_soln1[0], conservative_soln2[0]);
-    const real pressure1 = compute_pressure<real>(conservative_soln1);
-    const real pressure2 = compute_pressure<real>(conservative_soln2);
+    const real pressure1 = compute_pressure_templated<real>(conservative_soln1);
+    const real pressure2 = compute_pressure_templated<real>(conservative_soln2);
 
     const real beta1 = conservative_soln1[0]/(2.0*pressure1);
     const real beta2 = conservative_soln2[0]/(2.0*pressure2);
@@ -757,8 +763,8 @@ std::array<dealii::Tensor<1,dim,real>,nstate> Euler<dim, nspecies, nstate, real>
 
     std::array<dealii::Tensor<1,dim,real>,nstate> conv_num_split_flux;
     const real rho_log = compute_ismail_roe_logarithmic_mean(conservative_soln1[0], conservative_soln2[0]);
-    const real pressure1 = compute_pressure<real>(conservative_soln1);
-    const real pressure2 = compute_pressure<real>(conservative_soln2);
+    const real pressure1 = compute_pressure_templated<real>(conservative_soln1);
+    const real pressure2 = compute_pressure_templated<real>(conservative_soln2);
 
     const real beta1 = conservative_soln1[0]/(pressure1);
     const real beta2 = conservative_soln2[0]/(pressure2);
@@ -807,7 +813,7 @@ std::array<real,nstate> Euler<dim, nspecies, nstate, real>
 {
     std::array<real,nstate> entropy_var;
     const real density = conservative_soln[0];
-    const real pressure = compute_pressure<real>(conservative_soln);
+    const real pressure = compute_pressure_templated<real>(conservative_soln);
     
     const real entropy = compute_entropy<real>(density, pressure);
 
@@ -877,8 +883,8 @@ inline real Euler<dim,nspecies,nstate,real>::
 compute_mean_pressure(const std::array<real,nstate> &conservative_soln1,
                       const std::array<real,nstate> &conservative_soln2) const
 {
-    real pressure_1 = compute_pressure<real>(conservative_soln1);
-    real pressure_2 = compute_pressure<real>(conservative_soln2);
+    real pressure_1 = compute_pressure_templated<real>(conservative_soln1);
+    real pressure_2 = compute_pressure_templated<real>(conservative_soln2);
     return (pressure_1 + pressure_2)/2.;
 }
 
@@ -911,7 +917,7 @@ std::array<dealii::Tensor<1,dim,real>,nstate> Euler<dim,nspecies,nstate,real>
 {
     std::array<dealii::Tensor<1,dim,real>,nstate> conv_flux;
     const real density = conservative_soln[0];
-    const real pressure = compute_pressure<real>(conservative_soln);
+    const real pressure = compute_pressure_templated<real>(conservative_soln);
     const dealii::Tensor<1,dim,real> vel = compute_velocities<real>(conservative_soln);
     const real specific_total_energy = conservative_soln[nstate-1]/conservative_soln[0];
     const real specific_total_enthalpy = specific_total_energy + pressure/density;
@@ -936,7 +942,7 @@ std::array<real,nstate> Euler<dim,nspecies,nstate,real>
 {
     std::array<real, nstate> conv_normal_flux;
     const real density = conservative_soln[0];
-    const real pressure = compute_pressure<real>(conservative_soln);
+    const real pressure = compute_pressure_templated<real>(conservative_soln);
     const dealii::Tensor<1,dim,real> vel = compute_velocities<real>(conservative_soln);
     real normal_vel = 0.0;
     for (int d=0; d<dim; ++d) {
@@ -1683,7 +1689,7 @@ dealii::UpdateFlags Euler<dim,nspecies,nstate,real>
         template std::array<type, PHILIP_DIM+2> Euler < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, type>::convert_conservative_to_primitive_templated< type >(const std::array<type, PHILIP_DIM+2> &conservative_soln) const; \
         template class Euler < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, type >; \
         template bool Euler < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, type >::check_positive_quantity< type >(type &qty, const std::string qty_name) const; \
-        template type Euler < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, type >::compute_pressure< type >(const std::array<type, PHILIP_DIM+2> &conservative_soln) const; \
+        template type Euler < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, type >::compute_pressure_templated< type >(const std::array<type, PHILIP_DIM+2> &conservative_soln) const; \
         template type Euler < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, type >::compute_temperature< type >(const std::array<type, PHILIP_DIM+2> &primitive_soln) const; \
         template type Euler < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, type >::compute_velocity_squared< type >(const dealii::Tensor<1,PHILIP_DIM, type > &velocities) const; \
         template dealii::Tensor<1,PHILIP_DIM, type > Euler < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, type >::extract_velocities_from_primitive< type >(const std::array<type, PHILIP_DIM+2> &primitive_soln) const; \
@@ -1697,7 +1703,7 @@ dealii::UpdateFlags Euler<dim,nspecies,nstate,real>
         template std::array<dealii::Tensor<1,PHILIP_DIM,FadType>,PHILIP_DIM+2> Euler<PHILIP_DIM,PHILIP_SPECIES,PHILIP_DIM+2,type>::convert_conservative_gradient_to_primitive_gradient_templated<FadType>(const std::array<FadType,PHILIP_DIM+2> &conservative_soln, const std::array<dealii::Tensor<1,PHILIP_DIM,FadType>,PHILIP_DIM+2> &conservative_soln_gradient) const;\
         template std::array<FadType, PHILIP_DIM+2> Euler < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, type>::convert_conservative_to_primitive_templated< FadType >(const std::array<FadType, PHILIP_DIM+2> &conservative_soln) const; \
         template bool Euler < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, type >::check_positive_quantity< FadType >(FadType &qty, const std::string qty_name) const; \
-        template FadType    Euler < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, type >::compute_pressure< FadType >(const std::array<FadType, PHILIP_DIM+2> &conservative_soln) const; \
+        template FadType    Euler < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, type >::compute_pressure_templated< FadType >(const std::array<FadType, PHILIP_DIM+2> &conservative_soln) const; \
         template FadType    Euler < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, type >::compute_temperature< FadType >(const std::array<FadType, PHILIP_DIM+2> &primitive_soln) const; \
         template FadType    Euler < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, type >::compute_velocity_squared< FadType >(const dealii::Tensor<1,PHILIP_DIM, FadType > &velocities) const; \
         template dealii::Tensor<1,PHILIP_DIM, FadType > Euler < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, type >::extract_velocities_from_primitive< FadType >(const std::array<FadType, PHILIP_DIM+2> &primitive_soln) const; \

@@ -227,6 +227,9 @@ public:
     // Algorithm 17 (f_M17): Compute mixture pressure from conservative_soln
     virtual real compute_mixture_pressure ( const std::array<real,nstate> &conservative_soln ) const;
 
+    // Algorithm 17b: Calls compute_mixture_pressure (required for limiter)
+    virtual real compute_pressure ( const std::array<real,nstate> &conservative_soln ) const;
+
     /// Given density and temperature, returns NON-DIMENSIONALIZED pressure using free-stream non-dimensionalization
     real compute_pressure_from_density_temperature ( const real density, const real temperature, const std::array<real,nstate> &conservative_soln ) const;
 

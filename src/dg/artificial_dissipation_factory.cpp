@@ -14,35 +14,36 @@ ArtificialDissipationFactory<dim,nspecies,nstate> ::create_artificial_dissipatio
     using artificial_dissipation_enum = Parameters::ArtificialDissipationParam::ArtificialDissipationType;
     artificial_dissipation_enum arti_dissipation_type = parameters_input->artificial_dissipation_param.artificial_dissipation_type;
 
-    switch (arti_dissipation_type)
-    {
-        case artificial_dissipation_enum::laplacian:
+    if constexpr(nspecies==1) {
+        switch (arti_dissipation_type)
         {
-            if (nspecies==1)
+            case artificial_dissipation_enum::laplacian:
+            {
                 return std::make_shared<LaplacianArtificialDissipation<dim,nspecies,nstate>>(parameters_input);
-            break;
-        }
-
-        case artificial_dissipation_enum::physical:
-        {
-            if constexpr(dim+2==nstate && nspecies==1)
-            {
-                std::cout<<"Physical Artifical Dissipation pointer created"<<std::endl;
-                return std::make_shared<PhysicalArtificialDissipation<dim,nspecies,nstate>>(parameters_input);
+                break;
             }
-            break;
-        }
 
-        case artificial_dissipation_enum::enthalpy_conserving_laplacian:
-        {
-            if constexpr(dim+2==nstate && nspecies==1)
+            case artificial_dissipation_enum::physical:
             {
-                std::cout<<"Enthalpy Conserving Laplacian Artifical Dissipation pointer created"<<std::endl;
-                return std::make_shared<EnthalpyConservingArtificialDissipation<dim,nspecies,nstate>>(parameters_input);
+                if constexpr(dim+2==nstate)
+                {
+                    std::cout<<"Physical Artifical Dissipation pointer created"<<std::endl;
+                    return std::make_shared<PhysicalArtificialDissipation<dim,nspecies,nstate>>(parameters_input);
+                }
+                break;
             }
-            break;
-        }
 
+            case artificial_dissipation_enum::enthalpy_conserving_laplacian:
+            {
+                if constexpr(dim+2==nstate)
+                {
+                    std::cout<<"Enthalpy Conserving Laplacian Artifical Dissipation pointer created"<<std::endl;
+                    return std::make_shared<EnthalpyConservingArtificialDissipation<dim,nspecies,nstate>>(parameters_input);
+                }
+                break;
+            }
+
+        }
     }
 
     assert(0==1 && "Cannot create artificial dissipation due to an invalid artificial dissipation type specified for the problem"); 

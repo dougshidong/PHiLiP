@@ -534,7 +534,7 @@ real NavierStokes<dim,nspecies,nstate,real>
     const std::array<dealii::Tensor<1,dim,real>,nstate> &conservative_soln_gradient) const
 {
     // Get pressure
-    const real pressure = this->template compute_pressure<real>(conservative_soln);
+    const real pressure = this->template compute_pressure_templated<real>(conservative_soln);
 
     // Compute the pressure dilatation
     real pressure_dilatation = compute_dilatation(conservative_soln,conservative_soln_gradient);
@@ -1106,7 +1106,7 @@ dealii::Tensor<2,nstate,real> NavierStokes<dim,nspecies,nstate,real>
     // -- taken exactly from euler.cpp:
     std::array<dealii::Tensor<1,dim,adtype>,nstate> AD_conv_flux;
     const adtype density = AD_conservative_soln[0];
-    const adtype pressure = this->template compute_pressure<adtype>(AD_conservative_soln);
+    const adtype pressure = this->template compute_pressure_templated<adtype>(AD_conservative_soln);
     const dealii::Tensor<1,dim,adtype> vel = this->template compute_velocities<adtype>(AD_conservative_soln);
     const adtype specific_total_energy = AD_conservative_soln[nstate-1]/AD_conservative_soln[0];
     const adtype specific_total_enthalpy = specific_total_energy + pressure/density;

@@ -59,7 +59,7 @@ DGFactory<dim,nspecies,real,MeshType>
             return std::make_shared< DGWeak<dim,nspecies,dim+nspecies+1,real,MeshType> >(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input);
         } 
     } else {
-        if(nspecies==1) {
+        if constexpr(nspecies==1) {
             if (pde_type == PDE_enum::advection) {
                 return std::make_shared< DGStrong<dim,nspecies,1,real,MeshType> >(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input);
             } else if (pde_type == PDE_enum::advection_vector) {

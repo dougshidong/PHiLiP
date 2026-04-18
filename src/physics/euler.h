@@ -243,7 +243,9 @@ public:
 
     /// Evaluate pressure from conservative variables
     template<typename real2>
-    real2 compute_pressure ( const std::array<real2,nstate> &conservative_soln ) const;
+    real2 compute_pressure_templated ( const std::array<real2,nstate> &conservative_soln ) const;
+
+    real compute_pressure ( const std::array<real,nstate> &conservative_soln ) const;
 
     /// Evaluate physical entropy = log(p \rho^{-\gamma}) from pressure and density
     template<typename real2>

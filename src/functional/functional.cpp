@@ -1243,20 +1243,18 @@ FunctionalFactory<dim,nspecies,nstate,real,MeshType>::create_Functional(
     using ManufacturedSolutionEnum = Parameters::ManufacturedSolutionParam::ManufacturedSolutionType;
     FunctionalTypeEnum functional_type = param.functional_type;
 
-    const double normLp = param.normLp;
-
     ManufacturedSolutionEnum  weight_function_type = param.weight_function_type;
     std::shared_ptr< ManufacturedSolutionFunction<dim,nspecies,real> > weight_function_double 
         = ManufacturedSolutionFactory<dim,nspecies,real>::create_ManufacturedSolution(weight_function_type, nstate);
     std::shared_ptr< ManufacturedSolutionFunction<dim,nspecies,FadFadType> > weight_function_adtype 
         = ManufacturedSolutionFactory<dim,nspecies,FadFadType>::create_ManufacturedSolution(weight_function_type, nstate);
-    
-    const bool use_weight_function_laplacian       = param.use_weight_function_laplacian;
 
     std::vector<unsigned int> boundary_vector    = param.boundary_vector;
-    const bool                use_all_boundaries = param.use_all_boundaries;
 
     if constexpr(nspecies==1) {
+        const double normLp = param.normLp;
+        const bool use_weight_function_laplacian       = param.use_weight_function_laplacian;
+        const bool                use_all_boundaries = param.use_all_boundaries;
         if(functional_type == FunctionalTypeEnum::normLp_volume){
             return std::make_shared<FunctionalNormLpVolume<dim,nspecies,nstate,real,MeshType>>(
                 normLp,

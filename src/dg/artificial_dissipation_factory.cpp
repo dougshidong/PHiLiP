@@ -12,9 +12,9 @@ std::shared_ptr < ArtificialDissipationBase<dim,nspecies,nstate> >
 ArtificialDissipationFactory<dim,nspecies,nstate> ::create_artificial_dissipation(const Parameters::AllParameters *const parameters_input)
 {
     using artificial_dissipation_enum = Parameters::ArtificialDissipationParam::ArtificialDissipationType;
-    artificial_dissipation_enum arti_dissipation_type = parameters_input->artificial_dissipation_param.artificial_dissipation_type;
 
     if constexpr(nspecies==1) {
+        artificial_dissipation_enum arti_dissipation_type = parameters_input->artificial_dissipation_param.artificial_dissipation_type;
         switch (arti_dissipation_type)
         {
             case artificial_dissipation_enum::laplacian:

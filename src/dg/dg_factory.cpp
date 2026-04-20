@@ -48,6 +48,7 @@ DGFactory<dim,nspecies,real,MeshType>
                 return std::make_shared< DGWeak<dim,nspecies,dim+3,real,MeshType> >(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input);
             } else if(pde_type == PDE_enum::real_gas) {
                 std::cout << "Real Gas PDE only supports 2 or more species... Aborting." << std::endl;
+                std::abort();
             }
 #if PHILIP_DIM==3
             else if ((pde_type == PDE_enum::physics_model || pde_type == PDE_enum::physics_model_filtered) && (model_type == Model_enum::large_eddy_simulation || model_type == Model_enum::navier_stokes_model)) {

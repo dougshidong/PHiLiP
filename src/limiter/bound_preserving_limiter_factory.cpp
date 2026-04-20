@@ -70,6 +70,7 @@ std::unique_ptr< BoundPreservingLimiter<dim, nspecies, real> >
         else {
             if(nstate != dim + nspecies + 1) {
                 std::cout << "Error: Cannot create Positivity-Preserving limiter for nstate_input != dim + nspecies + 1" << std::endl;
+                std::cout << "Positivity-Preserving Limiter can only be created for Euler, Navier-Stokes and Real Gas PDEs." << std::endl;
                 std::abort();
             }
         }

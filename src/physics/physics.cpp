@@ -167,7 +167,7 @@ template <int dim, int nspecies, int nstate, typename real>
 real PhysicsBase<dim,nspecies,nstate,real>
 ::compute_pressure ( const std::array<real,nstate> &/*conservative_soln*/ ) const
 {
-    std::cout << "The compute_pressure function has been called for an incorrect class...Aborting." << std::endl;
+    std::cout << "The compute_pressure function has not been implemented for this PDE...Aborting." << std::endl;
     std::abort();
     return 0;
 }

@@ -30,7 +30,7 @@ PositivityPreservingLimiter<dim, nspecies, nstate, real>::PositivityPreservingLi
         if(pde_type == PDE_enum::real_gas && limiter_type == limiter_enum::positivity_preservingZhang2010) {
             std::cout << "Error: Zhang 2010 limiting has not been implemented for multispecies flow" << std::endl;
             std::abort();
-        } else if (pde_type == PDE_enum::euler || pde_type == PDE_enum::real_gas){
+        } else if (pde_type == PDE_enum::euler || pde_type == PDE_enum::real_gas || pde_type == PDE_enum::navier_stokes) {
             //create the Physics object
             this->pde_physics = std::dynamic_pointer_cast<Physics::PhysicsBase<dim,nspecies,nstate,double>>(
                         Physics::PhysicsFactory<dim,nspecies,nstate,double>::create_Physics(parameters_input));

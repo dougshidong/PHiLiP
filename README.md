@@ -133,7 +133,7 @@ To compile the code for multi-species simulations, the build must be configured 
  ```
 It is recommended that a separate build directory be used for single-species and multi-species. If a build is created for single-species, but then reconfigured for multi-species, there are likely to be test failures.
 
-The Real Gas PDE type supported by PHiLiP uses the [NASA polynomials](https://ntrs.nasa.gov/api/citations/20020085330/downloads/20020085330.pdf) to calculate the species specific heats and species enthalpy. The NASA polynomials have to be provided for the species that the user wishes to simulate. Example files including the required data is provided in tests/chemistry\_files.
+The Real Gas PDE type supported by PHiLiP uses the [NASA polynomials](https://ntrs.nasa.gov/api/citations/20020085330/downloads/20020085330.pdf) to calculate the species specific heats and species enthalpy. The NASA polynomials have to be provided for the species that the user wishes to simulate. Example files for H2, O2, and N2 with the required data is provided in tests/chemistry\_files.
 
 ### Testing
 The multi-species ctest suite is separate from the single-species suite as the difference in templating would result in several test failures. As such, it is highly recommended that a multi-species version of the code is built and tested alongside the single-species suite when making changes to the code. The Compute Canada Rorqual script has also been modified to reflect this and can be used as a reference when testing multi-species:

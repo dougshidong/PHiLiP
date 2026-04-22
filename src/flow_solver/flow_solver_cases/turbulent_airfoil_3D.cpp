@@ -60,18 +60,7 @@ template <int dim, int nstate>
 std::shared_ptr<Triangulation> Airfoil_3D_LES<dim,nstate>::generate_grid() const
 {
     //Dummy triangulation
-    if constexpr(dim==2) {
-        std::shared_ptr<Triangulation> grid = std::make_shared<Triangulation>(
-    #if PHILIP_DIM!=1
-                this->mpi_communicator
-    #endif
-        );
-        dealii::GridGenerator::Airfoil::AdditionalData airfoil_data;
-        dealii::GridGenerator::Airfoil::create_triangulation(*grid, airfoil_data);
-        grid->refine_global();
-        return grid;
-    } 
-    else if constexpr(dim==3) {
+    if constexpr(dim==3) {
         const std::string mesh_filename = this->all_param.flow_solver_param.input_mesh_filename+std::string(".msh");
         const bool use_mesh_smoothing = false;
         std::shared_ptr<HighOrderGrid<dim,double>> airfoil_mesh = read_gmsh<dim, dim> (mesh_filename, 
@@ -89,8 +78,6 @@ std::shared_ptr<Triangulation> Airfoil_3D_LES<dim,nstate>::generate_grid() const
         
         return airfoil_mesh->triangulation;
     }
-    
-    // TO DO: Avoid reading the mesh twice (here and in set_high_order_grid -- need a default dummy triangulation)
 }
 
 template <int dim, int nstate>

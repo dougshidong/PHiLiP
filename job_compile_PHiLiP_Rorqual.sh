@@ -76,3 +76,6 @@ for((i=1;i<=3;i++)); do
 done
  
 rsync -axvH --no-g --no-p  ${SLURM_TMPDIR}/build_release ${SLURM_SUBMIT_DIR}
+if [ "${RUN_CTEST}" = true ]; then
+	rsync -axvH --no-g --no-p  ${SLURM_TMPDIR}/build_multispecies ${SLURM_SUBMIT_DIR}
+fi

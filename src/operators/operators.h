@@ -1101,7 +1101,7 @@ public:
 
 /*****************************************************************************
 *
-*       METRIC OPERTAORS TO BE CALLED ON-THE-FLY
+*       METRIC OPERATORS TO BE CALLED ON-THE-FLY
 *
 *****************************************************************************/
 ///Base metric operators class that stores functions used in both the volume and on surface.

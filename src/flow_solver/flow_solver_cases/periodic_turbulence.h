@@ -10,8 +10,8 @@
 namespace PHiLiP {
 namespace FlowSolver {
 
-template <int dim, int nstate>
-class PeriodicTurbulence : public PeriodicCubeFlow<dim,nstate>
+template <int dim, int nspecies, int nstate>
+class PeriodicTurbulence : public PeriodicCubeFlow<dim,nspecies,nstate>
 {
     /** Number of different computed quantities
      *  Corresponds to the number of items in IntegratedQuantitiesEnum
@@ -25,12 +25,12 @@ public:
     /// Outputs the velocity field if the current time is an output time for the velocity field
     void output_velocity_field_if_current_time_is_output_time(
         const double current_time,
-        const std::shared_ptr <DGBase<dim, double>> dg);
+        const std::shared_ptr <DGBase<dim, nspecies, double>> dg);
     
     /** Computes the integrated quantities over the domain simultaneously and updates the array storing them
      *  Note: For efficiency, this also simultaneously updates the local maximum wave speed
      * */
-    void compute_and_update_integrated_quantities(DGBase<dim, double> &dg);
+    void compute_and_update_integrated_quantities(DGBase<dim, nspecies, double> &dg);
 
     /** Gets the nondimensional integrated kinetic energy given a DG object from dg->solution
      *  -- Reference: Cox, Christopher, et al. "Accuracy, stability, and performance comparison 
@@ -92,22 +92,22 @@ public:
 
     /// Output the velocity field to file
     void output_velocity_field(
-            std::shared_ptr<DGBase<dim,double>> dg,
+            std::shared_ptr<DGBase<dim,nspecies,double>> dg,
             const unsigned int output_file_index,
             const double current_time) const;
 
     /// Calculate numerical entropy by matrix-vector product
     double compute_current_integrated_numerical_entropy(
-            const std::shared_ptr <DGBase<dim, double>> dg) const;
+            const std::shared_ptr <DGBase<dim, nspecies, double>> dg) const;
 
     /// Update numerical entropy variables
     void update_numerical_entropy(
             const double FR_entropy_contribution_RRK_solver,
             const unsigned int current_iteration,
-            const std::shared_ptr <DGBase<dim, double>> dg);
+            const std::shared_ptr <DGBase<dim, nspecies, double>> dg);
     
     /// Retrieves cumulative_numerical_entropy_change_FRcorrected
-    double get_numerical_entropy(const std::shared_ptr <DGBase<dim, double>> /*dg*/) const;
+    double get_numerical_entropy(const std::shared_ptr <DGBase<dim, nspecies, double>> /*dg*/) const;
 
 protected:
     /// Filename (with extension) for the unsteady data table
@@ -139,7 +139,7 @@ protected:
     const bool do_compute_angular_momentum;
 
     /// Pointer to Navier-Stokes physics object for computing things on the fly
-    std::shared_ptr< Physics::NavierStokes<dim,dim+2,double> > navier_stokes_physics;
+    std::shared_ptr< Physics::NavierStokes<dim,nspecies,dim+2,double> > navier_stokes_physics;
 
     bool is_taylor_green_vortex = false; ///< Identifies if taylor green vortex case; initialized as false.
     bool is_decaying_homogeneous_isotropic_turbulence = false; ///< Identified if DHIT case; initialized as false.
@@ -151,14 +151,14 @@ protected:
 
 public:
     /// Function to compute the constant time step
-    double get_constant_time_step(std::shared_ptr<DGBase<dim,double>> dg) const override;
+    double get_constant_time_step(std::shared_ptr<DGBase<dim,nspecies,double>> dg) const override;
 
 protected:
     /// Function to compute the adaptive time step
-    double get_adaptive_time_step(std::shared_ptr<DGBase<dim,double>> dg) const override;
+    double get_adaptive_time_step(std::shared_ptr<DGBase<dim,nspecies,double>> dg) const override;
 
     /// Updates the maximum local wave speed
-    void update_maximum_local_wave_speed(DGBase<dim, double> &dg) override;
+    void update_maximum_local_wave_speed(DGBase<dim, nspecies, double> &dg) override;
 
     /// Function to compute the angular momentum
     double compute_angular_momentum(const dealii::Point<dim> position, const dealii::Tensor<1,3,double> vorticity) const;
@@ -166,8 +166,8 @@ protected:
 public:
     /// Compute the desired unsteady data and write it to a table
     virtual void compute_unsteady_data_and_write_to_table(
-            const std::shared_ptr<ODE::ODESolverBase<dim, double>> ode_solver, 
-            const std::shared_ptr <DGBase<dim, double>> dg,
+            const std::shared_ptr<ODE::ODESolverBase<dim, nspecies, double>> ode_solver, 
+            const std::shared_ptr <DGBase<dim, nspecies, double>> dg,
             const std::shared_ptr<dealii::TableHandler> unsteady_data_table,
             const bool do_write_unsteady_data_table_file) override;
 

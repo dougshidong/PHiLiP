@@ -11,12 +11,12 @@ namespace ProperOrthogonalDecomposition {
 using Eigen::RowVectorXd;
 
 /// Base class for a ROM/HROM point, differences would be in the second DWR error indicator
-template <int dim, int nstate>
+template <int dim, int nspecies, int nstate>
 class TestLocationBase
 {
 public:
     /// Constructor
-    TestLocationBase(const RowVectorXd& parameter, std::unique_ptr<ROMSolution < dim, nstate>> rom_solution);
+    TestLocationBase(const RowVectorXd& parameter, std::unique_ptr<ROMSolution < dim, nspecies, nstate>> rom_solution);
 
     /// Destructor
     virtual ~TestLocationBase () {};
@@ -25,7 +25,7 @@ public:
     void compute_FOM_to_initial_ROM_error();
 
     /// Compute error between initial ROM and final ROM
-    virtual void compute_initial_rom_to_final_rom_error(std::shared_ptr<ProperOrthogonalDecomposition::PODBase<dim>> pod_updated) = 0;
+    virtual void compute_initial_rom_to_final_rom_error(std::shared_ptr<ProperOrthogonalDecomposition::PODBase<dim,nspecies>> pod_updated) = 0;
 
     /// Compute total error between final ROM and FOM
     void compute_total_error();
@@ -34,7 +34,7 @@ public:
     RowVectorXd parameter;
 
     /// ROM solution
-    std::unique_ptr<ROMSolution<dim, nstate>> rom_solution;
+    std::unique_ptr<ROMSolution<dim, nspecies, nstate>> rom_solution;
 
     /// Error between FOM and initial ROM
     double fom_to_initial_rom_error;

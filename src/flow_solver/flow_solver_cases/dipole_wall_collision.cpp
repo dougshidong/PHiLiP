@@ -16,16 +16,16 @@ namespace FlowSolver {
 //=========================================================
 // DIPOLE WALL COLLISION CLASS
 //=========================================================
-template <int dim, int nstate>
-DipoleWallCollision<dim, nstate>::DipoleWallCollision(const PHiLiP::Parameters::AllParameters *const parameters_input,
+template <int dim, int nspecies, int nstate>
+DipoleWallCollision<dim, nspecies, nstate>::DipoleWallCollision(const PHiLiP::Parameters::AllParameters *const parameters_input,
                                                       const bool is_oblique_)
-        : PeriodicTurbulence<dim, nstate>(parameters_input)
+        : PeriodicTurbulence<dim, nspecies, nstate>(parameters_input)
         , is_oblique(is_oblique_)
         , do_use_stretched_mesh(this->all_param.flow_solver_param.do_use_stretched_mesh)
 { }
 
-template <int dim, int nstate>
-std::shared_ptr<Triangulation> DipoleWallCollision<dim,nstate>::generate_grid() const
+template <int dim, int nspecies, int nstate>
+std::shared_ptr<Triangulation> DipoleWallCollision<dim,nspecies,nstate>::generate_grid() const
 {
     if(this->do_use_stretched_mesh) 
         return this->generate_grid_stretched();
@@ -33,8 +33,8 @@ std::shared_ptr<Triangulation> DipoleWallCollision<dim,nstate>::generate_grid() 
         return this->generate_grid_uniform();
 }
 
-template <int dim, int nstate>
-std::shared_ptr<Triangulation> DipoleWallCollision<dim,nstate>::generate_grid_uniform() const
+template <int dim, int nspecies, int nstate>
+std::shared_ptr<Triangulation> DipoleWallCollision<dim,nspecies,nstate>::generate_grid_uniform() const
 {
     std::shared_ptr<Triangulation> grid = std::make_shared<Triangulation> (
 #if PHILIP_DIM!=1
@@ -93,8 +93,8 @@ std::shared_ptr<Triangulation> DipoleWallCollision<dim,nstate>::generate_grid_un
     return grid;
 }
 
-template <int dim, int nstate>
-std::vector<double> DipoleWallCollision<dim,nstate>::get_mesh_step_size_stretched(
+template <int dim, int nspecies, int nstate>
+std::vector<double> DipoleWallCollision<dim,nspecies,nstate>::get_mesh_step_size_stretched(
     const int number_of_cells_, 
     const double domain_length_) const 
 {
@@ -125,8 +125,8 @@ std::vector<double> DipoleWallCollision<dim,nstate>::get_mesh_step_size_stretche
     return step_size_y_direction;
 }
 
-template <int dim, int nstate>
-std::shared_ptr<Triangulation> DipoleWallCollision<dim,nstate>::generate_grid_stretched() const
+template <int dim, int nspecies, int nstate>
+std::shared_ptr<Triangulation> DipoleWallCollision<dim,nspecies,nstate>::generate_grid_stretched() const
 {
     // Set the parameters for the DWC flow case
     const double domain_length_x = this->domain_right-this->domain_left;
@@ -211,14 +211,14 @@ std::shared_ptr<Triangulation> DipoleWallCollision<dim,nstate>::generate_grid_st
 //=========================================================
 // DIPOLE WALL COLLISION CLASS -- OBLIQUE
 //=========================================================
-template <int dim, int nstate>
-DipoleWallCollision_Oblique<dim, nstate>::DipoleWallCollision_Oblique(const PHiLiP::Parameters::AllParameters *const parameters_input)
-        : DipoleWallCollision<dim, nstate>(parameters_input,true)
+template <int dim, int nspecies, int nstate>
+DipoleWallCollision_Oblique<dim, nspecies, nstate>::DipoleWallCollision_Oblique(const PHiLiP::Parameters::AllParameters *const parameters_input)
+        : DipoleWallCollision<dim, nspecies, nstate>(parameters_input,true)
 { }
 
 #if PHILIP_DIM==2
-template class DipoleWallCollision <PHILIP_DIM,PHILIP_DIM+2>;
-template class DipoleWallCollision_Oblique <PHILIP_DIM,PHILIP_DIM+2>;
+template class DipoleWallCollision <PHILIP_DIM,PHILIP_SPECIES,PHILIP_DIM+2>;
+template class DipoleWallCollision_Oblique <PHILIP_DIM,PHILIP_SPECIES,PHILIP_DIM+2>;
 #endif
 
 } // FlowSolver namespace

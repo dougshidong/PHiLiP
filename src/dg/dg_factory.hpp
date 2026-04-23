@@ -9,9 +9,9 @@ namespace PHiLiP {
 /** This allows the DGBase to not be templated on the number of state variables
   * while allowing DG to be template on the number of state variables */
 #if PHILIP_DIM==1 // dealii::parallel::distributed::Triangulation<dim> does not work for 1D
-template <int dim, typename real, typename MeshType = dealii::Triangulation<dim>>
+template <int dim, int nspecies, typename real, typename MeshType = dealii::Triangulation<dim>>
 #else
-template <int dim, typename real, typename MeshType = dealii::parallel::distributed::Triangulation<dim>>
+template <int dim, int nspecies, typename real, typename MeshType = dealii::parallel::distributed::Triangulation<dim>>
 #endif
 class DGFactory
 {
@@ -23,7 +23,7 @@ class DGFactory
 public:
     /// Creates a derived object DG, but returns it as DGBase.
     /** That way, the caller is agnostic to the number of state variables */
-    static std::shared_ptr< DGBase<dim,real,MeshType> >
+    static std::shared_ptr< DGBase<dim,nspecies,real,MeshType> >
         create_discontinuous_galerkin(
         const Parameters::AllParameters *const parameters_input,
         const unsigned int degree,
@@ -32,7 +32,7 @@ public:
         const std::shared_ptr<Triangulation> triangulation_input);
 
     /// calls the above dg factory with grid_degree_input = degree + 1
-    static std::shared_ptr< DGBase<dim,real,MeshType> >
+    static std::shared_ptr< DGBase<dim,nspecies,real,MeshType> >
         create_discontinuous_galerkin(
         const Parameters::AllParameters *const parameters_input,
         const unsigned int degree,
@@ -40,7 +40,7 @@ public:
         const std::shared_ptr<Triangulation> triangulation_input);
 
     /// calls the above dg factory with max_degree_input = degree
-    static std::shared_ptr< DGBase<dim,real,MeshType> >
+    static std::shared_ptr< DGBase<dim,nspecies,real,MeshType> >
         create_discontinuous_galerkin(
         const Parameters::AllParameters *const parameters_input,
         const unsigned int degree,

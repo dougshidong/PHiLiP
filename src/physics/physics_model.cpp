@@ -1,6 +1,7 @@
 #include <cmath>
 #include <vector>
 #include <complex> // for the jacobian
+#include <boost/preprocessor/seq/for_each.hpp>
 
 #include "ADTypes.hpp"
 
@@ -15,17 +16,17 @@
 namespace PHiLiP {
 namespace Physics {
 
-template <int dim, int nstate, typename real, int nstate_baseline_physics>
-PhysicsModel<dim,nstate,real,nstate_baseline_physics>::PhysicsModel( 
+template <int dim, int nspecies, int nstate, typename real, int nstate_baseline_physics>
+PhysicsModel<dim,nspecies,nstate,real,nstate_baseline_physics>::PhysicsModel( 
     const Parameters::AllParameters                              *const parameters_input,
     Parameters::AllParameters::PartialDifferentialEquation       baseline_physics_type,
-    std::shared_ptr< ModelBase<dim,nstate,real> >                model_input,
-    std::shared_ptr< ManufacturedSolutionFunction<dim,real> >    manufactured_solution_function,
+    std::shared_ptr< ModelBase<dim,nspecies,nstate,real> >                model_input,
+    std::shared_ptr< ManufacturedSolutionFunction<dim,nspecies,real> >    manufactured_solution_function,
     const bool                                                   has_nonzero_diffusion,
     const bool                                                   has_nonzero_physical_source)
-    : PhysicsBase<dim,nstate,real>(parameters_input, has_nonzero_diffusion, has_nonzero_physical_source, manufactured_solution_function)
+    : PhysicsBase<dim,nspecies,nstate,real>(parameters_input, has_nonzero_diffusion, has_nonzero_physical_source, manufactured_solution_function)
     , n_model_equations(nstate-nstate_baseline_physics)
-    , physics_baseline(PhysicsFactory<dim,nstate_baseline_physics,real>::create_Physics(parameters_input, baseline_physics_type))
+    , physics_baseline(PhysicsFactory<dim,nspecies,nstate_baseline_physics,real>::create_Physics(parameters_input, baseline_physics_type))
     , model(model_input)
     , mpi_communicator(MPI_COMM_WORLD)
     , mpi_rank(dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD))
@@ -33,8 +34,8 @@ PhysicsModel<dim,nstate,real,nstate_baseline_physics>::PhysicsModel(
     , pcout(std::cout, mpi_rank==0)
 { }
 
-template <int dim, int nstate, typename real, int nstate_baseline_physics>
-std::array<real,nstate> PhysicsModel<dim,nstate,real,nstate_baseline_physics>
+template <int dim, int nspecies, int nstate, typename real, int nstate_baseline_physics>
+std::array<real,nstate> PhysicsModel<dim,nspecies,nstate,real,nstate_baseline_physics>
 ::convert_conservative_to_primitive ( const std::array<real,nstate> &conservative_soln ) const
 {
     std::array<real,nstate> primitive_soln;
@@ -48,8 +49,8 @@ std::array<real,nstate> PhysicsModel<dim,nstate,real,nstate_baseline_physics>
     return primitive_soln;
 }
 
-template <int dim, int nstate, typename real, int nstate_baseline_physics>
-std::array<real,nstate> PhysicsModel<dim,nstate,real,nstate_baseline_physics>
+template <int dim, int nspecies, int nstate, typename real, int nstate_baseline_physics>
+std::array<real,nstate> PhysicsModel<dim,nspecies,nstate,real,nstate_baseline_physics>
 ::convert_primitive_to_conservative ( const std::array<real,nstate> &primitive_soln ) const
 {
     std::array<real,nstate> conservative_soln;
@@ -63,8 +64,8 @@ std::array<real,nstate> PhysicsModel<dim,nstate,real,nstate_baseline_physics>
     return conservative_soln;
 }
 
-template <int dim, int nstate, typename real, int nstate_baseline_physics>
-std::array<dealii::Tensor<1,dim,real>,nstate> PhysicsModel<dim,nstate,real,nstate_baseline_physics>
+template <int dim, int nspecies, int nstate, typename real, int nstate_baseline_physics>
+std::array<dealii::Tensor<1,dim,real>,nstate> PhysicsModel<dim,nspecies,nstate,real,nstate_baseline_physics>
 ::convert_primitive_gradient_to_conservative_gradient (
     const std::array<real,nstate> &primitive_soln,
     const std::array<dealii::Tensor<1,dim,real>,nstate> &primitive_soln_gradient) const
@@ -80,8 +81,8 @@ std::array<dealii::Tensor<1,dim,real>,nstate> PhysicsModel<dim,nstate,real,nstat
     return conservative_soln_gradient;
 }
 
-template <int dim, int nstate, typename real, int nstate_baseline_physics>
-std::array<dealii::Tensor<1,dim,real>,nstate> PhysicsModel<dim,nstate,real,nstate_baseline_physics>
+template <int dim, int nspecies, int nstate, typename real, int nstate_baseline_physics>
+std::array<dealii::Tensor<1,dim,real>,nstate> PhysicsModel<dim,nspecies,nstate,real,nstate_baseline_physics>
 ::convert_conservative_gradient_to_primitive_gradient (
     const std::array<real,nstate> &conservative_soln,
     const std::array<dealii::Tensor<1,dim,real>,nstate> &conservative_soln_gradient) const
@@ -97,8 +98,8 @@ std::array<dealii::Tensor<1,dim,real>,nstate> PhysicsModel<dim,nstate,real,nstat
     return primitive_soln_gradient;
 }
 
-template <int dim, int nstate, typename real, int nstate_baseline_physics>
-std::array<dealii::Tensor<1,dim,real>,nstate> PhysicsModel<dim,nstate,real,nstate_baseline_physics>
+template <int dim, int nspecies, int nstate, typename real, int nstate_baseline_physics>
+std::array<dealii::Tensor<1,dim,real>,nstate> PhysicsModel<dim,nspecies,nstate,real,nstate_baseline_physics>
 ::convective_flux (const std::array<real,nstate> &conservative_soln) const
 {
     // Get baseline conservative solution with nstate_baseline_physics
@@ -123,8 +124,8 @@ std::array<dealii::Tensor<1,dim,real>,nstate> PhysicsModel<dim,nstate,real,nstat
     return conv_flux;
 }
 
-template <int dim, int nstate, typename real, int nstate_baseline_physics>
-std::array<real,nstate> PhysicsModel<dim,nstate,real,nstate_baseline_physics>
+template <int dim, int nspecies, int nstate, typename real, int nstate_baseline_physics>
+std::array<real,nstate> PhysicsModel<dim,nspecies,nstate,real,nstate_baseline_physics>
 ::dissipative_flux_dot_normal (
         const std::array<real,nstate> &solution,
         const std::array<dealii::Tensor<1,dim,real>,nstate> &solution_gradient,
@@ -167,8 +168,8 @@ std::array<real,nstate> PhysicsModel<dim,nstate,real,nstate_baseline_physics>
     return diss_flux_dot_n;
 }
 
-template <int dim, int nstate, typename real, int nstate_baseline_physics>
-std::array<dealii::Tensor<1,dim,real>,nstate> PhysicsModel<dim,nstate,real,nstate_baseline_physics>
+template <int dim, int nspecies, int nstate, typename real, int nstate_baseline_physics>
+std::array<dealii::Tensor<1,dim,real>,nstate> PhysicsModel<dim,nspecies,nstate,real,nstate_baseline_physics>
 ::dissipative_flux (
     const std::array<real,nstate> &solution,
     const std::array<dealii::Tensor<1,dim,real>,nstate> &solution_gradient,
@@ -180,8 +181,8 @@ std::array<dealii::Tensor<1,dim,real>,nstate> PhysicsModel<dim,nstate,real,nstat
     return this->dissipative_flux(solution,solution_gradient,cell_index);
 }
 
-template <int dim, int nstate, typename real, int nstate_baseline_physics>
-std::array<dealii::Tensor<1,dim,real>,nstate> PhysicsModel<dim,nstate,real,nstate_baseline_physics>
+template <int dim, int nspecies, int nstate, typename real, int nstate_baseline_physics>
+std::array<dealii::Tensor<1,dim,real>,nstate> PhysicsModel<dim,nspecies,nstate,real,nstate_baseline_physics>
 ::dissipative_flux (
     const std::array<real,nstate> &conservative_soln,
     const std::array<dealii::Tensor<1,dim,real>,nstate> &solution_gradient,
@@ -219,8 +220,8 @@ std::array<dealii::Tensor<1,dim,real>,nstate> PhysicsModel<dim,nstate,real,nstat
     return diss_flux;
 }
 
-template <int dim, int nstate, typename real, int nstate_baseline_physics>
-std::array<real,nstate> PhysicsModel<dim,nstate,real,nstate_baseline_physics>
+template <int dim, int nspecies, int nstate, typename real, int nstate_baseline_physics>
+std::array<real,nstate> PhysicsModel<dim,nspecies,nstate,real,nstate_baseline_physics>
 ::physical_source_term (
     const dealii::Point<dim,real> &pos,
     const std::array<real,nstate> &conservative_soln,
@@ -251,8 +252,8 @@ std::array<real,nstate> PhysicsModel<dim,nstate,real,nstate_baseline_physics>
     return physical_source_term;
 }
 
-template <int dim, int nstate, typename real, int nstate_baseline_physics>
-std::array<real,nstate> PhysicsModel<dim,nstate,real,nstate_baseline_physics>
+template <int dim, int nspecies, int nstate, typename real, int nstate_baseline_physics>
+std::array<real,nstate> PhysicsModel<dim,nspecies,nstate,real,nstate_baseline_physics>
 ::source_term (
     const dealii::Point<dim,real> &pos,
     const std::array<real,nstate> &conservative_soln,
@@ -289,8 +290,8 @@ std::array<real,nstate> PhysicsModel<dim,nstate,real,nstate_baseline_physics>
     return source_term;
 }
 
-template <int dim, int nstate, typename real, int nstate_baseline_physics>
-std::array<dealii::Tensor<1,dim,real>,nstate> PhysicsModel<dim,nstate,real,nstate_baseline_physics>
+template <int dim, int nspecies, int nstate, typename real, int nstate_baseline_physics>
+std::array<dealii::Tensor<1,dim,real>,nstate> PhysicsModel<dim,nspecies,nstate,real,nstate_baseline_physics>
 ::convective_numerical_split_flux(const std::array<real,nstate> &conservative_soln1,
                                   const std::array<real,nstate> &conservative_soln2) const
 {
@@ -305,8 +306,8 @@ std::array<dealii::Tensor<1,dim,real>,nstate> PhysicsModel<dim,nstate,real,nstat
     return conv_num_split_flux;
 }
 
-template <int dim, int nstate, typename real, int nstate_baseline_physics>
-std::array<real,nstate> PhysicsModel<dim, nstate, real, nstate_baseline_physics>
+template <int dim, int nspecies, int nstate, typename real, int nstate_baseline_physics>
+std::array<real,nstate> PhysicsModel<dim, nspecies, nstate, real, nstate_baseline_physics>
 ::compute_entropy_variables (
     const std::array<real,nstate> &conservative_soln) const
 {
@@ -322,8 +323,8 @@ std::array<real,nstate> PhysicsModel<dim, nstate, real, nstate_baseline_physics>
     return entropy_var;
 }
 
-template <int dim, int nstate, typename real, int nstate_baseline_physics>
-std::array<real,nstate> PhysicsModel<dim, nstate, real, nstate_baseline_physics>
+template <int dim, int nspecies, int nstate, typename real, int nstate_baseline_physics>
+std::array<real,nstate> PhysicsModel<dim, nspecies, nstate, real, nstate_baseline_physics>
 ::compute_conservative_variables_from_entropy_variables (
     const std::array<real,nstate> &entropy_var) const
 {
@@ -339,8 +340,8 @@ std::array<real,nstate> PhysicsModel<dim, nstate, real, nstate_baseline_physics>
     return conservative_soln;
 }
 
-template <int dim, int nstate, typename real, int nstate_baseline_physics>
-std::array<real,nstate> PhysicsModel<dim,nstate,real,nstate_baseline_physics>
+template <int dim, int nspecies, int nstate, typename real, int nstate_baseline_physics>
+std::array<real,nstate> PhysicsModel<dim,nspecies,nstate,real,nstate_baseline_physics>
 ::convective_eigenvalues (
     const std::array<real,nstate> &conservative_soln,
     const dealii::Tensor<1,dim,real> &normal) const
@@ -369,8 +370,8 @@ std::array<real,nstate> PhysicsModel<dim,nstate,real,nstate_baseline_physics>
     return eig;
 }
 
-template <int dim, int nstate, typename real, int nstate_baseline_physics>
-real PhysicsModel<dim,nstate,real,nstate_baseline_physics>
+template <int dim, int nspecies, int nstate, typename real, int nstate_baseline_physics>
+real PhysicsModel<dim,nspecies,nstate,real,nstate_baseline_physics>
 ::max_convective_eigenvalue (const std::array<real,nstate> &conservative_soln) const
 {
     real max_eig;
@@ -388,8 +389,8 @@ real PhysicsModel<dim,nstate,real,nstate_baseline_physics>
     return max_eig;
 }
 
-template <int dim, int nstate, typename real, int nstate_baseline_physics>
-real PhysicsModel<dim,nstate,real,nstate_baseline_physics>
+template <int dim, int nspecies, int nstate, typename real, int nstate_baseline_physics>
+real PhysicsModel<dim,nspecies,nstate,real,nstate_baseline_physics>
 ::max_convective_normal_eigenvalue (
     const std::array<real,nstate> &conservative_soln,
     const dealii::Tensor<1,dim,real> &normal) const
@@ -409,15 +410,15 @@ real PhysicsModel<dim,nstate,real,nstate_baseline_physics>
     return max_eig;
 }
 
-template <int dim, int nstate, typename real, int nstate_baseline_physics>
-real PhysicsModel<dim,nstate,real,nstate_baseline_physics>
+template <int dim, int nspecies, int nstate, typename real, int nstate_baseline_physics>
+real PhysicsModel<dim,nspecies,nstate,real,nstate_baseline_physics>
 ::max_viscous_eigenvalue (const std::array<real,nstate> &/*conservative_soln*/) const
 {
     return 0.0;
 }
 
-template <int dim, int nstate, typename real, int nstate_baseline_physics>
-void PhysicsModel<dim,nstate,real,nstate_baseline_physics>
+template <int dim, int nspecies, int nstate, typename real, int nstate_baseline_physics>
+void PhysicsModel<dim,nspecies,nstate,real,nstate_baseline_physics>
 ::boundary_face_values_viscous_flux (
    const int boundary_type,
    const dealii::Point<dim, real> &pos,
@@ -470,8 +471,8 @@ void PhysicsModel<dim,nstate,real,nstate_baseline_physics>
     }
 }
 
-template <int dim, int nstate, typename real, int nstate_baseline_physics>
-void PhysicsModel<dim,nstate,real,nstate_baseline_physics>
+template <int dim, int nspecies, int nstate, typename real, int nstate_baseline_physics>
+void PhysicsModel<dim,nspecies,nstate,real,nstate_baseline_physics>
 ::boundary_face_values (
    const int boundary_type,
    const dealii::Point<dim, real> &pos,
@@ -516,8 +517,8 @@ void PhysicsModel<dim,nstate,real,nstate_baseline_physics>
     }
 }
 
-template <int dim, int nstate, typename real, int nstate_baseline_physics>
-dealii::Vector<double> PhysicsModel<dim,nstate,real,nstate_baseline_physics>::post_compute_derived_quantities_vector (
+template <int dim, int nspecies, int nstate, typename real, int nstate_baseline_physics>
+dealii::Vector<double> PhysicsModel<dim,nspecies,nstate,real,nstate_baseline_physics>::post_compute_derived_quantities_vector (
     const dealii::Vector<double>              &uh,
     const std::vector<dealii::Tensor<1,dim> > &duh,
     const std::vector<dealii::Tensor<2,dim> > &dduh,
@@ -548,8 +549,8 @@ dealii::Vector<double> PhysicsModel<dim,nstate,real,nstate_baseline_physics>::po
     return computed_quantities;
 }
 
-template <int dim, int nstate, typename real, int nstate_baseline_physics>
-std::vector<std::string> PhysicsModel<dim,nstate,real,nstate_baseline_physics>
+template <int dim, int nspecies, int nstate, typename real, int nstate_baseline_physics>
+std::vector<std::string> PhysicsModel<dim,nspecies,nstate,real,nstate_baseline_physics>
 ::post_get_names () const
 {
     std::vector<std::string> names;
@@ -564,8 +565,8 @@ std::vector<std::string> PhysicsModel<dim,nstate,real,nstate_baseline_physics>
     return names;
 }
 
-template <int dim, int nstate, typename real, int nstate_baseline_physics>
-std::vector<dealii::DataComponentInterpretation::DataComponentInterpretation> PhysicsModel<dim,nstate,real,nstate_baseline_physics>
+template <int dim, int nspecies, int nstate, typename real, int nstate_baseline_physics>
+std::vector<dealii::DataComponentInterpretation::DataComponentInterpretation> PhysicsModel<dim,nspecies,nstate,real,nstate_baseline_physics>
 ::post_get_data_component_interpretation () const
 {
     namespace DCI = dealii::DataComponentInterpretation;
@@ -581,8 +582,8 @@ std::vector<dealii::DataComponentInterpretation::DataComponentInterpretation> Ph
     return interpretation;
 }
 
-template <int dim, int nstate, typename real, int nstate_baseline_physics>
-dealii::UpdateFlags PhysicsModel<dim,nstate,real,nstate_baseline_physics>
+template <int dim, int nspecies, int nstate, typename real, int nstate_baseline_physics>
+dealii::UpdateFlags PhysicsModel<dim,nspecies,nstate,real,nstate_baseline_physics>
 ::post_get_needed_update_flags () const
 {
     if constexpr(nstate==nstate_baseline_physics) {
@@ -595,15 +596,15 @@ dealii::UpdateFlags PhysicsModel<dim,nstate,real,nstate_baseline_physics>
 //===========================================================================================
 // Physics Model Filtered
 //===========================================================================================
-template <int dim, int nstate, typename real, int nstate_baseline_physics>
-PhysicsModelFiltered<dim,nstate,real,nstate_baseline_physics>::PhysicsModelFiltered( 
+template <int dim, int nspecies, int nstate, typename real, int nstate_baseline_physics>
+PhysicsModelFiltered<dim,nspecies,nstate,real,nstate_baseline_physics>::PhysicsModelFiltered( 
     const Parameters::AllParameters                              *const parameters_input,
     Parameters::AllParameters::PartialDifferentialEquation       baseline_physics_type,
-    std::shared_ptr< ModelBase<dim,nstate,real> >                model_input,
-    std::shared_ptr< ManufacturedSolutionFunction<dim,real> >    manufactured_solution_function,
+    std::shared_ptr< ModelBase<dim,nspecies,nstate,real> >                model_input,
+    std::shared_ptr< ManufacturedSolutionFunction<dim,nspecies,real> >    manufactured_solution_function,
     const bool                                                   has_nonzero_diffusion,
     const bool                                                   has_nonzero_physical_source)
-    : PhysicsModel<dim,nstate,real,nstate_baseline_physics>(parameters_input,
+    : PhysicsModel<dim,nspecies,nstate,real,nstate_baseline_physics>(parameters_input,
                                                             baseline_physics_type,
                                                             model_input,
                                                             manufactured_solution_function,
@@ -611,8 +612,8 @@ PhysicsModelFiltered<dim,nstate,real,nstate_baseline_physics>::PhysicsModelFilte
                                                             has_nonzero_physical_source)
 { }
 
-template <int dim, int nstate, typename real, int nstate_baseline_physics>
-std::array<dealii::Tensor<1,dim,real>,nstate> PhysicsModelFiltered<dim,nstate,real,nstate_baseline_physics>
+template <int dim, int nspecies, int nstate, typename real, int nstate_baseline_physics>
+std::array<dealii::Tensor<1,dim,real>,nstate> PhysicsModelFiltered<dim,nspecies,nstate,real,nstate_baseline_physics>
 ::dissipative_flux (
     const std::array<real,nstate> &solution,
     const std::array<dealii::Tensor<1,dim,real>,nstate> &solution_gradient,
@@ -654,8 +655,8 @@ std::array<dealii::Tensor<1,dim,real>,nstate> PhysicsModelFiltered<dim,nstate,re
     return diss_flux;
 }
 
-template <int dim, int nstate, typename real, int nstate_baseline_physics>
-std::array<real,nstate> PhysicsModelFiltered<dim,nstate,real,nstate_baseline_physics>
+template <int dim, int nspecies, int nstate, typename real, int nstate_baseline_physics>
+std::array<real,nstate> PhysicsModelFiltered<dim,nspecies,nstate,real,nstate_baseline_physics>
 ::dissipative_flux_dot_normal (
         const std::array<real,nstate> &solution,
         const std::array<dealii::Tensor<1,dim,real>,nstate> &solution_gradient,
@@ -699,29 +700,17 @@ std::array<real,nstate> PhysicsModelFiltered<dim,nstate,real,nstate_baseline_phy
 
 
 // Instantiate explicitly
-template class PhysicsModel < PHILIP_DIM, PHILIP_DIM+2, double    , PHILIP_DIM+2 >;
-template class PhysicsModel < PHILIP_DIM, PHILIP_DIM+2, FadType   , PHILIP_DIM+2 >;
-template class PhysicsModel < PHILIP_DIM, PHILIP_DIM+2, RadType   , PHILIP_DIM+2 >;
-template class PhysicsModel < PHILIP_DIM, PHILIP_DIM+2, FadFadType, PHILIP_DIM+2 >;
-template class PhysicsModel < PHILIP_DIM, PHILIP_DIM+2, RadFadType, PHILIP_DIM+2 >;
+#if PHILIP_SPECIES==1
+    // Define a sequence of possible types
+    #define POSSIBLE_TYPES (double)(FadType)(RadType)(FadFadType)(RadFadType)
 
-template class PhysicsModel < PHILIP_DIM, PHILIP_DIM+3, double    , PHILIP_DIM+2 >;
-template class PhysicsModel < PHILIP_DIM, PHILIP_DIM+3, FadType   , PHILIP_DIM+2 >;
-template class PhysicsModel < PHILIP_DIM, PHILIP_DIM+3, RadType   , PHILIP_DIM+2 >;
-template class PhysicsModel < PHILIP_DIM, PHILIP_DIM+3, FadFadType, PHILIP_DIM+2 >;
-template class PhysicsModel < PHILIP_DIM, PHILIP_DIM+3, RadFadType, PHILIP_DIM+2 >;
-
-template class PhysicsModelFiltered < PHILIP_DIM, PHILIP_DIM+2, double    , PHILIP_DIM+2 >;
-template class PhysicsModelFiltered < PHILIP_DIM, PHILIP_DIM+2, FadType   , PHILIP_DIM+2 >;
-template class PhysicsModelFiltered < PHILIP_DIM, PHILIP_DIM+2, RadType   , PHILIP_DIM+2 >;
-template class PhysicsModelFiltered < PHILIP_DIM, PHILIP_DIM+2, FadFadType, PHILIP_DIM+2 >;
-template class PhysicsModelFiltered < PHILIP_DIM, PHILIP_DIM+2, RadFadType, PHILIP_DIM+2 >;
-
-template class PhysicsModelFiltered < PHILIP_DIM, PHILIP_DIM+3, double    , PHILIP_DIM+2 >;
-template class PhysicsModelFiltered < PHILIP_DIM, PHILIP_DIM+3, FadType   , PHILIP_DIM+2 >;
-template class PhysicsModelFiltered < PHILIP_DIM, PHILIP_DIM+3, RadType   , PHILIP_DIM+2 >;
-template class PhysicsModelFiltered < PHILIP_DIM, PHILIP_DIM+3, FadFadType, PHILIP_DIM+2 >;
-template class PhysicsModelFiltered < PHILIP_DIM, PHILIP_DIM+3, RadFadType, PHILIP_DIM+2 >;
-
+    // Define a macro to instantiate RANS and RANS functions for a specific type
+    #define INSTANTIATE_TYPES(r, data, type) \
+        template class PhysicsModel < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, type , PHILIP_DIM+2 >; \
+        template class PhysicsModel < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+3, type , PHILIP_DIM+2 >; \
+        template class PhysicsModelFiltered < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, type , PHILIP_DIM+2 >; \
+        template class PhysicsModelFiltered < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+3, type , PHILIP_DIM+2 >;
+    BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_TYPES, _, POSSIBLE_TYPES)
+#endif
 } // Physics namespace
 } // PHiLiP namespace

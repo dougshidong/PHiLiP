@@ -72,6 +72,9 @@ public:
     /// Number of dimensions. Note that it has to match the executable PHiLiP_xD
     unsigned int dimension;
 
+    /// Number of species. Note that it has to match the CMake variable NUMBER_OF_SPECIES
+    unsigned int number_of_species;
+
     /// Run type
     enum RunType {
         integration_test,
@@ -216,7 +219,8 @@ public:
         HROM_error_post_sampling,
         hyper_adaptive_sampling_new_error,
         halton_sampling_run,
-        low_density
+        low_density,
+        multi_species_vortex_advection
     };
     /// Store selected TestType from the input file.
     TestType test_type;
@@ -237,6 +241,7 @@ public:
         navier_stokes_channel_flow_constant_source_term_wall_model,
         physics_model,
         physics_model_filtered,
+        real_gas
     };
     /// Store the PDE type to be solved
     PartialDifferentialEquation pde_type;
@@ -323,6 +328,8 @@ public:
     /** Tolerance for checking that the determinant of surface jacobians at element faces matches.
      *  Note: Currently only used in weak dg. */
     double matching_surface_jac_det_tolerance;
+
+    std::string chemistry_input_file; ///< Name of file containing NASA CAP data for species
 
     /// Flag for using wall model (initialized as false)
     bool using_wall_model = false;

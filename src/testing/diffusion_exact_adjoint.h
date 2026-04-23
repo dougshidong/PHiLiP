@@ -51,8 +51,8 @@ namespace Tests {
  */
 
 /// manufactured solution for u
-template <int dim, typename real>
-class ManufacturedSolutionU : public ManufacturedSolutionFunction <dim, real>
+template <int dim, int nspecies, typename real>
+class ManufacturedSolutionU : public ManufacturedSolutionFunction <dim, nspecies, real>
 {
 protected:
     using dealii::Function<dim,real>::value;
@@ -73,8 +73,8 @@ public:
 };
 
 /// manufactured solution for v
-template <int dim, typename real>
-class ManufacturedSolutionV : public ManufacturedSolutionFunction <dim, real>
+template <int dim, int nspecies, typename real>
+class ManufacturedSolutionV : public ManufacturedSolutionFunction <dim, nspecies, real>
 {
 protected:
     using dealii::Function<dim,real>::value;
@@ -95,8 +95,8 @@ public:
 };
 
 /// parent class to add the objective function directly to physics as a virtual class
-template <int dim, int nstate, typename real>
-class diffusion_objective : public Physics::ConvectionDiffusion <dim, nstate, real>
+template <int dim, int nspecies, int nstate, typename real>
+class diffusion_objective : public Physics::ConvectionDiffusion <dim, nspecies, nstate, real>
 {
 protected:
     // For overloading the virtual functions defined in PhysicsBase
@@ -106,16 +106,16 @@ protected:
      *  Solution: In order to make the hidden function visible in derived class, 
      *  we need to add the following:
     */
-    using Physics::PhysicsBase<dim,nstate,real>::dissipative_flux;
-    using Physics::PhysicsBase<dim,nstate,real>::source_term;
+    using Physics::PhysicsBase<dim,nspecies,nstate,real>::dissipative_flux;
+    using Physics::PhysicsBase<dim,nspecies,nstate,real>::source_term;
 public:
     /// constructor
     diffusion_objective(
         const Parameters::AllParameters *const                  parameters_input,
         const bool                                              convection, 
         const bool                                              diffusion,
-        std::shared_ptr<ManufacturedSolutionFunction<dim,real>> manufactured_solution_function): 
-            Physics::ConvectionDiffusion<dim,nstate,real>::ConvectionDiffusion(
+        std::shared_ptr<ManufacturedSolutionFunction<dim,nspecies,real>> manufactured_solution_function): 
+            Physics::ConvectionDiffusion<dim,nspecies,nstate,real>::ConvectionDiffusion(
                 parameters_input,
                 convection, 
                 diffusion,
@@ -157,8 +157,8 @@ public:
 };
 
 ///physics for the u variable
-template <int dim, int nstate, typename real>
-class diffusion_u : public diffusion_objective <dim, nstate, real>
+template <int dim, int nspecies, int nstate, typename real>
+class diffusion_u : public diffusion_objective <dim, nspecies, nstate, real>
 {
 protected:
     // For overloading the virtual functions defined in PhysicsBase
@@ -168,19 +168,19 @@ protected:
      *  Solution: In order to make the hidden function visible in derived class, 
      *  we need to add the following:
     */
-    using Physics::PhysicsBase<dim,nstate,real>::dissipative_flux;
-    using Physics::PhysicsBase<dim,nstate,real>::source_term;
+    using Physics::PhysicsBase<dim,nspecies,nstate,real>::dissipative_flux;
+    using Physics::PhysicsBase<dim,nspecies,nstate,real>::source_term;
 public:
     /// constructor
     diffusion_u(
         const Parameters::AllParameters *const parameters_input,
         const bool convection, 
         const bool diffusion): 
-            diffusion_objective<dim,nstate,real>::diffusion_objective(
+            diffusion_objective<dim,nspecies,nstate,real>::diffusion_objective(
                 parameters_input,
                 convection, 
                 diffusion,
-                std::make_shared<ManufacturedSolutionU<dim,real>>())
+                std::make_shared<ManufacturedSolutionU<dim,nspecies,real>>())
     {}
 
     /// source term = f
@@ -196,8 +196,8 @@ public:
 };
 
 /// physics for the v variable
-template <int dim, int nstate, typename real>
-class diffusion_v : public diffusion_objective <dim, nstate, real>
+template <int dim, int nspecies, int nstate, typename real>
+class diffusion_v : public diffusion_objective <dim, nspecies, nstate, real>
 {
 protected:
     // For overloading the virtual functions defined in PhysicsBase
@@ -207,19 +207,19 @@ protected:
      *  Solution: In order to make the hidden function visible in derived class, 
      *  we need to add the following:
     */
-    using Physics::PhysicsBase<dim,nstate,real>::dissipative_flux;
-    using Physics::PhysicsBase<dim,nstate,real>::source_term;
+    using Physics::PhysicsBase<dim,nspecies,nstate,real>::dissipative_flux;
+    using Physics::PhysicsBase<dim,nspecies,nstate,real>::source_term;
 public:
     /// constructor
     diffusion_v(
         const Parameters::AllParameters *const parameters_input,
         const bool convection, 
         const bool diffusion): 
-            diffusion_objective<dim,nstate,real>::diffusion_objective(
+            diffusion_objective<dim,nspecies,nstate,real>::diffusion_objective(
                 parameters_input,
                 convection, 
                 diffusion,
-                std::make_shared<ManufacturedSolutionV<dim,real>>())
+                std::make_shared<ManufacturedSolutionV<dim,nspecies,real>>())
     {}
 
     /// source term = g
@@ -235,32 +235,32 @@ public:
 };
 
 /// Functional that performs the inner product over the entire domain 
-template <int dim, int nstate, typename real>
-class DiffusionFunctional : public Functional<dim, nstate, real>
+template <int dim, int nspecies, int nstate, typename real>
+class DiffusionFunctional : public Functional<dim, nspecies, nstate, real>
 {
     using FadType = Sacado::Fad::DFad<real>; ///< Sacado AD type for first derivatives.
     using FadFadType = Sacado::Fad::DFad<FadType>; ///< Sacado AD type that allows 2nd derivatives.
 public:
     /// Constructor
     DiffusionFunctional(
-        std::shared_ptr<PHiLiP::DGBase<dim,real>> dg_input,
-        std::shared_ptr<PHiLiP::Physics::PhysicsBase<dim,nstate,FadFadType>> _physics_fad_fad,
+        std::shared_ptr<PHiLiP::DGBase<dim,nspecies,real>> dg_input,
+        std::shared_ptr<PHiLiP::Physics::PhysicsBase<dim,nspecies,nstate,FadFadType>> _physics_fad_fad,
         const bool uses_solution_values = true,
         const bool uses_solution_gradient = false)
-    : PHiLiP::Functional<dim,nstate,real>(dg_input,_physics_fad_fad,uses_solution_values,uses_solution_gradient)
+    : PHiLiP::Functional<dim,nspecies,nstate,real>(dg_input,_physics_fad_fad,uses_solution_values,uses_solution_gradient)
     {}
 
     /// Templated volume integrand
     template <typename real2>
     real2 evaluate_volume_integrand(
-        const PHiLiP::Physics::PhysicsBase<dim,nstate,real2> &physics,
+        const PHiLiP::Physics::PhysicsBase<dim,nspecies,nstate,real2> &physics,
         const dealii::Point<dim,real2> &phys_coord,
         const std::array<real2,nstate> &soln_at_q,
         const std::array<dealii::Tensor<1,dim,real2>,nstate> &soln_grad_at_q) const;
 
     /// Non-template functions to override the template classes
     real evaluate_volume_integrand(
-        const PHiLiP::Physics::PhysicsBase<dim,nstate,real> &physics,
+        const PHiLiP::Physics::PhysicsBase<dim,nspecies,nstate,real> &physics,
         const dealii::Point<dim,real> &phys_coord,
         const std::array<real,nstate> &soln_at_q,
         const std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_at_q) const override
@@ -270,7 +270,7 @@ public:
     
     /// Non-template functions to override the template classes
     FadFadType evaluate_volume_integrand(
-        const PHiLiP::Physics::PhysicsBase<dim,nstate,FadFadType> &physics,
+        const PHiLiP::Physics::PhysicsBase<dim,nspecies,nstate,FadFadType> &physics,
         const dealii::Point<dim,FadFadType> &phys_coord,
         const std::array<FadFadType,nstate> &soln_at_q,
         const std::array<dealii::Tensor<1,dim,FadFadType>,nstate> &soln_grad_at_q) const override
@@ -280,7 +280,7 @@ public:
 };
 
 /// test case
-template <int dim, int nstate>
+template <int dim, int nspecies, int nstate>
 class DiffusionExactAdjoint : public TestsBase
 {
 public: 

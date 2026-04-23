@@ -14,17 +14,17 @@
 namespace PHiLiP {
 namespace Tests {
 
-template <int dim, int nstate>
-StabilityFRParametersRange<dim, nstate>::StabilityFRParametersRange(
+template <int dim, int nspecies, int nstate>
+StabilityFRParametersRange<dim, nspecies, nstate>::StabilityFRParametersRange(
         const PHiLiP::Parameters::AllParameters *const parameters_input,
         const dealii::ParameterHandler &parameter_handler_input)
-: GeneralRefinementStudy<dim,nstate>(parameters_input, parameter_handler_input,
-        GeneralRefinementStudy<dim,nstate>::RefinementType::cell_length)  
+: GeneralRefinementStudy<dim,nspecies,nstate>(parameters_input, parameter_handler_input,
+        GeneralRefinementStudy<dim,nspecies,nstate>::RefinementType::cell_length)  
 {}
 
 
-template <int dim, int nstate>
-    Parameters::AllParameters StabilityFRParametersRange<dim, nstate>::reinit_params_c_value(const Parameters::AllParameters *parameters_in, const double c_value) const
+template <int dim, int nspecies, int nstate>
+    Parameters::AllParameters StabilityFRParametersRange<dim, nspecies, nstate>::reinit_params_c_value(const Parameters::AllParameters *parameters_in, const double c_value) const
 {
     PHiLiP::Parameters::AllParameters parameters = *(parameters_in);
     parameters.FR_user_specified_correction_parameter_value = c_value;
@@ -32,8 +32,8 @@ template <int dim, int nstate>
     return parameters;
 }
 
-template <int dim, int nstate>
-int StabilityFRParametersRange<dim, nstate>::run_test() const
+template <int dim, int nspecies, int nstate>
+int StabilityFRParametersRange<dim, nspecies, nstate>::run_test() const
 {
     this->pcout << " Running stability ESFR parameter range test. " << std::endl;
     int testfail = 0;
@@ -91,10 +91,12 @@ int StabilityFRParametersRange<dim, nstate>::run_test() const
 
     return testfail;
 }
-#if PHILIP_DIM==1
-    template class StabilityFRParametersRange<PHILIP_DIM,PHILIP_DIM>;
-#else
-    template class StabilityFRParametersRange<PHILIP_DIM,1>;
+#if  PHILIP_SPECIES==1
+    #if PHILIP_DIM==1
+        template class StabilityFRParametersRange<PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM>;
+    #else
+        template class StabilityFRParametersRange<PHILIP_DIM, PHILIP_SPECIES, 1>;
+    #endif
 #endif
 } // Tests namespace
 } // PHiLiP namespace

@@ -7,7 +7,7 @@ namespace PHiLiP {
 namespace Tests {
 
 /// Turbulent Channel Flow Unsteady Quantity Check
-template <int dim, int nstate>
+template <int dim, int nspecies, int nstate>
 class TurbulentChannelFlowUnsteadyQuantityCheck: public TestsBase
 {
 public:

@@ -9,15 +9,15 @@ namespace PHiLiP {
 /*  Contains the functions that need to be templated on the number of state variables.
  */
 #if PHILIP_DIM==1 // dealii::parallel::distributed::Triangulation<dim> does not work for 1D
-template <int dim, int nstate, typename real, typename MeshType = dealii::Triangulation<dim>>
+template <int dim, int nspecies, int nstate, typename real, typename MeshType = dealii::Triangulation<dim>>
 #else
-template <int dim, int nstate, typename real, typename MeshType = dealii::parallel::distributed::Triangulation<dim>>
+template <int dim, int nspecies, int nstate, typename real, typename MeshType = dealii::parallel::distributed::Triangulation<dim>>
 #endif
-class DGStrong: public DGBaseState<dim, nstate, real, MeshType>
+class DGStrong: public DGBaseState<dim, nspecies, nstate, real, MeshType>
 {
 protected:
     /// Alias to base class Triangulation.
-    using Triangulation = typename DGBaseState<dim,nstate,real,MeshType>::Triangulation;
+    using Triangulation = typename DGBaseState<dim,nspecies,nstate,real,MeshType>::Triangulation;
 
 public:
     /// Constructor
@@ -67,7 +67,7 @@ protected:
         const std::vector<dealii::types::global_dof_index>     &metric_dofs_indices,
         const unsigned int                                     poly_degree,
         const unsigned int                                     grid_degree,
-        Physics::PhysicsBase<dim, nstate, adtype>              &physics,
+        Physics::PhysicsBase<dim, nspecies, nstate, adtype>    &physics,
         OPERATOR::basis_functions<dim,2*dim>                   &soln_basis,
         OPERATOR::basis_functions<dim,2*dim>                   &flux_basis,
         OPERATOR::local_basis_stiffness<dim,2*dim>             &flux_basis_stiffness,
@@ -123,7 +123,7 @@ protected:
                 metric_dofs_indices,
                 poly_degree,
                 grid_degree,
-                *(DGBaseState<dim,nstate,real,MeshType>::pde_physics_double),
+                *(DGBaseState<dim,nspecies,nstate,real,MeshType>::pde_physics_double),
                 soln_basis,
                 flux_basis,
                 flux_basis_stiffness,
@@ -180,7 +180,7 @@ protected:
                 metric_dofs_indices,
                 poly_degree,
                 grid_degree,
-                *(DGBaseState<dim,nstate,real,MeshType>::pde_physics_rad),
+                *(DGBaseState<dim,nspecies,nstate,real,MeshType>::pde_physics_rad),
                 soln_basis,
                 flux_basis,
                 flux_basis_stiffness,
@@ -237,7 +237,7 @@ protected:
                 metric_dofs_indices,
                 poly_degree,
                 grid_degree,
-                *(DGBaseState<dim,nstate,real,MeshType>::pde_physics_rad_fad),
+                *(DGBaseState<dim,nspecies,nstate,real,MeshType>::pde_physics_rad_fad),
                 soln_basis,
                 flux_basis,
                 flux_basis_stiffness,
@@ -266,9 +266,9 @@ protected:
         const std::vector<real>                                            &local_dual,
         const unsigned int                                                 face_number,
         const unsigned int                                                 boundary_id,
-        Physics::PhysicsBase<dim, nstate, adtype>                          &physics,
-        const NumericalFlux::NumericalFluxConvective<dim, nstate, adtype>  &conv_num_flux,
-        const NumericalFlux::NumericalFluxDissipative<dim, nstate, adtype> &diss_num_flux,
+        Physics::PhysicsBase<dim, nspecies, nstate, adtype>                          &physics,
+        const NumericalFlux::NumericalFluxConvective<dim, nspecies, nstate, adtype>  &conv_num_flux,
+        const NumericalFlux::NumericalFluxDissipative<dim, nspecies, nstate, adtype> &diss_num_flux,
         const unsigned int                                                 poly_degree,
         const unsigned int                                                 grid_degree,
         OPERATOR::basis_functions<dim,2*dim>                               &soln_basis,
@@ -320,9 +320,9 @@ protected:
             local_dual,
             face_number,
             boundary_id,
-            *(DGBaseState<dim,nstate,real,MeshType>::pde_physics_double),
-            *(DGBaseState<dim,nstate,real,MeshType>::conv_num_flux_double),
-            *(DGBaseState<dim,nstate,real,MeshType>::diss_num_flux_double),
+            *(DGBaseState<dim,nspecies,nstate,real,MeshType>::pde_physics_double),
+            *(DGBaseState<dim,nspecies,nstate,real,MeshType>::conv_num_flux_double),
+            *(DGBaseState<dim,nspecies,nstate,real,MeshType>::diss_num_flux_double),
             poly_degree,
             grid_degree,
             soln_basis,
@@ -375,9 +375,9 @@ protected:
             local_dual,
             face_number,
             boundary_id,
-            *(DGBaseState<dim,nstate,real,MeshType>::pde_physics_rad),
-            *(DGBaseState<dim,nstate,real,MeshType>::conv_num_flux_rad),
-            *(DGBaseState<dim,nstate,real,MeshType>::diss_num_flux_rad),
+            *(DGBaseState<dim,nspecies,nstate,real,MeshType>::pde_physics_rad),
+            *(DGBaseState<dim,nspecies,nstate,real,MeshType>::conv_num_flux_rad),
+            *(DGBaseState<dim,nspecies,nstate,real,MeshType>::diss_num_flux_rad),
             poly_degree,
             grid_degree,
             soln_basis,
@@ -430,9 +430,9 @@ protected:
             local_dual,
             face_number,
             boundary_id,
-            *(DGBaseState<dim,nstate,real,MeshType>::pde_physics_rad_fad),
-            *(DGBaseState<dim,nstate,real,MeshType>::conv_num_flux_rad_fad),
-            *(DGBaseState<dim,nstate,real,MeshType>::diss_num_flux_rad_fad),
+            *(DGBaseState<dim,nspecies,nstate,real,MeshType>::pde_physics_rad_fad),
+            *(DGBaseState<dim,nspecies,nstate,real,MeshType>::conv_num_flux_rad_fad),
+            *(DGBaseState<dim,nspecies,nstate,real,MeshType>::diss_num_flux_rad_fad),
             poly_degree,
             grid_degree,
             soln_basis,
@@ -482,9 +482,9 @@ protected:
         OPERATOR::metric_operators<adtype,dim,2*dim>                       &metric_oper_ext,
         OPERATOR::mapping_shape_functions<dim,2*dim>                       &mapping_basis,
         std::array<std::vector<adtype>,dim>                                &mapping_support_points,
-        Physics::PhysicsBase<dim, nstate, adtype>                          &physics,
-        const NumericalFlux::NumericalFluxConvective<dim, nstate, adtype>  &conv_num_flux,
-        const NumericalFlux::NumericalFluxDissipative<dim, nstate, adtype> &diss_num_flux,
+        Physics::PhysicsBase<dim, nspecies, nstate, adtype>                          &physics,
+        const NumericalFlux::NumericalFluxConvective<dim, nspecies, nstate, adtype>  &conv_num_flux,
+        const NumericalFlux::NumericalFluxDissipative<dim, nspecies, nstate, adtype> &diss_num_flux,
         dealii::hp::FEFaceValues<dim,dim>                                  &/*fe_values_collection_face_int*/,
         dealii::hp::FEFaceValues<dim,dim>                                  &/*fe_values_collection_face_ext*/,
         dealii::hp::FESubfaceValues<dim,dim>                               &/*fe_values_collection_subface*/,
@@ -577,9 +577,9 @@ protected:
             metric_oper_ext,
             mapping_basis,
             mapping_support_points,
-            *(DGBaseState<dim,nstate,real,MeshType>::pde_physics_double),
-            *(DGBaseState<dim,nstate,real,MeshType>::conv_num_flux_double),
-            *(DGBaseState<dim,nstate,real,MeshType>::diss_num_flux_double),
+            *(DGBaseState<dim,nspecies,nstate,real,MeshType>::pde_physics_double),
+            *(DGBaseState<dim,nspecies,nstate,real,MeshType>::conv_num_flux_double),
+            *(DGBaseState<dim,nspecies,nstate,real,MeshType>::diss_num_flux_double),
             fe_values_collection_face_int,
             fe_values_collection_face_ext,
             fe_values_collection_subface,
@@ -673,9 +673,9 @@ protected:
             metric_oper_ext,
             mapping_basis,
             mapping_support_points,
-            *(DGBaseState<dim,nstate,real,MeshType>::pde_physics_rad),
-            *(DGBaseState<dim,nstate,real,MeshType>::conv_num_flux_rad),
-            *(DGBaseState<dim,nstate,real,MeshType>::diss_num_flux_rad),
+            *(DGBaseState<dim,nspecies,nstate,real,MeshType>::pde_physics_rad),
+            *(DGBaseState<dim,nspecies,nstate,real,MeshType>::conv_num_flux_rad),
+            *(DGBaseState<dim,nspecies,nstate,real,MeshType>::diss_num_flux_rad),
             fe_values_collection_face_int,
             fe_values_collection_face_ext,
             fe_values_collection_subface,
@@ -769,9 +769,9 @@ protected:
             metric_oper_ext,
             mapping_basis,
             mapping_support_points,
-            *(DGBaseState<dim,nstate,real,MeshType>::pde_physics_rad_fad),
-            *(DGBaseState<dim,nstate,real,MeshType>::conv_num_flux_rad_fad),
-            *(DGBaseState<dim,nstate,real,MeshType>::diss_num_flux_rad_fad),
+            *(DGBaseState<dim,nspecies,nstate,real,MeshType>::pde_physics_rad_fad),
+            *(DGBaseState<dim,nspecies,nstate,real,MeshType>::conv_num_flux_rad_fad),
+            *(DGBaseState<dim,nspecies,nstate,real,MeshType>::diss_num_flux_rad_fad),
             fe_values_collection_face_int,
             fe_values_collection_face_ext,
             fe_values_collection_subface,
@@ -814,8 +814,8 @@ protected:
         const unsigned int                                 boundary_id,
         OPERATOR::basis_functions<dim,2*dim>               &soln_basis,
         OPERATOR::metric_operators<adtype,dim,2*dim>       &metric_oper,
-        const Physics::PhysicsBase<dim, nstate, adtype>                    &pde_physics,
-        const NumericalFlux::NumericalFluxDissipative<dim, nstate, adtype> &diss_num_flux,
+        const Physics::PhysicsBase<dim, nspecies, nstate, adtype>                    &pde_physics,
+        const NumericalFlux::NumericalFluxDissipative<dim, nspecies, nstate, adtype> &diss_num_flux,
         dealii::Tensor<1,dim,std::vector<adtype>>          &local_auxiliary_RHS);
 
 public:
@@ -838,8 +838,8 @@ public:
         OPERATOR::basis_functions<dim,2*dim>               &soln_basis_int,
         OPERATOR::basis_functions<dim,2*dim>               &soln_basis_ext,
         OPERATOR::metric_operators<adtype,dim,2*dim>       &metric_oper_int,
-        const Physics::PhysicsBase<dim, nstate, adtype>                    &pde_physics,
-        const NumericalFlux::NumericalFluxDissipative<dim, nstate, adtype> &diss_num_flux,
+        const Physics::PhysicsBase<dim, nspecies, nstate, adtype>                    &pde_physics,
+        const NumericalFlux::NumericalFluxDissipative<dim, nspecies, nstate, adtype> &diss_num_flux,
         dealii::Tensor<1,dim,std::vector<adtype>>          &local_auxiliary_RHS_int,
         dealii::Tensor<1,dim,std::vector<adtype>>          &local_auxiliary_RHS_ext);
 
@@ -874,7 +874,7 @@ protected:
         OPERATOR::local_basis_stiffness<dim,2*dim>             &flux_basis_stiffness,
         OPERATOR::vol_projection_operator<dim,2*dim>           &soln_basis_projection_oper,
         OPERATOR::metric_operators<adtype,dim,2*dim>           &metric_oper,
-        Physics::PhysicsBase<dim, nstate, adtype>              &pde_physics,
+        Physics::PhysicsBase<dim, nspecies, nstate, adtype>    &pde_physics,
         std::vector<adtype>                                    &local_rhs_int_cell);
 
     /// Strong form primary equation's boundary right-hand-side.
@@ -892,9 +892,9 @@ protected:
         OPERATOR::basis_functions<dim,2*dim>                               &flux_basis,
         OPERATOR::vol_projection_operator<dim,2*dim>                       &soln_basis_projection_oper,
         OPERATOR::metric_operators<adtype,dim,2*dim>                       &metric_oper,
-        Physics::PhysicsBase<dim, nstate, adtype>                          &pde_physics,
-        const NumericalFlux::NumericalFluxConvective<dim, nstate, adtype>  &conv_num_flux,
-        const NumericalFlux::NumericalFluxDissipative<dim, nstate, adtype> &diss_num_flux,
+        Physics::PhysicsBase<dim, nspecies, nstate, adtype>                          &pde_physics,
+        const NumericalFlux::NumericalFluxConvective<dim, nspecies, nstate, adtype>  &conv_num_flux,
+        const NumericalFlux::NumericalFluxDissipative<dim, nspecies, nstate, adtype> &diss_num_flux,
         std::vector<adtype>                                                &local_rhs_cell);
 
     /// Strong form primary equation's facet right-hand-side.
@@ -927,9 +927,9 @@ protected:
         OPERATOR::vol_projection_operator<dim,2*dim>                       &soln_basis_projection_oper_ext,
         OPERATOR::metric_operators<adtype,dim,2*dim>                       &metric_oper_int,
         OPERATOR::metric_operators<adtype,dim,2*dim>                       &metric_oper_ext,
-        Physics::PhysicsBase<dim, nstate, adtype>                          &pde_physics,
-        const NumericalFlux::NumericalFluxConvective<dim, nstate, adtype>  &conv_num_flux,
-        const NumericalFlux::NumericalFluxDissipative<dim, nstate, adtype> &diss_num_flux,
+        Physics::PhysicsBase<dim, nspecies, nstate, adtype>                          &pde_physics,
+        const NumericalFlux::NumericalFluxConvective<dim, nspecies, nstate, adtype>  &conv_num_flux,
+        const NumericalFlux::NumericalFluxDissipative<dim, nspecies, nstate, adtype> &diss_num_flux,
         std::vector<adtype>                                                  &local_rhs_int_cell,
         std::vector<adtype>                                                  &local_rhs_ext_cell);
 
@@ -948,7 +948,7 @@ protected:
     
     
 
-    using DGBase<dim,real,MeshType>::pcout; ///< Parallel std::cout that only outputs on mpi_rank==0
+    using DGBase<dim,nspecies,real,MeshType>::pcout; ///< Parallel std::cout that only outputs on mpi_rank==0
 
 public:
     /// Builds volume metric operators (metric cofactor and determinant of metric Jacobian).

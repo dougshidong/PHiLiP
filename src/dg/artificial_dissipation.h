@@ -12,7 +12,7 @@ namespace PHiLiP{
 
 /// Class to add artificial dissipation with an option to add one of the 3 dissipation types: 1. Laplacian, 2. Physical and 3. Enthalpy Laplacian. 
 
-template <int dim, int nstate>
+template <int dim, int nspecies, int nstate>
 class ArtificialDissipationBase
 {
     public:
@@ -56,23 +56,23 @@ class ArtificialDissipationBase
 
 
 /// Adds Laplacian artificial dissipation (from Persson and Peraire, 2008).
-template <int dim, int nstate>
-class LaplacianArtificialDissipation: public ArtificialDissipationBase <dim, nstate>
+template <int dim, int nspecies, int nstate>
+class LaplacianArtificialDissipation: public ArtificialDissipationBase <dim, nspecies, nstate>
 {
     /// ConvectionDiffusion object of type double.
-    Physics::ConvectionDiffusion<dim,nstate,double>     convection_diffusion_double;
+    Physics::ConvectionDiffusion<dim,nspecies,nstate,double>     convection_diffusion_double;
     
     /// ConvectionDiffusion object of type FadType.
-    Physics::ConvectionDiffusion<dim,nstate,FadType> convection_diffusion_FadType;
+    Physics::ConvectionDiffusion<dim,nspecies,nstate,FadType> convection_diffusion_FadType;
     
     /// ConvectionDiffusion object of type RadType.
-    Physics::ConvectionDiffusion<dim,nstate,RadType>    convection_diffusion_RadType;
+    Physics::ConvectionDiffusion<dim,nspecies,nstate,RadType>    convection_diffusion_RadType;
     
     /// ConvectionDiffusion object of type FadFadType.
-    Physics::ConvectionDiffusion<dim,nstate,FadFadType> convection_diffusion_FadFadType;
+    Physics::ConvectionDiffusion<dim,nspecies,nstate,FadFadType> convection_diffusion_FadFadType;
     
     /// ConvectionDiffusion object of type RadFadType.
-    Physics::ConvectionDiffusion<dim,nstate,RadFadType> convection_diffusion_RadFadType;
+    Physics::ConvectionDiffusion<dim,nspecies,nstate,RadFadType> convection_diffusion_RadFadType;
 
 
     template <typename real2>
@@ -81,7 +81,7 @@ class LaplacianArtificialDissipation: public ArtificialDissipationBase <dim, nst
         const std::array<real2,nstate> &conservative_soln, 
         const std::array<dealii::Tensor<1,dim,real2>,nstate> &solution_gradient, 
         const real2 artificial_viscosity,
-        const Physics::ConvectionDiffusion<dim,nstate,real2> &convection_diffusion);
+        const Physics::ConvectionDiffusion<dim,nspecies,nstate,real2> &convection_diffusion);
  
     public:
     /// Constructor of LaplacianArtificialDissipation.
@@ -117,24 +117,24 @@ class LaplacianArtificialDissipation: public ArtificialDissipationBase <dim, nst
 
  
 /// Adds Physical artificial dissipation (from Persson and Peraire, 2008).
-template <int dim, int nstate>
-class PhysicalArtificialDissipation: public ArtificialDissipationBase <dim, nstate>
+template <int dim, int nspecies, int nstate>
+class PhysicalArtificialDissipation: public ArtificialDissipationBase <dim, nspecies, nstate>
 {
    
     /// NavierStokes object of type double.
-    Physics::NavierStokes<dim,nstate,double>     navier_stokes_double;
+    Physics::NavierStokes<dim,nspecies,nstate,double>     navier_stokes_double;
     
     /// NavierStokes object of type FadType.
-    Physics::NavierStokes<dim,nstate,FadType>    navier_stokes_FadType;
+    Physics::NavierStokes<dim,nspecies,nstate,FadType>    navier_stokes_FadType;
     
     /// NavierStokes object of type RadType.
-    Physics::NavierStokes<dim,nstate,RadType>    navier_stokes_RadType;
+    Physics::NavierStokes<dim,nspecies,nstate,RadType>    navier_stokes_RadType;
     
     /// NavierStokes object of type FadFadType.
-    Physics::NavierStokes<dim,nstate,FadFadType> navier_stokes_FadFadType;
+    Physics::NavierStokes<dim,nspecies,nstate,FadFadType> navier_stokes_FadFadType;
     
     /// NavierStokes object of type RadFadType.
-    Physics::NavierStokes<dim,nstate,RadFadType> navier_stokes_RadFadType;
+    Physics::NavierStokes<dim,nspecies,nstate,RadFadType> navier_stokes_RadFadType;
 
     template <typename real2>
     /// Calculates navier stokes artificial dissipation flux.
@@ -142,7 +142,7 @@ class PhysicalArtificialDissipation: public ArtificialDissipationBase <dim, nsta
         const std::array<real2,nstate> &conservative_soln, 
         const std::array<dealii::Tensor<1,dim,real2>,nstate> &solution_gradient, 
         const real2 artificial_viscosity,
-        const Physics::NavierStokes<dim,nstate,real2> &navier_stokes);
+        const Physics::NavierStokes<dim,nspecies,nstate,real2> &navier_stokes);
 
     public:
     /// Constructor of PhysicalArtificialDissipation.
@@ -235,24 +235,24 @@ class PhysicalArtificialDissipation: public ArtificialDissipationBase <dim, nsta
 
 
 /// Adds enthalpy laplacian artificial dissipation (from G.E. Barter and D.L. Darmofal, 2009).
-template <int dim, int nstate>
-class EnthalpyConservingArtificialDissipation: public ArtificialDissipationBase <dim, nstate>
+template <int dim, int nspecies, int nstate>
+class EnthalpyConservingArtificialDissipation: public ArtificialDissipationBase <dim, nspecies, nstate>
 {
 
     /// NavierStokes object of type double.
-    Physics::NavierStokes<dim,nstate,double>     navier_stokes_double;
+    Physics::NavierStokes<dim,nspecies,nstate,double>     navier_stokes_double;
     
     /// NavierStokes object of type FadType.
-    Physics::NavierStokes<dim,nstate,FadType>    navier_stokes_FadType;
+    Physics::NavierStokes<dim,nspecies,nstate,FadType>    navier_stokes_FadType;
     
     /// NavierStokes object of type RadType.
-    Physics::NavierStokes<dim,nstate,RadType>    navier_stokes_RadType;
+    Physics::NavierStokes<dim,nspecies,nstate,RadType>    navier_stokes_RadType;
     
     /// NavierStokes object of type FadFadType.
-    Physics::NavierStokes<dim,nstate,FadFadType> navier_stokes_FadFadType;
+    Physics::NavierStokes<dim,nspecies,nstate,FadFadType> navier_stokes_FadFadType;
     
     /// NavierStokes object of type RadFadType.
-    Physics::NavierStokes<dim,nstate,RadFadType> navier_stokes_RadFadType;
+    Physics::NavierStokes<dim,nspecies,nstate,RadFadType> navier_stokes_RadFadType;
     
     template <typename real2>
     /// Calculates enthalpy laplacian artificial dissipation flux.
@@ -260,7 +260,7 @@ class EnthalpyConservingArtificialDissipation: public ArtificialDissipationBase 
         const std::array<real2,nstate> &conservative_soln, 
         const std::array<dealii::Tensor<1,dim,real2>,nstate> &solution_gradient,
         real2 artificial_viscosity,
-        const Physics::NavierStokes<dim,nstate,real2> &navier_stokes);
+        const Physics::NavierStokes<dim,nspecies,nstate,real2> &navier_stokes);
 
     public:
     /// Constructor of EnthalpyConservingArtificialDissipation

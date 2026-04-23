@@ -11,7 +11,7 @@ namespace PHiLiP {
 namespace Tests {
 
 /// Verify numerical_entropy conservation for inviscid Burgers using split form and RRK
-template <int dim, int nstate>
+template <int dim, int nspecies, int nstate>
 class RRKNumericalEntropyConservationCheck: public TestsBase
 {
 public:
@@ -32,7 +32,7 @@ protected:
     
     /// Compare the numerical_entropy after flow simulation to initial, and return test fail int
     int compare_numerical_entropy_to_initial(
-            const std::unique_ptr<FlowSolver::FlowSolver<dim,nstate>> &flow_solver,
+            const std::unique_ptr<FlowSolver::FlowSolver<dim,nspecies,nstate>> &flow_solver,
             const double initial_numerical_entropy,
             const double final_time_actual,
             bool expect_conservation

@@ -1,3 +1,5 @@
+#include <boost/preprocessor/seq/for_each.hpp>
+
 #include "parameters/all_parameters.h"
 #include "parameters/parameters_manufactured_solution.h"
 
@@ -15,15 +17,16 @@
 #include "mhd.h"
 #include "navier_stokes.h"
 #include "physics_model.h"
+#include "real_gas.h"
 
 namespace PHiLiP {
 namespace Physics {
 
-template <int dim, int nstate, typename real>
-std::shared_ptr < PhysicsBase<dim,nstate,real> >
-PhysicsFactory<dim,nstate,real>
+template <int dim, int nspecies, int nstate, typename real>
+std::shared_ptr < PhysicsBase<dim,nspecies,nstate,real> >
+PhysicsFactory<dim,nspecies,nstate,real>
 ::create_Physics(const Parameters::AllParameters               *const parameters_input,
-                 std::shared_ptr< ModelBase<dim,nstate,real> > model_input)
+                 std::shared_ptr< ModelBase<dim,nspecies,nstate,real> > model_input)
 {
     using PDE_enum = Parameters::AllParameters::PartialDifferentialEquation;
     PDE_enum pde_type = parameters_input->pde_type;
@@ -31,189 +34,194 @@ PhysicsFactory<dim,nstate,real>
     return create_Physics(parameters_input, pde_type, model_input);
 }
 
-template <int dim, int nstate, typename real>
-std::shared_ptr < PhysicsBase<dim,nstate,real> >
-PhysicsFactory<dim,nstate,real>
+template <int dim, int nspecies, int nstate, typename real>
+std::shared_ptr < PhysicsBase<dim,nspecies,nstate,real> >
+PhysicsFactory<dim,nspecies,nstate,real>
 ::create_Physics(const Parameters::AllParameters                              *const parameters_input,
                  const Parameters::AllParameters::PartialDifferentialEquation pde_type,
-                 std::shared_ptr< ModelBase<dim,nstate,real> >                model_input)
+                 std::shared_ptr< ModelBase<dim,nspecies,nstate,real> >                model_input)
 {
     using PDE_enum = Parameters::AllParameters::PartialDifferentialEquation;
 
-    // generating the manufactured solution from the manufactured solution factory
-    std::shared_ptr< ManufacturedSolutionFunction<dim,real> >  manufactured_solution_function 
-        = ManufacturedSolutionFactory<dim,real>::create_ManufacturedSolution(parameters_input, nstate);
+    if constexpr(nspecies==1) {
+        // generating the manufactured solution from the manufactured solution factory
+        std::shared_ptr< ManufacturedSolutionFunction<dim,nspecies,real> >  manufactured_solution_function 
+            = ManufacturedSolutionFactory<dim,nspecies,real>::create_ManufacturedSolution(parameters_input, nstate);
 
-    // setting the diffusion tensor and advection vectors from parameters (if needed)
-    const dealii::Tensor<2,3,double> diffusion_tensor      = parameters_input->manufactured_convergence_study_param.manufactured_solution_param.diffusion_tensor;
-    const dealii::Tensor<1,3,double> advection_vector      = parameters_input->manufactured_convergence_study_param.manufactured_solution_param.advection_vector;
-    const double                     diffusion_coefficient = parameters_input->manufactured_convergence_study_param.manufactured_solution_param.diffusion_coefficient;
+        // setting the diffusion tensor and advection vectors from parameters (if needed)
+        const dealii::Tensor<2,3,double> diffusion_tensor      = parameters_input->manufactured_convergence_study_param.manufactured_solution_param.diffusion_tensor;
+        const dealii::Tensor<1,3,double> advection_vector      = parameters_input->manufactured_convergence_study_param.manufactured_solution_param.advection_vector;
+        const double                     diffusion_coefficient = parameters_input->manufactured_convergence_study_param.manufactured_solution_param.diffusion_coefficient;
 
-    if (pde_type == PDE_enum::advection || pde_type == PDE_enum::advection_vector) {
-        if constexpr (nstate<=2) 
-            return std::make_shared < ConvectionDiffusion<dim,nstate,real> >(
-                parameters_input,
-                true, false,
-                diffusion_tensor, advection_vector, diffusion_coefficient,
-                manufactured_solution_function);
-    } else if (pde_type == PDE_enum::diffusion) {
-        if constexpr (nstate==1) 
-            return std::make_shared < ConvectionDiffusion<dim,nstate,real> >(
-                parameters_input,
-                false, true,
-                diffusion_tensor, advection_vector, diffusion_coefficient,
-                manufactured_solution_function,
-                parameters_input->test_type);
-    } else if (pde_type == PDE_enum::convection_diffusion) {
-        if constexpr (nstate==1) 
-            return std::make_shared < ConvectionDiffusion<dim,nstate,real> >(
-                parameters_input,
-                true, true,
-                diffusion_tensor, advection_vector, diffusion_coefficient,
-                manufactured_solution_function,
-                parameters_input->test_type);
-    } else if (pde_type == PDE_enum::burgers_inviscid) {
-        if constexpr (nstate==dim) 
-            return std::make_shared < Burgers<dim,nstate,real> >(
-                parameters_input,
-                parameters_input->burgers_param.diffusion_coefficient,
-                true, false,
-                diffusion_tensor, 
-                manufactured_solution_function,
-                parameters_input->test_type);
-    } else if (pde_type == PDE_enum::burgers_viscous) {
-        if constexpr (nstate==dim)
-            return std::make_shared < Burgers<dim,nstate,real> >(
-                parameters_input,
-                parameters_input->burgers_param.diffusion_coefficient,
-                true, true,
-                diffusion_tensor,
-                manufactured_solution_function);
-    } else if (pde_type == PDE_enum::burgers_rewienski) {
-        if constexpr (nstate==dim)
-            return std::make_shared < BurgersRewienski<dim,nstate,real> >(
-                parameters_input,
-                parameters_input->burgers_param.rewienski_a,
-                parameters_input->burgers_param.rewienski_b,
-                parameters_input->burgers_param.rewienski_manufactured_solution,
-                true,
-                false,
-                diffusion_tensor,
-                manufactured_solution_function);
-    } else if (pde_type == PDE_enum::euler) {
-        if constexpr (nstate==dim+2) {
-            return std::make_shared < Euler<dim,nstate,real> > (
-                parameters_input,
-                parameters_input->euler_param.ref_length,
-                parameters_input->euler_param.gamma_gas,
-                parameters_input->euler_param.mach_inf,
-                parameters_input->euler_param.angle_of_attack,
-                parameters_input->euler_param.side_slip_angle,
-                manufactured_solution_function,
-                parameters_input->two_point_num_flux_type);
-        }
-    } else if (pde_type == PDE_enum::mhd) {
-        if constexpr (nstate == 8) 
-            return std::make_shared < MHD<dim,nstate,real> > (
-                parameters_input,
-                parameters_input->euler_param.gamma_gas,
-                diffusion_tensor, 
-                manufactured_solution_function);
-    } else if (pde_type == PDE_enum::navier_stokes) {
-        if constexpr (nstate==dim+2) {
-            return std::make_shared < NavierStokes<dim,nstate,real> > (
-                parameters_input,
-                parameters_input->euler_param.ref_length,
-                parameters_input->euler_param.gamma_gas,
-                parameters_input->euler_param.mach_inf,
-                parameters_input->euler_param.angle_of_attack,
-                parameters_input->euler_param.side_slip_angle,
-                parameters_input->navier_stokes_param.prandtl_number,
-                parameters_input->navier_stokes_param.reynolds_number_inf,
-                parameters_input->navier_stokes_param.use_constant_viscosity,
-                parameters_input->navier_stokes_param.nondimensionalized_constant_viscosity,
-                parameters_input->navier_stokes_param.temperature_inf,
-                parameters_input->navier_stokes_param.nondimensionalized_isothermal_wall_temperature,
-                parameters_input->navier_stokes_param.thermal_boundary_condition_type,
-                manufactured_solution_function,
-                parameters_input->two_point_num_flux_type);
-        }
-    } else if (pde_type == PDE_enum::navier_stokes_channel_flow_constant_source_term) {
-        if constexpr (nstate==dim+2) {
-            const double domain_length_y_direction = parameters_input->flow_solver_param.turbulent_channel_domain_length_y_direction;
-            const double half_channel_height = domain_length_y_direction/2.0;
-            return std::make_shared < NavierStokes_ChannelFlowConstantSourceTerm<dim,nstate,real> > (
-                parameters_input,
-                parameters_input->euler_param.ref_length,
-                parameters_input->euler_param.gamma_gas,
-                parameters_input->euler_param.mach_inf,
-                parameters_input->euler_param.angle_of_attack,
-                parameters_input->euler_param.side_slip_angle,
-                parameters_input->navier_stokes_param.prandtl_number,
-                parameters_input->navier_stokes_param.reynolds_number_inf,
-                parameters_input->navier_stokes_param.use_constant_viscosity,
-                parameters_input->navier_stokes_param.nondimensionalized_constant_viscosity,
-                parameters_input->flow_solver_param.turbulent_channel_friction_velocity_reynolds_number,
-                half_channel_height,
-                parameters_input->navier_stokes_param.temperature_inf,
-                parameters_input->navier_stokes_param.nondimensionalized_isothermal_wall_temperature,
-                parameters_input->navier_stokes_param.thermal_boundary_condition_type,
-                manufactured_solution_function,
-                parameters_input->two_point_num_flux_type);
-        }
-    } else if (pde_type == PDE_enum::navier_stokes_channel_flow_constant_source_term_wall_model) {
-        if constexpr (nstate==dim+2) {
-            if(parameters_input->flow_solver_param.flow_case_type != Parameters::FlowSolverParam::FlowCaseType::channel_flow) {
-                std::cout << "Invalid flow case, can only create NavierStokes_ChannelFlowConstantSourceTerm_WallModel for ChannelFlow." << std::endl;
-                return nullptr;
+        if (pde_type == PDE_enum::advection || pde_type == PDE_enum::advection_vector) {
+            if constexpr (nstate<=2) 
+                return std::make_shared < ConvectionDiffusion<dim,nspecies,nstate,real> >(
+                    parameters_input,
+                    true, false,
+                    diffusion_tensor, advection_vector, diffusion_coefficient,
+                    manufactured_solution_function);
+        } else if (pde_type == PDE_enum::diffusion) {
+            if constexpr (nstate==1) 
+                return std::make_shared < ConvectionDiffusion<dim,nspecies,nstate,real> >(
+                    parameters_input,
+                    false, true,
+                    diffusion_tensor, advection_vector, diffusion_coefficient,
+                    manufactured_solution_function,
+                    parameters_input->test_type);
+        } else if (pde_type == PDE_enum::convection_diffusion) {
+            if constexpr (nstate==1) 
+                return std::make_shared < ConvectionDiffusion<dim,nspecies,nstate,real> >(
+                    parameters_input,
+                    true, true,
+                    diffusion_tensor, advection_vector, diffusion_coefficient,
+                    manufactured_solution_function,
+                    parameters_input->test_type);
+        } else if (pde_type == PDE_enum::burgers_inviscid) {
+            if constexpr (nstate==dim) 
+                return std::make_shared < Burgers<dim,nspecies,nstate,real> >(
+                    parameters_input,
+                    parameters_input->burgers_param.diffusion_coefficient,
+                    true, false,
+                    diffusion_tensor, 
+                    manufactured_solution_function,
+                    parameters_input->test_type);
+        } else if (pde_type == PDE_enum::burgers_viscous) {
+            if constexpr (nstate==dim)
+                return std::make_shared < Burgers<dim,nspecies,nstate,real> >(
+                    parameters_input,
+                    parameters_input->burgers_param.diffusion_coefficient,
+                    true, true,
+                    diffusion_tensor,
+                    manufactured_solution_function);
+        } else if (pde_type == PDE_enum::burgers_rewienski) {
+            if constexpr (nstate==dim)
+                return std::make_shared < BurgersRewienski<dim,nspecies,nstate,real> >(
+                    parameters_input,
+                    parameters_input->burgers_param.rewienski_a,
+                    parameters_input->burgers_param.rewienski_b,
+                    parameters_input->burgers_param.rewienski_manufactured_solution,
+                    true,
+                    false,
+                    diffusion_tensor,
+                    manufactured_solution_function);
+        } else if (pde_type == PDE_enum::euler) {
+            if constexpr (nstate==dim+2) {
+                return std::make_shared < Euler<dim,nspecies,nstate,real> > (
+                    parameters_input,
+                    parameters_input->euler_param.ref_length,
+                    parameters_input->euler_param.gamma_gas,
+                    parameters_input->euler_param.mach_inf,
+                    parameters_input->euler_param.angle_of_attack,
+                    parameters_input->euler_param.side_slip_angle,
+                    manufactured_solution_function,
+                    parameters_input->two_point_num_flux_type);
             }
-            const double domain_length_y_direction = parameters_input->flow_solver_param.turbulent_channel_domain_length_y_direction;
-            const double half_channel_height = domain_length_y_direction/2.0;
-            const int number_of_cells_y_direction = parameters_input->flow_solver_param.turbulent_channel_number_of_cells_y_direction;
-            const double uniform_spacing_y_direction = domain_length_y_direction/double(number_of_cells_y_direction);
-            return std::make_shared < NavierStokes_ChannelFlowConstantSourceTerm_WallModel<dim,nstate,real> > (
-                parameters_input,
-                parameters_input->euler_param.ref_length,
-                parameters_input->euler_param.gamma_gas,
-                parameters_input->euler_param.mach_inf,
-                parameters_input->euler_param.angle_of_attack,
-                parameters_input->euler_param.side_slip_angle,
-                parameters_input->navier_stokes_param.prandtl_number,
-                parameters_input->navier_stokes_param.reynolds_number_inf,
-                parameters_input->navier_stokes_param.use_constant_viscosity,
-                parameters_input->navier_stokes_param.nondimensionalized_constant_viscosity,
-                parameters_input->flow_solver_param.turbulent_channel_friction_velocity_reynolds_number,
-                half_channel_height,
-                uniform_spacing_y_direction,
-                parameters_input->navier_stokes_param.temperature_inf,
-                parameters_input->navier_stokes_param.nondimensionalized_isothermal_wall_temperature,
-                parameters_input->navier_stokes_param.thermal_boundary_condition_type,
-                manufactured_solution_function,
-                parameters_input->two_point_num_flux_type);
+        } else if (pde_type == PDE_enum::mhd) {
+            if constexpr (nstate == 8) 
+                return std::make_shared < MHD<dim,nspecies,nstate,real> > (
+                    parameters_input,
+                    parameters_input->euler_param.gamma_gas,
+                    diffusion_tensor, 
+                    manufactured_solution_function);
+        } else if (pde_type == PDE_enum::navier_stokes) {
+            if constexpr (nstate==dim+2) {
+                return std::make_shared < NavierStokes<dim,nspecies,nstate,real> > (
+                    parameters_input,
+                    parameters_input->euler_param.ref_length,
+                    parameters_input->euler_param.gamma_gas,
+                    parameters_input->euler_param.mach_inf,
+                    parameters_input->euler_param.angle_of_attack,
+                    parameters_input->euler_param.side_slip_angle,
+                    parameters_input->navier_stokes_param.prandtl_number,
+                    parameters_input->navier_stokes_param.reynolds_number_inf,
+                    parameters_input->navier_stokes_param.use_constant_viscosity,
+                    parameters_input->navier_stokes_param.nondimensionalized_constant_viscosity,
+                    parameters_input->navier_stokes_param.temperature_inf,
+                    parameters_input->navier_stokes_param.nondimensionalized_isothermal_wall_temperature,
+                    parameters_input->navier_stokes_param.thermal_boundary_condition_type,
+                    manufactured_solution_function,
+                    parameters_input->two_point_num_flux_type);
+            }
+        } else if (pde_type == PDE_enum::navier_stokes_channel_flow_constant_source_term) {
+            if constexpr (nstate==dim+2) {
+                const double domain_length_y_direction = parameters_input->flow_solver_param.turbulent_channel_domain_length_y_direction;
+                const double half_channel_height = domain_length_y_direction/2.0;
+                return std::make_shared < NavierStokes_ChannelFlowConstantSourceTerm<dim,nspecies,nstate,real> > (
+                    parameters_input,
+                    parameters_input->euler_param.ref_length,
+                    parameters_input->euler_param.gamma_gas,
+                    parameters_input->euler_param.mach_inf,
+                    parameters_input->euler_param.angle_of_attack,
+                    parameters_input->euler_param.side_slip_angle,
+                    parameters_input->navier_stokes_param.prandtl_number,
+                    parameters_input->navier_stokes_param.reynolds_number_inf,
+                    parameters_input->navier_stokes_param.use_constant_viscosity,
+                    parameters_input->navier_stokes_param.nondimensionalized_constant_viscosity,
+                    parameters_input->flow_solver_param.turbulent_channel_friction_velocity_reynolds_number,
+                    half_channel_height,
+                    parameters_input->navier_stokes_param.temperature_inf,
+                    parameters_input->navier_stokes_param.nondimensionalized_isothermal_wall_temperature,
+                    parameters_input->navier_stokes_param.thermal_boundary_condition_type,
+                    manufactured_solution_function,
+                    parameters_input->two_point_num_flux_type);
+            }
+        } else if (pde_type == PDE_enum::navier_stokes_channel_flow_constant_source_term_wall_model) {
+            if constexpr (nstate==dim+2) {
+                if(parameters_input->flow_solver_param.flow_case_type != Parameters::FlowSolverParam::FlowCaseType::channel_flow) {
+                    std::cout << "Invalid flow case, can only create NavierStokes_ChannelFlowConstantSourceTerm_WallModel for ChannelFlow." << std::endl;
+                    return nullptr;
+                }
+                const double domain_length_y_direction = parameters_input->flow_solver_param.turbulent_channel_domain_length_y_direction;
+                const double half_channel_height = domain_length_y_direction/2.0;
+                const int number_of_cells_y_direction = parameters_input->flow_solver_param.turbulent_channel_number_of_cells_y_direction;
+                const double uniform_spacing_y_direction = domain_length_y_direction/double(number_of_cells_y_direction);
+                return std::make_shared < NavierStokes_ChannelFlowConstantSourceTerm_WallModel<dim,nspecies,nstate,real> > (
+                    parameters_input,
+                    parameters_input->euler_param.ref_length,
+                    parameters_input->euler_param.gamma_gas,
+                    parameters_input->euler_param.mach_inf,
+                    parameters_input->euler_param.angle_of_attack,
+                    parameters_input->euler_param.side_slip_angle,
+                    parameters_input->navier_stokes_param.prandtl_number,
+                    parameters_input->navier_stokes_param.reynolds_number_inf,
+                    parameters_input->navier_stokes_param.use_constant_viscosity,
+                    parameters_input->navier_stokes_param.nondimensionalized_constant_viscosity,
+                    parameters_input->flow_solver_param.turbulent_channel_friction_velocity_reynolds_number,
+                    half_channel_height,
+                    uniform_spacing_y_direction,
+                    parameters_input->navier_stokes_param.temperature_inf,
+                    parameters_input->navier_stokes_param.nondimensionalized_isothermal_wall_temperature,
+                    parameters_input->navier_stokes_param.thermal_boundary_condition_type,
+                    manufactured_solution_function,
+                    parameters_input->two_point_num_flux_type);
+            }
+        } else if (pde_type == PDE_enum::physics_model || pde_type == PDE_enum::physics_model_filtered) {
+            if constexpr (nstate>=dim+2) {
+                return create_Physics_Model(parameters_input,
+                                            manufactured_solution_function,
+                                            model_input);
+            }
         }
-    } else if (pde_type == PDE_enum::physics_model || pde_type == PDE_enum::physics_model_filtered) {
-        if constexpr (nstate>=dim+2) {
-            return create_Physics_Model(parameters_input,
-                                        manufactured_solution_function,
-                                        model_input);
-        }
-    } else {
         // prevent warnings for dim=3,nstate=4, etc.
         (void) diffusion_tensor;
         (void) advection_vector;
         (void) diffusion_coefficient;
+    } else if (pde_type == PDE_enum::real_gas) {
+        if constexpr (nstate==dim+nspecies+1) {
+            return std::make_shared < RealGas<dim,nspecies,nstate,real> > (parameters_input);
+        }
     }
     std::cout << "Can't create PhysicsBase, invalid PDE type: " << pde_type << std::endl;
     assert(0==1 && "Can't create PhysicsBase, invalid PDE type");
     return nullptr;
 }
 
-template <int dim, int nstate, typename real>
-std::shared_ptr < PhysicsBase<dim,nstate,real> >
-PhysicsFactory<dim,nstate,real>
+template <int dim, int nspecies, int nstate, typename real>
+std::shared_ptr < PhysicsBase<dim,nspecies,nstate,real> >
+PhysicsFactory<dim,nspecies,nstate,real>
 ::create_Physics_Model(const Parameters::AllParameters                           *const parameters_input,
-                       std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function,
-                       std::shared_ptr< ModelBase<dim,nstate,real> >             model_input)
+                       std::shared_ptr< ManufacturedSolutionFunction<dim,nspecies,real> > manufactured_solution_function,
+                       std::shared_ptr< ModelBase<dim,nspecies,nstate,real> >             model_input)
 {
     using PDE_enum = Parameters::AllParameters::PartialDifferentialEquation;
     const PDE_enum pde_type = parameters_input->pde_type;
@@ -249,7 +257,7 @@ PhysicsFactory<dim,nstate,real>
         if(flow_case_type==FlowCase_enum::channel_flow) {
             has_nonzero_physical_source = true; // forcing function
         }
-        if constexpr ((nstate==dim+2) && (dim==3)) {
+        if constexpr ((nstate==dim+2) && (dim==3) && nspecies == 1) {
             // Assign baseline physics type (and corresponding nstates) based on the physics model type
             // -- Assign nstates for the baseline physics (constexpr because template parameter)
             constexpr int nstate_baseline_physics = dim+2;
@@ -264,7 +272,7 @@ PhysicsFactory<dim,nstate,real>
 
             // Create the physics model object in physics
             if (pde_type == PDE_enum::physics_model) {
-                return std::make_shared < PhysicsModel<dim,nstate,real,nstate_baseline_physics> > (
+                return std::make_shared < PhysicsModel<dim,nspecies,nstate,real,nstate_baseline_physics> > (
                     parameters_input,
                     baseline_physics_type,
                     model_input,
@@ -272,7 +280,7 @@ PhysicsFactory<dim,nstate,real>
                     has_nonzero_diffusion,
                     has_nonzero_physical_source);
             } else if(pde_type == PDE_enum::physics_model_filtered) {
-                return std::make_shared < PhysicsModelFiltered<dim,nstate,real,nstate_baseline_physics> > (
+                return std::make_shared < PhysicsModelFiltered<dim,nspecies,nstate,real,nstate_baseline_physics> > (
                     parameters_input,
                     baseline_physics_type,
                     model_input,
@@ -297,7 +305,7 @@ PhysicsFactory<dim,nstate,real>
         has_nonzero_physical_source = true; // RANS (baseline part) has physical source terms
         if (rans_model_type == RANSModel_enum::SA_negative)
         {
-            if constexpr (nstate==dim+3) {
+            if constexpr (nstate==dim+3 && nspecies==1) {
                 // Assign baseline physics type (and corresponding nstates) based on the physics model type
                 // -- Assign nstates for the baseline physics (constexpr because template parameter)
                 constexpr int nstate_baseline_physics = dim+2;
@@ -310,7 +318,7 @@ PhysicsFactory<dim,nstate,real>
                 }
 
                 // Create the physics model object in physics
-                return std::make_shared < PhysicsModel<dim,nstate,real,nstate_baseline_physics> > (
+                return std::make_shared < PhysicsModel<dim,nspecies,nstate,real,nstate_baseline_physics> > (
                     parameters_input,
                     baseline_physics_type,
                     model_input,
@@ -338,47 +346,24 @@ PhysicsFactory<dim,nstate,real>
     return nullptr;
 }
 
-template class PhysicsFactory<PHILIP_DIM, 1, double>;
-template class PhysicsFactory<PHILIP_DIM, 2, double>;
-template class PhysicsFactory<PHILIP_DIM, 3, double>;
-template class PhysicsFactory<PHILIP_DIM, 4, double>;
-template class PhysicsFactory<PHILIP_DIM, 5, double>;
-template class PhysicsFactory<PHILIP_DIM, 6, double>;
-template class PhysicsFactory<PHILIP_DIM, 8, double>;
+#if PHILIP_SPECIES==1
+    // Define a sequence of indices representing the range of nstate
+    #define POSSIBLE_NSTATE (1)(2)(3)(4)(5)(6)(8)
 
-template class PhysicsFactory<PHILIP_DIM, 1, FadType >;
-template class PhysicsFactory<PHILIP_DIM, 2, FadType >;
-template class PhysicsFactory<PHILIP_DIM, 3, FadType >;
-template class PhysicsFactory<PHILIP_DIM, 4, FadType >;
-template class PhysicsFactory<PHILIP_DIM, 5, FadType >;
-template class PhysicsFactory<PHILIP_DIM, 6, FadType >;
-template class PhysicsFactory<PHILIP_DIM, 8, FadType >;
-
-template class PhysicsFactory<PHILIP_DIM, 1, RadType >;
-template class PhysicsFactory<PHILIP_DIM, 2, RadType >;
-template class PhysicsFactory<PHILIP_DIM, 3, RadType >;
-template class PhysicsFactory<PHILIP_DIM, 4, RadType >;
-template class PhysicsFactory<PHILIP_DIM, 5, RadType >;
-template class PhysicsFactory<PHILIP_DIM, 6, RadType >;
-template class PhysicsFactory<PHILIP_DIM, 8, RadType >;
-
-template class PhysicsFactory<PHILIP_DIM, 1, FadFadType >;
-template class PhysicsFactory<PHILIP_DIM, 2, FadFadType >;
-template class PhysicsFactory<PHILIP_DIM, 3, FadFadType >;
-template class PhysicsFactory<PHILIP_DIM, 4, FadFadType >;
-template class PhysicsFactory<PHILIP_DIM, 5, FadFadType >;
-template class PhysicsFactory<PHILIP_DIM, 6, FadFadType >;
-template class PhysicsFactory<PHILIP_DIM, 8, FadFadType >;
-
-template class PhysicsFactory<PHILIP_DIM, 1, RadFadType >;
-template class PhysicsFactory<PHILIP_DIM, 2, RadFadType >;
-template class PhysicsFactory<PHILIP_DIM, 3, RadFadType >;
-template class PhysicsFactory<PHILIP_DIM, 4, RadFadType >;
-template class PhysicsFactory<PHILIP_DIM, 5, RadFadType >;
-template class PhysicsFactory<PHILIP_DIM, 6, RadFadType >;
-template class PhysicsFactory<PHILIP_DIM, 8, RadFadType >;
-
-
+    // Define a macro to instantiate functions for a specific nstate
+    #define INSTANTIATE_FOR_NSTATE(r, data, nstate) \
+        template class PhysicsFactory<PHILIP_DIM, PHILIP_SPECIES, nstate, double>; \
+        template class PhysicsFactory<PHILIP_DIM, PHILIP_SPECIES, nstate, FadType>; \
+        template class PhysicsFactory<PHILIP_DIM, PHILIP_SPECIES, nstate, RadType>; \
+        template class PhysicsFactory<PHILIP_DIM, PHILIP_SPECIES, nstate, FadFadType>; \
+        template class PhysicsFactory<PHILIP_DIM, PHILIP_SPECIES, nstate, RadFadType>;
+    BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_FOR_NSTATE, _, POSSIBLE_NSTATE)
+#else
+    #define POSSIBLE_TYPE (double)(FadType)(RadType)(FadFadType)(RadFadType)
+    #define INSTANTIATE_TYPES(r, data, type) \
+        template class PhysicsFactory<PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+PHILIP_SPECIES+1, type>;
+    BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_TYPES, _, POSSIBLE_TYPE)
+#endif
 
 } // Physics namespace
 } // PHiLiP namespace

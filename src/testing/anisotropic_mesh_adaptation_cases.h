@@ -10,7 +10,7 @@ namespace PHiLiP {
 namespace Tests {
 
 /// Test to check anisotropic mesh adaptation.
-template <int dim, int nstate>
+template <int dim, int nspecies, int nstate>
 class AnisotropicMeshAdaptationCases : public TestsBase
 {
 public:
@@ -25,10 +25,10 @@ public:
     int run_test() const;
 
     /// Checks PHiLiP::FEValuesShapeHessian for MappingFEField with dealii's shape hessian for MappingQGeneric.
-    void verify_fe_values_shape_hessian(const DGBase<dim, double> &dg) const;
+    void verify_fe_values_shape_hessian(const DGBase<dim, nspecies, double> &dg) const;
     
     /// Evaluates \f[ J(u_h) \f].
-    double evaluate_functional(std::shared_ptr<DGBase<dim,double>> dg) const;
+    double evaluate_functional(std::shared_ptr<DGBase<dim,nspecies,double>> dg) const;
 }; 
 
 } // Tests namespace

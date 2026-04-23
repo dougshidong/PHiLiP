@@ -3,17 +3,17 @@
 namespace PHiLiP {
 namespace ODE {
 
-template <int dim, typename real, typename MeshType>
-AlgebraicRRKODESolver<dim,real,MeshType>::AlgebraicRRKODESolver(
+template <int dim, int nspecies, typename real, typename MeshType>
+AlgebraicRRKODESolver<dim,nspecies,real,MeshType>::AlgebraicRRKODESolver(
             std::shared_ptr<RKTableauButcherBase<dim,real,MeshType>> rk_tableau_input)
-        : RRKODESolverBase<dim,real,MeshType>(rk_tableau_input)
+        : RRKODESolverBase<dim,nspecies,real,MeshType>(rk_tableau_input)
 {
     // Do nothing
 }
 
-template <int dim, typename real, typename MeshType>
-real AlgebraicRRKODESolver<dim,real,MeshType>::compute_relaxation_parameter(const real /*dt*/,
-            std::shared_ptr<DGBase<dim,real,MeshType>> dg,
+template <int dim, int nspecies, typename real, typename MeshType>
+real AlgebraicRRKODESolver<dim,nspecies,real,MeshType>::compute_relaxation_parameter(const real /*dt*/,
+            std::shared_ptr<DGBase<dim,nspecies,real,MeshType>> dg,
             const std::vector<dealii::LinearAlgebra::distributed::Vector<double>> &rk_stage,
             const dealii::LinearAlgebra::distributed::Vector<double> &/*solution_update*/
         )
@@ -35,11 +35,11 @@ real AlgebraicRRKODESolver<dim,real,MeshType>::compute_relaxation_parameter(cons
     return gamma;
 }
 
-template <int dim, typename real, typename MeshType>
-real AlgebraicRRKODESolver<dim,real,MeshType>::compute_inner_product (
+template <int dim, int nspecies, typename real, typename MeshType>
+real AlgebraicRRKODESolver<dim,nspecies,real,MeshType>::compute_inner_product (
         const dealii::LinearAlgebra::distributed::Vector<double> &stage_i,
         const dealii::LinearAlgebra::distributed::Vector<double> &stage_j,
-        std::shared_ptr<DGBase<dim,real,MeshType>> dg
+        std::shared_ptr<DGBase<dim,nspecies,real,MeshType>> dg
         ) const
 {
     // Calculate by matrix-vector product u_i^T M u_j
@@ -56,10 +56,12 @@ real AlgebraicRRKODESolver<dim,real,MeshType>::compute_inner_product (
     return result;
 }
 
-template class AlgebraicRRKODESolver<PHILIP_DIM, double, dealii::Triangulation<PHILIP_DIM> >;
-template class AlgebraicRRKODESolver<PHILIP_DIM, double, dealii::parallel::shared::Triangulation<PHILIP_DIM> >;
-#if PHILIP_DIM != 1
-    template class AlgebraicRRKODESolver<PHILIP_DIM, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM> >;
+#if PHILIP_SPECIES==1
+    template class AlgebraicRRKODESolver<PHILIP_DIM, PHILIP_SPECIES, double, dealii::Triangulation<PHILIP_DIM> >;
+    template class AlgebraicRRKODESolver<PHILIP_DIM, PHILIP_SPECIES, double, dealii::parallel::shared::Triangulation<PHILIP_DIM> >;
+    #if PHILIP_DIM != 1
+        template class AlgebraicRRKODESolver<PHILIP_DIM, PHILIP_SPECIES, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM> >;
+    #endif
 #endif
 
 } // ODESolver namespace

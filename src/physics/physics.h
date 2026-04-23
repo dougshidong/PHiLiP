@@ -30,7 +30,7 @@ namespace Physics {
  *      = s(\mathbf{x})
  *  \f]
  */
-template <int dim, int nstate, typename real>
+template <int dim, int nspecies, int nstate, typename real>
 class PhysicsBase
 {
 public:
@@ -43,14 +43,14 @@ public:
         const bool                                                has_nonzero_diffusion_input,
         const bool                                                has_nonzero_physical_source_input,
         const dealii::Tensor<2,3,double>                          input_diffusion_tensor = Parameters::ManufacturedSolutionParam::get_default_diffusion_tensor(),
-        std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function_input = nullptr);
+        std::shared_ptr< ManufacturedSolutionFunction<dim,nspecies,real> > manufactured_solution_function_input = nullptr);
 
     /// Constructor that will call default constructor.
     PhysicsBase(
         const Parameters::AllParameters *const                    parameters_input,
         const bool                                                has_nonzero_diffusion_input,
         const bool                                                has_nonzero_physical_source_input,
-        std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function_input = nullptr);
+        std::shared_ptr< ManufacturedSolutionFunction<dim,nspecies,real> > manufactured_solution_function_input = nullptr);
 
     /// Virtual destructor required for abstract classes.
     virtual ~PhysicsBase() = default;
@@ -68,13 +68,16 @@ public:
     const NonPhysicalBehaviorEnum non_physical_behavior_type;    
 
     /// Manufactured solution function
-    std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function;
+    std::shared_ptr< ManufacturedSolutionFunction<dim,nspecies,real> > manufactured_solution_function;
 
     /// Convert conservative variables to primitive variables
     virtual std::array<real,nstate> convert_conservative_to_primitive ( const std::array<real,nstate> &conservative_soln ) const = 0;
 
     /// Convert primitive solution to conservative solution
     virtual std::array<real,nstate> convert_primitive_to_conservative ( const std::array<real,nstate> &primitive_soln ) const = 0;
+
+    /// Compute pressure from conservative solution
+    virtual real compute_pressure ( const std::array<real,nstate> &conservative_soln ) const;
 
     /** Obtain gradient of primitive variables from gradient of conservative variables */
     virtual std::array<dealii::Tensor<1,dim,real>,nstate> 

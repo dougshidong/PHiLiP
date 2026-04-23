@@ -40,6 +40,7 @@ endif()
 
 unset(TEST_TARGET)
 
+if(${NUMBER_OF_SPECIES} EQUAL 1)
 set(TEST_SRC
     flow_constraints_check.cpp
     )
@@ -69,6 +70,10 @@ if(NOT DOC_ONLY)
 endif()
 
 target_compile_definitions(${TEST_TARGET} PRIVATE PHILIP_DIM=2)
+# Replace occurences of PHILIP_SPECIES with 1 in the code
+# NOTE: PHILIP_SPECIES will become user defined in a future PR
+target_compile_definitions(${TEST_TARGET} PRIVATE PHILIP_SPECIES=${NUMBER_OF_SPECIES})
+
 set(NMPI ${MPIMAX})
 add_test(
   NAME ${TEST_TARGET}_nmpi=${NMPI}
@@ -112,6 +117,10 @@ if(NOT DOC_ONLY)
 endif()
 
 target_compile_definitions(${TEST_TARGET} PRIVATE PHILIP_DIM=2)
+# Replace occurences of PHILIP_SPECIES with 1 in the code
+# NOTE: PHILIP_SPECIES will become user defined in a future PR
+target_compile_definitions(${TEST_TARGET} PRIVATE PHILIP_SPECIES=${NUMBER_OF_SPECIES})
+
 set(NMPI ${MPIMAX})
 add_test(
   NAME ${TEST_TARGET}_nmpi=${NMPI}
@@ -152,6 +161,10 @@ if(NOT DOC_ONLY)
 endif()
 
 target_compile_definitions(${TEST_TARGET} PRIVATE PHILIP_DIM=2)
+# Replace occurences of PHILIP_SPECIES with 1 in the code
+# NOTE: PHILIP_SPECIES will become user defined in a future PR
+target_compile_definitions(${TEST_TARGET} PRIVATE PHILIP_SPECIES=${NUMBER_OF_SPECIES})
+
 set(NMPI ${MPIMAX})
 add_test(
   NAME ${TEST_TARGET}_nmpi=${NMPI}
@@ -164,6 +177,7 @@ set_tests_labels(${TEST_TARGET}_nmpi=${NMPI}    OPTIMIZATION
                                                 QUICK
                                                 UNIT_TEST)
 unset(TEST_TARGET)
+
 ##################################################################################################################################
 
 
@@ -194,6 +208,10 @@ if(NOT DOC_ONLY)
 endif()
 
 target_compile_definitions(${TEST_TARGET} PRIVATE PHILIP_DIM=2)
+# Replace occurences of PHILIP_SPECIES with 1 in the code
+# NOTE: PHILIP_SPECIES will become user defined in a future PR
+target_compile_definitions(${TEST_TARGET} PRIVATE PHILIP_SPECIES=${NUMBER_OF_SPECIES})
+
 set(NMPI ${MPIMAX})
 add_test(
   NAME ${TEST_TARGET}_nmpi=${NMPI}
@@ -235,6 +253,10 @@ if(NOT DOC_ONLY)
 endif()
 
 target_compile_definitions(${TEST_TARGET} PRIVATE PHILIP_DIM=2)
+# Replace occurences of PHILIP_SPECIES with 1 in the code
+# NOTE: PHILIP_SPECIES will become user defined in a future PR
+target_compile_definitions(${TEST_TARGET} PRIVATE PHILIP_SPECIES=${NUMBER_OF_SPECIES})
+
 set(NMPI ${MPIMAX})
 add_test(
   NAME ${TEST_TARGET}_nmpi=${NMPI}
@@ -247,4 +269,6 @@ set_tests_labels(${TEST_TARGET}_nmpi=${NMPI}    OPTIMIZATION
                                                 QUICK
                                                 UNIT_TEST)
 unset(TEST_TARGET)
+endif()
+
 ##################################################################################################################################

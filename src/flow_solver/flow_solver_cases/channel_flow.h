@@ -13,8 +13,8 @@ using Triangulation = dealii::Triangulation<PHILIP_DIM>;
 using Triangulation = dealii::parallel::distributed::Triangulation<PHILIP_DIM>;
 #endif
 
-template <int dim, int nstate>
-class ChannelFlow : public PeriodicTurbulence<dim,nstate>
+template <int dim, int nspecies, int nstate>
+class ChannelFlow : public PeriodicTurbulence<dim,nspecies,nstate>
 {
 public:
     /// Constructor.
@@ -27,7 +27,7 @@ public:
     std::shared_ptr<Triangulation> generate_grid() const override;
 
     /// Function to set the higher order grid
-    void set_higher_order_grid(std::shared_ptr <DGBase<dim, double>> dg) const override;
+    void set_higher_order_grid(std::shared_ptr <DGBase<dim, nspecies, double>> dg) const override;
 
 protected:
     const double channel_height; ///< Channel height
@@ -89,19 +89,19 @@ protected:
     dealii::Tensor<2,dim,double> zero_tensor; ///< Tensor of zeros
 
     /// Pointer to Navier-Stokes physics object for computing things on the fly
-    std::shared_ptr< Physics::NavierStokes_ChannelFlowConstantSourceTerm_WallModel<dim,dim+2,double> > navier_stokes_channel_flow_constant_source_term_wall_model_physics;
+    std::shared_ptr< Physics::NavierStokes_ChannelFlowConstantSourceTerm_WallModel<dim,nspecies,dim+2,double> > navier_stokes_channel_flow_constant_source_term_wall_model_physics;
 
 public:
     /// Function to compute the adaptive time step
-    double get_adaptive_time_step(std::shared_ptr<DGBase<dim,double>> dg) const override;
+    double get_adaptive_time_step(std::shared_ptr<DGBase<dim,nspecies,double>> dg) const override;
 
     /// Function to compute the initial adaptive time step
-    double get_adaptive_time_step_initial(std::shared_ptr<DGBase<dim,double>> dg) override;
+    double get_adaptive_time_step_initial(std::shared_ptr<DGBase<dim,nspecies,double>> dg) override;
 
     /// Compute the desired unsteady data and write it to a table
     void compute_unsteady_data_and_write_to_table(
-            const std::shared_ptr <ODE::ODESolverBase<dim, double>> ode_solver,
-            const std::shared_ptr <DGBase<dim, double>> dg,
+            const std::shared_ptr <ODE::ODESolverBase<dim, nspecies, double>> ode_solver,
+            const std::shared_ptr <DGBase<dim, nspecies, double>> dg,
             const std::shared_ptr<dealii::TableHandler> unsteady_data_table,
             const bool do_write_unsteady_data_table_file) override;
 
@@ -109,10 +109,10 @@ public:
     unsigned int get_number_of_degrees_of_freedom_per_state_from_poly_degree(const unsigned int poly_degree_input) const override;
 
     /// Get the average wall shear stress
-    double get_average_wall_shear_stress(DGBase<dim, double> &dg) const;
+    double get_average_wall_shear_stress(DGBase<dim, nspecies, double> &dg) const;
 
     /// Get the average wall shear stress from wall model
-    double get_average_wall_shear_stress_from_wall_model(DGBase<dim, double> &dg) const;
+    double get_average_wall_shear_stress_from_wall_model(DGBase<dim, nspecies, double> &dg) const;
 
     double get_bulk_density() const; ///< Getter for the bulk density
     double get_bulk_velocity() const; ///< Getter for the bulk velocity
@@ -122,7 +122,7 @@ public:
     double get_skin_friction_coefficient_from_average_wall_shear_stress(const double avg_wall_shear_stress) const;
 
     /// Set the bulk flow quantities
-    void set_bulk_flow_quantities(DGBase<dim, double> &dg);
+    void set_bulk_flow_quantities(DGBase<dim, nspecies, double> &dg);
 private:
     /// Get the stretched mesh size
     double get_stretched_mesh_size(const int i) const;

@@ -18,10 +18,10 @@ namespace FlowSolver {
 //=========================================================
 // FLOW SOLVER CLASS
 //=========================================================
-template <int dim, int nstate>
-FlowSolver<dim, nstate>::FlowSolver(
+template <int dim, int nspecies, int nstate>
+FlowSolver<dim, nspecies, nstate>::FlowSolver(
     const PHiLiP::Parameters::AllParameters *const parameters_input, 
-    std::shared_ptr<FlowSolverCaseBase<dim, nstate>> flow_solver_case_input,
+    std::shared_ptr<FlowSolverCaseBase<dim, nspecies, nstate>> flow_solver_case_input,
     const dealii::ParameterHandler &parameter_handler_input)
 : FlowSolverBase()
 , flow_solver_case(flow_solver_case_input)
@@ -41,7 +41,7 @@ FlowSolver<dim, nstate>::FlowSolver(
 , number_of_fixed_times_to_output_solution(ode_param.number_of_fixed_times_to_output_solution)
 , output_solution_at_exact_fixed_times(ode_param.output_solution_at_exact_fixed_times)
 , do_compute_unsteady_data_and_write_to_table(flow_solver_param.do_compute_unsteady_data_and_write_to_table)
-, dg(DGFactory<dim,double>::create_discontinuous_galerkin(&all_param, poly_degree, flow_solver_param.max_poly_degree_for_adaptation, grid_degree, flow_solver_case->generate_grid()))
+, dg(DGFactory<dim,nspecies,double>::create_discontinuous_galerkin(&all_param, poly_degree, flow_solver_param.max_poly_degree_for_adaptation, grid_degree, flow_solver_case->generate_grid()))
 {
     flow_solver_case->set_higher_order_grid(dg);
     if (ode_param.allocate_matrix_dRdW) {
@@ -83,17 +83,17 @@ FlowSolver<dim, nstate>::FlowSolver(
         pcout << "done." << std::endl;
     } else {
         // Initialize solution
-        SetInitialCondition<dim,nstate,double>::set_initial_condition(flow_solver_case->initial_condition_function, dg, &all_param);
+        SetInitialCondition<dim,nspecies,nstate,double>::set_initial_condition(flow_solver_case->initial_condition_function, dg, &all_param);
     }
     dg->solution.update_ghost_values();
 
-    if(ode_param.ode_solver_type == Parameters::ODESolverParam::pod_galerkin_solver || 
+    if((ode_param.ode_solver_type == Parameters::ODESolverParam::pod_galerkin_solver || 
        ode_param.ode_solver_type == Parameters::ODESolverParam::pod_petrov_galerkin_solver ||
-       ode_param.ode_solver_type == Parameters::ODESolverParam::pod_galerkin_runge_kutta_solver){
-        std::shared_ptr<ProperOrthogonalDecomposition::OfflinePOD<dim>> pod = std::make_shared<ProperOrthogonalDecomposition::OfflinePOD<dim>>(dg);
-        ode_solver = ODE::ODESolverFactory<dim, double>::create_ODESolver(dg, pod);
+       ode_param.ode_solver_type == Parameters::ODESolverParam::pod_galerkin_runge_kutta_solver) && nspecies == 1){
+        std::shared_ptr<ProperOrthogonalDecomposition::OfflinePOD<dim,nspecies>> pod = std::make_shared<ProperOrthogonalDecomposition::OfflinePOD<dim,nspecies>>(dg);
+        ode_solver = ODE::ODESolverFactory<dim, nspecies, double>::create_ODESolver(dg, pod);
     } else {
-        ode_solver = ODE::ODESolverFactory<dim, double>::create_ODESolver(dg);
+        ode_solver = ODE::ODESolverFactory<dim, nspecies, double>::create_ODESolver(dg);
     }
 
     // Allocate ODE solver after initializing DG
@@ -103,12 +103,12 @@ FlowSolver<dim, nstate>::FlowSolver(
     const bool unsteady_FOM_POD_bool = all_param.reduced_order_param.output_snapshot_every_x_timesteps != 0 && !(ode_param.ode_solver_type == Parameters::ODESolverParam::pod_galerkin_solver || 
        ode_param.ode_solver_type == Parameters::ODESolverParam::pod_petrov_galerkin_solver ||
        ode_param.ode_solver_type == Parameters::ODESolverParam::pod_galerkin_runge_kutta_solver);
-    if(unsteady_FOM_POD_bool){
+    if(unsteady_FOM_POD_bool && nspecies == 1){
         std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> system_matrix(
             dg,
             &dg->system_matrix
         );
-        time_pod = std::make_shared<ProperOrthogonalDecomposition::OnlinePOD<dim>>(system_matrix); 
+        time_pod = std::make_shared<ProperOrthogonalDecomposition::OnlinePOD<dim,nspecies>>(system_matrix); 
         time_pod->addSnapshot(dg->solution);
     }
 
@@ -138,8 +138,8 @@ FlowSolver<dim, nstate>::FlowSolver(
     }
 }
 
-template <int dim, int nstate>
-std::vector<std::string> FlowSolver<dim,nstate>::get_data_table_column_names(const std::string string_input) const
+template <int dim, int nspecies, int nstate>
+std::vector<std::string> FlowSolver<dim,nspecies,nstate>::get_data_table_column_names(const std::string string_input) const
 {
     /* returns the column names of a dealii::TableHandler object
        given the first line of the file */
@@ -156,8 +156,8 @@ std::vector<std::string> FlowSolver<dim,nstate>::get_data_table_column_names(con
     return names;
 }
 
-template <int dim, int nstate>
-std::string FlowSolver<dim,nstate>::get_restart_filename_without_extension(const unsigned int restart_index_input) const {
+template <int dim, int nspecies, int nstate>
+std::string FlowSolver<dim,nspecies,nstate>::get_restart_filename_without_extension(const unsigned int restart_index_input) const {
     // returns the restart file index as a string with appropriate padding
     std::string restart_index_string = std::to_string(restart_index_input);
     const unsigned int length_of_index_with_padding = 5;
@@ -170,8 +170,8 @@ std::string FlowSolver<dim,nstate>::get_restart_filename_without_extension(const
     return restart_filename_without_extension;
 }
 
-template <int dim, int nstate>
-void FlowSolver<dim,nstate>::initialize_data_table_from_file(
+template <int dim, int nspecies, int nstate>
+void FlowSolver<dim,nspecies,nstate>::initialize_data_table_from_file(
     std::string data_table_filename,
     const std::shared_ptr <dealii::TableHandler> data_table) const
 {
@@ -221,8 +221,8 @@ void FlowSolver<dim,nstate>::initialize_data_table_from_file(
     }
 }
 
-template <int dim, int nstate>
-std::string FlowSolver<dim,nstate>::double_to_string(const double value_input) const {
+template <int dim, int nspecies, int nstate>
+std::string FlowSolver<dim,nspecies,nstate>::double_to_string(const double value_input) const {
     // converts a double to a string with full precision
     std::stringstream ss;
     ss << std::scientific << std::setprecision(16) << value_input;
@@ -230,8 +230,8 @@ std::string FlowSolver<dim,nstate>::double_to_string(const double value_input) c
     return double_to_string;
 }
 
-template <int dim, int nstate>
-void FlowSolver<dim,nstate>::write_restart_parameter_file(
+template <int dim, int nspecies, int nstate>
+void FlowSolver<dim,nspecies,nstate>::write_restart_parameter_file(
     const unsigned int restart_index_input,
     const double time_step_input) const {
     // write the restart parameter file
@@ -353,8 +353,8 @@ void FlowSolver<dim,nstate>::write_restart_parameter_file(
 }
 
 #if PHILIP_DIM>1
-template <int dim, int nstate>
-void FlowSolver<dim,nstate>::output_restart_files(
+template <int dim, int nspecies, int nstate>
+void FlowSolver<dim,nspecies,nstate>::output_restart_files(
     const unsigned int current_restart_index,
     const double time_step_input,
     const std::shared_ptr <dealii::TableHandler> unsteady_data_table) const
@@ -381,10 +381,10 @@ void FlowSolver<dim,nstate>::output_restart_files(
 }
 #endif
 
-template <int dim, int nstate>
-void FlowSolver<dim,nstate>::perform_steady_state_mesh_adaptation() const
+template <int dim, int nspecies, int nstate>
+void FlowSolver<dim,nspecies,nstate>::perform_steady_state_mesh_adaptation() const
 {
-    std::unique_ptr<MeshAdaptation<dim,double>> meshadaptation = std::make_unique<MeshAdaptation<dim,double>>(this->dg, &(this->all_param.mesh_adaptation_param));
+    std::unique_ptr<MeshAdaptation<dim,nspecies,double>> meshadaptation = std::make_unique<MeshAdaptation<dim,nspecies,double>>(this->dg, &(this->all_param.mesh_adaptation_param));
     const int total_adaptation_cycles = this->all_param.mesh_adaptation_param.total_mesh_adaptation_cycles;
     double residual_norm = this->dg->get_residual_l2norm();
     
@@ -409,8 +409,8 @@ void FlowSolver<dim,nstate>::perform_steady_state_mesh_adaptation() const
     pcout<<"Finished running mesh adaptation cycles."<<std::endl; 
 }
 
-template <int dim, int nstate>
-int FlowSolver<dim,nstate>::run() const
+template <int dim, int nspecies, int nstate>
+int FlowSolver<dim,nspecies,nstate>::run() const
 {
     pcout << "Running Flow Solver..." << std::endl;
     if(flow_solver_param.restart_computation_from_file == false) {
@@ -518,6 +518,8 @@ int FlowSolver<dim,nstate>::run() const
             const std::string restart_unsteady_data_table_filename = flow_solver_param.unsteady_data_table_filename+std::string("-")+restart_filename_without_extension+std::string(".txt");
             initialize_data_table_from_file(flow_solver_param.restart_files_directory_name + std::string("/") + restart_unsteady_data_table_filename,unsteady_data_table);
             pcout << "done." << std::endl;
+
+            flow_solver_case->modify_dg_object(dg);
         } else {
             // no restart:
             if(do_compute_unsteady_data_and_write_to_table){
@@ -649,14 +651,14 @@ int FlowSolver<dim,nstate>::run() const
                 }
             }
             // Add snapshots to snapshot matrix
-            if(unsteady_FOM_POD_bool){
+            if(unsteady_FOM_POD_bool && nspecies==1){
                 const bool is_snapshot_iteration = (ode_solver->current_iteration % all_param.reduced_order_param.output_snapshot_every_x_timesteps == 0);
                 if(is_snapshot_iteration) time_pod->addSnapshot(dg->solution);
             }
         } // close while
 
         // Print POD Snapshots to file
-        if(unsteady_FOM_POD_bool){
+        if(unsteady_FOM_POD_bool && nspecies==1){
             std::ofstream snapshot_file("solution_snapshots_iteration_" + std::to_string(ode_solver->current_iteration) + ".txt"); // Change ode_solver->current_iteration to size of matrix
             unsigned int precision = 16;
             time_pod->dealiiSnapshotMatrix.print_formatted(snapshot_file, precision, true, 0, "0"); 
@@ -709,20 +711,24 @@ int FlowSolver<dim,nstate>::run() const
     return 0;
 }
 
-#if PHILIP_DIM==1
-template class FlowSolver <PHILIP_DIM,PHILIP_DIM>;
-template class FlowSolver <PHILIP_DIM,PHILIP_DIM+2>;
-#endif
+#if PHILIP_SPECIES==1
+    #if PHILIP_DIM==1
+    template class FlowSolver <PHILIP_DIM, PHILIP_SPECIES,PHILIP_DIM>;
+    template class FlowSolver <PHILIP_DIM, PHILIP_SPECIES,PHILIP_DIM+2>;
+    #endif
 
-#if PHILIP_DIM!=1
-template class FlowSolver <PHILIP_DIM,1>;
-template class FlowSolver <PHILIP_DIM,2>;
-template class FlowSolver <PHILIP_DIM,3>;
-template class FlowSolver <PHILIP_DIM,4>;
-template class FlowSolver <PHILIP_DIM,5>;
-template class FlowSolver <PHILIP_DIM,6>;
-#endif
+    #if PHILIP_DIM!=1
+    // Define a sequence of nstate in the range [1, 6]
+    #define POSSIBLE_NSTATE (1)(2)(3)(4)(5)(6)
 
+    // Define a macro to instantiate FlowSolverCaseBase for a specific nstate
+    #define INSTANTIATE_FLOWSOLVER(r, data, nstate) \
+        template class FlowSolver <PHILIP_DIM, PHILIP_SPECIES,nstate>;
+    BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_FLOWSOLVER, _, POSSIBLE_NSTATE)
+    #endif
+#else
+    template class FlowSolver <PHILIP_DIM, PHILIP_SPECIES,PHILIP_DIM+PHILIP_SPECIES+1>;
+#endif
 } // FlowSolver namespace
 } // PHiLiP namespace
 

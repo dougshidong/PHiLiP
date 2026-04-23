@@ -123,6 +123,32 @@ Note that running `ctest` in `Debug` will take forever since some integration te
 
 More detail about running tests using labels can be found [here](tests/CTEST_LABELS.md).
 
+## Multi-species Simulations (Beta Phase)
+
+The multi-species implementation of PHiLiP is in very early stages. In this phase of the implementation, the code has been modified to accept any number of species > 1 but it only supports the Real Gas PDE type (Inviscid Euler Multi-species). Future implementations will extend this work to viscous flows and chemically reacting flows.
+
+To compile the code for multi-species simulations, the build must be configured as such:
+ ```sh
+ ROOT$ cmake ../ -DNUMBER_OF_SPECIES=2 // Compile code for 2 species
+ ```
+It is recommended that a separate build directory be used for single-species and multi-species. If a build is created for single-species, but then reconfigured for multi-species, there are likely to be test failures.
+
+The Real Gas PDE type supported by PHiLiP uses the [NASA polynomials](https://ntrs.nasa.gov/api/citations/20020085330/downloads/20020085330.pdf) to calculate the species specific heats and species enthalpy. The NASA polynomials have to be provided for the species that the user wishes to simulate. Example files for H2, O2, and N2 with the required data is provided in tests/chemistry\_files.
+
+### Testing
+The multi-species ctest suite is separate from the single-species suite as the difference in templating would result in several test failures. As such, it is highly recommended that a multi-species version of the code is built and tested alongside the single-species suite when making changes to the code. The Compute Canada Rorqual script has also been modified to reflect this and can be used as a reference when testing multi-species:
+```sh
+  if [ "${RUN_CTEST}" = true ]; then
+      ctest
+    ## Build and verify multi-species implementation as well
+    mkdir ${SLURM_TMPDIR}/build_multispecies
+    cd ${SLURM_TMPDIR}/build_multispecies
+    cmake -DDEAL_II_DIR=$DEAL_II_DIR ../PHiLiP -DMPIMAX=${NUM_PROCS} -DCMAKE_BUILD_TYPE=Release -DNUMBER_OF_SPECIES=2 -DGMSH_DIR=$GMSH_DIR/bin/gmsh -DGMSH_LIB=$GMSH_DIR -DCMAKE_SKIP_INSTALL_RPATH=ON
+    make -j${NUM_PROCS}
+    ctest
+  fi
+``` 
+
 ## Debugging
 
 Please consult the [debugging quick start guide](DEBUG.md) for details concerning both serial and parallel debugging.

@@ -15,8 +15,8 @@
 namespace PHiLiP {
 namespace Tests {
 
-template <int dim, int nstate>
-EulerGaussianBump<dim,nstate>::EulerGaussianBump(
+template <int dim, int nspecies, int nstate>
+EulerGaussianBump<dim,nspecies,nstate>::EulerGaussianBump(
     const Parameters::AllParameters *const parameters_input,
     const dealii::ParameterHandler &parameter_handler_input)
     :
@@ -24,8 +24,8 @@ EulerGaussianBump<dim,nstate>::EulerGaussianBump(
     , parameter_handler(parameter_handler_input)
 {}
 
-template<int dim, int nstate>
-int EulerGaussianBump<dim,nstate>
+template<int dim, int nspecies, int nstate>
+int EulerGaussianBump<dim,nspecies,nstate>
 ::run_test () const
 {
     int convergence_order_achieved = 0;
@@ -37,8 +37,8 @@ int EulerGaussianBump<dim,nstate>
     return convergence_order_achieved;
 }
 
-template<int dim, int nstate>
-double EulerGaussianBump<dim,nstate>
+template<int dim, int nspecies, int nstate>
+double EulerGaussianBump<dim,nspecies,nstate>
 ::run_euler_gaussian_bump() const
 {
     using ManParam = Parameters::ManufacturedConvergenceStudyParam;
@@ -57,8 +57,8 @@ double EulerGaussianBump<dim,nstate>
 
     const unsigned int n_grids             = manu_grid_conv_param.number_of_grids;
 
-    Physics::Euler<dim,nstate,double> euler_physics_double
-        = Physics::Euler<dim, nstate, double>(
+    Physics::Euler<dim,nspecies,nstate,double> euler_physics_double
+        = Physics::Euler<dim, nspecies, nstate, double>(
                 &param,
                 param.euler_param.ref_length,
                 param.euler_param.gamma_gas,
@@ -101,7 +101,7 @@ double EulerGaussianBump<dim,nstate>
 
             pcout << "\n" << "Creating FlowSolver" << std::endl;
 
-            std::unique_ptr<FlowSolver::FlowSolver<dim,nstate>> flow_solver = FlowSolver::FlowSolverFactory<dim,nstate>::select_flow_case(&param, parameter_handler);
+            std::unique_ptr<FlowSolver::FlowSolver<dim,nspecies,nstate>> flow_solver = FlowSolver::FlowSolverFactory<dim,nspecies,nstate>::select_flow_case(&param, parameter_handler);
 
             flow_solver->run();
 
@@ -313,8 +313,8 @@ double EulerGaussianBump<dim,nstate>
 }
 
 
-#if PHILIP_DIM==2
-    template class EulerGaussianBump <PHILIP_DIM,PHILIP_DIM+2>;
+#if PHILIP_DIM==2 && PHILIP_SPECIES==1
+    template class EulerGaussianBump <PHILIP_DIM, PHILIP_SPECIES,PHILIP_DIM+2>;
 #endif
 
 } // Tests namespace

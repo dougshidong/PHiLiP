@@ -15,9 +15,9 @@ namespace FlowSolver {
 //=========================================================
 // CHANNEL FLOW CLASS
 //=========================================================
-template <int dim, int nstate>
-ChannelFlow<dim, nstate>::ChannelFlow(const PHiLiP::Parameters::AllParameters *const parameters_input)
-        : PeriodicTurbulence<dim, nstate>(parameters_input)
+template <int dim, int nspecies, int nstate>
+ChannelFlow<dim, nspecies, nstate>::ChannelFlow(const PHiLiP::Parameters::AllParameters *const parameters_input)
+        : PeriodicTurbulence<dim, nspecies, nstate>(parameters_input)
         , channel_height(this->all_param.flow_solver_param.turbulent_channel_domain_length_y_direction)
         , half_channel_height(channel_height/2.0)
         , channel_friction_velocity_reynolds_number(this->all_param.flow_solver_param.turbulent_channel_friction_velocity_reynolds_number)
@@ -44,14 +44,14 @@ ChannelFlow<dim, nstate>::ChannelFlow(const PHiLiP::Parameters::AllParameters *c
     PHiLiP::Parameters::AllParameters parameters_navier_stokes_channel_flow_constant_source_term_wall_model = this->all_param;
     parameters_navier_stokes_channel_flow_constant_source_term_wall_model.pde_type = PDE_enum::navier_stokes_channel_flow_constant_source_term_wall_model;
     this->navier_stokes_channel_flow_constant_source_term_wall_model_physics = 
-        std::dynamic_pointer_cast<Physics::NavierStokes_ChannelFlowConstantSourceTerm_WallModel<dim,dim+2,double>>(
-                Physics::PhysicsFactory<dim,dim+2,double>::create_Physics(&parameters_navier_stokes_channel_flow_constant_source_term_wall_model));
+        std::dynamic_pointer_cast<Physics::NavierStokes_ChannelFlowConstantSourceTerm_WallModel<dim,nspecies,dim+2,double>>(
+                Physics::PhysicsFactory<dim,nspecies,dim+2,double>::create_Physics(&parameters_navier_stokes_channel_flow_constant_source_term_wall_model));
 }
 
-template <int dim, int nstate>
-void ChannelFlow<dim, nstate>::compute_unsteady_data_and_write_to_table(
-        const std::shared_ptr <ODE::ODESolverBase<dim, double>> ode_solver,
-        const std::shared_ptr <DGBase<dim, double>> dg,
+template <int dim, int nspecies, int nstate>
+void ChannelFlow<dim, nspecies, nstate>::compute_unsteady_data_and_write_to_table(
+        const std::shared_ptr <ODE::ODESolverBase<dim, nspecies, double>> ode_solver,
+        const std::shared_ptr <DGBase<dim, nspecies, double>> dg,
         const std::shared_ptr <dealii::TableHandler> unsteady_data_table,
         const bool do_write_unsteady_data_table_file)
 {
@@ -103,8 +103,8 @@ void ChannelFlow<dim, nstate>::compute_unsteady_data_and_write_to_table(
     this->output_velocity_field_if_current_time_is_output_time(current_time, dg);
 }
 
-template <int dim, int nstate>
-void ChannelFlow<dim,nstate>::display_additional_flow_case_specific_parameters() const
+template <int dim, int nspecies, int nstate>
+void ChannelFlow<dim, nspecies, nstate>::display_additional_flow_case_specific_parameters() const
 {
     if(this->all_param.flow_solver_param.adaptive_time_step)
         this->pcout << "- - Courant-Friedrichs-Lewy number: " << this->all_param.flow_solver_param.courant_friedrichs_lewy_number << std::endl;
@@ -119,8 +119,8 @@ void ChannelFlow<dim,nstate>::display_additional_flow_case_specific_parameters()
     this->display_grid_parameters();
 }
 
-template <int dim, int nstate>
-void ChannelFlow<dim,nstate>::display_grid_parameters() const
+template <int dim, int nspecies, int nstate>
+void ChannelFlow<dim, nspecies, nstate>::display_grid_parameters() const
 {
     const std::string grid_type_string = "subdivided_hyper_rectangle_for_channel_flow";
     // Display the information about the grid
@@ -148,8 +148,8 @@ void ChannelFlow<dim,nstate>::display_grid_parameters() const
     this->pcout << "- - Mesh stretching function: " << turbulent_channel_mesh_stretching_function_type_string << std::endl;
 }
 
-template <int dim, int nstate>
-double ChannelFlow<dim,nstate>::get_adaptive_time_step(std::shared_ptr<DGBase<dim,double>> /*dg*/) const
+template <int dim, int nspecies, int nstate>
+double ChannelFlow<dim, nspecies, nstate>::get_adaptive_time_step(std::shared_ptr<DGBase<dim,nspecies,double>> /*dg*/) const
 {
     // compute time step based on advection speed (i.e. maximum local wave speed)
     const double cfl_number = this->all_param.flow_solver_param.courant_friedrichs_lewy_number;
@@ -157,8 +157,8 @@ double ChannelFlow<dim,nstate>::get_adaptive_time_step(std::shared_ptr<DGBase<di
     return time_step;
 }
 
-template <int dim, int nstate>
-double ChannelFlow<dim,nstate>::get_adaptive_time_step_initial(std::shared_ptr<DGBase<dim,double>> dg)
+template <int dim, int nspecies, int nstate>
+double ChannelFlow<dim, nspecies, nstate>::get_adaptive_time_step_initial(std::shared_ptr<DGBase<dim,nspecies,double>> dg)
 {
     // initialize the maximum local wave speed
     this->update_maximum_local_wave_speed(*dg);
@@ -170,8 +170,8 @@ double ChannelFlow<dim,nstate>::get_adaptive_time_step_initial(std::shared_ptr<D
     return time_step;
 }
 
-template <int dim, int nstate>
-std::vector<double> ChannelFlow<dim,nstate>::get_mesh_step_size_y_direction() const 
+template <int dim, int nspecies, int nstate>
+std::vector<double> ChannelFlow<dim, nspecies, nstate>::get_mesh_step_size_y_direction() const 
 {
     using turbulent_channel_mesh_stretching_function_enum = Parameters::FlowSolverParam::TurbulentChannelMeshStretchingFunctionType;
     const turbulent_channel_mesh_stretching_function_enum turbulent_channel_mesh_stretching_function_type = this->all_param.flow_solver_param.turbulent_channel_mesh_stretching_function_type;
@@ -195,8 +195,8 @@ std::vector<double> ChannelFlow<dim,nstate>::get_mesh_step_size_y_direction() co
     return step_size_y_direction;
 }
 
-template <int dim, int nstate>
-std::vector<double> ChannelFlow<dim,nstate>::get_mesh_step_size_y_direction_HOPW() const 
+template <int dim, int nspecies, int nstate>
+std::vector<double> ChannelFlow<dim, nspecies, nstate>::get_mesh_step_size_y_direction_HOPW() const 
 {
     const int number_of_edges_y_direction = number_of_cells_y_direction+1;
     std::vector<double> element_edges_y_direction(number_of_edges_y_direction);
@@ -227,8 +227,8 @@ std::vector<double> ChannelFlow<dim,nstate>::get_mesh_step_size_y_direction_HOPW
     return step_size_y_direction;
 }
 
-template <int dim, int nstate>
-std::vector<double> ChannelFlow<dim,nstate>::get_mesh_step_size_y_direction_Gullbrand() const 
+template <int dim, int nspecies, int nstate>
+std::vector<double> ChannelFlow<dim, nspecies, nstate>::get_mesh_step_size_y_direction_Gullbrand() const 
 {
     // Domain lower bound in y-direction
     const double desired_domain_lower_bound_y = 0.0; // for convenient wall distance calculation
@@ -260,8 +260,8 @@ std::vector<double> ChannelFlow<dim,nstate>::get_mesh_step_size_y_direction_Gull
     return step_size_y_direction;
 }
 
-template <int dim, int nstate>
-std::vector<double> ChannelFlow<dim,nstate>::get_mesh_step_size_y_direction_carton_de_wiart_et_al() const 
+template <int dim, int nspecies, int nstate>
+std::vector<double> ChannelFlow<dim, nspecies, nstate>::get_mesh_step_size_y_direction_carton_de_wiart_et_al() const 
 {
     // - get stretched spacing for y-direction to capture boundary layer
     const int number_of_edges_y_direction = number_of_cells_y_direction+1;
@@ -283,8 +283,8 @@ std::vector<double> ChannelFlow<dim,nstate>::get_mesh_step_size_y_direction_cart
     return step_size_y_direction;
 }
 
-template <int dim, int nstate>
-std::shared_ptr<Triangulation> ChannelFlow<dim,nstate>::generate_grid() const
+template <int dim, int nspecies, int nstate>
+std::shared_ptr<Triangulation> ChannelFlow<dim, nspecies, nstate>::generate_grid() const
 {
     // // uncomment this to use the gmsh reader
     // // Dummy triangulation
@@ -346,8 +346,8 @@ std::shared_ptr<Triangulation> ChannelFlow<dim,nstate>::generate_grid() const
     return grid;
 }
 
-template <int dim, int nstate>
-void ChannelFlow<dim,nstate>::set_higher_order_grid(std::shared_ptr<DGBase<dim, double>> /*dg*/) const
+template <int dim, int nspecies, int nstate>
+void ChannelFlow<dim, nspecies, nstate>::set_higher_order_grid(std::shared_ptr<DGBase<dim, nspecies, double>> /*dg*/) const
 {
     // // uncomment this to use the gmsh reader
     // const std::string mesh_filename = this->all_param.flow_solver_param.input_mesh_filename+std::string(".msh");
@@ -359,8 +359,8 @@ void ChannelFlow<dim,nstate>::set_higher_order_grid(std::shared_ptr<DGBase<dim, 
     // do nothing if using dealii mesh generator
 }
 
-template <int dim, int nstate>
-unsigned int ChannelFlow<dim,nstate>::get_number_of_degrees_of_freedom_per_state_from_poly_degree(const unsigned int poly_degree_input) const
+template <int dim, int nspecies, int nstate>
+unsigned int ChannelFlow<dim, nspecies, nstate>::get_number_of_degrees_of_freedom_per_state_from_poly_degree(const unsigned int poly_degree_input) const
 {
     // expression for the channel flow grid (i.e. different number of cells in each direction)
     const unsigned int number_of_degrees_of_freedom_per_state = this->number_of_cells_x_direction*(poly_degree_input+1)*
@@ -369,8 +369,8 @@ unsigned int ChannelFlow<dim,nstate>::get_number_of_degrees_of_freedom_per_state
     return number_of_degrees_of_freedom_per_state;
 }
 
-template<int dim, int nstate>
-double ChannelFlow<dim, nstate>::get_average_wall_shear_stress(DGBase<dim, double> &dg) const
+template<int dim, int nspecies, int nstate>
+double ChannelFlow<dim, nspecies, nstate>::get_average_wall_shear_stress(DGBase<dim, nspecies, double> &dg) const
 {
     /// Update flags needed at face points.
     const dealii::UpdateFlags face_update_flags = dealii::update_values | dealii::update_gradients | dealii::update_quadrature_points | dealii::update_JxW_values | dealii::update_normal_vectors;
@@ -429,8 +429,8 @@ double ChannelFlow<dim, nstate>::get_average_wall_shear_stress(DGBase<dim, doubl
     return averaged_value;
 }
 
-template<int dim, int nstate>
-double ChannelFlow<dim, nstate>::get_average_wall_shear_stress_from_wall_model(DGBase<dim, double> &dg) const
+template<int dim, int nspecies, int nstate>
+double ChannelFlow<dim,nspecies,nstate>::get_average_wall_shear_stress_from_wall_model(DGBase<dim, nspecies, double> &dg) const
 {
     /// Update flags needed at face points.
     const dealii::UpdateFlags face_update_flags = dealii::update_values /*| dealii::update_gradients*/ | dealii::update_quadrature_points | dealii::update_JxW_values | dealii::update_normal_vectors;
@@ -528,34 +528,34 @@ double ChannelFlow<dim, nstate>::get_average_wall_shear_stress_from_wall_model(D
     return averaged_value;
 }
 
-template <int dim, int nstate>
-double ChannelFlow<dim, nstate>::get_skin_friction_coefficient_from_average_wall_shear_stress(const double avg_wall_shear_stress) const
+template <int dim, int nspecies, int nstate>
+double ChannelFlow<dim, nspecies, nstate>::get_skin_friction_coefficient_from_average_wall_shear_stress(const double avg_wall_shear_stress) const
 {
     // Reference: Equation 34 of Lodato G, Castonguay P, Jameson A. Discrete filter operators for large-eddy simulation using high-order spectral difference methods. International Journal for Numerical Methods in Fluids2013;72(2):231–258. 
     const double skin_friction_coefficient = 2.0*avg_wall_shear_stress/(this->bulk_density*this->bulk_velocity*this->bulk_velocity);
     return skin_friction_coefficient;
 }
 
-template <int dim, int nstate>
-double ChannelFlow<dim, nstate>::get_bulk_density() const
+template <int dim, int nspecies, int nstate>
+double ChannelFlow<dim, nspecies, nstate>::get_bulk_density() const
 {
     return this->bulk_density;
 }
 
-template <int dim, int nstate>
-double ChannelFlow<dim, nstate>::get_bulk_mass_flow_rate() const
+template <int dim, int nspecies, int nstate>
+double ChannelFlow<dim, nspecies, nstate>::get_bulk_mass_flow_rate() const
 {
     return this->bulk_mass_flow_rate;
 }
 
-template <int dim, int nstate>
-double ChannelFlow<dim, nstate>::get_bulk_velocity() const
+template <int dim, int nspecies, int nstate>
+double ChannelFlow<dim, nspecies, nstate>::get_bulk_velocity() const
 {
     return this->bulk_velocity;
 }
 
-template <int dim, int nstate>
-void ChannelFlow<dim, nstate>::set_bulk_flow_quantities(DGBase<dim, double> &dg)
+template <int dim, int nspecies, int nstate>
+void ChannelFlow<dim, nspecies, nstate>::set_bulk_flow_quantities(DGBase<dim, nspecies, double> &dg)
 {
     const int NUMBER_OF_INTEGRATED_QUANTITIES = 2;
     std::array<double,NUMBER_OF_INTEGRATED_QUANTITIES> integrated_quantities;
@@ -627,7 +627,7 @@ void ChannelFlow<dim, nstate>::set_bulk_flow_quantities(DGBase<dim, double> &dg)
 }
 
 #if PHILIP_DIM==3
-template class ChannelFlow <PHILIP_DIM,PHILIP_DIM+2>;
+template class ChannelFlow <PHILIP_DIM,PHILIP_SPECIES,PHILIP_DIM+2>;
 #endif
 
 } // FlowSolver namespace

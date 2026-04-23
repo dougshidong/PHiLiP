@@ -11,8 +11,8 @@ namespace PHiLiP {
 * suitable quadrature rules for hyperbolic conservation laws." 
 * Journal of Computational Physics 345 (2017): 427-461.
 **********************************/
-template<int dim, int nstate, typename real>
-class TVBLimiter : public BoundPreservingLimiterState <dim, nstate, real>
+template<int dim, int nspecies, int nstate, typename real>
+class TVBLimiter : public BoundPreservingLimiterState <dim, nspecies, nstate, real>
 {
 public:
     /// Constructor
@@ -60,7 +60,7 @@ private:
         const bool          left_face);
 public:
     /// Function to obtain the solution cell average
-    using BoundPreservingLimiterState<dim, nstate, real>::get_soln_cell_avg;
+    using BoundPreservingLimiterState<dim, nspecies, nstate, real>::get_soln_cell_avg;
 
     /// Applies total variation bounded limiter to the solution.
     /// Using Chen,Shu September 2017 Thm3.7 we apply a limiter on the solution

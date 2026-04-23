@@ -12,8 +12,8 @@
 namespace PHiLiP {
 namespace Tests {
 
-template <int dim, int nstate>
-BoundPreservingLimiterTests<dim, nstate>::BoundPreservingLimiterTests(
+template <int dim, int nspecies, int nstate>
+BoundPreservingLimiterTests<dim, nspecies, nstate>::BoundPreservingLimiterTests(
     const PHiLiP::Parameters::AllParameters* const parameters_input,
     const dealii::ParameterHandler& parameter_handler_input)
     :
@@ -21,8 +21,8 @@ BoundPreservingLimiterTests<dim, nstate>::BoundPreservingLimiterTests(
     , parameter_handler(parameter_handler_input)
 {}
 
-template <int dim, int nstate>
-double BoundPreservingLimiterTests<dim, nstate>::get_time_step(std::shared_ptr<DGBase<dim, double>> dg) const
+template <int dim, int nspecies, int nstate>
+double BoundPreservingLimiterTests<dim, nspecies, nstate>::get_time_step(std::shared_ptr<DGBase<dim, nspecies, double>> dg) const
 {
     PHiLiP::Parameters::AllParameters all_parameters_new = *all_parameters;
     using flow_case_enum = Parameters::FlowSolverParam::FlowCaseType;
@@ -80,8 +80,8 @@ double BoundPreservingLimiterTests<dim, nstate>::get_time_step(std::shared_ptr<D
                 double local_wave_speed = 0.0;
                 if(nstate == dim + 2) {
                     // Update the maximum local wave speed (i.e. convective eigenvalue)
-                    Physics::Euler<dim,nstate,double> euler_physics_double
-                        = Physics::Euler<dim, nstate, double>(
+                    Physics::Euler<dim,nspecies,nstate,double> euler_physics_double
+                        = Physics::Euler<dim, nspecies, nstate, double>(
                                 all_parameters,
                                 all_parameters_new.euler_param.ref_length,
                                 all_parameters_new.euler_param.gamma_gas,
@@ -104,8 +104,8 @@ double BoundPreservingLimiterTests<dim, nstate>::get_time_step(std::shared_ptr<D
     return time_step;
 }
 
-template <int dim, int nstate>
-double BoundPreservingLimiterTests<dim, nstate>::calculate_uexact(const dealii::Point<dim> qpoint, const dealii::Tensor<1, 3, double> adv_speeds, double final_time) const
+template <int dim, int nspecies, int nstate>
+double BoundPreservingLimiterTests<dim, nspecies, nstate>::calculate_uexact(const dealii::Point<dim> qpoint, const dealii::Tensor<1, 3, double> adv_speeds, double final_time) const
 {
     PHiLiP::Parameters::AllParameters all_parameters_new = *all_parameters;
     using flow_case_enum = Parameters::FlowSolverParam::FlowCaseType;
@@ -131,9 +131,9 @@ double BoundPreservingLimiterTests<dim, nstate>::calculate_uexact(const dealii::
     return uexact;
 }
 
-template <int dim, int nstate>
-std::array<double,3> BoundPreservingLimiterTests<dim, nstate>::calculate_l_n_error(
-    std::shared_ptr<DGBase<dim, double>> dg,
+template <int dim, int nspecies, int nstate>
+std::array<double,3> BoundPreservingLimiterTests<dim, nspecies, nstate>::calculate_l_n_error(
+    std::shared_ptr<DGBase<dim, nspecies, double>> dg,
     const int poly_degree,
     const double final_time) const
 {
@@ -191,8 +191,8 @@ std::array<double,3> BoundPreservingLimiterTests<dim, nstate>::calculate_l_n_err
     return lerror_mpi;
 }
 
-template <int dim, int nstate>
-int BoundPreservingLimiterTests<dim, nstate>::run_test() const
+template <int dim, int nspecies, int nstate>
+int BoundPreservingLimiterTests<dim, nspecies, nstate>::run_test() const
 {
     pcout << " Running Bound Preserving Limiter test. " << std::endl;
     pcout << dim << "    " << nstate << std::endl;
@@ -209,8 +209,8 @@ int BoundPreservingLimiterTests<dim, nstate>::run_test() const
     return test_result; //if got to here means passed the test, otherwise would've failed earlier
 }
 
-template <int dim, int nstate>
-int BoundPreservingLimiterTests<dim, nstate>::run_full_limiter_test() const
+template <int dim, int nspecies, int nstate>
+int BoundPreservingLimiterTests<dim, nspecies, nstate>::run_full_limiter_test() const
 {
     pcout << "\n" << "Creating FlowSolver" << std::endl;
 
@@ -227,20 +227,20 @@ int BoundPreservingLimiterTests<dim, nstate>::run_full_limiter_test() const
     }
 
     // Create flow solver to access DG object which is needed to calculate time step
-    std::unique_ptr<FlowSolver::FlowSolver<dim, nstate>> flow_solver = FlowSolver::FlowSolverFactory<dim, nstate>::select_flow_case(&param, parameter_handler);
+    std::unique_ptr<FlowSolver::FlowSolver<dim, nspecies, nstate>> flow_solver = FlowSolver::FlowSolverFactory<dim, nspecies, nstate>::select_flow_case(&param, parameter_handler);
     double time_step = get_time_step(flow_solver->dg);
     param.flow_solver_param.constant_time_step = time_step;
     // Delete flow solver object (the time_step param cannot be changed directly because flow_solver_param is protected in flow_solver)
     flow_solver.reset();
     // Reinitialize flow solver with new time step parameter
-    flow_solver = FlowSolver::FlowSolverFactory<dim, nstate>::select_flow_case(&param, parameter_handler);
+    flow_solver = FlowSolver::FlowSolverFactory<dim, nspecies, nstate>::select_flow_case(&param, parameter_handler);
     flow_solver->run();
 
     return 0;
 }
 
-template <int dim, int nstate>
-int BoundPreservingLimiterTests<dim, nstate>::run_convergence_test() const
+template <int dim, int nspecies, int nstate>
+int BoundPreservingLimiterTests<dim, nspecies, nstate>::run_convergence_test() const
 {
     PHiLiP::Parameters::AllParameters all_parameters_new = *all_parameters;
     PHiLiP::Parameters::ManufacturedConvergenceStudyParam manu_grid_conv_param = all_parameters_new.manufactured_convergence_study_param;
@@ -273,7 +273,7 @@ int BoundPreservingLimiterTests<dim, nstate>::run_convergence_test() const
         }
         
         // Create flow solver to access DG object which is needed to calculate time step
-        std::unique_ptr<FlowSolver::FlowSolver<dim, nstate>> flow_solver = FlowSolver::FlowSolverFactory<dim, nstate>::select_flow_case(&param, parameter_handler);
+        std::unique_ptr<FlowSolver::FlowSolver<dim, nspecies, nstate>> flow_solver = FlowSolver::FlowSolverFactory<dim, nspecies, nstate>::select_flow_case(&param, parameter_handler);
         const unsigned int n_global_active_cells = flow_solver->dg->triangulation->n_global_active_cells();
         const int poly_degree = all_parameters_new.flow_solver_param.poly_degree;
         double time_step = get_time_step(flow_solver->dg);
@@ -281,7 +281,7 @@ int BoundPreservingLimiterTests<dim, nstate>::run_convergence_test() const
         // Delete flow solver object (the time_step param cannot be changed directly because flow_solver_param is protected in flow_solver)
         flow_solver.reset();
         // Reinitialize flow solver with new time step parameter
-        flow_solver = FlowSolver::FlowSolverFactory<dim, nstate>::select_flow_case(&param, parameter_handler);
+        flow_solver = FlowSolver::FlowSolverFactory<dim, nspecies, nstate>::select_flow_case(&param, parameter_handler);
         flow_solver->run();
         const double final_time_actual = flow_solver->ode_solver->current_time;
 
@@ -362,13 +362,13 @@ int BoundPreservingLimiterTests<dim, nstate>::run_convergence_test() const
         return 1;
 }
 
-#if PHILIP_DIM==1
-template class BoundPreservingLimiterTests<PHILIP_DIM, PHILIP_DIM>;
-template class BoundPreservingLimiterTests<PHILIP_DIM, PHILIP_DIM + 2>;
-#elif PHILIP_DIM==2
-template class BoundPreservingLimiterTests<PHILIP_DIM, PHILIP_DIM>;
-template class BoundPreservingLimiterTests<PHILIP_DIM, PHILIP_DIM + 2>;
-template class BoundPreservingLimiterTests<PHILIP_DIM, 1>;
+#if PHILIP_DIM==1 && PHILIP_SPECIES==1
+template class BoundPreservingLimiterTests<PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM>;
+template class BoundPreservingLimiterTests<PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM + 2>;
+#elif PHILIP_DIM==2 && PHILIP_SPECIES==1
+template class BoundPreservingLimiterTests<PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM>;
+template class BoundPreservingLimiterTests<PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM + 2>;
+template class BoundPreservingLimiterTests<PHILIP_DIM, PHILIP_SPECIES, 1>;
 #endif
 
 } // Tests namespace

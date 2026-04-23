@@ -9,7 +9,7 @@ namespace PHiLiP {
 namespace Tests {
 
 /// Turbulent Channel Flow Skin Friction Check
-template <int dim, int nstate>
+template <int dim, int nspecies, int nstate>
 class TurbulentChannelFlowSkinFrictionCheck: public TestsBase
 {
 private:
@@ -39,7 +39,7 @@ public:
     const double normal_vector_bottom_wall; ///< normal vector for bottom wall
 
     /// Pointer to Navier-Stokes physics object for computing things on the fly
-    std::shared_ptr< Physics::NavierStokes_ChannelFlowConstantSourceTerm_WallModel<dim,dim+2,double> > navier_stokes_channel_flow_constant_source_term_wall_model_physics;
+    std::shared_ptr< Physics::NavierStokes_ChannelFlowConstantSourceTerm_WallModel<dim,nspecies,dim+2,double> > navier_stokes_channel_flow_constant_source_term_wall_model_physics;
     bool check_wall_model; ///< Flag for checking wall model (true if uniform grid)
 
     /// Run test

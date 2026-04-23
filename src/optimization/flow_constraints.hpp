@@ -22,7 +22,7 @@ using AdaptVector = dealii::Rol::VectorAdaptor<dealii_Vector>;
  *  The given @p ffd_design_variables_indices_dim point to the points/directions
  *  used as design variables.
  */
-template<int dim>
+template<int dim, int nspecies>
 class FlowConstraints : public ROL::Constraint_SimOpt<double> {
 private:
     /// MPI rank used for printing.
@@ -30,7 +30,7 @@ private:
     /// Whether the current processor should print or not.
     const bool i_print;
     /// Smart pointer to DGBase
-    std::shared_ptr<DGBase<dim,double>> dg;
+    std::shared_ptr<DGBase<dim,nspecies,double>> dg;
 
     /// Parameterization which links design variables to the volume nodes.
     std::shared_ptr<BaseParameterization<dim>> design_parameterization;
@@ -85,7 +85,7 @@ public:
 
     /// Constructor
     FlowConstraints(
-        std::shared_ptr<DGBase<dim,double>> &_dg,
+        std::shared_ptr<DGBase<dim,nspecies,double>> &_dg,
         std::shared_ptr<BaseParameterization<dim>> _design_parameterization,
         std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> precomputed_dXvdXp = nullptr);
 

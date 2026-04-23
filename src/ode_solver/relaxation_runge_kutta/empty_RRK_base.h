@@ -10,9 +10,9 @@ namespace ODE {
 /// Empty class stored by RK solvers which do not use RRK, and also do not need to calculate numerical entropy.
 /// Functions in this class are empty or return a "dummy" value. 
 #if PHILIP_DIM==1
-template <int dim, typename real, typename MeshType = dealii::Triangulation<dim>>
+template <int dim, int nspecies, typename real, typename MeshType = dealii::Triangulation<dim>>
 #else
-template <int dim, typename real, typename MeshType = dealii::parallel::distributed::Triangulation<dim>>
+template <int dim, int nspecies, typename real, typename MeshType = dealii::parallel::distributed::Triangulation<dim>>
 #endif
 class EmptyRRKBase
 {
@@ -24,7 +24,7 @@ public:
     /** Empty here
      */
     virtual real compute_FR_entropy_contribution(const real /*dt*/,
-            std::shared_ptr<DGBase<dim,real,MeshType>>/* dg*/,
+            std::shared_ptr<DGBase<dim,nspecies,real,MeshType>>/* dg*/,
             const std::vector<dealii::LinearAlgebra::distributed::Vector<double>> &/*rk_stage*/,
             const bool /*compute_K_norm*/) const{
         return 0.0;
@@ -41,7 +41,7 @@ public:
     /** Returns 1.0, corresponding to no modification to dt
      ** when RRK is not used*/
     virtual real update_relaxation_parameter(const real /*dt*/, 
-            std::shared_ptr<DGBase<dim,real,MeshType>> /*dg*/,
+            std::shared_ptr<DGBase<dim,nspecies,real,MeshType>> /*dg*/,
             const std::vector<dealii::LinearAlgebra::distributed::Vector<double>> &/*rk_stage*/,
             const dealii::LinearAlgebra::distributed::Vector<double> &/*solution_update*/
             ) {

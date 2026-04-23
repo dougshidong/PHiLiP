@@ -6,12 +6,13 @@
 #include <deal.II/base/function.h>
 #include "parameters/all_parameters.h"
 #include "../euler.h" // for FreeStreamInitialConditions
+#include "../real_gas.h" // for RealGasBase
 #include "../navier_stokes.h" // for InitialConditionFunction_TurbulentChannelFlow
 
 namespace PHiLiP {
 
 /// Initial condition function used to initialize a particular flow setup/case
-template <int dim, int nstate, typename real>
+template <int dim, int nspecies, int nstate, typename real>
 class InitialConditionFunction : public dealii::Function<dim,real>
 {
 protected:
@@ -27,8 +28,8 @@ public:
 };
 
 /// Function used to evaluate farfield conservative solution
-template <int dim, int nstate, typename real>
-class FreeStreamInitialConditions : public InitialConditionFunction<dim,nstate,real>
+template <int dim, int nspecies, int nstate, typename real>
+class FreeStreamInitialConditions : public InitialConditionFunction<dim,nspecies,nstate,real>
 {
 protected:
     using dealii::Function<dim,real>::value; ///< dealii::Function we are templating on
@@ -40,8 +41,8 @@ public:
     /// Constructor.
     /** Evaluates the primary farfield solution and converts it into the store farfield_conservative solution
      */
-    explicit FreeStreamInitialConditions (const Physics::Euler<dim,nstate,double> euler_physics)
-            : InitialConditionFunction<dim,nstate,real>()
+    explicit FreeStreamInitialConditions (const Physics::Euler<dim,nspecies,nstate,double> euler_physics)
+            : InitialConditionFunction<dim,nspecies,nstate,real>()
     {
         //const double density_bc = 2.33333*euler_physics.density_inf;
         const double density_bc = euler_physics.density_inf;
@@ -61,8 +62,8 @@ public:
 };
 
 /// Function used to evaluate initial turbulent channel conservative solution
-template <int dim, int nstate, typename real>
-class InitialConditionFunction_TurbulentChannelFlow : public InitialConditionFunction<dim,nstate,real>
+template <int dim, int nspecies, int nstate, typename real>
+class InitialConditionFunction_TurbulentChannelFlow : public InitialConditionFunction<dim,nspecies,nstate,real>
 {
 protected:
     using dealii::Function<dim,real>::value; ///< dealii::Function we are templating on
@@ -70,13 +71,13 @@ protected:
 public:
     /// Constructor.
     InitialConditionFunction_TurbulentChannelFlow (
-        const Physics::NavierStokes<dim,nstate,double> navier_stokes_physics_,
+        const Physics::NavierStokes<dim,nspecies,nstate,double> navier_stokes_physics_,
         const double channel_friction_velocity_reynolds_number_,
         const double domain_length_x_,
         const double domain_length_y_,
         const double domain_length_z_);
 
-    const Physics::NavierStokes<dim,nstate,double> navier_stokes_physics; ///< Navier-Stokes physics object
+    const Physics::NavierStokes<dim,nspecies,nstate,double> navier_stokes_physics; ///< Navier-Stokes physics object
     const double channel_friction_velocity_reynolds_number; ///< Channel Reynolds number based on wall friction velocity
     const double domain_length_x; ///< Domain length in x-direction
     const double domain_length_y; ///< Domain length in y-direction
@@ -96,8 +97,8 @@ protected:
     virtual real y_velocity (const dealii::Point<dim,real> &point) const;
 };
 
-template <int dim, int nstate, typename real>
-class InitialConditionFunction_TurbulentChannelFlow_Turbulent : public InitialConditionFunction_TurbulentChannelFlow<dim,nstate,real>
+template <int dim, int nspecies, int nstate, typename real>
+class InitialConditionFunction_TurbulentChannelFlow_Turbulent : public InitialConditionFunction_TurbulentChannelFlow<dim,nspecies,nstate,real>
 {
 public:
     /// Constructor.
@@ -105,7 +106,7 @@ public:
      *  Reference: https://how4.cenaero.be/sites/how4.cenaero.be/files/BS2_ChannelFlowRe590.pdf
      */
     InitialConditionFunction_TurbulentChannelFlow_Turbulent (
-        const Physics::NavierStokes<dim,nstate,double> navier_stokes_physics_,
+        const Physics::NavierStokes<dim,nspecies,nstate,double> navier_stokes_physics_,
         const double channel_friction_velocity_reynolds_number_,
         const double domain_length_x_,
         const double domain_length_y_,
@@ -116,15 +117,15 @@ protected:
     real x_velocity (const dealii::Point<dim,real> &point, const real density, const real temperature) const override;
 };
 
-template <int dim, int nstate, typename real>
-class InitialConditionFunction_TurbulentChannelFlow_Manufactured : public InitialConditionFunction_TurbulentChannelFlow_Turbulent<dim,nstate,real>
+template <int dim, int nspecies, int nstate, typename real>
+class InitialConditionFunction_TurbulentChannelFlow_Manufactured : public InitialConditionFunction_TurbulentChannelFlow_Turbulent<dim,nspecies,nstate,real>
 {
 public:
     /// Constructor.
     /** Arbitrary manufactured initial condition for checking the skin friction coefficient calculation
      */
     InitialConditionFunction_TurbulentChannelFlow_Manufactured (
-        const Physics::NavierStokes<dim,nstate,double> navier_stokes_physics_,
+        const Physics::NavierStokes<dim,nspecies,nstate,double> navier_stokes_physics_,
         const double channel_friction_velocity_reynolds_number_,
         const double domain_length_x_,
         const double domain_length_y_,
@@ -136,8 +137,8 @@ protected:
 };
 
 /// Initial Condition Function: NavierStokesBase
-template <int dim, int nstate, typename real>
-class InitialConditionFunction_NavierStokesBase : public InitialConditionFunction<dim,nstate,real>
+template <int dim, int nspecies, int nstate, typename real>
+class InitialConditionFunction_NavierStokesBase : public InitialConditionFunction<dim,nspecies,nstate,real>
 {
 protected:
     using dealii::Function<dim,real>::value; ///< dealii::Function we are templating on
@@ -162,12 +163,38 @@ protected:
     real convert_primitive_to_conversative_value(const dealii::Point<dim,real> &point, const unsigned int istate = 0) const;
 
     // Euler physics pointer. Used to convert primitive to conservative.
-    std::shared_ptr < Physics::Euler<dim, nstate, double > > euler_physics;
+    std::shared_ptr < Physics::Euler<dim, nspecies, nstate, double > > euler_physics;
+};
+
+/// Initial Condition Function: Euler Equations (primitive values)
+template <int dim, int nspecies, int nstate, typename real>
+class InitialConditionFunction_RealGasBase : public InitialConditionFunction<dim, nspecies, nstate, real>
+{
+protected:
+    using dealii::Function<dim, real>::value; ///< dealii::Function we are templating on
+
+public:
+    /// Constructor for test cases using Euler equations.
+    explicit InitialConditionFunction_RealGasBase(
+        Parameters::AllParameters const* const param);
+
+    /// Value of initial condition expressed in terms of conservative variables
+    real value(const dealii::Point<dim, real>& point, const unsigned int istate = 0) const override;
+
+protected:
+    /// Value of initial condition expressed in terms of primitive variables
+    virtual real primitive_value(const dealii::Point<dim, real>& point, const unsigned int istate = 0) const = 0;
+
+    /// Converts value from: primitive to conservative
+    real convert_primitive_to_conversative_value(const dealii::Point<dim, real>& point, const unsigned int istate = 0) const;
+
+    // Real Gas physics pointer. Used to convert primitive to conservative.
+    std::shared_ptr < Physics::RealGas<dim, nspecies, nstate, double > > real_gas_physics;
 };
 
 /// Initial Condition Function: Taylor Green Vortex (uniform density)
-template <int dim, int nstate, typename real>
-class InitialConditionFunction_TaylorGreenVortex : public InitialConditionFunction_NavierStokesBase<dim,nstate,real>
+template <int dim, int nspecies, int nstate, typename real>
+class InitialConditionFunction_TaylorGreenVortex : public InitialConditionFunction_NavierStokesBase<dim,nspecies,nstate,real>
 {
 public:
     /// Constructor for TaylorGreenVortex_InitialCondition with uniform density
@@ -190,9 +217,9 @@ protected:
 };
 
 /// Initial Condition Function: Taylor Green Vortex (isothermal density)
-template <int dim, int nstate, typename real>
+template <int dim, int nspecies, int nstate, typename real>
 class InitialConditionFunction_TaylorGreenVortex_Isothermal
-    : public InitialConditionFunction_TaylorGreenVortex<dim,nstate,real>
+    : public InitialConditionFunction_TaylorGreenVortex<dim,nspecies,nstate,real>
 {
 public:
     /// Constructor for TaylorGreenVortex_InitialCondition with isothermal density
@@ -214,8 +241,8 @@ protected:
 };
 
 /// Initial Condition Function: Dipole Wall Collision
-template <int dim, int nstate, typename real>
-class InitialConditionFunction_DipoleWallCollision : public InitialConditionFunction_NavierStokesBase<dim,nstate,real>
+template <int dim, int nspecies, int nstate, typename real>
+class InitialConditionFunction_DipoleWallCollision : public InitialConditionFunction_NavierStokesBase<dim,nspecies,nstate,real>
 {
 public:
     /// Constructor
@@ -247,8 +274,8 @@ protected:
 };
 
 /// Initial Condition Function: Dipole Wall Collision Normal
-template <int dim, int nstate, typename real>
-class InitialConditionFunction_DipoleWallCollision_Normal : public InitialConditionFunction_DipoleWallCollision<dim,nstate,real>
+template <int dim, int nspecies, int nstate, typename real>
+class InitialConditionFunction_DipoleWallCollision_Normal : public InitialConditionFunction_DipoleWallCollision<dim,nspecies,nstate,real>
 {
 public:
     /// Constructor
@@ -266,8 +293,8 @@ public:
 };
 
 /// Initial Condition Function: Dipole Wall Collision Oblique
-template <int dim, int nstate, typename real>
-class InitialConditionFunction_DipoleWallCollision_Oblique : public InitialConditionFunction_DipoleWallCollision<dim,nstate,real>
+template <int dim, int nspecies, int nstate, typename real>
+class InitialConditionFunction_DipoleWallCollision_Oblique : public InitialConditionFunction_DipoleWallCollision<dim,nspecies,nstate,real>
 {
 public:
     /// Constructor
@@ -285,8 +312,8 @@ public:
 };
 
 /// Initial Condition Function: 1D Burgers Rewienski
-template <int dim, int nstate, typename real>
-class InitialConditionFunction_BurgersRewienski: public InitialConditionFunction<dim,nstate,real>
+template <int dim, int nspecies, int nstate, typename real>
+class InitialConditionFunction_BurgersRewienski: public InitialConditionFunction<dim,nspecies,nstate,real>
 {
 protected:
     using dealii::Function<dim,real>::value; ///< dealii::Function we are templating on
@@ -301,8 +328,8 @@ public:
 };
 
 /// Initial Condition Function: 1D Burgers Viscous
-template <int dim, int nstate, typename real>
-class InitialConditionFunction_BurgersViscous: public InitialConditionFunction<dim,nstate,real>
+template <int dim, int nspecies, int nstate, typename real>
+class InitialConditionFunction_BurgersViscous: public InitialConditionFunction<dim,nspecies,nstate,real>
 {
 protected:
     using dealii::Function<dim,real>::value; ///< dealii::Function we are templating on
@@ -317,8 +344,8 @@ public:
 };
 
 /// Initial Condition Function: 1D Burgers Inviscid
-template <int dim, int nstate, typename real>
-class InitialConditionFunction_BurgersInviscid: public InitialConditionFunction<dim,nstate,real>
+template <int dim, int nspecies, int nstate, typename real>
+class InitialConditionFunction_BurgersInviscid: public InitialConditionFunction<dim,nspecies,nstate,real>
 {
 protected:
     using dealii::Function<dim,real>::value; ///< dealii::Function we are templating on
@@ -333,9 +360,9 @@ public:
 };
 
 /// Initial Condition Function: 1D Burgers Inviscid Energy
-template <int dim, int nstate, typename real>
+template <int dim, int nspecies, int nstate, typename real>
 class InitialConditionFunction_BurgersInviscidEnergy
-        : public InitialConditionFunction<dim,nstate,real>
+        : public InitialConditionFunction<dim,nspecies,nstate,real>
 {
 protected:
     using dealii::Function<dim,real>::value; ///< dealii::Function we are templating on
@@ -350,9 +377,9 @@ public:
 };
 
 /// Initial Condition Function: 1D Burgers Inviscid
-template <int dim, int nstate, typename real>
+template <int dim, int nspecies, int nstate, typename real>
 class InitialConditionFunction_Advection
-        : public InitialConditionFunction<dim,nstate,real>
+        : public InitialConditionFunction<dim,nspecies,nstate,real>
 {
 protected:
     using dealii::Function<dim,real>::value; ///< dealii::Function we are templating on
@@ -367,9 +394,9 @@ public:
 };
 
 /// Initial Condition Function: Advection Energy
-template <int dim, int nstate, typename real>
+template <int dim, int nspecies, int nstate, typename real>
 class InitialConditionFunction_AdvectionEnergy
-        : public InitialConditionFunction<dim,nstate,real>
+        : public InitialConditionFunction<dim,nspecies,nstate,real>
 {
 protected:
     using dealii::Function<dim,real>::value; ///< dealii::Function we are templating on
@@ -384,9 +411,9 @@ public:
 };
 
 /// Initial Condition Function: Convection Diffusion Orders of Accuracy
-template <int dim, int nstate, typename real>
+template <int dim, int nspecies, int nstate, typename real>
 class InitialConditionFunction_ConvDiff
-        : public InitialConditionFunction<dim,nstate,real>
+        : public InitialConditionFunction<dim,nspecies,nstate,real>
 {
 protected:
     using dealii::Function<dim,real>::value; ///< dealii::Function we are templating on
@@ -401,9 +428,9 @@ public:
 };
 
 /// Initial Condition Function: Convection Diffusion Energy
-template <int dim, int nstate, typename real>
+template <int dim, int nspecies, int nstate, typename real>
 class InitialConditionFunction_ConvDiffEnergy
-        : public InitialConditionFunction<dim,nstate,real>
+        : public InitialConditionFunction<dim,nspecies,nstate,real>
 {
 protected:
     using dealii::Function<dim,real>::value; ///< dealii::Function we are templating on
@@ -418,9 +445,9 @@ public:
 };
 
 /// Initial Condition Function: 1D Sine Function; used for temporal convergence
-template <int dim, int nstate, typename real>
+template <int dim, int nspecies, int nstate, typename real>
 class InitialConditionFunction_1DSine
-        : public InitialConditionFunction<dim,nstate,real>
+        : public InitialConditionFunction<dim,nspecies,nstate,real>
 {
 protected:
     using dealii::Function<dim,real>::value; ///< dealii::Function we are templating on
@@ -434,9 +461,9 @@ public:
 };
 
 /// Initial Condition Function: Isentropic vortex
-template <int dim, int nstate, typename real>
+template <int dim, int nspecies, int nstate, typename real>
 class InitialConditionFunction_IsentropicVortex
-        : public InitialConditionFunction<dim,nstate,real>
+        : public InitialConditionFunction<dim,nspecies,nstate,real>
 {
 protected:
     using dealii::Function<dim,real>::value; ///< dealii::Function we are templating on
@@ -458,7 +485,7 @@ public:
 protected:
 
     // Euler physics pointer. Used to convert primitive to conservative.
-    std::shared_ptr < Physics::Euler<dim, nstate, double > > euler_physics;
+    std::shared_ptr < Physics::Euler<dim, nspecies, nstate, double > > euler_physics;
 
 };
 
@@ -470,8 +497,8 @@ protected:
  *      See github.com/trixi-framework/paper-2022-robustness-entropy-projection
  *      for initial condition which is implemented herein
  */
-template <int dim, int nstate, typename real>
-class InitialConditionFunction_KHI : public InitialConditionFunction<dim,nstate,real>
+template <int dim, int nspecies, int nstate, typename real>
+class InitialConditionFunction_KHI : public InitialConditionFunction<dim,nspecies,nstate,real>
 {
 protected:
     using dealii::Function<dim,real>::value; ///< dealii::Function we are templating on
@@ -490,7 +517,7 @@ protected:
     const real atwood_number;
 
     // Euler physics pointer. Used to convert primitive to conservative.
-    std::shared_ptr < Physics::Euler<dim, nstate, double > > euler_physics;
+    std::shared_ptr < Physics::Euler<dim, nspecies, nstate, double > > euler_physics;
 
 };
 
@@ -499,8 +526,8 @@ protected:
 *   Galerkin methods with suitable quadrature rules for hyperbolic 
 *   conservation laws., 2017, Pg. 25
 */
-template <int dim, int nstate, typename real>
-class InitialConditionFunction_SodShockTube: public InitialConditionFunction_NavierStokesBase<dim,nstate,real>
+template <int dim, int nspecies, int nstate, typename real>
+class InitialConditionFunction_SodShockTube: public InitialConditionFunction_NavierStokesBase<dim,nspecies,nstate,real>
 {
 protected:
     /// Value of initial condition expressed in terms of primitive variables
@@ -519,8 +546,8 @@ public:
 *   discontinuous Galerkin schemes for compressible Euler
 *   equations on rectangular meshes, 2010 Pg. 14
 */
-template <int dim, int nstate, typename real>
-class InitialConditionFunction_LeblancShockTube : public InitialConditionFunction_NavierStokesBase<dim,nstate,real>
+template <int dim, int nspecies, int nstate, typename real>
+class InitialConditionFunction_LeblancShockTube : public InitialConditionFunction_NavierStokesBase<dim, nspecies, nstate, real>
 {
 protected:
     /// Value of initial condition expressed in terms of primitive variables
@@ -538,8 +565,8 @@ public:
 *   discontinuous Galerkin schemes for compressible Euler 
 *   equations on rectangular meshes, 2010 Pg. 10
 */
-template <int dim, int nstate, typename real>
-class InitialConditionFunction_LowDensity: public InitialConditionFunction_NavierStokesBase<dim,nstate,real>
+template <int dim, int nspecies, int nstate, typename real>
+class InitialConditionFunction_LowDensity: public InitialConditionFunction_NavierStokesBase<dim,nspecies,nstate,real>
 {
 protected:
     /// Value of initial condition expressed in terms of primitive variables
@@ -557,8 +584,8 @@ public:
 *   for numerical simulations of compressible turbulence with 
 *   shock waves, 2010 Pg. 7
 */
-template <int dim, int nstate, typename real>
-class InitialConditionFunction_ShuOsherProblem : public InitialConditionFunction_NavierStokesBase<dim, nstate, real>
+template <int dim, int nspecies, int nstate, typename real>
+class InitialConditionFunction_ShuOsherProblem : public InitialConditionFunction_NavierStokesBase<dim, nspecies, nstate, real>
 {
 protected:
     /// Value of initial condition expressed in terms of primitive variables
@@ -576,8 +603,8 @@ public:
  *  and positivity-preserving Lax-Wendroff discontinuous Galerkin 
  *  methods for hyperbolic conservation laws, 2022 pg. 29
 */
-template <int dim, int nstate, typename real>
-class InitialConditionFunction_DoubleMachReflection : public InitialConditionFunction_NavierStokesBase<dim,nstate,real>
+template <int dim, int nspecies, int nstate, typename real>
+class InitialConditionFunction_DoubleMachReflection : public InitialConditionFunction_NavierStokesBase<dim, nspecies, nstate, real>
 {
 protected:
     /// Value of initial condition expressed in terms of primitive variables
@@ -595,8 +622,8 @@ public:
  *  and positivity-preserving Lax-Wendroff discontinuous Galerkin 
  *  methods for hyperbolic conservation laws, 2022 pg. 30
 */
-template <int dim, int nstate, typename real>
-class InitialConditionFunction_ShockDiffraction : public InitialConditionFunction_NavierStokesBase<dim,nstate,real>
+template <int dim, int nspecies, int nstate, typename real>
+class InitialConditionFunction_ShockDiffraction : public InitialConditionFunction_NavierStokesBase<dim, nspecies, nstate, real>
 {
 protected:
     /// Value of initial condition expressed in terms of primitive variables
@@ -615,8 +642,8 @@ public:
  *  and positivity-preserving Lax-Wendroff discontinuous Galerkin 
  *  methods for hyperbolic conservation laws, 2022 pg. 30
 */
-template <int dim, int nstate, typename real>
-class InitialConditionFunction_AstrophysicalJet : public InitialConditionFunction_NavierStokesBase<dim,nstate,real>
+template <int dim, int nspecies, int nstate, typename real>
+class InitialConditionFunction_AstrophysicalJet : public InitialConditionFunction_NavierStokesBase<dim, nspecies, nstate, real>
 {
 protected:
     /// Value of initial condition expressed in terms of primitive variables
@@ -635,8 +662,8 @@ public:
  *  and positivity-preserving Lax-Wendroff discontinuous Galerkin 
  *  methods for hyperbolic conservation laws, 2022 pg. 30
 */
-template <int dim, int nstate, typename real>
-class InitialConditionFunction_SVSW : public InitialConditionFunction_NavierStokesBase<dim,nstate,real>
+template <int dim, int nspecies, int nstate, typename real>
+class InitialConditionFunction_SVSW : public InitialConditionFunction_NavierStokesBase<dim, nspecies, nstate, real>
 {
 protected:
     /// Value of initial condition expressed in terms of primitive variables
@@ -649,10 +676,60 @@ public:
         Parameters::AllParameters const* const param);
 };
 
+/// 1D Initial Condition Function: Multispecies_VortexAdvection 
+/** See Wang, J. H., Pan, S., Hu, X. Y., & Adams, N. A. (2019). 
+ * Partial characteristic decomposition for multi-species Euler equations. 
+ * Computers & Fluids, 181, 364-382.
+ */
+template <int dim, int nspecies, int nstate, typename real>
+class InitialConditionFunction_Multispecies_VortexAdvection: public InitialConditionFunction_RealGasBase<dim,nspecies,nstate,real>
+{
+public:
+    InitialConditionFunction_Multispecies_VortexAdvection (
+            Parameters::AllParameters const *const param,
+            bool high_temperature);
+protected:
+    /// Value of initial condition expressed in terms of primitive variables
+    real primitive_value(const dealii::Point<dim,real> &point, const unsigned int istate = 0) const;
+    bool use_high_temp_ic;
+};
+
+/// 1D Initial Condition Function: Multispecies_SodShockTube
+/** See Wang, J. H., Pan, S., Hu, X. Y., & Adams, N. A. (2019). 
+ * Partial characteristic decomposition for multi-species Euler equations. 
+ * Computers & Fluids, 181, 364-382.
+ */
+template <int dim, int nspecies, int nstate, typename real>
+class InitialConditionFunction_Multispecies_SodShockTube: public InitialConditionFunction_RealGasBase<dim,nspecies,nstate,real>
+{
+public:
+    InitialConditionFunction_Multispecies_SodShockTube (
+            Parameters::AllParameters const *const param);
+protected:
+    /// Value of initial condition expressed in terms of primitive variables
+    real primitive_value(const dealii::Point<dim,real> &point, const unsigned int istate = 0) const;
+};
+
+/// 2D Initial Condition Function: Multispecies_IsentropicVortex
+/** See Trojak, Will, and Tarik Dzanic.
+ *  Positivity-preserving discontinuous spectral element methods for 
+ *  compressible multi-species flows." 
+ *  Computers & Fluids 280 (2024): 106343.
+ */
+template <int dim, int nspecies, int nstate, typename real>
+class InitialConditionFunction_Multispecies_IsentropicVortex: public InitialConditionFunction_RealGasBase<dim,nspecies,nstate,real>
+{
+public:
+    InitialConditionFunction_Multispecies_IsentropicVortex (
+            Parameters::AllParameters const *const param);
+protected:
+    /// Value of initial condition expressed in terms of primitive variables
+    real primitive_value(const dealii::Point<dim,real> &point, const unsigned int istate = 0) const;
+};
 
 /// Initial condition 0.
-template <int dim, int nstate, typename real>
-class InitialConditionFunction_Zero : public InitialConditionFunction<dim,nstate,real>
+template <int dim, int nspecies, int nstate, typename real>
+class InitialConditionFunction_Zero : public InitialConditionFunction<dim,nspecies,nstate,real>
 {
 protected:
     using dealii::Function<dim,real>::value; ///< dealii::Function we are templating on
@@ -666,7 +743,7 @@ public:
 };
 
 /// Initial condition function factory
-template <int dim, int nstate, typename real>
+template <int dim, int nspecies, int nstate, typename real>
 class InitialConditionFactory
 {
 protected:    
@@ -679,7 +756,7 @@ protected:
 
 public:
     /// Construct InitialConditionFunction object from global parameter file
-    static std::shared_ptr<InitialConditionFunction<dim,nstate,real>>
+    static std::shared_ptr<InitialConditionFunction<dim,nspecies,nstate,real>>
     create_InitialConditionFunction(
         Parameters::AllParameters const *const param);
 };

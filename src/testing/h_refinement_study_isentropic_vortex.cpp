@@ -9,25 +9,25 @@
 namespace PHiLiP {
 namespace Tests {
 
-template <int dim, int nstate>
-HRefinementStudyIsentropicVortex<dim, nstate>::HRefinementStudyIsentropicVortex(
+template <int dim, int nspecies, int nstate>
+HRefinementStudyIsentropicVortex<dim, nspecies, nstate>::HRefinementStudyIsentropicVortex(
         const PHiLiP::Parameters::AllParameters *const parameters_input,
         const dealii::ParameterHandler &parameter_handler_input)
-: GeneralRefinementStudy<dim,nstate>(parameters_input, parameter_handler_input,
-        GeneralRefinementStudy<dim,nstate>::RefinementType::cell_length)  
+: GeneralRefinementStudy<dim,nspecies,nstate>(parameters_input, parameter_handler_input,
+        GeneralRefinementStudy<dim,nspecies,nstate>::RefinementType::cell_length)  
 {}
 
-template <int dim, int nstate>
-void HRefinementStudyIsentropicVortex<dim,nstate>::calculate_Lp_error_at_final_time_wrt_function(double &Lp_error_density, 
+template <int dim, int nspecies, int nstate>
+void HRefinementStudyIsentropicVortex<dim,nspecies,nstate>::calculate_Lp_error_at_final_time_wrt_function(double &Lp_error_density, 
         double &Lp_error_pressure,
-        std::shared_ptr<DGBase<dim,double>> dg,
+        std::shared_ptr<DGBase<dim,nspecies,double>> dg,
         const Parameters::AllParameters parameters,
         double final_time,
         int norm_p) const
 {
     //generate exact solution at final time
-    std::shared_ptr<ExactSolutionFunction<dim,nstate,double>> exact_solution_function;
-    exact_solution_function = ExactSolutionFactory<dim,nstate,double>::create_ExactSolutionFunction(parameters.flow_solver_param, final_time);
+    std::shared_ptr<ExactSolutionFunction<dim,nspecies,nstate,double>> exact_solution_function;
+    exact_solution_function = ExactSolutionFactory<dim,nspecies,nstate,double>::create_ExactSolutionFunction(parameters.flow_solver_param, final_time);
     int overintegrate = 10;
 
     // For Euler, compare only density or pressure
@@ -38,8 +38,8 @@ void HRefinementStudyIsentropicVortex<dim,nstate>::calculate_Lp_error_at_final_t
     double Lp_error_density_local = 0;
     double Lp_error_pressure_local = 0;
     
-    std::shared_ptr< Physics::Euler<dim,dim+2,double> > euler_physics = std::dynamic_pointer_cast<Physics::Euler<dim,dim+2,double>>(
-            Physics::PhysicsFactory<dim,dim+2,double>::create_Physics(&parameters));
+    std::shared_ptr< Physics::Euler<dim,nspecies,dim+2,double> > euler_physics = std::dynamic_pointer_cast<Physics::Euler<dim,nspecies,dim+2,double>>(
+            Physics::PhysicsFactory<dim,nspecies,dim+2,double>::create_Physics(&parameters));
     dealii::QGauss<dim> quad_extra(dg->max_degree+1+overintegrate);
     dealii::FEValues<dim,dim> fe_values_extra(*(dg->high_order_grid->mapping_fe_field), dg->fe_collection[dg->max_degree], quad_extra,
                                               dealii::update_values | dealii::update_gradients | dealii::update_JxW_values | dealii::update_quadrature_points);
@@ -98,8 +98,8 @@ void HRefinementStudyIsentropicVortex<dim,nstate>::calculate_Lp_error_at_final_t
     
 }
 
-template <int dim, int nstate>
-int HRefinementStudyIsentropicVortex<dim, nstate>::run_test() const
+template <int dim, int nspecies, int nstate>
+int HRefinementStudyIsentropicVortex<dim, nspecies, nstate>::run_test() const
 {
 
     const double final_time = this->all_parameters->flow_solver_param.final_time;
@@ -156,14 +156,14 @@ int HRefinementStudyIsentropicVortex<dim, nstate>::run_test() const
             this->pcout << "Refinement number " << refinement + 1 << " of " << this->n_calculations << ", flux reconstruction parameter c = " << c_value <<  std::endl;
             this->pcout << "---------------------------------------------" << std::endl;
 
-            Parameters::AllParameters params = this->reinit_params_and_refine(this->all_parameters,refinement, GeneralRefinementStudy<dim,nstate>::RefinementType::cell_length);
+            Parameters::AllParameters params = this->reinit_params_and_refine(this->all_parameters,refinement, GeneralRefinementStudy<dim,nspecies,nstate>::RefinementType::cell_length);
             if (nb_c_value > 0){
                 params.FR_user_specified_correction_parameter_value = c_value;
             }
             auto params_modified = params;
 
-            std::unique_ptr<FlowSolver::FlowSolver<dim,nstate>> flow_solver = FlowSolver::FlowSolverFactory<dim,nstate>::select_flow_case(&params_modified, this->parameter_handler);
-            std::unique_ptr<FlowSolver::PeriodicEntropyTests<dim, nstate>> flow_solver_case = std::make_unique<FlowSolver::PeriodicEntropyTests<dim,nstate>>(&params_modified);
+            std::unique_ptr<FlowSolver::FlowSolver<dim,nspecies,nstate>> flow_solver = FlowSolver::FlowSolverFactory<dim,nspecies,nstate>::select_flow_case(&params_modified, this->parameter_handler);
+            std::unique_ptr<FlowSolver::PeriodicEntropyTests<dim, nspecies, nstate>> flow_solver_case = std::make_unique<FlowSolver::PeriodicEntropyTests<dim,nspecies,nstate>>(&params_modified);
         
             static_cast<void>(flow_solver->run());
             this->pcout << "Finished flowsolver " << std::endl;
@@ -275,8 +275,8 @@ int HRefinementStudyIsentropicVortex<dim, nstate>::run_test() const
     conv_tab_file.close();
     return testfail;
 }
-#if PHILIP_DIM!=1
-    template class HRefinementStudyIsentropicVortex<PHILIP_DIM,PHILIP_DIM+2>;
+#if PHILIP_DIM!=1 && PHILIP_SPECIES==1
+    template class HRefinementStudyIsentropicVortex<PHILIP_DIM, PHILIP_SPECIES,PHILIP_DIM+2>;
 #endif
 } // Tests namespace
 } // PHiLiP namespace

@@ -19,8 +19,8 @@
 namespace PHiLiP {
 namespace ProperOrthogonalDecomposition {
 
-template <int dim, int nstate>
-TestLocationBase<dim, nstate>::TestLocationBase(const RowVectorXd& parameter, std::unique_ptr<ROMSolution<dim, nstate>> rom_solution)
+template <int dim, int nspecies, int nstate>
+TestLocationBase<dim, nspecies, nstate>::TestLocationBase(const RowVectorXd& parameter, std::unique_ptr<ROMSolution<dim, nspecies, nstate>> rom_solution)
         : parameter(parameter)
         , rom_solution(std::move(rom_solution))
         , mpi_communicator(MPI_COMM_WORLD)
@@ -35,12 +35,12 @@ TestLocationBase<dim, nstate>::TestLocationBase(const RowVectorXd& parameter, st
     pcout << "ROM test location created. Error estimate updated." << std::endl;
 }
 
-template <int dim, int nstate>
-void TestLocationBase<dim, nstate>::compute_FOM_to_initial_ROM_error(){
+template <int dim, int nspecies, int nstate>
+void TestLocationBase<dim, nspecies, nstate>::compute_FOM_to_initial_ROM_error(){
     pcout << "Computing adjoint-based error estimate between ROM and FOM..." << std::endl;
 
     dealii::ParameterHandler dummy_handler;
-    std::unique_ptr<FlowSolver::FlowSolver<dim,nstate>> flow_solver = FlowSolver::FlowSolverFactory<dim,nstate>::select_flow_case(&rom_solution->params, dummy_handler);
+    std::unique_ptr<FlowSolver::FlowSolver<dim,nspecies,nstate>> flow_solver = FlowSolver::FlowSolverFactory<dim,nspecies,nstate>::select_flow_case(&rom_solution->params, dummy_handler);
     flow_solver->dg->solution = rom_solution->solution;
     const bool compute_dRdW = true;
     flow_solver->dg->assemble_residual(compute_dRdW);
@@ -82,19 +82,19 @@ void TestLocationBase<dim, nstate>::compute_FOM_to_initial_ROM_error(){
     pcout << "Parameter: " << parameter << ". Error estimate between ROM and FOM: " << fom_to_initial_rom_error << std::endl;
 }
 
-template <int dim, int nstate>
-void TestLocationBase<dim, nstate>::compute_total_error(){
+template <int dim, int nspecies, int nstate>
+void TestLocationBase<dim, nspecies, nstate>::compute_total_error(){
     pcout << "Computing total error estimate between FOM and updated ROM..." << std::endl;
     total_error = fom_to_initial_rom_error - initial_rom_to_final_rom_error;
     pcout << "Parameter: " << parameter <<  ". Total error estimate between FOM and updated ROM: " << total_error << std::endl;
 }
 
-#if PHILIP_DIM==1
-        template class TestLocationBase<PHILIP_DIM, PHILIP_DIM>;
+#if PHILIP_DIM==1 && PHILIP_SPECIES==1
+        template class TestLocationBase<PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM>;
 #endif
 
-#if PHILIP_DIM!=1
-        template class TestLocationBase<PHILIP_DIM, PHILIP_DIM+2>;
+#if PHILIP_DIM!=1 && PHILIP_SPECIES==1
+        template class TestLocationBase<PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2>;
 #endif
 
 }

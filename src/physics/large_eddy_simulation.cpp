@@ -1,6 +1,7 @@
 #include <cmath>
 #include <vector>
 #include <complex> // for the jacobian
+#include <boost/preprocessor/seq/for_each.hpp>
 
 #include "ADTypes.hpp"
 
@@ -13,8 +14,8 @@ namespace Physics {
 //================================================================
 // Large Eddy Simulation (LES) Base Class
 //================================================================
-template <int dim, int nstate, typename real>
-LargeEddySimulationBase<dim, nstate, real>::LargeEddySimulationBase(
+template <int dim, int nspecies, int nstate, typename real>
+LargeEddySimulationBase<dim, nspecies, nstate, real>::LargeEddySimulationBase(
     const Parameters::AllParameters *const                    parameters_input,
     const double                                              ref_length,
     const double                                              gamma_gas,
@@ -30,12 +31,12 @@ LargeEddySimulationBase<dim, nstate, real>::LargeEddySimulationBase(
     const double                                              ratio_of_filter_width_to_cell_size,
     const double                                              isothermal_wall_temperature,
     const thermal_boundary_condition_enum                     thermal_boundary_condition_type,
-    std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function,
+    std::shared_ptr< ManufacturedSolutionFunction<dim,nspecies,real> > manufactured_solution_function,
     const two_point_num_flux_enum                             two_point_num_flux_type)
-    : ModelBase<dim,nstate,real>(manufactured_solution_function) 
+    : ModelBase<dim,nspecies,nstate,real>(manufactured_solution_function) 
     , turbulent_prandtl_number(turbulent_prandtl_number)
     , ratio_of_filter_width_to_cell_size(ratio_of_filter_width_to_cell_size)
-    , navier_stokes_physics(std::make_unique < NavierStokes<dim,nstate,real> > (
+    , navier_stokes_physics(std::make_unique < NavierStokes<dim,nspecies,nstate,real> > (
             parameters_input,
             ref_length,
             gamma_gas,
@@ -55,9 +56,9 @@ LargeEddySimulationBase<dim, nstate, real>::LargeEddySimulationBase(
     static_assert(nstate==dim+2, "ModelBase::LargeEddySimulationBase() should be created with nstate=dim+2");
 }
 //----------------------------------------------------------------
-template <int dim, int nstate, typename real>
+template <int dim, int nspecies, int nstate, typename real>
 template<typename real2>
-real2 LargeEddySimulationBase<dim,nstate,real>
+real2 LargeEddySimulationBase<dim,nspecies,nstate,real>
 ::get_tensor_magnitude_sqr (
     const dealii::Tensor<2,dim,real2> &tensor) const
 {
@@ -73,9 +74,9 @@ real2 LargeEddySimulationBase<dim,nstate,real>
     return tensor_magnitude_sqr;
 }
 //----------------------------------------------------------------
-template <int dim, int nstate, typename real>
+template <int dim, int nspecies, int nstate, typename real>
 template<typename real2>
-real2 LargeEddySimulationBase<dim,nstate,real>
+real2 LargeEddySimulationBase<dim,nspecies,nstate,real>
 ::get_tensor_magnitude (
     const dealii::Tensor<2,dim,real2> &tensor) const
 {
@@ -83,8 +84,8 @@ real2 LargeEddySimulationBase<dim,nstate,real>
     return sqrt(2.0*tensor_magnitude_sqr);
 }
 //----------------------------------------------------------------
-template <int dim, int nstate, typename real>
-std::array<dealii::Tensor<1,dim,real>,nstate> LargeEddySimulationBase<dim,nstate,real>
+template <int dim, int nspecies, int nstate, typename real>
+std::array<dealii::Tensor<1,dim,real>,nstate> LargeEddySimulationBase<dim,nspecies,nstate,real>
 ::convective_flux (
     const std::array<real,nstate> &/*conservative_soln*/) const
 {
@@ -95,8 +96,8 @@ std::array<dealii::Tensor<1,dim,real>,nstate> LargeEddySimulationBase<dim,nstate
     return conv_flux;
 }
 //----------------------------------------------------------------
-template <int dim, int nstate, typename real>
-std::array<dealii::Tensor<1,dim,real>,nstate> LargeEddySimulationBase<dim,nstate,real>
+template <int dim, int nspecies, int nstate, typename real>
+std::array<dealii::Tensor<1,dim,real>,nstate> LargeEddySimulationBase<dim,nspecies,nstate,real>
 ::dissipative_flux (
     const std::array<real,nstate> &conservative_soln,
     const std::array<dealii::Tensor<1,dim,real>,nstate> &solution_gradient,
@@ -105,9 +106,9 @@ std::array<dealii::Tensor<1,dim,real>,nstate> LargeEddySimulationBase<dim,nstate
     return dissipative_flux_templated<real>(conservative_soln,solution_gradient,cell_index);
 }
 //----------------------------------------------------------------
-template <int dim, int nstate, typename real>
+template <int dim, int nspecies, int nstate, typename real>
 template <typename real2>
-std::array<dealii::Tensor<1,dim,real2>,nstate> LargeEddySimulationBase<dim,nstate,real>
+std::array<dealii::Tensor<1,dim,real2>,nstate> LargeEddySimulationBase<dim,nspecies,nstate,real>
 ::dissipative_flux_templated (
     const std::array<real2,nstate> &conservative_soln,
     const std::array<dealii::Tensor<1,dim,real2>,nstate> &solution_gradient,
@@ -142,8 +143,8 @@ std::array<dealii::Tensor<1,dim,real2>,nstate> LargeEddySimulationBase<dim,nstat
     return viscous_flux;
 }
 //----------------------------------------------------------------
-template <int dim, int nstate, typename real>
-std::array<real,nstate> LargeEddySimulationBase<dim,nstate,real>
+template <int dim, int nspecies, int nstate, typename real>
+std::array<real,nstate> LargeEddySimulationBase<dim,nspecies,nstate,real>
 ::dissipative_flux_dot_normal (
         const std::array<real,nstate> &solution,
         const std::array<dealii::Tensor<1,dim,real>,nstate> &solution_gradient,
@@ -201,8 +202,8 @@ std::array<real,nstate> LargeEddySimulationBase<dim,nstate,real>
     return dissipative_flux_dot_normal;
 }
 //----------------------------------------------------------------
-template <int dim, int nstate, typename real>
-std::array<real,nstate> LargeEddySimulationBase<dim,nstate,real>
+template <int dim, int nspecies, int nstate, typename real>
+std::array<real,nstate> LargeEddySimulationBase<dim,nspecies,nstate,real>
 ::convective_eigenvalues (
     const std::array<real,nstate> &/*conservative_soln*/,
     const dealii::Tensor<1,dim,real> &/*normal*/) const
@@ -212,16 +213,16 @@ std::array<real,nstate> LargeEddySimulationBase<dim,nstate,real>
     return eig;
 }
 //----------------------------------------------------------------
-template <int dim, int nstate, typename real>
-real LargeEddySimulationBase<dim,nstate,real>
+template <int dim, int nspecies, int nstate, typename real>
+real LargeEddySimulationBase<dim,nspecies,nstate,real>
 ::max_convective_eigenvalue (const std::array<real,nstate> &/*conservative_soln*/) const
 {
     const real max_eig = 0.0;
     return max_eig;
 }
 //----------------------------------------------------------------
-template <int dim, int nstate, typename real>
-real LargeEddySimulationBase<dim,nstate,real>
+template <int dim, int nspecies, int nstate, typename real>
+real LargeEddySimulationBase<dim,nspecies,nstate,real>
 ::max_convective_normal_eigenvalue (
     const std::array<real,nstate> &/*conservative_soln*/,
     const dealii::Tensor<1,dim,real> &/*normal*/) const
@@ -230,8 +231,8 @@ real LargeEddySimulationBase<dim,nstate,real>
     return max_eig;
 }
 //----------------------------------------------------------------
-template <int dim, int nstate, typename real>
-std::array<real,nstate> LargeEddySimulationBase<dim,nstate,real>
+template <int dim, int nspecies, int nstate, typename real>
+std::array<real,nstate> LargeEddySimulationBase<dim,nspecies,nstate,real>
 ::source_term (
         const dealii::Point<dim,real> &pos,
         const std::array<real,nstate> &/*solution*/,
@@ -247,8 +248,8 @@ std::array<real,nstate> LargeEddySimulationBase<dim,nstate,real>
     return source_term;
 }
 //----------------------------------------------------------------
-template <int dim, int nstate, typename real>
-std::array<real,nstate> LargeEddySimulationBase<dim,nstate,real>
+template <int dim, int nspecies, int nstate, typename real>
+std::array<real,nstate> LargeEddySimulationBase<dim,nspecies,nstate,real>
 ::physical_source_term (
         const dealii::Point<dim,real> &/*pos*/,
         const std::array<real,nstate> &conservative_soln,
@@ -261,8 +262,8 @@ std::array<real,nstate> LargeEddySimulationBase<dim,nstate,real>
     return physical_source;
 }
 //----------------------------------------------------------------
-template <int dim, int nstate, typename real>
-std::array<real,nstate> LargeEddySimulationBase<dim,nstate,real>
+template <int dim, int nspecies, int nstate, typename real>
+std::array<real,nstate> LargeEddySimulationBase<dim,nspecies,nstate,real>
 ::channel_flow_source_term (
     const std::array<real,nstate> &conservative_soln) const
 {
@@ -286,8 +287,8 @@ std::array<real,nstate> LargeEddySimulationBase<dim,nstate,real>
     return source_term;
 }
 //----------------------------------------------------------------
-template <int dim, int nstate, typename real>
-double LargeEddySimulationBase<dim,nstate,real>
+template <int dim, int nspecies, int nstate, typename real>
+double LargeEddySimulationBase<dim,nspecies,nstate,real>
 ::get_filter_width (const dealii::types::global_dof_index cell_index) const
 { 
     // Compute the LES filter width
@@ -299,8 +300,8 @@ double LargeEddySimulationBase<dim,nstate,real>
     return get_filter_width_from_poly_degree(cell_index,cell_poly_degree);
 }
 //----------------------------------------------------------------
-template <int dim, int nstate, typename real>
-double LargeEddySimulationBase<dim,nstate,real>
+template <int dim, int nspecies, int nstate, typename real>
+double LargeEddySimulationBase<dim,nspecies,nstate,real>
 ::get_filter_width_from_poly_degree (
     const dealii::types::global_dof_index cell_index, 
     const int cell_poly_degree) const
@@ -338,8 +339,8 @@ double getValue(const real &x) {
     }
 }
 //----------------------------------------------------------------
-template <int dim, int nstate, typename real>
-dealii::Tensor<2,nstate,real> LargeEddySimulationBase<dim,nstate,real>
+template <int dim, int nspecies, int nstate, typename real>
+dealii::Tensor<2,nstate,real> LargeEddySimulationBase<dim,nspecies,nstate,real>
 ::dissipative_flux_directional_jacobian (
     const std::array<real,nstate> &conservative_soln,
     const std::array<dealii::Tensor<1,dim,real>,nstate> &solution_gradient,
@@ -377,8 +378,8 @@ dealii::Tensor<2,nstate,real> LargeEddySimulationBase<dim,nstate,real>
     return jacobian;
 }
 //----------------------------------------------------------------
-template <int dim, int nstate, typename real>
-dealii::Tensor<2,nstate,real> LargeEddySimulationBase<dim,nstate,real>
+template <int dim, int nspecies, int nstate, typename real>
+dealii::Tensor<2,nstate,real> LargeEddySimulationBase<dim,nspecies,nstate,real>
 ::dissipative_flux_directional_jacobian_wrt_gradient_component (
     const std::array<real,nstate> &conservative_soln,
     const std::array<dealii::Tensor<1,dim,real>,nstate> &solution_gradient,
@@ -422,8 +423,8 @@ dealii::Tensor<2,nstate,real> LargeEddySimulationBase<dim,nstate,real>
     return jacobian;
 }
 //----------------------------------------------------------------
-template <int dim, int nstate, typename real>
-std::array<real,nstate> LargeEddySimulationBase<dim,nstate,real>
+template <int dim, int nspecies, int nstate, typename real>
+std::array<real,nstate> LargeEddySimulationBase<dim,nspecies,nstate,real>
 ::get_manufactured_solution_value (
     const dealii::Point<dim,real> &pos) const
 {
@@ -437,8 +438,8 @@ std::array<real,nstate> LargeEddySimulationBase<dim,nstate,real>
     return manufactured_solution;
 }
 //----------------------------------------------------------------
-template <int dim, int nstate, typename real>
-std::array<dealii::Tensor<1,dim,real>,nstate> LargeEddySimulationBase<dim,nstate,real>
+template <int dim, int nspecies, int nstate, typename real>
+std::array<dealii::Tensor<1,dim,real>,nstate> LargeEddySimulationBase<dim,nspecies,nstate,real>
 ::get_manufactured_solution_gradient (
     const dealii::Point<dim,real> &pos) const
 {
@@ -453,8 +454,8 @@ std::array<dealii::Tensor<1,dim,real>,nstate> LargeEddySimulationBase<dim,nstate
     return manufactured_solution_gradient;
 }
 //----------------------------------------------------------------
-template <int dim, int nstate, typename real>
-std::array<real,nstate> LargeEddySimulationBase<dim,nstate,real>
+template <int dim, int nspecies, int nstate, typename real>
+std::array<real,nstate> LargeEddySimulationBase<dim,nspecies,nstate,real>
 ::dissipative_source_term (
     const dealii::Point<dim,real> &pos,
     const dealii::types::global_dof_index cell_index) const
@@ -528,8 +529,8 @@ std::array<real,nstate> LargeEddySimulationBase<dim,nstate,real>
 //================================================================
 // Smagorinsky eddy viscosity model
 //================================================================
-template <int dim, int nstate, typename real>
-LargeEddySimulation_Smagorinsky<dim, nstate, real>::LargeEddySimulation_Smagorinsky(
+template <int dim, int nspecies, int nstate, typename real>
+LargeEddySimulation_Smagorinsky<dim, nspecies, nstate, real>::LargeEddySimulation_Smagorinsky(
     const Parameters::AllParameters *const                    parameters_input,
     const double                                              ref_length,
     const double                                              gamma_gas,
@@ -546,10 +547,10 @@ LargeEddySimulation_Smagorinsky<dim, nstate, real>::LargeEddySimulation_Smagorin
     const double                                              model_constant,
     const double                                              isothermal_wall_temperature,
     const thermal_boundary_condition_enum                     thermal_boundary_condition_type,
-    std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function,
+    std::shared_ptr< ManufacturedSolutionFunction<dim,nspecies,real> > manufactured_solution_function,
     const two_point_num_flux_enum                             two_point_num_flux_type,
     const bool                                                apply_low_reynolds_number_eddy_viscosity_correction)
-    : LargeEddySimulationBase<dim,nstate,real>(parameters_input,
+    : LargeEddySimulationBase<dim,nspecies,nstate,real>(parameters_input,
                                                ref_length,
                                                gamma_gas,
                                                mach_inf,
@@ -570,8 +571,8 @@ LargeEddySimulation_Smagorinsky<dim, nstate, real>::LargeEddySimulation_Smagorin
     , apply_low_reynolds_number_eddy_viscosity_correction(apply_low_reynolds_number_eddy_viscosity_correction)
 { }
 //----------------------------------------------------------------
-template <int dim, int nstate, typename real>
-double LargeEddySimulation_Smagorinsky<dim,nstate,real>
+template <int dim, int nspecies, int nstate, typename real>
+double LargeEddySimulation_Smagorinsky<dim,nspecies,nstate,real>
 ::get_model_constant_times_filter_width (
     const dealii::types::global_dof_index cell_index) const
 {
@@ -582,8 +583,8 @@ double LargeEddySimulation_Smagorinsky<dim,nstate,real>
     return model_constant_times_filter_width;
 }
 //----------------------------------------------------------------
-template <int dim, int nstate, typename real>
-double LargeEddySimulation_Smagorinsky<dim,nstate,real>
+template <int dim, int nspecies, int nstate, typename real>
+double LargeEddySimulation_Smagorinsky<dim,nspecies,nstate,real>
 ::get_model_constant_times_filter_width_squared (
     const dealii::types::global_dof_index cell_index) const
 {
@@ -592,8 +593,8 @@ double LargeEddySimulation_Smagorinsky<dim,nstate,real>
     return model_constant_times_filter_width*model_constant_times_filter_width;
 }
 //----------------------------------------------------------------
-template <int dim, int nstate, typename real>
-void LargeEddySimulation_Smagorinsky<dim,nstate,real>
+template <int dim, int nspecies, int nstate, typename real>
+void LargeEddySimulation_Smagorinsky<dim,nspecies,nstate,real>
 ::set_unfiltered_conservative_solution(const std::array<real,nstate> &unfiltered_conservative_solution_)
 {
     for(int s=0; s<nstate; ++s){
@@ -603,24 +604,24 @@ void LargeEddySimulation_Smagorinsky<dim,nstate,real>
     this->scaled_fluid_kinematic_viscosity_from_unfiltered_solution = getValue<real>(fluid_viscosity);
 }
 //----------------------------------------------------------------
-template <int dim, int nstate, typename real>
-real LargeEddySimulation_Smagorinsky<dim,nstate,real>
+template <int dim, int nspecies, int nstate, typename real>
+real LargeEddySimulation_Smagorinsky<dim,nspecies,nstate,real>
 ::get_corrected_eddy_viscosity_low_reynolds_number(
         const real uncorrected_eddy_viscosity) const
 {
     return get_corrected_eddy_viscosity_low_reynolds_number_templated<real>(uncorrected_eddy_viscosity);
 }
 //----------------------------------------------------------------
-template <int dim, int nstate, typename real>
-FadType LargeEddySimulation_Smagorinsky<dim,nstate,real>
+template <int dim, int nspecies, int nstate, typename real>
+FadType LargeEddySimulation_Smagorinsky<dim,nspecies,nstate,real>
 ::get_corrected_eddy_viscosity_low_reynolds_number_fad(
         const FadType uncorrected_eddy_viscosity) const
 {
     return get_corrected_eddy_viscosity_low_reynolds_number_templated<FadType>(uncorrected_eddy_viscosity);
 }
 //----------------------------------------------------------------
-template <int dim, int nstate, typename real>
-real LargeEddySimulation_Smagorinsky<dim,nstate,real>
+template <int dim, int nspecies, int nstate, typename real>
+real LargeEddySimulation_Smagorinsky<dim,nspecies,nstate,real>
 ::get_scaled_fluid_kinematic_viscosity_from_unfiltered_solution() const
 {
     const std::array<real,nstate> primitive_soln 
@@ -631,9 +632,9 @@ real LargeEddySimulation_Smagorinsky<dim,nstate,real>
     return fluid_viscosity;
 }
 //----------------------------------------------------------------
-template <int dim, int nstate, typename real>
+template <int dim, int nspecies, int nstate, typename real>
 template<typename real2>
-real2 LargeEddySimulation_Smagorinsky<dim,nstate,real>
+real2 LargeEddySimulation_Smagorinsky<dim,nspecies,nstate,real>
 ::get_corrected_eddy_viscosity_low_reynolds_number_templated(
         const real2 uncorrected_eddy_viscosity) const
 {
@@ -644,8 +645,8 @@ real2 LargeEddySimulation_Smagorinsky<dim,nstate,real>
     return corrected_eddy_viscosity;
 }
 //----------------------------------------------------------------
-template <int dim, int nstate, typename real>
-real LargeEddySimulation_Smagorinsky<dim,nstate,real>
+template <int dim, int nspecies, int nstate, typename real>
+real LargeEddySimulation_Smagorinsky<dim,nspecies,nstate,real>
 ::compute_eddy_viscosity (
     const std::array<real,nstate> &primitive_soln,
     const std::array<dealii::Tensor<1,dim,real>,nstate> &primitive_soln_gradient,
@@ -654,8 +655,8 @@ real LargeEddySimulation_Smagorinsky<dim,nstate,real>
     return compute_eddy_viscosity_templated<real>(primitive_soln,primitive_soln_gradient,cell_index);
 }
 //----------------------------------------------------------------
-template <int dim, int nstate, typename real>
-FadType LargeEddySimulation_Smagorinsky<dim,nstate,real>
+template <int dim, int nspecies, int nstate, typename real>
+FadType LargeEddySimulation_Smagorinsky<dim,nspecies,nstate,real>
 ::compute_eddy_viscosity_fad (
     const std::array<FadType,nstate> &primitive_soln,
     const std::array<dealii::Tensor<1,dim,FadType>,nstate> &primitive_soln_gradient,
@@ -664,9 +665,9 @@ FadType LargeEddySimulation_Smagorinsky<dim,nstate,real>
     return compute_eddy_viscosity_templated<FadType>(primitive_soln,primitive_soln_gradient,cell_index);
 }
 //----------------------------------------------------------------
-template <int dim, int nstate, typename real>
+template <int dim, int nspecies, int nstate, typename real>
 template<typename real2>
-real2 LargeEddySimulation_Smagorinsky<dim,nstate,real>
+real2 LargeEddySimulation_Smagorinsky<dim,nspecies,nstate,real>
 ::compute_eddy_viscosity_templated (
     const std::array<real2,nstate> &/*primitive_soln*/,
     const std::array<dealii::Tensor<1,dim,real2>,nstate> &primitive_soln_gradient,
@@ -689,9 +690,9 @@ real2 LargeEddySimulation_Smagorinsky<dim,nstate,real>
     return eddy_viscosity;
 }
 //----------------------------------------------------------------
-template <int dim, int nstate, typename real>
+template <int dim, int nspecies, int nstate, typename real>
 template<typename real2>
-real2 LargeEddySimulation_Smagorinsky<dim,nstate,real>
+real2 LargeEddySimulation_Smagorinsky<dim,nspecies,nstate,real>
 ::scale_eddy_viscosity_templated (
     const std::array<real2,nstate> &primitive_soln,
     const real2 eddy_viscosity) const
@@ -703,8 +704,8 @@ real2 LargeEddySimulation_Smagorinsky<dim,nstate,real>
     return scaled_eddy_viscosity;
 }
 //----------------------------------------------------------------
-template <int dim, int nstate, typename real>
-dealii::Tensor<1,dim,real> LargeEddySimulation_Smagorinsky<dim,nstate,real>
+template <int dim, int nspecies, int nstate, typename real>
+dealii::Tensor<1,dim,real> LargeEddySimulation_Smagorinsky<dim,nspecies,nstate,real>
 ::compute_SGS_heat_flux (
     const std::array<real,nstate> &primitive_soln,
     const std::array<dealii::Tensor<1,dim,real>,nstate> &primitive_soln_gradient,
@@ -713,8 +714,8 @@ dealii::Tensor<1,dim,real> LargeEddySimulation_Smagorinsky<dim,nstate,real>
     return compute_SGS_heat_flux_templated<real>(primitive_soln,primitive_soln_gradient,cell_index);
 }
 //----------------------------------------------------------------
-template <int dim, int nstate, typename real>
-dealii::Tensor<1,dim,FadType> LargeEddySimulation_Smagorinsky<dim,nstate,real>
+template <int dim, int nspecies, int nstate, typename real>
+dealii::Tensor<1,dim,FadType> LargeEddySimulation_Smagorinsky<dim,nspecies,nstate,real>
 ::compute_SGS_heat_flux_fad (
     const std::array<FadType,nstate> &primitive_soln,
     const std::array<dealii::Tensor<1,dim,FadType>,nstate> &primitive_soln_gradient,
@@ -723,9 +724,9 @@ dealii::Tensor<1,dim,FadType> LargeEddySimulation_Smagorinsky<dim,nstate,real>
     return compute_SGS_heat_flux_templated<FadType>(primitive_soln,primitive_soln_gradient,cell_index);
 }
 //----------------------------------------------------------------
-template <int dim, int nstate, typename real>
+template <int dim, int nspecies, int nstate, typename real>
 template<typename real2>
-dealii::Tensor<1,dim,real2> LargeEddySimulation_Smagorinsky<dim,nstate,real>
+dealii::Tensor<1,dim,real2> LargeEddySimulation_Smagorinsky<dim,nspecies,nstate,real>
 ::compute_SGS_heat_flux_templated (
     const std::array<real2,nstate> &primitive_soln,
     const std::array<dealii::Tensor<1,dim,real2>,nstate> &primitive_soln_gradient,
@@ -765,8 +766,8 @@ dealii::Tensor<1,dim,real2> LargeEddySimulation_Smagorinsky<dim,nstate,real>
     return heat_flux_SGS;
 }
 //----------------------------------------------------------------
-template <int dim, int nstate, typename real>
-dealii::Tensor<2,dim,real> LargeEddySimulation_Smagorinsky<dim,nstate,real>
+template <int dim, int nspecies, int nstate, typename real>
+dealii::Tensor<2,dim,real> LargeEddySimulation_Smagorinsky<dim,nspecies,nstate,real>
 ::compute_SGS_stress_tensor (
     const std::array<real,nstate> &primitive_soln,
     const std::array<dealii::Tensor<1,dim,real>,nstate> &primitive_soln_gradient,
@@ -775,8 +776,8 @@ dealii::Tensor<2,dim,real> LargeEddySimulation_Smagorinsky<dim,nstate,real>
     return compute_SGS_stress_tensor_templated<real>(primitive_soln,primitive_soln_gradient,cell_index);
 }
 //----------------------------------------------------------------
-template <int dim, int nstate, typename real>
-dealii::Tensor<2,dim,FadType> LargeEddySimulation_Smagorinsky<dim,nstate,real>
+template <int dim, int nspecies, int nstate, typename real>
+dealii::Tensor<2,dim,FadType> LargeEddySimulation_Smagorinsky<dim,nspecies,nstate,real>
 ::compute_SGS_stress_tensor_fad (
     const std::array<FadType,nstate> &primitive_soln,
     const std::array<dealii::Tensor<1,dim,FadType>,nstate> &primitive_soln_gradient,
@@ -785,9 +786,9 @@ dealii::Tensor<2,dim,FadType> LargeEddySimulation_Smagorinsky<dim,nstate,real>
     return compute_SGS_stress_tensor_templated<FadType>(primitive_soln,primitive_soln_gradient,cell_index);
 }
 //----------------------------------------------------------------
-template <int dim, int nstate, typename real>
+template <int dim, int nspecies, int nstate, typename real>
 template<typename real2>
-dealii::Tensor<2,dim,real2> LargeEddySimulation_Smagorinsky<dim,nstate,real>
+dealii::Tensor<2,dim,real2> LargeEddySimulation_Smagorinsky<dim,nspecies,nstate,real>
 ::compute_SGS_stress_tensor_templated (
     const std::array<real2,nstate> &primitive_soln,
     const std::array<dealii::Tensor<1,dim,real2>,nstate> &primitive_soln_gradient,
@@ -833,8 +834,8 @@ dealii::Tensor<2,dim,real2> LargeEddySimulation_Smagorinsky<dim,nstate,real>
 //================================================================
 // WALE (Wall-Adapting Local Eddy-viscosity) eddy viscosity model
 //================================================================
-template <int dim, int nstate, typename real>
-LargeEddySimulation_WALE<dim, nstate, real>::LargeEddySimulation_WALE(
+template <int dim, int nspecies, int nstate, typename real>
+LargeEddySimulation_WALE<dim, nspecies, nstate, real>::LargeEddySimulation_WALE(
     const Parameters::AllParameters *const                    parameters_input,
     const double                                              ref_length,
     const double                                              gamma_gas,
@@ -851,10 +852,10 @@ LargeEddySimulation_WALE<dim, nstate, real>::LargeEddySimulation_WALE(
     const double                                              model_constant,
     const double                                              isothermal_wall_temperature,
     const thermal_boundary_condition_enum                     thermal_boundary_condition_type,
-    std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function,
+    std::shared_ptr< ManufacturedSolutionFunction<dim,nspecies,real> > manufactured_solution_function,
     const two_point_num_flux_enum                             two_point_num_flux_type,
     const bool                                                apply_low_reynolds_number_eddy_viscosity_correction)
-    : LargeEddySimulation_Smagorinsky<dim,nstate,real>(parameters_input,
+    : LargeEddySimulation_Smagorinsky<dim,nspecies,nstate,real>(parameters_input,
                                                        ref_length,
                                                        gamma_gas,
                                                        mach_inf,
@@ -875,8 +876,8 @@ LargeEddySimulation_WALE<dim, nstate, real>::LargeEddySimulation_WALE(
                                                        apply_low_reynolds_number_eddy_viscosity_correction)
 { }
 //----------------------------------------------------------------
-template <int dim, int nstate, typename real>
-real LargeEddySimulation_WALE<dim,nstate,real>
+template <int dim, int nspecies, int nstate, typename real>
+real LargeEddySimulation_WALE<dim,nspecies,nstate,real>
 ::compute_eddy_viscosity (
     const std::array<real,nstate> &primitive_soln,
     const std::array<dealii::Tensor<1,dim,real>,nstate> &primitive_soln_gradient,
@@ -885,8 +886,8 @@ real LargeEddySimulation_WALE<dim,nstate,real>
     return compute_eddy_viscosity_templated<real>(primitive_soln,primitive_soln_gradient,cell_index);
 }
 //----------------------------------------------------------------
-template <int dim, int nstate, typename real>
-FadType LargeEddySimulation_WALE<dim,nstate,real>
+template <int dim, int nspecies, int nstate, typename real>
+FadType LargeEddySimulation_WALE<dim,nspecies,nstate,real>
 ::compute_eddy_viscosity_fad (
     const std::array<FadType,nstate> &primitive_soln,
     const std::array<dealii::Tensor<1,dim,FadType>,nstate> &primitive_soln_gradient,
@@ -895,9 +896,9 @@ FadType LargeEddySimulation_WALE<dim,nstate,real>
     return compute_eddy_viscosity_templated<FadType>(primitive_soln,primitive_soln_gradient,cell_index);
 }
 //----------------------------------------------------------------
-template <int dim, int nstate, typename real>
+template <int dim, int nspecies, int nstate, typename real>
 template<typename real2>
-real2 LargeEddySimulation_WALE<dim,nstate,real>
+real2 LargeEddySimulation_WALE<dim,nspecies,nstate,real>
 ::compute_eddy_viscosity_templated (
     const std::array<real2,nstate> &/*primitive_soln*/,
     const std::array<dealii::Tensor<1,dim,real2>,nstate> &primitive_soln_gradient,
@@ -964,8 +965,8 @@ real2 LargeEddySimulation_WALE<dim,nstate,real>
 //================================================================
 // Vreman eddy viscosity model
 //================================================================
-template <int dim, int nstate, typename real>
-LargeEddySimulation_Vreman<dim, nstate, real>::LargeEddySimulation_Vreman(
+template <int dim, int nspecies, int nstate, typename real>
+LargeEddySimulation_Vreman<dim, nspecies, nstate, real>::LargeEddySimulation_Vreman(
     const Parameters::AllParameters *const                    parameters_input,
     const double                                              ref_length,
     const double                                              gamma_gas,
@@ -982,10 +983,10 @@ LargeEddySimulation_Vreman<dim, nstate, real>::LargeEddySimulation_Vreman(
     const double                                              model_constant,
     const double                                              isothermal_wall_temperature,
     const thermal_boundary_condition_enum                     thermal_boundary_condition_type,
-    std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function,
+    std::shared_ptr< ManufacturedSolutionFunction<dim,nspecies,real> > manufactured_solution_function,
     const two_point_num_flux_enum                             two_point_num_flux_type,
     const bool                                                apply_low_reynolds_number_eddy_viscosity_correction)
-    : LargeEddySimulation_Smagorinsky<dim,nstate,real>(parameters_input,
+    : LargeEddySimulation_Smagorinsky<dim,nspecies,nstate,real>(parameters_input,
                                                        ref_length,
                                                        gamma_gas,
                                                        mach_inf,
@@ -1006,8 +1007,8 @@ LargeEddySimulation_Vreman<dim, nstate, real>::LargeEddySimulation_Vreman(
                                                        apply_low_reynolds_number_eddy_viscosity_correction)
 { }
 //----------------------------------------------------------------
-template <int dim, int nstate, typename real>
-real LargeEddySimulation_Vreman<dim,nstate,real>
+template <int dim, int nspecies, int nstate, typename real>
+real LargeEddySimulation_Vreman<dim,nspecies,nstate,real>
 ::compute_eddy_viscosity (
     const std::array<real,nstate> &primitive_soln,
     const std::array<dealii::Tensor<1,dim,real>,nstate> &primitive_soln_gradient,
@@ -1016,8 +1017,8 @@ real LargeEddySimulation_Vreman<dim,nstate,real>
     return compute_eddy_viscosity_templated<real>(primitive_soln,primitive_soln_gradient,cell_index);
 }
 //----------------------------------------------------------------
-template <int dim, int nstate, typename real>
-FadType LargeEddySimulation_Vreman<dim,nstate,real>
+template <int dim, int nspecies, int nstate, typename real>
+FadType LargeEddySimulation_Vreman<dim,nspecies,nstate,real>
 ::compute_eddy_viscosity_fad (
     const std::array<FadType,nstate> &primitive_soln,
     const std::array<dealii::Tensor<1,dim,FadType>,nstate> &primitive_soln_gradient,
@@ -1026,9 +1027,9 @@ FadType LargeEddySimulation_Vreman<dim,nstate,real>
     return compute_eddy_viscosity_templated<FadType>(primitive_soln,primitive_soln_gradient,cell_index);
 }
 //----------------------------------------------------------------
-template <int dim, int nstate, typename real>
+template <int dim, int nspecies, int nstate, typename real>
 template<typename real2>
-real2 LargeEddySimulation_Vreman<dim,nstate,real>
+real2 LargeEddySimulation_Vreman<dim,nspecies,nstate,real>
 ::compute_eddy_viscosity_templated (
     const std::array<real2,nstate> &/*primitive_soln*/,
     const std::array<dealii::Tensor<1,dim,real2>,nstate> &primitive_soln_gradient,
@@ -1089,8 +1090,8 @@ real2 LargeEddySimulation_Vreman<dim,nstate,real>
 //================================================================
 // Shear-improved Smagorinsky eddy viscosity model
 //================================================================
-template <int dim, int nstate, typename real>
-LargeEddySimulation_ShearImprovedSmagorinsky<dim, nstate, real>::LargeEddySimulation_ShearImprovedSmagorinsky(
+template <int dim, int nspecies, int nstate, typename real>
+LargeEddySimulation_ShearImprovedSmagorinsky<dim, nspecies, nstate, real>::LargeEddySimulation_ShearImprovedSmagorinsky(
     const Parameters::AllParameters *const                    parameters_input,
     const double                                              ref_length,
     const double                                              gamma_gas,
@@ -1107,10 +1108,10 @@ LargeEddySimulation_ShearImprovedSmagorinsky<dim, nstate, real>::LargeEddySimula
     const double                                              model_constant,
     const double                                              isothermal_wall_temperature,
     const thermal_boundary_condition_enum                     thermal_boundary_condition_type,
-    std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function,
+    std::shared_ptr< ManufacturedSolutionFunction<dim,nspecies,real> > manufactured_solution_function,
     const two_point_num_flux_enum                             two_point_num_flux_type,
     const bool                                                apply_low_reynolds_number_eddy_viscosity_correction)
-    : LargeEddySimulation_Smagorinsky<dim,nstate,real>(parameters_input,
+    : LargeEddySimulation_Smagorinsky<dim,nspecies,nstate,real>(parameters_input,
                                                        ref_length,
                                                        gamma_gas,
                                                        mach_inf,
@@ -1131,8 +1132,8 @@ LargeEddySimulation_ShearImprovedSmagorinsky<dim, nstate, real>::LargeEddySimula
                                                        apply_low_reynolds_number_eddy_viscosity_correction)
 { }
 //----------------------------------------------------------------
-template <int dim, int nstate, typename real>
-real LargeEddySimulation_ShearImprovedSmagorinsky<dim,nstate,real>
+template <int dim, int nspecies, int nstate, typename real>
+real LargeEddySimulation_ShearImprovedSmagorinsky<dim,nspecies,nstate,real>
 ::compute_eddy_viscosity (
     const std::array<real,nstate> &primitive_soln,
     const std::array<dealii::Tensor<1,dim,real>,nstate> &primitive_soln_gradient,
@@ -1141,8 +1142,8 @@ real LargeEddySimulation_ShearImprovedSmagorinsky<dim,nstate,real>
     return compute_eddy_viscosity_templated<real>(primitive_soln,primitive_soln_gradient,cell_index);
 }
 //----------------------------------------------------------------
-template <int dim, int nstate, typename real>
-FadType LargeEddySimulation_ShearImprovedSmagorinsky<dim,nstate,real>
+template <int dim, int nspecies, int nstate, typename real>
+FadType LargeEddySimulation_ShearImprovedSmagorinsky<dim,nspecies,nstate,real>
 ::compute_eddy_viscosity_fad (
     const std::array<FadType,nstate> &primitive_soln,
     const std::array<dealii::Tensor<1,dim,FadType>,nstate> &primitive_soln_gradient,
@@ -1151,9 +1152,9 @@ FadType LargeEddySimulation_ShearImprovedSmagorinsky<dim,nstate,real>
     return compute_eddy_viscosity_templated<FadType>(primitive_soln,primitive_soln_gradient,cell_index);
 }
 //----------------------------------------------------------------
-template <int dim, int nstate, typename real>
+template <int dim, int nspecies, int nstate, typename real>
 template<typename real2>
-real2 LargeEddySimulation_ShearImprovedSmagorinsky<dim,nstate,real>
+real2 LargeEddySimulation_ShearImprovedSmagorinsky<dim,nspecies,nstate,real>
 ::compute_eddy_viscosity_templated (
     const std::array<real2,nstate> &/*primitive_soln*/,
     const std::array<dealii::Tensor<1,dim,real2>,nstate> &primitive_soln_gradient,
@@ -1186,8 +1187,8 @@ real2 LargeEddySimulation_ShearImprovedSmagorinsky<dim,nstate,real>
 //================================================================
 // Variational multiscale (VMS) eddy viscosity model
 //================================================================
-template <int dim, int nstate, typename real>
-LargeEddySimulation_VMS<dim, nstate, real>::LargeEddySimulation_VMS(
+template <int dim, int nspecies, int nstate, typename real>
+LargeEddySimulation_VMS<dim, nspecies, nstate, real>::LargeEddySimulation_VMS(
     const Parameters::AllParameters *const                    parameters_input,
     const double                                              ref_length,
     const double                                              gamma_gas,
@@ -1208,10 +1209,10 @@ LargeEddySimulation_VMS<dim, nstate, real>::LargeEddySimulation_VMS(
     const double                                              curve_fit_constant,
     const double                                              isothermal_wall_temperature,
     const thermal_boundary_condition_enum                     thermal_boundary_condition_type,
-    std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function,
+    std::shared_ptr< ManufacturedSolutionFunction<dim,nspecies,real> > manufactured_solution_function,
     const two_point_num_flux_enum                             two_point_num_flux_type,
     const bool                                                apply_low_reynolds_number_eddy_viscosity_correction)
-    : LargeEddySimulation_Smagorinsky<dim,nstate,real>(parameters_input,
+    : LargeEddySimulation_Smagorinsky<dim,nspecies,nstate,real>(parameters_input,
                                                        ref_length,
                                                        gamma_gas,
                                                        mach_inf,
@@ -1236,8 +1237,8 @@ LargeEddySimulation_VMS<dim, nstate, real>::LargeEddySimulation_VMS(
     , curve_fit_constant(curve_fit_constant)
 { }
 //----------------------------------------------------------------
-template <int dim, int nstate, typename real>
-double LargeEddySimulation_VMS<dim,nstate,real>
+template <int dim, int nspecies, int nstate, typename real>
+double LargeEddySimulation_VMS<dim,nspecies,nstate,real>
 ::get_model_constant_times_filter_width (
     const dealii::types::global_dof_index /*cell_index*/) const
 {
@@ -1255,8 +1256,8 @@ double LargeEddySimulation_VMS<dim,nstate,real>
 //================================================================
 // Small-Small Variational multiscale (VMS) eddy viscosity model
 //================================================================
-template <int dim, int nstate, typename real>
-LargeEddySimulation_SmallSmallVMS<dim, nstate, real>::LargeEddySimulation_SmallSmallVMS(
+template <int dim, int nspecies, int nstate, typename real>
+LargeEddySimulation_SmallSmallVMS<dim, nspecies, nstate, real>::LargeEddySimulation_SmallSmallVMS(
     const Parameters::AllParameters *const                    parameters_input,
     const double                                              ref_length,
     const double                                              gamma_gas,
@@ -1276,10 +1277,10 @@ LargeEddySimulation_SmallSmallVMS<dim, nstate, real>::LargeEddySimulation_SmallS
     const double                                              mesh_size,
     const double                                              isothermal_wall_temperature,
     const thermal_boundary_condition_enum                     thermal_boundary_condition_type,
-    std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function,
+    std::shared_ptr< ManufacturedSolutionFunction<dim,nspecies,real> > manufactured_solution_function,
     const two_point_num_flux_enum                             two_point_num_flux_type,
     const bool                                                apply_low_reynolds_number_eddy_viscosity_correction)
-    : LargeEddySimulation_VMS<dim,nstate,real>(parameters_input,
+    : LargeEddySimulation_VMS<dim,nspecies,nstate,real>(parameters_input,
                                                ref_length,
                                                gamma_gas,
                                                mach_inf,
@@ -1307,8 +1308,8 @@ LargeEddySimulation_SmallSmallVMS<dim, nstate, real>::LargeEddySimulation_SmallS
 //================================================================
 // All-All Variational multiscale (VMS) eddy viscosity model
 //================================================================
-template <int dim, int nstate, typename real>
-LargeEddySimulation_AllAllVMS<dim, nstate, real>::LargeEddySimulation_AllAllVMS(
+template <int dim, int nspecies, int nstate, typename real>
+LargeEddySimulation_AllAllVMS<dim, nspecies, nstate, real>::LargeEddySimulation_AllAllVMS(
     const Parameters::AllParameters *const                    parameters_input,
     const double                                              ref_length,
     const double                                              gamma_gas,
@@ -1328,10 +1329,10 @@ LargeEddySimulation_AllAllVMS<dim, nstate, real>::LargeEddySimulation_AllAllVMS(
     const double                                              mesh_size,
     const double                                              isothermal_wall_temperature,
     const thermal_boundary_condition_enum                     thermal_boundary_condition_type,
-    std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function,
+    std::shared_ptr< ManufacturedSolutionFunction<dim,nspecies,real> > manufactured_solution_function,
     const two_point_num_flux_enum                             two_point_num_flux_type,
     const bool                                                apply_low_reynolds_number_eddy_viscosity_correction)
-    : LargeEddySimulation_VMS<dim,nstate,real>(parameters_input,
+    : LargeEddySimulation_VMS<dim,nspecies,nstate,real>(parameters_input,
                                                ref_length,
                                                gamma_gas,
                                                mach_inf,
@@ -1359,8 +1360,8 @@ LargeEddySimulation_AllAllVMS<dim, nstate, real>::LargeEddySimulation_AllAllVMS(
 //================================================================
 // Dynamic Smagorinsky Model (DSM)
 //================================================================
-template <int dim, int nstate, typename real>
-LargeEddySimulation_DynamicSmagorinsky<dim, nstate, real>::LargeEddySimulation_DynamicSmagorinsky(
+template <int dim, int nspecies, int nstate, typename real>
+LargeEddySimulation_DynamicSmagorinsky<dim, nspecies, nstate, real>::LargeEddySimulation_DynamicSmagorinsky(
     const Parameters::AllParameters *const                    parameters_input,
     const double                                              ref_length,
     const double                                              gamma_gas,
@@ -1377,10 +1378,10 @@ LargeEddySimulation_DynamicSmagorinsky<dim, nstate, real>::LargeEddySimulation_D
     const double                                              model_constant,
     const double                                              isothermal_wall_temperature,
     const thermal_boundary_condition_enum                     thermal_boundary_condition_type,
-    std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function,
+    std::shared_ptr< ManufacturedSolutionFunction<dim,nspecies,real> > manufactured_solution_function,
     const two_point_num_flux_enum                             two_point_num_flux_type,
     const bool                                                apply_low_reynolds_number_eddy_viscosity_correction)
-    : LargeEddySimulation_Smagorinsky<dim,nstate,real>(parameters_input,
+    : LargeEddySimulation_Smagorinsky<dim,nspecies,nstate,real>(parameters_input,
                                                        ref_length,
                                                        gamma_gas,
                                                        mach_inf,
@@ -1401,99 +1402,47 @@ LargeEddySimulation_DynamicSmagorinsky<dim, nstate, real>::LargeEddySimulation_D
                                                        apply_low_reynolds_number_eddy_viscosity_correction)
 { }
 //----------------------------------------------------------------
-template <int dim, int nstate, typename real>
-double LargeEddySimulation_DynamicSmagorinsky<dim,nstate,real>
+template <int dim, int nspecies, int nstate, typename real>
+double LargeEddySimulation_DynamicSmagorinsky<dim,nspecies,nstate,real>
 ::get_model_constant_times_filter_width_squared (
     const dealii::types::global_dof_index cell_index) const
 {
     // Model constant times filter width squared
     return this->dynamic_smagorinsky_model_constant_times_filter_width_sqr[cell_index];
 }
+#if PHILIP_SPECIES==1
 //----------------------------------------------------------------
 //----------------------------------------------------------------
 //----------------------------------------------------------------
 //----------------------------------------------------------------
 // Instantiate explicitly
-// -- LargeEddySimulationBase
-template class LargeEddySimulationBase         < PHILIP_DIM, PHILIP_DIM+2, double >;
-template class LargeEddySimulationBase         < PHILIP_DIM, PHILIP_DIM+2, FadType  >;
-template class LargeEddySimulationBase         < PHILIP_DIM, PHILIP_DIM+2, RadType  >;
-template class LargeEddySimulationBase         < PHILIP_DIM, PHILIP_DIM+2, FadFadType >;
-template class LargeEddySimulationBase         < PHILIP_DIM, PHILIP_DIM+2, RadFadType >;
-// -- LargeEddySimulation_Smagorinsky
-template class LargeEddySimulation_Smagorinsky < PHILIP_DIM, PHILIP_DIM+2, double >;
-template class LargeEddySimulation_Smagorinsky < PHILIP_DIM, PHILIP_DIM+2, FadType  >;
-template class LargeEddySimulation_Smagorinsky < PHILIP_DIM, PHILIP_DIM+2, RadType  >;
-template class LargeEddySimulation_Smagorinsky < PHILIP_DIM, PHILIP_DIM+2, FadFadType >;
-template class LargeEddySimulation_Smagorinsky < PHILIP_DIM, PHILIP_DIM+2, RadFadType >;
-// -- LargeEddySimulation_WALE
-template class LargeEddySimulation_WALE        < PHILIP_DIM, PHILIP_DIM+2, double >;
-template class LargeEddySimulation_WALE        < PHILIP_DIM, PHILIP_DIM+2, FadType  >;
-template class LargeEddySimulation_WALE        < PHILIP_DIM, PHILIP_DIM+2, RadType  >;
-template class LargeEddySimulation_WALE        < PHILIP_DIM, PHILIP_DIM+2, FadFadType >;
-template class LargeEddySimulation_WALE        < PHILIP_DIM, PHILIP_DIM+2, RadFadType >;
-// -- LargeEddySimulation_Vreman
-template class LargeEddySimulation_Vreman      < PHILIP_DIM, PHILIP_DIM+2, double >;
-template class LargeEddySimulation_Vreman      < PHILIP_DIM, PHILIP_DIM+2, FadType  >;
-template class LargeEddySimulation_Vreman      < PHILIP_DIM, PHILIP_DIM+2, RadType  >;
-template class LargeEddySimulation_Vreman      < PHILIP_DIM, PHILIP_DIM+2, FadFadType >;
-template class LargeEddySimulation_Vreman      < PHILIP_DIM, PHILIP_DIM+2, RadFadType >;
-// -- LargeEddySimulation_ShearImprovedSmagorinsky
-template class LargeEddySimulation_ShearImprovedSmagorinsky < PHILIP_DIM, PHILIP_DIM+2, double >;
-template class LargeEddySimulation_ShearImprovedSmagorinsky < PHILIP_DIM, PHILIP_DIM+2, FadType  >;
-template class LargeEddySimulation_ShearImprovedSmagorinsky < PHILIP_DIM, PHILIP_DIM+2, RadType  >;
-template class LargeEddySimulation_ShearImprovedSmagorinsky < PHILIP_DIM, PHILIP_DIM+2, FadFadType >;
-template class LargeEddySimulation_ShearImprovedSmagorinsky < PHILIP_DIM, PHILIP_DIM+2, RadFadType >;
-// -- LargeEddySimulation_VMS
-template class LargeEddySimulation_VMS < PHILIP_DIM, PHILIP_DIM+2, double >;
-template class LargeEddySimulation_VMS < PHILIP_DIM, PHILIP_DIM+2, FadType  >;
-template class LargeEddySimulation_VMS < PHILIP_DIM, PHILIP_DIM+2, RadType  >;
-template class LargeEddySimulation_VMS < PHILIP_DIM, PHILIP_DIM+2, FadFadType >;
-template class LargeEddySimulation_VMS < PHILIP_DIM, PHILIP_DIM+2, RadFadType >;
-// -- LargeEddySimulation_SmallSmallVMS
-template class LargeEddySimulation_SmallSmallVMS < PHILIP_DIM, PHILIP_DIM+2, double >;
-template class LargeEddySimulation_SmallSmallVMS < PHILIP_DIM, PHILIP_DIM+2, FadType  >;
-template class LargeEddySimulation_SmallSmallVMS < PHILIP_DIM, PHILIP_DIM+2, RadType  >;
-template class LargeEddySimulation_SmallSmallVMS < PHILIP_DIM, PHILIP_DIM+2, FadFadType >;
-template class LargeEddySimulation_SmallSmallVMS < PHILIP_DIM, PHILIP_DIM+2, RadFadType >;
-// -- LargeEddySimulation_AllAllVMS
-template class LargeEddySimulation_AllAllVMS < PHILIP_DIM, PHILIP_DIM+2, double >;
-template class LargeEddySimulation_AllAllVMS < PHILIP_DIM, PHILIP_DIM+2, FadType  >;
-template class LargeEddySimulation_AllAllVMS < PHILIP_DIM, PHILIP_DIM+2, RadType  >;
-template class LargeEddySimulation_AllAllVMS < PHILIP_DIM, PHILIP_DIM+2, FadFadType >;
-template class LargeEddySimulation_AllAllVMS < PHILIP_DIM, PHILIP_DIM+2, RadFadType >;
-// -- LargeEddySimulation_DynamicSmagorinsky
-template class LargeEddySimulation_DynamicSmagorinsky < PHILIP_DIM, PHILIP_DIM+2, double >;
-template class LargeEddySimulation_DynamicSmagorinsky < PHILIP_DIM, PHILIP_DIM+2, FadType  >;
-template class LargeEddySimulation_DynamicSmagorinsky < PHILIP_DIM, PHILIP_DIM+2, RadType  >;
-template class LargeEddySimulation_DynamicSmagorinsky < PHILIP_DIM, PHILIP_DIM+2, FadFadType >;
-template class LargeEddySimulation_DynamicSmagorinsky < PHILIP_DIM, PHILIP_DIM+2, RadFadType >;
-//-------------------------------------------------------------------------------------
-// Templated members used by derived classes, defined in respective parent classes
-//-------------------------------------------------------------------------------------
-// -- get_tensor_magnitude_sqr()
-template double     LargeEddySimulationBase < PHILIP_DIM, PHILIP_DIM+2, double     >::get_tensor_magnitude_sqr< double     >(const dealii::Tensor<2,PHILIP_DIM,double    > &tensor) const;
-template FadType    LargeEddySimulationBase < PHILIP_DIM, PHILIP_DIM+2, FadType    >::get_tensor_magnitude_sqr< FadType    >(const dealii::Tensor<2,PHILIP_DIM,FadType   > &tensor) const;
-template RadType    LargeEddySimulationBase < PHILIP_DIM, PHILIP_DIM+2, RadType    >::get_tensor_magnitude_sqr< RadType    >(const dealii::Tensor<2,PHILIP_DIM,RadType   > &tensor) const;
-template FadFadType LargeEddySimulationBase < PHILIP_DIM, PHILIP_DIM+2, FadFadType >::get_tensor_magnitude_sqr< FadFadType >(const dealii::Tensor<2,PHILIP_DIM,FadFadType> &tensor) const;
-template RadFadType LargeEddySimulationBase < PHILIP_DIM, PHILIP_DIM+2, RadFadType >::get_tensor_magnitude_sqr< RadFadType >(const dealii::Tensor<2,PHILIP_DIM,RadFadType> &tensor) const;
-// -- -- instantiate all the real types with real2 = FadType for automatic differentiation
-template FadType    LargeEddySimulationBase < PHILIP_DIM, PHILIP_DIM+2, double     >::get_tensor_magnitude_sqr< FadType    >(const dealii::Tensor<2,PHILIP_DIM,FadType   > &tensor) const;
-template FadType    LargeEddySimulationBase < PHILIP_DIM, PHILIP_DIM+2, RadType    >::get_tensor_magnitude_sqr< FadType    >(const dealii::Tensor<2,PHILIP_DIM,FadType   > &tensor) const;
-template FadType    LargeEddySimulationBase < PHILIP_DIM, PHILIP_DIM+2, FadFadType >::get_tensor_magnitude_sqr< FadType    >(const dealii::Tensor<2,PHILIP_DIM,FadType   > &tensor) const;
-template FadType    LargeEddySimulationBase < PHILIP_DIM, PHILIP_DIM+2, RadFadType >::get_tensor_magnitude_sqr< FadType    >(const dealii::Tensor<2,PHILIP_DIM,FadType   > &tensor) const;
-// -- get_tensor_magnitude()
-template double     LargeEddySimulationBase < PHILIP_DIM, PHILIP_DIM+2, double     >::get_tensor_magnitude< double     >(const dealii::Tensor<2,PHILIP_DIM,double    > &tensor) const;
-template FadType    LargeEddySimulationBase < PHILIP_DIM, PHILIP_DIM+2, FadType    >::get_tensor_magnitude< FadType    >(const dealii::Tensor<2,PHILIP_DIM,FadType   > &tensor) const;
-template RadType    LargeEddySimulationBase < PHILIP_DIM, PHILIP_DIM+2, RadType    >::get_tensor_magnitude< RadType    >(const dealii::Tensor<2,PHILIP_DIM,RadType   > &tensor) const;
-template FadFadType LargeEddySimulationBase < PHILIP_DIM, PHILIP_DIM+2, FadFadType >::get_tensor_magnitude< FadFadType >(const dealii::Tensor<2,PHILIP_DIM,FadFadType> &tensor) const;
-template RadFadType LargeEddySimulationBase < PHILIP_DIM, PHILIP_DIM+2, RadFadType >::get_tensor_magnitude< RadFadType >(const dealii::Tensor<2,PHILIP_DIM,RadFadType> &tensor) const;
-// -- -- instantiate all the real types with real2 = FadType for automatic differentiation
-template FadType    LargeEddySimulationBase < PHILIP_DIM, PHILIP_DIM+2, double     >::get_tensor_magnitude< FadType    >(const dealii::Tensor<2,PHILIP_DIM,FadType   > &tensor) const;
-template FadType    LargeEddySimulationBase < PHILIP_DIM, PHILIP_DIM+2, RadType    >::get_tensor_magnitude< FadType    >(const dealii::Tensor<2,PHILIP_DIM,FadType   > &tensor) const;
-template FadType    LargeEddySimulationBase < PHILIP_DIM, PHILIP_DIM+2, FadFadType >::get_tensor_magnitude< FadType    >(const dealii::Tensor<2,PHILIP_DIM,FadType   > &tensor) const;
-template FadType    LargeEddySimulationBase < PHILIP_DIM, PHILIP_DIM+2, RadFadType >::get_tensor_magnitude< FadType    >(const dealii::Tensor<2,PHILIP_DIM,FadType   > &tensor) const;
+// Define a sequence of possible types
+#define POSSIBLE_TYPES (double)(FadType)(RadType)(FadFadType)(RadFadType)
 
+// Define a macro to instantiate LES functions for a specific type
+#define INSTANTIATE_TYPES(r, data, type) \
+    template class LargeEddySimulationBase < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, type >; \
+    template class LargeEddySimulation_Smagorinsky < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, type >; \
+    template class LargeEddySimulation_WALE        < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, type >; \
+    template class LargeEddySimulation_Vreman      < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, type >; \
+    template class LargeEddySimulation_ShearImprovedSmagorinsky      < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, type >; \
+    template class LargeEddySimulation_VMS      < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, type >; \
+    template class LargeEddySimulation_SmallSmallVMS      < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, type >; \
+    template class LargeEddySimulation_AllAllVMS      < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, type >; \
+    template class LargeEddySimulation_DynamicSmagorinsky      < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, type >; \
+    template type LargeEddySimulationBase < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, type >::get_tensor_magnitude_sqr< type >(const dealii::Tensor<2,PHILIP_DIM, type> &tensor) const; \
+    template type LargeEddySimulationBase < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, type >::get_tensor_magnitude< type >(const dealii::Tensor<2,PHILIP_DIM, type> &tensor) const;
+BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_TYPES, _, POSSIBLE_TYPES)
 
+#undef POSSIBLE_TYPES
+// Define a sequence of possible types
+#define POSSIBLE_TYPES (double)(RadType)(FadFadType)(RadFadType)
+// Define a macro to instantiate LES functions for a specific type
+// -- -- instantiate all the real types with real2 = FadType for automatic differentiation
+#define INSTANTIATE_FADTYPES(r, data, type) \
+template FadType    LargeEddySimulationBase < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, type >::get_tensor_magnitude< FadType    >(const dealii::Tensor<2,PHILIP_DIM,FadType   > &tensor) const; \
+template FadType    LargeEddySimulationBase < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, type >::get_tensor_magnitude_sqr< FadType    >(const dealii::Tensor<2,PHILIP_DIM, FadType   > &tensor) const;
+BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_FADTYPES, _, POSSIBLE_TYPES)
+#endif
 } // Physics namespace
 } // PHiLiP namespace

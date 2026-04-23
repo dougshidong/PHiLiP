@@ -19,12 +19,12 @@ using Eigen::MatrixXd;
 using Eigen::VectorXd;
 
 /// Class for Offline Proper Orthogonal Decomposition basis. This class reads some previously computed snapshots stored as files and computes a POD basis.
-template <int dim>
-class OfflinePOD: public PODBase<dim>
+template <int dim, int nspecies>
+class OfflinePOD: public PODBase<dim,nspecies>
 {
 public:
     /// Constructor
-    explicit OfflinePOD(std::shared_ptr<DGBase<dim,double>> &dg_input);
+    explicit OfflinePOD(std::shared_ptr<DGBase<dim,nspecies,double>> &dg_input);
 
     ///Function to get POD basis for all derived classes
     std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> getPODBasis() override;
@@ -47,7 +47,7 @@ public:
     dealii::LinearAlgebra::ReadWriteVector<double> referenceState;
 
     /// dg needed for sparsity pattern of system matrix
-    std::shared_ptr<DGBase<dim,double>> dg;
+    std::shared_ptr<DGBase<dim,nspecies,double>> dg;
 
     /// LAPACKFullMatrix for nice printing
     dealii::LAPACKFullMatrix<double> fullBasis;

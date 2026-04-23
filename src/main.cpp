@@ -58,17 +58,19 @@ int main (int argc, char *argv[])
         all_parameters.parse_parameters (parameter_handler);
 
         AssertDimension(all_parameters.dimension, PHILIP_DIM);
+        AssertDimension(all_parameters.number_of_species, PHILIP_SPECIES);
 
         const int max_dim = PHILIP_DIM;
-        const int max_nstate = 5;
+        const int max_species = PHILIP_SPECIES;
+        const int max_nstate = PHILIP_DIM+PHILIP_SPECIES+1;
 
         if(all_parameters.run_type == PHiLiP::Parameters::AllParameters::RunType::flow_simulation) {
-            std::unique_ptr<PHiLiP::FlowSolver::FlowSolverBase> flow_solver = PHiLiP::FlowSolver::FlowSolverFactory<max_dim,max_nstate>::create_flow_solver(&all_parameters,parameter_handler);
+            std::unique_ptr<PHiLiP::FlowSolver::FlowSolverBase> flow_solver = PHiLiP::FlowSolver::FlowSolverFactory<max_dim,max_species,max_nstate>::create_flow_solver(&all_parameters,parameter_handler);
             run_error = flow_solver->run();
             pcout << "Flow simulation complete with run error code: " << run_error << std::endl;
         }
         else if(all_parameters.run_type == PHiLiP::Parameters::AllParameters::RunType::integration_test) {
-            std::unique_ptr<PHiLiP::Tests::TestsBase> test = PHiLiP::Tests::TestsFactory<max_dim,max_nstate>::create_test(&all_parameters,parameter_handler);
+            std::unique_ptr<PHiLiP::Tests::TestsBase> test = PHiLiP::Tests::TestsFactory<max_dim,max_species,max_nstate>::create_test(&all_parameters,parameter_handler);
             run_error = test->run_test();
             pcout << "Finished integration test with run error code: " << run_error << std::endl;
         }

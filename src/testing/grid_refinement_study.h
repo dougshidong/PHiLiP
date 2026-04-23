@@ -14,9 +14,9 @@ namespace Tests {
 
 /// Performs grid convergence for various polynomial degrees.
 #if PHILIP_DIM==1 // dealii::parallel::distributed::Triangulation<dim> does not work for 1D
-template <int dim, int nstate, typename MeshType = dealii::Triangulation<dim>>
+template <int dim, int nspecies, int nstate, typename MeshType = dealii::Triangulation<dim>>
 #else
-template <int dim, int nstate, typename MeshType = dealii::parallel::distributed::Triangulation<dim>>
+template <int dim, int nspecies, int nstate, typename MeshType = dealii::parallel::distributed::Triangulation<dim>>
 #endif
 class GridRefinementStudy : public TestsBase
 {
@@ -38,8 +38,8 @@ public:
 
     /// Approximates the exact functional using a uniformly refined grid
     double approximate_exact_functional(
-        const std::shared_ptr<Physics::PhysicsBase<dim,nstate,double>>& physics_double,
-        const std::shared_ptr<Physics::PhysicsBase<dim,nstate,Sacado::Fad::DFad<double>>>& physics_adtype,
+        const std::shared_ptr<Physics::PhysicsBase<dim,nspecies,nstate,double>>& physics_double,
+        const std::shared_ptr<Physics::PhysicsBase<dim,nspecies,nstate,Sacado::Fad::DFad<double>>>& physics_adtype,
         const Parameters::AllParameters& param,
         const Parameters::GridRefinementStudyParam& grs_param) const;
 };

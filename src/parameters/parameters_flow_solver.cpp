@@ -45,7 +45,11 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
                           " double_mach_reflection | "
                           " shock_diffraction | "
                           " astrophysical_jet | "
-                          " strong_vortex_shock_wave |"),
+                          " strong_vortex_shock_wave | "
+                          " multi_species_vortex_advection |"
+                          " multi_species_vortex_advection_high_temp | "
+                          " multi_species_sod_shock_tube |"
+                          " multi_species_isentropic_vortex |"),
                           "The type of flow we want to simulate. "
                           "Choices are "
                           " <taylor_green_vortex | "
@@ -73,7 +77,11 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
                           " double_mach_reflection | "
                           " shock_diffraction | "
                           " astrophysical_jet | "
-                          " strong_vortex_shock_wave >. ");
+                          " strong_vortex_shock_wave | "
+                          " multi_species_vortex_advection | "
+                          " multi_species_vortex_advection_high_temp "
+                          " multi_species_sod_shock_tube | " 
+                          " multi_species_isentropic_vortex>. ");
 
         prm.declare_entry("poly_degree", "1",
                           dealii::Patterns::Integer(0, dealii::Patterns::Integer::max_int_value),
@@ -145,7 +153,7 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
                           dealii::Patterns::Double(0,dealii::Patterns::Double::max_double_value),
                           "Outputs the restart files at time intervals of dt.");
         
-        prm.declare_entry("write_unsteady_data_table_file_every_dt_time_intervals", "0.1",
+        prm.declare_entry("write_unsteady_data_table_file_every_dt_time_intervals", "0.0",
                           dealii::Patterns::Double(0,dealii::Patterns::Double::max_double_value),
                           "Writes the unsteady data table file at time intervals of dt. "
                           "If set to zero, it outputs at every time step.");
@@ -527,6 +535,11 @@ void FlowSolverParam::parse_parameters(dealii::ParameterHandler &prm)
         else if (flow_case_type_string == "shock_diffraction")          {flow_case_type = shock_diffraction;}
         else if (flow_case_type_string == "astrophysical_jet")          {flow_case_type = astrophysical_jet;}
         else if (flow_case_type_string == "strong_vortex_shock_wave")   {flow_case_type = strong_vortex_shock_wave;}
+        // Multispecies Tests
+        else if (flow_case_type_string == "multi_species_vortex_advection")            {flow_case_type = multi_species_vortex_advection;}
+        else if (flow_case_type_string == "multi_species_vortex_advection_high_temp")  {flow_case_type = multi_species_vortex_advection_high_temp;}
+        else if (flow_case_type_string == "multi_species_sod_shock_tube")              {flow_case_type = multi_species_sod_shock_tube;}
+        else if (flow_case_type_string == "multi_species_isentropic_vortex")           {flow_case_type = multi_species_isentropic_vortex;}
         
         poly_degree = prm.get_integer("poly_degree");
         

@@ -8,7 +8,7 @@ namespace PHiLiP {
 namespace Tests {
 
 /// POD reduced order test, verifies consistency of solution
-template <int dim, int nstate>
+template <int dim, int nspecies, int nstate>
 class ReducedOrder: public TestsBase
 {
 public:

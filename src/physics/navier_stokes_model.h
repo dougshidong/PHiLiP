@@ -9,8 +9,8 @@ namespace PHiLiP {
 namespace Physics {
 
 /// Navier Stokes equations with model source term. 
-template <int dim, int nstate, typename real>
-class NavierStokesWithModelSourceTerms : public ModelBase <dim, nstate, real>
+template <int dim, int nspecies, int nstate, typename real>
+class NavierStokesWithModelSourceTerms : public ModelBase <dim, nspecies, nstate, real>
 {
 public:
     using thermal_boundary_condition_enum = Parameters::NavierStokesParam::ThermalBoundaryCondition;
@@ -31,7 +31,7 @@ public:
         const double                                              relaxation_coefficient,
         const double                                              isothermal_wall_temperature = 1.0,
         const thermal_boundary_condition_enum                     thermal_boundary_condition_type = thermal_boundary_condition_enum::adiabatic,
-        std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function = nullptr,
+        std::shared_ptr< ManufacturedSolutionFunction<dim,nspecies,real> > manufactured_solution_function = nullptr,
         const two_point_num_flux_enum                             two_point_num_flux_type = two_point_num_flux_enum::KG);
 
     /// Destructor
@@ -40,7 +40,7 @@ public:
     const double relaxation_coefficient; ///< Relaxation coefficient for the channel flow source term
 
     /// Pointer to Navier-Stokes physics object
-    std::unique_ptr< NavierStokes<dim,nstate,real> > navier_stokes_physics;
+    std::unique_ptr< NavierStokes<dim,nspecies,nstate,real> > navier_stokes_physics;
 
     /// Convective flux: \f$ \mathbf{F}_{conv} \f$
     std::array<dealii::Tensor<1,dim,real>,nstate> convective_flux (

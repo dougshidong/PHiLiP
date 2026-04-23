@@ -4,19 +4,19 @@
 namespace PHiLiP {
 namespace ODE {
 
-template <int dim, typename real, typename MeshType>
-PODGalerkinODESolver<dim,real,MeshType>::PODGalerkinODESolver(std::shared_ptr< DGBase<dim, real, MeshType> > dg_input, std::shared_ptr<ProperOrthogonalDecomposition::PODBase<dim>> pod)
-        : ReducedOrderODESolver<dim,real,MeshType>(dg_input, pod)
+template <int dim, int nspecies, typename real, typename MeshType>
+PODGalerkinODESolver<dim,nspecies,real,MeshType>::PODGalerkinODESolver(std::shared_ptr< DGBase<dim, nspecies, real, MeshType> > dg_input, std::shared_ptr<ProperOrthogonalDecomposition::PODBase<dim,nspecies>> pod)
+        : ReducedOrderODESolver<dim,nspecies,real,MeshType>(dg_input, pod)
 {}
 
-template <int dim, typename real, typename MeshType>
-std::shared_ptr<Epetra_CrsMatrix> PODGalerkinODESolver<dim,real,MeshType>::generate_test_basis(const Epetra_CrsMatrix &/*system_matrix*/, const Epetra_CrsMatrix &pod_basis)
+template <int dim, int nspecies, typename real, typename MeshType>
+std::shared_ptr<Epetra_CrsMatrix> PODGalerkinODESolver<dim,nspecies,real,MeshType>::generate_test_basis(const Epetra_CrsMatrix &/*system_matrix*/, const Epetra_CrsMatrix &pod_basis)
 {
     return std::make_shared<Epetra_CrsMatrix>(pod_basis);
 }
 
-template <int dim, typename real, typename MeshType>
-std::shared_ptr<Epetra_CrsMatrix> PODGalerkinODESolver<dim,real,MeshType>::generate_reduced_lhs(const Epetra_CrsMatrix &system_matrix, Epetra_CrsMatrix &test_basis)
+template <int dim, int nspecies, typename real, typename MeshType>
+std::shared_ptr<Epetra_CrsMatrix> PODGalerkinODESolver<dim,nspecies,real,MeshType>::generate_reduced_lhs(const Epetra_CrsMatrix &system_matrix, Epetra_CrsMatrix &test_basis)
 {
     Epetra_CrsMatrix epetra_reduced_lhs(Epetra_DataAccess::Copy, test_basis.DomainMap(), test_basis.NumGlobalCols());
     Epetra_CrsMatrix epetra_reduced_lhs_tmp(Epetra_DataAccess::Copy, test_basis.RowMap(), test_basis.NumGlobalCols());
@@ -26,12 +26,12 @@ std::shared_ptr<Epetra_CrsMatrix> PODGalerkinODESolver<dim,real,MeshType>::gener
     return std::make_shared<Epetra_CrsMatrix>(epetra_reduced_lhs);
 }
 
-
-template class PODGalerkinODESolver<PHILIP_DIM, double, dealii::Triangulation<PHILIP_DIM>>;
-template class PODGalerkinODESolver<PHILIP_DIM, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
-#if PHILIP_DIM != 1
-template class PODGalerkinODESolver<PHILIP_DIM, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+#if PHILIP_SPECIES==1
+    template class PODGalerkinODESolver<PHILIP_DIM, PHILIP_SPECIES, double, dealii::Triangulation<PHILIP_DIM>>;
+    template class PODGalerkinODESolver<PHILIP_DIM, PHILIP_SPECIES, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+    #if PHILIP_DIM != 1
+        template class PODGalerkinODESolver<PHILIP_DIM, PHILIP_SPECIES, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+    #endif
 #endif
-
 } // ODE namespace
 } // PHiLiP namespace

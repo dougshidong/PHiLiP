@@ -12,8 +12,8 @@ namespace Physics {
 //================================================================
 // Navier Stokes with Model Source Terms Class
 //================================================================
-template <int dim, int nstate, typename real>
-NavierStokesWithModelSourceTerms<dim, nstate, real>::NavierStokesWithModelSourceTerms(
+template <int dim, int nspecies, int nstate, typename real>
+NavierStokesWithModelSourceTerms<dim, nspecies, nstate, real>::NavierStokesWithModelSourceTerms(
     const Parameters::AllParameters *const                    parameters_input,
     const double                                              ref_length,
     const double                                              gamma_gas,
@@ -28,11 +28,11 @@ NavierStokesWithModelSourceTerms<dim, nstate, real>::NavierStokesWithModelSource
     const double                                              relaxation_coefficient,
     const double                                              isothermal_wall_temperature,
     const thermal_boundary_condition_enum                     thermal_boundary_condition_type,
-    std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function,
+    std::shared_ptr< ManufacturedSolutionFunction<dim,nspecies,real> > manufactured_solution_function,
     const two_point_num_flux_enum                             two_point_num_flux_type)
-    : ModelBase<dim,nstate,real>(manufactured_solution_function) 
+    : ModelBase<dim,nspecies,nstate,real>(manufactured_solution_function) 
     , relaxation_coefficient(relaxation_coefficient)
-    , navier_stokes_physics(std::make_unique < NavierStokes<dim,nstate,real> > (
+    , navier_stokes_physics(std::make_unique < NavierStokes<dim,nspecies,nstate,real> > (
             parameters_input,
             ref_length,
             gamma_gas,
@@ -59,16 +59,16 @@ NavierStokesWithModelSourceTerms<dim, nstate, real>::NavierStokesWithModelSource
     }
 }
 //----------------------------------------------------------------
-template <int dim, int nstate, typename real>
-std::array<dealii::Tensor<1,dim,real>,nstate> NavierStokesWithModelSourceTerms<dim,nstate,real>
+template <int dim, int nspecies, int nstate, typename real>
+std::array<dealii::Tensor<1,dim,real>,nstate> NavierStokesWithModelSourceTerms<dim,nspecies,nstate,real>
 ::convective_flux (
     const std::array<real,nstate> &/*conservative_soln*/) const
 {
     return this->zero_tensor_array;
 }
 //----------------------------------------------------------------
-template <int dim, int nstate, typename real>
-std::array<dealii::Tensor<1,dim,real>,nstate> NavierStokesWithModelSourceTerms<dim,nstate,real>
+template <int dim, int nspecies, int nstate, typename real>
+std::array<dealii::Tensor<1,dim,real>,nstate> NavierStokesWithModelSourceTerms<dim,nspecies,nstate,real>
 ::dissipative_flux (
     const std::array<real,nstate> &/*conservative_soln*/,
     const std::array<dealii::Tensor<1,dim,real>,nstate> &/*solution_gradient*/,
@@ -77,8 +77,8 @@ std::array<dealii::Tensor<1,dim,real>,nstate> NavierStokesWithModelSourceTerms<d
     return this->zero_tensor_array;
 }
 //----------------------------------------------------------------
-template <int dim, int nstate, typename real>
-std::array<real,nstate> NavierStokesWithModelSourceTerms<dim,nstate,real>
+template <int dim, int nspecies, int nstate, typename real>
+std::array<real,nstate> NavierStokesWithModelSourceTerms<dim,nspecies,nstate,real>
 ::dissipative_flux_dot_normal (
         const std::array<real,nstate> &/*solution*/,
         const std::array<dealii::Tensor<1,dim,real>,nstate> &/*solution_gradient*/,
@@ -95,8 +95,8 @@ std::array<real,nstate> NavierStokesWithModelSourceTerms<dim,nstate,real>
     return dissipative_flux_dot_normal;
 }
 //----------------------------------------------------------------
-template <int dim, int nstate, typename real>
-std::array<real,nstate> NavierStokesWithModelSourceTerms<dim,nstate,real>
+template <int dim, int nspecies, int nstate, typename real>
+std::array<real,nstate> NavierStokesWithModelSourceTerms<dim,nspecies,nstate,real>
 ::convective_eigenvalues (
     const std::array<real,nstate> &/*conservative_soln*/,
     const dealii::Tensor<1,dim,real> &/*normal*/) const
@@ -104,16 +104,16 @@ std::array<real,nstate> NavierStokesWithModelSourceTerms<dim,nstate,real>
     return this->zero_array;
 }
 //----------------------------------------------------------------
-template <int dim, int nstate, typename real>
-real NavierStokesWithModelSourceTerms<dim,nstate,real>
+template <int dim, int nspecies, int nstate, typename real>
+real NavierStokesWithModelSourceTerms<dim,nspecies,nstate,real>
 ::max_convective_eigenvalue (const std::array<real,nstate> &/*conservative_soln*/) const
 {
     const real max_eig = 0.0;
     return max_eig;
 }
 //----------------------------------------------------------------
-template <int dim, int nstate, typename real>
-real NavierStokesWithModelSourceTerms<dim,nstate,real>
+template <int dim, int nspecies, int nstate, typename real>
+real NavierStokesWithModelSourceTerms<dim,nspecies,nstate,real>
 ::max_convective_normal_eigenvalue (
     const std::array<real,nstate> &/*conservative_soln*/,
     const dealii::Tensor<1,dim,real> &/*normal*/) const
@@ -122,8 +122,8 @@ real NavierStokesWithModelSourceTerms<dim,nstate,real>
     return max_eig;
 }
 //----------------------------------------------------------------
-template <int dim, int nstate, typename real>
-std::array<real,nstate> NavierStokesWithModelSourceTerms<dim,nstate,real>
+template <int dim, int nspecies, int nstate, typename real>
+std::array<real,nstate> NavierStokesWithModelSourceTerms<dim,nspecies,nstate,real>
 ::source_term (
         const dealii::Point<dim,real> &/*pos*/,
         const std::array<real,nstate> &/*solution*/,
@@ -133,8 +133,8 @@ std::array<real,nstate> NavierStokesWithModelSourceTerms<dim,nstate,real>
     return this->zero_array;
 }
 //----------------------------------------------------------------
-template <int dim, int nstate, typename real>
-std::array<real,nstate> NavierStokesWithModelSourceTerms<dim,nstate,real>
+template <int dim, int nspecies, int nstate, typename real>
+std::array<real,nstate> NavierStokesWithModelSourceTerms<dim,nspecies,nstate,real>
 ::physical_source_term (
         const dealii::Point<dim,real> &/*pos*/,
         const std::array<real,nstate> &conservative_soln,
@@ -147,8 +147,8 @@ std::array<real,nstate> NavierStokesWithModelSourceTerms<dim,nstate,real>
     return physical_source;
 }
 //----------------------------------------------------------------
-template <int dim, int nstate, typename real>
-std::array<real,nstate> NavierStokesWithModelSourceTerms<dim,nstate,real>
+template <int dim, int nspecies, int nstate, typename real>
+std::array<real,nstate> NavierStokesWithModelSourceTerms<dim,nspecies,nstate,real>
 ::channel_flow_source_term (
     const std::array<real,nstate> &/*conservative_soln*/) const
 {
@@ -180,11 +180,11 @@ std::array<real,nstate> NavierStokesWithModelSourceTerms<dim,nstate,real>
 //----------------------------------------------------------------
 // Instantiate explicitly
 // -- NavierStokesWithModelSourceTerms
-template class NavierStokesWithModelSourceTerms< PHILIP_DIM, PHILIP_DIM+2, double >;
-template class NavierStokesWithModelSourceTerms< PHILIP_DIM, PHILIP_DIM+2, FadType  >;
-template class NavierStokesWithModelSourceTerms< PHILIP_DIM, PHILIP_DIM+2, RadType  >;
-template class NavierStokesWithModelSourceTerms< PHILIP_DIM, PHILIP_DIM+2, FadFadType >;
-template class NavierStokesWithModelSourceTerms< PHILIP_DIM, PHILIP_DIM+2, RadFadType >;
+template class NavierStokesWithModelSourceTerms< PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, double >;
+template class NavierStokesWithModelSourceTerms< PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, FadType  >;
+template class NavierStokesWithModelSourceTerms< PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, RadType  >;
+template class NavierStokesWithModelSourceTerms< PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, FadFadType >;
+template class NavierStokesWithModelSourceTerms< PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, RadFadType >;
 
 } // Physics namespace
 } // PHiLiP namespace

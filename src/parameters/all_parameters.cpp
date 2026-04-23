@@ -40,6 +40,11 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       dealii::Patterns::Integer(),
                       "Number of dimensions");
 
+    prm.declare_entry("number_of_species", "1",
+                      dealii::Patterns::Integer(1, dealii::Patterns::Integer::max_int_value),
+                      "Number of species. "
+                      "Default number of species is 1. For number_of_species > 1, only real_gas pde_type can be used.");
+
     prm.declare_entry("run_type", "integration_test",
                       dealii::Patterns::Selection(
                       " integration_test | "
@@ -213,7 +218,8 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       " halton_sampling_run |"
                       " naca0012_unsteady_check_quick | "
                       " khi_robustness | "
-                      " low_density "),
+                      " low_density | "
+                      " multi_species_vortex_advection "),
                       "The type of test we want to solve. "
                       "Choices are " 
                       " <run_control | " 
@@ -268,7 +274,8 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       "  halton_sampling_run |"
                       "  naca0012_unsteady_check_quick | "
                       "  khi_robustness | "
-                      "  low_density>.");
+                      "  low_density | " 
+                      "  multi_species_vortex_advection >.");
 
     prm.declare_entry("pde_type", "advection",
                       dealii::Patterns::Selection(
@@ -285,7 +292,8 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       " navier_stokes_channel_flow_constant_source_term | "
                       " navier_stokes_channel_flow_constant_source_term_wall_model | "
                       " physics_model_filtered |"
-                      " physics_model"),
+                      " physics_model |"
+                      " real_gas"),
                       "The PDE we want to solve. "
                       "Choices are " 
                       " <advection | " 
@@ -301,7 +309,8 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       "  navier_stokes_channel_flow_constant_source_term | "
                       "  navier_stokes_channel_flow_constant_source_term_wall_model | "
                       "  physics_model_filtered |"
-                      "  physics_model>.");
+                      "  physics_model |"
+                      "  real_gas>.");
 
     prm.declare_entry("model_type", "large_eddy_simulation",
                       dealii::Patterns::Selection(
@@ -379,6 +388,10 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       "Tolerance for checking that the determinant of surface jacobians at element faces matches. "
                       "Note: Currently only used in weak dg.");
 
+    prm.declare_entry("chemistry_input_file", "",
+                      dealii::Patterns::FileName(dealii::Patterns::FileName::FileType::input),
+                      "Filename of the chemistry data file that contains the properties of the species used in simulation. (ex. H2_O2.kinetics");
+
     prm.declare_entry("wall_model_input_from_second_element", "true",
                       dealii::Patterns::Bool(),
                       "Flag for using second element as wall model input. If false, uses buffer (i.e. wall-adjacent) element.");
@@ -413,6 +426,7 @@ void AllParameters::parse_parameters (dealii::ParameterHandler &prm)
     pcout << "Parsing main input..." << std::endl;
 
     dimension = prm.get_integer("dimension");
+    number_of_species = prm.get_integer("number_of_species");
 
     const std::string run_type_string = prm.get("run_type");
     if      (run_type_string == "integration_test") { run_type = integration_test; }
@@ -482,6 +496,7 @@ const std::string test_string = prm.get("test_type");
     else if (test_string == "halton_sampling_run")                      { test_type = halton_sampling_run; }
     else if (test_string == "low_density")                              { test_type = low_density; }
     else if (test_string == "naca0012_unsteady_check_quick")            { test_type = naca0012_unsteady_check_quick; }
+    else if (test_string == "multi_species_vortex_advection")           { test_type = multi_species_vortex_advection; }
     
     // WARNING: Must assign model_type before pde_type
     const std::string model_string = prm.get("model_type");
@@ -540,6 +555,9 @@ const std::string test_string = prm.get("test_type");
         if (model_type == large_eddy_simulation || model_type == navier_stokes_model) {
             nstate = dimension+2;
         }
+    } else if (pde_string == "real_gas") {
+        pde_type = real_gas;
+        nstate = dimension+number_of_species+1;
     }
     
     overintegration = prm.get_integer("overintegration");
@@ -647,6 +665,8 @@ const std::string test_string = prm.get("test_type");
     matching_surface_jac_det_tolerance = prm.get_double("matching_surface_jac_det_tolerance");
     wall_model_input_from_second_element = prm.get_bool("wall_model_input_from_second_element");
     use_projected_entropy_variables_for_nsfr_boundary_term = prm.get_bool("use_projected_entropy_variables_for_nsfr_boundary_term");
+
+    chemistry_input_file = prm.get("chemistry_input_file");
 
     pcout << "Parsing linear solver subsection..." << std::endl;
     linear_solver_param.parse_parameters (prm);

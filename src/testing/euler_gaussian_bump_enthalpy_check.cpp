@@ -30,24 +30,24 @@
 namespace PHiLiP {
 namespace Tests {
 
-template <int dim, int nstate>
-EulerGaussianBumpEnthalpyCheck<dim,nstate>::EulerGaussianBumpEnthalpyCheck(
+template <int dim, int nspecies, int nstate>
+EulerGaussianBumpEnthalpyCheck<dim,nspecies,nstate>::EulerGaussianBumpEnthalpyCheck(
     const Parameters::AllParameters *const parameters_input,
     const dealii::ParameterHandler &parameter_handler_input)
     : TestsBase::TestsBase(parameters_input)
     , parameter_handler(parameter_handler_input)
  {}
 
-template<int dim, int nstate>
-int EulerGaussianBumpEnthalpyCheck<dim,nstate>::run_test () const
+template<int dim, int nspecies, int nstate>
+int EulerGaussianBumpEnthalpyCheck<dim,nspecies,nstate>::run_test () const
 {
     const Parameters::AllParameters param_transonic = *(TestsBase::all_parameters);
     Parameters::AllParameters param_subsonic = *(TestsBase::all_parameters);
     param_subsonic.artificial_dissipation_param.add_artificial_dissipation = false;
     param_subsonic.euler_param.mach_inf = 0.5;
 
-    EulerGaussianBump<dim,nstate> gaussian_bump_transonic(&param_transonic, parameter_handler);
-    EulerGaussianBump<dim,nstate> gaussian_bump_subsonic(&param_subsonic, parameter_handler);
+    EulerGaussianBump<dim,nspecies,nstate> gaussian_bump_transonic(&param_transonic, parameter_handler);
+    EulerGaussianBump<dim,nspecies,nstate> gaussian_bump_subsonic(&param_subsonic, parameter_handler);
 
     const double error_transonic = gaussian_bump_transonic.run_euler_gaussian_bump();
     const double error_subsonic = gaussian_bump_subsonic.run_euler_gaussian_bump();
@@ -68,8 +68,8 @@ int EulerGaussianBumpEnthalpyCheck<dim,nstate>::run_test () const
 
 
 
-#if PHILIP_DIM==2
- template class EulerGaussianBumpEnthalpyCheck <PHILIP_DIM,PHILIP_DIM+2>;
+#if PHILIP_DIM==2 && PHILIP_SPECIES==1
+ template class EulerGaussianBumpEnthalpyCheck <PHILIP_DIM, PHILIP_SPECIES,PHILIP_DIM+2>;
 #endif
 } // Tests namespace
 } // PHiLiP namespace

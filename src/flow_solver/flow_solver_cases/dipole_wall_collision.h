@@ -13,8 +13,8 @@ using Triangulation = dealii::Triangulation<PHILIP_DIM>;
 using Triangulation = dealii::parallel::distributed::Triangulation<PHILIP_DIM>;
 #endif
 
-template <int dim, int nstate>
-class DipoleWallCollision : public PeriodicTurbulence<dim,nstate>
+template <int dim, int nspecies, int nstate>
+class DipoleWallCollision : public PeriodicTurbulence<dim,nspecies,nstate>
 {
 public:
     /// Constructor.
@@ -43,8 +43,8 @@ private:
         const double domain_length_) const;
 };
 
-template <int dim, int nstate>
-class DipoleWallCollision_Oblique : public DipoleWallCollision<dim,nstate>
+template <int dim, int nspecies, int nstate>
+class DipoleWallCollision_Oblique : public DipoleWallCollision<dim,nspecies,nstate>
 {
 public:
     /// Constructor.

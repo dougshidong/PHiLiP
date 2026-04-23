@@ -9,8 +9,8 @@ namespace PHiLiP {
 namespace Physics {
 
 /// Large Eddy Simulation equations. Derived from Navier-Stokes for modifying the stress tensor and heat flux, which is derived from PhysicsBase. 
-template <int dim, int nstate, typename real>
-class LargeEddySimulationBase : public ModelBase <dim, nstate, real>
+template <int dim, int nspecies, int nstate, typename real>
+class LargeEddySimulationBase : public ModelBase <dim, nspecies, nstate, real>
 {
 public:
     using thermal_boundary_condition_enum = Parameters::NavierStokesParam::ThermalBoundaryCondition;
@@ -32,7 +32,7 @@ public:
         const double                                              ratio_of_filter_width_to_cell_size,
         const double                                              isothermal_wall_temperature = 1.0,
         const thermal_boundary_condition_enum                     thermal_boundary_condition_type = thermal_boundary_condition_enum::adiabatic,
-        std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function = nullptr,
+        std::shared_ptr< ManufacturedSolutionFunction<dim,nspecies,real> > manufactured_solution_function = nullptr,
         const two_point_num_flux_enum                             two_point_num_flux_type = two_point_num_flux_enum::KG);
 
     /// Turbulent Prandtl number
@@ -42,7 +42,7 @@ public:
     const double ratio_of_filter_width_to_cell_size;
 
     /// Pointer to Navier-Stokes physics object
-    std::unique_ptr< NavierStokes<dim,nstate,real> > navier_stokes_physics;
+    std::unique_ptr< NavierStokes<dim,nspecies,nstate,real> > navier_stokes_physics;
 
     /// Convective flux: \f$ \mathbf{F}_{conv} \f$
     std::array<dealii::Tensor<1,dim,real>,nstate> convective_flux (
@@ -186,8 +186,8 @@ protected:
 };
 
 /// Smagorinsky eddy viscosity model. Derived from Large Eddy Simulation.
-template <int dim, int nstate, typename real>
-class LargeEddySimulation_Smagorinsky : public LargeEddySimulationBase <dim, nstate, real>
+template <int dim, int nspecies, int nstate, typename real>
+class LargeEddySimulation_Smagorinsky : public LargeEddySimulationBase <dim, nspecies, nstate, real>
 {
 public:
     using thermal_boundary_condition_enum = Parameters::NavierStokesParam::ThermalBoundaryCondition;
@@ -212,7 +212,7 @@ public:
         const double                                              model_constant,
         const double                                              isothermal_wall_temperature = 1.0,
         const thermal_boundary_condition_enum                     thermal_boundary_condition_type = thermal_boundary_condition_enum::adiabatic,
-        std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function = nullptr,
+        std::shared_ptr< ManufacturedSolutionFunction<dim,nspecies,real> > manufactured_solution_function = nullptr,
         const two_point_num_flux_enum                             two_point_num_flux_type = two_point_num_flux_enum::KG,
         const bool                                                apply_low_reynolds_number_eddy_viscosity_correction = false);
 
@@ -317,8 +317,8 @@ private:
 };
 
 /// WALE (Wall-Adapting Local Eddy-viscosity) eddy viscosity model. Derived from LargeEddySimulation_Smagorinsky for only modifying compute_eddy_viscosity.
-template <int dim, int nstate, typename real>
-class LargeEddySimulation_WALE : public LargeEddySimulation_Smagorinsky <dim, nstate, real>
+template <int dim, int nspecies, int nstate, typename real>
+class LargeEddySimulation_WALE : public LargeEddySimulation_Smagorinsky <dim, nspecies, nstate, real>
 {
 public:
     using thermal_boundary_condition_enum = Parameters::NavierStokesParam::ThermalBoundaryCondition;
@@ -344,7 +344,7 @@ public:
         const double                                              model_constant,
         const double                                              isothermal_wall_temperature = 1.0,
         const thermal_boundary_condition_enum                     thermal_boundary_condition_type = thermal_boundary_condition_enum::adiabatic,
-        std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function = nullptr,
+        std::shared_ptr< ManufacturedSolutionFunction<dim,nspecies,real> > manufactured_solution_function = nullptr,
         const two_point_num_flux_enum                             two_point_num_flux_type = two_point_num_flux_enum::KG,
         const bool                                                apply_low_reynolds_number_eddy_viscosity_correction = false);
 
@@ -375,8 +375,8 @@ private:
 };
 
 /// Vreman eddy viscosity model. Derived from LargeEddySimulation_Smagorinsky for only modifying compute_eddy_viscosity.
-template <int dim, int nstate, typename real>
-class LargeEddySimulation_Vreman : public LargeEddySimulation_Smagorinsky <dim, nstate, real>
+template <int dim, int nspecies, int nstate, typename real>
+class LargeEddySimulation_Vreman : public LargeEddySimulation_Smagorinsky <dim, nspecies, nstate, real>
 {
 public:
     using thermal_boundary_condition_enum = Parameters::NavierStokesParam::ThermalBoundaryCondition;
@@ -401,7 +401,7 @@ public:
         const double                                              model_constant,
         const double                                              isothermal_wall_temperature = 1.0,
         const thermal_boundary_condition_enum                     thermal_boundary_condition_type = thermal_boundary_condition_enum::adiabatic,
-        std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function = nullptr,
+        std::shared_ptr< ManufacturedSolutionFunction<dim,nspecies,real> > manufactured_solution_function = nullptr,
         const two_point_num_flux_enum                             two_point_num_flux_type = two_point_num_flux_enum::KG,
         const bool                                                apply_low_reynolds_number_eddy_viscosity_correction = false);
 
@@ -432,8 +432,8 @@ private:
 };
 
 /// Shear-improved Smagorinsky eddy viscosity model. Derived from LargeEddySimulation_Smagorinsky for only modifying compute_eddy_viscosity.
-template <int dim, int nstate, typename real>
-class LargeEddySimulation_ShearImprovedSmagorinsky : public LargeEddySimulation_Smagorinsky <dim, nstate, real>
+template <int dim, int nspecies, int nstate, typename real>
+class LargeEddySimulation_ShearImprovedSmagorinsky : public LargeEddySimulation_Smagorinsky <dim, nspecies, nstate, real>
 {
 public:
     using thermal_boundary_condition_enum = Parameters::NavierStokesParam::ThermalBoundaryCondition;
@@ -459,7 +459,7 @@ public:
         const double                                              model_constant,
         const double                                              isothermal_wall_temperature = 1.0,
         const thermal_boundary_condition_enum                     thermal_boundary_condition_type = thermal_boundary_condition_enum::adiabatic,
-        std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function = nullptr,
+        std::shared_ptr< ManufacturedSolutionFunction<dim,nspecies,real> > manufactured_solution_function = nullptr,
         const two_point_num_flux_enum                             two_point_num_flux_type = two_point_num_flux_enum::KG,
         const bool                                                apply_low_reynolds_number_eddy_viscosity_correction = false);
 
@@ -497,8 +497,8 @@ private:
 };
 
 /// Variational multiscale (VMS) eddy viscosity model. Derived from LargeEddySimulation_Smagorinsky for only modifying compute_eddy_viscosity.
-template <int dim, int nstate, typename real>
-class LargeEddySimulation_VMS : public LargeEddySimulation_Smagorinsky <dim, nstate, real>
+template <int dim, int nspecies, int nstate, typename real>
+class LargeEddySimulation_VMS : public LargeEddySimulation_Smagorinsky <dim, nspecies, nstate, real>
 {
 public:
     using thermal_boundary_condition_enum = Parameters::NavierStokesParam::ThermalBoundaryCondition;
@@ -527,7 +527,7 @@ public:
         const double                                              curve_fit_constant,
         const double                                              isothermal_wall_temperature = 1.0,
         const thermal_boundary_condition_enum                     thermal_boundary_condition_type = thermal_boundary_condition_enum::adiabatic,
-        std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function = nullptr,
+        std::shared_ptr< ManufacturedSolutionFunction<dim,nspecies,real> > manufactured_solution_function = nullptr,
         const two_point_num_flux_enum                             two_point_num_flux_type = two_point_num_flux_enum::KG,
         const bool                                                apply_low_reynolds_number_eddy_viscosity_correction = false);
 
@@ -546,8 +546,8 @@ public:
 };
 
 /// Small-Small Variational multiscale (VMS) eddy viscosity model. Derived from LargeEddySimulation_VMS for only modifying curve_fit_constant.
-template <int dim, int nstate, typename real>
-class LargeEddySimulation_SmallSmallVMS : public LargeEddySimulation_VMS <dim, nstate, real>
+template <int dim, int nspecies, int nstate, typename real>
+class LargeEddySimulation_SmallSmallVMS : public LargeEddySimulation_VMS <dim, nspecies, nstate, real>
 {
 public:
     using thermal_boundary_condition_enum = Parameters::NavierStokesParam::ThermalBoundaryCondition;
@@ -575,7 +575,7 @@ public:
         const double                                              mesh_size,
         const double                                              isothermal_wall_temperature = 1.0,
         const thermal_boundary_condition_enum                     thermal_boundary_condition_type = thermal_boundary_condition_enum::adiabatic,
-        std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function = nullptr,
+        std::shared_ptr< ManufacturedSolutionFunction<dim,nspecies,real> > manufactured_solution_function = nullptr,
         const two_point_num_flux_enum                             two_point_num_flux_type = two_point_num_flux_enum::KG,
         const bool                                                apply_low_reynolds_number_eddy_viscosity_correction = false);
 
@@ -584,8 +584,8 @@ public:
 };
 
 /// All-All Variational multiscale (VMS) eddy viscosity model. Derived from LargeEddySimulation_VMS for only modifying curve_fit_constant.
-template <int dim, int nstate, typename real>
-class LargeEddySimulation_AllAllVMS : public LargeEddySimulation_VMS <dim, nstate, real>
+template <int dim, int nspecies, int nstate, typename real>
+class LargeEddySimulation_AllAllVMS : public LargeEddySimulation_VMS <dim, nspecies, nstate, real>
 {
 public:
     using thermal_boundary_condition_enum = Parameters::NavierStokesParam::ThermalBoundaryCondition;
@@ -613,7 +613,7 @@ public:
         const double                                              mesh_size,
         const double                                              isothermal_wall_temperature = 1.0,
         const thermal_boundary_condition_enum                     thermal_boundary_condition_type = thermal_boundary_condition_enum::adiabatic,
-        std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function = nullptr,
+        std::shared_ptr< ManufacturedSolutionFunction<dim,nspecies,real> > manufactured_solution_function = nullptr,
         const two_point_num_flux_enum                             two_point_num_flux_type = two_point_num_flux_enum::KG,
         const bool                                                apply_low_reynolds_number_eddy_viscosity_correction = false);
 
@@ -622,8 +622,8 @@ public:
 };
 
 /// Dynamic Smagorinsky Model (DSM) eddy viscosity model. Derived from LargeEddySimulation_Smagorinsky for only modifying compute_eddy_viscosity.
-template <int dim, int nstate, typename real>
-class LargeEddySimulation_DynamicSmagorinsky : public LargeEddySimulation_Smagorinsky <dim, nstate, real>
+template <int dim, int nspecies, int nstate, typename real>
+class LargeEddySimulation_DynamicSmagorinsky : public LargeEddySimulation_Smagorinsky <dim, nspecies, nstate, real>
 {
 public:
     using thermal_boundary_condition_enum = Parameters::NavierStokesParam::ThermalBoundaryCondition;
@@ -648,7 +648,7 @@ public:
         const double                                              model_constant,
         const double                                              isothermal_wall_temperature = 1.0,
         const thermal_boundary_condition_enum                     thermal_boundary_condition_type = thermal_boundary_condition_enum::adiabatic,
-        std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function = nullptr,
+        std::shared_ptr< ManufacturedSolutionFunction<dim,nspecies,real> > manufactured_solution_function = nullptr,
         const two_point_num_flux_enum                             two_point_num_flux_type = two_point_num_flux_enum::KG,
         const bool                                                apply_low_reynolds_number_eddy_viscosity_correction = false);
 

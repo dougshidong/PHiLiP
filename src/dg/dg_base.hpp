@@ -46,11 +46,11 @@
 #include <deal.II/base/timer.h>
 
 // Template specialization of MappingFEField
-//extern template class dealii::MappingFEField<PHILIP_DIM,PHILIP_DIM,dealii::LinearAlgebra::distributed::Vector<double>, dealii::DoFHandler<PHILIP_DIM> >;
+//extern template class dealii::MappingFEField<PHILIP_DIM, PHILIP_SPECIES,PHILIP_DIM, PHILIP_SPECIES,dealii::LinearAlgebra::distributed::Vector<double>, dealii::DoFHandler<PHILIP_DIM> >;
 namespace PHiLiP {
 
 /// Get the coefficients of a function projected onto a set of basis (to be replaced with operators->projection_operator). 
-template<int dim, typename real>
+template<int dim, int nspecies, typename real>
 std::vector< real > project_function(
     const std::vector< real > &function_coeff,
     const dealii::FESystem<dim,dim> &fe_input,
@@ -75,9 +75,9 @@ std::vector< real > project_function(
   *
   */
 #if PHILIP_DIM==1 // dealii::parallel::distributed::Triangulation<dim> does not work for 1D
-template <int dim, typename real, typename MeshType = dealii::Triangulation<dim>>
+template <int dim, int nspecies, typename real, typename MeshType = dealii::Triangulation<dim>>
 #else
-template <int dim, typename real, typename MeshType = dealii::parallel::distributed::Triangulation<dim>>
+template <int dim, int nspecies, typename real, typename MeshType = dealii::parallel::distributed::Triangulation<dim>>
 #endif
 class DGBase 
 {

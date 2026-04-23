@@ -21,7 +21,8 @@ void shock_tube_1D_grid(
     flow_case_enum flow_case_type = flow_solver_param->flow_case_type;
 
     if (flow_case_type == flow_case_enum::sod_shock_tube
-        || flow_case_type == flow_case_enum::leblanc_shock_tube) {
+        || flow_case_type == flow_case_enum::leblanc_shock_tube
+        || flow_case_type == flow_case_enum::multi_species_sod_shock_tube) {
         left_boundary_id = 1001; // x_left, wall bc
     } else if (flow_case_type == flow_case_enum::shu_osher_problem) {
         left_boundary_id = 1008; // x_left, custom inflow (set in prm file)

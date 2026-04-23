@@ -31,14 +31,14 @@ double getValue(const real &x) {
 
 namespace PHiLiP {
 
-template <int dim, int nstate, typename real, typename MeshType>
-DGStrong<dim,nstate,real,MeshType>::DGStrong(
+template <int dim, int nspecies, int nstate, typename real, typename MeshType>
+DGStrong<dim,nspecies,nstate,real,MeshType>::DGStrong(
     const Parameters::AllParameters *const parameters_input,
     const unsigned int degree,
     const unsigned int max_degree_input,
     const unsigned int grid_degree_input,
     const std::shared_ptr<Triangulation> triangulation_input)
-    : DGBaseState<dim,nstate,real,MeshType>::DGBaseState(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input)
+    : DGBaseState<dim,nspecies,nstate,real,MeshType>::DGBaseState(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input)
     , do_compute_filtered_solution(this->all_parameters->physics_model_param.do_compute_filtered_solution)
     , apply_modal_high_pass_filter_on_filtered_solution(this->all_parameters->physics_model_param.apply_modal_high_pass_filter_on_filtered_solution)
     , poly_degree_max_large_scales(this->all_parameters->physics_model_param.poly_degree_max_large_scales)
@@ -47,9 +47,9 @@ DGStrong<dim,nstate,real,MeshType>::DGStrong(
     , use_projected_entropy_variables_for_nsfr_boundary_term(this->all_parameters->use_projected_entropy_variables_for_nsfr_boundary_term)
 { }
 
-template <int dim, int nstate, typename real, typename MeshType>
+template <int dim, int nspecies, int nstate, typename real, typename MeshType>
 template <typename adtype>
-void DGStrong<dim,nstate,real,MeshType>::build_volume_metric_operators(
+void DGStrong<dim,nspecies,nstate,real,MeshType>::build_volume_metric_operators(
     const unsigned int poly_degree,
     const unsigned int grid_degree,
     const std::vector<adtype>                    &metric_coeffs,
@@ -86,9 +86,9 @@ void DGStrong<dim,nstate,real,MeshType>::build_volume_metric_operators(
 *
 ***********************************************************/
 
-template <int dim, int nstate, typename real, typename MeshType>
+template <int dim, int nspecies, int nstate, typename real, typename MeshType>
 template <typename adtype>
-void DGStrong<dim,nstate,real,MeshType>::assemble_volume_term_and_build_operators_ad_templated(
+void DGStrong<dim,nspecies,nstate,real,MeshType>::assemble_volume_term_and_build_operators_ad_templated(
     typename dealii::DoFHandler<dim>::active_cell_iterator cell,
     const dealii::types::global_dof_index                  current_cell_index,
     const std::vector<adtype>                              &soln_coeffs,
@@ -99,7 +99,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_volume_term_and_build_operator
     const std::vector<dealii::types::global_dof_index>     &/*metric_dofs_indices*/,
     const unsigned int                                     poly_degree,
     const unsigned int                                     grid_degree,
-    Physics::PhysicsBase<dim, nstate, adtype>              &physics,
+    Physics::PhysicsBase<dim, nspecies, nstate, adtype>    &physics,
     OPERATOR::basis_functions<dim,2*dim>                   &soln_basis,
     OPERATOR::basis_functions<dim,2*dim>                   &flux_basis,
     OPERATOR::local_basis_stiffness<dim,2*dim>             &flux_basis_stiffness,
@@ -187,9 +187,9 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_volume_term_and_build_operator
     }
 }
 
-template <int dim, int nstate, typename real, typename MeshType>
+template <int dim, int nspecies, int nstate, typename real, typename MeshType>
 template<typename adtype>
-void DGStrong<dim,nstate,real,MeshType>::assemble_boundary_term_and_build_operators_ad_templated(
+void DGStrong<dim,nspecies,nstate,real,MeshType>::assemble_boundary_term_and_build_operators_ad_templated(
     typename dealii::DoFHandler<dim>::active_cell_iterator             cell,
     const dealii::types::global_dof_index                              current_cell_index,
     const std::vector<adtype>                                          &soln_coeffs,
@@ -198,9 +198,9 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_boundary_term_and_build_operat
     const std::vector<real>                                            &local_dual,
     const unsigned int                                                 face_number,
     const unsigned int                                                 boundary_id,
-    Physics::PhysicsBase<dim, nstate, adtype>                          &physics,
-    const NumericalFlux::NumericalFluxConvective<dim, nstate, adtype>  &conv_num_flux,
-    const NumericalFlux::NumericalFluxDissipative<dim, nstate, adtype> &diss_num_flux,
+    Physics::PhysicsBase<dim, nspecies, nstate, adtype>                          &physics,
+    const NumericalFlux::NumericalFluxConvective<dim, nspecies, nstate, adtype>  &conv_num_flux,
+    const NumericalFlux::NumericalFluxDissipative<dim, nspecies, nstate, adtype> &diss_num_flux,
     const unsigned int                                                 poly_degree,
     const unsigned int                                                 /*grid_degree*/,
     OPERATOR::basis_functions<dim,2*dim>                               &soln_basis,
@@ -286,9 +286,9 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_boundary_term_and_build_operat
 
 }
 
-template <int dim, int nstate, typename real, typename MeshType>
+template <int dim, int nspecies, int nstate, typename real, typename MeshType>
 template <typename adtype>
-void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_and_build_operators_ad_templated(
+void DGStrong<dim,nspecies,nstate,real,MeshType>::assemble_face_term_and_build_operators_ad_templated(
     typename dealii::DoFHandler<dim>::active_cell_iterator             /*cell*/,
     typename dealii::DoFHandler<dim>::active_cell_iterator             /*neighbor_cell*/,
     const dealii::types::global_dof_index                              current_cell_index,
@@ -318,9 +318,9 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_and_build_operators_
     OPERATOR::metric_operators<adtype,dim,2*dim>                       &metric_oper_ext,
     OPERATOR::mapping_shape_functions<dim,2*dim>                       &mapping_basis,
     std::array<std::vector<adtype>,dim>                                &mapping_support_points,
-    Physics::PhysicsBase<dim, nstate, adtype>                          &physics,
-    const NumericalFlux::NumericalFluxConvective<dim, nstate, adtype>  &conv_num_flux,
-    const NumericalFlux::NumericalFluxDissipative<dim, nstate, adtype> &diss_num_flux,
+    Physics::PhysicsBase<dim, nspecies, nstate, adtype>                          &physics,
+    const NumericalFlux::NumericalFluxConvective<dim, nspecies, nstate, adtype>  &conv_num_flux,
+    const NumericalFlux::NumericalFluxDissipative<dim, nspecies, nstate, adtype> &diss_num_flux,
     dealii::hp::FEFaceValues<dim,dim>                                  &/*fe_values_collection_face_int*/,
     dealii::hp::FEFaceValues<dim,dim>                                  &/*fe_values_collection_face_ext*/,
     dealii::hp::FESubfaceValues<dim,dim>                               &/*fe_values_collection_subface*/,
@@ -480,8 +480,8 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_and_build_operators_
  *
  *******************************************************************/
 
-template <int dim, int nstate, typename real, typename MeshType>
-void DGStrong<dim,nstate,real,MeshType>::assemble_auxiliary_residual(const bool compute_dRdW, const bool compute_dRdX, const bool compute_d2R)
+template <int dim, int nspecies, int nstate, typename real, typename MeshType>
+void DGStrong<dim,nspecies,nstate,real,MeshType>::assemble_auxiliary_residual(const bool compute_dRdW, const bool compute_dRdX, const bool compute_d2R)
 {
     using PDE_enum = Parameters::AllParameters::PartialDifferentialEquation;
     using ODE_enum = Parameters::ODESolverParam::ODESolverEnum;
@@ -648,9 +648,9 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_auxiliary_residual(const bool 
  *
  **************************************************/
 
-template <int dim, int nstate, typename real, typename MeshType>
+template <int dim, int nspecies, int nstate, typename real, typename MeshType>
 template <typename adtype>
-void DGStrong<dim,nstate,real,MeshType>::assemble_volume_term_auxiliary_equation(
+void DGStrong<dim,nspecies,nstate,real,MeshType>::assemble_volume_term_auxiliary_equation(
     const std::array<std::vector<adtype>,nstate> &soln_coeff,
     const unsigned int poly_degree,
     OPERATOR::basis_functions<dim,2*dim> &soln_basis,
@@ -709,9 +709,9 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_volume_term_auxiliary_equation
     }
 }
 
-template <int dim, int nstate, typename real, typename MeshType>
+template <int dim, int nspecies, int nstate, typename real, typename MeshType>
 template <typename adtype>
-void DGStrong<dim,nstate,real,MeshType>::assemble_boundary_term_auxiliary_equation(
+void DGStrong<dim,nspecies,nstate,real,MeshType>::assemble_boundary_term_auxiliary_equation(
     const unsigned int                                 iface,
     const dealii::types::global_dof_index              current_cell_index,
     const std::array<std::vector<adtype>,nstate>       &soln_coeff,
@@ -719,8 +719,8 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_boundary_term_auxiliary_equati
     const unsigned int                                 boundary_id,
     OPERATOR::basis_functions<dim,2*dim>               &soln_basis,
     OPERATOR::metric_operators<adtype,dim,2*dim>       &metric_oper,
-    const Physics::PhysicsBase<dim, nstate, adtype>                    &pde_physics,
-    const NumericalFlux::NumericalFluxDissipative<dim, nstate, adtype> &diss_num_flux,
+    const Physics::PhysicsBase<dim, nspecies, nstate, adtype>                    &pde_physics,
+    const NumericalFlux::NumericalFluxDissipative<dim, nspecies, nstate, adtype> &diss_num_flux,
     dealii::Tensor<1,dim,std::vector<adtype>>          &local_auxiliary_RHS)
 {
     (void) current_cell_index;
@@ -849,9 +849,9 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_boundary_term_auxiliary_equati
     }
 }
 /*********************************************************************************/
-template <int dim, int nstate, typename real, typename MeshType>
+template <int dim, int nspecies, int nstate, typename real, typename MeshType>
 template <typename adtype>
-void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_auxiliary_equation(
+void DGStrong<dim,nspecies,nstate,real,MeshType>::assemble_face_term_auxiliary_equation(
     const unsigned int                                 iface, 
     const unsigned int                                 neighbor_iface,
     const dealii::types::global_dof_index              current_cell_index,
@@ -863,8 +863,8 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_auxiliary_equation(
     OPERATOR::basis_functions<dim,2*dim>               &soln_basis_int,
     OPERATOR::basis_functions<dim,2*dim>               &soln_basis_ext,
     OPERATOR::metric_operators<adtype,dim,2*dim>       &metric_oper_int,
-    const Physics::PhysicsBase<dim, nstate, adtype>                    &/*pde_physics*/,
-    const NumericalFlux::NumericalFluxDissipative<dim, nstate, adtype> &diss_num_flux,
+    const Physics::PhysicsBase<dim, nspecies, nstate, adtype>                    &/*pde_physics*/,
+    const NumericalFlux::NumericalFluxDissipative<dim, nspecies, nstate, adtype> &diss_num_flux,
     dealii::Tensor<1,dim,std::vector<adtype>>          &local_auxiliary_RHS_int,
     dealii::Tensor<1,dim,std::vector<adtype>>          &local_auxiliary_RHS_ext)
 {
@@ -988,9 +988,9 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_auxiliary_equation(
 * PRIMARY EQUATIONS STRONG FORM
 *
 ****************************************************/
-template <int dim, int nstate, typename real, typename MeshType>
+template <int dim, int nspecies, int nstate, typename real, typename MeshType>
 template <typename adtype>
-void DGStrong<dim,nstate,real,MeshType>::assemble_volume_term_strong(
+void DGStrong<dim,nspecies,nstate,real,MeshType>::assemble_volume_term_strong(
     typename dealii::DoFHandler<dim>::active_cell_iterator             cell,
     const dealii::types::global_dof_index                              current_cell_index,
     const std::array<std::vector<adtype>,nstate>                       &soln_coeff,
@@ -1001,7 +1001,7 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_volume_term_strong(
     OPERATOR::local_basis_stiffness<dim,2*dim>                         &flux_basis_stiffness,
     OPERATOR::vol_projection_operator<dim,2*dim>                       &soln_basis_projection_oper,
     OPERATOR::metric_operators<adtype,dim,2*dim>                       &metric_oper,
-    Physics::PhysicsBase<dim, nstate, adtype>                          &pde_physics,
+    Physics::PhysicsBase<dim, nspecies, nstate, adtype>                &pde_physics,
     std::vector<adtype>                                                &local_rhs_int_cell)
 {
     const unsigned int n_quad_pts  = this->volume_quadrature_collection[poly_degree].size();
@@ -1554,9 +1554,9 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_volume_term_strong(
     }
 }
 
-template <int dim, int nstate, typename real, typename MeshType>
+template <int dim, int nspecies, int nstate, typename real, typename MeshType>
 template <typename adtype>
-void DGStrong<dim,nstate,real,MeshType>::assemble_boundary_term_strong(
+void DGStrong<dim,nspecies,nstate,real,MeshType>::assemble_boundary_term_strong(
     typename dealii::DoFHandler<dim>::active_cell_iterator             current_cell,
     const unsigned int                                                 iface, 
     const dealii::types::global_dof_index                              current_cell_index,
@@ -1569,9 +1569,9 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_boundary_term_strong(
     OPERATOR::basis_functions<dim,2*dim>                               &flux_basis,
     OPERATOR::vol_projection_operator<dim,2*dim>                       &soln_basis_projection_oper,
     OPERATOR::metric_operators<adtype,dim,2*dim>                       &metric_oper,
-    Physics::PhysicsBase<dim, nstate, adtype>                          &pde_physics,
-    const NumericalFlux::NumericalFluxConvective<dim, nstate, adtype>  &conv_num_flux,
-    const NumericalFlux::NumericalFluxDissipative<dim, nstate, adtype> &diss_num_flux,
+    Physics::PhysicsBase<dim, nspecies, nstate, adtype>                &pde_physics,
+    const NumericalFlux::NumericalFluxConvective<dim, nspecies, nstate, adtype>  &conv_num_flux,
+    const NumericalFlux::NumericalFluxDissipative<dim, nspecies, nstate, adtype> &diss_num_flux,
     std::vector<adtype>                                                &local_rhs_cell)
 {
     // Get opposite face index
@@ -2322,9 +2322,9 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_boundary_term_strong(
 }
 
 
-template <int dim, int nstate, typename real, typename MeshType>
+template <int dim, int nspecies, int nstate, typename real, typename MeshType>
 template <typename adtype>
-void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_strong(
+void DGStrong<dim,nspecies,nstate,real,MeshType>::assemble_face_term_strong(
     const unsigned int                                                 iface, 
     const unsigned int                                                 neighbor_iface, 
     const dealii::types::global_dof_index                              current_cell_index,
@@ -2344,9 +2344,9 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_strong(
     OPERATOR::vol_projection_operator<dim,2*dim>                       &soln_basis_projection_oper_ext,
     OPERATOR::metric_operators<adtype,dim,2*dim>                       &metric_oper_int,
     OPERATOR::metric_operators<adtype,dim,2*dim>                       &metric_oper_ext,
-    Physics::PhysicsBase<dim, nstate, adtype>                          &pde_physics,
-    const NumericalFlux::NumericalFluxConvective<dim, nstate, adtype>  &conv_num_flux,
-    const NumericalFlux::NumericalFluxDissipative<dim, nstate, adtype> &diss_num_flux,
+    Physics::PhysicsBase<dim, nspecies, nstate, adtype>                &pde_physics,
+    const NumericalFlux::NumericalFluxConvective<dim, nspecies, nstate, adtype>  &conv_num_flux,
+    const NumericalFlux::NumericalFluxDissipative<dim, nspecies, nstate, adtype> &diss_num_flux,
     std::vector<adtype>                                                  &local_rhs_int_cell,
     std::vector<adtype>                                                  &local_rhs_ext_cell)
 {
@@ -3497,8 +3497,8 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_face_term_strong(
  *
  *******************************************************/
 
-template <int dim, int nstate, typename real, typename MeshType>
-void DGStrong<dim,nstate,real,MeshType>::assemble_volume_term_explicit(
+template <int dim, int nspecies, int nstate, typename real, typename MeshType>
+void DGStrong<dim,nspecies,nstate,real,MeshType>::assemble_volume_term_explicit(
     typename dealii::DoFHandler<dim>::active_cell_iterator /*cell*/,
     const dealii::types::global_dof_index /*current_cell_index*/,
     const dealii::FEValues<dim,dim> &/*fe_values_vol*/,
@@ -3513,59 +3513,60 @@ void DGStrong<dim,nstate,real,MeshType>::assemble_volume_term_explicit(
 }
 
 
-template <int dim, int nstate, typename real, typename MeshType>
-void DGStrong<dim,nstate,real,MeshType>::allocate_dual_vector(const bool compute_d2R)
+template <int dim, int nspecies, int nstate, typename real, typename MeshType>
+void DGStrong<dim,nspecies,nstate,real,MeshType>::allocate_dual_vector(const bool compute_d2R)
 {
     if(compute_d2R){
         this->dual.reinit(this->locally_owned_dofs, this->ghost_dofs, this->mpi_communicator);
     }
 }
 
-// using default MeshType = Triangulation
+#if PHILIP_SPECIES==1
+    // using default MeshType = Triangulation
 // 1D: dealii::Triangulation<dim>;
 // Otherwise: dealii::parallel::distributed::Triangulation<dim>;
-template class DGStrong <PHILIP_DIM, 1, double, dealii::Triangulation<PHILIP_DIM>>;
-template class DGStrong <PHILIP_DIM, 2, double, dealii::Triangulation<PHILIP_DIM>>;
-template class DGStrong <PHILIP_DIM, 3, double, dealii::Triangulation<PHILIP_DIM>>;
-template class DGStrong <PHILIP_DIM, 4, double, dealii::Triangulation<PHILIP_DIM>>;
-template class DGStrong <PHILIP_DIM, 5, double, dealii::Triangulation<PHILIP_DIM>>;
-template class DGStrong <PHILIP_DIM, 6, double, dealii::Triangulation<PHILIP_DIM>>;
+template class DGStrong <PHILIP_DIM, PHILIP_SPECIES, 1, double, dealii::Triangulation<PHILIP_DIM>>;
+template class DGStrong <PHILIP_DIM, PHILIP_SPECIES, 2, double, dealii::Triangulation<PHILIP_DIM>>;
+template class DGStrong <PHILIP_DIM, PHILIP_SPECIES, 3, double, dealii::Triangulation<PHILIP_DIM>>;
+template class DGStrong <PHILIP_DIM, PHILIP_SPECIES, 4, double, dealii::Triangulation<PHILIP_DIM>>;
+template class DGStrong <PHILIP_DIM, PHILIP_SPECIES, 5, double, dealii::Triangulation<PHILIP_DIM>>;
+template class DGStrong <PHILIP_DIM, PHILIP_SPECIES, 6, double, dealii::Triangulation<PHILIP_DIM>>;
 
-template class DGStrong <PHILIP_DIM, 1, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
-template class DGStrong <PHILIP_DIM, 2, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
-template class DGStrong <PHILIP_DIM, 3, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
-template class DGStrong <PHILIP_DIM, 4, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
-template class DGStrong <PHILIP_DIM, 5, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
-template class DGStrong <PHILIP_DIM, 6, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+template class DGStrong <PHILIP_DIM, PHILIP_SPECIES, 1, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+template class DGStrong <PHILIP_DIM, PHILIP_SPECIES, 2, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+template class DGStrong <PHILIP_DIM, PHILIP_SPECIES, 3, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+template class DGStrong <PHILIP_DIM, PHILIP_SPECIES, 4, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+template class DGStrong <PHILIP_DIM, PHILIP_SPECIES, 5, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+template class DGStrong <PHILIP_DIM, PHILIP_SPECIES, 6, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
 
 #if PHILIP_DIM!=1
-template class DGStrong <PHILIP_DIM, 1, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
-template class DGStrong <PHILIP_DIM, 2, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
-template class DGStrong <PHILIP_DIM, 3, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
-template class DGStrong <PHILIP_DIM, 4, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
-template class DGStrong <PHILIP_DIM, 5, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
-template class DGStrong <PHILIP_DIM, 6, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+template class DGStrong <PHILIP_DIM, PHILIP_SPECIES, 1, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+template class DGStrong <PHILIP_DIM, PHILIP_SPECIES, 2, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+template class DGStrong <PHILIP_DIM, PHILIP_SPECIES, 3, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+template class DGStrong <PHILIP_DIM, PHILIP_SPECIES, 4, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+template class DGStrong <PHILIP_DIM, PHILIP_SPECIES, 5, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+template class DGStrong <PHILIP_DIM, PHILIP_SPECIES, 6, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
 #endif
     
 #define POSSIBLE_NSTATE (1)(2)(3)(4)(5)(6)
 
 // Define a macro to instantiate MyTemplate for a specific index
 #define INSTANTIATE_DISTRIBUTED(r, data, index) \
-    template void DGStrong <PHILIP_DIM, index, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>::assemble_face_term_auxiliary_equation<double>(const unsigned int iface, const unsigned int neighbor_iface, const dealii::types::global_dof_index current_cell_index, const dealii::types::global_dof_index neighbor_cell_index, const std::array<std::vector<double>,index> &soln_coeff_int, const std::array<std::vector<double>,index> &soln_coeff_ext, const unsigned int poly_degree_int,const unsigned int poly_degree_ext, OPERATOR::basis_functions<PHILIP_DIM,2*PHILIP_DIM> &soln_basis_int,OPERATOR::basis_functions<PHILIP_DIM,2*PHILIP_DIM> &soln_basis_ext, OPERATOR::metric_operators<double,PHILIP_DIM,2*PHILIP_DIM> &metric_oper_int, const Physics::PhysicsBase<PHILIP_DIM, index, double> &pde_physics, const NumericalFlux::NumericalFluxDissipative<PHILIP_DIM, index, double> &diss_num_flux, dealii::Tensor<1,PHILIP_DIM,std::vector<double>> &local_auxiliary_RHS_int, dealii::Tensor<1,PHILIP_DIM,std::vector<double>> &local_auxiliary_RHS_ext);\
-    template void DGStrong <PHILIP_DIM, index, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>::assemble_face_term_auxiliary_equation<codi_JacobianComputationType>(const unsigned int iface, const unsigned int neighbor_iface, const dealii::types::global_dof_index current_cell_index, const dealii::types::global_dof_index neighbor_cell_index, const std::array<std::vector<codi_JacobianComputationType>,index> &soln_coeff_int, const std::array<std::vector<codi_JacobianComputationType>,index> &soln_coeff_ext, const unsigned int poly_degree_int,const unsigned int poly_degree_ext, OPERATOR::basis_functions<PHILIP_DIM,2*PHILIP_DIM> &soln_basis_int,OPERATOR::basis_functions<PHILIP_DIM,2*PHILIP_DIM> &soln_basis_ext, OPERATOR::metric_operators<codi_JacobianComputationType,PHILIP_DIM,2*PHILIP_DIM> &metric_oper_int, const Physics::PhysicsBase<PHILIP_DIM, index, codi_JacobianComputationType> &pde_physics, const NumericalFlux::NumericalFluxDissipative<PHILIP_DIM, index, codi_JacobianComputationType> &diss_num_flux, dealii::Tensor<1,PHILIP_DIM,std::vector<codi_JacobianComputationType>> &local_auxiliary_RHS_int, dealii::Tensor<1,PHILIP_DIM,std::vector<codi_JacobianComputationType>> &local_auxiliary_RHS_ext);\
-    template void DGStrong <PHILIP_DIM, index, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>::assemble_face_term_auxiliary_equation<codi_HessianComputationType>(const unsigned int iface, const unsigned int neighbor_iface, const dealii::types::global_dof_index current_cell_index, const dealii::types::global_dof_index neighbor_cell_index, const std::array<std::vector<codi_HessianComputationType>,index> &soln_coeff_int, const std::array<std::vector<codi_HessianComputationType>,index> &soln_coeff_ext, const unsigned int poly_degree_int,const unsigned int poly_degree_ext, OPERATOR::basis_functions<PHILIP_DIM,2*PHILIP_DIM> &soln_basis_int,OPERATOR::basis_functions<PHILIP_DIM,2*PHILIP_DIM> &soln_basis_ext, OPERATOR::metric_operators<codi_HessianComputationType,PHILIP_DIM,2*PHILIP_DIM> &metric_oper_int, const Physics::PhysicsBase<PHILIP_DIM, index, codi_HessianComputationType> &pde_physics, const NumericalFlux::NumericalFluxDissipative<PHILIP_DIM, index, codi_HessianComputationType> &diss_num_flux, dealii::Tensor<1,PHILIP_DIM,std::vector<codi_HessianComputationType>> &local_auxiliary_RHS_int, dealii::Tensor<1,PHILIP_DIM,std::vector<codi_HessianComputationType>> &local_auxiliary_RHS_ext);
+    template void DGStrong <PHILIP_DIM, PHILIP_SPECIES, index, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>::assemble_face_term_auxiliary_equation<double>(const unsigned int iface, const unsigned int neighbor_iface, const dealii::types::global_dof_index current_cell_index, const dealii::types::global_dof_index neighbor_cell_index, const std::array<std::vector<double>,index> &soln_coeff_int, const std::array<std::vector<double>,index> &soln_coeff_ext, const unsigned int poly_degree_int,const unsigned int poly_degree_ext, OPERATOR::basis_functions<PHILIP_DIM,2*PHILIP_DIM> &soln_basis_int,OPERATOR::basis_functions<PHILIP_DIM,2*PHILIP_DIM> &soln_basis_ext, OPERATOR::metric_operators<double,PHILIP_DIM,2*PHILIP_DIM> &metric_oper_int, const Physics::PhysicsBase<PHILIP_DIM, PHILIP_SPECIES, index, double> &pde_physics, const NumericalFlux::NumericalFluxDissipative<PHILIP_DIM, PHILIP_SPECIES, index, double> &diss_num_flux, dealii::Tensor<1,PHILIP_DIM,std::vector<double>> &local_auxiliary_RHS_int, dealii::Tensor<1,PHILIP_DIM,std::vector<double>> &local_auxiliary_RHS_ext);\
+    template void DGStrong <PHILIP_DIM, PHILIP_SPECIES, index, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>::assemble_face_term_auxiliary_equation<codi_JacobianComputationType>(const unsigned int iface, const unsigned int neighbor_iface, const dealii::types::global_dof_index current_cell_index, const dealii::types::global_dof_index neighbor_cell_index, const std::array<std::vector<codi_JacobianComputationType>,index> &soln_coeff_int, const std::array<std::vector<codi_JacobianComputationType>,index> &soln_coeff_ext, const unsigned int poly_degree_int,const unsigned int poly_degree_ext, OPERATOR::basis_functions<PHILIP_DIM,2*PHILIP_DIM> &soln_basis_int,OPERATOR::basis_functions<PHILIP_DIM,2*PHILIP_DIM> &soln_basis_ext, OPERATOR::metric_operators<codi_JacobianComputationType,PHILIP_DIM,2*PHILIP_DIM> &metric_oper_int, const Physics::PhysicsBase<PHILIP_DIM, PHILIP_SPECIES, index, codi_JacobianComputationType> &pde_physics, const NumericalFlux::NumericalFluxDissipative<PHILIP_DIM, PHILIP_SPECIES, index, codi_JacobianComputationType> &diss_num_flux, dealii::Tensor<1,PHILIP_DIM,std::vector<codi_JacobianComputationType>> &local_auxiliary_RHS_int, dealii::Tensor<1,PHILIP_DIM,std::vector<codi_JacobianComputationType>> &local_auxiliary_RHS_ext);\
+    template void DGStrong <PHILIP_DIM, PHILIP_SPECIES, index, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>::assemble_face_term_auxiliary_equation<codi_HessianComputationType>(const unsigned int iface, const unsigned int neighbor_iface, const dealii::types::global_dof_index current_cell_index, const dealii::types::global_dof_index neighbor_cell_index, const std::array<std::vector<codi_HessianComputationType>,index> &soln_coeff_int, const std::array<std::vector<codi_HessianComputationType>,index> &soln_coeff_ext, const unsigned int poly_degree_int,const unsigned int poly_degree_ext, OPERATOR::basis_functions<PHILIP_DIM,2*PHILIP_DIM> &soln_basis_int,OPERATOR::basis_functions<PHILIP_DIM,2*PHILIP_DIM> &soln_basis_ext, OPERATOR::metric_operators<codi_HessianComputationType,PHILIP_DIM,2*PHILIP_DIM> &metric_oper_int, const Physics::PhysicsBase<PHILIP_DIM, PHILIP_SPECIES, index, codi_HessianComputationType> &pde_physics, const NumericalFlux::NumericalFluxDissipative<PHILIP_DIM, PHILIP_SPECIES, index, codi_HessianComputationType> &diss_num_flux, dealii::Tensor<1,PHILIP_DIM,std::vector<codi_HessianComputationType>> &local_auxiliary_RHS_int, dealii::Tensor<1,PHILIP_DIM,std::vector<codi_HessianComputationType>> &local_auxiliary_RHS_ext);
 
 
 #define INSTANTIATE_SHARED(r, data, index) \
-    template void DGStrong <PHILIP_DIM, index, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>::assemble_face_term_auxiliary_equation<double>(const unsigned int iface, const unsigned int neighbor_iface, const dealii::types::global_dof_index current_cell_index, const dealii::types::global_dof_index neighbor_cell_index, const std::array<std::vector<double>,index> &soln_coeff_int, const std::array<std::vector<double>,index> &soln_coeff_ext, const unsigned int poly_degree_int,const unsigned int poly_degree_ext, OPERATOR::basis_functions<PHILIP_DIM,2*PHILIP_DIM> &soln_basis_int,OPERATOR::basis_functions<PHILIP_DIM,2*PHILIP_DIM> &soln_basis_ext, OPERATOR::metric_operators<double,PHILIP_DIM,2*PHILIP_DIM> &metric_oper_int, const Physics::PhysicsBase<PHILIP_DIM, index, double> &pde_physics, const NumericalFlux::NumericalFluxDissipative<PHILIP_DIM, index, double> &diss_num_flux, dealii::Tensor<1,PHILIP_DIM,std::vector<double>> &local_auxiliary_RHS_int, dealii::Tensor<1,PHILIP_DIM,std::vector<double>> &local_auxiliary_RHS_ext);\
-    template void DGStrong <PHILIP_DIM, index, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>::assemble_face_term_auxiliary_equation<codi_JacobianComputationType>(const unsigned int iface, const unsigned int neighbor_iface, const dealii::types::global_dof_index current_cell_index, const dealii::types::global_dof_index neighbor_cell_index, const std::array<std::vector<codi_JacobianComputationType>,index> &soln_coeff_int, const std::array<std::vector<codi_JacobianComputationType>,index> &soln_coeff_ext, const unsigned int poly_degree_int,const unsigned int poly_degree_ext, OPERATOR::basis_functions<PHILIP_DIM,2*PHILIP_DIM> &soln_basis_int,OPERATOR::basis_functions<PHILIP_DIM,2*PHILIP_DIM> &soln_basis_ext, OPERATOR::metric_operators<codi_JacobianComputationType,PHILIP_DIM,2*PHILIP_DIM> &metric_oper_int, const Physics::PhysicsBase<PHILIP_DIM, index, codi_JacobianComputationType> &pde_physics, const NumericalFlux::NumericalFluxDissipative<PHILIP_DIM, index, codi_JacobianComputationType> &diss_num_flux, dealii::Tensor<1,PHILIP_DIM,std::vector<codi_JacobianComputationType>> &local_auxiliary_RHS_int, dealii::Tensor<1,PHILIP_DIM,std::vector<codi_JacobianComputationType>> &local_auxiliary_RHS_ext);\
-    template void DGStrong <PHILIP_DIM, index, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>::assemble_face_term_auxiliary_equation<codi_HessianComputationType>(const unsigned int iface, const unsigned int neighbor_iface, const dealii::types::global_dof_index current_cell_index, const dealii::types::global_dof_index neighbor_cell_index, const std::array<std::vector<codi_HessianComputationType>,index> &soln_coeff_int, const std::array<std::vector<codi_HessianComputationType>,index> &soln_coeff_ext, const unsigned int poly_degree_int,const unsigned int poly_degree_ext, OPERATOR::basis_functions<PHILIP_DIM,2*PHILIP_DIM> &soln_basis_int,OPERATOR::basis_functions<PHILIP_DIM,2*PHILIP_DIM> &soln_basis_ext, OPERATOR::metric_operators<codi_HessianComputationType,PHILIP_DIM,2*PHILIP_DIM> &metric_oper_int, const Physics::PhysicsBase<PHILIP_DIM, index, codi_HessianComputationType> &pde_physics, const NumericalFlux::NumericalFluxDissipative<PHILIP_DIM, index, codi_HessianComputationType> &diss_num_flux, dealii::Tensor<1,PHILIP_DIM,std::vector<codi_HessianComputationType>> &local_auxiliary_RHS_int, dealii::Tensor<1,PHILIP_DIM,std::vector<codi_HessianComputationType>> &local_auxiliary_RHS_ext);
+    template void DGStrong <PHILIP_DIM, PHILIP_SPECIES, index, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>::assemble_face_term_auxiliary_equation<double>(const unsigned int iface, const unsigned int neighbor_iface, const dealii::types::global_dof_index current_cell_index, const dealii::types::global_dof_index neighbor_cell_index, const std::array<std::vector<double>,index> &soln_coeff_int, const std::array<std::vector<double>,index> &soln_coeff_ext, const unsigned int poly_degree_int,const unsigned int poly_degree_ext, OPERATOR::basis_functions<PHILIP_DIM,2*PHILIP_DIM> &soln_basis_int,OPERATOR::basis_functions<PHILIP_DIM,2*PHILIP_DIM> &soln_basis_ext, OPERATOR::metric_operators<double,PHILIP_DIM,2*PHILIP_DIM> &metric_oper_int, const Physics::PhysicsBase<PHILIP_DIM, PHILIP_SPECIES, index, double> &pde_physics, const NumericalFlux::NumericalFluxDissipative<PHILIP_DIM, PHILIP_SPECIES, index, double> &diss_num_flux, dealii::Tensor<1,PHILIP_DIM,std::vector<double>> &local_auxiliary_RHS_int, dealii::Tensor<1,PHILIP_DIM,std::vector<double>> &local_auxiliary_RHS_ext);\
+    template void DGStrong <PHILIP_DIM, PHILIP_SPECIES, index, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>::assemble_face_term_auxiliary_equation<codi_JacobianComputationType>(const unsigned int iface, const unsigned int neighbor_iface, const dealii::types::global_dof_index current_cell_index, const dealii::types::global_dof_index neighbor_cell_index, const std::array<std::vector<codi_JacobianComputationType>,index> &soln_coeff_int, const std::array<std::vector<codi_JacobianComputationType>,index> &soln_coeff_ext, const unsigned int poly_degree_int,const unsigned int poly_degree_ext, OPERATOR::basis_functions<PHILIP_DIM,2*PHILIP_DIM> &soln_basis_int,OPERATOR::basis_functions<PHILIP_DIM,2*PHILIP_DIM> &soln_basis_ext, OPERATOR::metric_operators<codi_JacobianComputationType,PHILIP_DIM,2*PHILIP_DIM> &metric_oper_int, const Physics::PhysicsBase<PHILIP_DIM, PHILIP_SPECIES, index, codi_JacobianComputationType> &pde_physics, const NumericalFlux::NumericalFluxDissipative<PHILIP_DIM, PHILIP_SPECIES, index, codi_JacobianComputationType> &diss_num_flux, dealii::Tensor<1,PHILIP_DIM,std::vector<codi_JacobianComputationType>> &local_auxiliary_RHS_int, dealii::Tensor<1,PHILIP_DIM,std::vector<codi_JacobianComputationType>> &local_auxiliary_RHS_ext);\
+    template void DGStrong <PHILIP_DIM, PHILIP_SPECIES, index, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>::assemble_face_term_auxiliary_equation<codi_HessianComputationType>(const unsigned int iface, const unsigned int neighbor_iface, const dealii::types::global_dof_index current_cell_index, const dealii::types::global_dof_index neighbor_cell_index, const std::array<std::vector<codi_HessianComputationType>,index> &soln_coeff_int, const std::array<std::vector<codi_HessianComputationType>,index> &soln_coeff_ext, const unsigned int poly_degree_int,const unsigned int poly_degree_ext, OPERATOR::basis_functions<PHILIP_DIM,2*PHILIP_DIM> &soln_basis_int,OPERATOR::basis_functions<PHILIP_DIM,2*PHILIP_DIM> &soln_basis_ext, OPERATOR::metric_operators<codi_HessianComputationType,PHILIP_DIM,2*PHILIP_DIM> &metric_oper_int, const Physics::PhysicsBase<PHILIP_DIM, PHILIP_SPECIES, index, codi_HessianComputationType> &pde_physics, const NumericalFlux::NumericalFluxDissipative<PHILIP_DIM, PHILIP_SPECIES, index, codi_HessianComputationType> &diss_num_flux, dealii::Tensor<1,PHILIP_DIM,std::vector<codi_HessianComputationType>> &local_auxiliary_RHS_int, dealii::Tensor<1,PHILIP_DIM,std::vector<codi_HessianComputationType>> &local_auxiliary_RHS_ext);
 
 
 #define INSTANTIATE_TRIA(r, data, index) \
-    template void DGStrong <PHILIP_DIM, index, double, dealii::Triangulation<PHILIP_DIM>>::assemble_face_term_auxiliary_equation<double>(const unsigned int iface, const unsigned int neighbor_iface, const dealii::types::global_dof_index current_cell_index, const dealii::types::global_dof_index neighbor_cell_index, const std::array<std::vector<double>,index> &soln_coeff_int, const std::array<std::vector<double>,index> &soln_coeff_ext, const unsigned int poly_degree_int,const unsigned int poly_degree_ext, OPERATOR::basis_functions<PHILIP_DIM,2*PHILIP_DIM> &soln_basis_int,OPERATOR::basis_functions<PHILIP_DIM,2*PHILIP_DIM> &soln_basis_ext, OPERATOR::metric_operators<double,PHILIP_DIM,2*PHILIP_DIM> &metric_oper_int, const Physics::PhysicsBase<PHILIP_DIM, index, double> &pde_physics, const NumericalFlux::NumericalFluxDissipative<PHILIP_DIM, index, double> &diss_num_flux, dealii::Tensor<1,PHILIP_DIM,std::vector<double>> &local_auxiliary_RHS_int, dealii::Tensor<1,PHILIP_DIM,std::vector<double>> &local_auxiliary_RHS_ext);\
-    template void DGStrong <PHILIP_DIM, index, double, dealii::Triangulation<PHILIP_DIM>>::assemble_face_term_auxiliary_equation<codi_JacobianComputationType>(const unsigned int iface, const unsigned int neighbor_iface, const dealii::types::global_dof_index current_cell_index, const dealii::types::global_dof_index neighbor_cell_index, const std::array<std::vector<codi_JacobianComputationType>,index> &soln_coeff_int, const std::array<std::vector<codi_JacobianComputationType>,index> &soln_coeff_ext, const unsigned int poly_degree_int,const unsigned int poly_degree_ext, OPERATOR::basis_functions<PHILIP_DIM,2*PHILIP_DIM> &soln_basis_int,OPERATOR::basis_functions<PHILIP_DIM,2*PHILIP_DIM> &soln_basis_ext, OPERATOR::metric_operators<codi_JacobianComputationType,PHILIP_DIM,2*PHILIP_DIM> &metric_oper_int, const Physics::PhysicsBase<PHILIP_DIM, index, codi_JacobianComputationType> &pde_physics, const NumericalFlux::NumericalFluxDissipative<PHILIP_DIM, index, codi_JacobianComputationType> &diss_num_flux, dealii::Tensor<1,PHILIP_DIM,std::vector<codi_JacobianComputationType>> &local_auxiliary_RHS_int, dealii::Tensor<1,PHILIP_DIM,std::vector<codi_JacobianComputationType>> &local_auxiliary_RHS_ext);\
-    template void DGStrong <PHILIP_DIM, index, double, dealii::Triangulation<PHILIP_DIM>>::assemble_face_term_auxiliary_equation<codi_HessianComputationType>(const unsigned int iface, const unsigned int neighbor_iface, const dealii::types::global_dof_index current_cell_index, const dealii::types::global_dof_index neighbor_cell_index, const std::array<std::vector<codi_HessianComputationType>,index> &soln_coeff_int, const std::array<std::vector<codi_HessianComputationType>,index> &soln_coeff_ext, const unsigned int poly_degree_int,const unsigned int poly_degree_ext, OPERATOR::basis_functions<PHILIP_DIM,2*PHILIP_DIM> &soln_basis_int,OPERATOR::basis_functions<PHILIP_DIM,2*PHILIP_DIM> &soln_basis_ext, OPERATOR::metric_operators<codi_HessianComputationType,PHILIP_DIM,2*PHILIP_DIM> &metric_oper_int, const Physics::PhysicsBase<PHILIP_DIM, index, codi_HessianComputationType> &pde_physics, const NumericalFlux::NumericalFluxDissipative<PHILIP_DIM, index, codi_HessianComputationType> &diss_num_flux, dealii::Tensor<1,PHILIP_DIM,std::vector<codi_HessianComputationType>> &local_auxiliary_RHS_int, dealii::Tensor<1,PHILIP_DIM,std::vector<codi_HessianComputationType>> &local_auxiliary_RHS_ext);    
+    template void DGStrong <PHILIP_DIM, PHILIP_SPECIES, index, double, dealii::Triangulation<PHILIP_DIM>>::assemble_face_term_auxiliary_equation<double>(const unsigned int iface, const unsigned int neighbor_iface, const dealii::types::global_dof_index current_cell_index, const dealii::types::global_dof_index neighbor_cell_index, const std::array<std::vector<double>,index> &soln_coeff_int, const std::array<std::vector<double>,index> &soln_coeff_ext, const unsigned int poly_degree_int,const unsigned int poly_degree_ext, OPERATOR::basis_functions<PHILIP_DIM,2*PHILIP_DIM> &soln_basis_int,OPERATOR::basis_functions<PHILIP_DIM,2*PHILIP_DIM> &soln_basis_ext, OPERATOR::metric_operators<double,PHILIP_DIM,2*PHILIP_DIM> &metric_oper_int, const Physics::PhysicsBase<PHILIP_DIM, PHILIP_SPECIES, index, double> &pde_physics, const NumericalFlux::NumericalFluxDissipative<PHILIP_DIM, PHILIP_SPECIES, index, double> &diss_num_flux, dealii::Tensor<1,PHILIP_DIM,std::vector<double>> &local_auxiliary_RHS_int, dealii::Tensor<1,PHILIP_DIM,std::vector<double>> &local_auxiliary_RHS_ext);\
+    template void DGStrong <PHILIP_DIM, PHILIP_SPECIES, index, double, dealii::Triangulation<PHILIP_DIM>>::assemble_face_term_auxiliary_equation<codi_JacobianComputationType>(const unsigned int iface, const unsigned int neighbor_iface, const dealii::types::global_dof_index current_cell_index, const dealii::types::global_dof_index neighbor_cell_index, const std::array<std::vector<codi_JacobianComputationType>,index> &soln_coeff_int, const std::array<std::vector<codi_JacobianComputationType>,index> &soln_coeff_ext, const unsigned int poly_degree_int,const unsigned int poly_degree_ext, OPERATOR::basis_functions<PHILIP_DIM,2*PHILIP_DIM> &soln_basis_int,OPERATOR::basis_functions<PHILIP_DIM,2*PHILIP_DIM> &soln_basis_ext, OPERATOR::metric_operators<codi_JacobianComputationType,PHILIP_DIM,2*PHILIP_DIM> &metric_oper_int, const Physics::PhysicsBase<PHILIP_DIM, PHILIP_SPECIES, index, codi_JacobianComputationType> &pde_physics, const NumericalFlux::NumericalFluxDissipative<PHILIP_DIM, PHILIP_SPECIES, index, codi_JacobianComputationType> &diss_num_flux, dealii::Tensor<1,PHILIP_DIM,std::vector<codi_JacobianComputationType>> &local_auxiliary_RHS_int, dealii::Tensor<1,PHILIP_DIM,std::vector<codi_JacobianComputationType>> &local_auxiliary_RHS_ext);\
+    template void DGStrong <PHILIP_DIM, PHILIP_SPECIES, index, double, dealii::Triangulation<PHILIP_DIM>>::assemble_face_term_auxiliary_equation<codi_HessianComputationType>(const unsigned int iface, const unsigned int neighbor_iface, const dealii::types::global_dof_index current_cell_index, const dealii::types::global_dof_index neighbor_cell_index, const std::array<std::vector<codi_HessianComputationType>,index> &soln_coeff_int, const std::array<std::vector<codi_HessianComputationType>,index> &soln_coeff_ext, const unsigned int poly_degree_int,const unsigned int poly_degree_ext, OPERATOR::basis_functions<PHILIP_DIM,2*PHILIP_DIM> &soln_basis_int,OPERATOR::basis_functions<PHILIP_DIM,2*PHILIP_DIM> &soln_basis_ext, OPERATOR::metric_operators<codi_HessianComputationType,PHILIP_DIM,2*PHILIP_DIM> &metric_oper_int, const Physics::PhysicsBase<PHILIP_DIM, PHILIP_SPECIES, index, codi_HessianComputationType> &pde_physics, const NumericalFlux::NumericalFluxDissipative<PHILIP_DIM, PHILIP_SPECIES, index, codi_HessianComputationType> &diss_num_flux, dealii::Tensor<1,PHILIP_DIM,std::vector<codi_HessianComputationType>> &local_auxiliary_RHS_int, dealii::Tensor<1,PHILIP_DIM,std::vector<codi_HessianComputationType>> &local_auxiliary_RHS_ext);    
 
 
 #if PHILIP_DIM!=1
@@ -3575,4 +3576,15 @@ BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_DISTRIBUTED, _, POSSIBLE_NSTATE)
 BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_SHARED, _, POSSIBLE_NSTATE)
 
 BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_TRIA, _, POSSIBLE_NSTATE)
+#else
+    #define NSTATE PHILIP_DIM+PHILIP_SPECIES+1
+    #if PHILIP_DIM != 1
+        template class DGStrong <PHILIP_DIM, PHILIP_SPECIES, NSTATE, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+        template void DGStrong <PHILIP_DIM, PHILIP_SPECIES, NSTATE, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>::assemble_face_term_auxiliary_equation<double>(const unsigned int iface, const unsigned int neighbor_iface, const dealii::types::global_dof_index current_cell_index, const dealii::types::global_dof_index neighbor_cell_index, const std::array<std::vector<double>,NSTATE> &soln_coeff_int, const std::array<std::vector<double>,NSTATE> &soln_coeff_ext, const unsigned int poly_degree_int,const unsigned int poly_degree_ext, OPERATOR::basis_functions<PHILIP_DIM,2*PHILIP_DIM> &soln_basis_int,OPERATOR::basis_functions<PHILIP_DIM,2*PHILIP_DIM> &soln_basis_ext, OPERATOR::metric_operators<double,PHILIP_DIM,2*PHILIP_DIM> &metric_oper_int, const Physics::PhysicsBase<PHILIP_DIM, PHILIP_SPECIES, NSTATE, double> &pde_physics, const NumericalFlux::NumericalFluxDissipative<PHILIP_DIM, PHILIP_SPECIES, NSTATE, double> &diss_num_flux, dealii::Tensor<1,PHILIP_DIM,std::vector<double>> &local_auxiliary_RHS_int, dealii::Tensor<1,PHILIP_DIM,std::vector<double>> &local_auxiliary_RHS_ext);
+    #endif
+    template class DGStrong <PHILIP_DIM, PHILIP_SPECIES, NSTATE, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+    template void DGStrong <PHILIP_DIM, PHILIP_SPECIES, NSTATE, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>::assemble_face_term_auxiliary_equation<double>(const unsigned int iface, const unsigned int neighbor_iface, const dealii::types::global_dof_index current_cell_index, const dealii::types::global_dof_index neighbor_cell_index, const std::array<std::vector<double>,NSTATE> &soln_coeff_int, const std::array<std::vector<double>,NSTATE> &soln_coeff_ext, const unsigned int poly_degree_int,const unsigned int poly_degree_ext, OPERATOR::basis_functions<PHILIP_DIM,2*PHILIP_DIM> &soln_basis_int,OPERATOR::basis_functions<PHILIP_DIM,2*PHILIP_DIM> &soln_basis_ext, OPERATOR::metric_operators<double,PHILIP_DIM,2*PHILIP_DIM> &metric_oper_int, const Physics::PhysicsBase<PHILIP_DIM, PHILIP_SPECIES, NSTATE, double> &pde_physics, const NumericalFlux::NumericalFluxDissipative<PHILIP_DIM, PHILIP_SPECIES, NSTATE, double> &diss_num_flux, dealii::Tensor<1,PHILIP_DIM,std::vector<double>> &local_auxiliary_RHS_int, dealii::Tensor<1,PHILIP_DIM,std::vector<double>> &local_auxiliary_RHS_ext);
+    template class DGStrong <PHILIP_DIM, PHILIP_SPECIES, NSTATE, double, dealii::Triangulation<PHILIP_DIM>>;
+    template void DGStrong <PHILIP_DIM, PHILIP_SPECIES, NSTATE, double, dealii::Triangulation<PHILIP_DIM>>::assemble_face_term_auxiliary_equation<double>(const unsigned int iface, const unsigned int neighbor_iface, const dealii::types::global_dof_index current_cell_index, const dealii::types::global_dof_index neighbor_cell_index, const std::array<std::vector<double>,NSTATE> &soln_coeff_int, const std::array<std::vector<double>,NSTATE> &soln_coeff_ext, const unsigned int poly_degree_int,const unsigned int poly_degree_ext, OPERATOR::basis_functions<PHILIP_DIM,2*PHILIP_DIM> &soln_basis_int,OPERATOR::basis_functions<PHILIP_DIM,2*PHILIP_DIM> &soln_basis_ext, OPERATOR::metric_operators<double,PHILIP_DIM,2*PHILIP_DIM> &metric_oper_int, const Physics::PhysicsBase<PHILIP_DIM, PHILIP_SPECIES, NSTATE, double> &pde_physics, const NumericalFlux::NumericalFluxDissipative<PHILIP_DIM, PHILIP_SPECIES, NSTATE, double> &diss_num_flux, dealii::Tensor<1,PHILIP_DIM,std::vector<double>> &local_auxiliary_RHS_int, dealii::Tensor<1,PHILIP_DIM,std::vector<double>> &local_auxiliary_RHS_ext);
+#endif
 } // PHiLiP namespace

@@ -5,17 +5,17 @@
 namespace PHiLiP {
 namespace Physics {
 
-template <int dim, int nstate, typename real>
-Burgers<dim,nstate,real>::Burgers(
+template <int dim, int nspecies, int nstate, typename real>
+Burgers<dim,nspecies,nstate,real>::Burgers(
     const Parameters::AllParameters *const                    parameters_input,
     const double                                              diffusion_coefficient,
     const bool                                                convection, 
     const bool                                                diffusion,
     const dealii::Tensor<2,3,double>                          input_diffusion_tensor,
-    std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function,
+    std::shared_ptr< ManufacturedSolutionFunction<dim,nspecies,real>  > manufactured_solution_function,
     const Parameters::AllParameters::TestType                 parameters_test,
     const bool                                                has_nonzero_physical_source)
-    : PhysicsBase<dim,nstate,real>(parameters_input, diffusion, has_nonzero_physical_source, input_diffusion_tensor, manufactured_solution_function)
+    : PhysicsBase<dim,nspecies,nstate,real>(parameters_input, diffusion, has_nonzero_physical_source, input_diffusion_tensor, manufactured_solution_function)
     , diffusion_scaling_coeff(diffusion_coefficient)
     , hasConvection(convection)
     , hasDiffusion(diffusion)
@@ -24,8 +24,8 @@ Burgers<dim,nstate,real>::Burgers(
     static_assert(nstate==dim, "Physics::Burgers() should be created with nstate==dim");
 }
 
-template <int dim, int nstate, typename real>
-void Burgers<dim,nstate,real>
+template <int dim, int nspecies, int nstate, typename real>
+void Burgers<dim,nspecies,nstate,real>
 ::boundary_face_values (
    const int /*boundary_type*/,
    const dealii::Point<dim, real> &pos,
@@ -72,8 +72,8 @@ void Burgers<dim,nstate,real>
     }
 }
 
-template <int dim, int nstate, typename real>
-std::array<dealii::Tensor<1,dim,real>,nstate> Burgers<dim,nstate,real>
+template <int dim, int nspecies, int nstate, typename real>
+std::array<dealii::Tensor<1,dim,real>,nstate> Burgers<dim,nspecies,nstate,real>
 ::convective_flux (const std::array<real,nstate> &solution) const
 {
     std::array<dealii::Tensor<1,dim,real>,nstate> conv_flux;
@@ -85,8 +85,8 @@ std::array<dealii::Tensor<1,dim,real>,nstate> Burgers<dim,nstate,real>
     return conv_flux;
 }
 
-template <int dim, int nstate, typename real>
-std::array<dealii::Tensor<1,dim,real>,nstate> Burgers<dim,nstate,real>::convective_numerical_split_flux (
+template <int dim, int nspecies, int nstate, typename real>
+std::array<dealii::Tensor<1,dim,real>,nstate> Burgers<dim,nspecies,nstate,real>::convective_numerical_split_flux (
                 const std::array<real,nstate> &conservative_soln1,
                 const std::array<real,nstate> &conservative_soln2) const
 {
@@ -99,22 +99,22 @@ std::array<dealii::Tensor<1,dim,real>,nstate> Burgers<dim,nstate,real>::convecti
         return conv_flux;
 }
 
-template <int dim, int nstate, typename real>
-std::array<real,nstate> Burgers<dim,nstate,real>
+template <int dim, int nspecies, int nstate, typename real>
+std::array<real,nstate> Burgers<dim,nspecies,nstate,real>
 ::convert_conservative_to_primitive ( const std::array<real,nstate> &conservative_soln ) const
 {
     return conservative_soln;
 }
 
-template <int dim, int nstate, typename real>
-std::array<real,nstate> Burgers<dim,nstate,real>
+template <int dim, int nspecies, int nstate, typename real>
+std::array<real,nstate> Burgers<dim,nspecies,nstate,real>
 ::convert_primitive_to_conservative ( const std::array<real,nstate> &primitive_soln ) const
 {
     return primitive_soln;
 }
 
-template <int dim, int nstate, typename real>
-std::array<dealii::Tensor<1,dim,real>,nstate> Burgers<dim,nstate,real>
+template <int dim, int nspecies, int nstate, typename real>
+std::array<dealii::Tensor<1,dim,real>,nstate> Burgers<dim,nspecies,nstate,real>
 ::convert_primitive_gradient_to_conservative_gradient (
     const std::array<real,nstate> &/*primitive_soln*/,
     const std::array<dealii::Tensor<1,dim,real>,nstate> &primitive_soln_gradient) const
@@ -122,8 +122,8 @@ std::array<dealii::Tensor<1,dim,real>,nstate> Burgers<dim,nstate,real>
     return primitive_soln_gradient;
 }
 
-template <int dim, int nstate, typename real>
-std::array<dealii::Tensor<1,dim,real>,nstate> Burgers<dim,nstate,real>
+template <int dim, int nspecies, int nstate, typename real>
+std::array<dealii::Tensor<1,dim,real>,nstate> Burgers<dim,nspecies,nstate,real>
 ::convert_conservative_gradient_to_primitive_gradient (
     const std::array<real,nstate> &/*conservative_soln*/,
     const std::array<dealii::Tensor<1,dim,real>,nstate> &conservative_soln_gradient) const
@@ -131,24 +131,24 @@ std::array<dealii::Tensor<1,dim,real>,nstate> Burgers<dim,nstate,real>
     return conservative_soln_gradient;
 }
 
-template <int dim, int nstate, typename real>
-std::array<real,nstate> Burgers<dim, nstate, real>
+template <int dim, int nspecies, int nstate, typename real>
+std::array<real,nstate> Burgers<dim, nspecies, nstate, real>
 ::compute_entropy_variables (
     const std::array<real,nstate> &conservative_soln) const
 {
     return conservative_soln;
 }
 
-template <int dim, int nstate, typename real>
-std::array<real,nstate> Burgers<dim, nstate, real>
+template <int dim, int nspecies, int nstate, typename real>
+std::array<real,nstate> Burgers<dim, nspecies, nstate, real>
 ::compute_conservative_variables_from_entropy_variables (
     const std::array<real,nstate> &entropy_var) const
 {
     return entropy_var;
 }
 
-template <int dim, int nstate, typename real>
-real Burgers<dim,nstate,real>
+template <int dim, int nspecies, int nstate, typename real>
+real Burgers<dim,nspecies,nstate,real>
 ::diffusion_coefficient () const
 {
     if(hasDiffusion) return this->diffusion_scaling_coeff;
@@ -156,8 +156,8 @@ real Burgers<dim,nstate,real>
     return zero;
 }
 
-template <int dim, int nstate, typename real>
-std::array<real,nstate> Burgers<dim,nstate,real>
+template <int dim, int nspecies, int nstate, typename real>
+std::array<real,nstate> Burgers<dim,nspecies,nstate,real>
 ::convective_eigenvalues (
     const std::array<real,nstate> &solution,
     const dealii::Tensor<1,dim,real> &normal) const
@@ -172,8 +172,8 @@ std::array<real,nstate> Burgers<dim,nstate,real>
     return eig;
 }
 
-template <int dim, int nstate, typename real>
-real Burgers<dim,nstate,real>
+template <int dim, int nspecies, int nstate, typename real>
+real Burgers<dim,nspecies,nstate,real>
 ::max_convective_eigenvalue (const std::array<real,nstate> &soln) const
 {
     real max_eig = 0;
@@ -186,15 +186,15 @@ real Burgers<dim,nstate,real>
     return max_eig;
 }
 
-template <int dim, int nstate, typename real>
-real Burgers<dim,nstate,real>
+template <int dim, int nspecies, int nstate, typename real>
+real Burgers<dim,nspecies,nstate,real>
 ::max_viscous_eigenvalue (const std::array<real,nstate> &/*conservative_soln*/) const
 {
     return 0.0;
 }
 
-template <int dim, int nstate, typename real>
-std::array<dealii::Tensor<1,dim,real>,nstate> Burgers<dim,nstate,real>
+template <int dim, int nspecies, int nstate, typename real>
+std::array<dealii::Tensor<1,dim,real>,nstate> Burgers<dim,nspecies,nstate,real>
 ::dissipative_flux (
     const std::array<real,nstate> &solution,
     const std::array<dealii::Tensor<1,dim,real>,nstate> &solution_gradient,
@@ -203,8 +203,8 @@ std::array<dealii::Tensor<1,dim,real>,nstate> Burgers<dim,nstate,real>
     return dissipative_flux(solution, solution_gradient);
 }
 
-template <int dim, int nstate, typename real>
-std::array<dealii::Tensor<1,dim,real>,nstate> Burgers<dim,nstate,real>
+template <int dim, int nspecies, int nstate, typename real>
+std::array<dealii::Tensor<1,dim,real>,nstate> Burgers<dim,nspecies,nstate,real>
 ::dissipative_flux (
     const std::array<real,nstate> &/*solution*/,
     const std::array<dealii::Tensor<1,dim,real>,nstate> &solution_gradient) const
@@ -222,8 +222,8 @@ std::array<dealii::Tensor<1,dim,real>,nstate> Burgers<dim,nstate,real>
     return diss_flux;
 }
 
-template <int dim, int nstate, typename real>
-std::array<real,nstate> Burgers<dim,nstate,real>
+template <int dim, int nspecies, int nstate, typename real>
+std::array<real,nstate> Burgers<dim,nspecies,nstate,real>
 ::source_term (
     const dealii::Point<dim,real> &pos,
     const std::array<real,nstate> &solution,
@@ -233,8 +233,8 @@ std::array<real,nstate> Burgers<dim,nstate,real>
     return source_term(pos,solution,current_time);
 }
 
-template <int dim, int nstate, typename real>
-std::array<real,nstate> Burgers<dim,nstate,real>
+template <int dim, int nspecies, int nstate, typename real>
+std::array<real,nstate> Burgers<dim,nspecies,nstate,real>
 ::source_term (
     const dealii::Point<dim,real> &pos,
     const std::array<real,nstate> &/*solution*/,
@@ -345,12 +345,13 @@ std::array<real,nstate> Burgers<dim,nstate,real>
     return source;
 }
 
-template class Burgers < PHILIP_DIM, PHILIP_DIM, double >;
-template class Burgers < PHILIP_DIM, PHILIP_DIM, FadType  >;
-template class Burgers < PHILIP_DIM, PHILIP_DIM, RadType  >;
-template class Burgers < PHILIP_DIM, PHILIP_DIM, FadFadType >;
-template class Burgers < PHILIP_DIM, PHILIP_DIM, RadFadType >;
-
+#if PHILIP_SPECIES==1
+template class Burgers < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM, double >;
+template class Burgers < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM, FadType  >;
+template class Burgers < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM, RadType  >;
+template class Burgers < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM, FadFadType >;
+template class Burgers < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM, RadFadType >;
+#endif
 } // Physics namespace
 } // PHiLiP namespace
 

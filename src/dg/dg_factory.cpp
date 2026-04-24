@@ -106,6 +106,9 @@ DGFactory<dim,nspecies,real,MeshType>
             }
 #endif
         }
+        else if (pde_type == PDE_enum::real_gas) {
+            return std::make_shared< DGStrong<dim,nspecies,dim+nspecies+1,real,MeshType> >(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input);
+        } 
     }
     std::cout << "Can't create DGBase in create_discontinuous_galerkin(). Invalid PDE type: " << pde_type << std::endl;
     return nullptr;

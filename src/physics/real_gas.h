@@ -202,6 +202,7 @@ public:
 
 protected:
     // Algorithm 11 (f_M11): Compute species specific heat at constant pressure from temperature
+    // These are computed using the NASA 9-Coefficient Polynomial Parameterization (see McBride et. al, 2002) 
     // Modified by Shruthi
     std::array<real,nspecies> compute_species_specific_Cp ( const real temperature ) const;
 
@@ -209,6 +210,7 @@ protected:
     std::array<real,nspecies>compute_species_specific_Cv ( const real temperature ) const;
 
     // Algorithm 13 (f_M13): Compute species specific enthalpy from temperature
+    // These are computed using the NASA 9-Coefficient Polynomial Parameterization (see McBride et. al, 2002) 
     // Modified by Shruthi
     std::array<real,nspecies> compute_species_specific_enthalpy ( const real temperature ) const;   
 
@@ -216,6 +218,7 @@ protected:
     std::array<real,nspecies> compute_species_specific_internal_energy ( const real temperature ) const;
 
     // Compute species entropy from temperature
+    // These are computed using the NASA 9-Coefficient Polynomial Parameterization (see McBride et. al, 2002) 
     std::array<real,nspecies> compute_species_entropy ( const real temperature ) const; 
 
     // Compute species Gibbs' energy from temperature and species density

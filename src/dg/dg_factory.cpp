@@ -57,6 +57,7 @@ DGFactory<dim,nspecies,real,MeshType>
 #endif
         }
         else if (pde_type == PDE_enum::real_gas) {
+        // nspecies > 1
             return std::make_shared< DGWeak<dim,nspecies,dim+nspecies+1,real,MeshType> >(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input);
         } 
     } else {

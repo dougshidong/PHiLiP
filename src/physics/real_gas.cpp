@@ -623,9 +623,10 @@ std::array<real,nspecies> RealGas<dim,nspecies,nstate,real>
     return e;
 }
 
+// Compute the Cv integral component of species entropy (ie. \int_{T_ref}^T c_v(\tau)/\tau d\tau) using NASA polynomials
 template <int dim, int nspecies, int nstate, typename real>
 std::array<real,nspecies> RealGas<dim, nspecies, nstate, real>
-::compute_species_entropy ( 
+::compute_species_entropy_cv_integral ( 
     const real temperature) const
 {
     real dimensional_temperature = compute_dimensional_temperature(temperature);
@@ -676,23 +677,38 @@ std::array<real,nspecies> RealGas<dim, nspecies, nstate, real>
         if (out_of_bounds_temp != -1.0)
             dimensional_temperature = out_of_bounds_temp;
         species_entropy[s] *= this->Rs[s];
+        species_entropy[s] -= this->Rs[s]*log(temperature);
     }
 
     return species_entropy;
 }
 
+// Compute species entropy by calculating integral and adding in density contribution (ie. R_k ln \rho_k)
+template <int dim, int nspecies, int nstate, typename real>
+std::array<real,nspecies> RealGas<dim, nspecies, nstate, real>
+::compute_species_entropy (
+    const std::array<real,nstate> &conservative_soln) const
+{
+    const real temperature = compute_temperature(conservative_soln);
+    const std::array<real,nspecies> species_densities = compute_species_densities(conservative_soln);
+
+    std::array<real,nspecies> species_entropy = compute_species_entropy_cv_integral(temperature);
+    for(int ispecies = 0; ispecies < nspecies; ispecies++) {
+        species_entropy[ispecies] -= this->Rs[ispecies]*log(temperature*species_densities[ispecies]*this->density_ref);
+    }
+
+    return species_entropy;
+}
+
+// Compute Gibbs' energy of species using species entropy and species Cp
 template <int dim, int nspecies, int nstate, typename real>
 std::array<real,nspecies> RealGas<dim, nspecies, nstate, real>
 ::compute_species_gibbs_energy (
     const std::array<real,nstate> &conservative_soln) const
 {
     const real temperature = compute_temperature(conservative_soln);
-    const std::array<real,nspecies> species_densities = compute_species_densities(conservative_soln);
 
-    std::array<real,nspecies> species_entropy = compute_species_entropy(temperature);
-    for(int ispecies = 0; ispecies < nspecies; ispecies++) {
-        species_entropy[ispecies] -= this->Rs[ispecies]*log(temperature*species_densities[ispecies]*this->density_ref);
-    }
+    std::array<real,nspecies> species_entropy = compute_species_entropy(conservative_soln);
     std::array<real,nspecies> species_Cp = compute_species_specific_Cp(temperature);
 
     std::array<real, nspecies> species_gibbs;
@@ -703,6 +719,7 @@ std::array<real,nspecies> RealGas<dim, nspecies, nstate, real>
     return species_gibbs;
 }
 
+// Compute the entropy variables from conservative solution
 template <int dim, int nspecies, int nstate, typename real>
 std::array<real,nstate> RealGas<dim, nspecies, nstate, real>
 ::compute_entropy_variables (
@@ -732,6 +749,7 @@ std::array<real,nstate> RealGas<dim, nspecies, nstate, real>
     return entropy_var;
 }
 
+// Map entropy variables back to conservative solution
 template <int dim, int nspecies, int nstate, typename real>
 std::array<real,nstate> RealGas<dim, nspecies, nstate, real>
 ::compute_conservative_variables_from_entropy_variables (
@@ -764,9 +782,9 @@ std::array<real,nstate> RealGas<dim, nspecies, nstate, real>
     const std::array<real,nspecies> Rs = compute_Rs(this->Ru);
     conservative_var[0] = 0.0;
     for(int ispecies = 0; ispecies < nspecies; ++ispecies) {
-        std::array<real,nspecies> entropy_nasa_data = compute_species_entropy(temperature);
+        std::array<real,nspecies> species_entropy_integral = compute_species_entropy_cv_integral(temperature);
 
-        species_density[ispecies] = (exp((entropy_nasa_data[ispecies] - species_entropy[ispecies])/(Rs[ispecies])))/(temperature*this->density_ref);
+        species_density[ispecies] = (exp((species_entropy_integral[ispecies] - species_entropy[ispecies])/(Rs[ispecies])))/(temperature*this->density_ref);
         conservative_var[0] += species_density[ispecies];
 
         if (dim + 2 + ispecies < nstate)

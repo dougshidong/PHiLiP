@@ -219,11 +219,14 @@ protected:
     // Algorithm 14 (f_M14): Compute species specific internal energy from temperature
     std::array<real,nspecies> compute_species_specific_internal_energy ( const real temperature ) const;
 
-    // Compute species entropy from temperature
+    // Compute Cv integral component of the species entropy equation
     // These are computed using the NASA 9-Coefficient Polynomial Parameterization (see McBride et. al, 2002) 
-    std::array<real,nspecies> compute_species_entropy ( const real temperature ) const; 
+    std::array<real,nspecies> compute_species_entropy_cv_integral ( const real temperature ) const; 
 
-    // Compute species Gibbs' energy from temperature and species density
+    // Compute species entropy from temperature and species density
+    std::array<real,nspecies> compute_species_entropy ( const std::array<real,nstate> &conservative_soln ) const;
+
+    // Compute species Gibbs' energy using species entropy and species Cp
     std::array<real,nspecies> compute_species_gibbs_energy ( const std::array<real,nstate> &conservative_soln ) const;
 public:
     // Algorithm 15 (f_M15): Compute temperature from conservative_soln

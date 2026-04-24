@@ -11,6 +11,9 @@ namespace PHiLiP {
 namespace Physics {
 
 /// RealGas equations. Derived from PhysicsBase
+/* Functions designated with "// Algorithm # (f_M#)" are detailed in Matsuyama's M.Sc. thesis (2025)
+   Algorithms that have "Modified by Shruthi" appended to it do not strictly follow the implementation in the thesis*/
+
 template <int dim, int nspecies, int nstate, typename real>
 class RealGas : public PhysicsBase <dim, nspecies, nstate, real>
 {
@@ -157,7 +160,6 @@ public:
         const std::array<real,nstate> &primitive_soln,
         const std::array<dealii::Tensor<1,dim,real>,nstate> &primitive_soln_gradient) const;
         
-// Details of the following algorithms are presented in Liki's Master's thesis.
 /* MAIN FUNCTIONS */
 protected:
     // Algorithm 1 (f_M1): Compute mixture density from conservative_soln

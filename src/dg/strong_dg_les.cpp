@@ -1,74 +1,40 @@
 #include <deal.II/base/tensor.h>
-
 #include <deal.II/fe/fe_values.h>
-
 #include <deal.II/dofs/dof_handler.h>
 #include <deal.II/dofs/dof_tools.h>
-
 #include <deal.II/dofs/dof_renumbering.h>
-
 #include <deal.II/dofs/dof_accessor.h>
-
 #include <deal.II/lac/vector.h>
-
 #include "ADTypes.hpp"
-
 #include <deal.II/fe/fe_dgq.h> // Used for flux interpolation
-
-// TO DO: review the above includes
 
 #include "strong_dg_les.hpp"
 
 namespace PHiLiP {
 
-template <int dim, int nstate, typename real, typename MeshType>
-DGStrongLES<dim,nstate,real,MeshType>::DGStrongLES(
+template <int dim, int nspecies, int nstate, typename real, typename MeshType>
+DGStrongLES<dim,nspecies,nstate,real,MeshType>::DGStrongLES(
     const Parameters::AllParameters *const parameters_input,
     const unsigned int degree,
     const unsigned int max_degree_input,
     const unsigned int grid_degree_input,
     const std::shared_ptr<Triangulation> triangulation_input)
-    : DGStrong<dim,nstate,real,MeshType>::DGStrong(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input)
-    // , do_compute_filtered_solution(this->all_parameters->physics_model_param.do_compute_filtered_solution)
-    // , apply_modal_high_pass_filter_on_filtered_solution(this->all_parameters->physics_model_param.apply_modal_high_pass_filter_on_filtered_solution)
-    // , poly_degree_max_large_scales(this->all_parameters->physics_model_param.poly_degree_max_large_scales)
+    : DGStrong<dim,nspecies,nstate,real,MeshType>::DGStrong(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input)
 { 
-#if PHILIP_DIM==3
-    // // TO DO: move this if statement logic to the DGFactory
-    // if(((pde_type==PDE_enum::physics_model || pde_type==PDE_enum::physics_model_filtered) && 
-    //     (model_type==Model_enum::large_eddy_simulation || model_type==Model_enum::navier_stokes_model))) 
-    // {
-        if constexpr (dim+2==nstate) {
-            this->pde_model_les_double = std::dynamic_pointer_cast<Physics::LargeEddySimulationBase<dim,dim+2,real>>(this->pde_model_double);
-        }
-    // }
-    // else if((pde_type==PDE_enum::physics_model  || pde_type==PDE_enum::physics_model_filtered) && 
-    //          (model_type!=Model_enum::large_eddy_simulation && model_type!=Model_enum::navier_stokes_model)) 
-    // {
-    //     std::cout << "Invalid convective numerical flux for physics_model and/or corresponding baseline_physics_type" << std::endl;
-    //     if(nstate!=(dim+2)) std::cout << "Error: Cannot create_euler_based_convective_numerical_flux() for nstate_baseline_physics != nstate." << std::endl;
-    //     std::abort();
-    // }
-#endif
-
-    // // TO DO: move this to the factory
-    // // Determine if the mean strain rate tensor must be computed
-    // using PDE_enum = Parameters::AllParameters::PartialDifferentialEquation;
-    // const PDE_enum pde_type = this->all_param.pde_type;
-    // if(pde_type == PDE_enum::physics_model  || pde_type == PDE_enum::physics_model_filtered) {
-        
-    // }
+    if constexpr (dim+2==nstate) {
+        this->pde_model_les_double = std::dynamic_pointer_cast<Physics::LargeEddySimulationBase<dim,nspecies,dim+2,real>>(this->pde_model_double);
+    }
 }
 
 // Destructor
-template <int dim, int nstate, typename real, typename MeshType>
-DGStrongLES<dim,nstate,real,MeshType>::~DGStrongLES()
+template <int dim, int nspecies, int nstate, typename real, typename MeshType>
+DGStrongLES<dim,nspecies,nstate,real,MeshType>::~DGStrongLES()
 {
     pcout << "Destructing DGStrongLES..." << std::endl;
 }
 
-template <int dim, int nstate, typename real, typename MeshType>
-void DGStrongLES<dim,nstate,real,MeshType>::allocate_model_variables()
+template <int dim, int nspecies, int nstate, typename real, typename MeshType>
+void DGStrongLES<dim,nspecies,nstate,real,MeshType>::allocate_model_variables()
 {
     // allocate all model variables for each ModelBase object
     // -- double
@@ -76,21 +42,23 @@ void DGStrongLES<dim,nstate,real,MeshType>::allocate_model_variables()
     this->pde_model_double->cellwise_volume.reinit(this->triangulation->n_active_cells(), this->mpi_communicator);
 }
 
-template <int dim, int nstate, typename real, typename MeshType>
-void DGStrongLES<dim,nstate,real,MeshType>::update_model_variables()
+template <int dim, int nspecies, int nstate, typename real, typename MeshType>
+void DGStrongLES<dim,nspecies,nstate,real,MeshType>::update_model_variables()
 {
     // allocate/reinit the model variables
     allocate_model_variables();
 
-    // TO DO: should only call this once if no hp-adaptation
+    /* NOTE: While not essential, the function update_cellwise_volume_and_poly_degree() 
+             could only be called once if no hp-adaptation
+    */
     update_cellwise_volume_and_poly_degree();
 
     // update the cellwise mean quantities
     update_cellwise_mean_quantities();
 }
 
-template <int dim, int nstate, typename real, typename MeshType>
-void DGStrongLES<dim,nstate,real,MeshType>::update_cellwise_volume_and_poly_degree()
+template <int dim, int nspecies, int nstate, typename real, typename MeshType>
+void DGStrongLES<dim,nspecies,nstate,real,MeshType>::update_cellwise_volume_and_poly_degree()
 {
     // get FEValues of volume
     const auto mapping = (*(this->high_order_grid->mapping_fe_field));
@@ -139,37 +107,33 @@ void DGStrongLES<dim,nstate,real,MeshType>::update_cellwise_volume_and_poly_degr
     this->pde_model_double->cellwise_volume.update_ghost_values();
 }
 
-template <int dim, int nstate, typename real, typename MeshType>
-void DGStrongLES<dim,nstate,real,MeshType>::update_cellwise_mean_quantities()
+template <int dim, int nspecies, int nstate, typename real, typename MeshType>
+void DGStrongLES<dim,nspecies,nstate,real,MeshType>::update_cellwise_mean_quantities()
 { 
     // do nothing
 }
 
-
-template <int dim, int nstate, typename real, typename MeshType>
-DGStrongLES_ShearImproved<dim,nstate,real,MeshType>::DGStrongLES_ShearImproved(
+template <int dim, int nspecies, int nstate, typename real, typename MeshType>
+DGStrongLES_ShearImproved<dim,nspecies,nstate,real,MeshType>::DGStrongLES_ShearImproved(
     const Parameters::AllParameters *const parameters_input,
     const unsigned int degree,
     const unsigned int max_degree_input,
     const unsigned int grid_degree_input,
     const std::shared_ptr<Triangulation> triangulation_input)
-    : DGStrongLES<dim,nstate,real,MeshType>::DGStrongLES(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input)
-    // , do_compute_filtered_solution(this->all_parameters->physics_model_param.do_compute_filtered_solution)
-    // , apply_modal_high_pass_filter_on_filtered_solution(this->all_parameters->physics_model_param.apply_modal_high_pass_filter_on_filtered_solution)
-    // , poly_degree_max_large_scales(this->all_parameters->physics_model_param.poly_degree_max_large_scales)
+    : DGStrongLES<dim,nspecies,nstate,real,MeshType>::DGStrongLES(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input)
 { 
     // do nothing
 }
 
 // Destructor
-template <int dim, int nstate, typename real, typename MeshType>
-DGStrongLES_ShearImproved<dim,nstate,real,MeshType>::~DGStrongLES_ShearImproved()
+template <int dim, int nspecies, int nstate, typename real, typename MeshType>
+DGStrongLES_ShearImproved<dim,nspecies,nstate,real,MeshType>::~DGStrongLES_ShearImproved()
 {
     pcout << "Destructing DGStrongLES_ShearImproved..." << std::endl;
 }
 
-template <int dim, int nstate, typename real, typename MeshType>
-void DGStrongLES_ShearImproved<dim,nstate,real,MeshType>::allocate_model_variables()
+template <int dim, int nspecies, int nstate, typename real, typename MeshType>
+void DGStrongLES_ShearImproved<dim,nspecies,nstate,real,MeshType>::allocate_model_variables()
 {
     // allocate all model variables for each ModelBase object
     // -- double
@@ -180,8 +144,8 @@ void DGStrongLES_ShearImproved<dim,nstate,real,MeshType>::allocate_model_variabl
     this->pde_model_double->cellwise_mean_strain_rate_tensor_magnitude.reinit(this->triangulation->n_active_cells(), this->mpi_communicator);
 }
 
-template <int dim, int nstate, typename real, typename MeshType>
-void DGStrongLES_ShearImproved<dim,nstate,real,MeshType>::update_cellwise_mean_quantities()
+template <int dim, int nspecies, int nstate, typename real, typename MeshType>
+void DGStrongLES_ShearImproved<dim,nspecies,nstate,real,MeshType>::update_cellwise_mean_quantities()
 {
     // Overintegrate the error to make sure there is not integration error in the error estimate
     int overintegrate = 10; // set to zero to reduce computational cost; currently set to 10 for peace of mind
@@ -246,7 +210,7 @@ void DGStrongLES_ShearImproved<dim,nstate,real,MeshType>::update_cellwise_mean_q
             mapping_support_points[istate][igrid_node] = val; 
         }
         // Construct the metric operators.
-        OPERATOR::metric_operators<double, dim, 2*dim> metric_oper(nstate, poly_degree, grid_degree, store_vol_flux_nodes, store_surf_flux_nodes);
+        OPERATOR::metric_operators<real, dim, 2*dim> metric_oper(nstate, poly_degree, grid_degree, store_vol_flux_nodes, store_surf_flux_nodes);
         // Build the metric terms to compute the gradient and volume node positions.
         // This functions will compute the determinant of the metric Jacobian and metric cofactor matrix. 
         // If flags store_vol_flux_nodes and store_surf_flux_nodes set as true it will also compute the physical quadrature positions.
@@ -307,6 +271,7 @@ void DGStrongLES_ShearImproved<dim,nstate,real,MeshType>::update_cellwise_mean_q
         std::array<std::vector<real>,nstate> legendre_soln_at_q_vect;
         std::array<dealii::Tensor<1,dim,std::vector<real>>,nstate> legendre_aux_soln_at_q_vect; // legendre auxiliary sol at flux nodes
         if(this->do_compute_filtered_solution) {
+            // NOTE: This only pertains to advanced SGS models for LES
             const unsigned int p_min_filtered = this->poly_degree_max_large_scales + 1;
             //==================================================
             // GET THE PRIMITIVE SOLUTION
@@ -480,28 +445,28 @@ void DGStrongLES_ShearImproved<dim,nstate,real,MeshType>::update_cellwise_mean_q
     this->pde_model_double->cellwise_mean_strain_rate_tensor_magnitude.update_ghost_values();
 }
 
-template <int dim, int nstate, typename real, typename MeshType>
-DGStrongLES_DynamicSmagorinsky<dim,nstate,real,MeshType>::DGStrongLES_DynamicSmagorinsky(
+template <int dim, int nspecies, int nstate, typename real, typename MeshType>
+DGStrongLES_DynamicSmagorinsky<dim,nspecies,nstate,real,MeshType>::DGStrongLES_DynamicSmagorinsky(
     const Parameters::AllParameters *const parameters_input,
     const unsigned int degree,
     const unsigned int max_degree_input,
     const unsigned int grid_degree_input,
     const std::shared_ptr<Triangulation> triangulation_input)
-    : DGStrongLES<dim,nstate,real,MeshType>::DGStrongLES(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input)
+    : DGStrongLES<dim,nspecies,nstate,real,MeshType>::DGStrongLES(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input)
     , dynamic_smagorinsky_model_constant_clipping_limit(this->all_parameters->physics_model_param.dynamic_smagorinsky_model_constant_clipping_limit)
 { 
     // do nothing
 }
 
 // Destructor
-template <int dim, int nstate, typename real, typename MeshType>
-DGStrongLES_DynamicSmagorinsky<dim,nstate,real,MeshType>::~DGStrongLES_DynamicSmagorinsky()
+template <int dim, int nspecies, int nstate, typename real, typename MeshType>
+DGStrongLES_DynamicSmagorinsky<dim,nspecies,nstate,real,MeshType>::~DGStrongLES_DynamicSmagorinsky()
 {
     pcout << "Destructing DGStrongLES_DynamicSmagorinsky..." << std::endl;
 }
 
-template <int dim, int nstate, typename real, typename MeshType>
-void DGStrongLES_DynamicSmagorinsky<dim,nstate,real,MeshType>::allocate_model_variables()
+template <int dim, int nspecies, int nstate, typename real, typename MeshType>
+void DGStrongLES_DynamicSmagorinsky<dim,nspecies,nstate,real,MeshType>::allocate_model_variables()
 {
     // allocate all model variables for each ModelBase object
     // -- double
@@ -512,8 +477,8 @@ void DGStrongLES_DynamicSmagorinsky<dim,nstate,real,MeshType>::allocate_model_va
     this->pde_model_double->dynamic_smagorinsky_model_constant_times_filter_width_sqr.reinit(this->triangulation->n_active_cells(), this->mpi_communicator);
 }
 
-template <int dim, int nstate, typename real, typename MeshType>
-void DGStrongLES_DynamicSmagorinsky<dim,nstate,real,MeshType>::update_cellwise_mean_quantities()
+template <int dim, int nspecies, int nstate, typename real, typename MeshType>
+void DGStrongLES_DynamicSmagorinsky<dim,nspecies,nstate,real,MeshType>::update_cellwise_mean_quantities()
 {
     // Overintegrate the error to make sure there is not integration error in the error estimate
     int overintegrate = 10; // set to zero to reduce computational cost; currently set to 10 for peace of mind
@@ -574,7 +539,7 @@ void DGStrongLES_DynamicSmagorinsky<dim,nstate,real,MeshType>::update_cellwise_m
             mapping_support_points[istate][igrid_node] = val; 
         }
         // Construct the metric operators.
-        OPERATOR::metric_operators<double, dim, 2*dim> metric_oper(nstate, poly_degree, grid_degree, store_vol_flux_nodes, store_surf_flux_nodes);
+        OPERATOR::metric_operators<real, dim, 2*dim> metric_oper(nstate, poly_degree, grid_degree, store_vol_flux_nodes, store_surf_flux_nodes);
         // Build the metric terms to compute the gradient and volume node positions.
         // This functions will compute the determinant of the metric Jacobian and metric cofactor matrix. 
         // If flags store_vol_flux_nodes and store_surf_flux_nodes set as true it will also compute the physical quadrature positions.
@@ -691,7 +656,7 @@ void DGStrongLES_DynamicSmagorinsky<dim,nstate,real,MeshType>::update_cellwise_m
                     }
                 }
                 // -- matrix M
-                const dealii::Tensor<2,dim,real> matrix_M_component_state = this->pde_model_les_double->navier_stokes_physics->compute_germano_idendity_matrix_M_component(soln_state,aux_soln_state);
+                const dealii::Tensor<2,dim,real> matrix_M_component_state = this->pde_model_les_double->navier_stokes_physics->compute_germano_identity_matrix_M_component(soln_state,aux_soln_state);
                 // store the DMS matrix M
                 for(int jdim=0; jdim<dim; jdim++){
                     for(int idim=0; idim<dim; idim++){
@@ -871,7 +836,7 @@ void DGStrongLES_DynamicSmagorinsky<dim,nstate,real,MeshType>::update_cellwise_m
 
             // Get strain rate tensor
             const dealii::Tensor<2,dim,real> matrix_L_component_state_from_filtered_soln = this->pde_model_les_double->navier_stokes_physics->compute_germano_idendity_matrix_L_component(filtered_soln_at_q);
-            const dealii::Tensor<2,dim,real> matrix_M_component_state_from_filtered_soln = this->pde_model_les_double->navier_stokes_physics->compute_germano_idendity_matrix_M_component(filtered_soln_at_q,filtered_soln_grad_at_q);
+            const dealii::Tensor<2,dim,real> matrix_M_component_state_from_filtered_soln = this->pde_model_les_double->navier_stokes_physics->compute_germano_identity_matrix_M_component(filtered_soln_at_q,filtered_soln_grad_at_q);
             
             dealii::Tensor<2,dim,real> filtered_matrix_L_component_state;
             dealii::Tensor<2,dim,real> filtered_matrix_M_component_state;
@@ -916,17 +881,14 @@ void DGStrongLES_DynamicSmagorinsky<dim,nstate,real,MeshType>::update_cellwise_m
     this->pde_model_double->dynamic_smagorinsky_model_constant_times_filter_width_sqr.update_ghost_values();
 }
 
-template <int dim, int nstate, typename real, typename MeshType>
-DGStrong_ChannelFlow<dim,nstate,real,MeshType>::DGStrong_ChannelFlow(
+template <int dim, int nspecies, int nstate, typename real, typename MeshType>
+DGStrong_ChannelFlow<dim,nspecies,nstate,real,MeshType>::DGStrong_ChannelFlow(
     const Parameters::AllParameters *const parameters_input,
     const unsigned int degree,
     const unsigned int max_degree_input,
     const unsigned int grid_degree_input,
     const std::shared_ptr<Triangulation> triangulation_input)
-    : DGStrong<dim,nstate,real,MeshType>::DGStrong(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input)
-    // , do_compute_filtered_solution(this->all_parameters->physics_model_param.do_compute_filtered_solution)
-    // , apply_modal_high_pass_filter_on_filtered_solution(this->all_parameters->physics_model_param.apply_modal_high_pass_filter_on_filtered_solution)
-    // , poly_degree_max_large_scales(this->all_parameters->physics_model_param.poly_degree_max_large_scales)
+    : DGStrong<dim,nspecies,nstate,real,MeshType>::DGStrong(parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input)
     , channel_height(parameters_input->flow_solver_param.turbulent_channel_domain_length_y_direction)
     , half_channel_height(channel_height/2.0)
     , channel_friction_velocity_reynolds_number(parameters_input->flow_solver_param.turbulent_channel_friction_velocity_reynolds_number)
@@ -942,56 +904,34 @@ DGStrong_ChannelFlow<dim,nstate,real,MeshType>::DGStrong_ChannelFlow(
     , channel_centerline_velocity_reynolds_number(1.28*pow(2.0, -0.0116)*pow(channel_bulk_velocity_reynolds_number,1.0-0.0116))
     , total_wall_area(2.0*domain_length_x*domain_length_z) // times two because 2 walls
 { 
-#if PHILIP_DIM==3
-    // // TO DO: move this if statement logic to the DGFactory
-    // if(((pde_type==PDE_enum::physics_model || pde_type==PDE_enum::physics_model_filtered) && 
-    //     (model_type==Model_enum::large_eddy_simulation || model_type==Model_enum::navier_stokes_model))) 
-    // {
-        if constexpr (dim+2==nstate) {
-            this->pde_model_navier_stokes_double = std::dynamic_pointer_cast<Physics::NavierStokesWithModelSourceTerms<dim,dim+2,real>>(this->pde_model_double);
-        }
-    // }
-    // else if((pde_type==PDE_enum::physics_model  || pde_type==PDE_enum::physics_model_filtered) && 
-    //          (model_type!=Model_enum::large_eddy_simulation && model_type!=Model_enum::navier_stokes_model)) 
-    // {
-    //     std::cout << "Invalid convective numerical flux for physics_model and/or corresponding baseline_physics_type" << std::endl;
-    //     if(nstate!=(dim+2)) std::cout << "Error: Cannot create_euler_based_convective_numerical_flux() for nstate_baseline_physics != nstate." << std::endl;
-    //     std::abort();
-    // }
-#endif
-
-    // // TO DO: move this to the factory
-    // // Determine if the mean strain rate tensor must be computed
-    // using PDE_enum = Parameters::AllParameters::PartialDifferentialEquation;
-    // const PDE_enum pde_type = this->all_param.pde_type;
-    // if(pde_type == PDE_enum::physics_model  || pde_type == PDE_enum::physics_model_filtered) {
-        
-    // }
+    if constexpr (dim+2==nstate) {
+        this->pde_model_navier_stokes_double = std::dynamic_pointer_cast<Physics::NavierStokesWithModelSourceTerms<dim,nspecies,dim+2,real>>(this->pde_model_double);
+    }
 }
 
-template <int dim, int nstate, typename real, typename MeshType>
-DGStrong_ChannelFlow<dim,nstate,real,MeshType>::~DGStrong_ChannelFlow()
+template <int dim, int nspecies, int nstate, typename real, typename MeshType>
+DGStrong_ChannelFlow<dim,nspecies,nstate,real,MeshType>::~DGStrong_ChannelFlow()
 {
     pcout << "Destructing DGStrong_ChannelFlow..." << std::endl;
 }
 
-template <int dim, int nstate, typename real, typename MeshType>
-void DGStrong_ChannelFlow<dim,nstate,real,MeshType>::allocate_model_variables()
+template <int dim, int nspecies, int nstate, typename real, typename MeshType>
+void DGStrong_ChannelFlow<dim,nspecies,nstate,real,MeshType>::allocate_model_variables()
 {
     // set the constant model variables
     this->pde_model_double->domain_volume = this->domain_volume;
     this->pde_model_double->half_channel_height = this->half_channel_height;
 }
 
-template <int dim, int nstate, typename real, typename MeshType>
-void DGStrong_ChannelFlow<dim,nstate,real,MeshType>::update_model_variables()
+template <int dim, int nspecies, int nstate, typename real, typename MeshType>
+void DGStrong_ChannelFlow<dim,nspecies,nstate,real,MeshType>::update_model_variables()
 {
     set_bulk_flow_quantities();
     this->pde_model_double->resultant_wall_shear_force = get_average_wall_shear_stress()*this->total_wall_area;
 }
 
-template <int dim, int nstate, typename real, typename MeshType>
-void DGStrong_ChannelFlow<dim,nstate,real,MeshType>::set_bulk_flow_quantities()
+template <int dim, int nspecies, int nstate, typename real, typename MeshType>
+void DGStrong_ChannelFlow<dim,nspecies,nstate,real,MeshType>::set_bulk_flow_quantities()
 {
     const int NUMBER_OF_INTEGRATED_QUANTITIES = 2;
     std::array<double,NUMBER_OF_INTEGRATED_QUANTITIES> integrated_quantities;
@@ -1004,7 +944,7 @@ void DGStrong_ChannelFlow<dim,nstate,real,MeshType>::set_bulk_flow_quantities()
     std::fill(integral_values.begin(), integral_values.end(), 0.0);
 
     // Overintegrate the error to make sure there is not integration error in the error estimate
-    int overintegrate = 10; // TO DO: could reduce this to reduce computational cost
+    int overintegrate = 10; // NOTE: could reduce this to reduce computational cost
     dealii::QGauss<dim> quad_extra(this->max_degree+1+overintegrate);
     dealii::FEValues<dim,dim> fe_values_extra(*(this->high_order_grid->mapping_fe_field), this->fe_collection[this->max_degree], quad_extra,
                                               dealii::update_values /*| dealii::update_gradients*/ | dealii::update_JxW_values | dealii::update_quadrature_points);
@@ -1062,8 +1002,8 @@ void DGStrong_ChannelFlow<dim,nstate,real,MeshType>::set_bulk_flow_quantities()
     this->pde_model_double->bulk_velocity = this->pde_model_double->bulk_mass_flow_rate/this->pde_model_double->bulk_density;
 }
 
-template <int dim, int nstate, typename real, typename MeshType>
-double DGStrong_ChannelFlow<dim,nstate,real,MeshType>::get_average_wall_shear_stress() const
+template <int dim, int nspecies, int nstate, typename real, typename MeshType>
+double DGStrong_ChannelFlow<dim,nspecies,nstate,real,MeshType>::get_average_wall_shear_stress() const
 {
     /// Update flags needed at face points.
     const dealii::UpdateFlags face_update_flags = dealii::update_values | dealii::update_gradients | dealii::update_quadrature_points | dealii::update_JxW_values | dealii::update_normal_vectors;
@@ -1122,18 +1062,18 @@ double DGStrong_ChannelFlow<dim,nstate,real,MeshType>::get_average_wall_shear_st
 }
 
 #if PHILIP_DIM==3
-template class DGStrongLES <PHILIP_DIM, PHILIP_DIM+2, double, dealii::Triangulation<PHILIP_DIM>>;
-template class DGStrongLES <PHILIP_DIM, PHILIP_DIM+2, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
-template class DGStrongLES <PHILIP_DIM, PHILIP_DIM+2, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
-template class DGStrongLES_ShearImproved <PHILIP_DIM, PHILIP_DIM+2, double, dealii::Triangulation<PHILIP_DIM>>;
-template class DGStrongLES_ShearImproved <PHILIP_DIM, PHILIP_DIM+2, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
-template class DGStrongLES_ShearImproved <PHILIP_DIM, PHILIP_DIM+2, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
-template class DGStrongLES_DynamicSmagorinsky <PHILIP_DIM, PHILIP_DIM+2, double, dealii::Triangulation<PHILIP_DIM>>;
-template class DGStrongLES_DynamicSmagorinsky <PHILIP_DIM, PHILIP_DIM+2, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
-template class DGStrongLES_DynamicSmagorinsky <PHILIP_DIM, PHILIP_DIM+2, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
-template class DGStrong_ChannelFlow <PHILIP_DIM, PHILIP_DIM+2, double, dealii::Triangulation<PHILIP_DIM>>;
-template class DGStrong_ChannelFlow <PHILIP_DIM, PHILIP_DIM+2, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
-template class DGStrong_ChannelFlow <PHILIP_DIM, PHILIP_DIM+2, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+template class DGStrongLES <PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, double, dealii::Triangulation<PHILIP_DIM>>;
+template class DGStrongLES <PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+template class DGStrongLES <PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+template class DGStrongLES_ShearImproved <PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, double, dealii::Triangulation<PHILIP_DIM>>;
+template class DGStrongLES_ShearImproved <PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+template class DGStrongLES_ShearImproved <PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+template class DGStrongLES_DynamicSmagorinsky <PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, double, dealii::Triangulation<PHILIP_DIM>>;
+template class DGStrongLES_DynamicSmagorinsky <PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+template class DGStrongLES_DynamicSmagorinsky <PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+template class DGStrong_ChannelFlow <PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, double, dealii::Triangulation<PHILIP_DIM>>;
+template class DGStrong_ChannelFlow <PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+template class DGStrong_ChannelFlow <PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
 #endif
 
 } // PHiLiP namespace

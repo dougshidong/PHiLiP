@@ -16,12 +16,6 @@ class MinMaxScaler
 {
 public:
 
-    /// Constructor
-    MinMaxScaler() = default;
-
-    /// Destructor
-    ~MinMaxScaler() {};
-
     /// Fit and transform data
     MatrixXd fit_transform(const MatrixXd& snapshot_parameters);
 

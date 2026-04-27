@@ -10,8 +10,8 @@ namespace PHiLiP {
 namespace Physics {
 
 /// Negative Spalart-Allmaras model. Derived from Reynolds Averaged Navier Stokes.
-template <int dim, int nstate, typename real>
-class ReynoldsAveragedNavierStokes_SAneg : public ReynoldsAveragedNavierStokesBase <dim, nstate, real>
+template <int dim, int nspecies, int nstate, typename real>
+class ReynoldsAveragedNavierStokes_SAneg : public ReynoldsAveragedNavierStokesBase <dim, nspecies, nstate, real>
 {
 public:
     using thermal_boundary_condition_enum = Parameters::NavierStokesParam::ThermalBoundaryCondition;
@@ -20,6 +20,7 @@ public:
      *  Reference: Steven R. Allmaras. (2012). "Modifications and Clarifications for the Implementation of the Spalart-Allmaras Turbulence Model."
      */
     ReynoldsAveragedNavierStokes_SAneg(
+        const Parameters::AllParameters *const                    parameters_input,
         const double                                              ref_length,
         const double                                              gamma_gas,
         const double                                              mach_inf,
@@ -33,11 +34,8 @@ public:
         const double                                              temperature_inf = 273.15,
         const double                                              isothermal_wall_temperature = 1.0,
         const thermal_boundary_condition_enum                     thermal_boundary_condition_type = thermal_boundary_condition_enum::adiabatic,
-        std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function = nullptr,
+        std::shared_ptr< ManufacturedSolutionFunction<dim,nspecies,real> > manufactured_solution_function = nullptr,
         const two_point_num_flux_enum                             two_point_num_flux_type = two_point_num_flux_enum::KG);
-
-    /// Destructor
-    ~ReynoldsAveragedNavierStokes_SAneg() {};
 
     /// Number of PDEs for RANS equations
     static const int nstate_navier_stokes = dim+2;

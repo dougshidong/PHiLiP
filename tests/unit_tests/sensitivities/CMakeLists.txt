@@ -10,6 +10,8 @@ foreach(dim RANGE 1 2)
     add_executable(${TEST_TARGET} ${TEST_SRC})
     # Replace occurences of PHILIP_DIM with 1, 2, or 3 in the code
     target_compile_definitions(${TEST_TARGET} PRIVATE PHILIP_DIM=${dim})
+    # Replace occurences of PHILIP_SPECIES with user-defined value in the code
+    target_compile_definitions(${TEST_TARGET} PRIVATE PHILIP_SPECIES=${NUMBER_OF_SPECIES})
 
     # Compile this executable when 'make unit_tests'
     add_dependencies(unit_tests ${TEST_TARGET})
@@ -43,6 +45,19 @@ foreach(dim RANGE 1 2)
       COMMAND mpirun -n ${NMPI} ${EXECUTABLE_OUTPUT_PATH}/${TEST_TARGET}
       WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
     )
+    if (dim EQUAL 1)
+        set_tests_labels(${TEST_TARGET} SENSITIVITIES
+                                        ${dim}D
+                                        SERIAL
+                                        QUICK
+                                        UNIT_TEST)
+    else ()
+        set_tests_labels(${TEST_TARGET} SENSITIVITIES
+                                        ${dim}D
+                                        PARALLEL
+                                        MODERATE
+                                        UNIT_TEST)
+    endif()
 
     unset(TEST_TARGET)
     unset(ParametersLib)
@@ -50,6 +65,7 @@ foreach(dim RANGE 1 2)
     unset(ODESolverLib)
 
 endforeach()
+
 set(TEST_SRC
     dRdX_fd_vs_ad.cpp
     )
@@ -57,11 +73,70 @@ set(TEST_SRC
 foreach(dim RANGE 1 2)
 
     # Output executable
-    string(CONCAT TEST_TARGET ${dim}D_dRdX_fd_vs_ad)
+    string(CONCAT TEST_TARGET ${dim}D_dRdX_FD_VS_AD_WEAK)
     message("Adding executable " ${TEST_TARGET} " with files " ${TEST_SRC} "\n")
     add_executable(${TEST_TARGET} ${TEST_SRC})
     # Replace occurences of PHILIP_DIM with 1, 2, or 3 in the code
     target_compile_definitions(${TEST_TARGET} PRIVATE PHILIP_DIM=${dim})
+    # Replace occurences of PHILIP_SPECIES with user-defined value in the code
+    target_compile_definitions(${TEST_TARGET} PRIVATE PHILIP_SPECIES=${NUMBER_OF_SPECIES})
+
+    # Compile this executable when 'make unit_tests'
+    add_dependencies(unit_tests ${TEST_TARGET})
+    add_dependencies(${dim}D ${TEST_TARGET})
+
+    # Library dependency
+    set(ParametersLib ParametersLibrary)
+    string(CONCAT DiscontinuousGalerkinLib DiscontinuousGalerkin_${dim}D)
+    target_link_libraries(${TEST_TARGET} ${ParametersLib})
+    target_link_libraries(${TEST_TARGET} ${DiscontinuousGalerkinLib})
+    # Setup target with deal.II
+    if(NOT DOC_ONLY)
+        DEAL_II_SETUP_TARGET(${TEST_TARGET})
+    endif()
+
+    if (dim EQUAL 1) 
+        set(NMPI 1)
+    else()
+        set(NMPI ${MPIMAX})
+    endif()
+    add_test(
+      NAME ${TEST_TARGET}
+      COMMAND mpirun -n ${NMPI} ${EXECUTABLE_OUTPUT_PATH}/${TEST_TARGET}
+      WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
+    )
+    if (dim EQUAL 1)
+        set_tests_labels(${TEST_TARGET} SENSITIVITIES
+                                        ${dim}D
+                                        SERIAL
+                                        QUICK
+                                        UNIT_TEST)
+    else ()
+        set_tests_labels(${TEST_TARGET} SENSITIVITIES
+                                        ${dim}D
+                                        PARALLEL
+                                        QUICK
+                                        UNIT_TEST)
+    endif()
+    unset(TEST_TARGET)
+    unset(ParametersLib)
+
+endforeach()
+
+set(TEST_SRC
+    dRdX_fd_vs_ad_strong.cpp
+    )
+
+foreach(dim RANGE 1 2)
+
+    # Output executable
+    string(CONCAT TEST_TARGET ${dim}D_dRdX_FD_VS_AD_STRONG)
+    message("Adding executable " ${TEST_TARGET} " with files " ${TEST_SRC} "\n")
+    add_executable(${TEST_TARGET} ${TEST_SRC})
+    # Replace occurences of PHILIP_DIM with 1, 2, or 3 in the code
+    target_compile_definitions(${TEST_TARGET} PRIVATE PHILIP_DIM=${dim})
+    # Replace occurences of PHILIP_SPECIES with user-defined value in the code
+    target_compile_definitions(${TEST_TARGET} PRIVATE PHILIP_SPECIES=${NUMBER_OF_SPECIES})
 
     # Compile this executable when 'make unit_tests'
     add_dependencies(unit_tests ${TEST_TARGET})
@@ -100,11 +175,80 @@ set(TEST_SRC
 foreach(dim RANGE 1 2)
 
     # Output executable
-    string(CONCAT TEST_TARGET ${dim}D_d2RdWdX_fd_vs_ad)
+    string(CONCAT TEST_TARGET ${dim}D_d2RdWdX_FD_VS_AD_WEAK)
     message("Adding executable " ${TEST_TARGET} " with files " ${TEST_SRC} "\n")
     add_executable(${TEST_TARGET} ${TEST_SRC})
     # Replace occurences of PHILIP_DIM with 1, 2, or 3 in the code
     target_compile_definitions(${TEST_TARGET} PRIVATE PHILIP_DIM=${dim})
+    # Replace occurences of PHILIP_SPECIES with user-defined value in the code
+    target_compile_definitions(${TEST_TARGET} PRIVATE PHILIP_SPECIES=${NUMBER_OF_SPECIES})
+
+    # Compile this executable when 'make unit_tests'
+    add_dependencies(unit_tests ${TEST_TARGET})
+    add_dependencies(${dim}D ${TEST_TARGET})
+
+    # Library dependency
+    set(ParametersLib ParametersLibrary)
+    string(CONCAT DiscontinuousGalerkinLib DiscontinuousGalerkin_${dim}D)
+    string(CONCAT ODESolverLib ODESolver_${dim}D)
+    target_link_libraries(${TEST_TARGET} ${ParametersLib})
+    target_link_libraries(${TEST_TARGET} ${DiscontinuousGalerkinLib})
+    target_link_libraries(${TEST_TARGET} ${ODESolverLib})
+    # Setup target with deal.II
+    if(NOT DOC_ONLY)
+        DEAL_II_SETUP_TARGET(${TEST_TARGET})
+    endif()
+
+    if (dim EQUAL 1) 
+        set(NMPI 1)
+    else()
+        # Only 4 cells, so more than that and we start having
+        # trouble with parallelism
+        if (${MPIMAX} GREATER 4)
+            set(NMPI 4)
+        else()
+            set(NMPI ${MPIMAX})
+        endif()
+    endif()
+    add_test(
+      NAME ${TEST_TARGET}
+      COMMAND mpirun -n ${NMPI} ${EXECUTABLE_OUTPUT_PATH}/${TEST_TARGET}
+      WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
+    )
+    if (dim EQUAL 1)
+        set_tests_labels(${TEST_TARGET} SENSITIVITIES
+                                        ${dim}D
+                                        SERIAL
+                                        QUICK
+                                        UNIT_TEST)
+    else ()
+        set_tests_labels(${TEST_TARGET} SENSITIVITIES
+                                        ${dim}D
+                                        PARALLEL
+                                        LONG
+                                        UNIT_TEST)
+    endif()
+    unset(TEST_TARGET)
+    unset(ParametersLib)
+    unset(DiscontinuousGalerkinLib)
+    unset(ODESolverLib)
+
+endforeach()
+
+set(TEST_SRC
+    d2RdWdX_fd_vs_ad_strong.cpp
+    )
+
+foreach(dim RANGE 1 2)
+
+    # Output executable
+    string(CONCAT TEST_TARGET ${dim}D_d2RdWdX_FD_VS_AD_STRONG)
+    message("Adding executable " ${TEST_TARGET} " with files " ${TEST_SRC} "\n")
+    add_executable(${TEST_TARGET} ${TEST_SRC})
+    # Replace occurences of PHILIP_DIM with 1, 2, or 3 in the code
+    target_compile_definitions(${TEST_TARGET} PRIVATE PHILIP_DIM=${dim})
+    # Replace occurences of PHILIP_SPECIES with user-defined value in the code
+    target_compile_definitions(${TEST_TARGET} PRIVATE PHILIP_SPECIES=${NUMBER_OF_SPECIES})
 
     # Compile this executable when 'make unit_tests'
     add_dependencies(unit_tests ${TEST_TARGET})
@@ -153,11 +297,80 @@ set(TEST_SRC
 foreach(dim RANGE 1 2)
 
     # Output executable
-    string(CONCAT TEST_TARGET ${dim}D_d2RdWdW_fd_vs_ad)
+    string(CONCAT TEST_TARGET ${dim}D_d2RdWdW_FD_VS_AD_WEAK)
     message("Adding executable " ${TEST_TARGET} " with files " ${TEST_SRC} "\n")
     add_executable(${TEST_TARGET} ${TEST_SRC})
     # Replace occurences of PHILIP_DIM with 1, 2, or 3 in the code
     target_compile_definitions(${TEST_TARGET} PRIVATE PHILIP_DIM=${dim})
+    # Replace occurences of PHILIP_SPECIES with user-defined value in the code
+    target_compile_definitions(${TEST_TARGET} PRIVATE PHILIP_SPECIES=${NUMBER_OF_SPECIES})
+
+    # Compile this executable when 'make unit_tests'
+    add_dependencies(unit_tests ${TEST_TARGET})
+    add_dependencies(${dim}D ${TEST_TARGET})
+
+    # Library dependency
+    set(ParametersLib ParametersLibrary)
+    string(CONCAT DiscontinuousGalerkinLib DiscontinuousGalerkin_${dim}D)
+    string(CONCAT ODESolverLib ODESolver_${dim}D)
+    target_link_libraries(${TEST_TARGET} ${ParametersLib})
+    target_link_libraries(${TEST_TARGET} ${DiscontinuousGalerkinLib})
+    target_link_libraries(${TEST_TARGET} ${ODESolverLib})
+    # Setup target with deal.II
+    if(NOT DOC_ONLY)
+        DEAL_II_SETUP_TARGET(${TEST_TARGET})
+    endif()
+
+    if (dim EQUAL 1) 
+        set(NMPI 1)
+    else()
+        # Only 4 cells, so more than that and we start having
+        # trouble with parallelism
+        if (${MPIMAX} GREATER 4)
+            set(NMPI 4)
+        else()
+            set(NMPI ${MPIMAX})
+        endif()
+    endif()
+    add_test(
+      NAME ${TEST_TARGET}
+      COMMAND mpirun -n ${NMPI} ${EXECUTABLE_OUTPUT_PATH}/${TEST_TARGET}
+      WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
+    )
+    if (dim EQUAL 1)
+        set_tests_labels(${TEST_TARGET} SENSITIVITIES
+                                        ${dim}D
+                                        SERIAL
+                                        QUICK
+                                        UNIT_TEST)
+    else ()
+        set_tests_labels(${TEST_TARGET} SENSITIVITIES
+                                        ${dim}D
+                                        PARALLEL
+                                        LONG
+                                        UNIT_TEST)
+    endif()
+    unset(TEST_TARGET)
+    unset(ParametersLib)
+    unset(DiscontinuousGalerkinLib)
+    unset(ODESolverLib)
+
+endforeach()
+
+set(TEST_SRC
+    d2RdWdW_fd_vs_ad_strong.cpp
+    )
+
+foreach(dim RANGE 1 2)
+
+    # Output executable
+    string(CONCAT TEST_TARGET ${dim}D_d2RdWdW_FD_VS_AD_STRONG)
+    message("Adding executable " ${TEST_TARGET} " with files " ${TEST_SRC} "\n")
+    add_executable(${TEST_TARGET} ${TEST_SRC})
+    # Replace occurences of PHILIP_DIM with 1, 2, or 3 in the code
+    target_compile_definitions(${TEST_TARGET} PRIVATE PHILIP_DIM=${dim})
+    # Replace occurences of PHILIP_SPECIES with user-defined value in the code
+    target_compile_definitions(${TEST_TARGET} PRIVATE PHILIP_SPECIES=${NUMBER_OF_SPECIES})
 
     # Compile this executable when 'make unit_tests'
     add_dependencies(unit_tests ${TEST_TARGET})
@@ -206,11 +419,78 @@ set(TEST_SRC
 foreach(dim RANGE 1 2)
 
     # Output executable
-    string(CONCAT TEST_TARGET ${dim}D_d2RdXdX_fd_vs_ad)
+    string(CONCAT TEST_TARGET ${dim}D_d2RdXdX_FD_VS_AD_WEAK)
     message("Adding executable " ${TEST_TARGET} " with files " ${TEST_SRC} "\n")
     add_executable(${TEST_TARGET} ${TEST_SRC})
     # Replace occurences of PHILIP_DIM with 1, 2, or 3 in the code
     target_compile_definitions(${TEST_TARGET} PRIVATE PHILIP_DIM=${dim})
+    # Replace occurences of PHILIP_SPECIES with user-defined value in the code
+    target_compile_definitions(${TEST_TARGET} PRIVATE PHILIP_SPECIES=${NUMBER_OF_SPECIES})
+
+    # Compile this executable when 'make unit_tests'
+    add_dependencies(unit_tests ${TEST_TARGET})
+    add_dependencies(${dim}D ${TEST_TARGET})
+
+    # Library dependency
+    set(ParametersLib ParametersLibrary)
+    string(CONCAT DiscontinuousGalerkinLib DiscontinuousGalerkin_${dim}D)
+    string(CONCAT ODESolverLib ODESolver_${dim}D)
+    target_link_libraries(${TEST_TARGET} ${ParametersLib})
+    target_link_libraries(${TEST_TARGET} ${DiscontinuousGalerkinLib})
+    target_link_libraries(${TEST_TARGET} ${ODESolverLib})
+    # Setup target with deal.II
+    if(NOT DOC_ONLY)
+        DEAL_II_SETUP_TARGET(${TEST_TARGET})
+    endif()
+
+    if (dim EQUAL 1) 
+        set(NMPI 1)
+    else()
+        # Only 4 cells, so more than that and we start having
+        # trouble with parallelism
+        if (${MPIMAX} GREATER 4)
+            set(NMPI 4)
+        else()
+            set(NMPI ${MPIMAX})
+        endif()
+    endif()
+    add_test(
+      NAME ${TEST_TARGET}
+      COMMAND mpirun -n ${NMPI} ${EXECUTABLE_OUTPUT_PATH}/${TEST_TARGET}
+      WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
+    )
+    if (dim EQUAL 1)
+        set_tests_labels(${TEST_TARGET} SENSITIVITIES
+                                        ${dim}D
+                                        SERIAL
+                                        QUICK
+                                        UNIT_TEST)
+    else ()
+        set_tests_labels(${TEST_TARGET} SENSITIVITIES
+                                        ${dim}D
+                                        PARALLEL
+                                        LONG
+                                        UNIT_TEST)
+    endif()
+    unset(TEST_TARGET)
+    unset(ParametersLib)
+
+endforeach()
+
+set(TEST_SRC
+    d2RdXdX_fd_vs_ad_strong.cpp
+    )
+
+foreach(dim RANGE 1 2)
+
+    # Output executable
+    string(CONCAT TEST_TARGET ${dim}D_d2RdXdX_FD_VS_AD_STRONG)
+    message("Adding executable " ${TEST_TARGET} " with files " ${TEST_SRC} "\n")
+    add_executable(${TEST_TARGET} ${TEST_SRC})
+    # Replace occurences of PHILIP_DIM with 1, 2, or 3 in the code
+    target_compile_definitions(${TEST_TARGET} PRIVATE PHILIP_DIM=${dim})
+    # Replace occurences of PHILIP_SPECIES with user-defined value in the code
+    target_compile_definitions(${TEST_TARGET} PRIVATE PHILIP_SPECIES=${NUMBER_OF_SPECIES})
 
     # Compile this executable when 'make unit_tests'
     add_dependencies(unit_tests ${TEST_TARGET})
@@ -257,12 +537,71 @@ set(TEST_SRC
 foreach(dim RANGE 1 2)
 
     # Output executable
-    string(CONCAT TEST_TARGET ${dim}D_dRdW_fd_vs_ad)
+    string(CONCAT TEST_TARGET ${dim}D_dRdW_FD_VS_AD_WEAK)
     message("Adding executable " ${TEST_TARGET} " with files " ${TEST_SRC} "\n")
     add_executable(${TEST_TARGET} ${TEST_SRC})
     # Replace occurences of PHILIP_DIM with 1, 2, or 3 in the code
     target_compile_definitions(${TEST_TARGET} PRIVATE PHILIP_DIM=${dim})
+    # Replace occurences of PHILIP_SPECIES with user-defined value in the code
+    target_compile_definitions(${TEST_TARGET} PRIVATE PHILIP_SPECIES=${NUMBER_OF_SPECIES})
 
+    # Compile this executable when 'make unit_tests'
+    add_dependencies(unit_tests ${TEST_TARGET})
+    add_dependencies(${dim}D ${TEST_TARGET})
+
+    # Library dependency
+    set(ParametersLib ParametersLibrary)
+    string(CONCAT DiscontinuousGalerkinLib DiscontinuousGalerkin_${dim}D)
+    target_link_libraries(${TEST_TARGET} ${ParametersLib})
+    target_link_libraries(${TEST_TARGET} ${DiscontinuousGalerkinLib})
+    # Setup target with deal.II
+    if(NOT DOC_ONLY)
+        DEAL_II_SETUP_TARGET(${TEST_TARGET})
+    endif()
+
+    if (dim EQUAL 1) 
+        set(NMPI 1)
+    else()
+        set(NMPI ${MPIMAX})
+    endif()
+    add_test(
+      NAME ${TEST_TARGET}
+      COMMAND mpirun -n ${NMPI} ${EXECUTABLE_OUTPUT_PATH}/${TEST_TARGET}
+      WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
+    )
+    if (dim EQUAL 1)
+        set_tests_labels(${TEST_TARGET} SENSITIVITIES
+                                        ${dim}D
+                                        SERIAL
+                                        QUICK
+                                        UNIT_TEST)
+    else ()
+        set_tests_labels(${TEST_TARGET} SENSITIVITIES
+                                        ${dim}D
+                                        PARALLEL
+                                        QUICK
+                                        UNIT_TEST)
+    endif()
+    unset(TEST_TARGET)
+    unset(ParametersLib)
+
+endforeach()
+
+set(TEST_SRC
+    dRdW_fd_vs_ad_strong.cpp
+    )
+
+foreach(dim RANGE 1 2)
+
+    # Output executable
+    string(CONCAT TEST_TARGET ${dim}D_dRdW_FD_VS_AD_STRONG)
+    message("Adding executable " ${TEST_TARGET} " with files " ${TEST_SRC} "\n")
+    add_executable(${TEST_TARGET} ${TEST_SRC})
+    # Replace occurences of PHILIP_DIM with 1, 2, or 3 in the code
+    target_compile_definitions(${TEST_TARGET} PRIVATE PHILIP_DIM=${dim})
+    # Replace occurences of PHILIP_SPECIES with user-defined value in the code
+    target_compile_definitions(${TEST_TARGET} PRIVATE PHILIP_SPECIES=${NUMBER_OF_SPECIES})
+    
     # Compile this executable when 'make unit_tests'
     add_dependencies(unit_tests ${TEST_TARGET})
     add_dependencies(${dim}D ${TEST_TARGET})
@@ -305,6 +644,8 @@ foreach(dim RANGE 1 2)
     add_executable(${TEST_TARGET} ${TEST_SRC})
     # Replace occurences of PHILIP_DIM with 1, 2, or 3 in the code
     target_compile_definitions(${TEST_TARGET} PRIVATE PHILIP_DIM=${dim})
+    # Replace occurences of PHILIP_SPECIES with user-defined value in the code
+    target_compile_definitions(${TEST_TARGET} PRIVATE PHILIP_SPECIES=${NUMBER_OF_SPECIES})
 
     # Compile this executable when 'make unit_tests'
     add_dependencies(unit_tests ${TEST_TARGET})
@@ -333,7 +674,19 @@ foreach(dim RANGE 1 2)
       COMMAND mpirun -n ${NMPI} ${EXECUTABLE_OUTPUT_PATH}/${TEST_TARGET}
       WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
     )
-
+    if (dim EQUAL 1)
+        set_tests_labels(${TEST_TARGET} SENSITIVITIES
+                                        ${dim}D
+                                        SERIAL
+                                        QUICK
+                                        UNIT_TEST)
+    else ()
+        set_tests_labels(${TEST_TARGET} SENSITIVITIES
+                                        ${dim}D
+                                        PARALLEL
+                                        QUICK
+                                        UNIT_TEST)
+    endif()
     unset(TEST_TARGET)
     unset(ParametersLib)
     unset(GridsLib)
@@ -352,6 +705,8 @@ foreach(dim RANGE 1 2)
     add_executable(${TEST_TARGET} ${TEST_SRC})
     # Replace occurences of PHILIP_DIM with 1, 2, or 3 in the code
     target_compile_definitions(${TEST_TARGET} PRIVATE PHILIP_DIM=${dim})
+    # Replace occurences of PHILIP_SPECIES with user-defined value in the code
+    target_compile_definitions(${TEST_TARGET} PRIVATE PHILIP_SPECIES=${NUMBER_OF_SPECIES})
 
     # Compile this executable when 'make unit_tests'
     add_dependencies(unit_tests ${TEST_TARGET})
@@ -378,7 +733,19 @@ foreach(dim RANGE 1 2)
       COMMAND mpirun -n ${NMPI} ${EXECUTABLE_OUTPUT_PATH}/${TEST_TARGET}
       WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
     )
-
+    if (dim EQUAL 1)
+        set_tests_labels(${TEST_TARGET} SENSITIVITIES
+                                        ${dim}D
+                                        SERIAL
+                                        QUICK
+                                        UNIT_TEST)
+    else ()
+        set_tests_labels(${TEST_TARGET} SENSITIVITIES
+                                        ${dim}D
+                                        PARALLEL
+                                        QUICK
+                                        UNIT_TEST)
+    endif()
     unset(TEST_TARGET)
     unset(ParametersLib)
 
@@ -396,6 +763,8 @@ foreach(dim RANGE 1 3)
     add_executable(${TEST_TARGET} ${TEST_SRC})
     # Replace occurences of PHILIP_DIM with 1, 2, or 3 in the code
     target_compile_definitions(${TEST_TARGET} PRIVATE PHILIP_DIM=${dim})
+    # Replace occurences of PHILIP_SPECIES with user-defined value in the code
+    target_compile_definitions(${TEST_TARGET} PRIVATE PHILIP_SPECIES=${NUMBER_OF_SPECIES})
 
     # Compile this executable when 'make unit_tests'
     add_dependencies(unit_tests ${TEST_TARGET})
@@ -424,7 +793,19 @@ foreach(dim RANGE 1 3)
       COMMAND mpirun -n ${NMPI} ${EXECUTABLE_OUTPUT_PATH}/${TEST_TARGET}
       WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
     )
-
+    if (dim EQUAL 1)
+        set_tests_labels(${TEST_TARGET} SENSITIVITIES
+                                        ${dim}D
+                                        SERIAL
+                                        QUICK
+                                        UNIT_TEST)
+    else ()
+        set_tests_labels(${TEST_TARGET} SENSITIVITIES
+                                        ${dim}D
+                                        PARALLEL
+                                        QUICK
+                                        UNIT_TEST)
+    endif()
     unset(TEST_TARGET)
     unset(ParametersLib)
 
@@ -442,6 +823,8 @@ foreach(dim RANGE 1 2)
     add_executable(${TEST_TARGET} ${TEST_SRC})
     # Replace occurences of PHILIP_DIM with 1, 2, or 3 in the code
     target_compile_definitions(${TEST_TARGET} PRIVATE PHILIP_DIM=${dim})
+    # Replace occurences of PHILIP_SPECIES with user-defined value in the code
+    target_compile_definitions(${TEST_TARGET} PRIVATE PHILIP_SPECIES=${NUMBER_OF_SPECIES})
 
     # Compile this executable when 'make unit_tests'
     add_dependencies(unit_tests ${TEST_TARGET})
@@ -470,7 +853,19 @@ foreach(dim RANGE 1 2)
       COMMAND mpirun -n ${NMPI} ${EXECUTABLE_OUTPUT_PATH}/${TEST_TARGET}
       WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
     )
-
+    if (dim EQUAL 1)
+        set_tests_labels(${TEST_TARGET} SENSITIVITIES
+                                        ${dim}D
+                                        SERIAL
+                                        QUICK
+                                        UNIT_TEST)
+    else ()
+        set_tests_labels(${TEST_TARGET} SENSITIVITIES
+                                        ${dim}D
+                                        PARALLEL
+                                        QUICK
+                                        UNIT_TEST)
+    endif()
     unset(TEST_TARGET)
     unset(ParametersLib)
 
@@ -488,6 +883,8 @@ foreach(dim RANGE 1 2)
     add_executable(${TEST_TARGET} ${TEST_SRC})
     # Replace occurences of PHILIP_DIM with 1, 2, or 3 in the code
     target_compile_definitions(${TEST_TARGET} PRIVATE PHILIP_DIM=${dim})
+    # Replace occurences of PHILIP_SPECIES with user-defined value in the code
+    target_compile_definitions(${TEST_TARGET} PRIVATE PHILIP_SPECIES=${NUMBER_OF_SPECIES})
 
     # Compile this executable when 'make unit_tests'
     add_dependencies(unit_tests ${TEST_TARGET})
@@ -513,7 +910,19 @@ foreach(dim RANGE 1 2)
       COMMAND mpirun -n ${NMPI} ${EXECUTABLE_OUTPUT_PATH}/${TEST_TARGET}
       WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
     )
-
+    if (dim EQUAL 1)
+        set_tests_labels(${TEST_TARGET} SENSITIVITIES
+                                        ${dim}D
+                                        SERIAL
+                                        QUICK
+                                        UNIT_TEST)
+    else ()
+        set_tests_labels(${TEST_TARGET} SENSITIVITIES
+                                        ${dim}D
+                                        PARALLEL
+                                        QUICK
+                                        UNIT_TEST)
+    endif()
     unset(TEST_TARGET)
     unset(ParametersLib)
     unset(HighOrderGridLib)
@@ -534,7 +943,11 @@ foreach(dim RANGE 2 2)
       COMMAND mpirun -n ${NMPI} ${EXECUTABLE_OUTPUT_PATH}/${TEST_TARGET}
       WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
     )
-
+    set_tests_labels(${TEST_TARGET}_serial  SENSITIVITIES
+                                            ${dim}D
+                                            SERIAL
+                                            QUICK
+                                            UNIT_TEST)
     unset(TEST_TARGET)
 
 endforeach()
@@ -551,6 +964,8 @@ foreach(dim RANGE 1 2)
     add_executable(${TEST_TARGET} ${TEST_SRC})
     # Replace occurences of PHILIP_DIM with 1, 2, or 3 in the code
     target_compile_definitions(${TEST_TARGET} PRIVATE PHILIP_DIM=${dim})
+    # Replace occurences of PHILIP_SPECIES with user-defined value in the code
+    target_compile_definitions(${TEST_TARGET} PRIVATE PHILIP_SPECIES=${NUMBER_OF_SPECIES})
 
     # Compile this executable when 'make unit_tests'
     add_dependencies(unit_tests ${TEST_TARGET})
@@ -579,8 +994,21 @@ foreach(dim RANGE 1 2)
       COMMAND mpirun -n ${NMPI} ${EXECUTABLE_OUTPUT_PATH}/${TEST_TARGET}
       WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
     )
-
+    if (dim EQUAL 1)
+        set_tests_labels(${TEST_TARGET} SENSITIVITIES
+                                        ${dim}D
+                                        SERIAL
+                                        QUICK
+                                        UNIT_TEST)
+    else ()
+        set_tests_labels(${TEST_TARGET} SENSITIVITIES
+                                        ${dim}D
+                                        PARALLEL
+                                        QUICK
+                                        UNIT_TEST)
+    endif()
     unset(TEST_TARGET)
     unset(ParametersLib)
 
 endforeach()
+

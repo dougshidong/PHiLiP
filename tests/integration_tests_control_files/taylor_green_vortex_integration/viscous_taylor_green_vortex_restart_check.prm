@@ -9,12 +9,10 @@ set pde_type = navier_stokes
 # DG formulation
 set use_weak_form = true
 # set flux_nodes_type = GLL
+set non_physical_behavior = abort_run
 
 set all_boundaries_are_periodic = true
 set check_same_coords_in_weak_dg = false
-
-# memory allocation
-set do_renumber_dofs = false
 
 # degree of freedom renumbering not necessary for explicit time advancement cases
 set do_renumber_dofs = false
@@ -51,6 +49,7 @@ subsection flow_solver
   set courant_friedrichs_lewy_number = 0.003
   set unsteady_data_table_filename = tgv_kinetic_energy_vs_time_table_for_restart_check
   set output_restart_files = true
+  set write_unsteady_data_table_file_every_dt_time_intervals = 0.0
   subsection grid
     set grid_left_bound = 0.0
     set grid_right_bound = 6.28318530717958623200

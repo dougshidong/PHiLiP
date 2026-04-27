@@ -9,12 +9,12 @@ namespace Physics {
 /// Create specified model as ModelBase object 
 /** Factory design pattern whose job is to create the correct model
  */
-template <int dim, int nstate, typename real>
+template <int dim, int nspecies, int nstate, typename real>
 class ModelFactory
 {
 public:
     /// Factory to return the correct model given input parameters
-    static std::shared_ptr< ModelBase<dim,nstate,real> >
+    static std::shared_ptr< ModelBase<dim,nspecies,nstate,real> >
         create_Model(const Parameters::AllParameters  *const parameters_input);
 };
 

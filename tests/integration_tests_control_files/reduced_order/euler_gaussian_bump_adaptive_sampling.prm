@@ -1,7 +1,7 @@
 # Listing of Parameters
 # ---------------------
 
-set test_type = POD_adaptive_sampling
+set test_type = POD_adaptive_sampling_run
 
 # Number of dimensions
 set dimension = 2

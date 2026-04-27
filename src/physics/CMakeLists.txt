@@ -18,6 +18,7 @@ SET(SOURCE
     negative_spalart_allmaras_rans_model.cpp
     model_factory.cpp
     navier_stokes_model.cpp
+    real_gas.cpp
     )
 
 foreach(dim RANGE 1 3)
@@ -35,6 +36,8 @@ foreach(dim RANGE 1 3)
     endif()
 
     target_compile_definitions(${PhysicsLib} PRIVATE PHILIP_DIM=${dim})
+    # Replace occurences of PHILIP_SPECIES with user-defined value in the code
+    target_compile_definitions(${PhysicsLib} PRIVATE PHILIP_SPECIES=${NUMBER_OF_SPECIES})
 
     # Setup target with deal.II
     unset(PhysicsLib)

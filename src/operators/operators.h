@@ -53,14 +53,14 @@ template <int dim, int n_faces>
 class OperatorsBase
 {
 public:
+    /// Destructor
+    virtual ~OperatorsBase() = default;
+
     /// Constructor
     OperatorsBase(
           const int nstate_input,//number of states input
           const unsigned int max_degree_input,//max poly degree for operators
           const unsigned int grid_degree_input);//max grid degree for operators
-    
-    /// Destructor
-    ~OperatorsBase() {};
 
     ///Max polynomial degree.
     const unsigned int max_degree;
@@ -97,25 +97,6 @@ public:
     ///Standard function to compute factorial of a number.
     double compute_factorial(double n);
 
-    ///virtual function to be defined.
-    virtual void matrix_vector_mult(
-                const std::vector<double> &input_vect,
-                std::vector<double> &output_vect,
-                const dealii::FullMatrix<double> &basis_x,
-                const dealii::FullMatrix<double> &basis_y,
-                const dealii::FullMatrix<double> &basis_z,
-                const bool adding = false,
-                const double factor = 1.0) = 0;
-    ///virtual function to be defined.
-    virtual void inner_product(
-                const std::vector<double> &input_vect,
-                const std::vector<double> &weight_vect,
-                std::vector<double> &output_vect,
-                const dealii::FullMatrix<double> &basis_x,
-                const dealii::FullMatrix<double> &basis_y,
-                const dealii::FullMatrix<double> &basis_z,
-                const bool adding = false,
-                const double factor = 1.0) = 0;
 protected:
 
     const MPI_Comm mpi_communicator; ///< MPI communicator.
@@ -137,9 +118,6 @@ public:
         const unsigned int max_degree_input,
         const unsigned int grid_degree_input);
 
-    ///Destructor
-    ~SumFactorizedOperators () {};
-
     ///Computes a matrix-vector product using sum-factorization. Pass the one-dimensional basis, where x runs the fastest, then y, and z runs the slowest. Also, assume each one-dimensional basis is the same size.
     /** Uses sum-factorization with BLAS techniques to solve the the matrix-vector multiplication, where the matrix is the tensor product of three one-dimensional matrices. We use the standard notation that x runs the fastest, then y, and z runs the slowest.
     * For an operator \f$\mathbf{A}\f$ of size \f$n^d\f$ with \f$n\f$ the one dimensional dofs
@@ -147,14 +125,15 @@ public:
     * we compute \f$v^T=\mathbf{A}u^T\f$.
     * Lastly, the adding allows the result to add onto the previous output_vect scaled by "factor".
     */
+    template <typename real>
     void matrix_vector_mult(
-            const std::vector<double> &input_vect,
-            std::vector<double> &output_vect,
+            const std::vector<real> &input_vect,
+            std::vector<real> &output_vect,
             const dealii::FullMatrix<double> &basis_x,
             const dealii::FullMatrix<double> &basis_y,
             const dealii::FullMatrix<double> &basis_z,
             const bool adding = false,
-            const double factor = 1.0) override;
+            const double factor = 1.0);
     ///Computes the divergence using the sum factorization matrix-vector multiplication.
     /** Often, we compute a dot product in dim, where each matrix multiplictaion uses
     * sum factorization. Example, consider taking the reference divergence of the reference flux:
@@ -166,9 +145,10 @@ public:
     * + \left( \mathbf{\chi}(\mathbf{\xi}) \otimes \mathbf{\chi}(\mathbf{\eta} \otimes \frac{d\mathbf{\chi}(\mathbf{\zeta})}{d\zeta})\right) \left(\hat{\mathbf{f}^r}\right)^T,
     * \f] where we use sum factorization to evaluate each matrix-vector multiplication in each dim direction.
     */
+    template <typename real>
     void divergence_matrix_vector_mult(
-            const dealii::Tensor<1,dim,std::vector<double>> &input_vect,
-            std::vector<double> &output_vect,
+            const dealii::Tensor<1,dim,std::vector<real>> &input_vect,
+            std::vector<real> &output_vect,
             const dealii::FullMatrix<double> &basis_x,
             const dealii::FullMatrix<double> &basis_y,
             const dealii::FullMatrix<double> &basis_z,
@@ -177,16 +157,18 @@ public:
             const dealii::FullMatrix<double> &gradient_basis_z);
 
     ///Computes the divergence using sum-factorization where the basis are the same in each direction.
+    template <typename real>
     void divergence_matrix_vector_mult_1D(
-            const dealii::Tensor<1,dim,std::vector<double>> &input_vect,
-            std::vector<double> &output_vect,
+            const dealii::Tensor<1,dim,std::vector<real>> &input_vect,
+            std::vector<real> &output_vect,
             const dealii::FullMatrix<double> &basis,
             const dealii::FullMatrix<double> &gradient_basis);
 
     ///Computes the gradient of a scalar using sum-factorization.
+    template <typename real>
     void gradient_matrix_vector_mult(
-            const std::vector<double> &input_vect,
-            dealii::Tensor<1,dim,std::vector<double>> &output_vect,
+            const std::vector<real> &input_vect,
+            dealii::Tensor<1,dim,std::vector<real>> &output_vect,
             const dealii::FullMatrix<double> &basis_x,
             const dealii::FullMatrix<double> &basis_y,
             const dealii::FullMatrix<double> &basis_z,
@@ -194,24 +176,26 @@ public:
             const dealii::FullMatrix<double> &gradient_basis_y,
             const dealii::FullMatrix<double> &gradient_basis_z);
     ///Computes the gradient of a scalar using sum-factorization where the basis are the same in each direction.
+    template <typename real>
     void gradient_matrix_vector_mult_1D(
-            const std::vector<double> &input_vect,
-            dealii::Tensor<1,dim,std::vector<double>> &output_vect,
+            const std::vector<real> &input_vect,
+            dealii::Tensor<1,dim,std::vector<real>> &output_vect,
             const dealii::FullMatrix<double> &basis,
             const dealii::FullMatrix<double> &gradient_basis);
 
     ///Computes the inner product between a matrix and a vector multiplied by some weight function.  
     /** That is, we compute \f$ \int Awu d\mathbf{\Omega}_r = \mathbf{A}^T \text{diag}(w) \mathbf{u}^T \f$. When using this function, pass \f$ \mathbf{A} \f$ and NOT it's transpose--the function transposes it in the first few lines.
     */
+    template <typename real>
     void inner_product(
-            const std::vector<double> &input_vect,
+            const std::vector<real> &input_vect,
             const std::vector<double> &weight_vect,
-            std::vector<double> &output_vect,
+            std::vector<real> &output_vect,
             const dealii::FullMatrix<double> &basis_x,
             const dealii::FullMatrix<double> &basis_y,
             const dealii::FullMatrix<double> &basis_z,
             const bool adding = false,
-            const double factor = 1.0) override;
+            const double factor = 1.0);
 
 
     ///Computes the divergence of the 2pt flux Hadamard products, then sums the rows.
@@ -296,9 +280,10 @@ public:
     /** This is for the case where the operator of size dim is the dyadic product of
     * the same 1D operator in each direction
     */
+    template <typename real>
     void matrix_vector_mult_1D(
-            const std::vector<double> &input_vect,
-            std::vector<double> &output_vect,
+            const std::vector<real> &input_vect,
+            std::vector<real> &output_vect,
             const dealii::FullMatrix<double> &basis_x,
             const bool adding = false,
             const double factor = 1.0);
@@ -307,10 +292,11 @@ public:
     /* This is for the case where the operator of size dim is the dyadic product of
     * the same 1D operator in each direction
     */
+    template <typename real>
     void inner_product_1D(
-            const std::vector<double> &input_vect,
+            const std::vector<real> &input_vect,
             const std::vector<double> &weight_vect,
-            std::vector<double> &output_vect,
+            std::vector<real> &output_vect,
             const dealii::FullMatrix<double> &basis_x,
             const bool adding  = false,
             const double factor = 1.0);
@@ -322,24 +308,25 @@ public:
     * Explicitly, this passes basis_surf in the direction by face_number, and basis_vol
     * in all other directions.
     */
-
+    template <typename real>
     void matrix_vector_mult_surface_1D(
             const std::vector<bool> face_orientation,
             const unsigned int face_number,
-            const std::vector<double> &input_vect,
-            std::vector<double> &output_vect,
+            const std::vector<real> &input_vect,
+            std::vector<real> &output_vect,
             const std::array<dealii::FullMatrix<double>,2> &basis_surf,//only 2 faces in 1D
             const dealii::FullMatrix<double> &basis_vol,
             const bool adding = false,
             const double factor = 1.0);
 
     /// Apply sum-factorization inner product on a surface.
+    template <typename real>
     void inner_product_surface_1D(
             const std::vector<bool> face_orientation,
             const unsigned int face_number,
-            const std::vector<double> &input_vect,
+            const std::vector<real> &input_vect,
             const std::vector<double> &weight_vect,
-            std::vector<double> &output_vect,
+            std::vector<real> &output_vect,
             const std::array<dealii::FullMatrix<double>,2> &basis_surf,//only 2 faces in 1D
             const dealii::FullMatrix<double> &basis_vol,
             const bool adding = false,
@@ -375,7 +362,17 @@ public:
         const dealii::FullMatrix<double> &input_mat2,
         dealii::FullMatrix<double> &output_mat);
 
-
+    ///Computes a single Hadamard product for AD type.
+    /** For input mat1 \f$ A \f$ and input mat2 \f$ B \f$, this computes
+    * \f$ A \circ B = C \implies \left( C \right)_{ij} = \left( A \right)_{ij}\left( B \right)_{ij}\f$.
+    * The input_mat1 is a matrix of double, input_mat2 is a matrix stored as a vector
+    * in contiguous memory, and outputs a matrix stored as a vector in contiguous memory.
+    */
+    template <typename real>
+    void Hadamard_product_AD_vector(
+        const dealii::FullMatrix<double> &input_mat1,
+        const std::vector<real> &input_mat2,
+        std::vector<real> &output_mat);
 
 //protected:
 public:
@@ -415,9 +412,6 @@ public:
         const unsigned int max_degree_input,
         const unsigned int grid_degree_input);
 
-    /// Destructor.
-    ~basis_functions () {};
-
     ///Stores the degree of the current poly degree.
     unsigned int current_degree;
 
@@ -453,9 +447,6 @@ public:
         const unsigned int max_degree_input,
         const unsigned int grid_degree_input);
 
-    /// Destructor.
-    ~vol_integral_basis () {};
-
     /// Stores the degree of the current poly degree.
     unsigned int current_degree;
 
@@ -475,9 +466,6 @@ public:
         const int nstate_input,
         const unsigned int max_degree_input,
         const unsigned int grid_degree_input);
-
-    /// Destructor.
-    ~local_mass () {};
 
     /// Stores the degree of the current poly degree.
     unsigned int current_degree;
@@ -516,9 +504,6 @@ public:
         const unsigned int grid_degree_input,
         const bool store_skew_symmetric_form_input = false);
 
-    /// Destructor.
-    ~local_basis_stiffness () {};
-
     /// Stores the degree of the current poly degree.
     unsigned int current_degree;
 
@@ -545,9 +530,6 @@ public:
         const unsigned int max_degree_input,
         const unsigned int grid_degree_input);
 
-    /// Destructor.
-    ~modal_basis_differential_operator () {};
-
     /// Stores the degree of the current poly degree.
     unsigned int current_degree;
 
@@ -568,9 +550,6 @@ public:
         const unsigned int max_degree_input,
         const unsigned int grid_degree_input);
 
-    /// Destructor.
-    ~derivative_p () {};
-
     /// Stores the degree of the current poly degree.
     unsigned int current_degree;
 
@@ -590,15 +569,17 @@ public:
         const int nstate_input,
         const unsigned int max_degree_input,
         const unsigned int grid_degree_input,
-        const Parameters::AllParameters::Flux_Reconstruction FR_param_input);
-    ///Destructor.
-    ~local_Flux_Reconstruction_operator () {};
-
-    ///Stores the degree of the current poly degree.
-    unsigned int current_degree;
+        const Parameters::AllParameters::Flux_Reconstruction FR_param_input,
+        const double FR_user_specified_correction_parameter_value_input=0.0);
 
     ///Flux reconstruction parameter type.
     const Parameters::AllParameters::Flux_Reconstruction FR_param_type;
+
+    /// User specified flux recontruction correction parameter value
+    const double FR_user_specified_correction_parameter_value;
+
+    ///Stores the degree of the current poly degree.
+    unsigned int current_degree;
 
     ///Flux reconstruction paramater value.
     double FR_param;
@@ -710,9 +691,6 @@ public:
         const unsigned int grid_degree_input,
         const Parameters::AllParameters::Flux_Reconstruction_Aux FR_param_aux_input);
 
-    ///Destructor.
-    ~local_Flux_Reconstruction_operator_aux () {};
-
     ///Stores the degree of the current poly degree.
     unsigned int current_degree;
 
@@ -751,9 +729,6 @@ public:
         const unsigned int max_degree_input,
         const unsigned int grid_degree_input);
 
-    ///Destructor.
-    ~vol_projection_operator () {};
-
     ///Stores the degree of the current poly degree.
     unsigned int current_degree;
 
@@ -780,19 +755,20 @@ public:
         const unsigned int max_degree_input,
         const unsigned int grid_degree_input,
         const Parameters::AllParameters::Flux_Reconstruction FR_param_input,
+        const double FR_user_specified_correction_parameter_value_input=0.0,
         const bool store_transpose_input = false);
-
-    ///Destructor.
-    ~vol_projection_operator_FR () {};
-
-    ///Stores the degree of the current poly degree.
-    unsigned int current_degree;
 
     ///Flag is store transpose operator.
     bool store_transpose;
 
     ///Flux reconstruction parameter type.
     const Parameters::AllParameters::Flux_Reconstruction FR_param_type;
+
+    /// User specified flux recontruction correction parameter value
+    const double FR_user_specified_correction_parameter_value;
+
+    ///Stores the degree of the current poly degree.
+    unsigned int current_degree;
 
     ///Assembles the one dimensional operator.
     void build_1D_volume_operator(
@@ -815,9 +791,6 @@ public:
         const unsigned int grid_degree_input,
         const Parameters::AllParameters::Flux_Reconstruction_Aux FR_param_input,
         const bool store_transpose_input = false);
-
-    ///Destructor.
-    ~vol_projection_operator_FR_aux () {};
 
     ///Stores the degree of the current poly degree.
     unsigned int current_degree;
@@ -847,16 +820,17 @@ public:
         const int nstate_input,
         const unsigned int max_degree_input,
         const unsigned int grid_degree_input,
-        const Parameters::AllParameters::Flux_Reconstruction FR_param_input);
-
-    ///Destructor.
-    ~FR_mass_inv () {};
+        const Parameters::AllParameters::Flux_Reconstruction FR_param_input,
+        const double FR_user_specified_correction_parameter_value_input=0.0);
 
     ///Stores the degree of the current poly degree.
     unsigned int current_degree;
 
     ///Flux reconstruction parameter type.
     const Parameters::AllParameters::Flux_Reconstruction FR_param_type;
+
+    /// User specified flux recontruction correction parameter value
+    const double FR_user_specified_correction_parameter_value;
 
     ///Assembles the one dimensional operator.
     void build_1D_volume_operator(
@@ -874,9 +848,6 @@ public:
         const unsigned int max_degree_input,
         const unsigned int grid_degree_input,
         const Parameters::AllParameters::Flux_Reconstruction_Aux FR_param_input);
-
-    ///Destructor.
-    ~FR_mass_inv_aux () {};
 
     ///Stores the degree of the current poly degree.
     unsigned int current_degree;
@@ -899,16 +870,17 @@ public:
         const int nstate_input,
         const unsigned int max_degree_input,
         const unsigned int grid_degree_input,
-        const Parameters::AllParameters::Flux_Reconstruction FR_param_input);
-
-    ///Destructor.
-    ~FR_mass () {};
+        const Parameters::AllParameters::Flux_Reconstruction FR_param_input,
+        const double FR_user_specified_correction_parameter_value_input=0.0);
 
     ///Stores the degree of the current poly degree.
     unsigned int current_degree;
 
     ///Flux reconstruction parameter type.
     const Parameters::AllParameters::Flux_Reconstruction FR_param_type;
+
+    /// User specified flux recontruction correction parameter value
+    const double FR_user_specified_correction_parameter_value;
 
     ///Assembles the one dimensional operator.
     void build_1D_volume_operator(
@@ -927,9 +899,6 @@ public:
         const unsigned int max_degree_input,
         const unsigned int grid_degree_input,
         const Parameters::AllParameters::Flux_Reconstruction_Aux FR_param_input);
-
-    ///Destructor.
-    ~FR_mass_aux () {};
 
     ///Stores the degree of the current poly degree.
     unsigned int current_degree;
@@ -960,9 +929,6 @@ public:
         const int nstate_input,
         const unsigned int max_degree_input,
         const unsigned int grid_degree_input);
-
-    ///Destructor.
-    ~vol_integral_gradient_basis () {};
 
     ///Stores the degree of the current poly degree.
     unsigned int current_degree;
@@ -997,9 +963,6 @@ public:
         const unsigned int max_degree_input,
         const unsigned int grid_degree_input);
 
-    ///Destructor.
-    ~face_integral_basis () {};
-
     ///Stores the degree of the current poly degree.
     unsigned int current_degree;
 
@@ -1024,9 +987,6 @@ public:
         const int nstate_input,
         const unsigned int max_degree_input,
         const unsigned int grid_degree_input);
-
-    ///Destructor.
-    ~lifting_operator () {};
 
     ///Stores the degree of the current poly degree.
     unsigned int current_degree;
@@ -1068,16 +1028,17 @@ public:
         const int nstate_input,
         const unsigned int max_degree_input,
         const unsigned int grid_degree_input,
-        const Parameters::AllParameters::Flux_Reconstruction FR_param_input);
-
-    ///Destructor.
-    ~lifting_operator_FR () {};
+        const Parameters::AllParameters::Flux_Reconstruction FR_param_input,
+        const double FR_user_specified_correction_parameter_value_input=0.0);
 
     ///Stores the degree of the current poly degree.
     unsigned int current_degree;
 
     ///Flux reconstruction parameter type.
     const Parameters::AllParameters::Flux_Reconstruction FR_param_type;
+
+    /// User specified flux recontruction correction parameter value
+    const double FR_user_specified_correction_parameter_value;
 
     ///Assembles the one dimensional norm operator that it is lifted onto.
     /** Note that the norm is the FR mass matrix in this case. This has to be called before build_1D_surface_operator.
@@ -1115,9 +1076,6 @@ public:
         const int nstate_input,
         const unsigned int max_degree_input,
         const unsigned int grid_degree_input);
-
-    ///Destructor.
-    ~mapping_shape_functions() {};
 
     ///Stores the degree of the current poly degree.
     unsigned int current_degree;
@@ -1165,7 +1123,7 @@ public:
 
 /*****************************************************************************
 *
-*       METRIC OPERTAORS TO BE CALLED ON-THE-FLY
+*       METRIC OPERATORS TO BE CALLED ON-THE-FLY
 *
 *****************************************************************************/
 ///Base metric operators class that stores functions used in both the volume and on surface.
@@ -1181,9 +1139,6 @@ public:
         const bool store_vol_flux_nodes_input = false,
         const bool store_surf_flux_nodes_input = false,
         const bool store_Jacobian_input = false);
-
-    ///Destructor.
-    ~metric_operators() {};
 
     ///Flag if store metric Jacobian at flux nodes.
     const bool store_Jacobian;
@@ -1387,9 +1342,6 @@ public:
         const unsigned int max_degree_input,
         const unsigned int grid_degree_input);
 
-    ///Destructor.
-    ~SumFactorizedOperatorsState () {}; 
-
     ///Stores the one dimensional volume operator.
     std::array<dealii::FullMatrix<double>,nstate>  oneD_vol_state_operator;
 
@@ -1413,9 +1365,6 @@ public:
     basis_functions_state (
         const unsigned int max_degree_input,
         const unsigned int grid_degree_input);
-
-    ///Destructor.
-    ~basis_functions_state () {};
 
     ///Stores the degree of the current poly degree.
     unsigned int current_degree;
@@ -1448,9 +1397,6 @@ public:
     flux_basis_functions_state (
         const unsigned int max_degree_input,
         const unsigned int grid_degree_input);
-
-    ///Destructor.
-    ~flux_basis_functions_state () {};
 
     ///Stores the degree of the current poly degree.
     unsigned int current_degree;
@@ -1486,9 +1432,6 @@ public:
     local_flux_basis_stiffness (
         const unsigned int max_degree_input,
         const unsigned int grid_degree_input);
-
-    ///Destructor.
-    ~local_flux_basis_stiffness () {};
 
     ///Stores the degree of the current poly degree.
     unsigned int current_degree;

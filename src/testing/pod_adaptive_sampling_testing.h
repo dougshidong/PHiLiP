@@ -14,7 +14,7 @@ using Eigen::VectorXd;
 using Eigen::MatrixXd;
 
 /// Adaptive Sampling Testing
-template <int dim, int nstate>
+template <int dim, int nspecies, int nstate>
 class AdaptiveSamplingTesting: public TestsBase
 {
 public:
@@ -26,7 +26,7 @@ public:
     int run_test () const override;
 
     /// Reinitialize parameters
-    Parameters::AllParameters reinitParams(RowVector2d parameter) const;
+    Parameters::AllParameters reinit_params(RowVector2d parameter) const;
 
     /// Parameter handler for storing the .prm file being ran
     const dealii::ParameterHandler &parameter_handler;

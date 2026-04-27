@@ -10,6 +10,7 @@ set(GRIDS_SOURCE
     nonsymmetric_curved_periodic_grid.cpp
     nonsymmetric_curved_nonperiodic_grid.cpp
     skew_symmetric_periodic_grid.cpp
+    positivity_preserving_tests_grid.cpp
     )
 
 foreach(dim RANGE 1 3)

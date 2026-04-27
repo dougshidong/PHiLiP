@@ -18,9 +18,9 @@
 namespace PHiLiP {
 /// Class to convert metric field to mesh using BAMG.
 #if PHILIP_DIM==1 // dealii::parallel::distributed::Triangulation<dim> does not work for 1D
-template <int dim, int nstate, typename real, typename MeshType = dealii::Triangulation<dim>>
+template <int dim, int nspecies, int nstate, typename real, typename MeshType = dealii::Triangulation<dim>>
 #else
-template <int dim, int nstate, typename real, typename MeshType = dealii::parallel::distributed::Triangulation<dim>>
+template <int dim, int nspecies, int nstate, typename real, typename MeshType = dealii::parallel::distributed::Triangulation<dim>>
 #endif
 class MetricToMeshGenerator {
 
@@ -34,7 +34,7 @@ public:
         std::shared_ptr<MeshType> _triangulation);
 
     /// Destructor
-    ~MetricToMeshGenerator(){};
+    ~MetricToMeshGenerator() = default;
     
     /// Generates mesh from the input cellwise metric.
     void generate_mesh_from_cellwise_metric(const std::vector<dealii::Tensor<2, dim, real>> &cellwise_optimal_metric);

@@ -3,10 +3,10 @@
 
 #include <deal.II/grid/manifold_lib.h>
 
-#include "tests.h"
-#include "dg/dg.h"
-#include "physics/physics.h"
+#include "dg/dg_base.hpp"
 #include "parameters/all_parameters.h"
+#include "physics/physics.h"
+#include "tests.h"
 
 namespace PHiLiP {
 namespace Tests {
@@ -22,7 +22,7 @@ public:
 };
 
 /// Performs grid convergence for various polynomial degrees.
-template <int dim, int nstate>
+template <int dim, int nspecies, int nstate>
 class EulerBumpOptimization: public TestsBase
 {
 public:
@@ -31,7 +31,7 @@ public:
     /// Constructor.
     /** Simply calls the TestsBase constructor to set its parameters = parameters_input
      */
-    EulerBumpOptimization(const Parameters::AllParameters *const parameters_input);
+    explicit EulerBumpOptimization(const Parameters::AllParameters *const parameters_input);
 
     /// Grid convergence on Euler Gaussian Bump
     /** Will run the a grid convergence test for various p
@@ -53,7 +53,7 @@ private:
 protected:
 
     //  // Integrate entropy over the entire domain to use as a functional.
-    //  double integrate_entropy_over_domain(DGBase<dim,double> &dg) const;
+    //  double integrate_entropy_over_domain(DGBase<dim,nspecies,double> &dg) const;
 };
 
 

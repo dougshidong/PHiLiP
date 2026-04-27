@@ -42,6 +42,8 @@ set check_same_coords_in_weak_dg = false
 
 set enable_higher_order_vtk_output = true
 
+set enable_higher_order_vtk_output = true
+
 subsection ODE solver
 
   set ode_output = verbose

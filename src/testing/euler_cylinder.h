@@ -3,25 +3,23 @@
 
 #include <deal.II/grid/manifold_lib.h>
 
-#include "tests.h"
-#include "dg/dg.h"
-#include "physics/physics.h"
+#include "dg/dg_base.hpp"
 #include "parameters/all_parameters.h"
+#include "physics/physics.h"
+#include "tests.h"
 
 namespace PHiLiP {
 namespace Tests {
 
 /// Performs grid convergence for various polynomial degrees.
-template <int dim, int nstate>
+template <int dim, int nspecies, int nstate>
 class EulerCylinder: public TestsBase
 {
 public:
     /// Constructor.
     /** Simply calls the TestsBase constructor to set its parameters = parameters_input
      */
-    EulerCylinder(const Parameters::AllParameters *const parameters_input);
-
-    ~EulerCylinder() {}; ///< Destructor.
+    explicit EulerCylinder(const Parameters::AllParameters *const parameters_input);
 
     // Warp grid into Gaussian bump
     static dealii::Point<dim> warp (const dealii::Point<dim> &p);

@@ -1,5 +1,7 @@
 #include "set_initial_condition.h"
 #include "parameters/parameters_flow_solver.h"
+#include "limiter/bound_preserving_limiter_factory.hpp"
+
 #include <deal.II/numerics/vector_tools.h>
 #include <string>
 #include <stdlib.h>
@@ -10,10 +12,10 @@
 
 namespace PHiLiP{
 
-template<int dim, int nstate, typename real>
-void SetInitialCondition<dim,nstate,real>::set_initial_condition(
-        std::shared_ptr< InitialConditionFunction<dim,nstate,double> > initial_condition_function_input,
-        std::shared_ptr< PHiLiP::DGBase<dim, real> > dg_input,
+template<int dim, int nspecies, int nstate, typename real>
+void SetInitialCondition<dim,nspecies,nstate,real>::set_initial_condition(
+        std::shared_ptr< InitialConditionFunction<dim,nspecies,nstate,double> > initial_condition_function_input,
+        std::shared_ptr< PHiLiP::DGBase<dim, nspecies, real> > dg_input,
         const Parameters::AllParameters *const parameters_input)
 {
     dealii::ConditionalOStream pcout(std::cout, dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD)==0);
@@ -26,34 +28,48 @@ void SetInitialCondition<dim,nstate,real>::set_initial_condition(
     if(apply_initial_condition_method == ApplyInitialConditionMethodEnum::interpolate_initial_condition_function) {
         pcout << "interpolating the initial condition function... " << std::flush;
         // for non-curvilinear
-        SetInitialCondition<dim,nstate,real>::interpolate_initial_condition(initial_condition_function_input, dg_input);
+        SetInitialCondition<dim,nspecies,nstate,real>::interpolate_initial_condition(initial_condition_function_input, dg_input);
     } else if(apply_initial_condition_method == ApplyInitialConditionMethodEnum::project_initial_condition_function) {
         pcout << "projecting the initial condition function... " << std::flush;
         // for curvilinear
-        SetInitialCondition<dim,nstate,real>::project_initial_condition(initial_condition_function_input, dg_input);
+        SetInitialCondition<dim,nspecies,nstate,real>::project_initial_condition(initial_condition_function_input, dg_input);
     } else if(apply_initial_condition_method == ApplyInitialConditionMethodEnum::read_values_from_file_and_project) {
         const std::string input_filename_prefix = parameters_input->flow_solver_param.input_flow_setup_filename_prefix;
         pcout << "reading values from file prefix  " << input_filename_prefix << " and projecting... " << std::flush;
-        SetInitialCondition<dim,nstate,real>::read_values_from_file_and_project(dg_input,input_filename_prefix);
+        SetInitialCondition<dim,nspecies,nstate,real>::read_values_from_file_and_project(dg_input,input_filename_prefix);
     }
     pcout << "done." << std::endl;
 }
 
-template<int dim, int nstate, typename real>
-void SetInitialCondition<dim,nstate,real>::interpolate_initial_condition(
-        std::shared_ptr< InitialConditionFunction<dim,nstate,double> > &initial_condition_function,
-        std::shared_ptr < PHiLiP::DGBase<dim,real> > &dg) 
+template<int dim, int nspecies, int nstate, typename real>
+void SetInitialCondition<dim,nspecies,nstate,real>::interpolate_initial_condition(
+        std::shared_ptr< InitialConditionFunction<dim,nspecies,nstate,double> > &initial_condition_function,
+        std::shared_ptr < PHiLiP::DGBase<dim,nspecies,real> > &dg) 
 {
     dealii::LinearAlgebra::distributed::Vector<double> solution_no_ghost;
     solution_no_ghost.reinit(dg->locally_owned_dofs, MPI_COMM_WORLD);
     dealii::VectorTools::interpolate(dg->dof_handler,*initial_condition_function,solution_no_ghost);
     dg->solution = solution_no_ghost;
+    // Limit the solution so the interpolation doesn't return nonphysical values
+    using limiter_enum = Parameters::LimiterParam::LimiterType;
+    if (dg->all_parameters->limiter_param.use_tvb_limiter || dg->all_parameters->limiter_param.bound_preserving_limiter == limiter_enum::positivity_preservingWang2012) {
+        std::unique_ptr<BoundPreservingLimiter<dim,nspecies,real>> limiter = BoundPreservingLimiterFactory<dim, nspecies, dim+nspecies+1, real>::create_limiter(dg->all_parameters);
+        limiter->limit(dg->solution,
+                dg->dof_handler,
+                dg->fe_collection,
+                dg->volume_quadrature_collection,
+                dg->high_order_grid->fe_system.tensor_degree(),
+                dg->max_degree,
+                dg->oneD_fe_collection_1state,
+                dg->oneD_quadrature_collection,
+                dg->all_parameters->ode_solver_param.initial_time_step);
+    }
 }
 
-template<int dim, int nstate, typename real>
-void SetInitialCondition<dim,nstate,real>::project_initial_condition(
-        std::shared_ptr< InitialConditionFunction<dim,nstate,double> > &initial_condition_function,
-        std::shared_ptr < PHiLiP::DGBase<dim,real> > &dg) 
+template<int dim, int nspecies, int nstate, typename real>
+void SetInitialCondition<dim,nspecies,nstate,real>::project_initial_condition(
+        std::shared_ptr< InitialConditionFunction<dim,nspecies,nstate,double> > &initial_condition_function,
+        std::shared_ptr < PHiLiP::DGBase<dim,nspecies,real> > &dg) 
 {
     // Commented since this has not yet been tested
     // dealii::LinearAlgebra::distributed::Vector<double> solution_no_ghost;
@@ -111,9 +127,9 @@ std::string get_padded_mpi_rank_string(const int mpi_rank_input) {
     return mpi_rank_string;
 }
 
-template<int dim, int nstate, typename real>
-void SetInitialCondition<dim,nstate,real>::read_values_from_file_and_project(
-        std::shared_ptr < PHiLiP::DGBase<dim,real> > &dg,
+template<int dim, int nspecies, int nstate, typename real>
+void SetInitialCondition<dim,nspecies,nstate,real>::read_values_from_file_and_project(
+        std::shared_ptr < PHiLiP::DGBase<dim,nspecies,real> > &dg,
         const std::string input_filename_prefix) 
 {
     dealii::ConditionalOStream pcout(std::cout, dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD)==0);
@@ -239,11 +255,15 @@ void SetInitialCondition<dim,nstate,real>::read_values_from_file_and_project(
     }
 }
 
-template class SetInitialCondition<PHILIP_DIM, 1, double>;
-template class SetInitialCondition<PHILIP_DIM, 2, double>;
-template class SetInitialCondition<PHILIP_DIM, 3, double>;
-template class SetInitialCondition<PHILIP_DIM, 4, double>;
-template class SetInitialCondition<PHILIP_DIM, 5, double>;
-template class SetInitialCondition<PHILIP_DIM, 6, double>;
+#if PHILIP_SPECIES==1
+    // Define a sequence of indices representing the range [1, 6]
+    #define POSSIBLE_NSTATE (1)(2)(3)(4)(5)(6)
 
+    // Define a macro to instantiate SetIC Functions for a specific nstate
+    #define INSTANTIATE_SET_IC(r, data, nstate) \
+        template class SetInitialCondition<PHILIP_DIM, PHILIP_SPECIES, nstate, double>;
+    BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_SET_IC, _, POSSIBLE_NSTATE)
+#else
+    template class SetInitialCondition<PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+PHILIP_SPECIES+1, double>;
+#endif
 }//end of namespace PHILIP

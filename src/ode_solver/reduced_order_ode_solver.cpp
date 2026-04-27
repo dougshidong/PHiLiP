@@ -1,26 +1,28 @@
 #include "reduced_order_ode_solver.h"
-#include "dg/dg.h"
-#include "ode_solver_base.h"
-#include "linear_solver/linear_solver.h"
-#include "reduced_order/pod_basis_base.h"
-#include <deal.II/lac/trilinos_sparsity_pattern.h>
+
+#include <Amesos_Lapack.h>
+#include <Epetra_LinearProblem.h>
 #include <Epetra_Vector.h>
 #include <deal.II/lac/la_parallel_vector.h>
-#include <Epetra_LinearProblem.h>
+#include <deal.II/lac/trilinos_sparsity_pattern.h>
+
 #include "Amesos_BaseSolver.h"
-#include <Amesos_Lapack.h>
+#include "dg/dg_base.hpp"
+#include "linear_solver/linear_solver.h"
+#include "ode_solver_base.h"
+#include "reduced_order/pod_basis_base.h"
 
 namespace PHiLiP {
 namespace ODE {
 
-template <int dim, typename real, typename MeshType>
-ReducedOrderODESolver<dim,real,MeshType>::ReducedOrderODESolver(std::shared_ptr< DGBase<dim, real, MeshType> > dg_input, std::shared_ptr<ProperOrthogonalDecomposition::PODBase<dim>> pod)
-        : ODESolverBase<dim,real,MeshType>(dg_input)
+template <int dim, int nspecies, typename real, typename MeshType>
+ReducedOrderODESolver<dim,nspecies,real,MeshType>::ReducedOrderODESolver(std::shared_ptr< DGBase<dim, nspecies, real, MeshType> > dg_input, std::shared_ptr<ProperOrthogonalDecomposition::PODBase<dim,nspecies>> pod)
+        : ODESolverBase<dim,nspecies,real,MeshType>(dg_input)
         , pod(pod)
 {}
 
-template <int dim, typename real, typename MeshType>
-int ReducedOrderODESolver<dim,real,MeshType>::steady_state ()
+template <int dim, int nspecies, typename real, typename MeshType>
+int ReducedOrderODESolver<dim,nspecies,real,MeshType>::steady_state ()
 {
     this->pcout << " Performing steady state analysis... " << std::endl;
 
@@ -102,8 +104,8 @@ int ReducedOrderODESolver<dim,real,MeshType>::steady_state ()
     return 0;
 }
 
-template <int dim, typename real, typename MeshType>
-void ReducedOrderODESolver<dim,real,MeshType>::step_in_time (real /*dt*/, const bool /*pseudotime*/)
+template <int dim, int nspecies, typename real, typename MeshType>
+void ReducedOrderODESolver<dim,nspecies,real,MeshType>::step_in_time (real /*dt*/, const bool /*pseudotime*/)
 {
     const bool compute_dRdW = true;
     this->dg->assemble_residual(compute_dRdW);
@@ -258,8 +260,8 @@ void ReducedOrderODESolver<dim,real,MeshType>::step_in_time (real /*dt*/, const 
     ++(this->current_iteration);
 }
 
-template <int dim, typename real, typename MeshType>
-void ReducedOrderODESolver<dim,real,MeshType>::allocate_ode_system ()
+template <int dim, int nspecies, typename real, typename MeshType>
+void ReducedOrderODESolver<dim,nspecies,real,MeshType>::allocate_ode_system ()
 {
     /*Projection of initial conditions on reduced-order subspace, refer to Equation 19 in:
     Washabaugh, K. M., Zahr, M. J., & Farhat, C. (2016).
@@ -288,10 +290,12 @@ void ReducedOrderODESolver<dim,real,MeshType>::allocate_ode_system ()
     this->dg->solution += reference_solution;
 }
 
-template class ReducedOrderODESolver<PHILIP_DIM, double, dealii::Triangulation<PHILIP_DIM>>;
-template class ReducedOrderODESolver<PHILIP_DIM, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
-#if PHILIP_DIM != 1
-template class ReducedOrderODESolver<PHILIP_DIM, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+#if PHILIP_SPECIES==1
+    template class ReducedOrderODESolver<PHILIP_DIM, PHILIP_SPECIES, double, dealii::Triangulation<PHILIP_DIM>>;
+    template class ReducedOrderODESolver<PHILIP_DIM, PHILIP_SPECIES, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+    #if PHILIP_DIM != 1
+        template class ReducedOrderODESolver<PHILIP_DIM, PHILIP_SPECIES, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+    #endif
 #endif
 
 } // ODE namespace

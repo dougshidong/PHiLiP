@@ -5,7 +5,7 @@
 namespace PHiLiP {
 namespace Tests {
 /// Checks if enthalpy is conserved with enthalpy laplacian artificial dissipation.
-template <int dim, int nstate>
+template <int dim, int nspecies, int nstate>
 class EulerGaussianBumpEnthalpyCheck: public TestsBase
 {
     public:

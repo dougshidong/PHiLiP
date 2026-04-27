@@ -7,24 +7,21 @@
 namespace PHiLiP {
 namespace FlowSolver {
 
-template <int dim, int nstate>
-class PeriodicEntropyTests : public PeriodicCubeFlow<dim,nstate>
+template <int dim, int nspecies, int nstate>
+class PeriodicEntropyTests : public PeriodicCubeFlow<dim,nspecies,nstate>
 {
 public:
 
     /// Constructor.
-    PeriodicEntropyTests(const Parameters::AllParameters *const parameters_input);
-
-    /// Destructor
-    ~PeriodicEntropyTests() {};
+    explicit PeriodicEntropyTests(const Parameters::AllParameters *const parameters_input);
 
     /// Calculate numerical entropy
     /// Calls compute_integrated_quantities
-    double compute_entropy(const std::shared_ptr <DGBase<dim, double>> dg) const;
+    double compute_entropy(const std::shared_ptr <DGBase<dim, nspecies, double>> dg) const;
 
     /// Function to compute the constant time step
     /** Calculates based on CFL for Euler, and from parameters otherwise */
-    double get_constant_time_step(std::shared_ptr<DGBase<dim,double>> dg) const override;
+    double get_constant_time_step(std::shared_ptr<DGBase<dim,nspecies,double>> dg) const override;
 protected:
 
     /// Enum of integrated quantities to calculate
@@ -38,17 +35,16 @@ protected:
      * Will need to be modified in the future if multiple quantites are needed
      * See structure in periodic_turbulence
      */
-    double compute_integrated_quantities(DGBase<dim, double> &dg,
+    double compute_integrated_quantities(DGBase<dim, nspecies, double> &dg,
             IntegratedQuantityEnum quantity, 
             const int overintegrate=10 // Overintegrate for KE, don't for num. entropy
             ) const;
 
     /// Compute the desired unsteady data and write it to a table
     void compute_unsteady_data_and_write_to_table(
-            const unsigned int current_iteration,
-            const double current_time,
-            const std::shared_ptr <DGBase<dim, double>> dg,
-            const std::shared_ptr<dealii::TableHandler> unsteady_data_table,
+            const std::shared_ptr <ODE::ODESolverBase<dim, nspecies, double>> ode_solver, 
+            const std::shared_ptr <DGBase<dim, nspecies, double>> dg,
+            const std::shared_ptr <dealii::TableHandler> unsteady_data_table,
             const bool do_write_unsteady_data_table_file) override;
     
     /// Filename for unsteady data
@@ -56,12 +52,15 @@ protected:
     
     /// Storing entropy at first step
     double initial_entropy;
+
+    /// Store previous entropy
+    double previous_numerical_entropy;
     
     /// Last time (for calculating relaxation factor)
     double previous_time=0;
 
     // euler physics pointer for computing physical quantities.
-    std::shared_ptr < Physics::Euler<dim, nstate, double > > euler_physics;
+    std::shared_ptr < Physics::Euler<dim, nspecies, nstate, double > > euler_physics;
 
 };
 

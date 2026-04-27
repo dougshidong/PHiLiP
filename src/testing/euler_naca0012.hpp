@@ -3,16 +3,16 @@
 
 #include <deal.II/grid/manifold_lib.h>
 
-#include "tests.h"
-#include "dg/dg.h"
-#include "physics/physics.h"
+#include "dg/dg_base.hpp"
 #include "parameters/all_parameters.h"
+#include "physics/physics.h"
+#include "tests.h"
 
 namespace PHiLiP {
 namespace Tests {
 
 /// Performs grid convergence for various polynomial degrees.
-template <int dim, int nstate>
+template <int dim, int nspecies, int nstate>
 class EulerNACA0012: public TestsBase
 {
 public:
@@ -44,7 +44,7 @@ public:
 protected:
 
     //  // Integrate entropy over the entire domain to use as a functional.
-    //  double integrate_entropy_over_domain(DGBase<dim,double> &dg) const;
+    //  double integrate_entropy_over_domain(DGBase<dim,nspecies,double> &dg) const;
 };
 
 

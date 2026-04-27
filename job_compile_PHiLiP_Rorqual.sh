@@ -4,13 +4,13 @@
 #SBATCH --job-name=compile_PHiLiP
 #SBATCH --output=%x-%j.out
 #SBATCH --nodes=1
-#SBATCH --ntasks-per-node=16                          ## <-- refer to https://docs.computecanada.ca/wiki/Advanced_MPI_scheduling
-#SBATCH --mem=63G                                     ## <-- total shared memory per node; refer to https://docs.computecanada.ca/wiki/Advanced_MPI_scheduling
-#SBATCH --mail-user=dominic.roy2@mail.mcgill.ca ## <-- for receiving job updates via email
+#SBATCH --ntasks-per-node=16                          ## <-- refer to https://docs.alliancecan.ca/wiki/Rorqual/en
+#SBATCH --mem=63G                                     ## <-- total shared memory per node; refer to https://docs.alliancecan.ca/wiki/Rorqual/en
+#SBATCH --mail-user=firstname.lastname@mail.mcgill.ca ## <-- for receiving job updates via email
 #SBATCH --mail-type=ALL                               ## <-- what kind of updates to receive by email
 
 
-SLURM_USER="dominicr" ## <-- Enter compute canada username here
+SLURM_USER="username" ## <-- Enter compute canada username here
 NUM_PROCS="16"        ## WARNING: must correspond to nodes*(ntasks-per-node) above
 RUN_CTEST=false
 
@@ -56,12 +56,18 @@ rsync  -axvH --no-g --no-p --exclude 'build_release' --exclude 'build_debug' --e
 mkdir build_release
 
 cd build_release
-cmake -DDEAL_II_DIR=$DEAL_II_DIR ../PHiLiP -DMPIMAX=${NUM_PROCS} -DCMAKE_BUILD_TYPE=Release -DGMSH_DIR=$GMSH_DIR/bin/gmsh -DGMSH_LIB=$GMSH_DIR -DCMAKE_SKIP_INSTALL_RPATH=ON
+cmake -DDEAL_II_DIR=$DEAL_II_DIR ../PHiLiP -DMPIMAX=${NUM_PROCS} -DCMAKE_BUILD_TYPE=Release -DNUMBER_OF_SPECIES=1 -DGMSH_DIR=$GMSH_DIR/bin/gmsh -DGMSH_LIB=$GMSH_DIR -DCMAKE_SKIP_INSTALL_RPATH=ON 
 make -j${NUM_PROCS}
 
 
 if [ "${RUN_CTEST}" = true ]; then
     ctest
+	## Build and verify multi-species implementation as well
+	mkdir ${SLURM_TMPDIR}/build_multispecies
+	cd ${SLURM_TMPDIR}/build_multispecies
+	cmake -DDEAL_II_DIR=$DEAL_II_DIR ../PHiLiP -DMPIMAX=${NUM_PROCS} -DCMAKE_BUILD_TYPE=Release -DNUMBER_OF_SPECIES=2 -DGMSH_DIR=$GMSH_DIR/bin/gmsh -DGMSH_LIB=$GMSH_DIR -DCMAKE_SKIP_INSTALL_RPATH=ON
+	make -j${NUM_PROCS}
+	ctest
 fi
  
 
@@ -70,3 +76,6 @@ for((i=1;i<=3;i++)); do
 done
  
 rsync -axvH --no-g --no-p  ${SLURM_TMPDIR}/build_release ${SLURM_SUBMIT_DIR}
+if [ "${RUN_CTEST}" = true ]; then
+	rsync -axvH --no-g --no-p  ${SLURM_TMPDIR}/build_multispecies ${SLURM_SUBMIT_DIR}
+fi

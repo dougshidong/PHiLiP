@@ -41,9 +41,6 @@ public:
     /// Lp norm w.r.t. which the optimization is performed in the continuous mesh framework.
     double norm_Lp_anisotropic_adaptation;
 
-    /// Constructor of mesh adaptation parameters.
-    MeshAdaptationParam();
-
     /// Declare parameters
     static void declare_parameters (dealii::ParameterHandler &prm);
  

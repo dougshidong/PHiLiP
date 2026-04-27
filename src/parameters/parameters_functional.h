@@ -46,8 +46,6 @@ public:
     /// Flag for use of all domain boundaries
     bool use_all_boundaries;
 
-    FunctionalParam(); ///< Constructor
-
     /// Declares the possible variables and sets the defaults.
     static void declare_parameters(dealii::ParameterHandler &prm);
     /// Parses input file and sets the variables.

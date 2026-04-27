@@ -1,13 +1,18 @@
+#include <deal.II/base/mpi.h>
+#include <deal.II/base/utilities.h>
+#include <deal.II/base/conditional_ostream.h>
+
 #include "parameters_flow_solver.h"
 
 #include <string>
 
+//for checking output directories
+#include <sys/types.h>
+#include <sys/stat.h>
+
 namespace PHiLiP {
 
 namespace Parameters {
-
-// Flow Solver inputs
-FlowSolverParam::FlowSolverParam() {}
 
 void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
 {
@@ -28,11 +33,23 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
                           " channel_flow | "
                           " isentropic_vortex | "
                           " kelvin_helmholtz_instability | "
+                          " dipole_wall_collision_normal | "
+                          " dipole_wall_collision_oblique | "
                           " non_periodic_cube_flow | "
-                          " sshock | "
-                          " wall_distance_evaluation | "
-                          " flat_plate_2D | "
-                          " airfoil_2D | "
+                          " sod_shock_tube | "
+                          " low_density | "
+                          " leblanc_shock_tube | "
+                          " shu_osher_problem | "
+                          " advection_limiter | "
+                          " burgers_limiter | "
+                          " double_mach_reflection | "
+                          " shock_diffraction | "
+                          " astrophysical_jet | "
+                          " strong_vortex_shock_wave | "
+                          " multi_species_vortex_advection |"
+                          " multi_species_vortex_advection_high_temp | "
+                          " multi_species_sod_shock_tube |"
+                          " multi_species_isentropic_vortex |"
                           " turbulent_airfoil_3D "),
                           "The type of flow we want to simulate. "
                           "Choices are "
@@ -49,12 +66,24 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
                           " channel_flow | "
                           " isentropic_vortex | "
                           " kelvin_helmholtz_instability | "
-                          " non_periodic_cube_flow>. | "
-                          " sshock | "
-                          " wall_distance_evaluation | "
-                          " flat_plate_2D | "
-                          " airfoil_2D | "
-                          " turbulent_airfoil_3D ");
+                          " dipole_wall_collision_normal | "
+                          " dipole_wall_collision_oblique | "
+                          " non_periodic_cube_flow | "
+                          " sod_shock_tube | "
+                          " low_density | "
+                          " leblanc_shock_tube | "
+                          " shu_osher_problem | "
+                          " advection_limiter | "
+                          " burgers_limiter | "
+                          " double_mach_reflection | "
+                          " shock_diffraction | "
+                          " astrophysical_jet | "
+                          " strong_vortex_shock_wave | "
+                          " multi_species_vortex_advection | "
+                          " multi_species_vortex_advection_high_temp "
+                          " multi_species_sod_shock_tube | " 
+                          " multi_species_isentropic_vortex | "
+                          " turbulent_airfoil_3D>. ");
 
         prm.declare_entry("poly_degree", "1",
                           dealii::Patterns::Integer(0, dealii::Patterns::Integer::max_int_value),
@@ -86,9 +115,13 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
                           dealii::Patterns::Bool(),
                           "Solve steady-state solution. False by default (i.e. unsteady by default).");
 
+        prm.declare_entry("error_adaptive_time_step", "false",
+                          dealii::Patterns::Bool(),
+                          "Adapt the time step on the fly for unsteady flow simulations according to an estimate of temporal error. False by default (i.e. constant time step by default).");
+
         prm.declare_entry("adaptive_time_step", "false",
                           dealii::Patterns::Bool(),
-                          "Adapt the time step on the fly for unsteady flow simulations. False by default (i.e. constant time step by default).");
+                          "Adapt the time step on the fly for unsteady flow simulations according to a CFL condition. False by default (i.e. constant time step by default).");
 
         prm.declare_entry("steady_state_polynomial_ramping", "false",
                           dealii::Patterns::Bool(),
@@ -126,6 +159,10 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
                           dealii::Patterns::Double(0,dealii::Patterns::Double::max_double_value),
                           "Writes the unsteady data table file at time intervals of dt. "
                           "If set to zero, it outputs at every time step.");
+
+        prm.declare_entry("expected_order_at_final_time", "0.0",
+                  dealii::Patterns::Double(0.0, 10.0),
+                  "For convergence tests related to limiters, expected order of accuracy for final run.");
 
         prm.enter_subsection("grid");
         {
@@ -230,101 +267,38 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
             }
             prm.leave_subsection();
 
-            prm.enter_subsection("flat_plate_2D");
-            {
-                prm.declare_entry("free_length", "0.5",
-                                  dealii::Patterns::Double(0, dealii::Patterns::Double::max_double_value),
-                                  "Lenght of free area upwind to the flat plate.");
+          prm.enter_subsection("grid_rectangle");
+          {
+              prm.declare_entry("grid_top_bound", "0.0",
+                                dealii::Patterns::Double(-dealii::Patterns::Double::max_double_value, dealii::Patterns::Double::max_double_value),
+                                "Left bound of domain for hyper_cube mesh based cases.");
 
-                prm.declare_entry("free_height", "1.0",
-                                  dealii::Patterns::Double(0, dealii::Patterns::Double::max_double_value),
-                                  "Height of free area above of the flat plate.");
+              prm.declare_entry("grid_bottom_bound", "0.0",
+                                dealii::Patterns::Double(-dealii::Patterns::Double::max_double_value, dealii::Patterns::Double::max_double_value),
+                                "Right bound of domain for hyper_cube mesh based cases.");
 
-                prm.declare_entry("plate_length", "2.0", 
-                                  dealii::Patterns::Double(0, dealii::Patterns::Double::max_double_value),
-                                  "Lenght of the flat plate.");
+              prm.declare_entry("grid_z_lower_bound", "0.0",
+                                dealii::Patterns::Double(-dealii::Patterns::Double::max_double_value, dealii::Patterns::Double::max_double_value),
+                                "Left bound of domain for hyper_cube mesh based cases.");
 
-                prm.declare_entry("skewness_x_free", "1.0", 
-                                  dealii::Patterns::Double(0, dealii::Patterns::Double::max_double_value),
-                                  "Skewness of the meshes in the x direction.");
+              prm.declare_entry("grid_z_upper_bound", "0.0",
+                                dealii::Patterns::Double(-dealii::Patterns::Double::max_double_value, dealii::Patterns::Double::max_double_value),
+                                "Right bound of domain for hyper_cube mesh based cases.");
 
-                prm.declare_entry("skewness_x_plate", "1.0", 
-                                  dealii::Patterns::Double(0, dealii::Patterns::Double::max_double_value),
-                                  "Skewness of the meshes in the x direction.");
+              prm.declare_entry("number_of_grid_elements_x", "1",
+                                dealii::Patterns::Integer(1, dealii::Patterns::Integer::max_int_value),
+                                "Number of grid elements in the x-direction.");
 
-                prm.declare_entry("skewness_y", "1.0", 
-                                  dealii::Patterns::Double(0, dealii::Patterns::Double::max_double_value),
-                                  "Skewness of the meshes in the y direction.");
+              prm.declare_entry("number_of_grid_elements_y", "1",
+                                dealii::Patterns::Integer(1, dealii::Patterns::Integer::max_int_value),
+                                "Number of grid elements in the y-direction.");
 
-                prm.declare_entry("skewness_z", "1.0", 
-                                  dealii::Patterns::Double(0, dealii::Patterns::Double::max_double_value),
-                                  "Skewness of the meshes in the z direction.");
+              prm.declare_entry("number_of_grid_elements_z", "1",
+                                dealii::Patterns::Integer(1, dealii::Patterns::Integer::max_int_value),
+                                "Number of grid elements in the z-direction.");
+          }
+          prm.leave_subsection();
 
-                prm.declare_entry("number_of_subdivisions_in_x_direction_free", "0",
-                                  dealii::Patterns::Integer(0, dealii::Patterns::Integer::max_int_value),
-                                  "Number of subdivisions in the x direction of free area for flat plate meshes.");
-
-                prm.declare_entry("number_of_subdivisions_in_x_direction_plate", "0",
-                                  dealii::Patterns::Integer(0, dealii::Patterns::Integer::max_int_value),
-                                  "Number of subdivisions in the x direction of plate area for flat plate meshes.");
-
-                prm.declare_entry("number_of_subdivisions_in_y_direction", "0",
-                                  dealii::Patterns::Integer(0, dealii::Patterns::Integer::max_int_value),
-                                  "Number of subdivisions in the y direction for flat plate meshes.");
-
-                prm.declare_entry("number_of_subdivisions_in_z_direction", "0",
-                                  dealii::Patterns::Integer(0, dealii::Patterns::Integer::max_int_value),
-                                  "Number of subdivisions in the z direction for flat plate meshes.");
-            }
-            prm.leave_subsection();
-
-            prm.enter_subsection("airfoil_2D");
-            {
-                prm.declare_entry("airfoil_length", "1.0",
-                                  dealii::Patterns::Double(0, dealii::Patterns::Double::max_double_value),
-                                  "Lenght of airfoil.");
-
-                prm.declare_entry("height", "2.0",
-                                  dealii::Patterns::Double(0, dealii::Patterns::Double::max_double_value),
-                                  "Height of area surround airfoil.");
-
-                prm.declare_entry("length_b2", "2.0", 
-                                  dealii::Patterns::Double(0, dealii::Patterns::Double::max_double_value),
-                                  "Lenght between trailing edge and outlet farfield.");
-
-                prm.declare_entry("incline_factor", "0.0", 
-                                  dealii::Patterns::Double(0, dealii::Patterns::Double::max_double_value),
-                                  "Inclination factor.");
-
-                prm.declare_entry("bias_factor", "1.0", 
-                                  dealii::Patterns::Double(0, dealii::Patterns::Double::max_double_value),
-                                  "Bias factor.");
-
-                prm.declare_entry("refinements", "0", 
-                                  dealii::Patterns::Integer(0, dealii::Patterns::Integer::max_int_value),
-                                  "Number of global refinements.");
-
-                prm.declare_entry("n_subdivision_x_0", "30", 
-                                  dealii::Patterns::Integer(0, dealii::Patterns::Integer::max_int_value),
-                                  "Number of subdivisions along the airfoil in left block.");
-
-                prm.declare_entry("n_subdivision_x_1", "10",
-                                  dealii::Patterns::Integer(0, dealii::Patterns::Integer::max_int_value),
-                                  "Number of subdivisions along the airfoil in middle block.");
-
-                prm.declare_entry("n_subdivision_x_2", "30",
-                                  dealii::Patterns::Integer(0, dealii::Patterns::Integer::max_int_value),
-                                  "Number of subdivisions along the airfoil in right block.");
-
-                prm.declare_entry("n_subdivision_y", "20",
-                                  dealii::Patterns::Integer(0, dealii::Patterns::Integer::max_int_value),
-                                  "Number of subdivisions normal to the airfoil contour.");
-
-                prm.declare_entry("airfoil_sampling_factor", "3",
-                                  dealii::Patterns::Integer(0, dealii::Patterns::Integer::max_int_value),
-                                  "Airfoil sampling factor.");
-            }
-            prm.leave_subsection();
         }
         prm.leave_subsection();
 
@@ -346,10 +320,12 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
                               "Choices are "
                               " <uniform | "
                               " isothermal>.");
+            
             prm.declare_entry("do_calculate_numerical_entropy", "false",
                               dealii::Patterns::Bool(),
                               "Flag to calculate numerical entropy and write to file. By default, do not calculate.");
-            prm.declare_entry("check_nonphysical_flow_case_behavior", "false",
+
+            prm.declare_entry("check_nonphysical_flow_case_behavior", "true",
                               dealii::Patterns::Bool(),
                               "Flag to check if non-physical case dependant behaviour is encounted. By default, false.");
         }
@@ -389,11 +365,13 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
                               dealii::Patterns::Selection(
                               " gullbrand | "
                               " carton_de_wiart_et_al | "
+                              " uniform_mesh_no_stretching | "
                               " hopw "),
                               "The type of mesh stretching function for channel flow case. "
                               "Choices are "
                               " <gullbrand | "
                               " carton_de_wiart_et_al | "
+                              " uniform_mesh_no_stretching | "
                               " hopw>.");
             prm.declare_entry("xvelocity_initial_condition_type", "laminar",
                               dealii::Patterns::Selection(
@@ -408,6 +386,29 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
             prm.declare_entry("relaxation_coefficient_for_turbulent_channel_flow_source_term", "0.0",
                               dealii::Patterns::Double(-dealii::Patterns::Double::max_double_value, dealii::Patterns::Double::max_double_value),
                               "Relaxation coefficient for the turbulent channel flow source term. Default is 0.");
+            prm.declare_entry("expected_average_wall_shear_stress_at_final_time", "1",
+                              dealii::Patterns::Double(0, dealii::Patterns::Double::max_double_value),
+                              "For integration test purposes, expected average wall shear stress at final time.");
+            prm.declare_entry("expected_skin_friction_coefficient_at_final_time", "1",
+                              dealii::Patterns::Double(0, dealii::Patterns::Double::max_double_value),
+                              "For integration test purposes, expected skin friction coefficient at final time.");
+        }
+        prm.leave_subsection();
+
+        prm.enter_subsection("dipole_wall_collision");
+        {
+            prm.declare_entry("do_use_stretched_mesh", "false",
+                              dealii::Patterns::Bool(),
+                              "Flag to use stretched mesh. By default, false (i.e. use uniform mesh).");
+            prm.declare_entry("do_compute_angular_momentum", "false",
+                              dealii::Patterns::Bool(),
+                              "Flag to compute the angular momentum. By default, false.");
+            prm.declare_entry("expected_enstrophy_at_final_time", "1",
+                              dealii::Patterns::Double(0, dealii::Patterns::Double::max_double_value),
+                              "For integration test purposes, expected enstrophy at final time.");
+            prm.declare_entry("expected_palinstrophy_at_final_time", "1",
+                              dealii::Patterns::Double(0, dealii::Patterns::Double::max_double_value),
+                              "For integration test purposes, expected palinstrophy at final time.");
         }
         prm.leave_subsection();
 
@@ -417,6 +418,21 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
                               dealii::Patterns::Double(0.0, 1.0),
                               "Atwood number, which characterizes the density difference "
                               "between the layers of fluid.");
+        }
+        prm.leave_subsection();
+
+        prm.enter_subsection("ESFR_parameter_tests");
+        {
+            prm.declare_entry("number_ESFR_parameter_values", "0",
+                              dealii::Patterns::Integer(),
+                              "Number of tested ESFR parameter values");
+            prm.declare_entry("ESFR_parameter_values_start", "1e-3",
+                              dealii::Patterns::Double(0.0, dealii::Patterns::Double::max_double_value),
+                              "Minimum ESFR parameter values >0 since logspace vector");
+          
+            prm.declare_entry("ESFR_parameter_values_end", "1e-3",
+                              dealii::Patterns::Double(0.0, dealii::Patterns::Double::max_double_value),
+                              "Maximum ESFR parameter values >0 since logspace vector");
         }
         prm.leave_subsection();
 
@@ -462,19 +478,23 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
 
             prm.declare_entry("do_compute_time_averaged_solution", "false",
                               dealii::Patterns::Bool(),
-                              "Compute time averaged solution on the fly (for example, to get velocity fluctuations). False by default.");
+                              "Compute time-averaged solution for turbulent cases on the fly. False by default.");
             prm.declare_entry("time_to_start_averaging", "0.0",
                               dealii::Patterns::Double(0, dealii::Patterns::Double::max_double_value),
-                              "Time after which the time avering of the solution starts. 0.0 default.");
+                              "Time to start time-averaged solution. 0.0 default.");
             prm.declare_entry("do_compute_Reynolds_stress", "false",
                               dealii::Patterns::Bool(),
-                              "Compute time averaged solution on the fly (for example, to get velocity fluctuations). False by default.");
+                              "Compute Reynolds stresses on the fly. False by default.");
             prm.declare_entry("time_to_start_computing_Reynolds_stress", "0.0",
                               dealii::Patterns::Double(0, dealii::Patterns::Double::max_double_value),
-                              "Time after which the time avering of the solution starts. 0.0 default.");            
+                              "Time to start computing Reynolds stresse. 0.0 default.");            
             prm.declare_entry("output_flow_field_files_directory_name", ".",
                               dealii::Patterns::FileName(dealii::Patterns::FileName::FileType::input),
                               "Name of directory for writing flow field files. Current directory by default.");
+
+            prm.declare_entry("output_velocity_number_of_subvisions","2",
+                              dealii::Patterns::Integer(1, dealii::Patterns::Integer::max_int_value),
+                              "Number of subdivisions to apply when writting the velocity field at equidistant nodes.");
         }
         prm.leave_subsection();
 
@@ -492,6 +512,8 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
 
 void FlowSolverParam::parse_parameters(dealii::ParameterHandler &prm)
 {   
+    const int mpi_rank = dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD);
+    dealii::ConditionalOStream pcout(std::cout, mpi_rank==0);
     prm.enter_subsection("flow_solver");
     {
         const std::string flow_case_type_string = prm.get("flow_case_type");
@@ -511,34 +533,60 @@ void FlowSolverParam::parse_parameters(dealii::ParameterHandler &prm)
         else if (flow_case_type_string == "kelvin_helmholtz_instability")   
                                                                         {flow_case_type = kelvin_helmholtz_instability;}
         else if (flow_case_type_string == "non_periodic_cube_flow")     {flow_case_type = non_periodic_cube_flow;}
-        else if (flow_case_type_string == "sshock")                     {flow_case_type = sshock;}
-        else if (flow_case_type_string == "wall_distance_evaluation")   {flow_case_type = wall_distance_evaluation;}
-        else if (flow_case_type_string == "flat_plate_2D")              {flow_case_type = flat_plate_2D;}
-        else if (flow_case_type_string == "airfoil_2D")                 {flow_case_type = airfoil_2D;}
-        else if (flow_case_type_string == "turbulent_airfoil_3D")                   {flow_case_type = turbulent_airfoil_3D;}
-
+        else if (flow_case_type_string == "turbulent_airfoil_3D")       {flow_case_type = turbulent_airfoil_3D;}
+        // Positivity Preserving Tests
+        else if (flow_case_type_string == "sod_shock_tube")             {flow_case_type = sod_shock_tube;}
+        else if (flow_case_type_string == "low_density")                {flow_case_type = low_density;}
+        else if (flow_case_type_string == "leblanc_shock_tube")         {flow_case_type = leblanc_shock_tube;}
+        else if (flow_case_type_string == "shu_osher_problem")          {flow_case_type = shu_osher_problem;}
+        else if (flow_case_type_string == "advection_limiter")          {flow_case_type = advection_limiter;}
+        else if (flow_case_type_string == "burgers_limiter")            {flow_case_type = burgers_limiter;}
+        else if (flow_case_type_string == "dipole_wall_collision_normal")     
+                                                                        {flow_case_type = dipole_wall_collision_normal;}
+        else if (flow_case_type_string == "dipole_wall_collision_oblique")
+                                                                        {flow_case_type = dipole_wall_collision_oblique;}
+        else if (flow_case_type_string == "double_mach_reflection")     {flow_case_type = double_mach_reflection;}
+        else if (flow_case_type_string == "shock_diffraction")          {flow_case_type = shock_diffraction;}
+        else if (flow_case_type_string == "astrophysical_jet")          {flow_case_type = astrophysical_jet;}
+        else if (flow_case_type_string == "strong_vortex_shock_wave")   {flow_case_type = strong_vortex_shock_wave;}
+        // Multispecies Tests
+        else if (flow_case_type_string == "multi_species_vortex_advection")            {flow_case_type = multi_species_vortex_advection;}
+        else if (flow_case_type_string == "multi_species_vortex_advection_high_temp")  {flow_case_type = multi_species_vortex_advection_high_temp;}
+        else if (flow_case_type_string == "multi_species_sod_shock_tube")              {flow_case_type = multi_species_sod_shock_tube;}
+        else if (flow_case_type_string == "multi_species_isentropic_vortex")           {flow_case_type = multi_species_isentropic_vortex;}
+        
         poly_degree = prm.get_integer("poly_degree");
         
         // get max poly degree for adaptation
         max_poly_degree_for_adaptation = prm.get_integer("max_poly_degree_for_adaptation");
         // -- set value to poly_degree if it is the default value
         if(max_poly_degree_for_adaptation == 0) max_poly_degree_for_adaptation = poly_degree;
-        
         final_time = prm.get_double("final_time");
         constant_time_step = prm.get_double("constant_time_step");
         courant_friedrichs_lewy_number = prm.get_double("courant_friedrichs_lewy_number");
         unsteady_data_table_filename = prm.get("unsteady_data_table_filename");
         steady_state = prm.get_bool("steady_state");
         steady_state_polynomial_ramping = prm.get_bool("steady_state_polynomial_ramping");
+        error_adaptive_time_step = prm.get_bool("error_adaptive_time_step");
         adaptive_time_step = prm.get_bool("adaptive_time_step");
         sensitivity_table_filename = prm.get("sensitivity_table_filename");
         restart_computation_from_file = prm.get_bool("restart_computation_from_file");
         output_restart_files = prm.get_bool("output_restart_files");
         restart_files_directory_name = prm.get("restart_files_directory_name");
+        if(output_restart_files){
+          // Check if directory exists - see https://stackoverflow.com/a/18101042
+          struct stat info_restart;
+          if( stat( restart_files_directory_name.c_str(), &info_restart ) != 0 ){
+              pcout << "Error: No restart files directory named " << restart_files_directory_name << " exists." << std::endl
+                        << "Please create the directory and restart. Aborting..." << std::endl;
+              std::abort();
+          }
+        }
         restart_file_index = prm.get_integer("restart_file_index");
         output_restart_files_every_x_steps = prm.get_integer("output_restart_files_every_x_steps");
         output_restart_files_every_dt_time_intervals = prm.get_double("output_restart_files_every_dt_time_intervals");
         write_unsteady_data_table_file_every_dt_time_intervals = prm.get_double("write_unsteady_data_table_file_every_dt_time_intervals");
+        expected_order_at_final_time = prm.get_double("expected_order_at_final_time");
 
         prm.enter_subsection("grid");
         {
@@ -576,39 +624,21 @@ void FlowSolverParam::parse_parameters(dealii::ParameterHandler &prm)
             }
             prm.leave_subsection();
 
-            // prm.enter_subsection("flat_plate_2D");
-            // {
-            //     number_of_subdivisions_in_x_direction_free = prm.get_integer("number_of_subdivisions_in_x_direction_free");
-            //     number_of_subdivisions_in_x_direction_plate = prm.get_integer("number_of_subdivisions_in_x_direction_plate");
-            //     number_of_subdivisions_in_y_direction = prm.get_integer("number_of_subdivisions_in_y_direction");
-            //     number_of_subdivisions_in_z_direction = prm.get_integer("number_of_subdivisions_in_z_direction");
-            //     free_length = prm.get_double("free_length");
-            //     free_height = prm.get_double("free_height");
-            //     plate_length = prm.get_double("plate_length");
-            //     skewness_x_free = prm.get_double("skewness_x_free");
-            //     skewness_x_plate = prm.get_double("skewness_x_plate");
-            //     skewness_y = prm.get_double("skewness_y");
-            //     skewness_z = prm.get_double("skewness_z");
-            // }
-            // prm.leave_subsection();
-
-            prm.enter_subsection("airfoil_2D");
+            prm.enter_subsection("grid_rectangle");
             {
-                airfoil_length = prm.get_double("airfoil_length");
-                height = prm.get_double("height");
-                length_b2 = prm.get_double("length_b2");
-                incline_factor = prm.get_double("incline_factor");
-                bias_factor = prm.get_double("bias_factor");
-                refinements = prm.get_integer("refinements");
-                n_subdivision_x_0 = prm.get_integer("n_subdivision_x_0");
-                n_subdivision_x_1 = prm.get_integer("n_subdivision_x_1");
-                n_subdivision_x_2 = prm.get_integer("n_subdivision_x_2");
-                n_subdivision_y = prm.get_integer("n_subdivision_y");
-                airfoil_sampling_factor = prm.get_integer("airfoil_sampling_factor");
+                grid_top_bound = prm.get_double("grid_top_bound");
+                grid_bottom_bound = prm.get_double("grid_bottom_bound");
+                grid_z_upper_bound = prm.get_double("grid_z_upper_bound");
+                grid_z_lower_bound = prm.get_double("grid_z_lower_bound");
+
+                number_of_grid_elements_x = prm.get_integer("number_of_grid_elements_x");
+                number_of_grid_elements_y = prm.get_integer("number_of_grid_elements_y");
+                number_of_grid_elements_z = prm.get_integer("number_of_grid_elements_z");
             }
             prm.leave_subsection();
         }       
         prm.leave_subsection();
+
 
         prm.enter_subsection("taylor_green_vortex");
         {
@@ -636,17 +666,38 @@ void FlowSolverParam::parse_parameters(dealii::ParameterHandler &prm)
             if      (turbulent_channel_mesh_stretching_function_type_string == "gullbrand")             {turbulent_channel_mesh_stretching_function_type = gullbrand;}
             else if (turbulent_channel_mesh_stretching_function_type_string == "hopw")                  {turbulent_channel_mesh_stretching_function_type = hopw;}
             else if (turbulent_channel_mesh_stretching_function_type_string == "carton_de_wiart_et_al") {turbulent_channel_mesh_stretching_function_type = carton_de_wiart_et_al;}
+            else if (turbulent_channel_mesh_stretching_function_type_string == "uniform_mesh_no_stretching") 
+                                                                                                        {turbulent_channel_mesh_stretching_function_type = uniform_mesh_no_stretching;}
             const std::string xvelocity_initial_condition_type_string = prm.get("xvelocity_initial_condition_type");
             if      (xvelocity_initial_condition_type_string == "laminar")      {xvelocity_initial_condition_type = laminar;}
             else if (xvelocity_initial_condition_type_string == "turbulent")    {xvelocity_initial_condition_type = turbulent;}
             else if (xvelocity_initial_condition_type_string == "manufactured") {xvelocity_initial_condition_type = manufactured;}
             relaxation_coefficient_for_turbulent_channel_flow_source_term = prm.get_double("relaxation_coefficient_for_turbulent_channel_flow_source_term");
+            expected_average_wall_shear_stress_at_final_time = prm.get_double("expected_average_wall_shear_stress_at_final_time");
+            expected_skin_friction_coefficient_at_final_time = prm.get_double("expected_skin_friction_coefficient_at_final_time");
+        }
+        prm.leave_subsection();
+
+        prm.enter_subsection("dipole_wall_collision");
+        {
+            do_use_stretched_mesh = prm.get_bool("do_use_stretched_mesh");
+            do_compute_angular_momentum = prm.get_bool("do_compute_angular_momentum");
+            expected_enstrophy_at_final_time = prm.get_double("expected_enstrophy_at_final_time");
+            expected_palinstrophy_at_final_time = prm.get_double("expected_palinstrophy_at_final_time");
         }
         prm.leave_subsection();
 
         prm.enter_subsection("kelvin_helmholtz_instability");
         {
             atwood_number = prm.get_double("atwood_number");
+        }
+        prm.leave_subsection();
+
+        prm.enter_subsection("ESFR_parameter_tests");
+        {
+            number_ESFR_parameter_values = prm.get_integer("number_ESFR_parameter_values");
+            ESFR_parameter_values_start = prm.get_double("ESFR_parameter_values_start");
+            ESFR_parameter_values_end = prm.get_double("ESFR_parameter_values_end");
         }
         prm.leave_subsection();
 
@@ -670,6 +721,16 @@ void FlowSolverParam::parse_parameters(dealii::ParameterHandler &prm)
           do_compute_Reynolds_stress = prm.get_bool("do_compute_Reynolds_stress");
           time_to_start_computing_Reynolds_stress = prm.get_double("time_to_start_computing_Reynolds_stress");
           output_flow_field_files_directory_name = prm.get("output_flow_field_files_directory_name");
+          if(output_velocity_field_at_fixed_times && (number_of_times_to_output_velocity_field > 0)){
+            // Check if directory exists - see https://stackoverflow.com/a/18101042
+            struct stat info_flow;
+            if( stat( output_flow_field_files_directory_name.c_str(), &info_flow ) != 0 ){
+                pcout << "Error: No flow field files directory named " << output_flow_field_files_directory_name << " exists." << std::endl
+                          << "Please create the directory and restart. Aborting..." << std::endl;
+                std::abort();
+            }
+          }
+          output_velocity_number_of_subvisions = prm.get_integer("output_velocity_number_of_subvisions");
         }
         prm.leave_subsection();
 

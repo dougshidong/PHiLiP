@@ -27,7 +27,7 @@ subsection mesh adaptation
   set mesh_adaptation_type = anisotropic_adaptation
   set use_goal_oriented_mesh_adaptation = true
   subsection anisotropic
-    set mesh_complexity_anisotropic_adaptation = 50.0
+    set mesh_complexity_anisotropic_adaptation = 100.0
     set norm_Lp_anisotropic_adaptation = 1.0
   end
 end
@@ -77,6 +77,6 @@ subsection flow_solver
   set poly_degree = 1
   set max_poly_degree_for_adaptation = 2
   subsection grid
-    set number_of_mesh_refinements = 4
+    set number_of_mesh_refinements = 2
   end
 end

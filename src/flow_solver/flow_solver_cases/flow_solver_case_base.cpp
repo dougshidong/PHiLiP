@@ -3,9 +3,9 @@
 namespace PHiLiP {
 namespace FlowSolver {
 
-template<int dim, int nstate>
-FlowSolverCaseBase<dim, nstate>::FlowSolverCaseBase(const PHiLiP::Parameters::AllParameters *const parameters_input)
-        : initial_condition_function(InitialConditionFactory<dim, nstate, double>::create_InitialConditionFunction(parameters_input))
+template<int dim, int nspecies, int nstate>
+FlowSolverCaseBase<dim, nspecies, nstate>::FlowSolverCaseBase(const PHiLiP::Parameters::AllParameters *const parameters_input)
+        : initial_condition_function(InitialConditionFactory<dim, nspecies, nstate, double>::create_InitialConditionFunction(parameters_input))
         , all_param(*parameters_input)
         , mpi_communicator(MPI_COMM_WORLD)
         , mpi_rank(dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD))
@@ -13,8 +13,8 @@ FlowSolverCaseBase<dim, nstate>::FlowSolverCaseBase(const PHiLiP::Parameters::Al
         , pcout(std::cout, mpi_rank==0)
         {}
 
-template<int dim, int nstate>
-std::string FlowSolverCaseBase<dim, nstate>::get_pde_string() const
+template<int dim, int nspecies, int nstate>
+std::string FlowSolverCaseBase<dim, nspecies, nstate>::get_pde_string() const
 {
     using PDE_enum       = Parameters::AllParameters::PartialDifferentialEquation;
     using Model_enum     = Parameters::AllParameters::ModelType;
@@ -33,6 +33,11 @@ std::string FlowSolverCaseBase<dim, nstate>::get_pde_string() const
     if (pde_type == PDE_enum::mhd)                  {pde_string = "mhd";}
     if (pde_type == PDE_enum::euler)                {pde_string = "euler";}
     if (pde_type == PDE_enum::navier_stokes)        {pde_string = "navier_stokes";}
+    if (pde_type == PDE_enum::navier_stokes_channel_flow_constant_source_term) 
+                                                    {pde_string = "navier_stokes_channel_flow_constant_source_term";}
+    if (pde_type == PDE_enum::navier_stokes_channel_flow_constant_source_term_wall_model)
+                                                    {pde_string = "navier_stokes_channel_flow_constant_source_term_wall_model";}
+    
     if (pde_type == PDE_enum::physics_model || pde_type == PDE_enum::physics_model_filtered) {
         if(pde_type == PDE_enum::physics_model) pde_string = "physics_model";
         else if(pde_type == PDE_enum::physics_model_filtered) pde_string = "physics_model_filtered";
@@ -76,8 +81,8 @@ std::string FlowSolverCaseBase<dim, nstate>::get_pde_string() const
     return pde_string;
 }
 
-template<int dim, int nstate>
-std::string FlowSolverCaseBase<dim, nstate>::get_flow_case_string() const
+template<int dim, int nspecies, int nstate>
+std::string FlowSolverCaseBase<dim, nspecies, nstate>::get_flow_case_string() const
 {
     // Get the flow case type
     using FlowCaseEnum = Parameters::FlowSolverParam::FlowCaseType;
@@ -85,17 +90,26 @@ std::string FlowSolverCaseBase<dim, nstate>::get_flow_case_string() const
     
     std::string flow_case_string;
     if (flow_case_type == FlowCaseEnum::taylor_green_vortex)        {flow_case_string = "taylor_green_vortex";}
+    if (flow_case_type == FlowCaseEnum::decaying_homogeneous_isotropic_turbulence)
+                                                                    {flow_case_string = "decaying_homogeneous_isotropic_turbulence";}
     if (flow_case_type == FlowCaseEnum::burgers_viscous_snapshot)   {flow_case_string = "burgers_viscous_snapshot";}
     if (flow_case_type == FlowCaseEnum::burgers_rewienski_snapshot) {flow_case_string = "burgers_rewienski_snapshot";}
     if (flow_case_type == FlowCaseEnum::naca0012)                   {flow_case_string = "naca0012";}
     if (flow_case_type == FlowCaseEnum::periodic_1D_unsteady)       {flow_case_string = "periodic_1D_unsteady";}
     if (flow_case_type == FlowCaseEnum::gaussian_bump)              {flow_case_string = "gaussian_bump";}
+    if (flow_case_type == FlowCaseEnum::advection_limiter)          {flow_case_string = "advection_limiter";}
+    if (flow_case_type == FlowCaseEnum::dipole_wall_collision_normal)
+                                                                    {flow_case_string = "dipole_wall_collision_normal";}
+    if (flow_case_type == FlowCaseEnum::dipole_wall_collision_oblique)
+                                                                    {flow_case_string = "dipole_wall_collision_oblique";}
+    if (flow_case_type == FlowCaseEnum::channel_flow)               {flow_case_string = "channel_flow";}
+                                                                
     
     return flow_case_string;
 }
 
-template <int dim, int nstate>
-void FlowSolverCaseBase<dim,nstate>::display_flow_solver_setup(std::shared_ptr<DGBase<dim,double>> dg) const
+template <int dim, int nspecies, int nstate>
+void FlowSolverCaseBase<dim,nspecies,nstate>::display_flow_solver_setup(std::shared_ptr<DGBase<dim,nspecies,double>> dg) const
 {
     const std::string pde_string = this->get_pde_string();
     pcout << "- PDE Type: " << pde_string << " " << "(dim=" << dim << ", nstate=" << nstate << ")" << std::endl;
@@ -107,6 +121,47 @@ void FlowSolverCaseBase<dim,nstate>::display_flow_solver_setup(std::shared_ptr<D
     const double number_of_degrees_of_freedom_per_dim = pow(number_of_degrees_of_freedom_per_state,(1.0/dim));
     pcout << "- Degrees of freedom (per state): " << number_of_degrees_of_freedom_per_state << " " << "(" << number_of_degrees_of_freedom_per_dim << " per state per dim)" << std::endl;
     pcout << "- Number of active cells: " << dg->triangulation->n_global_active_cells() << std::endl;
+    
+    const bool use_weak_form = this->all_param.use_weak_form;
+    
+    if (use_weak_form == false){
+        this->pcout << "- Using strong DG" << std::endl;
+
+        // only print c param for strong DG as FR is implemented only for strong
+        std::string c_parameter_string;
+        using FREnum = Parameters::AllParameters::Flux_Reconstruction;
+        FREnum fr_type = this->all_param.flux_reconstruction_type;
+        if (fr_type == FREnum::cDG)              c_parameter_string = "cDG";
+        else if (fr_type == FREnum::cSD)         c_parameter_string = "cSD";
+        else if (fr_type == FREnum::cHU)         c_parameter_string = "cHU";
+        else if (fr_type == FREnum::cNegative)   c_parameter_string = "cNegative";
+        else if (fr_type == FREnum::cNegative2)  c_parameter_string = "cNegative2";
+        else if (fr_type == FREnum::cPlus)       c_parameter_string = "cPlus";
+        else if (fr_type == FREnum::c10Thousand) c_parameter_string = "c10Thousand";
+        else if (fr_type == FREnum::cHULumped)   c_parameter_string = "cHULumped";
+
+        if (c_parameter_string == "cDG" ) {
+            // No additional output to indicate classical strong DG
+        } else {
+            if(fr_type == FREnum::user_specified_value) {
+                this->pcout << "- - Using user specified flux reconstruction c parameter: " 
+                            << this->all_param.FR_user_specified_correction_parameter_value 
+                            << std::endl;
+            }
+            else {
+                this->pcout << "- - Using flux reconstruction c parameter: " << c_parameter_string << std::endl;
+            }
+        }
+
+        const bool use_split_form = this->all_param.use_split_form;
+        if (use_split_form){
+            this->pcout << "- - Using split form " << std::endl;
+        }
+    }
+    else{
+        this->pcout << "- Using weak DG" << std::endl;
+
+    }
 
     const std::string flow_case_string = this->get_flow_case_string();
     pcout << "- Flow case: " << flow_case_string << " " << std::flush;
@@ -120,14 +175,14 @@ void FlowSolverCaseBase<dim,nstate>::display_flow_solver_setup(std::shared_ptr<D
     this->display_additional_flow_case_specific_parameters();
 }
 
-template <int dim, int nstate>
-void FlowSolverCaseBase<dim,nstate>::set_higher_order_grid(std::shared_ptr<DGBase<dim, double>> /*dg*/) const
+template <int dim, int nspecies, int nstate>
+void FlowSolverCaseBase<dim,nspecies,nstate>::set_higher_order_grid(std::shared_ptr<DGBase<dim, nspecies, double>> /*dg*/) const
 {
     // Do nothing
 }
 
-template <int dim, int nstate>
-double FlowSolverCaseBase<dim,nstate>::get_constant_time_step(std::shared_ptr<DGBase<dim,double>> /*dg*/) const
+template <int dim, int nspecies, int nstate>
+double FlowSolverCaseBase<dim,nspecies,nstate>::get_constant_time_step(std::shared_ptr<DGBase<dim,nspecies,double>> /*dg*/) const
 {
     if(all_param.flow_solver_param.constant_time_step > 0.0) {
         // Using constant time step in FlowSolver parameters.
@@ -138,41 +193,40 @@ double FlowSolverCaseBase<dim,nstate>::get_constant_time_step(std::shared_ptr<DG
     }
 }
 
-template <int dim, int nstate>
-double FlowSolverCaseBase<dim,nstate>::get_adaptive_time_step(std::shared_ptr<DGBase<dim,double>> /*dg*/) const
+template <int dim, int nspecies, int nstate>
+double FlowSolverCaseBase<dim,nspecies,nstate>::get_adaptive_time_step(std::shared_ptr<DGBase<dim,nspecies,double>> /*dg*/) const
 {
     pcout << "ERROR: Base definition for get_adaptive_time_step() has not yet been implemented. " <<std::flush;
     std::abort();
     return 0.0;
 }
 
-template <int dim, int nstate>
-double FlowSolverCaseBase<dim,nstate>::get_adaptive_time_step_initial(std::shared_ptr<DGBase<dim,double>> /*dg*/)
+template <int dim, int nspecies, int nstate>
+double FlowSolverCaseBase<dim,nspecies,nstate>::get_adaptive_time_step_initial(std::shared_ptr<DGBase<dim,nspecies,double>> /*dg*/)
 {
     pcout << "ERROR: Base definition for get_adaptive_time_step_initial() has not yet been implemented. " <<std::flush;
     std::abort();
     return 0.0;
 }
 
-template <int dim, int nstate>
-void FlowSolverCaseBase<dim, nstate>::steady_state_postprocessing(std::shared_ptr <DGBase<dim, double>> /*dg*/) const
+template <int dim, int nspecies, int nstate>
+void FlowSolverCaseBase<dim, nspecies, nstate>::steady_state_postprocessing(std::shared_ptr <DGBase<dim, nspecies, double>> /*dg*/) const
 {
     // do nothing by default
 }
 
-template <int dim, int nstate>
-void FlowSolverCaseBase<dim, nstate>::compute_unsteady_data_and_write_to_table(
-        const unsigned int /*current_iteration*/,
-        const double /*current_time*/,
-        const std::shared_ptr <DGBase<dim, double>> /*dg*/,
+template <int dim, int nspecies, int nstate>
+void FlowSolverCaseBase<dim, nspecies, nstate>::compute_unsteady_data_and_write_to_table(
+        const std::shared_ptr <ODE::ODESolverBase<dim, nspecies, double>> /*ode_solver*/,
+        const std::shared_ptr <DGBase<dim, nspecies, double>> /*dg*/,
         const std::shared_ptr <dealii::TableHandler> /*unsteady_data_table*/,
         const bool /*do_write_unsteady_data_table_file*/)
 {
     // do nothing by default
 }
 
-template <int dim, int nstate>
-void FlowSolverCaseBase<dim, nstate>::add_value_to_data_table(
+template <int dim, int nspecies, int nstate>
+void FlowSolverCaseBase<dim, nspecies, nstate>::add_value_to_data_table(
     const double value,
     const std::string value_string,
     const std::shared_ptr <dealii::TableHandler> data_table) const
@@ -182,44 +236,36 @@ void FlowSolverCaseBase<dim, nstate>::add_value_to_data_table(
     data_table->set_scientific(value_string, true);
 }
 
-template <int dim, int nstate>
-void FlowSolverCaseBase<dim, nstate>::set_time_step(
+template <int dim, int nspecies, int nstate>
+void FlowSolverCaseBase<dim, nspecies, nstate>::modify_dg_object(std::shared_ptr <DGBase<dim, nspecies, double>> /*dg*/) const
+{
+    // Do nothing by default
+}
+
+template <int dim, int nspecies, int nstate>
+void FlowSolverCaseBase<dim, nspecies, nstate>::set_time_step(
     const double time_step_input)
 {
     this->time_step = time_step_input;
 }
 
-template <int dim, int nstate>
-double FlowSolverCaseBase<dim, nstate>::get_time_step() const
+template <int dim, int nspecies, int nstate>
+double FlowSolverCaseBase<dim, nspecies, nstate>::get_time_step() const
 {
     return this->time_step;
 }
 
-template <int dim, int nstate>
-void FlowSolverCaseBase<dim, nstate>::compute_time_averaged_solution(
-    const std::shared_ptr <ODE::ODESolverBase<dim, double>> /*ode_solver*/,
-    const std::shared_ptr <DGBase<dim, double>> /*dg*/,
-    const double /*time_step*/)
-{
-    // do nothing by default
-}
+#if PHILIP_SPECIES==1
+    // Define a sequence of nstate in the range [1, 6]
+    #define POSSIBLE_NSTATE (1)(2)(3)(4)(5)(6)
 
-template <int dim, int nstate>
-void FlowSolverCaseBase<dim, nstate>::compute_Reynolds_stress(
-    const std::shared_ptr <ODE::ODESolverBase<dim, double>> /*ode_solver*/,
-    const std::shared_ptr <DGBase<dim, double>> /*dg*/,
-    const double /*time_step*/)
-{
-    // do nothing by default
-}
-
-
-template class FlowSolverCaseBase<PHILIP_DIM,1>;
-template class FlowSolverCaseBase<PHILIP_DIM,2>;
-template class FlowSolverCaseBase<PHILIP_DIM,3>;
-template class FlowSolverCaseBase<PHILIP_DIM,4>;
-template class FlowSolverCaseBase<PHILIP_DIM,5>;
-template class FlowSolverCaseBase<PHILIP_DIM,6>;
+    // Define a macro to instantiate FlowSolverCaseBase for a specific nstate
+    #define INSTANTIATE_FLOWSOLVER(r, data, nstate) \
+        template class FlowSolverCaseBase<PHILIP_DIM, PHILIP_SPECIES,nstate>;
+    BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_FLOWSOLVER, _, POSSIBLE_NSTATE)
+#else
+    template class FlowSolverCaseBase<PHILIP_DIM, PHILIP_SPECIES,PHILIP_DIM+PHILIP_SPECIES+1>;
+#endif
 
 } // FlowSolver namespace
 } // PHiLiP namespace

@@ -12,7 +12,7 @@ namespace Tests {
  * Entropy is not conserved by KG, but a tolerance has been set based on the 
  * expected behaviour of the test.
  */
-template <int dim, int nstate>
+template <int dim, int nspecies, int nstate>
 class EulerSplitEntropyCheck: public TestsBase
 {
 public:
@@ -20,9 +20,6 @@ public:
     EulerSplitEntropyCheck(
         const Parameters::AllParameters *const parameters_input,
         const dealii::ParameterHandler &parameter_handler_input);
-
-    /// Destructor
-    ~EulerSplitEntropyCheck() {};
 
     /// Parameter handler for storing the .prm file being ran
     const dealii::ParameterHandler &parameter_handler;

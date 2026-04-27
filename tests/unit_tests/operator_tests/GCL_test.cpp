@@ -35,18 +35,18 @@
 
 // Finally, we take our exact solution from the library as well as volume_quadrature
 // and additional tools.
+#include <deal.II/fe/mapping_q.h>
+#include <deal.II/grid/manifold_lib.h>
 #include <deal.II/numerics/data_out.h>
 #include <deal.II/numerics/data_out_dof_data.h>
 #include <deal.II/numerics/vector_tools.h>
 #include <deal.II/numerics/vector_tools.templates.h>
 
-#include "parameters/all_parameters.h"
-#include "parameters/parameters.h"
-#include "dg/dg.h"
-#include <deal.II/grid/manifold_lib.h>
-#include <deal.II/fe/mapping_q.h>
+#include "dg/dg_base.hpp"
 #include "dg/dg_factory.hpp"
 #include "operators/operators.h"
+#include "parameters/all_parameters.h"
+#include "parameters/parameters.h"
 //#include <GCL_test.h>
 
 const double TOLERANCE = 1E-6;
@@ -244,6 +244,7 @@ int main (int argc, char * argv[])
     using namespace PHiLiP;
     std::cout << std::setprecision(std::numeric_limits<long double>::digits10 + 1) << std::scientific;
     const int dim = PHILIP_DIM;
+    const int nspecies = 1;
     const int nstate = 1;
     dealii::ParameterHandler parameter_handler;
     PHiLiP::Parameters::AllParameters::declare_parameters (parameter_handler);
@@ -279,7 +280,7 @@ int main (int argc, char * argv[])
     for(unsigned int poly_degree = 2; poly_degree<5; poly_degree++){
         unsigned int grid_degree = poly_degree;
 
-        std::shared_ptr < PHiLiP::DGBase<dim, double> > dg = PHiLiP::DGFactory<dim,double>::create_discontinuous_galerkin(&all_parameters_new, poly_degree, poly_degree, grid_degree, grid);
+        std::shared_ptr < PHiLiP::DGBase<dim, nspecies, double> > dg = PHiLiP::DGFactory<dim,nspecies,double>::create_discontinuous_galerkin(&all_parameters_new, poly_degree, poly_degree, grid_degree, grid);
         dg->allocate_system ();
 
         dealii::QGaussLobatto<1> grid_quad(grid_degree +1);

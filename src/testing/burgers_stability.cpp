@@ -1,39 +1,40 @@
-#include <deal.II/base/tensor.h>
+#include "burgers_stability.h"
+
+#include <deal.II/base/convergence_table.h>
 #include <deal.II/base/function.h>
-#include <deal.II/numerics/data_out.h>
-#include <deal.II/numerics/vector_tools.h>
-#include <deal.II/numerics/solution_transfer.h>
-#include <deal.II/base/numbers.h>
 #include <deal.II/base/function_parser.h>
+#include <deal.II/base/numbers.h>
+#include <deal.II/base/tensor.h>
 #include <deal.II/grid/grid_generator.h>
+#include <deal.II/grid/grid_in.h>
+#include <deal.II/grid/grid_out.h>
 #include <deal.II/grid/grid_refinement.h>
 #include <deal.II/grid/grid_tools.h>
-#include <deal.II/grid/grid_out.h>
-#include <deal.II/grid/grid_in.h>
-#include <deal.II/base/convergence_table.h>
+#include <deal.II/numerics/data_out.h>
+#include <deal.II/numerics/solution_transfer.h>
+#include <deal.II/numerics/vector_tools.h>
 
-#include "burgers_stability.h"
-#include "parameters/all_parameters.h"
-#include "parameters/parameters.h"
-#include "dg/dg.h"
+#include <fstream>
+
+#include "dg/dg_base.hpp"
 #include "dg/dg_factory.hpp"
 #include "ode_solver/ode_solver_base.h"
-#include <fstream>
 #include "ode_solver/ode_solver_factory.h"
-#include "physics/initial_conditions/set_initial_condition.h"
+#include "parameters/all_parameters.h"
+#include "parameters/parameters.h"
 #include "physics/initial_conditions/initial_condition_function.h"
-
+#include "physics/initial_conditions/set_initial_condition.h"
 
 namespace PHiLiP {
 namespace Tests {
 
-template <int dim, int nstate>
-BurgersEnergyStability<dim, nstate>::BurgersEnergyStability(const PHiLiP::Parameters::AllParameters *const parameters_input)
+template <int dim, int nspecies, int nstate>
+BurgersEnergyStability<dim, nspecies, nstate>::BurgersEnergyStability(const PHiLiP::Parameters::AllParameters *const parameters_input)
 : TestsBase::TestsBase(parameters_input)
 {}
 
-template<int dim, int nstate>
-double BurgersEnergyStability<dim, nstate>::compute_energy(std::shared_ptr < PHiLiP::DGBase<dim, double> > &dg) const
+template<int dim, int nspecies, int nstate>
+double BurgersEnergyStability<dim, nspecies, nstate>::compute_energy(std::shared_ptr < PHiLiP::DGBase<dim, nspecies, double> > &dg) const
 {
     double energy = 0.0;
     dealii::LinearAlgebra::distributed::Vector<double> mass_matrix_times_solution(dg->right_hand_side);
@@ -48,8 +49,8 @@ double BurgersEnergyStability<dim, nstate>::compute_energy(std::shared_ptr < PHi
     return energy;
 }
 
-template<int dim, int nstate>
-double BurgersEnergyStability<dim, nstate>::compute_conservation(std::shared_ptr < PHiLiP::DGBase<dim, double> > &dg, const double poly_degree) const
+template<int dim, int nspecies, int nstate>
+double BurgersEnergyStability<dim, nspecies, nstate>::compute_conservation(std::shared_ptr < PHiLiP::DGBase<dim, nspecies, double> > &dg, const double poly_degree) const
 {
     // Conservation \f$ =  \int 1 * u d\Omega_m \f$
     double conservation = 0.0;
@@ -85,8 +86,8 @@ double BurgersEnergyStability<dim, nstate>::compute_conservation(std::shared_ptr
     return conservation;
 }
 
-template <int dim, int nstate>
-int BurgersEnergyStability<dim, nstate>::run_test() const
+template <int dim, int nspecies, int nstate>
+int BurgersEnergyStability<dim, nspecies, nstate>::run_test() const
 {
     pcout << " Running Burgers energy stability. " << std::endl;
 
@@ -142,19 +143,19 @@ int BurgersEnergyStability<dim, nstate>::run_test() const
         all_parameters_new.ode_solver_param.initial_time_step =  0.0001;
         
         //allocate dg
-        std::shared_ptr < PHiLiP::DGBase<dim, double> > dg = PHiLiP::DGFactory<dim,double>::create_discontinuous_galerkin(&all_parameters_new, poly_degree, poly_degree, grid_degree, grid);
+        std::shared_ptr < PHiLiP::DGBase<dim, nspecies, double> > dg = PHiLiP::DGFactory<dim,nspecies,double>::create_discontinuous_galerkin(&all_parameters_new, poly_degree, poly_degree, grid_degree, grid);
         pcout << "dg created" <<std::endl;
         dg->allocate_system (false,false,false);
          
         //initialize IC
         pcout<<"Setting up Initial Condition"<<std::endl;
         // Create initial condition function
-        std::shared_ptr< InitialConditionFunction<dim,nstate,double> > initial_condition_function = 
-            InitialConditionFactory<dim,nstate,double>::create_InitialConditionFunction(&all_parameters_new);
-        SetInitialCondition<dim,nstate,double>::set_initial_condition(initial_condition_function, dg, &all_parameters_new);
+        std::shared_ptr< InitialConditionFunction<dim,nspecies,nstate,double> > initial_condition_function = 
+            InitialConditionFactory<dim,nspecies,nstate,double>::create_InitialConditionFunction(&all_parameters_new);
+        SetInitialCondition<dim,nspecies,nstate,double>::set_initial_condition(initial_condition_function, dg, &all_parameters_new);
 
         // Create ODE solver using the factory and providing the DG object
-        std::shared_ptr<ODE::ODESolverBase<dim, double>> ode_solver = ODE::ODESolverFactory<dim, double>::create_ODESolver(dg);
+        std::shared_ptr<ODE::ODESolverBase<dim, nspecies, double>> ode_solver = ODE::ODESolverFactory<dim, nspecies, double>::create_ODESolver(dg);
 
         double finalTime = 3.0;
 
@@ -286,11 +287,11 @@ int BurgersEnergyStability<dim, nstate>::run_test() const
                     }
 
                     for (int istate=0; istate<nstate; ++istate) {
-                    const dealii::Point<dim> qpoint = (fe_values_extra.quadrature_point(iquad));
-                    double uexact = 0.0;
-                    for(int idim=0; idim<dim; idim++){
-                        uexact += cos(pi*(qpoint[idim]-finalTime));//for grid 1-3
-                    }
+                        const dealii::Point<dim> qpoint = (fe_values_extra.quadrature_point(iquad));
+                        double uexact = 0.0;
+                        for(int idim=0; idim<dim; idim++){
+                            uexact += cos(pi*(qpoint[idim]-finalTime));//for grid 1-3
+                        }
                         l2error += pow(soln_at_q[istate] - uexact, 2) * fe_values_extra.JxW(iquad);
                     }
                 }
@@ -347,8 +348,8 @@ int BurgersEnergyStability<dim, nstate>::run_test() const
     return 0; //if got to here means passed the test, otherwise would've failed earlier
 }
 
-#if PHILIP_DIM==1
-template class BurgersEnergyStability<PHILIP_DIM,PHILIP_DIM>;
+#if PHILIP_DIM==1 && PHILIP_SPECIES==1
+template class BurgersEnergyStability<PHILIP_DIM, PHILIP_SPECIES,PHILIP_DIM>;
 #endif
 
 } // Tests namespace

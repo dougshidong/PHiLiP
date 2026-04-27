@@ -56,19 +56,19 @@ unsigned int d2R_mult;
 
 namespace PHiLiP {
 
-template <int dim, typename real, typename MeshType>
-DGBase<dim,real,MeshType>::DGBase(
+template <int dim, int nspecies, typename real, typename MeshType>
+DGBase<dim,nspecies,real,MeshType>::DGBase(
     const int nstate_input,
     const Parameters::AllParameters *const parameters_input,
     const unsigned int degree,
     const unsigned int max_degree_input,
     const unsigned int grid_degree_input,
     const std::shared_ptr<Triangulation> triangulation_input)
-    : DGBase<dim,real,MeshType>(nstate_input, parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input, this->create_collection_tuple(max_degree_input, nstate_input, parameters_input))
+    : DGBase<dim,nspecies,real,MeshType>(nstate_input, parameters_input, degree, max_degree_input, grid_degree_input, triangulation_input, this->create_collection_tuple(max_degree_input, nstate_input, parameters_input))
 { }
 
-template <int dim, typename real, typename MeshType>
-DGBase<dim,real,MeshType>::DGBase(
+template <int dim, int nspecies, typename real, typename MeshType>
+DGBase<dim,nspecies,real,MeshType>::DGBase(
     const int nstate_input,
     const Parameters::AllParameters *const parameters_input,
     const unsigned int degree,
@@ -92,9 +92,9 @@ DGBase<dim,real,MeshType>::DGBase(
     , oneD_quadrature_collection(std::get<7>(collection_tuple))
     , oneD_face_quadrature(max_degree)
     , dof_handler(*triangulation, true)
-    , fe_q_artificial_dissipation(0)
-    , dof_handler_artificial_dissipation(*triangulation, false)
     , high_order_grid(std::make_shared<HighOrderGrid<dim,real,MeshType>>(grid_degree_input, triangulation, all_parameters->check_valid_metric_Jacobian, all_parameters->do_renumber_dofs, all_parameters->output_high_order_grid))
+    , fe_q_artificial_dissipation(1)
+    , dof_handler_artificial_dissipation(*triangulation, false)
     , mpi_communicator(MPI_COMM_WORLD)
     , pcout(std::cout, dealii::Utilities::MPI::this_mpi_process(mpi_communicator)==0)
     , freeze_artificial_dissipation(false)
@@ -108,8 +108,8 @@ DGBase<dim,real,MeshType>::DGBase(
 
 }
 
-template <int dim, typename real, typename MeshType>
-void DGBase<dim,real,MeshType>::reinit()
+template <int dim, int nspecies, typename real, typename MeshType>
+void DGBase<dim,nspecies,real,MeshType>::reinit()
 {
     high_order_grid->reinit();
 
@@ -117,8 +117,8 @@ void DGBase<dim,real,MeshType>::reinit()
     set_all_cells_fe_degree(initial_degree);
 }
 
-template <int dim, typename real, typename MeshType>
-void DGBase<dim,real,MeshType>::set_high_order_grid(std::shared_ptr<HighOrderGrid<dim,real,MeshType>> new_high_order_grid)
+template <int dim, int nspecies, typename real, typename MeshType>
+void DGBase<dim,nspecies,real,MeshType>::set_high_order_grid(std::shared_ptr<HighOrderGrid<dim,real,MeshType>> new_high_order_grid)
 {
     high_order_grid = new_high_order_grid;
     triangulation = high_order_grid->triangulation;
@@ -128,7 +128,7 @@ void DGBase<dim,real,MeshType>::set_high_order_grid(std::shared_ptr<HighOrderGri
 }
 
 
-template <int dim, typename real, typename MeshType>
+template <int dim, int nspecies, typename real, typename MeshType>
 std::tuple<
         //dealii::hp::MappingCollection<dim>, // Mapping
         dealii::hp::FECollection<dim>, // Solution FE
@@ -139,7 +139,7 @@ std::tuple<
         dealii::hp::FECollection<1>, // Solution FE 1D for a single state
         dealii::hp::FECollection<1>,  // Collocated flux basis 1D for Strong
         dealii::hp::QCollection<1> >// 1D quadrature for strong form
-DGBase<dim,real,MeshType>::create_collection_tuple(
+DGBase<dim,nspecies,real,MeshType>::create_collection_tuple(
     const unsigned int max_degree, 
     const int nstate, 
     const Parameters::AllParameters *const parameters_input) const
@@ -260,9 +260,8 @@ DGBase<dim,real,MeshType>::create_collection_tuple(
     return std::make_tuple(fe_coll, volume_quad_coll, face_quad_coll, fe_coll_lagr, fe_coll_1D, fe_coll_1D_1state, fe_coll_lagr_1D, oneD_quad_coll);
 }
 
-
-template <int dim, typename real, typename MeshType>
-void DGBase<dim,real,MeshType>::time_scale_solution_update ( dealii::LinearAlgebra::distributed::Vector<double> &solution_update, const real CFL ) const
+template <int dim, int nspecies, typename real, typename MeshType>
+void DGBase<dim,nspecies,real,MeshType>::time_scale_solution_update ( dealii::LinearAlgebra::distributed::Vector<double> &solution_update, const real CFL ) const
 {
     std::vector<dealii::types::global_dof_index> dofs_indices;
 
@@ -289,8 +288,8 @@ void DGBase<dim,real,MeshType>::time_scale_solution_update ( dealii::LinearAlgeb
 }
 
 
-template <int dim, typename real, typename MeshType>
-void DGBase<dim,real,MeshType>::set_all_cells_fe_degree ( const unsigned int degree )
+template <int dim, int nspecies, typename real, typename MeshType>
+void DGBase<dim,nspecies,real,MeshType>::set_all_cells_fe_degree ( const unsigned int degree )
 {
     triangulation->prepare_coarsening_and_refinement();
     for (auto cell = dof_handler.begin_active(); cell != dof_handler.end(); ++cell)
@@ -301,8 +300,8 @@ void DGBase<dim,real,MeshType>::set_all_cells_fe_degree ( const unsigned int deg
     triangulation->execute_coarsening_and_refinement();
 }
 
-template <int dim, typename real, typename MeshType>
-unsigned int DGBase<dim,real,MeshType>::get_max_fe_degree()
+template <int dim, int nspecies, typename real, typename MeshType>
+unsigned int DGBase<dim,nspecies,real,MeshType>::get_max_fe_degree()
 {
     unsigned int max_fe_degree = 0;
 
@@ -313,8 +312,8 @@ unsigned int DGBase<dim,real,MeshType>::get_max_fe_degree()
     return dealii::Utilities::MPI::max(max_fe_degree, MPI_COMM_WORLD);
 }
 
-template <int dim, typename real, typename MeshType>
-unsigned int DGBase<dim,real,MeshType>::get_min_fe_degree()
+template <int dim, int nspecies, typename real, typename MeshType>
+unsigned int DGBase<dim,nspecies,real,MeshType>::get_min_fe_degree()
 {
     unsigned int min_fe_degree = max_degree;
 
@@ -325,8 +324,8 @@ unsigned int DGBase<dim,real,MeshType>::get_min_fe_degree()
     return dealii::Utilities::MPI::min(min_fe_degree, MPI_COMM_WORLD);
 }
 
-template <int dim, typename real, typename MeshType>
-dealii::Point<dim> DGBase<dim,real,MeshType>::coordinates_of_highest_refined_cell(bool check_for_p_refined_cell)
+template <int dim, int nspecies, typename real, typename MeshType>
+dealii::Point<dim> DGBase<dim,nspecies,real,MeshType>::coordinates_of_highest_refined_cell(bool check_for_p_refined_cell)
 {
     const int iproc = dealii::Utilities::MPI::this_mpi_process(mpi_communicator);
     const dealii::Point<dim> unit_vertex = dealii::GeometryInfo<dim>::unit_cell_vertex(0);
@@ -393,9 +392,9 @@ dealii::Point<dim> DGBase<dim,real,MeshType>::coordinates_of_highest_refined_cel
     return refined_cell_coord;
  }   
 
-template <int dim, typename real, typename MeshType>
+template <int dim, int nspecies, typename real, typename MeshType>
 template<typename DoFCellAccessorType>
-real DGBase<dim,real,MeshType>::evaluate_penalty_scaling (
+real DGBase<dim,nspecies,real,MeshType>::evaluate_penalty_scaling (
     const DoFCellAccessorType &cell,
     const int iface,
     const dealii::hp::FECollection<dim> fe_collection) const
@@ -413,9 +412,9 @@ real DGBase<dim,real,MeshType>::evaluate_penalty_scaling (
     return penalty;
 }
 
-template <int dim, typename real, typename MeshType>
+template <int dim, int nspecies, typename real, typename MeshType>
 template<typename DoFCellAccessorType1, typename DoFCellAccessorType2>
-bool DGBase<dim,real,MeshType>::current_cell_should_do_the_work (
+bool DGBase<dim,nspecies,real,MeshType>::current_cell_should_do_the_work (
     const DoFCellAccessorType1 &current_cell, 
     const DoFCellAccessorType2 &neighbor_cell) const
 {
@@ -448,30 +447,29 @@ bool DGBase<dim,real,MeshType>::current_cell_should_do_the_work (
     Assert(0==1, dealii::ExcMessage("Should not have reached here. Somehow another possible case has not been considered when two cells have the same coarseness."));
     return false;
 }
-
-template <int dim, typename real, typename MeshType>
-template<typename DoFCellAccessorType1, typename DoFCellAccessorType2>
-void DGBase<dim,real,MeshType>::assemble_cell_residual (
-    const DoFCellAccessorType1 &current_cell,
-    const DoFCellAccessorType2 &current_metric_cell,
+    
+template <int dim, int nspecies, typename real, typename MeshType>
+template<typename adtype>
+void DGBase<dim,nspecies,real,MeshType>::assemble_cell_residual_and_ad_derivatives (
+    const dealii::TriaActiveIterator<dealii::DoFCellAccessor<dim, dim, false>> &current_cell,
+    const dealii::TriaActiveIterator<dealii::DoFCellAccessor<dim, dim, false>> &current_metric_cell,
     const bool compute_dRdW, const bool compute_dRdX, const bool compute_d2R,
-    dealii::hp::FEValues<dim,dim>                &fe_values_collection_volume,
-    dealii::hp::FEFaceValues<dim,dim>            &fe_values_collection_face_int,
-    dealii::hp::FEFaceValues<dim,dim>            &fe_values_collection_face_ext,
-    dealii::hp::FESubfaceValues<dim,dim>         &fe_values_collection_subface,
-    dealii::hp::FEValues<dim,dim>                &fe_values_collection_volume_lagrange,
-    OPERATOR::basis_functions<dim,2*dim,real>         &soln_basis_int,
-    OPERATOR::basis_functions<dim,2*dim,real>         &soln_basis_ext,
-    OPERATOR::basis_functions<dim,2*dim,real>         &flux_basis_int,
-    OPERATOR::basis_functions<dim,2*dim,real>         &flux_basis_ext,
-    OPERATOR::local_basis_stiffness<dim,2*dim,real>   &flux_basis_stiffness,
-    OPERATOR::vol_projection_operator<dim,2*dim,real> &soln_basis_projection_oper_int,
-    OPERATOR::vol_projection_operator<dim,2*dim,real> &soln_basis_projection_oper_ext,
-    OPERATOR::mapping_shape_functions<dim,2*dim,real> &mapping_basis,
-    const bool compute_auxiliary_right_hand_side,
-    dealii::LinearAlgebra::distributed::Vector<double> &rhs,
-    std::array<dealii::LinearAlgebra::distributed::Vector<double>,dim> &rhs_aux,
-    const int active_cell_group_ID)
+    dealii::hp::FEValues<dim,dim>                                      &fe_values_collection_volume,
+    dealii::hp::FEFaceValues<dim,dim>                                  &fe_values_collection_face_int,
+    dealii::hp::FEFaceValues<dim,dim>                                  &fe_values_collection_face_ext,
+    dealii::hp::FESubfaceValues<dim,dim>                               &fe_values_collection_subface,
+    dealii::hp::FEValues<dim,dim>                                      &fe_values_collection_volume_lagrange,
+    OPERATOR::basis_functions<dim,2*dim>                               &soln_basis_int,
+    OPERATOR::basis_functions<dim,2*dim>                               &soln_basis_ext,
+    OPERATOR::basis_functions<dim,2*dim>                               &flux_basis_int,
+    OPERATOR::basis_functions<dim,2*dim>                               &flux_basis_ext,
+    OPERATOR::local_basis_stiffness<dim,2*dim>                         &flux_basis_stiffness,
+    OPERATOR::vol_projection_operator<dim,2*dim>                       &soln_basis_projection_oper_int,
+    OPERATOR::vol_projection_operator<dim,2*dim>                       &soln_basis_projection_oper_ext,
+    OPERATOR::mapping_shape_functions<dim,2*dim>                       &mapping_basis,
+    const bool                                                         compute_auxiliary_right_hand_side,//flag on whether computing the auxiliary variable's equations' residuals
+    dealii::LinearAlgebra::distributed::Vector<double>                 &rhs,
+    std::array<dealii::LinearAlgebra::distributed::Vector<double>,dim> &rhs_aux)
 {
     std::vector<dealii::types::global_dof_index> current_dofs_indices;
     std::vector<dealii::types::global_dof_index> neighbor_dofs_indices;
@@ -481,11 +479,16 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
 
     const dealii::FESystem<dim,dim> &current_fe_ref = fe_collection[i_fele];
     const unsigned int n_dofs_curr_cell = current_fe_ref.n_dofs_per_cell();
-
+    
     // Local vector contribution from each cell
-    dealii::Vector<real> current_cell_rhs (n_dofs_curr_cell); // Defaults to 0.0 initialization
+    std::vector<real> current_cell_rhs (n_dofs_curr_cell); // Defaults to 0.0 initialization
     // Local vector contribution from each cell for Auxiliary equations
-    std::vector<dealii::Tensor<1,dim,double>> current_cell_rhs_aux (n_dofs_curr_cell);// Defaults to 0.0 initialization
+    dealii::Tensor<1,dim,std::vector<real>> current_cell_rhs_aux;
+    if(compute_auxiliary_right_hand_side){
+        for(int idim=0; idim<dim; idim++){
+            current_cell_rhs_aux[idim].resize(n_dofs_curr_cell);// Defaults to 0.0 initialization
+        }
+    }
 
     // Obtain the mapping from local dof indices to global dof indices
     current_dofs_indices.resize(n_dofs_curr_cell);
@@ -501,53 +504,52 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
 
     const dealii::types::global_dof_index current_cell_index = current_cell->active_cell_index();
 
-    const bool store_vol_flux_nodes = all_parameters->manufactured_convergence_study_param.manufactured_solution_param.use_manufactured_source_term;
-
-    const bool store_surf_flux_nodes = (all_parameters->use_periodic_bc) ? true : true;
-
-    std::array<std::vector<real>,dim> mapping_support_points;
-    OPERATOR::metric_operators<real,dim,2*dim> metric_oper_int(nstate, poly_degree, grid_degree,
-                                                               store_vol_flux_nodes,
-                                                               store_surf_flux_nodes);
+    OPERATOR::metric_operators<adtype,dim,2*dim> metric_oper_int(nstate, poly_degree, grid_degree,
+                                                                 store_vol_flux_nodes,
+                                                                 store_surf_flux_nodes);
 
     //flag to terminate if strong form and implicit
     if((this->all_parameters->use_weak_form==false) 
        && (this->all_parameters->ode_solver_param.ode_solver_type
-                    == Parameters::ODESolverParam::ODESolverEnum::implicit_solver))
+                    == Parameters::ODESolverParam::ODESolverEnum::implicit_solver)
+       && (this->use_auxiliary_eq || this->all_parameters->using_wall_model))
     {
-        pcout<<"ERROR: Implicit does not currently work for strong form. Aborting..."<<std::endl;
+        if(this->use_auxiliary_eq)
+        {
+            pcout<<"ERROR: Implicit does not currently work for strong form with Auxiliary Equation. The added terms dR/dq * dq/du needs to be added. Aborting..."<<std::endl;
+        }
+        else
+        {
+            pcout<<"ERROR: Implicit does not currently work for strong form with wall model. The Jacobian dR/du does not account for the neighboring solution at the wall. Aborting..."<<std::endl;
+        }
         std::abort();
     }
 
-
-    const bool current_cell_is_in_active_cell_group = cell_is_in_active_cell_group(current_cell_index,active_cell_group_ID);
-
-    if (current_cell_is_in_active_cell_group) {
-        // Assemble the volume term if the current cell is active.
-        assemble_volume_term_and_build_operators(
-            current_cell,
-            current_cell_index,
-            current_dofs_indices,
-            current_metric_dofs_indices,
-            poly_degree,
-            grid_degree,
-            soln_basis_int,
-            flux_basis_int,
-            flux_basis_stiffness,
-            soln_basis_projection_oper_int,
-            soln_basis_projection_oper_ext,
-            metric_oper_int,
-            mapping_basis,
-            mapping_support_points,
-            fe_values_collection_volume,
-            fe_values_collection_volume_lagrange,
-            current_fe_ref,
-            current_cell_rhs,
-            current_cell_rhs_aux,
-            compute_auxiliary_right_hand_side,
-            compute_dRdW, compute_dRdX, compute_d2R);
-    }
-
+    std::array<std::vector<adtype>,dim> mapping_support_points;
+    
+    assemble_volume_codi_taped_derivatives_ad(
+        current_cell,
+        current_cell_index,
+        current_dofs_indices,
+        current_metric_dofs_indices,
+        poly_degree,
+        grid_degree,
+        soln_basis_int,
+        flux_basis_int,
+        flux_basis_stiffness,
+        soln_basis_projection_oper_int,
+        soln_basis_projection_oper_ext,
+        metric_oper_int,
+        mapping_basis,
+        mapping_support_points,
+        fe_values_collection_volume,
+        fe_values_collection_volume_lagrange,
+        current_fe_ref,
+        current_cell_rhs,
+        current_cell_rhs_aux,
+        compute_auxiliary_right_hand_side,
+        compute_dRdW, compute_dRdX, compute_d2R);
+    
     (void) fe_values_collection_face_int;
     (void) fe_values_collection_face_ext;
     (void) fe_values_collection_subface;
@@ -556,56 +558,49 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
         auto current_face = current_cell->face(iface);
 
         // CASE 1: FACE AT BOUNDARY
-        // Assemble if cell is in the active group
         if ((current_face->at_boundary() && !current_cell->has_periodic_neighbor(iface)))
         {
             const real penalty = evaluate_penalty_scaling (current_cell, iface, fe_collection);
 
             const unsigned int boundary_id = current_face->boundary_id();
-
-            if (current_cell_is_in_active_cell_group) {
-                assemble_boundary_term_and_build_operators(
-                    current_cell,
-                    current_cell_index,
-                    iface,
-                    boundary_id,
-                    penalty,
-                    current_dofs_indices,
-                    current_metric_dofs_indices,
-                    poly_degree,
-                    grid_degree,
-                    soln_basis_int,
-                    flux_basis_int,
-                    flux_basis_stiffness,
-                    soln_basis_projection_oper_int,
-                    soln_basis_projection_oper_ext,
-                    metric_oper_int,
-                    mapping_basis,
-                    mapping_support_points,
-                    fe_values_collection_face_int,
-                    current_fe_ref,
-                    current_cell_rhs,
-                    current_cell_rhs_aux,
-                    compute_auxiliary_right_hand_side,
-                    compute_dRdW, compute_dRdX, compute_d2R);
-            }
+            
+            assemble_boundary_codi_taped_derivatives_ad(
+                current_cell,
+                current_cell_index,
+                iface,
+                boundary_id,
+                penalty,
+                current_dofs_indices,
+                current_metric_dofs_indices,
+                poly_degree,
+                grid_degree,
+                soln_basis_int,
+                flux_basis_int,
+                soln_basis_projection_oper_int,
+                metric_oper_int,
+                mapping_basis,
+                mapping_support_points,
+                fe_values_collection_face_int,
+                current_fe_ref,
+                current_cell_rhs,
+                current_cell_rhs_aux,
+                compute_auxiliary_right_hand_side,
+                compute_dRdW, compute_dRdX, compute_d2R);
 
         }
         // CASE 2: PERIODIC BOUNDARY CONDITIONS
         // NOTE: Periodicity is not adapted for hp adaptivity yet. this needs to be figured out in the future
-        // The face term is assembled if one or both cells are in the active group.
         else if (current_face->at_boundary() && current_cell->has_periodic_neighbor(iface))
         {
+
             const auto neighbor_cell = current_cell->periodic_neighbor(iface);
 
-            if (!current_cell->periodic_neighbor_is_coarser(iface) && current_cell_should_do_the_work(current_cell, neighbor_cell))
+            if (!current_cell->periodic_neighbor_is_coarser(iface) && current_cell_should_do_the_work(current_cell, neighbor_cell)) 
             {
-                
                 Assert (current_cell->periodic_neighbor(iface).state() == dealii::IteratorState::valid, dealii::ExcInternalError());
 
                 const unsigned int n_dofs_neigh_cell = fe_collection[neighbor_cell->active_fe_index()].n_dofs_per_cell();
-                dealii::Vector<real> neighbor_cell_rhs (n_dofs_neigh_cell); // Defaults to 0.0 initialization
-                std::vector<dealii::Tensor<1,dim,double>> neighbor_cell_rhs_aux (n_dofs_neigh_cell ); // defaults to 0.0 initialization
+                std::vector<real> neighbor_cell_rhs (n_dofs_neigh_cell); // Defaults to 0.0 initialization
 
                 // Obtain the mapping from local dof indices to global dof indices for neighbor cell
                 neighbor_dofs_indices.resize(n_dofs_neigh_cell);
@@ -622,100 +617,56 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
                 const real penalty = 0.5 * (penalty1 + penalty2);
 
                 const dealii::types::global_dof_index neighbor_cell_index = neighbor_cell->active_cell_index();
-            
-                const bool neighbor_cell_is_in_active_cell_group = cell_is_in_active_cell_group(neighbor_cell_index, active_cell_group_ID);
-
                 const auto metric_neighbor_cell = current_metric_cell->periodic_neighbor(iface);
                 metric_neighbor_cell->get_dof_indices(neighbor_metric_dofs_indices);
 
                 const unsigned int poly_degree_ext = i_fele_n;
                 const unsigned int grid_degree_ext = this->high_order_grid->fe_system.tensor_degree();    
                 //constructor doesn't build anything
-                OPERATOR::metric_operators<real,dim,2*dim> metric_oper_ext(nstate, poly_degree_ext, grid_degree_ext,
+                OPERATOR::metric_operators<adtype,dim,2*dim> metric_oper_ext(nstate, poly_degree_ext, grid_degree_ext,
                                                                            store_vol_flux_nodes,
                                                                            store_surf_flux_nodes);
 
-                if (!current_cell_is_in_active_cell_group && neighbor_cell_is_in_active_cell_group) {
-                    // If the current cell is NOT active and the neighbor cell IS active, we must
-                    // build some missing volume operators.
-                    build_volume_operators(
-                        current_cell,
-                        current_cell_index,
-                        current_dofs_indices,
-                        current_metric_dofs_indices,
-                        poly_degree,
-                        grid_degree,
-                        soln_basis_int,
-                        flux_basis_int,
-                        flux_basis_stiffness,
-                        soln_basis_projection_oper_int,
-                        soln_basis_projection_oper_ext,
-                        metric_oper_int,
-                        mapping_basis,
-                        mapping_support_points,
-                        fe_values_collection_volume,
-                        fe_values_collection_volume_lagrange,
-                        current_fe_ref);
-                }
-                if ( (current_cell_is_in_active_cell_group || neighbor_cell_is_in_active_cell_group) ) {
-                    assemble_face_term_and_build_operators(
-                        current_cell,
-                        neighbor_cell,
-                        current_cell_index,
-                        neighbor_cell_index,
-                        iface,
-                        neighbor_iface,
-                        penalty,
-                        current_dofs_indices,
-                        neighbor_dofs_indices,
-                        current_metric_dofs_indices,
-                        neighbor_metric_dofs_indices,
-                        poly_degree,
-                        poly_degree_ext,
-                        grid_degree,
-                        grid_degree_ext,
-                        soln_basis_int,
-                        soln_basis_ext,
-                        flux_basis_int,
-                        flux_basis_ext,
-                        flux_basis_stiffness,
-                        soln_basis_projection_oper_int,
-                        soln_basis_projection_oper_ext,
-                        metric_oper_int,
-                        metric_oper_ext,
-                        mapping_basis,
-                        mapping_support_points,
-                        fe_values_collection_face_int,
-                        fe_values_collection_face_ext,
-                        current_cell_rhs,
-                        neighbor_cell_rhs,
-                        current_cell_rhs_aux,
-                        neighbor_cell_rhs_aux,
-                        rhs,
-                        rhs_aux,
-                        compute_auxiliary_right_hand_side,
-                        compute_dRdW, compute_dRdX, compute_d2R);
-                }
-
-                if (neighbor_cell_is_in_active_cell_group) {
-                    // add local contribution from neighbor cell to global vector
-                    // if the neighbor cell is active.
-                    
-
-                    if (compute_auxiliary_right_hand_side){
-                        for (unsigned int i=0; i<n_dofs_neigh_cell; ++i) {
-                            for(int idim=0; idim<dim; idim++){
-                                rhs_aux[idim][neighbor_dofs_indices[i]] += neighbor_cell_rhs_aux[i][idim];
-                            }
-                        }
-                    }
-                    else{
-                        const unsigned int n_dofs_neigh_cell = this->fe_collection[neighbor_cell->active_fe_index()].n_dofs_per_cell();
-                        for (unsigned int i=0; i<n_dofs_neigh_cell; ++i) {
-                            rhs[neighbor_dofs_indices[i]] += neighbor_cell_rhs[i];
-                        }
-                    }
-                }
+                const dealii::FESystem<dim,dim> &neighbor_fe_ref = fe_collection[i_fele_n];
+                assemble_face_codi_taped_derivatives_ad(
+                    current_cell,
+                    neighbor_cell,
+                    current_cell_index,
+                    neighbor_cell_index,
+                    iface,
+                    neighbor_iface,
+                    penalty,
+                    fe_values_collection_face_int,
+                    fe_values_collection_face_ext,
+                    fe_values_collection_subface,
+                    current_fe_ref,
+                    neighbor_fe_ref,
+                    current_dofs_indices,
+                    neighbor_dofs_indices,
+                    current_metric_dofs_indices,
+                    neighbor_metric_dofs_indices,
+                    poly_degree,
+                    poly_degree_ext,
+                    grid_degree,
+                    grid_degree_ext,
+                    soln_basis_int,
+                    soln_basis_ext,
+                    flux_basis_int,
+                    flux_basis_ext,
+                    flux_basis_stiffness,
+                    soln_basis_projection_oper_int,
+                    soln_basis_projection_oper_ext,
+                    metric_oper_int,
+                    metric_oper_ext,
+                    mapping_basis,
+                    mapping_support_points,
+                    current_cell_rhs,
+                    neighbor_cell_rhs,
+                    current_cell_rhs_aux,
+                    rhs,
+                    rhs_aux,
+                    compute_auxiliary_right_hand_side,
+                    compute_dRdW, compute_dRdX, compute_d2R);
             }
         }
         // CASE 3: NEIGHBOUR IS FINER
@@ -727,7 +678,6 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
         }
         // CASE 4: NEIGHBOR IS COARSER
         // Assemble face residual.
-        // The face term is assembled if one or both cells are in the active group.
         else if (current_cell->neighbor(iface)->face(current_cell->neighbor_face_no(iface))->has_children()) 
         {
             Assert (current_cell->neighbor(iface).state() == dealii::IteratorState::valid, dealii::ExcInternalError());
@@ -735,10 +685,7 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
 
             // Obtain cell neighbour
             const auto neighbor_cell = current_cell->neighbor(iface);
-            const dealii::types::global_dof_index neighbor_cell_index = neighbor_cell->active_cell_index();
             const unsigned int neighbor_iface = current_cell->neighbor_face_no(iface);
-            const bool neighbor_cell_is_in_active_cell_group = cell_is_in_active_cell_group(neighbor_cell_index, active_cell_group_ID);
-
 
             // Find corresponding subface
             unsigned int neighbor_i_subface = 0;
@@ -754,8 +701,7 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
             const int i_fele_n = neighbor_cell->active_fe_index();//, i_quad_n = i_fele_n, i_mapp_n = 0;
 
             const unsigned int n_dofs_neigh_cell = fe_collection[i_fele_n].n_dofs_per_cell();
-            dealii::Vector<real> neighbor_cell_rhs (n_dofs_neigh_cell); // Defaults to 0.0 initialization
-            std::vector<dealii::Tensor<1,dim,double>> neighbor_cell_rhs_aux (n_dofs_neigh_cell ); // defaults to 0.0 initialization
+            std::vector<real> neighbor_cell_rhs (n_dofs_neigh_cell); // Defaults to 0.0 initialization
 
             // Obtain the mapping from local dof indices to global dof indices for neighbor cell
             neighbor_dofs_indices.resize(n_dofs_neigh_cell);
@@ -765,101 +711,62 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
             const real penalty2 = evaluate_penalty_scaling (neighbor_cell, neighbor_iface, fe_collection);
             const real penalty = 0.5 * (penalty1 + penalty2);
 
-
+            const dealii::types::global_dof_index neighbor_cell_index = neighbor_cell->active_cell_index();
             const auto metric_neighbor_cell = current_metric_cell->neighbor(iface);
             metric_neighbor_cell->get_dof_indices(neighbor_metric_dofs_indices);
 
             const unsigned int poly_degree_ext = i_fele_n;
             const unsigned int grid_degree_ext = this->high_order_grid->fe_system.tensor_degree();
             //Check if the poly degree or mapping changed order, in which case, then we re-compute the corresponding basis
-            OPERATOR::metric_operators<real,dim,2*dim> metric_oper_ext(nstate, poly_degree_ext, grid_degree_ext,
+            OPERATOR::metric_operators<adtype,dim,2*dim> metric_oper_ext(nstate, poly_degree_ext, grid_degree_ext,
                                                                store_vol_flux_nodes,
                                                                store_surf_flux_nodes);
 
-            if (!current_cell_is_in_active_cell_group && neighbor_cell_is_in_active_cell_group) {
-                // If the current cell is NOT active and the neighbor cell IS active, we must
-                // build some missing volume operators.
-                build_volume_operators(
-                    current_cell,
-                    current_cell_index,
-                    current_dofs_indices,
-                    current_metric_dofs_indices,
-                    poly_degree,
-                    grid_degree,
-                    soln_basis_int,
-                    flux_basis_int,
-                    flux_basis_stiffness,
-                    soln_basis_projection_oper_int,
-                    soln_basis_projection_oper_ext,
-                    metric_oper_int,
-                    mapping_basis,
-                    mapping_support_points,
-                    fe_values_collection_volume,
-                    fe_values_collection_volume_lagrange,
-                    current_fe_ref);
-            }
-            if ( (current_cell_is_in_active_cell_group || neighbor_cell_is_in_active_cell_group) ) {
-                assemble_subface_term_and_build_operators(
-                    current_cell,
-                    neighbor_cell,
-                    current_cell_index,
-                    neighbor_cell_index,
-                    iface,
-                    neighbor_iface,
-                    neighbor_i_subface,
-                    penalty,
-                    current_dofs_indices,
-                    neighbor_dofs_indices,
-                    current_metric_dofs_indices,
-                    neighbor_metric_dofs_indices,
-                    poly_degree,
-                    poly_degree_ext,
-                    grid_degree,
-                    grid_degree_ext,
-                    soln_basis_int,
-                    soln_basis_ext,
-                    flux_basis_int,
-                    flux_basis_ext,
-                    flux_basis_stiffness,
-                    soln_basis_projection_oper_int,
-                    soln_basis_projection_oper_ext,
-                    metric_oper_int,
-                    metric_oper_ext,
-                    mapping_basis,
-                    mapping_support_points,
-                    fe_values_collection_face_int,
-                    fe_values_collection_subface,
-                    current_cell_rhs,
-                    neighbor_cell_rhs,
-                    current_cell_rhs_aux,
-                    neighbor_cell_rhs_aux,
-                    rhs,
-                    rhs_aux,
-                    compute_auxiliary_right_hand_side,
-                    compute_dRdW, compute_dRdX, compute_d2R);
-                if (neighbor_cell_is_in_active_cell_group) {
-                    // add local contribution from neighbor cell to global vector
-                    // if the neighbor cell is active.
-
-                    if (compute_auxiliary_right_hand_side){
-                        for (unsigned int i=0; i<n_dofs_neigh_cell; ++i) {
-                            for(int idim=0; idim<dim; idim++){
-                                rhs_aux[idim][neighbor_dofs_indices[i]] += neighbor_cell_rhs_aux[i][idim];
-                            }
-                        }
-                    }
-                    else{
-                        const unsigned int n_dofs_neigh_cell = this->fe_collection[neighbor_cell->active_fe_index()].n_dofs_per_cell();
-                        for (unsigned int i=0; i<n_dofs_neigh_cell; ++i) {
-                            rhs[neighbor_dofs_indices[i]] += neighbor_cell_rhs[i];
-                        }
-                    }
-                }
-            }
+            const dealii::FESystem<dim,dim> &neighbor_fe_ref = fe_collection[i_fele_n];
+            assemble_face_codi_taped_derivatives_ad(
+                current_cell,
+                neighbor_cell,
+                current_cell_index,
+                neighbor_cell_index,
+                iface,
+                neighbor_iface,
+                penalty,
+                fe_values_collection_face_int,
+                fe_values_collection_face_ext,
+                fe_values_collection_subface,
+                current_fe_ref,
+                neighbor_fe_ref,
+                current_dofs_indices,
+                neighbor_dofs_indices,
+                current_metric_dofs_indices,
+                neighbor_metric_dofs_indices,
+                poly_degree,
+                poly_degree_ext,
+                grid_degree,
+                grid_degree_ext,
+                soln_basis_int,
+                soln_basis_ext,
+                flux_basis_int,
+                flux_basis_ext,
+                flux_basis_stiffness,
+                soln_basis_projection_oper_int,
+                soln_basis_projection_oper_ext,
+                metric_oper_int,
+                metric_oper_ext,
+                mapping_basis,
+                mapping_support_points,
+                current_cell_rhs,
+                neighbor_cell_rhs,
+                current_cell_rhs_aux,
+                rhs,
+                rhs_aux,
+                compute_auxiliary_right_hand_side,
+                compute_dRdW, compute_dRdX, compute_d2R,
+                true,
+                neighbor_i_subface);
         }
         // CASE 5: NEIGHBOR CELL HAS SAME COARSENESS
         // Therefore, we need to choose one of them to do the work
-        // The face term is assembled if one or both cells are in the active group.
         else if (current_cell_should_do_the_work(current_cell, current_cell->neighbor(iface))) 
         {
             Assert (current_cell->neighbor(iface).state() == dealii::IteratorState::valid, dealii::ExcInternalError());
@@ -867,16 +774,13 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
             const auto neighbor_cell = current_cell->neighbor_or_periodic_neighbor(iface);
             // Corresponding face of the neighbor.
             // e.g. The 4th face of the current cell might correspond to the 3rd face of the neighbor
-            const dealii::types::global_dof_index neighbor_cell_index = neighbor_cell->active_cell_index();
             const unsigned int neighbor_iface = current_cell->neighbor_of_neighbor(iface);
-            const bool neighbor_cell_is_in_active_cell_group = cell_is_in_active_cell_group(neighbor_cell_index, active_cell_group_ID);
 
             // Get information about neighbor cell
             const unsigned int n_dofs_neigh_cell = fe_collection[neighbor_cell->active_fe_index()].n_dofs_per_cell();
 
             // Local rhs contribution from neighbor
-            dealii::Vector<real> neighbor_cell_rhs (n_dofs_neigh_cell); // Defaults to 0.0 initialization
-            std::vector<dealii::Tensor<1,dim,double>> neighbor_cell_rhs_aux (n_dofs_neigh_cell ); // defaults to 0.0 initialization
+            std::vector<real> neighbor_cell_rhs (n_dofs_neigh_cell); // Defaults to 0.0 initialization
 
             // Obtain the mapping from local dof indices to global dof indices for neighbor cell
             neighbor_dofs_indices.resize(n_dofs_neigh_cell);
@@ -889,7 +793,7 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
             const real penalty2 = evaluate_penalty_scaling (neighbor_cell, neighbor_iface, fe_collection);
             const real penalty = 0.5 * (penalty1 + penalty2);
 
-
+            const dealii::types::global_dof_index neighbor_cell_index = neighbor_cell->active_cell_index();
             const auto metric_neighbor_cell = current_metric_cell->neighbor_or_periodic_neighbor(iface);
             metric_neighbor_cell->get_dof_indices(neighbor_metric_dofs_indices);
 
@@ -898,90 +802,50 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
             // For now high_order_grid only handles all cells of same grid degree.
             const unsigned int grid_degree_ext = this->high_order_grid->fe_system.tensor_degree();
             //Check if the poly degree or mapping changed order, in which case, then we re-compute the corresponding basis
-            OPERATOR::metric_operators<real,dim,2*dim> metric_oper_ext(nstate, poly_degree_ext, grid_degree_ext,
+            OPERATOR::metric_operators<adtype,dim,2*dim> metric_oper_ext(nstate, poly_degree_ext, grid_degree_ext,
                                                                store_vol_flux_nodes,
                                                                store_surf_flux_nodes);
 
-
-            if (!current_cell_is_in_active_cell_group && neighbor_cell_is_in_active_cell_group) {
-                // If the current cell is NOT active and the neighbor cell IS active, we must
-                // build some missing volume operators.
-                build_volume_operators(
-                    current_cell,
-                    current_cell_index,
-                    current_dofs_indices,
-                    current_metric_dofs_indices,
-                    poly_degree,
-                    grid_degree,
-                    soln_basis_int,
-                    flux_basis_int,
-                    flux_basis_stiffness,
-                    soln_basis_projection_oper_int,
-                    soln_basis_projection_oper_ext,
-                    metric_oper_int,
-                    mapping_basis,
-                    mapping_support_points,
-                    fe_values_collection_volume,
-                    fe_values_collection_volume_lagrange,
-                    current_fe_ref);
-            }
-            if ( (current_cell_is_in_active_cell_group || neighbor_cell_is_in_active_cell_group) ) {
-                assemble_face_term_and_build_operators(
-                    current_cell,
-                    neighbor_cell,
-                    current_cell_index,
-                    neighbor_cell_index,
-                    iface,
-                    neighbor_iface,
-                    penalty,
-                    current_dofs_indices,
-                    neighbor_dofs_indices,
-                    current_metric_dofs_indices,
-                    neighbor_metric_dofs_indices,
-                    poly_degree,
-                    poly_degree_ext,
-                    grid_degree,
-                    grid_degree_ext,
-                    soln_basis_int,
-                    soln_basis_ext,
-                    flux_basis_int,
-                    flux_basis_ext,
-                    flux_basis_stiffness,
-                    soln_basis_projection_oper_int,
-                    soln_basis_projection_oper_ext,
-                    metric_oper_int,
-                    metric_oper_ext,
-                    mapping_basis,
-                    mapping_support_points,
-                    fe_values_collection_face_int,
-                    fe_values_collection_face_ext,
-                    current_cell_rhs,
-                    neighbor_cell_rhs,
-                    current_cell_rhs_aux,
-                    neighbor_cell_rhs_aux,
-                    rhs,
-                    rhs_aux,
-                    compute_auxiliary_right_hand_side,
-                    compute_dRdW, compute_dRdX, compute_d2R);
-                if (neighbor_cell_is_in_active_cell_group) {
-                    // add local contribution from neighbor cell to global vector
-                    // if the neighbor cell is active.
-
-                    if (compute_auxiliary_right_hand_side){
-                        for (unsigned int i=0; i<n_dofs_neigh_cell; ++i) {
-                            for(int idim=0; idim<dim; idim++){
-                                rhs_aux[idim][neighbor_dofs_indices[i]] += neighbor_cell_rhs_aux[i][idim];
-                            }
-                        }
-                    }
-                    else{
-                        const unsigned int n_dofs_neigh_cell = this->fe_collection[neighbor_cell->active_fe_index()].n_dofs_per_cell();
-                        for (unsigned int i=0; i<n_dofs_neigh_cell; ++i) {
-                            rhs[neighbor_dofs_indices[i]] += neighbor_cell_rhs[i];
-                        }
-                    }
-                }
-            }
+            const dealii::FESystem<dim,dim> &neighbor_fe_ref = fe_collection[i_fele_n];
+            assemble_face_codi_taped_derivatives_ad(
+                current_cell,
+                neighbor_cell,
+                current_cell_index,
+                neighbor_cell_index,
+                iface,
+                neighbor_iface,
+                penalty,
+                fe_values_collection_face_int,
+                fe_values_collection_face_ext,
+                fe_values_collection_subface,
+                current_fe_ref,
+                neighbor_fe_ref,
+                current_dofs_indices,
+                neighbor_dofs_indices,
+                current_metric_dofs_indices,
+                neighbor_metric_dofs_indices,
+                poly_degree,
+                poly_degree_ext,
+                grid_degree,
+                grid_degree_ext,
+                soln_basis_int,
+                soln_basis_ext,
+                flux_basis_int,
+                flux_basis_ext,
+                flux_basis_stiffness,
+                soln_basis_projection_oper_int,
+                soln_basis_projection_oper_ext,
+                metric_oper_int,
+                metric_oper_ext,
+                mapping_basis,
+                mapping_support_points,
+                current_cell_rhs,
+                neighbor_cell_rhs,
+                current_cell_rhs_aux,
+                rhs,
+                rhs_aux,
+                compute_auxiliary_right_hand_side,
+                compute_dRdW, compute_dRdX, compute_d2R);
         } 
         else {
             // Should be faces where the neighbor cell has the same coarseness
@@ -989,30 +853,1520 @@ void DGBase<dim,real,MeshType>::assemble_cell_residual (
         }
     } // end of face loop
 
-    if(compute_auxiliary_right_hand_side && current_cell_is_in_active_cell_group) {
+    if(compute_auxiliary_right_hand_side) {
         // Add local contribution from current cell to global vector
-        for (unsigned int i=0; i<n_dofs_curr_cell; ++i) {
-            for(int idim=0; idim<dim; idim++){
-                rhs_aux[idim][current_dofs_indices[i]] += current_cell_rhs_aux[i][idim];
+        for(int idim=0; idim<dim; idim++){
+            for (unsigned int idof=0; idof<n_dofs_curr_cell; ++idof) {
+                rhs_aux[idim][current_dofs_indices[idof]] += current_cell_rhs_aux[idim][idof];
             }
         }
     }
-    else if (current_cell_is_in_active_cell_group) {
+    else {
         // Add local contribution from current cell to global vector
-        for (unsigned int i=0; i<n_dofs_curr_cell; ++i) {
-            rhs[current_dofs_indices[i]] += current_cell_rhs[i];
+        for (unsigned int idof=0; idof<n_dofs_curr_cell; ++idof) {
+            rhs[current_dofs_indices[idof]] += current_cell_rhs[idof];
         }
-    } // If !current_cell_is_in_active_cell_group , do not update the RHS.
+    }
 }
 
-template <int dim, typename real, typename MeshType>
-void DGBase<dim,real,MeshType>::set_dual(const dealii::LinearAlgebra::distributed::Vector<real> &dual_input)
+// Double version
+template <int dim, int nspecies, typename real, typename MeshType>
+void DGBase<dim,nspecies,real,MeshType>::assemble_volume_codi_taped_derivatives_ad(
+    typename dealii::DoFHandler<dim>::active_cell_iterator cell,
+    const dealii::types::global_dof_index                  current_cell_index,
+    const std::vector<dealii::types::global_dof_index>     &soln_dofs_indices,
+    const std::vector<dealii::types::global_dof_index>     &metric_dofs_indices,
+    const unsigned int                                     poly_degree,
+    const unsigned int                                     grid_degree,
+    OPERATOR::basis_functions<dim,2*dim>                   &soln_basis,
+    OPERATOR::basis_functions<dim,2*dim>                   &flux_basis,
+    OPERATOR::local_basis_stiffness<dim,2*dim>             &flux_basis_stiffness,
+    OPERATOR::vol_projection_operator<dim,2*dim>           &soln_basis_projection_oper_int,
+    OPERATOR::vol_projection_operator<dim,2*dim>           &soln_basis_projection_oper_ext,
+    OPERATOR::metric_operators<double,dim,2*dim>           &metric_oper,
+    OPERATOR::mapping_shape_functions<dim,2*dim>           &mapping_basis,
+    std::array<std::vector<double>,dim>                    &mapping_support_points,
+    dealii::hp::FEValues<dim,dim>                          &fe_values_collection_volume,
+    dealii::hp::FEValues<dim,dim>                          &fe_values_collection_volume_lagrange,
+    const dealii::FESystem<dim,dim>                        &fe_soln,
+    std::vector<real>                                      &local_rhs_cell,
+    dealii::Tensor<1,dim,std::vector<real>>                &local_auxiliary_RHS,
+    const bool                                             compute_auxiliary_right_hand_side,
+    const bool /*compute_dRdW*/, const bool /*compute_dRdX*/, const bool /*compute_d2R*/)
+{
+    const unsigned int n_soln_dofs = fe_soln.dofs_per_cell;
+
+    AssertDimension (n_soln_dofs, soln_dofs_indices.size());
+
+    const unsigned int n_metric_dofs = this->high_order_grid->fe_system.dofs_per_cell;
+    
+    std::vector<real> local_dual(n_soln_dofs);
+    for (unsigned int itest=0; itest<n_soln_dofs; ++itest) {
+        local_dual[itest] = 0.0;
+    }
+    
+    std::vector<double> local_solution(n_soln_dofs);
+    for (unsigned int idof = 0; idof < n_soln_dofs; ++idof) {
+        local_solution[idof] = this->solution(soln_dofs_indices[idof]);
+    }
+    
+    std::vector<double> local_metric_coeff_int(n_metric_dofs);
+    for(unsigned int idof=0; idof<n_metric_dofs; ++idof)
+    {
+        local_metric_coeff_int[idof] = this->high_order_grid->volume_nodes[metric_dofs_indices[idof]];
+    }
+   
+    build_volume_metric_operators(poly_degree, grid_degree, local_metric_coeff_int, metric_oper, mapping_basis, mapping_support_points);
+ 
+    dealii::Tensor<1,dim,std::vector<double>> local_aux_solution;
+    for(unsigned int idim=0; idim<dim; idim++){
+        local_aux_solution[idim].resize(n_soln_dofs);
+        for (unsigned int idof = 0; idof < n_soln_dofs; ++idof) {
+            if(this->use_auxiliary_eq){//only if use auxiliary equation has the auxiliary solution initialized
+                local_aux_solution[idim][idof] = this->auxiliary_solution[idim](soln_dofs_indices[idof]);
+            }
+        }
+    }
+
+    double dual_dot_residual = 0.0;
+    std::vector<double> rhs(n_soln_dofs); //set to zero by default
+    dealii::Tensor<1,dim,std::vector<double>> rhs_aux;
+    if(compute_auxiliary_right_hand_side){
+        for(int idim=0; idim<dim; idim++){
+            rhs_aux[idim].resize(n_soln_dofs);
+        }
+    }
+    assemble_volume_term_and_build_operators_ad(
+        cell,
+        current_cell_index,
+        local_solution, 
+        local_aux_solution, 
+        local_metric_coeff_int,
+        local_dual,
+        soln_dofs_indices,
+        metric_dofs_indices,
+        poly_degree,
+        grid_degree,
+        soln_basis,
+        flux_basis,
+        flux_basis_stiffness,
+        soln_basis_projection_oper_int,
+        soln_basis_projection_oper_ext,
+        metric_oper,
+        mapping_basis,
+        mapping_support_points,
+        fe_values_collection_volume,
+        fe_values_collection_volume_lagrange,
+        fe_soln,
+        rhs, 
+        rhs_aux,
+        compute_auxiliary_right_hand_side,
+        dual_dot_residual);
+    
+    
+    if(compute_auxiliary_right_hand_side){
+        for(int idim=0; idim<dim; idim++){
+            for (unsigned int itest=0; itest<n_soln_dofs; ++itest) {
+                local_auxiliary_RHS[idim][itest] += rhs_aux[idim][itest];
+            }
+        }
+    }
+    else{
+        for (unsigned int itest=0; itest<n_soln_dofs; ++itest) {
+            local_rhs_cell[itest] += rhs[itest];
+        }
+    }
+}
+
+// AD version
+template <int dim, int nspecies, typename real, typename MeshType>
+template <typename adtype>
+typename std::enable_if<!std::is_same<adtype, double>::value,void>::type
+    DGBase<dim,nspecies,real,MeshType>::assemble_volume_codi_taped_derivatives_ad(
+    typename dealii::DoFHandler<dim>::active_cell_iterator cell,
+    const dealii::types::global_dof_index                  current_cell_index,
+    const std::vector<dealii::types::global_dof_index>     &soln_dofs_indices,
+    const std::vector<dealii::types::global_dof_index>     &metric_dofs_indices,
+    const unsigned int                                     poly_degree,
+    const unsigned int                                     grid_degree,
+    OPERATOR::basis_functions<dim,2*dim>                   &soln_basis,
+    OPERATOR::basis_functions<dim,2*dim>                   &flux_basis,
+    OPERATOR::local_basis_stiffness<dim,2*dim>             &flux_basis_stiffness,
+    OPERATOR::vol_projection_operator<dim,2*dim>           &soln_basis_projection_oper_int,
+    OPERATOR::vol_projection_operator<dim,2*dim>           &soln_basis_projection_oper_ext,
+    OPERATOR::metric_operators<adtype,dim,2*dim>           &metric_oper,
+    OPERATOR::mapping_shape_functions<dim,2*dim>           &mapping_basis,
+    std::array<std::vector<adtype>,dim>                    &mapping_support_points,
+    dealii::hp::FEValues<dim,dim>                          &fe_values_collection_volume,
+    dealii::hp::FEValues<dim,dim>                          &fe_values_collection_volume_lagrange,
+    const dealii::FESystem<dim,dim>                        &fe_soln,
+    std::vector<real>                                      &local_rhs_cell,
+    dealii::Tensor<1,dim,std::vector<real>>                &local_auxiliary_RHS,
+    const bool                                             compute_auxiliary_right_hand_side,
+    const bool compute_dRdW, const bool compute_dRdX, const bool compute_d2R)
+{
+    const unsigned int n_soln_dofs = fe_soln.dofs_per_cell;
+
+    AssertDimension (n_soln_dofs, soln_dofs_indices.size());
+
+    const unsigned int n_metric_dofs = this->high_order_grid->fe_system.dofs_per_cell;
+    
+    std::vector<real> local_dual(n_soln_dofs);
+    for (unsigned int itest=0; itest<n_soln_dofs; ++itest) {
+        const unsigned int global_residual_row = soln_dofs_indices[itest];
+        if(compute_d2R)//only if compute_d2R do we have the dual allocated
+            local_dual[itest] = this->dual[global_residual_row];
+    }
+
+
+    unsigned int w_start=0, w_end=0, x_start=0, x_end=0;
+    if(compute_dRdW || compute_dRdX || compute_d2R)
+    {
+        automatic_differentiation_indexing_1( compute_dRdW, compute_dRdX, compute_d2R,
+                                              n_soln_dofs, n_metric_dofs,
+                                              w_start, w_end, x_start, x_end );
+    }
+    
+    using TH = codi::TapeHelper<adtype>;
+    TH th;
+    typename adtype::TapeType &tape =  adtype::getGlobalTape(); 
+    if (compute_dRdW || compute_dRdX || compute_d2R) {
+        th.startRecording();
+    }
+    
+    std::vector<adtype> local_solution(n_soln_dofs);
+    for (unsigned int idof = 0; idof < n_soln_dofs; ++idof) {
+        const real val = this->solution(soln_dofs_indices[idof]);
+        local_solution[idof] = val;
+
+        if (compute_dRdW || compute_d2R) {
+            th.registerInput(local_solution[idof]);
+        } else {
+            tape.deactivateValue(local_solution[idof]);
+        }
+    }
+    
+    std::vector<adtype> local_metric_coeff_int(n_metric_dofs);
+    for(unsigned int idof=0; idof<n_metric_dofs; ++idof)
+    {
+        const real val = this->high_order_grid->volume_nodes[metric_dofs_indices[idof]];
+        local_metric_coeff_int[idof] = val;
+        if (compute_dRdX || compute_d2R) {
+            th.registerInput(local_metric_coeff_int[idof]);
+        } else {
+            tape.deactivateValue(local_metric_coeff_int[idof]);
+        }
+    }
+   
+    build_volume_metric_operators(poly_degree, grid_degree, local_metric_coeff_int, metric_oper, mapping_basis, mapping_support_points);
+ 
+    dealii::Tensor<1,dim,std::vector<adtype>> local_aux_solution;
+    for(unsigned int idim=0; idim<dim; idim++){
+        local_aux_solution[idim].resize(n_soln_dofs);
+        for (unsigned int idof = 0; idof < n_soln_dofs; ++idof) {
+            if(this->use_auxiliary_eq){//only if use auxiliary equation has the auxiliary solution initialized
+                const real val = this->auxiliary_solution[idim](soln_dofs_indices[idof]);
+                local_aux_solution[idim][idof] = val;
+            }
+            tape.deactivateValue(local_aux_solution[idim][idof]);
+            /* 
+            if ((compute_dRdW || compute_d2R) && this->use_auxiliary_eq) {
+                th.registerInput(local_aux_solution[idim][idof]);
+            } else {
+                tape.deactivateValue(local_aux_solution[idim][idof]);
+            }
+            */
+        }
+    }
+
+    adtype dual_dot_residual = 0.0;
+    std::vector<adtype> rhs(n_soln_dofs); //set to zero by default
+    dealii::Tensor<1,dim,std::vector<adtype>> rhs_aux;
+    if(compute_auxiliary_right_hand_side){
+        for(int idim=0; idim<dim; idim++){
+            rhs_aux[idim].resize(n_soln_dofs);
+        }
+    }
+    assemble_volume_term_and_build_operators_ad(
+        cell,
+        current_cell_index,
+        local_solution, 
+        local_aux_solution, 
+        local_metric_coeff_int,
+        local_dual,
+        soln_dofs_indices,
+        metric_dofs_indices,
+        poly_degree,
+        grid_degree,
+        soln_basis,
+        flux_basis,
+        flux_basis_stiffness,
+        soln_basis_projection_oper_int,
+        soln_basis_projection_oper_ext,
+        metric_oper,
+        mapping_basis,
+        mapping_support_points,
+        fe_values_collection_volume,
+        fe_values_collection_volume_lagrange,
+        fe_soln,
+        rhs, 
+        rhs_aux,
+        compute_auxiliary_right_hand_side,
+        dual_dot_residual);
+    
+    if (compute_dRdW || compute_dRdX) {
+        /*
+        if(compute_auxiliary_right_hand_side){
+            for(int idim=0; idim<dim; idim++){
+                for (unsigned int itest=0; itest<n_soln_dofs; ++itest) {
+                    th.registerOutput(rhs_aux[idim][itest]);
+                }
+            }
+        }
+        */
+        //else{
+            for (unsigned int itest=0; itest<n_soln_dofs; ++itest) {
+                th.registerOutput(rhs[itest]);
+            }
+        //}
+    } else if (compute_d2R) {
+        th.registerOutput(dual_dot_residual);
+    }
+    
+    if (compute_dRdW || compute_dRdX || compute_d2R) {
+        th.stopRecording();
+    }
+    
+    if(compute_auxiliary_right_hand_side){
+        for(int idim=0; idim<dim; idim++){
+            for (unsigned int itest=0; itest<n_soln_dofs; ++itest) {
+                local_auxiliary_RHS[idim][itest] += getValue<adtype>(rhs_aux[idim][itest]);
+                AssertIsFinite(local_auxiliary_RHS[idim][itest]);
+            }
+        }
+    }
+    else{
+        for (unsigned int itest=0; itest<n_soln_dofs; ++itest) {
+            local_rhs_cell[itest] += getValue<adtype>(rhs[itest]);
+            AssertIsFinite(local_rhs_cell[itest]);
+        }
+    }
+    
+    if (compute_dRdW) {
+        typename TH::JacobianType& jac = th.createJacobian();
+        th.evalJacobian(jac);
+        for (unsigned int itest=0; itest<n_soln_dofs; ++itest) {
+
+            std::vector<real> residual_derivatives(n_soln_dofs);
+            for (unsigned int idof = 0; idof < n_soln_dofs; ++idof) {
+                const unsigned int i_dx = idof+w_start;
+                residual_derivatives[idof] = jac(itest,i_dx);
+                AssertIsFinite(residual_derivatives[idof]);
+            }
+            const bool elide_zero_values = false;
+            this->system_matrix.add(soln_dofs_indices[itest], soln_dofs_indices, residual_derivatives, elide_zero_values);
+        }
+        th.deleteJacobian(jac);
+    }
+    
+    if (compute_dRdX) {
+        typename TH::JacobianType& jac = th.createJacobian();
+        th.evalJacobian(jac);
+        for (unsigned int itest=0; itest<n_soln_dofs; ++itest) {
+            std::vector<real> residual_derivatives(n_metric_dofs);
+            for (unsigned int idof = 0; idof < n_metric_dofs; ++idof) {
+                const unsigned int i_dx = idof+x_start;
+                residual_derivatives[idof] = jac(itest,i_dx);
+            }
+            this->dRdXv.add(soln_dofs_indices[itest], metric_dofs_indices, residual_derivatives);
+        }
+        th.deleteJacobian(jac);
+    }
+    
+    if (compute_d2R) {
+        typename TH::HessianType& hes = th.createHessian();
+        th.evalHessian(hes);
+
+        int i_dependent = (compute_dRdW || compute_dRdX) ? n_soln_dofs : 0;
+
+        std::vector<real> dWidW(n_soln_dofs);
+        std::vector<real> dWidX(n_metric_dofs);
+        std::vector<real> dXidX(n_metric_dofs);
+
+        for (unsigned int idof=0; idof<n_soln_dofs; ++idof) {
+
+            const unsigned int i_dx = idof+w_start;
+
+            for (unsigned int jdof=0; jdof<n_soln_dofs; ++jdof) {
+                const unsigned int j_dx = jdof+w_start;
+                dWidW[jdof] = hes(i_dependent,i_dx,j_dx);
+            }
+            this->d2RdWdW.add(soln_dofs_indices[idof], soln_dofs_indices, dWidW);
+
+            for (unsigned int jdof=0; jdof<n_metric_dofs; ++jdof) {
+                const unsigned int j_dx = jdof+x_start;
+                dWidX[jdof] = hes(i_dependent,i_dx,j_dx);
+            }
+            this->d2RdWdX.add(soln_dofs_indices[idof], metric_dofs_indices, dWidX);
+        }
+
+        for (unsigned int idof=0; idof<n_metric_dofs; ++idof) {
+
+            const unsigned int i_dx = idof+x_start;
+
+            for (unsigned int jdof=0; jdof<n_metric_dofs; ++jdof) {
+                const unsigned int j_dx = jdof+x_start;
+                dXidX[jdof] = hes(i_dependent,i_dx,j_dx);
+            }
+            this->d2RdXdX.add(metric_dofs_indices[idof], metric_dofs_indices, dXidX);
+        }
+
+        th.deleteHessian(hes);
+    }
+
+    for (unsigned int idof = 0; idof < n_soln_dofs; ++idof) {
+        tape.deactivateValue(local_solution[idof]);
+        
+        for(int idim=0; idim<dim; idim++){
+            tape.deactivateValue(local_aux_solution[idim][idof]);
+        }
+    }
+
+    for(unsigned int idof=0; idof<n_metric_dofs; ++idof)
+    {
+        tape.deactivateValue(local_metric_coeff_int[idof]);
+    }
+   
+}
+
+/// AD version
+template <int dim, int nspecies, typename real, typename MeshType>
+template <typename adtype>
+typename std::enable_if<!std::is_same<adtype, double>::value,void>::type
+    DGBase<dim,nspecies,real,MeshType>::assemble_boundary_codi_taped_derivatives_ad(
+    typename dealii::DoFHandler<dim>::active_cell_iterator cell,
+    const dealii::types::global_dof_index                  current_cell_index,
+    const unsigned int                                     iface,
+    const unsigned int                                     boundary_id,
+    const real                                             penalty,
+    const std::vector<dealii::types::global_dof_index>     &soln_dofs_indices,
+    const std::vector<dealii::types::global_dof_index>     &metric_dofs_indices,
+    const unsigned int                                     poly_degree,
+    const unsigned int                                     grid_degree,
+    OPERATOR::basis_functions<dim,2*dim>                   &soln_basis,
+    OPERATOR::basis_functions<dim,2*dim>                   &flux_basis,
+    OPERATOR::vol_projection_operator<dim,2*dim>           &soln_basis_projection_oper_int,
+    OPERATOR::metric_operators<adtype,dim,2*dim>           &metric_oper,
+    OPERATOR::mapping_shape_functions<dim,2*dim>           &mapping_basis,
+    std::array<std::vector<adtype>,dim>                    &mapping_support_points,
+    dealii::hp::FEFaceValues<dim,dim>                      &fe_values_collection_face_int,
+    const dealii::FESystem<dim,dim>                        &fe_soln,
+    std::vector<real>                                      &local_rhs_cell,
+    dealii::Tensor<1,dim,std::vector<real>>                &local_auxiliary_RHS,
+    const bool                                             compute_auxiliary_right_hand_side,
+    const bool compute_dRdW, const bool compute_dRdX, const bool compute_d2R)
+{
+    const unsigned int n_soln_dofs = fe_soln.dofs_per_cell;
+    const unsigned int n_metric_dofs = this->high_order_grid->fe_system.dofs_per_cell;
+
+    AssertDimension (n_soln_dofs, soln_dofs_indices.size());
+
+    unsigned int w_start=0, w_end=0, x_start=0, x_end=0;
+    if(compute_dRdW || compute_dRdX || compute_d2R)
+    {
+        automatic_differentiation_indexing_1( compute_dRdW, compute_dRdX, compute_d2R,
+                                              n_soln_dofs, n_metric_dofs,
+                                              w_start, w_end, x_start, x_end );
+    }
+    
+    using TH = codi::TapeHelper<adtype>;
+    TH th;
+    typename adtype::TapeType &tape =  adtype::getGlobalTape();
+    if (compute_dRdW || compute_dRdX || compute_d2R) {
+        th.startRecording();
+    }
+    
+    std::vector<adtype> local_solution(fe_soln.dofs_per_cell);
+    for (unsigned int idof = 0; idof < n_soln_dofs; ++idof) {
+        const real val = this->solution(soln_dofs_indices[idof]);
+        local_solution[idof] = val;
+
+        if (compute_dRdW || compute_d2R) {
+            th.registerInput(local_solution[idof]);
+        } else {
+            tape.deactivateValue(local_solution[idof]);
+        }
+    }
+    
+    std::vector<adtype> local_metric_coeff(n_metric_dofs);
+    for(unsigned int idof=0; idof<n_metric_dofs; ++idof)
+    {
+        const real val = this->high_order_grid->volume_nodes[metric_dofs_indices[idof]];
+        local_metric_coeff[idof] = val;
+        if (compute_dRdX || compute_d2R) {
+            th.registerInput(local_metric_coeff[idof]);
+        } else {
+            tape.deactivateValue(local_metric_coeff[idof]);
+        }
+    }
+    
+    if(compute_dRdX || compute_d2R)
+    {
+        build_volume_metric_operators(poly_degree, grid_degree, local_metric_coeff, metric_oper, mapping_basis, mapping_support_points);
+    }
+
+    dealii::Tensor<1,dim,std::vector<adtype>> local_aux_solution;
+    for(int idim=0; idim<dim; idim++){
+        local_aux_solution[idim].resize(n_soln_dofs);
+        for (unsigned int idof = 0; idof < n_soln_dofs; ++idof) {
+            if(this->use_auxiliary_eq){
+                const real val = this->auxiliary_solution[idim](soln_dofs_indices[idof]);
+                local_aux_solution[idim][idof] = val;
+            }
+            tape.deactivateValue(local_aux_solution[idim][idof]);
+            /*
+            if ((compute_dRdW || compute_d2R) && this->use_auxiliary_eq) {
+                th.registerInput(local_aux_solution[idim][idof]);
+            } else {
+                tape.deactivateValue(local_aux_solution[idim][idof]);
+            }
+            */        
+        }
+    }
+
+
+    std::vector<real> local_dual(n_soln_dofs);
+    for (unsigned int itest=0; itest<n_soln_dofs; ++itest) {
+        if(compute_d2R)//only if compute_d2R do we have the dual allocated
+            local_dual[itest] = this->dual[soln_dofs_indices[itest]];
+    }
+
+    std::vector<adtype> rhs(n_soln_dofs);
+    dealii::Tensor<1,dim,std::vector<adtype>> aux_rhs;
+    if(compute_auxiliary_right_hand_side){
+        for(int idim=0; idim<dim; idim++){
+            aux_rhs[idim].resize(n_soln_dofs);
+        }
+    }
+    adtype dual_dot_residual = 0.0;
+    assemble_boundary_term_and_build_operators_ad(
+        cell,
+        current_cell_index,
+        local_solution,
+        local_aux_solution,
+        local_metric_coeff,
+        local_dual,
+        iface,
+        boundary_id,
+        poly_degree,
+        grid_degree,
+        soln_basis,
+        flux_basis,
+        soln_basis_projection_oper_int,
+        metric_oper,
+        mapping_basis,
+        mapping_support_points,
+        fe_values_collection_face_int,
+        fe_soln,
+        penalty,
+        rhs,
+        aux_rhs,
+        compute_auxiliary_right_hand_side,
+        dual_dot_residual);
+
+    if (compute_dRdW || compute_dRdX) {
+        /*
+        if(compute_auxiliary_right_hand_side){
+            for(int idim=0; idim<dim; idim++){
+                for (unsigned int itest=0; itest<n_soln_dofs; ++itest) {
+                    th.registerOutput(aux_rhs[idim][itest]);
+                }
+            }
+        }
+        */
+        //else{
+            for (unsigned int itest=0; itest<n_soln_dofs; ++itest) {
+                th.registerOutput(rhs[itest]);
+            }
+        //}
+    } else if (compute_d2R) {
+        th.registerOutput(dual_dot_residual);
+    }
+
+    if (compute_dRdW || compute_dRdX || compute_d2R) {
+        th.stopRecording();
+    }
+
+    for (unsigned int itest=0; itest<n_soln_dofs; ++itest) {
+        local_rhs_cell[itest] += getValue<adtype>(rhs[itest]);
+        AssertIsFinite(local_rhs_cell[itest]);
+    }
+
+    if(compute_auxiliary_right_hand_side){
+        for(int idim=0; idim<dim; idim++){
+            for (unsigned int itest=0; itest<n_soln_dofs; ++itest) {
+                local_auxiliary_RHS[idim][itest] += getValue<adtype>(aux_rhs[idim][itest]);
+                AssertIsFinite(local_auxiliary_RHS[idim][itest]);
+            }
+        }
+    }
+
+    if (compute_dRdW) {
+        typename TH::JacobianType& jac = th.createJacobian();
+        th.evalJacobian(jac);
+        for (unsigned int itest=0; itest<n_soln_dofs; ++itest) {
+
+            std::vector<real> residual_derivatives(n_soln_dofs);
+            for (unsigned int idof = 0; idof < n_soln_dofs; ++idof) {
+                const unsigned int i_dx = idof+w_start;
+                residual_derivatives[idof] = jac(itest,i_dx);
+                AssertIsFinite(residual_derivatives[idof]);
+            }
+            const bool elide_zero_values = false;
+            this->system_matrix.add(soln_dofs_indices[itest], soln_dofs_indices, residual_derivatives, elide_zero_values);
+        }
+        th.deleteJacobian(jac);
+
+    }
+
+    if (compute_dRdX) {
+        typename TH::JacobianType& jac = th.createJacobian();
+        th.evalJacobian(jac);
+        for (unsigned int itest=0; itest<n_soln_dofs; ++itest) {
+            std::vector<real> residual_derivatives(n_metric_dofs);
+            for (unsigned int idof = 0; idof < n_metric_dofs; ++idof) {
+                const unsigned int i_dx = idof+x_start;
+                residual_derivatives[idof] = jac(itest,i_dx);
+            }
+            this->dRdXv.add(soln_dofs_indices[itest], metric_dofs_indices, residual_derivatives);
+        }
+        th.deleteJacobian(jac);
+    }
+
+    if (compute_d2R) {
+        typename TH::HessianType& hes = th.createHessian();
+        th.evalHessian(hes);
+
+        int i_dependent = (compute_dRdW || compute_dRdX) ? n_soln_dofs : 0;
+
+        std::vector<real> dWidW(n_soln_dofs);
+        std::vector<real> dWidX(n_metric_dofs);
+        std::vector<real> dXidX(n_metric_dofs);
+
+        for (unsigned int idof=0; idof<n_soln_dofs; ++idof) {
+
+            const unsigned int i_dx = idof+w_start;
+
+            for (unsigned int jdof=0; jdof<n_soln_dofs; ++jdof) {
+                const unsigned int j_dx = jdof+w_start;
+                dWidW[jdof] = hes(i_dependent,i_dx,j_dx);
+            }
+            this->d2RdWdW.add(soln_dofs_indices[idof], soln_dofs_indices, dWidW);
+
+            for (unsigned int jdof=0; jdof<n_metric_dofs; ++jdof) {
+                const unsigned int j_dx = jdof+x_start;
+                dWidX[jdof] = hes(i_dependent,i_dx,j_dx);
+            }
+            this->d2RdWdX.add(soln_dofs_indices[idof], metric_dofs_indices, dWidX);
+        }
+
+        for (unsigned int idof=0; idof<n_metric_dofs; ++idof) {
+
+            const unsigned int i_dx = idof+x_start;
+
+            for (unsigned int jdof=0; jdof<n_metric_dofs; ++jdof) {
+                const unsigned int j_dx = jdof+x_start;
+                dXidX[jdof] = hes(i_dependent,i_dx,j_dx);
+            }
+            this->d2RdXdX.add(metric_dofs_indices[idof], metric_dofs_indices, dXidX);
+        }
+
+        th.deleteHessian(hes);
+    }
+
+    for (unsigned int idof = 0; idof < n_soln_dofs; ++idof) {
+        tape.deactivateValue(local_solution[idof]);
+    
+        for(int idim=0; idim<dim; idim++){
+            tape.deactivateValue(local_aux_solution[idim][idof]);
+        }
+    }
+    for (unsigned int idof = 0; idof < n_metric_dofs; ++idof) {
+        tape.deactivateValue(local_metric_coeff[idof]);
+    }
+
+}
+
+// Double version
+template <int dim, int nspecies, typename real, typename MeshType>
+void DGBase<dim,nspecies,real,MeshType>::assemble_boundary_codi_taped_derivatives_ad(
+    typename dealii::DoFHandler<dim>::active_cell_iterator cell,
+    const dealii::types::global_dof_index                  current_cell_index,
+    const unsigned int                                     iface,
+    const unsigned int                                     boundary_id,
+    const real                                             penalty,
+    const std::vector<dealii::types::global_dof_index>     &soln_dofs_indices,
+    const std::vector<dealii::types::global_dof_index>     &metric_dofs_indices,
+    const unsigned int                                     poly_degree,
+    const unsigned int                                     grid_degree,
+    OPERATOR::basis_functions<dim,2*dim>                   &soln_basis,
+    OPERATOR::basis_functions<dim,2*dim>                   &flux_basis,
+    OPERATOR::vol_projection_operator<dim,2*dim>           &soln_basis_projection_oper_int,
+    OPERATOR::metric_operators<double,dim,2*dim>           &metric_oper,
+    OPERATOR::mapping_shape_functions<dim,2*dim>           &mapping_basis,
+    std::array<std::vector<double>,dim>                    &mapping_support_points,
+    dealii::hp::FEFaceValues<dim,dim>                      &fe_values_collection_face_int,
+    const dealii::FESystem<dim,dim>                        &fe_soln,
+    std::vector<real>                                      &local_rhs_cell,
+    dealii::Tensor<1,dim,std::vector<real>>                &local_auxiliary_RHS,
+    const bool                                             compute_auxiliary_right_hand_side,
+    const bool /*compute_dRdW*/, const bool /*compute_dRdX*/, const bool /*compute_d2R*/)
+{
+    const unsigned int n_soln_dofs = fe_soln.dofs_per_cell;
+    const unsigned int n_metric_dofs = this->high_order_grid->fe_system.dofs_per_cell;
+
+    AssertDimension (n_soln_dofs, soln_dofs_indices.size());
+ 
+    std::vector<double> local_solution(fe_soln.dofs_per_cell);
+    for (unsigned int idof = 0; idof < n_soln_dofs; ++idof) {
+        local_solution[idof] = this->solution(soln_dofs_indices[idof]);
+    }
+    
+    std::vector<double> local_metric_coeff(n_metric_dofs);
+    for(unsigned int idof=0; idof<n_metric_dofs; ++idof)
+    {
+        local_metric_coeff[idof] = this->high_order_grid->volume_nodes[metric_dofs_indices[idof]];
+    }
+
+    dealii::Tensor<1,dim,std::vector<double>> local_aux_solution;
+    for(int idim=0; idim<dim; idim++){
+        local_aux_solution[idim].resize(n_soln_dofs);
+        for (unsigned int idof = 0; idof < n_soln_dofs; ++idof) {
+            if(this->use_auxiliary_eq){
+                local_aux_solution[idim][idof] = this->auxiliary_solution[idim](soln_dofs_indices[idof]);
+            } 
+        }
+    }
+
+    std::vector<real> local_dual(n_soln_dofs);
+    for (unsigned int itest=0; itest<n_soln_dofs; ++itest) {
+        local_dual[itest] = 0.0;
+    }
+
+    std::vector<double> rhs(n_soln_dofs);
+    dealii::Tensor<1,dim,std::vector<double>> aux_rhs;
+    if(compute_auxiliary_right_hand_side){
+        for(int idim=0; idim<dim; idim++){
+            aux_rhs[idim].resize(n_soln_dofs);
+        }
+    }
+    double dual_dot_residual = 0.0;
+    assemble_boundary_term_and_build_operators_ad(
+        cell,
+        current_cell_index,
+        local_solution,
+        local_aux_solution,
+        local_metric_coeff,
+        local_dual,
+        iface,
+        boundary_id,
+        poly_degree,
+        grid_degree,
+        soln_basis,
+        flux_basis,
+        soln_basis_projection_oper_int,
+        metric_oper,
+        mapping_basis,
+        mapping_support_points,
+        fe_values_collection_face_int,
+        fe_soln,
+        penalty,
+        rhs,
+        aux_rhs,
+        compute_auxiliary_right_hand_side,
+        dual_dot_residual);
+
+    for (unsigned int itest=0; itest<n_soln_dofs; ++itest) {
+        local_rhs_cell[itest] += rhs[itest];
+    }
+
+    if(compute_auxiliary_right_hand_side){
+        for(int idim=0; idim<dim; idim++){
+            for (unsigned int itest=0; itest<n_soln_dofs; ++itest) {
+                local_auxiliary_RHS[idim][itest] += aux_rhs[idim][itest];
+            }
+        }
+    }
+
+}
+
+// AD version
+template <int dim, int nspecies, typename real, typename MeshType>
+template <typename adtype>
+typename std::enable_if<!std::is_same<adtype, double>::value,void>::type
+    DGBase<dim,nspecies,real,MeshType>::assemble_face_codi_taped_derivatives_ad(
+    typename dealii::DoFHandler<dim>::active_cell_iterator cell,
+    typename dealii::DoFHandler<dim>::active_cell_iterator neighbor_cell,
+    const dealii::types::global_dof_index                  current_cell_index,
+    const dealii::types::global_dof_index                  neighbor_cell_index,
+    const unsigned int                                     iface,
+    const unsigned int                                     neighbor_iface,
+    const real                                             penalty,
+    dealii::hp::FEFaceValues<dim,dim>                      &fe_values_collection_face_int,
+    dealii::hp::FEFaceValues<dim,dim>                      &fe_values_collection_face_ext,
+    dealii::hp::FESubfaceValues<dim,dim>                   &fe_values_collection_subface,
+    const dealii::FESystem<dim,dim>                        &fe_int,
+    const dealii::FESystem<dim,dim>                        &fe_ext,
+    const std::vector<dealii::types::global_dof_index>     &soln_dofs_indices_int,
+    const std::vector<dealii::types::global_dof_index>     &soln_dofs_indices_ext,
+    const std::vector<dealii::types::global_dof_index>     &metric_dofs_indices_int,
+    const std::vector<dealii::types::global_dof_index>     &metric_dofs_indices_ext,
+    const unsigned int                                     poly_degree_int,
+    const unsigned int                                     poly_degree_ext,
+    const unsigned int                                     grid_degree_int,
+    const unsigned int                                     grid_degree_ext,
+    OPERATOR::basis_functions<dim,2*dim>                   &soln_basis_int,
+    OPERATOR::basis_functions<dim,2*dim>                   &soln_basis_ext,
+    OPERATOR::basis_functions<dim,2*dim>                   &flux_basis_int,
+    OPERATOR::basis_functions<dim,2*dim>                   &flux_basis_ext,
+    OPERATOR::local_basis_stiffness<dim,2*dim>             &flux_basis_stiffness,
+    OPERATOR::vol_projection_operator<dim,2*dim>           &soln_basis_projection_oper_int,
+    OPERATOR::vol_projection_operator<dim,2*dim>           &soln_basis_projection_oper_ext,
+    OPERATOR::metric_operators<adtype,dim,2*dim>           &metric_oper_int,
+    OPERATOR::metric_operators<adtype,dim,2*dim>           &metric_oper_ext,
+    OPERATOR::mapping_shape_functions<dim,2*dim>           &mapping_basis,
+    std::array<std::vector<adtype>,dim>                    &mapping_support_points,
+    std::vector<real> &local_rhs_int_cell,
+    std::vector<real> &local_rhs_ext_cell,
+    dealii::Tensor<1,dim,std::vector<real>>  &current_cell_rhs_aux,
+    dealii::LinearAlgebra::distributed::Vector<double>  &rhs,
+    std::array<dealii::LinearAlgebra::distributed::Vector<double>,dim> &rhs_aux,
+    const bool compute_auxiliary_right_hand_side,
+    const bool compute_dRdW, const bool compute_dRdX, const bool compute_d2R,
+    const bool is_a_subface,
+    const unsigned int neighbor_i_subface)
+{
+    const dealii::FESystem<dim> &fe_metric = this->high_order_grid->fe_system;
+    const unsigned int n_metric_dofs = fe_metric.dofs_per_cell;
+    const unsigned int n_soln_dofs_int = fe_int.dofs_per_cell;
+    const unsigned int n_soln_dofs_ext = fe_ext.dofs_per_cell;
+
+    AssertDimension (n_soln_dofs_int, soln_dofs_indices_int.size());
+    AssertDimension (n_soln_dofs_ext, soln_dofs_indices_ext.size());
+
+    // Current derivative ordering is: soln_int, soln_ext, metric_int, metric_ext 
+    unsigned int w_int_start=0, w_int_end=0, w_ext_start=0, w_ext_end=0,
+                 x_int_start=0, x_int_end=0, x_ext_start=0, x_ext_end=0;
+    if(compute_dRdW || compute_dRdX || compute_d2R)
+    {
+        automatic_differentiation_indexing_2(
+            compute_dRdW, compute_dRdX, compute_d2R,
+            n_soln_dofs_int, n_soln_dofs_ext, n_metric_dofs,
+            w_int_start, w_int_end, w_ext_start, w_ext_end,
+            x_int_start, x_int_end, x_ext_start, x_ext_end);
+    }
+    
+    using TH = codi::TapeHelper<adtype>;
+    TH th;
+    typename adtype::TapeType &tape =  adtype::getGlobalTape();
+    if (compute_dRdW || compute_dRdX || compute_d2R) {
+        th.startRecording();
+    }
+    
+    std::vector<adtype> soln_coeff_int(fe_int.dofs_per_cell);
+    for (unsigned int idof = 0; idof < n_soln_dofs_int; ++idof) {
+        const real val = this->solution(soln_dofs_indices_int[idof]);
+        soln_coeff_int[idof] = val;
+        if (compute_dRdW || compute_d2R) {
+            th.registerInput(soln_coeff_int[idof]);
+        } else {
+            tape.deactivateValue(soln_coeff_int[idof]);
+        }
+    }
+    
+    std::vector<adtype> soln_coeff_ext(fe_ext.dofs_per_cell);
+    for (unsigned int idof = 0; idof < n_soln_dofs_ext; ++idof) {
+        const real val = this->solution(soln_dofs_indices_ext[idof]);
+        soln_coeff_ext[idof] = val;
+        if (compute_dRdW || compute_d2R) {
+            th.registerInput(soln_coeff_ext[idof]);
+        } else {
+            tape.deactivateValue(soln_coeff_ext[idof]);
+        }
+    }
+    
+    std::vector<adtype> metric_coeff_int(fe_metric.dofs_per_cell);
+    for (unsigned int idof = 0; idof < n_metric_dofs; ++idof) {
+        const real val = this->high_order_grid->volume_nodes[metric_dofs_indices_int[idof]];
+        metric_coeff_int[idof] = val;
+        if (compute_dRdX || compute_d2R) {
+            th.registerInput(metric_coeff_int[idof]);
+        } else {
+            tape.deactivateValue(metric_coeff_int[idof]);
+        }
+    }
+    
+    if(compute_dRdX || compute_d2R)
+    {
+        // Rebuild metric Jacobian and cofactors of the interior cell again
+        build_volume_metric_operators(poly_degree_int, grid_degree_int, metric_coeff_int, metric_oper_int, mapping_basis, mapping_support_points);
+    }
+    
+    std::vector<adtype> metric_coeff_ext(fe_metric.dofs_per_cell);
+    for (unsigned int idof = 0; idof < n_metric_dofs; ++idof) {
+        const real val = this->high_order_grid->volume_nodes[metric_dofs_indices_ext[idof]];
+        metric_coeff_ext[idof] = val;
+        if (compute_dRdX || compute_d2R) {
+            th.registerInput(metric_coeff_ext[idof]);
+        } else {
+            tape.deactivateValue(metric_coeff_ext[idof]);
+        }
+    }
+    
+    dealii::Tensor<1,dim,std::vector<adtype>> aux_soln_coeff_int;
+    dealii::Tensor<1,dim,std::vector<adtype>> aux_soln_coeff_ext;
+    for(int idim=0; idim<dim; idim++){
+        aux_soln_coeff_int[idim].resize(n_soln_dofs_int);
+        aux_soln_coeff_ext[idim].resize(n_soln_dofs_ext);
+        for (unsigned int idof = 0; idof < n_soln_dofs_int; ++idof) {
+            if(this->use_auxiliary_eq){
+                const real val = this->auxiliary_solution[idim](soln_dofs_indices_int[idof]);
+                aux_soln_coeff_int[idim][idof] = val;
+            }
+            tape.deactivateValue(aux_soln_coeff_int[idim][idof]);
+            /*
+            if  ((compute_dRdW || compute_d2R) && this->use_auxiliary_eq) {
+                th.registerInput(aux_soln_coeff_int[idim][idof]);
+            } else {
+                tape.deactivateValue(aux_soln_coeff_int[idim][idof]);
+            }
+            */
+        }
+        for (unsigned int idof = 0; idof < n_soln_dofs_ext; ++idof) {
+            if(this->use_auxiliary_eq){
+                const real val = this->auxiliary_solution[idim](soln_dofs_indices_ext[idof]);
+                aux_soln_coeff_ext[idim][idof] = val;
+            }
+            tape.deactivateValue(aux_soln_coeff_ext[idim][idof]);
+            /*
+            if ((compute_dRdW || compute_d2R) && this->use_auxiliary_eq) {
+                th.registerInput(aux_soln_coeff_ext[idim][idof]);
+            } else {
+                tape.deactivateValue(aux_soln_coeff_ext[idim][idof]);
+            }
+            */
+        }
+    }
+
+    std::vector<double> dual_int(n_soln_dofs_int);
+    std::vector<double> dual_ext(n_soln_dofs_ext);
+
+    for (unsigned int itest=0; itest<n_soln_dofs_int; ++itest) {
+        const unsigned int global_residual_row = soln_dofs_indices_int[itest];
+        if(compute_d2R)//only if compute_d2R do we have the dual allocated
+            dual_int[itest] = this->dual[global_residual_row];
+    }
+    for (unsigned int itest=0; itest<n_soln_dofs_ext; ++itest) {
+        const unsigned int global_residual_row = soln_dofs_indices_ext[itest];
+        if(compute_d2R)//only if compute_d2R do we have the dual allocated
+            dual_ext[itest] = this->dual[global_residual_row];
+    }
+
+    std::vector<adtype> rhs_int(n_soln_dofs_int);
+    std::vector<adtype> rhs_ext(n_soln_dofs_ext);
+    dealii::Tensor<1,dim,std::vector<adtype>> aux_rhs_int;
+    dealii::Tensor<1,dim,std::vector<adtype>> aux_rhs_ext;
+    if(compute_auxiliary_right_hand_side){
+        for(int idim=0; idim<dim; idim++){
+            aux_rhs_int[idim].resize(n_soln_dofs_int);
+            aux_rhs_ext[idim].resize(n_soln_dofs_ext);
+        }
+    }
+    adtype dual_dot_residual = 0.0;
+    
+    assemble_face_term_and_build_operators_ad(
+            cell,
+            neighbor_cell,
+            current_cell_index,
+            neighbor_cell_index,
+            iface,
+            neighbor_iface,
+            soln_coeff_int,
+            soln_coeff_ext,
+            aux_soln_coeff_int,
+            aux_soln_coeff_ext,
+            metric_coeff_int,
+            metric_coeff_ext,
+            dual_int,
+            dual_ext,
+            poly_degree_int,
+            poly_degree_ext,
+            grid_degree_int,
+            grid_degree_ext,
+            soln_basis_int,
+            soln_basis_ext,
+            flux_basis_int,
+            flux_basis_ext,
+            flux_basis_stiffness,
+            soln_basis_projection_oper_int,
+            soln_basis_projection_oper_ext,
+            metric_oper_int,
+            metric_oper_ext,
+            mapping_basis,
+            mapping_support_points,
+            fe_values_collection_face_int,
+            fe_values_collection_face_ext,
+            fe_values_collection_subface,
+            fe_int,
+            fe_ext,
+            penalty,
+            rhs_int,
+            rhs_ext,
+            aux_rhs_int,
+            aux_rhs_ext,
+            compute_auxiliary_right_hand_side,
+            dual_dot_residual,
+            compute_dRdW, compute_dRdX, compute_d2R,
+            is_a_subface,
+            neighbor_i_subface);
+
+    if (compute_dRdW || compute_dRdX) {
+        for (unsigned int itest=0; itest<n_soln_dofs_int; ++itest) {
+            th.registerOutput(rhs_int[itest]);
+        }
+        for (unsigned int itest=0; itest<n_soln_dofs_ext; ++itest) {
+            th.registerOutput(rhs_ext[itest]);
+        }
+    } else if (compute_d2R) {
+        th.registerOutput(dual_dot_residual);
+    }
+    
+    if (compute_dRdW || compute_dRdX || compute_d2R) {
+        th.stopRecording();
+        //adtype::getGlobalTape().printStatistics();
+    }
+    
+    if(compute_auxiliary_right_hand_side){
+        for(int idim=0; idim<dim; idim++){
+            for (unsigned int itest_int=0; itest_int<n_soln_dofs_int; ++itest_int) {
+                current_cell_rhs_aux[idim][itest_int] += getValue<adtype>(aux_rhs_int[idim][itest_int]);
+            }
+
+            // Add local contribution from neighbor cell to global vector
+            for (unsigned int itest_ext=0; itest_ext<n_soln_dofs_ext; ++itest_ext) {
+                rhs_aux[idim][soln_dofs_indices_ext[itest_ext]] += getValue<adtype>(aux_rhs_ext[idim][itest_ext]);
+            }
+        }
+    }
+    else{
+        for (unsigned int itest_int=0; itest_int<n_soln_dofs_int; ++itest_int) {
+            local_rhs_int_cell[itest_int] += getValue<adtype>(rhs_int[itest_int]);
+        }
+        for (unsigned int itest_ext=0; itest_ext<n_soln_dofs_ext; ++itest_ext) {
+            local_rhs_ext_cell[itest_ext] += getValue<adtype>(rhs_ext[itest_ext]);
+        }
+         
+        // Add local contribution from neighbor cell to global vector
+        for (unsigned int itest_ext=0; itest_ext<n_soln_dofs_ext; ++itest_ext) {
+            rhs[soln_dofs_indices_ext[itest_ext]] += local_rhs_ext_cell[itest_ext];
+        }
+    }
+    
+    if (compute_dRdW || compute_dRdX) {
+        typename TH::JacobianType& jac = th.createJacobian();
+        th.evalJacobian(jac);
+
+        if (compute_dRdW) {
+            std::vector<real> residual_derivatives(n_soln_dofs_int);
+
+            for (unsigned int itest_int=0; itest_int<n_soln_dofs_int; ++itest_int) {
+                int i_dependent = itest_int;
+
+                // dR_int_dW_int
+                residual_derivatives.resize(n_soln_dofs_int);
+                for (unsigned int idof = 0; idof < n_soln_dofs_int; ++idof) {
+                    const unsigned int i_dx = idof+w_int_start;
+                    residual_derivatives[idof] = jac(i_dependent,i_dx);
+                }
+                const bool elide_zero_values = false;
+                this->system_matrix.add(soln_dofs_indices_int[itest_int], soln_dofs_indices_int, residual_derivatives, elide_zero_values);
+
+                // dR_int_dW_ext
+                residual_derivatives.resize(n_soln_dofs_ext);
+                for (unsigned int idof = 0; idof < n_soln_dofs_ext; ++idof) {
+                    const unsigned int i_dx = idof+w_ext_start;
+                    residual_derivatives[idof] = jac(i_dependent,i_dx);
+                }
+                this->system_matrix.add(soln_dofs_indices_int[itest_int], soln_dofs_indices_ext, residual_derivatives, elide_zero_values);
+            }
+
+            for (unsigned int itest_ext=0; itest_ext<n_soln_dofs_ext; ++itest_ext) {
+
+                int i_dependent = n_soln_dofs_int + itest_ext;
+
+                // dR_ext_dW_int
+                residual_derivatives.resize(n_soln_dofs_int);
+                for (unsigned int idof = 0; idof < n_soln_dofs_int; ++idof) {
+                    const unsigned int i_dx = idof+w_int_start;
+                    residual_derivatives[idof] = jac(i_dependent,i_dx);
+                }
+                const bool elide_zero_values = false;
+                this->system_matrix.add(soln_dofs_indices_ext[itest_ext], soln_dofs_indices_int, residual_derivatives, elide_zero_values);
+
+                // dR_ext_dW_ext
+                residual_derivatives.resize(n_soln_dofs_ext);
+                for (unsigned int idof = 0; idof < n_soln_dofs_ext; ++idof) {
+                    const unsigned int i_dx = idof+w_ext_start;
+                    residual_derivatives[idof] = jac(i_dependent,i_dx);
+                }
+                this->system_matrix.add(soln_dofs_indices_ext[itest_ext], soln_dofs_indices_ext, residual_derivatives, elide_zero_values);
+            }
+        }
+
+        if (compute_dRdX) {
+            std::vector<real> residual_derivatives(n_metric_dofs);
+
+            for (unsigned int itest_int=0; itest_int<n_soln_dofs_int; ++itest_int) {
+
+                int i_dependent = itest_int;
+
+                // dR_int_dX_int
+                for (unsigned int idof = 0; idof < n_metric_dofs; ++idof) {
+                    const unsigned int i_dx = idof+x_int_start;
+                    residual_derivatives[idof] = jac(i_dependent,i_dx);
+                }
+                this->dRdXv.add(soln_dofs_indices_int[itest_int], metric_dofs_indices_int, residual_derivatives);
+
+                // dR_int_dX_ext
+                for (unsigned int idof = 0; idof < n_metric_dofs; ++idof) {
+                    const unsigned int i_dx = idof+x_ext_start;
+                   residual_derivatives[idof] = jac(i_dependent,i_dx);
+                }
+                this->dRdXv.add(soln_dofs_indices_int[itest_int], metric_dofs_indices_ext, residual_derivatives);
+            }
+
+            for (unsigned int itest_ext=0; itest_ext<n_soln_dofs_ext; ++itest_ext) {
+
+                int i_dependent = n_soln_dofs_int + itest_ext;
+
+                // dR_ext_dX_int
+                for (unsigned int idof = 0; idof < n_metric_dofs; ++idof) {
+                    const unsigned int i_dx = idof+x_int_start;
+                    residual_derivatives[idof] = jac(i_dependent,i_dx);
+                }
+                this->dRdXv.add(soln_dofs_indices_ext[itest_ext], metric_dofs_indices_int, residual_derivatives);
+
+                // dR_ext_dX_ext
+                for (unsigned int idof = 0; idof < n_metric_dofs; ++idof) {
+                    const unsigned int i_dx = idof+x_ext_start;
+                    residual_derivatives[idof] = jac(i_dependent,i_dx);
+                }
+                this->dRdXv.add(soln_dofs_indices_ext[itest_ext], metric_dofs_indices_ext, residual_derivatives);
+            }
+        }
+
+        th.deleteJacobian(jac);
+    }
+
+    if (compute_d2R) {
+        typename TH::HessianType& hes = th.createHessian();
+        th.evalHessian(hes);
+
+        std::vector<real> dWidW(n_soln_dofs_int);
+        std::vector<real> dWidX(n_metric_dofs);
+        std::vector<real> dXidX(n_metric_dofs);
+
+        int i_dependent = (compute_dRdW || compute_dRdX) ? n_soln_dofs_int + n_soln_dofs_ext : 0;
+
+        for (unsigned int idof=0; idof<n_soln_dofs_int; ++idof) {
+
+            const unsigned int i_dx = idof+w_int_start;
+
+            // dWint_dWint
+            for (unsigned int jdof=0; jdof<n_soln_dofs_int; ++jdof) {
+                const unsigned int j_dx = jdof+w_int_start;
+                dWidW[jdof] = hes(i_dependent,i_dx,j_dx);
+            }
+            this->d2RdWdW.add(soln_dofs_indices_int[idof], soln_dofs_indices_int, dWidW);
+
+            // dWint_dWext
+            for (unsigned int jdof=0; jdof<n_soln_dofs_ext; ++jdof) {
+                const unsigned int j_dx = jdof+w_ext_start;
+                dWidW[jdof] = hes(i_dependent,i_dx,j_dx);
+            }
+            this->d2RdWdW.add(soln_dofs_indices_int[idof], soln_dofs_indices_ext, dWidW);
+
+            // dWint_dXint
+            for (unsigned int jdof=0; jdof<n_metric_dofs; ++jdof) {
+                const unsigned int j_dx = jdof+x_int_start;
+                dWidX[jdof] = hes(i_dependent,i_dx,j_dx);
+            }
+            this->d2RdWdX.add(soln_dofs_indices_int[idof], metric_dofs_indices_int, dWidX);
+
+            // dWint_dXext
+            for (unsigned int jdof=0; jdof<n_metric_dofs; ++jdof) {
+                const unsigned int j_dx = jdof+x_ext_start;
+                dWidX[jdof] = hes(i_dependent,i_dx,j_dx);
+            }
+            this->d2RdWdX.add(soln_dofs_indices_int[idof], metric_dofs_indices_ext, dWidX);
+        }
+
+        for (unsigned int idof=0; idof<n_metric_dofs; ++idof) {
+
+            const unsigned int i_dx = idof+x_int_start;
+
+            // dXint_dXint
+            for (unsigned int jdof=0; jdof<n_metric_dofs; ++jdof) {
+                const unsigned int j_dx = jdof+x_int_start;
+                dXidX[jdof] = hes(i_dependent,i_dx,j_dx);
+            }
+            this->d2RdXdX.add(metric_dofs_indices_int[idof], metric_dofs_indices_int, dXidX);
+
+            // dXint_dXext
+            for (unsigned int jdof=0; jdof<n_metric_dofs; ++jdof) {
+                const unsigned int j_dx = jdof+x_ext_start;
+                dXidX[jdof] = hes(i_dependent,i_dx,j_dx);
+            }
+            this->d2RdXdX.add(metric_dofs_indices_int[idof], metric_dofs_indices_ext, dXidX);
+        }
+
+        dWidW.resize(n_soln_dofs_ext);
+
+        for (unsigned int idof=0; idof<n_soln_dofs_ext; ++idof) {
+
+            const unsigned int i_dx = idof+w_ext_start;
+
+            // dWext_dWint
+            for (unsigned int jdof=0; jdof<n_soln_dofs_int; ++jdof) {
+                const unsigned int j_dx = jdof+w_int_start;
+                dWidW[jdof] = hes(i_dependent,i_dx,j_dx);
+            }
+            this->d2RdWdW.add(soln_dofs_indices_ext[idof], soln_dofs_indices_int, dWidW);
+
+            // dWext_dWext
+            for (unsigned int jdof=0; jdof<n_soln_dofs_ext; ++jdof) {
+                const unsigned int j_dx = jdof+w_ext_start;
+                dWidW[jdof] = hes(i_dependent,i_dx,j_dx);
+            }
+            this->d2RdWdW.add(soln_dofs_indices_ext[idof], soln_dofs_indices_ext, dWidW);
+
+            // dWext_dXint
+            for (unsigned int jdof=0; jdof<n_metric_dofs; ++jdof) {
+                const unsigned int j_dx = jdof+x_int_start;
+                dWidX[jdof] = hes(i_dependent,i_dx,j_dx);
+            }
+            this->d2RdWdX.add(soln_dofs_indices_ext[idof], metric_dofs_indices_int, dWidX);
+
+            // dWext_dXext
+            for (unsigned int jdof=0; jdof<n_metric_dofs; ++jdof) {
+                const unsigned int j_dx = jdof+x_ext_start;
+                dWidX[jdof] = hes(i_dependent,i_dx,j_dx);
+            }
+            this->d2RdWdX.add(soln_dofs_indices_ext[idof], metric_dofs_indices_ext, dWidX);
+        }
+
+        for (unsigned int idof=0; idof<n_metric_dofs; ++idof) {
+
+            const unsigned int i_dx = idof+x_ext_start;
+
+            // dXext_dXint
+            for (unsigned int jdof=0; jdof<n_metric_dofs; ++jdof) {
+                const unsigned int j_dx = jdof+x_int_start;
+                dXidX[jdof] = hes(i_dependent,i_dx,j_dx);
+            }
+            this->d2RdXdX.add(metric_dofs_indices_ext[idof], metric_dofs_indices_int, dXidX);
+
+            // dXext_dXext
+            for (unsigned int jdof=0; jdof<n_metric_dofs; ++jdof) {
+                const unsigned int j_dx = jdof+x_ext_start;
+                dXidX[jdof] = hes(i_dependent,i_dx,j_dx);
+            }
+            this->d2RdXdX.add(metric_dofs_indices_ext[idof], metric_dofs_indices_ext, dXidX);
+        }
+
+        th.deleteHessian(hes);
+    }
+
+    for (unsigned int idof = 0; idof < n_soln_dofs_int; ++idof) {
+        tape.deactivateValue(soln_coeff_int[idof]);
+    }
+    for (unsigned int idof = 0; idof < n_soln_dofs_ext; ++idof) {
+        tape.deactivateValue(soln_coeff_ext[idof]);
+    }
+    for (unsigned int idof = 0; idof < n_metric_dofs; ++idof) {
+        tape.deactivateValue(metric_coeff_int[idof]);
+    }
+    for (unsigned int idof = 0; idof < n_metric_dofs; ++idof) {
+        tape.deactivateValue(metric_coeff_ext[idof]);
+    }
+    
+    for(int idim=0; idim<dim; idim++){
+        for (unsigned int idof = 0; idof < n_soln_dofs_int; ++idof) {
+            tape.deactivateValue(aux_soln_coeff_int[idim][idof]);
+        }
+        for (unsigned int idof = 0; idof < n_soln_dofs_ext; ++idof) {
+            tape.deactivateValue(aux_soln_coeff_ext[idim][idof]);
+        }
+    }
+}
+
+// Double version
+template <int dim, int nspecies, typename real, typename MeshType>
+void DGBase<dim,nspecies,real,MeshType>::assemble_face_codi_taped_derivatives_ad(
+    typename dealii::DoFHandler<dim>::active_cell_iterator cell,
+    typename dealii::DoFHandler<dim>::active_cell_iterator neighbor_cell,
+    const dealii::types::global_dof_index current_cell_index,
+    const dealii::types::global_dof_index neighbor_cell_index,
+    const unsigned int iface,
+    const unsigned int neighbor_iface,
+    const real penalty,
+    dealii::hp::FEFaceValues<dim,dim>  &fe_values_collection_face_int,
+    dealii::hp::FEFaceValues<dim,dim>  &fe_values_collection_face_ext,
+    dealii::hp::FESubfaceValues<dim,dim>  &fe_values_collection_subface,
+    const dealii::FESystem<dim,dim> &fe_int,
+    const dealii::FESystem<dim,dim> &fe_ext,
+    const std::vector<dealii::types::global_dof_index> &soln_dofs_indices_int,
+    const std::vector<dealii::types::global_dof_index> &soln_dofs_indices_ext,
+    const std::vector<dealii::types::global_dof_index> &metric_dofs_indices_int,
+    const std::vector<dealii::types::global_dof_index> &metric_dofs_indices_ext,
+    const unsigned int                                     poly_degree_int,
+    const unsigned int                                     poly_degree_ext,
+    const unsigned int                                     grid_degree_int,
+    const unsigned int                                     grid_degree_ext,
+    OPERATOR::basis_functions<dim,2*dim>                   &soln_basis_int,
+    OPERATOR::basis_functions<dim,2*dim>                   &soln_basis_ext,
+    OPERATOR::basis_functions<dim,2*dim>                   &flux_basis_int,
+    OPERATOR::basis_functions<dim,2*dim>                   &flux_basis_ext,
+    OPERATOR::local_basis_stiffness<dim,2*dim>             &flux_basis_stiffness,
+    OPERATOR::vol_projection_operator<dim,2*dim>           &soln_basis_projection_oper_int,
+    OPERATOR::vol_projection_operator<dim,2*dim>           &soln_basis_projection_oper_ext,
+    OPERATOR::metric_operators<double,dim,2*dim>           &metric_oper_int,
+    OPERATOR::metric_operators<double,dim,2*dim>           &metric_oper_ext,
+    OPERATOR::mapping_shape_functions<dim,2*dim>           &mapping_basis,
+    std::array<std::vector<double>,dim>                    &mapping_support_points,
+    std::vector<real> &local_rhs_int_cell,
+    std::vector<real> &local_rhs_ext_cell,
+    dealii::Tensor<1,dim,std::vector<real>>  &current_cell_rhs_aux,
+    dealii::LinearAlgebra::distributed::Vector<double>  &rhs,
+    std::array<dealii::LinearAlgebra::distributed::Vector<double>,dim> &rhs_aux,
+    const bool compute_auxiliary_right_hand_side,
+    const bool compute_dRdW, const bool compute_dRdX, const bool compute_d2R,
+    const bool is_a_subface,
+    const unsigned int neighbor_i_subface)
+{
+    const dealii::FESystem<dim> &fe_metric = this->high_order_grid->fe_system;
+    const unsigned int n_metric_dofs = fe_metric.dofs_per_cell;
+    const unsigned int n_soln_dofs_int = fe_int.dofs_per_cell;
+    const unsigned int n_soln_dofs_ext = fe_ext.dofs_per_cell;
+
+    AssertDimension (n_soln_dofs_int, soln_dofs_indices_int.size());
+    AssertDimension (n_soln_dofs_ext, soln_dofs_indices_ext.size());
+
+    std::vector<double> soln_coeff_int(fe_int.dofs_per_cell);
+    for (unsigned int idof = 0; idof < n_soln_dofs_int; ++idof) {
+        soln_coeff_int[idof] = this->solution(soln_dofs_indices_int[idof]);
+    }
+    
+    std::vector<double> soln_coeff_ext(fe_ext.dofs_per_cell);
+    for (unsigned int idof = 0; idof < n_soln_dofs_ext; ++idof) {
+        soln_coeff_ext[idof] = this->solution(soln_dofs_indices_ext[idof]);
+    }
+    
+    std::vector<double> metric_coeff_int(fe_metric.dofs_per_cell);
+    for (unsigned int idof = 0; idof < n_metric_dofs; ++idof) {
+        metric_coeff_int[idof] = this->high_order_grid->volume_nodes[metric_dofs_indices_int[idof]];
+    }
+    
+    std::vector<double> metric_coeff_ext(fe_metric.dofs_per_cell);
+    for (unsigned int idof = 0; idof < n_metric_dofs; ++idof) {
+        metric_coeff_ext[idof] = this->high_order_grid->volume_nodes[metric_dofs_indices_ext[idof]];
+    }
+    
+    dealii::Tensor<1,dim,std::vector<double>> aux_soln_coeff_int;
+    dealii::Tensor<1,dim,std::vector<double>> aux_soln_coeff_ext;
+    for(int idim=0; idim<dim; idim++){
+        aux_soln_coeff_int[idim].resize(n_soln_dofs_int);
+        aux_soln_coeff_ext[idim].resize(n_soln_dofs_ext);
+        if(this->use_auxiliary_eq){
+            for (unsigned int idof = 0; idof < n_soln_dofs_int; ++idof) {
+                    aux_soln_coeff_int[idim][idof] = this->auxiliary_solution[idim](soln_dofs_indices_int[idof]);
+            }
+            for (unsigned int idof = 0; idof < n_soln_dofs_ext; ++idof) {
+                    aux_soln_coeff_ext[idim][idof] = this->auxiliary_solution[idim](soln_dofs_indices_ext[idof]);
+            }
+        }
+    }
+
+    std::vector<double> dual_int(n_soln_dofs_int);
+    std::vector<double> dual_ext(n_soln_dofs_ext);
+
+    std::vector<double> rhs_int(n_soln_dofs_int);
+    std::vector<double> rhs_ext(n_soln_dofs_ext);
+    dealii::Tensor<1,dim,std::vector<double>> aux_rhs_int;
+    dealii::Tensor<1,dim,std::vector<double>> aux_rhs_ext;
+    if(compute_auxiliary_right_hand_side){
+        for(int idim=0; idim<dim; idim++){
+            aux_rhs_int[idim].resize(n_soln_dofs_int);
+            aux_rhs_ext[idim].resize(n_soln_dofs_ext);
+        }
+    }
+    double dual_dot_residual = 0.0;
+    
+    assemble_face_term_and_build_operators_ad(
+            cell,
+            neighbor_cell,
+            current_cell_index,
+            neighbor_cell_index,
+            iface,
+            neighbor_iface,
+            soln_coeff_int,
+            soln_coeff_ext,
+            aux_soln_coeff_int,
+            aux_soln_coeff_ext,
+            metric_coeff_int,
+            metric_coeff_ext,
+            dual_int,
+            dual_ext,
+            poly_degree_int,
+            poly_degree_ext,
+            grid_degree_int,
+            grid_degree_ext,
+            soln_basis_int,
+            soln_basis_ext,
+            flux_basis_int,
+            flux_basis_ext,
+            flux_basis_stiffness,
+            soln_basis_projection_oper_int,
+            soln_basis_projection_oper_ext,
+            metric_oper_int,
+            metric_oper_ext,
+            mapping_basis,
+            mapping_support_points,
+            fe_values_collection_face_int,
+            fe_values_collection_face_ext,
+            fe_values_collection_subface,
+            fe_int,
+            fe_ext,
+            penalty,
+            rhs_int,
+            rhs_ext,
+            aux_rhs_int,
+            aux_rhs_ext,
+            compute_auxiliary_right_hand_side,
+            dual_dot_residual,
+            compute_dRdW, compute_dRdX, compute_d2R,
+            is_a_subface,
+            neighbor_i_subface);
+
+    if(compute_auxiliary_right_hand_side){
+        for(int idim=0; idim<dim; idim++){
+            for (unsigned int itest_int=0; itest_int<n_soln_dofs_int; ++itest_int) {
+                current_cell_rhs_aux[idim][itest_int] += aux_rhs_int[idim][itest_int];
+            }
+
+            // Add local contribution from neighbor cell to global vector
+            for (unsigned int itest_ext=0; itest_ext<n_soln_dofs_ext; ++itest_ext) {
+                rhs_aux[idim][soln_dofs_indices_ext[itest_ext]] += aux_rhs_ext[idim][itest_ext];
+            }
+        }
+    }
+    else{
+        for (unsigned int itest_int=0; itest_int<n_soln_dofs_int; ++itest_int) {
+            local_rhs_int_cell[itest_int] += rhs_int[itest_int];
+        }
+        for (unsigned int itest_ext=0; itest_ext<n_soln_dofs_ext; ++itest_ext) {
+            local_rhs_ext_cell[itest_ext] += rhs_ext[itest_ext];
+        }
+         
+        // Add local contribution from neighbor cell to global vector
+        for (unsigned int itest_ext=0; itest_ext<n_soln_dofs_ext; ++itest_ext) {
+            rhs[soln_dofs_indices_ext[itest_ext]] += local_rhs_ext_cell[itest_ext];
+        }
+    }
+}
+
+template <int dim, int nspecies, typename real, typename MeshType>
+template <typename real2>
+double DGBase<dim,nspecies,real,MeshType>::getValue(const real2 &x) 
+{
+    if constexpr (std::is_same<real2, double>::value) {
+        return x;
+    } else {
+        return getValue(x.value());
+    }
+}
+
+template <int dim, int nspecies, typename real, typename MeshType>
+void DGBase<dim,nspecies,real,MeshType>::automatic_differentiation_indexing_1(
+    const bool compute_dRdW, const bool compute_dRdX, const bool compute_d2R,
+    const unsigned int n_soln_dofs, const unsigned int n_metric_dofs,
+    unsigned int &w_start, unsigned int &w_end,
+    unsigned int &x_start, unsigned int &x_end)
+{
+    w_start = 0;
+    w_end = 0;
+    x_start = 0;
+    x_end = 0;
+    if (compute_d2R || (compute_dRdW && compute_dRdX)) {
+        w_start = 0;
+        w_end = w_start + n_soln_dofs;
+        x_start = w_end;
+        x_end = x_start + n_metric_dofs;
+    } else if (compute_dRdW) {
+        w_start = 0;
+        w_end   = w_start + n_soln_dofs;
+    } else if (compute_dRdX) {
+        x_start = 0;
+        x_end   = x_start + n_metric_dofs;
+    } else {
+        std::cout << "Called the derivative version of the residual without requesting the derivative" << std::endl;
+    }
+}
+
+template <int dim, int nspecies, typename real, typename MeshType>
+void DGBase<dim,nspecies,real,MeshType>::automatic_differentiation_indexing_2(
+    const bool compute_dRdW, const bool compute_dRdX, const bool compute_d2R,
+    const unsigned int n_soln_dofs_int, const unsigned int n_soln_dofs_ext, const unsigned int n_metric_dofs,
+    unsigned int &w_int_start, unsigned int &w_int_end, unsigned int &w_ext_start, unsigned int &w_ext_end,
+    unsigned int &x_int_start, unsigned int &x_int_end, unsigned int &x_ext_start, unsigned int &x_ext_end)
+{
+    // Current derivative order is: soln_int, soln_ext, metric_int, metric_ext
+    w_int_start = 0; w_int_end = 0; w_ext_start = 0; w_ext_end = 0;
+    x_int_start = 0; x_int_end = 0; x_ext_start = 0; x_ext_end = 0;
+    if (compute_d2R || (compute_dRdW && compute_dRdX)) {
+        w_int_start = 0;
+        w_int_end = w_int_start + n_soln_dofs_int;
+        w_ext_start = w_int_end;
+        w_ext_end = w_ext_start + n_soln_dofs_ext;
+
+        x_int_start = w_ext_end;
+        x_int_end = x_int_start + n_metric_dofs;
+        x_ext_start = x_int_end;
+        x_ext_end = x_ext_start + n_metric_dofs;
+    } else if (compute_dRdW) {
+        w_int_start = 0;
+        w_int_end = w_int_start + n_soln_dofs_int;
+        w_ext_start = w_int_end;
+        w_ext_end = w_ext_start + n_soln_dofs_ext;
+    } else if (compute_dRdX) {
+        x_int_start = 0;
+        x_int_end = x_int_start + n_metric_dofs;
+        x_ext_start = x_int_end;
+        x_ext_end = x_ext_start + n_metric_dofs;
+    } else {
+        std::cout << "Called the derivative version of the residual without requesting the derivative" << std::endl;
+    }
+}
+
+
+template <int dim, int nspecies, typename real, typename MeshType>
+void DGBase<dim,nspecies,real,MeshType>::set_dual(const dealii::LinearAlgebra::distributed::Vector<real> &dual_input)
 {
     dual = dual_input;
 }
 
-template <int dim, typename real, typename MeshType>
-void DGBase<dim,real,MeshType>::update_artificial_dissipation_discontinuity_sensor()
+template <int dim, int nspecies, typename real, typename MeshType>
+void DGBase<dim,nspecies,real,MeshType>::update_artificial_dissipation_discontinuity_sensor()
 {
     const auto mapping = (*(high_order_grid->mapping_fe_field));
     dealii::hp::MappingCollection<dim> mapping_collection(mapping);
@@ -1067,7 +2421,7 @@ void DGBase<dim,real,MeshType>::update_artificial_dissipation_discontinuity_sens
 
         // Projection quadrature.
         const dealii::QGauss<dim> projection_quadrature(degree+5);
-        std::vector< double > soln_coeff_lower = project_function<dim,double>( soln_coeff_high, fe_high, fe_lower, projection_quadrature);
+        std::vector< double > soln_coeff_lower = project_function<dim,nspecies,double>( soln_coeff_high, fe_high, fe_lower, projection_quadrature);
 
         // Quadrature used for solution difference.
         const dealii::Quadrature<dim> &quadrature = fe_values_volume.get_quadrature();
@@ -1195,19 +2549,19 @@ void DGBase<dim,real,MeshType>::update_artificial_dissipation_discontinuity_sens
     artificial_dissipation_c0.update_ghost_values();
 }
 
-template <int dim, typename real, typename MeshType>
-void DGBase<dim,real,MeshType>::reinit_operators_for_cell_residual_loop(
+template <int dim, int nspecies, typename real, typename MeshType>
+void DGBase<dim,nspecies,real,MeshType>::reinit_operators_for_cell_residual_loop(
     const unsigned int poly_degree_int, 
     const unsigned int poly_degree_ext, 
     const unsigned int /*grid_degree*/,
-    OPERATOR::basis_functions<dim,2*dim,real> &soln_basis_int,
-    OPERATOR::basis_functions<dim,2*dim,real> &soln_basis_ext,
-    OPERATOR::basis_functions<dim,2*dim,real> &flux_basis_int,
-    OPERATOR::basis_functions<dim,2*dim,real> &flux_basis_ext,
-    OPERATOR::local_basis_stiffness<dim,2*dim,real> &flux_basis_stiffness,
-    OPERATOR::vol_projection_operator<dim,2*dim,real> &soln_basis_projection_oper_int,
-    OPERATOR::vol_projection_operator<dim,2*dim,real> &soln_basis_projection_oper_ext,
-    OPERATOR::mapping_shape_functions<dim,2*dim,real> &mapping_basis)
+    OPERATOR::basis_functions<dim,2*dim> &soln_basis_int,
+    OPERATOR::basis_functions<dim,2*dim> &soln_basis_ext,
+    OPERATOR::basis_functions<dim,2*dim> &flux_basis_int,
+    OPERATOR::basis_functions<dim,2*dim> &flux_basis_ext,
+    OPERATOR::local_basis_stiffness<dim,2*dim> &flux_basis_stiffness,
+    OPERATOR::vol_projection_operator<dim,2*dim> &soln_basis_projection_oper_int,
+    OPERATOR::vol_projection_operator<dim,2*dim> &soln_basis_projection_oper_ext,
+    OPERATOR::mapping_shape_functions<dim,2*dim> &mapping_basis)
 {
     soln_basis_int.build_1D_volume_operator(oneD_fe_collection_1state[poly_degree_int], oneD_quadrature_collection[poly_degree_int]);
     soln_basis_int.build_1D_gradient_operator(oneD_fe_collection_1state[poly_degree_int], oneD_quadrature_collection[poly_degree_int]);
@@ -1234,15 +2588,15 @@ void DGBase<dim,real,MeshType>::reinit_operators_for_cell_residual_loop(
 
     //basis functions projection operator
     soln_basis_projection_oper_int.build_1D_volume_operator(oneD_fe_collection_1state[poly_degree_int], oneD_quadrature_collection[poly_degree_int]);
-    soln_basis_projection_oper_ext.build_1D_volume_operator(oneD_fe_collection_1state[poly_degree_int], oneD_quadrature_collection[poly_degree_int]);
+    soln_basis_projection_oper_ext.build_1D_volume_operator(oneD_fe_collection_1state[poly_degree_ext], oneD_quadrature_collection[poly_degree_ext]);
 
     //We only need to compute the most recent mapping basis since we compute interior before looping faces
     mapping_basis.build_1D_shape_functions_at_grid_nodes(high_order_grid->oneD_fe_system, high_order_grid->oneD_grid_nodes);
     mapping_basis.build_1D_shape_functions_at_flux_nodes(high_order_grid->oneD_fe_system, oneD_quadrature_collection[poly_degree_ext], oneD_face_quadrature);
 }
 
-template <int dim, typename real, typename MeshType>
-void DGBase<dim,real,MeshType>::assemble_residual (const bool compute_dRdW, const bool compute_dRdX, const bool compute_d2R, const double CFL_mass, const int active_cell_group_ID)
+template <int dim, int nspecies, typename real, typename MeshType>
+void DGBase<dim,nspecies,real,MeshType>::assemble_residual (const bool compute_dRdW, const bool compute_dRdX, const bool compute_d2R, const double CFL_mass)
 {
     dealii::deal_II_exceptions::disable_abort_on_exception(); // Allows us to catch negative Jacobians.
     Assert( !(compute_dRdW && compute_dRdX)
@@ -1251,6 +2605,7 @@ void DGBase<dim,real,MeshType>::assemble_residual (const bool compute_dRdW, cons
             , dealii::ExcMessage("Can only do one at a time compute_dRdW or compute_dRdX or compute_d2R"));
 
     max_artificial_dissipation_coeff = 0.0;
+    //pcout << "Assembling DG residual...";
     if (compute_dRdW) {
         pcout << " with dRdW...";
 
@@ -1367,14 +2722,14 @@ void DGBase<dim,real,MeshType>::assemble_residual (const bool compute_dRdW, cons
     dealii::hp::FEValues<dim,dim>        fe_values_collection_volume_lagrange (mapping_collection, fe_collection_lagrange, volume_quadrature_collection, this->volume_update_flags);
 
     const unsigned int init_grid_degree = high_order_grid->fe_system.tensor_degree();
-    OPERATOR::basis_functions<dim,2*dim,real> soln_basis_int(1, max_degree, init_grid_degree); 
-    OPERATOR::basis_functions<dim,2*dim,real> soln_basis_ext(1, max_degree, init_grid_degree); 
-    OPERATOR::basis_functions<dim,2*dim,real> flux_basis_int(1, max_degree, init_grid_degree); 
-    OPERATOR::basis_functions<dim,2*dim,real> flux_basis_ext(1, max_degree, init_grid_degree); 
-    OPERATOR::local_basis_stiffness<dim,2*dim,real> flux_basis_stiffness(1, max_degree, init_grid_degree, true); 
-    OPERATOR::vol_projection_operator<dim,2*dim,real> soln_basis_projection_oper_int(1, max_degree, init_grid_degree); 
-    OPERATOR::vol_projection_operator<dim,2*dim,real> soln_basis_projection_oper_ext(1, max_degree, init_grid_degree); 
-    OPERATOR::mapping_shape_functions<dim,2*dim,real> mapping_basis(1, init_grid_degree, init_grid_degree);
+    OPERATOR::basis_functions<dim,2*dim> soln_basis_int(1, max_degree, init_grid_degree); 
+    OPERATOR::basis_functions<dim,2*dim> soln_basis_ext(1, max_degree, init_grid_degree); 
+    OPERATOR::basis_functions<dim,2*dim> flux_basis_int(1, max_degree, init_grid_degree); 
+    OPERATOR::basis_functions<dim,2*dim> flux_basis_ext(1, max_degree, init_grid_degree); 
+    OPERATOR::local_basis_stiffness<dim,2*dim> flux_basis_stiffness(1, max_degree, init_grid_degree, true); 
+    OPERATOR::vol_projection_operator<dim,2*dim> soln_basis_projection_oper_int(1, max_degree, init_grid_degree); 
+    OPERATOR::vol_projection_operator<dim,2*dim> soln_basis_projection_oper_ext(1, max_degree, init_grid_degree); 
+    OPERATOR::mapping_shape_functions<dim,2*dim> mapping_basis(1, init_grid_degree, init_grid_degree);
 
     reinit_operators_for_cell_residual_loop(
         max_degree, max_degree, init_grid_degree, 
@@ -1388,7 +2743,7 @@ void DGBase<dim,real,MeshType>::assemble_residual (const bool compute_dRdW, cons
 
 
     int assembly_error = 0;
-    // try {
+    try {
 
         // update artificial dissipation discontinuity sensor only if using artificial dissipation
         if(all_parameters->artificial_dissipation_param.add_artificial_dissipation) update_artificial_dissipation_discontinuity_sensor();
@@ -1398,8 +2753,7 @@ void DGBase<dim,real,MeshType>::assemble_residual (const bool compute_dRdW, cons
            all_parameters->pde_type == Parameters::AllParameters::PartialDifferentialEquation::physics_model_filtered) update_model_variables();
 
         // assembles and solves for auxiliary variable if necessary.
-        //assemble_auxiliary_residual(active_cell_group_ID);
-
+        assemble_auxiliary_residual(compute_dRdW, compute_dRdX, compute_d2R);
 
         dealii::Timer timer;
         if(all_parameters->store_residual_cpu_time){
@@ -1407,43 +2761,97 @@ void DGBase<dim,real,MeshType>::assemble_residual (const bool compute_dRdW, cons
         }
 
         auto metric_cell = high_order_grid->dof_handler_grid.begin_active();
-        for (auto soln_cell = dof_handler.begin_active(); soln_cell != dof_handler.end(); ++soln_cell, ++metric_cell) {
-            if (!soln_cell->is_locally_owned()){
-                continue;
+        if(compute_d2R)
+        {
+            for (auto soln_cell = dof_handler.begin_active(); soln_cell != dof_handler.end(); ++soln_cell, ++metric_cell) 
+            {
+                if (!soln_cell->is_locally_owned()) continue;
+                assemble_cell_residual_and_ad_derivatives<codi_HessianComputationType>(
+                    soln_cell,
+                    metric_cell,
+                    compute_dRdW, compute_dRdX, compute_d2R,
+                    fe_values_collection_volume,
+                    fe_values_collection_face_int,
+                    fe_values_collection_face_ext,
+                    fe_values_collection_subface,
+                    fe_values_collection_volume_lagrange,
+                    soln_basis_int,
+                    soln_basis_ext,
+                    flux_basis_int,
+                    flux_basis_ext,
+                    flux_basis_stiffness,
+                    soln_basis_projection_oper_int,
+                    soln_basis_projection_oper_ext,
+                    mapping_basis,
+                    false,
+                    right_hand_side,
+                    auxiliary_right_hand_side);
             }
-
-            assemble_cell_residual (
-                soln_cell,
-                metric_cell,
-                compute_dRdW, compute_dRdX, compute_d2R,
-                fe_values_collection_volume,
-                fe_values_collection_face_int,
-                fe_values_collection_face_ext,
-                fe_values_collection_subface,
-                fe_values_collection_volume_lagrange,
-                soln_basis_int,
-                soln_basis_ext,
-                flux_basis_int,
-                flux_basis_ext,
-                flux_basis_stiffness,
-                soln_basis_projection_oper_int,
-                soln_basis_projection_oper_ext,
-                mapping_basis,
-                false,
-                right_hand_side,
-                auxiliary_right_hand_side,
-                active_cell_group_ID);
-        } // end of cell loop
+        }
+        else if(compute_dRdW || compute_dRdX)
+        {
+            for (auto soln_cell = dof_handler.begin_active(); soln_cell != dof_handler.end(); ++soln_cell, ++metric_cell) 
+            {
+                if (!soln_cell->is_locally_owned()) continue;
+                assemble_cell_residual_and_ad_derivatives<codi_JacobianComputationType>(
+                    soln_cell,
+                    metric_cell,
+                    compute_dRdW, compute_dRdX, compute_d2R,
+                    fe_values_collection_volume,
+                    fe_values_collection_face_int,
+                    fe_values_collection_face_ext,
+                    fe_values_collection_subface,
+                    fe_values_collection_volume_lagrange,
+                    soln_basis_int,
+                    soln_basis_ext,
+                    flux_basis_int,
+                    flux_basis_ext,
+                    flux_basis_stiffness,
+                    soln_basis_projection_oper_int,
+                    soln_basis_projection_oper_ext,
+                    mapping_basis,
+                    false,
+                    right_hand_side,
+                    auxiliary_right_hand_side);
+            }
+        }
+        else
+        {
+            for (auto soln_cell = dof_handler.begin_active(); soln_cell != dof_handler.end(); ++soln_cell, ++metric_cell) 
+            {
+                if (!soln_cell->is_locally_owned()) continue;
+                assemble_cell_residual_and_ad_derivatives<double>(
+                    soln_cell,
+                    metric_cell,
+                    compute_dRdW, compute_dRdX, compute_d2R,
+                    fe_values_collection_volume,
+                    fe_values_collection_face_int,
+                    fe_values_collection_face_ext,
+                    fe_values_collection_subface,
+                    fe_values_collection_volume_lagrange,
+                    soln_basis_int,
+                    soln_basis_ext,
+                    flux_basis_int,
+                    flux_basis_ext,
+                    flux_basis_stiffness,
+                    soln_basis_projection_oper_int,
+                    soln_basis_projection_oper_ext,
+                    mapping_basis,
+                    false,
+                    right_hand_side,
+                    auxiliary_right_hand_side);
+            }
+        }
 
         if(all_parameters->store_residual_cpu_time){
             timer.stop();
             assemble_residual_time += timer.cpu_time();
         }
-    // } catch(...) {
-    //     assembly_error = 1;
-    // }
+    } catch(...) {
+        assembly_error = 1;
+    }
+    // NOTE: To debug the code with gdb, the above 3 lines `catch(...)` may need to be commented out
     const int mpi_assembly_error = dealii::Utilities::MPI::sum(assembly_error, mpi_communicator);
-
 
     if (mpi_assembly_error != 0) {
         std::cout << "Invalid residual assembly encountered..."
@@ -1505,71 +2913,8 @@ void DGBase<dim,real,MeshType>::assemble_residual (const bool compute_dRdW, cons
 
 } // end of assemble_system_explicit ()
 
-
-template <int dim, typename real, typename MeshType>
-bool DGBase<dim,real,MeshType>::cell_is_in_active_cell_group(const unsigned int cell_index, const int active_cell_group_ID) const {
-    // Performance note: This could possibly be made more efficient using indexset,
-    // https://www.dealii.org/current/doxygen/deal.II/classIndexSet.html
-    // However, performance testing on Narval did not suggest any significant slowdowns.
-
-    if (norm_list_of_cell_group_IDs){
-        // Nonzero norm means that some cells have an assigned group, so
-        // proceed to check whether the cell at cell_index is in the active group.
-        if (this->list_of_cell_group_IDs[cell_index] == active_cell_group_ID){
-            // do assemble residual
-            return true;
-        }else {
-            return false;
-        }
-    }
-    else{
-        // Zero norm indicates that all cells are in the zero (default) group, so no check is needed.
-        return true;
-    }
-}
-
-
-template <int dim, typename real, typename MeshType>
-void DGBase<dim,real,MeshType>::set_list_of_cell_group_IDs(const dealii::LinearAlgebra::distributed::Vector<int> &locations_to_be_changed, const int group_ID_to_set) {
-    // Pass bool-like vector locations_to_be_changed : 1 where we want to apply the new group ID and 0 where we want to keep the old one
-
-    bool is_compatible = locations_to_be_changed.partitioners_are_compatible(*(this->list_of_cell_group_IDs.get_partitioner()));
-    if (!(is_compatible)) {
-        pcout << "ERROR: Size of locations_to_be_changed is not consistent. Aborting..." << std::endl;
-        std::abort();
-    }
-
-    if (this->all_parameters->use_weak_form) {
-        pcout << "ERROR: The cell group partitioning has not been verified for weak DG!! Aborting..." << std::endl;
-        std::abort();
-    }
-
-    if (locations_to_be_changed.linfty_norm() > 1) {
-        pcout << "ERROR: The vector &locations_to_be_changed must be bool-like,having only 1 and 0 entries." << std::endl;
-        std::abort();
-    }
-
-    // Using only deal.ii vector operations herein to take advantage of their optimizations
-    // Set the cell_group_ID at the given location to zero without changing existing values
-    
-    // The next lines find !(locations_to_be_changed)
-    dealii::LinearAlgebra::distributed::Vector<int> locations_NOT_to_be_changed((locations_to_be_changed));
-    locations_NOT_to_be_changed.add(-1);
-    locations_NOT_to_be_changed*=-1;
-
-    // Next line will set the group_ID value at locations_to_be_changed to zero
-    this->list_of_cell_group_IDs.scale(locations_NOT_to_be_changed);
-
-    // Set the cell_group_ID at the given location to the group_ID by adding
-    // group_ID_to_set * locations_to_be_changed
-    this->list_of_cell_group_IDs.add(group_ID_to_set,locations_to_be_changed);
-
-    this->norm_list_of_cell_group_IDs = list_of_cell_group_IDs.l1_norm();
-
-}
-
-template <int dim, typename real, typename MeshType>
-double DGBase<dim,real,MeshType>::get_residual_linfnorm () const
+template <int dim, int nspecies, typename real, typename MeshType>
+double DGBase<dim,nspecies,real,MeshType>::get_residual_linfnorm () const
 {
     pcout << "Evaluating residual Linf-norm..." << std::endl;
     const auto mapping = (*(high_order_grid->mapping_fe_field));
@@ -1616,12 +2961,12 @@ double DGBase<dim,real,MeshType>::get_residual_linfnorm () const
 }
 
 
-template <int dim, typename real, typename MeshType>
-double DGBase<dim,real,MeshType>::get_residual_l2norm () const
+template <int dim, int nspecies, typename real, typename MeshType>
+double DGBase<dim,nspecies,real,MeshType>::get_residual_l2norm () const
 {
 
     //return get_residual_linfnorm ();
-    return right_hand_side.l2_norm();
+    //return right_hand_side.l2_norm();
     //return right_hand_side.l2_norm() / right_hand_side.size();
     //auto scaled_residual = right_hand_side;
     //global_mass_matrix.vmult(scaled_residual, right_hand_side);
@@ -1674,8 +3019,8 @@ double DGBase<dim,real,MeshType>::get_residual_l2norm () const
     return std::sqrt(mpi_residual_l2_norm) / mpi_domain_volume;
 }
 
-template <int dim, typename real, typename MeshType>
-unsigned int DGBase<dim,real,MeshType>::n_dofs () const
+template <int dim, int nspecies, typename real, typename MeshType>
+unsigned int DGBase<dim,nspecies,real,MeshType>::n_dofs () const
 {
     return dof_handler.n_dofs();
 }
@@ -1847,10 +3192,8 @@ public:
 
 
 
-template <int dim, typename real, typename MeshType>
-void DGBase<dim,real,MeshType>::output_face_results_vtk (const unsigned int cycle, const double current_time, 
-                                                    const bool output_time_averaged_solution,
-                                                    const bool output_fluctuating_quantities)// const
+template <int dim, int nspecies, typename real, typename MeshType>
+void DGBase<dim,nspecies,real,MeshType>::output_face_results_vtk (const unsigned int cycle, const double current_time)// const
 {
 
     DataOutEulerFaces<dim, dealii::DoFHandler<dim>> data_out;
@@ -1885,21 +3228,11 @@ void DGBase<dim,real,MeshType>::output_face_results_vtk (const unsigned int cycl
 
 
     // Let the physics post-processor determine what to output.
-    const std::unique_ptr< dealii::DataPostprocessor<dim> > post_processor = Postprocess::PostprocessorFactory<dim>::create_Postprocessor(all_parameters);
-    if(output_time_averaged_solution && !output_fluctuating_quantities){
-        data_out.add_data_vector (time_averaged_solution, *post_processor);
-    }  else if(output_fluctuating_quantities && !output_time_averaged_solution){
-        std::vector<std::string> fluctuating_quantities_names = {"u'v'","u'u'", "v'v'", "w'w'", "u'w'"};
-        data_out.add_data_vector (fluctuating_quantities, fluctuating_quantities_names, dealii::DataOut_DoFData<dealii::DoFHandler<dim>,dim-1,dim>::DataVectorType::type_dof_data);
-    } else {
-        data_out.add_data_vector (solution, *post_processor);
-    }
-    
-
+    const std::unique_ptr< dealii::DataPostprocessor<dim> > post_processor = Postprocess::PostprocessorFactory<dim,nspecies>::create_Postprocessor(all_parameters);
+    data_out.add_data_vector (solution, *post_processor);
 
     NormalPostprocessor<dim> normals_post_processor;
     data_out.add_data_vector (solution, normals_post_processor);
-    //std::cout<<"computed post-processor for surface normals. \n";
 
     // Output the polynomial degree in each cell
     std::vector<unsigned int> active_fe_indices;
@@ -1908,9 +3241,6 @@ void DGBase<dim,real,MeshType>::output_face_results_vtk (const unsigned int cycl
     dealii::Vector<double> cell_poly_degree = active_fe_indices_dealiivector;
 
     data_out.add_data_vector (active_fe_indices_dealiivector, "PolynomialDegree", dealii::DataOut_DoFData<dealii::DoFHandler<dim>,dim-1,dim>::DataVectorType::type_cell_data);
-
-
-    // std::cout<<"computed post-processor for surface PolynomialDegree. \n";
 
     // Output absolute value of the residual so that we can visualize it on a logscale.
     std::vector<std::string> residual_names;
@@ -1947,7 +3277,6 @@ void DGBase<dim,real,MeshType>::output_face_results_vtk (const unsigned int cycl
     //const int n_subdivisions = max_degree+1;//+30; // if write_higher_order_cells, n_subdivisions represents the order of the cell
     //const int n_subdivisions = 1;//+30; // if write_higher_order_cells, n_subdivisions represents the order of the cell
     const int n_subdivisions = grid_degree;
-    //std::cout << "n_subdivisions surface: "<< n_subdivisions <<std::endl;
     data_out.build_patches(mapping, n_subdivisions);
     //const bool write_higher_order_cells = (dim>1 && max_degree > 1) ? true : false;
     const bool write_higher_order_cells = false;//(dim>1 && grid_degree > 1) ? true : false;
@@ -1955,10 +3284,7 @@ void DGBase<dim,real,MeshType>::output_face_results_vtk (const unsigned int cycl
     data_out.set_flags(vtkflags);
 
     const int iproc = dealii::Utilities::MPI::this_mpi_process(mpi_communicator);
-    std::string filename_prefix = "surface_solution"; // default
-    if(output_time_averaged_solution && !output_fluctuating_quantities) filename_prefix = "time_averaged_surface_solution";
-    else if(output_fluctuating_quantities && !output_time_averaged_solution) filename_prefix = "fluctuating_surface_quantities";
-    std::string filename = this->all_parameters->solution_vtk_files_directory_name + "/" + filename_prefix + "-" + dealii::Utilities::int_to_string(dim, 1) +"D_maxpoly"+dealii::Utilities::int_to_string(max_degree, 2)+"-";
+    std::string filename = this->all_parameters->solution_vtk_files_directory_name + "/" + "surface_solution-" + dealii::Utilities::int_to_string(dim, 1) +"D_maxpoly"+dealii::Utilities::int_to_string(max_degree, 2)+"-";
     filename += dealii::Utilities::int_to_string(cycle, 4) + ".";
     filename += dealii::Utilities::int_to_string(iproc, 4);
     filename += ".vtu";
@@ -1968,40 +3294,24 @@ void DGBase<dim,real,MeshType>::output_face_results_vtk (const unsigned int cycl
 
     if (iproc == 0) {
         std::vector<std::string> filenames;
-        std::string filename_prefix = "surface_solution"; // default
-        if(output_time_averaged_solution && !output_fluctuating_quantities) filename_prefix = "time_averaged_surface_solution";
-        else if(output_fluctuating_quantities && !output_time_averaged_solution) filename_prefix = "fluctuating_surface_quantities";
-        for (unsigned int iproc = 0; iproc < dealii::Utilities::MPI::n_mpi_processes(mpi_communicator); ++iproc) {;
-            std::string fn = filename_prefix + "-" + dealii::Utilities::int_to_string(dim, 1) +"D_maxpoly"+dealii::Utilities::int_to_string(max_degree, 2)+"-";
+        for (unsigned int iproc = 0; iproc < dealii::Utilities::MPI::n_mpi_processes(mpi_communicator); ++iproc) {
+            std::string fn = "surface_solution-" + dealii::Utilities::int_to_string(dim, 1) +"D_maxpoly"+dealii::Utilities::int_to_string(max_degree, 2)+"-";
             fn += dealii::Utilities::int_to_string(cycle, 4) + ".";
             fn += dealii::Utilities::int_to_string(iproc, 4);
             fn += ".vtu";
             filenames.push_back(fn);
         }
-        std::string master_fn = this->all_parameters->solution_vtk_files_directory_name + "/" + filename_prefix + "-" + dealii::Utilities::int_to_string(dim, 1) +"D_maxpoly"+dealii::Utilities::int_to_string(max_degree, 2)+"-";
+        std::string master_fn = this->all_parameters->solution_vtk_files_directory_name + "/" + "surface_solution-" + dealii::Utilities::int_to_string(dim, 1) +"D_maxpoly"+dealii::Utilities::int_to_string(max_degree, 2)+"-";
         master_fn += dealii::Utilities::int_to_string(cycle, 4) + ".pvtu";
         std::ofstream master_output(master_fn);
         data_out.write_pvtu_record(master_output, filenames);
-    }
-    //std::cout << "Completed writing out file." << std::endl;
-    if (all_parameters->flow_solver_param.do_compute_time_averaged_solution && 
-        (current_time >= all_parameters->flow_solver_param.time_to_start_averaging) && 
-        (output_time_averaged_solution == false) && (output_fluctuating_quantities == false)) {
-        //output_face_results_vtk (cycle, current_time);
-        output_face_results_vtk (cycle, current_time, false, true);
-        if (all_parameters->flow_solver_param.do_compute_Reynolds_stress && 
-        (current_time >= all_parameters->flow_solver_param.time_to_start_computing_Reynolds_stress)){
-            output_face_results_vtk (cycle, current_time, true, false);
-        }
     }
 
 }
 #endif
 
-template <int dim, typename real, typename MeshType>
-void DGBase<dim,real,MeshType>::output_results_vtk (const unsigned int cycle, const double current_time, 
-                                                    const bool output_time_averaged_solution,
-                                                    const bool output_fluctuating_quantities)// const
+template <int dim, int nspecies, typename real, typename MeshType>
+void DGBase<dim,nspecies,real,MeshType>::output_results_vtk (const unsigned int cycle, const double current_time)// const
 {
 #if PHILIP_DIM>1
     if(this->all_parameters->output_face_results_vtk) output_face_results_vtk (cycle, current_time);
@@ -2027,13 +3337,6 @@ void DGBase<dim,real,MeshType>::output_results_vtk (const unsigned int cycle, co
     }
     data_out.add_data_vector(subdomain, "subdomain", dealii::DataOut_DoFData<dealii::DoFHandler<dim>,dim>::DataVectorType::type_cell_data);
 
-    dealii::Vector<float> list_of_cell_group_IDs_float(triangulation->n_active_cells());
-    dealii::Vector<float> cell_ID(triangulation->n_active_cells());
-    for (unsigned int i = 0; i < list_of_cell_group_IDs_float.size(); ++i) {
-        list_of_cell_group_IDs_float(i) = list_of_cell_group_IDs(i);
-    }
-    data_out.add_data_vector(list_of_cell_group_IDs_float, "cell_group_ID", dealii::DataOut_DoFData<dealii::DoFHandler<dim>,dim>::DataVectorType::type_cell_data);
-
     if (all_parameters->artificial_dissipation_param.add_artificial_dissipation) {
         data_out.add_data_vector(artificial_dissipation_coeffs, "artificial_dissipation_coeffs", dealii::DataOut_DoFData<dealii::DoFHandler<dim>,dim>::DataVectorType::type_cell_data);
         data_out.add_data_vector(artificial_dissipation_se, "artificial_dissipation_se", dealii::DataOut_DoFData<dealii::DoFHandler<dim>,dim>::DataVectorType::type_cell_data);
@@ -2042,20 +3345,15 @@ void DGBase<dim,real,MeshType>::output_results_vtk (const unsigned int cycle, co
 
     data_out.add_data_vector(max_dt_cell, "max_dt_cell", dealii::DataOut_DoFData<dealii::DoFHandler<dim>,dim>::DataVectorType::type_cell_data);
 
+    data_out.add_data_vector(reduced_mesh_weights, "reduced_mesh_weights", dealii::DataOut_DoFData<dealii::DoFHandler<dim>,dim>::DataVectorType::type_cell_data);
+
     data_out.add_data_vector(cell_volume, "cell_volume", dealii::DataOut_DoFData<dealii::DoFHandler<dim>,dim>::DataVectorType::type_cell_data);
 
 
     // Let the physics post-processor determine what to output.
-    const std::unique_ptr< dealii::DataPostprocessor<dim> > post_processor = Postprocess::PostprocessorFactory<dim>::create_Postprocessor(all_parameters);
-    if(output_time_averaged_solution && !output_fluctuating_quantities){
-        data_out.add_data_vector (time_averaged_solution, *post_processor);
-    } else if(output_fluctuating_quantities && !output_time_averaged_solution){
-        std::vector<std::string> fluctuating_quantities_names = {"u'v'","u'u'", "v'v'", "w'w'", "u'w'"};
-        data_out.add_data_vector (fluctuating_quantities, fluctuating_quantities_names, dealii::DataOut_DoFData<dealii::DoFHandler<dim>,dim>::DataVectorType::type_dof_data);
-    } else {
-        data_out.add_data_vector (solution, *post_processor);
-    }
-    
+    const std::unique_ptr< dealii::DataPostprocessor<dim> > post_processor = Postprocess::PostprocessorFactory<dim,nspecies>::create_Postprocessor(all_parameters);
+    data_out.add_data_vector (solution, *post_processor);
+
     // Output the polynomial degree in each cell
     std::vector<unsigned int> active_fe_indices;
     dof_handler.get_active_fe_indices(active_fe_indices);
@@ -2086,20 +3384,13 @@ void DGBase<dim,real,MeshType>::output_results_vtk (const unsigned int cycle, co
     const unsigned int grid_degree = high_order_grid->max_degree;
     // If higher-order vtk output is not enabled, passing 0 will be interpreted as DataOutInterface::default_subdivisions
     const int n_subdivisions = (enable_higher_order_vtk_output) ? std::max(grid_degree,get_max_fe_degree()) : 0;
-    //std::cout << "n_subdivisions: "<< n_subdivisions <<std::endl;
     data_out.build_patches(mapping, n_subdivisions, curved);
-    //std::cout << "build patches added to vector. "<< std::endl;
     const bool write_higher_order_cells = (n_subdivisions>1 && dim>1) ? true : false;
     dealii::DataOutBase::VtkFlags vtkflags(current_time,cycle,true,dealii::DataOutBase::VtkFlags::ZlibCompressionLevel::best_compression,write_higher_order_cells);
     data_out.set_flags(vtkflags);
 
-    // std::cout << "Added vtk flags. "<< std::endl;
-
     const int iproc = dealii::Utilities::MPI::this_mpi_process(mpi_communicator);
-    std::string filename_prefix = "solution"; // default
-    if(output_time_averaged_solution && !output_fluctuating_quantities) filename_prefix = "time_averaged_solution";
-    else if(output_fluctuating_quantities && !output_time_averaged_solution) filename_prefix = "fluctuating_quantities";
-    std::string filename = this->all_parameters->solution_vtk_files_directory_name + "/" + filename_prefix + "-" + dealii::Utilities::int_to_string(dim, 1) +"D_maxpoly"+dealii::Utilities::int_to_string(max_degree, 2)+"-";
+    std::string filename = this->all_parameters->solution_vtk_files_directory_name + "/" + "solution-" + dealii::Utilities::int_to_string(dim, 1) +"D_maxpoly"+dealii::Utilities::int_to_string(max_degree, 2)+"-";
     filename += dealii::Utilities::int_to_string(cycle, 4) + ".";
     filename += dealii::Utilities::int_to_string(iproc, 4);
     filename += ".vtu";
@@ -2110,34 +3401,22 @@ void DGBase<dim,real,MeshType>::output_results_vtk (const unsigned int cycle, co
     if (iproc == 0) {
         std::vector<std::string> filenames;
         for (unsigned int iproc = 0; iproc < dealii::Utilities::MPI::n_mpi_processes(mpi_communicator); ++iproc) {
-            std::string fn = filename_prefix + "-" + dealii::Utilities::int_to_string(dim, 1) +"D_maxpoly"+dealii::Utilities::int_to_string(max_degree, 2)+"-";
+            std::string fn = "solution-" + dealii::Utilities::int_to_string(dim, 1) +"D_maxpoly"+dealii::Utilities::int_to_string(max_degree, 2)+"-";
             fn += dealii::Utilities::int_to_string(cycle, 4) + ".";
             fn += dealii::Utilities::int_to_string(iproc, 4);
             fn += ".vtu";
             filenames.push_back(fn);
         }
-        std::string master_fn = this->all_parameters->solution_vtk_files_directory_name + "/" + filename_prefix + "-" + dealii::Utilities::int_to_string(dim, 1) +"D_maxpoly"+dealii::Utilities::int_to_string(max_degree, 2)+"-";
+        std::string master_fn = this->all_parameters->solution_vtk_files_directory_name + "/" + "solution-" + dealii::Utilities::int_to_string(dim, 1) +"D_maxpoly"+dealii::Utilities::int_to_string(max_degree, 2)+"-";
         master_fn += dealii::Utilities::int_to_string(cycle, 4) + ".pvtu";
         std::ofstream master_output(master_fn);
         data_out.write_pvtu_record(master_output, filenames);
     }
 
-    if (all_parameters->flow_solver_param.do_compute_time_averaged_solution && 
-        (current_time >= all_parameters->flow_solver_param.time_to_start_averaging) && 
-        (output_time_averaged_solution == false) && (output_fluctuating_quantities == false))/*Only when false, such that it's not endlessly recursive*/ {
-        output_results_vtk (cycle, current_time, true, false); //time-averaged quantites
-        if (all_parameters->flow_solver_param.do_compute_Reynolds_stress && 
-        (current_time >= all_parameters->flow_solver_param.time_to_start_computing_Reynolds_stress)){
-            output_results_vtk (cycle, current_time, false, true); //fluctuating quantitites
-        }
-    }
-
-    //std::cout << "Completed writing out file." << std::endl;
-
 }
 
-template <int dim, typename real, typename MeshType>
-void DGBase<dim,real,MeshType>::allocate_auxiliary_equation()
+template <int dim, int nspecies, typename real, typename MeshType>
+void DGBase<dim,nspecies,real,MeshType>::allocate_auxiliary_equation()
 {
     for (int idim=0; idim<dim; idim++) {
         auxiliary_right_hand_side[idim].reinit(locally_owned_dofs, ghost_dofs, mpi_communicator);
@@ -2148,8 +3427,8 @@ void DGBase<dim,real,MeshType>::allocate_auxiliary_equation()
     }
 }
 
-template <int dim, typename real, typename MeshType>
-void DGBase<dim,real,MeshType>::allocate_system (
+template <int dim, int nspecies, typename real, typename MeshType>
+void DGBase<dim,nspecies,real,MeshType>::allocate_system (
     const bool compute_dRdW, const bool compute_dRdX, const bool compute_d2R)
 {
     pcout << "Allocating DG system and initializing FEValues" << std::endl;
@@ -2184,12 +3463,7 @@ void DGBase<dim,real,MeshType>::allocate_system (
     max_dt_cell.reinit(triangulation->n_active_cells());
     cell_volume.reinit(triangulation->n_active_cells());
 
-    if (list_of_cell_group_IDs.size() > 0 && norm_list_of_cell_group_IDs>0){
-        // Enter this loop if DG is reinitialized during mesh adaptation
-        this->pcout << "ERROR: Cell group IDs are not currently compatible with mesh adaptation. Aborting..." << std::endl;
-        std::abort();
-    }
-    list_of_cell_group_IDs.reinit(triangulation->n_active_cells());
+    reduced_mesh_weights.reinit(triangulation->n_active_cells());
 
     // allocates model variables only if there is a model
     if(all_parameters->pde_type == Parameters::AllParameters::PartialDifferentialEquation::physics_model ||
@@ -2201,23 +3475,17 @@ void DGBase<dim,real,MeshType>::allocate_system (
     //right_hand_side.reinit(locally_owned_dofs, mpi_communicator);
     right_hand_side.reinit(locally_owned_dofs, ghost_dofs, mpi_communicator);
     right_hand_side.add(1.0); // Avoid 0 initial residual for output and logarithmic visualization.
-    //time averaged solution
-    if(all_parameters->flow_solver_param.do_compute_time_averaged_solution){
-        time_averaged_solution.reinit(locally_owned_dofs, ghost_dofs, mpi_communicator);
-        time_averaged_solution *= 0.0;
-        time_averaged_solution.add(std::numeric_limits<real>::lowest());
-    }
-    //fluctuating quantities (i.e, reynodsl stresses)
-    if(all_parameters->flow_solver_param.do_compute_time_averaged_solution && all_parameters->flow_solver_param.do_compute_Reynolds_stress){
-        fluctuating_quantities.reinit(locally_owned_dofs, ghost_dofs, mpi_communicator);
-        fluctuating_quantities *= 0.0;
-        fluctuating_quantities.add(std::numeric_limits<real>::lowest());
-    }
 
-    allocate_dual_vector();
+    allocate_dual_vector(compute_d2R);
 
     // Set use_auxiliary_eq flag
     set_use_auxiliary_eq();
+
+    // Set store_vol_flux_nodes flag
+    set_store_vol_flux_nodes();
+
+    // Set store_surf_flux_nodes flag
+    set_store_surf_flux_nodes();
 
     // Allocate for auxiliary equation only.
     if(use_auxiliary_eq) allocate_auxiliary_equation ();
@@ -2271,8 +3539,8 @@ void DGBase<dim,real,MeshType>::allocate_system (
     }
 }
 
-template <int dim, typename real, typename MeshType>
-void DGBase<dim,real,MeshType>::allocate_artificial_dissipation ()
+template <int dim, int nspecies, typename real, typename MeshType>
+void DGBase<dim,nspecies,real,MeshType>::allocate_artificial_dissipation ()
 {
     const dealii::IndexSet locally_owned_dofs_artificial_dissipation = dof_handler_artificial_dissipation.locally_owned_dofs();
 
@@ -2290,8 +3558,8 @@ void DGBase<dim,real,MeshType>::allocate_artificial_dissipation ()
 }
 
 
-template <int dim, typename real, typename MeshType>
-void DGBase<dim,real,MeshType>::allocate_second_derivatives ()
+template <int dim, int nspecies, typename real, typename MeshType>
+void DGBase<dim,nspecies,real,MeshType>::allocate_second_derivatives ()
 {
     locally_owned_dofs = dof_handler.locally_owned_dofs();
     {
@@ -2316,8 +3584,8 @@ void DGBase<dim,real,MeshType>::allocate_second_derivatives ()
     }
 }
 
-template <int dim, typename real, typename MeshType>
-void DGBase<dim,real,MeshType>::allocate_dRdX ()
+template <int dim, int nspecies, typename real, typename MeshType>
+void DGBase<dim,nspecies,real,MeshType>::allocate_dRdX ()
 {
     // dRdXv matrix allocation
     dealii::SparsityPattern dRdXv_sparsity_pattern = get_dRdX_sparsity_pattern ();
@@ -2326,16 +3594,16 @@ void DGBase<dim,real,MeshType>::allocate_dRdX ()
     dRdXv.reinit(row_parallel_partitioning, col_parallel_partitioning, dRdXv_sparsity_pattern, MPI_COMM_WORLD);
 }
 
-template <int dim, typename real, typename MeshType>
-void DGBase<dim,real,MeshType>::reinit_operators_for_mass_matrix(
+template <int dim, int nspecies, typename real, typename MeshType>
+void DGBase<dim,nspecies,real,MeshType>::reinit_operators_for_mass_matrix(
     const bool Cartesian_element,
     const unsigned int poly_degree, const unsigned int grid_degree,
-    OPERATOR::mapping_shape_functions<dim,2*dim,real> &mapping_basis,
-    OPERATOR::basis_functions<dim,2*dim,real> &basis,
-    OPERATOR::local_mass<dim,2*dim,real> &reference_mass_matrix,
-    OPERATOR::local_Flux_Reconstruction_operator<dim,2*dim,real> &reference_FR,
-    OPERATOR::local_Flux_Reconstruction_operator_aux<dim,2*dim,real> &reference_FR_aux,
-    OPERATOR::derivative_p<dim,2*dim,real> &deriv_p)
+    OPERATOR::mapping_shape_functions<dim,2*dim> &mapping_basis,
+    OPERATOR::basis_functions<dim,2*dim> &basis,
+    OPERATOR::local_mass<dim,2*dim> &reference_mass_matrix,
+    OPERATOR::local_Flux_Reconstruction_operator<dim,2*dim> &reference_FR,
+    OPERATOR::local_Flux_Reconstruction_operator_aux<dim,2*dim> &reference_FR_aux,
+    OPERATOR::derivative_p<dim,2*dim> &deriv_p)
 {    
     using FR_enum = Parameters::AllParameters::Flux_Reconstruction;
     const FR_enum FR_Type = this->all_parameters->flux_reconstruction_type;
@@ -2364,11 +3632,13 @@ void DGBase<dim,real,MeshType>::reinit_operators_for_mass_matrix(
     }
 }
 
-template <int dim, typename real, typename MeshType>
-void DGBase<dim,real,MeshType>::evaluate_mass_matrices (bool do_inverse_mass_matrix)
+template <int dim, int nspecies, typename real, typename MeshType>
+void DGBase<dim,nspecies,real,MeshType>::evaluate_mass_matrices (bool do_inverse_mass_matrix)
 {   
     using FR_enum = Parameters::AllParameters::Flux_Reconstruction;
     const FR_enum FR_Type = this->all_parameters->flux_reconstruction_type;
+
+    const double FR_user_specified_correction_parameter_value = this->all_parameters->FR_user_specified_correction_parameter_value;
     
     using FR_Aux_enum = Parameters::AllParameters::Flux_Reconstruction_Aux;
     const FR_Aux_enum FR_Type_Aux = this->all_parameters->flux_reconstruction_aux_type;
@@ -2420,12 +3690,12 @@ void DGBase<dim,real,MeshType>::evaluate_mass_matrices (bool do_inverse_mass_mat
 
     // setup 1D operators for ONE STATE. We loop over states in assembly for speedup.
     const unsigned int init_grid_degree = high_order_grid->fe_system.tensor_degree();
-    OPERATOR::mapping_shape_functions<dim,2*dim,real> mapping_basis(1, max_degree, init_grid_degree);//first set at max degree
-    OPERATOR::basis_functions<dim,2*dim,real> basis(1, max_degree, init_grid_degree);
-    OPERATOR::local_mass<dim,2*dim,real> reference_mass_matrix(1, max_degree, init_grid_degree);//first set at max degree
-    OPERATOR::local_Flux_Reconstruction_operator<dim,2*dim,real> reference_FR(1, max_degree, init_grid_degree, FR_Type);
-    OPERATOR::local_Flux_Reconstruction_operator_aux<dim,2*dim,real> reference_FR_aux(1, max_degree, init_grid_degree, FR_Type_Aux);
-    OPERATOR::derivative_p<dim,2*dim,real> deriv_p(1, max_degree, init_grid_degree);
+    OPERATOR::mapping_shape_functions<dim,2*dim> mapping_basis(1, max_degree, init_grid_degree);//first set at max degree
+    OPERATOR::basis_functions<dim,2*dim> basis(1, max_degree, init_grid_degree);
+    OPERATOR::local_mass<dim,2*dim> reference_mass_matrix(1, max_degree, init_grid_degree);//first set at max degree
+    OPERATOR::local_Flux_Reconstruction_operator<dim,2*dim> reference_FR(1, max_degree, init_grid_degree, FR_Type, FR_user_specified_correction_parameter_value);
+    OPERATOR::local_Flux_Reconstruction_operator_aux<dim,2*dim> reference_FR_aux(1, max_degree, init_grid_degree, FR_Type_Aux);
+    OPERATOR::derivative_p<dim,2*dim> deriv_p(1, max_degree, init_grid_degree);
 
     auto first_cell = dof_handler.begin_active();
     const bool Cartesian_first_element = (first_cell->manifold_id() == dealii::numbers::flat_manifold_id);
@@ -2466,8 +3736,8 @@ void DGBase<dim,real,MeshType>::evaluate_mass_matrices (bool do_inverse_mass_mat
         const dealii::FESystem<dim> &fe_metric = high_order_grid->fe_system;
         const unsigned int n_metric_dofs = high_order_grid->fe_system.dofs_per_cell;
         const unsigned int n_grid_nodes  = n_metric_dofs/dim;
-        std::vector<dealii::types::global_dof_index> metric_dof_indices(n_metric_dofs);
-        metric_cell->get_dof_indices (metric_dof_indices);
+        std::vector<dealii::types::global_dof_index> metric_dofs_indices(n_metric_dofs);
+        metric_cell->get_dof_indices (metric_dofs_indices);
         // get mapping_support points
         std::array<std::vector<real>,dim> mapping_support_points;
         for(int idim=0; idim<dim; idim++){
@@ -2475,7 +3745,7 @@ void DGBase<dim,real,MeshType>::evaluate_mass_matrices (bool do_inverse_mass_mat
         }
         const std::vector<unsigned int > &index_renumbering = dealii::FETools::hierarchic_to_lexicographic_numbering<dim>(curr_grid_degree);
         for (unsigned int idof = 0; idof< n_metric_dofs; ++idof) {
-            const real val = (high_order_grid->volume_nodes[metric_dof_indices[idof]]);
+            const real val = (high_order_grid->volume_nodes[metric_dofs_indices[idof]]);
             const unsigned int istate = fe_metric.system_to_component_index(idof).first; 
             const unsigned int ishape = fe_metric.system_to_component_index(idof).second; 
             const unsigned int igrid_node = index_renumbering[ishape];
@@ -2529,8 +3799,8 @@ void DGBase<dim,real,MeshType>::evaluate_mass_matrices (bool do_inverse_mass_mat
     }
 }
 
-template<int dim, typename real, typename MeshType>
-void DGBase<dim,real,MeshType>::evaluate_local_metric_dependent_mass_matrix_and_set_in_global_mass_matrix(
+template<int dim, int nspecies, typename real, typename MeshType>
+void DGBase<dim,nspecies,real,MeshType>::evaluate_local_metric_dependent_mass_matrix_and_set_in_global_mass_matrix(
     const bool Cartesian_element,
     const bool do_inverse_mass_matrix, 
     const unsigned int poly_degree, 
@@ -2539,11 +3809,11 @@ void DGBase<dim,real,MeshType>::evaluate_local_metric_dependent_mass_matrix_and_
     const unsigned int n_dofs_cell, 
     const std::vector<dealii::types::global_dof_index> dofs_indices, 
     OPERATOR::metric_operators<real,dim,2*dim> &metric_oper,
-    OPERATOR::basis_functions<dim,2*dim,real> &basis,
-    OPERATOR::local_mass<dim,2*dim,real> &reference_mass_matrix,
-    OPERATOR::local_Flux_Reconstruction_operator<dim,2*dim,real> &reference_FR,
-    OPERATOR::local_Flux_Reconstruction_operator_aux<dim,2*dim,real> &reference_FR_aux,
-    OPERATOR::derivative_p<dim,2*dim,real> &deriv_p)
+    OPERATOR::basis_functions<dim,2*dim> &basis,
+    OPERATOR::local_mass<dim,2*dim> &reference_mass_matrix,
+    OPERATOR::local_Flux_Reconstruction_operator<dim,2*dim> &reference_FR,
+    OPERATOR::local_Flux_Reconstruction_operator_aux<dim,2*dim> &reference_FR_aux,
+    OPERATOR::derivative_p<dim,2*dim> &deriv_p)
 {   
     using FR_enum = Parameters::AllParameters::Flux_Reconstruction;
     const FR_enum FR_Type = this->all_parameters->flux_reconstruction_type;
@@ -2752,8 +4022,8 @@ void DGBase<dim,real,MeshType>::evaluate_local_metric_dependent_mass_matrix_and_
     }
 }
 
-template<int dim, typename real, typename MeshType>
-void DGBase<dim,real,MeshType>::apply_inverse_global_mass_matrix(
+template<int dim, int nspecies, typename real, typename MeshType>
+void DGBase<dim,nspecies,real,MeshType>::apply_inverse_global_mass_matrix(
         const dealii::LinearAlgebra::distributed::Vector<double> &input_vector,
         dealii::LinearAlgebra::distributed::Vector<double> &output_vector,
         const bool use_auxiliary_eq)
@@ -2761,16 +4031,17 @@ void DGBase<dim,real,MeshType>::apply_inverse_global_mass_matrix(
     using FR_enum = Parameters::AllParameters::Flux_Reconstruction;
     using FR_Aux_enum = Parameters::AllParameters::Flux_Reconstruction_Aux;
     const FR_enum FR_Type = this->all_parameters->flux_reconstruction_type;
+    const double FR_user_specified_correction_parameter_value = this->all_parameters->FR_user_specified_correction_parameter_value;
     const FR_Aux_enum FR_Type_Aux = this->all_parameters->flux_reconstruction_aux_type;
      
     const unsigned int init_grid_degree = high_order_grid->fe_system.tensor_degree();
-    OPERATOR::mapping_shape_functions<dim,2*dim,real> mapping_basis(1, init_grid_degree, init_grid_degree);
+    OPERATOR::mapping_shape_functions<dim,2*dim> mapping_basis(1, init_grid_degree, init_grid_degree);
      
-    OPERATOR::FR_mass_inv<dim,2*dim,real> mass_inv(1, max_degree, init_grid_degree, FR_Type);
-    OPERATOR::FR_mass_inv_aux<dim,2*dim,real> mass_inv_aux(1, max_degree, init_grid_degree, FR_Type_Aux);
+    OPERATOR::FR_mass_inv<dim,2*dim> mass_inv(1, max_degree, init_grid_degree, FR_Type, FR_user_specified_correction_parameter_value);
+    OPERATOR::FR_mass_inv_aux<dim,2*dim> mass_inv_aux(1, max_degree, init_grid_degree, FR_Type_Aux);
      
-    OPERATOR::vol_projection_operator_FR<dim,2*dim,real> projection_oper(1, max_degree, init_grid_degree, FR_Type, true);
-    OPERATOR::vol_projection_operator_FR_aux<dim,2*dim,real> projection_oper_aux(1, max_degree, init_grid_degree, FR_Type_Aux, true);
+    OPERATOR::vol_projection_operator_FR<dim,2*dim> projection_oper(1, max_degree, init_grid_degree, FR_Type, FR_user_specified_correction_parameter_value, true);
+    OPERATOR::vol_projection_operator_FR_aux<dim,2*dim> projection_oper_aux(1, max_degree, init_grid_degree, FR_Type_Aux, true);
      
     mapping_basis.build_1D_shape_functions_at_volume_flux_nodes(high_order_grid->oneD_fe_system, oneD_quadrature_collection[max_degree]);
      
@@ -2836,8 +4107,8 @@ void DGBase<dim,real,MeshType>::apply_inverse_global_mass_matrix(
 
         // get mapping support points and determinant of Jacobian
         // setup metric cell
-        std::vector<dealii::types::global_dof_index> metric_dof_indices(n_metric_dofs);
-        metric_cell->get_dof_indices (metric_dof_indices);
+        std::vector<dealii::types::global_dof_index> metric_dofs_indices(n_metric_dofs);
+        metric_cell->get_dof_indices (metric_dofs_indices);
         // get mapping_support points
         std::array<std::vector<real>,dim> mapping_support_points;
         for(int idim=0; idim<dim; idim++){
@@ -2845,7 +4116,7 @@ void DGBase<dim,real,MeshType>::apply_inverse_global_mass_matrix(
         }
         const std::vector<unsigned int > &index_renumbering = dealii::FETools::hierarchic_to_lexicographic_numbering<dim>(grid_degree);
         for (unsigned int idof = 0; idof< n_metric_dofs; ++idof) {
-            const real val = (high_order_grid->volume_nodes[metric_dof_indices[idof]]);
+            const real val = (high_order_grid->volume_nodes[metric_dofs_indices[idof]]);
             const unsigned int istate = fe_metric.system_to_component_index(idof).first; 
             const unsigned int ishape = fe_metric.system_to_component_index(idof).second; 
             const unsigned int igrid_node = index_renumbering[ishape];
@@ -2925,8 +4196,8 @@ void DGBase<dim,real,MeshType>::apply_inverse_global_mass_matrix(
     }
 }
 
-template<int dim, typename real, typename MeshType>
-void DGBase<dim,real,MeshType>::apply_global_mass_matrix(
+template<int dim, int nspecies, typename real, typename MeshType>
+void DGBase<dim,nspecies,real,MeshType>::apply_global_mass_matrix(
         const dealii::LinearAlgebra::distributed::Vector<double> &input_vector,
         dealii::LinearAlgebra::distributed::Vector<double> &output_vector,
         const bool use_auxiliary_eq,
@@ -2938,15 +4209,16 @@ void DGBase<dim,real,MeshType>::apply_global_mass_matrix(
     // if using only the M norm, set c=0 through the choice of cDG, which results in K=0
     // and the un-modified mass matrix will be applied.
     const FR_enum FR_Type = (use_unmodified_mass_matrix) ? FR_cDG : this->all_parameters->flux_reconstruction_type;
+    const double FR_user_specified_correction_parameter_value = this->all_parameters->FR_user_specified_correction_parameter_value;
     const FR_Aux_enum FR_Type_Aux = this->all_parameters->flux_reconstruction_aux_type;
      
     const unsigned int init_grid_degree = high_order_grid->fe_system.tensor_degree();
-    OPERATOR::mapping_shape_functions<dim,2*dim,real> mapping_basis(1, max_degree, init_grid_degree);
+    OPERATOR::mapping_shape_functions<dim,2*dim> mapping_basis(1, max_degree, init_grid_degree);
      
-    OPERATOR::FR_mass<dim,2*dim,real> mass(1, max_degree, init_grid_degree, FR_Type);
-    OPERATOR::FR_mass_aux<dim,2*dim,real> mass_aux(1, max_degree, init_grid_degree, FR_Type_Aux);
+    OPERATOR::FR_mass<dim,2*dim> mass(1, max_degree, init_grid_degree, FR_Type, FR_user_specified_correction_parameter_value);
+    OPERATOR::FR_mass_aux<dim,2*dim> mass_aux(1, max_degree, init_grid_degree, FR_Type_Aux);
      
-    OPERATOR::vol_projection_operator<dim,2*dim,real> projection_oper(1, max_degree, init_grid_degree);
+    OPERATOR::vol_projection_operator<dim,2*dim> projection_oper(1, max_degree, init_grid_degree);
      
     mapping_basis.build_1D_shape_functions_at_volume_flux_nodes(high_order_grid->oneD_fe_system, oneD_quadrature_collection[max_degree]);
      
@@ -3002,8 +4274,8 @@ void DGBase<dim,real,MeshType>::apply_global_mass_matrix(
 
         //get mapping support points and determinant of Jacobian
         //setup metric cell
-        std::vector<dealii::types::global_dof_index> metric_dof_indices(n_metric_dofs);
-        metric_cell->get_dof_indices (metric_dof_indices);
+        std::vector<dealii::types::global_dof_index> metric_dofs_indices(n_metric_dofs);
+        metric_cell->get_dof_indices (metric_dofs_indices);
         // get mapping_support points
         std::array<std::vector<real>,dim> mapping_support_points;
         for(int idim=0; idim<dim; idim++){
@@ -3011,7 +4283,7 @@ void DGBase<dim,real,MeshType>::apply_global_mass_matrix(
         }
         const std::vector<unsigned int > &index_renumbering = dealii::FETools::hierarchic_to_lexicographic_numbering<dim>(grid_degree);
         for (unsigned int idof = 0; idof< n_metric_dofs; ++idof) {
-            const real val = (high_order_grid->volume_nodes[metric_dof_indices[idof]]);
+            const real val = (high_order_grid->volume_nodes[metric_dofs_indices[idof]]);
             const unsigned int istate = fe_metric.system_to_component_index(idof).first; 
             const unsigned int ishape = fe_metric.system_to_component_index(idof).second; 
             const unsigned int igrid_node = index_renumbering[ishape];
@@ -3102,18 +4374,18 @@ void DGBase<dim,real,MeshType>::apply_global_mass_matrix(
     }//end of cell loop
 }
 
-template<int dim, typename real, typename MeshType>
-void DGBase<dim,real,MeshType>::add_mass_matrices(const real scale)
+template<int dim, int nspecies, typename real, typename MeshType>
+void DGBase<dim,nspecies,real,MeshType>::add_mass_matrices(const real scale)
 {
     system_matrix.add(scale, global_mass_matrix);
 }
-template<int dim, typename real, typename MeshType>
-void DGBase<dim,real,MeshType>::add_time_scaled_mass_matrices()
+template<int dim, int nspecies, typename real, typename MeshType>
+void DGBase<dim,nspecies,real,MeshType>::add_time_scaled_mass_matrices()
 {
     system_matrix.add(1.0, time_scaled_global_mass_matrix);
 }
-template<int dim, typename real, typename MeshType>
-void DGBase<dim,real,MeshType>::time_scaled_mass_matrices(const real dt_scale)
+template<int dim, int nspecies, typename real, typename MeshType>
+void DGBase<dim,nspecies,real,MeshType>::time_scaled_mass_matrices(const real dt_scale)
 {
     time_scaled_global_mass_matrix.reinit(system_matrix);
     time_scaled_global_mass_matrix = 0.0;
@@ -3153,7 +4425,7 @@ void DGBase<dim,real,MeshType>::time_scaled_mass_matrices(const real dt_scale)
     time_scaled_global_mass_matrix.compress(dealii::VectorOperation::insert);
 }
 
-template<int dim, typename real> // To be replaced with operators->projection_operator
+template<int dim, int nspecies, typename real> // To be replaced with operators->projection_operator
 std::vector< real > project_function(
     const std::vector< real > &function_coeff,
     const dealii::FESystem<dim,dim> &fe_input,
@@ -3231,9 +4503,9 @@ std::vector< real > project_function(
 
 }
 
-template <int dim, typename real,typename MeshType>
+template <int dim, int nspecies, typename real,typename MeshType>
 template <typename real2>
-real2 DGBase<dim,real,MeshType>::discontinuity_sensor(
+real2 DGBase<dim,nspecies,real,MeshType>::discontinuity_sensor(
     const dealii::Quadrature<dim> &volume_quadrature,
     const std::vector< real2 > &soln_coeff_high,
     const dealii::FiniteElement<dim,dim> &fe_high,
@@ -3253,7 +4525,7 @@ real2 DGBase<dim,real,MeshType>::discontinuity_sensor(
 
     // Projection quadrature.
     const dealii::QGauss<dim> projection_quadrature(degree+5);
-    std::vector< real2 > soln_coeff_lower = project_function<dim,real2>( soln_coeff_high, fe_high, fe_lower, projection_quadrature);
+    std::vector< real2 > soln_coeff_lower = project_function<dim,nspecies,real2>( soln_coeff_high, fe_high, fe_lower, projection_quadrature);
 
     // Quadrature used for solution difference.
     const std::vector<dealii::Point<dim,double>> &unit_quad_pts = volume_quadrature.get_points();
@@ -3320,106 +4592,172 @@ real2 DGBase<dim,real,MeshType>::discontinuity_sensor(
     return eps;
 }
 
-template <int dim, typename real, typename MeshType>
-void DGBase<dim,real,MeshType>::set_current_time(const real current_time_input)
+template <int dim, int nspecies, typename real, typename MeshType>
+void DGBase<dim,nspecies,real,MeshType>::set_current_time(const real current_time_input)
 {
     this->current_time = current_time_input;
 }
 
 #if PHILIP_DIM!=1
-template class DGBase <PHILIP_DIM, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+template class DGBase <PHILIP_DIM, PHILIP_SPECIES, double, dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
 #endif
 
-template class DGBase <PHILIP_DIM, double, dealii::Triangulation<PHILIP_DIM>>;
-template class DGBase <PHILIP_DIM, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+template class DGBase <PHILIP_DIM, PHILIP_SPECIES, double, dealii::Triangulation<PHILIP_DIM>>;
+template class DGBase <PHILIP_DIM, PHILIP_SPECIES, double, dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
 
-template double DGBase<PHILIP_DIM,double,dealii::Triangulation<PHILIP_DIM>>::discontinuity_sensor<double>(const dealii::Quadrature<PHILIP_DIM> &volume_quadrature, const std::vector< double > &soln_coeff_high, const dealii::FiniteElement<PHILIP_DIM,PHILIP_DIM> &fe_high, const std::vector<double>  &jac_det);
-template FadType DGBase<PHILIP_DIM,double,dealii::Triangulation<PHILIP_DIM>>::discontinuity_sensor<FadType>(const dealii::Quadrature<PHILIP_DIM> &volume_quadrature, const std::vector< FadType > &soln_coeff_high, const dealii::FiniteElement<PHILIP_DIM,PHILIP_DIM> &fe_high, const std::vector<FadType>  &jac_det);
-template RadType DGBase<PHILIP_DIM,double,dealii::Triangulation<PHILIP_DIM>>::discontinuity_sensor<RadType>(const dealii::Quadrature<PHILIP_DIM> &volume_quadrature, const std::vector< RadType > &soln_coeff_high, const dealii::FiniteElement<PHILIP_DIM,PHILIP_DIM> &fe_high, const std::vector<RadType>  &jac_det);
-template FadFadType DGBase<PHILIP_DIM,double,dealii::Triangulation<PHILIP_DIM>>::discontinuity_sensor<FadFadType>(const dealii::Quadrature<PHILIP_DIM> &volume_quadrature, const std::vector< FadFadType > &soln_coeff_high, const dealii::FiniteElement<PHILIP_DIM,PHILIP_DIM> &fe_high, const std::vector<FadFadType>  &jac_det);
-template RadFadType DGBase<PHILIP_DIM,double,dealii::Triangulation<PHILIP_DIM>>::discontinuity_sensor<RadFadType>(const dealii::Quadrature<PHILIP_DIM> &volume_quadrature, const std::vector< RadFadType > &soln_coeff_high, const dealii::FiniteElement<PHILIP_DIM,PHILIP_DIM> &fe_high, const std::vector<RadFadType>  &jac_det);
-
-
-template double DGBase<PHILIP_DIM,double,dealii::parallel::distributed::Triangulation<PHILIP_DIM>>::discontinuity_sensor<double>(const dealii::Quadrature<PHILIP_DIM> &volume_quadrature, const std::vector< double > &soln_coeff_high, const dealii::FiniteElement<PHILIP_DIM,PHILIP_DIM> &fe_high, const std::vector<double>  &jac_det);
-template FadType DGBase<PHILIP_DIM,double,dealii::parallel::distributed::Triangulation<PHILIP_DIM>>::discontinuity_sensor<FadType>(const dealii::Quadrature<PHILIP_DIM> &volume_quadrature, const std::vector< FadType > &soln_coeff_high, const dealii::FiniteElement<PHILIP_DIM,PHILIP_DIM> &fe_high, const std::vector<FadType>  &jac_det);
-template RadType DGBase<PHILIP_DIM,double,dealii::parallel::distributed::Triangulation<PHILIP_DIM>>::discontinuity_sensor<RadType>(const dealii::Quadrature<PHILIP_DIM> &volume_quadrature, const std::vector< RadType > &soln_coeff_high, const dealii::FiniteElement<PHILIP_DIM,PHILIP_DIM> &fe_high, const std::vector<RadType>  &jac_det);
-template FadFadType DGBase<PHILIP_DIM,double,dealii::parallel::distributed::Triangulation<PHILIP_DIM>>::discontinuity_sensor<FadFadType>(const dealii::Quadrature<PHILIP_DIM> &volume_quadrature, const std::vector< FadFadType > &soln_coeff_high, const dealii::FiniteElement<PHILIP_DIM,PHILIP_DIM> &fe_high, const std::vector<FadFadType>  &jac_det);
-template RadFadType DGBase<PHILIP_DIM,double,dealii::parallel::distributed::Triangulation<PHILIP_DIM>>::discontinuity_sensor<RadFadType>(const dealii::Quadrature<PHILIP_DIM> &volume_quadrature, const std::vector< RadFadType > &soln_coeff_high, const dealii::FiniteElement<PHILIP_DIM,PHILIP_DIM> &fe_high, const std::vector<RadFadType>  &jac_det);
+template double DGBase<PHILIP_DIM,PHILIP_SPECIES,double,dealii::Triangulation<PHILIP_DIM>>::discontinuity_sensor<double>(const dealii::Quadrature<PHILIP_DIM> &volume_quadrature, const std::vector< double > &soln_coeff_high, const dealii::FiniteElement<PHILIP_DIM,PHILIP_DIM> &fe_high, const std::vector<double>  &jac_det);
+template FadType DGBase<PHILIP_DIM,PHILIP_SPECIES,double,dealii::Triangulation<PHILIP_DIM>>::discontinuity_sensor<FadType>(const dealii::Quadrature<PHILIP_DIM> &volume_quadrature, const std::vector< FadType > &soln_coeff_high, const dealii::FiniteElement<PHILIP_DIM,PHILIP_DIM> &fe_high, const std::vector<FadType>  &jac_det);
+template RadType DGBase<PHILIP_DIM,PHILIP_SPECIES,double,dealii::Triangulation<PHILIP_DIM>>::discontinuity_sensor<RadType>(const dealii::Quadrature<PHILIP_DIM> &volume_quadrature, const std::vector< RadType > &soln_coeff_high, const dealii::FiniteElement<PHILIP_DIM,PHILIP_DIM> &fe_high, const std::vector<RadType>  &jac_det);
+template FadFadType DGBase<PHILIP_DIM,PHILIP_SPECIES,double,dealii::Triangulation<PHILIP_DIM>>::discontinuity_sensor<FadFadType>(const dealii::Quadrature<PHILIP_DIM> &volume_quadrature, const std::vector< FadFadType > &soln_coeff_high, const dealii::FiniteElement<PHILIP_DIM,PHILIP_DIM> &fe_high, const std::vector<FadFadType>  &jac_det);
+template RadFadType DGBase<PHILIP_DIM,PHILIP_SPECIES,double,dealii::Triangulation<PHILIP_DIM>>::discontinuity_sensor<RadFadType>(const dealii::Quadrature<PHILIP_DIM> &volume_quadrature, const std::vector< RadFadType > &soln_coeff_high, const dealii::FiniteElement<PHILIP_DIM,PHILIP_DIM> &fe_high, const std::vector<RadFadType>  &jac_det);
 
 
-template double DGBase<PHILIP_DIM,double,dealii::parallel::shared::Triangulation<PHILIP_DIM>>::discontinuity_sensor<double>(const dealii::Quadrature<PHILIP_DIM> &volume_quadrature, const std::vector< double > &soln_coeff_high, const dealii::FiniteElement<PHILIP_DIM,PHILIP_DIM> &fe_high, const std::vector<double>  &jac_det);
-template FadType DGBase<PHILIP_DIM,double,dealii::parallel::shared::Triangulation<PHILIP_DIM>>::discontinuity_sensor<FadType>(const dealii::Quadrature<PHILIP_DIM> &volume_quadrature, const std::vector< FadType > &soln_coeff_high, const dealii::FiniteElement<PHILIP_DIM,PHILIP_DIM> &fe_high, const std::vector<FadType>  &jac_det);
-template RadType DGBase<PHILIP_DIM,double,dealii::parallel::shared::Triangulation<PHILIP_DIM>>::discontinuity_sensor<RadType>(const dealii::Quadrature<PHILIP_DIM> &volume_quadrature, const std::vector< RadType > &soln_coeff_high, const dealii::FiniteElement<PHILIP_DIM,PHILIP_DIM> &fe_high, const std::vector<RadType>  &jac_det);
-template FadFadType DGBase<PHILIP_DIM,double,dealii::parallel::shared::Triangulation<PHILIP_DIM>>::discontinuity_sensor<FadFadType>(const dealii::Quadrature<PHILIP_DIM> &volume_quadrature, const std::vector< FadFadType > &soln_coeff_high, const dealii::FiniteElement<PHILIP_DIM,PHILIP_DIM> &fe_high, const std::vector<FadFadType>  &jac_det);
-template RadFadType DGBase<PHILIP_DIM,double,dealii::parallel::shared::Triangulation<PHILIP_DIM>>::discontinuity_sensor<RadFadType>(const dealii::Quadrature<PHILIP_DIM> &volume_quadrature, const std::vector< RadFadType > &soln_coeff_high, const dealii::FiniteElement<PHILIP_DIM,PHILIP_DIM> &fe_high, const std::vector<RadFadType>  &jac_det);
+template double DGBase<PHILIP_DIM,PHILIP_SPECIES,double,dealii::parallel::distributed::Triangulation<PHILIP_DIM>>::discontinuity_sensor<double>(const dealii::Quadrature<PHILIP_DIM> &volume_quadrature, const std::vector< double > &soln_coeff_high, const dealii::FiniteElement<PHILIP_DIM,PHILIP_DIM> &fe_high, const std::vector<double>  &jac_det);
+template FadType DGBase<PHILIP_DIM,PHILIP_SPECIES,double,dealii::parallel::distributed::Triangulation<PHILIP_DIM>>::discontinuity_sensor<FadType>(const dealii::Quadrature<PHILIP_DIM> &volume_quadrature, const std::vector< FadType > &soln_coeff_high, const dealii::FiniteElement<PHILIP_DIM,PHILIP_DIM> &fe_high, const std::vector<FadType>  &jac_det);
+template RadType DGBase<PHILIP_DIM,PHILIP_SPECIES,double,dealii::parallel::distributed::Triangulation<PHILIP_DIM>>::discontinuity_sensor<RadType>(const dealii::Quadrature<PHILIP_DIM> &volume_quadrature, const std::vector< RadType > &soln_coeff_high, const dealii::FiniteElement<PHILIP_DIM,PHILIP_DIM> &fe_high, const std::vector<RadType>  &jac_det);
+template FadFadType DGBase<PHILIP_DIM,PHILIP_SPECIES,double,dealii::parallel::distributed::Triangulation<PHILIP_DIM>>::discontinuity_sensor<FadFadType>(const dealii::Quadrature<PHILIP_DIM> &volume_quadrature, const std::vector< FadFadType > &soln_coeff_high, const dealii::FiniteElement<PHILIP_DIM,PHILIP_DIM> &fe_high, const std::vector<FadFadType>  &jac_det);
+template RadFadType DGBase<PHILIP_DIM,PHILIP_SPECIES,double,dealii::parallel::distributed::Triangulation<PHILIP_DIM>>::discontinuity_sensor<RadFadType>(const dealii::Quadrature<PHILIP_DIM> &volume_quadrature, const std::vector< RadFadType > &soln_coeff_high, const dealii::FiniteElement<PHILIP_DIM,PHILIP_DIM> &fe_high, const std::vector<RadFadType>  &jac_det);
 
 
-template void
-DGBase<PHILIP_DIM,double,dealii::Triangulation<PHILIP_DIM>>::assemble_cell_residual<dealii::TriaActiveIterator<dealii::DoFCellAccessor<PHILIP_DIM, PHILIP_DIM, false>>,dealii::TriaActiveIterator<dealii::DoFCellAccessor<PHILIP_DIM, PHILIP_DIM, false>>>(
+template double DGBase<PHILIP_DIM,PHILIP_SPECIES,double,dealii::parallel::shared::Triangulation<PHILIP_DIM>>::discontinuity_sensor<double>(const dealii::Quadrature<PHILIP_DIM> &volume_quadrature, const std::vector< double > &soln_coeff_high, const dealii::FiniteElement<PHILIP_DIM,PHILIP_DIM> &fe_high, const std::vector<double>  &jac_det);
+template FadType DGBase<PHILIP_DIM,PHILIP_SPECIES,double,dealii::parallel::shared::Triangulation<PHILIP_DIM>>::discontinuity_sensor<FadType>(const dealii::Quadrature<PHILIP_DIM> &volume_quadrature, const std::vector< FadType > &soln_coeff_high, const dealii::FiniteElement<PHILIP_DIM,PHILIP_DIM> &fe_high, const std::vector<FadType>  &jac_det);
+template RadType DGBase<PHILIP_DIM,PHILIP_SPECIES,double,dealii::parallel::shared::Triangulation<PHILIP_DIM>>::discontinuity_sensor<RadType>(const dealii::Quadrature<PHILIP_DIM> &volume_quadrature, const std::vector< RadType > &soln_coeff_high, const dealii::FiniteElement<PHILIP_DIM,PHILIP_DIM> &fe_high, const std::vector<RadType>  &jac_det);
+template FadFadType DGBase<PHILIP_DIM,PHILIP_SPECIES,double,dealii::parallel::shared::Triangulation<PHILIP_DIM>>::discontinuity_sensor<FadFadType>(const dealii::Quadrature<PHILIP_DIM> &volume_quadrature, const std::vector< FadFadType > &soln_coeff_high, const dealii::FiniteElement<PHILIP_DIM,PHILIP_DIM> &fe_high, const std::vector<FadFadType>  &jac_det);
+template RadFadType DGBase<PHILIP_DIM,PHILIP_SPECIES,double,dealii::parallel::shared::Triangulation<PHILIP_DIM>>::discontinuity_sensor<RadFadType>(const dealii::Quadrature<PHILIP_DIM> &volume_quadrature, const std::vector< RadFadType > &soln_coeff_high, const dealii::FiniteElement<PHILIP_DIM,PHILIP_DIM> &fe_high, const std::vector<RadFadType>  &jac_det);
+
+
+
+template void 
+DGBase<PHILIP_DIM,PHILIP_SPECIES,double,dealii::Triangulation<PHILIP_DIM>>::assemble_cell_residual_and_ad_derivatives<codi_JacobianComputationType> (
     const dealii::TriaActiveIterator<dealii::DoFCellAccessor<PHILIP_DIM, PHILIP_DIM, false>> &current_cell,
     const dealii::TriaActiveIterator<dealii::DoFCellAccessor<PHILIP_DIM, PHILIP_DIM, false>> &current_metric_cell,
     const bool compute_dRdW, const bool compute_dRdX, const bool compute_d2R,
-    dealii::hp::FEValues<PHILIP_DIM,PHILIP_DIM>        &fe_values_collection_volume,
-    dealii::hp::FEFaceValues<PHILIP_DIM,PHILIP_DIM>    &fe_values_collection_face_int,
-    dealii::hp::FEFaceValues<PHILIP_DIM,PHILIP_DIM>    &fe_values_collection_face_ext,
-    dealii::hp::FESubfaceValues<PHILIP_DIM,PHILIP_DIM> &fe_values_collection_subface,
-    dealii::hp::FEValues<PHILIP_DIM,PHILIP_DIM>        &fe_values_collection_volume_lagrange,
-    OPERATOR::basis_functions<PHILIP_DIM,2*PHILIP_DIM,double> &soln_basis_int,
-    OPERATOR::basis_functions<PHILIP_DIM,2*PHILIP_DIM,double> &soln_basis_ext,
-    OPERATOR::basis_functions<PHILIP_DIM,2*PHILIP_DIM,double> &flux_basis_int,
-    OPERATOR::basis_functions<PHILIP_DIM,2*PHILIP_DIM,double> &flux_basis_ext,
-    OPERATOR::local_basis_stiffness<PHILIP_DIM,2*PHILIP_DIM,double> &flux_basis_stiffness,
-    OPERATOR::vol_projection_operator<PHILIP_DIM,2*PHILIP_DIM,double> &soln_basis_projection_oper_int,
-    OPERATOR::vol_projection_operator<PHILIP_DIM,2*PHILIP_DIM,double> &soln_basis_projection_oper_ext,
-    OPERATOR::mapping_shape_functions<PHILIP_DIM,2*PHILIP_DIM,double> &mapping_basis,
-    const bool compute_auxiliary_right_hand_side,
-    dealii::LinearAlgebra::distributed::Vector<double> &rhs,
-    std::array<dealii::LinearAlgebra::distributed::Vector<double>,PHILIP_DIM> &rhs_aux,
-    const int active_cell_group_ID);
+    dealii::hp::FEValues<PHILIP_DIM,PHILIP_DIM>                                      &fe_values_collection_volume,
+    dealii::hp::FEFaceValues<PHILIP_DIM,PHILIP_DIM>                                  &fe_values_collection_face_int,
+    dealii::hp::FEFaceValues<PHILIP_DIM,PHILIP_DIM>                                  &fe_values_collection_face_ext,
+    dealii::hp::FESubfaceValues<PHILIP_DIM,PHILIP_DIM>                               &fe_values_collection_subface,
+    dealii::hp::FEValues<PHILIP_DIM,PHILIP_DIM>                                      &fe_values_collection_volume_lagrange,
+    OPERATOR::basis_functions<PHILIP_DIM,2*PHILIP_DIM>                               &soln_basis_int,
+    OPERATOR::basis_functions<PHILIP_DIM,2*PHILIP_DIM>                               &soln_basis_ext,
+    OPERATOR::basis_functions<PHILIP_DIM,2*PHILIP_DIM>                               &flux_basis_int,
+    OPERATOR::basis_functions<PHILIP_DIM,2*PHILIP_DIM>                               &flux_basis_ext,
+    OPERATOR::local_basis_stiffness<PHILIP_DIM,2*PHILIP_DIM>                         &flux_basis_stiffness,
+    OPERATOR::vol_projection_operator<PHILIP_DIM,2*PHILIP_DIM>                       &soln_basis_projection_oper_int,
+    OPERATOR::vol_projection_operator<PHILIP_DIM,2*PHILIP_DIM>                       &soln_basis_projection_oper_ext,
+    OPERATOR::mapping_shape_functions<PHILIP_DIM,2*PHILIP_DIM>                       &mapping_basis,
+    const bool                                                         compute_auxiliary_right_hand_side,//flag on whether computing the Auxiliary variable's equations' residuals
+    dealii::LinearAlgebra::distributed::Vector<double>                 &rhs,
+    std::array<dealii::LinearAlgebra::distributed::Vector<double>,PHILIP_DIM> &rhs_aux);
 
-template void
-DGBase<PHILIP_DIM,double,dealii::parallel::distributed::Triangulation<PHILIP_DIM>>::assemble_cell_residual<dealii::TriaActiveIterator<dealii::DoFCellAccessor<PHILIP_DIM, PHILIP_DIM, false>>,dealii::TriaActiveIterator<dealii::DoFCellAccessor<PHILIP_DIM, PHILIP_DIM, false>>>(
+template void 
+DGBase<PHILIP_DIM,PHILIP_SPECIES,double,dealii::Triangulation<PHILIP_DIM>>::assemble_cell_residual_and_ad_derivatives<codi_HessianComputationType> (
     const dealii::TriaActiveIterator<dealii::DoFCellAccessor<PHILIP_DIM, PHILIP_DIM, false>> &current_cell,
     const dealii::TriaActiveIterator<dealii::DoFCellAccessor<PHILIP_DIM, PHILIP_DIM, false>> &current_metric_cell,
     const bool compute_dRdW, const bool compute_dRdX, const bool compute_d2R,
-    dealii::hp::FEValues<PHILIP_DIM,PHILIP_DIM>        &fe_values_collection_volume,
-    dealii::hp::FEFaceValues<PHILIP_DIM,PHILIP_DIM>    &fe_values_collection_face_int,
-    dealii::hp::FEFaceValues<PHILIP_DIM,PHILIP_DIM>    &fe_values_collection_face_ext,
-    dealii::hp::FESubfaceValues<PHILIP_DIM,PHILIP_DIM> &fe_values_collection_subface,
-    dealii::hp::FEValues<PHILIP_DIM,PHILIP_DIM>        &fe_values_collection_volume_lagrange,
-    OPERATOR::basis_functions<PHILIP_DIM,2*PHILIP_DIM,double> &soln_basis_int,
-    OPERATOR::basis_functions<PHILIP_DIM,2*PHILIP_DIM,double> &soln_basis_ext,
-    OPERATOR::basis_functions<PHILIP_DIM,2*PHILIP_DIM,double> &flux_basis_int,
-    OPERATOR::basis_functions<PHILIP_DIM,2*PHILIP_DIM,double> &flux_basis_ext,
-    OPERATOR::local_basis_stiffness<PHILIP_DIM,2*PHILIP_DIM,double> &flux_basis_stiffness,
-    OPERATOR::vol_projection_operator<PHILIP_DIM,2*PHILIP_DIM,double> &soln_basis_projection_oper_int,
-    OPERATOR::vol_projection_operator<PHILIP_DIM,2*PHILIP_DIM,double> &soln_basis_projection_oper_ext,
-    OPERATOR::mapping_shape_functions<PHILIP_DIM,2*PHILIP_DIM,double> &mapping_basis,
-    const bool compute_auxiliary_right_hand_side,
-    dealii::LinearAlgebra::distributed::Vector<double> &rhs,
-    std::array<dealii::LinearAlgebra::distributed::Vector<double>,PHILIP_DIM> &rhs_aux,
-    const int active_cell_group_ID);
-
-template void
-DGBase<PHILIP_DIM,double,dealii::parallel::shared::Triangulation<PHILIP_DIM>>::assemble_cell_residual<dealii::TriaActiveIterator<dealii::DoFCellAccessor<PHILIP_DIM, PHILIP_DIM, false>>,dealii::TriaActiveIterator<dealii::DoFCellAccessor<PHILIP_DIM, PHILIP_DIM, false>>>(
+    dealii::hp::FEValues<PHILIP_DIM,PHILIP_DIM>                                      &fe_values_collection_volume,
+    dealii::hp::FEFaceValues<PHILIP_DIM,PHILIP_DIM>                                  &fe_values_collection_face_int,
+    dealii::hp::FEFaceValues<PHILIP_DIM,PHILIP_DIM>                                  &fe_values_collection_face_ext,
+    dealii::hp::FESubfaceValues<PHILIP_DIM,PHILIP_DIM>                               &fe_values_collection_subface,
+    dealii::hp::FEValues<PHILIP_DIM,PHILIP_DIM>                                      &fe_values_collection_volume_lagrange,
+    OPERATOR::basis_functions<PHILIP_DIM,2*PHILIP_DIM>                               &soln_basis_int,
+    OPERATOR::basis_functions<PHILIP_DIM,2*PHILIP_DIM>                               &soln_basis_ext,
+    OPERATOR::basis_functions<PHILIP_DIM,2*PHILIP_DIM>                               &flux_basis_int,
+    OPERATOR::basis_functions<PHILIP_DIM,2*PHILIP_DIM>                               &flux_basis_ext,
+    OPERATOR::local_basis_stiffness<PHILIP_DIM,2*PHILIP_DIM>                         &flux_basis_stiffness,
+    OPERATOR::vol_projection_operator<PHILIP_DIM,2*PHILIP_DIM>                       &soln_basis_projection_oper_int,
+    OPERATOR::vol_projection_operator<PHILIP_DIM,2*PHILIP_DIM>                       &soln_basis_projection_oper_ext,
+    OPERATOR::mapping_shape_functions<PHILIP_DIM,2*PHILIP_DIM>                       &mapping_basis,
+    const bool                                                                       compute_auxiliary_right_hand_side,//flag on whether computing the Auxiliary variable's equations' residuals
+    dealii::LinearAlgebra::distributed::Vector<double>                               &rhs,
+    std::array<dealii::LinearAlgebra::distributed::Vector<double>,PHILIP_DIM>        &rhs_aux);
+template void 
+DGBase<PHILIP_DIM,PHILIP_SPECIES,double,dealii::parallel::distributed::Triangulation<PHILIP_DIM>>::assemble_cell_residual_and_ad_derivatives<codi_JacobianComputationType> (
     const dealii::TriaActiveIterator<dealii::DoFCellAccessor<PHILIP_DIM, PHILIP_DIM, false>> &current_cell,
     const dealii::TriaActiveIterator<dealii::DoFCellAccessor<PHILIP_DIM, PHILIP_DIM, false>> &current_metric_cell,
     const bool compute_dRdW, const bool compute_dRdX, const bool compute_d2R,
-    dealii::hp::FEValues<PHILIP_DIM,PHILIP_DIM>        &fe_values_collection_volume,
-    dealii::hp::FEFaceValues<PHILIP_DIM,PHILIP_DIM>    &fe_values_collection_face_int,
-    dealii::hp::FEFaceValues<PHILIP_DIM,PHILIP_DIM>    &fe_values_collection_face_ext,
-    dealii::hp::FESubfaceValues<PHILIP_DIM,PHILIP_DIM> &fe_values_collection_subface,
-    dealii::hp::FEValues<PHILIP_DIM,PHILIP_DIM>        &fe_values_collection_volume_lagrange,
-    OPERATOR::basis_functions<PHILIP_DIM,2*PHILIP_DIM,double> &soln_basis_int,
-    OPERATOR::basis_functions<PHILIP_DIM,2*PHILIP_DIM,double> &soln_basis_ext,
-    OPERATOR::basis_functions<PHILIP_DIM,2*PHILIP_DIM,double> &flux_basis_int,
-    OPERATOR::basis_functions<PHILIP_DIM,2*PHILIP_DIM,double> &flux_basis_ext,
-    OPERATOR::local_basis_stiffness<PHILIP_DIM,2*PHILIP_DIM,double> &flux_basis_stiffness,
-    OPERATOR::vol_projection_operator<PHILIP_DIM,2*PHILIP_DIM,double> &soln_basis_projection_oper_int,
-    OPERATOR::vol_projection_operator<PHILIP_DIM,2*PHILIP_DIM,double> &soln_basis_projection_oper_ext,
-    OPERATOR::mapping_shape_functions<PHILIP_DIM,2*PHILIP_DIM,double> &mapping_basis,
-    const bool compute_auxiliary_right_hand_side,
-    dealii::LinearAlgebra::distributed::Vector<double> &rhs,
-    std::array<dealii::LinearAlgebra::distributed::Vector<double>,PHILIP_DIM> &rhs_aux,
-    const int active_cell_group_ID);
+    dealii::hp::FEValues<PHILIP_DIM,PHILIP_DIM>                                      &fe_values_collection_volume,
+    dealii::hp::FEFaceValues<PHILIP_DIM,PHILIP_DIM>                                  &fe_values_collection_face_int,
+    dealii::hp::FEFaceValues<PHILIP_DIM,PHILIP_DIM>                                  &fe_values_collection_face_ext,
+    dealii::hp::FESubfaceValues<PHILIP_DIM,PHILIP_DIM>                               &fe_values_collection_subface,
+    dealii::hp::FEValues<PHILIP_DIM,PHILIP_DIM>                                      &fe_values_collection_volume_lagrange,
+    OPERATOR::basis_functions<PHILIP_DIM,2*PHILIP_DIM>                               &soln_basis_int,
+    OPERATOR::basis_functions<PHILIP_DIM,2*PHILIP_DIM>                               &soln_basis_ext,
+    OPERATOR::basis_functions<PHILIP_DIM,2*PHILIP_DIM>                               &flux_basis_int,
+    OPERATOR::basis_functions<PHILIP_DIM,2*PHILIP_DIM>                               &flux_basis_ext,
+    OPERATOR::local_basis_stiffness<PHILIP_DIM,2*PHILIP_DIM>                         &flux_basis_stiffness,
+    OPERATOR::vol_projection_operator<PHILIP_DIM,2*PHILIP_DIM>                       &soln_basis_projection_oper_int,
+    OPERATOR::vol_projection_operator<PHILIP_DIM,2*PHILIP_DIM>                       &soln_basis_projection_oper_ext,
+    OPERATOR::mapping_shape_functions<PHILIP_DIM,2*PHILIP_DIM>                       &mapping_basis,
+    const bool                                                         compute_auxiliary_right_hand_side,//flag on whether computing the Auxiliary variable's equations' residuals
+    dealii::LinearAlgebra::distributed::Vector<double>                 &rhs,
+    std::array<dealii::LinearAlgebra::distributed::Vector<double>,PHILIP_DIM> &rhs_aux);
+
+template void 
+DGBase<PHILIP_DIM,PHILIP_SPECIES,double,dealii::parallel::distributed::Triangulation<PHILIP_DIM>>::assemble_cell_residual_and_ad_derivatives<codi_HessianComputationType> (
+    const dealii::TriaActiveIterator<dealii::DoFCellAccessor<PHILIP_DIM, PHILIP_DIM, false>> &current_cell,
+    const dealii::TriaActiveIterator<dealii::DoFCellAccessor<PHILIP_DIM, PHILIP_DIM, false>> &current_metric_cell,
+    const bool compute_dRdW, const bool compute_dRdX, const bool compute_d2R,
+    dealii::hp::FEValues<PHILIP_DIM,PHILIP_DIM>                                      &fe_values_collection_volume,
+    dealii::hp::FEFaceValues<PHILIP_DIM,PHILIP_DIM>                                  &fe_values_collection_face_int,
+    dealii::hp::FEFaceValues<PHILIP_DIM,PHILIP_DIM>                                  &fe_values_collection_face_ext,
+    dealii::hp::FESubfaceValues<PHILIP_DIM,PHILIP_DIM>                               &fe_values_collection_subface,
+    dealii::hp::FEValues<PHILIP_DIM,PHILIP_DIM>                                      &fe_values_collection_volume_lagrange,
+    OPERATOR::basis_functions<PHILIP_DIM,2*PHILIP_DIM>                               &soln_basis_int,
+    OPERATOR::basis_functions<PHILIP_DIM,2*PHILIP_DIM>                               &soln_basis_ext,
+    OPERATOR::basis_functions<PHILIP_DIM,2*PHILIP_DIM>                               &flux_basis_int,
+    OPERATOR::basis_functions<PHILIP_DIM,2*PHILIP_DIM>                               &flux_basis_ext,
+    OPERATOR::local_basis_stiffness<PHILIP_DIM,2*PHILIP_DIM>                         &flux_basis_stiffness,
+    OPERATOR::vol_projection_operator<PHILIP_DIM,2*PHILIP_DIM>                       &soln_basis_projection_oper_int,
+    OPERATOR::vol_projection_operator<PHILIP_DIM,2*PHILIP_DIM>                       &soln_basis_projection_oper_ext,
+    OPERATOR::mapping_shape_functions<PHILIP_DIM,2*PHILIP_DIM>                       &mapping_basis,
+    const bool                                                         compute_auxiliary_right_hand_side,//flag on whether computing the Auxiliary variable's equations' residuals
+    dealii::LinearAlgebra::distributed::Vector<double>                 &rhs,
+    std::array<dealii::LinearAlgebra::distributed::Vector<double>,PHILIP_DIM> &rhs_aux);
+
+
+
+template void 
+DGBase<PHILIP_DIM,PHILIP_SPECIES,double,dealii::parallel::shared::Triangulation<PHILIP_DIM>>::assemble_cell_residual_and_ad_derivatives<codi_JacobianComputationType> (
+    const dealii::TriaActiveIterator<dealii::DoFCellAccessor<PHILIP_DIM, PHILIP_DIM, false>> &current_cell,
+    const dealii::TriaActiveIterator<dealii::DoFCellAccessor<PHILIP_DIM, PHILIP_DIM, false>> &current_metric_cell,
+    const bool compute_dRdW, const bool compute_dRdX, const bool compute_d2R,
+    dealii::hp::FEValues<PHILIP_DIM,PHILIP_DIM>                                      &fe_values_collection_volume,
+    dealii::hp::FEFaceValues<PHILIP_DIM,PHILIP_DIM>                                  &fe_values_collection_face_int,
+    dealii::hp::FEFaceValues<PHILIP_DIM,PHILIP_DIM>                                  &fe_values_collection_face_ext,
+    dealii::hp::FESubfaceValues<PHILIP_DIM,PHILIP_DIM>                               &fe_values_collection_subface,
+    dealii::hp::FEValues<PHILIP_DIM,PHILIP_DIM>                                      &fe_values_collection_volume_lagrange,
+    OPERATOR::basis_functions<PHILIP_DIM,2*PHILIP_DIM>                               &soln_basis_int,
+    OPERATOR::basis_functions<PHILIP_DIM,2*PHILIP_DIM>                               &soln_basis_ext,
+    OPERATOR::basis_functions<PHILIP_DIM,2*PHILIP_DIM>                               &flux_basis_int,
+    OPERATOR::basis_functions<PHILIP_DIM,2*PHILIP_DIM>                               &flux_basis_ext,
+    OPERATOR::local_basis_stiffness<PHILIP_DIM,2*PHILIP_DIM>                         &flux_basis_stiffness,
+    OPERATOR::vol_projection_operator<PHILIP_DIM,2*PHILIP_DIM>                       &soln_basis_projection_oper_int,
+    OPERATOR::vol_projection_operator<PHILIP_DIM,2*PHILIP_DIM>                       &soln_basis_projection_oper_ext,
+    OPERATOR::mapping_shape_functions<PHILIP_DIM,2*PHILIP_DIM>                       &mapping_basis,
+    const bool                                                         compute_auxiliary_right_hand_side,//flag on whether computing the Auxiliary variable's equations' residuals
+    dealii::LinearAlgebra::distributed::Vector<double>                 &rhs,
+    std::array<dealii::LinearAlgebra::distributed::Vector<double>,PHILIP_DIM> &rhs_aux);
+
+template void 
+DGBase<PHILIP_DIM,PHILIP_SPECIES,double,dealii::parallel::shared::Triangulation<PHILIP_DIM>>::assemble_cell_residual_and_ad_derivatives<codi_HessianComputationType> (
+    const dealii::TriaActiveIterator<dealii::DoFCellAccessor<PHILIP_DIM, PHILIP_DIM, false>> &current_cell,
+    const dealii::TriaActiveIterator<dealii::DoFCellAccessor<PHILIP_DIM, PHILIP_DIM, false>> &current_metric_cell,
+    const bool compute_dRdW, const bool compute_dRdX, const bool compute_d2R,
+    dealii::hp::FEValues<PHILIP_DIM,PHILIP_DIM>                                      &fe_values_collection_volume,
+    dealii::hp::FEFaceValues<PHILIP_DIM,PHILIP_DIM>                                  &fe_values_collection_face_int,
+    dealii::hp::FEFaceValues<PHILIP_DIM,PHILIP_DIM>                                  &fe_values_collection_face_ext,
+    dealii::hp::FESubfaceValues<PHILIP_DIM,PHILIP_DIM>                               &fe_values_collection_subface,
+    dealii::hp::FEValues<PHILIP_DIM,PHILIP_DIM>                                      &fe_values_collection_volume_lagrange,
+    OPERATOR::basis_functions<PHILIP_DIM,2*PHILIP_DIM>                               &soln_basis_int,
+    OPERATOR::basis_functions<PHILIP_DIM,2*PHILIP_DIM>                               &soln_basis_ext,
+    OPERATOR::basis_functions<PHILIP_DIM,2*PHILIP_DIM>                               &flux_basis_int,
+    OPERATOR::basis_functions<PHILIP_DIM,2*PHILIP_DIM>                               &flux_basis_ext,
+    OPERATOR::local_basis_stiffness<PHILIP_DIM,2*PHILIP_DIM>                         &flux_basis_stiffness,
+    OPERATOR::vol_projection_operator<PHILIP_DIM,2*PHILIP_DIM>                       &soln_basis_projection_oper_int,
+    OPERATOR::vol_projection_operator<PHILIP_DIM,2*PHILIP_DIM>                       &soln_basis_projection_oper_ext,
+    OPERATOR::mapping_shape_functions<PHILIP_DIM,2*PHILIP_DIM>                       &mapping_basis,
+    const bool                                                         compute_auxiliary_right_hand_side,//flag on whether computing the Auxiliary variable's equations' residuals
+    dealii::LinearAlgebra::distributed::Vector<double>                 &rhs,
+    std::array<dealii::LinearAlgebra::distributed::Vector<double>,PHILIP_DIM> &rhs_aux);
+
 } // PHiLiP namespace

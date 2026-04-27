@@ -3,9 +3,6 @@
 namespace PHiLiP {
 namespace Parameters {
 
-// Artificial Dissipation inputs
-ArtificialDissipationParam::ArtificialDissipationParam () {}
-
 void ArtificialDissipationParam::declare_parameters (dealii::ParameterHandler &prm)
 {
     prm.enter_subsection("artificial dissipation");

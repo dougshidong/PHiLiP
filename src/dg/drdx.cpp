@@ -1,7 +1,7 @@
 #include <deal.II/lac/dynamic_sparsity_pattern.h>
 #include <deal.II/lac/sparsity_tools.h>
 
-#include "dg.h"
+#include "dg_base.hpp"
 
 namespace PHiLiP {
 
@@ -73,8 +73,8 @@ namespace PHiLiP {
 // }
 
 
-// template <int dim, typename real>
-// dealii::SparsityPattern DGBase<dim,real,MeshType>::get_dRdX_sparsity_pattern () {
+// template <int dim, int nspecies, typename real>
+// dealii::SparsityPattern DGBase<dim,nspecies,real,MeshType>::get_dRdX_sparsity_pattern () {
 // 
 //     const unsigned n_residuals = dof_handler.n_dofs();
 //     const unsigned n_nodes_coeff = high_order_grid.dof_handler_grid.n_dofs();
@@ -164,8 +164,8 @@ namespace PHiLiP {
 //     return sparsity_pattern;
 // }
 
-//template <int dim, typename real, typename MeshType>
-//dealii::TrilinosWrappers::SparseMatrix DGBase<dim,real,MeshType>::get_dRdX_finite_differences (dealii::SparsityPattern dRdX_sparsity_pattern) {
+//template <int dim, int nspecies, typename real, typename MeshType>
+//dealii::TrilinosWrappers::SparseMatrix DGBase<dim,nspecies,real,MeshType>::get_dRdX_finite_differences (dealii::SparsityPattern dRdX_sparsity_pattern) {
 //
 //    const double pertubation = 1e-8;
 //
@@ -216,7 +216,7 @@ namespace PHiLiP {
 //        }
 //
 //        //dealii::hp::MappingCollection<dim> mapping_collection(*(high_order_grid.mapping_fe_field));
-//        //const dealii::MappingManifold<dim,dim> mapping;
+//        //const dealii::MappingManifold<dim,nspecies,dim> mapping;
 //        //const dealii::MappingQ<dim,dim> mapping(max_degree+1);
 //        const auto mapping = (*(high_order_grid.mapping_fe_field));
 //        dealii::hp::MappingCollection<dim> mapping_collection(mapping);
@@ -233,7 +233,7 @@ namespace PHiLiP {
 //        const dealii::FEValues<dim,dim> &fe_values_volume = fe_values_collection_volume.get_present_fe_values();
 //
 //
-//        dealii::TriaIterator<dealii::CellAccessor<dim,dim>> cell_iterator = static_cast<dealii::TriaIterator<dealii::CellAccessor<dim,dim>> > (current_cell);
+//        dealii::TriaIterator<dealii::CellAccessor<dim,dim>> cell_iterator = static_cast<dealii::TriaIterator<dealii::CellAccessor<dim, dim>> > (current_cell);
 //        //if (!(all_parameters->use_weak_form)) fe_values_collection_volume_lagrange.reinit (current_cell, quad_index, mapping_index, fe_index_curr_cell);
 //        fe_values_collection_volume_lagrange.reinit (cell_iterator, quad_index, mapping_index, fe_index_curr_cell);
 //        const dealii::FEValues<dim,dim> &fe_values_lagrange = fe_values_collection_volume_lagrange.get_present_fe_values();
@@ -565,8 +565,9 @@ namespace PHiLiP {
 // using default MeshType = Triangulation
 // 1D: dealii::Triangulation<dim>;
 // OW: dealii::parallel::distributed::Triangulation<dim>;
-template class DGBase <PHILIP_DIM,double,dealii::Triangulation<PHILIP_DIM>>;
-template class DGBase <PHILIP_DIM,double,dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
-template class DGBase <PHILIP_DIM,double,dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
-
+#if PHILIP_SPECIES==1
+template class DGBase <PHILIP_DIM, PHILIP_SPECIES,double,dealii::Triangulation<PHILIP_DIM>>;
+template class DGBase <PHILIP_DIM, PHILIP_SPECIES,double,dealii::parallel::shared::Triangulation<PHILIP_DIM>>;
+template class DGBase <PHILIP_DIM, PHILIP_SPECIES,double,dealii::parallel::distributed::Triangulation<PHILIP_DIM>>;
+#endif
 } // namespace PHiLiP

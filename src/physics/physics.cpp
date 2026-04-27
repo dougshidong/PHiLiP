@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <deal.II/base/utilities.h>
 #include <deal.II/base/mpi.h>
+#include <boost/preprocessor/seq/for_each.hpp>
 
 #include "ADTypes.hpp"
 
@@ -12,21 +13,24 @@
 namespace PHiLiP {
 namespace Physics {
 
-template <int dim, int nstate, typename real>
-PhysicsBase<dim,nstate,real>::PhysicsBase(
+template <int dim, int nspecies, int nstate, typename real>
+PhysicsBase<dim,nspecies,nstate,real>::PhysicsBase(
+    const Parameters::AllParameters *const                    parameters_input,
     const bool                                                has_nonzero_diffusion_input,
     const bool                                                has_nonzero_physical_source_input,
     const dealii::Tensor<2,3,double>                          input_diffusion_tensor,
-    std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function_input)
+    std::shared_ptr< ManufacturedSolutionFunction<dim,nspecies,real> > manufactured_solution_function_input)
     : has_nonzero_diffusion(has_nonzero_diffusion_input)
     , has_nonzero_physical_source(has_nonzero_physical_source_input)
+    , all_parameters(parameters_input)
+    , non_physical_behavior_type(all_parameters->non_physical_behavior_type)
     , manufactured_solution_function(manufactured_solution_function_input)
     , pcout(std::cout, dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD)==0)
 {
     // if provided with a null ptr, give it the default manufactured solution
     // currently only necessary for the unit test
     if(!manufactured_solution_function)
-        manufactured_solution_function = std::make_shared<ManufacturedSolutionSine<dim,real>>(nstate);
+            manufactured_solution_function = std::make_shared<ManufacturedSolutionSine<dim,nspecies,real>>(nstate);
 
     // anisotropic diffusion matrix
     diffusion_tensor[0][0] = input_diffusion_tensor[0][0];
@@ -44,20 +48,22 @@ PhysicsBase<dim,nstate,real>::PhysicsBase(
     }
 }
 
-template <int dim, int nstate, typename real>
-PhysicsBase<dim,nstate,real>::PhysicsBase(
+template <int dim, int nspecies, int nstate, typename real>
+PhysicsBase<dim,nspecies,nstate,real>::PhysicsBase(
+    const Parameters::AllParameters *const                    parameters_input,
     const bool                                                has_nonzero_diffusion_input,
     const bool                                                has_nonzero_physical_source_input,
-    std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function_input)
-    : PhysicsBase<dim,nstate,real>(
+    std::shared_ptr< ManufacturedSolutionFunction<dim,nspecies,real> > manufactured_solution_function_input)
+    : PhysicsBase<dim,nspecies,nstate,real>(
+        parameters_input,
         has_nonzero_diffusion_input,
         has_nonzero_physical_source_input,
         Parameters::ManufacturedSolutionParam::get_default_diffusion_tensor(),
         manufactured_solution_function_input)
 { }
 
-template <int dim, int nstate, typename real>
-std::array<dealii::Tensor<1,dim,real>,nstate> PhysicsBase<dim,nstate,real>::convective_numerical_split_flux (
+template <int dim, int nspecies, int nstate, typename real>
+std::array<dealii::Tensor<1,dim,real>,nstate> PhysicsBase<dim,nspecies,nstate,real>::convective_numerical_split_flux (
     const std::array<real,nstate> &/*conservative_soln1*/,
     const std::array<real,nstate> &/*conservative_soln2*/) const
 {
@@ -67,8 +73,8 @@ std::array<dealii::Tensor<1,dim,real>,nstate> PhysicsBase<dim,nstate,real>::conv
     return dummy;
 }
 
-template <int dim, int nstate, typename real>
-real PhysicsBase<dim,nstate,real>
+template <int dim, int nspecies, int nstate, typename real>
+real PhysicsBase<dim,nspecies,nstate,real>
 ::max_convective_normal_eigenvalue (
     const std::array<real,nstate> &conservative_soln,
     const dealii::Tensor<1,dim,real> &/*normal*/) const
@@ -77,8 +83,8 @@ real PhysicsBase<dim,nstate,real>
 }
 
 /*
-template <int dim, int nstate, typename real>
-std::array<dealii::Tensor<1,dim,real>,nstate> PhysicsBase<dim,nstate,real>
+template <int dim, int nspecies, int nstate, typename real>
+std::array<dealii::Tensor<1,dim,real>,nstate> PhysicsBase<dim,nspecies,nstate,real>
 ::artificial_dissipative_flux (
     const real viscosity_coefficient,
     const std::array<real,nstate> &,//solution,
@@ -94,8 +100,8 @@ std::array<dealii::Tensor<1,dim,real>,nstate> PhysicsBase<dim,nstate,real>
 }
 */
 
-template <int dim, int nstate, typename real>
-std::array<real,nstate> PhysicsBase<dim,nstate,real>
+template <int dim, int nspecies, int nstate, typename real>
+std::array<real,nstate> PhysicsBase<dim,nspecies,nstate,real>
 ::dissipative_flux_dot_normal (
         const std::array<real,nstate> &solution,
         const std::array<dealii::Tensor<1,dim,real>,nstate> &solution_gradient,
@@ -117,8 +123,8 @@ std::array<real,nstate> PhysicsBase<dim,nstate,real>
     return dissipative_flux_dot_normal;
 }
 
-template <int dim, int nstate, typename real>
-std::array<dealii::Tensor<1,dim,real>,nstate> PhysicsBase<dim,nstate,real>
+template <int dim, int nspecies, int nstate, typename real>
+std::array<dealii::Tensor<1,dim,real>,nstate> PhysicsBase<dim,nspecies,nstate,real>
 ::dissipative_flux (
         const std::array<real,nstate> &solution,
         const std::array<dealii::Tensor<1,dim,real>,nstate> &solution_gradient,
@@ -129,8 +135,8 @@ std::array<dealii::Tensor<1,dim,real>,nstate> PhysicsBase<dim,nstate,real>
     return this->dissipative_flux(solution,solution_gradient,cell_index);
 }
 
-template <int dim, int nstate, typename real>
-std::array<real,nstate> PhysicsBase<dim,nstate,real>
+template <int dim, int nspecies, int nstate, typename real>
+std::array<real,nstate> PhysicsBase<dim,nspecies,nstate,real>
 ::artificial_source_term (
     const real viscosity_coefficient,
     const dealii::Point<dim,real> &pos,
@@ -157,8 +163,17 @@ std::array<real,nstate> PhysicsBase<dim,nstate,real>
     return source;
 }
 
-template <int dim, int nstate, typename real>
-void PhysicsBase<dim,nstate,real>
+template <int dim, int nspecies, int nstate, typename real>
+real PhysicsBase<dim,nspecies,nstate,real>
+::compute_pressure ( const std::array<real,nstate> &/*conservative_soln*/ ) const
+{
+    std::cout << "The compute_pressure function has not been implemented for this PDE...Aborting." << std::endl;
+    std::abort();
+    return 0;
+}
+
+template <int dim, int nspecies, int nstate, typename real>
+void PhysicsBase<dim,nspecies,nstate,real>
 ::boundary_face_values (
         const int boundary_type,
         const dealii::Point<dim, real> &pos,
@@ -179,8 +194,8 @@ void PhysicsBase<dim,nstate,real>
                                soln_grad_bc);
 }
 
-template <int dim, int nstate, typename real>
-void PhysicsBase<dim,nstate,real>
+template <int dim, int nspecies, int nstate, typename real>
+void PhysicsBase<dim,nspecies,nstate,real>
 ::boundary_face_values_viscous_flux (
         const int boundary_type,
         const dealii::Point<dim, real> &pos,
@@ -201,8 +216,8 @@ void PhysicsBase<dim,nstate,real>
                                soln_grad_bc);
 }
 
-template <int dim, int nstate, typename real>
-std::array<real,nstate> PhysicsBase<dim,nstate,real>
+template <int dim, int nspecies, int nstate, typename real>
+std::array<real,nstate> PhysicsBase<dim,nspecies,nstate,real>
 ::physical_source_term (
     const dealii::Point<dim,real> &/*pos*/,
     const std::array<real,nstate> &/*solution*/,
@@ -216,8 +231,8 @@ std::array<real,nstate> PhysicsBase<dim,nstate,real>
     return physical_source;
 }
 
-template <int dim, int nstate, typename real>
-dealii::Vector<double> PhysicsBase<dim,nstate,real>::post_compute_derived_quantities_vector (
+template <int dim, int nspecies, int nstate, typename real>
+dealii::Vector<double> PhysicsBase<dim,nspecies,nstate,real>::post_compute_derived_quantities_vector (
     const dealii::Vector<double>              &uh,
     const std::vector<dealii::Tensor<1,dim> > &/*duh*/,
     const std::vector<dealii::Tensor<2,dim> > &/*dduh*/,
@@ -231,8 +246,8 @@ dealii::Vector<double> PhysicsBase<dim,nstate,real>::post_compute_derived_quanti
     return computed_quantities;
 }
 
-template <int dim, int nstate, typename real>
-dealii::Vector<double> PhysicsBase<dim,nstate,real>::post_compute_derived_quantities_scalar (
+template <int dim, int nspecies, int nstate, typename real>
+dealii::Vector<double> PhysicsBase<dim,nspecies,nstate,real>::post_compute_derived_quantities_scalar (
     const double              &uh,
     const dealii::Tensor<1,dim> &/*duh*/,
     const dealii::Tensor<2,dim> &/*dduh*/,
@@ -247,8 +262,8 @@ dealii::Vector<double> PhysicsBase<dim,nstate,real>::post_compute_derived_quanti
     return computed_quantities;
 }
 
-template <int dim, int nstate, typename real>
-std::vector<std::string> PhysicsBase<dim,nstate,real> ::post_get_names () const
+template <int dim, int nspecies, int nstate, typename real>
+std::vector<std::string> PhysicsBase<dim,nspecies,nstate,real> ::post_get_names () const
 {
     std::vector<std::string> names;
     for (unsigned int s=0; s<nstate; ++s) {
@@ -258,8 +273,8 @@ std::vector<std::string> PhysicsBase<dim,nstate,real> ::post_get_names () const
     return names;
 }
 
-template <int dim, int nstate, typename real>
-std::vector<dealii::DataComponentInterpretation::DataComponentInterpretation> PhysicsBase<dim,nstate,real>
+template <int dim, int nspecies, int nstate, typename real>
+std::vector<dealii::DataComponentInterpretation::DataComponentInterpretation> PhysicsBase<dim,nspecies,nstate,real>
 ::post_get_data_component_interpretation () const
 {
     namespace DCI = dealii::DataComponentInterpretation;
@@ -270,53 +285,70 @@ std::vector<dealii::DataComponentInterpretation::DataComponentInterpretation> Ph
     return interpretation;
 }
 
-template <int dim, int nstate, typename real>
-dealii::UpdateFlags PhysicsBase<dim,nstate,real>
+template <int dim, int nspecies, int nstate, typename real>
+dealii::UpdateFlags PhysicsBase<dim,nspecies,nstate,real>
 ::post_get_needed_update_flags () const
 {
     return dealii::update_values;
 }
 
-template class PhysicsBase < PHILIP_DIM, 1, double >;
-template class PhysicsBase < PHILIP_DIM, 2, double >;
-template class PhysicsBase < PHILIP_DIM, 3, double >;
-template class PhysicsBase < PHILIP_DIM, 4, double >;
-template class PhysicsBase < PHILIP_DIM, 5, double >;
-template class PhysicsBase < PHILIP_DIM, 6, double >;
-template class PhysicsBase < PHILIP_DIM, 8, double >;
+template <int dim, int nspecies, int nstate, typename real>
+template<typename real2>
+real2 PhysicsBase<dim,nspecies,nstate,real>
+::handle_non_physical_result(const std::string message) const
+{
+    if (this->non_physical_behavior_type == NonPhysicalBehaviorEnum::abort_run) {
+        std::cout << "ERROR: Non-physical result has been detected. ";
+        if (!message.empty()) {
+            std::cout << std::endl << "    Message: " << message << std::endl;
+        }
+        std::cout << " Aborting... " << std::endl << std::flush;
+        std::abort();
+    } else if (this->non_physical_behavior_type == NonPhysicalBehaviorEnum::print_warning) {
+        std::cout << "WARNING: Non-physical result has been detected at a node." << std::endl;
+        if (!message.empty()) {
+            std::cout << std::endl << "    Message: " << message << std::endl;
+        }
+    } else if (this->non_physical_behavior_type == NonPhysicalBehaviorEnum::return_big_number) {
+        // do nothing -- assume that the test or iterative solver can handle this.
+    }
+        
+    return (real2)BIG_NUMBER;
+}
+#if PHILIP_SPECIES==1
+    // Define a sequence of indices representing the range of nstate
+    #define POSSIBLE_NSTATE (1)(2)(3)(4)(5)(6)(8)
 
-template class PhysicsBase < PHILIP_DIM, 1, FadType >;
-template class PhysicsBase < PHILIP_DIM, 2, FadType >;
-template class PhysicsBase < PHILIP_DIM, 3, FadType >;
-template class PhysicsBase < PHILIP_DIM, 4, FadType >;
-template class PhysicsBase < PHILIP_DIM, 5, FadType >;
-template class PhysicsBase < PHILIP_DIM, 6, FadType >;
-template class PhysicsBase < PHILIP_DIM, 8, FadType >;
-
-template class PhysicsBase < PHILIP_DIM, 1, RadType >;
-template class PhysicsBase < PHILIP_DIM, 2, RadType >;
-template class PhysicsBase < PHILIP_DIM, 3, RadType >;
-template class PhysicsBase < PHILIP_DIM, 4, RadType >;
-template class PhysicsBase < PHILIP_DIM, 5, RadType >;
-template class PhysicsBase < PHILIP_DIM, 6, RadType >;
-template class PhysicsBase < PHILIP_DIM, 8, RadType >;
-
-template class PhysicsBase < PHILIP_DIM, 1, FadFadType >;
-template class PhysicsBase < PHILIP_DIM, 2, FadFadType >;
-template class PhysicsBase < PHILIP_DIM, 3, FadFadType >;
-template class PhysicsBase < PHILIP_DIM, 4, FadFadType >;
-template class PhysicsBase < PHILIP_DIM, 5, FadFadType >;
-template class PhysicsBase < PHILIP_DIM, 6, FadFadType >;
-template class PhysicsBase < PHILIP_DIM, 8, FadFadType >;
-
-template class PhysicsBase < PHILIP_DIM, 1, RadFadType >;
-template class PhysicsBase < PHILIP_DIM, 2, RadFadType >;
-template class PhysicsBase < PHILIP_DIM, 3, RadFadType >;
-template class PhysicsBase < PHILIP_DIM, 4, RadFadType >;
-template class PhysicsBase < PHILIP_DIM, 5, RadFadType >;
-template class PhysicsBase < PHILIP_DIM, 6, RadFadType >;
-template class PhysicsBase < PHILIP_DIM, 8, RadFadType >;
-
+    // Define a macro to instantiate functions for a specific nstate
+    #define INSTANTIATE_FOR_NSTATE(r, data, nstate) \
+        template class PhysicsBase < PHILIP_DIM, PHILIP_SPECIES, nstate, double >; \
+        template class PhysicsBase < PHILIP_DIM, PHILIP_SPECIES, nstate, FadType >; \
+        template class PhysicsBase < PHILIP_DIM, PHILIP_SPECIES, nstate, RadType >; \
+        template class PhysicsBase < PHILIP_DIM, PHILIP_SPECIES, nstate, FadFadType >; \
+        template class PhysicsBase < PHILIP_DIM, PHILIP_SPECIES, nstate, RadFadType >; \
+        /* -- handle_non_physical_result */ \
+        template double PhysicsBase < PHILIP_DIM, PHILIP_SPECIES, nstate, double >::handle_non_physical_result<double>(const std::string message) const; \
+        template FadType PhysicsBase < PHILIP_DIM, PHILIP_SPECIES, nstate, FadType >::handle_non_physical_result<FadType>(const std::string message) const; \
+        template RadType PhysicsBase < PHILIP_DIM, PHILIP_SPECIES, nstate, RadType >::handle_non_physical_result<RadType>(const std::string message) const; \
+        template FadFadType PhysicsBase < PHILIP_DIM, PHILIP_SPECIES, nstate, FadFadType >::handle_non_physical_result<FadFadType>(const std::string message) const; \
+        template RadFadType PhysicsBase < PHILIP_DIM, PHILIP_SPECIES, nstate, RadFadType >::handle_non_physical_result<RadFadType>(const std::string message) const; \
+        /* instantiate all the real types with real2 = FadType for automatic differentiation in NavierStokes::dissipative_flux_directional_jacobian() */ \
+        template FadType PhysicsBase < PHILIP_DIM, PHILIP_SPECIES, nstate, double >::handle_non_physical_result<FadType>(const std::string message) const; \
+        template FadType PhysicsBase < PHILIP_DIM, PHILIP_SPECIES, nstate, RadType >::handle_non_physical_result<FadType>(const std::string message) const; \
+        template FadType PhysicsBase < PHILIP_DIM, PHILIP_SPECIES, nstate, FadFadType >::handle_non_physical_result<FadType>(const std::string message) const; \
+        template FadType PhysicsBase < PHILIP_DIM, PHILIP_SPECIES, nstate, RadFadType >::handle_non_physical_result<FadType>(const std::string message) const;
+    BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_FOR_NSTATE, _, POSSIBLE_NSTATE)
+#else
+    #define POSSIBLE_TYPE (double)(FadType)(RadType)(FadFadType)(RadFadType)
+    #define INSTANTIATE_TYPES(r, data, type) \
+        template class PhysicsBase < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+PHILIP_SPECIES+1, type >; \
+        template type PhysicsBase < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+PHILIP_SPECIES+1, type >::handle_non_physical_result<type>(const std::string message) const;
+    BOOST_PP_SEQ_FOR_EACH(INSTANTIATE_TYPES, _, POSSIBLE_TYPE)
+    template FadType PhysicsBase < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+PHILIP_SPECIES+1, double >::handle_non_physical_result<FadType>(const std::string message) const;
+    template FadType PhysicsBase < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+PHILIP_SPECIES+1, RadType >::handle_non_physical_result<FadType>(const std::string message) const;
+    template FadType PhysicsBase < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+PHILIP_SPECIES+1, FadFadType >::handle_non_physical_result<FadType>(const std::string message) const;
+    template FadType PhysicsBase < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+PHILIP_SPECIES+1, RadFadType >::handle_non_physical_result<FadType>(const std::string message) const;
+#endif
 } // Physics namespace
 } // PHiLiP namespace
 

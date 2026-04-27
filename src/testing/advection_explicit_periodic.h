@@ -1,31 +1,28 @@
 #ifndef __ADVECTION_EXPLICIT_PERIODIC_H__
 #define __ADVECTION_EXPLICIT_PERIODIC_H__
 
-#include "tests.h"
-#include "dg/dg.h"
+#include "dg/dg_base.hpp"
 #include "parameters/all_parameters.h"
+#include "tests.h"
 
 namespace PHiLiP {
 namespace Tests {
 
 /// Advection periodic unsteady test
-template <int dim, int nstate>
+template <int dim, int nspecies, int nstate>
 class AdvectionPeriodic: public TestsBase
 {
 public:
     /// Constructor
-    AdvectionPeriodic(const Parameters::AllParameters *const parameters_input);
+    explicit AdvectionPeriodic(const Parameters::AllParameters *const parameters_input);
 
-    /// Destructor
-    ~AdvectionPeriodic() {};
-    
     /// Run test
     int run_test () const override;
 private:
     /// Function computes the energy
-    double compute_energy(std::shared_ptr < PHiLiP::DGBase<dim, double> > &dg) const;
+    double compute_energy(std::shared_ptr < PHiLiP::DGBase<dim, nspecies, double> > &dg) const;
     /// Function computes the conservation
-    double compute_conservation(std::shared_ptr < PHiLiP::DGBase<dim, double> > &dg, const double poly_degree) const;
+    double compute_conservation(std::shared_ptr < PHiLiP::DGBase<dim, nspecies, double> > &dg, const double poly_degree) const;
     /// Warping for nonlinear manifold (see CurvManifold above)
     static dealii::Point<dim> warp (const dealii::Point<dim> &p);
 };

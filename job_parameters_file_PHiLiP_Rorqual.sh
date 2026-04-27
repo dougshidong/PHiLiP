@@ -5,16 +5,12 @@
 #SBATCH --output=%x-%j.out
 #SBATCH --distribution=block:block
 #SBATCH --nodes=1
-#SBATCH --ntasks-per-node=192                          ## <-- refer to https://docs.computecanada.ca/wiki/Advanced_MPI_scheduling
+#SBATCH --ntasks-per-node=192                          ## <-- refer to https://docs.alliancecan.ca/wiki/Rorqual/en
 #SBATCH --cpus-per-task=1
 #SBATCH --mem=0                                       ## <-- total shared memory; --mem=0 means to reserve all the available memory on each node assigned to the job
 #SBATCH --switches=1
 #SBATCH --mail-user=firstname.lastname@mail.mcgill.ca ## <-- for receiving job updates via email
 #SBATCH --mail-type=ALL                               ## <-- what kind of updates to receive by email
-
-## NOTE FOR Digital Research Alliance of Canada: This submission script was advised by Bart Oldeman, and only uses
-## half the cores in order to optimize memory bandwidth. Please contact the user before canceling the job.
-
 
 SLURM_USER="username"                    ## <-- Enter compute canada username here
 PARAMETERS_FILE="parameters.prm" ## <-- Enter .prm filename here: restart/restart-00057.prm

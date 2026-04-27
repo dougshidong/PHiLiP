@@ -9,17 +9,17 @@ namespace FlowSolver {
 // TEST FOR ENTROPY CONSERVATION/STABILITY ON PERIODIC DOMAINS (EULER/NS)
 //=========================================================
 
-template <int dim, int nstate>
-PeriodicEntropyTests<dim, nstate>::PeriodicEntropyTests(const PHiLiP::Parameters::AllParameters *const parameters_input)
-        : PeriodicCubeFlow<dim, nstate>(parameters_input)
+template <int dim, int nspecies, int nstate>
+PeriodicEntropyTests<dim, nspecies, nstate>::PeriodicEntropyTests(const PHiLiP::Parameters::AllParameters *const parameters_input)
+        : PeriodicCubeFlow<dim, nspecies, nstate>(parameters_input)
         , unsteady_data_table_filename_with_extension(this->all_param.flow_solver_param.unsteady_data_table_filename+".txt")
 {
-    this->euler_physics = std::dynamic_pointer_cast<Physics::Euler<dim,dim+2,double>>(
-            PHiLiP::Physics::PhysicsFactory<dim,nstate,double>::create_Physics(&(this->all_param)));
+    this->euler_physics = std::dynamic_pointer_cast<Physics::Euler<dim,nspecies,dim+2,double>>(
+            PHiLiP::Physics::PhysicsFactory<dim,nspecies,nstate,double>::create_Physics(&(this->all_param)));
 }
 
-template <int dim, int nstate>
-double PeriodicEntropyTests<dim,nstate>::get_constant_time_step(std::shared_ptr<DGBase<dim,double>> dg) const
+template <int dim, int nspecies, int nstate>
+double PeriodicEntropyTests<dim,nspecies,nstate>::get_constant_time_step(std::shared_ptr<DGBase<dim,nspecies,double>> dg) const
 {
 
     using FlowCaseEnum = Parameters::FlowSolverParam::FlowCaseType;
@@ -50,8 +50,8 @@ double PeriodicEntropyTests<dim,nstate>::get_constant_time_step(std::shared_ptr<
     return constant_time_step;
 }
 
-template<int dim, int nstate>
-double PeriodicEntropyTests<dim, nstate>::compute_integrated_quantities(DGBase<dim, double> &dg, IntegratedQuantityEnum quantity, const int overintegrate) const
+template<int dim, int nspecies, int nstate>
+double PeriodicEntropyTests<dim, nspecies, nstate>::compute_integrated_quantities(DGBase<dim, nspecies, double> &dg, IntegratedQuantityEnum quantity, const int overintegrate) const
 {
     // Check that poly_degree is uniform everywhere
     if (dg.get_max_fe_degree() != dg.get_min_fe_degree()) {
@@ -62,23 +62,36 @@ double PeriodicEntropyTests<dim, nstate>::compute_integrated_quantities(DGBase<d
 
     double integrated_quantity = 0.0;
 
-    // Set the quadrature of size dim and 1D for sum-factorization.
-    dealii::QGauss<dim> quad_extra(dg.max_degree+1+overintegrate);
-    dealii::QGauss<1> quad_extra_1D(dg.max_degree+1+overintegrate);
-
-    const unsigned int n_quad_pts = quad_extra.size();
     const unsigned int grid_degree = dg.high_order_grid->fe_system.tensor_degree();
     const unsigned int poly_degree = dg.max_degree;
+
+    // Set the quadrature of size dim and 1D for sum-factorization.
+    dealii::Quadrature<1> quad_1D;
+    std::vector<double> quad_weights_;
+    unsigned int n_quad_pts_;
+    if (overintegrate > 0) {
+        dealii::QGauss<dim> quad_extra(dg.max_degree+1+overintegrate);
+        dealii::QGauss<1> quad_extra_1D(dg.max_degree+1+overintegrate);
+        quad_1D = quad_extra_1D;
+        quad_weights_ = quad_extra.get_weights();
+        n_quad_pts_ = quad_extra.size();
+    } else {
+        quad_1D = dg.oneD_quadrature_collection[poly_degree];
+        quad_weights_ = dg.volume_quadrature_collection[poly_degree].get_weights();
+        n_quad_pts_ = dg.volume_quadrature_collection[poly_degree].size();
+    }
+    const std::vector<double> &quad_weights = quad_weights_; 
+    const unsigned int n_quad_pts = n_quad_pts_; 
+
     // Construct the basis functions and mapping shape functions.
     OPERATOR::basis_functions<dim,2*dim> soln_basis(1, poly_degree, grid_degree); 
     OPERATOR::mapping_shape_functions<dim,2*dim> mapping_basis(1, poly_degree, grid_degree);
     // Build basis function volume operator and gradient operator from 1D finite element for 1 state.
-    soln_basis.build_1D_volume_operator(dg.oneD_fe_collection_1state[poly_degree], quad_extra_1D);
-    soln_basis.build_1D_gradient_operator(dg.oneD_fe_collection_1state[poly_degree], quad_extra_1D);
+    soln_basis.build_1D_volume_operator(dg.oneD_fe_collection_1state[poly_degree], quad_1D);
+    soln_basis.build_1D_gradient_operator(dg.oneD_fe_collection_1state[poly_degree], quad_1D);
     // Build mapping shape functions operators using the oneD high_ordeR_grid finite element
     mapping_basis.build_1D_shape_functions_at_grid_nodes(dg.high_order_grid->oneD_fe_system, dg.high_order_grid->oneD_grid_nodes);
-    mapping_basis.build_1D_shape_functions_at_flux_nodes(dg.high_order_grid->oneD_fe_system, quad_extra_1D, dg.oneD_face_quadrature);
-    const std::vector<double> &quad_weights = quad_extra.get_weights();
+    mapping_basis.build_1D_shape_functions_at_flux_nodes(dg.high_order_grid->oneD_fe_system, quad_1D, dg.oneD_face_quadrature);
     // If in the future we need the physical quadrature node location, turn these flags to true and the constructor will
     // automatically compute it for you. Currently set to false as to not compute extra unused terms.
     const bool store_vol_flux_nodes = false;//currently doesn't need the volume physical nodal position
@@ -216,31 +229,37 @@ double PeriodicEntropyTests<dim, nstate>::compute_integrated_quantities(DGBase<d
 }
 
 
-template <int dim, int nstate>
-double PeriodicEntropyTests<dim, nstate>::compute_entropy(
-        const std::shared_ptr <DGBase<dim, double>> dg
+template <int dim, int nspecies, int nstate>
+double PeriodicEntropyTests<dim, nspecies, nstate>::compute_entropy(
+        const std::shared_ptr <DGBase<dim, nspecies, double>> dg
         ) const
 {
      return compute_integrated_quantities(*dg, IntegratedQuantityEnum::numerical_entropy, 0);
 }
 
-template <int dim, int nstate>
-void PeriodicEntropyTests<dim, nstate>::compute_unsteady_data_and_write_to_table(
-       const unsigned int current_iteration,
-        const double current_time,
-        const std::shared_ptr <DGBase<dim, double>> dg ,
+template <int dim, int nspecies, int nstate>
+void PeriodicEntropyTests<dim, nspecies, nstate>::compute_unsteady_data_and_write_to_table(
+        const std::shared_ptr <ODE::ODESolverBase<dim, nspecies, double>> ode_solver, 
+        const std::shared_ptr <DGBase<dim, nspecies, double>> dg,
         const std::shared_ptr <dealii::TableHandler> unsteady_data_table,
         const bool do_write_unsteady_data_table_file)
 {
+    // unpack current iteration and current time from ode solver
+    const unsigned int current_iteration = ode_solver->current_iteration;
+    const double current_time = ode_solver->current_time;
+
     const double dt = this->get_constant_time_step(dg);
     
     using ODEEnum = Parameters::ODESolverParam::ODESolverEnum;
-    const bool is_rrk = (this->all_param.ode_solver_param.ode_solver_type == ODEEnum::rrk_explicit_solver);
-    const double dt_actual = current_time - previous_time;
+    const bool is_rrk = (this->all_param.ode_solver_param.use_relaxation_runge_kutta);
 
     // All discrete proofs use solution nodes, therefore it is best to report 
     // entropy on the solution nodes rather than by overintegrating.
-    const double entropy = this->compute_integrated_quantities(*dg, IntegratedQuantityEnum::numerical_entropy, 0); //do not overintegrate
+    const double current_numerical_entropy = this->compute_integrated_quantities(*dg, IntegratedQuantityEnum::numerical_entropy, 0); //do not overintegrate
+    if (current_iteration==0) this->previous_numerical_entropy = current_numerical_entropy;
+    const double entropy = current_numerical_entropy - previous_numerical_entropy + ode_solver->FR_entropy_contribution_RRK_solver;
+    this->previous_numerical_entropy = current_numerical_entropy;
+
     if (std::isnan(entropy)){
         // Note that this throws an exception rather than using abort()
         // such that the test khi_robustness can start another test after
@@ -248,10 +267,9 @@ void PeriodicEntropyTests<dim, nstate>::compute_unsteady_data_and_write_to_table
         this->pcout << "Entropy is nan. Ending flow simulation by throwing an exception..." << std::endl << std::flush;
         throw current_time;
     }
-    if (current_iteration == 0)  initial_entropy = entropy;
+    if (current_iteration == 0)  initial_entropy = current_numerical_entropy;
 
-    double relaxation_parameter = 0;
-    if (is_rrk) relaxation_parameter = dt_actual/dt;
+    double relaxation_parameter = ode_solver->relaxation_parameter_RRK_solver;
 
     const double kinetic_energy = this->compute_integrated_quantities(*dg, IntegratedQuantityEnum::kinetic_energy);
     if (std::isnan(kinetic_energy)){
@@ -271,10 +289,10 @@ void PeriodicEntropyTests<dim, nstate>::compute_unsteady_data_and_write_to_table
             this->pcout << "    Iter: " << current_iteration
                         << "    Time: " << std::setprecision(16) << current_time
                         << "    Entropy: " << entropy
-                        << "    U/Uo: " << entropy/initial_entropy
+                        << "    (U-Uo)/Uo: " << entropy/initial_entropy
                         << "    Kinetic energy: " << kinetic_energy;
             if (is_rrk)
-                this->pcout << "    gamma^n: " << relaxation_parameter;
+                this->pcout << "    Relaxation Parameter: " << relaxation_parameter;
             this->pcout << std::endl;
         }
     }
@@ -294,16 +312,18 @@ void PeriodicEntropyTests<dim, nstate>::compute_unsteady_data_and_write_to_table
         this->add_value_to_data_table(relaxation_parameter,"gamma",unsteady_data_table); 
         unsteady_data_table->set_scientific("gamma", false);
     }
-    std::ofstream unsteady_data_table_file(this->unsteady_data_table_filename_with_extension);
-    if(do_write_unsteady_data_table_file) unsteady_data_table->write_text(unsteady_data_table_file);
+    if(do_write_unsteady_data_table_file) {
+        std::ofstream unsteady_data_table_file(this->unsteady_data_table_filename_with_extension);
+        unsteady_data_table->write_text(unsteady_data_table_file);
+    }
 
     //for next iteration
     previous_time = current_time;
 
 }
 
-#if PHILIP_DIM>1
-    template class PeriodicEntropyTests <PHILIP_DIM,PHILIP_DIM+2>;
+#if PHILIP_DIM>1 && PHILIP_SPECIES==1
+    template class PeriodicEntropyTests <PHILIP_DIM, PHILIP_SPECIES,PHILIP_DIM+2>;
 #endif
 
 } // FlowSolver namespace

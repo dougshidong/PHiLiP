@@ -26,8 +26,8 @@ namespace Physics {
  *      = s(\mathbf{x})
  *  \f]
  */
-template <int dim, int nstate, typename real>
-class Burgers : public PhysicsBase <dim, nstate, real>
+template <int dim, int nspecies, int nstate, typename real>
+class Burgers : public PhysicsBase <dim, nspecies, nstate, real>
 {
 protected:
     // For overloading the virtual functions defined in PhysicsBase
@@ -37,9 +37,9 @@ protected:
      *  Solution: In order to make the hidden function visible in derived class, 
      *  we need to add the following:
     */
-    using PhysicsBase<dim,nstate,real>::dissipative_flux;
-    using PhysicsBase<dim,nstate,real>::source_term;
-    using PhysicsBase<dim,nstate,real>::boundary_face_values;
+    using PhysicsBase<dim,nspecies,nstate,real>::dissipative_flux;
+    using PhysicsBase<dim,nspecies,nstate,real>::source_term;
+    using PhysicsBase<dim,nspecies,nstate,real>::boundary_face_values;
 protected:
     /// Diffusion scaling coefficient in front of the diffusion tensor.
     double diffusion_scaling_coeff;
@@ -54,24 +54,15 @@ public:
 
     /// Constructor
     Burgers(
+        const Parameters::AllParameters *const                    parameters_input,
         const double                                              diffusion_coefficient,
         const bool                                                convection = true, 
         const bool                                                diffusion = true,
         const dealii::Tensor<2,3,double>                          input_diffusion_tensor = Parameters::ManufacturedSolutionParam::get_default_diffusion_tensor(),
-        std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function = nullptr,
+        std::shared_ptr< ManufacturedSolutionFunction<dim,nspecies,real> > manufactured_solution_function = nullptr,
         const Parameters::AllParameters::TestType                 parameters_test = Parameters::AllParameters::TestType::run_control,
-        const bool                                                has_nonzero_physical_source = false) : 
-            PhysicsBase<dim,nstate,real>(diffusion, has_nonzero_physical_source, input_diffusion_tensor, manufactured_solution_function), 
-            diffusion_scaling_coeff(diffusion_coefficient),
-            hasConvection(convection), 
-            hasDiffusion(diffusion),
-            test_type(parameters_test)
-    {
-        static_assert(nstate==dim, "Physics::Burgers() should be created with nstate==dim");
-    };
+        const bool                                                has_nonzero_physical_source = false);
 
-    /// Destructor
-    ~Burgers () {};
     /// Convective flux: \f$ \mathbf{F}_{conv} =  u \f$
     std::array<dealii::Tensor<1,dim,real>,nstate> convective_flux (const std::array<real,nstate> &solution) const;
 

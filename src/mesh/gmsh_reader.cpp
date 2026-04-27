@@ -256,7 +256,6 @@ void rotate_indices(std::vector<unsigned int> &numbers, const unsigned int n_ind
                       for (unsigned int ix = 0; ix < n; ++ix)
                       {
                           unsigned int k = (ix * n * n) + (n - 1) + (iy * n) - (iz);
-                          //unsigned int k = ((1-ix) * n * n) + (n - 1) + (iy * n) - (1-iz);
                           numbers[k] = l++;
                           if(mesh_reader_verbose_output) pcout << "3D rotation matrix, physical node mapping, Y-axis : " << k << std::endl;
                       }
@@ -268,7 +267,6 @@ void rotate_indices(std::vector<unsigned int> &numbers, const unsigned int n_ind
                       for (unsigned int ix = 0; ix < n; ++ix)
                       {
                           unsigned int k = (n * (n - 1)) + ix - (iy * n) + (n * n * iz);
-                          //unsigned int k = (1-ix) * n + n - (iy + 1) + (n * n * (1-iz));
                           numbers[k] = l++;
                           if(mesh_reader_verbose_output) pcout << "3D rotation matrix, physical node mapping, Flip-axis : " << k << std::endl;
                       }
@@ -1370,7 +1368,7 @@ read_gmsh(std::string filename,
         triangulation = std::make_shared<Triangulation>(MPI_COMM_WORLD); // Dealii's default mesh smoothing flag is none. 
     }
 
-    auto high_order_grid = std::make_shared<HighOrderGrid<dim, double>>(grid_order, triangulation,true,false);
+    auto high_order_grid = std::make_shared<HighOrderGrid<dim, double>>(grid_order, triangulation, true, do_renumber_dofs, true);
   
     unsigned int n_entity_blocks, n_cells;
     int min_ele_tag, max_ele_tag;
@@ -1821,11 +1819,11 @@ read_gmsh(std::string filename, const bool do_renumber_dofs, int requested_grid_
   // default parameters
   const bool periodic_x = false;
   const bool periodic_y = false;
-  const bool periodic_z = true;
-  const int x_periodic_1 = 0; 
-  const int x_periodic_2 = 0;
-  const int y_periodic_1 = 0; 
-  const int y_periodic_2 = 0;
+  const bool periodic_z = false;
+  const int x_periodic_1 = 2001; 
+  const int x_periodic_2 = 2002;
+  const int y_periodic_1 = 2003; 
+  const int y_periodic_2 = 2004;
   const int z_periodic_1 = 2005; 
   const int z_periodic_2 = 2006;
   const bool mesh_reader_verbose_output = true;

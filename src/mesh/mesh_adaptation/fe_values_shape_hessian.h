@@ -12,12 +12,6 @@ template<int dim>
 class FEValuesShapeHessian {
 
 public:
-    /// Constructor
-    FEValuesShapeHessian() {};
-
-    /// Destructor
-    ~FEValuesShapeHessian() {};
-    
     /// Store inverse jacobian and 3rd order tensors which will be the same for a combination of cell/physical quadrature point.
     void reinit(const dealii::FEValues<dim,dim> &fe_values_volume, const unsigned int iquad); 
 

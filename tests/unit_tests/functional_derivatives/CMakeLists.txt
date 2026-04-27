@@ -9,6 +9,8 @@ foreach(dim RANGE 2 3)
     add_executable(${TEST_TARGET} ${TEST_SRC})
     # Replace occurences of PHILIP_DIM with 1, 2, or 3 in the code
     target_compile_definitions(${TEST_TARGET} PRIVATE PHILIP_DIM=${dim})
+    # Replace occurences of PHILIP_SPECIES with user-defined value in the code
+    target_compile_definitions(${TEST_TARGET} PRIVATE PHILIP_SPECIES=${NUMBER_OF_SPECIES})
 
     # Compile this executable when 'make unit_tests'
     add_dependencies(unit_tests ${TEST_TARGET})
@@ -37,7 +39,11 @@ foreach(dim RANGE 2 3)
       COMMAND mpirun -n ${MPIMAX} ${EXECUTABLE_OUTPUT_PATH}/${TEST_TARGET}
       WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
     )
-
+    set_tests_labels(${TEST_TARGET} FUNCTIONAL_DERIVATIVES
+                                    ${dim}D
+                                    PARALLEL
+                                    QUICK
+                                    UNIT_TEST)
     unset(dim)
     unset(TEST_TARGET)
     unset(PhysicsLib)
@@ -59,6 +65,8 @@ foreach(dim RANGE 2 3)
     add_executable(${TEST_TARGET} ${TEST_SRC})
     # Replace occurences of PHILIP_DIM with 1, 2, or 3 in the code
     target_compile_definitions(${TEST_TARGET} PRIVATE PHILIP_DIM=${dim})
+    # Replace occurences of PHILIP_SPECIES with user-defined value in the code
+    target_compile_definitions(${TEST_TARGET} PRIVATE PHILIP_SPECIES=${NUMBER_OF_SPECIES})
 
     # Compile this executable when 'make unit_tests'
     add_dependencies(unit_tests ${TEST_TARGET})
@@ -87,7 +95,11 @@ foreach(dim RANGE 2 3)
       COMMAND mpirun -n ${MPIMAX} ${EXECUTABLE_OUTPUT_PATH}/${TEST_TARGET}
       WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
     )
-
+    set_tests_labels(${TEST_TARGET} FUNCTIONAL_DERIVATIVES
+                                    ${dim}D
+                                    PARALLEL
+                                    QUICK
+                                    UNIT_TEST)
     unset(dim)
     unset(TEST_TARGET)
     unset(PhysicsLib)

@@ -12,9 +12,29 @@ configure_file(dhit_init_check_serial.prm dhit_init_check_serial.prm COPYONLY)
 add_test(NAME SERIAL_DHIT_INIT_CHECK
          COMMAND mpirun -np 1 ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_3D -i ${CMAKE_CURRENT_BINARY_DIR}/dhit_init_check_serial.prm
          WORKING_DIRECTORY ${TEST_OUTPUT_DIR})
+set_tests_labels(SERIAL_DHIT_INIT_CHECK DECAYING_HOMOGENEOUS_ISOTROPIC_TURBULENCE
+                                        3D
+                                        SERIAL
+                                        NAVIER_STOKES
+                                        RUNGE-KUTTA
+                                        STRONG
+                                        COLLOCATED
+                                        CONVERGENCE
+                                        QUICK
+                                        INTEGRATION_TEST)
 # ----------------------------------------
 configure_file(dhit_init_check_mpi.prm dhit_init_check_mpi.prm COPYONLY)
 add_test(NAME MPI_DHIT_INIT_CHECK
          COMMAND mpirun -np 4 ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_3D -i ${CMAKE_CURRENT_BINARY_DIR}/dhit_init_check_mpi.prm
          WORKING_DIRECTORY ${TEST_OUTPUT_DIR})
+set_tests_labels(MPI_DHIT_INIT_CHECK    DECAYING_HOMOGENEOUS_ISOTROPIC_TURBULENCE
+                                        3D
+                                        PARALLEL
+                                        NAVIER_STOKES
+                                        RUNGE-KUTTA
+                                        STRONG
+                                        COLLOCATED
+                                        CONVERGENCE
+                                        QUICK
+                                        INTEGRATION_TEST)
 # ----------------------------------------

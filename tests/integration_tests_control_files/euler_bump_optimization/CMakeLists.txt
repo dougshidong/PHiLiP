@@ -6,3 +6,13 @@ add_test(
   COMMAND mpirun -np ${MPIMAX} ${EXECUTABLE_OUTPUT_PATH}/PHiLiP_2D -i ${CMAKE_CURRENT_BINARY_DIR}/2d_euler_bump_optimization.prm
   WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
 )
+set_tests_labels(2D_EULER_BUMP_OPTIMIZATION EULER_BUMP_OPTIMIZATION
+                                            2D
+                                            PARALLEL
+                                            EULER
+                                            IMPLICIT
+                                            WEAK
+                                            UNCOLLOCATED
+                                            EXTRA-LONG
+                                            OPTIMIZATION
+                                            INTEGRATION_TEST)

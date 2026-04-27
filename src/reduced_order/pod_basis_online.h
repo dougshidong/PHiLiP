@@ -1,16 +1,18 @@
 #ifndef __POD_BASIS_ONLINE__
 #define __POD_BASIS_ONLINE__
 
-#include <deal.II/numerics/vector_tools.h>
-#include <deal.II/lac/full_matrix.h>
 #include <deal.II/base/conditional_ostream.h>
+#include <deal.II/lac/full_matrix.h>
+#include <deal.II/lac/la_parallel_vector.h>
 #include <deal.II/lac/trilinos_sparse_matrix.h>
 #include <deal.II/lac/vector_operation.h>
-#include "parameters/all_parameters.h"
-#include "dg/dg.h"
-#include "pod_basis_base.h"
-#include <deal.II/lac/la_parallel_vector.h>
+#include <deal.II/numerics/vector_tools.h>
+
 #include <eigen/Eigen/Dense>
+
+#include "dg/dg_base.hpp"
+#include "parameters/all_parameters.h"
+#include "pod_basis_base.h"
 
 namespace PHiLiP {
 namespace ProperOrthogonalDecomposition {
@@ -18,21 +20,21 @@ using Eigen::MatrixXd;
 using Eigen::VectorXd;
 
 /// Class for Online Proper Orthogonal Decomposition basis. This class takes snapshots on the fly and computes a POD basis for use in adaptive sampling.
-template <int dim>
-class OnlinePOD: public PODBase<dim>
+template <int dim, int nspecies>
+class OnlinePOD: public PODBase<dim,nspecies>
 {
 public:
     /// Constructor
-    OnlinePOD(std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> _system_matrix);
-
-    /// Destructor
-    ~OnlinePOD () {};
+    explicit OnlinePOD(std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> _system_matrix);
 
     ///Function to get POD basis for all derived classes
     std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> getPODBasis() override;
 
     ///Function to get POD reference state
     dealii::LinearAlgebra::ReadWriteVector<double> getReferenceState() override;
+
+    /// Function to get snapshot matrix used to build POD basis
+    MatrixXd getSnapshotMatrix() override;
 
     /// Add snapshot
     void addSnapshot(dealii::LinearAlgebra::distributed::Vector<double> snapshot);

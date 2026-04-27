@@ -1,0 +1,73 @@
+# Listing of Parameters
+# ---------------------
+
+set test_type = hyper_adaptive_sampling_run
+set dimension = 2
+set pde_type  = euler
+
+set conv_num_flux = roe
+set diss_num_flux = bassi_rebay_2
+
+set use_split_form = false
+
+subsection artificial dissipation
+	set add_artificial_dissipation = true
+end
+
+set overintegration = 0
+
+subsection euler
+  set reference_length = 1.0
+  set mach_infinity = 0.50
+  set angle_of_attack = 1.25
+end
+
+subsection linear solver
+  set linear_solver_type = direct
+end
+
+subsection ODE solver
+  set nonlinear_max_iterations            = 20
+  set nonlinear_steady_residual_tolerance = 1e-14
+  set ode_solver_type  = implicit
+  set initial_time_step = 1e3
+  set time_step_factor_residual = 15.0
+  set time_step_factor_residual_exp = 2
+end
+
+subsection grid refinement study
+ set num_refinements = 0
+end
+
+subsection flow_solver
+  set flow_case_type = naca0012
+  set poly_degree = 0
+  set steady_state = true
+  set steady_state_polynomial_ramping = true
+  subsection grid
+    set input_mesh_filename = ../../meshes/naca0012_hopw_ref1
+  end
+end
+
+subsection functional
+  set functional_type = lift
+end
+
+#Reduced order parameters
+subsection reduced order
+  set adaptation_tolerance = 2E-04
+  set path_to_search = .
+  set reduced_residual_tolerance = 5e-13
+  set parameter_names = alpha
+  set parameter_min_values = 0
+  set parameter_max_values = 4
+  set num_halton = 0
+  set recomputation_coefficient = 5
+end
+
+subsection hyperreduction
+  set NNLS_tol = 1E-04
+  set NNLS_max_iter = 5000
+  set num_training_snaps = 3
+  set training_data = jacobian
+end

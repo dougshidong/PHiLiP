@@ -34,10 +34,10 @@
 namespace PHiLiP {
 namespace Tests {
 
-template <int dim, typename real>
-EulerVortexFunction<dim,real>
+template <int dim, int nspecies, typename real>
+EulerVortexFunction<dim,nspecies,real>
 ::EulerVortexFunction (
-        const Physics::Euler<dim, dim+2, real> euler_physics,
+        const Physics::Euler<dim, nspecies, dim+2, real> euler_physics,
         const dealii::Point<dim> initial_vortex_center,
         const real vortex_strength,
         const real vortex_stddev_decay)
@@ -52,8 +52,8 @@ EulerVortexFunction<dim,real>
     static_assert(dim==2);
 }
 
-template <int dim, typename real>
-inline dealii::Point<dim> EulerVortexFunction<dim,real>::advected_location(dealii::Point<dim> grid_location) const
+template <int dim, int nspecies, typename real>
+inline dealii::Point<dim> EulerVortexFunction<dim,nspecies,real>::advected_location(dealii::Point<dim> grid_location) const
 {
     dealii::Point<dim> new_location;
     const double time = this->get_time();
@@ -63,8 +63,8 @@ inline dealii::Point<dim> EulerVortexFunction<dim,real>::advected_location(deali
     return new_location;
 }
 
-template <int dim, typename real>
-inline real EulerVortexFunction<dim,real>
+template <int dim, int nspecies, typename real>
+inline real EulerVortexFunction<dim,nspecies,real>
 ::value (const dealii::Point<dim> &point, const unsigned int istate) const
 {
     const double variance = vortex_stddev_decay*vortex_stddev_decay;
@@ -128,14 +128,14 @@ inline real EulerVortexFunction<dim,real>
     return conservative_values[istate];
 }
 
-template <int dim, int nstate>
-EulerVortex<dim,nstate>::EulerVortex(const Parameters::AllParameters *const parameters_input)
+template <int dim, int nspecies, int nstate>
+EulerVortex<dim,nspecies,nstate>::EulerVortex(const Parameters::AllParameters *const parameters_input)
     :
     TestsBase::TestsBase(parameters_input)
 {}
 
-template<int dim, int nstate>
-int EulerVortex<dim,nstate>
+template<int dim, int nspecies, int nstate>
+int EulerVortex<dim,nspecies,nstate>
 ::run_test () const
 {
     using ManParam = Parameters::ManufacturedConvergenceStudyParam;
@@ -156,15 +156,15 @@ int EulerVortex<dim,nstate>
     std::vector<double> fail_conv_slop;
     std::vector<dealii::ConvergenceTable> convergence_table_vector;
 
-    std::shared_ptr <Physics::PhysicsBase<dim,nstate,double>> physics = Physics::PhysicsFactory<dim, nstate, double>::create_Physics(&param);
-    std::shared_ptr <Physics::Euler<dim,nstate,double>> euler = std::dynamic_pointer_cast<Physics::Euler<dim,nstate,double>>(physics);
+    std::shared_ptr <Physics::PhysicsBase<dim,nspecies,nstate,double>> physics = Physics::PhysicsFactory<dim, nspecies, nstate, double>::create_Physics(&param);
+    std::shared_ptr <Physics::Euler<dim,nspecies,nstate,double>> euler = std::dynamic_pointer_cast<Physics::Euler<dim,nspecies,nstate,double>>(physics);
 
     const dealii::Point<dim> initial_vortex_center(-0.0,-0.0);
     const double vortex_strength = euler->mach_inf*4.0;
     const double vortex_stddev_decay = 1.0;
     const double half_length = 5*euler->ref_length;
     //const double half_length = 5*euler->ref_length;
-    EulerVortexFunction<dim,double> initial_vortex_function(*euler, initial_vortex_center, vortex_strength, vortex_stddev_decay);
+    EulerVortexFunction<dim,nspecies,double> initial_vortex_function(*euler, initial_vortex_center, vortex_strength, vortex_stddev_decay);
     initial_vortex_function.set_time(0.0);
 
     for (unsigned int poly_degree = p_start; poly_degree <= p_end; ++poly_degree) {
@@ -229,7 +229,7 @@ int EulerVortex<dim,nstate>
             if (random_factor > 0.0) dealii::GridTools::distort_random (random_factor, *grid, keep_boundary);
 
             // Create DG object using the factory
-            std::shared_ptr < DGBase<dim, double> > dg = DGFactory<dim,double>::create_discontinuous_galerkin(&param, poly_degree, grid);
+            std::shared_ptr < DGBase<dim, nspecies, double> > dg = DGFactory<dim,nspecies,double>::create_discontinuous_galerkin(&param, poly_degree, grid);
             dg->allocate_system ();
 
             // Initialize solution with vortex function at time t=0
@@ -243,7 +243,7 @@ int EulerVortex<dim,nstate>
             //                         dg->solution);
 
             // Create ODE solver using the factory and providing the DG object
-            std::shared_ptr<ODE::ODESolverBase<dim, double>> ode_solver = ODE::ODESolverFactory<dim, double>::create_ODESolver(dg);
+            std::shared_ptr<ODE::ODESolverBase<dim, nspecies, double>> ode_solver = ODE::ODESolverFactory<dim, nspecies, double>::create_ODESolver(dg);
 
             const unsigned int n_active_cells = grid->n_active_cells();
             const unsigned int n_dofs = dg->dof_handler.n_dofs();
@@ -259,7 +259,7 @@ int EulerVortex<dim,nstate>
             // We can then compare the exact solution to whatever time it reached
             ode_solver->steady_state();
             
-            EulerVortexFunction<dim,double> final_vortex_function(*euler, initial_vortex_center, vortex_strength, vortex_stddev_decay);
+            EulerVortexFunction<dim,nspecies,double> final_vortex_function(*euler, initial_vortex_center, vortex_strength, vortex_stddev_decay);
             const double final_time = ode_solver->current_time;
             final_vortex_function.set_time(final_time);
 
@@ -410,8 +410,8 @@ int EulerVortex<dim,nstate>
     return n_fail_poly;
 }
 
-#if PHILIP_DIM==2
-    template class EulerVortex <PHILIP_DIM,PHILIP_DIM+2>;
+#if PHILIP_DIM==2 && PHILIP_SPECIES==1
+    template class EulerVortex <PHILIP_DIM, PHILIP_SPECIES,PHILIP_DIM+2>;
 #endif
 
 

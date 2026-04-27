@@ -10,8 +10,8 @@ namespace PHiLiP {
 namespace Physics {
 
 /// Physics Model equations. Derived from PhysicsBase, holds a baseline physics and model terms and equations. 
-template <int dim, int nstate, typename real, int nstate_baseline_physics>
-class PhysicsModel : public PhysicsBase <dim, nstate, real>
+template <int dim, int nspecies, int nstate, typename real, int nstate_baseline_physics>
+class PhysicsModel : public PhysicsBase <dim, nspecies, nstate, real>
 {
 protected:
     // For overloading the virtual functions defined in PhysicsBase
@@ -21,29 +21,44 @@ protected:
      *  Solution: In order to make the hidden function visible in derived class, 
      *  we need to add the following:
     */
-    using PhysicsBase<dim,nstate,real>::dissipative_flux; // can delete if the arguments of this function are updated to match PhysicsBase with filtered solution being passed
-    using PhysicsBase<dim,nstate,real>::boundary_face_values; // can delete if the arguments of this function are updated to match PhysicsBase with filtered solution being passed
+    using PhysicsBase<dim,nspecies,nstate,real>::dissipative_flux; // can delete if the arguments of this function are updated to match PhysicsBase with filtered solution being passed
+    using PhysicsBase<dim,nspecies,nstate,real>::boundary_face_values; // can delete if the arguments of this function are updated to match PhysicsBase with filtered solution being passed
 public:
     /// Constructor
     PhysicsModel(
         const Parameters::AllParameters                              *const parameters_input,
         Parameters::AllParameters::PartialDifferentialEquation       baseline_physics_type,
-        std::shared_ptr< ModelBase<dim,nstate,real> >                model_input,
-        std::shared_ptr< ManufacturedSolutionFunction<dim,real> >    manufactured_solution_function,
+        std::shared_ptr< ModelBase<dim,nspecies,nstate,real> >                model_input,
+        std::shared_ptr< ManufacturedSolutionFunction<dim,nspecies,real> >    manufactured_solution_function,
         const bool                                                   has_nonzero_diffusion,
         const bool                                                   has_nonzero_physical_source);
-
-    /// Destructor
-    ~PhysicsModel() {};
 
     /// Number of model equations (i.e. those additional to the baseline physics)
     const int n_model_equations;
 
     /// Baseline physics object with nstate==nstate_baseline_physics
-    std::shared_ptr< PhysicsBase<dim,nstate_baseline_physics,real> > physics_baseline;
+    std::shared_ptr< PhysicsBase<dim,nspecies,nstate_baseline_physics,real> > physics_baseline;
 
     /// Model object
-    std::shared_ptr< ModelBase<dim,nstate,real> > model;
+    std::shared_ptr< ModelBase<dim,nspecies,nstate,real> > model;
+
+    /// Convert conservative variables to primitive variables
+    std::array<real,nstate> convert_conservative_to_primitive ( const std::array<real,nstate> &conservative_soln ) const;
+
+    /// Convert primitive solution to conservative solution
+    std::array<real,nstate> convert_primitive_to_conservative ( const std::array<real,nstate> &primitive_soln ) const;
+
+    /** Obtain gradient of primitive variables from gradient of conservative variables */
+    std::array<dealii::Tensor<1,dim,real>,nstate> 
+    convert_conservative_gradient_to_primitive_gradient (
+        const std::array<real,nstate> &conservative_soln,
+        const std::array<dealii::Tensor<1,dim,real>,nstate> &conservative_soln_gradient) const;
+
+    /** Obtain gradient of conservative variables from gradient of primitive variables */
+    std::array<dealii::Tensor<1,dim,real>,nstate> 
+    convert_primitive_gradient_to_conservative_gradient (
+        const std::array<real,nstate> &primitive_soln,
+        const std::array<dealii::Tensor<1,dim,real>,nstate> &primitive_soln_gradient) const;
 
     /// Convert conservative variables to primitive variables
     std::array<real,nstate> convert_conservative_to_primitive ( const std::array<real,nstate> &conservative_soln ) const;
@@ -200,8 +215,8 @@ protected:
 /** Physics Model Filtered equations.
  *  Derived from PhysicsModel, holds a baseline physics and model terms and
  *  equations but passes the filtered solution to the model dissipative flux. */ 
-template <int dim, int nstate, typename real, int nstate_baseline_physics>
-class PhysicsModelFiltered : public PhysicsModel <dim, nstate, real, nstate_baseline_physics>
+template <int dim, int nspecies, int nstate, typename real, int nstate_baseline_physics>
+class PhysicsModelFiltered : public PhysicsModel <dim, nspecies, nstate, real, nstate_baseline_physics>
 {
 protected:
     // For overloading the virtual functions defined in PhysicsBase
@@ -212,15 +227,15 @@ protected:
      *  we need to add the following:
     */
     // using PhysicsBase<dim,nstate,real>::dissipative_flux; // can delete if the arguments of this function are updated to match PhysicsBase with filtered solution being passed
-    using PhysicsBase<dim,nstate,real>::boundary_face_values; // can delete if the arguments of this function are updated to match PhysicsBase with filtered solution being passed
-    using PhysicsModel<dim,nstate,real,nstate_baseline_physics>::dissipative_flux;
+    using PhysicsBase<dim,nspecies,nstate,real>::boundary_face_values; // can delete if the arguments of this function are updated to match PhysicsBase with filtered solution being passed
+    using PhysicsModel<dim,nspecies,nstate,real,nstate_baseline_physics>::dissipative_flux;
 public:
     /// Constructor
     PhysicsModelFiltered(
         const Parameters::AllParameters                              *const parameters_input,
         Parameters::AllParameters::PartialDifferentialEquation       baseline_physics_type,
-        std::shared_ptr< ModelBase<dim,nstate,real> >                model_input,
-        std::shared_ptr< ManufacturedSolutionFunction<dim,real> >    manufactured_solution_function,
+        std::shared_ptr< ModelBase<dim,nspecies,nstate,real> >                model_input,
+        std::shared_ptr< ManufacturedSolutionFunction<dim,nspecies,real> >    manufactured_solution_function,
         const bool                                                   has_nonzero_diffusion,
         const bool                                                   has_nonzero_physical_source);
 

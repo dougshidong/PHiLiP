@@ -13,8 +13,6 @@ namespace Parameters {
 class ManufacturedConvergenceStudyParam
 {
 public:
-    ManufacturedConvergenceStudyParam (); ///< Constructor
-
     /// Associated manufactured solution parameters
     ManufacturedSolutionParam manufactured_solution_param;
 

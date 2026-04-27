@@ -12,7 +12,6 @@ namespace Parameters {
 class FlowSolverParam
 {
 public:
-    FlowSolverParam(); ///< Constructor
 
     /// Selects the flow case to be simulated
     enum FlowCaseType{
@@ -29,17 +28,31 @@ public:
         channel_flow,
         isentropic_vortex,
         kelvin_helmholtz_instability,
+        dipole_wall_collision_normal,
+        dipole_wall_collision_oblique,
         non_periodic_cube_flow,
-        sshock,
-        wall_distance_evaluation,
-        flat_plate_2D,
-        airfoil_2D,
+        sod_shock_tube,
+        low_density,
+        leblanc_shock_tube,
+        shu_osher_problem,
+        advection_limiter,
+        burgers_limiter,
+        double_mach_reflection,
+        shock_diffraction,
+        astrophysical_jet,
+        strong_vortex_shock_wave,
+        multi_species_vortex_advection,
+        multi_species_vortex_advection_high_temp,
+        multi_species_sod_shock_tube,
+        multi_species_isentropic_vortex
         turbulent_airfoil_3D
         };
     FlowCaseType flow_case_type; ///< Selected FlowCaseType from the input file
 
     unsigned int poly_degree; ///< Polynomial order (P) of the basis functions for DG.
     unsigned int max_poly_degree_for_adaptation; ///< Maximum polynomial order of the DG basis functions for adaptation.
+    
+
     double final_time; ///< Final solution time
     double constant_time_step; ///< Constant time step
     double courant_friedrichs_lewy_number; ///< Courant-Friedrichs-Lewy (CFL) number for constant time step
@@ -51,6 +64,7 @@ public:
     bool steady_state; ///<Flag for solving steady state solution
     bool steady_state_polynomial_ramping; ///< Flag for steady state polynomial ramping
 
+    bool error_adaptive_time_step; ///< Computes time step based on error
     bool adaptive_time_step; ///< Flag for computing the time step on the fly
 
     /** Name of the output file for writing the sensitivity data;
@@ -104,6 +118,16 @@ public:
     int number_of_subdivisions_in_x_direction; ///< Number of subdivisions in x direction for gaussian bump case
     int number_of_subdivisions_in_y_direction; ///< Number of subdivisions in y direction for gaussian bump case
     int number_of_subdivisions_in_z_direction; ///< Number of subdivisions in z direction for gaussian bump case
+    double grid_top_bound; ///< Maximum y bound of domain for a rectangle grid
+    double grid_bottom_bound; ///< Minimum y bound of domain for a rectangle grid
+    double grid_z_upper_bound; ///< Maximum z bound of domain for a rectangle grid
+    double grid_z_lower_bound; ///< Minimum z bound of domain for a rectangle grid
+
+    unsigned int number_of_grid_elements_x; ///< Number of subdivisions in x direction for a rectangle grid
+    unsigned int number_of_grid_elements_y; ///< Number of subdivisions in y direction for a rectangle grid
+    unsigned int number_of_grid_elements_z; ///< Number of subdivisions in z direction for a rectangle grid
+
+    double expected_order_at_final_time; ///< For limiter convergence tests, specify expected order at final time
 
     double airfoil_length;
     double height;
@@ -160,12 +184,41 @@ public:
         gullbrand,
         hopw,
         carton_de_wiart_et_al,
+        uniform_mesh_no_stretching,
         };
     /// Selected DensityInitialConditionType from the input file
     TurbulentChannelMeshStretchingFunctionType turbulent_channel_mesh_stretching_function_type;
 
+    /// For dipole wall collision, flag to use stretched mesh
+    bool do_use_stretched_mesh;
+
+    /// For dipole wall collision, flag to compute angular momentum
+    bool do_compute_angular_momentum;
+
+    /** For dipole wall collision integration tests, expected enstrophy at final time. */
+    double expected_enstrophy_at_final_time;
+
+    /** For dipole wall collision integration tests, expected palinstrophy at final time. */
+    double expected_palinstrophy_at_final_time;
+
+    /** For turbulent channel flow integration tests, expected average wall shear stress at final time. */
+    double expected_average_wall_shear_stress_at_final_time;
+
+    /** For turbulent channel flow integration tests, expected skin friction coefficient at final time. */
+    double expected_skin_friction_coefficient_at_final_time;
+    
     /// For KHI, the atwood number
     double atwood_number;
+
+
+    /// For user defined FR parameter tests, number of values to be tested
+    int number_ESFR_parameter_values;
+
+    /// For user defined FR parameter tests, value of starting FR param
+    double ESFR_parameter_values_start;
+
+    /// For user defined FR parameter tests, value of final FR param
+    double ESFR_parameter_values_end;
 
     /// Selects the method for applying the initial condition
     enum ApplyInitialConditionMethod{
@@ -192,6 +245,7 @@ public:
     bool do_compute_Reynolds_stress; ///< Flag for computing time-averaged Reynolds stresses
     double time_to_start_computing_Reynolds_stress; ///< Flag for starting to compute Reynolds stresses. This needs to be after the time-averaging has started.      
     std::string output_flow_field_files_directory_name; ///< Name of directory for writing flow field files
+    unsigned int output_velocity_number_of_subvisions; ///< Number of subdivisions to apply when writting the velocity field at equidistant nodes
 
     bool end_exactly_at_final_time; ///< Flag to adjust the last timestep such that the simulation ends exactly at final_time
     bool do_compute_unsteady_data_and_write_to_table;///< Flag for computing unsteady data and writting to table

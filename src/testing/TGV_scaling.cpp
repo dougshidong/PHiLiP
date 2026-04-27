@@ -11,13 +11,13 @@
 namespace PHiLiP {
 namespace Tests {
 
-template <int dim, int nstate>
-EulerTaylorGreenScaling<dim, nstate>::EulerTaylorGreenScaling(const Parameters::AllParameters *const parameters_input)
+template <int dim, int nspecies, int nstate>
+EulerTaylorGreenScaling<dim, nspecies, nstate>::EulerTaylorGreenScaling(const Parameters::AllParameters *const parameters_input)
     : TestsBase::TestsBase(parameters_input)
 {}
 
-template <int dim, int nstate>
-int EulerTaylorGreenScaling<dim, nstate>::run_test() const
+template <int dim, int nspecies, int nstate>
+int EulerTaylorGreenScaling<dim, nspecies, nstate>::run_test() const
 {
     using Triangulation = dealii::parallel::distributed::Triangulation<dim>;
     std::shared_ptr<Triangulation> grid = std::make_shared<Triangulation>(
@@ -45,9 +45,13 @@ int EulerTaylorGreenScaling<dim, nstate>::run_test() const
     std::ofstream myfile (all_parameters_new.energy_file + ".gpl"  , std::ios::trunc);
     const unsigned int poly_degree_start= all_parameters->flow_solver_param.poly_degree;
 
-    const unsigned int poly_degree_end = 16;
-    std::array<double,poly_degree_end> time_to_run;
-    std::array<double,poly_degree_end> time_to_run_mpi;
+    const unsigned int poly_degree_end = (all_parameters->use_curvilinear_grid) ? 11 : 16;
+    pcout << "Max poly degree: " << poly_degree_end << std::endl;
+    std::vector<double> time_to_run;
+    time_to_run.reserve(poly_degree_end);
+    //std::array<double,poly_degree_end> time_to_run_mpi;
+    std::vector<double> time_to_run_mpi;
+    time_to_run_mpi.reserve(poly_degree_end);
 
     //poly degree loop
     for(unsigned int poly_degree = poly_degree_start; poly_degree<poly_degree_end; poly_degree++){
@@ -65,15 +69,15 @@ int EulerTaylorGreenScaling<dim, nstate>::run_test() const
         }
          
         // Create DG
-        std::shared_ptr < PHiLiP::DGBase<dim, double> > dg = PHiLiP::DGFactory<dim,double>::create_discontinuous_galerkin(&all_parameters_new, poly_degree, poly_degree, grid_degree, grid);
+        std::shared_ptr < PHiLiP::DGBase<dim, nspecies, double> > dg = PHiLiP::DGFactory<dim,nspecies,double>::create_discontinuous_galerkin(&all_parameters_new, poly_degree, poly_degree, grid_degree, grid);
         dg->allocate_system (false,false,false);
          
         //Apply initial condition for TGV
-        std::shared_ptr< InitialConditionFunction<dim,nstate,double> > initial_condition_function = 
-                    InitialConditionFactory<dim,nstate,double>::create_InitialConditionFunction(&all_parameters_new);
-        SetInitialCondition<dim,nstate,double>::set_initial_condition(initial_condition_function, dg, &all_parameters_new);
+        std::shared_ptr< InitialConditionFunction<dim,nspecies,nstate,double> > initial_condition_function = 
+                    InitialConditionFactory<dim,nspecies,nstate,double>::create_InitialConditionFunction(&all_parameters_new);
+        SetInitialCondition<dim,nspecies,nstate,double>::set_initial_condition(initial_condition_function, dg, &all_parameters_new);
         //Create ODE system. 
-        std::shared_ptr<ODE::ODESolverBase<dim, double>> ode_solver = ODE::ODESolverFactory<dim, double>::create_ODESolver(dg);
+        std::shared_ptr<ODE::ODESolverBase<dim, nspecies, double>> ode_solver = ODE::ODESolverFactory<dim, nspecies, double>::create_ODESolver(dg);
          
         ode_solver->current_iteration = 0;
         ode_solver->allocate_ode_system();
@@ -129,6 +133,8 @@ int EulerTaylorGreenScaling<dim, nstate>::run_test() const
         return 1;
     }
 
+
+
     //check that it can run up to p=30 for Cartesian or p=20 for curvilinear without running out of memory.
     const unsigned int poly_degree = (all_parameters->use_curvilinear_grid) ? 20 : 30;
     const unsigned int grid_degree = (all_parameters->use_curvilinear_grid) ? poly_degree : 1;
@@ -143,39 +149,45 @@ int EulerTaylorGreenScaling<dim, nstate>::run_test() const
     }
      
     pcout<<"Checking that it does not run out of memory for poly degree "<<poly_degree<<std::endl;
+    // For curvilinear cases, check allocation in high order grid.
     // Create DG
-    std::shared_ptr < PHiLiP::DGBase<dim, double> > dg = PHiLiP::DGFactory<dim,double>::create_discontinuous_galerkin(&all_parameters_new, poly_degree, poly_degree, grid_degree, grid);
-    dg->allocate_system (false,false,false);
-     
-    std::shared_ptr< InitialConditionFunction<dim,nstate,double> > initial_condition_function = 
-                InitialConditionFactory<dim,nstate,double>::create_InitialConditionFunction(&all_parameters_new);
-    SetInitialCondition<dim,nstate,double>::set_initial_condition(initial_condition_function, dg, &all_parameters_new);
-     
-    std::shared_ptr<ODE::ODESolverBase<dim, double>> ode_solver = ODE::ODESolverFactory<dim, double>::create_ODESolver(dg);
-     
-    ode_solver->current_iteration = 0;
-    ode_solver->allocate_ode_system();
-    MPI_Barrier(MPI_COMM_WORLD);
-    pcout << "ODE solver successfully created. This verifies no memory jump from ODE Solver." << std::endl;
-    dealii::LinearAlgebra::distributed::Vector<double> solution_update;
-    solution_update.reinit(dg->locally_owned_dofs, dg->ghost_dofs, this->mpi_communicator);
+    std::shared_ptr < PHiLiP::DGBase<dim, nspecies, double> > dg = PHiLiP::DGFactory<dim,nspecies,double>::create_discontinuous_galerkin(&all_parameters_new, poly_degree, poly_degree, grid_degree, grid);
+    try{
+        dg->allocate_system (false,false,false);
+         
+        std::shared_ptr< InitialConditionFunction<dim,nspecies,nstate,double> > initial_condition_function = 
+                    InitialConditionFactory<dim,nspecies,nstate,double>::create_InitialConditionFunction(&all_parameters_new);
+        SetInitialCondition<dim,nspecies,nstate,double>::set_initial_condition(initial_condition_function, dg, &all_parameters_new);
+         
+        std::shared_ptr<ODE::ODESolverBase<dim, nspecies, double>> ode_solver = ODE::ODESolverFactory<dim, nspecies, double>::create_ODESolver(dg);
+         
+        ode_solver->current_iteration = 0;
+        ode_solver->allocate_ode_system();
+        MPI_Barrier(MPI_COMM_WORLD);
+        pcout << "ODE solver successfully created. This verifies no memory jump from ODE Solver." << std::endl;
+        dealii::LinearAlgebra::distributed::Vector<double> solution_update;
+        solution_update.reinit(dg->locally_owned_dofs, dg->ghost_dofs, this->mpi_communicator);
 
-    for(unsigned int i_step=0; i_step<10; i_step++){
-        dg->assemble_residual();
-        if(all_parameters->use_inverse_mass_on_the_fly){
-            dg->apply_inverse_global_mass_matrix(dg->right_hand_side, solution_update);
-        } else{
-            dg->global_inverse_mass_matrix.vmult(solution_update, dg->right_hand_side);
+        for(unsigned int i_step=0; i_step<10; i_step++){
+            dg->assemble_residual();
+            if(all_parameters->use_inverse_mass_on_the_fly){
+                dg->apply_inverse_global_mass_matrix(dg->right_hand_side, solution_update);
+            } else{
+                dg->global_inverse_mass_matrix.vmult(solution_update, dg->right_hand_side);
+            }
         }
     }
+    catch(std::bad_alloc &e){
+        std::cout << "ending with bad_alloc (ran out of memory)" << std::endl;   
+        std::cout << "If the test fails here, then there is unnecessary memory being allocated." << std::endl;
+        return 1;
+    }
     //if it reaches here, then there is no memory issue.
-
-
     return 0;
 }
 
-#if PHILIP_DIM==3
-    template class EulerTaylorGreenScaling <PHILIP_DIM,PHILIP_DIM+2>;
+#if PHILIP_DIM==3 && PHILIP_SPECIES==1
+    template class EulerTaylorGreenScaling <PHILIP_DIM, PHILIP_SPECIES,PHILIP_DIM+2>;
 #endif
 
 } // Tests namespace

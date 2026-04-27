@@ -7,24 +7,30 @@
 #include "parameters/all_parameters.h"
 
 // for generate_grid
-#include <deal.II/grid/tria.h>
+#include <deal.II/base/function.h>
 #include <deal.II/distributed/shared_tria.h>
 #include <deal.II/distributed/tria.h>
-#include <deal.II/base/function.h>
-#include <stdlib.h>
-#include <iostream>
 #include <deal.II/dofs/dof_tools.h>
 #include <deal.II/grid/grid_tools.h>
+#include <deal.II/grid/tria.h>
 #include <deal.II/numerics/vector_tools.h>
-#include "physics/physics_factory.h"
-#include "dg/dg.h"
-#include "dg/dg_factory.hpp"
-//#include "ode_solver/runge_kutta_ode_solver.h"
-#include "ode_solver/explicit_ode_solver.h"
-#include "ode_solver/ode_solver_factory.h"
-#include <deal.II/base/table_handler.h>
+
+#include <stdlib.h>
+#include <iostream>
 #include <string>
 #include <vector>
+
+#include "dg/dg_base.hpp"
+#include "dg/dg_factory.hpp"
+#include "physics/physics_factory.h"
+//#include "ode_solver/runge_kutta_ode_solver.h"
+#include "ode_solver/runge_kutta_ode_solver.h"
+#include "ode_solver/ode_solver_factory.h"
+
+#include "reduced_order/pod_basis_online.h"
+
+#include <deal.II/base/table_handler.h>
+
 #include <deal.II/base/parameter_handler.h>
 
 namespace PHiLiP {
@@ -43,11 +49,8 @@ namespace FlowSolver {
 class FlowSolverBase
 {
 public:
-    /// Constructor
-    FlowSolverBase () {};
-
     /// Destructor
-    virtual ~FlowSolverBase() {};
+    virtual ~FlowSolverBase() = default;
 
     /// Basically the main and only function of this class.
     /** This will get overloaded by the derived flow solver class.
@@ -57,21 +60,18 @@ public:
 
 
 /// Selects which flow case to simulate.
-template <int dim, int nstate>
+template <int dim, int nspecies, int nstate>
 class FlowSolver : public FlowSolverBase
 {
 public:
     /// Constructor.
     FlowSolver(
         const Parameters::AllParameters *const parameters_input, 
-        std::shared_ptr<FlowSolverCaseBase<dim, nstate>> flow_solver_case_input,
+        std::shared_ptr<FlowSolverCaseBase<dim, nspecies, nstate>> flow_solver_case_input,
         const dealii::ParameterHandler &parameter_handler_input);
     
-    /// Destructor
-    ~FlowSolver() {};
-
     /// Pointer to Flow Solver Case
-    std::shared_ptr<FlowSolverCaseBase<dim, nstate>> flow_solver_case;
+    std::shared_ptr<FlowSolverCaseBase<dim, nspecies, nstate>> flow_solver_case;
 
     /// Parameter handler for storing the .prm file being ran
     const dealii::ParameterHandler &parameter_handler;
@@ -112,10 +112,12 @@ protected:
 
 public:
     /// Pointer to dg so it can be accessed externally.
-    std::shared_ptr<DGBase<dim, double>> dg;
+    std::shared_ptr<DGBase<dim, nspecies, double>> dg;
 
     /// Pointer to ode solver so it can be accessed externally.
-    std::shared_ptr<ODE::ODESolverBase<dim, double>> ode_solver;
+    std::shared_ptr<ODE::ODESolverBase<dim, nspecies, double>> ode_solver;
+
+    std::shared_ptr<ProperOrthogonalDecomposition::OnlinePOD<dim,nspecies>> time_pod;
 
 private:
     /** Returns the column names of a dealii::TableHandler object

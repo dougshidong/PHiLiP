@@ -11,15 +11,15 @@ namespace PHiLiP {
 /*  Contains the functions that need to be templated on the number of state variables.
  */
 #if PHILIP_DIM==1 // dealii::parallel::distributed::Triangulation<dim> does not work for 1D
-template <int dim, int nstate, typename real, typename MeshType = dealii::Triangulation<dim>>
+template <int dim, int nspecies, int nstate, typename real, typename MeshType = dealii::Triangulation<dim>>
 #else
-template <int dim, int nstate, typename real, typename MeshType = dealii::parallel::distributed::Triangulation<dim>>
+template <int dim, int nspecies, int nstate, typename real, typename MeshType = dealii::parallel::distributed::Triangulation<dim>>
 #endif
-class DGStrongLES: public DGStrong<dim, nstate, real, MeshType>
+class DGStrongLES: public DGStrong<dim, nspecies, nstate, real, MeshType>
 {
 protected:
     /// Alias to base class Triangulation.
-    using Triangulation = typename DGStrong<dim,nstate,real,MeshType>::Triangulation;
+    using Triangulation = typename DGStrong<dim,nspecies,nstate,real,MeshType>::Triangulation;
 
 public:
     /// Constructor
@@ -34,7 +34,7 @@ public:
     ~DGStrongLES();
 
     /// Contains the large eddy simulation object
-    std::shared_ptr < Physics::LargeEddySimulationBase<dim, nstate, real > > pde_model_les_double;
+    std::shared_ptr < Physics::LargeEddySimulationBase<dim, nspecies, nstate, real > > pde_model_les_double;
 
     /// Allocate the necessary variables declared in src/physics/model.h
     virtual void allocate_model_variables() override;
@@ -49,11 +49,7 @@ protected:
     /// Update the cellwise mean quantities
     virtual void update_cellwise_mean_quantities();
 
-    // const bool do_compute_filtered_solution; ///< Flag to compute the filtered solution
-    // const bool apply_modal_high_pass_filter_on_filtered_solution; ///< Flag to apply modal high pass filter on the filtered solution
-    // const unsigned int poly_degree_max_large_scales; ///< For filtered solution; lower bound of high pass filter
-
-    using DGBase<dim,real,MeshType>::pcout; ///< Parallel std::cout that only outputs on mpi_rank==0
+    using DGBase<dim,nspecies,real,MeshType>::pcout; ///< Parallel std::cout that only outputs on mpi_rank==0
     
 }; // end of DGStrongLES class
 
@@ -61,15 +57,15 @@ protected:
 /*  Contains the functions that need to be templated on the number of state variables.
  */
 #if PHILIP_DIM==1 // dealii::parallel::distributed::Triangulation<dim> does not work for 1D
-template <int dim, int nstate, typename real, typename MeshType = dealii::Triangulation<dim>>
+template <int dim, int nspecies, int nstate, typename real, typename MeshType = dealii::Triangulation<dim>>
 #else
-template <int dim, int nstate, typename real, typename MeshType = dealii::parallel::distributed::Triangulation<dim>>
+template <int dim, int nspecies, int nstate, typename real, typename MeshType = dealii::parallel::distributed::Triangulation<dim>>
 #endif
-class DGStrongLES_ShearImproved: public DGStrongLES<dim, nstate, real, MeshType>
+class DGStrongLES_ShearImproved: public DGStrongLES<dim, nspecies, nstate, real, MeshType>
 {
 protected:
     /// Alias to base class Triangulation.
-    using Triangulation = typename DGStrongLES<dim,nstate,real,MeshType>::Triangulation;
+    using Triangulation = typename DGStrongLES<dim,nspecies,nstate,real,MeshType>::Triangulation;
 
 public:
     /// Constructor
@@ -90,7 +86,7 @@ protected:
     /// Update the cellwise mean quantities
     void update_cellwise_mean_quantities() override;
 
-    using DGBase<dim,real,MeshType>::pcout; ///< Parallel std::cout that only outputs on mpi_rank==0
+    using DGBase<dim,nspecies,real,MeshType>::pcout; ///< Parallel std::cout that only outputs on mpi_rank==0
     
 }; // end of DGStrongLES class
 
@@ -98,15 +94,15 @@ protected:
 /*  Contains the functions that need to be templated on the number of state variables.
  */
 #if PHILIP_DIM==1 // dealii::parallel::distributed::Triangulation<dim> does not work for 1D
-template <int dim, int nstate, typename real, typename MeshType = dealii::Triangulation<dim>>
+template <int dim, int nspecies, int nstate, typename real, typename MeshType = dealii::Triangulation<dim>>
 #else
-template <int dim, int nstate, typename real, typename MeshType = dealii::parallel::distributed::Triangulation<dim>>
+template <int dim, int nspecies, int nstate, typename real, typename MeshType = dealii::parallel::distributed::Triangulation<dim>>
 #endif
-class DGStrongLES_DynamicSmagorinsky: public DGStrongLES<dim, nstate, real, MeshType>
+class DGStrongLES_DynamicSmagorinsky: public DGStrongLES<dim, nspecies, nstate, real, MeshType>
 {
 protected:
     /// Alias to base class Triangulation.
-    using Triangulation = typename DGStrongLES<dim,nstate,real,MeshType>::Triangulation;
+    using Triangulation = typename DGStrongLES<dim,nspecies,nstate,real,MeshType>::Triangulation;
 
 public:
     /// Constructor
@@ -130,7 +126,7 @@ protected:
     /// Update the cellwise mean quantities
     void update_cellwise_mean_quantities() override;
 
-    using DGBase<dim,real,MeshType>::pcout; ///< Parallel std::cout that only outputs on mpi_rank==0
+    using DGBase<dim,nspecies,real,MeshType>::pcout; ///< Parallel std::cout that only outputs on mpi_rank==0
     
 }; // end of DGStrongLES_ShearImproved class
 
@@ -138,15 +134,15 @@ protected:
 /*  Contains the functions that need to be templated on the number of state variables.
  */
 #if PHILIP_DIM==1 // dealii::parallel::distributed::Triangulation<dim> does not work for 1D
-template <int dim, int nstate, typename real, typename MeshType = dealii::Triangulation<dim>>
+template <int dim, int nspecies, int nstate, typename real, typename MeshType = dealii::Triangulation<dim>>
 #else
-template <int dim, int nstate, typename real, typename MeshType = dealii::parallel::distributed::Triangulation<dim>>
+template <int dim, int nspecies, int nstate, typename real, typename MeshType = dealii::parallel::distributed::Triangulation<dim>>
 #endif
-class DGStrong_ChannelFlow: public DGStrong<dim, nstate, real, MeshType>
+class DGStrong_ChannelFlow: public DGStrong<dim, nspecies, nstate, real, MeshType>
 {
 protected:
     /// Alias to base class Triangulation.
-    using Triangulation = typename DGStrong<dim,nstate,real,MeshType>::Triangulation;
+    using Triangulation = typename DGStrong<dim,nspecies,nstate,real,MeshType>::Triangulation;
 
 public:
     /// Constructor
@@ -161,7 +157,6 @@ public:
     ~DGStrong_ChannelFlow();
 
 protected:
-    // TO DO: reduce these
     const double channel_height; ///< Channel height
     const double half_channel_height; ///< Half channel height
     const double channel_friction_velocity_reynolds_number; ///< Channel Reynolds number based on wall friction velocity
@@ -195,7 +190,7 @@ protected:
     const double total_wall_area; ///< Total wall area
 public:
     /// Contains the Navier-Stokes with model source terms object
-    std::shared_ptr < Physics::NavierStokesWithModelSourceTerms<dim, nstate, real > > pde_model_navier_stokes_double;
+    std::shared_ptr < Physics::NavierStokesWithModelSourceTerms<dim, nspecies, nstate, real > > pde_model_navier_stokes_double;
 
     /// Allocate the necessary variables declared in src/physics/model.h
     void allocate_model_variables() override;
@@ -204,7 +199,7 @@ public:
     void update_model_variables() override;
 
 protected:
-    using DGBase<dim,real,MeshType>::pcout; ///< Parallel std::cout that only outputs on mpi_rank==0
+    using DGBase<dim,nspecies,real,MeshType>::pcout; ///< Parallel std::cout that only outputs on mpi_rank==0
 
     void set_bulk_flow_quantities(); ///< Sets the bulk flow quantities (density, mass flow rate, and velocity)
     double get_average_wall_shear_stress() const; ///< computes the average wall shear stress

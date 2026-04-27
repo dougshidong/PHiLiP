@@ -30,6 +30,8 @@ foreach(dim RANGE 2 3)
 
     # Replace occurences of PHILIP_DIM with 1, 2, or 3 in the code
     target_compile_definitions(${TEST_TARGET} PRIVATE PHILIP_DIM=${dim})
+    # Replace occurences of PHILIP_SPECIES with user-defined value in the code
+    target_compile_definitions(${TEST_TARGET} PRIVATE PHILIP_SPECIES=${NUMBER_OF_SPECIES})
 
     # Compile this executable when 'make unit_tests'
     add_dependencies(unit_tests ${TEST_TARGET})
@@ -55,6 +57,12 @@ foreach(dim RANGE 2 3)
       COMMAND mpirun -n ${MPIMAX} ${CMAKE_CURRENT_BINARY_DIR}/${dim}D_GMSH_READER --input=${dim}D_square.msh
       WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
     )
+    set_tests_labels(${dim}D_GMSH_READER_SQUARE GRID
+                                                ${dim}D
+                                                PARALLEL
+                                                GMSH
+                                                QUICK
+                                                UNIT_TEST)
 endforeach()
 
 set (filename "airfoil.msh")
@@ -72,6 +80,12 @@ add_test(
   COMMAND mpirun -n ${MPIMAX} ${CMAKE_CURRENT_BINARY_DIR}/2D_GMSH_READER --input=${filename}
   WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
 )
+set_tests_labels(2D_GMSH_READER_NACA0012    GRID
+                                            2D
+                                            PARALLEL
+                                            GMSH
+                                            QUICK
+                                            UNIT_TEST)
 
 set (filename "naca0012_hopw_ref2.msh")
 if(NOT EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/${filename})
@@ -88,38 +102,34 @@ add_test(
   COMMAND mpirun -n ${MPIMAX} ${CMAKE_CURRENT_BINARY_DIR}/2D_GMSH_READER --input=${filename}
   WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
 )
+set_tests_labels(2D_GMSH_READER_NACA0012_HOPW   GRID
+                                                2D
+                                                PARALLEL
+                                                GMSH
+                                                QUICK
+                                                UNIT_TEST)
 
-# set (filename "3D_Cube_2_Cells.msh")
-# if(NOT EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/${filename})
-#   message(SEND_ERROR
-# "Missing 3D GMSH file named ${filename}. Please download them from
-#     https://drive.google.com/drive/folders/1ZjwSvbrRK5pHvMULfC69n6oierTej2Cv?usp=sharing
-# and place them in
-#       ${CMAKE_CURRENT_SOURCE_DIR}, or simply run get_gmsh_mesh_files_local.sh"
-#       )
-# endif()
-# configure_file(${filename} ${filename} COPYONLY)
-# add_test(
-#   NAME 3D_GMSH_READER_3D_CUBE_1stOrder
-#   COMMAND mpirun -n ${MPIMAX} ${CMAKE_CURRENT_BINARY_DIR}/3D_GMSH_READER --input=${filename}
-#   WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
-# )
-
-# set (filename "3D_CUBE_2ndOrder.msh")
-# if(NOT EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/${filename})
-#   message(SEND_ERROR
-# "Missing 3D GMSH file named ${filename}. Please download them from
-#     https://drive.google.com/drive/folders/1ZjwSvbrRK5pHvMULfC69n6oierTej2Cv?usp=sharing
-# and place them in
-#       ${CMAKE_CURRENT_SOURCE_DIR}, or simply run get_gmsh_mesh_files_local.sh"
-#       )
-# endif()
-# configure_file(${filename} ${filename} COPYONLY)
-# add_test(
-#   NAME 3D_GMSH_READER_3D_CUBE_2ndOrder
-#   COMMAND mpirun -n ${MPIMAX} ${CMAKE_CURRENT_BINARY_DIR}/3D_GMSH_READER --input=${filename}
-#   WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
-# )
+set (filename "3D_CUBE_2ndOrder.msh")
+if(NOT EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/${filename})
+  message(SEND_ERROR
+"Missing 3D GMSH file named ${filename}. Please download them from
+    https://drive.google.com/drive/folders/1ZjwSvbrRK5pHvMULfC69n6oierTej2Cv?usp=sharing
+and place them in
+      ${CMAKE_CURRENT_SOURCE_DIR}, or simply run get_gmsh_mesh_files_local.sh"
+      )
+endif()
+configure_file(${filename} ${filename} COPYONLY)
+add_test(
+  NAME 3D_GMSH_READER_3D_CUBE_2ndOrder
+  COMMAND mpirun -n ${MPIMAX} ${CMAKE_CURRENT_BINARY_DIR}/3D_GMSH_READER --input=${filename}
+  WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
+)
+set_tests_labels(3D_GMSH_READER_3D_CUBE_2ndOrder   GRID
+                                                3D
+                                                PARALLEL
+                                                GMSH
+                                                QUICK
+                                                UNIT_TEST)
 
 set (filename "3d_gaussian_bump.msh")
 if(NOT EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/${filename})
@@ -136,7 +146,12 @@ add_test(
   COMMAND mpirun -n ${MPIMAX} ${CMAKE_CURRENT_BINARY_DIR}/3D_GMSH_READER --input=${filename}
   WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
 )
-
+set_tests_labels(3D_GMSH_READER_3D_GAUSSIAN_BUMP    GRID
+                                                    3D
+                                                    PARALLEL
+                                                    GMSH
+                                                    QUICK
+                                                    UNIT_TEST)
 set (filename "3d_cube_periodic.msh")
 if(NOT EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/${filename})
   message(SEND_ERROR
@@ -152,22 +167,34 @@ add_test(
   COMMAND mpirun -n ${MPIMAX} ${CMAKE_CURRENT_BINARY_DIR}/3D_GMSH_READER --input=${filename}
   WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
 )
+set_tests_labels(3D_GMSH_READER_3D_CUBE_PERIODIC    GRID
+                                                    3D
+                                                    PARALLEL
+                                                    GMSH
+                                                    QUICK
+                                                    UNIT_TEST)
 
 set (filename "SD7003_3rd_Order_4_Cell_Span.msh")
 if(NOT EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/${filename})
   message(SEND_ERROR
 "Missing 3D GMSH file named ${filename}. Please download it from
-    https://drive.google.com/drive/folders/1eiI3nUbjAWtmWmLUFgYAWpIWlRUQtwTj?usp=drive_link
+    https://drive.google.com/drive/folders/1xaQRTCd8VXDeaV1alQ5oHI_YMm2X0X5R?usp=sharing
 and place them in
       ${CMAKE_CURRENT_SOURCE_DIR}, or simply run get_gmsh_mesh_files_local.sh"
       )
 endif()
 configure_file(${filename} ${filename} COPYONLY)
 add_test(
-  NAME 3D_GMSH_READER_SD7003_01_CELL_SPANWISE
+  NAME 3D_GMSH_READER_SD7003_04_CELL_SPANWISE
   COMMAND mpirun -n ${MPIMAX} ${CMAKE_CURRENT_BINARY_DIR}/3D_GMSH_READER --input=${filename}
   WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
 )
+set_tests_labels(3D_GMSH_READER_SD7003_04_CELL_SPANWISE GRID
+                                                        3D
+                                                        PARALLEL
+                                                        GMSH
+                                                        QUICK
+                                                        UNIT_TEST)
 
 set (filename "channel_structured.msh")
 if(NOT EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/${filename})
@@ -184,3 +211,9 @@ add_test(
   COMMAND mpirun -n ${MPIMAX} ${CMAKE_CURRENT_BINARY_DIR}/3D_GMSH_READER --input=${filename}
   WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
 )
+set_tests_labels(3D_GMSH_READER_CHANNEL_STRUCTURED  GRID
+                                                    3D
+                                                    PARALLEL
+                                                    GMSH
+                                                    QUICK
+                                                    UNIT_TEST)

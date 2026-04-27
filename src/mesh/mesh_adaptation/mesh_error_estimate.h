@@ -1,31 +1,30 @@
 #ifndef __MESHERRORESTIMATE_H__
 #define __MESHERRORESTIMATE_H__
 
-#include "parameters/all_parameters.h"
-#include "dg/dg.h"
-#include <deal.II/grid/grid_refinement.h>
-#include <deal.II/grid/tria.h>
-#include <deal.II/distributed/shared_tria.h>
-#include <deal.II/distributed/tria.h>
 #include <deal.II/distributed/grid_refinement.h>
-
-#include <vector>
-#include <iostream>
-
-#include <deal.II/lac/la_parallel_vector.h>
+#include <deal.II/distributed/shared_tria.h>
 #include <deal.II/distributed/solution_transfer.h>
-
+#include <deal.II/distributed/tria.h>
 #include <deal.II/fe/fe_q.h>
 #include <deal.II/fe/fe_values.h>
+#include <deal.II/grid/grid_refinement.h>
+#include <deal.II/grid/tria.h>
+#include <deal.II/lac/la_parallel_vector.h>
+
+#include <iostream>
+#include <vector>
+
+#include "dg/dg_base.hpp"
 #include "functional/functional.h"
+#include "parameters/all_parameters.h"
 #include "physics/physics.h"
 
 namespace PHiLiP {
 
 #if PHILIP_DIM==1
-template <int dim, typename real, typename MeshType = dealii::Triangulation<dim>>
+template <int dim, int nspecies, typename real, typename MeshType = dealii::Triangulation<dim>>
 #else
-template <int dim, typename real, typename MeshType = dealii::parallel::distributed::Triangulation<dim>>
+template <int dim, int nspecies, typename real, typename MeshType = dealii::parallel::distributed::Triangulation<dim>>
 #endif
 
 /// Abstract class to estimate error for mesh adaptation. 
@@ -38,23 +37,23 @@ public:
     virtual dealii::Vector<real> compute_cellwise_errors () = 0;
 
     /// Constructor
-    MeshErrorEstimateBase(std::shared_ptr< DGBase<dim, real, MeshType> > dg_input);
+    explicit MeshErrorEstimateBase(std::shared_ptr< DGBase<dim, nspecies, real, MeshType> > dg_input);
 
     /// Virtual Destructor
-    virtual ~MeshErrorEstimateBase() = 0;
+    virtual ~MeshErrorEstimateBase() = default;
 
     /// Pointer to DGBase
-    std::shared_ptr<DGBase<dim,real,MeshType>> dg;
+    std::shared_ptr<DGBase<dim,nspecies,real,MeshType>> dg;
 
 };
 
 #if PHILIP_DIM==1
-template <int dim, typename real, typename MeshType = dealii::Triangulation<dim>>
+template <int dim, int nspecies, typename real, typename MeshType = dealii::Triangulation<dim>>
 #else
-template <int dim, typename real, typename MeshType = dealii::parallel::distributed::Triangulation<dim>>
+template <int dim, int nspecies, typename real, typename MeshType = dealii::parallel::distributed::Triangulation<dim>>
 #endif
 /// Class to compute residual based error
-class ResidualErrorEstimate : public MeshErrorEstimateBase <dim, real, MeshType>
+class ResidualErrorEstimate : public MeshErrorEstimateBase <dim, nspecies, real, MeshType>
 {
 
 public:
@@ -62,10 +61,7 @@ public:
     dealii::Vector<real> compute_cellwise_errors () override;
 
     /// Constructor
-    ResidualErrorEstimate(std::shared_ptr<DGBase<dim,real,MeshType>> dg_input);
-
-    /// Destructor
-    ~ResidualErrorEstimate() {};
+    explicit ResidualErrorEstimate(std::shared_ptr<DGBase<dim,nspecies,real,MeshType>> dg_input);
 
 };
 
@@ -86,11 +82,11 @@ public:
   * Reference: Venditti AND Darmafol, "Adjoint Error Estimation and Grid Adaptation for Functional Outputs: Application to Quasi-One-Dimensional Flow". Journal of Computational Physics 164, 1 (2000), 204–227.
   */ 
 #if PHILIP_DIM==1 // dealii::parallel::distributed::Triangulation<dim> does not work for 1D
-template <int dim, int nstate, typename real, typename MeshType = dealii::Triangulation<dim>>
+template <int dim, int nspecies, int nstate, typename real, typename MeshType = dealii::Triangulation<dim>>
 #else
-template <int dim, int nstate, typename real, typename MeshType = dealii::parallel::distributed::Triangulation<dim>>
+template <int dim, int nspecies, int nstate, typename real, typename MeshType = dealii::parallel::distributed::Triangulation<dim>>
 #endif
-class DualWeightedResidualError : public MeshErrorEstimateBase <dim, real, MeshType>
+class DualWeightedResidualError : public MeshErrorEstimateBase <dim, nspecies, real, MeshType>
 {
 public:
 
@@ -105,12 +101,9 @@ public:
      *  Also stores the current solution and distribution of polynomial orders
      *  for the mesh for converting back to coarse state after refinement.
      */
-    DualWeightedResidualError(std::shared_ptr< DGBase<dim, real, MeshType> > dg_input);
+    explicit DualWeightedResidualError(std::shared_ptr< DGBase<dim, nspecies, real, MeshType> > dg_input);
 
-    ///Destructor
-    ~DualWeightedResidualError() {};
-
-    /// Reinitializes member variables of DualWeightedResidualError. 
+    /// Reinitializes member variables of DualWeightedResidualError.
     /** Sets solution_refinement_state to SolutionRefinementStateEnum::coarse and stores the current
      *  solution and polynomial order distribution
      */
@@ -184,7 +177,7 @@ public:
                                                                      dealii::LinearAlgebra::distributed::Vector<real> &adjoint_variable);
 
     /// Functional class pointer
-    std::shared_ptr< Functional<dim, nstate, real, MeshType> > functional;
+    std::shared_ptr< Functional<dim, nspecies, nstate, real, MeshType> > functional;
     
     /// original solution
     dealii::LinearAlgebra::distributed::Vector<real> solution_coarse;

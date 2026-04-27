@@ -5,19 +5,20 @@
 namespace PHiLiP {
 namespace ProperOrthogonalDecomposition {
 
-template <int dim, int nstate>
-ROMSolution<dim, nstate>::ROMSolution(Parameters::AllParameters params, dealii::LinearAlgebra::distributed::Vector<double> _solution, dealii::LinearAlgebra::distributed::Vector<double> _gradient)
+template <int dim, int nspecies, int nstate>
+ROMSolution<dim, nspecies, nstate>::ROMSolution(Parameters::AllParameters params, dealii::LinearAlgebra::distributed::Vector<double> _solution, dealii::LinearAlgebra::distributed::Vector<double> _gradient)
         : params(params)
         , solution(_solution)
         , gradient(_gradient)
 {
 }
 
-template class ROMSolution <PHILIP_DIM, 1>;
-template class ROMSolution <PHILIP_DIM, 2>;
-template class ROMSolution <PHILIP_DIM, 3>;
-template class ROMSolution <PHILIP_DIM, 4>;
-template class ROMSolution <PHILIP_DIM, 5>;
-
+#if PHILIP_SPECIES==1
+template class ROMSolution <PHILIP_DIM, PHILIP_SPECIES, 1>;
+template class ROMSolution <PHILIP_DIM, PHILIP_SPECIES, 2>;
+template class ROMSolution <PHILIP_DIM, PHILIP_SPECIES, 3>;
+template class ROMSolution <PHILIP_DIM, PHILIP_SPECIES, 4>;
+template class ROMSolution <PHILIP_DIM, PHILIP_SPECIES, 5>;
+#endif
 }
 }

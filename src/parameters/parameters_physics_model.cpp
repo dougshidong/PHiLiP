@@ -3,9 +3,6 @@
 namespace PHiLiP {
 namespace Parameters {
     
-// Models inputs
-PhysicsModelParam::PhysicsModelParam () {}
-
 void PhysicsModelParam::declare_parameters (dealii::ParameterHandler &prm)
 {
     prm.enter_subsection("physics_model");

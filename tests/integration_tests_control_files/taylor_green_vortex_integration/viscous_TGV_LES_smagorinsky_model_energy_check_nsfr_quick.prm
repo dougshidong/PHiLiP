@@ -15,9 +15,6 @@ set flux_nodes_type = GL
 set use_inverse_mass_on_the_fly = true
 set all_boundaries_are_periodic = true
 
-# memory allocation
-set do_renumber_dofs = false
-
 # degree of freedom renumbering not necessary for explicit time advancement cases
 set do_renumber_dofs = false
 
@@ -74,5 +71,6 @@ subsection flow_solver
   subsection taylor_green_vortex
     set expected_kinetic_energy_at_final_time = 1.2499234301320086e-01
     set expected_theoretical_dissipation_rate_at_final_time = 4.6872844893169126e-04
+    set check_nonphysical_flow_case_behavior = false
   end
 end

@@ -12,8 +12,6 @@ namespace Parameters {
 class TimeRefinementStudyParam
 {
 public:
-    TimeRefinementStudyParam(); ///< Constructor
-
     int number_of_times_to_solve; ///<number of times to run the calculation
     double refinement_ratio; ///<ratio of next timestep size to current one, 0<r<1
     int number_of_timesteps_for_reference_solution; ///<For time refinement study with reference solution, number of steps for reference solution

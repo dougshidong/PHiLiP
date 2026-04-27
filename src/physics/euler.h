@@ -74,8 +74,8 @@ namespace Physics {
  *  Still need to provide functions to un-non-dimensionalize the variables.
  *  Like, given density_inf
  */
-template <int dim, int nstate, typename real>
-class Euler : public PhysicsBase <dim, nstate, real>
+template <int dim, int nspecies, int nstate, typename real>
+class Euler : public PhysicsBase <dim, nspecies, nstate, real>
 {
 protected:
     // For overloading the virtual functions defined in PhysicsBase
@@ -84,26 +84,23 @@ protected:
      *  
      *  Solution: In order to make the hidden function visible in derived class, 
      *  we need to add the following: */
-    using PhysicsBase<dim,nstate,real>::dissipative_flux;
-    using PhysicsBase<dim,nstate,real>::source_term;
-    using PhysicsBase<dim,nstate,real>::boundary_face_values;
+    using PhysicsBase<dim,nspecies,nstate,real>::dissipative_flux;
+    using PhysicsBase<dim,nspecies,nstate,real>::source_term;
+    using PhysicsBase<dim,nspecies,nstate,real>::boundary_face_values;
 public:
     using two_point_num_flux_enum = Parameters::AllParameters::TwoPointNumericalFlux;
     /// Constructor
     Euler ( 
+        const Parameters::AllParameters *const                    parameters_input,
         const double                                              ref_length,
         const double                                              gamma_gas,
         const double                                              mach_inf,
         const double                                              angle_of_attack,
         const double                                              side_slip_angle,
-        std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function = nullptr,
+        std::shared_ptr< ManufacturedSolutionFunction<dim,nspecies,real> > manufactured_solution_function = nullptr,
         const two_point_num_flux_enum                             two_point_num_flux_type = two_point_num_flux_enum::KG,
         const bool                                                has_nonzero_diffusion = false,
         const bool                                                has_nonzero_physical_source = false);
-
-    /// Destructor
-    // virtual ~Euler() =0;
-    ~Euler() {};
 
     const double ref_length; ///< Reference length.
     const double gam; ///< Constant heat capacity ratio of fluid.
@@ -146,7 +143,7 @@ public:
 
     /// Convective flux: \f$ \mathbf{F}_{conv} \f$
     std::array<dealii::Tensor<1,dim,real>,nstate> convective_flux (
-        const std::array<real,nstate> &conservative_soln) const;
+        const std::array<real,nstate> &conservative_soln) const override;
 
     /// Convective normal flux: \f$ \mathbf{F}_{conv} \cdot \hat{n} \f$
     std::array<real,nstate> convective_normal_flux (const std::array<real,nstate> &conservative_soln, const dealii::Tensor<1,dim,real> &normal) const;
@@ -159,10 +156,10 @@ public:
     /// Spectral radius of convective term Jacobian is 'c'
     std::array<real,nstate> convective_eigenvalues (
         const std::array<real,nstate> &/*conservative_soln*/,
-        const dealii::Tensor<1,dim,real> &/*normal*/) const;
+        const dealii::Tensor<1,dim,real> &/*normal*/) const override;
 
     /// Maximum convective eigenvalue
-    real max_convective_eigenvalue (const std::array<real,nstate> &soln) const;
+    real max_convective_eigenvalue (const std::array<real,nstate> &soln) const override;
 
     /// Maximum convective normal eigenvalue (used in Lax-Friedrichs)
     /** See the book I do like CFD, equation 3.6.18 */
@@ -171,7 +168,7 @@ public:
         const dealii::Tensor<1,dim,real> &normal) const override;
 
     /// Maximum viscous eigenvalue.
-    real max_viscous_eigenvalue (const std::array<real,nstate> &soln) const;
+    real max_viscous_eigenvalue (const std::array<real,nstate> &soln) const override;
 
     /// Dissipative flux: 0
     std::array<dealii::Tensor<1,dim,real>,nstate> dissipative_flux (
@@ -202,13 +199,11 @@ public:
         const dealii::Point<dim,real> &pos) const;
 
 protected:
-    /// Check positive density
+    /// Check positive quantity and modify it according to handle_non_physical_result()
+    /** in PhysicsBase class
+     */
     template<typename real2>
-    void check_positive_density(real2 &density) const;
-
-    /// Check positive pressure
-    template<typename real2>
-    void check_positive_pressure(real2 &pressure) const;
+    bool check_positive_quantity(real2 &quantity, const std::string qty_name) const;
 
 public:
     /// Given conservative variables [density, [momentum], total energy],
@@ -245,9 +240,30 @@ public:
         const std::array<real,nstate> &primitive_soln,
         const std::array<dealii::Tensor<1,dim,real>,nstate> &primitive_soln_gradient) const;
 
+    /** Obtain gradient of primitive variables from gradient of conservative variables */
+    template<typename real2>
+    std::array<dealii::Tensor<1,dim,real2>,nstate> 
+    convert_conservative_gradient_to_primitive_gradient_templated (
+        const std::array<real2,nstate> &conservative_soln,
+        const std::array<dealii::Tensor<1,dim,real2>,nstate> &conservative_soln_gradient) const;
+
+    /** Obtain gradient of primitive variables from gradient of conservative variables */
+    std::array<dealii::Tensor<1,dim,real>,nstate> 
+    convert_conservative_gradient_to_primitive_gradient (
+        const std::array<real,nstate> &conservative_soln,
+        const std::array<dealii::Tensor<1,dim,real>,nstate> &conservative_soln_gradient) const;
+
+    /** Obtain gradient of conservative variables from gradient of primitive variables */
+    std::array<dealii::Tensor<1,dim,real>,nstate> 
+    convert_primitive_gradient_to_conservative_gradient (
+        const std::array<real,nstate> &primitive_soln,
+        const std::array<dealii::Tensor<1,dim,real>,nstate> &primitive_soln_gradient) const;
+
     /// Evaluate pressure from conservative variables
     template<typename real2>
-    real2 compute_pressure ( const std::array<real2,nstate> &conservative_soln ) const;
+    real2 compute_pressure_templated ( const std::array<real2,nstate> &conservative_soln ) const;
+
+    real compute_pressure ( const std::array<real,nstate> &conservative_soln ) const;
 
     /// Evaluate physical entropy = log(p \rho^{-\gamma}) from pressure and density
     template<typename real2>
@@ -283,8 +299,14 @@ public:
     /// Given primitive variables, returns kinetic energy
     real compute_kinetic_energy_from_primitive_solution ( const std::array<real,nstate> &primitive_soln ) const;
 
+    /// Given primitive variables, returns incompressible kinetic energy
+    real compute_incompressible_kinetic_energy_from_primitive_solution ( const std::array<real,nstate> &primitive_soln ) const;
+
     /// Given conservative variables, returns kinetic energy
     real compute_kinetic_energy_from_conservative_solution ( const std::array<real,nstate> &conservative_soln ) const;
+
+    /// Given conservative variables, returns incompressible kinetic energy
+    real compute_incompressible_kinetic_energy_from_conservative_solution ( const std::array<real,nstate> &conservative_soln ) const;
 
     /// Evaluate entropy from conservative variables
     /** Note that it is not the actual entropy since it's missing some constants.
@@ -378,7 +400,7 @@ public:
         std::array<real,nstate> &/*soln_bc*/,
         std::array<dealii::Tensor<1,dim,real>,nstate> &/*soln_grad_bc*/) const;
 
-    /// For post processing purposes (update comment later)
+    /// For post processing purposes, computes all the quantities we write to the VTK files
     virtual dealii::Vector<double> post_compute_derived_quantities_vector (
         const dealii::Vector<double>              &uh,
         const std::vector<dealii::Tensor<1,dim> > &duh,
@@ -392,7 +414,7 @@ public:
     /// For post processing purposes, sets the interpretation of each computed quantity as either scalar or vector
     virtual std::vector<dealii::DataComponentInterpretation::DataComponentInterpretation> post_get_data_component_interpretation () const override;
     
-    /// For post processing purposes (update comment later)
+    /// For post processing purposes, updates the required flags for dealii
     virtual dealii::UpdateFlags post_get_needed_update_flags () const override;
 
 protected:
@@ -410,7 +432,7 @@ protected:
         std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_bc) const;
 
     /// Wall boundary condition
-    virtual void boundary_wall (
+    void boundary_wall (
         const dealii::Tensor<1,dim,real> &normal_int,
         const std::array<real,nstate> &soln_int,
         const std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_int,
@@ -452,6 +474,20 @@ protected:
 
     /// Simple farfield boundary conditions based on freestream values
     void boundary_farfield (
+        std::array<real,nstate> &soln_bc) const;
+
+    /// p0 extrapolation at the boundary
+    void boundary_p0_extrapolation (
+        const std::array<real,nstate> &soln_int,
+        std::array<real,nstate> &soln_bc,
+        std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_bc) const;
+
+    /// Custom boundary conditions for the left boundary of the astrophysical mach jet case where it is not hypersonic inflow.
+    void boundary_custom (
+        std::array<real,nstate> &soln_bc) const;
+
+    /// Boundary conditions based on user-defined values
+    void boundary_astrophysical_inflow (
         std::array<real,nstate> &soln_bc) const;
 
     /// Get manufactured solution value

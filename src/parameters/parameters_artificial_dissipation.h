@@ -45,9 +45,6 @@ public:
     ///Flag to calculate enthalpy error 
     bool use_enthalpy_error;
 
-    /// Constructor
-    ArtificialDissipationParam();
-
     /// Function to declare parameters.
     static void declare_parameters (dealii::ParameterHandler &prm);
 

@@ -46,7 +46,8 @@ subsection linear solver
 end
 
 subsection ODE solver
-  set output_solution_every_x_steps = 1
+  # Uncomment next line to output VTUs
+  # set output_solution_every_x_steps = 1
   set nonlinear_max_iterations            = 50
   set nonlinear_steady_residual_tolerance = 1e-15
   set ode_solver_type  = implicit

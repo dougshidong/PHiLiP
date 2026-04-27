@@ -1,7 +1,7 @@
 #ifndef __REDUCED_ORDER_ODE_SOLVER__
 #define __REDUCED_ORDER_ODE_SOLVER__
 
-#include "dg/dg.h"
+#include "dg/dg_base.hpp"
 #include "ode_solver_base.h"
 #include "reduced_order/pod_basis_base.h"
 
@@ -10,22 +10,22 @@ namespace ODE {
 
 /// POD-Petrov-Galerkin ODE solver derived from ODESolver.
 #if PHILIP_DIM==1
-template <int dim, typename real, typename MeshType = dealii::Triangulation<dim>>
+template <int dim, int nspecies, typename real, typename MeshType = dealii::Triangulation<dim>>
 #else
-template <int dim, typename real, typename MeshType = dealii::parallel::distributed::Triangulation<dim>>
+template <int dim, int nspecies, typename real, typename MeshType = dealii::parallel::distributed::Triangulation<dim>>
 #endif
-class ReducedOrderODESolver: public ODESolverBase<dim, real, MeshType>
+class ReducedOrderODESolver: public ODESolverBase<dim, nspecies, real, MeshType>
 {
 protected:
     /// Default constructor that will set the constants.
-    ReducedOrderODESolver(std::shared_ptr< DGBase<dim, real, MeshType> > dg_input, std::shared_ptr<ProperOrthogonalDecomposition::PODBase<dim>> pod); ///< Constructor.
+    ReducedOrderODESolver(std::shared_ptr< DGBase<dim, nspecies, real, MeshType> > dg_input, std::shared_ptr<ProperOrthogonalDecomposition::PODBase<dim,nspecies>> pod); ///< Constructor.
 
 public:
     ///POD
-    std::shared_ptr<ProperOrthogonalDecomposition::PODBase<dim>> pod;
+    std::shared_ptr<ProperOrthogonalDecomposition::PODBase<dim,nspecies>> pod;
 
     /// Destructor
-    virtual ~ReducedOrderODESolver() {};
+    virtual ~ReducedOrderODESolver() = default;
 
     /// Evaluate steady state solution.
     int steady_state () override;

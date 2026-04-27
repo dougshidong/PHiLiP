@@ -19,7 +19,7 @@ end
 
 # Linear solver
 subsection linear solver
-  set linear_solver_output = verbose
+  #set linear_solver_output = verbose
   subsection gmres options
     set linear_residual_tolerance = 1e-7
   end

@@ -1,25 +1,23 @@
 #ifndef __OPTIMIZATION_INVERSE_MANUFACTURED_H__
 #define __OPTIMIZATION_INVERSE_MANUFACTURED_H__
 
-#include "testing/tests.h"
-#include "dg/dg.h"
-#include "physics/physics.h"
+#include "dg/dg_base.hpp"
 #include "parameters/all_parameters.h"
+#include "physics/physics.h"
+#include "testing/tests.h"
 
 namespace PHiLiP {
 namespace Tests {
 
 /// Performs grid convergence for various polynomial degrees.
-template <int dim, int nstate>
+template <int dim, int nspecies, int nstate>
 class OptimizationInverseManufactured: public TestsBase
 {
 public:
     /// Constructor.
     /** Simply calls the TestsBase constructor to set its parameters = parameters_input
      */
-    OptimizationInverseManufactured(const Parameters::AllParameters *const parameters_input);
-
-    ~OptimizationInverseManufactured() {}; ///< Destructor.
+    explicit OptimizationInverseManufactured(const Parameters::AllParameters *const parameters_input);
 
     /// Grid convergence on Euler Gaussian Bump
     /** Will run the a grid convergence test for various p

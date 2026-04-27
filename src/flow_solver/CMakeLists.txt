@@ -1,6 +1,7 @@
 
 set(FLOW_SOLVER_SOURCE
     flow_solver_cases/flow_solver_case_base.cpp
+    flow_solver_cases/cube_flow_uniform_grid.cpp
     flow_solver_cases/periodic_cube_flow.cpp
     flow_solver_cases/non_periodic_cube_flow.cpp
     flow_solver_cases/periodic_turbulence.cpp
@@ -11,8 +12,10 @@ set(FLOW_SOLVER_SOURCE
     flow_solver_cases/naca0012.cpp
     flow_solver_cases/gaussian_bump.cpp
     flow_solver_cases/channel_flow.cpp
-    flow_solver_cases/airfoil_2D.cpp
     flow_solver_cases/turbulent_airfoil_3D.cpp
+    flow_solver_cases/dipole_wall_collision.cpp
+    flow_solver_cases/positivity_preserving_tests.cpp
+    flow_solver_cases/multispecies_tests.cpp
     flow_solver.cpp
     flow_solver_factory.cpp)
 
@@ -22,6 +25,8 @@ foreach(dim RANGE 1 3)
     add_library(${FlowSolverLib} STATIC ${FLOW_SOLVER_SOURCE})
     # Replace occurences of PHILIP_DIM with 1, 2, or 3 in the code
     target_compile_definitions(${FlowSolverLib} PRIVATE PHILIP_DIM=${dim})
+    # Replace occurences of PHILIP_SPECIES with user-defined value in the code
+    target_compile_definitions(${FlowSolverLib} PRIVATE PHILIP_SPECIES=${NUMBER_OF_SPECIES})
 
     # Library dependency
     string(CONCAT GridsLib Grids_${dim}D)

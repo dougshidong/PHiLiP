@@ -7,7 +7,7 @@
 #include <deal.II/base/conditional_ostream.h>
 #include <deal.II/base/parameter_handler.h>
 
-//#include "dg/dg.h"
+//#include "dg/dg_base.hpp"
 namespace PHiLiP {
 namespace Tests {
 
@@ -26,10 +26,10 @@ public:
     /// Constructor.
     /** @param[in] parameters_input Input parameters.
      */
-    TestsBase(const Parameters::AllParameters *const parameters_input);
+    explicit TestsBase(const Parameters::AllParameters *const parameters_input);
 
     /// Destructor.
-    virtual ~TestsBase() {};
+    virtual ~TestsBase() = default;
 
     /// Basically the main and only function of this class.
     /** This will get overloaded by the derived test classes.
@@ -51,7 +51,7 @@ protected:
     std::vector<int> get_number_1d_cells(const int ngrids) const;
 
     // /// Evaluates the number of cells to generate the grids for 1D grid based on input file.
-    // void globally_refine_and_interpolate(DGBase<dim, double> &dg) const;
+    // void globally_refine_and_interpolate(DGBase<dim, nspecies, double> &dg) const;
 
     /// Returns a string describing which PDE is being used
     std::string get_pde_string(const Parameters::AllParameters *const param) const;
@@ -67,11 +67,11 @@ protected:
 };
 
 /// Test factory, that will create the correct test with the right template parameters.
-template<int dim, int nstate, typename MeshType = dealii::Triangulation<dim>>
+template<int dim, int nspecies, int nstate, typename MeshType = dealii::Triangulation<dim>>
 class TestsFactory
 {
 public:
-    /// Recursive factory that will create TestBase<int dim, int nstate>
+    /// Recursive factory that will create TestBase<int dim, int nspecies, int nstate>
     /** Must be called with the highest number possible of dimension and nstate. For example
      *
      *  TestBase test = TestFactory::create_test<3,5>(parameters_input)

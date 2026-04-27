@@ -3,11 +3,15 @@
 
 #include <deal.II/base/conditional_ostream.h>
 #include <deal.II/base/table_handler.h>
-#include <iostream>
 #include <deal.II/lac/vector.h>
 #include "parameters/all_parameters.h"
-#include "dg/dg.h"
+#include "limiter/bound_preserving_limiter_factory.hpp"
+#include <iostream>
 #include <stdexcept>
+
+#include "dg/dg_base.hpp"
+#include "parameters/all_parameters.h"
+#include "reduced_order/pod_basis_base.h"
 
 namespace PHiLiP {
 namespace ODE {
@@ -15,17 +19,21 @@ namespace ODE {
 /// Base class ODE solver.
 
 #if PHILIP_DIM==1
-template <int dim, typename real, typename MeshType = dealii::Triangulation<dim>>
+template <int dim, int nspecies, typename real, typename MeshType = dealii::Triangulation<dim>>
 #else
-template <int dim, typename real, typename MeshType = dealii::parallel::distributed::Triangulation<dim>>
+template <int dim, int nspecies, typename real, typename MeshType = dealii::parallel::distributed::Triangulation<dim>>
 #endif
 class ODESolverBase
 {
 public:
     /// Default constructor that will set the constants.
-    ODESolverBase(std::shared_ptr< DGBase<dim, real, MeshType> > dg_input); ///< Constructor.
+    explicit ODESolverBase(std::shared_ptr< DGBase<dim, nspecies, real, MeshType> > dg_input,
+                           std::shared_ptr< ProperOrthogonalDecomposition::PODBase<dim,nspecies>> pod); ///< Default Constructor.
 
-    virtual ~ODESolverBase() {}; ///< Destructor.
+    /// Situational Constructor that will call the default with no POD.
+    ODESolverBase(std::shared_ptr< DGBase<dim, nspecies, real, MeshType> >  dg_input);
+
+    virtual ~ODESolverBase() = default; ///< Destructor.
 
     /// Table used to output solution vector at each time step
     dealii::TableHandler solutions_table;
@@ -38,6 +46,7 @@ public:
 
     /// Evaluate steady state solution.
     virtual int steady_state ();
+
 
     /// Ramps up the solution from p0 all the way up to the given global_final_poly_degree.
     /** This first interpolates the current solution to the P0 space as an initial solution.
@@ -59,6 +68,12 @@ public:
 
     /// Virtual function to evaluate solution update
     virtual void step_in_time(real dt, const bool pseudotime) = 0;
+
+    /// Virtual function to evaluate automatic error adaptive time step
+    virtual double get_automatic_error_adaptive_step_size (real dt, const bool pseudotime);
+
+    /// Virtual function to evaluate initial automatic error adaptive time step
+    virtual double get_automatic_initial_step_size (real dt, const bool pseudotime);
 
     /// Virtual function to allocate the ODE system
     virtual void allocate_ode_system () = 0;
@@ -82,7 +97,13 @@ protected:
 
 public:
     /// Smart pointer to DGBase
-    std::shared_ptr<DGBase<dim,real,MeshType>> dg;
+    std::shared_ptr<DGBase<dim,nspecies,real,MeshType>> dg;
+
+    /// Smart pointer to PODBasis
+    std::shared_ptr<ProperOrthogonalDecomposition::PODBase<dim,nspecies>> pod;
+
+    /// Pointer to BoundPreservingLimiter
+    std::unique_ptr<BoundPreservingLimiter<dim,nspecies,real>> limiter;
 
 protected:
     /// Input parameters.
@@ -119,6 +140,17 @@ public:
 protected:
     double original_time_step;///< Original time step before calling step_in_time
     double modified_time_step;///< Modified time step after calling step_in_time
+public:
+    
+    /// Entropy FR correction at the current timestep
+    /** Used in entropy-RRK ODE solver.
+     ** This is stored in ode_solver_base such that both flow solver case and ode solver can access it. */
+    double FR_entropy_contribution_RRK_solver = 0;
+    
+    /// Relaxation parameter
+    /** Used in RRK ODE solver.
+     ** This is stored in ode_solver_base such that both flow solver case and ode solver can access it. */
+    double relaxation_parameter_RRK_solver=1;
 
 protected:
     const MPI_Comm mpi_communicator; ///< MPI communicator.

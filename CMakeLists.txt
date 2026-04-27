@@ -8,12 +8,14 @@ set(CMAKE_CXX_STANDARD 17)
 set(WARNING_CXX_FLAGS "-Wall -Werror -pedantic -pedantic-errors")
 set(WARNING_CXX_FLAGS "${WARNING_CXX_FLAGS} -Wextra -Wunreachable-code")
 #set(WARNING_CXX_FLAGS "${WARNING_CXX_FLAGS} -Weffc++")
-set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} ${WARNING_CXX_FLAGS} -Wno-error=maybe-uninitialized -march=native -std=gnu++17")
+set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} ${WARNING_CXX_FLAGS} -Wno-maybe-uninitialized -march=native -std=gnu++17")
 
 set(MPIMAX 4 CACHE STRING "Default number of processors used in ctest mpirun -np MPIMAX. Not the same as ctest -jX")
 
 set(ENABLE_GMSH 0 CACHE STRING "Enable GMSH access through command lines and tests.")
 set(ENABLE_GNUPLOT 0 CACHE STRING "Enable Gnu Plot outputs.")
+
+set(NUMBER_OF_SPECIES 1 CACHE STRING "Set number of species. If set to >1 executables for unit tests will not be made.")
 
 find_package(Git QUIET)
 if(GIT_FOUND AND EXISTS "${PROJECT_SOURCE_DIR}/.git")
@@ -103,8 +105,8 @@ SET(_philip_targets "#
 #      make PHiLiP_1D      - to build main program (without tests) in 1D
 #      make PHiLiP_2D      - to build main program (without tests) in 2D
 #      make PHiLiP_3D      - to build main program (without tests) in 3D ")
-add_custom_target(unit_tests)
 
+add_custom_target(unit_tests)
 add_custom_target(grids)
 
 # Source code
@@ -237,5 +239,7 @@ MESSAGE(STATUS "
 # Using MPIMAX = ${MPIMAX}, which sets the default values used by ctest for the MPI runs.
 # Can use cmake ../ -DMPIMAX=XX to change this default value.
 #
+# Using NUMBER_OF_SPECIES = ${NUMBER_OF_SPECIES}, which sets the number of species used to compile PHiLiP.
+# Can use cmake ../ -DNUMBER_OF_SPECIES=XX to change this default value.
 ###
 ")

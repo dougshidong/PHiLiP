@@ -1,28 +1,31 @@
 #include "pod_adaptive_sampling_testing.h"
-#include "tests.h"
-#include <fstream>
+
 #include <deal.II/base/numbers.h>
-#include "parameters/all_parameters.h"
-#include "ode_solver/ode_solver_factory.h"
+
+#include <eigen/Eigen/Dense>
+#include <fstream>
+
+#include "dg/dg_base.hpp"
 #include "flow_solver/flow_solver.h"
 #include "flow_solver/flow_solver_factory.h"
-#include "dg/dg.h"
 #include "functional/functional.h"
-#include <eigen/Eigen/Dense>
+#include "ode_solver/ode_solver_factory.h"
+#include "parameters/all_parameters.h"
 #include "reduced_order/pod_basis_offline.h"
+#include "tests.h"
 
 namespace PHiLiP {
 namespace Tests {
 
-template <int dim, int nstate>
-AdaptiveSamplingTesting<dim, nstate>::AdaptiveSamplingTesting(const PHiLiP::Parameters::AllParameters *const parameters_input,
+template <int dim, int nspecies, int nstate>
+AdaptiveSamplingTesting<dim, nspecies, nstate>::AdaptiveSamplingTesting(const PHiLiP::Parameters::AllParameters *const parameters_input,
                                                               const dealii::ParameterHandler &parameter_handler_input)
         : TestsBase::TestsBase(parameters_input)
         , parameter_handler(parameter_handler_input)
 {}
 
-template <int dim, int nstate>
-int AdaptiveSamplingTesting<dim, nstate>::run_test() const
+template <int dim, int nspecies, int nstate>
+int AdaptiveSamplingTesting<dim, nspecies, nstate>::run_test() const
 {
 
     RowVectorXd params_1 {{4.0000000000000000,
@@ -44,18 +47,18 @@ int AdaptiveSamplingTesting<dim, nstate>::run_test() const
         std::cout << "Parameter 2: " << params_2(i) << std::endl;
 
         RowVector2d parameter = {params_1(i), params_2(i)};
-        Parameters::AllParameters params = reinitParams(parameter);
+        Parameters::AllParameters params = reinit_params(parameter);
 
-        std::unique_ptr<FlowSolver::FlowSolver<dim,nstate>> flow_solver_implicit = FlowSolver::FlowSolverFactory<dim,nstate>::select_flow_case(&params, parameter_handler);
+        std::unique_ptr<FlowSolver::FlowSolver<dim,nspecies,nstate>> flow_solver_implicit = FlowSolver::FlowSolverFactory<dim,nspecies,nstate>::select_flow_case(&params, parameter_handler);
 
-        auto functional_implicit = FunctionalFactory<dim,nstate,double>::create_Functional(params.functional_param, flow_solver_implicit->dg);
+        auto functional_implicit = FunctionalFactory<dim,nspecies,nstate,double>::create_Functional(params.functional_param, flow_solver_implicit->dg);
 
-        std::unique_ptr<FlowSolver::FlowSolver<dim,nstate>> flow_solver = FlowSolver::FlowSolverFactory<dim,nstate>::select_flow_case(&params, parameter_handler);
+        std::unique_ptr<FlowSolver::FlowSolver<dim,nspecies,nstate>> flow_solver = FlowSolver::FlowSolverFactory<dim,nspecies,nstate>::select_flow_case(&params, parameter_handler);
         auto ode_solver_type = Parameters::ODESolverParam::ODESolverEnum::pod_petrov_galerkin_solver;
-        std::shared_ptr<ProperOrthogonalDecomposition::OfflinePOD<dim>> pod_standard = std::make_shared<ProperOrthogonalDecomposition::OfflinePOD<dim>>(flow_solver->dg);
-        flow_solver->ode_solver =  PHiLiP::ODE::ODESolverFactory<dim, double>::create_ODESolver_manual(ode_solver_type, flow_solver->dg, pod_standard);
+        std::shared_ptr<ProperOrthogonalDecomposition::OfflinePOD<dim,nspecies>> pod_standard = std::make_shared<ProperOrthogonalDecomposition::OfflinePOD<dim,nspecies>>(flow_solver->dg);
+        flow_solver->ode_solver =  PHiLiP::ODE::ODESolverFactory<dim, nspecies, double>::create_ODESolver_manual(ode_solver_type, flow_solver->dg, pod_standard);
         flow_solver->ode_solver->allocate_ode_system();
-        auto functional = FunctionalFactory<dim,nstate,double>::create_Functional(params.functional_param, flow_solver->dg);
+        auto functional = FunctionalFactory<dim,nspecies,nstate,double>::create_Functional(params.functional_param, flow_solver->dg);
 
 
         flow_solver->ode_solver->steady_state();
@@ -90,8 +93,8 @@ int AdaptiveSamplingTesting<dim, nstate>::run_test() const
     return 0;
 }
 
-template <int dim, int nstate>
-Parameters::AllParameters AdaptiveSamplingTesting<dim, nstate>::reinitParams(RowVector2d parameter) const{
+template <int dim, int nspecies, int nstate>
+Parameters::AllParameters AdaptiveSamplingTesting<dim, nspecies, nstate>::reinit_params(RowVector2d parameter) const{
     // Copy all parameters
     PHiLiP::Parameters::AllParameters parameters = *(this->all_parameters);
 
@@ -113,12 +116,12 @@ Parameters::AllParameters AdaptiveSamplingTesting<dim, nstate>::reinitParams(Row
     return parameters;
 }
 
-#if PHILIP_DIM==1
-        template class AdaptiveSamplingTesting<PHILIP_DIM, PHILIP_DIM>;
+#if PHILIP_DIM==1 && PHILIP_SPECIES==1
+        template class AdaptiveSamplingTesting<PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM>;
 #endif
 
-#if PHILIP_DIM!=1
-        template class AdaptiveSamplingTesting<PHILIP_DIM, PHILIP_DIM+2>;
+#if PHILIP_DIM!=1 && PHILIP_SPECIES==1
+        template class AdaptiveSamplingTesting<PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2>;
 #endif
 
 } // Tests namespace

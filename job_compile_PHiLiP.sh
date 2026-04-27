@@ -48,12 +48,14 @@ if [ ${CLUSTER_NAME} == "beluga" ]; then
     export DEAL_II_DIR=/project/rrg-nadaraja-ac/Libraries/dealii_updated/dealii/install/install
 elif [ ${CLUSTER_NAME} == "narval" ]; then
     export DEAL_II_DIR=/project/def-nadaraja/Libraries/dealii_updated_reinstalled/dealii/install/install
+elif [ ${CLUSTER_NAME} == "graham" ]; then
+    export DEAL_II_DIR=/project/def-nadaraja/Libraries/dealii/install
 fi
 export GMSH_DIR=/cvmfs/soft.computecanada.ca/easybuild/software/2020/avx512/Compiler/intel2020/gmsh/4.11.1
 export OMP_NUM_THREADS=1
 
 cd ${SLURM_TMPDIR}
-rsync  -axvH --no-g --no-p --exclude 'build*' --exclude .git --exclude '*.log' --exclude '*.out' ${SLURM_SUBMIT_DIR} .
+rsync  -axvH --no-g --no-p --exclude 'build_release' --exclude 'build_debug' --exclude .git --exclude '*.log' --exclude '*.out' ${SLURM_SUBMIT_DIR} .
 mkdir build_release
 
 cd build_release

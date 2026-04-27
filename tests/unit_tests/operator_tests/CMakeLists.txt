@@ -8,6 +8,8 @@ foreach(dim RANGE 1 3)
     add_executable(${TEST_TARGET} ${TEST_SRC})
     # Replace occurences of PHILIP_DIM with 1, 2, or 3 in the code
     target_compile_definitions(${TEST_TARGET} PRIVATE PHILIP_DIM=${dim})
+    # Replace occurences of PHILIP_SPECIES with user-defined value in the code
+    target_compile_definitions(${TEST_TARGET} PRIVATE PHILIP_SPECIES=${NUMBER_OF_SPECIES})
 
     # Compile this executable when 'make unit_tests'
     add_dependencies(unit_tests ${TEST_TARGET})
@@ -28,7 +30,11 @@ foreach(dim RANGE 1 3)
       NAME ${TEST_TARGET}
       COMMAND mpirun -n ${MPIMAX} ${EXECUTABLE_OUTPUT_PATH}/${TEST_TARGET}
       WORKING_DIRECTORY ${TEST_OUTPUT_DIR})
-
+    set_tests_labels(${TEST_TARGET} OPERATOR
+                                    ${dim}D
+                                    PARALLEL
+                                    QUICK
+                                    UNIT_TEST)
     unset(TEST_TARGET)
     unset(OperatorsLib)
 endforeach()
@@ -43,6 +49,8 @@ foreach(dim RANGE 1 3)
     add_executable(${TEST_TARGET} ${TEST_SRC})
     # Replace occurences of PHILIP_DIM with 1, 2, or 3 in the code
     target_compile_definitions(${TEST_TARGET} PRIVATE PHILIP_DIM=${dim})
+    # Replace occurences of PHILIP_SPECIES with user-defined value in the code
+    target_compile_definitions(${TEST_TARGET} PRIVATE PHILIP_SPECIES=${NUMBER_OF_SPECIES})
 
     # Compile this executable when 'make unit_tests'
     add_dependencies(unit_tests ${TEST_TARGET})
@@ -63,11 +71,16 @@ foreach(dim RANGE 1 3)
       NAME ${TEST_TARGET}
       COMMAND mpirun -n ${MPIMAX} ${EXECUTABLE_OUTPUT_PATH}/${TEST_TARGET}
       WORKING_DIRECTORY ${TEST_OUTPUT_DIR})
-
+    set_tests_labels(${TEST_TARGET} OPERATOR
+                                    ${dim}D
+                                    PARALLEL
+                                    QUICK
+                                    UNIT_TEST)
     unset(TEST_TARGET)
     unset(OperatorsLib)
 endforeach()
 
+if(${NUMBER_OF_SPECIES} EQUAL 1)
 set(TEST_SRC
     metric_Jacobian_test.cpp)
 
@@ -78,6 +91,8 @@ foreach(dim RANGE 2 3)
     add_executable(${TEST_TARGET} ${TEST_SRC})
     # Replace occurences of PHILIP_DIM with 1, 2, or 3 in the code
     target_compile_definitions(${TEST_TARGET} PRIVATE PHILIP_DIM=${dim})
+    # Replace occurences of PHILIP_SPECIES with user-defined value in the code
+    target_compile_definitions(${TEST_TARGET} PRIVATE PHILIP_SPECIES=${NUMBER_OF_SPECIES})
 
     # Compile this executable when 'make unit_tests'
     add_dependencies(unit_tests ${TEST_TARGET})
@@ -97,7 +112,11 @@ foreach(dim RANGE 2 3)
       NAME ${TEST_TARGET}
       COMMAND mpirun -n ${MPIMAX} ${EXECUTABLE_OUTPUT_PATH}/${TEST_TARGET}
       WORKING_DIRECTORY ${TEST_OUTPUT_DIR})
-
+    set_tests_labels(${TEST_TARGET} OPERATOR
+                                    ${dim}D
+                                    PARALLEL
+                                    QUICK
+                                    UNIT_TEST)
     unset(TEST_TARGET)
     unset(OperatorsLib)
 endforeach()
@@ -149,6 +168,8 @@ foreach(dim RANGE 2 3)
     add_executable(${TEST_TARGET} ${TEST_SRC})
     # Replace occurences of PHILIP_DIM with 1, 2, or 3 in the code
     target_compile_definitions(${TEST_TARGET} PRIVATE PHILIP_DIM=${dim})
+    # Replace occurences of PHILIP_SPECIES with user-defined value in the code
+    target_compile_definitions(${TEST_TARGET} PRIVATE PHILIP_SPECIES=${NUMBER_OF_SPECIES})
 
     # Compile this executable when 'make unit_tests'
     add_dependencies(unit_tests ${TEST_TARGET})
@@ -168,7 +189,11 @@ foreach(dim RANGE 2 3)
       NAME ${TEST_TARGET}
       COMMAND mpirun -n ${MPIMAX} ${EXECUTABLE_OUTPUT_PATH}/${TEST_TARGET}
       WORKING_DIRECTORY ${TEST_OUTPUT_DIR})
-
+    set_tests_labels(${TEST_TARGET} OPERATOR
+                                    ${dim}D
+                                    PARALLEL
+                                    QUICK
+                                    UNIT_TEST)
     unset(TEST_TARGET)
     unset(OperatorsLib)
 endforeach()
@@ -183,6 +208,8 @@ foreach(dim RANGE 2 3)
     add_executable(${TEST_TARGET} ${TEST_SRC})
     # Replace occurences of PHILIP_DIM with 1, 2, or 3 in the code
     target_compile_definitions(${TEST_TARGET} PRIVATE PHILIP_DIM=${dim})
+    # Replace occurences of PHILIP_SPECIES with user-defined value in the code
+    target_compile_definitions(${TEST_TARGET} PRIVATE PHILIP_SPECIES=${NUMBER_OF_SPECIES})
 
     # Compile this executable when 'make unit_tests'
     add_dependencies(unit_tests ${TEST_TARGET})
@@ -203,46 +230,14 @@ foreach(dim RANGE 2 3)
       NAME ${TEST_TARGET}
       COMMAND mpirun -n ${MPIMAX} ${EXECUTABLE_OUTPUT_PATH}/${TEST_TARGET}
       WORKING_DIRECTORY ${TEST_OUTPUT_DIR})
-
+    set_tests_labels(${TEST_TARGET} OPERATOR
+                                    ${dim}D
+                                    PARALLEL
+                                    QUICK
+                                    UNIT_TEST)
     unset(TEST_TARGET)
     unset(OperatorsLib)
 endforeach()
-
-set(TEST_SRC
-    surface_oper_test.cpp)
-
-foreach(dim RANGE 1 3)
-    # Output executable
-    string(CONCAT TEST_TARGET ${dim}D_SURFACE_OPERATORS)
-    message("Adding executable " ${TEST_TARGET} " with files " ${TEST_SRC} "\n")
-    add_executable(${TEST_TARGET} ${TEST_SRC})
-    # Replace occurences of PHILIP_DIM with 1, 2, or 3 in the code
-    target_compile_definitions(${TEST_TARGET} PRIVATE PHILIP_DIM=${dim})
-
-    # Compile this executable when 'make unit_tests'
-    add_dependencies(unit_tests ${TEST_TARGET})
-    add_dependencies(${dim}D ${TEST_TARGET})
-
-    # Library dependency
-    target_link_libraries(${TEST_TARGET} ParametersLibrary)
-    string(CONCAT OperatorsLib Operator_Lib_${dim}D)
-    target_link_libraries(${TEST_TARGET} ${OperatorsLib})
-    target_link_libraries(${TEST_TARGET} DiscontinuousGalerkin_${dim}D)
-    
-    # Setup target with deal.II
-    if (NOT DOC_ONLY)
-        DEAL_II_SETUP_TARGET(${TEST_TARGET})
-    endif()
-
-    add_test(
-      NAME ${TEST_TARGET}
-      COMMAND mpirun -n ${MPIMAX} ${EXECUTABLE_OUTPUT_PATH}/${TEST_TARGET}
-      WORKING_DIRECTORY ${TEST_OUTPUT_DIR})
-
-    unset(TEST_TARGET)
-    unset(OperatorsLib)
-endforeach()
-
 
 set(TEST_SRC
     surface_GCL_test.cpp)
@@ -254,6 +249,8 @@ foreach(dim RANGE 2 3)
     add_executable(${TEST_TARGET} ${TEST_SRC})
     # Replace occurences of PHILIP_DIM with 1, 2, or 3 in the code
     target_compile_definitions(${TEST_TARGET} PRIVATE PHILIP_DIM=${dim})
+    # Replace occurences of PHILIP_SPECIES with user-defined value in the code
+    target_compile_definitions(${TEST_TARGET} PRIVATE PHILIP_SPECIES=${NUMBER_OF_SPECIES})
 
     # Compile this executable when 'make unit_tests'
     add_dependencies(unit_tests ${TEST_TARGET})
@@ -274,7 +271,11 @@ foreach(dim RANGE 2 3)
       NAME ${TEST_TARGET}
       COMMAND mpirun -n ${MPIMAX} ${EXECUTABLE_OUTPUT_PATH}/${TEST_TARGET}
       WORKING_DIRECTORY ${TEST_OUTPUT_DIR})
-
+    set_tests_labels(${TEST_TARGET} OPERATOR
+                                    ${dim}D
+                                    PARALLEL
+                                    QUICK
+                                    UNIT_TEST)
     unset(TEST_TARGET)
     unset(OperatorsLib)
 endforeach()
@@ -289,6 +290,8 @@ foreach(dim RANGE 2 3)
     add_executable(${TEST_TARGET} ${TEST_SRC})
     # Replace occurences of PHILIP_DIM with 1, 2, or 3 in the code
     target_compile_definitions(${TEST_TARGET} PRIVATE PHILIP_DIM=${dim})
+    # Replace occurences of PHILIP_SPECIES with user-defined value in the code
+    target_compile_definitions(${TEST_TARGET} PRIVATE PHILIP_SPECIES=${NUMBER_OF_SPECIES})
 
     # Compile this executable when 'make unit_tests'
     add_dependencies(unit_tests ${TEST_TARGET})
@@ -309,6 +312,19 @@ foreach(dim RANGE 2 3)
       NAME ${TEST_TARGET}
       COMMAND mpirun -n ${MPIMAX} ${EXECUTABLE_OUTPUT_PATH}/${TEST_TARGET}
       WORKING_DIRECTORY ${TEST_OUTPUT_DIR})
+    if (dim EQUAL 2)
+        set_tests_labels(${TEST_TARGET} OPERATOR
+                                        ${dim}D
+                                        PARALLEL
+                                        QUICK
+                                        UNIT_TEST)
+    else ()
+        set_tests_labels(${TEST_TARGET} OPERATOR
+                                        ${dim}D
+                                        PARALLEL
+                                        MODERATE
+                                        UNIT_TEST)
+    endif()
 
     unset(TEST_TARGET)
     unset(OperatorsLib)
@@ -324,6 +340,8 @@ foreach(dim RANGE 2 3)
     add_executable(${TEST_TARGET} ${TEST_SRC})
     # Replace occurences of PHILIP_DIM with 1, 2, or 3 in the code
     target_compile_definitions(${TEST_TARGET} PRIVATE PHILIP_DIM=${dim})
+    # Replace occurences of PHILIP_SPECIES with user-defined value in the code
+    target_compile_definitions(${TEST_TARGET} PRIVATE PHILIP_SPECIES=${NUMBER_OF_SPECIES})
 
     # Compile this executable when 'make unit_tests'
     add_dependencies(unit_tests ${TEST_TARGET})
@@ -344,7 +362,180 @@ foreach(dim RANGE 2 3)
       NAME ${TEST_TARGET}
       COMMAND mpirun -n ${MPIMAX} ${EXECUTABLE_OUTPUT_PATH}/${TEST_TARGET}
       WORKING_DIRECTORY ${TEST_OUTPUT_DIR})
+    set_tests_labels(${TEST_TARGET} OPERATOR
+                                    ${dim}D
+                                    PARALLEL
+                                    QUICK
+                                    UNIT_TEST)
+    unset(TEST_TARGET)
+    unset(OperatorsLib)
+endforeach()
 
+set(TEST_SRC
+    surface_conforming_test.cpp)
+
+foreach(dim RANGE 2 3)
+    # Output executable
+    string(CONCAT TEST_TARGET ${dim}D_SURFACE_CONFORMING_TEST)
+    message("Adding executable " ${TEST_TARGET} " with files " ${TEST_SRC} "\n")
+    add_executable(${TEST_TARGET} ${TEST_SRC})
+    # Replace occurences of PHILIP_DIM with 1, 2, or 3 in the code
+    target_compile_definitions(${TEST_TARGET} PRIVATE PHILIP_DIM=${dim})
+    # Replace occurences of PHILIP_SPECIES with user-defined value in the code
+    target_compile_definitions(${TEST_TARGET} PRIVATE PHILIP_SPECIES=${NUMBER_OF_SPECIES})
+
+    # Compile this executable when 'make unit_tests'
+    add_dependencies(unit_tests ${TEST_TARGET})
+    add_dependencies(${dim}D ${TEST_TARGET})
+
+    # Library dependency
+    target_link_libraries(${TEST_TARGET} ParametersLibrary)
+    string(CONCAT OperatorsLib Operator_Lib_${dim}D)
+    target_link_libraries(${TEST_TARGET} ${OperatorsLib})
+    target_link_libraries(${TEST_TARGET} DiscontinuousGalerkin_${dim}D)
+    
+    # Setup target with deal.II
+    if (NOT DOC_ONLY)
+        DEAL_II_SETUP_TARGET(${TEST_TARGET})
+    endif()
+
+    add_test(
+      NAME ${TEST_TARGET}
+      COMMAND mpirun -n ${MPIMAX} ${EXECUTABLE_OUTPUT_PATH}/${TEST_TARGET}
+      WORKING_DIRECTORY ${TEST_OUTPUT_DIR})
+    set_tests_labels(${TEST_TARGET} OPERATOR
+                                    ${dim}D
+                                    PARALLEL
+                                    QUICK
+                                    UNIT_TEST)
+    unset(TEST_TARGET)
+    unset(OperatorsLib)
+endforeach()
+
+set(TEST_SRC
+    mapping_basis_collocation_test.cpp)
+
+foreach(dim RANGE 2 3)
+    # Output executable
+    string(CONCAT TEST_TARGET ${dim}D_MAPPING_BASIS_TEST)
+    message("Adding executable " ${TEST_TARGET} " with files " ${TEST_SRC} "\n")
+    add_executable(${TEST_TARGET} ${TEST_SRC})
+    # Replace occurences of PHILIP_DIM with 1, 2, or 3 in the code
+    target_compile_definitions(${TEST_TARGET} PRIVATE PHILIP_DIM=${dim})
+    # Replace occurences of PHILIP_SPECIES with user-defined value in the code
+    target_compile_definitions(${TEST_TARGET} PRIVATE PHILIP_SPECIES=${NUMBER_OF_SPECIES})
+
+    # Compile this executable when 'make unit_tests'
+    add_dependencies(unit_tests ${TEST_TARGET})
+    add_dependencies(${dim}D ${TEST_TARGET})
+
+    # Library dependency
+    target_link_libraries(${TEST_TARGET} ParametersLibrary)
+    string(CONCAT OperatorsLib Operator_Lib_${dim}D)
+    string(CONCAT GridsLib Grids_${dim}D)
+    target_link_libraries(${TEST_TARGET} ${OperatorsLib})
+    target_link_libraries(${TEST_TARGET} DiscontinuousGalerkin_${dim}D)
+    target_link_libraries(${TEST_TARGET} ${GridsLib})
+    # Setup target with deal.II
+    if (NOT DOC_ONLY)
+        DEAL_II_SETUP_TARGET(${TEST_TARGET})
+    endif()
+
+    add_test(
+      NAME ${TEST_TARGET}
+      COMMAND mpirun -n ${MPIMAX} ${EXECUTABLE_OUTPUT_PATH}/${TEST_TARGET}
+      WORKING_DIRECTORY ${TEST_OUTPUT_DIR})
+    set_tests_labels(${TEST_TARGET} OPERATOR
+                                    ${dim}D
+                                    PARALLEL
+                                    QUICK
+                                    UNIT_TEST)
+    unset(TEST_TARGET)
+    unset(OperatorsLib)
+    unset(GridsLib)
+endforeach()
+
+set(TEST_SRC
+    global_mass_matrix_test.cpp)
+
+foreach(dim RANGE 2 3)
+    # Output executable
+    string(CONCAT TEST_TARGET ${dim}D_GLOBAL_MASS_MATRIX_ON_THE_FLY_TEST)
+    message("Adding executable " ${TEST_TARGET} " with files " ${TEST_SRC} "\n")
+    add_executable(${TEST_TARGET} ${TEST_SRC})
+    # Replace occurences of PHILIP_DIM with 1, 2, or 3 in the code
+    target_compile_definitions(${TEST_TARGET} PRIVATE PHILIP_DIM=${dim})
+    # Replace occurences of PHILIP_SPECIES with user-defined value in the code
+    target_compile_definitions(${TEST_TARGET} PRIVATE PHILIP_SPECIES=${NUMBER_OF_SPECIES})
+
+    # Compile this executable when 'make unit_tests'
+    add_dependencies(unit_tests ${TEST_TARGET})
+    add_dependencies(${dim}D ${TEST_TARGET})
+
+    # Library dependency
+    target_link_libraries(${TEST_TARGET} ParametersLibrary)
+    string(CONCAT OperatorsLib Operator_Lib_${dim}D)
+    string(CONCAT GridsLib Grids_${dim}D)
+    target_link_libraries(${TEST_TARGET} ${OperatorsLib})
+    target_link_libraries(${TEST_TARGET} DiscontinuousGalerkin_${dim}D)
+    target_link_libraries(${TEST_TARGET} ${GridsLib})
+    # Setup target with deal.II
+    if (NOT DOC_ONLY)
+        DEAL_II_SETUP_TARGET(${TEST_TARGET})
+    endif()
+
+    add_test(
+      NAME ${TEST_TARGET}
+      COMMAND mpirun -n ${MPIMAX} ${EXECUTABLE_OUTPUT_PATH}/${TEST_TARGET}
+      WORKING_DIRECTORY ${TEST_OUTPUT_DIR})
+    set_tests_labels(${TEST_TARGET} OPERATOR
+                                    ${dim}D
+                                    PARALLEL
+                                    QUICK
+                                    UNIT_TEST)
+    unset(TEST_TARGET)
+    unset(OperatorsLib)
+    unset(GridsLib)
+endforeach()
+endif()
+
+set(TEST_SRC
+    surface_oper_test.cpp)
+
+foreach(dim RANGE 1 3)
+    # Output executable
+    string(CONCAT TEST_TARGET ${dim}D_SURFACE_OPERATORS)
+    message("Adding executable " ${TEST_TARGET} " with files " ${TEST_SRC} "\n")
+    add_executable(${TEST_TARGET} ${TEST_SRC})
+    # Replace occurences of PHILIP_DIM with 1, 2, or 3 in the code
+    target_compile_definitions(${TEST_TARGET} PRIVATE PHILIP_DIM=${dim})
+    # Replace occurences of PHILIP_SPECIES with user-defined value in the code
+    target_compile_definitions(${TEST_TARGET} PRIVATE PHILIP_SPECIES=${NUMBER_OF_SPECIES})
+
+    # Compile this executable when 'make unit_tests'
+    add_dependencies(unit_tests ${TEST_TARGET})
+    add_dependencies(${dim}D ${TEST_TARGET})
+
+    # Library dependency
+    target_link_libraries(${TEST_TARGET} ParametersLibrary)
+    string(CONCAT OperatorsLib Operator_Lib_${dim}D)
+    target_link_libraries(${TEST_TARGET} ${OperatorsLib})
+    target_link_libraries(${TEST_TARGET} DiscontinuousGalerkin_${dim}D)
+    
+    # Setup target with deal.II
+    if (NOT DOC_ONLY)
+        DEAL_II_SETUP_TARGET(${TEST_TARGET})
+    endif()
+
+    add_test(
+      NAME ${TEST_TARGET}
+      COMMAND mpirun -n ${MPIMAX} ${EXECUTABLE_OUTPUT_PATH}/${TEST_TARGET}
+      WORKING_DIRECTORY ${TEST_OUTPUT_DIR})
+    set_tests_labels(${TEST_TARGET} OPERATOR
+                                    ${dim}D
+                                    PARALLEL
+                                    QUICK
+                                    UNIT_TEST)
     unset(TEST_TARGET)
     unset(OperatorsLib)
 endforeach()
@@ -359,6 +550,8 @@ foreach(dim RANGE 1 3)
     add_executable(${TEST_TARGET} ${TEST_SRC})
     # Replace occurences of PHILIP_DIM with 1, 2, or 3 in the code
     target_compile_definitions(${TEST_TARGET} PRIVATE PHILIP_DIM=${dim})
+    # Replace occurences of PHILIP_SPECIES with user-defined value in the code
+    target_compile_definitions(${TEST_TARGET} PRIVATE PHILIP_SPECIES=${NUMBER_OF_SPECIES})
 
     # Compile this executable when 'make unit_tests'
     add_dependencies(unit_tests ${TEST_TARGET})
@@ -378,7 +571,11 @@ foreach(dim RANGE 1 3)
       NAME ${TEST_TARGET}
       COMMAND mpirun -n ${MPIMAX} ${EXECUTABLE_OUTPUT_PATH}/${TEST_TARGET}
       WORKING_DIRECTORY ${TEST_OUTPUT_DIR})
-
+    set_tests_labels(${TEST_TARGET} OPERATOR
+                                    ${dim}D
+                                    PARALLEL
+                                    QUICK
+                                    UNIT_TEST)
     unset(TEST_TARGET)
     unset(OperatorsLib)
 endforeach()
@@ -395,6 +592,9 @@ endforeach()
 #    add_executable(${TEST_TARGET} ${TEST_SRC})
 #    # Replace occurences of PHILIP_DIM with 1, 2, or 3 in the code
 #    target_compile_definitions(${TEST_TARGET} PRIVATE PHILIP_DIM=${dim})
+#    # Replace occurences of PHILIP_SPECIES with 1 in the code
+#    # NOTE: PHILIP_SPECIES will become user defined in a future PR
+#    target_compile_definitions(${TEST_TARGET} PRIVATE PHILIP_SPECIES=${NUMBER_OF_SPECIES})
 #
 #    # Compile this executable when 'make unit_tests'
 #    add_dependencies(unit_tests ${TEST_TARGET})
@@ -434,6 +634,9 @@ endforeach()
 #    add_executable(${TEST_TARGET} ${TEST_SRC})
 #    # Replace occurences of PHILIP_DIM with 1, 2, or 3 in the code
 #    target_compile_definitions(${TEST_TARGET} PRIVATE PHILIP_DIM=${dim})
+#    # Replace occurences of PHILIP_SPECIES with 1 in the code
+#    # NOTE: PHILIP_SPECIES will become user defined in a future PR
+#    target_compile_definitions(${TEST_TARGET} PRIVATE PHILIP_SPECIES=${NUMBER_OF_SPECIES})
 #
 #    # Compile this executable when 'make unit_tests'
 #    add_dependencies(unit_tests ${TEST_TARGET})
@@ -474,6 +677,9 @@ endforeach()
 #    add_executable(${TEST_TARGET} ${TEST_SRC})
 #    # Replace occurences of PHILIP_DIM with 1, 2, or 3 in the code
 #    target_compile_definitions(${TEST_TARGET} PRIVATE PHILIP_DIM=${dim})
+#    # Replace occurences of PHILIP_SPECIES with 1 in the code
+#    # NOTE: PHILIP_SPECIES will become user defined in a future PR
+#    target_compile_definitions(${TEST_TARGET} PRIVATE PHILIP_SPECIES=${NUMBER_OF_SPECIES})
 #
 #    # Compile this executable when 'make unit_tests'
 #    add_dependencies(unit_tests ${TEST_TARGET})
@@ -502,41 +708,6 @@ endforeach()
 #
 #endforeach()
 
-set(TEST_SRC
-    surface_conforming_test.cpp)
-
-foreach(dim RANGE 2 3)
-    # Output executable
-    string(CONCAT TEST_TARGET ${dim}D_SURFACE_CONFORMING_TEST)
-    message("Adding executable " ${TEST_TARGET} " with files " ${TEST_SRC} "\n")
-    add_executable(${TEST_TARGET} ${TEST_SRC})
-    # Replace occurences of PHILIP_DIM with 1, 2, or 3 in the code
-    target_compile_definitions(${TEST_TARGET} PRIVATE PHILIP_DIM=${dim})
-
-    # Compile this executable when 'make unit_tests'
-    add_dependencies(unit_tests ${TEST_TARGET})
-    add_dependencies(${dim}D ${TEST_TARGET})
-
-    # Library dependency
-    target_link_libraries(${TEST_TARGET} ParametersLibrary)
-    string(CONCAT OperatorsLib Operator_Lib_${dim}D)
-    target_link_libraries(${TEST_TARGET} ${OperatorsLib})
-    target_link_libraries(${TEST_TARGET} DiscontinuousGalerkin_${dim}D)
-    
-    # Setup target with deal.II
-    if (NOT DOC_ONLY)
-        DEAL_II_SETUP_TARGET(${TEST_TARGET})
-    endif()
-
-    add_test(
-      NAME ${TEST_TARGET}
-      COMMAND mpirun -n ${MPIMAX} ${EXECUTABLE_OUTPUT_PATH}/${TEST_TARGET}
-      WORKING_DIRECTORY ${TEST_OUTPUT_DIR})
-
-    unset(TEST_TARGET)
-    unset(OperatorsLib)
-endforeach()
-
 #set(TEST_SRC
 #    weight_adjusted_mass_inverse_test.cpp
 #    )
@@ -549,6 +720,9 @@ endforeach()
 #    add_executable(${TEST_TARGET} ${TEST_SRC})
 #    # Replace occurences of PHILIP_DIM with 1, 2, or 3 in the code
 #    target_compile_definitions(${TEST_TARGET} PRIVATE PHILIP_DIM=${dim})
+#    # Replace occurences of PHILIP_SPECIES with 1 in the code
+#    # NOTE: PHILIP_SPECIES will become user defined in a future PR
+#    target_compile_definitions(${TEST_TARGET} PRIVATE PHILIP_SPECIES=${NUMBER_OF_SPECIES})
 #
 #    # Compile this executable when 'make unit_tests'
 #    add_dependencies(unit_tests ${TEST_TARGET})
@@ -587,6 +761,8 @@ foreach(dim RANGE 2 3)
     add_executable(${TEST_TARGET} ${TEST_SRC})
     # Replace occurences of PHILIP_DIM with 1, 2, or 3 in the code
     target_compile_definitions(${TEST_TARGET} PRIVATE PHILIP_DIM=${dim})
+    # Replace occurences of PHILIP_SPECIES with user-defined value in the code
+    target_compile_definitions(${TEST_TARGET} PRIVATE PHILIP_SPECIES=${NUMBER_OF_SPECIES})
 
     # Compile this executable when 'make unit_tests'
     add_dependencies(unit_tests ${TEST_TARGET})
@@ -608,7 +784,11 @@ foreach(dim RANGE 2 3)
       NAME ${TEST_TARGET}
       COMMAND mpirun -n 1 ${EXECUTABLE_OUTPUT_PATH}/${TEST_TARGET}
       WORKING_DIRECTORY ${TEST_OUTPUT_DIR})
-
+    set_tests_labels(${TEST_TARGET} OPERATOR
+                                    ${dim}D
+                                    SERIAL
+                                    QUICK
+                                    UNIT_TEST)
     unset(TEST_TARGET)
     # unset(ParametersLib)
     unset(OperatorsLib)
@@ -624,6 +804,8 @@ foreach(dim RANGE 2 3)
     add_executable(${TEST_TARGET} ${TEST_SRC})
     # Replace occurences of PHILIP_DIM with 1, 2, or 3 in the code
     target_compile_definitions(${TEST_TARGET} PRIVATE PHILIP_DIM=${dim})
+    # Replace occurences of PHILIP_SPECIES with user-defined value in the code
+    target_compile_definitions(${TEST_TARGET} PRIVATE PHILIP_SPECIES=${NUMBER_OF_SPECIES})
 
     # Compile this executable when 'make unit_tests'
     add_dependencies(unit_tests ${TEST_TARGET})
@@ -646,7 +828,11 @@ foreach(dim RANGE 2 3)
       NAME ${TEST_TARGET}
       COMMAND mpirun -n 1 ${EXECUTABLE_OUTPUT_PATH}/${TEST_TARGET}
       WORKING_DIRECTORY ${TEST_OUTPUT_DIR})
-
+    set_tests_labels(${TEST_TARGET} OPERATOR
+                                    ${dim}D
+                                    SERIAL
+                                    QUICK
+                                    UNIT_TEST)
     unset(TEST_TARGET)
     # unset(ParametersLib)
     unset(OperatorsLib)
@@ -662,6 +848,8 @@ foreach(dim RANGE 1 3)
     add_executable(${TEST_TARGET} ${TEST_SRC})
     # Replace occurences of PHILIP_DIM with 1, 2, or 3 in the code
     target_compile_definitions(${TEST_TARGET} PRIVATE PHILIP_DIM=${dim})
+    # Replace occurences of PHILIP_SPECIES with user-defined value in the code
+    target_compile_definitions(${TEST_TARGET} PRIVATE PHILIP_SPECIES=${NUMBER_OF_SPECIES})
 
     # Compile this executable when 'make unit_tests'
     add_dependencies(unit_tests ${TEST_TARGET})
@@ -684,7 +872,11 @@ foreach(dim RANGE 1 3)
       NAME ${TEST_TARGET}
       COMMAND mpirun -n 1 ${EXECUTABLE_OUTPUT_PATH}/${TEST_TARGET}
       WORKING_DIRECTORY ${TEST_OUTPUT_DIR})
-
+    set_tests_labels(${TEST_TARGET} OPERATOR
+                                    ${dim}D
+                                    SERIAL
+                                    QUICK
+                                    UNIT_TEST)
     unset(TEST_TARGET)
     # unset(ParametersLib)
     unset(OperatorsLib)
@@ -699,6 +891,8 @@ foreach(dim RANGE 1 3)
     add_executable(${TEST_TARGET} ${TEST_SRC})
     # Replace occurences of PHILIP_DIM with 1, 2, or 3 in the code
     target_compile_definitions(${TEST_TARGET} PRIVATE PHILIP_DIM=${dim})
+    # Replace occurences of PHILIP_SPECIES with user-defined value in the code
+    target_compile_definitions(${TEST_TARGET} PRIVATE PHILIP_SPECIES=${NUMBER_OF_SPECIES})
 
     # Compile this executable when 'make unit_tests'
     add_dependencies(unit_tests ${TEST_TARGET})
@@ -721,7 +915,11 @@ foreach(dim RANGE 1 3)
       NAME ${TEST_TARGET}
       COMMAND mpirun -n 1 ${EXECUTABLE_OUTPUT_PATH}/${TEST_TARGET}
       WORKING_DIRECTORY ${TEST_OUTPUT_DIR})
-
+    set_tests_labels(${TEST_TARGET} OPERATOR
+                                    ${dim}D
+                                    SERIAL
+                                    QUICK
+                                    UNIT_TEST)
     unset(TEST_TARGET)
     # unset(ParametersLib)
     unset(OperatorsLib)
@@ -737,6 +935,8 @@ foreach(dim RANGE 1 3)
     add_executable(${TEST_TARGET} ${TEST_SRC})
     # Replace occurences of PHILIP_DIM with 1, 2, or 3 in the code
     target_compile_definitions(${TEST_TARGET} PRIVATE PHILIP_DIM=${dim})
+    # Replace occurences of PHILIP_SPECIES with user-defined value in the code
+    target_compile_definitions(${TEST_TARGET} PRIVATE PHILIP_SPECIES=${NUMBER_OF_SPECIES})
 
     # Compile this executable when 'make unit_tests'
     add_dependencies(unit_tests ${TEST_TARGET})
@@ -759,7 +959,11 @@ foreach(dim RANGE 1 3)
       NAME ${TEST_TARGET}
       COMMAND mpirun -n 1 ${EXECUTABLE_OUTPUT_PATH}/${TEST_TARGET}
       WORKING_DIRECTORY ${TEST_OUTPUT_DIR})
-
+    set_tests_labels(${TEST_TARGET} OPERATOR
+                                    ${dim}D
+                                    SERIAL
+                                    QUICK
+                                    UNIT_TEST)
     unset(TEST_TARGET)
     # unset(ParametersLib)
     unset(OperatorsLib)
@@ -775,6 +979,8 @@ foreach(dim RANGE 1 3)
     add_executable(${TEST_TARGET} ${TEST_SRC})
     # Replace occurences of PHILIP_DIM with 1, 2, or 3 in the code
     target_compile_definitions(${TEST_TARGET} PRIVATE PHILIP_DIM=${dim})
+    # Replace occurences of PHILIP_SPECIES with user-defined value in the code
+    target_compile_definitions(${TEST_TARGET} PRIVATE PHILIP_SPECIES=${NUMBER_OF_SPECIES})
 
     # Compile this executable when 'make unit_tests'
     add_dependencies(unit_tests ${TEST_TARGET})
@@ -797,82 +1003,21 @@ foreach(dim RANGE 1 3)
       NAME ${TEST_TARGET}
       COMMAND mpirun -n 1 ${EXECUTABLE_OUTPUT_PATH}/${TEST_TARGET}
       WORKING_DIRECTORY ${TEST_OUTPUT_DIR})
-
+    if (${dim} EQUAL 3)
+        set_tests_labels(${TEST_TARGET} OPERATOR
+                                    ${dim}D
+                                    SERIAL
+                                    EXPECTED_FAILURE
+                                    QUICK
+                                    UNIT_TEST)
+    else()
+        set_tests_labels(${TEST_TARGET} OPERATOR
+                ${dim}D
+                SERIAL
+                QUICK
+                UNIT_TEST)
+    endif()
     unset(TEST_TARGET)
     # unset(ParametersLib)
     unset(OperatorsLib)
-endforeach()
-
-set(TEST_SRC
-    mapping_basis_collocation_test.cpp)
-
-foreach(dim RANGE 2 3)
-    # Output executable
-    string(CONCAT TEST_TARGET ${dim}D_MAPPING_BASIS_TEST)
-    message("Adding executable " ${TEST_TARGET} " with files " ${TEST_SRC} "\n")
-    add_executable(${TEST_TARGET} ${TEST_SRC})
-    # Replace occurences of PHILIP_DIM with 1, 2, or 3 in the code
-    target_compile_definitions(${TEST_TARGET} PRIVATE PHILIP_DIM=${dim})
-
-    # Compile this executable when 'make unit_tests'
-    add_dependencies(unit_tests ${TEST_TARGET})
-    add_dependencies(${dim}D ${TEST_TARGET})
-
-    # Library dependency
-    target_link_libraries(${TEST_TARGET} ParametersLibrary)
-    string(CONCAT OperatorsLib Operator_Lib_${dim}D)
-    string(CONCAT GridsLib Grids_${dim}D)
-    target_link_libraries(${TEST_TARGET} ${OperatorsLib})
-    target_link_libraries(${TEST_TARGET} DiscontinuousGalerkin_${dim}D)
-    target_link_libraries(${TEST_TARGET} ${GridsLib})
-    # Setup target with deal.II
-    if (NOT DOC_ONLY)
-        DEAL_II_SETUP_TARGET(${TEST_TARGET})
-    endif()
-
-    add_test(
-      NAME ${TEST_TARGET}
-      COMMAND mpirun -n ${MPIMAX} ${EXECUTABLE_OUTPUT_PATH}/${TEST_TARGET}
-      WORKING_DIRECTORY ${TEST_OUTPUT_DIR})
-
-    unset(TEST_TARGET)
-    unset(OperatorsLib)
-    unset(GridsLib)
-endforeach()
-
-set(TEST_SRC
-    global_mass_matrix_test.cpp)
-
-foreach(dim RANGE 2 3)
-    # Output executable
-    string(CONCAT TEST_TARGET ${dim}D_GLOBAL_MASS_MATRIX_ON_THE_FLY_TEST)
-    message("Adding executable " ${TEST_TARGET} " with files " ${TEST_SRC} "\n")
-    add_executable(${TEST_TARGET} ${TEST_SRC})
-    # Replace occurences of PHILIP_DIM with 1, 2, or 3 in the code
-    target_compile_definitions(${TEST_TARGET} PRIVATE PHILIP_DIM=${dim})
-
-    # Compile this executable when 'make unit_tests'
-    add_dependencies(unit_tests ${TEST_TARGET})
-    add_dependencies(${dim}D ${TEST_TARGET})
-
-    # Library dependency
-    target_link_libraries(${TEST_TARGET} ParametersLibrary)
-    string(CONCAT OperatorsLib Operator_Lib_${dim}D)
-    string(CONCAT GridsLib Grids_${dim}D)
-    target_link_libraries(${TEST_TARGET} ${OperatorsLib})
-    target_link_libraries(${TEST_TARGET} DiscontinuousGalerkin_${dim}D)
-    target_link_libraries(${TEST_TARGET} ${GridsLib})
-    # Setup target with deal.II
-    if (NOT DOC_ONLY)
-        DEAL_II_SETUP_TARGET(${TEST_TARGET})
-    endif()
-
-    add_test(
-      NAME ${TEST_TARGET}
-      COMMAND mpirun -n ${MPIMAX} ${EXECUTABLE_OUTPUT_PATH}/${TEST_TARGET}
-      WORKING_DIRECTORY ${TEST_OUTPUT_DIR})
-
-    unset(TEST_TARGET)
-    unset(OperatorsLib)
-    unset(GridsLib)
 endforeach()

@@ -3,6 +3,7 @@
 
 #include <deal.II/base/conditional_ostream.h>
 #include <deal.II/base/parameter_handler.h>
+#include <deal.II/base/tensor.h>
 
 #include "parameters.h"
 #include "parameters/parameters_ode_solver.h"
@@ -14,10 +15,12 @@
 #include "parameters/parameters_physics_model.h"
 
 #include "parameters/parameters_reduced_order.h"
+#include "parameters/parameters_hyper_reduction.h"
 #include "parameters/parameters_burgers.h"
 #include "parameters/parameters_grid_refinement_study.h"
 #include "parameters/parameters_grid_refinement.h"
 #include "parameters/parameters_artificial_dissipation.h"
+#include "parameters/parameters_limiter.h"
 #include "parameters/parameters_flow_solver.h"
 #include "parameters/parameters_mesh_adaptation.h"
 #include "parameters/parameters_functional.h"
@@ -46,6 +49,8 @@ public:
     NavierStokesParam navier_stokes_param;
     /// Contains parameters for the Reduced-Order model
     ReducedOrderModelParam reduced_order_param;
+    /// Contains parameters for Hyperreduction
+    HyperReductionParam hyper_reduction_param;
     /// Contains parameters for Burgers equation
     BurgersParam burgers_param;
     /// Contains parameters for Physics Model
@@ -54,6 +59,8 @@ public:
     GridRefinementStudyParam grid_refinement_study_param;
     /// Contains parameters for artificial dissipation
     ArtificialDissipationParam artificial_dissipation_param;
+    /// Contains parameters for limiter
+    LimiterParam limiter_param;
     /// Contains the parameters for simulation cases (flow solver test)
     FlowSolverParam flow_solver_param;
     /// Constains parameters for mesh adaptation
@@ -67,6 +74,9 @@ public:
 
     /// Number of dimensions. Note that it has to match the executable PHiLiP_xD
     unsigned int dimension;
+
+    /// Number of species. Note that it has to match the CMake variable NUMBER_OF_SPECIES
+    unsigned int number_of_species;
 
     /// Run type
     enum RunType {
@@ -112,7 +122,7 @@ public:
     /// Flag to use curvilinear metric split form.
     bool use_curvilinear_split_form;
 
-    /// Flag to store the residual local processor cput time.
+    /// Flag to store the residual local processor cpu time.
     bool store_residual_cpu_time;
 
     /// Flag to use weight-adjusted Mass Matrix for curvilinear elements.
@@ -161,6 +171,9 @@ public:
     enum TestType {
         run_control,
         grid_refinement_study,
+		stability_fr_parameter_range,
+        advection_limiter,
+        burgers_limiter,
         burgers_energy_stability,
         diffusion_exact_adjoint,
         euler_gaussian_bump,
@@ -180,9 +193,10 @@ public:
         euler_naca0012,
         navier_stokes_naca0012,
         reduced_order,
+        unsteady_reduced_order,
         convection_diffusion_periodicity,
         POD_adaptation,
-        POD_adaptive_sampling,
+        POD_adaptive_sampling_run,
         adaptive_sampling_testing,
         finite_difference_sensitivity,
         advection_periodicity,
@@ -192,12 +206,25 @@ public:
         taylor_green_vortex_restart_check,
         time_refinement_study,
         time_refinement_study_reference,
-        burgers_energy_conservation_rrk,
+        rrk_numerical_entropy_conservation_check,
         euler_entropy_conserving_split_forms_check,
         h_refinement_study_isentropic_vortex,
         khi_robustness,
+        naca0012_unsteady_check_quick,
         homogeneous_isotropic_turbulence_initialization_check,
         turbulent_channel_flow_skin_friction_check,
+        dipole_wall_collision_quantity_check,
+        turbulent_channel_flow_quantity_check,
+        build_NNLS_problem,
+        hyper_reduction_comparison,
+        hyper_adaptive_sampling_run,
+        hyper_reduction_post_sampling,
+        ROM_error_post_sampling,
+        HROM_error_post_sampling,
+        hyper_adaptive_sampling_new_error,
+        halton_sampling_run,
+        low_density,
+        multi_species_vortex_advection
     };
     /// Store selected TestType from the input file.
     TestType test_type;
@@ -214,8 +241,11 @@ public:
         euler,
         mhd,
         navier_stokes,
+        navier_stokes_channel_flow_constant_source_term,
+        navier_stokes_channel_flow_constant_source_term_wall_model,
         physics_model,
         physics_model_filtered,
+        real_gas
     };
     /// Store the PDE type to be solved
     PartialDifferentialEquation pde_type;
@@ -262,14 +292,22 @@ public:
     DissipativeNumericalFlux diss_num_flux_type;
 
     /// Type of correction in Flux Reconstruction
-    enum Flux_Reconstruction {cDG, cSD, cHU, cNegative, cNegative2, cPlus, c10Thousand, cHULumped};
+    enum Flux_Reconstruction {cDG, cSD, cHU, cNegative, cNegative2, cPlus, c10Thousand, cHULumped, user_specified_value};
     /// Store flux reconstruction type
     Flux_Reconstruction flux_reconstruction_type;
+
+    /// User specified flux recontruction correction parameter value
+    double FR_user_specified_correction_parameter_value;
 
     /// Type of correction in Flux Reconstruction for the auxiliary variables
     enum Flux_Reconstruction_Aux {kDG, kSD, kHU, kNegative, kNegative2, kPlus, k10Thousand};
     /// Store flux reconstruction type for the auxiliary variables
     Flux_Reconstruction_Aux flux_reconstruction_aux_type;
+
+    /// Enum of nonphysical behavior
+    enum NonPhysicalBehaviorEnum {return_big_number, abort_run, print_warning};
+    /// Specify behavior on nonphysical results
+    NonPhysicalBehaviorEnum non_physical_behavior_type;
 
     /// Name of directory for writing solution vtk files
     std::string solution_vtk_files_directory_name;
@@ -294,6 +332,17 @@ public:
     /** Tolerance for checking that the determinant of surface jacobians at element faces matches.
      *  Note: Currently only used in weak dg. */
     double matching_surface_jac_det_tolerance;
+
+    std::string chemistry_input_file; ///< Name of file containing NASA CAP data for species
+
+    /// Flag for using wall model (initialized as false)
+    bool using_wall_model = false;
+
+    /// Flag for using second element as wall model input; if false, uses buffer (i.e. wall-adjacent) element
+    bool wall_model_input_from_second_element;
+
+    /// Flag for using projected entropy variables for NSFR boundary term
+    bool use_projected_entropy_variables_for_nsfr_boundary_term;
     
     /// Declare parameters that can be set as inputs and set up the default options
     /** This subroutine should call the sub-parameter classes static declare_parameters()

@@ -1,39 +1,40 @@
-#include <deal.II/base/tensor.h>
+#include "convection_diffusion_explicit_periodic.h"
+
+#include <deal.II/base/convergence_table.h>
 #include <deal.II/base/function.h>
-#include <deal.II/numerics/data_out.h>
-#include <deal.II/numerics/vector_tools.h>
-#include <deal.II/numerics/solution_transfer.h>
-#include <deal.II/base/numbers.h>
 #include <deal.II/base/function_parser.h>
+#include <deal.II/base/numbers.h>
+#include <deal.II/base/tensor.h>
 #include <deal.II/grid/grid_generator.h>
+#include <deal.II/grid/grid_in.h>
+#include <deal.II/grid/grid_out.h>
 #include <deal.II/grid/grid_refinement.h>
 #include <deal.II/grid/grid_tools.h>
-#include <deal.II/grid/grid_out.h>
-#include <deal.II/grid/grid_in.h>
-#include <deal.II/base/convergence_table.h>
+#include <deal.II/numerics/data_out.h>
+#include <deal.II/numerics/solution_transfer.h>
+#include <deal.II/numerics/vector_tools.h>
 
-#include "convection_diffusion_explicit_periodic.h"
-#include "parameters/all_parameters.h"
-#include "parameters/parameters.h"
-#include "dg/dg.h"
+#include <fstream>
+
+#include "dg/dg_base.hpp"
 #include "dg/dg_factory.hpp"
 #include "ode_solver/ode_solver_base.h"
-#include <fstream>
 #include "ode_solver/ode_solver_factory.h"
-#include "physics/initial_conditions/set_initial_condition.h"
+#include "parameters/all_parameters.h"
+#include "parameters/parameters.h"
 #include "physics/initial_conditions/initial_condition_function.h"
-
+#include "physics/initial_conditions/set_initial_condition.h"
 
 namespace PHiLiP {
 namespace Tests {
 
-template <int dim, int nstate>
-ConvectionDiffusionPeriodic<dim, nstate>::ConvectionDiffusionPeriodic(const PHiLiP::Parameters::AllParameters *const parameters_input)
+template <int dim, int nspecies, int nstate>
+ConvectionDiffusionPeriodic<dim, nspecies, nstate>::ConvectionDiffusionPeriodic(const PHiLiP::Parameters::AllParameters *const parameters_input)
     : TestsBase::TestsBase(parameters_input)
 {}
 
-template<int dim, int nstate>
-double ConvectionDiffusionPeriodic<dim, nstate>::compute_energy_derivative_norm(std::shared_ptr < PHiLiP::DGBase<dim, double> > &dg) const
+template<int dim, int nspecies, int nstate>
+double ConvectionDiffusionPeriodic<dim, nspecies, nstate>::compute_energy_derivative_norm(std::shared_ptr < PHiLiP::DGBase<dim, nspecies, double> > &dg) const
 {
 	double energy = 0.0;
     dg->assemble_residual();
@@ -52,8 +53,8 @@ double ConvectionDiffusionPeriodic<dim, nstate>::compute_energy_derivative_norm(
 	return energy;
 }
 
-template<int dim, int nstate>
-double ConvectionDiffusionPeriodic<dim, nstate>::compute_conservation(std::shared_ptr < PHiLiP::DGBase<dim, double> > &dg, const double poly_degree) const
+template<int dim, int nspecies, int nstate>
+double ConvectionDiffusionPeriodic<dim, nspecies, nstate>::compute_conservation(std::shared_ptr < PHiLiP::DGBase<dim, nspecies, double> > &dg, const double poly_degree) const
 {
     // Conservation \f$ =  \int 1 * u d\Omega_m \f$
     double conservation = 0.0;
@@ -110,8 +111,8 @@ double ConvectionDiffusionPeriodic<dim, nstate>::compute_conservation(std::share
 }
 
 
-template <int dim, int nstate>
-int ConvectionDiffusionPeriodic<dim, nstate>::run_test() const
+template <int dim, int nspecies, int nstate>
+int ConvectionDiffusionPeriodic<dim, nspecies, nstate>::run_test() const
 {
     this->pcout << " Running Convection Diffusion Periodicity test. " << std::endl;
 
@@ -174,18 +175,18 @@ int ConvectionDiffusionPeriodic<dim, nstate>::run_test() const
         all_parameters_new.ode_solver_param.initial_time_step =  0.05*pow(delta_x,2)/diff_coeff2 / max_diff_tens;
              
         // allocate dg
-        std::shared_ptr < PHiLiP::DGBase<dim, double> > dg = PHiLiP::DGFactory<dim,double>::create_discontinuous_galerkin(&all_parameters_new, poly_degree, poly_degree, grid_degree, grid);
+        std::shared_ptr < PHiLiP::DGBase<dim, nspecies, double> > dg = PHiLiP::DGFactory<dim,nspecies,double>::create_discontinuous_galerkin(&all_parameters_new, poly_degree, poly_degree, grid_degree, grid);
         this->pcout << "dg created" <<std::endl;
         dg->allocate_system (false,false,false);
 
         this->pcout << "Setting up Initial Condition" << std::endl;
         // Create initial condition function
-        std::shared_ptr< InitialConditionFunction<dim,nstate,double> > initial_condition_function = 
-                InitialConditionFactory<dim,nstate,double>::create_InitialConditionFunction(&all_parameters_new);
-        SetInitialCondition<dim,nstate,double>::set_initial_condition(initial_condition_function, dg, &all_parameters_new);
+        std::shared_ptr< InitialConditionFunction<dim,nspecies,nstate,double> > initial_condition_function = 
+                InitialConditionFactory<dim,nspecies,nstate,double>::create_InitialConditionFunction(&all_parameters_new);
+        SetInitialCondition<dim,nspecies,nstate,double>::set_initial_condition(initial_condition_function, dg, &all_parameters_new);
 
         // Create ODE solver using the factory and providing the DG object
-        std::shared_ptr<ODE::ODESolverBase<dim, double>> ode_solver = ODE::ODESolverFactory<dim, double>::create_ODESolver(dg);
+        std::shared_ptr<ODE::ODESolverBase<dim, nspecies, double>> ode_solver = ODE::ODESolverFactory<dim, nspecies, double>::create_ODESolver(dg);
 
         double finalTime = 2.0;
 
@@ -362,7 +363,8 @@ int ConvectionDiffusionPeriodic<dim, nstate>::run_test() const
     return 0; 
 }
 
-template class ConvectionDiffusionPeriodic<PHILIP_DIM,1>;
-
+#if PHILIP_SPECIES==1
+template class ConvectionDiffusionPeriodic<PHILIP_DIM, PHILIP_SPECIES,1>;
+#endif
 } // Tests namespace
 } // PHiLiP namespace

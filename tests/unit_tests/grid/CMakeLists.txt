@@ -13,6 +13,8 @@ foreach(dim RANGE 2 3)
 
     # Replace occurences of PHILIP_DIM with 1, 2, or 3 in the code
     target_compile_definitions(${TEST_TARGET} PRIVATE PHILIP_DIM=${dim})
+    # Replace occurences of PHILIP_SPECIES with user-defined value in the code
+    target_compile_definitions(${TEST_TARGET} PRIVATE PHILIP_SPECIES=${NUMBER_OF_SPECIES})
 
     # Compile this executable when 'make unit_tests'
     add_dependencies(unit_tests ${TEST_TARGET})
@@ -37,7 +39,11 @@ foreach(dim RANGE 2 3)
       COMMAND mpirun -n ${MPIMAX} ${EXECUTABLE_OUTPUT_PATH}/${TEST_TARGET}
       WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
     )
-
+    set_tests_labels(${TEST_TARGET} GRID
+                                    ${dim}D
+                                    PARALLEL
+                                    QUICK
+                                    UNIT_TEST)
     unset(TEST_TARGET)
 
 endforeach()
@@ -54,6 +60,8 @@ foreach(dim RANGE 2 3)
     add_executable(${TEST_TARGET} ${TEST_SRC})
     # Replace occurences of PHILIP_DIM with 1, 2, or 3 in the code
     target_compile_definitions(${TEST_TARGET} PRIVATE PHILIP_DIM=${dim})
+    # Replace occurences of PHILIP_SPECIES with user-defined value in the code
+    target_compile_definitions(${TEST_TARGET} PRIVATE PHILIP_SPECIES=${NUMBER_OF_SPECIES})
 
     # Compile this executable when 'make unit_tests'
     add_dependencies(unit_tests ${TEST_TARGET})
@@ -72,7 +80,11 @@ foreach(dim RANGE 2 3)
       COMMAND mpirun -n ${MPIMAX} ${EXECUTABLE_OUTPUT_PATH}/${TEST_TARGET}
       WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
     )
-
+    set_tests_labels(${TEST_TARGET} GRID
+                                    ${dim}D
+                                    PARALLEL
+                                    QUICK
+                                    UNIT_TEST)
     unset(TEST_TARGET)
     unset(HighOrderGridLib)
 
@@ -90,6 +102,9 @@ message("Adding executable " ${TEST_TARGET} " with files " ${TEST_SRC} "\n")
 add_executable(${TEST_TARGET} ${TEST_SRC})
 # Replace occurences of PHILIP_DIM with 1, 2, or 3 in the code
 target_compile_definitions(${TEST_TARGET} PRIVATE PHILIP_DIM=${dim})
+# Replace occurences of PHILIP_SPECIES with 1 in the code
+# NOTE: PHILIP_SPECIES will become user defined in a future PR
+target_compile_definitions(${TEST_TARGET} PRIVATE PHILIP_SPECIES=${NUMBER_OF_SPECIES})
 
 # Compile this executable when 'make unit_tests'
 add_dependencies(unit_tests ${TEST_TARGET})
@@ -111,6 +126,11 @@ add_test(
   COMMAND mpirun -n ${NMPI} ${EXECUTABLE_OUTPUT_PATH}/${TEST_TARGET}
   WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
 )
+set_tests_labels(${TEST_TARGET}_${LENGTH}   GRID
+                                            ${dim}D
+                                            PARALLEL
+                                            QUICK
+                                            UNIT_TEST)
 unset(TEST_TARGET)
 unset(HighOrderGridLib)
 
@@ -126,6 +146,9 @@ message("Adding executable " ${TEST_TARGET} " with files " ${TEST_SRC} "\n")
 add_executable(${TEST_TARGET} ${TEST_SRC})
 # Replace occurences of PHILIP_DIM with 1, 2, or 3 in the code
 target_compile_definitions(${TEST_TARGET} PRIVATE PHILIP_DIM=${dim})
+# Replace occurences of PHILIP_SPECIES with 1 in the code
+# NOTE: PHILIP_SPECIES will become user defined in a future PR
+target_compile_definitions(${TEST_TARGET} PRIVATE PHILIP_SPECIES=${NUMBER_OF_SPECIES})
 
 # Compile this executable when 'make unit_tests'
 add_dependencies(unit_tests ${TEST_TARGET})
@@ -147,6 +170,11 @@ add_test(
   COMMAND mpirun -n ${NMPI} ${EXECUTABLE_OUTPUT_PATH}/${TEST_TARGET}
   WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
 )
+set_tests_labels(${TEST_TARGET}_${LENGTH}   GRID
+                                            ${dim}D
+                                            PARALLEL
+                                            QUICK
+                                            UNIT_TEST)
 unset(TEST_TARGET)
 unset(HighOrderGridLib)
 
@@ -162,6 +190,9 @@ message("Adding executable " ${TEST_TARGET} " with files " ${TEST_SRC} "\n")
 add_executable(${TEST_TARGET} ${TEST_SRC})
 # Replace occurences of PHILIP_DIM with 1, 2, or 3 in the code
 target_compile_definitions(${TEST_TARGET} PRIVATE PHILIP_DIM=${dim})
+# Replace occurences of PHILIP_SPECIES with 1 in the code
+# NOTE: PHILIP_SPECIES will become user defined in a future PR
+target_compile_definitions(${TEST_TARGET} PRIVATE PHILIP_SPECIES=${NUMBER_OF_SPECIES})
 
 # Compile this executable when 'make unit_tests'
 add_dependencies(unit_tests ${TEST_TARGET})
@@ -183,6 +214,11 @@ add_test(
   COMMAND mpirun -n ${NMPI} ${EXECUTABLE_OUTPUT_PATH}/${TEST_TARGET}
   WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
 )
+set_tests_labels(${TEST_TARGET}_${LENGTH}   GRID
+                                            ${dim}D
+                                            PARALLEL
+                                            QUICK
+                                            UNIT_TEST)
 unset(TEST_TARGET)
 unset(HighOrderGridLib)
 
@@ -200,6 +236,8 @@ foreach(dim RANGE 1 3)
     add_executable(${TEST_TARGET} ${TEST_SRC})
     # Replace occurences of PHILIP_DIM with 1, 2, or 3 in the code
     target_compile_definitions(${TEST_TARGET} PRIVATE PHILIP_DIM=${dim})
+    # Replace occurences of PHILIP_SPECIES with user-defined value in the code
+    target_compile_definitions(${TEST_TARGET} PRIVATE PHILIP_SPECIES=${NUMBER_OF_SPECIES})
 
     # Compile this executable when 'make unit_tests'
     add_dependencies(unit_tests ${TEST_TARGET})
@@ -230,7 +268,25 @@ foreach(dim RANGE 1 3)
       COMMAND mpirun -n ${NMPI} ${EXECUTABLE_OUTPUT_PATH}/${TEST_TARGET}
       WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
     )
-
+    if (dim EQUAL 1)
+        set_tests_labels(${TEST_TARGET}_${LENGTH}   GRID
+                                                    ${dim}D
+                                                    SERIAL
+                                                    QUICK
+                                                    UNIT_TEST)
+    elseif (dim EQUAL 2)
+        set_tests_labels(${TEST_TARGET}_${LENGTH}   GRID
+                                                    ${dim}D
+                                                    PARALLEL
+                                                    QUICK
+                                                    UNIT_TEST)
+    else ()
+        set_tests_labels(${TEST_TARGET}_${LENGTH}   GRID
+                                                    ${dim}D
+                                                    PARALLEL
+                                                    LONG
+                                                    UNIT_TEST)
+    endif()
     unset(TEST_TARGET)
     unset(HighOrderGridLib)
 
@@ -247,6 +303,9 @@ message("Adding executable " ${TEST_TARGET} " with files " ${TEST_SRC} "\n")
 add_executable(${TEST_TARGET} ${TEST_SRC})
 # Replace occurences of PHILIP_DIM with 1, 2, or 3 in the code
 target_compile_definitions(${TEST_TARGET} PRIVATE PHILIP_DIM=${dim})
+# Replace occurences of PHILIP_SPECIES with 1 in the code
+# NOTE: PHILIP_SPECIES will become user defined in a future PR
+target_compile_definitions(${TEST_TARGET} PRIVATE PHILIP_SPECIES=${NUMBER_OF_SPECIES})
 
 # Compile this executable when 'make unit_tests'
 add_dependencies(unit_tests ${TEST_TARGET})
@@ -265,7 +324,11 @@ add_test(
   COMMAND mpirun -n ${MPIMAX} ${EXECUTABLE_OUTPUT_PATH}/${TEST_TARGET}
   WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
 )
-
+set_tests_labels(${TEST_TARGET} GRID
+                                ${dim}D
+                                PARALLEL
+                                QUICK
+                                UNIT_TEST)
 unset(TEST_TARGET)
 unset(HighOrderGridLib)
 

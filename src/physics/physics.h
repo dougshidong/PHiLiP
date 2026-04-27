@@ -30,25 +30,30 @@ namespace Physics {
  *      = s(\mathbf{x})
  *  \f]
  */
-template <int dim, int nstate, typename real>
+template <int dim, int nspecies, int nstate, typename real>
 class PhysicsBase
 {
 public:
+
+    using NonPhysicalBehaviorEnum = Parameters::AllParameters::NonPhysicalBehaviorEnum;
+
     /// Default constructor that will set the constants.
     PhysicsBase(
+        const Parameters::AllParameters *const                    parameters_input,
         const bool                                                has_nonzero_diffusion_input,
         const bool                                                has_nonzero_physical_source_input,
         const dealii::Tensor<2,3,double>                          input_diffusion_tensor = Parameters::ManufacturedSolutionParam::get_default_diffusion_tensor(),
-        std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function_input = nullptr);
+        std::shared_ptr< ManufacturedSolutionFunction<dim,nspecies,real> > manufactured_solution_function_input = nullptr);
 
     /// Constructor that will call default constructor.
     PhysicsBase(
+        const Parameters::AllParameters *const                    parameters_input,
         const bool                                                has_nonzero_diffusion_input,
         const bool                                                has_nonzero_physical_source_input,
-        std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function_input = nullptr);
+        std::shared_ptr< ManufacturedSolutionFunction<dim,nspecies,real> > manufactured_solution_function_input = nullptr);
 
     /// Virtual destructor required for abstract classes.
-    virtual ~PhysicsBase() {};
+    virtual ~PhysicsBase() = default;
 
     /// Flag to signal that diffusion term is non-zero
     const bool has_nonzero_diffusion;
@@ -56,8 +61,35 @@ public:
     /// Flag to signal that physical source term is non-zero
     const bool has_nonzero_physical_source;
 
+    /// Pointer to parameters object
+    const Parameters::AllParameters *const all_parameters;
+    
+    /// Determines type of nonphysical behavior
+    const NonPhysicalBehaviorEnum non_physical_behavior_type;    
+
     /// Manufactured solution function
-    std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function;
+    std::shared_ptr< ManufacturedSolutionFunction<dim,nspecies,real> > manufactured_solution_function;
+
+    /// Convert conservative variables to primitive variables
+    virtual std::array<real,nstate> convert_conservative_to_primitive ( const std::array<real,nstate> &conservative_soln ) const = 0;
+
+    /// Convert primitive solution to conservative solution
+    virtual std::array<real,nstate> convert_primitive_to_conservative ( const std::array<real,nstate> &primitive_soln ) const = 0;
+
+    /// Compute pressure from conservative solution
+    virtual real compute_pressure ( const std::array<real,nstate> &conservative_soln ) const;
+
+    /** Obtain gradient of primitive variables from gradient of conservative variables */
+    virtual std::array<dealii::Tensor<1,dim,real>,nstate> 
+    convert_conservative_gradient_to_primitive_gradient (
+        const std::array<real,nstate> &conservative_soln,
+        const std::array<dealii::Tensor<1,dim,real>,nstate> &conservative_soln_gradient) const = 0;
+
+    /** Obtain gradient of conservative variables from gradient of primitive variables */
+    virtual std::array<dealii::Tensor<1,dim,real>,nstate> 
+    convert_primitive_gradient_to_conservative_gradient (
+        const std::array<real,nstate> &primitive_soln,
+        const std::array<dealii::Tensor<1,dim,real>,nstate> &primitive_soln_gradient) const = 0;
 
     /// Convert conservative variables to primitive variables
     virtual std::array<real,nstate> convert_conservative_to_primitive ( const std::array<real,nstate> &conservative_soln ) const = 0;
@@ -237,6 +269,24 @@ public:
     /** Only update the solution at the output points.
      */
     virtual dealii::UpdateFlags post_get_needed_update_flags () const;
+
+    /// Function to handle nonphysical results
+    /** This is to be called by derived physics classes
+     *  when a nonphysical quantity is detected there.
+     *  e.g., negative density in Euler.
+     *  The behavior is determined by the value of
+     *  non_physical_behavior_type.
+     *  Returns BIG_NUMBER.
+     */
+    template<typename real2> 
+    real2 handle_non_physical_result (const std::string message = "") const;
+
+public:
+
+    /// BIG_NUMBER which is returned in place of NaN according to handle_non_physical_result()
+    /** Type double so that typecasting works with all real types */
+    const double BIG_NUMBER = 1e100;
+    
 protected:
     /// ConditionalOStream.
     /** Used as std::cout, but only prints if mpi_rank == 0

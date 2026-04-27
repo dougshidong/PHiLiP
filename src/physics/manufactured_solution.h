@@ -18,7 +18,7 @@ namespace PHiLiP {
 /// Manufactured solution used for grid studies to check convergence orders.
 /** This class also provides derivatives necessary  to evaluate source terms.
  */
-template <int dim, typename real>
+template <int dim, int nspecies, typename real>
 class ManufacturedSolutionFunction : public dealii::Function<dim,real>
 {
 // We want the Point to be templated on the type,
@@ -39,20 +39,19 @@ public:
      *  This sets the public attribute n_components = nstate, which can then be accessed
      *  by all the other functions
      */
-    ManufacturedSolutionFunction (const unsigned int nstate = 1);
+    explicit ManufacturedSolutionFunction (const unsigned int nstate = 1);
 
-    /// Destructor
-    ~ManufacturedSolutionFunction() {};
-  
-    /// Manufactured solution exact value
-    /** \code
+    /// Manufactured solution exact value.
+    /** For example
+     *  \code
      *  u[s] = A[s]*sin(freq[s][0]*x)*sin(freq[s][1]*y)*sin(freq[s][2]*z);
      *  \endcode
      */
     virtual real value (const dealii::Point<dim,real> &point, const unsigned int istate = 0) const = 0;
 
     /// Gradient of the exact manufactured solution
-    /** \code
+    /** For example
+     *  \code
      *  grad_u[s][0] = A[s]*freq[s][0]*cos(freq[s][0]*x)*sin(freq[s][1]*y)*sin(freq[s][2]*z);
      *  grad_u[s][1] = A[s]*freq[s][1]*sin(freq[s][0]*x)*cos(freq[s][1]*y)*sin(freq[s][2]*z);
      *  grad_u[s][2] = A[s]*freq[s][2]*sin(freq[s][0]*x)*sin(freq[s][1]*y)*cos(freq[s][2]*z);
@@ -64,7 +63,8 @@ public:
     dealii::Tensor<1,dim,real> gradient_fd (const dealii::Point<dim,real> &point, const unsigned int istate = 0) const;
 
     /// Hessian of the exact manufactured solution
-    /** \code
+    /** For example
+     *  \code
      *  hess_u[s][0][0] = -A[s]*freq[s][0]*freq[s][0]*sin(freq[s][0]*x)*sin(freq[s][1]*y)*sin(freq[s][2]*z);
      *  hess_u[s][0][1] =  A[s]*freq[s][0]*freq[s][1]*cos(freq[s][0]*x)*cos(freq[s][1]*y)*sin(freq[s][2]*z);
      *  hess_u[s][0][2] =  A[s]*freq[s][0]*freq[s][2]*cos(freq[s][0]*x)*sin(freq[s][1]*y)*cos(freq[s][2]*z);
@@ -135,9 +135,9 @@ protected:
 };
 
 /// Product of zero waves manufactured solution
-template <int dim, typename real>
+template <int dim, int nspecies, typename real>
 class ManufacturedSolutionZero
-        : public ManufacturedSolutionFunction<dim, real>
+        : public ManufacturedSolutionFunction<dim, nspecies, real>
 {
 // We want the Point to be templated on the type,
 // however, dealii does not template that part of the Function.
@@ -151,8 +151,8 @@ protected:
 
 public:
     /// Constructor
-    ManufacturedSolutionZero(const unsigned int nstate = 1)
-            :   ManufacturedSolutionFunction<dim,real>(nstate){}
+    explicit ManufacturedSolutionZero(const unsigned int nstate = 1)
+            :   ManufacturedSolutionFunction<dim,nspecies,real>(nstate){}
     /// Value
     real value (const dealii::Point<dim,real> &/*point*/, const unsigned int /*istate*/ = 0) const override;
     /// Gradient
@@ -162,9 +162,9 @@ public:
 };
 
 /// Product of sine waves manufactured solution
-template <int dim, typename real>
+template <int dim, int nspecies, typename real>
 class ManufacturedSolutionSine 
-    : public ManufacturedSolutionFunction<dim, real>
+    : public ManufacturedSolutionFunction<dim, nspecies, real>
 {
 // We want the Point to be templated on the type,
 // however, dealii does not template that part of the Function.
@@ -178,8 +178,8 @@ protected:
 
 public:
     /// Constructor
-    ManufacturedSolutionSine(const unsigned int nstate = 1)
-        :   ManufacturedSolutionFunction<dim,real>(nstate){}
+    explicit ManufacturedSolutionSine(const unsigned int nstate = 1)
+        :   ManufacturedSolutionFunction<dim,nspecies,real>(nstate){}
     /// Value
     real value (const dealii::Point<dim,real> &point, const unsigned int istate = 0) const override;
     /// Gradient
@@ -189,9 +189,9 @@ public:
 };
 
 /// Product of cosine waves manufactured solution
-template <int dim, typename real>
+template <int dim, int nspecies, typename real>
 class ManufacturedSolutionCosine 
-    : public ManufacturedSolutionFunction<dim, real>
+    : public ManufacturedSolutionFunction<dim, nspecies, real>
 {
 // We want the Point to be templated on the type,
 // however, dealii does not template that part of the Function.
@@ -204,8 +204,8 @@ protected:
     using dealii::Function<dim,real>::hessian;
 public:
     /// Constructor
-    ManufacturedSolutionCosine(const unsigned int nstate = 1)
-        :   ManufacturedSolutionFunction<dim,real>(nstate){}
+    explicit ManufacturedSolutionCosine(const unsigned int nstate = 1)
+        :   ManufacturedSolutionFunction<dim,nspecies,real>(nstate){}
     /// Value
     real value (const dealii::Point<dim,real> &point, const unsigned int istate = 0) const override;
     /// Gradient
@@ -215,9 +215,9 @@ public:
 };
 
 /// Sum of sine waves manufactured solution
-template <int dim, typename real>
+template <int dim, int nspecies, typename real>
 class ManufacturedSolutionAdd 
-    : public ManufacturedSolutionFunction<dim, real>
+    : public ManufacturedSolutionFunction<dim, nspecies, real>
 {
 // We want the Point to be templated on the type,
 // however, dealii does not template that part of the Function.
@@ -230,8 +230,8 @@ protected:
     using dealii::Function<dim,real>::hessian;
 public:
     /// Constructor
-    ManufacturedSolutionAdd(const unsigned int nstate = 1)
-        :   ManufacturedSolutionFunction<dim,real>(nstate){}
+    explicit ManufacturedSolutionAdd(const unsigned int nstate = 1)
+        :   ManufacturedSolutionFunction<dim,nspecies,real>(nstate){}
     /// Value
     real value (const dealii::Point<dim,real> &point, const unsigned int istate = 0) const override;
     /// Gradient
@@ -241,9 +241,9 @@ public:
 };
 
 /// Sum of exponential functions manufactured solution
-template <int dim, typename real>
+template <int dim, int nspecies, typename real>
 class ManufacturedSolutionExp
-    : public ManufacturedSolutionFunction<dim, real>
+    : public ManufacturedSolutionFunction<dim, nspecies, real>
 {
 // We want the Point to be templated on the type,
 // however, dealii does not template that part of the Function.
@@ -256,8 +256,8 @@ protected:
     using dealii::Function<dim,real>::hessian;
 public:
     /// Constructor
-    ManufacturedSolutionExp(const unsigned int nstate = 1)
-        :   ManufacturedSolutionFunction<dim,real>(nstate){}
+    explicit ManufacturedSolutionExp(const unsigned int nstate = 1)
+        :   ManufacturedSolutionFunction<dim,nspecies,real>(nstate){}
     /// Value
     real value (const dealii::Point<dim,real> &point, const unsigned int istate = 0) const override;
     /// Gradient
@@ -267,9 +267,9 @@ public:
 };
 
 /// Sum of polynomial manufactured solution
-template <int dim, typename real>
+template <int dim, int nspecies, typename real>
 class ManufacturedSolutionPoly 
-    : public ManufacturedSolutionFunction<dim, real>
+    : public ManufacturedSolutionFunction<dim, nspecies, real>
 {
 // We want the Point to be templated on the type,
 // however, dealii does not template that part of the Function.
@@ -282,8 +282,8 @@ protected:
     using dealii::Function<dim,real>::hessian;
 public:
     /// Constructor
-    ManufacturedSolutionPoly(const unsigned int nstate = 1)
-        :   ManufacturedSolutionFunction<dim,real>(nstate){}
+    explicit ManufacturedSolutionPoly(const unsigned int nstate = 1)
+        :   ManufacturedSolutionFunction<dim,nspecies,real>(nstate){}
     /// Value
     real value (const dealii::Point<dim,real> &point, const unsigned int istate = 0) const override;
     /// Gradient
@@ -293,9 +293,9 @@ public:
 };
 
 /// Sum of even order polynomial functions manufactured solution
-template <int dim, typename real>
+template <int dim, int nspecies, typename real>
 class ManufacturedSolutionEvenPoly 
-    : public ManufacturedSolutionFunction<dim, real>
+    : public ManufacturedSolutionFunction<dim, nspecies, real>
 {
 // We want the Point to be templated on the type,
 // however, dealii does not template that part of the Function.
@@ -308,8 +308,8 @@ protected:
     using dealii::Function<dim,real>::hessian;
 public:
     /// Constructor
-    ManufacturedSolutionEvenPoly(const unsigned int nstate = 1)
-        :   ManufacturedSolutionFunction<dim,real>(nstate){}
+    explicit ManufacturedSolutionEvenPoly(const unsigned int nstate = 1)
+        :   ManufacturedSolutionFunction<dim,nspecies,real>(nstate){}
     /// Value
     real value (const dealii::Point<dim,real> &point, const unsigned int istate = 0) const override;
     /// Gradient
@@ -319,9 +319,9 @@ public:
 };
 
 /// Hump manufactured solution based on arctangent functions
-template <int dim, typename real>
+template <int dim, int nspecies, typename real>
 class ManufacturedSolutionAtan
-    : public ManufacturedSolutionFunction<dim, real>
+    : public ManufacturedSolutionFunction<dim, nspecies, real>
 {
 // We want the Point to be templated on the type,
 // however, dealii does not template that part of the Function.
@@ -334,8 +334,8 @@ protected:
     using dealii::Function<dim,real>::hessian;
 public:
     /// Constructor
-    ManufacturedSolutionAtan(const unsigned int nstate = 1)
-        :   ManufacturedSolutionFunction<dim,real>(nstate)
+    explicit ManufacturedSolutionAtan(const unsigned int nstate = 1)
+        :   ManufacturedSolutionFunction<dim,nspecies,real>(nstate)
     {
         n_shocks.resize(dim);
         S_j.resize(dim);
@@ -374,9 +374,9 @@ private:
 };
 
 /// Scalar boundary layer manufactured solution
-template <int dim, typename real>
+template <int dim, int nspecies, typename real>
 class ManufacturedSolutionBoundaryLayer
-    : public ManufacturedSolutionFunction<dim, real>
+    : public ManufacturedSolutionFunction<dim, nspecies, real>
 {
 // We want the Point to be templated on the type,
 // however, dealii does not template that part of the Function.
@@ -389,8 +389,8 @@ protected:
     using dealii::Function<dim,real>::hessian;
 public:
     /// Constructor
-    ManufacturedSolutionBoundaryLayer(const unsigned int nstate = 1)
-        : ManufacturedSolutionFunction<dim,real>(nstate)
+    explicit ManufacturedSolutionBoundaryLayer(const unsigned int nstate = 1)
+        : ManufacturedSolutionFunction<dim,nspecies,real>(nstate)
         , epsilon(nstate)
     {
         for(int istate = 0; istate < (int)nstate; ++istate){
@@ -413,9 +413,9 @@ private:
 };
 
 /// S-Shock manufactured solution
-template <int dim, typename real>
+template <int dim, int nspecies, typename real>
 class ManufacturedSolutionSShock 
-    : public ManufacturedSolutionFunction<dim, real>
+    : public ManufacturedSolutionFunction<dim, nspecies, real>
 {
 // We want the Point to be templated on the type,
 // however, dealii does not template that part of the Function.
@@ -428,8 +428,8 @@ protected:
     using dealii::Function<dim,real>::hessian;
 public:
     /// Constructor
-    ManufacturedSolutionSShock(const unsigned int nstate = 1)
-        :   ManufacturedSolutionFunction<dim,real>(nstate)
+    explicit ManufacturedSolutionSShock(const unsigned int nstate = 1)
+        :   ManufacturedSolutionFunction<dim,nspecies,real>(nstate)
     {
         // setting constant for function
         // f(x,y) = a * tanh(b*sin(c*y + d) + e*x + f)
@@ -468,9 +468,9 @@ private:
 };
 
 /// Quadratic function manufactured solution
-template <int dim, typename real>
+template <int dim, int nspecies, typename real>
 class ManufacturedSolutionQuadratic
-    : public ManufacturedSolutionFunction<dim, real>
+    : public ManufacturedSolutionFunction<dim, nspecies, real>
 {
 // We want the Point to be templated on the type,
 // however, dealii does not template that part of the Function.
@@ -483,8 +483,8 @@ protected:
     using dealii::Function<dim,real>::hessian;
 public:
     /// Constructor
-    ManufacturedSolutionQuadratic(const unsigned int nstate = 1)
-        :   ManufacturedSolutionFunction<dim,real>(nstate)
+    explicit ManufacturedSolutionQuadratic(const unsigned int nstate = 1)
+        :   ManufacturedSolutionFunction<dim,nspecies,real>(nstate)
     {
         // assigning the scaling coeffs for hessian diagonals
         for(unsigned int d = 0; d < dim; ++d){
@@ -507,9 +507,9 @@ private:
 /** Sum of example manufactured solutions 
  * (i.e. those used in group lab presentation on implementing Manufactured Solutions).
  * */
-template <int dim, typename real>
+template <int dim, int nspecies, typename real>
 class ManufacturedSolutionExample
-    : public ManufacturedSolutionFunction<dim, real>
+    : public ManufacturedSolutionFunction<dim, nspecies, real>
 {
 // We want the Point to be templated on the type,
 // however, dealii does not template that part of the Function.
@@ -522,8 +522,8 @@ protected:
     using dealii::Function<dim,real>::hessian;
 public:
     ///Constructor
-    ManufacturedSolutionExample(const unsigned int nstate = 1)
-        :   ManufacturedSolutionFunction<dim,real>(nstate){}
+    explicit ManufacturedSolutionExample(const unsigned int nstate = 1)
+        :   ManufacturedSolutionFunction<dim,nspecies,real>(nstate){}
     /// Value
     real value (const dealii::Point<dim,real> &point, const unsigned int istate = 0) const override;
     /// Gradient
@@ -534,9 +534,9 @@ public:
 
 /// Navah and Nadarajah free flows manufactured solution base
 /// Reference: Navah F. and Nadarajah S., A comprehensive high-order solver verification methodology for free fluid flows, 2018
-template <int dim, typename real>
+template <int dim, int nspecies, typename real>
 class ManufacturedSolutionNavahBase
-    : public ManufacturedSolutionFunction<dim, real>
+    : public ManufacturedSolutionFunction<dim, nspecies, real>
 {
 // We want the Point to be templated on the type,
 // however, dealii does not template that part of the Function.
@@ -549,8 +549,8 @@ protected:
     using dealii::Function<dim,real>::hessian;
 public:
     /// Constructor
-    ManufacturedSolutionNavahBase(const unsigned int nstate = 4)
-        :   ManufacturedSolutionFunction<dim,real>(nstate)
+    explicit ManufacturedSolutionNavahBase(const unsigned int nstate = 4)
+        :   ManufacturedSolutionFunction<dim,nspecies,real>(nstate)
     {
         // static_assert(dim==2, "ManufacturedSolutionNavahBase() should be created with dim=2");
         // static_assert(nstate==dim+2, "ManufacturedSolutionNavahBase() should be created with nstate=dim+2");
@@ -577,9 +577,9 @@ protected:
 };
 
 /// Navah and Nadarajah free flows manufactured solution: MS1
-template <int dim, typename real>
+template <int dim, int nspecies, typename real>
 class ManufacturedSolutionNavah_MS1
-    : public ManufacturedSolutionNavahBase<dim, real>
+    : public ManufacturedSolutionNavahBase<dim, nspecies, real>
 {
 public:
     /** Constructor for MS-1
@@ -587,8 +587,8 @@ public:
      *  Matrix with all coefficients of the various manufactured solutions given in Navah's paper. 
      *  Reference: Navah F. and Nadarajah S., A comprehensive high-order solver verification methodology for free fluid flows, 2018
      */
-    ManufacturedSolutionNavah_MS1(const unsigned int nstate = 4)
-        :   ManufacturedSolutionNavahBase<dim,real>(nstate)
+    explicit ManufacturedSolutionNavah_MS1(const unsigned int nstate = 4)
+        :   ManufacturedSolutionNavahBase<dim,nspecies,real>(nstate)
     {
         std::array<dealii::Tensor<1,7,double>,5> ncm; ///< Navah Coefficient Matrix (ncm)
         /* MS-1 */
@@ -604,9 +604,9 @@ public:
 };
 
 /// Navah and Nadarajah free flows manufactured solution: MS2
-template <int dim, typename real>
+template <int dim, int nspecies, typename real>
 class ManufacturedSolutionNavah_MS2
-    : public ManufacturedSolutionNavahBase<dim, real>
+    : public ManufacturedSolutionNavahBase<dim, nspecies, real>
 {
 public:
     /** Constructor for MS-2
@@ -614,8 +614,8 @@ public:
      *  Matrix with all coefficients of the various manufactured solutions given in Navah's paper. 
      *  Reference: Navah F. and Nadarajah S., A comprehensive high-order solver verification methodology for free fluid flows, 2018
      */
-    ManufacturedSolutionNavah_MS2(const unsigned int nstate = 4)
-        :   ManufacturedSolutionNavahBase<dim,real>(nstate)
+    explicit ManufacturedSolutionNavah_MS2(const unsigned int nstate = 4)
+        :   ManufacturedSolutionNavahBase<dim,nspecies,real>(nstate)
     {
         std::array<dealii::Tensor<1,7,double>,5> ncm; ///< Navah Coefficient Matrix (ncm)
         /* MS-2 */
@@ -631,9 +631,9 @@ public:
 };
 
 /// Navah and Nadarajah free flows manufactured solution: MS3
-template <int dim, typename real>
+template <int dim, int nspecies, typename real>
 class ManufacturedSolutionNavah_MS3
-    : public ManufacturedSolutionNavahBase<dim, real>
+    : public ManufacturedSolutionNavahBase<dim, nspecies, real>
 {
 public:
     /** Constructor for MS-3
@@ -641,8 +641,8 @@ public:
      *  Matrix with all coefficients of the various manufactured solutions given in Navah's paper. 
      *  Reference: Navah F. and Nadarajah S., A comprehensive high-order solver verification methodology for free fluid flows, 2018
      */
-    ManufacturedSolutionNavah_MS3(const unsigned int nstate = 4)
-        :   ManufacturedSolutionNavahBase<dim,real>(nstate)
+    explicit ManufacturedSolutionNavah_MS3(const unsigned int nstate = 4)
+        :   ManufacturedSolutionNavahBase<dim,nspecies,real>(nstate)
     {
         std::array<dealii::Tensor<1,7,double>,5> ncm; ///< Navah Coefficient Matrix (ncm)
         /* MS-3 */
@@ -658,9 +658,9 @@ public:
 };
 
 /// Navah and Nadarajah free flows manufactured solution: MS4
-template <int dim, typename real>
+template <int dim, int nspecies, typename real>
 class ManufacturedSolutionNavah_MS4
-    : public ManufacturedSolutionNavahBase<dim, real>
+    : public ManufacturedSolutionNavahBase<dim, nspecies, real>
 {
 public:
     /** Constructor for MS-4
@@ -668,8 +668,8 @@ public:
      *  Matrix with all coefficients of the various manufactured solutions given in Navah's paper. 
      *  Reference: Navah F. and Nadarajah S., A comprehensive high-order solver verification methodology for free fluid flows, 2018
      */
-    ManufacturedSolutionNavah_MS4(const unsigned int nstate = 4)
-        :   ManufacturedSolutionNavahBase<dim,real>(nstate)
+    explicit ManufacturedSolutionNavah_MS4(const unsigned int nstate = 4)
+        :   ManufacturedSolutionNavahBase<dim,nspecies,real>(nstate)
     {
         std::array<dealii::Tensor<1,7,double>,5> ncm; ///< Navah Coefficient Matrix (ncm)
         /* MS-4 */
@@ -683,9 +683,9 @@ public:
 };
 
 /// Navah and Nadarajah free flows manufactured solution: MS5
-template <int dim, typename real>
+template <int dim, int nspecies, typename real>
 class ManufacturedSolutionNavah_MS5
-    : public ManufacturedSolutionNavahBase<dim, real>
+    : public ManufacturedSolutionNavahBase<dim, nspecies, real>
 {
 public:
     /** Constructor for MS-5
@@ -693,8 +693,8 @@ public:
      *  Matrix with all coefficients of the various manufactured solutions given in Navah's paper. 
      *  Reference: Navah F. and Nadarajah S., A comprehensive high-order solver verification methodology for free fluid flows, 2018
      */
-    ManufacturedSolutionNavah_MS5(const unsigned int nstate = 4)
-        :   ManufacturedSolutionNavahBase<dim,real>(nstate)
+    explicit ManufacturedSolutionNavah_MS5(const unsigned int nstate = 4)
+        :   ManufacturedSolutionNavahBase<dim,nspecies,real>(nstate)
     {
         std::array<dealii::Tensor<1,7,double>,5> ncm; ///< Navah Coefficient Matrix (ncm)
         /* MS-5 */
@@ -719,20 +719,20 @@ public:
   * Some Manufactured solutions included additional scaling constants
   * that can also be can also be controlled from the parameter file
   */ 
-template <int dim, typename real>
+template <int dim, int nspecies, typename real>
 class ManufacturedSolutionFactory
 {
     /// Enumeration of all manufactured solution types defined in the Parameters class
     using ManufacturedSolutionEnum = Parameters::ManufacturedSolutionParam::ManufacturedSolutionType;
 public:
     /// Construct Manufactured solution object from global parameter file
-    static std::shared_ptr< ManufacturedSolutionFunction<dim,real> > 
+    static std::shared_ptr< ManufacturedSolutionFunction<dim,nspecies,real> > 
     create_ManufacturedSolution(
         Parameters::AllParameters const *const param, 
         int                                    nstate);
 
     /// Construct Manufactured solution object from enumerator list
-    static std::shared_ptr< ManufacturedSolutionFunction<dim,real> >
+    static std::shared_ptr< ManufacturedSolutionFunction<dim,nspecies,real> >
     create_ManufacturedSolution(
         ManufacturedSolutionEnum solution_type,
         int                      nstate);

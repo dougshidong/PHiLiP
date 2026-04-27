@@ -28,7 +28,7 @@ protected:
     std::array<double,dim> dx; ///< Cell spacing.
 public:
     /// Constructor.
-    WavyManifold( const std::vector<unsigned int> n_cells )
+    explicit WavyManifold( const std::vector<unsigned int> n_cells )
     : dealii::ChartManifold<dim,spacedim,chartdim>()
     , n_subdivisions(n_cells)
     {

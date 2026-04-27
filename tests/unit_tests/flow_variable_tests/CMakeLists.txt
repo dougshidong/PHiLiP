@@ -9,6 +9,8 @@ foreach(dim RANGE 1 3)
     add_executable(${TEST_TARGET} ${TEST_SRC})
     # Replace occurences of PHILIP_DIM with 1, 2, or 3 in the code
     target_compile_definitions(${TEST_TARGET} PRIVATE PHILIP_DIM=${dim})
+    # Replace occurences of PHILIP_SPECIES with user-defined value in the code
+    target_compile_definitions(${TEST_TARGET} PRIVATE PHILIP_SPECIES=${NUMBER_OF_SPECIES})
 
     # Compile this executable when 'make unit_tests'
     add_dependencies(unit_tests ${TEST_TARGET})
@@ -33,7 +35,19 @@ foreach(dim RANGE 1 3)
       NAME ${TEST_TARGET}
       COMMAND mpirun -n ${NMPI} ${EXECUTABLE_OUTPUT_PATH}/${TEST_TARGET}
       WORKING_DIRECTORY ${TEST_OUTPUT_DIR})
-
+    if (dim EQUAL 1)
+        set_tests_labels(${TEST_TARGET} FLOW_VARIABLE
+                                        ${dim}D
+                                        SERIAL
+                                        QUICK
+                                        UNIT_TEST)
+    else()
+        set_tests_labels(${TEST_TARGET} FLOW_VARIABLE
+                                        ${dim}D
+                                        PARALLEL
+                                        QUICK
+                                        UNIT_TEST)
+    endif()
     unset(TEST_TARGET)
     unset(OperatorsLib)
 
@@ -50,6 +64,8 @@ foreach(dim RANGE 1 3)
     add_executable(${TEST_TARGET} ${TEST_SRC})
     # Replace occurences of PHILIP_DIM with 1, 2, or 3 in the code
     target_compile_definitions(${TEST_TARGET} PRIVATE PHILIP_DIM=${dim})
+    # Replace occurences of PHILIP_SPECIES with user-defined value in the code
+    target_compile_definitions(${TEST_TARGET} PRIVATE PHILIP_SPECIES=${NUMBER_OF_SPECIES})
 
     # Compile this executable when 'make unit_tests'
     add_dependencies(unit_tests ${TEST_TARGET})
@@ -74,7 +90,19 @@ foreach(dim RANGE 1 3)
       NAME ${TEST_TARGET}
       COMMAND mpirun -n ${NMPI} ${EXECUTABLE_OUTPUT_PATH}/${TEST_TARGET}
       WORKING_DIRECTORY ${TEST_OUTPUT_DIR})
-
+    if (dim EQUAL 1)
+        set_tests_labels(${TEST_TARGET} FLOW_VARIABLE
+                                        ${dim}D
+                                        SERIAL
+                                        QUICK
+                                        UNIT_TEST)
+    else()
+        set_tests_labels(${TEST_TARGET} FLOW_VARIABLE
+                                        ${dim}D
+                                        PARALLEL
+                                        QUICK
+                                        UNIT_TEST)
+    endif()
     unset(TEST_TARGET)
     unset(OperatorsLib)
 

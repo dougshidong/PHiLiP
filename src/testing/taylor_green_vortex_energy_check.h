@@ -7,7 +7,7 @@ namespace PHiLiP {
 namespace Tests {
 
 /// Taylor Green Vortex Energy Check
-template <int dim, int nstate>
+template <int dim, int nspecies, int nstate>
 class TaylorGreenVortexEnergyCheck: public TestsBase
 {
 public:
@@ -15,9 +15,6 @@ public:
     TaylorGreenVortexEnergyCheck(
         const Parameters::AllParameters *const parameters_input,
         const dealii::ParameterHandler &parameter_handler_input);
-
-    /// Destructor
-    ~TaylorGreenVortexEnergyCheck() {};
 
     /// Parameter handler for storing the .prm file being ran
     const dealii::ParameterHandler &parameter_handler;

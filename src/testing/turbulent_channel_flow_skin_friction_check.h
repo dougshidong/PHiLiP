@@ -3,12 +3,13 @@
 
 #include "tests.h"
 #include "parameters/parameters_flow_solver.h"
+#include "physics/navier_stokes.h"
 
 namespace PHiLiP {
 namespace Tests {
 
 /// Turbulent Channel Flow Skin Friction Check
-template <int dim, int nstate>
+template <int dim, int nspecies, int nstate>
 class TurbulentChannelFlowSkinFrictionCheck: public TestsBase
 {
 private:
@@ -29,23 +30,29 @@ public:
     /// Half channel height
     const double half_channel_height;
 
-    // Turbulent channel x-velocity initial condition type
+    /// Turbulent channel x-velocity initial condition type
     const XVelocityInitialConditionEnum xvelocity_initial_condition_type;
 
-    const double y_top_wall; // y-value for top wall
-    const double y_bottom_wall; // y-value for bottom wall
-    const double normal_vector_top_wall; // normal vector for top wall
-    const double normal_vector_bottom_wall; // normal vector for bottom wall
+    const double y_top_wall; ///< y-value for top wall
+    const double y_bottom_wall; ///< y-value for bottom wall
+    const double normal_vector_top_wall; ///< normal vector for top wall
+    const double normal_vector_bottom_wall; ///< normal vector for bottom wall
+
+    /// Pointer to Navier-Stokes physics object for computing things on the fly
+    std::shared_ptr< Physics::NavierStokes_ChannelFlowConstantSourceTerm_WallModel<dim,nspecies,dim+2,double> > navier_stokes_channel_flow_constant_source_term_wall_model_physics;
+    bool check_wall_model; ///< Flag for checking wall model (true if uniform grid)
 
     /// Run test
     int run_test () const override;
 private:
-    double get_x_velocity(const double y) const;
-    double get_x_velocity_gradient(const double y) const;
-    double get_wall_shear_stress() const;
-    double get_bulk_velocity() const;
-    double get_skin_friction_coefficient() const;
-    
+    double get_x_velocity(const double y) const;///< returns x-velocity
+    double get_x_velocity_gradient(const double y) const;///< returns x-velocity gradient
+    double get_wall_shear_stress() const;///< returns wall shear stress
+    double get_bulk_velocity() const;///< returns bulk velocity
+    double get_skin_friction_coefficient() const;///< returns skin friction coefficient
+    double get_integral_of_x_velocity(const double y_plus) const;///< returns integral of x-velocity
+    double get_wall_shear_stress_from_friction_reynolds_number() const;///< returns wall shear stress from friction Reynolds number
+    double get_wall_shear_stress_from_wall_model() const;///< returns wall shear stress from wall model
 };
 
 } // End of Tests namespace

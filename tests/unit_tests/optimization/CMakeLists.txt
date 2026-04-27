@@ -20,6 +20,10 @@ add_test(
   COMMAND mpirun -n ${NMPI} ${EXECUTABLE_OUTPUT_PATH}/${TEST_TARGET}
   WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
 )
+set_tests_labels(${TEST_TARGET}_nmpi=${NMPI}    OPTIMIZATION
+                                                SERIAL
+                                                QUICK
+                                                UNIT_TEST)
 
 if(NOT NMPI EQUAL ${MPIMAX})
   set(NMPI ${MPIMAX})
@@ -28,10 +32,15 @@ if(NOT NMPI EQUAL ${MPIMAX})
     COMMAND mpirun -n ${NMPI} ${EXECUTABLE_OUTPUT_PATH}/${TEST_TARGET}
     WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
   )
+  set_tests_labels(${TEST_TARGET}_nmpi=${NMPI}  OPTIMIZATION
+                                                PARALLEL
+                                                QUICK
+                                                UNIT_TEST)
 endif()
 
 unset(TEST_TARGET)
 
+if(${NUMBER_OF_SPECIES} EQUAL 1)
 set(TEST_SRC
     flow_constraints_check.cpp
     )
@@ -61,12 +70,21 @@ if(NOT DOC_ONLY)
 endif()
 
 target_compile_definitions(${TEST_TARGET} PRIVATE PHILIP_DIM=2)
+# Replace occurences of PHILIP_SPECIES with 1 in the code
+# NOTE: PHILIP_SPECIES will become user defined in a future PR
+target_compile_definitions(${TEST_TARGET} PRIVATE PHILIP_SPECIES=${NUMBER_OF_SPECIES})
+
 set(NMPI ${MPIMAX})
 add_test(
   NAME ${TEST_TARGET}_nmpi=${NMPI}
   COMMAND mpirun -n ${NMPI} ${EXECUTABLE_OUTPUT_PATH}/${TEST_TARGET}
   WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
 )
+set_tests_labels(${TEST_TARGET}_nmpi=${NMPI}    OPTIMIZATION
+                                                ${dim}D
+                                                PARALLEL
+                                                QUICK
+                                                UNIT_TEST)
 unset(TEST_TARGET)
 
 set(TEST_SRC
@@ -99,12 +117,21 @@ if(NOT DOC_ONLY)
 endif()
 
 target_compile_definitions(${TEST_TARGET} PRIVATE PHILIP_DIM=2)
+# Replace occurences of PHILIP_SPECIES with 1 in the code
+# NOTE: PHILIP_SPECIES will become user defined in a future PR
+target_compile_definitions(${TEST_TARGET} PRIVATE PHILIP_SPECIES=${NUMBER_OF_SPECIES})
+
 set(NMPI ${MPIMAX})
 add_test(
   NAME ${TEST_TARGET}_nmpi=${NMPI}
   COMMAND mpirun -n ${NMPI} ${EXECUTABLE_OUTPUT_PATH}/${TEST_TARGET}
   WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
 )
+set_tests_labels(${TEST_TARGET}_nmpi=${NMPI}    OPTIMIZATION
+                                                ${dim}D
+                                                PARALLEL
+                                                QUICK
+                                                UNIT_TEST)
 unset(TEST_TARGET)
 
 ##################################################################################################################################
@@ -134,13 +161,23 @@ if(NOT DOC_ONLY)
 endif()
 
 target_compile_definitions(${TEST_TARGET} PRIVATE PHILIP_DIM=2)
+# Replace occurences of PHILIP_SPECIES with 1 in the code
+# NOTE: PHILIP_SPECIES will become user defined in a future PR
+target_compile_definitions(${TEST_TARGET} PRIVATE PHILIP_SPECIES=${NUMBER_OF_SPECIES})
+
 set(NMPI ${MPIMAX})
 add_test(
   NAME ${TEST_TARGET}_nmpi=${NMPI}
   COMMAND mpirun -n ${NMPI} ${EXECUTABLE_OUTPUT_PATH}/${TEST_TARGET}
   WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
 )
+set_tests_labels(${TEST_TARGET}_nmpi=${NMPI}    OPTIMIZATION
+                                                ${dim}D
+                                                PARALLEL
+                                                QUICK
+                                                UNIT_TEST)
 unset(TEST_TARGET)
+
 ##################################################################################################################################
 
 
@@ -171,12 +208,21 @@ if(NOT DOC_ONLY)
 endif()
 
 target_compile_definitions(${TEST_TARGET} PRIVATE PHILIP_DIM=2)
+# Replace occurences of PHILIP_SPECIES with 1 in the code
+# NOTE: PHILIP_SPECIES will become user defined in a future PR
+target_compile_definitions(${TEST_TARGET} PRIVATE PHILIP_SPECIES=${NUMBER_OF_SPECIES})
+
 set(NMPI ${MPIMAX})
 add_test(
   NAME ${TEST_TARGET}_nmpi=${NMPI}
   COMMAND mpirun -n ${NMPI} ${EXECUTABLE_OUTPUT_PATH}/${TEST_TARGET}
   WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
 )
+set_tests_labels(${TEST_TARGET}_nmpi=${NMPI}    OPTIMIZATION
+                                                ${dim}D
+                                                PARALLEL
+                                                QUICK
+                                                UNIT_TEST)
 unset(TEST_TARGET)
 ##################################################################################################################################
 
@@ -207,11 +253,22 @@ if(NOT DOC_ONLY)
 endif()
 
 target_compile_definitions(${TEST_TARGET} PRIVATE PHILIP_DIM=2)
+# Replace occurences of PHILIP_SPECIES with 1 in the code
+# NOTE: PHILIP_SPECIES will become user defined in a future PR
+target_compile_definitions(${TEST_TARGET} PRIVATE PHILIP_SPECIES=${NUMBER_OF_SPECIES})
+
 set(NMPI ${MPIMAX})
 add_test(
   NAME ${TEST_TARGET}_nmpi=${NMPI}
   COMMAND mpirun -n ${NMPI} ${EXECUTABLE_OUTPUT_PATH}/${TEST_TARGET}
   WORKING_DIRECTORY ${TEST_OUTPUT_DIR}
 )
+set_tests_labels(${TEST_TARGET}_nmpi=${NMPI}    OPTIMIZATION
+                                                ${dim}D
+                                                PARALLEL
+                                                QUICK
+                                                UNIT_TEST)
 unset(TEST_TARGET)
+endif()
+
 ##################################################################################################################################

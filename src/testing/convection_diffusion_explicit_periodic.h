@@ -1,24 +1,21 @@
 #ifndef __CONVECTION_DIFFUSION_EXPLICIT_PERIODIC_H__
 #define __CONVECTION_DIFFUSION_EXPLICIT_PERIODIC_H__
 
-#include "tests.h"
-#include "dg/dg.h"
+#include "dg/dg_base.hpp"
 #include "parameters/all_parameters.h"
+#include "tests.h"
 
 namespace PHiLiP {
 namespace Tests {
 
 /// Convection Diffusion periodic unsteady test (currently only diffusion)
-template <int dim, int nstate>
+template <int dim, int nspecies, int nstate>
 class ConvectionDiffusionPeriodic: public TestsBase
 {
 public:
     /// Constructor
-    ConvectionDiffusionPeriodic(const Parameters::AllParameters *const parameters_input);
+    explicit ConvectionDiffusionPeriodic(const Parameters::AllParameters *const parameters_input);
     
-    /// Destructor
-    ~ConvectionDiffusionPeriodic() {};
-
     /// Run test
     int run_test () const override;
 private:
@@ -30,10 +27,10 @@ private:
     * we can prove the above is equal to 0 within machine precision. This is not the same
     * as the energy being conserved.
     */
-	double compute_energy_derivative_norm(std::shared_ptr < PHiLiP::DGBase<dim, double> > &dg) const;
+	double compute_energy_derivative_norm(std::shared_ptr < PHiLiP::DGBase<dim, nspecies, double> > &dg) const;
     
     /// Function computes the conservation
-    double compute_conservation(std::shared_ptr < PHiLiP::DGBase<dim, double> > &dg, const double poly_degree) const;
+    double compute_conservation(std::shared_ptr < PHiLiP::DGBase<dim, nspecies, double> > &dg, const double poly_degree) const;
 };
 
 } // Tests namespace

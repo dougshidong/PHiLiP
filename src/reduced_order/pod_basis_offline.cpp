@@ -1,22 +1,25 @@
 #include "pod_basis_offline.h"
-#include <deal.II/fe/mapping_q1_eulerian.h>
-#include <iostream>
-#include <filesystem>
-#include <deal.II/lac/full_matrix.h>
-#include <deal.II/base/conditional_ostream.h>
-#include <deal.II/lac/trilinos_sparse_matrix.h>
-#include "dg/dg.h"
-#include "pod_basis_base.h"
+
 #include <EpetraExt_MatrixMatrix.h>
 #include <Epetra_CrsMatrix.h>
 #include <Epetra_Map.h>
+#include <deal.II/base/conditional_ostream.h>
+#include <deal.II/fe/mapping_q1_eulerian.h>
+#include <deal.II/lac/full_matrix.h>
+#include <deal.II/lac/trilinos_sparse_matrix.h>
+
 #include <eigen/Eigen/SVD>
+#include <filesystem>
+#include <iostream>
+
+#include "dg/dg_base.hpp"
+#include "pod_basis_base.h"
 
 namespace PHiLiP {
 namespace ProperOrthogonalDecomposition {
 
-template <int dim>
-OfflinePOD<dim>::OfflinePOD(std::shared_ptr<DGBase<dim,double>> &dg_input)
+template <int dim, int nspecies>
+OfflinePOD<dim,nspecies>::OfflinePOD(std::shared_ptr<DGBase<dim,nspecies,double>> &dg_input)
         : basis(std::make_shared<dealii::TrilinosWrappers::SparseMatrix>())
         , dg(dg_input)
         , mpi_communicator(MPI_COMM_WORLD)
@@ -31,10 +34,10 @@ OfflinePOD<dim>::OfflinePOD(std::shared_ptr<DGBase<dim,double>> &dg_input)
     getPODBasisFromSnapshots();
 }
 
-template <int dim>
-bool OfflinePOD<dim>::getPODBasisFromSnapshots() {
+template <int dim, int nspecies>
+bool OfflinePOD<dim,nspecies>::getPODBasisFromSnapshots() {
     bool file_found = false;
-    MatrixXd snapshotMatrix(0,0);
+    snapshotMatrix.resize(0,0);
     std::string path = dg->all_parameters->reduced_order_param.path_to_search; //Search specified directory for files containing "solutions_table"
 
     std::vector<std::filesystem::path> files_in_directory;
@@ -96,6 +99,13 @@ bool OfflinePOD<dim>::getPODBasisFromSnapshots() {
     pcout << "Snapshot matrix generated." << std::endl;
 
 
+    computeBasis();
+
+    return file_found;
+}
+
+template <int dim, int nspecies>
+void OfflinePOD<dim,nspecies>::computeBasis() {
     /* Reference for simple POD basis computation: Refer to Algorithm 1 in the following reference:
     "Efficient non-linear model reduction via a least-squares Petrov–Galerkin projection and compressive tensor approximations"
     Kevin Carlberg, Charbel Bou-Mosleh, Charbel Farhat
@@ -116,6 +126,29 @@ bool OfflinePOD<dim>::getPODBasisFromSnapshots() {
     Eigen::BDCSVD<MatrixXd, Eigen::DecompositionOptions::ComputeThinU> svd(snapshotMatrixCentered);
     MatrixXd pod_basis = svd.matrixU();
 
+    // Reduce POD Size using either number of modes or a singular value threshold
+    if(dg->all_parameters->reduced_order_param.number_modes > 0){
+        const int num_modes = dg->all_parameters->reduced_order_param.number_modes;
+        Assert(num_modes < pod_basis.cols(),
+        dealii::ExcMessage("The number of modes selected must be less than the number of snapshots"));
+        Eigen::MatrixXd pod_basis_n_modes = pod_basis(Eigen::placeholders::all, Eigen::seqN(0,num_modes));
+        pod_basis = pod_basis_n_modes;
+    }
+    else if (dg->all_parameters->reduced_order_param.singular_value_threshold < 1.0){
+        const double threshold = dg->all_parameters->reduced_order_param.singular_value_threshold;
+        Eigen::VectorXd singular_values = svd.singularValues();
+        double l1_norm = singular_values.sum();
+        double singular_value_cumm_sum = 0;
+        int iter = 0;
+        while(singular_value_cumm_sum/l1_norm < threshold){
+            singular_value_cumm_sum += singular_values(iter);
+            iter++;
+        }
+        Eigen::MatrixXd pod_basis_n_modes = pod_basis(Eigen::placeholders::all, Eigen::seqN(0,iter));
+        pod_basis = pod_basis_n_modes;
+        pcout << "Final size of POD: " << iter << std::endl;
+    }
+
     fullBasis.reinit(pod_basis.rows(), pod_basis.cols());
 
     for (unsigned int m = 0; m < pod_basis.rows(); m++) {
@@ -126,7 +159,8 @@ bool OfflinePOD<dim>::getPODBasisFromSnapshots() {
 
     std::ofstream out_file("POD_basis.txt");
     unsigned int precision = 16;
-    fullBasis.print_formatted(out_file, precision);
+    char zero = 48;
+    fullBasis.print_formatted(out_file, precision, true, 0,&zero);
 
     const Epetra_CrsMatrix epetra_system_matrix  = this->dg->system_matrix.trilinos_matrix();
     Epetra_Map system_matrix_map = epetra_system_matrix.RowMap();
@@ -147,21 +181,25 @@ bool OfflinePOD<dim>::getPODBasisFromSnapshots() {
     epetra_basis.FillComplete(domain_map, system_matrix_map);
 
     basis->reinit(epetra_basis);
-
-    return file_found;
 }
 
-template <int dim>
-std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> OfflinePOD<dim>::getPODBasis() {
+template <int dim, int nspecies>
+std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> OfflinePOD<dim,nspecies>::getPODBasis() {
     return basis;
 }
 
-template <int dim>
-dealii::LinearAlgebra::ReadWriteVector<double> OfflinePOD<dim>::getReferenceState() {
+template <int dim, int nspecies>
+dealii::LinearAlgebra::ReadWriteVector<double> OfflinePOD<dim,nspecies>::getReferenceState() {
     return referenceState;
 }
 
-template class OfflinePOD <PHILIP_DIM>;
+template <int dim, int nspecies>
+MatrixXd OfflinePOD<dim,nspecies>::getSnapshotMatrix() {
+    return snapshotMatrix;
+}
 
+#if PHILIP_SPECIES==1
+template class OfflinePOD <PHILIP_DIM, PHILIP_SPECIES>;
+#endif
 }
 }

@@ -1,20 +1,19 @@
 
+#include "grid_refinement/msh_out.h"
+
 #include <deal.II/base/tensor.h>
-#include <deal.II/grid/tria.h>
-#include <deal.II/grid/grid_generator.h>
-
 #include <deal.II/distributed/tria.h>
-
-#include <deal.II/fe/fe_system.h>
 #include <deal.II/fe/fe_dgq.h>
+#include <deal.II/fe/fe_system.h>
+#include <deal.II/grid/grid_generator.h>
+#include <deal.II/grid/tria.h>
 
 #include <fstream>
-#include <iostream> 
+#include <iostream>
 
-#include "dg/dg.h"
+#include "dg/dg_base.hpp"
 #include "parameters/parameters.h"
 #include "physics/physics.h"
-#include "grid_refinement/msh_out.h"
 
 //  data types and storage types imported from msh_out.cpp
 using DataType    = PHiLiP::GridRefinement::DataType;

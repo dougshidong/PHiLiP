@@ -3,17 +3,12 @@
 
 #include <deal.II/optimization/rol/vector_adaptor.h>
 
-#include "ROL_Constraint_SimOpt.hpp"
-
-#include "linear_solver/linear_solver.h"
-
-#include "parameters/all_parameters.h"
-
-#include "dg/dg.h"
-
 #include "Ifpack.h"
-
+#include "ROL_Constraint_SimOpt.hpp"
 #include "design_parameterization/base_parameterization.hpp"
+#include "dg/dg_base.hpp"
+#include "linear_solver/linear_solver.h"
+#include "parameters/all_parameters.h"
 
 namespace PHiLiP {
 
@@ -27,7 +22,7 @@ using AdaptVector = dealii::Rol::VectorAdaptor<dealii_Vector>;
  *  The given @p ffd_design_variables_indices_dim point to the points/directions
  *  used as design variables.
  */
-template<int dim>
+template<int dim, int nspecies>
 class FlowConstraints : public ROL::Constraint_SimOpt<double> {
 private:
     /// MPI rank used for printing.
@@ -35,7 +30,7 @@ private:
     /// Whether the current processor should print or not.
     const bool i_print;
     /// Smart pointer to DGBase
-    std::shared_ptr<DGBase<dim,double>> dg;
+    std::shared_ptr<DGBase<dim,nspecies,double>> dg;
 
     /// Parameterization which links design variables to the volume nodes.
     std::shared_ptr<BaseParameterization<dim>> design_parameterization;
@@ -90,15 +85,10 @@ public:
 
     /// Constructor
     FlowConstraints(
-        std::shared_ptr<DGBase<dim,double>> &_dg,
+        std::shared_ptr<DGBase<dim,nspecies,double>> &_dg,
         std::shared_ptr<BaseParameterization<dim>> _design_parameterization,
         std::shared_ptr<dealii::TrilinosWrappers::SparseMatrix> precomputed_dXvdXp = nullptr);
-    ///// Constructor
-    //FlowConstraints(
-    //    std::shared_ptr<DGBase<dim,double>> &_dg, 
-    //    const FreeFormDeformation<dim> &_ffd,
-    //    std::vector< std::pair< unsigned int, unsigned int > > &_ffd_design_variables_indices_dim,
-    //    const dealii::TrilinosWrappers::SparseMatrix *existing_dXvdXp = NULL);
+
     /// Destructor.
     ~FlowConstraints();
 

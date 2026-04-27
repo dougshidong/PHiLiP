@@ -8,8 +8,8 @@ namespace PHiLiP {
 namespace Physics {
 
 /// Navier-Stokes equations. Derived from Euler for the convective terms, which is derived from PhysicsBase. 
-template <int dim, int nstate, typename real>
-class NavierStokes : public Euler <dim, nstate, real>
+template <int dim, int nspecies, int nstate, typename real>
+class NavierStokes : public Euler <dim, nspecies, nstate, real>
 {
 protected:
     // For overloading the virtual functions defined in PhysicsBase
@@ -19,14 +19,15 @@ protected:
      *  Solution: In order to make the hidden function visible in derived class, 
      *  we need to add the following:
     */
-    using PhysicsBase<dim,nstate,real>::dissipative_flux;
-    using PhysicsBase<dim,nstate,real>::source_term;
-    using PhysicsBase<dim,nstate,real>::boundary_face_values;
+    using PhysicsBase<dim,nspecies,nstate,real>::dissipative_flux;
+    using PhysicsBase<dim,nspecies,nstate,real>::source_term;
+    using PhysicsBase<dim,nspecies,nstate,real>::boundary_face_values;
 public:
     using thermal_boundary_condition_enum = Parameters::NavierStokesParam::ThermalBoundaryCondition;
     using two_point_num_flux_enum = Parameters::AllParameters::TwoPointNumericalFlux;
     /// Constructor
     NavierStokes( 
+        const Parameters::AllParameters *const                    parameters_input,
         const double                                              ref_length,
         const double                                              gamma_gas,
         const double                                              mach_inf,
@@ -39,8 +40,9 @@ public:
         const double                                              temperature_inf = 273.15,
         const double                                              isothermal_wall_temperature = 1.0,
         const thermal_boundary_condition_enum                     thermal_boundary_condition_type = thermal_boundary_condition_enum::adiabatic,
-        std::shared_ptr< ManufacturedSolutionFunction<dim,real> > manufactured_solution_function = nullptr,
-        const two_point_num_flux_enum                             two_point_num_flux_type = two_point_num_flux_enum::KG);
+        std::shared_ptr< ManufacturedSolutionFunction<dim,nspecies,real> > manufactured_solution_function = nullptr,
+        const two_point_num_flux_enum                             two_point_num_flux_type = two_point_num_flux_enum::KG,
+        const bool                                                has_nonzero_physical_source = false);
 
     /// Nondimensionalized viscosity coefficient at infinity.
     const double viscosity_coefficient_inf;
@@ -69,8 +71,6 @@ protected:
     //@}
 
 public:
-    /// Destructor
-    ~NavierStokes() {};
 
     /** Nondimensionalized temperature gradient */
     template<typename real2>
@@ -89,6 +89,11 @@ public:
     dealii::Tensor<1,dim,real2> compute_wall_tangent_vector(
         const std::array<real2,nstate> &conservative_soln,
         const dealii::Tensor<1,dim,real2> &normal_vector) const;
+
+    /** Nondimensionalized wall tangent vector from velocities parallel to wall */
+    template<typename real2>
+    dealii::Tensor<1,dim,real2> compute_wall_tangent_vector_from_velocities_parallel_to_wall(
+        const dealii::Tensor<1,dim,real2> &velocities_parallel_to_wall) const;
 
     /** Nondimensionalized wall shear stress */
     template<typename real2>
@@ -204,6 +209,16 @@ public:
         const std::array<real,nstate> &conservative_soln,
         const std::array<dealii::Tensor<1,dim,real>,nstate> &conservative_soln_gradient) const;
 
+    /// Evaluate incompressible enstrophy from conservative variables and gradient of conservative variables
+    real compute_incompressible_enstrophy (
+        const std::array<real,nstate> &conservative_soln,
+        const std::array<dealii::Tensor<1,dim,real>,nstate> &conservative_soln_gradient) const;
+
+    /// Evaluate incompressible palinstrophy from conservative variables and gradient of vorticity
+    real compute_incompressible_palinstrophy (
+        const std::array<real,nstate> &conservative_soln,
+        const std::array<dealii::Tensor<1,dim,real>,3> &vorticity_gradient) const;
+
     /** Evaluate non-dimensional theoretical vorticity-based dissipation rate integrated enstrophy. 
      *  Note: For incompressible flows or when dilatation effects are negligible
      *  -- Reference: Cox, Christopher, et al. "Accuracy, stability, and performance comparison 
@@ -226,6 +241,12 @@ public:
     /** Evaluate dilatation from conservative variables and gradient of conservative variables 
      * */
     real compute_dilatation (
+        const std::array<real,nstate> &conservative_soln,
+        const std::array<dealii::Tensor<1,dim,real>,nstate> &conservative_soln_gradient) const;
+
+    /** Evaluate density gradient magnitude from conservative variables and gradient of conservative variables 
+     * */
+    real compute_density_gradient_magnitude (
         const std::array<real,nstate> &conservative_soln,
         const std::array<dealii::Tensor<1,dim,real>,nstate> &conservative_soln_gradient) const;
 
@@ -252,7 +273,7 @@ public:
         const std::array<dealii::Tensor<1,dim,real2>,nstate> &conservative_soln_gradient) const;
 
     /// Evaluate the square of the deviatoric strain-rate tensor magnitude (i.e. double dot product) from conservative variables and gradient of conservative variables
-    real compute_deviatoric_strain_rate_tensor_magnitude_sqr (
+    real compute_viscosity_times_deviatoric_strain_rate_tensor_magnitude_sqr (
         const std::array<real,nstate> &conservative_soln,
         const std::array<dealii::Tensor<1,dim,real>,nstate> &conservative_soln_gradient) const;
 
@@ -263,8 +284,8 @@ public:
      *                Computers & Fluids 221 (2021): 104922.
      *  -- Equation (57a) with free-stream nondimensionalization applied
      * */
-    real compute_deviatoric_strain_rate_tensor_based_dissipation_rate_from_integrated_deviatoric_strain_rate_tensor_magnitude_sqr (
-        const real integrated_deviatoric_strain_rate_tensor_magnitude_sqr) const;
+    real compute_deviatoric_strain_rate_tensor_based_dissipation_rate_from_integrated_viscosity_times_deviatoric_strain_rate_tensor_magnitude_sqr (
+        const real integrated_viscosity_times_deviatoric_strain_rate_tensor_magnitude_sqr) const;
 
     /** Extract gradient of velocities */
     template<typename real2>
@@ -281,7 +302,7 @@ public:
         const dealii::Tensor<2,dim,real2> &vel_gradient) const;
 
     /// Evaluate the square of the strain-rate tensor magnitude (i.e. double dot product) from conservative variables and gradient of conservative variables
-    real compute_strain_rate_tensor_magnitude_sqr (
+    real compute_viscosity_times_strain_rate_tensor_magnitude_sqr (
         const std::array<real,nstate> &conservative_soln,
         const std::array<dealii::Tensor<1,dim,real>,nstate> &conservative_soln_gradient) const;
 
@@ -291,8 +312,8 @@ public:
      *                to Turbulence for Compact Nodal Schemes." 
      *  -- Equation (E.9) with free-stream nondimensionalization applied
      * */
-    real compute_strain_rate_tensor_based_dissipation_rate_from_integrated_strain_rate_tensor_magnitude_sqr (
-        const real integrated_strain_rate_tensor_magnitude_sqr) const;
+    real compute_strain_rate_tensor_based_dissipation_rate_from_integrated_viscosity_times_strain_rate_tensor_magnitude_sqr (
+        const real integrated_viscosity_times_strain_rate_tensor_magnitude_sqr) const;
 
     /** Nondimensionalized viscous stress tensor, tau*
      *  Reference: Masatsuka 2018 "I do like CFD", p.148, eq.(4.14.12)
@@ -335,7 +356,7 @@ public:
     /** Nondimensionalized Germano identity tensor, M*, from conservative solution and solution gradient
      *  Reference: Flad and Gassner 2017
      */
-    dealii::Tensor<2,dim,real> compute_germano_idendity_matrix_M_component (
+    dealii::Tensor<2,dim,real> compute_germano_identity_matrix_M_component (
         const std::array<real,nstate> &conservative_soln,
         const std::array<dealii::Tensor<1,dim,real>,nstate> &conservative_soln_gradient) const;
 
@@ -354,6 +375,21 @@ public:
         const dealii::types::global_dof_index cell_index,
         const dealii::Tensor<1,dim,real> &normal,
         const int boundary_type) override;
+
+    /** Nondimensionalized viscous flux (i.e. dissipative flux) dot normal vector that accounts for gradient boundary conditions
+     *  when the on boundary flag is true
+     *  References: 
+     *  (1) Masatsuka 2018 "I do like CFD", p.142, eq.(4.12.1-4.12.4),
+     *  (2) For the boundary condition case, refer to the equation above equation 458 of the following paper:
+     *      Hartmann, Ralf. "Numerical analysis of higher order discontinuous Galerkin finite element methods." (2008): 1-107.
+     */
+    virtual std::array<real,nstate> dissipative_flux_dot_normal_on_adiabatic_boundary (
+        const std::array<real,nstate> &solution,
+        const std::array<dealii::Tensor<1,dim,real>,nstate> &solution_gradient,
+        const std::array<real,nstate> &filtered_solution,
+        const std::array<dealii::Tensor<1,dim,real>,nstate> &filtered_solution_gradient,
+        const dealii::types::global_dof_index cell_index,
+        const dealii::Tensor<1,dim,real> &normal);
 
     /** Nondimensionalized viscous flux (i.e. dissipative flux)
      *  Reference: Masatsuka 2018 "I do like CFD", p.142, eq.(4.12.1-4.12.4)
@@ -433,7 +469,7 @@ protected:
         const std::array<dealii::Tensor<1,dim,real2>,nstate> &solution_gradient) const;
 
     /// Boundary face values for viscous fluxes
-    void boundary_face_values_viscous_flux (
+    virtual void boundary_face_values_viscous_flux (
         const int boundary_type,
         const dealii::Point<dim, real> &pos,
         const dealii::Tensor<1,dim,real> &normal,
@@ -465,7 +501,7 @@ protected:
         std::array<dealii::Tensor<1,dim,real>,nstate> &soln_grad_bc) const override;
 
 public:
-    /// For post processing purposes (update comment later)
+    /// For post processing purposes, computes all the quantities we write to the VTK files
     dealii::Vector<double> post_compute_derived_quantities_vector (
         const dealii::Vector<double>              &uh,
         const std::vector<dealii::Tensor<1,dim> > &duh,
@@ -479,7 +515,7 @@ public:
     /// For post processing purposes, sets the interpretation of each computed quantity as either scalar or vector
     std::vector<dealii::DataComponentInterpretation::DataComponentInterpretation> post_get_data_component_interpretation () const override;
     
-    /// For post processing purposes (update comment later)
+    /// For post processing purposes, updates the required flags for dealii
     dealii::UpdateFlags post_get_needed_update_flags () const override;
 
 public:
@@ -489,6 +525,149 @@ public:
     /// Returns the the magnitude of the tensor (i.e. the double dot product of a tensor with itself)
     real get_tensor_magnitude (const dealii::Tensor<2,dim,real> &tensor) const;
 
+};
+
+/// Navier-Stokes equations with constant physical source term for the turbulent channel flow case. Derived from Navier-Stokes. 
+template <int dim, int nspecies, int nstate, typename real>
+class NavierStokes_ChannelFlowConstantSourceTerm : public NavierStokes <dim, nspecies, nstate, real>
+{
+public:
+    using thermal_boundary_condition_enum = Parameters::NavierStokesParam::ThermalBoundaryCondition;
+    using two_point_num_flux_enum = Parameters::AllParameters::TwoPointNumericalFlux;
+    /// Constructor
+    NavierStokes_ChannelFlowConstantSourceTerm( 
+        const Parameters::AllParameters *const                    parameters_input,
+        const double                                              ref_length,
+        const double                                              gamma_gas,
+        const double                                              mach_inf,
+        const double                                              angle_of_attack,
+        const double                                              side_slip_angle,
+        const double                                              prandtl_number,
+        const double                                              reynolds_number_inf,
+        const bool                                                use_constant_viscosity,
+        const double                                              constant_viscosity,
+        const double                                              reynolds_number_based_on_friction_velocity,
+        const double                                              half_channel_height,
+        const double                                              temperature_inf = 273.15,
+        const double                                              isothermal_wall_temperature = 1.0,
+        const thermal_boundary_condition_enum                     thermal_boundary_condition_type = thermal_boundary_condition_enum::adiabatic,
+        std::shared_ptr< ManufacturedSolutionFunction<dim,nspecies,real> > manufactured_solution_function = nullptr,
+        const two_point_num_flux_enum                             two_point_num_flux_type = two_point_num_flux_enum::KG);
+
+    /// Nondimensional constant source term for x-momentum
+    const double x_momentum_constant_source_term;
+
+    /// Destructor
+    ~NavierStokes_ChannelFlowConstantSourceTerm() {};
+
+    /// Physical source term for turbulent channel flow case
+    std::array<real,nstate> physical_source_term (
+        const dealii::Point<dim,real> &pos,
+        const std::array<real,nstate> &solution,
+        const std::array<dealii::Tensor<1,dim,real>,nstate> &solution_gradient,
+        const dealii::types::global_dof_index cell_index) const override;
+};
+
+/// Wall Model Look up table
+template <typename real>
+class WallModelLookUpTable
+{
+    /** Number of different computed quantities
+     *  Corresponds to the number of items in IntegratedQuantitiesEnum
+     * Reference: Page 31-32 of Julien Brillon's thesis available at https://escholarship.mcgill.ca/concern/theses/h989r903p
+     * */
+    static const int NUMBER_OF_SAMPLE_POINTS = 38;
+    ///< x and y data for the look up table
+    static constexpr std::array<double,NUMBER_OF_SAMPLE_POINTS> yData = 
+            {{0.0, 3.0, 5.0, 8.0, 10.0, 20.0, 35.0, 50.0, 75.0, 100.0, 125.0, 150.0,
+              200.0, 250.0, 300.0, 350.0, 400.0, 500.0, 575.0, 650.0, 725.0, 800.0, 
+              900.0, 1000.0, 1100.0, 1200.0, 1300.0, 1400.0, 1500.0, 1600.0, 1800.0, 
+              2000.0, 2500.0, 3000.0, 3500.0, 4000.0, 4500.0, 5000.0}};
+    static constexpr std::array<double,NUMBER_OF_SAMPLE_POINTS> xData = 
+            {{0.0000000000000e+00, 8.7652737082527e+00, 2.3294562921324e+01, 5.4184774233564e+01,
+              7.8809463502726e+01, 2.2429199943857e+02, 4.6798107411288e+02, 7.2296127461536e+02, 
+              1.1658971129082e+03, 1.6286476514445e+03, 2.1076047703808e+03, 2.5997463219921e+03, 
+              3.6154681137081e+03, 4.6644290903876e+03, 5.7398811747011e+03, 6.8373640504590e+03, 
+              7.9537073133201e+03, 1.0234022966195e+04, 1.1979574602097e+04, 1.3750942900204e+04, 
+              1.5545134905888e+04, 1.7359780637619e+04, 1.9807850068644e+04, 2.2285219477338e+04, 
+              2.4788948528427e+04, 2.7316633948913e+04, 2.9866274540736e+04, 3.2436177975259e+04, 
+              3.5024894352307e+04, 3.7631167553565e+04, 4.2892118831955e+04, 4.8211670442755e+04, 
+              6.1730908478994e+04, 7.5515087179925e+04, 8.9519590674471e+04, 1.0371270861601e+05, 
+              1.1807073118603e+05, 1.3257525485198e+05}};
+public:
+    WallModelLookUpTable(); ///< Constructor
+
+    ~WallModelLookUpTable(){}; ///< Destructor
+
+private:
+    real interpolate(const real x, const bool extrapolate ) const; ///< interpolate function
+
+public:
+    /// Returns the wall shear stress magnitude calculated from the wall model
+    real get_wall_shear_stress_magnitude(
+        const real wall_parallel_velocity, 
+        const real distance, 
+        const real viscosity_coefficient,
+        const real density,
+        const double reynolds_number_inf) const;
+};
+
+/// Navier-Stokes equations with constant physical source term for the turbulent channel flow case and wall model. Derived from NavierStokes_ChannelFlowConstantSourceTerm. 
+template <int dim, int nspecies, int nstate, typename real>
+class NavierStokes_ChannelFlowConstantSourceTerm_WallModel : public NavierStokes_ChannelFlowConstantSourceTerm <dim, nspecies, nstate, real>
+{
+public:
+    using thermal_boundary_condition_enum = Parameters::NavierStokesParam::ThermalBoundaryCondition;
+    using two_point_num_flux_enum = Parameters::AllParameters::TwoPointNumericalFlux;
+    /// Constructor
+    NavierStokes_ChannelFlowConstantSourceTerm_WallModel( 
+        const Parameters::AllParameters *const                    parameters_input,
+        const double                                              ref_length,
+        const double                                              gamma_gas,
+        const double                                              mach_inf,
+        const double                                              angle_of_attack,
+        const double                                              side_slip_angle,
+        const double                                              prandtl_number,
+        const double                                              reynolds_number_inf,
+        const bool                                                use_constant_viscosity,
+        const double                                              constant_viscosity,
+        const double                                              reynolds_number_based_on_friction_velocity,
+        const double                                              half_channel_height,
+        const double                                              distance_from_wall_for_wall_model_input_velocity,
+        const double                                              temperature_inf = 273.15,
+        const double                                              isothermal_wall_temperature = 1.0,
+        const thermal_boundary_condition_enum                     thermal_boundary_condition_type = thermal_boundary_condition_enum::adiabatic,
+        std::shared_ptr< ManufacturedSolutionFunction<dim,nspecies,real> > manufactured_solution_function = nullptr,
+        const two_point_num_flux_enum                             two_point_num_flux_type = two_point_num_flux_enum::KG);
+
+    /// Destructor
+    ~NavierStokes_ChannelFlowConstantSourceTerm_WallModel() {};
+
+    /// Distance from wall for wall model input velocity
+    const double distance_from_wall_for_wall_model_input_velocity;
+
+    /// Pointer to wall model look-up table object
+    std::unique_ptr < WallModelLookUpTable<real> > wall_model_look_up_table;
+
+    /** Nondimensionalized viscous flux (i.e. dissipative flux) dot normal vector that accounts for gradient boundary conditions
+     *  when the on boundary flag is true -- contains the wall model
+     *  Reference(s): 
+     *  (1) Frere, Ariane. Towards wall-modeled Large-Eddy Simulations of high Reynolds number airfoils using a discontinuous Galerkin method. 
+     *      Diss. UCL-Université Catholique de Louvain, 2018. Link: https://dial.uclouvain.be/pr/boreal/object/boreal:200824
+     *      Equations: (2.39-2.41)
+     */
+    std::array<real,nstate> dissipative_flux_dot_normal_on_adiabatic_boundary (
+        const std::array<real,nstate> &solution,
+        const std::array<dealii::Tensor<1,dim,real>,nstate> &solution_gradient,
+        const std::array<real,nstate> &filtered_solution,
+        const std::array<dealii::Tensor<1,dim,real>,nstate> &filtered_solution_gradient,
+        const dealii::types::global_dof_index cell_index,
+        const dealii::Tensor<1,dim,real> &normal) override;
+
+    /// Returns the velocoty component parallel to the wall from the solution and normal vector
+    real get_velocity_component_parallel_to_wall_from_solution_and_normal_vector (
+        const std::array<real,nstate> &conservative_soln,
+        const dealii::Tensor<1,dim,real> &normal_vector) const;
 };
 
 } // Physics namespace

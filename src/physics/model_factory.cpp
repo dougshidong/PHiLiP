@@ -13,7 +13,6 @@
 #include "reynolds_averaged_navier_stokes.h"
 #include "negative_spalart_allmaras_rans_model.h"
 #include "navier_stokes_model.h"
-#include "navier_stokes_model.h"
 
 namespace PHiLiP {
 namespace Physics {
@@ -26,7 +25,7 @@ ModelFactory<dim,nspecies,nstate,real>
     using PDE_enum = Parameters::AllParameters::PartialDifferentialEquation;
     PDE_enum pde_type = parameters_input->pde_type;
 
-    if(pde_type == PDE_enum::physics_model || pde_type == PDE_enum::physics_model_filtered) {
+    if((pde_type == PDE_enum::physics_model || pde_type == PDE_enum::physics_model_filtered) && nspecies==1) {
         // generating the manufactured solution from the manufactured solution factory
         std::shared_ptr< ManufacturedSolutionFunction<dim,nspecies,real> >  manufactured_solution_function 
             = ManufacturedSolutionFactory<dim,nspecies,real>::create_ManufacturedSolution(parameters_input, nstate);
@@ -243,6 +242,8 @@ ModelFactory<dim,nspecies,nstate,real>
             } 
             else {
                 // LES does not exist for nstate!=(dim+2) || dim!=3
+                std::cout << "Can't create LES for nstate!=(dim+2) or dim!=3" << std::endl;
+                assert(0==1 && "Can't create LES for nstate!=(dim+2) or dim!=3");
                 manufactured_solution_function = nullptr;
                 return nullptr;
             }
@@ -274,6 +275,8 @@ ModelFactory<dim,nspecies,nstate,real>
                     parameters_input->two_point_num_flux_type);
             } else {
                 // Navier-Stokes model does not exist for nstate!=(dim+2) || dim!=3
+                std::cout << "Can't create Navier-Stokes model for nstate!=(dim+2) or dim!=3" << std::endl;
+                assert(0==1 && "Can't create Navier-Stokes model for nstate!=(dim+2) or dim!=3");
                 manufactured_solution_function = nullptr;
                 return nullptr;
             }

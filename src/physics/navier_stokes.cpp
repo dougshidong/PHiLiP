@@ -1511,6 +1511,8 @@ dealii::Vector<double> NavierStokes<dim,nspecies,nstate,real>::post_compute_deri
         computed_quantities(++current_data_index) = compute_second_invariant(conservative_soln,conservative_soln_gradient);
         // Dilatation
         computed_quantities(++current_data_index) = compute_dilatation(conservative_soln,conservative_soln_gradient);
+        // Density gradient magnitude
+        computed_quantities(++current_data_index) = compute_density_gradient_magnitude(conservative_soln,conservative_soln_gradient);
         // Viscous stress tensor
         if constexpr(dim==2) {
             // Vorticity
@@ -1560,7 +1562,7 @@ std::vector<dealii::DataComponentInterpretation::DataComponentInterpretation> Na
 ::post_get_data_component_interpretation () const
 {
     namespace DCI = dealii::DataComponentInterpretation;
-    std::vector<DCI::DataComponentInterpretation> interpretation = PhysicsBase<dim, nspecies, nstate,real>::post_get_data_component_interpretation (); // state variables
+    std::vector<DCI::DataComponentInterpretation> interpretation = PhysicsBase<dim,nspecies,nstate,real>::post_get_data_component_interpretation (); // state variables
     interpretation.push_back (DCI::component_is_scalar); // Density
     for (unsigned int d=0; d<dim; ++d) {
         interpretation.push_back (DCI::component_is_part_of_vector); // Velocity
@@ -1583,6 +1585,7 @@ std::vector<dealii::DataComponentInterpretation::DataComponentInterpretation> Na
     interpretation.push_back (DCI::component_is_scalar); // Enstrophy
     interpretation.push_back (DCI::component_is_scalar); // Second-invariant Q
     interpretation.push_back (DCI::component_is_scalar); // Dilatation
+    interpretation.push_back (DCI::component_is_scalar); // Density gradient magnitude
     if constexpr(dim==2) {
         for (unsigned int d=0; d<dim; ++d) {
             interpretation.push_back (DCI::component_is_part_of_vector); // First line of viscous Stress Tensor
@@ -1626,7 +1629,7 @@ std::vector<std::string> NavierStokes<dim,nspecies,nstate,real>
     }
     names.push_back ("total_energy");
     names.push_back ("pressure");
-    names.push_back ("pressure_coeffcient");
+    names.push_back ("pressure_coefficient");
     names.push_back ("temperature");
 
     names.push_back ("entropy_generation");
@@ -1640,6 +1643,7 @@ std::vector<std::string> NavierStokes<dim,nspecies,nstate,real>
     names.push_back ("enstrophy");
     names.push_back ("second_invariant_Q");
     names.push_back ("dilatation");
+    names.push_back ("density_gradient_magnitude");
     if constexpr(dim==2) {
         // First line of viscous Stress Tensor
         for (unsigned int d=0; d<dim; ++d) {

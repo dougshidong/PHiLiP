@@ -333,11 +333,10 @@ public:
             const double factor = 1.0);
 
     /// These function correct the face orientation of a face, in case deal.ii changes it.
-    /** When we have to interpolate to a surface, the reference quadrature points that we interpolate to
+    /** When we have to interpolate to the face, the reference quadrature points that we interpolate to
     * may have changed orientation. The functions below account for this and change the ordering of the
     * quadrature points. After we compute the fluxes (i.e., when the points need to match between the
-    * int and ext cells), we need to account for this again when we intergrate (since strong DG assuumes
-    * a certain ordering, we must make sure we map the r.h.s back to the correct DOFs.).
+    * int and ext cells), we need to account for this again when we perform inner products.
     */
     template <typename real>
     void face_orientation_tensor_product(

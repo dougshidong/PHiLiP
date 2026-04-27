@@ -36,9 +36,6 @@ private:
     /// Allocate the dual vector for optimization.
     void allocate_dual_vector (const bool compute_d2R);
 
-    /// Allocate the dual vector for optimization.
-    void allocate_dual_vector ();
-
     /// Main function responsible for evaluating the integral over the cell volume and the specified derivatives.
     /** This function templates the solution and metric coefficients in order to possible AD the residual.
      */

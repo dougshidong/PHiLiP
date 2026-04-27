@@ -438,11 +438,17 @@ int main (int argc, char * argv[])
                         }
                         soln_coeff_ext[istate][ishape] = dg->solution[neighbor_dofs_indices[idof]];
                     }
-                     
+
+                    //Check interior quadrature point ordering
+                    std::vector<bool> face_orientation_int = {current_cell->face_orientation(iface), current_cell->face_rotation(iface), current_cell->face_flip(iface)};
+                    //Check exterior quadrature point ordering
+                    std::vector<bool> face_orientation_ext = {neighbor_cell->face_orientation(neighbor_iface), neighbor_cell->face_rotation(neighbor_iface), neighbor_cell->face_flip(neighbor_iface)};
+                    
                     //evaluate facet auxiliary RHS
                     dg->assemble_face_term_auxiliary_equation<double> (
                         iface, neighbor_iface, 
                         current_cell_index, neighbor_cell_index,
+                        face_orientation_int, face_orientation_ext,
                         soln_coeff, soln_coeff_ext,
                         poly_degree, poly_degree,
                         basis, basis,

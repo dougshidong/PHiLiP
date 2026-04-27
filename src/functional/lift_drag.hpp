@@ -95,20 +95,19 @@ public:
     /** Used only in the computation of evaluate_function(). If not overriden returns 0. */
     template<typename real2>
     real2 evaluate_boundary_integrand(
-        const PHiLiP::Physics::PhysicsBase<dim,nspecies,nstate,real2> &physics,
+        const PHiLiP::Physics::PhysicsBase<dim,nspecies,nstate,real2> &/*physics*/,
         const unsigned int boundary_id,
         const dealii::Point<dim,real2> &/*phys_coord*/,
         const dealii::Tensor<1,dim,real2> &normal,
         const std::array<real2,nstate> &soln_at_q,
         const std::array<dealii::Tensor<1,dim,real2>,nstate> &soln_grad_at_q) const
     {
-        if (boundary_id == 1001) {
+        if (boundary_id == 1001 || boundary_id == 1006) {
             assert(soln_at_q.size() == dim+2);
-            const Physics::Euler<dim,nspecies,dim+2,real2> &euler = dynamic_cast< const Physics::Euler<dim,nspecies,dim+2,real2> &> (physics);
 
             /// Pointer to Navier-Stokes physics object
             using PDE_enum = Parameters::AllParameters::PartialDifferentialEquation;
-            std::shared_ptr< Physics::NavierStokes<dim,dim+2,real2> > navier_stokes_physics = std::dynamic_pointer_cast<Physics::NavierStokes<dim,dim+2,real2>> (Physics::PhysicsFactory<dim,dim+2,real2>::create_Physics(this->all_parameters, PDE_enum::navier_stokes, nullptr));
+            std::shared_ptr< Physics::NavierStokes<dim,nspecies,dim+2,real2> > navier_stokes_physics = std::dynamic_pointer_cast<Physics::NavierStokes<dim,nspecies,dim+2,real2>> (Physics::PhysicsFactory<dim,nspecies,dim+2,real2>::create_Physics(this->all_parameters, PDE_enum::navier_stokes, nullptr));
 
             // Compute pressure (same as Euler physics)
             const real2 pressure = navier_stokes_physics->compute_pressure (soln_at_q);

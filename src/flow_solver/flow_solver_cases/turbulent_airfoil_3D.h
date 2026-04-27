@@ -3,7 +3,7 @@
 
 // for FlowSolver class:
 #include "physics/initial_conditions/initial_condition_function.h"
-#include "dg/dg.h"
+#include "dg/dg_base.hpp"
 #include "physics/physics.h"
 #include "parameters/all_parameters.h"
 #include <deal.II/base/table_handler.h>
@@ -14,8 +14,8 @@
 namespace PHiLiP {
 namespace FlowSolver {
 
-template <int dim, int nstate>
-class Airfoil_3D_LES : public FlowSolverCaseBase<dim,nstate>
+template <int dim, int nspecies, int nstate>
+class Airfoil_3D_LES : public FlowSolverCaseBase<dim, nspecies,nstate>
 {
 #if PHILIP_DIM==1
     using Triangulation = dealii::Triangulation<PHILIP_DIM>;
@@ -34,17 +34,17 @@ public:
     std::shared_ptr<Triangulation> generate_grid() const override;
 
     /// Function to set the higher order grid
-    void set_higher_order_grid(std::shared_ptr <DGBase<dim, double>> dg) const override;
+    void set_higher_order_grid(std::shared_ptr <DGBase<dim, nspecies, double>> dg) const override;
 
     /// Will compute and print lift and drag coefficients
-    void steady_state_postprocessing(std::shared_ptr <DGBase<dim, double>> dg) const override;
+    void steady_state_postprocessing(std::shared_ptr <DGBase<dim, nspecies, double>> dg) const override;
 
 protected:
     /// Filename (with extension) for the unsteady data table
     const std::string unsteady_data_table_filename_with_extension;
 
     /// Pointer to Navier-Stokes physics object for computing things on the fly
-    std::shared_ptr< Physics::NavierStokes<dim,dim+2,double> > navier_stokes_physics;
+    std::shared_ptr< Physics::NavierStokes<dim,nspecies,dim+2,double> > navier_stokes_physics;
 
     /// Display additional more specific flow case parameters
     void display_additional_flow_case_specific_parameters() const override;
@@ -52,22 +52,21 @@ protected:
 public:
     /// Compute the desired unsteady data and write it to a table
     void compute_unsteady_data_and_write_to_table(
-            const unsigned int current_iteration,
-            const double current_time,
-            const std::shared_ptr <DGBase<dim, double>> dg,
+            const std::shared_ptr <ODE::ODESolverBase<dim, nspecies, double>> ode_solver, 
+            const std::shared_ptr <DGBase<dim, nspecies, double>> dg,
             const std::shared_ptr<dealii::TableHandler> unsteady_data_table,
             const bool do_write_unsteady_data_table_file) override;
 
     /// Compute time-averaged solution for turbulent cases
     void compute_time_averaged_solution(
-        const std::shared_ptr <ODE::ODESolverBase<dim, double>> ode_solver,
-        const std::shared_ptr <DGBase<dim, double>> dg,
+        const std::shared_ptr <ODE::ODESolverBase<dim, nspecies, double>> ode_solver,
+        const std::shared_ptr <DGBase<dim, nspecies, double>> dg,
         const double time_step) override;
 
     /// Compute time-averaged Reynolds Stresses for turbulent cases
     void compute_Reynolds_stress(
-        const std::shared_ptr <ODE::ODESolverBase<dim, double>> ode_solver,
-        const std::shared_ptr <DGBase<dim, double>> dg,
+        const std::shared_ptr <ODE::ODESolverBase<dim, nspecies, double>> ode_solver,
+        const std::shared_ptr <DGBase<dim, nspecies, double>> dg,
         const double time_step) override;
 
 protected:
@@ -75,15 +74,12 @@ protected:
     /// Maximum local wave speed (i.e. convective eigenvalue)
     double maximum_local_wave_speed;
 
-    /// Index of current desired time to output to terminal
-    unsigned int terminal_counter = -1;
-
 private:
     /// Compute lift
-    double compute_lift(std::shared_ptr<DGBase<dim, double>> dg) const;
+    double compute_lift(std::shared_ptr<DGBase<dim, nspecies, double>> dg) const;
 
     /// Compute drag
-    double compute_drag(std::shared_ptr<DGBase<dim, double>> dg) const;
+    double compute_drag(std::shared_ptr<DGBase<dim, nspecies, double>> dg) const;
 };
 
 } // FlowSolver namespace

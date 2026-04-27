@@ -35,10 +35,6 @@ public:
     const bool wall_model_input_from_second_element; /// Flag for using the second element as the wall model input
     const bool use_projected_entropy_variables_for_nsfr_boundary_term; /// Flag for using projected entropy variables for NSFR boundary term
 
-    const bool do_compute_filtered_solution; ///< Flag to compute the filtered solution
-    const bool apply_modal_high_pass_filter_on_filtered_solution; ///< Flag to apply modal high pass filter on the filtered solution
-    const unsigned int poly_degree_max_large_scales; ///< For filtered solution; lower bound of high pass filter
-
     /// Assembles the auxiliary equations' residuals and solves for the auxiliary variables.
     /** For information regarding auxiliary vs. primary quations, see 
      *  Quaegebeur, Nadarajah, Navah and Zwanenburg 2019: Stability of Energy Stable Flux 
@@ -814,9 +810,9 @@ protected:
     /// Evaluate the boundary RHS for the auxiliary equation.
     template <typename adtype>
     void assemble_boundary_term_auxiliary_equation(
-        typename dealii::DoFHandler<dim>::active_cell_iterator cell,
         const unsigned int                                 iface,
         const dealii::types::global_dof_index              current_cell_index,
+        std::vector<bool>                                  face_orientation,
         const std::array<std::vector<adtype>,nstate>       &soln_coeff,
         const unsigned int                                 poly_degree,
         const unsigned int                                 boundary_id,
@@ -835,12 +831,12 @@ public:
     */
     template <typename adtype>
     void assemble_face_term_auxiliary_equation(
-        typename dealii::DoFHandler<dim>::active_cell_iterator cell,
-        typename dealii::DoFHandler<dim>::active_cell_iterator neighbor_cell,
         const unsigned int                                 iface, 
         const unsigned int                                 neighbor_iface,
         const dealii::types::global_dof_index              current_cell_index,
         const dealii::types::global_dof_index              neighbor_cell_index,
+        std::vector<bool>                                  face_orientation_int,
+        std::vector<bool>                                  face_orientation_ext,
         const std::array<std::vector<adtype>,nstate>       &soln_coeff_int,
         const std::array<std::vector<adtype>,nstate>       &soln_coeff_ext,
         const unsigned int                                 poly_degree_int, 
@@ -893,6 +889,7 @@ protected:
         typename dealii::DoFHandler<dim>::active_cell_iterator             current_cell,
         const unsigned int                                                 iface, 
         const dealii::types::global_dof_index                              current_cell_index,
+        std::vector<bool>                                                  face_orientation,
         const std::array<std::vector<adtype>,nstate>                       &soln_coeff,
         const std::array<dealii::Tensor<1,dim,std::vector<adtype>>,nstate> &aux_soln_coeff,
         const unsigned int                                                 boundary_id,
@@ -922,6 +919,8 @@ protected:
         const unsigned int                                                 neighbor_iface, 
         const dealii::types::global_dof_index                              current_cell_index,
         const dealii::types::global_dof_index                              neighbor_cell_index,
+        std::vector<bool>                                                  face_orientation_int,
+        std::vector<bool>                                                  face_orientation_ext,
         const std::array<std::vector<adtype>,nstate>                       &soln_coeff_int,
         const std::array<std::vector<adtype>,nstate>                       &soln_coeff_ext,
         const std::array<dealii::Tensor<1,dim,std::vector<adtype>>,nstate> &aux_soln_coeff_int,

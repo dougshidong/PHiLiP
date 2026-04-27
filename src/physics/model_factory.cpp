@@ -69,8 +69,6 @@ ModelFactory<dim,nspecies,nstate,real>
                         manufactured_solution_function,
                         parameters_input->two_point_num_flux_type,
                         parameters_input->physics_model_param.apply_low_reynolds_number_eddy_viscosity_correction);
-                        parameters_input->two_point_num_flux_type,
-                        parameters_input->physics_model_param.apply_low_reynolds_number_eddy_viscosity_correction);
                 } else if (sgs_model_type == SGS_enum::wall_adaptive_local_eddy_viscosity) {
                     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
                     // WALE (Wall-Adapting Local Eddy-viscosity) eddy viscosity model
@@ -93,8 +91,6 @@ ModelFactory<dim,nspecies,nstate,real>
                         parameters_input->navier_stokes_param.nondimensionalized_isothermal_wall_temperature,
                         parameters_input->navier_stokes_param.thermal_boundary_condition_type,
                         manufactured_solution_function,
-                        parameters_input->two_point_num_flux_type,
-                        parameters_input->physics_model_param.apply_low_reynolds_number_eddy_viscosity_correction);
                         parameters_input->two_point_num_flux_type,
                         parameters_input->physics_model_param.apply_low_reynolds_number_eddy_viscosity_correction);
                 } else if (sgs_model_type == SGS_enum::vreman) {
@@ -125,7 +121,8 @@ ModelFactory<dim,nspecies,nstate,real>
                     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
                     // Shear-improved Smagorinsky model
                     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-                    return std::make_shared < LargeEddySimulation_ShearImprovedSmagorinsky<dim,nstate,real> > (
+                    return std::make_shared < LargeEddySimulation_ShearImprovedSmagorinsky<dim,nspecies,nstate,real> > (
+                        parameters_input,
                         parameters_input->euler_param.ref_length,
                         parameters_input->euler_param.gamma_gas,
                         parameters_input->euler_param.mach_inf,
@@ -158,7 +155,8 @@ ModelFactory<dim,nspecies,nstate,real>
                         // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
                         // Small-Small Variational multiscale (SmallSmallVMS) eddy viscosity model
                         // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-                        return std::make_shared < LargeEddySimulation_SmallSmallVMS<dim,nstate,real> > (
+                        return std::make_shared < LargeEddySimulation_SmallSmallVMS<dim,nspecies,nstate,real> > (
+                            parameters_input,
                             parameters_input->euler_param.ref_length,
                             parameters_input->euler_param.gamma_gas,
                             parameters_input->euler_param.mach_inf,
@@ -184,7 +182,8 @@ ModelFactory<dim,nspecies,nstate,real>
                         // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
                         // All-All Variational multiscale (AllAllVMS) eddy viscosity model
                         // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-                        return std::make_shared < LargeEddySimulation_AllAllVMS<dim,nstate,real> > (
+                        return std::make_shared < LargeEddySimulation_AllAllVMS<dim,nspecies,nstate,real> > (
+                            parameters_input,
                             parameters_input->euler_param.ref_length,
                             parameters_input->euler_param.gamma_gas,
                             parameters_input->euler_param.mach_inf,
@@ -215,7 +214,8 @@ ModelFactory<dim,nspecies,nstate,real>
                     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
                     // Dynamic Smagorinsky model
                     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-                    return std::make_shared < LargeEddySimulation_DynamicSmagorinsky<dim,nstate,real> > (
+                    return std::make_shared < LargeEddySimulation_DynamicSmagorinsky<dim,nspecies,nstate,real> > (
+                        parameters_input,
                         parameters_input->euler_param.ref_length,
                         parameters_input->euler_param.gamma_gas,
                         parameters_input->euler_param.mach_inf,
@@ -255,7 +255,8 @@ ModelFactory<dim,nspecies,nstate,real>
                 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
                 // Navier-Stokes with model source terms (e.g. channel flow)
                 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-                return std::make_shared < NavierStokesWithModelSourceTerms<dim,nstate,real> > (
+                return std::make_shared < NavierStokesWithModelSourceTerms<dim,nspecies,nstate,real> > (
+                    parameters_input,
                     parameters_input->euler_param.ref_length,
                     parameters_input->euler_param.gamma_gas,
                     parameters_input->euler_param.mach_inf,

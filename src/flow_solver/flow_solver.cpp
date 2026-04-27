@@ -594,19 +594,6 @@ int FlowSolver<dim,nspecies,nstate>::run() const
                 }
             }
 
-            bool do_write_unsteady_data_table_file = false;
-            if(flow_solver_param.write_unsteady_data_table_file_every_dt_time_intervals > 0.0) {
-                const bool is_write_time = ((ode_solver->current_time <= current_desired_time_for_write_unsteady_data_table_file_every_dt_time_intervals) && 
-                                             ((ode_solver->current_time + time_step) > current_desired_time_for_write_unsteady_data_table_file_every_dt_time_intervals)) 
-                                            || (ode_solver->current_time > current_desired_time_for_write_unsteady_data_table_file_every_dt_time_intervals);
-                if (is_write_time) {
-                    do_write_unsteady_data_table_file = true;
-                    current_desired_time_for_write_unsteady_data_table_file_every_dt_time_intervals += flow_solver_param.write_unsteady_data_table_file_every_dt_time_intervals;
-                }
-            } else {
-                do_write_unsteady_data_table_file = true;
-            }
-
             // Compute the unsteady quantities, write to the dealii table, and output to file
             if(do_compute_unsteady_data_and_write_to_table){
                 flow_solver_case->compute_unsteady_data_and_write_to_table(ode_solver, dg, unsteady_data_table, do_write_unsteady_data_table_file);

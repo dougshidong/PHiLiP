@@ -44,7 +44,7 @@ public:
         multi_species_vortex_advection,
         multi_species_vortex_advection_high_temp,
         multi_species_sod_shock_tube,
-        multi_species_isentropic_vortex
+        multi_species_isentropic_vortex,
         turbulent_airfoil_3D
         };
     FlowCaseType flow_case_type; ///< Selected FlowCaseType from the input file

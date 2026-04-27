@@ -10,7 +10,7 @@
 #include <deal.II/numerics/vector_tools.h>
 #include <deal.II/fe/fe_values.h>
 #include "physics/physics_factory.h"
-#include "dg/dg.h"
+#include "dg/dg_base.hpp"
 #include <deal.II/base/table_handler.h>
 #include "mesh/grids/naca_airfoil_grid.hpp"
 #include "mesh/gmsh_reader.hpp"
@@ -21,9 +21,9 @@ namespace FlowSolver {
 //=========================================================
 // NACA0012
 //=========================================================
-template <int dim, int nstate>
-Airfoil_3D_LES<dim, nstate>::Airfoil_3D_LES(const PHiLiP::Parameters::AllParameters *const parameters_input)
-        : FlowSolverCaseBase<dim, nstate>(parameters_input)
+template <int dim, int nspecies, int nstate>
+Airfoil_3D_LES<dim, nspecies, nstate>::Airfoil_3D_LES(const PHiLiP::Parameters::AllParameters *const parameters_input)
+        : FlowSolverCaseBase<dim, nspecies, nstate>(parameters_input)
         , unsteady_data_table_filename_with_extension(this->all_param.flow_solver_param.unsteady_data_table_filename+".txt")
 {
     
@@ -31,13 +31,13 @@ Airfoil_3D_LES<dim, nstate>::Airfoil_3D_LES(const PHiLiP::Parameters::AllParamet
     using PDE_enum = Parameters::AllParameters::PartialDifferentialEquation;
     PHiLiP::Parameters::AllParameters parameters_navier_stokes = this->all_param;
     parameters_navier_stokes.pde_type = PDE_enum::navier_stokes;
-    this->navier_stokes_physics = std::dynamic_pointer_cast<Physics::NavierStokes<dim,dim+2,double>>(
-                Physics::PhysicsFactory<dim,dim+2,double>::create_Physics(&parameters_navier_stokes));
+    this->navier_stokes_physics = std::dynamic_pointer_cast<Physics::NavierStokes<dim,nspecies,dim+2,double>>(
+                Physics::PhysicsFactory<dim,nspecies,dim+2,double>::create_Physics(&parameters_navier_stokes));
 
 }
 
-template <int dim, int nstate>
-void Airfoil_3D_LES<dim,nstate>::display_additional_flow_case_specific_parameters() const
+template <int dim, int nspecies, int nstate>
+void Airfoil_3D_LES<dim, nspecies,nstate>::display_additional_flow_case_specific_parameters() const
 {
     using PDE_enum = Parameters::AllParameters::PartialDifferentialEquation;
     const PDE_enum pde_type = this->all_param.pde_type;
@@ -56,8 +56,8 @@ void Airfoil_3D_LES<dim,nstate>::display_additional_flow_case_specific_parameter
     }
 }
 
-template <int dim, int nstate>
-std::shared_ptr<Triangulation> Airfoil_3D_LES<dim,nstate>::generate_grid() const
+template <int dim, int nspecies, int nstate>
+std::shared_ptr<Triangulation> Airfoil_3D_LES<dim, nspecies,nstate>::generate_grid() const
 {
     //Dummy triangulation
     if constexpr(dim==3) {
@@ -80,8 +80,8 @@ std::shared_ptr<Triangulation> Airfoil_3D_LES<dim,nstate>::generate_grid() const
     }
 }
 
-template <int dim, int nstate>
-void Airfoil_3D_LES<dim,nstate>::set_higher_order_grid(std::shared_ptr<DGBase<dim, double>> dg) const
+template <int dim, int nspecies, int nstate>
+void Airfoil_3D_LES<dim, nspecies,nstate>::set_higher_order_grid(std::shared_ptr<DGBase<dim, nspecies, double>> dg) const
 {
     const std::string mesh_filename = this->all_param.flow_solver_param.input_mesh_filename+std::string(".msh");
     const bool use_mesh_smoothing = false;
@@ -92,18 +92,18 @@ void Airfoil_3D_LES<dim,nstate>::set_higher_order_grid(std::shared_ptr<DGBase<di
     }
 }
 
-template <int dim, int nstate>
-double Airfoil_3D_LES<dim,nstate>::compute_lift(std::shared_ptr<DGBase<dim, double>> dg) const
+template <int dim, int nspecies, int nstate>
+double Airfoil_3D_LES<dim, nspecies,nstate>::compute_lift(std::shared_ptr<DGBase<dim, nspecies,  double>> dg) const
 {
-    LiftDragFunctional<dim,dim+2,double,Triangulation> lift_functional(dg, LiftDragFunctional<dim,dim+2,double,Triangulation>::Functional_types::lift);
+    LiftDragFunctional<dim,nspecies,dim+2,double,Triangulation> lift_functional(dg, LiftDragFunctional<dim,nspecies,dim+2,double,Triangulation>::Functional_types::lift);
     const double lift = lift_functional.evaluate_functional();
     return lift;
 }
 
-template <int dim, int nstate>
-double Airfoil_3D_LES<dim,nstate>::compute_drag(std::shared_ptr<DGBase<dim, double>> dg) const
+template <int dim, int nspecies, int nstate>
+double Airfoil_3D_LES<dim, nspecies,nstate>::compute_drag(std::shared_ptr<DGBase<dim, nspecies, double>> dg) const
 {
-    LiftDragFunctional<dim,dim+2,double,Triangulation> drag_functional(dg, LiftDragFunctional<dim,dim+2,double,Triangulation>::Functional_types::drag);
+    LiftDragFunctional<dim,nspecies,dim+2,double,Triangulation> drag_functional(dg, LiftDragFunctional<dim,nspecies,dim+2,double,Triangulation>::Functional_types::drag);
     const double drag = drag_functional.evaluate_functional();
     return drag;
 }
@@ -119,8 +119,8 @@ std::string get_padded_mpi_rank_strings(const int mpi_rank_input) {
     return mpi_rank_string;
 }
 
-template <int dim, int nstate>
-void Airfoil_3D_LES<dim,nstate>::steady_state_postprocessing(std::shared_ptr<DGBase<dim, double>> dg) const
+template <int dim, int nspecies, int nstate>
+void Airfoil_3D_LES<dim, nspecies,nstate>::steady_state_postprocessing(std::shared_ptr<DGBase<dim, nspecies, double>> dg) const
 {
     const double lift = this->compute_lift(dg);
     const double drag = this->compute_drag(dg);
@@ -129,30 +129,24 @@ void Airfoil_3D_LES<dim,nstate>::steady_state_postprocessing(std::shared_ptr<DGB
     this->pcout << " Resulting drag : " << drag << std::endl;
 }
 
-template <int dim, int nstate>
-void Airfoil_3D_LES<dim, nstate>::compute_unsteady_data_and_write_to_table(
-        const unsigned int current_iteration,
-        const double current_time,
-        const std::shared_ptr <DGBase<dim, double>> dg,
+template <int dim, int nspecies, int nstate>
+void Airfoil_3D_LES<dim, nspecies, nstate>::compute_unsteady_data_and_write_to_table(
+        const std::shared_ptr <ODE::ODESolverBase<dim, nspecies, double>> ode_solver, 
+        const std::shared_ptr <DGBase<dim, nspecies, double>> dg,
             const std::shared_ptr<dealii::TableHandler> unsteady_data_table,
             const bool do_write_unsteady_data_table_file)
-{
-    // Compute aerodynamic values
-    const double lift = this->compute_lift(dg);
-    const double drag = this->compute_drag(dg); 
-    
-    if(terminal_counter == 9999){ //only write to terminal every 10000 time steps
+{   
+    if(do_write_unsteady_data_table_file){ //only write to terminal every 10000 time steps
         // Print to console
-        this->pcout << "    Iter: " << current_iteration
-                    << "    Time: " << current_time
+            // Compute aerodynamic values
+        const double lift = this->compute_lift(dg);
+        const double drag = this->compute_drag(dg);
+
+        this->pcout << "    Iter: " << ode_solver->current_iteration
+                    << "    Time: " << ode_solver->current_time
                     << "    Lift: " << lift
                     << "    Drag: " << drag;
         this->pcout << std::endl;
-        
-        terminal_counter = 0;
-    }else{
-        // Add to counter
-        terminal_counter += 1;
     }
 
 
@@ -165,10 +159,10 @@ void Airfoil_3D_LES<dim, nstate>::compute_unsteady_data_and_write_to_table(
     }
 }
 
-template <int dim, int nstate>
-void Airfoil_3D_LES<dim, nstate>::compute_time_averaged_solution(
-    const std::shared_ptr <ODE::ODESolverBase<dim, double>> ode_solver,
-    const std::shared_ptr <DGBase<dim, double>> dg,
+template <int dim, int nspecies, int nstate>
+void Airfoil_3D_LES<dim, nspecies, nstate>::compute_time_averaged_solution(
+    const std::shared_ptr <ODE::ODESolverBase<dim, nspecies, double>> ode_solver,
+    const std::shared_ptr <DGBase<dim, nspecies, double>> dg,
     const double time_step)
 {
     if((ode_solver->current_time <= this->all_param.flow_solver_param.time_to_start_averaging) && (ode_solver->current_time+time_step > this->all_param.flow_solver_param.time_to_start_averaging)){
@@ -193,10 +187,10 @@ void Airfoil_3D_LES<dim, nstate>::compute_time_averaged_solution(
     }
 }
 
-template <int dim, int nstate>
-void Airfoil_3D_LES<dim, nstate>::compute_Reynolds_stress(
-    const std::shared_ptr <ODE::ODESolverBase<dim, double>> ode_solver,
-    const std::shared_ptr <DGBase<dim, double>> dg,
+template <int dim, int nspecies, int nstate>
+void Airfoil_3D_LES<dim, nspecies, nstate>::compute_Reynolds_stress(
+    const std::shared_ptr <ODE::ODESolverBase<dim, nspecies, double>> ode_solver,
+    const std::shared_ptr <DGBase<dim, nspecies, double>> dg,
     const double time_step)
 {
     if((ode_solver->current_time > this->all_param.flow_solver_param.time_to_start_averaging) && (ode_solver->current_time+time_step > this->all_param.flow_solver_param.time_to_start_computing_Reynolds_stress)){
@@ -313,8 +307,8 @@ void Airfoil_3D_LES<dim, nstate>::compute_Reynolds_stress(
 
 
 
-#if PHILIP_DIM==3
-    template class Airfoil_3D_LES<PHILIP_DIM,PHILIP_DIM+2>;
+#if PHILIP_DIM==3 && PHILIP_SPECIES==1
+    template class Airfoil_3D_LES<PHILIP_DIM,PHILIP_SPECIES,PHILIP_DIM+2>;
 #endif
 
 } // FlowSolver namespace

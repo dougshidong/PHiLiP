@@ -28,7 +28,6 @@
 #include "euler_naca0012_optimization.hpp"
 #include "shock_1d.h"
 #include "euler_naca0012.hpp"
-#include "navier_stokes_naca0012.h"
 #include "reduced_order.h"
 #include "unsteady_reduced_order.h"
 #include "convection_diffusion_explicit_periodic.h"

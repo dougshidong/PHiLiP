@@ -1935,6 +1935,7 @@ void DGWeak<dim,nspecies,nstate,real,MeshType>::assemble_face_term_and_build_ope
                                                                                             neighbor_cell->subface_case(neighbor_iface));
         assemble_face_term<adtype>(
             cell,
+            neighbor_cell,
             current_cell_index,
             neighbor_cell_index,
             local_soln_int, local_soln_ext, local_metric_int, local_metric_ext,
@@ -1970,6 +1971,7 @@ void DGWeak<dim,nspecies,nstate,real,MeshType>::assemble_face_term_and_build_ope
                                                                                       face_quadrature.size());
         assemble_face_term<adtype>(
             cell,
+            neighbor_cell,
             current_cell_index,
             neighbor_cell_index,
             local_soln_int, local_soln_ext, local_metric_int, local_metric_ext,

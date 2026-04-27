@@ -154,6 +154,11 @@ FlowSolverFactory<dim,nspecies,nstate>
                 std::shared_ptr<FlowSolverCaseBase<dim, nspecies, nstate>> flow_solver_case = std::make_shared<PeriodicCubeFlow<dim, nspecies, nstate>>(parameters_input);
                 return std::make_unique<FlowSolver<dim, nspecies, nstate>>(parameters_input, flow_solver_case, parameter_handler_input);
             }
+        } else if (flow_type == FlowCaseEnum::turbulent_airfoil_3D){
+            if constexpr (dim==3 && nstate==dim+2){
+                std::shared_ptr<FlowSolverCaseBase<dim, nspecies, nstate>> flow_solver_case = std::make_shared<Airfoil_3D_LES<dim,nspecies,nstate>>(parameters_input);
+                return std::make_unique<FlowSolver<dim,nspecies,nstate>>(parameters_input, flow_solver_case, parameter_handler_input);
+            }
         } 
     }
     else if (nspecies > 1 && nstate==dim+2+nspecies-1) {
@@ -177,11 +182,6 @@ FlowSolverFactory<dim,nspecies,nstate>
                 std::shared_ptr<FlowSolverCaseBase<dim, nspecies, nstate>> flow_solver_case = std::make_shared<MultispeciesTests<dim, nspecies, nstate>>(parameters_input);
                 return std::make_unique<FlowSolver<dim, nspecies, nstate>>(parameters_input, flow_solver_case, parameter_handler_input);
             }
-        }
-    } else if (flow_type == FlowCaseEnum::turbulent_airfoil_3D){
-        if constexpr (dim==3 && nstate==dim+2){
-            std::shared_ptr<FlowSolverCaseBase<dim, nstate>> flow_solver_case = std::make_shared<Airfoil_3D_LES<dim,nstate>>(parameters_input);
-            return std::make_unique<FlowSolver<dim,nstate>>(parameters_input, flow_solver_case, parameter_handler_input);
         }
     } else {
             std::cout << "Invalid flow case. You probably forgot to add it to the list of flow cases in flow_solver_factory.cpp" << std::endl;

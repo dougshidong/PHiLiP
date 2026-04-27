@@ -339,18 +339,19 @@ public:
     * int and ext cells), we need to account for this again when we intergrate (since strong DG assuumes
     * a certain ordering, we must make sure we map the r.h.s back to the correct DOFs.).
     */
-    
+    template <typename real>
     void face_orientation_tensor_product(
             const std::vector<bool> face_orientation,
             const unsigned int face_number,
-            std::vector<double> &output_vect,
+            std::vector<real> &output_vect,
             const dealii::FullMatrix<double> &basis);
 
+    template <typename real>
     void face_orientation_inner_product(
             const std::vector<bool> face_orientation,
             const unsigned int face_number,
-            const std::vector<double> &input_vect,
-            std::vector<double> &output_vect,
+            const std::vector<real> &input_vect,
+            std::vector<real> &output_vect,
             const dealii::FullMatrix<double> &basis);
 
     ///Computes a single Hadamard product. 

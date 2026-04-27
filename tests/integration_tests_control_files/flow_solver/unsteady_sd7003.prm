@@ -103,7 +103,7 @@ subsection flow_solver
   end
   subsection grid
     set use_gmsh_mesh = true
-    set input_mesh_filename = /home/nyaki/Codes_2/PHiLiP/tests/meshes/SD7003_3rd_Order_4_Cell_Span
+    set input_mesh_filename = ../../../SD7003_3rd_Order_4_Cell_Span
     subsection gmsh_boundary_IDs
       set use_periodic_BC_in_x = false
       set use_periodic_BC_in_y = false

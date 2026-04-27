@@ -76,8 +76,6 @@ set_tests_labels(MPI_VISCOUS_TAYLOR_GREEN_VORTEX_ENERGY_CHECK_WEAK_DG_LONG  TAYL
 # ----------------------------------------
 configure_file(remove_restart_files.sh remove_restart_files.sh COPYONLY)
 # ----------------------------------------
-configure_file(remove_restart_files.sh remove_restart_files.sh COPYONLY)
-# ----------------------------------------
 configure_file(viscous_taylor_green_vortex_restart_check.prm viscous_taylor_green_vortex_restart_check.prm COPYONLY)
 add_test(
   NAME MPI_VISCOUS_TAYLOR_GREEN_VORTEX_RESTART_CHECK

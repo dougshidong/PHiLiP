@@ -12,6 +12,7 @@
 #include "flow_solver_cases/gaussian_bump.h"
 #include "flow_solver_cases/non_periodic_cube_flow.h"
 #include "flow_solver_cases/channel_flow.h"
+#include "flow_solver_cases/turbulent_airfoil_3D.h"
 #include "flow_solver_cases/dipole_wall_collision.h"
 #include "flow_solver_cases/positivity_preserving_tests.h"
 #include "flow_solver_cases/multispecies_tests.h"
@@ -152,6 +153,11 @@ FlowSolverFactory<dim,nspecies,nstate>
             if constexpr (dim<3 && nstate==dim + 2) {
                 std::shared_ptr<FlowSolverCaseBase<dim, nspecies, nstate>> flow_solver_case = std::make_shared<PeriodicCubeFlow<dim, nspecies, nstate>>(parameters_input);
                 return std::make_unique<FlowSolver<dim, nspecies, nstate>>(parameters_input, flow_solver_case, parameter_handler_input);
+            }
+        } else if (flow_type == FlowCaseEnum::turbulent_airfoil_3D){
+            if constexpr (dim==3 && nstate==dim+2){
+                std::shared_ptr<FlowSolverCaseBase<dim, nspecies, nstate>> flow_solver_case = std::make_shared<Airfoil_3D_LES<dim,nspecies,nstate>>(parameters_input);
+                return std::make_unique<FlowSolver<dim,nspecies,nstate>>(parameters_input, flow_solver_case, parameter_handler_input);
             }
         } 
     }

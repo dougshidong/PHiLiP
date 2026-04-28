@@ -60,6 +60,18 @@ public:
     /// Virtual function for postprocessing when solving for steady state
     virtual void steady_state_postprocessing(std::shared_ptr <DGBase<dim, nspecies, double>> dg) const;
 
+    /// Virtual function for computing time-averaged solution for turbulent cases
+    virtual void compute_time_averaged_solution(
+        const std::shared_ptr <ODE::ODESolverBase<dim, nspecies, double>> ode_solver,
+        const std::shared_ptr <DGBase<dim, nspecies, double>> dg,
+        const double time_step);
+
+    /// Virtual function for computing time-averaged Reynolds Stresses for turbulent cases
+    virtual void compute_Reynolds_stress(
+        const std::shared_ptr <ODE::ODESolverBase<dim, nspecies, double>> ode_solver,
+        const std::shared_ptr <DGBase<dim, nspecies, double>> dg,
+        const double time_step);
+
     /// Setter for time step
     void set_time_step(const double time_step_input);
 

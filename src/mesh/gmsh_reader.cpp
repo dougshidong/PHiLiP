@@ -1573,6 +1573,25 @@ read_gmsh(std::string filename,
         assign_1d_boundary_ids(boundary_ids_1d, *triangulation);
     }
 
+    //Check for periodic boundary conditions and apply
+    std::vector<dealii::GridTools::PeriodicFacePair<typename dealii::Triangulation<dim>::cell_iterator> > matched_pairs;
+
+    if (periodic_x) {
+        dealii::GridTools::collect_periodic_faces(*high_order_grid->triangulation, x_periodic_1, x_periodic_2, 0, matched_pairs);
+    }
+
+    if (periodic_y) {
+        dealii::GridTools::collect_periodic_faces(*high_order_grid->triangulation, y_periodic_1, y_periodic_2, 1, matched_pairs);
+    }
+
+    if (periodic_z) {
+        dealii::GridTools::collect_periodic_faces(*high_order_grid->triangulation, z_periodic_1, z_periodic_2, 2, matched_pairs);
+    }
+
+    if (periodic_x || periodic_y || periodic_z) {
+        high_order_grid->triangulation->add_periodicity(matched_pairs);
+    }
+
     high_order_grid->initialize_with_triangulation_manifold();
 
     std::vector<unsigned int> deal_h2l = dealii::FETools::hierarchic_to_lexicographic_numbering<dim>(grid_order);
@@ -1734,28 +1753,9 @@ read_gmsh(std::string filename,
     high_order_grid->update_mapping_fe_field();
     high_order_grid->reset_initial_nodes();
     
-    //Check for periodic boundary conditions and apply
-    std::vector<dealii::GridTools::PeriodicFacePair<typename dealii::Triangulation<dim>::cell_iterator> > matched_pairs;
-
-    if (periodic_x) {
-        dealii::GridTools::collect_periodic_faces(*high_order_grid->triangulation, x_periodic_1, x_periodic_2, 0, matched_pairs);
-    }
-
-    if (periodic_y) {
-        dealii::GridTools::collect_periodic_faces(*high_order_grid->triangulation, y_periodic_1, y_periodic_2, 1, matched_pairs);
-    }
-
-    if (periodic_z) {
-        dealii::GridTools::collect_periodic_faces(*high_order_grid->triangulation, z_periodic_1, z_periodic_2, 2, matched_pairs);
-    }
-
-    if (periodic_x || periodic_y || periodic_z) {
-        high_order_grid->triangulation->add_periodicity(matched_pairs);
-    }
-
 
     if (requested_grid_order > 0) {
-        auto grid = std::make_shared<HighOrderGrid<dim, double>>(requested_grid_order, triangulation);
+        auto grid = std::make_shared<HighOrderGrid<dim, double>>(requested_grid_order, triangulation,true,false);
         grid->initialize_with_triangulation_manifold();
         
         /// Convert the mesh by interpolating from one order to another.
@@ -1820,12 +1820,12 @@ read_gmsh(std::string filename, const bool do_renumber_dofs, int requested_grid_
   const bool periodic_x = false;
   const bool periodic_y = false;
   const bool periodic_z = false;
-  const int x_periodic_1 = 0; 
-  const int x_periodic_2 = 0;
-  const int y_periodic_1 = 0; 
-  const int y_periodic_2 = 0;
-  const int z_periodic_1 = 0; 
-  const int z_periodic_2 = 0;
+  const int x_periodic_1 = 2001; 
+  const int x_periodic_2 = 2002;
+  const int y_periodic_1 = 2003; 
+  const int y_periodic_2 = 2004;
+  const int z_periodic_1 = 2005; 
+  const int z_periodic_2 = 2006;
   const bool mesh_reader_verbose_output = true;
 
   return read_gmsh<dim,spacedim>(filename, 

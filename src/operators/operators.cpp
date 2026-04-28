@@ -194,6 +194,99 @@ SumFactorizedOperators<dim,n_faces>::SumFactorizedOperators(
 
 template <int dim, int n_faces>  
 template <typename real>
+void SumFactorizedOperators<dim,n_faces>::face_orientation_tensor_product(
+    const std::vector<bool> face_orientation,
+    const unsigned int /*face_number*/,
+    std::vector<real> &output_vect,
+    const dealii::FullMatrix<double> &basis) 
+{
+    //Initialize temp vector as input vector.
+    std::vector<real> output_vect_temp = output_vect;
+    const unsigned int columns = basis.m();
+    if(!face_orientation[0]){
+        for(unsigned int ydof=0; ydof<columns; ydof++){ 
+            for(unsigned int xdof=0; xdof<columns; xdof++){//x runs fastest
+                output_vect[xdof+ydof*columns] = output_vect_temp[columns*xdof+ydof];
+            }
+        }
+    }
+    if(face_orientation[1]){
+        std::vector<real> output_vect_temp_rotation = output_vect;
+        for(unsigned int ydof=0; ydof<columns; ydof++){ 
+            for(unsigned int xdof=0; xdof<columns; xdof++){//x runs fastest
+                output_vect[xdof+ydof*columns] = output_vect_temp_rotation[((columns-1)-ydof)+xdof*columns];
+            }
+        }
+        std::cout << "\nIt appears deal.ii has rotated a face.\n";
+        std::cout << "This scenario was considered and a fix has been implemented. However, this scenario was never encountered before and thus could not be verified.\n";
+        std::cout << "You may remove the abort statement and verify that the solution is as expected.\n";
+        std::cout << "For more information, please see: https://www.dealii.org/current/doxygen/deal.II/DEALGlossary.html#GlossFaceOrientation \n"<<std::endl;
+        std::abort();
+    }
+    if(face_orientation[2]){
+        std::vector<real> output_vect_temp_flip = output_vect;
+        for(unsigned int ydof=0; ydof<columns; ydof++){ 
+            for(unsigned int xdof=0; xdof<columns; xdof++){//x runs fastest
+                output_vect[xdof+ydof*columns] = output_vect_temp_flip[(columns*columns-1)-xdof-ydof*columns];
+            }
+        }
+        std::cout << "\nIt appears deal.ii has flipped a face.\n";
+        std::cout << "This scenario was considered and a fix has been implemented. However, this scenario was never encountered before and thus could not be verified.\n";
+        std::cout << "You may remove the abort statement and verify that the solution is as expected.\n";
+        std::cout << "For more information, please see: https://www.dealii.org/current/doxygen/deal.II/DEALGlossary.html#GlossFaceOrientation \n"<<std::endl;
+        std::abort();
+    }
+}
+
+template <int dim, int n_faces>  
+template <typename real>
+void SumFactorizedOperators<dim,n_faces>::face_orientation_inner_product(
+    const std::vector<bool> face_orientation,
+    const unsigned int /*face_number*/,
+    const std::vector<real> &input_vect,
+    std::vector<real> &output_vect,
+    const dealii::FullMatrix<double> &basis)
+{ 
+    //Initialize output vector as input vector.
+    output_vect = input_vect;
+    const unsigned int columns = basis.m();
+    if(!face_orientation[0]){
+        for(unsigned int ydof=0; ydof<columns; ydof++){ 
+            for(unsigned int xdof=0; xdof<columns; xdof++){//x runs fastest
+                output_vect[xdof+ydof*columns] = input_vect[columns*xdof+ydof];
+            }
+        }
+    }
+    if(face_orientation[1]){
+        std::vector<real> output_vect_temp_rotation = output_vect;
+        for(unsigned int ydof=0; ydof<columns; ydof++){ 
+            for(unsigned int xdof=0; xdof<columns; xdof++){//x runs fastest
+                output_vect[xdof+ydof*columns] = output_vect_temp_rotation[((columns-1)-ydof)+xdof*columns];
+            }
+        }
+        std::cout << "\nIt appears deal.ii has rotated a face.\n";
+        std::cout << "This scenario was considered and a fix has been implemented. However, this scenario was never encountered before and thus could not be verified.\n";
+        std::cout << "You may remove the abort statement and verify that the solution is as expected.\n";
+        std::cout << "For more information, please see: https://www.dealii.org/current/doxygen/deal.II/DEALGlossary.html#GlossFaceOrientation \n"<<std::endl;
+        std::abort();
+    }
+    if(face_orientation[2]){
+        std::vector<real> output_vect_temp_flip = output_vect;
+        for(unsigned int ydof=0; ydof<columns; ydof++){ 
+            for(unsigned int xdof=0; xdof<columns; xdof++){//x runs fastest
+                output_vect[xdof+ydof*columns] = output_vect_temp_flip[(columns*columns-1)-xdof-ydof*columns];
+            }
+        }
+        std::cout << "\nIt appears deal.ii has flipped a face.\n";
+        std::cout << "This scenario was considered and a fix has been implemented. However, this scenario was never encountered before and thus could not be verified.\n";
+        std::cout << "You may remove the abort statement and verify that the solution is as expected.\n";
+        std::cout << "For more information, please see: https://www.dealii.org/current/doxygen/deal.II/DEALGlossary.html#GlossFaceOrientation \n"<<std::endl;
+        std::abort();
+    }
+}
+
+template <int dim, int n_faces>
+template <typename real>
 void SumFactorizedOperators<dim,n_faces>::matrix_vector_mult(
     const std::vector<real> &input_vect,
     std::vector<real> &output_vect,
@@ -315,6 +408,7 @@ void SumFactorizedOperators<dim,n_faces>::matrix_vector_mult_1D(
 template <int dim, int n_faces>  
 template <typename real>
 void SumFactorizedOperators<dim,n_faces>::matrix_vector_mult_surface_1D(
+    const std::vector<bool> face_orientation,
     const unsigned int face_number,
     const std::vector<real> &input_vect,
     std::vector<real> &output_vect,
@@ -335,12 +429,17 @@ void SumFactorizedOperators<dim,n_faces>::matrix_vector_mult_surface_1D(
         this->matrix_vector_mult(input_vect, output_vect, basis_vol, basis_vol, basis_surf[0], adding, factor);
     if(face_number == 5)
         this->matrix_vector_mult(input_vect, output_vect, basis_vol, basis_vol, basis_surf[1], adding, factor);
+
+    if(!face_orientation[0] || face_orientation[1] || face_orientation[2]){
+        this->face_orientation_tensor_product(face_orientation, face_number, output_vect, basis_vol);
+    }
 }
 
 
 template <int dim, int n_faces>  
 template <typename real>
 void SumFactorizedOperators<dim,n_faces>::inner_product_surface_1D(
+    const std::vector<bool> face_orientation,
     const unsigned int face_number,
     const std::vector<real> &input_vect,
     const std::vector<double> &weight_vect,
@@ -350,18 +449,27 @@ void SumFactorizedOperators<dim,n_faces>::inner_product_surface_1D(
     const bool adding,
     const double factor)
 {
+    
+
+    std::vector<real> input_vect_corrected;
+    if(!face_orientation[0] || face_orientation[1] || face_orientation[2]){
+        this->face_orientation_inner_product(face_orientation, face_number, input_vect, input_vect_corrected, basis_vol);
+    }else{
+        input_vect_corrected = input_vect;
+    }
+
     if(face_number == 0)
-        this->inner_product(input_vect, weight_vect, output_vect, basis_surf[0], basis_vol, basis_vol, adding, factor);
+        this->inner_product(input_vect_corrected, weight_vect, output_vect, basis_surf[0], basis_vol, basis_vol, adding, factor);
     if(face_number == 1)
-        this->inner_product(input_vect, weight_vect, output_vect, basis_surf[1], basis_vol, basis_vol, adding, factor);
+        this->inner_product(input_vect_corrected, weight_vect, output_vect, basis_surf[1], basis_vol, basis_vol, adding, factor);
     if(face_number == 2)
-        this->inner_product(input_vect, weight_vect, output_vect, basis_vol, basis_surf[0], basis_vol, adding, factor);
+        this->inner_product(input_vect_corrected, weight_vect, output_vect, basis_vol, basis_surf[0], basis_vol, adding, factor);
     if(face_number == 3)
-        this->inner_product(input_vect, weight_vect, output_vect, basis_vol, basis_surf[1], basis_vol, adding, factor);
+        this->inner_product(input_vect_corrected, weight_vect, output_vect, basis_vol, basis_surf[1], basis_vol, adding, factor);
     if(face_number == 4)
-        this->inner_product(input_vect, weight_vect, output_vect, basis_vol, basis_vol, basis_surf[0], adding, factor);
+        this->inner_product(input_vect_corrected, weight_vect, output_vect, basis_vol, basis_vol, basis_surf[0], adding, factor);
     if(face_number == 5)
-        this->inner_product(input_vect, weight_vect, output_vect, basis_vol, basis_vol, basis_surf[1], adding, factor);
+        this->inner_product(input_vect_corrected, weight_vect, output_vect, basis_vol, basis_vol, basis_surf[1], adding, factor);
 }
 
 template <int dim, int n_faces>  
@@ -679,6 +787,8 @@ void SumFactorizedOperators<dim,n_faces>::surface_two_pt_flux_Hadamard_product(
         }
     }
 }
+
+
 
 template <int dim, int n_faces>  
 void SumFactorizedOperators<dim,n_faces>::two_pt_flux_Hadamard_product(
@@ -2688,17 +2798,17 @@ void metric_operators<real,dim,n_faces>::compute_local_3D_cofactor(
         x_dz_dxi[grid_node]   = mapping_support_points[0][grid_node] * grad_Xm[grid_node][2][0];
         if(use_invariant_curl_form){
             x_dz_dxi[grid_node] = 0.5 * x_dz_dxi[grid_node]  
-                                - 0.5 * mapping_support_points[2][grid_node] * grad_Xm[grid_node][1][0];
+                                - 0.5 * mapping_support_points[2][grid_node] * grad_Xm[grid_node][0][0];
         }
         x_dz_deta[grid_node]  = mapping_support_points[0][grid_node] * grad_Xm[grid_node][2][1];
         if(use_invariant_curl_form){
             x_dz_deta[grid_node] = 0.5 * x_dz_deta[grid_node]  
-                                 - 0.5 * mapping_support_points[2][grid_node] * grad_Xm[grid_node][1][1];
+                                 - 0.5 * mapping_support_points[2][grid_node] * grad_Xm[grid_node][0][1];
         }
         x_dz_dzeta[grid_node] = mapping_support_points[0][grid_node] * grad_Xm[grid_node][2][2];
         if(use_invariant_curl_form){
             x_dz_dzeta[grid_node] = 0.5 * x_dz_dzeta[grid_node]  
-                                  - 0.5 * mapping_support_points[2][grid_node] * grad_Xm[grid_node][1][2];
+                                  - 0.5 * mapping_support_points[2][grid_node] * grad_Xm[grid_node][0][2];
         }
                                                                                          
         y_dx_dxi[grid_node]   = mapping_support_points[1][grid_node] * grad_Xm[grid_node][0][0];
@@ -3344,6 +3454,7 @@ template void SumFactorizedOperators<PHILIP_DIM,2*PHILIP_DIM>::inner_product_1D<
             const double factor = 1.0);
 
 template void SumFactorizedOperators<PHILIP_DIM,2*PHILIP_DIM>::matrix_vector_mult_surface_1D<double>(
+            const std::vector<bool> face_orientation,
             const unsigned int face_number,
             const std::vector<double> &input_vect,
             std::vector<double> &output_vect,
@@ -3352,6 +3463,7 @@ template void SumFactorizedOperators<PHILIP_DIM,2*PHILIP_DIM>::matrix_vector_mul
             const bool adding = false,
             const double factor = 1.0);
 template void SumFactorizedOperators<PHILIP_DIM,2*PHILIP_DIM>::matrix_vector_mult_surface_1D<FadType>(
+            const std::vector<bool> face_orientation,
             const unsigned int face_number,
             const std::vector<FadType> &input_vect,
             std::vector<FadType> &output_vect,
@@ -3360,6 +3472,7 @@ template void SumFactorizedOperators<PHILIP_DIM,2*PHILIP_DIM>::matrix_vector_mul
             const bool adding = false,
             const double factor = 1.0);
 template void SumFactorizedOperators<PHILIP_DIM,2*PHILIP_DIM>::matrix_vector_mult_surface_1D<RadType>(
+            const std::vector<bool> face_orientation,
             const unsigned int face_number,
             const std::vector<RadType> &input_vect,
             std::vector<RadType> &output_vect,
@@ -3368,6 +3481,7 @@ template void SumFactorizedOperators<PHILIP_DIM,2*PHILIP_DIM>::matrix_vector_mul
             const bool adding = false,
             const double factor = 1.0);
 template void SumFactorizedOperators<PHILIP_DIM,2*PHILIP_DIM>::matrix_vector_mult_surface_1D<FadFadType>(
+            const std::vector<bool> face_orientation,
             const unsigned int face_number,
             const std::vector<FadFadType> &input_vect,
             std::vector<FadFadType> &output_vect,
@@ -3376,6 +3490,7 @@ template void SumFactorizedOperators<PHILIP_DIM,2*PHILIP_DIM>::matrix_vector_mul
             const bool adding = false,
             const double factor = 1.0);
 template void SumFactorizedOperators<PHILIP_DIM,2*PHILIP_DIM>::matrix_vector_mult_surface_1D<RadFadType>(
+            const std::vector<bool> face_orientation,
             const unsigned int face_number,
             const std::vector<RadFadType> &input_vect,
             std::vector<RadFadType> &output_vect,
@@ -3386,6 +3501,7 @@ template void SumFactorizedOperators<PHILIP_DIM,2*PHILIP_DIM>::matrix_vector_mul
 
 
 template void SumFactorizedOperators<PHILIP_DIM,2*PHILIP_DIM>::inner_product_surface_1D<double>(
+            const std::vector<bool> face_orientation,
             const unsigned int face_number,
             const std::vector<double> &input_vect,
             const std::vector<double> &weight_vect,
@@ -3395,6 +3511,7 @@ template void SumFactorizedOperators<PHILIP_DIM,2*PHILIP_DIM>::inner_product_sur
             const bool adding = false,
             const double factor = 1.0);
 template void SumFactorizedOperators<PHILIP_DIM,2*PHILIP_DIM>::inner_product_surface_1D<FadType>(
+            const std::vector<bool> face_orientation,
             const unsigned int face_number,
             const std::vector<FadType> &input_vect,
             const std::vector<double> &weight_vect,
@@ -3404,6 +3521,7 @@ template void SumFactorizedOperators<PHILIP_DIM,2*PHILIP_DIM>::inner_product_sur
             const bool adding = false,
             const double factor = 1.0);
 template void SumFactorizedOperators<PHILIP_DIM,2*PHILIP_DIM>::inner_product_surface_1D<RadType>(
+            const std::vector<bool> face_orientation,
             const unsigned int face_number,
             const std::vector<RadType> &input_vect,
             const std::vector<double> &weight_vect,
@@ -3413,6 +3531,7 @@ template void SumFactorizedOperators<PHILIP_DIM,2*PHILIP_DIM>::inner_product_sur
             const bool adding = false,
             const double factor = 1.0);
 template void SumFactorizedOperators<PHILIP_DIM,2*PHILIP_DIM>::inner_product_surface_1D<FadFadType>(
+            const std::vector<bool> face_orientation,
             const unsigned int face_number,
             const std::vector<FadFadType> &input_vect,
             const std::vector<double> &weight_vect,
@@ -3422,6 +3541,7 @@ template void SumFactorizedOperators<PHILIP_DIM,2*PHILIP_DIM>::inner_product_sur
             const bool adding = false,
             const double factor = 1.0);
 template void SumFactorizedOperators<PHILIP_DIM,2*PHILIP_DIM>::inner_product_surface_1D<RadFadType>(
+            const std::vector<bool> face_orientation,
             const unsigned int face_number,
             const std::vector<RadFadType> &input_vect,
             const std::vector<double> &weight_vect,

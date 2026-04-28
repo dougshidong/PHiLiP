@@ -786,6 +786,25 @@ dealii::Tensor<2,dim,real2> NavierStokes<dim,nspecies,nstate,real>
 template <int dim, int nspecies, int nstate, typename real>
 template<typename real2>
 dealii::Tensor<2,dim,real2> NavierStokes<dim,nspecies,nstate,real>
+::compute_viscous_stress_tensor_from_conservative_templated (
+    const std::array<real2,nstate> &conservative_soln,
+    const std::array<dealii::Tensor<1,dim,real2>,nstate> &conservative_soln_gradient) const
+{
+    // Step 1: Primitive solution
+    const std::array<real2,nstate> primitive_soln = this->template convert_conservative_to_primitive_templated<real2>(conservative_soln); // from Euler
+    
+    // Step 2: Gradient of primitive solution
+    const std::array<dealii::Tensor<1,dim,real2>,nstate> primitive_soln_gradient = this->template convert_conservative_gradient_to_primitive_gradient_templated<real2>(conservative_soln, conservative_soln_gradient);
+
+    // Viscous stress tensor, \tau_{i,j}
+    const dealii::Tensor<2,dim,real2> viscous_stress_tensor = compute_viscous_stress_tensor<real2>(primitive_soln,primitive_soln_gradient);
+
+    return viscous_stress_tensor;
+}
+
+template <int dim, int nspecies, int nstate, typename real>
+template<typename real2>
+dealii::Tensor<2,dim,real2> NavierStokes<dim,nspecies,nstate,real>
 ::compute_viscous_stress_tensor (
     const std::array<real2,nstate> &primitive_soln,
     const std::array<dealii::Tensor<1,dim,real2>,nstate> &primitive_soln_gradient) const
@@ -1384,6 +1403,10 @@ void NavierStokes<dim,nspecies,nstate,real>
     for (int istate=0; istate<nstate; ++istate) {
         soln_grad_bc[istate] = soln_grad_int[istate];
     }
+    // If adiabatic wall, set gradient to zero
+    if(thermal_boundary_condition_type == thermal_boundary_condition_enum::adiabatic){
+        soln_grad_bc[nstate-1] = 0.0;
+    }
     // If isothermal wall, set temperature at exterior such that the average is the isothermal wall temperature
     if(thermal_boundary_condition_type == thermal_boundary_condition_enum::isothermal){
         // Step 1: Primitive solutions
@@ -1489,6 +1512,39 @@ dealii::Vector<double> NavierStokes<dim,nspecies,nstate,real>::post_compute_deri
         computed_quantities(++current_data_index) = compute_dilatation(conservative_soln,conservative_soln_gradient);
         // Density gradient magnitude
         computed_quantities(++current_data_index) = compute_density_gradient_magnitude(conservative_soln,conservative_soln_gradient);
+        // Viscous stress tensor
+        if constexpr(dim==2) {
+            // Vorticity
+            dealii::Tensor<2,2,double> viscous_stress_tensor = compute_viscous_stress_tensor_from_conservative_templated<double>(conservative_soln,conservative_soln_gradient);
+            //First line of viscous stress tensor
+            for (unsigned int d=0; d<2; ++d) {
+                computed_quantities(++current_data_index) = viscous_stress_tensor[0][d];
+            }
+            //Second line of viscous stress tensor
+            for (unsigned int d=0; d<2; ++d) {
+                computed_quantities(++current_data_index) = viscous_stress_tensor[1][d];
+            }
+        }
+        else if constexpr(dim==3) {
+            // Calculate primitive solution gradient
+            const std::array<dealii::Tensor<1,dim,real>,nstate> primitive_soln_gradient = this->template convert_conservative_gradient_to_primitive_gradient_templated<real>(conservative_soln, conservative_soln_gradient);
+            // Viscous stress tensor
+            dealii::Tensor<2,3,double> viscous_stress_tensor = compute_viscous_stress_tensor<real>(primitive_soln,primitive_soln_gradient);
+            //First line of viscous stress tensor
+            for (unsigned int d=0; d<3; ++d) {
+                computed_quantities(++current_data_index) = viscous_stress_tensor[0][d];
+            }
+            //Second line of viscous stress tensor
+            for (unsigned int d=0; d<3; ++d) {
+                computed_quantities(++current_data_index) = viscous_stress_tensor[1][d];
+            }
+            //Third line of viscous stress tensor
+            for (unsigned int d=0; d<3; ++d) {
+                computed_quantities(++current_data_index) = viscous_stress_tensor[2][d];
+            }
+        }
+        //Viscosity coefficient
+        computed_quantities(++current_data_index) = compute_viscosity_coefficient<real>(primitive_soln);
 
     }
     if (computed_quantities.size()-1 != current_data_index) {
@@ -1529,6 +1585,26 @@ std::vector<dealii::DataComponentInterpretation::DataComponentInterpretation> Na
     interpretation.push_back (DCI::component_is_scalar); // Second-invariant Q
     interpretation.push_back (DCI::component_is_scalar); // Dilatation
     interpretation.push_back (DCI::component_is_scalar); // Density gradient magnitude
+    if constexpr(dim==2) {
+        for (unsigned int d=0; d<dim; ++d) {
+            interpretation.push_back (DCI::component_is_part_of_vector); // First line of viscous Stress Tensor
+        }
+        for (unsigned int d=0; d<dim; ++d) {
+            interpretation.push_back (DCI::component_is_part_of_vector); // Second line of viscous Stress Tensor
+        }
+    }
+    else if constexpr(dim==3) {
+        for (unsigned int d=0; d<dim; ++d) {
+            interpretation.push_back (DCI::component_is_part_of_vector); // First line of viscous Stress Tensor
+        }
+        for (unsigned int d=0; d<dim; ++d) {
+            interpretation.push_back (DCI::component_is_part_of_vector); // Second line of viscous Stress Tensor
+        }
+        for (unsigned int d=0; d<dim; ++d) {
+            interpretation.push_back (DCI::component_is_part_of_vector); // Third line of viscous Stress Tensor
+        }
+    }
+    interpretation.push_back (DCI::component_is_scalar); // Viscosity
 
     std::vector<std::string> names = post_get_names();
     if (names.size() != interpretation.size()) {
@@ -1567,7 +1643,31 @@ std::vector<std::string> NavierStokes<dim,nspecies,nstate,real>
     names.push_back ("second_invariant_Q");
     names.push_back ("dilatation");
     names.push_back ("density_gradient_magnitude");
-
+    if constexpr(dim==2) {
+        // First line of viscous Stress Tensor
+        for (unsigned int d=0; d<dim; ++d) {
+            names.push_back ("du_viscous_stress_tensor");
+        }
+        // Second line of viscous Stress Tensor
+        for (unsigned int d=0; d<dim; ++d) {
+            names.push_back ("dv_viscous_stress_tensor");
+        }
+    }
+    else if constexpr(dim==3) {
+        // First line of viscous Stress Tensor
+        for (unsigned int d=0; d<dim; ++d) {
+            names.push_back ("du_viscous_stress_tensor");
+        }
+        // Second line of viscous Stress Tensor
+        for (unsigned int d=0; d<dim; ++d) {
+            names.push_back ("dv_viscous_stress_tensor");
+        }
+        // Third line of viscous Stress Tensor
+        for (unsigned int d=0; d<dim; ++d) {
+            names.push_back ("dz_viscous_stress_tensor");
+        }
+    }
+    names.push_back ("viscosity_coefficient");
     return names;
 }
 
@@ -1575,6 +1675,7 @@ template <int dim, int nspecies, int nstate, typename real>
 dealii::UpdateFlags NavierStokes<dim,nspecies,nstate,real>
 ::post_get_needed_update_flags () const
 {
+    //return update_values | update_gradients;
     return dealii::update_values
            | dealii::update_quadrature_points
            | dealii::update_gradients
@@ -1817,6 +1918,7 @@ interpolate(const real x, const bool extrapolate) const
         template dealii::Tensor<2,PHILIP_DIM, type > NavierStokes<PHILIP_DIM, PHILIP_SPECIES,PHILIP_DIM+2,type >::compute_strain_rate_tensor< type > (const dealii::Tensor<2,PHILIP_DIM,type > &vel_gradient) const; \
         template dealii::Tensor<2,PHILIP_DIM, type > NavierStokes<PHILIP_DIM, PHILIP_SPECIES,PHILIP_DIM+2,type>::compute_strain_rate_tensor_from_conservative_templated<type>(const std::array<type,PHILIP_DIM+2> &conservative_soln, const std::array<dealii::Tensor<1,PHILIP_DIM,type>,PHILIP_DIM+2> &conservative_soln_gradient) const; \
         template dealii::Tensor<2,PHILIP_DIM, type > NavierStokes<PHILIP_DIM, PHILIP_SPECIES,PHILIP_DIM+2,type >::compute_viscous_stress_tensor_via_scaled_viscosity_and_strain_rate_tensor< type > (const type scaled_viscosity_coefficient, const dealii::Tensor<2,PHILIP_DIM,type> &strain_rate_tensor) const; \
+        template dealii::Tensor<2,PHILIP_DIM, type > NavierStokes<PHILIP_DIM, PHILIP_SPECIES,PHILIP_DIM+2,type >::compute_viscous_stress_tensor_from_conservative_templated<type>(const std::array<type,PHILIP_DIM+2> &conservative_soln, const std::array<dealii::Tensor<1,PHILIP_DIM,type>,PHILIP_DIM+2> &conservative_soln_gradient) const; \
         template dealii::Tensor<1,PHILIP_DIM, type > NavierStokes<PHILIP_DIM, PHILIP_SPECIES,PHILIP_DIM+2,type >::compute_heat_flux_given_scaled_heat_conductivity_and_temperature_gradient< type > (const type scaled_heat_conductivity, const dealii::Tensor<1,PHILIP_DIM, type> &temperature_gradient) const; \
         template type NavierStokes<PHILIP_DIM, PHILIP_SPECIES,PHILIP_DIM+2,type >::compute_scaled_heat_conductivity_given_scaled_viscosity_coefficient_and_prandtl_number< type > (const type scaled_viscosity_coefficient, const double prandtl_number_input) const; \
         template dealii::Tensor<1,PHILIP_DIM, type > NavierStokes<PHILIP_DIM, PHILIP_SPECIES,PHILIP_DIM+2,type >::compute_temperature_gradient< type >(const std::array< type ,PHILIP_DIM+2> &primitive_soln, const std::array<dealii::Tensor<1,PHILIP_DIM, type >,PHILIP_DIM+2> &primitive_soln_gradient) const; \
@@ -1837,6 +1939,7 @@ interpolate(const real x, const bool extrapolate) const
         template dealii::Tensor<2,PHILIP_DIM, FadType> NavierStokes<PHILIP_DIM, PHILIP_SPECIES,PHILIP_DIM+2,type >::compute_strain_rate_tensor<FadType> (const dealii::Tensor<2,PHILIP_DIM, FadType> &vel_gradient) const; \
         template dealii::Tensor<2,PHILIP_DIM, FadType> NavierStokes<PHILIP_DIM, PHILIP_SPECIES,PHILIP_DIM+2, type>::compute_strain_rate_tensor_from_conservative_templated<FadType>(const std::array<FadType,PHILIP_DIM+2> &conservative_soln, const std::array<dealii::Tensor<1,PHILIP_DIM,FadType>,PHILIP_DIM+2> &conservative_soln_gradient) const; \
         template dealii::Tensor<2,PHILIP_DIM, FadType> NavierStokes<PHILIP_DIM, PHILIP_SPECIES,PHILIP_DIM+2,type >::compute_viscous_stress_tensor_via_scaled_viscosity_and_strain_rate_tensor<FadType> (const FadType scaled_viscosity_coefficient, const dealii::Tensor<2,PHILIP_DIM, FadType> &strain_rate_tensor) const; \
+        template dealii::Tensor<2,PHILIP_DIM, FadType > NavierStokes<PHILIP_DIM, PHILIP_SPECIES,PHILIP_DIM+2,type >::compute_viscous_stress_tensor_from_conservative_templated<FadType>(const std::array<FadType,PHILIP_DIM+2> &conservative_soln, const std::array<dealii::Tensor<1,PHILIP_DIM,FadType>,PHILIP_DIM+2> &conservative_soln_gradient) const; \
         template dealii::Tensor<1,PHILIP_DIM, FadType> NavierStokes<PHILIP_DIM, PHILIP_SPECIES,PHILIP_DIM+2,type >::compute_heat_flux_given_scaled_heat_conductivity_and_temperature_gradient<FadType> (const FadType scaled_heat_conductivity, const dealii::Tensor<1,PHILIP_DIM, FadType> &temperature_gradient) const; \
         template FadType NavierStokes<PHILIP_DIM, PHILIP_SPECIES,PHILIP_DIM+2,type >::compute_scaled_heat_conductivity_given_scaled_viscosity_coefficient_and_prandtl_number<FadType> (const FadType scaled_viscosity_coefficient, const double prandtl_number_input) const; \
         template dealii::Tensor<1,PHILIP_DIM, FadType> NavierStokes<PHILIP_DIM, PHILIP_SPECIES,PHILIP_DIM+2,type >::compute_temperature_gradient<FadType>(const std::array<FadType,PHILIP_DIM+2> &primitive_soln, const std::array<dealii::Tensor<1,PHILIP_DIM, FadType>,PHILIP_DIM+2> &primitive_soln_gradient) const; \

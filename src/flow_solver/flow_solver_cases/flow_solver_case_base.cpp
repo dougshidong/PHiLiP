@@ -255,6 +255,24 @@ double FlowSolverCaseBase<dim, nspecies, nstate>::get_time_step() const
     return this->time_step;
 }
 
+template <int dim, int nspecies, int nstate>
+void FlowSolverCaseBase<dim, nspecies, nstate>::compute_time_averaged_solution(
+    const std::shared_ptr <ODE::ODESolverBase<dim, nspecies, double>> /*ode_solver*/,
+    const std::shared_ptr <DGBase<dim, nspecies, double>> /*dg*/,
+    const double /*time_step*/)
+{
+    // do nothing by default
+}
+
+template <int dim, int nspecies, int nstate>
+void FlowSolverCaseBase<dim, nspecies, nstate>::compute_Reynolds_stress(
+    const std::shared_ptr <ODE::ODESolverBase<dim, nspecies, double>> /*ode_solver*/,
+    const std::shared_ptr <DGBase<dim, nspecies, double>> /*dg*/,
+    const double /*time_step*/)
+{
+    // do nothing by default
+}
+
 #if PHILIP_SPECIES==1
     // Define a sequence of nstate in the range [1, 6]
     #define POSSIBLE_NSTATE (1)(2)(3)(4)(5)(6)

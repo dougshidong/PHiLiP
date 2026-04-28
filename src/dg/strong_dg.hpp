@@ -45,9 +45,6 @@ public:
     /// Allocate the dual vector for optimization.
     void allocate_dual_vector (const bool compute_d2R);
 
-    /// Allocate the dual vector for optimization.
-    void allocate_dual_vector ();
-
 private:
     /// Assembles the auxiliary equations' cell residuals.
     template<typename DoFCellAccessorType1, typename DoFCellAccessorType2>

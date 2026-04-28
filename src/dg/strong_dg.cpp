@@ -217,7 +217,7 @@ void DGStrong<dim,nspecies,nstate,real,MeshType>::assemble_boundary_term_and_bui
     const bool                                                         compute_auxiliary_right_hand_side,
     adtype                                                             &dual_dot_residual)
 {
-    
+
     const dealii::FESystem<dim> &fe_metric = this->high_order_grid->fe_system;
     const unsigned int n_metric_dofs = fe_metric.dofs_per_cell;
     const unsigned int n_grid_nodes  = n_metric_dofs / dim;
@@ -341,7 +341,7 @@ void DGStrong<dim,nspecies,nstate,real,MeshType>::assemble_face_term_and_build_o
     const bool                                                         /*is_a_subface*/,
     const unsigned int                                                 /*neighbor_i_subface*/)
 {
-    
+
     const dealii::FESystem<dim> &fe_metric = this->high_order_grid->fe_system;
     const unsigned int n_metric_dofs = fe_metric.dofs_per_cell;
     const unsigned int n_grid_nodes  = n_metric_dofs / dim;
@@ -355,7 +355,7 @@ void DGStrong<dim,nspecies,nstate,real,MeshType>::assemble_face_term_and_build_o
         mapping_basis,
         this->all_parameters->use_invariant_curl_form);
 
-    
+
     if(poly_degree_ext != soln_basis_ext.current_degree){
         soln_basis_ext.current_degree    = poly_degree_ext; 
         flux_basis_ext.current_degree    = poly_degree_ext; 
@@ -1630,8 +1630,6 @@ void DGStrong<dim,nspecies,nstate,real,MeshType>::assemble_boundary_term_strong(
     const unsigned int n_dofs = this->fe_collection[poly_degree].dofs_per_cell;
     const unsigned int n_shape_fns = n_dofs / nstate; 
     const std::vector<double> &face_quad_weights = this->face_quadrature_collection[poly_degree].get_weights();
-
-    AssertDimension (n_dofs, dof_indices.size());
 
     // Fetch the modal soln coefficients and the modal auxiliary soln coefficients
     // We immediately separate them by state as to be able to use sum-factorization
@@ -3134,6 +3132,13 @@ void DGStrong<dim,nspecies,nstate,real,MeshType>::assemble_face_term_strong(
                                                      projected_entropy_var_surf_ext[istate],
                                                      soln_basis_ext.oneD_surf_operator,
                                                      soln_basis_ext.oneD_vol_operator);
+
+        soln_basis_int.matrix_vector_mult_surface_1D(face_orientation_ext, 
+                                                    neighbor_iface,
+                                                    entropy_var_coeff_ext, 
+                                                    projected_entropy_var_surf_ext_corrected[istate],
+                                                    soln_basis_int.oneD_surf_operator,
+                                                    soln_basis_int.oneD_vol_operator);
     }
 
     //get the surface-volume sparsity pattern for a "sum-factorized" Hadamard product only computing terms needed for the operation.

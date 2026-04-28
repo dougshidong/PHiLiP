@@ -85,7 +85,18 @@ void Airfoil_3D_LES<dim, nspecies,nstate>::set_higher_order_grid(std::shared_ptr
 {
     const std::string mesh_filename = this->all_param.flow_solver_param.input_mesh_filename+std::string(".msh");
     const bool use_mesh_smoothing = false;
-    std::shared_ptr<HighOrderGrid<dim,double>> airfoil_mesh = read_gmsh<dim, dim> (mesh_filename, this->all_param.do_renumber_dofs, 0, use_mesh_smoothing);
+    std::shared_ptr<HighOrderGrid<dim,double>> airfoil_mesh = read_gmsh<dim, dim> (mesh_filename, 
+                this->all_param.flow_solver_param.use_periodic_BC_in_x, 
+                this->all_param.flow_solver_param.use_periodic_BC_in_y, 
+                this->all_param.flow_solver_param.use_periodic_BC_in_z, 
+                this->all_param.flow_solver_param.x_periodic_id_face_1, 
+                this->all_param.flow_solver_param.x_periodic_id_face_2, 
+                this->all_param.flow_solver_param.y_periodic_id_face_1, 
+                this->all_param.flow_solver_param.y_periodic_id_face_2, 
+                this->all_param.flow_solver_param.z_periodic_id_face_1, 
+                this->all_param.flow_solver_param.z_periodic_id_face_2,
+                true, 
+                this->all_param.do_renumber_dofs, 0, use_mesh_smoothing);
     dg->set_high_order_grid(airfoil_mesh);
     for (int i=0; i<this->all_param.flow_solver_param.number_of_mesh_refinements; ++i) {
         dg->high_order_grid->refine_global();

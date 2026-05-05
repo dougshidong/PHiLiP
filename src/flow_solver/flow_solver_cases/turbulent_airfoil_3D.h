@@ -33,8 +33,14 @@ public:
     /// Function to generate the grid
     std::shared_ptr<Triangulation> generate_grid() const override;
 
+    /// Pointer object to avoid reading mesh twice
+    std::shared_ptr<HighOrderGrid<dim,double>> airfoil_mesh_3D;
+
     /// Function to set the higher order grid
     void set_higher_order_grid(std::shared_ptr <DGBase<dim, nspecies, double>> dg) const override;
+
+    /// Function to read mesh
+    void read_mesh();
 
     /// Will compute and print lift and drag coefficients
     void steady_state_postprocessing(std::shared_ptr <DGBase<dim, nspecies, double>> dg) const override;

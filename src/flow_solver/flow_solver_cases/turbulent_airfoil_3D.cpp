@@ -16,7 +16,7 @@
 namespace PHiLiP {
 namespace FlowSolver {
 //=========================================================
-// NACA0012
+// Airfoil_3D_LES
 //=========================================================
 template <int dim, int nspecies, int nstate>
 Airfoil_3D_LES<dim, nspecies, nstate>::Airfoil_3D_LES(const PHiLiP::Parameters::AllParameters *const parameters_input)
@@ -31,6 +31,8 @@ Airfoil_3D_LES<dim, nspecies, nstate>::Airfoil_3D_LES(const PHiLiP::Parameters::
     this->navier_stokes_physics = std::dynamic_pointer_cast<Physics::NavierStokes<dim,nspecies,dim+2,double>>(
                 Physics::PhysicsFactory<dim,nspecies,dim+2,double>::create_Physics(&parameters_navier_stokes));
 
+    //Assign airfoil_mesh_3D object
+    this->read_mesh();
 }
 
 template <int dim, int nspecies, int nstate>
@@ -58,46 +60,36 @@ std::shared_ptr<Triangulation> Airfoil_3D_LES<dim, nspecies,nstate>::generate_gr
 {
     //Dummy triangulation
     if constexpr(dim==3) {
-        const std::string mesh_filename = this->all_param.flow_solver_param.input_mesh_filename+std::string(".msh");
-        const bool use_mesh_smoothing = false;
-        std::shared_ptr<HighOrderGrid<dim,double>> airfoil_mesh = read_gmsh<dim, dim> (mesh_filename, 
-                this->all_param.flow_solver_param.use_periodic_BC_in_x, 
-                this->all_param.flow_solver_param.use_periodic_BC_in_y, 
-                this->all_param.flow_solver_param.use_periodic_BC_in_z, 
-                this->all_param.flow_solver_param.x_periodic_id_face_1, 
-                this->all_param.flow_solver_param.x_periodic_id_face_2, 
-                this->all_param.flow_solver_param.y_periodic_id_face_1, 
-                this->all_param.flow_solver_param.y_periodic_id_face_2, 
-                this->all_param.flow_solver_param.z_periodic_id_face_1, 
-                this->all_param.flow_solver_param.z_periodic_id_face_2,
-                this->all_param.flow_solver_param.mesh_reader_verbose_output, 
-                this->all_param.do_renumber_dofs, 0, use_mesh_smoothing);
-        
-        return airfoil_mesh->triangulation;
+        return this->airfoil_mesh_3D->triangulation;
     }
 }
 
 template <int dim, int nspecies, int nstate>
 void Airfoil_3D_LES<dim, nspecies,nstate>::set_higher_order_grid(std::shared_ptr<DGBase<dim, nspecies, double>> dg) const
 {
-    const std::string mesh_filename = this->all_param.flow_solver_param.input_mesh_filename+std::string(".msh");
-    const bool use_mesh_smoothing = false;
-    std::shared_ptr<HighOrderGrid<dim,double>> airfoil_mesh = read_gmsh<dim, dim> (mesh_filename, 
-                this->all_param.flow_solver_param.use_periodic_BC_in_x, 
-                this->all_param.flow_solver_param.use_periodic_BC_in_y, 
-                this->all_param.flow_solver_param.use_periodic_BC_in_z, 
-                this->all_param.flow_solver_param.x_periodic_id_face_1, 
-                this->all_param.flow_solver_param.x_periodic_id_face_2, 
-                this->all_param.flow_solver_param.y_periodic_id_face_1, 
-                this->all_param.flow_solver_param.y_periodic_id_face_2, 
-                this->all_param.flow_solver_param.z_periodic_id_face_1, 
-                this->all_param.flow_solver_param.z_periodic_id_face_2,
-                true, 
-                this->all_param.do_renumber_dofs, 0, use_mesh_smoothing);
-    dg->set_high_order_grid(airfoil_mesh);
+    dg->set_high_order_grid(this->airfoil_mesh_3D);
     for (int i=0; i<this->all_param.flow_solver_param.number_of_mesh_refinements; ++i) {
         dg->high_order_grid->refine_global();
     }
+}
+
+template <int dim, int nspecies, int nstate>
+void Airfoil_3D_LES<dim, nspecies,nstate>::read_mesh()
+{
+    const std::string mesh_filename = this->all_param.flow_solver_param.input_mesh_filename+std::string(".msh");
+    const bool use_mesh_smoothing = false;
+    this->airfoil_mesh_3D = read_gmsh<dim, dim> (mesh_filename, 
+            this->all_param.flow_solver_param.use_periodic_BC_in_x, 
+            this->all_param.flow_solver_param.use_periodic_BC_in_y, 
+            this->all_param.flow_solver_param.use_periodic_BC_in_z, 
+            this->all_param.flow_solver_param.x_periodic_id_face_1, 
+            this->all_param.flow_solver_param.x_periodic_id_face_2, 
+            this->all_param.flow_solver_param.y_periodic_id_face_1, 
+            this->all_param.flow_solver_param.y_periodic_id_face_2, 
+            this->all_param.flow_solver_param.z_periodic_id_face_1, 
+            this->all_param.flow_solver_param.z_periodic_id_face_2,
+            true, 
+            this->all_param.do_renumber_dofs, 0, use_mesh_smoothing);
 }
 
 template <int dim, int nspecies, int nstate>

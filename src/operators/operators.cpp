@@ -192,6 +192,18 @@ SumFactorizedOperators<dim,n_faces>::SumFactorizedOperators(
     : OperatorsBase<dim,n_faces>::OperatorsBase(nstate_input, max_degree_input, grid_degree_input)
 {}
 
+inline void print_face_orientation_warning()
+{
+    const char *msg =
+        "This scenario was considered and a fix has been implemented. "
+        "However, this scenario was never encountered before and thus could not be verified.\n"
+        "You may remove the abort statement and verify that the solution is as expected.\n"
+        "For more information, please see: "
+        "https://www.dealii.org/current/doxygen/deal.II/DEALGlossary.html#GlossFaceOrientation \n\n";
+
+    std::cout << msg << msg;
+}
+
 template <int dim, int n_faces>  
 template <typename real>
 void SumFactorizedOperators<dim,n_faces>::face_orientation_tensor_product(
@@ -218,9 +230,7 @@ void SumFactorizedOperators<dim,n_faces>::face_orientation_tensor_product(
             }
         }
         std::cout << "\nIt appears deal.ii has rotated a face.\n";
-        std::cout << "This scenario was considered and a fix has been implemented. However, this scenario was never encountered before and thus could not be verified.\n";
-        std::cout << "You may remove the abort statement and verify that the solution is as expected.\n";
-        std::cout << "For more information, please see: https://www.dealii.org/current/doxygen/deal.II/DEALGlossary.html#GlossFaceOrientation \n"<<std::endl;
+        print_face_orientation_warning();
         std::abort();
     }
     if(face_orientation[2]){
@@ -231,9 +241,7 @@ void SumFactorizedOperators<dim,n_faces>::face_orientation_tensor_product(
             }
         }
         std::cout << "\nIt appears deal.ii has flipped a face.\n";
-        std::cout << "This scenario was considered and a fix has been implemented. However, this scenario was never encountered before and thus could not be verified.\n";
-        std::cout << "You may remove the abort statement and verify that the solution is as expected.\n";
-        std::cout << "For more information, please see: https://www.dealii.org/current/doxygen/deal.II/DEALGlossary.html#GlossFaceOrientation \n"<<std::endl;
+        print_face_orientation_warning();
         std::abort();
     }
 }
@@ -265,9 +273,7 @@ void SumFactorizedOperators<dim,n_faces>::face_orientation_inner_product(
             }
         }
         std::cout << "\nIt appears deal.ii has rotated a face.\n";
-        std::cout << "This scenario was considered and a fix has been implemented. However, this scenario was never encountered before and thus could not be verified.\n";
-        std::cout << "You may remove the abort statement and verify that the solution is as expected.\n";
-        std::cout << "For more information, please see: https://www.dealii.org/current/doxygen/deal.II/DEALGlossary.html#GlossFaceOrientation \n"<<std::endl;
+        print_face_orientation_warning();
         std::abort();
     }
     if(face_orientation[2]){
@@ -278,9 +284,7 @@ void SumFactorizedOperators<dim,n_faces>::face_orientation_inner_product(
             }
         }
         std::cout << "\nIt appears deal.ii has flipped a face.\n";
-        std::cout << "This scenario was considered and a fix has been implemented. However, this scenario was never encountered before and thus could not be verified.\n";
-        std::cout << "You may remove the abort statement and verify that the solution is as expected.\n";
-        std::cout << "For more information, please see: https://www.dealii.org/current/doxygen/deal.II/DEALGlossary.html#GlossFaceOrientation \n"<<std::endl;
+        print_face_orientation_warning();
         std::abort();
     }
 }

@@ -129,18 +129,6 @@ public:
 
     double expected_order_at_final_time; ///< For limiter convergence tests, specify expected order at final time
 
-    double airfoil_length;
-    double height;
-    double length_b2;
-    double incline_factor;
-    double bias_factor;
-    unsigned int refinements;
-    unsigned int n_subdivision_x_0;
-    unsigned int n_subdivision_x_1;
-    unsigned int n_subdivision_x_2;
-    unsigned int n_subdivision_y;
-    unsigned int airfoil_sampling_factor;
-
     /** For taylor green vortex integration tests, expected kinetic energy at final time. */
     double expected_kinetic_energy_at_final_time;
 

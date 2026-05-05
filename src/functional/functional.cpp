@@ -690,7 +690,6 @@ template <int dim, int nspecies, int nstate, typename real, typename MeshType>
 void Functional<dim,nspecies,nstate,real,MeshType>::need_compute(bool &compute_value, bool &compute_dIdW, bool &compute_dIdX, bool &compute_d2I)
 {
     if (compute_value) {
-        //pcout << " with value...";
 
         if (dg->solution.size() == solution_value.size() 
             && dg->high_order_grid->volume_nodes.size() == volume_nodes_value.size()) {

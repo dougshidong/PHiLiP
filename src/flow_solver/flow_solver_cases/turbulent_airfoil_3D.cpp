@@ -6,12 +6,9 @@
 #include <stdlib.h>
 #include <iostream>
 #include <deal.II/dofs/dof_tools.h>
-#include <deal.II/grid/grid_tools.h>
 #include <deal.II/numerics/vector_tools.h>
 #include <deal.II/fe/fe_values.h>
 #include "physics/physics_factory.h"
-#include "dg/dg_base.hpp"
-#include <deal.II/base/table_handler.h>
 #include "mesh/grids/naca_airfoil_grid.hpp"
 #include "mesh/gmsh_reader.hpp"
 #include "functional/lift_drag.hpp"
@@ -147,7 +144,7 @@ void Airfoil_3D_LES<dim, nspecies, nstate>::compute_unsteady_data_and_write_to_t
             const std::shared_ptr<dealii::TableHandler> unsteady_data_table,
             const bool do_write_unsteady_data_table_file)
 {   
-    if(do_write_unsteady_data_table_file){ //only write to terminal every 10000 time steps
+    if(do_write_unsteady_data_table_file){
         // Print to console
             // Compute aerodynamic values
         const double lift = this->compute_lift(dg);

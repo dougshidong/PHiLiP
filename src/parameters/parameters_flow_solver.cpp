@@ -79,11 +79,11 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
                           " shock_diffraction | "
                           " astrophysical_jet | "
                           " strong_vortex_shock_wave | "
+                          " turbulent_airfoil_3D | "
                           " multi_species_vortex_advection | "
                           " multi_species_vortex_advection_high_temp "
                           " multi_species_sod_shock_tube | " 
-                          " multi_species_isentropic_vortex | "
-                          " turbulent_airfoil_3D>. ");
+                          " multi_species_isentropic_vortex>. ");
 
         prm.declare_entry("poly_degree", "1",
                           dealii::Patterns::Integer(0, dealii::Patterns::Integer::max_int_value),

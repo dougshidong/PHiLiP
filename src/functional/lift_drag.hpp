@@ -129,11 +129,6 @@ public:
                 }
             }
 
-		    //std::cout << " force_dimensionalization_factor: " << force_dimensionalization_factor
-            //          << " pressure: " << pressure
-            //          << " normal*force_vector: " << normal*force_vector
-            //          << std::endl;
-
             return force_dimensionalization_factor * (pressure * (normal * force_vector) -  viscous_tensor_times_normal*force_vector);
         } 
         return (real2) 0.0;

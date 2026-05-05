@@ -295,7 +295,7 @@ void Airfoil_3D_LES<dim, nspecies, nstate>::compute_Reynolds_stress(
                     }else if(istate == 4){//u'w'
                         dg->fluctuating_quantities(current_dofs_indices[idof]) = velocity_fluctuations_at_q[0][ishape]*velocity_fluctuations_at_q[2][ishape];
                     }
-                }else{//Perform time-average
+                }else{//Perform time-average: \(<u'u'>_{n} = <u'u'>_{n-1} + \frac{1}{n}(u'u' - <u'u'>_{n-1}))
                     if(istate == 0){//<u'v'>
                         dg->fluctuating_quantities(current_dofs_indices[idof])= dg->fluctuating_quantities(current_dofs_indices[idof]) + (velocity_fluctuations_at_q[0][ishape]*velocity_fluctuations_at_q[1][ishape] - dg->fluctuating_quantities(current_dofs_indices[idof]))/((ode_solver->current_time - this->all_param.flow_solver_param.time_to_start_computing_Reynolds_stress + time_step) / time_step); //Incremental average
                     }else if(istate == 1){//<u'u'>

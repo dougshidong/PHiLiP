@@ -531,6 +531,7 @@ public:
 
     void initialize_manufactured_solution (); ///< Virtual function defined in DG
 
+    // Output VTK files. Do not modify default output_time_averaged_solution or output_fluctuating_quantities flags.
     void output_results_vtk (const unsigned int cycle, const double current_time=0.0, const bool output_time_averaged_solution=false, const bool output_fluctuating_quantities=false); ///< Output solution
     void output_face_results_vtk (const unsigned int cycle, const double current_time=0.0, const bool output_time_averaged_solution=false, const bool output_fluctuating_quantities=false); ///< Output Euler face solution
 

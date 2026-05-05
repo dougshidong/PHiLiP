@@ -1465,7 +1465,6 @@ dealii::Vector<double> NavierStokes<dim,nspecies,nstate,real>::post_compute_deri
             conservative_soln[s] = uh(s);
         }
         const std::array<double, nstate> primitive_soln = this->template convert_conservative_to_primitive_templated<real>(conservative_soln);
-        // if (primitive_soln[0] < 0) this->pcout << evaluation_points << std::endl;
 
         std::array<dealii::Tensor<1,dim,double>,nstate> conservative_soln_gradient;
         for (unsigned int s=0; s<nstate; ++s) {

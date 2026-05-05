@@ -56,6 +56,7 @@ set(TEST_OUTPUT_DIR ${CMAKE_CURRENT_BINARY_DIR})
 # - References:
 # - (1) Garmann et al.
 # - (2) Galbraith et Visbal
+# - details: Make directory named "restart" to output restart files.
 # ----------------------------------------
 # configure_file(unsteady_sd7003.prm unsteady_sd7003.prm COPYONLY)
 # add_test(

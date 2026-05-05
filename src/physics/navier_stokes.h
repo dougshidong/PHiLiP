@@ -327,6 +327,10 @@ public:
     /** Nondimensionalized viscous stress tensor, tau*
      *  Reference: Masatsuka 2018 "I do like CFD", p.148, eq.(4.14.12)
      */
+    dealii::Tensor<2,dim,real> compute_viscous_stress_tensor_from_conservative (
+        const std::array<real,nstate> &conservative_soln,
+        const std::array<dealii::Tensor<1,dim,real>,nstate> &conservative_soln_gradient) const;
+
     template<typename real2>
     dealii::Tensor<2,dim,real2>
     compute_viscous_stress_tensor_from_conservative_templated (

@@ -784,6 +784,15 @@ dealii::Tensor<2,dim,real2> NavierStokes<dim,nspecies,nstate,real>
 }
 
 template <int dim, int nspecies, int nstate, typename real>
+dealii::Tensor<2,dim,real> NavierStokes<dim,nspecies,nstate,real>
+::compute_viscous_stress_tensor_from_conservative (
+    const std::array<real,nstate> &conservative_soln,
+    const std::array<dealii::Tensor<1,dim,real>,nstate> &conservative_soln_gradient) const
+{
+    return compute_viscous_stress_tensor_from_conservative_templated<real>(conservative_soln,conservative_soln_gradient);
+}
+
+template <int dim, int nspecies, int nstate, typename real>
 template<typename real2>
 dealii::Tensor<2,dim,real2> NavierStokes<dim,nspecies,nstate,real>
 ::compute_viscous_stress_tensor_from_conservative_templated (

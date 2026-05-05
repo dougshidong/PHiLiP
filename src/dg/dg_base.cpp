@@ -3534,6 +3534,10 @@ void DGBase<dim,nspecies,real,MeshType>::allocate_system (
         fluctuating_quantities *= 0.0;
         fluctuating_quantities.add(std::numeric_limits<real>::lowest());
     }
+    if(all_parameters->flow_solver_param.do_compute_Reynolds_stress && !all_parameters->flow_solver_param.do_compute_time_averaged_solution){
+        std::cout << "\nNeed time-averaged solution to compute Reynolds stresses. Please set do_compute_time_averaged_solution=true. Aborting...\n";
+        std::abort();
+    }
 
     allocate_dual_vector(compute_d2R);
 

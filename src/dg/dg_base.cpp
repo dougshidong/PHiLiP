@@ -3528,7 +3528,7 @@ void DGBase<dim,nspecies,real,MeshType>::allocate_system (
         time_averaged_solution *= 0.0;
         time_averaged_solution.add(std::numeric_limits<real>::lowest());
     }
-    //fluctuating quantities (i.e, reynodsl stresses)
+    //fluctuating quantities (i.e, Reynolds stresses)
     if(all_parameters->flow_solver_param.do_compute_time_averaged_solution && all_parameters->flow_solver_param.do_compute_Reynolds_stress){
         fluctuating_quantities.reinit(locally_owned_dofs, ghost_dofs, mpi_communicator);
         fluctuating_quantities *= 0.0;

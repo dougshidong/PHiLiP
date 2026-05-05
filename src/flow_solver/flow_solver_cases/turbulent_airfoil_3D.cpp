@@ -234,7 +234,7 @@ void Airfoil_3D_LES<dim, nspecies, nstate>::compute_Reynolds_stress(
                 time_averaged_soln_coeff[istate][ishape] = dg->time_averaged_solution(current_dofs_indices[idof]);
             }
 
-            //Project solutin
+            //Project solution
             std::array<std::vector<double>,nstate> soln_at_q;
             std::array<std::vector<double>,nstate> time_averaged_soln_at_q;
             for(int istate=0; istate<nstate; istate++){
@@ -243,7 +243,7 @@ void Airfoil_3D_LES<dim, nspecies, nstate>::compute_Reynolds_stress(
                 // Interpolate soln coeff to volume cubature nodes.
                 soln_basis.matrix_vector_mult_1D(soln_coeff[istate], soln_at_q[istate],
                                                 soln_basis.oneD_vol_operator);
-                // Interpolate soln coeff to volume cubature nodes.
+                // Interpolate time-averaged soln coeff to volume cubature nodes.
                 soln_basis.matrix_vector_mult_1D(time_averaged_soln_coeff[istate], time_averaged_soln_at_q[istate],
                                                 soln_basis.oneD_vol_operator);
             }
@@ -258,8 +258,8 @@ void Airfoil_3D_LES<dim, nspecies, nstate>::compute_Reynolds_stress(
                     soln_state[istate] = soln_at_q[istate][iquad];
                     time_averaged_soln_state[istate] = time_averaged_soln_at_q[istate][iquad];
                 }
-                dealii::Tensor<1,dim,double> vel;// = this->navier_stokes_physics->compute_velocities(soln_state);
-                dealii::Tensor<1,dim,double> time_averaged_vel;// = this->navier_stokes_physics->compute_velocities(time_averaged_soln_state);
+                dealii::Tensor<1,dim,double> vel;
+                dealii::Tensor<1,dim,double> time_averaged_vel;
                 const double density = soln_state[0];
                 const double time_averaged_density = time_averaged_soln_state[0];
                 for (unsigned int d=0; d<dim; ++d) {

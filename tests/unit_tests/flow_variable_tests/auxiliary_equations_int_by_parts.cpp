@@ -423,7 +423,11 @@ int main (int argc, char * argv[])
                         mapping_basis,
                         false);
 
-                    const unsigned int neighbor_iface = current_cell->periodic_neighbor_of_periodic_neighbor(iface);
+                    unsigned int neighbor_iface;
+                    if (current_cell->has_periodic_neighbor(iface))
+                        neighbor_iface = current_cell->periodic_neighbor_of_periodic_neighbor(iface);
+                    else
+                        neighbor_iface = current_cell->neighbor_of_neighbor(iface);
                     neighbor_dofs_indices.resize(n_dofs_cell);
                     neighbor_cell->get_dof_indices (neighbor_dofs_indices);
                     const dealii::types::global_dof_index neighbor_cell_index = neighbor_cell->active_cell_index();

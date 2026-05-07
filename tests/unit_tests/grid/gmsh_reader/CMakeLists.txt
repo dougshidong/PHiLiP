@@ -69,7 +69,7 @@ set (filename "airfoil.msh")
 if(NOT EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/${filename})
   message(SEND_ERROR
 "Missing NACA0012 mesh file named ${filename}. Please download them from
-    https://drive.google.com/drive/folders/1EeN4ooMK2awre2O_WBWJNMyO4FGDX_PN?usp=sharing
+    https://drive.google.com/drive/folders/1Z89Qq940bP9WwBr1Y5YVhZSAErOM0Rg6?usp=sharing
 and place them in
       ${CMAKE_CURRENT_SOURCE_DIR}, or simply run get_gmsh_mesh_files_local.sh"
       )
@@ -91,7 +91,7 @@ set (filename "naca0012_hopw_ref2.msh")
 if(NOT EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/${filename})
   message(SEND_ERROR
 "Missing NACA0012 mesh file named ${filename}. Please download them from
-    https://drive.google.com/drive/folders/1EeN4ooMK2awre2O_WBWJNMyO4FGDX_PN?usp=sharing
+    https://drive.google.com/drive/folders/1Z89Qq940bP9WwBr1Y5YVhZSAErOM0Rg6?usp=sharing
 and place them in
       ${CMAKE_CURRENT_SOURCE_DIR}, or simply run get_gmsh_mesh_files_local.sh"
       )
@@ -113,7 +113,7 @@ set (filename "3D_CUBE_2ndOrder.msh")
 if(NOT EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/${filename})
   message(SEND_ERROR
 "Missing 3D GMSH file named ${filename}. Please download them from
-    https://drive.google.com/drive/folders/1ZjwSvbrRK5pHvMULfC69n6oierTej2Cv?usp=sharing
+    https://drive.google.com/drive/folders/1Z89Qq940bP9WwBr1Y5YVhZSAErOM0Rg6?usp=sharing
 and place them in
       ${CMAKE_CURRENT_SOURCE_DIR}, or simply run get_gmsh_mesh_files_local.sh"
       )
@@ -135,7 +135,7 @@ set (filename "3d_gaussian_bump.msh")
 if(NOT EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/${filename})
   message(SEND_ERROR
 "Missing 3D GMSH file named ${filename}. Please download them from
-    https://drive.google.com/drive/folders/1xaQRTCd8VXDeaV1alQ5oHI_YMm2X0X5R?usp=sharing
+    https://drive.google.com/drive/folders/1Z89Qq940bP9WwBr1Y5YVhZSAErOM0Rg6?usp=sharing
 and place them in
       ${CMAKE_CURRENT_SOURCE_DIR}, or simply run get_gmsh_mesh_files_local.sh"
       )
@@ -156,7 +156,7 @@ set (filename "3d_cube_periodic.msh")
 if(NOT EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/${filename})
   message(SEND_ERROR
 "Missing 3D GMSH file named ${filename}. Please download it from
-    https://drive.google.com/uc?id=1MqYCsClOlcm1fVRT0JOSBBzZ1YtB0vZE
+    https://drive.google.com/drive/folders/1Z89Qq940bP9WwBr1Y5YVhZSAErOM0Rg6?usp=sharing
 and place them in
       ${CMAKE_CURRENT_SOURCE_DIR}, or simply run get_gmsh_mesh_files_local.sh"
       )
@@ -178,7 +178,7 @@ set (filename "SD7003_3rd_Order_4_Cell_Span.msh")
 if(NOT EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/${filename})
   message(SEND_ERROR
 "Missing 3D GMSH file named ${filename}. Please download it from
-    https://drive.google.com/drive/folders/1xaQRTCd8VXDeaV1alQ5oHI_YMm2X0X5R?usp=sharing
+    https://drive.google.com/drive/folders/1Z89Qq940bP9WwBr1Y5YVhZSAErOM0Rg6?usp=sharing
 and place them in
       ${CMAKE_CURRENT_SOURCE_DIR}, or simply run get_gmsh_mesh_files_local.sh"
       )
@@ -200,7 +200,7 @@ set (filename "channel_structured.msh")
 if(NOT EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/${filename})
   message(SEND_ERROR
 "Missing 3D GMSH file named ${filename}. Please download it from
-    https://drive.google.com/drive/folders/1xaQRTCd8VXDeaV1alQ5oHI_YMm2X0X5R?usp=sharing
+    https://drive.google.com/drive/folders/1Z89Qq940bP9WwBr1Y5YVhZSAErOM0Rg6?usp=sharing
 and place them in
       ${CMAKE_CURRENT_SOURCE_DIR}, or simply run get_gmsh_mesh_files_local.sh"
       )

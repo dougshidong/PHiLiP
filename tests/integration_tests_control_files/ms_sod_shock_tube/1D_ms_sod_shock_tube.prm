@@ -10,7 +10,7 @@ set chemistry_input_file = ../../chemistry_files/O2_N2.kinetics
 set run_type = flow_simulation
 
 # DG formulation
-set use_weak_form = true
+set use_weak_form = false
 set flux_nodes_type = GLL
 set conv_num_flux = lax_friedrichs
 
@@ -50,7 +50,7 @@ subsection flow_solver
     set grid_left_bound = 0.0
     set grid_right_bound = 1.0
     subsection grid_rectangle
-      set number_of_grid_elements_x = 400
+      set number_of_grid_elements_x = 100
     end
   end
 end

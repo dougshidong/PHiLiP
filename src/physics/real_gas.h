@@ -11,6 +11,9 @@ namespace PHiLiP {
 namespace Physics {
 
 /// RealGas equations. Derived from PhysicsBase
+/* Functions designated with "// Algorithm # (f_M#)" are detailed in Matsuyama's M.Sc. thesis (2025)
+   Algorithms that have "Modified by Shruthi" appended to it do not strictly follow the implementation in the thesis*/
+
 template <int dim, int nspecies, int nstate, typename real>
 class RealGas : public PhysicsBase <dim, nspecies, nstate, real>
 {
@@ -157,7 +160,6 @@ public:
         const std::array<real,nstate> &primitive_soln,
         const std::array<dealii::Tensor<1,dim,real>,nstate> &primitive_soln_gradient) const;
         
-// Details of the following algorithms are presented in Liki's Master's thesis.
 /* MAIN FUNCTIONS */
 protected:
     // Algorithm 1 (f_M1): Compute mixture density from conservative_soln
@@ -202,6 +204,7 @@ public:
 
 protected:
     // Algorithm 11 (f_M11): Compute species specific heat at constant pressure from temperature
+    // These are computed using the NASA 9-Coefficient Polynomial Parameterization (see McBride et. al, 2002) 
     // Modified by Shruthi
     std::array<real,nspecies> compute_species_specific_Cp ( const real temperature ) const;
 
@@ -209,12 +212,22 @@ protected:
     std::array<real,nspecies>compute_species_specific_Cv ( const real temperature ) const;
 
     // Algorithm 13 (f_M13): Compute species specific enthalpy from temperature
+    // These are computed using the NASA 9-Coefficient Polynomial Parameterization (see McBride et. al, 2002) 
     // Modified by Shruthi
     std::array<real,nspecies> compute_species_specific_enthalpy ( const real temperature ) const;   
 
     // Algorithm 14 (f_M14): Compute species specific internal energy from temperature
     std::array<real,nspecies> compute_species_specific_internal_energy ( const real temperature ) const;
 
+    // Compute Cv integral component of the species entropy equation
+    // These are computed using the NASA 9-Coefficient Polynomial Parameterization (see McBride et. al, 2002) 
+    std::array<real,nspecies> compute_species_entropy_cv_integral ( const real temperature ) const; 
+
+    // Compute species entropy from temperature and species density
+    std::array<real,nspecies> compute_species_entropy ( const std::array<real,nstate> &conservative_soln ) const;
+
+    // Compute species Gibbs' energy using species entropy and species Cp
+    std::array<real,nspecies> compute_species_gibbs_energy ( const std::array<real,nstate> &conservative_soln ) const;
 public:
     // Algorithm 15 (f_M15): Compute temperature from conservative_soln
     virtual real compute_temperature ( const std::array<real,nstate> &conservative_soln ) const;

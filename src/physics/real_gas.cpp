@@ -162,26 +162,6 @@ std::array<int,nspecies>  RealGas<dim, nspecies, nstate, real>
 }
 
 template <int dim, int nspecies, int nstate, typename real>
-std::array<real,nstate> RealGas<dim, nspecies, nstate, real>
-::compute_entropy_variables (
-    const std::array<real,nstate> &conservative_soln) const
-{
-    this->pcout<<"Entropy variables for RealGas hasn't been done yet."<<std::endl;
-    std::abort();
-    return conservative_soln;
-}
-
-template <int dim, int nspecies, int nstate, typename real>
-std::array<real,nstate> RealGas<dim, nspecies, nstate, real>
-::compute_conservative_variables_from_entropy_variables (
-    const std::array<real,nstate> &entropy_var) const
-{
-    this->pcout<<"Entropy variables for RealGas hasn't been done yet."<<std::endl;
-    std::abort();
-    return entropy_var;
-}
-
-template <int dim, int nspecies, int nstate, typename real>
 std::array<real,nstate> RealGas<dim,nspecies,nstate,real>
 ::convective_eigenvalues (
     const std::array<real,nstate> &conservative_soln,
@@ -572,10 +552,10 @@ std::array<real,nspecies> RealGas<dim,nspecies,nstate,real>
 ::compute_species_specific_enthalpy ( const real temperature ) const
 {
     real dimensional_temperature = compute_dimensional_temperature(temperature);
-    std::array<real,nspecies>h;
+    std::array<real,nspecies> h;
     
     if (dimensional_temperature < 0) {
-        std::cout<<"Enthalpy Calculation Error: Temperature passed in is negative... Temperature = " << dimensional_temperature << "...Aborting." << std::endl;
+        std::cout<<"Species Enthalpy Calculation Error: Temperature passed in is negative... Temperature = " << dimensional_temperature << "...Aborting." << std::endl;
         std::abort();
     }
     std::array<int,nspecies> species_tempindex = GetNASACAP_TemperatureIndex(dimensional_temperature);
@@ -641,6 +621,202 @@ std::array<real,nspecies> RealGas<dim,nspecies,nstate,real>
     }
 
     return e;
+}
+
+// Compute the Cv integral component of species entropy (ie. \int_{T_ref}^T c_v(\tau)/\tau d\tau) using NASA polynomials
+template <int dim, int nspecies, int nstate, typename real>
+std::array<real,nspecies> RealGas<dim, nspecies, nstate, real>
+::compute_species_entropy_cv_integral ( 
+    const real temperature) const
+{
+    real dimensional_temperature = compute_dimensional_temperature(temperature);
+    std::array<real,nspecies> species_entropy;
+
+    if (dimensional_temperature < 0) {
+        std::cout<<" Species Entropy Calculation Error: Temperature passed in is negative... Temperature = " << dimensional_temperature << "...Aborting." << std::endl;
+        std::abort();
+    }    
+    std::array<int,nspecies> species_tempindex = GetNASACAP_TemperatureIndex(dimensional_temperature);
+    
+    /// species loop
+    for (int s=0; s<nspecies; ++s) 
+    { 
+        // main computation
+        real Cp = 0.0;
+        real out_of_bounds_temp = -1.0;
+        if(species_tempindex[s] == -1) { // Calculate entropy using calorically perfect gas (CPG) model (Refer to NASA FUN3D manual v14.2 sec.B.8)
+            species_tempindex[s] = 0;
+            std::array<real,nspecies> Cp_species = compute_species_specific_Cp(NASACAPTemperatureLimits[s][0]);
+            Cp = Cp_species[s]; // obtain Cp so the entropy can be calculated with CPG model
+            Cp /= this->Rs[s]; // nondimensional molar value of Cp;
+            out_of_bounds_temp = dimensional_temperature; // save the temperature value to calculate entropy using CPG model
+            dimensional_temperature = NASACAPTemperatureLimits[s][0];
+        }
+        if(species_tempindex[s] == 3) { // Calculate entropy using calorically perfect gas (CPG) model (Refer to NASA FUN3D manual v14.2 sec.B.8)
+            species_tempindex[s] = 2;
+            std::array<real,nspecies> Cp_species = compute_species_specific_Cp(NASACAPTemperatureLimits[s][2]);
+            Cp = Cp_species[s]; // obtain Cp so the entropy can be calculated with CPG model
+            Cp /= this->Rs[s]; // nondimensional molar value of Cp;
+            out_of_bounds_temp = dimensional_temperature; // save the temperature value to calculate entropy using CPG model
+            dimensional_temperature = NASACAPTemperatureLimits[s][2];
+        }
+        species_entropy[s] = -this->NASACAPCoeffs[s][0][species_tempindex[s]]*pow(dimensional_temperature,-2)*0.5
+                -this->NASACAPCoeffs[s][1][species_tempindex[s]]*pow(dimensional_temperature,-1) 
+                +this->NASACAPCoeffs[s][2][species_tempindex[s]]*log(dimensional_temperature)
+                +this->NASACAPCoeffs[s][8][species_tempindex[s]];
+        for (int i=3; i<7; i++)
+        {
+            species_entropy[s] += this->NASACAPCoeffs[s][i][species_tempindex[s]]*pow(dimensional_temperature,double(i-2))/((double)(i-2)); // The other terms are added
+        }
+
+        if(out_of_bounds_temp != -1.0) {
+            species_entropy[s] = species_entropy[s] + log(dimensional_temperature/out_of_bounds_temp) * Cp;
+        }
+
+        // set dimensional temp back to the out of bounds temp for the next species in the loop
+        if (out_of_bounds_temp != -1.0)
+            dimensional_temperature = out_of_bounds_temp;
+        species_entropy[s] *= this->Rs[s];
+        species_entropy[s] -= this->Rs[s]*log(temperature);
+    }
+
+    return species_entropy;
+}
+
+// Compute species entropy by calculating integral and adding in density contribution (ie. R_k ln \rho_k)
+template <int dim, int nspecies, int nstate, typename real>
+std::array<real,nspecies> RealGas<dim, nspecies, nstate, real>
+::compute_species_entropy (
+    const std::array<real,nstate> &conservative_soln) const
+{
+    const real temperature = compute_temperature(conservative_soln);
+    const std::array<real,nspecies> species_densities = compute_species_densities(conservative_soln);
+
+    std::array<real,nspecies> species_entropy = compute_species_entropy_cv_integral(temperature);
+    for(int ispecies = 0; ispecies < nspecies; ispecies++) {
+        species_entropy[ispecies] -= this->Rs[ispecies]*log(temperature*species_densities[ispecies]*this->density_ref);
+    }
+
+    return species_entropy;
+}
+
+// Compute Gibbs' energy of species using species entropy and species Cp
+template <int dim, int nspecies, int nstate, typename real>
+std::array<real,nspecies> RealGas<dim, nspecies, nstate, real>
+::compute_species_gibbs_energy (
+    const std::array<real,nstate> &conservative_soln) const
+{
+    const real temperature = compute_temperature(conservative_soln);
+
+    std::array<real,nspecies> species_entropy = compute_species_entropy(conservative_soln);
+    std::array<real,nspecies> species_Cp = compute_species_specific_Cp(temperature);
+
+    std::array<real, nspecies> species_gibbs;
+    for(int ispecies = 0; ispecies < nspecies; ++ispecies) {
+        species_gibbs[ispecies] = temperature*(species_Cp[ispecies] - species_entropy[ispecies]);
+    }
+
+    return species_gibbs;
+}
+
+// Compute the entropy variables from conservative solution
+template <int dim, int nspecies, int nstate, typename real>
+std::array<real,nstate> RealGas<dim, nspecies, nstate, real>
+::compute_entropy_variables (
+    const std::array<real,nstate> &conservative_soln) const
+{
+    std::array<real,nstate> entropy_var;
+    const real temperature = compute_temperature(conservative_soln);
+    std::array<real,nspecies> species_gibbs = compute_species_gibbs_energy(conservative_soln);
+    real vel2 = compute_velocity_squared_from_conservative_solution(conservative_soln);
+
+    entropy_var[0] = species_gibbs[nspecies-1] - (0.5*vel2);
+    entropy_var[dim+1] = -1.0;
+
+    const dealii::Tensor<1,dim,real> vel = compute_velocities(conservative_soln);
+    for (int idim = 0; idim < dim; ++idim) {
+        entropy_var[idim+1] = vel[idim];
+    }
+
+    for (int ispecies = 0; ispecies < nspecies - 1; ++ispecies) {
+        entropy_var[dim+2+ispecies] = species_gibbs[ispecies] - species_gibbs[nspecies-1];
+    }
+
+    for (int istate = 0; istate < nstate; ++istate) {
+        entropy_var[istate] /= temperature;
+    }
+
+    return entropy_var;
+}
+
+// Map entropy variables back to conservative solution
+template <int dim, int nspecies, int nstate, typename real>
+std::array<real,nstate> RealGas<dim, nspecies, nstate, real>
+::compute_conservative_variables_from_entropy_variables (
+    const std::array<real,nstate> &entropy_var) const
+{
+    std::array<real,nstate> conservative_var;
+    const real temperature = -1/entropy_var[dim+1];
+    const int nth_species_idx = nspecies - 1;
+
+    std::array<real,nspecies> species_gibbs;
+
+    real entropy_var_vel_squared = 0.0;
+    for(int idim=0; idim<dim; idim++){
+        entropy_var_vel_squared += pow(entropy_var[idim + 1]*temperature, 2.0);
+    }
+
+    species_gibbs[nth_species_idx] = temperature*entropy_var[0] + entropy_var_vel_squared/2.0;
+    for(int ispecies = 0; ispecies < nth_species_idx; ++ispecies) {
+        species_gibbs[ispecies] = temperature*entropy_var[dim+2+ispecies] + species_gibbs[nth_species_idx];
+    }
+
+    std::array<real,nspecies> species_entropy;
+    std::array<real,nspecies> species_Cp = compute_species_specific_Cp(temperature);
+    for(int ispecies = 0; ispecies < nth_species_idx; ++ispecies) {
+        species_entropy[ispecies] = species_Cp[ispecies] - (species_gibbs[ispecies]/temperature);
+    }
+    species_entropy[nth_species_idx] = species_Cp[nth_species_idx] - (species_gibbs[nth_species_idx]/temperature);
+
+    std::array<real,nspecies> species_density;
+    const std::array<real,nspecies> Rs = compute_Rs(this->Ru);
+    conservative_var[0] = 0.0;
+    for(int ispecies = 0; ispecies < nspecies; ++ispecies) {
+        std::array<real,nspecies> species_entropy_integral = compute_species_entropy_cv_integral(temperature);
+
+        species_density[ispecies] = (exp((species_entropy_integral[ispecies] - species_entropy[ispecies])/(Rs[ispecies])))/(temperature*this->density_ref);
+        conservative_var[0] += species_density[ispecies];
+
+        if (dim + 2 + ispecies < nstate)
+            conservative_var[dim+2+ispecies] = species_density[ispecies];
+    }
+
+    const real mixture_density = conservative_var[0];
+
+    for (int idim = 0; idim < dim; ++idim) {
+        conservative_var[idim+1] = mixture_density*entropy_var[idim+1]*temperature;
+    }
+    
+    // specific kinetic energy
+    const real specific_kinetic_energy = 0.50*entropy_var_vel_squared;
+    // species specific enthalpy
+    const std::array<real,nspecies> species_specific_enthalpy = compute_species_specific_enthalpy(temperature); 
+    std::array<real,nspecies> species_specific_internal_energy;
+    std::array<real,nspecies> species_specific_total_energy;
+    // species energy
+    for (int s=0; s<nspecies; ++s) 
+    { 
+      species_specific_internal_energy[s] = species_specific_enthalpy[s] - (this->R_ref*this->temperature_ref/this->u_ref_sqr)* Rs[s]*temperature;
+      species_specific_total_energy[s] =  species_specific_internal_energy[s] + specific_kinetic_energy;
+    }     
+    // mixture energy
+    real mixture_specific_total_energy = 0.0;
+    for(int ispecies = 0; ispecies < nspecies; ++ispecies) {
+        mixture_specific_total_energy += species_specific_total_energy[ispecies] *(species_density[ispecies]/mixture_density);
+    }
+    conservative_var[dim+1] = mixture_density*mixture_specific_total_energy;
+
+    return conservative_var;
 }
 
 // Algorithm 15 (f_M15): Compute temperature

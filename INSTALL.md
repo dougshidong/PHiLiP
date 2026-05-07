@@ -23,8 +23,8 @@ You will need to **download the large mesh and flow initialization files** that 
    and resource:
    `source ~/.bashrc`
 4. Then run the following bash script inside the `PHiLiP` directory:
-   `chmod +x get_large_test_files_local.sh`
-   `./get_large_test_files_local.sh`
+   `chmod +x get_large_test_files.sh`
+   `./get_large_test_files.sh`
 
 ## deal.II
 

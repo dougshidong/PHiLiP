@@ -44,7 +44,8 @@ public:
         multi_species_vortex_advection,
         multi_species_vortex_advection_high_temp,
         multi_species_sod_shock_tube,
-        multi_species_isentropic_vortex
+        multi_species_isentropic_vortex,
+        turbulent_airfoil_3D
         };
     FlowCaseType flow_case_type; ///< Selected FlowCaseType from the input file
 
@@ -226,7 +227,11 @@ public:
     unsigned int number_of_times_to_output_velocity_field; ///< Number of fixed times to output the velocity field
     bool output_vorticity_magnitude_field_in_addition_to_velocity; ///< Flag for outputting vorticity magnitude field in addition to velocity field
     bool output_density_field_in_addition_to_velocity; ///< Flag for outputting density field in addition to velocity field
-    bool output_viscosity_field_in_addition_to_velocity; ///< Flag for outputting viscosity field in addition to velocity field
+    bool output_viscosity_field_in_addition_to_velocity; ///< Flag for outputting viscosity field in addition to velocity field 
+    bool do_compute_time_averaged_solution; ///< Flag for computing time-averaged solution
+    double time_to_start_averaging; ///< Flag for starting time-averaged solution
+    bool do_compute_Reynolds_stress; ///< Flag for computing time-averaged Reynolds stresses
+    double time_to_start_computing_Reynolds_stress; ///< Flag for starting to compute Reynolds stresses. This needs to be after the time-averaging has started.      
     std::string output_flow_field_files_directory_name; ///< Name of directory for writing flow field files
     unsigned int output_velocity_number_of_subvisions; ///< Number of subdivisions to apply when writting the velocity field at equidistant nodes
 

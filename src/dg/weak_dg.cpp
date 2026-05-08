@@ -643,7 +643,6 @@ void DGWeak<dim,nspecies,nstate,real,MeshType>::assemble_boundary_term(
             surface_jac_det[iquad] = fe_values_boundary.JxW(iquad) / face_quadrature.weight(iquad);
             phys_unit_normal[iquad] = fe_values_boundary.normal_vector(iquad);
         }
-
     }
 #ifdef KOPRIVA_METRICS_BOUNDARY
     auto old_jac_det = jac_det;
@@ -936,6 +935,7 @@ template <int dim, int nspecies, int nstate, typename real, typename MeshType>
 template <typename real2>
 void DGWeak<dim,nspecies,nstate,real,MeshType>::assemble_face_term(
     typename dealii::DoFHandler<dim>::active_cell_iterator cell,
+    typename dealii::DoFHandler<dim>::active_cell_iterator /*neighbor_cell*/,
     const dealii::types::global_dof_index current_cell_index,
     const dealii::types::global_dof_index neighbor_cell_index,
     const LocalSolution<real2, dim, nspecies, nstate> &soln_int,
@@ -995,6 +995,8 @@ void DGWeak<dim,nspecies,nstate,real,MeshType>::assemble_face_term(
 
     const dealii::Tensor<1,dim,real> unit_normal_int = dealii::GeometryInfo<dim>::unit_normal_vector[face_subface_int.first];
     const dealii::Tensor<1,dim,real> unit_normal_ext = dealii::GeometryInfo<dim>::unit_normal_vector[face_subface_ext.first];
+
+
 
     // Use quadrature points of neighbor cell
     // Might want to use the maximum n_quad_pts1 and n_quad_pts2
@@ -1201,6 +1203,7 @@ void DGWeak<dim,nspecies,nstate,real,MeshType>::assemble_face_term(
 
             phys_unit_normal_int[iquad] = fe_values_int.normal_vector(iquad);
             phys_unit_normal_ext[iquad] = -phys_unit_normal_int[iquad]; // Must use opposite normal to be consistent with explicit
+
         }
         // When the cells do not have the same coarseness, their surface Jacobians will not be the same.
         // Therefore, we must use the Jacobians coming from the smaller face since it accurately represents
@@ -1222,7 +1225,6 @@ void DGWeak<dim,nspecies,nstate,real,MeshType>::assemble_face_term(
 
         faceJxW[iquad] = surface_jac_det[iquad] * face_quadrature_int.weight(iquad);
     }
-
 
     // Interpolate solution
     std::vector<State> soln_int_at_q = soln_int.evaluate_values(unit_quad_pts_int);
@@ -1933,6 +1935,7 @@ void DGWeak<dim,nspecies,nstate,real,MeshType>::assemble_face_term_and_build_ope
                                                                                             neighbor_cell->subface_case(neighbor_iface));
         assemble_face_term<adtype>(
             cell,
+            neighbor_cell,
             current_cell_index,
             neighbor_cell_index,
             local_soln_int, local_soln_ext, local_metric_int, local_metric_ext,
@@ -1968,6 +1971,7 @@ void DGWeak<dim,nspecies,nstate,real,MeshType>::assemble_face_term_and_build_ope
                                                                                       face_quadrature.size());
         assemble_face_term<adtype>(
             cell,
+            neighbor_cell,
             current_cell_index,
             neighbor_cell_index,
             local_soln_int, local_soln_ext, local_metric_int, local_metric_ext,

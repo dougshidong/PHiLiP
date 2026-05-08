@@ -80,6 +80,7 @@ private:
     template <typename real2>
     void assemble_face_term(
         typename dealii::DoFHandler<dim>::active_cell_iterator cell,
+        typename dealii::DoFHandler<dim>::active_cell_iterator neighbor_cell,
         const dealii::types::global_dof_index current_cell_index,
         const dealii::types::global_dof_index neighbor_cell_index,
         const LocalSolution<real2, dim, nspecies, nstate> &soln_int,

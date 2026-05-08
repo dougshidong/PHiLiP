@@ -15,6 +15,7 @@ LiftDragFunctional<dim,nspecies,nstate,real,MeshType>
     , lift_vector(initialize_lift_vector(this->rotation_matrix))
     , drag_vector(initialize_drag_vector(this->rotation_matrix))
     , force_dimensionalization_factor(this->initialize_force_dimensionalization_factor())
+    , all_parameters(dg_input->all_parameters)
 {
     switch(functional_type) {
         case Functional_types::lift : this->force_vector = lift_vector; break;
@@ -108,15 +109,6 @@ real LiftDragFunctional<dim,nspecies,nstate,real,MeshType>
                       const bool compute_d2I)
 {
     double value = Functional<dim,nspecies,nstate,real,MeshType>::evaluate_functional(compute_dIdW, compute_dIdX, compute_d2I);
-
-    if (functional_type == Functional_types::lift) {
-        this->pcout << "Lift value: " << value << "\n";
-        //std::cout << "Lift value: " << value << std::cout;
-        //std::cout << "Lift value: " << value << std::cout;
-    }
-    if (functional_type == Functional_types::drag) {
-        this->pcout << "Drag value: " << value << "\n";
-    }
 
     return value;
 }

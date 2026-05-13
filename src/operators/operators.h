@@ -310,6 +310,7 @@ public:
     */
     template <typename real>
     void matrix_vector_mult_surface_1D(
+            const std::vector<bool> face_orientation,
             const unsigned int face_number,
             const std::vector<real> &input_vect,
             std::vector<real> &output_vect,
@@ -321,6 +322,7 @@ public:
     /// Apply sum-factorization inner product on a surface.
     template <typename real>
     void inner_product_surface_1D(
+            const std::vector<bool> face_orientation,
             const unsigned int face_number,
             const std::vector<real> &input_vect,
             const std::vector<double> &weight_vect,
@@ -330,6 +332,26 @@ public:
             const bool adding = false,
             const double factor = 1.0);
 
+    /// These function correct the face orientation of a face, in case deal.ii changes it.
+    /** When we have to interpolate to the face, the reference quadrature points that we interpolate to
+    * may have changed orientation. The functions below account for this and change the ordering of the
+    * quadrature points. After we compute the fluxes (i.e., when the points need to match between the
+    * int and ext cells), we need to account for this again when we perform inner products.
+    */
+    template <typename real>
+    void face_orientation_tensor_product(
+            const std::vector<bool> face_orientation,
+            const unsigned int face_number,
+            std::vector<real> &output_vect,
+            const dealii::FullMatrix<double> &basis);
+
+    template <typename real>
+    void face_orientation_inner_product(
+            const std::vector<bool> face_orientation,
+            const unsigned int face_number,
+            const std::vector<real> &input_vect,
+            std::vector<real> &output_vect,
+            const dealii::FullMatrix<double> &basis);
 
     ///Computes a single Hadamard product. 
     /** For input mat1 \f$ A \f$ and input mat2 \f$ B \f$, this computes

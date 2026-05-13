@@ -610,13 +610,17 @@ int InviscidTaylorGreen<dim, nspecies, nstate>::run_test() const
 
     pcout << " number dofs " << dg->dof_handler.n_dofs()<<std::endl;
     pcout << "preparing to advance solution in time" << std::endl;
+    if(nspecies > 1)
+        pcout << "WARNING: entropy change is not calculated for multi-species since EC fluxes have not been implemented yet..." << std::endl;
 
     ode_solver->current_iteration = 0;
     ode_solver->allocate_ode_system();
 
     const double initial_energy = compute_kinetic_energy(dg, poly_degree);
     const double initial_energy_mpi = (dealii::Utilities::MPI::sum(initial_energy, mpi_communicator));
-    const double initial_entropy = compute_entropy(dg, poly_degree);
+    double initial_entropy = 1e6;
+    if(nspecies == 1)
+        initial_entropy = compute_entropy(dg, poly_degree);
     const double initial_entropy_mpi = (dealii::Utilities::MPI::sum(initial_entropy, mpi_communicator));
     //create a file to wirte entorpy and energy results to
     std::ofstream myfile (all_parameters_new.energy_file + ".gpl"  , std::ios::trunc);
@@ -644,7 +648,8 @@ int InviscidTaylorGreen<dim, nspecies, nstate>::run_test() const
         const double current_change_entropy_mpi = dealii::Utilities::MPI::sum(current_change_entropy[0], mpi_communicator);
         const double current_change_energy_mpi = dealii::Utilities::MPI::sum(current_change_entropy[1], mpi_communicator);
 
-        pcout << "M plus K norm Change in Entropy at time " << ode_solver->current_time << " is " << current_change_entropy_mpi<< std::endl;
+        if(nspecies==1)
+            pcout << "M plus K norm Change in Entropy at time " << ode_solver->current_time << " is " << current_change_entropy_mpi<< std::endl;
         pcout << "M plus K norm Change in Kinetic Energy at time " << ode_solver->current_time << " is " << current_change_energy_mpi<< std::endl;
         //check if change in entropy is conserved at machine precision
         if(abs(current_change_entropy[0]) > 1e-12 && (dg->all_parameters->two_point_num_flux_type == Parameters::AllParameters::TwoPointNumericalFlux::IR || dg->all_parameters->two_point_num_flux_type == Parameters::AllParameters::TwoPointNumericalFlux::CH || dg->all_parameters->two_point_num_flux_type == Parameters::AllParameters::TwoPointNumericalFlux::Ra)){
@@ -656,10 +661,12 @@ int InviscidTaylorGreen<dim, nspecies, nstate>::run_test() const
         const double current_energy = compute_kinetic_energy(dg, poly_degree);
         const double current_energy_mpi = (dealii::Utilities::MPI::sum(current_energy, mpi_communicator));
         pcout << "Normalized kinetic energy " << ode_solver->current_time << " is " << current_energy_mpi/initial_energy_mpi<< std::endl;
-        //get the entropy
-        const double current_entropy = compute_entropy(dg, poly_degree);
-        const double current_entropy_mpi = (dealii::Utilities::MPI::sum(current_entropy, mpi_communicator));
-        pcout << "Normalized entropy " << ode_solver->current_time << " is " << current_entropy_mpi/initial_entropy_mpi<< std::endl;
+        if(nspecies==1) {
+            //get the entropy
+            const double current_entropy = compute_entropy(dg, poly_degree);
+            const double current_entropy_mpi = (dealii::Utilities::MPI::sum(current_entropy, mpi_communicator));
+            pcout << "Normalized entropy " << ode_solver->current_time << " is " << current_entropy_mpi/initial_entropy_mpi<< std::endl;
+        }
 
         //get the volume work for kinetic energy
         double current_vol_work = compute_volume_term(dg, poly_degree);
@@ -667,7 +674,11 @@ int InviscidTaylorGreen<dim, nspecies, nstate>::run_test() const
         pcout<<"volume work "<<current_vol_work_mpi<<std::endl;
 
         //output the entropy change and volume work to file
-        myfile << ode_solver->current_time << " " << std::fixed << std::setprecision(16) << current_change_entropy_mpi << " " << current_vol_work_mpi<< std::endl;
+        if(nspecies==1)
+            myfile << ode_solver->current_time << " " << std::fixed << std::setprecision(16) << current_change_entropy_mpi << " " << current_vol_work_mpi<< std::endl;
+        else
+            myfile << ode_solver->current_time << " " << std::fixed << std::setprecision(16) << "N/A " << current_vol_work_mpi<< std::endl;
+
         //check for non overintegrated case
         if(!all_parameters->use_curvilinear_grid and all_parameters->overintegration == 0){
             if(abs(current_vol_work_mpi) > 1e-12 && (dg->all_parameters->two_point_num_flux_type == Parameters::AllParameters::TwoPointNumericalFlux::Ra || dg->all_parameters->two_point_num_flux_type == Parameters::AllParameters::TwoPointNumericalFlux::KG ) ){

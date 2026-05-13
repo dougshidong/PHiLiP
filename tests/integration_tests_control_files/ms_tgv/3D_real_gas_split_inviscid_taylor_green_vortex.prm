@@ -34,6 +34,12 @@ set check_same_coords_in_weak_dg = false
 
 set enable_higher_order_vtk_output = true
 
+#limiter flags
+subsection limiter
+  set bound_preserving_limiter = positivity_preservingWang2012
+  set min_density = 1e-13
+end
+
 subsection ODE solver
   set ode_output = verbose
   set nonlinear_max_iterations = 500
@@ -55,6 +61,17 @@ subsection flow_solver
     set final_time = 14.0
     subsection grid
         set number_of_grid_elements_per_dimension = 2
+        set grid_left_bound = 0
+        set grid_right_bound = 6.283185307179586476
+        subsection grid_rectangle
+          set grid_bottom_bound = 0
+          set grid_top_bound = 6.283185307179586476
+          set grid_z_lower_bound = 0
+          set grid_z_upper_bound = 6.283185307179586476
+          set number_of_grid_elements_x = 4
+          set number_of_grid_elements_y = 4
+          set number_of_grid_elements_z = 4
+        end
     end
 end
 

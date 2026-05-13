@@ -516,8 +516,10 @@ void PositivityPreservingLimiter<dim, nspecies, nstate, real>::limit(
                 std::array<real,nspecies> species_densities;
                 for(int ispecies = 0; ispecies < nspecies; ++ispecies) {
                     real density_sum = 0.0;
-                    if(ispecies != nspecies-1)
+                    if(ispecies != nspecies-1) {
                         species_densities[ispecies] = soln_at_iquad[dim+2+ispecies];
+                        density_sum += species_densities[ispecies];
+                    }
                     else
                         species_densities[ispecies] = soln_at_iquad[0] - density_sum;
                 }

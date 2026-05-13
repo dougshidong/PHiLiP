@@ -1545,7 +1545,7 @@ real InitialConditionFunction_Multispecies_TaylorGreenVortex<dim,nspecies,nstate
 
     // species density, O2
     if(this->smooth_interface)
-        value = 0.5;// + (1.0/16.0)*(cos(x)+1)*(cos(y)+1)*(cos(z)+1);
+        value = 0.5 + (1.0/16.0)*(cos(x)+1)*(cos(y)+1)*(cos(z)+1);
     else
         value = 0.5 + (1.0/4.0)*tanh(1000.0*(x-pi))*tanh(1000.0*(y-pi))*tanh(1000.0*(z-pi));
 

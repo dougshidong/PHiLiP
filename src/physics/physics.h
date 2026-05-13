@@ -79,6 +79,9 @@ public:
     /// Compute pressure from conservative solution
     virtual real compute_pressure ( const std::array<real,nstate> &conservative_soln ) const;
 
+    /// Compute entropy from conservative solution
+    virtual real compute_entropy ( const std::array<real,nstate> &conservative_soln ) const;
+    
     /// Compute gamma from conservative solution
     virtual real compute_gamma ( const std::array<real,nstate> &conservative_soln ) const;
 

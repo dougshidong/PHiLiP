@@ -446,7 +446,7 @@ inline real Euler<dim,nspecies,nstate,real>
     const real pressure = compute_pressure_templated<real>(conservative_soln);
     const real density = conservative_soln[0];
 
-    const real entropy = compute_entropy<real>(density, pressure);
+    const real entropy = compute_entropy_templated<real>(density, pressure);
 
     const real numerical_entropy_function = - density * entropy;
 
@@ -516,13 +516,12 @@ inline real Euler<dim,nspecies,nstate,real>
 template <int dim, int nspecies, int nstate, typename real>
 template<typename real2>
 inline real2 Euler<dim,nspecies,nstate,real>
-:: compute_entropy (const real2 density, const real2 pressure) const
+::compute_entropy_templated ( const std::array<real2,nstate> &conservative_soln ) const
 {
-    // copy density and pressure such that the check will not modify originals
-    real2 density_check = density; 
-    real2 pressure_check = pressure;
-    const bool density_is_positive = check_positive_quantity(density_check, "density");
-    const bool pressure_is_positive = check_positive_quantity(pressure_check, "pressure");
+    real2 density = conservative_soln[0];
+    real2 pressure = compute_pressure_templated<real2>(conservative_soln);
+    const bool density_is_positive = check_positive_quantity(density, "density");
+    const bool pressure_is_positive = check_positive_quantity(pressure, "pressure");
     if (density_is_positive && pressure_is_positive) {
         real2 entropy = pressure * pow(density, -gam);
         entropy = log(entropy);
@@ -536,6 +535,13 @@ inline real2 Euler<dim,nspecies,nstate,real>
         return (real2)this->BIG_NUMBER;
     }
 
+}
+
+template <int dim, int nspecies, int nstate, typename real>
+inline real Euler<dim,nspecies,nstate,real>
+::compute_entropy ( const std::array<real,nstate> &conservative_soln ) const
+{
+    return compute_entropy_templated<real>(conservative_soln);
 }
 
 template <int dim, int nspecies, int nstate, typename real>
@@ -579,9 +585,6 @@ std::array<dealii::Tensor<1,dim,real>,nstate> Euler<dim, nspecies, nstate, real>
     std::array<dealii::Tensor<1,dim,real>,nstate> conv_num_split_flux;
     if(two_point_num_flux_type == two_point_num_flux_enum::KG) {
         conv_num_split_flux = convective_numerical_split_flux_kennedy_gruber(conservative_soln1, conservative_soln2);
-    } else if(two_point_num_flux_type == two_point_num_flux_enum::PI) {
-        std::cout << "The Pirozzoli two-point flux has not been implemented for Euler...Aborting." << std::endl;
-        std::abort();
     } else if(two_point_num_flux_type == two_point_num_flux_enum::IR) {
         conv_num_split_flux = convective_numerical_split_flux_ismail_roe(conservative_soln1, conservative_soln2);
     } else if(two_point_num_flux_type == two_point_num_flux_enum::CH) {
@@ -825,7 +828,7 @@ std::array<real,nstate> Euler<dim, nspecies, nstate, real>
     const real density = conservative_soln[0];
     const real pressure = compute_pressure_templated<real>(conservative_soln);
     
-    const real entropy = compute_entropy<real>(density, pressure);
+    const real entropy = compute_entropy_templated<real>(density, pressure);
 
     const real rho_theta = pressure / gamm1;
 
@@ -1700,6 +1703,7 @@ dealii::UpdateFlags Euler<dim,nspecies,nstate,real>
         template class Euler < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, type >; \
         template bool Euler < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, type >::check_positive_quantity< type >(type &qty, const std::string qty_name) const; \
         template type Euler < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, type >::compute_pressure_templated< type >(const std::array<type, PHILIP_DIM+2> &conservative_soln) const; \
+        template type Euler < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, type >::compute_entropy_templated< type >(const std::array<type, PHILIP_DIM+2> &conservative_soln) const; \
         template type Euler < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, type >::compute_temperature< type >(const std::array<type, PHILIP_DIM+2> &primitive_soln) const; \
         template type Euler < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, type >::compute_velocity_squared< type >(const dealii::Tensor<1,PHILIP_DIM, type > &velocities) const; \
         template dealii::Tensor<1,PHILIP_DIM, type > Euler < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, type >::extract_velocities_from_primitive< type >(const std::array<type, PHILIP_DIM+2> &primitive_soln) const; \
@@ -1714,6 +1718,7 @@ dealii::UpdateFlags Euler<dim,nspecies,nstate,real>
         template std::array<FadType, PHILIP_DIM+2> Euler < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, type>::convert_conservative_to_primitive_templated< FadType >(const std::array<FadType, PHILIP_DIM+2> &conservative_soln) const; \
         template bool Euler < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, type >::check_positive_quantity< FadType >(FadType &qty, const std::string qty_name) const; \
         template FadType    Euler < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, type >::compute_pressure_templated< FadType >(const std::array<FadType, PHILIP_DIM+2> &conservative_soln) const; \
+        template FadType    Euler < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, type >::compute_entropy_templated< FadType >(const std::array<FadType, PHILIP_DIM+2> &conservative_soln) const; \
         template FadType    Euler < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, type >::compute_temperature< FadType >(const std::array<FadType, PHILIP_DIM+2> &primitive_soln) const; \
         template FadType    Euler < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, type >::compute_velocity_squared< FadType >(const dealii::Tensor<1,PHILIP_DIM, FadType > &velocities) const; \
         template dealii::Tensor<1,PHILIP_DIM, FadType > Euler < PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+2, type >::extract_velocities_from_primitive< FadType >(const std::array<FadType, PHILIP_DIM+2> &primitive_soln) const; \

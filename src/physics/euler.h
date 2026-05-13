@@ -257,6 +257,13 @@ public:
     /// Evaluate pressure from conservative variables
     real compute_specific_enthalpy ( const std::array<real,nstate> &conservative_soln, const real pressure) const;
 
+     /// Evaluate physical entropy = log(p \rho^{-\gamma}) from pressure and density
+    template<typename real2>
+    real2 compute_entropy_templated (const std::array<real2,nstate> &conservative_soln) const;
+
+    /// Evaluate physical entropy from conservative variables
+    real compute_entropy ( const std::array<real,nstate> &conservative_soln ) const;
+
     /// Compute numerical entropy function -rho s 
     real compute_numerical_entropy_function(const std::array<real,nstate> &conservative_soln) const;
 

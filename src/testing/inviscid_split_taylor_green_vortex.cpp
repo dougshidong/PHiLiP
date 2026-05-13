@@ -407,9 +407,14 @@ double InviscidTaylorGreen<dim, nspecies, nstate>::compute_entropy(const std::sh
                 soln_state[istate] = soln_at_q[istate][iquad];
             }
             const double density = soln_state[0];
-            const double pressure = physics_double->compute_pressure(soln_state);
-            const double entropy = log(pressure) - physics_double->compute_gamma(soln_state) * log(density);
-            const double quadrature_entropy = -density*entropy/(physics_double->compute_gamma(soln_state)-1);
+            const double entropy = physics_double->compute_entropy(soln_state);
+            double quadrature_entropy = 0.0;
+            if (nspecies == 1)
+                quadrature_entropy = -density*entropy/(physics_double->compute_gamma(soln_state)-1);
+            else {
+                // pcout << "entropy " << entropy << std::endl;
+                quadrature_entropy = -density*entropy;
+            }
 
             entropy_fn += quadrature_entropy * quad_weights[iquad] * metric_oper.det_Jac_vol[iquad];
 

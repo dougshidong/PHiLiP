@@ -174,6 +174,15 @@ real PhysicsBase<dim,nspecies,nstate,real>
 
 template <int dim, int nspecies, int nstate, typename real>
 real PhysicsBase<dim,nspecies,nstate,real>
+::compute_entropy ( const std::array<real,nstate> &/*conservative_soln*/ ) const
+{
+    std::cout << "The compute_entropy function has not been implemented for this PDE...Aborting." << std::endl;
+    std::abort();
+    return 0;
+}
+
+template <int dim, int nspecies, int nstate, typename real>
+real PhysicsBase<dim,nspecies,nstate,real>
 ::compute_gamma ( const std::array<real,nstate> &/*conservative_soln*/ ) const
 {
     std::cout << "The compute_gamma function has not been implemented for this PDE...Aborting." << std::endl;

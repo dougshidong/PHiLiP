@@ -52,7 +52,7 @@ export OMP_NUM_THREADS=1
  
 
 cd ${SLURM_TMPDIR}
-rsync  -axvH --no-g --no-p --exclude 'build_release' --exclude 'build_debug' --exclude .git --exclude '*.log' --exclude '*.out' ${SLURM_SUBMIT_DIR} .
+rsync  -axvH --no-g --no-p --exclude 'build_release' --exclude 'build_debug' --exclude 'build_multispecies'  --exclude .git --exclude '*.log' --exclude '*.out' ${SLURM_SUBMIT_DIR} .
 mkdir build_release
 
 cd build_release

@@ -46,7 +46,7 @@ export P4EST_DIR=$EBROOTP4EST
 export METIS_DIR=/cvmfs/soft.computecanada.ca/easybuild/software/2017/avx512/Compiler/intel2018.3/metis/5.1.0
 ##Export deal.ii directory
 export DEAL_II_DIR=/project/def-nadaraja/Libraries/dealii_updated_reinstalled/dealii/install/install
-export GMSH_DIR=/cvmfs/soft.computecanada.ca/easybuild/software/2020/avx512/Compiler/intel2020/gmsh/4.11.1
+export GMSH_DIR=/cvmfs/soft.computecanada.ca/easybuild/software/2020/avx512/Compiler/intel2020/gmsh/4.13.1
 export OMP_NUM_THREADS=1
 
  

@@ -46,7 +46,7 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
                           " shock_diffraction | "
                           " astrophysical_jet | "
                           " strong_vortex_shock_wave | "
-                          " turbulent_airfoil_3D "
+                          " turbulent_airfoil_3D |"
                           " multi_species_vortex_advection |"
                           " multi_species_vortex_advection_high_temp | "
                           " multi_species_sod_shock_tube |"

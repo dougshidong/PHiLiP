@@ -443,10 +443,9 @@ template <int dim, int nspecies, int nstate, typename real>
 inline real Euler<dim,nspecies,nstate,real>
 ::compute_numerical_entropy_function ( const std::array<real,nstate> &conservative_soln ) const
 {
-    const real pressure = compute_pressure_templated<real>(conservative_soln);
     const real density = conservative_soln[0];
 
-    const real entropy = compute_entropy_templated<real>(density, pressure);
+    const real entropy = compute_entropy_templated<real>(conservative_soln);
 
     const real numerical_entropy_function = - density * entropy;
 
@@ -828,7 +827,7 @@ std::array<real,nstate> Euler<dim, nspecies, nstate, real>
     const real density = conservative_soln[0];
     const real pressure = compute_pressure_templated<real>(conservative_soln);
     
-    const real entropy = compute_entropy_templated<real>(density, pressure);
+    const real entropy = compute_entropy_templated<real>(conservative_soln);
 
     const real rho_theta = pressure / gamm1;
 

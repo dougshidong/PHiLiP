@@ -700,6 +700,25 @@ std::array<real,nspecies> RealGas<dim, nspecies, nstate, real>
     return species_entropy;
 }
 
+
+// Compute mixture entropy
+template <int dim, int nspecies, int nstate, typename real>
+inline real RealGas<dim, nspecies, nstate, real>
+::compute_entropy (
+    const std::array<real,nstate> &conservative_soln) const
+{
+    const std::array<real,nspecies> species_entropy = compute_species_entropy(conservative_soln);
+    const std::array<real,nspecies> mass_fractions = compute_mass_fractions(conservative_soln);
+
+    const real entropy = compute_mixture_from_species(mass_fractions,species_entropy);
+    if(entropy != entropy) {
+        std::cout << "The calculated entropy is NaN - this is likely due to a species having a mass fraction of zero...Aborting." << std::endl;
+        std::abort();
+    }
+
+    return entropy;
+}
+
 // Compute Gibbs' energy of species using species entropy and species Cp
 template <int dim, int nspecies, int nstate, typename real>
 std::array<real,nspecies> RealGas<dim, nspecies, nstate, real>
@@ -817,6 +836,29 @@ std::array<real,nstate> RealGas<dim, nspecies, nstate, real>
     conservative_var[dim+1] = mixture_density*mixture_specific_total_energy;
 
     return conservative_var;
+}
+
+// Computes the kinetic energy variables (Based off Cicchino 2025, Eq. 59)
+template <int dim, int nspecies, int nstate, typename real>
+std::array<real,nstate> RealGas<dim, nspecies, nstate, real>
+::compute_kinetic_energy_variables (
+    const std::array<real,nstate> &conservative_soln) const
+{
+    std::array<real,nstate> kin_energy_var;
+    const dealii::Tensor<1,dim,real> vel = compute_velocities(conservative_soln);
+    const real vel2 = compute_velocity_squared_from_conservative_solution(conservative_soln);
+
+    kin_energy_var[0] = - 0.5 * vel2;
+    for(int idim=0; idim<dim; idim++){
+        kin_energy_var[idim+1] = vel[idim];
+    }
+    kin_energy_var[dim+1] = 0.0;
+    for(int ispecies=0; ispecies<nspecies-1; ispecies++) {
+        int index = dim+2+ispecies;
+        kin_energy_var[index] = 0.0;
+    }
+
+    return kin_energy_var;
 }
 
 // Algorithm 15 (f_M15): Compute temperature
@@ -1034,6 +1076,85 @@ dealii::Tensor<2,nstate,real> RealGas<dim,nspecies,nstate,real>
     jacobian[dim+1][dim+1] = gam*vel_normal;
 
     return jacobian;
+}
+
+///  Evaluates convective flux based on the chosen split form.
+template <int dim, int nspecies, int nstate, typename real>
+std::array<dealii::Tensor<1,dim,real>,nstate> RealGas<dim, nspecies, nstate, real>
+::convective_numerical_split_flux(const std::array<real,nstate> &conservative_soln1,
+                                  const std::array<real,nstate> &conservative_soln2) const
+{
+    std::array<dealii::Tensor<1,dim,real>,nstate> conv_num_split_flux;
+    if(two_point_num_flux_type == two_point_num_flux_enum::KG) {
+        conv_num_split_flux = convective_numerical_split_flux_kennedy_gruber(conservative_soln1, conservative_soln2);
+    } else if(two_point_num_flux_type == two_point_num_flux_enum::IR) {
+        std::cout << "The Ismail Roe two-point flux has not been implemented for multispecies...Aborting." << std::endl;
+        std::abort();
+    } else if(two_point_num_flux_type == two_point_num_flux_enum::CH) {
+        std::cout << "The Chandrashekar two-point flux has not been implemented for multispecies...Aborting." << std::endl;
+        std::abort();
+    } else if(two_point_num_flux_type == two_point_num_flux_enum::Ra) {
+        std::cout << "The Ranocha Fix for the Chandrashekar two-point flux has not been implemented for multispecies...Aborting." << std::endl;
+        std::abort();
+    }
+
+    return conv_num_split_flux;
+}
+
+template <int dim, int nspecies, int nstate, typename real>
+std::array<dealii::Tensor<1,dim,real>,nstate> RealGas<dim, nspecies, nstate, real>
+::convective_numerical_split_flux_kennedy_gruber(const std::array<real,nstate> &conservative_soln1,
+                                                 const std::array<real,nstate> &conservative_soln2) const
+{
+    std::array<dealii::Tensor<1,dim,real>,nstate> conv_num_split_flux;
+    const std::array<real,nspecies> rho_species1 = compute_species_densities(conservative_soln1);
+    const std::array<real,nspecies> rho_species2 = compute_species_densities(conservative_soln2);
+
+    // compute mean densities
+    std::array<real, nspecies> mean_species_densities;
+    real mean_density = 0.0;
+    for (int ispecies = 0; ispecies < nspecies; ++ispecies) {
+        mean_species_densities[ispecies] = (rho_species1[ispecies]+rho_species2[ispecies])/2.0;
+        mean_density += mean_species_densities[ispecies];
+    }
+
+    // compute mean velocities
+    dealii::Tensor<1,dim,real> vel_1 = compute_velocities(conservative_soln1);
+    dealii::Tensor<1,dim,real> vel_2 = compute_velocities(conservative_soln2);
+    dealii::Tensor<1,dim,real> mean_vel;
+    for (int d=0; d<dim; ++d) {
+        mean_vel[d] = 0.5*(vel_1[d]+vel_2[d]);
+    }
+
+    // compute mean pressure
+    real pressure1 = compute_mixture_pressure(conservative_soln1);
+    real pressure2 = compute_mixture_pressure(conservative_soln2);
+    real mean_pressure = (pressure1 + pressure2)/2.0;
+    // this->pcout << "the calculated mean pressure is:  " << mean_pressure << std::endl;
+
+    // compute mean total energy
+    real total_energy1 = compute_mixture_specific_total_energy(conservative_soln1);
+    real total_energy2 = compute_mixture_specific_total_energy(conservative_soln2);
+    real mean_total_energy = (total_energy1 + total_energy2)/2.0;
+
+    for (int flux_dim = 0; flux_dim < dim; ++flux_dim)
+    {
+        // Density equation
+        conv_num_split_flux[0][flux_dim] = mean_density * mean_vel[flux_dim];
+        // Momentum equation
+        for (int velocity_dim=0; velocity_dim<dim; ++velocity_dim){
+            conv_num_split_flux[1+velocity_dim][flux_dim] = mean_density*mean_vel[flux_dim]*mean_vel[velocity_dim];
+        }
+        conv_num_split_flux[1+flux_dim][flux_dim] += mean_pressure; // Add diagonal of pressure
+        // Energy equation
+        conv_num_split_flux[dim+1][flux_dim] = mean_density*mean_vel[flux_dim]*mean_total_energy + mean_pressure * mean_vel[flux_dim];
+        // Species density equation
+        for (int ispecies = 0; ispecies < nspecies - 1; ++ispecies) {
+            conv_num_split_flux[dim+2+ispecies][flux_dim] = mean_species_densities[ispecies] * mean_vel[flux_dim];
+        }
+    }
+
+    return conv_num_split_flux;
 }
 
 /* Supporting FUNCTIONS */

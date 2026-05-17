@@ -21,7 +21,7 @@
 #include "euler_vortex.h"
 #include "euler_entropy_waves.h"
 #include "advection_explicit_periodic.h"
-#include "euler_split_inviscid_taylor_green_vortex.h"
+#include "inviscid_split_taylor_green_vortex.h"
 #include "TGV_scaling.h"
 #include "optimization_inverse_manufactured/optimization_inverse_manufactured.h"
 #include "euler_bump_optimization.h"
@@ -283,9 +283,9 @@ std::unique_ptr< TestsBase > TestsFactory<dim,nspecies,nstate,MeshType>
     } else if(test_type == Test_enum::euler_entropy_waves) {
         if constexpr (dim>=2 && nstate==PHILIP_DIM+2 && nspecies==1) return std::make_unique<EulerEntropyWaves<dim,nspecies,nstate>>(parameters_input);
     } else if(test_type == Test_enum::euler_split_taylor_green) {
-        if constexpr (dim==3 && nstate == dim+2 && nspecies==1) return std::make_unique<EulerTaylorGreen<dim,nspecies,nstate>>(parameters_input);
+        if constexpr (dim==3 && nstate == dim+2 && nspecies==1) return std::make_unique<InviscidTaylorGreen<dim,nspecies,nstate>>(parameters_input);
     } else if(test_type == Test_enum::taylor_green_scaling) {
-        if constexpr (dim==3 && nstate == dim+2 && nspecies==1) return std::make_unique<EulerTaylorGreenScaling<dim,nspecies,nstate>>(parameters_input);
+        if constexpr (dim==3 && nstate == dim+2 && nspecies==1) return std::make_unique<InviscidTaylorGreenScaling<dim,nspecies,nstate>>(parameters_input);
     } else if(test_type == Test_enum::optimization_inverse_manufactured) {
         if constexpr(nspecies==1) return std::make_unique<OptimizationInverseManufactured<dim,nspecies,nstate>>(parameters_input);
     } else if(test_type == Test_enum::euler_bump_optimization) {
@@ -360,6 +360,8 @@ std::unique_ptr< TestsBase > TestsFactory<dim,nspecies,nstate,MeshType>
     } else if(test_type == Test_enum::multi_species_vortex_advection){
         if constexpr ((nspecies==2 || nspecies==3) && nstate==dim+nspecies+1) 
             return std::make_unique<MultispeciesVortexAdvection<dim, nspecies, nstate>>(parameters_input, parameter_handler_input);
+    } else if(test_type == Test_enum::real_gas_split_taylor_green) {
+        if constexpr (dim==3 && nstate == dim+nspecies+1) return std::make_unique<InviscidTaylorGreen<dim,nspecies,nstate>>(parameters_input);
     } else {
         std::cout << "Invalid test. You probably forgot to add it to the list of tests in tests.cpp" << std::endl;
         std::abort();

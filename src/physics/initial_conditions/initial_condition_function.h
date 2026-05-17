@@ -727,6 +727,30 @@ protected:
     real primitive_value(const dealii::Point<dim,real> &point, const unsigned int istate = 0) const;
 };
 
+/// Initial Condition Function: Taylor Green Vortex (uniform density)
+template <int dim, int nspecies, int nstate, typename real>
+class InitialConditionFunction_Multispecies_TaylorGreenVortex : public InitialConditionFunction_RealGasBase<dim,nspecies,nstate,real>
+{
+protected:
+    using dealii::Function<dim,real>::value; ///< dealii::Function we are templating on
+
+public:
+    explicit InitialConditionFunction_Multispecies_TaylorGreenVortex (
+            Parameters::AllParameters const *const param, const bool use_smooth_interface);
+
+    const double gamma_gas; ///< Constant heat capacity ratio of fluid.
+    const double mach_inf; ///< Farfield Mach number.
+    const double mach_inf_sqr; ///< Farfield Mach number squared.
+    const bool smooth_interface; ///< 
+
+protected:
+    /// Value of initial condition expressed in terms of primitive variables
+    real primitive_value(const dealii::Point<dim,real> &point, const unsigned int istate = 0) const;
+
+    /// Value of initial condition for density
+    virtual real mass_fraction(const dealii::Point<dim,real> &point) const;
+};
+
 /// Initial condition 0.
 template <int dim, int nspecies, int nstate, typename real>
 class InitialConditionFunction_Zero : public InitialConditionFunction<dim,nspecies,nstate,real>

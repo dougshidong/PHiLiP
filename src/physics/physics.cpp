@@ -173,6 +173,37 @@ real PhysicsBase<dim,nspecies,nstate,real>
 }
 
 template <int dim, int nspecies, int nstate, typename real>
+real PhysicsBase<dim,nspecies,nstate,real>
+::compute_entropy ( const std::array<real,nstate> &/*conservative_soln*/ ) const
+{
+    std::cout << "The compute_entropy function has not been implemented for this PDE...Aborting." << std::endl;
+    std::abort();
+    return 0;
+}
+
+template <int dim, int nspecies, int nstate, typename real>
+real PhysicsBase<dim,nspecies,nstate,real>
+::compute_gamma ( const std::array<real,nstate> &/*conservative_soln*/ ) const
+{
+    std::cout << "The compute_gamma function has not been implemented for this PDE...Aborting." << std::endl;
+    std::abort();
+    return 0;
+}
+
+template <int dim, int nspecies, int nstate, typename real>
+std::array<real,nstate> PhysicsBase<dim,nspecies,nstate,real>
+::compute_kinetic_energy_variables ( const std::array<real,nstate> &/*conservative_soln*/ ) const
+{
+    std::cout << "The compute_kinetic_energy_variables function has not been implemented for this PDE...Aborting." << std::endl;
+    std::abort();
+
+    std::array<real,nstate> kinetic_energy_var;
+    std::fill(kinetic_energy_var.begin(), kinetic_energy_var.end(), 0.0);
+
+    return kinetic_energy_var;
+}
+
+template <int dim, int nspecies, int nstate, typename real>
 void PhysicsBase<dim,nspecies,nstate,real>
 ::boundary_face_values (
         const int boundary_type,

@@ -69,6 +69,10 @@ public:
     /// Computes the conservative variables from the entropy variables.
     std::array<real,nstate> compute_conservative_variables_from_entropy_variables (
                 const std::array<real,nstate> &entropy_var) const;
+    
+    /// Computes the kinetic energy variables.
+    virtual std::array<real,nstate> compute_kinetic_energy_variables (
+                const std::array<real,nstate> &conservative_soln) const;
 
     /// Spectral radius of convective term Jacobian is 'c'
     std::array<real,nstate> convective_eigenvalues (
@@ -229,6 +233,9 @@ protected:
     // Compute species Gibbs' energy using species entropy and species Cp
     std::array<real,nspecies> compute_species_gibbs_energy ( const std::array<real,nstate> &conservative_soln ) const;
 public:
+    // Compute mixture entropy
+    real compute_entropy ( const std::array<real,nstate> &conservative_soln ) const;
+    
     // Algorithm 15 (f_M15): Compute temperature from conservative_soln
     virtual real compute_temperature ( const std::array<real,nstate> &conservative_soln ) const;
 
@@ -257,6 +264,17 @@ public:
     dealii::Tensor<2,nstate,real> convective_flux_directional_jacobian (
         const std::array<real,nstate> &conservative_soln,
         const dealii::Tensor<1,dim,real> &normal) const;
+
+    ///  Evaluates convective flux based on the chosen split form.
+    std::array<dealii::Tensor<1,dim,real>,nstate> convective_numerical_split_flux (
+        const std::array<real,nstate> &conservative_soln1,
+        const std::array<real,nstate> &conservative_soln2) const override;
+
+    /** Entropy conserving split form flux of Kennedy and Gruber.
+     *  Refer to Gassner's paper (2016) Eq. 3.10  */
+    std::array<dealii::Tensor<1,dim,real>,nstate> convective_numerical_split_flux_kennedy_gruber (
+        const std::array<real,nstate> &conservative_soln1,
+        const std::array<real,nstate> &conservative_soln2) const;
 
 protected:
     // Algorithm 21 (f_S21): Compute species specific heat ratio from conservative_soln

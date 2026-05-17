@@ -46,11 +46,13 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
                           " shock_diffraction | "
                           " astrophysical_jet | "
                           " strong_vortex_shock_wave | "
+                          " turbulent_airfoil_3D |"
                           " multi_species_vortex_advection |"
                           " multi_species_vortex_advection_high_temp | "
                           " multi_species_sod_shock_tube |"
                           " multi_species_isentropic_vortex |"
-                          " turbulent_airfoil_3D "),
+                          " multi_species_taylor_green_vortex_smooth |"
+                          " multi_species_taylor_green_vortex_sharp |"),
                           "The type of flow we want to simulate. "
                           "Choices are "
                           " <taylor_green_vortex | "
@@ -83,7 +85,9 @@ void FlowSolverParam::declare_parameters(dealii::ParameterHandler &prm)
                           " multi_species_vortex_advection | "
                           " multi_species_vortex_advection_high_temp "
                           " multi_species_sod_shock_tube | " 
-                          " multi_species_isentropic_vortex>. ");
+                          " multi_species_isentropic_vortex | "
+                          " multi_species_taylor_green_vortex_smooth | "
+                          " multi_species_taylor_green_vortex_sharp>. ");
 
         prm.declare_entry("poly_degree", "1",
                           dealii::Patterns::Integer(0, dealii::Patterns::Integer::max_int_value),
@@ -554,6 +558,8 @@ void FlowSolverParam::parse_parameters(dealii::ParameterHandler &prm)
         else if (flow_case_type_string == "multi_species_vortex_advection_high_temp")  {flow_case_type = multi_species_vortex_advection_high_temp;}
         else if (flow_case_type_string == "multi_species_sod_shock_tube")              {flow_case_type = multi_species_sod_shock_tube;}
         else if (flow_case_type_string == "multi_species_isentropic_vortex")           {flow_case_type = multi_species_isentropic_vortex;}
+        else if (flow_case_type_string == "multi_species_taylor_green_vortex_smooth")  {flow_case_type = multi_species_taylor_green_vortex_smooth;}
+        else if (flow_case_type_string == "multi_species_taylor_green_vortex_sharp")   {flow_case_type = multi_species_taylor_green_vortex_sharp;}
         
         poly_degree = prm.get_integer("poly_degree");
         

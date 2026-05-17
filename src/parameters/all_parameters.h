@@ -220,7 +220,8 @@ public:
         hyper_adaptive_sampling_new_error,
         halton_sampling_run,
         low_density,
-        multi_species_vortex_advection
+        multi_species_vortex_advection,
+        real_gas_split_taylor_green
     };
     /// Store selected TestType from the input file.
     TestType test_type;

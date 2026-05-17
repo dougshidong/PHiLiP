@@ -88,7 +88,8 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       dealii::Patterns::Selection(
                       "KG | IR | CH | Ra"),
                       "Two point flux type. "
-                      "Choices are <KG | IR | CH | Ra>.");
+                      "Choices for single species are <KG | IR | CH | Ra>."
+                      "Multi-species only supports <KG>.");
 
     prm.declare_entry("use_curvilinear_split_form", "false",
                       dealii::Patterns::Bool(),
@@ -219,7 +220,8 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       " naca0012_unsteady_check_quick | "
                       " khi_robustness | "
                       " low_density | "
-                      " multi_species_vortex_advection "),
+                      " multi_species_vortex_advection | "
+                      " real_gas_split_taylor_green"),
                       "The type of test we want to solve. "
                       "Choices are " 
                       " <run_control | " 
@@ -275,7 +277,8 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       "  naca0012_unsteady_check_quick | "
                       "  khi_robustness | "
                       "  low_density | " 
-                      "  multi_species_vortex_advection >.");
+                      "  multi_species_vortex_advection | "
+                      "  real_gas_split_taylor_green>.");
 
     prm.declare_entry("pde_type", "advection",
                       dealii::Patterns::Selection(
@@ -497,6 +500,7 @@ const std::string test_string = prm.get("test_type");
     else if (test_string == "low_density")                              { test_type = low_density; }
     else if (test_string == "naca0012_unsteady_check_quick")            { test_type = naca0012_unsteady_check_quick; }
     else if (test_string == "multi_species_vortex_advection")           { test_type = multi_species_vortex_advection; }
+    else if (test_string == "real_gas_split_taylor_green")              { test_type = real_gas_split_taylor_green; }
     
     // WARNING: Must assign model_type before pde_type
     const std::string model_string = prm.get("model_type");

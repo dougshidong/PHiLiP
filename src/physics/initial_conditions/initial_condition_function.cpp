@@ -1485,6 +1485,74 @@ real InitialConditionFunction_Multispecies_IsentropicVortex<dim,nspecies,nstate,
 }
 
 // ========================================================
+// TAYLOR GREEN VORTEX -- Initial Condition (Uniform density)
+// ========================================================
+template <int dim, int nspecies, int nstate, typename real>
+InitialConditionFunction_Multispecies_TaylorGreenVortex<dim,nspecies,nstate,real>
+::InitialConditionFunction_Multispecies_TaylorGreenVortex (
+        Parameters::AllParameters const *const param, const bool use_smooth_interface)
+    : InitialConditionFunction_RealGasBase<dim, nspecies, nstate, real>(param)
+    , gamma_gas(param->euler_param.gamma_gas)
+    , mach_inf(param->euler_param.mach_inf)
+    , mach_inf_sqr(mach_inf*mach_inf)
+    , smooth_interface(use_smooth_interface)
+{}
+template <int dim, int nspecies, int nstate, typename real>
+real InitialConditionFunction_Multispecies_TaylorGreenVortex<dim,nspecies,nstate,real>
+::primitive_value(const dealii::Point<dim,real> &point, const unsigned int istate) const
+{
+    // Note: This is in non-dimensional form (free-stream values as reference)
+    real value = 0.;
+    if constexpr(dim == 3) {
+        const real x = point[0], y = point[1], z = point[2];
+
+        if(istate==0) {
+            // density
+            value = 1.0;
+        }
+        if(istate==1) {
+            // x-velocity
+            value = sin(x)*cos(y)*cos(z);
+        }
+        if(istate==2) {
+            // y-velocity
+            value = -cos(x)*sin(y)*cos(z);
+        }
+        if(istate==3) {
+            // z-velocity
+            value = 0.0;
+        }
+        if(istate==4) {
+            // pressure
+            value = 1.0/(this->gamma_gas*this->mach_inf_sqr) + (1.0/16.0)*(cos(2.0*x)+cos(2.0*y))*(cos(2.0*z)+2.0);
+        }
+        if(istate==5) {
+            //mass fraction, O2
+            value = this->mass_fraction(point);
+        }
+    }
+    return value;
+}
+
+template <int dim, int nspecies, int nstate, typename real>
+real InitialConditionFunction_Multispecies_TaylorGreenVortex<dim,nspecies,nstate,real>
+::mass_fraction(const dealii::Point<dim,real> &point) const
+{
+    // Note: This is in non-dimensional form (free-stream values as reference)
+    real value = 0.;
+    real pi = dealii::numbers::PI;
+    const real x = point[0], y = point[1], z = point[2];
+
+    // species density, O2
+    if(this->smooth_interface)
+        value = 0.5 + (1.0/16.0)*(cos(x)+1)*(cos(y)+1)*(cos(z)+1);
+    else
+        value = 0.5 + (1.0/4.0)*tanh(1000.0*(x-pi))*tanh(1000.0*(y-pi))*tanh(1000.0*(z-pi));
+
+    return value;
+}
+
+// ========================================================
 // ZERO INITIAL CONDITION
 // ========================================================
 template <int dim, int nspecies, int nstate, typename real>
@@ -1642,6 +1710,10 @@ InitialConditionFactory<dim,nspecies,nstate, real>::create_InitialConditionFunct
         if constexpr (dim==1 && nspecies==2 && nstate==dim+nspecies+1) return std::make_shared<InitialConditionFunction_Multispecies_SodShockTube<dim,nspecies,nstate,real> >(param);
     } else if (flow_type == FlowCaseEnum::multi_species_isentropic_vortex) {
         if constexpr (dim==2 && nspecies==2 && nstate==dim+nspecies+1) return std::make_shared<InitialConditionFunction_Multispecies_IsentropicVortex<dim,nspecies,nstate,real> >(param);
+    } else if (flow_type == FlowCaseEnum::multi_species_taylor_green_vortex_smooth) {
+        if constexpr (dim==3 && nspecies==2 && nstate==dim+nspecies+1) return std::make_shared<InitialConditionFunction_Multispecies_TaylorGreenVortex<dim,nspecies,nstate,real> >(param, true);
+    } else if (flow_type == FlowCaseEnum::multi_species_taylor_green_vortex_sharp) {
+        if constexpr (dim==3 && nspecies==2 && nstate==dim+nspecies+1) return std::make_shared<InitialConditionFunction_Multispecies_TaylorGreenVortex<dim,nspecies,nstate,real> >(param, false);
     } else {
         std::cout << "Invalid Flow Case Type. You probably forgot to add it to the list of flow cases in initial_condition_function.cpp" << std::endl;
         std::abort();
@@ -1723,6 +1795,8 @@ InitialConditionFactory<dim,nspecies,nstate, real>::create_InitialConditionFunct
     template class InitialConditionFunction_Multispecies_SodShockTube <PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+PHILIP_SPECIES+1, double>;
     #elif PHILIP_DIM==2
     template class InitialConditionFunction_Multispecies_IsentropicVortex <PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+PHILIP_SPECIES+1, double>;
+    #elif PHILIP_DIM==3
+    template class InitialConditionFunction_Multispecies_TaylorGreenVortex <PHILIP_DIM, PHILIP_SPECIES, PHILIP_DIM+PHILIP_SPECIES+1, double>;
     #endif
 #endif
 } // PHiLiP namespace

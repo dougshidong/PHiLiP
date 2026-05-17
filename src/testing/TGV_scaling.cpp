@@ -12,12 +12,12 @@ namespace PHiLiP {
 namespace Tests {
 
 template <int dim, int nspecies, int nstate>
-EulerTaylorGreenScaling<dim, nspecies, nstate>::EulerTaylorGreenScaling(const Parameters::AllParameters *const parameters_input)
+InviscidTaylorGreenScaling<dim, nspecies, nstate>::InviscidTaylorGreenScaling(const Parameters::AllParameters *const parameters_input)
     : TestsBase::TestsBase(parameters_input)
 {}
 
 template <int dim, int nspecies, int nstate>
-int EulerTaylorGreenScaling<dim, nspecies, nstate>::run_test() const
+int InviscidTaylorGreenScaling<dim, nspecies, nstate>::run_test() const
 {
     using Triangulation = dealii::parallel::distributed::Triangulation<dim>;
     std::shared_ptr<Triangulation> grid = std::make_shared<Triangulation>(
@@ -187,7 +187,7 @@ int EulerTaylorGreenScaling<dim, nspecies, nstate>::run_test() const
 }
 
 #if PHILIP_DIM==3 && PHILIP_SPECIES==1
-    template class EulerTaylorGreenScaling <PHILIP_DIM, PHILIP_SPECIES,PHILIP_DIM+2>;
+    template class InviscidTaylorGreenScaling <PHILIP_DIM, PHILIP_SPECIES,PHILIP_DIM+2>;
 #endif
 
 } // Tests namespace

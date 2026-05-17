@@ -79,6 +79,15 @@ public:
     /// Compute pressure from conservative solution
     virtual real compute_pressure ( const std::array<real,nstate> &conservative_soln ) const;
 
+    /// Compute entropy from conservative solution
+    virtual real compute_entropy ( const std::array<real,nstate> &conservative_soln ) const;
+    
+    /// Compute gamma from conservative solution
+    virtual real compute_gamma ( const std::array<real,nstate> &conservative_soln ) const;
+
+    /// Compute kinetic energy variables from conservative solution
+    virtual std::array<real,nstate> compute_kinetic_energy_variables ( const std::array<real,nstate> &conservative_soln ) const;
+
     /** Obtain gradient of primitive variables from gradient of conservative variables */
     virtual std::array<dealii::Tensor<1,dim,real>,nstate> 
     convert_conservative_gradient_to_primitive_gradient (

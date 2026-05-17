@@ -41,11 +41,13 @@ public:
         shock_diffraction,
         astrophysical_jet,
         strong_vortex_shock_wave,
+        turbulent_airfoil_3D,
         multi_species_vortex_advection,
         multi_species_vortex_advection_high_temp,
         multi_species_sod_shock_tube,
         multi_species_isentropic_vortex,
-        turbulent_airfoil_3D
+        multi_species_taylor_green_vortex_smooth,
+        multi_species_taylor_green_vortex_sharp
         };
     FlowCaseType flow_case_type; ///< Selected FlowCaseType from the input file
 

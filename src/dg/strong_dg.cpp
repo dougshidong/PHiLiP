@@ -1612,8 +1612,11 @@ void DGStrong<dim,nspecies,nstate,real,MeshType>::assemble_boundary_term_strong(
     }
     std::vector<bool> opposite_face_orientation = {current_cell->face_orientation(opposite_iface), current_cell->face_rotation(opposite_iface), current_cell->face_flip(opposite_iface)};
 
-    const auto neighbor_cell = current_cell->neighbor(opposite_iface);
-    const unsigned int neighbor_iface = current_cell->neighbor_face_no(opposite_iface);
+    // Find the neighbor cell opposite to the boundary of interest
+    // Used for the wall model.
+    // A dummy cell and face index are returned if the wall model is not being used.
+    const auto neighbor_cell = (this->using_wall_model) ? current_cell->neighbor(opposite_iface) : current_cell;
+    const unsigned int neighbor_iface = (this->using_wall_model) ? current_cell->neighbor_face_no(opposite_iface) : 0; 
     const int i_fele_n = neighbor_cell->active_fe_index();//, i_quad_n = i_fele_n, i_mapp_n = 0;
     const unsigned int n_dofs_neigh_cell = this->fe_collection[i_fele_n].n_dofs_per_cell();
     // Obtain the mapping from local dof indices to global dof indices for neighbor cell

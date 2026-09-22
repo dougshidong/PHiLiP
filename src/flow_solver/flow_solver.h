@@ -120,6 +120,18 @@ public:
     std::shared_ptr<ProperOrthogonalDecomposition::OnlinePOD<dim,nspecies>> time_pod;
 
 private:
+    /// Runs the steady-state branch of the solver.
+    int run_steady() const;
+
+    /// Runs the unsteady branch of the solver.
+    int run_unsteady() const;
+
+    /// Prints a formatted section header to improve solver logging.
+    void print_task_header(const std::string &task_name) const;
+
+    /// Prints a formatted status message for a subtask.
+    void print_subtask(const std::string &message) const;
+
     /** Returns the column names of a dealii::TableHandler object
      *  given the first line of the file */
     std::vector<std::string> get_data_table_column_names(const std::string string_input) const;
@@ -130,6 +142,15 @@ private:
 
     /// Converts a double to a string with scientific format and with full precision
     std::string double_to_string(const double value_input) const;
+
+    /// Initializes the time step and checks consistency with restart file. 
+    double initialize_unsteady_time_step() const;
+
+    /// Shortens a time step to land on the final time or an exact output time.
+    double limit_unsteady_time_step(double time_step, unsigned int fixed_time_output_index) const;
+
+    /// Computes the proposed step size for the next iteration. 
+    double compute_next_unsteady_time_step(double time_step) const;
 
 #if PHILIP_DIM>1
     /// Outputs all the necessary restart files

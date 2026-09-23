@@ -44,7 +44,7 @@ DGStrong<dim,nspecies,nstate,real,MeshType>::DGStrong(
     , poly_degree_max_large_scales(this->all_parameters->physics_model_param.poly_degree_max_large_scales)
     , using_wall_model(this->all_parameters->using_wall_model)
     , wall_model_input_from_second_element(this->all_parameters->wall_model_input_from_second_element)
-    , uncollocated_flux_nodes((this->all_parameters->flux_nodes_type == Parameters::AllParameters::FluxNodes::GL) ? true : false)
+    , uncollocated_flux_nodes(! this->all_parameters->use_collocated_nodes)
 { }
 
 template <int dim, int nspecies, int nstate, typename real, typename MeshType>
@@ -511,7 +511,7 @@ void DGStrong<dim,nspecies,nstate,real,MeshType>::assemble_auxiliary_residual(co
         
         if(compute_dRdW || compute_dRdX || compute_d2R)
         {
-            pcout << "DG Strong's viscous terms cannot yet be automatically differentiated. Aborting..."<<std::endl;
+            pcout << "DG Strong's viscous terms cannot yet be automatically differentiated with Auxiliary Equation. Use strong form with entropy stable viscous DG instead. Aborting..."<<std::endl;
             std::abort();
         }
         //set auxiliary rhs to 0
@@ -649,7 +649,7 @@ void DGStrong<dim,nspecies,nstate,real,MeshType>::assemble_auxiliary_residual(co
         }
     }//end of if statement for diffusive
     else if (this->use_auxiliary_eq && (this->all_parameters->ode_solver_param.ode_solver_type == ODE_enum::implicit_solver)) {
-        pcout << "ERROR: " << "auxiliary currently only works for explicit time advancement. Aborting..." << std::endl;
+        pcout << "ERROR: " << "Implicit does not currently work for strong form with Auxiliary Equation. Use strong form with entropy stable viscous DG instead. Aborting..."<<std::endl;
         std::abort();
     } else {
         // Do nothing
@@ -1061,143 +1061,15 @@ void DGStrong<dim,nspecies,nstate,real,MeshType>::assemble_volume_term_strong(
     std::array<dealii::Tensor<1,dim,std::vector<adtype>>,nstate> legendre_aux_soln_at_q; // legendre auxiliary sol at flux nodes
     if(this->do_compute_filtered_solution) {
         // NOTE: This only pertains to advanced SGS models for LES
-        //==================================================
-        // GET THE PRIMITIVE SOLUTION
-        //==================================================
-        std::array<std::vector<adtype>,nstate> primitive_soln_at_q;
-        std::array<dealii::Tensor<1,dim,std::vector<adtype>>,nstate> primitive_aux_soln_at_q; // primitive auxiliary sol at flux nodes
-        // Resize the primitive soln arrays
-        for(int istate=0; istate<nstate; istate++){
-            primitive_soln_at_q[istate].resize(n_quad_pts);
-            for(int idim=0; idim<dim; idim++){
-                primitive_aux_soln_at_q[istate][idim].resize(n_quad_pts);
-            }
-        }
-        // Compute the primitive soln at all iquad and fill arrays
-        for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
-            // extract conservative soln state
-            std::array<adtype,nstate> soln_state;
-            std::array<dealii::Tensor<1,dim,adtype>,nstate> aux_soln_state;
-            for(int istate=0; istate<nstate; istate++){
-                soln_state[istate] = soln_at_q[istate][iquad];
-                for(int idim=0; idim<dim; idim++){
-                    aux_soln_state[istate][idim] = aux_soln_at_q[istate][idim][iquad];
-                }
-            }
-            // compute primitive soln state from conservative
-            std::array<adtype,nstate> primitive_soln_state = pde_physics.convert_conservative_to_primitive(soln_state);
-            std::array<dealii::Tensor<1,dim,adtype>,nstate> primitive_aux_soln_state = pde_physics.convert_conservative_gradient_to_primitive_gradient(soln_state,aux_soln_state);
-            // store primitive soln at quadrature point
-            for(int istate=0; istate<nstate; istate++){
-                primitive_soln_at_q[istate][iquad] = primitive_soln_state[istate];
-                for(int idim=0; idim<dim; idim++){
-                    primitive_aux_soln_at_q[istate][idim][iquad] = primitive_aux_soln_state[istate][idim];
-                }
-            }
-        }
-        
-        //==================================================
-        // PROJECT TO LEGENDRE BASIS AND MODALLY FILTER
-        //==================================================
-        // -- Primitive solution at legendre poly
-        std::array<std::vector<adtype>,nstate> primitive_legendre_soln_at_q;
-        std::array<dealii::Tensor<1,dim,std::vector<adtype>>,nstate> primitive_legendre_aux_soln_at_q; // legendre auxiliary sol at flux nodes
-
-        // Details: this projects to Legendre basis, truncates, then interpolates back to quad nodes.
-        // -- Constructor for tensor product polynomials based on Polynomials::Legendre interpolation. 
-        dealii::FE_DGQLegendre<1,1> legendre_poly_1D(poly_degree);
-        // -- Projection operator for legendre basis
-        OPERATOR::vol_projection_operator<dim,2*dim> legendre_soln_basis_projection_oper(1, poly_degree, this->max_grid_degree);
-        legendre_soln_basis_projection_oper.build_1D_volume_operator(legendre_poly_1D, this->oneD_quadrature_collection[poly_degree]);
-        // -- Legendre basis functions 
-        OPERATOR::basis_functions<dim,2*dim> legendre_soln_basis(1, poly_degree, this->max_grid_degree);
-        legendre_soln_basis.build_1D_volume_operator(legendre_poly_1D, this->oneD_quadrature_collection[poly_degree]);
-        const unsigned int p_min_filtered = this->poly_degree_max_large_scales + 1;
-        for(int istate=0; istate<nstate; istate++){
-            //==================================================
-            // Solution
-            //==================================================
-            // -- (1) Project to Legendre basis
-            std::vector<adtype> legendre_soln_coeff(n_shape_fns);
-            legendre_soln_basis_projection_oper.matrix_vector_mult_1D(primitive_soln_at_q[istate], legendre_soln_coeff,
-                                                                      legendre_soln_basis_projection_oper.oneD_vol_operator);
-            // -- (2) Truncate modes for high-pass filter (i.e. DG-VMS like)
-            if(this->apply_modal_high_pass_filter_on_filtered_solution && (istate!=0 && istate!=(nstate-1))) {
-                for(unsigned int ishape=0; ishape<n_shape_fns; ishape++){
-                    if(ishape < p_min_filtered){
-                        legendre_soln_coeff[ishape] = 0.0;
-                    }
-                }    
-            }
-            // -- (3) Interpolate filtered solution back to quadrature points
-            primitive_legendre_soln_at_q[istate].resize(n_quad_pts);
-            legendre_soln_basis.matrix_vector_mult_1D(legendre_soln_coeff, primitive_legendre_soln_at_q[istate],
-                                                      legendre_soln_basis.oneD_vol_operator);
-            //==================================================
-
-            //==================================================
-            // Auxiliary Solution (gradients)
-            //==================================================
-            dealii::Tensor<1,dim,std::vector<adtype>> legendre_aux_soln_coeff;
-            for(int idim=0; idim<dim; idim++){
-                // -- (1) Project to Legendre basis
-                legendre_aux_soln_coeff[idim].resize(n_shape_fns);
-                if(this->use_auxiliary_eq){
-                    legendre_soln_basis_projection_oper.matrix_vector_mult_1D(primitive_aux_soln_at_q[istate][idim], legendre_aux_soln_coeff[idim],
-                                                                              legendre_soln_basis_projection_oper.oneD_vol_operator);
-                    // -- (2) Truncate modes for high-pass filter (i.e. DG-VMS like)
-                    if(this->apply_modal_high_pass_filter_on_filtered_solution && (istate!=0 && istate!=(nstate-1))) {
-                        for(unsigned int ishape=0; ishape<n_shape_fns; ishape++){
-                            if(ishape < p_min_filtered){
-                                legendre_aux_soln_coeff[idim][ishape] = 0.0;
-                            }
-                        }    
-                    }
-                }
-                else {
-                    for(unsigned int ishape=0; ishape<n_shape_fns; ishape++){
-                        legendre_aux_soln_coeff[idim][ishape] = 0.0;
-                    }
-                }
-                // -- (3) Interpolate filtered solution back to quadrature points
-                primitive_legendre_aux_soln_at_q[istate][idim].resize(n_quad_pts);
-                legendre_soln_basis.matrix_vector_mult_1D(legendre_aux_soln_coeff[idim], primitive_legendre_aux_soln_at_q[istate][idim],
-                                                          legendre_soln_basis.oneD_vol_operator);
-            }
-            //==================================================
-        }
-        //=======================================================
-        // CONVERT PRIMITIVE LEGENDRE SOLUTION TO CONSERVATIVE
-        //=======================================================
-        // Resize the conservative soln arrays
-        for(int istate=0; istate<nstate; istate++){
-            legendre_soln_at_q[istate].resize(n_quad_pts);
-            for(int idim=0; idim<dim; idim++){
-                legendre_aux_soln_at_q[istate][idim].resize(n_quad_pts);
-            }
-        }
-        // Compute the primitive soln at all iquad and fill arrays
-        for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
-            // extract conservative soln state
-            std::array<adtype,nstate> primitive_legendre_soln_state;
-            std::array<dealii::Tensor<1,dim,adtype>,nstate> primitive_legendre_aux_soln_state;
-            for(int istate=0; istate<nstate; istate++){
-                primitive_legendre_soln_state[istate] = primitive_legendre_soln_at_q[istate][iquad];
-                for(int idim=0; idim<dim; idim++){
-                    primitive_legendre_aux_soln_state[istate][idim] = primitive_legendre_aux_soln_at_q[istate][idim][iquad];
-                }
-            }
-            // compute conservative soln state from primitive
-            std::array<adtype,nstate> legendre_soln_state = pde_physics.convert_primitive_to_conservative(primitive_legendre_soln_state);
-            std::array<dealii::Tensor<1,dim,adtype>,nstate> legendre_aux_soln_state = pde_physics.convert_primitive_gradient_to_conservative_gradient(primitive_legendre_soln_state,primitive_legendre_aux_soln_state);
-            // store conservative soln at quadrature point
-            for(int istate=0; istate<nstate; istate++){
-                legendre_soln_at_q[istate][iquad] = legendre_soln_state[istate];
-                for(int idim=0; idim<dim; idim++){
-                    legendre_aux_soln_at_q[istate][idim][iquad] = legendre_aux_soln_state[istate][idim];
-                }
-            }
-        }
+        compute_filtered_solution_volume(
+        legendre_soln_at_q,
+        legendre_aux_soln_at_q,
+        n_quad_pts,
+        n_shape_fns,
+        poly_degree,
+        pde_physics,
+        soln_at_q,
+        aux_soln_at_q);
     }
 
     // For pseudotime, we need to compute the time_scaled_solution.
@@ -1235,10 +1107,12 @@ void DGStrong<dim,nspecies,nstate,real,MeshType>::assemble_volume_term_strong(
     //get entropy projected variables
     std::array<std::vector<adtype>,nstate> entropy_var_at_q;
     std::array<std::vector<adtype>,nstate> projected_entropy_var_at_q;
-    if ((this->all_parameters->use_split_form || this->all_parameters->use_curvilinear_split_form) && this->uncollocated_flux_nodes){
+    std::array<std::vector<adtype>,nstate> entropy_var_coeffs;
+    if (((this->all_parameters->use_split_form || this->all_parameters->use_curvilinear_split_form) && this->uncollocated_flux_nodes) || this->all_parameters->use_viscous_br2_entropystable){
         for(int istate=0; istate<nstate; istate++){
             entropy_var_at_q[istate].resize(n_quad_pts);
             projected_entropy_var_at_q[istate].resize(n_quad_pts);
+            entropy_var_coeffs[istate].resize(n_shape_fns);
         }
         for(unsigned int iquad=0; iquad<n_quad_pts; iquad++){
             std::array<adtype,nstate> soln_state;
@@ -1252,11 +1126,10 @@ void DGStrong<dim,nspecies,nstate,real,MeshType>::assemble_volume_term_strong(
             }
         }
         for(int istate=0; istate<nstate; istate++){
-            std::vector<adtype> entropy_var_coeff(n_shape_fns);;
             soln_basis_projection_oper.matrix_vector_mult_1D(entropy_var_at_q[istate],
-                                                             entropy_var_coeff,
+                                                             entropy_var_coeffs[istate],
                                                              soln_basis_projection_oper.oneD_vol_operator);
-            soln_basis.matrix_vector_mult_1D(entropy_var_coeff,
+            soln_basis.matrix_vector_mult_1D(entropy_var_coeffs[istate],
                                              projected_entropy_var_at_q[istate],
                                              soln_basis.oneD_vol_operator);
         }
@@ -1268,7 +1141,6 @@ void DGStrong<dim,nspecies,nstate,real,MeshType>::assemble_volume_term_strong(
     //For conservative DG, we compute the reference flux as per Eq. (9), to then recover the second volume integral in Eq. (17).
     //For curvilinear split-form in Eq. (22), we apply a two-pt flux of the metric-cofactor matrix on the matrix operator constructed by the entropy stable/conservtive 2pt flux.
     std::array<dealii::Tensor<1,dim,std::vector<adtype>>,nstate> conv_ref_flux_at_q;
-    std::array<dealii::Tensor<1,dim,std::vector<adtype>>,nstate> diffusive_ref_flux_at_q;
     std::array<std::vector<adtype>,nstate> source_at_q;
     std::array<std::vector<adtype>,nstate> physical_source_at_q;
 
@@ -1294,14 +1166,10 @@ void DGStrong<dim,nspecies,nstate,real,MeshType>::assemble_volume_term_strong(
         //extract soln and auxiliary soln at quad pt to be used in physics
         std::array<adtype,nstate> soln_state;
         std::array<dealii::Tensor<1,dim,adtype>,nstate> aux_soln_state;
-        std::array<adtype,nstate> filtered_soln_state;
-        std::array<dealii::Tensor<1,dim,adtype>,nstate> filtered_aux_soln_state;
         for(int istate=0; istate<nstate; istate++){
             soln_state[istate] = soln_at_q[istate][iquad];
-            if(this->do_compute_filtered_solution) filtered_soln_state[istate] = legendre_soln_at_q[istate][iquad];
             for(int idim=0; idim<dim; idim++){
                 aux_soln_state[istate][idim] = aux_soln_at_q[istate][idim][iquad];
-                if(this->do_compute_filtered_solution) filtered_aux_soln_state[istate][idim] = legendre_aux_soln_at_q[istate][idim][iquad];
             }
         }
 
@@ -1394,11 +1262,6 @@ void DGStrong<dim,nspecies,nstate,real,MeshType>::assemble_volume_term_strong(
             conv_phys_flux = pde_physics.convective_flux (soln_state);
         }
 
-        //Diffusion
-        std::array<dealii::Tensor<1,dim,adtype>,nstate> diffusive_phys_flux;
-        //Compute the physical dissipative flux
-        diffusive_phys_flux = pde_physics.dissipative_flux(soln_state, aux_soln_state, filtered_soln_state, filtered_aux_soln_state, current_cell_index);
-
         // Manufactured source
         std::array<adtype,nstate> manufactured_source;
         if(this->all_parameters->manufactured_convergence_study_param.manufactured_solution_param.use_manufactured_source_term) {
@@ -1424,7 +1287,6 @@ void DGStrong<dim,nspecies,nstate,real,MeshType>::assemble_volume_term_strong(
         //Write the values in a way that we can use sum-factorization on.
         for(int istate=0; istate<nstate; istate++){
             dealii::Tensor<1,dim,adtype> conv_ref_flux;
-            dealii::Tensor<1,dim,adtype> diffusive_ref_flux;
             //Trnasform to reference fluxes
             if (this->all_parameters->use_split_form || this->all_parameters->use_curvilinear_split_form){
                 //Do Nothing. 
@@ -1440,11 +1302,6 @@ void DGStrong<dim,nspecies,nstate,real,MeshType>::assemble_volume_term_strong(
                     metric_cofactor,
                     conv_ref_flux);
             }
-            //transform the dissipative flux to reference space
-            metric_oper.transform_physical_to_reference(
-                diffusive_phys_flux[istate],
-                metric_cofactor,
-                diffusive_ref_flux);
 
             //Write the data in a way that we can use sum-factorization on.
             //Since sum-factorization improves the speed for matrix-vector multiplications,
@@ -1453,7 +1310,6 @@ void DGStrong<dim,nspecies,nstate,real,MeshType>::assemble_volume_term_strong(
                 //allocate
                 if(iquad == 0){
                     conv_ref_flux_at_q[istate][idim].resize(n_quad_pts);
-                    diffusive_ref_flux_at_q[istate][idim].resize(n_quad_pts);
                 }
                 //write data
                 if (this->all_parameters->use_split_form || this->all_parameters->use_curvilinear_split_form){
@@ -1462,9 +1318,8 @@ void DGStrong<dim,nspecies,nstate,real,MeshType>::assemble_volume_term_strong(
                 else{
                     conv_ref_flux_at_q[istate][idim][iquad] = conv_ref_flux[idim];
                 }
-
-                diffusive_ref_flux_at_q[istate][idim][iquad] = diffusive_ref_flux[idim];
             }
+
             if(this->all_parameters->manufactured_convergence_study_param.manufactured_solution_param.use_manufactured_source_term) {
                 if(iquad == 0){
                     source_at_q[istate].resize(n_quad_pts);
@@ -1500,7 +1355,6 @@ void DGStrong<dim,nspecies,nstate,real,MeshType>::assemble_volume_term_strong(
 
         //Compute reference divergence of the reference fluxes.
         std::vector<adtype> conv_flux_divergence(n_quad_pts); 
-        std::vector<adtype> diffusive_flux_divergence(n_quad_pts); 
 
         if (this->all_parameters->use_split_form || this->all_parameters->use_curvilinear_split_form){
             //2pt flux Hadamard Product, and then multiply by vector of ones scaled by 1.
@@ -1529,11 +1383,6 @@ void DGStrong<dim,nspecies,nstate,real,MeshType>::assemble_volume_term_strong(
                                                         flux_basis.oneD_vol_operator,
                                                         flux_basis.oneD_grad_operator);
         }
-        //Reference divergence of the reference diffusive flux.
-        flux_basis.divergence_matrix_vector_mult_1D(diffusive_ref_flux_at_q[istate], diffusive_flux_divergence,
-                                                    flux_basis.oneD_vol_operator,
-                                                    flux_basis.oneD_grad_operator);
-
 
         // Strong form
         // The right-hand side sends all the term to the side of the source term
@@ -1553,11 +1402,6 @@ void DGStrong<dim,nspecies,nstate,real,MeshType>::assemble_volume_term_strong(
         else {
             soln_basis.inner_product_1D(conv_flux_divergence, vol_quad_weights, rhs, soln_basis.oneD_vol_operator, false, -1.0);
         }
-
-        // Diffusive
-        // Note that for diffusion, the negative is defined in the physics. Since we used the auxiliary
-        // variable, put a negative here.
-        soln_basis.inner_product_1D(diffusive_flux_divergence, vol_quad_weights, rhs, soln_basis.oneD_vol_operator, true, -1.0);
 
         // Manufactured source
         if(this->all_parameters->manufactured_convergence_study_param.manufactured_solution_param.use_manufactured_source_term) {
@@ -1583,6 +1427,298 @@ void DGStrong<dim,nspecies,nstate,real,MeshType>::assemble_volume_term_strong(
             local_rhs_int_cell[istate*n_shape_fns + ishape] += rhs[ishape];
         }
 
+    }
+    
+    std::vector<adtype> viscous_rhs_vol;
+    assemble_volume_term_viscous_primal(
+    current_cell_index,
+    soln_at_q,
+    aux_soln_at_q,
+    legendre_soln_at_q,
+    legendre_aux_soln_at_q,
+    poly_degree,
+    soln_basis,
+    flux_basis,
+    metric_oper,
+    entropy_var_coeffs,
+    projected_entropy_var_at_q,
+    n_quad_pts,
+    n_dofs_cell,
+    n_shape_fns,
+    pde_physics,
+    viscous_rhs_vol);
+
+    for(unsigned int idof = 0; idof<n_dofs_cell; ++idof)
+    {
+        local_rhs_int_cell[idof] += viscous_rhs_vol[idof];
+    }
+}
+    
+template <int dim, int nspecies, int nstate, typename real, typename MeshType>
+template <typename adtype>
+void DGStrong<dim,nspecies,nstate,real,MeshType>::compute_filtered_solution_volume(
+    std::array<std::vector<adtype>,nstate> &legendre_soln_at_q,
+    std::array<dealii::Tensor<1,dim,std::vector<adtype>>,nstate> &legendre_aux_soln_at_q,
+    const unsigned int n_quad_pts,
+    const unsigned int n_shape_fns,
+    const unsigned int poly_degree,
+    const Physics::PhysicsBase<dim, nspecies, nstate, adtype> &pde_physics,
+    const std::array<std::vector<adtype>,nstate> &soln_at_q,
+    const std::array<dealii::Tensor<1,dim,std::vector<adtype>>,nstate> &aux_soln_at_q)
+{
+    // NOTE: This only pertains to advanced SGS models for LES
+    //==================================================
+    // GET THE PRIMITIVE SOLUTION
+    //==================================================
+    std::array<std::vector<adtype>,nstate> primitive_soln_at_q;
+    std::array<dealii::Tensor<1,dim,std::vector<adtype>>,nstate> primitive_aux_soln_at_q; // primitive auxiliary sol at flux nodes
+    // Resize the primitive soln arrays
+    for(int istate=0; istate<nstate; istate++){
+        primitive_soln_at_q[istate].resize(n_quad_pts);
+        for(int idim=0; idim<dim; idim++){
+            primitive_aux_soln_at_q[istate][idim].resize(n_quad_pts);
+        }
+    }
+    // Compute the primitive soln at all iquad and fill arrays
+    for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
+        // extract conservative soln state
+        std::array<adtype,nstate> soln_state;
+        std::array<dealii::Tensor<1,dim,adtype>,nstate> aux_soln_state;
+        for(int istate=0; istate<nstate; istate++){
+            soln_state[istate] = soln_at_q[istate][iquad];
+            for(int idim=0; idim<dim; idim++){
+                aux_soln_state[istate][idim] = aux_soln_at_q[istate][idim][iquad];
+            }
+        }
+        // compute primitive soln state from conservative
+        std::array<adtype,nstate> primitive_soln_state = pde_physics.convert_conservative_to_primitive(soln_state);
+        std::array<dealii::Tensor<1,dim,adtype>,nstate> primitive_aux_soln_state = pde_physics.convert_conservative_gradient_to_primitive_gradient(soln_state,aux_soln_state);
+        // store primitive soln at quadrature point
+        for(int istate=0; istate<nstate; istate++){
+            primitive_soln_at_q[istate][iquad] = primitive_soln_state[istate];
+            for(int idim=0; idim<dim; idim++){
+                primitive_aux_soln_at_q[istate][idim][iquad] = primitive_aux_soln_state[istate][idim];
+            }
+        }
+    }
+    
+    //==================================================
+    // PROJECT TO LEGENDRE BASIS AND MODALLY FILTER
+    //==================================================
+    // -- Primitive solution at legendre poly
+    std::array<std::vector<adtype>,nstate> primitive_legendre_soln_at_q;
+    std::array<dealii::Tensor<1,dim,std::vector<adtype>>,nstate> primitive_legendre_aux_soln_at_q; // legendre auxiliary sol at flux nodes
+
+    // Details: this projects to Legendre basis, truncates, then interpolates back to quad nodes.
+    // -- Constructor for tensor product polynomials based on Polynomials::Legendre interpolation. 
+    dealii::FE_DGQLegendre<1,1> legendre_poly_1D(poly_degree);
+    // -- Projection operator for legendre basis
+    OPERATOR::vol_projection_operator<dim,2*dim> legendre_soln_basis_projection_oper(1, poly_degree, this->max_grid_degree);
+    legendre_soln_basis_projection_oper.build_1D_volume_operator(legendre_poly_1D, this->oneD_quadrature_collection[poly_degree]);
+    // -- Legendre basis functions 
+    OPERATOR::basis_functions<dim,2*dim> legendre_soln_basis(1, poly_degree, this->max_grid_degree);
+    legendre_soln_basis.build_1D_volume_operator(legendre_poly_1D, this->oneD_quadrature_collection[poly_degree]);
+    const unsigned int p_min_filtered = this->poly_degree_max_large_scales + 1;
+    for(int istate=0; istate<nstate; istate++){
+        //==================================================
+        // Solution
+        //==================================================
+        // -- (1) Project to Legendre basis
+        std::vector<adtype> legendre_soln_coeff(n_shape_fns);
+        legendre_soln_basis_projection_oper.matrix_vector_mult_1D(primitive_soln_at_q[istate], legendre_soln_coeff,
+                                                                  legendre_soln_basis_projection_oper.oneD_vol_operator);
+        // -- (2) Truncate modes for high-pass filter (i.e. DG-VMS like)
+        if(this->apply_modal_high_pass_filter_on_filtered_solution && (istate!=0 && istate!=(nstate-1))) {
+            for(unsigned int ishape=0; ishape<n_shape_fns; ishape++){
+                if(ishape < p_min_filtered){
+                    legendre_soln_coeff[ishape] = 0.0;
+                }
+            }    
+        }
+        // -- (3) Interpolate filtered solution back to quadrature points
+        primitive_legendre_soln_at_q[istate].resize(n_quad_pts);
+        legendre_soln_basis.matrix_vector_mult_1D(legendre_soln_coeff, primitive_legendre_soln_at_q[istate],
+                                                  legendre_soln_basis.oneD_vol_operator);
+        //==================================================
+
+        //==================================================
+        // Auxiliary Solution (gradients)
+        //==================================================
+        dealii::Tensor<1,dim,std::vector<adtype>> legendre_aux_soln_coeff;
+        for(int idim=0; idim<dim; idim++){
+            // -- (1) Project to Legendre basis
+            legendre_aux_soln_coeff[idim].resize(n_shape_fns);
+            if(this->use_auxiliary_eq){
+                legendre_soln_basis_projection_oper.matrix_vector_mult_1D(primitive_aux_soln_at_q[istate][idim], legendre_aux_soln_coeff[idim],
+                                                                          legendre_soln_basis_projection_oper.oneD_vol_operator);
+                // -- (2) Truncate modes for high-pass filter (i.e. DG-VMS like)
+                if(this->apply_modal_high_pass_filter_on_filtered_solution && (istate!=0 && istate!=(nstate-1))) {
+                    for(unsigned int ishape=0; ishape<n_shape_fns; ishape++){
+                        if(ishape < p_min_filtered){
+                            legendre_aux_soln_coeff[idim][ishape] = 0.0;
+                        }
+                    }    
+                }
+            }
+            else {
+                for(unsigned int ishape=0; ishape<n_shape_fns; ishape++){
+                    legendre_aux_soln_coeff[idim][ishape] = 0.0;
+                }
+            }
+            // -- (3) Interpolate filtered solution back to quadrature points
+            primitive_legendre_aux_soln_at_q[istate][idim].resize(n_quad_pts);
+            legendre_soln_basis.matrix_vector_mult_1D(legendre_aux_soln_coeff[idim], primitive_legendre_aux_soln_at_q[istate][idim],
+                                                      legendre_soln_basis.oneD_vol_operator);
+        }
+        //==================================================
+    }
+    //=======================================================
+    // CONVERT PRIMITIVE LEGENDRE SOLUTION TO CONSERVATIVE
+    //=======================================================
+    // Resize the conservative soln arrays
+    for(int istate=0; istate<nstate; istate++){
+        legendre_soln_at_q[istate].resize(n_quad_pts);
+        for(int idim=0; idim<dim; idim++){
+            legendre_aux_soln_at_q[istate][idim].resize(n_quad_pts);
+        }
+    }
+    // Compute the primitive soln at all iquad and fill arrays
+    for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad) {
+        // extract conservative soln state
+        std::array<adtype,nstate> primitive_legendre_soln_state;
+        std::array<dealii::Tensor<1,dim,adtype>,nstate> primitive_legendre_aux_soln_state;
+        for(int istate=0; istate<nstate; istate++){
+            primitive_legendre_soln_state[istate] = primitive_legendre_soln_at_q[istate][iquad];
+            for(int idim=0; idim<dim; idim++){
+                primitive_legendre_aux_soln_state[istate][idim] = primitive_legendre_aux_soln_at_q[istate][idim][iquad];
+            }
+        }
+        // compute conservative soln state from primitive
+        std::array<adtype,nstate> legendre_soln_state = pde_physics.convert_primitive_to_conservative(primitive_legendre_soln_state);
+        std::array<dealii::Tensor<1,dim,adtype>,nstate> legendre_aux_soln_state = pde_physics.convert_primitive_gradient_to_conservative_gradient(primitive_legendre_soln_state,primitive_legendre_aux_soln_state);
+        // store conservative soln at quadrature point
+        for(int istate=0; istate<nstate; istate++){
+            legendre_soln_at_q[istate][iquad] = legendre_soln_state[istate];
+            for(int idim=0; idim<dim; idim++){
+                legendre_aux_soln_at_q[istate][idim][iquad] = legendre_aux_soln_state[istate][idim];
+            }
+        }
+    }
+}
+    
+template <int dim, int nspecies, int nstate, typename real, typename MeshType>
+template <typename adtype>
+void DGStrong<dim,nspecies,nstate,real,MeshType>::assemble_volume_term_viscous_primal(
+    const dealii::types::global_dof_index                              current_cell_index,
+    const std::array<std::vector<adtype>,nstate> &soln_at_q,
+    const std::array<dealii::Tensor<1,dim,std::vector<adtype>>,nstate> &aux_soln_at_q,
+    const std::array<std::vector<adtype>,nstate> &legendre_soln_at_q,
+    const std::array<dealii::Tensor<1,dim,std::vector<adtype>>,nstate> &legendre_aux_soln_at_q,
+    const unsigned int                            poly_degree,
+    OPERATOR::basis_functions<dim,2*dim>          &soln_basis,
+    OPERATOR::basis_functions<dim,2*dim>          &flux_basis,
+    OPERATOR::metric_operators<adtype,dim,2*dim>  &metric_oper,
+    const std::array<std::vector<adtype>,nstate>  &entropy_var_coeff,
+    const std::array<std::vector<adtype>,nstate>  &entropy_var_at_q,
+    const unsigned int  n_quad_pts,
+    const unsigned int  n_dofs_cell,
+    const unsigned int  n_shape_fns,
+    Physics::PhysicsBase<dim, nspecies, nstate, adtype> &pde_physics,
+    std::vector<adtype>     &vol_term_viscous) const
+{
+    vol_term_viscous.resize(n_dofs_cell);   
+    if(this->all_parameters->use_viscous_br2_entropystable)
+    {
+        EntropyStable_viscousBR2<dim,nspecies,nstate,real,MeshType>::assemble_volume_term_entropystable_br2(
+        poly_degree,
+        entropy_var_coeff,
+        entropy_var_at_q,
+        n_quad_pts,
+        n_dofs_cell,
+        soln_basis,
+        metric_oper,
+        pde_physics,
+        this->volume_quadrature_collection[poly_degree].get_weights(),
+        vol_term_viscous);
+        for(unsigned int i=0; i<n_dofs_cell; ++i)
+        {
+            vol_term_viscous[i] *=-1.0; // negate as we are moving the term to the right hand side.
+        }
+    }
+    else
+    {
+        const std::vector<double> &vol_quad_weights = this->volume_quadrature_collection[poly_degree].get_weights();
+        std::array<dealii::Tensor<1,dim,std::vector<adtype>>,nstate> diffusive_ref_flux_at_q;
+        for (unsigned int iquad=0; iquad<n_quad_pts; ++iquad)
+        {
+            std::array<adtype,nstate> soln_state;
+            std::array<dealii::Tensor<1,dim,adtype>,nstate> aux_soln_state;
+            std::array<adtype,nstate> filtered_soln_state;
+            std::array<dealii::Tensor<1,dim,adtype>,nstate> filtered_aux_soln_state;
+            for(int istate=0; istate<nstate; istate++){
+                soln_state[istate] = soln_at_q[istate][iquad];
+                if(this->do_compute_filtered_solution) filtered_soln_state[istate] = legendre_soln_at_q[istate][iquad];
+                for(int idim=0; idim<dim; idim++){
+                    aux_soln_state[istate][idim] = aux_soln_at_q[istate][idim][iquad];
+                    if(this->do_compute_filtered_solution) filtered_aux_soln_state[istate][idim] = legendre_aux_soln_at_q[istate][idim][iquad];
+                }
+            }
+
+            dealii::Tensor<2,dim,adtype> metric_cofactor;
+            for(int idim=0; idim<dim; idim++){
+                for(int jdim=0; jdim<dim; jdim++){
+                    metric_cofactor[idim][jdim] = metric_oper.metric_cofactor_vol[idim][jdim][iquad];
+                }
+            }
+
+            if ((this->all_parameters->use_split_form || this->all_parameters->use_curvilinear_split_form) && this->uncollocated_flux_nodes){
+                //get the soln for iquad from projected entropy variables
+                std::array<adtype,nstate> entropy_var;
+                for(int istate=0; istate<nstate; istate++){
+                    entropy_var[istate] = entropy_var_at_q[istate][iquad];
+                }
+                soln_state = pde_physics.compute_conservative_variables_from_entropy_variables (entropy_var);
+            }
+        
+            //Diffusion
+            std::array<dealii::Tensor<1,dim,adtype>,nstate> diffusive_phys_flux;
+            //Compute the physical dissipative flux
+            diffusive_phys_flux = pde_physics.dissipative_flux(soln_state, aux_soln_state, filtered_soln_state, filtered_aux_soln_state, current_cell_index);
+            for(int istate=0; istate<nstate; istate++){
+                dealii::Tensor<1,dim,adtype> diffusive_ref_flux;
+                //transform the dissipative flux to reference space
+                metric_oper.transform_physical_to_reference(
+                diffusive_phys_flux[istate],
+                metric_cofactor,
+                diffusive_ref_flux);
+                
+                for(int idim=0; idim<dim; idim++){
+                    //allocate
+                    if(iquad == 0){
+                        diffusive_ref_flux_at_q[istate][idim].resize(n_quad_pts);
+                    }
+                    diffusive_ref_flux_at_q[istate][idim][iquad] = diffusive_ref_flux[idim];
+                }
+            } //istate loop ends
+        } // quad loop ends
+             
+        for(int istate=0; istate<nstate; istate++){
+            std::vector<adtype> diffusive_flux_divergence(n_quad_pts);             
+        
+             //Reference divergence of the reference diffusive flux.
+            flux_basis.divergence_matrix_vector_mult_1D(diffusive_ref_flux_at_q[istate], diffusive_flux_divergence,
+                                                        flux_basis.oneD_vol_operator,
+                                                        flux_basis.oneD_grad_operator);
+            // Diffusive
+            // Note that for diffusion, the negative is defined in the physics. Since we used the auxiliary
+            // variable, put a negative here.
+            std::vector<adtype> rhs(n_shape_fns);
+            soln_basis.inner_product_1D(diffusive_flux_divergence, vol_quad_weights, rhs, soln_basis.oneD_vol_operator, false, -1.0);
+            for(unsigned int ishape = 0; ishape<n_shape_fns; ++ishape)
+            {
+                vol_term_viscous[istate*n_shape_fns+ishape] = rhs[ishape];
+            }
+        }
     }
 }
 
@@ -1725,210 +1861,23 @@ void DGStrong<dim,nspecies,nstate,real,MeshType>::assemble_boundary_term_strong(
     std::array<dealii::Tensor<1,dim,std::vector<adtype>>,nstate> legendre_aux_soln_at_surf_q; // legendre auxiliary sol at flux nodes
     if(this->do_compute_filtered_solution) {
         // NOTE: This only pertains to advanced SGS models for LES
-        //==================================================
-        // GET THE PRIMITIVE SOLUTION
-        //==================================================
-        std::array<std::vector<adtype>,nstate> primitive_soln_at_vol_q;
-        std::array<dealii::Tensor<1,dim,std::vector<adtype>>,nstate> primitive_aux_soln_at_vol_q;
-        std::array<std::vector<adtype>,nstate> primitive_soln_at_surf_q;
-        std::array<dealii::Tensor<1,dim,std::vector<adtype>>,nstate> primitive_aux_soln_at_surf_q;
-        // Resize the primitive soln arrays
-        for(int istate=0; istate<nstate; istate++){
-            primitive_soln_at_vol_q[istate].resize(n_quad_pts_vol);
-            primitive_soln_at_surf_q[istate].resize(n_face_quad_pts);
-            for(int idim=0; idim<dim; idim++){
-                primitive_aux_soln_at_vol_q[istate][idim].resize(n_quad_pts_vol);
-                primitive_aux_soln_at_surf_q[istate][idim].resize(n_face_quad_pts);
-            }
-        }
-        // Compute the primitive soln at all iquad and fill arrays
-        // -- volume
-        for (unsigned int iquad=0; iquad<n_quad_pts_vol; ++iquad) {
-            // extract conservative soln state
-            std::array<adtype,nstate> soln_state;
-            std::array<dealii::Tensor<1,dim,adtype>,nstate> aux_soln_state;
-            for(int istate=0; istate<nstate; istate++){
-                soln_state[istate] = soln_at_vol_q[istate][iquad];
-                for(int idim=0; idim<dim; idim++){
-                    aux_soln_state[istate][idim] = aux_soln_at_vol_q[istate][idim][iquad];
-                }
-            }
-            // compute primitive soln state from conservative
-            std::array<adtype,nstate> primitive_soln_state = pde_physics.convert_conservative_to_primitive(soln_state);
-            std::array<dealii::Tensor<1,dim,adtype>,nstate> primitive_aux_soln_state = pde_physics.convert_conservative_gradient_to_primitive_gradient(soln_state,aux_soln_state);
-            // store primitive soln at quadrature point
-            for(int istate=0; istate<nstate; istate++){
-                primitive_soln_at_vol_q[istate][iquad] = primitive_soln_state[istate];
-                for(int idim=0; idim<dim; idim++){
-                    primitive_aux_soln_at_vol_q[istate][idim][iquad] = primitive_aux_soln_state[istate][idim];
-                }
-            }
-        }
-        // -- surface
-        for(unsigned int iquad_face=0; iquad_face<n_face_quad_pts; iquad_face++){
-            // extract conservative soln state
-            std::array<adtype,nstate> soln_state;
-            std::array<dealii::Tensor<1,dim,adtype>,nstate> aux_soln_state;
-            for(int istate=0; istate<nstate; istate++){
-                soln_state[istate] = soln_at_surf_q[istate][iquad_face];
-                for(int idim=0; idim<dim; idim++){
-                    aux_soln_state[istate][idim] = aux_soln_at_surf_q[istate][idim][iquad_face];
-                }
-            }
-            // compute primitive soln state from conservative
-            std::array<adtype,nstate> primitive_soln_state = pde_physics.convert_conservative_to_primitive(soln_state);
-            std::array<dealii::Tensor<1,dim,adtype>,nstate> primitive_aux_soln_state = pde_physics.convert_conservative_gradient_to_primitive_gradient(soln_state,aux_soln_state);
-            // store primitive soln at quadrature point
-            for(int istate=0; istate<nstate; istate++){
-                primitive_soln_at_surf_q[istate][iquad_face] = primitive_soln_state[istate];
-                for(int idim=0; idim<dim; idim++){
-                    primitive_aux_soln_at_surf_q[istate][idim][iquad_face] = primitive_aux_soln_state[istate][idim];
-                }
-            }
-        }
+        compute_filtered_solution_volume_and_face(
+        face_orientation,
+        iface,
+        legendre_soln_at_vol_q,
+        legendre_aux_soln_at_vol_q,
+        legendre_soln_at_surf_q,
+        legendre_aux_soln_at_surf_q,
+        soln_at_vol_q, 
+        aux_soln_at_vol_q,
+        pde_physics,
+        soln_at_surf_q,
+        aux_soln_at_surf_q,
+        n_quad_pts_vol,
+        n_face_quad_pts,
+        n_shape_fns,
+        poly_degree);
 
-        //==================================================
-        // PROJECT TO LEGENDRE BASIS AND MODALLY FILTER
-        //==================================================
-        // -- Primitive solution at legendre poly
-        std::array<std::vector<adtype>,nstate> primitive_legendre_soln_at_vol_q;
-        std::array<dealii::Tensor<1,dim,std::vector<adtype>>,nstate> primitive_legendre_aux_soln_at_vol_q;
-        std::array<std::vector<adtype>,nstate> primitive_legendre_soln_at_surf_q;
-        std::array<dealii::Tensor<1,dim,std::vector<adtype>>,nstate> primitive_legendre_aux_soln_at_surf_q;
-
-        // Details: this projects to Legendre basis, truncates, then interpolates back to quad nodes.
-        // -- Constructor for tensor product polynomials based on Polynomials::Legendre interpolation. 
-        dealii::FE_DGQLegendre<1,1> legendre_poly_1D(poly_degree);
-        // -- Projection operator for legendre basis
-        OPERATOR::vol_projection_operator<dim,2*dim> legendre_soln_basis_projection_oper(1, poly_degree, this->max_grid_degree);
-        legendre_soln_basis_projection_oper.build_1D_volume_operator(legendre_poly_1D, this->oneD_quadrature_collection[poly_degree]);
-        // -- Legendre basis functions 
-        OPERATOR::basis_functions<dim,2*dim> legendre_soln_basis(1, poly_degree, this->max_grid_degree);
-        legendre_soln_basis.build_1D_volume_operator(legendre_poly_1D, this->oneD_quadrature_collection[poly_degree]);
-        legendre_soln_basis.build_1D_surface_operator(legendre_poly_1D, this->oneD_face_quadrature);
-        const unsigned int p_min_filtered = this->poly_degree_max_large_scales + 1;
-        for(int istate=0; istate<nstate; istate++){
-            //==================================================
-            // Solution
-            //==================================================
-            // -- (1) Project to Legendre basis
-            std::vector<adtype> legendre_soln_coeff(n_shape_fns);
-            legendre_soln_basis_projection_oper.matrix_vector_mult_1D(primitive_soln_at_vol_q[istate], legendre_soln_coeff,
-                                                                      legendre_soln_basis_projection_oper.oneD_vol_operator);
-            // -- (2) Truncate modes for high-pass filter (i.e. DG-VMS like)
-            if(this->apply_modal_high_pass_filter_on_filtered_solution && (istate!=0 && istate!=(nstate-1))) {
-                for(unsigned int ishape=0; ishape<n_shape_fns; ishape++){
-                    if(ishape < p_min_filtered){
-                        legendre_soln_coeff[ishape] = 0.0;
-                    }
-                }    
-            }
-            // -- (3) Interpolate filtered solution back to quadrature points
-            primitive_legendre_soln_at_vol_q[istate].resize(n_quad_pts_vol);
-            legendre_soln_basis.matrix_vector_mult_1D(legendre_soln_coeff, primitive_legendre_soln_at_vol_q[istate],
-                                                      legendre_soln_basis.oneD_vol_operator);
-            primitive_legendre_soln_at_surf_q[istate].resize(n_face_quad_pts);
-            legendre_soln_basis.matrix_vector_mult_surface_1D(face_orientation, 
-                                                              iface,
-                                                              legendre_soln_coeff, primitive_legendre_soln_at_surf_q[istate],
-                                                              legendre_soln_basis.oneD_surf_operator,
-                                                              legendre_soln_basis.oneD_vol_operator);
-            //==================================================
-
-            //==================================================
-            // Auxiliary Solution (gradients)
-            //==================================================
-            dealii::Tensor<1,dim,std::vector<adtype>> legendre_aux_soln_coeff;
-            for(int idim=0; idim<dim; idim++){
-                // -- (1) Project to Legendre basis
-                legendre_aux_soln_coeff[idim].resize(n_shape_fns);
-                if(this->use_auxiliary_eq){
-                    legendre_soln_basis_projection_oper.matrix_vector_mult_1D(primitive_aux_soln_at_vol_q[istate][idim], legendre_aux_soln_coeff[idim],
-                                                                              legendre_soln_basis_projection_oper.oneD_vol_operator);
-                    // -- (2) Truncate modes for high-pass filter (i.e. DG-VMS like)
-                    if(this->apply_modal_high_pass_filter_on_filtered_solution && (istate!=0 && istate!=(nstate-1))) {
-                        for(unsigned int ishape=0; ishape<n_shape_fns; ishape++){
-                            if(ishape < p_min_filtered){
-                                legendre_aux_soln_coeff[idim][ishape] = 0.0;
-                            }
-                        }
-                    }
-                }
-                else {
-                    for(unsigned int ishape=0; ishape<n_shape_fns; ishape++){
-                        legendre_aux_soln_coeff[idim][ishape] = 0.0;
-                    }
-                }
-                // -- (3) Interpolate filtered solution back to quadrature points
-                primitive_legendre_aux_soln_at_vol_q[istate][idim].resize(n_quad_pts_vol);
-                legendre_soln_basis.matrix_vector_mult_1D(legendre_aux_soln_coeff[idim], primitive_legendre_aux_soln_at_vol_q[istate][idim],
-                                                          legendre_soln_basis.oneD_vol_operator);
-                primitive_legendre_aux_soln_at_surf_q[istate][idim].resize(n_face_quad_pts);
-                legendre_soln_basis.matrix_vector_mult_surface_1D(face_orientation, 
-                                                                  iface,
-                                                                  legendre_aux_soln_coeff[idim], primitive_legendre_aux_soln_at_surf_q[istate][idim],
-                                                                  legendre_soln_basis.oneD_surf_operator,
-                                                                  legendre_soln_basis.oneD_vol_operator);
-            }
-            //==================================================
-        }
-        //=======================================================
-        // CONVERT PRIMITIVE LEGENDRE SOLUTION TO CONSERVATIVE
-        //=======================================================
-        // Resize the conservative soln arrays
-        for(int istate=0; istate<nstate; istate++){
-            legendre_soln_at_vol_q[istate].resize(n_quad_pts_vol);
-            legendre_soln_at_surf_q[istate].resize(n_face_quad_pts);
-            for(int idim=0; idim<dim; idim++){
-                legendre_aux_soln_at_vol_q[istate][idim].resize(n_quad_pts_vol);
-                legendre_aux_soln_at_surf_q[istate][idim].resize(n_face_quad_pts);
-            }
-        }
-        // Compute the primitive soln at all iquad and fill arrays
-        // -- volume
-        for (unsigned int iquad=0; iquad<n_quad_pts_vol; ++iquad) {
-            // extract conservative soln state
-            std::array<adtype,nstate> primitive_legendre_soln_state;
-            std::array<dealii::Tensor<1,dim,adtype>,nstate> primitive_legendre_aux_soln_state;
-            for(int istate=0; istate<nstate; istate++){
-                primitive_legendre_soln_state[istate] = primitive_legendre_soln_at_vol_q[istate][iquad];
-                for(int idim=0; idim<dim; idim++){
-                    primitive_legendre_aux_soln_state[istate][idim] = primitive_legendre_aux_soln_at_vol_q[istate][idim][iquad];
-                }
-            }
-            // compute conservative soln state from primitive
-            std::array<adtype,nstate> legendre_soln_state = pde_physics.convert_primitive_to_conservative(primitive_legendre_soln_state);
-            std::array<dealii::Tensor<1,dim,adtype>,nstate> legendre_aux_soln_state = pde_physics.convert_primitive_gradient_to_conservative_gradient(primitive_legendre_soln_state,primitive_legendre_aux_soln_state);
-            // store conservative soln at quadrature point
-            for(int istate=0; istate<nstate; istate++){
-                legendre_soln_at_vol_q[istate][iquad] = legendre_soln_state[istate];
-                for(int idim=0; idim<dim; idim++){
-                    legendre_aux_soln_at_vol_q[istate][idim][iquad] = legendre_aux_soln_state[istate][idim];
-                }
-            }
-        }
-        // -- surface
-        for (unsigned int iquad_face=0; iquad_face<n_face_quad_pts; iquad_face++) {
-            // extract conservative soln state
-            std::array<adtype,nstate> primitive_legendre_soln_state;
-            std::array<dealii::Tensor<1,dim,adtype>,nstate> primitive_legendre_aux_soln_state;
-            for(int istate=0; istate<nstate; istate++){
-                primitive_legendre_soln_state[istate] = primitive_legendre_soln_at_surf_q[istate][iquad_face];
-                for(int idim=0; idim<dim; idim++){
-                    primitive_legendre_aux_soln_state[istate][idim] = primitive_legendre_aux_soln_at_surf_q[istate][idim][iquad_face];
-                }
-            }
-            // compute conservative soln state from primitive
-            std::array<adtype,nstate> legendre_soln_state = pde_physics.convert_primitive_to_conservative(primitive_legendre_soln_state);
-            std::array<dealii::Tensor<1,dim,adtype>,nstate> legendre_aux_soln_state = pde_physics.convert_primitive_gradient_to_conservative_gradient(primitive_legendre_soln_state,primitive_legendre_aux_soln_state);
-            // store conservative soln at quadrature point
-            for(int istate=0; istate<nstate; istate++){
-                legendre_soln_at_surf_q[istate][iquad_face] = legendre_soln_state[istate];
-                for(int idim=0; idim<dim; idim++){
-                    legendre_aux_soln_at_surf_q[istate][idim][iquad_face] = legendre_aux_soln_state[istate][idim];
-                }
-            }
-        }
     }
 
     // Get volume reference fluxes and interpolate them to the facet.
@@ -1936,7 +1885,6 @@ void DGStrong<dim,nspecies,nstate,real,MeshType>::assemble_boundary_term_strong(
 
     // First we do interior.
     std::array<dealii::Tensor<1,dim,std::vector<adtype>>,nstate> conv_ref_flux_at_vol_q;
-    std::array<dealii::Tensor<1,dim,std::vector<adtype>>,nstate> diffusive_ref_flux_at_vol_q;
     for (unsigned int iquad=0; iquad<n_quad_pts_vol; ++iquad) {
         // Copy Metric Cofactor in a way can use for transforming Tensor Blocks to reference space
         // The way it is stored in metric_operators is to use sum-factorization in each direction,
@@ -1966,14 +1914,9 @@ void DGStrong<dim,nspecies,nstate,real,MeshType>::assemble_boundary_term_strong(
             conv_phys_flux = pde_physics.convective_flux (soln_state);
         }
 
-        // Compute the physical dissipative flux
-        std::array<dealii::Tensor<1,dim,adtype>,nstate> diffusive_phys_flux;
-        diffusive_phys_flux = pde_physics.dissipative_flux(soln_state, aux_soln_state, filtered_soln_state, filtered_aux_soln_state, current_cell_index);
-
         // Write the values in a way that we can use sum-factorization on.
         for(int istate=0; istate<nstate; istate++){
             dealii::Tensor<1,dim,adtype> conv_ref_flux;
-            dealii::Tensor<1,dim,adtype> diffusive_ref_flux;
             // transform the conservative convective physical flux to reference space
             if(!this->all_parameters->use_split_form && !this->all_parameters->use_curvilinear_split_form){
                 metric_oper.transform_physical_to_reference(
@@ -1981,11 +1924,6 @@ void DGStrong<dim,nspecies,nstate,real,MeshType>::assemble_boundary_term_strong(
                     metric_cofactor_vol,
                     conv_ref_flux);
             }
-            // transform the dissipative flux to reference space
-            metric_oper.transform_physical_to_reference(
-                diffusive_phys_flux[istate],
-                metric_cofactor_vol,
-                diffusive_ref_flux);
 
             // Write the data in a way that we can use sum-factorization on.
             // Since sum-factorization improves the speed for matrix-vector multiplications,
@@ -1994,14 +1932,11 @@ void DGStrong<dim,nspecies,nstate,real,MeshType>::assemble_boundary_term_strong(
                 //allocate
                 if(iquad == 0){
                     conv_ref_flux_at_vol_q[istate][idim].resize(n_quad_pts_vol);
-                    diffusive_ref_flux_at_vol_q[istate][idim].resize(n_quad_pts_vol);
                 }
                 //write data
                 if(!this->all_parameters->use_split_form && !this->all_parameters->use_curvilinear_split_form){
                     conv_ref_flux_at_vol_q[istate][idim][iquad] = conv_ref_flux[idim];
                 }
-
-                diffusive_ref_flux_at_vol_q[istate][idim][iquad] = diffusive_ref_flux[idim];
             }
         }
     }
@@ -2015,11 +1950,9 @@ void DGStrong<dim,nspecies,nstate,real,MeshType>::assemble_boundary_term_strong(
     const int dim_not_zero = iface / 2;//reference direction of face integer division
 
     std::array<std::vector<adtype>,nstate> conv_int_vol_ref_flux_interp_to_face_dot_ref_normal;
-    std::array<std::vector<adtype>,nstate> diffusive_int_vol_ref_flux_interp_to_face_dot_ref_normal;
     for(int istate=0; istate<nstate; istate++){
         //allocate
         conv_int_vol_ref_flux_interp_to_face_dot_ref_normal[istate].resize(n_face_quad_pts);
-        diffusive_int_vol_ref_flux_interp_to_face_dot_ref_normal[istate].resize(n_face_quad_pts);
 
         //solve
         //Note, since the normal is zero in all other reference directions, we only have to interpolate one given reference direction to the facet
@@ -2035,14 +1968,6 @@ void DGStrong<dim,nspecies,nstate,real,MeshType>::assemble_boundary_term_strong(
                                                      false, unit_ref_normal_int[dim_not_zero]);//don't add to previous value, scale by unit_normal int
         }
 
-        //interpolate reference volume dissipative flux to the facet, and apply unit reference normal as scaled by 1.0 or -1.0
-        flux_basis.matrix_vector_mult_surface_1D(face_orientation, 
-                                                 iface,
-                                                 diffusive_ref_flux_at_vol_q[istate][dim_not_zero],
-                                                 diffusive_int_vol_ref_flux_interp_to_face_dot_ref_normal[istate],
-                                                 flux_basis.oneD_surf_operator,
-                                                 flux_basis.oneD_vol_operator,
-                                                 false, unit_ref_normal_int[dim_not_zero]);
     }
 
     //Note that for entropy-dissipation and entropy stability, the conservative variables
@@ -2055,7 +1980,9 @@ void DGStrong<dim,nspecies,nstate,real,MeshType>::assemble_boundary_term_strong(
     std::array<std::vector<adtype>,nstate> entropy_var_vol;
     std::array<std::vector<adtype>,nstate> projected_entropy_var_vol;
     std::array<std::vector<adtype>,nstate> projected_entropy_var_surf;
-    if(this->uncollocated_flux_nodes){
+    std::array<std::vector<adtype>,nstate> entropy_var_coeffs;
+    if(this->uncollocated_flux_nodes || this->all_parameters->use_viscous_br2_entropystable)
+    {
         for(unsigned int iquad=0; iquad<n_quad_pts_vol; iquad++){
             std::array<adtype,nstate> soln_state;
             for(int istate=0; istate<nstate; istate++){
@@ -2071,26 +1998,25 @@ void DGStrong<dim,nspecies,nstate,real,MeshType>::assemble_boundary_term_strong(
             }
         }
 
-        //project it onto the solution basis functions and interpolate it
         for(int istate=0; istate<nstate; istate++){
             // allocate
             projected_entropy_var_vol[istate].resize(n_quad_pts_vol);
             projected_entropy_var_surf[istate].resize(n_face_quad_pts);
+            entropy_var_coeffs[istate].resize(n_shape_fns);
 
             //interior
-            std::vector<adtype> entropy_var_coeff(n_shape_fns);
             soln_basis_projection_oper.matrix_vector_mult_1D(entropy_var_vol[istate],
-                                                            entropy_var_coeff,
-                                                            soln_basis_projection_oper.oneD_vol_operator);
-            soln_basis.matrix_vector_mult_1D(entropy_var_coeff,
-                                            projected_entropy_var_vol[istate],
-                                            soln_basis.oneD_vol_operator);
+                                                             entropy_var_coeffs[istate],
+                                                             soln_basis_projection_oper.oneD_vol_operator);
+            soln_basis.matrix_vector_mult_1D(entropy_var_coeffs[istate],
+                                             projected_entropy_var_vol[istate],
+                                             soln_basis.oneD_vol_operator);
             soln_basis.matrix_vector_mult_surface_1D(face_orientation, 
-                                                    iface,
-                                                    entropy_var_coeff, 
-                                                    projected_entropy_var_surf[istate],
-                                                    soln_basis.oneD_surf_operator,
-                                                    soln_basis.oneD_vol_operator);
+                                                     iface,
+                                                     entropy_var_coeffs[istate], 
+                                                     projected_entropy_var_surf[istate],
+                                                     soln_basis.oneD_surf_operator,
+                                                     soln_basis.oneD_vol_operator);
         }
     }
 
@@ -2130,7 +2056,7 @@ void DGStrong<dim,nspecies,nstate,real,MeshType>::assemble_boundary_term_strong(
                 soln_state_face= pde_physics.compute_conservative_variables_from_entropy_variables (entropy_var_face);
             } else {
                 for(int istate=0; istate<nstate; istate++){
-                    soln_state_face[istate] = soln_at_vol_q[istate][iquad_face];
+                    soln_state_face[istate] = soln_at_surf_q[istate][iquad_face];
                 }
             }
             //only do the n_quad_1D vol points that give non-zero entries from Hadamard product.
@@ -2230,9 +2156,10 @@ void DGStrong<dim,nspecies,nstate,real,MeshType>::assemble_boundary_term_strong(
     }//end of if split form or curvilinear split form
 
 
-    //the outward reference normal dircetion.
+    //the outward reference normal direction.
     std::array<std::vector<adtype>,nstate> conv_flux_dot_normal;
-    std::array<std::vector<adtype>,nstate> diss_flux_dot_normal_diff;
+    std::vector<dealii::Tensor<1,dim,adtype>> unit_phys_normals(n_face_quad_pts);
+    std::vector<adtype> JxW_face(n_face_quad_pts);
     // Get surface numerical fluxes
     for (unsigned int iquad=0; iquad<n_face_quad_pts; ++iquad) {
         // Copy Metric Cofactor on the facet in a way can use for transforming Tensor Blocks to reference space
@@ -2256,7 +2183,9 @@ void DGStrong<dim,nspecies,nstate,real,MeshType>::assemble_boundary_term_strong(
             face_Jac_norm_scaled += unit_phys_normal_int[idim] * unit_phys_normal_int[idim];
         }
         face_Jac_norm_scaled = sqrt(face_Jac_norm_scaled);
+        JxW_face[iquad] = face_Jac_norm_scaled*face_quad_weights[iquad];
         unit_phys_normal_int /= face_Jac_norm_scaled;//normalize it. 
+        unit_phys_normals[iquad] = unit_phys_normal_int;
 
         //get the projected entropy variables, soln, and 
         //auxiliary solution on the surface point.
@@ -2264,7 +2193,6 @@ void DGStrong<dim,nspecies,nstate,real,MeshType>::assemble_boundary_term_strong(
         std::array<dealii::Tensor<1,dim,adtype>,nstate> aux_soln_state;
         std::array<adtype,nstate> soln_interp_to_face;
         std::array<adtype,nstate> soln_state;
-        std::array<adtype,nstate> opposite_surf_soln_state;
         std::array<adtype,nstate> filtered_soln_state;
         std::array<dealii::Tensor<1,dim,adtype>,nstate> filtered_aux_soln_state;
         for(int istate=0; istate<nstate; istate++){
@@ -2272,7 +2200,6 @@ void DGStrong<dim,nspecies,nstate,real,MeshType>::assemble_boundary_term_strong(
             soln_state[istate] = soln_interp_to_face[istate]; // initialize as solution interpolated to face
             if (this->uncollocated_flux_nodes)
                 entropy_var_face[istate] = projected_entropy_var_surf[istate][iquad];
-            if(this->using_wall_model && (boundary_id == 1001)) opposite_surf_soln_state[istate] = soln_at_opposite_surf_q[istate][iquad];
             if(this->do_compute_filtered_solution) filtered_soln_state[istate] = legendre_soln_at_surf_q[istate][iquad];
             for(int idim=0; idim<dim; idim++){
                 aux_soln_state[istate][idim] = aux_soln_at_surf_q[istate][idim][iquad];
@@ -2291,9 +2218,8 @@ void DGStrong<dim,nspecies,nstate,real,MeshType>::assemble_boundary_term_strong(
         for(int idim=0; idim<dim; idim++){
             surf_flux_node[idim] = metric_oper.flux_nodes_surf[iface][idim][iquad];
         }
-        //I am not sure if BC should be from solution interpolated to face
-        //or solution from the projected entropy variables.
-        //Now, it uses projected entropy variables for NSFR, and solution
+        
+        //The BC uses projected entropy variables for NSFR, and solution
         //interpolated to face for conservative DG.
         // From Shruthi: the above comment is only true if flux_nodes_type == GL
         // otherwise, it uses solution interpolated to face
@@ -2303,38 +2229,13 @@ void DGStrong<dim,nspecies,nstate,real,MeshType>::assemble_boundary_term_strong(
         std::array<adtype,nstate> conv_num_flux_dot_n_at_q;
         conv_num_flux_dot_n_at_q = conv_num_flux.evaluate_flux(soln_state, soln_boundary, unit_phys_normal_int);
         
-        // Dissipative numerical flux
-        pde_physics.boundary_face_values_viscous_flux (boundary_id, surf_flux_node, unit_phys_normal_int, soln_state, aux_soln_state, filtered_soln_state, filtered_aux_soln_state, soln_boundary, grad_soln_boundary);
-        std::array<adtype,nstate> diss_auxi_num_flux_dot_n_at_q;
-        if(this->using_wall_model && (boundary_id == 1001)) {
-            diss_auxi_num_flux_dot_n_at_q = pde_physics.dissipative_flux_dot_normal(
-                opposite_surf_soln_state, aux_soln_state, 
-                filtered_soln_state, filtered_aux_soln_state,
-                true, // on_boundary == true
-                current_cell_index, 
-                unit_phys_normal_int,
-                boundary_id);
-        } else {
-            diss_auxi_num_flux_dot_n_at_q = diss_num_flux.evaluate_auxiliary_flux(
-                current_cell_index, current_cell_index,
-                0.0, 0.0,
-                soln_interp_to_face, soln_boundary,
-                aux_soln_state, grad_soln_boundary,
-                filtered_soln_state, soln_boundary,
-                filtered_aux_soln_state, grad_soln_boundary,
-                unit_phys_normal_int, penalty, true, boundary_id);
-        }
-
         for(int istate=0; istate<nstate; istate++){
             // allocate
             if(iquad==0){
                 conv_flux_dot_normal[istate].resize(n_face_quad_pts);
-                diss_flux_dot_normal_diff[istate].resize(n_face_quad_pts);
             }
             // write data
             conv_flux_dot_normal[istate][iquad] = face_Jac_norm_scaled * conv_num_flux_dot_n_at_q[istate];
-            diss_flux_dot_normal_diff[istate][iquad] = face_Jac_norm_scaled * diss_auxi_num_flux_dot_n_at_q[istate]
-                                                     - diffusive_int_vol_ref_flux_interp_to_face_dot_ref_normal[istate][iquad];
         }
     }
 
@@ -2374,17 +2275,492 @@ void DGStrong<dim,nspecies,nstate,real,MeshType>::assemble_boundary_term_strong(
                                             soln_basis.oneD_surf_operator, 
                                             soln_basis.oneD_vol_operator,
                                             true, -1.0);//adding=true, scaled by factor=-1.0 bc subtract it
-        //Dissipative surface numerical flux.
-        soln_basis.inner_product_surface_1D(face_orientation, 
-                                            iface,
-                                            diss_flux_dot_normal_diff[istate], 
-                                            face_quad_weights, rhs, 
-                                            soln_basis.oneD_surf_operator, 
-                                            soln_basis.oneD_vol_operator,
-                                            true, -1.0);//adding=true, scaled by factor=-1.0 bc subtract it
 
         for(unsigned int ishape=0; ishape<n_shape_fns; ishape++){
             local_rhs_cell[istate*n_shape_fns + ishape] += rhs[ishape];
+        }
+    }
+    
+    std::vector<adtype> boundary_term_viscous;
+    assemble_boundary_term_viscous_primal(
+        current_cell_index,
+        face_orientation,
+        iface,
+        boundary_id,
+        poly_degree,
+        penalty,
+        entropy_var_coeffs,
+        projected_entropy_var_vol,
+        projected_entropy_var_surf,
+        soln_at_vol_q,
+        aux_soln_at_vol_q,
+        soln_at_surf_q,
+        aux_soln_at_surf_q,
+        soln_at_opposite_surf_q,
+        legendre_soln_at_vol_q,
+        legendre_aux_soln_at_vol_q,
+        legendre_soln_at_surf_q,
+        legendre_aux_soln_at_surf_q,
+        n_quad_pts_vol,  
+        n_face_quad_pts,  
+        n_dofs, 
+        soln_basis,
+        flux_basis,
+        metric_oper,
+        unit_phys_normals,
+        JxW_face,
+        pde_physics,
+        diss_num_flux,
+        boundary_term_viscous);
+
+    for(unsigned int idof=0; idof<n_dofs; ++idof)
+    {
+        local_rhs_cell[idof]+= boundary_term_viscous[idof];
+    }
+}
+
+template <int dim, int nspecies, int nstate, typename real, typename MeshType>
+template <typename adtype>
+void DGStrong<dim,nspecies,nstate,real,MeshType>::assemble_boundary_term_viscous_primal(
+    const dealii::types::global_dof_index                              current_cell_index,
+    std::vector<bool>                                                  face_orientation,
+    const unsigned int                                                 iface,
+    const unsigned int                                                 boundary_id,
+    const unsigned int                                                 poly_degree,
+    const real                                                         penalty,
+    const std::array<std::vector<adtype>,nstate>                       &entropy_var_coeff,
+    const std::array<std::vector<adtype>,nstate>                       &entropy_var_at_vol_quads,
+    const std::array<std::vector<adtype>,nstate>                       &entropy_var_at_surf_quads,
+    const std::array<std::vector<adtype>,nstate>                       &soln_at_vol_q,
+    const std::array<dealii::Tensor<1,dim,std::vector<adtype>>,nstate> &aux_soln_at_vol_q,
+    const std::array<std::vector<adtype>,nstate>                       &soln_at_surf_q,
+    const std::array<dealii::Tensor<1,dim,std::vector<adtype>>,nstate> &aux_soln_at_surf_q,
+    const std::array<std::vector<adtype>,nstate>                       &soln_at_opposite_surf_q,
+    const std::array<std::vector<adtype>,nstate>                       &legendre_soln_at_vol_q,
+    const std::array<dealii::Tensor<1,dim,std::vector<adtype>>,nstate> &legendre_aux_soln_at_vol_q,
+    const std::array<std::vector<adtype>,nstate>                       &legendre_soln_at_surf_q,
+    const std::array<dealii::Tensor<1,dim,std::vector<adtype>>,nstate> &legendre_aux_soln_at_surf_q,
+    const unsigned int                                                 n_quad_pts_vol,  
+    const unsigned int                                                 n_face_quad_pts,  
+    const unsigned int                                                 n_dofs_cell, 
+    OPERATOR::basis_functions<dim,2*dim>                               &soln_basis,
+    OPERATOR::basis_functions<dim,2*dim>                               &flux_basis,
+    OPERATOR::metric_operators<adtype,dim,2*dim>                       &metric_oper,
+    const std::vector<dealii::Tensor<1,dim,adtype>>                    &unit_phys_normals,
+    const std::vector<adtype>                                          &JxW_face,
+    Physics::PhysicsBase<dim, nspecies, nstate, adtype>          &pde_physics,
+    const NumericalFlux::NumericalFluxDissipative<dim, nspecies, nstate, adtype> &diss_num_flux,
+    std::vector<adtype>                                                &boundary_term_viscous) const
+{
+    boundary_term_viscous.resize(n_dofs_cell);   
+    
+    if(this->all_parameters->use_viscous_br2_entropystable)
+    {
+        EntropyStable_viscousBR2<dim,nspecies,nstate,real,MeshType>::assemble_boundary_term_entropystable_br2(
+        face_orientation,
+        iface,
+        boundary_id,
+        poly_degree,
+        entropy_var_coeff,
+        entropy_var_at_vol_quads,
+        entropy_var_at_surf_quads,
+        n_quad_pts_vol,
+        n_face_quad_pts,
+        n_dofs_cell,
+        soln_basis,
+        flux_basis,
+        metric_oper,
+        unit_phys_normals,
+        JxW_face,
+        pde_physics,
+        this->volume_quadrature_collection[poly_degree].get_weights(),
+        boundary_term_viscous);
+        for(unsigned int i=0; i<n_dofs_cell; ++i)
+        {
+            boundary_term_viscous[i] *=-1.0; // negate as we are moving the term to the right hand side.
+        }
+    }
+    else
+    {
+        const unsigned int n_shape_fns = n_dofs_cell / nstate; 
+        const std::vector<double> &face_quad_weights = this->face_quadrature_collection[poly_degree].get_weights();
+        std::array<dealii::Tensor<1,dim,std::vector<adtype>>,nstate> diffusive_ref_flux_at_vol_q;
+        for (unsigned int iquad=0; iquad<n_quad_pts_vol; ++iquad) {
+            // Copy Metric Cofactor in a way can use for transforming Tensor Blocks to reference space
+            // The way it is stored in metric_operators is to use sum-factorization in each direction,
+            // but here it is cleaner to apply a reference transformation in each Tensor block returned by physics.
+            dealii::Tensor<2,dim,adtype> metric_cofactor_vol;
+            for(int idim=0; idim<dim; idim++){
+                for(int jdim=0; jdim<dim; jdim++){
+                    metric_cofactor_vol[idim][jdim] = metric_oper.metric_cofactor_vol[idim][jdim][iquad];
+                }
+            }
+            std::array<adtype,nstate> soln_state;
+            std::array<dealii::Tensor<1,dim,adtype>,nstate> aux_soln_state;
+            std::array<adtype,nstate> filtered_soln_state;
+            std::array<dealii::Tensor<1,dim,adtype>,nstate> filtered_aux_soln_state;
+            for(int istate=0; istate<nstate; istate++){
+                soln_state[istate] = soln_at_vol_q[istate][iquad];
+                if(this->do_compute_filtered_solution) filtered_soln_state[istate] = legendre_soln_at_vol_q[istate][iquad];
+                for(int idim=0; idim<dim; idim++){
+                    aux_soln_state[istate][idim] = aux_soln_at_vol_q[istate][idim][iquad];
+                    if(this->do_compute_filtered_solution) filtered_aux_soln_state[istate][idim] = legendre_aux_soln_at_vol_q[istate][idim][iquad];
+                }
+            }
+        
+            // Compute the physical dissipative flux
+            std::array<dealii::Tensor<1,dim,adtype>,nstate> diffusive_phys_flux;
+            diffusive_phys_flux = pde_physics.dissipative_flux(soln_state, aux_soln_state, filtered_soln_state, filtered_aux_soln_state, current_cell_index);
+            for(int istate=0; istate<nstate; istate++){
+                dealii::Tensor<1,dim,adtype> diffusive_ref_flux;
+                // transform the dissipative flux to reference space
+                metric_oper.transform_physical_to_reference(
+                    diffusive_phys_flux[istate],
+                    metric_cofactor_vol,
+                    diffusive_ref_flux);
+                for(int idim=0; idim<dim; idim++){
+                    //allocate
+                    if(iquad == 0){
+                        diffusive_ref_flux_at_vol_q[istate][idim].resize(n_quad_pts_vol);
+                    }
+                    //write data
+                    diffusive_ref_flux_at_vol_q[istate][idim][iquad] = diffusive_ref_flux[idim];
+                }
+            }
+
+        } // quad loop ends
+        const dealii::Tensor<1,dim,double> unit_ref_normal_int = dealii::GeometryInfo<dim>::unit_normal_vector[iface];
+        const int dim_not_zero = iface / 2;//reference direction of face integer division
+        
+        std::array<std::vector<adtype>,nstate> diffusive_int_vol_ref_flux_interp_to_face_dot_ref_normal;
+        
+        for(int istate=0; istate<nstate; istate++){
+            //allocate
+            diffusive_int_vol_ref_flux_interp_to_face_dot_ref_normal[istate].resize(n_face_quad_pts);
+            
+            //interpolate reference volume dissipative flux to the facet, and apply unit reference normal as scaled by 1.0 or -1.0
+            flux_basis.matrix_vector_mult_surface_1D(face_orientation, 
+                                                     iface,
+                                                     diffusive_ref_flux_at_vol_q[istate][dim_not_zero],
+                                                     diffusive_int_vol_ref_flux_interp_to_face_dot_ref_normal[istate],
+                                                     flux_basis.oneD_surf_operator,
+                                                     flux_basis.oneD_vol_operator,
+                                                     false, unit_ref_normal_int[dim_not_zero]);
+        }
+        
+        std::array<std::vector<adtype>,nstate> diss_flux_dot_normal_diff;
+        for (unsigned int iquad=0; iquad<n_face_quad_pts; ++iquad) {
+            
+            //get the projected entropy variables, soln, and 
+            //auxiliary solution on the surface point.
+            std::array<adtype,nstate> entropy_var_face;
+            std::array<dealii::Tensor<1,dim,adtype>,nstate> aux_soln_state;
+            std::array<adtype,nstate> soln_interp_to_face;
+            std::array<adtype,nstate> soln_state;
+            std::array<adtype,nstate> opposite_surf_soln_state;
+            std::array<adtype,nstate> filtered_soln_state;
+            std::array<dealii::Tensor<1,dim,adtype>,nstate> filtered_aux_soln_state;
+            for(int istate=0; istate<nstate; istate++){
+                soln_interp_to_face[istate] = soln_at_surf_q[istate][iquad];
+                soln_state[istate] = soln_interp_to_face[istate]; // initialize as solution interpolated to face
+                if(this->uncollocated_flux_nodes)
+                    entropy_var_face[istate] = entropy_var_at_surf_quads[istate][iquad];
+                if(this->using_wall_model && (boundary_id == 1001)) opposite_surf_soln_state[istate] = soln_at_opposite_surf_q[istate][iquad];
+                if(this->do_compute_filtered_solution) filtered_soln_state[istate] = legendre_soln_at_surf_q[istate][iquad];
+                for(int idim=0; idim<dim; idim++){
+                    aux_soln_state[istate][idim] = aux_soln_at_surf_q[istate][idim][iquad];
+                    if(this->do_compute_filtered_solution) filtered_aux_soln_state[istate][idim] = legendre_aux_soln_at_surf_q[istate][idim][iquad];
+                }
+            }
+
+            //extract solution on surface from projected entropy variables if NSFR; conservative DG uses solution interpolated to face (i.e. the initialization)
+            if((this->all_parameters->use_split_form || this->all_parameters->use_curvilinear_split_form) && this->uncollocated_flux_nodes) {
+                soln_state = pde_physics.compute_conservative_variables_from_entropy_variables (entropy_var_face);    
+            }
+
+            std::array<adtype,nstate> soln_boundary;
+            std::array<dealii::Tensor<1,dim,adtype>,nstate> grad_soln_boundary;
+            
+            dealii::Point<dim,adtype> surf_flux_node;
+            for(int idim=0; idim<dim; idim++){
+                surf_flux_node[idim] = metric_oper.flux_nodes_surf[iface][idim][iquad];
+            }
+            
+            // Dissipative numerical flux
+            pde_physics.boundary_face_values_viscous_flux (boundary_id, surf_flux_node, unit_phys_normals[iquad], soln_state, aux_soln_state, filtered_soln_state, filtered_aux_soln_state, soln_boundary, grad_soln_boundary);
+            std::array<adtype,nstate> diss_auxi_num_flux_dot_n_at_q;
+            if(this->using_wall_model && (boundary_id == 1001)) {
+                diss_auxi_num_flux_dot_n_at_q = pde_physics.dissipative_flux_dot_normal(
+                    opposite_surf_soln_state, aux_soln_state, 
+                    filtered_soln_state, filtered_aux_soln_state,
+                    true, // on_boundary == true
+                    current_cell_index, 
+                    unit_phys_normals[iquad],
+                    boundary_id);
+            } else {
+                diss_auxi_num_flux_dot_n_at_q = diss_num_flux.evaluate_auxiliary_flux(
+                    current_cell_index, current_cell_index,
+                    0.0, 0.0,
+                    soln_interp_to_face, soln_boundary,
+                    aux_soln_state, grad_soln_boundary,
+                    filtered_soln_state, soln_boundary,
+                    filtered_aux_soln_state, grad_soln_boundary,
+                    unit_phys_normals[iquad], penalty, true, boundary_id);
+            }
+            for(int istate=0; istate<nstate; istate++){
+                // allocate
+                if(iquad==0){
+                    diss_flux_dot_normal_diff[istate].resize(n_face_quad_pts);
+                }
+                // write data
+                const adtype face_Jac_norm_scaled = JxW_face[iquad]/face_quad_weights[iquad];
+                diss_flux_dot_normal_diff[istate][iquad] = face_Jac_norm_scaled * diss_auxi_num_flux_dot_n_at_q[istate]
+                                                         - diffusive_int_vol_ref_flux_interp_to_face_dot_ref_normal[istate][iquad];
+            }
+        } //quad 
+        
+        //solve rhs
+        for(int istate=0; istate<nstate; istate++){
+            std::vector<adtype> rhs(n_shape_fns);
+            //Dissipative surface numerical flux.
+            soln_basis.inner_product_surface_1D(face_orientation, 
+                                                iface,
+                                                diss_flux_dot_normal_diff[istate], 
+                                                face_quad_weights, rhs, 
+                                                soln_basis.oneD_surf_operator, 
+                                                soln_basis.oneD_vol_operator,
+                                                false, -1.0);//scaled by factor=-1.0 bc subtract it
+
+            for(unsigned int ishape=0; ishape<n_shape_fns; ishape++){
+                boundary_term_viscous[istate*n_shape_fns + ishape] = rhs[ishape];
+            }
+        }
+        
+    }
+}
+ 
+template <int dim, int nspecies, int nstate, typename real, typename MeshType>
+template <typename adtype>
+void DGStrong<dim,nspecies,nstate,real,MeshType>::compute_filtered_solution_volume_and_face(
+    std::vector<bool>                                                  face_orientation,
+    const unsigned int                                                 iface,
+    std::array<std::vector<adtype>,nstate> &legendre_soln_at_vol_q,
+    std::array<dealii::Tensor<1,dim,std::vector<adtype>>,nstate> &legendre_aux_soln_at_vol_q,
+    std::array<std::vector<adtype>,nstate> &legendre_soln_at_surf_q,
+    std::array<dealii::Tensor<1,dim,std::vector<adtype>>,nstate> &legendre_aux_soln_at_surf_q,
+    const std::array<std::vector<adtype>,nstate> &soln_at_vol_q,
+    const std::array<dealii::Tensor<1,dim,std::vector<adtype>>,nstate> &aux_soln_at_vol_q,
+    Physics::PhysicsBase<dim, nspecies, nstate, adtype>                &pde_physics,
+    const std::array<std::vector<adtype>,nstate> &soln_at_surf_q,
+    const std::array<dealii::Tensor<1,dim,std::vector<adtype>>,nstate> &aux_soln_at_surf_q,
+    const unsigned int n_quad_pts_vol,
+    const unsigned int n_face_quad_pts,
+    const unsigned int n_shape_fns,
+    const unsigned int poly_degree)
+{
+    // NOTE: This only pertains to advanced SGS models for LES
+    //==================================================
+    // GET THE PRIMITIVE SOLUTION
+    //==================================================
+    std::array<std::vector<adtype>,nstate> primitive_soln_at_vol_q;
+    std::array<dealii::Tensor<1,dim,std::vector<adtype>>,nstate> primitive_aux_soln_at_vol_q;
+    std::array<std::vector<adtype>,nstate> primitive_soln_at_surf_q;
+    std::array<dealii::Tensor<1,dim,std::vector<adtype>>,nstate> primitive_aux_soln_at_surf_q;
+    // Resize the primitive soln arrays
+    for(int istate=0; istate<nstate; istate++){
+        primitive_soln_at_vol_q[istate].resize(n_quad_pts_vol);
+        primitive_soln_at_surf_q[istate].resize(n_face_quad_pts);
+        for(int idim=0; idim<dim; idim++){
+            primitive_aux_soln_at_vol_q[istate][idim].resize(n_quad_pts_vol);
+            primitive_aux_soln_at_surf_q[istate][idim].resize(n_face_quad_pts);
+        }
+    }
+    // Compute the primitive soln at all iquad and fill arrays
+    // -- volume
+    for (unsigned int iquad=0; iquad<n_quad_pts_vol; ++iquad) {
+        // extract conservative soln state
+        std::array<adtype,nstate> soln_state;
+        std::array<dealii::Tensor<1,dim,adtype>,nstate> aux_soln_state;
+        for(int istate=0; istate<nstate; istate++){
+            soln_state[istate] = soln_at_vol_q[istate][iquad];
+            for(int idim=0; idim<dim; idim++){
+                aux_soln_state[istate][idim] = aux_soln_at_vol_q[istate][idim][iquad];
+            }
+        }
+        // compute primitive soln state from conservative
+        std::array<adtype,nstate> primitive_soln_state = pde_physics.convert_conservative_to_primitive(soln_state);
+        std::array<dealii::Tensor<1,dim,adtype>,nstate> primitive_aux_soln_state = pde_physics.convert_conservative_gradient_to_primitive_gradient(soln_state,aux_soln_state);
+        // store primitive soln at quadrature point
+        for(int istate=0; istate<nstate; istate++){
+            primitive_soln_at_vol_q[istate][iquad] = primitive_soln_state[istate];
+            for(int idim=0; idim<dim; idim++){
+                primitive_aux_soln_at_vol_q[istate][idim][iquad] = primitive_aux_soln_state[istate][idim];
+            }
+        }
+    }
+    // -- surface
+    for(unsigned int iquad_face=0; iquad_face<n_face_quad_pts; iquad_face++){
+        // extract conservative soln state
+        std::array<adtype,nstate> soln_state;
+        std::array<dealii::Tensor<1,dim,adtype>,nstate> aux_soln_state;
+        for(int istate=0; istate<nstate; istate++){
+            soln_state[istate] = soln_at_surf_q[istate][iquad_face];
+            for(int idim=0; idim<dim; idim++){
+                aux_soln_state[istate][idim] = aux_soln_at_surf_q[istate][idim][iquad_face];
+            }
+        }
+        // compute primitive soln state from conservative
+        std::array<adtype,nstate> primitive_soln_state = pde_physics.convert_conservative_to_primitive(soln_state);
+        std::array<dealii::Tensor<1,dim,adtype>,nstate> primitive_aux_soln_state = pde_physics.convert_conservative_gradient_to_primitive_gradient(soln_state,aux_soln_state);
+        // store primitive soln at quadrature point
+        for(int istate=0; istate<nstate; istate++){
+            primitive_soln_at_surf_q[istate][iquad_face] = primitive_soln_state[istate];
+            for(int idim=0; idim<dim; idim++){
+                primitive_aux_soln_at_surf_q[istate][idim][iquad_face] = primitive_aux_soln_state[istate][idim];
+            }
+        }
+    }
+
+    //==================================================
+    // PROJECT TO LEGENDRE BASIS AND MODALLY FILTER
+    //==================================================
+    // -- Primitive solution at legendre poly
+    std::array<std::vector<adtype>,nstate> primitive_legendre_soln_at_vol_q;
+    std::array<dealii::Tensor<1,dim,std::vector<adtype>>,nstate> primitive_legendre_aux_soln_at_vol_q;
+    std::array<std::vector<adtype>,nstate> primitive_legendre_soln_at_surf_q;
+    std::array<dealii::Tensor<1,dim,std::vector<adtype>>,nstate> primitive_legendre_aux_soln_at_surf_q;
+
+    // Details: this projects to Legendre basis, truncates, then interpolates back to quad nodes.
+    // -- Constructor for tensor product polynomials based on Polynomials::Legendre interpolation. 
+    dealii::FE_DGQLegendre<1,1> legendre_poly_1D(poly_degree);
+    // -- Projection operator for legendre basis
+    OPERATOR::vol_projection_operator<dim,2*dim> legendre_soln_basis_projection_oper(1, poly_degree, this->max_grid_degree);
+    legendre_soln_basis_projection_oper.build_1D_volume_operator(legendre_poly_1D, this->oneD_quadrature_collection[poly_degree]);
+    // -- Legendre basis functions 
+    OPERATOR::basis_functions<dim,2*dim> legendre_soln_basis(1, poly_degree, this->max_grid_degree);
+    legendre_soln_basis.build_1D_volume_operator(legendre_poly_1D, this->oneD_quadrature_collection[poly_degree]);
+    legendre_soln_basis.build_1D_surface_operator(legendre_poly_1D, this->oneD_face_quadrature);
+    const unsigned int p_min_filtered = this->poly_degree_max_large_scales + 1;
+    for(int istate=0; istate<nstate; istate++){
+        //==================================================
+        // Solution
+        //==================================================
+        // -- (1) Project to Legendre basis
+        std::vector<adtype> legendre_soln_coeff(n_shape_fns);
+        legendre_soln_basis_projection_oper.matrix_vector_mult_1D(primitive_soln_at_vol_q[istate], legendre_soln_coeff,
+                                                                  legendre_soln_basis_projection_oper.oneD_vol_operator);
+        // -- (2) Truncate modes for high-pass filter (i.e. DG-VMS like)
+        if(this->apply_modal_high_pass_filter_on_filtered_solution && (istate!=0 && istate!=(nstate-1))) {
+            for(unsigned int ishape=0; ishape<n_shape_fns; ishape++){
+                if(ishape < p_min_filtered){
+                    legendre_soln_coeff[ishape] = 0.0;
+                }
+            }    
+        }
+        // -- (3) Interpolate filtered solution back to quadrature points
+        primitive_legendre_soln_at_vol_q[istate].resize(n_quad_pts_vol);
+        legendre_soln_basis.matrix_vector_mult_1D(legendre_soln_coeff, primitive_legendre_soln_at_vol_q[istate],
+                                                  legendre_soln_basis.oneD_vol_operator);
+        primitive_legendre_soln_at_surf_q[istate].resize(n_face_quad_pts);
+        legendre_soln_basis.matrix_vector_mult_surface_1D(face_orientation, 
+                                                          iface,
+                                                          legendre_soln_coeff, primitive_legendre_soln_at_surf_q[istate],
+                                                          legendre_soln_basis.oneD_surf_operator,
+                                                          legendre_soln_basis.oneD_vol_operator);
+        //==================================================
+
+        //==================================================
+        // Auxiliary Solution (gradients)
+        //==================================================
+        dealii::Tensor<1,dim,std::vector<adtype>> legendre_aux_soln_coeff;
+        for(int idim=0; idim<dim; idim++){
+            // -- (1) Project to Legendre basis
+            legendre_aux_soln_coeff[idim].resize(n_shape_fns);
+            if(this->use_auxiliary_eq){
+                legendre_soln_basis_projection_oper.matrix_vector_mult_1D(primitive_aux_soln_at_vol_q[istate][idim], legendre_aux_soln_coeff[idim],
+                                                                          legendre_soln_basis_projection_oper.oneD_vol_operator);
+                // -- (2) Truncate modes for high-pass filter (i.e. DG-VMS like)
+                if(this->apply_modal_high_pass_filter_on_filtered_solution && (istate!=0 && istate!=(nstate-1))) {
+                    for(unsigned int ishape=0; ishape<n_shape_fns; ishape++){
+                        if(ishape < p_min_filtered){
+                            legendre_aux_soln_coeff[idim][ishape] = 0.0;
+                        }
+                    }
+                }
+            }
+            else {
+                for(unsigned int ishape=0; ishape<n_shape_fns; ishape++){
+                    legendre_aux_soln_coeff[idim][ishape] = 0.0;
+                }
+            }
+            // -- (3) Interpolate filtered solution back to quadrature points
+            primitive_legendre_aux_soln_at_vol_q[istate][idim].resize(n_quad_pts_vol);
+            legendre_soln_basis.matrix_vector_mult_1D(legendre_aux_soln_coeff[idim], primitive_legendre_aux_soln_at_vol_q[istate][idim],
+                                                      legendre_soln_basis.oneD_vol_operator);
+            primitive_legendre_aux_soln_at_surf_q[istate][idim].resize(n_face_quad_pts);
+            legendre_soln_basis.matrix_vector_mult_surface_1D(face_orientation, 
+                                                              iface,
+                                                              legendre_aux_soln_coeff[idim], primitive_legendre_aux_soln_at_surf_q[istate][idim],
+                                                              legendre_soln_basis.oneD_surf_operator,
+                                                              legendre_soln_basis.oneD_vol_operator);
+        }
+        //==================================================
+    }
+    //=======================================================
+    // CONVERT PRIMITIVE LEGENDRE SOLUTION TO CONSERVATIVE
+    //=======================================================
+    // Resize the conservative soln arrays
+    for(int istate=0; istate<nstate; istate++){
+        legendre_soln_at_vol_q[istate].resize(n_quad_pts_vol);
+        legendre_soln_at_surf_q[istate].resize(n_face_quad_pts);
+        for(int idim=0; idim<dim; idim++){
+            legendre_aux_soln_at_vol_q[istate][idim].resize(n_quad_pts_vol);
+            legendre_aux_soln_at_surf_q[istate][idim].resize(n_face_quad_pts);
+        }
+    }
+    // Compute the primitive soln at all iquad and fill arrays
+    // -- volume
+    for (unsigned int iquad=0; iquad<n_quad_pts_vol; ++iquad) {
+        // extract conservative soln state
+        std::array<adtype,nstate> primitive_legendre_soln_state;
+        std::array<dealii::Tensor<1,dim,adtype>,nstate> primitive_legendre_aux_soln_state;
+        for(int istate=0; istate<nstate; istate++){
+            primitive_legendre_soln_state[istate] = primitive_legendre_soln_at_vol_q[istate][iquad];
+            for(int idim=0; idim<dim; idim++){
+                primitive_legendre_aux_soln_state[istate][idim] = primitive_legendre_aux_soln_at_vol_q[istate][idim][iquad];
+            }
+        }
+        // compute conservative soln state from primitive
+        std::array<adtype,nstate> legendre_soln_state = pde_physics.convert_primitive_to_conservative(primitive_legendre_soln_state);
+        std::array<dealii::Tensor<1,dim,adtype>,nstate> legendre_aux_soln_state = pde_physics.convert_primitive_gradient_to_conservative_gradient(primitive_legendre_soln_state,primitive_legendre_aux_soln_state);
+        // store conservative soln at quadrature point
+        for(int istate=0; istate<nstate; istate++){
+            legendre_soln_at_vol_q[istate][iquad] = legendre_soln_state[istate];
+            for(int idim=0; idim<dim; idim++){
+                legendre_aux_soln_at_vol_q[istate][idim][iquad] = legendre_aux_soln_state[istate][idim];
+            }
+        }
+    }
+    // -- surface
+    for (unsigned int iquad_face=0; iquad_face<n_face_quad_pts; iquad_face++) {
+        // extract conservative soln state
+        std::array<adtype,nstate> primitive_legendre_soln_state;
+        std::array<dealii::Tensor<1,dim,adtype>,nstate> primitive_legendre_aux_soln_state;
+        for(int istate=0; istate<nstate; istate++){
+            primitive_legendre_soln_state[istate] = primitive_legendre_soln_at_surf_q[istate][iquad_face];
+            for(int idim=0; idim<dim; idim++){
+                primitive_legendre_aux_soln_state[istate][idim] = primitive_legendre_aux_soln_at_surf_q[istate][idim][iquad_face];
+            }
+        }
+        // compute conservative soln state from primitive
+        std::array<adtype,nstate> legendre_soln_state = pde_physics.convert_primitive_to_conservative(primitive_legendre_soln_state);
+        std::array<dealii::Tensor<1,dim,adtype>,nstate> legendre_aux_soln_state = pde_physics.convert_primitive_gradient_to_conservative_gradient(primitive_legendre_soln_state,primitive_legendre_aux_soln_state);
+        // store conservative soln at quadrature point
+        for(int istate=0; istate<nstate; istate++){
+            legendre_soln_at_surf_q[istate][iquad_face] = legendre_soln_state[istate];
+            for(int idim=0; idim<dim; idim++){
+                legendre_aux_soln_at_surf_q[istate][idim][iquad_face] = legendre_aux_soln_state[istate][idim];
+            }
         }
     }
 }
@@ -2422,6 +2798,7 @@ void DGStrong<dim,nspecies,nstate,real,MeshType>::assemble_face_term_strong(
 {
 
     const unsigned int n_face_quad_pts = this->face_quadrature_collection[poly_degree_int].size();//assume interior cell does the work
+    const std::vector<double> &surf_quad_weights = this->face_quadrature_collection[poly_degree_int].get_weights();
 
     const unsigned int n_quad_pts_vol_int  = this->volume_quadrature_collection[poly_degree_int].size();
     const unsigned int n_quad_pts_vol_ext  = this->volume_quadrature_collection[poly_degree_ext].size();
@@ -2509,354 +2886,38 @@ void DGStrong<dim,nspecies,nstate,real,MeshType>::assemble_face_term_strong(
     std::array<dealii::Tensor<1,dim,std::vector<adtype>>,nstate> legendre_aux_soln_at_surf_q_ext; // legendre auxiliary sol at flux nodes
     if(this->do_compute_filtered_solution) {
         // NOTE: This only pertains to advanced SGS models for LES
-        //==================================================
-        // GET THE PRIMITIVE SOLUTION
-        //==================================================
-        std::array<std::vector<adtype>,nstate> primitive_soln_at_vol_q_int;
-        std::array<dealii::Tensor<1,dim,std::vector<adtype>>,nstate> primitive_aux_soln_at_vol_q_int;
-        std::array<std::vector<adtype>,nstate> primitive_soln_at_surf_q_int;
-        std::array<dealii::Tensor<1,dim,std::vector<adtype>>,nstate> primitive_aux_soln_at_surf_q_int;
-        std::array<std::vector<adtype>,nstate> primitive_soln_at_vol_q_ext;
-        std::array<dealii::Tensor<1,dim,std::vector<adtype>>,nstate> primitive_aux_soln_at_vol_q_ext;
-        std::array<std::vector<adtype>,nstate> primitive_soln_at_surf_q_ext;
-        std::array<dealii::Tensor<1,dim,std::vector<adtype>>,nstate> primitive_aux_soln_at_surf_q_ext;
-        // Resize the primitive soln arrays
-        for(int istate=0; istate<nstate; istate++){
-            primitive_soln_at_vol_q_int[istate].resize(n_quad_pts_vol_int);
-            primitive_soln_at_surf_q_int[istate].resize(n_face_quad_pts);
-            primitive_soln_at_vol_q_ext[istate].resize(n_quad_pts_vol_ext);
-            primitive_soln_at_surf_q_ext[istate].resize(n_face_quad_pts);
-            for(int idim=0; idim<dim; idim++){
-                primitive_aux_soln_at_vol_q_int[istate][idim].resize(n_quad_pts_vol_int);
-                primitive_aux_soln_at_surf_q_int[istate][idim].resize(n_face_quad_pts);
-                primitive_aux_soln_at_vol_q_ext[istate][idim].resize(n_quad_pts_vol_ext);
-                primitive_aux_soln_at_surf_q_ext[istate][idim].resize(n_face_quad_pts);
-            }
-        }
-        // Compute the primitive soln at all iquad and fill arrays
-        // -- volume int
-        for (unsigned int iquad=0; iquad<n_quad_pts_vol_int; ++iquad) {
-            // extract conservative soln state
-            std::array<adtype,nstate> soln_state;
-            std::array<dealii::Tensor<1,dim,adtype>,nstate> aux_soln_state;
-            for(int istate=0; istate<nstate; istate++){
-                soln_state[istate] = soln_at_vol_q_int[istate][iquad];
-                for(int idim=0; idim<dim; idim++){
-                    aux_soln_state[istate][idim] = aux_soln_at_vol_q_int[istate][idim][iquad];
-                }
-            }
-            // compute primitive soln state from conservative
-            std::array<adtype,nstate> primitive_soln_state = pde_physics.convert_conservative_to_primitive(soln_state);
-            std::array<dealii::Tensor<1,dim,adtype>,nstate> primitive_aux_soln_state = pde_physics.convert_conservative_gradient_to_primitive_gradient(soln_state,aux_soln_state);
-            // store primitive soln at quadrature point
-            for(int istate=0; istate<nstate; istate++){
-                primitive_soln_at_vol_q_int[istate][iquad] = primitive_soln_state[istate];
-                for(int idim=0; idim<dim; idim++){
-                    primitive_aux_soln_at_vol_q_int[istate][idim][iquad] = primitive_aux_soln_state[istate][idim];
-                }
-            }
-        }
-        // -- volume ext
-        for (unsigned int iquad=0; iquad<n_quad_pts_vol_ext; ++iquad) {
-            // extract conservative soln state
-            std::array<adtype,nstate> soln_state;
-            std::array<dealii::Tensor<1,dim,adtype>,nstate> aux_soln_state;
-            for(int istate=0; istate<nstate; istate++){
-                soln_state[istate] = soln_at_vol_q_ext[istate][iquad];
-                for(int idim=0; idim<dim; idim++){
-                    aux_soln_state[istate][idim] = aux_soln_at_vol_q_ext[istate][idim][iquad];
-                }
-            }
-            // compute primitive soln state from conservative
-            std::array<adtype,nstate> primitive_soln_state = pde_physics.convert_conservative_to_primitive(soln_state);
-            std::array<dealii::Tensor<1,dim,adtype>,nstate> primitive_aux_soln_state = pde_physics.convert_conservative_gradient_to_primitive_gradient(soln_state,aux_soln_state);
-            // store primitive soln at quadrature point
-            for(int istate=0; istate<nstate; istate++){
-                primitive_soln_at_vol_q_ext[istate][iquad] = primitive_soln_state[istate];
-                for(int idim=0; idim<dim; idim++){
-                    primitive_aux_soln_at_vol_q_ext[istate][idim][iquad] = primitive_aux_soln_state[istate][idim];
-                }
-            }
-        }
-        // -- surface int
-        for(unsigned int iquad_face=0; iquad_face<n_face_quad_pts; iquad_face++){
-            // extract conservative soln state
-            std::array<adtype,nstate> soln_state;
-            std::array<dealii::Tensor<1,dim,adtype>,nstate> aux_soln_state;
-            for(int istate=0; istate<nstate; istate++){
-                soln_state[istate] = soln_at_surf_q_int[istate][iquad_face];
-                for(int idim=0; idim<dim; idim++){
-                    aux_soln_state[istate][idim] = aux_soln_at_surf_q_int[istate][idim][iquad_face];
-                }
-            }
-            // compute primitive soln state from conservative
-            std::array<adtype,nstate> primitive_soln_state = pde_physics.convert_conservative_to_primitive(soln_state);
-            std::array<dealii::Tensor<1,dim,adtype>,nstate> primitive_aux_soln_state = pde_physics.convert_conservative_gradient_to_primitive_gradient(soln_state,aux_soln_state);
-            // store primitive soln at quadrature point
-            for(int istate=0; istate<nstate; istate++){
-                primitive_soln_at_surf_q_int[istate][iquad_face] = primitive_soln_state[istate];
-                for(int idim=0; idim<dim; idim++){
-                    primitive_aux_soln_at_surf_q_int[istate][idim][iquad_face] = primitive_aux_soln_state[istate][idim];
-                }
-            }
-        }
-        // -- surface ext
-        for(unsigned int iquad_face=0; iquad_face<n_face_quad_pts; iquad_face++){
-            // extract conservative soln state
-            std::array<adtype,nstate> soln_state;
-            std::array<dealii::Tensor<1,dim,adtype>,nstate> aux_soln_state;
-            for(int istate=0; istate<nstate; istate++){
-                soln_state[istate] = soln_at_surf_q_ext[istate][iquad_face];
-                for(int idim=0; idim<dim; idim++){
-                    aux_soln_state[istate][idim] = aux_soln_at_surf_q_ext[istate][idim][iquad_face];
-                }
-            }
-            // compute primitive soln state from conservative
-            std::array<adtype,nstate> primitive_soln_state = pde_physics.convert_conservative_to_primitive(soln_state);
-            std::array<dealii::Tensor<1,dim,adtype>,nstate> primitive_aux_soln_state = pde_physics.convert_conservative_gradient_to_primitive_gradient(soln_state,aux_soln_state);
-            // store primitive soln at quadrature point
-            for(int istate=0; istate<nstate; istate++){
-                primitive_soln_at_surf_q_ext[istate][iquad_face] = primitive_soln_state[istate];
-                for(int idim=0; idim<dim; idim++){
-                    primitive_aux_soln_at_surf_q_ext[istate][idim][iquad_face] = primitive_aux_soln_state[istate][idim];
-                }
-            }
-        }
-
-        //==================================================
-        // PROJECT TO LEGENDRE BASIS AND MODALLY FILTER
-        //==================================================
-        // -- Primitive solution at legendre poly
-        std::array<std::vector<adtype>,nstate> primitive_legendre_soln_at_vol_q_int;
-        std::array<dealii::Tensor<1,dim,std::vector<adtype>>,nstate> primitive_legendre_aux_soln_at_vol_q_int;
-        std::array<std::vector<adtype>,nstate> primitive_legendre_soln_at_surf_q_int;
-        std::array<dealii::Tensor<1,dim,std::vector<adtype>>,nstate> primitive_legendre_aux_soln_at_surf_q_int;
-        std::array<std::vector<adtype>,nstate> primitive_legendre_soln_at_vol_q_ext;
-        std::array<dealii::Tensor<1,dim,std::vector<adtype>>,nstate> primitive_legendre_aux_soln_at_vol_q_ext;
-        std::array<std::vector<adtype>,nstate> primitive_legendre_soln_at_surf_q_ext;
-        std::array<dealii::Tensor<1,dim,std::vector<adtype>>,nstate> primitive_legendre_aux_soln_at_surf_q_ext;
-
-        // Details: this projects to Legendre basis, truncates, then interpolates back to quad nodes.
-        // -- Constructor for tensor product polynomials based on Polynomials::Legendre interpolation. 
-        dealii::FE_DGQLegendre<1,1> legendre_poly_1D_int(poly_degree_int);
-        dealii::FE_DGQLegendre<1,1> legendre_poly_1D_ext(poly_degree_ext);
-        // -- Projection operator for legendre basis
-        OPERATOR::vol_projection_operator<dim,2*dim> legendre_soln_basis_projection_oper_int(1, poly_degree_int, this->max_grid_degree);
-        legendre_soln_basis_projection_oper_int.build_1D_volume_operator(legendre_poly_1D_int, this->oneD_quadrature_collection[poly_degree_int]);
-        OPERATOR::vol_projection_operator<dim,2*dim> legendre_soln_basis_projection_oper_ext(1, poly_degree_ext, this->max_grid_degree);
-        legendre_soln_basis_projection_oper_ext.build_1D_volume_operator(legendre_poly_1D_ext, this->oneD_quadrature_collection[poly_degree_ext]);
-        // -- Legendre basis functions 
-        OPERATOR::basis_functions<dim,2*dim> legendre_soln_basis_int(1, poly_degree_int, this->max_grid_degree);
-        legendre_soln_basis_int.build_1D_volume_operator(legendre_poly_1D_int, this->oneD_quadrature_collection[poly_degree_int]);
-        legendre_soln_basis_int.build_1D_surface_operator(legendre_poly_1D_int, this->oneD_face_quadrature);
-        OPERATOR::basis_functions<dim,2*dim> legendre_soln_basis_ext(1, poly_degree_ext, this->max_grid_degree);
-        legendre_soln_basis_ext.build_1D_volume_operator(legendre_poly_1D_ext, this->oneD_quadrature_collection[poly_degree_ext]);
-        legendre_soln_basis_ext.build_1D_surface_operator(legendre_poly_1D_ext, this->oneD_face_quadrature);
-        const unsigned int p_min_filtered = this->poly_degree_max_large_scales + 1;
-        for(int istate=0; istate<nstate; istate++){
-            //==================================================
-            // Solution
-            //==================================================
-            // -- (1) Project to Legendre basis
-            std::vector<adtype> legendre_soln_coeff_int(n_shape_fns_int);
-            legendre_soln_basis_projection_oper_int.matrix_vector_mult_1D(primitive_soln_at_vol_q_int[istate], legendre_soln_coeff_int,
-                                                                          legendre_soln_basis_projection_oper_int.oneD_vol_operator);
-            std::vector<adtype> legendre_soln_coeff_ext(n_shape_fns_ext);
-            legendre_soln_basis_projection_oper_ext.matrix_vector_mult_1D(primitive_soln_at_vol_q_ext[istate], legendre_soln_coeff_ext,
-                                                                          legendre_soln_basis_projection_oper_ext.oneD_vol_operator);
-            // -- (2) Truncate modes for high-pass filter (i.e. DG-VMS like)
-            if(this->apply_modal_high_pass_filter_on_filtered_solution && (istate!=0 && istate!=(nstate-1))) {
-                for(unsigned int ishape=0; ishape<n_shape_fns_int; ishape++){
-                    if(ishape < p_min_filtered){
-                        legendre_soln_coeff_int[ishape] = 0.0;
-                    }
-                }
-                for(unsigned int ishape=0; ishape<n_shape_fns_ext; ishape++){
-                    if(ishape < p_min_filtered){
-                        legendre_soln_coeff_ext[ishape] = 0.0;
-                    }
-                }
-            }
-            // -- (3) Interpolate filtered solution back to quadrature points
-            primitive_legendre_soln_at_vol_q_int[istate].resize(n_quad_pts_vol_int);
-            legendre_soln_basis_int.matrix_vector_mult_1D(legendre_soln_coeff_int, primitive_legendre_soln_at_vol_q_int[istate],
-                                                          legendre_soln_basis_int.oneD_vol_operator);
-            primitive_legendre_soln_at_surf_q_int[istate].resize(n_face_quad_pts);
-            legendre_soln_basis_int.matrix_vector_mult_surface_1D(face_orientation_int, iface,
-                                                                  legendre_soln_coeff_int, primitive_legendre_soln_at_surf_q_int[istate],
-                                                                  legendre_soln_basis_int.oneD_surf_operator,
-                                                                  legendre_soln_basis_int.oneD_vol_operator);
-            primitive_legendre_soln_at_vol_q_ext[istate].resize(n_quad_pts_vol_ext);
-            legendre_soln_basis_ext.matrix_vector_mult_1D(legendre_soln_coeff_ext, primitive_legendre_soln_at_vol_q_ext[istate],
-                                                          legendre_soln_basis_ext.oneD_vol_operator);
-            primitive_legendre_soln_at_surf_q_ext[istate].resize(n_face_quad_pts);
-            legendre_soln_basis_ext.matrix_vector_mult_surface_1D(face_orientation_ext, neighbor_iface,
-                                                                  legendre_soln_coeff_ext, primitive_legendre_soln_at_surf_q_ext[istate],
-                                                                  legendre_soln_basis_ext.oneD_surf_operator,
-                                                                  legendre_soln_basis_ext.oneD_vol_operator);
-            //==================================================
-
-            //==================================================
-            // Auxiliary Solution (gradients)
-            //==================================================
-            dealii::Tensor<1,dim,std::vector<adtype>> legendre_aux_soln_coeff_int;
-            dealii::Tensor<1,dim,std::vector<adtype>> legendre_aux_soln_coeff_ext;
-            for(int idim=0; idim<dim; idim++){
-                // -- (1) Project to Legendre basis
-                legendre_aux_soln_coeff_int[idim].resize(n_shape_fns_int);
-                legendre_aux_soln_coeff_ext[idim].resize(n_shape_fns_ext);
-                if(this->use_auxiliary_eq){
-                    legendre_soln_basis_projection_oper_int.matrix_vector_mult_1D(primitive_aux_soln_at_vol_q_int[istate][idim], legendre_aux_soln_coeff_int[idim],
-                                                                                  legendre_soln_basis_projection_oper_int.oneD_vol_operator);
-                    legendre_soln_basis_projection_oper_ext.matrix_vector_mult_1D(primitive_aux_soln_at_vol_q_ext[istate][idim], legendre_aux_soln_coeff_ext[idim],
-                                                                                  legendre_soln_basis_projection_oper_ext.oneD_vol_operator);
-                    // -- (2) Truncate modes for high-pass filter (i.e. DG-VMS like)
-                    if(this->apply_modal_high_pass_filter_on_filtered_solution && (istate!=0 && istate!=(nstate-1))) {
-                        for(unsigned int ishape=0; ishape<n_shape_fns_int; ishape++){
-                            if(ishape < p_min_filtered){
-                                legendre_aux_soln_coeff_int[idim][ishape] = 0.0;
-                            }
-                        }
-                        for(unsigned int ishape=0; ishape<n_shape_fns_ext; ishape++){
-                            if(ishape < p_min_filtered){
-                                legendre_aux_soln_coeff_ext[idim][ishape] = 0.0;
-                            }
-                        }
-                    }
-                }
-                else {
-                    for(unsigned int ishape=0; ishape<n_shape_fns_int; ishape++){
-                        legendre_aux_soln_coeff_int[idim][ishape] = 0.0;
-                    }
-                    for(unsigned int ishape=0; ishape<n_shape_fns_ext; ishape++){
-                        legendre_aux_soln_coeff_ext[idim][ishape] = 0.0;
-                    }
-                }
-                // -- (3) Interpolate filtered solution back to quadrature points
-                primitive_legendre_aux_soln_at_vol_q_int[istate][idim].resize(n_quad_pts_vol_int);
-                legendre_soln_basis_int.matrix_vector_mult_1D(legendre_aux_soln_coeff_int[idim], primitive_legendre_aux_soln_at_vol_q_int[istate][idim],
-                                                              legendre_soln_basis_int.oneD_vol_operator);
-                primitive_legendre_aux_soln_at_surf_q_int[istate][idim].resize(n_face_quad_pts);
-                legendre_soln_basis_int.matrix_vector_mult_surface_1D(face_orientation_int, iface,
-                                                                      legendre_aux_soln_coeff_int[idim], primitive_legendre_aux_soln_at_surf_q_int[istate][idim],
-                                                                      legendre_soln_basis_int.oneD_surf_operator,
-                                                                      legendre_soln_basis_int.oneD_vol_operator);
-                primitive_legendre_aux_soln_at_vol_q_ext[istate][idim].resize(n_quad_pts_vol_ext);
-                legendre_soln_basis_ext.matrix_vector_mult_1D(legendre_aux_soln_coeff_ext[idim], primitive_legendre_aux_soln_at_vol_q_ext[istate][idim],
-                                                              legendre_soln_basis_ext.oneD_vol_operator);
-                primitive_legendre_aux_soln_at_surf_q_ext[istate][idim].resize(n_face_quad_pts);
-                legendre_soln_basis_ext.matrix_vector_mult_surface_1D(face_orientation_ext, neighbor_iface,
-                                                                      legendre_aux_soln_coeff_ext[idim], primitive_legendre_aux_soln_at_surf_q_ext[istate][idim],
-                                                                      legendre_soln_basis_ext.oneD_surf_operator,
-                                                                      legendre_soln_basis_ext.oneD_vol_operator);
-            }
-            //==================================================
-        }
-        //=======================================================
-        // CONVERT PRIMITIVE LEGENDRE SOLUTION TO CONSERVATIVE
-        //=======================================================
-        // Resize the conservative soln arrays
-        for(int istate=0; istate<nstate; istate++){
-            legendre_soln_at_vol_q_int[istate].resize(n_quad_pts_vol_int);
-            legendre_soln_at_surf_q_int[istate].resize(n_face_quad_pts);
-            legendre_soln_at_vol_q_ext[istate].resize(n_quad_pts_vol_ext);
-            legendre_soln_at_surf_q_ext[istate].resize(n_face_quad_pts);
-            for(int idim=0; idim<dim; idim++){
-                legendre_aux_soln_at_vol_q_int[istate][idim].resize(n_quad_pts_vol_int);
-                legendre_aux_soln_at_surf_q_int[istate][idim].resize(n_face_quad_pts);
-                legendre_aux_soln_at_vol_q_ext[istate][idim].resize(n_quad_pts_vol_ext);
-                legendre_aux_soln_at_surf_q_ext[istate][idim].resize(n_face_quad_pts);
-            }
-        }
-        // Compute the primitive soln at all iquad and fill arrays
-        // -- volume int
-        for (unsigned int iquad=0; iquad<n_quad_pts_vol_int; ++iquad) {
-            // extract conservative soln state
-            std::array<adtype,nstate> primitive_legendre_soln_state;
-            std::array<dealii::Tensor<1,dim,adtype>,nstate> primitive_legendre_aux_soln_state;
-            for(int istate=0; istate<nstate; istate++){
-                primitive_legendre_soln_state[istate] = primitive_legendre_soln_at_vol_q_int[istate][iquad];
-                for(int idim=0; idim<dim; idim++){
-                    primitive_legendre_aux_soln_state[istate][idim] = primitive_legendre_aux_soln_at_vol_q_int[istate][idim][iquad];
-                }
-            }
-            // compute conservative soln state from primitive
-            std::array<adtype,nstate> legendre_soln_state = pde_physics.convert_primitive_to_conservative(primitive_legendre_soln_state);
-            std::array<dealii::Tensor<1,dim,adtype>,nstate> legendre_aux_soln_state = pde_physics.convert_primitive_gradient_to_conservative_gradient(primitive_legendre_soln_state,primitive_legendre_aux_soln_state);
-            // store conservative soln at quadrature point
-            for(int istate=0; istate<nstate; istate++){
-                legendre_soln_at_vol_q_int[istate][iquad] = legendre_soln_state[istate];
-                for(int idim=0; idim<dim; idim++){
-                    legendre_aux_soln_at_vol_q_int[istate][idim][iquad] = legendre_aux_soln_state[istate][idim];
-                }
-            }
-        }
-        // -- volume ext
-        for (unsigned int iquad=0; iquad<n_quad_pts_vol_ext; ++iquad) {
-            // extract conservative soln state
-            std::array<adtype,nstate> primitive_legendre_soln_state;
-            std::array<dealii::Tensor<1,dim,adtype>,nstate> primitive_legendre_aux_soln_state;
-            for(int istate=0; istate<nstate; istate++){
-                primitive_legendre_soln_state[istate] = primitive_legendre_soln_at_vol_q_ext[istate][iquad];
-                for(int idim=0; idim<dim; idim++){
-                    primitive_legendre_aux_soln_state[istate][idim] = primitive_legendre_aux_soln_at_vol_q_ext[istate][idim][iquad];
-                }
-            }
-            // compute conservative soln state from primitive
-            std::array<adtype,nstate> legendre_soln_state = pde_physics.convert_primitive_to_conservative(primitive_legendre_soln_state);
-            std::array<dealii::Tensor<1,dim,adtype>,nstate> legendre_aux_soln_state = pde_physics.convert_primitive_gradient_to_conservative_gradient(primitive_legendre_soln_state,primitive_legendre_aux_soln_state);
-            // store conservative soln at quadrature point
-            for(int istate=0; istate<nstate; istate++){
-                legendre_soln_at_vol_q_ext[istate][iquad] = legendre_soln_state[istate];
-                for(int idim=0; idim<dim; idim++){
-                    legendre_aux_soln_at_vol_q_ext[istate][idim][iquad] = legendre_aux_soln_state[istate][idim];
-                }
-            }
-        }
-        // -- surface int
-        for (unsigned int iquad_face=0; iquad_face<n_face_quad_pts; iquad_face++) {
-            // extract conservative soln state
-            std::array<adtype,nstate> primitive_legendre_soln_state;
-            std::array<dealii::Tensor<1,dim,adtype>,nstate> primitive_legendre_aux_soln_state;
-            for(int istate=0; istate<nstate; istate++){
-                primitive_legendre_soln_state[istate] = primitive_legendre_soln_at_surf_q_int[istate][iquad_face];
-                for(int idim=0; idim<dim; idim++){
-                    primitive_legendre_aux_soln_state[istate][idim] = primitive_legendre_aux_soln_at_surf_q_int[istate][idim][iquad_face];
-                }
-            }
-            // compute conservative soln state from primitive
-            std::array<adtype,nstate> legendre_soln_state = pde_physics.convert_primitive_to_conservative(primitive_legendre_soln_state);
-            std::array<dealii::Tensor<1,dim,adtype>,nstate> legendre_aux_soln_state = pde_physics.convert_primitive_gradient_to_conservative_gradient(primitive_legendre_soln_state,primitive_legendre_aux_soln_state);
-            // store conservative soln at quadrature point
-            for(int istate=0; istate<nstate; istate++){
-                legendre_soln_at_surf_q_int[istate][iquad_face] = legendre_soln_state[istate];
-                for(int idim=0; idim<dim; idim++){
-                    legendre_aux_soln_at_surf_q_int[istate][idim][iquad_face] = legendre_aux_soln_state[istate][idim];
-                }
-            }
-        }
-        // -- surface ext
-        for (unsigned int iquad_face=0; iquad_face<n_face_quad_pts; iquad_face++) {
-            // extract conservative soln state
-            std::array<adtype,nstate> primitive_legendre_soln_state;
-            std::array<dealii::Tensor<1,dim,adtype>,nstate> primitive_legendre_aux_soln_state;
-            for(int istate=0; istate<nstate; istate++){
-                primitive_legendre_soln_state[istate] = primitive_legendre_soln_at_surf_q_ext[istate][iquad_face];
-                for(int idim=0; idim<dim; idim++){
-                    primitive_legendre_aux_soln_state[istate][idim] = primitive_legendre_aux_soln_at_surf_q_ext[istate][idim][iquad_face];
-                }
-            }
-            // compute conservative soln state from primitive
-            std::array<adtype,nstate> legendre_soln_state = pde_physics.convert_primitive_to_conservative(primitive_legendre_soln_state);
-            std::array<dealii::Tensor<1,dim,adtype>,nstate> legendre_aux_soln_state = pde_physics.convert_primitive_gradient_to_conservative_gradient(primitive_legendre_soln_state,primitive_legendre_aux_soln_state);
-            // store conservative soln at quadrature point
-            for(int istate=0; istate<nstate; istate++){
-                legendre_soln_at_surf_q_ext[istate][iquad_face] = legendre_soln_state[istate];
-                for(int idim=0; idim<dim; idim++){
-                    legendre_aux_soln_at_surf_q_ext[istate][idim][iquad_face] = legendre_aux_soln_state[istate][idim];
-                }
-            }
-        }
+        compute_filtered_solution_volume_and_face(
+            face_orientation_int,
+            iface,
+            legendre_soln_at_vol_q_int,
+            legendre_aux_soln_at_vol_q_int,
+            legendre_soln_at_surf_q_int,
+            legendre_aux_soln_at_surf_q_int,
+            soln_at_vol_q_int,
+            aux_soln_at_vol_q_int,
+            pde_physics,
+            soln_at_surf_q_int,
+            aux_soln_at_surf_q_int,
+            n_quad_pts_vol_int,
+            n_face_quad_pts,
+            n_shape_fns_int,
+            poly_degree_int);
+        compute_filtered_solution_volume_and_face(
+            face_orientation_ext,
+            neighbor_iface,
+            legendre_soln_at_vol_q_ext,
+            legendre_aux_soln_at_vol_q_ext,
+            legendre_soln_at_surf_q_ext,
+            legendre_aux_soln_at_surf_q_ext,
+            soln_at_vol_q_ext,
+            aux_soln_at_vol_q_ext,
+            pde_physics,
+            soln_at_surf_q_ext,
+            aux_soln_at_surf_q_ext,
+            n_quad_pts_vol_ext,
+            n_face_quad_pts,
+            n_shape_fns_ext,
+            poly_degree_ext);
     }
 
 
@@ -2865,7 +2926,6 @@ void DGStrong<dim,nspecies,nstate,real,MeshType>::assemble_face_term_strong(
 
     // First we do interior.
     std::array<dealii::Tensor<1,dim,std::vector<adtype>>,nstate> conv_ref_flux_at_vol_q_int;
-    std::array<dealii::Tensor<1,dim,std::vector<adtype>>,nstate> diffusive_ref_flux_at_vol_q_int;
     for (unsigned int iquad=0; iquad<n_quad_pts_vol_int; ++iquad) {
         // Copy Metric Cofactor in a way can use for transforming Tensor Blocks to reference space
         // The way it is stored in metric_operators is to use sum-factorization in each direction,
@@ -2896,14 +2956,9 @@ void DGStrong<dim,nspecies,nstate,real,MeshType>::assemble_face_term_strong(
             conv_phys_flux = pde_physics.convective_flux (soln_state);
         }
 
-        // Compute the physical dissipative flux
-        std::array<dealii::Tensor<1,dim,adtype>,nstate> diffusive_phys_flux;
-        diffusive_phys_flux = pde_physics.dissipative_flux(soln_state, aux_soln_state, filtered_soln_state, filtered_aux_soln_state, current_cell_index);
-
         // Write the values in a way that we can use sum-factorization on.
         for(int istate=0; istate<nstate; istate++){
             dealii::Tensor<1,dim,adtype> conv_ref_flux;
-            dealii::Tensor<1,dim,adtype> diffusive_ref_flux;
             // transform the conservative convective physical flux to reference space
             if(!this->all_parameters->use_split_form && !this->all_parameters->use_curvilinear_split_form){
                 metric_oper_int.transform_physical_to_reference(
@@ -2911,11 +2966,6 @@ void DGStrong<dim,nspecies,nstate,real,MeshType>::assemble_face_term_strong(
                     metric_cofactor_vol_int,
                     conv_ref_flux);
             }
-            // transform the dissipative flux to reference space
-            metric_oper_int.transform_physical_to_reference(
-                diffusive_phys_flux[istate],
-                metric_cofactor_vol_int,
-                diffusive_ref_flux);
 
             // Write the data in a way that we can use sum-factorization on.
             // Since sum-factorization improves the speed for matrix-vector multiplications,
@@ -2924,13 +2974,11 @@ void DGStrong<dim,nspecies,nstate,real,MeshType>::assemble_face_term_strong(
                 // allocate
                 if(iquad == 0){
                     conv_ref_flux_at_vol_q_int[istate][idim].resize(n_quad_pts_vol_int);
-                    diffusive_ref_flux_at_vol_q_int[istate][idim].resize(n_quad_pts_vol_int);
                 }
                 // write data
                 if(!this->all_parameters->use_split_form && !this->all_parameters->use_curvilinear_split_form){
                     conv_ref_flux_at_vol_q_int[istate][idim][iquad] = conv_ref_flux[idim];
                 }
-                diffusive_ref_flux_at_vol_q_int[istate][idim][iquad] = diffusive_ref_flux[idim];
             }
         }
     }
@@ -2938,7 +2986,6 @@ void DGStrong<dim,nspecies,nstate,real,MeshType>::assemble_face_term_strong(
     // Next we do exterior volume reference fluxes.
     // Note we split the quad integrals because the interior and exterior could be of different poly basis
     std::array<dealii::Tensor<1,dim,std::vector<adtype>>,nstate> conv_ref_flux_at_vol_q_ext;
-    std::array<dealii::Tensor<1,dim,std::vector<adtype>>,nstate> diffusive_ref_flux_at_vol_q_ext;
     for (unsigned int iquad=0; iquad<n_quad_pts_vol_ext; ++iquad) {
 
         // Extract exterior volume metric cofactor matrix at given volume cubature node.
@@ -2968,14 +3015,9 @@ void DGStrong<dim,nspecies,nstate,real,MeshType>::assemble_face_term_strong(
             conv_phys_flux = pde_physics.convective_flux (soln_state);
         }
 
-        // Compute the physical dissipative flux
-        std::array<dealii::Tensor<1,dim,adtype>,nstate> diffusive_phys_flux;
-        diffusive_phys_flux = pde_physics.dissipative_flux(soln_state, aux_soln_state, filtered_soln_state, filtered_aux_soln_state, neighbor_cell_index);
-
         // Write the values in a way that we can use sum-factorization on.
         for(int istate=0; istate<nstate; istate++){
             dealii::Tensor<1,dim,adtype> conv_ref_flux;
-            dealii::Tensor<1,dim,adtype> diffusive_ref_flux;
             // transform the conservative convective physical flux to reference space
             if(!this->all_parameters->use_split_form && !this->all_parameters->use_curvilinear_split_form){
                 metric_oper_ext.transform_physical_to_reference(
@@ -2983,11 +3025,6 @@ void DGStrong<dim,nspecies,nstate,real,MeshType>::assemble_face_term_strong(
                     metric_cofactor_vol_ext,
                     conv_ref_flux);
             }
-            // transform the dissipative flux to reference space
-            metric_oper_ext.transform_physical_to_reference(
-                diffusive_phys_flux[istate],
-                metric_cofactor_vol_ext,
-                diffusive_ref_flux);
 
             // Write the data in a way that we can use sum-factorization on.
             // Since sum-factorization improves the speed for matrix-vector multiplications,
@@ -2996,13 +3033,11 @@ void DGStrong<dim,nspecies,nstate,real,MeshType>::assemble_face_term_strong(
                 // allocate
                 if(iquad == 0){
                     conv_ref_flux_at_vol_q_ext[istate][idim].resize(n_quad_pts_vol_ext);
-                    diffusive_ref_flux_at_vol_q_ext[istate][idim].resize(n_quad_pts_vol_ext);
                 }
                 // write data
                 if(!this->all_parameters->use_split_form && !this->all_parameters->use_curvilinear_split_form){
                     conv_ref_flux_at_vol_q_ext[istate][idim][iquad] = conv_ref_flux[idim];
                 }
-                diffusive_ref_flux_at_vol_q_ext[istate][idim][iquad] = diffusive_ref_flux[idim];
             }
         }
     }
@@ -3020,14 +3055,10 @@ void DGStrong<dim,nspecies,nstate,real,MeshType>::assemble_face_term_strong(
 
     std::array<std::vector<adtype>,nstate> conv_int_vol_ref_flux_interp_to_face_dot_ref_normal;
     std::array<std::vector<adtype>,nstate> conv_ext_vol_ref_flux_interp_to_face_dot_ref_normal;
-    std::array<std::vector<adtype>,nstate> diffusive_int_vol_ref_flux_interp_to_face_dot_ref_normal;
-    std::array<std::vector<adtype>,nstate> diffusive_ext_vol_ref_flux_interp_to_face_dot_ref_normal;
     for(int istate=0; istate<nstate; istate++){
         //allocate
         conv_int_vol_ref_flux_interp_to_face_dot_ref_normal[istate].resize(n_face_quad_pts);
         conv_ext_vol_ref_flux_interp_to_face_dot_ref_normal[istate].resize(n_face_quad_pts);
-        diffusive_int_vol_ref_flux_interp_to_face_dot_ref_normal[istate].resize(n_face_quad_pts);
-        diffusive_ext_vol_ref_flux_interp_to_face_dot_ref_normal[istate].resize(n_face_quad_pts);
 
         // solve
         // Note, since the normal is zero in all other reference directions, we only have to interpolate one given reference direction to the facet
@@ -3050,21 +3081,6 @@ void DGStrong<dim,nspecies,nstate,real,MeshType>::assemble_face_term_strong(
                                                          false, unit_ref_normal_ext[dim_not_zero_ext]);//don't add to previous value, unit_normal ext is -unit normal int
         }
 
-        // interpolate reference volume dissipative flux to the facet, and apply unit reference normal as scaled by 1.0 or -1.0
-        flux_basis_int.matrix_vector_mult_surface_1D(face_orientation_int, 
-                                                     iface,
-                                                     diffusive_ref_flux_at_vol_q_int[istate][dim_not_zero_int],
-                                                     diffusive_int_vol_ref_flux_interp_to_face_dot_ref_normal[istate],
-                                                     flux_basis_int.oneD_surf_operator,
-                                                     flux_basis_int.oneD_vol_operator,
-                                                     false, unit_ref_normal_int[dim_not_zero_int]);
-        flux_basis_ext.matrix_vector_mult_surface_1D(face_orientation_ext, 
-                                                     neighbor_iface,
-                                                     diffusive_ref_flux_at_vol_q_ext[istate][dim_not_zero_ext],
-                                                     diffusive_ext_vol_ref_flux_interp_to_face_dot_ref_normal[istate],
-                                                     flux_basis_ext.oneD_surf_operator,
-                                                     flux_basis_ext.oneD_vol_operator,
-                                                     false, unit_ref_normal_ext[dim_not_zero_ext]);
     }
 
 
@@ -3082,7 +3098,10 @@ void DGStrong<dim,nspecies,nstate,real,MeshType>::assemble_face_term_strong(
     std::array<std::vector<adtype>,nstate> projected_entropy_var_surf_ext;
     std::array<std::vector<adtype>,nstate> projected_entropy_var_surf_int_corrected; //To be corrected for face orientation. Needed for numerical flux when using split form
     std::array<std::vector<adtype>,nstate> projected_entropy_var_surf_ext_corrected; //To be corrected for face orientation. Needed for numerical flux when using split form
-    if (this->uncollocated_flux_nodes) {
+    std::array<std::vector<adtype>,nstate> entropy_var_coeffs_int;
+    std::array<std::vector<adtype>,nstate> entropy_var_coeffs_ext;
+    
+    if (this->uncollocated_flux_nodes || this->all_parameters->use_viscous_br2_entropystable) {
         for(unsigned int iquad=0; iquad<n_quad_pts_vol_int; iquad++){
             std::array<adtype,nstate> soln_state;
             for(int istate=0; istate<nstate; istate++){
@@ -3122,48 +3141,48 @@ void DGStrong<dim,nspecies,nstate,real,MeshType>::assemble_face_term_strong(
             projected_entropy_var_surf_ext[istate].resize(n_face_quad_pts);
             projected_entropy_var_surf_int_corrected[istate].resize(n_face_quad_pts);
             projected_entropy_var_surf_ext_corrected[istate].resize(n_face_quad_pts);
+            entropy_var_coeffs_int[istate].resize(n_shape_fns_int);
+            entropy_var_coeffs_ext[istate].resize(n_shape_fns_ext);
 
             //interior
-            std::vector<adtype> entropy_var_coeff_int(n_shape_fns_int);
             soln_basis_projection_oper_int.matrix_vector_mult_1D(entropy_var_vol_int[istate],
-                                                                entropy_var_coeff_int,
-                                                                soln_basis_projection_oper_int.oneD_vol_operator);
-            soln_basis_int.matrix_vector_mult_1D(entropy_var_coeff_int,
-                                                projected_entropy_var_vol_int[istate],
-                                                soln_basis_int.oneD_vol_operator);
+                                                                 entropy_var_coeffs_int[istate],
+                                                                 soln_basis_projection_oper_int.oneD_vol_operator);
+            soln_basis_int.matrix_vector_mult_1D(entropy_var_coeffs_int[istate],
+                                                 projected_entropy_var_vol_int[istate],
+                                                 soln_basis_int.oneD_vol_operator);
             soln_basis_int.matrix_vector_mult_surface_1D({true,false,false}, 
-                                                        iface,
-                                                        entropy_var_coeff_int, 
-                                                        projected_entropy_var_surf_int[istate],
-                                                        soln_basis_int.oneD_surf_operator,
-                                                        soln_basis_int.oneD_vol_operator);
+                                                         iface,
+                                                         entropy_var_coeffs_int[istate], 
+                                                         projected_entropy_var_surf_int[istate],
+                                                         soln_basis_int.oneD_surf_operator,
+                                                         soln_basis_int.oneD_vol_operator);
 
             soln_basis_int.matrix_vector_mult_surface_1D(face_orientation_int, 
                                                         iface,
-                                                        entropy_var_coeff_int, 
+                                                        entropy_var_coeffs_int[istate], 
                                                         projected_entropy_var_surf_int_corrected[istate],
                                                         soln_basis_int.oneD_surf_operator,
                                                         soln_basis_int.oneD_vol_operator);
 
             //exterior
-            std::vector<adtype> entropy_var_coeff_ext(n_shape_fns_ext);
             soln_basis_projection_oper_ext.matrix_vector_mult_1D(entropy_var_vol_ext[istate],
-                                                                entropy_var_coeff_ext,
-                                                                soln_basis_projection_oper_ext.oneD_vol_operator);
+                                                                 entropy_var_coeffs_ext[istate],
+                                                                 soln_basis_projection_oper_ext.oneD_vol_operator);
 
-            soln_basis_ext.matrix_vector_mult_1D(entropy_var_coeff_ext,
-                                                projected_entropy_var_vol_ext[istate],
-                                                soln_basis_ext.oneD_vol_operator);
+            soln_basis_ext.matrix_vector_mult_1D(entropy_var_coeffs_ext[istate],
+                                                 projected_entropy_var_vol_ext[istate],
+                                                 soln_basis_ext.oneD_vol_operator);
             soln_basis_ext.matrix_vector_mult_surface_1D({true,false,false}, 
-                                                        neighbor_iface,
-                                                        entropy_var_coeff_ext, 
-                                                        projected_entropy_var_surf_ext[istate],
-                                                        soln_basis_ext.oneD_surf_operator,
-                                                        soln_basis_ext.oneD_vol_operator);
+                                                         neighbor_iface,
+                                                         entropy_var_coeffs_ext[istate], 
+                                                         projected_entropy_var_surf_ext[istate],
+                                                         soln_basis_ext.oneD_surf_operator,
+                                                         soln_basis_ext.oneD_vol_operator);
 
             soln_basis_int.matrix_vector_mult_surface_1D(face_orientation_ext, 
                                                         neighbor_iface,
-                                                        entropy_var_coeff_ext, 
+                                                        entropy_var_coeffs_ext[istate], 
                                                         projected_entropy_var_surf_ext_corrected[istate],
                                                         soln_basis_int.oneD_surf_operator,
                                                         soln_basis_int.oneD_vol_operator);
@@ -3220,8 +3239,8 @@ void DGStrong<dim,nspecies,nstate,real,MeshType>::assemble_face_term_strong(
             }
             else {
                 for(int istate=0; istate<nstate; istate++){
-                    soln_state_face_int[istate] = soln_at_vol_q_int[istate][iquad_face];
-                    soln_state_face_ext[istate] = soln_at_vol_q_ext[istate][iquad_face];
+                    soln_state_face_int[istate] = soln_at_surf_q_int[istate][iquad_face];
+                    soln_state_face_ext[istate] = soln_at_surf_q_ext[istate][iquad_face];
                 }
             }
 
@@ -3403,7 +3422,8 @@ void DGStrong<dim,nspecies,nstate,real,MeshType>::assemble_face_term_strong(
     // Evaluate reference numerical fluxes.
     
     std::array<std::vector<adtype>,nstate> conv_num_flux_dot_n;
-    std::array<std::vector<adtype>,nstate> diss_auxi_num_flux_dot_n;
+    std::vector<dealii::Tensor<1,dim,adtype>> unit_phys_normals_int(n_face_quad_pts);
+    std::vector<adtype> JxW_face(n_face_quad_pts);
     for (unsigned int iquad=0; iquad<n_face_quad_pts; ++iquad) {
         // Copy Metric Cofactor on the facet in a way can use for transforming Tensor Blocks to reference space
         // The way it is stored in metric_operators is to use sum-factorization in each direction,
@@ -3419,26 +3439,11 @@ void DGStrong<dim,nspecies,nstate,real,MeshType>::assemble_face_term_strong(
 
         std::array<adtype,nstate> entropy_var_face_int;
         std::array<adtype,nstate> entropy_var_face_ext;
-        std::array<dealii::Tensor<1,dim,adtype>,nstate> aux_soln_state_int;
-        std::array<dealii::Tensor<1,dim,adtype>,nstate> aux_soln_state_ext;
-        std::array<adtype,nstate> soln_interp_to_face_int;
-        std::array<adtype,nstate> soln_interp_to_face_ext;
-        std::array<dealii::Tensor<1,dim,adtype>,nstate> filtered_aux_soln_state_int;
-        std::array<dealii::Tensor<1,dim,adtype>,nstate> filtered_aux_soln_state_ext;
-        std::array<adtype,nstate> filtered_soln_interp_to_face_int;
-        std::array<adtype,nstate> filtered_soln_interp_to_face_ext;
-        for(int istate=0; istate<nstate; istate++){
-            soln_interp_to_face_int[istate] = soln_at_surf_q_int[istate][iquad];
-            soln_interp_to_face_ext[istate] = soln_at_surf_q_ext[istate][iquad];
-            if(this->do_compute_filtered_solution) filtered_soln_interp_to_face_int[istate] = legendre_soln_at_surf_q_int[istate][iquad];
-            if(this->do_compute_filtered_solution) filtered_soln_interp_to_face_ext[istate] = legendre_soln_at_surf_q_ext[istate][iquad];
-            if(this->uncollocated_flux_nodes) entropy_var_face_int[istate] = projected_entropy_var_surf_int_corrected[istate][iquad];
-            if(this->uncollocated_flux_nodes) entropy_var_face_ext[istate] = projected_entropy_var_surf_ext_corrected[istate][iquad];
-            for(int idim=0; idim<dim; idim++){
-                aux_soln_state_int[istate][idim] = aux_soln_at_surf_q_int[istate][idim][iquad];
-                aux_soln_state_ext[istate][idim] = aux_soln_at_surf_q_ext[istate][idim][iquad];
-                if(this->do_compute_filtered_solution) filtered_aux_soln_state_int[istate][idim] = legendre_aux_soln_at_surf_q_int[istate][idim][iquad];
-                if(this->do_compute_filtered_solution) filtered_aux_soln_state_ext[istate][idim] = legendre_aux_soln_at_surf_q_ext[istate][idim][iquad];
+        if(this->uncollocated_flux_nodes)
+        {
+            for(int istate=0; istate<nstate; istate++){
+                entropy_var_face_int[istate] = projected_entropy_var_surf_int_corrected[istate][iquad];
+                entropy_var_face_ext[istate] = projected_entropy_var_surf_ext_corrected[istate][iquad];
             }
         }
 
@@ -3464,22 +3469,14 @@ void DGStrong<dim,nspecies,nstate,real,MeshType>::assemble_face_term_strong(
             face_Jac_norm_scaled += unit_phys_normal_int[idim] * unit_phys_normal_int[idim];
         }
         face_Jac_norm_scaled = sqrt(face_Jac_norm_scaled);
-        unit_phys_normal_int /= face_Jac_norm_scaled;//normalize it. 
+        JxW_face[iquad] = face_Jac_norm_scaled*surf_quad_weights[iquad];
+        unit_phys_normal_int /= face_Jac_norm_scaled;//normalize it.
+        unit_phys_normals_int[iquad] = unit_phys_normal_int;
         // Note that the facet determinant of metric jacobian is the above norm multiplied by the determinant of the metric Jacobian evaluated on the facet.
         // Since the determinant of the metric Jacobian evaluated on the face cancels off, we can just scale the numerical flux by the norm.
         std::array<adtype,nstate> conv_num_flux_dot_n_at_q;
-        std::array<adtype,nstate> diss_auxi_num_flux_dot_n_at_q;
         // Convective numerical flux. 
         conv_num_flux_dot_n_at_q = conv_num_flux.evaluate_flux(soln_state_int, soln_state_ext, unit_phys_normal_int);
-        // dissipative numerical flux
-        diss_auxi_num_flux_dot_n_at_q = diss_num_flux.evaluate_auxiliary_flux(
-            current_cell_index, neighbor_cell_index,
-            0.0, 0.0,
-            soln_interp_to_face_int, soln_interp_to_face_ext,
-            aux_soln_state_int, aux_soln_state_ext,
-            filtered_soln_interp_to_face_int, filtered_soln_interp_to_face_ext,
-            filtered_aux_soln_state_int, filtered_aux_soln_state_ext,
-            unit_phys_normal_int, penalty, false);
 
         // Write the values in a way that we can use sum-factorization on.
         for(int istate=0; istate<nstate; istate++){
@@ -3490,17 +3487,14 @@ void DGStrong<dim,nspecies,nstate,real,MeshType>::assemble_face_term_strong(
             // allocate
             if(iquad == 0){
                 conv_num_flux_dot_n[istate].resize(n_face_quad_pts);
-                diss_auxi_num_flux_dot_n[istate].resize(n_face_quad_pts);
             }
 
             // write data
             conv_num_flux_dot_n[istate][iquad] = face_Jac_norm_scaled * conv_num_flux_dot_n_at_q[istate];
-            diss_auxi_num_flux_dot_n[istate][iquad] = face_Jac_norm_scaled * diss_auxi_num_flux_dot_n_at_q[istate];
         }
     }
 
     // Compute RHS
-    const std::vector<double> &surf_quad_weights = this->face_quadrature_collection[poly_degree_int].get_weights();
     for(int istate=0; istate<nstate; istate++){
         // interior RHS
         std::vector<adtype> rhs_int(n_shape_fns_int);
@@ -3531,15 +3525,6 @@ void DGStrong<dim,nspecies,nstate,real,MeshType>::assemble_face_term_strong(
                                                     soln_basis_int.oneD_vol_operator,
                                                     false, 1.0);
         }
-        // dissipative flux
-        soln_basis_int.inner_product_surface_1D(face_orientation_int, 
-                                                iface,
-                                                diffusive_int_vol_ref_flux_interp_to_face_dot_ref_normal[istate], 
-                                                surf_quad_weights, rhs_int, 
-                                                soln_basis_int.oneD_surf_operator, 
-                                                soln_basis_int.oneD_vol_operator,
-                                                true, 1.0);//adding=true, subtract the negative so add it
-        // convective numerical flux
         soln_basis_int.inner_product_surface_1D(face_orientation_int, 
                                                 iface,
                                                 conv_num_flux_dot_n[istate], 
@@ -3547,15 +3532,6 @@ void DGStrong<dim,nspecies,nstate,real,MeshType>::assemble_face_term_strong(
                                                 soln_basis_int.oneD_surf_operator, 
                                                 soln_basis_int.oneD_vol_operator,
                                                 true, -1.0);//adding=true, scaled by factor=-1.0 bc subtract it
-        // dissipative numerical flux
-        soln_basis_int.inner_product_surface_1D(face_orientation_int, 
-                                                iface,
-                                                diss_auxi_num_flux_dot_n[istate], 
-                                                surf_quad_weights, rhs_int, 
-                                                soln_basis_int.oneD_surf_operator, 
-                                                soln_basis_int.oneD_vol_operator,
-                                                true, -1.0);//adding=true, scaled by factor=-1.0 bc subtract it
-
 
         for(unsigned int ishape=0; ishape<n_shape_fns_int; ishape++){
             local_rhs_int_cell[istate*n_shape_fns_int + ishape] += rhs_int[ishape];
@@ -3591,15 +3567,6 @@ void DGStrong<dim,nspecies,nstate,real,MeshType>::assemble_face_term_strong(
                                                     soln_basis_ext.oneD_vol_operator,
                                                     false, 1.0);//adding false
         }
-        // dissipative flux
-        soln_basis_ext.inner_product_surface_1D(face_orientation_ext, 
-                                                neighbor_iface,
-                                                diffusive_ext_vol_ref_flux_interp_to_face_dot_ref_normal[istate], 
-                                                surf_quad_weights, rhs_ext, 
-                                                soln_basis_ext.oneD_surf_operator, 
-                                                soln_basis_ext.oneD_vol_operator,
-                                                true, 1.0);//adding=true
-        // convective numerical flux
         soln_basis_ext.inner_product_surface_1D(face_orientation_ext, 
                                                 neighbor_iface,
                                                 conv_num_flux_dot_n[istate], 
@@ -3607,20 +3574,422 @@ void DGStrong<dim,nspecies,nstate,real,MeshType>::assemble_face_term_strong(
                                                 soln_basis_ext.oneD_surf_operator, 
                                                 soln_basis_ext.oneD_vol_operator,
                                                 true, 1.0);//adding=true, scaled by factor=1.0 because negative numerical flux and subtract it
-        // dissipative numerical flux
-        soln_basis_ext.inner_product_surface_1D(face_orientation_ext, 
-                                                neighbor_iface,
-                                                diss_auxi_num_flux_dot_n[istate], 
-                                                surf_quad_weights, rhs_ext, 
-                                                soln_basis_ext.oneD_surf_operator, 
-                                                soln_basis_ext.oneD_vol_operator,
-                                                true, 1.0);//adding=true, scaled by factor=1.0 because negative numerical flux and subtract it
-
 
         for(unsigned int ishape=0; ishape<n_shape_fns_ext; ishape++){
             local_rhs_ext_cell[istate*n_shape_fns_ext + ishape] += rhs_ext[ishape];
         }
     }
+
+    std::vector<adtype> viscous_face_term_int;
+    std::vector<adtype> viscous_face_term_ext;
+    assemble_face_term_viscous_primal(
+        current_cell_index,
+        neighbor_cell_index,
+        face_orientation_int,
+        face_orientation_ext,
+        iface,
+        neighbor_iface,
+        penalty,
+        entropy_var_coeffs_int,
+        entropy_var_coeffs_ext,
+        projected_entropy_var_vol_int,
+        projected_entropy_var_vol_ext,
+        projected_entropy_var_surf_int_corrected,
+        projected_entropy_var_surf_ext_corrected,
+        soln_at_vol_q_int,
+        soln_at_vol_q_ext,
+        aux_soln_at_vol_q_int,
+        aux_soln_at_vol_q_ext,
+        soln_at_surf_q_int,
+        soln_at_surf_q_ext,
+        aux_soln_at_surf_q_int,
+        aux_soln_at_surf_q_ext,
+        legendre_soln_at_vol_q_int,
+        legendre_aux_soln_at_vol_q_int,
+        legendre_soln_at_vol_q_ext,
+        legendre_aux_soln_at_vol_q_ext, 
+        legendre_soln_at_surf_q_int,
+        legendre_aux_soln_at_surf_q_int,
+        legendre_soln_at_surf_q_ext,
+        legendre_aux_soln_at_surf_q_ext,
+        unit_phys_normals_int,
+        JxW_face,
+        poly_degree_int,
+        poly_degree_ext,
+        n_quad_pts_vol_int,
+        n_quad_pts_vol_ext,
+        n_dofs_int,
+        n_dofs_ext,
+        n_face_quad_pts,
+        n_shape_fns_int,
+        n_shape_fns_ext,
+        soln_basis_int,
+        soln_basis_ext,
+        flux_basis_int,
+        flux_basis_ext,
+        metric_oper_int,
+        metric_oper_ext,
+        pde_physics,
+        diss_num_flux,
+        viscous_face_term_int,
+        viscous_face_term_ext);
+
+    for(unsigned int idof=0; idof<n_dofs_int; ++idof)
+    {
+        local_rhs_int_cell[idof] += viscous_face_term_int[idof];
+    }
+    for(unsigned int idof=0; idof<n_dofs_ext; ++idof)
+    {
+        local_rhs_ext_cell[idof] += viscous_face_term_ext[idof];
+    }
+}
+
+template <int dim, int nspecies, int nstate, typename real, typename MeshType>
+template <typename adtype>
+void DGStrong<dim,nspecies,nstate,real,MeshType>::assemble_face_term_viscous_primal(
+    const dealii::types::global_dof_index                              current_cell_index,
+    const dealii::types::global_dof_index                              neighbor_cell_index,
+    std::vector<bool>                                                  face_orientation_int,
+    std::vector<bool>                                                  face_orientation_ext,
+    const unsigned int                                                 iface_int,
+    const unsigned int                                                 iface_ext,
+    const real                                                         penalty,
+    const std::array<std::vector<adtype>,nstate>                       &entropy_var_coeff_int,
+    const std::array<std::vector<adtype>,nstate>                       &entropy_var_coeff_ext,
+    const std::array<std::vector<adtype>,nstate>                       &entropy_var_at_vol_int,
+    const std::array<std::vector<adtype>,nstate>                       &entropy_var_at_vol_ext,
+    const std::array<std::vector<adtype>,nstate>                       &entropy_var_at_surf_int,
+    const std::array<std::vector<adtype>,nstate>                       &entropy_var_at_surf_ext,
+    const std::array<std::vector<adtype>,nstate>                       &soln_at_vol_q_int,
+    const std::array<std::vector<adtype>,nstate>                       &soln_at_vol_q_ext,
+    const std::array<dealii::Tensor<1,dim,std::vector<adtype>>,nstate> &aux_soln_at_vol_q_int,
+    const std::array<dealii::Tensor<1,dim,std::vector<adtype>>,nstate> &aux_soln_at_vol_q_ext,
+    const std::array<std::vector<adtype>,nstate>                       &soln_at_surf_q_int,
+    const std::array<std::vector<adtype>,nstate>                       &soln_at_surf_q_ext,
+    const std::array<dealii::Tensor<1,dim,std::vector<adtype>>,nstate> &aux_soln_at_surf_q_int,
+    const std::array<dealii::Tensor<1,dim,std::vector<adtype>>,nstate> &aux_soln_at_surf_q_ext,
+    const std::array<std::vector<adtype>,nstate>                       &legendre_soln_at_vol_q_int,
+    const std::array<dealii::Tensor<1,dim,std::vector<adtype>>,nstate> &legendre_aux_soln_at_vol_q_int,
+    const std::array<std::vector<adtype>,nstate>                       &legendre_soln_at_vol_q_ext,
+    const std::array<dealii::Tensor<1,dim,std::vector<adtype>>,nstate> &legendre_aux_soln_at_vol_q_ext, 
+    const std::array<std::vector<adtype>,nstate>                       &legendre_soln_at_surf_q_int,
+    const std::array<dealii::Tensor<1,dim,std::vector<adtype>>,nstate> &legendre_aux_soln_at_surf_q_int,
+    const std::array<std::vector<adtype>,nstate>                       &legendre_soln_at_surf_q_ext,
+    const std::array<dealii::Tensor<1,dim,std::vector<adtype>>,nstate> &legendre_aux_soln_at_surf_q_ext,
+    const std::vector<dealii::Tensor<1,dim,adtype>>                    &unit_phys_normal_int,
+    const std::vector<adtype>                                          &JxW_face,
+    const unsigned int                                                  poly_degree_int,
+    const unsigned int                                                  poly_degree_ext,
+    const unsigned int                                                  n_quad_pts_vol_int,
+    const unsigned int                                                  n_quad_pts_vol_ext,
+    const unsigned int                                                  n_dofs_cell_int,
+    const unsigned int                                                  n_dofs_cell_ext,
+    const unsigned int                                                  n_face_quad_pts,
+    const unsigned int                                                  n_shape_fns_int,
+    const unsigned int                                                  n_shape_fns_ext,
+    OPERATOR::basis_functions<dim,2*dim>                               &soln_basis_int,
+    OPERATOR::basis_functions<dim,2*dim>                               &soln_basis_ext,
+    OPERATOR::basis_functions<dim,2*dim>                               &flux_basis_int,
+    OPERATOR::basis_functions<dim,2*dim>                               &flux_basis_ext,
+    OPERATOR::metric_operators<adtype,dim,2*dim>                       &metric_oper_int,
+    OPERATOR::metric_operators<adtype,dim,2*dim>                       &metric_oper_ext,
+    Physics::PhysicsBase<dim, nspecies, nstate, adtype>          &pde_physics,
+    const NumericalFlux::NumericalFluxDissipative<dim, nspecies, nstate, adtype> &diss_num_flux,
+    std::vector<adtype>                                                &viscous_face_term_int,
+    std::vector<adtype>                                                &viscous_face_term_ext) const
+{
+    viscous_face_term_int.resize(n_dofs_cell_int);
+    viscous_face_term_ext.resize(n_dofs_cell_ext);
+    if(this->all_parameters->use_viscous_br2_entropystable)
+    {
+        EntropyStable_viscousBR2<dim,nspecies,nstate,real,MeshType>::assemble_face_term_entropystable_br2(
+         face_orientation_int,
+         face_orientation_ext,
+         iface_int,
+         iface_ext,
+         entropy_var_coeff_int,
+         entropy_var_coeff_ext,
+         entropy_var_at_vol_int,
+         entropy_var_at_vol_ext,
+         entropy_var_at_surf_int,
+         entropy_var_at_surf_ext,
+         unit_phys_normal_int,
+         JxW_face,
+         poly_degree_int,
+         poly_degree_ext,
+         n_quad_pts_vol_int,
+         n_quad_pts_vol_ext,
+         n_dofs_cell_int,
+         n_dofs_cell_ext,
+         n_face_quad_pts,
+         soln_basis_int,
+         soln_basis_ext,
+         flux_basis_int,
+         flux_basis_ext,
+         metric_oper_int,
+         metric_oper_ext,
+         pde_physics,
+         this->volume_quadrature_collection[poly_degree_int].get_weights(),
+         this->volume_quadrature_collection[poly_degree_ext].get_weights(),
+         viscous_face_term_int,
+         viscous_face_term_ext);
+
+         for(unsigned int i=0; i<n_dofs_cell_int; ++i)
+         {
+            viscous_face_term_int[i]*=-1.0;
+         }
+         for(unsigned int i=0; i<n_dofs_cell_ext; ++i)
+         {
+            viscous_face_term_ext[i]*=-1.0;
+         }
+    }
+    else
+    {
+        const std::vector<double> &surf_quad_weights = this->face_quadrature_collection[poly_degree_int].get_weights();
+        std::array<dealii::Tensor<1,dim,std::vector<adtype>>,nstate> diffusive_ref_flux_at_vol_q_int;
+        for (unsigned int iquad=0; iquad<n_quad_pts_vol_int; ++iquad) {
+            // Copy Metric Cofactor in a way can use for transforming Tensor Blocks to reference space
+            // The way it is stored in metric_operators is to use sum-factorization in each direction,
+            // but here it is cleaner to apply a reference transformation in each Tensor block returned by physics.
+            dealii::Tensor<2,dim,adtype> metric_cofactor_vol_int;
+            for(int idim=0; idim<dim; idim++){
+                for(int jdim=0; jdim<dim; jdim++){
+                    metric_cofactor_vol_int[idim][jdim] = metric_oper_int.metric_cofactor_vol[idim][jdim][iquad];
+                }
+            }
+            std::array<adtype,nstate> soln_state;
+            std::array<dealii::Tensor<1,dim,adtype>,nstate> aux_soln_state;
+            std::array<adtype,nstate> filtered_soln_state;
+            std::array<dealii::Tensor<1,dim,adtype>,nstate> filtered_aux_soln_state;
+            for(int istate=0; istate<nstate; istate++){
+                soln_state[istate] = soln_at_vol_q_int[istate][iquad];
+                if(this->do_compute_filtered_solution) filtered_soln_state[istate] = legendre_soln_at_vol_q_int[istate][iquad];
+                for(int idim=0; idim<dim; idim++){
+                    aux_soln_state[istate][idim] = aux_soln_at_vol_q_int[istate][idim][iquad];
+                    if(this->do_compute_filtered_solution) filtered_aux_soln_state[istate][idim] = legendre_aux_soln_at_vol_q_int[istate][idim][iquad];
+                }
+            }
+            
+            // Compute the physical dissipative flux
+            std::array<dealii::Tensor<1,dim,adtype>,nstate> diffusive_phys_flux;
+            diffusive_phys_flux = pde_physics.dissipative_flux(soln_state, aux_soln_state, filtered_soln_state, filtered_aux_soln_state, current_cell_index);
+            for(int istate=0; istate<nstate; istate++){
+                dealii::Tensor<1,dim,adtype> diffusive_ref_flux;
+                // transform the dissipative flux to reference space
+                metric_oper_int.transform_physical_to_reference(
+                    diffusive_phys_flux[istate],
+                    metric_cofactor_vol_int,
+                    diffusive_ref_flux);
+                
+                for(int idim=0; idim<dim; idim++){
+                    // allocate
+                    if(iquad == 0){
+                        diffusive_ref_flux_at_vol_q_int[istate][idim].resize(n_quad_pts_vol_int);
+                    }
+                    diffusive_ref_flux_at_vol_q_int[istate][idim][iquad] = diffusive_ref_flux[idim];
+                }
+            }
+        } // iquad_vol_int ends
+        
+        std::array<dealii::Tensor<1,dim,std::vector<adtype>>,nstate> diffusive_ref_flux_at_vol_q_ext;
+        for (unsigned int iquad=0; iquad<n_quad_pts_vol_ext; ++iquad) {
+
+            // Extract exterior volume metric cofactor matrix at given volume cubature node.
+            dealii::Tensor<2,dim,adtype> metric_cofactor_vol_ext;
+            for(int idim=0; idim<dim; idim++){
+                for(int jdim=0; jdim<dim; jdim++){
+                    metric_cofactor_vol_ext[idim][jdim] = metric_oper_ext.metric_cofactor_vol[idim][jdim][iquad];
+                }
+            }
+
+            std::array<adtype,nstate> soln_state;
+            std::array<dealii::Tensor<1,dim,adtype>,nstate> aux_soln_state;
+            std::array<adtype,nstate> filtered_soln_state;
+            std::array<dealii::Tensor<1,dim,adtype>,nstate> filtered_aux_soln_state;
+            for(int istate=0; istate<nstate; istate++){
+                soln_state[istate] = soln_at_vol_q_ext[istate][iquad];
+                if(this->do_compute_filtered_solution) filtered_soln_state[istate] = legendre_soln_at_vol_q_ext[istate][iquad];
+                for(int idim=0; idim<dim; idim++){
+                    aux_soln_state[istate][idim] = aux_soln_at_vol_q_ext[istate][idim][iquad];
+                    if(this->do_compute_filtered_solution) filtered_aux_soln_state[istate][idim] = legendre_aux_soln_at_vol_q_ext[istate][idim][iquad];
+                }
+            }
+
+            // Compute the physical dissipative flux
+            std::array<dealii::Tensor<1,dim,adtype>,nstate> diffusive_phys_flux;
+            diffusive_phys_flux = pde_physics.dissipative_flux(soln_state, aux_soln_state, filtered_soln_state, filtered_aux_soln_state, neighbor_cell_index);
+
+            // Write the values in a way that we can use sum-factorization on.
+            for(int istate=0; istate<nstate; istate++){
+                dealii::Tensor<1,dim,adtype> diffusive_ref_flux;
+                // transform the dissipative flux to reference space
+                metric_oper_ext.transform_physical_to_reference(
+                    diffusive_phys_flux[istate],
+                    metric_cofactor_vol_ext,
+                    diffusive_ref_flux);
+
+                for(int idim=0; idim<dim; idim++){
+                    // allocate
+                    if(iquad == 0){
+                        diffusive_ref_flux_at_vol_q_ext[istate][idim].resize(n_quad_pts_vol_ext);
+                    }
+                    diffusive_ref_flux_at_vol_q_ext[istate][idim][iquad] = diffusive_ref_flux[idim];
+                }
+            }
+        } // iquad vol ext ends
+        
+        const dealii::Tensor<1,dim,double> unit_ref_normal_int = dealii::GeometryInfo<dim>::unit_normal_vector[iface_int];
+        const dealii::Tensor<1,dim,double> unit_ref_normal_ext = dealii::GeometryInfo<dim>::unit_normal_vector[iface_ext];
+        // Extract the reference direction that is outward facing on the facet.
+        const int dim_not_zero_int = iface_int / 2;//reference direction of face integer division
+        const int dim_not_zero_ext = iface_ext / 2;//reference direction of face integer division
+        
+        std::array<std::vector<adtype>,nstate> diffusive_int_vol_ref_flux_interp_to_face_dot_ref_normal;
+        std::array<std::vector<adtype>,nstate> diffusive_ext_vol_ref_flux_interp_to_face_dot_ref_normal;
+        for(int istate=0; istate<nstate; istate++){
+            //allocate
+            diffusive_int_vol_ref_flux_interp_to_face_dot_ref_normal[istate].resize(n_face_quad_pts);
+            diffusive_ext_vol_ref_flux_interp_to_face_dot_ref_normal[istate].resize(n_face_quad_pts);
+
+            // solve
+            // Note, since the normal is zero in all other reference directions, we only have to interpolate one given reference direction to the facet
+            
+            // interpolate reference volume dissipative flux to the facet, and apply unit reference normal as scaled by 1.0 or -1.0
+            flux_basis_int.matrix_vector_mult_surface_1D(face_orientation_int, 
+                                                         iface_int,
+                                                         diffusive_ref_flux_at_vol_q_int[istate][dim_not_zero_int],
+                                                         diffusive_int_vol_ref_flux_interp_to_face_dot_ref_normal[istate],
+                                                         flux_basis_int.oneD_surf_operator,
+                                                         flux_basis_int.oneD_vol_operator,
+                                                         false, unit_ref_normal_int[dim_not_zero_int]);
+            flux_basis_ext.matrix_vector_mult_surface_1D(face_orientation_ext, 
+                                                         iface_ext,
+                                                         diffusive_ref_flux_at_vol_q_ext[istate][dim_not_zero_ext],
+                                                         diffusive_ext_vol_ref_flux_interp_to_face_dot_ref_normal[istate],
+                                                         flux_basis_ext.oneD_surf_operator,
+                                                         flux_basis_ext.oneD_vol_operator,
+                                                         false, unit_ref_normal_ext[dim_not_zero_ext]);
+        }
+        
+        std::array<std::vector<adtype>,nstate> diss_auxi_num_flux_dot_n;
+        for (unsigned int iquad=0; iquad<n_face_quad_pts; ++iquad) {
+
+            std::array<adtype,nstate> entropy_var_face_int;
+            std::array<adtype,nstate> entropy_var_face_ext;
+            std::array<dealii::Tensor<1,dim,adtype>,nstate> aux_soln_state_int;
+            std::array<dealii::Tensor<1,dim,adtype>,nstate> aux_soln_state_ext;
+            std::array<adtype,nstate> soln_interp_to_face_int;
+            std::array<adtype,nstate> soln_interp_to_face_ext;
+            std::array<dealii::Tensor<1,dim,adtype>,nstate> filtered_aux_soln_state_int;
+            std::array<dealii::Tensor<1,dim,adtype>,nstate> filtered_aux_soln_state_ext;
+            std::array<adtype,nstate> filtered_soln_interp_to_face_int;
+            std::array<adtype,nstate> filtered_soln_interp_to_face_ext;
+            for(int istate=0; istate<nstate; istate++){
+                soln_interp_to_face_int[istate] = soln_at_surf_q_int[istate][iquad];
+                soln_interp_to_face_ext[istate] = soln_at_surf_q_ext[istate][iquad];
+                if(this->do_compute_filtered_solution) filtered_soln_interp_to_face_int[istate] = legendre_soln_at_surf_q_int[istate][iquad];
+                if(this->do_compute_filtered_solution) filtered_soln_interp_to_face_ext[istate] = legendre_soln_at_surf_q_ext[istate][iquad];
+                if(this->uncollocated_flux_nodes) entropy_var_face_int[istate] = entropy_var_at_surf_int[istate][iquad];
+                if(this->uncollocated_flux_nodes) entropy_var_face_ext[istate] = entropy_var_at_surf_ext[istate][iquad];
+                for(int idim=0; idim<dim; idim++){
+                    aux_soln_state_int[istate][idim] = aux_soln_at_surf_q_int[istate][idim][iquad];
+                    aux_soln_state_ext[istate][idim] = aux_soln_at_surf_q_ext[istate][idim][iquad];
+                    if(this->do_compute_filtered_solution) filtered_aux_soln_state_int[istate][idim] = legendre_aux_soln_at_surf_q_int[istate][idim][iquad];
+                    if(this->do_compute_filtered_solution) filtered_aux_soln_state_ext[istate][idim] = legendre_aux_soln_at_surf_q_ext[istate][idim][iquad];
+                }
+            }
+
+            std::array<adtype,nstate> soln_state_int;
+            std::array<adtype,nstate> soln_state_ext;
+            if(this->uncollocated_flux_nodes)
+            {
+                soln_state_int = pde_physics.compute_conservative_variables_from_entropy_variables (entropy_var_face_int);
+                soln_state_ext = pde_physics.compute_conservative_variables_from_entropy_variables (entropy_var_face_ext);
+            }
+            else
+            {
+                for(int istate=0; istate<nstate; istate++){
+                    soln_state_int[istate] = soln_at_surf_q_int[istate][iquad];
+                    soln_state_ext[istate] = soln_at_surf_q_ext[istate][iquad];
+                }
+            }
+
+            std::array<adtype,nstate> diss_auxi_num_flux_dot_n_at_q;
+            // dissipative numerical flux
+            diss_auxi_num_flux_dot_n_at_q = diss_num_flux.evaluate_auxiliary_flux(
+                current_cell_index, neighbor_cell_index,
+                0.0, 0.0,
+                soln_interp_to_face_int, soln_interp_to_face_ext,
+                aux_soln_state_int, aux_soln_state_ext,
+                filtered_soln_interp_to_face_int, filtered_soln_interp_to_face_ext,
+                filtered_aux_soln_state_int, filtered_aux_soln_state_ext,
+                unit_phys_normal_int[iquad], penalty, false);
+
+            // Write the values in a way that we can use sum-factorization on.
+            for(int istate=0; istate<nstate; istate++){
+                // allocate
+                if(iquad == 0){
+                    diss_auxi_num_flux_dot_n[istate].resize(n_face_quad_pts);
+                }
+                
+                const adtype face_Jac_norm_scaled = JxW_face[iquad]/surf_quad_weights[iquad];
+                // write data
+                diss_auxi_num_flux_dot_n[istate][iquad] = face_Jac_norm_scaled * diss_auxi_num_flux_dot_n_at_q[istate];
+            }
+        }
+        
+        for(int istate=0; istate<nstate; istate++){
+            // interior RHS
+            std::vector<adtype> rhs_int(n_shape_fns_int);
+
+            // dissipative flux
+            soln_basis_int.inner_product_surface_1D(face_orientation_int, 
+                                                    iface_int,
+                                                    diffusive_int_vol_ref_flux_interp_to_face_dot_ref_normal[istate], 
+                                                    surf_quad_weights, rhs_int, 
+                                                    soln_basis_int.oneD_surf_operator, 
+                                                    soln_basis_int.oneD_vol_operator,
+                                                    false, 1.0);//subtract the negative so add it
+            // dissipative numerical flux
+            soln_basis_int.inner_product_surface_1D(face_orientation_int, 
+                                                    iface_int,
+                                                    diss_auxi_num_flux_dot_n[istate], 
+                                                    surf_quad_weights, rhs_int, 
+                                                    soln_basis_int.oneD_surf_operator, 
+                                                    soln_basis_int.oneD_vol_operator,
+                                                    true, -1.0);//adding=true, scaled by factor=-1.0 bc subtract it
+
+            for(unsigned int ishape=0; ishape<n_shape_fns_int; ishape++){
+                viscous_face_term_int[istate*n_shape_fns_int + ishape] = rhs_int[ishape];
+            }
+
+            // exterior RHS
+            std::vector<adtype> rhs_ext(n_shape_fns_ext);
+
+            // dissipative flux
+            soln_basis_ext.inner_product_surface_1D(face_orientation_ext, 
+                                                    iface_ext,
+                                                    diffusive_ext_vol_ref_flux_interp_to_face_dot_ref_normal[istate], 
+                                                    surf_quad_weights, rhs_ext, 
+                                                    soln_basis_ext.oneD_surf_operator, 
+                                                    soln_basis_ext.oneD_vol_operator,
+                                                    false, 1.0);
+            // dissipative numerical flux
+            soln_basis_ext.inner_product_surface_1D(face_orientation_ext, 
+                                                    iface_ext,
+                                                    diss_auxi_num_flux_dot_n[istate], 
+                                                    surf_quad_weights, rhs_ext, 
+                                                    soln_basis_ext.oneD_surf_operator, 
+                                                    soln_basis_ext.oneD_vol_operator,
+                                                    true, 1.0);//adding=true, scaled by factor=1.0 because negative numerical flux and subtract it
+
+            for(unsigned int ishape=0; ishape<n_shape_fns_ext; ishape++){
+                viscous_face_term_ext[istate*n_shape_fns_ext + ishape] = rhs_ext[ishape];
+            }
+        }
+
+    } 
+    
 }
 
 /*******************************************************
@@ -3652,6 +4021,733 @@ void DGStrong<dim,nspecies,nstate,real,MeshType>::allocate_dual_vector(const boo
         this->dual.reinit(this->locally_owned_dofs, this->ghost_dofs, this->mpi_communicator);
     }
 }
+
+//=========================================================================================================
+                //     Entropy Stable Viscous BR2 Scheme without auxiliary
+//=========================================================================================================
+template <int dim, int nspecies, int nstate, typename real, typename MeshType>
+template <typename adtype>
+void EntropyStable_viscousBR2<dim,nspecies,nstate,real,MeshType>::interpolate_to_face(
+    std::vector<bool> face_orientation,
+    const unsigned int iface,
+    const std::array<dealii::Tensor<1,dim,std::vector<adtype>>,nstate> &T_at_vol,
+    OPERATOR::basis_functions<dim,2*dim> &flux_basis,
+    const unsigned int n_face_quad_pts,
+    std::array<dealii::Tensor<1,dim,std::vector<adtype>>,nstate> &T_at_face)
+{
+    for(unsigned int s=0; s<nstate; ++s)
+    {
+        for(unsigned int d=0; d<dim; ++d)
+        {
+            T_at_face[s][d].resize(n_face_quad_pts);
+        }
+    }
+
+    for(unsigned int s=0; s<nstate; ++s)
+    {
+        for(unsigned int d=0; d<dim; ++d)
+        {
+            flux_basis.matrix_vector_mult_surface_1D(face_orientation,
+                                                     iface, 
+                                                     T_at_vol[s][d],
+                                                     T_at_face[s][d],
+                                                     flux_basis.oneD_surf_operator,
+                                                     flux_basis.oneD_vol_operator);
+        }
+    }
+}
+    
+template <int dim, int nspecies, int nstate, typename real, typename MeshType>
+template <typename adtype>
+void EntropyStable_viscousBR2<dim,nspecies,nstate,real,MeshType>::evaluate_face_integral(
+    std::vector<bool> face_orientation,
+    const unsigned int iface,
+    const std::array<std::vector<adtype>,nstate> &sigma_dot_n_at_face,
+    const std::vector<adtype> &JxW_face,
+    OPERATOR::basis_functions<dim,2*dim> &soln_basis,
+    const unsigned int n_dofs_cell,
+    std::vector<adtype> &integral_val)
+{
+    integral_val.resize(n_dofs_cell); 
+    const unsigned int n_shape_fns = n_dofs_cell/nstate;
+
+    for(unsigned int s=0; s<nstate; ++s)
+    {
+        std::vector<adtype> integral_1state(n_shape_fns);
+        soln_basis.inner_product_surface_1D_JxW(face_orientation, iface, sigma_dot_n_at_face[s],
+                                            JxW_face, integral_1state,
+                                            soln_basis.oneD_surf_operator,
+                                            soln_basis.oneD_vol_operator);
+        const unsigned int start_index = s*n_shape_fns;
+        for(unsigned int ishape = 0; ishape<n_shape_fns; ++ishape)
+        {
+            integral_val[start_index + ishape] = integral_1state[ishape];
+        }
+    }
+}
+    
+template <int dim, int nspecies, int nstate, typename real, typename MeshType>
+template <typename adtype>
+void EntropyStable_viscousBR2<dim,nspecies,nstate,real,MeshType>::compute_lift_polynomial(
+    std::vector<bool> face_orientation,
+    const unsigned int iface,
+    const std::array<dealii::Tensor<1,dim,std::vector<adtype>>,nstate> &phi_at_face,
+    const std::vector<adtype> &JxW_face,
+    const std::vector<adtype> &JxW_vol,
+    OPERATOR::basis_functions<dim,2*dim> &flux_basis,
+    const unsigned int /*n_face_quad_pts*/,
+    const unsigned int n_vol_quad_pts,
+    const bool is_interior_face,
+    std::array<dealii::Tensor<1,dim,std::vector<adtype>>,nstate> &re_out_vol)
+{
+    const unsigned int n_shape_fns_flux = n_vol_quad_pts; // collocated 
+    for(unsigned int s=0; s<nstate; ++s)
+    {
+        for(unsigned int d=0; d<dim; ++d)
+        {
+            re_out_vol[s][d].resize(n_shape_fns_flux);
+        }
+    }
+
+    for(unsigned int s=0; s<nstate; ++s)
+    {
+        for(unsigned int d=0; d<dim; ++d)
+        {
+            flux_basis.inner_product_surface_1D_JxW(face_orientation, iface,
+                                                phi_at_face[s][d],
+                                                JxW_face, re_out_vol[s][d],
+                                                flux_basis.oneD_surf_operator,
+                                                flux_basis.oneD_vol_operator);
+        }
+    }
+
+    const double mult_factor = is_interior_face ? 0.5 : 1.0;
+    for(unsigned int s=0; s<nstate; ++s)
+    {
+        for(unsigned int d=0; d<dim; ++d)
+        {
+            for(unsigned int iquad = 0; iquad<n_vol_quad_pts; ++iquad)
+            {
+                re_out_vol[s][d][iquad]*= -mult_factor/JxW_vol[iquad];
+            }
+        }
+    }
+}
+    
+template <int dim, int nspecies, int nstate, typename real, typename MeshType>
+template <typename adtype>
+void EntropyStable_viscousBR2<dim,nspecies,nstate,real,MeshType>::compute_physical_grad_entropy_var(
+    const std::array<std::vector<adtype>,nstate>                       &entropy_var_coeff,
+    OPERATOR::basis_functions<dim,2*dim>                               &soln_basis,
+    OPERATOR::metric_operators<adtype,dim,2*dim>                       &metric_oper,
+    const unsigned int                                                 n_quad_pts,
+    std::array<dealii::Tensor<1,dim,std::vector<adtype>>,nstate>       &entropy_var_phys_grad)
+{
+    // Entropy grad wrt reference coordinates
+    std::array<dealii::Tensor<1,dim,std::vector<adtype>>,nstate> entropy_var_ref_grad;
+    for(unsigned int s=0; s<nstate; ++s)
+    {
+        for(unsigned int d=0; d<dim; ++d)
+        {
+            entropy_var_ref_grad[s][d].resize(n_quad_pts);
+        }
+        soln_basis.gradient_matrix_vector_mult_1D(entropy_var_coeff[s],
+                                                  entropy_var_ref_grad[s],
+                                                  soln_basis.oneD_vol_operator,
+                                                  soln_basis.oneD_grad_operator);
+    }
+    
+    // Entropy grad wrt physical coordinates
+    for(unsigned int s=0; s<nstate; ++s)
+    {
+        metric_oper.transform_reference_to_physical_grad_vector(entropy_var_ref_grad[s],
+                                                                metric_oper.metric_cofactor_vol,
+                                                                metric_oper.det_Jac_vol,
+                                                                entropy_var_phys_grad[s]);
+    }
+}
+    
+template <int dim, int nspecies, int nstate, typename real, typename MeshType>
+template <typename adtype>
+void EntropyStable_viscousBR2<dim,nspecies,nstate,real,MeshType>::apply_diffusion_matrix_entropy_based(
+        const std::array<std::vector<adtype>,nstate>                       &entropy_var_at_quads,
+        const unsigned int                                                 n_quad_pts,
+        const Physics::PhysicsBase<dim, nspecies, nstate, adtype>          &pde_physics,
+        const std::array<dealii::Tensor<1,dim,std::vector<adtype>>,nstate>   &T_in,
+        std::array<dealii::Tensor<1,dim,std::vector<adtype>>,nstate>         &T_out)
+{
+    //Resize
+    for(unsigned int s=0; s<nstate; ++s)
+    {
+        for(unsigned int d=0; d<dim; ++d)
+        {
+            T_out[s][d].resize(n_quad_pts);
+        }
+    }
+
+    for(unsigned int q = 0; q<n_quad_pts; ++q)
+    {
+        std::array<dealii::Tensor<1,dim,adtype>,nstate> T_in_at_q;
+        std::array<adtype,nstate> entropy_var_at_q;
+        for(unsigned int s=0; s<nstate; ++s)
+        {
+            for(unsigned int d=0; d<dim; ++d)
+            {
+                T_in_at_q[s][d] = T_in[s][d][q];
+            }
+            entropy_var_at_q[s] = entropy_var_at_quads[s][q];
+        }
+        std::array<dealii::Tensor<1,dim,adtype>,nstate> T_out_at_q = pde_physics.dissipative_flux_entropy_based(entropy_var_at_q, T_in_at_q);
+        for(unsigned int s=0; s<nstate; ++s)
+        {
+            for(unsigned int d=0; d<dim; ++d)
+            {
+                T_out[s][d][q] = T_out_at_q[s][d];
+            }
+        }
+    }
+}
+
+template <int dim, int nspecies, int nstate, typename real, typename MeshType>
+template <typename adtype>
+void EntropyStable_viscousBR2<dim,nspecies,nstate,real,MeshType>::compute_gradbasis_diffusionmatrix_times_input_vol_integral(
+    const std::array<std::vector<adtype>,nstate>                       &entropy_var_at_quads,
+    const unsigned int                                                 n_quad_pts,
+    const unsigned int                                                 n_dofs_cell,
+    OPERATOR::basis_functions<dim,2*dim>                               &soln_basis,
+    OPERATOR::metric_operators<adtype,dim,2*dim>                       &metric_oper,
+    const std::vector<double>                                          &weight_vect,
+    const Physics::PhysicsBase<dim, nspecies, nstate, adtype>          &pde_physics,
+    const std::array<dealii::Tensor<1,dim,std::vector<adtype>>,nstate>   &T_input,
+    std::vector<adtype>                                                &integral_val)
+{
+    const unsigned int n_shape_fns = n_dofs_cell / nstate; 
+    
+    // Form L = K*T
+    std::array<dealii::Tensor<1,dim,std::vector<adtype>>,nstate>   L;
+    apply_diffusion_matrix_entropy_based(
+    entropy_var_at_quads,
+    n_quad_pts,
+    pde_physics,
+    T_input,
+    L);
+
+    // Form M = cof(J)^T*L
+    std::array<dealii::Tensor<1,dim,std::vector<adtype>>,nstate>   M;
+    for(unsigned int s=0; s<nstate; ++s)
+    {
+        metric_oper.transform_physical_to_reference_vector(
+            L[s],
+            metric_oper.metric_cofactor_vol,
+            M[s]);
+    }
+
+    // Compute \int_k nabla basis * K*T d\Omega
+    integral_val.resize(n_dofs_cell);
+    std::vector<adtype> integral_val_1state(n_shape_fns);
+
+    for(unsigned int s=0; s<nstate; ++s)
+    {
+
+        soln_basis.inner_product(
+        M[s][0],
+        weight_vect,
+        integral_val_1state,
+        soln_basis.oneD_grad_operator,
+        soln_basis.oneD_vol_operator,
+        soln_basis.oneD_vol_operator,
+        false);
+
+        if(dim>=2)
+        {
+            soln_basis.inner_product(
+            M[s][1],
+            weight_vect,
+            integral_val_1state,
+            soln_basis.oneD_vol_operator,
+            soln_basis.oneD_grad_operator,
+            soln_basis.oneD_vol_operator,
+            true);
+        }
+
+
+        if(dim>=3)
+        {
+            soln_basis.inner_product(
+            M[s][2],
+            weight_vect,
+            integral_val_1state,
+            soln_basis.oneD_vol_operator,
+            soln_basis.oneD_vol_operator,
+            soln_basis.oneD_grad_operator,
+            true);
+        }
+
+        // Put values in integral_val vector.
+        const unsigned int start_index = s*n_shape_fns;
+        for(unsigned int ishape=0; ishape<n_shape_fns; ++ishape)
+        {
+            integral_val[start_index + ishape] = integral_val_1state[ishape];
+        }
+    }
+
+}
+    
+template <int dim, int nspecies, int nstate, typename real, typename MeshType>
+template <typename adtype>
+void EntropyStable_viscousBR2<dim,nspecies,nstate,real,MeshType>::assemble_volume_term_entropystable_br2(
+    const unsigned int                                                 /*poly_degree*/,
+    const std::array<std::vector<adtype>,nstate>                       &entropy_var_coeff,
+    const std::array<std::vector<adtype>,nstate>                       &entropy_var_at_q,
+    const unsigned int                                                  n_quad_pts,
+    const unsigned int                                                  n_dofs_cell,
+    OPERATOR::basis_functions<dim,2*dim>                               &soln_basis,
+    OPERATOR::metric_operators<adtype,dim,2*dim>                       &metric_oper,
+    const Physics::PhysicsBase<dim, nspecies, nstate, adtype>          &pde_physics,
+    const std::vector<double>                                          &weight_vect,
+    std::vector<adtype>                                                &vol_term)
+{
+    // Entropy grad wrt physical coordinates
+    std::array<dealii::Tensor<1,dim,std::vector<adtype>>,nstate> entropy_var_phys_grad;
+    compute_physical_grad_entropy_var(
+       entropy_var_coeff,
+       soln_basis,
+       metric_oper,
+       n_quad_pts,
+       entropy_var_phys_grad);
+
+    compute_gradbasis_diffusionmatrix_times_input_vol_integral(
+        entropy_var_at_q,
+        n_quad_pts,
+        n_dofs_cell,
+        soln_basis,
+        metric_oper,
+        weight_vect,
+        pde_physics,
+        entropy_var_phys_grad,
+        vol_term); 
+}
+
+template <int dim, int nspecies, int nstate, typename real, typename MeshType>
+template <typename adtype>
+void EntropyStable_viscousBR2<dim,nspecies,nstate,real,MeshType>::assemble_face_term_entropystable_br2(
+    std::vector<bool>                                                  face_orientation_int,
+    std::vector<bool>                                                  face_orientation_ext,
+    const unsigned int                                                 iface_int,
+    const unsigned int                                                 iface_ext,
+    const std::array<std::vector<adtype>,nstate>                       &entropy_var_coeff_int,
+    const std::array<std::vector<adtype>,nstate>                       &entropy_var_coeff_ext,
+    const std::array<std::vector<adtype>,nstate>                       &entropy_var_at_vol_int,
+    const std::array<std::vector<adtype>,nstate>                       &entropy_var_at_vol_ext,
+    const std::array<std::vector<adtype>,nstate>                       &entropy_var_at_surf_int,
+    const std::array<std::vector<adtype>,nstate>                       &entropy_var_at_surf_ext,
+    const std::vector<dealii::Tensor<1,dim,adtype>>                    &unit_phys_normal_int,
+    const std::vector<adtype>                                          &JxW_face,
+    const unsigned int                                                  /*poly_degree_int*/,
+    const unsigned int                                                  /*poly_degree_ext*/,
+    const unsigned int                                                  n_vol_quad_pts_int,
+    const unsigned int                                                  n_vol_quad_pts_ext,
+    const unsigned int                                                  n_dofs_cell_int,
+    const unsigned int                                                  n_dofs_cell_ext,
+    const unsigned int                                                  n_face_quad_pts,
+    OPERATOR::basis_functions<dim,2*dim>                               &soln_basis_int,
+    OPERATOR::basis_functions<dim,2*dim>                               &soln_basis_ext,
+    OPERATOR::basis_functions<dim,2*dim>                               &flux_basis_int,
+    OPERATOR::basis_functions<dim,2*dim>                               &flux_basis_ext,
+    OPERATOR::metric_operators<adtype,dim,2*dim>                       &metric_oper_int,
+    OPERATOR::metric_operators<adtype,dim,2*dim>                       &metric_oper_ext,
+    const Physics::PhysicsBase<dim, nspecies, nstate, adtype>          &pde_physics,
+    const std::vector<double>                                          &vol_quad_weights_int,
+    const std::vector<double>                                          &vol_quad_weights_ext,
+    std::vector<adtype>                                                &face_term_int,
+    std::vector<adtype>                                                &face_term_ext)
+{
+    std::vector<adtype> JxW_vol_int(n_vol_quad_pts_int);
+    std::vector<adtype> JxW_vol_ext(n_vol_quad_pts_ext);
+    for(unsigned int iquad=0; iquad<n_vol_quad_pts_int; ++iquad)
+    {
+        JxW_vol_int[iquad] = metric_oper_int.det_Jac_vol[iquad]*vol_quad_weights_int[iquad];
+    }
+    for(unsigned int iquad=0; iquad<n_vol_quad_pts_ext; ++iquad)
+    {
+        JxW_vol_ext[iquad] = metric_oper_ext.det_Jac_vol[iquad]*vol_quad_weights_ext[iquad];
+    }
+
+    std::array<dealii::Tensor<1,dim,std::vector<adtype>>,nstate> entropy_var_phys_grad_int;
+    compute_physical_grad_entropy_var(
+       entropy_var_coeff_int,
+       soln_basis_int,
+       metric_oper_int,
+       n_vol_quad_pts_int,
+       entropy_var_phys_grad_int);
+    
+    std::array<dealii::Tensor<1,dim,std::vector<adtype>>,nstate> entropy_var_phys_grad_ext;
+    compute_physical_grad_entropy_var(
+       entropy_var_coeff_ext,
+       soln_basis_ext,
+       metric_oper_ext,
+       n_vol_quad_pts_ext,
+       entropy_var_phys_grad_ext);
+
+    std::array<dealii::Tensor<1,dim,std::vector<adtype>>,nstate> entropy_var_jump_at_face;
+    for(unsigned int s=0; s<nstate; ++s)
+    {
+        for(unsigned int d=0; d<dim; ++d)
+        {
+            entropy_var_jump_at_face[s][d].resize(n_face_quad_pts);
+        }
+    }
+
+
+    for(unsigned int s=0; s<nstate; ++s)
+    {
+        for(unsigned int d=0; d<dim; ++d)
+        {
+            for(unsigned int iquad=0; iquad<n_face_quad_pts; ++iquad)
+            {
+                entropy_var_jump_at_face[s][d][iquad] = (entropy_var_at_surf_int[s][iquad] - entropy_var_at_surf_ext[s][iquad])*unit_phys_normal_int[iquad][d];
+            }
+        }
+    }
+
+    std::array<dealii::Tensor<1,dim,std::vector<adtype>>,nstate> re_int;
+    const bool is_interior_face = true;
+    compute_lift_polynomial(
+    face_orientation_int,
+    iface_int,
+    entropy_var_jump_at_face,
+    JxW_face,
+    JxW_vol_int,
+    flux_basis_int,
+    n_face_quad_pts,
+    n_vol_quad_pts_int,
+    is_interior_face,
+    re_int);
+    
+    std::array<dealii::Tensor<1,dim,std::vector<adtype>>,nstate> re_ext;
+    compute_lift_polynomial(
+    face_orientation_ext,
+    iface_ext,
+    entropy_var_jump_at_face,
+    JxW_face,
+    JxW_vol_ext,
+    flux_basis_ext,
+    n_face_quad_pts,
+    n_vol_quad_pts_ext,
+    is_interior_face,
+    re_ext);
+
+    const double br2_factor = 2.0*dim + 1.0; // n_faces = 2*dim. br2_factor > n_faces for entropy stability.
+
+    std::array<dealii::Tensor<1,dim,std::vector<adtype>>,nstate> tensor_int;
+    std::array<dealii::Tensor<1,dim,std::vector<adtype>>,nstate> tensor_ext;
+    for(unsigned int s=0; s<nstate; ++s)
+    {
+        for(unsigned int d=0; d<dim; ++d)
+        {
+            tensor_int[s][d].resize(n_vol_quad_pts_int);
+            tensor_ext[s][d].resize(n_vol_quad_pts_ext);
+        }
+    }
+    
+    for(unsigned int q=0; q<n_vol_quad_pts_int; ++q)
+    {
+        for(unsigned int s=0; s<nstate; ++s)
+        {
+            for(unsigned int d=0; d<dim; ++d)
+            {
+                tensor_int[s][d][q] = entropy_var_phys_grad_int[s][d][q] + br2_factor*re_int[s][d][q];
+            }
+        }       
+    }
+
+    for(unsigned int q=0; q<n_vol_quad_pts_ext; ++q)
+    {
+        for(unsigned int s=0; s<nstate; ++s)
+        {
+            for(unsigned int d=0; d<dim; ++d)
+            {
+                tensor_ext[s][d][q] = entropy_var_phys_grad_ext[s][d][q] + br2_factor*re_ext[s][d][q];
+            }
+        }       
+    }
+
+    std::array<dealii::Tensor<1,dim,std::vector<adtype>>,nstate> K_tensor_int;
+    apply_diffusion_matrix_entropy_based(
+    entropy_var_at_vol_int,
+    n_vol_quad_pts_int,
+    pde_physics,
+    tensor_int,
+    K_tensor_int);
+
+    std::array<dealii::Tensor<1,dim,std::vector<adtype>>,nstate> K_tensor_ext;
+    apply_diffusion_matrix_entropy_based(
+    entropy_var_at_vol_ext,
+    n_vol_quad_pts_ext,
+    pde_physics,
+    tensor_ext,
+    K_tensor_ext);
+
+    std::array<dealii::Tensor<1,dim,std::vector<adtype>>,nstate> sigma_at_face_int;
+    std::array<dealii::Tensor<1,dim,std::vector<adtype>>,nstate> sigma_at_face_ext;
+    std::array<std::vector<adtype>,nstate> sigma_at_face_avg_dot_n_int;
+    std::array<std::vector<adtype>,nstate> sigma_at_face_avg_dot_n_ext;
+
+
+    interpolate_to_face(
+    face_orientation_int,
+    iface_int,
+    K_tensor_int,
+    flux_basis_int,
+    n_face_quad_pts,
+    sigma_at_face_int);
+    
+    interpolate_to_face(
+    face_orientation_ext,
+    iface_ext,
+    K_tensor_ext,
+    flux_basis_ext,
+    n_face_quad_pts,
+    sigma_at_face_ext);
+
+    // compute sigma_avg_dot_n
+    for(unsigned int s=0; s<nstate; ++s)
+    {
+        sigma_at_face_avg_dot_n_int[s].resize(n_face_quad_pts);
+        sigma_at_face_avg_dot_n_ext[s].resize(n_face_quad_pts);
+        for(unsigned int q=0; q<n_face_quad_pts; ++q)
+        {
+            for(unsigned int d=0; d<dim; ++d)
+            {
+                sigma_at_face_avg_dot_n_int[s][q] += 0.5*(sigma_at_face_int[s][d][q] + sigma_at_face_ext[s][d][q])*unit_phys_normal_int[q][d];
+                sigma_at_face_avg_dot_n_ext[s][q] += 0.5*(sigma_at_face_int[s][d][q] + sigma_at_face_ext[s][d][q])*(-unit_phys_normal_int[q][d]);
+            }
+        }
+    }
+
+    std::vector<adtype> int_face_integral_e;
+    std::vector<adtype> ext_face_integral_e;
+    std::vector<adtype> int_face_integral_k;
+    std::vector<adtype> ext_face_integral_k;
+    
+    evaluate_face_integral(
+    face_orientation_int,
+    iface_int,
+    sigma_at_face_avg_dot_n_int,
+    JxW_face,
+    soln_basis_int,
+    n_dofs_cell_int,
+    int_face_integral_e);
+    
+    evaluate_face_integral(
+    face_orientation_ext,
+    iface_ext,
+    sigma_at_face_avg_dot_n_ext,
+    JxW_face,
+    soln_basis_ext,
+    n_dofs_cell_ext,
+    ext_face_integral_e);
+
+    compute_gradbasis_diffusionmatrix_times_input_vol_integral(
+    entropy_var_at_vol_int,
+    n_vol_quad_pts_int,
+    n_dofs_cell_int,
+    soln_basis_int,
+    metric_oper_int,
+    vol_quad_weights_int,
+    pde_physics,
+    re_int,
+    int_face_integral_k);
+
+    compute_gradbasis_diffusionmatrix_times_input_vol_integral(
+    entropy_var_at_vol_ext,
+    n_vol_quad_pts_ext,
+    n_dofs_cell_ext,
+    soln_basis_ext,
+    metric_oper_ext,
+    vol_quad_weights_ext,
+    pde_physics,
+    re_ext,
+    ext_face_integral_k);
+
+    for(unsigned int idof =0; idof<n_dofs_cell_int; ++idof)
+    {
+        face_term_int[idof] = int_face_integral_k[idof] - int_face_integral_e[idof];
+    }
+
+    for(unsigned int idof =0; idof<n_dofs_cell_ext; ++idof)
+    {
+        face_term_ext[idof] = ext_face_integral_k[idof] - ext_face_integral_e[idof];
+    }
+}
+    
+template <int dim, int nspecies, int nstate, typename real, typename MeshType>
+template <typename adtype>
+void EntropyStable_viscousBR2<dim,nspecies,nstate,real,MeshType>::assemble_boundary_term_entropystable_br2(
+    std::vector<bool>                                                  face_orientation,
+    const unsigned int                                                 iface,
+    const unsigned int                                                 boundary_id,
+    const unsigned int                                                 /*poly_degree*/,
+    const std::array<std::vector<adtype>,nstate>                       &entropy_var_coeff,
+    const std::array<std::vector<adtype>,nstate>                       &entropy_var_at_vol_quads,
+    const std::array<std::vector<adtype>,nstate>                       &entropy_var_at_surf_quads,
+    const unsigned int                                                  n_vol_quad_pts,
+    const unsigned int                                                  n_face_quad_pts,
+    const unsigned int                                                  n_dofs_cell,
+    OPERATOR::basis_functions<dim,2*dim>                               &soln_basis,
+    OPERATOR::basis_functions<dim,2*dim>                               &flux_basis,
+    OPERATOR::metric_operators<adtype,dim,2*dim>                       &metric_oper,
+    const std::vector<dealii::Tensor<1,dim,adtype>>                    &unit_phys_normal,
+    const std::vector<adtype>                                          &JxW_face,
+    const Physics::PhysicsBase<dim,nspecies,nstate,adtype>             &pde_physics,
+    const std::vector<double>                                          &vol_quad_weights,
+    std::vector<adtype>                                                &boundary_term)
+{
+    std::vector<adtype> JxW_vol(n_vol_quad_pts);
+    for(unsigned int iquad=0; iquad<n_vol_quad_pts; ++iquad)
+    {
+        JxW_vol[iquad] = metric_oper.det_Jac_vol[iquad]*vol_quad_weights[iquad];
+    }
+
+    std::array<dealii::Tensor<1,dim,std::vector<adtype>>,nstate>       entropy_var_phys_grad_at_vol;
+    compute_physical_grad_entropy_var(
+    entropy_var_coeff,
+    soln_basis,
+    metric_oper,
+    n_vol_quad_pts,
+    entropy_var_phys_grad_at_vol);
+
+    std::array<dealii::Tensor<1,dim,std::vector<adtype>>,nstate>       K_nabla_v_at_vol;
+    apply_diffusion_matrix_entropy_based(
+    entropy_var_at_vol_quads,
+    n_vol_quad_pts,
+    pde_physics,
+    entropy_var_phys_grad_at_vol,
+    K_nabla_v_at_vol);
+
+    std::array<dealii::Tensor<1,dim,std::vector<adtype>>,nstate>       poly_K_nabla_v_at_face;
+    interpolate_to_face(
+    face_orientation,
+    iface,
+    K_nabla_v_at_vol,
+    flux_basis,
+    n_face_quad_pts,
+    poly_K_nabla_v_at_face);
+
+    std::array<dealii::Tensor<1,dim,std::vector<adtype>>,nstate>       entropy_var_phys_grad_at_face; // Using the vol entropy grad's projection to polynomial here instead of actually computing phys grad at face quadratures. This is consistent and should yield correct solutions under mesh refinement.
+    interpolate_to_face(
+    face_orientation,
+    iface,
+    entropy_var_phys_grad_at_vol,
+    flux_basis,
+    n_face_quad_pts,
+    entropy_var_phys_grad_at_face);
+
+    std::array<dealii::Tensor<1,dim,std::vector<adtype>>,nstate>      jump_entropy_var_face;
+    std::array<std::vector<adtype>,nstate> sigma_gamma_dot_n_face;
+    for(unsigned int s=0; s<nstate; ++s)
+    {
+        for(unsigned int d=0; d<dim; ++d)
+        {
+            jump_entropy_var_face[s][d].resize(n_face_quad_pts);
+        }
+        sigma_gamma_dot_n_face[s].resize(n_face_quad_pts); // 0 by default
+    }
+
+    for(unsigned int q =0; q<n_face_quad_pts; ++q)
+    {
+        std::array<adtype,nstate> v_int_at_q;
+        std::array<dealii::Tensor<1,dim,adtype>,nstate> poly_sigma_at_q;
+        std::array<dealii::Tensor<1,dim,adtype>,nstate> entropy_var_phys_grad_face_q;
+        for(unsigned int s=0; s<nstate; ++s)
+        {
+            for(unsigned int d=0; d<dim; ++d)
+            {
+                poly_sigma_at_q[s][d] = poly_K_nabla_v_at_face[s][d][q];
+                entropy_var_phys_grad_face_q[s][d] = entropy_var_phys_grad_at_face[s][d][q];
+            }
+            v_int_at_q[s] = entropy_var_at_surf_quads[s][q];
+        }
+        dealii::Point<dim,adtype> surf_flux_node;
+        for(int idim=0; idim<dim; idim++){
+            surf_flux_node[idim] = metric_oper.flux_nodes_surf[iface][idim][q];
+        }
+        
+        std::array<adtype,nstate> v_bc_at_q;
+        std::array<dealii::Tensor<1,dim,adtype>,nstate> sigma_bc_at_q;
+
+
+        pde_physics.boundary_face_values_entropy_var(surf_flux_node,
+                                                     v_int_at_q, 
+                                                     poly_sigma_at_q, 
+                                                     entropy_var_phys_grad_face_q, 
+                                                     v_bc_at_q, 
+                                                     sigma_bc_at_q, 
+                                                     unit_phys_normal[q],
+                                                     boundary_id);
+
+
+        for(unsigned int s=0; s<nstate; ++s)
+        {
+            for(unsigned int d=0; d<dim; ++d)
+            {
+                sigma_gamma_dot_n_face[s][q] += sigma_bc_at_q[s][d]*unit_phys_normal[q][d];
+            }
+        }
+
+
+        for(unsigned int s=0; s<nstate; ++s)
+        {
+            for(unsigned int d=0; d<dim; ++d)
+            {
+                jump_entropy_var_face[s][d][q] = (v_bc_at_q[s] - v_int_at_q[s])*unit_phys_normal[q][d];
+            }
+        }
+    }
+
+    std::array<dealii::Tensor<1,dim,std::vector<adtype>>,nstate>      re_jump;
+    const bool is_interior_face = false;
+    compute_lift_polynomial(
+    face_orientation,
+    iface,
+    jump_entropy_var_face,
+    JxW_face,
+    JxW_vol,
+    flux_basis,
+    n_face_quad_pts,
+    n_vol_quad_pts,
+    is_interior_face,
+    re_jump);
+
+    std::vector<adtype> integral_k;
+    std::vector<adtype> integral_e;
+    evaluate_face_integral(
+    face_orientation,
+    iface,
+    sigma_gamma_dot_n_face,
+    JxW_face,
+    soln_basis,
+    n_dofs_cell,
+    integral_e);
+
+    compute_gradbasis_diffusionmatrix_times_input_vol_integral(
+    entropy_var_at_vol_quads,
+    n_vol_quad_pts,
+    n_dofs_cell,
+    soln_basis,
+    metric_oper,
+    vol_quad_weights,
+    pde_physics,
+    re_jump,
+    integral_k);
+
+    boundary_term.resize(n_dofs_cell);
+    for(unsigned int idof=0; idof<n_dofs_cell; ++idof)
+    {
+        boundary_term[idof] = integral_k[idof] - integral_e[idof];
+    }
+}
+
 
 #if PHILIP_SPECIES==1
     // using default MeshType = Triangulation

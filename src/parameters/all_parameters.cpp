@@ -161,6 +161,10 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       dealii::Patterns::Bool(),
                       "Check validty of metric Jacobian when high-order grid is constructed by default. Do not check if false. Not checking is useful if the metric terms are built on the fly with operators, it reduces the memory cost for high polynomial grids. The metric Jacobian is never checked for strong form, regardless of the user input.");
 
+    prm.declare_entry("use_viscous_br2_entropystable", "false",
+                      dealii::Patterns::Bool(),
+                      "Use entropy stable BR2 discretization of the viscous terms.");
+    
     prm.declare_entry("energy_file", "energy_file",
                       dealii::Patterns::FileName(dealii::Patterns::FileName::FileType::input),
                       "Input file for energy test.");
@@ -188,6 +192,7 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       " euler_naca_optimization | "
                       " shock_1d | "
                       " euler_naca0012 | "
+                      " lid_driven_cavity | "
                       " reduced_order | "
                       " unsteady_reduced_order |"
                       " convection_diffusion_periodicity |"
@@ -245,6 +250,7 @@ void AllParameters::declare_parameters (dealii::ParameterHandler &prm)
                       "  euler_naca_optimization | "
                       "  shock_1d | "
                       "  euler_naca0012 | "
+                      "  lid_driven_cavity | "
                       "  convection_diffusion_periodicity |"
                       "  reduced_order | "
                       "  unsteady_reduced_order | "
@@ -465,6 +471,7 @@ const std::string test_string = prm.get("test_type");
     else if (test_string == "adaptive_sampling_testing")                { test_type = adaptive_sampling_testing; }
     else if (test_string == "finite_difference_sensitivity")            { test_type = finite_difference_sensitivity; }
     else if (test_string == "euler_naca0012")                           { test_type = euler_naca0012; }
+    else if (test_string == "lid_driven_cavity")                        { test_type = lid_driven_cavity; }
     else if (test_string == "optimization_inverse_manufactured")        { test_type = optimization_inverse_manufactured; }
     else if (test_string == "dual_weighted_residual_mesh_adaptation")   { test_type = dual_weighted_residual_mesh_adaptation; }
     else if (test_string == "anisotropic_mesh_adaptation")              { test_type = anisotropic_mesh_adaptation; }
@@ -589,8 +596,14 @@ const std::string test_string = prm.get("test_type");
     use_invariant_curl_form = prm.get_bool("use_invariant_curl_form");
     use_inverse_mass_on_the_fly = prm.get_bool("use_inverse_mass_on_the_fly");
     check_valid_metric_Jacobian = prm.get_bool("check_valid_metric_Jacobian");
+    use_viscous_br2_entropystable = prm.get_bool("use_viscous_br2_entropystable");
     if(!use_weak_form){
         check_valid_metric_Jacobian = false;
+    }
+    if(use_weak_form && use_viscous_br2_entropystable)
+    {
+        std::cout<<"Viscous entropy stable BR2 is not implemented for Weak DG. Aborting..."<<std::endl;
+        std::abort();
     }
 
     energy_file = prm.get("energy_file");

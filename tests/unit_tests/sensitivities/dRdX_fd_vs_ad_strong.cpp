@@ -210,13 +210,18 @@ int main (int argc, char * argv[])
     Parameters::AllParameters all_parameters;
     all_parameters.parse_parameters (parameter_handler);
     all_parameters.use_weak_form = false;
+    all_parameters.use_split_form = true;
+    all_parameters.use_curvilinear_split_form = true;
+    all_parameters.conv_num_flux_type = Parameters::AllParameters::ConvectiveNumericalFlux::two_point_flux;
     std::vector<PDEType> pde_type {
         //PDEType::diffusion
          PDEType::advection
         // , PDEType::convection_diffusion
         , PDEType::advection_vector
         , PDEType::euler
-       // , PDEType::navier_stokes
+        #if PHILIP_DIM>=2
+        , PDEType::navier_stokes
+        #endif
 //#if PHILIP_DIM==3
 //        , PDEType::physics_model
 //#endif
@@ -227,7 +232,9 @@ int main (int argc, char * argv[])
         // , " PDEType::convection_diffusion "
         , " PDEType::advection_vector "
         , " PDEType::euler "
-      //  , " PDEType::navier_stokes "
+        #if PHILIP_DIM>=2
+        , " PDEType::navier_stokes "
+        #endif
 //#if PHILIP_DIM==3
 //        , " PDEType::physics_model "
 //#endif
@@ -241,7 +248,7 @@ int main (int argc, char * argv[])
         ipde++;
         for (unsigned int poly_degree=1; poly_degree<3; ++poly_degree) {
             for (unsigned int igrid=2; igrid<4; ++igrid) {
-                pcout << "Using " << pde_name[ipde] << std::endl;
+                pcout << "\nUsing " << pde_name[ipde] << std::endl;
                 all_parameters.pde_type = *pde;
                 // Generate grids
                 std::shared_ptr<Triangulation> grid = std::make_shared<Triangulation>(
@@ -268,6 +275,15 @@ int main (int argc, char * argv[])
          || ((*pde==PDEType::physics_model) && (model==ModelType::large_eddy_simulation))
 #endif
                     ) {
+                    //all_parameters.conv_num_flux_type = Parameters::AllParameters::ConvectiveNumericalFlux::l2roe;
+                    //all_parameters.two_point_num_flux_type = Parameters::AllParameters::TwoPointNumericalFlux::KG;
+                    //all_parameters.two_point_num_flux_type = Parameters::AllParameters::TwoPointNumericalFlux::IR;
+                    all_parameters.two_point_num_flux_type = Parameters::AllParameters::TwoPointNumericalFlux::CH;
+                    if(*pde==PDEType::navier_stokes)
+                    {
+                        all_parameters.conv_num_flux_type = Parameters::AllParameters::ConvectiveNumericalFlux::two_point_flux_with_roe_dissipation;
+                        all_parameters.use_viscous_br2_entropystable = true;
+                    }
                     error = test<dim,nspecies,dim+2>(poly_degree, grid, all_parameters);
                 } else if (*pde==PDEType::burgers_inviscid) {
                     error = test<dim,nspecies,dim>(poly_degree, grid, all_parameters);

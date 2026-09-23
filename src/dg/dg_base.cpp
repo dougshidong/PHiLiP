@@ -516,7 +516,7 @@ void DGBase<dim,nspecies,real,MeshType>::assemble_cell_residual_and_ad_derivativ
     {
         if(this->use_auxiliary_eq)
         {
-            pcout<<"ERROR: Implicit does not currently work for strong form with Auxiliary Equation. The added terms dR/dq * dq/du needs to be added. Aborting..."<<std::endl;
+            pcout<<"ERROR: Implicit does not currently work for strong form with Auxiliary Equation. Use strong form with entropy stable viscous DG instead. Aborting..."<<std::endl;
         }
         else
         {

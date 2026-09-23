@@ -402,6 +402,35 @@ public:
     dissipative_flux (
         const std::array<real,nstate> &conservative_soln,
         const std::array<dealii::Tensor<1,dim,real>,nstate> &solution_gradient) const override;
+    
+    /// Dissipative flux based on entropy variables
+    std::array<dealii::Tensor<1,dim,real>,nstate>
+    dissipative_flux_entropy_based (
+        const std::array<real,nstate> &entropy_var,
+        const std::array<dealii::Tensor<1,dim,real>,nstate> &entropy_var_gradient) const override;
+
+    /// Viscous BCs based on entropy variables
+    void boundary_face_values_entropy_var(
+        const dealii::Point<dim,real> &pos,
+        const std::array<real,nstate> & v_int_at_q,
+        const std::array<dealii::Tensor<1,dim,real>,nstate> &poly_sigma_at_q,
+        const std::array<dealii::Tensor<1,dim,real>,nstate> &grad_entropy_var_int_at_q,
+        std::array<real,nstate> & v_bc_at_q,
+        std::array<dealii::Tensor<1,dim,real>,nstate> &sigma_bc_at_q,
+        const dealii::Tensor<1,dim,real> &unit_phys_normal,
+        const unsigned int boundary_id) const override;
+
+    /// Computes dU/dV * input, where U is conservative and V is the entropy variable
+    std::array<dealii::Tensor<1,dim,real>,nstate>
+    apply_d_conservative_var_d_entropy_var(
+        const std::array<dealii::Tensor<1,dim,real>,nstate> & in_vector,
+        const std::array<real,nstate> & entropy_var) const;
+
+    /// Computes dV/dU * input, where U is conservative and V is the entropy variable
+    std::array<dealii::Tensor<1,dim,real>,nstate>
+    apply_d_entropy_var_d_conservative_var(
+        const std::array<dealii::Tensor<1,dim,real>,nstate> & in_vector,
+        const std::array<real,nstate> & entropy_var) const;
 
     /** Gradient of the scaled nondimensionalized viscosity coefficient
      *  Reference: Masatsuka 2018 "I do like CFD", p.148, eq.(4.14.14 and 4.14.17)

@@ -165,6 +165,32 @@ public:
         const std::array<dealii::Tensor<1,dim,real>,nstate> &solution_gradient,
         const dealii::types::global_dof_index cell_index) const = 0;
 
+    /// Dissipative flux based on the entropy variables
+    virtual std::array<dealii::Tensor<1,dim,real>,nstate>
+    dissipative_flux_entropy_based (
+    const std::array<real,nstate> &/*entropy_var*/,
+    const std::array<dealii::Tensor<1,dim,real>,nstate> &/*entropy_var_gradient*/) const
+    {
+        std::cout<<"Not implemented for this PDE. Aborting.."<<std::endl;
+        std::abort();
+    }
+
+    /// BCs to ensure entropy stability at the boundary
+    virtual void boundary_face_values_entropy_var(
+        const dealii::Point<dim,real> &/*pos*/,
+        const std::array<real,nstate> & /*v_int_at_q*/, 
+        const std::array<dealii::Tensor<1,dim,real>,nstate> &/*poly_sigma_at_q*/, 
+        const std::array<dealii::Tensor<1,dim,real>,nstate> &/*grad_entropy_var_int_at_q*/, 
+        std::array<real,nstate> & /*v_bc_at_q*/, 
+        std::array<dealii::Tensor<1,dim,real>,nstate> &/*sigma_bc_at_q*/, 
+        const dealii::Tensor<1,dim,real> &/*unit_phys_normal*/,
+        const unsigned int /*boundary_id*/) const
+    {
+        // Does nothing.
+        std::cout<<"Not implemented for this PDE. Aborting.."<<std::endl;
+        std::abort();
+    }
+
     /// Artificial dissipative fluxes that will be differentiated ONCE in space.
     /** Stems from the Persson2006 paper on subcell shock capturing */
 /*    virtual std::array<dealii::Tensor<1,dim,real>,nstate> artificial_dissipative_flux (

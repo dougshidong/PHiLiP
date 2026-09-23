@@ -907,6 +907,563 @@ std::array<dealii::Tensor<1,dim,real>,nstate> NavierStokes<dim,nspecies,nstate,r
 }
 
 template <int dim, int nspecies, int nstate, typename real>
+std::array<dealii::Tensor<1,dim,real>,nstate> NavierStokes<dim,nspecies,nstate,real>
+::dissipative_flux_entropy_based (
+    const std::array<real,nstate> &entropy_var,
+    const std::array<dealii::Tensor<1,dim,real>,nstate> &entropy_var_gradient) const
+{
+    const std::array<real,nstate> conservative_soln_from_entropy_var = this->compute_conservative_variables_from_entropy_variables (entropy_var);
+    const std::array<real,nstate> primitive_soln = this->template convert_conservative_to_primitive_templated<real>(conservative_soln_from_entropy_var);
+    const real mu = compute_scaled_viscosity_coefficient<real>(primitive_soln); // \mu
+    const real lambda = (-2.0/3.0)*mu; // \lambda from Stokes' hypothesis
+    std::array<std::array<dealii::Tensor<2,dim,real>,nstate>,nstate> K;  // entropy-based diffusion tensor. Defaults to zero. Indexed as K[s1][s2][d1][d2].
+
+    if constexpr(dim==3)
+    {
+        // Equations from Hughes, Thomas JR, Leopaldo P. Franca, and Michel Mallet. "A new finite element formulation for computational fluid dynamics: I. Symmetric forms of the compressible Euler and Navier-Stokes equations and the second law of thermodynamics." Computer methods in applied mechanics and engineering 54.2 (1986): 223-234.
+        //const real v1 = entropy_var[0];
+        const real v2 = entropy_var[1];
+        const real v3 = entropy_var[2];
+        const real v4 = entropy_var[3];
+        const real v5 = entropy_var[4];
+        const real e1 = v2*v5;
+        const real e2 = v3*v5;
+        const real e3 = v4*v5;
+        const real d1 = -v2*v3;
+        const real d2 = -v2*v4;
+        const real d3 = -v3*v4;
+
+        // K11
+        K[1][1][0][0] = -(lambda+2.0*mu)*pow(v5,2);
+        K[4][1][0][0] = (lambda+2.0*mu)*e1;
+
+
+        K[2][2][0][0] = -mu*pow(v5,2);
+        K[4][2][0][0] = mu*e2;
+
+
+        K[3][3][0][0] = -mu*pow(v5,2);
+        K[4][3][0][0] = mu*e3;
+
+
+        K[1][4][0][0] = (lambda+2.0*mu)*e1;
+        K[2][4][0][0] = mu*e2;
+        K[3][4][0][0] = mu*e3;
+        K[4][4][0][0] = -(  (lambda+2.0*mu)*pow(v2,2) + mu*(pow(v3,2)+pow(v4,2))
+                            - this->gam*mu*v5/prandtl_number);
+
+        // K12
+        K[2][1][0][1] = -mu*pow(v5,2);
+        K[4][1][0][1] = mu*e2;
+        K[1][2][0][1] = -lambda*pow(v5,2);
+        K[4][2][0][1] = lambda*e1;
+        K[1][4][0][1] = lambda*e2;
+        K[2][4][0][1] = mu*e1;
+        K[4][4][0][1] = (lambda+mu)*d1;
+
+        // K13
+        K[3][1][0][2] = -mu*pow(v5,2);
+        K[4][1][0][2] = mu*e3;
+        K[1][3][0][2] = -lambda*pow(v5,2);
+        K[4][3][0][2] = lambda*e1;
+        K[1][4][0][2] = lambda*e3;
+        K[3][4][0][2] = mu*e1;
+        K[4][4][0][2] = (lambda+mu)*d2;
+
+
+        // K22
+        K[1][1][1][1] = -mu*pow(v5,2);
+        K[4][1][1][1] = mu*e1;
+        K[2][2][1][1] = -(lambda + 2.0*mu)*pow(v5,2);
+        K[4][2][1][1] = (lambda+2.0*mu)*e2;
+        K[3][3][1][1] = -mu*pow(v5,2);
+        K[4][3][1][1] = mu*e3;
+        K[1][4][1][1] = mu*e1;
+        K[2][4][1][1] = (lambda+2.0*mu)*e2;
+        K[3][4][1][1] = mu*e3;
+        K[4][4][1][1] = -(  (lambda+2.0*mu)*pow(v3,2) + mu*(pow(v2,2)+pow(v4,2))
+                            - this->gam*mu*v5/prandtl_number   );
+
+
+        // K23
+        K[3][2][1][2] = -mu*pow(v5,2);
+        K[4][2][1][2] = mu*e3;
+        K[2][3][1][2] = -lambda*pow(v5,2);
+        K[4][3][1][2] = lambda*e2;
+        K[2][4][1][2] = lambda*e3;
+        K[3][4][1][2] = mu*e2;
+        K[4][4][1][2] = (lambda+mu)*d3;
+
+        // K33
+        K[1][1][2][2] = -mu*pow(v5,2);
+        K[4][1][2][2] = mu*e1;
+        K[2][2][2][2] = -mu*pow(v5,2);
+        K[4][2][2][2] = mu*e2;
+        K[3][3][2][2] = -(lambda+2.0*mu)*pow(v5,2);
+        K[4][3][2][2] = (lambda+2.0*mu)*e3;
+        K[1][4][2][2] = mu*e1;
+        K[2][4][2][2] = mu*e2;
+        K[3][4][2][2] = (lambda+2.0*mu)*e3;
+        K[4][4][2][2] =  -(  (lambda+2.0*mu)*pow(v4,2) + mu*(pow(v2,2)+pow(v3,2))
+                            - this->gam*mu*v5/prandtl_number   );
+        for(unsigned int s1 = 0; s1<nstate; ++s1)
+        {
+            for(unsigned int s2 = 0; s2<nstate; ++s2)
+            {
+                K[s1][s2] /= pow(v5,3);
+            }
+        }
+    }
+    else if constexpr(dim==2)
+    {
+        // Expressions from Chan, Jesse, Yimin Lin, and Tim Warburton. "Entropy stable modal discontinuous Galerkin schemes and wall boundary conditions for the compressible Navier-Stokes equations." Journal of Computational Physics 448 (2022).
+        //const real v1 = entropy_var[0];
+        const real v2 = entropy_var[1];
+        const real v3 = entropy_var[2];
+        const real v4 = entropy_var[3];
+        // K11
+        K[1][1][0][0] = -(lambda+2.0*mu)*pow(v4,2);
+        K[3][1][0][0] = (lambda + 2.0*mu)*v2*v4;
+        K[2][2][0][0] = -mu*pow(v4,2);
+        K[3][2][0][0] = mu*v3*v4;
+        K[1][3][0][0] = (lambda + 2.0*mu)*v2*v4;
+        K[2][3][0][0] = mu*v3*v4;
+        K[3][3][0][0] = -( (lambda+2.0*mu)*pow(v2,2) + mu*pow(v3,2) - this->gam*mu*v4/prandtl_number );
+
+        // K12
+        K[2][1][0][1] = -mu*pow(v4,2);
+        K[3][1][0][1] = mu*v3*v4;
+        K[1][2][0][1] = -lambda*pow(v4,2);
+        K[3][2][0][1] = lambda*v2*v4;
+        K[1][3][0][1] = lambda*v3*v4;
+        K[2][3][0][1] = mu*v2*v4;
+        K[3][3][0][1] = (lambda+mu)*(-v2*v3);
+
+        // K22
+        K[1][1][1][1] = -mu*pow(v4,2);
+        K[3][1][1][1] = mu*v2*v4;
+        K[2][2][1][1] = -(lambda+2.0*mu)*pow(v4,2);
+        K[3][2][1][1] = (lambda+2.0*mu)*v3*v4;
+        K[1][3][1][1] = mu*v2*v4;
+        K[2][3][1][1] = (lambda+2.0*mu)*v3*v4;
+        K[3][3][1][1] =  -( (lambda+2.0*mu)*pow(v3,2) + mu*pow(v2,2) - this->gam*mu*v4/prandtl_number );
+
+        for(unsigned int s1 = 0; s1<nstate; ++s1)
+        {
+            for(unsigned int s2 = 0; s2<nstate; ++s2)
+            {
+                K[s1][s2] /= pow(v4,3);
+            }
+        }
+    }
+    else
+    {
+        std::cout<<"Not yet implemented for dim=1: NavierStokes<dim,nstate,real>::dissipative_flux_entropy_based()"<<std::endl;
+        std::abort();
+    }
+    // Fill up remaining tensors by symmetry: K21, K31, K32
+    for(unsigned int d1 =1; d1<dim; ++d1)
+    {
+        for(unsigned int d2 =0; d2<d1; ++d2)
+        {
+            for(unsigned int s1 =0; s1<nstate; ++s1)
+            {
+                for(unsigned int s2=0; s2<nstate; ++s2)
+                {
+                    K[s1][s2][d1][d2] = K[s2][s1][d2][d1];
+                }
+            }
+        }
+    }
+
+
+    // Compute viscous flux
+    std::array<dealii::Tensor<1,dim,real>,nstate> viscous_flux; // initialized to zero by default
+    for(unsigned int d1 =0; d1<dim; ++d1)
+    {
+        for(unsigned int d2 =0; d2<dim; ++d2)
+        {
+            for(unsigned int s1 =0; s1<nstate; ++s1)
+            {
+                for(unsigned int s2=0; s2<nstate; ++s2)
+                {
+                    viscous_flux[s1][d1] += K[s1][s2][d1][d2]*entropy_var_gradient[s2][d2];
+                }
+            }
+        }
+    }
+
+    (void) lambda;
+    return viscous_flux;
+}
+
+
+template <int dim, int nspecies, int nstate, typename real>
+std::array<dealii::Tensor<1,dim,real>,nstate> NavierStokes<dim,nspecies,nstate,real>
+::apply_d_entropy_var_d_conservative_var(
+    const std::array<dealii::Tensor<1,dim,real>,nstate> & in_vector,
+    const std::array<real,nstate> & entropy_var) const
+{
+
+    std::array<std::array<real,nstate>,nstate> dVdU;
+    if constexpr(dim==3)
+    {
+        // Equations from Hughes, Thomas JR, Leopaldo P. Franca, and Michel Mallet. "A new finite element formulation for computational fluid dynamics: I. Symmetric forms of the compressible Euler and Navier-Stokes equations and the second law of thermodynamics." Computer methods in applied mechanics and engineering 54.2 (1986): 223-234.
+        const real v1 = entropy_var[0];
+        const real v2 = entropy_var[1];
+        const real v3 = entropy_var[2];
+        const real v4 = entropy_var[3];
+        const real v5 = entropy_var[4];
+        const real entrops = this->gam - v1 + 0.5*(v2*v2 + v3*v3 + v4*v4)/v5;
+        const real rhoe = pow(this->gamm1/pow(-v5,this->gam),1/this->gamm1)*exp(-entrops/this->gamm1);
+
+        const real e1 = v2*v5;
+
+        const real e2 = v3*v5;
+
+        const real e3 = v4*v5;
+
+        const real k1 = 0.5*(v2*v2 + v3*v3 + v4*v4)/v5;
+
+        const real d1 = -v2*v3;
+        const real d2 = -v2*v4;
+        const real d3 = -v3*v4;
+
+
+        dVdU[0][0] = k1*k1 + this->gam; dVdU[0][1] = k1*v2; dVdU[0][2] = k1*v3; dVdU[0][3] = k1*v4; dVdU[0][4] = (k1+1)*v5;
+        dVdU[1][1] = v2*v2-v5; dVdU[1][2] = -d1; dVdU[1][3] = -d2; dVdU[1][4] = e1;
+        dVdU[2][2] = v3*v3-v5; dVdU[2][3] = -d3; dVdU[2][4] = e2;
+        dVdU[3][3] = v4*v4-v5; dVdU[3][4] = e3;
+        dVdU[4][4] = v5*v5;
+        const real factor_dVdU =  -1.0/(rhoe*v5);
+
+
+        for(unsigned int i=0; i<nstate; ++i)
+        {
+            for(unsigned j=0; j<nstate; ++j)
+            {
+                if(i>j)
+                    dVdU[i][j] = dVdU[j][i];
+            }
+        }
+
+
+        for(unsigned int i=0; i<nstate; ++i)
+        {
+            for(unsigned j=0; j<nstate; ++j)
+            {
+                dVdU[i][j]*=factor_dVdU;
+            }
+        }
+    }
+    else if constexpr(dim==2)
+    {
+        const real v1 = entropy_var[0];
+        const real v2 = entropy_var[1];
+        const real v3 = entropy_var[2];
+        const real v4 = entropy_var[3];
+        const real entrops = this->gam - v1 + 0.5*(v2*v2 + v3*v3)/v4;
+        const real rhoe = pow(this->gamm1/pow(-v4,this->gam),1/this->gamm1)*exp(-entrops/this->gamm1);
+
+        const real e1 = v2*v4;
+
+        const real e2 = v3*v4;
+
+        const real k1 = 0.5*(v2*v2 + v3*v3)/v4;
+
+        const real d1 = -v2*v3;
+
+
+        dVdU[0][0] = k1*k1 + this->gam; dVdU[0][1] = k1*v2; dVdU[0][2] = k1*v3; dVdU[0][3] = (k1+1)*v4;
+        dVdU[1][1] = v2*v2-v4; dVdU[1][2] = -d1; dVdU[1][3] = e1;
+        dVdU[2][2] = v3*v3-v4; dVdU[2][3] = e2;
+        dVdU[3][3] = v4*v4;
+        const real factor_dVdU =  -1.0/(rhoe*v4);
+        for(unsigned int i=0; i<nstate; ++i)
+        {
+            for(unsigned j=0; j<nstate; ++j)
+            {
+                if(i>j)
+                    dVdU[i][j] = dVdU[j][i];
+            }
+        }
+
+
+        for(unsigned int i=0; i<nstate; ++i)
+        {
+            for(unsigned j=0; j<nstate; ++j)
+            {
+                dVdU[i][j]*=factor_dVdU;
+            }
+        }
+
+
+    }
+    else
+    {
+        std::cout<<"Not yet implemented"<<std::endl;
+        std::abort();
+    }
+
+
+        // Note: Assumes gradient is just the interior gradient. Gradient information is only used for the wall BC above.
+    std::array<dealii::Tensor<1,dim,real>,nstate> out_vector;
+    for(unsigned int i=0; i<nstate; ++i)
+    {
+        for(unsigned int j=0; j<nstate; ++j)
+        {
+            for(unsigned int d=0; d<dim; ++d)
+            {
+                out_vector[i][d] += dVdU[i][j]*in_vector[j][d];
+            }
+        }
+    }
+    return out_vector;
+}
+
+
+template <int dim, int nspecies, int nstate, typename real>
+std::array<dealii::Tensor<1,dim,real>,nstate> NavierStokes<dim,nspecies,nstate,real>
+::apply_d_conservative_var_d_entropy_var(
+    const std::array<dealii::Tensor<1,dim,real>,nstate> & in_vector,
+    const std::array<real,nstate> & entropy_var) const
+{
+    std::array<std::array<real,nstate>,nstate> dUdV;
+    if constexpr(dim==3)
+    {
+        const real v1 = entropy_var[0];
+        const real v2 = entropy_var[1];
+        const real v3 = entropy_var[2];
+        const real v4 = entropy_var[3];
+        const real v5 = entropy_var[4];
+        const real entrops = this->gam - v1 + 0.5*(v2*v2 + v3*v3 + v4*v4)/v5;
+        const real rhoe = pow(this->gamm1/pow(-v5,this->gam),1/this->gamm1)*exp(-entrops/this->gamm1);
+
+        const real e1 = v2*v5;
+
+        const real e2 = v3*v5;
+
+        const real e3 = v4*v5;
+
+        const real k1 = 0.5*(v2*v2 + v3*v3 + v4*v4)/v5;
+
+        const real k2 = k1-this->gam;
+
+        const real k3 = k1*k1 - 2*this->gam*k1 + this->gam;
+
+        const real c1 = this->gamm1*v5 - v2*v2;
+        const real c2 = this->gamm1*v5 - v3*v3;
+        const real c3 = this->gamm1*v5 - v4*v4;
+
+        const real d1 = -v2*v3;
+        const real d2 = -v2*v4;
+        const real d3 = -v3*v4;
+
+
+        dUdV[0][0] = -v5*v5; dUdV[0][1] = e1; dUdV[0][2] = e2; dUdV[0][3] = e3; dUdV[0][4] = v5*(1-k1);
+        dUdV[1][1] = c1; dUdV[1][2] = d1; dUdV[1][3] = d2; dUdV[1][4] = v2*k2;
+        dUdV[2][2] = c2; dUdV[2][3] = d3; dUdV[2][4] = v3*k2;
+        dUdV[3][3] = c3; dUdV[3][4] = v4*k2;
+        dUdV[4][4] = -k3;
+        const real factor_dUdV = rhoe/(this->gamm1*v5);
+
+
+        for(unsigned int i=0; i<nstate; ++i)
+        {
+            for(unsigned j=0; j<nstate; ++j)
+            {
+                if(i>j)
+                    dUdV[i][j] = dUdV[j][i];
+            }
+        }
+
+        for(unsigned int i=0; i<nstate; ++i)
+        {
+            for(unsigned j=0; j<nstate; ++j)
+            {
+                dUdV[i][j]*=factor_dUdV;
+            }
+        }
+
+
+    }
+    else if constexpr(dim==2)
+    {
+        const real v1 = entropy_var[0];
+        const real v2 = entropy_var[1];
+        const real v3 = entropy_var[2];
+        const real v4 = entropy_var[3];
+        const real entrops = this->gam - v1 + 0.5*(v2*v2 + v3*v3)/v4;
+        const real rhoe = pow(this->gamm1/pow(-v4,this->gam),1/this->gamm1)*exp(-entrops/this->gamm1);
+
+        const real e1 = v2*v4;
+
+        const real e2 = v3*v4;
+
+        const real k1 = 0.5*(v2*v2 + v3*v3)/v4;
+
+        const real k2 = k1-this->gam;
+
+        const real k3 = k1*k1 - 2*this->gam*k1 + this->gam;
+
+        const real c1 = this->gamm1*v4 - v2*v2;
+        const real c2 = this->gamm1*v4 - v3*v3;
+
+        const real d1 = -v2*v3;
+
+        dUdV[0][0] = -v4*v4; dUdV[0][1] = e1; dUdV[0][2] = e2; dUdV[0][3] = v4*(1-k1);
+        dUdV[1][1] = c1; dUdV[1][2] = d1; dUdV[1][3] = v2*k2;
+        dUdV[2][2] = c2; dUdV[2][3] = v3*k2;
+        dUdV[3][3] = -k3;
+        const real factor_dUdV = rhoe/(this->gamm1*v4);
+        for(unsigned int i=0; i<nstate; ++i)
+        {
+            for(unsigned j=0; j<nstate; ++j)
+            {
+                if(i>j)
+                    dUdV[i][j] = dUdV[j][i];
+            }
+        }
+        for(unsigned int i=0; i<nstate; ++i)
+        {
+            for(unsigned j=0; j<nstate; ++j)
+            {
+                dUdV[i][j]*=factor_dUdV;
+            }
+        }
+    }
+    else
+    {
+        std::cout<<"Not yet implemented"<<std::endl;
+        std::abort();
+    }
+
+
+    std::array<dealii::Tensor<1,dim,real>,nstate> out_vector;
+    for(unsigned int i=0; i<nstate; ++i)
+    {
+        for(unsigned int j=0; j<nstate; ++j)
+        {
+            for(unsigned int d=0; d<dim; ++d)
+            {
+                out_vector[i][d] += dUdV[i][j]*in_vector[j][d];
+            }
+        }
+    }
+    return out_vector;
+}
+
+template <int dim, int nspecies, int nstate, typename real>
+void NavierStokes<dim,nspecies,nstate,real>
+::boundary_face_values_entropy_var(
+    const dealii::Point<dim,real> &pos,
+    const std::array<real,nstate> & v_int_at_q,
+    const std::array<dealii::Tensor<1,dim,real>,nstate> &poly_sigma_at_q,
+    const std::array<dealii::Tensor<1,dim,real>,nstate> &grad_entropy_var_int_at_q,
+    std::array<real,nstate> & v_bc_at_q,
+    std::array<dealii::Tensor<1,dim,real>,nstate> &sigma_bc_at_q,
+    const dealii::Tensor<1,dim,real> &unit_phys_normal,
+    const unsigned int boundary_id) const
+{
+    // Note: Computes v_bc as the actual entropy var at the boundary.
+    // Entropy stable BCs adapted from Chan, Jesse, Yimin Lin, and Tim Warburton. "Entropy stable modal discontinuous Galerkin schemes and wall boundary conditions for the compressible Navier-Stokes equations." Journal of Computational Physics 448 (2022): 110723.
+    if(boundary_id==1001)//Adiabatic wall boundary zero velocity
+    {
+        for(unsigned int s=0; s<nstate-1; ++s)
+        {
+            for(unsigned int d=0; d<dim; ++d)
+            {
+                sigma_bc_at_q[s][d] = poly_sigma_at_q[s][d];
+            }
+        }
+
+
+        for(unsigned int d=0; d<dim; ++d)
+        {
+            sigma_bc_at_q[nstate-1][d] = 0.0;
+        }
+
+
+        v_bc_at_q[0] = v_int_at_q[0];
+        for(unsigned int i=1; i<=dim; ++i)
+        {
+            v_bc_at_q[i] = 0.0;
+        }
+        v_bc_at_q[nstate-1] = v_int_at_q[nstate-1];
+    }
+    else if(boundary_id == 1010) // Moving adiabatic wall boundary
+    {
+        for(unsigned int s=0; s<nstate-1; ++s)
+        {
+            for(unsigned int d=0; d<dim; ++d)
+            {
+                sigma_bc_at_q[s][d] = poly_sigma_at_q[s][d];
+            }
+        }
+        std::array<real,dim> v_wall;
+        v_wall.fill(0.0);
+        v_wall[0] = 1.0;
+
+
+        for(unsigned int d=0; d<dim; ++d)
+        {
+            sigma_bc_at_q[nstate-1][d] = 0.0;
+            for(unsigned int d2 = 0; d2<dim; ++d2)
+            {
+                sigma_bc_at_q[nstate-1][d] += v_wall[d2]*poly_sigma_at_q[1+d2][d];
+            }
+        }
+
+        v_bc_at_q[0] = v_int_at_q[0];
+        for(unsigned int i=1; i<=dim; ++i)
+        {
+            v_bc_at_q[i] = -v_wall[i-1]*v_int_at_q[nstate-1];
+        }
+        v_bc_at_q[nstate-1] = v_int_at_q[nstate-1];
+    }
+    else
+    {
+        const std::array<real,nstate> soln_int = this->compute_conservative_variables_from_entropy_variables (v_int_at_q);
+        const std::array<dealii::Tensor<1,dim,real>,nstate> soln_grad_int = apply_d_conservative_var_d_entropy_var(grad_entropy_var_int_at_q, v_int_at_q);
+        /*
+        //=============================================================================
+        // Test flux
+        std::array<dealii::Tensor<1,dim,real>,nstate> expected_dissipative_flux = dissipative_flux(soln_int, soln_grad_int);
+        real errorval = 0.0;
+        sigma_bc_at_q = dissipative_flux_entropy_based (v_int_at_q, grad_entropy_var_int_at_q);
+        for(unsigned int s=0; s<nstate; ++s)
+        {
+            for(unsigned int d=0; d<dim; ++d)
+            {
+                errorval += pow((sigma_bc_at_q[s][d] - (-expected_dissipative_flux[s][d])),2);
+            }
+        }
+        errorval = sqrt(errorval);
+        if(errorval > 1.0e-10)
+        {
+            std::cout<<"High errorval = "<<errorval<<" . Aborting.."<<std::endl;
+            std::abort();
+        }
+        //==============================================================================
+        */
+        std::array<real,nstate> soln_bc;
+        std::array<dealii::Tensor<1,dim,real>,nstate> soln_grad_bc;
+        this->boundary_face_values (
+           boundary_id,
+           pos,
+           unit_phys_normal,
+           soln_int,
+           soln_grad_int,
+           soln_bc,
+           soln_grad_bc);
+
+        v_bc_at_q = this->compute_entropy_variables(soln_bc);
+        std::array<dealii::Tensor<1,dim,real>,nstate> grad_entropyvar_bc = apply_d_entropy_var_d_conservative_var(soln_grad_bc,v_bc_at_q);
+        sigma_bc_at_q = dissipative_flux_entropy_based (v_bc_at_q, grad_entropyvar_bc);
+    }
+}
+
+template <int dim, int nspecies, int nstate, typename real>
 dealii::Tensor<1,dim,real> NavierStokes<dim,nspecies,nstate,real>
 ::compute_scaled_viscosity_gradient (
     const std::array<real,nstate> &primitive_soln,

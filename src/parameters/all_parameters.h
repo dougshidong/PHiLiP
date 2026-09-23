@@ -157,6 +157,9 @@ public:
 
     /// Flag to check if the metric Jacobian is valid when high-order grid is constructed.
     bool check_valid_metric_Jacobian;
+    
+    /// Flag to use entropy stable viscous BR2.
+    bool use_viscous_br2_entropystable;
 
     /// Energy file.
     std::string energy_file;
@@ -188,6 +191,7 @@ public:
         euler_naca_optimization,
         shock_1d,
         euler_naca0012,
+        lid_driven_cavity,
         reduced_order,
         unsteady_reduced_order,
         convection_diffusion_periodicity,

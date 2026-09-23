@@ -1571,6 +1571,18 @@ void Euler<dim,nspecies,nstate,real>
         // Boundary specific to the the astrophysical jet case
         boundary_astrophysical_inflow (soln_bc);
     }
+    else if (boundary_type == 1010)
+    {
+        // Moving wall BC
+        // Note: Convective flux uses the same BC as solid slip wall. The dissipative flux uses a different BC to account for the moving wall.
+        // With this boundary_type, a different BC is used in NavierStokes::boundary_face_values_entropy_var() for the viscous terms. 
+        boundary_wall (normal_int, soln_int, soln_grad_int, soln_bc, soln_grad_bc);
+        if(! this->all_parameters->use_viscous_br2_entropystable)
+        {
+            std::cout<<"Boundary type 1010 is only implemented for use_viscous_br2_entropystable = true. Aborting..."<<std::endl;
+            std::abort();
+        }
+    }
     else {
         this->pcout << "Invalid boundary_type: " << boundary_type << std::endl;
         std::abort();

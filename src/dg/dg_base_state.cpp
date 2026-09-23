@@ -193,7 +193,9 @@ void DGBaseState<dim,nspecies,nstate,real,MeshType>::set_unsteady_model_time_ste
 
 template <int dim, int nspecies, int nstate, typename real, typename MeshType>
 void DGBaseState<dim, nspecies, nstate, real, MeshType>::set_use_auxiliary_eq() {
-    this->use_auxiliary_eq = (pde_physics_double->has_nonzero_diffusion && !this->all_parameters->use_weak_form) ? true : false;
+    this->use_auxiliary_eq = (pde_physics_double->has_nonzero_diffusion && 
+                              !this->all_parameters->use_weak_form &&
+                              !this->all_parameters->use_viscous_br2_entropystable) ? true : false;
 }
 
 template <int dim, int nspecies, int nstate, typename real, typename MeshType>

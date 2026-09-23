@@ -196,6 +196,18 @@ public:
             const dealii::FullMatrix<double> &basis_z,
             const bool adding = false,
             const double factor = 1.0);
+    
+    /// Inner product function that takes in an ADtype for the weights
+    template <typename real>
+    void inner_product_JxW(
+            const std::vector<real> &input_vect,
+            const std::vector<real> &weight_vect,
+            std::vector<real> &output_vect,
+            const dealii::FullMatrix<double> &basis_x,
+            const dealii::FullMatrix<double> &basis_y,
+            const dealii::FullMatrix<double> &basis_z,
+            const bool adding = false,
+            const double factor = 1.0);
 
 
     ///Computes the divergence of the 2pt flux Hadamard products, then sums the rows.
@@ -300,6 +312,16 @@ public:
             const dealii::FullMatrix<double> &basis_x,
             const bool adding  = false,
             const double factor = 1.0);
+    
+    /// Apply the inner product operation using the 1D operator in each direction. Takes in Adtype for the weights.
+    template <typename real>
+    void inner_product_1D_JxW(
+            const std::vector<real> &input_vect,
+            const std::vector<real> &weight_vect,
+            std::vector<real> &output_vect,
+            const dealii::FullMatrix<double> &basis_x,
+            const bool adding  = false,
+            const double factor = 1.0);
 
     /// Apply sum-factorization matrix vector multiplication on a surface.
     /** Often times we have to interpolate to a surface, where in multiple dimensions,
@@ -326,6 +348,19 @@ public:
             const unsigned int face_number,
             const std::vector<real> &input_vect,
             const std::vector<double> &weight_vect,
+            std::vector<real> &output_vect,
+            const std::array<dealii::FullMatrix<double>,2> &basis_surf,//only 2 faces in 1D
+            const dealii::FullMatrix<double> &basis_vol,
+            const bool adding = false,
+            const double factor = 1.0);
+    
+    /// Apply sum-factorization inner product on a surface. Takes in Adtype for the weights.
+    template <typename real>
+    void inner_product_surface_1D_JxW(
+            const std::vector<bool> face_orientation,
+            const unsigned int face_number,
+            const std::vector<real> &input_vect,
+            const std::vector<real> &weight_vect,
             std::vector<real> &output_vect,
             const std::array<dealii::FullMatrix<double>,2> &basis_surf,//only 2 faces in 1D
             const dealii::FullMatrix<double> &basis_vol,
@@ -1166,6 +1201,13 @@ public:
         const dealii::Tensor<1,dim,std::vector<real>> &phys,
         const dealii::Tensor<2,dim,std::vector<real>> &metric_cofactor,
         dealii::Tensor<1,dim,std::vector<real>> &ref);
+
+    /// Transform reference gradient to physical gradient.
+    void transform_reference_to_physical_grad_vector(
+        const dealii::Tensor<1,dim,std::vector<real>> &ref,
+        const dealii::Tensor<2,dim,std::vector<real>> &metric_cofactor,
+        const std::vector<real> &jac_det,
+        dealii::Tensor<1,dim,std::vector<real>> &phys);
 
     ///Given a reference tensor, return the physical tensor.
     void transform_reference_unit_normal_to_physical_unit_normal(
